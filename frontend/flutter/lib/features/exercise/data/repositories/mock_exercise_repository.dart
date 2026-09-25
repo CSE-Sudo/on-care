@@ -1,4 +1,5 @@
 import 'package:demo_fixture/demo_fixture.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
@@ -9,6 +10,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 
 /// In-memory stateful mock for demo mode (`useMockApi`). The week it starts
 /// from is **김민수의 공유 픽스처**(`shared/demo_fixture`)이고, 그 위에서
@@ -31,16 +33,22 @@ class MockExerciseRepository implements ExerciseRepository {
   ///
   /// [shields] 를 주면 보호한 날에 기록이 생겼을 때 보호권을 되돌린다(#1788) —
   /// 사용처 목업 API 와 같은 원장이다. 연속 일수는 보호권과 상관없이 운동만 센다.
+  ///
+  /// [routineDays] 는 기간의 날마다 걸려 있던 추천 개인운동과 그날 완료를 준다
+  /// (#2161). 목업 코치 저장소가 들고 있는 것이라 부를 때 빌려 온다 — 운동 AI
+  /// 맞춤 조언(#2162)이 추천 운동을 보고 말하는 재료다. 없으면 빈 목록이다.
   MockExerciseRepository({
     DateTime? today,
     DemoFixture? fixture,
     DemoPointsLedger? points,
     DemoStreakShieldBook? shields,
+    List<RoutineDay> Function(DateTime from, DateTime to)? routineDays,
   }) : _today = _dateOnly(today ?? nowKst()),
        _todayIdx = (today ?? nowKst()).weekday - 1,
        _fixture = fixture ?? DemoFixture.load(),
        _points = points,
-       _shields = shields {
+       _shields = shields,
+       _routineDays = routineDays {
     _sessions.addAll(_sessionsForWeek(0));
     _totalCalories = _sessions.fold<int>(
       0,
@@ -173,12 +181,45 @@ class MockExerciseRepository implements ExerciseRepository {
     return _pastWeek(weeksAgo);
   }
 
+  final List<RoutineDay> Function(DateTime from, DateTime to)? _routineDays;
+
+  /// [from]~[to] 의 날마다 걸려 있던 추천 개인운동과 그날 완료 — 날짜순. (#2161)
+  ///
+  /// 실서버의 `trainer_service.member_routine_days` 와 같은 모양이다. 운동 AI 맞춤
+  /// 조언(#2162)이 "다음에 할 운동"·"유형 쏠림"·"자주 빠진 운동" 을 셀 때 읽는다.
+  List<RoutineDay> routineDaysBetween(DateTime from, DateTime to) =>
+      _routineDays?.call(from, to) ?? const <RoutineDay>[];
+
   @override
-  Future<String> fetchAdvice(String period) async {
+  Future<ExerciseAdvice> fetchAdvice(String period) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     // 문장 규칙은 서버(`exercise_service.period_coach_message`)의 것을 그대로
     // 쓴다 — 데모로 본 화면과 실 연동으로 본 화면이 다른 말을 하면 안 된다.
-    return exercisePeriodAdvice(_dayTotals(period), period);
+    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162). 문장 키·값도 서버와
+    // 같아서 화면이 자기 언어로 그린다(#2210).
+    return exercisePeriodAdviceOf(
+      _dayTotals(period),
+      period,
+      routineDays: <RoutineAdviceDay>[
+        for (final RoutineDay day in routineDaysBetween(
+          routineAdviceFetchStart(period, _today),
+          _today,
+        ))
+          (
+            date: day.date,
+            routines: <RoutineAdviceItem>[
+              for (final CoachRoutine r in day.routines)
+                (
+                  name: r.name,
+                  type: r.type,
+                  minutes: r.minutes,
+                  done: r.completed,
+                  completedMinutes: r.completedMinutes,
+                ),
+            ],
+          ),
+      ],
+    );
   }
 
   /// 기간이 덮는 날들의 하루 합계. **기록이 있는 날만** 만든다 — 쉰 날과 적지

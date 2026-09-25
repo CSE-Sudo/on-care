@@ -171,13 +171,14 @@ void main() {
 
     await tester.tap(card('김민수'));
     await settle(tester);
-    expect(find.textContaining('4,657', findRichText: true), findsWidgets);
+    // 김민수의 오늘 탄수화물 111.6g — 영양 요약 카드에만 뜨는 값이다.
+    expect(find.textContaining('111.6', findRichText: true), findsWidgets);
 
     await scrollToCard(tester, '이지수');
     await tester.tap(card('이지수'));
     await settle(tester);
 
-    expect(find.textContaining('4,657', findRichText: true), findsNothing);
+    expect(find.textContaining('111.6', findRichText: true), findsNothing);
     // Still embedded — no full-screen push happened.
     expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
   });
@@ -208,21 +209,21 @@ void main() {
   testWidgets('the section stays put when switching clients', (tester) async {
     await openWide(tester);
 
-    // Open 식단 for 김민수 (4,657mg — appears on the summary card and as
-    // the last sodium-trend bar label, so match ≥1)…
+    // Open 식단 for 김민수 (탄수화물 111.6g — the summary card's carbs bar)…
     await goTo(
       tester,
       AppRoutes.clientDetail('seed-client-1', section: 'diet'),
     );
     expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
-    expect(find.textContaining('4,657', findRichText: true), findsWidgets);
+    expect(find.textContaining('111.6', findRichText: true), findsWidgets);
 
-    // …switch to 박성호: same sub-tab, his data (2,400mg).
+    // …switch to 박성호: same sub-tab, his data (2,100kcal).
     await scrollToCard(tester, '박성호');
     await tester.tap(card('박성호'));
     await settle(tester);
     expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
-    expect(find.textContaining('2,400', findRichText: true), findsWidgets);
+    expect(find.textContaining('2,100', findRichText: true), findsWidgets);
+    expect(find.textContaining('111.6', findRichText: true), findsNothing);
   });
 
   testWidgets('고른 정렬은 회원을 열어도 그대로다 (#816)', (tester) async {

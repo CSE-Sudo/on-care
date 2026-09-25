@@ -150,6 +150,10 @@ class FixtureRoutine:
     #: 쓴다. (#1969)
     hold_seconds: int | None = None
     weight: float | None = None
+    #: 트레이너가 권하는 강도 — `light` | `moderate` | `high`. (#2160)
+    #: 회원 앱이 추천 개인운동 줄에 그대로 적는다. 적지 않은 픽스처는 모델
+    #: 기본값과 같은 `moderate` 로 읽힌다.
+    intensity: str = "moderate"
 
 
 @dataclass(frozen=True)
@@ -245,6 +249,7 @@ class DemoFixture:
                 reps=item.get("reps"),
                 hold_seconds=item.get("holdSeconds"),
                 weight=item.get("weight"),
+                intensity=item.get("intensity", "moderate"),
             )
             for item in payload.get("routines", ())
         )

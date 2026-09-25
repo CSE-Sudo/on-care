@@ -92,6 +92,7 @@ class _MainShellState extends ConsumerState<MainShell>
     ref.invalidate(dietRecommendationsProvider);
     ref.invalidate(exerciseWeekProvider);
     ref.invalidate(coachRoutinesProvider);
+    ref.invalidate(coachRoutinesOnDayProvider);
     ref.invalidate(coachSessionsProvider);
   }
 
@@ -111,6 +112,9 @@ class _MainShellState extends ConsumerState<MainShell>
       case 2:
         ref.invalidate(exerciseWeekProvider);
         ref.invalidate(coachRoutinesProvider);
+        // 지난 날짜 목록도 — 탭을 떠난 사이 날이 바뀌면 오늘 체크가 어제 것이
+        // 된다(#2161).
+        ref.invalidate(coachRoutinesOnDayProvider);
         ref.invalidate(coachSessionsProvider);
         break;
       default:
@@ -266,6 +270,7 @@ class _RecordAddSheet extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return AppSheet(
       key: const Key('recordAddSheet'),
+      showClose: false,
       title: l.navAddRecordTitle,
       subtitle: l.navAddRecordSubtitle,
       // 시트는 화면 끝까지 내려오므로, 홈 인디케이터가 있는 기기에서는 그만큼을

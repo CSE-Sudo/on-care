@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
@@ -18,6 +19,7 @@ import 'package:oncare/features/exercise/domain/repositories/exercise_repository
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 저장 요청을 그대로 받아 두는 대역. 무엇이 실려 갔는지만 본다.
 class _CapturingRepository implements ExerciseRepository {
@@ -33,7 +35,8 @@ class _CapturingRepository implements ExerciseRepository {
   String? updatedId;
 
   @override
-  Future<String> fetchAdvice(String period) async => '조언';
+  Future<ExerciseAdvice> fetchAdvice(String period) async =>
+      const ExerciseAdvice(message: '조언');
 
   @override
   Future<ExerciseWeek> fetchThisWeek() async => _emptyWeek;
@@ -449,6 +452,9 @@ void main() {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
     await _typeName(tester, '아침 러닝');
+
+    // 닫기 X 가 없으니 `취소` 가 창을 닫는 유일한 버튼이다(#2170).
+    expect(find.byType(AppCloseButton), findsNothing);
 
     await tester.tap(find.byKey(const Key('exerciseCancelButton')));
     await tester.pumpAndSettle();

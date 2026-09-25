@@ -180,6 +180,14 @@ void main() {
         widget.decoration?.hintText == '회원에게 전달할 코칭 피드백을 작성하세요.',
   );
 
+  /// 피드백 카드 제목 줄의 되돌리기·다시 실행 화살표(#2187).
+  final Finder undoFeedback = find.byKey(
+    const ValueKey<String>('report-feedback-undo'),
+  );
+  final Finder redoFeedback = find.byKey(
+    const ValueKey<String>('report-feedback-redo'),
+  );
+
   /// 리포트 카드 제목 줄의 주 이동 화살표. 헤더가 아니라 카드 안에 있다(#1177).
   /// 공용 `AppPeriodNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
   final Finder prevWeek = find.descendant(
@@ -1192,7 +1200,7 @@ void main() {
     );
   });
 
-  testWidgets('가져온 요약을 초안으로 되돌린다 (#755)', (tester) async {
+  testWidgets('가져온 요약은 되돌리기로 가져오기 전 글로 돌아간다 (#755, #2187)', (tester) async {
     await openReports(tester);
 
     final field = find.byWidgetPredicate(
@@ -1201,9 +1209,7 @@ void main() {
     final draft = tester.widget<TextField>(field).controller!.text;
 
     // 되돌릴 것이 없으면 버튼은 꺼져 있다.
-    AppButton restore() =>
-        tester.widget<AppButton>(find.widgetWithText(AppButton, '초안으로 되돌리기'));
-    expect(restore().onPressed, isNull);
+    expect(tester.widget<AppIconButton>(undoFeedback).onPressed, isNull);
 
     await tester.ensureVisible(find.text('피드백으로 가져오기'));
     await tester.pump();
@@ -1211,9 +1217,9 @@ void main() {
     await settle(tester);
     expect(tester.widget<TextField>(field).controller!.text, isNot(draft));
 
-    await tester.ensureVisible(find.text('초안으로 되돌리기'));
+    await tester.ensureVisible(undoFeedback);
     await tester.pump();
-    await tester.tap(find.text('초안으로 되돌리기'));
+    await tester.tap(undoFeedback);
     await settle(tester);
 
     expect(tester.widget<TextField>(field).controller!.text, draft);
@@ -1263,7 +1269,8 @@ void main() {
     await openReports(tester);
 
     expect(saveFeedback, findsOneWidget);
-    expect(find.text('초안으로 되돌리기'), findsOneWidget);
+    expect(undoFeedback, findsOneWidget);
+    expect(redoFeedback, findsOneWidget);
 
     await tester.tap(prevWeek);
     await settle(tester);
@@ -1271,7 +1278,8 @@ void main() {
     // 트레이너가 손볼 것은 이번 주에 보낼 글이다. 이미 지나간 주의 초안을
     // 저장해 둘 자리는 없다.
     expect(saveFeedback, findsNothing);
-    expect(find.text('초안으로 되돌리기'), findsNothing);
+    expect(undoFeedback, findsNothing);
+    expect(redoFeedback, findsNothing);
     // 글은 그대로 읽을 수 있다 — 숨긴 것은 버튼뿐이다.
     expect(feedbackField, findsOneWidget);
   });
@@ -1366,15 +1374,68 @@ void main() {
     await tester.enterText(feedbackField, '고치는 중인 문구');
     await settle(tester);
 
-    await tester.ensureVisible(find.text('초안으로 되돌리기'));
+    await tester.ensureVisible(undoFeedback);
     await tester.pump();
-    await tester.tap(find.text('초안으로 되돌리기'));
+    await tester.tap(undoFeedback);
     await settle(tester);
 
     expect(
       tester.widget<TextField>(feedbackField).controller!.text,
       '저장해 둔 초안',
     );
+    // 처음 열린 글보다 앞은 없다.
+    expect(tester.widget<AppIconButton>(undoFeedback).onPressed, isNull);
+  });
+
+  testWidgets('되돌리기·다시 실행은 편집을 한 단계씩 오간다 (#2187)', (tester) async {
+    final drafts = _DraftStore(stored: '처음 문구');
+    await openReports(
+      tester,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(drafts),
+      ],
+    );
+
+    String text() => tester.widget<TextField>(feedbackField).controller!.text;
+    AppIconButton undo() => tester.widget<AppIconButton>(undoFeedback);
+    AppIconButton redo() => tester.widget<AppIconButton>(redoFeedback);
+
+    // 한 번에 전부 버리는 `초안으로 되돌리기` 는 없다.
+    expect(find.text('초안으로 되돌리기'), findsNothing);
+    expect(undo().tooltip, '되돌리기');
+    expect(redo().tooltip, '다시 실행');
+    expect(undo().onPressed, isNull);
+    expect(redo().onPressed, isNull);
+
+    // 편집 기록은 잠깐 멈출 때마다 한 단계로 쌓인다.
+    await tester.enterText(feedbackField, '처음 문구 하나');
+    await settle(tester);
+    await tester.enterText(feedbackField, '처음 문구 하나 둘');
+    await settle(tester);
+    expect(undo().onPressed, isNotNull);
+    expect(redo().onPressed, isNull);
+
+    await tester.ensureVisible(undoFeedback);
+    await tester.pump();
+    await tester.tap(undoFeedback);
+    await settle(tester);
+    expect(text(), '처음 문구 하나');
+    expect(redo().onPressed, isNotNull);
+
+    await tester.tap(undoFeedback);
+    await settle(tester);
+    expect(text(), '처음 문구');
+    expect(undo().onPressed, isNull);
+
+    await tester.tap(redoFeedback);
+    await settle(tester);
+    expect(text(), '처음 문구 하나');
+
+    // 저장은 되돌린 뒤 화면에 보이는 글을 쓴다 — 손으로 친 글자만 따라가면
+    // 되돌리기 전 문구가 저장된다.
+    await tester.tap(saveFeedback);
+    await settle(tester);
+    expect(drafts.saved, <String>['처음 문구 하나']);
   });
 }
 

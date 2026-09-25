@@ -53,28 +53,32 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
-### 채팅 이모티콘 (#2020)
+### 채팅 이모티콘 (#2020, #2153)
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/me/emotes` | `{ pass: {expires_at, remaining_seconds}\|null, cost, hours, balance }` |
-| POST | `/me/emotes/pass` | 같은 모양 — 산 뒤의 상태 |
+| GET | `/me/emotes` | `{ unlocked: [{emote_id, expires_at, remaining_seconds}], cost, days, balance }` |
+| POST | `/me/emotes/{emote_id}/unlock` | 같은 모양 — 산 뒤의 상태. 요청 `{ client_request_id? }` |
 
-이용권은 **24시간 전체 사용**이다. 한 번 사면 그동안 모든 이모티콘을 보낸다.
-남은 시간은 `remaining_seconds` 로 준다 — 기기 시계가 틀어져도 어긋나지 않는다.
-이용 중에 또 사면 409 이고, 포인트가 모자라면 400 이다. **담당 트레이너가 없으면 409 다**(#2142) — 이모티콘은 트레이너 채팅에만 있어서 사도 쓸 곳이 없다. 이미 산 이용권은 쓰던 중 담당이 끊겨도 남은 시간을 그대로 둔다. `client_request_id` 가 같은
-재시도는 두 번 쓰지 않는다. MY 탭에서는 같은 이용권을 포인트 사용처의
-`emote_pass_24h` 항목으로 산다(`POST /me/points/exchange`) — 담당이 없으면 `no_trainer`, 이용 중이면
-`blocked_reason: "active_pass"` 로 막힌다.
+이모티콘은 **하나씩 사서 산 때부터 7일 동안** 쓴다(하나에 50P). `unlocked` 는 지금 쓸 수 있는
+이모티콘이고 먼저 끝나는 것이 앞이다. 남은 기간은 `remaining_seconds` 로 준다 — 기기 시계가 틀어져도
+어긋나지 않는다. 모르는 id 는 404, 쓰고 있는 이모티콘을 또 사면 409, 포인트가 모자라면 400 이다.
+**담당 트레이너가 없으면 409 다**(#2142) — 이모티콘은 트레이너 채팅에만 있어서 사도 쓸 곳이 없다.
+이미 산 이모티콘은 쓰던 중 담당이 끊겨도 남은 기간을 그대로 둔다. `client_request_id` 가 같은 재시도는
+두 번 쓰지 않는다. 원장 사유는 `emote_unlock` 이다.
+
+포인트 사용처에서는 팔지 않는다 — 무엇을 사는지는 채팅의 이모티콘 창에서 봐야 알 수 있다. 예전 24시간
+이용권(`emote_pass_24h`, `POST /me/emotes/pass`)은 없어졌고, 사용처 교환으로 보내면 404 다. 바뀌기 전에 산
+이용권은 남은 시간 동안 모든 이모티콘을 쓰고, `unlocked` 에 이모티콘마다 그 끝나는 시각으로 실린다.
 
 이모티콘은 채팅 메시지에 실려 간다: `POST /me/coach/chat` 과
 `POST /trainer/clients/{id}/chat` 이 `emote_id` 를 받고, `ChatMessageOut` 이 같은 값을
-돌려준다. **회원은 이용권이 있어야 보낸다**(없으면 402). **트레이너는 이용권 없이
-보낸다** — 이용권은 회원이 포인트를 쓰는 자리다. 모르는 id 는 400 이다. 본문(`body`)은
+돌려준다. **회원은 그 이모티콘을 산 뒤 기간 안에만 보낸다**(아니면 402). **트레이너는 사지 않고
+모두 보낸다** — 이모티콘 구매는 회원이 포인트를 쓰는 자리다. 모르는 id 는 400 이다. 본문(`body`)은
 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽을 글로 채워 둔다.
 그림과 목록은 앱이 들고 있다(공용 패키지 `oncare_ui` 의 에셋).
 
-**이용권이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
+**기간이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
 새로 보내는 것만 막힌다.
 
 `activity_points`: 포인트 잔액(`health_profiles.activity_points`) 그대로다. 프로필 행이 없으면 0.
@@ -102,6 +106,7 @@
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
@@ -165,7 +170,7 @@
 
 | 규칙(`reason`) | 언제 | 포인트 | 하루 한도 |
 |---|---|---|---|
-| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때 | +50 | 3회 |
+| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때(직접 추가 `POST /diet/entries` 는 적립 없음, #2151) | +50 | 3회 |
 | `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
 | `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
 
@@ -203,7 +208,6 @@
 | `locker_month` | 개인 락커 1개월 무료 | 7000 | 30일 | 연결한 헬스장(`GET /me/gym`) 필요, 사용 가능한 쿠폰은 회원당 1장, 교환은 KST 달마다 1회 |
 | `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 쓰지 않은 보호권 최대 4개, 회원이 포인트 화면에서 사용 |
 | `graph_color` | 그래프 색 바꾸기(#2076, 쿠폰 아님) | 150 | 없음(0) | `option` 에 열 색 하나, 이미 연 색은 409, 모두 열면 목록에서 빠짐 |
-| `emote_pass_24h` | 채팅 이모티콘 24시간(#2020, 쿠폰 아님) | 300 | 24시간 | 활성 담당 필요(`no_trainer`, #2142), 이용 중이면 `active_pass` |
 | `profile_pet` | 프로필 펫 이모지(#2021, 쿠폰 아님) | 200 | 7일 | `option` 에 `dog`\|`cat`, 달고 있으면 `active_pet`(409) |
 | `weekly_report` | 주간 리포트(#2022, 쿠폰 아님) | 300 | 없음(0) | **담당이 없는 회원만** — 담당이 있으면 목록에서 빠지고 409, 지난주를 이미 받았으면 `week_owned`(409) |
 
@@ -217,7 +221,7 @@ partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으�
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, requires_trainer, requires_gym,
 available, blocked_reason, shortfall, active_option, active_until, remaining_seconds }`. `blocked_reason` 은
-`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pass` → `active_pet` → `week_owned` → `monthly_limit` →
+`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pet` → `week_owned` → `monthly_limit` →
 `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
 보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
@@ -231,12 +235,13 @@ available, blocked_reason, shortfall, active_option, active_until, remaining_sec
 **포인트 내역(#2146).** `items[]`: `{ id, kind, reason, delta, count, kst_date, created_at }` — 원장(`points_ledger`) 한 줄씩, 최신순.
 `kind` 는 `earn`(적립)·`spend`(사용)·`revoke`(회수 — 기록을 지워 적립을 되돌림)·`refund`(반환 — 쿠폰 취소 등). `delta` 는 잔액 변화량(적립·반환
 양수, 사용·회수 0 이하). `reason` 은 사유 코드(`diet_entry`·`exercise_manual`·`routine_complete`·`coupon_<항목>`·`streak_shield`·`graph_color`·
-`emote_pass_24h`·`profile_pet`·`weekly_report`·`challenge_stake`·`challenge_reward`·`ai_chat`)이고 앱이 문구로 바꾼다.
+`emote_unlock`·`emote_pass_24h`(지난 24시간 이용권)·`profile_pet`·`weekly_report`·`challenge_stake`·`challenge_reward`·`ai_chat`)이고 앱이 문구로 바꾼다.
 - **날짜 단위로 넘긴다.** 기록이 있는 날 기준 최근 14일치를 주고, 더 있으면 `next_before`(받은 날 중 가장 앞 날짜)를 `before` 로 넘겨 그보다 앞을 받는다.
 - **AI 코치 대화는 하루 한 줄로 묶는다**(#2145) — `count` 에 대화 수, `delta` 에 합계. 한 통마다 한 줄이면 내역이 채팅 기록처럼 길어진다.
 
 `coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
-expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
+expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_expiry` 가 참이면 기한 없는
+쿠폰(분석용 식판, #2150)이고 `expires_on`·`days_left` 는 뜻이 없다(`days_left` 0). `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
 트레이너, `gym_name` 은 교환할 때의 헬스장 사본이다(PT 재등록은 코치 요약의 헬스장, 락커는 회원 헬스장 — 쿠폰 화면
 표시용).
 
@@ -262,6 +267,32 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
 - **알림** 연결 해제로 인한 취소(`재등록 쿠폰이 취소됐어요`·`락커 쿠폰이 취소됐어요`)·만료 임박 알림의 `category` 는
   `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`. 수신 설정 스위치는 없다.
 
+### 분석용 식판 (#2150)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/diet-tray` | 회원(데모 폴백) | `{ status, photo_days, required_days, window_days, window_from, window_to, has_trainer, coupon? }` |
+| POST | `/me/diet-tray/claim` | 회원 | 입력 `{ client_request_id? }` → **201** 같은 모양(받은 뒤) |
+
+식단 사진 분석에 맞춘 **규격 식판**을 사진 기록을 꾸준히 남긴 회원에게 무료로 준다. 포인트 교환이 아니라 달성
+보상이다 — 사용처 목록(`/me/points/shop`)에 없고, `POST /me/points/exchange` 에 `diet_tray` 를 주면 404 다.
+
+- **조건** 최근 `window_days`(28)일(KST, 오늘 포함 — `window_from`~`window_to`) 중 식단 사진을 남긴 날(`photo_days`)이
+  `required_days`(20)일 이상이고 활성 담당이 있다. 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 빈 값이 아님)만
+  세고, 하루 여러 끼도 하루다. 손으로 적은 끼니와 보호권으로 이은 날은 세지 않는다.
+- **`status`** `progress`(조건을 채우는 중이거나 담당 없음) · `claimable`(지금 받을 수 있음) · `issued`(수령 쿠폰을
+  받았고 아직 쓰지 않음) · `received`(식판을 받음). `coupon` 은 `issued`·`received` 일 때의 쿠폰, 그 밖에는 null.
+- **받기** 조건을 서버가 다시 확인하고 `coupon`(item `diet_tray`, `cost` 0, **기한 없음** — `no_expiry: true`)을
+  만든다. 담당 트레이너와 그 헬스장이 `trainer_name`·`gym_name` 에 남고, 그 헬스장에서 받는다. 식판이 헬스장에 언제
+  닿을지는 우리 사정이라 기한을 두지 않는다 — 회원은 가기 전에 담당 트레이너에게 채팅으로 준비됐는지 묻는다(트레이너
+  웹에 알림이 없어 "준비 완료" 를 알릴 길이 아직 없다). 만료 임박 알림도 없다. 쿠폰 목록·사용 처리는 위 쿠폰 절과 같다(직원 확인 뒤
+  회원 휴대폰에서 `사용 완료`). 포인트 내역에는 남지 않는다. 담당 없음·사진 기록일 부족·이미 받음·받지 않은 식판 쿠폰
+  보유는 409, 같은 `client_request_id` 재전송은 새로 만들지 않는다.
+- **1인 1회** `used` 식판 쿠폰이 있으면 다시 받지 않는다. 담당 해제로 취소된 쿠폰은 식판을 받은 것이 아니라, 새 담당이
+  생기고 조건을 채우고 있으면 다시 받는다.
+- **담당 해제** PT 재등록 쿠폰과 같은 경로에서 받지 않은 식판 쿠폰을 `cancelled` 로 바꾸고 `식판 수령 쿠폰이
+  취소됐어요` 알림(`benefits`)을 만든다. 0P 라 돌려줄 포인트는 없다.
+
 ### 연속 기록 보호권 (#1788)
 
 | Method | Path | 권한 | 응답 |
@@ -286,7 +317,7 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
   이미 보호한 날을 다시 보내면 보호권을 더 쓰지 않고 200 이다. 날짜 형식이 깨지면 422.
   창이 어제 하나가 아닌 이유: 어제를 놓친 뒤에 산 보호권이 쓸 데가 없으면 안 되고, 그렇다고 무제한이면 몇 달 전 기록까지 칠해
   연속 숫자의 뜻이 가벼워진다.
-- **`protectable_from`·`protectable_to`** 지금 보호권을 쓸 수 있는 날의 구간(양끝 포함). 보호권이 없으면 둘 다 null 이다.
+- **`protectable_from`·`protectable_to`** 지금 보호권을 쓸 수 있는 날의 구간(양끝 포함). 보호권이 없어도 내려 준다 — 앱은 `held` 가 0 이면 그 칸에서 교환과 사용을 한 번에 잇는다.
   **구간 안이라고 다 보호할 수 있는 것은 아니다** — 기록이 있거나 이미 보호한 날은 빠진다. 앱은 이 구간과 날짜별 기록
   (`GET /me/activity-calendar` 의 `days[]`)을 겹쳐 누를 수 있는 칸을 가리고, 마지막 판정은 사용 요청이 한다. 그 자리는 포인트
   화면 기록 그래프(#2075)이고, 운동 탭에는 두지 않는다.
@@ -423,7 +454,7 @@ category: hospital|exercise|meal|medication|other
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals
+category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
 
 #### 담당 요청 알림 (#1802)
 
@@ -443,18 +474,25 @@ category: reminder|health_check|achievement|system|coach_chat|routine|member_sch
 | category | 무엇 | action.target |
 |---|---|---|
 | `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
-| `coach_chat` | 트레이너 메시지·리포트 | `coach_chat` |
+| `coach_chat` | 트레이너 메시지·피드백 | `coach_chat` |
+| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` |
 | `routine` | 루틴 배정 | `exercise` |
 | `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
 | `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
 | `consultation_result` | 담당 연결 — 연결됨·연결 해제 및 과거 담당 요청 | `exercise` |
 | `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
 | `health_goals` | 담당 트레이너의 건강 목표 변경 | `health_goals` |
+| `benefits` | 쿠폰 취소·만료 임박 | `my_benefits` |
+| `points_shop` | 주간 챌린지 결과 | `points_shop` |
 | `system` | 공지 | 없음 |
 
 `consult_decision` 은 #2067 에서 `consultation_result` 에서 떼어 냈습니다. 같은 갈래였을 때는 거절
 알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
 옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
+
+`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지는 같은 코치 대화이고, 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
+
+회원 앱은 갈래를 접지 않고 갈래마다 알림함 아이콘을 고릅니다(#2084). 보내는 곳이 없는 `health_check` 는 `reminder` 와 같게, 모르는 갈래는 `system` 과 같게 그립니다.
 
 #### 목록 페이지네이션 (#965)
 
@@ -714,7 +752,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다.
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
@@ -729,6 +767,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 핵심: `users.role`(member|trainer)로 두 앱 계정을 구분하되, 트레이너가 담당하는 회원은
 실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
 읽어 집계한다.
+
+**로스터의 PT 관리 신호 (#2203)**: `GET /trainer/clients` 의 각 카드는 `signals` 를 싣는다 —
+`[{ kind, days?, count?, percent?, direction? }]`, 급한 순. `kind` 는 `discomfort`(통증·불편) ·
+`record_gap`(기록 끊김, `days`) · `no_show`(노쇼·취소 반복, `count`) · `routine_missed`(배정 루틴
+미수행, `days`) · `exercise_goal_low`(운동 목표 미달, `percent`) · `calorie_off`(칼로리 목표 이탈,
+`percent`·`direction` over|under) · `protein_low`(단백질 부족, `percent`) 일곱 가지다. 담당 해제·휴면
+회원은 빈 목록이다. 답장 대기는 여기 없다 — 앱이 `/trainer/chat/unread` 로 실시간으로 센다.
+기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
 
 ---
 
@@ -882,5 +928,8 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
 
 ## 도메인 핵심 (놓치면 안 되는 차별점)
 
-On-Care 는 **고혈압·당뇨 위험군 특화**다. 식단은 칼로리뿐 아니라 **나트륨(sodium_mg)·당류(sugar_g)**
-가 1급 지표다. Gemini 식단 분석 프롬프트도 **DASH 식단/고혈압 관점**(기존 PoC 의 프롬프트)을 반영한다.
+On-Care 의 식단은 칼로리뿐 아니라 **나트륨(sodium_mg)·당류(sugar_g)** 가 1급 지표다. 근거는
+WHO 나트륨 권고와 **2025 한국인 영양소 섭취기준**(첨가당 총에너지 10% 이내, 나트륨 만성질환
+위험감소섭취량)이고, 그 원문이 AI 코치의 공개 근거 문서로 적재된다. 예전에 이 자리에 있던
+**고혈압·당뇨 위험군 특화 / DASH 식단 관점** 서술은 폐기된 스타트 단계의 타깃이다 — 지금
+타깃은 PT 를 이용하는 회원과 이들을 관리하는 트레이너다(#1652).

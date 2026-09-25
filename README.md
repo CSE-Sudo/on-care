@@ -13,7 +13,7 @@
 
 [![소개 페이지](https://img.shields.io/badge/INTRO_PAGE-소개_페이지-6B7280?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ewhasudo.zapto.org/)
 [![사용자 앱](https://img.shields.io/badge/APP-사용자-3eafdf?style=for-the-badge&logo=flutter&logoColor=white)](https://ewhasudo.zapto.org/frontend/#/dashboard)
-[![트레이너 웹](https://img.shields.io/badge/WEB-트레이너-2E7DAB?style=for-the-badge&logo=safari&logoColor=white)](https://ewhasudo.zapto.org/trainer/)
+[![트레이너 웹](https://img.shields.io/badge/WEB-트레이너-235C88?style=for-the-badge&logo=safari&logoColor=white)](https://ewhasudo.zapto.org/trainer/)
 [![데모 영상](https://img.shields.io/badge/YOUTUBE-데모_영상-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3)
 
 <br/>
@@ -129,7 +129,7 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 </tr>
 <tr>
 <td>🤖 <b>AI 건강 코치</b></td>
-<td>공공 가이드라인과 <b>회원 본인의 기록</b>을 근거로 답하는 RAG 코치. 근거 없는 일반론 대신 "내 데이터에 비춘" 답을 돌려주고, 의료 판단은 하지 않습니다.</td>
+<td>공개 가이드라인 원문(신체활동 지침서 · 영양소 섭취기준)과 <b>회원 본인의 기록</b>을 근거로 답하는 RAG 코치. 근거 없는 일반론 대신 "내 데이터에 비춘" 답을 돌려주고, 의료 판단은 하지 않습니다.</td>
 </tr>
 <tr>
 <td>🔗 <b>데이터 기반 매칭</b></td>
@@ -138,6 +138,10 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 <tr>
 <td>🎯 <b>목표·미션 관리</b></td>
 <td>회원의 목표에 맞춘 영양·활동량 목표와 일일 미션. 많이 먹은 날은 활동량을, 적게 먹은 날은 식단을 조정하는 <b>식단↔운동 연동 코칭</b>을 제공합니다.</td>
+</tr>
+<tr>
+<td>🍱 <b>분석용 식판 리워드</b></td>
+<td>최근 28일 중 20일 식단 사진을 남긴 PT 회원에게 <b>분석에 맞춘 규격 식판</b>을 무료로 드립니다(1인 1회, 담당 트레이너의 헬스장에서 기한 없이 수령). 그릇이 제각각이면 양 추정이 흔들리므로, 기록을 가장 자주 남기는 회원의 분석 정확도와 편의를 함께 높입니다.</td>
 </tr>
 </tbody>
 </table>
@@ -176,7 +180,7 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 <tr><td><b>Database</b></td><td>PostgreSQL (Neon) · pgvector · 서버 파일 저장소(식단·채팅 이미지, 주간 리포트 PDF)</td></tr>
 <tr><td><b>AI</b></td><td>Vision AI(VLM) 식단 인식 · LLM 코칭 · 임베딩 모델(768차원) + pgvector 벡터 검색 기반 RAG · 식약처 공공 영양성분 DB 매칭</td></tr>
 <tr><td><b>Infra</b></td><td>백엔드 AWS ECR + App Runner · 프론트 GitHub Pages(커스텀 도메인) · GitHub Actions (CI/CD)</td></tr>
-<tr><td><b>External API</b></td><td>카카오 (지도 JS SDK · 로컬 장소 검색) · 소셜 로그인 (카카오 · 네이버 · 구글 · 애플) · 공공데이터포털 (식약처 영양성분)</td></tr>
+<tr><td><b>External API</b></td><td>카카오 (지도 JS SDK · 로컬 장소 검색) · 소셜 로그인 (카카오 · 네이버 · 구글 · 애플) · 공공데이터포털 (식약처 영양성분 · 한국건강증진개발원 운동 MET — KOGL 제4유형)</td></tr>
 </tbody>
 </table>
 

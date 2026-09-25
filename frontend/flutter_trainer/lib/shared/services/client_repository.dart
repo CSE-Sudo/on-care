@@ -1278,6 +1278,9 @@ final clientExercisePeriodProvider = FutureProvider.autoDispose
       // 목표는 주마다 같다 — 마지막으로 읽은 주의 값을 쓴다. (#1015)
       int weeklyGoalMinutes = 0;
       int weeklyGoalCalories = 0;
+      // 연속 일수도 마지막(가장 최근) 주의 값이 남는다 — 이 값을 읽는 곳은
+      // `이번 주` 하나다. (#2195)
+      int streakDays = 0;
       // 주를 **한꺼번에** 읽는다 (#1170). `전체` 가 서른다섯 주라, 하나씩
       // 기다리면 왕복이 그만큼 줄줄이 이어져 그래프가 늦게 선다.
       final List<DateTime> mondays = clientRangeWeekStarts(range);
@@ -1291,6 +1294,7 @@ final clientExercisePeriodProvider = FutureProvider.autoDispose
         final ClientExerciseWeek week = weeks[w];
         weeklyGoalMinutes = week.weeklyGoalMinutes;
         weeklyGoalCalories = week.weeklyGoalCalories;
+        streakDays = week.streakDays;
         for (var d = 0; d < 7; d++) {
           final DateTime date = DateTime(
             monday.year,
@@ -1317,12 +1321,16 @@ final clientExercisePeriodProvider = FutureProvider.autoDispose
             strengthSets: d < week.strengthSets.length
                 ? week.strengthSets[d]
                 : setsFromStrengthMinutes(at(week.strengthMinutes)),
+            // 분해가 실려 왔는지는 **응답이 말한다**(#2195) — 값으로 되짚으면
+            // 네 유형이 모두 0 인 날이 분해 없는 날로 읽힌다.
+            typeSplitFromPayload: week.hasTypeSplit,
           );
         }
       }
       return ClientExercisePeriod(
         weeklyGoalMinutes: weeklyGoalMinutes,
         weeklyGoalCalories: weeklyGoalCalories,
+        streakDays: streakDays,
         range: range,
         days: <ClientExerciseDay>[
           for (final DateTime date in clientRangeDates(range))

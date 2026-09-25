@@ -42,6 +42,7 @@ void main() {
       DateTime? firstDate,
       DateTime? lastDate,
       Size viewSize = const Size(800, 1400),
+      bool showClose = true,
     }) async {
       tester.view.physicalSize = viewSize;
       tester.view.devicePixelRatio = 1;
@@ -62,6 +63,7 @@ void main() {
                     firstDate: firstDate ?? DateTime(2026),
                     lastDate: lastDate ?? DateTime(2027),
                     helpText: helpText,
+                    showClose: showClose,
                   ),
                 );
               },
@@ -518,6 +520,28 @@ void main() {
 
       expect(results, <DateTime?>[DateTime(2026, 8, 24)]);
     });
+
+    testWidgets('showClose 를 끄면 X 없이 취소로만 닫는다 (#2170)', (
+      WidgetTester tester,
+    ) async {
+      // 회원 앱은 부분 창에 닫기 X 를 두지 않는다 — 트레이너 웹이 쓰는
+      // 기본값(X 있음)은 위 테스트가 지킨다.
+      final List<DateTime?> results = await openPicker(
+        tester,
+        showClose: false,
+      );
+      final Finder dialog = find.byKey(AppDatePickerDialog.dialogKey);
+      expect(dialog, findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.byType(AppCloseButton)),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(AppDatePickerDialog.cancelKey));
+      await tester.pumpAndSettle();
+      expect(dialog, findsNothing);
+      expect(results, <DateTime?>[null]);
+    });
   });
 
   group('기간 선택창', () {
@@ -574,9 +598,12 @@ void main() {
     Finder circleCells() =>
         painted(OnCareBrand.trainer.primary, BoxShape.circle);
 
-    /// 사이 날 띠(옅은 브랜드). 시작·종료일 칸의 안쪽 절반 조각도 포함한다.
-    Finder bandCells() =>
-        painted(OnCareBrand.trainer.surface, BoxShape.rectangle);
+    /// 사이 날 띠(브랜드 강조 채움, #2183). 시작·종료일 칸의 안쪽 절반 조각도
+    /// 포함한다.
+    Finder bandCells() => painted(
+      OnCareColors.onWhite(OnCareBrand.trainer.primary, OnCareAlpha.medium),
+      BoxShape.rectangle,
+    );
 
     /// [day] 숫자를 그린 글자.
     Text dayText(WidgetTester tester, String day) => tester.widget<Text>(

@@ -15,10 +15,19 @@ abstract interface class MemberCoachRepository {
   /// The assigned coach, or `null` when the member has none yet (404).
   Future<MemberCoach?> fetchCoach();
 
-  /// Routines the coach has assigned (newest first).
+  /// 오늘의 추천 개인운동 — 오늘 걸려 있는 목록과 오늘 완료. (#2161)
+  ///
+  /// 추천 개인운동은 매일 새로 체크하는 목록이다. 트레이너가 바꾸기 전까지 같은
+  /// 목록이 날마다 미완료로 다시 시작하므로 `completed` 는 **오늘** 했는가다.
   Future<List<CoachRoutine>> fetchRoutines();
 
-  /// Records an assigned routine once in the member's exercise history.
+  /// [day] 에 걸려 있던 목록과 그날 완료 — 지난 날짜 화면이 읽는다. (#2161)
+  ///
+  /// 읽기 전용이다. 완료·해제는 오늘에만 한다([completeRoutine]). 아직 오지 않은
+  /// 날은 오류다.
+  Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day);
+
+  /// 오늘의 운동 기록으로 완료한다 — 배정 하나당 하루 한 번. (#2161)
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,

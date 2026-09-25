@@ -38,7 +38,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get schedCancelSource => 'Cancelled by';
+  String get schedCancelSource => 'Type';
 
   @override
   String get schedCancelByMember => 'Member';
@@ -960,9 +960,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientClosePanel => 'Close panel';
 
   @override
-  String get clientChat => 'Chat';
-
-  @override
   String get chatTooLong => 'Message is too long (2000 characters max)';
 
   @override
@@ -1413,7 +1410,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exWeekOfMonthLabel(int month, int week) {
-    return 'Week $week, $month/';
+    return 'Burned in week $week, $month/';
   }
 
   @override
@@ -1959,9 +1956,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotManageTitle => 'Manage booking slots';
 
   @override
-  String slotIntro(String date) {
-    return 'Open times for members to book on $date.';
-  }
+  String get slotIntro =>
+      'Open times for members to book. Every upcoming slot is listed below by date.';
 
   @override
   String get slotOpenAction => 'Open';
@@ -1970,7 +1966,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotReload => 'Reload';
 
   @override
-  String get slotEmpty => 'No booking slots open on this day.';
+  String get slotEmpty => 'No booking slots are open.';
 
   @override
   String get slotClosedSummary => 'Closed';
@@ -2887,7 +2883,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineAlreadyGone => 'That program is already gone';
 
   @override
-  String get workoutPendingTitle => 'Not done yet';
+  String get workoutPendingTitle => 'Daily personal exercises';
+
+  @override
+  String get workoutRoutineDoneToday => 'Done today';
 
   @override
   String get workoutUndatedTitle => 'Records without a date';
@@ -3044,10 +3043,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTaskProgressTitle => 'Task completion';
 
   @override
-  String get dashTaskProgressToday => 'Done today';
+  String get dashTaskProgressToday => 'Today\'s tasks';
 
   @override
-  String get dashTaskProgressCarriedOver => 'Done (carried over)';
+  String get dashTaskProgressCarriedOver => 'Carried over';
 
   @override
   String get dashTodoConsultation => 'Consult';
@@ -3113,6 +3112,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashTaskCategoryDone => 'Done';
+
+  @override
+  String get dashTaskCategoryEmpty => 'None';
 
   @override
   String dashTaskCategoryRemaining(int count) {
@@ -3660,7 +3662,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A draft filled in from this week\'s figures. Check it over before sending.';
 
   @override
-  String get reportsFeedbackRestore => 'Restore draft';
+  String get reportsFeedbackUndo => 'Undo';
+
+  @override
+  String get reportsFeedbackRedo => 'Redo';
 
   @override
   String get reportsFeedbackSave => 'Save feedback';

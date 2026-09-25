@@ -4,6 +4,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 막대 하나에 쌓는 조각(칼로리의 탄·단·지).
 typedef BarSegment = ({double value, Color color});
 
+/// 마지막 두 칸 사이의 변화(`+362kcal`)와 그 색. 좋고 나쁨은 부르는 쪽이 정한다.
+typedef BarLineDelta = ({String text, Color color});
+
 /// 막대 위에 꺾은선을 겹친 그래프 — 리포트 탭의 **모든** 막대가 이 그림이다.
 ///
 /// 막대는 "그 칸이 얼마나 되나", 꺾은선은 "칸에서 칸으로 어떻게 움직였나" 를
@@ -34,6 +37,8 @@ class BarLineChart extends StatelessWidget {
     this.height = 118,
     this.maxBarWidth = 30,
     this.highlightIndex,
+    this.delta,
+    this.reserveDeltaSpace = false,
   }) : assert(values.length == labels.length, 'values/labels 길이가 달라요');
 
   /// 칸별 값. null 은 **기록이 없다**는 뜻이다 — 0 과 다르다.
@@ -83,6 +88,16 @@ class BarLineChart extends StatelessWidget {
   /// 굵게 적을 칸(보고 있는 주).
   final int? highlightIndex;
 
+  /// 마지막 두 점을 잇는 선의 가운데 위에 적을 변화. 제목 줄 오른쪽 끝에 따로
+  /// 적으면 어느 두 막대 사이의 차이인지 눈으로 이어 붙여야 했다 — 선 위에
+  /// 두면 "이 선만큼 움직였다" 로 바로 읽힌다(#2186). 두 칸 중 하나라도 값이
+  /// 없으면 잇는 선이 없으므로 적지 않는다.
+  final BarLineDelta? delta;
+
+  /// [delta] 가 없어도 그 자리를 비워 둔다. 나란히 선 두 그래프 중 한쪽만
+  /// 기록이 없을 때 그래프 높이가 갈려 상자 아래 끝이 어긋나지 않게 한다.
+  final bool reserveDeltaSpace;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -94,7 +109,12 @@ class BarLineChart extends StatelessWidget {
       label: semanticsLabel,
       child: ExcludeSemantics(
         child: SizedBox(
-          height: height + _BarLinePainter.topPad + _BarLinePainter.labelHeight,
+          height:
+              height +
+              _BarLinePainter.topPadFor(
+                hasDelta: delta != null || reserveDeltaSpace,
+              ) +
+              _BarLinePainter.labelHeight,
           child: CustomPaint(
             painter: _BarLinePainter(
               values: values,
@@ -109,11 +129,16 @@ class BarLineChart extends StatelessWidget {
               lineColor: lineColor ?? tokens.brand.strong,
               maxBarWidth: maxBarWidth,
               highlightIndex: highlightIndex,
+              delta: delta,
+              reserveDeltaSpace: reserveDeltaSpace,
               textDirection: Directionality.of(context),
               textScaler: MediaQuery.textScalerOf(context),
               valueStyle: OnCareTypography.numeric(
                 tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
               ).copyWith(color: OnCareColors.textPrimary),
+              deltaStyle: OnCareTypography.numeric(
+                tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
+              ),
               emptyStyle: tokens
                   .text(OnCareTypography.caption)
                   .copyWith(color: OnCareColors.textDisabled),
@@ -146,9 +171,12 @@ class _BarLinePainter extends CustomPainter {
     required this.lineColor,
     required this.maxBarWidth,
     required this.highlightIndex,
+    required this.delta,
+    required this.reserveDeltaSpace,
     required this.textDirection,
     required this.textScaler,
     required this.valueStyle,
+    required this.deltaStyle,
     required this.emptyStyle,
     required this.axisStyle,
     required this.axisHighlightStyle,
@@ -167,11 +195,16 @@ class _BarLinePainter extends CustomPainter {
   final Color lineColor;
   final double maxBarWidth;
   final int? highlightIndex;
+  final BarLineDelta? delta;
+  final bool reserveDeltaSpace;
   final TextDirection textDirection;
   final TextScaler textScaler;
 
   /// 점 위 값 라벨. 목표를 넘긴 칸만 빨강으로 바꿔 쓴다.
   final TextStyle valueStyle;
+
+  /// 선 위 변화. 색은 [delta] 가 준다.
+  final TextStyle deltaStyle;
 
   /// 값이 없는 칸의 말.
   final TextStyle emptyStyle;
@@ -183,6 +216,17 @@ class _BarLinePainter extends CustomPainter {
 
   /// 값 라벨이 들어갈 위쪽 여백. 꽉 찬 막대의 숫자가 카드 제목에 닿지 않는다.
   static const double topPad = OnCareSpacing.s20;
+
+  /// 변화를 적을 때 더 비우는 위쪽 여백 — 값 라벨 한 줄 위에 한 줄이 더 선다.
+  /// 두 막대가 모두 꽉 차면 선 가운데도 값 라벨 높이에 있으므로, 이만큼 없으면
+  /// 변화가 카드 제목 쪽으로 잘린다(#2186).
+  static const double deltaPad = OnCareSpacing.s20;
+
+  /// 차이 글자와 값 라벨·선 사이 틈.
+  static const double deltaGap = OnCareSpacing.s4;
+
+  static double topPadFor({required bool hasDelta}) =>
+      hasDelta ? topPad + deltaPad : topPad;
 
   /// 칸 라벨 줄 — `caption` 한 줄(12 × 1.4)과 막대와의 틈이 들어가는 높이.
   static const double labelHeight = 22;
@@ -206,9 +250,12 @@ class _BarLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
-    final double plotHeight = size.height - topPad - labelHeight;
+    final double padTop = topPadFor(
+      hasDelta: delta != null || reserveDeltaSpace,
+    );
+    final double plotHeight = size.height - padTop - labelHeight;
     if (plotHeight <= 0) return;
-    final double baseline = topPad + plotHeight;
+    final double baseline = padTop + plotHeight;
     final double slot = size.width / values.length;
     final double barWidth = slot * barWidthFactor > maxBarWidth
         ? maxBarWidth
@@ -293,6 +340,8 @@ class _BarLinePainter extends CustomPainter {
     }
     flush();
 
+    // 값 라벨이 차지한 자리 — 선 위 변화가 이 칸들을 피해 선다.
+    final List<Rect> valueRects = <Rect>[];
     for (var i = 0; i < values.length; i++) {
       if (!drawn(i)) continue;
       final Offset point = Offset(centerOf(i), topOf(values[i]!));
@@ -309,15 +358,28 @@ class _BarLinePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = lineWidth,
       );
-      _text(
+      valueRects.add(
+        _text(
+          canvas,
+          format(values[i]!),
+          Offset(point.dx, point.dy - OnCareSpacing.s8),
+          over(values[i]!)
+              ? valueStyle.copyWith(color: OnCareColors.danger)
+              : valueStyle,
+          anchorBottom: true,
+          maxWidth: slot,
+        ),
+      );
+    }
+
+    final int last = values.length - 1;
+    if (delta != null && last >= 1 && drawn(last - 1) && drawn(last)) {
+      _paintDelta(
         canvas,
-        format(values[i]!),
-        Offset(point.dx, point.dy - OnCareSpacing.s8),
-        over(values[i]!)
-            ? valueStyle.copyWith(color: OnCareColors.danger)
-            : valueStyle,
-        anchorBottom: true,
-        maxWidth: slot,
+        Offset(centerOf(last - 1), topOf(values[last - 1]!)),
+        Offset(centerOf(last), topOf(values[last]!)),
+        valueRects,
+        maxWidth: slot * 2,
       );
     }
 
@@ -350,8 +412,55 @@ class _BarLinePainter extends CustomPainter {
     }
   }
 
+  /// 선 [a]–[b] 의 가운데 위에 변화를 적는다.
+  ///
+  /// 기울어진 선은 글자 양 끝에서 가운데보다 높이 올라오므로 그만큼 더 띄우고,
+  /// 그래도 값 라벨과 겹치면 그 라벨 위로 올린다 — 숫자 둘이 포개지면 어느
+  /// 것이 값이고 어느 것이 차이인지 읽을 수 없다.
+  void _paintDelta(
+    Canvas canvas,
+    Offset a,
+    Offset b,
+    List<Rect> avoid, {
+    required double maxWidth,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: delta!.text,
+        style: deltaStyle.copyWith(color: delta!.color),
+      ),
+      textDirection: textDirection,
+      textScaler: textScaler,
+      maxLines: 1,
+      ellipsis: '…',
+    )..layout(maxWidth: maxWidth);
+    final Offset mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+    final double dx = (b.dx - a.dx).abs();
+    final double rise = dx == 0
+        ? 0
+        : (b.dy - a.dy).abs() / dx * painter.width / 2;
+    double bottom = mid.dy - deltaGap - rise;
+    Rect rectAt(double bottom) => Rect.fromLTWH(
+      mid.dx - painter.width / 2,
+      bottom - painter.height,
+      painter.width,
+      painter.height,
+    );
+    // 한 라벨 위로 올린 자리가 다른 라벨에 걸릴 수 있어, 걸리는 것이 없을
+    // 때까지 되풀이한다(올리기만 하므로 라벨 수만큼이면 끝난다).
+    for (var pass = 0; pass < avoid.length; pass++) {
+      for (final Rect label in avoid) {
+        if (rectAt(bottom).overlaps(label)) bottom = label.top - deltaGap;
+      }
+    }
+    // 캔버스 위로 나가면 카드 제목에 붙는다 — 맨 위에 멈춘다.
+    if (bottom - painter.height < 0) bottom = painter.height;
+    painter.paint(canvas, rectAt(bottom).topLeft);
+  }
+
   /// 가운데 정렬로 한 줄 적는다. [anchorBottom] 이면 [at] 이 글자의 **아래**다.
-  void _text(
+  /// 적은 자리를 돌려준다.
+  Rect _text(
     Canvas canvas,
     String text,
     Offset at,
@@ -366,13 +475,12 @@ class _BarLinePainter extends CustomPainter {
       maxLines: 1,
       ellipsis: '…',
     )..layout(maxWidth: maxWidth ?? double.infinity);
-    painter.paint(
-      canvas,
-      Offset(
-        at.dx - painter.width / 2,
-        anchorBottom ? at.dy - painter.height : at.dy,
-      ),
+    final Offset origin = Offset(
+      at.dx - painter.width / 2,
+      anchorBottom ? at.dy - painter.height : at.dy,
     );
+    painter.paint(canvas, origin);
+    return origin & painter.size;
   }
 
   @override
@@ -385,6 +493,9 @@ class _BarLinePainter extends CustomPainter {
       old.lineColor != lineColor ||
       old.emptyLabel != emptyLabel ||
       old.highlightIndex != highlightIndex ||
+      old.delta != delta ||
+      old.reserveDeltaSpace != reserveDeltaSpace ||
+      old.deltaStyle != deltaStyle ||
       old.maxBarWidth != maxBarWidth ||
       old.labels.join() != labels.join() ||
       old.segments != segments ||

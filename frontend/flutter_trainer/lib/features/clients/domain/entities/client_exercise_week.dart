@@ -19,6 +19,7 @@ class ClientExerciseWeek {
     this.sessionCount,
     this.weeklyGoalMinutes = 0,
     this.weeklyGoalCalories = 0,
+    this.streakDays = 0,
     this.itemsByDayLabel = const <String, List<ClientExerciseItem>>{},
   });
 
@@ -56,6 +57,13 @@ class ClientExerciseWeek {
   final int totalMinutes;
   final int totalCalories;
   final int? sessionCount;
+
+  /// 이 주에 운동한 날의 최장 연속 구간 — **서버가 센 값**이다(#2195).
+  ///
+  /// 회원 앱도 같은 필드를 읽는다(`ExerciseWeek.streakDays`). 앱에서 다시 세면
+  /// 규칙이 갈린다 — 서버는 `daily_minutes > 0` 인 날만 세는데, 트레이너 화면은
+  /// 칼로리만 있고 분이 0 인 날까지 세고 있었다.
+  final int streakDays;
 
   /// 이 회원의 주간 운동 시간 목표(분). 그래프의 목표선이 회원 앱과 같은 값을
   /// 쓰게 서버가 함께 내려준다 — 트레이너 화면은 회원 프로필을 따로 읽지
@@ -121,9 +129,7 @@ class ClientExerciseWeek {
             minutes: single ? ((row['minutes'] as num?)?.toInt() ?? 0) : 0,
             sets: single ? (row['sets'] as num?)?.toInt() : null,
             reps: single ? (row['reps'] as num?)?.toInt() : null,
-            holdSeconds: single
-                ? (row['hold_seconds'] as num?)?.toInt()
-                : null,
+            holdSeconds: single ? (row['hold_seconds'] as num?)?.toInt() : null,
             weight: single ? (row['weight'] as num?)?.toDouble() : null,
           ),
         );
@@ -210,6 +216,7 @@ class ClientExerciseWeek {
       sessionCount: (json['sessions'] as List<Object?>?)?.length,
       itemsByDayLabel: _itemsByDayLabel(json['sessions']),
       weeklyGoalMinutes: (json['weekly_goal_minutes'] as num?)?.toInt() ?? 0,
+      streakDays: (json['streak_days'] as num?)?.toInt() ?? 0,
     );
   }
 }

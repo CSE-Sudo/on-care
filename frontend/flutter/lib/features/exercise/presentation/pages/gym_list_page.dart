@@ -691,6 +691,8 @@ class _GymListCard extends ConsumerWidget {
               trainer: trainer,
               // 한 카드에 여러 명이 잇달아 선다 — 실선으로 서로를 가른다.
               bordered: true,
+              // 트레이너 상세·채팅과 같은 성씨 프로필로 선다 (#2154).
+              showAvatar: true,
               // 트레이너 줄은 **트레이너 상세**로 간다(#2038). 예전에는 읽기만
               // 하는 줄이라 탭이 바깥 카드로 흘러 헬스장 상세가 열렸다 — 누른
               // 것과 다른 곳에 도착했다. 내 헬스장 카드의 같은 줄은 이미

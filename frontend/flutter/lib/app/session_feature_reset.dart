@@ -42,7 +42,6 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(dietTodayProvider);
       ref.invalidate(dietRecommendationsProvider);
       ref.invalidate(exerciseWeekProvider);
-      ref.invalidate(exerciseRoutineDoneProvider);
       ref.invalidate(myGymProvider);
       ref.invalidate(myTrainerProvider);
       // 예약 내역은 헬스장 저장소를 통해 이미 함께 무효화되지만, 같은 뿌리를 보는
@@ -51,6 +50,7 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(consultationRequestControllerProvider);
       ref.invalidate(memberCoachProvider);
       ref.invalidate(coachRoutinesProvider);
+      ref.invalidate(coachRoutinesOnDayProvider);
       ref.invalidate(coachSessionsProvider);
       ref.invalidate(coachChatProvider);
       ref.invalidate(coachUnreadProvider);
@@ -63,6 +63,7 @@ Override sessionFeatureResetOverride() {
       // 앞 계정의 잔액·교환 가능 여부·쿠폰이 남는다.
       ref.invalidate(pointsShopProvider);
       ref.invalidate(myCouponsProvider);
+      ref.invalidate(dietTrayProvider);
       // MY 프로필 펫(#2021) — auto-dispose 가 아니라 되짚지 않으면 앞 계정의 펫이
       // 이름 옆에 남는다.
       ref.invalidate(profilePetProvider);

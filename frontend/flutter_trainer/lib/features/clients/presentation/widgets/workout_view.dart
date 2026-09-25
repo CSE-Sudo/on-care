@@ -745,12 +745,15 @@ class _DayDetail extends ConsumerWidget {
   }
 }
 
-/// 아직 하지 않은 개인 운동과 그 취소. (#1020)
+/// 회원이 매일 하는 개인 운동과 그 취소. (#1020, #2161)
 ///
-/// 배정된 루틴 **목록**을 되살리는 것이 아니다. 지난 배정·PT 이력은 프로그램
-/// 탭이 맡고, 여기에는 물릴 수 있는 것만 온다 — 아직 수행하지 않은 개인 운동.
-/// 이미 한 운동은 여기 오지 않는다: 배정을 지운다고 한 일이 없던 일이 되지
-/// 않으므로, 취소 버튼을 걸어 두면 기록까지 지운다고 오해하게 된다.
+/// 배정된 루틴 **이력**을 되살리는 것이 아니다. 지난 배정·PT 이력은 프로그램
+/// 탭이 맡고, 여기에는 지금 회원 목록에 걸려 있는 것이 온다.
+///
+/// 개인 운동은 매일 새로 체크하는 목록이라(#2161), 오늘 이미 한 운동도 내일
+/// 다시 걸린다. 그래서 오늘 한 것도 여기 남기고 `오늘 완료` 로 표시한다. 취소는
+/// 목록에서 내릴 뿐 이미 한 기록을 지우지 않는다 — 서버가 행을 남기고 그날부터
+/// 목록에서 뺀다.
 class _PendingRoutines extends ConsumerWidget {
   const _PendingRoutines({required this.clientId});
 
@@ -760,10 +763,8 @@ class _PendingRoutines extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final List<AssignedRoutine> pending =
-        (ref.watch(assignedRoutinesProvider(clientId)).valueOrNull ??
-                const <AssignedRoutine>[])
-            .where((AssignedRoutine r) => !r.completed)
-            .toList();
+        ref.watch(assignedRoutinesProvider(clientId)).valueOrNull ??
+        const <AssignedRoutine>[];
     // 물릴 것이 없으면 제목도 두지 않는다 — 늘 있는 빈 카드는 자리만 먹는다.
     if (pending.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -930,6 +931,17 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
+          // 오늘 이미 했는가 — 매일 새로 체크하는 목록이라 완료는 오늘 기준이다
+          // (#2161).
+          if (routine.completed) ...<Widget>[
+            AppTag(
+              key: ValueKey<String>('workout-routine-done-${routine.id}'),
+              label: l.workoutRoutineDoneToday,
+              icon: Icons.check_rounded,
+              tone: AppTagTone.success,
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
+          ],
           // 누가 보낸 것인지 — AI 추천과 트레이너 배정은 물릴 때의 무게가 다르다.
           routine.source == 'ai'
               ? AppTag(

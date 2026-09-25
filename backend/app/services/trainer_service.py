@@ -12,6 +12,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -44,6 +45,7 @@ from app.schemas.trainer_api import (
 from app.services import health_focus
 from app.services import (
     auto_routine_service,
+    client_signals,
     diet_photo_service,
     exercise_activity,
     exercise_service,
@@ -51,6 +53,7 @@ from app.services import (
     notification_service,
     points_coupon_service,
     points_service,
+    routine_advice,
     routine_suggestion_service,
     schedule_parse,
     streak_shield_service,
@@ -270,15 +273,19 @@ def _week_days(
     ]
 
 
-def _latest_by_member(db: Session, model, trainer_id: str, member_ids: list[str]):
-    """(trainer, member) 스레드별 최신 1건을 member_id → row 로.
+def _latest_by_member(
+    db: Session, model, trainer_id: str, member_ids: list[str], *where
+):
+    """(trainer, member) 스레드별 최신 1건을 member_id → row 로. [where] 는 추가 조건.
 
     Postgres DISTINCT ON 으로 회원당 1행만 DB 에서 반환한다 — 오래된 메시지/루틴이
     아무리 많아도 반환 행 수는 회원 수 이하다(전체 로드 후 Python 선별 금지, 리뷰 PR 250-#2).
     """
     rows = db.scalars(
         select(model)
-        .where(model.trainer_id == trainer_id, model.member_id.in_(member_ids))
+        .where(
+            model.trainer_id == trainer_id, model.member_id.in_(member_ids), *where
+        )
         # DISTINCT ON (member_id) + 최신순 → 회원별 최신 1건. ORDER BY 선두는
         # distinct 컬럼(member_id)이어야 한다.
         .order_by(model.member_id, model.created_at.desc())
@@ -371,7 +378,12 @@ def build_roster(
         hist_by_member[h.member_id].append(h)
 
     last_msg_by = _latest_by_member(db, ChatMessage, trainer_id, member_ids)
-    last_rt_by = _latest_by_member(db, TrainerRoutine, trainer_id, member_ids)
+    # 철회해 내려온 배정은 로스터의 "최근 루틴" 이 아니다(#2161) — 예전에는
+    # 철회가 행을 지웠으므로 같은 결과다.
+    last_rt_by = _latest_by_member(
+        db, TrainerRoutine, trainer_id, member_ids,
+        *routine_active_on(clock.today()),
+    )
     members = {
         m.id: m for m in db.scalars(select(User).where(User.id.in_(member_ids))).all()
     }
@@ -388,6 +400,8 @@ def build_roster(
     ).all():
         gender_by_member[member_id] = gender
         goal_by_member[member_id] = health_focus.focus_label(conditions)
+    # PT 관리 신호(#2203) — 기준과 계산은 client_signals 한 곳에 있다.
+    signals_by_member = client_signals.build_signals(db, trainer_id, list(links))
 
     out: list[TrainerClientOut] = []
     for link in links:
@@ -430,6 +444,7 @@ def build_roster(
             sodium_week=_sodium_week(diet_rows, monday),
             calories_week=_calories_week(diet_rows, monday),
             sugar_week=_sugar_week(diet_rows, monday),
+            signals=signals_by_member.get(link.member_id, []),
         ))
     return out
 
@@ -842,20 +857,27 @@ def send_message(
         )
     if notify is not None and sender == "trainer":
         trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
+        is_report = notify == notification_service.WEEKLY_REPORT
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notify,
             title=(
                 "주간 리포트가 도착했어요"
-                if notify == notification_service.WEEKLY_REPORT
+                if is_report
                 else f"{trainer_name or '트레이너'} 트레이너의 메시지"
             ),
             # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
             # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
             body=text or ("사진을 보냈어요" if attachment_file_id and attachment_type == "image" else text),
-            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다.
-            category=notification_service.MEMBER_COACH_CHAT,
+            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지는
+            # 같지만 갈래를 나눠 회원 앱이 리포트를 메시지와 다른 아이콘으로
+            # 그린다(#2085).
+            category=(
+                notification_service.MEMBER_COACH_REPORT
+                if is_report
+                else notification_service.MEMBER_COACH_CHAT
+            ),
         )
     db.commit()
     db.refresh(msg)
@@ -1061,14 +1083,47 @@ ROUTINE_DISMISSED = "dismissed"
 ROUTINE_STATUSES = frozenset({ROUTINE_APPROVED, ROUTINE_PENDING, ROUTINE_DISMISSED})
 
 
+def routine_active_on(day: date):
+    """[day] 에 회원 목록에 걸려 있던 개인운동을 고르는 조건. (#2161)
+
+    추천 개인운동은 매일 새로 체크하는 목록이다. 트레이너가 바꾸기 전까지 같은
+    목록이 날마다 되풀이되므로, 어느 날의 목록은 "그날 걸려 있던 배정" 이다 —
+    `active_from` 은 그날을 포함하고 `ended_on` 은 그날부터 없다.
+    """
+    iso = day.isoformat()
+    return (
+        TrainerRoutine.active_from <= iso,
+        or_(TrainerRoutine.ended_on.is_(None), TrainerRoutine.ended_on > iso),
+    )
+
+
+def _completion_on(day: date):
+    """[day] 하루의 배정 완료 기록을 고르는 조건. (#2161)
+
+    운동 기록의 날짜는 `(week_start, day_label)` 이다. 완료는 배정 하나당 하루
+    한 번이라(`uq_exercise_sessions_routine_day`) 이 조건과 배정 id 가 곧 한 행을
+    가리킨다.
+    """
+    iso = day.isoformat()
+    return (
+        ExerciseSession.week_start == exercise_service.monday_of_str(iso),
+        ExerciseSession.day_label == exercise_service.weekday_label_of(iso),
+    )
+
+
 def build_routines(
     db: Session,
     member_id: str,
     trainer_id: str | None,
     *,
     for_member: bool = False,
+    day: date | None = None,
 ) -> list[RoutineOut]:
-    """이 트레이너가 회원에게 배정한 루틴(정렬순).
+    """이 트레이너가 회원에게 배정한 루틴(정렬순) — [day] 에 걸려 있던 것과 그날 완료.
+
+    [day] 를 주지 않으면 오늘이다. 추천 개인운동은 매일 미완료로 다시 시작하므로
+    `completed` 는 **그날** 완료했는가다(#2161). 어제 한 운동이 오늘 체크된 채로
+    보이지 않는다.
 
     [trainer_id] 가 None 이면 트레이너 없이 만들어진 자동 추천을 읽는다 —
     SQLAlchemy 가 `== None` 을 `IS NULL` 로 옮기므로 조건은 그대로 쓴다.
@@ -1079,6 +1134,7 @@ def build_routines(
     한 프로그램의 세션들은 `sort_order` 를 연속으로 받으므로 이 정렬만으로
     세션 순서가 지켜진다 — 별도 그룹핑 없이 배열 순서가 곧 프로그램 순서다.
     """
+    day = day or clock.today()
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
@@ -1088,6 +1144,7 @@ def build_routines(
             # 회원 화면은 물론 트레이너의 배정 목록에도 섞이면 안 된다 —
             # 검토는 전용 목록(list_routine_suggestions)에서 한다(#790).
             TrainerRoutine.status == ROUTINE_APPROVED,
+            *routine_active_on(day),
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
     ).all()
@@ -1098,7 +1155,8 @@ def build_routines(
             row.assigned_routine_id: row
             for row in db.scalars(
                 select(ExerciseSession).where(
-                    ExerciseSession.assigned_routine_id.in_(routine_ids)
+                    ExerciseSession.assigned_routine_id.in_(routine_ids),
+                    *_completion_on(day),
                 )
             ).all()
         }
@@ -1127,13 +1185,22 @@ def _day_start(day: str) -> datetime | None:
 
 
 def _owned_routine(
-    db: Session, trainer_id: str | None, member_id: str, routine_id: str
+    db: Session,
+    trainer_id: str | None,
+    member_id: str,
+    routine_id: str,
+    *,
+    include_ended: bool = False,
 ) -> TrainerRoutine:
     """이 트레이너가 이 회원에게 배정한 루틴. 아니면 [RoutineNotFound]. (#504)
 
     trainer_id 까지 조건에 넣는 이유: 한 회원이 여러 트레이너를 거쳐 왔을 수 있고,
     그때 남의 배정을 고칠 수 있으면 안 된다. 없는 것과 남의 것을 구분하지 않는
     것도 의도다 — 라우터가 둘 다 404 로 돌려 존재 여부를 드러내지 않는다.
+
+    철회해 목록에서 내려온 배정(`ended_on`)도 없는 것으로 본다(#2161). 예전에는
+    철회가 행을 지웠으니 같은 답이다. [include_ended] 는 오늘 이미 끝낸 완료를
+    되돌릴 때처럼, 내려온 배정에 남은 기록을 다뤄야 하는 경우에만 켠다.
     """
     routine = db.scalar(
         select(TrainerRoutine).where(
@@ -1142,9 +1209,29 @@ def _owned_routine(
             TrainerRoutine.member_id == member_id,
         )
     )
-    if routine is None:
+    if routine is None or (not include_ended and _has_ended(routine)):
         raise RoutineNotFound("루틴을 찾을 수 없습니다.")
     return routine
+
+
+def _has_ended(routine: TrainerRoutine) -> bool:
+    """오늘 목록에 이미 없는 배정인가. (#2161)"""
+    return routine.ended_on is not None and routine.ended_on <= clock.today_iso()
+
+
+def _end_routine(db: Session, routine: TrainerRoutine) -> None:
+    """배정을 오늘부터 목록에서 내린다 — 행은 지우지 않는다. (#2161)
+
+    지난 날짜 화면은 그날 걸려 있던 목록과 완료 여부를 그대로 보여 준다. 행을
+    지우면 그 목록이 통째로 사라져, 회원이 했던 날도 "아무것도 없었던 날" 이 된다.
+
+    승인 전 후보·거절한 후보는 회원 목록에 걸린 적이 없으니 남길 날이 없다 —
+    예전처럼 행째 지운다. 남겨 두면 검토 대기 목록에 철회한 후보가 섞인다.
+    """
+    if routine.status != ROUTINE_APPROVED:
+        db.delete(routine)
+        return
+    routine.ended_on = max(clock.today_iso(), routine.active_from)
 
 
 def update_routine(
@@ -1168,7 +1255,8 @@ def update_routine(
     db.refresh(routine)
     completion = db.scalar(
         select(ExerciseSession).where(
-            ExerciseSession.assigned_routine_id == routine.id
+            ExerciseSession.assigned_routine_id == routine.id,
+            *_completion_on(clock.today()),
         )
     )
     return _routine_out(db, routine, completion)
@@ -1185,9 +1273,13 @@ def delete_routine(
 
     지난 기록(`routine_history`)은 건드리지 않는다 — 이미 수행한 운동의 이력이지
     배정의 일부가 아니다.
+
+    행을 지우지 않고 오늘부터 목록에서 내린다(#2161). 회원의 지난 날짜 화면이
+    그날 걸려 있던 목록을 되살려야 하기 때문이다. 두 번 철회하면 두 번째는
+    404 다 — 예전처럼 이미 없는 배정이다.
     """
     routine = _owned_routine(db, trainer_id, member_id, routine_id)
-    db.delete(routine)
+    _end_routine(db, routine)
     db.commit()
 
 
@@ -1216,9 +1308,10 @@ def delete_own_routine(db: Session, member_id: str, routine_id: str) -> None:
             TrainerRoutine.member_id == member_id,
         )
     )
-    if routine is None:
+    if routine is None or _has_ended(routine):
         raise RoutineNotFound("루틴을 찾을 수 없습니다.")
-    db.delete(routine)
+    # 트레이너 철회와 같다 — 지난 날짜에 걸려 있던 목록은 남긴다(#2161).
+    _end_routine(db, routine)
     db.commit()
 
 
@@ -1467,6 +1560,9 @@ def approve_routine_suggestion(
     row.status = ROUTINE_APPROVED
     row.reviewed_at = clock.now()
     row.reviewed_by = trainer_id
+    # 회원 목록에는 승인한 날부터 걸린다 — 후보로 기다린 날들에는 회원이 받은
+    # 적이 없다(#2161).
+    row.active_from = clock.today_iso()
 
     # 알림은 여기서 나간다 — 회원이 볼 수 있게 된 시점이 곧 알릴 시점이다.
     notification_service.queue(
@@ -1512,10 +1608,14 @@ def complete_assigned_routine(
     weight: float | None = None,
     intensity: str,
 ) -> RoutineCompleteOut:
-    """배정 하나를 회원 운동 기록 한 건으로 완료한다.
+    """배정 하나를 **오늘의** 회원 운동 기록 한 건으로 완료한다.
 
-    `assigned_routine_id` unique 제약이 더블 탭·재전송을 같은 기록으로
+    추천 개인운동은 매일 새로 체크하는 목록이라 같은 배정을 날마다 한 번씩
+    완료한다(#2161). `(배정, 그날)` 유일 제약이 더블 탭·재전송을 같은 기록으로
     모은다. 이름은 스냅샷이라 이후 배정 수정·철회에 흔들리지 않는다.
+
+    지난 날짜는 완료할 수 없다 — 날짜를 받지 않고 늘 오늘로 적는다. 지난 날짜
+    화면은 그날 무엇을 했는지 보여 주는 읽기 전용이다.
 
     포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
     새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다.
@@ -1525,9 +1625,12 @@ def complete_assigned_routine(
     # 완료로 넘어가지 않게 여기서 막는다 — 조회만 거르면 경로가 하나 남는다(#790).
     if routine.status != ROUTINE_APPROVED:
         raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+    completed_at = clock.now()
+    today = completed_at.date()
     existing = db.scalar(
         select(ExerciseSession).where(
-            ExerciseSession.assigned_routine_id == routine_id
+            ExerciseSession.assigned_routine_id == routine_id,
+            *_completion_on(today),
         )
     )
     if existing is not None:
@@ -1536,7 +1639,6 @@ def complete_assigned_routine(
             _completion_points(db, routine, member_id, existing.id, award=False),
         )
 
-    completed_at = clock.now()
     exercise_type = _ROUTINE_EXERCISE_TYPES(routine.type)
     # 회원이 실제로 한 수를 적지 않았으면 트레이너가 배정한 값이 남는다 —
     # 근력 배정에서 세트·횟수·중량이 통째로 비면, 그래프가 분에서 세트를 되짚어
@@ -1563,8 +1665,8 @@ def complete_assigned_routine(
     row = ExerciseSession(
         id=f"assigned-ex-{uuid.uuid4().hex[:12]}",
         user_id=member_id,
-        week_start=exercise_service.monday_of_str(completed_at.date().isoformat()),
-        day_label=exercise_service.weekday_label_of(completed_at.date().isoformat()),
+        week_start=exercise_service.monday_of_str(today.isoformat()),
+        day_label=exercise_service.weekday_label_of(today.isoformat()),
         type=exercise_type,
         # 배정 이름이 곧 이 운동의 이름이다 — 회원이 따로 적지 않는다.
         name=routine.name,
@@ -1610,7 +1712,8 @@ def complete_assigned_routine(
         db.rollback()
         existing = db.scalar(
             select(ExerciseSession).where(
-                ExerciseSession.assigned_routine_id == routine_id
+                ExerciseSession.assigned_routine_id == routine_id,
+                *_completion_on(today),
             )
         )
         if existing is None:
@@ -1663,20 +1766,25 @@ def uncomplete_assigned_routine(
     member_id: str,
     routine_id: str,
 ) -> RoutineOut:
-    """완료 표시를 되돌린다 — 그 배정으로 만들어진 운동 기록을 지운다. (#1131)
+    """오늘의 완료 표시를 되돌린다 — 오늘 그 배정으로 만든 운동 기록을 지운다. (#1131)
 
     회원이 체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간
-    시간·칼로리에 영원히 남는다. 완료는 배정 하나당 기록 하나(`assigned_routine_id`
-    unique)라 지울 대상도 하나다.
+    시간·칼로리에 영원히 남는다. 완료는 배정 하나당 하루 기록 하나라(#2161)
+    지울 대상도 하나다. 지난 날짜의 완료는 건드리지 않는다 — 지난 날짜 화면은
+    읽기 전용이다.
 
     아직 완료하지 않은 배정에 대해서는 아무 일도 하지 않고 현재 상태를 돌려준다 —
     같은 요청을 두 번 보내도 결과가 같다.
     """
-    routine = _owned_routine(db, trainer_id, member_id, routine_id)
+    # 오늘 철회된 배정이라도 오늘 남긴 완료는 되돌릴 수 있어야 한다.
+    routine = _owned_routine(
+        db, trainer_id, member_id, routine_id, include_ended=True
+    )
     row = db.scalar(
         select(ExerciseSession).where(
             ExerciseSession.assigned_routine_id == routine_id,
             ExerciseSession.user_id == member_id,
+            *_completion_on(clock.today()),
         )
     )
     if row is None:
@@ -4215,18 +4323,158 @@ def build_member_coach(db: Session, member_id: str) -> MemberCoachOut | None:
     )
 
 
-def build_member_routines(db: Session, member_id: str) -> list[RoutineOut]:
-    """회원이 받은 개인운동.
+@dataclass(frozen=True)
+class RoutineDayItem:
+    """그날 걸려 있던 추천 개인운동 하나와 그날 했는지. (#2161)"""
+
+    routine_id: str
+    name: str
+    #: 유산소|근력|스트레칭|기타 — 배정의 한글 유형 그대로다.
+    type: str
+    minutes: int
+    #: 목록 순서. 트레이너가 정한 차례이자 "다음 운동" 을 셀 때의 기준이다.
+    sort_order: int
+    #: ai|trainer
+    source: str
+    done: bool
+    #: 그날 완료로 남긴 분. 하지 않았으면 None.
+    completed_minutes: int | None
+
+
+@dataclass(frozen=True)
+class RoutineDay:
+    """하루치 추천 개인운동 — 그날 목록(정렬순)과 그날 완료. (#2161)"""
+
+    date: date
+    routines: list[RoutineDayItem]
+
+
+def member_routine_days(
+    db: Session, member_id: str, start: date, end: date
+) -> list[RoutineDay]:
+    """[start]~[end](양끝 포함)의 날마다 걸려 있던 추천 개인운동과 그날 완료. (#2161)
+
+    추천 개인운동은 매일 새로 체크하는 목록이라, 기간을 되짚는 쪽(운동 AI 맞춤
+    조언, #2162)은 날마다 "무엇이 걸려 있었고 무엇을 했나" 를 읽어야 한다 — 완료
+    기록만 세면 안 한 날이 보이지 않는다.
+
+    회원 화면(`build_member_routines`)과 같은 규칙이다: 지금의 담당 기준(담당이
+    없으면 AI 자동 추천), 승인된 것만, 그날 걸려 있던 것만. 목록이 빈 날도 한
+    칸을 차지한다 — 날짜가 빠지면 부르는 쪽이 "안 걸린 날" 과 "없는 날" 을 가를
+    수 없다. 아직 오지 않은 날은 담지 않는다. 하루치 AI 추천을 새로 만들지 않는다
+    — 읽기만 한다.
+
+    쿼리는 기간 길이와 무관하게 둘이다(배정, 완료).
+    """
+    end = min(end, clock.today())
+    if end < start:
+        return []
+    trainer_id = get_member_trainer_id(db, member_id)
+    start_iso, end_iso = start.isoformat(), end.isoformat()
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            # 기간과 겹치는 배정만 — 기간 안 어느 날이든 걸려 있었던 것.
+            TrainerRoutine.active_from <= end_iso,
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > start_iso,
+            ),
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
+    ).all()
+    done: dict[tuple[str, date], ExerciseSession] = {}
+    if rows:
+        for session in db.scalars(
+            select(ExerciseSession).where(
+                ExerciseSession.assigned_routine_id.in_([r.id for r in rows]),
+                ExerciseSession.week_start
+                >= exercise_service.monday_of_str(start_iso),
+                ExerciseSession.week_start <= end_iso,
+            )
+        ).all():
+            day = exercise_activity.activity_date_of(session)
+            if day is not None and start <= day <= end:
+                done[(session.assigned_routine_id, day)] = session
+
+    days: list[RoutineDay] = []
+    day = start
+    while day <= end:
+        iso = day.isoformat()
+        items: list[RoutineDayItem] = []
+        for row in rows:
+            if row.active_from > iso or (
+                row.ended_on is not None and row.ended_on <= iso
+            ):
+                continue
+            completion = done.get((row.id, day))
+            items.append(
+                RoutineDayItem(
+                    routine_id=row.id,
+                    name=row.name,
+                    type=row.type,
+                    minutes=row.minutes,
+                    sort_order=row.sort_order,
+                    source=row.source,
+                    done=completion is not None,
+                    completed_minutes=(
+                        completion.minutes if completion is not None else None
+                    ),
+                )
+            )
+        days.append(RoutineDay(date=day, routines=items))
+        day += timedelta(days=1)
+    return days
+
+
+def advice_routine_days(db: Session, member_id: str, period: str) -> list[RoutineDay]:
+    """운동 AI 맞춤 조언이 읽는 추천 개인운동 — 기간에 맞는 날들. (#2162)
+
+    회원 앱(`/exercise/advice`)과 트레이너웹이 이 함수 하나를 함께 쓴다 — 읽는
+    구간이 갈리면 같은 회원의 같은 기간을 두고 두 화면이 다른 말을 한다.
+
+    담당이 없는 회원의 오늘 AI 추천은 운동 탭을 열 때 만들어진다. 조언이 먼저
+    불리면 오늘 칸이 비어 "추천이 없는 회원" 으로 읽히므로 여기서도 준비한다.
+    """
+    today = clock.today()
+    if get_member_trainer_id(db, member_id) is None:
+        auto_routine_service.ensure_auto_routines(db, member_id)
+    return member_routine_days(
+        db, member_id, routine_advice.fetch_start(period, today), today
+    )
+
+
+class RoutineDayInFuture(Exception):
+    """아직 오지 않은 날의 개인운동 목록을 물었다. (#2161)"""
+
+
+def build_member_routines(
+    db: Session, member_id: str, day: date | None = None
+) -> list[RoutineOut]:
+    """회원이 받은 개인운동 — [day](기본 오늘)에 걸려 있던 목록과 그날 완료.
 
     담당 트레이너가 있으면 그 트레이너가 배정한 것(승인된 것만, #790).
     담당이 없으면 AI 가 안전 범위에서 직접 준비한 것(#782) — 예전에는 이 경우
     늘 빈 목록이라, 트레이너 없는 회원은 운동 탭에서 받을 것이 아무것도 없었다.
+
+    지난 날짜(#2161)는 **지금의 담당 기준**으로 읽는다 — 그 트레이너가 그날 걸어
+    둔 목록이다. 하루치 AI 추천을 준비하는 일은 오늘에만 한다. 지난 날을 열었다고
+    그날 추천을 새로 만들면, 회원이 받은 적 없는 목록이 "그날 안 한 운동" 으로
+    보인다. 아직 오지 않은 날은 [RoutineDayInFuture] — 체크할 목록이 없다.
     """
+    today = clock.today()
+    day = day or today
+    if day > today:
+        raise RoutineDayInFuture("아직 오지 않은 날입니다.")
     trainer_id = get_member_trainer_id(db, member_id)
     if trainer_id is None:
-        auto_routine_service.ensure_auto_routines(db, member_id)
-        return build_routines(db, member_id, None, for_member=True)
-    return build_routines(db, member_id, trainer_id, for_member=True)
+        if day == today:
+            auto_routine_service.ensure_auto_routines(db, member_id)
+        return build_routines(db, member_id, None, for_member=True, day=day)
+    return build_routines(db, member_id, trainer_id, for_member=True, day=day)
 
 
 #: 회원 세션 목록 상한 — 시간이 지나며 누적되는 PT 세션을 최근 것 위주로 잘라 응답 크기를 묶는다.

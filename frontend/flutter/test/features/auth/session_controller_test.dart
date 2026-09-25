@@ -14,7 +14,6 @@ import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.d
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 
 import '../../support/consultation_test_support.dart';
 
@@ -59,10 +58,6 @@ void main() {
       ),
       isTrue,
     );
-    container.read(exerciseRoutineDoneProvider.notifier).state = <bool>[
-      true,
-      false,
-    ];
 
     await container.read(sessionControllerProvider.notifier).signOut();
 
@@ -73,7 +68,6 @@ void main() {
           .hasPending(trainerId: _pendingRequest.trainerId),
       isFalse,
     );
-    expect(container.read(exerciseRoutineDoneProvider), <bool>[false, false]);
   });
 
   test('enterDemo clears existing consultation requests', () async {
@@ -180,10 +174,6 @@ void main() {
       ),
       isTrue,
     );
-    container.read(exerciseRoutineDoneProvider.notifier).state = <bool>[
-      true,
-      false,
-    ];
 
     await expectLater(
       controller.login(email: 'member@example.com', password: 'password'),
@@ -204,7 +194,6 @@ void main() {
           .hasPending(trainerId: _pendingRequest.trainerId),
       isTrue,
     );
-    expect(container.read(exerciseRoutineDoneProvider), <bool>[true, false]);
   });
 
   test(

@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         OrderingTerm,
         Value;
 import 'package:logger/logger.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
@@ -49,6 +50,21 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
 /// snake_case payloads are produced/consumed via
 /// `core/network/case_mapper.dart` so the contract matches the real
 /// server's Pydantic models.
+/// 데모 답변에 붙는 근거 출처.
+///
+/// 실제 서버는 검색된 공개 문서의 제목을 그대로 돌려준다
+/// (`backend/app/data/coach_public_docs.py`). 예전 목업은 손으로 쓴 요약의 제목
+/// (`DASH 식단 개요` 등)을 적고 있었는데, 그 문서들이 공개 가이드라인 원문으로
+/// 교체되면서 데모만 있지도 않은 근거를 인용하게 됐다(#1652).
+const String _srcPa = '한국인을 위한 신체활동 지침서(2023 개정판) · 보건복지부';
+const String _srcKdri = '2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회';
+const String _srcSodium = '$_srcKdri — 나트륨과 염소';
+const String _srcCarb = '$_srcKdri — 탄수화물과 당류';
+const String _srcProtein = '$_srcKdri — 단백질과 아미노산';
+const String _srcWater = '$_srcKdri — 수분';
+const String _srcPaAdult = '$_srcPa — 성인(19~64세) 신체활동 지침';
+const String _srcPaSafety = '$_srcPa — 안전하게 신체활동 실천하기';
+
 class LocalApiInterceptor extends Interceptor {
   LocalApiInterceptor(
     this._db,
@@ -118,6 +134,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
     'POST /diet/nutrition': _dietNutrition,
+    'POST /diet/entries': _dietCreate,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
@@ -148,6 +165,9 @@ class LocalApiInterceptor extends Interceptor {
     'GET /me/points/history': _pointsHistory,
     'POST /me/points/exchange': _pointsExchange,
     'GET /me/coupons': _meCoupons,
+    // 분석용 식판 — 사진 기록일 달성 보상, 쿠폰은 위 coupons 에 선다(#2150).
+    'GET /me/diet-tray': _dietTray,
+    'POST /me/diet-tray/claim': _dietTrayClaim,
     // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
     'GET /me/streak-shields': _streakShields,
     'POST /me/streak-shields/use': _streakShieldUse,
@@ -452,6 +472,138 @@ class LocalApiInterceptor extends Interceptor {
     );
   }
 
+  /// 기록 날짜 검사(#1241). 실서버와 같은 규칙이다 — 형식이 틀리거나 아직 오지
+  /// 않은 날은 받지 않는다. 데모에서만 통과하면 실연동에서 그 화면이 처음 실패한다.
+  static String? _entryDateError(String? date) {
+    final DateTime? parsed = DateTime.tryParse(date ?? '');
+    if (date == null || parsed == null || date.length != 10) {
+      return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
+    }
+    final DateTime now = nowKst();
+    if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
+      return 'date 는 오늘보다 뒤일 수 없습니다.';
+    }
+    return null;
+  }
+
+  /// POST /diet/entries — 사진 없이 회원이 직접 적은 끼니(#2151).
+  ///
+  /// 실서버와 같은 규칙이다. 합계는 음식에서 내고, 출처가 빠진 음식은 회원 값
+  /// (`member`)이며, **포인트는 적립하지 않는다.** 기록이므로 보호한 날이면
+  /// 보호권은 돌려준다.
+  Future<Response<Object?>> _dietCreate(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final String? idempotencyKey = (body['idempotency_key'] as String?)?.trim();
+    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+      final existing =
+          await (_db.select(_db.dietEntries)
+                ..where((t) => t.idempotencyKey.equals(idempotencyKey)))
+              .getSingleOrNull();
+      if (existing != null) return _created(options, _dietEntryJson(existing));
+    }
+    final String? date = (body['date'] as String?)?.trim();
+    if (body.containsKey('date')) {
+      final String? error = _entryDateError(date);
+      if (error != null) return _unprocessable(options, error);
+    }
+    const Set<String> mealTypes = <String>{
+      'breakfast',
+      'lunch',
+      'dinner',
+      'snack',
+      'lateNight',
+    };
+    final String? mealType = (body['meal_type'] as String?)?.trim();
+    if (mealType == null || !mealTypes.contains(mealType)) {
+      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+    }
+    final Object? foodsValue = body['foods'];
+    if (foodsValue is! List ||
+        foodsValue.isEmpty ||
+        foodsValue.any(
+          (Object? f) =>
+              f is! Map || ((f['name'] as String?) ?? '').trim().isEmpty,
+        )) {
+      return _unprocessable(options, '음식을 하나 이상 이름과 함께 적어 주세요.');
+    }
+    const Set<String> sources = <String>{'db', 'mixed', 'estimate', 'member'};
+    final List<Map<String, Object?>> foods = <Map<String, Object?>>[
+      for (final Object? f in foodsValue)
+        <String, Object?>{
+          'source': 'member',
+          ...(f! as Map<Object?, Object?>).cast<String, Object?>(),
+        },
+    ];
+    for (int i = 0; i < foods.length; i++) {
+      final Map<String, Object?> food = foods[i];
+      if (!sources.contains(food['source'])) {
+        return _unprocessable(
+          options,
+          'source must be db, mixed, estimate or member',
+        );
+      }
+      final num carbs = (food['carbs_g'] as num?) ?? 0;
+      final num sugar = (food['sugar_g'] as num?) ?? 0;
+      if (sugar > carbs) {
+        return _unprocessable(
+          options,
+          '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없습니다.',
+        );
+      }
+    }
+    final now = nowKst();
+    final String id = 'diet-${now.microsecondsSinceEpoch}';
+    final String day = date ?? _todayDateString();
+    await _db
+        .into(_db.dietEntries)
+        .insert(
+          DietEntriesCompanion.insert(
+            id: id,
+            date: day,
+            mealType: mealType,
+            timeLabel:
+                '${now.hour.toString().padLeft(2, '0')}:'
+                '${now.minute.toString().padLeft(2, '0')}',
+            foodsJson: jsonEncode(foods),
+            totalCalories: _sumMacro(foods, 'calories').round(),
+            sodiumMg: Value(_sumMacro(foods, 'sodium_mg').round()),
+            sugarG: Value(_sumMacro(foods, 'sugar_g')),
+            idempotencyKey: Value(
+              (idempotencyKey?.isEmpty ?? true) ? null : idempotencyKey,
+            ),
+          ),
+        );
+    _refundShieldOnDate(day);
+    final row = await (_db.select(
+      _db.dietEntries,
+    )..where((t) => t.id.equals(id))).getSingle();
+    return _created(options, _dietEntryJson(row));
+  }
+
+  /// 끼니 한 행의 `entries[]` 표현. 탄단지는 행에 칼럼이 없어 음식에서 되짚는다.
+  Map<String, Object?> _dietEntryJson(DietEntryRow row) {
+    final foods = jsonDecode(row.foodsJson) as List<Object?>;
+    final macros = _foodMacroTotals(foods);
+    return <String, Object?>{
+      'id': row.id,
+      'meal_type': row.mealType,
+      'time_label': row.timeLabel,
+      'foods': foods,
+      'total_calories': row.totalCalories,
+      'carbs_g': macros.carbsG,
+      'protein_g': macros.proteinG,
+      'fat_g': macros.fatG,
+      'sodium_mg': row.sodiumMg,
+      'sugar_g': row.sugarG,
+      'ai_comment': row.aiComment,
+      'photo_asset': row.photoAsset.isEmpty ? null : row.photoAsset,
+      'photo_url': _photoUrl(row),
+    };
+  }
+
+  Response<Object?> _created(RequestOptions options, Object? body) =>
+      Response<Object?>(requestOptions: options, statusCode: 201, data: body);
+
   Future<Response<Object?>> _dietUpdate(RequestOptions options) async {
     final id = options.path.split('/').last;
     final existing = await (_db.select(
@@ -463,14 +615,8 @@ class LocalApiInterceptor extends Interceptor {
     // 날은 받지 않는다. 데모에서만 통과하면 실연동에서 그 화면이 처음 실패한다.
     final String? date = (body['date'] as String?)?.trim();
     if (body.containsKey('date')) {
-      final DateTime? parsed = DateTime.tryParse(date ?? '');
-      if (date == null || parsed == null || date.length != 10) {
-        return _badRequest(options, 'date 는 YYYY-MM-DD 형식이어야 합니다.');
-      }
-      final DateTime now = nowKst();
-      if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
-        return _badRequest(options, 'date 는 오늘보다 뒤일 수 없습니다.');
-      }
+      final String? error = _entryDateError(date);
+      if (error != null) return _badRequest(options, error);
     }
     final mealType = (body['meal_type'] as String?)?.trim();
     final timeLabel = (body['time_label'] as String?)?.trim();
@@ -1296,12 +1442,16 @@ class LocalApiInterceptor extends Interceptor {
         ),
     ];
 
+    final ExerciseAdvice advice = exercisePeriodAdviceOf(days, period);
     return _ok(options, <String, Object?>{
       'period': period,
       'from_date': start,
       'to_date': end,
       'days_logged': days.length,
-      'message': exercisePeriodAdvice(days, period),
+      'message': advice.message,
+      // 서버처럼 문장 키·값도 준다(#2210).
+      'advice_key': advice.key,
+      'advice_params': advice.params,
     });
   }
 
@@ -2094,7 +2244,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '국물을 남기는 것만으로도 절반 가까이 줄어요. 다음부터는 스프를 조금만 넣고, '
               '달걀이나 두부를 올려 단백질을 더해 보세요. 하루 목표는 2000mg 이하예요. 🌿',
-          sources: <String>['나트륨 줄이기'],
+          sources: <String>[_srcSodium],
         ),
         (
           daysAgo: 12,
@@ -2112,7 +2262,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '무릎이 불편하시군요. 오늘은 스쿼트 대신 자전거나 걷기처럼 무릎에 체중이 덜 실리는 운동으로 '
               '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
-          sources: <String>['운동 중 통증 대처'],
+          sources: <String>[_srcPaSafety],
         ),
         (
           daysAgo: 9,
@@ -2130,7 +2280,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '가기 전에 가볍게 요기를 해 두면 과식이 줄어요. 자리에서는 구이·찜 위주로 먹고 국물은 '
               '남기고, 물을 자주 마셔 주세요. 다음 날 한 끼를 담백하게 맞추면 한 주 균형은 유지됩니다. 🥗',
-          sources: <String>['DASH 식단 개요'],
+          sources: <String>[_srcSodium],
         ),
         (
           daysAgo: 5,
@@ -2184,7 +2334,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
               '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
-          sources: <String>['한국인 영양소 섭취기준'],
+          sources: <String>[_srcProtein],
         ),
         (
           daysAgo: 1,
@@ -2220,7 +2370,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '하루 6~8잔을 나눠 마시는 것을 권해요. 한 번에 많이 마시기보다 끼니와 운동 앞뒤로 '
               '나눠 드시면 좋습니다. 💧',
-          sources: <String>['수분 섭취'],
+          sources: <String>[_srcWater],
         ),
       ];
 
@@ -2392,14 +2542,14 @@ class LocalApiInterceptor extends Interceptor {
       return (
         '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
             '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
-        <String>['운동 중 통증 대처'],
+        <String>[_srcPaSafety],
       );
     }
     if (has(<String>['나트륨', '짜', '소금', '국물'])) {
       return (
         '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
             '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
-        <String>['나트륨 줄이기', 'DASH 식단 개요'],
+        <String>[_srcSodium],
       );
     }
     // `당` 한 글자는 쓰지 않는다 — `당기다`·`당근`·`담당` 까지 걸린다.
@@ -2407,14 +2557,14 @@ class LocalApiInterceptor extends Interceptor {
       return (
         '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
             '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
-        <String>['당류 관리'],
+        <String>[_srcCarb],
       );
     }
     if (has(<String>['운동', '걷', '헬스', '유산소', '근력'])) {
       return (
         '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
             '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
-        <String>['유산소와 근력 균형'],
+        <String>[_srcPaAdult],
       );
     }
     // 저녁 메뉴 추천은 빠른 질문 버튼의 첫 줄이다 — 일반론 대신 오늘 기록(점심
@@ -2428,27 +2578,27 @@ class LocalApiInterceptor extends Interceptor {
             '• 다양한 채소로 식이섬유와 영양소를 챙겨주세요.\n'
             '• 현미밥은 적당량 곁들여 균형 잡힌 한 끼로 드시면 좋아요.\n\n'
             '오늘은 국물이나 양념이 많은 음식은 피하고, 물도 충분히 섭취해 주세요.',
-        <String>['DASH 식단 개요', '나트륨 줄이기'],
+        <String>[_srcSodium, _srcCarb],
       );
     }
     if (has(<String>['단백질'])) {
       return (
         '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
             '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
-        <String>['한국인 영양소 섭취기준'],
+        <String>[_srcProtein],
       );
     }
     if (has(<String>['뭐 먹', '식단', '점심', '저녁', '아침', '메뉴'])) {
       return (
         '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
             '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
-        <String>['DASH 식단 개요'],
+        <String>[_srcSodium],
       );
     }
     if (has(<String>['물', '수분'])) {
       return (
         '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
-        <String>['수분 섭취'],
+        <String>[_srcWater],
       );
     }
     if (has(<String>['체중', '살', '다이어트', '몸무게'])) {
@@ -2833,6 +2983,40 @@ class LocalApiInterceptor extends Interceptor {
   /// `GET /me/weekly-reports`(#2022). 사용처 교환과 같은 원장을 본다.
   Future<Response<Object?>> _weeklyReports(RequestOptions options) async =>
       _ok(options, _coupons.reports.listJson());
+
+  /// `GET /me/diet-tray`(#2150). 사진 기록일은 drift 에서 센다.
+  Future<Response<Object?>> _dietTray(RequestOptions options) async => _ok(
+    options,
+    _coupons.dietTrayJson(photoDays: await _dietTrayPhotoDays()),
+  );
+
+  Future<Response<Object?>> _dietTrayClaim(RequestOptions options) async {
+    final body = _jsonBody(options);
+    return _couponResponse(
+      options,
+      _coupons.claimDietTray(
+        photoDays: await _dietTrayPhotoDays(),
+        clientRequestId: body['client_request_id'] as String?,
+      ),
+    );
+  }
+
+  /// 식판 구간(최근 28일, 오늘 포함) 안에서 식단 사진을 남긴 날 수.
+  ///
+  /// 서버는 사진 분석으로 저장한 끼니(`engine`)를 센다. 데모 행에는 엔진이 없어서
+  /// 사진이 붙은 끼니(시드 에셋이나 방금 올린 원본)로 센다 — 손으로 적은 끼니는
+  /// 둘 다 비어 있다.
+  Future<int> _dietTrayPhotoDays() async {
+    final String from = _dateString(_coupons.dietTrayWindowFrom());
+    final String to = _dateString(_coupons.dietTrayWindowTo());
+    return <String>{
+      for (final row in await _db.select(_db.dietEntries).get())
+        if ((row.photoAsset.isNotEmpty || row.photoBytes != null) &&
+            row.date.compareTo(from) >= 0 &&
+            row.date.compareTo(to) <= 0)
+          row.date,
+    }.length;
+  }
 
   Future<Response<Object?>> _couponUse(RequestOptions options) async {
     // `/me/coupons/{id}/use` — 끝에서 두 번째 조각이 쿠폰 id 다.

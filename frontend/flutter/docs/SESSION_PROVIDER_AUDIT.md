@@ -19,7 +19,6 @@ const instance, in which case Riverpod may leave its dependents unchanged.
 | `dashboardSummaryProvider` | An active watcher can retain the previous account summary | Invalidate the summary |
 | `dietRepositoryProvider`, `dietTodayProvider`, `dietRecommendationsProvider` | The mock repository mutates meals in memory; the leaves cache today's diet and personalized recommendations | Recreate the mock root and invalidate both leaves |
 | `exerciseRepositoryProvider`, `exerciseWeekProvider` | The mock repository mutates sessions in memory; the leaf caches the week | Recreate the mock root and invalidate the leaf |
-| `exerciseRoutineDoneProvider` | Non-auto-dispose local completion flags | Restore the initial flags |
 | `gymRepositoryProvider`, `myGymProvider`, `myTrainerProvider` | The mock repository mutates membership links; leaves cache account links | Recreate the mock root and invalidate account leaves |
 | `myReservationsProvider` | Reservations are per account. The leaf already refetches through the gym repository root, but relying on that propagation is fragile | Invalidate the leaf explicitly, like the other gym leaves |
 | `consultationRequestControllerProvider` | Non-auto-dispose in-memory requests and pending state | Recreate the controller |

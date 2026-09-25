@@ -192,7 +192,9 @@ class CouponListCard extends StatelessWidget {
                   ),
                   const SizedBox(height: OnCareSpacing.s4),
                   Text(
-                    l.myCouponUntil(formatCouponDate(coupon.expiresOn)),
+                    coupon.noExpiry
+                        ? l.myCouponNoExpiry
+                        : l.myCouponUntil(formatCouponDate(coupon.expiresOn)),
                     style: tokens
                         .text(OnCareTypography.caption)
                         .copyWith(color: OnCareColors.textTertiary),

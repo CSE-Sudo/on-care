@@ -168,7 +168,11 @@ void main() {
     expect(res.statusCode, 200);
     expect(res.data!['reply'], isNotEmpty);
     final sources = (res.data!['sources']! as List<Object?>).cast<String>();
-    expect(sources, contains('나트륨 줄이기'));
+    // 목업도 서버가 실제로 돌려주는 공개 문서 제목을 그대로 싣는다(#1652).
+    expect(
+      sources,
+      contains('2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회 — 나트륨과 염소'),
+    );
   });
 
   test(

@@ -28,14 +28,16 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 /// 탭으로 고르는 것도 둘 다 항상 된다. 입력창에 타이핑하면
 /// [MaterialLocalizations.parseCompactDate] 로 즉시 해석해 달력도 같이 움직이고,
 /// 달력에서 고르면 입력창 글자도 같이 바뀐다. 오른쪽 위 X 와 아래 2열
-/// `취소 / 확인` 을 모두 둔다. 달 이동 꺾쇠·달 보기 삼각형은 앱의 아이콘
-/// 묶음(#1803)으로 그린다.
+/// `취소 / 확인` 을 모두 둔다 — [showClose] 를 끄면 X 없이 `취소` 로만 닫는다.
+/// 회원 앱은 부분 창에 X 를 두지 않아 꺼서 쓴다(#2170). 달 이동 꺾쇠·달 보기
+/// 삼각형은 앱의 아이콘 묶음(#1803)으로 그린다.
 Future<DateTime?> showAppDatePicker({
   required BuildContext context,
   required DateTime initialDate,
   required DateTime firstDate,
   required DateTime lastDate,
   String? helpText,
+  bool showClose = true,
 }) {
   return showAppDialog<DateTime>(
     context: context,
@@ -44,6 +46,7 @@ Future<DateTime?> showAppDatePicker({
       firstDate: firstDate,
       lastDate: lastDate,
       helpText: helpText,
+      showClose: showClose,
     ),
   );
 }
@@ -56,6 +59,7 @@ class AppDatePickerDialog extends StatefulWidget {
     required this.firstDate,
     required this.lastDate,
     this.helpText,
+    this.showClose = true,
   });
 
   /// 창·입력창·버튼 키. 테스트가 이 창을 지목한다(옛 `portraitDatePicker*` 키).
@@ -74,6 +78,9 @@ class AppDatePickerDialog extends StatefulWidget {
 
   /// 제목. 비우면 플랫폼 문구(`날짜 선택`)다.
   final String? helpText;
+
+  /// 오른쪽 위 닫기 X 를 둘지. 끄면 하단 `취소` 로만 닫는다.
+  final bool showClose;
 
   @override
   State<AppDatePickerDialog> createState() => _AppDatePickerDialogState();
@@ -148,6 +155,7 @@ class _AppDatePickerDialogState extends State<AppDatePickerDialog> {
     return AppDialog(
       key: AppDatePickerDialog.dialogKey,
       title: widget.helpText ?? l.datePickerHelpText,
+      showClose: widget.showClose,
       footer: AppButtonPair(
         cancelKey: AppDatePickerDialog.cancelKey,
         confirmKey: AppDatePickerDialog.confirmKey,
@@ -1057,8 +1065,17 @@ class _RangeMonthGrid extends StatelessWidget {
                     child: SizedBox(
                       width: halfBand == null ? box.maxWidth : box.maxWidth / 2,
                       height: diameter,
+                      // 브랜드 옅은 바탕(`surface`)이던 때에는 흰 창과 거의
+                      // 구분되지 않아 고른 기간이 잘 보이지 않았다(#2183).
+                      // 눌림·강조 채움 단계로 한 칸 진하게 — 사이 날 숫자(진한
+                      // 브랜드)는 그대로 읽힌다.
                       child: DecoratedBox(
-                        decoration: BoxDecoration(color: tokens.brand.surface),
+                        decoration: BoxDecoration(
+                          color: OnCareColors.onWhite(
+                            tokens.brand.primary,
+                            OnCareAlpha.medium,
+                          ),
+                        ),
                       ),
                     ),
                   ),

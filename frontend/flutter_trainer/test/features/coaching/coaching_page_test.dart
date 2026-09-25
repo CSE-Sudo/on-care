@@ -627,8 +627,9 @@ void _expectNutritionStatusCardsInBounds(WidgetTester tester) {
   final nutritionRect = tester.getRect(nutrition);
   final viewportWidth = tester.view.physicalSize.width;
   for (final status in <Finder>[
-    find.byKey(const Key('client-nutrition-mineral-나트륨')),
-    find.byKey(const Key('client-nutrition-mineral-당류')),
+    find.byKey(const Key('client-nutrition-macro-탄수화물')),
+    find.byKey(const Key('client-nutrition-macro-단백질')),
+    find.byKey(const Key('client-nutrition-macro-지방')),
   ]) {
     expect(status, findsOneWidget);
     final statusRect = tester.getRect(status);
@@ -859,8 +860,8 @@ void main() {
         final nutrition = find.byKey(
           const Key('client-nutrition-summary-card'),
         );
-        final sodium = find.byKey(const Key('client-nutrition-mineral-나트륨'));
-        final sugar = find.byKey(const Key('client-nutrition-mineral-당류'));
+        final carbs = find.byKey(const Key('client-nutrition-macro-탄수화물'));
+        final fat = find.byKey(const Key('client-nutrition-macro-지방'));
 
         expect(mainColumn, findsOneWidget);
         expect(assistant, findsOneWidget);
@@ -894,11 +895,16 @@ void main() {
           tester.getBottomRight(nutrition).dy,
           lessThanOrEqualTo(tester.view.physicalSize.height),
         );
-        // 프로그램 탭 카드는 회원 탭과 독립적으로 관리된다(#1531) — 나트륨·
-        // 당류는 위아래가 아니라 좌우로 나란히 놓인다.
+        // 프로그램 탭 카드는 회원 탭과 독립적으로 관리된다(#1531) — 회원 앱
+        // `오늘` 카드처럼 탄·단·지가 위아래가 아니라 좌우로 나란히 놓인다
+        // (#2189).
         expect(
-          tester.getTopLeft(sodium).dx,
-          lessThan(tester.getTopLeft(sugar).dx),
+          tester.getTopLeft(carbs).dx,
+          lessThan(tester.getTopLeft(fat).dx),
+        );
+        expect(
+          find.byKey(const Key('client-nutrition-mineral-나트륨')),
+          findsNothing,
         );
         _expectNutritionStatusCardsInBounds(tester);
         // 전송 이력은 편집기 아래가 아니라 오른쪽 열이다 — 이 회원에게 이미
@@ -925,7 +931,7 @@ void main() {
         expect(find.text('벤치프레스 외 3개'), findsNWidgets(2));
         expect(find.text('1:1 PT · 운동 4개'), findsNothing);
         expect(
-          tester.getBottomRight(sugar).dy,
+          tester.getBottomRight(fat).dy,
           lessThanOrEqualTo(tester.view.physicalSize.height),
         );
         expect(tester.takeException(), isNull);
@@ -1256,10 +1262,10 @@ void main() {
     ) async {
       await openTab(tester, size: const Size(1366, 768));
 
-      final sugar = find.byKey(const Key('client-nutrition-mineral-당류'));
-      expect(sugar, findsOneWidget);
+      final fat = find.byKey(const Key('client-nutrition-macro-지방'));
+      expect(fat, findsOneWidget);
       expect(
-        tester.getBottomRight(sugar).dy,
+        tester.getBottomRight(fat).dy,
         lessThanOrEqualTo(tester.view.physicalSize.height),
       );
       expect(tester.takeException(), isNull);

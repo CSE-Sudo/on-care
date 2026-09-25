@@ -7,14 +7,16 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 패키지에 대응이 없는 차트 예외(#1704): 주간 꺾은선과 음성 안내 문자열.
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart'
     show MetricTrendChart;
+import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 고객의 기간 영양 추이 — 회원 앱 식단 탭 기간 뷰와 **같은 것**을 트레이너에게.
@@ -23,6 +25,15 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 머리 숫자를 합계가 아니라 **하루 평균**으로 두는 이유는 주(7일)와 달(30일)의
 /// 길이가 달라 합계끼리는 견줄 수 없기 때문이다. 평균은 기록이 있는 날만으로
 /// 나눈다 — 아직 오지 않은 날까지 나누면 달 초에는 늘 낮게 나온다.
+///
+/// 두 기간 모두 **칼로리** 하나를 본다(#2156). 회원 앱이 나트륨·당류를 그래프에서
+/// 내리며(#1986) 지표 칩 줄을 걷어냈는데, 트레이너 화면에만 `칼로리·나트륨·당류`
+/// 칩이 남아 회원이 볼 수 없는 그래프를 트레이너만 보고 있었다. 탄단지는 고르는
+/// 지표가 아니라 머리 숫자 옆의 세 줄과 막대의 누적 구간으로 나타난다.
+///
+/// 목표선은 **회원의 목표**다([memberHealthProfileProvider]). 회원 앱은 MY 에서
+/// 정한 하루 칼로리를 목표선으로 긋는다 — 상수 2,000 을 쓰면 목표를 1,800 으로 둔
+/// 회원의 초과한 날이 트레이너 화면에서만 안쪽으로 읽힌다.
 class ClientDietPeriodCard extends ConsumerStatefulWidget {
   /// Creates the period chart for [clientId] over [period].
   const ClientDietPeriodCard({
@@ -41,70 +52,61 @@ class ClientDietPeriodCard extends ConsumerStatefulWidget {
       _ClientDietPeriodCardState();
 }
 
-/// `전체` 막대 그래프 높이 — 콘텐츠 고유 치수. 카드 높이를 오늘·이번 주와
-/// 같게 맞추기 위한 값이다 (회원 앱 #1124).
-const double _barChartHeight = 105;
+/// 머리줄(숫자 + 오른쪽 칸)이 늘 차지하는 최소 높이 — 회원 앱과 같은 값이다
+/// (회원 앱 #2009). 날을 고르지 않았을 때(날짜 기간 + 탄단지)와 고른 뒤(회색
+/// 바탕 + 탄단지)의 높이가 몇 dp 씩 어긋나, 고르고 풀 때마다 그래프가 위아래로
+/// 튀었다. 큰 쪽에 맞춰 두 상태가 같은 자리를 쓴다. 글자 배율을 따라 커진다.
+const double _headlineMinHeight = 72;
 
-/// 이번 주 꺾은선 높이.
-const double _trendChartHeight = 105;
+/// 머리줄 오른쪽 칸 맨 위에 날짜 기간이 얹히며 머리줄이 키가 커진 만큼 (회원 앱
+/// #2009). 그만큼 그래프가 자리를 내준다 — 그러지 않으면 기간 카드만 키가 커져
+/// 토글을 누를 때 아래 내용이 뛴다.
+const double _headlineRangeExtent = 16;
 
-/// 아직 오지 않은 날의 빈 트랙 두께.
-const double _pendingTrackHeight = 2;
+/// 이번 주 꺾은선 높이. 카드 높이([kClientNutritionCardHeight])에서 그래프가
+/// 아닌 것들(카드 안쪽 여백·머리줄·간격·요일 라벨 줄)이 쓰는 자리를 뺀 나머지다
+/// — 회원 앱과 같은 식이다(회원 앱 #1956). 고정값으로 두면 카드 높이만 바뀌고
+/// 그 차이가 카드 아래 빈 칸으로 남는다.
+const double _trendChartHeight =
+    kClientNutritionCardHeight - 128 - _headlineRangeExtent;
 
-/// 기간 그래프가 그리는 지표.
-enum _Metric { calories, sodium, sugar }
+/// `전체` 막대 그래프 높이. 꺾은선과 같은 규칙이고, 날짜 라벨 줄이 요일 라벨보다
+/// 낮아 4 더 높다(회원 앱과 같다).
+const double _barChartHeight =
+    kClientNutritionCardHeight - 124 - _headlineRangeExtent;
+
+/// `전체` 그래프가 한 화면에 보여주는 날 수 — 회원 앱 `_kAllDaysPerScreen` 과
+/// 같은 값이다(#2156). 카드 머리의 `하루 평균` 은 지금 보이는 구간만 세므로
+/// (#1018), 칸 수가 다르면 같은 회원의 같은 기록이 두 앱에서 다른 구간의 평균이
+/// 된다.
+const int _allDaysPerScreen = 24;
+
+/// 꺾은선의 세로 눈금. **회원 앱과 같은 값**이라 회원이 보는 그래프와 트레이너가
+/// 보는 그래프의 눈금이 어긋나지 않는다.
+const List<double> _calorieTicks = <double>[0, 1500, 2500];
 
 class _ClientDietPeriodCardState extends ConsumerState<ClientDietPeriodCard> {
-  _Metric _metric = _Metric.calories;
-
-  /// `전체` 그래프의 스크롤 위치와 고른 날. (#1018)
+  /// 그래프의 스크롤 위치와 고른 날. (#1018)
   final PeriodChartSelection _selection = PeriodChartSelection();
+
+  @override
+  void didUpdateWidget(ClientDietPeriodCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 기간 토글을 눌러도 이 위젯은 트리의 같은 자리에 남아 `State` 가 재사용된다
+    // — 고른 **인덱스**와 보이는 구간이 다음 기간의 배열에 그대로 쓰인다. `전체`
+    // (84칸)에서 고른 칸이 `이번 주`(7칸)로 넘어오면 범위를 벗어난다. 배열이
+    // 바뀌면 둘을 함께 푼다. (회원 앱 #1984)
+    if (widget.period != oldWidget.period ||
+        widget.clientId != oldWidget.clientId) {
+      _selection.reset(includeVisible: true);
+    }
+  }
 
   @override
   void dispose() {
     _selection.dispose();
     super.dispose();
   }
-
-  String _label(AppLocalizations l, _Metric m) => switch (m) {
-    _Metric.calories => l.metricCalories,
-    _Metric.sodium => l.metricSodium,
-    _Metric.sugar => l.metricSugar,
-  };
-
-  String _unit(_Metric m) => switch (m) {
-    _Metric.calories => 'kcal',
-    _Metric.sodium => 'mg',
-    _Metric.sugar => 'g',
-  };
-
-  double _valueOf(ClientDietDay d, _Metric m) => switch (m) {
-    _Metric.calories => d.calories.toDouble(),
-    _Metric.sodium => d.sodiumMg.toDouble(),
-    _Metric.sugar => d.sugarG,
-  };
-
-  double _averageOf(ClientDietPeriod p, _Metric m) => switch (m) {
-    _Metric.calories => p.avgCalories,
-    _Metric.sodium => p.avgSodiumMg,
-    _Metric.sugar => p.avgSugarG,
-  };
-
-  /// 하루 목표. 회원 앱 기본값과 같은 값을 쓴다 — 회원이 자기 폰에서 초과라고
-  /// 본 날이 트레이너 화면에서도 초과여야 한다.
-  double _goalOf(_Metric m) => switch (m) {
-    _Metric.calories => calorieTargetKcal.toDouble(),
-    _Metric.sodium => sodiumTargetMg.toDouble(),
-    _Metric.sugar => sugarTargetG.toDouble(),
-  };
-
-  /// 꺾은선의 세로 눈금. **회원 앱과 같은 값**이라 회원이 보는 그래프와
-  /// 트레이너가 보는 그래프의 눈금이 어긋나지 않는다.
-  List<double> _ticks(_Metric m) => switch (m) {
-    _Metric.calories => const <double>[0, 1500, 2500],
-    _Metric.sodium => const <double>[0, 1750, 3500],
-    _Metric.sugar => const <double>[0, 25, 50],
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -117,128 +119,54 @@ class _ClientDietPeriodCardState extends ConsumerState<ClientDietPeriodCard> {
     final AsyncValue<ClientDietPeriod> async = ref.watch(
       clientDietPeriodProvider(key),
     );
-    final ClientDateRange range = clientRangeFor(widget.period, key.day);
-    // 제목·아이콘은 바깥 `ClientPeriodSection` 이 든다(#944). 카드가 자기
-    // 제목을 들고 있으면 기간을 바꿀 때마다 제목이 나타났다 사라진다.
-    //
-    // 지표 버튼과 기간 범위는 **카드 밖**이다 — 회원 앱과 같은 자리다. 카드
-    // 안에 두면 읽는 중에 그래프가 아래로 밀리고, 무엇보다 기록이 없는 기간
-    // (`clientPeriodEmpty`)에서 버튼까지 함께 사라져 지표를 되돌릴 방법이
-    // 없어진다.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _MetricRow(
-          metric: _metric,
-          onMetric: (_Metric m) {
-            // 지표를 바꾸면 고른 날의 숫자는 뜻을 잃는다 — 같이 푼다.
-            _selection.reset();
-            setState(() => _metric = m);
-          },
-          metricLabel: _label,
-          range: range,
+    // 목표는 회원 프로필에서 읽는다. 읽는 중이거나 실패하면 회원 앱 기본값으로
+    // 그린다 — 목표 하나 때문에 그래프 전체가 로딩·오류에 막히지 않게.
+    final MemberHealthProfile? profile = ref
+        .watch(memberHealthProfileProvider(widget.clientId))
+        .valueOrNull;
+    final double goal = clientDietGoalsOf(profile).calories.toDouble();
+    // 제목·아이콘·기간 토글은 바깥 `ClientPeriodSection` 이 든다(#944). 날짜
+    // 기간은 **카드 안** 오른쪽 위다(회원 앱 #2009) — 카드가 제 기간을 스스로
+    // 말한다.
+    return _Card(
+      child: async.when(
+        loading: () => const AppLoading(placement: AppStatePlacement.card),
+        error: (Object e, StackTrace _) => AppErrorState(
+          title: l.dietLoadFailed,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(clientDietPeriodProvider(key)),
+          placement: AppStatePlacement.card,
         ),
-        const SizedBox(height: OnCareSpacing.s12),
-        _Card(
-          child: async.when(
-            loading: () => const AppLoading(placement: AppStatePlacement.card),
-            error: (Object e, StackTrace _) => AppErrorState(
-              title: l.dietLoadFailed,
-              retryLabel: l.actionRetry,
-              onRetry: () => ref.invalidate(clientDietPeriodProvider(key)),
-              placement: AppStatePlacement.card,
-            ),
-            data: (ClientDietPeriod period) => period.isEmpty
-                ? AppEmptyState(
-                    title: l.clientPeriodEmpty,
-                    icon: Icons.restaurant_rounded,
-                    placement: AppStatePlacement.card,
-                  )
-                : _Body(
-                    selection: _selection,
-                    period: period,
-                    metric: _metric,
-                    label: _label(l, _metric),
-                    unit: _unit(_metric),
-                    average: _averageOf(period, _metric),
-                    goal: _goalOf(_metric),
-                    values: <double>[
-                      for (final ClientDietDay d in period.days)
-                        _valueOf(d, _metric),
-                    ],
-                    logged: <bool>[
-                      for (final ClientDietDay d in period.days) d.logged,
-                    ],
-                    dates: <DateTime>[
-                      for (final ClientDietDay d in period.days) d.date,
-                    ],
-                    // 칼로리 막대만 탄단지로 쌓는다. 나트륨·당류에는 쌓을 성분이
-                    // 없다.
-                    days: _metric == _Metric.calories ? period.days : null,
-                    weekly: widget.period == ClientPeriod.week,
-                    ticks: _ticks(_metric),
-                    // 영양 요약 카드와 **같은 서식**을 쓴다. 두 카드가 같은
-                    // 화면에 나란히 놓이므로 표기가 갈리면 바로 드러난다.
-                    format: formatNumber,
-                  ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 카드 **위**의 지표 버튼 줄 — `칼로리 · 나트륨 · 당류` 와 기간 범위.
-///
-/// 회원 앱 `DietPeriodView` 와 같이 한 줄에 둔다. 범위를 따로 한 줄에 두면
-/// 제목·범위·버튼 세 줄이 되어 정작 그래프가 아래로 밀린다.
-///
-/// 버튼은 **무엇을 고르는가**만 말한다. 지표마다 색이 다르면 고르기 전부터
-/// 셋이 서로 다른 뜻을 가진 것처럼 보인다 — 지표별 색은 아래 그래프가 쓴다.
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({
-    required this.metric,
-    required this.onMetric,
-    required this.metricLabel,
-    required this.range,
-  });
-
-  final _Metric metric;
-  final ValueChanged<_Metric> onMetric;
-  final String Function(AppLocalizations, _Metric) metricLabel;
-  final ClientDateRange range;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final DateFormat fmt = DateFormat.MMMd(
-      Localizations.localeOf(context).toString(),
-    );
-    return Row(
-      children: <Widget>[
-        for (final _Metric m in _Metric.values) ...<Widget>[
-          AppChoiceChip(
-            label: metricLabel(l, m),
-            selected: metric == m,
-            onSelected: (bool _) => onMetric(m),
-          ),
-          if (m != _Metric.values.last) const SizedBox(width: OnCareSpacing.s8),
-        ],
-        const SizedBox(width: OnCareSpacing.s8),
-        // 좁은 화면에서 먼저 줄어드는 쪽은 범위다 — 버튼은 눌러야 하는 것이라
-        // 잘리면 안 된다.
-        Expanded(
-          child: Text(
-            '${fmt.format(range.from)} ~ ${fmt.format(range.to)}',
-            textAlign: TextAlign.right,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.oncare
-                .text(OnCareTypography.strong(OnCareTypography.caption))
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-        ),
-      ],
+        data: (ClientDietPeriod period) => period.isEmpty
+            ? AppEmptyState(
+                title: l.clientPeriodEmpty,
+                icon: Icons.restaurant_rounded,
+                placement: AppStatePlacement.card,
+              )
+            : _Body(
+                selection: _selection,
+                label: l.metricCalories,
+                unit: 'kcal',
+                goal: goal,
+                values: <double>[
+                  for (final ClientDietDay d in period.days)
+                    d.calories.toDouble(),
+                ],
+                logged: <bool>[
+                  for (final ClientDietDay d in period.days) d.logged,
+                ],
+                dates: <DateTime>[
+                  for (final ClientDietDay d in period.days) d.date,
+                ],
+                // 칼로리 막대는 탄단지로 쌓아 그린다.
+                days: period.days,
+                weekly: widget.period == ClientPeriod.week,
+                ticks: _calorieTicks,
+                // 영양 요약 카드와 **같은 서식**을 쓴다. 두 카드가 같은
+                // 화면에 나란히 놓이므로 표기가 갈리면 바로 드러난다.
+                format: formatNumber,
+              ),
+      ),
     );
   }
 }
@@ -266,11 +194,8 @@ class _Card extends StatelessWidget {
 
 class _Body extends StatelessWidget {
   const _Body({
-    required this.period,
-    required this.metric,
     required this.label,
     required this.unit,
-    required this.average,
     required this.goal,
     required this.values,
     required this.logged,
@@ -279,24 +204,21 @@ class _Body extends StatelessWidget {
     required this.weekly,
     required this.ticks,
     required this.selection,
-    this.days,
+    required this.days,
   });
 
-  final ClientDietPeriod period;
-  final _Metric metric;
   final String label;
   final String unit;
-  final double average;
   final double goal;
   final List<double> values;
   final List<bool> logged;
   final List<DateTime> dates;
   final String Function(num) format;
 
-  /// 칼로리를 볼 때의 원본. 탄단지가 있는 날은 막대를 셋으로 쌓는다.
-  final List<ClientDietDay>? days;
+  /// 탄단지가 있는 날은 막대를 셋으로 쌓는다.
+  final List<ClientDietDay> days;
 
-  /// 이번 주인가. 회원 앱과 같이 **주는 꺾은선, 달은 막대**다 — 30칸을
+  /// 이번 주인가. 회원 앱과 같이 **주는 꺾은선, 전체는 막대**다 — 여든네 칸을
   /// 꺾은선으로 그리면 점과 값이 서로 겹친다.
   final bool weekly;
 
@@ -304,16 +226,28 @@ class _Body extends StatelessWidget {
   /// 어긋나지 않는다.
   final List<double> ticks;
 
-  /// `전체` 그래프의 스크롤·선택 상태. 머리의 숫자가 이걸 보고 평균과 하루
-  /// 값을 오간다. (#1018)
+  /// 그래프의 스크롤·선택 상태. 머리의 숫자가 이걸 보고 평균과 하루 값을
+  /// 오간다. (#1018)
   final PeriodChartSelection selection;
+
+  /// 카드 머리 위에 적을 날짜 기간의 양끝 — 회원 앱과 같은 규칙이다(#2009).
+  ///
+  /// `전체` 는 옆으로 밀어 보므로, 적어야 할 것은 기간 전체가 아니라 **지금
+  /// 보이는 막대의 구간**이다. 바로 아래의 `하루 평균` 이 보이는 구간만 센다
+  /// (회원 앱 #1985). 보이는 구간을 아직 모르는 첫 프레임은 기간 전체를 적는다.
+  (DateTime, DateTime) _shownRange() {
+    final (int, int)? visible = selection.visible;
+    if (weekly || visible == null) return (dates.first, dates.last);
+    final int from = visible.$1.clamp(0, dates.length - 1);
+    final int to = visible.$2.clamp(from, dates.length - 1);
+    return (dates[from], dates[to]);
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // 이번 주(꺾은선)는 스크롤도 선택도 없다 — 일곱 칸이 이미 한 화면이다.
-    final bool selectable = !weekly;
+    final String locale = Localizations.localeOf(context).toString();
     // 카드의 빈 곳을 누르면 고른 날이 풀려 다시 하루 평균이 뜬다 (회원 앱
     // #1123). 막대·점은 자기 탭을 먼저 받으므로 이 손짓은 그 밖의 자리에만
     // 닿는다.
@@ -322,96 +256,123 @@ class _Body extends StatelessWidget {
       onTap: () => selection.select(null),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        // 남는 자리를 위아래로 나눠 가운데에 놓는다(회원 앱 #1956).
+        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          ListenableBuilder(
-            listenable: selection,
-            builder: (BuildContext context, Widget? _) {
-              // 이번 주도 점을 골라 그날 값을 볼 수 있다 (회원 앱 #1122).
-              // 스크롤이 없을 뿐, 머리 숫자가 평균과 하루를 오가는 규칙은
-              // `전체` 와 같다.
-              final int? picked = selection.selected;
-              // 평소에는 **보이는 구간의** 평균, 날을 고르면 그날의 값.
-              // 보이지 않는 날까지 섞은 평균은 지금 화면을 설명하지
-              // 못한다. (#1018)
-              final double value = picked == null
-                  ? (selectable ? selection.averageOf(values) : average)
-                  : values[picked];
-              final bool over = goal > 0 && value > goal;
-              // 칼로리를 볼 때만 탄단지를 곁들인다 — 나트륨·당류는 탄단지로
-              // 쪼갤 수 있는 값이 아니다. 날을 고르면 그날의 탄단지, 아니면
-              // 기록이 있는 날의 하루 평균이다. (회원 앱 #1121)
-              final _Macros? macros = _macrosFor(picked);
-              return PeriodChartHeadline(
-                selected: picked != null,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            picked == null
-                                ? '${l.clientPeriodAverage} · $label'
-                                : '${DateFormat.yMd(Localizations.localeOf(context).toString()).format(dates[picked])} · $label',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: tokens
-                                .text(
-                                  OnCareTypography.strong(
-                                    OnCareTypography.caption,
-                                  ),
-                                )
-                                .copyWith(color: OnCareColors.textSecondary),
-                          ),
-                          const SizedBox(height: OnCareSpacing.s4),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text.rich(
-                              TextSpan(
-                                text: format(value),
-                                style: tokens
-                                    .text(
-                                      OnCareTypography.numeric(
-                                        OnCareTypography.display,
-                                      ),
-                                    )
-                                    .copyWith(
-                                      color: over
-                                          ? OnCareColors.danger
-                                          : OnCareColors.textPrimary,
-                                    ),
-                                children: <InlineSpan>[
-                                  TextSpan(
-                                    text: ' / ${format(goal)} $unit',
-                                    style: tokens
-                                        .text(OnCareTypography.label)
-                                        .copyWith(
-                                          letterSpacing: 0,
-                                          color: OnCareColors.textSecondary,
-                                        ),
-                                  ),
-                                ],
-                              ),
+          // 머리줄은 **날을 고르든 말든 같은 높이**를 쓴다(회원 앱 #1194).
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  _headlineMinHeight *
+                  MediaQuery.textScalerOf(context).scale(1),
+            ),
+            child: ListenableBuilder(
+              listenable: selection,
+              builder: (BuildContext context, Widget? _) {
+                // 평소에는 **보이는 구간의** 평균, 날을 고르면 그날의 값.
+                // 이번 주도 점을 골라 그날 값을 볼 수 있다 (회원 앱 #1122).
+                final int? picked = selection.selected;
+                final double value = picked == null
+                    ? selection.averageOf(values)
+                    : values[picked];
+                final bool over = goal > 0 && value > goal;
+                // 날을 고르면 그날의 탄단지, 아니면 기록이 있는 날의 하루
+                // 평균이다. (회원 앱 #1121)
+                final _Macros? macros = _macrosFor(picked);
+                final (DateTime from, DateTime to) = _shownRange();
+                return PeriodChartHeadline(
+                  selected: picked != null,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              // 지표가 칼로리 하나라 `· 칼로리` 를 붙이지
+                              // 않는다 — 바로 아래 숫자의 `kcal` 과 겹친다.
+                              // 고른 날은 `9. 17.` 처럼 월·일만 적는다 —
+                              // 날짜 기간과 같은 형식이다(회원 앱 #2009).
+                              picked == null
+                                  ? l.clientPeriodAverage
+                                  : DateFormat.Md(locale).format(dates[picked]),
                               maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: tokens
+                                  .text(
+                                    OnCareTypography.strong(
+                                      OnCareTypography.caption,
+                                    ),
+                                  )
+                                  .copyWith(color: OnCareColors.textSecondary),
                             ),
-                          ),
+                            const SizedBox(height: OnCareSpacing.s4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text.rich(
+                                TextSpan(
+                                  text: format(value),
+                                  style: tokens
+                                      .text(
+                                        OnCareTypography.numeric(
+                                          OnCareTypography.display,
+                                        ),
+                                      )
+                                      .copyWith(
+                                        color: over
+                                            ? OnCareColors.danger
+                                            : OnCareColors.textPrimary,
+                                      ),
+                                  children: <InlineSpan>[
+                                    TextSpan(
+                                      text: ' / ${format(goal)} $unit',
+                                      style: tokens
+                                          .text(OnCareTypography.bodySmall)
+                                          .copyWith(
+                                            color: OnCareColors.textSecondary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: OnCareSpacing.s12),
+                      // 오른쪽 칸 — 맨 위가 날짜 기간, 그 아래가 탄단지다
+                      // (회원 앱 #2009). 날을 고르면 날짜 기간은 빠진다 —
+                      // 머리 문구가 이미 그날을 말한다.
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          if (picked == null) ...<Widget>[
+                            PeriodRangeLabel(
+                              key: const ValueKey<String>(
+                                'client-diet-period-range',
+                              ),
+                              text: periodRangeText(locale, from, to),
+                            ),
+                            if (macros != null)
+                              const SizedBox(height: OnCareSpacing.s4),
+                          ],
+                          if (macros != null)
+                            _MacroDetail(
+                              macros: macros,
+                              format: format,
+                              muted: weekly,
+                            ),
                         ],
                       ),
-                    ),
-                    if (macros != null) ...<Widget>[
-                      const SizedBox(width: OnCareSpacing.s12),
-                      _MacroDetail(
-                        macros: macros,
-                        format: format,
-                        muted: weekly,
-                      ),
                     ],
-                  ],
-                ),
-              );
-            },
+                  ),
+                );
+              },
+            ),
           ),
           // 머리와 그래프 사이의 구분선도 간격도 두지 않는다 (회원 앱 #1123).
           // `전체` 는 그 빈 칸을 그래프가 들고 있어(topGap) 고른 막대의
@@ -452,8 +413,6 @@ class _Body extends StatelessWidget {
                         ),
                         goalLabel: '${l.clientPeriodGoal}\n${format(goal)}',
                         formatTick: (double v) => format(v),
-                        // 남는 자리는 그래프가 쓴다 — 세 화면의 카드 높이를
-                        // 같게 두면서 빈 칸을 만들지 않는다. (회원 앱 #1124)
                         height: _trendChartHeight,
                       ),
                 );
@@ -480,19 +439,17 @@ class _Body extends StatelessWidget {
   }
 
   /// 머리 숫자 옆에 붙일 탄단지. [picked] 이 있으면 그날 값, 없으면 기록이
-  /// 있는 날의 하루 평균이다. 칼로리를 보고 있지 않거나(나트륨·당류) 서버가
-  /// 영양을 주지 않은 기간이면 null 이라 아무것도 붙지 않는다.
+  /// 있는 날의 하루 평균이다. 서버가 영양을 주지 않은 기간이면 null 이라
+  /// 아무것도 붙지 않는다.
   _Macros? _macrosFor(int? picked) {
-    final List<ClientDietDay>? all = days;
-    if (metric != _Metric.calories || all == null) return null;
     if (picked != null) {
-      if (picked >= all.length) return null;
-      final ClientDietDay d = all[picked];
+      if (picked >= days.length) return null;
+      final ClientDietDay d = days[picked];
       return d.hasMacros
           ? _Macros(carbs: d.carbsG, protein: d.proteinG, fat: d.fatG)
           : null;
     }
-    final List<ClientDietDay> logged = all
+    final List<ClientDietDay> logged = days
         .where((ClientDietDay d) => d.hasMacros)
         .toList();
     if (logged.isEmpty) return null;
@@ -777,12 +734,14 @@ class _PeriodBars extends StatelessWidget {
           builder: (BuildContext context, Widget? _) => PeriodScrollChart(
             count: values.length,
             height: chartHeight,
+            // 한 화면 칸 수가 회원 앱과 같아야 `하루 평균` 이 같은 구간을 센다.
+            daysPerScreen: _allDaysPerScreen,
             selectedIndex: selection.selected,
             onSelected: selection.select,
             onVisibleRangeChanged: selection.setVisible,
-            // 지표·칸 수가 바뀔 때만 막대가 다시 자란다. 날을 고르는 것으로는
-            // 다시 그리지 않는다 (#1697).
-            revealKey: (label, values.length),
+            // 되감을 일이 없다 — 처음 한 번만 바닥에서 자란다. 날을 고르는
+            // 것으로는 다시 그리지 않는다 (#1697, 회원 앱 #1148).
+            revealKey: label,
             // 목표치는 왼쪽 칸에 두 줄로 적는다 (#1071).
             goalBottom: hasGoal
                 ? chartHeight * (goal / maxValue).clamp(0.0, 1.0)
@@ -881,11 +840,12 @@ class _MacroBar extends StatelessWidget {
     final ClientDietDay? d = day;
     if (pending) {
       // 아직 오지 않은 날은 **빈 트랙**이다. 지나간 빈 날과 같은 그루터기를
-      // 그리면 둘이 구분되지 않는다.
+      // 그리면 둘이 구분되지 않는다. "대기" 표시는 회원 앱과 같은 한 가지 —
+      // 진한 선 4px 이다(회원 앱 #1697).
       return Container(
-        height: _pendingTrackHeight,
+        height: OnCareSize.stepBar,
         decoration: const BoxDecoration(
-          color: OnCareColors.lineSubtle,
+          color: OnCareColors.lineStrong,
           borderRadius: radius,
         ),
       );
