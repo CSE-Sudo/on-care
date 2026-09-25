@@ -26,8 +26,8 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-import '../../helpers/record_span.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,

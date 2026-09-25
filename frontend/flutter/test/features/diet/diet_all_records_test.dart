@@ -35,10 +35,10 @@ void main() {
       final DietDateRange r = dietRangeForTab(
         DietPeriodTab.month,
         DateTime(2026, 12, 15),
-        firstRecord: DateTime(2024, 5, 1),
+        firstRecord: DateTime(2024, 5),
       );
 
-      expect(r.from, DateTime(2024, 5, 1));
+      expect(r.from, DateTime(2024, 5));
       expect(r.to, DateTime(2026, 12, 15));
     });
 
@@ -46,7 +46,7 @@ void main() {
       final DietDateRange r = dietRangeForTab(
         DietPeriodTab.week,
         DateTime(2026, 12, 15),
-        firstRecord: DateTime(2024, 5, 1),
+        firstRecord: DateTime(2024, 5),
       );
 
       expect(r.from, DateTime(2026, 12, 14));
@@ -64,13 +64,13 @@ void main() {
 
       await container.read(
         dietPeriodProvider((
-          from: DateTime(2026, 9, 1),
+          from: DateTime(2026, 9),
           to: DateTime(2026, 9, 30),
         )).future,
       );
 
       expect(repo.periodCalls, hasLength(1));
-      expect(repo.periodCalls.single.from, DateTime(2026, 9, 1));
+      expect(repo.periodCalls.single.from, DateTime(2026, 9));
       expect(repo.periodCalls.single.to, DateTime(2026, 9, 30));
     });
   });

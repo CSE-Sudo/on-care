@@ -452,7 +452,7 @@ void main() {
       final DietDateRange r = dietRangeForTab(
         DietPeriodTab.month,
         DateTime(2026, 12, 15),
-        firstRecord: DateTime(2027, 1, 1),
+        firstRecord: DateTime(2027),
       );
 
       expect(r.from, DateTime(2026, 12, 15));
