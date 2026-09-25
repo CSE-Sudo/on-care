@@ -234,6 +234,56 @@ class DietAdviceResponse(BaseModel):
     message: str
 
 
+class DietDayTotalsOut(BaseModel):
+    """기간 그래프의 칸 하나 — 하루 합계. (#2236)
+
+    끼니 목록과 사진은 싣지 않는다. 그래프가 쓰지 않는 값이고, `전체` 가 모든
+    기록을 그리는 지금(#2079) 하루치 끼니까지 실으면 응답이 기록한 해 수만큼
+    무거워진다. 하루를 펼쳐 볼 때는 `GET /diet/days/{date}` 가 있다.
+
+    기록이 없는 날도 0 으로 채워 온다 — 배열의 i 번째가 곧 i 번째 날이다.
+    """
+
+    date: str
+    total_calories: int = 0
+    total_sodium_mg: int = 0
+    total_sugar_g: float = 0.0
+    carbs_g: float = 0.0
+    protein_g: float = 0.0
+    fat_g: float = 0.0
+
+
+class DietPeriodResponse(BaseModel):
+    """GET /diet/days?from=&to= — 날짜별 합계. (#2236)
+
+    `days` 는 `from_date`…`to_date` 를 하루도 빠짐없이 채운 오름차순 배열이다
+    (`GET /me/activity-calendar` 와 같은 규칙). 받은 구간을 함께 돌려주므로,
+    `from` 을 생략해 **첫 기록일부터** 받았을 때 그 날짜를 응답에서 알 수 있다.
+
+    기록이 하나도 없는 회원에게 `from` 없이 물으면 오늘 하루짜리 빈 칸 하나가
+    온다 — 구간이 비어 있다는 말을 하려고 배열까지 비우지는 않는다.
+    """
+
+    from_date: str
+    to_date: str
+    days: list[DietDayTotalsOut]
+
+
+class RecordSpanResponse(BaseModel):
+    """GET /me/records/span — 기록이 시작된 날. (#2236)
+
+    `전체` 그래프가 어디서부터 그릴지를 정하는 값이다(#2079). 식단과 운동이
+    각자 제 첫 기록일을 가진다 — 한쪽만 기록해 온 회원의 빈 칸이 다른 쪽 때문에
+    늘어나지 않게 한다. 기록이 없으면 null 이다.
+
+    운동은 주 단위로 그리므로 **그 주의 월요일**이 아니라 기록한 날 그대로 준다.
+    주로 맞추는 것은 화면이 할 일이다.
+    """
+
+    diet_first_date: str | None = None
+    exercise_first_date: str | None = None
+
+
 class DietTodayResponse(BaseModel):
     entries: list[DietEntryOut]
     total_calories: int

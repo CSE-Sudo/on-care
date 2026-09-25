@@ -21,8 +21,8 @@ from app.core import clock
 from app.models.models import DietEntry
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
-    DietEntryCreate, DietEntryOut, DietEntryUpdate, DietTodayResponse,
-    calculate_macros,
+    DietDayTotalsOut, DietEntryCreate, DietEntryOut, DietEntryUpdate,
+    DietPeriodResponse, DietTodayResponse, calculate_macros,
 )
 from app.services import diet_photo_service, period_window, streak_shield_service
 from app.services.coach.personal_ingest import record_diet, refresh_diet
@@ -200,12 +200,16 @@ def period_coach_message(days: list[DietDayTotals], period: str) -> str:
             if _avg(recent) > _avg(earlier) * 1.1:
                 return "최근 4주 나트륨이 다시 올라가고 있어요. 한 주만 되짚어 볼까요?"
         weekday, weekend = _weekday_split(days)
+        # 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
+        # 이 조언은 최근 [period_window.ALL_PERIOD_DAYS] 일만 읽는다 — "기록을
+        # 통틀어" 라고 말하면 그래프가 보여 주는 앞 기록까지 본 것처럼 읽힌다.
+        weeks = period_window.ALL_PERIOD_DAYS // 7
         if weekend and weekday and _avg(weekend) > _avg(weekday) * 1.3:
-            return "기록을 통틀어 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요."
+            return f"최근 {weeks}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요."
         ratio = round(len(over) * 100 / len(days))
         if ratio >= 40:
-            return f"기록한 날의 {ratio}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요."
-        return f"기록한 {len(days)}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요."
+            return f"최근 {weeks}주 중 {ratio}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요."
+        return f"최근 {weeks}주 기록한 {len(days)}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요."
 
     # 오늘 — 그날 합계 하나로 말한다.
     today = days[-1]
@@ -248,6 +252,79 @@ def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:
 def build_today(db: Session, user_id: str) -> DietTodayResponse:
     """오늘 식단 집계. 기존 today 엔드포인트의 동작을 유지한다."""
     return build_day(db, user_id, today_str())
+
+
+def first_entry_date(db: Session, user_id: str) -> str | None:
+    """이 회원이 식단을 처음 남긴 날(YYYY-MM-DD). 기록이 없으면 None."""
+    return db.scalar(
+        select(DietEntry.date)
+        .where(DietEntry.user_id == user_id)
+        .order_by(DietEntry.date.asc())
+        .limit(1)
+    )
+
+
+def build_period(
+    db: Session,
+    user_id: str,
+    *,
+    start: date_type | None = None,
+    end: date_type | None = None,
+) -> DietPeriodResponse:
+    """[start]…[end] 의 **날짜별 합계**. 끼니·사진은 싣지 않는다. (#2236)
+
+    `전체` 그래프가 모든 기록을 그리므로(#2079) 하루에 한 번씩 부르면 해가
+    바뀐 회원에게 수백 번의 왕복이 된다. 한 번에 받아 간다.
+
+    [start] 를 주지 않으면 **첫 기록일**부터다 — 클라이언트가 어디까지 거슬러
+    올라가야 할지 몰라도 되고, 응답의 `from_date` 로 실제 구간을 안다. 기록이
+    하루도 없으면 빈 배열과 오늘 하루짜리 구간을 준다.
+
+    [end] 가 오늘보다 뒤면 오늘로 당긴다 — 아직 오지 않은 날은 그래프의 칸이
+    아니다(`activity_calendar_service.calendar` 와 같은 규칙).
+    """
+    today = clock.today()
+    last = min(end or today, today)
+    first = start
+    if first is None:
+        first_recorded = first_entry_date(db, user_id)
+        first = date_type.fromisoformat(first_recorded) if first_recorded else last
+    if first > last:
+        first = last
+
+    rows = db.scalars(
+        select(DietEntry).where(
+            DietEntry.user_id == user_id,
+            DietEntry.date >= first.isoformat(),
+            DietEntry.date <= last.isoformat(),
+        )
+    ).all()
+
+    totals: dict[str, DietDayTotalsOut] = {}
+    for r in rows:
+        day = totals.get(r.date)
+        if day is None:
+            day = DietDayTotalsOut(date=r.date)
+            totals[r.date] = day
+        day.total_calories += r.total_calories
+        day.total_sodium_mg += r.sodium_mg
+        day.total_sugar_g += r.sugar_g
+        day.carbs_g += r.carbs_g
+        day.protein_g += r.protein_g
+        day.fat_g += r.fat_g
+
+    # 기록이 없는 날도 0 으로 채운다 — 배열의 i 번째가 곧 i 번째 날이라,
+    # 화면이 날짜를 다시 맞춰 보지 않아도 된다.
+    days: list[DietDayTotalsOut] = []
+    cursor = first
+    while cursor <= last:
+        key = cursor.isoformat()
+        days.append(totals.get(key) or DietDayTotalsOut(date=key))
+        cursor += timedelta(days=1)
+
+    return DietPeriodResponse(
+        from_date=first.isoformat(), to_date=last.isoformat(), days=days
+    )
 
 
 @dataclass(frozen=True)

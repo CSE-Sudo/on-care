@@ -30,6 +30,13 @@ typedef ClientDateRange = ({DateTime from, DateTime to});
 /// 같은 기간을 보여야 나란히 놓고 이야기할 수 있다. (#1018)
 const int kClientAllPeriodDays = 84;
 
+/// AI 맞춤 조언이 **읽는** 날 수. 서버 `period_window.ALL_PERIOD_DAYS` 와 같다.
+///
+/// 그래프가 보여 주는 기간과 뜻이 다르다(#2079) — 그래프는 "지금까지 어땠나",
+/// 조언은 "무엇을 근거로 말하나" 다. 그래서 `전체` 그래프가 모든 기록으로
+/// 넓어져도 이 값은 그대로이고, 대신 조언 문구가 제 기간을 밝힌다.
+const int kAdvicePeriodDays = 84;
+
 /// `전체` 운동이 거슬러 올라가는 **주** 수. 회원 앱 운동 탭과 같은 **35주**다
 /// (`kExerciseAllPeriodWeeks`). 식단보다 길다 — 운동은 한 칸이 한 주라 여덟 달을
 /// 늘어놓아도 읽히지만, 식단은 한 칸이 하루라 그만큼 길면 막대가 실오라기가
