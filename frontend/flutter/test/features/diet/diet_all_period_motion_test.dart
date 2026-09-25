@@ -20,6 +20,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/record_span.dart';
 
 /// 날마다 다른 값을 주는 대역 — 막대 높이가 서로 달라야 자라는 것이 보인다.
 class _VaryingDietRepository extends FakeDietRepository {
@@ -64,6 +65,7 @@ class _VaryingDietRepository extends FakeDietRepository {
 
 Widget _app() => ProviderScope(
   overrides: <Override>[
+    testRecordSpanOverride(),
     dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
@@ -80,14 +82,22 @@ Widget _app() => ProviderScope(
 /// 감싼 `ClipRect` 다(`period-bar-reveal-N`).
 Finder _lastReveal() {
   final List<DateTime> dates = dietRangeDates(
-    dietRangeForTab(DietPeriodTab.month, nowKst()),
+    dietRangeForTab(
+      DietPeriodTab.month,
+      nowKst(),
+      firstRecord: testFirstRecordDate(),
+    ),
   );
   return find.byKey(ValueKey<String>('period-bar-reveal-${dates.length - 1}'));
 }
 
 double _lastBarHeight(WidgetTester tester) {
   final List<DateTime> dates = dietRangeDates(
-    dietRangeForTab(DietPeriodTab.month, nowKst()),
+    dietRangeForTab(
+      DietPeriodTab.month,
+      nowKst(),
+      firstRecord: testFirstRecordDate(),
+    ),
   );
   final Finder reveal = find.byKey(
     ValueKey<String>('period-bar-reveal-${dates.length - 1}'),

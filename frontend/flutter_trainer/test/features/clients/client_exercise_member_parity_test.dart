@@ -14,6 +14,8 @@ import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
 import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/record_span.dart';
+
 /// 트레이너 웹 회원 운동 현황을 회원 앱 운동 탭 기준으로 맞춘다 (#2157).
 ///
 /// 회원 앱은 목표를 MY 프로필에서 읽고(#1139), `기타` 만 한 날을 유산소로 세지
@@ -44,6 +46,8 @@ ClientExercisePeriod _mondayOnly(ClientPeriodKey key) {
     key.period,
     key.day,
     exercise: true,
+    // `전체` 는 첫 기록일부터다(#2079) — 대역도 그 규칙으로 기간을 만든다.
+    firstRecord: testClientExerciseFirstDate(key.day),
   );
   return ClientExercisePeriod(
     range: range,
@@ -71,6 +75,8 @@ ClientExercisePeriod _otherOnly(ClientPeriodKey key) {
     key.period,
     key.day,
     exercise: true,
+    // `전체` 는 첫 기록일부터다(#2079) — 대역도 그 규칙으로 기간을 만든다.
+    firstRecord: testClientExerciseFirstDate(key.day),
   );
   return ClientExercisePeriod(
     range: range,
@@ -110,6 +116,9 @@ List<Override> _overrides({
   MemberHealthProfile? profile = _customProfile,
   bool profileFails = false,
 }) => <Override>[
+  // `전체` 는 첫 기록일부터다(#2079). 35주를 그리도록 고정한다 — 데모 픽스처가
+  // 들고 있는 기간과 같다.
+  testClientRecordSpanOverride(),
   clientExercisePeriodProvider.overrideWith((ref, key) async => data(key)),
   memberHealthProfileProvider.overrideWith((ref, clientId) async {
     if (profileFails) throw StateError('profile down');
@@ -262,8 +271,8 @@ void main() {
     });
   });
 
-  group('전체 범위는 월요일부터 35주다', () {
-    test('어느 요일에 열어도 첫날이 월요일이고 정확히 35칸이다', () {
+  group('전체 범위는 첫 기록 주부터 월요일 단위다', () {
+    test('어느 요일에 열어도 첫날이 월요일이고 기록 주 수만큼이다', () {
       // 한 주의 일곱 요일을 모두 돈다 — 요일마다 깨지는 테스트가 되지 않게.
       for (int i = 0; i < 7; i++) {
         final DateTime today = DateTime(2026, 9, 21 + i);
@@ -271,19 +280,38 @@ void main() {
           ClientPeriod.month,
           today,
           exercise: true,
+          // 34주 전 주의 수요일에 처음 기록했다 — 그 주가 통째로 첫 칸이다.
+          firstRecord: DateTime(2026, 9, 21 - 34 * 7 + 2),
         );
         expect(range.from.weekday, DateTime.monday, reason: '$today');
         expect(range.to, today, reason: '$today');
         expect(clientRangeWeekStarts(range).length, 35, reason: '$today');
-        // 이번 주 월요일에서 34주를 거슬러 간 날이다 — 회원 앱과 같다.
         expect(range.from, DateTime(2026, 9, 21 - 34 * 7), reason: '$today');
       }
     });
 
-    test('식단 전체는 그대로 84일이다', () {
+    test('첫 기록일이 없으면 이번 주 한 주다 (#2079)', () {
+      final DateTime today = DateTime(2026, 9, 24);
+      final ClientDateRange range = clientRangeFor(
+        ClientPeriod.month,
+        today,
+        exercise: true,
+      );
+
+      expect(range.from, DateTime(2026, 9, 21));
+      expect(clientRangeWeekStarts(range).length, 1);
+    });
+
+    test('식단 전체는 첫 기록일부터다 — 주로 맞추지 않는다 (#2079)', () {
       final DateTime today = DateTime(2026, 9, 23);
-      final ClientDateRange range = clientRangeFor(ClientPeriod.month, today);
-      expect(clientRangeDates(range).length, kClientAllPeriodDays);
+      final ClientDateRange range = clientRangeFor(
+        ClientPeriod.month,
+        today,
+        firstRecord: DateTime(2026, 6, 3),
+      );
+
+      // 운동과 달리 식단은 하루가 한 칸이라 그 날 그대로 시작한다.
+      expect(range.from, DateTime(2026, 6, 3));
       expect(range.to, today);
     });
 

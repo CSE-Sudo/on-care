@@ -23,9 +23,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 Widget _app() => ProviderScope(
   overrides: <Override>[
+    testRecordSpanOverride(),
     dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
@@ -53,7 +55,7 @@ void main() {
 
     // 화면에 올라온 첫 막대와 그 이웃.
     int? first;
-    for (int i = 0; i < kDietAllPeriodDays; i++) {
+    for (int i = 0; i < kTestAllPeriodDays; i++) {
       if (find.byKey(Key('diet-period-bar-$i')).evaluate().isNotEmpty) {
         first = i;
         break;
