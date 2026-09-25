@@ -5985,7 +5985,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel this workout'**
+  /// **'Delete this workout'**
   String get coachRoutineCancel;
 
   /// No description provided for @coachRoutineCancelConfirm.
@@ -6003,7 +6003,7 @@ abstract class AppLocalizations {
   /// Title of the dialog confirming removal of a recommended workout.
   ///
   /// In en, this message translates to:
-  /// **'Cancel this workout?'**
+  /// **'Delete this workout?'**
   String get coachCardRoutineCancelTitle;
 
   /// Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is.
@@ -6015,13 +6015,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Workout cancelled'**
+  /// **'Workout deleted'**
   String get coachRoutineCancelled;
 
   /// No description provided for @coachRoutineCancelFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t cancel the workout'**
+  /// **'Couldn\'t delete the workout'**
   String get coachRoutineCancelFailed;
 
   /// The trainer's feedback on a completed routine.

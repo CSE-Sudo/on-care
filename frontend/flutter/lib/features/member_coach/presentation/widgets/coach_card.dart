@@ -337,7 +337,7 @@ class _RecommendedExerciseRowState
     extends ConsumerState<_RecommendedExerciseRow> {
   bool _saving = false;
 
-  /// 개인 운동 취소. 담당 트레이너가 없을 때만 화면에 나타난다 — 담당이 있으면
+  /// 개인 운동 삭제. 담당 트레이너가 없을 때만 화면에 나타난다 — 담당이 있으면
   /// 취소는 트레이너의 일이라 서버도 403 으로 막는다. (#1020)
   Future<void> _cancel() async {
     final AppLocalizations l = AppLocalizations.of(context);

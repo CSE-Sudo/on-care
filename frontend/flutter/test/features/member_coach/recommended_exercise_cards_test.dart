@@ -892,7 +892,7 @@ void main() {
     expect(find.text('PDF를 열지 못했어요. 다시 시도해 주세요'), findsOneWidget);
   });
 
-  testWidgets('담당 트레이너가 없으면 개인 운동을 스스로 취소할 수 있다 (#1020)', (
+  testWidgets('담당 트레이너가 없으면 개인 운동을 스스로 삭제할 수 있다 (#1020)', (
     WidgetTester tester,
   ) async {
     await pumpRecommendationCards(tester, <CoachRoutine>[
@@ -902,7 +902,7 @@ void main() {
     expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsOneWidget);
   });
 
-  testWidgets('개인 운동 취소 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (
+  testWidgets('개인 운동 삭제 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (
     WidgetTester tester,
   ) async {
     await pumpRecommendationCards(tester, <CoachRoutine>[
@@ -915,14 +915,14 @@ void main() {
     await tester.tap(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')));
     await tester.pumpAndSettle();
 
-    // 확정 버튼 `이 개인 운동 취소` 와 둘 다 '취소' 면 어느 쪽이 물리는
-    // 버튼인지 헷갈린다. 확정은 여전히 빨강이다.
+    // 확정 버튼은 `이 개인 운동 삭제` 다(#2218). 확정은 여전히 빨강이다.
+    // 창 안에 '취소' 문구가 남아 있으면 어느 쪽이 물리는 버튼인지 헷갈린다.
     final Finder dialog = find.byType(AppDialog);
     expect(dialog, findsOneWidget);
     final Finder keep = find.descendant(of: dialog, matching: find.text('유지'));
     final Finder confirm = find.descendant(
       of: dialog,
-      matching: find.text('이 개인 운동 취소'),
+      matching: find.text('이 개인 운동 삭제'),
     );
     expect(keep, findsOneWidget);
     expect(confirm, findsOneWidget);
@@ -947,7 +947,7 @@ void main() {
     expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsOneWidget);
   });
 
-  testWidgets('담당 트레이너가 있으면 취소는 트레이너의 일이다 (#1020)', (
+  testWidgets('담당 트레이너가 있으면 삭제는 트레이너의 일이다 (#1020)', (
     WidgetTester tester,
   ) async {
     await pumpRecommendationCards(tester, <CoachRoutine>[_aiRoutine]);
