@@ -62,6 +62,34 @@ def session_date_of(row) -> date | None:
     return exercise_activity.activity_date_of(row)
 
 
+def first_session_date(db: Session, user_id: str) -> str | None:
+    """이 회원이 운동을 처음 남긴 날(YYYY-MM-DD). 기록이 없으면 None. (#2236)
+
+    `전체` 그래프가 여기서부터 그린다(#2079). 저장은 (주 시작 + 요일 라벨)로
+    쪼개져 있어 가장 이른 주를 먼저 찾고, 그 주 안에서 실제 날짜로 되돌린다 —
+    `week_start` 만 쓰면 주 한가운데부터 기록한 회원의 앞 며칠이 빈 칸으로
+    붙는다.
+    """
+    first_monday = db.scalar(
+        select(ExerciseSession.week_start)
+        .where(ExerciseSession.user_id == user_id, ExerciseSession.minutes > 0)
+        .order_by(ExerciseSession.week_start.asc())
+        .limit(1)
+    )
+    if first_monday is None:
+        return None
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user_id,
+            ExerciseSession.week_start == first_monday,
+            ExerciseSession.minutes > 0,
+        )
+    ).all()
+    days = [d for d in (session_date_of(r) for r in rows) if d is not None]
+    # 날짜를 되돌릴 수 없는 옛 행만 있으면 그 주의 월요일로 둔다.
+    return min(days).isoformat() if days else first_monday
+
+
 def monday_of_this_week_str() -> str:
     today = clock.today()
     return (today - timedelta(days=today.weekday())).isoformat()
@@ -230,6 +258,86 @@ def _longest_streak(daily: list[int]) -> int:
         run = run + 1 if m > 0 else 0
         best = max(best, run)
     return best
+
+
+def build_period(
+    db: Session,
+    user_id: str,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    goals: tuple[int, int] = (0, 0),
+) -> dict:
+    """[start]…[end] 가 걸친 **주들**의 집계. (#2247)
+
+    `전체` 그래프가 모든 기록을 그리므로(#2079) 주마다 부르면 해가 바뀐 회원에게
+    쉰 번이 넘는 왕복이 된다. 한 번에 읽어 주 단위로 나눈다.
+
+    주마다의 집계는 [build_current_week] 그대로다 — 같은 함수를 기간만큼 부르는
+    것이 이 조회의 전부라, 한 주만 볼 때와 여러 주를 볼 때의 숫자가 갈리지
+    않는다. 다만 `sessions` 와 코칭 문구는 싣지 않는다(그래프가 쓰지 않는다).
+
+    [start] 를 주지 않으면 **첫 기록이 있는 주**부터다. 기록이 하나도 없으면
+    이번 주 한 칸이다. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다.
+    """
+    today = clock.today()
+    last_monday = _monday_of(min(end or today, today))
+    if start is not None:
+        first_monday = _monday_of(start)
+    else:
+        first = first_session_date(db, user_id)
+        first_monday = (
+            _monday_of(date.fromisoformat(first)) if first else last_monday
+        )
+    if first_monday > last_monday:
+        first_monday = last_monday
+
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user_id,
+            ExerciseSession.week_start >= first_monday.isoformat(),
+            ExerciseSession.week_start <= last_monday.isoformat(),
+        )
+    ).all()
+    by_week: dict[str, list] = {}
+    for row in rows:
+        by_week.setdefault(row.week_start, []).append(row)
+
+    minutes_goal, calories_goal = goals
+    weeks: list[dict] = []
+    cursor = first_monday
+    while cursor <= last_monday:
+        key = cursor.isoformat()
+        data = build_current_week(by_week.get(key, []))
+        weeks.append(
+            {
+                "week_start": key,
+                "day_labels": data["day_labels"],
+                "daily_minutes": data["daily_minutes"],
+                "daily_calories": data["daily_calories"],
+                "cardio_minutes": data["cardio_minutes"],
+                "strength_minutes": data["strength_minutes"],
+                "strength_sets": data["strength_sets"],
+                "stretching_minutes": data["stretching_minutes"],
+                "other_minutes": data["other_minutes"],
+                "total_minutes": data["total_minutes"],
+                "total_calories": data["total_calories"],
+                "streak_days": data["streak_days"],
+                "weekly_goal_minutes": minutes_goal,
+                "weekly_goal_calories": calories_goal,
+            }
+        )
+        cursor += timedelta(days=7)
+
+    return {
+        "from_week": first_monday.isoformat(),
+        "to_week": last_monday.isoformat(),
+        "weeks": weeks,
+    }
+
+
+def _monday_of(day: date) -> date:
+    return day - timedelta(days=day.weekday())
 
 
 def build_current_week(rows: list) -> dict:

@@ -13,17 +13,21 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// `9. 14. ~ 9. 20.` — 카드가 집계한 기간.
+/// 기간이 1년이 안 되면 연도를 적지 않는다 — 같은 월·일이 한 번만 나오므로 해가
+/// 바뀌어도(`12. 16. ~ 1. 5.`) 가리키는 날이 하나뿐이고, 한 줄에 들어가야 한다.
 ///
-/// 연도는 적지 않는다. 한 줄에 들어가야 하고, 카드가 보는 기간은 오늘에서
-/// 거슬러 1년이 안 된다 — 식단 `전체` 는 84일(`kDietAllPeriodDays`), 운동
-/// `전체` 는 35주(`kExerciseAllPeriodWeeks`). 그 안에서 같은 월·일은 한 번만
-/// 나오므로 해가 바뀌어도(`12. 16. ~ 1. 5.`) 가리키는 날이 하나뿐이다.
-/// 두 값 중 하나라도 1년을 넘기면 연도를 적어야 한다.
-String periodRangeText(String locale, DateTime from, DateTime to) =>
-    '${DateFormat.Md(locale).format(from)}'
-    ' ~ '
-    '${DateFormat.Md(locale).format(to)}';
+/// `전체` 가 **모든 기록**을 그리게 되면서(#2079) 1년을 넘는 기간이 생겼다. 그때는
+/// `2025. 11. 3. ~ 2026. 12. 15.` 처럼 연도를 적는다 — 적지 않으면 `11. 3.` 이
+/// 어느 해인지 갈리지 않는다.
+const int _daysInYear = 365;
+
+/// `9. 14. ~ 9. 20.` — 카드가 집계한 기간. 1년을 넘기면 연도까지 적는다.
+String periodRangeText(String locale, DateTime from, DateTime to) {
+  final DateFormat format = to.difference(from).inDays >= _daysInYear - 1
+      ? DateFormat.yMd(locale)
+      : DateFormat.Md(locale);
+  return '${format.format(from)} ~ ${format.format(to)}';
+}
 
 /// 카드 머리줄 오른쪽에 붙는 기간 한 줄.
 ///

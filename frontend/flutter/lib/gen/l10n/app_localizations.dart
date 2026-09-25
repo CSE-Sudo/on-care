@@ -2513,7 +2513,7 @@ abstract class AppLocalizations {
   /// No description provided for @myShopWeeklyReportDescription.
   ///
   /// In en, this message translates to:
-  /// **'Look back on {range} with a report built from your meals, workouts and AI Coach notes.'**
+  /// **'Look back on {range} with a report built from your meals, workouts and reference notes.'**
   String myShopWeeklyReportDescription(String range);
 
   /// No description provided for @myWeeklyReportOwned.
@@ -2555,7 +2555,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfSectionInsights.
   ///
   /// In en, this message translates to:
-  /// **'AI Coach notes'**
+  /// **'Reference notes'**
   String get coachReportPdfSectionInsights;
 
   /// No description provided for @coachReportPdfNoInsights.
@@ -4312,8 +4312,8 @@ abstract class AppLocalizations {
   /// No description provided for @aicQuotaPaidNext.
   ///
   /// In en, this message translates to:
-  /// **'Next chat {cost} · Bought today {used}/{limit} · {balance} left'**
-  String aicQuotaPaidNext(String cost, int used, int limit, String balance);
+  /// **'Next chat {cost} · Bought today {used}/{limit}'**
+  String aicQuotaPaidNext(String cost, int used, int limit);
 
   /// No description provided for @aicQuotaExhausted.
   ///
@@ -4336,8 +4336,8 @@ abstract class AppLocalizations {
   /// No description provided for @aicPaidConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve used today\'s free chats. Each message now costs {cost} (up to {limit} today).'**
-  String aicPaidConfirmMessage(String cost, int limit);
+  /// **'You\'ve used today\'s free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}'**
+  String aicPaidConfirmMessage(String cost, int limit, String balance);
 
   /// No description provided for @aicPaidConfirmAction.
   ///
@@ -4350,12 +4350,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You need {shortfall} more. Log meals and workouts to earn points.'**
   String aicPaidInsufficient(String shortfall);
-
-  /// No description provided for @aicPointsSpentWithBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'−{spent} · {balance} left'**
-  String aicPointsSpentWithBalance(String spent, String balance);
 
   /// No description provided for @aicPointsSpent.
   ///
@@ -4402,7 +4396,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicInsightDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove this detection from the log? What you wrote stays in the conversation.'**
+  /// **'Remove this detection from your reference notes? What you wrote stays in the conversation.'**
   String get aicInsightDeleteConfirm;
 
   /// No description provided for @aicInsightDeleteFailed.
@@ -4414,13 +4408,13 @@ abstract class AppLocalizations {
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Noted signals'**
+  /// **'Reference notes'**
   String get aicInsightHistoryTitle;
 
   /// AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900).
   ///
   /// In en, this message translates to:
-  /// **'Notes'**
+  /// **'Reference notes'**
   String get aicInsightHistoryAction;
 
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
@@ -4438,7 +4432,7 @@ abstract class AppLocalizations {
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load noted signals'**
+  /// **'Couldn\'t load reference notes'**
   String get aicInsightHistoryFailed;
 
   /// AI coach chat: how long the conversation is kept (#1823).
@@ -6129,7 +6123,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel this workout'**
+  /// **'Delete this workout'**
   String get coachRoutineCancel;
 
   /// No description provided for @coachRoutineCancelConfirm.
@@ -6147,7 +6141,7 @@ abstract class AppLocalizations {
   /// Title of the dialog confirming removal of a recommended workout.
   ///
   /// In en, this message translates to:
-  /// **'Cancel this workout?'**
+  /// **'Delete this workout?'**
   String get coachCardRoutineCancelTitle;
 
   /// Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is.
@@ -6159,13 +6153,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Workout cancelled'**
+  /// **'Workout deleted'**
   String get coachRoutineCancelled;
 
   /// No description provided for @coachRoutineCancelFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t cancel the workout'**
+  /// **'Couldn\'t delete the workout'**
   String get coachRoutineCancelFailed;
 
   /// The trainer's feedback on a completed routine.

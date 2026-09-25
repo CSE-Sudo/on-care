@@ -1417,7 +1417,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myShopWeeklyReportDescription(String range) {
-    return 'Look back on $range with a report built from your meals, workouts and AI Coach notes.';
+    return 'Look back on $range with a report built from your meals, workouts and reference notes.';
   }
 
   @override
@@ -1442,7 +1442,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Made with points, without a trainer — so there\'s no trainer message.';
 
   @override
-  String get coachReportPdfSectionInsights => 'AI Coach notes';
+  String get coachReportPdfSectionInsights => 'Reference notes';
 
   @override
   String get coachReportPdfNoInsights =>
@@ -2485,8 +2485,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String aicQuotaPaidNext(String cost, int used, int limit, String balance) {
-    return 'Next chat $cost · Bought today $used/$limit · $balance left';
+  String aicQuotaPaidNext(String cost, int used, int limit) {
+    return 'Next chat $cost · Bought today $used/$limit';
   }
 
   @override
@@ -2500,8 +2500,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicPaidConfirmTitle => 'Keep chatting with points?';
 
   @override
-  String aicPaidConfirmMessage(String cost, int limit) {
-    return 'You\'ve used today\'s free chats. Each message now costs $cost (up to $limit today).';
+  String aicPaidConfirmMessage(String cost, int limit, String balance) {
+    return 'You\'ve used today\'s free chats. Sending this one costs $cost (up to $limit today).\n\nBalance $balance';
   }
 
   @override
@@ -2510,11 +2510,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String aicPaidInsufficient(String shortfall) {
     return 'You need $shortfall more. Log meals and workouts to earn points.';
-  }
-
-  @override
-  String aicPointsSpentWithBalance(String spent, String balance) {
-    return '−$spent · $balance left';
   }
 
   @override
@@ -2544,17 +2539,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aicInsightDeleteConfirm =>
-      'Remove this detection from the log? What you wrote stays in the conversation.';
+      'Remove this detection from your reference notes? What you wrote stays in the conversation.';
 
   @override
   String get aicInsightDeleteFailed =>
       'We could not remove it. Please try again in a moment.';
 
   @override
-  String get aicInsightHistoryTitle => 'Noted signals';
+  String get aicInsightHistoryTitle => 'Reference notes';
 
   @override
-  String get aicInsightHistoryAction => 'Notes';
+  String get aicInsightHistoryAction => 'Reference notes';
 
   @override
   String aicInsightHistorySubtitle(int days) {
@@ -2567,7 +2562,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aicInsightHistoryFailed => 'Couldn\'t load noted signals';
+  String get aicInsightHistoryFailed => 'Couldn\'t load reference notes';
 
   @override
   String aicRetentionNotice(int days) {
@@ -3538,7 +3533,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineUndoFailed => 'Could not undo the completion.';
 
   @override
-  String get coachRoutineCancel => 'Cancel this workout';
+  String get coachRoutineCancel => 'Delete this workout';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3549,16 +3544,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardRoutineUndoTitle => 'Undo completion?';
 
   @override
-  String get coachCardRoutineCancelTitle => 'Cancel this workout?';
+  String get coachCardRoutineCancelTitle => 'Delete this workout?';
 
   @override
   String get coachRoutineKeep => 'Keep';
 
   @override
-  String get coachRoutineCancelled => 'Workout cancelled';
+  String get coachRoutineCancelled => 'Workout deleted';
 
   @override
-  String get coachRoutineCancelFailed => 'Couldn\'t cancel the workout';
+  String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
 
   @override
   String coachRoutineTrainerFeedback(String feedback) {

@@ -41,7 +41,7 @@ abstract interface class MemberCoachRepository {
   /// 이지 `할 일` 이 아니다. 완료가 아닌 배정에 불러도 아무 일도 일어나지 않는다.
   Future<CoachRoutine> uncompleteRoutine(String routineId);
 
-  /// 개인 운동을 취소한다. **담당 트레이너가 없을 때만** 서버가 받아 준다 —
+  /// 개인 운동을 삭제한다. **담당 트레이너가 없을 때만** 서버가 받아 준다 —
   /// 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이 서로 다른
   /// 기록을 본다. (#1020)
   ///

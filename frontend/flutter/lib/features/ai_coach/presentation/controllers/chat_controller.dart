@@ -66,22 +66,6 @@ class ChatController extends StateNotifier<ChatState> {
 
   final AiCoachRepository _repo;
 
-  /// 오늘 포인트로 보내는 데 동의한 날(#2145). 무료를 다 쓴 뒤 **처음 한 번만**
-  /// 확인창을 띄우고, 그날은 다시 묻지 않는다. 날이 바뀌면 무료가 다시 열린다.
-  DateTime? _consentedOn;
-
-  bool get _consentedToday {
-    final DateTime? day = _consentedOn;
-    if (day == null) return false;
-    final DateTime today = todayKst();
-    return day.year == today.year &&
-        day.month == today.month &&
-        day.day == today.day;
-  }
-
-  /// 포인트로 보내는 데 동의했다 — 오늘은 다시 묻지 않는다.
-  void consentToPaidChat() => _consentedOn = todayKst();
-
   /// 오늘 한도를 다시 읽는다. 실패해도 대화는 막지 않는다 — 판단은 서버가 한다.
   Future<void> refreshQuota() async {
     try {
@@ -110,10 +94,11 @@ class ChatController extends StateNotifier<ChatState> {
     }
   }
 
-  /// [text] 를 보낸다. 오늘 무료를 다 썼으면 포인트로 보내는데, 그날 처음이면 먼저
-  /// [ChatSendOutcome.needsConsent] 를 돌려주고 보내지 않는다 — 화면이 확인창을
-  /// 띄우고 [consentToPaidChat] 뒤에 다시 부른다(#2145).
-  Future<ChatSendResult> send(String text) async {
+  /// [text] 를 보낸다. 오늘 무료를 다 썼으면 포인트로 보내는데, **보낼 때마다**
+  /// 먼저 [ChatSendOutcome.needsConsent] 를 돌려주고 보내지 않는다 — 화면이
+  /// 확인창을 띄우고 [payWithPoints] 를 켜서 다시 부른다(#2217). 포인트가 나가는
+  /// 일을 한 번 동의로 하루 내내 묶어 두지 않는다.
+  Future<ChatSendResult> send(String text, {bool payWithPoints = false}) async {
     final message = text.trim();
     if (message.isEmpty || state.sending) {
       return (outcome: ChatSendOutcome.ignored, shortfall: 0);
@@ -124,7 +109,7 @@ class ChatController extends StateNotifier<ChatState> {
         return (outcome: ChatSendOutcome.dailyLimit, shortfall: 0);
       }
       if (quota.next == AiChatNext.paid) {
-        if (!_consentedToday) {
+        if (!payWithPoints) {
           return (outcome: ChatSendOutcome.needsConsent, shortfall: 0);
         }
         if (quota.short) {
@@ -162,8 +147,9 @@ class ChatController extends StateNotifier<ChatState> {
       final reply = await _repo.sendMessage(
         message: message,
         history: history,
-        // 무료가 남았으면 서버가 보지 않는다. 동의했으면 무료를 넘겨도 보낸다.
-        payWithPoints: _consentedToday,
+        // 무료가 남았으면 서버가 보지 않는다. 이번 전송에 동의했으면 무료를
+        // 넘겨도 보낸다.
+        payWithPoints: payWithPoints,
         clientRequestId: newClientRequestId(),
       );
       // 답에 실려 온 감지 결과는 **방금 보낸 회원 메시지**에 붙인다(#1824).

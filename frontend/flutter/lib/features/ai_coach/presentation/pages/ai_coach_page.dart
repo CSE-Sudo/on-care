@@ -68,13 +68,13 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     ChatSendResult result = await chat.send(text);
     if (!mounted) return;
     if (result.outcome == ChatSendOutcome.needsConsent) {
-      // 무료를 다 쓴 뒤 처음 한 번만 묻는다(#2145). 동의하면 그날은 다시 묻지 않는다.
+      // 포인트가 나가는 일은 보낼 때마다 묻는다(#2217) — 하루 한 번 동의로
+      // 묶어 두면 그 뒤로는 무엇이 언제 나갔는지 모르고 쌓인다.
       if (!await _confirmPaidChat()) {
         _restoreInput(text);
         return;
       }
-      chat.consentToPaidChat();
-      result = await chat.send(text);
+      result = await chat.send(text, payWithPoints: true);
       if (!mounted) return;
     }
     final AppLocalizations l = AppLocalizations.of(context);
@@ -113,9 +113,11 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     return showAppConfirmDialog(
       context: context,
       title: l.aicPaidConfirmTitle,
+      // 얼마가 나가는지와 **지금 가진 것**을 함께 보여 준다(#2217).
       message: l.aicPaidConfirmMessage(
         l.myPointsCost(quota?.cost ?? 0),
         quota?.paidLimit ?? 0,
+        l.myPointsCost(quota?.balance ?? 0),
       ),
       confirmLabel: l.aicPaidConfirmAction,
       cancelLabel: l.myCancel,
@@ -274,12 +276,13 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     );
   }
 
-  /// [showInsights] 가 거짓이면 감지 기록 버튼을 숨기되 자리는 남겨, 제목이
+  /// [showInsights] 가 거짓이면 참고 기록 버튼을 숨기되 자리는 남겨, 제목이
   /// 가운데에서 밀리지 않게 한다.
   ///
   /// **양쪽 폭을 맞춰 제목을 화면 가운데에 세운다**(#1975). 왼쪽 뒤로 버튼은
-  /// 고정 폭이고 오른쪽 `기록` 은 글자 길이만큼이라, 그대로 두면 가운데 정렬한
-  /// 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더 밀린다.
+  /// 고정 폭이고 오른쪽 `참고 기록` 은 글자 길이만큼이라, 그대로 두면 가운데
+  /// 정렬한 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더
+  /// 밀린다.
   ///
   /// 그래서 뒤로 버튼을 `기록` 과 같은 폭의 빈 자리 **위에 겹쳐** 둔다. 두 자리를
   /// 나란히 두면 좌우는 맞지만 제목이 쓸 폭이 그만큼 줄어 부제가 말줄임된다.
@@ -302,14 +305,17 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     return ColoredBox(
       color: OnCareColors.surfaceCard,
       child: Padding(
+        // 다른 페이지 머리(`AppTopBar`)와 같은 가장자리 여백. s4 로는 오른쪽
+        // 버튼이 화면 끝에 붙었다(#2216). 좌우가 같아야 아래 겹쳐 둔 복제본이
+        // 제목을 가운데에 세운다(#1975).
         padding: const EdgeInsets.symmetric(
-          horizontal: OnCareSpacing.s4,
+          horizontal: OnCareSpacing.s8,
           vertical: OnCareSpacing.s8,
         ),
         child: Row(
           children: <Widget>[
-            // 뒤로 버튼을 `기록` 과 같은 폭의 자리 **위에** 겹쳐 둔다. 두 자리를
-            // 나란히 두면 그만큼 제목이 쓸 폭이 줄어 부제가 말줄임된다.
+            // 뒤로 버튼을 `참고 기록` 과 같은 폭의 자리 **위에** 겹쳐 둔다. 두
+            // 자리를 나란히 두면 그만큼 제목이 쓸 폭이 줄어 부제가 말줄임된다.
             Stack(
               alignment: AlignmentDirectional.centerStart,
               children: <Widget>[
@@ -509,13 +515,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                     left: OnCareSpacing.s4,
                   ),
                   child: Text(
-                    switch (m.balanceAfter) {
-                      final int balance => l.aicPointsSpentWithBalance(
-                        l.myPointsCost(m.pointsSpent),
-                        l.myPointsCost(balance),
-                      ),
-                      null => l.aicPointsSpent(l.myPointsCost(m.pointsSpent)),
-                    },
+                    // 남은 포인트는 여기 적지 않는다 — MY 에서 보는 값이고,
+                    // 답변마다 따라다니면 대화보다 잔액이 먼저 읽힌다(#2217).
+                    l.aicPointsSpent(l.myPointsCost(m.pointsSpent)),
                     key: const Key('aiCoachPointsSpent'),
                     style: OnCareTypography.numeric(
                       tokens.text(OnCareTypography.caption),
@@ -607,7 +609,6 @@ class _QuotaLine extends StatelessWidget {
         l.myPointsCost(quota.cost),
         quota.paidUsed,
         quota.paidLimit,
-        l.myPointsCost(quota.balance),
       ),
       AiChatNext.exhausted => l.aicQuotaExhausted,
     };

@@ -132,6 +132,46 @@ class ExerciseWeekResponse(BaseModel):
     ai_coach_message: str
 
 
+class ExerciseWeekBrief(BaseModel):
+    """기간 그래프가 쓰는 한 주. (#2247)
+
+    주간 응답([ExerciseWeekResponse])에서 **그래프가 읽는 것만** 남겼다.
+    `sessions` 와 코칭 문구는 싣지 않는다 — 그래프가 쓰지 않고, `전체` 가 모든
+    기록을 그리는 지금(#2079) 주마다 세션 목록까지 실으면 응답이 해 수만큼
+    무거워진다. 한 주를 펼쳐 볼 때는 그대로 `GET /exercise/weeks/current` 다.
+    """
+
+    week_start: str
+    day_labels: list[str]
+    daily_minutes: list[int]
+    daily_calories: list[int]
+    cardio_minutes: list[int]
+    strength_minutes: list[int]
+    strength_sets: list[int] = Field(default_factory=list)
+    stretching_minutes: list[int]
+    other_minutes: list[int] = Field(default_factory=list)
+    total_minutes: int
+    total_calories: int
+    streak_days: int
+    weekly_goal_minutes: int = 0
+    weekly_goal_calories: int = 0
+
+
+class ExercisePeriodResponse(BaseModel):
+    """GET /exercise/weeks?from=&to= — 구간이 걸친 주들. (#2247)
+
+    `weeks` 는 `from_week`…`to_week` 를 한 주도 빠짐없이 채운 오름차순 배열이다
+    — 기록이 없는 주도 0 으로 온다(`GET /diet/days` 와 같은 규칙).
+
+    `from` 을 생략하면 **첫 운동 기록이 있는 주**부터다. 기록이 하나도 없으면
+    이번 주 한 칸이 온다.
+    """
+
+    from_week: str
+    to_week: str
+    weeks: list[ExerciseWeekBrief]
+
+
 class ExerciseSessionCreate(BaseModel):
     """운동 기록 추가·수정 입력.
 

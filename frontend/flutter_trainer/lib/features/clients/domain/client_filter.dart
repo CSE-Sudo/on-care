@@ -1,5 +1,5 @@
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 /// Roster filters reachable from the URL (`/clients?f=unread`).
@@ -15,8 +15,8 @@ enum ClientFilter {
   /// Clients with unanswered messages.
   unread('unread'),
 
-  /// Clients with a health [ClientAlert] raised (나트륨 초과 · 이행률
-  /// 저조). Unanswered messages are [unread], not 주의.
+  /// `주의 회원` — PT 관리 신호가 하나라도 있는 회원([needsAttention], #2204).
+  /// Unanswered messages are [unread], not 주의.
   attention('attention');
 
   const ClientFilter(this.query);
@@ -54,6 +54,6 @@ List<TrainerClient> applyClientFilter(
     case ClientFilter.unread:
       return clients.where((c) => (unread[c.id] ?? 0) > 0).toList();
     case ClientFilter.attention:
-      return clients.where((c) => healthAlertsFor(c).isNotEmpty).toList();
+      return clients.where(needsAttention).toList();
   }
 }

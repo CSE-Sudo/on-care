@@ -18,6 +18,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/record_span.dart';
 
 /// 짝수 날은 목표(2,000kcal)를 넘고 홀수 날은 못 미친다 — 한 화면에서 두 색이
 /// 함께 나와야 초과 표시가 무엇을 가르는지 잴 수 있다.
@@ -72,6 +73,7 @@ Future<void> _pumpDiet(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        testRecordSpanOverride(),
         dietRepositoryProvider.overrideWithValue(
           repository ?? FakeDietRepository(),
         ),

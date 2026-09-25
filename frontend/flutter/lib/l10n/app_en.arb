@@ -940,7 +940,7 @@
   },
   "myProfilePetDone": "Your pet is next to your name",
   "myShopWeeklyReportTitle": "Weekly report",
-  "myShopWeeklyReportDescription": "Look back on {range} with a report built from your meals, workouts and AI Coach notes.",
+  "myShopWeeklyReportDescription": "Look back on {range} with a report built from your meals, workouts and reference notes.",
   "@myShopWeeklyReportDescription": {
     "placeholders": {
       "range": {
@@ -964,7 +964,7 @@
   "myBenefitsWeeklyReports": "Weekly reports",
   "myWeeklyReportCardTitle": "Report from points",
   "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer message.",
-  "coachReportPdfSectionInsights": "AI Coach notes",
+  "coachReportPdfSectionInsights": "Reference notes",
   "coachReportPdfNoInsights": "No pain or negative feedback this week.",
   "coachReportPdfInsightSummary": "{label} ×{count}",
   "@coachReportPdfInsightSummary": {
@@ -1831,7 +1831,7 @@
       }
     }
   },
-  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit} · {balance} left",
+  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit}",
   "@aicQuotaPaidNext": {
     "placeholders": {
       "cost": {
@@ -1842,16 +1842,13 @@
       },
       "limit": {
         "type": "int"
-      },
-      "balance": {
-        "type": "String"
       }
     }
   },
   "aicQuotaExhausted": "You've used today's chats. They reopen tomorrow",
   "aicQuotaFindTrainer": "Find a trainer",
   "aicPaidConfirmTitle": "Keep chatting with points?",
-  "aicPaidConfirmMessage": "You've used today's free chats. Each message now costs {cost} (up to {limit} today).",
+  "aicPaidConfirmMessage": "You've used today's free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}",
   "@aicPaidConfirmMessage": {
     "placeholders": {
       "cost": {
@@ -1859,6 +1856,9 @@
       },
       "limit": {
         "type": "int"
+      },
+      "balance": {
+        "type": "String"
       }
     }
   },
@@ -1867,17 +1867,6 @@
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
-        "type": "String"
-      }
-    }
-  },
-  "aicPointsSpentWithBalance": "−{spent} · {balance} left",
-  "@aicPointsSpentWithBalance": {
-    "placeholders": {
-      "spent": {
-        "type": "String"
-      },
-      "balance": {
         "type": "String"
       }
     }
@@ -1913,13 +1902,13 @@
   "@aicInsightDelete": {
     "description": "Removes one detection from the AI coach insight log (#1975)."
   },
-  "aicInsightDeleteConfirm": "Remove this detection from the log? What you wrote stays in the conversation.",
+  "aicInsightDeleteConfirm": "Remove this detection from your reference notes? What you wrote stays in the conversation.",
   "aicInsightDeleteFailed": "We could not remove it. Please try again in a moment.",
-  "aicInsightHistoryTitle": "Noted signals",
+  "aicInsightHistoryTitle": "Reference notes",
   "@aicInsightHistoryTitle": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
   },
-  "aicInsightHistoryAction": "Notes",
+  "aicInsightHistoryAction": "Reference notes",
   "@aicInsightHistoryAction": {
     "description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."
   },
@@ -1941,7 +1930,7 @@
       }
     }
   },
-  "aicInsightHistoryFailed": "Couldn't load noted signals",
+  "aicInsightHistoryFailed": "Couldn't load reference notes",
   "@aicInsightHistoryFailed": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
   },
@@ -2755,7 +2744,7 @@
   },
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Could not undo the completion.",
-  "coachRoutineCancel": "Cancel this workout",
+  "coachRoutineCancel": "Delete this workout",
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -2768,7 +2757,7 @@
   "@coachCardRoutineUndoTitle": {
     "description": "Title of the dialog confirming undoing a completed recommended workout."
   },
-  "coachCardRoutineCancelTitle": "Cancel this workout?",
+  "coachCardRoutineCancelTitle": "Delete this workout?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
   },
@@ -2776,8 +2765,8 @@
   "@coachRoutineKeep": {
     "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
-  "coachRoutineCancelled": "Workout cancelled",
-  "coachRoutineCancelFailed": "Couldn't cancel the workout",
+  "coachRoutineCancelled": "Workout deleted",
+  "coachRoutineCancelFailed": "Couldn't delete the workout",
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },

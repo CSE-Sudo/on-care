@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
@@ -159,7 +158,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             controller: _email,
             hint: l.authEmailHint,
             errorText: _errors.of(_Field.email),
-            prefixIcon: AppIcons.mail,
+            prefixIcon: AppIcon.setOf(context).mail,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -171,14 +170,17 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             controller: _password,
             hint: l.authPasswordHint,
             errorText: _errors.of(_Field.password),
-            prefixIcon: AppIcons.lock,
+            prefixIcon: AppIcon.setOf(context).lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onChanged: _onEdited,
             onSubmitted: (_) => _login(),
-            suffix: _PasswordToggle(
+            // 트레이너 웹 로그인과 같은 부품이다(#2226).
+            suffix: AppPasswordToggle(
               obscure: _obscure,
+              showLabel: l.a11yShowPassword,
+              hideLabel: l.a11yHidePassword,
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
           ),
@@ -248,26 +250,6 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             ),
         ],
       ),
-    );
-  }
-}
-
-/// 비밀번호 보이기/감추기. 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가
-/// 툴팁뿐이다(#972).
-class _PasswordToggle extends StatelessWidget {
-  const _PasswordToggle({required this.obscure, required this.onPressed});
-
-  final bool obscure;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppIconButton(
-      icon: obscure ? AppIcons.visibilityOff : AppIcons.visibility,
-      tooltip: obscure ? l.a11yShowPassword : l.a11yHidePassword,
-      color: OnCareColors.textTertiary,
-      onPressed: onPressed,
     );
   }
 }

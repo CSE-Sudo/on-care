@@ -168,60 +168,58 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
     String clientId,
     ClientDateRange range,
   ) async {
-    final Map<String, ClientDietDay> byDate = <String, ClientDietDay>{};
-    for (final DateTime monday in clientRangeWeekStarts(range)) {
-      final Map<String, Object?> week = await _fetchReportWeek(
-        clientId,
-        monday,
-      );
-      List<num> series(String key) =>
-          ((week[key] as List<Object?>?) ?? const <Object?>[])
-              .whereType<num>()
-              .toList(growable: false);
-      final List<num> calories = series('calories_week');
-      final List<num> sodium = series('sodium_week');
-      final List<num> sugar = series('sugar_week');
-      // 탄단지도 같은 응답에 실려 온다(#944). 끼니 목록을 날마다 부르면 한 달에
-      // 서른 번 넘게 오간다.
-      final List<num> carbs = series('carbs_week');
-      final List<num> protein = series('protein_week');
-      final List<num> fat = series('fat_week');
-      for (var d = 0; d < 7; d++) {
-        final DateTime date = DateTime(
-          monday.year,
-          monday.month,
-          monday.day + d,
-        );
-        byDate[ymd(date)] = ClientDietDay(
-          date: date,
-          calories: d < calories.length ? calories[d].toInt() : 0,
-          sodiumMg: d < sodium.length ? sodium[d].toInt() : 0,
-          sugarG: d < sugar.length ? sugar[d].toDouble() : 0,
-          carbsG: d < carbs.length ? carbs[d].toDouble() : 0,
-          proteinG: d < protein.length ? protein[d].toDouble() : 0,
-          fatG: d < fat.length ? fat[d].toDouble() : 0,
-        );
-      }
-    }
-    return ClientDietPeriod(
-      range: range,
-      days: <ClientDietDay>[
-        for (final DateTime date in clientRangeDates(range))
-          byDate[ymd(date)] ?? ClientDietDay(date: date),
-      ],
-    );
-  }
-
-  Future<Map<String, Object?>> _fetchReportWeek(
-    String clientId,
-    DateTime monday,
-  ) async {
+    // 기간을 **한 번에** 받는다(#2236). 예전에는 주간 리포트를 주 수만큼
+    // 불렀는데, `전체` 가 모든 기록을 그리게 되면서(#2079) 해가 바뀐 회원에게
+    // 쉰 번이 넘는 왕복이 됐다. 회원 앱(`GET /diet/days`)과 같은 집계다.
     try {
       final response = await _dio.get<Map<String, Object?>>(
-        '/trainer/clients/${Uri.encodeComponent(clientId)}/report',
-        queryParameters: <String, String>{'week_start': ymd(monday)},
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/diet/days',
+        queryParameters: <String, String>{
+          'from': ymd(range.from),
+          'to': ymd(range.to),
+        },
       );
-      return response.data ?? const <String, Object?>{};
+      final Map<String, Object?> body = response.data ?? const <String, Object?>{};
+      final Map<String, ClientDietDay> byDate = <String, ClientDietDay>{};
+      for (final Object? row
+          in (body['days'] as List<Object?>?) ?? const <Object?>[]) {
+        if (row is! Map<String, Object?>) continue;
+        final DateTime? date = DateTime.tryParse(row['date'] as String? ?? '');
+        if (date == null) continue;
+        final DateTime day = DateTime(date.year, date.month, date.day);
+        double number(String key) => (row[key] as num?)?.toDouble() ?? 0;
+        byDate[ymd(day)] = ClientDietDay(
+          date: day,
+          calories: (row['total_calories'] as num?)?.toInt() ?? 0,
+          sodiumMg: (row['total_sodium_mg'] as num?)?.toInt() ?? 0,
+          sugarG: number('total_sugar_g'),
+          carbsG: number('carbs_g'),
+          proteinG: number('protein_g'),
+          fatG: number('fat_g'),
+        );
+      }
+      return ClientDietPeriod(
+        range: range,
+        days: <ClientDietDay>[
+          for (final DateTime date in clientRangeDates(range))
+            byDate[ymd(date)] ?? ClientDietDay(date: date),
+        ],
+      );
+    } on DioException catch (error) {
+      throw AppError.fromDio(error);
+    }
+  }
+
+  @override
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId) async {
+    try {
+      final response = await _dio.get<Map<String, Object?>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/records/span',
+      );
+      final Map<String, Object?>? body = response.data;
+      return body == null
+          ? ClientRecordSpan.empty
+          : ClientRecordSpan.fromJson(body);
     } on DioException catch (error) {
       throw AppError.fromDio(error);
     }
