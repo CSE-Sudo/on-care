@@ -1615,6 +1615,7 @@
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }
   },
+  "aiPersonalEditDone": "Done editing",
   "aiPersonalStepBadge": "{count} AI suggested",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }
@@ -1647,6 +1648,7 @@
   "aiPersonalStepNext": "Next",
   "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
   "aiRoutineOnlyReviewTitle": "Sending this to the member",
+  "aiRoutineOnlyStartDate": "Start date",
   "aiRoutineOnlyWeekRange": "Shown daily {start} – {end}",
   "@aiRoutineOnlyWeekRange": {
     "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
@@ -1657,6 +1659,11 @@
   "aiRoutineOnlySent": "Personal exercise sent to the member.",
   "aiRoutineOnlySendFailed": "Could not send the personal exercise. Please try again shortly.",
   "aiRoutineOnlyProgramName": "This week's personal exercise",
+  "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
+  "programRoutineOnlyConfirmBody": "Sends personal exercise to {client}. Appears daily from {start} to {end}.",
+  "@programRoutineOnlyConfirmBody": {
+    "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }
+  },
   "progPersonalRoutinesTitle": "Personal exercise going with it",
   "progPersonalRoutinesCount": "{count} personal exercises going with it",
   "@progPersonalRoutinesCount": {

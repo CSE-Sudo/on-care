@@ -75,4 +75,55 @@ void main() {
       'trainer',
     ]);
   });
+
+  group('routineOnlyAssignToJson — `개인운동만` 전송 본문 (#2223)', () {
+    test('운동 하나가 세션 하나다', () {
+      // 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩 표시할 수 있어야 한다.
+      final body = routineOnlyAssignToJson(
+        const <RoutineExercise>[
+          RoutineExercise(name: '걷기', minutes: 30, type: '유산소'),
+          RoutineExercise(
+            name: '플랭크',
+            minutes: 0,
+            type: '근력',
+            sets: 3,
+            holdSeconds: 60,
+            isHold: true,
+          ),
+        ],
+        programName: '이번 주 개인운동',
+        startDate: '2026-09-25',
+        activeDays: 7,
+        clientRequestId: 'req-1',
+      );
+
+      final sessions = body['sessions']! as List<Object?>;
+      expect(sessions, hasLength(2));
+      expect(
+        sessions.map((s) => (s! as Map<String, Object?>)['name']).toList(),
+        <String>['걷기', '플랭크'],
+      );
+      expect(body['name'], '이번 주 개인운동');
+      expect(body['delivery_kind'], 'routine_only');
+      expect(body['start_date'], '2026-09-25');
+      expect(body['active_days'], 7);
+      expect(body['client_request_id'], 'req-1');
+    });
+
+    test('운동이 하나뿐이면 그 운동 이름이 회원 카드 제목이 된다', () {
+      // 배정이 한 건이면 프로그램 이름이 곧 제목이다 — 만든 말(`이번 주
+      // 개인운동`)이 운동 이름 자리에 서면 안 된다.
+      final body = routineOnlyAssignToJson(
+        const <RoutineExercise>[
+          RoutineExercise(name: '걷기', minutes: 30, type: '유산소'),
+        ],
+        programName: '이번 주 개인운동',
+        startDate: '2026-09-25',
+        activeDays: 7,
+      );
+
+      expect(body['name'], '걷기');
+      expect(body.containsKey('client_request_id'), isFalse);
+    });
+  });
 }

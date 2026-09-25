@@ -4616,6 +4616,12 @@ abstract class AppLocalizations {
   /// **'You can set up to {count} personal exercises at once.'**
   String aiPersonalStepFull(int count);
 
+  /// No description provided for @aiPersonalEditDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done editing'**
+  String get aiPersonalEditDone;
+
   /// No description provided for @aiPersonalStepBadge.
   ///
   /// In en, this message translates to:
@@ -4736,6 +4742,12 @@ abstract class AppLocalizations {
   /// **'Sending this to the member'**
   String get aiRoutineOnlyReviewTitle;
 
+  /// No description provided for @aiRoutineOnlyStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get aiRoutineOnlyStartDate;
+
   /// No description provided for @aiRoutineOnlyWeekRange.
   ///
   /// In en, this message translates to:
@@ -4777,6 +4789,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This week\'s personal exercise'**
   String get aiRoutineOnlyProgramName;
+
+  /// No description provided for @progPersonalRoutinesWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'Goes to the member when you complete this PT.'**
+  String get progPersonalRoutinesWhen;
+
+  /// No description provided for @programRoutineOnlyConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends personal exercise to {client}. Appears daily from {start} to {end}.'**
+  String programRoutineOnlyConfirmBody(String client, String start, String end);
 
   /// No description provided for @progPersonalRoutinesTitle.
   ///

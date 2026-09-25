@@ -25,6 +25,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_options
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
+import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_final_review_card.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_nutrition_summary_card.dart';
@@ -81,6 +82,16 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 보낸다 — 서버가 그 PT 일정에 붙여 두고, 회원에게는 PT 완료 때 간다(#2224).
   final Map<String, List<RoutineExercise>> _personalRoutines =
       <String, List<RoutineExercise>>{};
+
+  /// 위저드에서 `PT 없이 개인운동만 짜기` 로 온 회원들. 이 회원의 편집기
+  /// 자리에는 프로그램 박스 대신 개인운동 박스만 서고, 보내기도 거기서 한다.
+  final Set<String> _routineOnlyClients = <String>{};
+
+  /// `개인운동만` 이 회원 목록에 걸리기 시작할 날. 기본은 오늘이다.
+  final Map<String, DateTime> _routineOnlyStart = <String, DateTime>{};
+
+  /// 지금 `개인운동만` 을 보내고 있는 회원들.
+  final Set<String> _sendingRoutineOnly = <String>{};
   ProgramTemplate? _appliedTemplate;
   int _templateRevision = 0;
   int _editorRevision = 0;
@@ -229,6 +240,74 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 
   /// 편집기의 `일정 추가` 가 부른다 — 확인창을 띄우고, 확인되면 회원 배정과
+  /// `개인운동만` 을 회원에게 보낸다. (#2223)
+  ///
+  /// 붙일 PT 일정이 없으므로 배정만 한다 — 자리와 모양은 PT 모드의 `일정 추가`
+  /// 와 같고, 이름만 `회원에게 보내기` 다. 운동 하나가 배정 한 건이 되고, 고른
+  /// 시작일부터 한 주 동안 회원 목록에 걸린다.
+  Future<void> _sendRoutineOnly(TrainerClient client) async {
+    final routines = _personalRoutines[client.id] ?? const <RoutineExercise>[];
+    if (_sent || _sendingRoutineOnly.contains(client.id) || routines.isEmpty) {
+      return;
+    }
+    final AppLocalizations l = AppLocalizations.of(context);
+    final DateTime start = _routineOnlyStart[client.id] ?? _todayKst();
+    final confirmed = await showAppConfirmDialog(
+      context: context,
+      title: l.aiRoutineOnlySend,
+      message: l.programRoutineOnlyConfirmBody(
+        client.name,
+        ymd(start),
+        ymd(start.add(const Duration(days: PersonalRoutineBox.activeDays - 1))),
+      ),
+      confirmLabel: l.aiRoutineOnlySend,
+      cancelLabel: l.actionCancel,
+    );
+    if (!confirmed || !mounted || !_isStillSelected(client.id)) return;
+
+    final sentFor = client.id;
+    // 실패 후 재시도는 **같은 내용이면 같은 키**여야 중복 배정이 막히고, 내용이
+    // 달라졌으면 새 키여야 고친 것이 반영된다(#581) — 프로그램 전송과 같은
+    // 지문 방식이다.
+    final payload = routineOnlyAssignToJson(
+      routines,
+      programName: l.aiRoutineOnlyProgramName,
+      startDate: ymd(start),
+      activeDays: PersonalRoutineBox.activeDays,
+    );
+    final requestId = _requestIdFor(sentFor, payload);
+    setState(() => _sendingRoutineOnly.add(sentFor));
+    try {
+      await ref.read(trainerRoutineRepositoryProvider).assignProgram(
+        sentFor,
+        <String, Object?>{...payload, 'client_request_id': requestId},
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _sendingRoutineOnly.remove(sentFor));
+      if (_isStillSelected(sentFor)) {
+        showAppToast(
+          context,
+          _sendFailureMessage(l, error),
+          type: AppToastType.error,
+        );
+      }
+      return;
+    }
+    _sendRequests.remove(sentFor);
+    _personalRoutines.remove(sentFor);
+    _routineOnlyClients.remove(sentFor);
+    if (!mounted) return;
+    ref.invalidate(assignedRoutinesProvider(sentFor));
+    final stillSelected = _isStillSelected(sentFor);
+    setState(() {
+      _sendingRoutineOnly.remove(sentFor);
+      if (stillSelected) _sent = true;
+    });
+    if (!stillSelected) return;
+    showAppToast(context, l.aiRoutineOnlySent, type: AppToastType.success);
+  }
+
   /// PT 일정 등록을 **한 명령으로** 보낸다(#1580). 예전에는 두 API 를 차례로
   /// 불러 배정만 되고 일정은 빠진 반쪽 상태가 남을 수 있었다.
   ///
@@ -835,9 +914,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 recommendedReason: items.isEmpty
                     ? ''
                     : items.map((item) => item.reason).join(' · '),
-                onReviewCompleted: (exercises, personalRoutines) {
+                onReviewCompleted: (exercises, personalRoutines, kind) {
                   setState(() {
                     _personalRoutines[client.id] = personalRoutines;
+                    if (kind == ProgramKind.routineOnly) {
+                      _routineOnlyClients.add(client.id);
+                      _routineOnlyStart[client.id] ??= _todayKst();
+                    } else {
+                      _routineOnlyClients.remove(client.id);
+                    }
                     _generatedRecommendations[client.id] = <AiRoutineItem>[
                       for (var index = 0; index < exercises.length; index++)
                         AiRoutineItem(
@@ -882,28 +967,69 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             else
               const SizedBox(height: OnCareSpacing.s16),
             Offstage(
-              offstage: _aiWizardVisible,
-              child: ProgramEditorWorkspace(
-                key: ValueKey<String>(
-                  'program-editor-${client.id}-$_editorRevision',
-                ),
-                clientGoal: client.goal,
-                aiSuggestions: _generatedRecommendations[client.id] ?? items,
-                template: _appliedTemplate,
-                templateRevision: _templateRevision,
-                onSend: (draft) => unawaited(_sendProgram(client, draft)),
-                onSave: _saveTemplate,
-                saving: _savingTemplate,
-                sending: _sendingClientIds.contains(client.id) || _sent,
-                registerDate: _registerDate,
-                onRegisterDateChanged: (date) =>
-                    setState(() => _registerDate = date),
-                registerStartTime: _registerStartTime,
-                registerEndTime: _registerEndTime,
-                onRegisterTimeRangeChanged: (range) => setState(() {
-                  _registerStartTime = range.start;
-                  _registerEndTime = range.end;
-                }),
+              offstage:
+                  _aiWizardVisible || _routineOnlyClients.contains(client.id),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  ProgramEditorWorkspace(
+                    key: ValueKey<String>(
+                      'program-editor-${client.id}-$_editorRevision',
+                    ),
+                    clientGoal: client.goal,
+                    aiSuggestions:
+                        _generatedRecommendations[client.id] ?? items,
+                    template: _appliedTemplate,
+                    templateRevision: _templateRevision,
+                    onSend: (draft) => unawaited(_sendProgram(client, draft)),
+                    onSave: _saveTemplate,
+                    saving: _savingTemplate,
+                    sending: _sendingClientIds.contains(client.id) || _sent,
+                    registerDate: _registerDate,
+                    onRegisterDateChanged: (date) =>
+                        setState(() => _registerDate = date),
+                    registerStartTime: _registerStartTime,
+                    registerEndTime: _registerEndTime,
+                    onRegisterTimeRangeChanged: (range) => setState(() {
+                      _registerStartTime = range.start;
+                      _registerEndTime = range.end;
+                    }),
+                  ),
+                  // 편집기는 PT 구성만 다룬다 — 함께 갈 개인운동은 그 **안쪽**
+                  // 아래에 붙인다. 바깥 목록에 끼워 넣으면 개인운동이 생기는
+                  // 순간 편집기의 자리가 흔들려 그 State 가 새로 만들어지고,
+                  // 위저드가 반영한 구성이 사라진다.
+                  if ((_personalRoutines[client.id]?.isNotEmpty ??
+                      false)) ...<Widget>[
+                    const SizedBox(height: OnCareSpacing.s16),
+                    PersonalRoutineBox(
+                      key: ValueKey<String>(
+                        'personal-routine-with-pt-${client.id}',
+                      ),
+                      routines: _personalRoutines[client.id]!,
+                      routineOnly: false,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // PT 가 없는 주에는 프로그램 박스가 숨고 이 박스만 선다 — 고를
+            // PT 도, 붙일 일정도 없다(#2223). 편집기 **뒤에** 둔다: 앞에
+            // 끼우면 편집기의 자리가 밀려 그 State 가 새로 만들어지고, 위저드가
+            // 반영한 구성이 사라진다.
+            Offstage(
+              offstage:
+                  _aiWizardVisible || !_routineOnlyClients.contains(client.id),
+              child: PersonalRoutineBox(
+                key: ValueKey<String>('personal-routine-only-${client.id}'),
+                routines:
+                    _personalRoutines[client.id] ?? const <RoutineExercise>[],
+                routineOnly: true,
+                startDate: _routineOnlyStart[client.id] ?? _todayKst(),
+                onStartDateChanged: (DateTime date) =>
+                    setState(() => _routineOnlyStart[client.id] = date),
+                onSend: () => unawaited(_sendRoutineOnly(client)),
+                sending: _sendingRoutineOnly.contains(client.id) || _sent,
               ),
             ),
           ],

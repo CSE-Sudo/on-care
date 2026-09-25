@@ -310,6 +310,43 @@ class _FixedClientRepository implements ClientRepository {
 
 /// 실 API 모드의 배정 저장소 자리를 채운다 — `일정 추가` 는 이제 일정
 /// 저장소의 한 명령으로 나가므로(#1580), 여기로 배정이 오면 잘못이다.
+/// `개인운동만` 전송이 실제로 부른 배정 본문을 붙잡는다. (#2223)
+class _CapturingProgramRepository implements TrainerRoutineRepository {
+  final List<Map<String, Object?>> programs = <Map<String, Object?>>[];
+
+  @override
+  Future<void> assignProgram(
+    String memberId,
+    Map<String, Object?> payload,
+  ) async {
+    programs.add(<String, Object?>{'member_id': memberId, ...payload});
+  }
+
+  @override
+  Future<void> assignRoutine(
+    String memberId,
+    AssignedRoutine routine, {
+    String? clientRequestId,
+  }) async {}
+
+  @override
+  Future<void> updateRoutine(
+    String memberId,
+    String routineId, {
+    String? name,
+    int? minutes,
+    String? type,
+    String? reason,
+  }) async {}
+
+  @override
+  Future<void> deleteRoutine(String memberId, String routineId) async {}
+
+  @override
+  Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId) =>
+      Stream.value(const <AssignedRoutine>[]);
+}
+
 class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
   @override
   Future<void> updateRoutine(
@@ -2400,6 +2437,67 @@ void main() {
       expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
       // 취소했으니 편집기 내용도 그대로 남아 있고, 다시 눌러 보낼 수 있다.
       expect(tester.widget<AppButton>(send).onPressed, isNotNull);
+    });
+
+    testWidgets('개인운동만도 PT 와 같은 자리에서 끝난다 — 편집기의 개인운동 '
+        '박스에서 보낸다 (#2223)', (tester) async {
+      // PT 가 있든 없든 끝내는 과정이 같아야 한다. 위저드는 두 모드 모두
+      // 편집기 화면으로 넘기고, 보내는 것은 거기서 한다.
+      final routines = _CapturingProgramRepository();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1600, 1200);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.coaching,
+        seedClock: kMidWeekKst,
+        extraOverrides: <Override>[
+          trainerRoutineRepositoryProvider.overrideWithValue(routines),
+        ],
+      );
+
+      final scrollable = find.byType(Scrollable).first;
+      final skip = find.byKey(const ValueKey<String>('skip-pt-program'));
+      await tester.scrollUntilVisible(skip, 150, scrollable: scrollable);
+      await _ensureCentered(tester, skip);
+      await tester.tap(skip);
+      await tester.pumpAndSettle();
+
+      await _completePersonalStep(tester, scrollable);
+
+      // 프로그램 박스는 서지 않는다 — 고를 PT 가 없다.
+      expect(find.byType(ProgramEditorWorkspace, skipOffstage: false), findsOneWidget);
+      final box = find.byKey(const ValueKey<String>('personal-routine-box'));
+      expect(box, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-start-date')),
+        findsOneWidget,
+      );
+
+      final send = find.byKey(const ValueKey<String>('personal-routine-send'));
+      await tester.scrollUntilVisible(send, 150, scrollable: scrollable);
+      await _ensureCentered(tester, send);
+      await tester.tap(send);
+      await tester.pumpAndSettle();
+
+      // 보내기 전에 기간을 보여 주며 한 번 묻는다.
+      expect(find.textContaining('회원 앱에 매일'), findsWidgets);
+      await tester.tap(find.text('회원에게 보내기').last);
+      // 드리프트 `.watch()` 가 살아 있어 `pumpAndSettle` 은 멈추지 않는다 —
+      // 이 파일의 다른 전송 테스트와 같이 프레임 수를 정해 돌린다.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(routines.programs, hasLength(1));
+      final sent = routines.programs.single;
+      expect(sent['delivery_kind'], 'routine_only');
+      expect(sent['active_days'], 7);
+      expect(sent['start_date'], isA<String>());
+      expect(sent['client_request_id'], isNotNull);
+      // 운동 하나가 세션 하나다 — 회원이 하나씩 완료를 표시할 수 있다.
+      expect((sent['sessions']! as List<Object?>), isNotEmpty);
     });
 
     testWidgets('프로그램 탭에 AI 개인운동 제안 카드가 더는 없다 (#2223)', (tester) async {

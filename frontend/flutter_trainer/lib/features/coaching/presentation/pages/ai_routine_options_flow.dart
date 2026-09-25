@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -7,13 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
-import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
@@ -82,6 +79,7 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   final void Function(
     List<RoutineExercise> program,
     List<RoutineExercise> personalRoutines,
+    ProgramKind kind,
   )?
   onReviewCompleted;
 
@@ -179,21 +177,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 담지 않는다. 그 둘은 이 화면에서만 필요하므로(근거 표시·거절 호출) 목록
   /// 옆에 따로 들고 있는다. 줄을 지우면 뒤 번호가 당겨지므로 함께 옮긴다.
   final List<_PersonalOrigin?> _personalOrigins = <_PersonalOrigin?>[];
-
-  bool _sendingRoutineOnly = false;
-
-  /// `개인운동만` 을 이미 보냈는가 — 두 번 눌러 같은 운동이 두 벌 가지 않게
-  /// 버튼을 잠근다(프로그램 전송의 `_sent` 와 같은 규칙).
-  bool _routineOnlySent = false;
-
-  /// 이 전송 시도의 멱등키와, 그 키를 만든 내용의 지문.
-  ///
-  /// 실패해 다시 누를 때 **같은 내용이면 같은 키**를 다시 보내야 중복 배정이
-  /// 막힌다(#581). 반대로 내용이 달라졌으면 **새 키**여야 한다 — 같은 키로
-  /// 보내면 서버가 "이미 처리된 전송" 으로 보고 먼저 저장된 것을 돌려주어,
-  /// 트레이너가 고친 내용이 조용히 사라진다. 프로그램 전송(`_requestIdFor`)과
-  /// 같은 규칙이다.
-  ({String fingerprint, String id})? _routineOnlyRequest;
 
   /// 단계 표시줄의 칸들. **어느 모드든 언제나 이 넷이다** — 흐름이 줄어드는
   /// 것처럼 보이지 않게, 밟지 않는 칸도 자리를 지키고 `건너뜀` 으로 남는다.
@@ -431,12 +414,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           showAppToast(context, l.aiKeepOnePersonalRoutine);
           return;
         }
-        // 마지막 칸이다. PT 가 있으면 편집기로 넘기고, 없으면 붙일 일정이
-        // 없으므로 여기서 곧바로 회원에게 보낸다.
-        if (_kind == ProgramKind.routineOnly) {
-          unawaited(_sendRoutineOnly());
-          return;
-        }
+        // 마지막 칸이다. 두 모드 모두 편집기 화면으로 넘어가고, 보내는 것은
+        // 거기서 한다.
         _applyToTemplate();
     }
   }
@@ -635,112 +614,17 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 세션 1에 병합한다(`ProgramEditorWorkspace.didUpdateWidget`).
   void _applyToTemplate() {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (_edited.isEmpty) {
+    // `개인운동만` 은 고른 PT 구성이 없다 — 개인운동만 넘긴다.
+    if (_kind == ProgramKind.ptWithRoutine && _edited.isEmpty) {
       showAppToast(context, l.aiKeepOneExercise);
       return;
     }
     widget.onReviewCompleted?.call(
       List<RoutineExercise>.unmodifiable(_edited),
       List<RoutineExercise>.unmodifiable(_personal),
+      _kind,
     );
     showAppToast(context, l.aiAppliedToTemplate, type: AppToastType.success);
-  }
-
-  /// `개인운동만` 을 회원에게 **바로** 보낸다. (#2223)
-  ///
-  /// PT 모드와 달리 붙일 일정이 없으므로 편집기를 거치지 않는다 — 이 위저드가
-  /// 배정 API 를 직접 부르는 유일한 자리다. 한 묶음으로 배정해 이력이 "이번
-  /// 전송"을 한 덩어리로 읽을 수 있게 하고(`delivery_kind: routine_only`),
-  /// 고른 시작일과 회원에게 한마디를 함께 싣는다.
-  Future<void> _sendRoutineOnly() async {
-    if (_sendingRoutineOnly || _routineOnlySent) return;
-    final AppLocalizations l = AppLocalizations.of(context);
-    if (_personal.isEmpty) {
-      showAppToast(context, l.aiKeepOnePersonalRoutine);
-      return;
-    }
-    final sessions = <Map<String, Object?>>[
-      for (final e in _personal)
-        <String, Object?>{
-          'id': 'routine-only-${e.name.hashCode}',
-          'name': e.name,
-          'exercises': <Map<String, Object?>>[_personalExerciseToJson(e)],
-        },
-    ];
-    // 개인운동이 하나뿐이면 배정도 한 건이라 프로그램 이름이 곧 회원이 보는
-    // 제목이 된다 — `이번 주 개인운동` 이 아니라 그 운동 이름이어야 한다.
-    // 둘 이상이면 운동 이름이 각 카드의 제목이 되고 이 이름은 묶음 머리글이다.
-    final String programName = _personal.length == 1
-        ? _personal.single.name
-        : l.aiRoutineOnlyProgramName;
-    final requestId = _routineOnlyRequestIdFor(<Object?>[
-      programName,
-      sessions,
-      _routineOnlyDays,
-    ]);
-    setState(() => _sendingRoutineOnly = true);
-    try {
-      await ref
-          .read(trainerRoutineRepositoryProvider)
-          .assignProgram(widget.client.id, <String, Object?>{
-            'name': programName,
-            // 운동 하나가 배정 한 건이다 — PT 에 붙이는 개인운동과 같은 모양
-            // 이고, 그래야 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩
-            // 표시할 수 있다. 한 덩어리로 보내면 체크도 한 번뿐이다.
-            'sessions': sessions,
-            'delivery_kind': 'routine_only',
-            // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레 동안
-            // 회원 목록에 걸어 둔다(#2161 의 `active_from`~`ended_on`).
-            'active_days': _routineOnlyDays,
-            'client_request_id': requestId,
-          });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _sendingRoutineOnly = false);
-      showAppToast(context, l.aiRoutineOnlySendFailed, type: AppToastType.error);
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _sendingRoutineOnly = false;
-      _routineOnlySent = true;
-    });
-    showAppToast(context, l.aiRoutineOnlySent, type: AppToastType.success);
-  }
-
-  /// 이번 내용에 대한 멱등키. 내용이 그대로면 같은 키, 달라졌으면 새 키다.
-  String _routineOnlyRequestIdFor(Object payload) {
-    final String fingerprint = jsonEncode(
-      payload,
-      toEncodable: (Object? value) => '$value',
-    );
-    final pending = _routineOnlyRequest;
-    if (pending != null && pending.fingerprint == fingerprint) {
-      return pending.id;
-    }
-    // 길이·모양이 정해진 공용 키를 쓴다 — 손으로 이어 붙이면 회원 id 가 길어질
-    // 때 서버 상한(48자)을 넘겨 422 가 난다.
-    final String id = newClientRequestId();
-    _routineOnlyRequest = (fingerprint: fingerprint, id: id);
-    return id;
-  }
-
-  /// 개인운동 한 줄 → 프로그램 세션의 운동 항목. 서버가 세션을 루틴으로 접을
-  /// 때 쓰는 모양과 같다(`ProgramDraftExercise`).
-  Map<String, Object?> _personalExerciseToJson(RoutineExercise e) {
-    final bool strength = e.type == '근력';
-    return <String, Object?>{
-      'id': 'personal-${e.name.hashCode}',
-      'name': e.name,
-      'type': e.type,
-      'duration': strength ? 0 : e.minutes,
-      'sets': strength ? e.sets : 0,
-      // 한 세트를 회로든 초로든 한 번만 잰다(#1969).
-      'reps': strength && !e.isHold ? e.reps : 0,
-      'hold_seconds': strength && e.isHold ? e.holdSeconds : 0,
-      'weight': strength ? e.weight : 0,
-      'source': e.source,
-    };
   }
 
   @override
@@ -823,25 +707,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         _Step.personal => <Widget>[
           _personalRoutineEditor(),
           const SizedBox(height: OnCareSpacing.sectionGap),
-          // 마지막 칸의 버튼. PT 가 있으면 편집기로 넘기고, 없으면 여기서
-          // 곧바로 회원에게 보낸다.
-          if (_kind == ProgramKind.routineOnly)
-            _primaryButton(
-              key: const ValueKey<String>('send-routine-only'),
-              label: _routineOnlySent
-                  ? l.aiRoutineOnlySentLabel
-                  : l.aiRoutineOnlySend,
-              icon: Icons.send_rounded,
-              busy: _sendingRoutineOnly,
-              onTap: _routineOnlySent ? null : _next,
-            )
-          else
-            _primaryButton(
-              key: const ValueKey<String>('complete-personal-routines'),
-              label: l.aiApplyToTemplate,
-              icon: Icons.playlist_add_check_rounded,
-              onTap: _next,
-            ),
+          // 두 모드 모두 여기서 편집기 화면으로 넘어간다 — 보내는 것은 거기서
+          // 한다. PT 가 있든 없든 끝내는 과정이 같아야 한다(#2223).
+          _primaryButton(
+            key: const ValueKey<String>('complete-personal-routines'),
+            label: l.aiApplyToTemplate,
+            icon: Icons.playlist_add_check_rounded,
+            onTap: _next,
+          ),
         ],
         _Step.review => <Widget>[
           _reviewedRoutineList(),
@@ -1610,8 +1483,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ),
           // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
           // 판단하면서 읽는 글이다. 트레이너만 보는 것이라 편집 칸이 아니다.
-          if (_currentStep == _Step.personal)
+          if (_currentStep == _Step.personal) ...<Widget>[
             _aiRationale(index, compact: true),
+            const SizedBox(height: OnCareSpacing.s12),
+            // 펼친 줄을 닫는 유일한 길이다 — 없으면 한번 연 줄은 다른 줄을
+            // 열기 전까지 계속 펼쳐진 채로 남는다.
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: AppButton(
+                key: ValueKey<String>('personal-routine-done-$index'),
+                label: l.aiPersonalEditDone,
+                onPressed: () => setState(() => _editingPersonal = null),
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
+                leadingIcon: Icons.check_rounded,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1669,6 +1557,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ),
     );
   }
+
+  /// 한 번에 정할 수 있는 개인운동 수. 운동 하나가 배정 한 건(=프로그램 세션
+  /// 하나)이 되므로 서버의 세션 상한과 같은 값이다.
+  static const int _maxPersonalRoutines = 12;
 
   /// 단계 표시줄에 적을 이름들. 고른 종류에 따라 3칸·4칸이 된다. (#2223)
   List<String> _stepLabels(AppLocalizations l) => <String>[
@@ -1761,7 +1653,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ),
             ),
           for (int index = 0; index < _personal.length; index++) ...<Widget>[
-            if (_editingPersonal == index && !_routineOnlySent)
+            if (_editingPersonal == index)
               _exerciseEditor(index)
             else
               _personalSummaryRow(index),
@@ -1782,12 +1674,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ),
             ),
         ],
-        // 보낸 뒤에는 목록을 닫는다(#2223). 열어 두면 이미 회원에게 간 운동의
-        // AI 제안을 서버에서 거절해 버리거나, 고쳐 봐야 반영되지 않는 값을
-        // 만지게 된다. 다음 주 분은 새로 짠다.
-        if (_routineOnlySent)
-          const SizedBox.shrink()
-        else if (_showAddExercise)
+        if (_showAddExercise)
           _addExerciseForm()
         else
           AppButton(
@@ -1810,11 +1697,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             key: const ValueKey<String>('personal-routine-full'),
             style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
           ),
-        ],
-        // 마지막 칸이면 보낼 조건(시작일·한마디)도 여기서 정한다.
-        if (_kind == ProgramKind.routineOnly) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s16),
-          _routineOnlySendFields(),
         ],
       ],
     );
@@ -1882,7 +1764,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (!_routineOnlySent) ...<Widget>[
+              ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s4),
                 AppIconButton(
                   key: ValueKey<String>('personal-routine-edit-$index'),
@@ -1906,72 +1788,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ),
     );
   }
-
-  /// `개인운동만` 을 보낼 조건 — 언제부터 언제까지 회원에게 뜨는지. (#2223)
-  ///
-  /// 시작일을 고르게 하지 않는다. 이 전송은 **보낸 날부터 한 주**가 규칙이고,
-  /// 날짜를 묻는 순간 트레이너는 매번 같은 답(오늘)을 고르게 된다. 대신 언제
-  /// 부터 언제까지 회원에게 뜨는지를 적어 둔다 — 다음 주 분은 다시 보내야
-  /// 한다는 것도 여기서 말한다.
-  ///
-  /// 전송 전체에 붙이는 `회원에게 한마디` 는 두지 않는다 — 회원 앱에 그 글을
-  /// 받을 자리가 없어, 적어도 아무에게도 닿지 않는다. 회원에게 하는 말은
-  /// 운동 줄마다 있는 메모로 한다.
-  Widget _routineOnlySendFields() {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime start = todayKst();
-    final DateTime end = start.add(
-      const Duration(days: _routineOnlyDays - 1),
-    );
-    return AppCard(
-      key: const ValueKey<String>('routine-only-send-fields'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(
-                Icons.event_repeat_rounded,
-                size: OnCareSize.iconMedium,
-                color: OnCareColors.textSecondary,
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              Expanded(
-                child: Text(
-                  l.aiRoutineOnlyWeekRange(_ymd(start), _ymd(end)),
-                  key: const ValueKey<String>('routine-only-week-range'),
-                  style: _text(
-                    OnCareTypography.strong(OnCareTypography.bodySmall),
-                    OnCareColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiRoutineOnlyWeeklyHint,
-            key: const ValueKey<String>('routine-only-weekly-hint'),
-            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// `개인운동만` 이 회원 목록에 걸려 있는 날 수 — 보낸 날부터 한 주.
-  /// 서버에 그대로 나간다.
-  static const int _routineOnlyDays = 7;
-
-  /// 한 번에 정할 수 있는 개인운동 수. 운동 하나가 배정 한 건(=프로그램 세션
-  /// 하나)이 되므로 서버의 세션 상한과 같은 값이다.
-  static const int _maxPersonalRoutines = 12;
-
-  /// 날짜 한 줄(YYYY-MM-DD) — 서버가 받는 모양이고 화면에도 그대로 쓴다.
-  String _ymd(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
 
   Widget _addExerciseForm() {
     final AppLocalizations l = AppLocalizations.of(context);

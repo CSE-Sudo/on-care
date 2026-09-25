@@ -163,3 +163,55 @@ List<Map<String, Object?>> personalRoutinesToJson(
       },
   ];
 }
+
+/// `개인운동만` 전송 본문 — 운동 하나가 세션 하나다. (#2223)
+///
+/// 운동별로 나누는 이유는 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩
+/// 표시할 수 있어야 하기 때문이다 — 한 덩어리로 보내면 체크도 한 번뿐이다.
+/// 개인운동이 하나뿐이면 배정도 한 건이라 프로그램 이름이 곧 회원이 보는
+/// 제목이 되므로, 그때는 그 운동 이름을 이름으로 쓴다.
+Map<String, Object?> routineOnlyAssignToJson(
+  List<RoutineExercise> routines, {
+  required String programName,
+  required String startDate,
+  required int activeDays,
+  String? clientRequestId,
+}) {
+  final List<Map<String, Object?>> items = personalRoutinesToJson(routines);
+  return <String, Object?>{
+    'name': routines.length == 1 ? routines.single.name : programName,
+    'sessions': <Map<String, Object?>>[
+      for (var index = 0; index < routines.length; index++)
+        <String, Object?>{
+          'id': 'routine-only-$index',
+          'name': routines[index].name,
+          'exercises': <Map<String, Object?>>[
+            _sessionExercise(items[index], index),
+          ],
+        },
+    ],
+    'delivery_kind': 'routine_only',
+    'start_date': startDate,
+    'active_days': activeDays,
+    'client_request_id': ?clientRequestId,
+  };
+}
+
+/// 배정 항목([personalRoutinesToJson])을 세션의 운동 항목 모양으로 옮긴다.
+///
+/// 세션은 유형에 맞지 않는 칸도 0 으로 받는다(`ProgramDraftExercise`) — 배정
+/// 입력처럼 빼 버리면 세션 요약이 값을 못 찾는다.
+Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
+  final bool strength = item['type'] == '근력';
+  return <String, Object?>{
+    'id': 'personal-$index',
+    'name': item['name'],
+    'type': item['type'],
+    'duration': strength ? 0 : item['minutes'],
+    'sets': item['sets'] ?? 0,
+    'reps': item['reps'] ?? 0,
+    'hold_seconds': item['hold_seconds'] ?? 0,
+    'weight': item['weight'] ?? 0,
+    'source': item['source'],
+  };
+}

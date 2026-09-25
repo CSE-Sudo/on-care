@@ -2611,6 +2611,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aiPersonalEditDone => 'Done editing';
+
+  @override
   String aiPersonalStepBadge(int count) {
     return '$count AI suggested';
   }
@@ -2684,6 +2687,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRoutineOnlyReviewTitle => 'Sending this to the member';
 
   @override
+  String get aiRoutineOnlyStartDate => 'Start date';
+
+  @override
   String aiRoutineOnlyWeekRange(String start, String end) {
     return 'Shown daily $start – $end';
   }
@@ -2707,6 +2713,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiRoutineOnlyProgramName => 'This week\'s personal exercise';
+
+  @override
+  String get progPersonalRoutinesWhen =>
+      'Goes to the member when you complete this PT.';
+
+  @override
+  String programRoutineOnlyConfirmBody(
+    String client,
+    String start,
+    String end,
+  ) {
+    return 'Sends personal exercise to $client. Appears daily from $start to $end.';
+  }
 
   @override
   String get progPersonalRoutinesTitle => 'Personal exercise going with it';

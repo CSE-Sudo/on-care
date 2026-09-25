@@ -2501,6 +2501,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aiPersonalEditDone => '수정 완료';
+
+  @override
   String aiPersonalStepBadge(int count) {
     return 'AI 제안 $count';
   }
@@ -2571,6 +2574,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRoutineOnlyReviewTitle => '이대로 회원에게 보낼게요';
 
   @override
+  String get aiRoutineOnlyStartDate => '시작일';
+
+  @override
   String aiRoutineOnlyWeekRange(String start, String end) {
     return '$start ~ $end 매일 표시';
   }
@@ -2593,6 +2599,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiRoutineOnlyProgramName => '이번 주 개인운동';
+
+  @override
+  String get progPersonalRoutinesWhen => '이 PT를 완료할 때 회원에게 함께 가요.';
+
+  @override
+  String programRoutineOnlyConfirmBody(
+    String client,
+    String start,
+    String end,
+  ) {
+    return '$client님에게 개인운동을 보내요. $start부터 $end까지 회원 앱에 매일 떠요.';
+  }
 
   @override
   String get progPersonalRoutinesTitle => '함께 보낼 개인운동';

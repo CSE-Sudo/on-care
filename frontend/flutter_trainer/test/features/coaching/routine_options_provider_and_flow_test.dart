@@ -43,50 +43,6 @@ const _client = TrainerClient(
   sodiumWeek: <int>[],
 );
 
-/// `개인운동만` 전송이 실제로 부른 배정 본문을 붙잡는다. (#2223)
-class _RoutineOnlyRepository implements TrainerRoutineRepository {
-  _RoutineOnlyRepository({this.failFirst = false});
-
-  /// 응답을 잃은 전송을 흉내 낸다 — 붙잡아 두되 실패로 돌려준다.
-  final bool failFirst;
-
-  final List<({String memberId, Map<String, Object?> payload})> programs =
-      <({String memberId, Map<String, Object?> payload})>[];
-
-  @override
-  Future<void> assignProgram(
-    String memberId,
-    Map<String, Object?> payload,
-  ) async {
-    programs.add((memberId: memberId, payload: payload));
-    if (failFirst) throw StateError('lost response');
-  }
-
-  @override
-  Future<void> assignRoutine(
-    String memberId,
-    AssignedRoutine routine, {
-    String? clientRequestId,
-  }) async {}
-
-  @override
-  Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId) =>
-      Stream<List<AssignedRoutine>>.value(const <AssignedRoutine>[]);
-
-  @override
-  Future<void> updateRoutine(
-    String memberId,
-    String routineId, {
-    String? name,
-    int? minutes,
-    String? type,
-    String? reason,
-  }) async {}
-
-  @override
-  Future<void> deleteRoutine(String memberId, String routineId) async {}
-}
-
 class _CapturingRoutineRepository implements TrainerRoutineRepository {
   @override
   Future<void> assignProgram(
@@ -699,69 +655,6 @@ void main() {
       );
     });
 
-    testWidgets('보낼 내용이 달라지면 멱등키도 새로 만든다 (#2223)', (tester) async {
-      // 응답을 잃어 다시 보낼 때, 같은 내용이면 같은 키라야 중복 배정이 막힌다.
-      // 반대로 고친 뒤라면 새 키여야 한다 — 같은 키로 보내면 서버가 "이미 처리된
-      // 전송" 으로 보고 고친 내용을 버린다.
-      final repository = _RoutineOnlyRepository(failFirst: true);
-      tester.view.physicalSize = const Size(1000, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: <Override>[
-            appConfigProvider.overrideWithValue(_mockConfig),
-            trainerRoutineRepositoryProvider.overrideWithValue(repository),
-            trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
-              _StaticSuggestionRepository(const <RoutineSuggestion>[]),
-            ),
-          ],
-          child: MaterialApp(
-            locale: const Locale('ko'),
-            theme: AppTheme.light(),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const AiRoutineOptionsFlow(client: _client),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
-      await tester.pumpAndSettle();
-      await _addPersonalRoutine(tester);
-
-      // 첫 시도는 실패한다.
-      await tester.ensureVisible(
-        find.byKey(const ValueKey<String>('send-routine-only')),
-      );
-      await tester.tap(find.byKey(const ValueKey<String>('send-routine-only')));
-      await tester.pumpAndSettle();
-      expect(repository.programs, hasLength(1));
-
-      // 그대로 다시 보내면 같은 키다.
-      await tester.tap(find.byKey(const ValueKey<String>('send-routine-only')));
-      await tester.pumpAndSettle();
-      expect(repository.programs, hasLength(2));
-      expect(
-        repository.programs[1].payload['client_request_id'],
-        repository.programs[0].payload['client_request_id'],
-      );
-
-      // 운동을 하나 더 넣고 보내면 새 키여야 한다.
-      await _addPersonalRoutine(tester, name: '계단 오르기');
-      await tester.ensureVisible(
-        find.byKey(const ValueKey<String>('send-routine-only')),
-      );
-      await tester.tap(find.byKey(const ValueKey<String>('send-routine-only')));
-      await tester.pumpAndSettle();
-      expect(repository.programs, hasLength(3));
-      expect(
-        repository.programs[2].payload['client_request_id'],
-        isNot(repository.programs[0].payload['client_request_id']),
-      );
-    });
-
     testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {
       await pumpFlow(
         tester,
@@ -1068,7 +961,7 @@ void main() {
                 RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
               ],
               recommendedReason: '기존 회원 데이터 기반 추천',
-              onReviewCompleted: (exercises, personal) => reviewed = exercises,
+              onReviewCompleted: (exercises, personal, kind) => reviewed = exercises,
             ),
           ),
         ),
@@ -1320,109 +1213,6 @@ void main() {
     },
   );
 
-  testWidgets('개인운동만은 마지막 칸에서 바로 회원에게 보낸다 (#2223)', (tester) async {
-    // PT 가 없으므로 붙일 일정이 없다 — 편집기를 거치지 않고 이 화면이
-    // 곧바로 배정을 부른다. 시작일과 회원에게 한마디가 함께 나간다.
-    final repository = _RoutineOnlyRepository();
-    tester.view.physicalSize = const Size(1000, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: <Override>[
-          appConfigProvider.overrideWithValue(_mockConfig),
-          trainerRoutineRepositoryProvider.overrideWithValue(repository),
-          // 제안 없이 시작해 직접 넣은 한 줄만 보게 한다 — 무엇이 나갔는지
-          // 세는 테스트라 목록이 고정이어야 한다.
-          trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
-            _StaticSuggestionRepository(const <RoutineSuggestion>[]),
-          ),
-        ],
-        child: MaterialApp(
-          locale: const Locale('ko'),
-          theme: AppTheme.light(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const AiRoutineOptionsFlow(client: _client),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // PT 프로그램 짜기를 건너뛰면 곧바로 개인운동 단계다.
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('skip-pt-program')),
-    );
-    await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey<String>('personal-routine-step')),
-      findsOneWidget,
-    );
-
-    await _addPersonalRoutine(tester);
-
-    // 마지막 칸이라 보낼 조건(시작일·한마디)도 이 화면에 있다.
-    // 언제부터 언제까지인지와, 다음 주에 다시 보내야 한다는 것을 그 자리에서
-    // 말한다.
-    expect(
-      find.byKey(const ValueKey<String>('routine-only-week-range')),
-      findsOneWidget,
-    );
-    expect(
-      find.text('보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.'),
-      findsOneWidget,
-    );
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('send-routine-only')),
-    );
-    await tester.tap(find.byKey(const ValueKey<String>('send-routine-only')));
-    await tester.pumpAndSettle();
-
-    expect(repository.programs, hasLength(1));
-    final sent = repository.programs.single;
-    expect(sent.memberId, _client.id);
-    // 운동 하나가 세션 하나다 — 배정도 운동별로 나뉘어, 회원이 하나씩 완료를
-    // 표시할 수 있다(#2223).
-    final sessions = sent.payload['sessions']! as List<Object?>;
-    expect(sessions, hasLength(1));
-    final session = sessions.single! as Map<String, Object?>;
-    expect(session['name'], '걷기');
-    expect((session['exercises']! as List<Object?>), hasLength(1));
-    expect(sent.payload['delivery_kind'], 'routine_only');
-    // 전송 전체에 붙는 한마디는 두지 않는다 — 회원 앱에 받을 자리가 없다.
-    expect(sent.payload.containsKey('trainer_message'), isFalse);
-    // 시작일은 고르지 않는다 — 보낸 날부터 이레 동안 걸어 두라고 말할 뿐이다.
-    expect(sent.payload['active_days'], 7);
-    expect(sent.payload.containsKey('start_date'), isFalse);
-    expect(sent.payload['client_request_id'], isNotNull);
-
-    // 개인운동이 하나뿐이면 배정도 한 건이라 프로그램 이름이 곧 회원이 보는
-    // 제목이다 — `이번 주 개인운동` 이 아니라 그 운동 이름이어야 한다.
-    expect(sent.payload['name'], '걷기');
-
-    // 두 번 눌러도 같은 운동이 두 벌 가지 않는다.
-    await tester.tap(find.byKey(const ValueKey<String>('send-routine-only')));
-    await tester.pumpAndSettle();
-    expect(repository.programs, hasLength(1));
-
-    // 보낸 뒤에는 목록이 닫힌다 — 이미 나간 운동의 제안을 서버에서 거절해
-    // 버리거나, 고쳐 봐야 반영되지 않는 값을 만지게 된다.
-    expect(
-      find.byKey(const ValueKey<String>('personal-routine-edit-0')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('personal-routine-remove-0')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('show-add-personal-exercise-form')),
-      findsNothing,
-    );
-  });
-
   testWidgets('템플릿에 반영은 회원에게 보내는 API를 호출하지 않는다 (#1028 후속)', (tester) async {
     // AI 3단계 최종 검토는 더 이상 여기서 곧바로 전송하지 않는다 — `템플릿에
     // 반영`은 [onReviewCompleted] 로 편집기에 넘길 뿐이다. 실수로라도 회원
@@ -1451,7 +1241,7 @@ void main() {
               RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
             ],
             recommendedReason: '기존 회원 데이터 기반 추천',
-            onReviewCompleted: (exercises, personal) => reviewed = exercises,
+            onReviewCompleted: (exercises, personal, kind) => reviewed = exercises,
           ),
         ),
       ),
