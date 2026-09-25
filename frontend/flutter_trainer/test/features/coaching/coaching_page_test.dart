@@ -54,6 +54,7 @@ import 'package:oncare_ui/oncare_ui.dart'
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
+import '../../helpers/record_span.dart';
 
 /// A chat repository whose sends always fail.
 class _FailingChatRepository extends DriftChatRepository {
@@ -279,6 +280,10 @@ class _FixedClientRepository implements ClientRepository {
     String clientId,
     DateTime date,
   ) async => <ClientExerciseItem>[];
+
+  @override
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId) async =>
+      testClientRecordSpan();
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(

@@ -23,6 +23,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 /// 날마다 다른 값을 주는 대역 — 고른 날과 하루 평균이 갈려야 검증이 된다.
 class _VaryingDietRepository extends FakeDietRepository {
@@ -67,6 +68,7 @@ class _VaryingDietRepository extends FakeDietRepository {
 
 Widget _app() => ProviderScope(
   overrides: <Override>[
+    testRecordSpanOverride(),
     dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
@@ -141,7 +143,7 @@ void main() {
     // 전체의 마지막 칸(오늘, 인덱스 83)을 고른다. 이번 주는 7칸뿐이라 이
     // 인덱스가 넘어오면 범위를 벗어난다.
     await tester.tap(
-      find.byKey(const Key('diet-period-bar-${kDietAllPeriodDays - 1}')),
+      find.byKey(const Key('diet-period-bar-${kTestAllPeriodDays - 1}')),
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();

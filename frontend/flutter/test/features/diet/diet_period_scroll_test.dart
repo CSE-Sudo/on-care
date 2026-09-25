@@ -20,6 +20,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 /// 날마다 다른 칼로리를 주는 저장소 — 고른 날의 숫자가 평균과 갈리는지 보려면
 /// 날마다 값이 달라야 한다.
@@ -65,6 +66,7 @@ class _VaryingDietRepository extends FakeDietRepository {
 
 Widget _app() => ProviderScope(
   overrides: <Override>[
+    testRecordSpanOverride(),
     dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
@@ -112,9 +114,13 @@ void main() {
 
     // 12주치가 다 들어 있다 — 한 화면에 한 구간만 보일 뿐 잘라내지 않는다.
     final List<DateTime> dates = dietRangeDates(
-      dietRangeForTab(DietPeriodTab.month, nowKst()),
+      dietRangeForTab(
+        DietPeriodTab.month,
+        nowKst(),
+        firstRecord: testFirstRecordDate(),
+      ),
     );
-    expect(dates.length, kDietAllPeriodDays);
+    expect(dates.length, kTestAllPeriodDays);
     expect(
       find.byKey(Key('diet-period-bar-${dates.length - 1}')),
       findsOneWidget,
@@ -162,7 +168,11 @@ void main() {
 
     // 오늘 칸(마지막)을 고른다.
     final List<DateTime> dates = dietRangeDates(
-      dietRangeForTab(DietPeriodTab.month, nowKst()),
+      dietRangeForTab(
+        DietPeriodTab.month,
+        nowKst(),
+        firstRecord: testFirstRecordDate(),
+      ),
     );
     final Finder lastBar = find.byKey(
       Key('diet-period-bar-${dates.length - 1}'),
@@ -186,7 +196,11 @@ void main() {
     );
 
     final List<DateTime> dates = dietRangeDates(
-      dietRangeForTab(DietPeriodTab.month, nowKst()),
+      dietRangeForTab(
+        DietPeriodTab.month,
+        nowKst(),
+        firstRecord: testFirstRecordDate(),
+      ),
     );
     await tester.tap(find.byKey(Key('diet-period-bar-${dates.length - 1}')));
     await tester.pumpAndSettle();
