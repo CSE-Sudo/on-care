@@ -117,6 +117,7 @@
 | GET | `/trainer/clients/{member_id}/diet?date=` | 해당 회원의 실제 식단 기록 |
 | GET | `/trainer/clients/{member_id}/diet/days?from=&to=` | 기간의 날짜별 식단 합계 — 회원 API `GET /diet/days` 와 같은 응답. 기간 그래프가 쓴다. `from` 생략 시 그 회원의 첫 기록일부터 (#2236) |
 | GET | `/trainer/clients/{member_id}/records/span` | 그 회원이 식단·운동을 처음 남긴 날 — `전체` 그래프의 시작점 (#2079) |
+| GET | `/trainer/clients/{member_id}/exercise/weeks?from=&to=` | 구간이 걸친 주들의 운동 집계 — 회원 API `GET /exercise/weeks` 와 같은 응답. `전체` 그래프가 쓴다 (#2247) |
 | GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
 | DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
