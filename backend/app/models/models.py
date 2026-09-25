@@ -427,6 +427,49 @@ class DietEntry(Base):
     )
 
 
+class DietMenuPlan(Base):
+    """최근 4주 기록으로 만든 끼니별 추천 메뉴 리스트. (#2250)
+
+    식단 탭 `오늘` AI 맞춤 조언이 "다음 식사로 무엇을 먹을까" 를 이 리스트에서
+    고른다. 끼니를 기록할 때마다 AI 를 부르면 비용이 들고 같은 날에도 메뉴가
+    출렁이므로, **한 번 받아 4주 동안 보관**한다.
+
+    회원마다 여러 행이 쌓일 수 있고 가장 최근 행이 지금 리스트다. 바로 앞 행은
+    "이전 리스트의 메뉴는 다시 추천하지 않는다" 를 지키는 데 쓴다 — 그보다 오래된
+    행은 새로 만들 때 지운다.
+
+    `source` 가 `rules` 이고 `retry_after` 가 있으면 AI 가 실패해 내장 카탈로그로
+    채운 리스트다. 그 시각이 지나면 다음 조회에서 AI 를 다시 시도한다.
+    """
+
+    __tablename__ = "diet_menu_plans"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 메뉴 이름·키워드의 언어(`ko`|`en`).
+    lang: Mapped[str] = mapped_column(String(5), default="ko")
+    #: `llm` — AI 가 만든 리스트, `rules` — 내장 카탈로그로 채운 리스트.
+    source: Mapped[str] = mapped_column(String(10))
+    #: `[{slot, name, tag, keyword, kcal, protein_g, sodium_mg}]`
+    items_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: 만들 때 근거가 된 최근 28일의 기록 일수. 7일 미만이면 기록이 쌓인 뒤 다시 만든다.
+    basis_days: Mapped[int] = mapped_column(Integer, default=0)
+    #: 만들 때의 목표(건강 목표 칩·수치 목표) 지문. 달라지면 다시 만든다.
+    goal_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    #: 만든 KST 날짜와 만료일(`YYYY-MM-DD`). 만료일부터는 새로 만든다.
+    created_on: Mapped[str] = mapped_column(String(10))
+    expires_on: Mapped[str] = mapped_column(String(10))
+    #: AI 실패로 카탈로그 리스트를 둔 경우, AI 를 다시 시도해도 되는 시각.
+    retry_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class WeeklyReportPurchase(Base):
     """포인트로 받은 주간 리포트 한 주. (#2022)
 
