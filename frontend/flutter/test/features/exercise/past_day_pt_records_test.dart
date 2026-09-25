@@ -69,6 +69,12 @@ class _FixedWeekRepository implements ExerciseRepository {
   Future<ExerciseWeek> fetchThisWeek() async => _week(_sessions);
 
   @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async => const <ExercisePeriodWeek>[];
+
+  @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async => _week(_sessions);
 
   @override
