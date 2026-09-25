@@ -731,6 +731,11 @@ void main() {
 
       // 거절한 제안은 다시 올라오지 않는다 — 되돌릴 수 없으므로 확인을 받는다.
       expect(find.text('이 운동을 뺄까요?'), findsOneWidget);
+      // 조사는 받침을 보고 고른다 — `러닝` 뒤에는 `을`.
+      expect(
+        find.textContaining('가벼운 인터벌 러닝을 이번 개인운동에서 빼요'),
+        findsOneWidget,
+      );
 
       // 취소하면 그대로 남는다.
       await tester.tap(find.text('취소'));
@@ -751,6 +756,8 @@ void main() {
         find.byKey(const ValueKey<String>('personal-routine-row-0')),
         findsNothing,
       );
+      // 토스트의 조사도 받침을 본다.
+      expect(find.text('가벼운 인터벌 러닝은 추천하지 않아요'), findsOneWidget);
     });
 
     testWidgets('개인운동 없이는 프로그램에 반영되지 않는다 (#2223)', (tester) async {

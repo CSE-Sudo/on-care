@@ -2155,14 +2155,6 @@
   "programSavedNew": "New program",
   "programDraftSaved": "Program saved.",
   "programDraftSaveFailed": "Couldn't save the program. Please try again.",
-  "programDraftLoaded": "Opened {name} in the editor.",
-  "@programDraftLoaded": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "programDraftLoadFailed": "Couldn't open the saved program. Please try again.",
   "programDraftDeleteFailed": "Couldn't delete the program. Please try again.",
   "programDraftDeleteTitle": "Delete this saved program?",

@@ -560,7 +560,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
     if (!mounted) return;
     ref.invalidate(routineSuggestionsProvider(widget.client.id));
-    showAppToast(context, l.aiPersonalDismissed(name));
+    showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
   }
 
   RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) => RoutineExercise(

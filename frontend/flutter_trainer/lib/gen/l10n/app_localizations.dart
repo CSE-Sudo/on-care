@@ -6110,12 +6110,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the program. Please try again.'**
   String get programDraftSaveFailed;
 
-  /// No description provided for @programDraftLoaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Opened {name} in the editor.'**
-  String programDraftLoaded(String name);
-
   /// No description provided for @programDraftLoadFailed.
   ///
   /// In en, this message translates to:

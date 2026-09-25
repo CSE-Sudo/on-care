@@ -1053,7 +1053,7 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "aiPersonalDismissTooltip": "이 제안 빼기",
-  "aiPersonalDismissed": "{name}은(는) 추천하지 않아요",
+  "aiPersonalDismissed": "{name} 추천하지 않아요",
   "@aiPersonalDismissed": {
     "placeholders": { "name": { "type": "String" } }
   },
@@ -1345,14 +1345,6 @@
   "programSavedNew": "새 프로그램",
   "programDraftSaved": "프로그램을 저장했어요",
   "programDraftSaveFailed": "프로그램을 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
-  "programDraftLoaded": "{name}을(를) 편집기로 불러왔어요",
-  "@programDraftLoaded": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "programDraftLoadFailed": "저장한 프로그램을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "programDraftDeleteFailed": "프로그램을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요",
   "programDraftDeleteTitle": "저장한 프로그램을 삭제할까요?",

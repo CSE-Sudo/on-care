@@ -3487,11 +3487,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save the program. Please try again.';
 
   @override
-  String programDraftLoaded(String name) {
-    return 'Opened $name in the editor.';
-  }
-
-  @override
   String get programDraftLoadFailed =>
       'Couldn\'t open the saved program. Please try again.';
 

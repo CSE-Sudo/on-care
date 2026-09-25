@@ -2537,7 +2537,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiPersonalDismissed(String name) {
-    return '$name은(는) 추천하지 않아요';
+    return '$name 추천하지 않아요';
   }
 
   @override
@@ -3335,11 +3335,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get programDraftSaveFailed => '프로그램을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String programDraftLoaded(String name) {
-    return '$name을(를) 편집기로 불러왔어요';
-  }
 
   @override
   String get programDraftLoadFailed => '저장한 프로그램을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
