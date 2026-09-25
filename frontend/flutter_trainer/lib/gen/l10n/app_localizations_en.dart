@@ -324,7 +324,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashNoIssues => 'No issues';
 
   @override
-  String get dashCheckSodiumCompletion => 'Check diet & completion';
+  String get dashCheckPtSignals => 'Check PT signals';
 
   @override
   String get dashMessages => 'Messages';
@@ -346,19 +346,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashActivityDifficultyTitle =>
-      'Low completion / churn risk detected';
+      'Behind exercise goal / routine skipped';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.';
+    return '$names are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.';
   }
 
   @override
-  String get dashActivityInactiveTitle => 'Inactive 7+ days';
+  String get dashActivityInactiveTitle => 'No logs';
 
   @override
   String dashActivityInactiveDesc(String names) {
-    return '$names haven\'t logged a workout in the last 7 days. Reach out before it turns into churn.';
+    return '$names haven\'t logged meals or workouts for a few days. Reach out before it turns into churn.';
   }
 
   @override
@@ -366,7 +366,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names have a diet warning (sodium/sugar over target) but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
+    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
   }
 
   @override
@@ -571,9 +571,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String clientsSignalMore(int count) {
     return '+$count';
   }
-
-  @override
-  String get clientsAttentionActive => 'Attention';
 
   @override
   String get clientsAttentionClear => 'Clear attention filter';
@@ -2976,20 +2973,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String dashTodoConsultationSubtitle(int month, int day) {
     return 'Consultation request for $month/$day';
   }
-
-  @override
-  String dashTodoSodiumSubtitle(int sodiumMg, int targetMg) {
-    return 'Sodium ${sodiumMg}mg · target ${targetMg}mg';
-  }
-
-  @override
-  String dashTodoSugarSubtitle(int sugarG, int targetG) {
-    return 'Sugar ${sugarG}g · target ${targetG}g';
-  }
-
-  @override
-  String get dashTodoCompletionSubtitle =>
-      'Low completion · check recent records';
 
   @override
   String get dashTodoCarriedOverDemoSubtitle =>

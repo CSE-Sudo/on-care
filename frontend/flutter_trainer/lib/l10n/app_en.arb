@@ -191,15 +191,15 @@
   "dashAllReplied": "All replied",
   "dashAttentionClients": "Needs attention",
   "dashNoIssues": "No issues",
-  "dashCheckSodiumCompletion": "Check diet & completion",
+  "dashCheckPtSignals": "Check PT signals",
   "dashMessages": "Messages",
   "dashChurnRisk": "Churn risk",
   "dashChurnRiskNone": "No churn risk",
   "dashChurnRiskCheck": "Review churn signals",
   "dashChurnRiskTitle": "Members at churn risk",
   "dashChurnRiskEmpty": "No members are at churn risk right now.",
-  "dashActivityDifficultyTitle": "Low completion / churn risk detected",
-  "dashActivityDifficultyDesc": "{names} have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.",
+  "dashActivityDifficultyTitle": "Behind exercise goal / routine skipped",
+  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.",
   "@dashActivityDifficultyDesc": {
     "placeholders": {
       "names": {
@@ -207,8 +207,8 @@
       }
     }
   },
-  "dashActivityInactiveTitle": "Inactive 7+ days",
-  "dashActivityInactiveDesc": "{names} haven't logged a workout in the last 7 days. Reach out before it turns into churn.",
+  "dashActivityInactiveTitle": "No logs",
+  "dashActivityInactiveDesc": "{names} haven't logged meals or workouts for a few days. Reach out before it turns into churn.",
   "@dashActivityInactiveDesc": {
     "placeholders": {
       "names": {
@@ -217,7 +217,7 @@
     }
   },
   "dashActivityDietFeedbackTitle": "Diet feedback pending",
-  "dashActivityDietFeedbackDesc": "{names} have a diet warning (sodium/sugar over target) but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
+  "dashActivityDietFeedbackDesc": "{names} are off their calorie goal or low on protein but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
   "@dashActivityDietFeedbackDesc": {
     "placeholders": {
       "names": {
@@ -383,7 +383,6 @@
       }
     }
   },
-  "clientsAttentionActive": "Attention",
   "clientsAttentionClear": "Clear attention filter",
   "memberHealthLoadFailed": "Couldn't load the member profile. Please try again",
   "memberHealthSaveFailed": "Couldn't save the member profile. Please try again",
@@ -1882,29 +1881,6 @@
       }
     }
   },
-  "dashTodoSodiumSubtitle": "Sodium {sodiumMg}mg · target {targetMg}mg",
-  "@dashTodoSodiumSubtitle": {
-    "placeholders": {
-      "sodiumMg": {
-        "type": "int"
-      },
-      "targetMg": {
-        "type": "int"
-      }
-    }
-  },
-  "dashTodoSugarSubtitle": "Sugar {sugarG}g · target {targetG}g",
-  "@dashTodoSugarSubtitle": {
-    "placeholders": {
-      "sugarG": {
-        "type": "int"
-      },
-      "targetG": {
-        "type": "int"
-      }
-    }
-  },
-  "dashTodoCompletionSubtitle": "Low completion · check recent records",
   "dashTodoCarriedOverDemoSubtitle": "Diet feedback left over from yesterday",
   "@dashTodoCarriedOverDemoSubtitle": {
     "description": "Subtitle of the demo carried-over task shown before real history exists."

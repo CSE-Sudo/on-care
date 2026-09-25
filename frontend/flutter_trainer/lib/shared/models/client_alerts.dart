@@ -49,21 +49,6 @@ enum ClientAlert {
   bool get isHealth => this != ClientAlert.unanswered;
 }
 
-/// A client that needs attention, with the reasons.
-class AttentionClient {
-  /// Creates an attention entry.
-  const AttentionClient({required this.client, required this.alerts});
-
-  /// The client.
-  final TrainerClient client;
-
-  /// Why they surfaced, most urgent first.
-  final List<ClientAlert> alerts;
-
-  /// The reason shown as the row's badge.
-  ClientAlert get primary => alerts.first;
-}
-
 /// Every alert raised for [client], most urgent first. Empty means the
 /// client is fine today.
 ///

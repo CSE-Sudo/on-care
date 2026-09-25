@@ -1,17 +1,18 @@
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 /// A kind of bullet on the "활동 피드백" card's 트레이너 활동 피드백 list.
 enum ActivityFeedbackKind {
-  /// 개인 운동 이행률/이탈 위험 감지에 따른 난이도 조정 안내.
+  /// 운동 목표 미달·배정 루틴 미수행 회원의 난이도 조정 안내(#2244).
   difficultyReview,
 
-  /// 7일 이상 활동 저조한 고객.
+  /// 기록이 끊긴 회원에게 먼저 연락하라는 안내(`기록 끊김` 신호).
   inactiveSevenDays,
 
-  /// 식단 주의 고객 피드백 미완료 안내.
+  /// 식단 신호(칼로리 이탈·단백질 부족)가 있는데 피드백을 받지 못한 회원.
   dietFeedbackPending;
 
   /// Short headline shown next to the leading icon.
@@ -78,10 +79,12 @@ class ActivityFeedbackItem {
   int get count => clientNames.length;
 }
 
-/// Builds the "활동 피드백" card's activity-feedback bullets from the same
-/// per-client signals [buildChurnRisk] uses — this list is deliberately
-/// wider than 이탈 위험 (it surfaces every client with *any* one matching
-/// signal, not only the ones that cross the 이탈 위험 threshold).
+/// Builds the "활동 피드백" card's activity-feedback bullets.
+///
+/// 무엇이 문제인지는 회원 목록 배지와 같은 PT 관리 신호가 정한다(#2244) —
+/// 목록에서 `운동 목표 28%` 인 회원이 여기서 다른 기준으로 불리지 않게.
+/// "최근 7일 트레이너 피드백 없음" 만 [computeChurnSignals] 에서 가져온다 —
+/// 트레이너 자신의 활동이라 서버 신호에 없는 값이다.
 List<ActivityFeedbackItem> buildActivityFeedback({
   required List<TrainerClient> clients,
   required Map<String, List<ScheduleSession>> recentSessionsByClient,
@@ -101,16 +104,18 @@ List<ActivityFeedbackItem> buildActivityFeedback({
       now: now,
     );
 
-    if (signals.contains(ChurnSignal.noRecentWorkout) ||
-        signals.contains(ChurnSignal.goalStagnant)) {
+    final kinds = <ClientSignalKind>{for (final s in client.signals) s.kind};
+
+    if (kinds.contains(ClientSignalKind.exerciseGoalLow) ||
+        kinds.contains(ClientSignalKind.routineMissed)) {
       difficultyReview.add(client);
     }
 
-    if (signals.contains(ChurnSignal.noRecentWorkout)) {
+    if (kinds.contains(ClientSignalKind.recordGap)) {
       inactiveSevenDays.add(client);
     }
 
-    if ((client.sodiumOverBudget || client.sugarOverBudget) &&
+    if (kinds.any((k) => k.isDiet) &&
         signals.contains(ChurnSignal.noRecentFeedback)) {
       dietFeedbackPending.add(client);
     }
