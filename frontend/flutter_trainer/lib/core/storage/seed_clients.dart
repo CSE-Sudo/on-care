@@ -46,10 +46,18 @@ part of 'seed_data.dart';
 ///              칼로리는 높지만 식단 배지는 없다(#768)
 ///  14 백서진    운동은 완벽한데 나트륨만 계속 초과
 ///  15 노은채    단 하루만 기록 (단일 포인트 스파크라인)
+///
+/// PT 관리 신호(`signals`, #2204)는 서버가 계산하는 값이라 데모는 여기서 정한다.
+/// 회원의 이야기와 맞춘다 — 단백질 부족은 근력 향상·체중 감량 회원에게만, 휴면
+/// 회원(박성호·문가영)은 서버처럼 신호가 없다. 여덟 가지 배지가 모두 한 번은
+/// 보이게 고른다(답장 대기는 스레드가 정한다).
 const List<_Client> _clients = <_Client>[
   _Client(
     id: 1,
     name: '김민수',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.calorieOff, percent: 18, over: true),
+    ],
     avatar: '김',
     goal: '체중 감량 · 혈압 관리',
     // 목록 미리보기는 스레드의 마지막 메시지 **그대로**여야 한다. 전에는 대화에
@@ -359,6 +367,9 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 4,
     name: '정하윤',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 45),
+    ],
     avatar: '정',
     goal: '체력 강화 · 재활',
     daysAgo: 0,
@@ -544,6 +555,10 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 6,
     name: '강서연',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.calorieOff, percent: 22, over: true),
+      ClientSignal(ClientSignalKind.proteinLow, percent: 64),
+    ],
     avatar: '강',
     goal: '체중 감량',
     daysAgo: 0,
@@ -619,6 +634,9 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 7,
     name: '임도현',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.recordGap, days: 4),
+    ],
     avatar: '임',
     goal: '자세 교정',
     daysAgo: 0,
@@ -647,6 +665,11 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 8,
     name: '오세라',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.discomfort),
+      ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 28),
+      ClientSignal(ClientSignalKind.calorieOff, percent: 24, over: true),
+    ],
     avatar: '오',
     goal: '혈압 관리',
     daysAgo: 1,
@@ -710,7 +733,10 @@ const List<_Client> _clients = <_Client>[
     ],
     chat: <_Chat>[
       _Chat('trainer', '세라님, 나트륨이 6일 연속 올라서 3250까지 왔어요. 혈압은 재보셨어요?', '09:10'),
-      _Chat('client', '요즘 너무 바빠서 못 하고 있어요', '09:34'),
+      // `허리도 좀 아프고요` 는 목록의 `통증·불편` 배지가 가리키는 말이다(#2204).
+      // 서버는 이런 회원 문장에서 통증을 찾아 신호를 싣고, 데모는 시드가 신호를
+      // 정하므로 근거를 대화에 둔다. 새 줄로 넣지 않는 이유: 안읽음 수가 바뀐다.
+      _Chat('client', '요즘 너무 바빠서 못 하고 있어요. 허리도 좀 아프고요', '09:34'),
       _Chat('client', '주말엔 꼭 재볼게요...', '09:35'),
     ],
   ),
@@ -719,6 +745,10 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 9,
     name: '배준혁',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.noShow, count: 2),
+      ClientSignal(ClientSignalKind.routineMissed, days: 3),
+    ],
     avatar: '배',
     goal: '체력 강화 · 운동 습관',
     daysAgo: 0,
@@ -869,6 +899,9 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 11,
     name: '한지호',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 48),
+    ],
     avatar: '한',
     goal: '식습관 개선 · 운동 습관',
     daysAgo: 1,
@@ -989,6 +1022,9 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 13,
     name: '류태경',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.proteinLow, percent: 71),
+    ],
     avatar: '류',
     goal: '근력 향상 · 식습관 개선',
     daysAgo: 0,
@@ -1132,6 +1168,9 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 15,
     name: '노은채',
+    signals: <ClientSignal>[
+      ClientSignal(ClientSignalKind.recordGap, days: 6),
+    ],
     avatar: '노',
     goal: '운동 습관',
     daysAgo: 1,

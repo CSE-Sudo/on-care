@@ -4,6 +4,7 @@ import 'package:oncare_trainer/features/dashboard/data/ai_coaching_summary_repos
 import 'package:oncare_trainer/features/dashboard/domain/ai_coaching_summary.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 import '../../helpers/client_factory.dart';
@@ -42,6 +43,26 @@ void main() {
       expect(summary.unreadClients, 2);
     });
 
+    test('주의 회원 수는 PT 관리 신호로 센다 — 회원 목록과 같은 규칙 (#2204)', () {
+      final summary = buildDashboardSummary(
+        clients: <TrainerClient>[
+          // 나트륨이 넘어도 신호가 없으면 주의 회원이 아니다.
+          makeClient(id: 'sodium', sodiumMg: 2500),
+          makeClient(
+            id: 'gap',
+            signals: const <ClientSignal>[
+              ClientSignal(ClientSignalKind.recordGap, days: 4),
+            ],
+          ),
+          // 답장 대기는 주의가 아니다.
+          makeClient(id: 'waiting'),
+        ],
+        unread: const <String, int>{'waiting': 1},
+      );
+
+      expect(summary.healthAttentionCount, 1);
+    });
+
     test('an unanswered client stays in the list but is not counted 주의', () {
       final summary = buildDashboardSummary(
         clients: <TrainerClient>[
@@ -56,8 +77,7 @@ void main() {
         'sodium',
         'waiting',
       ]);
-      // …but 주의 means the member's own numbers, and 'waiting' has none.
-      expect(summary.healthAttentionCount, 1);
+      // 주의 회원 수는 이 목록이 아니라 PT 관리 신호로 센다 — 아래 #2204 테스트.
       expect(summary.unreadClients, 1);
     });
 
@@ -75,7 +95,6 @@ void main() {
         ClientAlert.sodiumOver,
         ClientAlert.unanswered,
       ]);
-      expect(summary.healthAttentionCount, 1);
     });
 
     test('목표를 더 크게 벗어난 회원이 앞에 온다 (#767)', () {
@@ -142,7 +161,6 @@ void main() {
       );
 
       expect(summary.attention.single.primary, ClientAlert.sugarOver);
-      expect(summary.healthAttentionCount, 1);
     });
 
     test('식단 신호 둘 중에서도 더 많이 넘긴 쪽이 배지다 (#767)', () {

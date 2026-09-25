@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 export 'package:oncare_trainer/shared/models/client_alerts.dart'
@@ -47,6 +48,7 @@ class DashboardSummary {
     required this.unreadClients,
     required this.attention,
     required this.weeklyCompletion,
+    this.healthAttentionCount = 0,
   });
 
   /// Clients currently marked 활성.
@@ -65,13 +67,13 @@ class DashboardSummary {
   /// signals then unanswered messages.
   final List<AttentionClient> attention;
 
-  /// How many of [attention] are there for a health reason.
+  /// 주의 회원 KPI — PT 관리 신호가 있는 회원 수([needsAttention], #2204).
   ///
-  /// This is the 주의 고객 KPI. 답장 대기 stays in the list (the trainer
-  /// still has to answer) but is not 주의 — counting it made all three
-  /// seeded clients look like health concerns.
-  int get healthAttentionCount =>
-      attention.where((a) => a.alerts.any((x) => x.isHealth)).length;
+  /// 이 카드를 누르면 회원 목록의 `주의 회원` 으로 간다. 그 목록과 **같은
+  /// 규칙**으로 세야 "3명" 을 눌러 5명이 뜨는 일이 없다 — 그래서 아래
+  /// [attention] 목록(옛 나트륨·이행률 기준, 대시보드 카드가 쓴다)이 아니라
+  /// 신호로 센다. 답장 대기는 주의가 아니다.
+  final int healthAttentionCount;
 
   /// Mean routine completion (%) per weekday, 월→일. Empty when no
   /// client has weekly data yet.
@@ -138,6 +140,7 @@ DashboardSummary buildDashboardSummary({
     unreadClients: unreadClients,
     attention: attention,
     weeklyCompletion: _meanWeeklyCompletion(clients),
+    healthAttentionCount: clients.where(needsAttention).length,
   );
 }
 

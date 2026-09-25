@@ -1130,12 +1130,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load member data'**
   String get clientsLoadFailed;
 
-  /// No description provided for @clientsCountSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{total} members · {active} active'**
-  String clientsCountSummary(int total, int active);
-
   /// No description provided for @clientsNew.
   ///
   /// In en, this message translates to:
@@ -1190,12 +1184,6 @@ abstract class AppLocalizations {
   /// **'Recent conversations'**
   String get clientsSortRecentMessage;
 
-  /// No description provided for @clientsSortActiveFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Active members first'**
-  String get clientsSortActiveFirst;
-
   /// No description provided for @clientsFilterLabel.
   ///
   /// In en, this message translates to:
@@ -1226,17 +1214,113 @@ abstract class AppLocalizations {
   /// **'No members match {filter}'**
   String clientsEmptyForFilter(String filter);
 
-  /// No description provided for @clientsFilterSummary.
+  /// No description provided for @clientsMemberCount.
   ///
   /// In en, this message translates to:
-  /// **'{filter} · {shown}/{total}'**
-  String clientsFilterSummary(String filter, int shown, int total);
+  /// **'{total} members'**
+  String clientsMemberCount(int total);
 
-  /// No description provided for @clientsSeeAll.
+  /// No description provided for @clientsSignalDiscomfort.
   ///
   /// In en, this message translates to:
-  /// **'See all'**
-  String get clientsSeeAll;
+  /// **'Pain'**
+  String get clientsSignalDiscomfort;
+
+  /// No description provided for @clientsSignalRecordGap.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs'**
+  String get clientsSignalRecordGap;
+
+  /// No description provided for @clientsSignalRecordGapDays.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs {days}d'**
+  String clientsSignalRecordGapDays(int days);
+
+  /// No description provided for @clientsSignalRecordGapLong.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs 30d+'**
+  String get clientsSignalRecordGapLong;
+
+  /// No description provided for @clientsSignalNoShow.
+  ///
+  /// In en, this message translates to:
+  /// **'No-shows'**
+  String get clientsSignalNoShow;
+
+  /// No description provided for @clientsSignalNoShowCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} no-shows'**
+  String clientsSignalNoShowCount(int count);
+
+  /// No description provided for @clientsSignalRoutineMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Routine skipped'**
+  String get clientsSignalRoutineMissed;
+
+  /// No description provided for @clientsSignalExerciseGoalLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low exercise'**
+  String get clientsSignalExerciseGoalLow;
+
+  /// No description provided for @clientsSignalExerciseGoalLowPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise {percent}%'**
+  String clientsSignalExerciseGoalLowPercent(int percent);
+
+  /// No description provided for @clientsSignalCalorieOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off calorie goal'**
+  String get clientsSignalCalorieOff;
+
+  /// No description provided for @clientsSignalCalorieOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories over'**
+  String get clientsSignalCalorieOver;
+
+  /// No description provided for @clientsSignalCalorieUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories under'**
+  String get clientsSignalCalorieUnder;
+
+  /// No description provided for @clientsSignalProteinLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low protein'**
+  String get clientsSignalProteinLow;
+
+  /// No description provided for @clientsSignalUnanswered.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting reply'**
+  String get clientsSignalUnanswered;
+
+  /// No description provided for @clientsSignalMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String clientsSignalMore(int count);
+
+  /// No description provided for @clientsAttentionActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Attention'**
+  String get clientsAttentionActive;
+
+  /// No description provided for @clientsAttentionClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear attention filter'**
+  String get clientsAttentionClear;
 
   /// No description provided for @memberHealthLoadFailed.
   ///
@@ -2689,18 +2773,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly completion'**
   String get reportsWeeklyCompletion;
-
-  /// No description provided for @clientWeeklyRoutineAdherence.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly adherence'**
-  String get clientWeeklyRoutineAdherence;
-
-  /// No description provided for @clientRoutineAdherenceUnmeasured.
-  ///
-  /// In en, this message translates to:
-  /// **'Not measured'**
-  String get clientRoutineAdherenceUnmeasured;
 
   /// No description provided for @reportsCompletionByDay.
   ///
@@ -4825,12 +4897,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Awaiting reply'**
   String get alertAwaitingReply;
-
-  /// No description provided for @clientLastRoutine.
-  ///
-  /// In en, this message translates to:
-  /// **'Last program'**
-  String get clientLastRoutine;
 
   /// No description provided for @metricOverBy.
   ///

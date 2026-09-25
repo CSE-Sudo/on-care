@@ -598,11 +598,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsLoadFailed => 'Couldn\'t load member data';
 
   @override
-  String clientsCountSummary(int total, int active) {
-    return '$total members · $active active';
-  }
-
-  @override
   String get clientsNew => 'Register new member';
 
   @override
@@ -630,9 +625,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSortRecentMessage => 'Recent conversations';
 
   @override
-  String get clientsSortActiveFirst => 'Active members first';
-
-  @override
   String get clientsFilterLabel => 'Filters';
 
   @override
@@ -653,12 +645,68 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String clientsFilterSummary(String filter, int shown, int total) {
-    return '$filter · $shown/$total';
+  String clientsMemberCount(int total) {
+    return '$total members';
   }
 
   @override
-  String get clientsSeeAll => 'See all';
+  String get clientsSignalDiscomfort => 'Pain';
+
+  @override
+  String get clientsSignalRecordGap => 'No logs';
+
+  @override
+  String clientsSignalRecordGapDays(int days) {
+    return 'No logs ${days}d';
+  }
+
+  @override
+  String get clientsSignalRecordGapLong => 'No logs 30d+';
+
+  @override
+  String get clientsSignalNoShow => 'No-shows';
+
+  @override
+  String clientsSignalNoShowCount(int count) {
+    return '$count no-shows';
+  }
+
+  @override
+  String get clientsSignalRoutineMissed => 'Routine skipped';
+
+  @override
+  String get clientsSignalExerciseGoalLow => 'Low exercise';
+
+  @override
+  String clientsSignalExerciseGoalLowPercent(int percent) {
+    return 'Exercise $percent%';
+  }
+
+  @override
+  String get clientsSignalCalorieOff => 'Off calorie goal';
+
+  @override
+  String get clientsSignalCalorieOver => 'Calories over';
+
+  @override
+  String get clientsSignalCalorieUnder => 'Calories under';
+
+  @override
+  String get clientsSignalProteinLow => 'Low protein';
+
+  @override
+  String get clientsSignalUnanswered => 'Awaiting reply';
+
+  @override
+  String clientsSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientsAttentionActive => 'Attention';
+
+  @override
+  String get clientsAttentionClear => 'Clear attention filter';
 
   @override
   String get memberHealthLoadFailed =>
@@ -1491,12 +1539,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsWeeklyCompletion => 'Weekly completion';
-
-  @override
-  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
-
-  @override
-  String get clientRoutineAdherenceUnmeasured => 'Not measured';
 
   @override
   String get reportsCompletionByDay => 'Weekly workout completion';
@@ -2724,9 +2766,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alertAwaitingReply => 'Awaiting reply';
-
-  @override
-  String get clientLastRoutine => 'Last program';
 
   @override
   String metricOverBy(String unit) {

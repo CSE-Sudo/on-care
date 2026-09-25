@@ -372,17 +372,6 @@
     "description": "Unit after a person count. Korean uses the counter 명; English omits it. Intentionally empty."
   },
   "clientsLoadFailed": "Couldn't load member data",
-  "clientsCountSummary": "{total} members · {active} active",
-  "@clientsCountSummary": {
-    "placeholders": {
-      "total": {
-        "type": "int"
-      },
-      "active": {
-        "type": "int"
-      }
-    }
-  },
   "clientsNew": "Register new member",
   "clientsTitle": "Member management",
   "clientsManagementAttention": "Needs attention",
@@ -392,7 +381,6 @@
   "clientsSortName": "Name A–Z",
   "clientsSortNameDescending": "Name Z–A",
   "clientsSortRecentMessage": "Recent conversations",
-  "clientsSortActiveFirst": "Active members first",
   "clientsFilterLabel": "Filters",
   "clientsToolbarCount": "{shown} members · {active} active",
   "@clientsToolbarCount": {
@@ -415,21 +403,59 @@
       }
     }
   },
-  "clientsFilterSummary": "{filter} · {shown}/{total}",
-  "@clientsFilterSummary": {
+  "clientsMemberCount": "{total} members",
+  "@clientsMemberCount": {
     "placeholders": {
-      "filter": {
-        "type": "String"
-      },
-      "shown": {
-        "type": "int"
-      },
       "total": {
         "type": "int"
       }
     }
   },
-  "clientsSeeAll": "See all",
+  "clientsSignalDiscomfort": "Pain",
+  "clientsSignalRecordGap": "No logs",
+  "clientsSignalRecordGapDays": "No logs {days}d",
+  "@clientsSignalRecordGapDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRecordGapLong": "No logs 30d+",
+  "clientsSignalNoShow": "No-shows",
+  "clientsSignalNoShowCount": "{count} no-shows",
+  "@clientsSignalNoShowCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRoutineMissed": "Routine skipped",
+  "clientsSignalExerciseGoalLow": "Low exercise",
+  "clientsSignalExerciseGoalLowPercent": "Exercise {percent}%",
+  "@clientsSignalExerciseGoalLowPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalCalorieOff": "Off calorie goal",
+  "clientsSignalCalorieOver": "Calories over",
+  "clientsSignalCalorieUnder": "Calories under",
+  "clientsSignalProteinLow": "Low protein",
+  "clientsSignalUnanswered": "Awaiting reply",
+  "clientsSignalMore": "+{count}",
+  "@clientsSignalMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsAttentionActive": "Attention",
+  "clientsAttentionClear": "Clear attention filter",
   "memberHealthLoadFailed": "Couldn't load the member profile. Please try again",
   "memberHealthSaveFailed": "Couldn't save the member profile. Please try again",
   "memberHealthSaving": "Saving…",
@@ -904,8 +930,6 @@
   },
   "reportsCompletionAvg": "Workout completion",
   "reportsWeeklyCompletion": "Weekly completion",
-  "clientWeeklyRoutineAdherence": "Weekly adherence",
-  "clientRoutineAdherenceUnmeasured": "Not measured",
   "reportsCompletionByDay": "Weekly workout completion",
   "reportsNoWorkoutsThisWeek": "No workouts logged this week",
   "reportsMetricTrend": "{metric} trend",
@@ -1680,7 +1704,6 @@
   "alertSugarOver": "Sugar over target",
   "alertLowCompletion": "Low completion",
   "alertAwaitingReply": "Awaiting reply",
-  "clientLastRoutine": "Last program",
   "metricOverBy": "{unit} over",
   "@metricOverBy": {
     "placeholders": {
