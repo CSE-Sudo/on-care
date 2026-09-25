@@ -1125,7 +1125,6 @@ class _ManagedClientRow extends StatelessWidget {
         ClientCard(
           key: ValueKey<String>('managed-client-${client.id}'),
           client: client,
-          compact: true,
           onTap: () => context.go(AppRoutes.clientDetail(client.id)),
         ),
         const SizedBox(height: OnCareSpacing.s4),
