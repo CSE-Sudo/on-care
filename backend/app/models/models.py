@@ -470,6 +470,42 @@ class DietMenuPlan(Base):
     )
 
 
+class DietAdviceState(Base):
+    """식단 AI 맞춤 조언이 기간마다 기억해 두는 것. (#2251)
+
+    - `today`: 그날 추천한 메뉴 이름들. 최근 3일 안에 추천한 메뉴를 뒤로 미루는 데 쓴다.
+    - `week`·`all`: 한 번 만든 조언(규칙 한 줄 + AI 한 문장). 이번 주는 하루, 전체는
+      한 주 동안 그대로 둔다 — AI 를 조회마다 부르지 않는다.
+
+    `key_date` 는 그 상태가 가리키는 날(오늘은 그날, 이번 주는 그날, 전체는 그 주
+    월요일)이다. `retry_after` 가 있으면 AI 가 실패해 대체 문장을 둔 것이고, 그 시각이
+    지나면 다시 만든다.
+    """
+
+    __tablename__ = "diet_advice_states"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    period: Mapped[str] = mapped_column(String(10))  # today|week|all
+    key_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
+    lang: Mapped[str] = mapped_column(String(5), default="ko")
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    retry_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "period", "key_date", "lang", name="uq_diet_advice_state"
+        ),
+    )
+
+
 class WeeklyReportPurchase(Base):
     """포인트로 받은 주간 리포트 한 주. (#2022)
 

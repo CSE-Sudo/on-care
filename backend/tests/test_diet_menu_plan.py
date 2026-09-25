@@ -42,7 +42,7 @@ def _counts(plan) -> dict[str, int]:
 
 def _assert_shape(plan) -> None:
     assert _counts(plan) == catalog.SLOT_COUNTS
-    names = [svc._norm(m.name) for m in plan.items]
+    names = [svc.norm_name(m.name) for m in plan.items]
     assert len(names) == len(set(names)) == _EXPECTED_TOTAL
 
 
@@ -65,11 +65,11 @@ def test_rules_plan_puts_urgent_tag_first_and_mixes_tags():
 
 def test_rules_plan_avoids_previous_menus_while_catalog_allows():
     first = svc.rules_plan(lang="ko", needs=[], excluded=set())
-    excluded = {svc._norm(m.name) for m in first}
+    excluded = {svc.norm_name(m.name) for m in first}
     second = svc.rules_plan(lang="ko", needs=[], excluded=excluded)
     main_slots = (catalog.SLOT_BREAKFAST, catalog.SLOT_LUNCH, catalog.SLOT_DINNER, catalog.SLOT_SNACK)
     for slot in main_slots:
-        again = [m for m in second if m.slot == slot and svc._norm(m.name) in excluded]
+        again = [m for m in second if m.slot == slot and svc.norm_name(m.name) in excluded]
         assert again == [], slot
 
 
@@ -110,7 +110,7 @@ def test_parse_items_drops_bad_rows_and_fills_from_catalog():
     ]
     items = svc.parse_items(
         json.dumps({"items": rows}, ensure_ascii=False),
-        lang="ko", needs=[], excluded={svc._norm("옛 메뉴")},
+        lang="ko", needs=[], excluded={svc.norm_name("옛 메뉴")},
     )
     plan = svc.MenuPlan("x", "ko", "llm", items, 0, "", "")
     _assert_shape(plan)
@@ -254,8 +254,8 @@ def test_expired_plan_is_remade_without_previous_menus(db_session, member, monke
     second = svc.get_plan(db_session, member.id, now=now + timedelta(days=28))
     assert second.id != first.id
     _assert_shape(second)
-    first_names = {svc._norm(m.name) for m in first.items}
-    assert not first_names & {svc._norm(m.name) for m in second.items}
+    first_names = {svc.norm_name(m.name) for m in first.items}
+    assert not first_names & {svc.norm_name(m.name) for m in second.items}
     assert "[이전 추천]" in fake.prompts[1][1] and first.items[0].name in fake.prompts[1][1]
 
 

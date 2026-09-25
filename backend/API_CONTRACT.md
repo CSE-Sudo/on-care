@@ -106,11 +106,20 @@
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
+| GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
+
+`GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
+
+- `analysis`·`action` 은 한국어 문장이고 굵게 보일 곳(메뉴 이름·수치)을 `**` 로 감싼다. `message` 는 두 문장을 이어 `**` 를 뗀 평문으로, 두 문장을 모르는 옛 앱이 읽는다.
+- `analysis_key`·`action_key` 가 있으면 앱이 그 키와 `*_params` 로 자기 언어의 문장을 그린다(운동 조언 `advice_key` 와 같은 방식, #2210). 키가 없으면 받은 문장을 그대로 쓴다 — AI 가 `lang` 으로 만든 문장이거나, 아직 한 문장인 `week`·`all` 이다.
+- `오늘` 의 `analysis_key`: `today_empty`·`today_missing_meal`(시각이 지났는데 비어 있는 아침·점심·저녁이 있다)·`today_sodium_over{sodium_mg}`·`today_calorie_over{kcal}`·`today_protein_left{protein_g}`·`today_balanced{kcal}`.
+- `오늘` 의 `action_key`: `next_meal{slot, menu, keyword}`·`next_snack{menu, keyword}` 는 최근 4주 기록으로 만든 **끼니별 추천 메뉴 리스트**(#2250)에서 오늘 가장 급한 부족·초과를 메우는 메뉴다(`action_source: "plan"`). 그 이유가 충족되면 다른 메뉴로 바뀌고, 최근 3일 안에 추천한 메뉴는 뒤로 미룬다. `keyword`(추천 이유, 예: `저나트륨`)는 문장에 싣지 않고 값으로만 준다. `today_done` 은 저녁까지 적었고 채울 것이 없을 때, `today_log_first` 는 `today_missing_meal` 일 때다 — 이때는 메뉴를 고르지 않고 리스트도 열지 않는다(`action_source: "rules"`).
+- 트레이너웹 `GET /trainer/clients/{id}/diet-advice` 는 아직 예전 한 문장(`message`)이다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
 `meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.

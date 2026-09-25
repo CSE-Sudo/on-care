@@ -205,7 +205,7 @@ def get_plan(
     if reason == "retry":
         # 같은 리스트를 AI 로 다시 채우는 것이다 — 제외할 것은 그 앞 리스트다.
         previous = _previous_items(db, user_id, exclude_id=row.id)  # type: ignore[union-attr]
-    excluded = {_norm(m.name) for m in previous}
+    excluded = {norm_name(m.name) for m in previous}
 
     targets = inputs.targets_of(profile)
     source, items = _generate(
@@ -266,7 +266,7 @@ def _previous_items(db: Session, user_id: str, *, exclude_id: str) -> tuple[Plan
 # ── 만들기 ──────────────────────────────────────────────────────────────
 
 
-def _norm(name: str) -> str:
+def norm_name(name: str) -> str:
     return "".join(name.split()).lower()
 
 
@@ -320,7 +320,7 @@ def catalog_fill(
                 pool = pools[tag]
                 while pool:
                     m = pool.pop(0)
-                    key = _norm(m.name(lang))
+                    key = norm_name(m.name(lang))
                     if key in taken or (key in excluded and not allow_excluded):
                         continue
                     out.append(_from_catalog(m, lang))
@@ -511,7 +511,7 @@ def parse_items(
             continue
         if not name or len(name) > NAME_MAX[lang]:
             continue
-        key = _norm(name)
+        key = norm_name(name)
         if key in taken or key in excluded:
             continue
         if len(by_slot[slot]) >= catalog.SLOT_COUNTS[slot]:
