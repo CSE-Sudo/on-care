@@ -117,6 +117,7 @@
 | GET | `/trainer/clients/{member_id}/diet?date=` | 해당 회원의 실제 식단 기록 |
 | GET | `/trainer/clients/{member_id}/diet/days?from=&to=` | 기간의 날짜별 식단 합계 — 회원 API `GET /diet/days` 와 같은 응답. 기간 그래프가 쓴다. `from` 생략 시 그 회원의 첫 기록일부터 (#2236) |
 | GET | `/trainer/clients/{member_id}/records/span` | 그 회원이 식단·운동을 처음 남긴 날 — `전체` 그래프의 시작점 (#2079) |
+| GET | `/trainer/clients/{member_id}/exercise/weeks?from=&to=` | 구간이 걸친 주들의 운동 집계 — 회원 API `GET /exercise/weeks` 와 같은 응답. `전체` 그래프가 쓴다 (#2247) |
 | GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
 | DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
@@ -154,7 +155,6 @@
 | PUT | `/trainer/schedule/{id}` | 예약 수정 |
 | DELETE | `/trainer/schedule/{id}` | 예약 삭제 |
 | POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료) |
-| GET | `/trainer/dashboard/coaching-summary` | 식단·운동·건강 프로필·최근 대화를 종합한 회원별 오늘 코칭 요약 |
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
@@ -235,15 +235,6 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 쓰되, 검색 스코프가 호출자(트레이너)가 아니라 **담당 회원**이다. 트레이너가 자기
 자신의(비어 있는) 기록으로 코칭받는 일을 막기 위한 구분이며, 접근 경계는 담당 링크
 확인(`_require_client`) — 남의 회원이면 404 로 존재조차 드러내지 않는다.
-
-### 대시보드 코칭 요약 (`/trainer/dashboard/coaching-summary`)
-
-담당 로스터에서 식단·주간 운동 이행률·건강 프로필·최근 14일 대화를 배치 조회하고,
-우선 확인할 회원을 최대 3명으로 제한해 LLM에 전달한다. 응답은 회원별 `현재 상태`,
-`판단 근거`, `오늘 운동 중심`, `세션 전 확인`으로 구조화하며, 입력에 없는 회원 ID나
-이름을 모델이 만들면 폐기한다. 대화 인용은 신뢰할 수 없는 참고 자료로 명시하고,
-공급자 장애·10초 타임아웃·응답 계약 위반 시 같은 스키마의 규칙 기반 요약으로
-폴백한다. 최근 대화는 회원별 최대 6건만 포함해 컨텍스트와 쿼리 크기를 제한한다.
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 

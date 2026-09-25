@@ -191,15 +191,15 @@
   "dashAllReplied": "All replied",
   "dashAttentionClients": "Needs attention",
   "dashNoIssues": "No issues",
-  "dashCheckSodiumCompletion": "Check diet & completion",
+  "dashCheckPtSignals": "Check PT signals",
   "dashMessages": "Messages",
   "dashChurnRisk": "Churn risk",
   "dashChurnRiskNone": "No churn risk",
   "dashChurnRiskCheck": "Review churn signals",
   "dashChurnRiskTitle": "Members at churn risk",
   "dashChurnRiskEmpty": "No members are at churn risk right now.",
-  "dashActivityDifficultyTitle": "Low completion / churn risk detected",
-  "dashActivityDifficultyDesc": "{names} have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.",
+  "dashActivityDifficultyTitle": "Behind exercise goal / routine skipped",
+  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.",
   "@dashActivityDifficultyDesc": {
     "placeholders": {
       "names": {
@@ -207,8 +207,8 @@
       }
     }
   },
-  "dashActivityInactiveTitle": "Inactive 7+ days",
-  "dashActivityInactiveDesc": "{names} haven't logged a workout in the last 7 days. Reach out before it turns into churn.",
+  "dashActivityInactiveTitle": "No logs",
+  "dashActivityInactiveDesc": "{names} haven't logged meals or workouts for a few days. Reach out before it turns into churn.",
   "@dashActivityInactiveDesc": {
     "placeholders": {
       "names": {
@@ -217,7 +217,7 @@
     }
   },
   "dashActivityDietFeedbackTitle": "Diet feedback pending",
-  "dashActivityDietFeedbackDesc": "{names} have a diet warning (sodium/sugar over target) but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
+  "dashActivityDietFeedbackDesc": "{names} are off their calorie goal or low on protein but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
   "@dashActivityDietFeedbackDesc": {
     "placeholders": {
       "names": {
@@ -238,77 +238,6 @@
   },
   "dashAiSummaryTitle": "Activity feedback",
   "dashAiNoClients": "No members yet. Once you add one, I'll gather their diet and workout data and point out what to coach.",
-  "dashAiAllOnTrack": "All {total} members are within target. Hold this intensity and raise next week's goal.",
-  "dashAiLoading": "Reviewing diet, workouts, and recent conversations…",
-  "dashAiLoadFailed": "Couldn't load the detailed coaching summary.",
-  "dashAiRateLimited": "There are too many summary requests. Try again shortly.",
-  "dashAiStatus": "Current status",
-  "dashAiExerciseFocus": "Today's exercise focus",
-  "dashAiEvidence": "Evidence",
-  "dashAiCaution": "Check before session",
-  "dashAiPriorityHigh": "Check first",
-  "dashAiPriorityMedium": "Monitor",
-  "dashAiPriorityLow": "Maintain",
-  "dashAiRuleHeadline": "Check {name} first and adjust training load to the diet and condition signals.",
-  "@dashAiRuleHeadline": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "dashAiRuleKneeStatus": "A recent message indicates knee or lower-body discomfort, so lower-body load should be adjusted.",
-  "dashAiRuleKneeFocus": "Reduce heavy squats and lunges; focus on glute activation, knee mobility, and level walking.",
-  "dashAiRuleKneeCaution": "Confirm the pain location and range of motion before the session.",
-  "dashAiRuleUpperStatus": "Shoulder or neck discomfort indicates that upper-body pushing and pulling intensity should be adjusted.",
-  "dashAiRuleUpperFocus": "Reduce heavy upper-body work; focus on thoracic mobility, scapular stability, and stretching.",
-  "dashAiRuleUpperCaution": "Check which arm elevation angles feel uncomfortable.",
-  "dashAiRuleFatigueStatus": "Overtime or fatigue is making exercise harder to sustain, so a manageable intensity comes first.",
-  "dashAiRuleFatigueFocus": "Reduce high-intensity full-body work and focus on 15–20 minutes of easy cardio and recovery stretching.",
-  "dashAiRuleFatigueCaution": "Confirm sleep and current fatigue before setting the intensity.",
-  "dashAiRuleSodiumStatus": "Today's sodium intake is over the target, so set intensity with the current condition in mind.",
-  "dashAiRuleSodiumFocus": "Prefer moderate walking or cycling and steady full-body strength volume over high-intensity intervals.",
-  "dashAiRuleSodiumCaution": "Check hydration, dizziness, and swelling.",
-  "dashAiRuleCompletionStatus": "Weekly workout adherence is low, so review exercise volume, difficulty, and goals.",
-  "dashAiRuleCompletionFocus": "Reduce exercise count and volume, start at a manageable difficulty, and rebuild the weekly goal gradually.",
-  "dashAiRuleCompletionCaution": "Check which schedule or condition issues disrupted exercise this week.",
-  "dashAiRuleUnansweredStatus": "There is an unread message, so confirm the member's current condition before today's workout.",
-  "dashAiRuleUnansweredFocus": "Hold off on increasing load until they reply, and begin with mobility work at the existing intensity.",
-  "dashAiRuleUnansweredCaution": "Confirm pain, fatigue, and sleep before choosing today's body area and intensity.",
-  "dashAiRuleEvidenceMessage": "Recent message: “{message}”",
-  "@dashAiRuleEvidenceMessage": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
-  "dashAiRuleEvidenceSodium": "Sodium today: {value}mg / target: {target}mg",
-  "@dashAiRuleEvidenceSodium": {
-    "placeholders": {
-      "value": {
-        "type": "int"
-      },
-      "target": {
-        "type": "int"
-      }
-    }
-  },
-  "dashAiRuleEvidenceCompletion": "Average completion on recorded days this week: {average}%",
-  "@dashAiRuleEvidenceCompletion": {
-    "placeholders": {
-      "average": {
-        "type": "int"
-      }
-    }
-  },
-  "@dashAiAllOnTrack": {
-    "placeholders": {
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "dashAttentionTitle": "Members to check",
   "dashMoreCount": "+{count}",
   "@dashMoreCount": {
@@ -372,17 +301,6 @@
     "description": "Unit after a person count. Korean uses the counter 명; English omits it. Intentionally empty."
   },
   "clientsLoadFailed": "Couldn't load member data",
-  "clientsCountSummary": "{total} members · {active} active",
-  "@clientsCountSummary": {
-    "placeholders": {
-      "total": {
-        "type": "int"
-      },
-      "active": {
-        "type": "int"
-      }
-    }
-  },
   "clientsNew": "Register new member",
   "clientsTitle": "Member management",
   "clientsManagementAttention": "Needs attention",
@@ -392,7 +310,6 @@
   "clientsSortName": "Name A–Z",
   "clientsSortNameDescending": "Name Z–A",
   "clientsSortRecentMessage": "Recent conversations",
-  "clientsSortActiveFirst": "Active members first",
   "clientsFilterLabel": "Filters",
   "clientsToolbarCount": "{shown} members · {active} active",
   "@clientsToolbarCount": {
@@ -415,21 +332,90 @@
       }
     }
   },
-  "clientsFilterSummary": "{filter} · {shown}/{total}",
-  "@clientsFilterSummary": {
+  "clientsMemberCount": "{total} members",
+  "@clientsMemberCount": {
     "placeholders": {
-      "filter": {
-        "type": "String"
-      },
-      "shown": {
-        "type": "int"
-      },
       "total": {
         "type": "int"
       }
     }
   },
-  "clientsSeeAll": "See all",
+  "clientsSignalDiscomfort": "Pain",
+  "clientsSignalRecordGap": "No logs",
+  "clientsSignalRecordGapDays": "No logs {days}d",
+  "@clientsSignalRecordGapDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRecordGapLong": "No logs 30d+",
+  "clientsSignalNoShow": "No-shows",
+  "clientsSignalNoShowCount": "{count} no-shows",
+  "@clientsSignalNoShowCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRoutineMissed": "Routine skipped",
+  "clientsSignalExerciseGoalLow": "Low exercise",
+  "clientsSignalExerciseGoalLowPercent": "Exercise {percent}%",
+  "@clientsSignalExerciseGoalLowPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalCalorieOff": "Off calorie goal",
+  "clientsSignalCalorieOver": "Calories over",
+  "clientsSignalCalorieUnder": "Calories under",
+  "clientsSignalProteinLow": "Low protein",
+  "clientsSignalCalorieOverPercent": "Calories {percent}% over",
+  "@clientsSignalCalorieOverPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalCalorieUnderPercent": "Calories {percent}% under",
+  "@clientsSignalCalorieUnderPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalProteinPercent": "Protein {percent}% of goal",
+  "@clientsSignalProteinPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRoutineMissedDays": "Routine skipped {days}d",
+  "@clientsSignalRoutineMissedDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalUnanswered": "Awaiting reply",
+  "clientsSignalMore": "+{count}",
+  "@clientsSignalMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsAttentionClear": "Clear attention filter",
   "memberHealthLoadFailed": "Couldn't load the member profile. Please try again",
   "memberHealthSaveFailed": "Couldn't save the member profile. Please try again",
   "memberHealthSaving": "Saving…",
@@ -904,8 +890,6 @@
   },
   "reportsCompletionAvg": "Workout completion",
   "reportsWeeklyCompletion": "Weekly completion",
-  "clientWeeklyRoutineAdherence": "Weekly adherence",
-  "clientRoutineAdherenceUnmeasured": "Not measured",
   "reportsCompletionByDay": "Weekly workout completion",
   "reportsNoWorkoutsThisWeek": "No workouts logged this week",
   "reportsMetricTrend": "{metric} trend",
@@ -1680,7 +1664,6 @@
   "alertSugarOver": "Sugar over target",
   "alertLowCompletion": "Low completion",
   "alertAwaitingReply": "Awaiting reply",
-  "clientLastRoutine": "Last program",
   "metricOverBy": "{unit} over",
   "@metricOverBy": {
     "placeholders": {
@@ -1930,29 +1913,6 @@
       }
     }
   },
-  "dashTodoSodiumSubtitle": "Sodium {sodiumMg}mg · target {targetMg}mg",
-  "@dashTodoSodiumSubtitle": {
-    "placeholders": {
-      "sodiumMg": {
-        "type": "int"
-      },
-      "targetMg": {
-        "type": "int"
-      }
-    }
-  },
-  "dashTodoSugarSubtitle": "Sugar {sugarG}g · target {targetG}g",
-  "@dashTodoSugarSubtitle": {
-    "placeholders": {
-      "sugarG": {
-        "type": "int"
-      },
-      "targetG": {
-        "type": "int"
-      }
-    }
-  },
-  "dashTodoCompletionSubtitle": "Low completion · check recent records",
   "dashTodoCarriedOverDemoSubtitle": "Diet feedback left over from yesterday",
   "@dashTodoCarriedOverDemoSubtitle": {
     "description": "Subtitle of the demo carried-over task shown before real history exists."

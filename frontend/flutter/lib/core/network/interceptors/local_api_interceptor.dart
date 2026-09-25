@@ -84,7 +84,9 @@ class LocalApiInterceptor extends Interceptor {
   /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.
   final DemoStreakShieldBook? _shieldsArg;
   late final DemoStreakShieldBook _shields =
-      _shieldsArg ?? _couponsArg?.shields ?? DemoStreakShieldBook(ledger: _points);
+      _shieldsArg ??
+      _couponsArg?.shields ??
+      DemoStreakShieldBook(ledger: _points);
 
   /// 그래프 색(#2076). 쿠폰 원장이 들고 있는 것을 함께 쓴다 — 사용처에서 연 색이
   /// 기록 그래프에 바로 보인다.
@@ -130,6 +132,10 @@ class LocalApiInterceptor extends Interceptor {
     'GET /version': _version,
     'GET /dashboard/summary': _dashboardSummary,
     'GET /diet/days/today': _dietToday,
+    // 기간 그래프가 한 번에 받아 가는 날짜별 합계 (#2236).
+    'GET /diet/days': _dietPeriod,
+    // `전체` 가 어디서부터 그릴지 — 식단·운동의 첫 기록일 (#2079, #2236).
+    'GET /me/records/span': _recordSpan,
     'GET /diet/advice': _dietAdvice,
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
@@ -936,6 +942,102 @@ class LocalApiInterceptor extends Interceptor {
       );
     }
     return _dietForDate(options, date);
+  }
+
+  /// `GET /diet/days?from=&to=` — 날짜별 합계. 끼니·사진은 싣지 않는다. (#2236)
+  ///
+  /// 서버(`diet_service.build_period`)와 같은 규칙이다: `from` 을 생략하면 첫
+  /// 기록일부터, `to` 가 없거나 오늘보다 뒤면 오늘까지, 기록이 없는 날도 0 으로
+  /// 채운다. 데모와 실 연동의 그래프가 같은 그림이어야 한다.
+  Future<Response<Object?>> _dietPeriod(RequestOptions options) async {
+    for (final String key in const <String>['from', 'to']) {
+      final Object? raw = options.queryParameters[key];
+      if (raw != null && (raw is! String || !_isDateString(raw))) {
+        return Response<Object?>(
+          requestOptions: options,
+          statusCode: 422,
+          data: <String, Object?>{
+            'detail': <Map<String, Object?>>[
+              <String, Object?>{
+                'type': 'date_from_datetime_parsing',
+                'loc': <String>['query', key],
+                'msg': 'Input should be a valid date',
+                'input': raw,
+              },
+            ],
+          },
+        );
+      }
+    }
+    final DateTime today = _dateOnly(nowKst());
+    DateTime last = _queryDate(options, 'to') ?? today;
+    if (last.isAfter(today)) last = today;
+    DateTime first =
+        _queryDate(options, 'from') ?? await _firstDietDate() ?? last;
+    if (first.isAfter(last)) first = last;
+
+    final Map<String, List<num>> totals = <String, List<num>>{};
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      final DateTime? date = DateTime.tryParse(row.date);
+      if (date == null || date.isBefore(first) || date.isAfter(last)) continue;
+      final foods = (jsonDecode(row.foodsJson) as List<Object?>)
+          .cast<Object?>();
+      final macros = _foodMacroTotals(foods);
+      final List<num> day = totals.putIfAbsent(
+        row.date,
+        () => <num>[0, 0, 0, 0, 0, 0],
+      );
+      day[0] += row.totalCalories;
+      day[1] += row.sodiumMg;
+      day[2] += row.sugarG;
+      day[3] += macros.carbsG;
+      day[4] += macros.proteinG;
+      day[5] += macros.fatG;
+    }
+
+    final List<Map<String, Object?>> days = <Map<String, Object?>>[];
+    DateTime cursor = first;
+    while (!cursor.isAfter(last)) {
+      final String key = _dateString(cursor);
+      final List<num> day = totals[key] ?? const <num>[0, 0, 0, 0, 0, 0];
+      days.add(<String, Object?>{
+        'date': key,
+        'total_calories': day[0].round(),
+        'total_sodium_mg': day[1].round(),
+        'total_sugar_g': day[2].toDouble(),
+        'carbs_g': day[3].toDouble(),
+        'protein_g': day[4].toDouble(),
+        'fat_g': day[5].toDouble(),
+      });
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 1);
+    }
+    return _ok(options, <String, Object?>{
+      'from_date': _dateString(first),
+      'to_date': _dateString(last),
+      'days': days,
+    });
+  }
+
+  /// `GET /me/records/span` — 식단·운동을 처음 남긴 날. 없으면 null. (#2236)
+  Future<Response<Object?>> _recordSpan(RequestOptions options) async {
+    final DateTime? diet = await _firstDietDate();
+    final Set<String> exerciseDays = await _exerciseDates();
+    final String? exercise = exerciseDays.isEmpty
+        ? null
+        : (exerciseDays.toList()..sort()).first;
+    return _ok(options, <String, Object?>{
+      'diet_first_date': diet == null ? null : _dateString(diet),
+      'exercise_first_date': exercise,
+    });
+  }
+
+  /// 식단을 처음 남긴 날. 데모 DB 는 한 회원의 기록뿐이라 통째로 읽어도 가볍다.
+  Future<DateTime?> _firstDietDate() async {
+    String? first;
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      if (first == null || row.date.compareTo(first) < 0) first = row.date;
+    }
+    return first == null ? null : DateTime.tryParse(first);
   }
 
   Future<Response<Object?>> _dietForDate(
@@ -2010,11 +2112,6 @@ class LocalApiInterceptor extends Interceptor {
 
   // ---- Schedule ----
 
-
-
-
-
-
   // ---- Notifications ----
 
   /// 실서버와 같은 계약으로 답한다 — 최신순 한 쪽, `limit`·`before`·`before_id`
@@ -2520,7 +2617,9 @@ class LocalApiInterceptor extends Interceptor {
   /// 회원이 쓴 말은 대화에 그대로 남는다.
   ///
   /// 이미 치운 줄을 다시 눌러도 200 이다 — 누른 쪽이 바라는 상태가 이미 참이다.
-  Future<Response<Object?>> _aiCoachInsightDismiss(RequestOptions options) async {
+  Future<Response<Object?>> _aiCoachInsightDismiss(
+    RequestOptions options,
+  ) async {
     final String messageId = options.path.split('/').last;
     final List<Map<String, Object?>> rows = await _aiCoachMessages();
     final int index = rows.indexWhere(
@@ -3119,10 +3218,7 @@ class LocalApiInterceptor extends Interceptor {
 
   Future<Response<Object?>> _activityCalendar(RequestOptions options) async {
     final DateTime today = _dateOnly(nowKst());
-    final DateTime last = _minDate(
-      _queryDate(options, 'to') ?? today,
-      today,
-    );
+    final DateTime last = _minDate(_queryDate(options, 'to') ?? today, today);
     final DateTime first = _minDate(
       // 구간을 주지 않으면 오늘로 끝나는 371일(53주)이다 — 앱이 그리는 격자와
       // 같은 눈금이다. 서버 `activity_calendar_service.MAX_DAYS` 와 같은 값.
@@ -3262,8 +3358,7 @@ class LocalApiInterceptor extends Interceptor {
   /// [monday] 주에 운동 기록이 있는 날. 목업 운동 저장소가 붙인 출처가 있으면 그것을,
   /// 없으면(테스트·운동 저장소를 아직 만들지 않음) 이 인터셉터의 운동 표를 본다.
   Future<Set<DateTime>> _exerciseDaysOf(DateTime monday) async {
-    final Set<DateTime> Function(DateTime)? recorded =
-        _challenges.recordedDays;
+    final Set<DateTime> Function(DateTime)? recorded = _challenges.recordedDays;
     if (recorded != null) return recorded(monday);
     const List<String> labels = <String>['월', '화', '수', '목', '금', '토', '일'];
     final String weekStart =
@@ -3285,19 +3380,18 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
-  static Map<String, Object?>? _demoActionFor(String category) => switch (
-    category
-  ) {
-    'benefits' => const <String, Object?>{
-      'label': '내 혜택 보기',
-      'target': 'my_benefits',
-    },
-    'points_shop' => const <String, Object?>{
-      'label': '포인트 사용처 보기',
-      'target': 'points_shop',
-    },
-    _ => null,
-  };
+  static Map<String, Object?>? _demoActionFor(String category) =>
+      switch (category) {
+        'benefits' => const <String, Object?>{
+          'label': '내 혜택 보기',
+          'target': 'my_benefits',
+        },
+        'points_shop' => const <String, Object?>{
+          'label': '포인트 사용처 보기',
+          'target': 'points_shop',
+        },
+        _ => null,
+      };
 
   // ---- Places ----
 
