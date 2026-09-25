@@ -1043,12 +1043,12 @@
   },
   "aiPersonalStepLoadFailed": "AI 개인운동 제안을 불러오지 못했어요",
   "aiPersonalStepNoSuggestion": "오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.",
-  "aiProgramExerciseRemoveBody": "{name}을(를) 이번 프로그램 구성에서 빼요.",
+  "aiProgramExerciseRemoveBody": "{name} 이번 프로그램 구성에서 빼요.",
   "@aiProgramExerciseRemoveBody": {
     "placeholders": { "name": { "type": "String" } }
   },
   "aiPersonalDismissTitle": "이 운동을 뺄까요?",
-  "aiPersonalDismissBody": "{name}을(를) 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.",
+  "aiPersonalDismissBody": "{name} 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.",
   "@aiPersonalDismissBody": {
     "placeholders": { "name": { "type": "String" } }
   },

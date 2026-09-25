@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -495,9 +496,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // PT 후보에서 빼는 것은 이번 구성에서 지우는 일이고, 개인운동에서 빼는
       // 것은 서버의 AI 제안까지 거절하는 일이다 — 되돌릴 수 있는 범위가 달라
       // 문구도 나눈다.
+      // 이름은 조사를 붙여 넘긴다 — `을(를)` 은 사람이 쓴 문장으로 읽히지
+      // 않는다.
       message: personal
-          ? l.aiPersonalDismissBody(name)
-          : l.aiProgramExerciseRemoveBody(name),
+          ? l.aiPersonalDismissBody(withObjectJosa(name))
+          : l.aiProgramExerciseRemoveBody(withObjectJosa(name)),
       confirmLabel: l.actionDelete,
       cancelLabel: l.actionCancel,
       destructive: true,

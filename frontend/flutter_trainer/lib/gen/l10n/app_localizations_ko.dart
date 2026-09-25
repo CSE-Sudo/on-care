@@ -2521,7 +2521,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiProgramExerciseRemoveBody(String name) {
-    return '$name을(를) 이번 프로그램 구성에서 빼요.';
+    return '$name 이번 프로그램 구성에서 빼요.';
   }
 
   @override
@@ -2529,7 +2529,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiPersonalDismissBody(String name) {
-    return '$name을(를) 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.';
+    return '$name 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.';
   }
 
   @override
