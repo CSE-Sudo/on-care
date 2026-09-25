@@ -5,10 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/features/dashboard/presentation/widgets/attention_card.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -74,27 +72,31 @@ void main() {
   /// 이행률 경고는 `weekCompletion` 을 직접 준다 — 시드처럼 오늘 요일에 따라
   /// 잘리는 값을 쓰면 판정이 요일을 탄다.
   List<Override> attentionRosterOverrides() {
-    const List<int> lowWeek = <int>[40, 40, 0, 0, 0, 0, 0];
-    // 주의 회원 수는 PT 관리 신호로 센다(#2204). 대시보드 카드의 행은 아직 옛
-    // 나트륨·당류·이행률 기준을 쓰므로, 두 기준에 모두 걸리게 둘 다 준다.
-    const List<ClientSignal> flagged = <ClientSignal>[
-      ClientSignal(ClientSignalKind.recordGap, days: 3),
-    ];
+    // 대시보드는 PT 관리 신호로 말한다(#2244) — 식단 신호 여섯(칼로리 5 ·
+    // 단백질 1), 운동 신호 둘. 나트륨·이행률은 더 이상 기준이 아니다.
     final List<TrainerClient> roster = <TrainerClient>[
       for (var i = 0; i < 5; i++)
         makeClient(
-          id: 'sodium-$i',
-          name: '나트륨 회원 $i',
-          sodiumMg: 2500,
-          signals: flagged,
+          id: 'calorie-$i',
+          name: '칼로리 회원 $i',
+          signals: const <ClientSignal>[
+            ClientSignal(ClientSignalKind.calorieOff, percent: 20, over: true),
+          ],
         ),
-      makeClient(id: 'sugar-0', name: '당류 회원', sugarG: 80, signals: flagged),
+      makeClient(
+        id: 'protein-0',
+        name: '단백질 회원',
+        signals: const <ClientSignal>[
+          ClientSignal(ClientSignalKind.proteinLow, percent: 60),
+        ],
+      ),
       for (var i = 0; i < 2; i++)
         makeClient(
-          id: 'completion-$i',
-          name: '이행률 회원 $i',
-          weekCompletion: lowWeek,
-          signals: flagged,
+          id: 'exercise-$i',
+          name: '운동 회원 $i',
+          signals: const <ClientSignal>[
+            ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 30),
+          ],
         ),
       makeClient(id: 'reply-0', name: '답장 회원 0'),
       makeClient(id: 'reply-1', name: '답장 회원 1'),
@@ -195,8 +197,8 @@ void main() {
     // 통과·실패가 갈렸다.
     await openDashboard(tester, extraOverrides: attentionRosterOverrides());
 
-    // 답장을 기다리는 스레드가 둘이지만 주의는 건강 신호만 센다 — 나트륨 5 ·
-    // 당류 1 · 이행률 2 로 여덟이다. 답장 대기는 목록에는 남되 주의가 아니다.
+    // 답장을 기다리는 스레드가 둘이지만 주의는 PT 관리 신호만 센다 — 칼로리
+    // 5 · 단백질 1 · 운동 2 로 여덟이다. 답장 대기는 주의가 아니다.
     // 둘이 다시 합쳐지면 이 카드가 더 큰 수를 말하며 뜻을 잃는다.
     final attention = tester.widget<AppStatCard>(
       find.ancestor(of: find.text('주의 회원'), matching: find.byType(AppStatCard)),
@@ -204,7 +206,8 @@ void main() {
     expect(attention.value, '8');
     // 1명 이상이면 빨강, 0명이면 초록 — 판단을 담는 지표라 색으로도 말한다.
     expect(attention.toneColor, OnCareColors.danger);
-    expect(find.text('식단·이행률 확인'), findsOneWidget);
+    expect(find.text('관리 신호 확인'), findsOneWidget);
+    expect(find.text('식단·이행률 확인'), findsNothing);
   });
 
   testWidgets('a KPI deep-links into the pre-filtered roster', (tester) async {
@@ -269,16 +272,24 @@ void main() {
     );
   });
 
-  testWidgets('오늘 할 일은 건강 신호가 있는 회원을 미션으로 보여주고 그 섹션으로 연결한다', (tester) async {
+  testWidgets('오늘 할 일은 PT 관리 신호가 있는 회원을 미션으로 보여주고 그 섹션으로 연결한다', (tester) async {
     await openDashboard(tester, extraOverrides: attentionRosterOverrides());
     await expandTaskCategory(tester, '식단');
 
-    // 건강 신호 여덟(나트륨 5 · 당류 1 · 이행률 2) 전부가 미션이 된다.
-    // 답장 대기 둘은 건강 신호가 아니라서 오늘 할 일에 없다(#907).
-    expect(findMissionRow('feedback-sodiumOver'), findsNWidgets(5));
+    // 식단 신호 여섯(칼로리 5 · 단백질 1)이 식단 미션이 된다(#2244). 답장
+    // 대기 둘은 주의 신호가 아니라서 오늘 할 일에 없다(#907).
+    expect(findMissionRow('feedback-calorie_off'), findsNWidgets(5));
+    expect(findMissionRow('feedback-protein_low'), findsOneWidget);
+    // 할 일은 목록 배지보다 자세히 — 근거 수치를 붙인다.
+    expect(find.textContaining('칼로리 20% 과다'), findsNWidgets(5));
+    expect(find.textContaining('단백질 목표의 60%'), findsOneWidget);
+    expect(find.textContaining('나트륨'), findsNothing);
     expect(find.text('답장 대기'), findsNothing);
 
-    final mission = findMissionRow('feedback-sodiumOver').first;
+    await expandTaskCategory(tester, '운동');
+    expect(findMissionRow('feedback-exercise_goal_low'), findsNWidgets(2));
+
+    final mission = findMissionRow('feedback-calorie_off').first;
     await tester.ensureVisible(mission);
     await tester.tap(mission);
     await settle(tester);
@@ -291,10 +302,13 @@ void main() {
     await openDashboard(tester);
 
     expect(find.text('활동 피드백'), findsOneWidget);
-    expect(find.text('이행률 저조·이탈 위험 감지'), findsOneWidget);
-    expect(find.text('7일 이상 활동 저조'), findsOneWidget);
+    // 세 항목 모두 PT 관리 신호 기준이다(#2244).
+    expect(find.text('운동 목표 미달·배정 루틴 미수행'), findsOneWidget);
+    expect(find.text('기록 끊김'), findsOneWidget);
     expect(find.text('식단 피드백 미완료'), findsOneWidget);
     expect(find.textContaining('난이도를 낮추고'), findsOneWidget);
+    expect(find.textContaining('나트륨'), findsNothing);
+    expect(find.textContaining('이행률'), findsNothing);
   });
 
   for (final scenario in <({String kind, String route})>[
@@ -409,7 +423,9 @@ void main() {
     final feedbackClient = makeClient(
       id: 'feedback-client',
       name: '식단 회원',
-      sodiumMg: 2500,
+      signals: const <ClientSignal>[
+        ClientSignal(ClientSignalKind.proteinLow, percent: 60),
+      ],
     );
     final programClient = makeClient(
       id: 'program-client',
@@ -458,7 +474,7 @@ void main() {
   });
 
   for (final scenario in <({String prefix, String category, String route})>[
-    (prefix: 'feedback-sodiumOver', category: '식단', route: '/diet'),
+    (prefix: 'feedback-calorie_off', category: '식단', route: '/diet'),
     (prefix: 'program', category: '프로그램', route: '/coaching'),
     (prefix: 'report', category: '리포트', route: '/reports'),
   ]) {
@@ -466,8 +482,10 @@ void main() {
       final client = makeClient(
         id: 'nav-client',
         name: '이동 회원',
-        sodiumMg: 2500,
         lastRoutine: '-',
+        signals: const <ClientSignal>[
+          ClientSignal(ClientSignalKind.calorieOff, percent: 20, over: false),
+        ],
       );
       await openDashboard(
         tester,
@@ -511,20 +529,21 @@ void main() {
     );
   });
 
-  group('AttentionCard.sectionFor', () {
-    test('each alert opens the sub-tab that actually addresses it', () {
-      // The row is a shortcut to the fix, not just to the client.
-      expect(AttentionCard.sectionFor(ClientAlert.unanswered), 'chat');
-      expect(AttentionCard.sectionFor(ClientAlert.sodiumOver), 'diet');
-      expect(AttentionCard.sectionFor(ClientAlert.lowCompletion), 'workout');
+  group('ClientSignalKind.detailSection', () {
+    test('each signal opens the sub-tab that actually addresses it', () {
+      // The to-do is a shortcut to the fix, not just to the client.
+      expect(ClientSignalKind.discomfort.detailSection, 'chat');
+      expect(ClientSignalKind.calorieOff.detailSection, 'diet');
+      expect(ClientSignalKind.proteinLow.detailSection, 'diet');
+      expect(ClientSignalKind.exerciseGoalLow.detailSection, 'workout');
     });
 
-    test('every alert has a destination', () {
-      for (final alert in ClientAlert.values) {
+    test('every signal has a destination', () {
+      for (final kind in ClientSignalKind.values) {
         expect(
           AppRoutes.clientSections,
-          contains(AttentionCard.sectionFor(alert)),
-          reason: '${alert.label}의 이동 대상이 없는 섹션이에요',
+          contains(kind.detailSection),
+          reason: '${kind.wire}의 이동 대상이 없는 섹션이에요',
         );
       }
     });

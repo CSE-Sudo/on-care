@@ -313,7 +313,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashNoIssues => '이상 없음';
 
   @override
-  String get dashCheckSodiumCompletion => '식단·이행률 확인';
+  String get dashCheckPtSignals => '관리 신호 확인';
 
   @override
   String get dashMessages => '메시지';
@@ -334,19 +334,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashChurnRiskEmpty => '지금은 이탈 위험 신호가 없어요.';
 
   @override
-  String get dashActivityDifficultyTitle => '이행률 저조·이탈 위험 감지';
+  String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names 회원이 개인 운동 이행률이 낮거나 이탈 위험 신호(부정적 피드백 포함)를 보이고 있어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
+    return '$names 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
   }
 
   @override
-  String get dashActivityInactiveTitle => '7일 이상 활동 저조';
+  String get dashActivityInactiveTitle => '기록 끊김';
 
   @override
   String dashActivityInactiveDesc(String names) {
-    return '$names 회원이 최근 7일 동안 운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.';
+    return '$names 회원이 며칠째 식단·운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.';
   }
 
   @override
@@ -354,7 +354,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names 회원이 나트륨·당류 초과 등 식단 주의 신호가 있는데 최근 7일간 피드백을 받지 못했어요. 식단 코멘트를 남겨 확인했다는 걸 알려 주세요.';
+    return '$names 회원이 칼로리 목표를 벗어났거나 단백질이 부족한데 최근 7일간 피드백을 받지 못했어요. 식단 코멘트를 남겨 확인했다는 걸 알려 주세요.';
   }
 
   @override
@@ -552,15 +552,32 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSignalProteinLow => '단백질 부족';
 
   @override
+  String clientsSignalCalorieOverPercent(int percent) {
+    return '칼로리 $percent% 과다';
+  }
+
+  @override
+  String clientsSignalCalorieUnderPercent(int percent) {
+    return '칼로리 $percent% 부족';
+  }
+
+  @override
+  String clientsSignalProteinPercent(int percent) {
+    return '단백질 목표의 $percent%';
+  }
+
+  @override
+  String clientsSignalRoutineMissedDays(int days) {
+    return '배정 루틴 $days일 미수행';
+  }
+
+  @override
   String get clientsSignalUnanswered => '답장 대기';
 
   @override
   String clientsSignalMore(int count) {
     return '+$count';
   }
-
-  @override
-  String get clientsAttentionActive => '주의 회원';
 
   @override
   String get clientsAttentionClear => '주의 회원 보기 해제';
@@ -2856,19 +2873,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String dashTodoConsultationSubtitle(int month, int day) {
     return '$month/$day 상담 요청';
   }
-
-  @override
-  String dashTodoSodiumSubtitle(int sodiumMg, int targetMg) {
-    return '나트륨 ${sodiumMg}mg · 목표 ${targetMg}mg';
-  }
-
-  @override
-  String dashTodoSugarSubtitle(int sugarG, int targetG) {
-    return '당류 ${sugarG}g · 목표 ${targetG}g';
-  }
-
-  @override
-  String get dashTodoCompletionSubtitle => '이행률 저조 · 최근 기록 확인';
 
   @override
   String get dashTodoCarriedOverDemoSubtitle => '어제 남긴 식단 피드백';
