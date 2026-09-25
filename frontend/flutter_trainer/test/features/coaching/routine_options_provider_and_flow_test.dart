@@ -646,6 +646,50 @@ void main() {
       );
     });
 
+    testWidgets('건너뛴 뒤 조건 설정으로 돌아가 후보를 만들면 다시 PT 흐름이 된다 '
+        '(#2223)', (tester) async {
+      // 건너뛴 채로 두면 `건너뜀` 으로 그린 칸에 선 채 프로그램을 고르게 되고,
+      // 마지막 버튼이 `회원에게 보내기` 라 방금 고른 PT 구성이 버려진다.
+      await pumpFlow(tester, suggestions: const <RoutineSuggestion>[]);
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+      expect(find.text('건너뜀'), findsNWidgets(2));
+
+      // 마음을 바꿔 조건 설정으로 되돌아가 후보를 만든다.
+      await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
+      await tester.pumpAndSettle();
+      await generate(tester);
+
+      // 프로그램 선택 단계에 서고, 건너뛴 칸은 하나도 남지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+        findsOneWidget,
+      );
+      expect(find.text('건너뜀'), findsNothing);
+
+      // 마지막 칸의 버튼도 `회원에게 보내기` 가 아니라 편집기로 넘기는 쪽이다.
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('apply-routine-to-template')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('complete-personal-routines')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('send-routine-only')),
+        findsNothing,
+      );
+    });
+
     testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {
       await pumpFlow(
         tester,

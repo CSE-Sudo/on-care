@@ -301,8 +301,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         _selectedKey = 'A';
         _edited = List<RoutineExercise>.of(options.planA.exercises);
         _showAddExercise = false;
-        _stage = 1;
-        _maxReachedStage = 1;
+        // 후보를 만들었다는 것은 곧 **PT 프로그램을 짜겠다**는 뜻이다. 앞서
+        // `PT 없이 개인운동만 짜기` 로 건너뛰었다가 조건 설정으로 되돌아와
+        // 생성한 경우라도 여기서 되돌린다 — 그러지 않으면 `건너뜀` 으로 그린
+        // 칸에 선 채 프로그램을 고르게 되고, 마지막 버튼이 `회원에게 보내기`
+        // 라 방금 고른 PT 구성이 조용히 버려진다.
+        _kind = ProgramKind.ptWithRoutine;
+        _stage = _nextStageAfter(0);
+        _maxReachedStage = _stage;
         // 후보가 새로 만들어졌다 — 멱등키를 무효로 만든다(내용이 달라졌다).
         _routineOnlyRequestId = null;
         // 트레이너가 아직 건드리지 않은 조건만 서버가 실제로 쓴 값(또는
