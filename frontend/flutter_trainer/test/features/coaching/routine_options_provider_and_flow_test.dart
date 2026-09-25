@@ -316,6 +316,12 @@ void main() {
       List<RoutineHistoryEntry> history = const <RoutineHistoryEntry>[],
       List<TrainerMemo> memos = const <TrainerMemo>[],
       List<RoutineSuggestion>? suggestions,
+      void Function(
+        List<RoutineExercise> exercises,
+        List<RoutineExercise> personal,
+        ProgramKind kind,
+      )?
+      onReviewCompleted,
     }) async {
       tester.view.physicalSize = const Size(1000, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -350,7 +356,10 @@ void main() {
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const AiRoutineOptionsFlow(client: _client),
+            home: AiRoutineOptionsFlow(
+              client: _client,
+              onReviewCompleted: onReviewCompleted,
+            ),
           ),
         ),
       );
@@ -706,6 +715,58 @@ void main() {
         findsOneWidget,
       );
       expect(done, findsNothing);
+    });
+
+    testWidgets('AI 제안을 고치면 출처가 트레이너가 된다 (#2223)', (tester) async {
+      List<RoutineExercise>? personal;
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '코어 스트레칭',
+            minutes: 10,
+            type: '스트레칭',
+            reason: '허리를 편하게',
+          ),
+        ],
+        onReviewCompleted: (exercises, items, kind) => personal = items,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 첫 줄만 펼쳐서 유형을 바꾼다.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-category-personal-0-근력')),
+      );
+      await tester.pumpAndSettle();
+
+      final apply = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      // 회원 앱은 이 값으로 `트레이너 직접 추천` 과 `AI 추천` 을 가른다(#782).
+      expect(personal, isNotNull);
+      expect(personal![0].source, 'trainer');
+      // 손대지 않은 줄은 그대로 AI 다.
+      expect(personal![1].source, 'ai');
+      // `AI 추천 사유` 는 트레이너만 보는 칸이라 고친 뒤에도 남는다.
+      expect(personal![0].reason, '숨이 차면 속도를 낮추세요');
     });
 
     testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {

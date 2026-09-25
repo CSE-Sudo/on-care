@@ -1337,6 +1337,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
+  /// 트레이너가 내용을 고친 줄은 출처가 트레이너가 된다(#2223).
+  ///
+  /// 회원 앱은 이 값으로 `AI 추천 · OOO 확인` 과 `트레이너 직접 추천` 을
+  /// 가른다(#782). 이름·유형·시간·세트를 다 바꿔 놓고도 `AI 추천` 으로 남으면
+  /// 회원이 읽는 무게가 사실과 달라진다. `AI 추천 사유` 는 그대로 남는다 —
+  /// 그건 트레이너만 보는 칸이고, 왜 이 운동이 올라왔는지는 고친 뒤에도
+  /// 알아야 한다.
+  RoutineExercise _asTrainerEdit(RoutineExercise exercise) =>
+      exercise.source == 'ai'
+      ? exercise.copyWith(source: 'trainer')
+      : exercise;
+
   /// 운동 한 줄 편집기. 프로그램 후보와 개인운동이 **같은 편집기**를 쓴다 —
   /// 대상 목록만 단계에 따라 다르다([_activeList], #2223).
   Widget _exerciseEditor(int index) {
@@ -1354,7 +1366,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   keyPrefix: 'routine-category-$_activeKeyPrefix-$index',
                   value: exercise.type,
                   onChanged: (type) => setState(() {
-                    list[index] = exercise.copyWith(type: type);
+                    list[index] = _asTrainerEdit(exercise.copyWith(type: type));
                   }),
                 ),
               ),
@@ -1400,11 +1412,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               // 이름이 버티는 운동이면 `횟수` 칸이 `버티는 시간` 으로
               // 바뀐다(#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다 —
               // 그 선택은 `_measureChosen` 이 기억한다.
-              list[index] = list[index].copyWith(
-                name: name,
-                isHold: _activeMeasureChosen.contains(index)
-                    ? null
-                    : isIsometricExerciseName(name),
+              list[index] = _asTrainerEdit(list[index].copyWith(
+                  name: name,
+                  isHold: _activeMeasureChosen.contains(index)
+                      ? null
+                      : isIsometricExerciseName(name),
+                ),
               );
             },
           ),
@@ -1419,7 +1432,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 isHold: exercise.isHold,
                 onChanged: (bool hold) => setState(() {
                   _activeMeasureChosen.add(index);
-                  list[index] = list[index].copyWith(isHold: hold);
+                  list[index] = _asTrainerEdit(list[index].copyWith(isHold: hold));
                 }),
               ),
             ),
@@ -1441,7 +1454,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     sets: exercise.sets > 0 ? exercise.sets : 3,
                     compact: true,
                     onChanged: (sets) => setState(() {
-                      list[index] = list[index].copyWith(sets: sets);
+                      list[index] = _asTrainerEdit(list[index].copyWith(sets: sets));
                     }),
                   ),
                 ),
@@ -1460,8 +1473,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                               : 60,
                           compact: true,
                           onChanged: (seconds) => setState(() {
-                            list[index] = list[index].copyWith(
-                              holdSeconds: seconds,
+                            list[index] = _asTrainerEdit(list[index].copyWith(holdSeconds: seconds),
                             );
                           }),
                         )
@@ -1473,7 +1485,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                           reps: exercise.reps > 0 ? exercise.reps : 10,
                           compact: true,
                           onChanged: (reps) => setState(() {
-                            list[index] = list[index].copyWith(reps: reps);
+                            list[index] = _asTrainerEdit(list[index].copyWith(reps: reps));
                           }),
                         ),
                 ),
@@ -1487,7 +1499,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     weight: exercise.weight,
                     compact: true,
                     onChanged: (weight) => setState(() {
-                      list[index] = list[index].copyWith(weight: weight);
+                      list[index] = _asTrainerEdit(list[index].copyWith(weight: weight));
                     }),
                   ),
                 ),
@@ -1500,7 +1512,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               minutes: exercise.minutes,
               compact: true,
               onChanged: (minutes) => setState(() {
-                list[index] = list[index].copyWith(minutes: minutes);
+                list[index] = _asTrainerEdit(list[index].copyWith(minutes: minutes));
               }),
             ),
           // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
