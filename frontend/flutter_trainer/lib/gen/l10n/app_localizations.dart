@@ -3518,6 +3518,48 @@ abstract class AppLocalizations {
   /// **'Terms & policies'**
   String get myLegal;
 
+  /// No description provided for @mySupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Support'**
+  String get mySupportTitle;
+
+  /// No description provided for @mySupportFaq.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQ'**
+  String get mySupportFaq;
+
+  /// No description provided for @mySupportInquiry.
+  ///
+  /// In en, this message translates to:
+  /// **'1:1 Inquiry'**
+  String get mySupportInquiry;
+
+  /// No description provided for @mySupportExternalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the KakaoTalk channel'**
+  String get mySupportExternalHint;
+
+  /// No description provided for @mySupportOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link. Please try again in a moment'**
+  String get mySupportOpenFailed;
+
+  /// No description provided for @mySupportEntryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQ, inquiries, policies and account clean-up in one place'**
+  String get mySupportEntryHint;
+
+  /// No description provided for @myAppVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care Trainer · Version 0.1.0'**
+  String get myAppVersion;
+
   /// No description provided for @myLegalTermsTitle.
   ///
   /// In en, this message translates to:

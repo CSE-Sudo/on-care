@@ -17,11 +17,13 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_card
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
+import 'package:oncare_trainer/features/my/domain/support_links.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 내 정보 / 설정 — reached from the sidebar footer, not the nav list.
 ///
@@ -322,22 +324,29 @@ class _MyPageState extends ConsumerState<MyPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final managingClients = widget.tab == 'clients';
+    // 고객 지원은 설정 안의 하위 화면이다 — 회원 관리와 같은 방식으로 연다.
+    final viewingSupport = widget.tab == 'support';
+    final inSubView = managingClients || viewingSupport;
     // 한 열짜리 프로필·설정·목록이라 좁은 폭 틀을 쓴다(옛 최대 폭 760 과 같다).
     return AppWebPage(
       width: AppWebPageWidth.narrow,
       title: managingClients
           ? l.myClientManagement
+          : viewingSupport
+          ? l.mySupportTitle
           : _tab == 0
           ? l.myTabProfile
           : l.myTabSettings,
       subtitle: _profile.name,
-      leading: managingClients
+      leading: inSubView
           ? AppBackButton(
-              onPressed: () => context.go(AppRoutes.mySection('profile')),
+              onPressed: () => context.go(
+                AppRoutes.mySection(managingClients ? 'profile' : 'settings'),
+              ),
             )
           : null,
       actions: <Widget>[
-        if (!managingClients && _tab == 0)
+        if (!inSubView && _tab == 0)
           if (_editing)
             AppButton(
               label: _saving ? l.mySaving : l.actionSave,
@@ -359,7 +368,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            if (!managingClients) ...<Widget>[
+            if (!inSubView) ...<Widget>[
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: AppSegmentedToggle<int>(
@@ -385,12 +394,16 @@ class _MyPageState extends ConsumerState<MyPage> {
                 key: ValueKey<String>(
                   managingClients
                       ? 'my-clients'
+                      : viewingSupport
+                      ? 'my-support'
                       : _tab == 0
                       ? 'my-profile'
                       : 'my-settings',
                 ),
                 child: managingClients
                     ? _buildClientManagement()
+                    : viewingSupport
+                    ? _buildSupport()
                     : _tab == 0
                     ? _buildProfile()
                     : _buildSettings(),
@@ -531,28 +544,6 @@ class _MyPageState extends ConsumerState<MyPage> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
-        // 약관은 계정 카드보다 위에 둔다 — 로그아웃·탈퇴 옆에 붙이면 읽는
-        // 문서가 되돌릴 수 없는 동작과 같은 무게로 보인다. (#968)
-        _SettingsCard(
-          title: l.myLegal,
-          icon: Icons.gavel_rounded,
-          children: <Widget>[
-            _LegalRow(
-              icon: Icons.description_rounded,
-              label: l.myLegalTermsTitle,
-              hint: l.myLegalTermsHint,
-              document: AppRoutes.legalTerms,
-            ),
-            const AppDivider(),
-            _LegalRow(
-              icon: Icons.privacy_tip_rounded,
-              label: l.myLegalPrivacyTitle,
-              hint: l.myLegalPrivacyHint,
-              document: AppRoutes.legalPrivacy,
-            ),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.cardGap),
         _SettingsCard(
           title: l.myAccount,
           icon: Icons.lock_rounded,
@@ -588,26 +579,110 @@ class _MyPageState extends ConsumerState<MyPage> {
                 onPressed: _signOut,
               ),
             ),
-            // 탈퇴는 로그아웃 아래, 더 조용한 문구로 둔다 — 매일 쓰는 동작
-            // 옆에 같은 무게로 놓으면 잘못 누르기 쉽다. (#505)
-            _DeleteAccountRow(
-              enabled: account.supportsDeletion,
-              onTap: _deleteAccount,
-            ),
           ],
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
-        _SettingsCard(
-          title: l.myAppInfo,
-          icon: Icons.info_rounded,
-          children: <Widget>[
-            _InfoRow(label: l.myService, value: l.appTitle),
-            _InfoRow(label: l.myVersion, value: '0.1.0'),
-            _InfoRow(label: l.myContact, value: seedTrainerProfile.email),
-          ],
+        // 약관·개인정보와 탈퇴는 고객 지원 안으로 옮겼다(#2227). 회원 앱과 같은
+        // 자리다 — 읽는 문서와 계정을 정리하는 줄을 한곳에 모으면, 매일 쓰는
+        // 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지 않는다(#505, #968).
+        _SupportEntry(
+          onTap: () => context.go(AppRoutes.mySection('support')),
         ),
       ],
     );
+  }
+
+  /// 고객 지원 — FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보·
+  /// 탈퇴와 앱 버전을 함께 둔다. 회원 앱 `SupportPage` 와 같은 구성이다(#2227).
+  Widget _buildSupport() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final account = ref.watch(trainerAccountRepositoryProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AppCard(
+          padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _SupportRow(
+                key: const ValueKey<String>('support-faq'),
+                icon: Icons.help_rounded,
+                label: l.mySupportFaq,
+                hint: l.mySupportExternalHint,
+                external: true,
+                onTap: () => _openExternal(kSupportChannelUrl),
+              ),
+              const AppDivider(),
+              _SupportRow(
+                key: const ValueKey<String>('support-inquiry'),
+                icon: Icons.chat_rounded,
+                label: l.mySupportInquiry,
+                hint: l.mySupportExternalHint,
+                external: true,
+                onTap: () => _openExternal(kSupportChatUrl),
+              ),
+              const AppDivider(),
+              _LegalRow(
+                icon: Icons.description_rounded,
+                label: l.myLegalTermsTitle,
+                hint: l.myLegalTermsHint,
+                document: AppRoutes.legalTerms,
+              ),
+              const AppDivider(),
+              _LegalRow(
+                icon: Icons.privacy_tip_rounded,
+                label: l.myLegalPrivacyTitle,
+                hint: l.myLegalPrivacyHint,
+                document: AppRoutes.legalPrivacy,
+              ),
+              const AppDivider(),
+              // 탈퇴는 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다(#2019).
+              _DeleteAccountRow(
+                enabled: account.supportsDeletion,
+                onTap: _deleteAccount,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        Center(
+          child: Text(
+            l.myAppVersion,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s4),
+        Center(
+          child: Text(
+            '${l.myContact} ${seedTrainerProfile.email}',
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 외부 링크를 연다. 실패하면 사유를 알린다 — 조용히 아무 일도 일어나지 않는
+  /// 것이 가장 나쁘다(회원 앱과 같은 처리, #507).
+  Future<void> _openExternal(String url) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    bool opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      showAppToast(context, l.mySupportOpenFailed, type: AppToastType.error);
+    }
   }
 
   Future<void> _openPasswordDialog() async {
@@ -1015,6 +1090,78 @@ class _CertsCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// 설정 맨 아래의 고객 지원 입구. 회원 관리 입구와 같은 모양이다(#2227).
+class _SupportEntry extends StatelessWidget {
+  const _SupportEntry({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Semantics(
+      button: true,
+      child: AppCard(
+        key: const ValueKey<String>('my-support-entry'),
+        onTap: onTap,
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: AppSectionHeader(
+                title: l.mySupportTitle,
+                icon: Icons.support_agent_rounded,
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: OnCareSize.iconMedium,
+              color: OnCareColors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 고객 지원의 한 줄. 카카오톡 채널처럼 앱 밖으로 나가는 줄은 그렇다고
+/// 말해 준다 — 눌렀을 때 화면이 바뀌지 않는 이유를 미리 알린다(#507).
+class _SupportRow extends StatelessWidget {
+  const _SupportRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.hint,
+    this.external = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final String? hint;
+  final bool external;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListRow(
+      leading: Icon(
+        icon,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textSecondary,
+      ),
+      title: label,
+      subtitle: hint,
+      trailing: Icon(
+        external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textTertiary,
+      ),
+      onTap: onTap,
     );
   }
 }
