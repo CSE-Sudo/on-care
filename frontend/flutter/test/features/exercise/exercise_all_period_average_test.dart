@@ -27,6 +27,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -66,6 +67,9 @@ Future<void> _openAllPeriod(WidgetTester tester) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        // 데모 픽스처가 들고 있는 35주를 `전체` 로 본다 — 기록 시작일이 정한다
+        // (#2079).
+        testRecordSpanOverride(exercise: testFirstExerciseRecordDate()),
         appConfigProvider.overrideWithValue(_config),
         accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         memberCoachRepositoryProvider.overrideWithValue(

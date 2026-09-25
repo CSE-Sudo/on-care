@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 
 // The roster itself is bulky enough to drown the seeding logic, so it
 // lives next door. `part` keeps the `_Client` family private to this
@@ -15,10 +16,14 @@ part 'seed_clients.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v32']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v33']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v33` 은 로스터에 PT 관리 신호(`signalsJson`)를 싣고, 오세라 대화에 통증을
+/// 말하는 한 줄을 더했다(#2204). 올리지 않으면 오늘 이미 시드된 브라우저의 회원
+/// 목록에 배지가 하나도 뜨지 않는다.
 ///
 /// `_v32` 는 김민수를 뺀 고객의 끼니를 회원 앱 모양으로 맞췄다(#1381) — 거른
 /// 끼니(`거름`·`기록 없음`) 카드를 없애고, 음식마다 한 줄씩 kcal·mg·g 을
@@ -123,7 +128,7 @@ Future<void> seedIfEmpty(
   // 주간 계열을 요일 자리에 놓기 위한 오늘의 인덱스(월=0).
   final todayIndex = now.weekday - 1;
 
-  if (await db.readValue('trainer_seeded_v32') == today) return;
+  if (await db.readValue('trainer_seeded_v33') == today) return;
 
   // 김민수의 하루는 픽스처가 정한다 — 이 앱은 날짜에 붙여 저장하기만 한다(#757).
   final DemoFixture demo = fixture ?? DemoFixture.load();
@@ -298,6 +303,12 @@ Future<void> seedIfEmpty(
                       ? fixtureClient.sugarWeek
                       : _onWeekdays(client.sugarWeek, todayIndex),
                 ),
+              ),
+              signalsJson: Value(
+                jsonEncode(<Map<String, Object?>>[
+                  for (final ClientSignal signal in client.signals)
+                    signal.toJson(),
+                ]),
               ),
               sortOrder: Value(client.id),
             ),
@@ -498,7 +509,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v32', today);
+    await db.putValue('trainer_seeded_v33', today);
   });
 }
 
@@ -1137,6 +1148,7 @@ class _Client {
     required this.aiRoutine,
     required this.history,
     required this.chat,
+    this.signals = const <ClientSignal>[],
   });
   final int id;
   final String name;
@@ -1172,6 +1184,9 @@ class _Client {
   final List<_Routine> aiRoutine;
   final List<_History> history;
   final List<_Chat> chat;
+
+  /// PT 관리 신호(#2204). 서버 로스터의 `signals` 대신 데모가 정해 둔 값이다.
+  final List<ClientSignal> signals;
 }
 
 /// 스레드의 **마지막** 메시지.

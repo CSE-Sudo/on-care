@@ -1,6 +1,7 @@
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 /// Maps the trainer clients/diet/history JSON (the FastAPI `TrainerClientOut`
@@ -33,8 +34,17 @@ TrainerClient trainerClientFromJson(Map<String, Object?> json) {
     sodiumWeek: _intList(json['sodium_week']),
     caloriesWeek: _intList(json['calories_week']),
     sugarWeek: _doubleList(json['sugar_week']),
+    signals: clientSignalsFromJson(json['signals']),
   );
 }
+
+/// 로스터 `signals` → [ClientSignal] 목록. 옛 서버는 필드가 없고, 모르는 종류는
+/// 건너뛴다 — 목록 배지 하나 때문에 로스터 전체가 깨지면 안 된다.
+List<ClientSignal> clientSignalsFromJson(Object? raw) => <ClientSignal>[
+  if (raw is List)
+    for (final Object? item in raw)
+      if (item is Map<String, Object?>) ?ClientSignal.fromJson(item),
+];
 
 /// `GET /v1/trainer/clients/{id}/diet` element → [ClientDietEntry].
 ClientDietEntry clientDietEntryFromJson(Map<String, Object?> json) {
@@ -88,8 +98,8 @@ RoutineHistoryEntry routineHistoryEntryFromJson(Map<String, Object?> json) {
   );
 }
 
-/// Orders the roster by coaching priority: clients over their sodium
-/// target ("확인 필요") first, keeping the server order otherwise. Pure and
+/// Orders the roster by coaching priority: `주의 회원`([needsAttention] — PT
+/// 관리 신호가 있는 회원, #2204) first, keeping the server order otherwise. Pure and
 /// stable so both the Dio and drift repositories can share it and tests
 /// can assert it directly.
 ///
@@ -106,12 +116,12 @@ List<TrainerClient> prioritizeClients(
   ];
   final epoch = DateTime.utc(1970);
   decorated.sort((a, b) {
-    final over = (b.$1.sodiumOverBudget ? 1 : 0).compareTo(
-      a.$1.sodiumOverBudget ? 1 : 0,
+    final attention = (needsAttention(b.$1) ? 1 : 0).compareTo(
+      needsAttention(a.$1) ? 1 : 0,
     );
-    if (over != 0) return over;
-    // Ties break on who spoke most recently — when two clients are both
-    // over target, the one mid-conversation is the one to open first.
+    if (attention != 0) return attention;
+    // Ties break on who spoke most recently — when two clients both need
+    // attention, the one mid-conversation is the one to open first.
     // Absent when the source has no chat signal (the real API's roster
     // endpoint doesn't carry one), which degrades to the incoming order.
     final chat = (lastChatAt[b.$1.id] ?? b.$1.lastMessageAt ?? epoch).compareTo(

@@ -577,11 +577,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsLoadFailed => '회원 정보를 불러오지 못했어요';
 
   @override
-  String clientsCountSummary(int total, int active) {
-    return '$total명 · 활성 $active명';
-  }
-
-  @override
   String get clientsNew => '신규 회원 등록';
 
   @override
@@ -609,9 +604,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSortRecentMessage => '최근 대화순';
 
   @override
-  String get clientsSortActiveFirst => '활성 회원 우선';
-
-  @override
   String get clientsFilterLabel => '필터';
 
   @override
@@ -631,12 +623,68 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String clientsFilterSummary(String filter, int shown, int total) {
-    return '$filter · $shown/$total명';
+  String clientsMemberCount(int total) {
+    return '$total명';
   }
 
   @override
-  String get clientsSeeAll => '전체 보기';
+  String get clientsSignalDiscomfort => '통증·불편';
+
+  @override
+  String get clientsSignalRecordGap => '기록 끊김';
+
+  @override
+  String clientsSignalRecordGapDays(int days) {
+    return '$days일째 기록 없음';
+  }
+
+  @override
+  String get clientsSignalRecordGapLong => '30일 넘게 기록 없음';
+
+  @override
+  String get clientsSignalNoShow => '노쇼·취소 반복';
+
+  @override
+  String clientsSignalNoShowCount(int count) {
+    return '노쇼·취소 $count회';
+  }
+
+  @override
+  String get clientsSignalRoutineMissed => '배정 루틴 미수행';
+
+  @override
+  String get clientsSignalExerciseGoalLow => '운동 목표 미달';
+
+  @override
+  String clientsSignalExerciseGoalLowPercent(int percent) {
+    return '운동 목표 $percent%';
+  }
+
+  @override
+  String get clientsSignalCalorieOff => '칼로리 목표 이탈';
+
+  @override
+  String get clientsSignalCalorieOver => '칼로리 과다';
+
+  @override
+  String get clientsSignalCalorieUnder => '칼로리 부족';
+
+  @override
+  String get clientsSignalProteinLow => '단백질 부족';
+
+  @override
+  String get clientsSignalUnanswered => '답장 대기';
+
+  @override
+  String clientsSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientsAttentionActive => '주의 회원';
+
+  @override
+  String get clientsAttentionClear => '주의 회원 보기 해제';
 
   @override
   String get memberHealthLoadFailed => '회원 정보를 불러오지 못했어요. 다시 시도해 주세요';
@@ -1428,12 +1476,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsWeeklyCompletion => '주간 이행률';
-
-  @override
-  String get clientWeeklyRoutineAdherence => '주간 이행률';
-
-  @override
-  String get clientRoutineAdherenceUnmeasured => '미집계';
 
   @override
   String get reportsCompletionByDay => '주간 운동 이행률';
@@ -2610,9 +2652,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get alertAwaitingReply => '답장 대기';
-
-  @override
-  String get clientLastRoutine => '마지막 프로그램';
 
   @override
   String metricOverBy(String unit) {

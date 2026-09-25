@@ -28,9 +28,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 Widget _app() => ProviderScope(
   overrides: <Override>[
+    testRecordSpanOverride(),
     dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
@@ -71,7 +73,11 @@ void main() {
   testWidgets('전체를 밀면 상단 날짜가 보이는 구간을 따라간다', (WidgetTester tester) async {
     await open(tester, DietPeriodTab.month);
 
-    final DietDateRange whole = dietRangeForTab(DietPeriodTab.month, nowKst());
+    final DietDateRange whole = dietRangeForTab(
+      DietPeriodTab.month,
+      nowKst(),
+      firstRecord: testFirstRecordDate(),
+    );
     final String wholeText = periodRangeText('ko', whole.from, whole.to);
 
     // 오른쪽 끝(오늘)에서 시작한다 — 끝 날짜는 기간의 끝이지만 시작 날짜는
@@ -145,7 +151,7 @@ void main() {
     await open(tester, DietPeriodTab.month);
     final Finder range = find.byKey(const Key('diet-period-range'));
     final Finder bar = find.byKey(
-      const Key('diet-period-bar-${kDietAllPeriodDays - 1}'),
+      const Key('diet-period-bar-${kTestAllPeriodDays - 1}'),
     );
     expect(range, findsOneWidget);
 
@@ -194,7 +200,7 @@ void main() {
         await tester.tapAt(Offset(paint.left + 2, paint.center.dy));
       } else {
         await tester.tap(
-          find.byKey(const Key('diet-period-bar-${kDietAllPeriodDays - 1}')),
+          find.byKey(const Key('diet-period-bar-${kTestAllPeriodDays - 1}')),
           warnIfMissed: false,
         );
       }

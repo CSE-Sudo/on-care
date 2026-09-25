@@ -28,6 +28,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
+import 'package:oncare/shared/services/record_span_provider.dart';
 
 // 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
 // 추론이 둘 사이를 돈다.
@@ -101,10 +102,25 @@ final exercisePastWeekProvider = FutureProvider.family<ExerciseWeek, DateTime>((
   return ref.watch(exerciseRepositoryProvider).fetchWeek(weekStart);
 }, name: 'exercisePastWeek');
 
-/// `전체` 기간이 거슬러 올라가는 주 수. 35주(약 여덟 달) — 데모 픽스처가
-/// 들고 있는 기간과 같다. 한 주가 막대 하나이고, 화면에 안 들어가는 만큼은
-/// 옆으로 밀어 본다. (#1018)
-const int kExerciseAllPeriodWeeks = 35;
+/// `전체` 가 기록이 없을 때 그리는 주 수. **한 주**다 — 이번 주만 그린다.
+///
+/// `전체` 는 모든 기록을 그린다(#2079). 거슬러 올라갈 곳은 첫 기록일
+/// (`GET /me/records/span`)이 정하고, 그 값이 없을 때(기록이 없거나 아직 못
+/// 읽었을 때)만 이 값이 쓰인다 — 지어낸 기간보다 이번 주 한 칸이 낫다.
+const int kExerciseMinPeriodWeeks = 1;
+
+/// 첫 기록일에서 `전체` 가 거슬러 올라갈 주 수를 낸다. (#2079)
+///
+/// 기록이 주 한가운데에서 시작해도 그 주는 통째로 한 칸이다 — 한 칸이 한 주라
+/// 주를 쪼갤 수 없다.
+int exerciseAllPeriodWeeks(DateTime? firstRecord, DateTime today) {
+  if (firstRecord == null) return kExerciseMinPeriodWeeks;
+  final DateTime firstMonday = mondayOfWeek(firstRecord);
+  final DateTime thisMonday = mondayOfWeek(today);
+  if (!firstMonday.isBefore(thisMonday)) return kExerciseMinPeriodWeeks;
+  final int weeks = thisMonday.difference(firstMonday).inDays ~/ 7 + 1;
+  return weeks < kExerciseMinPeriodWeeks ? kExerciseMinPeriodWeeks : weeks;
+}
 
 /// `전체` 그래프의 하루치.
 class ExerciseDayBar {
@@ -133,9 +149,11 @@ class ExerciseDayBar {
   final double calories;
 }
 
-/// `전체` 기간의 일별 운동. 최근 [kExerciseAllPeriodWeeks] 주를 주 단위로 읽어
-/// 이어 붙인다 — 서버가 운동 이력을 주 단위로 들고 있어서다(트레이너 화면도
-/// 같은 방식으로 읽는다).
+/// `전체` 기간의 일별 운동 — **첫 기록 주부터 이번 주까지**다. (#2079)
+///
+/// 주 단위로 읽어 이어 붙인다 — 서버가 운동 이력을 주 단위로 들고 있어서다
+/// (트레이너 화면도 같은 방식으로 읽는다). 거슬러 갈 주 수는 첫 기록일
+/// ([recordSpanProvider])이 정하고, 그 값이 없으면 이번 주 한 주다.
 ///
 /// 이번 주만 [exerciseWeekProvider] 에서 가져온다 — 같은 주를 두 곳에서 따로
 /// 읽으면 화면마다 다른 수치를 갖는다(#671).
@@ -144,11 +162,15 @@ final exerciseAllPeriodProvider = FutureProvider<List<ExerciseDayBar>>((
 ) async {
   final DateTime today = DateTime(nowKst().year, nowKst().month, nowKst().day);
   final DateTime thisMonday = mondayOfWeek(today);
+  final int weeks = exerciseAllPeriodWeeks(
+    ref.watch(recordSpanProvider).valueOrNull?.exerciseFirstDate,
+    today,
+  );
 
   // watch 는 await 이전에 모두 걸어 둔다 — 한 주라도 바뀌면 전체도 다시
   // 계산되고, 요청은 순차가 아니라 한꺼번에 나간다.
   final List<Future<ExerciseWeek>> pending = <Future<ExerciseWeek>>[
-    for (int back = kExerciseAllPeriodWeeks - 1; back >= 1; back--)
+    for (int back = weeks - 1; back >= 1; back--)
       ref.watch(
         exercisePastWeekProvider(
           DateTime(
@@ -167,7 +189,7 @@ final exerciseAllPeriodProvider = FutureProvider<List<ExerciseDayBar>>((
   final List<ExerciseDayBar> days = <ExerciseDayBar>[];
   for (int w = 0; w < past.length + 1; w++) {
     final ExerciseWeek week = w < past.length ? past[w] : thisWeek;
-    final int back = kExerciseAllPeriodWeeks - 1 - w;
+    final int back = weeks - 1 - w;
     final DateTime monday = DateTime(
       thisMonday.year,
       thisMonday.month,

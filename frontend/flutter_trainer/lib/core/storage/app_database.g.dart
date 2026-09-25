@@ -409,6 +409,18 @@ class $TrainerClientsTable extends TrainerClients
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _signalsJsonMeta = const VerificationMeta(
+    'signalsJson',
+  );
+  @override
+  late final GeneratedColumn<String> signalsJson = GeneratedColumn<String>(
+    'signals_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -459,6 +471,7 @@ class $TrainerClientsTable extends TrainerClients
     sodiumWeekJson,
     caloriesWeekJson,
     sugarWeekJson,
+    signalsJson,
     sortOrder,
     gender,
     age,
@@ -623,6 +636,15 @@ class $TrainerClientsTable extends TrainerClients
         ),
       );
     }
+    if (data.containsKey('signals_json')) {
+      context.handle(
+        _signalsJsonMeta,
+        signalsJson.isAcceptableOrUnknown(
+          data['signals_json']!,
+          _signalsJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -722,6 +744,10 @@ class $TrainerClientsTable extends TrainerClients
         DriftSqlType.string,
         data['${effectivePrefix}sugar_week_json'],
       )!,
+      signalsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}signals_json'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -763,6 +789,10 @@ class TrainerClientRow extends DataClass
   final String sodiumWeekJson;
   final String caloriesWeekJson;
   final String sugarWeekJson;
+
+  /// PT 관리 신호(#2204) — 서버 로스터의 `signals` 와 같은 JSON 배열. 데모는
+  /// 서버 계산이 없어 시드가 회원마다 정해 둔다. 빈 배열이면 신호가 없다.
+  final String signalsJson;
   final int sortOrder;
 
   /// 회원이 자기 프로필에 등록한 성별(`male`/`female`/`other`). 트레이너가
@@ -795,6 +825,7 @@ class TrainerClientRow extends DataClass
     required this.sodiumWeekJson,
     required this.caloriesWeekJson,
     required this.sugarWeekJson,
+    required this.signalsJson,
     required this.sortOrder,
     this.gender,
     this.age,
@@ -820,6 +851,7 @@ class TrainerClientRow extends DataClass
     map['sodium_week_json'] = Variable<String>(sodiumWeekJson);
     map['calories_week_json'] = Variable<String>(caloriesWeekJson);
     map['sugar_week_json'] = Variable<String>(sugarWeekJson);
+    map['signals_json'] = Variable<String>(signalsJson);
     map['sort_order'] = Variable<int>(sortOrder);
     if (!nullToAbsent || gender != null) {
       map['gender'] = Variable<String>(gender);
@@ -850,6 +882,7 @@ class TrainerClientRow extends DataClass
       sodiumWeekJson: Value(sodiumWeekJson),
       caloriesWeekJson: Value(caloriesWeekJson),
       sugarWeekJson: Value(sugarWeekJson),
+      signalsJson: Value(signalsJson),
       sortOrder: Value(sortOrder),
       gender: gender == null && nullToAbsent
           ? const Value.absent()
@@ -884,6 +917,7 @@ class TrainerClientRow extends DataClass
       sodiumWeekJson: serializer.fromJson<String>(json['sodiumWeekJson']),
       caloriesWeekJson: serializer.fromJson<String>(json['caloriesWeekJson']),
       sugarWeekJson: serializer.fromJson<String>(json['sugarWeekJson']),
+      signalsJson: serializer.fromJson<String>(json['signalsJson']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       gender: serializer.fromJson<String?>(json['gender']),
       age: serializer.fromJson<int?>(json['age']),
@@ -911,6 +945,7 @@ class TrainerClientRow extends DataClass
       'sodiumWeekJson': serializer.toJson<String>(sodiumWeekJson),
       'caloriesWeekJson': serializer.toJson<String>(caloriesWeekJson),
       'sugarWeekJson': serializer.toJson<String>(sugarWeekJson),
+      'signalsJson': serializer.toJson<String>(signalsJson),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'gender': serializer.toJson<String?>(gender),
       'age': serializer.toJson<int?>(age),
@@ -936,6 +971,7 @@ class TrainerClientRow extends DataClass
     String? sodiumWeekJson,
     String? caloriesWeekJson,
     String? sugarWeekJson,
+    String? signalsJson,
     int? sortOrder,
     Value<String?> gender = const Value.absent(),
     Value<int?> age = const Value.absent(),
@@ -958,6 +994,7 @@ class TrainerClientRow extends DataClass
     sodiumWeekJson: sodiumWeekJson ?? this.sodiumWeekJson,
     caloriesWeekJson: caloriesWeekJson ?? this.caloriesWeekJson,
     sugarWeekJson: sugarWeekJson ?? this.sugarWeekJson,
+    signalsJson: signalsJson ?? this.signalsJson,
     sortOrder: sortOrder ?? this.sortOrder,
     gender: gender.present ? gender.value : this.gender,
     age: age.present ? age.value : this.age,
@@ -996,6 +1033,9 @@ class TrainerClientRow extends DataClass
       sugarWeekJson: data.sugarWeekJson.present
           ? data.sugarWeekJson.value
           : this.sugarWeekJson,
+      signalsJson: data.signalsJson.present
+          ? data.signalsJson.value
+          : this.signalsJson,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       gender: data.gender.present ? data.gender.value : this.gender,
       age: data.age.present ? data.age.value : this.age,
@@ -1023,6 +1063,7 @@ class TrainerClientRow extends DataClass
           ..write('sodiumWeekJson: $sodiumWeekJson, ')
           ..write('caloriesWeekJson: $caloriesWeekJson, ')
           ..write('sugarWeekJson: $sugarWeekJson, ')
+          ..write('signalsJson: $signalsJson, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('gender: $gender, ')
           ..write('age: $age')
@@ -1050,6 +1091,7 @@ class TrainerClientRow extends DataClass
     sodiumWeekJson,
     caloriesWeekJson,
     sugarWeekJson,
+    signalsJson,
     sortOrder,
     gender,
     age,
@@ -1076,6 +1118,7 @@ class TrainerClientRow extends DataClass
           other.sodiumWeekJson == this.sodiumWeekJson &&
           other.caloriesWeekJson == this.caloriesWeekJson &&
           other.sugarWeekJson == this.sugarWeekJson &&
+          other.signalsJson == this.signalsJson &&
           other.sortOrder == this.sortOrder &&
           other.gender == this.gender &&
           other.age == this.age);
@@ -1100,6 +1143,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
   final Value<String> sodiumWeekJson;
   final Value<String> caloriesWeekJson;
   final Value<String> sugarWeekJson;
+  final Value<String> signalsJson;
   final Value<int> sortOrder;
   final Value<String?> gender;
   final Value<int?> age;
@@ -1123,6 +1167,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
     this.sodiumWeekJson = const Value.absent(),
     this.caloriesWeekJson = const Value.absent(),
     this.sugarWeekJson = const Value.absent(),
+    this.signalsJson = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.gender = const Value.absent(),
     this.age = const Value.absent(),
@@ -1147,6 +1192,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
     this.sodiumWeekJson = const Value.absent(),
     this.caloriesWeekJson = const Value.absent(),
     this.sugarWeekJson = const Value.absent(),
+    this.signalsJson = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.gender = const Value.absent(),
     this.age = const Value.absent(),
@@ -1181,6 +1227,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
     Expression<String>? sodiumWeekJson,
     Expression<String>? caloriesWeekJson,
     Expression<String>? sugarWeekJson,
+    Expression<String>? signalsJson,
     Expression<int>? sortOrder,
     Expression<String>? gender,
     Expression<int>? age,
@@ -1206,6 +1253,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
       if (sodiumWeekJson != null) 'sodium_week_json': sodiumWeekJson,
       if (caloriesWeekJson != null) 'calories_week_json': caloriesWeekJson,
       if (sugarWeekJson != null) 'sugar_week_json': sugarWeekJson,
+      if (signalsJson != null) 'signals_json': signalsJson,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (gender != null) 'gender': gender,
       if (age != null) 'age': age,
@@ -1232,6 +1280,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
     Value<String>? sodiumWeekJson,
     Value<String>? caloriesWeekJson,
     Value<String>? sugarWeekJson,
+    Value<String>? signalsJson,
     Value<int>? sortOrder,
     Value<String?>? gender,
     Value<int?>? age,
@@ -1256,6 +1305,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
       sodiumWeekJson: sodiumWeekJson ?? this.sodiumWeekJson,
       caloriesWeekJson: caloriesWeekJson ?? this.caloriesWeekJson,
       sugarWeekJson: sugarWeekJson ?? this.sugarWeekJson,
+      signalsJson: signalsJson ?? this.signalsJson,
       sortOrder: sortOrder ?? this.sortOrder,
       gender: gender ?? this.gender,
       age: age ?? this.age,
@@ -1320,6 +1370,9 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
     if (sugarWeekJson.present) {
       map['sugar_week_json'] = Variable<String>(sugarWeekJson.value);
     }
+    if (signalsJson.present) {
+      map['signals_json'] = Variable<String>(signalsJson.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -1356,6 +1409,7 @@ class TrainerClientsCompanion extends UpdateCompanion<TrainerClientRow> {
           ..write('sodiumWeekJson: $sodiumWeekJson, ')
           ..write('caloriesWeekJson: $caloriesWeekJson, ')
           ..write('sugarWeekJson: $sugarWeekJson, ')
+          ..write('signalsJson: $signalsJson, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('gender: $gender, ')
           ..write('age: $age, ')
@@ -5810,6 +5864,7 @@ typedef $$TrainerClientsTableCreateCompanionBuilder =
       Value<String> sodiumWeekJson,
       Value<String> caloriesWeekJson,
       Value<String> sugarWeekJson,
+      Value<String> signalsJson,
       Value<int> sortOrder,
       Value<String?> gender,
       Value<int?> age,
@@ -5835,6 +5890,7 @@ typedef $$TrainerClientsTableUpdateCompanionBuilder =
       Value<String> sodiumWeekJson,
       Value<String> caloriesWeekJson,
       Value<String> sugarWeekJson,
+      Value<String> signalsJson,
       Value<int> sortOrder,
       Value<String?> gender,
       Value<int?> age,
@@ -5937,6 +5993,11 @@ class $$TrainerClientsTableFilterComposer
 
   ColumnFilters<String> get sugarWeekJson => $composableBuilder(
     column: $table.sugarWeekJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get signalsJson => $composableBuilder(
+    column: $table.signalsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6055,6 +6116,11 @@ class $$TrainerClientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get signalsJson => $composableBuilder(
+    column: $table.signalsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -6148,6 +6214,11 @@ class $$TrainerClientsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get signalsJson => $composableBuilder(
+    column: $table.signalsJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
@@ -6213,6 +6284,7 @@ class $$TrainerClientsTableTableManager
                 Value<String> sodiumWeekJson = const Value.absent(),
                 Value<String> caloriesWeekJson = const Value.absent(),
                 Value<String> sugarWeekJson = const Value.absent(),
+                Value<String> signalsJson = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<String?> gender = const Value.absent(),
                 Value<int?> age = const Value.absent(),
@@ -6236,6 +6308,7 @@ class $$TrainerClientsTableTableManager
                 sodiumWeekJson: sodiumWeekJson,
                 caloriesWeekJson: caloriesWeekJson,
                 sugarWeekJson: sugarWeekJson,
+                signalsJson: signalsJson,
                 sortOrder: sortOrder,
                 gender: gender,
                 age: age,
@@ -6261,6 +6334,7 @@ class $$TrainerClientsTableTableManager
                 Value<String> sodiumWeekJson = const Value.absent(),
                 Value<String> caloriesWeekJson = const Value.absent(),
                 Value<String> sugarWeekJson = const Value.absent(),
+                Value<String> signalsJson = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<String?> gender = const Value.absent(),
                 Value<int?> age = const Value.absent(),
@@ -6284,6 +6358,7 @@ class $$TrainerClientsTableTableManager
                 sodiumWeekJson: sodiumWeekJson,
                 caloriesWeekJson: caloriesWeekJson,
                 sugarWeekJson: sugarWeekJson,
+                signalsJson: signalsJson,
                 sortOrder: sortOrder,
                 gender: gender,
                 age: age,

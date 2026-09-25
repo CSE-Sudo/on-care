@@ -9,7 +9,11 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
-    show prioritizeClients, sortByLatestMessage, clientExerciseItems;
+    show
+        prioritizeClients,
+        sortByLatestMessage,
+        clientExerciseItems,
+        clientSignalsFromJson;
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -1120,6 +1124,8 @@ class DriftClientRepository implements ClientRepository {
       sodiumWeek: sodiumWeek,
       caloriesWeek: caloriesWeek,
       sugarWeek: sugarWeek,
+      // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
+      signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
       // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
       // 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender/rosterAge)이
       // 대신 쓰인다.
@@ -1153,7 +1159,7 @@ final clientsProvider = StreamProvider<List<TrainerClient>>((ref) {
 
 /// Streams the coaching-priority ordering of the client list.
 ///
-/// Sodium over-target first, ties broken by the most recent chat. ONE
+/// 주의 회원(PT 관리 신호) first, ties broken by the most recent chat. ONE
 /// rule for both modes — the ordering lives in the pure
 /// [prioritizeClients], and each source just supplies what it has (drift
 /// has chat times, the real roster endpoint doesn't yet).

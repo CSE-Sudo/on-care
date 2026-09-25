@@ -93,7 +93,7 @@ void main() {
     expect(clients.map((c) => c.id), contains('last'));
   });
 
-  test('the roster ordering puts the over-target client first', () async {
+  test('the roster ordering puts the flagged client first', () async {
     when(
       () => dio.get<List<dynamic>>(
         '/trainer/clients',
@@ -101,8 +101,16 @@ void main() {
       ),
     ).thenAnswer(
       (_) async => _okList(<dynamic>[
-        <String, Object?>{'id': 'ok', 'name': 'A', 'sodium_mg': 1500},
-        <String, Object?>{'id': 'over', 'name': 'B', 'sodium_mg': 2500},
+        <String, Object?>{'id': 'ok', 'name': 'A', 'sodium_mg': 2500},
+        <String, Object?>{
+          'id': 'over',
+          'name': 'B',
+          'sodium_mg': 1500,
+          // 나트륨이 아니라 PT 관리 신호가 순서를 정한다(#2204).
+          'signals': <Object?>[
+            <String, Object?>{'kind': 'discomfort'},
+          ],
+        },
       ], '/trainer/clients'),
     );
 
