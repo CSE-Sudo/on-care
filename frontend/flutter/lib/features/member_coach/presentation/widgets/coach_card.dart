@@ -346,9 +346,10 @@ class _RecommendedExerciseRowState
       context: context,
       title: l.coachCardRoutineCancelTitle,
       message: l.coachRoutineCancelConfirm(routine.name),
-      confirmLabel: l.coachRoutineCancel,
-      // 확정 버튼에 이미 '취소' 가 들어 있다 — 왼쪽까지 `취소` 면 어느 쪽이
-      // 물리는 버튼인지 헷갈린다(#1782).
+      // 무엇을 지우는지는 제목과 본문이 이름까지 밝힌다 — 확정 버튼까지 긴
+      // 문구를 넣으면 좁은 폰에서 잘린다(#2218). 다른 삭제 확인창과 같은 말이다.
+      confirmLabel: l.actionDelete,
+      // 왼쪽이 `취소` 면 어느 쪽이 물리는 버튼인지 헷갈린다(#1782).
       cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );

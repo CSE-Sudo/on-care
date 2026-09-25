@@ -929,14 +929,14 @@ void main() {
     await tester.tap(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')));
     await tester.pumpAndSettle();
 
-    // 확정 버튼은 `이 개인 운동 삭제` 다(#2218). 확정은 여전히 빨강이다.
+    // 확정 버튼은 짧게 `삭제` 다 — 긴 문구는 좁은 폰에서 잘린다(#2218).
     // 창 안에 '취소' 문구가 남아 있으면 어느 쪽이 물리는 버튼인지 헷갈린다.
     final Finder dialog = find.byType(AppDialog);
     expect(dialog, findsOneWidget);
     final Finder keep = find.descendant(of: dialog, matching: find.text('유지'));
     final Finder confirm = find.descendant(
       of: dialog,
-      matching: find.text('이 개인 운동 삭제'),
+      matching: find.text('삭제'),
     );
     expect(keep, findsOneWidget);
     expect(confirm, findsOneWidget);
