@@ -46,6 +46,10 @@ class TrainerClients extends Table {
   // 유지한다 — 반올림하면 식단 탭 수치와 어긋난다.
   TextColumn get caloriesWeekJson => text().withDefault(const Constant('[]'))();
   TextColumn get sugarWeekJson => text().withDefault(const Constant('[]'))();
+
+  /// PT 관리 신호(#2204) — 서버 로스터의 `signals` 와 같은 JSON 배열. 데모는
+  /// 서버 계산이 없어 시드가 회원마다 정해 둔다. 빈 배열이면 신호가 없다.
+  TextColumn get signalsJson => text().withDefault(const Constant('[]'))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
   /// 회원이 자기 프로필에 등록한 성별(`male`/`female`/`other`). 트레이너가
@@ -306,7 +310,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -460,6 +464,11 @@ class AppDatabase extends _$AppDatabase {
         } else {
           await m.addColumn(clientChatMessages, clientChatMessages.emoteId);
         }
+      }
+      // v19: 로스터 PT 관리 신호(#2204). 기존 행은 빈 배열(신호 없음)로 읽히고,
+      // 다음 시드가 채운다.
+      if (from < 19) {
+        await m.addColumn(trainerClients, trainerClients.signalsJson);
       }
     },
   );

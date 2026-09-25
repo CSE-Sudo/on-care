@@ -2,10 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
-TrainerClient _client(String id, {required int sodiumMg, double sugarG = 0}) =>
-    TrainerClient(
+TrainerClient _client(
+  String id, {
+  required int sodiumMg,
+  double sugarG = 0,
+  bool flagged = false,
+}) => TrainerClient(
       id: id,
       name: id,
       avatar: id.substring(0, 1),
@@ -19,6 +24,10 @@ TrainerClient _client(String id, {required int sodiumMg, double sugarG = 0}) =>
       lastRoutine: '',
       weekCompletion: const <int>[],
       sodiumWeek: const <int>[],
+      // 주의 회원 여부는 PT 관리 신호가 정한다(#2204) — 나트륨이 아니다.
+      signals: flagged
+          ? const <ClientSignal>[ClientSignal(ClientSignalKind.recordGap, days: 3)]
+          : const <ClientSignal>[],
     );
 
 void main() {
@@ -59,6 +68,27 @@ void main() {
       expect(c.weekCompletion, <int>[100, 80, 0, 60, 90, 0, 0]);
       expect(c.sodiumWeek, <int>[1900, 2200, 2100]);
       expect(c.lastMessageAt, DateTime.utc(2026, 8, 23, 9, 30));
+    });
+
+    test('maps the PT 관리 신호 and skips kinds this app does not know', () {
+      final c = trainerClientFromJson(<String, Object?>{
+        'id': 'u1',
+        'signals': <Object?>[
+          <String, Object?>{'kind': 'calorie_off', 'percent': 22, 'direction': 'under'},
+          <String, Object?>{'kind': 'future_signal'},
+          <String, Object?>{'kind': 'record_gap', 'days': 4.0},
+        ],
+      });
+      expect(c.signals.map((s) => s.kind).toList(), <ClientSignalKind>[
+        ClientSignalKind.calorieOff,
+        ClientSignalKind.recordGap,
+      ]);
+      expect(c.signals.first.percent, 22);
+      expect(c.signals.first.over, isFalse);
+      expect(c.signals.last.days, 4);
+      expect(needsAttention(c), isTrue);
+      // 옛 서버처럼 필드가 없으면 신호가 없다.
+      expect(trainerClientFromJson(<String, Object?>{'id': 'u2'}).signals, isEmpty);
     });
 
     test('normalizes an integer sugar value to double', () {
@@ -170,18 +200,18 @@ void main() {
   });
 
   group('prioritizeClients', () {
-    test('moves sodium-over-target clients first, keeping server order', () {
+    test('moves 주의 회원 (PT 관리 신호) first, keeping server order', () {
       final ordered = prioritizeClients(<TrainerClient>[
         _client('a', sodiumMg: 1500), // ok
-        _client('b', sodiumMg: 2500), // over
+        _client('b', sodiumMg: 2500, flagged: true), // over
         _client('c', sodiumMg: 1800), // ok
-        _client('d', sodiumMg: 2100), // over
+        _client('d', sodiumMg: 2100, flagged: true), // over
       ]);
 
       expect(ordered.map((c) => c.id).toList(), <String>['b', 'd', 'a', 'c']);
     });
 
-    test('is a no-op ordering when nobody is over target', () {
+    test('is a no-op ordering when nobody needs attention', () {
       final ordered = prioritizeClients(<TrainerClient>[
         _client('a', sodiumMg: 100),
         _client('b', sodiumMg: 200),
@@ -195,23 +225,23 @@ void main() {
       // 40 clients, alternating over/under target, id = server position.
       final input = <TrainerClient>[
         for (var i = 0; i < 40; i++)
-          _client('c$i', sodiumMg: i.isEven ? 2500 : 500),
+          _client('c$i', sodiumMg: i.isEven ? 2500 : 500, flagged: i.isEven),
       ];
 
       final ordered = prioritizeClients(input);
 
       final overIds = ordered
-          .where((c) => c.sodiumOverBudget)
+          .where((c) => needsAttention(c))
           .map((c) => int.parse(c.id.substring(1)))
           .toList();
       final underIds = ordered
-          .where((c) => !c.sodiumOverBudget)
+          .where((c) => !needsAttention(c))
           .map((c) => int.parse(c.id.substring(1)))
           .toList();
 
-      // Every over-target client precedes every under-target client...
-      expect(ordered.take(20).every((c) => c.sodiumOverBudget), isTrue);
-      expect(ordered.skip(20).every((c) => !c.sodiumOverBudget), isTrue);
+      // Every flagged client precedes every unflagged client...
+      expect(ordered.take(20).every((c) => needsAttention(c)), isTrue);
+      expect(ordered.skip(20).every((c) => !needsAttention(c)), isTrue);
       // ...and each group is internally still in server (ascending) order.
       expect(overIds, List<int>.generate(20, (i) => i * 2));
       expect(underIds, List<int>.generate(20, (i) => i * 2 + 1));
@@ -220,9 +250,9 @@ void main() {
     test('a duplicate id does not corrupt the ordering (decorate-sort, '
         'not an id-keyed tie-breaker, review)', () {
       final ordered = prioritizeClients(<TrainerClient>[
-        _client('dup', sodiumMg: 2500), // index 0, over
+        _client('dup', sodiumMg: 2500, flagged: true), // index 0, over
         _client('dup', sodiumMg: 500), // index 1, under — same id as above
-        _client('c', sodiumMg: 2600), // index 2, over
+        _client('c', sodiumMg: 2600, flagged: true), // index 2, over
       ]);
 
       expect(ordered.map((c) => c.sodiumMg).toList(), <int>[2500, 2600, 500]);

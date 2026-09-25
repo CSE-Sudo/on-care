@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/dashboard/presentation/widgets/attention
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -74,15 +75,26 @@ void main() {
   /// 잘리는 값을 쓰면 판정이 요일을 탄다.
   List<Override> attentionRosterOverrides() {
     const List<int> lowWeek = <int>[40, 40, 0, 0, 0, 0, 0];
+    // 주의 회원 수는 PT 관리 신호로 센다(#2204). 대시보드 카드의 행은 아직 옛
+    // 나트륨·당류·이행률 기준을 쓰므로, 두 기준에 모두 걸리게 둘 다 준다.
+    const List<ClientSignal> flagged = <ClientSignal>[
+      ClientSignal(ClientSignalKind.recordGap, days: 3),
+    ];
     final List<TrainerClient> roster = <TrainerClient>[
       for (var i = 0; i < 5; i++)
-        makeClient(id: 'sodium-$i', name: '나트륨 회원 $i', sodiumMg: 2500),
-      makeClient(id: 'sugar-0', name: '당류 회원', sugarG: 80),
+        makeClient(
+          id: 'sodium-$i',
+          name: '나트륨 회원 $i',
+          sodiumMg: 2500,
+          signals: flagged,
+        ),
+      makeClient(id: 'sugar-0', name: '당류 회원', sugarG: 80, signals: flagged),
       for (var i = 0; i < 2; i++)
         makeClient(
           id: 'completion-$i',
           name: '이행률 회원 $i',
           weekCompletion: lowWeek,
+          signals: flagged,
         ),
       makeClient(id: 'reply-0', name: '답장 회원 0'),
       makeClient(id: 'reply-1', name: '답장 회원 1'),

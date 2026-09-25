@@ -1,3 +1,5 @@
+import 'package:oncare_trainer/shared/models/client_signal.dart';
+
 /// Daily sodium target (mg). Over this, the list card metric, the diet
 /// summary tile, and the AI comment all flip to the warning case.
 const int sodiumTargetMg = 2000;
@@ -77,6 +79,7 @@ class TrainerClient {
     this.sugarWeek = const <double>[],
     this.gender = '',
     this.age,
+    this.signals = const <ClientSignal>[],
   });
 
   /// Row id (e.g. `seed-client-1`).
@@ -94,6 +97,10 @@ class TrainerClient {
 
   /// Optional international age supplied by the API.
   final int? age;
+
+  /// PT 관리 신호(#2204) — 서버 로스터의 `signals`, 데모는 시드가 정한다.
+  /// 답장 대기는 여기 없다([rosterSignalsFor] 가 안 읽은 수로 붙인다).
+  final List<ClientSignal> signals;
 
   /// 회원 건강 목표를 ` · ` 로 이은 값(e.g. 체중 감량 · 혈압 관리, #1818).
   final String goal;
