@@ -362,41 +362,41 @@ abstract class AppLocalizations {
   /// **'The trainer-only app for managing your members'**
   String get authTagline;
 
-  /// No description provided for @authEmail.
+  /// No description provided for @authEmailHint.
   ///
   /// In en, this message translates to:
   /// **'Email'**
-  String get authEmail;
+  String get authEmailHint;
 
-  /// No description provided for @authPassword.
+  /// No description provided for @authPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Password'**
-  String get authPassword;
+  String get authPasswordHint;
 
-  /// No description provided for @authSignIn.
+  /// No description provided for @authSignInAction.
   ///
   /// In en, this message translates to:
   /// **'Sign in'**
-  String get authSignIn;
+  String get authSignInAction;
 
-  /// No description provided for @authNoAccount.
+  /// No description provided for @authNoAccountQuestion.
   ///
   /// In en, this message translates to:
   /// **'Don\'t have an account?'**
-  String get authNoAccount;
+  String get authNoAccountQuestion;
 
-  /// No description provided for @authSignUp.
+  /// No description provided for @authSignUpAction.
   ///
   /// In en, this message translates to:
   /// **'Sign up'**
-  String get authSignUp;
+  String get authSignUpAction;
 
-  /// No description provided for @authBrowseDemo.
+  /// No description provided for @authDemoAction.
   ///
   /// In en, this message translates to:
   /// **'Explore the demo without signing in'**
-  String get authBrowseDemo;
+  String get authDemoAction;
 
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
@@ -404,17 +404,17 @@ abstract class AppLocalizations {
   /// **'Sign in with a social account'**
   String get authSocialDivider;
 
-  /// No description provided for @authContinueKakao.
+  /// No description provided for @authKakaoAction.
   ///
   /// In en, this message translates to:
   /// **'Continue with Kakao'**
-  String get authContinueKakao;
+  String get authKakaoAction;
 
-  /// No description provided for @authContinueGoogle.
+  /// No description provided for @authGoogleAction.
   ///
   /// In en, this message translates to:
   /// **'Continue with Google'**
-  String get authContinueGoogle;
+  String get authGoogleAction;
 
   /// No description provided for @authSignUpSubtitle.
   ///
@@ -428,11 +428,11 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get authName;
 
-  /// No description provided for @authPasswordHint.
+  /// No description provided for @signUpPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Password (8+ characters, letters and numbers)'**
-  String get authPasswordHint;
+  String get signUpPasswordHint;
 
   /// No description provided for @authPasswordConfirm.
   ///
@@ -476,11 +476,11 @@ abstract class AppLocalizations {
   /// **'Enter your email and password'**
   String get authErrEmptyCredentials;
 
-  /// No description provided for @authErrSocialFailed.
+  /// No description provided for @authSocialSignInFailed.
   ///
   /// In en, this message translates to:
   /// **'Social sign-in failed. Please try again in a moment.'**
-  String get authErrSocialFailed;
+  String get authSocialSignInFailed;
 
   /// No description provided for @authErrSignInFailed.
   ///
