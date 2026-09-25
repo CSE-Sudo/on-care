@@ -150,31 +150,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authTagline => '회원 관리를 위한 트레이너 전용 앱';
 
   @override
-  String get authEmail => '이메일';
+  String get authEmailHint => '이메일';
 
   @override
-  String get authPassword => '비밀번호';
+  String get authPasswordHint => '비밀번호';
 
   @override
-  String get authSignIn => '로그인';
+  String get authSignInAction => '로그인';
 
   @override
-  String get authNoAccount => '계정이 없으신가요?';
+  String get authNoAccountQuestion => '계정이 없으신가요?';
 
   @override
-  String get authSignUp => '계정 만들기';
+  String get authSignUpAction => '계정 만들기';
 
   @override
-  String get authBrowseDemo => '로그인 없이 데모 둘러보기';
+  String get authDemoAction => '로그인 없이 데모 둘러보기';
 
   @override
   String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
-  String get authContinueKakao => '카카오로 시작하기';
+  String get authKakaoAction => '카카오로 시작하기';
 
   @override
-  String get authContinueGoogle => '구글로 시작하기';
+  String get authGoogleAction => '구글로 시작하기';
 
   @override
   String get authSignUpSubtitle => 'On-Care 계정을 만들어 회원 관리를 시작하세요';
@@ -183,7 +183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authName => '이름';
 
   @override
-  String get authPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
+  String get signUpPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
 
   @override
   String get authPasswordConfirm => '비밀번호 확인';
@@ -207,7 +207,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyCredentials => '이메일과 비밀번호를 입력해 주세요';
 
   @override
-  String get authErrSocialFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
