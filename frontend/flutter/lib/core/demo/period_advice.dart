@@ -106,11 +106,17 @@ String dietPeriodAdvice(List<DietDayTotals> days, String period) {
     if (split.weekend.isNotEmpty &&
         split.weekday.isNotEmpty &&
         _avg(split.weekend) > _avg(split.weekday) * 1.3) {
-      return '기록을 통틀어 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
+      // 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
+      // 이 조언은 최근 [kAllPeriodWeeks] 주만 읽는다 — "기록을 통틀어" 라고
+      // 말하면 그래프가 보여 주는 앞 기록까지 본 것처럼 읽힌다. 서버
+      // (`diet_service.period_coach_message`)와 같은 문구다.
+      return '최근 $kAllPeriodWeeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
     }
     final int ratio = (over.length * 100 / days.length).round();
-    if (ratio >= 40) return '기록한 날의 $ratio%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
-    return '기록한 ${days.length}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
+    if (ratio >= 40) {
+      return '최근 $kAllPeriodWeeks주 중 $ratio%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
+    }
+    return '최근 $kAllPeriodWeeks주 기록한 ${days.length}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
   }
 
   // 오늘 — 그날 합계 하나로 말한다.

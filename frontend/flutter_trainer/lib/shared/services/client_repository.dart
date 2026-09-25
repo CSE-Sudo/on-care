@@ -689,14 +689,20 @@ class DriftClientRepository implements ClientRepository {
       }
       return '이번 주 ${logged.length}일 모두 나트륨을 권장량 안에서 지켰어요!';
     }
+    // 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
+    // 이 조언은 최근 12주만 읽는다 — "기록을 통틀어" 라고 말하면 그래프가
+    // 보여 주는 앞 기록까지 본 것처럼 읽힌다. 서버
+    // (`diet_service.period_coach_message`)와 같은 문구다.
+    const int adviceWeeks = kAdvicePeriodDays ~/ 7;
     if (weekendHeavy) {
-      return '기록을 통틀어 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
+      return '최근 $adviceWeeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
     }
     if (over * 10 >= logged.length * 4) {
-      return '기록한 날의 ${(over * 100 / logged.length).round()}%가 나트륨 권장량을 넘었어요. '
-          '국물부터 남겨 봐요.';
+      return '최근 $adviceWeeks주 중 ${(over * 100 / logged.length).round()}%가 '
+          '나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
     }
-    return '기록한 ${logged.length}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
+    return '최근 $adviceWeeks주 기록한 ${logged.length}일 대부분이 권장량 안이에요. '
+        '지금 흐름이 좋아요.';
   }
 
   @override
