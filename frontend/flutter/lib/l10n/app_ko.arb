@@ -676,7 +676,7 @@
   },
   "myProfilePetDone": "이름 옆에 펫을 달았어요",
   "myShopWeeklyReportTitle": "주간 리포트",
-  "myShopWeeklyReportDescription": "{range} 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.",
+  "myShopWeeklyReportDescription": "{range} 식단·운동 기록과 참고 기록으로 한 주를 돌아보는 리포트를 만들어요.",
   "@myShopWeeklyReportDescription": {
     "placeholders": {
       "range": {
@@ -700,7 +700,7 @@
   "myBenefitsWeeklyReports": "주간 리포트",
   "myWeeklyReportCardTitle": "포인트로 받은 리포트",
   "coachReportPdfSelfMadeNote": "담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.",
-  "coachReportPdfSectionInsights": "감지 기록",
+  "coachReportPdfSectionInsights": "참고 기록",
   "coachReportPdfNoInsights": "이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.",
   "coachReportPdfInsightSummary": "{label} {count}회",
   "@coachReportPdfInsightSummary": {
@@ -1347,13 +1347,13 @@
   "aicInsightDiscomfort": "통증 감지",
   "aicInsightNegative": "부정적 반응 감지",
   "aicInsightDelete": "삭제",
-  "aicInsightDeleteConfirm": "이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.",
+  "aicInsightDeleteConfirm": "이 감지를 참고 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.",
   "aicInsightDeleteFailed": "지우지 못했어요. 잠시 후 다시 시도해 주세요.",
-  "aicInsightHistoryTitle": "감지 기록",
-  "aicInsightHistoryAction": "기록",
+  "aicInsightHistoryTitle": "참고 기록",
+  "aicInsightHistoryAction": "참고 기록",
   "aicInsightHistorySubtitle": "최근 {days}일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요",
   "aicInsightHistoryEmpty": "최근 {days}일 동안 감지된 내용이 없어요",
-  "aicInsightHistoryFailed": "감지 기록을 불러오지 못했어요",
+  "aicInsightHistoryFailed": "참고 기록을 불러오지 못했어요",
   "aicRetentionNotice": "AI 챗봇 대화는 최근 {days}일 동안만 보관돼요",
   "aicTrainerConnectedTitle": "담당 트레이너와 대화해 주세요",
   "aicTrainerConnectedBody": "{name} 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요",

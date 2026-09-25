@@ -2513,7 +2513,7 @@ abstract class AppLocalizations {
   /// No description provided for @myShopWeeklyReportDescription.
   ///
   /// In en, this message translates to:
-  /// **'Look back on {range} with a report built from your meals, workouts and AI Coach notes.'**
+  /// **'Look back on {range} with a report built from your meals, workouts and reference notes.'**
   String myShopWeeklyReportDescription(String range);
 
   /// No description provided for @myWeeklyReportOwned.
@@ -2555,7 +2555,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfSectionInsights.
   ///
   /// In en, this message translates to:
-  /// **'AI Coach notes'**
+  /// **'Reference notes'**
   String get coachReportPdfSectionInsights;
 
   /// No description provided for @coachReportPdfNoInsights.
@@ -4402,7 +4402,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicInsightDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove this detection from the log? What you wrote stays in the conversation.'**
+  /// **'Remove this detection from your reference notes? What you wrote stays in the conversation.'**
   String get aicInsightDeleteConfirm;
 
   /// No description provided for @aicInsightDeleteFailed.
@@ -4414,13 +4414,13 @@ abstract class AppLocalizations {
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Noted signals'**
+  /// **'Reference notes'**
   String get aicInsightHistoryTitle;
 
   /// AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900).
   ///
   /// In en, this message translates to:
-  /// **'Notes'**
+  /// **'Reference notes'**
   String get aicInsightHistoryAction;
 
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
@@ -4438,7 +4438,7 @@ abstract class AppLocalizations {
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load noted signals'**
+  /// **'Couldn\'t load reference notes'**
   String get aicInsightHistoryFailed;
 
   /// AI coach chat: how long the conversation is kept (#1823).

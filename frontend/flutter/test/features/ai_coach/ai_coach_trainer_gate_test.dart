@@ -136,6 +136,31 @@ void main() {
       );
     });
 
+    testWidgets('머리의 `참고 기록` 버튼은 화면 끝에 붙지 않는다 (#2216)', (
+      WidgetTester tester,
+    ) async {
+      await _pumpPage(tester, repo: _CountingRepository(), coach: null);
+
+      final Finder button = find.byKey(
+        const Key('aiCoachInsightHistoryButton'),
+      );
+      // 오른쪽 진짜 버튼과 왼쪽에 자리만 잡는 복제본, 둘 다 같은 문구다(#1975).
+      expect(find.text('참고 기록'), findsNWidgets(2));
+      // 머리 줄 자체의 오른쪽 끝을 기준으로 잰다.
+      final Rect header = tester.getRect(
+        find
+            .ancestor(of: button, matching: find.byType(ColoredBox))
+            .first,
+      );
+      final double rightGap = header.right - tester.getBottomRight(button).dx;
+      expect(rightGap, greaterThanOrEqualTo(OnCareSpacing.s8));
+      // 왼쪽 뒤로 버튼 자리와 좌우가 같아야 제목이 가운데에 선다(#1975).
+      expect(
+        tester.getTopLeft(find.byType(AppBackButton)).dx - header.left,
+        moreOrLessEquals(rightGap, epsilon: 0.5),
+      );
+    });
+
     testWidgets('머리의 AI 캐릭터 옆에 초록 점을 그리지 않는다', (WidgetTester tester) async {
       await _pumpPage(tester, repo: _CountingRepository(), coach: null);
 

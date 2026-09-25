@@ -1417,7 +1417,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myShopWeeklyReportDescription(String range) {
-    return 'Look back on $range with a report built from your meals, workouts and AI Coach notes.';
+    return 'Look back on $range with a report built from your meals, workouts and reference notes.';
   }
 
   @override
@@ -1442,7 +1442,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Made with points, without a trainer — so there\'s no trainer message.';
 
   @override
-  String get coachReportPdfSectionInsights => 'AI Coach notes';
+  String get coachReportPdfSectionInsights => 'Reference notes';
 
   @override
   String get coachReportPdfNoInsights =>
@@ -2544,17 +2544,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aicInsightDeleteConfirm =>
-      'Remove this detection from the log? What you wrote stays in the conversation.';
+      'Remove this detection from your reference notes? What you wrote stays in the conversation.';
 
   @override
   String get aicInsightDeleteFailed =>
       'We could not remove it. Please try again in a moment.';
 
   @override
-  String get aicInsightHistoryTitle => 'Noted signals';
+  String get aicInsightHistoryTitle => 'Reference notes';
 
   @override
-  String get aicInsightHistoryAction => 'Notes';
+  String get aicInsightHistoryAction => 'Reference notes';
 
   @override
   String aicInsightHistorySubtitle(int days) {
@@ -2567,7 +2567,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aicInsightHistoryFailed => 'Couldn\'t load noted signals';
+  String get aicInsightHistoryFailed => 'Couldn\'t load reference notes';
 
   @override
   String aicRetentionNotice(int days) {
