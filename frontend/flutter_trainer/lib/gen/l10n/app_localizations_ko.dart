@@ -507,6 +507,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get clientWeeklyRoutineAdherence => '주간 이행률';
+
+  @override
+  String get clientRoutineAdherenceUnmeasured => '미집계';
+
+  @override
   String get clientsSignalDiscomfort => '통증·불편';
 
   @override
@@ -553,11 +559,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientsSignalUnanswered => '답장 대기';
-
-  @override
-  String clientsSignalMore(int count) {
-    return '+$count';
-  }
 
   @override
   String get clientsAttentionActive => '주의 회원';

@@ -340,6 +340,8 @@
       }
     }
   },
+  "clientWeeklyRoutineAdherence": "Weekly adherence",
+  "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
   "clientsSignalRecordGap": "No logs",
   "clientsSignalRecordGapDays": "No logs {days}d",
@@ -375,14 +377,6 @@
   "clientsSignalCalorieUnder": "Calories under",
   "clientsSignalProteinLow": "Low protein",
   "clientsSignalUnanswered": "Awaiting reply",
-  "clientsSignalMore": "+{count}",
-  "@clientsSignalMore": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "clientsAttentionActive": "Attention",
   "clientsAttentionClear": "Clear attention filter",
   "memberHealthLoadFailed": "Couldn't load the member profile. Please try again",

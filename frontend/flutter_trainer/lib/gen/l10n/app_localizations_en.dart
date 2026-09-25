@@ -520,6 +520,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
+
+  @override
+  String get clientRoutineAdherenceUnmeasured => 'Not measured';
+
+  @override
   String get clientsSignalDiscomfort => 'Pain';
 
   @override
@@ -566,11 +572,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsSignalUnanswered => 'Awaiting reply';
-
-  @override
-  String clientsSignalMore(int count) {
-    return '+$count';
-  }
 
   @override
   String get clientsAttentionActive => 'Attention';
