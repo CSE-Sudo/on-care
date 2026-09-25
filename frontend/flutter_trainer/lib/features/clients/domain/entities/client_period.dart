@@ -26,9 +26,12 @@ typedef ClientDateRange = ({DateTime from, DateTime to});
 /// 서머타임이 있는 지역에서 주 전체가 하루씩 밀린다. `DateTime(y, m + 1, 0)` 은
 /// 12월이면 다음 해 1월 0일 = 12월 31일로 알아서 넘어간다. 회원 앱
 /// `dietRangeForTab` 과 같은 규칙이다.
-/// `전체` 식단이 거슬러 올라가는 날 수. 회원 앱 식단 탭과 같은 12주다 — 두 앱이
-/// 같은 기간을 보여야 나란히 놓고 이야기할 수 있다. (#1018)
-const int kClientAllPeriodDays = 84;
+/// 기록이 없을 때 `전체` 가 그리는 날 수 — **하루**다(오늘만).
+///
+/// `전체` 는 모든 기록을 그린다(#2079). 거슬러 올라갈 곳은 그 회원의 첫 기록일
+/// (`GET /trainer/clients/{id}/records/span`)이 정하고, 그 값이 없을 때(기록이
+/// 없거나 아직 못 읽었을 때)만 이 값이 쓰인다 — 지어낸 기간보다 하루가 낫다.
+const int kClientMinPeriodDays = 1;
 
 /// AI 맞춤 조언이 **읽는** 날 수. 서버 `period_window.ALL_PERIOD_DAYS` 와 같다.
 ///
@@ -37,24 +40,19 @@ const int kClientAllPeriodDays = 84;
 /// 넓어져도 이 값은 그대로이고, 대신 조언 문구가 제 기간을 밝힌다.
 const int kAdvicePeriodDays = 84;
 
-/// `전체` 운동이 거슬러 올라가는 **주** 수. 회원 앱 운동 탭과 같은 **35주**다
-/// (`kExerciseAllPeriodWeeks`). 식단보다 길다 — 운동은 한 칸이 한 주라 여덟 달을
-/// 늘어놓아도 읽히지만, 식단은 한 칸이 하루라 그만큼 길면 막대가 실오라기가
-/// 된다. (#1170)
-///
-/// 12주로 두었더니 회원 앱에는 작년 12월치 기록이 있는데 트레이너 화면은 6월
-/// 이후만 보였다 — 같은 사람의 같은 이력을 두 화면이 다른 길이로 말했다.
-///
-/// 날 수(35 × 7)가 아니라 주 수로 센다(#2157). 오늘에서 245일을 거슬러 가면
-/// 첫날이 주 한가운데에 떨어져, 첫 주가 잘린 채 한 칸 더 붙어 36칸이 됐다.
-/// 회원 앱은 이번 주 월요일에서 34주를 거슬러 **월요일부터** 35칸이다.
-const int kClientAllExerciseWeeks = 35;
+/// 기록이 없을 때 `전체` 운동이 그리는 주 수 — **한 주**다(이번 주만).
+/// 회원 앱 `kExerciseMinPeriodWeeks` 와 같다.
+const int kClientMinExerciseWeeks = 1;
 
 /// [period] 가 덮는 날짜 범위. [exercise] 면 `전체` 가 운동 기준으로 길어진다.
+/// [firstRecord] 는 그 회원이 **처음 기록한 날**이다(#2079). `전체` 가 거기서
+/// 시작한다 — 없으면(기록이 없거나 아직 못 읽었으면) 식단은 오늘 하루, 운동은
+/// 이번 주 한 주다.
 ClientDateRange clientRangeFor(
   ClientPeriod period,
   DateTime today, {
   bool exercise = false,
+  DateTime? firstRecord,
 }) {
   final DateTime day = DateTime(today.year, today.month, today.day);
   switch (period) {
@@ -71,22 +69,25 @@ ClientDateRange clientRangeFor(
         to: DateTime(monday.year, monday.month, monday.day + 6),
       );
     case ClientPeriod.month:
-      // `이번 달` 이 아니라 `전체` 다 — 달이 바뀌었다고 앞의 기록이 사라지면
-      // 추세를 볼 수 없다. 회원 앱과 같은 길이다(식단 12주 · 운동 35주).
+      // `이번 달` 이 아니라 `전체` 다 — **모든 기록**을 그린다(#2079). 고정 창을
+      // 두면 그보다 오래된 기록이 그래프에서 사라져, 회원 앱에는 있는 이력이
+      // 트레이너 화면에는 없게 된다(#1170 에서 겪은 일이다).
+      final DateTime? first = firstRecord == null
+          ? null
+          : DateTime(firstRecord.year, firstRecord.month, firstRecord.day);
       if (exercise) {
-        // 운동은 한 칸이 한 주라 **월요일에서** 시작한다(#2157).
-        final DateTime monday = clientMondayOf(day);
+        // 운동은 한 칸이 한 주라 **월요일에서** 시작한다(#2157). 기록이 주
+        // 한가운데에서 시작해도 그 주는 통째로 한 칸이다.
+        final DateTime thisMonday = clientMondayOf(day);
+        final DateTime firstMonday = first == null
+            ? thisMonday
+            : clientMondayOf(first);
         return (
-          from: DateTime(
-            monday.year,
-            monday.month,
-            monday.day - (kClientAllExerciseWeeks - 1) * 7,
-          ),
+          from: firstMonday.isAfter(thisMonday) ? thisMonday : firstMonday,
           to: day,
         );
       }
-      const int days = kClientAllPeriodDays;
-      return (from: DateTime(day.year, day.month, day.day - days + 1), to: day);
+      return (from: first == null || first.isAfter(day) ? day : first, to: day);
   }
 }
 
@@ -131,6 +132,36 @@ List<DateTime> clientRangeWeekStarts(ClientDateRange range) {
     cursor = DateTime(cursor.year, cursor.month, cursor.day + 7);
   }
   return out;
+}
+
+/// 고객이 식단·운동을 **처음 남긴 날**. (#2079, #2236)
+///
+/// `전체` 그래프가 어디서부터 그릴지를 정한다. 식단과 운동이 각자 제 첫
+/// 기록일을 가진다 — 한쪽만 기록해 온 회원의 빈 칸이 다른 쪽 때문에 늘어나지
+/// 않게 한다. 기록이 없으면 null 이고, 그때 `전체` 는 오늘 하루(운동은 이번
+/// 주)만 그린다.
+class ClientRecordSpan {
+  const ClientRecordSpan({this.dietFirstDate, this.exerciseFirstDate});
+
+  factory ClientRecordSpan.fromJson(Map<String, Object?> json) =>
+      ClientRecordSpan(
+        dietFirstDate: _dateOrNull(json['diet_first_date']),
+        exerciseFirstDate: _dateOrNull(json['exercise_first_date']),
+      );
+
+  /// 기록이 하나도 없거나 아직 못 읽은 상태.
+  static const ClientRecordSpan empty = ClientRecordSpan();
+
+  final DateTime? dietFirstDate;
+  final DateTime? exerciseFirstDate;
+
+  static DateTime? _dateOrNull(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    final DateTime? parsed = DateTime.tryParse(value);
+    return parsed == null
+        ? null
+        : DateTime(parsed.year, parsed.month, parsed.day);
+  }
 }
 
 /// 하루치 식단 집계.

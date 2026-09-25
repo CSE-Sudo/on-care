@@ -14,6 +14,8 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/record_span.dart';
+
 /// 회원 운동 현황은 회원 앱 `운동 현황` 과 **같은 그림**이다. (#943)
 ///
 /// `오늘` 은 도넛 + 유형별 시간, 기간은 유형별 3색 누적 막대. 예전에는 트레이너만
@@ -25,11 +27,19 @@ ClientExercisePeriod _fixture(
   required List<int> stretch,
 }) {
   final List<DateTime> dates = clientRangeDates(
-    clientRangeFor(key.period, key.day),
+    clientRangeFor(
+      key.period,
+      key.day,
+      firstRecord: testClientDietFirstDate(key.day),
+    ),
   );
   int at(List<int> xs, int i) => i < xs.length ? xs[i] : 0;
   return ClientExercisePeriod(
-    range: clientRangeFor(key.period, key.day),
+    range: clientRangeFor(
+      key.period,
+      key.day,
+      firstRecord: testClientDietFirstDate(key.day),
+    ),
     days: <ClientExerciseDay>[
       for (int i = 0; i < dates.length; i++)
         ClientExerciseDay(
@@ -163,7 +173,11 @@ void main() {
     // 몇 칸인지는 오늘이 무슨 요일인지에 따라 12 나 13 이 된다 — 숫자를 여기
     // 적으면 주말에만 깨지는 테스트가 된다. 기간이 걸친 **주의 수**로 잰다.
     final int weeks = clientRangeDates(
-      clientRangeFor(ClientPeriod.month, todayKst()),
+      clientRangeFor(
+        ClientPeriod.month,
+        todayKst(),
+        firstRecord: testClientDietFirstDate(),
+      ),
     ).map(clientMondayOf).toSet().length;
     final int bars = tester
         .widgetList<Tooltip>(find.byType(Tooltip))
@@ -209,10 +223,18 @@ void main() {
     await pump(tester, <Override>[
       clientExercisePeriodProvider.overrideWith(
         (ref, key) async => ClientExercisePeriod(
-          range: clientRangeFor(key.period, key.day),
+          range: clientRangeFor(
+            key.period,
+            key.day,
+            firstRecord: testClientDietFirstDate(key.day),
+          ),
           days: <ClientExerciseDay>[
             for (final DateTime d in clientRangeDates(
-              clientRangeFor(key.period, key.day),
+              clientRangeFor(
+                key.period,
+                key.day,
+                firstRecord: testClientDietFirstDate(key.day),
+              ),
             ))
               ClientExerciseDay(date: d, minutes: 40, calories: 240),
           ],
@@ -285,10 +307,18 @@ void main() {
     await pump(tester, <Override>[
       clientExercisePeriodProvider.overrideWith((ref, key) async {
         final List<DateTime> dates = clientRangeDates(
-          clientRangeFor(key.period, key.day),
+          clientRangeFor(
+            key.period,
+            key.day,
+            firstRecord: testClientDietFirstDate(key.day),
+          ),
         );
         return ClientExercisePeriod(
-          range: clientRangeFor(key.period, key.day),
+          range: clientRangeFor(
+            key.period,
+            key.day,
+            firstRecord: testClientDietFirstDate(key.day),
+          ),
           days: <ClientExerciseDay>[
             for (int i = 0; i < dates.length; i++)
               ClientExerciseDay(
