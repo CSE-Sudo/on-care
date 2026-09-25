@@ -20,6 +20,8 @@ import 'package:oncare_trainer/features/clients/domain/entities/routine_history_
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
+import '../../helpers/record_span.dart';
+
 class _MockDio extends Mock implements Dio {}
 
 TrainerClient _client(String id, {required int sodiumMg}) => TrainerClient(
@@ -109,6 +111,10 @@ class _StreamingClientRepository implements ClientRepository {
     String clientId,
     DateTime date,
   ) async => <ClientExerciseItem>[];
+
+  @override
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId) async =>
+      testClientRecordSpan();
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(

@@ -21,6 +21,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 /// 날마다 값이 다른 저장소 — 막대가 모두 0이면 라벨만 남는 빈 그래프가 된다.
 class _VaryingDietRepository extends FakeDietRepository {
@@ -78,6 +79,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          testRecordSpanOverride(),
           dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
