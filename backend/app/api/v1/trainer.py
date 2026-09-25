@@ -41,6 +41,7 @@ from app.schemas.diet_api import (
     RecordSpanResponse,
 )
 from app.schemas.exercise_api import (
+    ExercisePeriodResponse,
     ExerciseAdviceResponse,
     ExerciseSessionOut,
     ExerciseWeekResponse,
@@ -514,6 +515,36 @@ def trainer_client_diet_period(
     """
     _require_client(db, trainer.id, member_id)
     return diet_service.build_period(db, member_id, start=from_date, end=to_date)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/exercise/weeks",
+    response_model=ExercisePeriodResponse,
+)
+def trainer_client_exercise_period(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[_date | None, Query(alias="from")] = None,
+    to_date: Annotated[_date | None, Query(alias="to")] = None,
+) -> ExercisePeriodResponse:
+    """담당 고객의 기간 운동 집계. 회원 API(`GET /exercise/weeks`)와 같은 규칙이다.
+
+    `전체` 가 모든 기록을 그리므로(#2079) 주마다 부르면 왕복이 주 수만큼 늘어난다
+    (#2247). 한 주를 펼쳐 볼 때는 그대로 `GET .../exercise-week?week_start=` 다.
+    """
+    _require_client(db, trainer.id, member_id)
+    profile = db.scalar(
+        select(HealthProfile).where(HealthProfile.user_id == member_id)
+    )
+    data = exercise_service.build_period(
+        db,
+        member_id,
+        start=from_date,
+        end=to_date,
+        goals=weekly_goals(profile),
+    )
+    return ExercisePeriodResponse(**data)
 
 
 @router.get(
