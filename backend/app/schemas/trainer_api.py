@@ -171,30 +171,6 @@ class TrainerClientStatusOut(BaseModel):
     active: bool
 
 
-class DashboardCoachingClientOut(BaseModel):
-    """대시보드 AI 요약에 노출할 고객별 실행 가능한 코칭 인사이트."""
-
-    member_id: str
-    member_name: str
-    priority: Literal["high", "medium", "low"]
-    status_summary: str = Field(min_length=1, max_length=300)
-    evidence: list[str] = Field(default_factory=list, max_length=3)
-    exercise_focus: str = Field(min_length=1, max_length=300)
-    caution: str = Field(default="", max_length=200)
-
-
-class DashboardCoachingSummaryOut(BaseModel):
-    """트레이너 대시보드의 오늘 AI 코칭 요약."""
-
-    headline: str = Field(min_length=1, max_length=300)
-    clients: list[DashboardCoachingClientOut] = Field(
-        default_factory=list,
-        max_length=3,
-    )
-    generated_by: Literal["ai", "rule"]
-    data_as_of: _date
-
-
 class MemberHealthProfileOut(BaseModel):
     member_id: str
     member_name: str
