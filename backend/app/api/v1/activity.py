@@ -4,6 +4,7 @@
   GET /me/activity-calendar?from=&to=  -> { from_date, to_date, days[],
                                             record_streak_days, shields_held,
                                             protectable_from, protectable_to, color }
+  GET /me/records/span                 -> { diet_first_date, exercise_first_date }
   PUT /me/graph-color                  -> { current, unlocked, palette, cost }
 
 색을 **여는** 것은 다른 사용처 항목과 같은 `POST /me/points/exchange`
@@ -26,12 +27,18 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
 from app.db.session import get_db
+from app.schemas.diet_api import RecordSpanResponse
 from app.schemas.activity_api import (
     ActivityCalendarOut,
     GraphColorOut,
     GraphColorRequest,
 )
-from app.services import activity_calendar_service, graph_color_service
+from app.services import (
+    activity_calendar_service,
+    diet_service,
+    exercise_service,
+    graph_color_service,
+)
 
 router = APIRouter(tags=["points"])
 
@@ -46,6 +53,23 @@ def my_activity_calendar(
     """날짜별 기록(식단·운동·보호)과 기록 연속, 지금 그래프 색."""
     return activity_calendar_service.calendar(
         db, current_user.id, start=from_date, end=to_date
+    )
+
+
+@router.get("/me/records/span", response_model=RecordSpanResponse)
+def my_record_span(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> RecordSpanResponse:
+    """식단·운동을 처음 남긴 날. `전체` 그래프의 시작점이다(#2079, #2236).
+
+    식단 기간 조회(`GET /diet/days`)는 `from` 을 생략하면 알아서 첫 기록일부터
+    주지만, 운동은 주 단위(`?week_start=`)라 어느 주부터 부를지를 화면이 알아야
+    한다. 기록이 없으면 null 이고, 그때 `전체` 는 오늘 하루만 그린다.
+    """
+    return RecordSpanResponse(
+        diet_first_date=diet_service.first_entry_date(db, current_user.id),
+        exercise_first_date=exercise_service.first_session_date(db, current_user.id),
     )
 
 

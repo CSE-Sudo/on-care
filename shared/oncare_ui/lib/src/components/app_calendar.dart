@@ -173,6 +173,9 @@ class AppWeekStrip extends StatelessWidget {
     );
     if (previousTooltip != null && nextTooltip != null) {
       row = Row(
+        // 꺾쇠와 날짜 칸이 같은 자리에서 시작해야, 꺾쇠가 숫자 상자와 같은
+        // 높이에 선다(#2215). 가운데 정렬이면 점 줄 유무에 따라 흔들린다.
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _WeekStripArrow(
             icon: AppIcon.setOf(context).previous,
@@ -328,7 +331,7 @@ class _WeekDayCell extends StatelessWidget {
   }
 }
 
-/// [AppWeekStrip] 양옆의 작은 원형 꺾쇠 — 옅은 브랜드 바탕, 비활성은 흐리게.
+/// [AppWeekStrip] 양옆의 꺾쇠 — 배경 없이 글리프만, 비활성은 흐리게.
 class _WeekStripArrow extends StatelessWidget {
   const _WeekStripArrow({
     required this.icon,
@@ -345,26 +348,52 @@ class _WeekStripArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    // 날짜 칸과 같은 배율을 쓴다 — 꺾쇠가 숫자 상자 한가운데에 서야 한 줄로
+    // 읽힌다(#2215). 칸 전체(요일 글자·점까지)의 가운데에 맞추면 숫자보다
+    // 조금 위에 뜬다.
+    final double box = MediaQuery.textScalerOf(
+      context,
+    ).scale(OnCareCalendar.weekDayBox);
     return Opacity(
       opacity: onPressed == null ? OnCareCalendar.disabledArrowOpacity : 1,
-      child: Material(
-        color: tokens.brand.surfaceSoft,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          child: Tooltip(
-            message: tooltip,
-            child: SizedBox.square(
-              dimension: OnCareCalendar.weekArrow,
-              child: AppIcon(
-                icon,
-                size: OnCareSize.iconSmall,
-                color: tokens.brand.primary,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // 날짜 칸의 요일 글자 줄만큼 내려놓는 자리. 글자 배율이 바뀌어도
+          // 같은 글꼴로 재니 숫자 상자와 어긋나지 않는다.
+          Visibility(
+            visible: false,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: Text('0', style: tokens.text(OnCareCalendar.weekday)),
+          ),
+          const SizedBox(height: OnCareCalendar.weekdayGap),
+          SizedBox(
+            height: box,
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onPressed,
+                  child: Tooltip(
+                    message: tooltip,
+                    child: SizedBox.square(
+                      dimension: OnCareCalendar.weekArrow,
+                      child: AppIcon(
+                        icon,
+                        size: OnCareCalendar.weekArrowIcon,
+                        color: tokens.brand.primary,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

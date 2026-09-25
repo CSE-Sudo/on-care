@@ -2,6 +2,7 @@
 식단 라우터 — 프론트 계약 정렬(얇은 라우터).
 
   GET  /diet/days/today          -> 오늘 식단 집계(나트륨·당류·macros + 코칭 메시지)
+  GET  /diet/days?from=&to=      -> 기간의 날짜별 합계(그래프용, 끼니·사진 없음)
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
@@ -32,6 +33,7 @@ from app.schemas.diet_api import (
     DietEntryCreate,
     DietEntryOut,
     DietEntryUpdate,
+    DietPeriodResponse,
     DietRecommendationsResponse,
     DietTodayResponse,
     FoodNutritionOut,
@@ -60,6 +62,22 @@ def diet_today(
     db: Annotated[Session, Depends(get_db)],
 ) -> DietTodayResponse:
     return diet_service.build_today(db, current_user.id)
+
+
+@router.get("/diet/days", response_model=DietPeriodResponse)
+def diet_period(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[Date | None, Query(alias="from")] = None,
+    to_date: Annotated[Date | None, Query(alias="to")] = None,
+) -> DietPeriodResponse:
+    """기간의 **날짜별 합계**. `from` 을 생략하면 첫 기록일부터다. (#2236)
+
+    기간 그래프가 쓰는 길이다 — 하루에 한 번씩 부르면 `전체`(모든 기록, #2079)가
+    수백 번의 왕복이 된다. 끼니·사진은 싣지 않으므로 하루를 펼쳐 볼 때는 그대로
+    `GET /diet/days/{date}` 를 쓴다.
+    """
+    return diet_service.build_period(db, current_user.id, start=from_date, end=to_date)
 
 
 @router.get("/diet/days/{date}", response_model=DietTodayResponse)

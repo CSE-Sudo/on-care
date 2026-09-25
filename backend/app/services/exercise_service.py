@@ -62,6 +62,34 @@ def session_date_of(row) -> date | None:
     return exercise_activity.activity_date_of(row)
 
 
+def first_session_date(db: Session, user_id: str) -> str | None:
+    """이 회원이 운동을 처음 남긴 날(YYYY-MM-DD). 기록이 없으면 None. (#2236)
+
+    `전체` 그래프가 여기서부터 그린다(#2079). 저장은 (주 시작 + 요일 라벨)로
+    쪼개져 있어 가장 이른 주를 먼저 찾고, 그 주 안에서 실제 날짜로 되돌린다 —
+    `week_start` 만 쓰면 주 한가운데부터 기록한 회원의 앞 며칠이 빈 칸으로
+    붙는다.
+    """
+    first_monday = db.scalar(
+        select(ExerciseSession.week_start)
+        .where(ExerciseSession.user_id == user_id, ExerciseSession.minutes > 0)
+        .order_by(ExerciseSession.week_start.asc())
+        .limit(1)
+    )
+    if first_monday is None:
+        return None
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user_id,
+            ExerciseSession.week_start == first_monday,
+            ExerciseSession.minutes > 0,
+        )
+    ).all()
+    days = [d for d in (session_date_of(r) for r in rows) if d is not None]
+    # 날짜를 되돌릴 수 없는 옛 행만 있으면 그 주의 월요일로 둔다.
+    return min(days).isoformat() if days else first_monday
+
+
 def monday_of_this_week_str() -> str:
     today = clock.today()
     return (today - timedelta(days=today.weekday())).isoformat()

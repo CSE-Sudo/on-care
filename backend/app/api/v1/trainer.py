@@ -35,7 +35,11 @@ from app.models.models import (
     TrainerProfile,
     User,
 )
-from app.schemas.diet_api import DietAdviceResponse
+from app.schemas.diet_api import (
+    DietAdviceResponse,
+    DietPeriodResponse,
+    RecordSpanResponse,
+)
 from app.schemas.exercise_api import (
     ExerciseAdviceResponse,
     ExerciseSessionOut,
@@ -492,6 +496,43 @@ def trainer_client_diet(
     if not _is_ymd(day):
         raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 합니다.")
     return trainer_service.build_client_diet(db, member_id, day)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/diet/days",
+    response_model=DietPeriodResponse,
+)
+def trainer_client_diet_period(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[_date | None, Query(alias="from")] = None,
+    to_date: Annotated[_date | None, Query(alias="to")] = None,
+) -> DietPeriodResponse:
+    """담당 고객의 기간 식단 합계. 회원 API(`GET /diet/days`)와 **같은 규칙**이다.
+
+    트레이너 화면의 기간 그래프가 회원 앱과 같은 숫자를 그리려면 같은 집계를
+    읽어야 한다(#2156). `from` 을 생략하면 그 회원의 첫 기록일부터다(#2079).
+    """
+    _require_client(db, trainer.id, member_id)
+    return diet_service.build_period(db, member_id, start=from_date, end=to_date)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/records/span",
+    response_model=RecordSpanResponse,
+)
+def trainer_client_record_span(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> RecordSpanResponse:
+    """담당 고객이 식단·운동을 처음 남긴 날. 회원 API(`GET /me/records/span`)와 같다."""
+    _require_client(db, trainer.id, member_id)
+    return RecordSpanResponse(
+        diet_first_date=diet_service.first_entry_date(db, member_id),
+        exercise_first_date=exercise_service.first_session_date(db, member_id),
+    )
 
 
 @router.get("/trainer/clients/{member_id}/diet/photos/{photo_id}")

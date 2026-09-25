@@ -105,6 +105,7 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
+| GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
@@ -335,6 +336,7 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
 | GET | `/me/activity-calendar?from=&to=` | 회원(데모 폴백) | `{ from_date, to_date, days[], record_streak_days, shields_held, protectable_from?, protectable_to?, color }` |
+| GET | `/me/records/span` | 회원(데모 폴백) | `{ diet_first_date, exercise_first_date }` — 식단·운동을 처음 남긴 날(없으면 null). `전체` 그래프가 어디서부터 그릴지 정하는 값이다 (#2079, #2236) |
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item: "graph_color", option: "<색>", client_request_id? }` → **201** `{ coupon: null, shield: null, graph_color, spent, balance }` |
 | PUT | `/me/graph-color` | 회원 | 입력 `{ color }` → `{ current, unlocked[], palette[], cost }` |
 
