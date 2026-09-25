@@ -3411,8 +3411,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return '세션 $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type 세션';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type 세션 $index';
   }
 
   @override

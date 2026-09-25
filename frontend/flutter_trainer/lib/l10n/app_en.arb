@@ -2216,14 +2216,10 @@
       }
     }
   },
-  "programEditorSessionName": "Session {letter}",
-  "@programEditorSessionName": {
-    "placeholders": {
-      "letter": {
-        "type": "String"
-      }
-    }
-  },
+  "programEditorSessionNameTyped": "{type} session",
+  "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
+  "programEditorSessionNameNumbered": "{type} session {index}",
+  "@programEditorSessionNameNumbered": {"placeholders": {"type": {"type": "String"}, "index": {"type": "int"}}},
   "programEditorSessionUp": "Move session up",
   "programEditorSessionDown": "Move session down",
   "programEditorSessionReset": "Reset session",

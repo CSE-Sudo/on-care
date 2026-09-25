@@ -1406,7 +1406,10 @@
       }
     }
   },
-  "programEditorSessionName": "세션 {letter}",
+  "programEditorSessionNameTyped": "{type} 세션",
+  "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
+  "programEditorSessionNameNumbered": "{type} 세션 {index}",
+  "@programEditorSessionNameNumbered": {"placeholders": {"type": {"type": "String"}, "index": {"type": "int"}}},
   "programEditorSessionUp": "세션 위로 이동",
   "programEditorSessionDown": "세션 아래로 이동",
   "programEditorSessionReset": "세션 초기화",

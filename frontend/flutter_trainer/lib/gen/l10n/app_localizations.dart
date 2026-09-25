@@ -6232,11 +6232,17 @@ abstract class AppLocalizations {
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
 
-  /// No description provided for @programEditorSessionName.
+  /// No description provided for @programEditorSessionNameTyped.
   ///
   /// In en, this message translates to:
-  /// **'Session {letter}'**
-  String programEditorSessionName(String letter);
+  /// **'{type} session'**
+  String programEditorSessionNameTyped(String type);
+
+  /// No description provided for @programEditorSessionNameNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} session {index}'**
+  String programEditorSessionNameNumbered(String type, int index);
 
   /// No description provided for @programEditorSessionUp.
   ///

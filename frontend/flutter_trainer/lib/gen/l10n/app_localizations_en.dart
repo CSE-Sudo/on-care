@@ -3569,8 +3569,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return 'Session $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type session';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type session $index';
   }
 
   @override
