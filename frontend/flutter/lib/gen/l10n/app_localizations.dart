@@ -4312,8 +4312,8 @@ abstract class AppLocalizations {
   /// No description provided for @aicQuotaPaidNext.
   ///
   /// In en, this message translates to:
-  /// **'Next chat {cost} · Bought today {used}/{limit} · {balance} left'**
-  String aicQuotaPaidNext(String cost, int used, int limit, String balance);
+  /// **'Next chat {cost} · Bought today {used}/{limit}'**
+  String aicQuotaPaidNext(String cost, int used, int limit);
 
   /// No description provided for @aicQuotaExhausted.
   ///
@@ -4336,8 +4336,8 @@ abstract class AppLocalizations {
   /// No description provided for @aicPaidConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve used today\'s free chats. Each message now costs {cost} (up to {limit} today).'**
-  String aicPaidConfirmMessage(String cost, int limit);
+  /// **'You\'ve used today\'s free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}'**
+  String aicPaidConfirmMessage(String cost, int limit, String balance);
 
   /// No description provided for @aicPaidConfirmAction.
   ///
@@ -4350,12 +4350,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You need {shortfall} more. Log meals and workouts to earn points.'**
   String aicPaidInsufficient(String shortfall);
-
-  /// No description provided for @aicPointsSpentWithBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'−{spent} · {balance} left'**
-  String aicPointsSpentWithBalance(String spent, String balance);
 
   /// No description provided for @aicPointsSpent.
   ///
