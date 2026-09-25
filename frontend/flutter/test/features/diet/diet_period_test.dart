@@ -16,6 +16,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/record_span.dart';
 
 /// 짝수 날에만 기록이 있는 저장소 — 기간 평균이 **기록이 있는 날만으로**
 /// 나뉘는지 확인하기 위한 대역.
@@ -121,6 +122,7 @@ void main() {
     test('기간의 모든 날을 담고, 평균은 기록이 있는 날만으로 나눈다', () async {
       final container = ProviderContainer(
         overrides: <Override>[
+          testRecordSpanOverride(),
           dietRepositoryProvider.overrideWithValue(_SparseDietRepository()),
         ],
       );
@@ -147,6 +149,7 @@ void main() {
     test('기록이 하나도 없는 기간은 비어 있다고 본다(0 으로 나누지 않는다)', () async {
       final container = ProviderContainer(
         overrides: <Override>[
+          testRecordSpanOverride(),
           dietRepositoryProvider.overrideWithValue(_EmptyDietRepository()),
         ],
       );
@@ -169,6 +172,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
@@ -225,6 +229,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
@@ -298,6 +303,7 @@ void main() {
           _app(
             locale: locale,
             overrides: <Override>[
+              testRecordSpanOverride(),
               dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
               accountRepositoryProvider.overrideWithValue(
                 MockAccountRepository(),
@@ -358,6 +364,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
@@ -413,32 +420,43 @@ void main() {
       expect(dietRangeDates(r).length, 7);
     });
 
-    test('전체는 오늘로 끝나는 12주다 — 달이 바뀌어도 앞의 기록이 남는다', () {
-      // 예전에는 이번 달 1일~말일이었다. 달이 바뀌면 그 앞의 이야기가 통째로
-      // 사라져서, 추세를 보려고 연 화면이 매달 1일에 비었다. (#1018)
+    test('전체는 첫 기록일부터 오늘까지다 — 모든 기록을 그린다 (#2079)', () {
+      // 예전에는 오늘로 끝나는 12주 고정 창이었다. 그보다 오래된 기록은
+      // 회원이 남겼는데도 그래프에서 볼 수 없었다.
+      final DietDateRange r = dietRangeForTab(
+        DietPeriodTab.month,
+        DateTime(2026, 12, 15),
+        firstRecord: DateTime(2025, 11, 3),
+      );
+
+      expect(r.from, DateTime(2025, 11, 3));
+      expect(r.to, DateTime(2026, 12, 15));
+      expect(dietRangeDates(r).length, 408);
+    });
+
+    test('첫 기록일이 없으면 오늘 하루다 — 지어낸 기간보다 하루가 낫다', () {
+      // 기록이 하나도 없거나(신규 회원) 아직 못 읽은 상태다.
       final DietDateRange r = dietRangeForTab(
         DietPeriodTab.month,
         DateTime(2026, 12, 15),
       );
-      final List<DateTime> dates = dietRangeDates(r);
-      expect(dates.length, kDietAllPeriodDays);
-      expect(dates.last, DateTime(2026, 12, 15));
-      expect(dates.first, DateTime(2026, 9, 23));
+
+      expect(r.from, DateTime(2026, 12, 15));
+      expect(r.to, DateTime(2026, 12, 15));
+      expect(dietRangeDates(r).length, 1);
     });
 
-    test('전체는 달 경계·윤년과 상관없이 늘 같은 길이다', () {
-      for (final DateTime today in <DateTime>[
-        DateTime(2026, 2, 10),
-        DateTime(2028, 2, 10),
-        DateTime(2026, 3, 15),
-        DateTime(2026, 1, 2),
-      ]) {
-        final List<DateTime> dates = dietRangeDates(
-          dietRangeForTab(DietPeriodTab.month, today),
-        );
-        expect(dates.length, kDietAllPeriodDays, reason: '$today');
-        expect(dates.last, today, reason: '$today');
-      }
+    test('첫 기록일이 오늘보다 뒤면 오늘 하루로 본다', () {
+      // 기기 시계가 어긋났거나 서버가 앞날을 준 경우다 — 거꾸로 된 구간을
+      // 그리지 않는다.
+      final DietDateRange r = dietRangeForTab(
+        DietPeriodTab.month,
+        DateTime(2026, 12, 15),
+        firstRecord: DateTime(2027),
+      );
+
+      expect(r.from, DateTime(2026, 12, 15));
+      expect(r.to, DateTime(2026, 12, 15));
     });
   });
 
@@ -446,6 +464,7 @@ void main() {
     // 실서버 응답은 영양을 하루/끼니 단위로만 내려준다.
     final container = ProviderContainer(
       overrides: <Override>[
+        testRecordSpanOverride(),
         dietRepositoryProvider.overrideWithValue(_DayTotalsOnlyRepository()),
       ],
     );
@@ -475,6 +494,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             // 어제만 비어 있고 나머지는 기록이 있다 — 주간 집계는 충분하다.
             dietRepositoryProvider.overrideWithValue(
               _EmptyYesterdayRepository(),
@@ -528,6 +548,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             dietRepositoryProvider.overrideWithValue(_FailPastRepository()),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
@@ -558,6 +579,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
@@ -583,7 +605,13 @@ void main() {
           .length;
       expect(
         tipCount,
-        dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst())).length,
+        dietRangeDates(
+          dietRangeForTab(
+            DietPeriodTab.month,
+            nowKst(),
+            firstRecord: testFirstRecordDate(),
+          ),
+        ).length,
       );
 
       final AppLocalizations l = AppLocalizations.of(
@@ -595,7 +623,7 @@ void main() {
         find.byKey(
           Key(
             'diet-period-bar-tip-'
-            '${dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst())).length - 1}',
+            '${dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst(), firstRecord: testFirstRecordDate())).length - 1}',
           ),
         ),
       );
@@ -614,6 +642,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             // 홀수 날에는 기록이 없다 — 어느 달이든 1일은 늘 비어 있다.
             dietRepositoryProvider.overrideWithValue(_SparseDietRepository()),
             accountRepositoryProvider.overrideWithValue(
@@ -633,7 +662,11 @@ void main() {
       // 홀수 날에 기록이 없다. 전체는 오늘로 끝나는 구간이라 0번 칸이 무슨
       // 날인지 고정돼 있지 않으므로, 비어 있는 날을 날짜로 찾는다. (#1018)
       final List<DateTime> dates = dietRangeDates(
-        dietRangeForTab(DietPeriodTab.month, nowKst()),
+        dietRangeForTab(
+          DietPeriodTab.month,
+          nowKst(),
+          firstRecord: testFirstRecordDate(),
+        ),
       );
       final int emptyIndex = dates.indexWhere((DateTime d) => d.day.isOdd);
       final Finder empty = _tipFinder(

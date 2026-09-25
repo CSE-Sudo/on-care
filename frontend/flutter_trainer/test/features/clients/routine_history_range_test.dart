@@ -52,15 +52,37 @@ void main() {
     );
   });
 
-  test('전체 는 회원 앱과 같은 12주까지 거슬러 오른다', () {
+  test('전체 는 첫 기록일까지 거슬러 오른다 (#2079)', () {
+    // 예전에는 12주 고정 창이라 그보다 오래된 이력이 사라졌다.
     final List<RoutineHistoryEntry> entries = <RoutineHistoryEntry>[
       _entry('막차', today.subtract(const Duration(days: 83))),
-      _entry('하루-넘김', today.subtract(const Duration(days: 84))),
+      _entry('그-앞', today.subtract(const Duration(days: 200))),
+    ];
+
+    expect(
+      _ids(
+        historyInRange(
+          entries,
+          clientRangeFor(
+            ClientPeriod.month,
+            today,
+            firstRecord: today.subtract(const Duration(days: 300)),
+          ),
+        ),
+      ),
+      <String>['막차', '그-앞'],
+    );
+  });
+
+  test('첫 기록일이 없으면 전체 도 오늘 하루다', () {
+    final List<RoutineHistoryEntry> entries = <RoutineHistoryEntry>[
+      _entry('오늘', today),
+      _entry('어제', today.subtract(const Duration(days: 1))),
     ];
 
     expect(
       _ids(historyInRange(entries, clientRangeFor(ClientPeriod.month, today))),
-      <String>['막차'],
+      <String>['오늘'],
     );
   });
 
