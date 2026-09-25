@@ -46,6 +46,22 @@ enum ClientSignalKind {
       ? AppTagTone.brand
       : AppTagTone.danger;
 
+  /// 이 신호를 다루는 회원 상세 탭 — 대시보드 할 일이 누르면 가는 곳.
+  /// 몸 상태·출석은 대화로 먼저 묻고, 식단 신호는 식단, 나머지는 운동이다.
+  String get detailSection => switch (this) {
+    ClientSignalKind.discomfort ||
+    ClientSignalKind.noShow ||
+    ClientSignalKind.unanswered => 'chat',
+    ClientSignalKind.calorieOff || ClientSignalKind.proteinLow => 'diet',
+    ClientSignalKind.recordGap ||
+    ClientSignalKind.routineMissed ||
+    ClientSignalKind.exerciseGoalLow => 'workout',
+  };
+
+  /// 식단 신호인가 — 대시보드 할 일의 `식단` 분류.
+  bool get isDiet =>
+      this == ClientSignalKind.calorieOff || this == ClientSignalKind.proteinLow;
+
   /// 회원의 상태에서 나온 신호인가. 답장 대기는 트레이너 자신의 받은편지함이라
   /// `주의 회원` 에 세지 않는다.
   bool get isAttention => this != ClientSignalKind.unanswered;
@@ -129,6 +145,21 @@ class ClientSignal {
     ClientSignalKind.calorieOff when over != null =>
       over! ? l.clientsSignalCalorieOver : l.clientsSignalCalorieUnder,
     _ => kind.label(l),
+  };
+
+  /// 할 일처럼 **무엇을 얼마나** 손볼지 정하는 자리의 문구 — 근거 수치를
+  /// 빠짐없이 붙인다(`칼로리 22% 과다`). 목록 배지([badgeLabel])는 훑는
+  /// 자리라 짧게 둔다.
+  String detailLabel(AppLocalizations l) => switch (kind) {
+    ClientSignalKind.calorieOff when over != null && percent != null =>
+      over!
+          ? l.clientsSignalCalorieOverPercent(percent!)
+          : l.clientsSignalCalorieUnderPercent(percent!),
+    ClientSignalKind.proteinLow when percent != null =>
+      l.clientsSignalProteinPercent(percent!),
+    ClientSignalKind.routineMissed when days != null =>
+      l.clientsSignalRoutineMissedDays(days!),
+    _ => badgeLabel(l),
   };
 }
 

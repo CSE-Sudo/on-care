@@ -260,6 +260,86 @@ def _longest_streak(daily: list[int]) -> int:
     return best
 
 
+def build_period(
+    db: Session,
+    user_id: str,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    goals: tuple[int, int] = (0, 0),
+) -> dict:
+    """[start]…[end] 가 걸친 **주들**의 집계. (#2247)
+
+    `전체` 그래프가 모든 기록을 그리므로(#2079) 주마다 부르면 해가 바뀐 회원에게
+    쉰 번이 넘는 왕복이 된다. 한 번에 읽어 주 단위로 나눈다.
+
+    주마다의 집계는 [build_current_week] 그대로다 — 같은 함수를 기간만큼 부르는
+    것이 이 조회의 전부라, 한 주만 볼 때와 여러 주를 볼 때의 숫자가 갈리지
+    않는다. 다만 `sessions` 와 코칭 문구는 싣지 않는다(그래프가 쓰지 않는다).
+
+    [start] 를 주지 않으면 **첫 기록이 있는 주**부터다. 기록이 하나도 없으면
+    이번 주 한 칸이다. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다.
+    """
+    today = clock.today()
+    last_monday = _monday_of(min(end or today, today))
+    if start is not None:
+        first_monday = _monday_of(start)
+    else:
+        first = first_session_date(db, user_id)
+        first_monday = (
+            _monday_of(date.fromisoformat(first)) if first else last_monday
+        )
+    if first_monday > last_monday:
+        first_monday = last_monday
+
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user_id,
+            ExerciseSession.week_start >= first_monday.isoformat(),
+            ExerciseSession.week_start <= last_monday.isoformat(),
+        )
+    ).all()
+    by_week: dict[str, list] = {}
+    for row in rows:
+        by_week.setdefault(row.week_start, []).append(row)
+
+    minutes_goal, calories_goal = goals
+    weeks: list[dict] = []
+    cursor = first_monday
+    while cursor <= last_monday:
+        key = cursor.isoformat()
+        data = build_current_week(by_week.get(key, []))
+        weeks.append(
+            {
+                "week_start": key,
+                "day_labels": data["day_labels"],
+                "daily_minutes": data["daily_minutes"],
+                "daily_calories": data["daily_calories"],
+                "cardio_minutes": data["cardio_minutes"],
+                "strength_minutes": data["strength_minutes"],
+                "strength_sets": data["strength_sets"],
+                "stretching_minutes": data["stretching_minutes"],
+                "other_minutes": data["other_minutes"],
+                "total_minutes": data["total_minutes"],
+                "total_calories": data["total_calories"],
+                "streak_days": data["streak_days"],
+                "weekly_goal_minutes": minutes_goal,
+                "weekly_goal_calories": calories_goal,
+            }
+        )
+        cursor += timedelta(days=7)
+
+    return {
+        "from_week": first_monday.isoformat(),
+        "to_week": last_monday.isoformat(),
+        "weeks": weeks,
+    }
+
+
+def _monday_of(day: date) -> date:
+    return day - timedelta(days=day.weekday())
+
+
 def build_current_week(rows: list) -> dict:
     """ExerciseSession row 리스트 → 프론트 계약 형태의 dict."""
     per_day = {l: 0 for l in WEEKDAY_LABELS}

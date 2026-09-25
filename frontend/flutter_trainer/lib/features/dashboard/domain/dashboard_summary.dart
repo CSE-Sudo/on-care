@@ -1,10 +1,26 @@
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
-export 'package:oncare_trainer/shared/models/client_alerts.dart'
-    show AttentionClient, ClientAlert, alertSeverity, lowCompletionThreshold;
+/// A client that needs attention today, with the PT 관리 신호 that put them
+/// there (#2244) — the same signals and order the 회원 list shows.
+class AttentionClient {
+  /// Creates an attention entry.
+  const AttentionClient({required this.client, required this.signals});
+
+  /// The client.
+  final TrainerClient client;
+
+  /// Why they surfaced, most urgent first. 답장 대기 is last when present.
+  final List<ClientSignal> signals;
+
+  /// The most urgent signal — what the row is about.
+  ClientSignal get primary => signals.first;
+
+  /// Whether a signal comes from the member's own state (not the reply
+  /// backlog) — the 주의 회원 rule.
+  bool get needsAttention => signals.any((s) => s.kind.isAttention);
+}
 
 /// Weekday labels for the 주간 이행률 chart, in the current locale.
 /// [TrainerClient.weekCompletion] is indexed 월→일, matching
@@ -109,15 +125,15 @@ DashboardSummary buildDashboardSummary({
       unreadTotal += pending;
       unreadClients++;
     }
-    final alerts = alertsFor(client, unread: pending);
-    if (alerts.isNotEmpty) {
-      attention.add(AttentionClient(client: client, alerts: alerts));
+    final signals = rosterSignalsFor(client, unread: pending);
+    if (signals.isNotEmpty) {
+      attention.add(AttentionClient(client: client, signals: signals));
     }
   }
 
-  // 목표를 가장 크게 벗어난 회원부터. 예전에는 신호 **종류** 순으로 묶었는데,
-  // 카드가 다섯 행만 보여 주다 보니 첫 종류가 카드를 통째로 차지했다 — 배지를
-  // 회원별로 고르게 만들어도 화면은 여전히 한 가지 말만 했다(#767).
+  // 가장 급한 신호부터 — 회원 목록의 `관리 필요 우선` 과 같은 순서다(#2244).
+  // 예전에는 나트륨·이행률을 초과 폭으로 견줬지만, 신호는 종류마다 단위가
+  // 달라(일·회·%) 한 저울에 올릴 수 없고, 종류의 순서가 곧 급한 정도다.
   //
   // 동점이면 들어온 순서를 지킨다. `List.sort` 는 안정 정렬이 아니라 원래
   // 위치를 명시적 타이브레이커로 둔다.
@@ -125,11 +141,8 @@ DashboardSummary buildDashboardSummary({
     for (var i = 0; i < clients.length; i++) clients[i].id: i,
   };
   attention.sort((a, b) {
-    final bySeverity = alertSeverity(
-      b.client,
-      b.primary,
-    ).compareTo(alertSeverity(a.client, a.primary));
-    if (bySeverity != 0) return bySeverity;
+    final byKind = a.primary.kind.index.compareTo(b.primary.kind.index);
+    if (byKind != 0) return byKind;
     return (order[a.client.id] ?? 0).compareTo(order[b.client.id] ?? 0);
   });
 
