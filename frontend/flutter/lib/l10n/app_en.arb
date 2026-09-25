@@ -2755,7 +2755,7 @@
   },
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Could not undo the completion.",
-  "coachRoutineCancel": "Cancel this workout",
+  "coachRoutineCancel": "Delete this workout",
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -2768,7 +2768,7 @@
   "@coachCardRoutineUndoTitle": {
     "description": "Title of the dialog confirming undoing a completed recommended workout."
   },
-  "coachCardRoutineCancelTitle": "Cancel this workout?",
+  "coachCardRoutineCancelTitle": "Delete this workout?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
   },
@@ -2776,8 +2776,8 @@
   "@coachRoutineKeep": {
     "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
-  "coachRoutineCancelled": "Workout cancelled",
-  "coachRoutineCancelFailed": "Couldn't cancel the workout",
+  "coachRoutineCancelled": "Workout deleted",
+  "coachRoutineCancelFailed": "Couldn't delete the workout",
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },

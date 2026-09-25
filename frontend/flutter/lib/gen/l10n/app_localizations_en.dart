@@ -3538,7 +3538,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineUndoFailed => 'Could not undo the completion.';
 
   @override
-  String get coachRoutineCancel => 'Cancel this workout';
+  String get coachRoutineCancel => 'Delete this workout';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3549,16 +3549,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardRoutineUndoTitle => 'Undo completion?';
 
   @override
-  String get coachCardRoutineCancelTitle => 'Cancel this workout?';
+  String get coachCardRoutineCancelTitle => 'Delete this workout?';
 
   @override
   String get coachRoutineKeep => 'Keep';
 
   @override
-  String get coachRoutineCancelled => 'Workout cancelled';
+  String get coachRoutineCancelled => 'Workout deleted';
 
   @override
-  String get coachRoutineCancelFailed => 'Couldn\'t cancel the workout';
+  String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
 
   @override
   String coachRoutineTrainerFeedback(String feedback) {

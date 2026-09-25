@@ -1702,7 +1702,7 @@
   },
   "coachRoutineUndone": "완료를 취소했어요",
   "coachRoutineUndoFailed": "완료 취소에 실패했어요.",
-  "coachRoutineCancel": "이 개인 운동 취소",
+  "coachRoutineCancel": "이 개인 운동 삭제",
   "coachRoutineCancelConfirm": "'{name}'을(를) 목록에서 지울까요? 이미 수행한 기록은 그대로 남아요.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -1712,10 +1712,10 @@
     }
   },
   "coachCardRoutineUndoTitle": "완료를 취소할까요?",
-  "coachCardRoutineCancelTitle": "개인 운동을 취소할까요?",
+  "coachCardRoutineCancelTitle": "개인 운동을 삭제할까요?",
   "coachRoutineKeep": "유지",
-  "coachRoutineCancelled": "개인 운동을 취소했어요",
-  "coachRoutineCancelFailed": "개인 운동을 취소하지 못했어요",
+  "coachRoutineCancelled": "개인 운동을 삭제했어요",
+  "coachRoutineCancelFailed": "개인 운동을 삭제하지 못했어요",
   "coachRoutineTrainerFeedback": "트레이너 피드백: {feedback}",
   "coachRoutineCompleteTitle": "개인운동 수행 완료",
   "coachRoutineIntensity": "수행 강도",

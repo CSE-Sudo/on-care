@@ -3402,7 +3402,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineUndoFailed => '완료 취소에 실패했어요.';
 
   @override
-  String get coachRoutineCancel => '이 개인 운동 취소';
+  String get coachRoutineCancel => '이 개인 운동 삭제';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3413,16 +3413,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachCardRoutineUndoTitle => '완료를 취소할까요?';
 
   @override
-  String get coachCardRoutineCancelTitle => '개인 운동을 취소할까요?';
+  String get coachCardRoutineCancelTitle => '개인 운동을 삭제할까요?';
 
   @override
   String get coachRoutineKeep => '유지';
 
   @override
-  String get coachRoutineCancelled => '개인 운동을 취소했어요';
+  String get coachRoutineCancelled => '개인 운동을 삭제했어요';
 
   @override
-  String get coachRoutineCancelFailed => '개인 운동을 취소하지 못했어요';
+  String get coachRoutineCancelFailed => '개인 운동을 삭제하지 못했어요';
 
   @override
   String coachRoutineTrainerFeedback(String feedback) {
