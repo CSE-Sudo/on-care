@@ -109,3 +109,17 @@ def test_paid_chat_needs_enough_points(client, db_session, llm, small_limits):
         "insufficient_points",
         40,
     )
+
+
+def test_free_per_day_is_five(client, db_session, llm):
+    """기본 무료는 하루 5회다(#2217). 여섯 번째부터 포인트 동의를 묻는다."""
+    h = _member(client, db_session, points=0)
+
+    for turn in range(5):
+        r = _send(client, h)
+        assert r.status_code == 200
+        assert r.json()["quota"]["free_left"] == 4 - turn
+
+    blocked = _send(client, h)
+    assert blocked.status_code == 402
+    assert blocked.json()["detail"]["code"] == "points_required"

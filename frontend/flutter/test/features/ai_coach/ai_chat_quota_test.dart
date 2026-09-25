@@ -14,7 +14,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 AiChatQuota _quota({required int paidLeft, required int balance}) =>
     AiChatQuota(
-      freeLimit: 10,
+      freeLimit: 5,
       freeLeft: 0,
       paidLimit: 10,
       paidLeft: paidLeft,
@@ -87,30 +87,39 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('무료를 다 쓰면 한 번 묻고 50P 로 보낸 뒤 답변 아래에 차감을 적는다 (#2145)', (
+  testWidgets('포인트로 보낼 때마다 묻고, 창에 지금 보유 포인트를 보여 준다 (#2217)', (
     tester,
   ) async {
     final _PaidRepository repo = _PaidRepository(
       _quota(paidLeft: 10, balance: 200),
     );
     await pump(tester, repo);
-    expect(find.text('다음 대화 50P · 오늘 구매 0/10 · 남은 포인트 200P'), findsOneWidget);
+    // 입력칸 위 줄에는 남은 포인트를 적지 않는다.
+    expect(find.text('다음 대화 50P · 오늘 구매 0/10'), findsOneWidget);
+    expect(find.textContaining('남은 포인트'), findsNothing);
 
     await tester.enterText(find.byType(TextField), '물 얼마나?');
     await tester.tap(find.byIcon(AppIcons.send));
     await tester.pumpAndSettle();
     // 확인창이 먼저 뜨고, 동의하기 전에는 보내지 않는다.
     expect(repo.paid, isEmpty);
+    expect(find.textContaining('지금 보유 포인트는 200P'), findsOneWidget);
     await tester.tap(find.text('포인트로 보내기'));
     await tester.pumpAndSettle();
 
     expect(repo.paid, <bool>[true]);
-    expect(find.text('−50P · 남은 포인트 150P'), findsOneWidget);
-    expect(find.text('다음 대화 50P · 오늘 구매 1/10 · 남은 포인트 150P'), findsOneWidget);
+    // 답변 아래는 차감만 적는다.
+    expect(find.text('−50P'), findsOneWidget);
+    expect(find.text('다음 대화 50P · 오늘 구매 1/10'), findsOneWidget);
+    expect(find.textContaining('남은 포인트'), findsNothing);
 
-    // 그날은 다시 묻지 않는다.
+    // 두 번째도 다시 묻는다 — 하루 한 번 동의로 묶지 않는다.
     await tester.enterText(find.byType(TextField), '한 번 더');
     await tester.tap(find.byIcon(AppIcons.send));
+    await tester.pumpAndSettle();
+    expect(repo.paid, <bool>[true]);
+    expect(find.textContaining('지금 보유 포인트는 150P'), findsOneWidget);
+    await tester.tap(find.text('포인트로 보내기'));
     await tester.pumpAndSettle();
     expect(repo.paid, <bool>[true, true]);
   });

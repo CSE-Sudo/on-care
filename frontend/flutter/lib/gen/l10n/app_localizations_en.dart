@@ -2485,8 +2485,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String aicQuotaPaidNext(String cost, int used, int limit, String balance) {
-    return 'Next chat $cost · Bought today $used/$limit · $balance left';
+  String aicQuotaPaidNext(String cost, int used, int limit) {
+    return 'Next chat $cost · Bought today $used/$limit';
   }
 
   @override
@@ -2500,8 +2500,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicPaidConfirmTitle => 'Keep chatting with points?';
 
   @override
-  String aicPaidConfirmMessage(String cost, int limit) {
-    return 'You\'ve used today\'s free chats. Each message now costs $cost (up to $limit today).';
+  String aicPaidConfirmMessage(String cost, int limit, String balance) {
+    return 'You\'ve used today\'s free chats. Sending this one costs $cost (up to $limit today). You have $balance.';
   }
 
   @override
@@ -2510,11 +2510,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String aicPaidInsufficient(String shortfall) {
     return 'You need $shortfall more. Log meals and workouts to earn points.';
-  }
-
-  @override
-  String aicPointsSpentWithBalance(String spent, String balance) {
-    return '−$spent · $balance left';
   }
 
   @override

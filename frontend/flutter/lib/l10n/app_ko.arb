@@ -1282,7 +1282,7 @@
       }
     }
   },
-  "aicQuotaPaidNext": "다음 대화 {cost} · 오늘 구매 {used}/{limit} · 남은 포인트 {balance}",
+  "aicQuotaPaidNext": "다음 대화 {cost} · 오늘 구매 {used}/{limit}",
   "@aicQuotaPaidNext": {
     "placeholders": {
       "cost": {
@@ -1293,16 +1293,13 @@
       },
       "limit": {
         "type": "int"
-      },
-      "balance": {
-        "type": "String"
       }
     }
   },
   "aicQuotaExhausted": "오늘 대화를 다 썼어요. 내일 다시 열려요",
   "aicQuotaFindTrainer": "트레이너 찾기",
   "aicPaidConfirmTitle": "포인트로 대화를 이어갈까요?",
-  "aicPaidConfirmMessage": "오늘 무료 대화를 다 썼어요. 이제 한 번 보낼 때마다 {cost}가 차감돼요 (오늘 {limit}회까지).",
+  "aicPaidConfirmMessage": "오늘 무료 대화를 다 썼어요. 이 대화를 보내면 {cost}가 차감돼요 (오늘 {limit}회까지). 지금 보유 포인트는 {balance}예요.",
   "@aicPaidConfirmMessage": {
     "placeholders": {
       "cost": {
@@ -1310,6 +1307,9 @@
       },
       "limit": {
         "type": "int"
+      },
+      "balance": {
+        "type": "String"
       }
     }
   },
@@ -1318,17 +1318,6 @@
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
-        "type": "String"
-      }
-    }
-  },
-  "aicPointsSpentWithBalance": "−{spent} · 남은 포인트 {balance}",
-  "@aicPointsSpentWithBalance": {
-    "placeholders": {
-      "spent": {
-        "type": "String"
-      },
-      "balance": {
         "type": "String"
       }
     }
