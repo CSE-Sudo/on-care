@@ -552,6 +552,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSignalProteinLow => '단백질 부족';
 
   @override
+  String clientsSignalCalorieOverPercent(int percent) {
+    return '칼로리 $percent% 과다';
+  }
+
+  @override
+  String clientsSignalCalorieUnderPercent(int percent) {
+    return '칼로리 $percent% 부족';
+  }
+
+  @override
+  String clientsSignalProteinPercent(int percent) {
+    return '단백질 목표의 $percent%';
+  }
+
+  @override
+  String clientsSignalRoutineMissedDays(int days) {
+    return '배정 루틴 $days일 미수행';
+  }
+
+  @override
   String get clientsSignalUnanswered => '답장 대기';
 
   @override

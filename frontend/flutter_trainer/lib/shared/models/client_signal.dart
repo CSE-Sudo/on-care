@@ -146,6 +146,21 @@ class ClientSignal {
       over! ? l.clientsSignalCalorieOver : l.clientsSignalCalorieUnder,
     _ => kind.label(l),
   };
+
+  /// 할 일처럼 **무엇을 얼마나** 손볼지 정하는 자리의 문구 — 근거 수치를
+  /// 빠짐없이 붙인다(`칼로리 22% 과다`). 목록 배지([badgeLabel])는 훑는
+  /// 자리라 짧게 둔다.
+  String detailLabel(AppLocalizations l) => switch (kind) {
+    ClientSignalKind.calorieOff when over != null && percent != null =>
+      over!
+          ? l.clientsSignalCalorieOverPercent(percent!)
+          : l.clientsSignalCalorieUnderPercent(percent!),
+    ClientSignalKind.proteinLow when percent != null =>
+      l.clientsSignalProteinPercent(percent!),
+    ClientSignalKind.routineMissed when days != null =>
+      l.clientsSignalRoutineMissedDays(days!),
+    _ => badgeLabel(l),
+  };
 }
 
 /// [signals] 를 급한 순으로 — 서버 순서를 믿되, 데모 데이터나 옛 응답이 순서를

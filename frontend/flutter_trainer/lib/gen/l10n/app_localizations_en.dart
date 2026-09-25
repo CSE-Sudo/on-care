@@ -565,6 +565,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSignalProteinLow => 'Low protein';
 
   @override
+  String clientsSignalCalorieOverPercent(int percent) {
+    return 'Calories $percent% over';
+  }
+
+  @override
+  String clientsSignalCalorieUnderPercent(int percent) {
+    return 'Calories $percent% under';
+  }
+
+  @override
+  String clientsSignalProteinPercent(int percent) {
+    return 'Protein $percent% of goal';
+  }
+
+  @override
+  String clientsSignalRoutineMissedDays(int days) {
+    return 'Routine skipped ${days}d';
+  }
+
+  @override
   String get clientsSignalUnanswered => 'Awaiting reply';
 
   @override

@@ -1100,6 +1100,30 @@ abstract class AppLocalizations {
   /// **'Low protein'**
   String get clientsSignalProteinLow;
 
+  /// No description provided for @clientsSignalCalorieOverPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories {percent}% over'**
+  String clientsSignalCalorieOverPercent(int percent);
+
+  /// No description provided for @clientsSignalCalorieUnderPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories {percent}% under'**
+  String clientsSignalCalorieUnderPercent(int percent);
+
+  /// No description provided for @clientsSignalProteinPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein {percent}% of goal'**
+  String clientsSignalProteinPercent(int percent);
+
+  /// No description provided for @clientsSignalRoutineMissedDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Routine skipped {days}d'**
+  String clientsSignalRoutineMissedDays(int days);
+
   /// No description provided for @clientsSignalUnanswered.
   ///
   /// In en, this message translates to:

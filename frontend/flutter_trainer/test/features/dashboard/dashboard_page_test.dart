@@ -276,12 +276,13 @@ void main() {
     await openDashboard(tester, extraOverrides: attentionRosterOverrides());
     await expandTaskCategory(tester, '식단');
 
-    // 식단 신호 여섯(칼로리 5 · 단백질 1)이 식단 미션이 되고, 설명은 목록
-    // 배지와 같은 문구다(#2244). 답장 대기 둘은 주의 신호가 아니라서 오늘 할
-    // 일에 없다(#907).
+    // 식단 신호 여섯(칼로리 5 · 단백질 1)이 식단 미션이 된다(#2244). 답장
+    // 대기 둘은 주의 신호가 아니라서 오늘 할 일에 없다(#907).
     expect(findMissionRow('feedback-calorie_off'), findsNWidgets(5));
     expect(findMissionRow('feedback-protein_low'), findsOneWidget);
-    expect(find.textContaining('칼로리 과다'), findsNWidgets(5));
+    // 할 일은 목록 배지보다 자세히 — 근거 수치를 붙인다.
+    expect(find.textContaining('칼로리 20% 과다'), findsNWidgets(5));
+    expect(find.textContaining('단백질 목표의 60%'), findsOneWidget);
     expect(find.textContaining('나트륨'), findsNothing);
     expect(find.text('답장 대기'), findsNothing);
 

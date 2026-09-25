@@ -374,6 +374,38 @@
   "clientsSignalCalorieOver": "Calories over",
   "clientsSignalCalorieUnder": "Calories under",
   "clientsSignalProteinLow": "Low protein",
+  "clientsSignalCalorieOverPercent": "Calories {percent}% over",
+  "@clientsSignalCalorieOverPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalCalorieUnderPercent": "Calories {percent}% under",
+  "@clientsSignalCalorieUnderPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalProteinPercent": "Protein {percent}% of goal",
+  "@clientsSignalProteinPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRoutineMissedDays": "Routine skipped {days}d",
+  "@clientsSignalRoutineMissedDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "clientsSignalUnanswered": "Awaiting reply",
   "clientsSignalMore": "+{count}",
   "@clientsSignalMore": {

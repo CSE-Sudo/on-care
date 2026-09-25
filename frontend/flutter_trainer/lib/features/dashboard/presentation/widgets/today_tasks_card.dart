@@ -272,8 +272,9 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           keywordColor: OnCareColors.danger,
           title: client.name,
           client: client,
-          // 회원 목록 배지와 같은 문구 — `칼로리 과다`, `6일째 기록 없음`.
-          subtitle: signal.badgeLabel(l),
+          // 목록 배지보다 자세히 — 무엇을 얼마나 손볼지 정하는 자리라 근거
+          // 수치를 붙인다(`칼로리 22% 과다`, `단백질 목표의 64%`).
+          subtitle: signal.detailLabel(l),
           onTap: () => context.go(
             AppRoutes.clientDetail(
               client.id,
