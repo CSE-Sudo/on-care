@@ -1384,7 +1384,10 @@
       }
     }
   },
-  "programEditorSessionName": "세션 {letter}",
+  "programEditorSessionNameTyped": "{type} 세션",
+  "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
+  "programEditorSessionNameNumbered": "{type} 세션 {index}",
+  "@programEditorSessionNameNumbered": {"placeholders": {"type": {"type": "String"}, "index": {"type": "int"}}},
   "programEditorSessionUp": "세션 위로 이동",
   "programEditorSessionDown": "세션 아래로 이동",
   "programEditorSessionReset": "세션 초기화",
@@ -1403,6 +1406,10 @@
   "programEditorExercise": "운동",
   "programEditorExerciseUp": "운동 위로 이동",
   "programEditorExerciseDown": "운동 아래로 이동",
+  "programEditorExerciseMoveSession": "다른 세션으로",
+  "programEditorExerciseMoveTitle": "어느 세션으로 옮길까요?",
+  "programEditorExerciseMoveBody": "'{name}' 운동을 옮길 세션을 골라 주세요.",
+  "@programEditorExerciseMoveBody": {"placeholders": {"name": {"type": "String"}}},
   "programEditorSets": "세트",
   "programEditorReps": "횟수",
   "programEditorWeight": "중량 kg",

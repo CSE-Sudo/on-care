@@ -3481,8 +3481,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return 'Session $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type session';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type session $index';
   }
 
   @override
@@ -3520,6 +3525,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorExerciseDown => 'Move exercise down';
+
+  @override
+  String get programEditorExerciseMoveSession => 'Move to another session';
+
+  @override
+  String get programEditorExerciseMoveTitle =>
+      'Which session should it move to?';
+
+  @override
+  String programEditorExerciseMoveBody(String name) {
+    return 'Pick the session to move \'$name\' into.';
+  }
 
   @override
   String get programEditorSets => 'Sets';

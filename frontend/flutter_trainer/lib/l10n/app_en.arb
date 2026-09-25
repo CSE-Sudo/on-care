@@ -2176,14 +2176,10 @@
       }
     }
   },
-  "programEditorSessionName": "Session {letter}",
-  "@programEditorSessionName": {
-    "placeholders": {
-      "letter": {
-        "type": "String"
-      }
-    }
-  },
+  "programEditorSessionNameTyped": "{type} session",
+  "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
+  "programEditorSessionNameNumbered": "{type} session {index}",
+  "@programEditorSessionNameNumbered": {"placeholders": {"type": {"type": "String"}, "index": {"type": "int"}}},
   "programEditorSessionUp": "Move session up",
   "programEditorSessionDown": "Move session down",
   "programEditorSessionReset": "Reset session",
@@ -2202,6 +2198,10 @@
   "programEditorExercise": "Exercise",
   "programEditorExerciseUp": "Move exercise up",
   "programEditorExerciseDown": "Move exercise down",
+  "programEditorExerciseMoveSession": "Move to another session",
+  "programEditorExerciseMoveTitle": "Which session should it move to?",
+  "programEditorExerciseMoveBody": "Pick the session to move '{name}' into.",
+  "@programEditorExerciseMoveBody": {"placeholders": {"name": {"type": "String"}}},
   "programEditorSets": "Sets",
   "programEditorReps": "Reps",
   "programEditorWeight": "Weight kg",
