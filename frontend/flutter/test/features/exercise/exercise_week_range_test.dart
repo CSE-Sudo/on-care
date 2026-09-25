@@ -127,11 +127,17 @@ void main() {
     );
   });
 
-  test('연도를 빼도 되는 전제 — 두 탭의 전체 기간이 1년이 안 된다', () {
-    // 기간이 1년을 넘기면 같은 월·일이 두 번 나와 `8. 20.` 이 어느 해인지
-    // 갈리지 않는다. 그때는 연도를 적어야 한다 — 이 테스트가 먼저 알린다.
-    expect(kDietAllPeriodDays, lessThan(365));
-    expect(kExerciseAllPeriodWeeks * 7, lessThan(365));
+  test('1년을 넘는 기간은 연도까지 적는다 (#2079)', () {
+    // `전체` 가 모든 기록을 그리게 되면서 1년을 넘는 기간이 생겼다. 월·일만
+    // 적으면 `8. 20.` 이 어느 해인지 갈리지 않는다.
+    expect(
+      periodRangeText('ko', DateTime(2025, 11, 3), DateTime(2026, 12, 15)),
+      contains('2025'),
+    );
+    expect(
+      periodRangeText('ko', DateTime(2025, 11, 3), DateTime(2026, 12, 15)),
+      contains('2026'),
+    );
     // 해가 바뀌는 구간도 월·일만으로 읽힌다.
     expect(
       periodRangeText('ko', DateTime(2026, 12, 16), DateTime(2027, 1, 5)),

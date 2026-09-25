@@ -10,6 +10,7 @@ import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_streak_shield_repository.dart';
@@ -23,6 +24,10 @@ const int _yesterdayIndex = 2;
 
 /// 날짜별 끼니 수만 아는 식단 저장소 — 기록 연속은 "한 끼라도 있나" 만 본다.
 class _FakeDiet implements DietRepository {
+  @override
+  Future<DietPeriod> fetchPeriod({DateTime? from, DateTime? to}) async =>
+      const DietPeriod(days: <DietPeriodDay>[]);
+
   _FakeDiet([Set<DateTime>? days])
     : _days = <String>{for (final DateTime d in days ?? <DateTime>{}) _key(d)};
 

@@ -15,6 +15,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/record_span.dart';
 
 /// 전체 칼로리 막대는 탄단지의 칼로리 기여분을 색 구간으로 쌓는다 (#1479).
 class _MacroRepository extends FakeDietRepository {
@@ -145,6 +146,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
+            testRecordSpanOverride(),
             dietRepositoryProvider.overrideWithValue(repository),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
@@ -242,7 +244,11 @@ void main() {
         tester.element(find.byType(DietRecordPage)),
       );
       final List<DateTime> dates = dietRangeDates(
-        dietRangeForTab(DietPeriodTab.month, nowKst()),
+        dietRangeForTab(
+          DietPeriodTab.month,
+          nowKst(),
+          firstRecord: testFirstRecordDate(),
+        ),
       );
 
       // 전체는 오늘로 끝나는 구간이다 — 달력 달을 그리던 때와 달리 미래 칸이
@@ -276,7 +282,7 @@ void main() {
         find.byKey(
           Key(
             'diet-period-bar-tip-'
-            '${dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst())).length - 1}',
+            '${dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst(), firstRecord: testFirstRecordDate())).length - 1}',
           ),
         ),
       );
