@@ -73,6 +73,15 @@ def test_rules_plan_avoids_previous_menus_while_catalog_allows():
         assert again == [], slot
 
 
+def test_catalog_respects_name_and_keyword_limits():
+    """카탈로그도 AI 응답과 같은 한도를 지킨다 — 카드 두 문장이 45자 안팎이다."""
+    for m in catalog.CATALOG:
+        assert len(m.name_ko) <= svc.NAME_MAX["ko"], m.name_ko
+        assert len(m.name_en) <= svc.NAME_MAX["en"], m.name_en
+    for lang, words in catalog.TAG_KEYWORDS.items():
+        assert all(len(w) <= svc.KEYWORD_MAX[lang] for w in words.values()), lang
+
+
 def test_rules_plan_english_names_and_keywords():
     items = svc.rules_plan(lang="en", needs=[], excluded=set())
     assert all(m.name.isascii() and m.keyword.isascii() for m in items)
