@@ -23,6 +23,7 @@ class PersonalRoutineBox extends StatelessWidget {
     this.onStartDateChanged,
     this.onSend,
     this.sending = false,
+    this.sent = false,
     super.key,
   });
 
@@ -40,9 +41,12 @@ class PersonalRoutineBox extends StatelessWidget {
   /// 박스의 `일정 추가` 가 함께 처리한다.
   final VoidCallback? onSend;
 
-  /// 전송이 진행 중이거나 막 끝났다 — 버튼이 잠겨 두 번째 클릭이 두 번째
-  /// 전송을 만들지 않는다.
+  /// 전송이 진행 중이다 — 버튼에 스피너가 돈다.
   final bool sending;
+
+  /// 이미 보냈다. 박스는 그대로 두고 버튼만 잠근다 — PT 모드가 보낸 뒤에도
+  /// 프로그램 박스를 남기는 것과 같은 자리에서 끝나야 한다(#2223).
+  final bool sent;
 
   /// 개인운동이 회원 목록에 걸려 있는 날 수 — 보낸 날부터 한 주.
   static const int activeDays = 7;
@@ -144,10 +148,10 @@ class PersonalRoutineBox extends StatelessWidget {
             const SizedBox(height: OnCareSpacing.s12),
             AppButton(
               key: const ValueKey<String>('personal-routine-send'),
-              label: l.aiRoutineOnlySend,
-              onPressed: sending ? null : onSend,
+              label: sent ? l.aiRoutineOnlySentLabel : l.aiRoutineOnlySend,
+              onPressed: sending || sent ? null : onSend,
               size: OnCareButtonSize.large,
-              leadingIcon: Icons.send_rounded,
+              leadingIcon: sent ? Icons.check_rounded : Icons.send_rounded,
               fullWidth: true,
               loading: sending,
             ),

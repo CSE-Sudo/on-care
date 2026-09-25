@@ -757,7 +757,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
             // 물어야 한다 (#1310).
             sets: item.sets > 0 ? item.sets : 3,
             reps: item.reps > 0 ? item.reps : 10,
-            weight: item.weight > 0 ? item.weight : 20,
+            // 중량은 없는 대로 둔다 — 맨몸이 기본이고, 여기서 20kg 을 지어
+            // 내면 트레이너가 정한 적 없는 무게가 회원에게 나간다(#2223).
+            weight: item.weight,
           ),
     ];
     if (additions.isEmpty) return;

@@ -291,7 +291,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       setState(() {
         _options = options;
         _selectedKey = 'A';
-        _edited = List<RoutineExercise>.of(options.planA.exercises);
+        _edited = options.planA.exercises.map(_withStrengthDefaults).toList();
         _showAddExercise = false;
         // 후보를 만들었다는 것은 곧 **PT 프로그램을 짜겠다**는 뜻이다. 앞서
         // `PT 없이 개인운동만 짜기` 로 건너뛰었다가 조건 설정으로 되돌아와
@@ -330,7 +330,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   void _selectChoice(_RoutineChoice choice) {
     setState(() {
       _selectedKey = choice.key;
-      _edited = List<RoutineExercise>.of(choice.exercises);
+      _edited = choice.exercises.map(_withStrengthDefaults).toList();
       _showAddExercise = false;
     });
   }
@@ -563,7 +563,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
   }
 
-  RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) => RoutineExercise(
+  RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) =>
+      _withStrengthDefaults(_rawExerciseOfSuggestion(s));
+
+  RoutineExercise _rawExerciseOfSuggestion(RoutineSuggestion s) =>
+      RoutineExercise(
     name: s.name,
     minutes: s.minutes,
     type: s.type,
@@ -2136,6 +2140,26 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       fullWidth: true,
     );
   }
+}
+
+/// 근력 한 줄에 빠진 세트·횟수를 채운다.
+///
+/// AI 는 근력 운동을 분으로만 주기도 한다. 그때 편집기의 숫자 칸은 `3`·`10`
+/// 을 보여 주면서 값은 0 으로 두었다 — 최종 검토가 `0세트 · 0회` 를 그리고,
+/// 편집기로 넘어갈 때 또 다른 기본값이 붙어 **한 운동이 세 화면에서 다른
+/// 숫자로 보였다**. 보이는 값을 그대로 저장해 셋을 하나로 맞춘다.
+///
+/// **중량은 채우지 않는다.** 맨몸이 기본이고, 들지도 않을 무게를 회원에게
+/// 지시하게 된다 — `0kg` 은 트레이너가 적은 값이다(#1310).
+RoutineExercise _withStrengthDefaults(RoutineExercise exercise) {
+  if (exercise.type != '근력') return exercise;
+  return exercise.copyWith(
+    sets: exercise.sets > 0 ? exercise.sets : 3,
+    reps: exercise.isHold || exercise.reps > 0 ? exercise.reps : 10,
+    holdSeconds: exercise.isHold && exercise.holdSeconds <= 0
+        ? 60
+        : exercise.holdSeconds,
+  );
 }
 
 /// 근력 한 줄의 요약 문구 — 세트 × 횟수 · 중량. (#1310)

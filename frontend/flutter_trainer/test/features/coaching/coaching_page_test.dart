@@ -2498,6 +2498,72 @@ void main() {
       expect(sent['client_request_id'], isNotNull);
       // 운동 하나가 세션 하나다 — 회원이 하나씩 완료를 표시할 수 있다.
       expect((sent['sessions']! as List<Object?>), isNotEmpty);
+
+      // 보낸 뒤에도 개인운동 박스가 그 자리에 남는다 — 지우면 그 자리에 PT
+      // 편집기가 올라와, 개인운동만 보낸 트레이너가 손댄 적 없는 PT 프로그램
+      // 화면을 보게 된다(#2223). 버튼만 잠긴다.
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(box, findsOneWidget);
+      expect(tester.widget<AppButton>(send).onPressed, isNull);
+      expect(find.text('보냈어요'), findsOneWidget);
+    });
+
+    testWidgets('보낸 뒤 위저드로 돌아가면 처음부터 다시 선다 (#2223)',
+        (tester) async {
+      // 보낸 구성이 그대로 남아 있으면 `AI 추천으로 돌아가기` 가 방금 보낸
+      // 것을 다시 반영할 수 있는 상태로 펼친다 — 보냈다는 표시도 없다.
+      final routines = _CapturingProgramRepository();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1600, 1200);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.coaching,
+        seedClock: kMidWeekKst,
+        extraOverrides: <Override>[
+          trainerRoutineRepositoryProvider.overrideWithValue(routines),
+        ],
+      );
+
+      final scrollable = find.byType(Scrollable).first;
+      final skip = find.byKey(const ValueKey<String>('skip-pt-program'));
+      await tester.scrollUntilVisible(skip, 150, scrollable: scrollable);
+      await _ensureCentered(tester, skip);
+      await tester.tap(skip);
+      await tester.pumpAndSettle();
+      await _completePersonalStep(tester, scrollable);
+
+      final send = find.byKey(const ValueKey<String>('personal-routine-send'));
+      await tester.scrollUntilVisible(send, 150, scrollable: scrollable);
+      await _ensureCentered(tester, send);
+      await tester.tap(send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('회원에게 보내기').last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(routines.programs, hasLength(1));
+
+      final back = find.byKey(const ValueKey<String>('return-to-ai-flow'));
+      await tester.scrollUntilVisible(back, 150, scrollable: scrollable);
+      await _ensureCentered(tester, back);
+      await tester.tap(back);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // 1 단계 조건 설정이다 — 개인운동 단계가 아니라.
+      expect(
+        find.byKey(const ValueKey<String>('generate-routine-options')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('personal-routine-step'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('프로그램 탭에 AI 개인운동 제안 카드가 더는 없다 (#2223)', (tester) async {

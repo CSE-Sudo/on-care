@@ -717,6 +717,27 @@ void main() {
       expect(done, findsNothing);
     });
 
+    testWidgets('세트·횟수를 안 준 근력은 보이는 값 그대로 굳힌다 (#2223)',
+        (tester) async {
+      // AI 는 근력을 분으로만 주기도 한다(`_personalizedOptions` 의 스쿼트).
+      // 예전에는 편집기가 `3`·`10` 을 보여 주면서 값은 0 으로 두어, 최종
+      // 검토가 `0세트 · 0회` 를 그리고 편집기로 넘어갈 때 또 다른 기본값이
+      // 붙었다 — 한 운동이 세 화면에서 다른 숫자로 보였다.
+      await pumpFlow(tester);
+      await generate(tester);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('3세트 · 10회 · 0kg'), findsOneWidget);
+      expect(find.textContaining('0세트'), findsNothing);
+    });
+
     testWidgets('AI 제안을 고치면 출처가 트레이너가 된다 (#2223)', (tester) async {
       List<RoutineExercise>? personal;
       await pumpFlow(

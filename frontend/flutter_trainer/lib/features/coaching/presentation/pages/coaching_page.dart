@@ -99,6 +99,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// AI 1~3단계와 프로그램 편집기 중 어느 쪽을 표시할지 정한다.
   bool _aiWizardVisible = true;
 
+  /// 위저드를 새로 세우기 위한 번호. 전송이 끝나면 하나 올려 위저드가 1 단계
+  /// 부터 다시 서게 한다 — 그러지 않으면 `AI 추천으로 돌아가기` 가 **방금
+  /// 보낸 구성을 그대로** 펼쳐, 보냈다는 표시도 없이 다시 반영할 수 있다.
+  int _wizardRevision = 0;
+
   /// `일정 추가` 가 방금 성공했다 — 성공 토스트가 떠 있는 동안 같은 구성을
   /// 다시 보내지 못하게 잠그고, 잠시 뒤 편집기를 새로 세운다.
   bool _sent = false;
@@ -162,6 +167,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _templateRevision = 0;
       _editorRevision = 0;
       _aiWizardVisible = true;
+      _wizardRevision = 0;
       // NOTE: _sendingClientIds is intentionally NOT cleared — writes for
       // other clients keep being tracked while the selection changes.
     });
@@ -295,14 +301,19 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     _sendRequests.remove(sentFor);
-    _personalRoutines.remove(sentFor);
-    _routineOnlyClients.remove(sentFor);
+    // 보낸 뒤에도 목록과 `개인운동만` 표시를 그대로 둔다 — 지우면 그 자리에
+    // PT 편집기가 올라와, 방금 개인운동을 보낸 트레이너가 손댄 적 없는 PT
+    // 프로그램 화면을 보게 된다. PT 모드가 보낸 뒤 프로그램 박스를 남기는
+    // 것과 같아야 한다(#2223). 두 번째 전송은 `_sent` 가 막는다.
     if (!mounted) return;
     ref.invalidate(assignedRoutinesProvider(sentFor));
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingRoutineOnly.remove(sentFor);
-      if (stillSelected) _sent = true;
+      if (stillSelected) {
+        _sent = true;
+        _wizardRevision++;
+      }
     });
     if (!stillSelected) return;
     showAppToast(context, l.aiRoutineOnlySent, type: AppToastType.success);
@@ -414,7 +425,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingClientIds.remove(sentFor);
-      if (stillSelected) _sent = true;
+      if (stillSelected) {
+        _sent = true;
+        _wizardRevision++;
+      }
     });
     if (!stillSelected) return;
     // 등록 완료는 인라인 문구가 아니라 다른 성공 알림과 같은 상단
@@ -899,7 +913,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             Offstage(
               offstage: !_aiWizardVisible,
               child: AiRoutineOptionsFlow(
-                key: ValueKey<String>('routine-options-${client.id}'),
+                key: ValueKey<String>(
+                  'routine-options-${client.id}-$_wizardRevision',
+                ),
                 client: client,
                 embedded: true,
                 recommendedExercises: items
@@ -1029,7 +1045,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 onStartDateChanged: (DateTime date) =>
                     setState(() => _routineOnlyStart[client.id] = date),
                 onSend: () => unawaited(_sendRoutineOnly(client)),
-                sending: _sendingRoutineOnly.contains(client.id) || _sent,
+                sending: _sendingRoutineOnly.contains(client.id),
+                sent: _sent,
               ),
             ),
           ],
