@@ -2420,7 +2420,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicPaidConfirmMessage(String cost, int limit, String balance) {
-    return '오늘 무료 대화를 다 썼어요. 이 대화를 보내면 $cost가 차감돼요 (오늘 $limit회까지). 지금 보유 포인트는 $balance예요.';
+    return '오늘 무료 대화를 다 썼어요. 이 대화를 보내면 $cost가 차감돼요 (오늘 $limit회까지).\n\n현재 포인트 $balance';
   }
 
   @override

@@ -2501,7 +2501,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicPaidConfirmMessage(String cost, int limit, String balance) {
-    return 'You\'ve used today\'s free chats. Sending this one costs $cost (up to $limit today). You have $balance.';
+    return 'You\'ve used today\'s free chats. Sending this one costs $cost (up to $limit today).\n\nBalance $balance';
   }
 
   @override

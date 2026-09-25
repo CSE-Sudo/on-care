@@ -4336,7 +4336,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicPaidConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve used today\'s free chats. Sending this one costs {cost} (up to {limit} today). You have {balance}.'**
+  /// **'You\'ve used today\'s free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}'**
   String aicPaidConfirmMessage(String cost, int limit, String balance);
 
   /// No description provided for @aicPaidConfirmAction.

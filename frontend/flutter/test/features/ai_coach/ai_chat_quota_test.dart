@@ -103,7 +103,7 @@ void main() {
     await tester.pumpAndSettle();
     // 확인창이 먼저 뜨고, 동의하기 전에는 보내지 않는다.
     expect(repo.paid, isEmpty);
-    expect(find.textContaining('지금 보유 포인트는 200P'), findsOneWidget);
+    expect(find.textContaining('현재 포인트 200P'), findsOneWidget);
     await tester.tap(find.text('포인트로 보내기'));
     await tester.pumpAndSettle();
 
@@ -118,7 +118,7 @@ void main() {
     await tester.tap(find.byIcon(AppIcons.send));
     await tester.pumpAndSettle();
     expect(repo.paid, <bool>[true]);
-    expect(find.textContaining('지금 보유 포인트는 150P'), findsOneWidget);
+    expect(find.textContaining('현재 포인트 150P'), findsOneWidget);
     await tester.tap(find.text('포인트로 보내기'));
     await tester.pumpAndSettle();
     expect(repo.paid, <bool>[true, true]);

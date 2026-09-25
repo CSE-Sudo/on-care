@@ -1848,7 +1848,7 @@
   "aicQuotaExhausted": "You've used today's chats. They reopen tomorrow",
   "aicQuotaFindTrainer": "Find a trainer",
   "aicPaidConfirmTitle": "Keep chatting with points?",
-  "aicPaidConfirmMessage": "You've used today's free chats. Sending this one costs {cost} (up to {limit} today). You have {balance}.",
+  "aicPaidConfirmMessage": "You've used today's free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}",
   "@aicPaidConfirmMessage": {
     "placeholders": {
       "cost": {
