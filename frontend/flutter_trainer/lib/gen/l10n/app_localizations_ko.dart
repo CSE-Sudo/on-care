@@ -3456,6 +3456,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorExerciseDown => '운동 아래로 이동';
 
   @override
+  String get programEditorExerciseMoveSession => '다른 세션으로';
+
+  @override
+  String get programEditorExerciseMoveTitle => '어느 세션으로 옮길까요?';
+
+  @override
+  String programEditorExerciseMoveBody(String name) {
+    return '\'$name\' 운동을 옮길 세션을 골라 주세요.';
+  }
+
+  @override
   String get programEditorSets => '세트';
 
   @override

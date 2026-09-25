@@ -6310,6 +6310,24 @@ abstract class AppLocalizations {
   /// **'Move exercise down'**
   String get programEditorExerciseDown;
 
+  /// No description provided for @programEditorExerciseMoveSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to another session'**
+  String get programEditorExerciseMoveSession;
+
+  /// No description provided for @programEditorExerciseMoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which session should it move to?'**
+  String get programEditorExerciseMoveTitle;
+
+  /// No description provided for @programEditorExerciseMoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the session to move \'{name}\' into.'**
+  String programEditorExerciseMoveBody(String name);
+
   /// No description provided for @programEditorSets.
   ///
   /// In en, this message translates to:

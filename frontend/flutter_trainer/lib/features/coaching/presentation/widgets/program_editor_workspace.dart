@@ -348,14 +348,31 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
 
   Future<int?> _pickTemplateTargetSession(ProgramTemplate template) {
     final l = AppLocalizations.of(context);
+    return _pickSession(
+      keyPrefix: 'template-session-picker',
+      title: l.programTemplateSessionPickerTitle,
+      body: l.programTemplateSessionPickerBody(template.name),
+    );
+  }
+
+  /// 세션 하나를 고르게 한다. 템플릿을 붙일 세션(#1029)과 운동을 옮길
+  /// 세션(#2222)이 같은 물음이라 한 다이얼로그를 쓴다 — [skipIndex] 는
+  /// 지금 그 운동이 들어 있는 세션이라 고를 수 없게 뺀다.
+  Future<int?> _pickSession({
+    required String keyPrefix,
+    required String title,
+    required String body,
+    int? skipIndex,
+  }) {
+    final l = AppLocalizations.of(context);
     return showAppDialog<int>(
       context: context,
       builder: (dialogContext) => AppDialog(
-        key: const ValueKey<String>('template-session-picker'),
-        title: l.programTemplateSessionPickerTitle,
+        key: ValueKey<String>(keyPrefix),
+        title: title,
         showClose: false,
         footer: AppButton(
-          key: const ValueKey<String>('template-session-picker-cancel'),
+          key: ValueKey<String>('$keyPrefix-cancel'),
           label: l.actionCancel,
           variant: AppButtonVariant.secondary,
           fullWidth: true,
@@ -366,28 +383,70 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(
-              l.programTemplateSessionPickerBody(template.name),
+              body,
               style: dialogContext.oncare
                   .text(OnCareTypography.bodySmall)
                   .copyWith(color: OnCareColors.textSecondary),
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            for (var i = 0; i < _draft.sessions.length; i++) ...<Widget>[
-              if (i > 0) const SizedBox(height: OnCareSpacing.s8),
-              AppButton(
-                key: ValueKey<String>(
-                  'template-session-picker-${_draft.sessions[i].id}',
+            for (var i = 0; i < _draft.sessions.length; i++)
+              if (i != skipIndex) ...<Widget>[
+                const SizedBox(height: OnCareSpacing.s8),
+                AppButton(
+                  key: ValueKey<String>(
+                    '$keyPrefix-${_draft.sessions[i].id}',
+                  ),
+                  label: _draft.sessions[i].name,
+                  variant: AppButtonVariant.secondary,
+                  fullWidth: true,
+                  onPressed: () => Navigator.of(dialogContext).pop(i),
                 ),
-                label: _draft.sessions[i].name,
-                variant: AppButtonVariant.secondary,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(i),
-              ),
-            ],
+              ],
           ],
         ),
       ),
     );
+  }
+
+  /// 운동을 다른 세션으로 옮긴다(#2222) — 세션 안 위/아래 이동만으로는
+  /// 잘못 들어간 운동을 지우고 다시 만드는 수밖에 없었다.
+  Future<void> _moveExerciseToSession(
+    int sessionIndex,
+    int exerciseIndex,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final ProgramExerciseDraft moving =
+        _draft.sessions[sessionIndex].exercises[exerciseIndex];
+    final int? target = await _pickSession(
+      keyPrefix: 'move-exercise-session-picker',
+      title: l.programEditorExerciseMoveTitle,
+      body: l.programEditorExerciseMoveBody(moving.name),
+      skipIndex: sessionIndex,
+    );
+    if (target == null || !mounted) return;
+    // 다이얼로그를 기다리는 동안 세션이 지워지거나 운동이 움직였을 수 있다 —
+    // 자리를 다시 찾는다.
+    if (sessionIndex >= _draft.sessions.length ||
+        target >= _draft.sessions.length) {
+      return;
+    }
+    final ProgramSessionDraft source = _draft.sessions[sessionIndex];
+    final int from = source.exercises.indexWhere(
+      (exercise) => exercise.id == moving.id,
+    );
+    if (from < 0) return;
+    final sessions = <ProgramSessionDraft>[..._draft.sessions];
+    sessions[sessionIndex] = source.copyWith(
+      exercises: <ProgramExerciseDraft>[...source.exercises]..removeAt(from),
+    );
+    final ProgramSessionDraft destination = sessions[target];
+    sessions[target] = destination.copyWith(
+      exercises: <ProgramExerciseDraft>[
+        ...destination.exercises,
+        source.exercises[from],
+      ],
+    );
+    _update(_draft.copyWith(sessions: sessions));
   }
 
   @override
@@ -505,6 +564,13 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                   _replaceExercise(index, exerciseIndex, exercise),
               onMoveExercise: (exerciseIndex, direction) =>
                   _moveExercise(index, exerciseIndex, direction),
+              // 세션이 하나뿐이면 옮길 곳이 없다 — 메뉴에 죽은 항목을 두지
+              // 않는다.
+              onMoveExerciseToSession: _draft.sessions.length > 1
+                  ? (exerciseIndex) => unawaited(
+                      _moveExerciseToSession(index, exerciseIndex),
+                    )
+                  : null,
               onDeleteExercise: (exerciseIndex) =>
                   _deleteExercise(index, exerciseIndex),
             ),
@@ -803,35 +869,83 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     _replaceSession(sessionIndex, session.copyWith(exercises: exercises));
   }
 
+  /// AI 후보를 편집기에 붙인다 — **유형별로 세션을 나눈다**(#2222).
+  ///
+  /// AI 가 준 배열 순서는 서버 계약이 정하지 않는다(생성 프롬프트에 순서
+  /// 지시가 없다). 트레이너는 세션을 성격별로 짜므로, 유형이 처음 나온
+  /// 순서로 세션을 늘어놓고 한 유형 안에서만 AI 순서를 지킨다. 같은 유형이
+  /// 떨어져 두 번 나와도 한 세션으로 모은다 — 세션이 잘게 쪼개지는 쪽이
+  /// 트레이너에게 더 성가시다.
   void _appendAiSuggestions(List<AiRoutineItem> suggestions) {
-    final first = _draft.sessions.first;
-    final existingNames = first.exercises.map((item) => item.name).toSet();
-    final additions = <ProgramExerciseDraft>[
-      for (final item in suggestions)
-        if (existingNames.add(item.name))
-          ProgramExerciseDraft(
-            id: 'exercise-${_nextId++}',
-            name: item.name,
-            minutes: item.minutes > 0 ? item.minutes : 30,
-            memo: item.reason,
-            type: item.type,
-            source: 'ai',
-            // 2단계에서 직접 채운 세트·횟수·중량이 있으면 그대로 옮긴다 —
-            // 없으면 [ProgramExerciseDraft] 기본값을 그대로 둔다. 셋 중
-            // 하나라도 흘리면 트레이너가 방금 적은 값을 편집기에서 다시
-            // 물어야 한다 (#1310).
-            sets: item.sets > 0 ? item.sets : 3,
-            reps: item.reps > 0 ? item.reps : 10,
-            weight: item.weight > 0 ? item.weight : 20,
-          ),
-    ];
-    if (additions.isEmpty) return;
-    final sessions = <ProgramSessionDraft>[
-      first.copyWith(
-        exercises: <ProgramExerciseDraft>[...first.exercises, ...additions],
-      ),
-      ..._draft.sessions.skip(1),
-    ];
+    final l = AppLocalizations.of(context);
+    final existingNames = <String>{
+      for (final ProgramSessionDraft session in _draft.sessions)
+        for (final ProgramExerciseDraft exercise in session.exercises)
+          exercise.name,
+    };
+    final grouped = <String, List<ProgramExerciseDraft>>{};
+    for (final AiRoutineItem item in suggestions) {
+      if (!existingNames.add(item.name)) continue;
+      // 옛 계약값(`걷기`·`요가`)도 네 가지 표준 유형으로 접는다 — 세션 유형과
+      // 운동 유형이 어긋나면 그 세션의 새 운동 기본값이 엉뚱해진다.
+      final String type = normaliseRoutineType(item.type);
+      (grouped[type] ??= <ProgramExerciseDraft>[]).add(
+        ProgramExerciseDraft(
+          id: 'exercise-${_nextId++}',
+          name: item.name,
+          minutes: item.minutes > 0 ? item.minutes : 30,
+          memo: item.reason,
+          type: type,
+          source: 'ai',
+          // 2단계에서 직접 채운 세트·횟수·중량이 있으면 그대로 옮긴다 —
+          // 없으면 [ProgramExerciseDraft] 기본값을 그대로 둔다. 셋 중
+          // 하나라도 흘리면 트레이너가 방금 적은 값을 편집기에서 다시
+          // 물어야 한다 (#1310).
+          sets: item.sets > 0 ? item.sets : 3,
+          reps: item.reps > 0 ? item.reps : 10,
+          weight: item.weight > 0 ? item.weight : 20,
+        ),
+      );
+    }
+    if (grouped.isEmpty) return;
+
+    final sessions = <ProgramSessionDraft>[..._draft.sessions];
+    // 비어 있는 첫 세션은 새로 만들지 않고 첫 유형에 내준다 — 그대로 두면
+    // 아무것도 없는 `세션 A` 가 맨 위에 남는다.
+    var reuseFirst = sessions.length == 1 && sessions.first.exercises.isEmpty;
+    for (final MapEntry<String, List<ProgramExerciseDraft>> group
+        in grouped.entries) {
+      final Set<String> taken = <String>{
+        for (final ProgramSessionDraft session in sessions) session.name,
+      };
+      var name = l.programEditorSessionNameTyped(group.key);
+      for (var n = 2; taken.contains(name); n++) {
+        name = l.programEditorSessionNameNumbered(group.key, n);
+      }
+      if (reuseFirst) {
+        sessions[0] = sessions.first.copyWith(
+          name: name,
+          exercises: group.value,
+        );
+        _sessionType[sessions.first.id] = group.key;
+        reuseFirst = false;
+      } else if (sessions.length < kProgramMaxSessions) {
+        final id = 'session-${_nextId++}';
+        sessions.add(
+          ProgramSessionDraft(id: id, name: name, exercises: group.value),
+        );
+        _sessionType[id] = group.key;
+      } else {
+        // 세션 상한에 닿으면 남은 유형은 마지막 세션에 이어 붙인다 — 상한
+        // 때문에 AI 가 준 운동을 말없이 흘리지는 않는다.
+        sessions[sessions.length - 1] = sessions.last.copyWith(
+          exercises: <ProgramExerciseDraft>[
+            ...sessions.last.exercises,
+            ...group.value,
+          ],
+        );
+      }
+    }
     if (_initialized) {
       _update(_draft.copyWith(sessions: sessions));
       return;
@@ -872,6 +986,7 @@ class _SessionEditor extends StatefulWidget {
     required this.onConfirmAdd,
     required this.onExerciseChanged,
     required this.onMoveExercise,
+    required this.onMoveExerciseToSession,
     required this.onDeleteExercise,
   });
 
@@ -908,6 +1023,9 @@ class _SessionEditor extends StatefulWidget {
   final VoidCallback onConfirmAdd;
   final void Function(int, ProgramExerciseDraft) onExerciseChanged;
   final void Function(int, int) onMoveExercise;
+  /// 이 운동을 다른 세션으로 옮긴다. 세션이 하나뿐이면 null.
+  final ValueChanged<int>? onMoveExerciseToSession;
+
   final ValueChanged<int> onDeleteExercise;
 
   @override
@@ -1028,6 +1146,9 @@ class _SessionEditorState extends State<_SessionEditor> {
               onChanged: (value) => widget.onExerciseChanged(index, value),
               onMoveUp: () => widget.onMoveExercise(index, -1),
               onMoveDown: () => widget.onMoveExercise(index, 1),
+              onMoveToSession: widget.onMoveExerciseToSession == null
+                  ? null
+                  : () => widget.onMoveExerciseToSession!(index),
               onDelete: () => widget.onDeleteExercise(index),
             ),
             const SizedBox(height: OnCareSpacing.s8),
@@ -1246,6 +1367,7 @@ class _ExerciseEditor extends StatefulWidget {
     required this.onChanged,
     required this.onMoveUp,
     required this.onMoveDown,
+    required this.onMoveToSession,
     required this.onDelete,
   });
 
@@ -1255,6 +1377,9 @@ class _ExerciseEditor extends StatefulWidget {
   final ValueChanged<ProgramExerciseDraft> onChanged;
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
+
+  /// 다른 세션으로 옮기기. 세션이 하나뿐이면 null 이라 메뉴에서 빠진다.
+  final VoidCallback? onMoveToSession;
   final VoidCallback onDelete;
 
   @override
@@ -1333,6 +1458,12 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                           ? () => _handleExerciseAction('down')
                           : null,
                     ),
+                    if (widget.onMoveToSession != null)
+                      AppMenuItem(
+                        icon: Icons.drive_file_move_outline,
+                        label: l.programEditorExerciseMoveSession,
+                        onSelected: () => _handleExerciseAction('move'),
+                      ),
                     AppMenuItem(
                       icon: Icons.delete_outline_rounded,
                       label: l.actionDelete,
@@ -1454,6 +1585,9 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
         return;
       case 'down':
         widget.onMoveDown();
+        return;
+      case 'move':
+        widget.onMoveToSession?.call();
         return;
       case 'delete':
         widget.onDelete();
