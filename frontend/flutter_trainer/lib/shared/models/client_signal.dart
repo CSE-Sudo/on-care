@@ -37,19 +37,14 @@ enum ClientSignalKind {
     ClientSignalKind.unanswered => l.clientsSignalUnanswered,
   };
 
-  /// 배지 색. 하나의 색은 하나의 뜻만 — 빨강은 몸이 보내는 신호(통증), 주황은
-  /// 흐름이 끊긴 것(기록·출석·배정 루틴), 회색은 목표에서 벗어난 것, 남색은
-  /// 트레이너가 처리할 일(답장).
-  AppTagTone get tone => switch (this) {
-    ClientSignalKind.discomfort => AppTagTone.danger,
-    ClientSignalKind.recordGap ||
-    ClientSignalKind.noShow ||
-    ClientSignalKind.routineMissed => AppTagTone.caution,
-    ClientSignalKind.exerciseGoalLow ||
-    ClientSignalKind.calorieOff ||
-    ClientSignalKind.proteinLow => AppTagTone.neutral,
-    ClientSignalKind.unanswered => AppTagTone.brand,
-  };
+  /// 배지 색. 기존 배지(`alertColor`)와 같은 규칙이다 — 빨강 = 주의, 남색 =
+  /// 트레이너가 처리할 일(답장). 주의의 세기를 주황·회색으로 나누지 않는다:
+  /// 예전에 완만한 주의를 주황으로 두었다가, 회원이 빨갛게 보는 것을 트레이너는
+  /// 주황으로 봐서 두 앱이 같은 사실을 다른 세기로 말했다(#690). 급한 정도는
+  /// 색이 아니라 배지의 순서가 말한다.
+  AppTagTone get tone => this == ClientSignalKind.unanswered
+      ? AppTagTone.brand
+      : AppTagTone.danger;
 
   /// 회원의 상태에서 나온 신호인가. 답장 대기는 트레이너 자신의 받은편지함이라
   /// `주의 회원` 에 세지 않는다.

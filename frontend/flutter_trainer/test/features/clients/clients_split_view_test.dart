@@ -362,9 +362,10 @@ void main() {
       tester.widgetList<AppTag>(badges).map((t) => t.label).toList(),
       <String>['통증·불편', '운동 목표 28%', '+2'],
     );
+    // 주의 신호는 모두 빨강이다 — 세기를 색으로 나누지 않는다(#690).
     expect(
-      tester.widgetList<AppTag>(badges).first.tone,
-      AppTagTone.danger,
+      tester.widgetList<AppTag>(badges).take(2).map((t) => t.tone).toSet(),
+      <AppTagTone>{AppTagTone.danger},
     );
     // 주간 이행률 막대는 없다 — 기록 끊김·운동 목표 미달이 대신한다.
     expect(find.text('주간 이행률'), findsNothing);
