@@ -623,14 +623,17 @@ class _RecommendedExerciseRowState
                         ),
                       ),
                       // 아직 하지 않은 것만 물릴 수 있다 — 이미 한 운동을 목록에서
-                      // 지우면 기록과 화면이 갈린다. 목록에서 지우는 동작이라
-                      // 화면 안의 트리거는 위험 글자 버튼이다.
+                      // 지우면 기록과 화면이 갈린다. 글자 버튼은 시간 표시와
+                      // 오른쪽 칸을 나눠 써서 좁은 폰에서 문구가 잘렸다 —
+                      // 휴지통 아이콘만 둔다(#2218). 무엇을 지우는지는 눌렀을 때
+                      // 뜨는 확인창이 이름까지 밝힌다.
                       if (widget.cancellable && !routine.completed)
-                        AppButton(
+                        AppIconButton(
                           key: Key('cancelRoutine-${routine.id}'),
-                          label: l.coachRoutineCancel,
-                          variant: AppButtonVariant.destructiveText,
-                          size: OnCareButtonSize.small,
+                          icon: AppIcons.delete,
+                          tooltip: l.coachRoutineCancel,
+                          size: AppIconButtonSize.small,
+                          color: OnCareColors.danger,
                           onPressed: _saving ? null : _cancel,
                         ),
                     ],

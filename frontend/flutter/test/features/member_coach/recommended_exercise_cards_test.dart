@@ -902,6 +902,20 @@ void main() {
     expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsOneWidget);
   });
 
+  testWidgets('줄의 삭제 트리거는 아이콘이다 — 좁은 폰에서 문구가 잘렸다 (#2218)', (
+    WidgetTester tester,
+  ) async {
+    await pumpRecommendationCards(tester, <CoachRoutine>[
+      _aiRoutine,
+    ], coach: null);
+
+    final Finder trigger = find.byKey(Key('cancelRoutine-${_aiRoutine.id}'));
+    expect(trigger, findsOneWidget);
+    expect(tester.widget(trigger), isA<AppIconButton>());
+    // 줄에는 빨간 글자가 남지 않는다 — 문구는 확인창에서만 읽힌다.
+    expect(find.text('이 개인 운동 삭제'), findsNothing);
+  });
+
   testWidgets('개인 운동 삭제 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (
     WidgetTester tester,
   ) async {
