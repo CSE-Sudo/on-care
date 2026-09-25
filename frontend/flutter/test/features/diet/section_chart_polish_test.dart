@@ -19,6 +19,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/record_span.dart';
 
 void main() {
   Future<void> pumpDiet(WidgetTester tester) async {
@@ -29,6 +30,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          testRecordSpanOverride(),
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
@@ -81,7 +83,7 @@ void main() {
     // 화면에 실제로 있는 마지막 칸을 본다.
     final Key today = ValueKey<String>(
       'period-bar-reveal-'
-      '${dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst())).length - 1}',
+      '${dietRangeDates(dietRangeForTab(DietPeriodTab.month, nowKst(), firstRecord: testFirstRecordDate())).length - 1}',
     );
 
     // 기간을 바꾸면 값을 다시 읽어 오므로, 막대가 나타날 때까지 프레임을

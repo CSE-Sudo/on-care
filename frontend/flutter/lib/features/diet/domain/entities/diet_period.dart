@@ -12,6 +12,22 @@ class DietPeriodDay {
     this.fatG = 0,
   });
 
+  /// `GET /diet/days?from=&to=` 의 한 칸. 하루 합계만 실려 온다(#2236).
+  factory DietPeriodDay.fromJson(Map<String, Object?> json) {
+    double number(String key) => (json[key] as num?)?.toDouble() ?? 0;
+    final DateTime parsed =
+        DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime(0);
+    return DietPeriodDay(
+      date: DateTime(parsed.year, parsed.month, parsed.day),
+      calories: (json['total_calories'] as num?)?.toInt() ?? 0,
+      sodiumMg: (json['total_sodium_mg'] as num?)?.toInt() ?? 0,
+      sugarG: number('total_sugar_g'),
+      carbsG: number('carbs_g'),
+      proteinG: number('protein_g'),
+      fatG: number('fat_g'),
+    );
+  }
+
   /// 그날의 [DietDay] 를 접어 만든다. 합산 규칙은 하루 요약과 공유한다
   /// ([DietDayTotals]) — 따로 계산하면 두 화면의 숫자가 조용히 어긋난다.
   factory DietPeriodDay.from(DateTime date, DietDay day) => DietPeriodDay(
@@ -60,6 +76,16 @@ class DietPeriodDay {
 /// 먹은 양과 다른 숫자가 된다.
 class DietPeriod {
   const DietPeriod({required this.days});
+
+  /// `GET /diet/days?from=&to=` 응답. 기록이 없는 날도 빈 칸으로 들어 있어
+  /// 화면이 날짜를 다시 맞춰 보지 않아도 된다(#2236).
+  factory DietPeriod.fromJson(Map<String, Object?> json) => DietPeriod(
+    days: <DietPeriodDay>[
+      for (final Object? row
+          in (json['days'] as List<Object?>?) ?? const <Object?>[])
+        if (row is Map<String, Object?>) DietPeriodDay.fromJson(row),
+    ],
+  );
 
   final List<DietPeriodDay> days;
 

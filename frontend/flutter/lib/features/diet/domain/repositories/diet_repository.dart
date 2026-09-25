@@ -1,5 +1,6 @@
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -8,6 +9,17 @@ abstract class DietRepository {
   Future<DietDay> fetchToday();
 
   Future<DietDay> fetchByDate(DateTime date);
+
+  /// 기간의 **날짜별 합계** — GET /diet/days?from=&to= (#2236)
+  ///
+  /// 기간 그래프가 쓰는 길이다. 예전에는 하루 조회를 날짜 수만큼 모았는데,
+  /// `전체` 가 모든 기록을 그리게 되면서(#2079) 해가 바뀐 회원에게 수백 번의
+  /// 왕복이 됐다.
+  ///
+  /// [from] 을 주지 않으면 **첫 기록일**부터다. 받은 구간은 응답이 말해 준다 —
+  /// 돌려주는 [DietPeriod.days] 의 첫 칸과 끝 칸이 그 구간이고, 기록이 없는 날도
+  /// 빈 칸으로 들어 있다.
+  Future<DietPeriod> fetchPeriod({DateTime? from, DateTime? to});
 
   /// GET /diet/recommendations — 홈 "AI 추천 식단".
   ///
