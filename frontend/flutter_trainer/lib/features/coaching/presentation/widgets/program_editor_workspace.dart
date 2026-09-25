@@ -1460,7 +1460,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                     ),
                     if (widget.onMoveToSession != null)
                       AppMenuItem(
-                        icon: Icons.drive_file_move_outline,
+                        icon: Icons.drive_file_move_rounded,
                         label: l.programEditorExerciseMoveSession,
                         onSelected: () => _handleExerciseAction('move'),
                       ),
