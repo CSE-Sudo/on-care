@@ -274,12 +274,13 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     );
   }
 
-  /// [showInsights] 가 거짓이면 감지 기록 버튼을 숨기되 자리는 남겨, 제목이
+  /// [showInsights] 가 거짓이면 참고 기록 버튼을 숨기되 자리는 남겨, 제목이
   /// 가운데에서 밀리지 않게 한다.
   ///
   /// **양쪽 폭을 맞춰 제목을 화면 가운데에 세운다**(#1975). 왼쪽 뒤로 버튼은
-  /// 고정 폭이고 오른쪽 `기록` 은 글자 길이만큼이라, 그대로 두면 가운데 정렬한
-  /// 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더 밀린다.
+  /// 고정 폭이고 오른쪽 `참고 기록` 은 글자 길이만큼이라, 그대로 두면 가운데
+  /// 정렬한 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더
+  /// 밀린다.
   ///
   /// 그래서 뒤로 버튼을 `기록` 과 같은 폭의 빈 자리 **위에 겹쳐** 둔다. 두 자리를
   /// 나란히 두면 좌우는 맞지만 제목이 쓸 폭이 그만큼 줄어 부제가 말줄임된다.
@@ -302,14 +303,17 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     return ColoredBox(
       color: OnCareColors.surfaceCard,
       child: Padding(
+        // 다른 페이지 머리(`AppTopBar`)와 같은 가장자리 여백. s4 로는 오른쪽
+        // 버튼이 화면 끝에 붙었다(#2216). 좌우가 같아야 아래 겹쳐 둔 복제본이
+        // 제목을 가운데에 세운다(#1975).
         padding: const EdgeInsets.symmetric(
-          horizontal: OnCareSpacing.s4,
+          horizontal: OnCareSpacing.s8,
           vertical: OnCareSpacing.s8,
         ),
         child: Row(
           children: <Widget>[
-            // 뒤로 버튼을 `기록` 과 같은 폭의 자리 **위에** 겹쳐 둔다. 두 자리를
-            // 나란히 두면 그만큼 제목이 쓸 폭이 줄어 부제가 말줄임된다.
+            // 뒤로 버튼을 `참고 기록` 과 같은 폭의 자리 **위에** 겹쳐 둔다. 두
+            // 자리를 나란히 두면 그만큼 제목이 쓸 폭이 줄어 부제가 말줄임된다.
             Stack(
               alignment: AlignmentDirectional.centerStart,
               children: <Widget>[

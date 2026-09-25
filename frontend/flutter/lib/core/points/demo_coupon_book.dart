@@ -549,7 +549,7 @@ const DemoShopItem kDemoWeeklyReport = DemoShopItem(
   id: DemoWeeklyReportBook.itemId,
   title: '주간 리포트',
   benefit: '지난주 식단·운동 리포트',
-  description: '지난주 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.',
+  description: '지난주 식단·운동 기록과 참고 기록으로 한 주를 돌아보는 리포트를 만들어요.',
   cost: DemoWeeklyReportBook.cost,
   validDays: 0,
 );
