@@ -105,6 +105,12 @@ abstract interface class ClientRepository {
     ClientDateRange range,
   );
 
+  /// [clientId] 가 식단·운동을 **처음 남긴 날**. 기록이 없으면 null 이다.
+  ///
+  /// `전체` 그래프가 어디서부터 그릴지를 정하는 값이다(#2079). 회원 API
+  /// (`GET /me/records/span`)와 같은 응답을 트레이너용으로 읽는다(#2236).
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId);
+
   /// Demo-only roster additions — the backend roster comes from
   /// trainer↔member links, so these are unsupported against the real API.
   Future<bool> clientNameExists(String name);
@@ -661,9 +667,22 @@ class DriftClientRepository implements ClientRepository {
           : '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
     }
 
+    // 조언이 읽는 기간은 그래프와 다르다(#2079) — 그래프는 모든 기록을
+    // 그리지만 조언은 최근 [kAdvicePeriodDays] 일이다. 서버
+    // (`period_window.ALL_PERIOD_DAYS`)와 같은 창이다.
+    final DateTime today = todayKst();
     final ClientDietPeriod window = await fetchDietPeriod(
       clientId,
-      clientRangeNow(period),
+      period == ClientPeriod.week
+          ? clientRangeNow(period)
+          : (
+              from: DateTime(
+                today.year,
+                today.month,
+                today.day - kAdvicePeriodDays + 1,
+              ),
+              to: today,
+            ),
     );
     final List<ClientDietDay> logged = window.days
         .where((ClientDietDay day) => day.calories > 0)
@@ -877,6 +896,54 @@ class DriftClientRepository implements ClientRepository {
     double mean(List<int> xs) =>
         xs.fold<int>(0, (int a, int b) => a + b) / xs.length;
     return mean(weekend) > mean(weekday) * 1.3;
+  }
+
+  @override
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId) async {
+    // 데모의 기록은 두 곳에 있다 — 픽스처(시드 고객의 이력)와 drift(데모에서
+    // 트레이너·회원이 남긴 것). 서버(`/records/span`)가 DB 한 곳을 보는 것과
+    // 같은 답을 내려면 둘 다 봐야 한다. (#2079)
+    DateTime? dietFirst;
+    DateTime? exerciseFirst;
+    void keepEarliest(DateTime date, {required bool diet}) {
+      if (diet) {
+        if (dietFirst == null || date.isBefore(dietFirst!)) dietFirst = date;
+      } else {
+        if (exerciseFirst == null || date.isBefore(exerciseFirst!)) {
+          exerciseFirst = date;
+        }
+      }
+    }
+
+    if (clientId == _fixture.trainerClientId) {
+      for (final FixtureDay day in _fixture.daysFor(nowKst())) {
+        final DateTime? date = DateTime.tryParse(day.date);
+        if (date == null) continue;
+        if (day.meals.isNotEmpty) keepEarliest(date, diet: true);
+        if (day.exercises.isNotEmpty) keepEarliest(date, diet: false);
+      }
+    }
+
+    for (final ClientDietEntryRow row
+        in await (_db.select(_db.clientDietEntries)
+              ..where((t) => t.clientId.equals(clientId)))
+            .get()) {
+      final DateTime? date = DateTime.tryParse(row.date);
+      if (date != null) keepEarliest(date, diet: true);
+    }
+    for (final ClientDailyMetricRow row
+        in await (_db.select(_db.clientDailyMetrics)
+              ..where((t) => t.clientId.equals(clientId)))
+            .get()) {
+      if (row.completion <= 0) continue;
+      final DateTime? date = DateTime.tryParse(row.date);
+      if (date != null) keepEarliest(date, diet: false);
+    }
+
+    return ClientRecordSpan(
+      dietFirstDate: dietFirst,
+      exerciseFirstDate: exerciseFirst,
+    );
   }
 
   @override
@@ -1261,10 +1328,37 @@ ClientPeriodKey clientPeriodKeyNow(String clientId, ClientPeriod period) =>
 /// `autoDispose` 다 — 날이 바뀌면 어제 키는 아무도 보지 않게 되므로, 캐시가
 /// 계속 쌓이지 않고 스스로 정리된다.
 final clientDietPeriodProvider = FutureProvider.autoDispose
-    .family<ClientDietPeriod, ClientPeriodKey>((ref, key) {
+    .family<ClientDietPeriod, ClientPeriodKey>((ref, key) async {
+      // `전체` 는 첫 기록일부터다(#2079). 아직 못 읽었으면 오늘 하루를 그리고,
+      // 값이 오면 범위가 늘며 그래프가 다시 선다.
+      final ClientRecordSpan span = await ref.watch(
+        clientRecordSpanProvider(key.clientId).future,
+      );
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietPeriod(key.clientId, clientRangeFor(key.period, key.day));
+          .fetchDietPeriod(
+            key.clientId,
+            clientRangeFor(
+              key.period,
+              key.day,
+              firstRecord: span.dietFirstDate,
+            ),
+          );
+    });
+
+/// 고객이 식단·운동을 처음 남긴 날. `전체` 그래프의 시작점이다(#2079, #2236).
+///
+/// 실패해도 그래프를 막지 않는다 — 값이 없으면 `전체` 가 오늘 하루(운동은 이번
+/// 주)를 그린다.
+final clientRecordSpanProvider = FutureProvider.autoDispose
+    .family<ClientRecordSpan, String>((ref, clientId) async {
+      try {
+        return await ref
+            .watch(clientRepositoryProvider)
+            .fetchRecordSpan(clientId);
+      } on Object {
+        return ClientRecordSpan.empty;
+      }
     });
 
 /// [ClientPeriodKey] 의 일별 운동 집계. (#914)
@@ -1274,10 +1368,14 @@ final clientDietPeriodProvider = FutureProvider.autoDispose
 final clientExercisePeriodProvider = FutureProvider.autoDispose
     .family<ClientExercisePeriod, ClientPeriodKey>((ref, key) async {
       final repository = ref.watch(clientRepositoryProvider);
+      final ClientRecordSpan span = await ref.watch(
+        clientRecordSpanProvider(key.clientId).future,
+      );
       final ClientDateRange range = clientRangeFor(
         key.period,
         key.day,
         exercise: true,
+        firstRecord: span.exerciseFirstDate,
       );
       final Map<String, ClientExerciseDay> byDate =
           <String, ClientExerciseDay>{};
@@ -1287,7 +1385,7 @@ final clientExercisePeriodProvider = FutureProvider.autoDispose
       // 연속 일수도 마지막(가장 최근) 주의 값이 남는다 — 이 값을 읽는 곳은
       // `이번 주` 하나다. (#2195)
       int streakDays = 0;
-      // 주를 **한꺼번에** 읽는다 (#1170). `전체` 가 서른다섯 주라, 하나씩
+      // 주를 **한꺼번에** 읽는다 (#1170). `전체` 는 기록만큼 길어지므로, 하나씩
       // 기다리면 왕복이 그만큼 줄줄이 이어져 그래프가 늦게 선다.
       final List<DateTime> mondays = clientRangeWeekStarts(range);
       final List<ClientExerciseWeek> weeks =
