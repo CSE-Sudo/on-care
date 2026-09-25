@@ -1366,7 +1366,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myShopWeeklyReportDescription(String range) {
-    return '$range 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.';
+    return '$range 식단·운동 기록과 참고 기록으로 한 주를 돌아보는 리포트를 만들어요.';
   }
 
   @override
@@ -1391,7 +1391,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
 
   @override
-  String get coachReportPdfSectionInsights => '감지 기록';
+  String get coachReportPdfSectionInsights => '참고 기록';
 
   @override
   String get coachReportPdfNoInsights => '이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.';
@@ -2462,16 +2462,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightDelete => '삭제';
 
   @override
-  String get aicInsightDeleteConfirm => '이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+  String get aicInsightDeleteConfirm => '이 감지를 참고 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
 
   @override
   String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get aicInsightHistoryTitle => '감지 기록';
+  String get aicInsightHistoryTitle => '참고 기록';
 
   @override
-  String get aicInsightHistoryAction => '기록';
+  String get aicInsightHistoryAction => '참고 기록';
 
   @override
   String aicInsightHistorySubtitle(int days) {
@@ -2484,7 +2484,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aicInsightHistoryFailed => '감지 기록을 불러오지 못했어요';
+  String get aicInsightHistoryFailed => '참고 기록을 불러오지 못했어요';
 
   @override
   String aicRetentionNotice(int days) {
