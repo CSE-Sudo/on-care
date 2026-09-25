@@ -3949,6 +3949,19 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
         derived = db.get(ExerciseSession, _derived_exercise_id(s.id))
         if derived is not None:
             db.delete(derived)
+    # 그 PT 에 붙여 두었을 뿐 아직 회원에게 가지 않은 개인운동은 함께 지운다
+    # (#2223). FK 는 `SET NULL` 이라 그냥 두면 일정만 사라지고 `status` 는
+    # `scheduled` 인 채 남는데, 그런 행은 회원 목록에도 제안 목록에도 잡히지
+    # 않고 붙은 일정으로도 찾을 수 없어 **아무도 못 보고 지우지도 못한다.**
+    # 이미 회원에게 간 것(`approved`)은 건드리지 않는다 — 일정이 지워졌다고
+    # 회원이 받은 운동이 사라지면 안 된다.
+    for pending in db.scalars(
+        select(TrainerRoutine).where(
+            TrainerRoutine.schedule_id == s.id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+    ).all():
+        db.delete(pending)
     # 아직 오지 않은 약속만 알린다. 이미 끝난 PT 의 기록 정리까지 알리면 회원은
     # 지난 일을 취소 통보로 받는다. (#664)
     if s.member_id is not None and s.status == SCHEDULE_UPCOMING:

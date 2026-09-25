@@ -779,6 +779,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _templateRevision++;
     _aiWizardVisible = false;
     _sent = false;
+    // 템플릿은 편집기 내용을 갈아 끼운다 — 앞서 위저드에서 정한 개인운동은
+    // 그 PT 구성에 맞춰 짠 것이라, 여기 남겨 두면 전혀 다른 PT 에 딸려 간다.
+    _personalRoutines.remove(_clientId);
   });
 
   void _startManualProgram(String clientId) => setState(() {
@@ -863,7 +866,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   child: AppButton(
                     key: const ValueKey<String>('return-to-ai-flow'),
                     label: l.aiReturnToWizard,
-                    onPressed: () => setState(() => _aiWizardVisible = true),
+                    // 위저드로 되돌아가면 거기서 다시 반영할 때까지 개인운동을
+                    // 들고 있지 않는다 — 되돌아가 그만두면 앞서 정한 것이
+                    // 다음 전송에 조용히 딸려 간다.
+                    onPressed: () => setState(() {
+                      _aiWizardVisible = true;
+                      _personalRoutines.remove(client.id);
+                    }),
                     variant: AppButtonVariant.text,
                     size: OnCareButtonSize.small,
                     leadingIcon: Icons.chevron_left_rounded,

@@ -232,6 +232,39 @@ def _routine_only_body(request_id: str) -> dict:
     }
 
 
+def test_deleting_the_pt_takes_its_unsent_personal_routines(client, db_session):
+    """PT 일정을 지우면 아직 보내지 않은 개인운동도 함께 지운다. (#2223)
+
+    FK 는 `SET NULL` 이라 그냥 두면 `schedule_id` 만 비고 `status` 는 `scheduled`
+    로 남는데, 그런 행은 회원 목록에도 제안 목록에도 잡히지 않고 붙은 일정으로도
+    찾을 수 없어 아무도 못 보고 지우지도 못한다.
+    """
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=73)).isoformat()
+    _cleanup(db_session, day)
+    try:
+        created = client.post(
+            _PROGRAM_SCHEDULE_URL, json=_body(day), headers=_h(token)
+        )
+        assert created.status_code == 201, created.text
+        session_id = created.json()["session"]["id"]
+        routine_ids = [row["id"] for row in created.json()["personal_routines"]]
+        assert routine_ids
+
+        removed = client.delete(
+            f"/v1/trainer/schedule/{session_id}", headers=_h(token)
+        )
+        assert removed.status_code in (200, 204), removed.text
+
+        db_session.expire_all()
+        left = db_session.scalars(
+            select(TrainerRoutine).where(TrainerRoutine.id.in_(routine_ids))
+        ).all()
+        assert left == []
+    finally:
+        _cleanup(db_session, day)
+
+
 def test_routine_only_delivery_stays_on_the_list_for_a_week(client, db_session):
     """`개인운동만` 은 보낸 날부터 한 주 동안 회원 목록에 걸린다. (#2223)
 

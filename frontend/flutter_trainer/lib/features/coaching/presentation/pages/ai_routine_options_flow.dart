@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -184,9 +186,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 버튼을 잠근다(프로그램 전송의 `_sent` 와 같은 규칙).
   bool _routineOnlySent = false;
 
-  /// 이 전송 시도의 멱등키. 실패해 다시 누를 때 같은 키를 다시 보내야 중복
-  /// 배정이 막힌다(#581) — 내용이 바뀌지 않는 한 새로 만들지 않는다.
-  String? _routineOnlyRequestId;
+  /// 이 전송 시도의 멱등키와, 그 키를 만든 내용의 지문.
+  ///
+  /// 실패해 다시 누를 때 **같은 내용이면 같은 키**를 다시 보내야 중복 배정이
+  /// 막힌다(#581). 반대로 내용이 달라졌으면 **새 키**여야 한다 — 같은 키로
+  /// 보내면 서버가 "이미 처리된 전송" 으로 보고 먼저 저장된 것을 돌려주어,
+  /// 트레이너가 고친 내용이 조용히 사라진다. 프로그램 전송(`_requestIdFor`)과
+  /// 같은 규칙이다.
+  ({String fingerprint, String id})? _routineOnlyRequest;
 
   /// 단계 표시줄의 칸들. **어느 모드든 언제나 이 넷이다** — 흐름이 줄어드는
   /// 것처럼 보이지 않게, 밟지 않는 칸도 자리를 지키고 `건너뜀` 으로 남는다.
@@ -309,8 +316,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         _kind = ProgramKind.ptWithRoutine;
         _stage = _nextStageAfter(0);
         _maxReachedStage = _stage;
-        // 후보가 새로 만들어졌다 — 멱등키를 무효로 만든다(내용이 달라졌다).
-        _routineOnlyRequestId = null;
         // 트레이너가 아직 건드리지 않은 조건만 서버가 실제로 쓴 값(또는
         // 기본값)으로 채운다 — 트레이너가 시간만 고쳤다면 강도는 그대로
         // 서버가 계산하도록 둬야 하고, 그 반대도 마찬가지다(#776).
@@ -528,13 +533,26 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       if (personal && index < _personalOrigins.length) {
         _personalOrigins.removeAt(index);
       }
-      _activeMeasureChosen.clear();
+      // 뒤 줄의 번호가 하나씩 당겨진다 — 비워 버리면 남은 줄의 회↔초 선택까지
+      // 잃고, 다음에 이름을 고칠 때 종목표 기본값이 도로 덮어쓴다.
+      _shiftMeasureChosen(index);
       // 뒤 줄의 번호가 당겨지므로 열어 둔 자리를 그대로 두면 엉뚱한 줄이
       // 펼쳐진다 — 닫는다.
       if (personal) _editingPersonal = null;
     });
     if (origin == null) return;
     unawaited(_dismissSuggestion(origin.id, name));
+  }
+
+  /// 한 줄이 빠져 번호가 당겨질 때 회↔초 선택 자리를 함께 옮긴다.
+  void _shiftMeasureChosen(int removed) {
+    final Set<int> moved = <int>{
+      for (final int i in _activeMeasureChosen)
+        if (i < removed) i else if (i > removed) i - 1,
+    };
+    _activeMeasureChosen
+      ..clear()
+      ..addAll(moved);
   }
 
   Future<void> _dismissSuggestion(String id, String name) async {
@@ -641,30 +659,35 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       showAppToast(context, l.aiKeepOnePersonalRoutine);
       return;
     }
-    // 실패 후 재시도는 **같은 키**를 다시 보내야 중복 배정이 막힌다(#581).
-    final requestId =
-        _routineOnlyRequestId ??= 'routine-only-'
-            '${widget.client.id}-'
-            '${DateTime.now().microsecondsSinceEpoch}';
+    final sessions = <Map<String, Object?>>[
+      for (final e in _personal)
+        <String, Object?>{
+          'id': 'routine-only-${e.name.hashCode}',
+          'name': e.name,
+          'exercises': <Map<String, Object?>>[_personalExerciseToJson(e)],
+        },
+    ];
+    // 개인운동이 하나뿐이면 배정도 한 건이라 프로그램 이름이 곧 회원이 보는
+    // 제목이 된다 — `이번 주 개인운동` 이 아니라 그 운동 이름이어야 한다.
+    // 둘 이상이면 운동 이름이 각 카드의 제목이 되고 이 이름은 묶음 머리글이다.
+    final String programName = _personal.length == 1
+        ? _personal.single.name
+        : l.aiRoutineOnlyProgramName;
+    final requestId = _routineOnlyRequestIdFor(<Object?>[
+      programName,
+      sessions,
+      _routineOnlyDays,
+    ]);
     setState(() => _sendingRoutineOnly = true);
     try {
       await ref
           .read(trainerRoutineRepositoryProvider)
           .assignProgram(widget.client.id, <String, Object?>{
-            'name': l.aiRoutineOnlyProgramName,
+            'name': programName,
             // 운동 하나가 배정 한 건이다 — PT 에 붙이는 개인운동과 같은 모양
             // 이고, 그래야 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩
             // 표시할 수 있다. 한 덩어리로 보내면 체크도 한 번뿐이다.
-            'sessions': <Map<String, Object?>>[
-              for (final e in _personal)
-                <String, Object?>{
-                  'id': 'routine-only-${e.name.hashCode}',
-                  'name': e.name,
-                  'exercises': <Map<String, Object?>>[
-                    _personalExerciseToJson(e),
-                  ],
-                },
-            ],
+            'sessions': sessions,
             'delivery_kind': 'routine_only',
             // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레 동안
             // 회원 목록에 걸어 둔다(#2161 의 `active_from`~`ended_on`).
@@ -683,6 +706,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _routineOnlySent = true;
     });
     showAppToast(context, l.aiRoutineOnlySent, type: AppToastType.success);
+  }
+
+  /// 이번 내용에 대한 멱등키. 내용이 그대로면 같은 키, 달라졌으면 새 키다.
+  String _routineOnlyRequestIdFor(Object payload) {
+    final String fingerprint = jsonEncode(
+      payload,
+      toEncodable: (Object? value) => '$value',
+    );
+    final pending = _routineOnlyRequest;
+    if (pending != null && pending.fingerprint == fingerprint) {
+      return pending.id;
+    }
+    // 길이·모양이 정해진 공용 키를 쓴다 — 손으로 이어 붙이면 회원 id 가 길어질
+    // 때 서버 상한(48자)을 넘겨 422 가 난다.
+    final String id = newClientRequestId();
+    _routineOnlyRequest = (fingerprint: fingerprint, id: id);
+    return id;
   }
 
   /// 개인운동 한 줄 → 프로그램 세션의 운동 항목. 서버가 세션을 루틴으로 접을
@@ -1721,7 +1761,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ),
             ),
           for (int index = 0; index < _personal.length; index++) ...<Widget>[
-            if (_editingPersonal == index)
+            if (_editingPersonal == index && !_routineOnlySent)
               _exerciseEditor(index)
             else
               _personalSummaryRow(index),
@@ -1742,7 +1782,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ),
             ),
         ],
-        if (_showAddExercise)
+        // 보낸 뒤에는 목록을 닫는다(#2223). 열어 두면 이미 회원에게 간 운동의
+        // AI 제안을 서버에서 거절해 버리거나, 고쳐 봐야 반영되지 않는 값을
+        // 만지게 된다. 다음 주 분은 새로 짠다.
+        if (_routineOnlySent)
+          const SizedBox.shrink()
+        else if (_showAddExercise)
           _addExerciseForm()
         else
           AppButton(
@@ -1837,22 +1882,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: OnCareSpacing.s4),
-              AppIconButton(
-                key: ValueKey<String>('personal-routine-edit-$index'),
-                icon: Icons.edit_rounded,
-                tooltip: l.actionEdit,
-                color: context.oncare.brand.primary,
-                onPressed: () =>
-                    setState(() => _editingPersonal = index),
-              ),
-              AppIconButton(
-                key: ValueKey<String>('personal-routine-remove-$index'),
-                icon: Icons.delete_outline_rounded,
-                tooltip: l.aiPersonalDismissTooltip,
-                color: OnCareColors.textSecondary,
-                onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
-              ),
+              if (!_routineOnlySent) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s4),
+                AppIconButton(
+                  key: ValueKey<String>('personal-routine-edit-$index'),
+                  icon: Icons.edit_rounded,
+                  tooltip: l.actionEdit,
+                  color: context.oncare.brand.primary,
+                  onPressed: () => setState(() => _editingPersonal = index),
+                ),
+                AppIconButton(
+                  key: ValueKey<String>('personal-routine-remove-$index'),
+                  icon: Icons.delete_outline_rounded,
+                  tooltip: l.aiPersonalDismissTooltip,
+                  color: OnCareColors.textSecondary,
+                  onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
+                ),
+              ],
             ],
           ),
           _aiRationale(index),
