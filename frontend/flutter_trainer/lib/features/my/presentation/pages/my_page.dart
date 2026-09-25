@@ -327,9 +327,9 @@ class _MyPageState extends ConsumerState<MyPage> {
     // 고객 지원은 설정 안의 하위 화면이다 — 회원 관리와 같은 방식으로 연다.
     final viewingSupport = widget.tab == 'support';
     final inSubView = managingClients || viewingSupport;
-    // 한 열짜리 프로필·설정·목록이라 좁은 폭 틀을 쓴다(옛 최대 폭 760 과 같다).
+    // 다른 탭과 같은 폭을 쓴다(#2227). 좁은 틀은 큰 화면에서 이 화면만 양옆이
+    // 크게 비어, 사이드바에서 옮겨 올 때 화면이 바뀐 것처럼 보였다.
     return AppWebPage(
-      width: AppWebPageWidth.narrow,
       title: managingClients
           ? l.myClientManagement
           : viewingSupport
@@ -565,20 +565,6 @@ class _MyPageState extends ConsumerState<MyPage> {
             ),
             const AppDivider(),
             _InfoRow(label: l.myLoginAccount, value: _profile.email),
-            // 역할 전환 대신 로그아웃만 둔다 (계정 기반 분리).
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSpacing.s16,
-                vertical: OnCareSpacing.s4,
-              ),
-              child: AppButton(
-                label: l.mySignOut,
-                leadingIcon: Icons.logout_rounded,
-                variant: AppButtonVariant.destructiveText,
-                fullWidth: true,
-                onPressed: _signOut,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
@@ -587,6 +573,22 @@ class _MyPageState extends ConsumerState<MyPage> {
         // 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지 않는다(#505, #968).
         _SupportEntry(
           onTap: () => context.go(AppRoutes.mySection('support')),
+        ),
+        const SizedBox(height: OnCareSpacing.cardGap),
+        // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리). 자리는 설정 맨
+        // 아래다(#2227) — 계정 카드 안에 두면 읽는 줄들 사이에 버튼이 끼어
+        // 어디에 걸린 동작인지 흐려졌다. 회원 앱 설정도 같은 자리다.
+        AppCard(
+          padding: const EdgeInsets.all(OnCareSpacing.s4),
+          child: AppButton(
+            key: const ValueKey<String>('my-logout-button'),
+            label: l.mySignOut,
+            leadingIcon: Icons.logout_rounded,
+            variant: AppButtonVariant.destructiveText,
+            size: OnCareButtonSize.large,
+            fullWidth: true,
+            onPressed: _signOut,
+          ),
         ),
       ],
     );

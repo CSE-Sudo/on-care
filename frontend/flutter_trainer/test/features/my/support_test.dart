@@ -49,6 +49,23 @@ void main() {
     expect(find.text(_ko.mySupportExternalHint), findsNWidgets(2));
   });
 
+  testWidgets('로그아웃은 설정 맨 아래에 있다 (#2227)', (tester) async {
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      at: AppRoutes.mySection('settings'),
+    );
+
+    final logout = find.byKey(const ValueKey<String>('my-logout-button'));
+    final support = find.byKey(const ValueKey<String>('my-support-entry'));
+    expect(logout, findsOneWidget);
+    // 읽는 줄(계정 정보) 사이가 아니라 고객 지원 아래, 화면 맨 끝이다.
+    expect(
+      tester.getCenter(logout).dy,
+      greaterThan(tester.getCenter(support).dy),
+    );
+  });
+
   testWidgets('뒤로 누르면 설정으로 돌아온다', (tester) async {
     await pumpTrainerApp(
       tester,
