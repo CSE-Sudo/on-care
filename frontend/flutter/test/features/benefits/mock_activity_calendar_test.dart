@@ -98,6 +98,12 @@ class _FakeExercise implements ExerciseRepository {
   int weekCalls = 0;
 
   @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async => const <ExercisePeriodWeek>[];
+
+  @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async {
     weekCalls += 1;
     final DateTime monday = DateTime(

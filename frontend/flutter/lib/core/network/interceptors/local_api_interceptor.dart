@@ -142,6 +142,8 @@ class LocalApiInterceptor extends Interceptor {
     'POST /diet/nutrition': _dietNutrition,
     'POST /diet/entries': _dietCreate,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
+    // 기간 그래프가 한 번에 받아 가는 주들 (#2247).
+    'GET /exercise/weeks': _exercisePeriod,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
@@ -1572,6 +1574,75 @@ class LocalApiInterceptor extends Interceptor {
       weeks.add(_dateString(week));
     }
     return weeks;
+  }
+
+  /// `GET /exercise/weeks?from=&to=` — 구간이 걸친 주들. (#2247)
+  ///
+  /// 주마다의 집계는 [_exerciseCurrentWeek] 을 그대로 부른다 — 데모에서도 한 주
+  /// 조회와 기간 조회의 숫자가 갈리면 안 된다. 서버도 같은 함수를 기간만큼
+  /// 부른다(`exercise_service.build_period`). 그 응답에서 그래프가 쓰지 않는
+  /// `sessions`·`ai_coach_message` 는 덜어 낸다.
+  Future<Response<Object?>> _exercisePeriod(RequestOptions options) async {
+    for (final String key in const <String>['from', 'to']) {
+      final Object? raw = options.queryParameters[key];
+      if (raw != null && (raw is! String || !_isDateString(raw))) {
+        return _unprocessable(options, '\$key must be YYYY-MM-DD');
+      }
+    }
+    final DateTime thisMonday = DateTime.parse(_mondayOfThisWeekString());
+    DateTime lastMonday = _queryDate(options, 'to') == null
+        ? thisMonday
+        : DateTime.parse(
+            _mondayOfString(_dateString(_queryDate(options, 'to')!)),
+          );
+    if (lastMonday.isAfter(thisMonday)) lastMonday = thisMonday;
+    final DateTime? fromQuery = _queryDate(options, 'from');
+    DateTime firstMonday;
+    if (fromQuery != null) {
+      firstMonday = DateTime.parse(_mondayOfString(_dateString(fromQuery)));
+    } else {
+      final Set<String> days = await _exerciseDates();
+      firstMonday = days.isEmpty
+          ? lastMonday
+          : DateTime.parse(_mondayOfString((days.toList()..sort()).first));
+    }
+    if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
+
+    const List<String> carried = <String>[
+      'day_labels',
+      'daily_minutes',
+      'daily_calories',
+      'cardio_minutes',
+      'strength_minutes',
+      'strength_sets',
+      'stretching_minutes',
+      'other_minutes',
+      'total_minutes',
+      'total_calories',
+      'streak_days',
+    ];
+    final List<Map<String, Object?>> weeks = <Map<String, Object?>>[];
+    DateTime cursor = firstMonday;
+    while (!cursor.isAfter(lastMonday)) {
+      final String monday = _dateString(cursor);
+      final Response<Object?> week = await _exerciseCurrentWeek(
+        options.copyWith(
+          queryParameters: <String, Object?>{'week_start': monday},
+        ),
+      );
+      final Map<String, Object?> body =
+          (week.data as Map<String, Object?>?) ?? const <String, Object?>{};
+      weeks.add(<String, Object?>{
+        'week_start': monday,
+        for (final String key in carried) key: body[key],
+      });
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 7);
+    }
+    return _ok(options, <String, Object?>{
+      'from_week': _dateString(firstMonday),
+      'to_week': _dateString(lastMonday),
+      'weeks': weeks,
+    });
   }
 
   Future<Response<Object?>> _exerciseCurrentWeek(RequestOptions options) async {

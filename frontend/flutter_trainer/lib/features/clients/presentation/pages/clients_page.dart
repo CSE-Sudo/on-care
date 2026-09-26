@@ -164,6 +164,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                         selectedId: selected,
                         unread: unread,
                         filter: activeFilter,
+                        managementFilters: view.filters,
                         // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
                         // 잘리지 않게, 분할일 때만 한 칸 비워 둔다.
                         trailingPadding: wide ? OnCareSpacing.s8 : 0,
@@ -247,6 +248,47 @@ bool _matchesManagementFilters(
   return filters.any(
     (filter) => _matchesManagementFilter(client, filter, unread: unread),
   );
+}
+
+/// 필터로 좁힌 동안 행에 함께 보여 줄 **걸린 이유**(#2258). 필터가 없으면 빈
+/// 목록이라 행은 막대만 그린다.
+///
+/// 신호 필터는 고른 신호 중 그 회원에게 걸린 것, `관리 필요` 와 대시보드의
+/// `주의 회원` 은 그 회원의 가장 급한 신호 하나, 대시보드의 `답장 필요` 는
+/// `답장 대기` 다 — 무엇으로 좁혔는지에 답하는 것만 보여 준다.
+List<ClientSignal> _matchedSignals(
+  TrainerClient client, {
+  required int unread,
+  required Set<RosterManagementFilter> filters,
+  required ClientFilter preset,
+}) {
+  if (filters.isEmpty && preset == ClientFilter.all) {
+    return const <ClientSignal>[];
+  }
+  final all = rosterSignalsFor(client, unread: unread);
+  final kinds = <ClientSignalKind>{
+    for (final f in filters) ?f.signal,
+    if (preset == ClientFilter.unread) ClientSignalKind.unanswered,
+  };
+  final shown = <ClientSignal>[
+    for (final s in all)
+      if (kinds.contains(s.kind)) s,
+  ];
+  ClientSignal? mostUrgent(bool attentionOnly) {
+    for (final s in all) {
+      if (!attentionOnly || s.kind.isAttention) return s;
+    }
+    return null;
+  }
+
+  final extra = <ClientSignal?>[
+    if (filters.contains(RosterManagementFilter.attention)) mostUrgent(false),
+    if (preset == ClientFilter.attention) mostUrgent(true),
+  ];
+  for (final s in extra) {
+    if (s != null && !shown.any((x) => x.kind == s.kind)) shown.add(s);
+  }
+  return sortedSignals(shown);
 }
 
 /// Applies only sorts whose keys are present in the roster contract.
@@ -592,6 +634,7 @@ class _RosterList extends StatelessWidget {
     required this.unread,
     required this.selectedId,
     required this.filter,
+    required this.managementFilters,
     required this.trailingPadding,
     required this.onOpen,
   });
@@ -600,6 +643,7 @@ class _RosterList extends StatelessWidget {
   final Map<String, int> unread;
   final String? selectedId;
   final ClientFilter filter;
+  final Set<RosterManagementFilter> managementFilters;
   final double trailingPadding;
   final ValueChanged<String> onOpen;
 
@@ -625,6 +669,12 @@ class _RosterList extends StatelessWidget {
               client: client,
               selected: client.id == selectedId,
               unread: unread[client.id] ?? 0,
+              signals: _matchedSignals(
+                client,
+                unread: unread[client.id] ?? 0,
+                filters: managementFilters,
+                preset: filter,
+              ),
               onTap: () => onOpen(client.id),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),

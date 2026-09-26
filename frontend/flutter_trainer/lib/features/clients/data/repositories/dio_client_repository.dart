@@ -117,6 +117,39 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
     }
   }
 
+  @override
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  ) async {
+    // 기간을 **한 번에** 받는다(#2247). 회원 앱(`GET /exercise/weeks`)과 같은
+    // 집계라 두 화면의 막대가 갈리지 않는다.
+    try {
+      final response = await _dio.get<Map<String, Object?>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/exercise/weeks',
+        queryParameters: <String, String>{
+          'from': ymd(clientMondayOf(range.from)),
+          'to': ymd(range.to),
+        },
+      );
+      final Map<String, Object?> body =
+          response.data ?? const <String, Object?>{};
+      return <ClientExercisePeriodWeek>[
+        for (final Object? row
+            in (body['weeks'] as List<Object?>?) ?? const <Object?>[])
+          if (row is Map<String, Object?>)
+            (
+              weekStart:
+                  DateTime.tryParse(row['week_start'] as String? ?? '') ??
+                  DateTime(0),
+              week: ClientExerciseWeek.fromJson(row),
+            ),
+      ];
+    } on DioException catch (error) {
+      throw AppError.fromDio(error);
+    }
+  }
+
   /// 일별 식단 집계를 **리포트 응답**에서 만든다.
   ///
   /// 끼니 목록(`/diet?date=`)을 날마다 부르면 한 달에 서른 번 넘게 오간다.
