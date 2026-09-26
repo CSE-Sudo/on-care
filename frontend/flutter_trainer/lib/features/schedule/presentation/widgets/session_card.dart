@@ -104,29 +104,6 @@ class SessionCard extends ConsumerWidget {
     // 이 값이 개인운동을 어느 자리에서 보낼지까지 가른다(#2224).
     final bool programSendStands =
         !noteOnly && s.isDone && s.program.isNotEmpty;
-    // 머리글의 연필과 아래 결말 버튼이 **같은 항목 목록**을 쓴다 — 한쪽만
-    // 고치면 같은 동작이 두 자리에서 달라진다(#2224).
-    final SessionManageRow manageRow = SessionManageRow(
-      onEditSchedule: onEditSchedule,
-      onEditProgram: onEditProgram,
-      onEditNote: onEditNote,
-      hasNote: s.note.trim().isNotEmpty,
-      hasProgram: !noteOnly,
-      // 상담이면서 아직 메모가 없으면 `메모 추가` 는 위
-      // `SessionNoNoteBox` 안으로 옮겨 갔다(#1012).
-      showEditNote: !(noteOnly && s.note.trim().isEmpty),
-      // 프로그램이 비어 있으면 `SessionNoPlanBox` 가 코칭 탭
-      // 바로가기를 대신 보여 준다(#1236). 이미 회원에게 보낸
-      // 프로그램은 더 손댈 수 없어야 하므로도 세우지 않는다
-      // (#1247).
-      showEditProgram: s.program.isNotEmpty && !s.programSent,
-      // 아직 보내지 않은 개인운동이 붙어 있을 때만 — 보낸 뒤에 바뀌면 회원이
-      // 어제 본 목록과 오늘 본 목록이 말없이 달라진다(#2224).
-      onEditRoutines: hasUnsentRoutines ? onEditRoutines : null,
-      onDelete: onDelete,
-      onCancel: onCancel,
-      onComplete: onComplete,
-    );
     final client = findClientIdentity(
       roster,
       clientId: session.clientId,
@@ -160,10 +137,7 @@ class SessionCard extends ConsumerWidget {
               // 시각은 잘리면 안 되는 값이라 글자를 자르는 대신 통째로
               // 작게 그린다 — 폭 340 패널에 큰 글자 배율이 겹치면 이
               // 줄이 먼저 넘친다.
-              // `Expanded` 라야 남은 폭을 시각이 모두 차지해 연필이 줄 끝에
-              // 선다 — `Flexible` 은 제 폭만 쓰고 멈춰, 연필이 시각 바로
-              // 옆에 붙었다(#2224).
-              Expanded(
+              Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -186,15 +160,6 @@ class SessionCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              // 손보는 연필은 머리글 **오른쪽 끝**이다(#2224) — 카드가 길어져도
-              // 늘 같은 자리에 있고, 약속의 결말을 남기는 `완료`·`취소 처리`
-              // 와 무게가 갈린다.
-              //
-              // 글리프를 다른 요소의 오른쪽 끝에 맞추려고 바깥으로 당겼더니
-              // 누르는 자리(박스 44)가 카드 가장자리에 붙어 답답했다. 버튼은
-              // 제 여백을 그대로 쓰게 두고, 글리프가 조금 안쪽에 서는 편을
-              // 고른다 — 글자끼리의 정렬보다 누를 자리의 숨통이 먼저다.
-              SessionEditMenu(items: manageRow.editItems(l)),
             ],
           ),
           const SizedBox(height: OnCareSpacing.s8),
@@ -311,7 +276,27 @@ class SessionCard extends ConsumerWidget {
             SessionEndedBox(session: s),
             const SizedBox(height: OnCareSpacing.s12),
           ],
-          manageRow,
+          SessionManageRow(
+            onEditSchedule: onEditSchedule,
+            onEditProgram: onEditProgram,
+            onEditNote: onEditNote,
+            hasNote: s.note.trim().isNotEmpty,
+            hasProgram: !noteOnly,
+            // 상담이면서 아직 메모가 없으면 `메모 추가` 는 위
+            // `SessionNoNoteBox` 안으로 옮겨 갔다(#1012).
+            showEditNote: !(noteOnly && s.note.trim().isEmpty),
+            // 프로그램이 비어 있으면 `SessionNoPlanBox` 가 코칭 탭
+            // 바로가기를 대신 보여 준다(#1236). 이미 회원에게 보낸
+            // 프로그램은 더 손댈 수 없어야 하므로도 세우지 않는다
+            // (#1247).
+            showEditProgram: s.program.isNotEmpty && !s.programSent,
+            // 아직 보내지 않은 개인운동이 붙어 있을 때만 — 보낸 뒤에 바뀌면 회원이
+            // 어제 본 목록과 오늘 본 목록이 말없이 달라진다(#2224).
+            onEditRoutines: hasUnsentRoutines ? onEditRoutines : null,
+            onDelete: onDelete,
+            onCancel: onCancel,
+            onComplete: onComplete,
+          ),
           // 개인운동은 PT 프로그램 전송에 실려 나간다(#2224). 그 자리가 서지
           // 않는 끝난 PT 에서는 같은 자리가 `개인운동 보내기` 가 된다 —
           // 버튼을 새로 만들지 않는다: 개인운동은 늘 이 한 자리에서 나간다.
