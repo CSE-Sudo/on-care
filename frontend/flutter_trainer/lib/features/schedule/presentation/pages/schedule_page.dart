@@ -5,6 +5,8 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -17,6 +19,7 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_w
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_editor.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_sheet.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/unsent_personal_routines.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -271,11 +274,28 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 언제든 남길 수 있어, 여기서는 빈 메모란을 보여주지 않는다.
   Future<void> _confirmComplete(ScheduleSession s) async {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 완료는 개인운동이 회원에게 가는 **유일한 순간**이다(#2224) — 무엇이
+    // 함께 가는지 보여 주고 누르게 한다. 붙은 것이 없으면 완료를 막는다:
+    // 그대로 완료하면 그 PT 의 개인운동은 영영 가지 않는다.
+    final List<RoutineExercise> attached = await _loadScheduledRoutines(s.id);
+    if (!mounted) return;
+    if (attached.isEmpty) {
+      await _confirmMissingPersonalRoutines(s);
+      return;
+    }
     final ok = await _confirm(
       title: l.schedCompleteTitle,
       confirmLabel: l.legendDone,
       confirmKey: const ValueKey<String>('session-complete-confirm'),
-      body: <Widget>[Text(l.schedCompleteConfirm(s.time, s.clientName))],
+      body: <Widget>[
+        Text(l.schedCompleteConfirm(s.time, s.clientName)),
+        const SizedBox(height: OnCareSpacing.s12),
+        _PersonalRoutineLines(
+          key: const ValueKey<String>('session-complete-routines'),
+          title: l.schedCompleteRoutinesTitle,
+          routines: attached,
+        ),
+      ],
     );
     if (!ok || !mounted) return;
     try {
@@ -288,6 +308,41 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       if (!mounted) return;
       showAppToast(context, l.schedCompleteFailed, type: AppToastType.error);
     }
+  }
+
+  /// 그 PT 에 붙어 있는 개인운동. 읽기 실패는 빈 목록으로 본다 — 완료를
+  /// 막을 근거가 없으면 막지 않는다(#2224).
+  Future<List<RoutineExercise>> _loadScheduledRoutines(String id) async {
+    try {
+      return await ref
+          .read(scheduleRepositoryProvider)
+          .fetchScheduledRoutines(id);
+    } catch (_) {
+      return const <RoutineExercise>[];
+    }
+  }
+
+  /// 붙은 개인운동이 없어 완료를 막는다 — 프로그램 탭에서 짜도록 돌려보낸다.
+  ///
+  /// 여기서 짜게 하지 않는 이유는 그 길이 이미 있기 때문이다: 프로그램
+  /// 만들기는 개인운동을 필수로 받고(#2223), `일정 추가` 는 겹치는 예정
+  /// 세션에 붙는다(#1581) — 달력에서 잡은 PT 에도 그대로 붙는다.
+  Future<void> _confirmMissingPersonalRoutines(ScheduleSession s) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    await showAppDialog<void>(
+      context: context,
+      builder: (dialogContext) => AppDialog(
+        key: const ValueKey<String>('session-complete-needs-routines'),
+        title: l.schedCompleteNeedsRoutinesTitle,
+        showClose: false,
+        footer: AppButton(
+          label: l.actionClose,
+          fullWidth: true,
+          onPressed: () => Navigator.of(dialogContext).pop(),
+        ),
+        child: Text(l.schedCompleteNeedsRoutinesBody(s.clientName)),
+      ),
+    );
   }
 
   /// 취소 처리 — 취소 주체와 (선택) 사유를 받고 세션을 `취소` 로 남긴다. (#871)
@@ -690,6 +745,58 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           sendingProgram: _sendingProgramId == session.id,
           onSendProgram: () => _sendProgram(session),
         ),
+        // 취소·노쇼로 끝난 PT 의 개인운동은 갈 곳을 잃는다 — 여기 남겨 두고
+        // 트레이너가 보낼지 정한다(#2224). 완료된 PT 는 그때 함께 나갔으므로
+        // 남는 것이 없어 이 자리가 비어 있다.
+        if (!session.isUpcoming)
+          UnsentPersonalRoutines(
+            key: ValueKey<String>('unsent-routines-${session.id}'),
+            sessionId: session.id,
+          ),
+      ],
+    );
+  }
+}
+
+
+/// 개인운동 몇 줄을 제목과 함께 보여 주는 덩어리. (#2224)
+///
+/// 완료 확인창과 `개인운동 미전송` 창이 같은 모양으로 읽히게 한 곳에 둔다 —
+/// 트레이너가 두 자리에서 같은 목록을 본다.
+class _PersonalRoutineLines extends StatelessWidget {
+  const _PersonalRoutineLines({
+    required this.title,
+    required this.routines,
+    super.key,
+  });
+
+  final String title;
+  final List<RoutineExercise> routines;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.oncare;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          title,
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s4),
+        for (final RoutineExercise routine in routines)
+          Padding(
+            padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+            child: Text(
+              '· ${personalRoutineLabel(AppLocalizations.of(context), routine)}',
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+          ),
       ],
     );
   }

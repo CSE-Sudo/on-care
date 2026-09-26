@@ -806,6 +806,19 @@ class PersonalRoutineItem(BaseModel):
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
 
+class ScheduleRoutineSendRequest(BaseModel):
+    """마무리된 PT 의 개인운동을 보낸다 — 고쳐서 보낼 수도 있다. (#2224)
+
+    [personal_routines] 를 비우면 붙어 있던 그대로 보낸다. 주면 그 내용으로
+    갈아 끼운 뒤 보낸다 — 취소된 PT 에는 프로그램 만들기로 다시 붙일 수 없어
+    (`예정` 세션만 찾는다) 고치는 자리가 이 요청뿐이다.
+    """
+
+    personal_routines: list[PersonalRoutineItem] | None = Field(
+        default=None, max_length=_MAX_PERSONAL_ROUTINES
+    )
+
+
 class ProgramAssignRequest(BaseModel):
     """다중 세션 프로그램을 담당 회원에게 배정하는 입력. (#709)
 

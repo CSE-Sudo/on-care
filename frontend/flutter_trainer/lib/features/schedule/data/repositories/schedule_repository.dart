@@ -134,6 +134,24 @@ abstract interface class ScheduleRepository {
   /// Marks an 예정 session 완료 with the trainer's [note].
   Future<void> completeSession(String id, {String note});
 
+  /// 그 PT 에 붙어 있는(아직 보내지 않은) 개인운동. (#2224)
+  ///
+  /// 완료 확인창이 "무엇이 함께 가는지" 를 보여 주고, 마무리된 PT 의
+  /// `개인운동 미전송` 표시가 이 목록으로 선다.
+  Future<List<RoutineExercise>> fetchScheduledRoutines(String id);
+
+  /// 마무리된 PT 에 남은 개인운동을 회원에게 보낸다. (#2224)
+  ///
+  /// [items] 를 주면 그 내용으로 고쳐서 보낸다 — 취소된 PT 에는 프로그램
+  /// 만들기로 다시 붙일 수 없어 고치는 자리가 여기뿐이다.
+  Future<void> sendScheduledRoutines(
+    String id, {
+    List<RoutineExercise>? items,
+  });
+
+  /// 마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
+  Future<void> dismissScheduledRoutines(String id);
+
   /// 저장 전에 보여 줄 회차와 충돌. (#870)
   ///
   /// 반복은 한 번에 여러 건을 만든다 — 요일이나 종료일을 잘못 골랐을 때 되돌리는
@@ -190,6 +208,15 @@ abstract interface class ScheduleRepository {
 }
 
 /// Reads the trainer's daily timeline from the local drift DB.
+/// 데모에서 프로그램과 함께 붙어 있는 개인운동. 실 API 는 서버가 준다.
+const List<RoutineExercise> _demoPersonalRoutines = <RoutineExercise>[
+  RoutineExercise(name: '저강도 걷기', minutes: 30, type: '유산소', source: 'ai'),
+  RoutineExercise(name: '코어 스트레칭', minutes: 10, type: '스트레칭', source: 'ai'),
+];
+
+/// 데모에서 개인운동을 이미 보냈거나 보내지 않기로 한 일정.
+final Set<String> _sentRoutines = <String>{};
+
 class DriftScheduleRepository implements ScheduleRepository {
   /// Creates the repository over [_db].
   const DriftScheduleRepository(this._db);
@@ -577,6 +604,39 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// A session dated in the FUTURE can't be completed — it hasn't
   /// happened yet. The UI hides the 완료 action for future days, and this
   /// guard rejects it even if reached another way (review PR 245).
+  /// 데모의 붙은 개인운동 — **프로그램이 있는 일정에만** 선다. (#2224)
+  ///
+  /// 실제로도 그 규칙이다: 개인운동은 프로그램 만들기에서 프로그램과 **함께**
+  /// 정해져 그 일정에 붙는다(#2223). 달력에서 바로 잡아 프로그램이 없는 PT 는
+  /// 붙은 것도 없다 — 데모에서도 `개인운동을 먼저 짜 주세요` 가 그대로 뜬다.
+  ///
+  /// 보낸 뒤에는 [_sentRoutines] 에 남아 다시 세지 않는다. 데모에는 붙여 둘
+  /// 표가 없어 메모리로만 기억한다.
+  @override
+  Future<List<RoutineExercise>> fetchScheduledRoutines(String id) async {
+    if (_sentRoutines.contains(id)) return const <RoutineExercise>[];
+    final row = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (row == null || row.programJson.isEmpty) {
+      return const <RoutineExercise>[];
+    }
+    return _demoPersonalRoutines;
+  }
+
+  @override
+  Future<void> sendScheduledRoutines(
+    String id, {
+    List<RoutineExercise>? items,
+  }) async {
+    _sentRoutines.add(id);
+  }
+
+  @override
+  Future<void> dismissScheduledRoutines(String id) async {
+    _sentRoutines.add(id);
+  }
+
   @override
   Future<void> completeSession(String id, {String note = ''}) async {
     final table = _db.trainerScheduleEntries;

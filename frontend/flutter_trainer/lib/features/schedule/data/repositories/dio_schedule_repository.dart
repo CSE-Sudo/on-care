@@ -289,6 +289,41 @@ class DioScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<List<RoutineExercise>> fetchScheduledRoutines(String id) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
+    );
+    return <RoutineExercise>[
+      for (final row in res.data ?? const <dynamic>[])
+        scheduledRoutineFromJson(row as Map<String, dynamic>),
+    ];
+  }
+
+  @override
+  Future<void> sendScheduledRoutines(
+    String id, {
+    List<RoutineExercise>? items,
+  }) async {
+    await _mutate(
+      () => _dio.post<Map<String, dynamic>>(
+        '/trainer/schedule/${Uri.encodeComponent(id)}/routines/send',
+        data: <String, Object?>{
+          if (items != null) 'personal_routines': personalRoutinesToJson(items),
+        },
+      ),
+    );
+  }
+
+  @override
+  Future<void> dismissScheduledRoutines(String id) async {
+    await _mutate(
+      () => _dio.post<Map<String, dynamic>>(
+        '/trainer/schedule/${Uri.encodeComponent(id)}/routines/dismiss',
+      ),
+    );
+  }
+
+  @override
   Future<RecurrencePreview> previewRecurring({
     required DateTime start,
     required String time,

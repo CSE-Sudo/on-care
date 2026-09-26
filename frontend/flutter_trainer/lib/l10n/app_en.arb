@@ -1038,6 +1038,18 @@
     }
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
+  "schedCompleteRoutinesTitle": "Personal exercise going with it",
+  "schedCompleteNeedsRoutinesTitle": "Compose the personal exercise first",
+  "schedCompleteNeedsRoutinesBody": "No personal exercise is attached to this PT. It has to go to the member when you complete it, so compose {name}'s program in the Program tab and complete this again.",
+  "@schedCompleteNeedsRoutinesBody": {"placeholders": {"name": {"type": "String"}}},
+  "schedRoutinesUnsent": "Personal exercise not sent",
+  "schedRoutinesSendTitle": "Send the personal exercise?",
+  "schedRoutinesSendBody": "This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.",
+  "schedRoutinesSend": "Send personal exercise",
+  "schedRoutinesSkip": "Don't send",
+  "schedRoutinesSent": "Sent the personal exercise to the member.",
+  "schedRoutinesSendFailed": "Couldn't send the personal exercise. Please try again.",
+  "schedRoutinesSkipped": "Marked as not sent.",
   "schedTimeRange": "{start}–{end}",
   "@schedTimeRange": {
     "placeholders": {

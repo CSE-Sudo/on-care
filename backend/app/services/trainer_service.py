@@ -3634,6 +3634,232 @@ def list_scheduled_routines(
     return [_routine_out(db, row) for row in rows]
 
 
+#: PT 완료로 보낸 개인운동이 회원 목록에 걸려 있는 날 수 — 보낸 날을 1일로 센다.
+#:
+#: `개인운동만`(#2223) 과 같은 7 일이다. 두 경로가 같은 규칙으로 움직여야 회원이
+#: "이번 주에 할 것" 하나만 본다. 끊기는 것이 곧 트레이너에게 "이번 주 것을
+#: 보내라" 는 신호다.
+PERSONAL_ROUTINE_ACTIVE_DAYS = 7
+
+
+def _retire_personal_routines(
+    db: Session, trainer_id: str, member_id: str, *, today: date
+) -> None:
+    """이 트레이너가 이 회원에게 보내 둔 개인운동을 오늘부로 내린다. (#2224)
+
+    새로 보낼 때마다 부른다. 내리지 않으면 PT 가 당겨진 주에 지난 개인운동과
+    새 개인운동이 **함께** 걸려 회원이 두 배를 받는다 — 트레이너는 바꿔 준
+    것으로 아는데 회원은 더해진 것을 본다.
+
+    지우지 않고 `ended_on` 만 오늘로 찍는다 — 회원이 지난 날짜를 열면 그날
+    걸려 있던 목록이 그대로 보여야 한다(#2161).
+
+    **프로그램 세션 줄은 건드리지 않는다.** 개인운동만 `delivery_kind` 를 달고
+    있어(#2223) 그 값으로 가른다 — PT 프로그램 배정은 비어 있다.
+    """
+    iso = today.isoformat()
+    db.execute(
+        update(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            TrainerRoutine.delivery_kind.is_not(None),
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > iso,
+            ),
+        )
+        .values(ended_on=iso)
+    )
+
+
+def _send_scheduled_routines(
+    db: Session,
+    trainer_id: str,
+    session: TrainerSchedule,
+    *,
+    delivery_kind: str,
+) -> list[TrainerRoutine]:
+    """그 PT 에 붙여 둔 개인운동을 회원에게 보낸다(커밋 없음). (#2224)
+
+    붙일 때는 `scheduled` 로 두어 회원에게 보이지 않았다(#2223). 여기서
+    `approved` 로 올리며 **오늘부터** 다시 건다 — 며칠 전에 짜 둔 것이라도
+    회원에게는 오늘 받은 운동이다. 그대로 두면 `active_from` 이 짠 날이라
+    이미 며칠 지나간 채로 걸린다.
+
+    보낸 것이 없으면 빈 목록이다 — 부르는 쪽이 판단한다.
+    """
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session.id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        return []
+    today = clock.today()
+    _retire_personal_routines(db, trainer_id, session.member_id or "", today=today)
+    ended_on = (
+        today + timedelta(days=PERSONAL_ROUTINE_ACTIVE_DAYS)
+    ).isoformat()
+    for row in rows:
+        row.status = ROUTINE_APPROVED
+        row.delivery_kind = delivery_kind
+        row.active_from = today.isoformat()
+        row.ended_on = ended_on
+        row.exercise_date = today.isoformat()
+    db.flush()
+    notification_service.queue(
+        db,
+        member_id=session.member_id,
+        kind=notification_service.EXERCISE,
+        category=notification_service.MEMBER_ROUTINE,
+        title="이번 주에 할 개인운동이 왔어요",
+        body=" · ".join(row.name for row in rows),
+    )
+    return rows
+
+
+def send_scheduled_routines(
+    db: Session,
+    trainer_id: str,
+    session_id: str,
+    *,
+    items: Sequence[PersonalRoutineItem] | None = None,
+) -> list[RoutineOut] | None:
+    """마무리된 PT 에 남아 있던 개인운동을 회원에게 보낸다. (#2224)
+
+    PT 가 취소·노쇼로 끝나면 붙여 둔 개인운동은 갈 곳을 잃는다. 자동으로
+    보내지는 않는다 — 아파서 쉬는 회원에게 운동이 저절로 가면 안 된다.
+    트레이너가 `개인운동 미전송` 에서 눌렀을 때만 온다.
+
+    [items] 를 주면 그 내용으로 **고쳐서** 보낸다. 개인운동은 "이 PT 다음에
+    할 것" 으로 짜였으므로, PT 가 열리지 않았으면 그대로 보내기 어렵다.
+    취소된 PT 에는 프로그램 만들기로 다시 붙일 수 없어(`예정` 세션만 찾는다)
+    고치는 자리가 여기뿐이다.
+
+    - 소유 슬롯 아님 → None(404).
+    - 아직 `예정` → ScheduleError. 완료를 누르면 그때 함께 나간다.
+    - 보낼 것이 없음 → ScheduleError.
+    """
+    s = _get_owned_session(db, trainer_id, session_id)
+    if s is None:
+        return None
+    if s.status == SCHEDULE_UPCOMING:
+        raise ScheduleError(
+            "아직 예정인 PT 입니다. 완료할 때 개인운동이 함께 나갑니다."
+        )
+    if not s.member_id:
+        raise ScheduleError("회원이 없는 일정입니다.")
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        raise ScheduleError("보낼 개인운동이 없습니다.")
+    if items is not None:
+        if not items:
+            raise ScheduleError("보낼 개인운동이 없습니다.")
+        _rewrite_scheduled_routines(db, rows, items)
+        rows = db.scalars(
+            select(TrainerRoutine)
+            .where(
+                TrainerRoutine.trainer_id == trainer_id,
+                TrainerRoutine.schedule_id == session_id,
+                TrainerRoutine.status == ROUTINE_SCHEDULED,
+            )
+            .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+        ).all()
+    kind = (
+        DELIVERY_CANCELLED_ROUTINE_ONLY
+        if s.status in {SCHEDULE_CANCELLED, SCHEDULE_NO_SHOW}
+        else DELIVERY_PT_WITH_ROUTINE
+    )
+    sent = _send_scheduled_routines(db, trainer_id, s, delivery_kind=kind)
+    db.commit()
+    return [_routine_out(db, row) for row in sent]
+
+
+def _rewrite_scheduled_routines(
+    db: Session,
+    rows: Sequence[TrainerRoutine],
+    items: Sequence[PersonalRoutineItem],
+) -> None:
+    """붙어 있던 개인운동을 [items] 로 갈아 끼운다(커밋 없음). (#2224)
+
+    있던 줄을 앞에서부터 고쳐 쓰고, 모자라면 만들고, 남으면 지운다 — 줄을
+    전부 지우고 새로 만들면 `client_request_id` 의 멱등 키가 끊겨 재시도가
+    같은 운동을 두 번 만든다.
+    """
+    base = rows[0]
+    for index, item in enumerate(items):
+        if index < len(rows):
+            row = rows[index]
+        else:
+            row = TrainerRoutine(
+                id=f"routine-{uuid.uuid4().hex[:12]}",
+                trainer_id=base.trainer_id,
+                member_id=base.member_id,
+                schedule_id=base.schedule_id,
+                status=ROUTINE_SCHEDULED,
+                delivery_kind=base.delivery_kind,
+                source="trainer",
+                client_request_id=_personal_request_key(
+                    base.client_request_id, index
+                ),
+            )
+            db.add(row)
+        row.name = item.name
+        row.minutes = item.minutes
+        row.type = item.type
+        row.sets = item.sets
+        row.reps = item.reps
+        row.hold_seconds = item.hold_seconds
+        row.weight = item.weight
+        row.source = item.source
+        row.sort_order = base.sort_order + index
+    for row in rows[len(items):]:
+        db.delete(row)
+    db.flush()
+
+
+def dismiss_scheduled_routines(
+    db: Session, trainer_id: str, session_id: str
+) -> bool | None:
+    """마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
+
+    `개인운동 미전송` 표시를 걷어내는 길이다. 보내지 않기로 한 것을 계속
+    띄워 두면 트레이너가 매번 다시 판단해야 한다.
+
+    지우지 않고 `dismissed` 로 내린다 — 무엇을 짰다가 안 보냈는지가 남는다.
+    """
+    s = _get_owned_session(db, trainer_id, session_id)
+    if s is None:
+        return None
+    if s.status == SCHEDULE_UPCOMING:
+        raise ScheduleError("아직 예정인 PT 입니다.")
+    changed = db.execute(
+        update(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .values(status=ROUTINE_DISMISSED)
+    ).rowcount
+    db.commit()
+    return changed > 0
+
+
 def _replayed_program_schedule(
     db: Session, trainer_id: str, member_id: str, *,
     client_request_id: str,
@@ -3904,6 +4130,17 @@ def update_session(
         )
     if "date" in fields:
         s.date = fields["date"]
+        # 붙어 있는 개인운동도 새 날짜로 따라간다(#2224). 아직 보내지 않은
+        # 것이라 묻지도 보내지도 않는다 — 옮긴 PT 를 완료할 때 그날 기준으로
+        # 나간다. 두고 가면 옛 날짜를 가리킨 채 남는다.
+        db.execute(
+            update(TrainerRoutine)
+            .where(
+                TrainerRoutine.schedule_id == s.id,
+                TrainerRoutine.status == ROUTINE_SCHEDULED,
+            )
+            .values(exercise_date=fields["date"])
+        )
     if "time" in fields:
         s.time = fields["time"]
     if "client_name" in fields:
@@ -4225,6 +4462,13 @@ def complete_session(
         raise ScheduleConflict(
             "취소·노쇼로 마무리된 세션은 완료할 수 없습니다."
         )
+    # 완료는 개인운동이 회원에게 가는 **유일한 순간**이다(#2224). 붙은 것이
+    # 없는 채로 완료하면 그 PT 의 개인운동은 영영 가지 않는다 — 프로그램을
+    # 먼저 짜게 돌려보낸다. 회원 없는 슬롯은 보낼 곳이 없으므로 그대로 둔다.
+    if s.member_id and not list_scheduled_routines(db, trainer_id, s.id):
+        raise ScheduleError(
+            "이 PT 에 붙은 개인운동이 없습니다. 프로그램을 먼저 짜 주세요."
+        )
 
     # 조건부 전환(예정 → 완료). rowcount==1 인 호출만 '방금 전환한' 것이므로 그 호출만
     # 운동기록을 쓴다 — 동시 완료 요청이 둘 다 예정을 보고 중복 기록하는 것을 막는다.
@@ -4256,6 +4500,12 @@ def complete_session(
             trainer_note=note,
         ))
         exercise_log = _add_member_exercise_log(db, s)
+        # 이 PT 에 붙여 둔 개인운동이 회원에게 가는 자리다(#2224). 조건부
+        # 전환을 이긴 호출 안에서만 보낸다 — 동시 완료 요청이 둘 다 보내면
+        # 회원이 같은 운동을 두 번 받는다.
+        _send_scheduled_routines(
+            db, trainer_id, s, delivery_kind=DELIVERY_PT_WITH_ROUTINE
+        )
     db.commit()
     db.refresh(s)
     out = _schedule_out(s)

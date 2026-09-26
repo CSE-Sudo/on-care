@@ -66,6 +66,7 @@ from app.schemas.trainer_api import (
     ProgramAssignRequest, ProgramScheduleOut, ProgramScheduleRequest,
     RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
     ScheduleCancelRequest, ScheduleCompleteRequest,
+    ScheduleRoutineSendRequest,
     ScheduleProgramSendRequest, ScheduleCreateRequest,
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
     ScheduleSessionOut, ScheduleUpdateRequest,
@@ -1658,6 +1659,54 @@ def trainer_schedule_routines(
     실재하는지 알려 주지 않는다.
     """
     return trainer_service.list_scheduled_routines(db, trainer.id, session_id)
+
+
+@router.post(
+    "/trainer/schedule/{session_id}/routines/send",
+    response_model=list[RoutineOut],
+)
+def trainer_send_schedule_routines(
+    session_id: str,
+    payload: ScheduleRoutineSendRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """마무리된 PT 에 남은 개인운동을 회원에게 보낸다. (#2224)
+
+    취소·노쇼로 끝난 PT 의 개인운동은 자동으로 가지 않는다 — 아파서 쉬는
+    회원에게 운동이 저절로 가면 안 된다. 트레이너가 누를 때만 온다.
+    `personal_routines` 를 주면 그 내용으로 고쳐서 보낸다.
+    """
+    try:
+        sent = trainer_service.send_scheduled_routines(
+            db, trainer.id, session_id, items=payload.personal_routines
+        )
+    except trainer_service.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if sent is None:
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+    return sent
+
+
+@router.post("/trainer/schedule/{session_id}/routines/dismiss")
+def trainer_dismiss_schedule_routines(
+    session_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, bool]:
+    """마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
+
+    `개인운동 미전송` 표시를 걷어낸다. 무엇을 짰다가 안 보냈는지는 남는다.
+    """
+    try:
+        done = trainer_service.dismiss_scheduled_routines(
+            db, trainer.id, session_id
+        )
+    except trainer_service.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if done is None:
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+    return {"dismissed": done}
 
 
 @router.put("/trainer/schedule/{session_id}", response_model=ScheduleSessionOut)

@@ -2792,6 +2792,72 @@ abstract class AppLocalizations {
   /// **'Couldn\'t mark it complete. Please try again'**
   String get schedCompleteFailed;
 
+  /// No description provided for @schedCompleteRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise going with it'**
+  String get schedCompleteRoutinesTitle;
+
+  /// No description provided for @schedCompleteNeedsRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compose the personal exercise first'**
+  String get schedCompleteNeedsRoutinesTitle;
+
+  /// No description provided for @schedCompleteNeedsRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise is attached to this PT. It has to go to the member when you complete it, so compose {name}\'s program in the Program tab and complete this again.'**
+  String schedCompleteNeedsRoutinesBody(String name);
+
+  /// No description provided for @schedRoutinesUnsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise not sent'**
+  String get schedRoutinesUnsent;
+
+  /// No description provided for @schedRoutinesSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the personal exercise?'**
+  String get schedRoutinesSendTitle;
+
+  /// No description provided for @schedRoutinesSendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.'**
+  String get schedRoutinesSendBody;
+
+  /// No description provided for @schedRoutinesSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send personal exercise'**
+  String get schedRoutinesSend;
+
+  /// No description provided for @schedRoutinesSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t send'**
+  String get schedRoutinesSkip;
+
+  /// No description provided for @schedRoutinesSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent the personal exercise to the member.'**
+  String get schedRoutinesSent;
+
+  /// No description provided for @schedRoutinesSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the personal exercise. Please try again.'**
+  String get schedRoutinesSendFailed;
+
+  /// No description provided for @schedRoutinesSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as not sent.'**
+  String get schedRoutinesSkipped;
+
   /// No description provided for @schedTimeRange.
   ///
   /// In en, this message translates to:

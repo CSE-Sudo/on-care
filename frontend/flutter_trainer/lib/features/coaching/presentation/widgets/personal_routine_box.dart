@@ -94,7 +94,7 @@ class PersonalRoutineBox extends StatelessWidget {
               padding: const EdgeInsets.only(top: OnCareSpacing.s2),
               child: Text(
                 '· ${routine.name} · ${routineTypeLabel(l, routine.type)} · '
-                '${_amount(l, routine)}',
+                '${personalRoutineAmount(l, routine)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: line,
@@ -175,12 +175,22 @@ class PersonalRoutineBox extends StatelessWidget {
   }
 
   /// 근력은 세트·횟수·중량으로, 그 외 유형은 시간으로 잰다. (#1310, #1969)
-  String _amount(AppLocalizations l, RoutineExercise e) {
-    if (e.type != '근력') return l.minutesShort(e.minutes);
-    final double w = e.weight;
-    final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
-    return e.isHold
-        ? l.aiHoldSummary(e.sets, e.holdSeconds, weight)
-        : l.aiStrengthSummary(e.sets, e.reps, weight);
-  }
 }
+
+/// 개인운동 한 줄의 양 — 근력은 세트·횟수·중량, 그 밖은 분. (#2223)
+String personalRoutineAmount(AppLocalizations l, RoutineExercise e) {
+  if (e.type != '근력') return l.minutesShort(e.minutes);
+  final double w = e.weight;
+  final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
+  return e.isHold
+      ? l.aiHoldSummary(e.sets, e.holdSeconds, weight)
+      : l.aiStrengthSummary(e.sets, e.reps, weight);
+}
+
+/// 개인운동 한 줄 — `걷기 · 유산소 · 30분`. (#2224)
+///
+/// 편집기의 박스와 일정 화면(완료 확인창·`개인운동 미전송`)이 같은 문구를
+/// 쓴다 — 자리마다 다르게 적으면 같은 운동인지 알아보기 어렵다.
+String personalRoutineLabel(AppLocalizations l, RoutineExercise e) =>
+    '${e.name} · ${routineTypeLabel(l, e.type)} · '
+    '${personalRoutineAmount(l, e)}';
