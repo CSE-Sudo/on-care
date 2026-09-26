@@ -51,7 +51,7 @@ RECORD_LINES = 6
 
 _MAIN = ("breakfast", "lunch", "dinner")
 _SNACKS = ("snack", "lateNight")
-_WEEKDAY_KO = "월화수목금토일"
+WEEKDAY_KO = "월화수목금토일"
 _FOCUS_TIPS = {
     "sodium": "tip_sodium",
     "calorie": "tip_calorie",
@@ -203,7 +203,7 @@ def record_lines(finding: Finding, records: dict[date, DayRecord]) -> list[str]:
                 continue
             label = SLOT_LABELS_KO.get(slot, "간식")
             text = (
-                f"{_WEEKDAY_KO[day.weekday()]} {label}: {', '.join(names) or '이름 없음'} "
+                f"{WEEKDAY_KO[day.weekday()]} {label}: {', '.join(names) or '이름 없음'} "
                 f"(칼로리 {kcal}kcal, 단백질 {protein}g, 나트륨 {sodium}mg, 당류 {sugar}g)"
             )
             values = (0, 0, kcal, protein, sodium, sugar)

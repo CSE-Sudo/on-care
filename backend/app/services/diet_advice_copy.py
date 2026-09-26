@@ -57,6 +57,21 @@ _KO: dict[str, str] = {
     "tip_sugar": "단 음료 대신 물이나 차를 드세요.",
     "tip_protein": "끼니마다 달걀·두부를 더해 봐요.",
     "tip_keep": "지금 흐름을 그대로 이어 가요!",
+    # 전체(최근 4주) — 규칙 한 줄 (#2254)
+    "all_few_records": "최근 4주 기록이 **{days}일**이에요.",
+    "all_slot_sodium": "최근 4주 {slot_ko} 나트륨이 **{days}번** 높았어요.",
+    "all_carb_heavy": "최근 4주 탄수화물 비중이 **{pct}%**예요.",
+    "all_protein_light": "최근 4주 단백질 비중이 **{pct}%**로 낮아요.",
+    "all_protein_trend_up": "단백질 목표 달성일이 **{before}일→{after}일**로 늘었어요.",
+    "all_protein_trend_down": "단백질 목표 달성일이 **{before}일→{after}일**로 줄었어요.",
+    "all_frequent_menu": "4주간 {slot_ko} 1위 메뉴는 **{food}**({count}회)예요.",
+    "all_repeated_foods": "4주간 **{food1}·{food2}** 비중이 높아요.",
+    "all_good": "최근 4주 **{days}일** 기록, 흐름이 좋아요.",
+    # 전체 — 다음 할 일(AI 가 실패했을 때) (#2254)
+    "all_few_hint": "7일이 넘으면 흐름을 짚어 드릴게요.",
+    "tip_carb": "밥 양을 줄이고 반찬을 늘려 봐요.",
+    "tip_swap": "곁들임 반찬만 바꿔 봐요.",
+    "tip_variety": "생선·두부를 주 2회 더해요.",
 }
 
 #: 모든 키. 앱의 번역 테스트가 이 목록을 빠짐없이 그리는지 본다.

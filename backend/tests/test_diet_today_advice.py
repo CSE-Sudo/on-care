@@ -271,9 +271,9 @@ def test_endpoint_returns_two_sentences_and_keeps_message(client, db_session, mo
         assert en["action_params"]["menu"].isascii()
     assert client.get("/v1/diet/advice?period=today&lang=jp", headers=headers).status_code == 422
 
-    # 전체는 아직 한 문장이다 — analysis 에도 같은 문장이 실린다.
+    # 전체도 두 문장이다 — 기록이 없으면 AI 없이 안내한다.
     every = client.get("/v1/diet/advice?period=all", headers=headers).json()
-    assert every["analysis"] == every["message"] and every["analysis_key"] is None
+    assert every["analysis_key"] == "all_few_records"
 
 
 def test_missing_meal_asks_for_the_record_without_touching_the_plan(db_session, member, monkeypatch):
