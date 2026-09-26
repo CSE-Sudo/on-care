@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -14,6 +15,10 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// PT 프로그램과 나란히 서서 "회원이 여기서 할 것" 과 "회원이 혼자 할 것" 을
 /// 가른다. 예정인 PT 는 **무엇이 함께 갈지** 보여 주기만 한다 — 완료할 때
 /// 나가므로 여기서 보낼 것이 없다.
+///
+/// **보낸 뒤에도 사라지지 않는다** — 줄마다 `전송됨` 이 붙을 뿐이다. 트레이너가
+/// 나중에 그 PT 를 열어 "이 회원에게 무엇을 딸려 보냈나" 를 볼 데가 여기뿐이라,
+/// 보내자마자 갈래째 비면 보낸 기록을 어디서도 확인할 수 없다.
 ///
 /// 마무리된 PT([finished]) 라면 갈 곳을 잃은 개인운동이라 보낼지 정한다.
 /// 취소·노쇼 때 **저절로 가지 않는다** — 아파서 쉬는 회원에게 운동이 자동으로
@@ -43,7 +48,13 @@ class SessionPersonalRoutines extends ConsumerStatefulWidget {
 
 class _SessionPersonalRoutinesState
     extends ConsumerState<SessionPersonalRoutines> {
-  List<RoutineExercise> _routines = const <RoutineExercise>[];
+  List<SessionRoutine> _routines = const <SessionRoutine>[];
+
+  /// 아직 보내지 않은 것만 — 전송 버튼이 실을 것이다.
+  List<RoutineExercise> get _unsent => <RoutineExercise>[
+    for (final SessionRoutine r in _routines)
+      if (!r.sent) r.exercise,
+  ];
 
   @override
   void initState() {
@@ -64,11 +75,11 @@ class _SessionPersonalRoutinesState
           .fetchScheduledRoutines(widget.sessionId);
       if (!mounted) return;
       setState(() => _routines = rows);
-      widget.onChanged?.call(rows);
+      widget.onChanged?.call(_unsent);
     } catch (_) {
       // 읽지 못하면 조용히 숨긴다 — 없는 것을 있다고 말하지 않는다.
       if (!mounted) return;
-      setState(() => _routines = const <RoutineExercise>[]);
+      setState(() => _routines = const <SessionRoutine>[]);
       widget.onChanged?.call(const <RoutineExercise>[]);
     }
   }
@@ -95,7 +106,7 @@ class _SessionPersonalRoutinesState
               .copyWith(color: OnCareColors.textSecondary),
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        for (final RoutineExercise routine in _routines)
+        for (final SessionRoutine row in _routines)
           Padding(
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
             child: Container(
@@ -114,7 +125,7 @@ class _SessionPersonalRoutinesState
                   const SizedBox(width: OnCareSpacing.s8),
                   Expanded(
                     child: Text(
-                      personalRoutineLabel(l, routine),
+                      personalRoutineLabel(l, row.exercise),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: tokens
@@ -122,6 +133,17 @@ class _SessionPersonalRoutinesState
                           .copyWith(color: OnCareColors.textPrimary),
                     ),
                   ),
+                  // 보낸 줄에만 표를 단다 — 아직 보낼 것이 남은 줄은 아래
+                  // 안내 문구가 이미 말하고 있다.
+                  if (row.sent) ...<Widget>[
+                    const SizedBox(width: OnCareSpacing.s8),
+                    Text(
+                      l.schedRoutineSent,
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textTertiary),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -130,14 +152,17 @@ class _SessionPersonalRoutinesState
         // (#2224) — 개인운동은 PT 프로그램과 함께 나가므로 버튼을 따로 두면
         // 같은 전송이 두 자리에 있는 것처럼 읽힌다. 취소·노쇼면 보낼
         // 프로그램이 없어 그 버튼이 `개인운동 보내기` 로 바뀐다.
-        Text(
-          widget.finished
-              ? l.schedRoutinesNotSentYet
-              : l.schedRoutinesGoesOnComplete,
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
+        // 보낼 것이 하나도 남지 않았으면 안내 문구를 두지 않는다 — 줄마다
+        // 붙은 `전송됨` 이 이미 상태를 말한다.
+        if (_unsent.isNotEmpty)
+          Text(
+            widget.finished
+                ? l.schedRoutinesNotSentYet
+                : l.schedRoutinesGoesOnComplete,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
         const SizedBox(height: OnCareSpacing.s12),
       ],
     );
@@ -150,9 +175,19 @@ class _SessionPersonalRoutinesState
 /// 깨지므로 그대로 보내기 어렵다. 취소된 PT 에는 프로그램 만들기로 다시 붙일
 /// 수 없어(`예정` 세션만 찾는다) 고치는 자리가 여기뿐이다.
 class SendPersonalRoutinesDialog extends StatefulWidget {
-  const SendPersonalRoutinesDialog({required this.routines, super.key});
+  const SendPersonalRoutinesDialog({
+    required this.routines,
+    this.editOnly = false,
+    super.key,
+  });
 
   final List<RoutineExercise> routines;
+
+  /// 보내지 않고 **고치기만** 하는가 — 일정 상세의 `개인운동 수정` 이 이 길로
+  /// 연다(#2224). 아직 보내지 않은 개인운동은 PT 직전까지 손볼 수 있어야
+  /// 한다: 회원 상태를 보고 운동 하나를 빼거나 시간을 줄이려고 프로그램
+  /// 만들기까지 돌아갈 일은 아니다.
+  final bool editOnly;
 
   @override
   State<SendPersonalRoutinesDialog> createState() =>
@@ -184,28 +219,48 @@ class _SendPersonalRoutinesDialogState
     });
   }
 
+  /// 빈 줄 하나를 더한다 — 상한은 프로그램 세션과 같은 [kProgramMaxSessions] 다.
+  ///
+  /// 이름이 빈 채로 저장되면 회원이 이름 없는 운동을 받는다. 이름 칸이 비어
+  /// 있는 동안에는 저장을 막는다([_canSave]).
+  void _add() {
+    setState(() {
+      _draft.add(const RoutineExercise(name: '', minutes: 30, type: '유산소'));
+      _names.add(TextEditingController());
+    });
+  }
+
+  /// 이름이 빈 줄이 하나도 없고, 적어도 한 줄은 남아 있는가.
+  ///
+  /// 서버도 같은 두 가지를 본다 — 비우면 400, 이름은 필수다. 여기서 막아야
+  /// 트레이너가 저장을 눌러 보고서야 실패를 안다.
+  bool get _canSave =>
+      _draft.isNotEmpty && _draft.every((e) => e.name.trim().isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return AppDialog(
       key: const ValueKey<String>('session-routines-send-dialog'),
-      title: l.schedRoutinesSendTitle,
+      title: widget.editOnly
+          ? l.schedEditRoutinesTitle
+          : l.schedRoutinesSendTitle,
       showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
         confirmKey: const ValueKey<String>('session-routines-send-confirm'),
-        confirmLabel: l.schedRoutinesSend,
-        onConfirm: _draft.isEmpty
-            ? null
-            : () => Navigator.of(context).pop(_draft),
+        confirmLabel: widget.editOnly ? l.actionSave : l.schedRoutinesSend,
+        onConfirm: _canSave ? () => Navigator.of(context).pop(_draft) : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            l.schedRoutinesSendBody,
+            widget.editOnly
+                ? l.schedEditRoutinesBody
+                : l.schedRoutinesSendBody,
             style: context.oncare
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),
@@ -219,6 +274,19 @@ class _SendPersonalRoutinesDialogState
               controller: _names[index],
               onChanged: (value) => setState(() => _draft[index] = value),
               onRemove: _draft.length > 1 ? () => _removeAt(index) : null,
+            ),
+          ],
+          // 덜어내기만 되고 더하기가 없으면, 운동 하나를 보태려고 프로그램
+          // 만들기까지 돌아가야 한다 — 고치는 자리가 반쪽이 된다(#2224).
+          if (_draft.length < kProgramMaxSessions) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            AppButton(
+              key: const ValueKey<String>('session-routine-add'),
+              label: l.progAddExercise,
+              leadingIcon: Icons.add_rounded,
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              onPressed: _add,
             ),
           ],
         ],

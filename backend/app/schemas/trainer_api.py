@@ -552,6 +552,10 @@ class RoutineOut(BaseModel):
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
     schedule_id: str | None = None
+    #: PT 일정에 붙여만 두고 **아직 회원에게 보내지 않았는가**(#2224). 일정
+    #: 상세가 보낸 것과 보낼 것을 같은 목록에서 가르는 데 쓴다. 회원 앱이 보는
+    #: 배정은 모두 이미 보낸 것이라 언제나 거짓이다.
+    pending_send: bool = False
     #: 어떤 전송에 속한 개인운동인가(#2225). 이 칸이 생기기 전 배정은 비어 있다.
     delivery_kind: RoutineDeliveryKind | None = None
     #: 전송에 붙인 회원에게 한마디. 선택 입력이라 보통 빈 문자열이다(#2223).

@@ -72,8 +72,12 @@ def _body(day: str, **overrides) -> dict:
             }
         ],
         "date": day,
-        "time": "16:00",
-        "duration_minutes": 60,
+        # 시드 일정(10·12·14·16·17·18·19시)과 겹치지 않는 시각이다. 겹치면
+        # 프로그램이 **그 시드 일정에 붙고** id 가 시드 것이 되어, 뒷정리가
+        # 그날의 시드를 지워 버린다 — 타임라인 개수를 세는 다른 테스트가
+        # 함께 깨진다.
+        "time": "13:00",
+        "duration_minutes": 30,
         "client_name": "이지수",
         "personal_routines": [
             {
@@ -95,6 +99,9 @@ def _attach(client, token, day: str, **overrides) -> str:
     )
     assert r.status_code == 201, r.text
     session_id: str = r.json()["session"]["id"]
+    assert not session_id.startswith("seed-"), (
+        "시드 일정에 붙었다 — 뒷정리가 남의 것을 지운다"
+    )
     _MADE.append(session_id)
     return session_id
 
@@ -147,6 +154,37 @@ def test_sending_the_program_sends_its_personal_routines(client, db_session):
             clock.today() + timedelta(days=7)
         ).isoformat()
         assert row.delivery_kind == "pt_with_routine"
+    finally:
+        _cleanup(db_session, day)
+
+
+def test_sent_routines_stay_on_the_session(client, db_session):
+    """보낸 뒤에도 그 PT 의 개인운동 목록에 남는다 — `pending_send` 만 내린다.
+
+    트레이너가 나중에 그 PT 를 열어 "이 회원에게 무엇을 딸려 보냈나" 를 볼 데가
+    일정 상세뿐이다. 보내자마자 목록에서 빼면 보낸 기록을 어디서도 확인할 수
+    없다. (#2224)
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _attach(client, token, day)
+        _complete(client, token, session_id)
+        url = f"/v1/trainer/schedule/{session_id}/routines"
+
+        before = client.get(url, headers=_h(token)).json()
+        assert [r["pending_send"] for r in before] == [True]
+
+        assert client.post(
+            f"/v1/trainer/schedule/{session_id}/program/send",
+            json={},
+            headers=_h(token),
+        ).status_code == 200
+
+        after = client.get(url, headers=_h(token)).json()
+        assert [r["name"] for r in after] == [r["name"] for r in before]
+        assert [r["pending_send"] for r in after] == [False]
     finally:
         _cleanup(db_session, day)
 
@@ -294,6 +332,68 @@ def test_the_trainer_can_edit_the_routines_before_sending(client, db_session):
         rows = _routines(db_session, session_id)
         assert [r.name for r in rows] == [f"{_NAME_PREFIX} 가벼운 스트레칭"]
         assert rows[0].minutes == 10
+    finally:
+        _cleanup(db_session, day)
+
+
+def test_editing_an_ai_routine_makes_it_the_trainers(client, db_session):
+    """AI 가 제안한 개인운동도 트레이너가 고치면 트레이너 것이 된다. (#2223, #2224)
+
+    그대로 두면 트레이너가 손본 운동을 회원이 `AI 추천` 으로 본다. 프로그램
+    만들기가 이미 같은 규칙으로 움직인다 — 상세 일정에서 고치는 길도 같아야
+    한다. 손대지 않은 줄은 출처가 그대로다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _attach(
+            client,
+            token,
+            day,
+            personal_routines=[
+                {
+                    "name": f"{_NAME_PREFIX} 걷기",
+                    "minutes": 30,
+                    "type": "유산소",
+                    "source": "ai",
+                },
+                {
+                    "name": f"{_NAME_PREFIX} 스트레칭",
+                    "minutes": 10,
+                    "type": "스트레칭",
+                    "source": "ai",
+                },
+            ],
+        )
+        # 첫 줄만 시간을 줄인다. 두 번째 줄은 그대로 되돌려 보낸다.
+        r = client.put(
+            f"/v1/trainer/schedule/{session_id}/routines",
+            json={
+                "personal_routines": [
+                    {
+                        "name": f"{_NAME_PREFIX} 걷기",
+                        "minutes": 15,
+                        "type": "유산소",
+                        "source": "ai",
+                    },
+                    {
+                        "name": f"{_NAME_PREFIX} 스트레칭",
+                        "minutes": 10,
+                        "type": "스트레칭",
+                        "source": "ai",
+                    },
+                ]
+            },
+            headers=_h(token),
+        )
+        assert r.status_code == 200, r.text
+
+        db_session.expire_all()
+        rows = _routines(db_session, session_id)
+        assert [row.minutes for row in rows] == [15, 10]
+        # 손댄 줄만 트레이너 것이 된다 — 클라이언트가 `ai` 로 보내도 그렇다.
+        assert [row.source for row in rows] == ["trainer", "ai"]
     finally:
         _cleanup(db_session, day)
 

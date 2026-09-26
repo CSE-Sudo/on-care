@@ -134,11 +134,19 @@ abstract interface class ScheduleRepository {
   /// Marks an 예정 session 완료 with the trainer's [note].
   Future<void> completeSession(String id, {String note});
 
-  /// 그 PT 에 붙어 있는(아직 보내지 않은) 개인운동. (#2224)
+  /// 그 PT 에 붙어 있는 개인운동 — **보낸 것까지 함께**. (#2224)
   ///
-  /// 완료 확인창이 "무엇이 함께 가는지" 를 보여 주고, 마무리된 PT 의
-  /// `개인운동 미전송` 표시가 이 목록으로 선다.
-  Future<List<RoutineExercise>> fetchScheduledRoutines(String id);
+  /// 일정 상세의 `개인운동` 갈래가 이 목록을 그린다. 보낸 뒤에 목록에서
+  /// 빼 버리면 트레이너가 그 PT 에 무엇을 딸려 보냈는지 볼 데가 없어진다 —
+  /// 그래서 건마다 [SessionRoutine.sent] 로 가른다.
+  Future<List<SessionRoutine>> fetchScheduledRoutines(String id);
+
+  /// 그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
+  ///
+  /// 일정 상세에서 바로 고치는 길이다. 프로그램 만들기로 돌아가지 않고 운동
+  /// 하나를 빼거나 시간을 줄일 수 있어야 한다 — PT 직전에 회원 상태를 보고
+  /// 손보는 일이 흔하다. **이미 보낸 것은 손댈 수 없다.**
+  Future<void> updateScheduledRoutines(String id, List<RoutineExercise> items);
 
   /// 마무리된 PT 에 남은 개인운동을 회원에게 보낸다. (#2224)
   ///
@@ -207,6 +215,20 @@ abstract interface class ScheduleRepository {
   Future<void> sendProgram(String id, {String? clientRequestId});
 }
 
+/// PT 일정에 붙어 있는 개인운동 한 건과 그 처지. (#2224)
+///
+/// 보낸 것과 보낼 것이 한 목록에 섞여 오므로 [sent] 로 가른다 — 전송 버튼이
+/// 무엇을 실을지, 상세가 어느 줄에 `전송됨` 을 붙일지가 이 값으로 갈린다.
+class SessionRoutine {
+  /// Creates a routine row for a PT session.
+  const SessionRoutine({required this.exercise, required this.sent});
+
+  final RoutineExercise exercise;
+
+  /// 이미 회원에게 나갔는가.
+  final bool sent;
+}
+
 /// Reads the trainer's daily timeline from the local drift DB.
 /// 데모에서 프로그램과 함께 붙어 있는 개인운동. 실 API 는 서버가 준다.
 const List<RoutineExercise> _demoPersonalRoutines = <RoutineExercise>[
@@ -214,8 +236,35 @@ const List<RoutineExercise> _demoPersonalRoutines = <RoutineExercise>[
   RoutineExercise(name: '코어 스트레칭', minutes: 10, type: '스트레칭', source: 'ai'),
 ];
 
-/// 데모에서 개인운동을 이미 보냈거나 보내지 않기로 한 일정.
+/// 데모에서 개인운동을 이미 보낸 일정.
 final Set<String> _sentRoutines = <String>{};
+
+/// 데모에서 개인운동을 보내지 않기로 한 일정 — 목록에서 아예 빠진다.
+final Set<String> _dismissedRoutines = <String>{};
+
+/// 저장된 프로그램에 운동이 하나도 없는가 — 깨진 값도 비어 있는 것으로 읽는다.
+bool _decodedProgramIsEmpty(String programJson) {
+  if (programJson.isEmpty) return true;
+  try {
+    return (jsonDecode(programJson) as List<Object?>).isEmpty;
+  } catch (_) {
+    return true;
+  }
+}
+
+/// 두 개인운동이 트레이너가 손대지 않은 같은 줄인가 — 출처는 보지 않는다.
+bool _sameRoutine(RoutineExercise a, RoutineExercise b) =>
+    a.name == b.name &&
+    a.minutes == b.minutes &&
+    a.type == b.type &&
+    a.sets == b.sets &&
+    a.reps == b.reps &&
+    a.holdSeconds == b.holdSeconds &&
+    a.weight == b.weight;
+
+/// 데모에서 트레이너가 상세 일정에서 고쳐 둔 개인운동.
+final Map<String, List<RoutineExercise>> _editedRoutines =
+    <String, List<RoutineExercise>>{};
 
 class DriftScheduleRepository implements ScheduleRepository {
   /// Creates the repository over [_db].
@@ -614,18 +663,46 @@ class DriftScheduleRepository implements ScheduleRepository {
   ///   옮겨 가므로 미전송으로 남지 않는다. 남는 것은 취소·노쇼처럼 **완료가
   ///   일어나지 않은** PT 뿐이다.
   ///
-  /// 보내거나 보내지 않기로 한 일정은 [_sentRoutines] 에 남는다 — 데모에는
-  /// 붙여 둘 표가 없어 메모리로만 기억한다.
+  /// 보내거나 보내지 않기로 한 일정은 메모리 집합에 남는다 — 데모에는 붙여 둘
+  /// 표가 없다.
+  ///
+  /// 서버와 같은 규칙으로 가른다: 프로그램이 붙어 있어야 하고, 보내지 않기로
+  /// 한 것은 빠지며, **이미 보낸 것은 `sent` 로 남는다**. 개인운동은 PT
+  /// 프로그램과 함께 나가므로 `programSent` 가 곧 개인운동을 보냈다는 뜻이다
+  /// — 완료만으로는 아직 보낸 것이 아니다(#2224).
   @override
-  Future<List<RoutineExercise>> fetchScheduledRoutines(String id) async {
-    if (_sentRoutines.contains(id)) return const <RoutineExercise>[];
+  Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async {
+    if (_dismissedRoutines.contains(id)) return const <SessionRoutine>[];
     final row = await (_db.select(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (row == null || row.programJson.isEmpty || row.status == '완료') {
-      return const <RoutineExercise>[];
+    // `jsonEncode(<Object?>[])` 는 `[]` 라 **빈 문자열이 아니다** — 문자열이
+    // 비었는지 보면 프로그램이 없는 일정에도 개인운동이 딸려 나온다.
+    if (row == null || _decodedProgramIsEmpty(row.programJson)) {
+      return const <SessionRoutine>[];
     }
-    return _demoPersonalRoutines;
+    final bool sent = _sentRoutines.contains(id) || row.programSent;
+    return <SessionRoutine>[
+      for (final RoutineExercise e
+          in _editedRoutines[id] ?? _demoPersonalRoutines)
+        SessionRoutine(exercise: e, sent: sent),
+    ];
+  }
+
+  @override
+  Future<void> updateScheduledRoutines(
+    String id,
+    List<RoutineExercise> items,
+  ) async {
+    // 서버와 같은 규칙 — 손댄 줄은 트레이너 것이 된다(#2223, #2224).
+    final before = _editedRoutines[id] ?? _demoPersonalRoutines;
+    _editedRoutines[id] = List<RoutineExercise>.unmodifiable(<RoutineExercise>[
+      for (var i = 0; i < items.length; i++)
+        if (i < before.length && _sameRoutine(before[i], items[i]))
+          items[i]
+        else
+          items[i].copyWith(source: 'trainer'),
+    ]);
   }
 
   @override
@@ -638,7 +715,7 @@ class DriftScheduleRepository implements ScheduleRepository {
 
   @override
   Future<void> dismissScheduledRoutines(String id) async {
-    _sentRoutines.add(id);
+    _dismissedRoutines.add(id);
   }
 
   @override

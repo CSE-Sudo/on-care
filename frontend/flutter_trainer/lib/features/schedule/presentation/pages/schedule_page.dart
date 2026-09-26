@@ -342,6 +342,43 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     showAppToast(context, l.schedRoutinesSent, type: AppToastType.success);
   }
 
+  /// 상세 일정에서 개인운동을 바로 고친다 — 보내지는 않는다. (#2224)
+  ///
+  /// PT 직전에 회원 상태를 보고 운동 하나를 빼거나 시간을 줄이려고 프로그램
+  /// 만들기까지 돌아갈 일은 아니다. 이미 보낸 것은 이 길로 오지 않는다 —
+  /// 연필 메뉴가 그때는 이 항목을 세우지 않는다.
+  Future<void> _editRoutines(ScheduleSession session) async {
+    final l = AppLocalizations.of(context);
+    final rows = _unsentRoutines[session.id] ?? const <RoutineExercise>[];
+    if (rows.isEmpty) return;
+    final edited = await showAppDialog<List<RoutineExercise>>(
+      context: context,
+      builder: (_) =>
+          SendPersonalRoutinesDialog(routines: rows, editOnly: true),
+    );
+    if (edited == null || !mounted) return;
+    try {
+      await ref
+          .read(scheduleRepositoryProvider)
+          .updateScheduledRoutines(session.id, edited);
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        l.schedRoutinesUpdateFailed,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _unsentRoutines[session.id] = edited;
+      _routinesRevision[session.id] =
+          (_routinesRevision[session.id] ?? 0) + 1;
+    });
+    showAppToast(context, l.schedRoutinesUpdated, type: AppToastType.success);
+  }
+
   /// 보내지 않기로 정리한다 — 무엇을 짰다가 안 보냈는지는 남는다. (#2224)
   Future<void> _skipRoutines(ScheduleSession session) async {
     final l = AppLocalizations.of(context);
@@ -424,6 +461,12 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           );
       if (!mounted) return;
       _sendRequestIds.remove(s.id); // 다음 전송은 새 시도다.
+      // 개인운동도 이 전송에 함께 실려 갔다(#2224). 갈래를 다시 읽지 않으면
+      // 이미 보낸 것에 `아직 회원에게 가지 않았어요` 가 그대로 남는다.
+      setState(() {
+        _unsentRoutines[s.id] = const <RoutineExercise>[];
+        _routinesRevision[s.id] = (_routinesRevision[s.id] ?? 0) + 1;
+      });
       showAppToast(
         context,
         l.schedSentTo(s.clientName),
@@ -783,6 +826,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                   .isNotEmpty,
           onSendRoutines: () => unawaited(_sendRoutinesOnly(session)),
           onSkipRoutines: () => unawaited(_skipRoutines(session)),
+          onEditRoutines: () => unawaited(_editRoutines(session)),
         ),
       ],
     );

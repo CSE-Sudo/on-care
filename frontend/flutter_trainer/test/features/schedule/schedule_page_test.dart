@@ -1264,7 +1264,7 @@ void main() {
       await openSchedule(tester);
 
       await openSession(tester, '김민수');
-      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램 전송'));
+      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
       // There is no delivery endpoint, so merely rendering the disabled
       // action must not manufacture a trainer-authored chat event.
       await goTo(
@@ -1598,7 +1598,7 @@ void main() {
       await goTo(tester, AppRoutes.schedule);
 
       await openSession(tester, '김민수'); // 완료 session with a program
-      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램 전송'));
+      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
       expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
       expect(find.text('김민수님에게 전송됨'), findsNothing);
     });

@@ -2822,6 +2822,24 @@ abstract class AppLocalizations {
   /// **'Send the personal exercise?'**
   String get schedRoutinesSendTitle;
 
+  /// No description provided for @schedEditRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal exercise'**
+  String get schedEditRoutines;
+
+  /// No description provided for @schedEditRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal exercise'**
+  String get schedEditRoutinesTitle;
+
+  /// No description provided for @schedEditRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.'**
+  String get schedEditRoutinesBody;
+
   /// No description provided for @schedRoutinesSendBody.
   ///
   /// In en, this message translates to:
@@ -2843,8 +2861,14 @@ abstract class AppLocalizations {
   /// No description provided for @schedSendProgramWithRoutines.
   ///
   /// In en, this message translates to:
-  /// **'Send {date} PT program and personal exercise to {name}'**
-  String schedSendProgramWithRoutines(String name, String date);
+  /// **'Send the {date} PT program and personal exercise'**
+  String schedSendProgramWithRoutines(String date);
+
+  /// No description provided for @schedRoutineSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get schedRoutineSent;
 
   /// No description provided for @schedRoutinesSent.
   ///
@@ -2863,6 +2887,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
+
+  /// No description provided for @schedRoutinesUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise updated.'**
+  String get schedRoutinesUpdated;
+
+  /// No description provided for @schedRoutinesUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the personal exercise. Please try again.'**
+  String get schedRoutinesUpdateFailed;
 
   /// No description provided for @schedTimeRange.
   ///
@@ -3353,8 +3389,8 @@ abstract class AppLocalizations {
   /// No description provided for @schedSentProgramTo.
   ///
   /// In en, this message translates to:
-  /// **'Sent {name} the PT program for {date}'**
-  String schedSentProgramTo(String name, String date);
+  /// **'Send the {date} PT program'**
+  String schedSentProgramTo(String date);
 
   /// No description provided for @slotPastTime.
   ///

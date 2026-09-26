@@ -1573,6 +1573,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedRoutinesSendTitle => 'Send the personal exercise?';
 
   @override
+  String get schedEditRoutines => 'Edit personal exercise';
+
+  @override
+  String get schedEditRoutinesTitle => 'Edit personal exercise';
+
+  @override
+  String get schedEditRoutinesBody =>
+      'This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.';
+
+  @override
   String get schedRoutinesSendBody =>
       'This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.';
 
@@ -1583,9 +1593,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedRoutinesSkip => 'Don\'t send';
 
   @override
-  String schedSendProgramWithRoutines(String name, String date) {
-    return 'Send $date PT program and personal exercise to $name';
+  String schedSendProgramWithRoutines(String date) {
+    return 'Send the $date PT program and personal exercise';
   }
+
+  @override
+  String get schedRoutineSent => 'Sent';
 
   @override
   String get schedRoutinesSent => 'Sent the personal exercise to the member.';
@@ -1596,6 +1609,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRoutinesSkipped => 'Marked as not sent.';
+
+  @override
+  String get schedRoutinesUpdated => 'Personal exercise updated.';
+
+  @override
+  String get schedRoutinesUpdateFailed =>
+      'Couldn\'t update the personal exercise. Please try again.';
 
   @override
   String schedTimeRange(String start, String end) {
@@ -1880,8 +1900,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String schedSentProgramTo(String name, String date) {
-    return 'Sent $name the PT program for $date';
+  String schedSentProgramTo(String date) {
+    return 'Send the $date PT program';
   }
 
   @override

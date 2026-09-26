@@ -1392,6 +1392,7 @@ def _routine_out(
             completion.trainer_feedback if completion is not None else ""
         ),
         schedule_id=getattr(rt, "schedule_id", None),
+        pending_send=getattr(rt, "status", "") == ROUTINE_SCHEDULED,
         delivery_kind=getattr(rt, "delivery_kind", None),
         trainer_message=getattr(rt, "trainer_message", "") or "",
     )
@@ -3617,17 +3618,27 @@ def _add_scheduled_routines(
 def list_scheduled_routines(
     db: Session, trainer_id: str, schedule_id: str,
 ) -> list[RoutineOut]:
-    """그 PT 일정에 붙어 있는(아직 보내지 않은) 개인운동. (#2223)
+    """그 PT 일정에 붙어 있는 개인운동 — 보낸 것과 아직 보내지 않은 것. (#2223)
 
-    일정 상세가 "이 PT 와 함께 갈 개인운동"을 보여 주는 데 쓴다(#2224). 이미
-    보낸 뒤에는 상태가 `approved` 로 바뀌므로 이 목록에서 빠진다.
+    일정 상세의 `개인운동` 갈래가 이 목록을 그린다(#2224). **보낸 뒤에도
+    빠지지 않는다** — 트레이너가 나중에 그 PT 를 열었을 때 "이 회원에게 무엇을
+    딸려 보냈나" 를 볼 데가 여기뿐이라, 보내자마자 사라지면 보낸 기록을 어디서도
+    확인할 수 없다. 대신 건마다 `pending_send` 로 갈라 놓아 부르는 쪽이 아직
+    보낼 것이 남았는지 안다.
+
+    `dismissed`(보내지 않기로 한 것) 는 뺀다 — 트레이너가 이미 아니라고 답한
+    것이다.
+
+    **PT 프로그램 줄은 여기 오지 않는다.** 개인운동만 `delivery_kind` 를 달고
+    있어(#2223) 그 값으로 가른다.
     """
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == schedule_id,
-            TrainerRoutine.status == ROUTINE_SCHEDULED,
+            TrainerRoutine.delivery_kind.is_not(None),
+            TrainerRoutine.status.in_((ROUTINE_SCHEDULED, ROUTINE_APPROVED)),
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
@@ -3799,6 +3810,12 @@ def _rewrite_scheduled_routines(
     있던 줄을 앞에서부터 고쳐 쓰고, 모자라면 만들고, 남으면 지운다 — 줄을
     전부 지우고 새로 만들면 `client_request_id` 의 멱등 키가 끊겨 재시도가
     같은 운동을 두 번 만든다.
+
+    **손댄 줄은 트레이너 것이 된다.** AI 가 제안한 운동이라도 트레이너가
+    고치는 순간 더는 AI 의 추천이 아니다 — 그대로 두면 트레이너가 손본 운동을
+    회원이 `AI 추천` 으로 본다. 프로그램 만들기가 이미 같은 규칙으로 움직인다
+    (#2223). 여기서도 **서버가** 판단한다: 클라이언트가 보낸 `source` 를 그대로
+    믿으면 길마다 규칙이 갈린다.
     """
     base = rows[0]
     for index, item in enumerate(items):
@@ -3818,6 +3835,15 @@ def _rewrite_scheduled_routines(
                 ),
             )
             db.add(row)
+        touched = (
+            row.name != item.name
+            or row.minutes != item.minutes
+            or row.type != item.type
+            or row.sets != item.sets
+            or row.reps != item.reps
+            or row.hold_seconds != item.hold_seconds
+            or row.weight != item.weight
+        )
         row.name = item.name
         row.minutes = item.minutes
         row.type = item.type
@@ -3825,7 +3851,7 @@ def _rewrite_scheduled_routines(
         row.reps = item.reps
         row.hold_seconds = item.hold_seconds
         row.weight = item.weight
-        row.source = item.source
+        row.source = "trainer" if touched else item.source
         row.sort_order = base.sort_order + index
     for row in rows[len(items):]:
         db.delete(row)

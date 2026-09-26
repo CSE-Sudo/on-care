@@ -32,6 +32,7 @@ class SessionManageRow extends StatelessWidget {
     required this.hasProgram,
     this.showEditNote = true,
     this.showEditProgram = true,
+    this.onEditRoutines,
     required this.onDelete,
     required this.onComplete,
     this.onCancel,
@@ -65,6 +66,10 @@ class SessionManageRow extends StatelessWidget {
   /// 줄에는 세울 것이 없다. 이미 회원에게 보낸 프로그램도 더 손댈 수 없어야
   /// 하므로 세우지 않는다(#1247).
   final bool showEditProgram;
+
+  /// `개인운동 수정` — 아직 보내지 않은 개인운동이 붙어 있을 때만 준다.
+  /// 보낸 뒤에 바뀌면 회원이 어제 본 목록과 오늘 본 목록이 말없이 달라진다.
+  final VoidCallback? onEditRoutines;
 
   final VoidCallback onDelete;
   final VoidCallback? onComplete;
@@ -130,6 +135,13 @@ class SessionManageRow extends StatelessWidget {
         icon: Icons.fitness_center_rounded,
         label: l.progEditTitle,
         onSelected: onEditProgram,
+      ),
+    if (onEditRoutines != null)
+      AppMenuItem(
+        key: const ValueKey<String>('session-edit-routines-chip'),
+        icon: Icons.directions_run_rounded,
+        label: l.schedEditRoutines,
+        onSelected: onEditRoutines,
       ),
     if (showEditNote)
       AppMenuItem(
