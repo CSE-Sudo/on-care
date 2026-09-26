@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -40,12 +41,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 나트륨이 목표를 넘겨 주의 배지가 붙는 회원.
-  TrainerClient over() =>
-      makeClient(id: flagged, name: '주의회원', sodiumMg: sodiumTargetMg + 900);
+  /// PT 관리 신호가 있어 주의 배지가 붙는 회원(#2243).
+  TrainerClient over() => makeClient(
+    id: flagged,
+    name: '주의회원',
+    signals: const <ClientSignal>[
+      ClientSignal(ClientSignalKind.discomfort),
+      ClientSignal(ClientSignalKind.calorieOff, percent: 22, over: true),
+    ],
+  );
 
-  /// 아무 경고도 없는 회원.
-  TrainerClient calm() => makeClient(id: flagged, name: '무난회원', sodiumMg: 900);
+  /// 아무 신호도 없는 회원 — 나트륨이 넘어도 더는 주의가 아니다.
+  TrainerClient calm() =>
+      makeClient(id: flagged, name: '무난회원', sodiumMg: sodiumTargetMg + 900);
 
   Finder quickActions() =>
       find.byKey(const ValueKey<String>('client-detail-quick-actions'));
@@ -59,7 +67,15 @@ void main() {
   testWidgets('주의사항 배지가 이름·상태와 같은 줄에 보인다', (tester) async {
     await open(tester, <TrainerClient>[over()]);
 
-    expect(headerAlerts(), findsWidgets);
+    // 신호를 **전부**, 근거 수치까지 세운다 — 목록과 달리 접지 않는다.
+    expect(
+      tester.widgetList<AppTag>(headerAlerts()).map((t) => t.label).toList(),
+      <String>['통증·불편', '칼로리 22% 과다'],
+    );
+    expect(
+      tester.widgetList<AppTag>(headerAlerts()).map((t) => t.tone).toSet(),
+      <AppTagTone>{AppTagTone.danger},
+    );
 
     // 이름과 세로로 겹친다 = 같은 줄이다. 예전에는 이름 줄 **아래**의 자기
     // 줄에 있었다.

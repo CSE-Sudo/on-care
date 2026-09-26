@@ -736,15 +736,6 @@
   "aiAnalysis": "AI analysis",
   "aiPeriodAnalysis": "AI period analysis",
   "aiAllAnalysis": "AI all-time analysis",
-  "dietAiOverSodium": "Sodium is {over}mg over target. Adding cardio to today's program would help.",
-  "@dietAiOverSodium": {
-    "placeholders": {
-      "over": {
-        "type": "int"
-      }
-    }
-  },
-  "dietAiBalanced": "Today's meals are well balanced. Keep the current program.",
   "consultStatusRejected": "Declined",
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",
@@ -1661,10 +1652,6 @@
   "slotFlexible": "Flexible",
   "unknownMember": "Unknown member",
   "filterAll": "All",
-  "alertSodiumOver": "Sodium over",
-  "alertSugarOver": "Sugar over target",
-  "alertLowCompletion": "Low completion",
-  "alertAwaitingReply": "Awaiting reply",
   "metricOverBy": "{unit} over",
   "@metricOverBy": {
     "placeholders": {

@@ -2282,18 +2282,6 @@ abstract class AppLocalizations {
   /// **'AI all-time analysis'**
   String get aiAllAnalysis;
 
-  /// No description provided for @dietAiOverSodium.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium is {over}mg over target. Adding cardio to today\'s program would help.'**
-  String dietAiOverSodium(int over);
-
-  /// No description provided for @dietAiBalanced.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s meals are well balanced. Keep the current program.'**
-  String get dietAiBalanced;
-
   /// No description provided for @consultStatusRejected.
   ///
   /// In en, this message translates to:
@@ -4741,30 +4729,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get filterAll;
-
-  /// No description provided for @alertSodiumOver.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium over'**
-  String get alertSodiumOver;
-
-  /// No description provided for @alertSugarOver.
-  ///
-  /// In en, this message translates to:
-  /// **'Sugar over target'**
-  String get alertSugarOver;
-
-  /// No description provided for @alertLowCompletion.
-  ///
-  /// In en, this message translates to:
-  /// **'Low completion'**
-  String get alertLowCompletion;
-
-  /// No description provided for @alertAwaitingReply.
-  ///
-  /// In en, this message translates to:
-  /// **'Awaiting reply'**
-  String get alertAwaitingReply;
 
   /// No description provided for @metricOverBy.
   ///

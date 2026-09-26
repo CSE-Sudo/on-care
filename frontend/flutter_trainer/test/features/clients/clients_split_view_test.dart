@@ -9,7 +9,6 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_deta
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
-import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -74,7 +73,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(ClientCard),
-        matching: find.byType(AlertBadge),
+        matching: find.byType(AppTag),
       ),
       findsNothing,
     );
@@ -452,12 +451,14 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      // 김민수 is over on sodium, so the alert row renders too.
-      at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+      // 오세라는 신호가 넷(통증·운동 목표·칼로리·답장 대기)이라 헤더가
+      // 가장 붐빈다 — 그래도 넘치지 않아야 한다(#2243).
+      at: AppRoutes.clientDetail('seed-client-8', section: 'diet'),
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('나트륨 초과'), findsWidgets);
+    expect(find.text('통증·불편'), findsWidgets);
+    expect(find.text('칼로리 24% 과다'), findsWidgets);
     // 신체·목표는 메모와 한 대화상자로 합쳐졌고, 메모 버튼은 프로필 줄의
     // 아이콘 버튼으로 옮겨 갔다(#1024).
     expect(find.text('리포트'), findsOneWidget);

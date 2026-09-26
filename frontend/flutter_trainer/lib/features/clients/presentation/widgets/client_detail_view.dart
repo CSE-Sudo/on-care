@@ -9,7 +9,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_prof
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -117,8 +117,8 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     // into an empty list (an unknown id used to render a nameless
     // "고객" chat and never-ending 식단/운동 spinners — codex review).
     final clientsAsync = ref.watch(clientsProvider);
-    // The unread count has to come along: without it `alertsFor` always
-    // sees 0 and 답장 대기 could never appear here — so a client the
+    // The unread count has to come along: without it `rosterSignalsFor`
+    // always sees 0 and 답장 대기 could never appear here — so a client the
     // dashboard flagged in red would lose its reason on arrival.
     final unread =
         ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
@@ -172,7 +172,10 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
           children: <Widget>[
             _Header(
               client: client,
-              alerts: alertsFor(client, unread: unread[client.id] ?? 0),
+              signals: rosterSignalsFor(
+                client,
+                unread: unread[client.id] ?? 0,
+              ),
               showBack: widget.showBack,
               onClose: widget.onClose,
               onOpenProfile: () => _openProfileDialog(client),
@@ -269,7 +272,7 @@ class _StatusView extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.client,
-    required this.alerts,
+    required this.signals,
     required this.showBack,
     required this.onClose,
     required this.onRefresh,
@@ -279,8 +282,10 @@ class _Header extends StatelessWidget {
 
   final TrainerClient client;
 
-  /// Why this client is flagged; empty when they're fine today.
-  final List<ClientAlert> alerts;
+  /// PT 관리 신호(#2243) — 회원 목록·대시보드와 같은 신호·같은 급한 순.
+  /// 목록은 필터를 건 동안에만 걸린 이유를 보이지만, 상세는 한 회원을 연
+  /// 자리라 **전부** 세운다. 비어 있으면 오늘 챙길 것이 없다.
+  final List<ClientSignal> signals;
 
   final bool showBack;
   final VoidCallback? onClose;
@@ -467,20 +472,17 @@ class _Header extends StatelessWidget {
                     ),
                     // 배지는 하나씩 `Wrap` 의 자식이다. 묶어서 넣으면 그 묶음이
                     // 통째로 다음 줄로 내려가고, 묶음 안에서는 다시 접히지 않는다.
-                    for (final alert in alerts)
+                    // 문구는 근거 수치까지(`칼로리 22% 과다`) — 이 회원을 열어
+                    // 무엇을 얼마나 손볼지 정하는 자리다.
+                    for (final signal in signals)
                       KeyedSubtree(
                         key: ValueKey<String>(
-                          'client-detail-alert-${alert.name}',
+                          'client-detail-alert-${signal.kind.wire}',
                         ),
                         child: AppTag(
-                          label: alert.label(l),
+                          label: signal.detailLabel(l),
                           icon: Icons.error_outline_rounded,
-                          tone: switch (alert) {
-                            ClientAlert.unanswered => AppTagTone.brand,
-                            ClientAlert.sodiumOver ||
-                            ClientAlert.sugarOver => AppTagTone.danger,
-                            ClientAlert.lowCompletion => AppTagTone.caution,
-                          },
+                          tone: signal.kind.tone,
                         ),
                       ),
                   ],
