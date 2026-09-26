@@ -9,7 +9,8 @@ part of 'seed_data.dart';
 /// had to say "+N명". So these are built as a spread across the states
 /// the UI can render, not as fifteen plausible-looking averages.
 ///
-/// The thresholds they are aimed at (see `client_alerts.dart`):
+/// The thresholds they were first aimed at (the old `ClientAlert` badges,
+/// replaced by the PT 관리 신호 in `signals` below — #2204):
 ///  * `sodiumMg > 2000` → 나트륨 초과;
 ///  * mean of the **non-zero** `weekCompletion` days `< 60` → 이행률 저조
 ///    (zero days are "no record", so a client who logged one good day is

@@ -2667,18 +2667,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterAll => 'All';
 
   @override
-  String get alertSodiumOver => 'Sodium over';
-
-  @override
-  String get alertSugarOver => 'Sugar over target';
-
-  @override
-  String get alertLowCompletion => 'Low completion';
-
-  @override
-  String get alertAwaitingReply => 'Awaiting reply';
-
-  @override
   String metricOverBy(String unit) {
     return '$unit over';
   }

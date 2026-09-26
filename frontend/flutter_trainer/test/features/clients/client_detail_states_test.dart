@@ -52,21 +52,21 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      at: AppRoutes.clientDetail('seed-client-3', section: 'diet'),
+      at: AppRoutes.clientDetail('seed-client-8', section: 'diet'),
     );
 
-    // 박성호의 스레드는 트레이너가 마지막으로 답장해 두어 `답장 대기`가
-    // 아니다. 이 테스트가 재는 것은 "배지가 탭 위에 남는가" 이므로 그가
-    // 실제로 달고 있는 건강 신호로 확인한다.
-    expect(find.text('나트륨 초과'), findsOneWidget);
+    // 오세라는 대화에서 허리가 아프다고 한 회원이다 — PT 관리 신호(#2243)의
+    // `통증·불편` 이 헤더에 붙는다. 이 테스트가 재는 것은 "배지가 탭 위에
+    // 남는가" 다.
+    expect(find.text('통증·불편'), findsOneWidget);
     // 식단·운동은 자기 `ListView` 를 만들지 않는다(#1024) — 위의 식단↔운동
     // 전환 스트립과 하나의 스크롤을 공유한다. 그 `ListView` 가 이 키를 단다.
     final scroll = find.byKey(
-      const ValueKey<String>('client-detail-tabs-seed-client-3'),
+      const ValueKey<String>('client-detail-tabs-seed-client-8'),
     );
     await tester.drag(scroll, const Offset(0, -500));
     await tester.pump();
-    expect(find.text('나트륨 초과'), findsOneWidget);
+    expect(find.text('통증·불편'), findsOneWidget);
   });
 
   testWidgets('diet and workout are separated into tabs', (tester) async {
