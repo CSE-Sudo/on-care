@@ -1,4 +1,5 @@
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 
 /// The member's view of their assigned coach: profile, received routines,
 /// and the shared chat thread (the same thread the trainer app writes to).
@@ -74,6 +75,27 @@ abstract interface class MemberCoachRepository {
 
   /// Unread coach-sent message count for the entry badge.
   Future<int> unreadCount();
+
+  /// 그 주에 내가 낸 주간 피드백. 아직 안 냈으면 `submitted == false` 인 빈 답.
+  /// [weekStart] 를 비우면 서버가 **지난 주**로 읽는다. (#2232)
+  ///
+  /// 없는 것을 404 로 만들지 않는다 — 안 낸 주가 정상이고, 화면은 그때
+  /// "아직 보내지 않았어요" 를 적어야 한다.
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({DateTime? weekStart});
+
+  /// 그 주 피드백을 낸다. 같은 주에 다시 내면 덮어쓴다 — 한 주에 대한 내 말은
+  /// 마지막 것 하나다. (#2232)
+  ///
+  /// 담당 트레이너가 없으면 서버가 404 로 막는다. 받는 사람이 없는 피드백은
+  /// 아무 데도 닿지 않는다.
+  Future<MemberWeeklyFeedback> saveWeeklyFeedback({
+    required DateTime weekStart,
+    required WeekCondition condition,
+    required WeekIntensity intensity,
+    String painArea = '',
+    DateTime? painOn,
+    String note = '',
+  });
 
   /// 트레이너가 나에게 보낸, 아직 답하지 않은 담당 요청. (#919)
   Future<List<CoachInvite>> fetchInvites();

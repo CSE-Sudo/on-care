@@ -7228,6 +7228,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add fish or tofu twice a week.'**
   String get dietAdviceTipVariety;
+
+  /// No description provided for @weeklyFeedbackSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How was your week?'**
+  String get weeklyFeedbackSheetTitle;
+
+  /// No description provided for @weeklyFeedbackSheetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell your trainer about {range}'**
+  String weeklyFeedbackSheetSubtitle(String range);
+
+  /// No description provided for @weeklyFeedbackWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'Takes 30 seconds. Next week\'s intensity comes from this answer.'**
+  String get weeklyFeedbackWhy;
+
+  /// No description provided for @weeklyFeedbackConditionQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'How did you feel this week?'**
+  String get weeklyFeedbackConditionQuestion;
+
+  /// No description provided for @weeklyFeedbackIntensityQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'How was the workout intensity?'**
+  String get weeklyFeedbackIntensityQuestion;
+
+  /// No description provided for @weeklyFeedbackPainQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Anywhere it hurt?'**
+  String get weeklyFeedbackPainQuestion;
+
+  /// No description provided for @weeklyFeedbackPainHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. right knee'**
+  String get weeklyFeedbackPainHint;
+
+  /// No description provided for @weeklyFeedbackPainDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'When it hurt'**
+  String get weeklyFeedbackPainDateLabel;
+
+  /// No description provided for @weeklyFeedbackPainDatePick.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a date'**
+  String get weeklyFeedbackPainDatePick;
+
+  /// No description provided for @weeklyFeedbackNoteQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'A line for your trainer (optional)'**
+  String get weeklyFeedbackNoteQuestion;
+
+  /// No description provided for @weeklyFeedbackNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything that shaped your week'**
+  String get weeklyFeedbackNoteHint;
+
+  /// No description provided for @weeklyFeedbackSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get weeklyFeedbackSend;
+
+  /// No description provided for @weeklyFeedbackResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get weeklyFeedbackResend;
+
+  /// No description provided for @weeklyFeedbackLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get weeklyFeedbackLater;
+
+  /// No description provided for @weeklyFeedbackIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your condition and intensity'**
+  String get weeklyFeedbackIncomplete;
+
+  /// No description provided for @weeklyFeedbackSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly feedback sent'**
+  String get weeklyFeedbackSent;
+
+  /// No description provided for @weeklyFeedbackSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send your weekly feedback. Please try again'**
+  String get weeklyFeedbackSendFailed;
+
+  /// No description provided for @weeklyFeedbackAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'You already answered this week. Sending again replaces it.'**
+  String get weeklyFeedbackAlreadySent;
+
+  /// No description provided for @weekConditionGreat.
+  ///
+  /// In en, this message translates to:
+  /// **'Great'**
+  String get weekConditionGreat;
+
+  /// No description provided for @weekConditionGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get weekConditionGood;
+
+  /// No description provided for @weekConditionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Okay'**
+  String get weekConditionOk;
+
+  /// No description provided for @weekConditionTired.
+  ///
+  /// In en, this message translates to:
+  /// **'Worn out'**
+  String get weekConditionTired;
+
+  /// No description provided for @weekConditionBad.
+  ///
+  /// In en, this message translates to:
+  /// **'Rough'**
+  String get weekConditionBad;
+
+  /// No description provided for @weekIntensityTooEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Too easy'**
+  String get weekIntensityTooEasy;
+
+  /// No description provided for @weekIntensityRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Just right'**
+  String get weekIntensityRight;
+
+  /// No description provided for @weekIntensityHard.
+  ///
+  /// In en, this message translates to:
+  /// **'A bit hard'**
+  String get weekIntensityHard;
+
+  /// No description provided for @weekIntensityTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Too hard'**
+  String get weekIntensityTooHard;
+
+  /// No description provided for @myCoachReportsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer reports'**
+  String get myCoachReportsEntry;
+
+  /// No description provided for @myCoachReportsEntryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports you received and feedback you sent'**
+  String get myCoachReportsEntryHint;
+
+  /// No description provided for @coachReportsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports received'**
+  String get coachReportsSectionTitle;
+
+  /// No description provided for @coachReportsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports yet'**
+  String get coachReportsEmpty;
+
+  /// No description provided for @coachReportsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly reports from your trainer land here'**
+  String get coachReportsEmptyHint;
+
+  /// No description provided for @coachReportOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open report'**
+  String get coachReportOpen;
+
+  /// No description provided for @coachReportSentOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {month}/{day}'**
+  String coachReportSentOn(int month, int day);
+
+  /// No description provided for @myWeeklyFeedbackSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly feedback you sent'**
+  String get myWeeklyFeedbackSectionTitle;
+
+  /// No description provided for @myWeeklyFeedbackOnlyLastWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Only last week\'s answer is shown'**
+  String get myWeeklyFeedbackOnlyLastWeek;
+
+  /// No description provided for @myWeeklyFeedbackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t sent last week\'s feedback'**
+  String get myWeeklyFeedbackEmpty;
+
+  /// No description provided for @myWeeklyFeedbackConditionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition'**
+  String get myWeeklyFeedbackConditionLabel;
+
+  /// No description provided for @myWeeklyFeedbackIntensityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity'**
+  String get myWeeklyFeedbackIntensityLabel;
+
+  /// No description provided for @myWeeklyFeedbackPainLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain'**
+  String get myWeeklyFeedbackPainLabel;
+
+  /// No description provided for @myWeeklyFeedbackPainNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get myWeeklyFeedbackPainNone;
+
+  /// No description provided for @myWeeklyFeedbackPainWithDate.
+  ///
+  /// In en, this message translates to:
+  /// **'{area} ({month}/{day})'**
+  String myWeeklyFeedbackPainWithDate(String area, int month, int day);
+
+  /// No description provided for @myWeeklyFeedbackNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your note'**
+  String get myWeeklyFeedbackNoteLabel;
+
+  /// No description provided for @myWeeklyFeedbackSentAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {month}/{day}'**
+  String myWeeklyFeedbackSentAt(int month, int day);
+
+  /// No description provided for @weeklyFeedbackNowButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send feedback now'**
+  String get weeklyFeedbackNowButton;
 }
 
 class _AppLocalizationsDelegate
