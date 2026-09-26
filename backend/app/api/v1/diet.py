@@ -41,6 +41,8 @@ from app.schemas.diet_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
+    diet_advice_copy,
+    diet_period_advice,
     diet_photo_service,
     diet_recommendation_service,
     diet_service,
@@ -97,6 +99,10 @@ def diet_advice(
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 화면의 기간 토글과 같은 이름"),
     ] = "today",
+    lang: Annotated[
+        Literal["ko", "en"],
+        Query(description="앱 언어 — 메뉴 이름·AI 문장을 이 언어로 준다"),
+    ] = "ko",
 ) -> DietAdviceResponse:
     """기간에 맞는 식단 조언. (#1017)
 
@@ -105,19 +111,47 @@ def diet_advice(
 
     경계는 서버가 정한다 — 앱과 트레이너웹이 각자 계산하면 같은 회원의 `이번 주`
     가 화면마다 다른 날부터 시작한다.
+
+    조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). `오늘` 은 4주 추천 메뉴
+    리스트에서 다음 식사를 고른다.
     """
+    if period == diet_period_advice.PERIOD_TODAY:
+        return _advice_response(
+            diet_period_advice.today_advice(db, current_user.id, lang=lang)
+        )
     return _advice_for(db, current_user.id, period)
 
 
+def _advice_response(advice: diet_period_advice.DietAdvice) -> DietAdviceResponse:
+    action = advice.action
+    return DietAdviceResponse(
+        period=advice.period,
+        from_date=advice.from_date,
+        to_date=advice.to_date,
+        days_logged=advice.days_logged,
+        message=diet_advice_copy.message(advice.analysis, action),
+        analysis=advice.analysis.text,
+        analysis_key=advice.analysis.key,
+        analysis_params=advice.analysis.params,
+        action=action.text if action else "",
+        action_key=action.key if action else None,
+        action_params=action.params if action else {},
+        action_source=advice.action_source,
+    )
+
+
 def _advice_for(db: Session, user_id: str, period: str) -> DietAdviceResponse:
+    """이번 주·전체 — 아직 한 문장(#1017). 트레이너웹 경로도 같은 문장을 쓴다."""
     start, end = diet_service.period_bounds(period)
     days = diet_service.daily_totals(db, user_id, start, end)
+    message = diet_service.period_coach_message(days, period)
     return DietAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=diet_service.period_coach_message(days, period),
+        message=message,
+        analysis=message,
     )
 
 
