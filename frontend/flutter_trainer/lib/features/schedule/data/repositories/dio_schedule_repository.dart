@@ -6,6 +6,8 @@ import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
+import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
@@ -230,6 +232,7 @@ class DioScheduleRepository implements ScheduleRepository {
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
     String? sessionId,
+    List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
   }) async {
     late bool attachedToExisting;
     final memberId = Uri.encodeComponent(clientId);
@@ -245,6 +248,7 @@ class DioScheduleRepository implements ScheduleRepository {
             durationMinutes: durationMinutes,
             clientName: clientName,
             sessionId: sessionId,
+            personalRoutines: personalRoutinesToJson(personalRoutines),
           ),
         );
       } on DioException catch (e) {

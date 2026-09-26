@@ -4526,6 +4526,228 @@ abstract class AppLocalizations {
   /// **'Final review'**
   String get aiStepDone;
 
+  /// No description provided for @aiSkipPtProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip PT — personal exercise only'**
+  String get aiSkipPtProgram;
+
+  /// No description provided for @aiPersonalRationaleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Why AI picked this'**
+  String get aiPersonalRationaleLabel;
+
+  /// No description provided for @aiPersonalStepFull.
+  ///
+  /// In en, this message translates to:
+  /// **'You can set up to {count} personal exercises at once.'**
+  String aiPersonalStepFull(int count);
+
+  /// No description provided for @aiPersonalEditDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done editing'**
+  String get aiPersonalEditDone;
+
+  /// No description provided for @aiPersonalStepBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} AI suggested'**
+  String aiPersonalStepBadge(int count);
+
+  /// No description provided for @aiPersonalStepIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on recent PT feedback and workout history, here is personal exercise for {name}. Only what stays here goes to the member.'**
+  String aiPersonalStepIntro(String name);
+
+  /// No description provided for @aiPersonalStepLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the AI personal-exercise suggestions'**
+  String get aiPersonalStepLoadFailed;
+
+  /// No description provided for @aiPersonalStepNoSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI suggestion today. Add one below.'**
+  String get aiPersonalStepNoSuggestion;
+
+  /// No description provided for @aiProgramExerciseRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes {name} from this program.'**
+  String aiProgramExerciseRemoveBody(String name);
+
+  /// No description provided for @aiPersonalDismissTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop this exercise?'**
+  String get aiPersonalDismissTitle;
+
+  /// No description provided for @aiPersonalDismissBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be dropped from this personal exercise. An AI suggestion will not come back.'**
+  String aiPersonalDismissBody(String name);
+
+  /// No description provided for @aiPersonalDismissTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop this suggestion'**
+  String get aiPersonalDismissTooltip;
+
+  /// No description provided for @aiPersonalDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will not be recommended'**
+  String aiPersonalDismissed(String name);
+
+  /// No description provided for @aiPersonalDismissFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not complete that. Please try again shortly.'**
+  String get aiPersonalDismissFailed;
+
+  /// No description provided for @aiStepSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get aiStepSkipped;
+
+  /// No description provided for @aiStepPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get aiStepPersonal;
+
+  /// No description provided for @aiGoToPersonalStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Next · plan personal exercise'**
+  String get aiGoToPersonalStep;
+
+  /// No description provided for @aiPersonalStepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise between PT'**
+  String get aiPersonalStepTitle;
+
+  /// No description provided for @aiPersonalStepTitleRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s personal exercise'**
+  String get aiPersonalStepTitleRoutineOnly;
+
+  /// No description provided for @aiPersonalStepBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to this PT and sent to the member when you complete it. Pick at least one.'**
+  String get aiPersonalStepBlurb;
+
+  /// No description provided for @aiPersonalStepBlurbRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'What the member does on their own this week. Pick at least one.'**
+  String get aiPersonalStepBlurbRoutineOnly;
+
+  /// No description provided for @aiPersonalStepEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise yet. Add one below.'**
+  String get aiPersonalStepEmpty;
+
+  /// No description provided for @aiPersonalStepNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get aiPersonalStepNext;
+
+  /// No description provided for @aiKeepOnePersonalRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep at least one personal exercise.'**
+  String get aiKeepOnePersonalRoutine;
+
+  /// No description provided for @aiRoutineOnlyReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending this to the member'**
+  String get aiRoutineOnlyReviewTitle;
+
+  /// No description provided for @aiRoutineOnlyStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get aiRoutineOnlyStartDate;
+
+  /// No description provided for @aiRoutineOnlyWeekRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown daily {start} – {end}'**
+  String aiRoutineOnlyWeekRange(String start, String end);
+
+  /// No description provided for @aiRoutineOnlyWeeklyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Appears in the member app every day for 7 days from today. Send next week\'s set again then.'**
+  String get aiRoutineOnlyWeeklyHint;
+
+  /// No description provided for @aiRoutineOnlySend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to member'**
+  String get aiRoutineOnlySend;
+
+  /// No description provided for @aiRoutineOnlySentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get aiRoutineOnlySentLabel;
+
+  /// No description provided for @aiRoutineOnlySent.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise sent to the member.'**
+  String get aiRoutineOnlySent;
+
+  /// No description provided for @aiRoutineOnlySendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send the personal exercise. Please try again shortly.'**
+  String get aiRoutineOnlySendFailed;
+
+  /// No description provided for @aiRoutineOnlyProgramName.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s personal exercise'**
+  String get aiRoutineOnlyProgramName;
+
+  /// No description provided for @progPersonalRoutinesWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'Goes to the member when you complete this PT.'**
+  String get progPersonalRoutinesWhen;
+
+  /// No description provided for @programRoutineOnlyConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends personal exercise to {client}. Appears daily from {start} to {end}.'**
+  String programRoutineOnlyConfirmBody(String client, String start, String end);
+
+  /// No description provided for @progPersonalRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise going with it'**
+  String get progPersonalRoutinesTitle;
+
+  /// No description provided for @progPersonalRoutinesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} personal exercises going with it'**
+  String progPersonalRoutinesCount(int count);
+
   /// No description provided for @aiStepperLabel.
   ///
   /// In en, this message translates to:
@@ -5756,114 +5978,6 @@ abstract class AppLocalizations {
   /// **'New program'**
   String get programSavedNew;
 
-  /// No description provided for @suggestionReviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI personal exercises'**
-  String get suggestionReviewTitle;
-
-  /// No description provided for @suggestionReviewBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} to review'**
-  String suggestionReviewBadge(int count);
-
-  /// No description provided for @suggestionReviewIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Prepared for {name} from recent PT feedback and exercise records. The member sees only what you recommend.'**
-  String suggestionReviewIntro(String name);
-
-  /// No description provided for @suggestionReviewEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No AI personal exercises are waiting for review.'**
-  String get suggestionReviewEmpty;
-
-  /// No description provided for @suggestionReviewLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the AI suggestions.'**
-  String get suggestionReviewLoadFailed;
-
-  /// No description provided for @suggestionApprove.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommend to member'**
-  String get suggestionApprove;
-
-  /// No description provided for @suggestionConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Final review · recommend to member'**
-  String get suggestionConfirmTitle;
-
-  /// No description provided for @suggestionConfirmBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Exactly what you see below is what {client} receives. Once recommended it shows up in their app.'**
-  String suggestionConfirmBody(String client);
-
-  /// No description provided for @suggestionDismiss.
-  ///
-  /// In en, this message translates to:
-  /// **'Don\'t recommend'**
-  String get suggestionDismiss;
-
-  /// No description provided for @suggestionApproved.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended {name} to {client}.'**
-  String suggestionApproved(String name, String client);
-
-  /// No description provided for @suggestionDismissed.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} won\'t be recommended.'**
-  String suggestionDismissed(String name);
-
-  /// No description provided for @suggestionActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t finish that. Please try again.'**
-  String get suggestionActionFailed;
-
-  /// No description provided for @suggestionAlreadyReviewed.
-  ///
-  /// In en, this message translates to:
-  /// **'This suggestion was already reviewed. The list has been refreshed.'**
-  String get suggestionAlreadyReviewed;
-
-  /// No description provided for @suggestionEditTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit personal exercise'**
-  String get suggestionEditTitle;
-
-  /// No description provided for @suggestionEditSubmit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit and recommend'**
-  String get suggestionEditSubmit;
-
-  /// No description provided for @suggestionEditName.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
-  String get suggestionEditName;
-
-  /// No description provided for @suggestionEditMemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Note for the member'**
-  String get suggestionEditMemo;
-
-  /// No description provided for @suggestionEditMemoHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop if your right shoulder hurts.'**
-  String get suggestionEditMemoHint;
-
   /// No description provided for @programDraftSaved.
   ///
   /// In en, this message translates to:
@@ -5875,12 +5989,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save the program. Please try again.'**
   String get programDraftSaveFailed;
-
-  /// No description provided for @programDraftLoaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Opened {name} in the editor.'**
-  String programDraftLoaded(String name);
 
   /// No description provided for @programDraftLoadFailed.
   ///

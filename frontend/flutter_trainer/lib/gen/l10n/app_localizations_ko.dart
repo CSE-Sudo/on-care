@@ -2442,6 +2442,142 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepDone => '최종 검토';
 
   @override
+  String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
+
+  @override
+  String get aiPersonalRationaleLabel => 'AI 추천 사유';
+
+  @override
+  String aiPersonalStepFull(int count) {
+    return '개인운동은 한 번에 $count개까지 정할 수 있어요.';
+  }
+
+  @override
+  String get aiPersonalEditDone => '수정 완료';
+
+  @override
+  String aiPersonalStepBadge(int count) {
+    return 'AI 제안 $count';
+  }
+
+  @override
+  String aiPersonalStepIntro(String name) {
+    return '최근 PT 피드백과 운동 기록을 바탕으로 $name님에게 도움이 될 개인운동을 준비했어요. 여기 남긴 것만 회원에게 가요.';
+  }
+
+  @override
+  String get aiPersonalStepLoadFailed => 'AI 개인운동 제안을 불러오지 못했어요';
+
+  @override
+  String get aiPersonalStepNoSuggestion => '오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.';
+
+  @override
+  String aiProgramExerciseRemoveBody(String name) {
+    return '$name 이번 프로그램 구성에서 빼요.';
+  }
+
+  @override
+  String get aiPersonalDismissTitle => '이 운동을 뺄까요?';
+
+  @override
+  String aiPersonalDismissBody(String name) {
+    return '$name 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.';
+  }
+
+  @override
+  String get aiPersonalDismissTooltip => '이 제안 빼기';
+
+  @override
+  String aiPersonalDismissed(String name) {
+    return '$name 추천하지 않아요';
+  }
+
+  @override
+  String get aiPersonalDismissFailed => '처리하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get aiStepSkipped => '건너뜀';
+
+  @override
+  String get aiStepPersonal => '개인운동';
+
+  @override
+  String get aiGoToPersonalStep => '다음 · 개인운동 짜기';
+
+  @override
+  String get aiPersonalStepTitle => 'PT 사이에 할 개인운동';
+
+  @override
+  String get aiPersonalStepTitleRoutineOnly => '이번 주 개인운동';
+
+  @override
+  String get aiPersonalStepBlurb =>
+      '이 PT에 붙여 두었다가 PT를 완료할 때 회원에게 보내요. 최소 한 개를 정해 주세요.';
+
+  @override
+  String get aiPersonalStepBlurbRoutineOnly =>
+      '이번 한 주 동안 회원이 혼자 할 운동이에요. 최소 한 개를 정해 주세요.';
+
+  @override
+  String get aiPersonalStepEmpty => '아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.';
+
+  @override
+  String get aiPersonalStepNext => '다음';
+
+  @override
+  String get aiKeepOnePersonalRoutine => '개인운동을 최소 한 개는 정해 주세요.';
+
+  @override
+  String get aiRoutineOnlyReviewTitle => '이대로 회원에게 보낼게요';
+
+  @override
+  String get aiRoutineOnlyStartDate => '시작일';
+
+  @override
+  String aiRoutineOnlyWeekRange(String start, String end) {
+    return '$start ~ $end 매일 표시';
+  }
+
+  @override
+  String get aiRoutineOnlyWeeklyHint =>
+      '보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
+
+  @override
+  String get aiRoutineOnlySend => '회원에게 보내기';
+
+  @override
+  String get aiRoutineOnlySentLabel => '보냈어요';
+
+  @override
+  String get aiRoutineOnlySent => '개인운동을 회원에게 보냈어요.';
+
+  @override
+  String get aiRoutineOnlySendFailed => '개인운동을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+
+  @override
+  String get aiRoutineOnlyProgramName => '이번 주 개인운동';
+
+  @override
+  String get progPersonalRoutinesWhen => '이 PT를 완료할 때 회원에게 함께 가요.';
+
+  @override
+  String programRoutineOnlyConfirmBody(
+    String client,
+    String start,
+    String end,
+  ) {
+    return '$client님에게 개인운동을 보내요. $start부터 $end까지 회원 앱에 매일 떠요.';
+  }
+
+  @override
+  String get progPersonalRoutinesTitle => '함께 보낼 개인운동';
+
+  @override
+  String progPersonalRoutinesCount(int count) {
+    return '함께 보낼 개인운동 $count개';
+  }
+
+  @override
   String get aiStepperLabel => '맞춤 추천안 생성 진행 단계';
 
   @override
@@ -3119,79 +3255,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programSavedNew => '새 프로그램';
 
   @override
-  String get suggestionReviewTitle => 'AI 개인운동 제안';
-
-  @override
-  String suggestionReviewBadge(int count) {
-    return '검토 필요 $count';
-  }
-
-  @override
-  String suggestionReviewIntro(String name) {
-    return '최근 PT 피드백과 운동 기록을 바탕으로 $name님에게 도움이 될 개인운동을 준비했어요. 추천한 것만 회원에게 보여요.';
-  }
-
-  @override
-  String get suggestionReviewEmpty => '검토할 AI 개인운동 제안이 없어요';
-
-  @override
-  String get suggestionReviewLoadFailed => 'AI 개인운동 제안을 불러오지 못했어요';
-
-  @override
-  String get suggestionApprove => '회원에게 추천';
-
-  @override
-  String get suggestionConfirmTitle => '최종 검토 · 회원에게 추천';
-
-  @override
-  String suggestionConfirmBody(String client) {
-    return '아래 내용 그대로 $client님에게 추천돼요. 추천하면 회원 앱에 바로 보여요.';
-  }
-
-  @override
-  String get suggestionDismiss => '추천 안 함';
-
-  @override
-  String suggestionApproved(String name, String client) {
-    return '$name을(를) $client님에게 추천했어요';
-  }
-
-  @override
-  String suggestionDismissed(String name) {
-    return '$name은(는) 추천하지 않아요';
-  }
-
-  @override
-  String get suggestionActionFailed => '처리하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get suggestionAlreadyReviewed => '이미 검토한 제안이에요. 목록을 새로 불러왔어요';
-
-  @override
-  String get suggestionEditTitle => '개인운동 수정';
-
-  @override
-  String get suggestionEditSubmit => '수정 후 추천';
-
-  @override
-  String get suggestionEditName => '운동';
-
-  @override
-  String get suggestionEditMemo => '회원에게 전달할 메모';
-
-  @override
-  String get suggestionEditMemoHint => '오른쪽 어깨에 통증이 생기면 중단하세요';
-
-  @override
   String get programDraftSaved => '프로그램을 저장했어요';
 
   @override
   String get programDraftSaveFailed => '프로그램을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String programDraftLoaded(String name) {
-    return '$name을(를) 편집기로 불러왔어요';
-  }
 
   @override
   String get programDraftLoadFailed => '저장한 프로그램을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';

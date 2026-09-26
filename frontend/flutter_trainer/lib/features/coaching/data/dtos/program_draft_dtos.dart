@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
@@ -132,3 +133,85 @@ Map<String, Object?> programAssignToJson(
   ],
   'client_request_id': ?clientRequestId,
 };
+
+/// 개인운동 목록 → `ProgramScheduleRequest.personal_routines` JSON. (#2223)
+///
+/// 배정 입력과 같은 규칙으로, 유형에 맞지 않는 칸은 싣지 않는다 — 세트·횟수·
+/// 중량은 근력에만, 한 세트는 회로든 초로든 한 번만 잰다(#1969). 서버가 다시
+/// 거르지만, 보내지 않는 편이 "무엇을 정했는지"가 그대로 남는다.
+///
+/// **AI 추천 사유(`reason`)는 싣지 않는다.** 그 글은 트레이너가 이 제안을
+/// 그대로 둘지 판단하는 재료이지 회원이 읽을 문구가 아니다 — 회원 화면에는
+/// 운동 이름·유형·양만 선다.
+List<Map<String, Object?>> personalRoutinesToJson(
+  List<RoutineExercise> routines,
+) {
+  return <Map<String, Object?>>[
+    for (final e in routines)
+      <String, Object?>{
+        'name': _cap(e.name, _kNameMax),
+        'minutes': e.type == '근력' ? 0 : e.minutes,
+        'type': e.type,
+        if (e.type == '근력' && e.sets > 0) 'sets': e.sets,
+        if (e.type == '근력' && !e.isHold && e.reps > 0) 'reps': e.reps,
+        if (e.type == '근력' && e.isHold && e.holdSeconds > 0)
+          'hold_seconds': e.holdSeconds,
+        if (e.type == '근력') 'weight': e.weight,
+        'source': kProgramExerciseSources.contains(e.source)
+            ? e.source
+            : 'trainer',
+      },
+  ];
+}
+
+/// `개인운동만` 전송 본문 — 운동 하나가 세션 하나다. (#2223)
+///
+/// 운동별로 나누는 이유는 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩
+/// 표시할 수 있어야 하기 때문이다 — 한 덩어리로 보내면 체크도 한 번뿐이다.
+/// 개인운동이 하나뿐이면 배정도 한 건이라 프로그램 이름이 곧 회원이 보는
+/// 제목이 되므로, 그때는 그 운동 이름을 이름으로 쓴다.
+Map<String, Object?> routineOnlyAssignToJson(
+  List<RoutineExercise> routines, {
+  required String programName,
+  required String startDate,
+  required int activeDays,
+  String? clientRequestId,
+}) {
+  final List<Map<String, Object?>> items = personalRoutinesToJson(routines);
+  return <String, Object?>{
+    'name': routines.length == 1 ? routines.single.name : programName,
+    'sessions': <Map<String, Object?>>[
+      for (var index = 0; index < routines.length; index++)
+        <String, Object?>{
+          'id': 'routine-only-$index',
+          'name': routines[index].name,
+          'exercises': <Map<String, Object?>>[
+            _sessionExercise(items[index], index),
+          ],
+        },
+    ],
+    'delivery_kind': 'routine_only',
+    'start_date': startDate,
+    'active_days': activeDays,
+    'client_request_id': ?clientRequestId,
+  };
+}
+
+/// 배정 항목([personalRoutinesToJson])을 세션의 운동 항목 모양으로 옮긴다.
+///
+/// 세션은 유형에 맞지 않는 칸도 0 으로 받는다(`ProgramDraftExercise`) — 배정
+/// 입력처럼 빼 버리면 세션 요약이 값을 못 찾는다.
+Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
+  final bool strength = item['type'] == '근력';
+  return <String, Object?>{
+    'id': 'personal-$index',
+    'name': item['name'],
+    'type': item['type'],
+    'duration': strength ? 0 : item['minutes'],
+    'sets': item['sets'] ?? 0,
+    'reps': item['reps'] ?? 0,
+    'hold_seconds': item['hold_seconds'] ?? 0,
+    'weight': item['weight'] ?? 0,
+    'source': item['source'],
+  };
+}

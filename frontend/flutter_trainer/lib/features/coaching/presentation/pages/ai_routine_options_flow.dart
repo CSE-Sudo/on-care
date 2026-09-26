@@ -1,14 +1,20 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -17,6 +23,36 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 이번에 짜는 프로그램이 어떤 것인가. (#2223)
+///
+/// **트레이너가 고르는 값이 아니다** — 조건 설정에서 `PT 없이 개인운동만 짜기`
+/// 로 PT 프로그램 짜기를 건너뛰면 [routineOnly] 가 된다. 시작할 때 종류부터
+/// 묻지 않는 것은, 대부분의 주가 PT 가 있는 주라 그 물음이 늘 같은 답을 받는
+/// 절차가 되기 때문이다. 건너뛴 결과가 단계 수(4 / 3)를 정한다.
+enum ProgramKind {
+  /// PT 프로그램 + 그 PT 에 붙는 개인운동.
+  ptWithRoutine,
+
+  /// 개인운동만 — 이번엔 PT 가 없다.
+  routineOnly,
+}
+
+/// 위저드의 한 단계. 종류마다 놓이는 자리와 개수가 다르므로, 화면은 번호가
+/// 아니라 이 값으로 무엇을 그릴지 정한다. (#2223)
+enum _Step {
+  /// 조건 설정.
+  conditions,
+
+  /// PT 프로그램 선택(개인운동만 모드에는 없다).
+  program,
+
+  /// 개인운동 짜기.
+  personal,
+
+  /// 최종 검토.
+  review,
+}
 
 /// Conversation-style AI routine builder.
 ///
@@ -38,7 +74,16 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   final bool embedded;
   final List<RoutineExercise> recommendedExercises;
   final String recommendedReason;
-  final ValueChanged<List<RoutineExercise>>? onReviewCompleted;
+
+  /// 위저드를 빠져나가는 유일한 출구 — 확정한 PT 구성과 그 PT 에 붙일
+  /// 개인운동을 함께 넘긴다(#2223). `개인운동만` 모드는 위저드가 직접 보내므로
+  /// 이 콜백을 부르지 않는다.
+  final void Function(
+    List<RoutineExercise> program,
+    List<RoutineExercise> personalRoutines,
+    ProgramKind kind,
+  )?
+  onReviewCompleted;
 
   /// AI 단계를 종료하고 빈 프로그램 편집기로 전환한다.
   final VoidCallback? onManualCreate;
@@ -103,6 +148,78 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 트레이너가 회↔초를 직접 고른 항목의 자리. 고른 뒤에는 이름이 바뀌어도
   /// 종목표가 그 선택을 덮지 않는다 — 종목표는 기본값일 뿐이다. (#1969)
   final Set<int> _measureChosen = <int>{};
+
+  /// 이번 프로그램의 종류 — 첫 단계 맨 위에서 고른다. (#2223)
+  ProgramKind _kind = ProgramKind.ptWithRoutine;
+
+  /// 이 PT 사이에(또는 PT 없이 한 주 동안) 회원이 혼자 할 개인운동.
+  ///
+  /// 프로그램 후보([_edited])와 **다른 목록**이다 — 개인운동은 PT 구성을 고르는
+  /// 일과 엮이지 않는 별개의 단계이고, 저장도 따로 된다.
+  List<RoutineExercise> _personal = <RoutineExercise>[];
+
+  /// 개인운동 목록에서 회↔초를 직접 고른 자리. [_measureChosen] 과 나눠 둔다 —
+  /// 두 목록의 같은 번째 줄이 서로의 선택을 물려받으면 안 된다.
+  final Set<int> _personalMeasureChosen = <int>{};
+
+  /// AI 제안을 개인운동 목록에 한 번 채웠는가. 다시 채우면 트레이너가 지운
+  /// 제안이 되살아난다.
+  bool _personalSeeded = false;
+
+  /// 지금 펼쳐서 고치고 있는 개인운동 줄. 없으면 null. (#2223)
+  ///
+  /// 목록은 기본적으로 **읽는 자리**다 — 줄마다 편집 칸을 펼쳐 두면 무엇을
+  /// 추천받았는지 한눈에 훑을 수가 없다. 한 번에 하나만 연다: 여러 줄을
+  /// 동시에 펼치면 다시 긴 폼 더미가 된다.
+  int? _editingPersonal;
+
+  /// 개인운동 줄이 어느 AI 제안에서 왔나 — 줄 번호 → 제안 id·근거.
+  ///
+  /// [RoutineExercise] 는 프로그램 후보와 함께 쓰는 값이라 제안 id 나 근거를
+  /// 담지 않는다. 그 둘은 이 화면에서만 필요하므로(근거 표시·거절 호출) 목록
+  /// 옆에 따로 들고 있는다. 줄을 지우면 뒤 번호가 당겨지므로 함께 옮긴다.
+  final List<_PersonalOrigin?> _personalOrigins = <_PersonalOrigin?>[];
+
+  /// 단계 표시줄의 칸들. **어느 모드든 언제나 이 넷이다** — 흐름이 줄어드는
+  /// 것처럼 보이지 않게, 밟지 않는 칸도 자리를 지키고 `건너뜀` 으로 남는다.
+  /// (#2223)
+  static const List<_Step> _steps = <_Step>[
+    _Step.conditions,
+    _Step.program,
+    _Step.review,
+    _Step.personal,
+  ];
+
+  /// 이번 흐름에서 밟지 않는 칸. `개인운동만` 은 고를 PT 프로그램도, 검토할
+  /// PT 프로그램도 없으므로 가운데 둘을 지나친다 — 그래서 마지막 칸(개인운동)이
+  /// 짜는 자리이자 보내는 자리가 된다.
+  Set<_Step> get _skipped => _kind == ProgramKind.routineOnly
+      ? const <_Step>{_Step.program, _Step.review}
+      : const <_Step>{};
+
+  _Step get _currentStep => _steps[_stage];
+
+  /// [from] 다음으로 실제로 밟을 칸의 번호. 건너뛰는 칸은 지나친다.
+  int _nextStageAfter(int from) {
+    var next = from + 1;
+    while (next < _steps.length && _skipped.contains(_steps[next])) {
+      next += 1;
+    }
+    return next;
+  }
+
+  /// 지금 단계가 편집하는 목록. 운동 줄 편집기와 추가 폼이 이 하나를 본다 —
+  /// 단계마다 같은 편집기를 쓰되 대상만 다르다.
+  List<RoutineExercise> get _activeList =>
+      _currentStep == _Step.personal ? _personal : _edited;
+
+  /// 위 목록의 위젯 키 앞자리. 두 목록의 줄이 같은 키를 쓰면 한쪽을 고칠 때
+  /// 다른 쪽의 입력 상태가 딸려 온다.
+  String get _activeKeyPrefix =>
+      _currentStep == _Step.personal ? 'personal' : _selectedKey;
+
+  Set<int> get _activeMeasureChosen =>
+      _currentStep == _Step.personal ? _personalMeasureChosen : _measureChosen;
 
   @override
   void dispose() {
@@ -174,10 +291,16 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       setState(() {
         _options = options;
         _selectedKey = 'A';
-        _edited = List<RoutineExercise>.of(options.planA.exercises);
+        _edited = options.planA.exercises.map(_withStrengthDefaults).toList();
         _showAddExercise = false;
-        _stage = 1;
-        _maxReachedStage = 1;
+        // 후보를 만들었다는 것은 곧 **PT 프로그램을 짜겠다**는 뜻이다. 앞서
+        // `PT 없이 개인운동만 짜기` 로 건너뛰었다가 조건 설정으로 되돌아와
+        // 생성한 경우라도 여기서 되돌린다 — 그러지 않으면 `건너뜀` 으로 그린
+        // 칸에 선 채 프로그램을 고르게 되고, 마지막 버튼이 `회원에게 보내기`
+        // 라 방금 고른 PT 구성이 조용히 버려진다.
+        _kind = ProgramKind.ptWithRoutine;
+        _stage = _nextStageAfter(0);
+        _maxReachedStage = _stage;
         // 트레이너가 아직 건드리지 않은 조건만 서버가 실제로 쓴 값(또는
         // 기본값)으로 채운다 — 트레이너가 시간만 고쳤다면 강도는 그대로
         // 서버가 계산하도록 둬야 하고, 그 반대도 마찬가지다(#776).
@@ -207,7 +330,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   void _selectChoice(_RoutineChoice choice) {
     setState(() {
       _selectedKey = choice.key;
-      _edited = List<RoutineExercise>.of(choice.exercises);
+      _edited = choice.exercises.map(_withStrengthDefaults).toList();
       _showAddExercise = false;
     });
   }
@@ -221,7 +344,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
     final isStrength = _newExerciseType == '근력';
     setState(() {
-      _edited.add(
+      _activeList.add(
         RoutineExercise(
           name: name,
           minutes: _newExerciseMinutes,
@@ -237,6 +360,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           weight: isStrength ? _newExerciseWeight : 0,
         ),
       );
+      // 직접 넣은 줄의 출처는 트레이너다 — AI 제안을 그대로 둔 줄과 구분해
+      // 보낸다(#2223).
       _newExerciseName.clear();
       _newExerciseType = '근력';
       _newExerciseMinutes = 30;
@@ -247,25 +372,219 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _newExerciseMeasureChosen = false;
       _newExerciseWeight = 20;
       _showAddExercise = false;
+      // 직접 넣은 줄은 제안에서 온 것이 아니다 — 자리만 맞춰 비워 둔다.
+      if (_currentStep == _Step.personal) {
+        _personalOrigins.add(null);
+        // 방금 폼에서 다 정하고 넣은 줄이라 접힌 채로 둔다.
+        _editingPersonal = null;
+      }
     });
   }
 
-  void _completeReview() {
-    if (_edited.isEmpty) {
-      final AppLocalizations l = AppLocalizations.of(context);
-      showAppToast(context, l.aiKeepOneExercise);
-      return;
-    }
+  /// 한 단계 앞으로 — 건너뛰는 칸은 지나친다. 되돌아온 뒤 다시 나아갈 때도
+  /// 같은 자리를 쓴다.
+  void _advance() {
     setState(() {
-      _stage = 2;
-      _maxReachedStage = 2;
+      _stage = _nextStageAfter(_stage);
+      if (_stage > _maxReachedStage) _maxReachedStage = _stage;
       _showAddExercise = false;
     });
     _scrollToTop();
   }
 
+  /// 지금 단계의 `다음` 이 하는 일. 단계마다 조건과 동작이 다르다. (#2223)
+  ///
+  /// 개인운동 단계는 **최소 한 개**를 정해야 넘어간다 — PT 프로그램만 보내고
+  /// 개인운동이 빠지는 경우를 막는 것이 이 단계를 필수로 둔 이유다.
+  void _next() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    switch (_currentStep) {
+      case _Step.conditions:
+        unawaited(_generate());
+      case _Step.program:
+        if (_edited.isEmpty) {
+          showAppToast(context, l.aiKeepOneExercise);
+          return;
+        }
+        _advance();
+      case _Step.review:
+        // 최종 검토 다음은 개인운동 단계다.
+        _seedPersonalFromSuggestions();
+        _advance();
+      case _Step.personal:
+        if (_personal.isEmpty) {
+          showAppToast(context, l.aiKeepOnePersonalRoutine);
+          return;
+        }
+        // 마지막 칸이다. 두 모드 모두 편집기 화면으로 넘어가고, 보내는 것은
+        // 거기서 한다.
+        _applyToTemplate();
+    }
+  }
+
+  /// PT 프로그램 짜기를 건너뛰고 개인운동만 짠다. (#2223)
+  ///
+  /// 회원이 미리 "이번 주는 PT 를 못 한다"고 말한 주다. 단계가 3칸(조건 설정 →
+  /// 개인운동 → 최종 검토)으로 줄고, 붙일 PT 일정이 없으므로 최종 검토에서
+  /// 곧바로 회원에게 보낸다. 후보 생성은 부르지 않는다 — 쓰지 않을 PT 프로그램을
+  /// 만드느라 기다릴 이유가 없다.
+  void _skipPtProgram() {
+    if (_generating) return;
+    setState(() {
+      _kind = ProgramKind.routineOnly;
+      _stage = 0;
+      _maxReachedStage = 0;
+      _showAddExercise = false;
+    });
+    // 제안이 이미 와 있으면 지금 채우고, 아직이면 개인운동 칸이 그릴 때
+    // 채운다. 어느 쪽이든 다시 그리는 것은 `_advance` 가 한다.
+    _seedPersonalFromSuggestions();
+    // 가운데 두 칸을 지나 마지막 칸(개인운동)으로 간다.
+    _advance();
+  }
+
+  /// AI 개인운동 제안(대기 중)을 개인운동 목록의 출발점으로 삼는다. (#2223)
+  ///
+  /// 없애는 `AI 개인운동 제안` 카드가 보여 주던 바로 그 목록이다 — 개인운동을
+  /// 보내는 입구를 이 단계 하나로 모으면서, 카드에 걸려 있던 제안도 여기로
+  /// 들어온다. 한 번만 채운다: 다시 채우면 트레이너가 지운 제안이 되살아난다.
+  /// **상태만 바꾼다** — 다시 그리는 것은 부르는 쪽의 몫이다. 화면을 짓는
+  /// 도중(`build`)에도 불리므로 여기서 `setState` 를 하면 겹친다.
+  void _seedPersonalFromSuggestions() {
+    if (_personalSeeded) return;
+    final suggestions = ref
+        .read(routineSuggestionsProvider(widget.client.id))
+        .valueOrNull;
+    // 아직 도착하지 않았다. **채웠다고 표시하지 않는다** — 표시해 버리면
+    // 뒤늦게 온 제안이 영영 목록에 들어오지 못하고, 트레이너는 제안이 있는
+    // 날에도 빈 목록을 본다.
+    if (suggestions == null) return;
+    _personalSeeded = true;
+    if (suggestions.isEmpty) return;
+    _personal = <RoutineExercise>[
+      for (final s in suggestions) _exerciseOfSuggestion(s),
+    ];
+    _personalOrigins
+      ..clear()
+      ..addAll(<_PersonalOrigin?>[
+        for (final s in suggestions)
+          _PersonalOrigin(id: s.id, evidence: s.evidence),
+      ]);
+  }
+
+  /// 그 줄의 근거 문구들. 직접 넣은 줄은 비어 있다.
+  List<String> _evidenceOf(int index) => index < _personalOrigins.length
+      ? (_personalOrigins[index]?.evidence ?? const <String>[])
+      : const <String>[];
+
+  /// 지금 단계의 목록에서 한 줄을 뺀다.
+  ///
+  /// 개인운동 단계에서 AI 제안을 빼는 것은 없앤 카드의 `추천 안 함` 과 같은
+  /// 일이라, 서버의 대기 중 제안도 거절 처리한다 — 그러지 않으면 뺀 제안이
+  /// 다음 날 다시 올라와 트레이너가 같은 것을 또 뺀다. 서버 호출이 실패해도
+  /// 화면에서는 빼 둔다: 이번 전송에 넣지 않겠다는 뜻은 이미 분명하다.
+  ///
+  /// 되돌릴 수 없는 일이라 **한 번 묻는다** — 거절한 제안은 다시 올라오지
+  /// 않는다(다른 화면의 루틴 철회와 같은 확인창이다).
+  Future<void> _confirmRemoveExerciseAt(int index) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String name = _activeList[index].name;
+    final bool personal = _currentStep == _Step.personal;
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.aiPersonalDismissTitle,
+      // PT 후보에서 빼는 것은 이번 구성에서 지우는 일이고, 개인운동에서 빼는
+      // 것은 서버의 AI 제안까지 거절하는 일이다 — 되돌릴 수 있는 범위가 달라
+      // 문구도 나눈다.
+      // 이름은 조사를 붙여 넘긴다 — `을(를)` 은 사람이 쓴 문장으로 읽히지
+      // 않는다.
+      message: personal
+          ? l.aiPersonalDismissBody(withObjectJosa(name))
+          : l.aiProgramExerciseRemoveBody(withObjectJosa(name)),
+      confirmLabel: l.actionDelete,
+      cancelLabel: l.actionCancel,
+      destructive: true,
+    );
+    if (!ok || !mounted) return;
+    _removeExerciseAt(index);
+  }
+
+  void _removeExerciseAt(int index) {
+    final bool personal = _currentStep == _Step.personal;
+    final _PersonalOrigin? origin = personal && index < _personalOrigins.length
+        ? _personalOrigins[index]
+        : null;
+    final String name = _activeList[index].name;
+    setState(() {
+      _activeList.removeAt(index);
+      if (personal && index < _personalOrigins.length) {
+        _personalOrigins.removeAt(index);
+      }
+      // 뒤 줄의 번호가 하나씩 당겨진다 — 비워 버리면 남은 줄의 회↔초 선택까지
+      // 잃고, 다음에 이름을 고칠 때 종목표 기본값이 도로 덮어쓴다.
+      _shiftMeasureChosen(index);
+      // 뒤 줄의 번호가 당겨지므로 열어 둔 자리를 그대로 두면 엉뚱한 줄이
+      // 펼쳐진다 — 닫는다.
+      if (personal) _editingPersonal = null;
+    });
+    if (origin == null) return;
+    unawaited(_dismissSuggestion(origin.id, name));
+  }
+
+  /// 한 줄이 빠져 번호가 당겨질 때 회↔초 선택 자리를 함께 옮긴다.
+  void _shiftMeasureChosen(int removed) {
+    final Set<int> moved = <int>{
+      for (final int i in _activeMeasureChosen)
+        if (i < removed) i else if (i > removed) i - 1,
+    };
+    _activeMeasureChosen
+      ..clear()
+      ..addAll(moved);
+  }
+
+  Future<void> _dismissSuggestion(String id, String name) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    try {
+      await ref.read(trainerRoutineSuggestionRepositoryProvider).dismiss(id);
+    } on RoutineSuggestionAlreadyReviewed {
+      // 다른 자리에서 이미 정리된 제안이다 — 화면에서 뺀 것으로 충분하다.
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        l.aiPersonalDismissFailed,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    if (!mounted) return;
+    ref.invalidate(routineSuggestionsProvider(widget.client.id));
+    showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
+  }
+
+  RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) =>
+      _withStrengthDefaults(_rawExerciseOfSuggestion(s));
+
+  RoutineExercise _rawExerciseOfSuggestion(RoutineSuggestion s) =>
+      RoutineExercise(
+    name: s.name,
+    minutes: s.minutes,
+    type: s.type,
+    sets: s.sets ?? 0,
+    reps: s.reps ?? 0,
+    holdSeconds: s.holdSeconds ?? 0,
+    // 한 세트를 초로 잰 제안이면 그 칸을 그대로 이어받는다(#1969).
+    isHold: (s.holdSeconds ?? 0) > 0,
+    weight: s.weight ?? 0,
+    reason: s.reason,
+    source: 'ai',
+  );
+
   void _goToStage(int stage) {
     if (stage > _maxReachedStage || stage == _stage) return;
+    // 건너뛴 칸은 밟을 자리가 아니다 — 눌러도 아무 일이 없다.
+    if (_skipped.contains(_steps[stage])) return;
     setState(() => _stage = stage);
     _scrollToTop();
   }
@@ -307,11 +626,16 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 세션 1에 병합한다(`ProgramEditorWorkspace.didUpdateWidget`).
   void _applyToTemplate() {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (_edited.isEmpty) {
+    // `개인운동만` 은 고른 PT 구성이 없다 — 개인운동만 넘긴다.
+    if (_kind == ProgramKind.ptWithRoutine && _edited.isEmpty) {
       showAppToast(context, l.aiKeepOneExercise);
       return;
     }
-    widget.onReviewCompleted?.call(List<RoutineExercise>.unmodifiable(_edited));
+    widget.onReviewCompleted?.call(
+      List<RoutineExercise>.unmodifiable(_edited),
+      List<RoutineExercise>.unmodifiable(_personal),
+      _kind,
+    );
     showAppToast(context, l.aiAppliedToTemplate, type: AppToastType.success);
   }
 
@@ -338,42 +662,78 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         child: _ProgressStepper(
           stage: _stage,
           maxReachedStage: _maxReachedStage,
+          labels: _stepLabels(l),
+          skipped: <int>{
+            for (int i = 0; i < _steps.length; i++)
+              if (_skipped.contains(_steps[i])) i,
+          },
+          skippedLabel: l.aiStepSkipped,
           onStageTap: _goToStage,
         ),
       ),
       const SizedBox(height: OnCareSpacing.s16),
-      if (_stage == 0) ...<Widget>[
-        _assistantAnalysis(),
-        const SizedBox(height: OnCareSpacing.s16),
-        _promptField(),
-        const SizedBox(height: OnCareSpacing.s16),
-        _directionControls(),
-        const SizedBox(height: OnCareSpacing.s16),
-        _primaryButton(
-          key: const ValueKey<String>('generate-routine-options'),
-          label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
-          icon: Icons.auto_awesome_rounded,
-          busy: _generating,
-          onTap: _generate,
-        ),
-      ] else if (_stage == 1) ...<Widget>[
-        _generatedOptions(),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        _routineEditor(),
-        const SizedBox(height: OnCareSpacing.s16),
-        _trainerMemoField(),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        _primaryButton(
-          key: const ValueKey<String>('complete-routine-review'),
-          label: l.aiReviewDone,
-          icon: Icons.fact_check_rounded,
-          onTap: _completeReview,
-        ),
-      ] else ...<Widget>[
-        _reviewedRoutineList(),
-        const SizedBox(height: OnCareSpacing.s16),
-        _reviewActions(),
-      ],
+      ...switch (_currentStep) {
+        _Step.conditions => <Widget>[
+          _assistantAnalysis(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _promptField(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _directionControls(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _primaryButton(
+            key: const ValueKey<String>('generate-routine-options'),
+            label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
+            icon: Icons.auto_awesome_rounded,
+            busy: _generating,
+            onTap: _next,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 이번 주는 PT 가 없는 회원 — PT 프로그램 짜기를 통째로 건너뛰고
+          // 개인운동만 짜서 바로 보낸다(#2223). 후보 생성을 거치지 않으므로
+          // 기다릴 일도, 쓰지 않을 후보를 만들 일도 없다.
+          Align(
+            child: AppButton(
+              key: const ValueKey<String>('skip-pt-program'),
+              label: l.aiSkipPtProgram,
+              onPressed: _generating ? null : _skipPtProgram,
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              leadingIcon: Icons.directions_run_rounded,
+            ),
+          ),
+        ],
+        _Step.program => <Widget>[
+          _generatedOptions(),
+          const SizedBox(height: OnCareSpacing.sectionGap),
+          _routineEditor(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _trainerMemoField(),
+          const SizedBox(height: OnCareSpacing.sectionGap),
+          _primaryButton(
+            key: const ValueKey<String>('complete-routine-review'),
+            label: l.aiReviewDone,
+            icon: Icons.fact_check_rounded,
+            onTap: _next,
+          ),
+        ],
+        _Step.personal => <Widget>[
+          _personalRoutineEditor(),
+          const SizedBox(height: OnCareSpacing.sectionGap),
+          // 두 모드 모두 여기서 편집기 화면으로 넘어간다 — 보내는 것은 거기서
+          // 한다. PT 가 있든 없든 끝내는 과정이 같아야 한다(#2223).
+          _primaryButton(
+            key: const ValueKey<String>('complete-personal-routines'),
+            label: l.aiApplyToTemplate,
+            icon: Icons.playlist_add_check_rounded,
+            onTap: _next,
+          ),
+        ],
+        _Step.review => <Widget>[
+          _reviewedRoutineList(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _reviewActions(),
+        ],
+      },
       const SizedBox(height: OnCareSpacing.s32),
     ];
 
@@ -981,9 +1341,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
+  /// 트레이너가 내용을 고친 줄은 출처가 트레이너가 된다(#2223).
+  ///
+  /// 회원 앱은 이 값으로 `AI 추천 · OOO 확인` 과 `트레이너 직접 추천` 을
+  /// 가른다(#782). 이름·유형·시간·세트를 다 바꿔 놓고도 `AI 추천` 으로 남으면
+  /// 회원이 읽는 무게가 사실과 달라진다. `AI 추천 사유` 는 그대로 남는다 —
+  /// 그건 트레이너만 보는 칸이고, 왜 이 운동이 올라왔는지는 고친 뒤에도
+  /// 알아야 한다.
+  RoutineExercise _asTrainerEdit(RoutineExercise exercise) =>
+      exercise.source == 'ai'
+      ? exercise.copyWith(source: 'trainer')
+      : exercise;
+
+  /// 운동 한 줄 편집기. 프로그램 후보와 개인운동이 **같은 편집기**를 쓴다 —
+  /// 대상 목록만 단계에 따라 다르다([_activeList], #2223).
   Widget _exerciseEditor(int index) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final exercise = _edited[index];
+    final List<RoutineExercise> list = _activeList;
+    final exercise = list[index];
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -992,19 +1367,39 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             children: <Widget>[
               Expanded(
                 child: RoutineCategoryChips(
-                  keyPrefix: 'routine-category-$_selectedKey-$index',
+                  keyPrefix: 'routine-category-$_activeKeyPrefix-$index',
                   value: exercise.type,
                   onChanged: (type) => setState(() {
-                    _edited[index] = exercise.copyWith(type: type);
+                    list[index] = _asTrainerEdit(exercise.copyWith(type: type));
                   }),
                 ),
               ),
-              AppIconButton(
-                icon: Icons.close_rounded,
-                tooltip: l.progDeleteExercise,
-                color: OnCareColors.textTertiary,
-                onPressed: () => setState(() => _edited.removeAt(index)),
-              ),
+              // 개인운동을 펼쳐서 고치는 중이면 이 자리는 **닫기**다 — 프로그램
+              // 편집기의 이름 수정과 같은 체크 아이콘을 쓴다(#2223). 닫는 길이
+              // 없으면 한번 연 줄은 다른 줄을 열기 전까지 펼쳐진 채로 남는다.
+              if (_currentStep == _Step.personal && _editingPersonal == index)
+                AppIconButton(
+                  key: ValueKey<String>('personal-routine-done-$index'),
+                  icon: Icons.check_rounded,
+                  tooltip: l.aiPersonalEditDone,
+                  color: context.oncare.brand.primary,
+                  onPressed: () => setState(() => _editingPersonal = null),
+                )
+              else
+                AppIconButton(
+                  key: ValueKey<String>(
+                    'routine-remove-$_activeKeyPrefix-$index',
+                  ),
+                  icon: Icons.close_rounded,
+                  // 개인운동 단계에서 AI 제안을 빼는 것은 없앤 카드의
+                  // `추천 안 함`(휴지통)과 같은 일이다 — 서버의 대기 중 제안도
+                  // 함께 거절해, 뺀 제안이 내일 다시 올라오지 않게 한다(#2223).
+                  tooltip: _currentStep == _Step.personal
+                      ? l.aiPersonalDismissTooltip
+                      : l.progDeleteExercise,
+                  color: OnCareColors.textTertiary,
+                  onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
+                ),
             ],
           ),
           SizedBox(
@@ -1013,7 +1408,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           ),
           _ExerciseNameField(
             key: ValueKey<String>(
-              'routine-name-$_selectedKey-$index-${exercise.name}',
+              'routine-name-$_activeKeyPrefix-$index-${exercise.name}',
             ),
             initialValue: exercise.name,
             hint: l.progExerciseName,
@@ -1021,11 +1416,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               // 이름이 버티는 운동이면 `횟수` 칸이 `버티는 시간` 으로
               // 바뀐다(#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다 —
               // 그 선택은 `_measureChosen` 이 기억한다.
-              _edited[index] = _edited[index].copyWith(
-                name: name,
-                isHold: _measureChosen.contains(index)
-                    ? null
-                    : isIsometricExerciseName(name),
+              list[index] = _asTrainerEdit(list[index].copyWith(
+                  name: name,
+                  isHold: _activeMeasureChosen.contains(index)
+                      ? null
+                      : isIsometricExerciseName(name),
+                ),
               );
             },
           ),
@@ -1036,11 +1432,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: RoutineMeasureToggle(
-                keyPrefix: 'routine-measure-$_selectedKey-$index',
+                keyPrefix: 'routine-measure-$_activeKeyPrefix-$index',
                 isHold: exercise.isHold,
                 onChanged: (bool hold) => setState(() {
-                  _measureChosen.add(index);
-                  _edited[index] = _edited[index].copyWith(isHold: hold);
+                  _activeMeasureChosen.add(index);
+                  list[index] = _asTrainerEdit(list[index].copyWith(isHold: hold));
                 }),
               ),
             ),
@@ -1055,12 +1451,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               children: <Widget>[
                 Expanded(
                   child: RoutineSetsField(
-                    key: ValueKey<String>('routine-sets-$_selectedKey-$index'),
-                    keyPrefix: 'routine-sets-$_selectedKey-$index',
+                    key: ValueKey<String>(
+                      'routine-sets-$_activeKeyPrefix-$index',
+                    ),
+                    keyPrefix: 'routine-sets-$_activeKeyPrefix-$index',
                     sets: exercise.sets > 0 ? exercise.sets : 3,
                     compact: true,
                     onChanged: (sets) => setState(() {
-                      _edited[index] = _edited[index].copyWith(sets: sets);
+                      list[index] = _asTrainerEdit(list[index].copyWith(sets: sets));
                     }),
                   ),
                 ),
@@ -1071,28 +1469,27 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   child: exercise.isHold
                       ? RoutineHoldSecondsField(
                           key: ValueKey<String>(
-                            'routine-hold-$_selectedKey-$index',
+                            'routine-hold-$_activeKeyPrefix-$index',
                           ),
-                          keyPrefix: 'routine-hold-$_selectedKey-$index',
+                          keyPrefix: 'routine-hold-$_activeKeyPrefix-$index',
                           holdSeconds: exercise.holdSeconds > 0
                               ? exercise.holdSeconds
                               : 60,
                           compact: true,
                           onChanged: (seconds) => setState(() {
-                            _edited[index] = _edited[index].copyWith(
-                              holdSeconds: seconds,
+                            list[index] = _asTrainerEdit(list[index].copyWith(holdSeconds: seconds),
                             );
                           }),
                         )
                       : RoutineRepsField(
                           key: ValueKey<String>(
-                            'routine-reps-$_selectedKey-$index',
+                            'routine-reps-$_activeKeyPrefix-$index',
                           ),
-                          keyPrefix: 'routine-reps-$_selectedKey-$index',
+                          keyPrefix: 'routine-reps-$_activeKeyPrefix-$index',
                           reps: exercise.reps > 0 ? exercise.reps : 10,
                           compact: true,
                           onChanged: (reps) => setState(() {
-                            _edited[index] = _edited[index].copyWith(reps: reps);
+                            list[index] = _asTrainerEdit(list[index].copyWith(reps: reps));
                           }),
                         ),
                 ),
@@ -1100,13 +1497,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 Expanded(
                   child: RoutineWeightField(
                     key: ValueKey<String>(
-                      'routine-weight-$_selectedKey-$index',
+                      'routine-weight-$_activeKeyPrefix-$index',
                     ),
-                    keyPrefix: 'routine-weight-$_selectedKey-$index',
+                    keyPrefix: 'routine-weight-$_activeKeyPrefix-$index',
                     weight: exercise.weight,
                     compact: true,
                     onChanged: (weight) => setState(() {
-                      _edited[index] = _edited[index].copyWith(weight: weight);
+                      list[index] = _asTrainerEdit(list[index].copyWith(weight: weight));
                     }),
                   ),
                 ),
@@ -1119,9 +1516,302 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               minutes: exercise.minutes,
               compact: true,
               onChanged: (minutes) => setState(() {
-                _edited[index] = _edited[index].copyWith(minutes: minutes);
+                list[index] = _asTrainerEdit(list[index].copyWith(minutes: minutes));
               }),
             ),
+          // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
+          // 판단하면서 읽는 글이다. 트레이너만 보는 것이라 편집 칸이 아니다.
+          if (_currentStep == _Step.personal)
+            _aiRationale(index, compact: true),
+        ],
+      ),
+    );
+  }
+
+  /// AI 가 이 운동을 고른 이유 — **트레이너만 보는 글이다.** (#2223)
+  ///
+  /// 회원에게는 가지 않는다. 회원 화면에는 운동 이름·유형·양만 서고, 이 글은
+  /// 트레이너가 이 제안을 그대로 둘지 판단하는 재료다 — 근거 태그와 같은 층
+  /// 이다(#790).
+  Widget _aiRationale(int index, {bool compact = false}) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final RoutineExercise exercise = _personal[index];
+    final List<String> evidence = _evidenceOf(index);
+    if (exercise.reason.isEmpty && evidence.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+      child: Column(
+        key: ValueKey<String>('personal-rationale-$index'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l.aiPersonalRationaleLabel,
+            style: _text(
+              OnCareTypography.strong(OnCareTypography.caption),
+              OnCareColors.textTertiary,
+            ),
+          ),
+          if (exercise.reason.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s2),
+            Text(
+              exercise.reason,
+              maxLines: compact ? 2 : null,
+              overflow: compact ? TextOverflow.ellipsis : null,
+              style: _text(
+                OnCareTypography.bodySmall,
+                OnCareColors.textSecondary,
+              ),
+            ),
+          ],
+          if (evidence.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Wrap(
+              spacing: OnCareSpacing.s4,
+              runSpacing: OnCareSpacing.s4,
+              children: <Widget>[
+                for (final String item in evidence)
+                  AppTag(label: item, tone: AppTagTone.brand),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 한 번에 정할 수 있는 개인운동 수. 운동 하나가 배정 한 건(=프로그램 세션
+  /// 하나)이 되므로 서버의 세션 상한과 같은 값이다.
+  static const int _maxPersonalRoutines = 12;
+
+  /// 단계 표시줄에 적을 이름들. 고른 종류에 따라 3칸·4칸이 된다. (#2223)
+  List<String> _stepLabels(AppLocalizations l) => <String>[
+    for (final step in _steps)
+      switch (step) {
+        _Step.conditions => l.aiStepConditions,
+        _Step.program => l.aiStepReview,
+        _Step.personal => l.aiStepPersonal,
+        _Step.review => l.aiStepDone,
+      },
+  ];
+
+  /// 개인운동 단계 — AI 제안을 받아 고치고, 빼고, 직접 더한다. (#2223)
+  ///
+  /// 없앤 `AI 개인운동 제안` 카드가 하던 일을 그대로 한다. 카드가 보여 주던
+  /// 것(제안 개수·소개문·회원에게 갈 메모·근거 태그·빈 상태·오류)을 모두 여기서
+  /// 보여 주고, 카드에는 없던 인라인 편집과 직접 추가가 더해진다. 카드에서
+  /// `추천 안 함`(휴지통)이던 자리는 이 목록에서 빼는 일이고, 서버의 대기 중
+  /// 제안도 함께 거절 처리한다 — 뺀 제안이 내일 다시 올라오지 않게.
+  ///
+  /// `개인운동만` 이면 이 칸이 마지막이라, 보낼 시작일·한마디까지 여기 붙는다.
+  Widget _personalRoutineEditor() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AsyncValue<List<RoutineSuggestion>> suggestions = ref.watch(
+      routineSuggestionsProvider(widget.client.id),
+    );
+    // 제안이 늦게 도착하면 그때 한 번 채운다 — 트레이너가 이미 손댔으면
+    // (_personalSeeded) 그대로 둔다.
+    if (suggestions.hasValue && !_personalSeeded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(_seedPersonalFromSuggestions);
+      });
+    }
+    // AI 제안에서 **온** 줄을 센다 — `source` 로 세면 트레이너가 한 줄만
+    // 고쳐도(그때 출처가 트레이너가 된다) 지우지 않은 줄의 숫자가 줄고,
+    // 세 줄을 다 고치면 배지와 안내 문장이 통째로 사라진다. 지운 줄은
+    // [_personalOrigins] 에서도 함께 빠지므로 그때는 제대로 줄어든다.
+    final int aiCount = _personalOrigins
+        .take(_personal.length)
+        .whereType<_PersonalOrigin>()
+        .length;
+    return Column(
+      key: const ValueKey<String>('personal-routine-step'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _AssistantLabel(
+                // `개인운동만` 은 붙을 PT 가 없다 — "PT 사이에 할" 이라고 하면
+                // 방금 PT 를 건너뛴 트레이너에게 어긋난 말이 된다.
+                text: _kind == ProgramKind.routineOnly
+                    ? l.aiPersonalStepTitleRoutineOnly
+                    : l.aiPersonalStepTitle,
+              ),
+            ),
+            if (aiCount > 0)
+              AppTag(
+                key: const ValueKey<String>('personal-routine-badge'),
+                label: l.aiPersonalStepBadge(aiCount),
+                tone: AppTagTone.brand,
+              ),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s4),
+        Text(
+          _kind == ProgramKind.routineOnly
+              ? l.aiPersonalStepBlurbRoutineOnly
+              : l.aiPersonalStepBlurb,
+          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+        ),
+        if (aiCount > 0) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiPersonalStepIntro(widget.client.name),
+            key: const ValueKey<String>('personal-routine-intro'),
+            style: _text(OnCareTypography.caption, OnCareColors.textTertiary),
+          ),
+        ],
+        const SizedBox(height: OnCareSpacing.s12),
+        if (suggestions.isLoading && _personal.isEmpty)
+          const AppLoading(placement: AppStatePlacement.card)
+        else ...<Widget>[
+          // 제안을 못 읽었다고 이 단계가 막히지는 않는다 — 직접 넣을 수 있다.
+          if (suggestions.hasError && _personal.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+              child: Text(
+                l.aiPersonalStepLoadFailed,
+                key: const ValueKey<String>('personal-routine-error'),
+                style: _text(
+                  OnCareTypography.bodySmall,
+                  OnCareColors.textSecondary,
+                ),
+              ),
+            ),
+          for (int index = 0; index < _personal.length; index++) ...<Widget>[
+            if (_editingPersonal == index)
+              _exerciseEditor(index)
+            else
+              _personalSummaryRow(index),
+            const SizedBox(height: OnCareSpacing.s8),
+          ],
+          if (_personal.isEmpty && !suggestions.hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+              child: Text(
+                suggestions.hasValue
+                    ? l.aiPersonalStepNoSuggestion
+                    : l.aiPersonalStepEmpty,
+                key: const ValueKey<String>('personal-routine-empty'),
+                style: _text(
+                  OnCareTypography.bodySmall,
+                  OnCareColors.textSecondary,
+                ),
+              ),
+            ),
+        ],
+        if (_showAddExercise)
+          _addExerciseForm()
+        else
+          AppButton(
+            key: const ValueKey<String>('show-add-personal-exercise-form'),
+            label: l.aiAddExerciseManually,
+            // 운동 하나가 배정 한 건이 되므로 서버의 세션 상한을 넘길 수
+            // 없다. 넘기기 전에 여기서 막는다 — 다 적은 뒤 422 로 되돌려
+            //받는 것보다 낫다.
+            onPressed: _personal.length >= _maxPersonalRoutines
+                ? null
+                : () => setState(() => _showAddExercise = true),
+            variant: AppButtonVariant.secondary,
+            leadingIcon: Icons.add_rounded,
+            fullWidth: true,
+          ),
+        if (_personal.length >= _maxPersonalRoutines) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiPersonalStepFull(_maxPersonalRoutines),
+            key: const ValueKey<String>('personal-routine-full'),
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 접혀 있는 개인운동 한 줄 — 무엇을, 얼마나, 왜. (#2223)
+  ///
+  /// 없앤 `AI 개인운동 제안` 카드의 한 장과 같은 모양이다: 이름·유형·양을 한
+  /// 줄에 두고 그 아래 회원에게 갈 메모와 근거를 붙인다. 고칠 때만 연필로
+  /// 펼친다 — 줄마다 편집 칸이 늘 열려 있으면 목록을 훑을 수가 없다.
+  Widget _personalSummaryRow(int index) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final RoutineExercise exercise = _personal[index];
+    final TextStyle metaStyle = _text(
+      OnCareTypography.strong(OnCareTypography.caption),
+      OnCareColors.textTertiary,
+    );
+    return AppCard(
+      key: ValueKey<String>('personal-routine-row-$index'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                // 이름 · 유형 · 양을 한 줄에 둔다 — 줄을 나누면 셋을 훑는 데
+                // 시선이 세 번 움직인다.
+                child: Text.rich(
+                  TextSpan(
+                    children: <InlineSpan>[
+                      TextSpan(
+                        text: exercise.name,
+                        style: _text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                          OnCareColors.textPrimary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' · ',
+                        style: _text(
+                          OnCareTypography.caption,
+                          OnCareColors.textTertiary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: routineTypeLabel(l, exercise.type),
+                        style: metaStyle,
+                      ),
+                      TextSpan(
+                        text: ' · ',
+                        style: _text(
+                          OnCareTypography.caption,
+                          OnCareColors.textTertiary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: exercise.type == '근력'
+                            ? _strengthSummary(l, exercise)
+                            : l.minutesShort(exercise.minutes),
+                        style: metaStyle,
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s4),
+                AppIconButton(
+                  key: ValueKey<String>('personal-routine-edit-$index'),
+                  icon: Icons.edit_rounded,
+                  tooltip: l.actionEdit,
+                  color: context.oncare.brand.primary,
+                  onPressed: () => setState(() => _editingPersonal = index),
+                ),
+                AppIconButton(
+                  key: ValueKey<String>('personal-routine-remove-$index'),
+                  icon: Icons.delete_outline_rounded,
+                  tooltip: l.aiPersonalDismissTooltip,
+                  color: OnCareColors.textSecondary,
+                  onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
+                ),
+              ],
+            ],
+          ),
+          _aiRationale(index),
         ],
       ),
     );
@@ -1147,7 +1837,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             // 트레이너가 직접 고른 뒤에는 덮지 않는다(#1969).
             onChanged: (String name) {
               if (_newExerciseMeasureChosen) return;
-              setState(() => _newExerciseIsHold = isIsometricExerciseName(name));
+              setState(
+                () => _newExerciseIsHold = isIsometricExerciseName(name),
+              );
             },
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -1194,9 +1886,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                           keyPrefix: 'new-exercise-hold',
                           holdSeconds: _newExerciseHoldSeconds,
                           compact: true,
-                          onChanged: (seconds) => setState(
-                            () => _newExerciseHoldSeconds = seconds,
-                          ),
+                          onChanged: (seconds) =>
+                              setState(() => _newExerciseHoldSeconds = seconds),
                         )
                       : RoutineRepsField(
                           key: const ValueKey<String>('new-exercise-reps'),
@@ -1234,6 +1925,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             cancelKey: const ValueKey<String>('hide-add-exercise-form'),
             cancelLabel: l.actionCancel,
             onCancel: () => setState(() => _showAddExercise = false),
+            confirmKey: const ValueKey<String>('add-exercise-submit'),
             confirmLabel: l.aiRegister,
             onConfirm: _addExercise,
           ),
@@ -1382,17 +2074,19 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// 3단계의 유일한 동작 — **고객에게 바로 전송하지 않는다**. 확정한 구성을
-  /// 2열의 `프로그램 정보` 박스에 반영만 하고, 실제 전송은 그 박스를 확인·
-  /// 수정한 뒤 프로그램 탭의 단일 `보내기`(최종 검토)에서 이뤄진다.
+  /// PT 모드 최종 검토의 유일한 동작 — 개인운동 단계로 넘어간다. (#2223)
+  ///
+  /// **여기서는 아직 아무것도 반영하지 않는다.** 위저드를 빠져나가는 출구는
+  /// 다음 단계(개인운동)의 `프로그램에 반영` 하나뿐이고, 그때 PT 구성과
+  /// 개인운동이 **함께** 편집기로 간다. 전송은 그 뒤 편집기의 `일정 추가` 다.
   Widget _reviewActions() {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppButton(
       key: const ValueKey<String>('apply-routine-to-template'),
-      label: l.aiApplyToTemplate,
-      onPressed: _applyToTemplate,
+      label: l.aiGoToPersonalStep,
+      onPressed: _next,
       size: OnCareButtonSize.large,
-      leadingIcon: Icons.playlist_add_check_rounded,
+      leadingIcon: Icons.directions_run_rounded,
       fullWidth: true,
     );
   }
@@ -1432,7 +2126,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     required Key key,
     required String label,
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     bool busy = false,
   }) {
     return AppButton(
@@ -1446,6 +2140,26 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       fullWidth: true,
     );
   }
+}
+
+/// 근력 한 줄에 빠진 세트·횟수를 채운다.
+///
+/// AI 는 근력 운동을 분으로만 주기도 한다. 그때 편집기의 숫자 칸은 `3`·`10`
+/// 을 보여 주면서 값은 0 으로 두었다 — 최종 검토가 `0세트 · 0회` 를 그리고,
+/// 편집기로 넘어갈 때 또 다른 기본값이 붙어 **한 운동이 세 화면에서 다른
+/// 숫자로 보였다**. 보이는 값을 그대로 저장해 셋을 하나로 맞춘다.
+///
+/// **중량은 채우지 않는다.** 맨몸이 기본이고, 들지도 않을 무게를 회원에게
+/// 지시하게 된다 — `0kg` 은 트레이너가 적은 값이다(#1310).
+RoutineExercise _withStrengthDefaults(RoutineExercise exercise) {
+  if (exercise.type != '근력') return exercise;
+  return exercise.copyWith(
+    sets: exercise.sets > 0 ? exercise.sets : 3,
+    reps: exercise.isHold || exercise.reps > 0 ? exercise.reps : 10,
+    holdSeconds: exercise.isHold && exercise.holdSeconds <= 0
+        ? 60
+        : exercise.holdSeconds,
+  );
 }
 
 /// 근력 한 줄의 요약 문구 — 세트 × 횟수 · 중량. (#1310)
@@ -1542,88 +2256,116 @@ class _ProgressStepper extends StatelessWidget {
   const _ProgressStepper({
     required this.stage,
     required this.maxReachedStage,
+    required this.labels,
+    required this.skipped,
+    required this.skippedLabel,
     required this.onStageTap,
   });
 
   final int stage;
   final int maxReachedStage;
-  final ValueChanged<int> onStageTap;
 
-  /// 단계 이름. 로케일을 따르므로 const 로 둘 수 없다. (#501)
-  static List<String> _steps(AppLocalizations l) => <String>[
-    l.aiStepConditions,
-    l.aiStepReview,
-    l.aiStepDone,
-  ];
+  /// 단계 이름들. 칸 수는 어느 흐름에서나 같다(#2223) — 표시줄은 몇 칸인지
+  /// 스스로 정하지 않고 받은 만큼만 그린다.
+  final List<String> labels;
+
+  /// 이번 흐름에서 밟지 않는 칸. 자리를 지우지 않고 흐리게 남겨 `건너뜀` 을
+  /// 붙인다 — 칸이 사라지면 흐름 자체가 짧아진 것처럼 보인다.
+  final Set<int> skipped;
+
+  final String skippedLabel;
+
+  final ValueChanged<int> onStageTap;
 
   /// 번호 원의 지름.
   static const double _circle = OnCareSize.avatarMedium;
 
+  /// 원 하나가 차지하는 칸의 폭 — 원 지름 + 원 사이 간격. (#2219)
+  ///
+  /// 칸 폭이 곧 **원 중심 사이의 거리**다. 예전에는 [Expanded] 로 화면 폭을
+  /// n등분해서, 창이 넓어질수록 원들이 좌우 끝으로 멀어졌다. 단계 표시는
+  /// 화면을 채우는 물건이 아니라 "몇 걸음 중 몇 번째"를 읽는 작은 눈금이라,
+  /// 폭과 무관하게 같은 간격으로 모여 가운데에 선다.
+  ///
+  /// 라벨도 이 폭 안에서 한 줄로 말줄임된다 — 칸이 겹치지 않으니 라벨끼리
+  /// 겹칠 일도 없다. 간격 토큰의 최대값(48)만으로는 원들이 서로 붙어 보여
+  /// 두 칸(48 + 32)을 더한다. 더 벌리면 네 칸이 좁은 창(520 안팎)을 넘어
+  /// 줄어들기 시작해, 폭과 무관한 고정 간격이라는 약속이 깨진다.
+  static const double _stepWidth =
+      _circle + OnCareSpacing.s48 + OnCareSpacing.s32;
+
   void _tap(int index) {
-    if (index <= maxReachedStage) onStageTap(index);
+    if (index <= maxReachedStage && !skipped.contains(index)) {
+      onStageTap(index);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final List<String> steps = _steps(l);
-    final int last = steps.length - 1;
+    final List<String> steps = labels;
     return Semantics(
       label: l.aiStepperLabel,
-      child: Stack(
-        children: <Widget>[
-          // 첫 원의 가운데에서 마지막 원의 가운데까지 잇는 가는 선. 원이
-          // 불투명해 선은 원 사이에서만 보인다.
-          const Positioned(
-            top: (_circle - OnCareSize.hairline) / 2,
-            left: _circle / 2,
-            right: _circle / 2,
-            child: ColoredBox(
-              color: OnCareColors.lineSubtle,
-              child: SizedBox(height: OnCareSize.hairline),
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              for (int index = 0; index < steps.length; index++)
-                Expanded(
-                  child: Align(
-                    alignment: index == 0
-                        ? Alignment.topLeft
-                        : index == last
-                        ? Alignment.topRight
-                        : Alignment.topCenter,
-                    child: _step(tokens, steps[index], index, last),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // 칸을 다 늘어놓을 폭이 없으면(아주 좁은 창) 그만큼 좁힌다 —
+          // 고정 간격을 지키느라 표시줄이 화면 밖으로 넘치지는 않는다.
+          final double available = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : _stepWidth * steps.length;
+          final double stepWidth = math.min(
+            _stepWidth,
+            available / steps.length,
+          );
+          final double totalWidth = stepWidth * steps.length;
+          return Center(
+            child: SizedBox(
+              width: totalWidth,
+              child: Stack(
+                children: <Widget>[
+                  // 첫 원의 가운데에서 마지막 원의 가운데까지만 잇는 가는 선 —
+                  // 원이 모인 만큼만 그려진다. 원이 불투명해 선은 원 사이에서만
+                  // 보인다.
+                  Positioned(
+                    top: (_circle - OnCareSize.hairline) / 2,
+                    left: stepWidth / 2,
+                    right: stepWidth / 2,
+                    child: const ColoredBox(
+                      color: OnCareColors.lineSubtle,
+                      child: SizedBox(height: OnCareSize.hairline),
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (int index = 0; index < steps.length; index++)
+                        SizedBox(
+                          width: stepWidth,
+                          child: _step(tokens, steps[index], index),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _step(OnCareTokens tokens, String label, int index, int last) {
+  Widget _step(OnCareTokens tokens, String label, int index) {
     final bool current = index == stage;
-    final CrossAxisAlignment align = index == 0
-        ? CrossAxisAlignment.start
-        : index == last
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.center;
-    final TextAlign textAlign = index == 0
-        ? TextAlign.start
-        : index == last
-        ? TextAlign.end
-        : TextAlign.center;
+    final bool isSkipped = skipped.contains(index);
+    // 칸마다 같은 폭을 쓰므로 원도 라벨도 그 칸 가운데에 선다(#2219) — 예전에는
+    // 첫 칸을 왼쪽 끝, 마지막 칸을 오른쪽 끝에 붙여 화면 폭을 가로질렀다.
     return InkWell(
       key: ValueKey<String>('routine-stage-$index'),
       borderRadius: OnCareRadius.smAll,
-      onTap: index <= maxReachedStage ? () => _tap(index) : null,
+      onTap: index <= maxReachedStage && !isSkipped ? () => _tap(index) : null,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: align,
         children: <Widget>[
           Container(
             width: _circle,
@@ -1634,25 +2376,37 @@ class _ProgressStepper extends StatelessWidget {
               color: current ? tokens.brand.primary : OnCareColors.surfaceInput,
               border: current
                   ? null
-                  : Border.all(color: OnCareColors.lineStrong),
+                  : Border.all(
+                      color: isSkipped
+                          ? OnCareColors.lineSubtle
+                          : OnCareColors.lineStrong,
+                    ),
             ),
-            child: Text(
-              '${index + 1}',
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.label))
-                  .copyWith(
-                    color: current
-                        ? OnCareColors.textOnFill
-                        : OnCareColors.textSecondary,
+            // 건너뛴 칸은 번호 대신 가로줄을 둔다 — 밟지 않았을 뿐 자리는
+            // 그대로라는 표시다(#2223).
+            child: isSkipped
+                ? const Icon(
+                    Icons.remove_rounded,
+                    size: OnCareSize.iconSmall,
+                    color: OnCareColors.textTertiary,
+                  )
+                : Text(
+                    '${index + 1}',
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.label))
+                        .copyWith(
+                          color: current
+                              ? OnCareColors.textOnFill
+                              : OnCareColors.textSecondary,
+                        ),
                   ),
-            ),
           ),
           const SizedBox(height: OnCareSpacing.s4),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: textAlign,
+            textAlign: TextAlign.center,
             style: tokens
                 .text(
                   current
@@ -1665,10 +2419,32 @@ class _ProgressStepper extends StatelessWidget {
                       : OnCareColors.textTertiary,
                 ),
           ),
+          if (isSkipped)
+            Text(
+              skippedLabel,
+              key: ValueKey<String>('routine-stage-skipped-$index'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
         ],
       ),
     );
   }
+}
+
+/// 개인운동 줄이 어디서 왔나 — 그 AI 제안의 id 와 근거. (#2223)
+///
+/// id 는 뺄 때 서버에 거절을 알리는 데, 근거는 트레이너가 판단할 때 보여 주는
+/// 데 쓴다. 직접 넣은 줄은 이 값이 없다.
+class _PersonalOrigin {
+  const _PersonalOrigin({required this.id, required this.evidence});
+
+  final String id;
+  final List<String> evidence;
 }
 
 /// AI 가 말하는 구획의 제목 — AI 아이콘 + `titleSmall`.

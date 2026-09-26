@@ -1585,6 +1585,72 @@
   "aiStepConditions": "Set up",
   "aiStepReview": "Program selection",
   "aiStepDone": "Final review",
+  "aiSkipPtProgram": "Skip PT — personal exercise only",
+  "aiPersonalRationaleLabel": "Why AI picked this",
+  "aiPersonalStepFull": "You can set up to {count} personal exercises at once.",
+  "@aiPersonalStepFull": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "aiPersonalEditDone": "Done editing",
+  "aiPersonalStepBadge": "{count} AI suggested",
+  "@aiPersonalStepBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "aiPersonalStepIntro": "Based on recent PT feedback and workout history, here is personal exercise for {name}. Only what stays here goes to the member.",
+  "@aiPersonalStepIntro": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalStepLoadFailed": "Could not load the AI personal-exercise suggestions",
+  "aiPersonalStepNoSuggestion": "No AI suggestion today. Add one below.",
+  "aiProgramExerciseRemoveBody": "Removes {name} from this program.",
+  "@aiProgramExerciseRemoveBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalDismissTitle": "Drop this exercise?",
+  "aiPersonalDismissBody": "{name} will be dropped from this personal exercise. An AI suggestion will not come back.",
+  "@aiPersonalDismissBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalDismissTooltip": "Drop this suggestion",
+  "aiPersonalDismissed": "{name} will not be recommended",
+  "@aiPersonalDismissed": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalDismissFailed": "Could not complete that. Please try again shortly.",
+  "aiStepSkipped": "Skipped",
+  "aiStepPersonal": "Personal exercise",
+  "aiGoToPersonalStep": "Next · plan personal exercise",
+  "aiPersonalStepTitle": "Personal exercise between PT",
+  "aiPersonalStepTitleRoutineOnly": "This week's personal exercise",
+  "aiPersonalStepBlurb": "Attached to this PT and sent to the member when you complete it. Pick at least one.",
+  "aiPersonalStepBlurbRoutineOnly": "What the member does on their own this week. Pick at least one.",
+  "aiPersonalStepEmpty": "No personal exercise yet. Add one below.",
+  "aiPersonalStepNext": "Next",
+  "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
+  "aiRoutineOnlyReviewTitle": "Sending this to the member",
+  "aiRoutineOnlyStartDate": "Start date",
+  "aiRoutineOnlyWeekRange": "Shown daily {start} – {end}",
+  "@aiRoutineOnlyWeekRange": {
+    "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
+  },
+  "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days from today. Send next week's set again then.",
+  "aiRoutineOnlySend": "Send to member",
+  "aiRoutineOnlySentLabel": "Sent",
+  "aiRoutineOnlySent": "Personal exercise sent to the member.",
+  "aiRoutineOnlySendFailed": "Could not send the personal exercise. Please try again shortly.",
+  "aiRoutineOnlyProgramName": "This week's personal exercise",
+  "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
+  "programRoutineOnlyConfirmBody": "Sends personal exercise to {client}. Appears daily from {start} to {end}.",
+  "@programRoutineOnlyConfirmBody": {
+    "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }
+  },
+  "progPersonalRoutinesTitle": "Personal exercise going with it",
+  "progPersonalRoutinesCount": "{count} personal exercises going with it",
+  "@progPersonalRoutinesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "aiStepperLabel": "Custom suggestion progress",
   "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {minutes} min",
   "@coachTemplateSummaryWithGoal": {
@@ -2035,72 +2101,8 @@
     }
   },
   "programSavedNew": "New program",
-  "suggestionReviewTitle": "AI personal exercises",
-  "suggestionReviewBadge": "{count} to review",
-  "@suggestionReviewBadge": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "suggestionReviewIntro": "Prepared for {name} from recent PT feedback and exercise records. The member sees only what you recommend.",
-  "@suggestionReviewIntro": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "suggestionReviewEmpty": "No AI personal exercises are waiting for review.",
-  "suggestionReviewLoadFailed": "Couldn't load the AI suggestions.",
-  "suggestionApprove": "Recommend to member",
-  "suggestionConfirmTitle": "Final review · recommend to member",
-  "suggestionConfirmBody": "Exactly what you see below is what {client} receives. Once recommended it shows up in their app.",
-  "@suggestionConfirmBody": {
-    "placeholders": {
-      "client": {
-        "type": "String"
-      }
-    }
-  },
-  "suggestionDismiss": "Don't recommend",
-  "suggestionApproved": "Recommended {name} to {client}.",
-  "@suggestionApproved": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "client": {
-        "type": "String"
-      }
-    }
-  },
-  "suggestionDismissed": "{name} won't be recommended.",
-  "@suggestionDismissed": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "suggestionActionFailed": "Couldn't finish that. Please try again.",
-  "suggestionAlreadyReviewed": "This suggestion was already reviewed. The list has been refreshed.",
-  "suggestionEditTitle": "Edit personal exercise",
-  "suggestionEditSubmit": "Edit and recommend",
-  "suggestionEditName": "Exercise",
-  "suggestionEditMemo": "Note for the member",
-  "suggestionEditMemoHint": "Stop if your right shoulder hurts.",
   "programDraftSaved": "Program saved.",
   "programDraftSaveFailed": "Couldn't save the program. Please try again.",
-  "programDraftLoaded": "Opened {name} in the editor.",
-  "@programDraftLoaded": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "programDraftLoadFailed": "Couldn't open the saved program. Please try again.",
   "programDraftDeleteFailed": "Couldn't delete the program. Please try again.",
   "programDraftDeleteTitle": "Delete this saved program?",

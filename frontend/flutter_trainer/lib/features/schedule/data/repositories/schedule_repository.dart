@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/dio_schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
@@ -111,6 +112,10 @@ abstract interface class ScheduleRepository {
   /// 세션이다(#1581). 없으면 그 시간으로 새로 만들고 `false`, 하나면 거기에
   /// 붙이고 `true`. 여럿이면 [sessionId] 로 고른 것에만 붙이며, 고르지
   /// 않았거나 고른 것이 후보가 아니면 [ProgramAttachConflictError].
+  ///
+  /// [personalRoutines] 는 그 PT 사이에 회원이 혼자 할 개인운동이다(#2223).
+  /// 같은 명령으로 그 일정에 붙기만 하고 회원에게는 가지 않는다 — 보내는 것은
+  /// PT 완료 때다(#2224).
   Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
@@ -120,6 +125,7 @@ abstract interface class ScheduleRepository {
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
     String? sessionId,
+    List<RoutineExercise> personalRoutines,
   });
 
   /// Removes a session from the timeline.
@@ -453,6 +459,9 @@ class DriftScheduleRepository implements ScheduleRepository {
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
     String? sessionId,
+    // 데모에는 개인운동을 받을 회원 백엔드가 없다 — 배정과 같은 이유로
+    // 일정만 로컬에 반영한다.
+    List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
   }) {
     final table = _db.trainerScheduleEntries;
     return _db.transaction(() async {
