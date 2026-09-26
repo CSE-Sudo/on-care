@@ -15,5 +15,5 @@ String reportPdfFileName(AppLocalizations l, WeeklyReport report) {
   final name = safeName.replaceAll('_', '').trim().isEmpty
       ? l.reportsPdfFallbackClient
       : safeName;
-  return '${name}_${ymd(report.weekStart)}_주간리포트.pdf';
+  return '${name}_${ymd(report.weekStart)}_${l.reportsPdfFileSuffix}.pdf';
 }

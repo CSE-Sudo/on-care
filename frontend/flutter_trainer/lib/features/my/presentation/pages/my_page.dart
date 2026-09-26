@@ -571,9 +571,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         // 약관·개인정보와 탈퇴는 고객 지원 안으로 옮겼다(#2227). 회원 앱과 같은
         // 자리다 — 읽는 문서와 계정을 정리하는 줄을 한곳에 모으면, 매일 쓰는
         // 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지 않는다(#505, #968).
-        _SupportEntry(
-          onTap: () => context.go(AppRoutes.mySection('support')),
-        ),
+        _SupportEntry(onTap: () => context.go(AppRoutes.mySection('support'))),
         const SizedBox(height: OnCareSpacing.cardGap),
         // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리). 자리는 설정 맨
         // 아래다(#2227) — 계정 카드 안에 두면 읽는 줄들 사이에 버튼이 끼어

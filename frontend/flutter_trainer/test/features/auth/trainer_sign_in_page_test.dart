@@ -220,7 +220,9 @@ void main() {
       // 비밀번호 보이기/감추기도 공용 부품이다 — 아이콘은 앱의 묶음을 따른다.
       expect(find.byType(AppPasswordToggle), findsOneWidget);
       expect(
-        tester.widget<AppPasswordToggle>(find.byType(AppPasswordToggle)).obscure,
+        tester
+            .widget<AppPasswordToggle>(find.byType(AppPasswordToggle))
+            .obscure,
         isTrue,
       );
 

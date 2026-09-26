@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/client_factory.dart';
@@ -44,6 +45,7 @@ void main() {
       // 주로 넘어갔다. 바로 아래 근거 줄이 `초과 3일` 을 적고 있어 카드 하나가
       // 서로 다른 말을 했다.
       final summary = ruleReportSummary(
+        _ko,
         _report(completionAvg: 81, sodiumAvg: 1916, sodiumOverDays: 3),
         makeClient(name: '김민수'),
       );
@@ -56,6 +58,7 @@ void main() {
 
     test('평균도 초과일도 목표 안이면 지금 강도를 유지하라고 말한다', () {
       final summary = ruleReportSummary(
+        _ko,
         _report(completionAvg: 90, sodiumAvg: 1500, sodiumOverDays: 0),
         makeClient(name: '김민수'),
       );
@@ -65,6 +68,7 @@ void main() {
 
     test('근거의 수치는 화면과 같은 서식으로 적는다 (#1177)', () {
       final summary = ruleReportSummary(
+        _ko,
         _report(completionAvg: 81, sodiumAvg: 1916, sodiumOverDays: 3),
         makeClient(name: '김민수'),
       );
@@ -79,6 +83,7 @@ void main() {
       // 바로 옆 `주간 운동 이행률` 카드 제목 줄이 같은 값을 이미 적고 있어,
       // 근거 세 줄 중 하나를 되풀이에 쓰고 있었다.
       final lines = summaryEvidence(
+        _ko,
         _report(completionAvg: 81, sodiumAvg: 1500, sodiumOverDays: 0),
       );
 
@@ -134,13 +139,13 @@ void main() {
         sugarWeek: const <double>[72, 80, 61, 90, 0, 0, 0],
       );
 
-      final kinds = summaryWatchpoints(report).map((w) => w.kind).toList();
-      final summary = ruleReportSummary(report, makeClient(name: '김민수'));
+      final kinds = summaryWatchpoints(_ko, report).map((w) => w.kind).toList();
+      final summary = ruleReportSummary(_ko, report, makeClient(name: '김민수'));
 
       expect(kinds, contains('sugar'));
       expect(summary.headline, isNot(contains('목표 범위 안')));
       expect(summary.headline, contains('당류'));
-      expect(summaryEvidence(report).any((l) => l.contains('당류')), isTrue);
+      expect(summaryEvidence(_ko, report).any((l) => l.contains('당류')), isTrue);
     });
 
     test('칼로리는 평균이 아니라 목표와 견준 결과로 말한다', () {
@@ -152,11 +157,12 @@ void main() {
         caloriesWeek: const <int>[1700, 1750, 1680, 1720, 0, 0, 0],
       );
 
-      final watch = summaryWatchpoints(report);
+      final watch = summaryWatchpoints(_ko, report);
 
       expect(watch.any((w) => w.kind == 'calories'), isTrue);
       expect(
         summaryEvidence(
+          _ko,
           report,
         ).any((l) => l.contains('개인 목표 2,600kcal') && l.contains('부족')),
         isTrue,
@@ -180,10 +186,11 @@ void main() {
       );
 
       expect(
-        summaryWatchpoints(without).any((w) => w.kind == 'macro'),
+        summaryWatchpoints(_ko, without).any((w) => w.kind == 'macro'),
         isFalse,
       );
       final macro = summaryWatchpoints(
+        _ko,
         withTarget,
       ).firstWhere((w) => w.kind == 'macro');
       expect(macro.text, contains('단백질'));
@@ -200,7 +207,7 @@ void main() {
         sugarWeek: const <double>[20, 22, 0, 0, 0, 0, 0],
       );
 
-      final kinds = summaryWatchpoints(report).map((w) => w.kind).toSet();
+      final kinds = summaryWatchpoints(_ko, report).map((w) => w.kind).toSet();
 
       expect(kinds.contains('calories'), isFalse);
       expect(kinds.contains('sugar'), isFalse);
@@ -215,9 +222,12 @@ void main() {
         caloriesWeek: const <int>[3000, 3100, 2900, 3050, 0, 0, 0],
       );
 
-      final summary = ruleReportSummary(report, makeClient(name: '김민수'));
+      final summary = ruleReportSummary(_ko, report, makeClient(name: '김민수'));
 
-      expect(summaryWatchpoints(report).length, greaterThan(summaryMaxPoints));
+      expect(
+        summaryWatchpoints(_ko, report).length,
+        greaterThan(summaryMaxPoints),
+      );
       expect(summary.points.length, summaryMaxPoints);
       expect(summary.points.last, startsWith('외 '));
       // 가장 위험한 항목이 먼저 남는다.
@@ -233,6 +243,60 @@ void main() {
       // 81% 는 `퍼센트`, 1,916mg 은 `밀리그램` 으로 읽혀 받침이 없다.
       expect(hasFinalConsonant('81%'), isFalse);
       expect(hasFinalConsonant('1,916mg'), isFalse);
+    });
+  });
+
+  group('영어 요약 (#2232)', () {
+    final AppLocalizationsEn en = AppLocalizationsEn();
+    final RegExp hangul = RegExp(r'[가-힣]');
+    // 주의사항이 골고루 걸리는 주 — 이행률·나트륨·당류·칼로리·단백질.
+    final report = _report(
+      completionAvg: 55,
+      sodiumAvg: 2600,
+      sodiumOverDays: 4,
+      sugarWeek: const <double>[72, 80, 61, 90, 0, 0, 0],
+      caloriesWeek: const <int>[2900, 3000, 2800, 0, 0, 0, 0],
+      proteinWeek: const <double>[40, 42, 38, 0, 0, 0, 0],
+      proteinTarget: 120,
+    );
+
+    test('머리 문장과 근거 줄에 한글이 남지 않는다', () {
+      final summary = ruleReportSummary(en, report, makeClient(name: 'Min'));
+
+      expect(summary.headline, isNot(matches(hangul)));
+      for (final String point in summary.points) {
+        expect(point, isNot(matches(hangul)), reason: point);
+      }
+    });
+
+    test('주의사항·다음 주 할 일에도 한글이 남지 않는다', () {
+      for (final w in summaryWatchpoints(en, report)) {
+        expect(w.text, isNot(matches(hangul)), reason: w.text);
+        expect(w.topic, isNot(matches(hangul)), reason: w.topic);
+      }
+      for (final String a in summaryCoachingActionsAll(en, report)) {
+        expect(a, isNot(matches(hangul)), reason: a);
+      }
+    });
+
+    test('영어에는 한국어 조사를 붙이지 않는다', () {
+      final summary = ruleReportSummary(
+        en,
+        _report(completionAvg: 95, sodiumAvg: 2600, sodiumOverDays: 4),
+        makeClient(name: 'Min'),
+      );
+
+      expect(summary.headline, contains('workout completion at 95% on track'));
+    });
+
+    test('기록이 없는 주도 영어로 말한다', () {
+      final summary = ruleReportSummary(
+        en,
+        _report(completionAvg: null, sodiumAvg: null, sodiumOverDays: 0),
+        makeClient(name: 'Min'),
+      );
+
+      expect(summary.headline, en.summaryHeadlineNoData('Min'));
     });
   });
 }

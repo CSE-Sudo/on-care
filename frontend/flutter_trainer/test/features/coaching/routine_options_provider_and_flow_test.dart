@@ -488,15 +488,16 @@ void main() {
       expect(find.text('최종 검토'), findsOneWidget);
       // 개인운동은 PT 구성을 고르는 일과 엮이지 않는 **마지막** 단계다.
       expect(find.text('개인운동'), findsOneWidget);
-      expect(find.byKey(const ValueKey<String>('routine-stage-3')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-3')),
+        findsOneWidget,
+      );
       // 예전 이름이 남아 있으면 흐름이 두 이름으로 불린다.
       expect(find.text('후보 검토'), findsNothing);
       expect(find.text('추천 완료'), findsNothing);
     });
 
-    testWidgets('단계 원은 화면 폭과 무관하게 같은 간격으로 가운데 모인다 (#2219)', (
-      tester,
-    ) async {
+    testWidgets('단계 원은 화면 폭과 무관하게 같은 간격으로 가운데 모인다 (#2219)', (tester) async {
       // 원 중심 사이 거리는 창이 넓든 좁든 같은 고정값이다 — 예전에는 폭을
       // n등분해, 창이 넓어질수록 원들이 좌우 끝으로 멀어졌다.
       double circleGap() =>
@@ -527,10 +528,7 @@ void main() {
       final double right = tester
           .getCenter(find.byKey(const ValueKey<String>('routine-stage-3')))
           .dx;
-      expect(
-        (left - 0).toStringAsFixed(1),
-        (520 - right).toStringAsFixed(1),
-      );
+      expect((left - 0).toStringAsFixed(1), (520 - right).toStringAsFixed(1));
     });
 
     testWidgets('PT 프로그램 짜기를 건너뛰어도 칸은 넷 그대로고, 지나친 칸은 '
@@ -604,10 +602,7 @@ void main() {
         find.textContaining('가벼운 인터벌 러닝', findRichText: true),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('힙 브리지', findRichText: true),
-        findsOneWidget,
-      );
+      expect(find.textContaining('힙 브리지', findRichText: true), findsOneWidget);
       expect(find.text('AI 제안 2'), findsOneWidget);
       expect(find.text('숨이 차면 속도를 낮추세요'), findsOneWidget);
       expect(find.text('혈압 관리 목표'), findsOneWidget);
@@ -717,8 +712,7 @@ void main() {
       expect(done, findsNothing);
     });
 
-    testWidgets('세트·횟수를 안 준 근력은 보이는 값 그대로 굳힌다 (#2223)',
-        (tester) async {
+    testWidgets('세트·횟수를 안 준 근력은 보이는 값 그대로 굳힌다 (#2223)', (tester) async {
       // AI 는 근력을 분으로만 주기도 한다(`_personalizedOptions` 의 스쿼트).
       // 예전에는 편집기가 `3`·`10` 을 보여 주면서 값은 0 으로 두어, 최종
       // 검토가 `0세트 · 0회` 를 그리고 편집기로 넘어갈 때 또 다른 기본값이
@@ -817,10 +811,7 @@ void main() {
       // 거절한 제안은 다시 올라오지 않는다 — 되돌릴 수 없으므로 확인을 받는다.
       expect(find.text('이 운동을 뺄까요?'), findsOneWidget);
       // 조사는 받침을 보고 고른다 — `러닝` 뒤에는 `을`.
-      expect(
-        find.textContaining('가벼운 인터벌 러닝을 이번 개인운동에서 빼요'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('가벼운 인터벌 러닝을 이번 개인운동에서 빼요'), findsOneWidget);
 
       // 취소하면 그대로 남는다.
       await tester.tap(find.text('취소'));
@@ -1106,7 +1097,8 @@ void main() {
                 RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
               ],
               recommendedReason: '기존 회원 데이터 기반 추천',
-              onReviewCompleted: (exercises, personal, kind) => reviewed = exercises,
+              onReviewCompleted: (exercises, personal, kind) =>
+                  reviewed = exercises,
             ),
           ),
         ),
@@ -1386,7 +1378,8 @@ void main() {
               RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
             ],
             recommendedReason: '기존 회원 데이터 기반 추천',
-            onReviewCompleted: (exercises, personal, kind) => reviewed = exercises,
+            onReviewCompleted: (exercises, personal, kind) =>
+                reviewed = exercises,
           ),
         ),
       ),
@@ -1409,7 +1402,8 @@ void main() {
 /// server decide" contract (#776) without a real backend.
 /// 정해진 제안만 돌려주는 저장소. 빈 목록으로 두면 개인운동 단계가 비어
 /// 시작한다. (#2223)
-class _StaticSuggestionRepository implements TrainerRoutineSuggestionRepository {
+class _StaticSuggestionRepository
+    implements TrainerRoutineSuggestionRepository {
   _StaticSuggestionRepository(this._rows);
 
   final List<RoutineSuggestion> _rows;

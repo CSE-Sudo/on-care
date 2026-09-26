@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -44,7 +45,10 @@ class ReportAiCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final key = (client: report.client, weekStart: report.weekStart);
+    final ReportSummaryKey key = (
+      report: (client: report.client, weekStart: report.weekStart),
+      locale: Localizations.localeOf(context),
+    );
     final summary = ref.watch(reportSummaryProvider(key));
     final Widget content = summary.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
@@ -91,9 +95,9 @@ class ReportAiCard extends ConsumerWidget {
         Row(
           children: <Widget>[
             Expanded(
-              child: AppSectionHeader(
+              child: ReportCardHeader(
                 title: l.reportsAiTitle,
-                icon: Icons.auto_awesome_rounded,
+                subtitle: l.reportsAiSubtitle,
               ),
             ),
             if (summary.valueOrNull?.isGenerated ?? false) ...<Widget>[

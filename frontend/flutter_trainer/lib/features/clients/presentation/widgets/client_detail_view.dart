@@ -172,10 +172,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
           children: <Widget>[
             _Header(
               client: client,
-              signals: rosterSignalsFor(
-                client,
-                unread: unread[client.id] ?? 0,
-              ),
+              signals: rosterSignalsFor(client, unread: unread[client.id] ?? 0),
               showBack: widget.showBack,
               onClose: widget.onClose,
               onOpenProfile: () => _openProfileDialog(client),

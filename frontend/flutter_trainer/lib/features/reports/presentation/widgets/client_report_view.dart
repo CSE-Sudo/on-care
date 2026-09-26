@@ -1,23 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
-    show weekdayCount;
+import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/four_week_compliance_trend.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/metric_comparison_section.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/metric_trend_section.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_ai_card.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_daily_detail.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_editor.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/weekly_completion_chart.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/weekly_exercise_minutes.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 주간 리포트 편집기의 단계.
+///
+/// 한 화면에 전부 쌓아 두면 트레이너는 스크롤 어디쯤에서 "다 봤다"고 판단할
+/// 뿐, 무엇을 끝냈는지 알 수 없다. 읽기 → 정하기 → 보내기로 끊어, 각
+/// 단계에서 할 일 하나만 화면에 둔다. (#2232)
+enum ReportEditorStage {
+  /// ① 확인 — 자료를 읽는 단계. 입력이 없다.
+  review,
+
+  /// ② 작성 — 회원에게 보낼 글을 쓴다. 요약에서 출발할 수 있고, 다음 주에
+  /// 바꿀 것을 함께 고른다. 예전에는 `다음 주 목표` 만 하는 단계였는데,
+  /// 목표를 고르는 일과 글을 쓰는 일은 트레이너 머릿속에서 한 번에 일어난다.
+  goals,
+
+  /// ③ 전송 — 다 쓴 글을 회원에게 내보낸다.
+  send,
+}
 
 /// One client's week, ready to send.
 class ClientReportView extends StatefulWidget {
   const ClientReportView({
     super.key,
     required this.report,
+    this.stage,
     required this.showSummary,
     required this.draftEpoch,
     required this.summaryEpoch,
@@ -27,9 +44,18 @@ class ClientReportView extends StatefulWidget {
     required this.savingFeedback,
     required this.onSaveFeedback,
     required this.weekNav,
+    this.calorieBaseline,
   });
 
   final WeeklyReport report;
+
+  /// 직전 넉 주의 하루 평균 섭취 칼로리 — ① 칼로리 줄이 견주는 `평소`.
+  /// 아직 안 읽혔거나 견줄 기록이 없으면 null 이다.
+  final double? calorieBaseline;
+
+  /// 어느 단계를 그릴 것인가. null 이면 예전처럼 전부 한 흐름에 쌓는다 —
+  /// 좁은 화면과 PDF 미리보기가 그 형태를 쓴다.
+  final ReportEditorStage? stage;
 
   /// 요약 카드를 이 흐름 안에 그릴 것인가. 넓은 화면에서는 왼쪽 고객 열이
   /// 가져가므로 `false` 다.
@@ -101,137 +127,158 @@ class _ClientReportViewState extends State<ClientReportView> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool hasWeek = widget.report.weekCompletion.length == weekdayCount;
+    final ReportEditorStage? stage = widget.stage;
+    final bool showReview = stage == null || stage == ReportEditorStage.review;
+    final bool showGoals = stage == null || stage == ReportEditorStage.goals;
+    final bool showSend = stage == null || stage == ReportEditorStage.send;
+    // 단계가 있는 편집기인지. 없으면 한 화면에 전부 펼치던 예전 흐름이다.
+    final bool staged = stage != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _SectionCard(
-          title: l.reportsClientWeekly(widget.report.client.name),
-          icon: Icons.description_rounded,
-          // 고객 이름·나이는 적지 않는다 — 카드 제목이 이미 누구의 리포트인지
-          // 말하고, 왼쪽 목록에서 방금 고른 고객이다(#1177). 그 자리를 주
-          // 이동이 가져간다: 옮기는 것은 이 카드의 내용이다.
-          trailing: widget.weekNav,
-          child: MetricComparisonSection(report: widget.report),
-        ),
-        if (widget.showSummary) ...<Widget>[
+        // 확인 단계에는 요약을 두지 않는다. AI 가 내린 결론을 먼저 읽으면
+        // 자료를 보는 일이 **그 결론이 맞는지 확인하는 일**로 바뀌어, 요약이
+        // 짚지 않은 것은 트레이너도 짚지 않게 된다. 요약은 글을 쓰는 자리의
+        // 출발점이므로 ② 작성에 선다. (#2232)
+        // ① 회원이 낸 답. 수치만으로는 같은 한 주가 `게으름` 으로도
+        // `과부하` 로도 읽히는데, 그 둘은 다음 주 처방이 정반대다.
+        if (showReview) ...<Widget>[
+          MemberFeedbackCard(feedback: widget.report.memberFeedback),
           const SizedBox(height: OnCareSpacing.s16),
+        ],
+        if (showReview)
+          _SectionCard(
+            number: 2,
+            title: l.reportsCardWeekTitle,
+            subtitle: l.reportsCardWeekSubtitle,
+            // 고객 이름·나이는 적지 않는다 — 카드 제목이 이미 누구의 리포트인지
+            // 말하고, 왼쪽 목록에서 방금 고른 고객이다(#1177). 그 자리를 주
+            // 이동이 가져간다: 옮기는 것은 이 카드의 내용이다.
+            trailing: widget.weekNav,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // ① 격자 — 요일마다 무엇이 있었는지. 칼로리·나트륨·당류를
+                // 나란히 세우던 예전 비교 표를 대신한다(#2232). 지표를 나열하면
+                // 트레이너가 어느 줄부터 읽어야 할지를 매번 다시 정해야 했다.
+                ReportWeekGrid(
+                  report: widget.report,
+                  calorieBaseline: widget.calorieBaseline,
+                ),
+                const SizedBox(height: OnCareSpacing.s16),
+                // 총량이 말하지 않는 것 — 같은 칼로리가 무엇으로 채워졌는가.
+                ReportMacroBars(report: widget.report),
+              ],
+            ),
+          ),
+        // 요약 카드는 ② 다음 주 목표와 ③ 전송 두 단계에 선다. ②에서는
+        // `다음 주 코칭 제안` 이 목표를 고르는 재료이고, ③에서는 같은 카드의
+        // `피드백으로 가져오기` 가 보낼 글의 출발점이다 — 두 단계에서 쓰임이
+        // 달라 한쪽에만 둘 수 없다.
+        if ((showGoals || (showSend && staged)) &&
+            (widget.showSummary || staged)) ...<Widget>[
+          if (stage == null) const SizedBox(height: OnCareSpacing.s16),
           ReportAiCard(
             report: widget.report,
             onUseAsDraft: widget.onUseSummaryAsDraft,
           ),
         ],
-        const SizedBox(height: OnCareSpacing.s16),
-        _SectionCard(
-          title: l.reportsFeedbackTitle,
-          // 저장 버튼을 제목 행에 둔다 — 입력창 위에 버튼만 있는 줄이 따로
-          // 있으면 카드가 그만큼 세로로 늘어난다.
-          // 되돌리기·다시 실행을 저장 옆에 둔다 — 입력창을 되돌릴 수단이 그
-          // 입력창 바로 위에 있어야 한다. 되돌릴 것이 없으면 꺼 둔다(#2187).
-          //
-          // 지난 주에는 모두 없다. 트레이너가 손볼 것은 이번 주에 보낼 글이고,
-          // 이미 지나간 주의 초안을 저장해 둘 자리는 없다(#1177).
-          trailing: widget.report.isCurrentWeek
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ValueListenableBuilder<UndoHistoryValue>(
-                      valueListenable: _undo,
-                      builder: (context, history, _) => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          AppIconButton(
-                            key: const ValueKey<String>('report-feedback-undo'),
-                            icon: Icons.undo_rounded,
-                            tooltip: l.reportsFeedbackUndo,
-                            size: AppIconButtonSize.small,
-                            onPressed: history.canUndo ? _undo.undo : null,
-                          ),
-                          AppIconButton(
-                            key: const ValueKey<String>('report-feedback-redo'),
-                            icon: Icons.redo_rounded,
-                            tooltip: l.reportsFeedbackRedo,
-                            size: AppIconButtonSize.small,
-                            onPressed: history.canRedo ? _undo.redo : null,
-                          ),
-                        ],
+        // 입력창은 **작성** 단계에 선다. 단계 이름이 `작성` 인데 글 쓰는
+        // 자리가 다음 단계에 있으면, 트레이너는 목표만 고르고 넘어간 뒤
+        // 전송 단계에서 처음 글을 만나게 된다. 전송 단계에도 남겨 두어
+        // 보내기 직전에 고칠 수 있다. (#2232)
+        if (showGoals || showSend) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s16),
+          _SectionCard(
+            title: l.reportsFeedbackTitle,
+            // 저장 버튼을 제목 행에 둔다 — 입력창 위에 버튼만 있는 줄이 따로
+            // 있으면 카드가 그만큼 세로로 늘어난다.
+            // 되돌리기·다시 실행을 저장 옆에 둔다 — 입력창을 되돌릴 수단이 그
+            // 입력창 바로 위에 있어야 한다. 되돌릴 것이 없으면 꺼 둔다(#2187).
+            //
+            // 지난 주에는 모두 없다. 트레이너가 손볼 것은 이번 주에 보낼 글이고,
+            // 이미 지나간 주의 초안을 저장해 둘 자리는 없다(#1177).
+            trailing: widget.report.isCurrentWeek
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      // 자동으로 채워진 초안이 늘 맞는 것은 아니다. 지우고
+                      // 처음부터 쓰려면 입력창을 통째로 비워야 하는데, 손으로
+                      // 지우면 되돌리기 기록이 그만큼 어지러워진다 — 요약을
+                      // 가져오는 것과 **같은 길**로 비워, 한 번에 되돌아간다.
+                      AppButton(
+                        key: const ValueKey<String>('report-feedback-scratch'),
+                        label: l.reportsWriteFromScratch,
+                        leadingIcon: Icons.edit_note_rounded,
+                        variant: AppButtonVariant.text,
+                        size: OnCareButtonSize.small,
+                        onPressed: () => widget.onUseSummaryAsDraft(''),
                       ),
-                    ),
-                    const SizedBox(width: OnCareSpacing.buttonGap),
-                    AppButton(
-                      key: const ValueKey<String>('report-feedback-save'),
-                      label: widget.savingFeedback
-                          ? l.reportsFeedbackSaving
-                          : l.reportsFeedbackSave,
-                      leadingIcon: Icons.save_rounded,
-                      variant: AppButtonVariant.secondary,
-                      size: OnCareButtonSize.small,
-                      onPressed: widget.savingFeedback
-                          ? null
-                          : widget.onSaveFeedback,
-                    ),
-                  ],
-                )
-              : null,
-          child: ReportFeedbackEditor(
-            key: ValueKey<String>(_editorKey),
-            initialText: widget.initialFeedback,
-            undoController: _undo,
-            replaceEpoch: widget.summaryEpoch,
-            onChanged: widget.onFeedbackChanged,
+                      const SizedBox(width: OnCareSpacing.buttonGap),
+                      ValueListenableBuilder<UndoHistoryValue>(
+                        valueListenable: _undo,
+                        builder: (context, history, _) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            AppIconButton(
+                              key: const ValueKey<String>(
+                                'report-feedback-undo',
+                              ),
+                              icon: Icons.undo_rounded,
+                              tooltip: l.reportsFeedbackUndo,
+                              size: AppIconButtonSize.small,
+                              onPressed: history.canUndo ? _undo.undo : null,
+                            ),
+                            AppIconButton(
+                              key: const ValueKey<String>(
+                                'report-feedback-redo',
+                              ),
+                              icon: Icons.redo_rounded,
+                              tooltip: l.reportsFeedbackRedo,
+                              size: AppIconButtonSize.small,
+                              onPressed: history.canRedo ? _undo.redo : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: OnCareSpacing.buttonGap),
+                      AppButton(
+                        key: const ValueKey<String>('report-feedback-save'),
+                        label: widget.savingFeedback
+                            ? l.reportsFeedbackSaving
+                            : l.reportsFeedbackSave,
+                        leadingIcon: Icons.save_rounded,
+                        variant: AppButtonVariant.secondary,
+                        size: OnCareButtonSize.small,
+                        onPressed: widget.savingFeedback
+                            ? null
+                            : widget.onSaveFeedback,
+                      ),
+                    ],
+                  )
+                : null,
+            child: ReportFeedbackEditor(
+              key: ValueKey<String>(_editorKey),
+              initialText: widget.initialFeedback,
+              undoController: _undo,
+              replaceEpoch: widget.summaryEpoch,
+              onChanged: widget.onFeedbackChanged,
+            ),
           ),
-        ),
-        const SizedBox(height: OnCareSpacing.s16),
-        // 운동과 식단을 카드로 나눈다. 예전에는 나트륨 추이 그래프가 '요일별
-        // 운동 이행률' 카드 안에 있어 제목과 내용이 서로 다른 말을 했다(#754).
-        _SectionCard(
-          // 막대가 이행률에서 소모 칼로리로 바뀌면서 제목도 따라간다(#1289).
-          // 이행률은 사라지지 않고 제목 줄의 요약 칩과 4주 추이로 남는다.
-          title: l.reportsBurnByDay,
-          // 한 주를 요약하는 세 값은 제목 줄에 둔다. 카드 안에서 큰 숫자로
-          // 다시 보여 주면 그래프가 아래로 밀린다(#754 의 반복).
-          trailing: _WeekSummaryChips(report: widget.report),
-          trailingFlexible: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // 계열은 리포트가 자기 주의 것을 들고 온다 — 보고 있는 주가
-              // 어디든 같은 규칙으로 그린다(#752).
-              if (hasWeek)
-                WeeklyCompletionChart(report: widget.report)
-              else
-                AppEmptyState(
-                  title: l.reportsNoWorkoutsThisWeek,
-                  icon: Icons.fitness_center_rounded,
-                  placement: AppStatePlacement.card,
-                ),
-              if (hasWeek) ...<Widget>[
-                const SizedBox(height: OnCareSpacing.s12),
-                // 막대 바로 아래에 그날의 운동 내역. 67% 가 어디서 나온
-                // 값인지 같은 카드 안에서 답이 난다(#754).
-                ReportDailyDetail(report: widget.report),
-                const _SectionDivider(),
-                // 이행률이 말하지 않는 값 — 그 주에 실제로 움직인 시간이다.
-                WeeklyExerciseMinutes(report: widget.report),
-              ],
-              if (widget.report.completionAvg != null) ...<Widget>[
-                const _SectionDivider(),
-                // 마지막 줄에 보고 있는 주를 앞선 세 주 옆에 놓는다. 며칠을
-                // 나눈 값인지는 따로 적지 않는다 — 값이 있는 막대를 세면
-                // 나온다(#754).
-                FourWeekComplianceTrend(report: widget.report),
-              ],
-            ],
+        ],
+        if (showReview) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s16),
+          // ③ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
+          // 목표에 대한 비율로 바꿔야 한 화면에서 견줄 수 있다. 이번 주가
+          // 흐름의 어디쯤인지는 이 카드에서만 보인다 — 앞의 둘은 한 주만
+          // 말한다.
+          _SectionCard(
+            number: 3,
+            title: l.reportsExerciseTrend,
+            subtitle: l.reportsTrendSubtitle(kReportTrendWeeks),
+            child: ReportExerciseTrend(report: widget.report),
           ),
-        ),
-        const SizedBox(height: OnCareSpacing.s16),
-        _SectionCard(
-          // `나트륨 초과 n일` 은 적지 않는다 — 카드 제목은 식단 전체를 말하는데
-          // 그 옆에 지표 하나의 수치만 붙어 있었고, 같은 값은 요약 카드의 근거
-          // 줄과 4주 막대의 빨강이 이미 말한다(#1177).
-          title: l.reportsDietTrend,
-          child: MetricTrendSection(report: widget.report),
-        ),
+        ],
       ],
     );
   }
@@ -242,17 +289,21 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.title,
     required this.child,
-    this.icon,
+    this.number,
+    this.subtitle = '',
     this.trailing,
-    this.trailingFlexible = false,
   });
 
   final String title;
-  final IconData? icon;
+
+  /// 카드 번호. 읽는 차례가 있는 카드만 갖는다.
+  final int? number;
+
+  /// 제목 옆 곁말.
+  final String subtitle;
+
   final Widget? trailing;
 
-  /// 오른쪽 내용이 줄을 접을 수 있으면(칩 묶음) 제목과 폭을 나눈다.
-  final bool trailingFlexible;
   final Widget child;
 
   @override
@@ -268,31 +319,25 @@ class _SectionCard extends StatelessWidget {
             builder: (context, constraints) => Row(
               children: <Widget>[
                 Expanded(
-                  child: AppSectionHeader(title: title, icon: icon),
+                  child: ReportCardHeader(
+                    number: number,
+                    title: title,
+                    subtitle: subtitle,
+                  ),
                 ),
                 if (end != null) ...<Widget>[
                   const SizedBox(width: OnCareSpacing.s8),
-                  if (trailingFlexible)
-                    // 칩 묶음은 제 폭만 차지해 칸 왼쪽에 떠 있었다 — 칸을
-                    // 채우고 오른쪽 끝에 붙인다.
-                    Flexible(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: end,
-                      ),
-                    )
-                  else
-                    ConstrainedBox(
-                      // 앞 간격만큼 뺀다 — 그대로 두면 그 간격만큼 넘친다.
-                      constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth - OnCareSpacing.s8,
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: end,
-                      ),
+                  ConstrainedBox(
+                    // 앞 간격만큼 뺀다 — 그대로 두면 그 간격만큼 넘친다.
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth - OnCareSpacing.s8,
                     ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: end,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -301,53 +346,6 @@ class _SectionCard extends StatelessWidget {
           child,
         ],
       ),
-    );
-  }
-}
-
-/// 한 카드 안의 구획 사이 선.
-class _SectionDivider extends StatelessWidget {
-  const _SectionDivider();
-
-  @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-    child: AppDivider(),
-  );
-}
-
-/// 평균 이행률 · 기록한 날 수 · PT 진행 — 그래프가 답하지 않는 세 값.
-class _WeekSummaryChips extends StatelessWidget {
-  const _WeekSummaryChips({required this.report});
-
-  final WeeklyReport report;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    // PT 진행 횟수는 적지 않는다 — 이 카드가 말하는 것은 회원이 루틴을 얼마나
-    // 따라왔나이고, 세션 수는 스케줄 탭이 답한다(#1177).
-    final int? avg = report.completionAvg;
-    final int logged = report.weekCompletion.where((v) => v > 0).length;
-    return Wrap(
-      spacing: OnCareSpacing.s4,
-      runSpacing: OnCareSpacing.s4,
-      alignment: WrapAlignment.end,
-      children: <Widget>[
-        // 카드 제목이 소모 칼로리를 말하게 됐으므로(#1289) 이 칩이 무엇의
-        // 평균인지 스스로 밝힌다 — `평균 87%` 만으로는 칼로리의 평균으로 읽힌다.
-        // 영어·큰 글자 배율에서는 태그 하나가 칸보다 길다 — 넘치지 않게 줄여 그린다.
-        if (avg != null)
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: AppTag(label: l.reportsAdherenceChip('$avg%')),
-          ),
-        if (logged > 0)
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: AppTag(label: l.reportsRecordedDays(logged)),
-          ),
-      ],
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +21,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이번에 짜는 프로그램이 어떤 것인가. (#2223)
@@ -568,18 +568,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   RoutineExercise _rawExerciseOfSuggestion(RoutineSuggestion s) =>
       RoutineExercise(
-    name: s.name,
-    minutes: s.minutes,
-    type: s.type,
-    sets: s.sets ?? 0,
-    reps: s.reps ?? 0,
-    holdSeconds: s.holdSeconds ?? 0,
-    // 한 세트를 초로 잰 제안이면 그 칸을 그대로 이어받는다(#1969).
-    isHold: (s.holdSeconds ?? 0) > 0,
-    weight: s.weight ?? 0,
-    reason: s.reason,
-    source: 'ai',
-  );
+        name: s.name,
+        minutes: s.minutes,
+        type: s.type,
+        sets: s.sets ?? 0,
+        reps: s.reps ?? 0,
+        holdSeconds: s.holdSeconds ?? 0,
+        // 한 세트를 초로 잰 제안이면 그 칸을 그대로 이어받는다(#1969).
+        isHold: (s.holdSeconds ?? 0) > 0,
+        weight: s.weight ?? 0,
+        reason: s.reason,
+        source: 'ai',
+      );
 
   void _goToStage(int stage) {
     if (stage > _maxReachedStage || stage == _stage) return;
@@ -659,7 +659,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ],
       KeyedSubtree(
         key: _topKey,
-        child: _ProgressStepper(
+        child: ProgressStepper(
+          keyPrefix: 'routine-stage',
+          semanticsLabel: l.aiStepperLabel,
           stage: _stage,
           maxReachedStage: _maxReachedStage,
           labels: _stepLabels(l),
@@ -1349,9 +1351,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 그건 트레이너만 보는 칸이고, 왜 이 운동이 올라왔는지는 고친 뒤에도
   /// 알아야 한다.
   RoutineExercise _asTrainerEdit(RoutineExercise exercise) =>
-      exercise.source == 'ai'
-      ? exercise.copyWith(source: 'trainer')
-      : exercise;
+      exercise.source == 'ai' ? exercise.copyWith(source: 'trainer') : exercise;
 
   /// 운동 한 줄 편집기. 프로그램 후보와 개인운동이 **같은 편집기**를 쓴다 —
   /// 대상 목록만 단계에 따라 다르다([_activeList], #2223).
@@ -1416,7 +1416,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               // 이름이 버티는 운동이면 `횟수` 칸이 `버티는 시간` 으로
               // 바뀐다(#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다 —
               // 그 선택은 `_measureChosen` 이 기억한다.
-              list[index] = _asTrainerEdit(list[index].copyWith(
+              list[index] = _asTrainerEdit(
+                list[index].copyWith(
                   name: name,
                   isHold: _activeMeasureChosen.contains(index)
                       ? null
@@ -1436,7 +1437,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 isHold: exercise.isHold,
                 onChanged: (bool hold) => setState(() {
                   _activeMeasureChosen.add(index);
-                  list[index] = _asTrainerEdit(list[index].copyWith(isHold: hold));
+                  list[index] = _asTrainerEdit(
+                    list[index].copyWith(isHold: hold),
+                  );
                 }),
               ),
             ),
@@ -1458,7 +1461,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     sets: exercise.sets > 0 ? exercise.sets : 3,
                     compact: true,
                     onChanged: (sets) => setState(() {
-                      list[index] = _asTrainerEdit(list[index].copyWith(sets: sets));
+                      list[index] = _asTrainerEdit(
+                        list[index].copyWith(sets: sets),
+                      );
                     }),
                   ),
                 ),
@@ -1477,7 +1482,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                               : 60,
                           compact: true,
                           onChanged: (seconds) => setState(() {
-                            list[index] = _asTrainerEdit(list[index].copyWith(holdSeconds: seconds),
+                            list[index] = _asTrainerEdit(
+                              list[index].copyWith(holdSeconds: seconds),
                             );
                           }),
                         )
@@ -1489,7 +1495,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                           reps: exercise.reps > 0 ? exercise.reps : 10,
                           compact: true,
                           onChanged: (reps) => setState(() {
-                            list[index] = _asTrainerEdit(list[index].copyWith(reps: reps));
+                            list[index] = _asTrainerEdit(
+                              list[index].copyWith(reps: reps),
+                            );
                           }),
                         ),
                 ),
@@ -1503,7 +1511,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     weight: exercise.weight,
                     compact: true,
                     onChanged: (weight) => setState(() {
-                      list[index] = _asTrainerEdit(list[index].copyWith(weight: weight));
+                      list[index] = _asTrainerEdit(
+                        list[index].copyWith(weight: weight),
+                      );
                     }),
                   ),
                 ),
@@ -1516,7 +1526,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               minutes: exercise.minutes,
               compact: true,
               onChanged: (minutes) => setState(() {
-                list[index] = _asTrainerEdit(list[index].copyWith(minutes: minutes));
+                list[index] = _asTrainerEdit(
+                  list[index].copyWith(minutes: minutes),
+                );
               }),
             ),
           // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
@@ -2252,190 +2264,6 @@ class _RoutineChoice {
 /// 옅은 회색 채움·얇은 테두리·회색 번호다. 첫 단계는 왼쪽 끝, 가운데 단계는
 /// 가운데, 마지막 단계는 오른쪽 끝에 서고 이름도 같은 쪽으로 정렬한다.
 /// 이미 지난 단계(원·이름)를 누르면 그 단계로 간다. 단계마다 Key 를 둔다.
-class _ProgressStepper extends StatelessWidget {
-  const _ProgressStepper({
-    required this.stage,
-    required this.maxReachedStage,
-    required this.labels,
-    required this.skipped,
-    required this.skippedLabel,
-    required this.onStageTap,
-  });
-
-  final int stage;
-  final int maxReachedStage;
-
-  /// 단계 이름들. 칸 수는 어느 흐름에서나 같다(#2223) — 표시줄은 몇 칸인지
-  /// 스스로 정하지 않고 받은 만큼만 그린다.
-  final List<String> labels;
-
-  /// 이번 흐름에서 밟지 않는 칸. 자리를 지우지 않고 흐리게 남겨 `건너뜀` 을
-  /// 붙인다 — 칸이 사라지면 흐름 자체가 짧아진 것처럼 보인다.
-  final Set<int> skipped;
-
-  final String skippedLabel;
-
-  final ValueChanged<int> onStageTap;
-
-  /// 번호 원의 지름.
-  static const double _circle = OnCareSize.avatarMedium;
-
-  /// 원 하나가 차지하는 칸의 폭 — 원 지름 + 원 사이 간격. (#2219)
-  ///
-  /// 칸 폭이 곧 **원 중심 사이의 거리**다. 예전에는 [Expanded] 로 화면 폭을
-  /// n등분해서, 창이 넓어질수록 원들이 좌우 끝으로 멀어졌다. 단계 표시는
-  /// 화면을 채우는 물건이 아니라 "몇 걸음 중 몇 번째"를 읽는 작은 눈금이라,
-  /// 폭과 무관하게 같은 간격으로 모여 가운데에 선다.
-  ///
-  /// 라벨도 이 폭 안에서 한 줄로 말줄임된다 — 칸이 겹치지 않으니 라벨끼리
-  /// 겹칠 일도 없다. 간격 토큰의 최대값(48)만으로는 원들이 서로 붙어 보여
-  /// 두 칸(48 + 32)을 더한다. 더 벌리면 네 칸이 좁은 창(520 안팎)을 넘어
-  /// 줄어들기 시작해, 폭과 무관한 고정 간격이라는 약속이 깨진다.
-  static const double _stepWidth =
-      _circle + OnCareSpacing.s48 + OnCareSpacing.s32;
-
-  void _tap(int index) {
-    if (index <= maxReachedStage && !skipped.contains(index)) {
-      onStageTap(index);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final List<String> steps = labels;
-    return Semantics(
-      label: l.aiStepperLabel,
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          // 칸을 다 늘어놓을 폭이 없으면(아주 좁은 창) 그만큼 좁힌다 —
-          // 고정 간격을 지키느라 표시줄이 화면 밖으로 넘치지는 않는다.
-          final double available = constraints.maxWidth.isFinite
-              ? constraints.maxWidth
-              : _stepWidth * steps.length;
-          final double stepWidth = math.min(
-            _stepWidth,
-            available / steps.length,
-          );
-          final double totalWidth = stepWidth * steps.length;
-          return Center(
-            child: SizedBox(
-              width: totalWidth,
-              child: Stack(
-                children: <Widget>[
-                  // 첫 원의 가운데에서 마지막 원의 가운데까지만 잇는 가는 선 —
-                  // 원이 모인 만큼만 그려진다. 원이 불투명해 선은 원 사이에서만
-                  // 보인다.
-                  Positioned(
-                    top: (_circle - OnCareSize.hairline) / 2,
-                    left: stepWidth / 2,
-                    right: stepWidth / 2,
-                    child: const ColoredBox(
-                      color: OnCareColors.lineSubtle,
-                      child: SizedBox(height: OnCareSize.hairline),
-                    ),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      for (int index = 0; index < steps.length; index++)
-                        SizedBox(
-                          width: stepWidth,
-                          child: _step(tokens, steps[index], index),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _step(OnCareTokens tokens, String label, int index) {
-    final bool current = index == stage;
-    final bool isSkipped = skipped.contains(index);
-    // 칸마다 같은 폭을 쓰므로 원도 라벨도 그 칸 가운데에 선다(#2219) — 예전에는
-    // 첫 칸을 왼쪽 끝, 마지막 칸을 오른쪽 끝에 붙여 화면 폭을 가로질렀다.
-    return InkWell(
-      key: ValueKey<String>('routine-stage-$index'),
-      borderRadius: OnCareRadius.smAll,
-      onTap: index <= maxReachedStage && !isSkipped ? () => _tap(index) : null,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            width: _circle,
-            height: _circle,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: current ? tokens.brand.primary : OnCareColors.surfaceInput,
-              border: current
-                  ? null
-                  : Border.all(
-                      color: isSkipped
-                          ? OnCareColors.lineSubtle
-                          : OnCareColors.lineStrong,
-                    ),
-            ),
-            // 건너뛴 칸은 번호 대신 가로줄을 둔다 — 밟지 않았을 뿐 자리는
-            // 그대로라는 표시다(#2223).
-            child: isSkipped
-                ? const Icon(
-                    Icons.remove_rounded,
-                    size: OnCareSize.iconSmall,
-                    color: OnCareColors.textTertiary,
-                  )
-                : Text(
-                    '${index + 1}',
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.label))
-                        .copyWith(
-                          color: current
-                              ? OnCareColors.textOnFill
-                              : OnCareColors.textSecondary,
-                        ),
-                  ),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: tokens
-                .text(
-                  current
-                      ? OnCareTypography.strong(OnCareTypography.caption)
-                      : OnCareTypography.caption,
-                )
-                .copyWith(
-                  color: current
-                      ? OnCareColors.textPrimary
-                      : OnCareColors.textTertiary,
-                ),
-          ),
-          if (isSkipped)
-            Text(
-              skippedLabel,
-              key: ValueKey<String>('routine-stage-skipped-$index'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: tokens
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 /// 개인운동 줄이 어디서 왔나 — 그 AI 제안의 id 와 근거. (#2223)
 ///
 /// id 는 뺄 때 서버에 거절을 알리는 데, 근거는 트레이너가 판단할 때 보여 주는

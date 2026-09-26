@@ -83,10 +83,10 @@ void main() {
             chatRepositoryProvider.overrideWithValue(fake),
           ],
           child: MaterialApp(
-          theme: AppTheme.light(),
-          locale: const Locale('ko'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
               body: ChatView(
                 clientId: 'm1',

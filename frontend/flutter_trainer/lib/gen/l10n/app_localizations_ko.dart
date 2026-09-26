@@ -1442,6 +1442,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String reportBodySilentDays(String days) {
+    return '$days에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.';
+  }
+
+  @override
+  String reportBodySteadyDays(String days) {
+    return '$days까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.';
+  }
+
+  @override
   String reportBodySkipped(String names) {
     return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.';
   }
@@ -2241,9 +2251,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsDataInsufficient => '데이터 부족';
-
-  @override
-  String get reportsThisWeek => '이번 주';
 
   @override
   String get coachSendFailed => '전송에 실패했어요. 다시 시도해 주세요';
@@ -3634,7 +3641,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsAiTitle => 'AI 코칭 보조 · 리포트 요약';
+  String get reportsAiTitle => '이번 주 요약';
 
   @override
   String get reportsAiNextWeek => '다음 주 코칭 제안';
@@ -3930,4 +3937,582 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get routineFormIncrease => '늘리기';
+
+  @override
+  String get reportsWorkbenchTitle => '이번 주 리포트';
+
+  @override
+  String get reportsPending => '미전송';
+
+  @override
+  String reportsCountPeople(int count) {
+    return '$count명';
+  }
+
+  @override
+  String get reportsSortPriority => '우선 확인 순';
+
+  @override
+  String get reportsSortName => '이름 순';
+
+  @override
+  String reportsSendProgress(int done, int total) {
+    return '$done / $total 전송';
+  }
+
+  @override
+  String get reportsQueueAllSent => '이번 주 리포트를 모두 보냈어요';
+
+  @override
+  String get reportsSentColumn => '전송 완료';
+
+  @override
+  String get reportsSentColumnEmpty => '아직 보낸 리포트가 없어요';
+
+  @override
+  String get reportsSentSubtitle => '보낸 리포트 보기';
+
+  @override
+  String get reportsOpenDraft => '열기';
+
+  @override
+  String get reportsReasonUnknown => '수치를 불러오는 중';
+
+  @override
+  String reportsReasonCompletion(int percent) {
+    return '이행 $percent%';
+  }
+
+  @override
+  String reportsReasonNoShow(int count) {
+    return '노쇼 $count회';
+  }
+
+  @override
+  String reportsReasonSessionDone(int count) {
+    return 'PT $count회 전량 소화';
+  }
+
+  @override
+  String reportsReasonSilentDays(int days) {
+    return '$days일 무기록';
+  }
+
+  @override
+  String reportsReasonSlump(int points) {
+    return '주 후반 $points%p 하락';
+  }
+
+  @override
+  String reportsReasonRising(int points) {
+    return '주 후반 $points%p 상승';
+  }
+
+  @override
+  String get reportsReasonFullLog => '7일 전량 기록';
+
+  @override
+  String get reportsReasonOnboarding => '신규 · 적응 중';
+
+  @override
+  String get reportsReasonSteady => '순조로움';
+
+  @override
+  String reportsSentOn(String date) {
+    return '$date 전송';
+  }
+
+  @override
+  String get reportsSentRead => '읽음';
+
+  @override
+  String get reportsSentUnread => '안 읽음';
+
+  @override
+  String get reportsSentUnreadHint => '안 읽은 회원은 다음 주 우선 확인으로 올라와요.';
+
+  @override
+  String get reportsBackToWorkbench => '이번 주 리포트';
+
+  @override
+  String reportsSentHeadline(String name) {
+    return '$name님에게 보낸 리포트';
+  }
+
+  @override
+  String reportsSentAt(String date, String time) {
+    return '$date $time 전송';
+  }
+
+  @override
+  String get reportsSentRewrite => '이 내용으로 다시 작성';
+
+  @override
+  String get reportsSentBody => '보낸 피드백';
+
+  @override
+  String get reportsSentFigures => '그때 보낸 수치';
+
+  @override
+  String get reportsStepReview => '확인';
+
+  @override
+  String get reportsStepGoals => '작성';
+
+  @override
+  String get reportsStepSend => '전송';
+
+  @override
+  String get reportsStepperLabel => '주간 리포트 작성 진행 단계';
+
+  @override
+  String get reportsStepNext => '다음';
+
+  @override
+  String get reportsStepPrev => '이전';
+
+  @override
+  String get reportsGoalsTitle => '다음 주 목표';
+
+  @override
+  String get reportsGoalsHint => '다음 주에 함께 챙길 것을 고르세요. 고른 목표는 보낼 글에 같이 담겨요.';
+
+  @override
+  String get reportsGoalsNone => '아직 고른 목표가 없어요';
+
+  @override
+  String reportsGoalsPicked(int count) {
+    return '$count개 고름';
+  }
+
+  @override
+  String get reportsGoalsOwnHint => '직접 적기';
+
+  @override
+  String get reportsGoalsAdd => '추가';
+
+  @override
+  String reportsGoalsRemove(String goal) {
+    return '$goal 빼기';
+  }
+
+  @override
+  String get reportsGridPtSession => 'PT 세션';
+
+  @override
+  String reportsGridPtPerWeek(int count) {
+    return '주 $count회';
+  }
+
+  @override
+  String get reportsGridPersonal => '개인 운동';
+
+  @override
+  String get reportsGridPersonalUnit => '수행 / 배정';
+
+  @override
+  String reportsGridDoneOfAssigned(int done, int total) {
+    return '$done / $total회';
+  }
+
+  @override
+  String get reportsGridMeals => '식단 기록';
+
+  @override
+  String get reportsGridMealsUnit => '기록 횟수';
+
+  @override
+  String reportsGridMealCount(int count) {
+    return '$count회';
+  }
+
+  @override
+  String get reportsGridCalories => '섭취 칼로리';
+
+  @override
+  String reportsGridCalorieTarget(String value) {
+    return '목표 $value';
+  }
+
+  @override
+  String get reportsMacroNone => '아직 끼니 기록이 없어 탄단지를 볼 수 없어요';
+
+  @override
+  String reportsMacroValueOfTarget(String name, int value, int target) {
+    return '$name $value / ${target}g';
+  }
+
+  @override
+  String reportsMacroNoValue(String name) {
+    return '$name 기록 없음';
+  }
+
+  @override
+  String reportsMacroShortfall(String name) {
+    return '$name이(가) 목표에 많이 모자라요 — 다음 주 목표로 짚어 보세요';
+  }
+
+  @override
+  String get reportsMemberFeedbackTitle => '회원 주간 피드백';
+
+  @override
+  String get reportsMemberFeedbackAttention => '확인 필요';
+
+  @override
+  String get reportsMemberFeedbackNone => '아직 받지 못했어요';
+
+  @override
+  String get reportsMemberFeedbackNoneHint => '회원이 주간 피드백을 보내면 여기에 표시돼요';
+
+  @override
+  String get reportsMemberFeedbackConditionLabel => '컨디션';
+
+  @override
+  String get reportsMemberFeedbackIntensityLabel => '운동 강도';
+
+  @override
+  String get reportsMemberFeedbackPainLabel => '통증';
+
+  @override
+  String get reportsMemberFeedbackPainNone => '없음';
+
+  @override
+  String reportsMemberFeedbackPainOn(String area, String date) {
+    return '$area ($date)';
+  }
+
+  @override
+  String get reportsMemberFeedbackConditionGreat => '아주 좋았어요';
+
+  @override
+  String get reportsMemberFeedbackConditionGood => '좋았어요';
+
+  @override
+  String get reportsMemberFeedbackConditionOk => '보통이었어요';
+
+  @override
+  String get reportsMemberFeedbackConditionTired => '지쳤어요';
+
+  @override
+  String get reportsMemberFeedbackConditionBad => '많이 힘들었어요';
+
+  @override
+  String get reportsMemberFeedbackIntensityTooEasy => '너무 쉬웠어요';
+
+  @override
+  String get reportsMemberFeedbackIntensityRight => '적당했어요';
+
+  @override
+  String get reportsMemberFeedbackIntensityHard => '힘들었어요';
+
+  @override
+  String get reportsMemberFeedbackIntensityTooHard => '너무 힘들었어요';
+
+  @override
+  String get reportsLastGoalsTitle => '지난 주 목표 달성';
+
+  @override
+  String get reportsLastGoalsNone => '지난 주에 고른 목표가 없어요';
+
+  @override
+  String get reportsLastGoalsNoneHint => '이번 주에 다음 주 목표를 고르면 다음 리포트에서 여기로 돌아와요';
+
+  @override
+  String reportsLastGoalsMetCount(int met, int total) {
+    return '$met / $total 달성';
+  }
+
+  @override
+  String get reportsLastGoalsMet => '달성';
+
+  @override
+  String get reportsLastGoalsPartial => '절반';
+
+  @override
+  String get reportsLastGoalsMissed => '미달';
+
+  @override
+  String get reportsLastGoalsUnknown => '직접 확인';
+
+  @override
+  String reportsLastGoalsEvidence(int done, int target, String unit) {
+    return '$done / $target$unit';
+  }
+
+  @override
+  String reportsLastGoalsEvidenceLogged(int days) {
+    return '$days일 기록';
+  }
+
+  @override
+  String reportsLastGoalsEvidenceWorkout(int done, int total) {
+    return '개인 운동 $done / $total회';
+  }
+
+  @override
+  String get reportsTrendUnavailable => '이 주의 운동 기록을 불러오지 못했어요';
+
+  @override
+  String get reportsTrendNoGoal => '목표 없음';
+
+  @override
+  String reportsTrendOfGoal(String value, String goal) {
+    return '$value / $goal';
+  }
+
+  @override
+  String get reportsTrendCompliance => '주간 이행률';
+
+  @override
+  String get reportsTrendBurn => '주간 소모';
+
+  @override
+  String get reportsTrendStreak => '연속 기록';
+
+  @override
+  String reportsTrendStreakDays(int days) {
+    return '$days일';
+  }
+
+  @override
+  String get reportsExerciseTrend => '운동 추세';
+
+  @override
+  String get reportsWriteFromScratch => '직접 작성하기';
+
+  @override
+  String get reportsCardWeekTitle => '이번 주';
+
+  @override
+  String get reportsCardWeekSubtitle => '한 축에 겹쳐 보면 같이 무너진 날이 보입니다';
+
+  @override
+  String get reportsAiSubtitle => 'AI가 수치에서 자동 작성';
+
+  @override
+  String reportsMemberFeedbackMeta(String date) {
+    return '주 1회 · $date 제출';
+  }
+
+  @override
+  String reportsMacroShortfallEvidence(String goal) {
+    return '지난 주 목표 “$goal”이 미이행으로 판정된 근거예요';
+  }
+
+  @override
+  String reportsTrendSubtitle(int weeks) {
+    return '유형별 · 최근 $weeks주';
+  }
+
+  @override
+  String get reportsTrendCenterLabel => '목표의';
+
+  @override
+  String reportsTrendWeeklyGoal(String goal) {
+    return '주간 목표 $goal';
+  }
+
+  @override
+  String reportsTrendRunDown(int weeks) {
+    return '$weeks주 연속 감소';
+  }
+
+  @override
+  String reportsTrendRunUp(int weeks) {
+    return '$weeks주 연속 상승';
+  }
+
+  @override
+  String reportsTrendVsLastWeek(String delta) {
+    return '지난 주 대비 $delta%';
+  }
+
+  @override
+  String get reportsTrendFlat => '지난 주와 비슷';
+
+  @override
+  String get reportsTrendNoHistory => '견줄 지난 주가 없어요';
+
+  @override
+  String get reportsTrendRate => '주간 달성률';
+
+  @override
+  String reportsTrendAverage(int weeks) {
+    return '$weeks주 평균';
+  }
+
+  @override
+  String reportsTrendRateFalling(int weeks) {
+    return '달성률 $weeks주 연속 하락';
+  }
+
+  @override
+  String reportsTrendTracked(int count) {
+    return '추적 종목 $count개 — 자동 선별됨';
+  }
+
+  @override
+  String reportsTrendTrackedTimes(int count) {
+    return '$count회';
+  }
+
+  @override
+  String get reportsSkipToWrite => '초안 없이 직접 쓰기';
+
+  @override
+  String reportsCalorieThisWeekAvg(String kcal) {
+    return '이번 주 평균 ${kcal}kcal';
+  }
+
+  @override
+  String reportsCalorieBaselineAvg(int weeks, String kcal) {
+    return '지난 $weeks주 평균 ${kcal}kcal';
+  }
+
+  @override
+  String reportsGridCalorieTargetDefault(String kcal) {
+    return '기본 목표 $kcal';
+  }
+
+  @override
+  String get summaryBasisDefault => '기본 목표';
+
+  @override
+  String get summaryBasisPersonal => '개인 목표';
+
+  @override
+  String get summaryDirOver => '초과';
+
+  @override
+  String get summaryDirUnder => '부족';
+
+  @override
+  String summaryCompletionLow(String pct, String threshold) {
+    return '운동 이행률 평균 $pct% · 기준 $threshold% 미만';
+  }
+
+  @override
+  String summaryCompletionTopic(String pct) {
+    return '운동 이행률 $pct%';
+  }
+
+  @override
+  String summaryCompletionAvg(String pct) {
+    return '운동 이행률 평균 $pct%';
+  }
+
+  @override
+  String summarySkipped(String names) {
+    return '건너뛴 운동: $names';
+  }
+
+  @override
+  String summarySkippedTopic(String count) {
+    return '건너뛴 운동 $count가지';
+  }
+
+  @override
+  String summarySodium(String avg, String basis, String target, String days) {
+    return '나트륨 평균 ${avg}mg · $basis ${target}mg 초과 $days일';
+  }
+
+  @override
+  String summarySodiumOverTopic(String days) {
+    return '나트륨 목표 초과 $days일';
+  }
+
+  @override
+  String summarySodiumAvgTopic(String avg) {
+    return '나트륨 평균 ${avg}mg';
+  }
+
+  @override
+  String summarySugar(String avg, String basis, String target, String days) {
+    return '당류 평균 ${avg}g · $basis ${target}g 초과 $days일';
+  }
+
+  @override
+  String summarySugarOverTopic(String days) {
+    return '당류 목표 초과 $days일';
+  }
+
+  @override
+  String summarySugarAvgTopic(String avg) {
+    return '당류 평균 ${avg}g';
+  }
+
+  @override
+  String summaryCalories(
+    String avg,
+    String basis,
+    String target,
+    String direction,
+    String pct,
+  ) {
+    return '칼로리 평균 ${avg}kcal · $basis ${target}kcal 대비 $direction $pct%';
+  }
+
+  @override
+  String summaryCaloriesTopic(String direction) {
+    return '칼로리 $direction';
+  }
+
+  @override
+  String summaryCaloriesAvg(String avg) {
+    return '칼로리 평균 ${avg}kcal';
+  }
+
+  @override
+  String summaryMacro(
+    String label,
+    String avg,
+    String target,
+    String direction,
+    String pct,
+  ) {
+    return '$label 평균 ${avg}g · 개인 목표 ${target}g 대비 $direction $pct%';
+  }
+
+  @override
+  String summaryMacroTopic(String label, String direction) {
+    return '$label $direction';
+  }
+
+  @override
+  String summaryMorePoints(String count) {
+    return '외 $count건 — 리포트 본문에서 확인';
+  }
+
+  @override
+  String summaryHeadlineNoData(String name) {
+    return '$name 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.';
+  }
+
+  @override
+  String summaryHeadlineSteady(String name) {
+    return '$name 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.';
+  }
+
+  @override
+  String summaryHeadlineRest(String count) {
+    return ' 그 밖에 $count가지도 함께 보세요.';
+  }
+
+  @override
+  String summaryHeadlineGoodCare(
+    String name,
+    String kept,
+    String top,
+    String rest,
+  ) {
+    return '$name 회원은 $kept 잘 지켰고, 다음 주는 $top 함께 챙기면 좋겠습니다.$rest';
+  }
+
+  @override
+  String summaryHeadlineNeedsAdjust(String name, String top, String rest) {
+    return '$name 회원은 $top 목표를 벗어나 다음 주 조정이 필요합니다.$rest';
+  }
+
+  @override
+  String get reportsPdfFileSuffix => '주간리포트';
 }

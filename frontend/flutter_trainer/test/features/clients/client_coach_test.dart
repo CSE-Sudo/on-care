@@ -52,7 +52,9 @@ void main() {
         '/trainer/clients/m1/ai-coach',
         data: any(named: 'data'),
       ),
-    ).thenAnswer((_) async => _ok<Map<String, Object?>>(answer as Map<String, Object?>));
+    ).thenAnswer(
+      (_) async => _ok<Map<String, Object?>>(answer as Map<String, Object?>),
+    );
   }
 
   group('실 백엔드 저장소', () {
@@ -114,7 +116,8 @@ void main() {
           data: any(named: 'data'),
         ),
       ).thenAnswer(
-        (_) async => _ok<Map<String, Object?>>(<String, Object?>{'reply': 'ok'}),
+        (_) async =>
+            _ok<Map<String, Object?>>(<String, Object?>{'reply': 'ok'}),
       );
 
       await repo.ask(memberId: 'a/b', message: 'q');

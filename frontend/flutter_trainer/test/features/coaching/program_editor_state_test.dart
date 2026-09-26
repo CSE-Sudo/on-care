@@ -22,9 +22,7 @@ void main() {
     expect(draftWith(name: ' 스쿼트 ').supportsAssignment, isTrue);
     expect(draftWith(name: ' ').supportsAssignment, isFalse);
     expect(
-      draftWith(
-        name: List<String>.filled(101, '운동').join(),
-      ).supportsAssignment,
+      draftWith(name: List<String>.filled(101, '운동').join()).supportsAssignment,
       isFalse,
     );
   });

@@ -181,12 +181,7 @@ void main() {
         home: const Scaffold(
           body: SessionProgramRow(
             index: 0,
-            item: ProgramItem(
-              name: '플랭크',
-                    sets: 3,
-              holdSeconds: 60,
-              weight: 0,
-            ),
+            item: ProgramItem(name: '플랭크', sets: 3, holdSeconds: 60, weight: 0),
           ),
         ),
       ),

@@ -398,9 +398,7 @@ void main() {
     expect(tester.widget<AppProgressBar>(progress).value, 0);
   });
 
-  testWidgets('회원 목록 행에는 신호 배지가 없다 — 배지는 회원 상세에서 본다 (#2258)', (
-    tester,
-  ) async {
+  testWidgets('회원 목록 행에는 신호 배지가 없다 — 배지는 회원 상세에서 본다 (#2258)', (tester) async {
     await openWide(tester);
 
     // 오세라는 통증·불편 · 운동 목표 · 칼로리 신호와 답장 대기를 든 회원이다.

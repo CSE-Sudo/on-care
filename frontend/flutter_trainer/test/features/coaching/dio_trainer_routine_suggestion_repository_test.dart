@@ -25,10 +25,8 @@ DioException _httpError(int status, String path) => DioException(
 
 void main() {
   const String listPath = '/trainer/clients/m1/routine-suggestions';
-  const String approvePath =
-      '/trainer/routine-suggestions/s1/approve';
-  const String dismissPath =
-      '/trainer/routine-suggestions/s1/dismiss';
+  const String approvePath = '/trainer/routine-suggestions/s1/approve';
+  const String dismissPath = '/trainer/routine-suggestions/s1/dismiss';
 
   late _MockDio dio;
   late DioTrainerRoutineSuggestionRepository repo;
@@ -65,14 +63,11 @@ void main() {
 
   test('approve without edits sends an empty body', () async {
     when(
-      () => dio.post<Map<String, Object?>>(
-        approvePath,
-        data: any(named: 'data'),
-      ),
+      () =>
+          dio.post<Map<String, Object?>>(approvePath, data: any(named: 'data')),
     ).thenAnswer(
-      (_) async => _ok<Map<String, Object?>>(<String, Object?>{
-        'id': 's1',
-      }, approvePath),
+      (_) async =>
+          _ok<Map<String, Object?>>(<String, Object?>{'id': 's1'}, approvePath),
     );
 
     await repo.approve('s1');
@@ -89,14 +84,11 @@ void main() {
 
   test('approve with edits normalises the values it sends', () async {
     when(
-      () => dio.post<Map<String, Object?>>(
-        approvePath,
-        data: any(named: 'data'),
-      ),
+      () =>
+          dio.post<Map<String, Object?>>(approvePath, data: any(named: 'data')),
     ).thenAnswer(
-      (_) async => _ok<Map<String, Object?>>(<String, Object?>{
-        'id': 's1',
-      }, approvePath),
+      (_) async =>
+          _ok<Map<String, Object?>>(<String, Object?>{'id': 's1'}, approvePath),
     );
 
     await repo.approve(
@@ -121,10 +113,8 @@ void main() {
 
   test('a 409 becomes RoutineSuggestionAlreadyReviewed', () async {
     when(
-      () => dio.post<Map<String, Object?>>(
-        approvePath,
-        data: any(named: 'data'),
-      ),
+      () =>
+          dio.post<Map<String, Object?>>(approvePath, data: any(named: 'data')),
     ).thenThrow(_httpError(409, approvePath));
 
     // 실패가 아니라 '이미 반영됨'이다 — 화면이 그렇게 말할 수 있어야 한다.
@@ -135,25 +125,20 @@ void main() {
   });
 
   test('dismiss posts to the dismiss path', () async {
-    when(
-      () => dio.post<Map<String, Object?>>(dismissPath),
-    ).thenAnswer(
-      (_) async => _ok<Map<String, Object?>>(<String, Object?>{
-        'id': 's1',
-      }, dismissPath),
+    when(() => dio.post<Map<String, Object?>>(dismissPath)).thenAnswer(
+      (_) async =>
+          _ok<Map<String, Object?>>(<String, Object?>{'id': 's1'}, dismissPath),
     );
 
     await repo.dismiss('s1');
 
-    verify(
-      () => dio.post<Map<String, Object?>>(dismissPath),
-    ).called(1);
+    verify(() => dio.post<Map<String, Object?>>(dismissPath)).called(1);
   });
 
   test('other failures surface as AppError', () async {
-    when(() => dio.get<List<dynamic>>(listPath)).thenThrow(
-      _httpError(404, listPath),
-    );
+    when(
+      () => dio.get<List<dynamic>>(listPath),
+    ).thenThrow(_httpError(404, listPath));
 
     await expectLater(repo.pending('m1'), throwsA(isA<AppError>()));
   });

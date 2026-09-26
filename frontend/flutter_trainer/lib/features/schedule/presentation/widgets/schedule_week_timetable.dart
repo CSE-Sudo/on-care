@@ -235,9 +235,7 @@ class ScheduleWeekTimetable extends ConsumerWidget {
             ),
             if (bodyOverride == null && byDate.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: OnCareSpacing.s8,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
                 child: Text(
                   l.schedEmptyWeek,
                   textAlign: TextAlign.center,
@@ -318,13 +316,14 @@ class _DayHeader extends StatelessWidget {
               ),
               Text(
                 '${day.day}',
-                style: OnCareTypography.numeric(
-                  tokens.text(OnCareTypography.titleSmall),
-                ).copyWith(
-                  color: isToday
-                      ? tokens.brand.primary
-                      : OnCareColors.textPrimary,
-                ),
+                style:
+                    OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.titleSmall),
+                    ).copyWith(
+                      color: isToday
+                          ? tokens.brand.primary
+                          : OnCareColors.textPrimary,
+                    ),
               ),
             ],
           ),
@@ -682,11 +681,12 @@ class _SessionBlock extends StatelessWidget {
                           lines: <_BlockLine>[
                             _BlockLine(
                               text: range,
-                              style: OnCareTypography.numeric(
-                                lineStyle,
-                              ).copyWith(
-                                color: session.isFinished ? finishedTone : tone,
-                              ),
+                              style: OnCareTypography.numeric(lineStyle)
+                                  .copyWith(
+                                    color: session.isFinished
+                                        ? finishedTone
+                                        : tone,
+                                  ),
                             ),
                             // 둘째 줄에서 먼저 읽혀야 하는 것은 **누구인가** 다. 종류는
                             // 같은 줄에 붙되 줄 높이 안으로 줄여 물린다 — 이름과 같은
@@ -746,9 +746,9 @@ class _BlockLine {
 
   /// 이 줄이 실제로 차지할 높이. 배율이 커지면 함께 커진다.
   double heightIn(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(
-        style.fontSize ?? OnCareTypography.caption.fontSize!,
-      ) *
+      MediaQuery.textScalerOf(
+        context,
+      ).scale(style.fontSize ?? OnCareTypography.caption.fontSize!) *
       (style.height ?? OnCareTypography.caption.height!);
 }
 

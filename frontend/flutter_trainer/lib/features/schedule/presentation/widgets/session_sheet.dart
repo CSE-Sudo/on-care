@@ -404,9 +404,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
                 label: l.schedFieldClient,
                 value: _client,
                 items: <DropdownMenuItem<String>>[
-                  for (final name in _clientLocked
-                      ? <String>[_client]
-                      : _clientOptions)
+                  for (final name
+                      in _clientLocked ? <String>[_client] : _clientOptions)
                     DropdownMenuItem<String>(value: name, child: Text(name)),
                 ],
                 onChanged: _clientLocked
