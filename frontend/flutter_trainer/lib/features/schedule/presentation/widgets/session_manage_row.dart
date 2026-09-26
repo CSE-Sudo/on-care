@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 세션 하나에 할 수 있는 일들. (#871, #1011, #1012, #2178)
+/// 세션 하나에 할 수 있는 일들. (#871, #1011, #1012, #2178, #2231)
 ///
 /// 일곱 개가 같은 크기·같은 모양으로 늘어서 있었다. 버튼이 많아 보이는 것이
 /// 아니라 실제로 많았고, 되돌릴 수 없는 `삭제` 가 자주 쓰는 `채팅` 과 나란히
@@ -11,19 +11,71 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 지금은 두 갈래로 나눈다.
 ///
 ///  * **이 약속이 어떻게 끝났나** — `완료`·`취소 처리` 는 매 세션마다 누르는
-///    동작이라 카드에 글씨 버튼으로 둔다(#2176). 노쇼는 `취소 처리` 창의
-///    선택지다(#2175).
-///  * **일정을 손본다** — 일정 수정·프로그램 수정·메모·삭제는 오른쪽 끝의 연필
-///    버튼 하나로 묶고, 누르면 펼쳐지는 메뉴에서 고른다(#2178). 아이콘 넷이
-///    한 줄로 늘어서 있으면 무엇이 무엇인지 툴팁을 띄워 봐야 알았다 — 메뉴는
-///    항목마다 글씨가 있다.
+///    동작이라 카드 아래 이 줄에 글씨 버튼으로 둔다(#2176). 노쇼는 `취소 처리`
+///    창의 선택지다(#2175).
+///  * **일정을 손본다** — 일정 수정·프로그램 수정·메모·삭제는 연필 버튼 하나
+///    [SessionEditMenu] 로 묶는다(#2178). 그 버튼은 이 줄이 아니라 카드
+///    머리글, 시각 오른쪽에 선다(#2231) — 고치는 대상이 그 줄에 적힌
+///    날짜·시각·종류라, 고칠 값과 고치는 버튼이 카드의 위아래 끝으로 갈라져
+///    있었다.
 ///
 /// `채팅` 은 이 줄에서 뺐다(#2179) — 회원과의 대화는 메시지 화면이 맡는다.
-///
-/// `삭제` 는 메뉴 마지막 자리에 빨간 글씨로 둔다. 되돌릴 수 없는 동작을 다른
-/// 것들과 같은 무게로 세우지 않는다.
 class SessionManageRow extends StatelessWidget {
-  const SessionManageRow({
+  const SessionManageRow({super.key, required this.onComplete, this.onCancel});
+
+  final VoidCallback? onComplete;
+
+  /// 예정 세션만 — 진행되지 않은 약속을 `취소`·`노쇼` 기록으로 남긴다(#871).
+  /// 노쇼는 따로 버튼을 두지 않고 이 창의 선택지로 고른다(#2175).
+  final VoidCallback? onCancel;
+
+  /// 이 줄에 세울 버튼이 있는가. 끝난 세션에는 없어, 카드는 빈 줄을 두지
+  /// 않는다.
+  bool get hasActions => onComplete != null || onCancel != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Wrap(
+      spacing: OnCareSpacing.s4,
+      runSpacing: OnCareSpacing.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        if (onComplete != null)
+          AppButton(
+            // Keyed: l.legendDone is also a status word elsewhere on this row,
+            // so text alone no longer identifies the action.
+            key: const ValueKey<String>('session-complete-chip'),
+            leadingIcon: Icons.check_rounded,
+            label: l.legendDone,
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            onPressed: onComplete,
+          ),
+        // `완료` 와 같은 모양으로 선다(#2176) — 아이콘만 두었더니 같은 갈래의
+        // 두 동작이 서로 다른 무게로 읽혔다.
+        if (onCancel != null)
+          AppButton(
+            key: const ValueKey<String>('session-cancel-chip'),
+            leadingIcon: Icons.event_busy_rounded,
+            label: l.schedCancel,
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            onPressed: onCancel,
+          ),
+      ],
+    );
+  }
+}
+
+/// 일정을 손보는 연필 버튼과 그 메뉴. (#2178, #2231)
+///
+/// 누르면 일정 수정·프로그램 수정·메모·삭제가 펼쳐진다. 아이콘 넷이 한 줄로
+/// 늘어서 있으면 무엇이 무엇인지 툴팁을 띄워 봐야 알았다 — 메뉴는 항목마다
+/// 글씨가 있다. `삭제` 는 메뉴 마지막 자리에 빨간 글씨로 둔다. 되돌릴 수 없는
+/// 동작을 다른 것들과 같은 무게로 세우지 않는다.
+class SessionEditMenu extends StatelessWidget {
+  const SessionEditMenu({
     super.key,
     required this.onEditSchedule,
     required this.onEditProgram,
@@ -34,10 +86,7 @@ class SessionManageRow extends StatelessWidget {
     this.showEditProgram = true,
     this.onEditRoutines,
     required this.onDelete,
-    required this.onComplete,
-    this.onCancel,
   });
-
   final VoidCallback onEditSchedule;
   final VoidCallback onEditProgram;
 
@@ -72,40 +121,10 @@ class SessionManageRow extends StatelessWidget {
   final bool showEditProgram;
 
   final VoidCallback onDelete;
-  final VoidCallback? onComplete;
-
-  /// 예정 세션만 — 진행되지 않은 약속을 `취소`·`노쇼` 기록으로 남긴다(#871).
-  /// 노쇼는 따로 버튼을 두지 않고 이 창의 선택지로 고른다(#2175).
-  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final ended = <Widget>[
-      if (onComplete != null)
-        AppButton(
-          // Keyed: l.legendDone is also a status word elsewhere on this row,
-          // so text alone no longer identifies the action.
-          key: const ValueKey<String>('session-complete-chip'),
-          leadingIcon: Icons.check_rounded,
-          label: l.legendDone,
-          variant: AppButtonVariant.secondary,
-          size: OnCareButtonSize.small,
-          onPressed: onComplete,
-        ),
-      // `완료` 와 같은 모양으로 선다(#2176) — 아이콘만 두었더니 같은 갈래의
-      // 두 동작이 서로 다른 무게로 읽혔다.
-      if (onCancel != null)
-        AppButton(
-          key: const ValueKey<String>('session-cancel-chip'),
-          leadingIcon: Icons.event_busy_rounded,
-          label: l.schedCancel,
-          variant: AppButtonVariant.secondary,
-          size: OnCareButtonSize.small,
-          onPressed: onCancel,
-        ),
-    ];
-
     // 항목 키는 버튼 줄이던 때의 키를 그대로 잇는다 — 그 동작을 찾던 테스트가
     // 메뉴를 연 뒤 같은 키로 찾는다(#2178).
     final edits = <AppMenuItem>[
@@ -150,30 +169,15 @@ class SessionManageRow extends StatelessWidget {
       ),
     ];
 
-    // 손보는 동작은 오른쪽 끝에 붙여, 약속의 결말을 남기는 버튼들과 확실히
-    // 갈라 놓는다(#1012).
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Wrap(
-            spacing: OnCareSpacing.s4,
-            runSpacing: OnCareSpacing.s4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: ended,
-          ),
-        ),
-        const SizedBox(width: OnCareSpacing.s8),
-        AppMenu(
-          items: edits,
-          triggerBuilder: (context, toggle) => AppIconButton(
-            key: const ValueKey<String>('session-edit-menu'),
-            icon: Icons.edit_rounded,
-            tooltip: l.actionEdit,
-            color: OnCareColors.textSecondary,
-            onPressed: toggle,
-          ),
-        ),
-      ],
+    return AppMenu(
+      items: edits,
+      triggerBuilder: (context, toggle) => AppIconButton(
+        key: const ValueKey<String>('session-edit-menu'),
+        icon: Icons.edit_rounded,
+        tooltip: l.actionEdit,
+        color: OnCareColors.textSecondary,
+        onPressed: toggle,
+      ),
     );
   }
 }
