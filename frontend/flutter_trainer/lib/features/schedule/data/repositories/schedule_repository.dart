@@ -535,8 +535,6 @@ class DriftScheduleRepository implements ScheduleRepository {
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
     String? sessionId,
-    // 데모에는 개인운동을 받을 회원 백엔드가 없다 — 배정과 같은 이유로
-    // 일정만 로컬에 반영한다.
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
   }) {
     final table = _db.trainerScheduleEntries;
@@ -587,15 +585,19 @@ class DriftScheduleRepository implements ScheduleRepository {
         )..where((t) => t.id.equals(existing!.id))).write(
           TrainerScheduleEntriesCompanion(programJson: Value(encodedProgram)),
         );
+        // 서버와 같은 규칙 — 다시 붙이면 개인운동도 **새것으로 갈린다**(#2224).
+        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다.
+        _rememberPersonalRoutines(existing.id, personalRoutines);
         return true;
       }
 
       final now = nowKst();
+      final String newId = 'sched-${now.microsecondsSinceEpoch}';
       await _db
           .into(table)
           .insert(
             TrainerScheduleEntriesCompanion.insert(
-              id: 'sched-${now.microsecondsSinceEpoch}',
+              id: newId,
               date: date,
               time: time,
               clientId: Value(clientId),
@@ -606,8 +608,28 @@ class DriftScheduleRepository implements ScheduleRepository {
               programJson: Value(encodedProgram),
             ),
           );
+      // 트레이너가 방금 짠 개인운동이 그대로 이 PT 에 붙는다(#2224) — 실
+      // API 는 서버가 들고 있고, 데모에는 둘 표가 없어 메모리로 기억한다.
+      // 기억하지 않으면 스케줄 카드가 짠 것 대신 늘 같은 데모 두 개를 보여
+      // 줘, 데모로는 "내가 짠 것이 그대로 가는가" 를 확인할 수 없다.
+      _rememberPersonalRoutines(newId, personalRoutines);
       return false;
     });
+  }
+
+  /// 이 일정에 붙은 개인운동을 데모 기억에 남긴다. 비었으면 기억도 지운다 —
+  /// 개인운동 없이 다시 붙였는데 옛것이 남아 있으면 안 된다.
+  void _rememberPersonalRoutines(
+    String sessionId,
+    List<RoutineExercise> routines,
+  ) {
+    _sentRoutines.remove(sessionId);
+    _dismissedRoutines.remove(sessionId);
+    if (routines.isEmpty) {
+      _editedRoutines[sessionId] = const <RoutineExercise>[];
+      return;
+    }
+    _editedRoutines[sessionId] = List<RoutineExercise>.unmodifiable(routines);
   }
 
   /// Removes a session from the timeline.

@@ -336,6 +336,44 @@ def test_the_trainer_can_edit_the_routines_before_sending(client, db_session):
         _cleanup(db_session, day)
 
 
+def test_reattaching_a_program_replaces_its_personal_routines(
+    client, db_session
+):
+    """같은 PT 에 프로그램을 다시 붙이면 개인운동도 새것으로 갈린다. (#2224)
+
+    `program_json` 은 덮어쓰면서 개인운동만 뒤에 쌓이면, 두 번 짠 트레이너가
+    두 배를 보내게 된다 — 트레이너는 바꾼 것으로 아는데 회원은 더해진 것을
+    받는다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        first = _attach(client, token, day)
+        second = _attach(
+            client,
+            token,
+            day,
+            name=f"{_NAME_PREFIX} PT 다시",
+            personal_routines=[
+                {
+                    "name": f"{_NAME_PREFIX} 실내 자전거",
+                    "minutes": 20,
+                    "type": "유산소",
+                    "source": "trainer",
+                }
+            ],
+        )
+        # 같은 시간대라 그 PT 에 다시 붙는다 — 새 일정이 생기지 않는다.
+        assert second == first
+
+        db_session.expire_all()
+        rows = _routines(db_session, first)
+        assert [r.name for r in rows] == [f"{_NAME_PREFIX} 실내 자전거"]
+    finally:
+        _cleanup(db_session, day)
+
+
 def test_editing_an_ai_routine_makes_it_the_trainers(client, db_session):
     """AI 가 제안한 개인운동도 트레이너가 고치면 트레이너 것이 된다. (#2223, #2224)
 

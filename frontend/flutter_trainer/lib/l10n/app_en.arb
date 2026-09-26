@@ -1697,7 +1697,7 @@
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }
   },
-  "progPersonalRoutinesTitle": "Personal exercise going with it",
+  "progPersonalRoutinesTitle": "Personal exercise for this PT",
   "progPersonalRoutinesCount": "{count} personal exercises going with it",
   "@progPersonalRoutinesCount": {
     "placeholders": {

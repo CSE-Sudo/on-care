@@ -3553,6 +3553,25 @@ def _scheduled_routines_for_request(
     )
 
 
+def _clear_scheduled_routines(
+    db: Session, trainer_id: str, schedule_id: str
+) -> None:
+    """그 PT 에 붙어 있던 **아직 보내지 않은** 개인운동을 지운다. (#2224)
+
+    보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은 건드리지 않는다 —
+    회원이 이미 받았거나 트레이너가 이미 답한 것이다.
+    """
+    for row in db.scalars(
+        select(TrainerRoutine).where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == schedule_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+    ).all():
+        db.delete(row)
+    db.flush()
+
+
 def _add_scheduled_routines(
     db: Session, trainer_id: str, member_id: str, *,
     items: Sequence[PersonalRoutineItem],
@@ -4081,6 +4100,11 @@ def assign_program_with_schedule(
     else:
         target.program_json = program_json
         session = target
+    # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 개인운동은 걷어낸다. 프로그램을
+    # 다시 짜서 보내면 `program_json` 은 덮어쓰는데 개인운동만 뒤에 쌓여, 두 번
+    # 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로 아는데 회원은
+    # 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이 본 것은 없다.
+    _clear_scheduled_routines(db, trainer_id, session.id)
     personal = _add_scheduled_routines(
         db, trainer_id, member_id,
         items=personal_routines,

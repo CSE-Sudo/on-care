@@ -4853,7 +4853,7 @@ abstract class AppLocalizations {
   /// No description provided for @progPersonalRoutinesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Personal exercise going with it'**
+  /// **'Personal exercise for this PT'**
   String get progPersonalRoutinesTitle;
 
   /// No description provided for @progPersonalRoutinesCount.

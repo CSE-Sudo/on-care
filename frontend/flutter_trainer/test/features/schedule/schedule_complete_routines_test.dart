@@ -14,6 +14,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -426,6 +427,31 @@ void main() {
       );
       expect(rows, isNotEmpty);
       expect(rows.every((r) => r.sent), isTrue);
+    });
+
+    test('프로그램 탭에서 짠 개인운동이 그 PT 에 그대로 붙는다', () async {
+      // 데모가 개인운동을 버리던 동안에는 스케줄 카드가 짠 것 대신 늘 같은
+      // 데모 두 개를 보여 줘, 데모로 흐름을 확인할 수 없었다(#2224).
+      const composed = <RoutineExercise>[
+        RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
+      ];
+      await repo.registerProgramSchedule(
+        date: '2026-08-25',
+        clientId: 'seed-client-1',
+        clientName: '김민수',
+        time: '11:00',
+        durationMinutes: 50,
+        assignment: const <String, Object?>{},
+        program: const <ProgramItem>[ProgramItem(name: '스쿼트')],
+        personalRoutines: composed,
+      );
+      final rows = await db.select(db.trainerScheduleEntries).get();
+      final made = rows.firstWhere((r) => r.date == '2026-08-25');
+      final attached = await repo.fetchScheduledRoutines(made.id);
+      expect(attached.map((r) => r.exercise.name).toList(), <String>[
+        '실내 자전거',
+      ]);
+      expect(attached.every((r) => r.sent), isFalse);
     });
 
     test('아직 보내지 않은 PT 는 개인운동도 보낼 것으로 남는다', () async {

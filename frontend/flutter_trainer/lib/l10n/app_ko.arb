@@ -1113,7 +1113,7 @@
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }
   },
-  "progPersonalRoutinesTitle": "함께 보낼 개인운동",
+  "progPersonalRoutinesTitle": "이 PT 에 붙일 개인운동",
   "progPersonalRoutinesCount": "함께 보낼 개인운동 {count}개",
   "@progPersonalRoutinesCount": {
     "placeholders": {

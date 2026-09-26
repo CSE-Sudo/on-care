@@ -2745,7 +2745,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get progPersonalRoutinesTitle => 'Personal exercise going with it';
+  String get progPersonalRoutinesTitle => 'Personal exercise for this PT';
 
   @override
   String progPersonalRoutinesCount(int count) {
