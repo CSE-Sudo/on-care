@@ -1315,7 +1315,16 @@
   "emoteSheetTitle": "Emotes",
   "emoteBuyTitle": "Buy emote",
   "emoteBuyConfirm": "Use this emote for {days} days for {cost}P?\nThe days start the moment you buy.",
-  "@emoteBuyConfirm": {"placeholders": {"cost": {"type": "int"}, "days": {"type": "int"}}},
+  "@emoteBuyConfirm": {
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "emoteBuyAction": "Buy",
   "emoteBought": "You can send this emote now",
   "emoteBuyFailed": "We could not buy the emote. Please try again in a moment.",
@@ -3963,5 +3972,90 @@
   "dietAdviceTipVariety": "Add fish or tofu twice a week.",
   "@dietAdviceTipVariety": {
     "description": "Diet tab AI advice sentence `tip_variety` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
-  }
+  },
+  "weeklyFeedbackSheetTitle": "How was your week?",
+  "weeklyFeedbackSheetSubtitle": "Tell your trainer about {range}",
+  "@weeklyFeedbackSheetSubtitle": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "weeklyFeedbackWhy": "Takes 30 seconds. Next week's intensity comes from this answer.",
+  "weeklyFeedbackConditionQuestion": "How did you feel this week?",
+  "weeklyFeedbackIntensityQuestion": "How was the workout intensity?",
+  "weeklyFeedbackPainQuestion": "Anywhere it hurt?",
+  "weeklyFeedbackPainHint": "e.g. right knee",
+  "weeklyFeedbackPainDateLabel": "When it hurt",
+  "weeklyFeedbackPainDatePick": "Pick a date",
+  "weeklyFeedbackNoteQuestion": "A line for your trainer (optional)",
+  "weeklyFeedbackNoteHint": "Anything that shaped your week",
+  "weeklyFeedbackSend": "Send",
+  "weeklyFeedbackResend": "Send again",
+  "weeklyFeedbackLater": "Later",
+  "weeklyFeedbackIncomplete": "Pick your condition and intensity",
+  "weeklyFeedbackSent": "Weekly feedback sent",
+  "weeklyFeedbackSendFailed": "Couldn't send your weekly feedback. Please try again",
+  "weeklyFeedbackAlreadySent": "You already answered this week. Sending again replaces it.",
+  "weekConditionGreat": "Great",
+  "weekConditionGood": "Good",
+  "weekConditionOk": "Okay",
+  "weekConditionTired": "Worn out",
+  "weekConditionBad": "Rough",
+  "weekIntensityTooEasy": "Too easy",
+  "weekIntensityRight": "Just right",
+  "weekIntensityHard": "A bit hard",
+  "weekIntensityTooHard": "Too hard",
+  "myCoachReportsEntry": "Trainer reports",
+  "myCoachReportsEntryHint": "Reports you received and feedback you sent",
+  "coachReportsSectionTitle": "Reports received",
+  "coachReportsEmpty": "No reports yet",
+  "coachReportsEmptyHint": "Weekly reports from your trainer land here",
+  "coachReportOpen": "Open report",
+  "coachReportSentOn": "Sent {month}/{day}",
+  "@coachReportSentOn": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "myWeeklyFeedbackSectionTitle": "Weekly feedback you sent",
+  "myWeeklyFeedbackOnlyLastWeek": "Only last week's answer is shown",
+  "myWeeklyFeedbackEmpty": "You haven't sent last week's feedback",
+  "myWeeklyFeedbackConditionLabel": "Condition",
+  "myWeeklyFeedbackIntensityLabel": "Intensity",
+  "myWeeklyFeedbackPainLabel": "Pain",
+  "myWeeklyFeedbackPainNone": "None",
+  "myWeeklyFeedbackPainWithDate": "{area} ({month}/{day})",
+  "@myWeeklyFeedbackPainWithDate": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "myWeeklyFeedbackNoteLabel": "Your note",
+  "myWeeklyFeedbackSentAt": "Sent {month}/{day}",
+  "@myWeeklyFeedbackSentAt": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "weeklyFeedbackNowButton": "Send feedback now"
 }

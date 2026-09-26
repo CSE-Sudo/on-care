@@ -20,6 +20,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
@@ -126,6 +127,22 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
 
   @override
   Future<void> rejectInvite(String inviteId) async {}
+
+  // 주간 피드백은 이 대역이 서는 화면의 관심사가 아니다 — 안 낸 주로 답한다.
+  // (#2232)
+  @override
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({DateTime? weekStart}) async =>
+      MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
+
+  @override
+  Future<MemberWeeklyFeedback> saveWeeklyFeedback({
+    required DateTime weekStart,
+    required WeekCondition condition,
+    required WeekIntensity intensity,
+    String painArea = '',
+    DateTime? painOn,
+    String note = '',
+  }) async => throw UnimplementedError();
 }
 
 void main() {

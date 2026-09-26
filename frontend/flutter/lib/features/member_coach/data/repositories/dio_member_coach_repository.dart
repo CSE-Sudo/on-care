@@ -6,6 +6,7 @@ import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 /// Reads the member's coach + received routines + chat from the FastAPI
@@ -173,6 +174,69 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       return unread;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return 0;
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
+    DateTime? weekStart,
+  }) async {
+    try {
+      final Response<Map<String, Object?>> res = await _dio.get(
+        '/me/coach/weekly-feedback',
+        // 비워 두면 서버가 지난 주로 읽는다 — 주 경계 계산을 앱과 서버 두 곳에
+        // 두면 한쪽만 틀리는 날이 온다(#2232).
+        queryParameters: weekStart == null
+            ? null
+            : <String, Object?>{'week_start': wireDate(weekStart)},
+      );
+      final Map<String, Object?>? data = res.data;
+      if (data == null) {
+        throw const FormatException('Missing weekly feedback.');
+      }
+      return memberWeeklyFeedbackFromJson(data);
+    } on DioException catch (e) {
+      // 담당 트레이너가 없으면 404 다. 그건 오류가 아니라 이 기능이 없는
+      // 상태라, 화면이 칸을 통째로 숨기면 된다.
+      if (e.response?.statusCode == 404) {
+        return MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
+      }
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<MemberWeeklyFeedback> saveWeeklyFeedback({
+    required DateTime weekStart,
+    required WeekCondition condition,
+    required WeekIntensity intensity,
+    String painArea = '',
+    DateTime? painOn,
+    String note = '',
+  }) async {
+    try {
+      final Response<Map<String, Object?>> res = await _dio.put(
+        '/me/coach/weekly-feedback',
+        data: <String, Object?>{
+          'week_start': wireDate(weekStart),
+          'condition': condition.wire,
+          'intensity': intensity.wire,
+          'pain_area': painArea.trim(),
+          // 아픈 곳을 안 적었으면 날짜도 보내지 않는다 — 서버가 같은 규칙으로
+          // 지우지만, 보내는 쪽에서 이미 맞춰 둔다.
+          'pain_on': painArea.trim().isEmpty || painOn == null
+              ? ''
+              : wireDate(painOn),
+          'note': note.trim(),
+        },
+      );
+      final Map<String, Object?>? data = res.data;
+      if (data == null) {
+        throw const FormatException('Missing saved weekly feedback.');
+      }
+      return memberWeeklyFeedbackFromJson(data);
+    } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
   }
