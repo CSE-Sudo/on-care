@@ -14,8 +14,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 활성 표시(아바타의 초록 점)는 없앴다(#2204). PT 관리 신호 배지는 평소에는
 /// 이 행이 아니라 **회원 상세**에서 본다(#2258) — 목록은 회원의 한 주를 막대로
-/// 훑는 자리다. 필터로 좁힌 동안에만 [signals] 로 **걸린 이유**를 막대 아래에
-/// 함께 보여 준다 — 막대는 그대로 두어 같은 회원 행의 모양이 바뀌지 않는다.
+/// 훑는 자리다. 필터로 좁힌 동안에만 [signals] 로 **걸린 이유**를 카드 오른쪽
+/// 위에 함께 보여 준다 — 이름 줄 옆 빈자리를 쓰므로 막대도 행 높이도 그대로다.
 class ClientCard extends StatelessWidget {
   /// Creates a card for [client]; [onTap] opens the detail screen.
   const ClientCard({
@@ -57,13 +57,18 @@ class ClientCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _Identity(client: client),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(child: _Identity(client: client)),
+                    if (signals.isNotEmpty) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s8),
+                      _MatchedSignals(clientId: client.id, signals: signals),
+                    ],
+                  ],
+                ),
                 const SizedBox(height: OnCareSpacing.s8),
                 _WeeklyRoutineAdherence(client: client),
-                if (signals.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s8),
-                  _MatchedSignals(clientId: client.id, signals: signals),
-                ],
               ],
             ),
           ),
@@ -129,7 +134,9 @@ class _Identity extends StatelessWidget {
   }
 }
 
-/// 필터로 좁힌 동안 막대 아래에 붙는 **걸린 이유** — 목록 배지와 같은 문구·색.
+/// 필터로 좁힌 동안 카드 오른쪽 위에 붙는 **걸린 이유** — 목록 배지와 같은
+/// 문구·색. 여럿이면 오른쪽 끝을 맞춰 아래로 쌓는다 — 옆으로 늘어놓으면 이름이
+/// 먼저 잘린다.
 class _MatchedSignals extends StatelessWidget {
   const _MatchedSignals({required this.clientId, required this.signals});
 
@@ -139,10 +146,10 @@ class _MatchedSignals extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Wrap(
+    return Column(
       key: ValueKey<String>('client-signals-$clientId'),
+      crossAxisAlignment: CrossAxisAlignment.end,
       spacing: OnCareSpacing.s4,
-      runSpacing: OnCareSpacing.s4,
       children: <Widget>[
         for (final ClientSignal signal in signals)
           AppTag(label: signal.badgeLabel(l), tone: signal.kind.tone),
