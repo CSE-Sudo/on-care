@@ -153,31 +153,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authTagline => 'The trainer-only app for managing your members';
 
   @override
-  String get authEmail => 'Email';
+  String get authEmailHint => 'Email';
 
   @override
-  String get authPassword => 'Password';
+  String get authPasswordHint => 'Password';
 
   @override
-  String get authSignIn => 'Sign in';
+  String get authSignInAction => 'Sign in';
 
   @override
-  String get authNoAccount => 'Don\'t have an account?';
+  String get authNoAccountQuestion => 'Don\'t have an account?';
 
   @override
-  String get authSignUp => 'Sign up';
+  String get authSignUpAction => 'Sign up';
 
   @override
-  String get authBrowseDemo => 'Explore the demo without signing in';
+  String get authDemoAction => 'Explore the demo without signing in';
 
   @override
   String get authSocialDivider => 'Sign in with a social account';
 
   @override
-  String get authContinueKakao => 'Continue with Kakao';
+  String get authKakaoAction => 'Continue with Kakao';
 
   @override
-  String get authContinueGoogle => 'Continue with Google';
+  String get authGoogleAction => 'Continue with Google';
 
   @override
   String get authSignUpSubtitle =>
@@ -187,7 +187,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authName => 'Name';
 
   @override
-  String get authPasswordHint =>
+  String get signUpPasswordHint =>
       'Password (8+ characters, letters and numbers)';
 
   @override
@@ -213,7 +213,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmptyCredentials => 'Enter your email and password';
 
   @override
-  String get authErrSocialFailed =>
+  String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment.';
 
   @override
@@ -324,7 +324,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashNoIssues => 'No issues';
 
   @override
-  String get dashCheckSodiumCompletion => 'Check diet & completion';
+  String get dashCheckPtSignals => 'Check PT signals';
 
   @override
   String get dashMessages => 'Messages';
@@ -346,19 +346,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashActivityDifficultyTitle =>
-      'Low completion / churn risk detected';
+      'Behind exercise goal / routine skipped';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.';
+    return '$names are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.';
   }
 
   @override
-  String get dashActivityInactiveTitle => 'Inactive 7+ days';
+  String get dashActivityInactiveTitle => 'No logs';
 
   @override
   String dashActivityInactiveDesc(String names) {
-    return '$names haven\'t logged a workout in the last 7 days. Reach out before it turns into churn.';
+    return '$names haven\'t logged meals or workouts for a few days. Reach out before it turns into churn.';
   }
 
   @override
@@ -366,7 +366,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names have a diet warning (sodium/sugar over target) but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
+    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
   }
 
   @override
@@ -571,10 +571,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSignalProteinLow => 'Low protein';
 
   @override
-  String get clientsSignalUnanswered => 'Awaiting reply';
+  String clientsSignalCalorieOverPercent(int percent) {
+    return 'Calories $percent% over';
+  }
 
   @override
-  String get clientsAttentionActive => 'Attention';
+  String clientsSignalCalorieUnderPercent(int percent) {
+    return 'Calories $percent% under';
+  }
+
+  @override
+  String clientsSignalProteinPercent(int percent) {
+    return 'Protein $percent% of goal';
+  }
+
+  @override
+  String clientsSignalRoutineMissedDays(int days) {
+    return 'Routine skipped ${days}d';
+  }
+
+  @override
+  String get clientsSignalUnanswered => 'Awaiting reply';
 
   @override
   String get clientsAttentionClear => 'Clear attention filter';
@@ -1958,6 +1975,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegal => 'Terms & policies';
 
   @override
+  String get mySupportTitle => 'Customer Support';
+
+  @override
+  String get mySupportFaq => 'FAQ';
+
+  @override
+  String get mySupportInquiry => '1:1 Inquiry';
+
+  @override
+  String get mySupportExternalHint => 'Opens the KakaoTalk channel';
+
+  @override
+  String get mySupportOpenFailed =>
+      'Couldn\'t open the link. Please try again in a moment';
+
+  @override
+  String get mySupportEntryHint =>
+      'FAQ, inquiries, policies and account clean-up in one place';
+
+  @override
+  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
+
+  @override
   String get myLegalTermsTitle => 'Terms of Service';
 
   @override
@@ -2979,20 +3019,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String dashTodoSodiumSubtitle(int sodiumMg, int targetMg) {
-    return 'Sodium ${sodiumMg}mg · target ${targetMg}mg';
-  }
-
-  @override
-  String dashTodoSugarSubtitle(int sugarG, int targetG) {
-    return 'Sugar ${sugarG}g · target ${targetG}g';
-  }
-
-  @override
-  String get dashTodoCompletionSubtitle =>
-      'Low completion · check recent records';
-
-  @override
   String get dashTodoCarriedOverDemoSubtitle =>
       'Diet feedback left over from yesterday';
 
@@ -3479,8 +3505,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return 'Session $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type session';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type session $index';
   }
 
   @override
@@ -3518,6 +3549,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorExerciseDown => 'Move exercise down';
+
+  @override
+  String get programEditorExerciseMoveSession => 'Move to another session';
+
+  @override
+  String get programEditorExerciseMoveTitle =>
+      'Which session should it move to?';
+
+  @override
+  String programEditorExerciseMoveBody(String name) {
+    return 'Pick the session to move \'$name\' into.';
+  }
 
   @override
   String get programEditorSets => 'Sets';
