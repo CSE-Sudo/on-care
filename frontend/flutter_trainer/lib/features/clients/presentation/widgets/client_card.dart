@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart'
+    show recordedCompletionMean;
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
@@ -7,16 +9,13 @@ import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 한 행에 보여 주는 신호 배지 수. 나머지는 `+N` 으로 접는다 — 배지가 줄을
-/// 넘기면 회원 사이의 높이가 들쭉날쭉해져 목록을 훑기 어렵다.
-const int _maxVisibleSignals = 2;
-
-/// A member row on the 회원 관리 list: avatar, identity, goal, and the PT
-/// 관리 신호 badges (#2204).
+/// A member row on the 회원 관리 list: avatar, identity, goal, and this
+/// week's routine adherence.
 ///
-/// 활성 표시(아바타의 초록 점)와 주간 이행률 막대는 없앴다 — 목록이 답하는
-/// 질문은 "누가 흐름이 끊겼나, 누가 목표에서 벗어났나, 누가 불편을
-/// 호소하나" 이고, 이행률은 `기록 끊김`·`운동 목표 미달` 이 대신한다.
+/// 활성 표시(아바타의 초록 점)는 없앴다(#2204). PT 관리 신호 배지는 평소에는
+/// 이 행이 아니라 **회원 상세**에서 본다(#2258) — 목록은 회원의 한 주를 막대로
+/// 훑는 자리다. 필터로 좁힌 동안에만 [signals] 로 **걸린 이유**를 카드 오른쪽
+/// 위에 함께 보여 준다 — 이름 줄 옆 빈자리를 쓰므로 막대도 행 높이도 그대로다.
 class ClientCard extends StatelessWidget {
   /// Creates a card for [client]; [onTap] opens the detail screen.
   const ClientCard({
@@ -25,6 +24,7 @@ class ClientCard extends StatelessWidget {
     required this.onTap,
     this.selected = false,
     this.unread = 0,
+    this.signals = const <ClientSignal>[],
   });
 
   /// The client to render.
@@ -37,13 +37,15 @@ class ClientCard extends StatelessWidget {
   /// detail panel is open.
   final bool selected;
 
-  /// Unread chat messages. The row doesn't preview chats; a non-zero count
-  /// only adds the `답장 대기` badge.
+  /// Unread chat messages retained for call-site compatibility. The member
+  /// roster intentionally does not expose chat previews or notification badges.
   final int unread;
+
+  /// 필터로 좁힌 동안 이 회원이 걸린 이유. 비어 있으면(평소) 배지 줄이 없다.
+  final List<ClientSignal> signals;
 
   @override
   Widget build(BuildContext context) {
-    final List<ClientSignal> signals = rosterSignalsFor(client, unread: unread);
     return AppCard(
       selected: selected,
       onTap: onTap,
@@ -55,11 +57,18 @@ class ClientCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _Identity(client: client),
-                if (signals.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s8),
-                  _SignalBadges(clientId: client.id, signals: signals),
-                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(child: _Identity(client: client)),
+                    if (signals.isNotEmpty) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s8),
+                      _MatchedSignals(clientId: client.id, signals: signals),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: OnCareSpacing.s8),
+                _WeeklyRoutineAdherence(client: client),
               ],
             ),
           ),
@@ -125,11 +134,11 @@ class _Identity extends StatelessWidget {
   }
 }
 
-/// 급한 신호 [_maxVisibleSignals] 개와, 넘치면 `+N`.
-///
-/// 접힌 신호도 스크린리더에는 모두 읽힌다 — 보이지 않는다고 없는 것이 아니다.
-class _SignalBadges extends StatelessWidget {
-  const _SignalBadges({required this.clientId, required this.signals});
+/// 필터로 좁힌 동안 카드 오른쪽 위에 붙는 **걸린 이유** — 목록 배지와 같은
+/// 문구·색. 여럿이면 오른쪽 끝을 맞춰 아래로 쌓는다 — 옆으로 늘어놓으면 이름이
+/// 먼저 잘린다.
+class _MatchedSignals extends StatelessWidget {
+  const _MatchedSignals({required this.clientId, required this.signals});
 
   final String clientId;
   final List<ClientSignal> signals;
@@ -137,24 +146,81 @@ class _SignalBadges extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<ClientSignal> shown = signals
-        .take(_maxVisibleSignals)
-        .toList();
-    final int hidden = signals.length - shown.length;
-    return Semantics(
-      label: signals.map((s) => s.badgeLabel(l)).join(', '),
-      child: ExcludeSemantics(
-        child: Wrap(
-          key: ValueKey<String>('client-signals-$clientId'),
-          spacing: OnCareSpacing.s4,
-          runSpacing: OnCareSpacing.s4,
+    return Column(
+      key: ValueKey<String>('client-signals-$clientId'),
+      crossAxisAlignment: CrossAxisAlignment.end,
+      spacing: OnCareSpacing.s4,
+      children: <Widget>[
+        for (final ClientSignal signal in signals)
+          AppTag(label: signal.badgeLabel(l), tone: signal.kind.tone),
+      ],
+    );
+  }
+}
+
+/// 이번 주에 기록된 날만 평균낸 루틴 수행률.
+///
+/// 0은 미수행이 아니라 미집계이므로 빈 주를 0% 실패처럼 그리지 않는다. 주의
+/// 배지와 고객 검색이 쓰는 [recordedCompletionMean]을 그대로 사용해 고객
+/// 목록 안에서 같은 회원을 서로 다른 숫자로 말하지 않게 한다. (#1284)
+class _WeeklyRoutineAdherence extends StatelessWidget {
+  const _WeeklyRoutineAdherence({required this.client});
+
+  final TrainerClient client;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final double? mean = recordedCompletionMean(client);
+    final int? percent = mean?.round();
+    final String valueLabel = percent == null
+        ? l.clientRoutineAdherenceUnmeasured
+        : '$percent%';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
           children: <Widget>[
-            for (final ClientSignal signal in shown)
-              AppTag(label: signal.badgeLabel(l), tone: signal.kind.tone),
-            if (hidden > 0) AppTag(label: l.clientsSignalMore(hidden)),
+            Expanded(
+              child: Text(
+                l.clientWeeklyRoutineAdherence,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            Text(
+              valueLabel,
+              style:
+                  OnCareTypography.numeric(
+                    tokens.text(
+                      OnCareTypography.strong(OnCareTypography.caption),
+                    ),
+                  ).copyWith(
+                    color: percent == null
+                        ? OnCareColors.textSecondary
+                        : OnCareColors.textPrimary,
+                  ),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: OnCareSpacing.s4),
+        Semantics(
+          label: l.clientWeeklyRoutineAdherence,
+          value: valueLabel,
+          child: ExcludeSemantics(
+            child: AppProgressBar(
+              key: ValueKey<String>('client-weekly-adherence-${client.id}'),
+              value: (mean ?? 0).clamp(0, 100) / 100,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

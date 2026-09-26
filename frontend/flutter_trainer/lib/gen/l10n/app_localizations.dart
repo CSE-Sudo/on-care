@@ -1022,6 +1022,18 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// No description provided for @clientWeeklyRoutineAdherence.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly adherence'**
+  String get clientWeeklyRoutineAdherence;
+
+  /// No description provided for @clientRoutineAdherenceUnmeasured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not measured'**
+  String get clientRoutineAdherenceUnmeasured;
+
   /// No description provided for @clientsSignalDiscomfort.
   ///
   /// In en, this message translates to:
@@ -1129,12 +1141,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Awaiting reply'**
   String get clientsSignalUnanswered;
-
-  /// No description provided for @clientsSignalMore.
-  ///
-  /// In en, this message translates to:
-  /// **'+{count}'**
-  String clientsSignalMore(int count);
 
   /// No description provided for @clientsAttentionClear.
   ///

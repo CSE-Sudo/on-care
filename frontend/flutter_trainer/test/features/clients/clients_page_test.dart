@@ -20,6 +20,8 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
+import 'package:oncare_ui/oncare_ui.dart';
+
 import '../../helpers/pump_app.dart';
 
 /// [ClientInviteRepository] 가 꺼진 빌드 — 신규 회원 등록 진입점 자체가
@@ -555,10 +557,12 @@ void main() {
         findsNothing,
       );
       expect(find.byType(ClientSearchBar), findsOneWidget);
-      await scrollToClient(tester, find.text('박성호'));
-      expect(find.text('박성호'), findsOneWidget);
+      // 목록 차례대로 내려간다 — 이지수가 박성호보다 위라, 박성호까지 내린 뒤에는
+      // 이지수가 이미 화면 위로 지나가 아래로 찾아서는 닿지 않는다.
       await scrollToClient(tester, find.text('이지수'));
       expect(find.text('이지수'), findsWidgets);
+      await scrollToClient(tester, find.text('박성호'));
+      expect(find.text('박성호'), findsOneWidget);
     });
 
     testWidgets('전체 보기 clears the URL and local search filters', (
@@ -579,12 +583,29 @@ void main() {
       );
       // 신호가 없는 이지수는 주의 회원이 아니다.
       expect(find.byKey(const ValueKey<String>('client-seed-client-2')), findsNothing);
+      // 주의 회원으로 들어오면 막대 아래에 가장 급한 주의 신호 하나가 붙는다.
+      expect(
+        tester
+            .widgetList<AppTag>(
+              find.descendant(
+                of: find.byKey(
+                  const ValueKey<String>('client-signals-seed-client-8'),
+                ),
+                matching: find.byType(AppTag),
+              ),
+            )
+            .map((t) => t.label)
+            .toList(),
+        <String>['통증·불편'],
+      );
 
       await tester.tap(clear);
       await settle(tester);
 
       expect(currentLocation(tester), AppRoutes.clients);
       expect(clear, findsNothing);
+      // 필터가 풀리면 걸린 이유도 사라지고 막대만 남는다.
+      expect(find.byType(AppTag), findsNothing);
       await scrollToClient(tester, find.text('이지수'));
       expect(find.text('이지수'), findsOneWidget);
     });
@@ -865,6 +886,27 @@ void main() {
       expect(find.byKey(const ValueKey<String>('client-seed-client-8')), findsOneWidget);
       expect(find.byKey(const ValueKey<String>('client-seed-client-2')), findsNothing);
       expect(find.byType(ClientCard), findsOneWidget);
+
+      // 필터로 좁힌 동안에는 막대 아래에 **걸린 이유만** 보인다(#2258) —
+      // 오세라의 다른 신호(운동 목표·칼로리)와 답장 대기는 붙지 않는다.
+      final reasons = find.byKey(
+        const ValueKey<String>('client-signals-seed-client-8'),
+      );
+      expect(
+        tester
+            .widgetList<AppTag>(
+              find.descendant(of: reasons, matching: find.byType(AppTag)),
+            )
+            .map((t) => t.label)
+            .toList(),
+        <String>['통증·불편'],
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('client-weekly-adherence-seed-client-8'),
+        ),
+        findsOneWidget,
+      );
 
       // 같은 chip 을 다시 누르면 선택이 풀린다 — 다중 선택의 개별 제거.
       await toggleFilter(tester, RosterManagementFilter.discomfort);
