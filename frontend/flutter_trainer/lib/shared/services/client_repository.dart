@@ -956,17 +956,15 @@ class DriftClientRepository implements ClientRepository {
       }
     }
 
-    for (final ClientDietEntryRow row
-        in await (_db.select(_db.clientDietEntries)
-              ..where((t) => t.clientId.equals(clientId)))
-            .get()) {
+    for (final ClientDietEntryRow row in await (_db.select(
+      _db.clientDietEntries,
+    )..where((t) => t.clientId.equals(clientId))).get()) {
       final DateTime? date = DateTime.tryParse(row.date);
       if (date != null) keepEarliest(date, diet: true);
     }
-    for (final ClientDailyMetricRow row
-        in await (_db.select(_db.clientDailyMetrics)
-              ..where((t) => t.clientId.equals(clientId)))
-            .get()) {
+    for (final ClientDailyMetricRow row in await (_db.select(
+      _db.clientDailyMetrics,
+    )..where((t) => t.clientId.equals(clientId))).get()) {
       if (row.completion <= 0) continue;
       final DateTime? date = DateTime.tryParse(row.date);
       if (date != null) keepEarliest(date, diet: false);

@@ -116,9 +116,7 @@ void main() {
     expect(
       tester
           .widget<AppChoiceChip>(
-            find.byKey(
-              const ValueKey<String>('custom-exercise-category-스트레칭'),
-            ),
+            find.byKey(const ValueKey<String>('custom-exercise-category-스트레칭')),
           )
           .selected,
       isTrue,

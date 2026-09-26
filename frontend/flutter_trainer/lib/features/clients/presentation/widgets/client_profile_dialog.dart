@@ -247,16 +247,20 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   /// (`health_goal_ranges`)가 같은 값을 쓰는 자리라, 여기에 숫자를 따로 적어
   /// 두면 같은 컬럼을 고치는 세 문이 다시 갈라진다.
   List<_NumberField> _numberFields(AppLocalizations l) => <_NumberField>[
-    _NumberField('height',
+    _NumberField(
+      'height',
       _height,
       l.memberHealthHeight,
       AppGoalRanges.heightCm,
-      false,),
-    _NumberField('weight',
+      false,
+    ),
+    _NumberField(
+      'weight',
       _weight,
       l.memberHealthWeight,
       AppGoalRanges.weightKg,
-      false,),
+      false,
+    ),
     _NumberField(
       'client-goal-calories',
       _goalCalories,
@@ -348,29 +352,30 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       _saved = false;
     });
     try {
-      await ref
-          .read(clientRepositoryProvider)
-          .updateHealthProfile(widget.clientId, <String, Object?>{
-            'gender': _gender,
-            'height_cm': _number(_height.text, integer: false),
-            'weight_kg': _number(_weight.text, integer: false),
-            // 목표가 앞, 주의사항 글이 뒤인 한 칸이다 — 회원앱 저장과 같은 모양.
-            'conditions': mergeHealthFocus(_conditions.text, _focus),
-            'goals': _goals.text.trim(),
-            'daily_calories': _number(_goalCalories.text, integer: true),
-            'daily_sodium_mg': _number(_goalSodium.text, integer: true),
-            'daily_sugar_g': _number(_goalSugar.text, integer: true),
-            'daily_carbs_g': _number(_goalCarbs.text, integer: true),
-            'daily_protein_g': _number(_goalProtein.text, integer: true),
-            'daily_fat_g': _number(_goalFat.text, integer: true),
-            'daily_burn_kcal': _number(_goalBurn.text, integer: true),
-            'weekly_cardio_minutes': _number(_goalCardio.text, integer: true),
-            'weekly_strength_sets': _number(_goalStrength.text, integer: true),
-            'weekly_flexibility_minutes': _number(
-              _goalFlexibility.text,
-              integer: true,
-            ),
-          });
+      await ref.read(clientRepositoryProvider).updateHealthProfile(
+        widget.clientId,
+        <String, Object?>{
+          'gender': _gender,
+          'height_cm': _number(_height.text, integer: false),
+          'weight_kg': _number(_weight.text, integer: false),
+          // 목표가 앞, 주의사항 글이 뒤인 한 칸이다 — 회원앱 저장과 같은 모양.
+          'conditions': mergeHealthFocus(_conditions.text, _focus),
+          'goals': _goals.text.trim(),
+          'daily_calories': _number(_goalCalories.text, integer: true),
+          'daily_sodium_mg': _number(_goalSodium.text, integer: true),
+          'daily_sugar_g': _number(_goalSugar.text, integer: true),
+          'daily_carbs_g': _number(_goalCarbs.text, integer: true),
+          'daily_protein_g': _number(_goalProtein.text, integer: true),
+          'daily_fat_g': _number(_goalFat.text, integer: true),
+          'daily_burn_kcal': _number(_goalBurn.text, integer: true),
+          'weekly_cardio_minutes': _number(_goalCardio.text, integer: true),
+          'weekly_strength_sets': _number(_goalStrength.text, integer: true),
+          'weekly_flexibility_minutes': _number(
+            _goalFlexibility.text,
+            integer: true,
+          ),
+        },
+      );
       // 저장한 값이 이 화면에도 바로 남는다 — 다음에 창을 열 때 서버에서 다시
       // 읽는다(#1449).
       ref.invalidate(clientsProvider);

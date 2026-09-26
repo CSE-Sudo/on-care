@@ -169,20 +169,21 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     return _openFormDialog(
       existing == null ? l.schedAddTitle : l.schedEditTitle,
       (dialogContext) {
-      return SessionSheet(
-        key: ValueKey<String>(
-          existing == null
-              ? 'new-session-editor'
-              : 'schedule-editor-${existing.id}',
-        ),
-        clientNames: clients.map((c) => c.name).toList(),
-        date: existing?.date ?? _selectedYmd,
-        existing: existing,
-        inline: true,
-        onSaved: () => Navigator.of(dialogContext).pop(),
-        onCancel: () => Navigator.of(dialogContext).pop(),
-      );
-    });
+        return SessionSheet(
+          key: ValueKey<String>(
+            existing == null
+                ? 'new-session-editor'
+                : 'schedule-editor-${existing.id}',
+          ),
+          clientNames: clients.map((c) => c.name).toList(),
+          date: existing?.date ?? _selectedYmd,
+          existing: existing,
+          inline: true,
+          onSaved: () => Navigator.of(dialogContext).pop(),
+          onCancel: () => Navigator.of(dialogContext).pop(),
+        );
+      },
+    );
   }
 
   /// 예약 슬롯도 새 일정·일정 수정과 같은 가운데 모달로 연다 — 아래에서

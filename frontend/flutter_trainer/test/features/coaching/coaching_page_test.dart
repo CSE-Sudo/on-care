@@ -604,9 +604,7 @@ Future<void> _completePersonalStep(
     await tester.pumpAndSettle();
   }
 
-  final done = find.byKey(
-    const ValueKey<String>('complete-personal-routines'),
-  );
+  final done = find.byKey(const ValueKey<String>('complete-personal-routines'));
   await tester.scrollUntilVisible(
     done,
     150,
@@ -620,9 +618,7 @@ Future<void> _completePersonalStep(
   // 넘어가지 못했다면 최소 한 개 조건에 걸린 것이다 — 조용히 지나치면 그
   // 다음 단언이 엉뚱한 곳에서 실패한다.
   if (done.evaluate().isNotEmpty) {
-    throw StateError(
-      '개인운동 단계를 통과하지 못했습니다 — 최소 한 개를 정해야 넘어갑니다(#2223).',
-    );
+    throw StateError('개인운동 단계를 통과하지 못했습니다 — 최소 한 개를 정해야 넘어갑니다(#2223).');
   }
 }
 
@@ -2485,7 +2481,10 @@ void main() {
       await _completePersonalStep(tester, scrollable);
 
       // 프로그램 박스는 서지 않는다 — 고를 PT 가 없다.
-      expect(find.byType(ProgramEditorWorkspace, skipOffstage: false), findsOneWidget);
+      expect(
+        find.byType(ProgramEditorWorkspace, skipOffstage: false),
+        findsOneWidget,
+      );
       final box = find.byKey(const ValueKey<String>('personal-routine-box'));
       expect(box, findsOneWidget);
       expect(
@@ -2525,8 +2524,7 @@ void main() {
       expect(find.text('보냈어요'), findsOneWidget);
     });
 
-    testWidgets('보낸 뒤 위저드로 돌아가면 처음부터 다시 선다 (#2223)',
-        (tester) async {
+    testWidgets('보낸 뒤 위저드로 돌아가면 처음부터 다시 선다 (#2223)', (tester) async {
       // 보낸 구성이 그대로 남아 있으면 `AI 추천으로 돌아가기` 가 방금 보낸
       // 것을 다시 반영할 수 있는 상태로 펼친다 — 보냈다는 표시도 없다.
       final routines = _CapturingProgramRepository();

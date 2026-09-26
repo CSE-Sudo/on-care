@@ -287,9 +287,7 @@ void main() {
       expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsNothing);
     });
 
-    testWidgets('전화번호를 비워도 저장된다 — 트레이너 가입은 이 값을 받지 않는다', (
-      tester,
-    ) async {
+    testWidgets('전화번호를 비워도 저장된다 — 트레이너 가입은 이 값을 받지 않는다', (tester) async {
       final container = await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',

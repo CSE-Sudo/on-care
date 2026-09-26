@@ -1,28 +1,19 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
-import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
-    show weekdayCount;
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/bar_line_chart.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/metric_comparison_section.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/metric_trend_section.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_client_picker.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_pdf_export_dialog.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/week_trend_bar.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_actions.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
@@ -50,6 +41,7 @@ class _SummaryFailsRepository implements ReportRepository {
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
+    required AppLocalizations l,
   }) async => throw StateError('summary provider down');
 
   @override
@@ -80,22 +72,13 @@ class _SummaryFailsRepository implements ReportRepository {
     required DateTime weekStart,
     required String body,
   }) async => ReportFeedbackDraft(body: body, saved: true);
-}
 
-/// 이번 주 리포트의 요일 칸에 실제로 뜨는 김민수의 운동 이름 하나.
-///
-/// 값은 공유 픽스처가 갖고 있다(#757). 화면은 ✓/✗ 표시를 떼고 이름만 보여 준다.
-String _minsuExerciseThisWeek() {
-  final DemoFixture fixture = DemoFixture.parse(
-    File('../../shared/demo_fixture/assets/kim_minsu.json').readAsStringSync(),
-  );
-  final List<FixtureDay> days = fixture.daysFor(nowKst());
-  final String monday = days.last.weekStart;
-  for (final FixtureDay day in days.reversed) {
-    if (day.weekStart != monday) break;
-    if (day.exercises.isNotEmpty) return day.exercises.first.name;
-  }
-  throw StateError('이번 주에 운동한 날이 없다 — 요일 칸이 전부 비어 검증이 뜻을 잃는다');
+  @override
+  Future<void> saveNextWeekGoals({
+    required String clientId,
+    required DateTime weekStart,
+    required List<String> goals,
+  }) async {}
 }
 
 class _ReportFailsOncePerKeyRepository implements ReportRepository {
@@ -106,7 +89,9 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
+    required AppLocalizations l,
   }) async => ruleReportSummary(
+    l,
     buildWeeklyReport(client: client, sessions: const [], weekStart: weekStart),
     client,
   );
@@ -160,6 +145,13 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
     required DateTime weekStart,
     required String body,
   }) async => ReportFeedbackDraft(body: body, saved: true);
+
+  @override
+  Future<void> saveNextWeekGoals({
+    required String clientId,
+    required DateTime weekStart,
+    required List<String> goals,
+  }) async {}
 }
 
 /// 리포트 against the seeded roster — the trainer's own week plus one
@@ -202,9 +194,18 @@ void main() {
   /// 공유 메뉴 항목. 공용 `AppMenu` 항목에는 키가 없어 문구로 찾는다.
   Finder shareItem(String label) => find.widgetWithText(MenuItemButton, label);
 
+  /// 리포트 탭을 연다.
+  ///
+  /// 탭의 첫 화면은 **작업대**다(#2232). 리포트 본문을 보는 테스트가 대부분
+  /// 이라, 따로 말하지 않으면 한 회원의 편집기로 바로 들어간다 — 작업대
+  /// 자체를 보는 테스트만 [workbench] 를 켠다. [stage] 는 편집기의 단계
+  /// (0 이번 주 확인 · 1 다음 주 목표 · 2 전송)다.
   Future<ProviderContainer> openReports(
     WidgetTester tester, {
     String? clientId,
+    bool workbench = false,
+    DateTime? weekStart,
+    int stage = 0,
     Size size = const Size(1600, 1200),
     List<Override> extraOverrides = const <Override>[],
   }) async {
@@ -212,12 +213,27 @@ void main() {
     tester.view.physicalSize = size;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    return pumpTrainerApp(
+    final ProviderContainer container = await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      at: clientId == null ? AppRoutes.reports : AppRoutes.reportFor(clientId),
+      at: workbench
+          ? AppRoutes.reports
+          : AppRoutes.reportFor(
+              clientId ?? 'seed-client-1',
+              weekStart: weekStart,
+            ),
       extraOverrides: extraOverrides,
     );
+    if (!workbench && stage > 0) {
+      await tester.pumpAndSettle();
+      for (int i = 0; i < stage; i++) {
+        await tester.tap(
+          find.byKey(const ValueKey<String>('report-step-next')),
+        );
+        await tester.pumpAndSettle();
+      }
+    }
+    return container;
   }
 
   testWidgets('shows the trainer week alongside a client report', (
@@ -226,26 +242,18 @@ void main() {
     await openReports(tester);
 
     expect(find.text('리포트'), findsWidgets);
-    expect(find.text('이번 주 vs 지난 주'), findsOneWidget);
-    expect(find.text('트레이너 피드백'), findsOneWidget);
+    // ① 은 지표를 나란히 세우던 비교 표가 아니라 요일 격자다(#2232).
+    expect(find.text('PT 세션'), findsOneWidget);
+    // 피드백 입력창은 ③ 전송 단계로 내려갔다 — ① 이번 주 확인은 읽기만
+    // 하는 단계라 입력이 없다(#2232).
+    expect(find.text('트레이너 피드백'), findsNothing);
     expect(find.text('다음 주'), findsNothing);
-    // 비교 그래프는 지표 넷을 한 자리에서 돌려 쓴다 — 알약 버튼이 그 넷이다.
-    // 운동 상자와 식단 상자가 각자의 지표를 들고 나란히 선다.
-    for (final metric in <String>[
-      'burned',
-      'cardio',
-      'strength',
-      'stretching',
-    ]) {
-      expect(
-        find.byKey(ValueKey<String>('compare-exercise-$metric')),
-        findsOneWidget,
-      );
-    }
+    // 칼로리·나트륨·당류를 돌려 보던 알약 줄은 물러났다 — ① 이 답하는 것은
+    // `무엇을 했나` 이고, 지표를 고르는 일은 트레이너의 몫이 아니다(#2232).
     for (final metric in <String>['calories', 'sodium', 'sugar']) {
       expect(
         find.byKey(ValueKey<String>('compare-diet-$metric')),
-        findsOneWidget,
+        findsNothing,
       );
     }
     // Defaults to the first client rather than an empty right pane.
@@ -258,35 +266,6 @@ void main() {
         matching: find.text('남성 · 35세'),
       ),
       findsNothing,
-    );
-  });
-
-  testWidgets('비교 상자는 알약 버튼으로 지표를 갈아 끼운다 (#1177)', (tester) async {
-    await openReports(tester);
-
-    // 식단 상자는 칼로리로 열리고, 막대는 탄·단·지로 쌓이므로 그 셋이
-    // 무엇인지 적어 준다. 회원 목록에도 `체지방 감량` 같은 목표가 있어 비교
-    // 상자 안으로 범위를 좁혀 본다.
-    Finder inBox(String text) => find.descendant(
-      of: find.byType(MetricComparisonSection),
-      matching: find.textContaining(text),
-    );
-    expect(inBox('탄수화물'), findsOneWidget);
-    expect(inBox('단백질'), findsOneWidget);
-    expect(inBox('지방'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey<String>('compare-diet-sugar')));
-    await settle(tester);
-    expect(inBox('탄수화물'), findsNothing);
-
-    // 운동 상자는 따로 움직인다 — 식단 지표를 바꿔도 그대로다.
-    await tester.tap(
-      find.byKey(const ValueKey<String>('compare-exercise-cardio')),
-    );
-    await settle(tester);
-    expect(
-      find.byKey(const ValueKey<String>('compare-exercise-cardio')),
-      findsOneWidget,
     );
   });
 
@@ -395,91 +374,38 @@ void main() {
 
   // ---- 요약 카드 자리와 주 이동 라벨 (#897) ----
 
-  testWidgets('넓은 화면에서 요약 카드는 회원 목록 바로 아래에 놓인다 (#897)', (tester) async {
+  testWidgets('요약 카드는 ② 작성 단계에만 선다 (#2232)', (tester) async {
     await openReports(tester);
+    final Finder summaryTitle = find.text('이번 주 요약');
+    // ① 확인에는 없다. AI 가 내린 결론을 먼저 읽으면 자료를 보는 일이 그
+    // 결론이 맞는지 확인하는 일로 바뀌어, 요약이 짚지 않은 것은 트레이너도
+    // 짚지 않게 된다.
+    expect(summaryTitle, findsNothing);
 
-    final Finder leftColumn = find.byKey(
-      const ValueKey<String>('reports-left-column'),
-    );
-    final Finder summaryTitle = find.text('AI 코칭 보조 · 리포트 요약');
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
+    // 쓰는 자리의 출발점이라 여기에 선다. 하나뿐이다 — 둘이 서면 어느 쪽이
+    // 최신인지 알 수 없다.
     expect(summaryTitle, findsOneWidget);
-    // 왼쪽 열 안에 있고, 회원 목록보다 아래다.
-    expect(
-      find.descendant(of: leftColumn, matching: summaryTitle),
-      findsOneWidget,
-    );
-    expect(
-      tester.getTopLeft(summaryTitle).dy,
-      greaterThan(
-        tester
-            .getTopLeft(
-              find.descendant(of: leftColumn, matching: find.text('회원')),
-            )
-            .dy,
-      ),
-    );
-    // 오른쪽 리포트 열에는 더 이상 같은 카드가 없다.
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('reports-report-scroll')),
-        matching: summaryTitle,
-      ),
-      findsNothing,
-    );
   });
 
-  testWidgets('짧은 창에서도 요약 카드가 띠로 눌리지 않는다 (#1177)', (tester) async {
-    // 목록 하나로도 열이 빠듯한 높이다. 프로그램 탭 왼쪽 열과 같은 기준
-    // (`clientSidebarSplitMinHeight`)보다 짧아 목록·요약을 나누지 않는다 —
-    // `Expanded` 로 나누면 요약이 몇 픽셀짜리 띠가 되어 내용이 넘친다.
-    await openReports(tester, size: const Size(1600, 480));
+  testWidgets('짧은 창에서도 단계 내용이 넘치지 않는다 (#1177, #2232)', (tester) async {
+    await openReports(tester, size: const Size(1600, 480), stage: 1);
 
     expect(tester.takeException(), isNull);
-    final Finder summary = find.text('AI 코칭 보조 · 리포트 요약');
-    expect(summary, findsOneWidget);
-    // 열은 그 대신 스스로 스크롤한다.
-    expect(
-      find.byKey(const ValueKey<String>('reports-left-scroll')),
-      findsOneWidget,
-    );
+    expect(find.text('이번 주 요약'), findsOneWidget);
   });
 
-  testWidgets('요약 카드는 프로그램 탭 프로그램 템플릿 카드와 같은 크기다', (tester) async {
-    await openReports(tester);
-    await tester.pumpAndSettle();
-    final Finder summaryCard = find.byKey(
-      const ValueKey<String>('reports-ai-card'),
-    );
-    expect(summaryCard, findsOneWidget);
-    final Size summarySize = tester.getSize(summaryCard);
-    final Offset summaryTopLeft = tester.getTopLeft(summaryCard);
+  testWidgets('좁은 화면에서도 작업대가 먼저 뜬다 (#2232)', (tester) async {
+    await openReports(tester, workbench: true, size: const Size(700, 1000));
 
-    await goTo(tester, AppRoutes.coaching);
-    await tester.pumpAndSettle();
-    final Finder templateCard = find.byKey(
-      const ValueKey<String>('program-template-sidebar'),
-    );
-    expect(templateCard, findsOneWidget);
-    // 같은 열 폭·같은 자리(회원 목록 아래)·같은 높이다.
-    expect(tester.getSize(templateCard).width, closeTo(summarySize.width, 0.5));
-    expect(
-      tester.getSize(templateCard).height,
-      closeTo(summarySize.height, 0.5),
-    );
-    expect(tester.getTopLeft(templateCard).dy, closeTo(summaryTopLeft.dy, 0.5));
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('좁은 화면 목록에서는 요약 자리에 무엇이 뜨는지 알린다 (#897)', (tester) async {
-    await openReports(tester, size: const Size(700, 1000));
-
-    expect(find.text('회원을 선택하면 그 주의 리포트 요약과 코칭 제안이 여기에 표시돼요'), findsOneWidget);
-    // 아직 고른 회원이 없으니 요약을 만들지 않는다.
+    expect(find.byType(ReportWorkbench), findsOneWidget);
+    // 아직 아무도 고르지 않았으니 요약을 만들지 않는다.
     expect(find.text('피드백으로 가져오기'), findsNothing);
   });
 
-  testWidgets('주 이동은 리포트 카드 제목 줄에서 하고, 보고 있는 주를 적는다 (#1177)', (tester) async {
-    await openReports(tester);
+  testWidgets('주 이동은 목록 화면에서 하고, 보고 있는 주를 적는다 (#1177, #2232)', (tester) async {
+    await openReports(tester, workbench: true);
 
     String rangeOf(DateTime start) {
       final DateTime end = start.add(const Duration(days: 6));
@@ -487,14 +413,7 @@ void main() {
     }
 
     final DateTime thisWeek = weekStartOf(nowKst());
-    // 헤더가 아니라 카드 안이다 — 제목과 같은 줄에서 지금 보고 있는 주를 적는다.
-    expect(
-      find.descendant(
-        of: find.byType(ClientReportView),
-        matching: find.text(rangeOf(thisWeek)),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(rangeOf(thisWeek)), findsOneWidget);
 
     await tester.tap(prevWeek);
     await settle(tester);
@@ -510,7 +429,7 @@ void main() {
   });
 
   testWidgets('가장 최근 주에서는 다음 주 화살표가 죽어 있다 (#1177)', (tester) async {
-    await openReports(tester);
+    await openReports(tester, workbench: true);
 
     IconButton arrow(Finder finder) => tester.widget<IconButton>(finder);
     expect(arrow(nextWeek).onPressed, isNull, reason: '앞으로 갈 주가 없다');
@@ -521,10 +440,10 @@ void main() {
     expect(arrow(nextWeek).onPressed, isNotNull);
   });
 
-  testWidgets('`이번 주` 버튼은 주 이동 줄 안에 있고 이번 주에서는 아예 감춘다 (#1177, #1245)', (
+  testWidgets('`오늘` 버튼은 주 이동 줄 안에 있고 이번 주에서는 아예 감춘다 (#1177, #1245, #2232)', (
     tester,
   ) async {
-    await openReports(tester);
+    await openReports(tester, workbench: true);
 
     final Finder currentWeek = find.byKey(
       const ValueKey<String>('reports-go-this-week'),
@@ -538,22 +457,18 @@ void main() {
       findsNothing,
     );
     // 스케줄 탭의 `오늘` 처럼 이번 주에는 버튼 자체를 그리지 않는다 — 회색
-    // 비활성이 아니라 미표시다. 자리는 고정폭 슬롯이 대신 지켜, 화살표는
-    // 밀리지 않는다.
+    // 비활성이 아니라 미표시다.
     expect(currentWeek, findsNothing);
 
     await tester.tap(prevWeek);
     await settle(tester);
 
-    // 스케줄 탭의 `오늘` 처럼 두 화살표 사이에 선다 — 옮기는 대상과 같은 줄이다.
+    // 스케줄 탭의 `오늘` 처럼 옮기는 대상과 같은 줄에 선다.
     expect(
       find.descendant(of: find.byType(ReportWeekNav), matching: currentWeek),
       findsOneWidget,
     );
     expect(tester.widget<AppButton>(currentWeek).onPressed, isNotNull);
-    // 비교 카드와 최근 4주 목록에 같은 말이 쓰인다.
-    expect(find.text('선택 주'), findsWidgets);
-
     await tester.tap(currentWeek);
     await settle(tester);
 
@@ -577,6 +492,12 @@ void main() {
     );
     await settle(tester);
 
+    // 편집기에는 주 표시가 없다 — 목록으로 돌아가면 그 주에 머물러 있다.
+    await tester.tap(
+      find.byKey(const ValueKey<String>('reports-back-to-list')),
+    );
+    await settle(tester);
+
     final DateTime weekEnd = lastWeek.add(const Duration(days: 6));
     expect(
       find.text(
@@ -591,19 +512,8 @@ void main() {
     );
   });
 
-  testWidgets('날짜·화살표 묶음은 카드 오른쪽 끝에 붙고 `이번 주` 는 그 왼쪽이다 (#1295)', (
-    WidgetTester tester,
-  ) async {
-    await openReports(tester);
-
-    final Finder nav = find.byType(ReportWeekNav);
-    final Finder card = find.ancestor(of: nav, matching: find.byType(AppCard));
-    // 다른 카드 제목 줄과 같은 안쪽 여백만 두고 오른쪽 끝에 붙는다.
-    double cardInnerRight() =>
-        tester.getTopRight(card.first).dx - OnCareSpacing.cardPadding;
-    expect(tester.getTopRight(nextWeek).dx, closeTo(cardInnerRight(), 0.5));
-    expect(tester.getTopRight(nav).dx, closeTo(cardInnerRight(), 0.5));
-    final double currentNextX = tester.getCenter(nextWeek).dx;
+  testWidgets('`오늘` 은 날짜·화살표 뒤에 선다 (#2232)', (WidgetTester tester) async {
+    await openReports(tester, workbench: true);
 
     await tester.tap(prevWeek);
     await settle(tester);
@@ -612,15 +522,21 @@ void main() {
       const ValueKey<String>('reports-go-this-week'),
     );
     expect(currentWeek, findsOneWidget);
-    // 버튼은 날짜 묶음의 왼쪽에 선다.
+    // 읽는 순서대로 — 어느 주인지를 먼저 읽고, 돌아갈지는 그 다음이다.
     expect(
-      tester.getTopRight(currentWeek).dx,
-      lessThanOrEqualTo(tester.getTopLeft(prevWeek).dx),
+      tester.getTopLeft(currentWeek).dx,
+      greaterThanOrEqualTo(tester.getTopRight(nextWeek).dx),
     );
-    // 버튼이 나타나도 날짜 묶음은 여전히 카드 끝이고, 오른쪽 화살표는 제자리다.
-    expect(tester.getTopRight(nextWeek).dx, closeTo(cardInnerRight(), 0.5));
-    expect(tester.getCenter(nextWeek).dx, closeTo(currentNextX, 0.5));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('편집기에는 주 이동이 없다 — 고른 한 주를 쓰는 자리다 (#2232)', (
+    WidgetTester tester,
+  ) async {
+    await openReports(tester);
+
+    expect(find.byType(ReportWeekNav), findsNothing);
+    expect(find.textContaining(' – '), findsNothing);
   });
 
   testWidgets('헤더 검색 바가 다른 탭과 같은 인라인 모양이다 (#1177)', (tester) async {
@@ -643,9 +559,10 @@ void main() {
     );
   });
 
-  testWidgets('좁은 화면에서 회원 선택 시 목록 대신 상세를 바로 연다', (tester) async {
+  testWidgets('좁은 화면에서도 작업대 ↔ 편집기를 오간다 (#2232)', (tester) async {
     await openReports(
       tester,
+      workbench: true,
       size: const Size(700, 1000),
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
@@ -662,7 +579,9 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(find.text('모바일 회원'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('reports-queue-mobile-client')),
+    );
     await settle(tester);
 
     final back = find.byKey(const ValueKey<String>('reports-back-to-list'));
@@ -675,8 +594,7 @@ void main() {
 
     expect(back, findsNothing);
     expect(find.text('모바일 회원님 주간 리포트'), findsNothing);
-    // 목록으로 돌아오면 회원 카드가 다시 보인다.
-    expect(find.text('회원'), findsWidgets);
+    expect(find.byType(ReportWorkbench), findsOneWidget);
   });
 
   testWidgets('the client query parameter focuses that client', (tester) async {
@@ -726,12 +644,11 @@ void main() {
     await openReports(
       tester,
       clientId: 'seed-client-3',
+      weekStart: weekStartOf(nowKst()).subtract(const Duration(days: 7)),
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(repository),
       ],
     );
-
-    await tester.tap(prevWeek);
     await settle(tester);
     await tester.tap(
       find.descendant(
@@ -758,22 +675,31 @@ void main() {
     expect(find.text('report transport detail'), findsNothing);
   });
 
-  testWidgets('picking another client swaps the report', (tester) async {
-    await openReports(tester);
+  testWidgets('작업대에서 회원 줄을 누르면 그 회원의 편집기로 들어간다 (#2232)', (tester) async {
+    await openReports(tester, workbench: true);
 
     // The API does not expose saved feedback status. Session-local send state
     // must not be presented as a persistent member-list status.
     expect(find.text('피드백 미작성'), findsNothing);
     expect(find.text('피드백 완료'), findsNothing);
+    // 작업대는 이번 주 전 회원을 한 줄씩 세운다.
+    expect(find.byType(ReportWorkbench), findsOneWidget);
 
-    await tester.tap(find.text('이지수').last);
+    // 이미 리포트가 나간 회원(데모 기록)은 큐에 서지 않으므로, 미전송 줄
+    // 하나를 고른다.
+    await tester.tap(
+      find.byKey(const ValueKey<String>('reports-queue-seed-client-3')),
+    );
     await settle(tester);
-    expect(find.text('이지수님 주간 리포트'), findsOneWidget);
+    expect(find.text('박성호님 주간 리포트'), findsOneWidget);
   });
 
-  testWidgets('회원 목록은 이름·목표만 적고 이행률 막대는 두지 않는다 (#1177)', (tester) async {
+  testWidgets('작업대 줄은 이름과 고를 이유만 적고 이행률 막대는 두지 않는다 (#1177, #2232)', (
+    tester,
+  ) async {
     await openReports(
       tester,
+      workbench: true,
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
           (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
@@ -788,26 +714,22 @@ void main() {
       ],
     );
 
-    // 같은 값을 오른쪽 리포트가 훨씬 자세히 말한다 — 고르는 자리에는 이름과
-    // 목표만 둔다.
-    expect(
-      find.byKey(const ValueKey<String>('report-client-completion-measured')),
-      findsNothing,
-    );
+    // 같은 값을 편집기가 훨씬 자세히 말한다 — 고르는 자리에는 이름과 왜
+    // 이 회원이 위에 있는지만 둔다.
     expect(
       find.descendant(
-        of: find.byType(ReportClientPicker),
+        of: find.byType(ReportWorkbench),
         matching: find.byType(InlineBarValue),
       ),
       findsNothing,
     );
     expect(find.text('기록회원'), findsWidgets);
-    expect(find.text('혈압 관리'), findsWidgets);
   });
 
-  testWidgets('좁은 리포트 회원 목록도 넘치지 않는다', (tester) async {
+  testWidgets('좁은 창의 작업대 줄도 넘치지 않는다 (#2232)', (tester) async {
     await openReports(
       tester,
+      workbench: true,
       size: const Size(700, 760),
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
@@ -824,7 +746,7 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey<String>('report-client-narrow')),
+      find.byKey(const ValueKey<String>('reports-queue-narrow')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -833,7 +755,7 @@ void main() {
   testWidgets('the report previews exactly what the member will receive', (
     tester,
   ) async {
-    await openReports(tester);
+    await openReports(tester, stage: 2);
 
     // The preview box is the message body itself, so the trainer can
     // read it before sending rather than discovering it in the thread.
@@ -846,7 +768,7 @@ void main() {
   });
 
   testWidgets('empty feedback cannot be sent', (tester) async {
-    await openReports(tester);
+    await openReports(tester, stage: 2);
 
     await tester.enterText(feedbackField, '   ');
     await settle(tester);
@@ -867,6 +789,7 @@ void main() {
     // "채팅에 도착하는가"이지 PDF 렌더링 자체가 아니다.
     final container = await openReports(
       tester,
+      stage: 2,
       extraOverrides: <Override>[
         reportPdfGeneratorProvider.overrideWithValue(
           _QueuedPdfGenerator(<Future<Uint8List>>[
@@ -908,7 +831,7 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      at: AppRoutes.reports,
+      at: AppRoutes.reportFor('seed-client-1'),
       extraOverrides: <Override>[
         chatRepositoryProvider.overrideWith(
           (ref) => _FailingChatRepository(ref.watch(appDatabaseProvider)),
@@ -925,6 +848,12 @@ void main() {
         ),
       ],
     );
+    await settle(tester);
+    // 피드백 입력창은 ③ 전송 단계에 있다(#2232).
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
     await openShareMenu(tester);
 
     await tester.tap(find.text('김민수님에게 전송'));
@@ -946,200 +875,26 @@ void main() {
     );
   });
 
-  testWidgets('추이 그래프는 고른 지표의 주간 계열을 그린다 (#746)', (tester) async {
-    final container = await openReports(tester);
-    final client = (await container.read(clientsProvider.future)).first;
-
-    Future<void> pickMetric(String name) async {
-      final chip = find.byKey(ValueKey<String>('trend-metric-$name'));
-      await tester.ensureVisible(chip);
-      await tester.pump();
-      await tester.tap(chip);
-      await settle(tester);
-    }
-
-    List<double> drawnValues() => tester
-        .widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart))
-        .values;
-
-    // 어제는 약속이 있던 날이라 로스터의 평상시 배열 대신 그날 값이 그려진다.
-    // 어제가 주 안에서 몇 번째 칸인지는 데모를 여는 날마다 달라지므로 계산해서
-    // 덮는다 — 숫자를 박아 두면 하루만 지나도 깨진다.
-    final int feastSlot = nowKst().weekday - 2;
-    List<double> expected(List<num> series, double feast) {
-      final values = series.map((v) => v.toDouble()).toList();
-      if (feastSlot >= 0) values[feastSlot] = feast;
-      return values;
-    }
-
-    // 기본은 칼로리 — 나트륨 하나만 보여 주던 자리를 세 지표가 나눠 쓴다.
-    expect(find.text('칼로리 추이'), findsOneWidget);
-    expect(drawnValues(), expected(client.caloriesWeek, 3231));
-
-    await pickMetric('sodium');
-    expect(find.text('나트륨 추이'), findsOneWidget);
-    expect(drawnValues(), expected(client.sodiumWeek, 1338));
-
-    await pickMetric('sugar');
-    expect(find.text('당류 추이'), findsOneWidget);
-    // 당류는 소수를 유지한다 — 17.8 이 18 로 뭉개지면 요약 수치와 어긋난다.
-    expect(drawnValues(), expected(client.sugarWeek, 64.2));
-    expect(client.sugarWeek.any((v) => v != v.roundToDouble()), isTrue);
-  });
-
-  testWidgets('지난 주도 그 주의 계열로 그려지고 이번 주와 섞이지 않는다 (#752)', (tester) async {
-    await openReports(tester);
-    List<double> drawnValues() => tester
-        .widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart))
-        .values;
-
-    final thisWeek = drawnValues();
-    expect(thisWeek, hasLength(7));
-
-    await tester.tap(prevWeek);
-    await settle(tester);
-
-    // 과거 주도 그래프가 그려진다 — 예전에는 이 자리가 통째로 비어 있었다.
-    final lastWeek = drawnValues();
-    expect(lastWeek, hasLength(7));
-    expect(lastWeek, isNot(equals(thisWeek)), reason: '이번 주 수치가 그대로 실렸다');
-    // 지난 주는 이미 다 지났으니 마지막 요일까지 값이 있다.
-    expect(lastWeek.last, greaterThan(0));
-    // 지난 주 일요일에 '오늘' 표시가 붙으면 그 날이 오늘인 것처럼 읽힌다.
-    expect(
-      tester
-          .widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart))
-          .markToday,
-      isFalse,
-    );
-
-    // 지난 주도 요약 줄이 그 주의 값으로 채워진다.
-    expect(find.text('최근 4주 평균'), findsOneWidget);
-  });
-
   testWidgets('주를 가리키는 말은 이번 주·지난 주·선택 주 셋뿐이다', (tester) async {
-    await openReports(tester);
+    await openReports(tester, workbench: true);
 
     // 주 이동 줄은 주 이름 대신 **보고 있는 주의 날짜 범위**를 적는다.
     // '이전 주' 라고 쓰면 비교 카드의 '지난 주' 열과 같은 말이 되어 어느 주를
     // 보고 있는지 헷갈린다.
     expect(prevWeek, findsOneWidget);
     expect(find.textContaining(' – '), findsWidgets);
-    expect(find.text('이번 주 vs 지난 주'), findsOneWidget);
+    expect(find.text('이전 주'), findsNothing);
 
     await tester.tap(prevWeek);
     await settle(tester);
 
-    // 과거 주에서는 제목도 보고 있는 주를 따라간다.
-    expect(find.text('선택 주 vs 지난 주'), findsOneWidget);
-    expect(find.text('이번 주 vs 지난 주'), findsNothing);
-    // 앞선 주는 상황과 무관하게 늘 '지난 주' — 비교 카드와 최근 4주 목록이
-    // 같은 말을 쓴다.
-    expect(find.text('지난 주'), findsWidgets);
+    // 과거 주로 옮겨도 마찬가지다 — 옮긴 주를 가리키는 말은 날짜 범위뿐이다.
+    expect(find.textContaining(' – '), findsWidgets);
     expect(find.text('이전 주'), findsNothing);
   });
 
-  testWidgets('평균이 며칠을 나눈 값인지 화면에 적힌다 (#754)', (tester) async {
-    // 기록이 빠진 날을 시드에 기대지 않고 여기서 못 박는다. 시드의 주간 계열은
-    // 이번 주 요일 자리에 놓이므로(#746) 월요일에는 오늘 하루만 남고, 기록이
-    // 빠진 날이 아예 없어 이 테스트가 요일에 따라 깨졌다(#826).
-    const weekCompletion = <int>[80, 0, 90, 70, 0, 60, 0];
-    // 막대는 이행률이 아니라 그날 소모 칼로리다(#1289). 두 계열을 따로 두어야
-    // 칩(이행률)과 막대(칼로리)가 서로 다른 값을 말하는 것을 확인할 수 있다.
-    const burn = <int>[320, 0, 410, 260, 0, 180, 0];
-    await openReports(
-      tester,
-      extraOverrides: <Override>[
-        clientsProvider.overrideWith(
-          (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
-            makeClient(
-              id: 'week-client',
-              name: '주간회원',
-              weekCompletion: weekCompletion,
-            ),
-          ]),
-        ),
-        clientExercisePeriodProvider.overrideWith((ref, key) async {
-          final ClientDateRange range = clientRangeFor(
-            key.period,
-            key.day,
-            exercise: true,
-          );
-          final List<DateTime> dates = clientRangeDates(range);
-          return ClientExercisePeriod(
-            range: range,
-            weeklyGoalCalories: 2100,
-            days: <ClientExerciseDay>[
-              for (int i = 0; i < dates.length; i++)
-                ClientExerciseDay(
-                  date: dates[i],
-                  calories: i < burn.length ? burn[i] : 0,
-                  cardioCalories: i < burn.length ? burn[i] : 0,
-                ),
-            ],
-          );
-        }),
-      ],
-    );
-
-    // 기록이 없는 날은 평균에서 빠지므로 7 이 아니다 — 그 사실이 적혀 있어야
-    // 트레이너가 아래 막대를 세어 평균을 확인할 수 있다.
-    final logged = weekCompletion.where((v) => v > 0).length;
-    expect(logged, lessThan(7), reason: '기록이 빠진 날이 있는 회원이어야 한다');
-    // 마지막 줄에 이번 주가 앞선 세 주 옆에 놓인다. 며칠을 나눈 값인지는
-    // 값이 있는 막대를 세면 나오므로 따로 적지 않는다.
-    expect(find.text('최근 4주 평균'), findsOneWidget);
-
-    // 기록이 없는 날은 0kcal 가 아니라 기록이 없다고 말한다. 막대·꺾은선·값이
-    // 한 그림이라 글자는 캔버스에 그려진다 — 무엇을 비워 둘지는 그래프가 받는
-    // `missing` 이 정한다(#1177).
-    expect(find.text('0kcal'), findsNothing);
-    final chart = tester.widget<BarLineChart>(
-      find.byKey(const ValueKey<String>('reports-burn-chart')),
-    );
-    // 규칙으로 확인한다 — 요일 번호를 못 박으면 월요일에 도는 CI 에서는
-    // 지나간 날이 하루뿐이라 기대값이 통째로 어긋난다.
-    final int elapsed = chart.pendingFrom ?? weekdayCount;
-    expect(elapsed, nowKst().weekday, reason: '아직 오지 않은 날은 비워 둔다');
-    for (var i = 0; i < elapsed; i++) {
-      expect(
-        chart.values[i],
-        burn[i] == 0 ? isNull : burn[i].toDouble(),
-        reason: '지난 날의 0 은 기록 없음이고, 그 밖은 그날 소모 칼로리다',
-      );
-    }
-    expect(chart.emptyLabel, '기록 없음');
-    // 눈금 끝은 하루 목표(2100/7 = 300)와 그 주 최댓값 중 큰 쪽이다 — 목표를
-    // 넘긴 날의 막대가 잘리면 넘겼다는 사실이 사라진다.
-    expect(chart.ceiling, 410);
-    // 카드 제목 줄이 평균과 며칠을 나눈 값인지 함께 말한다.
-    expect(find.text('기록 $logged일'), findsOneWidget);
-
-    // 운동과 식단이 카드로 나뉜다. 운동 카드 제목은 막대가 말하는 값을 따라
-    // 소모 칼로리다(#1289) — 이행률은 제목 줄의 칩으로 남는다.
-    expect(find.text('주간 소모 칼로리'), findsOneWidget);
-    // 칩만 이 문구를 그대로 쓴다 — 요약 문장은 앞에 `· 운동` 이 붙는다.
-    expect(find.text('이행률 평균 75%'), findsOneWidget);
-    expect(find.text('주간 식단 추이'), findsOneWidget);
-    // 식단 카드 제목 옆에 지표 하나의 수치(`나트륨 초과 n일`)를 붙이지 않는다 —
-    // 카드가 식단 전체를 말하는 자리다(#1177).
-    expect(find.textContaining('나트륨 초과'), findsNothing);
-  });
-
-  testWidgets('요일 칸에 그날 한 운동 이름이 남는다 (#754)', (tester) async {
-    // 요일 칸에는 운동 이름만 둔다 — 퍼센트는 바로 위 막대가 말하고,
-    // 아직 오지 않은 날은 빈칸으로 둔다.
-    //
-    // 목록의 첫 회원은 김민수라, 그의 운동 이름은 공유 픽스처가 정한다(#757).
-    // 이름을 여기 적으면 픽스처와 두 벌이 되어 한쪽만 고쳤을 때 조용히 갈린다.
-    // 시드 로스터를 그대로 쓰므로 위 테스트와 달리 회원을 바꾸지 않는다.
-    await openReports(tester);
-
-    expect(find.text(_minsuExerciseThisWeek()), findsWidgets);
-  });
-
   testWidgets('요약 카드가 안내문 대신 이번 주 요약을 말한다 (#755)', (tester) async {
-    await openReports(tester);
+    await openReports(tester, stage: 1);
 
     // 예전에는 이 자리에 "API 연결 후 사용할 수 있어요" 만 있었다.
     expect(
@@ -1153,7 +908,7 @@ void main() {
   });
 
   testWidgets('요약 카드가 다음 주 할 일까지 적어 아래를 채운다 (#1177)', (tester) async {
-    await openReports(tester);
+    await openReports(tester, stage: 1);
 
     // PT 세션 수는 옆 카드 제목 줄이 이미 말한다 — 요약에서 되풀이하지 않는다.
     expect(find.textContaining('PT 세션 1/1회 완료'), findsNothing);
@@ -1168,7 +923,7 @@ void main() {
   });
 
   testWidgets('요약을 피드백 초안으로 가져온다 (#755)', (tester) async {
-    await openReports(tester);
+    await openReports(tester, stage: 2);
 
     // 헤더의 통합 검색창도 TextField 다 — 피드백 입력창만 집는다.
     final field = find.byWidgetPredicate(
@@ -1189,7 +944,7 @@ void main() {
   });
 
   testWidgets('초안이 자동으로 채워졌다고 입력창이 말해 준다 (#755)', (tester) async {
-    await openReports(tester);
+    await openReports(tester, stage: 2);
 
     // 회원에게 그대로 나가는 글이라, 확인하고 보내라는 신호가 그 자리에
     // 있어야 한다. 'AI' 라고 하지 않는다 — 이 초안은 수치에서 조립한
@@ -1201,7 +956,7 @@ void main() {
   });
 
   testWidgets('가져온 요약은 되돌리기로 가져오기 전 글로 돌아간다 (#755, #2187)', (tester) async {
-    await openReports(tester);
+    await openReports(tester, stage: 2);
 
     final field = find.byWidgetPredicate(
       (w) => w is TextField && w.minLines == 4,
@@ -1210,6 +965,10 @@ void main() {
 
     // 되돌릴 것이 없으면 버튼은 꺼져 있다.
     expect(tester.widget<AppIconButton>(undoFeedback).onPressed, isNull);
+
+    // 커서를 넣어야 편집 기록이 지금 글을 첫 단계로 잡는다.
+    await tester.tap(field);
+    await settle(tester);
 
     await tester.ensureVisible(find.text('피드백으로 가져오기'));
     await tester.pump();
@@ -1227,6 +986,7 @@ void main() {
 
   testWidgets('요약 생성이 실패해도 카드가 안내문으로 돌아간다 (#755)', (tester) async {
     await openReports(
+      stage: 1,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(_SummaryFailsRepository()),
@@ -1248,6 +1008,7 @@ void main() {
   testWidgets('피드백 저장 버튼이 켜져 있고 입력창의 현재 문구를 저장한다 (#821)', (tester) async {
     final drafts = _DraftStore();
     await openReports(
+      stage: 2,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(drafts),
@@ -1258,6 +1019,8 @@ void main() {
 
     await tester.enterText(feedbackField, '어깨 안정화 위주로 한 주 더 갑니다.');
     await settle(tester);
+    await tester.ensureVisible(saveFeedback);
+    await tester.pump();
     await tester.tap(saveFeedback);
     await settle(tester);
 
@@ -1265,15 +1028,20 @@ void main() {
     expect(find.text('피드백 초안을 저장했어요.'), findsOneWidget);
   });
 
-  testWidgets('지난 주 리포트에는 저장·되돌리기가 없다 (#1177)', (tester) async {
-    await openReports(tester);
+  testWidgets('이번 주 리포트에는 저장·되돌리기가 있다 (#1177)', (tester) async {
+    await openReports(tester, stage: 2);
 
     expect(saveFeedback, findsOneWidget);
     expect(undoFeedback, findsOneWidget);
     expect(redoFeedback, findsOneWidget);
+  });
 
-    await tester.tap(prevWeek);
-    await settle(tester);
+  testWidgets('지난 주 리포트에는 저장·되돌리기가 없다 (#1177)', (tester) async {
+    await openReports(
+      tester,
+      weekStart: weekStartOf(nowKst()).subtract(const Duration(days: 7)),
+      stage: 2,
+    );
 
     // 트레이너가 손볼 것은 이번 주에 보낼 글이다. 이미 지나간 주의 초안을
     // 저장해 둘 자리는 없다.
@@ -1290,42 +1058,9 @@ void main() {
     expect(find.text('주간 변화를 확인하고 회원에게 전달하세요'), findsOneWidget);
   });
 
-  testWidgets('식단 추이 막대는 목표를 넘긴 주만 빨강이고 목표 표기는 없다 (#1177)', (tester) async {
-    await openReports(
-      tester,
-      extraOverrides: <Override>[
-        clientsProvider.overrideWith(
-          (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
-            makeClient(
-              id: 'salty-client',
-              name: '나트륨회원',
-              sodiumWeek: List<int>.filled(7, 2500),
-            ),
-          ]),
-        ),
-      ],
-    );
-
-    // 식단 카드는 리포트 열 아래쪽이라 먼저 보이는 곳까지 굴린다.
-    final Finder sodiumPill = find.byKey(
-      const ValueKey<String>('trend-metric-sodium'),
-    );
-    await tester.ensureVisible(sodiumPill);
-    await settle(tester);
-    await tester.tap(sodiumPill);
-    await settle(tester);
-
-    final bars = tester
-        .widgetList<WeekTrendBar>(find.byType(WeekTrendBar))
-        .toList();
-    expect(bars.where((b) => b.warn), isNotEmpty, reason: '목표를 넘긴 주가 있어야 한다');
-    // 세로선이 무엇인지 적어 주던 `│ 목표 …` 는 사라졌다 — 초과 여부는 색이
-    // 말한다.
-    expect(find.textContaining('│'), findsNothing);
-  });
-
   testWidgets('저장에 실패해도 쓰던 문구는 입력창에 남는다 (#821)', (tester) async {
     await openReports(
+      stage: 2,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(_DraftStore(failSave: true)),
@@ -1334,6 +1069,8 @@ void main() {
 
     await tester.enterText(feedbackField, '저장은 실패해도 이 문구는 남아야 한다');
     await settle(tester);
+    await tester.ensureVisible(saveFeedback);
+    await tester.pump();
     await tester.tap(saveFeedback);
     await settle(tester);
 
@@ -1347,6 +1084,7 @@ void main() {
 
   testWidgets('저장해 둔 초안이 있으면 입력창이 그 문구로 열린다 (#821)', (tester) async {
     await openReports(
+      stage: 2,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(
@@ -1363,6 +1101,7 @@ void main() {
 
   testWidgets('되돌리기는 자동 생성본이 아니라 저장된 초안으로 돌아간다 (#821)', (tester) async {
     await openReports(
+      stage: 2,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(
@@ -1371,6 +1110,9 @@ void main() {
       ],
     );
 
+    // 커서를 넣어야 편집 기록이 지금 글을 첫 단계로 잡는다.
+    await tester.tap(feedbackField);
+    await settle(tester);
     await tester.enterText(feedbackField, '고치는 중인 문구');
     await settle(tester);
 
@@ -1390,6 +1132,7 @@ void main() {
   testWidgets('되돌리기·다시 실행은 편집을 한 단계씩 오간다 (#2187)', (tester) async {
     final drafts = _DraftStore(stored: '처음 문구');
     await openReports(
+      stage: 2,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(drafts),
@@ -1408,6 +1151,9 @@ void main() {
     expect(redo().onPressed, isNull);
 
     // 편집 기록은 잠깐 멈출 때마다 한 단계로 쌓인다.
+    // 커서를 넣어야 편집 기록이 지금 글을 첫 단계로 잡는다.
+    await tester.tap(feedbackField);
+    await settle(tester);
     await tester.enterText(feedbackField, '처음 문구 하나');
     await settle(tester);
     await tester.enterText(feedbackField, '처음 문구 하나 둘');
@@ -1422,31 +1168,220 @@ void main() {
     expect(text(), '처음 문구 하나');
     expect(redo().onPressed, isNotNull);
 
+    await tester.ensureVisible(undoFeedback);
+    await tester.pump();
     await tester.tap(undoFeedback);
     await settle(tester);
     expect(text(), '처음 문구');
     expect(undo().onPressed, isNull);
 
+    await tester.ensureVisible(redoFeedback);
+    await tester.pump();
     await tester.tap(redoFeedback);
     await settle(tester);
     expect(text(), '처음 문구 하나');
 
     // 저장은 되돌린 뒤 화면에 보이는 글을 쓴다 — 손으로 친 글자만 따라가면
     // 되돌리기 전 문구가 저장된다.
+    await tester.ensureVisible(saveFeedback);
+    await tester.pump();
     await tester.tap(saveFeedback);
     await settle(tester);
     expect(drafts.saved, <String>['처음 문구 하나']);
+  });
+
+  // ---- 직접 작성하기와 목표 남기기 (#2232) ----
+
+  /// 편집기의 `직접 작성하기`.
+  final Finder writeFromScratch = find.byKey(
+    const ValueKey<String>('report-feedback-scratch'),
+  );
+
+  /// ② 에서 목표 하나를 직접 적어 고른다.
+  Future<void> pickOwnGoal(WidgetTester tester, String goal) async {
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('report-goals-own')),
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-goals-own')),
+      goal,
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('report-goals-add')));
+    await settle(tester);
+  }
+
+  testWidgets('직접 작성하기는 자동 초안을 비워 빈 화면에서 시작하게 한다 (#2232)', (tester) async {
+    await openReports(tester, stage: 2);
+
+    expect(
+      tester.widget<TextField>(feedbackField).controller!.text,
+      isNotEmpty,
+    );
+
+    await tester.ensureVisible(writeFromScratch);
+    await tester.pump();
+    await tester.tap(writeFromScratch);
+    await settle(tester);
+
+    expect(tester.widget<TextField>(feedbackField).controller!.text, isEmpty);
+  });
+
+  testWidgets('비운 초안은 되돌리기 한 번으로 돌아온다 — 잘못 누른 것을 되돌릴 수 있다 (#2232)', (
+    tester,
+  ) async {
+    await openReports(tester, stage: 2);
+
+    // 커서를 넣어야 편집 기록이 지금 글을 첫 단계로 잡는다.
+    await tester.tap(feedbackField);
+    await settle(tester);
+    final String draft = tester
+        .widget<TextField>(feedbackField)
+        .controller!
+        .text;
+
+    await tester.ensureVisible(writeFromScratch);
+    await tester.pump();
+    await tester.tap(writeFromScratch);
+    await settle(tester);
+
+    await tester.ensureVisible(undoFeedback);
+    await tester.pump();
+    await tester.tap(undoFeedback);
+    await settle(tester);
+
+    expect(tester.widget<TextField>(feedbackField).controller!.text, draft);
+  });
+
+  testWidgets('비운 채로는 보낼 수 없다 — 빈 리포트가 회원에게 가지 않게 (#2232)', (tester) async {
+    await openReports(tester, stage: 2);
+
+    await tester.ensureVisible(writeFromScratch);
+    await tester.pump();
+    await tester.tap(writeFromScratch);
+    await settle(tester);
+
+    await openShareMenu(tester);
+    expect(
+      tester.widget<MenuItemButton>(shareItem('김민수님에게 전송')).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('직접 작성하기는 피드백 카드 안, 입력창 바로 위에 선다 (#2232)', (tester) async {
+    await openReports(tester, stage: 2);
+
+    expect(writeFromScratch, findsOneWidget);
+    // 초안을 정하는 다른 길(요약 가져오기)도 같은 화면에 남아 있다.
+    expect(find.text('피드백으로 가져오기'), findsOneWidget);
+
+    final Rect field = tester.getRect(feedbackField);
+    final Offset scratch = tester.getCenter(writeFromScratch);
+    // 고칠 글이 있는 칸의 머리에 붙어 있어야, 누르면 무엇이 비는지 보인다.
+    expect(scratch.dy, lessThan(field.top));
+    expect(scratch.dx, greaterThan(field.left));
+    expect(scratch.dx, lessThan(field.right));
+  });
+
+  testWidgets('②에서 고른 목표는 전송과 함께 남는다 (#2232)', (tester) async {
+    final _DraftStore drafts = _DraftStore();
+    await openReports(
+      tester,
+      stage: 1,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(drafts),
+        reportPdfGeneratorProvider.overrideWithValue(
+          _QueuedPdfGenerator(<Future<Uint8List>>[
+            Future<Uint8List>.value(
+              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
+            ),
+          ]),
+        ),
+      ],
+    );
+
+    await pickOwnGoal(tester, '화요일 저녁 15분 루틴');
+    // 고르기만 해서는 아직 남지 않는다 — 보내지 않고 떠난 주의 목표까지
+    // 다음 주가 회수하면, 회원이 받지도 않은 목표를 못 지켰다고 적힌다.
+    expect(drafts.savedGoals, isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
+    await openShareMenu(tester);
+    await tester.tap(find.text('김민수님에게 전송'));
+    await settle(tester);
+
+    expect(drafts.savedGoals, <List<String>>[
+      <String>['화요일 저녁 15분 루틴'],
+    ]);
+  });
+
+  testWidgets('목표를 고르지 않고 보내면 빈 목록이 남는다 — 지난 주 목표를 물려받지 않게 (#2232)', (
+    tester,
+  ) async {
+    final _DraftStore drafts = _DraftStore();
+    await openReports(
+      tester,
+      stage: 2,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(drafts),
+        reportPdfGeneratorProvider.overrideWithValue(
+          _QueuedPdfGenerator(<Future<Uint8List>>[
+            Future<Uint8List>.value(
+              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
+            ),
+          ]),
+        ),
+      ],
+    );
+
+    await openShareMenu(tester);
+    await tester.tap(find.text('김민수님에게 전송'));
+    await settle(tester);
+
+    expect(drafts.savedGoals, <List<String>>[<String>[]]);
+  });
+
+  testWidgets('목표 남기기가 실패해도 전송은 성공으로 남는다 (#2232)', (tester) async {
+    // 회원은 이미 리포트를 받았다. 여기서 실패를 알리면 보낸 사실이 실패로
+    // 읽히고, 트레이너는 같은 리포트를 한 번 더 보낸다.
+    final _DraftStore drafts = _DraftStore(failGoals: true);
+    await openReports(
+      tester,
+      stage: 2,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(drafts),
+        reportPdfGeneratorProvider.overrideWithValue(
+          _QueuedPdfGenerator(<Future<Uint8List>>[
+            Future<Uint8List>.value(
+              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
+            ),
+          ]),
+        ),
+      ],
+    );
+
+    await openShareMenu(tester);
+    await tester.tap(find.text('김민수님에게 전송'));
+    await settle(tester);
+
+    expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+    await openShareMenu(tester);
+    expect(find.text('전송됨'), findsOneWidget);
   });
 }
 
 /// 저장한 초안을 기억하는 리포트 저장소. 리포트 본문·요약은 데모 계산을 그대로
 /// 쓰고, 초안만 이 double 이 들고 있다.
 class _DraftStore implements ReportRepository {
-  _DraftStore({this.stored, this.failSave = false});
+  _DraftStore({this.stored, this.failSave = false, this.failGoals = false});
 
   /// 화면을 열 때 이미 저장돼 있는 초안. null 이면 저장한 적 없는 주다.
   final String? stored;
   final bool failSave;
+
+  /// 목표 남기기가 실패하는 주 — 전송은 이미 끝난 뒤다.
+  final bool failGoals;
   final List<String> saved = <String>[];
 
   @override
@@ -1461,7 +1396,9 @@ class _DraftStore implements ReportRepository {
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
+    required AppLocalizations l,
   }) async => ruleReportSummary(
+    l,
     buildWeeklyReport(client: client, sessions: const [], weekStart: weekStart),
     client,
   );
@@ -1501,6 +1438,19 @@ class _DraftStore implements ReportRepository {
     if (failSave) throw StateError('draft save failed');
     saved.add(body);
     return ReportFeedbackDraft(body: body, saved: true);
+  }
+
+  /// ② 에서 고른 목표가 전송과 함께 남는지 보는 자리.
+  final List<List<String>> savedGoals = <List<String>>[];
+
+  @override
+  Future<void> saveNextWeekGoals({
+    required String clientId,
+    required DateTime weekStart,
+    required List<String> goals,
+  }) async {
+    if (failGoals) throw StateError('goal save failed');
+    savedGoals.add(List<String>.of(goals));
   }
 }
 

@@ -71,24 +71,20 @@ void main() {
 
   group('기록 시작일 응답', () {
     test('식단·운동이 각자 제 날짜를 가진다', () {
-      final ClientRecordSpan span = ClientRecordSpan.fromJson(
-        <String, Object?>{
-          'diet_first_date': '2026-05-04',
-          'exercise_first_date': '2026-07-13',
-        },
-      );
+      final ClientRecordSpan span = ClientRecordSpan.fromJson(<String, Object?>{
+        'diet_first_date': '2026-05-04',
+        'exercise_first_date': '2026-07-13',
+      });
 
       expect(span.dietFirstDate, DateTime(2026, 5, 4));
       expect(span.exerciseFirstDate, DateTime(2026, 7, 13));
     });
 
     test('기록이 없으면 null 이다 — 오늘로 지어내지 않는다', () {
-      final ClientRecordSpan span = ClientRecordSpan.fromJson(
-        <String, Object?>{
-          'diet_first_date': null,
-          'exercise_first_date': null,
-        },
-      );
+      final ClientRecordSpan span = ClientRecordSpan.fromJson(<String, Object?>{
+        'diet_first_date': null,
+        'exercise_first_date': null,
+      });
 
       expect(span.dietFirstDate, isNull);
       expect(span.exerciseFirstDate, isNull);

@@ -11,24 +11,24 @@ TrainerClient _client(
   double sugarG = 0,
   bool flagged = false,
 }) => TrainerClient(
-      id: id,
-      name: id,
-      avatar: id.substring(0, 1),
-      goal: '',
-      lastMessage: '',
-      lastTime: '',
-      active: true,
-      calories: 0,
-      sodiumMg: sodiumMg,
-      sugarG: sugarG,
-      lastRoutine: '',
-      weekCompletion: const <int>[],
-      sodiumWeek: const <int>[],
-      // 주의 회원 여부는 PT 관리 신호가 정한다(#2204) — 나트륨이 아니다.
-      signals: flagged
-          ? const <ClientSignal>[ClientSignal(ClientSignalKind.recordGap, days: 3)]
-          : const <ClientSignal>[],
-    );
+  id: id,
+  name: id,
+  avatar: id.substring(0, 1),
+  goal: '',
+  lastMessage: '',
+  lastTime: '',
+  active: true,
+  calories: 0,
+  sodiumMg: sodiumMg,
+  sugarG: sugarG,
+  lastRoutine: '',
+  weekCompletion: const <int>[],
+  sodiumWeek: const <int>[],
+  // 주의 회원 여부는 PT 관리 신호가 정한다(#2204) — 나트륨이 아니다.
+  signals: flagged
+      ? const <ClientSignal>[ClientSignal(ClientSignalKind.recordGap, days: 3)]
+      : const <ClientSignal>[],
+);
 
 void main() {
   group('trainerClientFromJson', () {
@@ -74,7 +74,11 @@ void main() {
       final c = trainerClientFromJson(<String, Object?>{
         'id': 'u1',
         'signals': <Object?>[
-          <String, Object?>{'kind': 'calorie_off', 'percent': 22, 'direction': 'under'},
+          <String, Object?>{
+            'kind': 'calorie_off',
+            'percent': 22,
+            'direction': 'under',
+          },
           <String, Object?>{'kind': 'future_signal'},
           <String, Object?>{'kind': 'record_gap', 'days': 4.0},
         ],
@@ -88,7 +92,10 @@ void main() {
       expect(c.signals.last.days, 4);
       expect(needsAttention(c), isTrue);
       // 옛 서버처럼 필드가 없으면 신호가 없다.
-      expect(trainerClientFromJson(<String, Object?>{'id': 'u2'}).signals, isEmpty);
+      expect(
+        trainerClientFromJson(<String, Object?>{'id': 'u2'}).signals,
+        isEmpty,
+      );
     });
 
     test('normalizes an integer sugar value to double', () {

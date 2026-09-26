@@ -1,6 +1,10 @@
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
+import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
+    show elapsedWeekdays, weekdayCount;
+import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -44,6 +48,9 @@ class WeeklyReport {
     this.proteinTarget,
     this.fatTarget,
     this.days = const <ReportDay>[],
+    this.mealCounts = const <int>[],
+    this.memberFeedback,
+    this.weekGoals = const <String>[],
   });
 
   /// Who the report is about.
@@ -110,6 +117,24 @@ class WeeklyReport {
   /// 어디서 나온 값인지 화면에서 보이게 하는 자료다(#754).
   final List<ReportDay> days;
 
+  /// 그 주의 요일별 **끼니 기록 횟수**. (#2232)
+  ///
+  /// 칼로리 계열로는 이걸 대신할 수 없다. 0kcal 인 날은 "안 먹었다"가 아니라
+  /// "안 적었다"이고, 리포트 ① 격자가 짚으려는 것이 정확히 그 날들이다.
+  final List<int> mealCounts;
+
+  /// 회원이 그 주에 남긴 세 문항. 아직 안 냈으면 null. (#2232)
+  ///
+  /// 수치만 보면 같은 한 주가 `게으름` 으로도 `과부하·일정 문제` 로도 읽힌다.
+  /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
+  final MemberWeeklyFeedback? memberFeedback;
+
+  /// 그 주에 **적용되어 있던** 목표 — 지난 주에 트레이너가 ② 에서 고른 것이다.
+  ///
+  /// 리포트 ③ 이 이걸 회수해 달성 여부를 판정한다. 회수되지 않는 목표는
+  /// 공수표라, 목표를 고르는 화면(②)만 있고 이 자리가 비면 기능이 반쪽이다.
+  final List<String> weekGoals;
+
   /// Sunday of the reported week.
   DateTime get weekEnd => weekStart.add(const Duration(days: 6));
 
@@ -142,6 +167,8 @@ WeeklyReport buildWeeklyReport({
   required DateTime weekStart,
   DateTime? today,
   WeekSeries? week,
+  MemberWeeklyFeedback? memberFeedback,
+  List<String> weekGoals = const <String>[],
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
@@ -177,6 +204,9 @@ WeeklyReport buildWeeklyReport({
     carbsWeek: series?.carbs ?? const <double>[],
     proteinWeek: series?.protein ?? const <double>[],
     fatWeek: series?.fat ?? const <double>[],
+    mealCounts: series?.mealCounts ?? const <int>[],
+    memberFeedback: memberFeedback,
+    weekGoals: weekGoals,
   );
 }
 
@@ -186,6 +216,7 @@ class ReportDay {
   const ReportDay({
     required this.completion,
     this.exercises = const <String>[],
+    this.assigned,
   });
 
   /// 그날 이행률(%). 0 은 기록이 없다는 뜻이다.
@@ -195,11 +226,19 @@ class ReportDay {
   /// 운동 기록 탭과 같은 규칙을 쓴다.
   final List<String> exercises;
 
+  /// 그날 **배정된** 개인 운동 수. 모르면 null 이고, 그때는 [exercises] 의
+  /// 길이가 분모가 된다. (#2232)
+  ///
+  /// 데모의 [exercises] 는 실제로 한 운동만 담아서(#1288) 하나도 안 한 날이
+  /// 빈 목록으로 남는다 — 그 길이를 분모로 쓰면 `0 / 0` 이 되어, 리포트 ①
+  /// 격자가 짚으려는 바로 그 날이 아무 일도 없던 날처럼 보인다.
+  final int? assigned;
+
   /// 건너뛰지 않은 운동 수.
   int get done => exercises.where((e) => !e.contains('✗')).length;
 
   /// 배정된 운동 수.
-  int get total => exercises.length;
+  int get total => assigned ?? exercises.length;
 }
 
 /// 한 주의 요일별 값 묶음(월→일). 데모는 drift 이력에서, 실서버는 리포트
@@ -215,6 +254,7 @@ class WeekSeries {
     this.protein = const <double>[],
     this.fat = const <double>[],
     this.days = const <ReportDay>[],
+    this.mealCounts = const <int>[],
   });
 
   /// 로스터가 준 이번 주 계열.
@@ -247,6 +287,10 @@ class WeekSeries {
 
   /// 요일별 상세. 데모는 drift 이력에서, 실서버는 리포트 응답에서 온다.
   final List<ReportDay> days;
+
+  /// 일별 끼니 기록 횟수. 칼로리가 답하지 못하는 값이다(#2232) — 0kcal 인
+  /// 날은 안 먹은 날이 아니라 안 적은 날이다.
+  final List<int> mealCounts;
 }
 
 /// 기록된 날(0 초과)만의 평균. 하나도 없으면 null — 0 으로 보고하면
@@ -284,9 +328,20 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
           : l.reportBodyCompletionLow(completion),
     );
   }
+  // 요일을 짚어 준다. `이행률 62%` 만으로는 회원이 무엇을 바꿔야 할지 알 수
+  // 없지만, `화·목에 기록이 없었다` 는 그 자리에서 답이 나온다 — 그 이틀의
+  // 일정을 바꾸면 된다(#2232).
+  final List<String> silent = silentWeekdayNames(l, report);
+  if (silent.isNotEmpty) {
+    workout.add(l.reportBodySilentDays(silent.join(' · ')));
+  } else if (report.weekCompletion.length == weekdayCount &&
+      completion != null &&
+      completion >= 70) {
+    workout.add(l.reportBodySteadyDays(weekdayNames(l).last));
+  }
   final skipped = _skippedNames(report);
   if (skipped.isNotEmpty) {
-    workout.add(l.reportBodySkipped(_topicParticle(skipped.join(', '))));
+    workout.add(l.reportBodySkipped(_topicParticle(l, skipped.join(', '))));
   }
   if (workout.isNotEmpty) paragraphs.add(workout.join(' '));
 
@@ -320,6 +375,25 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
         : (report.isGoodWeek ? l.reportBodyPraise : l.reportBodyEncourage),
   );
   return paragraphs.join('\n\n');
+}
+
+/// 그 주에 기록이 하나도 없던 요일 이름.
+///
+/// 이번 주라면 아직 오지 않은 요일은 세지 않는다 — 목요일에 "금·토·일이
+/// 비었다" 고 하면 오지도 않은 날을 나무라는 말이 된다.
+List<String> silentWeekdayNames(AppLocalizations l, WeeklyReport report) {
+  final List<int> week = report.weekCompletion;
+  if (week.length != weekdayCount) return const <String>[];
+  final int upTo = report.isCurrentWeek
+      ? elapsedWeekdays(nowKst())
+      : weekdayCount;
+  final List<String> names = weekdayNames(l);
+  final found = <String>[
+    for (int i = 0; i < upTo && i < week.length; i++)
+      if (week[i] == 0) names[i],
+  ];
+  // 하루쯤 쉬는 것은 그 주의 이야기가 아니다. 이틀부터가 일정의 문제다.
+  return found.length >= 2 ? found : const <String>[];
 }
 
 /// 그 주에 건너뛴 운동 이름. 이행률이 왜 100%가 아닌지의 답이다.
@@ -361,7 +435,20 @@ String exerciseBaseName(String line) {
 }
 
 /// `은`/`는` 을 받침에 맞춰 붙인다. 규칙은 [withTopicJosa] 에 있다.
-String _topicParticle(String word) => withTopicJosa(word);
+String _topicParticle(AppLocalizations l, String word) =>
+    withParticle(l, word, '은', '는');
+
+/// 한국어일 때만 받침에 맞는 조사를 붙인다. 다른 언어에는 조사가 없다 —
+/// 영어 문장에 `Squat은` 이 남으면 안 된다.
+String withParticle(
+  AppLocalizations l,
+  String word,
+  String afterConsonant,
+  String afterVowel,
+) {
+  if (l.localeName != 'ko') return word;
+  return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
+}
 
 /// The trainer's own week — the numbers that answer "how am I doing?".
 class TrainerWeekStats {

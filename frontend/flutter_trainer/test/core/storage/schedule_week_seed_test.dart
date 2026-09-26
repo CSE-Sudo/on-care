@@ -17,12 +17,8 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status
 /// 요일)을 모두 본다.
 final DateTime _monday = DateTime(2026, 8, 17, 9);
 
-DateTime _dayOfWeek(int weekday) => DateTime(
-  _monday.year,
-  _monday.month,
-  _monday.day + weekday - 1,
-  9,
-);
+DateTime _dayOfWeek(int weekday) =>
+    DateTime(_monday.year, _monday.month, _monday.day + weekday - 1, 9);
 
 void main() {
   late AppDatabase db;
@@ -116,7 +112,11 @@ void main() {
       // 나란히 10:00에 시작하지 않도록 하는 예외다(#1319). 그 시간대는
       // 짝수·홀수 정시 규칙에서 벗어난다.
       if (hour == 9) {
-        expect(<int>{0, 30}, contains(minute), reason: '${row.date} ${row.time}');
+        expect(
+          <int>{0, 30},
+          contains(minute),
+          reason: '${row.date} ${row.time}',
+        );
       } else {
         expect(minute, 0, reason: '${row.date} ${row.time}');
         if (row.type == SessionType.personalTraining) {
@@ -159,9 +159,7 @@ void main() {
         final previousParts = previous.time.split(':').map(int.parse).toList();
         final currentParts = current.time.split(':').map(int.parse).toList();
         final previousEnd =
-            previousParts[0] * 60 +
-            previousParts[1] +
-            previous.durationMinutes;
+            previousParts[0] * 60 + previousParts[1] + previous.durationMinutes;
         final currentStart = currentParts[0] * 60 + currentParts[1];
         expect(
           previousEnd,

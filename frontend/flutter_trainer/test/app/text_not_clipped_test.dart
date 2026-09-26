@@ -55,9 +55,7 @@ void main() {
     expect(_isClipped(tester, 'On-Care'), isFalse);
   });
 
-  testWidgets('화면 이름이 줄임표로 잘리지 않는다 — 액션이 많은 내 정보', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('화면 이름이 줄임표로 잘리지 않는다 — 액션이 많은 내 정보', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

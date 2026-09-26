@@ -212,7 +212,8 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
           'to': ymd(range.to),
         },
       );
-      final Map<String, Object?> body = response.data ?? const <String, Object?>{};
+      final Map<String, Object?> body =
+          response.data ?? const <String, Object?>{};
       final Map<String, ClientDietDay> byDate = <String, ClientDietDay>{};
       for (final Object? row
           in (body['days'] as List<Object?>?) ?? const <Object?>[]) {

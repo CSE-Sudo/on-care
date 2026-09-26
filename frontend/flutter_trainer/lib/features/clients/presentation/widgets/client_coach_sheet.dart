@@ -217,8 +217,6 @@ class _Turn extends StatelessWidget {
         : tokens
               .text(OnCareTypography.body)
               .copyWith(color: OnCareColors.textPrimary);
-    return AppTile(
-      child: Text(turn.content, style: style),
-    );
+    return AppTile(child: Text(turn.content, style: style));
   }
 }

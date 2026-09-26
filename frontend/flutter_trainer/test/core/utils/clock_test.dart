@@ -41,11 +41,10 @@ void main() {
     expect(today.hour, 0);
     expect(today.minute, 0);
     expect(today.second, 0);
-    expect(<int>[today.year, today.month, today.day], <int>[
-      now.year,
-      now.month,
-      now.day,
-    ]);
+    expect(
+      <int>[today.year, today.month, today.day],
+      <int>[now.year, now.month, now.day],
+    );
   });
 
   // ── 우회 금지 ───────────────────────────────────────────────────────────

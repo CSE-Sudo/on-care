@@ -43,9 +43,10 @@ void main() {
       final normalised = item.byType;
 
       expect(normalised.duration, isNull);
-      expect(<Object?>[normalised.sets, normalised.reps, normalised.weight], <
-        Object?
-      >[3, 12, 80.0]);
+      expect(
+        <Object?>[normalised.sets, normalised.reps, normalised.weight],
+        <Object?>[3, 12, 80.0],
+      );
     });
   });
 
@@ -158,11 +159,10 @@ void main() {
         const ProgramItem(name: '데드리프트', sets: 4, reps: 8, weight: 55.5),
       );
 
-      expect(<Object?>[json['sets'], json['reps'], json['weight']], <Object?>[
-        4,
-        8,
-        55.5,
-      ]);
+      expect(
+        <Object?>[json['sets'], json['reps'], json['weight']],
+        <Object?>[4, 8, 55.5],
+      );
       expect(json['duration'], isNull);
     });
   });

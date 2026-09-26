@@ -323,9 +323,7 @@ void main() {
       );
     });
 
-    testWidgets('노쇼에서 취소 주체로 다시 고르면 사유 칸이 돌아온다 (#2175)', (
-      tester,
-    ) async {
+    testWidgets('노쇼에서 취소 주체로 다시 고르면 사유 칸이 돌아온다 (#2175)', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
       await tapChip(tester, 'session-cancel-chip');
@@ -360,9 +358,7 @@ void main() {
       expect(find.textContaining('취소·노쇼로 남기세요'), findsOneWidget);
     });
 
-    testWidgets('완료된 세션의 삭제 확인 문구는 취소·노쇼를 권하지 않는다', (
-      tester,
-    ) async {
+    testWidgets('완료된 세션의 삭제 확인 문구는 취소·노쇼를 권하지 않는다', (tester) async {
       await openSchedule(tester);
       // 김민수(18:00, 완료)는 예정에서만 갈리는 취소·노쇼로 되돌릴 수 없다(#1226).
       await openSession(tester, '김민수');
@@ -374,10 +370,7 @@ void main() {
       await settle(tester);
 
       expect(find.textContaining('취소·노쇼로 남기세요'), findsNothing);
-      expect(
-        find.text('18:00–18:50 김민수님 PT 일정을 삭제할까요?'),
-        findsOneWidget,
-      );
+      expect(find.text('18:00–18:50 김민수님 PT 일정을 삭제할까요?'), findsOneWidget);
     });
   });
 }

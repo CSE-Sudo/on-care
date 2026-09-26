@@ -233,7 +233,9 @@ bool _matchesManagementFilter(
 /// 우선순위 정렬 키 — 가장 급한 배지의 순서. 배지가 없으면 맨 뒤다.
 int _priorityRank(TrainerClient client, Map<String, int> unread) {
   final signals = rosterSignalsFor(client, unread: unread[client.id] ?? 0);
-  return signals.isEmpty ? ClientSignalKind.values.length : signals.first.kind.index;
+  return signals.isEmpty
+      ? ClientSignalKind.values.length
+      : signals.first.kind.index;
 }
 
 /// A client passes an empty selection (전체 보기) or any one of the chosen

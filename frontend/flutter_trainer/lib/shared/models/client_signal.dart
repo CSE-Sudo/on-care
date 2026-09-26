@@ -60,7 +60,8 @@ enum ClientSignalKind {
 
   /// 식단 신호인가 — 대시보드 할 일의 `식단` 분류.
   bool get isDiet =>
-      this == ClientSignalKind.calorieOff || this == ClientSignalKind.proteinLow;
+      this == ClientSignalKind.calorieOff ||
+      this == ClientSignalKind.proteinLow;
 
   /// 회원의 상태에서 나온 신호인가. 답장 대기는 트레이너 자신의 받은편지함이라
   /// `주의 회원` 에 세지 않는다.

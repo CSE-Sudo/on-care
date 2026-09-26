@@ -393,9 +393,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               if (i != skipIndex) ...<Widget>[
                 const SizedBox(height: OnCareSpacing.s8),
                 AppButton(
-                  key: ValueKey<String>(
-                    '$keyPrefix-${_draft.sessions[i].id}',
-                  ),
+                  key: ValueKey<String>('$keyPrefix-${_draft.sessions[i].id}'),
                   label: _draft.sessions[i].name,
                   variant: AppButtonVariant.secondary,
                   fullWidth: true,
@@ -567,9 +565,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               // 세션이 하나뿐이면 옮길 곳이 없다 — 메뉴에 죽은 항목을 두지
               // 않는다.
               onMoveExerciseToSession: _draft.sessions.length > 1
-                  ? (exerciseIndex) => unawaited(
-                      _moveExerciseToSession(index, exerciseIndex),
-                    )
+                  ? (exerciseIndex) =>
+                        unawaited(_moveExerciseToSession(index, exerciseIndex))
                   : null,
               onDeleteExercise: (exerciseIndex) =>
                   _deleteExercise(index, exerciseIndex),
@@ -1023,6 +1020,7 @@ class _SessionEditor extends StatefulWidget {
   final VoidCallback onConfirmAdd;
   final void Function(int, ProgramExerciseDraft) onExerciseChanged;
   final void Function(int, int) onMoveExercise;
+
   /// 이 운동을 다른 세션으로 옮긴다. 세션이 하나뿐이면 null.
   final ValueChanged<int>? onMoveExerciseToSession;
 
