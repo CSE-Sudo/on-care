@@ -118,6 +118,9 @@ class MyHealthPage extends ConsumerWidget {
         const SizedBox(height: OnCareSpacing.sectionGap),
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
         const SizedBox(height: OnCareSpacing.sectionGap),
+        // 트레이너 리포트 — 담당이 있을 때만 선다(#2232). 담당이 없으면 받을
+        // 리포트도 보낼 피드백도 없어, 입구만 있고 안은 빈 화면이 된다.
+        const _CoachReportsEntry(),
         KeyedSubtree(
           key: pointsAnchorKey,
           child: _PointsCard(
@@ -134,6 +137,37 @@ class MyHealthPage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 트레이너 리포트 입구 — 받은 리포트와 보낸 주간 피드백. (#2232)
+///
+/// 담당 트레이너가 있을 때만 선다. 예전에는 리포트를 대화 안에서만 열 수 있어,
+/// 지난주 리포트를 다시 보려면 그 주의 메시지까지 스크롤을 올려야 했다.
+class _CoachReportsEntry extends ConsumerWidget {
+  const _CoachReportsEntry();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    // 담당을 아직 못 읽은 동안에는 자리를 만들지 않는다 — 있다가 사라지는
+    // 카드는 누르려던 손을 다른 곳에 떨어뜨린다.
+    final bool hasCoach = ref.watch(memberCoachProvider).valueOrNull != null;
+    if (!hasCoach) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.sectionGap),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: AppListRow(
+          key: const ValueKey<String>('my-coach-reports-entry'),
+          title: l.myCoachReportsEntry,
+          subtitle: l.myCoachReportsEntryHint,
+          leading: const AppIcon(AppIcons.document),
+          trailing: const AppIcon(AppIcons.chevronRight),
+          onTap: () => context.push(AppRoutes.myCoachReports),
+        ),
+      ),
     );
   }
 }

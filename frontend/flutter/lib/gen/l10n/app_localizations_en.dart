@@ -4533,4 +4533,154 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietAdviceTipVariety => 'Add fish or tofu twice a week.';
+
+  @override
+  String get weeklyFeedbackSheetTitle => 'How was your week?';
+
+  @override
+  String weeklyFeedbackSheetSubtitle(String range) {
+    return 'Tell your trainer about $range';
+  }
+
+  @override
+  String get weeklyFeedbackWhy =>
+      'Takes 30 seconds. Next week\'s intensity comes from this answer.';
+
+  @override
+  String get weeklyFeedbackConditionQuestion => 'How did you feel this week?';
+
+  @override
+  String get weeklyFeedbackIntensityQuestion =>
+      'How was the workout intensity?';
+
+  @override
+  String get weeklyFeedbackPainQuestion => 'Anywhere it hurt?';
+
+  @override
+  String get weeklyFeedbackPainHint => 'e.g. right knee';
+
+  @override
+  String get weeklyFeedbackPainDateLabel => 'When it hurt';
+
+  @override
+  String get weeklyFeedbackPainDatePick => 'Pick a date';
+
+  @override
+  String get weeklyFeedbackNoteQuestion => 'A line for your trainer (optional)';
+
+  @override
+  String get weeklyFeedbackNoteHint => 'Anything that shaped your week';
+
+  @override
+  String get weeklyFeedbackSend => 'Send';
+
+  @override
+  String get weeklyFeedbackResend => 'Send again';
+
+  @override
+  String get weeklyFeedbackLater => 'Later';
+
+  @override
+  String get weeklyFeedbackIncomplete => 'Pick your condition and intensity';
+
+  @override
+  String get weeklyFeedbackSent => 'Weekly feedback sent';
+
+  @override
+  String get weeklyFeedbackSendFailed =>
+      'Couldn\'t send your weekly feedback. Please try again';
+
+  @override
+  String get weeklyFeedbackAlreadySent =>
+      'You already answered this week. Sending again replaces it.';
+
+  @override
+  String get weekConditionGreat => 'Great';
+
+  @override
+  String get weekConditionGood => 'Good';
+
+  @override
+  String get weekConditionOk => 'Okay';
+
+  @override
+  String get weekConditionTired => 'Worn out';
+
+  @override
+  String get weekConditionBad => 'Rough';
+
+  @override
+  String get weekIntensityTooEasy => 'Too easy';
+
+  @override
+  String get weekIntensityRight => 'Just right';
+
+  @override
+  String get weekIntensityHard => 'A bit hard';
+
+  @override
+  String get weekIntensityTooHard => 'Too hard';
+
+  @override
+  String get myCoachReportsEntry => 'Trainer reports';
+
+  @override
+  String get myCoachReportsEntryHint =>
+      'Reports you received and feedback you sent';
+
+  @override
+  String get coachReportsSectionTitle => 'Reports received';
+
+  @override
+  String get coachReportsEmpty => 'No reports yet';
+
+  @override
+  String get coachReportsEmptyHint =>
+      'Weekly reports from your trainer land here';
+
+  @override
+  String get coachReportOpen => 'Open report';
+
+  @override
+  String coachReportSentOn(int month, int day) {
+    return 'Sent $month/$day';
+  }
+
+  @override
+  String get myWeeklyFeedbackSectionTitle => 'Weekly feedback you sent';
+
+  @override
+  String get myWeeklyFeedbackOnlyLastWeek =>
+      'Only last week\'s answer is shown';
+
+  @override
+  String get myWeeklyFeedbackEmpty => 'You haven\'t sent last week\'s feedback';
+
+  @override
+  String get myWeeklyFeedbackConditionLabel => 'Condition';
+
+  @override
+  String get myWeeklyFeedbackIntensityLabel => 'Intensity';
+
+  @override
+  String get myWeeklyFeedbackPainLabel => 'Pain';
+
+  @override
+  String get myWeeklyFeedbackPainNone => 'None';
+
+  @override
+  String myWeeklyFeedbackPainWithDate(String area, int month, int day) {
+    return '$area ($month/$day)';
+  }
+
+  @override
+  String get myWeeklyFeedbackNoteLabel => 'Your note';
+
+  @override
+  String myWeeklyFeedbackSentAt(int month, int day) {
+    return 'Sent $month/$day';
+  }
+
+  @override
+  String get weeklyFeedbackNowButton => 'Send feedback now';
 }

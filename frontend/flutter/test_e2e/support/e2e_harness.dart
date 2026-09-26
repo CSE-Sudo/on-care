@@ -27,6 +27,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/bootstrap.dart';
@@ -35,6 +36,7 @@ import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart' show AppLoading;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -622,6 +624,32 @@ Future<void> loginAsMember(WidgetTester tester, {String? email}) async {
   );
   await tester.tap(find.byKey(const ValueKey<String>('member-login-submit')));
   await pumpUntil(tester, find.byType(DashboardPage), step: '회원 로그인');
+  await dismissWeeklyFeedbackIfAsked(tester);
+}
+
+/// 일요일·월요일에는 로그인하자마자 주간 피드백 시트가 뜬다(#2277). 이 시트는
+/// E2E 가 재는 흐름(예약·채팅·상담)과 상관이 없는데, 그대로 두면 아래 화면을
+/// 덮어 다음 조작이 엉뚱한 곳을 누른다.
+///
+/// 시트가 뜨기를 기다렸다 닫는 방식은 쓰지 않는다 — 시트는 코치 연결을 읽은
+/// 뒤에 뜨는데, 그 시점이 흐름마다 달라(상담 수락 직후처럼) 기다린 창 밖에서
+/// 뜬다. 대신 `나중에` 를 누른 것과 같은 상태를 이 세션에 먼저 둔다. 그러면
+/// 시트는 아예 뜨지 않는다. 이미 떠 있으면 닫는다.
+Future<void> dismissWeeklyFeedbackIfAsked(WidgetTester tester) async {
+  final ProviderContainer container = ProviderScope.containerOf(
+    tester.element(find.byType(DashboardPage)),
+  );
+  container.read(weeklyFeedbackDismissedProvider.notifier).state = true;
+  final Finder later = find.byKey(
+    const ValueKey<String>('weekly-feedback-later'),
+  );
+  await tester.pump();
+  if (later.evaluate().isNotEmpty) {
+    await tester.tap(later);
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
 }
 
 /// 슬롯 하나를 골라 예약 확정 버튼이 뜬 상태로 만든다.

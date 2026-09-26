@@ -8,6 +8,7 @@ import 'package:oncare/features/exercise/data/repositories/mock_exercise_reposit
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 /// 데모에서 담당 트레이너 연결이 아직 살아 있는지 묻는다. (#1865)
@@ -593,6 +594,77 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       (CoachMessage m) => m.sender == CoachSender.me,
     );
     return _chat.skip(lastMine + 1).length;
+  }
+
+  // ── 주간 피드백 (#2232) ───────────────────────────────────────────────
+  //
+  // 세션 동안만 사는 값이다. 실서버는 주마다 한 줄을 덮어쓰는데(PUT), 여기서는
+  // 주의 월요일을 열쇠로 하는 맵이 그 한 줄 노릇을 한다.
+
+  /// 주 월요일(`YYYY-MM-DD`) → 그 주에 낸 답.
+  final Map<String, MemberWeeklyFeedback> _weeklyFeedback =
+      <String, MemberWeeklyFeedback>{};
+
+  /// 데모를 켜면 **직전 주 답이 이미 하나 있다.** 빈 화면으로 시작하면 MY 탭의
+  /// `보낸 주간 피드백` 이 안내문 하나로만 보여, 회원이 무엇을 보내는 것인지
+  /// 알 수 없다.
+  bool _seededFeedback = false;
+
+  void _seedFeedback() {
+    if (_seededFeedback) return;
+    _seededFeedback = true;
+    final DateTime week = manualFeedbackWeek();
+    _weeklyFeedback[wireDate(week)] = MemberWeeklyFeedback(
+      weekStart: week,
+      submitted: true,
+      condition: WeekCondition.tired,
+      intensity: WeekIntensity.hard,
+      painArea: '오른 무릎',
+      painOn: week.add(const Duration(days: 3)),
+      note: '목요일 스쿼트 뒤로 계단 내려갈 때 시큰했어요.',
+      submittedAt: week.add(const Duration(days: 6, hours: 21, minutes: 12)),
+    );
+  }
+
+  @override
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
+    DateTime? weekStart,
+  }) async {
+    final DateTime week = _mondayOf(weekStart ?? manualFeedbackWeek());
+    // 담당이 끊긴 데모에서는 보낼 곳이 없다 — 빈 답이라 화면이 칸을 숨긴다.
+    if (!_hasCoach()) return MemberWeeklyFeedback.empty(week);
+    _seedFeedback();
+    return _weeklyFeedback[wireDate(week)] ?? MemberWeeklyFeedback.empty(week);
+  }
+
+  @override
+  Future<MemberWeeklyFeedback> saveWeeklyFeedback({
+    required DateTime weekStart,
+    required WeekCondition condition,
+    required WeekIntensity intensity,
+    String painArea = '',
+    DateTime? painOn,
+    String note = '',
+  }) async {
+    if (!_hasCoach()) {
+      throw StateError('담당 트레이너가 없으면 주간 피드백을 보낼 수 없습니다.');
+    }
+    _seedFeedback();
+    final DateTime week = _mondayOf(weekStart);
+    final String area = painArea.trim();
+    final MemberWeeklyFeedback saved = MemberWeeklyFeedback(
+      weekStart: week,
+      submitted: true,
+      condition: condition,
+      intensity: intensity,
+      painArea: area,
+      painOn: area.isEmpty ? null : painOn,
+      note: note.trim(),
+      submittedAt: nowKst(),
+    );
+    // 같은 주에 다시 내면 덮어쓴다 — 한 주에 대한 회원의 말은 마지막 것 하나다.
+    _weeklyFeedback[wireDate(week)] = saved;
+    return saved;
   }
 
   /// 데모에는 요청을 보낼 트레이너 백엔드가 없다. 빈 목록이라 카드 자체가

@@ -164,11 +164,7 @@ Future<bool> _confirmBuy(BuildContext context, String id, EmoteState state) {
 }
 
 class _Grid extends StatelessWidget {
-  const _Grid({
-    required this.state,
-    required this.onPick,
-    required this.onBuy,
-  });
+  const _Grid({required this.state, required this.onPick, required this.onBuy});
 
   final EmoteState state;
   final ValueChanged<String> onPick;
@@ -195,8 +191,7 @@ class _Grid extends StatelessWidget {
               // 안 산 것도 무엇인지는 보여 준다 — 가려 두면 무엇을 사는지 모른 채
               // 사야 한다. 흐리게만 둔다.
               locked: !state.isUnlocked(id),
-              onTap: () =>
-                  state.isUnlocked(id) ? onPick(id) : onBuy(id),
+              onTap: () => state.isUnlocked(id) ? onPick(id) : onBuy(id),
             ),
         ],
       ),
