@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 
 #: 끼니 코드 → 한국어. 모두 받침이 있어 "은" 을 붙인다.
 SLOT_LABELS_KO = {"breakfast": "아침", "lunch": "점심", "dinner": "저녁"}
+#: 이번 주 조언이 가리키는 주. 월·화에 이번 주 기록이 모자라면 지난주를 돌아본다.
+SCOPE_LABELS_KO = {"this": "이번 주", "last": "지난주"}
 
 _KO: dict[str, str] = {
     # 오늘 — 규칙 한 줄 (#2251)
@@ -38,6 +40,23 @@ _KO: dict[str, str] = {
     "today_done": "오늘 식단을 잘 마무리했어요!",
     # 빠진 끼니를 묻는 동안은 메뉴를 고르지 않는다 — 기록부터 받는다.
     "today_log_first": "기록하면 다음 메뉴를 골라 드릴게요.",
+    # 이번 주 — 규칙 한 줄 (#2253). scope: this(이번 주)|last(지난주, 월·화 회고)
+    "week_empty": "이번 주 식단 기록이 아직 없어요.",
+    "week_skip_breakfast": "{scope_ko} 아침을 **{days}번** 걸렀어요.",
+    "week_skip_breakfast_snack": "{scope_ko} 아침 거른 {days}일 중 **{snack_days}일** 간식을 드셨어요.",
+    "week_focus_sodium": "{scope_ko} 나트륨을 **{days}일** 넘겼어요.",
+    "week_focus_calorie": "{scope_ko} 칼로리 목표를 **{days}일** 넘겼어요.",
+    "week_focus_sugar": "{scope_ko} 당류를 **{days}일** 넘겼어요.",
+    "week_focus_protein": "{scope_ko} 단백질이 **{days}일** 부족했어요.",
+    "week_good": "{scope_ko} 기록한 **{days}일** 모두 목표 안이에요.",
+    # 이번 주·전체 — 다음 할 일. AI 가 실패했을 때 쓰는 규칙 문장이다 (#2253)
+    "week_empty_hint": "한 끼만 남겨도 흐름이 보여요.",
+    "tip_breakfast": "삶은 달걀로 아침을 챙겨요.",
+    "tip_sodium": "국물은 남기고 건더기 위주로 드세요.",
+    "tip_calorie": "저녁 양을 조금만 줄여 봐요.",
+    "tip_sugar": "단 음료 대신 물이나 차를 드세요.",
+    "tip_protein": "끼니마다 달걀·두부를 더해 봐요.",
+    "tip_keep": "지금 흐름을 그대로 이어 가요!",
 }
 
 #: 모든 키. 앱의 번역 테스트가 이 목록을 빠짐없이 그리는지 본다.
@@ -48,6 +67,8 @@ def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
     fields: dict[str, str | int] = dict(params)
     if "slot" in params:
         fields["slot_ko"] = SLOT_LABELS_KO.get(str(params["slot"]), str(params["slot"]))
+    if "scope" in params:
+        fields["scope_ko"] = SCOPE_LABELS_KO[str(params["scope"])]
     return fields
 
 
