@@ -21,6 +21,12 @@ class AppRoutes {
   /// 내 혜택 — 보유 쿠폰(이후 보호권·챌린지)을 모은다(#1787).
   static const String myBenefits = '/my-health/benefits';
   static const String myCouponDetail = '/my-health/benefits/coupons/:couponId';
+
+  /// 트레이너 리포트 — 받은 리포트 목록과 내가 보낸 주간 피드백(#2232).
+  ///
+  /// 담당 트레이너가 있는 회원만 들어간다. MY 탭이 담당이 없을 때 입구 자체를
+  /// 세우지 않는다 — 받는 사람이 없는 리포트·피드백은 아무 데도 닿지 않는다.
+  static const String myCoachReports = '/my-health/coach-reports';
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
   static const String gymDetail = '/gyms/:gymId';
