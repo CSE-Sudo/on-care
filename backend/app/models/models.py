@@ -427,6 +427,85 @@ class DietEntry(Base):
     )
 
 
+class DietMenuPlan(Base):
+    """최근 4주 기록으로 만든 끼니별 추천 메뉴 리스트. (#2250)
+
+    식단 탭 `오늘` AI 맞춤 조언이 "다음 식사로 무엇을 먹을까" 를 이 리스트에서
+    고른다. 끼니를 기록할 때마다 AI 를 부르면 비용이 들고 같은 날에도 메뉴가
+    출렁이므로, **한 번 받아 4주 동안 보관**한다.
+
+    회원마다 여러 행이 쌓일 수 있고 가장 최근 행이 지금 리스트다. 바로 앞 행은
+    "이전 리스트의 메뉴는 다시 추천하지 않는다" 를 지키는 데 쓴다 — 그보다 오래된
+    행은 새로 만들 때 지운다.
+
+    `source` 가 `rules` 이고 `retry_after` 가 있으면 AI 가 실패해 내장 카탈로그로
+    채운 리스트다. 그 시각이 지나면 다음 조회에서 AI 를 다시 시도한다.
+    """
+
+    __tablename__ = "diet_menu_plans"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 메뉴 이름·키워드의 언어(`ko`|`en`).
+    lang: Mapped[str] = mapped_column(String(5), default="ko")
+    #: `llm` — AI 가 만든 리스트, `rules` — 내장 카탈로그로 채운 리스트.
+    source: Mapped[str] = mapped_column(String(10))
+    #: `[{slot, name, tag, keyword, kcal, protein_g, sodium_mg}]`
+    items_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: 만들 때 근거가 된 최근 28일의 기록 일수. 7일 미만이면 기록이 쌓인 뒤 다시 만든다.
+    basis_days: Mapped[int] = mapped_column(Integer, default=0)
+    #: 만들 때의 목표(건강 목표 칩·수치 목표) 지문. 달라지면 다시 만든다.
+    goal_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    #: 만든 KST 날짜와 만료일(`YYYY-MM-DD`). 만료일부터는 새로 만든다.
+    created_on: Mapped[str] = mapped_column(String(10))
+    expires_on: Mapped[str] = mapped_column(String(10))
+    #: AI 실패로 카탈로그 리스트를 둔 경우, AI 를 다시 시도해도 되는 시각.
+    retry_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class DietAdviceState(Base):
+    """식단 AI 맞춤 조언이 기간마다 기억해 두는 것. (#2251)
+
+    - `today`: 그날 추천한 메뉴 이름들. 최근 3일 안에 추천한 메뉴를 뒤로 미루는 데 쓴다.
+    - `week`·`all`: 한 번 만든 조언(규칙 한 줄 + AI 한 문장). 이번 주는 하루, 전체는
+      한 주 동안 그대로 둔다 — AI 를 조회마다 부르지 않는다.
+
+    `key_date` 는 그 상태가 가리키는 날(오늘은 그날, 이번 주는 그날, 전체는 그 주
+    월요일)이다. `retry_after` 가 있으면 AI 가 실패해 대체 문장을 둔 것이고, 그 시각이
+    지나면 다시 만든다.
+    """
+
+    __tablename__ = "diet_advice_states"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    period: Mapped[str] = mapped_column(String(10))  # today|week|all
+    key_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
+    lang: Mapped[str] = mapped_column(String(5), default="ko")
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    retry_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "period", "key_date", "lang", name="uq_diet_advice_state"
+        ),
+    )
+
+
 class WeeklyReportPurchase(Base):
     """포인트로 받은 주간 리포트 한 주. (#2022)
 
@@ -1497,11 +1576,16 @@ class TrainerRoutine(Base):
     reason: Mapped[str] = mapped_column(String(200), default="")
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |
-    #: dismissed(추천하지 않기로 함).
+    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함).
     #:
     #: 기본이 approved 인 것이 하위 호환의 핵심이다. 지금까지의 배정은 모두
     #: 트레이너가 보낸 것이므로 그대로 회원에게 보여야 한다. AI 가 만든 후보만
     #: pending 으로 들어와 승인 전까지 회원 조회에서 빠진다.
+    #:
+    #: scheduled 는 프로그램 만들기의 개인운동 단계에서 PT 프로그램과 함께
+    #: 저장된 개인운동이다(#2223). 회원에게 가는 것은 그 PT 를 완료할
+    #: 때이므로(#2224) pending 과 마찬가지로 회원 조회에서 빠지지만, 트레이너가
+    #: 검토할 후보가 아니라 이미 정해진 운동이라 상태를 나눠 둔다.
     status: Mapped[str] = mapped_column(String(20), default="approved", index=True)
     #: 트레이너가 승인/거절한 시각. pending 인 동안은 비어 있다.
     reviewed_at: Mapped[datetime | None] = mapped_column(
@@ -1524,6 +1608,25 @@ class TrainerRoutine(Base):
     #: 문구**라는 것이다 — 한 필드에 담으면 내부 판단이 회원 화면에 함께 나간다.
     evidence_json: Mapped[str] = mapped_column(
         Text, default="[]", server_default="[]"
+    )
+    #: 이 개인운동이 붙어 있는 PT 일정(#2223). 프로그램 만들기에서 PT 프로그램과
+    #: 함께 정한 개인운동만 값이 있고, 개인운동만 보낸 경우는 붙일 일정이 없어
+    #: 비어 있다. 일정이 지워지면 개인운동은 남기고 연결만 끊는다 — 이미 회원에게
+    #: 간 운동이 일정과 함께 사라지면 안 된다.
+    schedule_id: Mapped[str | None] = mapped_column(
+        ForeignKey("trainer_schedule.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    #: 이 개인운동이 어떤 전송에 속하나 — 이력에서 종류를 구분하는 데 쓴다(#2225).
+    #: pt_with_routine(PT + 개인운동) | routine_only(개인운동만) |
+    #: cancelled_routine_only(PT 취소 · 개인운동만). 이 칸이 생기기 전 배정과
+    #: AI 제안 후보는 비어 있다.
+    delivery_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    #: 전송할 때 회원에게 함께 남긴 한마디(#2223). 선택 입력이라 보통 비어 있다.
+    #: `reason` 과 달리 운동 하나가 아니라 이 전송 전체에 붙는 말이다.
+    trainer_message: Mapped[str] = mapped_column(
+        String(200), default="", server_default=""
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     # 재전송 중복 배정 방지용 멱등키(전송 시도당 1회 생성). NULL 허용 → 기존/무키

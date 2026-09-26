@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -19,6 +20,7 @@ import 'package:oncare/features/diet/presentation/widgets/week_strip_label.dart'
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -386,11 +388,6 @@ void resetDietTransientUiState(WidgetRef ref) {
   ref.read(dietPeriodTabProvider.notifier).state = DietPeriodTab.day;
 }
 
-/// `전체` 가 거슬러 올라가는 날 수. 12주 — 데모 픽스처가 들고 있는 기간이자,
-/// 하루 한 번씩 조회하는 지금 구조에서 감당할 수 있는 범위다. 화면에는 한 번에
-/// 30일이 보이고 나머지는 옆으로 밀어 본다. (#1018)
-const int kDietAllPeriodDays = 84;
-
 /// 기간 토글 → 서버가 아는 기간 이름. 화면과 서버가 같은 말을 쓴다. (#1017)
 String _advicePeriod(DietPeriodTab tab) => switch (tab) {
   DietPeriodTab.day => 'today',
@@ -404,17 +401,26 @@ String _advicePeriod(DietPeriodTab tab) => switch (tab) {
 ///
 /// 날짜를 Duration 이 아니라 성분으로 옮긴다. 로컬 시간에 Duration 을 더하면
 /// 서머타임이 있는 지역에서 주 전체가 하루씩 밀린다.
-DietDateRange dietRangeForTab(DietPeriodTab tab, DateTime today) {
+DietDateRange dietRangeForTab(
+  DietPeriodTab tab,
+  DateTime today, {
+  DateTime? firstRecord,
+}) {
+  final DateTime last = DateTime(today.year, today.month, today.day);
   if (tab == DietPeriodTab.month) {
-    // `이번 달` 이 아니라 `전체` 다 — 달이 바뀌었다고 앞의 기록이 사라지면
-    // 추세를 볼 수 없다.
+    // `이번 달` 이 아니라 `전체` 다 — **모든 기록**을 그린다(#2079). 고정 창
+    // (12주)을 두면 그보다 오래된 기록이 그래프에서 사라져, 회원이 남긴 것을
+    // 회원이 볼 수 없다.
+    //
+    // 시작은 첫 기록일이다(`GET /me/records/span`). 가입일로 두면 기록을
+    // 남기기 전 기간이 빈 칸으로 먼저 보인다. 아직 못 읽었거나 기록이 하나도
+    // 없으면 오늘 하루만 그린다 — 지어낸 기간보다 하루가 낫다.
+    final DateTime? first = firstRecord;
     return (
-      from: DateTime(
-        today.year,
-        today.month,
-        today.day - kDietAllPeriodDays + 1,
-      ),
-      to: DateTime(today.year, today.month, today.day),
+      from: first == null || first.isAfter(last)
+          ? last
+          : DateTime(first.year, first.month, first.day),
+      to: last,
     );
   }
   final DateTime monday = DateTime(
@@ -443,8 +449,13 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
     _selected = _today;
   }
 
-  DietDateRange _rangeFor(DietPeriodTab tab, DateTime today) =>
-      dietRangeForTab(tab, today);
+  /// 기간 뷰가 집계할 범위. `전체` 는 첫 기록일부터다(#2079) — 아직 못 읽었으면
+  /// 오늘 하루이고, 값이 오면 범위가 늘며 그래프가 다시 선다.
+  DietDateRange _rangeFor(DietPeriodTab tab, DateTime today) => dietRangeForTab(
+    tab,
+    today,
+    firstRecord: ref.watch(recordSpanProvider).valueOrNull?.dietFirstDate,
+  );
 
   void _retryDay() {
     if (_weekShift == 0 && _selected == _today) {
@@ -458,6 +469,11 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final DietPeriodTab selectedPeriod = ref.watch(dietPeriodTabProvider);
+    // 메뉴 이름과 AI 문장이 앱 언어로 오도록 언어를 함께 보낸다(#2255).
+    final DietAdviceKey adviceKey = (
+      period: _advicePeriod(selectedPeriod),
+      lang: Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ko',
+    );
     final DateTime today = _today;
     // 스트립은 늘 월요일에서 시작해 일요일로 끝난다 (#1059). 오늘을 가운데
     // 두면 한 줄에 지난주 끝과 이번 주 앞이 섞여, `이번 주` 그래프가 세는
@@ -582,16 +598,20 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                     // 오늘 조언으로 **되돌아가지 않는다**(#1574). 주간·전체
                     // 조언을 기다리는 동안 오늘 조언을 대신 그리면, 이번 주를
                     // 보고 있는데 "오늘 점심이 짰어요" 를 읽게 된다.
+                    //
+                    // 조언은 규칙 한 줄 + 다음 할 일 한 문장이고(#2251), 서버가 준
+                    // 문장 키로 지금 언어의 문장을 그린다(#2255).
                     PeriodAiAdviceCard(
                       title: l.dietAiFeedback,
                       advice: atToday
-                          ? ref.watch(
-                              dietAdviceProvider(_advicePeriod(selectedPeriod)),
-                            )
+                          ? ref
+                                .watch(dietAdviceProvider(adviceKey))
+                                .whenData(
+                                  (DietAdvice a) => dietAdviceText(l, a),
+                                )
                           : AsyncValue<String>.data(day.aiCoachMessage),
-                      onRetry: () => ref.invalidate(
-                        dietAdviceProvider(_advicePeriod(selectedPeriod)),
-                      ),
+                      onRetry: () =>
+                          ref.invalidate(dietAdviceProvider(adviceKey)),
                     ),
                     const SizedBox(height: OnCareSpacing.s20),
                     _MealLog(

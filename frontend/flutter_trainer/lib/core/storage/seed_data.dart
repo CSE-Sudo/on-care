@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 
 // The roster itself is bulky enough to drown the seeding logic, so it
 // lives next door. `part` keeps the `_Client` family private to this
@@ -15,10 +16,14 @@ part 'seed_clients.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v32']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v33']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v33` 은 로스터에 PT 관리 신호(`signalsJson`)를 싣고, 오세라 대화에 통증을
+/// 말하는 한 줄을 더했다(#2204). 올리지 않으면 오늘 이미 시드된 브라우저의 회원
+/// 목록에 배지가 하나도 뜨지 않는다.
 ///
 /// `_v32` 는 김민수를 뺀 고객의 끼니를 회원 앱 모양으로 맞췄다(#1381) — 거른
 /// 끼니(`거름`·`기록 없음`) 카드를 없애고, 음식마다 한 줄씩 kcal·mg·g 을
@@ -123,7 +128,7 @@ Future<void> seedIfEmpty(
   // 주간 계열을 요일 자리에 놓기 위한 오늘의 인덱스(월=0).
   final todayIndex = now.weekday - 1;
 
-  if (await db.readValue('trainer_seeded_v32') == today) return;
+  if (await db.readValue('trainer_seeded_v33') == today) return;
 
   // 김민수의 하루는 픽스처가 정한다 — 이 앱은 날짜에 붙여 저장하기만 한다(#757).
   final DemoFixture demo = fixture ?? DemoFixture.load();
@@ -305,6 +310,12 @@ Future<void> seedIfEmpty(
                       ? fixtureClient.sugarWeek
                       : _onWeekdays(client.sugarWeek, todayIndex),
                 ),
+              ),
+              signalsJson: Value(
+                jsonEncode(<Map<String, Object?>>[
+                  for (final ClientSignal signal in client.signals)
+                    signal.toJson(),
+                ]),
               ),
               sortOrder: Value(client.id),
             ),
@@ -517,7 +528,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v32', today);
+    await db.putValue('trainer_seeded_v33', today);
   });
 }
 
@@ -1170,6 +1181,7 @@ class _Client {
     required this.aiRoutine,
     required this.history,
     required this.chat,
+    this.signals = const <ClientSignal>[],
   });
   final int id;
   final String name;
@@ -1205,6 +1217,9 @@ class _Client {
   final List<_Routine> aiRoutine;
   final List<_History> history;
   final List<_Chat> chat;
+
+  /// PT 관리 신호(#2204). 서버 로스터의 `signals` 대신 데모가 정해 둔 값이다.
+  final List<ClientSignal> signals;
 }
 
 /// 스레드의 **마지막** 메시지.
@@ -1818,7 +1833,9 @@ Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
       painArea: Value(f.painArea),
       // 통증 날짜는 그 주 안의 요일로 적는다 — 데모를 언제 열어도 "지난 주
       // 목요일" 이 되도록. 고정 날짜로 박으면 한 주만 지나도 과거가 된다.
-      painOn: Value(f.painArea.isEmpty ? '' : ymd(week.add(Duration(days: f.painDay)))),
+      painOn: Value(
+        f.painArea.isEmpty ? '' : ymd(week.add(Duration(days: f.painDay))),
+      ),
       note: Value(f.note),
     );
   }
@@ -1920,18 +1937,12 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
   ],
   // 배준혁 — 답장 대기 중이지만 피드백은 냈다. 채팅을 안 읽는 것과
   // 답을 안 내는 것이 서로 다른 일이라는 것을 보여 준다.
-  9: <_Feedback>[
-    _Feedback(weeksAgo: 0, condition: 'good', intensity: 'hard'),
-  ],
+  9: <_Feedback>[_Feedback(weeksAgo: 0, condition: 'good', intensity: 'hard')],
 };
 
 /// 회원 번호 → 그 주에 적용된 목표. 지난 주 ② 에서 고른 것이다.
 const Map<int, List<String>> _demoGoals = <int, List<String>>{
-  1: <String>[
-    '주 2회 하체 추가',
-    '저녁 단백질 30g 이상',
-    '취침 전 스트레칭',
-  ],
+  1: <String>['주 2회 하체 추가', '저녁 단백질 30g 이상', '취침 전 스트레칭'],
   2: <String>['스쿼트 60kg 3세트', '주 5일 이상 기록'],
   3: <String>['주 1회라도 헬스장 방문'],
   8: <String>['허리 부담 없는 하체로 교체', '스트레칭 매일'],

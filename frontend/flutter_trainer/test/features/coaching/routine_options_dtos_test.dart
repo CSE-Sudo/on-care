@@ -241,7 +241,9 @@ void main() {
 
     test('an unrecognized status string degrades to template, not a throw', () {
       final o = routineOptionsFromJson(
-        payload(<String, Object?>{'recommendation_status': 'not-a-real-status'}),
+        payload(<String, Object?>{
+          'recommendation_status': 'not-a-real-status',
+        }),
       );
 
       expect(o.analysis.recommendationStatus, RecommendationStatus.template);

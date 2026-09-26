@@ -1,3 +1,4 @@
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 /// Builds a [TrainerClient] with sane defaults so a test only states the
@@ -21,6 +22,7 @@ TrainerClient makeClient({
   String lastRoutine = '오늘',
   List<int>? weekCompletion,
   List<int>? sodiumWeek,
+  List<ClientSignal> signals = const <ClientSignal>[],
 }) {
   return TrainerClient(
     id: id,
@@ -40,5 +42,6 @@ TrainerClient makeClient({
     weekCompletion: weekCompletion ?? const <int>[80, 80, 80, 80, 80, 80, 80],
     sodiumWeek:
         sodiumWeek ?? const <int>[1500, 1500, 1500, 1500, 1500, 1500, 1500],
+    signals: signals,
   );
 }

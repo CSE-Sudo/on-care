@@ -374,7 +374,7 @@ class _RecommendedExerciseRowState
     extends ConsumerState<_RecommendedExerciseRow> {
   bool _saving = false;
 
-  /// 개인 운동 취소. 담당 트레이너가 없을 때만 화면에 나타난다 — 담당이 있으면
+  /// 개인 운동 삭제. 담당 트레이너가 없을 때만 화면에 나타난다 — 담당이 있으면
   /// 취소는 트레이너의 일이라 서버도 403 으로 막는다. (#1020)
   Future<void> _cancel() async {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -383,9 +383,10 @@ class _RecommendedExerciseRowState
       context: context,
       title: l.coachCardRoutineCancelTitle,
       message: l.coachRoutineCancelConfirm(routine.name),
-      confirmLabel: l.coachRoutineCancel,
-      // 확정 버튼에 이미 '취소' 가 들어 있다 — 왼쪽까지 `취소` 면 어느 쪽이
-      // 물리는 버튼인지 헷갈린다(#1782).
+      // 무엇을 지우는지는 제목과 본문이 이름까지 밝힌다 — 확정 버튼까지 긴
+      // 문구를 넣으면 좁은 폰에서 잘린다(#2218). 다른 삭제 확인창과 같은 말이다.
+      confirmLabel: l.actionDelete,
+      // 왼쪽이 `취소` 면 어느 쪽이 물리는 버튼인지 헷갈린다(#1782).
       cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
@@ -719,14 +720,17 @@ class _RecommendedExerciseRowState
                         ],
                       ),
                       // 아직 하지 않은 것만 물릴 수 있다 — 이미 한 운동을 목록에서
-                      // 지우면 기록과 화면이 갈린다. 목록에서 지우는 동작이라
-                      // 화면 안의 트리거는 위험 글자 버튼이다.
+                      // 지우면 기록과 화면이 갈린다. 글자 버튼은 시간 표시와
+                      // 오른쪽 칸을 나눠 써서 좁은 폰에서 문구가 잘렸다 —
+                      // 휴지통 아이콘만 둔다(#2218). 무엇을 지우는지는 눌렀을 때
+                      // 뜨는 확인창이 이름까지 밝힌다.
                       if (widget.cancellable && !routine.completed)
-                        AppButton(
+                        AppIconButton(
                           key: Key('cancelRoutine-${routine.id}'),
-                          label: l.coachRoutineCancel,
-                          variant: AppButtonVariant.destructiveText,
-                          size: OnCareButtonSize.small,
+                          icon: AppIcons.delete,
+                          tooltip: l.coachRoutineCancel,
+                          size: AppIconButtonSize.small,
+                          color: OnCareColors.danger,
                           onPressed: _saving ? null : _cancel,
                         ),
                     ],

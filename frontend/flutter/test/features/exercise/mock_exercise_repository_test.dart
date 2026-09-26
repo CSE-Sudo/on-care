@@ -367,9 +367,9 @@ void main() {
   group('기간별 조언은 그 기간의 기록만 본다 (#1574)', () {
     test('오늘 / 이번 주 / 전체가 서로 다른 말을 한다', () async {
       final MockExerciseRepository r = _repo();
-      final String today = await r.fetchAdvice('today');
-      final String week = await r.fetchAdvice('week');
-      final String all = await r.fetchAdvice('all');
+      final String today = (await r.fetchAdvice('today')).message;
+      final String week = (await r.fetchAdvice('week')).message;
+      final String all = (await r.fetchAdvice('all')).message;
 
       expect(<String>{today, week, all}.length, 3);
       // 오늘은 그날 한 것을, 이번 주는 며칠 움직였는지를 말한다.
@@ -390,7 +390,7 @@ void main() {
           ) ??
           0;
 
-      final String advice = await r.fetchAdvice('today');
+      final String advice = (await r.fetchAdvice('today')).message;
       if (minutes == 0) {
         // 없는 기록으로 조언을 지어내지 않는다.
         expect(advice, contains('기록이 아직 없어요'));
@@ -401,7 +401,7 @@ void main() {
 
     test('직접 적은 기록이 그날 조언에 바로 반영된다', () async {
       final MockExerciseRepository r = _repo();
-      final String before = await r.fetchAdvice('today');
+      final String before = (await r.fetchAdvice('today')).message;
       await r.addSession(
         type: ExerciseType.cardio,
         minutes: 25,
@@ -409,7 +409,7 @@ void main() {
         date: _friday,
         name: '저녁 걷기',
       );
-      expect(await r.fetchAdvice('today'), isNot(before));
+      expect((await r.fetchAdvice('today')).message, isNot(before));
     });
   });
 }

@@ -5,7 +5,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -79,9 +79,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             return switch (filter) {
               _ConversationFilter.all => true,
               _ConversationFilter.unread => (unread[client.id] ?? 0) > 0,
-              _ConversationFilter.attention => healthAlertsFor(
-                client,
-              ).isNotEmpty,
+              // 회원 목록·대시보드의 `주의 회원` 과 같은 규칙(#2243).
+              _ConversationFilter.attention => needsAttention(client),
             };
           }).toList();
           final selected = widget.clientId == null
@@ -421,7 +420,12 @@ class _Identity extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final tokens = context.oncare;
-    final alerts = healthAlertsFor(client);
+    // PT 관리 신호(#2243) — 답장 대기는 빼고 센다. 지금 열어 둔 이 대화가 곧
+    // 그 답장 자리라, 대화 머리에 다시 적을 까닭이 없다.
+    final signals = <ClientSignal>[
+      for (final s in sortedSignals(client.signals))
+        if (s.kind.isAttention) s,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -464,14 +468,17 @@ class _Identity extends StatelessWidget {
                 ),
               ),
               // 활성/휴면은 없다 — 이 사람과 지금 이야기하는 데 쓰이지 않는
-              // 값이다. 주의사항은 다르다: 나트륨이 넘쳤다는 사실은 **지금 이
-              // 대화에서 할 말**을 바꾼다. 목록과 달리 **전부** 세운다.
-              for (final alert in alerts)
+              // 값이다. 신호는 다르다: 통증을 말했거나 기록이 끊겼다는 사실은
+              // **지금 이 대화에서 할 말**을 바꾼다. 회원 상세 헤더처럼 근거
+              // 수치까지 **전부** 세운다.
+              for (final signal in signals)
                 KeyedSubtree(
-                  key: ValueKey<String>('messages-thread-alert-${alert.name}'),
+                  key: ValueKey<String>(
+                    'messages-thread-alert-${signal.kind.wire}',
+                  ),
                   child: AppTag(
-                    label: alert.label(l),
-                    tone: _alertTone(alert),
+                    label: signal.detailLabel(l),
+                    tone: signal.kind.tone,
                     icon: Icons.error_outline_rounded,
                   ),
                 ),
@@ -490,15 +497,6 @@ class _Identity extends StatelessWidget {
     );
   }
 }
-
-/// 하나의 색은 하나의 뜻만: 브랜드 = 처리 필요(답장 대기), 빨강 = 주의
-/// (목표 초과·완료율 저조). 회원 앱이 같은 사실을 같은 세기로 보여 준다.
-AppTagTone _alertTone(ClientAlert alert) => switch (alert) {
-  ClientAlert.unanswered => AppTagTone.brand,
-  ClientAlert.sodiumOver => AppTagTone.danger,
-  ClientAlert.sugarOver => AppTagTone.danger,
-  ClientAlert.lowCompletion => AppTagTone.danger,
-};
 
 class _EmptyThread extends StatelessWidget {
   const _EmptyThread();

@@ -676,7 +676,7 @@
   },
   "myProfilePetDone": "이름 옆에 펫을 달았어요",
   "myShopWeeklyReportTitle": "주간 리포트",
-  "myShopWeeklyReportDescription": "{range} 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.",
+  "myShopWeeklyReportDescription": "{range} 식단·운동 기록과 참고 기록으로 한 주를 돌아보는 리포트를 만들어요.",
   "@myShopWeeklyReportDescription": {
     "placeholders": {
       "range": {
@@ -700,7 +700,7 @@
   "myBenefitsWeeklyReports": "주간 리포트",
   "myWeeklyReportCardTitle": "포인트로 받은 리포트",
   "coachReportPdfSelfMadeNote": "담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.",
-  "coachReportPdfSectionInsights": "감지 기록",
+  "coachReportPdfSectionInsights": "참고 기록",
   "coachReportPdfNoInsights": "이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.",
   "coachReportPdfInsightSummary": "{label} {count}회",
   "@coachReportPdfInsightSummary": {
@@ -1282,7 +1282,7 @@
       }
     }
   },
-  "aicQuotaPaidNext": "다음 대화 {cost} · 오늘 구매 {used}/{limit} · 남은 포인트 {balance}",
+  "aicQuotaPaidNext": "다음 대화 {cost} · 오늘 구매 {used}/{limit}",
   "@aicQuotaPaidNext": {
     "placeholders": {
       "cost": {
@@ -1293,16 +1293,13 @@
       },
       "limit": {
         "type": "int"
-      },
-      "balance": {
-        "type": "String"
       }
     }
   },
   "aicQuotaExhausted": "오늘 대화를 다 썼어요. 내일 다시 열려요",
   "aicQuotaFindTrainer": "트레이너 찾기",
   "aicPaidConfirmTitle": "포인트로 대화를 이어갈까요?",
-  "aicPaidConfirmMessage": "오늘 무료 대화를 다 썼어요. 이제 한 번 보낼 때마다 {cost}가 차감돼요 (오늘 {limit}회까지).",
+  "aicPaidConfirmMessage": "오늘 무료 대화를 다 썼어요. 이 대화를 보내면 {cost}가 차감돼요 (오늘 {limit}회까지).\n\n현재 포인트 {balance}",
   "@aicPaidConfirmMessage": {
     "placeholders": {
       "cost": {
@@ -1310,6 +1307,9 @@
       },
       "limit": {
         "type": "int"
+      },
+      "balance": {
+        "type": "String"
       }
     }
   },
@@ -1318,17 +1318,6 @@
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
-        "type": "String"
-      }
-    }
-  },
-  "aicPointsSpentWithBalance": "−{spent} · 남은 포인트 {balance}",
-  "@aicPointsSpentWithBalance": {
-    "placeholders": {
-      "spent": {
-        "type": "String"
-      },
-      "balance": {
         "type": "String"
       }
     }
@@ -1347,13 +1336,13 @@
   "aicInsightDiscomfort": "통증 감지",
   "aicInsightNegative": "부정적 반응 감지",
   "aicInsightDelete": "삭제",
-  "aicInsightDeleteConfirm": "이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.",
+  "aicInsightDeleteConfirm": "이 감지를 참고 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.",
   "aicInsightDeleteFailed": "지우지 못했어요. 잠시 후 다시 시도해 주세요.",
-  "aicInsightHistoryTitle": "감지 기록",
-  "aicInsightHistoryAction": "기록",
+  "aicInsightHistoryTitle": "참고 기록",
+  "aicInsightHistoryAction": "참고 기록",
   "aicInsightHistorySubtitle": "최근 {days}일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요",
   "aicInsightHistoryEmpty": "최근 {days}일 동안 감지된 내용이 없어요",
-  "aicInsightHistoryFailed": "감지 기록을 불러오지 못했어요",
+  "aicInsightHistoryFailed": "참고 기록을 불러오지 못했어요",
   "aicRetentionNotice": "AI 챗봇 대화는 최근 {days}일 동안만 보관돼요",
   "aicTrainerConnectedTitle": "담당 트레이너와 대화해 주세요",
   "aicTrainerConnectedBody": "{name} 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요",
@@ -1702,7 +1691,7 @@
   },
   "coachRoutineUndone": "완료를 취소했어요",
   "coachRoutineUndoFailed": "완료 취소에 실패했어요.",
-  "coachRoutineCancel": "이 개인 운동 취소",
+  "coachRoutineCancel": "이 개인 운동 삭제",
   "coachRoutineCancelConfirm": "'{name}'을(를) 목록에서 지울까요? 이미 수행한 기록은 그대로 남아요.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -1712,10 +1701,10 @@
     }
   },
   "coachCardRoutineUndoTitle": "완료를 취소할까요?",
-  "coachCardRoutineCancelTitle": "개인 운동을 취소할까요?",
+  "coachCardRoutineCancelTitle": "개인 운동을 삭제할까요?",
   "coachRoutineKeep": "유지",
-  "coachRoutineCancelled": "개인 운동을 취소했어요",
-  "coachRoutineCancelFailed": "개인 운동을 취소하지 못했어요",
+  "coachRoutineCancelled": "개인 운동을 삭제했어요",
+  "coachRoutineCancelFailed": "개인 운동을 삭제하지 못했어요",
   "coachRoutineTrainerFeedback": "트레이너 피드백: {feedback}",
   "coachRoutineCompleteTitle": "개인운동 수행 완료",
   "coachRoutineIntensity": "수행 강도",
@@ -1836,5 +1825,97 @@
   "gymLocateAction": "현재 위치로 찾기",
   "gymLocationSettings": "설정",
   "exGymCopyPhone": "전화번호 복사",
-  "exGymPhoneCopied": "전화번호를 복사했어요."
+  "exGymPhoneCopied": "전화번호를 복사했어요.",
+  "exerciseAdviceRecordEmptyToday": "오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?",
+  "exerciseAdviceRecordEmptyWeek": "이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?",
+  "exerciseAdviceRecordEmptyAll": "기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.",
+  "exerciseAdviceRecordToday": "오늘 {type, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 위주로 {minutes}분, {calories}kcal 썼어요. 스트레칭으로 마무리해요.",
+  "exerciseAdviceRecordWeekOneDay": "이번 주는 {minutes}분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.",
+  "exerciseAdviceRecordWeekSkew": "이번 주 {days}일 {minutes}분이 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}에 몰렸어요. {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}도 섞어 볼까요?",
+  "exerciseAdviceRecordWeekBalanced": "이번 주 {days}일 {minutes}분, 유형도 고르게 섞였어요.",
+  "exerciseAdviceRecordAllUp": "최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.",
+  "exerciseAdviceRecordAllDown": "최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.",
+  "exerciseAdviceRecordAllSteady": "{weeks}주 동안 {days}일 {minutes}분, 기복 없이 이어가고 있어요.",
+  "exerciseAdviceRoutineTodayAllDone": "오늘 추천 운동 {count}개를 모두 마쳤어요. 잘했어요!",
+  "exerciseAdviceRoutineTodayDoneNextOrder": "{done}{doneObj} 마쳤어요. 다음은 {next} → {then} 순서로 해 보세요.",
+  "exerciseAdviceRoutineTodayDoneNext": "{done}{doneObj} 마쳤어요. 다음은 {next} 차례예요.",
+  "exerciseAdviceRoutineTodayNextOrder": "다음은 {next} → {then} 순서로 해 보세요.",
+  "exerciseAdviceRoutineTodayNext": "다음은 {next} 차례예요.",
+  "exerciseAdviceRoutineTodayLeft": "남은 추천 운동이 {count}개예요. 목록 순서대로 해 보세요.",
+  "exerciseAdviceRoutineTodayStartOrder": "오늘 추천 운동은 {next} → {then} 순서로 시작해 보세요.",
+  "exerciseAdviceRoutineTodayStart": "오늘은 {next}부터 시작해 보세요.",
+  "exerciseAdviceRoutineWeekNoneToday": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 {next}부터 해 볼까요?",
+  "exerciseAdviceRoutineWeekNoneNext": "이번 주엔 추천 운동을 아직 안 했어요. {next}부터 해 봐요.",
+  "exerciseAdviceRoutineWeekNone": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요.",
+  "exerciseAdviceRoutineWeekOnly": "이번 주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요. {rest, select, next_week{다음 주엔} other{남은 날엔}} {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineWeekOnlyShort": "이번 주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요.",
+  "exerciseAdviceRoutineWeekSkew": "이번 주 추천 운동 중 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%예요. {rest, select, next_week{다음 주엔} other{남은 날엔}} {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineWeekSkewShort": "이번 주 추천 운동은 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%예요.",
+  "exerciseAdviceRoutineWeekPraise": "이번 주 추천 운동을 {how, select, even{고르게} other{꾸준히}} 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineWeekCountsToday": "이번 주 추천 운동 {assigned}개 중 {completed}개를 했어요. 오늘 {next}부터 이어 가요.",
+  "exerciseAdviceRoutineWeekCountsKeep": "이번 주 추천 운동 {assigned}개 중 {completed}개를 했어요. {rest, select, next_week{다음 주도 이어 가요.} other{남은 날도 이어 가요.}}",
+  "exerciseAdviceRoutineWeekCounts": "이번 주 추천 운동 {assigned}개 중 {completed}개를 했어요.",
+  "exerciseAdviceRoutineLastWeekNoneNext": "지난주엔 추천 운동을 못 했어요. 이번 주는 {next}부터 해 봐요.",
+  "exerciseAdviceRoutineLastWeekNone": "지난주엔 추천 운동을 못 했어요. 이번 주는 하나씩 해 봐요.",
+  "exerciseAdviceRoutineLastWeekOnly": "지난주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요. 이번 주는 {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineLastWeekOnlyShort": "지난주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요.",
+  "exerciseAdviceRoutineLastWeekSkew": "지난주 추천 운동 중 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%였어요. 이번 주는 {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineLastWeekSkewShort": "지난주 추천 운동은 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%였어요.",
+  "exerciseAdviceRoutineLastWeekPraise": "지난주 추천 운동을 {how, select, even{고르게} other{꾸준히}} 해냈어요. 이번 주도 이어 가요!",
+  "exerciseAdviceRoutineLastWeekCountsMore": "지난주 추천 운동 {assigned}개 중 {completed}개를 했어요. 이번 주는 더 채워 봐요.",
+  "exerciseAdviceRoutineLastWeekCounts": "지난주 추천 운동 {assigned}개 중 {completed}개를 했어요.",
+  "exerciseAdviceRoutineAllNew": "추천 목록을 받은 지 {days}일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.",
+  "exerciseAdviceRoutineAllNoneNext": "추천 목록을 받은 지 {days}일째예요. 오늘 {next}부터 시작해 볼까요?",
+  "exerciseAdviceRoutineAllNone": "추천 목록을 받은 지 {days}일째예요. 오늘 하나부터 시작해 봐요.",
+  "exerciseAdviceRoutineAllDoneTodayPart": "자주 빠지던 {part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 운동을 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllDoneTodayName": "자주 빠지던 {name}{nameObj} 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllDoneTodayNamePlain": "자주 빠지던 {name}, 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllDoneToday": "자주 빠지던 운동을 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllMissedPart": "추천 운동 중 {part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 운동이 자주 빠졌어요. {part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 운동을 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?",
+  "exerciseAdviceRoutineAllMissedName": "추천 운동 중 {name}{nameSubj} 자주 빠졌어요. 다음엔 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedNameShort": "{name}{nameSubj} 자주 빠졌어요. 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedNamePlain": "추천 운동 {name}, 자주 빠졌어요. 다음엔 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedNamePlainShort": "{name}, 자주 빠졌어요. 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissed": "자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?",
+  "exerciseAdviceRoutineAllPraise": "추천 운동을 {weeks}주째 꾸준히 하고 있어요. 앞으로도 화이팅!",
+  "exerciseAdviceRoutineAllRate": "지금 추천 운동의 {pct}%를 했어요. 빠지는 날 없이 이어 가 봐요.",
+  "dietAdviceTodayEmpty": "오늘 식단 기록이 아직 없어요.",
+  "dietAdviceTodayMissingMeal": "적지 않은 끼니가 있나요?",
+  "dietAdviceTodaySodiumOver": "나트륨 **{sodiumMg}mg**, 권장량 초과예요.",
+  "dietAdviceTodayCalorieOver": "오늘 **{kcal}kcal**, 목표 초과예요.",
+  "dietAdviceTodayProteinLeft": "단백질 **{proteinG}g** 더 필요해요.",
+  "dietAdviceTodayBalanced": "오늘 **{kcal}kcal**, 균형이 좋아요.",
+  "dietAdviceNextMeal": "{slot, select, breakfast{아침} lunch{점심} dinner{저녁} other{끼니}}은 **{menu}** 어때요?",
+  "dietAdviceNextSnack": "간식으로 **{menu}** 어때요?",
+  "dietAdviceTodayDone": "오늘 식단을 잘 마무리했어요!",
+  "dietAdviceTodayLogFirst": "기록하면 다음 메뉴를 골라 드릴게요.",
+  "dietAdviceWeekEmpty": "이번 주 식단 기록이 아직 없어요.",
+  "dietAdviceWeekSkipBreakfast": "{scope, select, last{지난주} other{이번 주}} 아침을 **{days}번** 걸렀어요.",
+  "dietAdviceWeekSkipBreakfastSnack": "{scope, select, last{지난주} other{이번 주}} 아침 거른 {days}일 중 **{snackDays}일** 간식을 드셨어요.",
+  "dietAdviceWeekFocusSodium": "{scope, select, last{지난주} other{이번 주}} 나트륨을 **{days}일** 넘겼어요.",
+  "dietAdviceWeekFocusCalorie": "{scope, select, last{지난주} other{이번 주}} 칼로리 목표를 **{days}일** 넘겼어요.",
+  "dietAdviceWeekFocusSugar": "{scope, select, last{지난주} other{이번 주}} 당류를 **{days}일** 넘겼어요.",
+  "dietAdviceWeekFocusProtein": "{scope, select, last{지난주} other{이번 주}} 단백질이 **{days}일** 부족했어요.",
+  "dietAdviceWeekGood": "{scope, select, last{지난주} other{이번 주}} 기록한 **{days}일** 모두 목표 안이에요.",
+  "dietAdviceWeekEmptyHint": "한 끼만 남겨도 흐름이 보여요.",
+  "dietAdviceTipBreakfast": "삶은 달걀로 아침을 챙겨요.",
+  "dietAdviceTipSodium": "국물은 남기고 건더기 위주로 드세요.",
+  "dietAdviceTipCalorie": "저녁 양을 조금만 줄여 봐요.",
+  "dietAdviceTipSugar": "단 음료 대신 물이나 차를 드세요.",
+  "dietAdviceTipProtein": "끼니마다 달걀·두부를 더해 봐요.",
+  "dietAdviceTipKeep": "지금 흐름을 그대로 이어 가요!",
+  "dietAdviceAllFewRecords": "최근 4주 기록이 **{days}일**이에요.",
+  "dietAdviceAllSlotSodium": "최근 4주 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} other{끼니}} 나트륨이 **{days}번** 높았어요.",
+  "dietAdviceAllCarbHeavy": "최근 4주 탄수화물 비중이 **{pct}%**예요.",
+  "dietAdviceAllProteinLight": "최근 4주 단백질 비중이 **{pct}%**로 낮아요.",
+  "dietAdviceAllProteinTrendUp": "단백질 목표 달성일이 **{before}일→{after}일**로 늘었어요.",
+  "dietAdviceAllProteinTrendDown": "단백질 목표 달성일이 **{before}일→{after}일**로 줄었어요.",
+  "dietAdviceAllFrequentMenu": "4주간 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} other{끼니}} 1위 메뉴는 **{food}**({count}회)예요.",
+  "dietAdviceAllRepeatedFoods": "4주간 **{food1}·{food2}** 비중이 높아요.",
+  "dietAdviceAllGood": "최근 4주 **{days}일** 기록, 흐름이 좋아요.",
+  "dietAdviceAllFewHint": "7일이 넘으면 흐름을 짚어 드릴게요.",
+  "dietAdviceTipCarb": "밥 양을 줄이고 반찬을 늘려 봐요.",
+  "dietAdviceTipSwap": "곁들임 반찬만 바꿔 봐요.",
+  "dietAdviceTipVariety": "생선·두부를 주 2회 더해요."
 }

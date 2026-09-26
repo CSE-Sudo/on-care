@@ -273,9 +273,7 @@ class _ScheduleTimePickerDialogState extends State<_ScheduleTimePickerDialog> {
                     key: ValueKey<String>(keys.back),
                     icon: Icons.chevron_left_rounded,
                     tooltip: l.schedTimePickerPrevStep,
-                    onPressed: _step > 0
-                        ? () => setState(() => _step--)
-                        : null,
+                    onPressed: _step > 0 ? () => setState(() => _step--) : null,
                   ),
                   AppIconButton(
                     key: ValueKey<String>(keys.next),
@@ -325,7 +323,9 @@ class _ScheduleTimePickerDialogState extends State<_ScheduleTimePickerDialog> {
                     key: const ValueKey<String>('time-range-invalid-end'),
                     textAlign: TextAlign.center,
                     style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                        .text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                        )
                         .copyWith(color: OnCareColors.danger),
                   ),
               ],
@@ -334,7 +334,9 @@ class _ScheduleTimePickerDialogState extends State<_ScheduleTimePickerDialog> {
           const SizedBox(height: OnCareSpacing.s8),
           ScheduleClockDial(
             key: ValueKey<String>('${keys.stepPrefix}-$_step'),
-            mode: _isHour ? ScheduleClockDialMode.hour : ScheduleClockDialMode.minute,
+            mode: _isHour
+                ? ScheduleClockDialMode.hour
+                : ScheduleClockDialMode.minute,
             selected: _isHour ? _active.hour : _active.minute,
             onChanged: (value) => _setActiveValue(value, advance: false),
             onSelected: (value) => _setActiveValue(value, advance: true),
@@ -408,13 +410,14 @@ class _TimeValueBox extends StatelessWidget {
                 onChanged: onChanged,
                 onSubmitted: onChanged,
                 onEditingComplete: () => onChanged(controller.text),
-                style: OnCareTypography.numeric(
-                  tokens.text(OnCareTypography.titleLarge),
-                ).copyWith(
-                  color: active
-                      ? tokens.brand.primary
-                      : OnCareColors.textPrimary,
-                ),
+                style:
+                    OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.titleLarge),
+                    ).copyWith(
+                      color: active
+                          ? tokens.brand.primary
+                          : OnCareColors.textPrimary,
+                    ),
                 cursorColor: tokens.brand.primary,
                 backgroundCursorColor: OnCareColors.lineStrong,
                 selectionColor: tokens.brand.border,

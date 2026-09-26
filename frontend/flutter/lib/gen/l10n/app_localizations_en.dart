@@ -1417,7 +1417,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myShopWeeklyReportDescription(String range) {
-    return 'Look back on $range with a report built from your meals, workouts and AI Coach notes.';
+    return 'Look back on $range with a report built from your meals, workouts and reference notes.';
   }
 
   @override
@@ -1442,7 +1442,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Made with points, without a trainer — so there\'s no trainer message.';
 
   @override
-  String get coachReportPdfSectionInsights => 'AI Coach notes';
+  String get coachReportPdfSectionInsights => 'Reference notes';
 
   @override
   String get coachReportPdfNoInsights =>
@@ -2485,8 +2485,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String aicQuotaPaidNext(String cost, int used, int limit, String balance) {
-    return 'Next chat $cost · Bought today $used/$limit · $balance left';
+  String aicQuotaPaidNext(String cost, int used, int limit) {
+    return 'Next chat $cost · Bought today $used/$limit';
   }
 
   @override
@@ -2500,8 +2500,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicPaidConfirmTitle => 'Keep chatting with points?';
 
   @override
-  String aicPaidConfirmMessage(String cost, int limit) {
-    return 'You\'ve used today\'s free chats. Each message now costs $cost (up to $limit today).';
+  String aicPaidConfirmMessage(String cost, int limit, String balance) {
+    return 'You\'ve used today\'s free chats. Sending this one costs $cost (up to $limit today).\n\nBalance $balance';
   }
 
   @override
@@ -2510,11 +2510,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String aicPaidInsufficient(String shortfall) {
     return 'You need $shortfall more. Log meals and workouts to earn points.';
-  }
-
-  @override
-  String aicPointsSpentWithBalance(String spent, String balance) {
-    return '−$spent · $balance left';
   }
 
   @override
@@ -2544,17 +2539,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aicInsightDeleteConfirm =>
-      'Remove this detection from the log? What you wrote stays in the conversation.';
+      'Remove this detection from your reference notes? What you wrote stays in the conversation.';
 
   @override
   String get aicInsightDeleteFailed =>
       'We could not remove it. Please try again in a moment.';
 
   @override
-  String get aicInsightHistoryTitle => 'Noted signals';
+  String get aicInsightHistoryTitle => 'Reference notes';
 
   @override
-  String get aicInsightHistoryAction => 'Notes';
+  String get aicInsightHistoryAction => 'Reference notes';
 
   @override
   String aicInsightHistorySubtitle(int days) {
@@ -2567,7 +2562,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aicInsightHistoryFailed => 'Couldn\'t load noted signals';
+  String get aicInsightHistoryFailed => 'Couldn\'t load reference notes';
 
   @override
   String aicRetentionNotice(int days) {
@@ -3538,7 +3533,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineUndoFailed => 'Could not undo the completion.';
 
   @override
-  String get coachRoutineCancel => 'Cancel this workout';
+  String get coachRoutineCancel => 'Delete this workout';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3549,16 +3544,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardRoutineUndoTitle => 'Undo completion?';
 
   @override
-  String get coachCardRoutineCancelTitle => 'Cancel this workout?';
+  String get coachCardRoutineCancelTitle => 'Delete this workout?';
 
   @override
   String get coachRoutineKeep => 'Keep';
 
   @override
-  String get coachRoutineCancelled => 'Workout cancelled';
+  String get coachRoutineCancelled => 'Workout deleted';
 
   @override
-  String get coachRoutineCancelFailed => 'Couldn\'t cancel the workout';
+  String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
 
   @override
   String coachRoutineTrainerFeedback(String feedback) {
@@ -3845,4 +3840,697 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymPhoneCopied => 'Phone number copied.';
+
+  @override
+  String get exerciseAdviceRecordEmptyToday =>
+      'No workout logged today yet. How about a 10-minute walk to start?';
+
+  @override
+  String get exerciseAdviceRecordEmptyWeek =>
+      'No workouts logged this week yet. How about a 10-minute walk to start?';
+
+  @override
+  String get exerciseAdviceRecordEmptyAll =>
+      'Once you log more, we\'ll show how your workout volume and types are trending.';
+
+  @override
+  String exerciseAdviceRecordToday(int calories, int minutes, String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Today: $minutes min and $calories kcal, mostly $_temp0. Wrap up with a stretch.';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekOneDay(int minutes) {
+    return 'Just one day this week ($minutes min). One more session keeps the flow going.';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekSkew(
+    int days,
+    int minutes,
+    String missing,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week\'s $_temp0 and $minutes min leaned on $_temp1. Mix in some $_temp2?';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekBalanced(int days, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$_temp0 and $minutes min this week, with a good mix of types.';
+  }
+
+  @override
+  String get exerciseAdviceRecordAllUp =>
+      'You\'ve done more over the last 4 weeks than before. This approach suits you.';
+
+  @override
+  String get exerciseAdviceRecordAllDown =>
+      'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.';
+
+  @override
+  String exerciseAdviceRecordAllSteady(int days, int minutes, int weeks) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      weeks,
+      locale: localeName,
+      other: '$weeks weeks',
+      one: '1 week',
+    );
+    return '$_temp0 and $minutes min over $_temp1 — nice and steady.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayAllDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'all $count recommended workouts',
+      one: 'your recommended workout',
+    );
+    return 'You finished $_temp0 today. Great job!';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayDoneNextOrder(
+    String done,
+    String doneObj,
+    String next,
+    String then,
+  ) {
+    return '$done done. Next up: $next → $then.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayDoneNext(
+    String done,
+    String doneObj,
+    String next,
+  ) {
+    return '$done done. $next is next.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayNextOrder(String next, String then) {
+    return 'Next up: $next → $then.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayNext(String next) {
+    return '$next is next.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recommended workouts left',
+      one: '1 recommended workout left',
+    );
+    return '$_temp0. Go down the list in order.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayStartOrder(String next, String then) {
+    return 'Start today\'s recommended workouts with $next → $then.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayStart(String next) {
+    return 'Start today with $next.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekNoneToday(String next) {
+    return 'No recommended workouts this week yet. Start with $next today?';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekNoneNext(String next) {
+    return 'No recommended workouts this week yet. Try $next first.';
+  }
+
+  @override
+  String get exerciseAdviceRoutineWeekNone =>
+      'No recommended workouts this week yet. Try one today.';
+
+  @override
+  String exerciseAdviceRoutineWeekOnly(
+    String missing,
+    String rest,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(rest, {
+      'next_week': 'Next week',
+      'other': 'For the rest of the week',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week you only did $_temp0 workouts. $_temp1, start with $_temp2.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekOnlyShort(String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week you only did $_temp0 workouts.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekSkew(
+    String missing,
+    String rest,
+    int share,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(rest, {
+      'next_week': 'Next week',
+      'other': 'For the rest of the week',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of this week\'s recommended workouts were $_temp0. $_temp1, start with $_temp2.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekSkewShort(int share, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of this week\'s recommended workouts were $_temp0.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekPraise(String how) {
+    String _temp0 = intl.Intl.selectLogic(how, {
+      'even': 'across the board',
+      'other': 'steadily',
+    });
+    return 'You kept up with this week\'s recommended workouts $_temp0. Keep it going!';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCountsToday(
+    int assigned,
+    int completed,
+    String next,
+  ) {
+    return 'You did $completed of $assigned recommended workouts this week. Continue with $next today.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCountsKeep(
+    int assigned,
+    int completed,
+    String rest,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(rest, {
+      'next_week': 'Keep it going next week.',
+      'other': 'Keep it going for the rest of the week.',
+    });
+    return 'You did $completed of $assigned recommended workouts this week. $_temp0';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCounts(int assigned, int completed) {
+    return 'You did $completed of $assigned recommended workouts this week.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekNoneNext(String next) {
+    return 'No recommended workouts last week. This week, start with $next.';
+  }
+
+  @override
+  String get exerciseAdviceRoutineLastWeekNone =>
+      'No recommended workouts last week. Take them one at a time this week.';
+
+  @override
+  String exerciseAdviceRoutineLastWeekOnly(String missing, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Last week you only did $_temp0 workouts. This week, start with $_temp1.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekOnlyShort(String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Last week you only did $_temp0 workouts.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekSkew(
+    String missing,
+    int share,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of last week\'s recommended workouts were $_temp0. This week, start with $_temp1.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekSkewShort(int share, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of last week\'s recommended workouts were $_temp0.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekPraise(String how) {
+    String _temp0 = intl.Intl.selectLogic(how, {
+      'even': 'across the board',
+      'other': 'steadily',
+    });
+    return 'You kept up with last week\'s recommended workouts $_temp0. Keep it going this week!';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed) {
+    return 'You did $completed of $assigned recommended workouts last week. Let\'s do more this week.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed) {
+    return 'You did $completed of $assigned recommended workouts last week.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNew(int days) {
+    return 'Day $days with your recommended list. After a week, we\'ll point out what gets skipped.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNoneNext(int days, String next) {
+    return 'Day $days with your recommended list. Start with $next today?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNone(int days) {
+    return 'Day $days with your recommended list. Try one today.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayPart(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': 'lower-body',
+      'upper': 'upper-body',
+      'core': 'core',
+      'full': 'full-body',
+      'other': 'full-body',
+    });
+    return 'You did the $_temp0 workouts you often skip today. Keep it going!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayName(String name, String nameObj) {
+    return 'You did $name today, one you often skip. Keep it going!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayNamePlain(String name) {
+    return 'You did $name today, one you often skip. Keep it going!';
+  }
+
+  @override
+  String get exerciseAdviceRoutineAllDoneToday =>
+      'You did a workout you often skip today. Keep it going!';
+
+  @override
+  String exerciseAdviceRoutineAllMissedPart(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': 'Lower-body',
+      'upper': 'Upper-body',
+      'core': 'Core',
+      'full': 'Full-body',
+      'other': 'Full-body',
+    });
+    return '$_temp0 recommended workouts get skipped often. Try doing them first?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedPartShort(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': 'Lower-body',
+      'upper': 'Upper-body',
+      'core': 'Core',
+      'full': 'Full-body',
+      'other': 'Full-body',
+    });
+    return '$_temp0 workouts get skipped often. Move them up?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedName(String name, String nameSubj) {
+    return '$name gets skipped often. Try doing it first next time?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNameShort(String name, String nameSubj) {
+    return '$name gets skipped often. Do it first?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNamePlain(String name) {
+    return '$name gets skipped often. Try doing it first next time?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNamePlainShort(String name) {
+    return '$name gets skipped often. Do it first?';
+  }
+
+  @override
+  String get exerciseAdviceRoutineAllMissed =>
+      'Some recommended workouts get skipped often. Try reordering your list?';
+
+  @override
+  String exerciseAdviceRoutineAllPraise(int weeks) {
+    String _temp0 = intl.Intl.pluralLogic(
+      weeks,
+      locale: localeName,
+      other: '$weeks weeks',
+      one: '1 week',
+    );
+    return '$_temp0 of steady recommended workouts. Keep it up!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllRate(int pct) {
+    return 'You\'ve done $pct% of your recommended workouts. Try not to skip a day.';
+  }
+
+  @override
+  String get dietAdviceTodayEmpty => 'No meals logged today yet.';
+
+  @override
+  String get dietAdviceTodayMissingMeal => 'Missed logging a meal?';
+
+  @override
+  String dietAdviceTodaySodiumOver(int sodiumMg) {
+    final intl.NumberFormat sodiumMgNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String sodiumMgString = sodiumMgNumberFormat.format(sodiumMg);
+
+    return 'Sodium **${sodiumMgString}mg**, over the limit.';
+  }
+
+  @override
+  String dietAdviceTodayCalorieOver(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '**$kcalString kcal** today, over your goal.';
+  }
+
+  @override
+  String dietAdviceTodayProteinLeft(int proteinG) {
+    return '**${proteinG}g** more protein to go.';
+  }
+
+  @override
+  String dietAdviceTodayBalanced(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '**$kcalString kcal** today, nicely balanced.';
+  }
+
+  @override
+  String dietAdviceNextMeal(String slot, String menu) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'other': 'meals',
+    });
+    return 'How about **$menu** for $_temp0?';
+  }
+
+  @override
+  String dietAdviceNextSnack(String menu) {
+    return 'How about **$menu** as a snack?';
+  }
+
+  @override
+  String get dietAdviceTodayDone => 'You wrapped up today\'s meals well!';
+
+  @override
+  String get dietAdviceTodayLogFirst =>
+      'Log it and we\'ll pick your next meal.';
+
+  @override
+  String get dietAdviceWeekEmpty => 'No meals logged this week yet.';
+
+  @override
+  String dietAdviceWeekSkipBreakfast(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0 you skipped breakfast **$days** times.';
+  }
+
+  @override
+  String dietAdviceWeekSkipBreakfastSnack(
+    String scope,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0 you snacked on **$snackDays** of $days no-breakfast days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSodium(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, sodium ran high on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusCalorie(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, you went over your calorie goal on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSugar(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, sugar ran high on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusProtein(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, protein fell short on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, all **$days** logged days were on target.';
+  }
+
+  @override
+  String get dietAdviceWeekEmptyHint =>
+      'Even one meal starts to show a pattern.';
+
+  @override
+  String get dietAdviceTipBreakfast => 'Try a boiled egg for breakfast.';
+
+  @override
+  String get dietAdviceTipSodium => 'Leave the broth and eat the solids.';
+
+  @override
+  String get dietAdviceTipCalorie => 'Try trimming dinner portions a little.';
+
+  @override
+  String get dietAdviceTipSugar => 'Swap sweet drinks for water or tea.';
+
+  @override
+  String get dietAdviceTipProtein => 'Add eggs or tofu to each meal.';
+
+  @override
+  String get dietAdviceTipKeep => 'Keep this flow going!';
+
+  @override
+  String dietAdviceAllFewRecords(int days) {
+    return '**$days** days logged in the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'other': 'meals',
+    });
+    return 'Sodium at $_temp0 ran high **$days** times in 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllCarbHeavy(int pct) {
+    return 'Carbs made up **$pct%** of the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllProteinLight(int pct) {
+    return 'Protein was only **$pct%** of the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendUp(int before, int after) {
+    return 'Protein goal days rose from **$before to $after**.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendDown(int before, int after) {
+    return 'Protein goal days fell from **$before to $after**.';
+  }
+
+  @override
+  String dietAdviceAllFrequentMenu(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'other': 'meals',
+    });
+    return 'Your top $_temp0 pick in 4 weeks: **$food** ($count×).';
+  }
+
+  @override
+  String dietAdviceAllRepeatedFoods(String food1, String food2) {
+    return '**$food1 and $food2** dominate the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllGood(int days) {
+    return '**$days** days logged in 4 weeks, looking good.';
+  }
+
+  @override
+  String get dietAdviceAllFewHint => 'After 7 days we\'ll show your patterns.';
+
+  @override
+  String get dietAdviceTipCarb => 'Try less rice and more side dishes.';
+
+  @override
+  String get dietAdviceTipSwap => 'Keep it, just switch up the sides.';
+
+  @override
+  String get dietAdviceTipVariety => 'Add fish or tofu twice a week.';
 }

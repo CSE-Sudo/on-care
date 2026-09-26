@@ -21,8 +21,8 @@ from app.db.session import get_db
 from app.models.models import ExerciseSession, HealthProfile
 from app.schemas.exercise_api import (
     ExerciseAdviceResponse, ExerciseCalorieRequest, ExerciseCalorieResponse,
-    ExerciseSessionCreate, ExerciseSessionCreatedOut, ExerciseSessionOut,
-    ExerciseWeekResponse,
+    ExercisePeriodResponse, ExerciseSessionCreate, ExerciseSessionCreatedOut,
+    ExerciseSessionOut, ExerciseWeekResponse,
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
@@ -60,6 +60,33 @@ def _reject_if_derived(row: ExerciseSession) -> None:
             status_code=409,
             detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.",
         )
+
+
+@router.get("/exercise/weeks", response_model=ExercisePeriodResponse)
+def exercise_period(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+) -> ExercisePeriodResponse:
+    """구간이 걸친 **주들**의 집계. `from` 을 생략하면 첫 기록 주부터다. (#2247)
+
+    `전체` 그래프가 쓰는 길이다 — 주마다 부르면 해가 바뀐 회원에게 쉰 번이 넘는
+    왕복이 된다(#2079). 한 주를 펼쳐 볼 때는 그대로
+    `GET /exercise/weeks/current?week_start=` 다: 이 응답에는 세션 목록과 코칭
+    문구가 없다.
+    """
+    profile = db.scalar(
+        select(HealthProfile).where(HealthProfile.user_id == current_user.id)
+    )
+    data = exercise_service.build_period(
+        db,
+        current_user.id,
+        start=from_date,
+        end=to_date,
+        goals=weekly_goals(profile),
+    )
+    return ExercisePeriodResponse(**data)
 
 
 @router.get("/exercise/weeks/current", response_model=ExerciseWeekResponse)
@@ -130,12 +157,16 @@ def exercise_advice(
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
     routine_days = trainer_service.advice_routine_days(db, current_user.id, period)
+    advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=exercise_service.period_coach_message(days, period, routine_days),
+        message=advice.text,
+        # 앱이 자기 언어로 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
+        advice_key=advice.key,
+        advice_params=advice.params,
     )
 
 

@@ -199,12 +199,7 @@ String timeRangeLabel(AppLocalizations l, ScheduleSession session) {
 /// 10:00–11:00 과 11:00–12:00 은 이어질 뿐 겹치지 않는다. 길이가 0인 세션은
 /// 시작 1분으로 본다. 시각이 `HH:mm` 이 아니면 겹치지 않는 것으로 본다. 서버
 /// `_overlapping_planned_sessions` 와 같은 규칙이다.
-bool timeRangesOverlap(
-  String aTime,
-  int aMinutes,
-  String bTime,
-  int bMinutes,
-) {
+bool timeRangesOverlap(String aTime, int aMinutes, String bTime, int bMinutes) {
   final aStart = clockMinutes(aTime);
   final bStart = clockMinutes(bTime);
   if (aStart == null || bStart == null) return false;

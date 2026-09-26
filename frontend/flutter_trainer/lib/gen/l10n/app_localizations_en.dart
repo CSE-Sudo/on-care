@@ -153,31 +153,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authTagline => 'The trainer-only app for managing your members';
 
   @override
-  String get authEmail => 'Email';
+  String get authEmailHint => 'Email';
 
   @override
-  String get authPassword => 'Password';
+  String get authPasswordHint => 'Password';
 
   @override
-  String get authSignIn => 'Sign in';
+  String get authSignInAction => 'Sign in';
 
   @override
-  String get authNoAccount => 'Don\'t have an account?';
+  String get authNoAccountQuestion => 'Don\'t have an account?';
 
   @override
-  String get authSignUp => 'Sign up';
+  String get authSignUpAction => 'Sign up';
 
   @override
-  String get authBrowseDemo => 'Explore the demo without signing in';
+  String get authDemoAction => 'Explore the demo without signing in';
 
   @override
   String get authSocialDivider => 'Sign in with a social account';
 
   @override
-  String get authContinueKakao => 'Continue with Kakao';
+  String get authKakaoAction => 'Continue with Kakao';
 
   @override
-  String get authContinueGoogle => 'Continue with Google';
+  String get authGoogleAction => 'Continue with Google';
 
   @override
   String get authSignUpSubtitle =>
@@ -187,7 +187,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authName => 'Name';
 
   @override
-  String get authPasswordHint =>
+  String get signUpPasswordHint =>
       'Password (8+ characters, letters and numbers)';
 
   @override
@@ -213,7 +213,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmptyCredentials => 'Enter your email and password';
 
   @override
-  String get authErrSocialFailed =>
+  String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment.';
 
   @override
@@ -324,7 +324,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashNoIssues => 'No issues';
 
   @override
-  String get dashCheckSodiumCompletion => 'Check diet & completion';
+  String get dashCheckPtSignals => 'Check PT signals';
 
   @override
   String get dashMessages => 'Messages';
@@ -346,19 +346,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashActivityDifficultyTitle =>
-      'Low completion / churn risk detected';
+      'Behind exercise goal / routine skipped';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.';
+    return '$names are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.';
   }
 
   @override
-  String get dashActivityInactiveTitle => 'Inactive 7+ days';
+  String get dashActivityInactiveTitle => 'No logs';
 
   @override
   String dashActivityInactiveDesc(String names) {
-    return '$names haven\'t logged a workout in the last 7 days. Reach out before it turns into churn.';
+    return '$names haven\'t logged meals or workouts for a few days. Reach out before it turns into churn.';
   }
 
   @override
@@ -366,7 +366,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names have a diet warning (sodium/sugar over target) but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
+    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
   }
 
   @override
@@ -380,136 +380,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dashAiNoClients =>
       'No members yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.';
-
-  @override
-  String dashAiAllOnTrack(int total) {
-    return 'All $total members are within target. Hold this intensity and raise next week\'s goal.';
-  }
-
-  @override
-  String get dashAiLoading =>
-      'Reviewing diet, workouts, and recent conversations…';
-
-  @override
-  String get dashAiLoadFailed =>
-      'Couldn\'t load the detailed coaching summary.';
-
-  @override
-  String get dashAiRateLimited =>
-      'There are too many summary requests. Try again shortly.';
-
-  @override
-  String get dashAiStatus => 'Current status';
-
-  @override
-  String get dashAiExerciseFocus => 'Today\'s exercise focus';
-
-  @override
-  String get dashAiEvidence => 'Evidence';
-
-  @override
-  String get dashAiCaution => 'Check before session';
-
-  @override
-  String get dashAiPriorityHigh => 'Check first';
-
-  @override
-  String get dashAiPriorityMedium => 'Monitor';
-
-  @override
-  String get dashAiPriorityLow => 'Maintain';
-
-  @override
-  String dashAiRuleHeadline(String name) {
-    return 'Check $name first and adjust training load to the diet and condition signals.';
-  }
-
-  @override
-  String get dashAiRuleKneeStatus =>
-      'A recent message indicates knee or lower-body discomfort, so lower-body load should be adjusted.';
-
-  @override
-  String get dashAiRuleKneeFocus =>
-      'Reduce heavy squats and lunges; focus on glute activation, knee mobility, and level walking.';
-
-  @override
-  String get dashAiRuleKneeCaution =>
-      'Confirm the pain location and range of motion before the session.';
-
-  @override
-  String get dashAiRuleUpperStatus =>
-      'Shoulder or neck discomfort indicates that upper-body pushing and pulling intensity should be adjusted.';
-
-  @override
-  String get dashAiRuleUpperFocus =>
-      'Reduce heavy upper-body work; focus on thoracic mobility, scapular stability, and stretching.';
-
-  @override
-  String get dashAiRuleUpperCaution =>
-      'Check which arm elevation angles feel uncomfortable.';
-
-  @override
-  String get dashAiRuleFatigueStatus =>
-      'Overtime or fatigue is making exercise harder to sustain, so a manageable intensity comes first.';
-
-  @override
-  String get dashAiRuleFatigueFocus =>
-      'Reduce high-intensity full-body work and focus on 15–20 minutes of easy cardio and recovery stretching.';
-
-  @override
-  String get dashAiRuleFatigueCaution =>
-      'Confirm sleep and current fatigue before setting the intensity.';
-
-  @override
-  String get dashAiRuleSodiumStatus =>
-      'Today\'s sodium intake is over the target, so set intensity with the current condition in mind.';
-
-  @override
-  String get dashAiRuleSodiumFocus =>
-      'Prefer moderate walking or cycling and steady full-body strength volume over high-intensity intervals.';
-
-  @override
-  String get dashAiRuleSodiumCaution =>
-      'Check hydration, dizziness, and swelling.';
-
-  @override
-  String get dashAiRuleCompletionStatus =>
-      'Weekly workout adherence is low, so review exercise volume, difficulty, and goals.';
-
-  @override
-  String get dashAiRuleCompletionFocus =>
-      'Reduce exercise count and volume, start at a manageable difficulty, and rebuild the weekly goal gradually.';
-
-  @override
-  String get dashAiRuleCompletionCaution =>
-      'Check which schedule or condition issues disrupted exercise this week.';
-
-  @override
-  String get dashAiRuleUnansweredStatus =>
-      'There is an unread message, so confirm the member\'s current condition before today\'s workout.';
-
-  @override
-  String get dashAiRuleUnansweredFocus =>
-      'Hold off on increasing load until they reply, and begin with mobility work at the existing intensity.';
-
-  @override
-  String get dashAiRuleUnansweredCaution =>
-      'Confirm pain, fatigue, and sleep before choosing today\'s body area and intensity.';
-
-  @override
-  String dashAiRuleEvidenceMessage(String message) {
-    return 'Recent message: “$message”';
-  }
-
-  @override
-  String dashAiRuleEvidenceSodium(int value, int target) {
-    return 'Sodium today: ${value}mg / target: ${target}mg';
-  }
-
-  @override
-  String dashAiRuleEvidenceCompletion(int average) {
-    return 'Average completion on recorded days this week: $average%';
-  }
 
   @override
   String get dashAttentionTitle => 'Members to check';
@@ -598,11 +468,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsLoadFailed => 'Couldn\'t load member data';
 
   @override
-  String clientsCountSummary(int total, int active) {
-    return '$total members · $active active';
-  }
-
-  @override
   String get clientsNew => 'Register new member';
 
   @override
@@ -630,9 +495,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSortRecentMessage => 'Recent conversations';
 
   @override
-  String get clientsSortActiveFirst => 'Active members first';
-
-  @override
   String get clientsFilterLabel => 'Filters';
 
   @override
@@ -653,12 +515,86 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String clientsFilterSummary(String filter, int shown, int total) {
-    return '$filter · $shown/$total';
+  String clientsMemberCount(int total) {
+    return '$total members';
   }
 
   @override
-  String get clientsSeeAll => 'See all';
+  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
+
+  @override
+  String get clientRoutineAdherenceUnmeasured => 'Not measured';
+
+  @override
+  String get clientsSignalDiscomfort => 'Pain';
+
+  @override
+  String get clientsSignalRecordGap => 'No logs';
+
+  @override
+  String clientsSignalRecordGapDays(int days) {
+    return 'No logs ${days}d';
+  }
+
+  @override
+  String get clientsSignalRecordGapLong => 'No logs 30d+';
+
+  @override
+  String get clientsSignalNoShow => 'No-shows';
+
+  @override
+  String clientsSignalNoShowCount(int count) {
+    return '$count no-shows';
+  }
+
+  @override
+  String get clientsSignalRoutineMissed => 'Routine skipped';
+
+  @override
+  String get clientsSignalExerciseGoalLow => 'Low exercise';
+
+  @override
+  String clientsSignalExerciseGoalLowPercent(int percent) {
+    return 'Exercise $percent%';
+  }
+
+  @override
+  String get clientsSignalCalorieOff => 'Off calorie goal';
+
+  @override
+  String get clientsSignalCalorieOver => 'Calories over';
+
+  @override
+  String get clientsSignalCalorieUnder => 'Calories under';
+
+  @override
+  String get clientsSignalProteinLow => 'Low protein';
+
+  @override
+  String clientsSignalCalorieOverPercent(int percent) {
+    return 'Calories $percent% over';
+  }
+
+  @override
+  String clientsSignalCalorieUnderPercent(int percent) {
+    return 'Calories $percent% under';
+  }
+
+  @override
+  String clientsSignalProteinPercent(int percent) {
+    return 'Protein $percent% of goal';
+  }
+
+  @override
+  String clientsSignalRoutineMissedDays(int days) {
+    return 'Routine skipped ${days}d';
+  }
+
+  @override
+  String get clientsSignalUnanswered => 'Awaiting reply';
+
+  @override
+  String get clientsAttentionClear => 'Clear attention filter';
 
   @override
   String get memberHealthLoadFailed =>
@@ -1289,15 +1225,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiAllAnalysis => 'AI all-time analysis';
 
   @override
-  String dietAiOverSodium(int over) {
-    return 'Sodium is ${over}mg over target. Adding cardio to today\'s program would help.';
-  }
-
-  @override
-  String get dietAiBalanced =>
-      'Today\'s meals are well balanced. Keep the current program.';
-
-  @override
   String get consultStatusRejected => 'Declined';
 
   @override
@@ -1491,12 +1418,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsWeeklyCompletion => 'Weekly completion';
-
-  @override
-  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
-
-  @override
-  String get clientRoutineAdherenceUnmeasured => 'Not measured';
 
   @override
   String get reportsCompletionByDay => 'Weekly workout completion';
@@ -2055,6 +1976,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegal => 'Terms & policies';
 
   @override
+  String get mySupportTitle => 'Customer Support';
+
+  @override
+  String get mySupportFaq => 'FAQ';
+
+  @override
+  String get mySupportInquiry => '1:1 Inquiry';
+
+  @override
+  String get mySupportExternalHint => 'Opens the KakaoTalk channel';
+
+  @override
+  String get mySupportOpenFailed =>
+      'Couldn\'t open the link. Please try again in a moment';
+
+  @override
+  String get mySupportEntryHint =>
+      'FAQ, inquiries, policies and account clean-up in one place';
+
+  @override
+  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
+
+  @override
   String get myLegalTermsTitle => 'Terms of Service';
 
   @override
@@ -2607,6 +2551,147 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepDone => 'Final review';
 
   @override
+  String get aiSkipPtProgram => 'Skip PT — personal exercise only';
+
+  @override
+  String get aiPersonalRationaleLabel => 'Why AI picked this';
+
+  @override
+  String aiPersonalStepFull(int count) {
+    return 'You can set up to $count personal exercises at once.';
+  }
+
+  @override
+  String get aiPersonalEditDone => 'Done editing';
+
+  @override
+  String aiPersonalStepBadge(int count) {
+    return '$count AI suggested';
+  }
+
+  @override
+  String aiPersonalStepIntro(String name) {
+    return 'Based on recent PT feedback and workout history, here is personal exercise for $name. Only what stays here goes to the member.';
+  }
+
+  @override
+  String get aiPersonalStepLoadFailed =>
+      'Could not load the AI personal-exercise suggestions';
+
+  @override
+  String get aiPersonalStepNoSuggestion =>
+      'No AI suggestion today. Add one below.';
+
+  @override
+  String aiProgramExerciseRemoveBody(String name) {
+    return 'Removes $name from this program.';
+  }
+
+  @override
+  String get aiPersonalDismissTitle => 'Drop this exercise?';
+
+  @override
+  String aiPersonalDismissBody(String name) {
+    return '$name will be dropped from this personal exercise. An AI suggestion will not come back.';
+  }
+
+  @override
+  String get aiPersonalDismissTooltip => 'Drop this suggestion';
+
+  @override
+  String aiPersonalDismissed(String name) {
+    return '$name will not be recommended';
+  }
+
+  @override
+  String get aiPersonalDismissFailed =>
+      'Could not complete that. Please try again shortly.';
+
+  @override
+  String get aiStepSkipped => 'Skipped';
+
+  @override
+  String get aiStepPersonal => 'Personal exercise';
+
+  @override
+  String get aiGoToPersonalStep => 'Next · plan personal exercise';
+
+  @override
+  String get aiPersonalStepTitle => 'Personal exercise between PT';
+
+  @override
+  String get aiPersonalStepTitleRoutineOnly => 'This week\'s personal exercise';
+
+  @override
+  String get aiPersonalStepBlurb =>
+      'Attached to this PT and sent to the member when you complete it. Pick at least one.';
+
+  @override
+  String get aiPersonalStepBlurbRoutineOnly =>
+      'What the member does on their own this week. Pick at least one.';
+
+  @override
+  String get aiPersonalStepEmpty => 'No personal exercise yet. Add one below.';
+
+  @override
+  String get aiPersonalStepNext => 'Next';
+
+  @override
+  String get aiKeepOnePersonalRoutine => 'Keep at least one personal exercise.';
+
+  @override
+  String get aiRoutineOnlyReviewTitle => 'Sending this to the member';
+
+  @override
+  String get aiRoutineOnlyStartDate => 'Start date';
+
+  @override
+  String aiRoutineOnlyWeekRange(String start, String end) {
+    return 'Shown daily $start – $end';
+  }
+
+  @override
+  String get aiRoutineOnlyWeeklyHint =>
+      'Appears in the member app every day for 7 days from today. Send next week\'s set again then.';
+
+  @override
+  String get aiRoutineOnlySend => 'Send to member';
+
+  @override
+  String get aiRoutineOnlySentLabel => 'Sent';
+
+  @override
+  String get aiRoutineOnlySent => 'Personal exercise sent to the member.';
+
+  @override
+  String get aiRoutineOnlySendFailed =>
+      'Could not send the personal exercise. Please try again shortly.';
+
+  @override
+  String get aiRoutineOnlyProgramName => 'This week\'s personal exercise';
+
+  @override
+  String get progPersonalRoutinesWhen =>
+      'Goes to the member when you complete this PT.';
+
+  @override
+  String programRoutineOnlyConfirmBody(
+    String client,
+    String start,
+    String end,
+  ) {
+    return 'Sends personal exercise to $client. Appears daily from $start to $end.';
+  }
+
+  @override
+  String get progPersonalRoutinesTitle => 'Personal exercise going with it';
+
+  @override
+  String progPersonalRoutinesCount(int count) {
+    return '$count personal exercises going with it';
+  }
+
+  @override
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
@@ -2719,21 +2804,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterAll => 'All';
-
-  @override
-  String get alertSodiumOver => 'Sodium over';
-
-  @override
-  String get alertSugarOver => 'Sugar over target';
-
-  @override
-  String get alertLowCompletion => 'Low completion';
-
-  @override
-  String get alertAwaitingReply => 'Awaiting reply';
-
-  @override
-  String get clientLastRoutine => 'Last program';
 
   @override
   String metricOverBy(String unit) {
@@ -3076,20 +3146,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String dashTodoSodiumSubtitle(int sodiumMg, int targetMg) {
-    return 'Sodium ${sodiumMg}mg · target ${targetMg}mg';
-  }
-
-  @override
-  String dashTodoSugarSubtitle(int sugarG, int targetG) {
-    return 'Sugar ${sugarG}g · target ${targetG}g';
-  }
-
-  @override
-  String get dashTodoCompletionSubtitle =>
-      'Low completion · check recent records';
-
-  @override
   String get dashTodoCarriedOverDemoSubtitle =>
       'Diet feedback left over from yesterday';
 
@@ -3346,83 +3402,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programSavedNew => 'New program';
 
   @override
-  String get suggestionReviewTitle => 'AI personal exercises';
-
-  @override
-  String suggestionReviewBadge(int count) {
-    return '$count to review';
-  }
-
-  @override
-  String suggestionReviewIntro(String name) {
-    return 'Prepared for $name from recent PT feedback and exercise records. The member sees only what you recommend.';
-  }
-
-  @override
-  String get suggestionReviewEmpty =>
-      'No AI personal exercises are waiting for review.';
-
-  @override
-  String get suggestionReviewLoadFailed => 'Couldn\'t load the AI suggestions.';
-
-  @override
-  String get suggestionApprove => 'Recommend to member';
-
-  @override
-  String get suggestionConfirmTitle => 'Final review · recommend to member';
-
-  @override
-  String suggestionConfirmBody(String client) {
-    return 'Exactly what you see below is what $client receives. Once recommended it shows up in their app.';
-  }
-
-  @override
-  String get suggestionDismiss => 'Don\'t recommend';
-
-  @override
-  String suggestionApproved(String name, String client) {
-    return 'Recommended $name to $client.';
-  }
-
-  @override
-  String suggestionDismissed(String name) {
-    return '$name won\'t be recommended.';
-  }
-
-  @override
-  String get suggestionActionFailed =>
-      'Couldn\'t finish that. Please try again.';
-
-  @override
-  String get suggestionAlreadyReviewed =>
-      'This suggestion was already reviewed. The list has been refreshed.';
-
-  @override
-  String get suggestionEditTitle => 'Edit personal exercise';
-
-  @override
-  String get suggestionEditSubmit => 'Edit and recommend';
-
-  @override
-  String get suggestionEditName => 'Exercise';
-
-  @override
-  String get suggestionEditMemo => 'Note for the member';
-
-  @override
-  String get suggestionEditMemoHint => 'Stop if your right shoulder hurts.';
-
-  @override
   String get programDraftSaved => 'Program saved.';
 
   @override
   String get programDraftSaveFailed =>
       'Couldn\'t save the program. Please try again.';
-
-  @override
-  String programDraftLoaded(String name) {
-    return 'Opened $name in the editor.';
-  }
 
   @override
   String get programDraftLoadFailed =>
@@ -3576,8 +3560,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return 'Session $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type session';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type session $index';
   }
 
   @override
@@ -3615,6 +3604,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorExerciseDown => 'Move exercise down';
+
+  @override
+  String get programEditorExerciseMoveSession => 'Move to another session';
+
+  @override
+  String get programEditorExerciseMoveTitle =>
+      'Which session should it move to?';
+
+  @override
+  String programEditorExerciseMoveBody(String name) {
+    return 'Pick the session to move \'$name\' into.';
+  }
 
   @override
   String get programEditorSets => 'Sets';

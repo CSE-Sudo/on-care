@@ -1,5 +1,7 @@
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -8,6 +10,17 @@ abstract class DietRepository {
   Future<DietDay> fetchToday();
 
   Future<DietDay> fetchByDate(DateTime date);
+
+  /// 기간의 **날짜별 합계** — GET /diet/days?from=&to= (#2236)
+  ///
+  /// 기간 그래프가 쓰는 길이다. 예전에는 하루 조회를 날짜 수만큼 모았는데,
+  /// `전체` 가 모든 기록을 그리게 되면서(#2079) 해가 바뀐 회원에게 수백 번의
+  /// 왕복이 됐다.
+  ///
+  /// [from] 을 주지 않으면 **첫 기록일**부터다. 받은 구간은 응답이 말해 준다 —
+  /// 돌려주는 [DietPeriod.days] 의 첫 칸과 끝 칸이 그 구간이고, 기록이 없는 날도
+  /// 빈 칸으로 들어 있다.
+  Future<DietPeriod> fetchPeriod({DateTime? from, DateTime? to});
 
   /// GET /diet/recommendations — 홈 "AI 추천 식단".
   ///
@@ -20,7 +33,10 @@ abstract class DietRepository {
   /// [period] 는 화면의 기간 토글과 같은 이름(`today`·`week`·`all`)이다. 구간
   /// 경계는 서버가 정한다 — 앱과 트레이너웹이 각자 계산하면 같은 회원의
   /// `이번 주` 가 화면마다 다른 날부터 시작한다.
-  Future<String> fetchAdvice(String period);
+  ///
+  /// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). [lang] 은 앱 언어(`ko`·
+  /// `en`)로, 메뉴 이름과 AI 가 만드는 문장이 그 언어로 온다.
+  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'});
 
   /// Upload a food photo for AI analysis (POST /diet/analyze). The server
   /// recognizes the foods, maps nutrition from the public DB, persists a

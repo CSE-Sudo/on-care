@@ -1366,7 +1366,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myShopWeeklyReportDescription(String range) {
-    return '$range 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.';
+    return '$range 식단·운동 기록과 참고 기록으로 한 주를 돌아보는 리포트를 만들어요.';
   }
 
   @override
@@ -1391,7 +1391,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
 
   @override
-  String get coachReportPdfSectionInsights => '감지 기록';
+  String get coachReportPdfSectionInsights => '참고 기록';
 
   @override
   String get coachReportPdfNoInsights => '이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.';
@@ -2405,8 +2405,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String aicQuotaPaidNext(String cost, int used, int limit, String balance) {
-    return '다음 대화 $cost · 오늘 구매 $used/$limit · 남은 포인트 $balance';
+  String aicQuotaPaidNext(String cost, int used, int limit) {
+    return '다음 대화 $cost · 오늘 구매 $used/$limit';
   }
 
   @override
@@ -2419,8 +2419,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicPaidConfirmTitle => '포인트로 대화를 이어갈까요?';
 
   @override
-  String aicPaidConfirmMessage(String cost, int limit) {
-    return '오늘 무료 대화를 다 썼어요. 이제 한 번 보낼 때마다 $cost가 차감돼요 (오늘 $limit회까지).';
+  String aicPaidConfirmMessage(String cost, int limit, String balance) {
+    return '오늘 무료 대화를 다 썼어요. 이 대화를 보내면 $cost가 차감돼요 (오늘 $limit회까지).\n\n현재 포인트 $balance';
   }
 
   @override
@@ -2429,11 +2429,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String aicPaidInsufficient(String shortfall) {
     return '포인트가 $shortfall 모자라요. 식단·운동을 기록하면 포인트가 쌓여요.';
-  }
-
-  @override
-  String aicPointsSpentWithBalance(String spent, String balance) {
-    return '−$spent · 남은 포인트 $balance';
   }
 
   @override
@@ -2462,16 +2457,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightDelete => '삭제';
 
   @override
-  String get aicInsightDeleteConfirm => '이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+  String get aicInsightDeleteConfirm => '이 감지를 참고 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
 
   @override
   String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get aicInsightHistoryTitle => '감지 기록';
+  String get aicInsightHistoryTitle => '참고 기록';
 
   @override
-  String get aicInsightHistoryAction => '기록';
+  String get aicInsightHistoryAction => '참고 기록';
 
   @override
   String aicInsightHistorySubtitle(int days) {
@@ -2484,7 +2479,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aicInsightHistoryFailed => '감지 기록을 불러오지 못했어요';
+  String get aicInsightHistoryFailed => '참고 기록을 불러오지 못했어요';
 
   @override
   String aicRetentionNotice(int days) {
@@ -3402,7 +3397,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineUndoFailed => '완료 취소에 실패했어요.';
 
   @override
-  String get coachRoutineCancel => '이 개인 운동 취소';
+  String get coachRoutineCancel => '이 개인 운동 삭제';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3413,16 +3408,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachCardRoutineUndoTitle => '완료를 취소할까요?';
 
   @override
-  String get coachCardRoutineCancelTitle => '개인 운동을 취소할까요?';
+  String get coachCardRoutineCancelTitle => '개인 운동을 삭제할까요?';
 
   @override
   String get coachRoutineKeep => '유지';
 
   @override
-  String get coachRoutineCancelled => '개인 운동을 취소했어요';
+  String get coachRoutineCancelled => '개인 운동을 삭제했어요';
 
   @override
-  String get coachRoutineCancelFailed => '개인 운동을 취소하지 못했어요';
+  String get coachRoutineCancelFailed => '개인 운동을 삭제하지 못했어요';
 
   @override
   String coachRoutineTrainerFeedback(String feedback) {
@@ -3698,4 +3693,653 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymPhoneCopied => '전화번호를 복사했어요.';
+
+  @override
+  String get exerciseAdviceRecordEmptyToday =>
+      '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
+
+  @override
+  String get exerciseAdviceRecordEmptyWeek =>
+      '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
+
+  @override
+  String get exerciseAdviceRecordEmptyAll => '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.';
+
+  @override
+  String exerciseAdviceRecordToday(int calories, int minutes, String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '오늘 $_temp0 위주로 $minutes분, ${calories}kcal 썼어요. 스트레칭으로 마무리해요.';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekOneDay(int minutes) {
+    return '이번 주는 $minutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekSkew(
+    int days,
+    int minutes,
+    String missing,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '이번 주 $days일 $minutes분이 $_temp0에 몰렸어요. $_temp1도 섞어 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekBalanced(int days, int minutes) {
+    return '이번 주 $days일 $minutes분, 유형도 고르게 섞였어요.';
+  }
+
+  @override
+  String get exerciseAdviceRecordAllUp =>
+      '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
+
+  @override
+  String get exerciseAdviceRecordAllDown =>
+      '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
+
+  @override
+  String exerciseAdviceRecordAllSteady(int days, int minutes, int weeks) {
+    return '$weeks주 동안 $days일 $minutes분, 기복 없이 이어가고 있어요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayAllDone(int count) {
+    return '오늘 추천 운동 $count개를 모두 마쳤어요. 잘했어요!';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayDoneNextOrder(
+    String done,
+    String doneObj,
+    String next,
+    String then,
+  ) {
+    return '$done$doneObj 마쳤어요. 다음은 $next → $then 순서로 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayDoneNext(
+    String done,
+    String doneObj,
+    String next,
+  ) {
+    return '$done$doneObj 마쳤어요. 다음은 $next 차례예요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayNextOrder(String next, String then) {
+    return '다음은 $next → $then 순서로 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayNext(String next) {
+    return '다음은 $next 차례예요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayLeft(int count) {
+    return '남은 추천 운동이 $count개예요. 목록 순서대로 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayStartOrder(String next, String then) {
+    return '오늘 추천 운동은 $next → $then 순서로 시작해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayStart(String next) {
+    return '오늘은 $next부터 시작해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekNoneToday(String next) {
+    return '이번 주엔 추천 운동을 아직 안 했어요. 오늘 $next부터 해 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekNoneNext(String next) {
+    return '이번 주엔 추천 운동을 아직 안 했어요. $next부터 해 봐요.';
+  }
+
+  @override
+  String get exerciseAdviceRoutineWeekNone =>
+      '이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요.';
+
+  @override
+  String exerciseAdviceRoutineWeekOnly(
+    String missing,
+    String rest,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    String _temp1 = intl.Intl.selectLogic(rest, {
+      'next_week': '다음 주엔',
+      'other': '남은 날엔',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '이번 주엔 $_temp0 추천 운동만 했어요. $_temp1 $_temp2부터 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekOnlyShort(String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '이번 주엔 $_temp0 추천 운동만 했어요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekSkew(
+    String missing,
+    String rest,
+    int share,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소가',
+      'strength': '근력이',
+      'stretching': '스트레칭이',
+      'other': '기타가',
+    });
+    String _temp1 = intl.Intl.selectLogic(rest, {
+      'next_week': '다음 주엔',
+      'other': '남은 날엔',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '이번 주 추천 운동 중 $_temp0 $share%예요. $_temp1 $_temp2부터 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekSkewShort(int share, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소가',
+      'strength': '근력이',
+      'stretching': '스트레칭이',
+      'other': '기타가',
+    });
+    return '이번 주 추천 운동은 $_temp0 $share%예요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekPraise(String how) {
+    String _temp0 = intl.Intl.selectLogic(how, {'even': '고르게', 'other': '꾸준히'});
+    return '이번 주 추천 운동을 $_temp0 해냈어요. 이대로 이어 가요!';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCountsToday(
+    int assigned,
+    int completed,
+    String next,
+  ) {
+    return '이번 주 추천 운동 $assigned개 중 $completed개를 했어요. 오늘 $next부터 이어 가요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCountsKeep(
+    int assigned,
+    int completed,
+    String rest,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(rest, {
+      'next_week': '다음 주도 이어 가요.',
+      'other': '남은 날도 이어 가요.',
+    });
+    return '이번 주 추천 운동 $assigned개 중 $completed개를 했어요. $_temp0';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCounts(int assigned, int completed) {
+    return '이번 주 추천 운동 $assigned개 중 $completed개를 했어요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekNoneNext(String next) {
+    return '지난주엔 추천 운동을 못 했어요. 이번 주는 $next부터 해 봐요.';
+  }
+
+  @override
+  String get exerciseAdviceRoutineLastWeekNone =>
+      '지난주엔 추천 운동을 못 했어요. 이번 주는 하나씩 해 봐요.';
+
+  @override
+  String exerciseAdviceRoutineLastWeekOnly(String missing, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '지난주엔 $_temp0 추천 운동만 했어요. 이번 주는 $_temp1부터 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekOnlyShort(String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '지난주엔 $_temp0 추천 운동만 했어요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekSkew(
+    String missing,
+    int share,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소가',
+      'strength': '근력이',
+      'stretching': '스트레칭이',
+      'other': '기타가',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '지난주 추천 운동 중 $_temp0 $share%였어요. 이번 주는 $_temp1부터 해 보세요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekSkewShort(int share, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소가',
+      'strength': '근력이',
+      'stretching': '스트레칭이',
+      'other': '기타가',
+    });
+    return '지난주 추천 운동은 $_temp0 $share%였어요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekPraise(String how) {
+    String _temp0 = intl.Intl.selectLogic(how, {'even': '고르게', 'other': '꾸준히'});
+    return '지난주 추천 운동을 $_temp0 해냈어요. 이번 주도 이어 가요!';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed) {
+    return '지난주 추천 운동 $assigned개 중 $completed개를 했어요. 이번 주는 더 채워 봐요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed) {
+    return '지난주 추천 운동 $assigned개 중 $completed개를 했어요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNew(int days) {
+    return '추천 목록을 받은 지 $days일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNoneNext(int days, String next) {
+    return '추천 목록을 받은 지 $days일째예요. 오늘 $next부터 시작해 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNone(int days) {
+    return '추천 목록을 받은 지 $days일째예요. 오늘 하나부터 시작해 봐요.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayPart(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': '하체',
+      'upper': '상체',
+      'core': '코어',
+      'full': '전신',
+      'other': '전신',
+    });
+    return '자주 빠지던 $_temp0 운동을 오늘 해냈어요. 이대로 이어 가요!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayName(String name, String nameObj) {
+    return '자주 빠지던 $name$nameObj 오늘 해냈어요. 이대로 이어 가요!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayNamePlain(String name) {
+    return '자주 빠지던 $name, 오늘 해냈어요. 이대로 이어 가요!';
+  }
+
+  @override
+  String get exerciseAdviceRoutineAllDoneToday =>
+      '자주 빠지던 운동을 오늘 해냈어요. 이대로 이어 가요!';
+
+  @override
+  String exerciseAdviceRoutineAllMissedPart(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': '하체',
+      'upper': '상체',
+      'core': '코어',
+      'full': '전신',
+      'other': '전신',
+    });
+    String _temp1 = intl.Intl.selectLogic(part, {
+      'lower': '하체',
+      'upper': '상체',
+      'core': '코어',
+      'full': '전신',
+      'other': '전신',
+    });
+    return '추천 운동 중 $_temp0 운동이 자주 빠졌어요. $_temp1 운동을 먼저 해 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedPartShort(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': '하체',
+      'upper': '상체',
+      'core': '코어',
+      'full': '전신',
+      'other': '전신',
+    });
+    return '$_temp0 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedName(String name, String nameSubj) {
+    return '추천 운동 중 $name$nameSubj 자주 빠졌어요. 다음엔 먼저 해 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNameShort(String name, String nameSubj) {
+    return '$name$nameSubj 자주 빠졌어요. 먼저 해 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNamePlain(String name) {
+    return '추천 운동 $name, 자주 빠졌어요. 다음엔 먼저 해 볼까요?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNamePlainShort(String name) {
+    return '$name, 자주 빠졌어요. 먼저 해 볼까요?';
+  }
+
+  @override
+  String get exerciseAdviceRoutineAllMissed =>
+      '자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?';
+
+  @override
+  String exerciseAdviceRoutineAllPraise(int weeks) {
+    return '추천 운동을 $weeks주째 꾸준히 하고 있어요. 앞으로도 화이팅!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllRate(int pct) {
+    return '지금 추천 운동의 $pct%를 했어요. 빠지는 날 없이 이어 가 봐요.';
+  }
+
+  @override
+  String get dietAdviceTodayEmpty => '오늘 식단 기록이 아직 없어요.';
+
+  @override
+  String get dietAdviceTodayMissingMeal => '적지 않은 끼니가 있나요?';
+
+  @override
+  String dietAdviceTodaySodiumOver(int sodiumMg) {
+    final intl.NumberFormat sodiumMgNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String sodiumMgString = sodiumMgNumberFormat.format(sodiumMg);
+
+    return '나트륨 **${sodiumMgString}mg**, 권장량 초과예요.';
+  }
+
+  @override
+  String dietAdviceTodayCalorieOver(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '오늘 **${kcalString}kcal**, 목표 초과예요.';
+  }
+
+  @override
+  String dietAdviceTodayProteinLeft(int proteinG) {
+    return '단백질 **${proteinG}g** 더 필요해요.';
+  }
+
+  @override
+  String dietAdviceTodayBalanced(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '오늘 **${kcalString}kcal**, 균형이 좋아요.';
+  }
+
+  @override
+  String dietAdviceNextMeal(String slot, String menu) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'other': '끼니',
+    });
+    return '$_temp0은 **$menu** 어때요?';
+  }
+
+  @override
+  String dietAdviceNextSnack(String menu) {
+    return '간식으로 **$menu** 어때요?';
+  }
+
+  @override
+  String get dietAdviceTodayDone => '오늘 식단을 잘 마무리했어요!';
+
+  @override
+  String get dietAdviceTodayLogFirst => '기록하면 다음 메뉴를 골라 드릴게요.';
+
+  @override
+  String get dietAdviceWeekEmpty => '이번 주 식단 기록이 아직 없어요.';
+
+  @override
+  String dietAdviceWeekSkipBreakfast(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 아침을 **$days번** 걸렀어요.';
+  }
+
+  @override
+  String dietAdviceWeekSkipBreakfastSnack(
+    String scope,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 아침 거른 $days일 중 **$snackDays일** 간식을 드셨어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSodium(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 나트륨을 **$days일** 넘겼어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusCalorie(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 칼로리 목표를 **$days일** 넘겼어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSugar(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 당류를 **$days일** 넘겼어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusProtein(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 단백질이 **$days일** 부족했어요.';
+  }
+
+  @override
+  String dietAdviceWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 기록한 **$days일** 모두 목표 안이에요.';
+  }
+
+  @override
+  String get dietAdviceWeekEmptyHint => '한 끼만 남겨도 흐름이 보여요.';
+
+  @override
+  String get dietAdviceTipBreakfast => '삶은 달걀로 아침을 챙겨요.';
+
+  @override
+  String get dietAdviceTipSodium => '국물은 남기고 건더기 위주로 드세요.';
+
+  @override
+  String get dietAdviceTipCalorie => '저녁 양을 조금만 줄여 봐요.';
+
+  @override
+  String get dietAdviceTipSugar => '단 음료 대신 물이나 차를 드세요.';
+
+  @override
+  String get dietAdviceTipProtein => '끼니마다 달걀·두부를 더해 봐요.';
+
+  @override
+  String get dietAdviceTipKeep => '지금 흐름을 그대로 이어 가요!';
+
+  @override
+  String dietAdviceAllFewRecords(int days) {
+    return '최근 4주 기록이 **$days일**이에요.';
+  }
+
+  @override
+  String dietAdviceAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'other': '끼니',
+    });
+    return '최근 4주 $_temp0 나트륨이 **$days번** 높았어요.';
+  }
+
+  @override
+  String dietAdviceAllCarbHeavy(int pct) {
+    return '최근 4주 탄수화물 비중이 **$pct%**예요.';
+  }
+
+  @override
+  String dietAdviceAllProteinLight(int pct) {
+    return '최근 4주 단백질 비중이 **$pct%**로 낮아요.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendUp(int before, int after) {
+    return '단백질 목표 달성일이 **$before일→$after일**로 늘었어요.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendDown(int before, int after) {
+    return '단백질 목표 달성일이 **$before일→$after일**로 줄었어요.';
+  }
+
+  @override
+  String dietAdviceAllFrequentMenu(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'other': '끼니',
+    });
+    return '4주간 $_temp0 1위 메뉴는 **$food**($count회)예요.';
+  }
+
+  @override
+  String dietAdviceAllRepeatedFoods(String food1, String food2) {
+    return '4주간 **$food1·$food2** 비중이 높아요.';
+  }
+
+  @override
+  String dietAdviceAllGood(int days) {
+    return '최근 4주 **$days일** 기록, 흐름이 좋아요.';
+  }
+
+  @override
+  String get dietAdviceAllFewHint => '7일이 넘으면 흐름을 짚어 드릴게요.';
+
+  @override
+  String get dietAdviceTipCarb => '밥 양을 줄이고 반찬을 늘려 봐요.';
+
+  @override
+  String get dietAdviceTipSwap => '곁들임 반찬만 바꿔 봐요.';
+
+  @override
+  String get dietAdviceTipVariety => '생선·두부를 주 2회 더해요.';
 }

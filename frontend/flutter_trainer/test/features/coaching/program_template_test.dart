@@ -5,6 +5,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -136,6 +137,42 @@ void main() {
       await tester.tap(apply);
       await settle(tester);
 
+      // 최종 검토 다음은 개인운동 단계다(#2223) — 반영은 거기서 일어난다.
+      final addPersonal = find.byKey(
+        const ValueKey<String>('show-add-personal-exercise-form'),
+      );
+      await tester.scrollUntilVisible(addPersonal, 150, scrollable: scrollable);
+      await tester.ensureVisible(addPersonal);
+      await tester.pump();
+      await tester.tap(addPersonal);
+      await settle(tester);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('new-exercise-name')),
+          matching: find.byType(TextField),
+        ),
+        '걷기',
+      );
+      await tester.pump();
+      final addSubmit = find.byKey(
+        const ValueKey<String>('add-exercise-submit'),
+      );
+      await tester.ensureVisible(addSubmit);
+      await tester.tap(addSubmit);
+      await settle(tester);
+      final donePersonal = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.scrollUntilVisible(
+        donePersonal,
+        150,
+        scrollable: scrollable,
+      );
+      await tester.ensureVisible(donePersonal);
+      await tester.pump();
+      await tester.tap(donePersonal);
+      await settle(tester);
+
       // A seeded AI suggestion for 김민수 that must survive the apply. AI
       // 흐름 자신의 검토 목록에도 같은 이름이 남아 있을 수 있어 편집기 안
       // 으로 범위를 좁힌다.
@@ -154,6 +191,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(template.name));
       await settle(tester);
+
+      // AI 후보가 유형별로 여러 세션에 나뉘어 들어오면(#2222) 템플릿을 어느
+      // 세션에 붙일지 먼저 묻는다(#1029) — 첫 세션에 붙인다.
+      await _pickFirstSessionIfAsked(tester);
 
       // The template's exercises joined the composed routine…
       expect(find.text(template.exercises.first.name), findsWidgets);
@@ -175,4 +216,22 @@ void main() {
       expect(find.text('전송 이력'), findsOneWidget);
     });
   });
+}
+
+/// 템플릿 붙일 세션을 묻는 창이 떠 있으면 첫 세션을 고른다.
+Future<void> _pickFirstSessionIfAsked(WidgetTester tester) async {
+  final picker = find.byKey(const ValueKey<String>('template-session-picker'));
+  if (picker.evaluate().isEmpty) return;
+  final sessions = find.descendant(
+    of: picker,
+    matching: find.byWidgetPredicate((widget) {
+      if (widget is! AppButton) return false;
+      final key = widget.key;
+      if (key is! ValueKey<String>) return false;
+      return key.value.startsWith('template-session-picker-') &&
+          key.value != 'template-session-picker-cancel';
+    }),
+  );
+  await tester.tap(sessions.first);
+  await tester.pumpAndSettle();
 }

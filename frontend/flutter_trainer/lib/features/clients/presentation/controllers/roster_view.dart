@@ -1,42 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 
 /// 로스터를 관리 상태로 좁히는 필터. URL 의 `f` 프리셋과는 다른 축이다 —
 /// 그쪽은 대시보드가 걸어 주는 것이고, 이쪽은 트레이너가 툴바에서 고른다.
 ///
-/// 복수 선택이 가능하다(#1026) — 선택된 조건 중 하나라도 맞으면 그 고객을
-/// 보여준다(OR). `active`/`dormant` 처럼 서로 배타적인 값을 동시에 골라도
-/// "둘 다 보기" 로 자연스럽게 읽히는 쪽은 AND 가 아니라 OR 뿐이다.
+/// 복수 선택이 가능하다(#1026) — 선택된 조건 중 하나라도 맞으면 그 회원을
+/// 보여준다(OR).
 ///
-/// 관리 신호 필터는 `ClientAlert` 배지와 1:1 로 맞춰 나트륨·당류·
-/// 이행률·답장 대기 배지가 보이는 모든 고객을 같은 기준으로 좁힌다.
-/// `칼로리 초과` 는 넣지 않는다: 방향이 회원마다 다르다는 이유로 #767 에서
-/// 이미 배지 후보에서 제외된 결정이다. `식단 이행률 저조`/`운동 이행률 저조`
-/// 를 나눈 필터도 없다 — 모델에 `weekCompletion` 하나뿐이라 분리된 값을
-/// 지어낼 수 없다(#1026 §3). `활동 저조` 도 마지막 기록 시각 필드가 없어
-/// 뺐다.
+/// 관리 필요 하나와 PT 관리 신호 여덟 가지다(#2204). 신호 필터는 목록 배지와
+/// 1:1 이라, 배지가 보이는 회원과 그 필터가 남기는 회원이 늘 같다. 활성·휴면과
+/// 나트륨·당류·이행률 필터는 회의에서 뺐다 — 휴면은 회원 상세에서만 다룬다.
 enum RosterManagementFilter {
-  attention,
-  active,
-  dormant,
-  sodiumOver,
-  sugarOver,
-  lowCompletion,
-  unanswered,
+  attention(null),
+  discomfort(ClientSignalKind.discomfort),
+  recordGap(ClientSignalKind.recordGap),
+  noShow(ClientSignalKind.noShow),
+  routineMissed(ClientSignalKind.routineMissed),
+  exerciseGoalLow(ClientSignalKind.exerciseGoalLow),
+  calorieOff(ClientSignalKind.calorieOff),
+  proteinLow(ClientSignalKind.proteinLow),
+  unanswered(ClientSignalKind.unanswered);
+
+  const RosterManagementFilter(this.signal);
+
+  /// 이 필터가 고르는 신호. `관리 필요` 는 신호 하나가 아니라 "무엇이든" 이라 null.
+  final ClientSignalKind? signal;
 }
 
 /// 로스터 정렬 기준.
 ///
-/// `recentMessage` is backed by an actual chat timestamp: Drift's grouped
-/// `ChatMessage.createdAt`, or the API's `last_message_at`. `lastTime` remains
-/// display-only. A general activity/record sort is intentionally absent because
-/// the roster contract has no last-activity timestamp.
-enum RosterSort {
-  priority,
-  recentMessage,
-  activeFirst,
-  nameAscending,
-  nameDescending,
-}
+/// `priority` 는 PT 관리 신호의 급한 순이다(#2204). `recentMessage` is backed
+/// by an actual chat timestamp: Drift's grouped `ChatMessage.createdAt`, or the
+/// API's `last_message_at`. `lastTime` remains display-only. 활성 회원 우선은
+/// 활성 표시를 목록에서 없애며 함께 뺐다.
+enum RosterSort { priority, recentMessage, nameAscending, nameDescending }
 
 /// 고객 탭의 보기 설정 한 벌.
 class RosterView {

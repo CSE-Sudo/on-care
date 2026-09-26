@@ -2,6 +2,7 @@
 식단 라우터 — 프론트 계약 정렬(얇은 라우터).
 
   GET  /diet/days/today          -> 오늘 식단 집계(나트륨·당류·macros + 코칭 메시지)
+  GET  /diet/days?from=&to=      -> 기간의 날짜별 합계(그래프용, 끼니·사진 없음)
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
@@ -32,6 +33,7 @@ from app.schemas.diet_api import (
     DietEntryCreate,
     DietEntryOut,
     DietEntryUpdate,
+    DietPeriodResponse,
     DietRecommendationsResponse,
     DietTodayResponse,
     FoodNutritionOut,
@@ -39,9 +41,13 @@ from app.schemas.diet_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
+    diet_advice_copy,
+    diet_all_advice,
+    diet_period_advice,
     diet_photo_service,
     diet_recommendation_service,
     diet_service,
+    diet_week_advice,
     points_service,
 )
 from app.services.coach import personal_ingest
@@ -62,6 +68,22 @@ def diet_today(
     return diet_service.build_today(db, current_user.id)
 
 
+@router.get("/diet/days", response_model=DietPeriodResponse)
+def diet_period(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[Date | None, Query(alias="from")] = None,
+    to_date: Annotated[Date | None, Query(alias="to")] = None,
+) -> DietPeriodResponse:
+    """기간의 **날짜별 합계**. `from` 을 생략하면 첫 기록일부터다. (#2236)
+
+    기간 그래프가 쓰는 길이다 — 하루에 한 번씩 부르면 `전체`(모든 기록, #2079)가
+    수백 번의 왕복이 된다. 끼니·사진은 싣지 않으므로 하루를 펼쳐 볼 때는 그대로
+    `GET /diet/days/{date}` 를 쓴다.
+    """
+    return diet_service.build_period(db, current_user.id, start=from_date, end=to_date)
+
+
 @router.get("/diet/days/{date}", response_model=DietTodayResponse)
 def diet_by_date(
     date: Date,
@@ -79,6 +101,10 @@ def diet_advice(
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 화면의 기간 토글과 같은 이름"),
     ] = "today",
+    lang: Annotated[
+        Literal["ko", "en"],
+        Query(description="앱 언어 — 메뉴 이름·AI 문장을 이 언어로 준다"),
+    ] = "ko",
 ) -> DietAdviceResponse:
     """기간에 맞는 식단 조언. (#1017)
 
@@ -87,19 +113,39 @@ def diet_advice(
 
     경계는 서버가 정한다 — 앱과 트레이너웹이 각자 계산하면 같은 회원의 `이번 주`
     가 화면마다 다른 날부터 시작한다.
+
+    조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). `오늘` 은 4주 추천 메뉴
+    리스트에서 다음 식사를 고르고, `이번 주` 는 규칙이 고른 한 가지에 AI 가 원인
+    메뉴나 대안을 붙인다(하루 한 번, #2253). `전체` 는 최근 4주 식습관 하나에 AI 가
+    다음 4주의 행동 목표를 붙인다(주 한 번, #2254). 트레이너웹 경로는 아직 예전 한
+    문장(`diet_service.period_coach_message`)이다.
     """
-    return _advice_for(db, current_user.id, period)
+    if period == diet_period_advice.PERIOD_TODAY:
+        return _advice_response(
+            diet_period_advice.today_advice(db, current_user.id, lang=lang)
+        )
+    if period == diet_week_advice.PERIOD_WEEK:
+        return _advice_response(
+            diet_week_advice.week_advice(db, current_user.id, lang=lang)
+        )
+    return _advice_response(diet_all_advice.all_advice(db, current_user.id, lang=lang))
 
 
-def _advice_for(db: Session, user_id: str, period: str) -> DietAdviceResponse:
-    start, end = diet_service.period_bounds(period)
-    days = diet_service.daily_totals(db, user_id, start, end)
+def _advice_response(advice: diet_period_advice.DietAdvice) -> DietAdviceResponse:
+    action = advice.action
     return DietAdviceResponse(
-        period=period,
-        from_date=start,
-        to_date=end,
-        days_logged=len(days),
-        message=diet_service.period_coach_message(days, period),
+        period=advice.period,
+        from_date=advice.from_date,
+        to_date=advice.to_date,
+        days_logged=advice.days_logged,
+        message=diet_advice_copy.message(advice.analysis, action),
+        analysis=advice.analysis.text,
+        analysis_key=advice.analysis.key,
+        analysis_params=advice.analysis.params,
+        action=action.text if action else "",
+        action_key=action.key if action else None,
+        action_params=action.params if action else {},
+        action_source=advice.action_source,
     )
 
 

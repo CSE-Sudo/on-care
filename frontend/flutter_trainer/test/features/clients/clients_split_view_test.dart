@@ -8,7 +8,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_card
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
-import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -73,11 +73,12 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(ClientCard),
-        matching: find.byType(AlertBadge),
+        matching: find.byType(AppTag),
       ),
       findsNothing,
     );
 
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await settle(tester);
 
@@ -119,6 +120,7 @@ void main() {
     tester,
   ) async {
     await openWide(tester);
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await settle(tester);
 
@@ -136,6 +138,7 @@ void main() {
       'the route change', (tester) async {
     await openWide(tester);
 
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await tester.pump();
     await tester.pump();
@@ -153,6 +156,7 @@ void main() {
   ) async {
     await openWide(tester);
 
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await settle(tester);
     expect(find.text('운동'), findsOneWidget);
@@ -169,6 +173,7 @@ void main() {
   ) async {
     await openWide(tester);
 
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await settle(tester);
     // 김민수의 오늘 탄수화물 111.6g — 영양 요약 카드에만 뜨는 값이다.
@@ -188,6 +193,7 @@ void main() {
   ) async {
     await openWide(tester);
 
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await settle(tester);
 
@@ -261,31 +267,25 @@ void main() {
     expect(find.text('정렬: 관리 필요 우선'), findsNothing);
   });
 
-  testWidgets('활성 회원 우선은 실제 active 필드로 정렬한다', (tester) async {
+  testWidgets('목록에는 활성 표시도 활성 정렬도 없다 (#2204)', (tester) async {
     await openWide(tester);
-    const countSummary = '15명 · 활성 13명';
-    expect(find.text(countSummary), findsWidgets);
+    expect(find.text('15명'), findsWidgets);
+    expect(find.textContaining('활성'), findsNothing);
+
+    // 아바타의 초록 점(online)이 사라졌다.
+    for (final avatar in tester.widgetList<AppAvatar>(
+      find.descendant(
+        of: find.byType(ClientCard),
+        matching: find.byType(AppAvatar),
+      ),
+    )) {
+      expect(avatar.online, isNull);
+    }
 
     await tester.tap(find.text('정렬: 관리 필요 우선'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('활성 회원 우선').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('정렬: 활성 회원 우선'), findsOneWidget);
-    final visibleCards = tester
-        .widgetList<ClientCard>(find.byType(ClientCard))
-        .toList(growable: false);
-    expect(visibleCards, isNotEmpty);
-    expect(visibleCards.every((card) => card.client.active), isTrue);
-
-    // 활성 우선은 휴면 회원을 숨기는 필터가 아니다. 명단 수를 유지한
-    // 채 활성 회원 뒤로 보낸다.
-    await scrollToCard(tester, '박성호');
-    final dormantCard = tester.widget<ClientCard>(
-      find.ancestor(of: find.text('박성호'), matching: find.byType(ClientCard)),
-    );
-    expect(dormantCard.client.active, isFalse);
-    expect(find.text(countSummary), findsWidgets);
+    expect(find.text('활성 회원 우선'), findsNothing);
+    expect(find.text('이름 오름차순'), findsWidgets);
   });
 
   testWidgets('대시보드에서 걸어 준 필터는 회원을 열어도 유지된다 (#816)', (tester) async {
@@ -314,33 +314,37 @@ void main() {
     expect(banner, findsWidgets);
   });
 
-  testWidgets('the list is ordered by priority: sodium-over first', (
+  testWidgets('the list is ordered by priority: most urgent signal first', (
     tester,
   ) async {
     await openWide(tester);
 
-    // Read the rendered order rather than three clients' Y positions:
-    // the roster is long enough now that not every name is built, so
-    // measuring specific ones would depend on where the list happens to
-    // sit. Every over-target client must precede every under-target one.
+    // Read the rendered order rather than a few clients' Y positions: the
+    // roster is long enough that not every card is built. Each card's most
+    // urgent badge must be at least as urgent as the next card's.
     final rendered = tester
         .widgetList<ClientCard>(find.byType(ClientCard))
         .toList();
     expect(rendered.length, greaterThan(2));
-    final firstUnderTarget = rendered.indexWhere(
-      (c) => !c.client.sodiumOverBudget,
-    );
-    if (firstUnderTarget >= 0) {
+    int rank(ClientCard card) {
+      final signals = rosterSignalsFor(card.client, unread: card.unread);
+      return signals.isEmpty
+          ? ClientSignalKind.values.length
+          : signals.first.kind.index;
+    }
+
+    for (var i = 1; i < rendered.length; i++) {
       expect(
-        rendered
-            .skip(firstUnderTarget)
-            .every((c) => !c.client.sodiumOverBudget),
-        isTrue,
-        reason: '나트륨 초과 회원이 목표 이내 회원보다 아래에 오면 안 된다',
+        rank(rendered[i - 1]),
+        lessThanOrEqualTo(rank(rendered[i])),
+        reason: '${rendered[i - 1].client.name} → ${rendered[i].client.name}',
       );
     }
-    // The top of the list is where the trainer looks first.
-    expect(rendered.first.client.sodiumOverBudget, isTrue);
+    // The top of the list is where the trainer looks first — 통증·불편.
+    expect(
+      rosterSignalsFor(rendered.first.client).first.kind,
+      ClientSignalKind.discomfort,
+    );
   });
 
   testWidgets('회원 카드가 기록된 날의 주간 루틴 이행률을 보여 준다 (#1284)', (tester) async {
@@ -394,10 +398,32 @@ void main() {
     expect(tester.widget<AppProgressBar>(progress).value, 0);
   });
 
+  testWidgets('회원 목록 행에는 신호 배지가 없다 — 배지는 회원 상세에서 본다 (#2258)', (tester) async {
+    await openWide(tester);
+
+    // 오세라는 통증·불편 · 운동 목표 · 칼로리 신호와 답장 대기를 든 회원이다.
+    final seraCard = find.byKey(const ValueKey<String>('client-seed-client-8'));
+    expect(seraCard, findsOneWidget);
+    expect(
+      find.descendant(of: seraCard, matching: find.byType(AppTag)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: seraCard,
+        matching: find.byKey(
+          const ValueKey<String>('client-weekly-adherence-seed-client-8'),
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('the panel location is a path that encodes the section', (
     tester,
   ) async {
     await openWide(tester);
+    await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await settle(tester);
 
@@ -423,12 +449,14 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      // 김민수 is over on sodium, so the alert row renders too.
-      at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+      // 오세라는 신호가 넷(통증·운동 목표·칼로리·답장 대기)이라 헤더가
+      // 가장 붐빈다 — 그래도 넘치지 않아야 한다(#2243).
+      at: AppRoutes.clientDetail('seed-client-8', section: 'diet'),
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('나트륨 초과'), findsWidgets);
+    expect(find.text('통증·불편'), findsWidgets);
+    expect(find.text('칼로리 24% 과다'), findsWidgets);
     // 신체·목표는 메모와 한 대화상자로 합쳐졌고, 메모 버튼은 프로필 줄의
     // 아이콘 버튼으로 옮겨 갔다(#1024).
     expect(find.text('리포트'), findsOneWidget);

@@ -220,6 +220,10 @@ class ExerciseSession {
       );
 }
 
+/// 기간 조회(`GET /exercise/weeks`)가 돌려주는 한 칸 — 그 주의 월요일과 집계.
+/// (#2247)
+typedef ExercisePeriodWeek = ({DateTime weekStart, ExerciseWeek week});
+
 class ExerciseWeek {
   const ExerciseWeek({
     required this.sessions,
@@ -277,6 +281,39 @@ class ExerciseWeek {
   int get workoutCount => dailyMinutes.isNotEmpty
       ? dailyMinutes.where((double m) => m > 0).length
       : sessions.map((s) => s.dayLabel).toSet().length;
+
+  /// 기간 조회(`GET /exercise/weeks`)의 한 칸. (#2247)
+  ///
+  /// 그 응답에는 **세션 목록과 코칭 문구가 없다** — 그래프가 쓰지 않아 서버가
+  /// 싣지 않는다. 한 주를 펼쳐 볼 때 쓰는 [ExerciseWeek.fromJson] 과 달리 그
+  /// 둘을 비워 둔다.
+  factory ExerciseWeek.fromBriefJson(Map<String, Object?> json) {
+    List<double> numbers(String key) =>
+        ((json[key] as List<Object?>?) ?? const <Object?>[])
+            .whereType<num>()
+            .map((num value) => value.toDouble())
+            .toList(growable: false);
+    return ExerciseWeek(
+      sessions: const <ExerciseSession>[],
+      dailyMinutes: numbers('daily_minutes'),
+      dayLabels:
+          ((json['day_labels'] as List<Object?>?) ?? const <Object?>[])
+              .whereType<String>()
+              .toList(growable: false),
+      totalMinutes: (json['total_minutes'] as num?)?.toInt() ?? 0,
+      totalCalories: (json['total_calories'] as num?)?.toInt() ?? 0,
+      streakDays: (json['streak_days'] as num?)?.toInt() ?? 0,
+      aiCoachMessage: '',
+      dailyCalories: numbers('daily_calories'),
+      cardioMinutes: numbers('cardio_minutes'),
+      strengthMinutes: numbers('strength_minutes'),
+      stretchingMinutes: numbers('stretching_minutes').isNotEmpty
+          ? numbers('stretching_minutes')
+          : numbers('flexibility_minutes'),
+      otherMinutes: numbers('other_minutes'),
+      strengthSets: numbers('strength_sets'),
+    );
+  }
 
   factory ExerciseWeek.fromJson(Map<String, Object?> json) {
     List<double> parseDoubleList(String key) {

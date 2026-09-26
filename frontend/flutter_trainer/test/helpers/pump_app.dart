@@ -25,6 +25,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fixed_clock.dart';
+import 'record_span.dart';
 
 /// Mock-mode config so widget tests resolve the in-memory repositories
 /// (no real backend). Individual tests can override with [extraOverrides].
@@ -245,6 +246,18 @@ class _StillClientRepository implements ClientRepository {
   ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  ) async => <ClientExercisePeriodWeek>[
+    for (final DateTime monday in clientRangeWeekStarts(range))
+      (
+        weekStart: monday,
+        week: await fetchExerciseWeek(clientId, weekStart: monday),
+      ),
+  ];
+
+  @override
   Future<ClientExerciseWeek> fetchExerciseWeek(
     String clientId, {
     DateTime? weekStart,
@@ -267,6 +280,10 @@ class _StillClientRepository implements ClientRepository {
     String clientId,
     DateTime date,
   ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+
+  @override
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId) async =>
+      testClientRecordSpan();
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(

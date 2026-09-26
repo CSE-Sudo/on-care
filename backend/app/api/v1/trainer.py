@@ -35,8 +35,13 @@ from app.models.models import (
     TrainerProfile,
     User,
 )
-from app.schemas.diet_api import DietAdviceResponse
+from app.schemas.diet_api import (
+    DietAdviceResponse,
+    DietPeriodResponse,
+    RecordSpanResponse,
+)
 from app.schemas.exercise_api import (
+    ExercisePeriodResponse,
     ExerciseAdviceResponse,
     ExerciseSessionOut,
     ExerciseWeekResponse,
@@ -51,7 +56,6 @@ from app.schemas.consultation_api import (
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
     ClientCoachRequest, ClientDietEntryOut,
-    DashboardCoachingSummaryOut,
     MemberHealthProfileOut, MemberHealthProfileUpdate,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
@@ -97,7 +101,6 @@ from app.services import (
     trainer_program_template_service,
     diet_photo_service,
     notification_service,
-    trainer_dashboard_coaching_service,
     trainer_report_summary_service,
     report_pdf_storage,
     trainer_routine_options_service,
@@ -497,6 +500,73 @@ def trainer_client_diet(
     return trainer_service.build_client_diet(db, member_id, day)
 
 
+@router.get(
+    "/trainer/clients/{member_id}/diet/days",
+    response_model=DietPeriodResponse,
+)
+def trainer_client_diet_period(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[_date | None, Query(alias="from")] = None,
+    to_date: Annotated[_date | None, Query(alias="to")] = None,
+) -> DietPeriodResponse:
+    """담당 고객의 기간 식단 합계. 회원 API(`GET /diet/days`)와 **같은 규칙**이다.
+
+    트레이너 화면의 기간 그래프가 회원 앱과 같은 숫자를 그리려면 같은 집계를
+    읽어야 한다(#2156). `from` 을 생략하면 그 회원의 첫 기록일부터다(#2079).
+    """
+    _require_client(db, trainer.id, member_id)
+    return diet_service.build_period(db, member_id, start=from_date, end=to_date)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/exercise/weeks",
+    response_model=ExercisePeriodResponse,
+)
+def trainer_client_exercise_period(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[_date | None, Query(alias="from")] = None,
+    to_date: Annotated[_date | None, Query(alias="to")] = None,
+) -> ExercisePeriodResponse:
+    """담당 고객의 기간 운동 집계. 회원 API(`GET /exercise/weeks`)와 같은 규칙이다.
+
+    `전체` 가 모든 기록을 그리므로(#2079) 주마다 부르면 왕복이 주 수만큼 늘어난다
+    (#2247). 한 주를 펼쳐 볼 때는 그대로 `GET .../exercise-week?week_start=` 다.
+    """
+    _require_client(db, trainer.id, member_id)
+    profile = db.scalar(
+        select(HealthProfile).where(HealthProfile.user_id == member_id)
+    )
+    data = exercise_service.build_period(
+        db,
+        member_id,
+        start=from_date,
+        end=to_date,
+        goals=weekly_goals(profile),
+    )
+    return ExercisePeriodResponse(**data)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/records/span",
+    response_model=RecordSpanResponse,
+)
+def trainer_client_record_span(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> RecordSpanResponse:
+    """담당 고객이 식단·운동을 처음 남긴 날. 회원 API(`GET /me/records/span`)와 같다."""
+    _require_client(db, trainer.id, member_id)
+    return RecordSpanResponse(
+        diet_first_date=diet_service.first_entry_date(db, member_id),
+        exercise_first_date=exercise_service.first_session_date(db, member_id),
+    )
+
+
 @router.get("/trainer/clients/{member_id}/diet/photos/{photo_id}")
 def trainer_client_diet_photo(
     member_id: str,
@@ -613,12 +683,15 @@ def trainer_client_exercise_advice(
     start, end, days = exercise_service.period_days(db, member_id, period)
     # 추천 개인운동 기준 조언(#2162)도 회원 앱과 같은 함수로 읽는다.
     routine_days = trainer_service.advice_routine_days(db, member_id, period)
+    advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=exercise_service.period_coach_message(days, period, routine_days),
+        message=advice.text,
+        advice_key=advice.key,
+        advice_params=advice.params,
     )
 
 
@@ -936,6 +1009,10 @@ def trainer_assign_program(
         name=name,
         sessions=payload.sessions,
         client_request_id=payload.client_request_id,
+        delivery_kind=payload.delivery_kind,
+        trainer_message=payload.trainer_message.strip(),
+        start_date=payload.start_date,
+        active_days=payload.active_days,
     )
 
 
@@ -1317,28 +1394,6 @@ def trainer_routine_options(
     )
 
 
-@router.get(
-    "/trainer/dashboard/coaching-summary",
-    response_model=DashboardCoachingSummaryOut,
-)
-def trainer_dashboard_coaching_summary(
-    trainer: RequireTrainer,
-    db: Annotated[Session, Depends(get_db)],
-) -> DashboardCoachingSummaryOut:
-    """식단·운동·건강 프로필·최근 대화를 합친 오늘의 고객별 코칭 요약."""
-    settings = get_settings()
-    if settings.rate_limit_enabled:
-        # 인증된 트레이너 단위로 비용 버킷을 분리해 같은 헬스장/NAT의 사용자가
-        # 서로 한도를 소진하지 않게 한다. 운영의 공유 저장소 전환 전까지는 기존
-        # RateLimiter 인터페이스를 유지한다.
-        limiter.check(
-            f"dashboard-coaching-summary:trainer:{trainer.id}",
-            settings.routine_options_per_minute,
-            60.0,
-        )
-    return trainer_dashboard_coaching_service.generate_summary(db, trainer.id)
-
-
 @router.get("/trainer/dashboard/task-progress", response_model=TrainerTaskProgressOut)
 def trainer_task_progress(
     trainer: RequireTrainer,
@@ -1570,6 +1625,7 @@ def trainer_assign_program_with_schedule(
             client_name=payload.client_name,
             client_request_id=payload.client_request_id,
             session_id=payload.session_id,
+            personal_routines=payload.personal_routines,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1587,6 +1643,24 @@ def trainer_assign_program_with_schedule(
     if result is None:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return result
+
+
+@router.get(
+    "/trainer/schedule/{session_id}/routines", response_model=list[RoutineOut]
+)
+def trainer_schedule_routines(
+    session_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """그 PT 일정에 붙어 있는(아직 회원에게 가지 않은) 개인운동. (#2223)
+
+    일정 상세가 "이 PT 와 함께 갈 개인운동"을 보여 주는 데 쓴다(#2224). 보낸
+    뒤에는 배정 목록(`GET .../routines`)으로 옮겨 가므로 여기서는 빠진다. 남의
+    일정은 조건에서 걸러져 빈 목록이 된다 — 없는 일정과 같은 답이라 어느 id 가
+    실재하는지 알려 주지 않는다.
+    """
+    return trainer_service.list_scheduled_routines(db, trainer.id, session_id)
 
 
 @router.put("/trainer/schedule/{session_id}", response_model=ScheduleSessionOut)

@@ -57,8 +57,16 @@ void main() {
     test('실패 코드마다 그 로케일의 문구가 나온다', () {
       for (final failure in AuthFailure.values) {
         final e = AuthException(failure);
-        expect(authFailureText(_ko, e), _expected[failure]!(_ko), reason: '$failure');
-        expect(authFailureText(_en, e), _expected[failure]!(_en), reason: '$failure');
+        expect(
+          authFailureText(_ko, e),
+          _expected[failure]!(_ko),
+          reason: '$failure',
+        );
+        expect(
+          authFailureText(_en, e),
+          _expected[failure]!(_en),
+          reason: '$failure',
+        );
       }
     });
 
@@ -85,15 +93,21 @@ void main() {
     });
 
     test('영어 화면은 기본 문구로 물러난다', () {
-      expect(serverDetailOr(_en, detail, _en.myPwChangeFailed),
-          _en.myPwChangeFailed);
+      expect(
+        serverDetailOr(_en, detail, _en.myPwChangeFailed),
+        _en.myPwChangeFailed,
+      );
     });
 
     test('사유가 비어 있으면 로케일과 무관하게 기본 문구', () {
-      expect(serverDetailOr(_ko, null, _ko.myPwChangeFailed),
-          _ko.myPwChangeFailed);
-      expect(serverDetailOr(_ko, '   ', _ko.myPwChangeFailed),
-          _ko.myPwChangeFailed);
+      expect(
+        serverDetailOr(_ko, null, _ko.myPwChangeFailed),
+        _ko.myPwChangeFailed,
+      );
+      expect(
+        serverDetailOr(_ko, '   ', _ko.myPwChangeFailed),
+        _ko.myPwChangeFailed,
+      );
     });
   });
 }

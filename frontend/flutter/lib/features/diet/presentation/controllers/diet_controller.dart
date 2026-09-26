@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
 import 'package:oncare/features/diet/data/sources/image_picker_meal_photo_picker.dart';
@@ -77,31 +78,21 @@ List<DateTime> dietRangeDates(DietDateRange range) {
   ];
 }
 
-/// 이번 주·이번 달 식단 집계.
+/// 이번 주·`전체` 식단 집계 — `GET /diet/days?from=&to=` **한 번**이다. (#2236)
 ///
-/// 새 엔드포인트를 두지 않고 하루 조회를 기간만큼 모은다. 날짜별 응답은
-/// [dietByDateProvider] 가 캐시하므로 같은 날을 두 번 부르지 않는다.
+/// 예전에는 하루 조회를 날짜 수만큼 모았다. `전체` 가 모든 기록을 그리게 되면서
+/// (#2079) 해가 바뀐 회원에게 수백 번의 왕복이 됐다.
 ///
-/// 오늘은 하루 뷰가 [dietTodayProvider](`/diet/days/today`)로, 기간 뷰가
-/// [dietByDateProvider](`/diet/days/{today}`)로 읽는다. 서로 다른 캐시라
-/// 끼니를 더하거나 지울 때 **둘 다** 비워야 한다(`diet_flows.dart`).
+/// 하루 뷰(`오늘`)는 그대로 [dietTodayProvider]·[dietByDateProvider] 다 — 끼니
+/// 목록과 사진이 필요하고, 이 응답에는 없다. 끼니를 더하거나 지울 때 비워야 할
+/// 캐시가 그만큼 늘었다(`diet_flows.dart`).
 final dietPeriodProvider = FutureProvider.family<DietPeriod, DietDateRange>((
   ref,
   DietDateRange range,
-) async {
-  final List<DateTime> dates = dietRangeDates(range);
-  // watch 는 await 이전에 모두 걸어 둔다 — 하루라도 바뀌면 기간 값도 다시
-  // 계산되고, 요청은 순차가 아니라 한꺼번에 나간다.
-  final List<Future<DietDay>> pending = <Future<DietDay>>[
-    for (final DateTime d in dates) ref.watch(dietByDateProvider(d).future),
-  ];
-  final List<DietDay> days = await Future.wait(pending);
-  return DietPeriod(
-    days: <DietPeriodDay>[
-      for (int i = 0; i < dates.length; i++)
-        DietPeriodDay.from(dates[i], days[i]),
-    ],
-  );
+) {
+  return ref
+      .watch(dietRepositoryProvider)
+      .fetchPeriod(from: range.from, to: range.to);
 }, name: 'dietPeriod');
 
 /// 기간에 맞는 식단 조언 — GET /diet/advice. (#1017)
@@ -111,12 +102,24 @@ final dietPeriodProvider = FutureProvider.family<DietPeriod, DietDateRange>((
 /// 읽게 된다.
 ///
 /// 구간 경계는 서버가 정한다 — 앱이 따로 계산해 넘기지 않는다.
-final dietAdviceProvider = FutureProvider.family<String, String>((
+///
+/// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). 앱 언어([DietAdviceKey.lang])
+/// 마다 따로 받는다 — 메뉴 이름과 AI 문장이 그 언어로 온다.
+///
+/// 끼니를 저장·수정·삭제하거나 날짜를 옮기면 **family 통째로** 비운다(#2078).
+/// 오늘 조언은 합계가 바뀌면 다음 메뉴가 바뀌고, 한 번 받은 값을 들고 있으면
+/// 영양 요약은 새 합계인데 조언만 옛 합계를 말한다.
+final dietAdviceProvider = FutureProvider.family<DietAdvice, DietAdviceKey>((
   ref,
-  String period,
+  DietAdviceKey key,
 ) async {
-  return ref.watch(dietRepositoryProvider).fetchAdvice(period);
+  return ref
+      .watch(dietRepositoryProvider)
+      .fetchAdvice(key.period, lang: key.lang);
 }, name: 'dietAdvice');
+
+/// 조언 요청의 열쇠 — 기간(`today`·`week`·`all`)과 앱 언어(`ko`·`en`).
+typedef DietAdviceKey = ({String period, String lang});
 
 /// 홈 "AI 추천 식단" — GET /diet/recommendations.
 ///

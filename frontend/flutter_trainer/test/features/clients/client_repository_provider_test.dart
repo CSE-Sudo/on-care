@@ -20,6 +20,8 @@ import 'package:oncare_trainer/features/clients/domain/entities/routine_history_
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
+import '../../helpers/record_span.dart';
+
 class _MockDio extends Mock implements Dio {}
 
 TrainerClient _client(String id, {required int sodiumMg}) => TrainerClient(
@@ -77,6 +79,18 @@ class _StreamingClientRepository implements ClientRepository {
     Map<String, Object?> values,
   ) => fetchHealthProfile(clientId);
   @override
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  ) async => <ClientExercisePeriodWeek>[
+    for (final DateTime monday in clientRangeWeekStarts(range))
+      (
+        weekStart: monday,
+        week: await fetchExerciseWeek(clientId, weekStart: monday),
+      ),
+  ];
+
+  @override
   Future<ClientExerciseWeek> fetchExerciseWeek(
     String clientId, {
     DateTime? weekStart,
@@ -109,6 +123,10 @@ class _StreamingClientRepository implements ClientRepository {
     String clientId,
     DateTime date,
   ) async => <ClientExerciseItem>[];
+
+  @override
+  Future<ClientRecordSpan> fetchRecordSpan(String clientId) async =>
+      testClientRecordSpan();
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(

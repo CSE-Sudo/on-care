@@ -199,7 +199,9 @@ void main() {
       // 두면 기본 종료일이 바뀔 때 이 단언만 홀로 틀린다 — 실제로 그랬다(#1647).
       // 미리보기가 말한 기간을 그대로 되짚어 견준다.
       final String summary = tester
-          .widget<Text>(find.descendant(of: preview, matching: find.byType(Text)))
+          .widget<Text>(
+            find.descendant(of: preview, matching: find.byType(Text)),
+          )
           .data!;
       final RegExpMatch? shown = RegExp(
         r'(\d+).*?(\d{4}-\d{2}-\d{2}).*?(\d{4}-\d{2}-\d{2})',

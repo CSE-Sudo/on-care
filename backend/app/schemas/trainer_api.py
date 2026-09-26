@@ -171,30 +171,6 @@ class TrainerClientStatusOut(BaseModel):
     active: bool
 
 
-class DashboardCoachingClientOut(BaseModel):
-    """대시보드 AI 요약에 노출할 고객별 실행 가능한 코칭 인사이트."""
-
-    member_id: str
-    member_name: str
-    priority: Literal["high", "medium", "low"]
-    status_summary: str = Field(min_length=1, max_length=300)
-    evidence: list[str] = Field(default_factory=list, max_length=3)
-    exercise_focus: str = Field(min_length=1, max_length=300)
-    caution: str = Field(default="", max_length=200)
-
-
-class DashboardCoachingSummaryOut(BaseModel):
-    """트레이너 대시보드의 오늘 AI 코칭 요약."""
-
-    headline: str = Field(min_length=1, max_length=300)
-    clients: list[DashboardCoachingClientOut] = Field(
-        default_factory=list,
-        max_length=3,
-    )
-    generated_by: Literal["ai", "rule"]
-    data_as_of: _date
-
-
 class MemberHealthProfileOut(BaseModel):
     member_id: str
     member_name: str
@@ -385,6 +361,15 @@ RoutineType = Annotated[
 ]
 RoutineSource = Literal["ai", "trainer"]  # ai 추천 | 트레이너 직접 배정
 
+#: 개인운동이 어떤 전송에 속하나 — 이력에서 종류를 구분해 보여 준다(#2223, #2225).
+#: 'pt_with_routine' 은 PT 프로그램과 함께 정해 그 PT 일정에 붙인 것,
+#: 'routine_only' 는 프로그램 만들기의 `개인운동만`, 'cancelled_routine_only' 는
+#: PT 취소·노쇼 뒤에 개인운동만 보낸 것이다(#2224). 이 칸이 생기기 전 배정과 AI
+#: 제안 후보는 비어 있다.
+RoutineDeliveryKind = Literal[
+    "pt_with_routine", "routine_only", "cancelled_routine_only"
+]
+
 #: 운동 항목의 출처. 'ai' 는 AI 제안을 편집기에 반영한 것, 'trainer' 는 트레이너가
 #: 직접 추가한 것. 저장·복원에서도 이 구분이 남아야 화면이 같은 배지를 그린다.
 ProgramExerciseSource = Literal["ai", "trainer"]
@@ -565,6 +550,12 @@ class RoutineOut(BaseModel):
     completed_intensity: str | None = None
     member_note: str = ""
     trainer_feedback: str = ""
+    #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
+    schedule_id: str | None = None
+    #: 어떤 전송에 속한 개인운동인가(#2225). 이 칸이 생기기 전 배정은 비어 있다.
+    delivery_kind: RoutineDeliveryKind | None = None
+    #: 전송에 붙인 회원에게 한마디. 선택 입력이라 보통 빈 문자열이다(#2223).
+    trainer_message: str = ""
 
 
 class RoutineCompleteOut(RoutineOut):
@@ -785,6 +776,36 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 
 
+class PersonalRoutineItem(BaseModel):
+    """PT 프로그램과 함께 정한 개인운동 한 건. (#2223)
+
+    회원이 PT 사이에 혼자 할 운동이다. PT 프로그램과 같은 전송에 실려 오지만
+    회원에게 바로 가지 않는다 — 그 PT 를 완료할 때 함께 보낸다(#2224). 그래서
+    배정 입력([RoutineAssignRequest])과 칸은 같아도 `source` 와 멱등키가 없다:
+    출처는 AI 제안인지 트레이너가 직접 넣은 것인지로 서버가 정하고, 멱등은
+    전송 전체의 키 하나가 맡는다.
+    """
+
+    name: str = Field(min_length=1, max_length=100)
+    minutes: int = Field(default=0, ge=0, le=600)
+    type: RoutineType
+    intensity: RoutineIntensity = "moderate"
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    hold_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
+    reason: str = Field(default="", max_length=200)
+    source: RoutineSource = "trainer"
+
+
+#: 한 PT 일정에 붙일 수 있는 개인운동 수의 상한. 프로그램 세션 상한과 같은
+#: 값이다(#2223) — `개인운동만` 은 운동 하나가 세션 하나가 되므로, 두 경로에
+#: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
+_MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
+
+
 class ProgramAssignRequest(BaseModel):
     """다중 세션 프로그램을 담당 회원에게 배정하는 입력. (#709)
 
@@ -803,6 +824,23 @@ class ProgramAssignRequest(BaseModel):
     #: 그 값이 들어갈 컬럼이 `String(64)` 라, 접미사 자리를 남겨 두지 않으면 긴
     #: 키가 저장 단계에서 길이 초과로 터진다.
     client_request_id: str | None = Field(default=None, max_length=48)
+    #: 이 배정이 어떤 전송인가(#2223). 프로그램 만들기의 `개인운동만` 은
+    #: 'routine_only' 를 실어 보내 이력에서 PT 와 함께 간 전송과 구분된다.
+    #: 비우면 예전처럼 종류 없는 배정이다.
+    delivery_kind: RoutineDeliveryKind | None = None
+    #: 회원에게 함께 남기는 한마디(선택). 예: "이번 주는 PT 쉬어요, 이것만
+    #: 챙겨 주세요".
+    trainer_message: str = Field(default="", max_length=200)
+    #: 회원이 이 운동을 시작할 날(#2223). 비우면 예전처럼 날짜 없는 배정이다.
+    start_date: _date | None = None
+    #: 이 배정이 회원 목록에 **며칠간 걸려 있는가**(#2223). 배정한 날을 1일로
+    #: 센다.
+    #:
+    #: 추천 개인운동은 매일 새로 체크하는 목록이고 걸려 있는 기간은
+    #: `active_from`~`ended_on` 이 정한다(#2161). 프로그램 만들기의 `개인운동만`
+    #: 은 7 을 보내 보낸 날부터 한 주 동안 걸어 두고, 다음 주 분은 트레이너가
+    #: 다시 보낸다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
+    active_days: int | None = Field(default=None, ge=1, le=31)
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 
@@ -1235,6 +1273,13 @@ class ProgramScheduleRequest(BaseModel):
     #: 고른 시간대와 겹치는 예정 세션이 여럿일 때 트레이너가 확인창에서 고른
     #: 연결 대상(#1581). 후보가 하나 이하면 비워 둔다.
     session_id: str | None = Field(default=None, min_length=1, max_length=64)
+    #: 이 PT 에 붙일 개인운동(#2223). 프로그램 만들기의 개인운동 단계에서 정한
+    #: 것이고, 회원에게는 PT 를 완료할 때 간다(#2224) — 여기서는 일정에 붙여
+    #: 두기만 한다. 비어 있어도 받는다: 개인운동 단계가 생기기 전에 만들어진
+    #: 초안과 옛 앱이 그대로 보낼 수 있어야 한다.
+    personal_routines: list[PersonalRoutineItem] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
@@ -1258,6 +1303,9 @@ class ProgramScheduleOut(BaseModel):
     routines: list[RoutineOut]
     session: ScheduleSessionOut
     attached_to_existing: bool
+    #: 이 PT 일정에 붙인 개인운동(#2223). 아직 회원에게 가지 않은 상태라
+    #: `routines` 와 나눠 싣는다 — 저 목록은 이미 배정된 것이다.
+    personal_routines: list[RoutineOut] = Field(default_factory=list)
 
 
 class ScheduleUpdateRequest(PartialUpdate):

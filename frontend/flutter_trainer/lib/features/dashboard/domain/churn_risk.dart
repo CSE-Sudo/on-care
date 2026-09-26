@@ -55,7 +55,7 @@ const int churnLookbackDays = 7;
 /// [recentSessions] is that client's own booked sessions (공백 제외) inside
 /// the lookback window used by the caller — newest first. [unreadCount] is
 /// this client's pending message count, the same value the KPI row's
-/// 메시지 card and [ClientAlert.unanswered] already use.
+/// 메시지 card and the `답장 대기` signal already use.
 Set<ChurnSignal> computeChurnSignals(
   TrainerClient client, {
   required List<ScheduleSession> recentSessions,

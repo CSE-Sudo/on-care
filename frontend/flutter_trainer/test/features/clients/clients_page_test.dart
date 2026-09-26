@@ -20,6 +20,8 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
+import 'package:oncare_ui/oncare_ui.dart';
+
 import '../../helpers/pump_app.dart';
 
 /// [ClientInviteRepository] 가 꺼진 빌드 — 신규 회원 등록 진입점 자체가
@@ -487,13 +489,13 @@ void main() {
           }),
         ],
       );
-      expect(find.text('김민수'), findsOneWidget);
+      expect(find.text('오세라'), findsOneWidget);
 
       await goTo(tester, AppRoutes.dashboard);
       await goTo(tester, AppRoutes.clients);
 
       expect(repository.allRefreshes, 1);
-      expect(find.text('김민수'), findsOneWidget);
+      expect(find.text('오세라'), findsOneWidget);
     });
 
     testWidgets('the detail refresh action targets the selected client', (
@@ -535,25 +537,29 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      // The roster header states the size; the coaching signals
-      // (나트륨 초과, 오늘 예약) now live on the 대시보드, not here.
+      // The roster header states the size. 활성 수는 적지 않는다 — 활성·휴면은
+      // 목록에서 없앴다(#2204).
       expect(find.text('회원 관리'), findsWidgets);
-      expect(find.text('15명 · 활성 13명'), findsWidgets);
+      expect(find.text('15명'), findsWidgets);
+      expect(find.textContaining('활성'), findsNothing);
 
-      // Priority order: sodium-over clients come first, so a client who
-      // is under target is further down a now-long, lazily built list.
-      // 같은 신호를 든 회원끼리는 마지막 대화가 새로운 쪽이 앞이라, 사흘 전
-      // 대화가 마지막인 박성호는 첫 화면 아래에 선다.
-      expect(find.text('김민수'), findsOneWidget);
+      // Priority order: 가장 급한 신호(통증·불편)를 든 오세라가 맨 위고, 신호가
+      // 없는 회원(박성호·이지수)은 길고 지연 생성되는 목록의 아래에 선다.
+      expect(
+        tester.widget<ClientCard>(find.byType(ClientCard).first).client.name,
+        '오세라',
+      );
       expect(
         find.byKey(const ValueKey<String>('clients-roster-search')),
         findsNothing,
       );
       expect(find.byType(ClientSearchBar), findsOneWidget);
-      await scrollToClient(tester, find.text('박성호'));
-      expect(find.text('박성호'), findsOneWidget);
+      // 목록 차례대로 내려간다 — 이지수가 박성호보다 위라, 박성호까지 내린 뒤에는
+      // 이지수가 이미 화면 위로 지나가 아래로 찾아서는 닿지 않는다.
       await scrollToClient(tester, find.text('이지수'));
       expect(find.text('이지수'), findsWidgets);
+      await scrollToClient(tester, find.text('박성호'));
+      expect(find.text('박성호'), findsOneWidget);
     });
 
     testWidgets('전체 보기 clears the URL and local search filters', (
@@ -565,10 +571,43 @@ void main() {
         at: AppRoutes.clientsFiltered('attention'),
       );
 
-      await tester.tap(find.text('전체 보기'));
+      // 걸러져 있다는 표시는 목록 위 상자가 아니라 정렬 옆 글자다(#2205).
+      expect(find.text('전체 보기'), findsNothing);
+      final clear = find.byKey(const ValueKey<String>('clients-preset-clear'));
+      expect(
+        find.descendant(of: clear, matching: find.text('주의 회원')),
+        findsOneWidget,
+      );
+      // 신호가 없는 이지수는 주의 회원이 아니다.
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-2')),
+        findsNothing,
+      );
+      // 주의 회원으로 들어오면 막대 아래에 가장 급한 주의 신호 하나가 붙는다.
+      expect(
+        tester
+            .widgetList<AppTag>(
+              find.descendant(
+                of: find.byKey(
+                  const ValueKey<String>('client-signals-seed-client-8'),
+                ),
+                matching: find.byType(AppTag),
+              ),
+            )
+            .map((t) => t.label)
+            .toList(),
+        <String>['통증·불편'],
+      );
+
+      await tester.tap(clear);
       await settle(tester);
 
-      expect(find.text('김민수'), findsOneWidget);
+      expect(currentLocation(tester), AppRoutes.clients);
+      expect(clear, findsNothing);
+      // 필터가 풀리면 걸린 이유도 사라지고 막대만 남는다.
+      expect(find.byType(AppTag), findsNothing);
+      await scrollToClient(tester, find.text('이지수'));
+      expect(find.text('이지수'), findsOneWidget);
     });
 
     testWidgets('회원 목록은 메시지 미리보기와 안 읽은 배지를 노출하지 않는다', (tester) async {
@@ -606,7 +645,7 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('김민수'));
+      await tester.tap(find.text('오세라'));
       await settle(tester);
 
       // Detail opened — both evidence tabs and the quick actions are
@@ -763,7 +802,9 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('김민수'));
+      final minsu = find.byKey(const ValueKey<String>('client-seed-client-1'));
+      await scrollToClient(tester, minsu);
+      await tester.tap(minsu.last);
       await settle(tester);
       expect(find.text('활성'), findsOneWidget);
 
@@ -812,123 +853,108 @@ void main() {
       expect(tester.widget<InkWell>(statusInkWell).onTap, isNotNull);
     });
 
+    /// 필터 패널을 열어 [filter] 칩을 누르고 닫는다.
+    Future<void> toggleFilter(
+      WidgetTester tester,
+      RosterManagementFilter filter,
+    ) async {
+      await tester.tap(
+        find.byKey(const ValueKey<String>('clients-filter-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey<String>('management-filter-${filter.name}')),
+      );
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('clients-filter-button')),
+      );
+      await tester.pumpAndSettle();
+    }
+
     // #1026: 툴바 관리 필터가 단일 선택 팝업에서 복수 선택 chip 으로 바뀌었다.
-    testWidgets('나트륨 초과 필터를 고르면 해당 회원만 남는다', (tester) async {
+    // #2204: 칩은 관리 필요 + PT 관리 신호 여덟 가지다.
+    testWidgets('통증·불편 필터를 고르면 그 신호를 든 회원만 남는다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
+      await toggleFilter(tester, RosterManagementFilter.discomfort);
+      // 오세라는 대화에서 허리가 아프다고 했다. 이지수는 신호가 없다.
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-8')),
+        findsOneWidget,
       );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('management-filter-sodiumOver')),
-      );
-      await settle(tester);
-
-      // sodiumOverBudget (2000mg 초과) 재사용 — 시드의 박성호(2400mg)는
-      // 남고, 이지수(1800mg)는 사라진다. (김민수는 공유 픽스처가 오늘 값을
-      // 정하는 회원이라 날짜별로 값이 바뀌어 이 비교엔 쓰지 않는다 — #757.)
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
-      );
-      await tester.pumpAndSettle();
-      final seonghoCard = find.byKey(
-        const ValueKey<String>('client-seed-client-3'),
-      );
-      await scrollToClient(tester, seonghoCard);
-      expect(seonghoCard, findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('client-seed-client-2')),
         findsNothing,
+      );
+      expect(find.byType(ClientCard), findsOneWidget);
+
+      // 필터로 좁힌 동안에는 막대 아래에 **걸린 이유만** 보인다(#2258) —
+      // 오세라의 다른 신호(운동 목표·칼로리)와 답장 대기는 붙지 않는다.
+      final reasons = find.byKey(
+        const ValueKey<String>('client-signals-seed-client-8'),
+      );
+      expect(
+        tester
+            .widgetList<AppTag>(
+              find.descendant(of: reasons, matching: find.byType(AppTag)),
+            )
+            .map((t) => t.label)
+            .toList(),
+        <String>['통증·불편'],
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('client-weekly-adherence-seed-client-8'),
+        ),
+        findsOneWidget,
       );
 
       // 같은 chip 을 다시 누르면 선택이 풀린다 — 다중 선택의 개별 제거.
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('management-filter-sodiumOver')),
-      );
-      await settle(tester);
-      expect(find.text('필터'), findsWidgets);
+      await toggleFilter(tester, RosterManagementFilter.discomfort);
       expect(find.text('필터 1'), findsNothing);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('이지수'),
-        150,
-        scrollable: find
-            .byWidgetPredicate(
-              (widget) =>
-                  widget is Scrollable &&
-                  widget.axisDirection == AxisDirection.down,
-            )
-            .first,
-      );
+      await scrollToClient(tester, find.text('이지수'));
       expect(find.text('이지수'), findsOneWidget);
     });
 
-    testWidgets('당류 초과 필터를 고르면 해당 회원만 남는다', (tester) async {
+    testWidgets('칼로리 목표 이탈 필터는 배지와 같은 신호를 쓴다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
+      await toggleFilter(tester, RosterManagementFilter.calorieOff);
+      final seoyeon = find.byKey(
+        const ValueKey<String>('client-seed-client-6'),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('management-filter-sugarOver')),
-      );
-      await settle(tester);
-
-      // sugarOverBudget (50g 초과) — 강서연(74g)은 남고, 이지수(38g)는
-      // 사라진다.
-      expect(find.text('강서연'), findsOneWidget);
-      expect(find.text('이지수'), findsNothing);
-    });
-
-    testWidgets('이행률 저조 배지 필터는 같은 ClientAlert 기준을 쓴다', (tester) async {
-      await pumpTrainerApp(
-        tester,
-        token: 'demo-trainer-token',
-        at: AppRoutes.clients,
-        // 주간 계열이 모두 채워진 시점으로 고정해 실행 요일에 따라
-        // 저조 배지가 달라지지 않게 한다.
-        seedClock: DateTime(2026, 8, 16),
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('management-filter-lowCompletion')),
-      );
-      await settle(tester);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('clients-filter-button')),
-      );
-      await tester.pumpAndSettle();
-
-      final lowCompletionCard = find.byKey(
-        const ValueKey<String>('client-seed-client-9'),
-      );
-      await scrollToClient(tester, lowCompletionCard);
-      expect(lowCompletionCard, findsOneWidget); // 배준혁: 주간 평균 60% 미만
+      await scrollToClient(tester, seoyeon);
+      expect(seoyeon, findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('client-seed-client-2')),
         findsNothing,
-      ); // 이지수: 이행률 정상
+      );
+      // 나트륨·당류·이행률·활성·휴면 칩은 없다.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('clients-filter-button')),
+      );
+      await tester.pumpAndSettle();
+      for (final gone in <String>[
+        'sodiumOver',
+        'sugarOver',
+        'lowCompletion',
+        'active',
+        'dormant',
+      ]) {
+        expect(
+          find.byKey(ValueKey<String>('management-filter-$gone')),
+          findsNothing,
+        );
+      }
     });
 
     testWidgets('답장 대기 배지 필터는 실제 안 읽은 메시지 수를 쓴다', (tester) async {
@@ -980,14 +1006,14 @@ void main() {
         );
         await settle(tester);
       }
-      expect(find.text('필터 7'), findsOneWidget);
+      expect(find.text('필터 9'), findsOneWidget);
 
       // 한 조건만 다시 누르면 나머지 선택은 그대로 유지된다.
       await tester.tap(
         find.byKey(const ValueKey<String>('management-filter-attention')),
       );
       await settle(tester);
-      expect(find.text('필터 6'), findsOneWidget);
+      expect(find.text('필터 8'), findsOneWidget);
     });
 
     testWidgets('복수 필터는 OR 로 합쳐지고 전체 초기화로 한 번에 풀린다', (tester) async {
@@ -1001,14 +1027,14 @@ void main() {
         find.byKey(const ValueKey<String>('clients-filter-button')),
       );
       await tester.pumpAndSettle();
-      // 활성 + 휴면을 동시에 고르면 "둘 다 보기" 다 — AND 였다면 서로
-      // 배타적인 두 값이라 아무도 안 남았을 것이다.
+      // 기록 끊김 + 노쇼·취소 반복을 함께 고르면 둘 중 하나라도 든 회원이 남는다
+      // — 두 신호를 다 든 회원은 없어서, AND 였다면 아무도 안 남았을 것이다.
       await tester.tap(
-        find.byKey(const ValueKey<String>('management-filter-active')),
+        find.byKey(const ValueKey<String>('management-filter-recordGap')),
       );
       await settle(tester);
       await tester.tap(
-        find.byKey(const ValueKey<String>('management-filter-dormant')),
+        find.byKey(const ValueKey<String>('management-filter-noShow')),
       );
       await settle(tester);
 
@@ -1020,14 +1046,18 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey<String>('client-seed-client-1')),
+        find.byKey(const ValueKey<String>('client-seed-client-7')),
         findsOneWidget,
-      ); // 활성
-      final seonghoCard = find.byKey(
-        const ValueKey<String>('client-seed-client-3'),
+      ); // 임도현: 기록 끊김
+      final junhyeokCard = find.byKey(
+        const ValueKey<String>('client-seed-client-9'),
       );
-      await scrollToClient(tester, seonghoCard);
-      expect(seonghoCard, findsOneWidget); // 휴면
+      await scrollToClient(tester, junhyeokCard);
+      expect(junhyeokCard, findsOneWidget); // 배준혁: 노쇼·취소 반복
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-2')),
+        findsNothing,
+      );
 
       await tester.tap(
         find.byKey(const ValueKey<String>('clients-filter-button')),

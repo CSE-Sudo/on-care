@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/core/advice/diet_advice.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -44,11 +46,15 @@ List<Override> guideSampleOverrides() {
     dietTodayProvider.overrideWith((ref) async => kGuideSampleDietDay),
     dietByDateFamily.overrideWith((ref, date) async => kGuideSampleDietDay),
     dietAdviceProvider.overrideWith(
-      (ref, period) async => kGuideSampleDietDay.aiCoachMessage,
+      (ref, key) async => DietAdvice(
+        message: kGuideSampleDietDay.aiCoachMessage,
+        analysis: DietAdviceLine(text: kGuideSampleDietDay.aiCoachMessage),
+      ),
     ),
     // 운동
     exerciseAdviceProvider.overrideWith(
-      (ref, period) async => kGuideSampleWeek.aiCoachMessage,
+      (ref, period) async =>
+          ExerciseAdvice(message: kGuideSampleWeek.aiCoachMessage),
     ),
     // 헬스장·트레이너 — 연결된 모습이라야 무엇이 오는지 보여 줄 수 있다.
     myGymProvider.overrideWith((ref) => gym.fetchMyGym()),

@@ -105,11 +105,24 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
+| GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
+| GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
+
+`GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
+
+- `analysis`·`action` 은 한국어 문장이고 굵게 보일 곳(메뉴 이름·수치)을 `**` 로 감싼다. `message` 는 두 문장을 이어 `**` 를 뗀 평문으로, 두 문장을 모르는 옛 앱이 읽는다.
+- `analysis_key`·`action_key` 가 있으면 앱이 그 키와 `*_params` 로 자기 언어의 문장을 그린다(운동 조언 `advice_key` 와 같은 방식, #2210). 키가 없으면 받은 문장을 그대로 쓴다 — AI 가 `lang` 으로 만든 문장이다.
+- `오늘` 의 `analysis_key`: `today_empty`·`today_missing_meal`(시각이 지났는데 비어 있는 아침·점심·저녁이 있다)·`today_sodium_over{sodium_mg}`·`today_calorie_over{kcal}`·`today_protein_left{protein_g}`·`today_balanced{kcal}`.
+- `오늘` 의 `action_key`: `next_meal{slot, menu, keyword}`·`next_snack{menu, keyword}` 는 최근 4주 기록으로 만든 **끼니별 추천 메뉴 리스트**(#2250)에서 오늘 가장 급한 부족·초과를 메우는 메뉴다(`action_source: "plan"`). 그 이유가 충족되면 다른 메뉴로 바뀌고, 최근 3일 안에 추천한 메뉴는 뒤로 미룬다. `keyword`(추천 이유, 예: `저나트륨`)는 문장에 싣지 않고 값으로만 준다. `today_done` 은 저녁까지 적었고 채울 것이 없을 때, `today_log_first` 는 `today_missing_meal` 일 때다 — 이때는 메뉴를 고르지 않고 리스트도 열지 않는다(`action_source: "rules"`).
+- `이번 주` 는 **하루에 한 번** 만들어 그날 내내 같은 조언을 준다(#2253). 경계는 운동 조언과 같다 — 월·화이고 이번 주에 끼니를 기록한 날이 이틀 미만이며 지난주 기록이 있으면 지난주(월~일)를 돌아본다(`scope: last`, `from_date`·`to_date` 도 지난주다). `analysis_key`: `week_empty`·`week_skip_breakfast{scope, days}`·`week_skip_breakfast_snack{scope, days, snack_days}`·`week_focus_sodium|calorie|sugar|protein{scope, days}`·`week_good{scope, days}` — 끼니 습관(아침을 3번 이상 건너뜀) → 집중 목표(가장 많이 넘긴 영양소) → 칭찬 순으로 하나다.
+- `이번 주` 의 `action` 은 AI 가 `lang` 으로 만든 한 문장이다(`action_key` 없음, `action_source: "llm"`). 원인 메뉴를 짚거나 대안을 주고, **수치를 쓰지 않는다**(검사해서 걸러 낸다). AI 가 실패하면 규칙 문장 `tip_breakfast|sodium|calorie|sugar|protein` 을 주고 1시간 뒤 다시 만든다. 칭찬은 `tip_keep`, 기록이 없으면 `week_empty_hint` 로 AI 를 부르지 않는다.
+- `전체` 는 **최근 4주(28일)** 를 읽고 **한 주(월~일)에 한 번** 만든다(#2254). 그래프의 `전체` 기간(#2079)과는 무관하다. 기록이 7일 미만이면 `all_few_records{days}` + `all_few_hint` 로 AI 를 부르지 않는다. 그 밖의 `analysis_key` 는 `all_slot_sodium{slot, days}`·`all_carb_heavy{pct}`·`all_protein_light{pct}`·`all_protein_trend_up|down{before, after}`·`all_frequent_menu{slot, food, count}`·`all_repeated_foods{food1, food2}` 중 하나이고, 지난주에 말한 종류는 한 번 건너뛴다. 말할 것이 없으면 `all_good{days}` + `tip_keep`. `action` 은 AI 가 쓴 다음 4주의 행동 목표·대안이고(수치 없음), 실패하면 `tip_sodium|carb|protein|keep|swap|variety` 를 주고 1시간 뒤 다시 만든다.
+- 트레이너웹 `GET /trainer/clients/{id}/diet-advice` 는 아직 예전 한 문장(`message`)이다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
 `meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
@@ -142,6 +155,7 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
+| GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247) |
 | POST | `/exercise/sessions` | 입력 `{ type, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, day_label? }` → 생성된 `sessions[]` 항목 + `points` |
 | PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
@@ -335,6 +349,7 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
 | GET | `/me/activity-calendar?from=&to=` | 회원(데모 폴백) | `{ from_date, to_date, days[], record_streak_days, shields_held, protectable_from?, protectable_to?, color }` |
+| GET | `/me/records/span` | 회원(데모 폴백) | `{ diet_first_date, exercise_first_date }` — 식단·운동을 처음 남긴 날(없으면 null). `전체` 그래프가 어디서부터 그릴지 정하는 값이다 (#2079, #2236) |
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item: "graph_color", option: "<색>", client_request_id? }` → **201** `{ coupon: null, shield: null, graph_color, spent, balance }` |
 | PUT | `/me/graph-color` | 회원 | 입력 `{ color }` → `{ current, unlocked[], palette[], cost }` |
 

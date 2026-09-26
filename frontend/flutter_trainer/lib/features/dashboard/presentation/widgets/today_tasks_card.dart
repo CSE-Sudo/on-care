@@ -14,9 +14,8 @@ import 'package:oncare_trainer/features/consultations/presentation/pages/consult
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 import 'package:oncare_trainer/features/dashboard/data/demo_task_history.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart';
-import 'package:oncare_trainer/features/dashboard/presentation/widgets/attention_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
@@ -229,7 +228,13 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
         ref.watch(_consultationMissionsProvider).valueOrNull ??
         const <ConsultationRequest>[];
 
-    final health = widget.entries.where((e) => e.alerts.any((a) => a.isHealth));
+    // 주의 신호(답장 대기 제외)가 있는 회원만 — 답장은 `상담`·메시지가 맡는다.
+    // 할 일은 그 회원의 **가장 급한 주의 신호** 하나다(#2244).
+    final health = <(TrainerClient, ClientSignal)>[
+      for (final entry in widget.entries)
+        for (final signal in entry.signals.take(1))
+          if (signal.kind.isAttention) (entry.client, signal),
+    ];
     final missingProgram = clients.where(
       (c) =>
           c.active &&
@@ -260,20 +265,20 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           ),
           onTap: () => showConsultationsDialog(context),
         ),
-      for (final entry in health)
+      for (final (client, signal) in health)
         _Mission(
-          key: 'feedback-${entry.primary.name}-${entry.client.id}',
-          keyword: entry.primary == ClientAlert.lowCompletion
-              ? l.dashTodoWorkout
-              : l.dashTodoDiet,
+          key: 'feedback-${signal.kind.wire}-${client.id}',
+          keyword: signal.kind.isDiet ? l.dashTodoDiet : l.dashTodoWorkout,
           keywordColor: OnCareColors.danger,
-          title: entry.client.name,
-          client: entry.client,
-          subtitle: _feedbackSubtitle(l, entry),
+          title: client.name,
+          client: client,
+          // 목록 배지보다 자세히 — 무엇을 얼마나 손볼지 정하는 자리라 근거
+          // 수치를 붙인다(`칼로리 22% 과다`, `단백질 목표의 64%`).
+          subtitle: signal.detailLabel(l),
           onTap: () => context.go(
             AppRoutes.clientDetail(
-              entry.client.id,
-              section: AttentionCard.sectionFor(entry.primary),
+              client.id,
+              section: signal.kind.detailSection,
             ),
           ),
         ),
@@ -300,7 +305,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           onTap: () => context.go(
             AppRoutes.clientDetail(
               demoCarryOverClient.id,
-              section: AttentionCard.sectionFor(ClientAlert.sodiumOver),
+              section: ClientSignalKind.calorieOff.detailSection,
             ),
           ),
         ),
@@ -315,22 +320,6 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           onTap: () => context.go(AppRoutes.reportFor(client.id)),
         ),
     ];
-  }
-
-  String _feedbackSubtitle(AppLocalizations l, AttentionClient entry) {
-    final client = entry.client;
-    return switch (entry.primary) {
-      ClientAlert.sodiumOver => l.dashTodoSodiumSubtitle(
-        client.sodiumMg,
-        sodiumTargetMg,
-      ),
-      ClientAlert.sugarOver => l.dashTodoSugarSubtitle(
-        client.sugarG.round(),
-        sugarTargetG,
-      ),
-      ClientAlert.lowCompletion ||
-      ClientAlert.unanswered => l.dashTodoCompletionSubtitle,
-    };
   }
 
   @override

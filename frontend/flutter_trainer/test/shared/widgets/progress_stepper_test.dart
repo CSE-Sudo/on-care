@@ -100,11 +100,7 @@ void main() {
   });
 
   testWidgets('지나온 단계를 누르면 그 단계로 돌아간다', (tester) async {
-    final List<int> tapped = await _pump(
-      tester,
-      stage: 2,
-      maxReachedStage: 2,
-    );
+    final List<int> tapped = await _pump(tester, stage: 2, maxReachedStage: 2);
 
     await tester.tap(find.byKey(const ValueKey<String>('stage-0')));
     await tester.pump();
@@ -114,11 +110,7 @@ void main() {
 
   testWidgets('아직 가 보지 않은 단계는 눌러도 열리지 않는다', (tester) async {
     // 1단계까지만 가 봤다 — 2단계는 아직 채우지 않은 자리다.
-    final List<int> tapped = await _pump(
-      tester,
-      stage: 0,
-      maxReachedStage: 1,
-    );
+    final List<int> tapped = await _pump(tester, stage: 0, maxReachedStage: 1);
 
     await tester.tap(find.byKey(const ValueKey<String>('stage-2')));
     await tester.pump();
@@ -127,11 +119,7 @@ void main() {
   });
 
   testWidgets('가 본 가장 먼 단계는 눌러서 다시 갈 수 있다 — 경계값', (tester) async {
-    final List<int> tapped = await _pump(
-      tester,
-      stage: 0,
-      maxReachedStage: 1,
-    );
+    final List<int> tapped = await _pump(tester, stage: 0, maxReachedStage: 1);
 
     await tester.tap(find.byKey(const ValueKey<String>('stage-1')));
     await tester.pump();
@@ -147,7 +135,10 @@ void main() {
       keyPrefix: 'routine-stage',
     );
 
-    expect(find.byKey(const ValueKey<String>('routine-stage-0')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('routine-stage-0')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey<String>('stage-0')), findsNothing);
   });
 
@@ -155,10 +146,7 @@ void main() {
     final SemanticsHandle handle = tester.ensureSemantics();
     await _pump(tester, stage: 0, maxReachedStage: 0);
 
-    expect(
-      find.bySemanticsLabel('주간 리포트 작성 진행 단계'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('주간 리포트 작성 진행 단계'), findsOneWidget);
     handle.dispose();
   });
 
@@ -167,11 +155,7 @@ void main() {
       tester,
       stage: 0,
       maxReachedStage: 0,
-      labels: <String>[
-        '이번 주 수치를 하나씩 확인하는 아주 긴 이름의 단계',
-        '다음 주 목표',
-        '전송',
-      ],
+      labels: <String>['이번 주 수치를 하나씩 확인하는 아주 긴 이름의 단계', '다음 주 목표', '전송'],
       size: const Size(360, 200),
     );
 

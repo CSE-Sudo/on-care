@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -56,26 +57,38 @@ class _AdviceRepository implements ExerciseRepository {
   _AdviceRepository({
     this.pending = const <String>{},
     this.failing = const <String>{},
+    this.keyed,
   });
 
   final Set<String> pending;
   final Set<String> failing;
 
+  /// 있으면 모든 기간에 이 조언(문장 키·값이 든 것)을 준다(#2210).
+  final ExerciseAdvice? keyed;
+
   /// 기간별 요청 횟수 — 다시 시도가 정말 그 기간을 다시 부르는지 본다.
   final Map<String, int> calls = <String, int>{};
 
   @override
-  Future<String> fetchAdvice(String period) {
+  Future<ExerciseAdvice> fetchAdvice(String period) {
     calls[period] = (calls[period] ?? 0) + 1;
-    if (pending.contains(period)) return Completer<String>().future;
+    if (pending.contains(period)) return Completer<ExerciseAdvice>().future;
     if (failing.contains(period)) {
-      return Future<String>.error(StateError('advice unavailable'));
+      return Future<ExerciseAdvice>.error(StateError('advice unavailable'));
     }
-    return Future<String>.value('$period 기간 조언');
+    return Future<ExerciseAdvice>.value(
+      keyed ?? ExerciseAdvice(message: '$period 기간 조언'),
+    );
   }
 
   @override
   Future<ExerciseWeek> fetchThisWeek() async => _week();
+
+  @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async => const <ExercisePeriodWeek>[];
 
   @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async => _week();
@@ -127,7 +140,8 @@ class _AdviceRepository implements ExerciseRepository {
   }) async => throw UnimplementedError();
 }
 
-Widget _app(ExerciseRepository repo) => ProviderScope(
+Widget _app(ExerciseRepository repo, {Locale locale = const Locale('ko')}) =>
+    ProviderScope(
   overrides: <Override>[
     appConfigProvider.overrideWithValue(
       const AppConfig(
@@ -144,7 +158,7 @@ Widget _app(ExerciseRepository repo) => ProviderScope(
   ],
   child: MaterialApp(
     theme: AppTheme.light(),
-    locale: const Locale('ko'),
+    locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: const ExercisePage(),
@@ -162,11 +176,15 @@ String _adviceText(WidgetTester tester) => tester
     .map((Text t) => t.data ?? '')
     .join(' ');
 
-Future<void> _pump(WidgetTester tester, ExerciseRepository repo) async {
+Future<void> _pump(
+  WidgetTester tester,
+  ExerciseRepository repo, {
+  Locale locale = const Locale('ko'),
+}) async {
   tester.view.physicalSize = const Size(500, 2600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(_app(repo));
+  await tester.pumpWidget(_app(repo, locale: locale));
   await tester.pumpAndSettle();
 }
 
@@ -233,5 +251,34 @@ void main() {
         .dy;
     // 위쪽은 "무엇을 해야 하나", 아래쪽은 "내가 무엇을 했나" 다.
     expect(ownRecords, greaterThan(coaching));
+  });
+
+  testWidgets('문장 키가 오면 앱 언어로 그린다 — 영어 앱에서 영어 조언', (
+    WidgetTester tester,
+  ) async {
+    // 서버는 한국어 문장과 함께 키·값을 준다(#2210). 영어 앱은 키로 영어 문장을
+    // 그리고, 운동 이름은 트레이너가 적은 그대로 들어간다.
+    const ExerciseAdvice keyed = ExerciseAdvice(
+      message: '오늘은 스쿼트부터 시작해 보세요.',
+      key: 'routine_today_start',
+      params: <String, Object>{'next': '스쿼트'},
+    );
+    await _pump(
+      tester,
+      _AdviceRepository(keyed: keyed),
+      locale: const Locale('en'),
+    );
+    expect(_adviceText(tester), contains('Start today with 스쿼트.'));
+    expect(_adviceText(tester), isNot(contains('시작해 보세요')));
+  });
+
+  testWidgets('한국어 앱은 같은 키로 서버와 같은 문장을 그린다', (WidgetTester tester) async {
+    const ExerciseAdvice keyed = ExerciseAdvice(
+      message: '오늘은 스쿼트부터 시작해 보세요.',
+      key: 'routine_today_start',
+      params: <String, Object>{'next': '스쿼트'},
+    );
+    await _pump(tester, _AdviceRepository(keyed: keyed));
+    expect(_adviceText(tester), contains('오늘은 스쿼트부터 시작해 보세요.'));
   });
 }

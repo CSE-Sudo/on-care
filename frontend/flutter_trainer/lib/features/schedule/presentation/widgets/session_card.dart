@@ -124,13 +124,14 @@ class SessionCard extends ConsumerWidget {
                     maxLines: 1,
                     // 시각은 이 카드에서 가장 먼저 읽는 값이다 — 카드 제목
                     // 자리다(#1012).
-                    style: OnCareTypography.numeric(
-                      tokens.text(OnCareTypography.titleSmall),
-                    ).copyWith(
-                      color: s.isFinished
-                          ? OnCareColors.textDisabled
-                          : OnCareColors.textPrimary,
-                    ),
+                    style:
+                        OnCareTypography.numeric(
+                          tokens.text(OnCareTypography.titleSmall),
+                        ).copyWith(
+                          color: s.isFinished
+                              ? OnCareColors.textDisabled
+                              : OnCareColors.textPrimary,
+                        ),
                   ),
                 ),
               ),

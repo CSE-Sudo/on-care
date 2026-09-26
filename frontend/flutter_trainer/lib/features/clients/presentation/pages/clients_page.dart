@@ -11,13 +11,13 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_conn
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 관리 필터 패널 폭 — 일곱 개 칩이 두세 줄로 접히는 폭이다.
+/// 관리 필터 패널 폭 — 아홉 개 칩이 서너 줄로 접히는 폭이다.
 const double _filterPanelWidth = 360;
 
 /// 고객 — the roster and, beside it, the selected client's detail.
@@ -74,7 +74,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
     // 정렬·관리 필터는 이 화면이 아니라 provider 가 들고 있다 — 목록과 상세가
     // 서로 다른 라우트라, 지역 상태로 두면 고객을 여는 순간 초기화된다(#816).
     final view = ref.watch(rosterViewProvider);
-    // Priority ordering: sodium-over clients first, then recent chat.
+    // Priority ordering: 주의 회원 first, then recent chat.
     final clientsAsync = ref.watch(prioritizedClientsProvider);
     final unread =
         ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
@@ -123,10 +123,8 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
         final selected = widget.selectedId;
 
         return _Frame(
-          subtitle: l.clientsCountSummary(
-            all.length,
-            all.where((c) => c.active).length,
-          ),
+          // 활성 수는 적지 않는다 — 활성·휴면은 목록에서 없앴다(#2204).
+          subtitle: l.clientsMemberCount(all.length),
           actions: <Widget>[
             if (canConnect)
               AppButton(
@@ -147,6 +145,8 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                     _MemberManagementToolbar(
                       managementFilters: view.filters,
                       sort: view.sort,
+                      preset: activeFilter,
+                      onClearPreset: _clearFilters,
                       onFiltersChanged: (value) =>
                           ref.read(rosterViewProvider.notifier).state = view
                               .copyWith(filters: value),
@@ -164,7 +164,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                         selectedId: selected,
                         unread: unread,
                         filter: activeFilter,
-                        totalCount: all.length,
+                        managementFilters: view.filters,
                         // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
                         // 잘리지 않게, 분할일 때만 한 칸 비워 둔다.
                         trailingPadding: wide ? OnCareSpacing.s8 : 0,
@@ -175,7 +175,6 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                             filter: widget.filter,
                           ),
                         ),
-                        onClearFilter: _clearFilters,
                       ),
                       detail: selected == null
                           ? AppEmptyState(
@@ -224,23 +223,19 @@ bool _matchesManagementFilter(
   RosterManagementFilter filter, {
   required Map<String, int> unread,
 }) {
-  final alerts = alertsFor(client, unread: unread[client.id] ?? 0);
-  switch (filter) {
-    case RosterManagementFilter.attention:
-      return alerts.isNotEmpty;
-    case RosterManagementFilter.active:
-      return client.active;
-    case RosterManagementFilter.dormant:
-      return !client.active;
-    case RosterManagementFilter.sodiumOver:
-      return alerts.contains(ClientAlert.sodiumOver);
-    case RosterManagementFilter.sugarOver:
-      return alerts.contains(ClientAlert.sugarOver);
-    case RosterManagementFilter.lowCompletion:
-      return alerts.contains(ClientAlert.lowCompletion);
-    case RosterManagementFilter.unanswered:
-      return alerts.contains(ClientAlert.unanswered);
-  }
+  final signals = rosterSignalsFor(client, unread: unread[client.id] ?? 0);
+  final ClientSignalKind? kind = filter.signal;
+  // `관리 필요` 는 배지가 하나라도 붙은 회원 — 답장 대기도 포함한다.
+  if (kind == null) return signals.isNotEmpty;
+  return signals.any((s) => s.kind == kind);
+}
+
+/// 우선순위 정렬 키 — 가장 급한 배지의 순서. 배지가 없으면 맨 뒤다.
+int _priorityRank(TrainerClient client, Map<String, int> unread) {
+  final signals = rosterSignalsFor(client, unread: unread[client.id] ?? 0);
+  return signals.isEmpty
+      ? ClientSignalKind.values.length
+      : signals.first.kind.index;
 }
 
 /// A client passes an empty selection (전체 보기) or any one of the chosen
@@ -257,10 +252,52 @@ bool _matchesManagementFilters(
   );
 }
 
+/// 필터로 좁힌 동안 행에 함께 보여 줄 **걸린 이유**(#2258). 필터가 없으면 빈
+/// 목록이라 행은 막대만 그린다.
+///
+/// 신호 필터는 고른 신호 중 그 회원에게 걸린 것, `관리 필요` 와 대시보드의
+/// `주의 회원` 은 그 회원의 가장 급한 신호 하나, 대시보드의 `답장 필요` 는
+/// `답장 대기` 다 — 무엇으로 좁혔는지에 답하는 것만 보여 준다.
+List<ClientSignal> _matchedSignals(
+  TrainerClient client, {
+  required int unread,
+  required Set<RosterManagementFilter> filters,
+  required ClientFilter preset,
+}) {
+  if (filters.isEmpty && preset == ClientFilter.all) {
+    return const <ClientSignal>[];
+  }
+  final all = rosterSignalsFor(client, unread: unread);
+  final kinds = <ClientSignalKind>{
+    for (final f in filters) ?f.signal,
+    if (preset == ClientFilter.unread) ClientSignalKind.unanswered,
+  };
+  final shown = <ClientSignal>[
+    for (final s in all)
+      if (kinds.contains(s.kind)) s,
+  ];
+  ClientSignal? mostUrgent(bool attentionOnly) {
+    for (final s in all) {
+      if (!attentionOnly || s.kind.isAttention) return s;
+    }
+    return null;
+  }
+
+  final extra = <ClientSignal?>[
+    if (filters.contains(RosterManagementFilter.attention)) mostUrgent(false),
+    if (preset == ClientFilter.attention) mostUrgent(true),
+  ];
+  for (final s in extra) {
+    if (s != null && !shown.any((x) => x.kind == s.kind)) shown.add(s);
+  }
+  return sortedSignals(shown);
+}
+
 /// Applies only sorts whose keys are present in the roster contract.
 ///
-/// Management priority first groups clients with real health/unread alerts,
-/// preserving the incoming sodium/chat priority within each group. For recent
+/// Management priority orders by each client's most urgent PT 관리 신호
+/// (#2204) — 통증·불편 before 기록 끊김 before … before 답장 대기, clients
+/// without a badge last — preserving the incoming order within a rank. For recent
 /// messages, local demo data supplies the grouped chat timestamp through
 /// [lastChatAt], while API rows carry [TrainerClient.lastMessageAt]. Decorating
 /// with the original index makes equal/missing keys stable.
@@ -278,15 +315,10 @@ List<TrainerClient> _sortRoster(
     final int result;
     switch (sort) {
       case RosterSort.priority:
-        final aNeedsAttention = alertsFor(
+        result = _priorityRank(
           a.$1,
-          unread: unread[a.$1.id] ?? 0,
-        ).isNotEmpty;
-        final bNeedsAttention = alertsFor(
-          b.$1,
-          unread: unread[b.$1.id] ?? 0,
-        ).isNotEmpty;
-        result = (bNeedsAttention ? 1 : 0).compareTo(aNeedsAttention ? 1 : 0);
+          unread,
+        ).compareTo(_priorityRank(b.$1, unread));
       case RosterSort.nameAscending:
         result = a.$1.name.compareTo(b.$1.name);
       case RosterSort.nameDescending:
@@ -295,8 +327,6 @@ List<TrainerClient> _sortRoster(
         final aAt = lastChatAt[a.$1.id] ?? a.$1.lastMessageAt ?? epoch;
         final bAt = lastChatAt[b.$1.id] ?? b.$1.lastMessageAt ?? epoch;
         result = bAt.compareTo(aAt);
-      case RosterSort.activeFirst:
-        result = (b.$1.active ? 1 : 0).compareTo(a.$1.active ? 1 : 0);
     }
     return result != 0 ? result : a.$2.compareTo(b.$2);
   });
@@ -307,12 +337,18 @@ class _MemberManagementToolbar extends StatelessWidget {
   const _MemberManagementToolbar({
     required this.managementFilters,
     required this.sort,
+    required this.preset,
+    required this.onClearPreset,
     required this.onFiltersChanged,
     required this.onSortChanged,
   });
 
   final Set<RosterManagementFilter> managementFilters;
   final RosterSort sort;
+
+  /// 대시보드가 URL 로 걸어 준 필터(`주의 회원` 등).
+  final ClientFilter preset;
+  final VoidCallback onClearPreset;
 
   final ValueChanged<Set<RosterManagementFilter>> onFiltersChanged;
   final ValueChanged<RosterSort> onSortChanged;
@@ -348,27 +384,28 @@ class _MemberManagementToolbar extends StatelessWidget {
             onPressed: toggle,
           ),
         ),
+        // 대시보드에서 `주의 회원` 으로 들어왔다는 표시(#2205). 예전에는 목록 위에
+        // 파란 상자가 한 칸을 차지했는데, 전하는 말은 "걸러져 있다" 하나라
+        // 정렬 옆 브랜드 글자로 줄였다. 누르면 전체 목록으로 돌아간다 — 걸러진
+        // 목록을 빠져나갈 길은 여전히 한 번의 탭이어야 한다.
+        if (preset != ClientFilter.all)
+          Tooltip(
+            message: l.clientsAttentionClear,
+            child: AppButton(
+              key: const ValueKey<String>('clients-preset-clear'),
+              label: preset.label(l),
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              trailingIcon: Icons.close_rounded,
+              onPressed: onClearPreset,
+            ),
+          ),
       ],
     );
   }
 
   String _managementLabel(AppLocalizations l, RosterManagementFilter value) {
-    switch (value) {
-      case RosterManagementFilter.attention:
-        return l.clientsManagementAttention;
-      case RosterManagementFilter.active:
-        return l.clientActive;
-      case RosterManagementFilter.dormant:
-        return l.clientDormant;
-      case RosterManagementFilter.sodiumOver:
-        return l.alertSodiumOver;
-      case RosterManagementFilter.sugarOver:
-        return l.alertSugarOver;
-      case RosterManagementFilter.lowCompletion:
-        return l.alertLowCompletion;
-      case RosterManagementFilter.unanswered:
-        return l.alertAwaitingReply;
-    }
+    return value.signal?.label(l) ?? l.clientsManagementAttention;
   }
 
   String _sortLabel(AppLocalizations l, RosterSort value) {
@@ -381,8 +418,6 @@ class _MemberManagementToolbar extends StatelessWidget {
         return l.clientsSortNameDescending;
       case RosterSort.recentMessage:
         return l.clientsSortRecentMessage;
-      case RosterSort.activeFirst:
-        return l.clientsSortActiveFirst;
     }
   }
 }
@@ -601,20 +636,18 @@ class _RosterList extends StatelessWidget {
     required this.unread,
     required this.selectedId,
     required this.filter,
-    required this.totalCount,
+    required this.managementFilters,
     required this.trailingPadding,
     required this.onOpen,
-    required this.onClearFilter,
   });
 
   final List<TrainerClient> clients;
   final Map<String, int> unread;
   final String? selectedId;
   final ClientFilter filter;
-  final int totalCount;
+  final Set<RosterManagementFilter> managementFilters;
   final double trailingPadding;
   final ValueChanged<String> onOpen;
-  final VoidCallback onClearFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -622,21 +655,7 @@ class _RosterList extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.only(right: trailingPadding),
       children: <Widget>[
-        // Tells the trainer the list is filtered — and how to get out. A
-        // silently filtered roster reads as "I've lost clients".
-        if (filter != ClientFilter.all) ...<Widget>[
-          AppBanner(
-            title: l.clientsFilterSummary(
-              filter.label(l),
-              clients.length,
-              totalCount,
-            ),
-            icon: Icons.filter_alt_rounded,
-            actionLabel: l.clientsSeeAll,
-            onAction: onClearFilter,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-        ],
+        // 걸러져 있다는 표시와 빠져나가는 길은 툴바의 파란 글자가 맡는다(#2205).
         if (clients.isEmpty)
           AppEmptyState(
             title: filter == ClientFilter.all
@@ -652,7 +671,12 @@ class _RosterList extends StatelessWidget {
               client: client,
               selected: client.id == selectedId,
               unread: unread[client.id] ?? 0,
-              compact: true,
+              signals: _matchedSignals(
+                client,
+                unread: unread[client.id] ?? 0,
+                filters: managementFilters,
+                preset: filter,
+              ),
               onTap: () => onOpen(client.id),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),

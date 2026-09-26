@@ -940,7 +940,7 @@
   },
   "myProfilePetDone": "Your pet is next to your name",
   "myShopWeeklyReportTitle": "Weekly report",
-  "myShopWeeklyReportDescription": "Look back on {range} with a report built from your meals, workouts and AI Coach notes.",
+  "myShopWeeklyReportDescription": "Look back on {range} with a report built from your meals, workouts and reference notes.",
   "@myShopWeeklyReportDescription": {
     "placeholders": {
       "range": {
@@ -964,7 +964,7 @@
   "myBenefitsWeeklyReports": "Weekly reports",
   "myWeeklyReportCardTitle": "Report from points",
   "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer message.",
-  "coachReportPdfSectionInsights": "AI Coach notes",
+  "coachReportPdfSectionInsights": "Reference notes",
   "coachReportPdfNoInsights": "No pain or negative feedback this week.",
   "coachReportPdfInsightSummary": "{label} ×{count}",
   "@coachReportPdfInsightSummary": {
@@ -1831,7 +1831,7 @@
       }
     }
   },
-  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit} · {balance} left",
+  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit}",
   "@aicQuotaPaidNext": {
     "placeholders": {
       "cost": {
@@ -1842,16 +1842,13 @@
       },
       "limit": {
         "type": "int"
-      },
-      "balance": {
-        "type": "String"
       }
     }
   },
   "aicQuotaExhausted": "You've used today's chats. They reopen tomorrow",
   "aicQuotaFindTrainer": "Find a trainer",
   "aicPaidConfirmTitle": "Keep chatting with points?",
-  "aicPaidConfirmMessage": "You've used today's free chats. Each message now costs {cost} (up to {limit} today).",
+  "aicPaidConfirmMessage": "You've used today's free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}",
   "@aicPaidConfirmMessage": {
     "placeholders": {
       "cost": {
@@ -1859,6 +1856,9 @@
       },
       "limit": {
         "type": "int"
+      },
+      "balance": {
+        "type": "String"
       }
     }
   },
@@ -1867,17 +1867,6 @@
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
-        "type": "String"
-      }
-    }
-  },
-  "aicPointsSpentWithBalance": "−{spent} · {balance} left",
-  "@aicPointsSpentWithBalance": {
-    "placeholders": {
-      "spent": {
-        "type": "String"
-      },
-      "balance": {
         "type": "String"
       }
     }
@@ -1913,13 +1902,13 @@
   "@aicInsightDelete": {
     "description": "Removes one detection from the AI coach insight log (#1975)."
   },
-  "aicInsightDeleteConfirm": "Remove this detection from the log? What you wrote stays in the conversation.",
+  "aicInsightDeleteConfirm": "Remove this detection from your reference notes? What you wrote stays in the conversation.",
   "aicInsightDeleteFailed": "We could not remove it. Please try again in a moment.",
-  "aicInsightHistoryTitle": "Noted signals",
+  "aicInsightHistoryTitle": "Reference notes",
   "@aicInsightHistoryTitle": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
   },
-  "aicInsightHistoryAction": "Notes",
+  "aicInsightHistoryAction": "Reference notes",
   "@aicInsightHistoryAction": {
     "description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."
   },
@@ -1941,7 +1930,7 @@
       }
     }
   },
-  "aicInsightHistoryFailed": "Couldn't load noted signals",
+  "aicInsightHistoryFailed": "Couldn't load reference notes",
   "@aicInsightHistoryFailed": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
   },
@@ -2755,7 +2744,7 @@
   },
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Could not undo the completion.",
-  "coachRoutineCancel": "Cancel this workout",
+  "coachRoutineCancel": "Delete this workout",
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -2768,7 +2757,7 @@
   "@coachCardRoutineUndoTitle": {
     "description": "Title of the dialog confirming undoing a completed recommended workout."
   },
-  "coachCardRoutineCancelTitle": "Cancel this workout?",
+  "coachCardRoutineCancelTitle": "Delete this workout?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
   },
@@ -2776,8 +2765,8 @@
   "@coachRoutineKeep": {
     "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
-  "coachRoutineCancelled": "Workout cancelled",
-  "coachRoutineCancelFailed": "Couldn't cancel the workout",
+  "coachRoutineCancelled": "Workout deleted",
+  "coachRoutineCancelFailed": "Couldn't delete the workout",
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },
@@ -3115,5 +3104,864 @@
   "gymLocateAction": "Find near my location",
   "gymLocationSettings": "Settings",
   "exGymCopyPhone": "Copy phone number",
-  "exGymPhoneCopied": "Phone number copied."
+  "exGymPhoneCopied": "Phone number copied.",
+  "exerciseAdviceRecordEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",
+  "@exerciseAdviceRecordEmptyToday": {
+    "description": "Exercise tab AI advice sentence `record_empty_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRecordEmptyWeek": "No workouts logged this week yet. How about a 10-minute walk to start?",
+  "@exerciseAdviceRecordEmptyWeek": {
+    "description": "Exercise tab AI advice sentence `record_empty_week` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRecordEmptyAll": "Once you log more, we'll show how your workout volume and types are trending.",
+  "@exerciseAdviceRecordEmptyAll": {
+    "description": "Exercise tab AI advice sentence `record_empty_all` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRecordToday": "Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.",
+  "@exerciseAdviceRecordToday": {
+    "description": "Exercise tab AI advice sentence `record_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "calories": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRecordWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
+  "@exerciseAdviceRecordWeekOneDay": {
+    "description": "Exercise tab AI advice sentence `record_week_one_day` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRecordWeekSkew": "This week's {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?",
+  "@exerciseAdviceRecordWeekSkew": {
+    "description": "Exercise tab AI advice sentence `record_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "missing": {
+        "type": "String"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRecordWeekBalanced": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.",
+  "@exerciseAdviceRecordWeekBalanced": {
+    "description": "Exercise tab AI advice sentence `record_week_balanced` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRecordAllUp": "You've done more over the last 4 weeks than before. This approach suits you.",
+  "@exerciseAdviceRecordAllUp": {
+    "description": "Exercise tab AI advice sentence `record_all_up` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRecordAllDown": "Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.",
+  "@exerciseAdviceRecordAllDown": {
+    "description": "Exercise tab AI advice sentence `record_all_down` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRecordAllSteady": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.",
+  "@exerciseAdviceRecordAllSteady": {
+    "description": "Exercise tab AI advice sentence `record_all_steady` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayAllDone": "You finished {count, plural, =1{your recommended workout} other{all {count} recommended workouts}} today. Great job!",
+  "@exerciseAdviceRoutineTodayAllDone": {
+    "description": "Exercise tab AI advice sentence `routine_today_all_done` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayDoneNextOrder": "{done} done. Next up: {next} → {then}.",
+  "@exerciseAdviceRoutineTodayDoneNextOrder": {
+    "description": "Exercise tab AI advice sentence `routine_today_done_next_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "doneObj": {
+        "type": "String"
+      },
+      "next": {
+        "type": "String"
+      },
+      "then": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayDoneNext": "{done} done. {next} is next.",
+  "@exerciseAdviceRoutineTodayDoneNext": {
+    "description": "Exercise tab AI advice sentence `routine_today_done_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "doneObj": {
+        "type": "String"
+      },
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayNextOrder": "Next up: {next} → {then}.",
+  "@exerciseAdviceRoutineTodayNextOrder": {
+    "description": "Exercise tab AI advice sentence `routine_today_next_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      },
+      "then": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayNext": "{next} is next.",
+  "@exerciseAdviceRoutineTodayNext": {
+    "description": "Exercise tab AI advice sentence `routine_today_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayLeft": "{count, plural, =1{1 recommended workout left} other{{count} recommended workouts left}}. Go down the list in order.",
+  "@exerciseAdviceRoutineTodayLeft": {
+    "description": "Exercise tab AI advice sentence `routine_today_left` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayStartOrder": "Start today's recommended workouts with {next} → {then}.",
+  "@exerciseAdviceRoutineTodayStartOrder": {
+    "description": "Exercise tab AI advice sentence `routine_today_start_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      },
+      "then": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineTodayStart": "Start today with {next}.",
+  "@exerciseAdviceRoutineTodayStart": {
+    "description": "Exercise tab AI advice sentence `routine_today_start` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekNoneToday": "No recommended workouts this week yet. Start with {next} today?",
+  "@exerciseAdviceRoutineWeekNoneToday": {
+    "description": "Exercise tab AI advice sentence `routine_week_none_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekNoneNext": "No recommended workouts this week yet. Try {next} first.",
+  "@exerciseAdviceRoutineWeekNoneNext": {
+    "description": "Exercise tab AI advice sentence `routine_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekNone": "No recommended workouts this week yet. Try one today.",
+  "@exerciseAdviceRoutineWeekNone": {
+    "description": "Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRoutineWeekOnly": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "@exerciseAdviceRoutineWeekOnly": {
+    "description": "Exercise tab AI advice sentence `routine_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "missing": {
+        "type": "String"
+      },
+      "rest": {
+        "type": "String"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekOnlyShort": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.",
+  "@exerciseAdviceRoutineWeekOnlyShort": {
+    "description": "Exercise tab AI advice sentence `routine_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekSkew": "{share}% of this week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "@exerciseAdviceRoutineWeekSkew": {
+    "description": "Exercise tab AI advice sentence `routine_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "missing": {
+        "type": "String"
+      },
+      "rest": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekSkewShort": "{share}% of this week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "@exerciseAdviceRoutineWeekSkewShort": {
+    "description": "Exercise tab AI advice sentence `routine_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "share": {
+        "type": "int"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekPraise": "You kept up with this week's recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going!",
+  "@exerciseAdviceRoutineWeekPraise": {
+    "description": "Exercise tab AI advice sentence `routine_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "how": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekCountsToday": "You did {completed} of {assigned} recommended workouts this week. Continue with {next} today.",
+  "@exerciseAdviceRoutineWeekCountsToday": {
+    "description": "Exercise tab AI advice sentence `routine_week_counts_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "assigned": {
+        "type": "int"
+      },
+      "completed": {
+        "type": "int"
+      },
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekCountsKeep": "You did {completed} of {assigned} recommended workouts this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}",
+  "@exerciseAdviceRoutineWeekCountsKeep": {
+    "description": "Exercise tab AI advice sentence `routine_week_counts_keep` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "assigned": {
+        "type": "int"
+      },
+      "completed": {
+        "type": "int"
+      },
+      "rest": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineWeekCounts": "You did {completed} of {assigned} recommended workouts this week.",
+  "@exerciseAdviceRoutineWeekCounts": {
+    "description": "Exercise tab AI advice sentence `routine_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "assigned": {
+        "type": "int"
+      },
+      "completed": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekNoneNext": "No recommended workouts last week. This week, start with {next}.",
+  "@exerciseAdviceRoutineLastWeekNoneNext": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekNone": "No recommended workouts last week. Take them one at a time this week.",
+  "@exerciseAdviceRoutineLastWeekNone": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRoutineLastWeekOnly": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "@exerciseAdviceRoutineLastWeekOnly": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "missing": {
+        "type": "String"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekOnlyShort": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.",
+  "@exerciseAdviceRoutineLastWeekOnlyShort": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekSkew": "{share}% of last week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "@exerciseAdviceRoutineLastWeekSkew": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "missing": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekSkewShort": "{share}% of last week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "@exerciseAdviceRoutineLastWeekSkewShort": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "share": {
+        "type": "int"
+      },
+      "top": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekPraise": "You kept up with last week's recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going this week!",
+  "@exerciseAdviceRoutineLastWeekPraise": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "how": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekCountsMore": "You did {completed} of {assigned} recommended workouts last week. Let's do more this week.",
+  "@exerciseAdviceRoutineLastWeekCountsMore": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_counts_more` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "assigned": {
+        "type": "int"
+      },
+      "completed": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineLastWeekCounts": "You did {completed} of {assigned} recommended workouts last week.",
+  "@exerciseAdviceRoutineLastWeekCounts": {
+    "description": "Exercise tab AI advice sentence `routine_last_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "assigned": {
+        "type": "int"
+      },
+      "completed": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllNew": "Day {days} with your recommended list. After a week, we'll point out what gets skipped.",
+  "@exerciseAdviceRoutineAllNew": {
+    "description": "Exercise tab AI advice sentence `routine_all_new` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllNoneNext": "Day {days} with your recommended list. Start with {next} today?",
+  "@exerciseAdviceRoutineAllNoneNext": {
+    "description": "Exercise tab AI advice sentence `routine_all_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllNone": "Day {days} with your recommended list. Try one today.",
+  "@exerciseAdviceRoutineAllNone": {
+    "description": "Exercise tab AI advice sentence `routine_all_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllDoneTodayPart": "You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} workouts you often skip today. Keep it going!",
+  "@exerciseAdviceRoutineAllDoneTodayPart": {
+    "description": "Exercise tab AI advice sentence `routine_all_done_today_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllDoneTodayName": "You did {name} today, one you often skip. Keep it going!",
+  "@exerciseAdviceRoutineAllDoneTodayName": {
+    "description": "Exercise tab AI advice sentence `routine_all_done_today_name` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "nameObj": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllDoneTodayNamePlain": "You did {name} today, one you often skip. Keep it going!",
+  "@exerciseAdviceRoutineAllDoneTodayNamePlain": {
+    "description": "Exercise tab AI advice sentence `routine_all_done_today_name_plain` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllDoneToday": "You did a workout you often skip today. Keep it going!",
+  "@exerciseAdviceRoutineAllDoneToday": {
+    "description": "Exercise tab AI advice sentence `routine_all_done_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRoutineAllMissedPart": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} recommended workouts get skipped often. Try doing them first?",
+  "@exerciseAdviceRoutineAllMissedPart": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} workouts get skipped often. Move them up?",
+  "@exerciseAdviceRoutineAllMissedPartShort": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed_part_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllMissedName": "{name} gets skipped often. Try doing it first next time?",
+  "@exerciseAdviceRoutineAllMissedName": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed_name` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "nameSubj": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllMissedNameShort": "{name} gets skipped often. Do it first?",
+  "@exerciseAdviceRoutineAllMissedNameShort": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed_name_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "nameSubj": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllMissedNamePlain": "{name} gets skipped often. Try doing it first next time?",
+  "@exerciseAdviceRoutineAllMissedNamePlain": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed_name_plain` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllMissedNamePlainShort": "{name} gets skipped often. Do it first?",
+  "@exerciseAdviceRoutineAllMissedNamePlainShort": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed_name_plain_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllMissed": "Some recommended workouts get skipped often. Try reordering your list?",
+  "@exerciseAdviceRoutineAllMissed": {
+    "description": "Exercise tab AI advice sentence `routine_all_missed` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
+  },
+  "exerciseAdviceRoutineAllPraise": "{weeks, plural, =1{1 week} other{{weeks} weeks}} of steady recommended workouts. Keep it up!",
+  "@exerciseAdviceRoutineAllPraise": {
+    "description": "Exercise tab AI advice sentence `routine_all_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "exerciseAdviceRoutineAllRate": "You've done {pct}% of your recommended workouts. Try not to skip a day.",
+  "@exerciseAdviceRoutineAllRate": {
+    "description": "Exercise tab AI advice sentence `routine_all_rate` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceTodayEmpty": "No meals logged today yet.",
+  "@dietAdviceTodayEmpty": {
+    "description": "Diet tab AI advice sentence `today_empty` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTodayMissingMeal": "Missed logging a meal?",
+  "@dietAdviceTodayMissingMeal": {
+    "description": "Diet tab AI advice sentence `today_missing_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg}mg**, over the limit.",
+  "@dietAdviceTodaySodiumOver": {
+    "description": "Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "sodiumMg": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "dietAdviceTodayCalorieOver": "**{kcal} kcal** today, over your goal.",
+  "@dietAdviceTodayCalorieOver": {
+    "description": "Diet tab AI advice sentence `today_calorie_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "dietAdviceTodayProteinLeft": "**{proteinG}g** more protein to go.",
+  "@dietAdviceTodayProteinLeft": {
+    "description": "Diet tab AI advice sentence `today_protein_left` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "proteinG": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceTodayBalanced": "**{kcal} kcal** today, nicely balanced.",
+  "@dietAdviceTodayBalanced": {
+    "description": "Diet tab AI advice sentence `today_balanced` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "dietAdviceNextMeal": "How about **{menu}** for {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} other{meals}}?",
+  "@dietAdviceNextMeal": {
+    "description": "Diet tab AI advice sentence `next_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "menu": {
+        "type": "String"
+      }
+    }
+  },
+  "dietAdviceNextSnack": "How about **{menu}** as a snack?",
+  "@dietAdviceNextSnack": {
+    "description": "Diet tab AI advice sentence `next_snack` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "menu": {
+        "type": "String"
+      }
+    }
+  },
+  "dietAdviceTodayDone": "You wrapped up today's meals well!",
+  "@dietAdviceTodayDone": {
+    "description": "Diet tab AI advice sentence `today_done` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTodayLogFirst": "Log it and we'll pick your next meal.",
+  "@dietAdviceTodayLogFirst": {
+    "description": "Diet tab AI advice sentence `today_log_first` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceWeekEmpty": "No meals logged this week yet.",
+  "@dietAdviceWeekEmpty": {
+    "description": "Diet tab AI advice sentence `week_empty` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceWeekSkipBreakfast": "{scope, select, last{Last week} other{This week}} you skipped breakfast **{days}** times.",
+  "@dietAdviceWeekSkipBreakfast": {
+    "description": "Diet tab AI advice sentence `week_skip_breakfast` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekSkipBreakfastSnack": "{scope, select, last{Last week} other{This week}} you snacked on **{snackDays}** of {days} no-breakfast days.",
+  "@dietAdviceWeekSkipBreakfastSnack": {
+    "description": "Diet tab AI advice sentence `week_skip_breakfast_snack` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      },
+      "snackDays": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekFocusSodium": "{scope, select, last{Last week} other{This week}}, sodium ran high on **{days}** days.",
+  "@dietAdviceWeekFocusSodium": {
+    "description": "Diet tab AI advice sentence `week_focus_sodium` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekFocusCalorie": "{scope, select, last{Last week} other{This week}}, you went over your calorie goal on **{days}** days.",
+  "@dietAdviceWeekFocusCalorie": {
+    "description": "Diet tab AI advice sentence `week_focus_calorie` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekFocusSugar": "{scope, select, last{Last week} other{This week}}, sugar ran high on **{days}** days.",
+  "@dietAdviceWeekFocusSugar": {
+    "description": "Diet tab AI advice sentence `week_focus_sugar` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekFocusProtein": "{scope, select, last{Last week} other{This week}}, protein fell short on **{days}** days.",
+  "@dietAdviceWeekFocusProtein": {
+    "description": "Diet tab AI advice sentence `week_focus_protein` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekGood": "{scope, select, last{Last week} other{This week}}, all **{days}** logged days were on target.",
+  "@dietAdviceWeekGood": {
+    "description": "Diet tab AI advice sentence `week_good` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceWeekEmptyHint": "Even one meal starts to show a pattern.",
+  "@dietAdviceWeekEmptyHint": {
+    "description": "Diet tab AI advice sentence `week_empty_hint` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipBreakfast": "Try a boiled egg for breakfast.",
+  "@dietAdviceTipBreakfast": {
+    "description": "Diet tab AI advice sentence `tip_breakfast` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipSodium": "Leave the broth and eat the solids.",
+  "@dietAdviceTipSodium": {
+    "description": "Diet tab AI advice sentence `tip_sodium` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipCalorie": "Try trimming dinner portions a little.",
+  "@dietAdviceTipCalorie": {
+    "description": "Diet tab AI advice sentence `tip_calorie` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipSugar": "Swap sweet drinks for water or tea.",
+  "@dietAdviceTipSugar": {
+    "description": "Diet tab AI advice sentence `tip_sugar` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipProtein": "Add eggs or tofu to each meal.",
+  "@dietAdviceTipProtein": {
+    "description": "Diet tab AI advice sentence `tip_protein` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipKeep": "Keep this flow going!",
+  "@dietAdviceTipKeep": {
+    "description": "Diet tab AI advice sentence `tip_keep` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceAllFewRecords": "**{days}** days logged in the last 4 weeks.",
+  "@dietAdviceAllFewRecords": {
+    "description": "Diet tab AI advice sentence `all_few_records` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllSlotSodium": "Sodium at {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} other{meals}} ran high **{days}** times in 4 weeks.",
+  "@dietAdviceAllSlotSodium": {
+    "description": "Diet tab AI advice sentence `all_slot_sodium` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllCarbHeavy": "Carbs made up **{pct}%** of the last 4 weeks.",
+  "@dietAdviceAllCarbHeavy": {
+    "description": "Diet tab AI advice sentence `all_carb_heavy` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllProteinLight": "Protein was only **{pct}%** of the last 4 weeks.",
+  "@dietAdviceAllProteinLight": {
+    "description": "Diet tab AI advice sentence `all_protein_light` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllProteinTrendUp": "Protein goal days rose from **{before} to {after}**.",
+  "@dietAdviceAllProteinTrendUp": {
+    "description": "Diet tab AI advice sentence `all_protein_trend_up` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "before": {
+        "type": "int"
+      },
+      "after": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllProteinTrendDown": "Protein goal days fell from **{before} to {after}**.",
+  "@dietAdviceAllProteinTrendDown": {
+    "description": "Diet tab AI advice sentence `all_protein_trend_down` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "before": {
+        "type": "int"
+      },
+      "after": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllFrequentMenu": "Your top {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} other{meals}} pick in 4 weeks: **{food}** ({count}×).",
+  "@dietAdviceAllFrequentMenu": {
+    "description": "Diet tab AI advice sentence `all_frequent_menu` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "food": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllRepeatedFoods": "**{food1} and {food2}** dominate the last 4 weeks.",
+  "@dietAdviceAllRepeatedFoods": {
+    "description": "Diet tab AI advice sentence `all_repeated_foods` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "food1": {
+        "type": "String"
+      },
+      "food2": {
+        "type": "String"
+      }
+    }
+  },
+  "dietAdviceAllGood": "**{days}** days logged in 4 weeks, looking good.",
+  "@dietAdviceAllGood": {
+    "description": "Diet tab AI advice sentence `all_good` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dietAdviceAllFewHint": "After 7 days we'll show your patterns.",
+  "@dietAdviceAllFewHint": {
+    "description": "Diet tab AI advice sentence `all_few_hint` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipCarb": "Try less rice and more side dishes.",
+  "@dietAdviceTipCarb": {
+    "description": "Diet tab AI advice sentence `tip_carb` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipSwap": "Keep it, just switch up the sides.",
+  "@dietAdviceTipSwap": {
+    "description": "Diet tab AI advice sentence `tip_swap` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  },
+  "dietAdviceTipVariety": "Add fish or tofu twice a week.",
+  "@dietAdviceTipVariety": {
+    "description": "Diet tab AI advice sentence `tip_variety` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
+  }
 }

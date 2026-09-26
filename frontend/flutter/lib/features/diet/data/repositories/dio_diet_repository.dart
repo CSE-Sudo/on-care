@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -31,6 +33,18 @@ class DioDietRepository implements DietRepository {
     return DietDay.fromJson(res.data!);
   }
 
+  @override
+  Future<DietPeriod> fetchPeriod({DateTime? from, DateTime? to}) async {
+    final res = await _dio.get<Map<String, Object?>>(
+      '/diet/days',
+      queryParameters: <String, String>{
+        if (from != null) 'from': _formatDate(from),
+        if (to != null) 'to': _formatDate(to),
+      },
+    );
+    return DietPeriod.fromJson(res.data!);
+  }
+
   String _formatDate(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
@@ -43,12 +57,12 @@ class DioDietRepository implements DietRepository {
   }
 
   @override
-  Future<String> fetchAdvice(String period) async {
+  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/diet/advice',
-      queryParameters: <String, Object?>{'period': period},
+      queryParameters: <String, Object?>{'period': period, 'lang': lang},
     );
-    return (res.data?['message'] as String?) ?? '';
+    return DietAdvice.fromJson(res.data ?? const <String, Object?>{});
   }
 
   @override

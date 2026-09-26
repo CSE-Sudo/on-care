@@ -8,8 +8,6 @@ import 'package:oncare_ui/oncare_ui.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData light() => OnCareTheme.light(
-    brand: OnCareBrand.trainer,
-    density: OnCareDensity.web,
-  );
+  static ThemeData light() =>
+      OnCareTheme.light(brand: OnCareBrand.trainer, density: OnCareDensity.web);
 }

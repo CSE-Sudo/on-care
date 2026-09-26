@@ -95,8 +95,8 @@ class MockAiCoachRepository implements AiCoachRepository {
   /// 목업은 한도를 세지 않는다 — 늘 무료가 남아 있다(#2145).
   @override
   Future<AiChatQuota> fetchQuota() async => const AiChatQuota(
-    freeLimit: 10,
-    freeLeft: 10,
+    freeLimit: 5,
+    freeLeft: 5,
     paidLimit: 10,
     paidLeft: 10,
     cost: 50,

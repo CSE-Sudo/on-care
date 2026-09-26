@@ -10,8 +10,10 @@ import 'package:oncare_trainer/features/clients/domain/entities/routine_history_
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -159,6 +161,43 @@ Future<void> _driveToApplyReady(WidgetTester tester) async {
   await tester.ensureVisible(
     find.byKey(const ValueKey<String>('apply-routine-to-template')),
   );
+  // 최종 검토 다음은 개인운동 단계다(#2223). 반영은 거기서 일어나므로, 최소
+  // 한 개를 직접 넣어 `프로그램에 반영` 을 누를 수 있는 자리까지 간다 — AI
+  // 제안이 있든 없든 같은 자리에 선다.
+  await tester.tap(
+    find.byKey(const ValueKey<String>('apply-routine-to-template')),
+  );
+  await tester.pumpAndSettle();
+  await _addPersonalRoutine(tester);
+  await tester.ensureVisible(
+    find.byKey(const ValueKey<String>('complete-personal-routines')),
+  );
+}
+
+/// 개인운동 단계에서 운동 한 줄을 직접 더한다. (#2223)
+Future<void> _addPersonalRoutine(
+  WidgetTester tester, {
+  String name = '걷기',
+}) async {
+  final form = find.byKey(
+    const ValueKey<String>('show-add-personal-exercise-form'),
+  );
+  if (form.evaluate().isEmpty) return;
+  await tester.ensureVisible(form);
+  await tester.tap(form);
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    _textFieldUnder(find.byKey(const ValueKey<String>('new-exercise-name'))),
+    name,
+  );
+  await tester.pump();
+  final submit = find.byKey(const ValueKey<String>('add-exercise-submit'));
+  // 화면 아래쪽 토스트가 떠 있으면 그 오버레이가 탭을 가로챈다.
+  await tester.pump(const Duration(seconds: 5));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(submit);
+  await tester.tap(submit);
+  await tester.pumpAndSettle();
 }
 
 /// 공용 입력창(`AppTextField`)은 Key 를 바깥 위젯에 둔다 — 그 아래 실제
@@ -276,6 +315,13 @@ void main() {
       RoutineOptions? response,
       List<RoutineHistoryEntry> history = const <RoutineHistoryEntry>[],
       List<TrainerMemo> memos = const <TrainerMemo>[],
+      List<RoutineSuggestion>? suggestions,
+      void Function(
+        List<RoutineExercise> exercises,
+        List<RoutineExercise> personal,
+        ProgramKind kind,
+      )?
+      onReviewCompleted,
     }) async {
       tester.view.physicalSize = const Size(1000, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -298,13 +344,22 @@ void main() {
             trainerMemoRepositoryProvider.overrideWithValue(
               _StaticMemoRepository(memos),
             ),
+            // 개인운동 단계가 출발점으로 삼는 AI 제안. 기본값(데모 저장소)은
+            // 세 건을 채우므로, 빈 목록을 보려면 이 자리를 갈아 끼운다.
+            if (suggestions != null)
+              trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
+                _StaticSuggestionRepository(suggestions),
+              ),
           ],
           child: MaterialApp(
             locale: const Locale('ko'),
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const AiRoutineOptionsFlow(client: _client),
+            home: AiRoutineOptionsFlow(
+              client: _client,
+              onReviewCompleted: onReviewCompleted,
+            ),
           ),
         ),
       );
@@ -424,15 +479,391 @@ void main() {
       );
     });
 
-    testWidgets('세 단계는 조건 설정 → 프로그램 선택 → 최종 검토다', (tester) async {
+    testWidgets('PT + 개인운동은 조건 설정 → 프로그램 선택 → 최종 검토 → 개인운동 '
+        '네 단계다 (#2223)', (tester) async {
       await pumpFlow(tester);
 
       expect(find.text('조건 설정'), findsOneWidget);
       expect(find.text('프로그램 선택'), findsOneWidget);
       expect(find.text('최종 검토'), findsOneWidget);
+      // 개인운동은 PT 구성을 고르는 일과 엮이지 않는 **마지막** 단계다.
+      expect(find.text('개인운동'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-3')),
+        findsOneWidget,
+      );
       // 예전 이름이 남아 있으면 흐름이 두 이름으로 불린다.
       expect(find.text('후보 검토'), findsNothing);
       expect(find.text('추천 완료'), findsNothing);
+    });
+
+    testWidgets('단계 원은 화면 폭과 무관하게 같은 간격으로 가운데 모인다 (#2219)', (tester) async {
+      // 원 중심 사이 거리는 창이 넓든 좁든 같은 고정값이다 — 예전에는 폭을
+      // n등분해, 창이 넓어질수록 원들이 좌우 끝으로 멀어졌다.
+      double circleGap() =>
+          tester
+              .getCenter(find.byKey(const ValueKey<String>('routine-stage-1')))
+              .dx -
+          tester
+              .getCenter(find.byKey(const ValueKey<String>('routine-stage-0')))
+              .dx;
+
+      // pumpFlow 는 1000 폭으로 띄운다.
+      await pumpFlow(tester);
+      final double wide = circleGap();
+
+      tester.view.physicalSize = const Size(520, 2400);
+      await tester.pumpAndSettle();
+      final double narrow = circleGap();
+
+      expect(narrow, wide);
+      // 칸 폭(원 지름 32 + 간격 80)이 곧 중심 사이 거리다.
+      expect(wide, 112);
+
+      // 원들은 표시줄 가운데에 모인다 — 첫 원 왼쪽과 마지막 원 오른쪽의
+      // 여백이 같다.
+      final double left = tester
+          .getCenter(find.byKey(const ValueKey<String>('routine-stage-0')))
+          .dx;
+      final double right = tester
+          .getCenter(find.byKey(const ValueKey<String>('routine-stage-3')))
+          .dx;
+      expect((left - 0).toStringAsFixed(1), (520 - right).toStringAsFixed(1));
+    });
+
+    testWidgets('PT 프로그램 짜기를 건너뛰어도 칸은 넷 그대로고, 지나친 칸은 '
+        '`건너뜀` 으로 남는다 (#2223)', (tester) async {
+      final repo = await pumpFlow(tester);
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 흐름이 짧아진 것처럼 보이지 않게 네 칸을 그대로 둔다.
+      for (final label in <String>['조건 설정', '프로그램 선택', '최종 검토', '개인운동']) {
+        expect(find.text(label), findsOneWidget);
+      }
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-3')),
+        findsOneWidget,
+      );
+      // 고를 PT 도, 검토할 PT 도 없는 가운데 두 칸만 지나친다.
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-skipped-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-skipped-2')),
+        findsOneWidget,
+      );
+      expect(find.text('건너뜀'), findsNWidgets(2));
+      // 곧바로 마지막 칸(개인운동)이다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      // 쓰지 않을 PT 후보를 만드느라 기다리지 않는다 — 생성은 부르지 않는다.
+      expect(repo.calls, 0);
+    });
+
+    testWidgets('개인운동 단계는 AI 제안 목록으로 시작하고, 제안이 늦게 와도 '
+        '채워진다 (#2223)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+            evidence: <String>['혈압 관리 목표'],
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '힙 브리지',
+            minutes: 0,
+            type: '근력',
+            sets: 3,
+            reps: 15,
+            weight: 0,
+            reason: '허리가 아프면 범위를 줄이세요',
+            evidence: <String>['최근 근력운동 비중 높음'],
+          ),
+        ],
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 제안이 목록의 출발점이다 — 줄마다 이름과, 트레이너가 판단에 쓰는
+      // 추천 사유·근거가 선다.
+      // 접힌 줄은 이름·유형·양을 한 줄(`Text.rich`)에 둔다.
+      expect(
+        find.textContaining('가벼운 인터벌 러닝', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.textContaining('힙 브리지', findRichText: true), findsOneWidget);
+      expect(find.text('AI 제안 2'), findsOneWidget);
+      expect(find.text('숨이 차면 속도를 낮추세요'), findsOneWidget);
+      expect(find.text('혈압 관리 목표'), findsOneWidget);
+      expect(find.text('최근 근력운동 비중 높음'), findsOneWidget);
+      expect(find.text('AI 추천 사유'), findsNWidgets(2));
+      // 제안이 채워졌으므로 빈 상태 문구는 없다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-empty')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('건너뛴 뒤 조건 설정으로 돌아가 후보를 만들면 다시 PT 흐름이 된다 '
+        '(#2223)', (tester) async {
+      // 건너뛴 채로 두면 `건너뜀` 으로 그린 칸에 선 채 프로그램을 고르게 되고,
+      // 마지막 버튼이 `회원에게 보내기` 라 방금 고른 PT 구성이 버려진다.
+      await pumpFlow(tester, suggestions: const <RoutineSuggestion>[]);
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+      expect(find.text('건너뜀'), findsNWidgets(2));
+
+      // 마음을 바꿔 조건 설정으로 되돌아가 후보를 만든다.
+      await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
+      await tester.pumpAndSettle();
+      await generate(tester);
+
+      // 프로그램 선택 단계에 서고, 건너뛴 칸은 하나도 남지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+        findsOneWidget,
+      );
+      expect(find.text('건너뜀'), findsNothing);
+
+      // 마지막 칸의 버튼도 `회원에게 보내기` 가 아니라 편집기로 넘기는 쪽이다.
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('apply-routine-to-template')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('complete-personal-routines')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('send-routine-only')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('펼친 줄은 체크 아이콘으로 닫고, PT 후보는 다른 문구로 묻는다 '
+        '(#2223)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+        ],
+      );
+
+      // PT 후보에서 빼는 것은 이번 구성에서 지우는 일이다 — 개인운동처럼
+      // `AI 제안이면 다시 올라오지 않아요` 라고 말하면 안 된다.
+      await generate(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-remove-A-0')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('이번 프로그램 구성에서 빼요'), findsOneWidget);
+      expect(find.textContaining('AI 제안이면'), findsNothing);
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+
+      // 개인운동 단계에서는 펼친 줄의 그 자리가 **닫기**가 된다.
+      await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('skip-pt-program')),
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      final done = find.byKey(
+        const ValueKey<String>('personal-routine-done-0'),
+      );
+      expect(done, findsOneWidget);
+      await tester.tap(done);
+      await tester.pumpAndSettle();
+      // 닫히면 다시 접힌 줄의 연필이 선다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+        findsOneWidget,
+      );
+      expect(done, findsNothing);
+    });
+
+    testWidgets('세트·횟수를 안 준 근력은 보이는 값 그대로 굳힌다 (#2223)', (tester) async {
+      // AI 는 근력을 분으로만 주기도 한다(`_personalizedOptions` 의 스쿼트).
+      // 예전에는 편집기가 `3`·`10` 을 보여 주면서 값은 0 으로 두어, 최종
+      // 검토가 `0세트 · 0회` 를 그리고 편집기로 넘어갈 때 또 다른 기본값이
+      // 붙었다 — 한 운동이 세 화면에서 다른 숫자로 보였다.
+      await pumpFlow(tester);
+      await generate(tester);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('3세트 · 10회 · 0kg'), findsOneWidget);
+      expect(find.textContaining('0세트'), findsNothing);
+    });
+
+    testWidgets('AI 제안을 고치면 출처가 트레이너가 된다 (#2223)', (tester) async {
+      List<RoutineExercise>? personal;
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '코어 스트레칭',
+            minutes: 10,
+            type: '스트레칭',
+            reason: '허리를 편하게',
+          ),
+        ],
+        onReviewCompleted: (exercises, items, kind) => personal = items,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 첫 줄만 펼쳐서 유형을 바꾼다.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-category-personal-0-근력')),
+      );
+      await tester.pumpAndSettle();
+
+      // 고쳤다고 `AI 제안` 개수가 줄지는 않는다 — 지운 줄만 빠진다.
+      expect(find.text('AI 제안 2'), findsOneWidget);
+
+      final apply = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      // 회원 앱은 이 값으로 `트레이너 직접 추천` 과 `AI 추천` 을 가른다(#782).
+      expect(personal, isNotNull);
+      expect(personal![0].source, 'trainer');
+      // 손대지 않은 줄은 그대로 AI 다.
+      expect(personal![1].source, 'ai');
+      // `AI 추천 사유` 는 트레이너만 보는 칸이라 고친 뒤에도 남는다.
+      expect(personal![0].reason, '숨이 차면 속도를 낮추세요');
+    });
+
+    testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+        ],
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-remove-0')),
+      );
+      await tester.pumpAndSettle();
+
+      // 거절한 제안은 다시 올라오지 않는다 — 되돌릴 수 없으므로 확인을 받는다.
+      expect(find.text('이 운동을 뺄까요?'), findsOneWidget);
+      // 조사는 받침을 보고 고른다 — `러닝` 뒤에는 `을`.
+      expect(find.textContaining('가벼운 인터벌 러닝을 이번 개인운동에서 빼요'), findsOneWidget);
+
+      // 취소하면 그대로 남는다.
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('가벼운 인터벌 러닝', findRichText: true),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-remove-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('삭제'));
+      await tester.pumpAndSettle();
+      // 줄이 사라진다(이름은 "추천하지 않아요" 토스트에도 들어가므로 줄로 본다).
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-row-0')),
+        findsNothing,
+      );
+      // 토스트의 조사도 받침을 본다.
+      expect(find.text('가벼운 인터벌 러닝은 추천하지 않아요'), findsOneWidget);
+    });
+
+    testWidgets('개인운동 없이는 프로그램에 반영되지 않는다 (#2223)', (tester) async {
+      // 제안이 하나도 없는 날 — 직접 넣지 않으면 넘어갈 수 없어야 한다.
+      await pumpFlow(tester, suggestions: const <RoutineSuggestion>[]);
+      await generate(tester);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-routine-review')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('apply-routine-to-template')),
+      );
+      await tester.pumpAndSettle();
+
+      // 개인운동 단계다. 제안이 하나도 없으면 비어 있고, 그대로는 넘어가지
+      // 못한다 — PT 만 보내고 개인운동이 빠지는 일을 막는 자리다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-personal-routines')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('개인운동을 최소 한 개는 정해 주세요.'), findsOneWidget);
     });
 
     testWidgets('자연어 요청은 trainer_note 로 그대로 나가고, 직접 작성 경로는 '
@@ -666,7 +1097,8 @@ void main() {
                 RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
               ],
               recommendedReason: '기존 회원 데이터 기반 추천',
-              onReviewCompleted: (exercises) => reviewed = exercises,
+              onReviewCompleted: (exercises, personal, kind) =>
+                  reviewed = exercises,
             ),
           ),
         ),
@@ -894,6 +1326,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // 최종 검토 다음은 개인운동 단계다(#2223) — 여기서도 아직 반영되지
+      // 않는다. 위저드를 빠져나가는 출구는 그 단계의 `프로그램에 반영` 이다.
+      expect(reviewed, isNull);
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      await _addPersonalRoutine(tester);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('complete-personal-routines')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('complete-personal-routines')),
+      );
+      await tester.pumpAndSettle();
+
       // 템플릿(편집기)로만 반영된다 — 서버에는 여전히 아무것도 나가지 않는다.
       expect(reviewed, isNotNull);
       expect(reviewed!.first.name, '인터벌 걷기');
@@ -930,7 +1378,8 @@ void main() {
               RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
             ],
             recommendedReason: '기존 회원 데이터 기반 추천',
-            onReviewCompleted: (exercises) => reviewed = exercises,
+            onReviewCompleted: (exercises, personal, kind) =>
+                reviewed = exercises,
           ),
         ),
       ),
@@ -938,7 +1387,7 @@ void main() {
 
     await _driveToApplyReady(tester);
     await tester.tap(
-      find.byKey(const ValueKey<String>('apply-routine-to-template')),
+      find.byKey(const ValueKey<String>('complete-personal-routines')),
     );
     await tester.pumpAndSettle();
 
@@ -951,6 +1400,35 @@ void main() {
 /// Records what conditions the flow actually sent, and returns a fixed
 /// [RoutineOptions] regardless — used to check the "leave it blank, let the
 /// server decide" contract (#776) without a real backend.
+/// 정해진 제안만 돌려주는 저장소. 빈 목록으로 두면 개인운동 단계가 비어
+/// 시작한다. (#2223)
+class _StaticSuggestionRepository
+    implements TrainerRoutineSuggestionRepository {
+  _StaticSuggestionRepository(this._rows);
+
+  final List<RoutineSuggestion> _rows;
+
+  @override
+  Future<List<RoutineSuggestion>> pending(String memberId) async =>
+      List<RoutineSuggestion>.unmodifiable(_rows);
+
+  @override
+  Future<void> approve(
+    String suggestionId, {
+    String? name,
+    int? minutes,
+    String? type,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
+    String? reason,
+  }) async {}
+
+  @override
+  Future<void> dismiss(String suggestionId) async {}
+}
+
 class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
   _CapturingOptionsRepository(this._response);
 
@@ -959,6 +1437,9 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
   String? lastIntensityPreference;
   String? lastTrainerNote;
 
+  /// 후보 생성을 몇 번 불렀나 — 건너뛰기가 생성을 부르지 않는지 본다(#2223).
+  int calls = 0;
+
   @override
   Future<RoutineOptions> generate(
     String memberId, {
@@ -966,6 +1447,7 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
     required String? intensityPreference,
     required String trainerNote,
   }) async {
+    calls++;
     lastAvailableMinutes = availableMinutes;
     lastIntensityPreference = intensityPreference;
     lastTrainerNote = trainerNote;

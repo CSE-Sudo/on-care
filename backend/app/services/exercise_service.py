@@ -26,6 +26,7 @@ from app.models.models import ExerciseSession
 from app.services import (
     exercise_activity, exercise_types, period_window, routine_advice,
 )
+from app.services.exercise_advice import Advice, advice
 from app.services.exercise_catalog import energy, resolver
 
 #: 요일 라벨(월=0 … 일=6). 순서를 두 벌 두지 않으려고 논리 운동일 모듈의 정의를
@@ -59,6 +60,34 @@ def session_date_of(row) -> date | None:
     어느 것으로도 알 수 없을 때만 None 이다: 지어낸 날짜보다 빈 칸이 낫다.
     """
     return exercise_activity.activity_date_of(row)
+
+
+def first_session_date(db: Session, user_id: str) -> str | None:
+    """이 회원이 운동을 처음 남긴 날(YYYY-MM-DD). 기록이 없으면 None. (#2236)
+
+    `전체` 그래프가 여기서부터 그린다(#2079). 저장은 (주 시작 + 요일 라벨)로
+    쪼개져 있어 가장 이른 주를 먼저 찾고, 그 주 안에서 실제 날짜로 되돌린다 —
+    `week_start` 만 쓰면 주 한가운데부터 기록한 회원의 앞 며칠이 빈 칸으로
+    붙는다.
+    """
+    first_monday = db.scalar(
+        select(ExerciseSession.week_start)
+        .where(ExerciseSession.user_id == user_id, ExerciseSession.minutes > 0)
+        .order_by(ExerciseSession.week_start.asc())
+        .limit(1)
+    )
+    if first_monday is None:
+        return None
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user_id,
+            ExerciseSession.week_start == first_monday,
+            ExerciseSession.minutes > 0,
+        )
+    ).all()
+    days = [d for d in (session_date_of(r) for r in rows) if d is not None]
+    # 날짜를 되돌릴 수 없는 옛 행만 있으면 그 주의 월요일로 둔다.
+    return min(days).isoformat() if days else first_monday
 
 
 def monday_of_this_week_str() -> str:
@@ -231,6 +260,86 @@ def _longest_streak(daily: list[int]) -> int:
     return best
 
 
+def build_period(
+    db: Session,
+    user_id: str,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    goals: tuple[int, int] = (0, 0),
+) -> dict:
+    """[start]…[end] 가 걸친 **주들**의 집계. (#2247)
+
+    `전체` 그래프가 모든 기록을 그리므로(#2079) 주마다 부르면 해가 바뀐 회원에게
+    쉰 번이 넘는 왕복이 된다. 한 번에 읽어 주 단위로 나눈다.
+
+    주마다의 집계는 [build_current_week] 그대로다 — 같은 함수를 기간만큼 부르는
+    것이 이 조회의 전부라, 한 주만 볼 때와 여러 주를 볼 때의 숫자가 갈리지
+    않는다. 다만 `sessions` 와 코칭 문구는 싣지 않는다(그래프가 쓰지 않는다).
+
+    [start] 를 주지 않으면 **첫 기록이 있는 주**부터다. 기록이 하나도 없으면
+    이번 주 한 칸이다. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다.
+    """
+    today = clock.today()
+    last_monday = _monday_of(min(end or today, today))
+    if start is not None:
+        first_monday = _monday_of(start)
+    else:
+        first = first_session_date(db, user_id)
+        first_monday = (
+            _monday_of(date.fromisoformat(first)) if first else last_monday
+        )
+    if first_monday > last_monday:
+        first_monday = last_monday
+
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user_id,
+            ExerciseSession.week_start >= first_monday.isoformat(),
+            ExerciseSession.week_start <= last_monday.isoformat(),
+        )
+    ).all()
+    by_week: dict[str, list] = {}
+    for row in rows:
+        by_week.setdefault(row.week_start, []).append(row)
+
+    minutes_goal, calories_goal = goals
+    weeks: list[dict] = []
+    cursor = first_monday
+    while cursor <= last_monday:
+        key = cursor.isoformat()
+        data = build_current_week(by_week.get(key, []))
+        weeks.append(
+            {
+                "week_start": key,
+                "day_labels": data["day_labels"],
+                "daily_minutes": data["daily_minutes"],
+                "daily_calories": data["daily_calories"],
+                "cardio_minutes": data["cardio_minutes"],
+                "strength_minutes": data["strength_minutes"],
+                "strength_sets": data["strength_sets"],
+                "stretching_minutes": data["stretching_minutes"],
+                "other_minutes": data["other_minutes"],
+                "total_minutes": data["total_minutes"],
+                "total_calories": data["total_calories"],
+                "streak_days": data["streak_days"],
+                "weekly_goal_minutes": minutes_goal,
+                "weekly_goal_calories": calories_goal,
+            }
+        )
+        cursor += timedelta(days=7)
+
+    return {
+        "from_week": first_monday.isoformat(),
+        "to_week": last_monday.isoformat(),
+        "weeks": weeks,
+    }
+
+
+def _monday_of(day: date) -> date:
+    return day - timedelta(days=day.weekday())
+
+
 def build_current_week(rows: list) -> dict:
     """ExerciseSession row 리스트 → 프론트 계약 형태의 dict."""
     per_day = {l: 0 for l in WEEKDAY_LABELS}
@@ -390,12 +499,12 @@ def _avg(values: list[int]) -> float:
     return sum(values) / len(values) if values else 0
 
 
-def period_coach_message(
+def period_advice(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
-) -> str:
-    """기간에 맞는 운동 조언. (#1025, #1574, #2162)
+) -> Advice:
+    """기간에 맞는 운동 조언. (#1025, #1574, #2162, #2210)
 
     기간마다 **재료가 다르다.** 오늘은 오늘 한 운동, 이번 주는 며칠 움직였고
     무엇에 치우쳤는지, 전체는 최근 4주와 그 이전의 추세다. 말투도 다르다 —
@@ -405,26 +514,30 @@ def period_coach_message(
     (`routine_advice`, #2162) — 회원이 먼저 묻는 것은 "추천 중 뭘 먼저 할까" 다.
     추천이 없는 회원은 아래의 직접 기록 기준 조언을 그대로 듣는다.
 
+    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 자기 언어로 그리고, 한국어
+    문장은 [Advice.text] 다.
+
     **한 문장 반을 넘기지 않는다.** 카드가 회원 앱·트레이너웹 양쪽에서 좁은 폭에
     들어가고, 길어질수록 정작 숫자가 묻힌다 — 짚어 주는 수치 하나와 다음 행동
     하나면 충분하다. (#1574)
     """
-    routine_message = routine_advice.coach_message(routine_days, period)
-    if routine_message is not None:
-        return routine_message
+    routine = routine_advice.coach_advice(routine_days, period)
+    if routine is not None:
+        return routine
     if not days:
         if period == period_window.PERIOD_WEEK:
-            return "이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?"
+            return advice("record_empty_week")
         if period == period_window.PERIOD_ALL:
-            return "기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요."
-        return "오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?"
+            return advice("record_empty_all")
+        return advice("record_empty_today")
 
     if period == period_window.PERIOD_TODAY:
         today = days[-1]
-        label = exercise_types.label_for(today.main_type)
-        return (
-            f"오늘 {label} 위주로 {today.minutes}분, {today.calories}kcal 썼어요. "
-            "스트레칭으로 마무리해요."
+        return advice(
+            "record_today",
+            type=today.main_type,
+            minutes=today.minutes,
+            calories=today.calories,
         )
 
     total_minutes = sum(d.minutes for d in days)
@@ -432,7 +545,7 @@ def period_coach_message(
 
     if period == period_window.PERIOD_WEEK:
         if active_days <= 1:
-            return f"이번 주는 {total_minutes}분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요."
+            return advice("record_week_one_day", minutes=total_minutes)
         # 한 유형에 쏠렸는지 — 코칭에서 가장 먼저 짚는 지점이다.
         by_type: dict[str, int] = {}
         for d in days:
@@ -445,12 +558,14 @@ def period_coach_message(
                 if top == exercise_types.CARDIO
                 else exercise_types.CARDIO
             )
-            return (
-                f"이번 주 {active_days}일 {total_minutes}분이 "
-                f"{exercise_types.label_for(top)}에 몰렸어요. "
-                f"{exercise_types.label_for(missing)}도 섞어 볼까요?"
+            return advice(
+                "record_week_skew",
+                days=active_days,
+                minutes=total_minutes,
+                top=top,
+                missing=missing,
             )
-        return f"이번 주 {active_days}일 {total_minutes}분, 유형도 고르게 섞였어요."
+        return advice("record_week_balanced", days=active_days, minutes=total_minutes)
 
     # 전체 — 최근 4주와 그 이전을 견준다. "나아지는 중인가" 가 이 화면의 질문이다.
     recent_from = days[-1].date - timedelta(days=27)
@@ -458,11 +573,22 @@ def period_coach_message(
     earlier = [d.minutes for d in days if d.date < recent_from]
     if earlier and recent:
         if _avg(recent) > _avg(earlier) * 1.1:
-            return "최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요."
+            return advice("record_all_up")
         if _avg(recent) < _avg(earlier) * 0.9:
-            return "최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요."
+            return advice("record_all_down")
     weeks = round(period_window.ALL_PERIOD_DAYS / 7)
-    return f"{weeks}주 동안 {active_days}일 {total_minutes}분, 기복 없이 이어가고 있어요."
+    return advice(
+        "record_all_steady", weeks=weeks, days=active_days, minutes=total_minutes
+    )
+
+
+def period_coach_message(
+    days: list[ExerciseDayTotals],
+    period: str,
+    routine_days: Sequence[routine_advice.RoutineDayLike] = (),
+) -> str:
+    """[period_advice] 의 한국어 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다."""
+    return period_advice(days, period, routine_days).text
 
 
 def period_days(

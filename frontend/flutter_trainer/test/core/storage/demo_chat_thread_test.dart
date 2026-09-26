@@ -118,10 +118,9 @@ void main() {
     addTearDown(fresh.close);
     await seedIfEmpty(fresh, clock: justAfterMidnight);
 
-    final rows =
-        await (fresh.select(
-          fresh.clientChatMessages,
-        )..where((m) => m.clientId.equals('seed-client-1'))).get();
+    final rows = await (fresh.select(
+      fresh.clientChatMessages,
+    )..where((m) => m.clientId.equals('seed-client-1'))).get();
     rows.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     expect(rows.last.createdAt.isBefore(justAfterMidnight), isTrue);

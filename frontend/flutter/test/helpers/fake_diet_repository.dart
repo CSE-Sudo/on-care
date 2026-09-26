@@ -1,6 +1,8 @@
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -235,13 +237,19 @@ class FakeDietRepository implements DietRepository {
   }
 
   @override
-  Future<String> fetchAdvice(String period) async => switch (period) {
+  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
     // 기간마다 다른 말을 한다 — 화면이 기간을 바꿔도 조언이 그대로면 안 된다.
     // (#1017)
-    'week' => '이번 주 3일이나 나트륨 권장량을 넘었어요. 남은 며칠은 담백하게 가요.',
-    'all' => '기록을 통틀어 보면 주말마다 나트륨이 오르는 흐름이에요.',
-    _ => _aiCoachMessage,
-  };
+    final String message = switch (period) {
+      'week' => '이번 주 3일이나 나트륨 권장량을 넘었어요. 남은 며칠은 담백하게 가요.',
+      'all' => '기록을 통틀어 보면 주말마다 나트륨이 오르는 흐름이에요.',
+      _ => _aiCoachMessage,
+    };
+    return DietAdvice(
+      message: message,
+      analysis: DietAdviceLine(text: message),
+    );
+  }
 
   @override
   Future<MealRecommendations> fetchRecommendations() async {
@@ -262,6 +270,23 @@ class FakeDietRepository implements DietRepository {
       macros: _toDietMacros(_sumMacroGrams(_entries)),
       aiCoachMessage: _aiCoachMessage,
     );
+  }
+
+  @override
+  /// 기간 집계(`GET /diet/days?from=&to=`)의 대역 — 하루 대역을 날짜만큼 접는다.
+  /// 시드가 하루 단위라 여기서 접는 편이 두 벌의 진실을 만들지 않는다. (#2236)
+  @override
+  Future<DietPeriod> fetchPeriod({DateTime? from, DateTime? to}) async {
+    final DateTime now = nowKst();
+    final DateTime last = to ?? DateTime(now.year, now.month, now.day);
+    final DateTime first = from ?? last;
+    final List<DietPeriodDay> days = <DietPeriodDay>[];
+    DateTime cursor = DateTime(first.year, first.month, first.day);
+    while (!cursor.isAfter(last)) {
+      days.add(DietPeriodDay.from(cursor, await fetchByDate(cursor)));
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 1);
+    }
+    return DietPeriod(days: days);
   }
 
   @override

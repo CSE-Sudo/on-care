@@ -1,4 +1,5 @@
 import 'package:demo_fixture/demo_fixture.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
@@ -172,6 +173,33 @@ class MockExerciseRepository implements ExerciseRepository {
   }
 
   @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    // 데모도 실서버와 같은 규칙이다(#2247) — 구간이 걸친 주를 빠짐없이 채우고,
+    // `from` 이 없으면 픽스처가 들고 있는 가장 이른 주부터다.
+    final DateTime today = nowKst();
+    final DateTime lastMonday = _mondayOf(to ?? today);
+    final DateTime firstMonday = _mondayOf(
+      from ??
+          today.subtract(
+            Duration(days: 7 * (_fixture.historyWeeks - 1)),
+          ),
+    );
+    final List<ExercisePeriodWeek> weeks = <ExercisePeriodWeek>[];
+    DateTime cursor = firstMonday;
+    while (!cursor.isAfter(lastMonday)) {
+      weeks.add((weekStart: cursor, week: await fetchWeek(cursor)));
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 7);
+    }
+    return weeks;
+  }
+
+  DateTime _mondayOf(DateTime day) =>
+      DateTime(day.year, day.month, day.day - (day.weekday - 1));
+
+  @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
     final int weeksAgo = _weeksAgo(weekStart);
@@ -190,12 +218,13 @@ class MockExerciseRepository implements ExerciseRepository {
       _routineDays?.call(from, to) ?? const <RoutineDay>[];
 
   @override
-  Future<String> fetchAdvice(String period) async {
+  Future<ExerciseAdvice> fetchAdvice(String period) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     // 문장 규칙은 서버(`exercise_service.period_coach_message`)의 것을 그대로
     // 쓴다 — 데모로 본 화면과 실 연동으로 본 화면이 다른 말을 하면 안 된다.
-    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162).
-    return exercisePeriodAdvice(
+    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162). 문장 키·값도 서버와
+    // 같아서 화면이 자기 언어로 그린다(#2210).
+    return exercisePeriodAdviceOf(
       _dayTotals(period),
       period,
       routineDays: <RoutineAdviceDay>[

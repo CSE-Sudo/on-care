@@ -143,9 +143,7 @@ void main() {
     expect(repository.previewed, isEmpty);
   });
 
-  testWidgets('찾으면 이 회원이 맞는지 묻고 이름·성별/나이·목표를 보여준다', (
-    tester,
-  ) async {
+  testWidgets('찾으면 이 회원이 맞는지 묻고 이름·성별/나이·목표를 보여준다', (tester) async {
     final repository = _FakeInviteRepository(paired: _paired());
     await pumpDialog(tester, repository);
 
@@ -210,9 +208,7 @@ void main() {
     expect(find.textContaining('새 코드를 받아'), findsOneWidget);
   });
 
-  testWidgets('이미 담당이 있는 회원이면 확인 화면 전에 막고 이유를 말한다', (
-    tester,
-  ) async {
+  testWidgets('이미 담당이 있는 회원이면 확인 화면 전에 막고 이유를 말한다', (tester) async {
     // 확인까지 갔다가 마지막에 거절당하면 무엇이 잘못됐는지 알 수 없다.
     final repository = _FakeInviteRepository(
       failure: const ValidationError(message: '이미 다른 트레이너가 담당 중인 회원이에요.'),
@@ -234,7 +230,9 @@ void main() {
     // 그래서 입력 전체를 투명(불투명도 0)으로 감싼다.
     await pumpDialog(tester, _FakeInviteRepository(paired: _paired()));
 
-    final Finder input = find.byKey(const ValueKey<String>('client-connect-code'));
+    final Finder input = find.byKey(
+      const ValueKey<String>('client-connect-code'),
+    );
     expect(input, findsOneWidget);
     final Opacity cover = tester.widget<Opacity>(
       find.ancestor(of: input, matching: find.byType(Opacity)).first,

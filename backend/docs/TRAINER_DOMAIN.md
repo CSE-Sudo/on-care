@@ -41,7 +41,7 @@
 | `users.role` | 계정 역할 컬럼(member\|trainer), 인덱스 |
 | `trainer_profiles` | 트레이너 프로필(전문분야·경력·소속 짐) |
 | `trainer_clients` | 트레이너↔회원 담당 링크(로스터의 정의) |
-| `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴 |
+| `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴. PT 일정에 붙인 개인운동은 `schedule_id`·`status='scheduled'`·`delivery_kind` 를 갖는다(`0092_routine_schedule_link`, #2223) |
 | `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트, `0036_trainer_memos`) |
 | `trainer_follow_up_tasks` | 트레이너가 회원별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
 | `trainer_program_drafts` | 트레이너가 저장해 둔 프로그램 초안(세션 배열, 회원과 묶이지 않음, `0038`+`0039`) |
@@ -115,12 +115,16 @@
 | GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
 | PUT | `/trainer/clients/{member_id}/status` | 활성/휴면 전환(담당 관계는 유지, #707) |
 | GET | `/trainer/clients/{member_id}/diet?date=` | 해당 회원의 실제 식단 기록 |
+| GET | `/trainer/clients/{member_id}/diet/days?from=&to=` | 기간의 날짜별 식단 합계 — 회원 API `GET /diet/days` 와 같은 응답. 기간 그래프가 쓴다. `from` 생략 시 그 회원의 첫 기록일부터 (#2236) |
+| GET | `/trainer/clients/{member_id}/records/span` | 그 회원이 식단·운동을 처음 남긴 날 — `전체` 그래프의 시작점 (#2079) |
+| GET | `/trainer/clients/{member_id}/exercise/weeks?from=&to=` | 구간이 걸친 주들의 운동 집계 — 회원 API `GET /exercise/weeks` 와 같은 응답. `전체` 그래프가 쓴다 (#2247) |
 | GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
 | DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
 | POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건) |
-| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709) |
+| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581) |
+| GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는(아직 보내지 않은) 개인운동 (#2223) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
@@ -152,7 +156,6 @@
 | PUT | `/trainer/schedule/{id}` | 예약 수정 |
 | DELETE | `/trainer/schedule/{id}` | 예약 삭제 |
 | POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료) |
-| GET | `/trainer/dashboard/coaching-summary` | 식단·운동·건강 프로필·최근 대화를 종합한 회원별 오늘 코칭 요약 |
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
@@ -233,15 +236,6 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 쓰되, 검색 스코프가 호출자(트레이너)가 아니라 **담당 회원**이다. 트레이너가 자기
 자신의(비어 있는) 기록으로 코칭받는 일을 막기 위한 구분이며, 접근 경계는 담당 링크
 확인(`_require_client`) — 남의 회원이면 404 로 존재조차 드러내지 않는다.
-
-### 대시보드 코칭 요약 (`/trainer/dashboard/coaching-summary`)
-
-담당 로스터에서 식단·주간 운동 이행률·건강 프로필·최근 14일 대화를 배치 조회하고,
-우선 확인할 회원을 최대 3명으로 제한해 LLM에 전달한다. 응답은 회원별 `현재 상태`,
-`판단 근거`, `오늘 운동 중심`, `세션 전 확인`으로 구조화하며, 입력에 없는 회원 ID나
-이름을 모델이 만들면 폐기한다. 대화 인용은 신뢰할 수 없는 참고 자료로 명시하고,
-공급자 장애·10초 타임아웃·응답 계약 위반 시 같은 스키마의 규칙 기반 요약으로
-폴백한다. 최근 대화는 회원별 최대 6건만 포함해 컨텍스트와 쿼리 크기를 제한한다.
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 

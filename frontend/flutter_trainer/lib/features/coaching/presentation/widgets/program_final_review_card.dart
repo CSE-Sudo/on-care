@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -9,8 +10,7 @@ typedef ProgramAssignConfirmation = ({String? sessionId});
 
 /// `일정 추가` 를 누르기 전 한 번 더 확인한다(#1029) — 이 버튼 하나가
 /// 배정과 PT 일정 등록을 함께 하므로, 어느 날짜·시각으로 스케줄에
-/// 올라가는지 미리 말해야 한다. `showRoutineSuggestionConfirmDialog` 와
-/// 같은 모양을 쓴다.
+/// 올라가는지 미리 말해야 한다.
 ///
 /// [candidates] 는 고른 시간대와 겹치는 그날 예정 PT 다(#1581). 없으면 고른
 /// 시간으로 새 일정을 만든다고, 하나면 그 회차에 연결되고 고른 시간은 쓰지
@@ -23,6 +23,7 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
   required TimeOfDay registerStartTime,
   required TimeOfDay registerEndTime,
   List<ScheduleSession> candidates = const <ScheduleSession>[],
+  List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
 }) {
   String? chosen = candidates.length == 1 ? candidates.single.id : null;
   return showAppDialog<ProgramAssignConfirmation>(
@@ -93,6 +94,35 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
               ],
             );
           }
+          // PT 와 함께 갈 개인운동(#2223). 편집기에는 개인운동 자리가 없어,
+          // 저장 직전의 이 창이 둘을 한 화면에서 확인하는 자리다.
+          final Widget content = personalRoutines.isEmpty
+              ? body
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    body,
+                    const SizedBox(height: OnCareSpacing.s16),
+                    Text(
+                      l.progPersonalRoutinesTitle,
+                      key: const ValueKey<String>(
+                        'program-assign-personal-routines',
+                      ),
+                      style: dialogContext.oncare
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                          )
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s4),
+                    for (final routine in personalRoutines)
+                      Padding(
+                        padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+                        child: Text('· ${routine.name}', style: bodyStyle),
+                      ),
+                  ],
+                );
           return AppDialog(
             key: const ValueKey<String>('program-assign-confirm'),
             title: l.programAssignConfirmTitle,
@@ -111,7 +141,7 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
                   ? null
                   : () => Navigator.of(dialogContext).pop((sessionId: chosen)),
             ),
-            child: body,
+            child: content,
           );
         },
       );

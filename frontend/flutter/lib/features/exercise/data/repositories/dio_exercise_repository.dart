@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -17,6 +18,38 @@ class DioExerciseRepository implements ExerciseRepository {
   }
 
   @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final res = await _dio.get<Map<String, Object?>>(
+      '/exercise/weeks',
+      queryParameters: <String, String>{
+        if (from != null) 'from': _ymd(from),
+        if (to != null) 'to': _ymd(to),
+      },
+    );
+    final Map<String, Object?> body = res.data ?? const <String, Object?>{};
+    return <ExercisePeriodWeek>[
+      for (final Object? row
+          in (body['weeks'] as List<Object?>?) ?? const <Object?>[])
+        if (row is Map<String, Object?>)
+          (
+            weekStart:
+                DateTime.tryParse(row['week_start'] as String? ?? '') ??
+                DateTime(0),
+            week: ExerciseWeek.fromBriefJson(row),
+          ),
+    ];
+  }
+
+  /// `YYYY-MM-DD` — 서버가 날짜 질의에 쓰는 형식.
+  String _ymd(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/exercise/weeks/current',
@@ -26,12 +59,12 @@ class DioExerciseRepository implements ExerciseRepository {
   }
 
   @override
-  Future<String> fetchAdvice(String period) async {
+  Future<ExerciseAdvice> fetchAdvice(String period) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/exercise/advice',
       queryParameters: <String, Object?>{'period': period},
     );
-    return (res.data?['message'] as String?) ?? '';
+    return ExerciseAdvice.fromJson(res.data ?? const <String, Object?>{});
   }
 
   static String _dateString(DateTime d) =>

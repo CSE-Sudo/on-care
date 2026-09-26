@@ -44,6 +44,8 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   }
 }
 
+/// 탈퇴는 설정이 아니라 그 아래 고객 지원 화면에 있다(#2227) — 약관·개인정보
+/// 다음, 계정을 정리하는 줄로 묶인다.
 Future<_FakeAccountRepository> _pumpSettings(
   WidgetTester tester, {
   bool supportsDeletion = true,
@@ -56,7 +58,7 @@ Future<_FakeAccountRepository> _pumpSettings(
   await pumpTrainerApp(
     tester,
     token: 'demo-token',
-    at: '${AppRoutes.my}?t=settings',
+    at: '${AppRoutes.my}?t=support',
     extraOverrides: <Override>[
       trainerAccountRepositoryProvider.overrideWithValue(repo),
     ],
@@ -64,7 +66,7 @@ Future<_FakeAccountRepository> _pumpSettings(
   return repo;
 }
 
-/// 설정 화면이 길어 탈퇴 행이 뷰포트 밖일 수 있다 — 탭 전에 보이게 한다.
+/// 화면이 길어 탈퇴 행이 뷰포트 밖일 수 있다 — 탭 전에 보이게 한다.
 Future<void> _tapDelete(WidgetTester tester) async {
   final button = find.byKey(const ValueKey<String>('delete-account'));
   await tester.ensureVisible(button);
@@ -74,7 +76,7 @@ Future<void> _tapDelete(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('설정에 탈퇴 진입점이 있다', (tester) async {
+  testWidgets('고객 지원에 탈퇴 진입점이 있다', (tester) async {
     await _pumpSettings(tester);
 
     expect(find.text(_ko.myDeleteAccount), findsOneWidget);

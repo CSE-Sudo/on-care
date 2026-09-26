@@ -46,6 +46,10 @@ class TrainerClients extends Table {
   // 유지한다 — 반올림하면 식단 탭 수치와 어긋난다.
   TextColumn get caloriesWeekJson => text().withDefault(const Constant('[]'))();
   TextColumn get sugarWeekJson => text().withDefault(const Constant('[]'))();
+
+  /// PT 관리 신호(#2204) — 서버 로스터의 `signals` 와 같은 JSON 배열. 데모는
+  /// 서버 계산이 없어 시드가 회원마다 정해 둔다. 빈 배열이면 신호가 없다.
+  TextColumn get signalsJson => text().withDefault(const Constant('[]'))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
   /// 회원이 자기 프로필에 등록한 성별(`male`/`female`/`other`). 트레이너가
@@ -360,7 +364,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -515,7 +519,12 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(clientChatMessages, clientChatMessages.emoteId);
         }
       }
-      // v19: 리포트 ①②③ 이 읽는 세 가지(#2232) — 하루 끼니 기록 횟수, 회원이
+      // v19: 로스터 PT 관리 신호(#2204). 기존 행은 빈 배열(신호 없음)로 읽히고,
+      // 다음 시드가 채운다.
+      if (from < 19) {
+        await m.addColumn(trainerClients, trainerClients.signalsJson);
+      }
+      // v20: 리포트 ①②③ 이 읽는 세 가지(#2232) — 하루 끼니 기록 횟수, 회원이
       // 남긴 주간 피드백, 지난 주에 고른 목표.
       //
       // 컬럼은 기본값이 있어 기존 행도 그대로 읽히고, 다음 재시딩이 실제 값을
@@ -524,7 +533,7 @@ class AppDatabase extends _$AppDatabase {
       //
       // 표를 만들기 전에 있는지 본다 — v7 이전에서 올라오는 DB 는 `createAll`
       // 이 아니라 이 갈래를 타고, 이미 만든 표를 다시 만들면 거기서 죽는다.
-      if (from < 19) {
+      if (from < 20) {
         Future<bool> hasTable(String name) async {
           final List<QueryRow> rows = await m.database
               .customSelect(
@@ -537,8 +546,7 @@ class AppDatabase extends _$AppDatabase {
 
         // v7 이전에서 올라오는 DB 는 위 `createTable` 이 **현재 정의**로 표를
         // 만들어 두 컬럼이 이미 붙어 있다. 있는 표에만, 없는 컬럼만 붙인다.
-        if (from >= 7 &&
-            await hasTable(clientDailyMetrics.actualTableName)) {
+        if (from >= 7 && await hasTable(clientDailyMetrics.actualTableName)) {
           await m.addColumn(clientDailyMetrics, clientDailyMetrics.mealCount);
           await m.addColumn(
             clientDailyMetrics,

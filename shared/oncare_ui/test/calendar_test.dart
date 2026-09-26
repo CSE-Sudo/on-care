@@ -50,7 +50,7 @@ void main() {
       );
     }
 
-    testWidgets('양옆 원형 꺾쇠 — 갈 수 없는 쪽은 흐리다', (WidgetTester tester) async {
+    testWidgets('양옆 꺾쇠 — 갈 수 없는 쪽은 흐리다', (WidgetTester tester) async {
       await pumpStrip(tester, selected: DateTime(2026, 9, 16));
 
       Opacity opacityOf(IconData icon) => tester.widget<Opacity>(
@@ -67,14 +67,39 @@ void main() {
             matching: find.byType(Material),
           )
           .first;
+      // 탭 영역은 날짜 숫자 상자 줄 안에 든다 — 높이는 그 상자를 따른다.
+      expect(tester.getSize(arrow).width, OnCareCalendar.weekArrow);
+      expect(tester.getSize(arrow).height, OnCareCalendar.weekDayBox);
+      // 원 배경이 있으면 꺾쇠가 날짜와 따로 떠 보인다(#2215).
+      expect(tester.widget<Material>(arrow).color, Colors.transparent);
       expect(
-        tester.getSize(arrow),
-        const Size.square(OnCareCalendar.weekArrow),
+        tester.widget<Icon>(find.byIcon(Icons.chevron_left_rounded)).size,
+        OnCareCalendar.weekArrowIcon,
       );
-      expect(
-        tester.widget<Material>(arrow).color,
-        OnCareBrand.member.surfaceSoft,
-      );
+    });
+
+    testWidgets('꺾쇠는 날짜 숫자 상자와 같은 높이에 선다 (#2215)', (
+      WidgetTester tester,
+    ) async {
+      // 점(기록 표시)이 있는 날이 섞여 있어도 흔들리지 않아야 한다.
+      await pumpStrip(tester, selected: DateTime(2026, 9, 16));
+
+      double centerOfNumber(String day) {
+        final Finder box = find
+            .ancestor(of: find.text(day), matching: find.byType(Container))
+            .first;
+        return tester.getCenter(box).dy;
+      }
+
+      for (final IconData icon in <IconData>[
+        Icons.chevron_left_rounded,
+        Icons.chevron_right_rounded,
+      ]) {
+        expect(
+          tester.getCenter(find.byIcon(icon)).dy,
+          moreOrLessEquals(centerOfNumber('16'), epsilon: 0.5),
+        );
+      }
     });
 
     testWidgets('글자·날짜 칸은 옛 앱에서 보이던 크기(× 1.1)다', (WidgetTester tester) async {

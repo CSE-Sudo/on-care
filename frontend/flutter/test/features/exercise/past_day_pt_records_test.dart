@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -61,10 +62,17 @@ class _FixedWeekRepository implements ExerciseRepository {
   final List<ExerciseSession> _sessions;
 
   @override
-  Future<String> fetchAdvice(String period) async => '조언';
+  Future<ExerciseAdvice> fetchAdvice(String period) async =>
+      const ExerciseAdvice(message: '조언');
 
   @override
   Future<ExerciseWeek> fetchThisWeek() async => _week(_sessions);
+
+  @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async => const <ExercisePeriodWeek>[];
 
   @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async => _week(_sessions);

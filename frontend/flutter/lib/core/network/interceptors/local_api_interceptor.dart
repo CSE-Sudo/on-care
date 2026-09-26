@@ -15,8 +15,10 @@ import 'package:drift/drift.dart'
         OrderingTerm,
         Value;
 import 'package:logger/logger.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
+import 'package:oncare/core/demo/diet_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
@@ -83,7 +85,9 @@ class LocalApiInterceptor extends Interceptor {
   /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.
   final DemoStreakShieldBook? _shieldsArg;
   late final DemoStreakShieldBook _shields =
-      _shieldsArg ?? _couponsArg?.shields ?? DemoStreakShieldBook(ledger: _points);
+      _shieldsArg ??
+      _couponsArg?.shields ??
+      DemoStreakShieldBook(ledger: _points);
 
   /// 그래프 색(#2076). 쿠폰 원장이 들고 있는 것을 함께 쓴다 — 사용처에서 연 색이
   /// 기록 그래프에 바로 보인다.
@@ -129,12 +133,18 @@ class LocalApiInterceptor extends Interceptor {
     'GET /version': _version,
     'GET /dashboard/summary': _dashboardSummary,
     'GET /diet/days/today': _dietToday,
+    // 기간 그래프가 한 번에 받아 가는 날짜별 합계 (#2236).
+    'GET /diet/days': _dietPeriod,
+    // `전체` 가 어디서부터 그릴지 — 식단·운동의 첫 기록일 (#2079, #2236).
+    'GET /me/records/span': _recordSpan,
     'GET /diet/advice': _dietAdvice,
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
     'POST /diet/nutrition': _dietNutrition,
     'POST /diet/entries': _dietCreate,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
+    // 기간 그래프가 한 번에 받아 가는 주들 (#2247).
+    'GET /exercise/weeks': _exercisePeriod,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
@@ -937,6 +947,102 @@ class LocalApiInterceptor extends Interceptor {
     return _dietForDate(options, date);
   }
 
+  /// `GET /diet/days?from=&to=` — 날짜별 합계. 끼니·사진은 싣지 않는다. (#2236)
+  ///
+  /// 서버(`diet_service.build_period`)와 같은 규칙이다: `from` 을 생략하면 첫
+  /// 기록일부터, `to` 가 없거나 오늘보다 뒤면 오늘까지, 기록이 없는 날도 0 으로
+  /// 채운다. 데모와 실 연동의 그래프가 같은 그림이어야 한다.
+  Future<Response<Object?>> _dietPeriod(RequestOptions options) async {
+    for (final String key in const <String>['from', 'to']) {
+      final Object? raw = options.queryParameters[key];
+      if (raw != null && (raw is! String || !_isDateString(raw))) {
+        return Response<Object?>(
+          requestOptions: options,
+          statusCode: 422,
+          data: <String, Object?>{
+            'detail': <Map<String, Object?>>[
+              <String, Object?>{
+                'type': 'date_from_datetime_parsing',
+                'loc': <String>['query', key],
+                'msg': 'Input should be a valid date',
+                'input': raw,
+              },
+            ],
+          },
+        );
+      }
+    }
+    final DateTime today = _dateOnly(nowKst());
+    DateTime last = _queryDate(options, 'to') ?? today;
+    if (last.isAfter(today)) last = today;
+    DateTime first =
+        _queryDate(options, 'from') ?? await _firstDietDate() ?? last;
+    if (first.isAfter(last)) first = last;
+
+    final Map<String, List<num>> totals = <String, List<num>>{};
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      final DateTime? date = DateTime.tryParse(row.date);
+      if (date == null || date.isBefore(first) || date.isAfter(last)) continue;
+      final foods = (jsonDecode(row.foodsJson) as List<Object?>)
+          .cast<Object?>();
+      final macros = _foodMacroTotals(foods);
+      final List<num> day = totals.putIfAbsent(
+        row.date,
+        () => <num>[0, 0, 0, 0, 0, 0],
+      );
+      day[0] += row.totalCalories;
+      day[1] += row.sodiumMg;
+      day[2] += row.sugarG;
+      day[3] += macros.carbsG;
+      day[4] += macros.proteinG;
+      day[5] += macros.fatG;
+    }
+
+    final List<Map<String, Object?>> days = <Map<String, Object?>>[];
+    DateTime cursor = first;
+    while (!cursor.isAfter(last)) {
+      final String key = _dateString(cursor);
+      final List<num> day = totals[key] ?? const <num>[0, 0, 0, 0, 0, 0];
+      days.add(<String, Object?>{
+        'date': key,
+        'total_calories': day[0].round(),
+        'total_sodium_mg': day[1].round(),
+        'total_sugar_g': day[2].toDouble(),
+        'carbs_g': day[3].toDouble(),
+        'protein_g': day[4].toDouble(),
+        'fat_g': day[5].toDouble(),
+      });
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 1);
+    }
+    return _ok(options, <String, Object?>{
+      'from_date': _dateString(first),
+      'to_date': _dateString(last),
+      'days': days,
+    });
+  }
+
+  /// `GET /me/records/span` — 식단·운동을 처음 남긴 날. 없으면 null. (#2236)
+  Future<Response<Object?>> _recordSpan(RequestOptions options) async {
+    final DateTime? diet = await _firstDietDate();
+    final Set<String> exerciseDays = await _exerciseDates();
+    final String? exercise = exerciseDays.isEmpty
+        ? null
+        : (exerciseDays.toList()..sort()).first;
+    return _ok(options, <String, Object?>{
+      'diet_first_date': diet == null ? null : _dateString(diet),
+      'exercise_first_date': exercise,
+    });
+  }
+
+  /// 식단을 처음 남긴 날. 데모 DB 는 한 회원의 기록뿐이라 통째로 읽어도 가볍다.
+  Future<DateTime?> _firstDietDate() async {
+    String? first;
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      if (first == null || row.date.compareTo(first) < 0) first = row.date;
+    }
+    return first == null ? null : DateTime.tryParse(first);
+  }
+
   Future<Response<Object?>> _dietForDate(
     RequestOptions options,
     String date,
@@ -995,40 +1101,76 @@ class LocalApiInterceptor extends Interceptor {
   /// 없던 동안에는 요청이 그대로 네트워크로 흘러 실패했고, 화면은 어쩔 수 없이
   /// 오늘 조언을 대신 그렸다 — `이번 주` 를 보면서 오늘 이야기를 읽게 되는
   /// 원인이 여기였다.
+  ///
+  /// 규칙 한 줄 + 다음 할 일(#2251·#2253·#2254)을 서버와 같은 규칙으로 만든다
+  /// (`core/demo/diet_advice.dart`). 데모에는 AI 가 없어 이번 주·전체의 다음 할
+  /// 일은 AI 가 실패했을 때의 규칙 문장이다.
   Future<Response<Object?>> _dietAdvice(RequestOptions options) async {
     final String? period = _advicePeriod(options);
     if (period == null) {
       return _unprocessable(options, 'period must be today, week or all');
     }
-    final (String start, String end) = _periodBounds(period);
-    final rows =
-        await (_db.select(_db.dietEntries)..where(
-              (t) =>
-                  t.date.isBiggerOrEqualValue(start) &
-                  t.date.isSmallerOrEqualValue(end),
-            ))
-            .get();
-
-    // 기록이 없는 날은 만들지 않는다 — 안 먹은 날과 적지 않은 날은 다른 말이고,
-    // 0 으로 채우면 평균과 초과 일수가 사실과 어긋난다(서버와 같은 규칙).
-    final Map<String, int> sodiumByDate = <String, int>{};
-    for (final r in rows) {
-      sodiumByDate[r.date] = (sodiumByDate[r.date] ?? 0) + r.sodiumMg;
+    final Object? rawLang = options.queryParameters['lang'];
+    final String lang = rawLang is String && rawLang.isNotEmpty
+        ? rawLang
+        : 'ko';
+    if (lang != 'ko' && lang != 'en') {
+      return _unprocessable(options, 'lang must be ko or en');
     }
-    final List<String> dates = sodiumByDate.keys.toList()..sort();
-    final List<DietDayTotals> days = <DietDayTotals>[
-      for (final String date in dates)
-        if (DateTime.tryParse(date) case final DateTime parsed)
-          (date: parsed, sodiumMg: sodiumByDate[date]!),
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    // 전체가 읽는 4주가 가장 길다 — 이번 주의 지난주 회고(최대 13일 전)도 그 안이다.
+    final String start = _dateString(
+      DateTime(today.year, today.month, today.day - 27),
+    );
+    final rows =
+        await (_db.select(_db.dietEntries)
+              ..where(
+                (t) =>
+                    t.date.isBiggerOrEqualValue(start) &
+                    t.date.isSmallerOrEqualValue(_dateString(today)),
+              )
+              ..orderBy(<OrderClauseGenerator<$DietEntriesTable>>[
+                (t) => OrderingTerm(expression: t.date),
+                (t) => OrderingTerm(expression: t.createdAt),
+              ]))
+            .get();
+    final List<DemoDietEntry> entries = <DemoDietEntry>[
+      for (final DietEntryRow r in rows) _demoDietEntry(r),
     ];
+    return _ok(
+      options,
+      demoDietAdvice(
+        period: period,
+        lang: lang,
+        now: now,
+        entries: entries,
+        targets: demoDietTargets(await _mergedProfile()),
+      ),
+    );
+  }
 
-    return _ok(options, <String, Object?>{
-      'period': period,
-      'from_date': start,
-      'to_date': end,
-      'days_logged': days.length,
-      'message': dietPeriodAdvice(days, period),
-    });
+  /// 끼니 한 행 → 조언이 읽는 값. 탄단지는 행에 칼럼이 없어 음식에서 되짚는다.
+  DemoDietEntry _demoDietEntry(DietEntryRow row) {
+    final List<Object?> foods = jsonDecode(row.foodsJson) as List<Object?>;
+    final _MacroTotals macros = _foodMacroTotals(foods);
+    return (
+      date: row.date,
+      mealType: row.mealType,
+      foods: <String>[
+        for (final Object? food in foods)
+          if (food is Map)
+            if ((food['name'] as String?)?.trim() case final String n
+                when n.isNotEmpty)
+              n,
+      ],
+      kcal: row.totalCalories,
+      proteinG: macros.proteinG,
+      sodiumMg: row.sodiumMg,
+      sugarG: row.sugarG,
+      carbsG: macros.carbsG,
+      fatG: macros.fatG,
+    );
   }
 
   /// 조언 요청의 `period`. 기간 이름이 아니면 null 이다 — 서버가 422 로
@@ -1441,12 +1583,16 @@ class LocalApiInterceptor extends Interceptor {
         ),
     ];
 
+    final ExerciseAdvice advice = exercisePeriodAdviceOf(days, period);
     return _ok(options, <String, Object?>{
       'period': period,
       'from_date': start,
       'to_date': end,
       'days_logged': days.length,
-      'message': exercisePeriodAdvice(days, period),
+      'message': advice.message,
+      // 서버처럼 문장 키·값도 준다(#2210).
+      'advice_key': advice.key,
+      'advice_params': advice.params,
     });
   }
 
@@ -1465,6 +1611,75 @@ class LocalApiInterceptor extends Interceptor {
       weeks.add(_dateString(week));
     }
     return weeks;
+  }
+
+  /// `GET /exercise/weeks?from=&to=` — 구간이 걸친 주들. (#2247)
+  ///
+  /// 주마다의 집계는 [_exerciseCurrentWeek] 을 그대로 부른다 — 데모에서도 한 주
+  /// 조회와 기간 조회의 숫자가 갈리면 안 된다. 서버도 같은 함수를 기간만큼
+  /// 부른다(`exercise_service.build_period`). 그 응답에서 그래프가 쓰지 않는
+  /// `sessions`·`ai_coach_message` 는 덜어 낸다.
+  Future<Response<Object?>> _exercisePeriod(RequestOptions options) async {
+    for (final String key in const <String>['from', 'to']) {
+      final Object? raw = options.queryParameters[key];
+      if (raw != null && (raw is! String || !_isDateString(raw))) {
+        return _unprocessable(options, '\$key must be YYYY-MM-DD');
+      }
+    }
+    final DateTime thisMonday = DateTime.parse(_mondayOfThisWeekString());
+    DateTime lastMonday = _queryDate(options, 'to') == null
+        ? thisMonday
+        : DateTime.parse(
+            _mondayOfString(_dateString(_queryDate(options, 'to')!)),
+          );
+    if (lastMonday.isAfter(thisMonday)) lastMonday = thisMonday;
+    final DateTime? fromQuery = _queryDate(options, 'from');
+    DateTime firstMonday;
+    if (fromQuery != null) {
+      firstMonday = DateTime.parse(_mondayOfString(_dateString(fromQuery)));
+    } else {
+      final Set<String> days = await _exerciseDates();
+      firstMonday = days.isEmpty
+          ? lastMonday
+          : DateTime.parse(_mondayOfString((days.toList()..sort()).first));
+    }
+    if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
+
+    const List<String> carried = <String>[
+      'day_labels',
+      'daily_minutes',
+      'daily_calories',
+      'cardio_minutes',
+      'strength_minutes',
+      'strength_sets',
+      'stretching_minutes',
+      'other_minutes',
+      'total_minutes',
+      'total_calories',
+      'streak_days',
+    ];
+    final List<Map<String, Object?>> weeks = <Map<String, Object?>>[];
+    DateTime cursor = firstMonday;
+    while (!cursor.isAfter(lastMonday)) {
+      final String monday = _dateString(cursor);
+      final Response<Object?> week = await _exerciseCurrentWeek(
+        options.copyWith(
+          queryParameters: <String, Object?>{'week_start': monday},
+        ),
+      );
+      final Map<String, Object?> body =
+          (week.data as Map<String, Object?>?) ?? const <String, Object?>{};
+      weeks.add(<String, Object?>{
+        'week_start': monday,
+        for (final String key in carried) key: body[key],
+      });
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 7);
+    }
+    return _ok(options, <String, Object?>{
+      'from_week': _dateString(firstMonday),
+      'to_week': _dateString(lastMonday),
+      'weeks': weeks,
+    });
   }
 
   Future<Response<Object?>> _exerciseCurrentWeek(RequestOptions options) async {
@@ -2005,11 +2220,6 @@ class LocalApiInterceptor extends Interceptor {
 
   // ---- Schedule ----
 
-
-
-
-
-
   // ---- Notifications ----
 
   /// 실서버와 같은 계약으로 답한다 — 최신순 한 쪽, `limit`·`before`·`before_id`
@@ -2515,7 +2725,9 @@ class LocalApiInterceptor extends Interceptor {
   /// 회원이 쓴 말은 대화에 그대로 남는다.
   ///
   /// 이미 치운 줄을 다시 눌러도 200 이다 — 누른 쪽이 바라는 상태가 이미 참이다.
-  Future<Response<Object?>> _aiCoachInsightDismiss(RequestOptions options) async {
+  Future<Response<Object?>> _aiCoachInsightDismiss(
+    RequestOptions options,
+  ) async {
     final String messageId = options.path.split('/').last;
     final List<Map<String, Object?>> rows = await _aiCoachMessages();
     final int index = rows.indexWhere(
@@ -3114,10 +3326,7 @@ class LocalApiInterceptor extends Interceptor {
 
   Future<Response<Object?>> _activityCalendar(RequestOptions options) async {
     final DateTime today = _dateOnly(nowKst());
-    final DateTime last = _minDate(
-      _queryDate(options, 'to') ?? today,
-      today,
-    );
+    final DateTime last = _minDate(_queryDate(options, 'to') ?? today, today);
     final DateTime first = _minDate(
       // 구간을 주지 않으면 오늘로 끝나는 371일(53주)이다 — 앱이 그리는 격자와
       // 같은 눈금이다. 서버 `activity_calendar_service.MAX_DAYS` 와 같은 값.
@@ -3257,8 +3466,7 @@ class LocalApiInterceptor extends Interceptor {
   /// [monday] 주에 운동 기록이 있는 날. 목업 운동 저장소가 붙인 출처가 있으면 그것을,
   /// 없으면(테스트·운동 저장소를 아직 만들지 않음) 이 인터셉터의 운동 표를 본다.
   Future<Set<DateTime>> _exerciseDaysOf(DateTime monday) async {
-    final Set<DateTime> Function(DateTime)? recorded =
-        _challenges.recordedDays;
+    final Set<DateTime> Function(DateTime)? recorded = _challenges.recordedDays;
     if (recorded != null) return recorded(monday);
     const List<String> labels = <String>['월', '화', '수', '목', '금', '토', '일'];
     final String weekStart =
@@ -3280,19 +3488,18 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
-  static Map<String, Object?>? _demoActionFor(String category) => switch (
-    category
-  ) {
-    'benefits' => const <String, Object?>{
-      'label': '내 혜택 보기',
-      'target': 'my_benefits',
-    },
-    'points_shop' => const <String, Object?>{
-      'label': '포인트 사용처 보기',
-      'target': 'points_shop',
-    },
-    _ => null,
-  };
+  static Map<String, Object?>? _demoActionFor(String category) =>
+      switch (category) {
+        'benefits' => const <String, Object?>{
+          'label': '내 혜택 보기',
+          'target': 'my_benefits',
+        },
+        'points_shop' => const <String, Object?>{
+          'label': '포인트 사용처 보기',
+          'target': 'points_shop',
+        },
+        _ => null,
+      };
 
   // ---- Places ----
 
