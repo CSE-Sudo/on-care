@@ -42,6 +42,12 @@ class _StubRepository implements ExerciseRepository {
   Future<ExerciseWeek> fetchThisWeek() async => _emptyWeek;
 
   @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async => const <ExercisePeriodWeek>[];
+
+  @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async => _emptyWeek;
 
   @override

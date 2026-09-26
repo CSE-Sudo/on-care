@@ -1,5 +1,11 @@
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 
+/// 기간 조회가 돌려주는 한 칸 — 그 주의 월요일과 집계. (#2247)
+typedef ClientExercisePeriodWeek = ({
+  DateTime weekStart,
+  ClientExerciseWeek week,
+});
+
 class ClientExerciseWeek {
   const ClientExerciseWeek({
     required this.dayLabels,
