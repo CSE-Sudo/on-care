@@ -280,8 +280,9 @@ void main() {
       expect(inMacro('단백질', '54.4'), findsOneWidget);
       expect(inMacro('지방', '34.1'), findsOneWidget);
 
-      // 헤더의 경고 배지는 그대로다 — 카드에서 내린 것은 막대뿐이다.
-      expect(find.text('나트륨 초과'), findsOneWidget);
+      // 헤더의 경고 배지는 그대로다 — 카드에서 내린 것은 막대뿐이다. 김민수의
+      // 배지는 PT 관리 신호의 칼로리 이탈이다(#2243).
+      expect(find.text('칼로리 18% 과다'), findsOneWidget);
       // 나트륨·당류 막대는 없다 — 회원 앱 `오늘` 카드와 같다(회원 앱 #1986,
       // #2156). 그 자리에 탄·단·지 진행 바가 선다.
       expect(
