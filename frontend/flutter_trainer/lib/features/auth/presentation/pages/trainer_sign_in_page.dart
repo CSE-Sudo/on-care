@@ -96,7 +96,7 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
       setState(() => _loading = false);
       showAppToast(
         context,
-        AppLocalizations.of(context).authErrSocialFailed,
+        AppLocalizations.of(context).authSocialSignInFailed,
         type: AppToastType.error,
       );
     }
@@ -162,9 +162,9 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
           AppTextField(
             key: const ValueKey<String>('trainer-login-email'),
             controller: _email,
-            hint: l.authEmail,
+            hint: l.authEmailHint,
             errorText: _errors.of(_Field.email),
-            prefixIcon: Icons.mail_rounded,
+            prefixIcon: AppIcon.setOf(context).mail,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -174,29 +174,26 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
           AppTextField(
             key: const ValueKey<String>('trainer-login-password'),
             controller: _password,
-            hint: l.authPassword,
+            hint: l.authPasswordHint,
             errorText: _errors.of(_Field.password),
-            prefixIcon: Icons.lock_rounded,
+            prefixIcon: AppIcon.setOf(context).lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onChanged: _onEdited,
             onSubmitted: (_) => _login(),
-            suffix: AppIconButton(
-              // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가
-              // 툴팁뿐이다(#972).
-              tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
-              icon: _obscure
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              color: OnCareColors.textTertiary,
+            // 회원 앱 로그인과 같은 부품이다(#2226).
+            suffix: AppPasswordToggle(
+              obscure: _obscure,
+              showLabel: l.a11yShowPassword,
+              hideLabel: l.a11yHidePassword,
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
           ),
           const SizedBox(height: OnCareSpacing.s24),
           AppButton(
             key: const ValueKey<String>('trainer-login-submit'),
-            label: l.authSignIn,
+            label: l.authSignInAction,
             onPressed: _login,
             size: OnCareButtonSize.large,
             loading: _loading,
@@ -212,13 +209,13 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
               AppSocialLoginButton(
                 key: const ValueKey<String>('trainer-login-kakao'),
                 provider: AppSocialProvider.kakao,
-                label: l.authContinueKakao,
+                label: l.authKakaoAction,
                 onPressed: _loading ? null : () => _social('kakao'),
               ),
               AppSocialLoginButton(
                 key: const ValueKey<String>('trainer-login-google'),
                 provider: AppSocialProvider.google,
-                label: l.authContinueGoogle,
+                label: l.authGoogleAction,
                 onPressed: _loading ? null : () => _social('google'),
               ),
             ],
@@ -233,13 +230,13 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 Text(
-                  l.authNoAccount,
+                  l.authNoAccountQuestion,
                   style: tokens
                       .text(OnCareTypography.bodySmall)
                       .copyWith(color: OnCareColors.textSecondary),
                 ),
                 AppButton(
-                  label: l.authSignUp,
+                  label: l.authSignUpAction,
                   onPressed: _loading ? null : _onSignUp,
                   variant: AppButtonVariant.text,
                   size: OnCareButtonSize.small,
@@ -252,10 +249,9 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             Center(
               child: AppButton(
                 key: const Key('demoEnterButton'),
-                label: l.authBrowseDemo,
+                label: l.authDemoAction,
                 onPressed: _loading ? null : _enterDemo,
                 variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
               ),
             ),
         ],

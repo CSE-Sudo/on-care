@@ -30,6 +30,10 @@ const IconData _thin = IconData(0xe016, fontFamily: 'TestSymbols');
 const IconData _calendarExpand = IconData(0xe017, fontFamily: 'TestSymbols');
 const IconData _calendarCollapse = IconData(0xe018, fontFamily: 'TestSymbols');
 const IconData _reward = IconData(0xe019, fontFamily: 'TestSymbols');
+const IconData _mail = IconData(0xe01a, fontFamily: 'TestSymbols');
+const IconData _lock = IconData(0xe01b, fontFamily: 'TestSymbols');
+const IconData _visibility = IconData(0xe01c, fontFamily: 'TestSymbols');
+const IconData _visibilityOff = IconData(0xe01d, fontFamily: 'TestSymbols');
 
 const OnCareIconSet _symbols = OnCareIconSet(
   name: 'test',
@@ -57,6 +61,10 @@ const OnCareIconSet _symbols = OnCareIconSet(
   emote: _emote,
   file: _file,
   reward: _reward,
+  mail: _mail,
+  lock: _lock,
+  visibility: _visibility,
+  visibilityOff: _visibilityOff,
   fill: 1,
   weight: 400,
   grade: 0,
