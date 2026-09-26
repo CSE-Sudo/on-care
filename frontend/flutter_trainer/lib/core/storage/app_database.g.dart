@@ -4810,6 +4810,30 @@ class $ClientDailyMetricsTable extends ClientDailyMetrics
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _mealCountMeta = const VerificationMeta(
+    'mealCount',
+  );
+  @override
+  late final GeneratedColumn<int> mealCount = GeneratedColumn<int>(
+    'meal_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _assignedCountMeta = const VerificationMeta(
+    'assignedCount',
+  );
+  @override
+  late final GeneratedColumn<int> assignedCount = GeneratedColumn<int>(
+    'assigned_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     clientId,
@@ -4822,6 +4846,8 @@ class $ClientDailyMetricsTable extends ClientDailyMetrics
     proteinG,
     fatG,
     exercisesJson,
+    mealCount,
+    assignedCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4902,6 +4928,21 @@ class $ClientDailyMetricsTable extends ClientDailyMetrics
         ),
       );
     }
+    if (data.containsKey('meal_count')) {
+      context.handle(
+        _mealCountMeta,
+        mealCount.isAcceptableOrUnknown(data['meal_count']!, _mealCountMeta),
+      );
+    }
+    if (data.containsKey('assigned_count')) {
+      context.handle(
+        _assignedCountMeta,
+        assignedCount.isAcceptableOrUnknown(
+          data['assigned_count']!,
+          _assignedCountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4951,6 +4992,14 @@ class $ClientDailyMetricsTable extends ClientDailyMetrics
         DriftSqlType.string,
         data['${effectivePrefix}exercises_json'],
       )!,
+      mealCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}meal_count'],
+      )!,
+      assignedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}assigned_count'],
+      )!,
     );
   }
 
@@ -4981,6 +5030,23 @@ class ClientDailyMetricRow extends DataClass
   /// 규칙이며, 리포트의 요일별 상세가 이 값을 읽어 몇 개 중 몇 개인지 보여
   /// 준다 — 이행률만으로는 67% 의 분모를 알 수 없다(#754).
   final String exercisesJson;
+
+  /// 그날 남긴 끼니 기록 **횟수**. (#2232)
+  ///
+  /// 칼로리가 0 인 날을 "안 먹었다"로 읽을 수는 없다 — 기록을 안 한 것이다.
+  /// 리포트 ① 격자는 그 둘을 갈라 보여야 하고, 거기에 필요한 값은 칼로리가
+  /// 아니라 **몇 번 적었나**다. 아침만 적고 만 날(1회)과 세 끼를 다 적은
+  /// 날(3회)은 같은 `기록함` 이 아니다.
+  final int mealCount;
+
+  /// 그날 **배정된** 개인 운동 수. (#2232)
+  ///
+  /// [exercisesJson] 은 실제로 한 운동만 담는다(#1288) — 그래서 그 길이로는
+  /// `3개 중 3개` 와 `3개 중 0개` 를 가를 수 없고, 하나도 안 한 날은 아예
+  /// 사라진다. 리포트 ① 격자가 말하려는 것이 바로 그 날들이라, 분모를 따로
+  /// 둔다. 추천 개인 운동은 트레이너가 바꿀 때까지 매일 같은 목록으로
+  /// 리셋되므로(#2160), 하루의 배정 수는 지어낸 값이 아니라 정해진 값이다.
+  final int assignedCount;
   const ClientDailyMetricRow({
     required this.clientId,
     required this.date,
@@ -4992,6 +5058,8 @@ class ClientDailyMetricRow extends DataClass
     required this.proteinG,
     required this.fatG,
     required this.exercisesJson,
+    required this.mealCount,
+    required this.assignedCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5006,6 +5074,8 @@ class ClientDailyMetricRow extends DataClass
     map['protein_g'] = Variable<double>(proteinG);
     map['fat_g'] = Variable<double>(fatG);
     map['exercises_json'] = Variable<String>(exercisesJson);
+    map['meal_count'] = Variable<int>(mealCount);
+    map['assigned_count'] = Variable<int>(assignedCount);
     return map;
   }
 
@@ -5021,6 +5091,8 @@ class ClientDailyMetricRow extends DataClass
       proteinG: Value(proteinG),
       fatG: Value(fatG),
       exercisesJson: Value(exercisesJson),
+      mealCount: Value(mealCount),
+      assignedCount: Value(assignedCount),
     );
   }
 
@@ -5040,6 +5112,8 @@ class ClientDailyMetricRow extends DataClass
       proteinG: serializer.fromJson<double>(json['proteinG']),
       fatG: serializer.fromJson<double>(json['fatG']),
       exercisesJson: serializer.fromJson<String>(json['exercisesJson']),
+      mealCount: serializer.fromJson<int>(json['mealCount']),
+      assignedCount: serializer.fromJson<int>(json['assignedCount']),
     );
   }
   @override
@@ -5056,6 +5130,8 @@ class ClientDailyMetricRow extends DataClass
       'proteinG': serializer.toJson<double>(proteinG),
       'fatG': serializer.toJson<double>(fatG),
       'exercisesJson': serializer.toJson<String>(exercisesJson),
+      'mealCount': serializer.toJson<int>(mealCount),
+      'assignedCount': serializer.toJson<int>(assignedCount),
     };
   }
 
@@ -5070,6 +5146,8 @@ class ClientDailyMetricRow extends DataClass
     double? proteinG,
     double? fatG,
     String? exercisesJson,
+    int? mealCount,
+    int? assignedCount,
   }) => ClientDailyMetricRow(
     clientId: clientId ?? this.clientId,
     date: date ?? this.date,
@@ -5081,6 +5159,8 @@ class ClientDailyMetricRow extends DataClass
     proteinG: proteinG ?? this.proteinG,
     fatG: fatG ?? this.fatG,
     exercisesJson: exercisesJson ?? this.exercisesJson,
+    mealCount: mealCount ?? this.mealCount,
+    assignedCount: assignedCount ?? this.assignedCount,
   );
   ClientDailyMetricRow copyWithCompanion(ClientDailyMetricsCompanion data) {
     return ClientDailyMetricRow(
@@ -5098,6 +5178,10 @@ class ClientDailyMetricRow extends DataClass
       exercisesJson: data.exercisesJson.present
           ? data.exercisesJson.value
           : this.exercisesJson,
+      mealCount: data.mealCount.present ? data.mealCount.value : this.mealCount,
+      assignedCount: data.assignedCount.present
+          ? data.assignedCount.value
+          : this.assignedCount,
     );
   }
 
@@ -5113,7 +5197,9 @@ class ClientDailyMetricRow extends DataClass
           ..write('carbsG: $carbsG, ')
           ..write('proteinG: $proteinG, ')
           ..write('fatG: $fatG, ')
-          ..write('exercisesJson: $exercisesJson')
+          ..write('exercisesJson: $exercisesJson, ')
+          ..write('mealCount: $mealCount, ')
+          ..write('assignedCount: $assignedCount')
           ..write(')'))
         .toString();
   }
@@ -5130,6 +5216,8 @@ class ClientDailyMetricRow extends DataClass
     proteinG,
     fatG,
     exercisesJson,
+    mealCount,
+    assignedCount,
   );
   @override
   bool operator ==(Object other) =>
@@ -5144,7 +5232,9 @@ class ClientDailyMetricRow extends DataClass
           other.carbsG == this.carbsG &&
           other.proteinG == this.proteinG &&
           other.fatG == this.fatG &&
-          other.exercisesJson == this.exercisesJson);
+          other.exercisesJson == this.exercisesJson &&
+          other.mealCount == this.mealCount &&
+          other.assignedCount == this.assignedCount);
 }
 
 class ClientDailyMetricsCompanion
@@ -5159,6 +5249,8 @@ class ClientDailyMetricsCompanion
   final Value<double> proteinG;
   final Value<double> fatG;
   final Value<String> exercisesJson;
+  final Value<int> mealCount;
+  final Value<int> assignedCount;
   final Value<int> rowid;
   const ClientDailyMetricsCompanion({
     this.clientId = const Value.absent(),
@@ -5171,6 +5263,8 @@ class ClientDailyMetricsCompanion
     this.proteinG = const Value.absent(),
     this.fatG = const Value.absent(),
     this.exercisesJson = const Value.absent(),
+    this.mealCount = const Value.absent(),
+    this.assignedCount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ClientDailyMetricsCompanion.insert({
@@ -5184,6 +5278,8 @@ class ClientDailyMetricsCompanion
     this.proteinG = const Value.absent(),
     this.fatG = const Value.absent(),
     this.exercisesJson = const Value.absent(),
+    this.mealCount = const Value.absent(),
+    this.assignedCount = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : clientId = Value(clientId),
        date = Value(date);
@@ -5198,6 +5294,8 @@ class ClientDailyMetricsCompanion
     Expression<double>? proteinG,
     Expression<double>? fatG,
     Expression<String>? exercisesJson,
+    Expression<int>? mealCount,
+    Expression<int>? assignedCount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5211,6 +5309,8 @@ class ClientDailyMetricsCompanion
       if (proteinG != null) 'protein_g': proteinG,
       if (fatG != null) 'fat_g': fatG,
       if (exercisesJson != null) 'exercises_json': exercisesJson,
+      if (mealCount != null) 'meal_count': mealCount,
+      if (assignedCount != null) 'assigned_count': assignedCount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5226,6 +5326,8 @@ class ClientDailyMetricsCompanion
     Value<double>? proteinG,
     Value<double>? fatG,
     Value<String>? exercisesJson,
+    Value<int>? mealCount,
+    Value<int>? assignedCount,
     Value<int>? rowid,
   }) {
     return ClientDailyMetricsCompanion(
@@ -5239,6 +5341,8 @@ class ClientDailyMetricsCompanion
       proteinG: proteinG ?? this.proteinG,
       fatG: fatG ?? this.fatG,
       exercisesJson: exercisesJson ?? this.exercisesJson,
+      mealCount: mealCount ?? this.mealCount,
+      assignedCount: assignedCount ?? this.assignedCount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5276,6 +5380,12 @@ class ClientDailyMetricsCompanion
     if (exercisesJson.present) {
       map['exercises_json'] = Variable<String>(exercisesJson.value);
     }
+    if (mealCount.present) {
+      map['meal_count'] = Variable<int>(mealCount.value);
+    }
+    if (assignedCount.present) {
+      map['assigned_count'] = Variable<int>(assignedCount.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5295,6 +5405,8 @@ class ClientDailyMetricsCompanion
           ..write('proteinG: $proteinG, ')
           ..write('fatG: $fatG, ')
           ..write('exercisesJson: $exercisesJson, ')
+          ..write('mealCount: $mealCount, ')
+          ..write('assignedCount: $assignedCount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5614,6 +5726,736 @@ class ReportFeedbackDraftsCompanion
   }
 }
 
+class $ClientWeeklyFeedbacksTable extends ClientWeeklyFeedbacks
+    with TableInfo<$ClientWeeklyFeedbacksTable, ClientWeeklyFeedbackRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ClientWeeklyFeedbacksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weekStartMeta = const VerificationMeta(
+    'weekStart',
+  );
+  @override
+  late final GeneratedColumn<String> weekStart = GeneratedColumn<String>(
+    'week_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _conditionMeta = const VerificationMeta(
+    'condition',
+  );
+  @override
+  late final GeneratedColumn<String> condition = GeneratedColumn<String>(
+    'condition',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _intensityMeta = const VerificationMeta(
+    'intensity',
+  );
+  @override
+  late final GeneratedColumn<String> intensity = GeneratedColumn<String>(
+    'intensity',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _painAreaMeta = const VerificationMeta(
+    'painArea',
+  );
+  @override
+  late final GeneratedColumn<String> painArea = GeneratedColumn<String>(
+    'pain_area',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _painOnMeta = const VerificationMeta('painOn');
+  @override
+  late final GeneratedColumn<String> painOn = GeneratedColumn<String>(
+    'pain_on',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    clientId,
+    weekStart,
+    condition,
+    intensity,
+    painArea,
+    painOn,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'client_weekly_feedbacks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ClientWeeklyFeedbackRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_clientIdMeta);
+    }
+    if (data.containsKey('week_start')) {
+      context.handle(
+        _weekStartMeta,
+        weekStart.isAcceptableOrUnknown(data['week_start']!, _weekStartMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekStartMeta);
+    }
+    if (data.containsKey('condition')) {
+      context.handle(
+        _conditionMeta,
+        condition.isAcceptableOrUnknown(data['condition']!, _conditionMeta),
+      );
+    }
+    if (data.containsKey('intensity')) {
+      context.handle(
+        _intensityMeta,
+        intensity.isAcceptableOrUnknown(data['intensity']!, _intensityMeta),
+      );
+    }
+    if (data.containsKey('pain_area')) {
+      context.handle(
+        _painAreaMeta,
+        painArea.isAcceptableOrUnknown(data['pain_area']!, _painAreaMeta),
+      );
+    }
+    if (data.containsKey('pain_on')) {
+      context.handle(
+        _painOnMeta,
+        painOn.isAcceptableOrUnknown(data['pain_on']!, _painOnMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {clientId, weekStart};
+  @override
+  ClientWeeklyFeedbackRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ClientWeeklyFeedbackRow(
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      weekStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}week_start'],
+      )!,
+      condition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}condition'],
+      )!,
+      intensity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}intensity'],
+      )!,
+      painArea: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pain_area'],
+      )!,
+      painOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pain_on'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+    );
+  }
+
+  @override
+  $ClientWeeklyFeedbacksTable createAlias(String alias) {
+    return $ClientWeeklyFeedbacksTable(attachedDatabase, alias);
+  }
+}
+
+class ClientWeeklyFeedbackRow extends DataClass
+    implements Insertable<ClientWeeklyFeedbackRow> {
+  final String clientId;
+  final String weekStart;
+  final String condition;
+  final String intensity;
+  final String painArea;
+  final String painOn;
+  final String note;
+  const ClientWeeklyFeedbackRow({
+    required this.clientId,
+    required this.weekStart,
+    required this.condition,
+    required this.intensity,
+    required this.painArea,
+    required this.painOn,
+    required this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['client_id'] = Variable<String>(clientId);
+    map['week_start'] = Variable<String>(weekStart);
+    map['condition'] = Variable<String>(condition);
+    map['intensity'] = Variable<String>(intensity);
+    map['pain_area'] = Variable<String>(painArea);
+    map['pain_on'] = Variable<String>(painOn);
+    map['note'] = Variable<String>(note);
+    return map;
+  }
+
+  ClientWeeklyFeedbacksCompanion toCompanion(bool nullToAbsent) {
+    return ClientWeeklyFeedbacksCompanion(
+      clientId: Value(clientId),
+      weekStart: Value(weekStart),
+      condition: Value(condition),
+      intensity: Value(intensity),
+      painArea: Value(painArea),
+      painOn: Value(painOn),
+      note: Value(note),
+    );
+  }
+
+  factory ClientWeeklyFeedbackRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ClientWeeklyFeedbackRow(
+      clientId: serializer.fromJson<String>(json['clientId']),
+      weekStart: serializer.fromJson<String>(json['weekStart']),
+      condition: serializer.fromJson<String>(json['condition']),
+      intensity: serializer.fromJson<String>(json['intensity']),
+      painArea: serializer.fromJson<String>(json['painArea']),
+      painOn: serializer.fromJson<String>(json['painOn']),
+      note: serializer.fromJson<String>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'clientId': serializer.toJson<String>(clientId),
+      'weekStart': serializer.toJson<String>(weekStart),
+      'condition': serializer.toJson<String>(condition),
+      'intensity': serializer.toJson<String>(intensity),
+      'painArea': serializer.toJson<String>(painArea),
+      'painOn': serializer.toJson<String>(painOn),
+      'note': serializer.toJson<String>(note),
+    };
+  }
+
+  ClientWeeklyFeedbackRow copyWith({
+    String? clientId,
+    String? weekStart,
+    String? condition,
+    String? intensity,
+    String? painArea,
+    String? painOn,
+    String? note,
+  }) => ClientWeeklyFeedbackRow(
+    clientId: clientId ?? this.clientId,
+    weekStart: weekStart ?? this.weekStart,
+    condition: condition ?? this.condition,
+    intensity: intensity ?? this.intensity,
+    painArea: painArea ?? this.painArea,
+    painOn: painOn ?? this.painOn,
+    note: note ?? this.note,
+  );
+  ClientWeeklyFeedbackRow copyWithCompanion(
+    ClientWeeklyFeedbacksCompanion data,
+  ) {
+    return ClientWeeklyFeedbackRow(
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      weekStart: data.weekStart.present ? data.weekStart.value : this.weekStart,
+      condition: data.condition.present ? data.condition.value : this.condition,
+      intensity: data.intensity.present ? data.intensity.value : this.intensity,
+      painArea: data.painArea.present ? data.painArea.value : this.painArea,
+      painOn: data.painOn.present ? data.painOn.value : this.painOn,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClientWeeklyFeedbackRow(')
+          ..write('clientId: $clientId, ')
+          ..write('weekStart: $weekStart, ')
+          ..write('condition: $condition, ')
+          ..write('intensity: $intensity, ')
+          ..write('painArea: $painArea, ')
+          ..write('painOn: $painOn, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    clientId,
+    weekStart,
+    condition,
+    intensity,
+    painArea,
+    painOn,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ClientWeeklyFeedbackRow &&
+          other.clientId == this.clientId &&
+          other.weekStart == this.weekStart &&
+          other.condition == this.condition &&
+          other.intensity == this.intensity &&
+          other.painArea == this.painArea &&
+          other.painOn == this.painOn &&
+          other.note == this.note);
+}
+
+class ClientWeeklyFeedbacksCompanion
+    extends UpdateCompanion<ClientWeeklyFeedbackRow> {
+  final Value<String> clientId;
+  final Value<String> weekStart;
+  final Value<String> condition;
+  final Value<String> intensity;
+  final Value<String> painArea;
+  final Value<String> painOn;
+  final Value<String> note;
+  final Value<int> rowid;
+  const ClientWeeklyFeedbacksCompanion({
+    this.clientId = const Value.absent(),
+    this.weekStart = const Value.absent(),
+    this.condition = const Value.absent(),
+    this.intensity = const Value.absent(),
+    this.painArea = const Value.absent(),
+    this.painOn = const Value.absent(),
+    this.note = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ClientWeeklyFeedbacksCompanion.insert({
+    required String clientId,
+    required String weekStart,
+    this.condition = const Value.absent(),
+    this.intensity = const Value.absent(),
+    this.painArea = const Value.absent(),
+    this.painOn = const Value.absent(),
+    this.note = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : clientId = Value(clientId),
+       weekStart = Value(weekStart);
+  static Insertable<ClientWeeklyFeedbackRow> custom({
+    Expression<String>? clientId,
+    Expression<String>? weekStart,
+    Expression<String>? condition,
+    Expression<String>? intensity,
+    Expression<String>? painArea,
+    Expression<String>? painOn,
+    Expression<String>? note,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (clientId != null) 'client_id': clientId,
+      if (weekStart != null) 'week_start': weekStart,
+      if (condition != null) 'condition': condition,
+      if (intensity != null) 'intensity': intensity,
+      if (painArea != null) 'pain_area': painArea,
+      if (painOn != null) 'pain_on': painOn,
+      if (note != null) 'note': note,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ClientWeeklyFeedbacksCompanion copyWith({
+    Value<String>? clientId,
+    Value<String>? weekStart,
+    Value<String>? condition,
+    Value<String>? intensity,
+    Value<String>? painArea,
+    Value<String>? painOn,
+    Value<String>? note,
+    Value<int>? rowid,
+  }) {
+    return ClientWeeklyFeedbacksCompanion(
+      clientId: clientId ?? this.clientId,
+      weekStart: weekStart ?? this.weekStart,
+      condition: condition ?? this.condition,
+      intensity: intensity ?? this.intensity,
+      painArea: painArea ?? this.painArea,
+      painOn: painOn ?? this.painOn,
+      note: note ?? this.note,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (weekStart.present) {
+      map['week_start'] = Variable<String>(weekStart.value);
+    }
+    if (condition.present) {
+      map['condition'] = Variable<String>(condition.value);
+    }
+    if (intensity.present) {
+      map['intensity'] = Variable<String>(intensity.value);
+    }
+    if (painArea.present) {
+      map['pain_area'] = Variable<String>(painArea.value);
+    }
+    if (painOn.present) {
+      map['pain_on'] = Variable<String>(painOn.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClientWeeklyFeedbacksCompanion(')
+          ..write('clientId: $clientId, ')
+          ..write('weekStart: $weekStart, ')
+          ..write('condition: $condition, ')
+          ..write('intensity: $intensity, ')
+          ..write('painArea: $painArea, ')
+          ..write('painOn: $painOn, ')
+          ..write('note: $note, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ClientReportGoalsTable extends ClientReportGoals
+    with TableInfo<$ClientReportGoalsTable, ClientReportGoalRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ClientReportGoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weekStartMeta = const VerificationMeta(
+    'weekStart',
+  );
+  @override
+  late final GeneratedColumn<String> weekStart = GeneratedColumn<String>(
+    'week_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _goalsJsonMeta = const VerificationMeta(
+    'goalsJson',
+  );
+  @override
+  late final GeneratedColumn<String> goalsJson = GeneratedColumn<String>(
+    'goals_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [clientId, weekStart, goalsJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'client_report_goals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ClientReportGoalRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_clientIdMeta);
+    }
+    if (data.containsKey('week_start')) {
+      context.handle(
+        _weekStartMeta,
+        weekStart.isAcceptableOrUnknown(data['week_start']!, _weekStartMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekStartMeta);
+    }
+    if (data.containsKey('goals_json')) {
+      context.handle(
+        _goalsJsonMeta,
+        goalsJson.isAcceptableOrUnknown(data['goals_json']!, _goalsJsonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {clientId, weekStart};
+  @override
+  ClientReportGoalRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ClientReportGoalRow(
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      weekStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}week_start'],
+      )!,
+      goalsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}goals_json'],
+      )!,
+    );
+  }
+
+  @override
+  $ClientReportGoalsTable createAlias(String alias) {
+    return $ClientReportGoalsTable(attachedDatabase, alias);
+  }
+}
+
+class ClientReportGoalRow extends DataClass
+    implements Insertable<ClientReportGoalRow> {
+  final String clientId;
+  final String weekStart;
+  final String goalsJson;
+  const ClientReportGoalRow({
+    required this.clientId,
+    required this.weekStart,
+    required this.goalsJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['client_id'] = Variable<String>(clientId);
+    map['week_start'] = Variable<String>(weekStart);
+    map['goals_json'] = Variable<String>(goalsJson);
+    return map;
+  }
+
+  ClientReportGoalsCompanion toCompanion(bool nullToAbsent) {
+    return ClientReportGoalsCompanion(
+      clientId: Value(clientId),
+      weekStart: Value(weekStart),
+      goalsJson: Value(goalsJson),
+    );
+  }
+
+  factory ClientReportGoalRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ClientReportGoalRow(
+      clientId: serializer.fromJson<String>(json['clientId']),
+      weekStart: serializer.fromJson<String>(json['weekStart']),
+      goalsJson: serializer.fromJson<String>(json['goalsJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'clientId': serializer.toJson<String>(clientId),
+      'weekStart': serializer.toJson<String>(weekStart),
+      'goalsJson': serializer.toJson<String>(goalsJson),
+    };
+  }
+
+  ClientReportGoalRow copyWith({
+    String? clientId,
+    String? weekStart,
+    String? goalsJson,
+  }) => ClientReportGoalRow(
+    clientId: clientId ?? this.clientId,
+    weekStart: weekStart ?? this.weekStart,
+    goalsJson: goalsJson ?? this.goalsJson,
+  );
+  ClientReportGoalRow copyWithCompanion(ClientReportGoalsCompanion data) {
+    return ClientReportGoalRow(
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      weekStart: data.weekStart.present ? data.weekStart.value : this.weekStart,
+      goalsJson: data.goalsJson.present ? data.goalsJson.value : this.goalsJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClientReportGoalRow(')
+          ..write('clientId: $clientId, ')
+          ..write('weekStart: $weekStart, ')
+          ..write('goalsJson: $goalsJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(clientId, weekStart, goalsJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ClientReportGoalRow &&
+          other.clientId == this.clientId &&
+          other.weekStart == this.weekStart &&
+          other.goalsJson == this.goalsJson);
+}
+
+class ClientReportGoalsCompanion extends UpdateCompanion<ClientReportGoalRow> {
+  final Value<String> clientId;
+  final Value<String> weekStart;
+  final Value<String> goalsJson;
+  final Value<int> rowid;
+  const ClientReportGoalsCompanion({
+    this.clientId = const Value.absent(),
+    this.weekStart = const Value.absent(),
+    this.goalsJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ClientReportGoalsCompanion.insert({
+    required String clientId,
+    required String weekStart,
+    this.goalsJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : clientId = Value(clientId),
+       weekStart = Value(weekStart);
+  static Insertable<ClientReportGoalRow> custom({
+    Expression<String>? clientId,
+    Expression<String>? weekStart,
+    Expression<String>? goalsJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (clientId != null) 'client_id': clientId,
+      if (weekStart != null) 'week_start': weekStart,
+      if (goalsJson != null) 'goals_json': goalsJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ClientReportGoalsCompanion copyWith({
+    Value<String>? clientId,
+    Value<String>? weekStart,
+    Value<String>? goalsJson,
+    Value<int>? rowid,
+  }) {
+    return ClientReportGoalsCompanion(
+      clientId: clientId ?? this.clientId,
+      weekStart: weekStart ?? this.weekStart,
+      goalsJson: goalsJson ?? this.goalsJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (weekStart.present) {
+      map['week_start'] = Variable<String>(weekStart.value);
+    }
+    if (goalsJson.present) {
+      map['goals_json'] = Variable<String>(goalsJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClientReportGoalsCompanion(')
+          ..write('clientId: $clientId, ')
+          ..write('weekStart: $weekStart, ')
+          ..write('goalsJson: $goalsJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5634,6 +6476,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $ClientDailyMetricsTable(this);
   late final $ReportFeedbackDraftsTable reportFeedbackDrafts =
       $ReportFeedbackDraftsTable(this);
+  late final $ClientWeeklyFeedbacksTable clientWeeklyFeedbacks =
+      $ClientWeeklyFeedbacksTable(this);
+  late final $ClientReportGoalsTable clientReportGoals =
+      $ClientReportGoalsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5648,6 +6494,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     trainerScheduleEntries,
     clientDailyMetrics,
     reportFeedbackDrafts,
+    clientWeeklyFeedbacks,
+    clientReportGoals,
   ];
 }
 
@@ -7993,6 +8841,8 @@ typedef $$ClientDailyMetricsTableCreateCompanionBuilder =
       Value<double> proteinG,
       Value<double> fatG,
       Value<String> exercisesJson,
+      Value<int> mealCount,
+      Value<int> assignedCount,
       Value<int> rowid,
     });
 typedef $$ClientDailyMetricsTableUpdateCompanionBuilder =
@@ -8007,6 +8857,8 @@ typedef $$ClientDailyMetricsTableUpdateCompanionBuilder =
       Value<double> proteinG,
       Value<double> fatG,
       Value<String> exercisesJson,
+      Value<int> mealCount,
+      Value<int> assignedCount,
       Value<int> rowid,
     });
 
@@ -8066,6 +8918,16 @@ class $$ClientDailyMetricsTableFilterComposer
 
   ColumnFilters<String> get exercisesJson => $composableBuilder(
     column: $table.exercisesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get mealCount => $composableBuilder(
+    column: $table.mealCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get assignedCount => $composableBuilder(
+    column: $table.assignedCount,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8128,6 +8990,16 @@ class $$ClientDailyMetricsTableOrderingComposer
     column: $table.exercisesJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get mealCount => $composableBuilder(
+    column: $table.mealCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get assignedCount => $composableBuilder(
+    column: $table.assignedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientDailyMetricsTableAnnotationComposer
@@ -8170,6 +9042,14 @@ class $$ClientDailyMetricsTableAnnotationComposer
 
   GeneratedColumn<String> get exercisesJson => $composableBuilder(
     column: $table.exercisesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get mealCount =>
+      $composableBuilder(column: $table.mealCount, builder: (column) => column);
+
+  GeneratedColumn<int> get assignedCount => $composableBuilder(
+    column: $table.assignedCount,
     builder: (column) => column,
   );
 }
@@ -8224,6 +9104,8 @@ class $$ClientDailyMetricsTableTableManager
                 Value<double> proteinG = const Value.absent(),
                 Value<double> fatG = const Value.absent(),
                 Value<String> exercisesJson = const Value.absent(),
+                Value<int> mealCount = const Value.absent(),
+                Value<int> assignedCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientDailyMetricsCompanion(
                 clientId: clientId,
@@ -8236,6 +9118,8 @@ class $$ClientDailyMetricsTableTableManager
                 proteinG: proteinG,
                 fatG: fatG,
                 exercisesJson: exercisesJson,
+                mealCount: mealCount,
+                assignedCount: assignedCount,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8250,6 +9134,8 @@ class $$ClientDailyMetricsTableTableManager
                 Value<double> proteinG = const Value.absent(),
                 Value<double> fatG = const Value.absent(),
                 Value<String> exercisesJson = const Value.absent(),
+                Value<int> mealCount = const Value.absent(),
+                Value<int> assignedCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientDailyMetricsCompanion.insert(
                 clientId: clientId,
@@ -8262,6 +9148,8 @@ class $$ClientDailyMetricsTableTableManager
                 proteinG: proteinG,
                 fatG: fatG,
                 exercisesJson: exercisesJson,
+                mealCount: mealCount,
+                assignedCount: assignedCount,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -8490,6 +9378,438 @@ typedef $$ReportFeedbackDraftsTableProcessedTableManager =
       ReportFeedbackDraftRow,
       PrefetchHooks Function()
     >;
+typedef $$ClientWeeklyFeedbacksTableCreateCompanionBuilder =
+    ClientWeeklyFeedbacksCompanion Function({
+      required String clientId,
+      required String weekStart,
+      Value<String> condition,
+      Value<String> intensity,
+      Value<String> painArea,
+      Value<String> painOn,
+      Value<String> note,
+      Value<int> rowid,
+    });
+typedef $$ClientWeeklyFeedbacksTableUpdateCompanionBuilder =
+    ClientWeeklyFeedbacksCompanion Function({
+      Value<String> clientId,
+      Value<String> weekStart,
+      Value<String> condition,
+      Value<String> intensity,
+      Value<String> painArea,
+      Value<String> painOn,
+      Value<String> note,
+      Value<int> rowid,
+    });
+
+class $$ClientWeeklyFeedbacksTableFilterComposer
+    extends Composer<_$AppDatabase, $ClientWeeklyFeedbacksTable> {
+  $$ClientWeeklyFeedbacksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get condition => $composableBuilder(
+    column: $table.condition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get intensity => $composableBuilder(
+    column: $table.intensity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get painArea => $composableBuilder(
+    column: $table.painArea,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get painOn => $composableBuilder(
+    column: $table.painOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ClientWeeklyFeedbacksTableOrderingComposer
+    extends Composer<_$AppDatabase, $ClientWeeklyFeedbacksTable> {
+  $$ClientWeeklyFeedbacksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get condition => $composableBuilder(
+    column: $table.condition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get intensity => $composableBuilder(
+    column: $table.intensity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get painArea => $composableBuilder(
+    column: $table.painArea,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get painOn => $composableBuilder(
+    column: $table.painOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ClientWeeklyFeedbacksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ClientWeeklyFeedbacksTable> {
+  $$ClientWeeklyFeedbacksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get weekStart =>
+      $composableBuilder(column: $table.weekStart, builder: (column) => column);
+
+  GeneratedColumn<String> get condition =>
+      $composableBuilder(column: $table.condition, builder: (column) => column);
+
+  GeneratedColumn<String> get intensity =>
+      $composableBuilder(column: $table.intensity, builder: (column) => column);
+
+  GeneratedColumn<String> get painArea =>
+      $composableBuilder(column: $table.painArea, builder: (column) => column);
+
+  GeneratedColumn<String> get painOn =>
+      $composableBuilder(column: $table.painOn, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+}
+
+class $$ClientWeeklyFeedbacksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ClientWeeklyFeedbacksTable,
+          ClientWeeklyFeedbackRow,
+          $$ClientWeeklyFeedbacksTableFilterComposer,
+          $$ClientWeeklyFeedbacksTableOrderingComposer,
+          $$ClientWeeklyFeedbacksTableAnnotationComposer,
+          $$ClientWeeklyFeedbacksTableCreateCompanionBuilder,
+          $$ClientWeeklyFeedbacksTableUpdateCompanionBuilder,
+          (
+            ClientWeeklyFeedbackRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ClientWeeklyFeedbacksTable,
+              ClientWeeklyFeedbackRow
+            >,
+          ),
+          ClientWeeklyFeedbackRow,
+          PrefetchHooks Function()
+        > {
+  $$ClientWeeklyFeedbacksTableTableManager(
+    _$AppDatabase db,
+    $ClientWeeklyFeedbacksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ClientWeeklyFeedbacksTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ClientWeeklyFeedbacksTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ClientWeeklyFeedbacksTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> clientId = const Value.absent(),
+                Value<String> weekStart = const Value.absent(),
+                Value<String> condition = const Value.absent(),
+                Value<String> intensity = const Value.absent(),
+                Value<String> painArea = const Value.absent(),
+                Value<String> painOn = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ClientWeeklyFeedbacksCompanion(
+                clientId: clientId,
+                weekStart: weekStart,
+                condition: condition,
+                intensity: intensity,
+                painArea: painArea,
+                painOn: painOn,
+                note: note,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String clientId,
+                required String weekStart,
+                Value<String> condition = const Value.absent(),
+                Value<String> intensity = const Value.absent(),
+                Value<String> painArea = const Value.absent(),
+                Value<String> painOn = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ClientWeeklyFeedbacksCompanion.insert(
+                clientId: clientId,
+                weekStart: weekStart,
+                condition: condition,
+                intensity: intensity,
+                painArea: painArea,
+                painOn: painOn,
+                note: note,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ClientWeeklyFeedbacksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ClientWeeklyFeedbacksTable,
+      ClientWeeklyFeedbackRow,
+      $$ClientWeeklyFeedbacksTableFilterComposer,
+      $$ClientWeeklyFeedbacksTableOrderingComposer,
+      $$ClientWeeklyFeedbacksTableAnnotationComposer,
+      $$ClientWeeklyFeedbacksTableCreateCompanionBuilder,
+      $$ClientWeeklyFeedbacksTableUpdateCompanionBuilder,
+      (
+        ClientWeeklyFeedbackRow,
+        BaseReferences<
+          _$AppDatabase,
+          $ClientWeeklyFeedbacksTable,
+          ClientWeeklyFeedbackRow
+        >,
+      ),
+      ClientWeeklyFeedbackRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ClientReportGoalsTableCreateCompanionBuilder =
+    ClientReportGoalsCompanion Function({
+      required String clientId,
+      required String weekStart,
+      Value<String> goalsJson,
+      Value<int> rowid,
+    });
+typedef $$ClientReportGoalsTableUpdateCompanionBuilder =
+    ClientReportGoalsCompanion Function({
+      Value<String> clientId,
+      Value<String> weekStart,
+      Value<String> goalsJson,
+      Value<int> rowid,
+    });
+
+class $$ClientReportGoalsTableFilterComposer
+    extends Composer<_$AppDatabase, $ClientReportGoalsTable> {
+  $$ClientReportGoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get goalsJson => $composableBuilder(
+    column: $table.goalsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ClientReportGoalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ClientReportGoalsTable> {
+  $$ClientReportGoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get goalsJson => $composableBuilder(
+    column: $table.goalsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ClientReportGoalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ClientReportGoalsTable> {
+  $$ClientReportGoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get weekStart =>
+      $composableBuilder(column: $table.weekStart, builder: (column) => column);
+
+  GeneratedColumn<String> get goalsJson =>
+      $composableBuilder(column: $table.goalsJson, builder: (column) => column);
+}
+
+class $$ClientReportGoalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ClientReportGoalsTable,
+          ClientReportGoalRow,
+          $$ClientReportGoalsTableFilterComposer,
+          $$ClientReportGoalsTableOrderingComposer,
+          $$ClientReportGoalsTableAnnotationComposer,
+          $$ClientReportGoalsTableCreateCompanionBuilder,
+          $$ClientReportGoalsTableUpdateCompanionBuilder,
+          (
+            ClientReportGoalRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ClientReportGoalsTable,
+              ClientReportGoalRow
+            >,
+          ),
+          ClientReportGoalRow,
+          PrefetchHooks Function()
+        > {
+  $$ClientReportGoalsTableTableManager(
+    _$AppDatabase db,
+    $ClientReportGoalsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ClientReportGoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ClientReportGoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ClientReportGoalsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> clientId = const Value.absent(),
+                Value<String> weekStart = const Value.absent(),
+                Value<String> goalsJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ClientReportGoalsCompanion(
+                clientId: clientId,
+                weekStart: weekStart,
+                goalsJson: goalsJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String clientId,
+                required String weekStart,
+                Value<String> goalsJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ClientReportGoalsCompanion.insert(
+                clientId: clientId,
+                weekStart: weekStart,
+                goalsJson: goalsJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ClientReportGoalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ClientReportGoalsTable,
+      ClientReportGoalRow,
+      $$ClientReportGoalsTableFilterComposer,
+      $$ClientReportGoalsTableOrderingComposer,
+      $$ClientReportGoalsTableAnnotationComposer,
+      $$ClientReportGoalsTableCreateCompanionBuilder,
+      $$ClientReportGoalsTableUpdateCompanionBuilder,
+      (
+        ClientReportGoalRow,
+        BaseReferences<
+          _$AppDatabase,
+          $ClientReportGoalsTable,
+          ClientReportGoalRow
+        >,
+      ),
+      ClientReportGoalRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8515,4 +9835,8 @@ class $AppDatabaseManager {
       $$ClientDailyMetricsTableTableManager(_db, _db.clientDailyMetrics);
   $$ReportFeedbackDraftsTableTableManager get reportFeedbackDrafts =>
       $$ReportFeedbackDraftsTableTableManager(_db, _db.reportFeedbackDrafts);
+  $$ClientWeeklyFeedbacksTableTableManager get clientWeeklyFeedbacks =>
+      $$ClientWeeklyFeedbacksTableTableManager(_db, _db.clientWeeklyFeedbacks);
+  $$ClientReportGoalsTableTableManager get clientReportGoals =>
+      $$ClientReportGoalsTableTableManager(_db, _db.clientReportGoals);
 }

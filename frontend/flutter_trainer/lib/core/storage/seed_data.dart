@@ -233,6 +233,13 @@ Future<void> seedIfEmpty(
     await (db.delete(
       db.clientDailyMetrics,
     )..where((t) => t.clientId.like('seed-%'))).go();
+    // 주간 피드백·목표도 같다(고객+주가 키다).
+    await (db.delete(
+      db.clientWeeklyFeedbacks,
+    )..where((t) => t.clientId.like('seed-%'))).go();
+    await (db.delete(
+      db.clientReportGoals,
+    )..where((t) => t.clientId.like('seed-%'))).go();
 
     // ---- Re-insert clients + their nested data ----
     for (final client in _clients) {
@@ -378,6 +385,18 @@ Future<void> seedIfEmpty(
           fromFixture
               ? fixtureClient.dailyMetrics().toList(growable: false)
               : _dailyMetrics(client, now).toList(growable: false),
+        );
+
+        // 리포트 ②·③ 이 읽는 두 가지(#2232). 회원이 낸 답과, 지난 주에 고른
+        // 목표다. 둘 다 회원별로 있는 사람만 갖는다 — 모두가 답을 낸 데모는
+        // "아직 받지 못함" 이 어떻게 보이는지를 숨긴다.
+        b.insertAll(
+          db.clientWeeklyFeedbacks,
+          _weeklyFeedbacks(client.id, now).toList(growable: false),
+        );
+        b.insertAll(
+          db.clientReportGoals,
+          _reportGoals(client.id, now).toList(growable: false),
         );
 
         b.insertAll(db.clientChatMessages, <ClientChatMessagesCompanion>[
@@ -889,6 +908,12 @@ class _FixtureClient {
         carbsG: Value(day.carbsG),
         proteinG: Value(day.proteinG),
         fatG: Value(day.fatG),
+        // 적은 끼니의 **개수**다(#2232). 칼로리 0 은 "안 먹었다"가 아니라
+        // "안 적었다"라, 리포트 ① 격자는 그 둘을 갈라 보여야 한다.
+        mealCount: Value(day.meals.length),
+        // 배정 수는 그날 루틴 전체다 — 한 것과 안 한 것을 모두 센다. 실제로
+        // 한 것만 담는 `exercisesJson` 의 길이로는 분모가 나오지 않는다.
+        assignedCount: Value(day.exercises.length),
         // 리포트의 요일 칸은 **실제로 한** 운동만 적는다(#1288). 배정에는 날짜가
         // 없어 "그날 배정됐는데 안 했다" 가 성립하지 않으므로 미수행은 싣지
         // 않는다 — `history` 쪽(운동 기록 탭)이 ✓/✗ 를 그대로 쓰는 것과 다르다.
@@ -982,6 +1007,14 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
         carbsG: Value(g(carbShare, 4)),
         proteinG: Value(g(proteinShare, 4)),
         fatG: Value(g(fatShare, 9)),
+        // 끼니 수는 그날 칼로리에서 되짚는다(#2232) — 데모에는 하루 합계만
+        // 있고 끼니 하나하나가 없다. 한 끼 600kcal 로 나눠 1~4 회로 접으면,
+        // 1,870kcal 인 날은 3회, 900kcal 인 날은 2회가 되어 격자의 두 줄이
+        // 서로 어긋나 보이지 않는다. 칼로리가 0 인 날은 적지 않은 날이다.
+        mealCount: Value(cal == 0 ? 0 : (cal / 600).round().clamp(1, 4)),
+        // 배정 수는 그날 루틴의 길이다 — 한 것만 담는 `exercisesJson` 과 달리
+        // 안 한 것까지 센 분모라, 이행률 0 인 날도 `0 / 3회` 로 선다.
+        assignedCount: Value(_routineFor(client.id, day, 100).length),
         exercisesJson: Value(
           jsonEncode(
             date == today
@@ -1759,3 +1792,147 @@ const List<_Slot> _schedule = <_Slot>[
     program: <Map<String, Object?>>[],
   ),
 ];
+
+// ---- 리포트 ②·③ 데모 자료 (#2232) ----
+
+/// 회원이 낸 주간 피드백 — 지난 주와 그 앞 주.
+///
+/// 리포트 ② 칸이 읽는다. **전원이 답하지는 않는다**: 답이 없는 주에 그 칸이
+/// 어떻게 보이는지가 이 기능에서 가장 자주 만나는 화면이라, 데모가 그걸
+/// 숨기면 안 된다. 김민수(1)는 시연 대상이라 두 주 모두 답이 있다.
+Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
+  int clientId,
+  DateTime now,
+) sync* {
+  final List<_Feedback>? weeks = _demoFeedback[clientId];
+  if (weeks == null) return;
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime monday = today.subtract(Duration(days: today.weekday - 1));
+  for (final _Feedback f in weeks) {
+    final DateTime week = monday.subtract(Duration(days: 7 * f.weeksAgo));
+    yield ClientWeeklyFeedbacksCompanion.insert(
+      clientId: 'seed-client-$clientId',
+      weekStart: ymd(week),
+      condition: Value(f.condition),
+      intensity: Value(f.intensity),
+      painArea: Value(f.painArea),
+      // 통증 날짜는 그 주 안의 요일로 적는다 — 데모를 언제 열어도 "지난 주
+      // 목요일" 이 되도록. 고정 날짜로 박으면 한 주만 지나도 과거가 된다.
+      painOn: Value(f.painArea.isEmpty ? '' : ymd(week.add(Duration(days: f.painDay)))),
+      note: Value(f.note),
+    );
+  }
+}
+
+/// 트레이너가 지난 주 ② 에서 골라 이번 주에 적용된 목표.
+///
+/// 리포트 ③ `지난 주 목표 달성` 이 이걸 회수한다. 이 표가 없으면 ② 는 고르는
+/// 시늉으로 끝나고, 목표는 다음 주에 확인될 때 비로소 목표가 된다.
+Iterable<ClientReportGoalsCompanion> _reportGoals(
+  int clientId,
+  DateTime now,
+) sync* {
+  final List<String>? goals = _demoGoals[clientId];
+  if (goals == null) return;
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime monday = today.subtract(Duration(days: today.weekday - 1));
+  // 지난 주에 고른 목표는 **이번 주**에 적용된다. 리포트가 이번 주를 볼 때
+  // 그 주에 적용된 목표를 꺼내 달성 여부를 판정한다.
+  for (final int weeksAgo in <int>[0, 1]) {
+    yield ClientReportGoalsCompanion.insert(
+      clientId: 'seed-client-$clientId',
+      weekStart: ymd(monday.subtract(Duration(days: 7 * weeksAgo))),
+      goalsJson: Value(jsonEncode(goals)),
+    );
+  }
+}
+
+/// 한 주치 피드백 한 건.
+class _Feedback {
+  const _Feedback({
+    required this.weeksAgo,
+    required this.condition,
+    required this.intensity,
+    this.painArea = '',
+    this.painDay = 0,
+    this.note = '',
+  });
+
+  /// 0 이면 이번 주, 1 이면 지난 주.
+  final int weeksAgo;
+  final String condition; // great|good|ok|tired|bad
+  final String intensity; // too_easy|right|hard|too_hard
+  final String painArea;
+
+  /// 통증이 있던 요일(0=월). 주 시작에서 며칠 뒤인지로 적는다.
+  final int painDay;
+  final String note;
+}
+
+/// 회원 번호 → 낸 답. 없는 회원은 아직 답하지 않은 사람이다.
+const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
+  // 김민수 — 시연 대상. 수치는 나쁜데 이유가 `게으름` 이 아니라는 것이
+  // 이 두 줄에서만 나온다.
+  1: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'ok',
+      intensity: 'too_hard',
+      painArea: '오른쪽 어깨',
+      painDay: 3,
+      note: '야근이 많아서 저녁 운동을 못 갔어요. 벤치 할 때 어깨가 좀 걸리는 느낌이 있습니다.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'good',
+      intensity: 'right',
+      note: '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
+    ),
+  ],
+  // 이서준 — 잘 따라오는 쪽. 같은 문항이 좋은 주에 어떻게 보이는지.
+  2: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'great',
+      intensity: 'right',
+      note: '스쿼트 무게 올린 게 오히려 재밌었어요.',
+    ),
+  ],
+  // 박성호 — 휴면. 몸이 아니라 일정이 막고 있다는 답이다.
+  3: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'tired',
+      intensity: 'too_easy',
+      note: '출장이 겹쳐서 헬스장에 못 갔습니다. 다음 주부터 다시 갈게요.',
+    ),
+  ],
+  // 오세라 — 악화. 통증이 있는 주는 강도부터 내려야 한다.
+  8: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'bad',
+      intensity: 'too_hard',
+      painArea: '허리',
+      painDay: 1,
+      note: '데드리프트 하고 나서 허리가 계속 뻐근합니다.',
+    ),
+  ],
+  // 배준혁 — 답장 대기 중이지만 피드백은 냈다. 채팅을 안 읽는 것과
+  // 답을 안 내는 것이 서로 다른 일이라는 것을 보여 준다.
+  9: <_Feedback>[
+    _Feedback(weeksAgo: 0, condition: 'good', intensity: 'hard'),
+  ],
+};
+
+/// 회원 번호 → 그 주에 적용된 목표. 지난 주 ② 에서 고른 것이다.
+const Map<int, List<String>> _demoGoals = <int, List<String>>{
+  1: <String>[
+    '주 2회 하체 추가',
+    '저녁 단백질 30g 이상',
+    '취침 전 스트레칭',
+  ],
+  2: <String>['스쿼트 60kg 3세트', '주 5일 이상 기록'],
+  3: <String>['주 1회라도 헬스장 방문'],
+  8: <String>['허리 부담 없는 하체로 교체', '스트레칭 매일'],
+};
