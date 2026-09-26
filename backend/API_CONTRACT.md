@@ -116,9 +116,11 @@
 `GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
 
 - `analysis`·`action` 은 한국어 문장이고 굵게 보일 곳(메뉴 이름·수치)을 `**` 로 감싼다. `message` 는 두 문장을 이어 `**` 를 뗀 평문으로, 두 문장을 모르는 옛 앱이 읽는다.
-- `analysis_key`·`action_key` 가 있으면 앱이 그 키와 `*_params` 로 자기 언어의 문장을 그린다(운동 조언 `advice_key` 와 같은 방식, #2210). 키가 없으면 받은 문장을 그대로 쓴다 — AI 가 `lang` 으로 만든 문장이거나, 아직 한 문장인 `week`·`all` 이다.
+- `analysis_key`·`action_key` 가 있으면 앱이 그 키와 `*_params` 로 자기 언어의 문장을 그린다(운동 조언 `advice_key` 와 같은 방식, #2210). 키가 없으면 받은 문장을 그대로 쓴다 — AI 가 `lang` 으로 만든 문장이거나, 아직 한 문장인 `all` 이다.
 - `오늘` 의 `analysis_key`: `today_empty`·`today_missing_meal`(시각이 지났는데 비어 있는 아침·점심·저녁이 있다)·`today_sodium_over{sodium_mg}`·`today_calorie_over{kcal}`·`today_protein_left{protein_g}`·`today_balanced{kcal}`.
 - `오늘` 의 `action_key`: `next_meal{slot, menu, keyword}`·`next_snack{menu, keyword}` 는 최근 4주 기록으로 만든 **끼니별 추천 메뉴 리스트**(#2250)에서 오늘 가장 급한 부족·초과를 메우는 메뉴다(`action_source: "plan"`). 그 이유가 충족되면 다른 메뉴로 바뀌고, 최근 3일 안에 추천한 메뉴는 뒤로 미룬다. `keyword`(추천 이유, 예: `저나트륨`)는 문장에 싣지 않고 값으로만 준다. `today_done` 은 저녁까지 적었고 채울 것이 없을 때, `today_log_first` 는 `today_missing_meal` 일 때다 — 이때는 메뉴를 고르지 않고 리스트도 열지 않는다(`action_source: "rules"`).
+- `이번 주` 는 **하루에 한 번** 만들어 그날 내내 같은 조언을 준다(#2253). 경계는 운동 조언과 같다 — 월·화이고 이번 주에 끼니를 기록한 날이 이틀 미만이며 지난주 기록이 있으면 지난주(월~일)를 돌아본다(`scope: last`, `from_date`·`to_date` 도 지난주다). `analysis_key`: `week_empty`·`week_skip_breakfast{scope, days}`·`week_skip_breakfast_snack{scope, days, snack_days}`·`week_focus_sodium|calorie|sugar|protein{scope, days}`·`week_good{scope, days}` — 끼니 습관(아침을 3번 이상 건너뜀) → 집중 목표(가장 많이 넘긴 영양소) → 칭찬 순으로 하나다.
+- `이번 주` 의 `action` 은 AI 가 `lang` 으로 만든 한 문장이다(`action_key` 없음, `action_source: "llm"`). 원인 메뉴를 짚거나 대안을 주고, **수치를 쓰지 않는다**(검사해서 걸러 낸다). AI 가 실패하면 규칙 문장 `tip_breakfast|sodium|calorie|sugar|protein` 을 주고 1시간 뒤 다시 만든다. 칭찬은 `tip_keep`, 기록이 없으면 `week_empty_hint` 로 AI 를 부르지 않는다.
 - 트레이너웹 `GET /trainer/clients/{id}/diet-advice` 는 아직 예전 한 문장(`message`)이다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`

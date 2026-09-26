@@ -304,3 +304,102 @@ def today_advice(
         action=action,
         action_source=source,
     )
+
+
+# ── 만든 조언 보관(이번 주·전체) ─────────────────────────────────────────
+
+
+def load_state(
+    db: Session, user_id: str, period: str, key_date: str, lang: str
+) -> DietAdviceState | None:
+    return db.scalar(
+        select(DietAdviceState)
+        .where(DietAdviceState.user_id == user_id)
+        .where(DietAdviceState.period == period)
+        .where(DietAdviceState.key_date == key_date)
+        .where(DietAdviceState.lang == lang)
+    )
+
+
+def _line_payload(ln: Line | None) -> dict | None:
+    if ln is None:
+        return None
+    return {"key": ln.key, "params": ln.params, "raw": ln.raw}
+
+
+def _line_from(data: dict | None) -> Line | None:
+    if not data:
+        return None
+    return Line(key=data.get("key"), params=data.get("params") or {}, raw=data.get("raw") or "")
+
+
+def advice_payload(advice: DietAdvice) -> dict:
+    return {
+        "from_date": advice.from_date,
+        "to_date": advice.to_date,
+        "days_logged": advice.days_logged,
+        "analysis": _line_payload(advice.analysis),
+        "action": _line_payload(advice.action),
+        "action_source": advice.action_source,
+    }
+
+
+def advice_from_state(period: str, row: DietAdviceState) -> DietAdvice | None:
+    try:
+        data = json.loads(row.payload_json or "{}")
+        analysis = _line_from(data["analysis"])
+    except (ValueError, KeyError, TypeError):
+        return None
+    if analysis is None:
+        return None
+    return DietAdvice(
+        period=period,
+        from_date=data.get("from_date", ""),
+        to_date=data.get("to_date", ""),
+        days_logged=int(data.get("days_logged", 0)),
+        analysis=analysis,
+        action=_line_from(data.get("action")),
+        action_source=data.get("action_source"),
+    )
+
+
+def cached_advice(
+    db: Session, user_id: str, period: str, key_date: str, lang: str, now: datetime
+) -> DietAdvice | None:
+    """보관한 조언. 없거나, AI 실패로 둔 대체 문장의 재시도 시각이 지났으면 None."""
+    row = load_state(db, user_id, period, key_date, lang)
+    if row is None:
+        return None
+    if row.retry_after is not None:
+        retry = row.retry_after if row.retry_after.tzinfo else row.retry_after.replace(tzinfo=clock.SEOUL)
+        if retry <= now:
+            return None
+    return advice_from_state(period, row)
+
+
+def store_advice(
+    db: Session,
+    user_id: str,
+    period: str,
+    key_date: str,
+    lang: str,
+    advice: DietAdvice,
+    *,
+    retry_after: datetime | None,
+) -> None:
+    """만든 조언을 둔다. 같은 날(주)의 것이 있으면 갈아 끼운다."""
+    payload = json.dumps(advice_payload(advice), ensure_ascii=False)
+    row = load_state(db, user_id, period, key_date, lang)
+    if row is None:
+        db.add(DietAdviceState(
+            id=f"dadv-{uuid.uuid4().hex[:16]}", user_id=user_id, period=period,
+            key_date=key_date, lang=lang, payload_json=payload, retry_after=retry_after,
+        ))
+    else:
+        row.payload_json = payload
+        row.retry_after = retry_after
+    try:
+        db.commit()
+    except IntegrityError:
+        # 같은 회원의 두 요청이 동시에 처음 만들었다 — 먼저 들어간 것이 남으면 충분하다.
+        db.rollback()
