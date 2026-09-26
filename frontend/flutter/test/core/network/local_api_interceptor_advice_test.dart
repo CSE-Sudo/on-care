@@ -114,7 +114,8 @@ void main() {
         );
     expect(todayView.data!['from_date'], _ymd(today));
     expect(todayView.data!['days_logged'], 1);
-    expect(todayView.data!['message'], contains('900mg'));
+    // 규칙 한 줄은 문장 키로도 온다(#2255) — 앱이 자기 언어로 그린다.
+    expect(todayView.data!['analysis_key'], startsWith('today_'));
 
     final Response<Map<String, Object?>> week = await dio
         .get<Map<String, Object?>>(
@@ -129,11 +130,31 @@ void main() {
           '/diet/advice',
           queryParameters: <String, Object?>{'period': 'all'},
         );
-    // 전체는 12주를 거슬러 본다 — 이번 주와 시작일이 다르다.
+    // 전체는 최근 4주를 본다 — 이번 주와 시작일이 다르다(#2254).
     expect(
       (all.data!['from_date']! as String).compareTo(_ymd(monday)),
       lessThan(0),
     );
+  });
+
+  test('GET /diet/advice 는 lang 을 받는다 — 메뉴 이름이 그 언어다', () async {
+    final Response<Map<String, Object?>> en = await dio
+        .get<Map<String, Object?>>(
+          '/diet/advice',
+          queryParameters: <String, Object?>{'period': 'today', 'lang': 'en'},
+        );
+    final Object? menu =
+        (en.data!['action_params']! as Map<String, Object?>)['menu'];
+    if (menu != null) {
+      expect((menu as String).codeUnits.every((int c) => c < 128), isTrue);
+    }
+
+    final Response<Object?> unknown = await dio.get<Object?>(
+      '/diet/advice',
+      queryParameters: <String, Object?>{'period': 'today', 'lang': 'jp'},
+      options: Options(validateStatus: (int? _) => true),
+    );
+    expect(unknown.statusCode, 422);
   });
 
   test('GET /diet/advice 는 기록이 없어도 그 기간의 안내를 남긴다', () async {

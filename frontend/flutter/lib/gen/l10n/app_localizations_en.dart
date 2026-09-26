@@ -4309,4 +4309,228 @@ class AppLocalizationsEn extends AppLocalizations {
   String exerciseAdviceRoutineAllRate(int pct) {
     return 'You\'ve done $pct% of your recommended workouts. Try not to skip a day.';
   }
+
+  @override
+  String get dietAdviceTodayEmpty => 'No meals logged today yet.';
+
+  @override
+  String get dietAdviceTodayMissingMeal => 'Missed logging a meal?';
+
+  @override
+  String dietAdviceTodaySodiumOver(int sodiumMg) {
+    final intl.NumberFormat sodiumMgNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String sodiumMgString = sodiumMgNumberFormat.format(sodiumMg);
+
+    return 'Sodium **${sodiumMgString}mg**, over the limit.';
+  }
+
+  @override
+  String dietAdviceTodayCalorieOver(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '**$kcalString kcal** today, over your goal.';
+  }
+
+  @override
+  String dietAdviceTodayProteinLeft(int proteinG) {
+    return '**${proteinG}g** more protein to go.';
+  }
+
+  @override
+  String dietAdviceTodayBalanced(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '**$kcalString kcal** today, nicely balanced.';
+  }
+
+  @override
+  String dietAdviceNextMeal(String slot, String menu) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'other': 'meals',
+    });
+    return 'How about **$menu** for $_temp0?';
+  }
+
+  @override
+  String dietAdviceNextSnack(String menu) {
+    return 'How about **$menu** as a snack?';
+  }
+
+  @override
+  String get dietAdviceTodayDone => 'You wrapped up today\'s meals well!';
+
+  @override
+  String get dietAdviceTodayLogFirst =>
+      'Log it and we\'ll pick your next meal.';
+
+  @override
+  String get dietAdviceWeekEmpty => 'No meals logged this week yet.';
+
+  @override
+  String dietAdviceWeekSkipBreakfast(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0 you skipped breakfast **$days** times.';
+  }
+
+  @override
+  String dietAdviceWeekSkipBreakfastSnack(
+    String scope,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0 you snacked on **$snackDays** of $days no-breakfast days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSodium(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, sodium ran high on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusCalorie(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, you went over your calorie goal on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSugar(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, sugar ran high on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekFocusProtein(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, protein fell short on **$days** days.';
+  }
+
+  @override
+  String dietAdviceWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'Last week',
+      'other': 'This week',
+    });
+    return '$_temp0, all **$days** logged days were on target.';
+  }
+
+  @override
+  String get dietAdviceWeekEmptyHint =>
+      'Even one meal starts to show a pattern.';
+
+  @override
+  String get dietAdviceTipBreakfast => 'Try a boiled egg for breakfast.';
+
+  @override
+  String get dietAdviceTipSodium => 'Leave the broth and eat the solids.';
+
+  @override
+  String get dietAdviceTipCalorie => 'Try trimming dinner portions a little.';
+
+  @override
+  String get dietAdviceTipSugar => 'Swap sweet drinks for water or tea.';
+
+  @override
+  String get dietAdviceTipProtein => 'Add eggs or tofu to each meal.';
+
+  @override
+  String get dietAdviceTipKeep => 'Keep this flow going!';
+
+  @override
+  String dietAdviceAllFewRecords(int days) {
+    return '**$days** days logged in the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'other': 'meals',
+    });
+    return 'Sodium at $_temp0 ran high **$days** times in 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllCarbHeavy(int pct) {
+    return 'Carbs made up **$pct%** of the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllProteinLight(int pct) {
+    return 'Protein was only **$pct%** of the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendUp(int before, int after) {
+    return 'Protein goal days rose from **$before to $after**.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendDown(int before, int after) {
+    return 'Protein goal days fell from **$before to $after**.';
+  }
+
+  @override
+  String dietAdviceAllFrequentMenu(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'other': 'meals',
+    });
+    return 'Your top $_temp0 pick in 4 weeks: **$food** ($count×).';
+  }
+
+  @override
+  String dietAdviceAllRepeatedFoods(String food1, String food2) {
+    return '**$food1 and $food2** dominate the last 4 weeks.';
+  }
+
+  @override
+  String dietAdviceAllGood(int days) {
+    return '**$days** days logged in 4 weeks, looking good.';
+  }
+
+  @override
+  String get dietAdviceAllFewHint => 'After 7 days we\'ll show your patterns.';
+
+  @override
+  String get dietAdviceTipCarb => 'Try less rice and more side dishes.';
+
+  @override
+  String get dietAdviceTipSwap => 'Keep it, just switch up the sides.';
+
+  @override
+  String get dietAdviceTipVariety => 'Add fish or tofu twice a week.';
 }

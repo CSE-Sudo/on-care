@@ -108,6 +108,8 @@ class _MainShellState extends ConsumerState<MainShell>
         // 남아 있으면 옮겨 온 탭이 빈 화면을 보여 준다(#1434).
         ref.invalidate(dietTodayProvider);
         ref.invalidate(dietByDateProvider(nowKst()));
+        // AI 맞춤 조언도 같은 이유로 다시 받는다(#2078).
+        ref.invalidate(dietAdviceProvider);
         break;
       case 2:
         ref.invalidate(exerciseWeekProvider);

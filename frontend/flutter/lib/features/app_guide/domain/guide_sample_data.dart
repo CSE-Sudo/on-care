@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -45,7 +46,10 @@ List<Override> guideSampleOverrides() {
     dietTodayProvider.overrideWith((ref) async => kGuideSampleDietDay),
     dietByDateFamily.overrideWith((ref, date) async => kGuideSampleDietDay),
     dietAdviceProvider.overrideWith(
-      (ref, period) async => kGuideSampleDietDay.aiCoachMessage,
+      (ref, key) async => DietAdvice(
+        message: kGuideSampleDietDay.aiCoachMessage,
+        analysis: DietAdviceLine(text: kGuideSampleDietDay.aiCoachMessage),
+      ),
     ),
     // 운동
     exerciseAdviceProvider.overrideWith(

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -468,6 +469,11 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final DietPeriodTab selectedPeriod = ref.watch(dietPeriodTabProvider);
+    // 메뉴 이름과 AI 문장이 앱 언어로 오도록 언어를 함께 보낸다(#2255).
+    final DietAdviceKey adviceKey = (
+      period: _advicePeriod(selectedPeriod),
+      lang: Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ko',
+    );
     final DateTime today = _today;
     // 스트립은 늘 월요일에서 시작해 일요일로 끝난다 (#1059). 오늘을 가운데
     // 두면 한 줄에 지난주 끝과 이번 주 앞이 섞여, `이번 주` 그래프가 세는
@@ -592,16 +598,20 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                     // 오늘 조언으로 **되돌아가지 않는다**(#1574). 주간·전체
                     // 조언을 기다리는 동안 오늘 조언을 대신 그리면, 이번 주를
                     // 보고 있는데 "오늘 점심이 짰어요" 를 읽게 된다.
+                    //
+                    // 조언은 규칙 한 줄 + 다음 할 일 한 문장이고(#2251), 서버가 준
+                    // 문장 키로 지금 언어의 문장을 그린다(#2255).
                     PeriodAiAdviceCard(
                       title: l.dietAiFeedback,
                       advice: atToday
-                          ? ref.watch(
-                              dietAdviceProvider(_advicePeriod(selectedPeriod)),
-                            )
+                          ? ref
+                                .watch(dietAdviceProvider(adviceKey))
+                                .whenData(
+                                  (DietAdvice a) => dietAdviceText(l, a),
+                                )
                           : AsyncValue<String>.data(day.aiCoachMessage),
-                      onRetry: () => ref.invalidate(
-                        dietAdviceProvider(_advicePeriod(selectedPeriod)),
-                      ),
+                      onRetry: () =>
+                          ref.invalidate(dietAdviceProvider(adviceKey)),
                     ),
                     const SizedBox(height: OnCareSpacing.s20),
                     _MealLog(
