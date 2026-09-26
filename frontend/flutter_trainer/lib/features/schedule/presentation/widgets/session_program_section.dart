@@ -94,8 +94,8 @@ String _trimZero(double v) =>
 /// 상담의 [SessionNoNoteBox]처럼, 바로가기를 이 상자 안에 둔다 — 예전에는 이
 /// 안내와 그 동작이 서로 떨어져 있었다. 다만 메모와 달리 프로그램은 **이
 /// 카드 안에서 짓지 않는다** — AI 코칭 탭에서 만들어 보내는 것이라, 이 아이콘은
-/// 편집기를 여는 대신 그 고객의 코칭 탭으로 이동한다(#1247). 관리 줄 쪽
-/// `프로그램 수정` 아이콘은 프로그램이 비어 있는 동안은 [SessionManageRow]가
+/// 편집기를 여는 대신 그 고객의 코칭 탭으로 이동한다(#1247). 수정 메뉴의
+/// `프로그램 수정` 항목은 프로그램이 비어 있는 동안은 [SessionEditMenu]가
 /// 숨긴다.
 class SessionNoPlanBox extends StatelessWidget {
   const SessionNoPlanBox({super.key, required this.onGoToProgram});
