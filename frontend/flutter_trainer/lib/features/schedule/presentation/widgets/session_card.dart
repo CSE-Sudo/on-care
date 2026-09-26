@@ -87,6 +87,10 @@ class SessionCard extends ConsumerWidget {
     final TextStyle nameStyle = tokens
         .text(OnCareTypography.strong(OnCareTypography.body))
         .copyWith(color: OnCareColors.textPrimary);
+    final SessionManageRow manage = SessionManageRow(
+      onComplete: onComplete,
+      onCancel: onCancel,
+    );
     // 안쪽 여백은 AppCard 기본값(OnCareSpacing.cardPadding)이다.
     return AppCard(
       child: Column(
@@ -112,7 +116,7 @@ class SessionCard extends ConsumerWidget {
               // 시각은 잘리면 안 되는 값이라 글자를 자르는 대신 통째로
               // 작게 그린다 — 폭 340 패널에 큰 글자 배율이 겹치면 이
               // 줄이 먼저 넘친다.
-              Flexible(
+              Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -133,6 +137,26 @@ class SessionCard extends ConsumerWidget {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              // 수정은 첫 줄 오른쪽 끝이다(#2231) — 고치는 값이 바로 이
+              // 줄의 날짜·시각과 둘째 줄의 종류다. 시각은 `Expanded` 안에서
+              // 스스로 줄어드니 이 버튼이 시각을 밀어내지 않는다.
+              SessionEditMenu(
+                onEditSchedule: onEditSchedule,
+                onEditProgram: onEditProgram,
+                onEditNote: onEditNote,
+                hasNote: s.note.trim().isNotEmpty,
+                hasProgram: !noteOnly,
+                // 상담이면서 아직 메모가 없으면 `메모 추가` 는 위
+                // `SessionNoNoteBox` 안으로 옮겨 갔다(#1012).
+                showEditNote: !(noteOnly && s.note.trim().isEmpty),
+                // 프로그램이 비어 있으면 `SessionNoPlanBox` 가 코칭 탭
+                // 바로가기를 대신 보여 준다(#1236). 이미 회원에게 보낸
+                // 프로그램은 더 손댈 수 없어야 하므로도 세우지 않는다
+                // (#1247).
+                showEditProgram: s.program.isNotEmpty && !s.programSent,
+                onDelete: onDelete,
               ),
             ],
           ),
@@ -245,24 +269,7 @@ class SessionCard extends ConsumerWidget {
             SessionEndedBox(session: s),
             const SizedBox(height: OnCareSpacing.s12),
           ],
-          SessionManageRow(
-            onEditSchedule: onEditSchedule,
-            onEditProgram: onEditProgram,
-            onEditNote: onEditNote,
-            hasNote: s.note.trim().isNotEmpty,
-            hasProgram: !noteOnly,
-            // 상담이면서 아직 메모가 없으면 `메모 추가` 는 위
-            // `SessionNoNoteBox` 안으로 옮겨 갔다(#1012).
-            showEditNote: !(noteOnly && s.note.trim().isEmpty),
-            // 프로그램이 비어 있으면 `SessionNoPlanBox` 가 코칭 탭
-            // 바로가기를 대신 보여 준다(#1236). 이미 회원에게 보낸
-            // 프로그램은 더 손댈 수 없어야 하므로도 세우지 않는다
-            // (#1247).
-            showEditProgram: s.program.isNotEmpty && !s.programSent,
-            onDelete: onDelete,
-            onCancel: onCancel,
-            onComplete: onComplete,
-          ),
+          if (manage.hasActions) manage,
           if (!noteOnly && s.isDone && s.program.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
             // 이미 보냈으면 같은 자리에서 그 사실을 말하고 누를 수 없다 —
