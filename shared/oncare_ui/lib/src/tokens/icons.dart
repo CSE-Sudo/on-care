@@ -48,6 +48,10 @@ class OnCareIconSet {
     required this.emote,
     required this.file,
     required this.reward,
+    required this.mail,
+    required this.lock,
+    required this.visibility,
+    required this.visibilityOff,
     this.timeInput,
     this.timeDial,
     this.fill,
@@ -86,7 +90,20 @@ class OnCareIconSet {
     emote: Icons.sentiment_satisfied_rounded,
     file: Icons.picture_as_pdf_rounded,
     reward: Icons.star_rounded,
+    mail: Icons.mail_rounded,
+    lock: Icons.lock_rounded,
+    visibility: Icons.visibility_rounded,
+    visibilityOff: Icons.visibility_off_rounded,
   );
+
+  /// 로그인·가입 칸 앞의 표시(#2226). 두 앱의 로그인 화면이 같은 부품을 쓰되
+  /// 아이콘 묶음은 각자의 것을 따라가게 한다.
+  final IconData mail;
+  final IconData lock;
+
+  /// 비밀번호 보이기/감추기([AppPasswordToggle]).
+  final IconData visibility;
+  final IconData visibilityOff;
 
   /// 디버그·카탈로그 표시용 이름.
   final String name;

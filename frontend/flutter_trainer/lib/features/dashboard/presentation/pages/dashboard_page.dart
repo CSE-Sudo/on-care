@@ -283,7 +283,7 @@ class _KpiRow extends StatelessWidget {
             : OnCareColors.danger,
         caption: summary.healthAttentionCount == 0
             ? l.dashNoIssues
-            : l.dashCheckSodiumCompletion,
+            : l.dashCheckPtSignals,
         onTap: () => context.go(AppRoutes.clientsFiltered('attention')),
       ),
       AppStatCard(

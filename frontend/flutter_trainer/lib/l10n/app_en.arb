@@ -106,21 +106,21 @@
     }
   },
   "authTagline": "The trainer-only app for managing your members",
-  "authEmail": "Email",
-  "authPassword": "Password",
-  "authSignIn": "Sign in",
-  "authNoAccount": "Don't have an account?",
-  "authSignUp": "Sign up",
-  "authBrowseDemo": "Explore the demo without signing in",
+  "authEmailHint": "Email",
+  "authPasswordHint": "Password",
+  "authSignInAction": "Sign in",
+  "authNoAccountQuestion": "Don't have an account?",
+  "authSignUpAction": "Sign up",
+  "authDemoAction": "Explore the demo without signing in",
   "authSocialDivider": "Sign in with a social account",
   "@authSocialDivider": {
     "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."
   },
-  "authContinueKakao": "Continue with Kakao",
-  "authContinueGoogle": "Continue with Google",
+  "authKakaoAction": "Continue with Kakao",
+  "authGoogleAction": "Continue with Google",
   "authSignUpSubtitle": "Create an On-Care account and start managing members",
   "authName": "Name",
-  "authPasswordHint": "Password (8+ characters, letters and numbers)",
+  "signUpPasswordHint": "Password (8+ characters, letters and numbers)",
   "authPasswordConfirm": "Confirm password",
   "authInviteCode": "Gym invite code",
   "authInviteCodeHelp": "Enter the code issued by the gym you work at.",
@@ -128,7 +128,7 @@
   "authSignUpAndStart": "Sign up and start",
   "authHasAccount": "Already have an account?",
   "authErrEmptyCredentials": "Enter your email and password",
-  "authErrSocialFailed": "Social sign-in failed. Please try again in a moment.",
+  "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
@@ -191,15 +191,15 @@
   "dashAllReplied": "All replied",
   "dashAttentionClients": "Needs attention",
   "dashNoIssues": "No issues",
-  "dashCheckSodiumCompletion": "Check diet & completion",
+  "dashCheckPtSignals": "Check PT signals",
   "dashMessages": "Messages",
   "dashChurnRisk": "Churn risk",
   "dashChurnRiskNone": "No churn risk",
   "dashChurnRiskCheck": "Review churn signals",
   "dashChurnRiskTitle": "Members at churn risk",
   "dashChurnRiskEmpty": "No members are at churn risk right now.",
-  "dashActivityDifficultyTitle": "Low completion / churn risk detected",
-  "dashActivityDifficultyDesc": "{names} have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.",
+  "dashActivityDifficultyTitle": "Behind exercise goal / routine skipped",
+  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.",
   "@dashActivityDifficultyDesc": {
     "placeholders": {
       "names": {
@@ -207,8 +207,8 @@
       }
     }
   },
-  "dashActivityInactiveTitle": "Inactive 7+ days",
-  "dashActivityInactiveDesc": "{names} haven't logged a workout in the last 7 days. Reach out before it turns into churn.",
+  "dashActivityInactiveTitle": "No logs",
+  "dashActivityInactiveDesc": "{names} haven't logged meals or workouts for a few days. Reach out before it turns into churn.",
   "@dashActivityInactiveDesc": {
     "placeholders": {
       "names": {
@@ -217,7 +217,7 @@
     }
   },
   "dashActivityDietFeedbackTitle": "Diet feedback pending",
-  "dashActivityDietFeedbackDesc": "{names} have a diet warning (sodium/sugar over target) but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
+  "dashActivityDietFeedbackDesc": "{names} are off their calorie goal or low on protein but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
   "@dashActivityDietFeedbackDesc": {
     "placeholders": {
       "names": {
@@ -340,6 +340,8 @@
       }
     }
   },
+  "clientWeeklyRoutineAdherence": "Weekly adherence",
+  "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
   "clientsSignalRecordGap": "No logs",
   "clientsSignalRecordGapDays": "No logs {days}d",
@@ -374,16 +376,39 @@
   "clientsSignalCalorieOver": "Calories over",
   "clientsSignalCalorieUnder": "Calories under",
   "clientsSignalProteinLow": "Low protein",
-  "clientsSignalUnanswered": "Awaiting reply",
-  "clientsSignalMore": "+{count}",
-  "@clientsSignalMore": {
+  "clientsSignalCalorieOverPercent": "Calories {percent}% over",
+  "@clientsSignalCalorieOverPercent": {
     "placeholders": {
-      "count": {
+      "percent": {
         "type": "int"
       }
     }
   },
-  "clientsAttentionActive": "Attention",
+  "clientsSignalCalorieUnderPercent": "Calories {percent}% under",
+  "@clientsSignalCalorieUnderPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalProteinPercent": "Protein {percent}% of goal",
+  "@clientsSignalProteinPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalRoutineMissedDays": "Routine skipped {days}d",
+  "@clientsSignalRoutineMissedDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsSignalUnanswered": "Awaiting reply",
   "clientsAttentionClear": "Clear attention filter",
   "memberHealthLoadFailed": "Couldn't load the member profile. Please try again",
   "memberHealthSaveFailed": "Couldn't save the member profile. Please try again",
@@ -1237,6 +1262,13 @@
   "myChangePasswordDemo": "Demo mode has no account, so this is unavailable",
   "myLoginAccount": "Signed in as",
   "myLegal": "Terms & policies",
+  "mySupportTitle": "Customer Support",
+  "mySupportFaq": "FAQ",
+  "mySupportInquiry": "1:1 Inquiry",
+  "mySupportExternalHint": "Opens the KakaoTalk channel",
+  "mySupportOpenFailed": "Couldn't open the link. Please try again in a moment",
+  "mySupportEntryHint": "FAQ, inquiries, policies and account clean-up in one place",
+  "myAppVersion": "On-Care Trainer · Version 0.1.0",
   "myLegalTermsTitle": "Terms of Service",
   "myLegalTermsHint": "The terms your trainer account runs under",
   "myLegalPrivacyTitle": "Privacy Policy",
@@ -1882,29 +1914,6 @@
       }
     }
   },
-  "dashTodoSodiumSubtitle": "Sodium {sodiumMg}mg · target {targetMg}mg",
-  "@dashTodoSodiumSubtitle": {
-    "placeholders": {
-      "sodiumMg": {
-        "type": "int"
-      },
-      "targetMg": {
-        "type": "int"
-      }
-    }
-  },
-  "dashTodoSugarSubtitle": "Sugar {sugarG}g · target {targetG}g",
-  "@dashTodoSugarSubtitle": {
-    "placeholders": {
-      "sugarG": {
-        "type": "int"
-      },
-      "targetG": {
-        "type": "int"
-      }
-    }
-  },
-  "dashTodoCompletionSubtitle": "Low completion · check recent records",
   "dashTodoCarriedOverDemoSubtitle": "Diet feedback left over from yesterday",
   "@dashTodoCarriedOverDemoSubtitle": {
     "description": "Subtitle of the demo carried-over task shown before real history exists."
@@ -2168,14 +2177,10 @@
       }
     }
   },
-  "programEditorSessionName": "Session {letter}",
-  "@programEditorSessionName": {
-    "placeholders": {
-      "letter": {
-        "type": "String"
-      }
-    }
-  },
+  "programEditorSessionNameTyped": "{type} session",
+  "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
+  "programEditorSessionNameNumbered": "{type} session {index}",
+  "@programEditorSessionNameNumbered": {"placeholders": {"type": {"type": "String"}, "index": {"type": "int"}}},
   "programEditorSessionUp": "Move session up",
   "programEditorSessionDown": "Move session down",
   "programEditorSessionReset": "Reset session",
@@ -2194,6 +2199,10 @@
   "programEditorExercise": "Exercise",
   "programEditorExerciseUp": "Move exercise up",
   "programEditorExerciseDown": "Move exercise down",
+  "programEditorExerciseMoveSession": "Move to another session",
+  "programEditorExerciseMoveTitle": "Which session should it move to?",
+  "programEditorExerciseMoveBody": "Pick the session to move '{name}' into.",
+  "@programEditorExerciseMoveBody": {"placeholders": {"name": {"type": "String"}}},
   "programEditorSets": "Sets",
   "programEditorReps": "Reps",
   "programEditorWeight": "Weight kg",

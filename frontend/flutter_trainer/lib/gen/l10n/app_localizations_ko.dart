@@ -150,31 +150,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authTagline => '회원 관리를 위한 트레이너 전용 앱';
 
   @override
-  String get authEmail => '이메일';
+  String get authEmailHint => '이메일';
 
   @override
-  String get authPassword => '비밀번호';
+  String get authPasswordHint => '비밀번호';
 
   @override
-  String get authSignIn => '로그인';
+  String get authSignInAction => '로그인';
 
   @override
-  String get authNoAccount => '계정이 없으신가요?';
+  String get authNoAccountQuestion => '계정이 없으신가요?';
 
   @override
-  String get authSignUp => '계정 만들기';
+  String get authSignUpAction => '계정 만들기';
 
   @override
-  String get authBrowseDemo => '로그인 없이 데모 둘러보기';
+  String get authDemoAction => '로그인 없이 데모 둘러보기';
 
   @override
   String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
-  String get authContinueKakao => '카카오로 시작하기';
+  String get authKakaoAction => '카카오로 시작하기';
 
   @override
-  String get authContinueGoogle => '구글로 시작하기';
+  String get authGoogleAction => '구글로 시작하기';
 
   @override
   String get authSignUpSubtitle => 'On-Care 계정을 만들어 회원 관리를 시작하세요';
@@ -183,7 +183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authName => '이름';
 
   @override
-  String get authPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
+  String get signUpPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
 
   @override
   String get authPasswordConfirm => '비밀번호 확인';
@@ -207,7 +207,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyCredentials => '이메일과 비밀번호를 입력해 주세요';
 
   @override
-  String get authErrSocialFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
@@ -313,7 +313,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashNoIssues => '이상 없음';
 
   @override
-  String get dashCheckSodiumCompletion => '식단·이행률 확인';
+  String get dashCheckPtSignals => '관리 신호 확인';
 
   @override
   String get dashMessages => '메시지';
@@ -334,19 +334,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashChurnRiskEmpty => '지금은 이탈 위험 신호가 없어요.';
 
   @override
-  String get dashActivityDifficultyTitle => '이행률 저조·이탈 위험 감지';
+  String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names 회원이 개인 운동 이행률이 낮거나 이탈 위험 신호(부정적 피드백 포함)를 보이고 있어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
+    return '$names 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
   }
 
   @override
-  String get dashActivityInactiveTitle => '7일 이상 활동 저조';
+  String get dashActivityInactiveTitle => '기록 끊김';
 
   @override
   String dashActivityInactiveDesc(String names) {
-    return '$names 회원이 최근 7일 동안 운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.';
+    return '$names 회원이 며칠째 식단·운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.';
   }
 
   @override
@@ -354,7 +354,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names 회원이 나트륨·당류 초과 등 식단 주의 신호가 있는데 최근 7일간 피드백을 받지 못했어요. 식단 코멘트를 남겨 확인했다는 걸 알려 주세요.';
+    return '$names 회원이 칼로리 목표를 벗어났거나 단백질이 부족한데 최근 7일간 피드백을 받지 못했어요. 식단 코멘트를 남겨 확인했다는 걸 알려 주세요.';
   }
 
   @override
@@ -507,6 +507,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get clientWeeklyRoutineAdherence => '주간 이행률';
+
+  @override
+  String get clientRoutineAdherenceUnmeasured => '미집계';
+
+  @override
   String get clientsSignalDiscomfort => '통증·불편';
 
   @override
@@ -552,15 +558,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSignalProteinLow => '단백질 부족';
 
   @override
-  String get clientsSignalUnanswered => '답장 대기';
-
-  @override
-  String clientsSignalMore(int count) {
-    return '+$count';
+  String clientsSignalCalorieOverPercent(int percent) {
+    return '칼로리 $percent% 과다';
   }
 
   @override
-  String get clientsAttentionActive => '주의 회원';
+  String clientsSignalCalorieUnderPercent(int percent) {
+    return '칼로리 $percent% 부족';
+  }
+
+  @override
+  String clientsSignalProteinPercent(int percent) {
+    return '단백질 목표의 $percent%';
+  }
+
+  @override
+  String clientsSignalRoutineMissedDays(int days) {
+    return '배정 루틴 $days일 미수행';
+  }
+
+  @override
+  String get clientsSignalUnanswered => '답장 대기';
 
   @override
   String get clientsAttentionClear => '주의 회원 보기 해제';
@@ -1875,6 +1893,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegal => '약관 및 정책';
 
   @override
+  String get mySupportTitle => '고객 지원';
+
+  @override
+  String get mySupportFaq => '자주 묻는 질문';
+
+  @override
+  String get mySupportInquiry => '1:1 문의';
+
+  @override
+  String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
+
+  @override
+  String get mySupportOpenFailed => '링크를 열지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get mySupportEntryHint => 'FAQ·문의와 약관, 계정 정리를 한곳에서 볼 수 있어요';
+
+  @override
+  String get myAppVersion => 'On-Care 트레이너 · 버전 0.1.0';
+
+  @override
   String get myLegalTermsTitle => '이용약관';
 
   @override
@@ -2858,19 +2897,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String dashTodoSodiumSubtitle(int sodiumMg, int targetMg) {
-    return '나트륨 ${sodiumMg}mg · 목표 ${targetMg}mg';
-  }
-
-  @override
-  String dashTodoSugarSubtitle(int sugarG, int targetG) {
-    return '당류 ${sugarG}g · 목표 ${targetG}g';
-  }
-
-  @override
-  String get dashTodoCompletionSubtitle => '이행률 저조 · 최근 기록 확인';
-
-  @override
   String get dashTodoCarriedOverDemoSubtitle => '어제 남긴 식단 피드백';
 
   @override
@@ -3329,8 +3355,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return '세션 $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type 세션';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type 세션 $index';
   }
 
   @override
@@ -3367,6 +3398,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get programEditorExerciseDown => '운동 아래로 이동';
+
+  @override
+  String get programEditorExerciseMoveSession => '다른 세션으로';
+
+  @override
+  String get programEditorExerciseMoveTitle => '어느 세션으로 옮길까요?';
+
+  @override
+  String programEditorExerciseMoveBody(String name) {
+    return '\'$name\' 운동을 옮길 세션을 골라 주세요.';
+  }
 
   @override
   String get programEditorSets => '세트';

@@ -1831,7 +1831,7 @@
       }
     }
   },
-  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit} · {balance} left",
+  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit}",
   "@aicQuotaPaidNext": {
     "placeholders": {
       "cost": {
@@ -1842,16 +1842,13 @@
       },
       "limit": {
         "type": "int"
-      },
-      "balance": {
-        "type": "String"
       }
     }
   },
   "aicQuotaExhausted": "You've used today's chats. They reopen tomorrow",
   "aicQuotaFindTrainer": "Find a trainer",
   "aicPaidConfirmTitle": "Keep chatting with points?",
-  "aicPaidConfirmMessage": "You've used today's free chats. Each message now costs {cost} (up to {limit} today).",
+  "aicPaidConfirmMessage": "You've used today's free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}",
   "@aicPaidConfirmMessage": {
     "placeholders": {
       "cost": {
@@ -1859,6 +1856,9 @@
       },
       "limit": {
         "type": "int"
+      },
+      "balance": {
+        "type": "String"
       }
     }
   },
@@ -1867,17 +1867,6 @@
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
-        "type": "String"
-      }
-    }
-  },
-  "aicPointsSpentWithBalance": "−{spent} · {balance} left",
-  "@aicPointsSpentWithBalance": {
-    "placeholders": {
-      "spent": {
-        "type": "String"
-      },
-      "balance": {
         "type": "String"
       }
     }
