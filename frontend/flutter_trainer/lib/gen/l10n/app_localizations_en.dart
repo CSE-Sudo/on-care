@@ -1574,6 +1574,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String reportBodySilentDays(String days) {
+    return 'Nothing was logged on $days. If those days are always packed, I\'ll swap in a short 15-minute version.';
+  }
+
+  @override
+  String reportBodySteadyDays(String days) {
+    return 'Keeping it going all the way through $days was the best part of this week.';
+  }
+
+  @override
   String reportBodySkipped(String names) {
     return 'One thing — $names got skipped. If that was a condition thing, tell me at the next session and I\'ll swap in an alternative.';
   }
@@ -2330,9 +2340,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsDataInsufficient => 'Insufficient data';
-
-  @override
-  String get reportsThisWeek => 'This week';
 
   @override
   String get coachSendFailed => 'Couldn\'t send. Please try again';
@@ -3730,7 +3737,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsAiTitle => 'AI coaching assistant · Report summary';
+  String get reportsAiTitle => 'This week\'s summary';
 
   @override
   String get reportsAiNextWeek => 'Next week\'s coaching';
@@ -4030,4 +4037,589 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineFormIncrease => 'Increase';
+
+  @override
+  String get reportsWorkbenchTitle => 'This week\'s reports';
+
+  @override
+  String get reportsPending => 'Not sent';
+
+  @override
+  String reportsCountPeople(int count) {
+    return '$count';
+  }
+
+  @override
+  String get reportsSortPriority => 'Needs attention';
+
+  @override
+  String get reportsSortName => 'By name';
+
+  @override
+  String reportsSendProgress(int done, int total) {
+    return '$done / $total sent';
+  }
+
+  @override
+  String get reportsQueueAllSent => 'Every report for this week has been sent';
+
+  @override
+  String get reportsSentColumn => 'Sent';
+
+  @override
+  String get reportsSentColumnEmpty => 'No reports sent yet';
+
+  @override
+  String get reportsSentSubtitle => 'View sent report';
+
+  @override
+  String get reportsOpenDraft => 'Open';
+
+  @override
+  String get reportsReasonUnknown => 'Loading figures';
+
+  @override
+  String reportsReasonCompletion(int percent) {
+    return '$percent% complete';
+  }
+
+  @override
+  String reportsReasonNoShow(int count) {
+    return '$count no-show';
+  }
+
+  @override
+  String reportsReasonSessionDone(int count) {
+    return 'PT $count done';
+  }
+
+  @override
+  String reportsReasonSilentDays(int days) {
+    return '$days days unlogged';
+  }
+
+  @override
+  String reportsReasonSlump(int points) {
+    return 'Down $points%p late';
+  }
+
+  @override
+  String reportsReasonRising(int points) {
+    return 'Up $points%p late';
+  }
+
+  @override
+  String get reportsReasonFullLog => 'Logged all 7 days';
+
+  @override
+  String get reportsReasonOnboarding => 'New · settling in';
+
+  @override
+  String get reportsReasonSteady => 'On track';
+
+  @override
+  String reportsSentOn(String date) {
+    return 'Sent $date';
+  }
+
+  @override
+  String get reportsSentRead => 'Read';
+
+  @override
+  String get reportsSentUnread => 'Unread';
+
+  @override
+  String get reportsSentUnreadHint =>
+      'Members who haven\'t opened theirs move to the top next week.';
+
+  @override
+  String get reportsBackToWorkbench => 'This week\'s reports';
+
+  @override
+  String reportsSentHeadline(String name) {
+    return 'Report sent to $name';
+  }
+
+  @override
+  String reportsSentAt(String date, String time) {
+    return 'Sent $date $time';
+  }
+
+  @override
+  String get reportsSentRewrite => 'Rewrite from this';
+
+  @override
+  String get reportsSentBody => 'Message sent';
+
+  @override
+  String get reportsSentFigures => 'Figures sent';
+
+  @override
+  String get reportsStepReview => 'Review';
+
+  @override
+  String get reportsStepGoals => 'Write';
+
+  @override
+  String get reportsStepSend => 'Send';
+
+  @override
+  String get reportsStepperLabel => 'Weekly report steps';
+
+  @override
+  String get reportsStepNext => 'Next';
+
+  @override
+  String get reportsStepPrev => 'Back';
+
+  @override
+  String get reportsGoalsTitle => 'Next week\'s goals';
+
+  @override
+  String get reportsGoalsHint =>
+      'Pick what to work on together next week. The goals you pick go out with the message.';
+
+  @override
+  String get reportsGoalsNone => 'No goals picked yet';
+
+  @override
+  String reportsGoalsPicked(int count) {
+    return '$count picked';
+  }
+
+  @override
+  String get reportsGoalsOwnHint => 'Write your own';
+
+  @override
+  String get reportsGoalsAdd => 'Add';
+
+  @override
+  String reportsGoalsRemove(String goal) {
+    return 'Remove $goal';
+  }
+
+  @override
+  String get reportsGridPtSession => 'PT sessions';
+
+  @override
+  String reportsGridPtPerWeek(int count) {
+    return '$count/week';
+  }
+
+  @override
+  String get reportsGridPersonal => 'Personal workouts';
+
+  @override
+  String get reportsGridPersonalUnit => 'Done / assigned';
+
+  @override
+  String reportsGridDoneOfAssigned(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String get reportsGridMeals => 'Meal logs';
+
+  @override
+  String get reportsGridMealsUnit => 'Times logged';
+
+  @override
+  String reportsGridMealCount(int count) {
+    return '${count}x';
+  }
+
+  @override
+  String get reportsGridCalories => 'Calories eaten';
+
+  @override
+  String reportsGridCalorieTarget(String value) {
+    return 'Target $value';
+  }
+
+  @override
+  String get reportsMacroNone =>
+      'No meals logged yet, so macros can\'t be shown';
+
+  @override
+  String reportsMacroValueOfTarget(String name, int value, int target) {
+    return '$name $value / ${target}g';
+  }
+
+  @override
+  String reportsMacroNoValue(String name) {
+    return '$name not logged';
+  }
+
+  @override
+  String reportsMacroShortfall(String name) {
+    return '$name is well under target — worth picking as a goal for next week';
+  }
+
+  @override
+  String get reportsMemberFeedbackTitle => 'Member\'s weekly feedback';
+
+  @override
+  String get reportsMemberFeedbackAttention => 'Needs attention';
+
+  @override
+  String get reportsMemberFeedbackNone => 'Not received yet';
+
+  @override
+  String get reportsMemberFeedbackNoneHint =>
+      'It shows up here once the member sends their weekly feedback';
+
+  @override
+  String get reportsMemberFeedbackConditionLabel => 'Condition';
+
+  @override
+  String get reportsMemberFeedbackIntensityLabel => 'Intensity';
+
+  @override
+  String get reportsMemberFeedbackPainLabel => 'Pain';
+
+  @override
+  String get reportsMemberFeedbackPainNone => 'None';
+
+  @override
+  String reportsMemberFeedbackPainOn(String area, String date) {
+    return '$area ($date)';
+  }
+
+  @override
+  String get reportsMemberFeedbackConditionGreat => 'Great';
+
+  @override
+  String get reportsMemberFeedbackConditionGood => 'Good';
+
+  @override
+  String get reportsMemberFeedbackConditionOk => 'Okay';
+
+  @override
+  String get reportsMemberFeedbackConditionTired => 'Worn out';
+
+  @override
+  String get reportsMemberFeedbackConditionBad => 'Really rough';
+
+  @override
+  String get reportsMemberFeedbackIntensityTooEasy => 'Too easy';
+
+  @override
+  String get reportsMemberFeedbackIntensityRight => 'About right';
+
+  @override
+  String get reportsMemberFeedbackIntensityHard => 'Hard';
+
+  @override
+  String get reportsMemberFeedbackIntensityTooHard => 'Too hard';
+
+  @override
+  String get reportsLastGoalsTitle => 'Last week\'s goals';
+
+  @override
+  String get reportsLastGoalsNone => 'No goals were picked last week';
+
+  @override
+  String get reportsLastGoalsNoneHint =>
+      'Pick next week\'s goals now and they come back here in the next report';
+
+  @override
+  String reportsLastGoalsMetCount(int met, int total) {
+    return '$met / $total met';
+  }
+
+  @override
+  String get reportsLastGoalsMet => 'Met';
+
+  @override
+  String get reportsLastGoalsPartial => 'Partly';
+
+  @override
+  String get reportsLastGoalsMissed => 'Missed';
+
+  @override
+  String get reportsLastGoalsUnknown => 'Check yourself';
+
+  @override
+  String reportsLastGoalsEvidence(int done, int target, String unit) {
+    return '$done / $target$unit';
+  }
+
+  @override
+  String reportsLastGoalsEvidenceLogged(int days) {
+    return 'Logged $days days';
+  }
+
+  @override
+  String reportsLastGoalsEvidenceWorkout(int done, int total) {
+    return '$done / $total personal workouts';
+  }
+
+  @override
+  String get reportsTrendUnavailable =>
+      'Couldn\'t load this week\'s workout records';
+
+  @override
+  String get reportsTrendNoGoal => 'No goal';
+
+  @override
+  String reportsTrendOfGoal(String value, String goal) {
+    return '$value / $goal';
+  }
+
+  @override
+  String get reportsTrendCompliance => 'Weekly completion';
+
+  @override
+  String get reportsTrendBurn => 'Weekly burn';
+
+  @override
+  String get reportsTrendStreak => 'Streak';
+
+  @override
+  String reportsTrendStreakDays(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get reportsExerciseTrend => 'Workout trend';
+
+  @override
+  String get reportsWriteFromScratch => 'Write from scratch';
+
+  @override
+  String get reportsCardWeekTitle => 'This week';
+
+  @override
+  String get reportsCardWeekSubtitle =>
+      'On one axis you can see the days that fell together';
+
+  @override
+  String get reportsAiSubtitle => 'Written automatically from the figures';
+
+  @override
+  String reportsMemberFeedbackMeta(String date) {
+    return 'Weekly · submitted $date';
+  }
+
+  @override
+  String reportsMacroShortfallEvidence(String goal) {
+    return 'This is the evidence last week\'s goal “$goal” was judged unmet';
+  }
+
+  @override
+  String reportsTrendSubtitle(int weeks) {
+    return 'By type · last $weeks weeks';
+  }
+
+  @override
+  String get reportsTrendCenterLabel => 'of goal';
+
+  @override
+  String reportsTrendWeeklyGoal(String goal) {
+    return 'Weekly goal $goal';
+  }
+
+  @override
+  String reportsTrendRunDown(int weeks) {
+    return 'Down $weeks weeks running';
+  }
+
+  @override
+  String reportsTrendRunUp(int weeks) {
+    return 'Up $weeks weeks running';
+  }
+
+  @override
+  String reportsTrendVsLastWeek(String delta) {
+    return '$delta% vs last week';
+  }
+
+  @override
+  String get reportsTrendFlat => 'About the same as last week';
+
+  @override
+  String get reportsTrendNoHistory => 'No earlier week to compare';
+
+  @override
+  String get reportsTrendRate => 'Weekly goal rate';
+
+  @override
+  String reportsTrendAverage(int weeks) {
+    return '$weeks-week average';
+  }
+
+  @override
+  String reportsTrendRateFalling(int weeks) {
+    return 'Goal rate down $weeks weeks running';
+  }
+
+  @override
+  String reportsTrendTracked(int count) {
+    return '$count tracked exercises — picked automatically';
+  }
+
+  @override
+  String reportsTrendTrackedTimes(int count) {
+    return '$count×';
+  }
+
+  @override
+  String get reportsSkipToWrite => 'Write without a draft';
+
+  @override
+  String reportsCalorieThisWeekAvg(String kcal) {
+    return 'This week $kcal kcal/day';
+  }
+
+  @override
+  String reportsCalorieBaselineAvg(int weeks, String kcal) {
+    return 'Past $weeks weeks $kcal kcal/day';
+  }
+
+  @override
+  String reportsGridCalorieTargetDefault(String kcal) {
+    return 'Default $kcal';
+  }
+
+  @override
+  String get summaryBasisDefault => 'default target';
+
+  @override
+  String get summaryBasisPersonal => 'personal target';
+
+  @override
+  String get summaryDirOver => 'above';
+
+  @override
+  String get summaryDirUnder => 'below';
+
+  @override
+  String summaryCompletionLow(String pct, String threshold) {
+    return 'Avg workout completion $pct% · below the $threshold% bar';
+  }
+
+  @override
+  String summaryCompletionTopic(String pct) {
+    return 'workout completion at $pct%';
+  }
+
+  @override
+  String summaryCompletionAvg(String pct) {
+    return 'Avg workout completion $pct%';
+  }
+
+  @override
+  String summarySkipped(String names) {
+    return 'Skipped: $names';
+  }
+
+  @override
+  String summarySkippedTopic(String count) {
+    return '$count skipped exercise(s)';
+  }
+
+  @override
+  String summarySodium(String avg, String basis, String target, String days) {
+    return 'Avg sodium ${avg}mg · over the $basis of ${target}mg on $days day(s)';
+  }
+
+  @override
+  String summarySodiumOverTopic(String days) {
+    return 'sodium over target on $days day(s)';
+  }
+
+  @override
+  String summarySodiumAvgTopic(String avg) {
+    return 'avg sodium ${avg}mg';
+  }
+
+  @override
+  String summarySugar(String avg, String basis, String target, String days) {
+    return 'Avg sugar ${avg}g · over the $basis of ${target}g on $days day(s)';
+  }
+
+  @override
+  String summarySugarOverTopic(String days) {
+    return 'sugar over target on $days day(s)';
+  }
+
+  @override
+  String summarySugarAvgTopic(String avg) {
+    return 'avg sugar ${avg}g';
+  }
+
+  @override
+  String summaryCalories(
+    String avg,
+    String basis,
+    String target,
+    String direction,
+    String pct,
+  ) {
+    return 'Avg calories ${avg}kcal · $pct% $direction the $basis of ${target}kcal';
+  }
+
+  @override
+  String summaryCaloriesTopic(String direction) {
+    return 'calories $direction target';
+  }
+
+  @override
+  String summaryCaloriesAvg(String avg) {
+    return 'Avg calories ${avg}kcal';
+  }
+
+  @override
+  String summaryMacro(
+    String label,
+    String avg,
+    String target,
+    String direction,
+    String pct,
+  ) {
+    return 'Avg $label ${avg}g · $pct% $direction the personal target of ${target}g';
+  }
+
+  @override
+  String summaryMacroTopic(String label, String direction) {
+    return '$label $direction target';
+  }
+
+  @override
+  String summaryMorePoints(String count) {
+    return '$count more — see the report';
+  }
+
+  @override
+  String summaryHeadlineNoData(String name) {
+    return '$name has no records for the week — plan next week\'s start together.';
+  }
+
+  @override
+  String summaryHeadlineSteady(String name) {
+    return '$name stayed within target — the current intensity can stay as is.';
+  }
+
+  @override
+  String summaryHeadlineRest(String count) {
+    return ' Also look at $count more.';
+  }
+
+  @override
+  String summaryHeadlineGoodCare(
+    String name,
+    String kept,
+    String top,
+    String rest,
+  ) {
+    return '$name kept $kept on track; next week, let\'s also work on $top.$rest';
+  }
+
+  @override
+  String summaryHeadlineNeedsAdjust(String name, String top, String rest) {
+    return '$name was off target on $top — next week needs adjusting.$rest';
+  }
+
+  @override
+  String get reportsPdfFileSuffix => 'weekly_report';
 }

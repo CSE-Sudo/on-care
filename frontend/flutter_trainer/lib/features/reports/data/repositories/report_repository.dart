@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -9,10 +10,12 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_sender.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
@@ -43,9 +46,13 @@ abstract interface class ReportRepository {
   ///
   /// 리포트 본문과 **따로** 가져온다. 실서버는 생성에 몇 초가 걸리는데 한
   /// 응답에 묶으면 고객을 고를 때마다 화면 전체가 그만큼 멈춘다(#755).
+  ///
+  /// [l] 은 기기에서 조립하는 규칙 기반 요약의 언어다. 실서버가 만든 문장은
+  /// 서버가 쓴 그대로 온다.
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
+    required AppLocalizations l,
   });
 
   /// Sends [message] (defaults to the report's own body) to the member.
@@ -82,6 +89,17 @@ abstract interface class ReportRepository {
     required String clientId,
     required DateTime weekStart,
     required String body,
+  });
+
+  /// ② 에서 고른 목표를 **다음 주**에 적용해 남긴다. (#2232)
+  ///
+  /// [weekStart] 는 고른 주다 — 저장되는 주는 그 다음 주이고, 그 주의 리포트가
+  /// ③ 으로 회수한다. 회수되지 않는 목표는 공수표라, 목표를 고르는 화면만
+  /// 있고 이 자리가 없으면 기능이 반쪽이다.
+  Future<void> saveNextWeekGoals({
+    required String clientId,
+    required DateTime weekStart,
+    required List<String> goals,
   });
 }
 
@@ -123,6 +141,11 @@ class LocalReportRepository implements ReportRepository {
             // 데모도 그 주의 이력에서 계열을 만든다 — 로스터가 준 이번 주
             // 계열을 과거 주에 붙이지 않는다(#752).
             week: await _weekSeries(client.id, start),
+            // ② 회원이 낸 답과 ③ 그 주에 적용돼 있던 목표(#2232). 둘 다 없는
+            // 주가 정상이라 null·빈 목록으로 돌아오고, 화면이 그때 "아직
+            // 받지 못함"·"고른 목표 없음"을 그린다.
+            memberFeedback: await _memberFeedback(client.id, start),
+            weekGoals: await _weekGoals(client.id, start),
           ),
         );
   }
@@ -131,11 +154,12 @@ class LocalReportRepository implements ReportRepository {
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
+    required AppLocalizations l,
   }) async {
     // 데모에는 모델이 없다. 실서버가 공급자 장애에서 쓰는 것과 **같은** 규칙
     // 기반 요약을 쓴다 — 데모에서 본 문장이 실서버의 실패 화면과 같아진다.
     final report = await watch(client: client, weekStart: weekStart).first;
-    return ruleReportSummary(report, client);
+    return ruleReportSummary(l, report, client);
   }
 
   /// 저장된 운동 목록을 방어적으로 디코드. 깨진 값은 빈 목록으로.
@@ -185,8 +209,15 @@ class LocalReportRepository implements ReportRepository {
           ReportDay(
             completion: on(d)?.completion ?? 0,
             exercises: _exercises(on(d)?.exercisesJson),
+            // 0 은 "배정을 모른다"는 뜻이라 null 로 넘긴다(#2232) — 그때만
+            // 실제로 한 운동 수가 분모로 되돌아간다. 배정이 0 인 날은 쉬는
+            // 날이고, 쉬는 날을 `0 / 0` 으로 적으면 안 한 날처럼 읽힌다.
+            assigned: (on(d)?.assignedCount ?? 0) > 0
+                ? on(d)!.assignedCount
+                : null,
           ),
       ],
+      mealCounts: <int>[for (var d = 0; d < 7; d++) on(d)?.mealCount ?? 0],
       completion: <int>[for (var d = 0; d < 7; d++) on(d)?.completion ?? 0],
       sodium: <int>[for (var d = 0; d < 7; d++) on(d)?.sodiumMg ?? 0],
       calories: <int>[for (var d = 0; d < 7; d++) on(d)?.calories ?? 0],
@@ -195,6 +226,75 @@ class LocalReportRepository implements ReportRepository {
       protein: <double>[for (var d = 0; d < 7; d++) on(d)?.proteinG ?? 0],
       fat: <double>[for (var d = 0; d < 7; d++) on(d)?.fatG ?? 0],
     );
+  }
+
+  /// 회원이 그 주에 낸 세 문항. 안 냈으면 null — 오류가 아니라 정상이다.
+  Future<MemberWeeklyFeedback?> _memberFeedback(
+    String clientId,
+    DateTime monday,
+  ) async {
+    final ClientWeeklyFeedbackRow? row =
+        await (_db.select(_db.clientWeeklyFeedbacks)..where(
+              (t) =>
+                  t.clientId.equals(clientId) & t.weekStart.equals(ymd(monday)),
+            ))
+            .getSingleOrNull();
+    if (row == null) return null;
+    return MemberWeeklyFeedback.fromWire(
+      weekStart: monday,
+      condition: row.condition,
+      intensity: row.intensity,
+      painArea: row.painArea,
+      painOn: row.painOn,
+      note: row.note,
+    );
+  }
+
+  /// 그 주에 **적용돼 있던** 목표 — 지난 주에 트레이너가 고른 것이다.
+  Future<List<String>> _weekGoals(String clientId, DateTime monday) async {
+    final ClientReportGoalRow? row =
+        await (_db.select(_db.clientReportGoals)..where(
+              (t) =>
+                  t.clientId.equals(clientId) & t.weekStart.equals(ymd(monday)),
+            ))
+            .getSingleOrNull();
+    if (row == null) return const <String>[];
+    try {
+      final Object? decoded = jsonDecode(row.goalsJson);
+      if (decoded is! List) return const <String>[];
+      return <String>[
+        for (final Object? item in decoded)
+          if (item is String && item.trim().isNotEmpty) item,
+      ];
+    } on FormatException {
+      // 깨진 값은 "목표가 없다"로 읽는다 — 화면을 세우는 쪽이 지어낸 목표를
+      // 회원에게 보내는 것보다 낫다.
+      return const <String>[];
+    }
+  }
+
+  /// 트레이너가 ② 에서 고른 목표를 **다음 주**에 적용한다. (#2232)
+  ///
+  /// 고른 주가 아니라 지켜야 할 주에 저장하는 것이 핵심이다 — 다음 주 리포트가
+  /// 자기 주의 목표를 꺼내 ③ 으로 회수한다.
+  @override
+  Future<void> saveNextWeekGoals({
+    required String clientId,
+    required DateTime weekStart,
+    required List<String> goals,
+  }) {
+    final DateTime applies = weekStartOf(
+      weekStart,
+    ).add(const Duration(days: 7));
+    return _db
+        .into(_db.clientReportGoals)
+        .insertOnConflictUpdate(
+          ClientReportGoalsCompanion.insert(
+            clientId: clientId,
+            weekStart: ymd(applies),
+            goalsJson: Value(jsonEncode(goals)),
+          ),
+        );
   }
 
   @override
@@ -305,6 +405,7 @@ class DioReportRepository implements ReportRepository {
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
+    required AppLocalizations l,
   }) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -409,6 +510,24 @@ class DioReportRepository implements ReportRepository {
       body: json['body'] as String? ?? '',
       saved: json['updated_at'] != null,
     );
+  }
+
+  @override
+  Future<void> saveNextWeekGoals({
+    required String clientId,
+    required DateTime weekStart,
+    required List<String> goals,
+  }) async {
+    try {
+      // 서버도 같은 규칙으로 다음 주에 저장한다 — 주 경계 계산이 양쪽에
+      // 흩어지면 한쪽만 고쳤을 때 목표가 한 주 어긋난 채 돌아온다.
+      await _dio.put<Map<String, dynamic>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/report/goals',
+        data: <String, Object>{'week_start': ymd(weekStart), 'goals': goals},
+      );
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
   }
 }
 
@@ -516,8 +635,16 @@ final reportFeedbackDraftProvider = FutureProvider.autoDispose
 /// `autoDispose` 다 — 고객·주를 옮겨 다니는 화면이라 남겨 두면 본 적 있는 모든
 /// 주의 요약이 메모리에 쌓인다. 다시 생성하려면 이 provider 를 무효화한다.
 final reportSummaryProvider = FutureProvider.autoDispose
-    .family<ReportSummary, ReportKey>((ref, key) {
+    .family<ReportSummary, ReportSummaryKey>((ref, key) {
       return ref
           .watch(reportRepositoryProvider)
-          .summary(client: key.client, weekStart: key.weekStart);
+          .summary(
+            client: key.report.client,
+            weekStart: key.report.weekStart,
+            l: lookupAppLocalizations(key.locale),
+          );
     });
+
+/// 요약을 찾는 열쇠 — 어느 주인지와 **어느 언어로** 조립할지. 언어를 바꾸면
+/// 다른 요약이다(#2232).
+typedef ReportSummaryKey = ({ReportKey report, Locale locale});

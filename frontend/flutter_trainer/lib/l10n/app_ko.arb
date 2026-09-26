@@ -430,7 +430,13 @@
   "consultHealthPurpose": "건강관리 목적",
   "consultChosenSlot": "고른 시간",
   "consultSlotDuration": "{minutes}분",
-  "@consultSlotDuration": {"placeholders": {"minutes": {"type": "int"}}},
+  "@consultSlotDuration": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "consultStatusExpired": "만료됨",
   "consultPreferredTime": "희망 일시",
   "consultMessage": "문의 내용",
@@ -628,6 +634,22 @@
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
   "reportBodyCompletionLow": "운동 이행률은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
+  "reportBodySilentDays": "{days}에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.",
+  "@reportBodySilentDays": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodySteadyDays": "{days}까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.",
+  "@reportBodySteadyDays": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
   "reportBodySkipped": "다만 {names} 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.",
   "reportBodySodiumOver": "나트륨은 하루 평균 {avg}mg이었고, 목표({target}mg)를 넘긴 날이 {days}일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.",
   "reportBodySodiumOk": "나트륨은 하루 평균 {avg}mg으로 목표({target}mg) 안에서 잘 지키고 계세요.",
@@ -924,7 +946,6 @@
   "coachSubtitle": "회원별 운동 프로그램을 만들고 배정·관리하세요",
   "coachMemberSummary": "회원 요약",
   "reportsDataInsufficient": "데이터 부족",
-  "reportsThisWeek": "이번 주",
   "coachSendFailed": "전송에 실패했어요. 다시 시도해 주세요",
   "coachScheduleFailed": "스케줄 등록에 실패했어요. 다시 시도해 주세요",
   "coachNoClients": "등록된 회원이 없어요",
@@ -1348,9 +1369,36 @@
   "programDraftDeleteTitle": "저장한 프로그램을 삭제할까요?",
   "programDraftDeleteBody": "이미 배정한 프로그램과 등록한 일정은 그대로 남아요.",
   "programAssignConfirmAttachBody": "{date} {session}에 이미 예정된 {name}님의 PT에 이 프로그램이 연결돼요. 고른 시간({selected})은 적용되지 않아요.",
-  "@programAssignConfirmAttachBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "session": {"type": "String"}, "selected": {"type": "String"}}},
+  "@programAssignConfirmAttachBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "session": {
+        "type": "String"
+      },
+      "selected": {
+        "type": "String"
+      }
+    }
+  },
   "programAssignConfirmChooseBody": "{date}에 고른 시간({selected})과 겹치는 {name}님의 PT가 여러 개예요. 프로그램을 연결할 회차를 골라 주세요. 고른 시간은 적용되지 않아요.",
-  "@programAssignConfirmChooseBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "selected": {"type": "String"}}},
+  "@programAssignConfirmChooseBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "selected": {
+        "type": "String"
+      }
+    }
+  },
   "coachAttachTargetChanged": "연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요",
   "programEditorNoExercises": "운동을 하나 이상 추가해 주세요",
   "programEditorExerciseNameInvalid": "이름이 비었거나 100자를 넘는 운동이 있어요",
@@ -1360,14 +1408,53 @@
   "coachSendInvalid": "서버가 이 일정을 받지 않았어요. 날짜·시간·운동 구성을 확인해 주세요",
   "coachSendUnverified": "등록 결과를 확인하지 못했어요. 스케줄에서 등록 여부를 확인해 주세요",
   "programEditorSessionLimitReached": "세션은 최대 {max}개까지 만들 수 있어요",
-  "@programEditorSessionLimitReached": {"placeholders": {"max": {"type": "int"}}},
+  "@programEditorSessionLimitReached": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "programEditorExerciseLimitReached": "운동은 프로그램 전체에서 최대 {max}개까지 넣을 수 있어요",
-  "@programEditorExerciseLimitReached": {"placeholders": {"max": {"type": "int"}}},
+  "@programEditorExerciseLimitReached": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "programEditorSizeExceeded": "세션 {sessions}/{maxSessions}개 · 운동 {exercises}/{maxExercises}개 — 한도를 넘은 만큼 줄여야 일정에 추가할 수 있어요",
-  "@programEditorSizeExceeded": {"placeholders": {"sessions": {"type": "int"}, "maxSessions": {"type": "int"}, "exercises": {"type": "int"}, "maxExercises": {"type": "int"}}},
+  "@programEditorSizeExceeded": {
+    "placeholders": {
+      "sessions": {
+        "type": "int"
+      },
+      "maxSessions": {
+        "type": "int"
+      },
+      "exercises": {
+        "type": "int"
+      },
+      "maxExercises": {
+        "type": "int"
+      }
+    }
+  },
   "programAssignConfirmTitle": "일정에 추가할까요?",
   "programAssignConfirmBody": "{date} {time}에 {name}님의 PT 일정을 새로 만들고 이 프로그램을 추가해요.",
-  "@programAssignConfirmBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "time": {"type": "String"}}},
+  "@programAssignConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSaveTemplate": "템플릿 저장",
   "programEditorAddSchedule": "일정 추가",
   "programReviewTitle": "전송 확인",
@@ -1501,7 +1588,7 @@
       }
     }
   },
-  "reportsAiTitle": "AI 코칭 보조 · 리포트 요약",
+  "reportsAiTitle": "이번 주 요약",
   "reportsAiNextWeek": "다음 주 코칭 제안",
   "reportsAiMoreWatchpoints": "외 {count}건은 리포트 본문에서 확인하세요.",
   "reportsActionSodium": "국물·절임 반찬을 절반만 남기도록 안내해 주세요.",
@@ -1752,5 +1839,524 @@
     }
   },
   "routineFormDecrease": "줄이기",
-  "routineFormIncrease": "늘리기"
+  "routineFormIncrease": "늘리기",
+  "reportsWorkbenchTitle": "이번 주 리포트",
+  "reportsPending": "미전송",
+  "reportsCountPeople": "{count}명",
+  "@reportsCountPeople": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSortPriority": "우선 확인 순",
+  "reportsSortName": "이름 순",
+  "reportsSendProgress": "{done} / {total} 전송",
+  "@reportsSendProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsQueueAllSent": "이번 주 리포트를 모두 보냈어요",
+  "reportsSentColumn": "전송 완료",
+  "reportsSentColumnEmpty": "아직 보낸 리포트가 없어요",
+  "reportsSentSubtitle": "보낸 리포트 보기",
+  "reportsOpenDraft": "열기",
+  "reportsReasonUnknown": "수치를 불러오는 중",
+  "reportsReasonCompletion": "이행 {percent}%",
+  "@reportsReasonCompletion": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonNoShow": "노쇼 {count}회",
+  "@reportsReasonNoShow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonSessionDone": "PT {count}회 전량 소화",
+  "@reportsReasonSessionDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonSilentDays": "{days}일 무기록",
+  "@reportsReasonSilentDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonSlump": "주 후반 {points}%p 하락",
+  "@reportsReasonSlump": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonRising": "주 후반 {points}%p 상승",
+  "@reportsReasonRising": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonFullLog": "7일 전량 기록",
+  "reportsReasonOnboarding": "신규 · 적응 중",
+  "reportsReasonSteady": "순조로움",
+  "reportsSentOn": "{date} 전송",
+  "@reportsSentOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSentRead": "읽음",
+  "reportsSentUnread": "안 읽음",
+  "reportsSentUnreadHint": "안 읽은 회원은 다음 주 우선 확인으로 올라와요.",
+  "reportsBackToWorkbench": "이번 주 리포트",
+  "reportsSentHeadline": "{name}님에게 보낸 리포트",
+  "@reportsSentHeadline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSentAt": "{date} {time} 전송",
+  "@reportsSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSentRewrite": "이 내용으로 다시 작성",
+  "reportsSentBody": "보낸 피드백",
+  "reportsSentFigures": "그때 보낸 수치",
+  "reportsStepReview": "확인",
+  "reportsStepGoals": "작성",
+  "reportsStepSend": "전송",
+  "reportsStepperLabel": "주간 리포트 작성 진행 단계",
+  "reportsStepNext": "다음",
+  "reportsStepPrev": "이전",
+  "reportsGoalsTitle": "다음 주 목표",
+  "reportsGoalsHint": "다음 주에 함께 챙길 것을 고르세요. 고른 목표는 보낼 글에 같이 담겨요.",
+  "reportsGoalsNone": "아직 고른 목표가 없어요",
+  "reportsGoalsPicked": "{count}개 고름",
+  "@reportsGoalsPicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGoalsOwnHint": "직접 적기",
+  "reportsGoalsAdd": "추가",
+  "reportsGoalsRemove": "{goal} 빼기",
+  "@reportsGoalsRemove": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsGridPtSession": "PT 세션",
+  "reportsGridPtPerWeek": "주 {count}회",
+  "@reportsGridPtPerWeek": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGridPersonal": "개인 운동",
+  "reportsGridPersonalUnit": "수행 / 배정",
+  "reportsGridDoneOfAssigned": "{done} / {total}회",
+  "@reportsGridDoneOfAssigned": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGridMeals": "식단 기록",
+  "reportsGridMealsUnit": "기록 횟수",
+  "reportsGridMealCount": "{count}회",
+  "@reportsGridMealCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGridCalories": "섭취 칼로리",
+  "reportsGridCalorieTarget": "목표 {value}",
+  "@reportsGridCalorieTarget": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMacroNone": "아직 끼니 기록이 없어 탄단지를 볼 수 없어요",
+  "reportsMacroValueOfTarget": "{name} {value} / {target}g",
+  "@reportsMacroValueOfTarget": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsMacroNoValue": "{name} 기록 없음",
+  "@reportsMacroNoValue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMacroShortfall": "{name}이(가) 목표에 많이 모자라요 — 다음 주 목표로 짚어 보세요",
+  "@reportsMacroShortfall": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMemberFeedbackTitle": "회원 주간 피드백",
+  "reportsMemberFeedbackAttention": "확인 필요",
+  "reportsMemberFeedbackNone": "아직 받지 못했어요",
+  "reportsMemberFeedbackNoneHint": "회원이 주간 피드백을 보내면 여기에 표시돼요",
+  "reportsMemberFeedbackConditionLabel": "컨디션",
+  "reportsMemberFeedbackIntensityLabel": "운동 강도",
+  "reportsMemberFeedbackPainLabel": "통증",
+  "reportsMemberFeedbackPainNone": "없음",
+  "reportsMemberFeedbackPainOn": "{area} ({date})",
+  "@reportsMemberFeedbackPainOn": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMemberFeedbackConditionGreat": "아주 좋았어요",
+  "reportsMemberFeedbackConditionGood": "좋았어요",
+  "reportsMemberFeedbackConditionOk": "보통이었어요",
+  "reportsMemberFeedbackConditionTired": "지쳤어요",
+  "reportsMemberFeedbackConditionBad": "많이 힘들었어요",
+  "reportsMemberFeedbackIntensityTooEasy": "너무 쉬웠어요",
+  "reportsMemberFeedbackIntensityRight": "적당했어요",
+  "reportsMemberFeedbackIntensityHard": "힘들었어요",
+  "reportsMemberFeedbackIntensityTooHard": "너무 힘들었어요",
+  "reportsLastGoalsTitle": "지난 주 목표 달성",
+  "reportsLastGoalsNone": "지난 주에 고른 목표가 없어요",
+  "reportsLastGoalsNoneHint": "이번 주에 다음 주 목표를 고르면 다음 리포트에서 여기로 돌아와요",
+  "reportsLastGoalsMetCount": "{met} / {total} 달성",
+  "@reportsLastGoalsMetCount": {
+    "placeholders": {
+      "met": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsLastGoalsMet": "달성",
+  "reportsLastGoalsPartial": "절반",
+  "reportsLastGoalsMissed": "미달",
+  "reportsLastGoalsUnknown": "직접 확인",
+  "reportsLastGoalsEvidence": "{done} / {target}{unit}",
+  "@reportsLastGoalsEvidence": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsLastGoalsEvidenceLogged": "{days}일 기록",
+  "@reportsLastGoalsEvidenceLogged": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsLastGoalsEvidenceWorkout": "개인 운동 {done} / {total}회",
+  "@reportsLastGoalsEvidenceWorkout": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
+  "reportsTrendNoGoal": "목표 없음",
+  "reportsTrendOfGoal": "{value} / {goal}",
+  "@reportsTrendOfGoal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendCompliance": "주간 이행률",
+  "reportsTrendBurn": "주간 소모",
+  "reportsTrendStreak": "연속 기록",
+  "reportsTrendStreakDays": "{days}일",
+  "@reportsTrendStreakDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsExerciseTrend": "운동 추세",
+  "reportsWriteFromScratch": "직접 작성하기",
+  "reportsCardWeekTitle": "이번 주",
+  "reportsCardWeekSubtitle": "한 축에 겹쳐 보면 같이 무너진 날이 보입니다",
+  "reportsAiSubtitle": "AI가 수치에서 자동 작성",
+  "reportsMemberFeedbackMeta": "주 1회 · {date} 제출",
+  "@reportsMemberFeedbackMeta": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMacroShortfallEvidence": "지난 주 목표 “{goal}”이 미이행으로 판정된 근거예요",
+  "@reportsMacroShortfallEvidence": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendSubtitle": "유형별 · 최근 {weeks}주",
+  "@reportsTrendSubtitle": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendCenterLabel": "목표의",
+  "reportsTrendWeeklyGoal": "주간 목표 {goal}",
+  "@reportsTrendWeeklyGoal": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendRunDown": "{weeks}주 연속 감소",
+  "@reportsTrendRunDown": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendRunUp": "{weeks}주 연속 상승",
+  "@reportsTrendRunUp": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendVsLastWeek": "지난 주 대비 {delta}%",
+  "@reportsTrendVsLastWeek": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendFlat": "지난 주와 비슷",
+  "reportsTrendNoHistory": "견줄 지난 주가 없어요",
+  "reportsTrendRate": "주간 달성률",
+  "reportsTrendAverage": "{weeks}주 평균",
+  "@reportsTrendAverage": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendRateFalling": "달성률 {weeks}주 연속 하락",
+  "@reportsTrendRateFalling": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendTracked": "추적 종목 {count}개 — 자동 선별됨",
+  "@reportsTrendTracked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendTrackedTimes": "{count}회",
+  "@reportsTrendTrackedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSkipToWrite": "초안 없이 직접 쓰기",
+  "reportsCalorieThisWeekAvg": "이번 주 평균 {kcal}kcal",
+  "@reportsCalorieThisWeekAvg": {
+    "placeholders": { "kcal": { "type": "String" } }
+  },
+  "reportsCalorieBaselineAvg": "지난 {weeks}주 평균 {kcal}kcal",
+  "@reportsCalorieBaselineAvg": {
+    "placeholders": { "weeks": { "type": "int" }, "kcal": { "type": "String" } }
+  },
+  "reportsGridCalorieTargetDefault": "기본 목표 {kcal}",
+  "@reportsGridCalorieTargetDefault": {
+    "placeholders": { "kcal": { "type": "String" } }
+  },
+  "summaryBasisDefault": "기본 목표",
+  "summaryBasisPersonal": "개인 목표",
+  "summaryDirOver": "초과",
+  "summaryDirUnder": "부족",
+  "summaryCompletionLow": "운동 이행률 평균 {pct}% · 기준 {threshold}% 미만",
+  "@summaryCompletionLow": {
+    "placeholders": { "pct": { "type": "String" }, "threshold": { "type": "String" } }
+  },
+  "summaryCompletionTopic": "운동 이행률 {pct}%",
+  "@summaryCompletionTopic": {
+    "placeholders": { "pct": { "type": "String" } }
+  },
+  "summaryCompletionAvg": "운동 이행률 평균 {pct}%",
+  "@summaryCompletionAvg": {
+    "placeholders": { "pct": { "type": "String" } }
+  },
+  "summarySkipped": "건너뛴 운동: {names}",
+  "@summarySkipped": {
+    "placeholders": { "names": { "type": "String" } }
+  },
+  "summarySkippedTopic": "건너뛴 운동 {count}가지",
+  "@summarySkippedTopic": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "summarySodium": "나트륨 평균 {avg}mg · {basis} {target}mg 초과 {days}일",
+  "@summarySodium": {
+    "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "days": { "type": "String" } }
+  },
+  "summarySodiumOverTopic": "나트륨 목표 초과 {days}일",
+  "@summarySodiumOverTopic": {
+    "placeholders": { "days": { "type": "String" } }
+  },
+  "summarySodiumAvgTopic": "나트륨 평균 {avg}mg",
+  "@summarySodiumAvgTopic": {
+    "placeholders": { "avg": { "type": "String" } }
+  },
+  "summarySugar": "당류 평균 {avg}g · {basis} {target}g 초과 {days}일",
+  "@summarySugar": {
+    "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "days": { "type": "String" } }
+  },
+  "summarySugarOverTopic": "당류 목표 초과 {days}일",
+  "@summarySugarOverTopic": {
+    "placeholders": { "days": { "type": "String" } }
+  },
+  "summarySugarAvgTopic": "당류 평균 {avg}g",
+  "@summarySugarAvgTopic": {
+    "placeholders": { "avg": { "type": "String" } }
+  },
+  "summaryCalories": "칼로리 평균 {avg}kcal · {basis} {target}kcal 대비 {direction} {pct}%",
+  "@summaryCalories": {
+    "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "direction": { "type": "String" }, "pct": { "type": "String" } }
+  },
+  "summaryCaloriesTopic": "칼로리 {direction}",
+  "@summaryCaloriesTopic": {
+    "placeholders": { "direction": { "type": "String" } }
+  },
+  "summaryCaloriesAvg": "칼로리 평균 {avg}kcal",
+  "@summaryCaloriesAvg": {
+    "placeholders": { "avg": { "type": "String" } }
+  },
+  "summaryMacro": "{label} 평균 {avg}g · 개인 목표 {target}g 대비 {direction} {pct}%",
+  "@summaryMacro": {
+    "placeholders": { "label": { "type": "String" }, "avg": { "type": "String" }, "target": { "type": "String" }, "direction": { "type": "String" }, "pct": { "type": "String" } }
+  },
+  "summaryMacroTopic": "{label} {direction}",
+  "@summaryMacroTopic": {
+    "placeholders": { "label": { "type": "String" }, "direction": { "type": "String" } }
+  },
+  "summaryMorePoints": "외 {count}건 — 리포트 본문에서 확인",
+  "@summaryMorePoints": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "summaryHeadlineNoData": "{name} 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.",
+  "@summaryHeadlineNoData": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "summaryHeadlineSteady": "{name} 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.",
+  "@summaryHeadlineSteady": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "summaryHeadlineRest": " 그 밖에 {count}가지도 함께 보세요.",
+  "@summaryHeadlineRest": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "summaryHeadlineGoodCare": "{name} 회원은 {kept} 잘 지켰고, 다음 주는 {top} 함께 챙기면 좋겠습니다.{rest}",
+  "@summaryHeadlineGoodCare": {
+    "placeholders": { "name": { "type": "String" }, "kept": { "type": "String" }, "top": { "type": "String" }, "rest": { "type": "String" } }
+  },
+  "summaryHeadlineNeedsAdjust": "{name} 회원은 {top} 목표를 벗어나 다음 주 조정이 필요합니다.{rest}",
+  "@summaryHeadlineNeedsAdjust": {
+    "placeholders": { "name": { "type": "String" }, "top": { "type": "String" }, "rest": { "type": "String" } }
+  },
+  "reportsPdfFileSuffix": "주간리포트"
 }
