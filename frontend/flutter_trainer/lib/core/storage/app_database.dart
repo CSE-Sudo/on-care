@@ -251,6 +251,23 @@ class ClientDailyMetrics extends Table {
   /// 준다 — 이행률만으로는 67% 의 분모를 알 수 없다(#754).
   TextColumn get exercisesJson => text().withDefault(const Constant('[]'))();
 
+  /// 그날 남긴 끼니 기록 **횟수**. (#2232)
+  ///
+  /// 칼로리가 0 인 날을 "안 먹었다"로 읽을 수는 없다 — 기록을 안 한 것이다.
+  /// 리포트 ① 격자는 그 둘을 갈라 보여야 하고, 거기에 필요한 값은 칼로리가
+  /// 아니라 **몇 번 적었나**다. 아침만 적고 만 날(1회)과 세 끼를 다 적은
+  /// 날(3회)은 같은 `기록함` 이 아니다.
+  IntColumn get mealCount => integer().withDefault(const Constant(0))();
+
+  /// 그날 **배정된** 개인 운동 수. (#2232)
+  ///
+  /// [exercisesJson] 은 실제로 한 운동만 담는다(#1288) — 그래서 그 길이로는
+  /// `3개 중 3개` 와 `3개 중 0개` 를 가를 수 없고, 하나도 안 한 날은 아예
+  /// 사라진다. 리포트 ① 격자가 말하려는 것이 바로 그 날들이라, 분모를 따로
+  /// 둔다. 추천 개인 운동은 트레이너가 바꿀 때까지 매일 같은 목록으로
+  /// 리셋되므로(#2160), 하루의 배정 수는 지어낸 값이 아니라 정해진 값이다.
+  IntColumn get assignedCount => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{clientId, date};
 }
@@ -273,6 +290,41 @@ class ReportFeedbackDrafts extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{clientId, weekStart};
 }
 
+/// 회원이 한 주를 끝내며 남긴 세 문항 — 실서버 `member_weekly_feedback` 대응.
+/// (#2232)
+///
+/// 수치만 보면 같은 한 주가 `게으름` 으로도 `과부하·일정 문제` 로도 읽힌다.
+/// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인에게 물어야 정해진다.
+/// 리포트 ② 칸이 이 표를 읽는다.
+@DataClassName('ClientWeeklyFeedbackRow')
+class ClientWeeklyFeedbacks extends Table {
+  TextColumn get clientId => text()();
+  TextColumn get weekStart => text()(); // 월요일 YYYY-MM-DD
+  TextColumn get condition => text().withDefault(const Constant(''))();
+  TextColumn get intensity => text().withDefault(const Constant(''))();
+  TextColumn get painArea => text().withDefault(const Constant(''))();
+  TextColumn get painOn => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{clientId, weekStart};
+}
+
+/// 트레이너가 ② 에서 고른 다음 주 목표 — 다음 주 ③ 이 그대로 회수한다. (#2232)
+///
+/// 이 표가 없으면 ② 는 고르는 시늉으로 끝난다. 목표는 **다음 주에 확인될 때**
+/// 비로소 목표이고, 확인되지 않는 목표를 매주 새로 고르는 화면은 트레이너에게
+/// 일만 늘린다. `weekStart` 는 그 목표가 적용되는 주(고른 주의 다음 주)다.
+@DataClassName('ClientReportGoalRow')
+class ClientReportGoals extends Table {
+  TextColumn get clientId => text()();
+  TextColumn get weekStart => text()(); // 목표가 적용되는 주의 월요일
+  TextColumn get goalsJson => text().withDefault(const Constant('[]'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{clientId, weekStart};
+}
+
 /// Trainer-app local database (drift-backed). Holds mock client /
 /// schedule data until the FastAPI backend lands. Designed fresh for
 /// the trainer app — the user app's database is not reused.
@@ -287,6 +339,8 @@ class ReportFeedbackDrafts extends Table {
     TrainerScheduleEntries,
     ClientDailyMetrics,
     ReportFeedbackDrafts,
+    ClientWeeklyFeedbacks,
+    ClientReportGoals,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -310,7 +364,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -469,6 +523,46 @@ class AppDatabase extends _$AppDatabase {
       // 다음 시드가 채운다.
       if (from < 19) {
         await m.addColumn(trainerClients, trainerClients.signalsJson);
+      }
+      // v20: 리포트 ①②③ 이 읽는 세 가지(#2232) — 하루 끼니 기록 횟수, 회원이
+      // 남긴 주간 피드백, 지난 주에 고른 목표.
+      //
+      // 컬럼은 기본값이 있어 기존 행도 그대로 읽히고, 다음 재시딩이 실제 값을
+      // 채운다. `mealCount` 가 0 인 날은 화면이 "기록 없음"으로 그리는데, 재시딩
+      // 전에도 그 날들의 칼로리가 0 이라 두 값이 어긋나지 않는다.
+      //
+      // 표를 만들기 전에 있는지 본다 — v7 이전에서 올라오는 DB 는 `createAll`
+      // 이 아니라 이 갈래를 타고, 이미 만든 표를 다시 만들면 거기서 죽는다.
+      if (from < 20) {
+        Future<bool> hasTable(String name) async {
+          final List<QueryRow> rows = await m.database
+              .customSelect(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                variables: <Variable<Object>>[Variable<String>(name)],
+              )
+              .get();
+          return rows.isNotEmpty;
+        }
+
+        // v7 이전에서 올라오는 DB 는 위 `createTable` 이 **현재 정의**로 표를
+        // 만들어 두 컬럼이 이미 붙어 있다. 있는 표에만, 없는 컬럼만 붙인다.
+        if (from >= 7 && await hasTable(clientDailyMetrics.actualTableName)) {
+          await m.addColumn(clientDailyMetrics, clientDailyMetrics.mealCount);
+          await m.addColumn(
+            clientDailyMetrics,
+            clientDailyMetrics.assignedCount,
+          );
+        }
+        // 이미 만든 표를 다시 만들면 거기서 죽는다.
+        for (final TableInfo<Table, Object?> table
+            in <TableInfo<Table, Object?>>[
+              clientWeeklyFeedbacks,
+              clientReportGoals,
+            ]) {
+          if (!await hasTable(table.actualTableName)) {
+            await m.createTable(table);
+          }
+        }
       }
     },
   );

@@ -26,7 +26,9 @@ Finder get _demoCarryOverRow => find.byKey(
 int _filledBars(WidgetTester tester) {
   int filled = 0;
   for (int i = 0; i < 7; i++) {
-    final Finder label = find.byKey(ValueKey<String>('task-progress-percent-$i'));
+    final Finder label = find.byKey(
+      ValueKey<String>('task-progress-percent-$i'),
+    );
     if (label.evaluate().isEmpty) continue;
     if (tester.widget<Text>(label).data!.isNotEmpty) filled++;
   }
@@ -82,7 +84,9 @@ void main() {
 
     // 지난주는 이레 모두 지난 날이라 일곱 칸이 모두 채워진다 — 이번 주는
     // 오늘이 무슨 요일이냐에 따라 채워지는 칸 수가 달라진다.
-    await tester.tap(find.byKey(const ValueKey<String>('task-progress-prev-week')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('task-progress-prev-week')),
+    );
     await settle(tester);
     expect(_filledBars(tester), 7);
   });

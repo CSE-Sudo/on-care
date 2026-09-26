@@ -546,10 +546,7 @@ void main() {
       // Priority order: 가장 급한 신호(통증·불편)를 든 오세라가 맨 위고, 신호가
       // 없는 회원(박성호·이지수)은 길고 지연 생성되는 목록의 아래에 선다.
       expect(
-        tester
-            .widget<ClientCard>(find.byType(ClientCard).first)
-            .client
-            .name,
+        tester.widget<ClientCard>(find.byType(ClientCard).first).client.name,
         '오세라',
       );
       expect(
@@ -582,7 +579,10 @@ void main() {
         findsOneWidget,
       );
       // 신호가 없는 이지수는 주의 회원이 아니다.
-      expect(find.byKey(const ValueKey<String>('client-seed-client-2')), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-2')),
+        findsNothing,
+      );
       // 주의 회원으로 들어오면 막대 아래에 가장 급한 주의 신호 하나가 붙는다.
       expect(
         tester
@@ -883,8 +883,14 @@ void main() {
 
       await toggleFilter(tester, RosterManagementFilter.discomfort);
       // 오세라는 대화에서 허리가 아프다고 했다. 이지수는 신호가 없다.
-      expect(find.byKey(const ValueKey<String>('client-seed-client-8')), findsOneWidget);
-      expect(find.byKey(const ValueKey<String>('client-seed-client-2')), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-8')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-2')),
+        findsNothing,
+      );
       expect(find.byType(ClientCard), findsOneWidget);
 
       // 필터로 좁힌 동안에는 막대 아래에 **걸린 이유만** 보인다(#2258) —
@@ -923,10 +929,15 @@ void main() {
       );
 
       await toggleFilter(tester, RosterManagementFilter.calorieOff);
-      final seoyeon = find.byKey(const ValueKey<String>('client-seed-client-6'));
+      final seoyeon = find.byKey(
+        const ValueKey<String>('client-seed-client-6'),
+      );
       await scrollToClient(tester, seoyeon);
       expect(seoyeon, findsOneWidget);
-      expect(find.byKey(const ValueKey<String>('client-seed-client-2')), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('client-seed-client-2')),
+        findsNothing,
+      );
       // 나트륨·당류·이행률·활성·휴면 칩은 없다.
       await tester.tap(
         find.byKey(const ValueKey<String>('clients-filter-button')),

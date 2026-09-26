@@ -10,18 +10,20 @@ TrainerSchedule, TrainerClient)을 회원 관점으로 읽고 쓴다. 이로써 
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
+from app.core import clock
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
-    MemberCoachOut, MemberInviteAcceptRequest, RoutineCompleteOut, RoutineOut,
+    MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
+    MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
     ScheduleSessionOut,
 )
 from app.services import (
@@ -346,3 +348,73 @@ def reject_coach_invite(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except trainer_client_invite_service.InviteAlreadyDecided as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+# ── 주간 피드백 (#2232) ─────────────────────────────────────────────────────
+#
+# 회원이 한 주를 끝내며 남기는 세 문항. 트레이너 리포트의 `회원 주간 피드백`
+# 칸이 같은 값을 읽는다(`/trainer/clients/{id}/report/member-feedback`).
+#
+# 담당 트레이너가 있어야 쓸 수 있다 — 받는 사람이 없는 피드백은 아무 데도
+# 닿지 않는다. 트레이너 없이 쓰는 주간 리포트(포인트 교환, #2022)와는 다른
+# 기능이라 그 경로와 섞지 않는다.
+
+
+def _feedback_week(week_start: str | None) -> date:
+    """피드백이 가리키는 주의 월요일.
+
+    기본값이 **지난 주**인 까닭: 이 답은 끝난 한 주를 돌아보며 적는 것이고,
+    트레이너는 주 초에 그 주의 리포트를 쓴다. 기본을 이번 주로 두면 아직
+    절반도 지나지 않은 주에 `한 주 컨디션` 을 묻게 된다.
+    """
+    if week_start:
+        try:
+            day = date.fromisoformat(week_start)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+            ) from exc
+    else:
+        day = trainer_service.week_start_of(clock.today()) - timedelta(days=7)
+    return trainer_service.week_start_of(day)
+
+
+@router.get("/me/coach/weekly-feedback", response_model=MemberWeeklyFeedbackOut)
+def my_weekly_feedback(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 지난 주)"),
+) -> MemberWeeklyFeedbackOut:
+    """내가 그 주에 낸 답. 아직 안 냈으면 `submitted=false`.
+
+    회원 앱 MY 탭이 `직전 주에 보낸 피드백` 을 이걸로 보여 주고, 같은 값으로
+    이번 주에 물어볼지를 정한다.
+    """
+    return trainer_service.get_member_weekly_feedback(
+        db, user.id, _feedback_week(week_start)
+    )
+
+
+@router.put("/me/coach/weekly-feedback", response_model=MemberWeeklyFeedbackOut)
+def save_my_weekly_feedback(
+    payload: MemberWeeklyFeedbackSaveRequest,
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> MemberWeeklyFeedbackOut:
+    """그 주 피드백을 낸다. 같은 주에 다시 내면 덮어쓴다.
+
+    PUT 인 까닭은 트레이너 초안 저장과 같다 — 화면이 들고 있는 세 문항의
+    현재 값으로 그 주의 답을 통째로 바꾸는 동작이라 여러 번 눌러도 결과가
+    같다. 통신이 끊겨 다시 보낸 답이 두 줄로 남지 않는다.
+    """
+    _my_trainer_or_404(db, user.id)
+    return trainer_service.save_member_weekly_feedback(
+        db,
+        user.id,
+        _feedback_week(payload.week_start),
+        condition=payload.condition,
+        intensity=payload.intensity,
+        pain_area=payload.pain_area,
+        pain_on=payload.pain_on,
+        note=payload.note,
+    )

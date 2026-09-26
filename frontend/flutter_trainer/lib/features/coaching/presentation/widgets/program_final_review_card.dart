@@ -119,10 +119,7 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
                     for (final routine in personalRoutines)
                       Padding(
                         padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                        child: Text(
-                          '· ${routine.name}',
-                          style: bodyStyle,
-                        ),
+                        child: Text('· ${routine.name}', style: bodyStyle),
                       ),
                   ],
                 );

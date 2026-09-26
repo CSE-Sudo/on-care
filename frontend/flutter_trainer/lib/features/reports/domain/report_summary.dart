@@ -106,13 +106,17 @@ double? _mean(Iterable<num> values) {
   return recorded.fold<double>(0, (a, b) => a + b) / recorded.length;
 }
 
-String _basis(Object? personal) => personal == null ? '기본 목표' : '개인 목표';
+String _basis(AppLocalizations l, Object? personal) =>
+    personal == null ? l.summaryBasisDefault : l.summaryBasisPersonal;
 
 /// 그 주의 주의사항 전부. **판정은 여기 한 곳에서만 한다.**
 ///
 /// 백엔드 `trainer_report_summary_service.watchpoints` 와 같은 기준이다 —
 /// 데모에서 본 판정과 실서버에서 본 판정이 갈리지 않는다.
-List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
+List<SummaryWatchpoint> summaryWatchpoints(
+  AppLocalizations l,
+  WeeklyReport report,
+) {
   final found = <SummaryWatchpoint>[];
 
   final completion = report.completionAvg;
@@ -120,8 +124,8 @@ List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
     found.add(
       SummaryWatchpoint(
         kind: 'completion',
-        text: '운동 이행률 평균 $completion% · 기준 $summaryLowCompletion% 미만',
-        topic: '운동 이행률 $completion%',
+        text: l.summaryCompletionLow('$completion', '$summaryLowCompletion'),
+        topic: l.summaryCompletionTopic('$completion'),
         severity: 90,
       ),
     );
@@ -132,8 +136,8 @@ List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
     found.add(
       SummaryWatchpoint(
         kind: 'skipped',
-        text: '건너뛴 운동: ${skipped.join(', ')}',
-        topic: '건너뛴 운동 ${skipped.length}가지',
+        text: l.summarySkipped(skipped.join(', ')),
+        topic: l.summarySkippedTopic('${skipped.length}'),
         severity: 70,
       ),
     );
@@ -147,13 +151,15 @@ List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
     found.add(
       SummaryWatchpoint(
         kind: 'sodium',
-        text:
-            '나트륨 평균 ${formatNumber(sodium)}mg · '
-            '${_basis(report.sodiumTarget)} ${formatNumber(sodiumTarget)}mg '
-            '초과 $sodiumOver일',
+        text: l.summarySodium(
+          formatNumber(sodium),
+          _basis(l, report.sodiumTarget),
+          formatNumber(sodiumTarget),
+          '$sodiumOver',
+        ),
         topic: sodiumOver > 0
-            ? '나트륨 목표 초과 $sodiumOver일'
-            : '나트륨 평균 ${formatNumber(sodium)}mg',
+            ? l.summarySodiumOverTopic('$sodiumOver')
+            : l.summarySodiumAvgTopic(formatNumber(sodium)),
         severity: 85,
       ),
     );
@@ -167,34 +173,38 @@ List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
     found.add(
       SummaryWatchpoint(
         kind: 'sugar',
-        text:
-            '당류 평균 ${formatNumber(sugarMean.round())}g · '
-            '${_basis(report.sugarTarget)} ${formatNumber(sugarTarget.round())}g '
-            '초과 $sugarOver일',
+        text: l.summarySugar(
+          formatNumber(sugarMean.round()),
+          _basis(l, report.sugarTarget),
+          formatNumber(sugarTarget.round()),
+          '$sugarOver',
+        ),
         topic: sugarOver > 0
-            ? '당류 목표 초과 $sugarOver일'
-            : '당류 평균 ${formatNumber(sugarMean.round())}g',
+            ? l.summarySugarOverTopic('$sugarOver')
+            : l.summarySugarAvgTopic(formatNumber(sugarMean.round())),
         severity: 80,
       ),
     );
   }
 
-  final calorieTarget =
-      (report.calorieTarget ?? summaryCalorieTargetKcal).toDouble();
+  final calorieTarget = (report.calorieTarget ?? summaryCalorieTargetKcal)
+      .toDouble();
   final calorieMean = _mean(report.caloriesWeek);
   if (calorieMean != null && calorieTarget > 0) {
     final gap = (calorieMean - calorieTarget) / calorieTarget;
     if (gap.abs() > summaryCalorieTolerance) {
-      final direction = gap > 0 ? '초과' : '부족';
+      final direction = gap > 0 ? l.summaryDirOver : l.summaryDirUnder;
       found.add(
         SummaryWatchpoint(
           kind: 'calories',
-          text:
-              '칼로리 평균 ${formatNumber(calorieMean.round())}kcal · '
-              '${_basis(report.calorieTarget)} '
-              '${formatNumber(calorieTarget.round())}kcal '
-              '대비 $direction ${(gap.abs() * 100).round()}%',
-          topic: '칼로리 $direction',
+          text: l.summaryCalories(
+            formatNumber(calorieMean.round()),
+            _basis(l, report.calorieTarget),
+            formatNumber(calorieTarget.round()),
+            direction,
+            '${(gap.abs() * 100).round()}',
+          ),
+          topic: l.summaryCaloriesTopic(direction),
           severity: 75,
         ),
       );
@@ -204,9 +214,17 @@ List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
   // 탄·단·지는 **개인 목표가 있을 때만** 본다. 공통 기본값이 없는 값이라,
   // 지어낸 기준으로 균형을 나무랄 수 없다.
   final macros = <({String label, List<double> series, double? target})>[
-    (label: '탄수화물', series: report.carbsWeek, target: report.carbsTarget),
-    (label: '단백질', series: report.proteinWeek, target: report.proteinTarget),
-    (label: '지방', series: report.fatWeek, target: report.fatTarget),
+    (
+      label: l.metricCarbs,
+      series: report.carbsWeek,
+      target: report.carbsTarget,
+    ),
+    (
+      label: l.metricProtein,
+      series: report.proteinWeek,
+      target: report.proteinTarget,
+    ),
+    (label: l.metricFat, series: report.fatWeek, target: report.fatTarget),
   ];
   for (final macro in macros) {
     final target = macro.target;
@@ -215,15 +233,18 @@ List<SummaryWatchpoint> summaryWatchpoints(WeeklyReport report) {
     if (mean == null) continue;
     final gap = (mean - target) / target;
     if (gap.abs() <= summaryMacroTolerance) continue;
-    final direction = gap > 0 ? '초과' : '부족';
+    final direction = gap > 0 ? l.summaryDirOver : l.summaryDirUnder;
     found.add(
       SummaryWatchpoint(
         kind: 'macro',
-        text:
-            '${macro.label} 평균 ${formatNumber(mean.round())}g · '
-            '개인 목표 ${formatNumber(target.round())}g '
-            '대비 $direction ${(gap.abs() * 100).round()}%',
-        topic: '${macro.label} $direction',
+        text: l.summaryMacro(
+          macro.label,
+          formatNumber(mean.round()),
+          formatNumber(target.round()),
+          direction,
+          '${(gap.abs() * 100).round()}',
+        ),
+        topic: l.summaryMacroTopic(macro.label, direction),
         severity: 60,
       ),
     );
@@ -249,18 +270,21 @@ List<String> summarySkippedExercises(WeeklyReport report) {
 }
 
 /// 카드에 실을 근거. 주의사항이 먼저고, 잘린 만큼은 `외 N건` 으로 알린다.
-List<String> summaryPoints(List<String> evidence) {
+List<String> summaryPoints(AppLocalizations l, List<String> evidence) {
   if (evidence.length <= summaryMaxPoints) return evidence;
   final kept = evidence.take(summaryMaxPoints - 1).toList();
-  return <String>[...kept, '외 ${evidence.length - kept.length}건 — 리포트 본문에서 확인'];
+  return <String>[
+    ...kept,
+    l.summaryMorePoints('${evidence.length - kept.length}'),
+  ];
 }
 
 /// 화면의 수치를 요약이 인용할 수 있는 문장으로 굳힌다.
 ///
 /// **여기 없는 말은 근거가 될 수 없다.** 백엔드가 모델에 주는 목록과 같은
 /// 규칙이라, 데모에서 본 문장과 실서버에서 본 문장이 같은 자리에서 나온다.
-List<String> summaryEvidence(WeeklyReport report) {
-  final watch = summaryWatchpoints(report);
+List<String> summaryEvidence(AppLocalizations l, WeeklyReport report) {
+  final watch = summaryWatchpoints(l, report);
   final kinds = watch.map((w) => w.kind).toSet();
   final lines = <String>[for (final w in watch) w.text];
 
@@ -268,20 +292,23 @@ List<String> summaryEvidence(WeeklyReport report) {
   // 주의사항이 이미 말한 지표는 건너뛴다.
   final completion = report.completionAvg;
   if (completion != null && !kinds.contains('completion')) {
-    lines.add('운동 이행률 평균 $completion%');
+    lines.add(l.summaryCompletionAvg('$completion'));
   }
   final sodium = report.sodiumAvg;
   if (sodium != null && !kinds.contains('sodium')) {
     final target = report.sodiumTarget ?? summarySodiumTargetMg;
     lines.add(
-      '나트륨 평균 ${formatNumber(sodium)}mg · '
-      '${_basis(report.sodiumTarget)} ${formatNumber(target)}mg '
-      '초과 ${report.sodiumOverDays ?? 0}일',
+      l.summarySodium(
+        formatNumber(sodium),
+        _basis(l, report.sodiumTarget),
+        formatNumber(target),
+        '${report.sodiumOverDays ?? 0}',
+      ),
     );
   }
   final calories = _mean(report.caloriesWeek);
   if (calories != null && !kinds.contains('calories')) {
-    lines.add('칼로리 평균 ${formatNumber(calories.round())}kcal');
+    lines.add(l.summaryCaloriesAvg(formatNumber(calories.round())));
   }
   return lines;
 }
@@ -290,60 +317,68 @@ List<String> summaryEvidence(WeeklyReport report) {
 ///
 /// 데모의 기본값이자 실서버의 실패 경로다 — 공급자가 죽어도 카드가 비지
 /// 않는다. 백엔드의 `_rule_summary` 와 같은 문장을 만든다.
-ReportSummary ruleReportSummary(WeeklyReport report, TrainerClient client) {
-  final evidence = summaryEvidence(report);
+ReportSummary ruleReportSummary(
+  AppLocalizations l,
+  WeeklyReport report,
+  TrainerClient client,
+) {
+  final evidence = summaryEvidence(l, report);
   final name = client.name;
   if (evidence.isEmpty) {
     return ReportSummary(
-      headline: '$name 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.',
+      headline: l.summaryHeadlineNoData(name),
       points: const <String>[],
       generatedBy: 'rule',
     );
   }
 
-  final watch = summaryWatchpoints(report);
+  final watch = summaryWatchpoints(l, report);
   final good = <String>[];
   final completion = report.completionAvg;
   if (completion != null && completion >= summaryLowCompletion) {
-    good.add('운동 이행률 $completion%');
+    good.add(l.summaryCompletionTopic('$completion'));
   }
   final sodium = report.sodiumAvg;
   if (sodium != null && !watch.any((w) => w.kind == 'sodium')) {
     final over = report.sodiumOverDays ?? 0;
     good.add(
       over > 0
-          ? '나트륨 목표 초과 $over일'
-          : '나트륨 평균 ${formatNumber(sodium)}mg',
+          ? l.summarySodiumOverTopic('$over')
+          : l.summarySodiumAvgTopic(formatNumber(sodium)),
     );
   }
 
   final String headline;
   if (watch.isEmpty) {
-    headline = '$name 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.';
+    headline = l.summaryHeadlineSteady(name);
   } else {
     // 주의사항이 하나라도 있으면 `목표 범위 안` 이라고 말하지 않는다. 여럿이면
     // 가장 위험한 것을 머리에 두고, 나머지는 근거 줄이 빠짐없이 말한다.
     final top = watch.first.topic;
-    final rest = watch.length > 1 ? ' 그 밖에 ${watch.length - 1}가지도 함께 보세요.' : '';
+    final rest = watch.length > 1
+        ? l.summaryHeadlineRest('${watch.length - 1}')
+        : '';
     if (good.isNotEmpty) {
-      final kept = good.first;
-      final keptJosa = hasFinalConsonant(kept) ? '으로' : '로';
-      final careJosa = hasFinalConsonant(top) ? '을' : '를';
-      headline =
-          '$name 회원은 $kept$keptJosa 잘 지켰고, '
-          '다음 주는 $top$careJosa 함께 챙기면 좋겠습니다.$rest';
+      headline = l.summaryHeadlineGoodCare(
+        name,
+        withParticle(l, good.first, '으로', '로'),
+        withParticle(l, top, '을', '를'),
+        rest,
+      );
     } else {
-      final subject = hasFinalConsonant(top) ? '이' : '가';
-      headline = '$name 회원은 $top$subject 목표를 벗어나 다음 주 조정이 필요합니다.$rest';
+      headline = l.summaryHeadlineNeedsAdjust(
+        name,
+        withParticle(l, top, '이', '가'),
+        rest,
+      );
     }
   }
   return ReportSummary(
     headline: headline,
-    points: summaryPoints(evidence),
+    points: summaryPoints(l, evidence),
     generatedBy: 'rule',
   );
 }
-
 
 /// 그 주 수치에서 곧바로 나오는 **다음 주 할 일**.
 ///
@@ -357,7 +392,7 @@ List<String> summaryCoachingActions(AppLocalizations l, WeeklyReport report) {
   final actions = <String>[];
   // 판정은 `summaryWatchpoints` 한 곳에서만 한다 — 예전에는 여기서 당류를 따로
   // 계산해, 같은 카드의 AI 요약과 이 목록이 다른 고객 상태를 말할 수 있었다.
-  final watch = summaryWatchpoints(report);
+  final watch = summaryWatchpoints(l, report);
   for (final w in watch) {
     switch (w.kind) {
       case 'sodium':
@@ -372,9 +407,7 @@ List<String> summaryCoachingActions(AppLocalizations l, WeeklyReport report) {
         actions.add(l.reportsActionLowCompletion);
       case 'skipped':
         final names = summarySkippedExercises(report).take(2).join(', ');
-        actions.add(
-          l.reportsActionSkipped('$names${hasFinalConsonant(names) ? '은' : '는'}'),
-        );
+        actions.add(l.reportsActionSkipped(withParticle(l, names, '은', '는')));
       case 'calories':
         actions.add(
           l.reportsActionCalories(
@@ -412,12 +445,17 @@ int summaryHiddenWatchCount(AppLocalizations l, WeeklyReport report) {
 }
 
 /// 자르기 전의 전체 제안. 몇 건이 빠졌는지 세는 데 쓴다.
-List<String> summaryCoachingActionsAll(AppLocalizations l, WeeklyReport report) {
-  final all = <String>[for (final w in summaryWatchpoints(report)) w.text];
+List<String> summaryCoachingActionsAll(
+  AppLocalizations l,
+  WeeklyReport report,
+) {
+  final all = <String>[for (final w in summaryWatchpoints(l, report)) w.text];
   final unlogged = report.weekCompletion.where((v) => v == 0).length;
   final pending = report.isCurrentWeek
       ? report.weekCompletion.length - elapsedWeekdays(nowKst())
       : 0;
-  if (unlogged - pending > 0) all.add(l.reportsActionUnlogged(unlogged - pending));
+  if (unlogged - pending > 0) {
+    all.add(l.reportsActionUnlogged(unlogged - pending));
+  }
   return all;
 }

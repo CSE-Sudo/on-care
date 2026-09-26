@@ -205,9 +205,7 @@ void main() {
       seedClock: seedClock,
     );
 
-    testWidgets('서버 조언이 없으면 AI 분석 카드를 세우지 않는다 (#2271)', (
-      tester,
-    ) async {
+    testWidgets('서버 조언이 없으면 AI 분석 카드를 세우지 않는다 (#2271)', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',

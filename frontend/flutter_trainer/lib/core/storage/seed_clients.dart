@@ -636,9 +636,7 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 7,
     name: '임도현',
-    signals: <ClientSignal>[
-      ClientSignal(ClientSignalKind.recordGap, days: 4),
-    ],
+    signals: <ClientSignal>[ClientSignal(ClientSignalKind.recordGap, days: 4)],
     avatar: '임',
     goal: '자세 교정',
     daysAgo: 0,
@@ -1170,9 +1168,7 @@ const List<_Client> _clients = <_Client>[
   _Client(
     id: 15,
     name: '노은채',
-    signals: <ClientSignal>[
-      ClientSignal(ClientSignalKind.recordGap, days: 6),
-    ],
+    signals: <ClientSignal>[ClientSignal(ClientSignalKind.recordGap, days: 6)],
     avatar: '노',
     goal: '운동 습관',
     daysAgo: 1,

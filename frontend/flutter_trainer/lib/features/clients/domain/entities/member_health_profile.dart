@@ -82,8 +82,8 @@ class MemberHealthProfile {
         dailyBurnKcal: (json['daily_burn_kcal'] as num?)?.toInt(),
         weeklyCardioMinutes: (json['weekly_cardio_minutes'] as num?)?.toInt(),
         weeklyStrengthSets: (json['weekly_strength_sets'] as num?)?.toInt(),
-        weeklyFlexibilityMinutes:
-            (json['weekly_flexibility_minutes'] as num?)?.toInt(),
+        weeklyFlexibilityMinutes: (json['weekly_flexibility_minutes'] as num?)
+            ?.toInt(),
         weeklyWorkoutGoal: (json['weekly_workout_goal'] as num?)?.toInt(),
         weeklyExerciseMinutesGoal:
             (json['weekly_exercise_minutes_goal'] as num?)?.toInt(),

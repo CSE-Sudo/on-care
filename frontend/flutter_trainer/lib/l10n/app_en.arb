@@ -422,7 +422,17 @@
   "memberHealthWeight": "Weight (kg)",
   "memberHealthFocus": "Health goals (up to 2)",
   "memberHealthFocusLastChanged": "Last changed by {who} · {date}",
-  "@memberHealthFocusLastChanged": {"description": "Member profile dialog: who last changed the member's goal chips and when (#1832).", "placeholders": {"who": {"type": "String"}, "date": {"type": "String"}}},
+  "@memberHealthFocusLastChanged": {
+    "description": "Member profile dialog: who last changed the member's goal chips and when (#1832).",
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "memberHealthFocusChangedByTrainer": "Trainer",
   "memberHealthFocusChangedByMember": "Member",
   "healthFocusWeightLoss": "Weight loss",
@@ -653,7 +663,13 @@
   "consultHealthPurpose": "Health management purpose",
   "consultChosenSlot": "Chosen time",
   "consultSlotDuration": "{minutes} min",
-  "@consultSlotDuration": {"placeholders": {"minutes": {"type": "int"}}},
+  "@consultSlotDuration": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
@@ -966,6 +982,22 @@
       }
     }
   },
+  "reportBodySilentDays": "Nothing was logged on {days}. If those days are always packed, I'll swap in a short 15-minute version.",
+  "@reportBodySilentDays": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodySteadyDays": "Keeping it going all the way through {days} was the best part of this week.",
+  "@reportBodySteadyDays": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
   "reportBodySkipped": "One thing — {names} got skipped. If that was a condition thing, tell me at the next session and I'll swap in an alternative.",
   "@reportBodySkipped": {
     "placeholders": {
@@ -1099,7 +1131,13 @@
   "schedTimePickerNextStep": "Next step",
   "schedTimePickerEndBeforeStart": "End time is earlier than the start time",
   "schedClockHourSemantics": "{hour} o'clock",
-  "@schedClockHourSemantics": {"placeholders": {"hour": {"type": "String"}}},
+  "@schedClockHourSemantics": {
+    "placeholders": {
+      "hour": {
+        "type": "String"
+      }
+    }
+  },
   "schedRepeat": "Repeat",
   "schedRepeatWeekly": "Weekly",
   "schedRepeatDays": "Repeat on",
@@ -1386,7 +1424,6 @@
   "coachSubtitle": "Create, assign, and manage exercise programs for each member",
   "coachMemberSummary": "Member summary",
   "reportsDataInsufficient": "Insufficient data",
-  "reportsThisWeek": "This week",
   "coachSendFailed": "Couldn't send. Please try again",
   "coachScheduleFailed": "Couldn't add it to the schedule. Please try again",
   "coachNoClients": "No members yet",
@@ -2108,9 +2145,36 @@
   "programDraftDeleteTitle": "Delete this saved program?",
   "programDraftDeleteBody": "Programs you already assigned and sessions you scheduled stay as they are.",
   "programAssignConfirmAttachBody": "This program will be attached to {name}'s PT already planned for {date} {session}. The time you picked ({selected}) won't be applied.",
-  "@programAssignConfirmAttachBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "session": {"type": "String"}, "selected": {"type": "String"}}},
+  "@programAssignConfirmAttachBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "session": {
+        "type": "String"
+      },
+      "selected": {
+        "type": "String"
+      }
+    }
+  },
   "programAssignConfirmChooseBody": "{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won't be applied.",
-  "@programAssignConfirmChooseBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "selected": {"type": "String"}}},
+  "@programAssignConfirmChooseBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "selected": {
+        "type": "String"
+      }
+    }
+  },
   "coachAttachTargetChanged": "The PT session to attach to has changed. Tap Add to schedule again to check",
   "programEditorNoExercises": "Add at least one exercise",
   "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
@@ -2120,14 +2184,53 @@
   "coachSendInvalid": "The server didn't accept this schedule. Check the date, time and exercises",
   "coachSendUnverified": "Couldn't confirm the result. Check the schedule to see whether it was added",
   "programEditorSessionLimitReached": "A program can have up to {max} sessions",
-  "@programEditorSessionLimitReached": {"placeholders": {"max": {"type": "int"}}},
+  "@programEditorSessionLimitReached": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "programEditorExerciseLimitReached": "A program can have up to {max} exercises in total",
-  "@programEditorExerciseLimitReached": {"placeholders": {"max": {"type": "int"}}},
+  "@programEditorExerciseLimitReached": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "programEditorSizeExceeded": "{sessions}/{maxSessions} sessions · {exercises}/{maxExercises} exercises — remove the extra to add it to the schedule",
-  "@programEditorSizeExceeded": {"placeholders": {"sessions": {"type": "int"}, "maxSessions": {"type": "int"}, "exercises": {"type": "int"}, "maxExercises": {"type": "int"}}},
+  "@programEditorSizeExceeded": {
+    "placeholders": {
+      "sessions": {
+        "type": "int"
+      },
+      "maxSessions": {
+        "type": "int"
+      },
+      "exercises": {
+        "type": "int"
+      },
+      "maxExercises": {
+        "type": "int"
+      }
+    }
+  },
   "programAssignConfirmTitle": "Add to the schedule?",
   "programAssignConfirmBody": "A new PT session will be created for {name} on {date} at {time} with this program.",
-  "@programAssignConfirmBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "time": {"type": "String"}}},
+  "@programAssignConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSaveTemplate": "Save as template",
   "programEditorAddSchedule": "Add to schedule",
   "programReviewTitle": "Confirm & send",
@@ -2278,7 +2381,7 @@
       }
     }
   },
-  "reportsAiTitle": "AI coaching assistant · Report summary",
+  "reportsAiTitle": "This week's summary",
   "reportsAiNextWeek": "Next week's coaching",
   "reportsAiMoreWatchpoints": "{count} more — see the full report.",
   "@reportsAiMoreWatchpoints": {
@@ -2582,5 +2685,524 @@
     }
   },
   "routineFormDecrease": "Decrease",
-  "routineFormIncrease": "Increase"
+  "routineFormIncrease": "Increase",
+  "reportsWorkbenchTitle": "This week's reports",
+  "reportsPending": "Not sent",
+  "reportsCountPeople": "{count}",
+  "@reportsCountPeople": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSortPriority": "Needs attention",
+  "reportsSortName": "By name",
+  "reportsSendProgress": "{done} / {total} sent",
+  "@reportsSendProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsQueueAllSent": "Every report for this week has been sent",
+  "reportsSentColumn": "Sent",
+  "reportsSentColumnEmpty": "No reports sent yet",
+  "reportsSentSubtitle": "View sent report",
+  "reportsOpenDraft": "Open",
+  "reportsReasonUnknown": "Loading figures",
+  "reportsReasonCompletion": "{percent}% complete",
+  "@reportsReasonCompletion": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonNoShow": "{count} no-show",
+  "@reportsReasonNoShow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonSessionDone": "PT {count} done",
+  "@reportsReasonSessionDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonSilentDays": "{days} days unlogged",
+  "@reportsReasonSilentDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonSlump": "Down {points}%p late",
+  "@reportsReasonSlump": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonRising": "Up {points}%p late",
+  "@reportsReasonRising": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsReasonFullLog": "Logged all 7 days",
+  "reportsReasonOnboarding": "New · settling in",
+  "reportsReasonSteady": "On track",
+  "reportsSentOn": "Sent {date}",
+  "@reportsSentOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSentRead": "Read",
+  "reportsSentUnread": "Unread",
+  "reportsSentUnreadHint": "Members who haven't opened theirs move to the top next week.",
+  "reportsBackToWorkbench": "This week's reports",
+  "reportsSentHeadline": "Report sent to {name}",
+  "@reportsSentHeadline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSentAt": "Sent {date} {time}",
+  "@reportsSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSentRewrite": "Rewrite from this",
+  "reportsSentBody": "Message sent",
+  "reportsSentFigures": "Figures sent",
+  "reportsStepReview": "Review",
+  "reportsStepGoals": "Write",
+  "reportsStepSend": "Send",
+  "reportsStepperLabel": "Weekly report steps",
+  "reportsStepNext": "Next",
+  "reportsStepPrev": "Back",
+  "reportsGoalsTitle": "Next week's goals",
+  "reportsGoalsHint": "Pick what to work on together next week. The goals you pick go out with the message.",
+  "reportsGoalsNone": "No goals picked yet",
+  "reportsGoalsPicked": "{count} picked",
+  "@reportsGoalsPicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGoalsOwnHint": "Write your own",
+  "reportsGoalsAdd": "Add",
+  "reportsGoalsRemove": "Remove {goal}",
+  "@reportsGoalsRemove": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsGridPtSession": "PT sessions",
+  "reportsGridPtPerWeek": "{count}/week",
+  "@reportsGridPtPerWeek": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGridPersonal": "Personal workouts",
+  "reportsGridPersonalUnit": "Done / assigned",
+  "reportsGridDoneOfAssigned": "{done} / {total}",
+  "@reportsGridDoneOfAssigned": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGridMeals": "Meal logs",
+  "reportsGridMealsUnit": "Times logged",
+  "reportsGridMealCount": "{count}x",
+  "@reportsGridMealCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsGridCalories": "Calories eaten",
+  "reportsGridCalorieTarget": "Target {value}",
+  "@reportsGridCalorieTarget": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMacroNone": "No meals logged yet, so macros can't be shown",
+  "reportsMacroValueOfTarget": "{name} {value} / {target}g",
+  "@reportsMacroValueOfTarget": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsMacroNoValue": "{name} not logged",
+  "@reportsMacroNoValue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMacroShortfall": "{name} is well under target — worth picking as a goal for next week",
+  "@reportsMacroShortfall": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMemberFeedbackTitle": "Member's weekly feedback",
+  "reportsMemberFeedbackAttention": "Needs attention",
+  "reportsMemberFeedbackNone": "Not received yet",
+  "reportsMemberFeedbackNoneHint": "It shows up here once the member sends their weekly feedback",
+  "reportsMemberFeedbackConditionLabel": "Condition",
+  "reportsMemberFeedbackIntensityLabel": "Intensity",
+  "reportsMemberFeedbackPainLabel": "Pain",
+  "reportsMemberFeedbackPainNone": "None",
+  "reportsMemberFeedbackPainOn": "{area} ({date})",
+  "@reportsMemberFeedbackPainOn": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMemberFeedbackConditionGreat": "Great",
+  "reportsMemberFeedbackConditionGood": "Good",
+  "reportsMemberFeedbackConditionOk": "Okay",
+  "reportsMemberFeedbackConditionTired": "Worn out",
+  "reportsMemberFeedbackConditionBad": "Really rough",
+  "reportsMemberFeedbackIntensityTooEasy": "Too easy",
+  "reportsMemberFeedbackIntensityRight": "About right",
+  "reportsMemberFeedbackIntensityHard": "Hard",
+  "reportsMemberFeedbackIntensityTooHard": "Too hard",
+  "reportsLastGoalsTitle": "Last week's goals",
+  "reportsLastGoalsNone": "No goals were picked last week",
+  "reportsLastGoalsNoneHint": "Pick next week's goals now and they come back here in the next report",
+  "reportsLastGoalsMetCount": "{met} / {total} met",
+  "@reportsLastGoalsMetCount": {
+    "placeholders": {
+      "met": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsLastGoalsMet": "Met",
+  "reportsLastGoalsPartial": "Partly",
+  "reportsLastGoalsMissed": "Missed",
+  "reportsLastGoalsUnknown": "Check yourself",
+  "reportsLastGoalsEvidence": "{done} / {target}{unit}",
+  "@reportsLastGoalsEvidence": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsLastGoalsEvidenceLogged": "Logged {days} days",
+  "@reportsLastGoalsEvidenceLogged": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsLastGoalsEvidenceWorkout": "{done} / {total} personal workouts",
+  "@reportsLastGoalsEvidenceWorkout": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendUnavailable": "Couldn't load this week's workout records",
+  "reportsTrendNoGoal": "No goal",
+  "reportsTrendOfGoal": "{value} / {goal}",
+  "@reportsTrendOfGoal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendCompliance": "Weekly completion",
+  "reportsTrendBurn": "Weekly burn",
+  "reportsTrendStreak": "Streak",
+  "reportsTrendStreakDays": "{days} days",
+  "@reportsTrendStreakDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsExerciseTrend": "Workout trend",
+  "reportsWriteFromScratch": "Write from scratch",
+  "reportsCardWeekTitle": "This week",
+  "reportsCardWeekSubtitle": "On one axis you can see the days that fell together",
+  "reportsAiSubtitle": "Written automatically from the figures",
+  "reportsMemberFeedbackMeta": "Weekly · submitted {date}",
+  "@reportsMemberFeedbackMeta": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsMacroShortfallEvidence": "This is the evidence last week's goal “{goal}” was judged unmet",
+  "@reportsMacroShortfallEvidence": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendSubtitle": "By type · last {weeks} weeks",
+  "@reportsTrendSubtitle": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendCenterLabel": "of goal",
+  "reportsTrendWeeklyGoal": "Weekly goal {goal}",
+  "@reportsTrendWeeklyGoal": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendRunDown": "Down {weeks} weeks running",
+  "@reportsTrendRunDown": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendRunUp": "Up {weeks} weeks running",
+  "@reportsTrendRunUp": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendVsLastWeek": "{delta}% vs last week",
+  "@reportsTrendVsLastWeek": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsTrendFlat": "About the same as last week",
+  "reportsTrendNoHistory": "No earlier week to compare",
+  "reportsTrendRate": "Weekly goal rate",
+  "reportsTrendAverage": "{weeks}-week average",
+  "@reportsTrendAverage": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendRateFalling": "Goal rate down {weeks} weeks running",
+  "@reportsTrendRateFalling": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendTracked": "{count} tracked exercises — picked automatically",
+  "@reportsTrendTracked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTrendTrackedTimes": "{count}×",
+  "@reportsTrendTrackedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSkipToWrite": "Write without a draft",
+  "reportsCalorieThisWeekAvg": "This week {kcal} kcal/day",
+  "@reportsCalorieThisWeekAvg": {
+    "placeholders": { "kcal": { "type": "String" } }
+  },
+  "reportsCalorieBaselineAvg": "Past {weeks} weeks {kcal} kcal/day",
+  "@reportsCalorieBaselineAvg": {
+    "placeholders": { "weeks": { "type": "int" }, "kcal": { "type": "String" } }
+  },
+  "reportsGridCalorieTargetDefault": "Default {kcal}",
+  "@reportsGridCalorieTargetDefault": {
+    "placeholders": { "kcal": { "type": "String" } }
+  },
+  "summaryBasisDefault": "default target",
+  "summaryBasisPersonal": "personal target",
+  "summaryDirOver": "above",
+  "summaryDirUnder": "below",
+  "summaryCompletionLow": "Avg workout completion {pct}% · below the {threshold}% bar",
+  "@summaryCompletionLow": {
+    "placeholders": { "pct": { "type": "String" }, "threshold": { "type": "String" } }
+  },
+  "summaryCompletionTopic": "workout completion at {pct}%",
+  "@summaryCompletionTopic": {
+    "placeholders": { "pct": { "type": "String" } }
+  },
+  "summaryCompletionAvg": "Avg workout completion {pct}%",
+  "@summaryCompletionAvg": {
+    "placeholders": { "pct": { "type": "String" } }
+  },
+  "summarySkipped": "Skipped: {names}",
+  "@summarySkipped": {
+    "placeholders": { "names": { "type": "String" } }
+  },
+  "summarySkippedTopic": "{count} skipped exercise(s)",
+  "@summarySkippedTopic": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "summarySodium": "Avg sodium {avg}mg · over the {basis} of {target}mg on {days} day(s)",
+  "@summarySodium": {
+    "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "days": { "type": "String" } }
+  },
+  "summarySodiumOverTopic": "sodium over target on {days} day(s)",
+  "@summarySodiumOverTopic": {
+    "placeholders": { "days": { "type": "String" } }
+  },
+  "summarySodiumAvgTopic": "avg sodium {avg}mg",
+  "@summarySodiumAvgTopic": {
+    "placeholders": { "avg": { "type": "String" } }
+  },
+  "summarySugar": "Avg sugar {avg}g · over the {basis} of {target}g on {days} day(s)",
+  "@summarySugar": {
+    "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "days": { "type": "String" } }
+  },
+  "summarySugarOverTopic": "sugar over target on {days} day(s)",
+  "@summarySugarOverTopic": {
+    "placeholders": { "days": { "type": "String" } }
+  },
+  "summarySugarAvgTopic": "avg sugar {avg}g",
+  "@summarySugarAvgTopic": {
+    "placeholders": { "avg": { "type": "String" } }
+  },
+  "summaryCalories": "Avg calories {avg}kcal · {pct}% {direction} the {basis} of {target}kcal",
+  "@summaryCalories": {
+    "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "direction": { "type": "String" }, "pct": { "type": "String" } }
+  },
+  "summaryCaloriesTopic": "calories {direction} target",
+  "@summaryCaloriesTopic": {
+    "placeholders": { "direction": { "type": "String" } }
+  },
+  "summaryCaloriesAvg": "Avg calories {avg}kcal",
+  "@summaryCaloriesAvg": {
+    "placeholders": { "avg": { "type": "String" } }
+  },
+  "summaryMacro": "Avg {label} {avg}g · {pct}% {direction} the personal target of {target}g",
+  "@summaryMacro": {
+    "placeholders": { "label": { "type": "String" }, "avg": { "type": "String" }, "target": { "type": "String" }, "direction": { "type": "String" }, "pct": { "type": "String" } }
+  },
+  "summaryMacroTopic": "{label} {direction} target",
+  "@summaryMacroTopic": {
+    "placeholders": { "label": { "type": "String" }, "direction": { "type": "String" } }
+  },
+  "summaryMorePoints": "{count} more — see the report",
+  "@summaryMorePoints": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "summaryHeadlineNoData": "{name} has no records for the week — plan next week's start together.",
+  "@summaryHeadlineNoData": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "summaryHeadlineSteady": "{name} stayed within target — the current intensity can stay as is.",
+  "@summaryHeadlineSteady": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "summaryHeadlineRest": " Also look at {count} more.",
+  "@summaryHeadlineRest": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "summaryHeadlineGoodCare": "{name} kept {kept} on track; next week, let's also work on {top}.{rest}",
+  "@summaryHeadlineGoodCare": {
+    "placeholders": { "name": { "type": "String" }, "kept": { "type": "String" }, "top": { "type": "String" }, "rest": { "type": "String" } }
+  },
+  "summaryHeadlineNeedsAdjust": "{name} was off target on {top} — next week needs adjusting.{rest}",
+  "@summaryHeadlineNeedsAdjust": {
+    "placeholders": { "name": { "type": "String" }, "top": { "type": "String" }, "rest": { "type": "String" } }
+  },
+  "reportsPdfFileSuffix": "weekly_report"
 }

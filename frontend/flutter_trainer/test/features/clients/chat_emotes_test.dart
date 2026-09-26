@@ -70,11 +70,7 @@ Future<AppLocalizations> _pump(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const Scaffold(
-          body: ChatView(
-            clientId: 'm1',
-            clientAvatar: '김',
-            clientName: '김민수',
-          ),
+          body: ChatView(clientId: 'm1', clientAvatar: '김', clientName: '김민수'),
         ),
       ),
     ),

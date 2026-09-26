@@ -40,8 +40,7 @@ class _GatedStatusRepository extends DriftClientRepository {
   }
 }
 
-Finder get _badge =>
-    find.byKey(const ValueKey<String>('client-status-toggle'));
+Finder get _badge => find.byKey(const ValueKey<String>('client-status-toggle'));
 
 void main() {
   testWidgets('탭하면 배지가 휴면으로 바뀌고 회원 목록에도 반영된다', (tester) async {

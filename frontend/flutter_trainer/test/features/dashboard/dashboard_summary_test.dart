@@ -95,7 +95,10 @@ void main() {
       expect(summary.attention.single.primary.kind, ClientSignalKind.recordGap);
       expect(
         summary.attention.single.signals.map((s) => s.kind),
-        <ClientSignalKind>[ClientSignalKind.recordGap, ClientSignalKind.unanswered],
+        <ClientSignalKind>[
+          ClientSignalKind.recordGap,
+          ClientSignalKind.unanswered,
+        ],
       );
     });
 

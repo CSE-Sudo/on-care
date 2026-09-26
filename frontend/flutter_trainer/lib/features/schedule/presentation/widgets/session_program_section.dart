@@ -28,8 +28,7 @@ class SessionProgramRow extends StatelessWidget {
         // 맨몸 운동은 `0kg` 이다 — 중량 칸은 비울 수 없고(최솟값 0) 근력을
         // 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
         // 전에 저장된 행뿐이라, 그때만 자리를 비운다.
-        if (item.weight != null)
-          '${_trimZero(item.weight!)}${l.routineUnitKg}',
+        if (item.weight != null) '${_trimZero(item.weight!)}${l.routineUnitKg}',
       ] else if (item.duration != null)
         l.minutesShort(item.duration!),
     ];
@@ -86,8 +85,7 @@ class SessionProgramRow extends StatelessWidget {
 }
 
 /// 40.0 → "40", 40.5 → "40.5". 소수점 뒤 0 은 적지 않는다.
-String _trimZero(double v) =>
-    v == v.roundToDouble() ? '${v.round()}' : '$v';
+String _trimZero(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
 
 /// Shown inside an expanded 예정 session that has no program yet.
 ///
