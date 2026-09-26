@@ -29,7 +29,7 @@ class SessionNoteBox extends StatelessWidget {
 /// 프로그램이 밀려 있는 것처럼 읽힌다.
 ///
 /// `메모 추가` 는 이 설명과 나란히, 박스 오른쪽에 선다. 예전에는 아래
-/// [SessionManageRow] 의 다른 동작들과 섞여 있어, "상담은 메모로 남긴다" 는
+/// 동작 줄의 다른 동작들과 섞여 있어, "상담은 메모로 남긴다" 는
 /// 이 설명과 그 동작을 잇는 자리가 따로 없었다.
 class SessionNoNoteBox extends StatelessWidget {
   /// Creates the empty-note hint.

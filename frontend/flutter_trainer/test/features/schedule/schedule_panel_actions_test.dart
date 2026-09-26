@@ -1,9 +1,10 @@
-/// 상세 스케줄 카드의 동작 줄. (#1012, #2178)
+/// 상세 스케줄 카드의 동작 줄. (#1012, #2178, #2231)
 ///
 /// 일곱 개가 같은 크기·같은 모양으로 늘어서 있었다. 버튼이 많아 보이는 것이
 /// 아니라 실제로 많았고, 되돌릴 수 없는 `삭제` 가 자주 쓰는 `채팅` 과 나란히
 /// 서 있었다. 여기서 재는 것은 "카드에는 약속의 결말(`완료`·`취소 처리`)만
-/// 글씨 버튼으로, 손보는 동작은 연필 버튼 하나의 메뉴로" 라는 계약이다.
+/// 글씨 버튼으로, 손보는 동작은 머리글 시각 오른쪽의 연필 버튼 하나의
+/// 메뉴로" 라는 계약이다.
 library;
 
 import 'package:flutter/material.dart';
@@ -171,6 +172,53 @@ void main() {
       ),
       findsOneWidget,
       reason: '시각은 자르지 않는다 — 소요 시간은 옆에 다시 적지 않는다',
+    );
+  });
+
+  testWidgets('수정 버튼은 머리글 첫 줄, 시각 오른쪽에 선다 (#2231)', (tester) async {
+    await openSchedule(tester);
+    await openSession(tester, '박성호');
+
+    final Finder detail = find.byKey(const Key('week-detail'));
+    final Rect edit = tester.getRect(
+      find.byKey(const ValueKey<String>('session-edit-menu')),
+    );
+    final Rect status = tester.getRect(
+      find.descendant(of: detail, matching: find.byType(AppTag)).first,
+    );
+    final Rect name = tester.getRect(
+      find.descendant(of: detail, matching: find.text('박성호')),
+    );
+    final Rect complete = tester.getRect(
+      find.byKey(const ValueKey<String>('session-complete-chip')),
+    );
+
+    // 상태 칩과 같은 줄 — 사람 줄보다 위다.
+    expect(edit.center.dy, closeTo(status.center.dy, 12));
+    expect(edit.bottom, lessThanOrEqualTo(name.top));
+    // 줄의 오른쪽 끝, 시각보다 오른쪽이다.
+    expect(edit.left, greaterThan(status.right));
+    // 결말을 남기는 버튼들은 여전히 카드 아래에 있다.
+    expect(complete.top, greaterThan(name.bottom));
+    // 아래 동작 줄에는 연필 버튼이 없다.
+    expect(
+      find.descendant(
+        of: find.byType(SessionManageRow),
+        matching: find.byKey(const ValueKey<String>('session-edit-menu')),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('끝난 세션은 빈 동작 줄을 남기지 않는다 (#2231)', (tester) async {
+    await openSchedule(tester);
+    await openSession(tester, '김민수');
+
+    // 완료한 세션에는 `완료`·`취소 처리` 가 없다 — 수정만 머리글에 선다.
+    expect(find.byType(SessionManageRow), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('session-edit-menu')),
+      findsOneWidget,
     );
   });
 }
