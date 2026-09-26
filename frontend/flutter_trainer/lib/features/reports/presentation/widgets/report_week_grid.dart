@@ -622,8 +622,10 @@ class _ChipCell extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: OnCareRadius.smAll,
-          color: (alarming ? OnCareColors.danger : tokens.brand.primary)
-              .withValues(alpha: OnCareAlpha.subtle),
+          color: OnCareColors.onWhite(
+            alarming ? OnCareColors.danger : tokens.brand.primary,
+            OnCareAlpha.subtle,
+          ),
         ),
         child: Text(
           text,

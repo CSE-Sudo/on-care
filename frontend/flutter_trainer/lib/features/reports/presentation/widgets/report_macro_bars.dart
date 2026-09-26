@@ -187,7 +187,10 @@ class _StackedBar extends StatelessWidget {
                   // `flex` 는 정수라 그램 수를 그대로 쓴다 — 261 : 70 : 63.
                   flex: (row.value! * 10).round(),
                   child: ColoredBox(
-                    color: tokens.brand.primary.withValues(alpha: row.shade),
+                    color: OnCareColors.onWhite(
+                      tokens.brand.primary,
+                      row.shade,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: OnCareSpacing.s8,

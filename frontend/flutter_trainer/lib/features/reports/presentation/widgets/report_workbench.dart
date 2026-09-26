@@ -341,17 +341,7 @@ class _ProgressRow extends StatelessWidget {
               .copyWith(color: tokens.brand.strong),
         ),
         const SizedBox(width: OnCareSpacing.s12),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: OnCareRadius.pillAll,
-            child: LinearProgressIndicator(
-              value: fraction,
-              minHeight: OnCareSpacing.s8,
-              backgroundColor: OnCareColors.surfaceInput,
-              valueColor: AlwaysStoppedAnimation<Color>(tokens.brand.primary),
-            ),
-          ),
-        ),
+        Expanded(child: AppProgressBar(value: fraction)),
       ],
     );
   }
@@ -389,11 +379,7 @@ class _QueueRow extends StatelessWidget {
       children: _reasons(l, report),
     );
     final Widget action = loading && report == null
-        ? const SizedBox(
-            width: OnCareSize.iconMedium,
-            height: OnCareSize.iconMedium,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
+        ? const AppLoading.inline()
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
