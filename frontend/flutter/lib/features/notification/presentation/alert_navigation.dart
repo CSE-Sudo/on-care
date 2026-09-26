@@ -120,7 +120,8 @@ Future<void> openAlertTarget(
       // 식단 탭에서 식단 알림을 누르는 경우도 같다.
       ref
         ..invalidate(dietTodayProvider)
-        ..invalidate(dietByDateProvider(nowKst()));
+        ..invalidate(dietByDateProvider(nowKst()))
+        ..invalidate(dietAdviceProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.diet);
     case AlertTarget.myBenefits:

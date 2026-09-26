@@ -1,3 +1,4 @@
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -236,13 +237,19 @@ class FakeDietRepository implements DietRepository {
   }
 
   @override
-  Future<String> fetchAdvice(String period) async => switch (period) {
+  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
     // 기간마다 다른 말을 한다 — 화면이 기간을 바꿔도 조언이 그대로면 안 된다.
     // (#1017)
-    'week' => '이번 주 3일이나 나트륨 권장량을 넘었어요. 남은 며칠은 담백하게 가요.',
-    'all' => '기록을 통틀어 보면 주말마다 나트륨이 오르는 흐름이에요.',
-    _ => _aiCoachMessage,
-  };
+    final String message = switch (period) {
+      'week' => '이번 주 3일이나 나트륨 권장량을 넘었어요. 남은 며칠은 담백하게 가요.',
+      'all' => '기록을 통틀어 보면 주말마다 나트륨이 오르는 흐름이에요.',
+      _ => _aiCoachMessage,
+    };
+    return DietAdvice(
+      message: message,
+      analysis: DietAdviceLine(text: message),
+    );
+  }
 
   @override
   Future<MealRecommendations> fetchRecommendations() async {

@@ -40,6 +40,7 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(chatControllerProvider);
       ref.invalidate(dashboardSummaryProvider);
       ref.invalidate(dietTodayProvider);
+      ref.invalidate(dietAdviceProvider);
       ref.invalidate(dietRecommendationsProvider);
       ref.invalidate(exerciseWeekProvider);
       ref.invalidate(myGymProvider);

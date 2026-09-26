@@ -6996,6 +6996,238 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ve done {pct}% of your recommended workouts. Try not to skip a day.'**
   String exerciseAdviceRoutineAllRate(int pct);
+
+  /// Diet tab AI advice sentence `today_empty` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged today yet.'**
+  String get dietAdviceTodayEmpty;
+
+  /// Diet tab AI advice sentence `today_missing_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed logging a meal?'**
+  String get dietAdviceTodayMissingMeal;
+
+  /// Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium **{sodiumMg}mg**, over the limit.'**
+  String dietAdviceTodaySodiumOver(int sodiumMg);
+
+  /// Diet tab AI advice sentence `today_calorie_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'**{kcal} kcal** today, over your goal.'**
+  String dietAdviceTodayCalorieOver(int kcal);
+
+  /// Diet tab AI advice sentence `today_protein_left` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'**{proteinG}g** more protein to go.'**
+  String dietAdviceTodayProteinLeft(int proteinG);
+
+  /// Diet tab AI advice sentence `today_balanced` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'**{kcal} kcal** today, nicely balanced.'**
+  String dietAdviceTodayBalanced(int kcal);
+
+  /// Diet tab AI advice sentence `next_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'How about **{menu}** for {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} other{meals}}?'**
+  String dietAdviceNextMeal(String slot, String menu);
+
+  /// Diet tab AI advice sentence `next_snack` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'How about **{menu}** as a snack?'**
+  String dietAdviceNextSnack(String menu);
+
+  /// Diet tab AI advice sentence `today_done` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'You wrapped up today\'s meals well!'**
+  String get dietAdviceTodayDone;
+
+  /// Diet tab AI advice sentence `today_log_first` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Log it and we\'ll pick your next meal.'**
+  String get dietAdviceTodayLogFirst;
+
+  /// Diet tab AI advice sentence `week_empty` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged this week yet.'**
+  String get dietAdviceWeekEmpty;
+
+  /// Diet tab AI advice sentence `week_skip_breakfast` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}} you skipped breakfast **{days}** times.'**
+  String dietAdviceWeekSkipBreakfast(String scope, int days);
+
+  /// Diet tab AI advice sentence `week_skip_breakfast_snack` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}} you snacked on **{snackDays}** of {days} no-breakfast days.'**
+  String dietAdviceWeekSkipBreakfastSnack(
+    String scope,
+    int days,
+    int snackDays,
+  );
+
+  /// Diet tab AI advice sentence `week_focus_sodium` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}}, sodium ran high on **{days}** days.'**
+  String dietAdviceWeekFocusSodium(String scope, int days);
+
+  /// Diet tab AI advice sentence `week_focus_calorie` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}}, you went over your calorie goal on **{days}** days.'**
+  String dietAdviceWeekFocusCalorie(String scope, int days);
+
+  /// Diet tab AI advice sentence `week_focus_sugar` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}}, sugar ran high on **{days}** days.'**
+  String dietAdviceWeekFocusSugar(String scope, int days);
+
+  /// Diet tab AI advice sentence `week_focus_protein` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}}, protein fell short on **{days}** days.'**
+  String dietAdviceWeekFocusProtein(String scope, int days);
+
+  /// Diet tab AI advice sentence `week_good` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope, select, last{Last week} other{This week}}, all **{days}** logged days were on target.'**
+  String dietAdviceWeekGood(String scope, int days);
+
+  /// Diet tab AI advice sentence `week_empty_hint` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Even one meal starts to show a pattern.'**
+  String get dietAdviceWeekEmptyHint;
+
+  /// Diet tab AI advice sentence `tip_breakfast` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a boiled egg for breakfast.'**
+  String get dietAdviceTipBreakfast;
+
+  /// Diet tab AI advice sentence `tip_sodium` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the broth and eat the solids.'**
+  String get dietAdviceTipSodium;
+
+  /// Diet tab AI advice sentence `tip_calorie` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Try trimming dinner portions a little.'**
+  String get dietAdviceTipCalorie;
+
+  /// Diet tab AI advice sentence `tip_sugar` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap sweet drinks for water or tea.'**
+  String get dietAdviceTipSugar;
+
+  /// Diet tab AI advice sentence `tip_protein` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Add eggs or tofu to each meal.'**
+  String get dietAdviceTipProtein;
+
+  /// Diet tab AI advice sentence `tip_keep` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this flow going!'**
+  String get dietAdviceTipKeep;
+
+  /// Diet tab AI advice sentence `all_few_records` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'**{days}** days logged in the last 4 weeks.'**
+  String dietAdviceAllFewRecords(int days);
+
+  /// Diet tab AI advice sentence `all_slot_sodium` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium at {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} other{meals}} ran high **{days}** times in 4 weeks.'**
+  String dietAdviceAllSlotSodium(String slot, int days);
+
+  /// Diet tab AI advice sentence `all_carb_heavy` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs made up **{pct}%** of the last 4 weeks.'**
+  String dietAdviceAllCarbHeavy(int pct);
+
+  /// Diet tab AI advice sentence `all_protein_light` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein was only **{pct}%** of the last 4 weeks.'**
+  String dietAdviceAllProteinLight(int pct);
+
+  /// Diet tab AI advice sentence `all_protein_trend_up` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein goal days rose from **{before} to {after}**.'**
+  String dietAdviceAllProteinTrendUp(int before, int after);
+
+  /// Diet tab AI advice sentence `all_protein_trend_down` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein goal days fell from **{before} to {after}**.'**
+  String dietAdviceAllProteinTrendDown(int before, int after);
+
+  /// Diet tab AI advice sentence `all_frequent_menu` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your top {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} other{meals}} pick in 4 weeks: **{food}** ({count}×).'**
+  String dietAdviceAllFrequentMenu(String slot, String food, int count);
+
+  /// Diet tab AI advice sentence `all_repeated_foods` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'**{food1} and {food2}** dominate the last 4 weeks.'**
+  String dietAdviceAllRepeatedFoods(String food1, String food2);
+
+  /// Diet tab AI advice sentence `all_good` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'**{days}** days logged in 4 weeks, looking good.'**
+  String dietAdviceAllGood(int days);
+
+  /// Diet tab AI advice sentence `all_few_hint` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'After 7 days we\'ll show your patterns.'**
+  String get dietAdviceAllFewHint;
+
+  /// Diet tab AI advice sentence `tip_carb` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Try less rice and more side dishes.'**
+  String get dietAdviceTipCarb;
+
+  /// Diet tab AI advice sentence `tip_swap` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it, just switch up the sides.'**
+  String get dietAdviceTipSwap;
+
+  /// Diet tab AI advice sentence `tip_variety` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Add fish or tofu twice a week.'**
+  String get dietAdviceTipVariety;
 }
 
 class _AppLocalizationsDelegate

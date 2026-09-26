@@ -205,6 +205,30 @@ void main() {
       seedClock: seedClock,
     );
 
+    testWidgets('서버 조언이 없으면 AI 분석 카드를 세우지 않는다 (#2271)', (
+      tester,
+    ) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+        extraOverrides: <Override>[
+          clientDietAdviceProvider.overrideWith(
+            (ref, key) async => throw StateError('advice offline'),
+          ),
+        ],
+      );
+
+      // 예전에는 이 사이 화면이 나트륨 목표만 보고 `나트륨이 목표치를 …
+      // 초과했어요` / `균형이 잘 맞아요` 를 지어냈다. 운동 탭처럼 자리를 비운다.
+      expect(
+        find.byKey(const ValueKey<String>('diet-ai-analysis')),
+        findsNothing,
+      );
+      expect(find.textContaining('나트륨이 목표치를'), findsNothing);
+      expect(find.textContaining('균형이 잘 맞아요'), findsNothing);
+    });
+
     testWidgets('a failed diet retries in place on a narrow viewport', (
       tester,
     ) async {
@@ -280,8 +304,9 @@ void main() {
       expect(inMacro('단백질', '54.4'), findsOneWidget);
       expect(inMacro('지방', '34.1'), findsOneWidget);
 
-      // 헤더의 경고 배지는 그대로다 — 카드에서 내린 것은 막대뿐이다.
-      expect(find.text('나트륨 초과'), findsOneWidget);
+      // 헤더의 경고 배지는 그대로다 — 카드에서 내린 것은 막대뿐이다. 김민수의
+      // 배지는 PT 관리 신호의 칼로리 이탈이다(#2243).
+      expect(find.text('칼로리 18% 과다'), findsOneWidget);
       // 나트륨·당류 막대는 없다 — 회원 앱 `오늘` 카드와 같다(회원 앱 #1986,
       // #2156). 그 자리에 탄·단·지 진행 바가 선다.
       expect(

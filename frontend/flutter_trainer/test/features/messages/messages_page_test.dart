@@ -13,6 +13,7 @@ import 'package:oncare_ui/oncare_ui.dart'
         AppAvatar,
         AppBackButton,
         AppCard,
+        AppTag,
         OnCareAlpha,
         OnCareColors,
         OnCareLayout,
@@ -336,7 +337,7 @@ void main() {
         token: 'demo-trainer-token-existing',
         seedClock: DateTime(2026, 8, 16), // 일요일
       );
-      await goTo(tester, AppRoutes.messagesFor('seed-client-3'));
+      await goTo(tester, AppRoutes.messagesFor('seed-client-8'));
 
       final identity = find.byKey(
         const ValueKey<String>('messages-thread-identity'),
@@ -350,16 +351,18 @@ void main() {
       );
       expect(find.text('휴면'), findsNothing);
       expect(find.text('활성'), findsNothing);
-      // 주의 배지는 **전부** 선다 — 나트륨이 넘쳤다는 사실은 지금 이
-      // 대화에서 할 말을 바꾼다.
-      expect(
-        find.descendant(of: identity, matching: find.text('나트륨 초과')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: identity, matching: find.text('당류 초과')),
-        findsOneWidget,
-      );
+      // PT 관리 신호는 **전부**, 근거 수치까지 선다(#2243) — 통증을 말했거나
+      // 목표에서 벗어났다는 사실은 지금 이 대화에서 할 말을 바꾼다.
+      final labels = tester
+          .widgetList<AppTag>(
+            find.descendant(of: identity, matching: find.byType(AppTag)),
+          )
+          .map((t) => t.label)
+          .toList();
+      expect(labels, <String>['통증·불편', '운동 목표 28%', '칼로리 24% 과다']);
+      // 답장 대기는 없다 — 지금 열어 둔 이 대화가 곧 그 답장 자리다.
+      expect(labels, isNot(contains('답장 대기')));
+      expect(labels.where((l) => l.contains('나트륨')), isEmpty);
       // 대화 화면은 대화만 한다 — 운동 데이터는 회원 탭이 보여 준다.
       expect(find.textContaining('최근 운동'), findsNothing);
       expect(find.textContaining('주간 이행률'), findsNothing);
@@ -429,18 +432,18 @@ void main() {
       // '20:10', 단일 날짜)보다 이른 시각이니 아래에 서야 한다.
       expect(topOf('seed-client-2'), lessThan(topOf('seed-client-1')));
 
-      // `관리 필요` 는 챙길 사람을 고르는 자리다 — 주의 신호가 앞선다.
-      // 노태강은 신호가 없어 목록에서 아예 빠진다.
+      // `관리 필요` 는 챙길 사람을 고르는 자리다 — 회원 목록·대시보드의
+      // `주의 회원` 과 같은 PT 관리 신호 기준으로 거른다(#2243).
       await goTo(tester, AppRoutes.messagesFor(null, filter: 'attention'));
-      expect(
-        find.byKey(
-          const ValueKey<String>('messages-conversation-seed-client-13'),
-        ),
-        findsNothing,
-      );
-      // 나트륨이 넘친 박성호는 이행률만 낮은 회원보다 위다 — 사흘 전
-      // 대화인데도. 최신순이었다면 반대로 섰다.
-      expect(topOf('seed-client-3'), lessThan(topOf('seed-client-12')));
+      Finder conversation(String id) =>
+          find.byKey(ValueKey<String>('messages-conversation-$id'));
+      // 통증·불편(오세라)과 단백질 부족(류태경)은 남는다.
+      expect(conversation('seed-client-8'), findsOneWidget);
+      expect(conversation('seed-client-13'), findsOneWidget);
+      // 신호가 없는 이지수, 나트륨만 넘치던 휴면 회원 박성호는 빠진다 —
+      // 나트륨은 더 이상 주의 기준이 아니다.
+      expect(conversation('seed-client-2'), findsNothing);
+      expect(conversation('seed-client-3'), findsNothing);
     });
   });
 

@@ -1,7 +1,8 @@
 /// 데모 모드의 기간별 AI 맞춤 조언. (#1574)
 ///
-/// 실 서버는 `GET /diet/advice`·`GET /exercise/advice` 가 이 말을 한다
-/// (`diet_service.period_coach_message`, `exercise_service.period_coach_message`).
+/// 실 서버는 `GET /exercise/advice` 가 이 말을 한다
+/// (`exercise_service.period_coach_message`). 식단 조언은 `diet_advice.dart` 로
+/// 옮겼다(#2255).
 /// 데모에는 그 서버가 없으므로 **같은 규칙을 같은 문장으로** 여기서 재현한다 —
 /// 데모로 본 화면과 실 연동으로 본 화면이 다른 말을 하면, 시연에서 확인한 것이
 /// 무엇이었는지 알 수 없게 된다.
@@ -14,20 +15,13 @@ import 'dart:ui' show Locale;
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
-/// 하루치 식단 합계. **기록이 있는 날만** 들어온다 — 안 먹은 날과 기록하지 않은
-/// 날은 다른 말이고, 평균이 그 차이를 삼키면 조언이 사실과 어긋난다.
-typedef DietDayTotals = ({DateTime date, int sodiumMg});
-
-/// 하루치 운동 합계. 식단과 같은 규칙으로 **기록이 있는 날만** 들어온다.
+/// 하루치 운동 합계. **기록이 있는 날만** 들어온다 — 쉰 날과 적지 않은 날은 다르다.
 typedef ExerciseDayTotals = ({
   DateTime date,
   int minutes,
   int calories,
   Map<String, int> byType,
 });
-
-/// 하루 나트륨 상한(WHO 권고). 서버의 `diet_service.SODIUM_LIMIT_MG` 와 같은 값이다.
-const int kSodiumLimitMg = 2000;
 
 /// 기간 이름 — 화면의 기간 토글, 서버의 `period` 쿼리와 같은 말이다.
 const String kPeriodToday = 'today';
@@ -37,95 +31,6 @@ const String kPeriodAll = 'all';
 double _avg(List<int> values) => values.isEmpty
     ? 0
     : values.fold<int>(0, (int a, int b) => a + b) / values.length;
-
-/// 주중(월~금)·주말(토·일) 나트륨을 갈라 담는다.
-({List<int> weekday, List<int> weekend}) _weekdaySplit(
-  List<DietDayTotals> days,
-) => (
-  weekday: <int>[
-    for (final DietDayTotals d in days)
-      if (d.date.weekday < DateTime.saturday) d.sodiumMg,
-  ],
-  weekend: <int>[
-    for (final DietDayTotals d in days)
-      if (d.date.weekday >= DateTime.saturday) d.sodiumMg,
-  ],
-);
-
-/// 기간에 맞는 식단 조언. [days] 는 날짜순이고 기록이 있는 날만 든다.
-String dietPeriodAdvice(List<DietDayTotals> days, String period) {
-  if (days.isEmpty) {
-    // 없는 기록으로 조언을 지어내지 않는다.
-    if (period == kPeriodWeek) return '이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.';
-    if (period == kPeriodAll) return '기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.';
-    return '오늘 식단 기록이 아직 없어요. 첫 끼니를 기록해 볼까요?';
-  }
-
-  final List<DietDayTotals> over = <DietDayTotals>[
-    for (final DietDayTotals d in days)
-      if (d.sodiumMg > kSodiumLimitMg) d,
-  ];
-
-  if (period == kPeriodWeek) {
-    if (over.length >= 3) {
-      return '이번 주 ${over.length}일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.';
-    }
-    final ({List<int> weekday, List<int> weekend}) split = _weekdaySplit(days);
-    if (split.weekend.isNotEmpty &&
-        split.weekday.isNotEmpty &&
-        _avg(split.weekend) > _avg(split.weekday) * 1.3) {
-      return '주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.';
-    }
-    if (over.isNotEmpty) {
-      return '이번 주 ${over.length}일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.';
-    }
-    return '이번 주 ${days.length}일 모두 나트륨을 권장량 안에서 지켰어요!';
-  }
-
-  if (period == kPeriodAll) {
-    // 최근 4주와 그 이전을 견준다 — 나아지는 중인지가 이 화면의 질문이다.
-    final DateTime last = days.last.date;
-    final DateTime recentFrom = DateTime(last.year, last.month, last.day - 27);
-    final List<int> recent = <int>[
-      for (final DietDayTotals d in days)
-        if (!d.date.isBefore(recentFrom)) d.sodiumMg,
-    ];
-    final List<int> earlier = <int>[
-      for (final DietDayTotals d in days)
-        if (d.date.isBefore(recentFrom)) d.sodiumMg,
-    ];
-    if (earlier.isNotEmpty && recent.isNotEmpty) {
-      if (_avg(recent) < _avg(earlier) * 0.9) {
-        return '최근 4주 나트륨이 그 전보다 낮아졌어요. 지금 방식이 잘 맞아요.';
-      }
-      if (_avg(recent) > _avg(earlier) * 1.1) {
-        return '최근 4주 나트륨이 다시 올라가고 있어요. 한 주만 되짚어 볼까요?';
-      }
-    }
-    final ({List<int> weekday, List<int> weekend}) split = _weekdaySplit(days);
-    if (split.weekend.isNotEmpty &&
-        split.weekday.isNotEmpty &&
-        _avg(split.weekend) > _avg(split.weekday) * 1.3) {
-      // 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
-      // 이 조언은 최근 [kAllPeriodWeeks] 주만 읽는다 — "기록을 통틀어" 라고
-      // 말하면 그래프가 보여 주는 앞 기록까지 본 것처럼 읽힌다. 서버
-      // (`diet_service.period_coach_message`)와 같은 문구다.
-      return '최근 $kAllPeriodWeeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
-    }
-    final int ratio = (over.length * 100 / days.length).round();
-    if (ratio >= 40) {
-      return '최근 $kAllPeriodWeeks주 중 $ratio%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
-    }
-    return '최근 $kAllPeriodWeeks주 기록한 ${days.length}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
-  }
-
-  // 오늘 — 그날 합계 하나로 말한다.
-  final DietDayTotals today = days.last;
-  if (today.sodiumMg > kSodiumLimitMg) {
-    return '오늘 나트륨 ${today.sodiumMg}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.';
-  }
-  return '오늘 나트륨 ${today.sodiumMg}mg 로 권장량 안이에요. 이대로 마무리해요.';
-}
 
 /// 운동 유형 코드 → 사람이 읽는 라벨. 서버 `exercise_types.label_for` 와 같다.
 String exerciseTypeLabel(String code) => switch (code) {

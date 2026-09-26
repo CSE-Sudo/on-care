@@ -358,8 +358,10 @@ String _grams(double value) => value == value.roundToDouble()
 ///
 /// 예전에는 이 카드가 나트륨 목표만 보고 문구를 골랐다. 회원 앱은 서버 문장을
 /// 쓰는데 여기만 따로 계산하면, 같은 회원의 같은 날을 두 화면이 다르게 말한다.
-/// 서버 응답이 오기 전에는 지금까지 쓰던 문구를 그대로 둔다 — 카드가 비었다가
-/// 채워지면 화면이 흔들린다.
+///
+/// 서버 문장이 아직 오지 않았거나 실패하면 카드를 세우지 않는다 — 운동 탭과
+/// 같다. 예전에는 그 사이 화면이 나트륨 목표만 보고 대체 문구를 지어냈는데,
+/// 배지가 PT 관리 신호로 바뀐 뒤(#2242)에는 폐기된 기준으로 말하는 셈이었다(#2271).
 class _AiComment extends ConsumerWidget {
   const _AiComment({required this.client, required this.period});
 
@@ -368,19 +370,13 @@ class _AiComment extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final over = client.sodiumOverBudget;
-    final sodiumMg = client.sodiumMg;
-    final String fallback = over
-        ? l.dietAiOverSodium(sodiumMg - sodiumTargetMg)
-        : l.dietAiBalanced;
     final String message =
         ref
             .watch(
               clientDietAdviceProvider((clientId: client.id, period: period)),
             )
             .valueOrNull ??
-        fallback;
+        '';
     // 카드 모양과 기간별 제목은 운동과 공유한다 — 같은 성격의 말이 두 화면에서
     // 다른 모양으로 읽히지 않도록(#1025).
     return ClientAiAnalysisCard(

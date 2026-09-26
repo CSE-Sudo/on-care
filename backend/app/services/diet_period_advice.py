@@ -192,6 +192,46 @@ def analysis_today(t: TodayTotals, targets: inputs.DietTargets, at: time) -> Lin
     return line("today_balanced", kcal=t.kcal)
 
 
+@dataclass(frozen=True)
+class TodayDecision:
+    """오늘 조언에서 DB 없이 정해지는 것. 데모(`period_advice.dart`)가 같은 규칙을 옮긴다."""
+
+    analysis: Line
+    #: 메뉴를 고를 끼니(`breakfast`…`snack`). None 이면 메뉴를 고르지 않는다.
+    slot: str | None
+    needs: list[str]
+    satisfied: set[str]
+    #: 메뉴 없이 정해진 다음 할 일(빈 끼니를 물을 때·마무리). 메뉴를 고르면 덮어쓴다.
+    action: Line | None
+    action_source: str | None
+
+
+def decide_today(t: TodayTotals, targets: inputs.DietTargets, at: time) -> TodayDecision:
+    analysis = analysis_today(t, targets, at)
+    if analysis.key == "today_missing_meal":
+        # 빠진 끼니를 묻는 동안은 메뉴를 고르지 않는다 — 리스트도 열지 않는다.
+        return TodayDecision(analysis, None, [], set(), line("today_log_first"), "rules")
+    slot = next_slot(t.slots, at)
+    if slot is not None:
+        needs = needs_today(t, targets)
+    elif t.has_entries:
+        needs = snack_needs(t, targets)
+        slot = catalog.SLOT_SNACK if needs else None
+    else:
+        needs = []
+    if slot is None:
+        done = line("today_done") if t.has_entries else None
+        return TodayDecision(analysis, None, [], set(), done, "rules" if done else None)
+    return TodayDecision(analysis, slot, needs, satisfied_today(t, targets), None, None)
+
+
+def menu_line(slot: str, menu: diet_menu_plan.PlanMenu) -> Line:
+    # 키워드는 문장에 싣지 않지만 값으로는 준다 — 앱이 따로 보여 줄 수 있다.
+    if slot == catalog.SLOT_SNACK:
+        return line("next_snack", menu=menu.name, keyword=menu.keyword)
+    return line("next_meal", slot=slot, menu=menu.name, keyword=menu.keyword)
+
+
 # ── 추천한 메뉴 기억 ─────────────────────────────────────────────────────
 
 
@@ -261,39 +301,19 @@ def today_advice(
     entries = inputs.entries_between(db, user_id, today, today)
     totals = today_totals(entries)
     targets = inputs.targets_of(inputs.load_profile(db, user_id))
-    analysis = analysis_today(totals, targets, at)
+    decision = decide_today(totals, targets, at)
 
-    slot = next_slot(totals.slots, at)
-    if slot is not None:
-        needs = needs_today(totals, targets)
-    elif totals.has_entries:
-        needs = snack_needs(totals, targets)
-        slot = catalog.SLOT_SNACK if needs else None
-    else:
-        needs = []
-
-    action: Line | None = None
-    source: str | None = None
-    if analysis.key == "today_missing_meal":
-        action = line("today_log_first")
-        source = "rules"
-    elif slot is not None:
+    action, source = decision.action, decision.action_source
+    if decision.slot is not None:
         plan = diet_menu_plan.get_plan(db, user_id, lang=lang, use_llm=use_llm, now=now)
         menu = pick_menu(
-            plan.for_slot(slot), needs, _recent_picks(db, user_id, today),
-            satisfied_today(totals, targets),
+            plan.for_slot(decision.slot), decision.needs, _recent_picks(db, user_id, today),
+            decision.satisfied,
         )
         if menu is not None:
             _remember_pick(db, user_id, today, plan.lang, menu.name)
-            if slot == catalog.SLOT_SNACK:
-                # 키워드는 문장에 싣지 않지만 값으로는 준다 — 앱이 따로 보여 줄 수 있다.
-                action = line("next_snack", menu=menu.name, keyword=menu.keyword)
-            else:
-                action = line("next_meal", slot=slot, menu=menu.name, keyword=menu.keyword)
-            source = "plan"
-    elif totals.has_entries:
-        action = line("today_done")
-        source = "rules"
+            action, source = menu_line(decision.slot, menu), "plan"
+    analysis = decision.analysis
 
     return DietAdvice(
         period=PERIOD_TODAY,
@@ -304,3 +324,102 @@ def today_advice(
         action=action,
         action_source=source,
     )
+
+
+# ── 만든 조언 보관(이번 주·전체) ─────────────────────────────────────────
+
+
+def load_state(
+    db: Session, user_id: str, period: str, key_date: str, lang: str
+) -> DietAdviceState | None:
+    return db.scalar(
+        select(DietAdviceState)
+        .where(DietAdviceState.user_id == user_id)
+        .where(DietAdviceState.period == period)
+        .where(DietAdviceState.key_date == key_date)
+        .where(DietAdviceState.lang == lang)
+    )
+
+
+def _line_payload(ln: Line | None) -> dict | None:
+    if ln is None:
+        return None
+    return {"key": ln.key, "params": ln.params, "raw": ln.raw}
+
+
+def _line_from(data: dict | None) -> Line | None:
+    if not data:
+        return None
+    return Line(key=data.get("key"), params=data.get("params") or {}, raw=data.get("raw") or "")
+
+
+def advice_payload(advice: DietAdvice) -> dict:
+    return {
+        "from_date": advice.from_date,
+        "to_date": advice.to_date,
+        "days_logged": advice.days_logged,
+        "analysis": _line_payload(advice.analysis),
+        "action": _line_payload(advice.action),
+        "action_source": advice.action_source,
+    }
+
+
+def advice_from_state(period: str, row: DietAdviceState) -> DietAdvice | None:
+    try:
+        data = json.loads(row.payload_json or "{}")
+        analysis = _line_from(data["analysis"])
+    except (ValueError, KeyError, TypeError):
+        return None
+    if analysis is None:
+        return None
+    return DietAdvice(
+        period=period,
+        from_date=data.get("from_date", ""),
+        to_date=data.get("to_date", ""),
+        days_logged=int(data.get("days_logged", 0)),
+        analysis=analysis,
+        action=_line_from(data.get("action")),
+        action_source=data.get("action_source"),
+    )
+
+
+def cached_advice(
+    db: Session, user_id: str, period: str, key_date: str, lang: str, now: datetime
+) -> DietAdvice | None:
+    """보관한 조언. 없거나, AI 실패로 둔 대체 문장의 재시도 시각이 지났으면 None."""
+    row = load_state(db, user_id, period, key_date, lang)
+    if row is None:
+        return None
+    if row.retry_after is not None:
+        retry = row.retry_after if row.retry_after.tzinfo else row.retry_after.replace(tzinfo=clock.SEOUL)
+        if retry <= now:
+            return None
+    return advice_from_state(period, row)
+
+
+def store_advice(
+    db: Session,
+    user_id: str,
+    period: str,
+    key_date: str,
+    lang: str,
+    advice: DietAdvice,
+    *,
+    retry_after: datetime | None,
+) -> None:
+    """만든 조언을 둔다. 같은 날(주)의 것이 있으면 갈아 끼운다."""
+    payload = json.dumps(advice_payload(advice), ensure_ascii=False)
+    row = load_state(db, user_id, period, key_date, lang)
+    if row is None:
+        db.add(DietAdviceState(
+            id=f"dadv-{uuid.uuid4().hex[:16]}", user_id=user_id, period=period,
+            key_date=key_date, lang=lang, payload_json=payload, retry_after=retry_after,
+        ))
+    else:
+        row.payload_json = payload
+        row.retry_after = retry_after
+    try:
+        db.commit()
+    except IntegrityError:
+        # 같은 회원의 두 요청이 동시에 처음 만들었다 — 먼저 들어간 것이 남으면 충분하다.
+        db.rollback()

@@ -4120,4 +4120,226 @@ class AppLocalizationsKo extends AppLocalizations {
   String exerciseAdviceRoutineAllRate(int pct) {
     return '지금 추천 운동의 $pct%를 했어요. 빠지는 날 없이 이어 가 봐요.';
   }
+
+  @override
+  String get dietAdviceTodayEmpty => '오늘 식단 기록이 아직 없어요.';
+
+  @override
+  String get dietAdviceTodayMissingMeal => '적지 않은 끼니가 있나요?';
+
+  @override
+  String dietAdviceTodaySodiumOver(int sodiumMg) {
+    final intl.NumberFormat sodiumMgNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String sodiumMgString = sodiumMgNumberFormat.format(sodiumMg);
+
+    return '나트륨 **${sodiumMgString}mg**, 권장량 초과예요.';
+  }
+
+  @override
+  String dietAdviceTodayCalorieOver(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '오늘 **${kcalString}kcal**, 목표 초과예요.';
+  }
+
+  @override
+  String dietAdviceTodayProteinLeft(int proteinG) {
+    return '단백질 **${proteinG}g** 더 필요해요.';
+  }
+
+  @override
+  String dietAdviceTodayBalanced(int kcal) {
+    final intl.NumberFormat kcalNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kcalString = kcalNumberFormat.format(kcal);
+
+    return '오늘 **${kcalString}kcal**, 균형이 좋아요.';
+  }
+
+  @override
+  String dietAdviceNextMeal(String slot, String menu) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'other': '끼니',
+    });
+    return '$_temp0은 **$menu** 어때요?';
+  }
+
+  @override
+  String dietAdviceNextSnack(String menu) {
+    return '간식으로 **$menu** 어때요?';
+  }
+
+  @override
+  String get dietAdviceTodayDone => '오늘 식단을 잘 마무리했어요!';
+
+  @override
+  String get dietAdviceTodayLogFirst => '기록하면 다음 메뉴를 골라 드릴게요.';
+
+  @override
+  String get dietAdviceWeekEmpty => '이번 주 식단 기록이 아직 없어요.';
+
+  @override
+  String dietAdviceWeekSkipBreakfast(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 아침을 **$days번** 걸렀어요.';
+  }
+
+  @override
+  String dietAdviceWeekSkipBreakfastSnack(
+    String scope,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 아침 거른 $days일 중 **$snackDays일** 간식을 드셨어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSodium(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 나트륨을 **$days일** 넘겼어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusCalorie(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 칼로리 목표를 **$days일** 넘겼어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusSugar(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 당류를 **$days일** 넘겼어요.';
+  }
+
+  @override
+  String dietAdviceWeekFocusProtein(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 단백질이 **$days일** 부족했어요.';
+  }
+
+  @override
+  String dietAdviceWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 기록한 **$days일** 모두 목표 안이에요.';
+  }
+
+  @override
+  String get dietAdviceWeekEmptyHint => '한 끼만 남겨도 흐름이 보여요.';
+
+  @override
+  String get dietAdviceTipBreakfast => '삶은 달걀로 아침을 챙겨요.';
+
+  @override
+  String get dietAdviceTipSodium => '국물은 남기고 건더기 위주로 드세요.';
+
+  @override
+  String get dietAdviceTipCalorie => '저녁 양을 조금만 줄여 봐요.';
+
+  @override
+  String get dietAdviceTipSugar => '단 음료 대신 물이나 차를 드세요.';
+
+  @override
+  String get dietAdviceTipProtein => '끼니마다 달걀·두부를 더해 봐요.';
+
+  @override
+  String get dietAdviceTipKeep => '지금 흐름을 그대로 이어 가요!';
+
+  @override
+  String dietAdviceAllFewRecords(int days) {
+    return '최근 4주 기록이 **$days일**이에요.';
+  }
+
+  @override
+  String dietAdviceAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'other': '끼니',
+    });
+    return '최근 4주 $_temp0 나트륨이 **$days번** 높았어요.';
+  }
+
+  @override
+  String dietAdviceAllCarbHeavy(int pct) {
+    return '최근 4주 탄수화물 비중이 **$pct%**예요.';
+  }
+
+  @override
+  String dietAdviceAllProteinLight(int pct) {
+    return '최근 4주 단백질 비중이 **$pct%**로 낮아요.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendUp(int before, int after) {
+    return '단백질 목표 달성일이 **$before일→$after일**로 늘었어요.';
+  }
+
+  @override
+  String dietAdviceAllProteinTrendDown(int before, int after) {
+    return '단백질 목표 달성일이 **$before일→$after일**로 줄었어요.';
+  }
+
+  @override
+  String dietAdviceAllFrequentMenu(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'other': '끼니',
+    });
+    return '4주간 $_temp0 1위 메뉴는 **$food**($count회)예요.';
+  }
+
+  @override
+  String dietAdviceAllRepeatedFoods(String food1, String food2) {
+    return '4주간 **$food1·$food2** 비중이 높아요.';
+  }
+
+  @override
+  String dietAdviceAllGood(int days) {
+    return '최근 4주 **$days일** 기록, 흐름이 좋아요.';
+  }
+
+  @override
+  String get dietAdviceAllFewHint => '7일이 넘으면 흐름을 짚어 드릴게요.';
+
+  @override
+  String get dietAdviceTipCarb => '밥 양을 줄이고 반찬을 늘려 봐요.';
+
+  @override
+  String get dietAdviceTipSwap => '곁들임 반찬만 바꿔 봐요.';
+
+  @override
+  String get dietAdviceTipVariety => '생선·두부를 주 2회 더해요.';
 }

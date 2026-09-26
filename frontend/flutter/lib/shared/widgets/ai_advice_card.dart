@@ -27,14 +27,15 @@ class AiAdviceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message.trim().isEmpty) return const SizedBox.shrink();
+    final TextStyle style = context.oncare
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textPrimary);
+    // 식단 조언은 메뉴 이름·수치를 `**` 로 감싸 오지만(#2251) 카드는 굵게 그리지
+    // 않는다(#2255) — 한 화면의 운동 카드와 같은 평문이어야 두 카드가 같은 카드로
+    // 읽힌다. 표시만 떼고, 서버는 그대로 보낸다(나중에 강조를 켤 수 있게).
     return AiAdviceShell(
       title: title,
-      child: Text(
-        message,
-        style: context.oncare
-            .text(OnCareTypography.bodySmall)
-            .copyWith(color: OnCareColors.textPrimary),
-      ),
+      child: Text(message.replaceAll('**', ''), style: style),
     );
   }
 }
