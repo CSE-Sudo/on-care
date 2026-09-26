@@ -4730,30 +4730,6 @@ abstract class AppLocalizations {
   /// **'All'**
   String get filterAll;
 
-  /// No description provided for @alertSodiumOver.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium over'**
-  String get alertSodiumOver;
-
-  /// No description provided for @alertSugarOver.
-  ///
-  /// In en, this message translates to:
-  /// **'Sugar over target'**
-  String get alertSugarOver;
-
-  /// No description provided for @alertLowCompletion.
-  ///
-  /// In en, this message translates to:
-  /// **'Low completion'**
-  String get alertLowCompletion;
-
-  /// No description provided for @alertAwaitingReply.
-  ///
-  /// In en, this message translates to:
-  /// **'Awaiting reply'**
-  String get alertAwaitingReply;
-
   /// No description provided for @metricOverBy.
   ///
   /// In en, this message translates to:

@@ -2552,18 +2552,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get filterAll => '전체';
 
   @override
-  String get alertSodiumOver => '나트륨 초과';
-
-  @override
-  String get alertSugarOver => '당류 초과';
-
-  @override
-  String get alertLowCompletion => '이행률 저조';
-
-  @override
-  String get alertAwaitingReply => '답장 대기';
-
-  @override
   String metricOverBy(String unit) {
     return '$unit 초과';
   }
