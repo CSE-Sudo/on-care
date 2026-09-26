@@ -2282,18 +2282,6 @@ abstract class AppLocalizations {
   /// **'AI all-time analysis'**
   String get aiAllAnalysis;
 
-  /// No description provided for @dietAiOverSodium.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium is {over}mg over target. Adding cardio to today\'s program would help.'**
-  String dietAiOverSodium(int over);
-
-  /// No description provided for @dietAiBalanced.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s meals are well balanced. Keep the current program.'**
-  String get dietAiBalanced;
-
   /// No description provided for @consultStatusRejected.
   ///
   /// In en, this message translates to:
