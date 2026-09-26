@@ -132,13 +132,13 @@ void main() {
   });
 
   // 리포트 탭도 프로그램 탭과 같은 회원 카드 한 줄([ClientPickerCard])을 쓴다.
-  testWidgets('리포트 탭 회원 목록은 프로그램 탭과 같은 카드를 쓴다 (#1706)', (tester) async {
+  testWidgets('리포트 탭 작업대 줄은 프로그램 탭과 같은 카드를 쓴다 (#1706)', (tester) async {
     await openTab(tester, AppRoutes.reports);
 
     ClientPickerCard rowOf(String key) =>
         tester.widget<ClientPickerCard>(find.byKey(ValueKey<String>(key)));
-    // 첫 회원이 기본으로 선택된다.
-    expect(rowOf('report-client-type-a').selected, isTrue);
+    // 작업대에는 골라 둔 회원이 없다 — 줄을 누르면 곧바로 편집기로 간다(#2232).
+    expect(rowOf('report-client-type-a').selected, isFalse);
     expect(rowOf('report-client-type-b').selected, isFalse);
 
     // 고를 때 이름 크기가 달라져 행 높이가 흔들리지 않는다.
