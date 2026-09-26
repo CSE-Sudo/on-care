@@ -68,13 +68,13 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     ChatSendResult result = await chat.send(text);
     if (!mounted) return;
     if (result.outcome == ChatSendOutcome.needsConsent) {
-      // 무료를 다 쓴 뒤 처음 한 번만 묻는다(#2145). 동의하면 그날은 다시 묻지 않는다.
+      // 포인트가 나가는 일은 보낼 때마다 묻는다(#2217) — 하루 한 번 동의로
+      // 묶어 두면 그 뒤로는 무엇이 언제 나갔는지 모르고 쌓인다.
       if (!await _confirmPaidChat()) {
         _restoreInput(text);
         return;
       }
-      chat.consentToPaidChat();
-      result = await chat.send(text);
+      result = await chat.send(text, payWithPoints: true);
       if (!mounted) return;
     }
     final AppLocalizations l = AppLocalizations.of(context);
@@ -113,9 +113,11 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     return showAppConfirmDialog(
       context: context,
       title: l.aicPaidConfirmTitle,
+      // 얼마가 나가는지와 **지금 가진 것**을 함께 보여 준다(#2217).
       message: l.aicPaidConfirmMessage(
         l.myPointsCost(quota?.cost ?? 0),
         quota?.paidLimit ?? 0,
+        l.myPointsCost(quota?.balance ?? 0),
       ),
       confirmLabel: l.aicPaidConfirmAction,
       cancelLabel: l.myCancel,
@@ -513,13 +515,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                     left: OnCareSpacing.s4,
                   ),
                   child: Text(
-                    switch (m.balanceAfter) {
-                      final int balance => l.aicPointsSpentWithBalance(
-                        l.myPointsCost(m.pointsSpent),
-                        l.myPointsCost(balance),
-                      ),
-                      null => l.aicPointsSpent(l.myPointsCost(m.pointsSpent)),
-                    },
+                    // 남은 포인트는 여기 적지 않는다 — MY 에서 보는 값이고,
+                    // 답변마다 따라다니면 대화보다 잔액이 먼저 읽힌다(#2217).
+                    l.aicPointsSpent(l.myPointsCost(m.pointsSpent)),
                     key: const Key('aiCoachPointsSpent'),
                     style: OnCareTypography.numeric(
                       tokens.text(OnCareTypography.caption),
@@ -611,7 +609,6 @@ class _QuotaLine extends StatelessWidget {
         l.myPointsCost(quota.cost),
         quota.paidUsed,
         quota.paidLimit,
-        l.myPointsCost(quota.balance),
       ),
       AiChatNext.exhausted => l.aicQuotaExhausted,
     };

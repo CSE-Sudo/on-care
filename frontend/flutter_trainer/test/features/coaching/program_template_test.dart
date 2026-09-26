@@ -5,6 +5,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -155,6 +156,10 @@ void main() {
       await tester.tap(find.text(template.name));
       await settle(tester);
 
+      // AI 후보가 유형별로 여러 세션에 나뉘어 들어오면(#2222) 템플릿을 어느
+      // 세션에 붙일지 먼저 묻는다(#1029) — 첫 세션에 붙인다.
+      await _pickFirstSessionIfAsked(tester);
+
       // The template's exercises joined the composed routine…
       expect(find.text(template.exercises.first.name), findsWidgets);
       // …and the AI's own suggestion is still there.
@@ -175,4 +180,22 @@ void main() {
       expect(find.text('전송 이력'), findsOneWidget);
     });
   });
+}
+
+/// 템플릿 붙일 세션을 묻는 창이 떠 있으면 첫 세션을 고른다.
+Future<void> _pickFirstSessionIfAsked(WidgetTester tester) async {
+  final picker = find.byKey(const ValueKey<String>('template-session-picker'));
+  if (picker.evaluate().isEmpty) return;
+  final sessions = find.descendant(
+    of: picker,
+    matching: find.byWidgetPredicate((widget) {
+      if (widget is! AppButton) return false;
+      final key = widget.key;
+      if (key is! ValueKey<String>) return false;
+      return key.value.startsWith('template-session-picker-') &&
+          key.value != 'template-session-picker-cancel';
+    }),
+  );
+  await tester.tap(sessions.first);
+  await tester.pumpAndSettle();
 }
