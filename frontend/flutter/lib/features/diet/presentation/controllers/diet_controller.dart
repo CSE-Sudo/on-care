@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
 import 'package:oncare/features/diet/data/sources/image_picker_meal_photo_picker.dart';
@@ -101,12 +102,24 @@ final dietPeriodProvider = FutureProvider.family<DietPeriod, DietDateRange>((
 /// 읽게 된다.
 ///
 /// 구간 경계는 서버가 정한다 — 앱이 따로 계산해 넘기지 않는다.
-final dietAdviceProvider = FutureProvider.family<String, String>((
+///
+/// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). 앱 언어([DietAdviceKey.lang])
+/// 마다 따로 받는다 — 메뉴 이름과 AI 문장이 그 언어로 온다.
+///
+/// 끼니를 저장·수정·삭제하거나 날짜를 옮기면 **family 통째로** 비운다(#2078).
+/// 오늘 조언은 합계가 바뀌면 다음 메뉴가 바뀌고, 한 번 받은 값을 들고 있으면
+/// 영양 요약은 새 합계인데 조언만 옛 합계를 말한다.
+final dietAdviceProvider = FutureProvider.family<DietAdvice, DietAdviceKey>((
   ref,
-  String period,
+  DietAdviceKey key,
 ) async {
-  return ref.watch(dietRepositoryProvider).fetchAdvice(period);
+  return ref
+      .watch(dietRepositoryProvider)
+      .fetchAdvice(key.period, lang: key.lang);
 }, name: 'dietAdvice');
+
+/// 조언 요청의 열쇠 — 기간(`today`·`week`·`all`)과 앱 언어(`ko`·`en`).
+typedef DietAdviceKey = ({String period, String lang});
 
 /// 홈 "AI 추천 식단" — GET /diet/recommendations.
 ///

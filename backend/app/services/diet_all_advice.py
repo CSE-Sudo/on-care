@@ -237,6 +237,39 @@ def choose(candidates: list[Finding], last_kind: str | None) -> Finding | None:
     return (fresh or candidates or [None])[0]
 
 
+def decide_all(
+    entries, targets: inputs.DietTargets, today: date, last_kind: str | None
+) -> tuple[dict[date, DayRecord], Line, Finding | None]:
+    """전체 조언에서 DB 없이 정해지는 것 — (날짜별 기록, 규칙 한 줄, 고른 것).
+
+    [entries] 는 최근 28일이다. 고른 것이 None 이면 AI 를 부르지 않는다(기록이 모자라거나
+    칭찬). 데모(`period_advice.dart`)가 같은 규칙을 옮긴다.
+    """
+    records = day_records(entries)
+    if len(records) < MIN_DAYS:
+        return records, line("all_few_records", days=len(records)), None
+    candidates = [
+        f for f in (
+            slot_sodium(records, targets),
+            macro(entries),
+            trend(records, targets, today),
+            frequent(records),
+            repeated(records),
+        ) if f is not None
+    ]
+    finding = choose(candidates, last_kind)
+    if finding is None:
+        return records, line("all_good", days=len(records)), None
+    return records, finding.analysis, finding
+
+
+def fallback_action(analysis: Line) -> Line:
+    """AI 문장이 없을 때의 다음 할 일."""
+    if analysis.key == "all_few_records":
+        return line("all_few_hint")
+    return line(_TIPS.get(analysis.key or "", "tip_keep"))
+
+
 def all_advice(
     db: Session,
     user_id: str,
@@ -256,34 +289,22 @@ def all_advice(
         return cached
 
     entries = inputs.entries_between(db, user_id, start, today)
-    records = day_records(entries)
-    base = dict(period=PERIOD_ALL, from_date=start.isoformat(), to_date=today.isoformat(),
-                days_logged=len(records))
-    if len(records) < MIN_DAYS:
-        # 기록이 쌓이는 중이다 — 두지 않는다. 7일이 되는 날 바로 짚어야 한다.
-        return DietAdvice(
-            **base, analysis=line("all_few_records", days=len(records)),
-            action=line("all_few_hint"), action_source="rules",
-        )
-
     profile = inputs.load_profile(db, user_id)
     targets = inputs.targets_of(profile)
-    candidates = [
-        f for f in (
-            slot_sodium(records, targets),
-            macro(entries),
-            trend(records, targets, today),
-            frequent(records),
-            repeated(records),
-        ) if f is not None
-    ]
-    finding = choose(candidates, _last_kind(db, user_id, monday, lang))
+    records, analysis, finding = decide_all(
+        entries, targets, today, _last_kind(db, user_id, monday, lang)
+    )
+    base = dict(period=PERIOD_ALL, from_date=start.isoformat(), to_date=today.isoformat(),
+                days_logged=len(records))
+    if analysis.key == "all_few_records":
+        # 기록이 쌓이는 중이다 — 두지 않는다. 7일이 되는 날 바로 짚어야 한다.
+        return DietAdvice(
+            **base, analysis=analysis, action=fallback_action(analysis), action_source="rules",
+        )
 
     retry_after = None
-    if finding is None:
-        analysis, action, source = line("all_good", days=len(records)), line("tip_keep"), "rules"
-    else:
-        analysis, source = finding.analysis, "rules"
+    action, source = fallback_action(analysis), "rules"
+    if finding is not None:
         text = None
         if use_llm:
             text = diet_ai_sentence.generate(
@@ -298,9 +319,8 @@ def all_advice(
             )
         if text:
             action, source = ai_line(text), "llm"
-        else:
-            action = line(_TIPS[finding.analysis.key])
-            retry_after = now + RETRY_AFTER if use_llm else None
+        elif use_llm:
+            retry_after = now + RETRY_AFTER
 
     advice = DietAdvice(**base, analysis=analysis, action=action, action_source=source)
     store_advice(db, user_id, PERIOD_ALL, key, lang, advice, retry_after=retry_after)

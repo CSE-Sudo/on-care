@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
@@ -56,12 +57,12 @@ class DioDietRepository implements DietRepository {
   }
 
   @override
-  Future<String> fetchAdvice(String period) async {
+  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/diet/advice',
-      queryParameters: <String, Object?>{'period': period},
+      queryParameters: <String, Object?>{'period': period, 'lang': lang},
     );
-    return (res.data?['message'] as String?) ?? '';
+    return DietAdvice.fromJson(res.data ?? const <String, Object?>{});
   }
 
   @override

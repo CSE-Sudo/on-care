@@ -190,6 +190,31 @@ def find(
     )
 
 
+def decide_week(
+    entries, targets: inputs.DietTargets, now: datetime
+) -> tuple[str, date, date, dict[date, DayRecord], Finding | None]:
+    """이번 주 조언에서 DB 없이 정해지는 것 — (scope, 시작, 끝, 날짜별 기록, 규칙 한 줄).
+
+    [entries] 는 지난주 월요일부터 오늘까지다. 기록이 없으면 규칙 한 줄이 None 이다.
+    데모(`period_advice.dart`)가 같은 규칙을 옮긴다.
+    """
+    today = now.date()
+    records_all = day_records(entries)
+    scope, start, end = week_window(today, set(records_all))
+    records = {d: r for d, r in records_all.items() if start <= d <= end}
+    if not records:
+        return scope, start, end, records, None
+    at = now.timetz().replace(tzinfo=None)
+    return scope, start, end, records, find(records, targets, scope, today=today, now_time=at)
+
+
+def fallback_action(finding: Finding) -> Line:
+    """AI 문장이 없을 때의 다음 할 일. 칭찬은 늘 이것이다."""
+    if finding.kind == "good":
+        return line("tip_keep")
+    return line("tip_breakfast" if finding.kind == "breakfast" else _FOCUS_TIPS[finding.kind])
+
+
 def record_lines(finding: Finding, records: dict[date, DayRecord]) -> list[str]:
     """AI 에게 보여 줄 원인 후보 끼니. 그 영양이 큰 끼니부터."""
     index = {"sodium": 4, "calorie": 2, "sugar": 5, "protein": 3}.get(finding.kind)
@@ -233,21 +258,17 @@ def week_advice(
 
     two_weeks = today - timedelta(days=today.weekday() + 7)
     entries = inputs.entries_between(db, user_id, two_weeks, today)
-    records_all = day_records(entries)
-    scope, start, end = week_window(today, set(records_all))
-    records = {d: r for d, r in records_all.items() if start <= d <= end}
+    profile = inputs.load_profile(db, user_id)
+    targets = inputs.targets_of(profile)
+    scope, start, end, records, finding = decide_week(entries, targets, now)
 
-    if not records:
+    if finding is None:
         # 기록이 없으면 안내만 한다. 두지 않는다 — 곧 첫 기록이 생긴다.
         return DietAdvice(
             period=PERIOD_WEEK, from_date=start.isoformat(), to_date=end.isoformat(),
             days_logged=0, analysis=line("week_empty"), action=line("week_empty_hint"),
             action_source="rules",
         )
-
-    profile = inputs.load_profile(db, user_id)
-    targets = inputs.targets_of(profile)
-    finding = find(records, targets, scope, today=today, now_time=now.timetz().replace(tzinfo=None))
 
     action: Line
     source = "rules"
@@ -270,7 +291,7 @@ def week_advice(
             action = ai_line(text)
             source = "llm"
         else:
-            action = line("tip_breakfast" if finding.kind == "breakfast" else _FOCUS_TIPS[finding.kind])
+            action = fallback_action(finding)
             retry_after = now + RETRY_AFTER if use_llm else None
 
     advice = DietAdvice(

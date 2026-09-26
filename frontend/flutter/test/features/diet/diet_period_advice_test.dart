@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -36,13 +37,13 @@ class _AdviceRepository extends FakeDietRepository {
   final Map<String, int> calls = <String, int>{};
 
   @override
-  Future<String> fetchAdvice(String period) {
+  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) {
     calls[period] = (calls[period] ?? 0) + 1;
-    if (pending.contains(period)) return Completer<String>().future;
+    if (pending.contains(period)) return Completer<DietAdvice>().future;
     if (failing.contains(period)) {
-      return Future<String>.error(StateError('advice unavailable'));
+      return Future<DietAdvice>.error(StateError('advice unavailable'));
     }
-    return super.fetchAdvice(period);
+    return super.fetchAdvice(period, lang: lang);
   }
 }
 

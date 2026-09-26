@@ -18,6 +18,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
+import 'package:oncare/core/demo/diet_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
@@ -1100,40 +1101,76 @@ class LocalApiInterceptor extends Interceptor {
   /// 없던 동안에는 요청이 그대로 네트워크로 흘러 실패했고, 화면은 어쩔 수 없이
   /// 오늘 조언을 대신 그렸다 — `이번 주` 를 보면서 오늘 이야기를 읽게 되는
   /// 원인이 여기였다.
+  ///
+  /// 규칙 한 줄 + 다음 할 일(#2251·#2253·#2254)을 서버와 같은 규칙으로 만든다
+  /// (`core/demo/diet_advice.dart`). 데모에는 AI 가 없어 이번 주·전체의 다음 할
+  /// 일은 AI 가 실패했을 때의 규칙 문장이다.
   Future<Response<Object?>> _dietAdvice(RequestOptions options) async {
     final String? period = _advicePeriod(options);
     if (period == null) {
       return _unprocessable(options, 'period must be today, week or all');
     }
-    final (String start, String end) = _periodBounds(period);
-    final rows =
-        await (_db.select(_db.dietEntries)..where(
-              (t) =>
-                  t.date.isBiggerOrEqualValue(start) &
-                  t.date.isSmallerOrEqualValue(end),
-            ))
-            .get();
-
-    // 기록이 없는 날은 만들지 않는다 — 안 먹은 날과 적지 않은 날은 다른 말이고,
-    // 0 으로 채우면 평균과 초과 일수가 사실과 어긋난다(서버와 같은 규칙).
-    final Map<String, int> sodiumByDate = <String, int>{};
-    for (final r in rows) {
-      sodiumByDate[r.date] = (sodiumByDate[r.date] ?? 0) + r.sodiumMg;
+    final Object? rawLang = options.queryParameters['lang'];
+    final String lang = rawLang is String && rawLang.isNotEmpty
+        ? rawLang
+        : 'ko';
+    if (lang != 'ko' && lang != 'en') {
+      return _unprocessable(options, 'lang must be ko or en');
     }
-    final List<String> dates = sodiumByDate.keys.toList()..sort();
-    final List<DietDayTotals> days = <DietDayTotals>[
-      for (final String date in dates)
-        if (DateTime.tryParse(date) case final DateTime parsed)
-          (date: parsed, sodiumMg: sodiumByDate[date]!),
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    // 전체가 읽는 4주가 가장 길다 — 이번 주의 지난주 회고(최대 13일 전)도 그 안이다.
+    final String start = _dateString(
+      DateTime(today.year, today.month, today.day - 27),
+    );
+    final rows =
+        await (_db.select(_db.dietEntries)
+              ..where(
+                (t) =>
+                    t.date.isBiggerOrEqualValue(start) &
+                    t.date.isSmallerOrEqualValue(_dateString(today)),
+              )
+              ..orderBy(<OrderClauseGenerator<$DietEntriesTable>>[
+                (t) => OrderingTerm(expression: t.date),
+                (t) => OrderingTerm(expression: t.createdAt),
+              ]))
+            .get();
+    final List<DemoDietEntry> entries = <DemoDietEntry>[
+      for (final DietEntryRow r in rows) _demoDietEntry(r),
     ];
+    return _ok(
+      options,
+      demoDietAdvice(
+        period: period,
+        lang: lang,
+        now: now,
+        entries: entries,
+        targets: demoDietTargets(await _mergedProfile()),
+      ),
+    );
+  }
 
-    return _ok(options, <String, Object?>{
-      'period': period,
-      'from_date': start,
-      'to_date': end,
-      'days_logged': days.length,
-      'message': dietPeriodAdvice(days, period),
-    });
+  /// 끼니 한 행 → 조언이 읽는 값. 탄단지는 행에 칼럼이 없어 음식에서 되짚는다.
+  DemoDietEntry _demoDietEntry(DietEntryRow row) {
+    final List<Object?> foods = jsonDecode(row.foodsJson) as List<Object?>;
+    final _MacroTotals macros = _foodMacroTotals(foods);
+    return (
+      date: row.date,
+      mealType: row.mealType,
+      foods: <String>[
+        for (final Object? food in foods)
+          if (food is Map)
+            if ((food['name'] as String?)?.trim() case final String n
+                when n.isNotEmpty)
+              n,
+      ],
+      kcal: row.totalCalories,
+      proteinG: macros.proteinG,
+      sodiumMg: row.sodiumMg,
+      sugarG: row.sugarG,
+      carbsG: macros.carbsG,
+      fatG: macros.fatG,
+    );
   }
 
   /// 조언 요청의 `period`. 기간 이름이 아니면 null 이다 — 서버가 422 로
