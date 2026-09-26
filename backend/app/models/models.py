@@ -2296,3 +2296,106 @@ class WeeklyChallenge(Base):
         ),
         Index("ix_weekly_challenges_user_status", "user_id", "status"),
     )
+
+
+class MemberWeeklyFeedback(Base):
+    """회원이 한 주를 끝내며 스스로 남기는 세 문항. (#2232)
+
+    수치만으로는 같은 한 주가 두 가지로 읽힌다. 개인 운동을 절반만 한 주는
+    `게으름` 일 수도 있고 `과부하·일정 문제` 일 수도 있는데, 그 둘은 다음 주
+    처방이 정반대다 — 전자는 양을 늘리고 후자는 줄이거나 시간을 옮긴다. 이
+    표는 그 갈림길을 회원 본인에게 묻는다. 트레이너 리포트의 `회원 주간
+    피드백` 칸이 이 값을 그대로 읽는다.
+
+    문항은 셋뿐이다: 한 주 컨디션, 운동 강도, (있다면) 통증. 30초 안에 끝나야
+    매주 돌아오고, 길어지면 답이 아예 안 온다.
+
+    (user_id, week_start) 하나당 한 행이다. 회원이 같은 주에 다시 보내면 덮어
+    쓴다 — 한 주에 대한 회원의 말은 마지막 것 하나다. 주차를 키에 두는 이유는
+    `TrainerReportFeedback` 과 같다: 주를 옮기면 그 주의 답이 따라와야 한다.
+
+    `week_start` 는 그 주 월요일 `YYYY-MM-DD` (`week_start_of` 규칙).
+    """
+
+    __tablename__ = "member_weekly_feedback"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    week_start: Mapped[str] = mapped_column(String(10), index=True)  # 월요일
+
+    #: 한 주 컨디션. 회원이 고르는 다섯 칸.
+    condition: Mapped[str] = mapped_column(String(12))  # great|good|ok|tired|bad
+
+    #: 운동 강도가 어땠나. `too_hard` 가 과부하 신호다.
+    intensity: Mapped[str] = mapped_column(String(12))  # too_easy|right|hard|too_hard
+
+    #: 아픈 곳. 없으면 빈 값 — 통증은 있을 때만 적는다.
+    pain_area: Mapped[str] = mapped_column(String(40), default="", server_default="")
+
+    #: 통증을 느낀 날 `YYYY-MM-DD`. 트레이너가 그날 무엇을 했는지 되짚는다.
+    pain_on: Mapped[str] = mapped_column(String(10), default="", server_default="")
+
+    #: 회원이 직접 적은 한 줄. 판단을 뒤집는 것은 거의 늘 이 줄이다.
+    note: Mapped[str] = mapped_column(Text, default="", server_default="")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "condition IN ('great', 'good', 'ok', 'tired', 'bad')",
+            name="ck_member_weekly_feedback_condition",
+        ),
+        CheckConstraint(
+            "intensity IN ('too_easy', 'right', 'hard', 'too_hard')",
+            name="ck_member_weekly_feedback_intensity",
+        ),
+        UniqueConstraint(
+            "user_id", "week_start", name="uq_member_weekly_feedback_user_week"
+        ),
+    )
+
+
+class TrainerReportGoal(Base):
+    """트레이너가 리포트 ② 에서 고른 목표 — 다음 주 ③ 이 회수한다. (#2232)
+
+    `week_start` 는 목표가 **적용되는 주**(고른 주의 다음 주)다. 고른 주에
+    저장하면 회수하는 쪽이 매번 한 주를 빼야 하고, 주 경계를 두 곳에서 계산하는
+    순간 한쪽만 틀리는 날이 온다.
+
+    이 표가 없으면 ② 는 고르는 시늉으로 끝난다. 목표는 다음 주에 확인될 때
+    비로소 목표이고, 확인되지 않는 목표를 매주 새로 고르는 화면은 트레이너에게
+    일만 늘린다.
+    """
+
+    __tablename__ = "trainer_report_goals"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    week_start: Mapped[str] = mapped_column(String(10), index=True)
+    #: 고른 목표 문장들. JSON 배열 한 덩어리로 둔다 — 한 줄씩 행으로 쪼개면
+    #: 순서를 따로 들고 있어야 하는데, 이 목록은 언제나 통째로 읽고 통째로 쓴다.
+    goals_json: Mapped[str] = mapped_column(Text, default="[]", server_default="[]")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "member_id", "week_start", name="uq_trainer_report_goals_member_week"
+        ),
+    )

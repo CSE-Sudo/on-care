@@ -1530,6 +1530,60 @@ class ReportFeedbackSaveRequest(BaseModel):
     body: str = Field(default="", max_length=2000)
 
 
+class MemberWeeklyFeedbackOut(BaseModel):
+    """회원이 그 주에 남긴 세 문항. (#2232)
+
+    `submitted` 가 false 면 나머지 칸은 기본값이고 회원이 아직 답하지 않은
+    것이다. 404 로 답하지 않는 까닭은 `ReportFeedbackOut` 과 같다 — 답이 없는
+    것은 오류가 아니라 정상 상태이고, 리포트 화면은 그때 "아직 받지 못함"을
+    적어야 한다. 비어 있음을 오류로 만들면 그 칸이 통째로 사라진다.
+    """
+    week_start: str              # YYYY-MM-DD (월요일)
+    submitted: bool = False
+    condition: str = ""          # great|good|ok|tired|bad
+    intensity: str = ""          # too_easy|right|hard|too_hard
+    pain_area: str = ""
+    pain_on: str = ""            # YYYY-MM-DD
+    note: str = ""
+    submitted_at: _datetime | None = None
+
+
+class MemberWeeklyFeedbackSaveRequest(BaseModel):
+    """회원이 한 주 피드백을 보낸다. 같은 주에 다시 보내면 덮어쓴다.
+
+    한 주에 대한 회원의 말은 마지막 것 하나다 — 고쳐 보낸 답이 먼저 보낸 답
+    옆에 나란히 서면 트레이너는 둘 중 무엇을 믿을지 알 수 없다.
+    """
+    week_start: str | None = Field(default=None, description="YYYY-MM-DD (기본: 지난 주)")
+    condition: str = Field(description="great|good|ok|tired|bad")
+    intensity: str = Field(description="too_easy|right|hard|too_hard")
+    pain_area: str = Field(default="", max_length=40)
+    pain_on: str = Field(default="", description="YYYY-MM-DD")
+    #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
+    note: str = Field(default="", max_length=500)
+
+
+class ReportGoalsOut(BaseModel):
+    """그 주에 적용돼 있는 목표. (#2232)
+
+    비어 있는 것이 정상이다 — 지난 주에 아무것도 고르지 않았거나, 이 회원의
+    첫 주다. 404 로 만들면 리포트의 ③ 칸이 통째로 사라진다.
+    """
+    week_start: str              # 목표가 적용되는 주의 월요일 YYYY-MM-DD
+    goals: list[str] = Field(default_factory=list)
+
+
+class ReportGoalsSaveRequest(BaseModel):
+    """②에서 고른 목표를 **다음 주**에 적용한다. (#2232)
+
+    `week_start` 는 지금 보고 있는 주다. 적용되는 주(다음 주)는 서버가 더한다 —
+    주 경계 계산이 앱과 서버 두 곳에 있으면 한쪽만 틀리는 날이 온다.
+    """
+    week_start: str | None = Field(default=None, description="YYYY-MM-DD (기본: 이번 주)")
+    #: 목표 문장들. 한 화면이 들고 있는 목록 전체로 통째로 바꾼다.
+    goals: list[str] = Field(default_factory=list, max_length=20)
+
+
 class TrainerPasswordChange(BaseModel):
     """비밀번호 변경 — 현재 비밀번호 확인 후 교체.
 

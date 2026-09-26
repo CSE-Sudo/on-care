@@ -53,6 +53,9 @@ from app.schemas.trainer_api import (
     ClientCoachRequest, ClientDietEntryOut,
     DashboardCoachingSummaryOut,
     MemberHealthProfileOut, MemberHealthProfileUpdate,
+    MemberWeeklyFeedbackOut,
+    ReportGoalsOut,
+    ReportGoalsSaveRequest,
     ReportFeedbackOut,
     ReportFeedbackSaveRequest,
     ReportSendRequest, ReportSummaryOut,
@@ -1911,6 +1914,80 @@ def trainer_save_client_report_feedback(
     week = _report_week(payload.week_start or trainer_service.today_iso())
     return trainer_service.save_report_feedback(
         db, trainer.id, member_id, week, payload.body
+    )
+
+
+@router.get(
+    "/trainer/clients/{member_id}/report/member-feedback",
+    response_model=MemberWeeklyFeedbackOut,
+)
+def trainer_client_member_weekly_feedback(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> MemberWeeklyFeedbackOut:
+    """회원이 그 주에 스스로 남긴 세 문항. (#2232)
+
+    리포트의 `회원 주간 피드백` 칸이 읽는다. 수치만 보면 같은 한 주가 `게으름`
+    으로도 `과부하·일정 문제` 로도 읽히는데, 이 한 줄이 그 판단을 바꾼다.
+
+    아직 답하지 않았으면 `submitted=false` 로 답한다 — 오류가 아니다.
+    """
+    _require_client(db, trainer.id, member_id)
+    return trainer_service.get_member_weekly_feedback(
+        db, member_id, _report_week(week_start or trainer_service.today_iso())
+    )
+
+
+@router.get(
+    "/trainer/clients/{member_id}/report/goals",
+    response_model=ReportGoalsOut,
+)
+def trainer_client_report_goals(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> ReportGoalsOut:
+    """그 주에 **적용돼 있는** 목표 — 지난 주에 ② 에서 고른 것이다. (#2232)
+
+    리포트의 `지난 주 목표 달성` 칸이 이걸 회수한다. 목표는 다음 주에 확인될
+    때 비로소 목표이고, 확인되지 않는 목표를 매주 새로 고르는 화면은 트레이너
+    에게 일만 늘린다.
+
+    비어 있는 것은 오류가 아니다 — 지난 주에 아무것도 고르지 않았거나 이
+    회원의 첫 주다.
+    """
+    _require_client(db, trainer.id, member_id)
+    return trainer_service.get_report_goals(
+        db, member_id, _report_week(week_start or trainer_service.today_iso())
+    )
+
+
+@router.put(
+    "/trainer/clients/{member_id}/report/goals",
+    response_model=ReportGoalsOut,
+)
+def trainer_save_report_goals(
+    member_id: str,
+    payload: ReportGoalsSaveRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> ReportGoalsOut:
+    """② 에서 고른 목표를 **다음 주**에 적용한다. (#2232)
+
+    `week_start` 는 지금 보고 있는 주이고, 적용되는 주는 서버가 한 주를 더해
+    정한다 — 주 경계 계산이 앱과 서버 두 곳에 있으면 한쪽만 틀리는 날이 온다.
+    응답의 `week_start` 는 **적용된 주**라, 앱이 저장 결과를 그대로 믿을 수 있다.
+
+    PUT 인 까닭은 초안 저장과 같다: 화면이 들고 있는 목록 전체로 그 주의
+    목표를 통째로 바꾸는 동작이라 여러 번 눌러도 결과가 같다.
+    """
+    _require_client(db, trainer.id, member_id)
+    week = _report_week(payload.week_start or trainer_service.today_iso())
+    return trainer_service.save_report_goals(
+        db, trainer.id, member_id, week, payload.goals
     )
 
 

@@ -17,6 +17,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+from fastapi import HTTPException
 from sqlalchemy import exists, func, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -25,7 +26,9 @@ from pydantic import ValidationError
 from app.core import clock
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
-    ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile, Place, RoutineHistory,
+    ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
+    MemberWeeklyFeedback,
+    TrainerReportGoal, Place, RoutineHistory,
     TrainerClient, TrainerClientMemo, TrainerProfile, TrainerProgramDraft,
     TrainerFollowUpTask, TrainerReportFeedback,
     TrainerReservation, TrainerReservationSlot, TrainerRoutine, TrainerSchedule,
@@ -34,6 +37,8 @@ from app.models.models import (
 from app.schemas.trainer_api import (
     ChatAttachmentOut, ChatMessageOut, ClientDietEntryOut, MemberCoachOut, ProgramDraftExercise,
     ProgramDraftSession,
+    MemberWeeklyFeedbackOut,
+    ReportGoalsOut,
     ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineCompleteOut,
     RoutineHistoryOut,
     RoutineOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
@@ -4982,3 +4987,199 @@ def update_notification_settings(
     db.commit()
     db.refresh(profile)
     return build_notification_settings(profile)
+
+
+# ── 회원 주간 피드백 (#2232) ────────────────────────────────────────────────
+#
+# 회원이 한 주를 끝내며 남기는 세 문항. 회원 앱이 쓰고 트레이너 리포트가 읽는다 —
+# 양쪽이 같은 함수를 지나야 주차 정규화가 한 곳에서만 일어난다.
+
+
+#: 고를 수 있는 값. 모델의 `CheckConstraint` 와 같은 목록이라 한쪽만 늘리면
+#: 저장이 DB 에서 막힌다 — 둘을 함께 고친다.
+_WEEKLY_FEEDBACK_CONDITIONS = ("great", "good", "ok", "tired", "bad")
+_WEEKLY_FEEDBACK_INTENSITIES = ("too_easy", "right", "hard", "too_hard")
+
+
+def get_member_weekly_feedback(
+    db: Session, member_id: str, week: date
+) -> MemberWeeklyFeedbackOut:
+    """그 주에 회원이 남긴 답. 없으면 `submitted=False` 로 답한다.
+
+    404 를 쓰지 않는 이유는 `get_report_feedback` 과 같다 — 답이 없는 것은
+    오류가 아니라 아직 안 낸 정상 상태다. 트레이너 화면은 그때 그 칸에
+    "아직 받지 못함" 을 적어야 하는데, 오류로 만들면 칸이 통째로 사라진다.
+    """
+    row = _member_weekly_feedback_row(db, member_id, week)
+    if row is None:
+        return MemberWeeklyFeedbackOut(week_start=week.isoformat())
+    return _member_weekly_feedback_out(row, week)
+
+
+def save_member_weekly_feedback(
+    db: Session,
+    member_id: str,
+    week: date,
+    *,
+    condition: str,
+    intensity: str,
+    pain_area: str = "",
+    pain_on: str = "",
+    note: str = "",
+) -> MemberWeeklyFeedbackOut:
+    """회원의 그 주 답을 저장한다. 같은 주에 다시 보내면 덮어쓴다.
+
+    한 주에 대한 회원의 말은 마지막 것 하나다 — 고쳐 보낸 답이 먼저 보낸 답
+    옆에 나란히 서면 트레이너는 둘 중 무엇을 믿을지 알 수 없다.
+
+    통증은 있을 때만 적는다. 아픈 곳을 비운 채 날짜만 오면 날짜도 버린다 —
+    가리키는 곳이 없는 날짜는 화면에서 읽을 수 없다.
+    """
+    if condition not in _WEEKLY_FEEDBACK_CONDITIONS:
+        raise HTTPException(status_code=422, detail="invalid condition")
+    if intensity not in _WEEKLY_FEEDBACK_INTENSITIES:
+        raise HTTPException(status_code=422, detail="invalid intensity")
+    area = pain_area.strip()
+    on = pain_on.strip() if area else ""
+    row = _member_weekly_feedback_row(db, member_id, week)
+    now = datetime.now(timezone.utc)
+    if row is None:
+        row = MemberWeeklyFeedback(
+            id=f"mwf-{uuid.uuid4().hex[:12]}",
+            user_id=member_id,
+            week_start=week.isoformat(),
+            condition=condition,
+            intensity=intensity,
+            pain_area=area,
+            pain_on=on,
+            note=note.strip(),
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(row)
+    else:
+        row.condition = condition
+        row.intensity = intensity
+        row.pain_area = area
+        row.pain_on = on
+        row.note = note.strip()
+        row.updated_at = now
+    db.commit()
+    db.refresh(row)
+    return _member_weekly_feedback_out(row, week)
+
+
+def _member_weekly_feedback_out(
+    row: MemberWeeklyFeedback, week: date
+) -> MemberWeeklyFeedbackOut:
+    return MemberWeeklyFeedbackOut(
+        week_start=week.isoformat(),
+        submitted=True,
+        condition=row.condition,
+        intensity=row.intensity,
+        pain_area=row.pain_area,
+        pain_on=row.pain_on,
+        note=row.note,
+        submitted_at=row.updated_at,
+    )
+
+
+def _member_weekly_feedback_row(
+    db: Session, member_id: str, week: date
+) -> MemberWeeklyFeedback | None:
+    return db.scalar(
+        select(MemberWeeklyFeedback).where(
+            MemberWeeklyFeedback.user_id == member_id,
+            MemberWeeklyFeedback.week_start == week.isoformat(),
+        )
+    )
+
+
+#: 한 주에 담을 수 있는 목표 수. 화면이 ③ 에서 이만큼을 한 번에 보여 준다 —
+#: 스무 줄짜리 목표 목록은 다음 주에 아무도 회수하지 않는다.
+_MAX_REPORT_GOALS = 20
+
+#: 목표 한 줄의 길이. 트레이너가 자기 말로 적는 자리라 짧게 막지 않되,
+#: 회원 앱 목표 칸이 한 화면에 담을 수 있는 선에서 끊는다.
+_MAX_REPORT_GOAL_LENGTH = 120
+
+
+def get_report_goals(db: Session, member_id: str, week: date) -> ReportGoalsOut:
+    """그 주에 적용돼 있는 목표. 없으면 빈 목록이다.
+
+    비어 있는 것이 오류가 아닌 까닭은 `get_report_feedback` 과 같다 — 지난
+    주에 아무것도 고르지 않았거나 이 회원의 첫 주다. 404 로 만들면 리포트의
+    ③ 칸이 통째로 사라진다.
+    """
+    row = db.scalar(
+        select(TrainerReportGoal).where(
+            TrainerReportGoal.member_id == member_id,
+            TrainerReportGoal.week_start == week.isoformat(),
+        )
+    )
+    goals: list[str] = []
+    if row is not None:
+        try:
+            decoded = json.loads(row.goals_json)
+        except json.JSONDecodeError:
+            # 깨진 값은 "목표가 없다"로 읽는다 — 화면을 세우는 쪽이, 지어낸
+            # 목표를 회원에게 보내는 것보다 낫다.
+            decoded = []
+        if isinstance(decoded, list):
+            goals = [g for g in decoded if isinstance(g, str) and g.strip()]
+    return ReportGoalsOut(week_start=week.isoformat(), goals=goals)
+
+
+def save_report_goals(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    week: date,
+    goals: Sequence[str],
+) -> ReportGoalsOut:
+    """② 에서 고른 목표를 [week] **다음 주**에 적용한다.
+
+    고른 주가 아니라 지켜야 할 주에 저장하는 것이 핵심이다 — 다음 주 리포트가
+    자기 주의 목표를 그대로 꺼내 ③ 으로 회수한다. 고른 주에 저장하면 회수하는
+    쪽이 매번 한 주를 빼야 하고, 주 경계를 두 곳에서 계산하는 순간 한쪽만
+    틀리는 날이 온다.
+    """
+    applies = week_start_of(week) + timedelta(days=7)
+    cleaned: list[str] = []
+    for raw in goals:
+        text = raw.strip()
+        if not text:
+            continue
+        if len(text) > _MAX_REPORT_GOAL_LENGTH:
+            raise HTTPException(status_code=422, detail="목표가 너무 깁니다.")
+        # 같은 목표가 두 줄로 서면 다음 주 ③ 이 같은 판정을 두 번 적는다.
+        if text not in cleaned:
+            cleaned.append(text)
+    if len(cleaned) > _MAX_REPORT_GOALS:
+        raise HTTPException(status_code=422, detail="목표가 너무 많습니다.")
+
+    now = datetime.now(timezone.utc)
+    row = db.scalar(
+        select(TrainerReportGoal).where(
+            TrainerReportGoal.member_id == member_id,
+            TrainerReportGoal.week_start == applies.isoformat(),
+        )
+    )
+    if row is None:
+        row = TrainerReportGoal(
+            id=f"rg-{uuid.uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            week_start=applies.isoformat(),
+            goals_json=json.dumps(cleaned, ensure_ascii=False),
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(row)
+    else:
+        # 담당이 바뀐 주에도 목록은 하나다 — 마지막에 정한 트레이너로 바꿔 둔다.
+        row.trainer_id = trainer_id
+        row.goals_json = json.dumps(cleaned, ensure_ascii=False)
+        row.updated_at = now
+    db.commit()
+    return ReportGoalsOut(week_start=applies.isoformat(), goals=cleaned)
