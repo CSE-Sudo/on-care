@@ -150,7 +150,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     final showInviteCode = !ref.watch(appConfigProvider).useMockApi;
     return AppAuthLayout(
       leading: AppBackButton(onPressed: _backToSignIn),
-      title: l.authSignUp,
+      title: l.authSignUpAction,
       subtitle: l.authSignUpSubtitle,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -170,7 +170,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           AppTextField(
             key: const ValueKey<String>('trainer-signup-email'),
             controller: _email,
-            hint: l.authEmail,
+            hint: l.authEmailHint,
             errorText: _errors.of(_Field.email),
             prefixIcon: Icons.mail_outline_rounded,
             size: AppFieldSize.large,
@@ -182,7 +182,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           AppTextField(
             key: const ValueKey<String>('trainer-signup-password'),
             controller: _password,
-            hint: l.authPasswordHint,
+            hint: l.signUpPasswordHint,
             errorText: _errors.of(_Field.password),
             prefixIcon: Icons.lock_outline_rounded,
             size: AppFieldSize.large,
@@ -269,7 +269,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
             children: <Widget>[
               Text(l.authHasAccount, style: mutedStyle),
               AppButton(
-                label: l.authSignIn,
+                label: l.authSignInAction,
                 onPressed: _backToSignIn,
                 variant: AppButtonVariant.text,
                 size: OnCareButtonSize.small,

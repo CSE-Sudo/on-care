@@ -38,6 +38,11 @@ dependencies:
   # --- Routing ---
   go_router: ^14.6.2
 
+  # --- 외부 링크 ---
+  # 고객 지원의 FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보낸다(#2227).
+  # 회원 앱과 같은 버전을 쓴다.
+  url_launcher: ^6.3.1
+
   # --- Networking (real backend) ---
   # 사용자 앱(frontend/flutter)과 동일한 Dio 스택. USE_MOCK_API=false 일 때
   # 트레이너 API(POST /v1/auth/login, GET /v1/trainer/me, ...)를 호출한다.

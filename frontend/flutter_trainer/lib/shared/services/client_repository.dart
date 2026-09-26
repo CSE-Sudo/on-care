@@ -91,6 +91,17 @@ abstract interface class ClientRepository {
     DateTime? weekStart,
   });
 
+  /// [range] 가 걸친 **주들** — GET /trainer/clients/{id}/exercise/weeks (#2247)
+  ///
+  /// `전체` 그래프가 쓰는 길이다. 예전에는 주마다 [fetchExerciseWeek] 을
+  /// 불렀는데, `전체` 가 모든 기록을 그리게 되면서(#2079) 기록이 길수록 왕복이
+  /// 그만큼 늘었다. 돌려주는 칸에는 세션 목록이 없다 — 한 주를 펼쳐 볼 때는
+  /// [fetchExerciseWeek] 이다.
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  );
+
   /// [range] 가 덮는 날들의 일별 식단 집계.
   ///
   /// 회원 앱 식단 탭의 기간 뷰와 같은 것을 트레이너에게도 준다. 두 구현 모두
@@ -572,6 +583,23 @@ class DriftClientRepository implements ClientRepository {
       totalMinutes: minutes.fold(0, (int a, int b) => a + b),
       totalCalories: calories.fold(0, (int a, int b) => a + b),
     );
+  }
+
+  @override
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  ) async {
+    // 데모는 주마다 같은 집계를 부른다 — 한 주 조회와 기간 조회의 숫자가
+    // 갈리면 안 된다. 서버도 같은 함수를 기간만큼 부른다(#2247).
+    final List<ClientExercisePeriodWeek> weeks = <ClientExercisePeriodWeek>[];
+    for (final DateTime monday in clientRangeWeekStarts(range)) {
+      weeks.add((
+        weekStart: monday,
+        week: await fetchExerciseWeek(clientId, weekStart: monday),
+      ));
+    }
+    return weeks;
   }
 
   @override
@@ -1391,17 +1419,13 @@ final clientExercisePeriodProvider = FutureProvider.autoDispose
       // 연속 일수도 마지막(가장 최근) 주의 값이 남는다 — 이 값을 읽는 곳은
       // `이번 주` 하나다. (#2195)
       int streakDays = 0;
-      // 주를 **한꺼번에** 읽는다 (#1170). `전체` 는 기록만큼 길어지므로, 하나씩
-      // 기다리면 왕복이 그만큼 줄줄이 이어져 그래프가 늦게 선다.
-      final List<DateTime> mondays = clientRangeWeekStarts(range);
-      final List<ClientExerciseWeek> weeks =
-          await Future.wait(<Future<ClientExerciseWeek>>[
-            for (final DateTime monday in mondays)
-              repository.fetchExerciseWeek(key.clientId, weekStart: monday),
-          ]);
-      for (int w = 0; w < mondays.length; w++) {
-        final DateTime monday = mondays[w];
-        final ClientExerciseWeek week = weeks[w];
+      // 기간을 **한 번에** 읽는다 (#2247). `전체` 는 기록만큼 길어지므로, 주마다
+      // 부르면 왕복이 그만큼 줄줄이 이어져 그래프가 늦게 선다.
+      final List<ClientExercisePeriodWeek> weeks = await repository
+          .fetchExercisePeriod(key.clientId, range);
+      for (int w = 0; w < weeks.length; w++) {
+        final DateTime monday = weeks[w].weekStart;
+        final ClientExerciseWeek week = weeks[w].week;
         weeklyGoalMinutes = week.weeklyGoalMinutes;
         weeklyGoalCalories = week.weeklyGoalCalories;
         streakDays = week.streakDays;

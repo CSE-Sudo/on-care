@@ -3,15 +3,16 @@ import 'package:oncare/core/utils/clock.dart';
 
 /// 데모의 AI 챗봇 하루 한도. 서버 `ai_chat_quota_service` 의 대역이다. (#2145)
 ///
-/// 규칙은 서버와 같다 — 하루 무료 [freeLimit] 번, 다 쓰면 한 번에 [cost] 포인트로
-/// [paidLimit] 번까지. 무료를 넘기려면 동의(`pay_with_points`)가 있어야 하고, 같은
-/// 멱등키 재전송은 한 번만 센다. 데모 답은 늘 "AI 가 답한" 것으로 센다.
+/// 규칙은 서버와 같다 — 하루 무료 [freeLimit](5) 번, 다 쓰면 한 번에 [cost] 포인트로
+/// [paidLimit] 번까지. 무료를 넘기려면 보낼 때마다 동의(`pay_with_points`)가 있어야
+/// 하고(#2217), 같은 멱등키 재전송은 한 번만 센다. 데모 답은 늘 "AI 가 답한" 것으로
+/// 센다.
 class DemoAiChatQuota {
   DemoAiChatQuota({required DemoPointsLedger ledger, DateTime Function()? now})
     : _ledger = ledger,
       _now = now ?? nowKst;
 
-  static const int freeLimit = 10;
+  static const int freeLimit = 5;
   static const int paidLimit = 10;
   static const int cost = 50;
 
