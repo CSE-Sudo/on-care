@@ -67,6 +67,7 @@ from app.schemas.trainer_api import (
     RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
     ScheduleCancelRequest, ScheduleCompleteRequest,
     ScheduleRoutineSendRequest,
+    ScheduleRoutineUpdateRequest,
     ScheduleProgramSendRequest, ScheduleCreateRequest,
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
     ScheduleSessionOut, ScheduleUpdateRequest,
@@ -1659,6 +1660,30 @@ def trainer_schedule_routines(
     실재하는지 알려 주지 않는다.
     """
     return trainer_service.list_scheduled_routines(db, trainer.id, session_id)
+
+
+@router.put(
+    "/trainer/schedule/{session_id}/routines", response_model=list[RoutineOut]
+)
+def trainer_update_schedule_routines(
+    session_id: str,
+    payload: ScheduleRoutineUpdateRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
+
+    일정 상세에서 바로 고친다. 이미 보낸 것은 손댈 수 없다.
+    """
+    try:
+        rows = trainer_service.update_scheduled_routines(
+            db, trainer.id, session_id, payload.personal_routines
+        )
+    except trainer_service.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if rows is None:
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+    return rows
 
 
 @router.post(

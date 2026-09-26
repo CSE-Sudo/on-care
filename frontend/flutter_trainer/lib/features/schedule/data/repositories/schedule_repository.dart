@@ -604,21 +604,25 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// A session dated in the FUTURE can't be completed — it hasn't
   /// happened yet. The UI hides the 완료 action for future days, and this
   /// guard rejects it even if reached another way (review PR 245).
-  /// 데모의 붙은 개인운동 — **프로그램이 있는 일정에만** 선다. (#2224)
+  /// 데모의 **아직 보내지 않은** 개인운동. (#2224)
   ///
-  /// 실제로도 그 규칙이다: 개인운동은 프로그램 만들기에서 프로그램과 **함께**
-  /// 정해져 그 일정에 붙는다(#2223). 달력에서 바로 잡아 프로그램이 없는 PT 는
-  /// 붙은 것도 없다 — 데모에서도 `개인운동을 먼저 짜 주세요` 가 그대로 뜬다.
+  /// 두 조건을 실제와 같게 둔다.
+  /// * **프로그램이 있는 일정에만** 붙는다 — 개인운동은 프로그램 만들기에서
+  ///   프로그램과 함께 정해져 그 일정에 붙는다(#2223). 달력에서 바로 잡아
+  ///   프로그램이 없는 PT 는 붙은 것도 없다.
+  /// * **완료된 PT 는 비어 있다** — 완료하는 순간 회원에게 나가 `approved` 로
+  ///   옮겨 가므로 미전송으로 남지 않는다. 남는 것은 취소·노쇼처럼 **완료가
+  ///   일어나지 않은** PT 뿐이다.
   ///
-  /// 보낸 뒤에는 [_sentRoutines] 에 남아 다시 세지 않는다. 데모에는 붙여 둘
-  /// 표가 없어 메모리로만 기억한다.
+  /// 보내거나 보내지 않기로 한 일정은 [_sentRoutines] 에 남는다 — 데모에는
+  /// 붙여 둘 표가 없어 메모리로만 기억한다.
   @override
   Future<List<RoutineExercise>> fetchScheduledRoutines(String id) async {
     if (_sentRoutines.contains(id)) return const <RoutineExercise>[];
     final row = await (_db.select(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (row == null || row.programJson.isEmpty) {
+    if (row == null || row.programJson.isEmpty || row.status == '완료') {
       return const <RoutineExercise>[];
     }
     return _demoPersonalRoutines;

@@ -1,8 +1,9 @@
-"""PT 완료·취소 때의 개인운동 전송 (#2224). DB 필요.
+"""PT 프로그램 전송·취소 때의 개인운동 (#2224). DB 필요.
 
-개인운동은 PT 에 붙여 두었다가(#2223) **완료할 때** 회원에게 간다. 완료는 그
-유일한 순간이므로 붙은 것이 없으면 완료를 막는다 — 그대로 완료하면 그 PT 의
-개인운동은 영영 가지 않는다.
+개인운동은 PT 에 붙여 두었다가(#2223) **프로그램을 보낼 때 함께** 회원에게
+간다 — 회원은 "오늘 한 것" 과 "혼자 할 것" 을 한 번에 받는다. 붙은 것이 없으면
+전송을 막는다: 프로그램 만들기가 개인운동을 필수로 받으므로, 비어 있다는 것은
+그 길을 지나지 않았다는 뜻이다.
 
 취소·노쇼로 끝난 PT 의 개인운동은 자동으로 가지 않는다. 아파서 쉬는 회원에게
 운동이 저절로 가면 안 되기 때문이고, 트레이너가 고쳐서 보내거나 보내지 않기로
@@ -34,15 +35,19 @@ def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+#: 이 파일이 만든 일정 id — 끝나고 이것만 지운다.
+#:
+#: 날짜로 지우면 그날의 **시드 일정까지** 함께 사라져, 그 날짜의 타임라인
+#: 개수를 세는 다른 테스트(`test_schedule_seeded_timeline`)가 함께 깨진다.
+_MADE: list[str] = []
+
+
 def _cleanup(db_session, day: str) -> None:
-    for row in db_session.scalars(
-        select(TrainerSchedule).where(
-            TrainerSchedule.trainer_id == TRAINER,
-            TrainerSchedule.member_id == MEMBER,
-            TrainerSchedule.date == day,
-        )
-    ).all():
-        db_session.delete(row)
+    del day  # 날짜가 아니라 만든 id 로 지운다.
+    while _MADE:
+        row = db_session.get(TrainerSchedule, _MADE.pop())
+        if row is not None:
+            db_session.delete(row)
     for routine in db_session.scalars(
         select(TrainerRoutine).where(
             TrainerRoutine.member_id == MEMBER,
@@ -89,7 +94,9 @@ def _attach(client, token, day: str, **overrides) -> str:
         _SCHEDULE_URL, json=_body(day, **overrides), headers=_h(token)
     )
     assert r.status_code == 201, r.text
-    return r.json()["session"]["id"]
+    session_id: str = r.json()["session"]["id"]
+    _MADE.append(session_id)
+    return session_id
 
 
 def _routines(db_session, session_id: str) -> list[TrainerRoutine]:
@@ -102,16 +109,31 @@ def _routines(db_session, session_id: str) -> list[TrainerRoutine]:
     )
 
 
-def test_completing_the_pt_sends_its_personal_routines(client, db_session):
-    """완료하면 붙어 있던 개인운동이 회원에게 간다 — 오늘부터 7일. (#2224)"""
+def _complete(client, token, session_id: str) -> None:
+    assert client.post(
+        f"/v1/trainer/schedule/{session_id}/complete",
+        json={"note": ""},
+        headers=_h(token),
+    ).status_code == 200
+
+
+def test_sending_the_program_sends_its_personal_routines(client, db_session):
+    """프로그램을 보내면 개인운동도 함께 간다 — 오늘부터 7일. (#2224)"""
     token = _tok(client)
     day = clock.today().isoformat()
     _cleanup(db_session, day)
     try:
         session_id = _attach(client, token, day)
+        _complete(client, token, session_id)
+
+        db_session.expire_all()
+        # 완료만으로는 가지 않는다 — 보내는 자리는 프로그램 전송이다.
+        assert [r.status for r in _routines(db_session, session_id)] == [
+            "scheduled"
+        ]
         assert client.post(
-            f"/v1/trainer/schedule/{session_id}/complete",
-            json={"note": ""},
+            f"/v1/trainer/schedule/{session_id}/program/send",
+            json={},
             headers=_h(token),
         ).status_code == 200
 
@@ -129,8 +151,13 @@ def test_completing_the_pt_sends_its_personal_routines(client, db_session):
         _cleanup(db_session, day)
 
 
-def test_completing_without_personal_routines_is_refused(client, db_session):
-    """붙은 개인운동이 없으면 완료를 막는다 — 그대로 두면 영영 안 간다. (#2224)"""
+def test_sending_without_personal_routines_still_works(client, db_session):
+    """붙은 개인운동이 없어도 프로그램은 보낼 수 있다. (#2224)
+
+    개인운동을 필수로 받는 자리는 프로그램 만들기다(#2223). 스케줄에서 연필로
+    바로 짠 프로그램에는 붙을 자리가 없어, 여기서 막으면 그 길로 짠 프로그램을
+    보낼 수 없게 된다.
+    """
     token = _tok(client)
     day = clock.today().isoformat()
     _cleanup(db_session, day)
@@ -144,23 +171,21 @@ def test_completing_without_personal_routines_is_refused(client, db_session):
                 "member_id": MEMBER,
                 "type": "1:1 PT",
                 "duration_minutes": 60,
+                "program": [{"name": "스쿼트", "sets": 3, "reps": 10}],
             },
             headers=_h(token),
         )
         assert r.status_code == 201, r.text
         session_id = r.json()["id"]
+        _MADE.append(session_id)
 
-        refused = client.post(
-            f"/v1/trainer/schedule/{session_id}/complete",
-            json={"note": ""},
+        _complete(client, token, session_id)
+        sent = client.post(
+            f"/v1/trainer/schedule/{session_id}/program/send",
+            json={},
             headers=_h(token),
         )
-        assert refused.status_code == 400
-        assert "개인운동" in refused.json()["detail"]
-
-        db_session.expire_all()
-        still = db_session.get(TrainerSchedule, session_id)
-        assert still is not None and still.status == "예정"
+        assert sent.status_code == 200, sent.text
     finally:
         _cleanup(db_session, day)
 
@@ -172,16 +197,14 @@ def test_a_new_send_retires_the_previous_personal_routines(client, db_session):
     _cleanup(db_session, day)
     try:
         first = _attach(client, token, day)
+        _complete(client, token, first)
         client.post(
-            f"/v1/trainer/schedule/{first}/complete",
-            json={"note": ""},
-            headers=_h(token),
+            f"/v1/trainer/schedule/{first}/program/send", json={}, headers=_h(token)
         )
         second = _attach(client, token, day, time="18:00")
+        _complete(client, token, second)
         client.post(
-            f"/v1/trainer/schedule/{second}/complete",
-            json={"note": ""},
-            headers=_h(token),
+            f"/v1/trainer/schedule/{second}/program/send", json={}, headers=_h(token)
         )
 
         db_session.expire_all()

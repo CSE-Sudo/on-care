@@ -1501,18 +1501,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedCompleteFailed => '완료 처리에 실패했어요. 다시 시도해 주세요';
 
   @override
-  String get schedCompleteRoutinesTitle => '함께 보낼 개인운동';
+  String get schedGroupProgram => 'PT 프로그램';
 
   @override
-  String get schedCompleteNeedsRoutinesTitle => '개인운동을 먼저 짜 주세요';
+  String get schedGroupPersonal => '개인운동';
 
   @override
-  String schedCompleteNeedsRoutinesBody(String name) {
-    return '이 PT 에 붙은 개인운동이 없어요. 완료할 때 회원에게 함께 보내야 하니, 프로그램 탭에서 $name 님의 프로그램을 짠 뒤 다시 완료해 주세요.';
-  }
+  String get schedRoutinesGoesOnComplete => '이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.';
 
   @override
-  String get schedRoutinesUnsent => '개인운동 미전송';
+  String get schedRoutinesNotSentYet => '아직 회원에게 가지 않았어요.';
 
   @override
   String get schedRoutinesSendTitle => '개인운동을 보낼까요?';
@@ -1526,6 +1524,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedRoutinesSkip => '보내지 않음';
+
+  @override
+  String schedSendProgramWithRoutines(String name, String date) {
+    return '$name님에게 $date PT 프로그램 · 개인운동 전송';
+  }
 
   @override
   String get schedRoutinesSent => '개인운동을 회원에게 보냈어요.';

@@ -9,26 +9,41 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 마무리된 PT 에 남은 개인운동을 알리고, 거기서 보내게 한다. (#2224)
+/// 일정 상세 카드의 `개인운동` 갈래. (#2224)
 ///
-/// 취소·노쇼로 끝난 PT 의 개인운동은 **저절로 가지 않는다** — 아파서 쉬는
-/// 회원에게 운동이 자동으로 가면 안 된다. 그래서 취소하는 순간에 묻지 않고,
-/// 트레이너가 차분할 때 이 자리에서 판단한다. 취소는 경황이 없을 때 하는
-/// 일이라, 그 순간에 운동 구성을 고치라고 들이미는 것은 무리다.
-class UnsentPersonalRoutines extends ConsumerStatefulWidget {
-  const UnsentPersonalRoutines({required this.sessionId, super.key});
+/// PT 프로그램과 나란히 서서 "회원이 여기서 할 것" 과 "회원이 혼자 할 것" 을
+/// 가른다. 예정인 PT 는 **무엇이 함께 갈지** 보여 주기만 한다 — 완료할 때
+/// 나가므로 여기서 보낼 것이 없다.
+///
+/// 마무리된 PT([finished]) 라면 갈 곳을 잃은 개인운동이라 보낼지 정한다.
+/// 취소·노쇼 때 **저절로 가지 않는다** — 아파서 쉬는 회원에게 운동이 자동으로
+/// 가면 안 된다. 취소하는 순간에 묻지 않는 까닭은 그때가 경황이 없을 때라,
+/// 그 순간에 운동 구성을 고치라고 들이미는 것이 무리이기 때문이다.
+class SessionPersonalRoutines extends ConsumerStatefulWidget {
+  const SessionPersonalRoutines({
+    required this.sessionId,
+    required this.finished,
+    this.onChanged,
+    super.key,
+  });
+
+  /// 목록이 바뀔 때마다 부른다 — 카드 아래 전송 버튼이 무엇을 보낼지
+  /// 이 값으로 정한다(#2224).
+  final ValueChanged<List<RoutineExercise>>? onChanged;
 
   final String sessionId;
 
+  /// 완료·취소·노쇼로 끝난 PT 인가 — 그때만 보내기/보내지 않음이 선다.
+  final bool finished;
+
   @override
-  ConsumerState<UnsentPersonalRoutines> createState() =>
-      _UnsentPersonalRoutinesState();
+  ConsumerState<SessionPersonalRoutines> createState() =>
+      _SessionPersonalRoutinesState();
 }
 
-class _UnsentPersonalRoutinesState
-    extends ConsumerState<UnsentPersonalRoutines> {
+class _SessionPersonalRoutinesState
+    extends ConsumerState<SessionPersonalRoutines> {
   List<RoutineExercise> _routines = const <RoutineExercise>[];
-  bool _busy = false;
 
   @override
   void initState() {
@@ -37,7 +52,7 @@ class _UnsentPersonalRoutinesState
   }
 
   @override
-  void didUpdateWidget(UnsentPersonalRoutines oldWidget) {
+  void didUpdateWidget(SessionPersonalRoutines oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.sessionId != widget.sessionId) unawaited(_load());
   }
@@ -47,122 +62,84 @@ class _UnsentPersonalRoutinesState
       final rows = await ref
           .read(scheduleRepositoryProvider)
           .fetchScheduledRoutines(widget.sessionId);
-      if (mounted) setState(() => _routines = rows);
+      if (!mounted) return;
+      setState(() => _routines = rows);
+      widget.onChanged?.call(rows);
     } catch (_) {
       // 읽지 못하면 조용히 숨긴다 — 없는 것을 있다고 말하지 않는다.
-      if (mounted) setState(() => _routines = const <RoutineExercise>[]);
-    }
-  }
-
-  Future<void> _send(List<RoutineExercise>? edited) async {
-    final l = AppLocalizations.of(context);
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(scheduleRepositoryProvider)
-          .sendScheduledRoutines(widget.sessionId, items: edited);
-    } catch (_) {
       if (!mounted) return;
-      setState(() => _busy = false);
-      showAppToast(context, l.schedRoutinesSendFailed, type: AppToastType.error);
-      return;
+      setState(() => _routines = const <RoutineExercise>[]);
+      widget.onChanged?.call(const <RoutineExercise>[]);
     }
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _routines = const <RoutineExercise>[];
-    });
-    showAppToast(context, l.schedRoutinesSent, type: AppToastType.success);
   }
 
-  Future<void> _dismiss() async {
-    final l = AppLocalizations.of(context);
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(scheduleRepositoryProvider)
-          .dismissScheduledRoutines(widget.sessionId);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _busy = false);
-      showAppToast(context, l.schedRoutinesSendFailed, type: AppToastType.error);
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _routines = const <RoutineExercise>[];
-    });
-    showAppToast(context, l.schedRoutinesSkipped);
-  }
 
-  Future<void> _openSendDialog() async {
-    final edited = await showAppDialog<List<RoutineExercise>>(
-      context: context,
-      builder: (_) => _SendPersonalRoutinesDialog(routines: _routines),
-    );
-    if (edited == null || !mounted) return;
-    await _send(edited);
-  }
+
 
   @override
   Widget build(BuildContext context) {
     if (_routines.isEmpty) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: OnCareSpacing.s12),
-      child: AppCard(
-        key: const ValueKey<String>('session-unsent-routines'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                const Icon(
-                  Icons.directions_run_rounded,
-                  size: OnCareSize.iconMedium,
-                  color: OnCareColors.textSecondary,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Text(
-                    l.schedRoutinesUnsent,
-                    style: context.oncare
-                        .text(OnCareTypography.titleSmall)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                ),
-                AppTag(
-                  label: '${_routines.length}',
-                  tone: AppTagTone.brand,
-                ),
-              ],
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            for (final RoutineExercise routine in _routines)
-              Padding(
-                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                child: Text(
-                  '· ${personalRoutineLabel(l, routine)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.oncare
-                      .text(OnCareTypography.bodySmall)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-              ),
-            const SizedBox(height: OnCareSpacing.s12),
-            AppButtonPair(
-              cancelKey: const ValueKey<String>('session-routines-skip'),
-              cancelLabel: l.schedRoutinesSkip,
-              onCancel: _busy ? null : () => unawaited(_dismiss()),
-              confirmKey: const ValueKey<String>('session-routines-send'),
-              confirmLabel: l.schedRoutinesSend,
-              onConfirm: _busy ? null : () => unawaited(_openSendDialog()),
-            ),
-          ],
+    final tokens = context.oncare;
+    return Column(
+      key: const ValueKey<String>('session-personal-routines'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        // `미전송` 태그는 두지 않는다 — 마무리된 PT 에 개인운동이 아직
+        // 남아 있다는 사실은 아래 `보내지 않음`·`개인운동 보내기` 가 이미
+        // 말하고 있다. 같은 말을 두 번 적지 않는다.
+        Text(
+          l.schedGroupPersonal,
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textSecondary),
         ),
-      ),
+        const SizedBox(height: OnCareSpacing.s8),
+        for (final RoutineExercise routine in _routines)
+          Padding(
+            padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+            child: Container(
+              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+              decoration: const BoxDecoration(
+                color: OnCareColors.surfaceInput,
+                borderRadius: OnCareRadius.mdAll,
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.directions_run_rounded,
+                    size: OnCareSize.iconSmall,
+                    color: OnCareColors.textTertiary,
+                  ),
+                  const SizedBox(width: OnCareSpacing.s8),
+                  Expanded(
+                    child: Text(
+                      personalRoutineLabel(l, routine),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // 보내는 자리는 이 덩어리가 아니라 카드 아래 **전송 버튼 하나**다
+        // (#2224) — 개인운동은 PT 프로그램과 함께 나가므로 버튼을 따로 두면
+        // 같은 전송이 두 자리에 있는 것처럼 읽힌다. 취소·노쇼면 보낼
+        // 프로그램이 없어 그 버튼이 `개인운동 보내기` 로 바뀐다.
+        Text(
+          widget.finished
+              ? l.schedRoutinesNotSentYet
+              : l.schedRoutinesGoesOnComplete,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+      ],
     );
   }
 }
@@ -172,18 +149,18 @@ class _UnsentPersonalRoutinesState
 /// 개인운동은 "이 PT 다음에 할 것" 으로 짜였다. PT 가 열리지 않았으면 전제가
 /// 깨지므로 그대로 보내기 어렵다. 취소된 PT 에는 프로그램 만들기로 다시 붙일
 /// 수 없어(`예정` 세션만 찾는다) 고치는 자리가 여기뿐이다.
-class _SendPersonalRoutinesDialog extends StatefulWidget {
-  const _SendPersonalRoutinesDialog({required this.routines});
+class SendPersonalRoutinesDialog extends StatefulWidget {
+  const SendPersonalRoutinesDialog({required this.routines, super.key});
 
   final List<RoutineExercise> routines;
 
   @override
-  State<_SendPersonalRoutinesDialog> createState() =>
+  State<SendPersonalRoutinesDialog> createState() =>
       _SendPersonalRoutinesDialogState();
 }
 
 class _SendPersonalRoutinesDialogState
-    extends State<_SendPersonalRoutinesDialog> {
+    extends State<SendPersonalRoutinesDialog> {
   late final List<RoutineExercise> _draft = <RoutineExercise>[
     ...widget.routines,
   ];

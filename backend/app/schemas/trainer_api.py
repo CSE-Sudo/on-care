@@ -806,6 +806,18 @@ class PersonalRoutineItem(BaseModel):
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
 
+class ScheduleRoutineUpdateRequest(BaseModel):
+    """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
+
+    비울 수 없다: 개인운동은 PT 마다 최소 한 개라는 규칙(#2223)이 여기서도
+    같다.
+    """
+
+    personal_routines: list[PersonalRoutineItem] = Field(
+        min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+
+
 class ScheduleRoutineSendRequest(BaseModel):
     """마무리된 PT 의 개인운동을 보낸다 — 고쳐서 보낼 수도 있다. (#2224)
 

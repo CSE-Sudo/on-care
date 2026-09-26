@@ -1,12 +1,9 @@
-// PT 완료·취소 때의 개인운동 (#2224).
+// 일정 상세의 개인운동 (#2224).
 //
-// 완료는 개인운동이 회원에게 가는 **유일한 순간**이다. 붙은 것이 없으면
-// 완료를 막고 프로그램 탭에서 짜도록 돌려보낸다 — 그대로 완료하면 그 PT 의
-// 개인운동은 영영 가지 않는다.
-//
-// 취소·노쇼로 끝난 PT 의 개인운동은 저절로 가지 않는다. 아파서 쉬는 회원에게
-// 운동이 자동으로 가면 안 되기 때문이고, 트레이너가 `개인운동 미전송` 에서
-// 고쳐 보내거나 보내지 않기로 정리한다.
+// 상세 카드는 `PT 프로그램` 과 `개인운동` 을 갈라 보여 준다. 개인운동은 PT
+// 프로그램을 보낼 때 **함께** 나가므로 보내는 버튼을 따로 두지 않는다 —
+// 취소·노쇼로 끝나 보낼 프로그램이 없을 때만 그 자리가 `개인운동 보내기` 가
+// 된다.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +12,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -106,64 +104,75 @@ void main() {
       await tester.pump();
     }
 
+    /// 예정 PT 를 취소 처리해 "보낼 프로그램이 없는" 상태로 만든다.
+    Future<void> cancelSession(WidgetTester tester) async {
+      final chip = find.byKey(const ValueKey<String>('session-cancel-chip'));
+      await revealInPanel(tester, chip);
+      await tester.tap(chip);
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('cancel-source-member')),
+      );
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-cancel-confirm')),
+      );
+      await settle(tester);
+    }
+
     const walking = RoutineExercise(
       name: '저강도 걷기',
       minutes: 30,
       type: '유산소',
     );
 
-    testWidgets('완료 확인창이 함께 갈 개인운동을 보여 준다', (tester) async {
+    testWidgets('상세 카드가 PT 프로그램과 개인운동을 갈라 보여 준다', (tester) async {
       await openSchedule(tester, attached: const <RoutineExercise>[walking]);
       await openSession(tester, '박성호');
 
-      final complete = find.byKey(
-        const ValueKey<String>('session-complete-chip'),
-      );
-      await revealInPanel(tester, complete);
-      await tester.tap(complete);
-      await settle(tester);
-
-      // 무엇이 함께 가는지 보고 누른다 — 완료가 유일한 전송 순간이다.
-      expect(find.text('함께 보낼 개인운동'), findsOneWidget);
+      // 한 카드 안에서 "여기서 할 것" 과 "혼자 할 것" 이 갈린다.
+      expect(find.text('PT 프로그램'), findsOneWidget);
+      expect(find.text('개인운동'), findsOneWidget);
       expect(find.textContaining('저강도 걷기'), findsWidgets);
+      // 예정인 PT 는 보낼 것이 없다 — 프로그램을 보낼 때 함께 나간다.
+      expect(find.textContaining('프로그램을 보낼 때'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey<String>('session-complete-confirm')),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('붙은 개인운동이 없으면 완료를 막고 프로그램 탭으로 보낸다', (tester) async {
-      await openSchedule(tester, attached: const <RoutineExercise>[]);
-      await openSession(tester, '박성호');
-
-      final complete = find.byKey(
-        const ValueKey<String>('session-complete-chip'),
-      );
-      await revealInPanel(tester, complete);
-      await tester.tap(complete);
-      await settle(tester);
-
-      // 완료 버튼이 선 확인창이 아니라 "먼저 짜라" 는 안내가 뜬다.
-      expect(
-        find.byKey(const ValueKey<String>('session-complete-needs-routines')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('session-complete-confirm')),
+        find.byKey(const ValueKey<String>('session-routines-send')),
         findsNothing,
       );
-      expect(find.textContaining('프로그램 탭'), findsOneWidget);
+
+      // 완료는 기록만 남긴다 — 확인창이 개인운동을 늘어놓지 않는다.
+      final complete = find.byKey(
+        const ValueKey<String>('session-complete-chip'),
+      );
+      await revealInPanel(tester, complete);
+      await tester.tap(complete);
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey<String>('session-complete-confirm')),
+        findsOneWidget,
+      );
+      // 뒤에 선 카드에는 그대로 있고, **확인창 안**에는 없다.
+      expect(
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.textContaining('저강도 걷기'),
+        ),
+        findsNothing,
+      );
     });
 
-    testWidgets('마무리된 PT 는 개인운동 미전송을 남기고 거기서 보낸다', (tester) async {
+    testWidgets('취소·노쇼는 그 자리가 개인운동 보내기가 된다', (tester) async {
       await openSchedule(tester, attached: const <RoutineExercise>[walking]);
-      await openSession(tester, '이지수');
+      await openSession(tester, '박성호');
+      await cancelSession(tester);
 
       final unsent = find.byKey(
-        const ValueKey<String>('session-unsent-routines'),
+        const ValueKey<String>('session-personal-routines'),
       );
       await revealInPanel(tester, unsent);
-      expect(find.text('개인운동 미전송'), findsOneWidget);
+      // 아직 남아 있다는 사실은 버튼이 말한다 — 따로 태그를 두지 않는다.
+      expect(find.text('개인운동'), findsOneWidget);
 
       final send = find.byKey(const ValueKey<String>('session-routines-send'));
       await revealInPanel(tester, send);
@@ -188,7 +197,8 @@ void main() {
 
     testWidgets('보내지 않음을 누르면 표시가 사라진다', (tester) async {
       await openSchedule(tester, attached: const <RoutineExercise>[walking]);
-      await openSession(tester, '이지수');
+      await openSession(tester, '박성호');
+      await cancelSession(tester);
 
       final skip = find.byKey(const ValueKey<String>('session-routines-skip'));
       await revealInPanel(tester, skip);
@@ -198,7 +208,7 @@ void main() {
       expect(repo.dismissals, 1);
       expect(repo.sends, 0);
       expect(
-        find.byKey(const ValueKey<String>('session-unsent-routines')),
+        find.byKey(const ValueKey<String>('session-personal-routines')),
         findsNothing,
       );
     });

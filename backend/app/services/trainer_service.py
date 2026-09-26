@@ -3832,6 +3832,45 @@ def _rewrite_scheduled_routines(
     db.flush()
 
 
+def update_scheduled_routines(
+    db: Session,
+    trainer_id: str,
+    session_id: str,
+    items: Sequence[PersonalRoutineItem],
+) -> list[RoutineOut] | None:
+    """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
+
+    일정 상세에서 바로 고치는 길이다. 프로그램 만들기로 돌아가지 않고 운동
+    하나를 빼거나 시간을 줄일 수 있어야 한다 — PT 직전에 회원 상태를 보고
+    손보는 일이 흔하다.
+
+    이미 보낸 것은 손댈 수 없다(`scheduled` 만 고친다). 보낸 뒤에 바뀌면
+    회원이 어제 본 목록과 오늘 본 목록이 말없이 달라진다.
+
+    - 소유 슬롯 아님 → None(404).
+    - 붙은 것이 없음 / 빈 목록으로 비우려 함 → ScheduleError.
+    """
+    s = _get_owned_session(db, trainer_id, session_id)
+    if s is None:
+        return None
+    if not items:
+        raise ScheduleError("개인운동을 최소 한 개는 남겨 주세요.")
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        raise ScheduleError("고칠 개인운동이 없습니다.")
+    _rewrite_scheduled_routines(db, rows, items)
+    db.commit()
+    return list_scheduled_routines(db, trainer_id, session_id)
+
+
 def dismiss_scheduled_routines(
     db: Session, trainer_id: str, session_id: str
 ) -> bool | None:
@@ -4428,6 +4467,17 @@ def send_session_program(
         sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
         client_request_id=client_request_id,
     )
+    # 개인운동은 **이 전송에 함께 실린다**(#2224) — 회원은 "오늘 한 것" 과
+    # "혼자 할 것" 을 한 번에 받는다. 프로그램과 같은 트랜잭션이라 둘 다
+    # 가거나 둘 다 안 간다: 프로그램만 가고 개인운동이 빠지면 트레이너는
+    # 보냈다고 아는데 회원은 혼자 할 것이 없다.
+    #
+    # **붙은 것이 없어도 막지 않는다.** 개인운동을 필수로 받는 자리는 프로그램
+    # 만들기다(#2223) — 스케줄에서 연필로 바로 짠 프로그램에는 붙을 자리가
+    # 없어, 여기서 막으면 그 길로 짠 프로그램을 보낼 수 없게 된다.
+    _send_scheduled_routines(
+        db, trainer_id, s, delivery_kind=DELIVERY_PT_WITH_ROUTINE
+    )
     # 배정이 커밋된 뒤에만 보낸 것으로 남긴다. 반대 순서면 배정에 실패한 세션이
     # 화면에서 '전송됨' 이 되어 다시 보낼 수 없다.
     s.program_sent_at = datetime.now(timezone.utc)
@@ -4462,13 +4512,6 @@ def complete_session(
         raise ScheduleConflict(
             "취소·노쇼로 마무리된 세션은 완료할 수 없습니다."
         )
-    # 완료는 개인운동이 회원에게 가는 **유일한 순간**이다(#2224). 붙은 것이
-    # 없는 채로 완료하면 그 PT 의 개인운동은 영영 가지 않는다 — 프로그램을
-    # 먼저 짜게 돌려보낸다. 회원 없는 슬롯은 보낼 곳이 없으므로 그대로 둔다.
-    if s.member_id and not list_scheduled_routines(db, trainer_id, s.id):
-        raise ScheduleError(
-            "이 PT 에 붙은 개인운동이 없습니다. 프로그램을 먼저 짜 주세요."
-        )
 
     # 조건부 전환(예정 → 완료). rowcount==1 인 호출만 '방금 전환한' 것이므로 그 호출만
     # 운동기록을 쓴다 — 동시 완료 요청이 둘 다 예정을 보고 중복 기록하는 것을 막는다.
@@ -4500,12 +4543,6 @@ def complete_session(
             trainer_note=note,
         ))
         exercise_log = _add_member_exercise_log(db, s)
-        # 이 PT 에 붙여 둔 개인운동이 회원에게 가는 자리다(#2224). 조건부
-        # 전환을 이긴 호출 안에서만 보낸다 — 동시 완료 요청이 둘 다 보내면
-        # 회원이 같은 운동을 두 번 받는다.
-        _send_scheduled_routines(
-            db, trainer_id, s, delivery_kind=DELIVERY_PT_WITH_ROUTINE
-        )
     db.commit()
     db.refresh(s)
     out = _schedule_out(s)

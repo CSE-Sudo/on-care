@@ -2792,29 +2792,29 @@ abstract class AppLocalizations {
   /// **'Couldn\'t mark it complete. Please try again'**
   String get schedCompleteFailed;
 
-  /// No description provided for @schedCompleteRoutinesTitle.
+  /// No description provided for @schedGroupProgram.
   ///
   /// In en, this message translates to:
-  /// **'Personal exercise going with it'**
-  String get schedCompleteRoutinesTitle;
+  /// **'PT program'**
+  String get schedGroupProgram;
 
-  /// No description provided for @schedCompleteNeedsRoutinesTitle.
+  /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Compose the personal exercise first'**
-  String get schedCompleteNeedsRoutinesTitle;
+  /// **'Personal exercise'**
+  String get schedGroupPersonal;
 
-  /// No description provided for @schedCompleteNeedsRoutinesBody.
+  /// No description provided for @schedRoutinesGoesOnComplete.
   ///
   /// In en, this message translates to:
-  /// **'No personal exercise is attached to this PT. It has to go to the member when you complete it, so compose {name}\'s program in the Program tab and complete this again.'**
-  String schedCompleteNeedsRoutinesBody(String name);
+  /// **'Goes to the member together with this PT\'s program.'**
+  String get schedRoutinesGoesOnComplete;
 
-  /// No description provided for @schedRoutinesUnsent.
+  /// No description provided for @schedRoutinesNotSentYet.
   ///
   /// In en, this message translates to:
-  /// **'Personal exercise not sent'**
-  String get schedRoutinesUnsent;
+  /// **'Not sent to the member yet.'**
+  String get schedRoutinesNotSentYet;
 
   /// No description provided for @schedRoutinesSendTitle.
   ///
@@ -2839,6 +2839,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Don\'t send'**
   String get schedRoutinesSkip;
+
+  /// No description provided for @schedSendProgramWithRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Send {date} PT program and personal exercise to {name}'**
+  String schedSendProgramWithRoutines(String name, String date);
 
   /// No description provided for @schedRoutinesSent.
   ///

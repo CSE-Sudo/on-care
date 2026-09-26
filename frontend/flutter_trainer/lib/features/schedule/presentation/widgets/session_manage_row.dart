@@ -101,64 +101,73 @@ class SessionManageRow extends StatelessWidget {
         ),
     ];
 
-    // 항목 키는 버튼 줄이던 때의 키를 그대로 잇는다 — 그 동작을 찾던 테스트가
-    // 메뉴를 연 뒤 같은 키로 찾는다(#2178).
-    final edits = <AppMenuItem>[
-      AppMenuItem(
-        key: const ValueKey<String>('session-edit-schedule-chip'),
-        icon: Icons.edit_calendar_rounded,
-        label: l.schedEditTitle,
-        onSelected: onEditSchedule,
-      ),
-      if (hasProgram && showEditProgram)
-        AppMenuItem(
-          key: const ValueKey<String>('session-edit-program-chip'),
-          icon: Icons.fitness_center_rounded,
-          label: l.progEditTitle,
-          onSelected: onEditProgram,
-        ),
-      if (showEditNote)
-        AppMenuItem(
-          key: const ValueKey<String>('session-edit-note-chip'),
-          icon: hasNote ? Icons.edit_note_rounded : Icons.note_add_rounded,
-          label: hasNote ? l.schedEditNote : l.schedAddNote,
-          onSelected: onEditNote,
-        ),
-      // 되돌릴 수 없는 동작이라 마지막 자리에 빨간 글씨로 둔다. 누르면
-      // 확인창이 먼저 뜬다.
-      AppMenuItem(
-        key: const ValueKey<String>('session-delete-chip'),
-        icon: Icons.delete_outline_rounded,
-        label: l.actionDelete,
-        destructive: true,
-        onSelected: onDelete,
-      ),
-    ];
+    // 손보는 동작(연필)은 이 줄을 떠나 **카드 머리글 오른쪽 끝**으로 갔다
+    // (#2224) — 약속의 결말을 남기는 `완료`·`취소 처리` 와 한 줄에 서면
+    // 같은 무게로 읽혔고, 카드가 길어질수록 맨 아래까지 내려가야 닿았다.
+    // 머리글은 늘 보이는 자리라 어느 길이에서도 한 번에 닿는다.
+    return Wrap(
+      spacing: OnCareSpacing.s4,
+      runSpacing: OnCareSpacing.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: ended,
+    );
+  }
 
-    // 손보는 동작은 오른쪽 끝에 붙여, 약속의 결말을 남기는 버튼들과 확실히
-    // 갈라 놓는다(#1012).
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Wrap(
-            spacing: OnCareSpacing.s4,
-            runSpacing: OnCareSpacing.s4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: ended,
-          ),
-        ),
-        const SizedBox(width: OnCareSpacing.s8),
-        AppMenu(
-          items: edits,
-          triggerBuilder: (context, toggle) => AppIconButton(
-            key: const ValueKey<String>('session-edit-menu'),
-            icon: Icons.edit_rounded,
-            tooltip: l.actionEdit,
-            color: OnCareColors.textSecondary,
-            onPressed: toggle,
-          ),
-        ),
-      ],
+  /// 이 세션을 손보는 메뉴 항목 — 카드 머리글의 연필이 이 목록을 연다.
+  ///
+  /// 항목 키는 버튼 줄이던 때의 키를 그대로 잇는다 — 그 동작을 찾던 테스트가
+  /// 메뉴를 연 뒤 같은 키로 찾는다(#2178).
+  List<AppMenuItem> editItems(AppLocalizations l) => <AppMenuItem>[
+    AppMenuItem(
+      key: const ValueKey<String>('session-edit-schedule-chip'),
+      icon: Icons.edit_calendar_rounded,
+      label: l.schedEditTitle,
+      onSelected: onEditSchedule,
+    ),
+    if (hasProgram && showEditProgram)
+      AppMenuItem(
+        key: const ValueKey<String>('session-edit-program-chip'),
+        icon: Icons.fitness_center_rounded,
+        label: l.progEditTitle,
+        onSelected: onEditProgram,
+      ),
+    if (showEditNote)
+      AppMenuItem(
+        key: const ValueKey<String>('session-edit-note-chip'),
+        icon: hasNote ? Icons.edit_note_rounded : Icons.note_add_rounded,
+        label: hasNote ? l.schedEditNote : l.schedAddNote,
+        onSelected: onEditNote,
+      ),
+    // 되돌릴 수 없는 동작이라 마지막 자리에 빨간 글씨로 둔다. 누르면
+    // 확인창이 먼저 뜬다.
+    AppMenuItem(
+      key: const ValueKey<String>('session-delete-chip'),
+      icon: Icons.delete_outline_rounded,
+      label: l.actionDelete,
+      destructive: true,
+      onSelected: onDelete,
+    ),
+  ];
+}
+
+/// 세션을 손보는 연필 메뉴. 카드 머리글 오른쪽 끝에 선다. (#2224)
+class SessionEditMenu extends StatelessWidget {
+  const SessionEditMenu({required this.items, super.key});
+
+  final List<AppMenuItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppMenu(
+      items: items,
+      triggerBuilder: (context, toggle) => AppIconButton(
+        key: const ValueKey<String>('session-edit-menu'),
+        icon: Icons.edit_rounded,
+        tooltip: l.actionEdit,
+        color: OnCareColors.textSecondary,
+        onPressed: toggle,
+      ),
     );
   }
 }

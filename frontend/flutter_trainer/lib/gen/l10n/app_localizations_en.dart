@@ -1557,19 +1557,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t mark it complete. Please try again';
 
   @override
-  String get schedCompleteRoutinesTitle => 'Personal exercise going with it';
+  String get schedGroupProgram => 'PT program';
 
   @override
-  String get schedCompleteNeedsRoutinesTitle =>
-      'Compose the personal exercise first';
+  String get schedGroupPersonal => 'Personal exercise';
 
   @override
-  String schedCompleteNeedsRoutinesBody(String name) {
-    return 'No personal exercise is attached to this PT. It has to go to the member when you complete it, so compose $name\'s program in the Program tab and complete this again.';
-  }
+  String get schedRoutinesGoesOnComplete =>
+      'Goes to the member together with this PT\'s program.';
 
   @override
-  String get schedRoutinesUnsent => 'Personal exercise not sent';
+  String get schedRoutinesNotSentYet => 'Not sent to the member yet.';
 
   @override
   String get schedRoutinesSendTitle => 'Send the personal exercise?';
@@ -1583,6 +1581,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRoutinesSkip => 'Don\'t send';
+
+  @override
+  String schedSendProgramWithRoutines(String name, String date) {
+    return 'Send $date PT program and personal exercise to $name';
+  }
 
   @override
   String get schedRoutinesSent => 'Sent the personal exercise to the member.';

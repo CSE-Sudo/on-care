@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,6 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
-import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -17,9 +18,9 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/reservatio
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_date_nav_bar.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_card.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_personal_routines.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_editor.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_sheet.dart';
-import 'package:oncare_trainer/features/schedule/presentation/widgets/unsent_personal_routines.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -72,6 +73,15 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   /// 프로그램 전송이 진행 중인 세션. 두 번 눌러 두 번 보내지 않는다.
   String? _sendingProgramId;
+
+  /// 세션별 **아직 보내지 않은** 개인운동. 카드 아래 전송 버튼이 무엇을 보낼지
+  /// 이 값으로 정한다(#2224).
+  final Map<String, List<RoutineExercise>> _unsentRoutines =
+      <String, List<RoutineExercise>>{};
+
+  /// 보내거나 보내지 않기로 한 뒤 목록을 다시 읽게 하는 판번호 — 키가 바뀌면
+  /// 덩어리가 새로 서면서 서버에서 다시 읽는다(#2224).
+  final Map<String, int> _routinesRevision = <String, int>{};
 
   /// 세션별 전송 멱등키. 실패한 시도의 키를 그대로 다시 써야 재시도가 중복
   /// 배정을 만들지 않는다(#581 과 같은 규약).
@@ -274,28 +284,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 언제든 남길 수 있어, 여기서는 빈 메모란을 보여주지 않는다.
   Future<void> _confirmComplete(ScheduleSession s) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 완료는 개인운동이 회원에게 가는 **유일한 순간**이다(#2224) — 무엇이
-    // 함께 가는지 보여 주고 누르게 한다. 붙은 것이 없으면 완료를 막는다:
-    // 그대로 완료하면 그 PT 의 개인운동은 영영 가지 않는다.
-    final List<RoutineExercise> attached = await _loadScheduledRoutines(s.id);
-    if (!mounted) return;
-    if (attached.isEmpty) {
-      await _confirmMissingPersonalRoutines(s);
-      return;
-    }
+    // 완료는 기록만 남긴다. 개인운동은 `PT 프로그램 전송` 에 함께 실린다
+    // (#2224) — 회원이 "오늘 한 것" 과 "혼자 할 것" 을 한 번에 받는다.
     final ok = await _confirm(
       title: l.schedCompleteTitle,
       confirmLabel: l.legendDone,
       confirmKey: const ValueKey<String>('session-complete-confirm'),
-      body: <Widget>[
-        Text(l.schedCompleteConfirm(s.time, s.clientName)),
-        const SizedBox(height: OnCareSpacing.s12),
-        _PersonalRoutineLines(
-          key: const ValueKey<String>('session-complete-routines'),
-          title: l.schedCompleteRoutinesTitle,
-          routines: attached,
-        ),
-      ],
+      body: <Widget>[Text(l.schedCompleteConfirm(s.time, s.clientName))],
     );
     if (!ok || !mounted) return;
     try {
@@ -310,39 +305,66 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     }
   }
 
-  /// 그 PT 에 붙어 있는 개인운동. 읽기 실패는 빈 목록으로 본다 — 완료를
-  /// 막을 근거가 없으면 막지 않는다(#2224).
-  Future<List<RoutineExercise>> _loadScheduledRoutines(String id) async {
+  /// 취소·노쇼로 끝난 PT 의 개인운동을 고쳐서 보낸다. (#2224)
+  ///
+  /// PT 가 열리지 않아 "그 PT 다음에 할 것" 이라는 전제가 깨졌으므로, 보내기
+  /// 전에 구성을 볼 수 있어야 한다. 취소된 PT 에는 프로그램 만들기로 다시
+  /// 붙일 수 없어(`예정` 세션만 찾는다) 고치는 자리가 이 창뿐이다.
+  Future<void> _sendRoutinesOnly(ScheduleSession session) async {
+    final l = AppLocalizations.of(context);
+    final rows =
+        _unsentRoutines[session.id] ?? const <RoutineExercise>[];
+    if (rows.isEmpty) return;
+    final edited = await showAppDialog<List<RoutineExercise>>(
+      context: context,
+      builder: (_) => SendPersonalRoutinesDialog(routines: rows),
+    );
+    if (edited == null || !mounted) return;
     try {
-      return await ref
+      await ref
           .read(scheduleRepositoryProvider)
-          .fetchScheduledRoutines(id);
+          .sendScheduledRoutines(session.id, items: edited);
     } catch (_) {
-      return const <RoutineExercise>[];
+      if (!mounted) return;
+      showAppToast(
+        context,
+        l.schedRoutinesSendFailed,
+        type: AppToastType.error,
+      );
+      return;
     }
+    if (!mounted) return;
+    setState(() {
+      _unsentRoutines[session.id] = const <RoutineExercise>[];
+      _routinesRevision[session.id] =
+          (_routinesRevision[session.id] ?? 0) + 1;
+    });
+    showAppToast(context, l.schedRoutinesSent, type: AppToastType.success);
   }
 
-  /// 붙은 개인운동이 없어 완료를 막는다 — 프로그램 탭에서 짜도록 돌려보낸다.
-  ///
-  /// 여기서 짜게 하지 않는 이유는 그 길이 이미 있기 때문이다: 프로그램
-  /// 만들기는 개인운동을 필수로 받고(#2223), `일정 추가` 는 겹치는 예정
-  /// 세션에 붙는다(#1581) — 달력에서 잡은 PT 에도 그대로 붙는다.
-  Future<void> _confirmMissingPersonalRoutines(ScheduleSession s) async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    await showAppDialog<void>(
-      context: context,
-      builder: (dialogContext) => AppDialog(
-        key: const ValueKey<String>('session-complete-needs-routines'),
-        title: l.schedCompleteNeedsRoutinesTitle,
-        showClose: false,
-        footer: AppButton(
-          label: l.actionClose,
-          fullWidth: true,
-          onPressed: () => Navigator.of(dialogContext).pop(),
-        ),
-        child: Text(l.schedCompleteNeedsRoutinesBody(s.clientName)),
-      ),
-    );
+  /// 보내지 않기로 정리한다 — 무엇을 짰다가 안 보냈는지는 남는다. (#2224)
+  Future<void> _skipRoutines(ScheduleSession session) async {
+    final l = AppLocalizations.of(context);
+    try {
+      await ref
+          .read(scheduleRepositoryProvider)
+          .dismissScheduledRoutines(session.id);
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        l.schedRoutinesSendFailed,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _unsentRoutines[session.id] = const <RoutineExercise>[];
+      _routinesRevision[session.id] =
+          (_routinesRevision[session.id] ?? 0) + 1;
+    });
+    showAppToast(context, l.schedRoutinesSkipped);
   }
 
   /// 취소 처리 — 취소 주체와 (선택) 사유를 받고 세션을 `취소` 로 남긴다. (#871)
@@ -744,59 +766,24 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           programDateLabel: dateText,
           sendingProgram: _sendingProgramId == session.id,
           onSendProgram: () => _sendProgram(session),
-        ),
-        // 취소·노쇼로 끝난 PT 의 개인운동은 갈 곳을 잃는다 — 여기 남겨 두고
-        // 트레이너가 보낼지 정한다(#2224). 완료된 PT 는 그때 함께 나갔으므로
-        // 남는 것이 없어 이 자리가 비어 있다.
-        if (!session.isUpcoming)
-          UnsentPersonalRoutines(
-            key: ValueKey<String>('unsent-routines-${session.id}'),
-            sessionId: session.id,
-          ),
-      ],
-    );
-  }
-}
-
-
-/// 개인운동 몇 줄을 제목과 함께 보여 주는 덩어리. (#2224)
-///
-/// 완료 확인창과 `개인운동 미전송` 창이 같은 모양으로 읽히게 한 곳에 둔다 —
-/// 트레이너가 두 자리에서 같은 목록을 본다.
-class _PersonalRoutineLines extends StatelessWidget {
-  const _PersonalRoutineLines({
-    required this.title,
-    required this.routines,
-    super.key,
-  });
-
-  final String title;
-  final List<RoutineExercise> routines;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.oncare;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          title,
-          style: tokens
-              .text(OnCareTypography.strong(OnCareTypography.caption))
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        for (final RoutineExercise routine in routines)
-          Padding(
-            padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-            child: Text(
-              '· ${personalRoutineLabel(AppLocalizations.of(context), routine)}',
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textPrimary),
+          // PT 에서 할 것과 회원이 혼자 할 것을 한 카드에서 갈라 보여 준다
+          // (#2224). 마무리된 PT 라면 여기서 보낼지도 정한다.
+          personalRoutines: SessionPersonalRoutines(
+            key: ValueKey<String>(
+              'personal-routines-${session.id}'
+              '-${_routinesRevision[session.id] ?? 0}',
             ),
+            sessionId: session.id,
+            finished: !session.isUpcoming,
+            onChanged: (rows) =>
+                setState(() => _unsentRoutines[session.id] = rows),
           ),
+          hasUnsentRoutines:
+              (_unsentRoutines[session.id] ?? const <RoutineExercise>[])
+                  .isNotEmpty,
+          onSendRoutines: () => unawaited(_sendRoutinesOnly(session)),
+          onSkipRoutines: () => unawaited(_skipRoutines(session)),
+        ),
       ],
     );
   }
