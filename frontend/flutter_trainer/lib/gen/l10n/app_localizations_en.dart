@@ -1225,15 +1225,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiAllAnalysis => 'AI all-time analysis';
 
   @override
-  String dietAiOverSodium(int over) {
-    return 'Sodium is ${over}mg over target. Adding cardio to today\'s program would help.';
-  }
-
-  @override
-  String get dietAiBalanced =>
-      'Today\'s meals are well balanced. Keep the current program.';
-
-  @override
   String get consultStatusRejected => 'Declined';
 
   @override

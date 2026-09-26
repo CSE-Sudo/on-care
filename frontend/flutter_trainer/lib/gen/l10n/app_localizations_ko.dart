@@ -1194,14 +1194,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAllAnalysis => 'AI 전체 분석';
 
   @override
-  String dietAiOverSodium(int over) {
-    return '나트륨이 목표치를 ${over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.';
-  }
-
-  @override
-  String get dietAiBalanced => '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
-
-  @override
   String get consultStatusRejected => '거절됨';
 
   @override

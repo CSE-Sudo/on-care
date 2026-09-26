@@ -474,8 +474,6 @@
   "aiAnalysis": "AI 분석",
   "aiPeriodAnalysis": "AI 기간 분석",
   "aiAllAnalysis": "AI 전체 분석",
-  "dietAiOverSodium": "나트륨이 목표치를 {over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.",
-  "dietAiBalanced": "오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.",
   "consultStatusRejected": "거절됨",
   "dateToday": "오늘",
   "dateTomorrow": "내일",

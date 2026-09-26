@@ -205,6 +205,30 @@ void main() {
       seedClock: seedClock,
     );
 
+    testWidgets('서버 조언이 없으면 AI 분석 카드를 세우지 않는다 (#2271)', (
+      tester,
+    ) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+        extraOverrides: <Override>[
+          clientDietAdviceProvider.overrideWith(
+            (ref, key) async => throw StateError('advice offline'),
+          ),
+        ],
+      );
+
+      // 예전에는 이 사이 화면이 나트륨 목표만 보고 `나트륨이 목표치를 …
+      // 초과했어요` / `균형이 잘 맞아요` 를 지어냈다. 운동 탭처럼 자리를 비운다.
+      expect(
+        find.byKey(const ValueKey<String>('diet-ai-analysis')),
+        findsNothing,
+      );
+      expect(find.textContaining('나트륨이 목표치를'), findsNothing);
+      expect(find.textContaining('균형이 잘 맞아요'), findsNothing);
+    });
+
     testWidgets('a failed diet retries in place on a narrow viewport', (
       tester,
     ) async {
