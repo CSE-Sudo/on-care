@@ -113,11 +113,12 @@ def build_prompt(
     records: list[str],
     notes: list[str],
     goal: str,
+    task: str = "다음 할 일 한 문장",
 ) -> tuple[str, str]:
     language = "영어(English)" if lang == "en" else "한국어"
     system = (
         "너는 PT(개인 트레이닝)를 받는 회원의 식단을 돕는 영양 코치다. 규칙이 찾아낸 "
-        "[분석] 한 가지를 보고, 그 뒤에 붙일 **다음 할 일 한 문장**을 쓴다.\n"
+        f"[분석] 한 가지를 보고, 그 뒤에 붙일 **{task}**을 쓴다.\n"
         "규칙:\n"
         "1. [기록]에서 원인이 된 메뉴를 짚거나, 바꿔 먹을 구체적인 음식을 권한다"
         "(예: 짬뽕 국물은 반만, 건더기 위주로요 / 요거트나 삶은 달걀이라도 드세요).\n"
@@ -162,11 +163,13 @@ def generate(
     notes: list[str],
     goal: str,
     metric: str,
+    task: str = "다음 할 일 한 문장",
 ) -> str | None:
     """AI 한 문장. 실패·검사 탈락이면 None."""
     limit = sentence_limit(lang, analysis_text)
     system, user = build_prompt(
         lang=lang, limit=limit, finding=finding, records=records, notes=notes, goal=goal,
+        task=task,
     )
     for _ in range(MAX_ATTEMPTS):
         try:
