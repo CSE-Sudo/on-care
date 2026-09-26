@@ -362,41 +362,41 @@ abstract class AppLocalizations {
   /// **'The trainer-only app for managing your members'**
   String get authTagline;
 
-  /// No description provided for @authEmail.
+  /// No description provided for @authEmailHint.
   ///
   /// In en, this message translates to:
   /// **'Email'**
-  String get authEmail;
+  String get authEmailHint;
 
-  /// No description provided for @authPassword.
+  /// No description provided for @authPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Password'**
-  String get authPassword;
+  String get authPasswordHint;
 
-  /// No description provided for @authSignIn.
+  /// No description provided for @authSignInAction.
   ///
   /// In en, this message translates to:
   /// **'Sign in'**
-  String get authSignIn;
+  String get authSignInAction;
 
-  /// No description provided for @authNoAccount.
+  /// No description provided for @authNoAccountQuestion.
   ///
   /// In en, this message translates to:
   /// **'Don\'t have an account?'**
-  String get authNoAccount;
+  String get authNoAccountQuestion;
 
-  /// No description provided for @authSignUp.
+  /// No description provided for @authSignUpAction.
   ///
   /// In en, this message translates to:
   /// **'Sign up'**
-  String get authSignUp;
+  String get authSignUpAction;
 
-  /// No description provided for @authBrowseDemo.
+  /// No description provided for @authDemoAction.
   ///
   /// In en, this message translates to:
   /// **'Explore the demo without signing in'**
-  String get authBrowseDemo;
+  String get authDemoAction;
 
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
@@ -404,17 +404,17 @@ abstract class AppLocalizations {
   /// **'Sign in with a social account'**
   String get authSocialDivider;
 
-  /// No description provided for @authContinueKakao.
+  /// No description provided for @authKakaoAction.
   ///
   /// In en, this message translates to:
   /// **'Continue with Kakao'**
-  String get authContinueKakao;
+  String get authKakaoAction;
 
-  /// No description provided for @authContinueGoogle.
+  /// No description provided for @authGoogleAction.
   ///
   /// In en, this message translates to:
   /// **'Continue with Google'**
-  String get authContinueGoogle;
+  String get authGoogleAction;
 
   /// No description provided for @authSignUpSubtitle.
   ///
@@ -428,11 +428,11 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get authName;
 
-  /// No description provided for @authPasswordHint.
+  /// No description provided for @signUpPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Password (8+ characters, letters and numbers)'**
-  String get authPasswordHint;
+  String get signUpPasswordHint;
 
   /// No description provided for @authPasswordConfirm.
   ///
@@ -476,11 +476,11 @@ abstract class AppLocalizations {
   /// **'Enter your email and password'**
   String get authErrEmptyCredentials;
 
-  /// No description provided for @authErrSocialFailed.
+  /// No description provided for @authSocialSignInFailed.
   ///
   /// In en, this message translates to:
   /// **'Social sign-in failed. Please try again in a moment.'**
-  String get authErrSocialFailed;
+  String get authSocialSignInFailed;
 
   /// No description provided for @authErrSignInFailed.
   ///
@@ -1022,6 +1022,18 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// No description provided for @clientWeeklyRoutineAdherence.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly adherence'**
+  String get clientWeeklyRoutineAdherence;
+
+  /// No description provided for @clientRoutineAdherenceUnmeasured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not measured'**
+  String get clientRoutineAdherenceUnmeasured;
+
   /// No description provided for @clientsSignalDiscomfort.
   ///
   /// In en, this message translates to:
@@ -1129,12 +1141,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Awaiting reply'**
   String get clientsSignalUnanswered;
-
-  /// No description provided for @clientsSignalMore.
-  ///
-  /// In en, this message translates to:
-  /// **'+{count}'**
-  String clientsSignalMore(int count);
 
   /// No description provided for @clientsAttentionClear.
   ///
@@ -3517,6 +3523,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Terms & policies'**
   String get myLegal;
+
+  /// No description provided for @mySupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Support'**
+  String get mySupportTitle;
+
+  /// No description provided for @mySupportFaq.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQ'**
+  String get mySupportFaq;
+
+  /// No description provided for @mySupportInquiry.
+  ///
+  /// In en, this message translates to:
+  /// **'1:1 Inquiry'**
+  String get mySupportInquiry;
+
+  /// No description provided for @mySupportExternalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the KakaoTalk channel'**
+  String get mySupportExternalHint;
+
+  /// No description provided for @mySupportOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link. Please try again in a moment'**
+  String get mySupportOpenFailed;
+
+  /// No description provided for @mySupportEntryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQ, inquiries, policies and account clean-up in one place'**
+  String get mySupportEntryHint;
+
+  /// No description provided for @myAppVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care Trainer · Version 0.1.0'**
+  String get myAppVersion;
 
   /// No description provided for @myLegalTermsTitle.
   ///
@@ -6100,11 +6148,17 @@ abstract class AppLocalizations {
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
 
-  /// No description provided for @programEditorSessionName.
+  /// No description provided for @programEditorSessionNameTyped.
   ///
   /// In en, this message translates to:
-  /// **'Session {letter}'**
-  String programEditorSessionName(String letter);
+  /// **'{type} session'**
+  String programEditorSessionNameTyped(String type);
+
+  /// No description provided for @programEditorSessionNameNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} session {index}'**
+  String programEditorSessionNameNumbered(String type, int index);
 
   /// No description provided for @programEditorSessionUp.
   ///
@@ -6171,6 +6225,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move exercise down'**
   String get programEditorExerciseDown;
+
+  /// No description provided for @programEditorExerciseMoveSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to another session'**
+  String get programEditorExerciseMoveSession;
+
+  /// No description provided for @programEditorExerciseMoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which session should it move to?'**
+  String get programEditorExerciseMoveTitle;
+
+  /// No description provided for @programEditorExerciseMoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the session to move \'{name}\' into.'**
+  String programEditorExerciseMoveBody(String name);
 
   /// No description provided for @programEditorSets.
   ///

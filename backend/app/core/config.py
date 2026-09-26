@@ -151,7 +151,7 @@ class Settings(BaseSettings):
     # AI 챗봇 하루 대화 한도(#2145). 분당 한도는 폭주하는 클라이언트를 막고, 이 값들은
     # 한 회원의 하루 비용을 묶는다. 무료를 다 쓰면 한 번에 `coach_chat_paid_cost` 포인트로
     # 하루 `coach_chat_paid_per_day` 번까지 더 보낸다. 날짜는 KST 로 센다.
-    coach_chat_free_per_day: int = 10
+    coach_chat_free_per_day: int = 5
     coach_chat_paid_cost: int = 50
     coach_chat_paid_per_day: int = 10
     # 트레이너 루틴 생성 한도. 채팅보다 낮게 잡는다 — 같은 LLM 비용에 회원 분석

@@ -11,6 +11,16 @@ abstract class ExerciseRepository {
   /// 없었다(#671). 이번 주를 넘겨 부르면 [fetchThisWeek] 과 같은 결과다.
   Future<ExerciseWeek> fetchWeek(DateTime weekStart);
 
+  /// 구간이 걸친 **주들** — GET /exercise/weeks?from=&to= (#2247)
+  ///
+  /// `전체` 그래프가 쓰는 길이다. 예전에는 주마다 [fetchWeek] 을 불렀는데,
+  /// `전체` 가 모든 기록을 그리게 되면서(#2079) 해가 바뀐 회원에게 쉰 번이 넘는
+  /// 왕복이 됐다.
+  ///
+  /// [from] 을 주지 않으면 첫 기록이 있는 주부터다. 돌려주는 칸에는 세션 목록과
+  /// 코칭 문구가 없다 — 한 주를 펼쳐 볼 때는 [fetchWeek] 이다.
+  Future<List<ExercisePeriodWeek>> fetchPeriod({DateTime? from, DateTime? to});
+
   /// 기간에 맞는 운동 조언 — GET /exercise/advice. (#1574)
   ///
   /// [period] 는 화면의 기간 토글과 같은 말이다(`today`·`week`·`all`). 구간

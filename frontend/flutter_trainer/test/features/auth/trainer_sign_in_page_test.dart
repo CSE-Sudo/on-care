@@ -12,6 +12,7 @@ import 'package:oncare_trainer/features/auth/presentation/controllers/session_co
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -194,7 +195,7 @@ void main() {
               find.text(
                 AppLocalizations.of(
                   tester.element(find.byType(TrainerSignInPage)),
-                ).authErrSocialFailed,
+                ).authSocialSignInFailed,
               ),
               findsOneWidget,
             );
@@ -207,6 +208,31 @@ void main() {
   }
 
   group('TrainerSignInPage', () {
+    testWidgets('회원 앱 로그인과 같은 부품·문구로 선다 (#2226)', (tester) async {
+      await _pumpWithRepo(tester);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(TrainerSignInPage)),
+      );
+
+      // 틀·입력칸·소셜 줄은 두 앱이 나눠 쓰는 부품이다.
+      expect(find.byType(AppAuthLayout), findsOneWidget);
+      expect(find.byType(AppSocialLoginRow), findsOneWidget);
+      // 비밀번호 보이기/감추기도 공용 부품이다 — 아이콘은 앱의 묶음을 따른다.
+      expect(find.byType(AppPasswordToggle), findsOneWidget);
+      expect(
+        tester.widget<AppPasswordToggle>(find.byType(AppPasswordToggle)).obscure,
+        isTrue,
+      );
+
+      // 트레이너의 정체성 문구는 그대로 둔다 — 회원 앱과 같은 로고·배치라
+      // 제목까지 같으면 어느 쪽에 로그인하는지 알아채기 어렵다.
+      expect(find.text(l.appTitleSpaced), findsOneWidget);
+      expect(find.text(l.authTagline), findsOneWidget);
+      expect(find.text(l.authSignInAction), findsOneWidget);
+      expect(find.text(l.authNoAccountQuestion), findsOneWidget);
+      expect(find.text(l.authSignUpAction), findsOneWidget);
+    });
+
     testWidgets('빈칸으로 로그인하면 칸 아래에 빨간 문구를 보이고 요청하지 않는다', (tester) async {
       final repo = await _pumpWithRepo(tester);
 

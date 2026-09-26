@@ -248,6 +248,18 @@ class _FixedClientRepository implements ClientRepository {
     Map<String, Object?> values,
   ) => fetchHealthProfile(clientId);
   @override
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  ) async => <ClientExercisePeriodWeek>[
+    for (final DateTime monday in clientRangeWeekStarts(range))
+      (
+        weekStart: monday,
+        week: await fetchExerciseWeek(clientId, weekStart: monday),
+      ),
+  ];
+
+  @override
   Future<ClientExerciseWeek> fetchExerciseWeek(
     String clientId, {
     DateTime? weekStart,
@@ -2623,14 +2635,17 @@ void main() {
           await _selectExerciseAction(tester, '삭제');
         }
 
+        // AI 후보는 유형별 세션으로 나뉘어 들어온다(#2222) — `운동 추가` 가
+        // 세션마다 있으므로 첫 세션의 것을 집는다.
+        final addExercise = find.text('운동 추가').first;
         await tester.scrollUntilVisible(
-          find.text('운동 추가'),
+          addExercise,
           150,
           scrollable: find.byType(Scrollable).first,
         );
-        await _ensureCentered(tester, find.text('운동 추가'));
+        await _ensureCentered(tester, addExercise);
         await tester.pump();
-        await tester.tap(find.text('운동 추가'));
+        await tester.tap(addExercise);
         await tester.pump();
 
         await tester.enterText(

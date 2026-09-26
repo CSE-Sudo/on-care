@@ -153,31 +153,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authTagline => 'The trainer-only app for managing your members';
 
   @override
-  String get authEmail => 'Email';
+  String get authEmailHint => 'Email';
 
   @override
-  String get authPassword => 'Password';
+  String get authPasswordHint => 'Password';
 
   @override
-  String get authSignIn => 'Sign in';
+  String get authSignInAction => 'Sign in';
 
   @override
-  String get authNoAccount => 'Don\'t have an account?';
+  String get authNoAccountQuestion => 'Don\'t have an account?';
 
   @override
-  String get authSignUp => 'Sign up';
+  String get authSignUpAction => 'Sign up';
 
   @override
-  String get authBrowseDemo => 'Explore the demo without signing in';
+  String get authDemoAction => 'Explore the demo without signing in';
 
   @override
   String get authSocialDivider => 'Sign in with a social account';
 
   @override
-  String get authContinueKakao => 'Continue with Kakao';
+  String get authKakaoAction => 'Continue with Kakao';
 
   @override
-  String get authContinueGoogle => 'Continue with Google';
+  String get authGoogleAction => 'Continue with Google';
 
   @override
   String get authSignUpSubtitle =>
@@ -187,7 +187,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authName => 'Name';
 
   @override
-  String get authPasswordHint =>
+  String get signUpPasswordHint =>
       'Password (8+ characters, letters and numbers)';
 
   @override
@@ -213,7 +213,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmptyCredentials => 'Enter your email and password';
 
   @override
-  String get authErrSocialFailed =>
+  String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment.';
 
   @override
@@ -520,6 +520,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
+
+  @override
+  String get clientRoutineAdherenceUnmeasured => 'Not measured';
+
+  @override
   String get clientsSignalDiscomfort => 'Pain';
 
   @override
@@ -586,11 +592,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsSignalUnanswered => 'Awaiting reply';
-
-  @override
-  String clientsSignalMore(int count) {
-    return '+$count';
-  }
 
   @override
   String get clientsAttentionClear => 'Clear attention filter';
@@ -1972,6 +1973,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myLegal => 'Terms & policies';
+
+  @override
+  String get mySupportTitle => 'Customer Support';
+
+  @override
+  String get mySupportFaq => 'FAQ';
+
+  @override
+  String get mySupportInquiry => '1:1 Inquiry';
+
+  @override
+  String get mySupportExternalHint => 'Opens the KakaoTalk channel';
+
+  @override
+  String get mySupportOpenFailed =>
+      'Couldn\'t open the link. Please try again in a moment';
+
+  @override
+  String get mySupportEntryHint =>
+      'FAQ, inquiries, policies and account clean-up in one place';
+
+  @override
+  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
 
   @override
   String get myLegalTermsTitle => 'Terms of Service';
@@ -3481,8 +3505,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String programEditorSessionName(String letter) {
-    return 'Session $letter';
+  String programEditorSessionNameTyped(String type) {
+    return '$type session';
+  }
+
+  @override
+  String programEditorSessionNameNumbered(String type, int index) {
+    return '$type session $index';
   }
 
   @override
@@ -3520,6 +3549,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorExerciseDown => 'Move exercise down';
+
+  @override
+  String get programEditorExerciseMoveSession => 'Move to another session';
+
+  @override
+  String get programEditorExerciseMoveTitle =>
+      'Which session should it move to?';
+
+  @override
+  String programEditorExerciseMoveBody(String name) {
+    return 'Pick the session to move \'$name\' into.';
+  }
 
   @override
   String get programEditorSets => 'Sets';

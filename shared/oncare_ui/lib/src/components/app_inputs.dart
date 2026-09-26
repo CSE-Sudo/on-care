@@ -6,6 +6,7 @@ import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
 import 'package:oncare_ui/src/tokens/typography.dart';
@@ -271,6 +272,40 @@ class AppSelectField<T> extends StatelessWidget {
           constraints: BoxConstraints(minHeight: tokens.density.inputMedium),
         ),
       ),
+    );
+  }
+}
+
+/// 비밀번호 칸의 보이기/감추기 단추 — [AppTextField.suffix] 에 넣는다.
+///
+/// 회원 앱과 트레이너 웹이 같은 부품을 쓴다(#2226). 아이콘은 [AppIcon.setOf] 로
+/// 각 앱의 묶음을 따라가고, 툴팁 문구만 앱이 제 로케일에서 넘긴다 — 아이콘만
+/// 있는 단추라 무엇을 켜고 끄는지 말할 데가 툴팁뿐이다(#972).
+class AppPasswordToggle extends StatelessWidget {
+  const AppPasswordToggle({
+    super.key,
+    required this.obscure,
+    required this.onPressed,
+    required this.showLabel,
+    required this.hideLabel,
+  });
+
+  /// 참이면 지금 가려져 있다 — 누르면 보인다.
+  final bool obscure;
+  final VoidCallback onPressed;
+
+  /// 가려져 있을 때(보이기)·보일 때(감추기)의 툴팁.
+  final String showLabel;
+  final String hideLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareIconSet icons = AppIcon.setOf(context);
+    return AppIconButton(
+      icon: obscure ? icons.visibilityOff : icons.visibility,
+      tooltip: obscure ? showLabel : hideLabel,
+      color: OnCareColors.textTertiary,
+      onPressed: onPressed,
     );
   }
 }

@@ -29,15 +29,15 @@ String _bodyText(WidgetTester tester) {
 
 void main() {
   group('약관 · 개인정보 처리방침', () {
-    testWidgets('설정에서 이용약관을 열 수 있다', (tester) async {
+    testWidgets('고객 지원에서 이용약관을 열 수 있다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
-        at: AppRoutes.mySection('settings'),
+        at: AppRoutes.mySection('support'),
       );
 
       final row = find.text('이용약관');
-      expect(row, findsOneWidget, reason: '설정에 약관 진입점이 없다');
+      expect(row, findsOneWidget, reason: '고객 지원에 약관 진입점이 없다');
       await tester.ensureVisible(row);
       await tester.tap(row);
       await settle(tester);
@@ -46,11 +46,11 @@ void main() {
       expect(_bodyText(tester), contains('제1조 (목적)'));
     });
 
-    testWidgets('설정에서 개인정보 처리방침을 열 수 있다', (tester) async {
+    testWidgets('고객 지원에서 개인정보 처리방침을 열 수 있다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
-        at: AppRoutes.mySection('settings'),
+        at: AppRoutes.mySection('support'),
       );
 
       final row = find.text('개인정보 처리방침');
@@ -127,7 +127,7 @@ void main() {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
-        at: AppRoutes.mySection('settings'),
+        at: AppRoutes.mySection('support'),
       );
 
       final row = find.text('이용약관');
@@ -137,7 +137,7 @@ void main() {
 
       await tester.tap(find.byTooltip('뒤로'));
       await settle(tester);
-      expect(currentLocation(tester), AppRoutes.mySection('settings'));
+      expect(currentLocation(tester), AppRoutes.mySection('support'));
     });
   });
 }

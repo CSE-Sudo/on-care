@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -347,35 +348,77 @@ void main() {
     );
   });
 
-  testWidgets('회원 카드는 급한 신호 두 개와 나머지 +N 을 보여 준다 (#2204)', (
+  testWidgets('회원 카드가 기록된 날의 주간 루틴 이행률을 보여 준다 (#1284)', (tester) async {
+    await openWide(tester);
+    await scrollToCard(tester, '배준혁');
+
+    final clientCard = find.ancestor(
+      of: find.text('배준혁'),
+      matching: find.byType(ClientCard),
+    );
+    final progress = find.descendant(
+      of: clientCard,
+      matching: find.byKey(
+        const ValueKey<String>('client-weekly-adherence-seed-client-9'),
+      ),
+    );
+    expect(progress, findsOneWidget);
+    final renderedClient = tester.widget<ClientCard>(clientCard).client;
+    final expected = recordedCompletionMean(renderedClient)!;
+    expect(
+      find.descendant(
+        of: clientCard,
+        matching: find.text('${expected.round()}%'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<AppProgressBar>(progress).value,
+      closeTo(expected / 100, 0.001),
+    );
+  });
+
+  testWidgets('루틴 기록이 없는 회원은 0%가 아니라 미집계로 표시한다 (#1284)', (tester) async {
+    await openWide(tester);
+    await scrollToCard(tester, '임도현');
+
+    final clientCard = find.ancestor(
+      of: find.text('임도현'),
+      matching: find.byType(ClientCard),
+    );
+    expect(
+      find.descendant(of: clientCard, matching: find.text('미집계')),
+      findsOneWidget,
+    );
+    final progress = find.descendant(
+      of: clientCard,
+      matching: find.byKey(
+        const ValueKey<String>('client-weekly-adherence-seed-client-7'),
+      ),
+    );
+    expect(tester.widget<AppProgressBar>(progress).value, 0);
+  });
+
+  testWidgets('회원 목록 행에는 신호 배지가 없다 — 배지는 회원 상세에서 본다 (#2258)', (
     tester,
   ) async {
     await openWide(tester);
 
-    // 오세라: 통증·불편 · 운동 목표 28% · 칼로리 과다 · 답장 대기.
+    // 오세라는 통증·불편 · 운동 목표 · 칼로리 신호와 답장 대기를 든 회원이다.
     final seraCard = find.byKey(const ValueKey<String>('client-seed-client-8'));
-    final badges = find.descendant(
-      of: seraCard,
-      matching: find.byType(AppTag),
-    );
+    expect(seraCard, findsOneWidget);
     expect(
-      tester.widgetList<AppTag>(badges).map((t) => t.label).toList(),
-      <String>['통증·불편', '운동 목표 28%', '+2'],
-    );
-    // 주의 신호는 모두 빨강이다 — 세기를 색으로 나누지 않는다(#690).
-    expect(
-      tester.widgetList<AppTag>(badges).take(2).map((t) => t.tone).toSet(),
-      <AppTagTone>{AppTagTone.danger},
-    );
-    // 주간 이행률 막대는 없다 — 기록 끊김·운동 목표 미달이 대신한다.
-    expect(find.text('주간 이행률'), findsNothing);
-    expect(find.byType(AppProgressBar), findsNothing);
-
-    // 신호가 없는 회원은 배지 줄 자체가 없다.
-    await scrollToCard(tester, '이지수');
-    expect(
-      find.byKey(const ValueKey<String>('client-signals-seed-client-2')),
+      find.descendant(of: seraCard, matching: find.byType(AppTag)),
       findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: seraCard,
+        matching: find.byKey(
+          const ValueKey<String>('client-weekly-adherence-seed-client-8'),
+        ),
+      ),
+      findsOneWidget,
     );
   });
 
