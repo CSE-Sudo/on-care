@@ -2804,6 +2804,114 @@ abstract class AppLocalizations {
   /// **'Couldn\'t mark it complete. Please try again'**
   String get schedCompleteFailed;
 
+  /// No description provided for @schedGroupProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'PT program'**
+  String get schedGroupProgram;
+
+  /// No description provided for @schedGroupPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get schedGroupPersonal;
+
+  /// No description provided for @schedRoutinesGoesOnComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Goes to the member together with this PT\'s program.'**
+  String get schedRoutinesGoesOnComplete;
+
+  /// No description provided for @schedRoutinesNotSentYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent to the member yet.'**
+  String get schedRoutinesNotSentYet;
+
+  /// No description provided for @schedRoutinesSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the personal exercise?'**
+  String get schedRoutinesSendTitle;
+
+  /// No description provided for @schedEditRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal exercise'**
+  String get schedEditRoutines;
+
+  /// No description provided for @schedEditRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal exercise'**
+  String get schedEditRoutinesTitle;
+
+  /// No description provided for @schedEditRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.'**
+  String get schedEditRoutinesBody;
+
+  /// No description provided for @schedRoutinesSendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.'**
+  String get schedRoutinesSendBody;
+
+  /// No description provided for @schedRoutinesSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send personal exercise'**
+  String get schedRoutinesSend;
+
+  /// No description provided for @schedRoutinesSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t send'**
+  String get schedRoutinesSkip;
+
+  /// No description provided for @schedSendProgramWithRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the {date} PT program and personal exercise'**
+  String schedSendProgramWithRoutines(String date);
+
+  /// No description provided for @schedRoutineSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get schedRoutineSent;
+
+  /// No description provided for @schedRoutinesSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent the personal exercise to the member.'**
+  String get schedRoutinesSent;
+
+  /// No description provided for @schedRoutinesSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the personal exercise. Please try again.'**
+  String get schedRoutinesSendFailed;
+
+  /// No description provided for @schedRoutinesSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as not sent.'**
+  String get schedRoutinesSkipped;
+
+  /// No description provided for @schedRoutinesUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise updated.'**
+  String get schedRoutinesUpdated;
+
+  /// No description provided for @schedRoutinesUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the personal exercise. Please try again.'**
+  String get schedRoutinesUpdateFailed;
+
   /// No description provided for @schedTimeRange.
   ///
   /// In en, this message translates to:
@@ -3293,8 +3401,8 @@ abstract class AppLocalizations {
   /// No description provided for @schedSentProgramTo.
   ///
   /// In en, this message translates to:
-  /// **'Sent {name} the PT program for {date}'**
-  String schedSentProgramTo(String name, String date);
+  /// **'Send the {date} PT program'**
+  String schedSentProgramTo(String date);
 
   /// No description provided for @slotPastTime.
   ///
@@ -4745,7 +4853,7 @@ abstract class AppLocalizations {
   /// No description provided for @progPersonalRoutinesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Personal exercise going with it'**
+  /// **'Personal exercise for this PT'**
   String get progPersonalRoutinesTitle;
 
   /// No description provided for @progPersonalRoutinesCount.

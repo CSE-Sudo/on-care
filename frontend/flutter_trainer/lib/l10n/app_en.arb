@@ -1070,6 +1070,25 @@
     }
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
+  "schedGroupProgram": "PT program",
+  "schedGroupPersonal": "Personal exercise",
+  "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
+  "schedRoutinesNotSentYet": "Not sent to the member yet.",
+  "schedRoutinesSendTitle": "Send the personal exercise?",
+  "schedEditRoutines": "Edit personal exercise",
+  "schedEditRoutinesTitle": "Edit personal exercise",
+  "schedEditRoutinesBody": "This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.",
+  "schedRoutinesSendBody": "This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.",
+  "schedRoutinesSend": "Send personal exercise",
+  "schedRoutinesSkip": "Don't send",
+  "schedSendProgramWithRoutines": "Send the {date} PT program and personal exercise",
+  "@schedSendProgramWithRoutines": {"placeholders": {"date": {"type": "String"}}},
+  "schedRoutineSent": "Sent",
+  "schedRoutinesSent": "Sent the personal exercise to the member.",
+  "schedRoutinesSendFailed": "Couldn't send the personal exercise. Please try again.",
+  "schedRoutinesSkipped": "Marked as not sent.",
+  "schedRoutinesUpdated": "Personal exercise updated.",
+  "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
   "schedTimeRange": "{start}–{end}",
   "@schedTimeRange": {
     "placeholders": {
@@ -1242,12 +1261,9 @@
       }
     }
   },
-  "schedSentProgramTo": "Sent {name} the PT program for {date}",
+  "schedSentProgramTo": "Send the {date} PT program",
   "@schedSentProgramTo": {
     "placeholders": {
-      "name": {
-        "type": "String"
-      },
       "date": {
         "type": "String"
       }
@@ -1681,7 +1697,7 @@
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }
   },
-  "progPersonalRoutinesTitle": "Personal exercise going with it",
+  "progPersonalRoutinesTitle": "Personal exercise for this PT",
   "progPersonalRoutinesCount": "{count} personal exercises going with it",
   "@progPersonalRoutinesCount": {
     "placeholders": {

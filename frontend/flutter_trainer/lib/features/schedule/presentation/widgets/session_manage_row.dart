@@ -84,10 +84,15 @@ class SessionEditMenu extends StatelessWidget {
     required this.hasProgram,
     this.showEditNote = true,
     this.showEditProgram = true,
+    this.onEditRoutines,
     required this.onDelete,
   });
   final VoidCallback onEditSchedule;
   final VoidCallback onEditProgram;
+
+  /// `개인운동 수정` — 아직 보내지 않은 개인운동이 붙어 있을 때만 준다.
+  /// (#2224)
+  final VoidCallback? onEditRoutines;
 
   /// 운동 목록 없이 메모만 여는 자리. 세션 종류와 상관없이 있다(#1011).
   final VoidCallback onEditNote;
@@ -135,6 +140,16 @@ class SessionEditMenu extends StatelessWidget {
           icon: Icons.fitness_center_rounded,
           label: l.progEditTitle,
           onSelected: onEditProgram,
+        ),
+      // 이 PT 에 붙은 개인운동을 바로 고친다(#2224). **아직 보내지 않았을
+      // 때만** 선다 — 보낸 뒤에 바뀌면 회원이 어제 본 목록과 오늘 본 목록이
+      // 말없이 달라진다. 서버도 `scheduled` 만 고친다.
+      if (onEditRoutines != null)
+        AppMenuItem(
+          key: const ValueKey<String>('session-edit-routines-chip'),
+          icon: Icons.directions_run_rounded,
+          label: l.schedEditRoutines,
+          onSelected: onEditRoutines,
         ),
       if (showEditNote)
         AppMenuItem(

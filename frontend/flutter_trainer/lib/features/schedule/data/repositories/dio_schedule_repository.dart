@@ -289,6 +289,60 @@ class DioScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
+    );
+    return <SessionRoutine>[
+      for (final row in res.data ?? const <dynamic>[])
+        SessionRoutine(
+          exercise: scheduledRoutineFromJson(row as Map<String, dynamic>),
+          // 서버는 아직 보내지 않은 건에만 `pending_send` 를 세운다(#2224).
+          // 이 칸이 없는 옛 응답은 보낸 것으로 읽는다 — 목록에 남아 있다는
+          // 사실만으로 보낼 것이라고 단정하면 두 번 보내게 된다.
+          sent: (row['pending_send'] as bool?) != true,
+        ),
+    ];
+  }
+
+  @override
+  Future<void> updateScheduledRoutines(
+    String id,
+    List<RoutineExercise> items,
+  ) async {
+    await _mutate(
+      () => _dio.put<List<dynamic>>(
+        '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
+        data: <String, Object?>{'personal_routines': personalRoutinesToJson(items)},
+      ),
+    );
+  }
+
+  @override
+  Future<void> sendScheduledRoutines(
+    String id, {
+    List<RoutineExercise>? items,
+  }) async {
+    await _mutate(
+      () => _dio.post<Map<String, dynamic>>(
+        '/trainer/schedule/${Uri.encodeComponent(id)}/routines/send',
+        data: <String, Object?>{
+          if (items != null) 'personal_routines': personalRoutinesToJson(items),
+        },
+      ),
+    );
+  }
+
+  @override
+  Future<void> dismissScheduledRoutines(String id) async {
+    await _mutate(
+      () => _dio.post<Map<String, dynamic>>(
+        '/trainer/schedule/${Uri.encodeComponent(id)}/routines/dismiss',
+      ),
+    );
+  }
+
+  @override
   Future<RecurrencePreview> previewRecurring({
     required DateTime start,
     required String time,

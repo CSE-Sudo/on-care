@@ -136,10 +136,50 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
   }) async {}
 
   @override
+  /// 데모에는 받을 회원 백엔드가 없지만 **배정 목록에는 남긴다**(#2224).
+  ///
+  /// 아무것도 하지 않던 동안에는 `개인운동만 전송` 이 성공했다고 말해 놓고
+  /// 전송 이력이 그대로였다 — 같은 탭의 PT 등록은 실제로 반영되므로, 두 경로가
+  /// 다르게 움직여 데모로 흐름을 확인할 수 없었다.
   Future<void> assignProgram(
     String memberId,
     Map<String, Object?> payload,
-  ) async {}
+  ) async {
+    final sessions = payload['sessions'];
+    if (sessions is! List) return;
+    final DateTime? date = _parseDate(payload['start_date']);
+    final added = <AssignedRoutine>[
+      for (final session in sessions)
+        if (session is Map<String, Object?>)
+          for (final ex in (session['exercises'] as List<Object?>? ??
+              const <Object?>[]))
+            if (ex is Map<String, Object?>)
+              AssignedRoutine(
+                id: 'demo-${DateTime.now().microsecondsSinceEpoch}-'
+                    '${(ex['name'] as String?) ?? ''}',
+                name: (ex['name'] as String?) ?? '',
+                minutes: (ex['duration'] as num?)?.toInt() ?? 0,
+                type: (ex['type'] as String?) ?? '기타',
+                reason: '',
+                source: (ex['source'] as String?) ?? 'trainer',
+                date: date,
+                sets: (ex['sets'] as num?)?.toInt(),
+                reps: (ex['reps'] as num?)?.toInt(),
+                holdSeconds: (ex['hold_seconds'] as num?)?.toInt(),
+                weight: (ex['weight'] as num?)?.toDouble(),
+              ),
+    ];
+    if (added.isEmpty) return;
+    // 새로 보낸 것이 맨 앞이다 — 목록은 최신순이다.
+    _byMember[memberId] = <AssignedRoutine>[
+      ...added,
+      ..._listFor(memberId),
+    ];
+    _emit(memberId);
+  }
+
+  static DateTime? _parseDate(Object? value) =>
+      value is String ? DateTime.tryParse(value) : null;
 
   @override
   Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId) {
