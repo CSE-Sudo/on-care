@@ -20,7 +20,7 @@ PT 를 완료할 때 회원에게 간다(#2224). 지금까지 `trainer_routines`
 `status` 에는 새 값 `scheduled`(일정에 붙었고 아직 전송 전)가 생긴다. 컬럼이
 `String(20)` 에 제약 없는 자유 문자열이라 스키마 변경은 없다.
 
-Revision ID: 0090_routine_schedule_link
+Revision ID: 0092_routine_schedule_link
 Revises: 0089_emote_unlocks
 """
 from __future__ import annotations
@@ -30,8 +30,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0090_routine_schedule_link"
-down_revision: str | Sequence[str] | None = "0089_emote_unlocks"
+revision: str = "0092_routine_schedule_link"
+down_revision: str | Sequence[str] | None = "0091_diet_advice_states"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
