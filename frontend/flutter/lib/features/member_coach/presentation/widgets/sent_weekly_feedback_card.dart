@@ -164,7 +164,7 @@ class _Answer extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         SizedBox(
-          width: 72,
+          width: OnCareSpacing.s48 + OnCareSpacing.s24,
           child: Text(
             label,
             style: tokens

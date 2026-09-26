@@ -139,11 +139,7 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
         subtitle: l.coachReportSentOn(sentAt.month, sentAt.day),
         leading: const AppIcon(AppIcons.document),
         trailing: _opening
-            ? const SizedBox(
-                width: OnCareSize.iconMedium,
-                height: OnCareSize.iconMedium,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+            ? const AppLoading.inline()
             : const AppIcon(AppIcons.chevronRight),
         onTap: _opening ? null : _open,
       ),

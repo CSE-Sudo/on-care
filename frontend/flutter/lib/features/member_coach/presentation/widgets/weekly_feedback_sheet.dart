@@ -11,6 +11,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/weekly_feedback_labels.dart';
@@ -204,7 +205,7 @@ class _WeeklyFeedbackSheetState extends ConsumerState<WeeklyFeedbackSheet> {
                           '${_painOn!.month}/${_painOn!.day}',
                 variant: AppButtonVariant.secondary,
                 size: OnCareButtonSize.small,
-                leadingIcon: Icons.event_rounded,
+                leadingIcon: AppIcons.calendar,
                 onPressed: _pickPainDate,
               ),
             ),
@@ -317,7 +318,7 @@ class WeeklyConditionTile extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         color: selected
-            ? brand.withValues(alpha: OnCareAlpha.subtle)
+            ? OnCareColors.onWhite(brand, OnCareAlpha.subtle)
             : OnCareColors.surfaceCard,
         shape: RoundedRectangleBorder(
           borderRadius: OnCareRadius.smAll,
@@ -337,7 +338,7 @@ class WeeklyConditionTile extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(emoji, style: const TextStyle(fontSize: 26)),
+                Text(emoji, style: OnCareTypography.display),
                 const SizedBox(height: OnCareSpacing.s4),
                 Text(
                   label,
