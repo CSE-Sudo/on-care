@@ -16,6 +16,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Conversation-style AI routine builder.
@@ -335,7 +336,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ],
       KeyedSubtree(
         key: _topKey,
-        child: _ProgressStepper(
+        child: ProgressStepper(
+          keyPrefix: 'routine-stage',
+          labels: <String>[l.aiStepConditions, l.aiStepReview, l.aiStepDone],
+          semanticsLabel: l.aiStepperLabel,
           stage: _stage,
           maxReachedStage: _maxReachedStage,
           onStageTap: _goToStage,
@@ -1538,139 +1542,6 @@ class _RoutineChoice {
 /// 옅은 회색 채움·얇은 테두리·회색 번호다. 첫 단계는 왼쪽 끝, 가운데 단계는
 /// 가운데, 마지막 단계는 오른쪽 끝에 서고 이름도 같은 쪽으로 정렬한다.
 /// 이미 지난 단계(원·이름)를 누르면 그 단계로 간다. 단계마다 Key 를 둔다.
-class _ProgressStepper extends StatelessWidget {
-  const _ProgressStepper({
-    required this.stage,
-    required this.maxReachedStage,
-    required this.onStageTap,
-  });
-
-  final int stage;
-  final int maxReachedStage;
-  final ValueChanged<int> onStageTap;
-
-  /// 단계 이름. 로케일을 따르므로 const 로 둘 수 없다. (#501)
-  static List<String> _steps(AppLocalizations l) => <String>[
-    l.aiStepConditions,
-    l.aiStepReview,
-    l.aiStepDone,
-  ];
-
-  /// 번호 원의 지름.
-  static const double _circle = OnCareSize.avatarMedium;
-
-  void _tap(int index) {
-    if (index <= maxReachedStage) onStageTap(index);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final List<String> steps = _steps(l);
-    final int last = steps.length - 1;
-    return Semantics(
-      label: l.aiStepperLabel,
-      child: Stack(
-        children: <Widget>[
-          // 첫 원의 가운데에서 마지막 원의 가운데까지 잇는 가는 선. 원이
-          // 불투명해 선은 원 사이에서만 보인다.
-          const Positioned(
-            top: (_circle - OnCareSize.hairline) / 2,
-            left: _circle / 2,
-            right: _circle / 2,
-            child: ColoredBox(
-              color: OnCareColors.lineSubtle,
-              child: SizedBox(height: OnCareSize.hairline),
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              for (int index = 0; index < steps.length; index++)
-                Expanded(
-                  child: Align(
-                    alignment: index == 0
-                        ? Alignment.topLeft
-                        : index == last
-                        ? Alignment.topRight
-                        : Alignment.topCenter,
-                    child: _step(tokens, steps[index], index, last),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _step(OnCareTokens tokens, String label, int index, int last) {
-    final bool current = index == stage;
-    final CrossAxisAlignment align = index == 0
-        ? CrossAxisAlignment.start
-        : index == last
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.center;
-    final TextAlign textAlign = index == 0
-        ? TextAlign.start
-        : index == last
-        ? TextAlign.end
-        : TextAlign.center;
-    return InkWell(
-      key: ValueKey<String>('routine-stage-$index'),
-      borderRadius: OnCareRadius.smAll,
-      onTap: index <= maxReachedStage ? () => _tap(index) : null,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: align,
-        children: <Widget>[
-          Container(
-            width: _circle,
-            height: _circle,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: current ? tokens.brand.primary : OnCareColors.surfaceInput,
-              border: current
-                  ? null
-                  : Border.all(color: OnCareColors.lineStrong),
-            ),
-            child: Text(
-              '${index + 1}',
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.label))
-                  .copyWith(
-                    color: current
-                        ? OnCareColors.textOnFill
-                        : OnCareColors.textSecondary,
-                  ),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: textAlign,
-            style: tokens
-                .text(
-                  current
-                      ? OnCareTypography.strong(OnCareTypography.caption)
-                      : OnCareTypography.caption,
-                )
-                .copyWith(
-                  color: current
-                      ? OnCareColors.textPrimary
-                      : OnCareColors.textTertiary,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// AI 가 말하는 구획의 제목 — AI 아이콘 + `titleSmall`.
 class _AssistantLabel extends StatelessWidget {
   const _AssistantLabel({required this.text});
