@@ -173,6 +173,33 @@ class MockExerciseRepository implements ExerciseRepository {
   }
 
   @override
+  Future<List<ExercisePeriodWeek>> fetchPeriod({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    // 데모도 실서버와 같은 규칙이다(#2247) — 구간이 걸친 주를 빠짐없이 채우고,
+    // `from` 이 없으면 픽스처가 들고 있는 가장 이른 주부터다.
+    final DateTime today = nowKst();
+    final DateTime lastMonday = _mondayOf(to ?? today);
+    final DateTime firstMonday = _mondayOf(
+      from ??
+          today.subtract(
+            Duration(days: 7 * (_fixture.historyWeeks - 1)),
+          ),
+    );
+    final List<ExercisePeriodWeek> weeks = <ExercisePeriodWeek>[];
+    DateTime cursor = firstMonday;
+    while (!cursor.isAfter(lastMonday)) {
+      weeks.add((weekStart: cursor, week: await fetchWeek(cursor)));
+      cursor = DateTime(cursor.year, cursor.month, cursor.day + 7);
+    }
+    return weeks;
+  }
+
+  DateTime _mondayOf(DateTime day) =>
+      DateTime(day.year, day.month, day.day - (day.weekday - 1));
+
+  @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
     final int weeksAgo = _weeksAgo(weekStart);

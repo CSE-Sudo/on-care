@@ -256,6 +256,18 @@ class _FixedClientRepository implements ClientRepository {
     Map<String, Object?> values,
   ) => fetchHealthProfile(clientId);
   @override
+  Future<List<ClientExercisePeriodWeek>> fetchExercisePeriod(
+    String clientId,
+    ClientDateRange range,
+  ) async => <ClientExercisePeriodWeek>[
+    for (final DateTime monday in clientRangeWeekStarts(range))
+      (
+        weekStart: monday,
+        week: await fetchExerciseWeek(clientId, weekStart: monday),
+      ),
+  ];
+
+  @override
   Future<ClientExerciseWeek> fetchExerciseWeek(
     String clientId, {
     DateTime? weekStart,

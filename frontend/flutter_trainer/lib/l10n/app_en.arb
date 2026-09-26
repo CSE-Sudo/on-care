@@ -340,6 +340,8 @@
       }
     }
   },
+  "clientWeeklyRoutineAdherence": "Weekly adherence",
+  "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
   "clientsSignalRecordGap": "No logs",
   "clientsSignalRecordGapDays": "No logs {days}d",
@@ -407,14 +409,6 @@
     }
   },
   "clientsSignalUnanswered": "Awaiting reply",
-  "clientsSignalMore": "+{count}",
-  "@clientsSignalMore": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "clientsAttentionClear": "Clear attention filter",
   "memberHealthLoadFailed": "Couldn't load the member profile. Please try again",
   "memberHealthSaveFailed": "Couldn't save the member profile. Please try again",

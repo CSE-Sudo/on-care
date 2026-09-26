@@ -151,50 +151,43 @@ class ExerciseDayBar {
 
 /// `전체` 기간의 일별 운동 — **첫 기록 주부터 이번 주까지**다. (#2079)
 ///
-/// 주 단위로 읽어 이어 붙인다 — 서버가 운동 이력을 주 단위로 들고 있어서다
-/// (트레이너 화면도 같은 방식으로 읽는다). 거슬러 갈 주 수는 첫 기록일
-/// ([recordSpanProvider])이 정하고, 그 값이 없으면 이번 주 한 주다.
+/// 기간을 `GET /exercise/weeks?from=&to=` **한 번**으로 받는다(#2247). 예전에는
+/// 주마다 [exercisePastWeekProvider] 를 불렀는데, `전체` 가 모든 기록을 그리게
+/// 되면서 해가 바뀐 회원에게 쉰 번이 넘는 왕복이 됐다.
 ///
-/// 이번 주만 [exerciseWeekProvider] 에서 가져온다 — 같은 주를 두 곳에서 따로
-/// 읽으면 화면마다 다른 수치를 갖는다(#671).
+/// 이번 주만 [exerciseWeekProvider] 의 값으로 덮는다 — 같은 주를 두 곳에서 따로
+/// 읽으면 화면마다 다른 수치를 갖는다(#671). 기간 응답에도 이번 주가 들어 있지만,
+/// 방금 추가한 기록은 그 캐시에만 반영돼 있다.
 final exerciseAllPeriodProvider = FutureProvider<List<ExerciseDayBar>>((
   ref,
 ) async {
   final DateTime today = DateTime(nowKst().year, nowKst().month, nowKst().day);
   final DateTime thisMonday = mondayOfWeek(today);
-  final int weeks = exerciseAllPeriodWeeks(
-    ref.watch(recordSpanProvider).valueOrNull?.exerciseFirstDate,
-    today,
+  final DateTime? firstRecord = ref
+      .watch(recordSpanProvider)
+      .valueOrNull
+      ?.exerciseFirstDate;
+  final int weeks = exerciseAllPeriodWeeks(firstRecord, today);
+  final DateTime firstMonday = DateTime(
+    thisMonday.year,
+    thisMonday.month,
+    thisMonday.day - (weeks - 1) * 7,
   );
 
-  // watch 는 await 이전에 모두 걸어 둔다 — 한 주라도 바뀌면 전체도 다시
-  // 계산되고, 요청은 순차가 아니라 한꺼번에 나간다.
-  final List<Future<ExerciseWeek>> pending = <Future<ExerciseWeek>>[
-    for (int back = weeks - 1; back >= 1; back--)
-      ref.watch(
-        exercisePastWeekProvider(
-          DateTime(
-            thisMonday.year,
-            thisMonday.month,
-            thisMonday.day - back * 7,
-          ),
-        ).future,
-      ),
-  ];
-  final List<ExerciseWeek> past = await Future.wait(pending);
-  final ExerciseWeek thisWeek = await ref.watch(exerciseWeekProvider.future);
+  // watch 는 await 이전에 걸어 둔다 — 이번 주가 바뀌면 전체도 다시 계산된다.
+  final Future<ExerciseWeek> current = ref.watch(exerciseWeekProvider.future);
+  final List<ExercisePeriodWeek> period = await ref
+      .watch(exerciseRepositoryProvider)
+      .fetchPeriod(from: firstMonday, to: today);
+  final ExerciseWeek thisWeek = await current;
 
   double at(List<double> xs, int i) => i < xs.length ? xs[i] : 0;
 
   final List<ExerciseDayBar> days = <ExerciseDayBar>[];
-  for (int w = 0; w < past.length + 1; w++) {
-    final ExerciseWeek week = w < past.length ? past[w] : thisWeek;
-    final int back = weeks - 1 - w;
-    final DateTime monday = DateTime(
-      thisMonday.year,
-      thisMonday.month,
-      thisMonday.day - back * 7,
-    );
+  for (final ExercisePeriodWeek entry in period) {
+    final DateTime monday = entry.weekStart;
+    final bool isThisWeek = !monday.isBefore(thisMonday);
+    final ExerciseWeek week = isThisWeek ? thisWeek : entry.week;
     for (int d = 0; d < 7; d++) {
       final DateTime date = DateTime(monday.year, monday.month, monday.day + d);
       // 아직 오지 않은 날은 칸을 만들지 않는다 — 빈 칸이 "안 했다" 로 읽힌다.

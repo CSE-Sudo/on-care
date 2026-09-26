@@ -231,7 +231,20 @@ class DietAdviceResponse(BaseModel):
     from_date: str
     to_date: str
     days_logged: int
+    #: 한국어 평문 — 아래 두 문장을 이은 것(`**` 표시는 뗀다). 두 문장을 모르는 옛
+    #: 앱이 그대로 보여 준다.
     message: str
+    #: 규칙 한 줄 (#2251). 굵게 보일 곳은 `**` 로 감싼다. [analysis_key] 가 있으면
+    #: 앱이 그 키와 값으로 자기 언어의 문장을 그리고, 모르는 키면 이 문장을 쓴다.
+    analysis: str = ""
+    analysis_key: str | None = None
+    analysis_params: dict[str, int | str] = Field(default_factory=dict)
+    #: 다음 할 일 한 문장. 키가 없으면 AI 가 요청 언어(`lang`)로 만든 문장이다.
+    action: str = ""
+    action_key: str | None = None
+    action_params: dict[str, int | str] = Field(default_factory=dict)
+    #: 다음 할 일의 출처 — `plan`(4주 추천 메뉴 리스트)·`rules`·`llm`. 문장이 없으면 null.
+    action_source: str | None = None
 
 
 class DietDayTotalsOut(BaseModel):
