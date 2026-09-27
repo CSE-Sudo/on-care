@@ -239,13 +239,13 @@ def test_a_new_member_without_history_is_not_counted_as_a_fallback(
     email = f"metrics-newbie-{uuid.uuid4().hex[:8]}@example.com"
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email, name="신규",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.commit()
     try:
         token = client.post(
-            "/v1/auth/login", data={"username": email, "password": "pw!"}
+            "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
         ).json()["access_token"]
         metrics.reset()
 
@@ -272,10 +272,10 @@ def test_metrics_endpoint_forbidden_for_a_normal_user(client):
     email = "metrics-viewer@example.com"
     client.post(
         "/v1/auth/register",
-        json={"email": email, "password": "pw!", "name": "u"},
+        json={"email": email, "password": "test-pw-1234", "name": "u"},
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
 
     assert client.get("/v1/system/metrics", headers=_headers(token)).status_code == 403

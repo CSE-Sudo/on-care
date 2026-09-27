@@ -17,6 +17,7 @@ String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
       AppInputError.phoneInvalid => l.authErrPhoneInvalid,
       AppInputError.passwordEmpty => l.authErrPasswordEmpty,
       AppInputError.passwordWeak => l.authErrPasswordWeak,
+      AppInputError.passwordTooLong => l.authErrPasswordTooLong,
       AppInputError.passwordMismatch => l.authErrPasswordMismatch,
       // 생년월일 칸도 트레이너웹에는 없다 — 같은 이유로 둔다(#1887).
       AppInputError.birthDateInvalid => l.authErrBirthDateInvalid,

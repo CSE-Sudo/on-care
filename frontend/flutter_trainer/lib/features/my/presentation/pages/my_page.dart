@@ -565,6 +565,7 @@ class _MyPageState extends ConsumerState<MyPage> {
                   ? l.myChangePasswordHint
                   : l.myChangePasswordDemo,
               trailing: AppButton(
+                key: const ValueKey<String>('change-password'),
                 label: l.actionChange,
                 leadingIcon: Icons.key_rounded,
                 variant: AppButtonVariant.secondary,
@@ -1708,9 +1709,10 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
   /// 비밀번호 sent people to fix the wrong box.
   _PasswordField? _errorField;
 
-  /// Matches the server's `TrainerPasswordChange.new_password` minimum —
-  /// checking here too saves a round trip and a confusing 400.
-  static const int _minLength = 8;
+  /// 새 비밀번호 칸 안내에 쓰는 최소 길이. 규칙 자체는 가입과 같은
+  /// [AppInputRules.signUpPassword] 다 — 서버 `TrainerPasswordChange` 도 같은
+  /// 기준을 본다(#1555).
+  static const int _minLength = AppInputRules.passwordMinLength;
 
   @override
   void dispose() {
@@ -1729,9 +1731,15 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       _fail(_PasswordField.current, l.myPwCurrentRequired);
       return;
     }
-    if (next.length < _minLength) {
-      final AppLocalizations l = AppLocalizations.of(context);
-      _fail(_PasswordField.next, l.myPwTooShort(_minLength));
+    // 가입과 같은 기준으로 먼저 본다(#1555). 전에는 길이만 봐서 숫자만 쓴
+    // 값은 서버에서 막혔고, 그 422 가 현재 비밀번호 칸 아래에 뜨는 엉뚱한
+    // 자리에 붙었다.
+    final String? nextError = authInputErrorText(
+      AppLocalizations.of(context),
+      AppInputRules.signUpPassword(next),
+    );
+    if (nextError != null) {
+      _fail(_PasswordField.next, nextError);
       return;
     }
     if (next != _confirm.text) {
@@ -1749,6 +1757,16 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       await ref
           .read(trainerAccountRepositoryProvider)
           .changePassword(currentPassword: current, newPassword: next);
+    } on NewPasswordRejected catch (e) {
+      // 새 비밀번호가 서버 기준에 걸렸다 — 새 비밀번호 칸 아래에 이 앱의 문구로.
+      if (mounted) {
+        final AppLocalizations l = AppLocalizations.of(context);
+        _fail(
+          _PasswordField.next,
+          authInputErrorText(l, e.reason) ?? l.myPwChangeFailed,
+        );
+      }
+      return;
     } on ValidationError catch (e) {
       // The server's own wording (현재 비밀번호가 일치하지 않습니다 …) is
       // more useful than anything generic we could substitute, and it is
@@ -1812,6 +1830,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           AppTextField(
+            key: const ValueKey<String>('password-current'),
             controller: _current,
             label: l.myPwCurrent,
             obscureText: true,
@@ -1820,6 +1839,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
           ),
           const SizedBox(height: OnCareSpacing.s16),
           AppTextField(
+            key: const ValueKey<String>('password-new'),
             controller: _next,
             label: l.myPwNew(_minLength),
             obscureText: true,
@@ -1828,6 +1848,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
           ),
           const SizedBox(height: OnCareSpacing.s16),
           AppTextField(
+            key: const ValueKey<String>('password-confirm'),
             controller: _confirm,
             label: l.myPwConfirm,
             obscureText: true,

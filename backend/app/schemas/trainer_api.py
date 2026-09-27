@@ -42,6 +42,7 @@ from app.schemas.health_goal_ranges import (
 )
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.points_api import PointsOut
+from app.services.password_policy import check_new_password
 from app.services import contact_format
 from app.services import health_focus
 from app.services import exercise_types
@@ -1730,8 +1731,18 @@ class TrainerPasswordChange(BaseModel):
     현재 비밀번호를 요구하는 이유: 토큰이 탈취된 상태에서 비밀번호까지
     바꿔 계정을 완전히 뺏기는 경로를 막는다.
     """
+    #: 지금 쓰는 비밀번호는 기준 이전에 만든 것일 수 있어 새 기준을 보지 않는다
+    #: — 여기서 막으면 약한 비밀번호를 가진 계정이 그 비밀번호를 바꿀 길이 없다.
     current_password: str = Field(min_length=1, max_length=200)
-    new_password: str = Field(min_length=8, max_length=200)
+    #: 가입과 같은 기준(`password_policy.check_new_password`, #1555). 전에는
+    #: 8~200자만 봐서 가입 화면이 막는 `12345678` 도, bcrypt 가 앞 72바이트만
+    #: 보는 200자짜리도 새 비밀번호로 받았다.
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return check_new_password(value)
 
 
 # ---- 알림 수신 설정 (#379) ----

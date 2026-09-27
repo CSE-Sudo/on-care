@@ -83,10 +83,10 @@ def test_member_can_log_what_a_trainer_can_assign(client):
     """
     email = "exlimits@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 

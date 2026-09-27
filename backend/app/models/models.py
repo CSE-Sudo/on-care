@@ -1369,7 +1369,19 @@ class TrainerClient(Base):
     #: 트레이너는 담당이 되는 순간 회원의 건강 기록을 읽는다. 그 동의를 언제
     #: 받았는지 답할 수 있어야 하므로 링크에 함께 남긴다. 비어 있는 링크는 이
     #: 기능 이전에 만들어진 것이다.
+    #:
+    #: 담당이 끝나면(회원 해제·트레이너 해제) 비운다 — 담당 해제가 곧 동의
+    #: 철회다. 링크를 되살릴 때는 그 연결의 새 동의만 여기에 적는다. (#1631)
     data_consent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: 마지막으로 동의가 철회된 시각. (#1631)
+    #:
+    #: `data_consent_at` 을 비우기만 하면 "동의를 받은 적 없는 옛 링크"와
+    #: "동의했다가 철회한 링크"가 구분되지 않는다. 이 값이 있고 동의가 비어
+    #: 있으면 트레이너는 이 회원의 기록을 열 수 없다(`consent_blocks_access`).
+    #: 다시 동의해도 지우지 않는다 — 언제 철회했는지는 이력으로 남는다.
+    data_consent_revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     #: 트레이너의 관리 상태 — True 면 화면에 '휴면'으로 보인다.

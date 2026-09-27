@@ -119,9 +119,9 @@ def test_member_unread_and_read(client):
 
 def test_member_without_coach_404(client):
     email = f"m-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
     tok = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     # 담당 트레이너가 없는 회원
     assert client.get("/v1/me/coach", headers=_h(tok)).status_code == 404

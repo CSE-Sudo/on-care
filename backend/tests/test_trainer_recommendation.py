@@ -13,10 +13,10 @@ def _register(client, **onboarding) -> dict:
     """새 회원을 만들고 온보딩까지 마친 뒤 인증 헤더를 준다."""
     email = f"rec-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     if onboarding:

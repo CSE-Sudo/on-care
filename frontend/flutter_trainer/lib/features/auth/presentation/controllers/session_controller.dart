@@ -175,6 +175,8 @@ class SessionController extends StateNotifier<SessionState>
     AuthFailure.unknown ||
     AuthFailure.emailTaken ||
     AuthFailure.inviteCodeInvalid ||
+    AuthFailure.passwordWeak ||
+    AuthFailure.passwordTooLong ||
     AuthFailure.noSocialToken ||
     AuthFailure.emptyCredentials => false,
   };

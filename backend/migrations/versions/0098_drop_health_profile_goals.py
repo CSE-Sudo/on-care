@@ -7,8 +7,8 @@
 
 되돌리면 빈 칸으로 다시 생긴다 — 지운 글은 돌아오지 않는다.
 
-Revision ID: 0097_drop_health_profile_goals
-Revises: 0096_notification_templates
+Revision ID: 0098_drop_health_profile_goals
+Revises: 0097_data_consent_revocation
 """
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0097_drop_health_profile_goals"
-down_revision: str | Sequence[str] | None = "0096_notification_templates"
+revision: str = "0098_drop_health_profile_goals"
+down_revision: str | Sequence[str] | None = "0097_data_consent_revocation"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

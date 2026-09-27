@@ -16,7 +16,11 @@ from starlette.responses import FileResponse
 from app.api.deps import RequireUser
 from app.db.session import get_db
 from app.models.models import ChatMessage, TrainerClient
-from app.services import chat_image_storage, report_pdf_storage
+from app.services import (
+    chat_image_storage,
+    data_consent_service,
+    report_pdf_storage,
+)
 
 router = APIRouter(tags=["chat-attachments"])
 
@@ -47,6 +51,8 @@ def download_chat_attachment(
                 TrainerClient.trainer_id == user.id,
                 TrainerClient.member_id == message.member_id,
                 TrainerClient.active.is_(True),
+                # 동의가 철회된 뒤 새 동의 없는 링크는 열람하지 않는다(#1631).
+                data_consent_service.allows_access_clause(),
             )
         ) is not None
     if not allowed:

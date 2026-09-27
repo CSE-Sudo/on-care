@@ -5,6 +5,20 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
+
+/// 서버가 **새 비밀번호**를 기준 미달로 거절했다(#1555).
+///
+/// 다른 [ValidationError](현재 비밀번호 불일치 등)는 현재 비밀번호 칸의
+/// 문제지만, 이것은 새 비밀번호 칸의 문제다. 서버 문장 대신 [reason] 을 들고
+/// 나가 화면이 자기 로케일의 문구를 새 비밀번호 칸 아래에 붙인다.
+class NewPasswordRejected extends ValidationError {
+  /// [reason] 은 공용 입력 규칙의 오류 종류다.
+  const NewPasswordRejected(this.reason);
+
+  /// 무엇이 기준에 맞지 않았는가.
+  final AppInputError reason;
+}
 
 /// Account-level actions that change credentials.
 ///
@@ -100,6 +114,12 @@ class DioTrainerAccountRepository implements TrainerAccountRepository {
       // 400 carries the server's own reason ("현재 비밀번호가 일치하지
       // 않습니다."), which is exactly what the trainer needs to read.
       final status = e.response?.statusCode;
+      if (status == 422) {
+        final AppInputError? reason = AppInputRules.serverPasswordError(
+          e.response?.data,
+        );
+        if (reason != null) throw NewPasswordRejected(reason);
+      }
       if (status == 400 || status == 422) {
         // 서버가 준 사유가 있으면 그대로, 없으면 화면이 기본 문구를 붙인다.
         throw ValidationError(message: _detail(e));

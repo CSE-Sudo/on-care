@@ -257,6 +257,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use at least 8 characters, including letters and numbers';
 
   @override
+  String get authErrPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
+
+  @override
   String get authErrPhoneInvalid => 'Enter your phone number as 010-0000-0000';
 
   @override
@@ -2362,11 +2366,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPwCurrentRequired => 'Enter your current password';
 
   @override
-  String myPwTooShort(int min) {
-    return 'The new password must be at least $min characters';
-  }
-
-  @override
   String get myPwMismatch => 'The new passwords don\'t match';
 
   @override
@@ -2381,7 +2380,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myPwNew(int min) {
-    return 'New password ($min+ characters)';
+    return 'New password ($min+ characters, letters and numbers)';
   }
 
   @override
@@ -4434,18 +4433,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '$count no-show';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count done';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days days unlogged';
   }
 
   @override
