@@ -345,7 +345,9 @@ class DriftClientRepository implements ClientRepository {
               avatar: String.fromCharCode(trimmedName.runes.first),
               // 목표는 건강 목표만 남긴다 — 고르지 않았으면 비어 있다(#1818).
               goal: healthFocusGoal(goal),
-              lastMessage: '아직 대화가 없어요',
+              // 대화가 없으면 비워 둔다 — 화면이 로케일에 맞춰
+              // "아직 대화가 없어요" 를 그린다.
+              lastMessage: '',
               lastTime: '-',
               active: const Value(true),
               caloriesToday: 0,

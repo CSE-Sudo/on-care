@@ -187,7 +187,9 @@ class DemoClientInviteRepository implements ClientInviteRepository {
               name: prospect.name,
               avatar: String.fromCharCode(prospect.name.runes.first),
               goal: prospect.goal,
-              lastMessage: '아직 대화가 없어요',
+              // 대화가 없으면 비워 둔다 — 화면이 로케일에 맞춰
+              // "아직 대화가 없어요" 를 그린다.
+              lastMessage: '',
               lastTime: '-',
               active: const Value(true),
               caloriesToday: 0,

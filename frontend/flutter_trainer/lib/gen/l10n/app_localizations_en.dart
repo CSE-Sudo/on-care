@@ -954,6 +954,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatInsightBodyPartGeneral => 'Physical';
 
   @override
+  String get chatInsightBodyPartKnee => 'Knee';
+
+  @override
+  String get chatInsightBodyPartBack => 'Back';
+
+  @override
+  String get chatInsightBodyPartAnkle => 'Ankle';
+
+  @override
+  String get chatInsightBodyPartShoulder => 'Shoulder';
+
+  @override
+  String get chatInsightBodyPartWrist => 'Wrist';
+
+  @override
+  String get chatInsightBodyPartNeck => 'Neck';
+
+  @override
   String get chatInsightNegativeTitle => 'Negative feedback detected';
 
   @override
@@ -3278,6 +3296,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messagesNoPreview => 'No messages yet';
+
+  @override
+  String get messagesPreviewEmote => 'Sent an emote';
+
+  @override
+  String get messagesTimeJustNow => 'Just now';
 
   @override
   String get messagesClientDetail => 'Member details';

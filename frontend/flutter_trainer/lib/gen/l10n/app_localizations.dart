@@ -1808,6 +1808,42 @@ abstract class AppLocalizations {
   /// **'Physical'**
   String get chatInsightBodyPartGeneral;
 
+  /// No description provided for @chatInsightBodyPartKnee.
+  ///
+  /// In en, this message translates to:
+  /// **'Knee'**
+  String get chatInsightBodyPartKnee;
+
+  /// No description provided for @chatInsightBodyPartBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get chatInsightBodyPartBack;
+
+  /// No description provided for @chatInsightBodyPartAnkle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ankle'**
+  String get chatInsightBodyPartAnkle;
+
+  /// No description provided for @chatInsightBodyPartShoulder.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder'**
+  String get chatInsightBodyPartShoulder;
+
+  /// No description provided for @chatInsightBodyPartWrist.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrist'**
+  String get chatInsightBodyPartWrist;
+
+  /// No description provided for @chatInsightBodyPartNeck.
+  ///
+  /// In en, this message translates to:
+  /// **'Neck'**
+  String get chatInsightBodyPartNeck;
+
   /// No description provided for @chatInsightNegativeTitle.
   ///
   /// In en, this message translates to:
@@ -5773,6 +5809,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No messages yet'**
   String get messagesNoPreview;
+
+  /// No description provided for @messagesPreviewEmote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent an emote'**
+  String get messagesPreviewEmote;
+
+  /// No description provided for @messagesTimeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get messagesTimeJustNow;
 
   /// No description provided for @messagesClientDetail.
   ///
