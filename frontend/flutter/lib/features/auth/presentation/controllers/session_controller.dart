@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/network/session_refresh.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 
@@ -45,12 +46,22 @@ class AccountCreatedSignInFailed implements Exception {
   String toString() => 'AccountCreatedSignInFailed($cause)';
 }
 
-class SessionController extends StateNotifier<SessionState> {
+class SessionController extends StateNotifier<SessionState>
+    implements SessionTokenRefresher {
   SessionController(this._ref) : super(const SessionState()) {
+    // 실행 중 401 을 받은 인터셉터가 이 컨트롤러로 토큰을 회전한다(#1546).
+    _refreshBridge = _ref.read(sessionRefreshBridgeProvider)..attach(this);
     _restore();
   }
 
   final Ref _ref;
+  late final SessionRefreshBridge _refreshBridge;
+
+  @override
+  void dispose() {
+    _refreshBridge.detach(this);
+    super.dispose();
+  }
 
   /// 사용자가 시작한 흐름(로그인·가입·데모·로그아웃)이 시작됐는가.
   ///
@@ -120,12 +131,14 @@ class SessionController extends StateNotifier<SessionState> {
     try {
       // 아직 세션에 넣지 않은 토큰으로 찔러 본다. 유효한지 모르는 토큰을 먼저
       // 세션에 넣으면 그 사이 앱이 만료된 토큰으로 로그인 상태가 된다.
-      await _ref.read(dioProvider).get<Map<String, Object?>>(
-        '/users/me',
-        options: Options(
-          headers: <String, Object?>{'Authorization': 'Bearer $access'},
-        ),
-      );
+      await _ref
+          .read(dioProvider)
+          .get<Map<String, Object?>>(
+            '/users/me',
+            options: Options(
+              headers: <String, Object?>{'Authorization': 'Bearer $access'},
+            ),
+          );
       if (!mounted || _userActionStarted) return;
       _setToken(access);
       state = const SessionState(status: SessionStatus.authenticated);
@@ -153,10 +166,12 @@ class SessionController extends StateNotifier<SessionState> {
     if (_userActionStarted) return;
     final Map<String, Object?>? data;
     try {
-      final res = await _ref.read(dioProvider).post<Map<String, Object?>>(
-        '/auth/refresh',
-        data: <String, Object?>{'refresh_token': refresh},
-      );
+      final res = await _ref
+          .read(dioProvider)
+          .post<Map<String, Object?>>(
+            '/auth/refresh',
+            data: <String, Object?>{'refresh_token': refresh},
+          );
       data = res.data;
     } on DioException catch (e) {
       // 회전이 실패했다 — 다만 느린 호출 중에 사용자가 로그인·데모를 시작했을 수
@@ -267,6 +282,7 @@ class SessionController extends StateNotifier<SessionState> {
     }
     _setToken(access);
     _resetFeatureState();
+    _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
     state = const SessionState(status: SessionStatus.authenticated);
   }
 
@@ -343,12 +359,112 @@ class SessionController extends StateNotifier<SessionState> {
     _userActionStarted = true;
     // 저장소를 지우기 **전에** 서버에 알린다 — 지운 뒤에는 폐기할 토큰이 없다.
     await _revokeSession();
+    await _closeSession();
+    // 직접 로그아웃한 것이다 — 만료 안내가 남아 있었다면 거둔다.
+    if (mounted) _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
+  }
+
+  /// 저장된 토큰을 지우고, 회원별 화면 상태를 비우고, 로그인 화면으로 보낸다.
+  ///
+  /// 로그아웃과 실행 중 만료(#1546)가 함께 쓰는 마지막 단계다.
+  Future<void> _closeSession() async {
     try {
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
+    if (!mounted) return;
     _setToken(null);
     _resetFeatureState();
     state = const SessionState(status: SessionStatus.signedOut);
+  }
+
+  // --- 실행 중 만료 (#1546) -------------------------------------------------
+
+  /// 이 세션이 아직 [token] 으로 로그인해 있는가.
+  ///
+  /// 느린 갱신 중에 로그아웃했거나 다른 계정으로 로그인했다면 거짓이다 — 그때
+  /// 뒤늦게 도착한 갱신 결과가 새 세션을 덮거나 끝내면 안 된다.
+  bool _holdsToken(String token) =>
+      mounted &&
+      state.status == SessionStatus.authenticated &&
+      _ref.read(authAccessTokenProvider) == token;
+
+  /// 실행 중 401 을 받은 뒤 갱신 토큰으로 한 번 회전한다.
+  ///
+  /// 복구([_refreshAndResolve])와 같은 기준을 쓴다: **명시적인 401/403 만 세션의
+  /// 끝이다.** 연결 실패·5xx 는 저장된 토큰을 그대로 두고 원래 오류를 돌려준다 —
+  /// 잠깐 끊긴 망 때문에 재로그인을 요구하지 않는다.
+  @override
+  Future<TokenRefreshResult> refreshAfterUnauthorized(String staleToken) async {
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    final String? refresh;
+    try {
+      refresh = await _ref.read(secureTokenStoreProvider).readRefreshToken();
+    } catch (_) {
+      return const TokenRefreshResult.unavailable();
+    }
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    if (refresh == null || refresh.isEmpty) {
+      // 접근 토큰은 거부됐고 회전할 수단이 없다 — 세션이 끝났다.
+      await _endExpiredSession(staleToken);
+      return const TokenRefreshResult.rejected();
+    }
+
+    final Map<String, Object?>? data;
+    try {
+      final res = await _ref
+          .read(dioProvider)
+          .post<Map<String, Object?>>(
+            '/auth/refresh',
+            data: <String, Object?>{'refresh_token': refresh},
+          );
+      data = res.data;
+    } on DioException catch (e) {
+      final int? code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        await _endExpiredSession(staleToken);
+        return const TokenRefreshResult.rejected();
+      }
+      return const TokenRefreshResult.unavailable();
+    } catch (_) {
+      return const TokenRefreshResult.unavailable();
+    }
+
+    final String access = (data?['access_token'] as String?) ?? '';
+    // 200 인데 토큰이 없다 — 서버 계약이 깨진 것이지 세션이 끝난 것이 아니다.
+    if (access.isEmpty) return const TokenRefreshResult.unavailable();
+    final String rotated = (data?['refresh_token'] as String?) ?? '';
+    final String nextRefresh = rotated.isEmpty ? refresh : rotated;
+    // 회전하는 사이 로그아웃·다른 계정 로그인이 있었다면 새 토큰을 버린다.
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    try {
+      await _ref
+          .read(secureTokenStoreProvider)
+          .saveTokens(access: access, refresh: nextRefresh);
+    } catch (_) {
+      // 저장에 실패해도 이번 실행은 메모리 토큰으로 이어 간다.
+    }
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    _setToken(access);
+    return TokenRefreshResult.refreshed(access);
+  }
+
+  /// 갱신이 거부되었다 — 로그아웃과 같은 길로 세션을 닫고 로그인 화면에 안내를
+  /// 띄운다.
+  ///
+  /// 서버는 이미 이 갱신 토큰을 받지 않으므로 폐기(`/auth/logout`)는 부르지 않는다.
+  Future<void> _endExpiredSession(String staleToken) async {
+    if (!_holdsToken(staleToken)) return;
+    await _closeSession();
+    if (!mounted) return;
+    _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
   }
 
   /// 저장된 갱신 토큰을 서버에서 폐기한다(`POST /auth/logout`).
@@ -382,6 +498,16 @@ class SessionController extends StateNotifier<SessionState> {
     }
   }
 }
+
+/// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
+/// 거둔다. (#1546)
+///
+/// 세션 상태에 넣지 않는 이유: 라우터가 세션 상태가 바뀔 때마다 가드를 다시
+/// 계산한다. 안내를 거두는 일로 가드가 다시 돌 이유가 없다.
+final sessionExpiredNoticeProvider = StateProvider<bool>(
+  (ref) => false,
+  name: 'sessionExpiredNotice',
+);
 
 final sessionControllerProvider =
     StateNotifierProvider<SessionController, SessionState>(

@@ -2946,6 +2946,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Can\'t sign in right now. Please try again in a moment';
 
   @override
+  String get authSessionExpired =>
+      'Your session has expired. Please sign in again';
+
+  @override
   String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment';
 
