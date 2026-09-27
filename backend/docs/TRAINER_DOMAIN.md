@@ -158,7 +158,7 @@
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
-| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`) |
+| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283) |
 | POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |

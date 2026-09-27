@@ -22,6 +22,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -41,6 +42,7 @@ import 'package:url_launcher/url_launcher.dart';
 ///    비밀번호 변경만 **데모에서 비활성**이고(바꿀 계정이 없다) 그 사유를 함께
 ///    보여 준다 — 미구현이 아니라 그 빌드에서만 막히는 것이다.
 ///    앱 정보(서비스·버전·문의)는 표시 전용이다.
+///    화면 언어는 이 브라우저에만 저장된다(#2296).
 ///
 /// The Figma mock's "역할 전환" section is intentionally omitted — the
 /// trainer and member apps use fully separate accounts (CLAUDE.local.md).
@@ -545,6 +547,12 @@ class _MyPageState extends ConsumerState<MyPage> {
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
         _SettingsCard(
+          title: l.myLanguage,
+          icon: Icons.language_rounded,
+          children: const <Widget>[_LanguageRow()],
+        ),
+        const SizedBox(height: OnCareSpacing.cardGap),
+        _SettingsCard(
           title: l.myAccount,
           icon: Icons.lock_rounded,
           children: <Widget>[
@@ -730,6 +738,52 @@ class _SettingsCard extends StatelessWidget {
           ),
           ...children,
         ],
+      ),
+    );
+  }
+}
+
+/// 화면 언어 한 줄(#2296). 고르는 방식은 회원 목록의 정렬처럼 지금 값을 단
+/// 버튼과 그 아래 메뉴다 — 선택지가 셋뿐이라 창을 따로 띄울 일이 아니다.
+class _LanguageRow extends ConsumerWidget {
+  const _LanguageRow();
+
+  static String _label(AppLocalizations l, TrainerLanguage language) =>
+      switch (language) {
+        TrainerLanguage.system => l.myLanguageSystem,
+        TrainerLanguage.korean => l.myLanguageKorean,
+        TrainerLanguage.english => l.myLanguageEnglish,
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final TrainerLanguage current = TrainerLanguage.fromLocale(
+      ref.watch(trainerLocaleProvider),
+    );
+    return AppListRow(
+      title: l.myLanguageApp,
+      subtitle: l.myLanguageHint,
+      trailing: AppMenu(
+        items: <AppMenuItem>[
+          for (final TrainerLanguage language in TrainerLanguage.values)
+            AppMenuItem(
+              key: ValueKey<String>('my-language-${language.name}'),
+              label: _label(l, language),
+              selected: language == current,
+              onSelected: () => ref
+                  .read(trainerLocaleProvider.notifier)
+                  .setLanguage(language),
+            ),
+        ],
+        triggerBuilder: (context, toggle) => AppButton(
+          key: const ValueKey<String>('my-language-button'),
+          label: _label(l, current),
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
+          trailingIcon: Icons.arrow_drop_down_rounded,
+          onPressed: toggle,
+        ),
       ),
     );
   }

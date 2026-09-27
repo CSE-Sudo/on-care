@@ -44,6 +44,18 @@ class AppShell extends StatefulWidget {
   /// 끼우면 `myBranchIndex` 가 밀려 푸터 선택이 조용히 깨진다. (#503)
   static int get notificationsBranchIndex => myBranchIndex + 1;
 
+  /// Root location of branch [index] — what a sidebar tap opens when there
+  /// is no [StatefulNavigationShell] to switch (the 404 page sits outside
+  /// the shell route). Out-of-range indexes fall back to the 대시보드.
+  static String branchRoot(int index) {
+    if (index >= 0 && index < navDestinations.length) {
+      return navDestinations[index].route;
+    }
+    if (index == myBranchIndex) return AppRoutes.my;
+    if (index == notificationsBranchIndex) return AppRoutes.notifications;
+    return AppRoutes.dashboard;
+  }
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -87,15 +99,57 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    return AppShellFrame(
+      currentIndex: widget.navigationShell.currentIndex,
+      profileSelected:
+          widget.navigationShell.currentIndex == AppShell.myBranchIndex,
+      onSelect: _goBranch,
+      onHome: _goDashboard,
+      body: PageScrollResetScope(
+        notifier: _scrollReset,
+        child: widget.navigationShell,
+      ),
+    );
+  }
+}
+
+/// The console chrome — sidebar (expanded / rail / drawer by viewport)
+/// around [body] — without the branch bookkeeping of [AppShell].
+///
+/// [AppShell] wraps the active branch in it; the 404 page wraps its
+/// message in it too, so a mistyped or stale URL still shows the sidebar
+/// and a way back instead of a bare error screen. (#2294)
+class AppShellFrame extends StatelessWidget {
+  /// Creates the console chrome around [body].
+  const AppShellFrame({
+    required this.currentIndex,
+    required this.onSelect,
+    required this.onHome,
+    required this.body,
+    this.profileSelected = false,
+    super.key,
+  });
+
+  /// Highlighted branch; an index no row owns (e.g. `-1`) selects none.
+  final int currentIndex;
+
+  /// Whether the 내 정보 footer is highlighted.
+  final bool profileSelected;
+
+  /// Invoked with the branch index when a sidebar row is tapped.
+  final ValueChanged<int> onSelect;
+
+  /// Opens the 대시보드 from the brand.
+  final VoidCallback onHome;
+
+  /// The page area to the right of (or below, when compact) the sidebar.
+  final Widget body;
+
+  @override
+  Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final compact = width < OnCareLayout.sidebarDrawerBreakpoint;
     final expanded = width >= OnCareLayout.sidebarExpandBreakpoint;
-    final onMy = widget.navigationShell.currentIndex == AppShell.myBranchIndex;
-
-    final shell = PageScrollResetScope(
-      notifier: _scrollReset,
-      child: widget.navigationShell,
-    );
 
     if (compact) {
       return Scaffold(
@@ -105,17 +159,20 @@ class _AppShellState extends State<AppShell> {
           backgroundColor: OnCareColors.surfaceCard,
           child: Builder(
             builder: (drawerContext) => AppSidebar(
-              currentIndex: widget.navigationShell.currentIndex,
-              profileSelected: onMy,
+              currentIndex: currentIndex,
+              profileSelected: profileSelected,
               expanded: true,
-              onSelect: _goBranch,
-              onHome: _goDashboard,
-              onNavigate: () => Navigator.of(drawerContext).maybePop(),
+              onSelect: onSelect,
+              onHome: onHome,
+              // 드로어만 닫는다. 내비게이터 pop 으로 닫으면, 탭한 쪽이 셸
+              // 밖 페이지(404)일 때 이미 바뀐 라우트 목록에서 페이지를 하나 더
+              // 빼려다 go_router 가 깨진다. (#2294)
+              onNavigate: () => Scaffold.of(drawerContext).closeDrawer(),
             ),
           ),
         ),
-        appBar: _CompactBar(onHome: _goDashboard),
-        body: shell,
+        appBar: _CompactBar(onHome: onHome),
+        body: body,
       );
     }
 
@@ -125,13 +182,13 @@ class _AppShellState extends State<AppShell> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           AppSidebar(
-            currentIndex: widget.navigationShell.currentIndex,
-            profileSelected: onMy,
+            currentIndex: currentIndex,
+            profileSelected: profileSelected,
             expanded: expanded,
-            onSelect: _goBranch,
-            onHome: _goDashboard,
+            onSelect: onSelect,
+            onHome: onHome,
           ),
-          Expanded(child: shell),
+          Expanded(child: body),
         ],
       ),
     );
