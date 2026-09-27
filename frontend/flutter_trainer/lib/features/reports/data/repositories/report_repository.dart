@@ -10,8 +10,10 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
@@ -130,11 +132,19 @@ class ReportFeedbackDraft {
 /// Computes the report locally from the drift-backed streams.
 class LocalReportRepository implements ReportRepository {
   /// Creates the local source.
-  const LocalReportRepository(this._schedule, this._chat, this._db);
+  const LocalReportRepository(
+    this._schedule,
+    this._chat,
+    this._db, {
+    this.language = DemoLanguage.ko,
+  });
 
   final ScheduleRepository _schedule;
   final ChatRepository _chat;
   final AppDatabase _db;
+
+  /// 데모 내용의 언어 — 지난 주 데모 리포트의 본문이 이 언어로 선다(#2399).
+  final DemoLanguage language;
 
   @override
   Stream<WeeklyReport> watch({
@@ -345,11 +355,39 @@ class LocalReportRepository implements ReportRepository {
   ///
   /// 데모에는 회원이 없어 읽음 여부를 알 수 없다 — 세션 기록과 같은 값(읽음)
   /// 으로 둬, 새로고침 전후로 표시가 바뀌지 않게 한다.
+  ///
+  /// **지난 주**에는 데모 로스터의 리포트 이력([demoSentReportsForWeek])이
+  /// 함께 선다(#2399) — 석 달 넘게 PT 를 해 온 트레이너의 지난 주가 전부
+  /// 미전송이면 데모가 거짓말을 한다. 실행 중에 그 주로 보낸 것이 있으면 그
+  /// 회원은 실행 중 기록이 이긴다.
   @override
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async {
     final DateTime monday = weekStartOf(weekStart);
+    final List<ReportSendRecord> sent = await _sentAtRuntime(monday);
+    final Set<String> sentIds = <String>{
+      for (final ReportSendRecord r in sent) r.clientId,
+    };
+    final List<TrainerClientRow> roster = await _db
+        .select(_db.trainerClients)
+        .get();
+    return <ReportSendRecord>[
+      ...sent,
+      for (final ReportSendRecord demo in demoSentReportsForWeek(
+        roster: <DemoReportMember>[
+          for (final TrainerClientRow row in roster)
+            (id: row.id, goal: row.goal),
+        ],
+        weekStart: monday,
+        language: language,
+      ))
+        if (!sentIds.contains(demo.clientId)) demo,
+    ];
+  }
+
+  /// 실행 중에 [monday] 주로 보낸 리포트 — 로컬 채팅의 전송 표시가 근거다.
+  Future<List<ReportSendRecord>> _sentAtRuntime(DateTime monday) async {
     final List<AppKeyValue> markers =
         await (_db.select(_db.appKeyValues)..where(
               (t) =>
@@ -868,6 +906,7 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
       ref.watch(scheduleRepositoryProvider),
       ref.watch(chatRepositoryProvider),
       ref.watch(appDatabaseProvider),
+      language: ref.watch(demoLanguageProvider),
     );
   }
   return DioReportRepository(ref.watch(dioProvider));
