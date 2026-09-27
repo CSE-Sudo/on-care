@@ -4124,6 +4124,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save your settings. Please try again in a moment'**
   String get mySettingsSaveFailed;
 
+  /// No description provided for @myProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How members see you, and this month\'s activity'**
+  String get myProfileSubtitle;
+
+  /// No description provided for @myClientsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy up your member connections'**
+  String get myClientsSubtitle;
+
+  /// No description provided for @myLanguageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the console language'**
+  String get myLanguageSubtitle;
+
+  /// No description provided for @myAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your sign-in account and password'**
+  String get myAccountSubtitle;
+
+  /// No description provided for @mySupportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question or read our policies'**
+  String get mySupportSubtitle;
+
+  /// No description provided for @myWithdrawSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check once before you leave'**
+  String get myWithdrawSubtitle;
+
   /// No description provided for @myPageTitle.
   ///
   /// In en, this message translates to:
@@ -4163,7 +4199,7 @@ abstract class AppLocalizations {
   /// No description provided for @myAccountInfoHint.
   ///
   /// In en, this message translates to:
-  /// **'The account you sign in with. To change your name or email, contact support.'**
+  /// **'To change your name or email, contact support.'**
   String get myAccountInfoHint;
 
   /// No description provided for @mySecurity.

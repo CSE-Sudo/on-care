@@ -2332,6 +2332,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save your settings. Please try again in a moment';
 
   @override
+  String get myProfileSubtitle =>
+      'How members see you, and this month\'s activity';
+
+  @override
+  String get myClientsSubtitle => 'Tidy up your member connections';
+
+  @override
+  String get myLanguageSubtitle => 'Choose the console language';
+
+  @override
+  String get myAccountSubtitle => 'Manage your sign-in account and password';
+
+  @override
+  String get mySupportSubtitle => 'Ask a question or read our policies';
+
+  @override
+  String get myWithdrawSubtitle => 'Please check once before you leave';
+
+  @override
   String get myPageTitle => 'Profile & settings';
 
   @override
@@ -2351,7 +2370,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myAccountInfoHint =>
-      'The account you sign in with. To change your name or email, contact support.';
+      'To change your name or email, contact support.';
 
   @override
   String get mySecurity => 'Security';

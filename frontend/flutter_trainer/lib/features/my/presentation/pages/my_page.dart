@@ -480,6 +480,22 @@ class _MyPageState extends ConsumerState<MyPage> {
     _MySection.withdraw => l.myDeleteAccount,
   };
 
+  /// 화면 제목 아래 한 줄 — 탭 설명. 메뉴만 연 상태에는 두지 않는다.
+  String? _subtitle(AppLocalizations l, _MySection section) =>
+      switch (section) {
+        _MySection.settings => null,
+        _MySection.profile => l.myProfileSubtitle,
+        _MySection.clients => l.myClientsSubtitle,
+        // 누가 보는 정보인지 먼저 알린다 — 소개·경력·자격증은 담당 회원이
+        // 보는 트레이너 소개에 그대로 나간다.
+        _MySection.edit => l.myEditVisibleBody,
+        _MySection.notifications => l.myNotificationsHint,
+        _MySection.language => l.myLanguageSubtitle,
+        _MySection.account => l.myAccountSubtitle,
+        _MySection.support => l.mySupportSubtitle,
+        _MySection.withdraw => l.myWithdrawSubtitle,
+      };
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -504,7 +520,9 @@ class _MyPageState extends ConsumerState<MyPage> {
             : section;
         return AppWebPage(
           title: _title(l, wide ? detail : section),
-          subtitle: _profile.name,
+          // 트레이너 이름 대신 이 탭이 무엇을 하는 곳인지 말한다 — 이름은
+          // 사이드바 아래와 프로필에 이미 있다.
+          subtitle: _subtitle(l, wide ? detail : section),
           actions: <Widget>[
             if (section == _MySection.edit)
               AppButton(
@@ -695,9 +713,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     return <Widget>[
       _SettingsCard(
         title: l.myBasicInfo,
-        // 누가 보는 정보인지 먼저 알린다 — 소개·경력·자격증은 담당 회원이
-        // 보는 트레이너 소개에 그대로 나간다.
-        description: l.myEditVisibleBody,
         body: _ProfileFields(
           profile: _profile,
           field: _field,
@@ -797,8 +812,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     final settings = ref.watch(trainerSettingsProvider);
     final controller = ref.read(trainerSettingsProvider.notifier);
     return _SettingsCard(
-      title: l.myNotifications,
-      description: l.myNotificationsHint,
       footer: l.myNotifAlwaysOnNote,
       rows: <Widget>[
         AppListRow(
@@ -843,8 +856,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       ref.watch(trainerLocaleProvider),
     );
     return _SettingsCard(
-      title: l.myLanguageApp,
-      description: l.myLanguageHint,
+      footer: l.myLanguageHint,
       rows: <Widget>[
         for (final TrainerLanguage language in TrainerLanguage.values)
           AppListRow(
@@ -875,7 +887,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     return <Widget>[
       _SettingsCard(
         title: l.myAccountInfo,
-        description: l.myAccountInfoHint,
+        footer: l.myAccountInfoHint,
         rows: <Widget>[
           AppListRow(
             title: l.myLoginAccount,
@@ -922,7 +934,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     final account = ref.watch(trainerAccountRepositoryProvider);
     return <Widget>[
       _SettingsCard(
-        title: l.mySupportTitle,
         rows: <Widget>[
           _SupportRow(
             key: const ValueKey<String>('support-faq'),
@@ -1333,16 +1344,20 @@ class _Breadcrumb extends StatelessWidget {
 
 /// 설정 카드 — 제목·설명 머리, 구분선, 그 아래 본문([body]) 또는 줄들([rows]),
 /// 필요하면 맨 아래 안내([footer]). 내 정보·설정의 모든 판이 이 한 모양이다.
+///
+/// 제목은 한 탭에 카드가 여럿일 때 묶음 이름(계정 정보·보안)으로만 쓴다. 카드가
+/// 하나인 탭은 제목을 두지 않는다 — 화면 제목과 같은 말이 두 번 나오고, 탭
+/// 설명은 화면 제목 아래에 있다(#2264).
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
-    required this.title,
+    this.title,
     this.description,
     this.body,
     this.rows,
     this.footer,
   }) : assert((body == null) != (rows == null));
 
-  final String title;
+  final String? title;
   final String? description;
   final Widget? body;
   final List<Widget>? rows;
@@ -1357,35 +1372,37 @@ class _SettingsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              OnCareSpacing.s16,
-              OnCareSpacing.s16,
-              OnCareSpacing.s16,
-              OnCareSpacing.s12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: tokens
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
-                if (description != null) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s2),
+          if (title != null) ...<Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                OnCareSpacing.s16,
+                OnCareSpacing.s16,
+                OnCareSpacing.s16,
+                OnCareSpacing.s12,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
                   Text(
-                    description!,
+                    title!,
                     style: tokens
-                        .text(OnCareTypography.bodySmall)
-                        .copyWith(color: OnCareColors.textSecondary),
+                        .text(OnCareTypography.titleSmall)
+                        .copyWith(color: OnCareColors.textPrimary),
                   ),
+                  if (description != null) ...<Widget>[
+                    const SizedBox(height: OnCareSpacing.s2),
+                    Text(
+                      description!,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textSecondary),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          const AppDivider(),
+            const AppDivider(),
+          ],
           if (rows != null)
             for (int i = 0; i < rows.length; i++) ...<Widget>[
               if (i > 0) const AppDivider(),

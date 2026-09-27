@@ -2219,6 +2219,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySettingsSaveFailed => '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get myProfileSubtitle => '담당 회원에게 보이는 내 소개와 이번 달 활동이에요';
+
+  @override
+  String get myClientsSubtitle => '담당 회원 연결을 정리해요';
+
+  @override
+  String get myLanguageSubtitle => '콘솔을 볼 언어를 골라요';
+
+  @override
+  String get myAccountSubtitle => '로그인 계정과 비밀번호를 관리해요';
+
+  @override
+  String get mySupportSubtitle => '궁금한 점을 묻거나 약관을 확인해요';
+
+  @override
+  String get myWithdrawSubtitle => '탈퇴하기 전에 한 번만 확인해 주세요';
+
+  @override
   String get myPageTitle => '내 정보 · 설정';
 
   @override
@@ -2237,8 +2255,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myAccountInfo => '계정 정보';
 
   @override
-  String get myAccountInfoHint =>
-      '로그인에 쓰는 계정이에요. 이름·이메일을 바꾸려면 고객 지원으로 문의해 주세요.';
+  String get myAccountInfoHint => '이름·이메일을 바꾸려면 고객 지원으로 문의해 주세요.';
 
   @override
   String get mySecurity => '보안';
