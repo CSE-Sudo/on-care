@@ -3363,22 +3363,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTaskUncheckConfirm => '완료 취소';
 
   @override
-  String get churnNoRecentWorkout => '최근 7일 운동 기록 없음';
-
-  @override
   String get churnNoRecentFeedback => '최근 7일 트레이너 피드백 없음';
-
-  @override
-  String get churnConsecutiveCancel => 'PT 2회 연속 취소·노쇼';
-
-  @override
-  String get churnDietStopped => '식단 기록 중단';
-
-  @override
-  String get churnGoalStagnant => '목표 지표 장기간 정체';
-
-  @override
-  String get churnUnresolvedRequest => '미응답 메시지 있음';
 
   @override
   String get navMessages => '메시지';

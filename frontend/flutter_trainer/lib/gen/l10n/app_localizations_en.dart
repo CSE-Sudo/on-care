@@ -3540,22 +3540,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTaskUncheckConfirm => 'Undo completion';
 
   @override
-  String get churnNoRecentWorkout => 'No workout logged in 7 days';
-
-  @override
   String get churnNoRecentFeedback => 'No trainer feedback in 7 days';
-
-  @override
-  String get churnConsecutiveCancel => '2 consecutive cancellations/no-shows';
-
-  @override
-  String get churnDietStopped => 'Diet logging stopped';
-
-  @override
-  String get churnGoalStagnant => 'Goal metric stagnant long-term';
-
-  @override
-  String get churnUnresolvedRequest => 'Unanswered message';
 
   @override
   String get navMessages => 'Messages';
