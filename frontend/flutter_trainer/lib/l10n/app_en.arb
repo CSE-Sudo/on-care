@@ -3028,8 +3028,10 @@
       }
     }
   },
+  "reportsSortLabel": "Sort",
   "reportsSortPriority": "Needs attention",
-  "reportsSortName": "By name",
+  "reportsSortName": "Name A–Z",
+  "reportsSortNameDescending": "Name Z–A",
   "reportsSendProgress": "{done} / {total} sent",
   "@reportsSendProgress": {
     "placeholders": {
@@ -3122,6 +3124,32 @@
     }
   },
   "reportsSentRewrite": "Rewrite from this",
+  "reportsHistoryButton": "Past reports",
+  "reportsViewSent": "View",
+  "reportsHistoryTitle": "{name}'s past reports",
+  "@reportsHistoryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsHistoryBack": "Past reports",
+  "reportsHistoryUnsent": "Not sent",
+  "reportsHistoryThisWeek": "This week",
+  "reportsHistoryEmpty": "No reports sent yet",
+  "reportsHistoryLoadFailed": "Couldn't load past reports",
+  "reportsHistoryMore": "Load more",
+  "reportsHistoryMoreFailed": "Couldn't load more. Tap to try again.",
+  "reportsHistorySendCount": "{count, plural, =1{Sent once} other{Sent {count} times}}",
+  "@reportsHistorySendCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsHistoryPdf": "PDF",
   "reportsResendTitle": "Already sent",
   "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
   "@reportsResendBody": {
@@ -3147,6 +3175,35 @@
   "reportsStepperLabel": "Weekly report steps",
   "reportsStepNext": "Next",
   "reportsStepPrev": "Back",
+  "reportsPreviewTitle": "What the member receives",
+  "reportsPreviewRecipient": "To",
+  "reportsPreviewWeek": "Week",
+  "reportsPreviewDelivery": "Sent to {name}'s chat as a PDF file",
+  "@reportsPreviewDelivery": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsPreviewEditHint": "To change the text, tap Back to return to the Write step",
+  "reportsPreviewGenerating": "Preparing the preview",
+  "reportsPreviewFailed": "Couldn't prepare the preview",
+  "reportsPreviewPage": "Page {current} of {total}",
+  "@reportsPreviewPage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsPreviewPrevPage": "Previous page",
+  "reportsPreviewNextPage": "Next page",
+  "reportsPreviewZoomIn": "Zoom in",
+  "reportsPreviewZoomOut": "Zoom out",
   "reportsGridPtSession": "PT sessions",
   "reportsGridPtPerWeek": "{count}/week",
   "@reportsGridPtPerWeek": {

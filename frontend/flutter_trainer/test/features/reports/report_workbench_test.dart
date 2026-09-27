@@ -5,6 +5,8 @@
 /// **일의 흐름** 이다 — 누가 남았나, 어디까지 왔나, 보낸 건 무엇이었나.
 library;
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,8 +16,12 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -48,6 +54,7 @@ void main() {
     List<TrainerClient> clients = const <TrainerClient>[],
     String at = AppRoutes.reports,
     Locale locale = const Locale('ko'),
+    List<Override> extraOverrides = const <Override>[],
   }) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = size;
@@ -63,6 +70,7 @@ void main() {
           clientsProvider.overrideWith(
             (ref) => Stream<List<TrainerClient>>.value(clients),
           ),
+        ...extraOverrides,
       ],
     );
     await settle(tester);
@@ -121,7 +129,9 @@ void main() {
   testWidgets('이름순으로 바꾸면 차례가 이름을 따른다 (#2232)', (tester) async {
     await openWorkbench(tester, clients: _roster);
 
-    await tester.tap(find.text('이름 순'));
+    await tester.tap(find.byKey(const ValueKey<String>('reports-sort-button')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('reports-sort-name')));
     await settle(tester);
 
     expect(queueOrder(tester), <String>['a', 'h']);
@@ -155,7 +165,7 @@ void main() {
     );
   });
 
-  testWidgets('전송 완료 줄을 누르면 회원이 받은 리포트를 그대로 본다 (#2232)', (tester) async {
+  testWidgets('전송 완료 줄의 보기를 누르면 회원이 받은 리포트를 그대로 본다 (#2232)', (tester) async {
     final ProviderContainer container = await openWorkbench(
       tester,
       clients: _roster,
@@ -169,7 +179,7 @@ void main() {
         );
     await settle(tester);
 
-    await tester.tap(find.byKey(const ValueKey<String>('reports-sent-a')));
+    await tester.tap(find.byKey(const ValueKey<String>('reports-view-a')));
     await settle(tester);
 
     expect(find.byType(SentReportView), findsOneWidget);
@@ -204,7 +214,7 @@ void main() {
           message: '가회원님 이번 주도 잘 지키셨어요.',
         );
     await settle(tester);
-    await tester.tap(find.byKey(const ValueKey<String>('reports-sent-a')));
+    await tester.tap(find.byKey(const ValueKey<String>('reports-view-a')));
     await settle(tester);
 
     await tester.tap(
@@ -216,7 +226,19 @@ void main() {
   });
 
   testWidgets('단계는 ① 확인 → ② 작성 → ③ 전송 으로 오간다 (#2232)', (tester) async {
-    await openWorkbench(tester, clients: _roster, at: AppRoutes.reportFor('a'));
+    await openWorkbench(
+      tester,
+      clients: _roster,
+      at: AppRoutes.reportFor('a'),
+      // ③ 은 들어서자마자 PDF 를 만든다(#2402) — 실 생성기와 쪽 굽기는
+      // 테스트에서 끝나지 않아 곧바로 끝나는 가짜를 둔다.
+      extraOverrides: <Override>[
+        reportPdfGeneratorProvider.overrideWithValue(_InstantPdfGenerator()),
+        reportPdfRasterizerProvider.overrideWithValue(
+          (Uint8List pdf) async => <Uint8List>[pdf],
+        ),
+      ],
+    );
 
     final Finder next = find.byKey(const ValueKey<String>('report-step-next'));
     final Finder prev = find.byKey(const ValueKey<String>('report-step-prev'));
@@ -236,7 +258,12 @@ void main() {
 
     await tester.tap(next);
     await settle(tester);
-    expect(find.text('트레이너 피드백'), findsOneWidget);
+    // ③ 전송은 회원이 받을 PDF 를 보여 준다 — 입력창은 ② 에만 있다(#2402).
+    expect(find.text('트레이너 피드백'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('report-send-preview')),
+      findsOneWidget,
+    );
     // 마지막 단계에는 `다음` 대신 `전송` 이 선다.
     expect(next, findsNothing);
     expect(
@@ -519,7 +546,9 @@ void main() {
       await openWorkbench(tester, clients: many, size: const Size(1600, 700));
 
       final Finder firstRow = find.text('회원00');
-      final Finder sortToggle = find.text('우선 확인 순');
+      final Finder sortToggle = find.byKey(
+        const ValueKey<String>('reports-sort-button'),
+      );
       expect(firstRow, findsOneWidget);
       final Offset toggleBefore = tester.getTopLeft(sortToggle);
       final Rect sentBefore = tester.getRect(sentBox());
@@ -680,6 +709,154 @@ void main() {
       ];
       expect(texts, contains('가회원'));
       expect(texts.any((t) => t.contains('전송')), isTrue);
+    });
+  });
+
+  group('정렬 드롭다운 (#2398)', () {
+    final List<TrainerClient> trio = <TrainerClient>[
+      makeClient(
+        id: 'b',
+        name: '나회원',
+        weekCompletion: const <int>[100, 100, 100, 100, 100, 100, 100],
+      ),
+      makeClient(
+        id: 'c',
+        name: '다회원',
+        weekCompletion: const <int>[0, 0, 0, 0, 0, 0, 0],
+      ),
+      makeClient(
+        id: 'a',
+        name: '가회원',
+        weekCompletion: const <int>[60, 60, 60, 60, 60, 60, 60],
+      ),
+    ];
+    Finder sortButton() =>
+        find.byKey(const ValueKey<String>('reports-sort-button'));
+    Finder item(ReportQueueSort sort) =>
+        find.byKey(ValueKey<String>('reports-sort-${sort.name}'));
+    List<String> order(WidgetTester tester) {
+      final List<MapEntry<String, double>> rows = <MapEntry<String, double>>[
+        for (final String id in <String>['a', 'b', 'c'])
+          MapEntry<String, double>(
+            id,
+            tester
+                .getTopLeft(find.byKey(ValueKey<String>('reports-queue-$id')))
+                .dy,
+          ),
+      ]..sort((x, y) => x.value.compareTo(y.value));
+      return <String>[for (final MapEntry<String, double> e in rows) e.key];
+    }
+
+    Future<void> choose(WidgetTester tester, ReportQueueSort sort) async {
+      await tester.tap(sortButton());
+      await settle(tester);
+      await tester.tap(item(sort));
+      await settle(tester);
+    }
+
+    testWidgets('버튼은 `정렬: 우선 확인 순` 으로 시작하고 토글은 없다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+
+      expect(
+        find.descendant(of: sortButton(), matching: find.text('정렬: 우선 확인 순')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: sortButton(),
+          matching: find.byIcon(Icons.arrow_drop_down_rounded),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(AppSegmentedToggle<ReportQueueSort>), findsNothing);
+      // 기본값은 우선 확인 순 — 이행률이 가장 낮은 회원이 맨 위.
+      expect(order(tester).first, 'c');
+    });
+
+    testWidgets('메뉴는 세 방식을 보이고 고른 항목에 체크를 단다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+
+      await tester.tap(sortButton());
+      await settle(tester);
+      for (final ReportQueueSort sort in ReportQueueSort.values) {
+        expect(item(sort), findsOneWidget);
+      }
+      expect(find.text('이름 오름차순'), findsOneWidget);
+      expect(find.text('이름 내림차순'), findsOneWidget);
+      // 체크는 지금 고른 우선 확인 순에만 선다.
+      MenuItemButton menuItem(ReportQueueSort sort) =>
+          tester.widget<MenuItemButton>(item(sort));
+      expect(menuItem(ReportQueueSort.priority).leadingIcon, isA<AppIcon>());
+      expect(menuItem(ReportQueueSort.name).leadingIcon, isNull);
+      expect(menuItem(ReportQueueSort.nameDescending).leadingIcon, isNull);
+
+      await tester.tap(item(ReportQueueSort.nameDescending));
+      await settle(tester);
+      await tester.tap(sortButton());
+      await settle(tester);
+      expect(menuItem(ReportQueueSort.priority).leadingIcon, isNull);
+      expect(
+        menuItem(ReportQueueSort.nameDescending).leadingIcon,
+        isA<AppIcon>(),
+      );
+    });
+
+    testWidgets('이름 오름차순·내림차순을 고르면 줄 순서와 버튼 문구가 바뀐다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+
+      await choose(tester, ReportQueueSort.name);
+      expect(order(tester), <String>['a', 'b', 'c']);
+      expect(find.text('정렬: 이름 오름차순'), findsOneWidget);
+
+      await choose(tester, ReportQueueSort.nameDescending);
+      expect(order(tester), <String>['c', 'b', 'a']);
+      expect(find.text('정렬: 이름 내림차순'), findsOneWidget);
+
+      await choose(tester, ReportQueueSort.priority);
+      expect(order(tester).first, 'c');
+      expect(find.text('정렬: 우선 확인 순'), findsOneWidget);
+    });
+
+    testWidgets('주를 옮겨도 고른 정렬이 남는다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+      await choose(tester, ReportQueueSort.nameDescending);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ReportWeekNav),
+          matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text('정렬: 이름 내림차순'), findsOneWidget);
+    });
+
+    testWidgets('영어 문구', (tester) async {
+      await openWorkbench(tester, clients: trio, locale: const Locale('en'));
+
+      expect(find.text('Sort: Needs attention'), findsOneWidget);
+      await tester.tap(sortButton());
+      await settle(tester);
+      expect(find.text('Name A–Z'), findsOneWidget);
+      expect(find.text('Name Z–A'), findsOneWidget);
+    });
+
+    test('정렬 도메인 — 우선 확인·이름 오름·내림', () {
+      List<String> ids(ReportQueueSort sort) => <String>[
+        for (final ReportQueueEntry e in buildReportQueue(
+          clients: trio,
+          reports: const <String, WeeklyReport>{},
+          sentIds: const <String>{},
+          sort: sort,
+        ))
+          e.client.id,
+      ];
+      expect(ids(ReportQueueSort.name), <String>['a', 'b', 'c']);
+      expect(ids(ReportQueueSort.nameDescending), <String>['c', 'b', 'a']);
+      // 수치를 못 읽은 줄끼리는 점수가 같아 이름 순으로 선다.
+      expect(ids(ReportQueueSort.priority), <String>['a', 'b', 'c']);
+      expect(ReportQueueSort.values, hasLength(3));
     });
   });
 
@@ -909,4 +1086,15 @@ void main() {
       );
     });
   });
+}
+
+/// 곧바로 끝나는 PDF 생성기.
+class _InstantPdfGenerator extends ReportPdfGenerator {
+  @override
+  Future<Uint8List> generate({
+    required AppLocalizations l,
+    required WeeklyReport report,
+    required String feedback,
+    WeeklyReport? previousReport,
+  }) async => Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]);
 }

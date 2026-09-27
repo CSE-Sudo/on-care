@@ -1918,8 +1918,10 @@
       }
     }
   },
+  "reportsSortLabel": "정렬",
   "reportsSortPriority": "우선 확인 순",
-  "reportsSortName": "이름 순",
+  "reportsSortName": "이름 오름차순",
+  "reportsSortNameDescending": "이름 내림차순",
   "reportsSendProgress": "{done} / {total} 전송",
   "@reportsSendProgress": {
     "placeholders": {
@@ -2013,6 +2015,32 @@
     }
   },
   "reportsSentRewrite": "이 내용으로 다시 작성",
+  "reportsHistoryButton": "지난 리포트",
+  "reportsViewSent": "보기",
+  "reportsHistoryTitle": "{name}님의 지난 리포트",
+  "@reportsHistoryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsHistoryBack": "지난 리포트",
+  "reportsHistoryUnsent": "미전송",
+  "reportsHistoryThisWeek": "이번 주",
+  "reportsHistoryEmpty": "아직 보낸 리포트가 없어요",
+  "reportsHistoryLoadFailed": "지난 리포트를 불러오지 못했어요",
+  "reportsHistoryMore": "더 보기",
+  "reportsHistoryMoreFailed": "더 불러오지 못했어요. 다시 눌러 주세요.",
+  "reportsHistorySendCount": "{count}번 보냄",
+  "@reportsHistorySendCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsHistoryPdf": "PDF",
   "reportsResendTitle": "이미 보낸 리포트예요",
   "reportsResendBody": "{name}님에게 {date} {time}에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.",
   "@reportsResendBody": {
@@ -2038,6 +2066,35 @@
   "reportsStepperLabel": "주간 리포트 작성 진행 단계",
   "reportsStepNext": "다음",
   "reportsStepPrev": "이전",
+  "reportsPreviewTitle": "회원이 받는 리포트",
+  "reportsPreviewRecipient": "받는 사람",
+  "reportsPreviewWeek": "대상 주",
+  "reportsPreviewDelivery": "{name}님 채팅으로 PDF 파일이 전송돼요",
+  "@reportsPreviewDelivery": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsPreviewEditHint": "글을 고치려면 이전을 눌러 작성 단계로 돌아가세요",
+  "reportsPreviewGenerating": "미리보기를 만드는 중이에요",
+  "reportsPreviewFailed": "미리보기를 만들지 못했어요",
+  "reportsPreviewPage": "{current} / {total}쪽",
+  "@reportsPreviewPage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsPreviewPrevPage": "이전 쪽",
+  "reportsPreviewNextPage": "다음 쪽",
+  "reportsPreviewZoomIn": "확대",
+  "reportsPreviewZoomOut": "축소",
   "reportsGridPtSession": "PT 세션",
   "reportsGridPtPerWeek": "주 {count}회",
   "@reportsGridPtPerWeek": {
