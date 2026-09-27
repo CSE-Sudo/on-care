@@ -160,7 +160,15 @@
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
+
+리포트 요약(`headline`·`points`)과 리포트 본문의 초안 문장(`message`, 본문 없이 보낸
+`report/send` 가 쓰는 글)은 요청의 `Accept-Language` 언어로 만든다(#2298). `en` 이면
+근거 문장·규칙 기반 머리 문장·모델 지시문이 모두 영어이고, 헤더가 없거나 `ko` 면
+지금까지와 같은 한국어 문장이다. 판정(주의사항·기준값)은 언어와 무관하다. 저장하지
+않고 요청마다 만드는 값이라 DB 에 언어가 남지 않는다 — 회원에게 실제로 나간 글만
+채팅 행으로 남는다.
 
 채팅 발신과 스케줄 생성의 `client_request_id`는 선택값이다. 클라이언트는 한
 사용자 행동에 한 번 생성하고 응답 유실 뒤 재시도에서 같은 값을 보낸다. 같은 사용자·
