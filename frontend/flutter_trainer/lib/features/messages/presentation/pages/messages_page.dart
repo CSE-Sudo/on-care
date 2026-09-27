@@ -319,16 +319,19 @@ class _ConversationTile extends StatelessWidget {
                 // 나눈다. 빈 줄을 말 아래에 몰아 두면 이름·말 묶음이 카드
                 // 위로 쏠려 보였고, 말만 가운데로 내리면 이름과 말 사이가
                 // 벌어졌다 — 묶음째 카드의 세로 가운데에 둔다.
-                final double slack =
-                    _twoLinePreviewHeight(context, previewStyle) -
-                    _previewHeight(
-                      context,
-                      preview,
-                      previewStyle,
-                      constraints.maxWidth,
-                    );
+                //
+                // 여백은 잰 높이에서 나온 값이지 간격 토큰 자리가 아니다.
+                final double halfSlack =
+                    (_twoLinePreviewHeight(context, previewStyle) -
+                        _previewHeight(
+                          context,
+                          preview,
+                          previewStyle,
+                          constraints.maxWidth,
+                        )) /
+                    2;
                 return Padding(
-                  padding: EdgeInsets.symmetric(vertical: slack / 2),
+                  padding: EdgeInsets.symmetric(vertical: halfSlack),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
