@@ -26,7 +26,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from app.core.locale import Locale, current_locale
@@ -67,6 +67,15 @@ MEMBER_CONSULT_REJECTED = "member_consult_rejected"
 MEMBER_CONSULT_EXPIRED = "member_consult_expired"
 MEMBER_TRAINER_LEFT = "member_trainer_left"
 MEMBER_TRAINER_LEFT_BOOKING = "member_trainer_left_booking"
+
+# 일정·포인트 — 트레이너 일정 변경과 회원 혜택으로 회원이 받는 알림.
+MEMBER_SCHEDULE_ADDED = "member_schedule_added"
+MEMBER_SCHEDULE_CHANGED = "member_schedule_changed"
+MEMBER_SCHEDULE_CANCELLED = "member_schedule_cancelled"
+MEMBER_SCHEDULE_SERIES = "member_schedule_series"
+MEMBER_COUPON_EXPIRING = "member_coupon_expiring"
+MEMBER_COUPON_CANCELLED = "member_coupon_cancelled"
+MEMBER_CHALLENGE_RESULT = "member_challenge_result"
 
 _TEMPLATES: dict[str, _Renderer] = {}
 
@@ -427,6 +436,166 @@ def _member_trainer_left_booking(args: Args, locale: Locale) -> Rendered:
 
 
 # --------------------------------------------------------------------------
+# 일정 — 트레이너가 잡고 바꾼 회원 일정
+# --------------------------------------------------------------------------
+
+#: 일정 종류 저장 값 → 영어. 저장 값은 트레이너 웹 `SessionType` 과 같다. 모르는
+#: 값(트레이너가 직접 적은 종류)은 받은 그대로 둔다.
+_SESSION_TYPE_EN: dict[str, str] = {
+    "1:1 PT": "1:1 PT",
+    "상담": "Consultation",
+}
+
+
+def _slot(args: Args, locale: Locale) -> str:
+    """`2026-10-01 09:00 · 1:1 PT`. 날짜·시각은 저장된 모양 그대로다."""
+    type_ = _text(args, "type")
+    if locale != "ko":
+        type_ = _SESSION_TYPE_EN.get(type_, type_)
+    return f"{_text(args, 'date')} {_text(args, 'time')} · {type_}"
+
+
+@_template(MEMBER_SCHEDULE_ADDED)
+def _member_schedule_added(args: Args, locale: Locale) -> Rendered:
+    title = "새 일정이 등록되었어요" if locale == "ko" else "New session scheduled"
+    return title, _slot(args, locale)
+
+
+@_template(MEMBER_SCHEDULE_CHANGED)
+def _member_schedule_changed(args: Args, locale: Locale) -> Rendered:
+    title = "일정이 변경되었어요" if locale == "ko" else "Session rescheduled"
+    return title, _slot(args, locale)
+
+
+@_template(MEMBER_SCHEDULE_CANCELLED)
+def _member_schedule_cancelled(args: Args, locale: Locale) -> Rendered:
+    title = "일정이 취소되었어요" if locale == "ko" else "Session cancelled"
+    return title, _slot(args, locale)
+
+
+@_template(MEMBER_SCHEDULE_SERIES)
+def _member_schedule_series(args: Args, locale: Locale) -> Rendered:
+    first, last, time = _text(args, "first"), _text(args, "last"), _text(args, "time")
+    count = int(args["count"])
+    if locale == "ko":
+        return "반복 일정이 등록되었어요", f"{first} ~ {last} · {time} · {count}회"
+    return (
+        "Recurring sessions scheduled",
+        f"{first} ~ {last} · {time} · {_plural(count, 'session', 'sessions')}",
+    )
+
+
+# --------------------------------------------------------------------------
+# 포인트 — 쿠폰과 주간 챌린지
+# --------------------------------------------------------------------------
+
+#: 쿠폰 항목 id → 영어 혜택 이름. 한국어는 인자 `benefit`(교환 당시 문구)을 쓴다.
+#: 모르는 항목은 저장된 한국어 문구로 돌아간다.
+_BENEFIT_EN: dict[str, str] = {
+    "pt_renewal": "₩30,000 off PT re-registration",
+    "locker_month": "free personal locker for 1 month",
+    "diet_tray": "standard meal tray for photo analysis",
+}
+
+#: 취소된 쿠폰의 제목. 항목마다 다르다.
+_COUPON_CANCELLED_TITLE: dict[str, tuple[str, str]] = {
+    "pt_renewal": ("재등록 쿠폰이 취소됐어요", "PT re-registration coupon cancelled"),
+    "diet_tray": ("식판 수령 쿠폰이 취소됐어요", "Meal tray coupon cancelled"),
+    "locker_month": ("락커 쿠폰이 취소됐어요", "Locker coupon cancelled"),
+}
+
+#: 쿠폰이 취소된 까닭 코드 → (한국어 앞말, 영어 까닭).
+_COUPON_CANCEL_REASON: dict[str, tuple[str, str]] = {
+    "trainer": ("담당 트레이너 연결이 해제되어", "your trainer connection ended"),
+    "gym": ("헬스장 연결이 해제되어", "your gym connection ended"),
+}
+
+
+def _benefit(args: Args, locale: Locale) -> str:
+    benefit = _text(args, "benefit")
+    if locale == "ko":
+        return benefit
+    return _BENEFIT_EN.get(_text(args, "item"), benefit)
+
+
+@_template(MEMBER_COUPON_EXPIRING)
+def _member_coupon_expiring(args: Args, locale: Locale) -> Rendered:
+    benefit = _benefit(args, locale)
+    days = int(args["days"])
+    last_day = date.fromisoformat(str(args["last_day"]))
+    if locale == "ko":
+        when = (
+            f"{benefit} 쿠폰은 오늘까지 쓸 수 있어요."
+            if days == 0
+            else f"{benefit} 쿠폰이 {days}일 뒤({last_day.month}월 {last_day.day}일) 만료돼요."
+        )
+        return "쿠폰이 곧 만료돼요", f"{when} 만료되면 포인트는 돌려받을 수 없어요."
+    when = (
+        f"Your {benefit} coupon expires today."
+        if days == 0
+        else (
+            f"Your {benefit} coupon expires in {_plural(days, 'day', 'days')} "
+            f"({last_day.month}/{last_day.day})."
+        )
+    )
+    return (
+        "Coupon expiring soon",
+        f"{when} Points can't be refunded once it expires.",
+    )
+
+
+@_template(MEMBER_COUPON_CANCELLED)
+def _member_coupon_cancelled(args: Args, locale: Locale) -> Rendered:
+    ko_title, en_title = _COUPON_CANCELLED_TITLE[_text(args, "item")]
+    ko_reason, en_reason = _COUPON_CANCEL_REASON[_text(args, "reason")]
+    benefit = _benefit(args, locale)
+    refunded = args.get("refunded")
+    if locale == "ko":
+        if refunded is None:
+            return ko_title, f"{ko_reason} {benefit} 쿠폰을 취소했어요."
+        return ko_title, f"{ko_reason} {benefit} 쿠폰을 취소하고 {int(refunded):,}P를 돌려드렸어요."
+    body = f"Your {benefit} coupon was cancelled because {en_reason}."
+    if refunded is not None:
+        body += f" We refunded {int(refunded):,}P."
+    return en_title, body
+
+
+@_template(MEMBER_CHALLENGE_RESULT)
+def _member_challenge_result(args: Args, locale: Locale) -> Rendered:
+    start = date.fromisoformat(str(args["week_start"]))
+    end = start + timedelta(days=6)
+    goal, reward = int(args["goal"]), int(args["reward"])
+    succeeded = bool(args["succeeded"])
+    if locale == "ko":
+        period = f"{start.month}월 {start.day}일~{end.month}월 {end.day}일"
+        if succeeded:
+            return (
+                f"주간 챌린지 성공! {reward:,}P를 받았어요",
+                f"{period} 목표 {goal}회를 채워 {reward:,}P를 돌려받았어요.",
+            )
+        return (
+            "주간 챌린지 목표를 채우지 못했어요",
+            f"{period} 목표 {goal}회 중 {int(args['days'])}회 운동해 "
+            f"건 {int(args['stake']):,}P는 사라졌어요. "
+            "다음 주 월·화요일에 다시 참가할 수 있어요.",
+        )
+    period = f"{start.month}/{start.day}–{end.month}/{end.day}"
+    if succeeded:
+        return (
+            f"Weekly challenge complete! You earned {reward:,}P",
+            f"You reached your goal of {_plural(goal, 'workout', 'workouts')} "
+            f"for {period} and got {reward:,}P back.",
+        )
+    return (
+        "Weekly challenge goal not reached",
+        f"You logged {int(args['days'])} of {_plural(goal, 'workout', 'workouts')} "
+        f"for {period}, "
+        f"so the {int(args['stake']):,}P you staked is gone. "
+        "You can join again next Monday or Tuesday.",
+    )
+
+
+# --------------------------------------------------------------------------
 # 만들기·읽기
 # --------------------------------------------------------------------------
 
@@ -444,7 +613,7 @@ def render(code: str | None, args: Args | None, locale: Locale) -> Rendered | No
         return None
     try:
         return renderer(args or {}, locale)
-    except (TypeError, ValueError, AttributeError):
+    except (TypeError, ValueError, AttributeError, KeyError):
         return None
 
 

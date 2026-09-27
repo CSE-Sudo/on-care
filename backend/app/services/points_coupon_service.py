@@ -60,6 +60,7 @@ from app.schemas.profile_pet_api import ProfilePetOut
 from app.services import (
     graph_color_service,
     notification_service,
+    notification_templates,
     points_service,
     profile_pet_service,
     streak_shield_service,
@@ -573,18 +574,18 @@ def remind_expiring(db: Session, member_id: str) -> int:
         benefit = item.benefit if item is not None else row.item
         last_day = _expires_on(row)
         days = _days_left(last_day)
-        when = (
-            f"{benefit} 쿠폰은 오늘까지 쓸 수 있어요."
-            if days == 0
-            else f"{benefit} 쿠폰이 {days}일 뒤({last_day.month}월 {last_day.day}일) 만료돼요."
-        )
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notification_service.POINTS_COUPON,
             category=notification_service.MEMBER_BENEFITS,
-            title="쿠폰이 곧 만료돼요",
-            body=f"{when} 만료되면 포인트는 돌려받을 수 없어요.",
+            template=notification_templates.MEMBER_COUPON_EXPIRING,
+            template_args={
+                "item": row.item,
+                "benefit": benefit,
+                "days": days,
+                "last_day": last_day.isoformat(),
+            },
         )
         sent += 1
     return sent
@@ -603,8 +604,7 @@ def cancel_renewal_coupons(db: Session, member_id: str) -> int:
         db,
         member_id,
         PT_RENEWAL,
-        title="재등록 쿠폰이 취소됐어요",
-        reason="담당 트레이너 연결이 해제되어",
+        reason=_CANCEL_TRAINER,
     )
     # 식판(#2150)도 담당 트레이너의 헬스장에서 받는 것이라 함께 취소한다. 0P 라
     # 돌려줄 포인트는 없고, 새 담당이 생기면 조건을 채운 채로 다시 받는다.
@@ -612,8 +612,7 @@ def cancel_renewal_coupons(db: Session, member_id: str) -> int:
         db,
         member_id,
         DIET_TRAY,
-        title="식판 수령 쿠폰이 취소됐어요",
-        reason="담당 트레이너 연결이 해제되어",
+        reason=_CANCEL_TRAINER,
     )
     return renewal + tray
 
@@ -632,13 +631,17 @@ def cancel_locker_coupons(db: Session, member_id: str) -> int:
         db,
         member_id,
         LOCKER_MONTH,
-        title="락커 쿠폰이 취소됐어요",
-        reason="헬스장 연결이 해제되어",
+        reason=_CANCEL_GYM,
     )
 
 
+#: 쿠폰이 취소된 까닭 — 알림 틀 인자(#2302). 제목·문장은 틀이 항목·언어별로 고른다.
+_CANCEL_TRAINER = "trainer"
+_CANCEL_GYM = "gym"
+
+
 def _cancel_unused(
-    db: Session, member_id: str, item: ShopItem, *, title: str, reason: str
+    db: Session, member_id: str, item: ShopItem, *, reason: str
 ) -> int:
     """[item] 의 사용 가능한 쿠폰을 취소하고 포인트를 돌려준다. 커밋하지 않는다.
 
@@ -678,20 +681,21 @@ def _cancel_unused(
             refunded = points_service.refund(
                 db, member_id, points_service.SOURCE_POINTS_COUPON, row.id
             )
-            body = (
-                f"{reason} {item.benefit} 쿠폰을 취소하고 "
-                f"{refunded:,}P를 돌려드렸어요."
-            )
         else:
             # 포인트로 사지 않은 쿠폰(식판, #2150) — 돌려줄 것이 없다.
-            body = f"{reason} {item.benefit} 쿠폰을 취소했어요."
+            refunded = None
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notification_service.POINTS_COUPON,
             category=notification_service.MEMBER_BENEFITS,
-            title=title,
-            body=body,
+            template=notification_templates.MEMBER_COUPON_CANCELLED,
+            template_args={
+                "item": item.id,
+                "benefit": item.benefit,
+                "reason": reason,
+                "refunded": refunded,
+            },
         )
         cancelled += 1
     db.flush()

@@ -2611,7 +2611,7 @@ def _notification_out(row: Notification, locale: Locale) -> TrainerNotificationO
         category=row.category,
         read=row.read,
         created_at=row.created_at,
-        time_ago=notification_service.time_ago(row.created_at),
+        time_ago=notification_service.time_ago(row.created_at, locale),
         subject_id=row.subject_id,
         template=row.template,
         args=row.template_args,

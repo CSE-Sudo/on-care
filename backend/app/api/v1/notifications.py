@@ -91,7 +91,8 @@ def notification_out(row: Notification, locale: Locale) -> NotificationOut:
     )
     return NotificationOut(
         id=row.id, title=title, body=body, category=row.category,
-        read=row.read, created_at=row.created_at, time_ago=_time_ago(row.created_at),
+        read=row.read, created_at=row.created_at,
+        time_ago=_time_ago(row.created_at, locale),
         action=_action_for(row.category, locale), invite_id=row.invite_id,
         template=row.template, args=row.template_args,
     )

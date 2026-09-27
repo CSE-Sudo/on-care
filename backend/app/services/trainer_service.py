@@ -3248,8 +3248,8 @@ def _add_session(
             member_id=member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="새 일정이 등록되었어요",
-            body=f"{date} {time} · {type_}",
+            template=notification_templates.MEMBER_SCHEDULE_ADDED,
+            template_args={"date": date, "time": time, "type": type_},
         )
     return s
 
@@ -3466,8 +3466,10 @@ def create_recurring_sessions(
             member_id=member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="반복 일정이 등록되었어요",
-            body=f"{iso[0]} ~ {iso[-1]} · {time} · {len(iso)}회",
+            template=notification_templates.MEMBER_SCHEDULE_SERIES,
+            template_args={
+                "first": iso[0], "last": iso[-1], "time": time, "count": len(iso),
+            },
         )
     db.commit()
     for row in created:
@@ -3856,9 +3858,10 @@ def _member_visible_slot(s: TrainerSchedule) -> tuple[str, str, str, int]:
     return (s.date, s.time, s.type, s.duration_minutes)
 
 
-def _slot_body(slot: tuple[str, str, str, int]) -> str:
+def _slot_args(slot: tuple[str, str, str, int]) -> dict[str, str]:
+    """일정 알림 틀의 인자 — 본문 `날짜 시각 · 종류` 를 이룬다(#2302)."""
     date, time, type_, _ = slot
-    return f"{date} {time} · {type_}"
+    return {"date": date, "time": time, "type": type_}
 
 
 def _notify_schedule_changed(
@@ -3883,8 +3886,8 @@ def _notify_schedule_changed(
             member_id=session.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 변경되었어요",
-            body=_slot_body(after_slot),
+            template=notification_templates.MEMBER_SCHEDULE_CHANGED,
+            template_args=_slot_args(after_slot),
         )
         return
 
@@ -3896,8 +3899,8 @@ def _notify_schedule_changed(
             member_id=before_member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(before_slot),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(before_slot),
         )
     if session.member_id is not None:
         notification_service.queue(
@@ -3905,8 +3908,8 @@ def _notify_schedule_changed(
             member_id=session.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="새 일정이 등록되었어요",
-            body=_slot_body(after_slot),
+            template=notification_templates.MEMBER_SCHEDULE_ADDED,
+            template_args=_slot_args(after_slot),
         )
 
 
@@ -4009,8 +4012,8 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(_member_visible_slot(s)),
         )
     db.delete(s)
     db.commit()
@@ -4403,8 +4406,8 @@ def cancel_session(
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(_member_visible_slot(s)),
         )
     db.commit()
     db.refresh(s)

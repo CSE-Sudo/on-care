@@ -459,3 +459,137 @@ def test_every_action_category_has_an_english_label():
         action = router._action_for(category, "en")
         assert action is not None
         assert not HANGUL.search(action.label), (category, action.label)
+
+
+# --------------------------------------------------------------------------
+# 일정·포인트 알림과 상대 시각
+# --------------------------------------------------------------------------
+
+
+def _future_day(days: int = 30) -> str:
+    return (datetime.now(timezone.utc) + timedelta(days=days)).date().isoformat()
+
+
+def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_session):
+    trainer_token, _, member_id, member_token = _pair(client, db_session)
+    day = _future_day()
+    created = client.post(
+        "/v1/trainer/schedule",
+        json={
+            "date": day, "time": "19:00", "client_name": "Alex",
+            "member_id": member_id, "type": "상담", "duration_minutes": 30,
+        },
+        headers=_auth(trainer_token),
+    )
+    assert created.status_code == 201, created.text
+
+    row = db_session.scalar(
+        select(Notification).where(
+            Notification.user_id == member_id,
+            Notification.template == nt.MEMBER_SCHEDULE_ADDED,
+        )
+    )
+    assert row is not None
+    # 저장 문장은 예전과 같은 한국어다.
+    assert (row.title, row.body) == ("새 일정이 등록되었어요", f"{day} 19:00 · 상담")
+    assert row.template_args == {"date": day, "time": "19:00", "type": "상담"}
+
+    removed = client.delete(
+        f"/v1/trainer/schedule/{created.json()['id']}", headers=_auth(trainer_token)
+    )
+    assert removed.status_code in (200, 204), removed.text
+
+    en = {n["title"]: n for n in _member_inbox(client, member_token, EN)}
+    assert en["New session scheduled"]["body"] == f"{day} 19:00 · Consultation"
+    assert en["Session cancelled"]["body"] == f"{day} 19:00 · Consultation"
+    ko = {n["title"]: n for n in _member_inbox(client, member_token, KO)}
+    assert ko["새 일정이 등록되었어요"]["body"] == f"{day} 19:00 · 상담"
+    assert ko["일정이 취소되었어요"]["body"] == f"{day} 19:00 · 상담"
+
+
+@pytest.mark.parametrize(
+    ("template", "args", "category", "en_title"),
+    [
+        (
+            nt.MEMBER_COUPON_EXPIRING,
+            {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "days": 2,
+             "last_day": "2026-10-03"},
+            "benefits",
+            "Coupon expiring soon",
+        ),
+        (
+            nt.MEMBER_COUPON_CANCELLED,
+            {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
+             "refunded": 7000},
+            "benefits",
+            "Locker coupon cancelled",
+        ),
+        (
+            nt.MEMBER_CHALLENGE_RESULT,
+            {"succeeded": True, "week_start": "2026-09-28", "goal": 4, "days": 4,
+             "reward": 1200, "stake": 1000},
+            "points_shop",
+            "Weekly challenge complete! You earned 1,200P",
+        ),
+    ],
+)
+def test_points_notifications_reach_the_member_in_english(
+    client, db_session, template, args, category, en_title
+):
+    _, _, member_id, member_token = _pair(client, db_session)
+    cols = nt.columns(template, args)
+    _add_row(db_session, member_id, category=category, **cols)
+
+    en = _member_inbox(client, member_token, EN)[0]
+    assert en["title"] == en_title
+    assert not HANGUL.search(en["title"] + en["body"])
+    assert en["template"] == template
+    assert en["args"] == args
+    ko = _member_inbox(client, member_token, KO)[0]
+    assert (ko["title"], ko["body"]) == (cols["title"], cols["body"])
+
+
+def test_queue_stores_points_templates_with_korean_text(client, db_session):
+    """서비스 경로(`notification_service.queue`)가 틀·인자와 한국어를 함께 저장한다."""
+    from app.services import notification_service
+
+    _, _, member_id, _ = _pair(client, db_session)
+    row = notification_service.queue(
+        db_session,
+        member_id=member_id,
+        kind=notification_service.WEEKLY_CHALLENGE,
+        category=notification_service.MEMBER_POINTS_SHOP,
+        template=nt.MEMBER_CHALLENGE_RESULT,
+        template_args={"succeeded": False, "week_start": "2026-09-28", "goal": 4,
+                       "days": 2, "reward": 1200, "stake": 1000},
+    )
+    db_session.commit()
+    assert row is not None
+    assert row.title == "주간 챌린지 목표를 채우지 못했어요"
+    assert row.body.startswith("9월 28일~10월 4일 목표 4회 중 2회 운동해")
+    assert row.template == nt.MEMBER_CHALLENGE_RESULT
+
+
+@pytest.mark.parametrize(
+    ("ago", "ko", "en"),
+    [
+        (timedelta(seconds=5), "방금 전", "just now"),
+        (timedelta(minutes=5, seconds=10), "5분 전", "5 min ago"),
+        (timedelta(hours=3, minutes=1), "3시간 전", "3 hours ago"),
+        (timedelta(days=2, minutes=1), "2일 전", "2 days ago"),
+    ],
+)
+def test_time_ago_follows_the_request_language_in_both_inboxes(
+    client, db_session, ago, ko, en
+):
+    trainer_token, trainer_id, member_id, member_token = _pair(client, db_session)
+    for user_id in (trainer_id, member_id):
+        row_id = _add_row(db_session, user_id, category="system", title="t", body="b")
+        db_session.get(Notification, row_id).created_at = datetime.now(timezone.utc) - ago
+        db_session.commit()
+
+    for inbox, token in ((_trainer_inbox, trainer_token), (_member_inbox, member_token)):
+        assert inbox(client, token, EN)[0]["time_ago"] == en
+        assert inbox(client, token, KO)[0]["time_ago"] == ko
+        # 헤더 없는 요청(옛 앱)은 예전 그대로 한국어다.
+        assert inbox(client, token)[0]["time_ago"] == ko

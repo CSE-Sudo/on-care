@@ -503,8 +503,13 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 - **`action.label`** 도 요청 언어입니다(저장하지 않고 응답마다 만드는 말). 예: `운동 보기` / `View workouts`.
 - 틀 목록과 문장은 `app/services/notification_templates.py` 에 있습니다. 트레이너가 받는 틀
   (`trainer_*`)은 트레이너 웹 `trainer_notification_text.dart` 가 같은 코드를 읽습니다.
-- 아직 틀로 옮기지 않은 알림(일정 등록·변경·취소, 포인트 쿠폰, 주간 챌린지)은 저장된 한국어
-  문장 그대로입니다.
+- 일정 등록·변경·취소·반복 등록, 포인트 쿠폰 만료 예고·취소, 주간 챌린지 결과도 틀로
+  저장합니다. 일정 종류는 저장 값(`1:1 PT`·`상담`)을 영어로 옮기고, 트레이너가 직접 적은 종류는
+  그대로 둡니다. 쿠폰 혜택 이름은 항목 id 로 영어를 고릅니다.
+- **`time_ago`** 도 요청 언어입니다. 한국어는 예전 그대로(`방금 전`·`5분 전`·`3시간 전`·`2일 전`),
+  영어는 `just now`·`5 min ago`·`1 hour ago`·`3 hours ago`·`1 day ago`·`2 days ago` 입니다.
+  회원 앱은 두 모양을 모두 읽어 자기 로케일 문장으로 옮기고, 트레이너 웹은 받은 값을 그대로
+  그립니다(요청 언어가 곧 화면 언어).
 
 #### 담당 요청 알림 (#1802)
 

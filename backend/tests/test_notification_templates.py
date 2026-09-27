@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -311,6 +311,111 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "예약한 수업이 취소되었어요",
         "박코치 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
     ),
+    # 일정 — `trainer_service` 의 일정 등록·변경·취소·반복 등록.
+    (
+        nt.MEMBER_SCHEDULE_ADDED,
+        {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"},
+        "",
+        "새 일정이 등록되었어요",
+        "2026-10-01 09:00 · 1:1 PT",
+    ),
+    (
+        nt.MEMBER_SCHEDULE_ADDED,
+        {"date": "2026-10-01", "time": "09:00", "type": ""},
+        "",
+        "새 일정이 등록되었어요",
+        "2026-10-01 09:00 · ",
+    ),
+    (
+        nt.MEMBER_SCHEDULE_CHANGED,
+        {"date": "2026-10-02", "time": "18:30", "type": "상담"},
+        "",
+        "일정이 변경되었어요",
+        "2026-10-02 18:30 · 상담",
+    ),
+    (
+        nt.MEMBER_SCHEDULE_CANCELLED,
+        {"date": "2026-10-02", "time": "18:30", "type": "1:1 PT"},
+        "",
+        "일정이 취소되었어요",
+        "2026-10-02 18:30 · 1:1 PT",
+    ),
+    (
+        nt.MEMBER_SCHEDULE_SERIES,
+        {"first": "2026-10-01", "last": "2026-11-19", "time": "09:00", "count": 8},
+        "",
+        "반복 일정이 등록되었어요",
+        "2026-10-01 ~ 2026-11-19 · 09:00 · 8회",
+    ),
+    # 포인트 쿠폰 — `points_coupon_service` 의 만료 예고·취소.
+    (
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "days": 3,
+         "last_day": "2026-10-04"},
+        "",
+        "쿠폰이 곧 만료돼요",
+        "PT 재등록 30,000원 할인 쿠폰이 3일 뒤(10월 4일) 만료돼요. "
+        "만료되면 포인트는 돌려받을 수 없어요.",
+    ),
+    (
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "days": 0,
+         "last_day": "2026-10-01"},
+        "",
+        "쿠폰이 곧 만료돼요",
+        "개인 락커 1개월 무료 쿠폰은 오늘까지 쓸 수 있어요. 만료되면 포인트는 돌려받을 수 없어요.",
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
+         "refunded": 21000},
+        "",
+        "재등록 쿠폰이 취소됐어요",
+        "담당 트레이너 연결이 해제되어 PT 재등록 30,000원 할인 쿠폰을 취소하고 "
+        "21,000P를 돌려드렸어요.",
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
+         "refunded": 0},
+        "",
+        "재등록 쿠폰이 취소됐어요",
+        "담당 트레이너 연결이 해제되어 PT 재등록 30,000원 할인 쿠폰을 취소하고 0P를 돌려드렸어요.",
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "diet_tray", "benefit": "분석용 규격 식판", "reason": "trainer",
+         "refunded": None},
+        "",
+        "식판 수령 쿠폰이 취소됐어요",
+        "담당 트레이너 연결이 해제되어 분석용 규격 식판 쿠폰을 취소했어요.",
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
+         "refunded": 7000},
+        "",
+        "락커 쿠폰이 취소됐어요",
+        "헬스장 연결이 해제되어 개인 락커 1개월 무료 쿠폰을 취소하고 7,000P를 돌려드렸어요.",
+    ),
+    # 주간 챌린지 — `weekly_challenge_service` 의 결과 판정.
+    (
+        nt.MEMBER_CHALLENGE_RESULT,
+        {"succeeded": True, "week_start": "2026-09-28", "goal": 4, "days": 5,
+         "reward": 1200, "stake": 1000},
+        "",
+        "주간 챌린지 성공! 1,200P를 받았어요",
+        "9월 28일~10월 4일 목표 4회를 채워 1,200P를 돌려받았어요.",
+    ),
+    (
+        nt.MEMBER_CHALLENGE_RESULT,
+        {"succeeded": False, "week_start": "2026-09-28", "goal": 4, "days": 2,
+         "reward": 1200, "stake": 1000},
+        "",
+        "주간 챌린지 목표를 채우지 못했어요",
+        "9월 28일~10월 4일 목표 4회 중 2회 운동해 건 1,000P는 사라졌어요. "
+        "다음 주 월·화요일에 다시 참가할 수 있어요.",
+    ),
 ]
 
 
@@ -574,6 +679,110 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
             "Coach Park left the service, so your booking was cancelled.",
         ),
     ),
+    (
+        nt.MEMBER_SCHEDULE_ADDED,
+        {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"},
+        ("New session scheduled", "2026-10-01 09:00 · 1:1 PT"),
+    ),
+    (
+        nt.MEMBER_SCHEDULE_CHANGED,
+        {"date": "2026-10-02", "time": "18:30", "type": "상담"},
+        ("Session rescheduled", "2026-10-02 18:30 · Consultation"),
+    ),
+    (
+        nt.MEMBER_SCHEDULE_CANCELLED,
+        {"date": "2026-10-02", "time": "18:30", "type": "Stretching class"},
+        ("Session cancelled", "2026-10-02 18:30 · Stretching class"),
+    ),
+    (
+        nt.MEMBER_SCHEDULE_SERIES,
+        {"first": "2026-10-01", "last": "2026-11-19", "time": "09:00", "count": 8},
+        ("Recurring sessions scheduled", "2026-10-01 ~ 2026-11-19 · 09:00 · 8 sessions"),
+    ),
+    (
+        nt.MEMBER_SCHEDULE_SERIES,
+        {"first": "2026-10-01", "last": "2026-10-01", "time": "09:00", "count": 1},
+        ("Recurring sessions scheduled", "2026-10-01 ~ 2026-10-01 · 09:00 · 1 session"),
+    ),
+    (
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "days": 3,
+         "last_day": "2026-10-04"},
+        (
+            "Coupon expiring soon",
+            "Your ₩30,000 off PT re-registration coupon expires in 3 days (10/4). "
+            "Points can't be refunded once it expires.",
+        ),
+    ),
+    (
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "days": 1,
+         "last_day": "2026-10-02"},
+        (
+            "Coupon expiring soon",
+            "Your free personal locker for 1 month coupon expires in 1 day (10/2). "
+            "Points can't be refunded once it expires.",
+        ),
+    ),
+    (
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "days": 0,
+         "last_day": "2026-10-01"},
+        (
+            "Coupon expiring soon",
+            "Your free personal locker for 1 month coupon expires today. "
+            "Points can't be refunded once it expires.",
+        ),
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
+         "refunded": 21000},
+        (
+            "PT re-registration coupon cancelled",
+            "Your ₩30,000 off PT re-registration coupon was cancelled because your "
+            "trainer connection ended. We refunded 21,000P.",
+        ),
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "diet_tray", "benefit": "분석용 규격 식판", "reason": "trainer",
+         "refunded": None},
+        (
+            "Meal tray coupon cancelled",
+            "Your standard meal tray for photo analysis coupon was cancelled because "
+            "your trainer connection ended.",
+        ),
+    ),
+    (
+        nt.MEMBER_COUPON_CANCELLED,
+        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
+         "refunded": 7000},
+        (
+            "Locker coupon cancelled",
+            "Your free personal locker for 1 month coupon was cancelled because your "
+            "gym connection ended. We refunded 7,000P.",
+        ),
+    ),
+    (
+        nt.MEMBER_CHALLENGE_RESULT,
+        {"succeeded": True, "week_start": "2026-09-28", "goal": 4, "days": 5,
+         "reward": 1200, "stake": 1000},
+        (
+            "Weekly challenge complete! You earned 1,200P",
+            "You reached your goal of 4 workouts for 9/28–10/4 and got 1,200P back.",
+        ),
+    ),
+    (
+        nt.MEMBER_CHALLENGE_RESULT,
+        {"succeeded": False, "week_start": "2026-09-28", "goal": 4, "days": 2,
+         "reward": 1200, "stake": 1000},
+        (
+            "Weekly challenge goal not reached",
+            "You logged 2 of 4 workouts for 9/28–10/4, so the 1,000P you staked is "
+            "gone. You can join again next Monday or Tuesday.",
+        ),
+    ),
 ]
 
 
@@ -607,6 +816,23 @@ def test_english_has_no_korean_left(code):
         "weight": 20.0,
         "note": None,
         "photo_only": True,
+        "date": "2026-10-01",
+        "time": "09:00",
+        "type": "상담",
+        "first": "2026-10-01",
+        "last": "2026-11-19",
+        "count": 8,
+        "item": "pt_renewal",
+        "benefit": "PT 재등록 30,000원 할인",
+        "days": 3,
+        "last_day": "2026-10-04",
+        "reason": "trainer",
+        "refunded": 21000,
+        "week_start": "2026-09-28",
+        "goal": 4,
+        "reward": 1200,
+        "stake": 1000,
+        "succeeded": False,
     }
     title, body = _en(code, args)
     assert not HANGUL.search(title), title
@@ -625,6 +851,23 @@ def test_empty_names_never_leave_a_dangling_space_in_english(code):
         "focus": [],
         "preferred_date": "2026-10-01",
         "starts_at": STARTS.isoformat(),
+        "date": "2026-10-01",
+        "time": "09:00",
+        "type": "상담",
+        "first": "2026-10-01",
+        "last": "2026-11-19",
+        "count": 8,
+        "item": "pt_renewal",
+        "benefit": "PT 재등록 30,000원 할인",
+        "days": 3,
+        "last_day": "2026-10-04",
+        "reason": "trainer",
+        "refunded": 21000,
+        "week_start": "2026-09-28",
+        "goal": 4,
+        "reward": 1200,
+        "stake": 1000,
+        "succeeded": False,
     }
     title, body = _en(code, args)
     for text in (title, body or ""):
@@ -760,11 +1003,29 @@ def test_localize_defaults_to_the_request_locale(monkeypatch):
     ) == (STORED["title"], STORED["body"])
 
 
+#: 숫자·날짜 인자가 있어야 문장이 되는 틀. 인자가 빠지면 조립하지 않고 저장된
+#: 문장으로 돌아간다 — "0회"·"1월 1일" 같은 지어낸 값을 보여 주지 않는다.
+NEEDS_ARGS = {
+    nt.MEMBER_SCHEDULE_SERIES,
+    nt.MEMBER_COUPON_EXPIRING,
+    nt.MEMBER_COUPON_CANCELLED,
+    nt.MEMBER_CHALLENGE_RESULT,
+}
+
+
 def test_render_tolerates_missing_args():
-    """인자가 빠진 틀도 예외 없이 문장을 만든다(목록이 500 이 되지 않게)."""
+    """인자가 빠진 틀도 예외를 내지 않는다(목록이 500 이 되지 않게).
+
+    이름·글자만 쓰는 틀은 빈 값으로 문장을 만들고, [NEEDS_ARGS] 는 ``None`` 으로
+    저장된 문장에 맡긴다.
+    """
     for code in nt.codes():
-        assert nt.render(code, {}, "en") is not None
-        assert nt.render(code, None, "ko") is not None
+        for args, locale in (({}, "en"), (None, "ko")):
+            rendered = nt.render(code, args, locale)
+            if code in NEEDS_ARGS:
+                assert rendered is None, code
+            else:
+                assert rendered is not None, code
 
 
 def test_render_unknown_or_empty_code_is_none():
@@ -794,3 +1055,174 @@ def test_trainer_web_knows_every_trainer_template():
     trainer_codes = {code for code in nt.codes() if code.startswith("trainer_")}
     missing = {code for code in trainer_codes if f"'{code}'" not in source}
     assert missing == set()
+
+
+# --------------------------------------------------------------------------
+# 일정·포인트 틀과 원본 규칙의 짝
+# --------------------------------------------------------------------------
+
+
+def test_every_coupon_with_a_notification_has_english_and_a_title():
+    """만료 예고·취소 알림이 가는 쿠폰(`PointsCoupon` 으로 발급되는 항목)은 영어
+    이름과 취소 제목이 있다. 보호권·그래프 색·펫·리포트는 쿠폰이 아니다."""
+    from app.services import points_coupon_service as pcs
+
+    coupons = {pcs.PT_RENEWAL.id, pcs.LOCKER_MONTH.id, pcs.DIET_TRAY.id}
+    assert coupons <= set(nt._BENEFIT_EN)
+    assert coupons <= set(nt._COUPON_CANCELLED_TITLE)
+
+
+def test_coupon_cancel_reasons_match_the_service():
+    from app.services import points_coupon_service as pcs
+
+    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM} == set(nt._COUPON_CANCEL_REASON)
+
+
+def test_coupon_benefit_in_korean_is_the_stored_catalog_text():
+    """한국어 혜택 문구는 인자에 담긴 교환 당시 문구다 — 카탈로그를 다시 읽지 않는다."""
+    title, body = _ko(
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "pt_renewal", "benefit": "옛 혜택 문구", "days": 2, "last_day": "2026-10-03"},
+    )
+    assert body.startswith("옛 혜택 문구 쿠폰이 2일 뒤(10월 3일)")
+
+
+def test_unknown_coupon_item_keeps_the_korean_benefit_in_english():
+    _, body = _en(
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "retired_item", "benefit": "없어진 혜택", "days": 2, "last_day": "2026-10-03"},
+    )
+    assert body.startswith("Your 없어진 혜택 coupon expires in 2 days")
+
+
+def test_unknown_coupon_cancel_falls_back_to_the_stored_text():
+    """모르는 항목·까닭의 취소 알림은 조립하지 않고 저장된 문장을 쓴다."""
+    for args in (
+        {"item": "retired_item", "benefit": "x", "reason": "trainer", "refunded": 1},
+        {"item": "pt_renewal", "benefit": "x", "reason": "moved", "refunded": 1},
+    ):
+        assert nt.render(nt.MEMBER_COUPON_CANCELLED, args, "en") is None
+        assert nt.localize(
+            title="저장 제목", body="저장 본문",
+            template=nt.MEMBER_COUPON_CANCELLED, template_args=args, locale="en",
+        ) == ("저장 제목", "저장 본문")
+
+
+def test_session_types_in_english_follow_the_trainer_web_values():
+    """일정 종류 저장 값은 트레이너 웹 `SessionType` 과 같다."""
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "frontend/flutter_trainer/lib/features/schedule/domain/entities/schedule_status.dart"
+    )
+    if not source.exists():
+        pytest.skip("프론트 소스가 없는 체크아웃")
+    text = source.read_text(encoding="utf-8")
+    for stored in nt._SESSION_TYPE_EN:
+        assert f"'{stored}'" in text, stored
+
+
+def test_challenge_result_args_carry_everything_the_sentence_needs():
+    from types import SimpleNamespace
+
+    from app.services import weekly_challenge_service as wcs
+
+    row = SimpleNamespace(week_start="2026-09-28", goal=3, reward=900, stake=600)
+    args = wcs._result_args(row, days=1, succeeded=False)
+    assert json.loads(json.dumps(args)) == args
+    assert _ko(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith(
+        "9월 28일~10월 4일 목표 3회 중 1회 운동해 건 600P"
+    )
+    assert _en(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith(
+        "You logged 1 of 3 workouts for 9/28–10/4, so the 600P"
+    )
+
+
+def test_challenge_period_crosses_the_year():
+    args = {"succeeded": True, "week_start": "2026-12-28", "goal": 1, "days": 1,
+            "reward": 100, "stake": 100}
+    assert _ko(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith("12월 28일~1월 3일 목표 1회")
+    assert _en(nt.MEMBER_CHALLENGE_RESULT, args) == (
+        "Weekly challenge complete! You earned 100P",
+        "You reached your goal of 1 workout for 12/28–1/3 and got 100P back.",
+    )
+
+
+def test_schedule_slot_args_match_the_member_visible_slot():
+    from app.services import trainer_service as ts
+
+    args = ts._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
+    assert args == {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"}
+    assert _ko(nt.MEMBER_SCHEDULE_CANCELLED, args)[1] == "2026-10-01 09:00 · 1:1 PT"
+
+
+@pytest.mark.parametrize(
+    ("code", "args"),
+    [
+        (nt.MEMBER_SCHEDULE_SERIES, {"first": "a", "last": "b", "time": "c"}),
+        (nt.MEMBER_SCHEDULE_SERIES, {"first": "a", "last": "b", "time": "c", "count": "x"}),
+        (nt.MEMBER_COUPON_EXPIRING, {"item": "pt_renewal", "benefit": "x", "days": 1}),
+        (nt.MEMBER_COUPON_EXPIRING,
+         {"item": "pt_renewal", "benefit": "x", "days": 1, "last_day": "soon"}),
+        (nt.MEMBER_CHALLENGE_RESULT, {"succeeded": True, "week_start": "2026-09-28"}),
+        (nt.MEMBER_CHALLENGE_RESULT,
+         {"succeeded": True, "week_start": "bad", "goal": 1, "reward": 1}),
+    ],
+)
+def test_broken_points_and_schedule_args_fall_back(code, args):
+    assert nt.render(code, args, "en") is None
+    assert nt.localize(
+        title="저장 제목", body="저장 본문", template=code, template_args=args, locale="en",
+    ) == ("저장 제목", "저장 본문")
+
+
+# --------------------------------------------------------------------------
+# 상대 시각
+# --------------------------------------------------------------------------
+
+NOW = datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc)
+
+
+@pytest.mark.parametrize(
+    ("ago", "ko", "en"),
+    [
+        (timedelta(seconds=0), "방금 전", "just now"),
+        (timedelta(seconds=59), "방금 전", "just now"),
+        (timedelta(seconds=60), "1분 전", "1 min ago"),
+        (timedelta(minutes=5), "5분 전", "5 min ago"),
+        (timedelta(minutes=59, seconds=59), "59분 전", "59 min ago"),
+        (timedelta(hours=1), "1시간 전", "1 hour ago"),
+        (timedelta(hours=3), "3시간 전", "3 hours ago"),
+        (timedelta(hours=23, minutes=59), "23시간 전", "23 hours ago"),
+        (timedelta(days=1), "1일 전", "1 day ago"),
+        (timedelta(days=2), "2일 전", "2 days ago"),
+        (timedelta(days=45), "45일 전", "45 days ago"),
+    ],
+)
+def test_time_ago_in_both_languages(ago, ko, en):
+    assert notification_service.time_ago(NOW - ago, "ko", now=NOW) == ko
+    assert notification_service.time_ago(NOW - ago, "en", now=NOW) == en
+
+
+def test_time_ago_treats_a_naive_time_as_utc():
+    naive = (NOW - timedelta(hours=2)).replace(tzinfo=None)
+    assert notification_service.time_ago(naive, "en", now=NOW) == "2 hours ago"
+
+
+def test_time_ago_follows_the_request_locale_by_default():
+    from app.core.locale import _request_locale_ctx
+
+    three_hours = NOW - timedelta(hours=3)
+    assert notification_service.time_ago(three_hours, now=NOW) == "3시간 전"
+    token = _request_locale_ctx.set("en")
+    try:
+        assert notification_service.time_ago(three_hours, now=NOW) == "3 hours ago"
+    finally:
+        _request_locale_ctx.reset(token)
+
+
+def test_time_ago_english_matches_what_the_member_app_parses():
+    """회원 앱 `localizeTimeAgo` 가 읽는 영어 모양과 같아야 앱 문장으로 옮겨진다."""
+    shape = re.compile(r"^(just now|\d+ (min|hours?|days?) ago)$")
+    for ago in (timedelta(0), timedelta(minutes=7), timedelta(hours=1),
+                timedelta(hours=5), timedelta(days=1), timedelta(days=9)):
+        assert shape.match(notification_service.time_ago(NOW - ago, "en", now=NOW))
