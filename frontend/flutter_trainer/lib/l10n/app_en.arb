@@ -3134,32 +3134,11 @@
   "reportsSentBody": "Message sent",
   "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",
-  "reportsStepGoals": "Write",
+  "reportsStepWrite": "Write",
   "reportsStepSend": "Send",
   "reportsStepperLabel": "Weekly report steps",
   "reportsStepNext": "Next",
   "reportsStepPrev": "Back",
-  "reportsGoalsTitle": "Next week's goals",
-  "reportsGoalsHint": "Pick what to work on together next week. The goals you pick go out with the message.",
-  "reportsGoalsNone": "No goals picked yet",
-  "reportsGoalsPicked": "{count} picked",
-  "@reportsGoalsPicked": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsGoalsOwnHint": "Write your own",
-  "reportsGoalsAdd": "Add",
-  "reportsGoalsRemove": "Remove {goal}",
-  "@reportsGoalsRemove": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
   "reportsGridPtSession": "PT sessions",
   "reportsGridPtPerWeek": "{count}/week",
   "@reportsGridPtPerWeek": {
@@ -3224,7 +3203,7 @@
       }
     }
   },
-  "reportsMacroShortfall": "{name} is well under target — worth picking as a goal for next week",
+  "reportsMacroShortfall": "{name} is well under target — worth raising in your feedback",
   "@reportsMacroShortfall": {
     "placeholders": {
       "name": {
@@ -3260,70 +3239,6 @@
   "reportsMemberFeedbackIntensityRight": "About right",
   "reportsMemberFeedbackIntensityHard": "Hard",
   "reportsMemberFeedbackIntensityTooHard": "Too hard",
-  "reportsLastGoalsTitle": "Last week's goals",
-  "reportsLastGoalsNone": "No goals were picked last week",
-  "reportsLastGoalsNoneHint": "Pick next week's goals now and they come back here in the next report",
-  "reportsLastGoalsMetCount": "{met} / {total} met",
-  "@reportsLastGoalsMetCount": {
-    "placeholders": {
-      "met": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsMet": "Met",
-  "reportsLastGoalsPartial": "Partly",
-  "reportsLastGoalsMissed": "Missed",
-  "reportsLastGoalsUnknown": "Check yourself",
-  "reportsLastGoalsEvidence": "{done} / {target}{unit}",
-  "@reportsLastGoalsEvidence": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "target": {
-        "type": "int"
-      },
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceLogged": "Logged {days} days",
-  "@reportsLastGoalsEvidenceLogged": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceWorkout": "{done} / {total} personal workouts",
-  "@reportsLastGoalsEvidenceWorkout": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsSubtitle": "Judged from this week's records",
-  "reportsLastGoalsKeywordsCalories": "calorie,kcal,intake",
-  "@reportsLastGoalsKeywordsCalories": {
-    "description": "Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen."
-  },
-  "reportsLastGoalsKeywordsWorkout": "workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym",
-  "@reportsLastGoalsKeywordsWorkout": {
-    "description": "Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen."
-  },
-  "reportsLastGoalsKeywordsLogged": "log,record,meal",
-  "@reportsLastGoalsKeywordsLogged": {
-    "description": "Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen."
-  },
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
   "reportsTrendOfGoal": "{value} / {goal}",
@@ -3357,14 +3272,6 @@
   "@reportsMemberFeedbackMeta": {
     "placeholders": {
       "date": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsMacroShortfallEvidence": "This is the evidence last week's goal “{goal}” was judged unmet",
-  "@reportsMacroShortfallEvidence": {
-    "placeholders": {
-      "goal": {
         "type": "String"
       }
     }
