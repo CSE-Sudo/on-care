@@ -544,6 +544,19 @@
   "metricSodium": "Sodium",
   "metricSugar": "Sugar",
   "clientDietMacrosMissing": "No carbs/protein/fat recorded",
+  "clientDietTotalCalories": "Total calories",
+  "clientDietMacroShare": "{name} {percent}%",
+  "@clientDietMacroShare": {
+    "description": "끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "metricCarbs": "Carbs",
   "metricProtein": "Protein",
   "metricFat": "Fat",
@@ -765,14 +778,6 @@
     "placeholders": {
       "amount": {
         "type": "String"
-      }
-    }
-  },
-  "dietSodiumValue": "Sodium {value}mg",
-  "@dietSodiumValue": {
-    "placeholders": {
-      "value": {
-        "type": "int"
       }
     }
   },

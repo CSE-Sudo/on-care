@@ -887,6 +887,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
 
   @override
+  String get clientDietTotalCalories => 'Total calories';
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
+
+  @override
   String get metricCarbs => 'Carbs';
 
   @override
@@ -1245,11 +1253,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String dietAmountRemaining(String amount) {
     return '$amount remaining to the goal';
-  }
-
-  @override
-  String dietSodiumValue(int value) {
-    return 'Sodium ${value}mg';
   }
 
   @override

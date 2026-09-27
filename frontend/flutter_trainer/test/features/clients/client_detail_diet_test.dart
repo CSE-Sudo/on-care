@@ -330,20 +330,46 @@ void main() {
         scrollable: detailScrollable('seed-client-1'),
       );
       expect(find.text('아침'), findsOneWidget);
-      // 음식은 이제 **한 줄씩** 이름과 영양을 함께 적는다 (#1166) — 회원 앱
-      // 끼니 카드와 같다. 예전에는 이름을 쉼표로 이어 붙인 한 줄뿐이었다.
-      expect(find.text('스크램블 에그'), findsOneWidget);
-      expect(find.text('딸기'), findsOneWidget);
-      // 위 영양 요약 카드에도 '오늘 섭취 칼로리' 가 있어 전체 트리를 뒤지면
-      // 끼니 카드의 칼로리가 사라져도 통과한다 — 아침 카드 범위로 좁힌다.
+      // 음식은 **한 줄씩**, 이름 바로 옆에 내용량을 적는다 (#1166, #2333) —
+      // 회원 앱 식단 상세와 같은 모양이다.
+      expect(find.text('스크램블 에그  130g', findRichText: true), findsOneWidget);
+      expect(find.text('딸기  100g', findRichText: true), findsOneWidget);
+      // 먹은 시각은 회원 앱처럼 내렸다(회원 앱 #1989) — 값은 저장돼 있다.
+      expect(find.text('08:20'), findsNothing);
+      // 위 영양 요약 카드에도 '칼로리' 가 있어 전체 트리를 뒤지면 끼니 카드의
+      // 합계가 사라져도 통과한다 — 아침 카드 범위로 좁힌다.
+      Finder inBreakfast(Finder f) =>
+          find.descendant(of: mealCardFinder('아침'), matching: f);
+      expect(inBreakfast(find.text('총 칼로리')), findsOneWidget);
+      expect(inBreakfast(find.text('247 kcal')), findsOneWidget);
+      // `총 칼로리` 옆에는 탄단지 **비중만** — 아래 막대의 범례다. 탄·단
+      // 4kcal, 지 9kcal 로 잰다(41.6 · 64 · 133.2 kcal).
+      expect(inBreakfast(find.text('탄수화물 17%')), findsOneWidget);
+      expect(inBreakfast(find.text('단백질 27%')), findsOneWidget);
+      expect(inBreakfast(find.text('지방 56%')), findsOneWidget);
+      // g 은 오른쪽 세부 줄에 — 회원 앱 상세 `영양 정보` 순서다.
+      // 항목마다 따로 선다 — 줄은 항목 사이에서만 바뀐다.
+      final List<String> details = tester
+          .widgetList<Text>(
+            inBreakfast(
+              find.descendant(
+                of: find.byWidgetPredicate(
+                  (Widget w) =>
+                      w.key is ValueKey<String> &&
+                      (w.key! as ValueKey<String>).value.startsWith(
+                        'client-diet-extras-',
+                      ),
+                ),
+                matching: find.byType(Text),
+              ),
+            ),
+          )
+          .map((Text t) => t.data!)
+          .toList();
       expect(
-        find.descendant(
-          of: mealCardFinder('아침'),
-          matching: find.textContaining('칼로리', findRichText: true),
-        ),
-        findsOneWidget,
+        details.join(),
+        '탄수화물 10.4g · 당류 6.8g · 단백질 16g · 지방 14.8g · 나트륨 359mg',
       );
-      expect(find.text('탄수화물 10.4g · 단백질 16g · 지방 14.8g'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('점심'),
         150,
@@ -393,11 +419,12 @@ void main() {
       expect(find.text('아직 기록된 식단이 없어요'), findsNothing);
       expect(find.text('거름'), findsNothing);
       expect(find.text('아침'), findsNothing);
-      // 음식은 한 줄에 하나, 그 옆에 회색 글씨로 kcal · mg · g.
-      expect(find.text('치킨'), findsOneWidget);
-      expect(find.text('맥주'), findsOneWidget);
+      // 음식은 한 줄에 하나, 오른쪽 끝에 그 음식의 kcal. 이 시드는 내용량이
+      // 없어 이름만 적는다 — `0g` 은 안 먹었다는 말이 된다.
+      expect(find.text('치킨', findRichText: true), findsOneWidget);
+      expect(find.text('맥주', findRichText: true), findsOneWidget);
       expect(find.text('치킨, 맥주'), findsNothing);
-      expect(find.text('960kcal · 870mg · 48g'), findsOneWidget);
+      expect(find.text('960 kcal'), findsOneWidget);
     });
 
     testWidgets('macro values wrap without overflow on a narrow screen', (

@@ -329,6 +329,19 @@
   "metricSodium": "나트륨",
   "metricSugar": "당류",
   "clientDietMacrosMissing": "탄·단·지 기록 없음",
+  "clientDietTotalCalories": "총 칼로리",
+  "clientDietMacroShare": "{name} {percent}%",
+  "@clientDietMacroShare": {
+    "description": "끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "metricCarbs": "탄수화물",
   "metricProtein": "단백질",
   "metricFat": "지방",
@@ -488,7 +501,6 @@
       }
     }
   },
-  "dietSodiumValue": "나트륨 {value}mg",
   "aiAnalysis": "AI 분석",
   "aiPeriodAnalysis": "AI 기간 분석",
   "aiAllAnalysis": "AI 전체 분석",
