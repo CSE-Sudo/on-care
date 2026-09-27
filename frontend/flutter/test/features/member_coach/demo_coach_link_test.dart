@@ -5,6 +5,8 @@
 /// 끊긴 화면이 된다(#1840 의 전환이 일어나지 않는다).
 library;
 
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -60,6 +62,66 @@ void main() {
     expect(auto, isNotEmpty);
     // 전부 AI 추천이다 — 트레이너가 배정한 것이 남아 있으면 안 된다.
     expect(auto.every((CoachRoutine r) => r.isAiRecommended), isTrue);
+  });
+
+  group('담당이 없으면 메시지를 보낼 수 없다 (#2388)', () {
+    // 실서버는 활성 담당이 없으면 글·사진 전송 모두 404 다. 목록만 비우고 전송을
+    // 받아 주면 데모에서만 해제한 트레이너에게 말이 간다.
+    late bool linked;
+    late MockMemberCoachRepository coach;
+
+    setUp(() {
+      linked = true;
+      coach = MockMemberCoachRepository(linked: () => linked);
+    });
+
+    test('글을 보내면 실패하고 대화에 붙지 않는다', () async {
+      linked = false;
+
+      await expectLater(coach.sendMessage('해제 뒤 인사'), throwsStateError);
+
+      linked = true;
+      final List<CoachMessage> thread = await coach.fetchChat();
+      expect(thread.any((CoachMessage m) => m.body == '해제 뒤 인사'), isFalse);
+    });
+
+    test('사진을 보내면 실패하고 대화에 붙지 않는다', () async {
+      linked = false;
+
+      await expectLater(
+        coach.sendPhoto(
+          Uint8List.fromList(<int>[1, 2, 3]),
+          fileName: 'meal.jpg',
+          mimeType: 'image/jpeg',
+          clientRequestId: 'detached-photo',
+        ),
+        throwsStateError,
+      );
+
+      linked = true;
+      final List<CoachMessage> thread = await coach.fetchChat();
+      expect(
+        thread.any((CoachMessage m) => m.attachment?.fileName == 'meal.jpg'),
+        isFalse,
+      );
+    });
+
+    test('담당 중에는 그대로 보내진다', () async {
+      await coach.sendMessage('담당 중 인사');
+      await coach.sendPhoto(
+        Uint8List.fromList(<int>[1, 2, 3]),
+        fileName: 'linked.jpg',
+        mimeType: 'image/jpeg',
+        clientRequestId: 'linked-photo',
+      );
+
+      final List<CoachMessage> thread = await coach.fetchChat();
+      expect(thread.any((CoachMessage m) => m.body == '담당 중 인사'), isTrue);
+      expect(
+        thread.any((CoachMessage m) => m.attachment?.fileName == 'linked.jpg'),
+        isTrue,
+      );
+    });
   });
 
   test('연결을 물을 곳이 없으면 예전처럼 담당이 있다', () async {

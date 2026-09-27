@@ -18,10 +18,13 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v33']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v34']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v34` 는 김민수를 뺀 고객의 음식마다 먹은 양(`amount_g`)을 실었다(#2368).
+/// 올리지 않으면 오늘 이미 시드된 브라우저의 끼니 카드에 음식 이름만 남는다.
 ///
 /// `_v33` 은 로스터에 PT 관리 신호(`signalsJson`)를 싣고, 오세라 대화에 통증을
 /// 말하는 한 줄을 더했다(#2204). 올리지 않으면 오늘 이미 시드된 브라우저의 회원
@@ -140,7 +143,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v33') == today &&
+  if (await db.readValue('trainer_seeded_v34') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -543,7 +546,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v33', today);
+    await db.putValue('trainer_seeded_v34', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -721,6 +724,7 @@ class _Meal {
           for (final _Food f in foods)
             <String, Object?>{
               'name': f.name,
+              'amount_g': f.amountG,
               'calories': f.calories,
               'sodium_mg': f.sodiumMg,
               'sugar_g': f.sugarG,
@@ -728,16 +732,27 @@ class _Meal {
         ]);
 }
 
-/// 끼니 안의 음식 하나 — `이름 · kcal · mg · g`. (#1381)
+/// 끼니 안의 음식 하나 — 이름·먹은 양·kcal·mg·g. (#1381, #2368)
 ///
-/// 트레이너 식단 카드가 음식마다 회색 작은 글씨로 적는 세 값이다. 키는
-/// 픽스처의 `FixtureFood.toJson` 과 같다.
+/// 키는 픽스처의 `FixtureFood.toJson` 과 같다.
 class _Food {
-  const _Food(this.name, this.calories, this.sodiumMg, this.sugarG);
+  const _Food(
+    this.name,
+    this.calories,
+    this.sodiumMg,
+    this.sugarG, {
+    required this.amountG,
+  });
   final String name;
   final int calories;
   final int sodiumMg;
   final double sugarG;
+
+  /// 먹은 양(g·ml). 트레이너 끼니 카드가 음식 이름 옆에 적는다(#2087). 아래
+  /// 영양이 **이 양을 재고 나온 값**이라, 흔한 1회 제공량 중 적힌 칼로리가
+  /// 무리 없이 나오는 양으로 정했다. 양이 없으면 카드에 이름만 나와 데모가
+  /// 양을 빠뜨린 것처럼 읽혔다(#2368).
+  final int amountG;
 }
 
 class _Routine {
