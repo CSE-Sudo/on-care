@@ -149,6 +149,10 @@ class Settings(BaseSettings):
     # 사람이 대화하는 속도로는 걸리지 않되, 폭주하는 클라이언트는 막는 값.
     # 회원 AI 코치(IP 버킷)와 트레이너 고객 AI 코치(트레이너 id 버킷, #1548)가 같이 쓴다.
     coach_chat_per_minute: int = 20
+    # 회원 AI 코치 요청 본문 상한(#1549, 413). 필드 제한(질문 1000자·history 20턴×2000자)을
+    # 다 채운 정상 요청이 JSON 이스케이프(`\uXXXX`, 글자당 6바이트)로 보내져도 들어가는 값.
+    # 필드 검증보다 앞에서, 본문을 읽는 도중에 끊는다.
+    coach_chat_max_body_bytes: int = 256 * 1024
     # AI 챗봇 하루 대화 한도(#2145). 분당 한도는 폭주하는 클라이언트를 막고, 이 값들은
     # 한 회원의 하루 비용을 묶는다. 무료를 다 쓰면 한 번에 `coach_chat_paid_cost` 포인트로
     # 하루 `coach_chat_paid_per_day` 번까지 더 보낸다. 날짜는 KST 로 센다.
