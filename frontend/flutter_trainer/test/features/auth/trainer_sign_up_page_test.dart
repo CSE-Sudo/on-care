@@ -62,7 +62,7 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
         email: 'new@oncare.com',
         phone: '',
         specialty: '',
-        career: '',
+        careerYears: null,
         intro: '',
         certifications: <String>[],
         gym: TrainerGym(name: '', address: '', hours: '', phone: ''),

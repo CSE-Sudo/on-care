@@ -2041,8 +2041,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPasswordChanged => '비밀번호를 변경했어요';
 
   @override
-  String myCareerYears(String career) {
-    return '경력 $career';
+  String myCareerYears(int years) {
+    return '경력 $years년';
   }
 
   @override
