@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/member_report_history_view.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
@@ -158,6 +159,53 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 피드백 초안을 서버에 저장하는 중이다. (#821)
   bool _savingFeedback = false;
 
+  /// ③ 전송 미리보기로 만든 PDF 한 부(#2402). 전송도 이 한 부를 그대로
+  /// 보낸다 — 미리보기와 회원이 받는 파일이 서로 다를 수 없다.
+  Future<Uint8List>? _preview;
+
+  /// [_preview] 의 재료(`회원|주|언어|문구`). ② 에서 글을 고치고 돌아오면
+  /// 문구가 달라져 새로 만든다.
+  String? _previewKey;
+
+  /// [_preview] 를 만든 리포트. 수치가 다시 읽히면 새 객체가 와 새로 만든다.
+  WeeklyReport? _previewReport;
+
+  static String _previewKeyOf(
+    AppLocalizations l,
+    WeeklyReport report,
+    String message,
+  ) => '${_feedbackKey(report)}|${l.localeName}|$message';
+
+  /// [report] 를 [message] 로 만든 미리보기가 지금 있는가.
+  bool _previewMatches(
+    AppLocalizations l,
+    WeeklyReport report,
+    String message,
+  ) =>
+      _preview != null &&
+      _previewKey == _previewKeyOf(l, report, message) &&
+      identical(_previewReport, report);
+
+  /// ③ 에 띄울 PDF. 재료가 같으면 있던 것을 쓰고, 다르면 전송과 같은
+  /// [_generateReportPdf] 로 새로 만든다. build 안에서 부른다.
+  Future<Uint8List> _previewFor(
+    AppLocalizations l,
+    WeeklyReport report,
+    String message,
+  ) {
+    if (_previewMatches(l, report, message)) return _preview!;
+    _previewKey = _previewKeyOf(l, report, message);
+    _previewReport = report;
+    return _preview = _generateReportPdf(l, report, message);
+  }
+
+  /// 미리보기를 버린다 — 다음에 ③ 을 그릴 때 새로 만든다.
+  void _dropPreview() {
+    _preview = null;
+    _previewKey = null;
+    _previewReport = null;
+  }
+
   /// 입력창의 출발점 — 저장해 둔 초안이 있으면 그것, 없으면 수치에서 만든
   /// 자동 문구다. (#821)
   ///
@@ -231,6 +279,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       // 이 회원의 수치를 건너뛸 이유가 없다.
       _stage = 0;
       _maxStage = 0;
+      _dropPreview();
     }
     if (widget.historyClientId != oldWidget.historyClientId) {
       _historyFor = widget.historyClientId;
@@ -256,6 +305,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     _feedbackDraft = null;
     _feedbackFor = null;
     _feedbackBlank = false;
+    _dropPreview();
   }
 
   /// 주를 옮기고 URL 에 싣는다.
@@ -398,7 +448,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (!proceed || !mounted) return;
     setState(() => _sending = id);
     try {
-      final bytes = await _generateReportPdf(l, report, message);
+      final bytes = await _pdfForSend(l, report, message);
       await ref
           .read(reportRepositoryProvider)
           .sendPdf(
@@ -427,6 +477,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       // 보내고 나면 작업대로 돌아간다 — 다음 회원이 그 자리에 있다.
       _stage = 0;
       _maxStage = 0;
+      _dropPreview();
     });
     context.go(_locationFor(null));
     // 전송 확인은 하단 SnackBar가 아니라 상단 토스트로 뜬다 — 채팅으로
@@ -438,6 +489,36 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       actionLabel: l.reportsGoToChat,
       onAction: () => context.go(AppRoutes.messagesFor(id)),
     );
+  }
+
+  /// 보낼 PDF — ③ 에 떠 있는 미리보기 한 부다(#2402).
+  ///
+  /// 미리보기가 없거나(문구가 바뀌었거나) 만들다 실패했으면 새로 만들고, 그
+  /// 한 부를 미리보기에도 건다 — 보낸 것과 화면에 떠 있는 것이 같게.
+  Future<Uint8List> _pdfForSend(
+    AppLocalizations l,
+    WeeklyReport report,
+    String message,
+  ) async {
+    final Future<Uint8List>? shown = _previewMatches(l, report, message)
+        ? _preview
+        : null;
+    if (shown != null) {
+      try {
+        return await shown;
+      } catch (_) {
+        // 미리보기가 실패했다 — 아래에서 새로 만든다.
+      }
+    }
+    final Future<Uint8List> fresh = _generateReportPdf(l, report, message);
+    if (mounted) {
+      setState(() {
+        _preview = fresh;
+        _previewKey = _previewKeyOf(l, report, message);
+        _previewReport = report;
+      });
+    }
+    return fresh;
   }
 
   /// [report] 의 회원에게 그 주 리포트가 이미 나갔으면 다시 보낼지 묻는다.
@@ -768,9 +849,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     onPressed: () {
                       final WeeklyReport? data = reportAsync.valueOrNull;
                       if (data != null) _useSummaryAsDraft(data, '');
+                      // 빈 입력창이 있는 ② 작성으로 간다. ③ 은 다 쓴 글을
+                      // 확인하는 자리라 입력창이 없다(#2402).
                       setState(() {
-                        _stage = ReportEditorStage.values.length - 1;
-                        _maxStage = _stage;
+                        _stage = ReportEditorStage.write.index;
+                        if (_stage > _maxStage) _maxStage = _stage;
                       });
                     },
                   );
@@ -895,41 +978,54 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
-                        ClientReportView(
-                          stage: ReportEditorStage.values[_stage],
-                          report: data,
-                          showSummary: true,
-                          draftEpoch: _draftEpoch,
-                          summaryEpoch: _summaryEpoch,
-                          initialFeedback: _messageFor(l, data, savedDraft),
-                          savingFeedback: _savingFeedback,
-                          onSaveFeedback: () => _saveFeedback(
-                            data,
-                            _messageFor(l, data, savedDraft),
+                        // ③ 전송은 회원이 받을 PDF 를 그대로 보여 준다(#2402).
+                        // 글을 고치려면 `이전` 으로 ② 에 돌아간다.
+                        if (_stage == ReportEditorStage.send.index)
+                          ReportSendPreview(
+                            report: data,
+                            pdf: _previewFor(
+                              l,
+                              data,
+                              _messageFor(l, data, savedDraft),
+                            ),
+                            onRetry: () => setState(_dropPreview),
+                          )
+                        else
+                          ClientReportView(
+                            stage: ReportEditorStage.values[_stage],
+                            report: data,
+                            showSummary: true,
+                            draftEpoch: _draftEpoch,
+                            summaryEpoch: _summaryEpoch,
+                            initialFeedback: _messageFor(l, data, savedDraft),
+                            savingFeedback: _savingFeedback,
+                            onSaveFeedback: () => _saveFeedback(
+                              data,
+                              _messageFor(l, data, savedDraft),
+                            ),
+                            weekNav: const SizedBox.shrink(),
+                            // 평소와 견주려면 지난 주들을 읽어야 한다. 같은
+                            // family 를 다시 읽는 것이라 새 API 가 없고, 오간
+                            // 주는 캐시에 남는다.
+                            calorieBaseline: ref.watch(
+                              calorieBaselineProvider((
+                                client: selected,
+                                weekStart: _weekStart,
+                              )),
+                            ),
+                            onUseSummaryAsDraft: (draft) =>
+                                _useSummaryAsDraft(data, draft),
+                            onFeedbackChanged: (text) {
+                              _feedbackDraft = text;
+                              _feedbackFor = _feedbackKey(data);
+                              // 비었는지가 바뀔 때만 다시 그린다 — 전송 항목을
+                              // 가르는 값이다.
+                              final blank = text.trim().isEmpty;
+                              if (blank != _feedbackBlank) {
+                                setState(() => _feedbackBlank = blank);
+                              }
+                            },
                           ),
-                          weekNav: const SizedBox.shrink(),
-                          // 평소와 견주려면 지난 주들을 읽어야 한다. 같은
-                          // family 를 다시 읽는 것이라 새 API 가 없고, 오간
-                          // 주는 캐시에 남는다.
-                          calorieBaseline: ref.watch(
-                            calorieBaselineProvider((
-                              client: selected,
-                              weekStart: _weekStart,
-                            )),
-                          ),
-                          onUseSummaryAsDraft: (draft) =>
-                              _useSummaryAsDraft(data, draft),
-                          onFeedbackChanged: (text) {
-                            _feedbackDraft = text;
-                            _feedbackFor = _feedbackKey(data);
-                            // 비었는지가 바뀔 때만 다시 그린다 — 전송 항목을
-                            // 가르는 값이다.
-                            final blank = text.trim().isEmpty;
-                            if (blank != _feedbackBlank) {
-                              setState(() => _feedbackBlank = blank);
-                            }
-                          },
-                        ),
                       ],
                     ),
                   ),

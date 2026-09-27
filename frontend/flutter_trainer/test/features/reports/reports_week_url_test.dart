@@ -46,7 +46,7 @@ void main() {
     const ValueKey<String>('reports-back-to-list'),
   );
 
-  /// ③ 전송 단계에만 있는 피드백 입력창. 머리의 회원 검색창과 가르려고
+  /// ② 작성 단계에만 있는 피드백 입력창(#2402). 머리의 회원 검색창과 가르려고
   /// 안내 문구로 찾는다.
   final Finder feedbackField = find.byWidgetPredicate(
     (widget) =>
@@ -132,12 +132,12 @@ void main() {
 
     testWidgets('같은 회원의 다른 주 링크는 편집 단계를 처음으로 되돌린다', (tester) async {
       await pump(tester, at: AppRoutes.reportFor('a', weekStart: _lastWeek));
-      await advance(tester, 2);
+      await advance(tester, 1);
       expect(feedbackField, findsWidgets);
 
       await goTo(tester, AppRoutes.reportFor('a', weekStart: _twoWeeksAgo));
 
-      // ③ 전송 단계의 피드백 입력창이 사라졌다 — ① 이번 주 확인이다.
+      // ② 작성 단계의 피드백 입력창이 사라졌다 — ① 이번 주 확인이다.
       expect(feedbackField, findsNothing);
       await back(tester);
       expect(find.text(koRange(_twoWeeksAgo)), findsWidgets);
@@ -145,7 +145,7 @@ void main() {
 
     testWidgets('같은 주 링크는 쓰던 단계를 지킨다', (tester) async {
       await pump(tester, at: AppRoutes.reportFor('a', weekStart: _lastWeek));
-      await advance(tester, 2);
+      await advance(tester, 1);
 
       await goTo(tester, AppRoutes.messagesFor('a'));
       // 월요일이 아닌 날로 와도 같은 주다.

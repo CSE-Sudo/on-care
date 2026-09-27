@@ -18,6 +18,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -94,6 +95,11 @@ void main() {
       extraOverrides: <Override>[
         history.override,
         reportPdfGeneratorProvider.overrideWithValue(_InstantPdfGenerator()),
+        // ③ 전송의 미리보기가 쪽 그림을 굽는 자리(#2402). printing 플러그인은
+        // 테스트에 없다.
+        reportPdfRasterizerProvider.overrideWithValue(
+          (Uint8List pdf) async => <Uint8List>[pdf],
+        ),
       ],
     );
     await settle(tester);

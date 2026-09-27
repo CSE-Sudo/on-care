@@ -4369,6 +4369,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepPrev => '이전';
 
   @override
+  String get reportsPreviewTitle => '회원이 받는 리포트';
+
+  @override
+  String get reportsPreviewRecipient => '받는 사람';
+
+  @override
+  String get reportsPreviewWeek => '대상 주';
+
+  @override
+  String reportsPreviewDelivery(String name) {
+    return '$name님 채팅으로 PDF 파일이 전송돼요';
+  }
+
+  @override
+  String get reportsPreviewEditHint => '글을 고치려면 이전을 눌러 작성 단계로 돌아가세요';
+
+  @override
+  String get reportsPreviewGenerating => '미리보기를 만드는 중이에요';
+
+  @override
+  String get reportsPreviewFailed => '미리보기를 만들지 못했어요';
+
+  @override
+  String reportsPreviewPage(int current, int total) {
+    return '$current / $total쪽';
+  }
+
+  @override
+  String get reportsPreviewPrevPage => '이전 쪽';
+
+  @override
+  String get reportsPreviewNextPage => '다음 쪽';
+
+  @override
+  String get reportsPreviewZoomIn => '확대';
+
+  @override
+  String get reportsPreviewZoomOut => '축소';
+
+  @override
   String get reportsGridPtSession => 'PT 세션';
 
   @override

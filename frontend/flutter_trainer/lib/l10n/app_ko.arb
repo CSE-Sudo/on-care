@@ -2066,6 +2066,35 @@
   "reportsStepperLabel": "주간 리포트 작성 진행 단계",
   "reportsStepNext": "다음",
   "reportsStepPrev": "이전",
+  "reportsPreviewTitle": "회원이 받는 리포트",
+  "reportsPreviewRecipient": "받는 사람",
+  "reportsPreviewWeek": "대상 주",
+  "reportsPreviewDelivery": "{name}님 채팅으로 PDF 파일이 전송돼요",
+  "@reportsPreviewDelivery": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsPreviewEditHint": "글을 고치려면 이전을 눌러 작성 단계로 돌아가세요",
+  "reportsPreviewGenerating": "미리보기를 만드는 중이에요",
+  "reportsPreviewFailed": "미리보기를 만들지 못했어요",
+  "reportsPreviewPage": "{current} / {total}쪽",
+  "@reportsPreviewPage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsPreviewPrevPage": "이전 쪽",
+  "reportsPreviewNextPage": "다음 쪽",
+  "reportsPreviewZoomIn": "확대",
+  "reportsPreviewZoomOut": "축소",
   "reportsGridPtSession": "PT 세션",
   "reportsGridPtPerWeek": "주 {count}회",
   "@reportsGridPtPerWeek": {
