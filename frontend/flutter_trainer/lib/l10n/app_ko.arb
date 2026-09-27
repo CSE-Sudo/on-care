@@ -1252,6 +1252,7 @@
   "notifTplMemberDisconnectedBody": "{name} 회원이 담당 연결을 끊었어요.",
   "notifTplConsultRequestedTitle": "새 상담 요청이 도착했어요",
   "notifTplConsultCancelledTitle": "상담 요청이 취소됐어요",
+  "notifTplConsultWithdrawnTitle": "회원 탈퇴로 상담 요청이 취소됐어요",
   "notifTplInviteAcceptedTitle": "담당 요청이 수락되었어요",
   "notifTplInviteAcceptedBody": "{name} 회원이 담당으로 연결되었어요.",
   "notifTplInviteRejectedTitle": "담당 요청이 거절되었어요",
