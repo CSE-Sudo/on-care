@@ -5,8 +5,11 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
+import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
@@ -14,35 +17,40 @@ import 'package:oncare_trainer/shared/utils/focus_change_label.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// Opens the merged 신체·목표·메모 dialog for [clientId].
+/// 회원 상세 헤더에서 여는 두 창 — 신체·목표와 메모.
+enum ClientProfileSection {
+  /// 신체정보와 건강·식단·운동 목표.
+  health,
+
+  /// 트레이너 메모.
+  memo,
+}
+
+/// [section] 창을 [clientId] 로 연다.
 ///
-/// The header's 메모 quick action is the only way in — one button, one
-/// popup, the way 신체·목표 and 메모 each had their own before (#1024).
+/// 한때 두 창을 하나로 합쳤는데(#1024), 헤더에서 신체·목표와 메모가 각자
+/// 자리를 얻으면서 다시 나눴다(#2330). 메모를 쓰려고 목표 폼을 스크롤해
+/// 지나가지 않아도 되고, 목표만 고칠 때 메모 목록이 창을 늘리지 않는다.
 Future<void> showClientProfileDialog(
   BuildContext context, {
   required String clientId,
   required String clientName,
   String fallbackGender = '',
+  ClientProfileSection section = ClientProfileSection.health,
 }) => showAppDialog<void>(
   context: context,
   builder: (_) => ClientProfileDialog(
     clientId: clientId,
     clientName: clientName,
     fallbackGender: fallbackGender,
+    section: section,
   ),
 );
 
-/// Merge of the old 신체·목표 and 메모 modal dialogs (#1024).
+/// 신체·목표 또는 메모 창(#2330).
 ///
-/// A trainer used to close one popup to open the other — body info, a
-/// goal, and a memo about the same visit lived in places that could never
-/// be on screen together. Both now share one popup: 상단 신체정보·목표,
-/// 하단 메모.
-///
-/// The merged content first landed as an inline `ExpansionTile` on the
-/// detail page. Trainers asked for the popup back — editing a memo is a
-/// short errand you leave again, and folding the page open pushed 식단·운동
-/// off screen to do it. The merge stays; the toggle is gone.
+/// 두 창 모두 가운데 모달이다 — 목표를 고치거나 메모를 남기는 일은 잠깐
+/// 들렀다 나가는 일이라, 상세 화면을 펼쳐 식단·운동을 밀어내지 않는다(#1024).
 class ClientProfileDialog extends StatelessWidget {
   /// Creates the dialog body for [clientId].
   const ClientProfileDialog({
@@ -50,9 +58,10 @@ class ClientProfileDialog extends StatelessWidget {
     required this.clientId,
     required this.clientName,
     this.fallbackGender = '',
+    this.section = ClientProfileSection.health,
   });
 
-  /// The client whose profile and memos are shown.
+  /// The client whose profile or memos are shown.
   final String clientId;
 
   /// Named in the memo section heading.
@@ -61,49 +70,33 @@ class ClientProfileDialog extends StatelessWidget {
   /// 저장된 성별이 없을 때 열어 둘 값 — 로스터가 이미 말하고 있는 성별이다(#960).
   final String fallbackGender;
 
+  /// 어느 창인가.
+  final ClientProfileSection section;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     // 닫기는 다른 가운데 모달과 같은 자리·모양이다 — 헤더 오른쪽 위 X 하나로
     // 충분해, 아래에 따로 `닫기` 글자 버튼을 두지 않는다. 본문은 창이 스크롤하므로
     // 메모가 아무리 쌓여도 창이 화면을 넘치지 않는다.
-    return AppDialog(
-      key: const ValueKey<String>('client-profile-dialog'),
-      title: l.clientProfileSectionTitle,
-      size: AppDialogSize.medium,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          // 상단: 신체정보와 목표.
-          _HealthProfileSection(
-            clientId: clientId,
-            fallbackGender: fallbackGender,
-          ),
-          const SizedBox(height: OnCareSpacing.s16),
-          const AppDivider(),
-          const SizedBox(height: OnCareSpacing.s16),
-          // 하단: 메모.
-          _MemoSection(clientId: clientId, clientName: clientName),
-        ],
+    return switch (section) {
+      ClientProfileSection.health => AppDialog(
+        key: const ValueKey<String>('client-profile-dialog'),
+        title: l.clientProfileSectionTitle,
+        size: AppDialogSize.medium,
+        child: _HealthProfileSection(
+          clientId: clientId,
+          fallbackGender: fallbackGender,
+        ),
       ),
-    );
+      ClientProfileSection.memo => AppDialog(
+        key: const ValueKey<String>('client-memo-dialog'),
+        title: l.clientTrainerMemo,
+        size: AppDialogSize.medium,
+        child: _MemoSection(clientId: clientId, clientName: clientName),
+      ),
+    };
   }
-}
-
-/// 섹션 머리 글자 — 신체·목표와 메모 두 구획이 같은 모양이다.
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: context.oncare
-        .text(OnCareTypography.strong(OnCareTypography.label))
-        .copyWith(color: OnCareColors.textSecondary),
-  );
 }
 
 /// 신체정보 · 목표 폼 — 예전 `MemberHealthProfileDialog` 의 내용을 다이얼로그
@@ -155,6 +148,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   /// 저장을 누른 순간 검사한 칸별 오류. 예전 `Form.validate()` 처럼 저장을
   /// 누를 때만 다시 계산하고, 그 사이에는 마지막 결과를 그대로 보여 준다.
   Map<String, String?> _errors = const <String, String?>{};
+
+  /// 지금 보이는 묶음(#2330).
+  _HealthTab _tab = _HealthTab.body;
 
   @override
   void initState() {
@@ -253,6 +249,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthHeight,
       AppGoalRanges.heightCm,
       false,
+      hint: l.clientHealthUnset,
     ),
     _NumberField(
       'weight',
@@ -260,6 +257,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthWeight,
       AppGoalRanges.weightKg,
       false,
+      hint: l.clientHealthUnset,
     ),
     _NumberField(
       'client-goal-calories',
@@ -267,6 +265,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalCalories,
       AppGoalRanges.dailyCalories,
       true,
+      hint: '$calorieTargetKcal',
     ),
     _NumberField(
       'client-goal-sodium',
@@ -274,6 +273,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalSodium,
       AppGoalRanges.dailySodiumMg,
       true,
+      hint: '$sodiumTargetMg',
     ),
     _NumberField(
       'client-goal-sugar',
@@ -281,6 +281,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalSugar,
       AppGoalRanges.dailySugarG,
       true,
+      hint: '$sugarTargetG',
     ),
     _NumberField(
       'client-goal-carbs',
@@ -288,6 +289,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalCarbs,
       AppGoalRanges.dailyCarbsG,
       true,
+      hint: '$carbsTargetG',
     ),
     _NumberField(
       'client-goal-protein',
@@ -295,6 +297,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
+      hint: '$proteinTargetG',
     ),
     _NumberField(
       'client-goal-fat',
@@ -302,6 +305,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalFat,
       AppGoalRanges.dailyFatG,
       true,
+      hint: '$fatTargetG',
     ),
     _NumberField(
       'client-goal-burn',
@@ -309,6 +313,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalBurnDaily,
       AppGoalRanges.dailyBurnKcal,
       true,
+      hint: '${kDailyBurnKcal.round()}',
     ),
     _NumberField(
       'client-goal-cardio',
@@ -316,6 +321,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalCardioWeekly,
       AppGoalRanges.weeklyCardioMinutes,
       true,
+      hint: '${kWeeklyCardioMinutes.round()}',
     ),
     _NumberField(
       'client-goal-strength',
@@ -323,6 +329,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalStrengthWeekly,
       AppGoalRanges.weeklyStrengthSets,
       true,
+      hint: '${kWeeklyStrengthSets.round()}',
     ),
     _NumberField(
       'client-goal-flexibility',
@@ -330,6 +337,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalFlexibilityWeekly,
       AppGoalRanges.weeklyFlexibilityMinutes,
       true,
+      hint: '${kWeeklyStretchingMinutes.round()}',
     ),
   ];
 
@@ -345,7 +353,17 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           integer: field.integer,
         ),
     };
-    setState(() => _errors = errors);
+    setState(() {
+      _errors = errors;
+      // 숨은 탭의 칸이 틀렸으면 그 탭을 연다 — 오류가 안 보이면 저장이 왜
+      // 안 되는지 모른다.
+      for (final MapEntry<String, String?> e in errors.entries) {
+        if (e.value != null) {
+          _tab = _HealthTab.of(e.key);
+          break;
+        }
+      }
+    });
     if (errors.values.any((error) => error != null)) return;
     setState(() {
       _saving = true;
@@ -422,6 +440,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         : null,
     controller: field.controller,
     label: field.label,
+    hint: field.hint,
     keyboardType: TextInputType.number,
     errorText: _errors[field.id],
   );
@@ -451,11 +470,19 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         final TextStyle groupStyle = tokens
             .text(OnCareTypography.titleSmall)
             .copyWith(color: OnCareColors.textPrimary);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            _SectionLabel(l.clientHealthGoals),
-            const SizedBox(height: OnCareSpacing.s8),
+        // 흐린 숫자가 무엇인지 — 회원 앱 MY 의 각주와 같은 말이다(#2331).
+        final Widget defaultHint = Text(
+          l.clientGoalDefaultHint,
+          key: const ValueKey<String>('client-goal-default-hint'),
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        );
+        // 한 번에 한 묶음만 보인다(#2330) — 신체·건강 목표·식단 목표·운동
+        // 목표가 한 창에 길게 이어져 어디가 무엇인지 헷갈렸다. 칸의 값은
+        // 이 상태가 들고 있어, 탭을 옮겨 다녀도 쓰던 값이 남는다.
+        final List<Widget> tabBody = switch (_tab) {
+          _HealthTab.body => <Widget>[
             AppSelectField<String>(
               key: const ValueKey<String>('client-profile-gender'),
               label: l.memberHealthGender,
@@ -484,7 +511,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
             _fieldRow(<Widget>[number(0), number(1)]),
-            const SizedBox(height: OnCareSpacing.s8),
+          ],
+          _HealthTab.focus => <Widget>[
             Text(l.memberHealthFocus, style: groupStyle),
             const SizedBox(height: OnCareSpacing.s8),
             Wrap(
@@ -533,24 +561,70 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               label: l.memberHealthGoals,
               maxLines: 2,
             ),
-            const SizedBox(height: OnCareSpacing.s16),
-            Text(l.memberHealthDietGoal, style: groupStyle),
-            const SizedBox(height: OnCareSpacing.s8),
+          ],
+          _HealthTab.diet => <Widget>[
+            // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위·라벨이다.
             // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위·라벨이다.
             _fieldRow(<Widget>[number(2), number(3)]),
             const SizedBox(height: OnCareSpacing.s8),
             _fieldRow(<Widget>[number(4), number(5)]),
             const SizedBox(height: OnCareSpacing.s8),
             _fieldRow(<Widget>[number(6), number(7)]),
-            const SizedBox(height: OnCareSpacing.s16),
-            Text(l.memberHealthExerciseGoal, style: groupStyle),
             const SizedBox(height: OnCareSpacing.s8),
+            defaultHint,
+          ],
+          _HealthTab.exercise => <Widget>[
+            // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139).
             // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139). 옛 주간
             // 횟수·시간·소모 목표는 회원 화면에 대응하는 자리가 없어 여기서
             // 다루지 않는다.
             _fieldRow(<Widget>[number(8), number(9)]),
             const SizedBox(height: OnCareSpacing.s8),
             _fieldRow(<Widget>[number(10), number(11)]),
+            const SizedBox(height: OnCareSpacing.s8),
+            defaultHint,
+          ],
+        };
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            AppSegmentedToggle<_HealthTab>(
+              key: const ValueKey<String>('client-health-tabs'),
+              expand: true,
+              selected: _tab,
+              onChanged: (_HealthTab tab) => setState(() => _tab = tab),
+              segments: <AppSegment<_HealthTab>>[
+                AppSegment<_HealthTab>(
+                  value: _HealthTab.body,
+                  label: l.clientHealthTabBody,
+                ),
+                AppSegment<_HealthTab>(
+                  value: _HealthTab.focus,
+                  label: l.clientHealthTabFocus,
+                ),
+                AppSegment<_HealthTab>(
+                  value: _HealthTab.diet,
+                  label: l.memberHealthDietGoal,
+                ),
+                AppSegment<_HealthTab>(
+                  value: _HealthTab.exercise,
+                  label: l.memberHealthExerciseGoal,
+                ),
+              ],
+            ),
+            const SizedBox(height: OnCareSpacing.s16),
+            // 묶음마다 길이가 달라 창이 커졌다 작아지면, 가운데 정렬된 창이
+            // 다시 자리를 잡으며 탭 줄이 위아래로 뛴다 — 누르려던 탭이
+            // 손가락 아래에서 달아난다. 가장 긴 묶음만큼 자리를 지킨다.
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: _healthTabBodyMinHeight,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: tabBody,
+              ),
+            ),
             const SizedBox(height: OnCareSpacing.s16),
             Align(
               alignment: Alignment.centerRight,
@@ -584,6 +658,35 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   }
 }
 
+/// 신체·목표 창에서 묶음 내용이 차지하는 최소 높이 — 가장 긴 `건강 목표`
+/// 묶음(칩 두 줄·주의사항·회원 목표)의 높이다(#2330).
+const double _healthTabBodyMinHeight = 312;
+
+/// 신체·목표 창의 묶음(#2330).
+enum _HealthTab {
+  /// 성별·키·몸무게.
+  body,
+
+  /// 건강 목표 칩·주의사항·회원 목표 글.
+  focus,
+
+  /// 식단 목표 여섯.
+  diet,
+
+  /// 운동 목표 넷.
+  exercise;
+
+  /// 숫자 칸 [fieldId] 가 사는 묶음.
+  static _HealthTab of(String fieldId) => switch (fieldId) {
+    'height' || 'weight' => body,
+    'client-goal-burn' ||
+    'client-goal-cardio' ||
+    'client-goal-strength' ||
+    'client-goal-flexibility' => exercise,
+    _ => diet,
+  };
+}
+
 /// 숫자 입력 칸 하나의 검사 규칙.
 class _NumberField {
   const _NumberField(
@@ -591,8 +694,9 @@ class _NumberField {
     this.controller,
     this.label,
     this.range,
-    this.integer,
-  );
+    this.integer, {
+    this.hint,
+  });
 
   final String id;
   final TextEditingController controller;
@@ -601,6 +705,11 @@ class _NumberField {
   /// 받는 범위. 서버·회원 앱과 같은 값을 `oncare_ui` 에서 읽는다(#1888).
   final AppGoalRange range;
   final bool integer;
+
+  /// 비어 있을 때 흐리게 보이는 값(#2331). 목표 칸은 회원 앱 기본값 — 회원
+  /// 앱 MY 가 같은 칸에 같은 숫자를 흐리게 보여 준다. 키·몸무게는 기본값이
+  /// 없어 `미입력` 이다.
+  final String? hint;
 
   double get min => range.min.toDouble();
   double get max => range.max.toDouble();
@@ -716,8 +825,6 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _SectionLabel(l.clientTrainerMemo),
-        const SizedBox(height: OnCareSpacing.s8),
         // 기본 카운터는 버튼과 다른 줄에 떨어져 그려진다 — 아래에서 직접
         // 그리므로 입력창은 카운터를 감춘다.
         AppTextField(

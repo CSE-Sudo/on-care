@@ -320,12 +320,6 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get actionRetry;
 
-  /// No description provided for @actionRefresh.
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh'**
-  String get actionRefresh;
-
   /// No description provided for @actionChange.
   ///
   /// In en, this message translates to:
@@ -1718,17 +1712,29 @@ abstract class AppLocalizations {
   /// **'Dormant'**
   String get clientDormant;
 
+  /// No description provided for @clientDormantActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to mark active'**
+  String get clientDormantActivate;
+
+  /// No description provided for @clientSignalLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get clientSignalLess;
+
+  /// No description provided for @clientSignalMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String clientSignalMore(int count);
+
   /// No description provided for @clientStatusChangeFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t change the status. Please try again.'**
   String get clientStatusChangeFailed;
-
-  /// No description provided for @clientClosePanel.
-  ///
-  /// In en, this message translates to:
-  /// **'Close panel'**
-  String get clientClosePanel;
 
   /// No description provided for @chatTooLong.
   ///
@@ -6020,16 +6026,10 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get clientQuickReport;
 
-  /// No description provided for @clientHealthGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Body profile & goals'**
-  String get clientHealthGoals;
-
   /// No description provided for @clientProfileSectionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Body, goals & memo'**
+  /// **'Body and goals'**
   String get clientProfileSectionTitle;
 
   /// No description provided for @clientTrainerMemo.
@@ -6037,6 +6037,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Memo'**
   String get clientTrainerMemo;
+
+  /// No description provided for @clientHealthUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get clientHealthUnset;
+
+  /// No description provided for @clientHealthTabBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Body'**
+  String get clientHealthTabBody;
+
+  /// No description provided for @clientHealthTabFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals'**
+  String get clientHealthTabFocus;
+
+  /// No description provided for @clientGoalDefaultHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Faded numbers are the member app defaults. Empty fields use them.'**
+  String get clientGoalDefaultHint;
 
   /// No description provided for @clientTrainerMemoHint.
   ///

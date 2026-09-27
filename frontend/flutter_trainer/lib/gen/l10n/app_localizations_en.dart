@@ -130,9 +130,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionRetry => 'Retry';
 
   @override
-  String get actionRefresh => 'Refresh';
-
-  @override
   String get actionChange => 'Change';
 
   @override
@@ -902,11 +899,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDormant => 'Dormant';
 
   @override
-  String get clientStatusChangeFailed =>
-      'Couldn\'t change the status. Please try again.';
+  String get clientDormantActivate => 'Tap to mark active';
 
   @override
-  String get clientClosePanel => 'Close panel';
+  String get clientSignalLess => 'Less';
+
+  @override
+  String clientSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientStatusChangeFailed =>
+      'Couldn\'t change the status. Please try again.';
 
   @override
   String get chatTooLong => 'Message is too long (2000 characters max)';
@@ -3440,13 +3445,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientQuickReport => 'Report';
 
   @override
-  String get clientHealthGoals => 'Body profile & goals';
-
-  @override
-  String get clientProfileSectionTitle => 'Body, goals & memo';
+  String get clientProfileSectionTitle => 'Body and goals';
 
   @override
   String get clientTrainerMemo => 'Memo';
+
+  @override
+  String get clientHealthUnset => 'Not set';
+
+  @override
+  String get clientHealthTabBody => 'Body';
+
+  @override
+  String get clientHealthTabFocus => 'Health goals';
+
+  @override
+  String get clientGoalDefaultHint =>
+      'Faded numbers are the member app defaults. Empty fields use them.';
 
   @override
   String get clientTrainerMemoHint =>

@@ -237,6 +237,61 @@ void main() {
     },
   );
 
+  test('demo keeps the member-app goals a trainer saves (#2331)', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await seedIfEmpty(db);
+    final repository = DriftClientRepository(db);
+
+    // 저장한 적이 없으면 비어 있다 — 화면이 회원 앱 기본값을 흐리게 보여 준다.
+    final before = await repository.fetchHealthProfile('seed-client-1');
+    expect(before.dailyCalories, isNull);
+    expect(before.weeklyFlexibilityMinutes, isNull);
+
+    const Map<String, int> goals = <String, int>{
+      'daily_calories': 1800,
+      'daily_sodium_mg': 1500,
+      'daily_sugar_g': 40,
+      'daily_carbs_g': 220,
+      'daily_protein_g': 110,
+      'daily_fat_g': 50,
+      'daily_burn_kcal': 350,
+      'weekly_cardio_minutes': 180,
+      'weekly_strength_sets': 28,
+      'weekly_flexibility_minutes': 70,
+    };
+    await repository.updateHealthProfile('seed-client-1', goals);
+    // 예전에는 여기서 버려져 창을 다시 열면 빈칸이었다.
+    final saved = await repository.fetchHealthProfile('seed-client-1');
+    expect(<String, int?>{
+      'daily_calories': saved.dailyCalories,
+      'daily_sodium_mg': saved.dailySodiumMg,
+      'daily_sugar_g': saved.dailySugarG,
+      'daily_carbs_g': saved.dailyCarbsG,
+      'daily_protein_g': saved.dailyProteinG,
+      'daily_fat_g': saved.dailyFatG,
+      'daily_burn_kcal': saved.dailyBurnKcal,
+      'weekly_cardio_minutes': saved.weeklyCardioMinutes,
+      'weekly_strength_sets': saved.weeklyStrengthSets,
+      'weekly_flexibility_minutes': saved.weeklyFlexibilityMinutes,
+    }, goals);
+
+    // 다른 칸만 고친 저장이 목표를 지우지 않는다.
+    await repository.updateHealthProfile('seed-client-1', <String, Object?>{
+      'weight_kg': 70.0,
+    });
+    final again = await repository.fetchHealthProfile('seed-client-1');
+    expect(again.dailyCalories, 1800);
+    // 비우면(null) 지운다 — 서버와 같은 규칙이다.
+    await repository.updateHealthProfile('seed-client-1', <String, Object?>{
+      'daily_calories': null,
+    });
+    expect(
+      (await repository.fetchHealthProfile('seed-client-1')).dailyCalories,
+      isNull,
+    );
+  });
+
   test('an untouched health profile agrees with the roster identity', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

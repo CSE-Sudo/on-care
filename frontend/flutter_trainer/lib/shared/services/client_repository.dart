@@ -443,6 +443,20 @@ class DriftClientRepository implements ClientRepository {
       weeklyBurnGoal: saved.containsKey('weekly_burn_goal')
           ? (saved['weekly_burn_goal'] as num?)?.toInt()
           : kWeeklyBurnKcal.round(),
+      // 회원 앱 MY 와 같은 목표 10칸(#1449). 예전에는 여기서 읽지 않아, 트레이너가
+      // 저장해도 창을 다시 열면 빈칸이었다(#2331). 저장한 적이 없으면 비운다 —
+      // 화면이 회원 앱 기본값을 흐리게 보여 준다.
+      dailyCalories: (saved['daily_calories'] as num?)?.toInt(),
+      dailySodiumMg: (saved['daily_sodium_mg'] as num?)?.toInt(),
+      dailySugarG: (saved['daily_sugar_g'] as num?)?.toInt(),
+      dailyCarbsG: (saved['daily_carbs_g'] as num?)?.toInt(),
+      dailyProteinG: (saved['daily_protein_g'] as num?)?.toInt(),
+      dailyFatG: (saved['daily_fat_g'] as num?)?.toInt(),
+      dailyBurnKcal: (saved['daily_burn_kcal'] as num?)?.toInt(),
+      weeklyCardioMinutes: (saved['weekly_cardio_minutes'] as num?)?.toInt(),
+      weeklyStrengthSets: (saved['weekly_strength_sets'] as num?)?.toInt(),
+      weeklyFlexibilityMinutes: (saved['weekly_flexibility_minutes'] as num?)
+          ?.toInt(),
     );
   }
 
@@ -471,6 +485,25 @@ class DriftClientRepository implements ClientRepository {
         current.weeklyExerciseMinutesGoal,
       ),
       'weekly_burn_goal': value('weekly_burn_goal', current.weeklyBurnGoal),
+      'daily_calories': value('daily_calories', current.dailyCalories),
+      'daily_sodium_mg': value('daily_sodium_mg', current.dailySodiumMg),
+      'daily_sugar_g': value('daily_sugar_g', current.dailySugarG),
+      'daily_carbs_g': value('daily_carbs_g', current.dailyCarbsG),
+      'daily_protein_g': value('daily_protein_g', current.dailyProteinG),
+      'daily_fat_g': value('daily_fat_g', current.dailyFatG),
+      'daily_burn_kcal': value('daily_burn_kcal', current.dailyBurnKcal),
+      'weekly_cardio_minutes': value(
+        'weekly_cardio_minutes',
+        current.weeklyCardioMinutes,
+      ),
+      'weekly_strength_sets': value(
+        'weekly_strength_sets',
+        current.weeklyStrengthSets,
+      ),
+      'weekly_flexibility_minutes': value(
+        'weekly_flexibility_minutes',
+        current.weeklyFlexibilityMinutes,
+      ),
       'focus_changed_by': current.focusChangedBy,
       'focus_changed_at': current.focusChangedAt?.toIso8601String(),
     };

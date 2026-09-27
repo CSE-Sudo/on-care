@@ -127,9 +127,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionRetry => '다시 시도';
 
   @override
-  String get actionRefresh => '새로고침';
-
-  @override
   String get actionChange => '변경';
 
   @override
@@ -878,10 +875,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDormant => '휴면';
 
   @override
-  String get clientStatusChangeFailed => '상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get clientDormantActivate => '눌러서 활성으로 전환';
 
   @override
-  String get clientClosePanel => '패널 닫기';
+  String get clientSignalLess => '접기';
+
+  @override
+  String clientSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientStatusChangeFailed => '상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';
@@ -3283,13 +3288,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientQuickReport => '리포트';
 
   @override
-  String get clientHealthGoals => '회원 신체·목표 관리';
-
-  @override
-  String get clientProfileSectionTitle => '신체·목표·메모';
+  String get clientProfileSectionTitle => '신체·목표';
 
   @override
   String get clientTrainerMemo => '메모';
+
+  @override
+  String get clientHealthUnset => '미입력';
+
+  @override
+  String get clientHealthTabBody => '신체';
+
+  @override
+  String get clientHealthTabFocus => '건강 목표';
+
+  @override
+  String get clientGoalDefaultHint => '흐린 숫자는 회원 앱 기본값이에요. 비워 두면 이 값으로 계산해요.';
 
   @override
   String get clientTrainerMemoHint => '이 회원에 대해 기억할 내용을 적어 주세요';
