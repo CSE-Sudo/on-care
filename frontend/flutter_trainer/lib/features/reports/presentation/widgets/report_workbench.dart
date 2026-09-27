@@ -4,6 +4,7 @@ import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -389,11 +390,12 @@ class _QueueRow extends StatelessWidget {
       onTap: onTap,
     );
     // 그 주를 한 줄로 말하는 자리. 이 줄을 먼저 봐야 하는 이유가 여기 적힌다
-    // — 이행률이 낮다, PT 를 빠졌다, 사흘이 비었다. 식단 수치는 오지 않는다.
+    // — 기록이 끊겼다, 노쇼·취소가 잦다, 이행률이 낮다, 주 후반에 무너졌다.
+    // 식단 수치는 오지 않는다.
     final Widget reasons = Wrap(
       spacing: OnCareSpacing.s4,
       runSpacing: OnCareSpacing.s4,
-      children: _reasons(l, report),
+      children: _reasons(l, entry),
     );
     final Widget action = loading && report == null
         ? const AppLoading.inline()
@@ -462,30 +464,46 @@ class _QueueRow extends StatelessWidget {
   /// `열기` 버튼 자리로 잡아 두는 최소 폭.
   static const double _actionMinWidth = 200;
 
-  /// 그 주를 설명하는 신호 배지. 판정은 [reportSignals] 한 곳에서만 한다 —
-  /// 화면은 고른 것을 옮겨 적기만 한다.
-  List<Widget> _reasons(AppLocalizations l, WeeklyReport? report) {
+  /// 그 주를 설명하는 배지 — 앞에 PT 관리 신호, 뒤에 리포트 고유 신호.
+  ///
+  /// PT 관리 신호는 회원 상세 헤더와 **같은 배지**다(문구·색·아이콘, #2344).
+  /// 같은 회원을 상세에서는 `기록 끊김`, 리포트에서는 다른 말로 부르지 않는다.
+  /// 리포트 고유 신호는 [reportSignals] 가 제 한도([reportSignalLimit]) 안에서
+  /// 고른 것을 그대로 뒤에 붙인다 — PT 관리 신호가 많다고 주 후반 하락 같은
+  /// 리포트만의 사실을 밀어내지 않는다. 넘치면 `Wrap` 이 아랫줄로 내린다.
+  List<Widget> _reasons(AppLocalizations l, ReportQueueEntry entry) {
+    final WeeklyReport? report = entry.report;
+    final List<Widget> attention = <Widget>[
+      for (final ClientSignal signal in entry.attention)
+        KeyedSubtree(
+          key: ValueKey<String>(
+            'reports-queue-alert-${entry.client.id}-${signal.kind.wire}',
+          ),
+          child: AppTag(
+            label: signal.detailLabel(l),
+            icon: Icons.error_outline_rounded,
+            tone: signal.kind.tone,
+          ),
+        ),
+    ];
     if (report == null) {
-      return <Widget>[AppTag(label: l.reportsReasonUnknown)];
-    }
-    final List<ReportSignal> signals = reportSignals(report);
-    if (signals.isEmpty) {
-      return <Widget>[
-        AppTag(label: l.reportsReasonSteady, tone: AppTagTone.success),
-      ];
+      return <Widget>[...attention, AppTag(label: l.reportsReasonUnknown)];
     }
     // 잘한 것 하나까지 줄에 세우면, 골라야 할 이유와 골라도 그만인 사실이
     // 같은 크기로 선다. `PT 를 예정대로 했다` 는 리포트 본문에서 말한다.
     final List<ReportSignal> shown = <ReportSignal>[
-      for (final ReportSignal signal in signals)
+      for (final ReportSignal signal in reportSignals(report))
         if (signal.kind != ReportSignalKind.sessionDone) signal,
     ];
-    if (shown.isEmpty) {
+    if (shown.isEmpty && attention.isEmpty) {
       return <Widget>[
         AppTag(label: l.reportsReasonSteady, tone: AppTagTone.success),
       ];
     }
-    return <Widget>[for (final ReportSignal signal in shown) _tag(l, signal)];
+    return <Widget>[
+      ...attention,
+      for (final ReportSignal signal in shown) _tag(l, signal),
+    ];
   }
 
   Widget _tag(AppLocalizations l, ReportSignal signal) => switch (signal.kind) {
@@ -497,17 +515,9 @@ class _QueueRow extends StatelessWidget {
       label: l.reportsReasonCompletion(signal.value),
       tone: completionTagTone(signal.value),
     ),
-    ReportSignalKind.noShow => AppTag(
-      label: l.reportsReasonNoShow(signal.value),
-      tone: AppTagTone.danger,
-    ),
     ReportSignalKind.sessionDone => AppTag(
       label: l.reportsReasonSessionDone(signal.value),
       tone: AppTagTone.success,
-    ),
-    ReportSignalKind.silentDays => AppTag(
-      label: l.reportsReasonSilentDays(signal.value),
-      tone: AppTagTone.danger,
     ),
     ReportSignalKind.slump => AppTag(
       label: l.reportsReasonSlump(signal.value),

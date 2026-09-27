@@ -3055,26 +3055,10 @@
       }
     }
   },
-  "reportsReasonNoShow": "{count} no-show",
-  "@reportsReasonNoShow": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "reportsReasonSessionDone": "PT {count} done",
   "@reportsReasonSessionDone": {
     "placeholders": {
       "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsReasonSilentDays": "{days} days unlogged",
-  "@reportsReasonSilentDays": {
-    "placeholders": {
-      "days": {
         "type": "int"
       }
     }
