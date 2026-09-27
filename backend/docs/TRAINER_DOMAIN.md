@@ -185,7 +185,15 @@
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
+
+리포트 요약(`headline`·`points`)과 리포트 본문의 초안 문장(`message`, 본문 없이 보낸
+`report/send` 가 쓰는 글)은 요청의 `Accept-Language` 언어로 만든다(#2298). `en` 이면
+근거 문장·규칙 기반 머리 문장·모델 지시문이 모두 영어이고, 헤더가 없거나 `ko` 면
+지금까지와 같은 한국어 문장이다. 판정(주의사항·기준값)은 언어와 무관하다. 저장하지
+않고 요청마다 만드는 값이라 DB 에 언어가 남지 않는다 — 회원에게 실제로 나간 글만
+채팅 행으로 남는다.
 
 채팅 발신과 스케줄 생성의 `client_request_id`는 선택값이다. 클라이언트는 한
 사용자 행동에 한 번 생성하고 응답 유실 뒤 재시도에서 같은 값을 보낸다. 같은 사용자·
@@ -282,6 +290,10 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 쓰되, 검색 스코프가 호출자(트레이너)가 아니라 **담당 회원**이다. 트레이너가 자기
 자신의(비어 있는) 기록으로 코칭받는 일을 막기 위한 구분이며, 접근 경계는 담당 링크
 확인(`_require_client`) — 남의 회원이면 404 로 존재조차 드러내지 않는다.
+
+LLM 비용 가드로 **트레이너 id 단위 분당 한도**(`COACH_CHAT_PER_MINUTE`, 기본 20)가 걸린다(#1548).
+넘기면 429 + `Retry-After` 다. 버킷이 IP 가 아니라 트레이너라 같은 헬스장의 다른 트레이너가
+한도를 대신 소진하지 않는다. 질문은 1000자까지다(회원 AI 코치와 같음).
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 
@@ -445,6 +457,22 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   를 다른 화면도 그대로 가져다 쓴다.
 - 답장 대기는 서버 신호가 아니다. 안 읽은 메시지 수는 앱이 실시간으로 받아, 로스터 시점의 값으로
   굳히면 답장한 뒤에도 배지가 남는다.
+
+### AI 운동 추천의 언어 (#2301)
+
+요청의 `Accept-Language`(#2297)로 언어를 고른다. 헤더가 없거나 `ko` 면 지금까지와 같은 한국어다.
+
+- **개인운동 후보의 근거(`RoutineOut.evidence`)는 코드다** — `recent_pt_feedback`,
+  `strength_heavy`, `blood_pressure_goal`, `low_cardio`, `recent_record`. 트레이너 웹이 화면
+  언어로 바꿔 보여 주고, 모르는 값은 원문 그대로 보인다. 코드 도입 전에 문장으로 저장된 행은
+  읽을 때 코드로 돌려준다(`routine_suggestion_service.LEGACY_EVIDENCE_LABELS`).
+- **후보 이름·`reason`, AI A/B(`/routine-options`)의 이름·사유·근거 문장, 시작 템플릿
+  (`starter:*`)** 은 요청한 트레이너의 언어로 만든다. AI 가 실패했을 때의 규칙형 폴백도 같다.
+  `intensity`·`type` 은 번역하지 않는 계약값(한국어 Literal)이다.
+- **회원에게 가는 사유는 트레이너가 승인한 언어 그대로다.** `reason` 은 트레이너 명의로
+  회원에게 가는 안내문이라, 트레이너가 검토하고 고친 문장을 회원 화면 언어로 다시 쓰지 않는다.
+  트레이너와 회원의 언어가 다르면 트레이너가 승인 전에 사유를 고쳐 보낸다.
+- 트레이너가 저장한 템플릿과 회원 기록에서 온 운동 이름은 사람이 쓴 글이라 옮기지 않는다.
 
 ## 5. 예약 → 수업 → 기록 루프
 

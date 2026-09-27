@@ -103,6 +103,83 @@ void main() {
     });
   });
 
+  // 실행 중 만료 뒤의 갱신 — 거부(401/403)만 세션의 끝이다(#1546).
+  group('refresh', () {
+    Matcher failsWith(AuthFailure failure) => throwsA(
+      isA<AuthException>().having((e) => e.failure, 'failure', failure),
+    );
+
+    void answerRefresh(Object error) => when(
+      () => dio.post<Map<String, Object?>>(
+        '/auth/refresh',
+        data: any(named: 'data'),
+      ),
+    ).thenThrow(error);
+
+    test('parses rotated tokens', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/refresh',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => _ok(<String, Object?>{
+          'access_token': 'a2',
+          'refresh_token': 'r2',
+        }, '/auth/refresh'),
+      );
+
+      final tokens = await repo.refresh('r1');
+      expect(tokens.access, 'a2');
+      expect(tokens.refresh, 'r2');
+    });
+
+    test('maps 401 to sessionExpired', () async {
+      answerRefresh(_httpError(401, '/auth/refresh'));
+      await expectLater(
+        repo.refresh('r1'),
+        failsWith(AuthFailure.sessionExpired),
+      );
+    });
+
+    test('maps 403 to sessionExpired like the member app', () async {
+      answerRefresh(_httpError(403, '/auth/refresh'));
+      await expectLater(
+        repo.refresh('r1'),
+        failsWith(AuthFailure.sessionExpired),
+      );
+    });
+
+    test('keeps a 5xx as a non-terminal failure', () async {
+      answerRefresh(_httpError(503, '/auth/refresh'));
+      await expectLater(repo.refresh('r1'), failsWith(AuthFailure.unknown));
+    });
+
+    test('keeps a connection error as a network failure', () async {
+      answerRefresh(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/refresh'),
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      await expectLater(repo.refresh('r1'), failsWith(AuthFailure.network));
+    });
+
+    test('a 403 on login is still not a session expiry', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/login',
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(_httpError(403, '/auth/login'));
+      await expectLater(
+        repo.login(email: 'e@x.com', password: 'pw'),
+        failsWith(AuthFailure.unknown),
+      );
+    });
+  });
+
   group('register', () {
     // 회원용 `/auth/register` 가 아니라 트레이너 전용 경로다 — 그쪽은
     // role='member' 를 만들어 `/trainer/me` 가 403 인 계정이 생겼다. (#475)

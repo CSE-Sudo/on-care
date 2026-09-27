@@ -1702,6 +1702,32 @@ class ReportGoalsSaveRequest(BaseModel):
     goals: list[str] = Field(default_factory=list, max_length=20)
 
 
+class ReportSendOut(BaseModel):
+    """한 회원에게 그 주 리포트가 나간 기록. (#2288)
+
+    따로 저장한 표가 아니라 리포트 전송이 남긴 채팅 메시지(`report_week_start`)
+    에서 읽는다 — 전송 기록을 두 곳에 두면 한쪽만 남는 날이 온다.
+    """
+    member_id: str
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 가장 최근에 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 가장 최근에 보낸 본문 — 회원이 받은 글 그대로다.
+    message: str
+    #: 회원이 가장 최근 전송을 열어 봤는가(`read_at`).
+    read: bool
+    #: 가장 최근 전송이 PDF 첨부였는가.
+    has_pdf: bool
+    #: 그 주 리포트를 몇 번 보냈는가. 다시 보낸 적이 있으면 2 이상이다.
+    send_count: int = Field(ge=1)
+
+
+class ReportSendsOut(BaseModel):
+    """그 주에 리포트가 나간 담당 회원들. 보낸 적이 없으면 빈 목록이다. (#2288)"""
+    week_start: str              # YYYY-MM-DD (월요일)
+    sends: list[ReportSendOut] = Field(default_factory=list)
+
+
 class TrainerPasswordChange(BaseModel):
     """비밀번호 변경 — 현재 비밀번호 확인 후 교체.
 
@@ -1736,6 +1762,10 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
     #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
     subject_id: str | None = None
+    #: 문장 틀 코드와 인자(#2302). 트레이너 웹이 이 둘로 ARB 문장을 조립한다. 틀이
+    #: 생기기 전의 알림은 둘 다 없고, 그때는 `title`·`body` 를 그대로 쓴다.
+    template: str | None = None
+    args: dict[str, Any] | None = None
     #: 알림이 가리키는 날짜(`YYYY-MM-DD`) — 예약·상담 알림이 스케줄을 그 날짜로
     #: 여는 데 쓴다(#2292). 옛 알림에는 없다.
     target_date: str | None = None

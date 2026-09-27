@@ -142,6 +142,7 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
+  "authSessionExpired": "Your session has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
   "@authErrNameTooLong": {
@@ -739,7 +740,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT session · Trainer-led",
   "@workoutKindPtSession": {
@@ -749,7 +749,6 @@
   "@workoutKindAssignedRoutine": {
     "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
   },
-  "trainerNote": "Trainer's note",
   "dietLoadFailed": "Couldn't load meals",
   "dietEmpty": "No meals logged yet",
   "dietDayEmpty": "No record",
@@ -784,6 +783,91 @@
   "aiAnalysis": "AI analysis",
   "aiPeriodAnalysis": "AI period analysis",
   "aiAllAnalysis": "AI all-time analysis",
+  "clientDietAdviceTodayOver": "Sodium is {over}mg over the target. Adding cardio to today's program would help.",
+  "@clientDietAdviceTodayOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "over": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceTodayBalanced": "Today's meals are well balanced. Keep the current program.",
+  "@clientDietAdviceTodayBalanced": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekEmpty": "No meals logged this week yet. Even one meal shows the trend.",
+  "@clientDietAdviceWeekEmpty": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceAllEmpty": "Once you log more, we'll show how your sodium and calories are trending.",
+  "@clientDietAdviceAllEmpty": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekManyOver": "Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.",
+  "@clientDietAdviceWeekManyOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceWeekWeekend": "Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.",
+  "@clientDietAdviceWeekWeekend": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekSomeOver": "Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.",
+  "@clientDietAdviceWeekSomeOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceWeekAllUnder": "You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!",
+  "@clientDietAdviceWeekAllUnder": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllWeekend": "Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.",
+  "@clientDietAdviceAllWeekend": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllRatio": "{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.",
+  "@clientDietAdviceAllRatio": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllMostlyUnder": "{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
+  "@clientDietAdviceAllMostlyUnder": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "consultStatusRejected": "Declined",
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",
@@ -1660,6 +1744,10 @@
       }
     }
   },
+  "aiCustomRoutineName": "AI custom suggestion",
+  "@aiCustomRoutineName": {
+    "description": "Routine name sent when the trainer leaves the name blank (#2301)."
+  },
   "aiAnalysing": "AI is analysing…",
   "aiGenerateCandidates": "Generate candidates",
   "aiReviewDone": "Reviewed",
@@ -1730,6 +1818,30 @@
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
+  "routineEvidenceRecentPtFeedback": "Recent PT feedback",
+  "@routineEvidenceRecentPtFeedback": {
+    "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
+  },
+  "routineEvidenceStrengthHeavy": "Mostly strength lately",
+  "@routineEvidenceStrengthHeavy": {
+    "description": "Evidence chip; server code strength_heavy (#2301)."
+  },
+  "routineEvidenceBloodPressureGoal": "Blood pressure goal",
+  "@routineEvidenceBloodPressureGoal": {
+    "description": "Evidence chip; server code blood_pressure_goal (#2301)."
+  },
+  "routineEvidenceLowCardio": "Little cardio lately",
+  "@routineEvidenceLowCardio": {
+    "description": "Evidence chip; server code low_cardio (#2301)."
+  },
+  "routineEvidenceRecentRecord": "Recent workout log",
+  "@routineEvidenceRecentRecord": {
+    "description": "Evidence chip; server code recent_record (#2301)."
+  },
+  "aiPlanIntensityLow": "Low",
+  "@aiPlanIntensityLow": {
+    "description": "Intensity of an AI A/B plan whose contract value is 낮음 (#2301)."
+  },
   "aiPersonalStepFull": "You can set up to {count} personal exercises at once.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }
@@ -1880,6 +1992,7 @@
   "coachDemoUnavailable": "AI coaching isn't available in demo mode",
   "coachNotMyClient": "That isn't one of your members",
   "coachAskFailed": "Couldn't send your question",
+  "coachRateLimited": "You've sent too many questions. Please try again in a minute",
   "slotFutureOnly": "Booking slots can only be set for future times.",
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
@@ -1952,6 +2065,122 @@
   "notifReadAll": "Mark all read",
   "notifEmpty": "No notifications yet",
   "notifLoadFailed": "Couldn't load notifications",
+  "notifLoadMore": "Load earlier notifications",
+  "notifLoadMoreFailed": "Couldn't load earlier notifications",
+  "notifNoEarlier": "No earlier notifications",
+  "notifTplHealthGoalTitle": "Member goals changed",
+  "notifTplHealthGoalBody": "{name} changed their health goals: {goals}",
+  "@notifTplHealthGoalBody": {
+    "description": "goals is the member's health goals joined with ' · '.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "goals": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplNoGoals": "none",
+  "@notifTplNoGoals": {
+    "description": "Shown in place of the goal list when the member cleared every health goal."
+  },
+  "notifTplMemberRenamedTitle": "Member renamed",
+  "notifTplMemberRenamedBody": "{oldName} changed their name to {newName}.",
+  "@notifTplMemberRenamedBody": {
+    "placeholders": {
+      "oldName": {
+        "type": "String"
+      },
+      "newName": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberWithdrawnTitle": "Member account deleted",
+  "notifTplMemberWithdrawnBody": "{name} deleted their account.",
+  "@notifTplMemberWithdrawnBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberDisconnectedTitle": "Client disconnected",
+  "notifTplMemberDisconnectedBody": "{name} ended their connection with you.",
+  "@notifTplMemberDisconnectedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplConsultRequestedTitle": "New consultation request",
+  "notifTplConsultCancelledTitle": "Consultation request cancelled",
+  "notifTplInviteAcceptedTitle": "Coaching request accepted",
+  "notifTplInviteAcceptedBody": "{name} is now your client.",
+  "@notifTplInviteAcceptedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplInviteRejectedTitle": "Coaching request declined",
+  "notifTplInviteRejectedBody": "{name} declined your coaching request.",
+  "@notifTplInviteRejectedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplReservationBookedTitle": "New booking",
+  "notifTplReservationCancelledTitle": "Booking cancelled",
+  "notifTplMemberWithDetail": "{name} · {detail}",
+  "@notifTplMemberWithDetail": {
+    "description": "A member's name followed by a date or time, e.g. for a booking.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberOnly": "{name}",
+  "@notifTplMemberOnly": {
+    "description": "Just the member's name, used when a cancelled booking has no time.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWhen": "{month}/{day} {time}",
+  "@notifTplWhen": {
+    "description": "Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberMessageTitle": "Message from {name}",
+  "@notifTplMemberMessageTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
   "notifUnreadCount": "{count} unread",
@@ -2073,12 +2302,6 @@
       }
     }
   },
-  "routineFeedbackTitle": "Workout feedback",
-  "routineFeedbackHint": "Write coaching feedback for the member",
-  "routineFeedbackWrite": "Write feedback",
-  "routineFeedbackEdit": "Edit feedback",
-  "routineFeedbackSaved": "Feedback saved",
-  "routineFeedbackFailed": "Could not save feedback. Please try again",
   "navOperationsGroup": "Operations",
   "navCoachingGroup": "Coaching",
   "dashTodayTasks": "Today's tasks",
@@ -2924,6 +3147,23 @@
     }
   },
   "reportsSentRewrite": "Rewrite from this",
+  "reportsResendTitle": "Already sent",
+  "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
+  "@reportsResendBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsResendConfirm": "Send again",
+  "reportsSendHistoryFailed": "Couldn't load send history. Members you've already sent to may show as not sent.",
   "reportsSentBody": "Message sent",
   "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",

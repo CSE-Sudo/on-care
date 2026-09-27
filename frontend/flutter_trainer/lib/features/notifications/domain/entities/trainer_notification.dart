@@ -55,6 +55,8 @@ class TrainerNotification {
     required this.createdAt,
     required this.timeAgo,
     this.subjectId,
+    this.template,
+    this.args = const <String, Object?>{},
     this.targetDate,
   });
 
@@ -64,6 +66,14 @@ class TrainerNotification {
   final TrainerNotificationKind kind;
   final bool read;
   final DateTime createdAt;
+
+  /// 문장 틀 코드(#2302). 있으면 화면이 [args] 로 ARB 문장을 조립한다
+  /// (`trainer_notification_text.dart`). 틀이 생기기 전의 알림에는 없고, 그때는
+  /// [title]·[body] 를 그대로 쓴다.
+  final String? template;
+
+  /// 틀 인자 — 이름·날짜·건강 목표 저장 값처럼 언어와 무관한 값만 담긴다.
+  final Map<String, Object?> args;
 
   /// 서버가 만든 상대 시각 문구("3분 전"). 회원 알림함과 같은 규칙을 쓰도록
   /// 서버 판단을 그대로 받는다.
@@ -79,6 +89,22 @@ class TrainerNotification {
   /// — 잘못된 날짜로 스케줄을 여는 것보다 오늘 스케줄로 가는 편이 낫다.
   final String? targetDate;
 
+  /// 읽음 상태만 바꾼 사본. 이어 받은 과거 쪽을 다시 읽지 않고 읽음 처리를
+  /// 반영하는 데 쓴다(#2293).
+  TrainerNotification copyWith({bool? read}) => TrainerNotification(
+    id: id,
+    title: title,
+    body: body,
+    kind: kind,
+    read: read ?? this.read,
+    createdAt: createdAt,
+    timeAgo: timeAgo,
+    subjectId: subjectId,
+    template: template,
+    args: args,
+    targetDate: targetDate,
+  );
+
   factory TrainerNotification.fromJson(Map<String, Object?> json) =>
       TrainerNotification(
         id: json['id']! as String,
@@ -91,6 +117,18 @@ class TrainerNotification {
         subjectId: switch (json['subject_id']) {
           final String id when id.isNotEmpty => id,
           _ => null,
+        },
+        template: switch (json['template']) {
+          final String code when code.isNotEmpty => code,
+          _ => null,
+        },
+        // 계약이 깨진 인자 하나로 목록 전체가 실패하지 않게, 모양이 다르면 비운다.
+        // 비어 있으면 조립하지 못해 저장된 문장으로 돌아간다.
+        args: switch (json['args']) {
+          final Map<String, Object?> map => Map<String, Object?>.unmodifiable(
+            map,
+          ),
+          _ => const <String, Object?>{},
         },
         targetDate: _ymdOrNull(json['target_date']),
       );
@@ -110,4 +148,66 @@ String? _ymdOrNull(Object? raw) {
       '${parsed.month.toString().padLeft(2, '0')}-'
       '${parsed.day.toString().padLeft(2, '0')}';
   return roundTrip == raw ? raw : null;
+}
+
+/// 다음 쪽을 받을 자리 — 서버가 준 `(before, before_id)` 그대로. (#2293)
+///
+/// 값을 [DateTime] 으로 바꾸지 않고 받은 글자 그대로 되돌려 준다. 한 번 읽고
+/// 다시 쓰면 정밀도나 시간대가 달라져 쪽 경계에서 알림이 빠지거나 겹칠 수 있다.
+class TrainerNotificationCursor {
+  const TrainerNotificationCursor({
+    required this.before,
+    required this.beforeId,
+  });
+
+  /// `X-Next-Before` 헤더 값(ISO 시각).
+  final String before;
+
+  /// `X-Next-Before-Id` 헤더 값(알림 id).
+  final String beforeId;
+
+  /// 응답 헤더에서 읽는다. 둘 중 하나라도 없으면 마지막 쪽이다.
+  static TrainerNotificationCursor? fromHeaders(
+    String? before,
+    String? beforeId,
+  ) {
+    if (before == null || before.isEmpty) return null;
+    if (beforeId == null || beforeId.isEmpty) return null;
+    return TrainerNotificationCursor(before: before, beforeId: beforeId);
+  }
+
+  /// 다음 요청의 쿼리.
+  Map<String, String> toQuery() => <String, String>{
+    'before': before,
+    'before_id': beforeId,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is TrainerNotificationCursor &&
+      other.before == before &&
+      other.beforeId == beforeId;
+
+  @override
+  int get hashCode => Object.hash(before, beforeId);
+}
+
+/// 알림 한 쪽과 그다음 쪽 커서. [next] 가 없으면 마지막 쪽이다. (#2293)
+class TrainerNotificationPage {
+  const TrainerNotificationPage({
+    this.items = const <TrainerNotification>[],
+    this.next,
+  });
+
+  /// 빈 쪽 — 알림이 없고 더 받을 것도 없다.
+  static const TrainerNotificationPage empty = TrainerNotificationPage();
+
+  /// 최신순 알림.
+  final List<TrainerNotification> items;
+
+  /// 다음 쪽 커서.
+  final TrainerNotificationCursor? next;
+
+  /// 더 받을 쪽이 있는가.
+  bool get hasMore => next != null;
 }

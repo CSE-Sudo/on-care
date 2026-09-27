@@ -2148,6 +2148,7 @@
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSignInNetworkFailed": "Check your internet connection and try again",
   "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
+  "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",

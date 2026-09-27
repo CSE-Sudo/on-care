@@ -1,6 +1,43 @@
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
+
+/// 서버가 보내는 AI 개인운동 근거 코드(`routine_suggestion_service.EV_*`). (#2301)
+///
+/// 서버는 문장 대신 이 코드를 보내고, 화면 문구는 [routineEvidenceLabel] 이
+/// 화면 언어로 고른다. 문장으로 보내면 한 번 준비한 후보의 근거가 영어 화면에서도
+/// 한국어로 남는다.
+abstract final class RoutineEvidence {
+  /// 최근 PT 뒤 트레이너 피드백(PT 노트·루틴 피드백)이 있다.
+  static const String recentPtFeedback = 'recent_pt_feedback';
+
+  /// 최근 운동 시간이 근력에 몰려 있다.
+  static const String strengthHeavy = 'strength_heavy';
+
+  /// 혈압 관리가 필요한 회원이다.
+  static const String bloodPressureGoal = 'blood_pressure_goal';
+
+  /// 최근 유산소 기록이 없다.
+  static const String lowCardio = 'low_cardio';
+
+  /// 최근 운동 기록을 보고 만들었다.
+  static const String recentRecord = 'recent_record';
+}
+
+/// 근거 코드 → 화면 문구. (#2301)
+///
+/// 모르는 값은 원문 그대로다 — 서버가 새 코드를 더했거나, 트레이너·다른 경로가
+/// 직접 적은 근거 문장이다. 근거 하나를 못 읽는다고 칩을 숨기면 판단 재료가
+/// 사라진다.
+String routineEvidenceLabel(AppLocalizations l, String code) => switch (code) {
+  RoutineEvidence.recentPtFeedback => l.routineEvidenceRecentPtFeedback,
+  RoutineEvidence.strengthHeavy => l.routineEvidenceStrengthHeavy,
+  RoutineEvidence.bloodPressureGoal => l.routineEvidenceBloodPressureGoal,
+  RoutineEvidence.lowCardio => l.routineEvidenceLowCardio,
+  RoutineEvidence.recentRecord => l.routineEvidenceRecentRecord,
+  _ => code,
+};
 
 /// `RoutineOut` JSON → [RoutineSuggestion].
 ///

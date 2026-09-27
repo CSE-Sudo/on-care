@@ -26,7 +26,9 @@ class _FakeCoachRepository implements ClientCoachRepository {
   });
 
   final ClientCoachAnswer? answer;
-  final AppError? failure;
+
+  /// 다음 질문에 던질 오류. 한도(429)가 풀린 뒤를 보려고 테스트 중에 바꾼다.
+  AppError? failure;
 
   /// 서버에 이미 저장돼 있는 문답 — 시트를 열 때 복원된다. (#588)
   final List<ClientCoachTurn> stored;
@@ -65,11 +67,13 @@ class _FakeCoachRepository implements ClientCoachRepository {
 Future<void> _openClient(
   WidgetTester tester, {
   ClientCoachRepository? coach,
+  Locale locale = const Locale('ko'),
 }) async {
   await pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
     at: AppRoutes.clientDetail(_minsuId, section: 'diet'),
+    locale: locale,
     extraOverrides: <Override>[
       if (coach != null) clientCoachRepositoryProvider.overrideWithValue(coach),
     ],
@@ -150,6 +154,88 @@ void main() {
     await settle(tester);
 
     expect(find.text('담당 회원이 아니에요'), findsOneWidget);
+  });
+
+  group('분당 한도(429, #1548)', () {
+    const RateLimitedError limited = RateLimitedError(
+      message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+    );
+
+    testWidgets('한도에 걸리면 언제 다시 물으면 되는지 알린다', (WidgetTester tester) async {
+      final repo = _FakeCoachRepository(failure: limited);
+      await _openClient(tester, coach: repo);
+
+      await _openCoachSheet(tester);
+      await tester.enterText(find.byType(TextField).last, '이번 주 식단 어때요?');
+      await tester.tap(find.text('물어보기'));
+      await settle(tester);
+
+      expect(find.text('질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요'), findsOneWidget);
+      // 고장처럼 읽히는 일반 실패 문구나 서버의 일반 문구가 아니다.
+      expect(find.text('질문을 보낼 수 없어요'), findsNothing);
+      expect(find.text('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'), findsNothing);
+    });
+
+    testWidgets('한도에 걸려도 쓰던 질문은 남아 그대로 다시 보낼 수 있다', (
+      WidgetTester tester,
+    ) async {
+      final repo = _FakeCoachRepository(failure: limited);
+      await _openClient(tester, coach: repo);
+
+      await _openCoachSheet(tester);
+      await tester.enterText(find.byType(TextField).last, '무릎 괜찮을까요?');
+      await tester.tap(find.text('물어보기'));
+      await settle(tester);
+
+      final TextField field = tester.widget<TextField>(
+        find.byType(TextField).last,
+      );
+      expect(field.controller!.text, '무릎 괜찮을까요?');
+      // 스레드에 실패한 질문이 끼어들지 않는다.
+      expect(find.text('무릎 괜찮을까요?'), findsOneWidget);
+
+      // 한도가 풀리면 같은 질문이 그대로 나가고 안내는 사라진다.
+      repo.failure = null;
+      await tester.tap(find.text('물어보기'));
+      await settle(tester);
+
+      expect(repo.asked.map((e) => e.$2), <String>['무릎 괜찮을까요?', '무릎 괜찮을까요?']);
+      expect(find.text('질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요'), findsNothing);
+      expect(find.text('ok'), findsOneWidget);
+    });
+
+    testWidgets('영어 화면에도 한국어 서버 문구가 새지 않는다', (WidgetTester tester) async {
+      final repo = _FakeCoachRepository(failure: limited);
+      await _openClient(tester, coach: repo, locale: const Locale('en'));
+
+      await _openCoachSheet(tester);
+      await tester.enterText(find.byType(TextField).last, 'How is her week?');
+      await tester.tap(find.text('Ask'));
+      await settle(tester);
+
+      expect(
+        find.text(
+          "You've sent too many questions. Please try again in a minute",
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'), findsNothing);
+    });
+
+    testWidgets('다른 서버 오류는 여전히 일반 실패 문구다', (WidgetTester tester) async {
+      final repo = _FakeCoachRepository(
+        failure: const ServerError(statusCode: 500),
+      );
+      await _openClient(tester, coach: repo);
+
+      await _openCoachSheet(tester);
+      await tester.enterText(find.byType(TextField).last, '질문');
+      await tester.tap(find.text('물어보기'));
+      await settle(tester);
+
+      expect(find.text('질문을 보낼 수 없어요'), findsOneWidget);
+      expect(find.text('질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요'), findsNothing);
+    });
   });
 
   testWidgets('시트를 열면 지난 문답이 복원된다', (WidgetTester tester) async {

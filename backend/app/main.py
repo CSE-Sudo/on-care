@@ -72,6 +72,15 @@ app.add_middleware(
     max_bytes=settings.max_upload_bytes,
     protected_paths=(f"{settings.api_v1_prefix}/diet/analyze",),
 )
+# 회원 AI 코치 채팅 본문 상한(#1549). 필드 제한(질문·history 길이)은 Pydantic 이
+# 422 로 거르지만, 그 전에 본문 전체를 메모리에 올리고 파싱한다 — 수 MB 짜리
+# JSON 은 여기서 먼저 끊는다. 업로드 상한과 값이 달라 따로 건다.
+app.add_middleware(
+    RequestBodySizeLimitMiddleware,
+    max_bytes=settings.coach_chat_max_body_bytes,
+    protected_paths=(f"{settings.api_v1_prefix}/ai-coach/chat",),
+    detail="요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
+)
 
 # HTTPS 강제(운영). 프록시 뒤면 X-Forwarded-Proto 를 신뢰(uvicorn --proxy-headers).
 if settings.force_https:
@@ -87,6 +96,9 @@ app.add_middleware(
     allow_credentials=not settings.is_cors_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
+    # 트레이너 알림함 다음 쪽 커서(#2293). 노출하지 않으면 브라우저가 헤더를
+    # 가려, 트레이너 웹은 늘 마지막 쪽이라고 읽는다.
+    expose_headers=[trainer.NEXT_BEFORE_HEADER, trainer.NEXT_BEFORE_ID_HEADER],
 )
 
 
