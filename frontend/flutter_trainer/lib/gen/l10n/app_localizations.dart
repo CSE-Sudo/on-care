@@ -7564,6 +7564,30 @@ abstract class AppLocalizations {
   /// **'{done} / {total} personal workouts'**
   String reportsLastGoalsEvidenceWorkout(int done, int total);
 
+  /// No description provided for @reportsLastGoalsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Judged from this week\'s records'**
+  String get reportsLastGoalsSubtitle;
+
+  /// Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'calorie,kcal,intake'**
+  String get reportsLastGoalsKeywordsCalories;
+
+  /// Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym'**
+  String get reportsLastGoalsKeywordsWorkout;
+
+  /// Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'log,record,meal'**
+  String get reportsLastGoalsKeywordsLogged;
+
   /// No description provided for @reportsTrendUnavailable.
   ///
   /// In en, this message translates to:

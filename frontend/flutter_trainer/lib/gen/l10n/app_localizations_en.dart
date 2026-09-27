@@ -4375,6 +4375,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reportsLastGoalsSubtitle => 'Judged from this week\'s records';
+
+  @override
+  String get reportsLastGoalsKeywordsCalories => 'calorie,kcal,intake';
+
+  @override
+  String get reportsLastGoalsKeywordsWorkout =>
+      'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym';
+
+  @override
+  String get reportsLastGoalsKeywordsLogged => 'log,record,meal';
+
+  @override
   String get reportsTrendUnavailable =>
       'Couldn\'t load this week\'s workout records';
 
