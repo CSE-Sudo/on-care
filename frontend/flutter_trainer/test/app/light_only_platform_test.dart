@@ -42,10 +42,10 @@ void main() {
       expect(RegExp('name="color-scheme"').allMatches(html), hasLength(1));
     });
 
-    test('theme-color matches the app background token', () {
+    test('theme-color keeps the trainer brand navy', () {
       final String? value = metaContent('theme-color');
       expect(value, isNotNull);
-      expect(hexColor(value!), appBackground);
+      expect(hexColor(value!), OnCareBrand.trainer.primary);
     });
 
     test('page background matches the app background token', () {
@@ -67,11 +67,28 @@ void main() {
       expect(metaContent('apple-mobile-web-app-status-bar-style'), 'default');
     });
 
-    test('manifest splash and toolbar colors match the app background', () {
+    test('manifest splash color matches the app background', () {
       final Map<String, dynamic> manifest =
           jsonDecode(read('web/manifest.json')) as Map<String, dynamic>;
       expect(hexColor(manifest['background_color'] as String), appBackground);
-      expect(hexColor(manifest['theme_color'] as String), appBackground);
+    });
+
+    test('manifest toolbar color keeps the trainer brand navy', () {
+      final Map<String, dynamic> manifest =
+          jsonDecode(read('web/manifest.json')) as Map<String, dynamic>;
+      expect(
+        hexColor(manifest['theme_color'] as String),
+        OnCareBrand.trainer.primary,
+      );
+    });
+
+    test('index.html and manifest agree on the toolbar color', () {
+      final Map<String, dynamic> manifest =
+          jsonDecode(read('web/manifest.json')) as Map<String, dynamic>;
+      expect(
+        hexColor(metaContent('theme-color')!),
+        hexColor(manifest['theme_color'] as String),
+      );
     });
   });
 
