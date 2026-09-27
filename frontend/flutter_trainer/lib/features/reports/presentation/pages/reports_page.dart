@@ -10,10 +10,8 @@ import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
-import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_goal_picker.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_pdf_export_dialog.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_share_menu.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
@@ -141,12 +139,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 바뀔 때만 다시 그린다 — 글자마다 화면 전체를 다시 그리지 않는다.
   bool _feedbackBlank = false;
 
-  /// 회원·주마다 고른 다음 주 목표. (#2232)
-  ///
-  /// 서버에 목표를 두는 자리가 아직 없어 이번 세션에만 남는다 — 보낸 글에는
-  /// 그대로 실려 나가므로 회원이 받은 것은 남는다.
-  final Map<String, List<String>> _goals = <String, List<String>>{};
-
   /// 피드백 초안을 서버에 저장하는 중이다. (#821)
   bool _savingFeedback = false;
 
@@ -171,30 +163,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   ) => _feedbackFor == _feedbackKey(report)
       ? (_feedbackDraft ?? _baseFor(l, report, saved))
       : _baseFor(l, report, saved);
-
-  /// 이 주에 고른 다음 주 목표.
-  List<String> _goalsFor(WeeklyReport report) =>
-      _goals[_feedbackKey(report)] ?? const <String>[];
-
-  /// 회원이 실제로 받는 글 — 피드백 아래에 고른 목표를 붙인다.
-  ///
-  /// 입력창에 목표를 미리 적어 두지 않는다. 트레이너가 ②에서 고른 것을
-  /// 지웠다 되살렸다 하면 글이 따라 흔들리고, 되돌리기 기록도 그만큼
-  /// 어지러워진다 — 붙이는 일은 보낼 때 한 번만 한다.
-  String _outgoingMessage(
-    AppLocalizations l,
-    WeeklyReport report,
-    String feedback,
-  ) {
-    final List<String> goals = _goalsFor(report);
-    if (goals.isEmpty) return feedback;
-    return <String>[
-      feedback,
-      '',
-      l.reportsGoalsTitle,
-      for (final String goal in goals) '· $goal',
-    ].join('\n');
-  }
 
   static String _feedbackKey(WeeklyReport report) =>
       '${report.client.id}|${report.weekStart.toIso8601String()}';
@@ -293,23 +261,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     DateTime(_weekStart.year, _weekStart.month, _weekStart.day + 7 * direction),
   );
 
-  /// 다음 주 목표 하나를 고르거나 뺀다.
-  void _toggleGoal(WeeklyReport report, String goal) {
-    final String key = _feedbackKey(report);
-    final List<String> next = <String>[..._goals[key] ?? const <String>[]];
-    next.contains(goal) ? next.remove(goal) : next.add(goal);
-    setState(() => _goals[key] = next);
-  }
-
-  /// 트레이너가 직접 적은 목표를 더한다 — 적자마자 고른 것으로 친다.
-  void _addGoal(WeeklyReport report, String goal) {
-    final String key = _feedbackKey(report);
-    final List<String> next = <String>[..._goals[key] ?? const <String>[]];
-    if (next.contains(goal)) return;
-    next.add(goal);
-    setState(() => _goals[key] = next);
-  }
-
   /// 요약을 피드백 입력창으로 옮긴다.
   ///
   /// 요약 카드는 넓은 화면에서 왼쪽 열로, 좁은 화면에서는 리포트 흐름 안으로
@@ -353,14 +304,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 보낸다 — 입력창과 전송 버튼이 서로 다른 위젯이 되면서 필요해진 연결이다.
   Future<void> _sendSelected(WeeklyReport report) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _send(
-      report,
-      _outgoingMessage(
-        l,
-        report,
-        _messageFor(l, report, _savedDraftOf(report)),
-      ),
-    );
+    return _send(report, _messageFor(l, report, _savedDraftOf(report)));
   }
 
   /// 리포트 PDF binary. [_send]의 기본 전송과 [_openPdfExport]의 내보내기가
@@ -428,24 +372,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       setState(() => _sending = null);
       showAppToast(context, l.reportsSendFailed, type: AppToastType.error);
       return;
-    }
-    // ② 에서 고른 목표는 **보낼 때** 남긴다. 고르는 족족 저장하면 보내지 않고
-    // 화면을 떠난 주의 목표까지 다음 주 리포트가 회수해, 회원이 받지도 않은
-    // 목표를 못 지켰다고 적힌다(#2232).
-    //
-    // 전송이 이미 끝난 뒤라 여기서 실패해도 되돌리지 않는다 — 회원은 리포트를
-    // 받았고, 목표 회수는 다음 주에야 필요한 일이다.
-    try {
-      await ref
-          .read(reportRepositoryProvider)
-          .saveNextWeekGoals(
-            clientId: id,
-            weekStart: report.weekStart,
-            goals: _goalsFor(report),
-          );
-    } catch (_) {
-      // 조용히 넘어간다. 여기서 토스트를 띄우면 방금 뜬 `전송 완료` 를 덮어,
-      // 보냈다는 사실이 실패로 읽힌다.
     }
     if (!mounted) return;
     ref
@@ -517,12 +443,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (_generatingPdf) return;
     // PDF 문구도 화면과 같은 로케일이어야 한다 (#964).
     final AppLocalizations l = AppLocalizations.of(context);
-    // 내보낸 PDF 와 전송한 글이 달라서는 안 된다 — 목표도 같이 싣는다.
-    final feedback = _outgoingMessage(
-      l,
-      report,
-      _messageFor(l, report, _savedDraftOf(report)),
-    );
+    // 내보낸 PDF 와 전송한 글이 달라서는 안 된다 — 같은 문구를 싣는다.
+    final feedback = _messageFor(l, report, _savedDraftOf(report));
     setState(() => _generatingPdf = true);
     try {
       final bytes = await _generateReportPdf(l, report, feedback);
@@ -913,24 +835,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             }
                           },
                         ),
-                        // ② 는 다음 주에 함께 챙길 것을 고르는 단계다 — 요약
-                        // 카드가 재료를 내놓고, 이 카드가 고른 것을 남긴다.
-                        if (_stage == 1) ...<Widget>[
-                          const SizedBox(height: OnCareSpacing.s16),
-                          ReportGoalPicker(
-                            suggestions: summaryCoachingActionsAll(l, data),
-                            selected: _goalsFor(data),
-                            onToggle: (goal) => _toggleGoal(data, goal),
-                            onAdd: (goal) => _addGoal(data, goal),
-                          ),
-                        ],
-                        // ③ 에서는 고른 목표를 다시 고르게 하지 않는다. 보낼
-                        // 글 아래에 그대로 붙어 나가는 것을 보여 줄 뿐이다.
-                        if (_stage == 2 &&
-                            _goalsFor(data).isNotEmpty) ...<Widget>[
-                          const SizedBox(height: OnCareSpacing.s16),
-                          _GoalRecap(goals: _goalsFor(data)),
-                        ],
                       ],
                     ),
                   ),
@@ -1021,52 +925,6 @@ class _StepFooter extends StatelessWidget {
             onPressed: onNext,
           ),
       ],
-    );
-  }
-}
-
-/// ③ 전송 단계에서, 보낼 글 아래에 함께 나갈 다음 주 목표를 보여 주는 카드.
-class _GoalRecap extends StatelessWidget {
-  const _GoalRecap({required this.goals});
-
-  final List<String> goals;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    return AppCard(
-      key: const ValueKey<String>('report-goals-recap'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppSectionHeader(
-            title: l.reportsGoalsTitle,
-            icon: Icons.flag_rounded,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          for (final String goal in goals) ...<Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                AppIcon(
-                  Icons.check_circle_rounded,
-                  size: OnCareSize.iconSmall,
-                  color: tokens.brand.primary,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Text(
-                    goal,
-                    style: tokens.text(OnCareTypography.bodySmall),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-          ],
-        ],
-      ),
     );
   }
 }

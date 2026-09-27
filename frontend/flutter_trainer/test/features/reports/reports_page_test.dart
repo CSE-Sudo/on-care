@@ -210,7 +210,7 @@ void main() {
   /// 탭의 첫 화면은 **작업대**다(#2232). 리포트 본문을 보는 테스트가 대부분
   /// 이라, 따로 말하지 않으면 한 회원의 편집기로 바로 들어간다 — 작업대
   /// 자체를 보는 테스트만 [workbench] 를 켠다. [stage] 는 편집기의 단계
-  /// (0 이번 주 확인 · 1 다음 주 목표 · 2 전송)다.
+  /// (0 확인 · 1 작성 · 2 전송)다.
   Future<ProviderContainer> openReports(
     WidgetTester tester, {
     String? clientId,
@@ -1201,26 +1201,12 @@ void main() {
     expect(drafts.saved, <String>['처음 문구 하나']);
   });
 
-  // ---- 직접 작성하기와 목표 남기기 (#2232) ----
+  // ---- 직접 작성하기 (#2232) ----
 
   /// 편집기의 `직접 작성하기`.
   final Finder writeFromScratch = find.byKey(
     const ValueKey<String>('report-feedback-scratch'),
   );
-
-  /// ② 에서 목표 하나를 직접 적어 고른다.
-  Future<void> pickOwnGoal(WidgetTester tester, String goal) async {
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('report-goals-own')),
-    );
-    await tester.pump();
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('report-goals-own')),
-      goal,
-    );
-    await tester.tap(find.byKey(const ValueKey<String>('report-goals-add')));
-    await settle(tester);
-  }
 
   testWidgets('직접 작성하기는 자동 초안을 비워 빈 화면에서 시작하게 한다 (#2232)', (tester) async {
     await openReports(tester, stage: 2);
@@ -1293,106 +1279,16 @@ void main() {
     expect(scratch.dx, greaterThan(field.left));
     expect(scratch.dx, lessThan(field.right));
   });
-
-  testWidgets('②에서 고른 목표는 전송과 함께 남는다 (#2232)', (tester) async {
-    final _DraftStore drafts = _DraftStore();
-    await openReports(
-      tester,
-      stage: 1,
-      extraOverrides: <Override>[
-        reportRepositoryProvider.overrideWithValue(drafts),
-        reportPdfGeneratorProvider.overrideWithValue(
-          _QueuedPdfGenerator(<Future<Uint8List>>[
-            Future<Uint8List>.value(
-              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
-            ),
-          ]),
-        ),
-      ],
-    );
-
-    await pickOwnGoal(tester, '화요일 저녁 15분 루틴');
-    // 고르기만 해서는 아직 남지 않는다 — 보내지 않고 떠난 주의 목표까지
-    // 다음 주가 회수하면, 회원이 받지도 않은 목표를 못 지켰다고 적힌다.
-    expect(drafts.savedGoals, isEmpty);
-
-    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
-    await settle(tester);
-    await openShareMenu(tester);
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
-
-    expect(drafts.savedGoals, <List<String>>[
-      <String>['화요일 저녁 15분 루틴'],
-    ]);
-  });
-
-  testWidgets('목표를 고르지 않고 보내면 빈 목록이 남는다 — 지난 주 목표를 물려받지 않게 (#2232)', (
-    tester,
-  ) async {
-    final _DraftStore drafts = _DraftStore();
-    await openReports(
-      tester,
-      stage: 2,
-      extraOverrides: <Override>[
-        reportRepositoryProvider.overrideWithValue(drafts),
-        reportPdfGeneratorProvider.overrideWithValue(
-          _QueuedPdfGenerator(<Future<Uint8List>>[
-            Future<Uint8List>.value(
-              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
-            ),
-          ]),
-        ),
-      ],
-    );
-
-    await openShareMenu(tester);
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
-
-    expect(drafts.savedGoals, <List<String>>[<String>[]]);
-  });
-
-  testWidgets('목표 남기기가 실패해도 전송은 성공으로 남는다 (#2232)', (tester) async {
-    // 회원은 이미 리포트를 받았다. 여기서 실패를 알리면 보낸 사실이 실패로
-    // 읽히고, 트레이너는 같은 리포트를 한 번 더 보낸다.
-    final _DraftStore drafts = _DraftStore(failGoals: true);
-    await openReports(
-      tester,
-      stage: 2,
-      extraOverrides: <Override>[
-        reportRepositoryProvider.overrideWithValue(drafts),
-        reportPdfGeneratorProvider.overrideWithValue(
-          _QueuedPdfGenerator(<Future<Uint8List>>[
-            Future<Uint8List>.value(
-              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
-            ),
-          ]),
-        ),
-      ],
-    );
-
-    await openShareMenu(tester);
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
-
-    expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
-    await openShareMenu(tester);
-    expect(find.text('전송됨'), findsOneWidget);
-  });
 }
 
 /// 저장한 초안을 기억하는 리포트 저장소. 리포트 본문·요약은 데모 계산을 그대로
 /// 쓰고, 초안만 이 double 이 들고 있다.
 class _DraftStore implements ReportRepository {
-  _DraftStore({this.stored, this.failSave = false, this.failGoals = false});
+  _DraftStore({this.stored, this.failSave = false});
 
   /// 화면을 열 때 이미 저장돼 있는 초안. null 이면 저장한 적 없는 주다.
   final String? stored;
   final bool failSave;
-
-  /// 목표 남기기가 실패하는 주 — 전송은 이미 끝난 뒤다.
-  final bool failGoals;
   final List<String> saved = <String>[];
 
   @override
@@ -1456,18 +1352,12 @@ class _DraftStore implements ReportRepository {
     return ReportFeedbackDraft(body: body, saved: true);
   }
 
-  /// ② 에서 고른 목표가 전송과 함께 남는지 보는 자리.
-  final List<List<String>> savedGoals = <List<String>>[];
-
   @override
   Future<void> saveNextWeekGoals({
     required String clientId,
     required DateTime weekStart,
     required List<String> goals,
-  }) async {
-    if (failGoals) throw StateError('goal save failed');
-    savedGoals.add(List<String>.of(goals));
-  }
+  }) async {}
 }
 
 class _RecordingPdfActions implements ReportPdfActions {
