@@ -3,6 +3,12 @@ from __future__ import annotations
 
 import httpx
 
+from app.services.social._response import (
+    json_object,
+    optional_object,
+    optional_str,
+    required_id,
+)
 from app.services.social.base import SocialAuthError, SocialIdentity, SocialVerifier
 
 _USERINFO = "https://kapi.kakao.com/v2/user/me"
@@ -21,16 +27,14 @@ class KakaoVerifier(SocialVerifier):
         if resp.status_code != 200:
             raise SocialAuthError(f"kakao 토큰 검증 실패({resp.status_code})")
 
-        data = resp.json()
-        uid = str(data.get("id") or "")
-        if not uid:
-            raise SocialAuthError("kakao 사용자 id 없음")
+        data = json_object("kakao", resp)
+        uid = required_id("kakao", data, "id")
 
-        account = data.get("kakao_account") or {}
-        profile = account.get("profile") or {}
+        account = optional_object("kakao", data, "kakao_account")
+        profile = optional_object("kakao", account, "profile")
         return SocialIdentity(
             provider="kakao",
             provider_user_id=uid,
-            email=account.get("email") or "",
-            name=profile.get("nickname") or "",
+            email=optional_str("kakao", account, "email"),
+            name=optional_str("kakao", profile, "nickname"),
         )

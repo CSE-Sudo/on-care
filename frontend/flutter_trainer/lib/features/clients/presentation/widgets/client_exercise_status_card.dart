@@ -307,10 +307,11 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
   }
 }
 
-/// 이력 한 건 — 날짜·종류, 몇 개 중 몇 개를 했는지, 그리고 종목별 수행 여부.
-/// 고객 탭 `_HistoryCard` 와 같은 자료를 쓰되, 사이드바 폭에 맞춰 완료율
-/// 도넛·피드백·트레이너 메모는 뺀 압축판이다 — 그 편집 동작은 고객 탭에만
-/// 있고, 여긴 그래프 옆 참고 자료다.
+/// 이력 한 건 — 날짜·종류와 종목별 수행 여부.
+///
+/// 회원 탭 `_HistoryCard` 와 같은 자료·같은 모양이다. `4/4 · 100%` 는 두 곳
+/// 모두에서 걷어냈다(#2329) — 몇 개를 했는지는 줄마다 붙은 체크와 취소선이
+/// 이미 말한다.
 class _DetailEntry extends StatelessWidget {
   const _DetailEntry({required this.entry});
 
@@ -325,37 +326,14 @@ class _DetailEntry extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  '${routineHistoryDateLabel(l, entry)} · '
-                  '${routineKindLabel(l, entry.label, kind: entry.kind)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.caption))
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
-              ),
-              // 고객 탭 기록 카드와 같은 표기다(#1484) — 좁은 칸이라
-              // `3/3 · 100%` 로 붙여 적고, 자리가 모자라면 퍼센트부터
-              // 줄어든다.
-              if (entry.totalCount > 0)
-                Flexible(
-                  child: Text(
-                    '${entry.completionCountLabel} · ${entry.displayRate}%',
-                    key: ValueKey<String>('program-done-count-${entry.id}'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(
-                          OnCareTypography.numeric(OnCareTypography.caption),
-                        )
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ),
-            ],
+          Text(
+            '${routineHistoryDateLabel(l, entry)} · '
+            '${routineKindLabel(l, entry.label, kind: entry.kind)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textPrimary),
           ),
           const SizedBox(height: OnCareSpacing.s4),
           for (final ClientExerciseItem item in entry.exercises)

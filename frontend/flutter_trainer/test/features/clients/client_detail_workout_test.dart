@@ -186,8 +186,9 @@ class _MixedRoutineRepository implements TrainerRoutineRepository {
   Future<void> deleteRoutine(String memberId, String routineId) async {}
 }
 
-class _FeedbackRepository extends DriftClientRepository {
-  _FeedbackRepository(super.db)
+/// 피드백·메모가 든 개인 운동 기록 하나 — 카드가 그 글을 그리지 않는지 본다.
+class _NotedHistoryRepository extends DriftClientRepository {
+  _NotedHistoryRepository(super.db)
     : entry = RoutineHistoryEntry(
         id: 'assigned-ex-r1',
         dateLabel: '8/13 (오늘)',
@@ -200,38 +201,15 @@ class _FeedbackRepository extends DriftClientRepository {
           ClientExerciseItem.nameOnly('코어 운동 · 30분'),
         ],
         clientFeedback: '마지막 세트가 힘들었어요',
-        trainerNote: '',
+        trainerNote: '자세가 안정적이었어요',
         assignedRoutineId: 'r1',
       );
 
-  RoutineHistoryEntry entry;
-  int updateCalls = 0;
+  final RoutineHistoryEntry entry;
 
   @override
   Stream<List<RoutineHistoryEntry>> watchHistory(String clientId) =>
       Stream<List<RoutineHistoryEntry>>.value(<RoutineHistoryEntry>[entry]);
-
-  @override
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  ) async {
-    updateCalls += 1;
-    entry = RoutineHistoryEntry(
-      id: entry.id,
-      dateLabel: entry.dateLabel,
-      // 날짜를 빠뜨리면 저장한 기록이 날짜별 목록에서 통째로 사라진다(#1025).
-      completedAt: entry.completedAt,
-      label: entry.label,
-      completionRate: entry.completionRate,
-      exercises: entry.exercises,
-      clientFeedback: entry.clientFeedback,
-      trainerNote: feedback,
-      assignedRoutineId: entry.assignedRoutineId,
-    );
-    return entry;
-  }
 }
 
 /// 운동 한 줄(`_ExerciseLine`)은 화면 비공개 위젯이라 키 접두사로 찾는다.
@@ -338,58 +316,58 @@ void main() {
       );
     }
 
-    testWidgets('배정 루틴 수행 기록에 피드백을 작성하고 수정한다', (tester) async {
-      late _FeedbackRepository repository;
+    testWidgets('운동 기록 카드는 종류와 운동 줄만 그린다 (#2329)', (tester) async {
+      _useTallSurface(tester);
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clientDetail('seed-client-1', section: 'workout'),
         extraOverrides: <Override>[
-          clientRepositoryProvider.overrideWith((ref) {
-            repository = _FeedbackRepository(ref.watch(appDatabaseProvider));
-            return repository;
-          }),
+          clientRepositoryProvider.overrideWith(
+            (ref) => _NotedHistoryRepository(ref.watch(appDatabaseProvider)),
+          ),
         ],
       );
 
-      final Finder feedbackButton = find.byKey(
-        const ValueKey<String>('routine-feedback-assigned-ex-r1'),
+      final Finder line = find.byKey(
+        const ValueKey<String>('workout-exercise-line-assigned-ex-r1-0'),
       );
       await tester.scrollUntilVisible(
-        feedbackButton,
+        line,
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      await tester.ensureVisible(feedbackButton);
-      await settle(tester);
-      await tester.tap(feedbackButton);
-      await settle(tester);
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('routine-feedback-input')),
-        '자세가 안정적이었어요',
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('routine-feedback-save')),
-      );
-      await settle(tester);
+      expect(find.text('코어 운동'), findsWidgets);
 
-      expect(repository.updateCalls, 1);
-      // 저장한 메모는 펼친 날 안에 붙는다 — 목록이 길어 화면 밖일 수 있다.
-      await tester.ensureVisible(find.text('자세가 안정적이었어요'));
-      await settle(tester);
-      expect(find.text('자세가 안정적이었어요'), findsOneWidget);
-      expect(find.text('피드백 수정'), findsOneWidget);
+      // 기록에 글이 남아 있어도 카드는 그리지 않는다 — 피드백은 채팅·메모에서
+      // 모은다.
+      expect(find.text('마지막 세트가 힘들었어요'), findsNothing);
+      expect(find.text('자세가 안정적이었어요'), findsNothing);
+      expect(find.text('트레이너 메모'), findsNothing);
+      expect(find.textContaining('회원 피드백'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('routine-feedback-assigned-ex-r1')),
+        findsNothing,
+      );
+      // 완료 배지(`100%`·트로피)와 `1/1` 도 없다.
+      expect(
+        find.byKey(const ValueKey<String>('workout-done-count-assigned-ex-r1')),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.emoji_events_rounded), findsNothing);
     });
 
-    testWidgets('운동 이번 주에 기간 AI 카드와 날짜별 기록이 선다 (#1025)', (tester) async {
+    testWidgets('운동 이번 주에 날짜별 기록이 서고 AI 카드는 없다 (#1025, #2329)', (tester) async {
       _useTallSurface(tester);
-      // 식단만 기간별 조언을 읽고 운동은 못 읽으면 한 화면에서 반쪽만
-      // 코칭이 된다.
       await openWorkout(tester, '김민수');
       await tester.tap(_periodSegment('이번 주'));
       await settle(tester);
 
-      expect(find.text('AI 기간 분석'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('exercise-ai-analysis')),
+        findsNothing,
+      );
+      expect(find.text('AI 기간 분석'), findsNothing);
 
       // 오늘은 처음부터 펼쳐져 있다 — 이 목록이 예전 `운동 기록` 카드 목록을
       // 대신하므로, 오늘 것까지 눌러야 보이면 한 번 더 손이 간다(#1025).
@@ -421,32 +399,21 @@ void main() {
       );
     });
 
-    testWidgets('운동 전체 AI 카드는 전체 기간을 제목으로 말한다 (#1025)', (tester) async {
+    testWidgets('운동 전체에도 AI 카드 없이 날짜별 기록이 선다 (#2329)', (tester) async {
       await openWorkout(tester, '김민수');
       await tester.tap(_periodSegment('전체'));
       await settle(tester);
 
       await tester.scrollUntilVisible(
-        find.byKey(const ValueKey<String>('exercise-ai-analysis')),
+        find.byKey(const ValueKey<String>('exercise-daily-records')),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.text('AI 전체 분석'), findsOneWidget);
-      expect(find.text('AI 기간 분석'), findsNothing);
       expect(
-        tester
-            .getTopLeft(
-              find.byKey(const ValueKey<String>('exercise-ai-analysis')),
-            )
-            .dy,
-        lessThan(
-          tester
-              .getTopLeft(
-                find.byKey(const ValueKey<String>('exercise-daily-records')),
-              )
-              .dy,
-        ),
+        find.byKey(const ValueKey<String>('exercise-ai-analysis')),
+        findsNothing,
       );
+      expect(find.text('AI 전체 분석'), findsNothing);
       final Finder todayRow = find.byKey(
         ValueKey<String>('client-day-tile-${ymd(todayKst())}'),
       );
@@ -459,7 +426,7 @@ void main() {
       );
     });
 
-    testWidgets('김민수 운동 기록이 날짜·이행률·메모와 함께 보인다', (tester) async {
+    testWidgets('김민수 운동 기록이 날짜별로 보이고 메모·완료 배지는 없다', (tester) async {
       _useTallSurface(tester);
       await openWorkout(tester, '김민수');
 
@@ -480,13 +447,13 @@ void main() {
         ),
         findsNothing,
       );
-      // 완료 배지 — 원형 게이지가 아니라 아이콘+글자 배지다(#1025).
-      expect(find.text('100%'), findsWidgets);
-      expect(find.text('트레이너 메모'), findsOneWidget); // 오늘 것만 메모가 있다
-      expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
-      // 제목이 무엇에 대한 피드백인지까지 말한다(#1453) — PT·프로그램은
-      // 세션 전체, 배정 개인 운동은 그 운동 하나.
-      expect(find.textContaining('회원 피드백'), findsWidgets);
+      // 오늘 기록은 펼쳐져 운동 줄이 보인다. 시드의 트레이너 메모·회원
+      // 피드백과 완료 배지는 그리지 않는다(#2329).
+      expect(_exerciseLines, findsWidgets);
+      expect(find.text('트레이너 메모'), findsNothing);
+      expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsNothing);
+      expect(find.textContaining('회원 피드백'), findsNothing);
+      expect(find.byIcon(Icons.emoji_events_rounded), findsNothing);
 
       // 거른 항목은 지난 날에 있다. 이 목록은 고른 기간만 다루므로(식단과
       // 같은 규칙, #1025) 기간을 넓힌 뒤 그 날을 펼친다.
@@ -563,7 +530,6 @@ void main() {
       await openWorkout(tester, '김민수');
 
       // 오늘 줄은 처음부터 펼쳐져 있고 그 안에 완료한 기록이 있다.
-      expect(find.text('트레이너 메모'), findsOneWidget);
       final int linesBefore = _exerciseLines.evaluate().length;
       expect(linesBefore, greaterThan(0));
 
@@ -585,7 +551,6 @@ void main() {
 
       // 배정만 사라지고 기록은 그대로다 — 한 일이 없던 일이 되지 않는다.
       expect(find.textContaining('저강도 유산소 (걷기)'), findsNothing);
-      expect(find.text('트레이너 메모'), findsOneWidget);
       expect(_exerciseLines.evaluate().length, linesBefore);
     });
 

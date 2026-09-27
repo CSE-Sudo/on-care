@@ -32,16 +32,24 @@ jobs:
       - name: Confirm the branch is current with the base
         # strict 규칙이 병합 버튼을 막는 실제 주체다. 이 단계는 왜 이 검사가
         # 있는지 로그에 남겨, 나중에 보는 사람이 빈 job 으로 오해하지 않게 한다.
+        # GitHub context 값은 `run:` 본문에 직접 보간하지 않고 env 로 넘긴다 —
+        # 셸 스크립트에 식이 그대로 박히는 주입 형태를 남기지 않기 위해서다(#1558).
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          echo "PR #${{ github.event.pull_request.number }}"
-          echo "base: ${{ github.event.pull_request.base.ref }}"
+          echo "PR #${PR_NUMBER}"
+          echo "base: ${BASE_REF}"
           echo "이 검사는 브랜치 보호의 최신화 요구를 걸기 위한 앵커다(#807)."
 
       - name: Check out the PR head with full history
-        uses: actions/checkout@v4
+        # 다른 워크플로와 같이 검토한 커밋 SHA 로 고정하고, 토큰을 .git/config 에
+        # 남기지 않는다(#1554). 아래 `git fetch origin` 은 공개 저장소라 익명으로 된다.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Reject AI co-author trailers
         # 2026-08-25: 커밋 하나에 붙은 `Co-Authored-By: Claude …` 때문에 GitHub

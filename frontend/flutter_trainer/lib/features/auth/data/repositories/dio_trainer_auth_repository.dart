@@ -91,6 +91,8 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
         data: <String, Object?>{'refresh_token': refreshToken},
       ),
       on401: AuthFailure.sessionExpired,
+      // 회원 앱과 같은 기준 — 갱신을 403 으로 거부해도 세션의 끝이다(#1546).
+      on403: AuthFailure.sessionExpired,
     );
   }
 
@@ -143,6 +145,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
   Future<TrainerAuthTokens> _tokenCall(
     Future<Response<Map<String, Object?>>> Function() call, {
     required AuthFailure on401,
+    AuthFailure? on403,
   }) async {
     try {
       final res = await call();
@@ -150,7 +153,9 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
       if (data == null) throw const AuthException(AuthFailure.emptyResponse);
       return TrainerAuthTokens.fromJson(data);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) throw AuthException(on401);
+      final int? code = e.response?.statusCode;
+      if (code == 401) throw AuthException(on401);
+      if (code == 403 && on403 != null) throw AuthException(on403);
       throw _asAuth(e);
     } on FormatException catch (e) {
       throw AuthException(AuthFailure.emptyResponse, detail: e.message);

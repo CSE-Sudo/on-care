@@ -98,6 +98,7 @@ from app.services import (
     exercise_service,
     chat_image_storage,
     consultation_service,
+    data_consent_service,
     health_goal_change,
     member_pairing_service,
     trainer_client_invite_service,
@@ -161,6 +162,10 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
     "예전에 담당했던 회원" 이라는 사실이 응답만으로 드러난다. 해제된 링크를
     다뤄야 하는 곳(담당 해제 자체·재등록·활성/휴면 전환)은 이 함수를 쓰지 않고
     링크를 직접 읽는다.
+
+    데이터 공유 동의가 철회된 뒤 새 동의 없이 살아 있는 링크도 같은 404 다
+    (#1631). 담당 해제가 곧 동의 철회이고, 링크를 되살려도 회원의 새 동의가
+    없으면 기록은 열리지 않는다.
     """
     link = db.scalar(
         select(TrainerClient).where(
@@ -168,7 +173,11 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
             TrainerClient.member_id == member_id,
         )
     )
-    if link is None or not link.active:
+    if (
+        link is None
+        or not link.active
+        or data_consent_service.blocks_access(link)
+    ):
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
 
@@ -386,6 +395,8 @@ def trainer_restore_client(
     try:
         trainer_service.restore_client(db, link)
     except trainer_service.ClientLinkDetached as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.ClientConsentRequired as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -1946,8 +1957,19 @@ def trainer_client_ai_coach(
     호출자(트레이너)가 아니라 **담당 회원**이다 — 트레이너가 자기 자신의 (비어
     있는) 기록으로 코칭받는 일이 없도록. 담당 링크 확인이 접근 경계이며,
     남의 고객이면 404 로 존재조차 드러내지 않는다.
+
+    **분당 한도(#1548)** — 회원 AI 코치와 같은 `coach_chat_per_minute` 를 트레이너
+    단위 버킷으로 센다. 넘기면 429 와 `Retry-After` 다. 같은 헬스장(같은 IP)의 다른
+    트레이너가 한도를 대신 소진하지 않게 IP 가 아니라 트레이너 id 로 나눈다.
     """
     _require_client(db, trainer.id, member_id)
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"trainer-coach-chat:trainer:{trainer.id}",
+            settings.coach_chat_per_minute,
+            60.0,
+        )
     message = payload.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="메시지가 비어 있습니다.")

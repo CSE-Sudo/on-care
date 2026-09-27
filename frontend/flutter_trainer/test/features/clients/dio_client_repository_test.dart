@@ -137,44 +137,6 @@ void main() {
     expect(meals.single.meal, '점심');
   });
 
-  test(
-    'updateHistoryFeedback writes and parses the shared history row',
-    () async {
-      const String path =
-          '/trainer/clients/member%2F1/history/assigned-ex-r1/feedback';
-      when(
-        () => dio.put<Map<String, Object?>>(
-          path,
-          data: <String, Object?>{'feedback': '자세가 좋았어요'},
-        ),
-      ).thenAnswer(
-        (_) async => Response<Map<String, Object?>>(
-          requestOptions: RequestOptions(path: path),
-          statusCode: 200,
-          data: <String, Object?>{
-            'id': 'assigned-ex-r1',
-            'date_label': '8/13 (오늘)',
-            'label': '코어 운동',
-            'completion_rate': 100,
-            'exercises': <Object?>['코어 운동 · 30분'],
-            'client_feedback': '힘들었어요',
-            'trainer_note': '자세가 좋았어요',
-            'assigned_routine_id': 'r1',
-          },
-        ),
-      );
-
-      final updated = await repo.updateHistoryFeedback(
-        'member/1',
-        'assigned-ex-r1',
-        '  자세가 좋았어요  ',
-      );
-
-      expect(updated.id, 'assigned-ex-r1');
-      expect(updated.trainerNote, '자세가 좋았어요');
-    },
-  );
-
   test('the roster re-reads itself so a change made elsewhere lands without a '
       'manual refresh (#918)', () async {
     var calls = 0;
