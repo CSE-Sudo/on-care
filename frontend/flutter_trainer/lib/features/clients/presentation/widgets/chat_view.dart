@@ -484,9 +484,7 @@ class _ChatInsightBanner extends StatelessWidget {
     final tokens = context.oncare;
     final isDiscomfort = insight.kind == ChatInsightKind.discomfort;
     final title = isDiscomfort
-        ? l.chatInsightDiscomfortTitle(
-            insight.bodyPart ?? l.chatInsightBodyPartGeneral,
-          )
+        ? l.chatInsightDiscomfortTitle(chatInsightBodyPartLabel(l, insight))
         : l.chatInsightNegativeTitle;
     final description = isDiscomfort
         ? l.chatInsightDiscomfortDescription

@@ -917,6 +917,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatInsightBodyPartGeneral => '신체';
 
   @override
+  String get chatInsightBodyPartKnee => '무릎';
+
+  @override
+  String get chatInsightBodyPartBack => '허리';
+
+  @override
+  String get chatInsightBodyPartAnkle => '발목';
+
+  @override
+  String get chatInsightBodyPartShoulder => '어깨';
+
+  @override
+  String get chatInsightBodyPartWrist => '손목';
+
+  @override
+  String get chatInsightBodyPartNeck => '목';
+
+  @override
   String get chatInsightNegativeTitle => '부정적 피드백 감지';
 
   @override
@@ -3115,6 +3133,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messagesNoPreview => '아직 대화가 없어요';
+
+  @override
+  String get messagesPreviewEmote => '이모티콘을 보냈어요';
+
+  @override
+  String get messagesTimeJustNow => '방금';
 
   @override
   String get messagesClientDetail => '회원 상세';
