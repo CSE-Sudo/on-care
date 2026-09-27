@@ -2625,6 +2625,7 @@ def _notification_out(row: Notification) -> TrainerNotificationOut:
         created_at=row.created_at,
         time_ago=notification_service.time_ago(row.created_at),
         subject_id=row.subject_id,
+        target_date=row.target_date,
     )
 
 

@@ -780,13 +780,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago }]` (최신순, 최대 100건) |
+| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, target_date }]` (최신순, 최대 100건) |
 | GET | `/trainer/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/trainer/notifications/{id}/read` | `{ id, read: true }` |
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
+- **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
