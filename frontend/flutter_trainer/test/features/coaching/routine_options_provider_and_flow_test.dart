@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
@@ -220,6 +221,15 @@ String? _unitOf(WidgetTester tester, Finder field) {
 }
 
 void main() {
+  // 이 파일의 흐름 테스트는 `MaterialApp(locale: ko)` 로 띄운다. 데모 저장소는
+  // 화면 언어를 위젯 밖([trainerResolvedLocaleProvider] — 브라우저 언어)에서
+  // 읽으므로, 테스트 바인딩의 기본값 en 이 새지 않게 브라우저 언어도 한국어로
+  // 둔다. 실제 앱에서는 두 값이 같은 곳에서 나온다. (#2301)
+  final TestPlatformDispatcher dispatcher =
+      TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher;
+  setUp(() => dispatcher.localesTestValue = const <Locale>[Locale('ko')]);
+  tearDown(dispatcher.clearLocalesTestValue);
+
   group('생성 실패 문구 분기', _rateLimitMessageTests);
 
   group('trainerRoutineOptionsRepositoryProvider', () {
@@ -316,6 +326,7 @@ void main() {
       List<RoutineHistoryEntry> history = const <RoutineHistoryEntry>[],
       List<TrainerMemo> memos = const <TrainerMemo>[],
       List<RoutineSuggestion>? suggestions,
+      Locale locale = const Locale('ko'),
       void Function(
         List<RoutineExercise> exercises,
         List<RoutineExercise> personal,
@@ -352,7 +363,7 @@ void main() {
               ),
           ],
           child: MaterialApp(
-            locale: const Locale('ko'),
+            locale: locale,
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -576,7 +587,7 @@ void main() {
             minutes: 30,
             type: '유산소',
             reason: '숨이 차면 속도를 낮추세요',
-            evidence: <String>['혈압 관리 목표'],
+            evidence: <String>[RoutineEvidence.bloodPressureGoal],
           ),
           RoutineSuggestion(
             id: 'sug-2',
@@ -587,7 +598,7 @@ void main() {
             reps: 15,
             weight: 0,
             reason: '허리가 아프면 범위를 줄이세요',
-            evidence: <String>['최근 근력운동 비중 높음'],
+            evidence: <String>[RoutineEvidence.strengthHeavy],
           ),
         ],
       );
@@ -613,6 +624,85 @@ void main() {
         find.byKey(const ValueKey<String>('personal-routine-empty')),
         findsNothing,
       );
+    });
+
+    testWidgets('근거 코드는 영어 화면에서 영어 칩으로 그린다 (#2301)', (tester) async {
+      await pumpFlow(
+        tester,
+        locale: const Locale('en'),
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: 'Light interval run',
+            minutes: 30,
+            type: '유산소',
+            reason: 'Slow down if you get breathless',
+            evidence: <String>[
+              RoutineEvidence.recentPtFeedback,
+              RoutineEvidence.strengthHeavy,
+              RoutineEvidence.bloodPressureGoal,
+              RoutineEvidence.lowCardio,
+              RoutineEvidence.recentRecord,
+            ],
+          ),
+        ],
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      for (final String label in <String>[
+        'Recent PT feedback',
+        'Mostly strength lately',
+        'Blood pressure goal',
+        'Little cardio lately',
+        'Recent workout log',
+      ]) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      // 코드 자체나 한국어 문장은 화면에 새지 않는다.
+      expect(find.textContaining('_'), findsNothing);
+      expect(find.text('혈압 관리 목표'), findsNothing);
+    });
+
+    testWidgets('모르는 근거 값(예전 문장·새 코드)은 버리지 않고 그대로 보인다 '
+        '(#2301)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+            evidence: <String>['future_code', RoutineEvidence.lowCardio],
+          ),
+        ],
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('future_code'), findsOneWidget);
+      expect(find.text('최근 유산소 비중 낮음'), findsOneWidget);
+    });
+
+    testWidgets('영어 화면의 후보 카드는 강도 계약값을 영어로 그린다 (#2301)', (tester) async {
+      await pumpFlow(
+        tester,
+        locale: const Locale('en'),
+        suggestions: const <RoutineSuggestion>[],
+      );
+      await generate(tester);
+
+      // 서버·데모가 보내는 강도는 번역하지 않는 계약값(`높음`)이다 — 화면이
+      // 옮긴다.
+      expect(
+        find.textContaining('45 min total · High', findRichText: true),
+        findsWidgets,
+      );
+      expect(find.textContaining('높음', findRichText: true), findsNothing);
     });
 
     testWidgets('건너뛴 뒤 조건 설정으로 돌아가 후보를 만들면 다시 PT 흐름이 된다 '

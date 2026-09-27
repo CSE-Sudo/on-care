@@ -734,7 +734,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT session · Trainer-led",
   "@workoutKindPtSession": {
@@ -744,7 +743,6 @@
   "@workoutKindAssignedRoutine": {
     "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
   },
-  "trainerNote": "Trainer's note",
   "dietLoadFailed": "Couldn't load meals",
   "dietEmpty": "No meals logged yet",
   "dietDayEmpty": "No record",
@@ -860,95 +858,6 @@
         "type": "int"
       },
       "days": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",
-  "@clientExerciseAdviceEmptyToday": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceEmptyWeek": "No workouts logged this week yet. How about a 10-minute walk to start?",
-  "@clientExerciseAdviceEmptyWeek": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceEmptyAll": "Once you log more, we'll show how your workout volume and types are trending.",
-  "@clientExerciseAdviceEmptyAll": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceToday": "Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.",
-  "@clientExerciseAdviceToday": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "type": {
-        "type": "String"
-      },
-      "minutes": {
-        "type": "int"
-      },
-      "calories": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
-  "@clientExerciseAdviceWeekOneDay": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceWeekSkew": "This week's {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?",
-  "@clientExerciseAdviceWeekSkew": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "minutes": {
-        "type": "int"
-      },
-      "top": {
-        "type": "String"
-      },
-      "missing": {
-        "type": "String"
-      }
-    }
-  },
-  "clientExerciseAdviceWeekBalanced": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.",
-  "@clientExerciseAdviceWeekBalanced": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceAllUp": "You've done more over the last 4 weeks than before. This approach suits you.",
-  "@clientExerciseAdviceAllUp": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceAllDown": "Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.",
-  "@clientExerciseAdviceAllDown": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceAllSteady": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.",
-  "@clientExerciseAdviceAllSteady": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "weeks": {
-        "type": "int"
-      },
-      "days": {
-        "type": "int"
-      },
-      "minutes": {
         "type": "int"
       }
     }
@@ -1829,6 +1738,10 @@
       }
     }
   },
+  "aiCustomRoutineName": "AI custom suggestion",
+  "@aiCustomRoutineName": {
+    "description": "Routine name sent when the trainer leaves the name blank (#2301)."
+  },
   "aiAnalysing": "AI is analysing…",
   "aiGenerateCandidates": "Generate candidates",
   "aiReviewDone": "Reviewed",
@@ -1899,6 +1812,30 @@
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
+  "routineEvidenceRecentPtFeedback": "Recent PT feedback",
+  "@routineEvidenceRecentPtFeedback": {
+    "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
+  },
+  "routineEvidenceStrengthHeavy": "Mostly strength lately",
+  "@routineEvidenceStrengthHeavy": {
+    "description": "Evidence chip; server code strength_heavy (#2301)."
+  },
+  "routineEvidenceBloodPressureGoal": "Blood pressure goal",
+  "@routineEvidenceBloodPressureGoal": {
+    "description": "Evidence chip; server code blood_pressure_goal (#2301)."
+  },
+  "routineEvidenceLowCardio": "Little cardio lately",
+  "@routineEvidenceLowCardio": {
+    "description": "Evidence chip; server code low_cardio (#2301)."
+  },
+  "routineEvidenceRecentRecord": "Recent workout log",
+  "@routineEvidenceRecentRecord": {
+    "description": "Evidence chip; server code recent_record (#2301)."
+  },
+  "aiPlanIntensityLow": "Low",
+  "@aiPlanIntensityLow": {
+    "description": "Intensity of an AI A/B plan whose contract value is 낮음 (#2301)."
+  },
   "aiPersonalStepFull": "You can set up to {count} personal exercises at once.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }
@@ -2121,6 +2058,9 @@
   "notifReadAll": "Mark all read",
   "notifEmpty": "No notifications yet",
   "notifLoadFailed": "Couldn't load notifications",
+  "notifLoadMore": "Load earlier notifications",
+  "notifLoadMoreFailed": "Couldn't load earlier notifications",
+  "notifNoEarlier": "No earlier notifications",
   "notifTplHealthGoalTitle": "Member goals changed",
   "notifTplHealthGoalBody": "{name} changed their health goals: {goals}",
   "@notifTplHealthGoalBody": {
@@ -2355,12 +2295,6 @@
       }
     }
   },
-  "routineFeedbackTitle": "Workout feedback",
-  "routineFeedbackHint": "Write coaching feedback for the member",
-  "routineFeedbackWrite": "Write feedback",
-  "routineFeedbackEdit": "Edit feedback",
-  "routineFeedbackSaved": "Feedback saved",
-  "routineFeedbackFailed": "Could not save feedback. Please try again",
   "navOperationsGroup": "Operations",
   "navCoachingGroup": "Coaching",
   "dashTodayTasks": "Today's tasks",
@@ -3189,6 +3123,23 @@
     }
   },
   "reportsSentRewrite": "Rewrite from this",
+  "reportsResendTitle": "Already sent",
+  "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
+  "@reportsResendBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsResendConfirm": "Send again",
+  "reportsSendHistoryFailed": "Couldn't load send history. Members you've already sent to may show as not sent.",
   "reportsSentBody": "Message sent",
   "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",

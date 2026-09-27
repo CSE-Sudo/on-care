@@ -97,6 +97,14 @@ Future<ProviderContainer> pumpTrainerApp(
   tester.platformDispatcher.localesTestValue = <Locale>[locale];
   addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
+  // [locale] 은 '기기(브라우저) 언어' 자리다. 화면만이 아니라 위젯 밖에서
+  // 언어를 읽는 곳([trainerResolvedLocaleProvider] — 데모 저장소의 문구,
+  // Accept-Language)도 같은 언어를 보게 브라우저 언어 목록까지 맞춘다. 그러지
+  // 않으면 테스트 바인딩의 기본값 en 이 새어 들어가, 한국어 화면에 영어 데모
+  // 데이터가 섞인다. (#2301)
+  tester.platformDispatcher.localesTestValue = <Locale>[locale];
+  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   if (seedClock != null) useFixedKstDate(seedClock);
   if (seed) await seedIfEmpty(db, clock: seedClock);
@@ -235,13 +243,6 @@ class _StillClientRepository implements ClientRepository {
       Stream<List<RoutineHistoryEntry>>.value(const <RoutineHistoryEntry>[]);
 
   @override
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
   Future<MemberHealthProfile> fetchHealthProfile(String clientId) =>
       throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
@@ -271,13 +272,6 @@ class _StillClientRepository implements ClientRepository {
 
   @override
   Future<String> fetchDietAdvice(
-    String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<String> fetchExerciseAdvice(
     String clientId,
     ClientPeriod period, {
     required Locale locale,

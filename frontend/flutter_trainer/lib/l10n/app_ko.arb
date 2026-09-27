@@ -460,11 +460,9 @@
   "programNone": "등록된 프로그램 없음",
   "legendDone": "완료",
   "clientFeedback": "회원 피드백",
-  "clientFeedbackSession": "이 세션에 대한 회원 피드백",
   "workoutKindAiPersonal": "AI 개인운동",
   "workoutKindPtSession": "PT 세션 · 트레이너 지도",
   "workoutKindAssignedRoutine": "배정 루틴 수행",
-  "trainerNote": "트레이너 메모",
   "dietLoadFailed": "식단을 불러오지 못했어요",
   "dietEmpty": "아직 기록된 식단이 없어요",
   "dietDayEmpty": "기록 없음",
@@ -503,16 +501,6 @@
   "clientDietAdviceAllWeekend": "최근 {weeks}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.",
   "clientDietAdviceAllRatio": "최근 {weeks}주 중 {percent}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.",
   "clientDietAdviceAllMostlyUnder": "최근 {weeks}주 기록한 {days}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.",
-  "clientExerciseAdviceEmptyToday": "오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?",
-  "clientExerciseAdviceEmptyWeek": "이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?",
-  "clientExerciseAdviceEmptyAll": "기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.",
-  "clientExerciseAdviceToday": "오늘 {type, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 위주로 {minutes}분, {calories}kcal 썼어요. 스트레칭으로 마무리해요.",
-  "clientExerciseAdviceWeekOneDay": "이번 주는 {minutes}분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.",
-  "clientExerciseAdviceWeekSkew": "이번 주 {days}일 {minutes}분이 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}에 몰렸어요. {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}도 섞어 볼까요?",
-  "clientExerciseAdviceWeekBalanced": "이번 주 {days}일 {minutes}분, 유형도 고르게 섞였어요.",
-  "clientExerciseAdviceAllUp": "최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.",
-  "clientExerciseAdviceAllDown": "최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.",
-  "clientExerciseAdviceAllSteady": "{weeks}주 동안 {days}일 {minutes}분, 기복 없이 이어가고 있어요.",
   "consultStatusRejected": "거절됨",
   "dateToday": "오늘",
   "dateTomorrow": "내일",
@@ -1068,6 +1056,7 @@
   "aiRoutineSent": "{name}님에게 프로그램을 전송했어요",
   "aiExerciseWithMinutes": "{name} {minutes}분",
   "aiCustomRoutineNamed": "AI 맞춤 추천안 ({option})",
+  "aiCustomRoutineName": "AI 맞춤 추천안",
   "aiAnalysing": "AI가 분석 중…",
   "aiGenerateCandidates": "맞춤 추천안 후보 생성",
   "aiReviewDone": "검토 완료",
@@ -1103,6 +1092,12 @@
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
   "aiPersonalRationaleLabel": "AI 추천 사유",
+  "routineEvidenceRecentPtFeedback": "최근 PT 피드백 반영",
+  "routineEvidenceStrengthHeavy": "최근 근력운동 비중 높음",
+  "routineEvidenceBloodPressureGoal": "혈압 관리 목표",
+  "routineEvidenceLowCardio": "최근 유산소 비중 낮음",
+  "routineEvidenceRecentRecord": "최근 운동 기록 반영",
+  "aiPlanIntensityLow": "낮음",
   "aiPersonalStepFull": "개인운동은 한 번에 {count}개까지 정할 수 있어요.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }
@@ -1241,6 +1236,9 @@
   "notifReadAll": "모두 읽음",
   "notifEmpty": "아직 받은 알림이 없어요",
   "notifLoadFailed": "알림을 불러오지 못했어요",
+  "notifLoadMore": "지난 알림 더 보기",
+  "notifLoadMoreFailed": "지난 알림을 불러오지 못했어요",
+  "notifNoEarlier": "더 지난 알림이 없어요",
   "notifTplHealthGoalTitle": "회원 건강 목표 변경",
   "notifTplHealthGoalBody": "{name} 회원이 건강 목표를 바꿨어요: {goals}",
   "notifTplNoGoals": "목표 없음",
@@ -1308,12 +1306,6 @@
   "searchDetailNoUpcoming": "예정된 예약 없음",
   "searchDetailLastRoutine": "마지막 프로그램 {when}",
   "searchDetailCompletion": "이번 주 이행률 {percent}%",
-  "routineFeedbackTitle": "수행 피드백",
-  "routineFeedbackHint": "회원에게 전할 코칭 피드백을 입력해 주세요",
-  "routineFeedbackWrite": "피드백 작성",
-  "routineFeedbackEdit": "피드백 수정",
-  "routineFeedbackSaved": "피드백을 저장했어요",
-  "routineFeedbackFailed": "피드백을 저장하지 못했어요. 다시 시도해 주세요",
   "navOperationsGroup": "운영",
   "navCoachingGroup": "코칭",
   "dashTodayTasks": "오늘 할 일",
@@ -2031,6 +2023,23 @@
     }
   },
   "reportsSentRewrite": "이 내용으로 다시 작성",
+  "reportsResendTitle": "이미 보낸 리포트예요",
+  "reportsResendBody": "{name}님에게 {date} {time}에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.",
+  "@reportsResendBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsResendConfirm": "다시 보내기",
+  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.",
   "reportsSentBody": "보낸 피드백",
   "reportsSentFigures": "그때 보낸 수치",
   "reportsStepReview": "확인",

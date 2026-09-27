@@ -24,6 +24,7 @@ class ReportWorkbench extends StatelessWidget {
     required this.records,
     required this.weekNav,
     required this.loading,
+    this.historyFailed = false,
   });
 
   /// 작업대에 선 줄 — 이미 정렬돼 있다.
@@ -50,6 +51,11 @@ class ReportWorkbench extends StatelessWidget {
 
   /// 아직 수치를 읽는 중인가. 줄은 그대로 서고 수치 자리만 비운다.
   final bool loading;
+
+  /// 서버의 전송 이력을 읽지 못했는가(#2288). 그때 `전송 완료` 열은 이번
+  /// 세션에 보낸 것만 알아, 이미 보낸 회원이 미전송 줄에 서 있을 수 있다 —
+  /// 그 사실을 말하지 않으면 트레이너는 같은 리포트를 다시 보낸다.
+  final bool historyFailed;
 
   /// `이번 주 리포트` 대 `전송 완료` 의 가로 비율.
   ///
@@ -124,6 +130,16 @@ class ReportWorkbench extends StatelessWidget {
         Align(alignment: AlignmentDirectional.centerStart, child: weekNav),
         const SizedBox(height: OnCareSpacing.s12),
         _ProgressRow(done: doneCount, total: total),
+        if (historyFailed) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            l.reportsSendHistoryFailed,
+            key: const ValueKey<String>('reports-send-history-failed'),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.caution),
+          ),
+        ],
         const SizedBox(height: OnCareSpacing.s16),
         AppCard(
           key: const ValueKey<String>('reports-workbench-queue'),
