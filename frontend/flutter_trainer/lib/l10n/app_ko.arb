@@ -852,6 +852,7 @@
   "myNotifNewMessage": "새 메시지 알림",
   "myNotifNewMessageHint": "회원이 메시지를 보내면 사이드바 뱃지로 알려드려요",
   "myLanguageApp": "화면 언어",
+  "myLanguageHint": "고른 언어는 이 브라우저에만 저장돼요. 다른 기기에서는 그 브라우저 설정을 따라요.",
   "myLanguageSystem": "브라우저 설정 따르기",
   "myLanguageKorean": "한국어",
   "myLanguageEnglish": "English",

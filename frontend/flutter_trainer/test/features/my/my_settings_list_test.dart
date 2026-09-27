@@ -59,7 +59,7 @@ void main() {
       final List<double> ys =
           <String>[
                 'my-notifications-entry',
-                'my-language-button',
+                'my-language-entry',
                 'my-account-entry',
                 'my-support-entry',
                 'my-logout-button',

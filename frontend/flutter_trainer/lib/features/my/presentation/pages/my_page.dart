@@ -76,6 +76,7 @@ enum _MySection {
   clients(parent: profile),
   edit(parent: profile),
   notifications(parent: settings),
+  language(parent: settings),
   account(parent: settings),
   support(parent: settings);
 
@@ -424,6 +425,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     _MySection.clients => l.myClientManagement,
     _MySection.edit => l.myEditProfile,
     _MySection.notifications => l.myNotifications,
+    _MySection.language => l.myLanguageApp,
     _MySection.account => l.myAccount,
     _MySection.support => l.mySupportTitle,
   };
@@ -701,11 +703,11 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
-  /// 설정 — 회원 앱 MY 의 설정 목록과 같은 한 장짜리 목록이다(#2264).
+  /// 설정 — 회원·메시지 탭과 같은 [AppSplitView] 다(#2264).
   ///
-  /// 회원·메시지 탭과 같은 [AppSplitView] 다. 넓으면 고른 항목이 목록 오른쪽에
-  /// 열리고, 좁으면 목록 대신 열린다. 화면 언어만 줄 안에서 고른다(선택지가
-  /// 셋뿐이다). 고객 지원은 목록 끝, 로그아웃은 그 아래 맨 끝이다(#2227).
+  /// 왼쪽은 앱 사이드바와 같은 항목([AppSidebarItem])으로 된 설정 목록이고,
+  /// 오른쪽에 고른 항목이 열린다. 좁으면 목록 대신 열린다. 고객 지원은 목록
+  /// 끝, 로그아웃은 그 아래 맨 끝이다(#2227).
   Widget _buildSettings({required bool wide}) {
     final _MySection detail = _settingsDetail;
     return AppSplitView(
@@ -716,97 +718,128 @@ class _MyPageState extends ConsumerState<MyPage> {
       ),
       detail: SingleChildScrollView(
         key: ValueKey<String>('my-${detail.name}'),
-        child: _settingsDetailPanel(detail, showBack: !wide),
+        // 넓은 화면에서 한 줄이 끝까지 늘면 스위치·버튼이 제목에서 너무
+        // 멀어진다. 목록 + 한 열 폭이면 1440 창을 거의 채운다.
+        child: Align(
+          alignment: AlignmentDirectional.topStart,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: OnCareLayout.webNarrowMaxWidth,
+            ),
+            child: _settingsDetailPanel(detail, wide: wide),
+          ),
+        ),
       ),
     );
   }
 
   Widget _settingsList({required _MySection? selected}) {
     final AppLocalizations l = AppLocalizations.of(context);
+    Widget item(_MySection section, IconData icon) => KeyedSubtree(
+      key: ValueKey<String>('my-${section.name}-entry'),
+      child: AppSidebarItem(
+        icon: icon,
+        label: _title(l, section),
+        selected: selected == section,
+        onTap: () => _go(section),
+      ),
+    );
     return AppCard(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(OnCareSpacing.s8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _NavRow(
-            key: const ValueKey<String>('my-notifications-entry'),
-            icon: Icons.notifications_rounded,
-            title: l.myNotifications,
-            selected: selected == _MySection.notifications,
-            onTap: () => _go(_MySection.notifications),
-          ),
-          const AppDivider(),
-          const _LanguageRow(),
-          const AppDivider(),
-          _NavRow(
-            key: const ValueKey<String>('my-account-entry'),
-            icon: Icons.lock_rounded,
-            title: l.myAccount,
-            selected: selected == _MySection.account,
-            onTap: () => _go(_MySection.account),
-          ),
-          const AppDivider(),
+          item(_MySection.notifications, Icons.notifications_rounded),
+          item(_MySection.language, Icons.language_rounded),
+          item(_MySection.account, Icons.lock_rounded),
           // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
           // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
           // 않는다(#505, #968).
-          _NavRow(
-            key: const ValueKey<String>('my-support-entry'),
-            icon: Icons.support_agent_rounded,
-            title: l.mySupportTitle,
-            selected: selected == _MySection.support,
-            onTap: () => _go(_MySection.support),
+          item(_MySection.support, Icons.support_agent_rounded),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
+            child: AppDivider(),
           ),
-          const AppDivider(),
           // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리).
-          Padding(
-            padding: const EdgeInsets.all(OnCareSpacing.s4),
-            child: AppButton(
-              key: const ValueKey<String>('my-logout-button'),
-              label: l.mySignOut,
-              leadingIcon: Icons.logout_rounded,
-              variant: AppButtonVariant.destructiveText,
-              size: OnCareButtonSize.large,
-              fullWidth: true,
-              onPressed: _signOut,
-            ),
+          AppButton(
+            key: const ValueKey<String>('my-logout-button'),
+            label: l.mySignOut,
+            leadingIcon: Icons.logout_rounded,
+            variant: AppButtonVariant.destructiveText,
+            fullWidth: true,
+            onPressed: _signOut,
           ),
         ],
       ),
     );
   }
 
-  /// 설정 항목 하나를 여는 판. 좁으면 목록 대신 열리므로 앞에 뒤로 가기를
-  /// 둔다(회원 상세·메시지 대화와 같은 자리).
-  Widget _settingsDetailPanel(_MySection detail, {required bool showBack}) {
+  /// 설정 항목 하나 — 제목을 안에 둔 카드다(대시보드 카드와 같은 머리). 좁으면
+  /// 목록 대신 열리므로 머리 앞에 뒤로 가기를 둔다.
+  Widget _settingsDetailPanel(_MySection detail, {required bool wide}) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final (IconData icon, List<Widget> rows, String? footer) = switch (detail) {
+      _MySection.language => (
+        Icons.language_rounded,
+        _languageRows(wide: wide),
+        l.myLanguageHint,
+      ),
+      _MySection.account => (Icons.lock_rounded, _accountRows(), null),
+      _MySection.support => (
+        Icons.support_agent_rounded,
+        _supportRows(),
+        l.myAppVersion,
+      ),
+      _ => (
+        Icons.notifications_rounded,
+        _notificationRows(),
+        l.myNotifAlwaysOnNote,
+      ),
+    };
     final OnCareTokens tokens = context.oncare;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        SizedBox(
-          height: OnCareSize.avatarLarge,
-          child: Row(
-            children: <Widget>[
-              if (showBack) ...<Widget>[
-                AppBackButton(onPressed: () => _go(_MySection.settings)),
-                const SizedBox(width: OnCareSpacing.s4),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              OnCareSpacing.s16,
+              OnCareSpacing.s16,
+              OnCareSpacing.s16,
+              OnCareSpacing.s8,
+            ),
+            child: Row(
+              children: <Widget>[
+                if (!wide) ...<Widget>[
+                  AppBackButton(onPressed: () => _go(_MySection.settings)),
+                  const SizedBox(width: OnCareSpacing.s4),
+                ],
+                Expanded(
+                  child: AppSectionHeader(title: _title(l, detail), icon: icon),
+                ),
               ],
-              Text(
-                _title(l, detail),
-                style: tokens
-                    .text(OnCareTypography.titleSmall)
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        switch (detail) {
-          _MySection.account => _buildAccount(),
-          _MySection.support => _buildSupport(),
-          _ => _buildNotifications(),
-        },
-      ],
+          for (int i = 0; i < rows.length; i++) ...<Widget>[
+            if (i > 0) const AppDivider(),
+            rows[i],
+          ],
+          if (footer != null) ...<Widget>[
+            const AppDivider(),
+            Padding(
+              padding: const EdgeInsets.all(OnCareSpacing.s16),
+              child: Text(
+                footer,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ),
+          ] else
+            const SizedBox(height: OnCareSpacing.s8),
+        ],
+      ),
     );
   }
 
@@ -814,175 +847,146 @@ class _MyPageState extends ConsumerState<MyPage> {
   ///
   /// 상담 요청·예약·담당 회원 소식은 서버가 수신 설정 없이 항상 보낸다
   /// (`notification_service._TRAINER_SETTING_COLUMN`). 목록에서 빼면 끌 수
-  /// 있는지조차 알 수 없으니, 잠긴 줄로 보여 주고 이유를 붙인다.
-  Widget _buildNotifications() {
+  /// 있는지조차 알 수 없으니, 잠긴 태그로 보여 주고 이유를 붙인다.
+  List<Widget> _notificationRows() {
     final AppLocalizations l = AppLocalizations.of(context);
     final settings = ref.watch(trainerSettingsProvider);
     final controller = ref.read(trainerSettingsProvider.notifier);
-    final OnCareTokens tokens = context.oncare;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              AppListRow(
-                title: l.myNotifNewMessage,
-                subtitle: l.myNotifNewMessageHint,
-                // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
-                // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
-                trailing: Semantics(
-                  label: l.myNotifNewMessage,
-                  excludeSemantics: true,
-                  child: Switch(
-                    key: const ValueKey<String>('my-notif-new-message'),
-                    value: settings.newMessageAlerts,
-                    onChanged: (v) =>
-                        _applySetting(() => controller.setNewMessageAlerts(v)),
-                  ),
-                ),
-              ),
-              for (final (String title, String hint) in <(String, String)>[
-                (l.myNotifConsultation, l.myNotifConsultationHint),
-                (l.myNotifReservation, l.myNotifReservationHint),
-                (l.myNotifMemberUpdates, l.myNotifMemberUpdatesHint),
-              ]) ...<Widget>[
-                const AppDivider(),
-                AppListRow(
-                  title: title,
-                  subtitle: hint,
-                  trailing: Text(
-                    l.myNotifAlwaysOn,
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.caption))
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ),
-              ],
-            ],
+    return <Widget>[
+      AppListRow(
+        title: l.myNotifNewMessage,
+        subtitle: l.myNotifNewMessageHint,
+        // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
+        // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
+        trailing: Semantics(
+          label: l.myNotifNewMessage,
+          excludeSemantics: true,
+          child: Switch(
+            key: const ValueKey<String>('my-notif-new-message'),
+            value: settings.newMessageAlerts,
+            onChanged: (v) =>
+                _applySetting(() => controller.setNewMessageAlerts(v)),
           ),
         ),
-        const SizedBox(height: OnCareSpacing.s8),
-        Text(
-          l.myNotifAlwaysOnNote,
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
+      ),
+      for (final (String title, String hint) in <(String, String)>[
+        (l.myNotifConsultation, l.myNotifConsultationHint),
+        (l.myNotifReservation, l.myNotifReservationHint),
+        (l.myNotifMemberUpdates, l.myNotifMemberUpdatesHint),
+      ])
+        AppListRow(
+          title: title,
+          subtitle: hint,
+          trailing: AppTag(label: l.myNotifAlwaysOn, icon: Icons.lock_rounded),
         ),
-      ],
-    );
+    ];
   }
 
-  /// 계정 — 비밀번호 변경과 로그인 계정. 이름·이메일도 계정 소관이라 프로필
+  /// 화면 언어(#2296) — 세 가지 중 하나를 고르는 목록. 고른 줄에 체크를
+  /// 단다. 좁은 화면에서는 고르면 설정 목록으로 돌아간다 — 하나만 고르는
+  /// 칸이라 더 할 일이 없다.
+  List<Widget> _languageRows({required bool wide}) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final TrainerLanguage current = TrainerLanguage.fromLocale(
+      ref.watch(trainerLocaleProvider),
+    );
+    return <Widget>[
+      for (final TrainerLanguage language in TrainerLanguage.values)
+        AppListRow(
+          key: ValueKey<String>('my-language-${language.name}'),
+          title: _languageLabel(l, language),
+          trailing: language == current
+              ? Icon(
+                  Icons.check_rounded,
+                  size: OnCareSize.iconMedium,
+                  color: context.oncare.brand.primary,
+                )
+              : null,
+          onTap: () {
+            ref.read(trainerLocaleProvider.notifier).setLanguage(language);
+            if (!wide) _go(_MySection.settings);
+          },
+        ),
+    ];
+  }
+
+  /// 계정 — 로그인 계정과 비밀번호 변경. 이름·이메일도 계정 소관이라 프로필
   /// 수정에서는 비활성이다.
-  Widget _buildAccount() {
+  List<Widget> _accountRows() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
     final OnCareTokens tokens = context.oncare;
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppListRow(
-            title: l.myLoginAccount,
-            trailing: Text(
-              _profile.email,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                  .copyWith(color: OnCareColors.textPrimary),
-            ),
-          ),
-          const AppDivider(),
-          AppListRow(
-            title: l.myChangePassword,
-            subtitle: account.supportsPasswordChange
-                ? l.myChangePasswordHint
-                : l.myChangePasswordDemo,
-            trailing: AppButton(
-              label: l.actionChange,
-              leadingIcon: Icons.key_rounded,
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-              onPressed: account.supportsPasswordChange
-                  ? _openPasswordDialog
-                  : null,
-            ),
-          ),
-        ],
+    return <Widget>[
+      AppListRow(
+        title: l.myLoginAccount,
+        trailing: Text(
+          _profile.email,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+              .copyWith(color: OnCareColors.textPrimary),
+        ),
       ),
-    );
+      AppListRow(
+        title: l.myChangePassword,
+        subtitle: account.supportsPasswordChange
+            ? l.myChangePasswordHint
+            : l.myChangePasswordDemo,
+        trailing: AppButton(
+          label: l.actionChange,
+          leadingIcon: Icons.key_rounded,
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
+          onPressed: account.supportsPasswordChange
+              ? _openPasswordDialog
+              : null,
+        ),
+      ),
+    ];
   }
 
   /// 고객 지원 — FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보·
-  /// 탈퇴와 앱 버전을 함께 둔다. 회원 앱 `SupportPage` 와 같은 구성이다(#2227).
-  Widget _buildSupport() {
+  /// 탈퇴를 함께 둔다. 회원 앱 `SupportPage` 와 같은 구성이다(#2227). 앱 버전은
+  /// 카드 아래 칸에 둔다.
+  List<Widget> _supportRows() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        // 설정의 다른 목록 카드와 같이 행이 카드 끝까지 닿는다.
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _SupportRow(
-                key: const ValueKey<String>('support-faq'),
-                icon: Icons.help_rounded,
-                label: l.mySupportFaq,
-                hint: l.mySupportExternalHint,
-                external: true,
-                onTap: () => _openExternal(kSupportChannelUrl),
-              ),
-              const AppDivider(),
-              _SupportRow(
-                key: const ValueKey<String>('support-inquiry'),
-                icon: Icons.chat_rounded,
-                label: l.mySupportInquiry,
-                hint: l.mySupportExternalHint,
-                external: true,
-                onTap: () => _openExternal(kSupportChatUrl),
-              ),
-              const AppDivider(),
-              _LegalRow(
-                icon: Icons.description_rounded,
-                label: l.myLegalTermsTitle,
-                hint: l.myLegalTermsHint,
-                document: AppRoutes.legalTerms,
-              ),
-              const AppDivider(),
-              _LegalRow(
-                icon: Icons.privacy_tip_rounded,
-                label: l.myLegalPrivacyTitle,
-                hint: l.myLegalPrivacyHint,
-                document: AppRoutes.legalPrivacy,
-              ),
-              const AppDivider(),
-              // 탈퇴는 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다(#2019).
-              _DeleteAccountRow(
-                enabled: account.supportsDeletion,
-                onTap: _deleteAccount,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        Center(
-          child: Text(
-            l.myAppVersion,
-            style: context.oncare
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-        ),
-      ],
-    );
+    return <Widget>[
+      _SupportRow(
+        key: const ValueKey<String>('support-faq'),
+        icon: Icons.help_rounded,
+        label: l.mySupportFaq,
+        hint: l.mySupportExternalHint,
+        external: true,
+        onTap: () => _openExternal(kSupportChannelUrl),
+      ),
+      _SupportRow(
+        key: const ValueKey<String>('support-inquiry'),
+        icon: Icons.chat_rounded,
+        label: l.mySupportInquiry,
+        hint: l.mySupportExternalHint,
+        external: true,
+        onTap: () => _openExternal(kSupportChatUrl),
+      ),
+      _LegalRow(
+        icon: Icons.description_rounded,
+        label: l.myLegalTermsTitle,
+        hint: l.myLegalTermsHint,
+        document: AppRoutes.legalTerms,
+      ),
+      _LegalRow(
+        icon: Icons.privacy_tip_rounded,
+        label: l.myLegalPrivacyTitle,
+        hint: l.myLegalPrivacyHint,
+        document: AppRoutes.legalPrivacy,
+      ),
+      // 탈퇴는 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다(#2019).
+      _DeleteAccountRow(
+        enabled: account.supportsDeletion,
+        onTap: _deleteAccount,
+      ),
+    ];
   }
 
   /// 외부 링크를 연다. 실패하면 사유를 알린다 — 조용히 아무 일도 일어나지 않는
@@ -1044,7 +1048,6 @@ class _NavRow extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle,
-    this.selected = false,
   });
 
   final IconData icon;
@@ -1052,16 +1055,12 @@ class _NavRow extends StatelessWidget {
   final VoidCallback onTap;
   final String? subtitle;
 
-  /// 넓은 화면에서 오른쪽 판에 열려 있는 줄.
-  final bool selected;
-
   @override
   Widget build(BuildContext context) {
     return AppListRow(
       leading: _IconTile(icon: icon),
       title: title,
       subtitle: subtitle,
-      selected: selected,
       trailing: const Icon(
         Icons.chevron_right_rounded,
         size: OnCareSize.iconMedium,
@@ -1072,52 +1071,12 @@ class _NavRow extends StatelessWidget {
   }
 }
 
-/// 화면 언어 한 줄(#2296). 고르는 방식은 회원 목록의 정렬처럼 지금 값을 단
-/// 버튼과 그 아래 메뉴다 — 선택지가 셋뿐이라 하위 화면을 따로 둘 일이 아니다.
-/// 목록의 다른 줄과 같은 아이콘 자리를 쓴다(#2264).
-class _LanguageRow extends ConsumerWidget {
-  const _LanguageRow();
-
-  static String _label(AppLocalizations l, TrainerLanguage language) =>
-      switch (language) {
-        TrainerLanguage.system => l.myLanguageSystem,
-        TrainerLanguage.korean => l.myLanguageKorean,
-        TrainerLanguage.english => l.myLanguageEnglish,
-      };
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final TrainerLanguage current = TrainerLanguage.fromLocale(
-      ref.watch(trainerLocaleProvider),
-    );
-    return AppListRow(
-      leading: const _IconTile(icon: Icons.language_rounded),
-      title: l.myLanguageApp,
-      trailing: AppMenu(
-        items: <AppMenuItem>[
-          for (final TrainerLanguage language in TrainerLanguage.values)
-            AppMenuItem(
-              key: ValueKey<String>('my-language-${language.name}'),
-              label: _label(l, language),
-              selected: language == current,
-              onSelected: () => ref
-                  .read(trainerLocaleProvider.notifier)
-                  .setLanguage(language),
-            ),
-        ],
-        triggerBuilder: (context, toggle) => AppButton(
-          key: const ValueKey<String>('my-language-button'),
-          label: _label(l, current),
-          variant: AppButtonVariant.secondary,
-          size: OnCareButtonSize.small,
-          trailingIcon: Icons.arrow_drop_down_rounded,
-          onPressed: toggle,
-        ),
-      ),
-    );
-  }
-}
+String _languageLabel(AppLocalizations l, TrainerLanguage language) =>
+    switch (language) {
+      TrainerLanguage.system => l.myLanguageSystem,
+      TrainerLanguage.korean => l.myLanguageKorean,
+      TrainerLanguage.english => l.myLanguageEnglish,
+    };
 
 /// 약관·개인정보 처리방침 한 줄. 문서는 셸 밖의 `/legal/<문서>` 라우트가
 /// 그리므로 push 로 열고, 뒤로 누르면 이 화면으로 돌아온다. (#968)

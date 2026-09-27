@@ -3716,6 +3716,12 @@ abstract class AppLocalizations {
   /// **'Display language'**
   String get myLanguageApp;
 
+  /// No description provided for @myLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choice is saved in this browser only. Other devices follow their own browser setting.'**
+  String get myLanguageHint;
+
   /// No description provided for @myLanguageSystem.
   ///
   /// In en, this message translates to:

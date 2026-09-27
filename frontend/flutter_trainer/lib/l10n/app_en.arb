@@ -1373,6 +1373,7 @@
   "myNotifNewMessage": "New message alerts",
   "myNotifNewMessageHint": "A sidebar badge appears when a member messages you",
   "myLanguageApp": "Display language",
+  "myLanguageHint": "Your choice is saved in this browser only. Other devices follow their own browser setting.",
   "myLanguageSystem": "Match browser",
   "myLanguageKorean": "한국어",
   "@myLanguageKorean": {

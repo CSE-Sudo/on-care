@@ -2101,6 +2101,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLanguageApp => 'Display language';
 
   @override
+  String get myLanguageHint =>
+      'Your choice is saved in this browser only. Other devices follow their own browser setting.';
+
+  @override
   String get myLanguageSystem => 'Match browser';
 
   @override

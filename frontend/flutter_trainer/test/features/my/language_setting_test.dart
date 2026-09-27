@@ -8,17 +8,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/pump_app.dart';
 
-const ValueKey<String> _button = ValueKey<String>('my-language-button');
-
 ValueKey<String> _item(TrainerLanguage language) =>
     ValueKey<String>('my-language-${language.name}');
 
-/// 설정 탭을 연다. [stored] 가 있으면 그 언어가 저장된 브라우저에서 연다.
+/// 설정의 화면 언어 판을 넓은 화면에서 연다 — 목록과 판이 함께 보인다(#2264).
+/// [stored] 가 있으면 그 언어가 저장된 브라우저에서 연다.
 Future<ProviderContainer> _openSettings(
   WidgetTester tester, {
   Locale locale = const Locale('ko'),
   String? stored,
 }) async {
+  tester.view
+    ..physicalSize = const Size(1600, 1000)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   final List<Override> overrides = <Override>[];
   if (stored != null) {
     // pumpTrainerApp 은 prefs 를 비워 두므로, 저장값이 든 prefs 를 이 provider
@@ -36,19 +39,22 @@ Future<ProviderContainer> _openSettings(
   return pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
-    at: AppRoutes.mySection('settings'),
+    at: AppRoutes.mySection('language'),
     locale: locale,
     extraOverrides: overrides,
   );
 }
 
 Future<void> _choose(WidgetTester tester, TrainerLanguage language) async {
-  await tester.ensureVisible(find.byKey(_button));
-  await tester.tap(find.byKey(_button));
-  await tester.pump();
   await tester.tap(find.byKey(_item(language)));
   await settle(tester);
 }
+
+/// 지금 고른 언어 — 그 줄에 체크가 달린다.
+Finder _checked(TrainerLanguage language) => find.descendant(
+  of: find.byKey(_item(language)),
+  matching: find.byIcon(Icons.check_rounded),
+);
 
 void main() {
   group('설정 · 화면 언어', () {
@@ -57,23 +63,17 @@ void main() {
     ) async {
       await _openSettings(tester);
 
-      // 설정 목록의 한 줄이다(#2264) — 카드 제목 '언어' 는 따로 없다.
-      expect(find.text('화면 언어'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(_button),
-          matching: find.text('브라우저 설정 따르기'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.byIcon(Icons.language_rounded), findsOneWidget);
+      // 설정 목록의 한 항목이고, 고르면 옆 판이 열린다(#2264).
+      expect(find.text('화면 언어'), findsWidgets);
+      expect(_checked(TrainerLanguage.system), findsOneWidget);
+      expect(find.byIcon(Icons.language_rounded), findsWidgets);
     });
 
     testWidgets('sits between notifications and account', (tester) async {
       await _openSettings(tester);
 
       final double notif = tester.getTopLeft(find.text('알림')).dy;
-      final double language = tester.getTopLeft(find.text('화면 언어')).dy;
+      final double language = tester.getTopLeft(find.text('화면 언어').first).dy;
       final double account = tester.getTopLeft(find.text('계정')).dy;
       expect(notif, lessThan(language));
       expect(language, lessThan(account));
@@ -83,9 +83,6 @@ void main() {
       tester,
     ) async {
       await _openSettings(tester);
-
-      await tester.tap(find.byKey(_button));
-      await tester.pump();
 
       for (final TrainerLanguage language in TrainerLanguage.values) {
         expect(find.byKey(_item(language)), findsOneWidget);
@@ -129,18 +126,12 @@ void main() {
       await _choose(tester, TrainerLanguage.english);
 
       // 설정 화면 자신과 셸이 모두 영어로 다시 그려진다.
-      expect(find.text('Display language'), findsOneWidget);
+      expect(find.text('Display language'), findsWidgets);
       expect(find.text('Notifications'), findsOneWidget);
       expect(find.text('Account'), findsOneWidget);
       expect(find.text('화면 언어'), findsNothing);
       expect(find.text('알림'), findsNothing);
-      expect(
-        find.descendant(
-          of: find.byKey(_button),
-          matching: find.text('English'),
-        ),
-        findsOneWidget,
-      );
+      expect(_checked(TrainerLanguage.english), findsOneWidget);
 
       expect(container.read(trainerLocaleProvider), const Locale('en'));
       expect(container.read(trainerResolvedLocaleProvider), const Locale('en'));
@@ -156,18 +147,12 @@ void main() {
         locale: const Locale('en'),
       );
 
-      expect(find.text('Display language'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(_button),
-          matching: find.text('Match browser'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Display language'), findsWidgets);
+      expect(_checked(TrainerLanguage.system), findsOneWidget);
 
       await _choose(tester, TrainerLanguage.korean);
 
-      expect(find.text('화면 언어'), findsOneWidget);
+      expect(find.text('화면 언어'), findsWidgets);
       expect(find.text('Display language'), findsNothing);
       expect(
         container
@@ -183,19 +168,13 @@ void main() {
       final ProviderContainer container = await _openSettings(tester);
 
       await _choose(tester, TrainerLanguage.english);
-      expect(find.text('Display language'), findsOneWidget);
+      expect(find.text('Display language'), findsWidgets);
 
       await _choose(tester, TrainerLanguage.system);
 
       // 테스트의 '브라우저 언어' 는 한국어다(pumpTrainerApp 의 locale).
-      expect(find.text('화면 언어'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(_button),
-          matching: find.text('브라우저 설정 따르기'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('화면 언어'), findsWidgets);
+      expect(_checked(TrainerLanguage.system), findsOneWidget);
       expect(container.read(trainerLocaleProvider), isNull);
       expect(
         container
@@ -210,15 +189,9 @@ void main() {
     ) async {
       await _openSettings(tester, stored: 'en');
 
-      expect(find.text('Display language'), findsOneWidget);
+      expect(find.text('Display language'), findsWidgets);
       expect(find.text('Settings'), findsWidgets);
-      expect(
-        find.descendant(
-          of: find.byKey(_button),
-          matching: find.text('English'),
-        ),
-        findsOneWidget,
-      );
+      expect(_checked(TrainerLanguage.english), findsOneWidget);
     });
 
     testWidgets('a saved Korean choice wins over an English browser', (
@@ -226,11 +199,8 @@ void main() {
     ) async {
       await _openSettings(tester, locale: const Locale('en'), stored: 'ko');
 
-      expect(find.text('화면 언어'), findsOneWidget);
-      expect(
-        find.descendant(of: find.byKey(_button), matching: find.text('한국어')),
-        findsOneWidget,
-      );
+      expect(find.text('화면 언어'), findsWidgets);
+      expect(_checked(TrainerLanguage.korean), findsOneWidget);
     });
 
     testWidgets('an unknown saved value falls back to the browser', (
@@ -238,14 +208,8 @@ void main() {
     ) async {
       await _openSettings(tester, stored: 'fr');
 
-      expect(find.text('화면 언어'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(_button),
-          matching: find.text('브라우저 설정 따르기'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('화면 언어'), findsWidgets);
+      expect(_checked(TrainerLanguage.system), findsOneWidget);
     });
 
     testWidgets('the rest of the settings still work after switching', (

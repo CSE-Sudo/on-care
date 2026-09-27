@@ -2004,6 +2004,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLanguageApp => '화면 언어';
 
   @override
+  String get myLanguageHint => '고른 언어는 이 브라우저에만 저장돼요. 다른 기기에서는 그 브라우저 설정을 따라요.';
+
+  @override
   String get myLanguageSystem => '브라우저 설정 따르기';
 
   @override
