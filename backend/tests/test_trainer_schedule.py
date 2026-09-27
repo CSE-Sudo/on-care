@@ -572,16 +572,19 @@ def test_completed_session_cannot_be_edited(client, make_pt_session):
     )
     client.post(f"/v1/trainer/schedule/{sid}/complete", json={"note": "완료"}, headers=_h(token))
 
-    # 완료 후 다른 회원으로 재배정 시도 → 409(데이터 분리 방지)
+    # 완료 후 다른 회원으로 재배정 시도 → 409(데이터 분리 방지). 담당 중인 회원이어야
+    # 담당 확인을 지나 이 규칙에 닿는다 — 해제된 회원은 그 앞에서 404 다(#2281).
     r = client.put(
-        f"/v1/trainer/schedule/{sid}", json={"member_id": "user-sungho"}, headers=_h(token)
+        f"/v1/trainer/schedule/{sid}",
+        json={"member_id": "user-7d4e9a2c5f18"},
+        headers=_h(token),
     )
     assert r.status_code == 409
     # note 등 다른 필드 수정도 409
     assert client.put(
         f"/v1/trainer/schedule/{sid}", json={"note": "바꿈"}, headers=_h(token)
     ).status_code == 409
-    # 기록은 여전히 원래 회원(user-jisu)에 남아 있고 sungho 로 옮겨가지 않았다
+    # 기록은 여전히 원래 회원(user-jisu)에 남아 있고 다른 회원으로 옮겨가지 않았다
     jisu_hist = client.get("/v1/trainer/clients/user-jisu/history", headers=_h(token)).json()
     assert any(h["label"] == "PT 세션 · 트레이너 지도" for h in jisu_hist)
 
