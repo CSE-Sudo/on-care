@@ -511,11 +511,7 @@ void main() {
     });
 
     testWidgets('영어에서는 sent 와 비율을 함께 적는다', (tester) async {
-      await openWorkbench(
-        tester,
-        clients: _roster,
-        locale: const Locale('en'),
-      );
+      await openWorkbench(tester, clients: _roster, locale: const Locale('en'));
 
       expect(find.text('0 / 2 sent'), findsOneWidget);
       expect(tester.widget<Text>(percent()).data, '0%');
@@ -536,6 +532,117 @@ void main() {
     test('범위를 벗어난 수는 0~100 으로 묶는다', () {
       expect(reportSendPercent(20, 15), 100);
       expect(reportSendPercent(-1, 15), 0);
+    });
+  });
+
+  group('두 상자 높이 고정·안쪽 스크롤 (#2396)', () {
+    final List<TrainerClient> many = <TrainerClient>[
+      for (int i = 0; i < 20; i++)
+        makeClient(
+          id: 'm$i',
+          name: '회원${i.toString().padLeft(2, '0')}',
+          weekCompletion: const <int>[50, 50, 50, 50, 50, 50, 50],
+        ),
+    ];
+    Finder queueBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-queue'));
+    Finder sentBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-sent'));
+    Finder queueList() =>
+        find.byKey(const ValueKey<String>('reports-workbench-queue-list'));
+
+    testWidgets('넓은 화면에서 두 상자가 같은 높이로 화면 아래까지 선다', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      expect(queue.top, closeTo(sent.top, 1));
+      expect(queue.height, closeTo(sent.height, 1));
+      // 줄 수만큼만 서지 않는다 — 두 줄뿐이어도 상자는 창 아래쪽까지 간다.
+      expect(sent.bottom, greaterThan(1200 * 0.8));
+      expect(sent.bottom, lessThanOrEqualTo(1200));
+      // 페이지째 내리는 스크롤이 없다.
+      expect(
+        find.byKey(const ValueKey<String>('reports-workbench-page-scroll')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('목록을 내려도 상자 머리와 전송 완료 상자는 제자리다', (tester) async {
+      await openWorkbench(tester, clients: many, size: const Size(1600, 700));
+
+      final Finder firstRow = find.text('회원00');
+      final Finder sortToggle = find.text('우선 확인 순');
+      expect(firstRow, findsOneWidget);
+      final Offset toggleBefore = tester.getTopLeft(sortToggle);
+      final Rect sentBefore = tester.getRect(sentBox());
+      final Rect queueBefore = tester.getRect(queueBox());
+
+      await tester.drag(queueList(), const Offset(0, -2000));
+      await settle(tester);
+
+      // 목록은 상자 안에서 내려가 첫 줄이 밀려나고 마지막 줄이 보인다.
+      expect(find.text('회원00').hitTestable(), findsNothing);
+      expect(find.text('회원19').hitTestable(), findsOneWidget);
+      // 정렬 버튼·두 상자는 움직이지 않는다.
+      expect(tester.getTopLeft(sortToggle), toggleBefore);
+      expect(tester.getRect(sentBox()), sentBefore);
+      expect(tester.getRect(queueBox()), queueBefore);
+      // 마지막 줄도 상자 안에서 끝난다 — 상자 밖으로 새지 않는다.
+      expect(
+        tester.getRect(find.text('회원19')).bottom,
+        lessThanOrEqualTo(queueBefore.bottom),
+      );
+    });
+
+    testWidgets('창이 낮으면 상자를 최소 높이로 세우고 페이지를 내린다', (tester) async {
+      await openWorkbench(tester, clients: many, size: const Size(1600, 360));
+
+      expect(
+        find.byKey(const ValueKey<String>('reports-workbench-page-scroll')),
+        findsOneWidget,
+      );
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      expect(queue.height, closeTo(sent.height, 1));
+      // 창(360)보다 큰 최소 높이가 지켜진다 — 머리만 남은 상자가 되지 않는다.
+      expect(queue.bottom, greaterThan(360));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('한쪽이 비어도 상자 크기는 그대로, 빈 문구는 가운데', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      // 아직 아무도 보내지 않았다 — 전송 완료 상자가 빈 채로 선다.
+      final Rect sent = tester.getRect(sentBox());
+      final Rect queue = tester.getRect(queueBox());
+      expect(sent.height, closeTo(queue.height, 1));
+      final Finder empty = find.byKey(
+        const ValueKey<String>('reports-sent-empty'),
+      );
+      expect(empty, findsOneWidget);
+      final double emptyCenter = tester.getCenter(empty).dy;
+      // 상자 위쪽에 붙지 않고 세로 가운데 언저리에 선다.
+      expect(emptyCenter, greaterThan(sent.top + sent.height * 0.35));
+      expect(emptyCenter, lessThan(sent.top + sent.height * 0.65));
+    });
+
+    testWidgets('좁은 화면은 높이를 고정하지 않고 페이지째 내린다', (tester) async {
+      await openWorkbench(
+        tester,
+        clients: _roster,
+        size: const Size(700, 1400),
+      );
+
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      // 위아래로 쌓인다.
+      expect(sent.top, greaterThan(queue.bottom));
+      // 줄 수만큼만 선다 — 창 높이를 채우려고 늘어나지 않는다.
+      expect(queue.height, lessThan(1400 / 2));
+      expect(queueList(), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+      expect(tester.takeException(), isNull);
     });
   });
 
