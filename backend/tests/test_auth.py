@@ -28,7 +28,7 @@ def test_register_login_and_me(client):
 
 def test_login_wrong_password_401(client):
     email = f"tester-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "correct-pw!", "name": "x"})
+    client.post("/v1/auth/register", json={"email": email, "password": "correct-pw-1", "name": "x"})
     r = client.post("/v1/auth/login", data={"username": email, "password": "wrong-pw"})
     assert r.status_code == 401
 
@@ -66,16 +66,16 @@ def test_inactive_user_cannot_login_or_use_existing_access_token(client, db_sess
 
 def test_duplicate_register_conflicts_409(client):
     email = f"dup-{uuid4().hex[:8]}@oncare.com"
-    r1 = client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "a"})
+    r1 = client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "a"})
     assert r1.status_code == 201
-    r2 = client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "a"})
+    r2 = client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "a"})
     assert r2.status_code == 409
 
 
 def test_refresh_token_flow(client):
     email = f"ref-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "r"})
-    login = client.post("/v1/auth/login", data={"username": email, "password": "pw!"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "r"})
+    login = client.post("/v1/auth/login", data={"username": email, "password": "test-pw-1234"})
     assert login.status_code == 200
     refresh_token = login.json()["refresh_token"]
     assert refresh_token

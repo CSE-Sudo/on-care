@@ -45,7 +45,7 @@ def trainer(client, db_session):
         id=trainer_id,
         email=email,
         name=f"소속테스트 {trainer_id[-6:]}",
-        hashed_password=hash_password("pw!"),
+        hashed_password=hash_password("test-pw-1234"),
         role="trainer",
     ))
     db_session.flush()
@@ -57,7 +57,7 @@ def trainer(client, db_session):
     db_session.commit()
 
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
 
     yield token, trainer_id
@@ -206,9 +206,9 @@ def test_blank_gym_id_is_rejected(client, trainer):
 
 def test_member_cannot_set_a_gym(client):
     email = f"member-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
 
     r = client.put(

@@ -572,13 +572,13 @@ def test_password_change_takes_effect_and_can_be_reverted(client):
 def test_password_change_needs_a_trainer_account(client):
     """회원 계정은 /trainer/* 전체가 403 이다."""
     email = f"member-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
     member = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     r = client.post(
         "/v1/trainer/me/password",
-        json={"current_password": "pw!", "new_password": "newpass123"},
+        json={"current_password": "test-pw-1234", "new_password": "newpass123"},
         headers=_auth(member),
     )
     assert r.status_code == 403
@@ -655,9 +655,9 @@ def test_settings_update_with_no_fields_is_rejected(client):
 
 def test_settings_need_a_trainer_account(client):
     email = f"member-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
     member = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     assert client.get("/v1/trainer/me/settings", headers=_auth(member)).status_code == 403
 
