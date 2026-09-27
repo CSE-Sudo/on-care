@@ -145,6 +145,26 @@ void main() {
       );
     });
 
+    testWidgets('안 읽음 안내는 목록 밑이 아니라 전송 완료 상자 바닥에 선다 (#2396)', (tester) async {
+      await open(tester, history: _History(_sentThisWeek(_minsu)));
+
+      final Finder hint = find.byKey(
+        const ValueKey<String>('reports-sent-unread-hint'),
+      );
+      expect(hint, findsOneWidget);
+      final Rect box = tester.getRect(
+        find.byKey(const ValueKey<String>('reports-workbench-sent')),
+      );
+      final Rect row = tester.getRect(
+        find.byKey(const ValueKey<String>('reports-sent-$_minsu')),
+      );
+      final Rect hintRect = tester.getRect(hint);
+      // 상자 바닥 — 카드 안쪽 여백만큼만 위다.
+      expect(box.bottom - hintRect.bottom, lessThan(40));
+      // 한 줄뿐이니 줄 바로 밑과는 떨어져 있다.
+      expect(hintRect.top - row.bottom, greaterThan(100));
+    });
+
     testWidgets('서버 이력이 비어 있으면 그 회원은 미전송 줄에 선다', (tester) async {
       await open(tester, history: _History(<String, ReportSendRecord>{}));
 
