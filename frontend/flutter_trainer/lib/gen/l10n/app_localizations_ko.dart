@@ -1194,6 +1194,123 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAllAnalysis => 'AI 전체 분석';
 
   @override
+  String clientDietAdviceTodayOver(int over) {
+    return '나트륨이 목표치를 ${over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.';
+  }
+
+  @override
+  String get clientDietAdviceTodayBalanced =>
+      '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
+
+  @override
+  String get clientDietAdviceWeekEmpty =>
+      '이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.';
+
+  @override
+  String get clientDietAdviceAllEmpty => '기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.';
+
+  @override
+  String clientDietAdviceWeekManyOver(int days) {
+    return '이번 주 $days일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.';
+  }
+
+  @override
+  String get clientDietAdviceWeekWeekend =>
+      '주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.';
+
+  @override
+  String clientDietAdviceWeekSomeOver(int days) {
+    return '이번 주 $days일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.';
+  }
+
+  @override
+  String clientDietAdviceWeekAllUnder(int days) {
+    return '이번 주 $days일 모두 나트륨을 권장량 안에서 지켰어요!';
+  }
+
+  @override
+  String clientDietAdviceAllWeekend(int weeks) {
+    return '최근 $weeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
+  }
+
+  @override
+  String clientDietAdviceAllRatio(int weeks, int percent) {
+    return '최근 $weeks주 중 $percent%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
+  }
+
+  @override
+  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
+    return '최근 $weeks주 기록한 $days일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
+  }
+
+  @override
+  String get clientExerciseAdviceEmptyToday =>
+      '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
+
+  @override
+  String get clientExerciseAdviceEmptyWeek =>
+      '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
+
+  @override
+  String get clientExerciseAdviceEmptyAll => '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.';
+
+  @override
+  String clientExerciseAdviceToday(String type, int minutes, int calories) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '오늘 $_temp0 위주로 $minutes분, ${calories}kcal 썼어요. 스트레칭으로 마무리해요.';
+  }
+
+  @override
+  String clientExerciseAdviceWeekOneDay(int minutes) {
+    return '이번 주는 $minutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
+  }
+
+  @override
+  String clientExerciseAdviceWeekSkew(
+    int days,
+    int minutes,
+    String top,
+    String missing,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '이번 주 $days일 $minutes분이 $_temp0에 몰렸어요. $_temp1도 섞어 볼까요?';
+  }
+
+  @override
+  String clientExerciseAdviceWeekBalanced(int days, int minutes) {
+    return '이번 주 $days일 $minutes분, 유형도 고르게 섞였어요.';
+  }
+
+  @override
+  String get clientExerciseAdviceAllUp =>
+      '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
+
+  @override
+  String get clientExerciseAdviceAllDown =>
+      '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
+
+  @override
+  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes) {
+    return '$weeks주 동안 $days일 $minutes분, 기복 없이 이어가고 있어요.';
+  }
+
+  @override
   String get consultStatusRejected => '거절됨';
 
   @override

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Locale;
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
@@ -22,10 +23,12 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
 ///
@@ -110,10 +113,22 @@ abstract interface class ClientRepository {
   /// 기간에 맞는 식단 조언. 회원 앱과 **같은 문장**이다 — 같은 회원의 같은
   /// 기간을 두 화면이 다르게 말하면 상담에서 둘이 다른 이야기를 들고 앉는다.
   /// (#1017)
-  Future<String> fetchDietAdvice(String clientId, ClientPeriod period);
+  ///
+  /// 문장은 [locale] 의 언어다(#2299) — 실서버는 이 언어를 `Accept-Language` 로
+  /// 보내고, 데모는 같은 규칙의 문장을 이 언어의 번역으로 만든다.
+  Future<String> fetchDietAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  });
 
   /// 기간에 맞는 운동 조언. 식단(#1017)과 같은 규칙으로 서버가 만든다. (#1025)
-  Future<String> fetchExerciseAdvice(String clientId, ClientPeriod period);
+  /// 언어는 식단과 같이 [locale] 이다(#2299).
+  Future<String> fetchExerciseAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  });
 
   Future<ClientDietPeriod> fetchDietPeriod(
     String clientId,
@@ -677,7 +692,13 @@ class DriftClientRepository implements ClientRepository {
   }
 
   @override
-  Future<String> fetchDietAdvice(String clientId, ClientPeriod period) async {
+  Future<String> fetchDietAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  }) async {
+    // 문장은 화면 언어의 번역으로 만든다(#2299). 한국어 번역은 예전 문장 그대로다.
+    final AppLocalizations l = lookupAppLocalizations(locale);
     // 데모는 서버 규칙(`diet_service.period_coach_message`)을 로컬 데이터로
     // 흉내 낸다. 고정 문장을 돌려주면 어느 고객을 열어도 같은 말을 해서,
     // 기간을 바꿨을 때 조언이 따라 바뀌는지도 볼 수 없다. (#1017)
@@ -694,9 +715,8 @@ class DriftClientRepository implements ClientRepository {
         (int sum, ClientDietEntryRow row) => sum + row.sodiumMg,
       );
       return sodium > sodiumTargetMg
-          ? '나트륨이 목표치를 ${sodium - sodiumTargetMg}mg 초과했어요. '
-                '오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.'
-          : '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
+          ? l.clientDietAdviceTodayOver(sodium - sodiumTargetMg)
+          : l.clientDietAdviceTodayBalanced;
     }
 
     // 조언이 읽는 기간은 그래프와 다르다(#2079) — 그래프는 모든 기록을
@@ -721,46 +741,42 @@ class DriftClientRepository implements ClientRepository {
         .toList();
     if (logged.isEmpty) {
       return period == ClientPeriod.week
-          ? '이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.'
-          : '기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.';
+          ? l.clientDietAdviceWeekEmpty
+          : l.clientDietAdviceAllEmpty;
     }
     final int over = logged
         .where((ClientDietDay day) => day.sodiumMg > sodiumTargetMg)
         .length;
     final bool weekendHeavy = _weekendRuns(logged);
     if (period == ClientPeriod.week) {
-      if (over >= 3) {
-        return '이번 주 $over일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.';
-      }
-      if (weekendHeavy) {
-        return '주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.';
-      }
-      if (over > 0) {
-        return '이번 주 $over일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.';
-      }
-      return '이번 주 ${logged.length}일 모두 나트륨을 권장량 안에서 지켰어요!';
+      if (over >= 3) return l.clientDietAdviceWeekManyOver(over);
+      if (weekendHeavy) return l.clientDietAdviceWeekWeekend;
+      if (over > 0) return l.clientDietAdviceWeekSomeOver(over);
+      return l.clientDietAdviceWeekAllUnder(logged.length);
     }
     // 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
     // 이 조언은 최근 12주만 읽는다 — "기록을 통틀어" 라고 말하면 그래프가
     // 보여 주는 앞 기록까지 본 것처럼 읽힌다. 서버
     // (`diet_service.period_coach_message`)와 같은 문구다.
     const int adviceWeeks = kAdvicePeriodDays ~/ 7;
-    if (weekendHeavy) {
-      return '최근 $adviceWeeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
-    }
+    if (weekendHeavy) return l.clientDietAdviceAllWeekend(adviceWeeks);
     if (over * 10 >= logged.length * 4) {
-      return '최근 $adviceWeeks주 중 ${(over * 100 / logged.length).round()}%가 '
-          '나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
+      return l.clientDietAdviceAllRatio(
+        adviceWeeks,
+        (over * 100 / logged.length).round(),
+      );
     }
-    return '최근 $adviceWeeks주 기록한 ${logged.length}일 대부분이 권장량 안이에요. '
-        '지금 흐름이 좋아요.';
+    return l.clientDietAdviceAllMostlyUnder(adviceWeeks, logged.length);
   }
 
   @override
   Future<String> fetchExerciseAdvice(
     String clientId,
-    ClientPeriod period,
-  ) async {
+    ClientPeriod period, {
+    required Locale locale,
+  }) async {
+    // 식단과 같이 화면 언어의 번역으로 만든다(#2299).
+    final AppLocalizations l = lookupAppLocalizations(locale);
     // 데모도 서버 규칙(`exercise_service.period_coach_message`)을 로컬 데이터로
     // 흉내 낸다 — 고정 문장이면 기간을 바꿔도 조언이 그대로라, 이 화면이 무엇을
     // 하는지 데모에서 보이지 않는다. (#1025)
@@ -772,16 +788,19 @@ class DriftClientRepository implements ClientRepository {
         .toList();
     if (logged.isEmpty) {
       return switch (period) {
-        ClientPeriod.week => '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?',
-        ClientPeriod.month => '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.',
-        ClientPeriod.today => '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?',
+        ClientPeriod.week => l.clientExerciseAdviceEmptyWeek,
+        ClientPeriod.month => l.clientExerciseAdviceEmptyAll,
+        ClientPeriod.today => l.clientExerciseAdviceEmptyToday,
       };
     }
 
     if (period == ClientPeriod.today) {
       final ClientExerciseDay day = logged.last;
-      return '오늘 ${_mainTypeLabel(day)} 위주로 ${day.minutes}분, '
-          '${day.calories}kcal 썼어요. 스트레칭으로 마무리해요.';
+      return l.clientExerciseAdviceToday(
+        _mainType(day),
+        day.minutes,
+        day.calories,
+      );
     }
 
     final int totalMinutes = logged.fold<int>(
@@ -790,7 +809,7 @@ class DriftClientRepository implements ClientRepository {
     );
     if (period == ClientPeriod.week) {
       if (logged.length <= 1) {
-        return '이번 주는 $totalMinutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
+        return l.clientExerciseAdviceWeekOneDay(totalMinutes);
       }
       final int cardio = logged.fold<int>(
         0,
@@ -802,14 +821,22 @@ class DriftClientRepository implements ClientRepository {
       );
       // 서버와 같은 8할 기준 — 한 유형에 쏠렸는지가 코칭의 첫 질문이다.
       if (totalMinutes > 0 && cardio * 10 >= totalMinutes * 8) {
-        return '이번 주 ${logged.length}일 $totalMinutes분이 유산소에 몰렸어요. '
-            '근력도 섞어 볼까요?';
+        return l.clientExerciseAdviceWeekSkew(
+          logged.length,
+          totalMinutes,
+          'cardio',
+          'strength',
+        );
       }
       if (totalMinutes > 0 && strength * 10 >= totalMinutes * 8) {
-        return '이번 주 ${logged.length}일 $totalMinutes분이 근력에 몰렸어요. '
-            '유산소도 섞어 볼까요?';
+        return l.clientExerciseAdviceWeekSkew(
+          logged.length,
+          totalMinutes,
+          'strength',
+          'cardio',
+        );
       }
-      return '이번 주 ${logged.length}일 $totalMinutes분, 유형도 고르게 섞였어요.';
+      return l.clientExerciseAdviceWeekBalanced(logged.length, totalMinutes);
     }
 
     // 전체 — 최근 4주와 그 이전을 견준다.
@@ -828,13 +855,17 @@ class DriftClientRepository implements ClientRepository {
         xs.isEmpty ? 0 : xs.fold<int>(0, (int a, int b) => a + b) / xs.length;
     if (recent.isNotEmpty && earlier.isNotEmpty) {
       if (mean(recent) > mean(earlier) * 1.1) {
-        return '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
+        return l.clientExerciseAdviceAllUp;
       }
       if (mean(recent) < mean(earlier) * 0.9) {
-        return '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
+        return l.clientExerciseAdviceAllDown;
       }
     }
-    return '12주 동안 ${logged.length}일 $totalMinutes분, 기복 없이 이어가고 있어요.';
+    return l.clientExerciseAdviceAllSteady(
+      kAdvicePeriodDays ~/ 7,
+      logged.length,
+      totalMinutes,
+    );
   }
 
   /// [period] 가 덮는 구간의 일별 운동 집계.
@@ -895,15 +926,16 @@ class DriftClientRepository implements ClientRepository {
     );
   }
 
-  /// 그날 가장 오래 한 유형의 이름. 같으면 유산소 → 근력 → 스트레칭 순이다.
-  String _mainTypeLabel(ClientExerciseDay day) {
+  /// 그날 가장 오래 한 유형의 코드(`cardio`·`strength`·`stretching`·`other`).
+  /// 같으면 유산소 → 근력 → 스트레칭 순이다. 이름은 번역이 코드로 고른다(#2299).
+  String _mainType(ClientExerciseDay day) {
     final Map<String, int> byType = <String, int>{
-      '유산소': day.cardioMinutes,
-      '근력': day.strengthMinutes,
-      '스트레칭': day.stretchingMinutes,
-      '기타': day.otherMinutes,
+      'cardio': day.cardioMinutes,
+      'strength': day.strengthMinutes,
+      'stretching': day.stretchingMinutes,
+      'other': day.otherMinutes,
     };
-    String best = '유산소';
+    String best = 'cardio';
     int bestMinutes = -1;
     for (final MapEntry<String, int> e in byType.entries) {
       if (e.value > bestMinutes) {
@@ -1286,9 +1318,11 @@ final clientDietAdviceProvider =
       ref,
       key,
     ) async {
+      // 화면 언어가 바뀌면 다시 읽는다 — 조언 문장이 그 언어로 온다(#2299).
+      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietAdvice(key.clientId, key.period);
+          .fetchDietAdvice(key.clientId, key.period, locale: locale);
     });
 
 /// 한 고객이 [date] 에 먹은 끼니. 기간 뷰에서 펼친 날에만 읽는다(#1025).
@@ -1323,9 +1357,10 @@ final clientExerciseAdviceProvider =
       ref,
       key,
     ) async {
+      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchExerciseAdvice(key.clientId, key.period);
+          .fetchExerciseAdvice(key.clientId, key.period, locale: locale);
     });
 
 /// Streams a client's workout history for the 운동 sub-tab.
