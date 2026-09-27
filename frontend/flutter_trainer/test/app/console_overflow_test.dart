@@ -38,6 +38,8 @@ final Map<String, String> _surfaces = <String, String>{
   '메시지': AppRoutes.messages,
   '코칭': AppRoutes.coaching,
   '리포트': AppRoutes.reports,
+  '리포트 편집기': AppRoutes.reportFor('seed-client-5'),
+  '지난 리포트': AppRoutes.reportHistoryFor('seed-client-5'),
   '상담': AppRoutes.consultations,
   '내 정보': AppRoutes.my,
 };

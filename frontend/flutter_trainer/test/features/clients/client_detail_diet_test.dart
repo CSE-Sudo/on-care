@@ -414,10 +414,10 @@ void main() {
       expect(find.text('아직 기록된 식단이 없어요'), findsNothing);
       expect(find.text('거름'), findsNothing);
       expect(find.text('아침'), findsNothing);
-      // 음식은 한 줄에 하나, 오른쪽 끝에 그 음식의 kcal. 이 시드는 내용량이
-      // 없어 이름만 적는다 — `0g` 은 안 먹었다는 말이 된다.
-      expect(find.text('치킨', findRichText: true), findsOneWidget);
-      expect(find.text('맥주', findRichText: true), findsOneWidget);
+      // 음식은 한 줄에 하나, 이름 옆에 먹은 양, 오른쪽 끝에 그 음식의 kcal.
+      // 데모 회원도 양을 들고 있다(#2368).
+      expect(find.text('치킨  400g', findRichText: true), findsOneWidget);
+      expect(find.text('맥주  750g', findRichText: true), findsOneWidget);
       expect(find.text('치킨, 맥주'), findsNothing);
       expect(find.text('960 kcal'), findsOneWidget);
     });
@@ -663,12 +663,14 @@ void main() {
 
       // The detail header sits above the list, so her 아침 card can start
       // below the fold on the test viewport.
+      // 음식 줄은 이름과 먹은 양을 한 덩어리 글자로 적는다(#2333, #2368).
+      final Finder yogurt = find.text('그릭요거트  150g', findRichText: true);
       await tester.scrollUntilVisible(
-        find.text('그릭요거트'),
+        yogurt,
         150,
         scrollable: detailScrollable('seed-client-2'),
       );
-      expect(find.text('그릭요거트'), findsOneWidget);
+      expect(yogurt, findsOneWidget);
       // Under target in the diet summary.
       expect(find.text('mg 초과'), findsNothing);
       await tester.scrollUntilVisible(

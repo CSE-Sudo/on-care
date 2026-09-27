@@ -3658,6 +3658,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'Faded values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
+  String clientGoalSuggestionDiet(
+    int kcal,
+    int carbs,
+    int sugar,
+    int protein,
+    int fat,
+    int sodium,
+  ) {
+    return 'Suggested: $kcal kcal · carbs $carbs g · sugar $sugar g · protein $protein g · fat $fat g · sodium $sodium mg';
+  }
+
+  @override
+  String clientGoalSuggestionExercise(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return 'Suggested: $burn kcal burned a day · $cardio min cardio · $strength strength sets · $flexibility min stretching a week';
+  }
+
+  @override
+  String get clientGoalSuggestionPersonal =>
+      'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
+
+  @override
+  String get clientGoalSuggestionFallback =>
+      'Age, height, or weight is missing, so only the health goals adjust the defaults';
+
+  @override
+  String get clientGoalApplySuggestion => 'Fill with suggestion';
+
+  @override
   String get clientTrainerMemoHint =>
       'Note what you want to remember about this member';
 
@@ -4494,6 +4527,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSentRewrite => 'Rewrite from this';
+
+  @override
+  String get reportsHistoryButton => 'Past reports';
+
+  @override
+  String get reportsViewSent => 'View';
+
+  @override
+  String reportsHistoryTitle(String name) {
+    return '$name\'s past reports';
+  }
+
+  @override
+  String get reportsHistoryBack => 'Past reports';
+
+  @override
+  String get reportsHistoryUnsent => 'Not sent';
+
+  @override
+  String get reportsHistoryThisWeek => 'This week';
+
+  @override
+  String get reportsHistoryEmpty => 'No reports sent yet';
+
+  @override
+  String get reportsHistoryLoadFailed => 'Couldn\'t load past reports';
+
+  @override
+  String get reportsHistoryMore => 'Load more';
+
+  @override
+  String get reportsHistoryMoreFailed =>
+      'Couldn\'t load more. Tap to try again.';
+
+  @override
+  String reportsHistorySendCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sent $count times',
+      one: 'Sent once',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportsHistoryPdf => 'PDF';
 
   @override
   String get reportsResendTitle => 'Already sent';

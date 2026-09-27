@@ -1384,6 +1384,11 @@
   "clientBodyWeight": "몸무게",
   "clientUnitCm": "cm",
   "clientGoalDefaultHint": "흐린 값은 회원이 목표를 세우기 전의 기본 기준이에요. 비워 두면 이 값으로 계산해요.",
+  "clientGoalSuggestionDiet": "권장: {kcal}kcal · 탄수화물 {carbs}g · 당류 {sugar}g · 단백질 {protein}g · 지방 {fat}g · 나트륨 {sodium}mg",
+  "clientGoalSuggestionExercise": "권장: 하루 소모 {burn}kcal · 주 유산소 {cardio}분 · 근력 {strength}세트 · 스트레칭 {flexibility}분",
+  "clientGoalSuggestionPersonal": "나이·성별·키·몸무게와 건강 목표로 계산했어요 (2020 한국인 영양소 섭취기준·WHO 권고)",
+  "clientGoalSuggestionFallback": "나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요",
+  "clientGoalApplySuggestion": "권장값으로 채우기",
   "clientTrainerMemoHint": "이 회원에 대해 기억할 내용을 적어 주세요",
   "clientTrainerMemoAdd": "메모 추가",
   "clientTrainerMemoEmpty": "아직 남긴 메모가 없어요.",
@@ -2015,6 +2020,32 @@
     }
   },
   "reportsSentRewrite": "이 내용으로 다시 작성",
+  "reportsHistoryButton": "지난 리포트",
+  "reportsViewSent": "보기",
+  "reportsHistoryTitle": "{name}님의 지난 리포트",
+  "@reportsHistoryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsHistoryBack": "지난 리포트",
+  "reportsHistoryUnsent": "미전송",
+  "reportsHistoryThisWeek": "이번 주",
+  "reportsHistoryEmpty": "아직 보낸 리포트가 없어요",
+  "reportsHistoryLoadFailed": "지난 리포트를 불러오지 못했어요",
+  "reportsHistoryMore": "더 보기",
+  "reportsHistoryMoreFailed": "더 불러오지 못했어요. 다시 눌러 주세요.",
+  "reportsHistorySendCount": "{count}번 보냄",
+  "@reportsHistorySendCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsHistoryPdf": "PDF",
   "reportsResendTitle": "이미 보낸 리포트예요",
   "reportsResendBody": "{name}님에게 {date} {time}에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.",
   "@reportsResendBody": {

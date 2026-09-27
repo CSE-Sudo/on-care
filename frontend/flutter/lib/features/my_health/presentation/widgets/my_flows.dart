@@ -9,7 +9,6 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
-import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';

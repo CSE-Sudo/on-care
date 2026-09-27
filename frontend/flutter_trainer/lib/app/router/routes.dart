@@ -195,6 +195,21 @@ class AppRoutes {
     ).toString();
   }
 
+  /// [clientId] 회원의 지난 리포트 화면(#2394).
+  ///
+  /// `history` 로 싣는다 — `client` 는 편집기라, 같은 값에 두 뜻을 얹지 않는다.
+  /// [weekStart] 는 작업대에서 보고 있던 주다. 지난 리포트에서 `회원 목록` 으로
+  /// 돌아가면 그 주 작업대로 선다.
+  static String reportHistoryFor(String clientId, {DateTime? weekStart}) {
+    return Uri(
+      path: reports,
+      queryParameters: <String, String>{
+        'history': clientId,
+        if (weekStart != null) 'week': ymd(weekStart),
+      },
+    ).toString();
+  }
+
   /// 리포트 URL 의 `week` 값을 날짜로 읽는다.
   ///
   /// `yyyy-MM-dd` 만 받는다. 형식이 깨졌거나 달력에 없는 날(`2026-02-30`)은
