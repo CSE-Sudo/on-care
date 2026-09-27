@@ -1784,30 +1784,21 @@ class _ManagedClientRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // 삭제는 카드 옆에 둔다 — 카드 아래 따로 떨어져 있으면 어느 회원의
-    // 버튼인지 한 번 더 읽어야 했다.
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: ClientCard(
-            key: ValueKey<String>('managed-client-${client.id}'),
-            client: client,
-            onTap: () => context.go(AppRoutes.clientDetail(client.id)),
-          ),
-        ),
-        const SizedBox(width: OnCareSpacing.s8),
-        Tooltip(
-          message: l.myClientRemove,
-          // 확인창을 여는 위험 동작이라 빨간 글자 버튼이다.
-          child: AppButton(
-            label: l.myClientRemove,
-            variant: AppButtonVariant.destructiveText,
-            size: OnCareButtonSize.small,
-            loading: busy,
-            onPressed: busy ? null : onRemove,
-          ),
-        ),
-      ],
+    // 삭제는 카드 안, 이름 줄 오른쪽 아이콘이다 — 카드 밖에 따로 떨어져
+    // 있으면 어느 회원의 버튼인지 한 번 더 읽어야 했다.
+    return ClientCard(
+      key: ValueKey<String>('managed-client-${client.id}'),
+      client: client,
+      onTap: () => context.go(AppRoutes.clientDetail(client.id)),
+      action: busy
+          ? const AppLoading.inline()
+          // 확인창을 여는 위험 동작이라 빨간 아이콘이다. 툴팁이 접근성 이름이다.
+          : AppIconButton(
+              icon: Icons.person_remove_rounded,
+              tooltip: l.myClientRemove,
+              color: OnCareColors.danger,
+              onPressed: onRemove,
+            ),
     );
   }
 }
