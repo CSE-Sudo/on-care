@@ -36,10 +36,20 @@ final coachImageProvider = FutureProvider.autoDispose
 ///
 /// 트레이너가 보낸 자세 사진·시범 이미지는 "열어서 확인하는 파일"이 아니라
 /// 대화의 일부라, PDF 처럼 카드로 두지 않고 말풍선 안에 그린다.
+///
+/// 회원이 보낸 사진도 같은 틀로 그린다(#1665). 올리는 중이거나 데모라 이미 가진
+/// 바이트([CoachAttachment.localBytes])가 있으면 받아 오지 않고 그대로 그린다.
 class CoachImageAttachment extends ConsumerWidget {
-  const CoachImageAttachment({super.key, required this.attachment});
+  const CoachImageAttachment({
+    super.key,
+    required this.attachment,
+    this.mine = false,
+  });
 
   final CoachAttachment attachment;
+
+  /// 내가 보낸 사진인가. 음성 안내가 누가 보낸 사진인지 구별해 읽는다.
+  final bool mine;
 
   /// 말풍선 안에서의 최대 크기. 원본이 작으면 그 크기로 그린다.
   static const double maxEdge = 220;
@@ -51,7 +61,10 @@ class CoachImageAttachment extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bytes = ref.watch(coachImageProvider(attachment.downloadPath));
+    final Uint8List? local = attachment.localBytes;
+    final AsyncValue<Uint8List?> bytes = local != null
+        ? AsyncValue<Uint8List?>.data(local)
+        : ref.watch(coachImageProvider(attachment.downloadPath));
 
     return AppImageFrame(
       child: ConstrainedBox(
@@ -73,7 +86,7 @@ class CoachImageAttachment extends ConsumerWidget {
                   key: ValueKey<String>('coach-image-${attachment.fileId}'),
                   // 대체 텍스트가 없으면 노드 자체가 생기지 않아, 음성 안내로
                   // 읽는 회원은 사진이 온 사실조차 모른다(#1942).
-                  semanticLabel: l.a11yCoachPhoto,
+                  semanticLabel: mine ? l.a11yMyPhoto : l.a11yCoachPhoto,
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) =>
                       _Unavailable(label: l.coachImageUnavailable),

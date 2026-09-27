@@ -7,11 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
+import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_sender.dart';
@@ -48,8 +50,9 @@ abstract interface class ReportRepository {
   /// 리포트 본문과 **따로** 가져온다. 실서버는 생성에 몇 초가 걸리는데 한
   /// 응답에 묶으면 고객을 고를 때마다 화면 전체가 그만큼 멈춘다(#755).
   ///
-  /// [l] 은 기기에서 조립하는 규칙 기반 요약의 언어다. 실서버가 만든 문장은
-  /// 서버가 쓴 그대로 온다.
+  /// [l] 은 요약 문장의 언어다. 데모는 이 언어로 규칙 기반 요약을 조립하고,
+  /// 실서버에는 같은 언어를 `Accept-Language` 로 요청한다(#2298) — 캐시 열쇠
+  /// ([ReportSummaryKey])가 가리키는 언어와 받아 온 문장의 언어가 늘 같다.
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
@@ -74,6 +77,13 @@ abstract interface class ReportRepository {
     required String fileName,
     required String message,
   });
+
+  /// [weekStart] 주 리포트가 이미 나간 회원들. (#2288)
+  ///
+  /// 한 회원에게 여러 번 보냈으면 가장 최근 전송 하나다. 보낸 적이 없으면 빈
+  /// 목록이다. 새로고침해도 작업대가 보낸 회원을 미전송으로 되돌리지 않게
+  /// 하는 근거라, 앱 메모리가 아니라 전송이 남긴 기록에서 읽는다.
+  Future<List<ReportSendRecord>> sentReports({required DateTime weekStart});
 
   /// [client] 의 [weekStart] 주에 저장해 둔 피드백 초안. (#821)
   ///
@@ -324,6 +334,63 @@ class LocalReportRepository implements ReportRepository {
     );
   }
 
+  /// 데모에서 그 주에 **실행 중에** 보낸 리포트. (#2288)
+  ///
+  /// 리포트 전송은 로컬 채팅에 `report_msg_<메시지 id>` 표시를 남긴다(#1378).
+  /// 드리프트는 새로고침 뒤에도 남으므로 이 표시가 곧 전송 이력이다.
+  ///
+  /// 시드 대화의 리포트 안내(`seed-` 메시지)는 세지 않는다 — 데모 작업대의
+  /// 전송 완료 명단은 `demoSentReports` 가 정하고, 시드 안내까지 세면 시연의
+  /// 주인공처럼 아직 남아 있어야 할 회원이 전송 완료로 넘어간다.
+  ///
+  /// 데모에는 회원이 없어 읽음 여부를 알 수 없다 — 세션 기록과 같은 값(읽음)
+  /// 으로 둬, 새로고침 전후로 표시가 바뀌지 않게 한다.
+  @override
+  Future<List<ReportSendRecord>> sentReports({
+    required DateTime weekStart,
+  }) async {
+    final DateTime monday = weekStartOf(weekStart);
+    final List<AppKeyValue> markers =
+        await (_db.select(_db.appKeyValues)..where(
+              (t) =>
+                  t.key.like('$_reportMarkerPrefix%') &
+                  t.value.equals(ymd(monday)),
+            ))
+            .get();
+    final List<String> ids = <String>[
+      for (final AppKeyValue m in markers)
+        if (!m.key.substring(_reportMarkerPrefix.length).startsWith('seed-'))
+          m.key.substring(_reportMarkerPrefix.length),
+    ];
+    if (ids.isEmpty) return const <ReportSendRecord>[];
+    final List<ClientChatMessageRow> rows =
+        await (_db.select(_db.clientChatMessages)
+              ..where((t) => t.id.isIn(ids) & t.sender.equals('trainer'))
+              ..orderBy(<OrderingTerm Function($ClientChatMessagesTable)>[
+                (t) => OrderingTerm.desc(t.createdAt),
+              ]))
+            .get();
+    final latest = <String, ClientChatMessageRow>{};
+    final counts = <String, int>{};
+    for (final ClientChatMessageRow row in rows) {
+      latest.putIfAbsent(row.clientId, () => row);
+      counts[row.clientId] = (counts[row.clientId] ?? 0) + 1;
+    }
+    return <ReportSendRecord>[
+      for (final MapEntry<String, ClientChatMessageRow> e in latest.entries)
+        ReportSendRecord(
+          clientId: e.key,
+          weekStart: monday,
+          sentAt: e.value.createdAt,
+          message: e.value.body,
+          sendCount: counts[e.key] ?? 1,
+        ),
+    ];
+  }
+
+  /// [DriftChatRepository] 가 리포트 전송 안내에 남기는 표시의 앞머리.
+  static const String _reportMarkerPrefix = 'report_msg_';
+
   @override
   Future<ReportFeedbackDraft> feedbackDraft({
     required TrainerClient client,
@@ -473,6 +540,15 @@ class DioReportRepository implements ReportRepository {
       final res = await _dio.get<Map<String, dynamic>>(
         '/trainer/clients/${Uri.encodeComponent(client.id)}/report/summary',
         queryParameters: <String, String>{'week_start': ymd(weekStart)},
+        // 화면 언어를 전역 인터셉터에 맡기지 않고 [l] 로 직접 고른다(#2298).
+        // 요약은 언어별로 캐시되므로, 요청 도중 언어를 바꿔도 이 응답은
+        // 요청한 언어의 칸에만 들어가야 한다. 인터셉터는 이미 있는 헤더를
+        // 덮지 않는다.
+        options: Options(
+          headers: <String, String>{
+            AcceptLanguageInterceptor.headerName: summaryLanguageTag(l),
+          },
+        ),
       );
       final json = res.data;
       if (json == null) throw const ServerError();
@@ -524,6 +600,25 @@ class DioReportRepository implements ReportRepository {
         message: message,
       );
     } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<List<ReportSendRecord>> sentReports({
+    required DateTime weekStart,
+  }) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/trainer/reports/sent',
+        queryParameters: <String, String>{'week_start': ymd(weekStart)},
+      );
+      final json = res.data;
+      if (json == null) throw const ServerError();
+      return reportSendsFromJson(json, weekStart);
+    } on DioException catch (e) {
+      // 조용히 빈 목록으로 삼키지 않는다 — 그러면 보낸 회원이 미전송으로 서서
+      // 다시 보내게 된다. 화면이 실패를 알고 경고를 띄운다.
       throw AppError.fromDio(e);
     }
   }
@@ -659,6 +754,69 @@ WeeklyReport weeklyReportFromJson(
   );
 }
 
+/// Decodes `ReportSendsOut`. (#2288)
+///
+/// 회원 id·보낸 시각을 읽지 못한 줄은 버린다 — 누구에게 언제 갔는지 모르는
+/// 기록으로 `전송 완료` 를 그리지 않는다. 주는 줄의 `week_start`, 없으면 응답의
+/// `week_start`, 그것도 없으면 요청한 [requestedWeek] 의 월요일이다.
+List<ReportSendRecord> reportSendsFromJson(
+  Map<String, dynamic> json,
+  DateTime requestedWeek,
+) {
+  final Object? sends = json['sends'];
+  if (sends is! List) return const <ReportSendRecord>[];
+  final DateTime week = weekStartOf(
+    _parseDay(json['week_start']) ?? requestedWeek,
+  );
+  return <ReportSendRecord>[
+    for (final Object? item in sends)
+      if (item is Map<String, dynamic>) ?_reportSendFromJson(item, week),
+  ];
+}
+
+ReportSendRecord? _reportSendFromJson(
+  Map<String, dynamic> json,
+  DateTime fallbackWeek,
+) {
+  final Object? id = json['member_id'];
+  if (id is! String || id.isEmpty) return null;
+  final Object? rawSentAt = json['sent_at'];
+  final DateTime? sentAt = rawSentAt is String
+      ? DateTime.tryParse(rawSentAt)
+      : null;
+  if (sentAt == null) return null;
+  final Object? message = json['message'];
+  final Object? count = json['send_count'];
+  return ReportSendRecord(
+    clientId: id,
+    weekStart: weekStartOf(_parseDay(json['week_start']) ?? fallbackWeek),
+    sentAt: _kstWallClock(sentAt),
+    message: message is String ? message : '',
+    read: json['read'] == true,
+    sendCount: count is num && count >= 1 ? count.toInt() : 1,
+  );
+}
+
+DateTime? _parseDay(Object? value) =>
+    value is String ? DateTime.tryParse(value) : null;
+
+/// 서버의 UTC 시각을 KST 벽시계로 옮긴다 — 화면은 모든 시각을 서울 기준으로
+/// 적는다([nowKst]). 오프셋 없이 온 값은 이미 벽시계로 보고 그대로 둔다.
+DateTime _kstWallClock(DateTime t) {
+  if (!t.isUtc) return t;
+  final DateTime seoul = t.add(kstOffset);
+  return DateTime(
+    seoul.year,
+    seoul.month,
+    seoul.day,
+    seoul.hour,
+    seoul.minute,
+    seoul.second,
+    seoul.millisecond,
+    seoul.microsecond,
+  );
+}
+
 /// Decodes `ReportGoalsOut` 의 `goals`. (#2287)
 ///
 /// 데모 저장소와 같은 규칙으로 읽는다 — 문자열이 아니거나 비어 있는 줄은
@@ -741,6 +899,12 @@ final reportFeedbackDraftProvider = FutureProvider.autoDispose
           .watch(reportRepositoryProvider)
           .feedbackDraft(client: key.client, weekStart: key.weekStart);
     });
+
+/// 요약을 요청할 언어 태그 — [l] 의 주 언어(`ko`·`en`). 서버는 주 언어만 본다.
+String summaryLanguageTag(AppLocalizations l) =>
+    AcceptLanguageInterceptor.headerValue(
+      Locale(l.localeName.split('_').first),
+    );
 
 /// 한 주의 리포트 요약. 리포트 본문과 따로 부른다(#755).
 ///

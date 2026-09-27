@@ -3,6 +3,12 @@ from __future__ import annotations
 
 import httpx
 
+from app.services.social._response import (
+    json_object,
+    optional_object,
+    optional_str,
+    required_id,
+)
 from app.services.social.base import SocialAuthError, SocialIdentity, SocialVerifier
 
 _USERINFO = "https://openapi.naver.com/v1/nid/me"
@@ -21,15 +27,14 @@ class NaverVerifier(SocialVerifier):
         if resp.status_code != 200:
             raise SocialAuthError(f"naver 토큰 검증 실패({resp.status_code})")
 
-        body = resp.json()
-        profile = body.get("response") or {}
-        uid = str(profile.get("id") or "")
-        if not uid:
-            raise SocialAuthError("naver 사용자 id 없음")
+        body = json_object("naver", resp)
+        profile = optional_object("naver", body, "response")
+        uid = required_id("naver", profile, "id")
 
         return SocialIdentity(
             provider="naver",
             provider_user_id=uid,
-            email=profile.get("email") or "",
-            name=profile.get("name") or profile.get("nickname") or "",
+            email=optional_str("naver", profile, "email"),
+            name=optional_str("naver", profile, "name")
+            or optional_str("naver", profile, "nickname"),
         )

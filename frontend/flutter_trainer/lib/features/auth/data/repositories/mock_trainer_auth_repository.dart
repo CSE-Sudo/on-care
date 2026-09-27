@@ -2,6 +2,7 @@ import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// Pure in-memory mock used for the demo bypass and `USE_MOCK_API=true`.
 ///
@@ -46,6 +47,16 @@ class MockTrainerAuthRepository implements TrainerAuthRepository {
     await Future<void>.delayed(_loginDelay);
     if (email.trim().isEmpty || password.isEmpty) {
       throw const AuthException(AuthFailure.emptyCredentials);
+    }
+    // 비밀번호는 서버와 같은 기준으로 본다(#1555) — 데모에서만 가입되는
+    // 비밀번호가 있으면 실서버에서 처음 실패를 보게 된다.
+    switch (AppInputRules.signUpPassword(password)) {
+      case null:
+        break;
+      case AppInputError.passwordTooLong:
+        throw const AuthException(AuthFailure.passwordTooLong);
+      default:
+        throw const AuthException(AuthFailure.passwordWeak);
     }
     // 데모에는 코드를 검증할 백엔드가 없다. 화면이 기존과 똑같이 동작하도록
     // 코드는 보지 않고 통과시킨다.

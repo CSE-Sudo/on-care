@@ -29,6 +29,7 @@ from app.schemas.health_goal_ranges import (
 )
 from app.schemas.partial_update import PartialUpdate
 from app.services.contact_format import clean_email, normalize_phone
+from app.services.password_policy import check_new_password
 from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
 
@@ -133,6 +134,9 @@ class UserRegister(BaseModel):
     #: 형식은 `contact_format.clean_email` 이 본다(#1780). 앞뒤 공백만 잘라내고
     #: 값 자체는 바꾸지 않는다 — 소문자로 고치면 로그인 조회가 어긋난다.
     email: str
+    #: 새로 정하는 비밀번호라 `password_policy.check_new_password` 기준을 본다
+    #: (#1555). 로그인은 이 스키마를 쓰지 않으므로 기준 이전에 만든 계정은
+    #: 그대로 로그인된다.
     password: str
     #: 보내지 않으면 핸들러가 이메일 로컬 파트로 채운다
     #: (`profile_format.name_from_email`). 빈 문자열도 같이 본다 — 회원 앱은
@@ -158,6 +162,11 @@ class UserRegister(BaseModel):
         if isinstance(value, str):
             return clean_email(value)
         return value
+
+    @field_validator("password")
+    @classmethod
+    def _check_password(cls, value: str) -> str:
+        return check_new_password(value)
 
     @field_validator("name", mode="before")
     @classmethod

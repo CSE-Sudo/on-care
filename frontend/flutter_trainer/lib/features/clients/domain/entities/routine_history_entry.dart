@@ -96,28 +96,6 @@ List<RoutineHistoryEntry> historyInRange(
       .toList(growable: false);
 }
 
-/// 그 기록에서 실제로 한 운동 수와 배정된 수, 그리고 둘로 만든 이행률.
-/// (#1484)
-///
-/// 개수와 퍼센트가 같은 사실을 말해야 한다 — 개수는 `✗` 를 세어 만들고
-/// 퍼센트는 서버 필드(`completionRate`)를 쓰던 탓에 둘이 다른 값을 말할 수
-/// 있었다. 운동 줄이 있으면 그 줄에서 함께 만든다.
-extension RoutineHistoryCompletion on RoutineHistoryEntry {
-  /// 배정된 운동 수. 줄이 없으면 0.
-  int get totalCount => exercises.length;
-
-  /// 그중 마친 수.
-  int get doneCount => exercises.where((ClientExerciseItem e) => e.done).length;
-
-  /// `3/3` — 카드 오른쪽 위, 퍼센트 바로 왼쪽에 선다.
-  String get completionCountLabel => '$doneCount/$totalCount';
-
-  /// 화면에 적는 이행률(%). 운동 줄이 있으면 그 줄로 만든 값이라 개수와 같은
-  /// 사실을 말한다. 줄이 없는 기록(옛 데이터)은 서버 값을 그대로 쓴다.
-  int get displayRate =>
-      totalCount == 0 ? completionRate : (doneCount / totalCount * 100).round();
-}
-
 /// 서버가 붙이는 고정 이름 → 종류 코드. 서버 `_HISTORY_KIND_CODES` 와 같다.
 ///
 /// 코드를 주지 않는 옛 서버와, 이름만 저장하는 데모 DB 의 행도 같은 문구로
@@ -158,10 +136,3 @@ String routineHistoryDateLabel(
   final DateTime? date = entry.date;
   return date == null ? entry.dateLabel : historyDateLabel(l, date, now: now);
 }
-
-/// 고객 피드백 상자의 제목. (#1453)
-///
-/// 개인 운동(배정 루틴)의 회원 피드백은 없앴다(#1825) — 화면은 PT·프로그램 세션
-/// 기록의 피드백만 그리므로 제목도 세션 전체에 달린 말 하나다.
-String clientFeedbackTitle(AppLocalizations l, RoutineHistoryEntry entry) =>
-    l.clientFeedbackSession;

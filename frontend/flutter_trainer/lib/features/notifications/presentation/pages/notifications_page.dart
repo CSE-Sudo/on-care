@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
+import 'package:oncare_trainer/features/notifications/presentation/trainer_notification_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -19,6 +20,10 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 데모 빌드는 이 화면에 닿지 않는다 — 저장소가 인박스 없음을 보고하고
 /// 사이드바 진입점이 그려지지 않는다([notificationInboxEnabledProvider]).
+///
+/// 서버는 한 쪽(100건)씩 준다. 목록 끝에 닿거나 "지난 알림 더 보기" 를 누르면
+/// 다음 쪽을 이어 붙인다(#2293). 전에는 100건이 전부라, 그보다 오래된 미읽음은
+/// 배지에만 잡히고 목록 어디에서도 볼 수 없었다.
 class NotificationsPage extends ConsumerWidget {
   /// Creates the inbox page.
   const NotificationsPage({super.key});
@@ -31,7 +36,8 @@ class NotificationsPage extends ConsumerWidget {
   ///
   /// 상담은 상담 요청함으로, 예약은 그 수업 날짜의 스케줄로, 담당 요청 수락은
   /// 새 담당 회원 상세로, 거절은 고객 목록으로 간다(#2292). 대상이 기록되기
-  /// 전의 옛 알림은 전처럼 오늘 스케줄로 간다.
+  /// 전의 옛 알림은 전처럼 오늘 스케줄로 간다. 회원 탈퇴로 사라진 상담 요청은
+  /// 상담 요청함으로 간다(#1632).
   @visibleForTesting
   static String? targetOf(
     TrainerNotification notification,
@@ -57,6 +63,9 @@ class NotificationsPage extends ConsumerWidget {
       null => AppRoutes.clients,
     },
     TrainerNotificationKind.inviteRejected => AppRoutes.clients,
+    // 요청은 사라졌지만 남은 요청을 이어 볼 자리다(#1632). 떠난 회원 상세는
+    // 열 수 없어 회원으로 가지 않는다.
+    TrainerNotificationKind.consultationWithdrawn => AppRoutes.consultations,
     TrainerNotificationKind.healthGoal ||
     TrainerNotificationKind.memberName => switch (notification.subjectId) {
       final String id => AppRoutes.clientDetail(id),
@@ -79,6 +88,10 @@ class NotificationsPage extends ConsumerWidget {
         await ref
             .read(trainerNotificationRepositoryProvider)
             .markRead(notification.id);
+        // 이어 받은 과거 쪽은 다시 읽지 않으므로 여기서 읽음을 비춘다.
+        ref
+            .read(trainerNotificationPagingProvider.notifier)
+            .markRead(notification.id);
         ref
           ..invalidate(trainerNotificationsProvider)
           ..invalidate(trainerUnreadNotificationsProvider);
@@ -99,6 +112,8 @@ class NotificationsPage extends ConsumerWidget {
       showAppToast(context, l.notifReadAllFailed, type: AppToastType.error);
       return;
     }
+    // 서버는 쪽과 무관하게 전체를 읽음으로 바꾼다. 받아 둔 과거 쪽도 같게 비춘다.
+    ref.read(trainerNotificationPagingProvider.notifier).markAllRead();
     ref
       ..invalidate(trainerNotificationsProvider)
       ..invalidate(trainerUnreadNotificationsProvider);
@@ -108,6 +123,9 @@ class NotificationsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final notifications = ref.watch(trainerNotificationsProvider);
+    final TrainerNotificationPaging paging = ref.watch(
+      trainerNotificationPagingProvider,
+    );
     final unread = ref.watch(trainerUnreadNotificationsProvider).valueOrNull;
 
     return AppWebPage(
@@ -139,25 +157,113 @@ class NotificationsPage extends ConsumerWidget {
                 ? null
                 : () => ref.invalidate(trainerNotificationsProvider),
           ),
-          data: (rows) {
+          data: (first) {
+            final TrainerNotificationInbox inbox = mergeTrainerNotifications(
+              first,
+              paging,
+            );
+            final List<TrainerNotification> rows = inbox.items;
             if (rows.isEmpty) {
               return AppEmptyState(
                 title: l.notifEmpty,
                 icon: Icons.notifications_none_rounded,
               );
             }
-            return ListView.separated(
-              itemCount: rows.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: OnCareSpacing.s8),
-              itemBuilder: (context, i) => _NotificationTile(
-                notification: rows[i],
-                onTap: () => _open(context, ref, rows[i]),
+            void loadMore() => ref
+                .read(trainerNotificationPagingProvider.notifier)
+                .loadMore(first);
+            final bool footer = inbox.hasMore || inbox.reachedEnd;
+            return NotificationListener<ScrollNotification>(
+              // 끝에 가까워지면 알아서 이어 받는다. 실패한 뒤에는 멈춘다 —
+              // 스크롤할 때마다 실패한 요청을 되풀이하지 않고 재시도 버튼을 둔다.
+              onNotification: (ScrollNotification n) {
+                if (n.metrics.extentAfter < _autoLoadExtent && inbox.hasMore) {
+                  ref
+                      .read(trainerNotificationPagingProvider.notifier)
+                      .autoLoadMore(first);
+                }
+                return false;
+              },
+              child: ListView.separated(
+                itemCount: rows.length + (footer ? 1 : 0),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: OnCareSpacing.s8),
+                itemBuilder: (context, i) {
+                  if (i == rows.length) {
+                    return _LoadMoreFooter(inbox: inbox, onLoadMore: loadMore);
+                  }
+                  return _NotificationTile(
+                    notification: rows[i],
+                    onTap: () => _open(context, ref, rows[i]),
+                  );
+                },
               ),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// 목록 끝에서 몇 픽셀 남았을 때 다음 쪽을 부를지. 한 줄 높이 몇 개 정도 —
+/// 끝에 닿기 전에 불러 두면 스크롤이 멈칫하지 않는다.
+const double _autoLoadExtent = 240;
+
+/// 목록 맨 아래 — 이어 받는 중·실패·더 보기·끝. (#2293)
+///
+/// 스크롤이 생기지 않을 만큼 짧은 화면에서도 이어 받을 수 있게 "더 보기"
+/// 버튼을 늘 둔다. 첫 쪽만으로 끝난 짧은 알림함에는 아무것도 붙이지 않는다.
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({required this.inbox, required this.onLoadMore});
+
+  final TrainerNotificationInbox inbox;
+  final VoidCallback onLoadMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle caption = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary);
+    final Widget child;
+    if (inbox.loadingMore) {
+      child = const AppLoading.inline(
+        key: ValueKey<String>('notifications-loading-more'),
+      );
+    } else if (inbox.loadMoreError != null) {
+      child = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(l.notifLoadMoreFailed, style: caption),
+          const SizedBox(height: OnCareSpacing.s8),
+          AppButton(
+            key: const ValueKey<String>('notifications-load-more-retry'),
+            label: l.actionRetry,
+            variant: AppButtonVariant.secondary,
+            onPressed: onLoadMore,
+          ),
+        ],
+      );
+    } else if (inbox.hasMore) {
+      child = AppButton(
+        key: const ValueKey<String>('notifications-load-more'),
+        label: l.notifLoadMore,
+        variant: AppButtonVariant.secondary,
+        leadingIcon: Icons.history_rounded,
+        onPressed: onLoadMore,
+      );
+    } else {
+      child = Text(
+        l.notifNoEarlier,
+        key: const ValueKey<String>('notifications-end'),
+        style: caption,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
+      child: Center(child: child),
     );
   }
 }
@@ -216,6 +322,7 @@ class _NotificationTile extends StatelessWidget {
     TrainerNotificationKind.memberLeft => Icons.person_remove_rounded,
     TrainerNotificationKind.inviteAccepted => Icons.how_to_reg_rounded,
     TrainerNotificationKind.inviteRejected => Icons.person_off_rounded,
+    TrainerNotificationKind.consultationWithdrawn => Icons.event_busy_rounded,
     TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 
@@ -223,6 +330,10 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final bool unread = !notification.read;
+    final TrainerNotificationText text = trainerNotificationText(
+      AppLocalizations.of(context),
+      notification,
+    );
     // 미읽음은 옅은 브랜드 채움 + 빨간 점 + 제목 600 으로 구분한다(#1690).
     // 진한 남색 채움은 목록 글자를 가려 규격에서 뺐다(#1703).
     return DecoratedBox(
@@ -232,8 +343,8 @@ class _NotificationTile extends StatelessWidget {
       ),
       child: AppListRow(
         key: ValueKey<String>('notification-${notification.id}'),
-        title: notification.title,
-        subtitle: notification.body.isEmpty ? null : notification.body,
+        title: text.title,
+        subtitle: text.body.isEmpty ? null : text.body,
         unread: unread,
         onTap: onTap,
         leading: Icon(

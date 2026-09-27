@@ -99,12 +99,14 @@
   "authErrEmptyCredentials": "이메일과 비밀번호를 입력해 주세요",
   "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
   "authErrSignInFailed": "로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  "authSessionExpired": "로그인이 만료되었어요. 다시 로그인해 주세요.",
   "authErrNameEmpty": "이름을 입력해 주세요",
   "authErrNameTooLong": "이름은 100자까지 입력할 수 있어요",
   "authErrEmailEmpty": "이메일을 입력해 주세요",
   "authErrEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authErrPasswordEmpty": "비밀번호를 입력해 주세요",
   "authErrPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
+  "authErrPasswordTooLong": "비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)",
   "authErrPhoneInvalid": "전화번호를 010-0000-0000 형식으로 입력해 주세요",
   "authErrBirthDateInvalid": "생년월일을 1996-03-21 형식으로 입력해 주세요",
   "authErrPasswordMismatch": "비밀번호가 일치하지 않아요",
@@ -460,11 +462,9 @@
   "programNone": "등록된 프로그램 없음",
   "legendDone": "완료",
   "clientFeedback": "회원 피드백",
-  "clientFeedbackSession": "이 세션에 대한 회원 피드백",
   "workoutKindAiPersonal": "AI 개인운동",
   "workoutKindPtSession": "PT 세션 · 트레이너 지도",
   "workoutKindAssignedRoutine": "배정 루틴 수행",
-  "trainerNote": "트레이너 메모",
   "dietLoadFailed": "식단을 불러오지 못했어요",
   "dietEmpty": "아직 기록된 식단이 없어요",
   "dietDayEmpty": "기록 없음",
@@ -492,6 +492,17 @@
   "aiAnalysis": "AI 분석",
   "aiPeriodAnalysis": "AI 기간 분석",
   "aiAllAnalysis": "AI 전체 분석",
+  "clientDietAdviceTodayOver": "나트륨이 목표치를 {over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.",
+  "clientDietAdviceTodayBalanced": "오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.",
+  "clientDietAdviceWeekEmpty": "이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.",
+  "clientDietAdviceAllEmpty": "기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.",
+  "clientDietAdviceWeekManyOver": "이번 주 {days}일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.",
+  "clientDietAdviceWeekWeekend": "주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.",
+  "clientDietAdviceWeekSomeOver": "이번 주 {days}일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.",
+  "clientDietAdviceWeekAllUnder": "이번 주 {days}일 모두 나트륨을 권장량 안에서 지켰어요!",
+  "clientDietAdviceAllWeekend": "최근 {weeks}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.",
+  "clientDietAdviceAllRatio": "최근 {weeks}주 중 {percent}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.",
+  "clientDietAdviceAllMostlyUnder": "최근 {weeks}주 기록한 {days}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.",
   "consultStatusRejected": "거절됨",
   "dateToday": "오늘",
   "dateTomorrow": "내일",
@@ -918,12 +929,11 @@
   "myGymListLoading": "헬스장 목록을 불러오는 중이에요",
   "mySignOut": "로그아웃",
   "myPwCurrentRequired": "현재 비밀번호를 입력해 주세요",
-  "myPwTooShort": "새 비밀번호는 {min}자 이상이어야 해요",
   "myPwMismatch": "새 비밀번호가 서로 달라요",
   "myPwChangeFailed": "비밀번호를 변경할 수 없어요",
   "myPwChangeRetry": "변경에 실패했어요. 잠시 후 다시 시도해 주세요",
   "myPwCurrent": "현재 비밀번호",
-  "myPwNew": "새 비밀번호 ({min}자 이상)",
+  "myPwNew": "새 비밀번호 (영문·숫자 포함 {min}자 이상)",
   "myPwConfirm": "새 비밀번호 확인",
   "myPwChanging": "변경 중…",
   "mySettingsSaveFailed": "설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -1082,6 +1092,7 @@
   "aiRoutineSent": "{name}님에게 프로그램을 전송했어요",
   "aiExerciseWithMinutes": "{name} {minutes}분",
   "aiCustomRoutineNamed": "AI 맞춤 추천안 ({option})",
+  "aiCustomRoutineName": "AI 맞춤 추천안",
   "aiAnalysing": "AI가 분석 중…",
   "aiGenerateCandidates": "맞춤 추천안 후보 생성",
   "aiReviewDone": "검토 완료",
@@ -1117,6 +1128,12 @@
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
   "aiPersonalRationaleLabel": "AI 추천 사유",
+  "routineEvidenceRecentPtFeedback": "최근 PT 피드백 반영",
+  "routineEvidenceStrengthHeavy": "최근 근력운동 비중 높음",
+  "routineEvidenceBloodPressureGoal": "혈압 관리 목표",
+  "routineEvidenceLowCardio": "최근 유산소 비중 낮음",
+  "routineEvidenceRecentRecord": "최근 운동 기록 반영",
+  "aiPlanIntensityLow": "낮음",
   "aiPersonalStepFull": "개인운동은 한 번에 {count}개까지 정할 수 있어요.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }
@@ -1237,6 +1254,7 @@
   "coachDemoUnavailable": "데모 모드에서는 AI 코칭을 사용할 수 없어요",
   "coachNotMyClient": "담당 회원이 아니에요",
   "coachAskFailed": "질문을 보낼 수 없어요",
+  "coachRateLimited": "질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요",
   "slotFutureOnly": "현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.",
   "slotNotFound": "예약 슬롯을 찾을 수 없습니다.",
   "slotTypeLockedByBooking": "이미 예약된 자리의 종류는 바꿀 수 없습니다.",
@@ -1255,6 +1273,32 @@
   "notifReadAll": "모두 읽음",
   "notifEmpty": "아직 받은 알림이 없어요",
   "notifLoadFailed": "알림을 불러오지 못했어요",
+  "notifLoadMore": "지난 알림 더 보기",
+  "notifLoadMoreFailed": "지난 알림을 불러오지 못했어요",
+  "notifNoEarlier": "더 지난 알림이 없어요",
+  "notifTplHealthGoalTitle": "회원 건강 목표 변경",
+  "notifTplHealthGoalBody": "{name} 회원이 건강 목표를 바꿨어요: {goals}",
+  "notifTplNoGoals": "목표 없음",
+  "notifTplMemberRenamedTitle": "회원 이름 변경",
+  "notifTplMemberRenamedBody": "{oldName} 회원이 이름을 바꿨어요: {newName}",
+  "notifTplMemberWithdrawnTitle": "회원 탈퇴",
+  "notifTplMemberWithdrawnBody": "{name} 회원이 탈퇴했어요.",
+  "notifTplMemberDisconnectedTitle": "담당 연결 해제",
+  "notifTplMemberDisconnectedBody": "{name} 회원이 담당 연결을 끊었어요.",
+  "notifTplConsultRequestedTitle": "새 상담 요청이 도착했어요",
+  "notifTplConsultCancelledTitle": "상담 요청이 취소됐어요",
+  "notifTplConsultWithdrawnTitle": "회원 탈퇴로 상담 요청이 취소됐어요",
+  "notifTplInviteAcceptedTitle": "담당 요청이 수락되었어요",
+  "notifTplInviteAcceptedBody": "{name} 회원이 담당으로 연결되었어요.",
+  "notifTplInviteRejectedTitle": "담당 요청이 거절되었어요",
+  "notifTplInviteRejectedBody": "{name} 회원이 담당 요청을 거절했어요.",
+  "notifTplReservationBookedTitle": "새 예약이 들어왔어요",
+  "notifTplReservationCancelledTitle": "예약이 취소되었습니다",
+  "notifTplMemberWithDetail": "{name} 회원 · {detail}",
+  "notifTplMemberOnly": "{name} 회원",
+  "notifTplWhen": "{month}월 {day}일 {time}",
+  "notifTplMemberMessageTitle": "{name} 회원의 메시지",
+  "notifTplMemberPhotoBody": "사진을 보냈어요",
   "notifAllRead": "모두 확인했어요",
   "notifReadAllFailed": "읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요",
   "notifUnreadCount": "읽지 않은 알림 {count}건",
@@ -1320,12 +1364,6 @@
   "searchDetailNoUpcoming": "예정된 예약 없음",
   "searchDetailLastRoutine": "마지막 프로그램 {when}",
   "searchDetailCompletion": "이번 주 이행률 {percent}%",
-  "routineFeedbackTitle": "수행 피드백",
-  "routineFeedbackHint": "회원에게 전할 코칭 피드백을 입력해 주세요",
-  "routineFeedbackWrite": "피드백 작성",
-  "routineFeedbackEdit": "피드백 수정",
-  "routineFeedbackSaved": "피드백을 저장했어요",
-  "routineFeedbackFailed": "피드백을 저장하지 못했어요. 다시 시도해 주세요",
   "navOperationsGroup": "운영",
   "navCoachingGroup": "코칭",
   "dashTodayTasks": "오늘 할 일",
@@ -1968,26 +2006,10 @@
       }
     }
   },
-  "reportsReasonNoShow": "노쇼 {count}회",
-  "@reportsReasonNoShow": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "reportsReasonSessionDone": "PT {count}회 전량 소화",
   "@reportsReasonSessionDone": {
     "placeholders": {
       "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsReasonSilentDays": "{days}일 무기록",
-  "@reportsReasonSilentDays": {
-    "placeholders": {
-      "days": {
         "type": "int"
       }
     }
@@ -2043,6 +2065,23 @@
     }
   },
   "reportsSentRewrite": "이 내용으로 다시 작성",
+  "reportsResendTitle": "이미 보낸 리포트예요",
+  "reportsResendBody": "{name}님에게 {date} {time}에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.",
+  "@reportsResendBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsResendConfirm": "다시 보내기",
+  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.",
   "reportsSentBody": "보낸 피드백",
   "reportsSentFigures": "그때 보낸 수치",
   "reportsStepReview": "확인",

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:demo_fixture/demo_fixture.dart';
 
 import 'package:oncare/core/points/demo_points_ledger.dart';
@@ -578,6 +580,48 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       ),
     );
   }
+
+  /// 데모의 사진 전송 — 고른 바이트를 그대로 대화에 붙인다. (#1665)
+  ///
+  /// 데모에는 내려받을 서버가 없어 [CoachAttachment.localBytes] 로 그린다. 같은
+  /// [clientRequestId] 로 다시 보내면 실서버처럼 먼저 보낸 것을 돌려준다 — 재시도로
+  /// 사진이 두 장 쌓이지 않는다.
+  @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) async {
+    final CoachMessage? sent = _sentPhotos[clientRequestId];
+    if (sent != null) return sent;
+    final DateTime now = nowKst();
+    final String fileId = 'demo-photo-${now.microsecondsSinceEpoch}';
+    final CoachMessage message = CoachMessage(
+      id: 'me-${now.microsecondsSinceEpoch}',
+      sender: CoachSender.me,
+      body: text.trim(),
+      timeLabel:
+          '${now.hour.toString().padLeft(2, '0')}:'
+          '${now.minute.toString().padLeft(2, '0')}',
+      createdAt: now,
+      attachment: CoachAttachment(
+        kind: CoachAttachmentKind.image,
+        fileName: fileName,
+        fileId: fileId,
+        fileSize: bytes.length,
+        downloadPath: '/chat/attachments/$fileId',
+        localBytes: bytes,
+      ),
+    );
+    _sentPhotos[clientRequestId] = message;
+    _chat.add(message);
+    return message;
+  }
+
+  /// 멱등키 → 그 키로 보낸 사진 메시지.
+  final Map<String, CoachMessage> _sentPhotos = <String, CoachMessage>{};
 
   @override
   Future<void> markRead() async => _read = true;

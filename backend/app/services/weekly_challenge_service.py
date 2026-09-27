@@ -40,7 +40,12 @@ from app.schemas.challenge_api import (
     ChallengeOut,
     WeeklyChallengeOut,
 )
-from app.services import exercise_activity, notification_service, points_service
+from app.services import (
+    exercise_activity,
+    notification_service,
+    notification_templates,
+    points_service,
+)
 
 #: 참가할 때 거는 포인트와, 목표를 채우면 돌려받는 포인트.
 STAKE = 100
@@ -300,14 +305,13 @@ def settle_due(db: Session, member_id: str) -> int:
                 source_id=row.id,
                 amount=row.reward,
             )
-        title, body = _result_message(row, days=days, succeeded=succeeded)
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notification_service.WEEKLY_CHALLENGE,
             category=notification_service.MEMBER_POINTS_SHOP,
-            title=title,
-            body=body,
+            template=notification_templates.MEMBER_CHALLENGE_RESULT,
+            template_args=_result_args(row, days=days, succeeded=succeeded),
         )
         settled += 1
     db.flush()
@@ -391,20 +395,15 @@ def _join_out(db: Session, member_id: str, row: WeeklyChallenge) -> ChallengeJoi
     )
 
 
-def _result_message(
+def _result_args(
     row: WeeklyChallenge, *, days: int, succeeded: bool
-) -> tuple[str, str]:
-    """결과 알림의 제목과 본문."""
-    start = date.fromisoformat(row.week_start)
-    end = start + timedelta(days=6)
-    period = f"{start.month}월 {start.day}일~{end.month}월 {end.day}일"
-    if succeeded:
-        return (
-            f"주간 챌린지 성공! {row.reward:,}P를 받았어요",
-            f"{period} 목표 {row.goal}회를 채워 {row.reward:,}P를 돌려받았어요.",
-        )
-    return (
-        "주간 챌린지 목표를 채우지 못했어요",
-        f"{period} 목표 {row.goal}회 중 {days}회 운동해 건 {row.stake:,}P는 사라졌어요. "
-        "다음 주 월·화요일에 다시 참가할 수 있어요.",
-    )
+) -> dict[str, object]:
+    """결과 알림 틀의 인자(#2302). 문장은 `notification_templates` 가 언어별로 만든다."""
+    return {
+        "succeeded": succeeded,
+        "week_start": row.week_start,
+        "goal": row.goal,
+        "days": days,
+        "reward": row.reward,
+        "stake": row.stake,
+    }

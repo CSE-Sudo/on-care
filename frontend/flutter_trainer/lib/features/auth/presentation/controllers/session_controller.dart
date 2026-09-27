@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
+import 'package:oncare_trainer/core/network/session_refresh.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
@@ -20,15 +21,25 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 /// is rejected (the trainer and member apps use separate accounts). In
 /// `USE_MOCK_API=true` / demo mode the same flow runs against the
 /// in-memory mock repository.
-class SessionController extends StateNotifier<SessionState> {
+class SessionController extends StateNotifier<SessionState>
+    implements SessionTokenRefresher {
   SessionController(this._ref) : super(const SessionState()) {
     // 첫 값(복구 전 unknown)은 기준으로만 삼는다 — provider 를 만드는 도중에
     // 다른 provider 를 고치면 Riverpod 이 막는다.
     addListener(_syncAccountScope, fireImmediately: false);
+    // 실행 중 401 을 받은 인터셉터가 이 컨트롤러로 토큰을 회전한다(#1546).
+    _refreshBridge = _ref.read(sessionRefreshBridgeProvider)..attach(this);
     _restore();
   }
 
   final Ref _ref;
+  late final SessionRefreshBridge _refreshBridge;
+
+  @override
+  void dispose() {
+    _refreshBridge.detach(this);
+    super.dispose();
+  }
 
   /// 마지막으로 [accountScopeProvider] 에 반영한 계정 경계. (#2285)
   SessionStatus _scopeStatus = SessionStatus.unknown;
@@ -164,6 +175,8 @@ class SessionController extends StateNotifier<SessionState> {
     AuthFailure.unknown ||
     AuthFailure.emailTaken ||
     AuthFailure.inviteCodeInvalid ||
+    AuthFailure.passwordWeak ||
+    AuthFailure.passwordTooLong ||
     AuthFailure.noSocialToken ||
     AuthFailure.emptyCredentials => false,
   };
@@ -266,6 +279,7 @@ class SessionController extends StateNotifier<SessionState> {
     try {
       final profile = await _repo.fetchProfile(tokens.access);
       if (!mounted) return;
+      _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
       state = SessionState(
         status: SessionStatus.authenticated,
         profile: profile,
@@ -312,6 +326,89 @@ class SessionController extends StateNotifier<SessionState> {
     await _revokeSession();
     // 사용자가 직접 요청한 만료다 — 자기 자신의 가드에 막히면 안 된다.
     await _expire(userInitiated: true);
+    // 직접 로그아웃한 것이다 — 만료 안내가 남아 있었다면 거둔다.
+    if (mounted) _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
+  }
+
+  // --- 실행 중 만료 (#1546) -----------------------------------------------
+
+  /// 이 세션이 아직 [token] 으로 로그인해 있는가.
+  ///
+  /// 느린 갱신 중에 로그아웃했거나 다른 계정으로 로그인했다면 거짓이다 — 그때
+  /// 뒤늦게 도착한 갱신 결과가 새 세션을 덮거나 끝내면 안 된다.
+  bool _holdsToken(String token) =>
+      mounted &&
+      state.status == SessionStatus.authenticated &&
+      _ref.read(authAccessTokenProvider) == token;
+
+  /// 실행 중 401 을 받은 뒤 갱신 토큰으로 한 번 회전한다.
+  ///
+  /// 복구([_refreshAndResolve])와 같은 기준([_endsSession])을 쓴다: 서버가
+  /// 갱신을 **거부한 것만** 세션의 끝이다. 연결 실패·5xx 는 저장된 토큰을 그대로
+  /// 두고 원래 오류를 돌려준다.
+  @override
+  Future<TokenRefreshResult> refreshAfterUnauthorized(String staleToken) async {
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    String? refresh;
+    try {
+      // 읽기도 저장 큐를 탄다 — 먼저 시작한 저장·삭제가 끝난 값을 읽는다.
+      await _serializeTokenStorage(() async {
+        refresh = await _tokens.readRefreshToken();
+      });
+    } catch (_) {
+      return const TokenRefreshResult.unavailable();
+    }
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    final String? stored = refresh;
+    if (stored == null || stored.isEmpty) {
+      // 접근 토큰은 거부됐고 회전할 수단이 없다 — 세션이 끝났다.
+      await _endExpiredSession(staleToken);
+      return const TokenRefreshResult.rejected();
+    }
+
+    final TrainerAuthTokens tokens;
+    try {
+      tokens = await _repo.refresh(stored);
+    } on AuthException catch (e) {
+      if (_endsSession(e.failure)) {
+        await _endExpiredSession(staleToken);
+        return const TokenRefreshResult.rejected();
+      }
+      return const TokenRefreshResult.unavailable();
+    } catch (_) {
+      return const TokenRefreshResult.unavailable();
+    }
+    // 회전하는 사이 로그아웃·다른 계정 로그인이 있었다면 새 토큰을 버린다.
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    final TrainerAuthTokens rotated = TrainerAuthTokens(
+      access: tokens.access,
+      refresh: tokens.refresh.isEmpty ? stored : tokens.refresh,
+    );
+    await _persist(rotated);
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    _setAccessToken(rotated.access);
+    return TokenRefreshResult.refreshed(rotated.access);
+  }
+
+  /// 갱신이 거부되었다 — 로그아웃과 같은 길([_expire])로 세션을 닫고 로그인
+  /// 화면에 안내를 띄운다.
+  ///
+  /// 서버는 이미 이 갱신 토큰을 받지 않으므로 폐기(`/auth/logout`)는 부르지 않는다.
+  Future<void> _endExpiredSession(String staleToken) async {
+    if (!_holdsToken(staleToken)) return;
+    // 로그인한 뒤라 사용자 행동 가드는 이미 켜져 있다. 그 가드는 **복구**가 뒤늦게
+    // 세션을 덮지 못하게 하는 것이고, 이 만료는 지금 세션에 대한 것이다.
+    await _expire(userInitiated: true);
+    if (!mounted || state.status != SessionStatus.signedOut) return;
+    _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
   }
 
   /// 저장된 갱신 토큰을 서버에서 폐기한다(`POST /auth/logout`).
@@ -397,6 +494,16 @@ class SessionController extends StateNotifier<SessionState> {
     state = const SessionState(status: SessionStatus.signedOut);
   }
 }
+
+/// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
+/// 거둔다. (#1546)
+///
+/// 세션 상태에 넣지 않는 이유: 세션 상태가 바뀔 때마다 라우터 가드와 계정 범위가
+/// 다시 계산된다. 안내를 거두는 일로 그것들이 다시 돌 이유가 없다.
+final sessionExpiredNoticeProvider = StateProvider<bool>(
+  (ref) => false,
+  name: 'sessionExpiredNotice',
+);
 
 /// Exposes the trainer session state + controller app-wide.
 final sessionControllerProvider =

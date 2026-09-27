@@ -39,7 +39,8 @@ class RequestBodySizeLimitMiddleware:
     전역이 아니라 경로 목록을 받는 이유: 이 상한은 **업로드**를 겨냥한 값이다.
     모든 요청에 걸면 대량 텍스트를 본문으로 받는 JSON 엔드포인트(`/coach-docs`
     의 문서 적재 등)까지 같은 상한에 묶여, 의도치 않게 기능을 자른다. 업로드
-    엔드포인트가 늘어나면 여기에 경로를 추가한다.
+    엔드포인트가 늘어나면 여기에 경로를 추가한다. 상한이 다른 경로(AI 코치 채팅처럼
+    작은 JSON 본문, #1549)는 인스턴스를 따로 등록한다.
     """
 
     def __init__(
@@ -48,10 +49,14 @@ class RequestBodySizeLimitMiddleware:
         *,
         max_bytes: int,
         protected_paths: Sequence[str],
+        detail: str | None = None,
     ) -> None:
         self.app = app
         self.max_bytes = max_bytes
         self.protected_paths = tuple(protected_paths)
+        # 413 문구. 주지 않으면 업로드용 기본 문구(최대 N MB)다. 업로드가 아닌 JSON
+        # 경로(AI 코치 채팅, #1549)는 "업로드 용량" 이라고 하면 틀린 말이라 따로 준다.
+        self.detail = detail
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or not self._is_protected(scope):
@@ -110,8 +115,9 @@ class RequestBodySizeLimitMiddleware:
         """413 을 직접 써 보낸다(앱을 거치지 않으므로 FastAPI 예외 경로가 없다)."""
         # 기존 415 처리와 같은 형태({"detail": ...})로 맞춘다.
         limit_mb = self.max_bytes / (1024 * 1024)
+        detail = self.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
         body = json.dumps(
-            {"detail": f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."},
+            {"detail": detail},
             ensure_ascii=False,
         ).encode("utf-8")
         await send(

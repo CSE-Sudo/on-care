@@ -17,8 +17,8 @@ def test_admin_email_set_parsing():
 
 
 def _register_login(client, email: str) -> str:
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
-    return client.post("/v1/auth/login", data={"username": email, "password": "pw!"}).json()["access_token"]
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
+    return client.post("/v1/auth/login", data={"username": email, "password": "test-pw-1234"}).json()["access_token"]
 
 
 def test_admin_can_upload_public_doc(client, db_session):

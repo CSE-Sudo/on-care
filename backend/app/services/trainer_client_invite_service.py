@@ -39,8 +39,10 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     consultation_service,
+    data_consent_service,
     member_pairing_service,
     notification_service,
+    notification_templates,
 )
 
 
@@ -181,7 +183,19 @@ def redeem_pairing_code(
 
         current = _active_trainer_id(db, member.id)
         if current == trainer_id:
-            raise MemberAlreadyCoached("이미 담당하고 있는 회원이에요.")
+            link = db.scalar(
+                select(TrainerClient).where(
+                    TrainerClient.trainer_id == trainer_id,
+                    TrainerClient.member_id == member.id,
+                )
+            )
+            if link is None or not data_consent_service.blocks_access(link):
+                raise MemberAlreadyCoached("이미 담당하고 있는 회원이에요.")
+            # 동의 없이 살아 있는 링크다. 회원이 코드를 띄운 것이 새 동의이므로
+            # 그 시각을 적는다(#1631). 코드는 이미 소비됐다.
+            data_consent_service.grant(link, used.consented_at)
+            db.commit()
+            return _paired_out(db, member)
         if current is not None:
             raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원이에요.")
 
@@ -218,17 +232,18 @@ def _notify_member_paired(db: Session, trainer_id: str, member_id: str) -> None:
     회원이 코드를 불러 준 뒤 트레이너가 언제 입력했는지는 회원 화면에 드러나지
     않는다. 알림이 없으면 자기 기록이 언제부터 공유됐는지 알 길이 없다.
     """
-    trainer_name = (
-        db.scalar(select(User.name).where(User.id == trainer_id)) or "트레이너"
-    )
+    # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
+    trainer_name = db.scalar(select(User.name).where(User.id == trainer_id)) or ""
     db.add(
         Notification(
             id=f"noti-{uuid.uuid4().hex[:12]}",
             user_id=member_id,
-            title="트레이너와 연결됐어요",
-            body=f"{trainer_name} 트레이너가 담당 코치가 됐어요. 식단·운동 기록이 공유돼요.",
             category=notification_service.MEMBER_CONSULTATION,
             read=False,
+            **notification_templates.columns(
+                notification_templates.MEMBER_TRAINER_CONNECTED,
+                {"trainer_name": trainer_name},
+            ),
         )
     )
 
@@ -358,6 +373,9 @@ def accept(
             member_id,
             consented_at=_now(),
         )
+    elif data_consent_service.blocks_access(existing):
+        # 동의 없이 살아 있는 링크다 — 방금 받은 동의를 적는다. (#1631)
+        data_consent_service.grant(existing, _now())
     consultation_service.link_member_gym(
         db, member_id, consultation_service.trainer_gym_id(db, row.trainer_id)
     )
@@ -365,14 +383,14 @@ def accept(
     row.status = "accepted"
     row.decided_at = _now()
 
-    member_name = db.scalar(select(User.name).where(User.id == member_id)) or "회원"
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
         db,
         trainer_id=row.trainer_id,
         # 상담이 아니라 담당 요청의 결과다 — 새 담당 회원 상세로 간다(#2292).
         kind=notification_service.TRAINER_INVITE_ACCEPTED_KIND,
-        title="담당 요청이 수락되었어요",
-        body=f"{member_name} 회원이 담당으로 연결되었어요.",
+        template=notification_templates.TRAINER_INVITE_ACCEPTED,
+        template_args={"member_name": member_name},
         subject_id=member_id,
     )
     db.commit()
@@ -386,14 +404,14 @@ def reject(db: Session, member_id: str, invite_id: str) -> MemberClientInviteOut
     row.status = "rejected"
     row.decided_at = _now()
 
-    member_name = db.scalar(select(User.name).where(User.id == member_id)) or "회원"
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
         db,
         trainer_id=row.trainer_id,
         # 담당이 아니어서 상세는 열 수 없다 — 고객 목록으로 간다(#2292).
         kind=notification_service.TRAINER_INVITE_REJECTED_KIND,
-        title="담당 요청이 거절되었어요",
-        body=f"{member_name} 회원이 담당 요청을 거절했어요.",
+        template=notification_templates.TRAINER_INVITE_REJECTED,
+        template_args={"member_name": member_name},
         subject_id=member_id,
     )
     db.commit()
@@ -420,17 +438,19 @@ def _notify_member(db: Session, row: TrainerClientInvite) -> None:
     보냈다는 사실 자체를 알 길이 없다.
     """
     trainer_name = (
-        db.scalar(select(User.name).where(User.id == row.trainer_id)) or "트레이너"
+        db.scalar(select(User.name).where(User.id == row.trainer_id)) or ""
     )
     db.add(
         Notification(
             id=f"noti-{uuid.uuid4().hex[:12]}",
             user_id=row.member_id,
-            title="담당 요청이 도착했어요",
-            body=f"{trainer_name} 트레이너가 담당 코치가 되기를 요청했어요.",
             category=notification_service.MEMBER_COACH_INVITE,
             invite_id=row.id,
             read=False,
+            **notification_templates.columns(
+                notification_templates.MEMBER_COACH_INVITE,
+                {"trainer_name": trainer_name},
+            ),
         )
     )
 

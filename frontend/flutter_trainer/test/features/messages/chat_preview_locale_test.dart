@@ -178,7 +178,11 @@ void main() {
             scrollable: find.byType(Scrollable).first,
           );
           expect(
-            find.descendant(of: emptyPreview, matching: find.text(empty)),
+            find.descendant(
+              of: emptyPreview,
+              matching: find.text(empty),
+              matchRoot: true,
+            ),
             findsOneWidget,
           );
 

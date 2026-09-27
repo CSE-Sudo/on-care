@@ -450,6 +450,9 @@ void main() {
       expect(find.textContaining('오늘 기록'), findsOneWidget);
       expect(find.textContaining('어제 기록'), findsNothing);
       expect(find.text('레그프레스 3세트 × 12회 · 80kg'), findsOneWidget);
+      // `1/1 · 100%` 는 적지 않는다 — 줄의 체크가 이미 말한다(#2329).
+      expect(find.textContaining('100%'), findsNothing);
+      expect(find.textContaining('1/1'), findsNothing);
       expect(toggle, findsOneWidget);
       expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
       // 접힌 상태에서는 접을 것이 없다 — 버튼도 없다.
