@@ -15,6 +15,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -45,6 +46,10 @@ const _client = TrainerClient(
 );
 
 class _CapturingRoutineRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   @override
   Future<void> assignProgram(
     String memberId,
@@ -87,6 +92,10 @@ class _CapturingRoutineRepository implements TrainerRoutineRepository {
 /// Always throws [error] from `assignRoutine`, to exercise the send
 /// button's failure-message branching (network vs. other).
 class _ThrowingRoutineRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   @override
   Future<void> assignProgram(
     String memberId,

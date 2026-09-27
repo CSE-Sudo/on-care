@@ -22,6 +22,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
@@ -1522,6 +1523,32 @@ class _SendHistoryCard extends ConsumerWidget {
     return _SectionCard(
       title: l.coachSentHistory,
       icon: Icons.history_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // 아직 보내지 않은 개인운동이 있으면 맨 위에서 알린다(#2225) — 지금은
+          // 그 사실이 스케줄 탭의 그 일정을 열어야만 보인다.
+          _UnsentRoutinesNotice(client: client),
+          // 직전 전송을 한 묶음으로 — PT 와 그때 함께 간 개인운동이 짝이라는
+          // 것을 여기서만 알 수 있다(#2224).
+          _LastDeliveryBox(client: client),
+          _buildHistory(context, ref, l, tokens, sessions, assigned, rowStyle),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistory(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l,
+    OnCareTokens tokens,
+    AsyncValue<List<ScheduleSession>> sessions,
+    AsyncValue<List<AssignedRoutine>> assigned,
+    TextStyle rowStyle,
+  ) {
+    final sessionArgs = (id: client.id, name: client.name);
+    return DefaultTextStyle.merge(
       child: sessions.when(
         loading: () => const AppLoading(placement: AppStatePlacement.card),
         error: (e, _) => AppErrorState(
@@ -1618,6 +1645,240 @@ class _SendHistoryCard extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// 아직 보내지 않은 개인운동이 있다고 알리고, 그 자리에서 보낸다. (#2225)
+///
+/// 붙여만 둔 개인운동은 그 PT 를 완료하고 보낼 때 함께 간다(#2224). 그 사실이
+/// 스케줄 탭의 그 일정을 열어야만 보여, 프로그램 탭만 보는 트레이너는 보낼
+/// 것이 남은 줄 몰랐다.
+class _UnsentRoutinesNotice extends ConsumerStatefulWidget {
+  const _UnsentRoutinesNotice({required this.client});
+
+  final TrainerClient client;
+
+  @override
+  ConsumerState<_UnsentRoutinesNotice> createState() =>
+      _UnsentRoutinesNoticeState();
+}
+
+class _UnsentRoutinesNoticeState extends ConsumerState<_UnsentRoutinesNotice> {
+  List<UnsentRoutine> _rows = const <UnsentRoutine>[];
+  bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(_UnsentRoutinesNotice oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.client.id != widget.client.id) unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await ref
+          .read(scheduleRepositoryProvider)
+          .fetchUnsentRoutinesFor(widget.client.id);
+      if (!mounted) return;
+      setState(() => _rows = rows);
+    } catch (_) {
+      // 읽지 못하면 조용히 숨긴다 — 없는 것을 있다고 말하지 않는다.
+      if (!mounted) return;
+      setState(() => _rows = const <UnsentRoutine>[]);
+    }
+  }
+
+  /// 붙은 PT 마다 그 일정의 전송을 부른다 — 보내는 규칙은 일정이 쥔다(#2224).
+  Future<void> _send() async {
+    if (_sending || _rows.isEmpty) return;
+    final l = AppLocalizations.of(context);
+    setState(() => _sending = true);
+    final repo = ref.read(scheduleRepositoryProvider);
+    try {
+      for (final id in _rows.map((r) => r.scheduleId).toSet()) {
+        await repo.sendScheduledRoutines(id);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      showAppToast(
+        context,
+        l.schedRoutinesSendFailed,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _sending = false);
+    ref.invalidate(assignedRoutinesProvider(widget.client.id));
+    await _load();
+    if (!mounted) return;
+    showAppToast(context, l.schedRoutinesSent, type: AppToastType.success);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_rows.isEmpty) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    return Padding(
+      key: const ValueKey<String>('coach-unsent-routines'),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: Container(
+        padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+        decoration: const BoxDecoration(
+          color: OnCareColors.surfaceInput,
+          borderRadius: OnCareRadius.mdAll,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              l.coachUnsentRoutines(_rows.length),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              l.coachUnsentRoutinesBody,
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppButton(
+              key: const ValueKey<String>('coach-send-unsent-routines'),
+              label: l.coachSendUnsentRoutines,
+              leadingIcon: Icons.send_rounded,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              loading: _sending,
+              onPressed: _send,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 직전 전송 한 묶음 — 종류·날짜·PT 프로그램·개인운동. (#2225)
+class _LastDeliveryBox extends ConsumerStatefulWidget {
+  const _LastDeliveryBox({required this.client});
+
+  final TrainerClient client;
+
+  @override
+  ConsumerState<_LastDeliveryBox> createState() => _LastDeliveryBoxState();
+}
+
+class _LastDeliveryBoxState extends ConsumerState<_LastDeliveryBox> {
+  SentDelivery? _delivery;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(_LastDeliveryBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.client.id != widget.client.id) unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final got = await ref
+          .read(trainerRoutineRepositoryProvider)
+          .fetchLatestDelivery(widget.client.id);
+      if (!mounted) return;
+      setState(() => _delivery = got);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _delivery = null);
+    }
+  }
+
+  String _kindLabel(AppLocalizations l, String kind) => switch (kind) {
+    DeliveryKinds.ptWithRoutine => l.coachDeliveryPtWithRoutine,
+    DeliveryKinds.cancelledRoutineOnly => l.coachDeliveryCancelledRoutineOnly,
+    _ => l.coachDeliveryRoutineOnly,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final delivery = _delivery;
+    if (delivery == null) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    final caption = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary);
+    final program = delivery.session?.program ?? const <ProgramItem>[];
+    return Padding(
+      key: const ValueKey<String>('coach-last-delivery'),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: Container(
+        padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+        decoration: const BoxDecoration(
+          color: OnCareColors.surfaceInput,
+          borderRadius: OnCareRadius.mdAll,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                AppTag(
+                  label: _kindLabel(l, delivery.kind),
+                  tone: AppTagTone.brand,
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                Expanded(
+                  child: Text(
+                    delivery.sentOn == null
+                        ? l.coachLastDelivery
+                        : l.coachDeliveryOn(ymd(delivery.sentOn!)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: caption,
+                  ),
+                ),
+              ],
+            ),
+            for (final item in program) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                'PT · ${item.name}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
+            ],
+            for (final r in delivery.routines) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                l.coachRoutineSummary(r.name, r.minutes),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

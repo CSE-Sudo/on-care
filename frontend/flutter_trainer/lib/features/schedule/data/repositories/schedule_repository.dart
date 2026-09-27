@@ -143,6 +143,13 @@ abstract interface class ScheduleRepository {
   /// 그래서 건마다 [SessionRoutine.sent] 로 가른다.
   Future<List<SessionRoutine>> fetchScheduledRoutines(String id);
 
+  /// 이 회원의 PT 에 붙여만 두고 **아직 보내지 않은** 개인운동. (#2225)
+  ///
+  /// 지금은 그 사실이 스케줄 탭의 그 일정을 열어야만 보인다 — 프로그램 탭에서도
+  /// 알리고 거기서 보낼 수 있어야 한다. 줄마다 붙은 일정 id 로 어느 PT 의
+  /// 것인지 안다.
+  Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId);
+
   /// 그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
   ///
   /// 일정 상세에서 바로 고치는 길이다. 프로그램 만들기로 돌아가지 않고 운동
@@ -219,6 +226,17 @@ abstract interface class ScheduleRepository {
   /// 루틴이 두 벌 생기지 않는다. 보낼 상대(회원)나 보낼 내용(프로그램)이 없거나
   /// 아직 완료 전이면 예외다. 이미 보낸 세션에 다시 부르면 조용히 성공한다.
   Future<void> sendProgram(String id, {String? clientRequestId});
+}
+
+/// 아직 보내지 않은 개인운동 한 건과 그것이 붙은 PT. (#2225)
+class UnsentRoutine {
+  /// Creates an unsent routine row.
+  const UnsentRoutine({required this.exercise, required this.scheduleId});
+
+  final RoutineExercise exercise;
+
+  /// 이 개인운동이 붙은 PT 일정 — 보내는 것은 그 일정의 전송이 맡는다.
+  final String scheduleId;
 }
 
 /// PT 일정에 붙어 있는 개인운동 한 건과 그 처지. (#2224)
@@ -792,6 +810,24 @@ class DriftScheduleRepository implements ScheduleRepository {
           in _editedRoutines[id] ?? _demoPersonalRoutines)
         SessionRoutine(exercise: e, sent: sent),
     ];
+  }
+
+  /// 이 회원의 일정을 돌며 아직 보내지 않은 개인운동을 모은다. 실 API 는
+  /// 서버가 한 번에 준다.
+  @override
+  Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
+    final rows = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.clientId.equals(clientId))).get();
+    final out = <UnsentRoutine>[];
+    for (final row in rows) {
+      for (final r in await fetchScheduledRoutines(row.id)) {
+        if (!r.sent) {
+          out.add(UnsentRoutine(exercise: r.exercise, scheduleId: row.id));
+        }
+      }
+    }
+    return out;
   }
 
   @override

@@ -306,6 +306,21 @@ class DioScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/trainer/clients/${Uri.encodeComponent(clientId)}/routines/unsent',
+    );
+    return <UnsentRoutine>[
+      for (final row in res.data ?? const <dynamic>[])
+        if (row is Map<String, dynamic> && row['schedule_id'] is String)
+          UnsentRoutine(
+            exercise: scheduledRoutineFromJson(row),
+            scheduleId: row['schedule_id'] as String,
+          ),
+    ];
+  }
+
+  @override
   Future<void> updateScheduledRoutines(
     String id,
     List<RoutineExercise> items,

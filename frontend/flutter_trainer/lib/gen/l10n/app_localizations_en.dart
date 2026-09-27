@@ -2588,6 +2588,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSentHistory => 'Sent history';
 
   @override
+  String get coachLastDelivery => 'Last send';
+
+  @override
+  String get coachDeliveryPtWithRoutine => 'PT · personal';
+
+  @override
+  String get coachDeliveryRoutineOnly => 'Personal only';
+
+  @override
+  String get coachDeliveryCancelledRoutineOnly =>
+      'PT cancelled · personal only';
+
+  @override
+  String coachDeliveryOn(String date) {
+    return 'Sent $date';
+  }
+
+  @override
+  String coachUnsentRoutines(int count) {
+    return '$count personal exercise(s) not sent yet';
+  }
+
+  @override
+  String get coachUnsentRoutinesBody =>
+      'Attached to a PT but not sent to the member yet. It goes out when you finish that PT and send.';
+
+  @override
+  String get coachSendUnsentRoutines => 'Send personal exercise';
+
+  @override
   String get coachHistoryFailed => 'Couldn\'t load history';
 
   @override

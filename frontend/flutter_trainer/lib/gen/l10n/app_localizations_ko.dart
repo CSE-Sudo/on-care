@@ -2451,6 +2451,35 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSentHistory => '전송 이력';
 
   @override
+  String get coachLastDelivery => '직전 전송';
+
+  @override
+  String get coachDeliveryPtWithRoutine => 'PT · 개인운동';
+
+  @override
+  String get coachDeliveryRoutineOnly => '개인운동만';
+
+  @override
+  String get coachDeliveryCancelledRoutineOnly => 'PT 취소 · 개인운동만';
+
+  @override
+  String coachDeliveryOn(String date) {
+    return '$date 보냄';
+  }
+
+  @override
+  String coachUnsentRoutines(int count) {
+    return '아직 보내지 않은 개인운동 $count개';
+  }
+
+  @override
+  String get coachUnsentRoutinesBody =>
+      'PT 에 붙여 두었지만 아직 회원에게 가지 않았어요. 그 PT 를 마치고 보내면 함께 가요.';
+
+  @override
+  String get coachSendUnsentRoutines => '개인운동 보내기';
+
+  @override
   String get coachHistoryFailed => '이력을 불러오지 못했어요';
 
   @override

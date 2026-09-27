@@ -28,6 +28,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
@@ -319,6 +320,10 @@ class _FixedClientRepository implements ClientRepository {
 /// 저장소의 한 명령으로 나가므로(#1580), 여기로 배정이 오면 잘못이다.
 /// `개인운동만` 전송이 실제로 부른 배정 본문을 붙잡는다. (#2223)
 class _CapturingProgramRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   final List<Map<String, Object?>> programs = <Map<String, Object?>>[];
 
   @override
@@ -355,6 +360,10 @@ class _CapturingProgramRepository implements TrainerRoutineRepository {
 }
 
 class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   @override
   Future<void> updateRoutine(
     String memberId,

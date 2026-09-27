@@ -4520,6 +4520,54 @@ abstract class AppLocalizations {
   /// **'Sent history'**
   String get coachSentHistory;
 
+  /// No description provided for @coachLastDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Last send'**
+  String get coachLastDelivery;
+
+  /// No description provided for @coachDeliveryPtWithRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'PT · personal'**
+  String get coachDeliveryPtWithRoutine;
+
+  /// No description provided for @coachDeliveryRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal only'**
+  String get coachDeliveryRoutineOnly;
+
+  /// No description provided for @coachDeliveryCancelledRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'PT cancelled · personal only'**
+  String get coachDeliveryCancelledRoutineOnly;
+
+  /// No description provided for @coachDeliveryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {date}'**
+  String coachDeliveryOn(String date);
+
+  /// No description provided for @coachUnsentRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} personal exercise(s) not sent yet'**
+  String coachUnsentRoutines(int count);
+
+  /// No description provided for @coachUnsentRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to a PT but not sent to the member yet. It goes out when you finish that PT and send.'**
+  String get coachUnsentRoutinesBody;
+
+  /// No description provided for @coachSendUnsentRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Send personal exercise'**
+  String get coachSendUnsentRoutines;
+
   /// No description provided for @coachHistoryFailed.
   ///
   /// In en, this message translates to:
