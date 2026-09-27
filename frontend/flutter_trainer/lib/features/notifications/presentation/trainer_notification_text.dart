@@ -69,12 +69,16 @@ TrainerNotificationText? _assemble(
       );
     case 'trainer_consult_requested':
     case 'trainer_consult_cancelled':
+    // 회원 탈퇴로 대기 요청이 함께 사라졌다(#1632). 이름은 탈퇴 직전 이름이다.
+    case 'trainer_consult_withdrawn':
       final Object? day = args['preferred_date'];
       if (name == null || day is! String || day.isEmpty) return null;
       return (
-        title: template == 'trainer_consult_requested'
-            ? l.notifTplConsultRequestedTitle
-            : l.notifTplConsultCancelledTitle,
+        title: switch (template) {
+          'trainer_consult_requested' => l.notifTplConsultRequestedTitle,
+          'trainer_consult_withdrawn' => l.notifTplConsultWithdrawnTitle,
+          _ => l.notifTplConsultCancelledTitle,
+        },
         body: l.notifTplMemberWithDetail(name, day),
       );
     case 'trainer_invite_accepted':
