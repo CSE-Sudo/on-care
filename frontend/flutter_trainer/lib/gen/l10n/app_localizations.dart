@@ -3974,6 +3974,54 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save your settings. Please try again in a moment'**
   String get mySettingsSaveFailed;
 
+  /// No description provided for @myNotifConsultation.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation requests'**
+  String get myNotifConsultation;
+
+  /// No description provided for @myNotifConsultationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a member requests a consultation or answers your invite'**
+  String get myNotifConsultationHint;
+
+  /// No description provided for @myNotifReservation.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookings'**
+  String get myNotifReservation;
+
+  /// No description provided for @myNotifReservationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a member books or changes a session'**
+  String get myNotifReservationHint;
+
+  /// No description provided for @myNotifMemberUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Member updates'**
+  String get myNotifMemberUpdates;
+
+  /// No description provided for @myNotifMemberUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a member changes goals or name, or disconnects'**
+  String get myNotifMemberUpdatesHint;
+
+  /// No description provided for @myNotifAlwaysOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Always on'**
+  String get myNotifAlwaysOn;
+
+  /// No description provided for @myNotifAlwaysOnNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation, booking and member alerts can\'t be turned off — they\'re ones you shouldn\'t miss'**
+  String get myNotifAlwaysOnNote;
+
   /// Display label for the '걷기' routine type. The stored/wire value stays Korean — see kRoutineTypes.
   ///
   /// In en, this message translates to:

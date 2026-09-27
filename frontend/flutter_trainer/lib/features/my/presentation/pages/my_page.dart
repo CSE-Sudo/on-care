@@ -30,24 +30,27 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// It is not a navigation destination on purpose: a trainer opens this
 /// a few times a month, and giving it a nav row would put it beside the
-/// five surfaces they use every day. Two sections behind one switch:
+/// five surfaces they use every day. Two sections behind one switch,
+/// 둘 다 회원 앱 MY 와 같은 문법이다(#2264):
 ///
-///  * **내 정보** — profile, certifications, this month's stats, gym.
-///    Edits persist through `PUT /v1/trainer/me` and the gym affiliation
-///    endpoints; mock mode follows the same repository contract (#477, #452).
-///    이름·이메일 입력은 비활성이다 — 값이 없어서가 아니라 **계정 소관**이라
-///    여기서 바꾸지 않는다.
-///  * **설정** — 알림 수신 설정은 `GET/PUT /v1/trainer/me/settings`(#379),
-///    비밀번호 변경은 `POST /v1/trainer/me/password` 로 서버에 저장된다.
-///    비밀번호 변경만 **데모에서 비활성**이고(바꿀 계정이 없다) 그 사유를 함께
-///    보여 준다 — 미구현이 아니라 그 빌드에서만 막히는 것이다.
-///    앱 정보(서비스·버전·문의)는 표시 전용이다.
-///    화면 언어는 이 브라우저에만 저장된다(#2296).
+///  * **내 정보** — profile, gym, certifications, this month's stats.
+///    본문은 읽기 전용이고, 프로필은 `프로필 수정` 하위 화면(`t=edit`)에서
+///    고친다. Edits persist through `PUT /v1/trainer/me` and the gym
+///    affiliation endpoints; mock mode follows the same repository contract
+///    (#477, #452). 이름·이메일 입력은 비활성이다 — 값이 없어서가 아니라
+///    **계정 소관**이라 여기서 바꾸지 않는다.
+///  * **설정** — 한 장짜리 목록이다. 알림·계정·고객 지원은 하위 화면으로
+///    열고(`t=notifications|account|support`), 화면 언어만 줄 안에서 고른다.
+///    알림 수신 설정은 `GET/PUT /v1/trainer/me/settings`(#379), 비밀번호
+///    변경은 `POST /v1/trainer/me/password` 로 서버에 저장된다. 비밀번호
+///    변경만 **데모에서 비활성**이고(바꿀 계정이 없다) 그 사유를 함께 보여
+///    준다. 화면 언어는 이 브라우저에만 저장된다(#2296).
 ///
 /// The Figma mock's "역할 전환" section is intentionally omitted — the
 /// trainer and member apps use fully separate accounts (CLAUDE.local.md).
 class MyPage extends ConsumerStatefulWidget {
-  /// Creates the page. [tab] is `profile` (default) or `settings`.
+  /// Creates the page. [tab] is a [_MySection] name; unknown values fall
+  /// back to `profile`.
   const MyPage({super.key, this.tab});
 
   /// Active section, from the `t` query parameter.
@@ -57,11 +60,36 @@ class MyPage extends ConsumerStatefulWidget {
   ConsumerState<MyPage> createState() => _MyPageState();
 }
 
-class _MyPageState extends ConsumerState<MyPage> {
-  /// 0 = 내 정보, 1 = 설정.
-  late int _tab = widget.tab == 'settings' ? 1 : 0;
+/// 이 화면의 구획 — `t` 쿼리 값과 이름이 같다.
+///
+/// 하위 화면은 자기가 속한 탭([parent])으로 돌아간다. 회원 관리·프로필 수정은
+/// 내 정보에서, 알림·계정·고객 지원은 설정 목록에서 들어온다.
+enum _MySection {
+  profile,
+  settings,
+  clients(parent: profile),
+  edit(parent: profile),
+  notifications(parent: settings),
+  account(parent: settings),
+  support(parent: settings);
 
-  bool _editing = false;
+  const _MySection({this.parent});
+
+  /// 뒤로 가면 돌아갈 탭. 탭 자체는 null 이다.
+  final _MySection? parent;
+
+  /// 위쪽 토글에서 켜 둘 탭.
+  _MySection get tab => parent ?? this;
+
+  static _MySection parse(String? value) => _MySection.values.firstWhere(
+    (s) => s.name == value,
+    orElse: () => _MySection.profile,
+  );
+}
+
+class _MyPageState extends ConsumerState<MyPage> {
+  _MySection get _section => _MySection.parse(widget.tab);
+
   bool _saving = false;
   bool _saveFlash = false;
   final Set<String> _removingClients = <String>{};
@@ -88,6 +116,8 @@ class _MyPageState extends ConsumerState<MyPage> {
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
     _draftGymId = _gym.id ?? '';
+    // 주소로 프로필 수정에 바로 들어와도(새로고침·뒤로) 빈 폼이 아니다.
+    if (_section == _MySection.edit) _loadDrafts();
   }
 
   @override
@@ -120,23 +150,23 @@ class _MyPageState extends ConsumerState<MyPage> {
     return authInputErrorText(l, AppInputRules.phone(phone));
   }
 
-  void _startEdit() {
-    setState(() {
-      _editing = true;
-      _showPhoneError = false;
-      _draftCerts = List<String>.of(_certs);
-      _draftGymId = _gym.id ?? '';
-      _field('name', _profile.name).text = _profile.name;
-      _field('email', _profile.email).text = _profile.email;
-      _field('phone', _profile.phone).text = _profile.phone;
-      _field('specialty', _profile.specialty).text = _profile.specialty;
-      _field('career', _profile.career).text = _profile.career;
-      _field('intro', _profile.intro).text = _profile.intro;
-      _field('gymName', _gym.name).text = _gym.name;
-      _field('gymAddress', _gym.address).text = _gym.address;
-      _field('gymHours', _gym.hours).text = _gym.hours;
-      _field('gymPhone', _gym.phone).text = _gym.phone;
-    });
+  /// 편집 초안을 저장된 값으로 채운다. 프로필 수정 화면에 들어올 때마다
+  /// 부른다 — 지난번에 저장하지 않고 나간 입력이 남으면 안 된다.
+  void _loadDrafts() {
+    _showPhoneError = false;
+    _draftCerts = List<String>.of(_certs);
+    _draftGymId = _gym.id ?? '';
+    _newCert.clear();
+    _field('name', _profile.name).text = _profile.name;
+    _field('email', _profile.email).text = _profile.email;
+    _field('phone', _profile.phone).text = _profile.phone;
+    _field('specialty', _profile.specialty).text = _profile.specialty;
+    _field('career', _profile.career).text = _profile.career;
+    _field('intro', _profile.intro).text = _profile.intro;
+    _field('gymName', _gym.name).text = _gym.name;
+    _field('gymAddress', _gym.address).text = _gym.address;
+    _field('gymHours', _gym.hours).text = _gym.hours;
+    _field('gymPhone', _gym.phone).text = _gym.phone;
   }
 
   Future<void> _save() async {
@@ -208,6 +238,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       setState(() => _saving = false);
       final message = _saveFailureMessage(error, profileSaved: profileSaved);
       showAppToast(context, message, type: AppToastType.error);
+      // 실패도 내 정보로 돌아간다 — 화면에는 서버에 실제로 남은 값을 보인다.
+      context.go(AppRoutes.mySection(_MySection.profile.name));
       return;
     }
 
@@ -215,6 +247,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     _flashTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) setState(() => _saveFlash = false);
     });
+    context.go(AppRoutes.mySection(_MySection.profile.name));
   }
 
   String _saveFailureMessage(Object error, {required bool profileSaved}) {
@@ -237,7 +270,6 @@ class _MyPageState extends ConsumerState<MyPage> {
       _certs = List<String>.of(saved.certifications);
       _draftCerts = List<String>.of(_certs);
       _draftGymId = saved.gym.id ?? '';
-      _editing = false;
       _saving = false;
       _saveFlash = true;
       _newCert.clear();
@@ -252,7 +284,6 @@ class _MyPageState extends ConsumerState<MyPage> {
       _certs = List<String>.of(restored.certifications);
       _draftCerts = List<String>.of(_certs);
       _draftGymId = restored.gym.id ?? '';
-      _editing = false;
     });
   }
 
@@ -317,52 +348,67 @@ class _MyPageState extends ConsumerState<MyPage> {
   @override
   void didUpdateWidget(MyPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.tab != oldWidget.tab) {
-      setState(() => _tab = widget.tab == 'settings' ? 1 : 0);
+    // 저장하지 않고 나간 초안은 다음에 들어올 때 저장된 값으로 덮는다.
+    if (_section == _MySection.edit && oldWidget.tab != _MySection.edit.name) {
+      setState(_loadDrafts);
     }
   }
+
+  void _go(_MySection section) => context.go(AppRoutes.mySection(section.name));
+
+  String _title(AppLocalizations l, _MySection section) => switch (section) {
+    _MySection.profile => l.myTabProfile,
+    _MySection.settings => l.myTabSettings,
+    _MySection.clients => l.myClientManagement,
+    _MySection.edit => l.myEditProfile,
+    _MySection.notifications => l.myNotifications,
+    _MySection.account => l.myAccount,
+    _MySection.support => l.mySupportTitle,
+  };
+
+  Widget _body(_MySection section) => switch (section) {
+    _MySection.profile => _buildProfile(),
+    _MySection.settings => _buildSettings(),
+    _MySection.clients => _buildClientManagement(),
+    _MySection.edit => _buildEdit(),
+    _MySection.notifications => _buildNotifications(),
+    _MySection.account => _buildAccount(),
+    _MySection.support => _buildSupport(),
+  };
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final managingClients = widget.tab == 'clients';
-    // 고객 지원은 설정 안의 하위 화면이다 — 회원 관리와 같은 방식으로 연다.
-    final viewingSupport = widget.tab == 'support';
-    final inSubView = managingClients || viewingSupport;
+    final _MySection section = _section;
+    final _MySection? parent = section.parent;
     // 다른 탭과 같은 폭을 쓴다(#2227). 좁은 틀은 큰 화면에서 이 화면만 양옆이
     // 크게 비어, 사이드바에서 옮겨 올 때 화면이 바뀐 것처럼 보였다.
     return AppWebPage(
-      title: managingClients
-          ? l.myClientManagement
-          : viewingSupport
-          ? l.mySupportTitle
-          : _tab == 0
-          ? l.myTabProfile
-          : l.myTabSettings,
+      title: _title(l, section),
       subtitle: _profile.name,
-      leading: inSubView
-          ? AppBackButton(
-              onPressed: () => context.go(
-                AppRoutes.mySection(managingClients ? 'profile' : 'settings'),
-              ),
-            )
-          : null,
-      actions: <Widget>[
-        if (!inSubView && _tab == 0)
-          if (_editing)
-            AppButton(
-              label: _saving ? l.mySaving : l.actionSave,
-              leadingIcon: Icons.check_rounded,
-              loading: _saving,
-              onPressed: _save,
-            )
-          else
-            AppButton(
-              label: l.myEditProfile,
-              leadingIcon: Icons.edit_rounded,
-              variant: AppButtonVariant.secondary,
-              onPressed: _saving ? null : _startEdit,
+      leading: parent == null
+          ? null
+          : AppBackButton(
+              // 저장 중에는 나가지 않는다 — 응답이 오면 알아서 돌아간다.
+              onPressed: () {
+                if (!_saving) _go(parent);
+              },
             ),
+      actions: <Widget>[
+        if (section == _MySection.profile)
+          AppButton(
+            label: l.myEditProfile,
+            leadingIcon: Icons.edit_rounded,
+            variant: AppButtonVariant.secondary,
+            onPressed: () => _go(_MySection.edit),
+          )
+        else if (section == _MySection.edit)
+          AppButton(
+            label: _saving ? l.mySaving : l.actionSave,
+            leadingIcon: Icons.check_rounded,
+            loading: _saving,
+            onPressed: _save,
+          ),
       ],
       // 보기 전환은 헤더가 아니라 본문 맨 위에 둔다 — 좁은 틀의 헤더에 토글과
       // 편집 버튼을 함께 올리면 화면 이름이 줄임표로 잘린다(#1004).
@@ -370,21 +416,22 @@ class _MyPageState extends ConsumerState<MyPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            if (!inSubView) ...<Widget>[
+            if (parent == null) ...<Widget>[
               Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: AppSegmentedToggle<int>(
-                  segments: <AppSegment<int>>[
-                    AppSegment<int>(value: 0, label: l.myTabProfile),
-                    AppSegment<int>(value: 1, label: l.myTabSettings),
+                child: AppSegmentedToggle<_MySection>(
+                  segments: <AppSegment<_MySection>>[
+                    AppSegment<_MySection>(
+                      value: _MySection.profile,
+                      label: l.myTabProfile,
+                    ),
+                    AppSegment<_MySection>(
+                      value: _MySection.settings,
+                      label: l.myTabSettings,
+                    ),
                   ],
-                  selected: _tab,
-                  onChanged: (i) {
-                    setState(() => _tab = i);
-                    context.go(
-                      AppRoutes.mySection(i == 0 ? 'profile' : 'settings'),
-                    );
-                  },
+                  selected: section.tab,
+                  onChanged: _go,
                 ),
               ),
               const SizedBox(height: OnCareSpacing.s16),
@@ -393,22 +440,19 @@ class _MyPageState extends ConsumerState<MyPage> {
               // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채 회원 관리로
               // 들어가면 목록이 중간부터 보였다.
               child: SingleChildScrollView(
-                key: ValueKey<String>(
-                  managingClients
-                      ? 'my-clients'
-                      : viewingSupport
-                      ? 'my-support'
-                      : _tab == 0
-                      ? 'my-profile'
-                      : 'my-settings',
+                key: ValueKey<String>('my-${section.name}'),
+                // 헤더·토글은 다른 탭과 같은 폭을 쓰고, 읽는 본문만 한 열
+                // 폭에서 멈춘다(#2264). 1440px 이상에서 한 열 카드가 끝까지
+                // 늘어나면 줄 끝의 화살표·스위치가 제목에서 너무 멀어진다.
+                child: Align(
+                  alignment: AlignmentDirectional.topStart,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: OnCareLayout.webNarrowMaxWidth,
+                    ),
+                    child: _body(section),
+                  ),
                 ),
-                child: managingClients
-                    ? _buildClientManagement()
-                    : viewingSupport
-                    ? _buildSupport()
-                    : _tab == 0
-                    ? _buildProfile()
-                    : _buildSettings(),
               ),
             ),
           ],
@@ -417,38 +461,67 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
   }
 
+  /// 내 정보 — 읽기 전용이다. 순서는 회원 앱 MY 와 같다: 나 → 소속 → 활동.
   Widget _buildProfile() {
     final AppLocalizations l = AppLocalizations.of(context);
     final clientCount = ref.watch(clientsProvider).valueOrNull?.length ?? 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (_editing) ...<Widget>[
-          Align(
-            alignment: Alignment.centerRight,
-            child: AppButton(
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-              onPressed: _saving
-                  ? null
-                  : () => setState(() {
-                      _editing = false;
-                      // Drop the un-added cert draft too — otherwise it
-                      // reappears on the next edit (PR review).
-                      _newCert.clear();
-                    }),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
         if (_saveFlash) ...<Widget>[
           AppBanner(title: l.mySaved, tone: AppBannerTone.success),
           const SizedBox(height: OnCareSpacing.s12),
         ],
+        _ProfileCard(profile: _profile, editing: false, field: _field),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppSectionHeader(title: l.myGym),
+        const SizedBox(height: OnCareSpacing.s8),
+        _GymCard(
+          gym: _gym,
+          editing: false,
+          field: _field,
+          choices: const AsyncValue<List<TrainerGymChoice>>.loading(),
+          selectedGymId: _gym.id ?? '',
+          onGymChanged: (_) {},
+        ),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppSectionHeader(title: l.myCertifications),
+        const SizedBox(height: OnCareSpacing.s8),
+        _CertsCard(
+          certs: _certs,
+          editing: false,
+          newCert: _newCert,
+          onAdd: () {},
+          onRemove: (_) {},
+        ),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppSectionHeader(title: l.myMonthStats),
+        const SizedBox(height: OnCareSpacing.s8),
+        _StatsCard(clientCount: clientCount),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: _NavRow(
+            key: const ValueKey<String>('my-clients-entry'),
+            icon: Icons.manage_accounts_rounded,
+            title: l.myClientManagement,
+            onTap: () => _go(_MySection.clients),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 프로필 수정 — 내 정보 본문을 편집 모드로 바꾸지 않고 따로 연다(#2264).
+  /// 저장은 헤더 버튼, 취소는 뒤로 가기다.
+  Widget _buildEdit() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
         _ProfileCard(
           profile: _profile,
-          editing: _editing,
+          editing: true,
           field: _field,
           phoneError: _showPhoneError ? _phoneError(l) : null,
           onPhoneChanged: _showPhoneError ? (_) => setState(() {}) : null,
@@ -457,8 +530,8 @@ class _MyPageState extends ConsumerState<MyPage> {
         AppSectionHeader(title: l.myCertifications),
         const SizedBox(height: OnCareSpacing.s8),
         _CertsCard(
-          certs: _editing ? _draftCerts : _certs,
-          editing: _editing,
+          certs: _draftCerts,
+          editing: true,
           newCert: _newCert,
           onAdd: () {
             final v = _newCert.text.trim();
@@ -471,23 +544,15 @@ class _MyPageState extends ConsumerState<MyPage> {
           onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
         ),
         const SizedBox(height: OnCareSpacing.sectionGap),
-        AppSectionHeader(title: l.myMonthStats),
-        const SizedBox(height: OnCareSpacing.s8),
-        _StatsCard(clientCount: clientCount),
-        const SizedBox(height: OnCareSpacing.sectionGap),
         AppSectionHeader(title: l.myGym),
         const SizedBox(height: OnCareSpacing.s8),
         _GymCard(
           gym: _gym,
-          editing: _editing,
+          editing: true,
           field: _field,
           choices: ref.watch(trainerGymChoicesProvider),
           selectedGymId: _draftGymId,
           onGymChanged: (value) => setState(() => _draftGymId = value),
-        ),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        _ClientManagementEntry(
-          onTap: () => context.go(AppRoutes.mySection('clients')),
         ),
       ],
     );
@@ -521,82 +586,167 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
+  /// 설정 — 회원 앱 MY 의 설정 목록과 같은 한 장짜리 목록이다(#2264).
+  ///
+  /// 줄마다 하위 화면으로 들어가고, 화면 언어만 줄 안에서 고른다(선택지가
+  /// 셋뿐이다). 고객 지원은 목록 끝, 로그아웃은 그 아래 맨 끝이다(#2227) —
+  /// 계정 줄들 사이에 버튼이 끼면 어디에 걸린 동작인지 흐려진다.
   Widget _buildSettings() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _NavRow(
+            key: const ValueKey<String>('my-notifications-entry'),
+            icon: Icons.notifications_rounded,
+            title: l.myNotifications,
+            onTap: () => _go(_MySection.notifications),
+          ),
+          const AppDivider(),
+          const _LanguageRow(),
+          const AppDivider(),
+          _NavRow(
+            key: const ValueKey<String>('my-account-entry'),
+            icon: Icons.lock_rounded,
+            title: l.myAccount,
+            onTap: () => _go(_MySection.account),
+          ),
+          const AppDivider(),
+          // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
+          // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
+          // 않는다(#505, #968).
+          _NavRow(
+            key: const ValueKey<String>('my-support-entry'),
+            icon: Icons.support_agent_rounded,
+            title: l.mySupportTitle,
+            onTap: () => _go(_MySection.support),
+          ),
+          const AppDivider(),
+          // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리).
+          Padding(
+            padding: const EdgeInsets.all(OnCareSpacing.s4),
+            child: AppButton(
+              key: const ValueKey<String>('my-logout-button'),
+              label: l.mySignOut,
+              leadingIcon: Icons.logout_rounded,
+              variant: AppButtonVariant.destructiveText,
+              size: OnCareButtonSize.large,
+              fullWidth: true,
+              onPressed: _signOut,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 알림 — 끌 수 있는 알림과 항상 오는 알림을 한 목록에 둔다(#2264).
+  ///
+  /// 상담 요청·예약·담당 회원 소식은 서버가 수신 설정 없이 항상 보낸다
+  /// (`notification_service._TRAINER_SETTING_COLUMN`). 목록에서 빼면 끌 수
+  /// 있는지조차 알 수 없으니, 잠긴 줄로 보여 주고 이유를 붙인다.
+  Widget _buildNotifications() {
     final AppLocalizations l = AppLocalizations.of(context);
     final settings = ref.watch(trainerSettingsProvider);
     final controller = ref.read(trainerSettingsProvider.notifier);
-    final account = ref.watch(trainerAccountRepositoryProvider);
-
+    final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _SettingsCard(
-          title: l.myNotifications,
-          icon: Icons.notifications_rounded,
-          children: <Widget>[
-            AppListRow(
-              title: l.myNotifNewMessage,
-              subtitle: l.myNotifNewMessageHint,
-              trailing: Switch(
-                value: settings.newMessageAlerts,
-                onChanged: (v) =>
-                    _applySetting(() => controller.setNewMessageAlerts(v)),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        _SettingsCard(
-          title: l.myLanguage,
-          icon: Icons.language_rounded,
-          children: const <Widget>[_LanguageRow()],
-        ),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        _SettingsCard(
-          title: l.myAccount,
-          icon: Icons.lock_rounded,
-          children: <Widget>[
-            AppListRow(
-              title: l.myChangePassword,
-              subtitle: account.supportsPasswordChange
-                  ? l.myChangePasswordHint
-                  : l.myChangePasswordDemo,
-              trailing: AppButton(
-                label: l.actionChange,
-                leadingIcon: Icons.key_rounded,
-                variant: AppButtonVariant.secondary,
-                size: OnCareButtonSize.small,
-                onPressed: account.supportsPasswordChange
-                    ? _openPasswordDialog
-                    : null,
-              ),
-            ),
-            const AppDivider(),
-            _InfoRow(label: l.myLoginAccount, value: _profile.email),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        // 약관·개인정보와 탈퇴는 고객 지원 안으로 옮겼다(#2227). 회원 앱과 같은
-        // 자리다 — 읽는 문서와 계정을 정리하는 줄을 한곳에 모으면, 매일 쓰는
-        // 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지 않는다(#505, #968).
-        _SupportEntry(onTap: () => context.go(AppRoutes.mySection('support'))),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리). 자리는 설정 맨
-        // 아래다(#2227) — 계정 카드 안에 두면 읽는 줄들 사이에 버튼이 끼어
-        // 어디에 걸린 동작인지 흐려졌다. 회원 앱 설정도 같은 자리다.
         AppCard(
-          padding: const EdgeInsets.all(OnCareSpacing.s4),
-          child: AppButton(
-            key: const ValueKey<String>('my-logout-button'),
-            label: l.mySignOut,
-            leadingIcon: Icons.logout_rounded,
-            variant: AppButtonVariant.destructiveText,
-            size: OnCareButtonSize.large,
-            fullWidth: true,
-            onPressed: _signOut,
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              AppListRow(
+                title: l.myNotifNewMessage,
+                subtitle: l.myNotifNewMessageHint,
+                // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
+                // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
+                trailing: Semantics(
+                  label: l.myNotifNewMessage,
+                  excludeSemantics: true,
+                  child: Switch(
+                    key: const ValueKey<String>('my-notif-new-message'),
+                    value: settings.newMessageAlerts,
+                    onChanged: (v) =>
+                        _applySetting(() => controller.setNewMessageAlerts(v)),
+                  ),
+                ),
+              ),
+              for (final (String title, String hint) in <(String, String)>[
+                (l.myNotifConsultation, l.myNotifConsultationHint),
+                (l.myNotifReservation, l.myNotifReservationHint),
+                (l.myNotifMemberUpdates, l.myNotifMemberUpdatesHint),
+              ]) ...<Widget>[
+                const AppDivider(),
+                AppListRow(
+                  title: title,
+                  subtitle: hint,
+                  trailing: Text(
+                    l.myNotifAlwaysOn,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.textTertiary),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Text(
+          l.myNotifAlwaysOnNote,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
       ],
+    );
+  }
+
+  /// 계정 — 비밀번호 변경과 로그인 계정. 이름·이메일도 계정 소관이라 프로필
+  /// 수정에서는 비활성이다.
+  Widget _buildAccount() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final account = ref.watch(trainerAccountRepositoryProvider);
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppListRow(
+            title: l.myLoginAccount,
+            trailing: Text(
+              _profile.email,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+          ),
+          const AppDivider(),
+          AppListRow(
+            title: l.myChangePassword,
+            subtitle: account.supportsPasswordChange
+                ? l.myChangePasswordHint
+                : l.myChangePasswordDemo,
+            trailing: AppButton(
+              label: l.actionChange,
+              leadingIcon: Icons.key_rounded,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: account.supportsPasswordChange
+                  ? _openPasswordDialog
+                  : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -705,46 +855,58 @@ class _MyPageState extends ConsumerState<MyPage> {
   }
 }
 
-/// 설정 탭의 카드 — 제목 줄 아래에 [AppListRow] 들을 세로로 쌓는다.
-///
-/// 행이 자기 좌우 여백 16 을 가지므로 카드는 위아래만 채우고, 제목도 행과 같은
-/// 16 에서 시작한다.
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({
-    required this.title,
-    required this.icon,
-    required this.children,
-  });
+/// 목록의 아이콘 자리. 회원 앱 설정 목록과 같은 크기·색이다 — 줄마다 제목이
+/// 같은 선에서 시작한다.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon});
 
-  final String title;
   final IconData icon;
-  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              OnCareSpacing.s16,
-              OnCareSpacing.s4,
-              OnCareSpacing.s16,
-              OnCareSpacing.s4,
-            ),
-            child: AppSectionHeader(title: title, icon: icon),
-          ),
-          ...children,
-        ],
+    return SizedBox(
+      width: OnCareSize.avatarLarge,
+      height: OnCareSize.avatarLarge,
+      child: Icon(
+        icon,
+        size: OnCareSize.iconMedium,
+        color: context.oncare.brand.primary,
       ),
     );
   }
 }
 
+/// 하위 화면으로 들어가는 한 줄 — 아이콘 자리 + 제목 + 화살표.
+class _NavRow extends StatelessWidget {
+  const _NavRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListRow(
+      leading: _IconTile(icon: icon),
+      title: title,
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textTertiary,
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
 /// 화면 언어 한 줄(#2296). 고르는 방식은 회원 목록의 정렬처럼 지금 값을 단
-/// 버튼과 그 아래 메뉴다 — 선택지가 셋뿐이라 창을 따로 띄울 일이 아니다.
+/// 버튼과 그 아래 메뉴다 — 선택지가 셋뿐이라 하위 화면을 따로 둘 일이 아니다.
+/// 목록의 다른 줄과 같은 아이콘 자리를 쓴다(#2264).
 class _LanguageRow extends ConsumerWidget {
   const _LanguageRow();
 
@@ -762,6 +924,7 @@ class _LanguageRow extends ConsumerWidget {
       ref.watch(trainerLocaleProvider),
     );
     return AppListRow(
+      leading: const _IconTile(icon: Icons.language_rounded),
       title: l.myLanguageApp,
       subtitle: l.myLanguageHint,
       trailing: AppMenu(
@@ -938,7 +1101,6 @@ class _ProfileCard extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return AppCard(
-      selected: editing,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -979,6 +1141,17 @@ class _ProfileCard extends StatelessWidget {
               ),
             ],
           ),
+          // 읽기 전용 본문에도 소개를 보인다 — 예전에는 편집 모드에서만 보여,
+          // 무엇을 써 두었는지 확인하려면 수정 화면을 열어야 했다(#2264).
+          if (!editing && profile.intro.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            Text(
+              profile.intro,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          ],
           if (editing) ...<Widget>[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
@@ -1148,40 +1321,6 @@ class _CertsCard extends StatelessWidget {
   }
 }
 
-/// 설정 맨 아래의 고객 지원 입구. 회원 관리 입구와 같은 모양이다(#2227).
-class _SupportEntry extends StatelessWidget {
-  const _SupportEntry({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Semantics(
-      button: true,
-      child: AppCard(
-        key: const ValueKey<String>('my-support-entry'),
-        onTap: onTap,
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: AppSectionHeader(
-                title: l.mySupportTitle,
-                icon: Icons.support_agent_rounded,
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: OnCareSize.iconMedium,
-              color: OnCareColors.textTertiary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// 고객 지원의 한 줄. 카카오톡 채널처럼 앱 밖으로 나가는 줄은 그렇다고
 /// 말해 준다 — 눌렀을 때 화면이 바뀌지 않는 이유를 미리 알린다(#507).
 class _SupportRow extends StatelessWidget {
@@ -1216,38 +1355,6 @@ class _SupportRow extends StatelessWidget {
         color: OnCareColors.textTertiary,
       ),
       onTap: onTap,
-    );
-  }
-}
-
-class _ClientManagementEntry extends StatelessWidget {
-  const _ClientManagementEntry({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Semantics(
-      button: true,
-      child: AppCard(
-        onTap: onTap,
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: AppSectionHeader(
-                title: l.myClientManagement,
-                icon: Icons.manage_accounts_rounded,
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: OnCareSize.iconMedium,
-              color: OnCareColors.textTertiary,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -1455,7 +1562,6 @@ class _GymCard extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return AppCard(
-      selected: editing,
       child: editing
           ? Column(
               children: <Widget>[
@@ -1824,47 +1930,6 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
             obscureText: true,
             errorText: _errorFor(_PasswordField.confirm),
             onChanged: (_) => _clearError(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s16,
-        vertical: OnCareSpacing.s8,
-      ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(
-              label,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          ),
-          Flexible(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                  .copyWith(color: OnCareColors.textPrimary),
-            ),
           ),
         ],
       ),

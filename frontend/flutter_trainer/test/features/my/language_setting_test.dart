@@ -52,12 +52,12 @@ Future<void> _choose(WidgetTester tester, TrainerLanguage language) async {
 
 void main() {
   group('설정 · 화면 언어', () {
-    testWidgets('shows the language card, following the browser by default', (
+    testWidgets('shows the language row, following the browser by default', (
       tester,
     ) async {
       await _openSettings(tester);
 
-      expect(find.text('언어'), findsOneWidget);
+      // 설정 목록의 한 줄이다(#2264) — 카드 제목 '언어' 는 따로 없다.
       expect(find.text('화면 언어'), findsOneWidget);
       expect(find.text('이 브라우저에서 콘솔을 볼 언어를 골라요'), findsOneWidget);
       expect(
@@ -74,7 +74,7 @@ void main() {
       await _openSettings(tester);
 
       final double notif = tester.getTopLeft(find.text('알림')).dy;
-      final double language = tester.getTopLeft(find.text('언어')).dy;
+      final double language = tester.getTopLeft(find.text('화면 언어')).dy;
       final double account = tester.getTopLeft(find.text('계정')).dy;
       expect(notif, lessThan(language));
       expect(language, lessThan(account));
@@ -256,7 +256,10 @@ void main() {
 
       await _choose(tester, TrainerLanguage.english);
 
-      // 알림 스위치는 언어를 바꾼 뒤에도 그대로 살아 있다.
+      // 알림 스위치는 언어를 바꾼 뒤에도 그대로 살아 있다. 스위치는 알림
+      // 하위 화면에 있다(#2264).
+      await tester.tap(find.text('Notifications'));
+      await settle(tester);
       final Finder toggle = find.byType(Switch);
       expect(toggle, findsOneWidget);
       expect(tester.widget<Switch>(toggle).value, isTrue);
@@ -265,7 +268,7 @@ void main() {
       await tester.tap(toggle);
       await settle(tester);
       expect(tester.widget<Switch>(toggle).value, isFalse);
-      expect(find.text('Display language'), findsOneWidget);
+      expect(find.text('New message alerts'), findsOneWidget);
     });
   });
 }

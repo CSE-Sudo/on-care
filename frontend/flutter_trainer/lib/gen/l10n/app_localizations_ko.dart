@@ -2132,6 +2132,30 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySettingsSaveFailed => '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get myNotifConsultation => '상담 요청';
+
+  @override
+  String get myNotifConsultationHint => '회원이 상담을 신청하거나 초대에 답하면 알려드려요';
+
+  @override
+  String get myNotifReservation => '예약';
+
+  @override
+  String get myNotifReservationHint => '회원이 예약을 신청하거나 바꾸면 알려드려요';
+
+  @override
+  String get myNotifMemberUpdates => '담당 회원 소식';
+
+  @override
+  String get myNotifMemberUpdatesHint => '회원이 목표·이름을 바꾸거나 연결을 끊으면 알려드려요';
+
+  @override
+  String get myNotifAlwaysOn => '항상 받음';
+
+  @override
+  String get myNotifAlwaysOnNote => '상담·예약·담당 회원 소식은 놓치면 안 되는 알림이라 끌 수 없어요';
+
+  @override
   String get routineTypeWalking => '걷기';
 
   @override

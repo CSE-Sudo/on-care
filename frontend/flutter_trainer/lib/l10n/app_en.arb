@@ -1409,6 +1409,14 @@
   "myPwConfirm": "Confirm new password",
   "myPwChanging": "Changing…",
   "mySettingsSaveFailed": "Couldn't save your settings. Please try again in a moment",
+  "myNotifConsultation": "Consultation requests",
+  "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
+  "myNotifReservation": "Bookings",
+  "myNotifReservationHint": "When a member books or changes a session",
+  "myNotifMemberUpdates": "Member updates",
+  "myNotifMemberUpdatesHint": "When a member changes goals or name, or disconnects",
+  "myNotifAlwaysOn": "Always on",
+  "myNotifAlwaysOnNote": "Consultation, booking and member alerts can't be turned off — they're ones you shouldn't miss",
   "routineTypeWalking": "Walking",
   "@routineTypeWalking": {
     "description": "Display label for the '걷기' routine type. The stored/wire value stays Korean — see kRoutineTypes."

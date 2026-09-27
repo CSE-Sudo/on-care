@@ -354,7 +354,8 @@ void main() {
     testWidgets('gym selection rebuilds the manual gym fields', (tester) async {
       await openTab(tester);
       await tester.tap(find.text('프로필 수정'));
-      await tester.pump();
+      // 헬스장 목록은 수정 화면이 열려야 읽는다 — 목록이 올 때까지 기다린다.
+      await settle(tester);
       await tester.ensureVisible(
         find.byType(DropdownButtonFormField<String>).last,
       );

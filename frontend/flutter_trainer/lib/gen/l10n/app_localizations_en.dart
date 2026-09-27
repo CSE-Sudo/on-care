@@ -2223,6 +2223,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save your settings. Please try again in a moment';
 
   @override
+  String get myNotifConsultation => 'Consultation requests';
+
+  @override
+  String get myNotifConsultationHint =>
+      'When a member requests a consultation or answers your invite';
+
+  @override
+  String get myNotifReservation => 'Bookings';
+
+  @override
+  String get myNotifReservationHint =>
+      'When a member books or changes a session';
+
+  @override
+  String get myNotifMemberUpdates => 'Member updates';
+
+  @override
+  String get myNotifMemberUpdatesHint =>
+      'When a member changes goals or name, or disconnects';
+
+  @override
+  String get myNotifAlwaysOn => 'Always on';
+
+  @override
+  String get myNotifAlwaysOnNote =>
+      'Consultation, booking and member alerts can\'t be turned off — they\'re ones you shouldn\'t miss';
+
+  @override
   String get routineTypeWalking => 'Walking';
 
   @override
