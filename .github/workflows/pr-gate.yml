@@ -78,3 +78,21 @@ jobs:
             exit 1
           fi
           echo "AI 저작 표기 없음 ($base..HEAD)."
+
+      - name: Test the action pin checker
+        # 아래 검사가 오탐하면 필수 검사인 이 job 이 모든 PR 병합을 막는다. 그래서
+        # 검사 스크립트 자체의 테스트(통과·위반 픽스처)를 먼저 돌린다(#2340).
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tool/ci -p 'test_*.py' -v
+
+      - name: Require SHA-pinned actions
+        # 태그(`@v4`)·브랜치 참조는 가리키는 커밋이 바뀔 수 있다(#1554). 워크플로의
+        # 외부 action·재사용 워크플로는 40자 커밋 SHA 로만 허용하고, 위반은 파일·줄에
+        # 주석으로 남긴다. 로컬 action(`./...`)과 `docker://` 참조는 예외다(#2340).
+        # 검사 대상은 PR head 의 워크플로이므로, 이 PR 이 새로 넣는 태그 참조도 걸린다.
+        env:
+          WORKFLOW_DIR: .github/workflows
+        run: |
+          set -euo pipefail
+          python3 tool/ci/check_action_pins.py "$WORKFLOW_DIR"
