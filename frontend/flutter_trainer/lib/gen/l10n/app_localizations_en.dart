@@ -4407,6 +4407,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String reportsSendPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
   String get reportsQueueAllSent => 'Every report for this week has been sent';
 
   @override

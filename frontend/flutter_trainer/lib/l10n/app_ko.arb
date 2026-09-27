@@ -1931,6 +1931,15 @@
       }
     }
   },
+  "reportsSendPercent": "{percent}%",
+  "@reportsSendPercent": {
+    "description": "리포트 작업대 진행 막대 오른쪽 끝의 전송 비율",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "reportsQueueAllSent": "이번 주 리포트를 모두 보냈어요",
   "reportsSentColumn": "전송 완료",
   "reportsSentColumnEmpty": "아직 보낸 리포트가 없어요",

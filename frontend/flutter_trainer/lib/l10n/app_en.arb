@@ -3041,6 +3041,14 @@
       }
     }
   },
+  "reportsSendPercent": "{percent}%",
+  "@reportsSendPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "reportsQueueAllSent": "Every report for this week has been sent",
   "reportsSentColumn": "Sent",
   "reportsSentColumnEmpty": "No reports sent yet",

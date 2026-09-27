@@ -7540,6 +7540,12 @@ abstract class AppLocalizations {
   /// **'{done} / {total} sent'**
   String reportsSendProgress(int done, int total);
 
+  /// No description provided for @reportsSendPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String reportsSendPercent(int percent);
+
   /// No description provided for @reportsQueueAllSent.
   ///
   /// In en, this message translates to:

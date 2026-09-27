@@ -83,13 +83,15 @@ class ReportWorkbench extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool wide = constraints.maxWidth >= OnCareLayout.splitBreakpoint;
-        final Widget queue = _queueCard(context, l, pending, done.length);
+        final Widget header = _header(context, l, done.length, entries.length);
+        final Widget queue = _queueCard(context, l, pending);
         final Widget sentColumn = _sentCard(context, l, done);
         if (!wide) {
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                header,
                 queue,
                 const SizedBox(height: OnCareSpacing.s16),
                 sentColumn,
@@ -98,12 +100,18 @@ class ReportWorkbench extends StatelessWidget {
           );
         }
         return SingleChildScrollView(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Expanded(flex: _queueFlex, child: queue),
-              const SizedBox(width: OnCareLayout.splitGap),
-              Expanded(child: sentColumn),
+              header,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(flex: _queueFlex, child: queue),
+                  const SizedBox(width: OnCareLayout.splitGap),
+                  Expanded(child: sentColumn),
+                ],
+              ),
             ],
           ),
         );
@@ -111,17 +119,19 @@ class ReportWorkbench extends StatelessWidget {
     );
   }
 
-  Widget _queueCard(
+  /// 두 상자 위의 머리말 — 주 이동, 그 주의 전송 진행, 이력 경고.
+  ///
+  /// 머리말은 **상자 밖**에 둔다. 상자 테두리는 "여기서부터 손댈 줄" 이라는
+  /// 뜻이라, 이미 끝난 진행률까지 그 안에 넣으면 무엇이 남은 일인지가 흐려진다
+  /// (#2232). 진행 줄은 두 상자를 **가로질러** 선다 — 미전송 상자 위에만 두면
+  /// 왼쪽 상자 몫으로 읽히고, 옆 `전송 완료` 상자와 높이가 어긋났다(#2395).
+  Widget _header(
     BuildContext context,
     AppLocalizations l,
-    List<ReportQueueEntry> pending,
     int doneCount,
+    int total,
   ) {
     final OnCareTokens tokens = context.oncare;
-    final int total = pending.length + doneCount;
-    // 머리말(주 이동·규모·진행)은 **카드 밖**에 둔다. 카드 테두리는 "여기서
-    // 부터 손댈 줄" 이라는 뜻이라, 이미 끝난 진행률까지 그 안에 넣으면 무엇이
-    // 남은 일인지가 흐려진다. 상자는 미전송 줄에서 시작한다(#2232).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -131,7 +141,7 @@ class ReportWorkbench extends StatelessWidget {
         // 덜어냈다 — 같은 사실을 두 번 적으면 둘 다 흘려 읽는다(#2232).
         Align(alignment: AlignmentDirectional.centerStart, child: weekNav),
         const SizedBox(height: OnCareSpacing.s12),
-        _ProgressRow(done: doneCount, total: total),
+        ReportProgressRow(done: doneCount, total: total),
         if (historyFailed) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s8),
           Text(
@@ -143,6 +153,19 @@ class ReportWorkbench extends StatelessWidget {
           ),
         ],
         const SizedBox(height: OnCareSpacing.s16),
+      ],
+    );
+  }
+
+  Widget _queueCard(
+    BuildContext context,
+    AppLocalizations l,
+    List<ReportQueueEntry> pending,
+  ) {
+    final OnCareTokens tokens = context.oncare;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
         AppCard(
           key: const ValueKey<String>('reports-workbench-queue'),
           child: Column(
@@ -338,11 +361,27 @@ class _SentRow extends StatelessWidget {
   }
 }
 
-/// `n / m 전송` 진행 줄.
-class _ProgressRow extends StatelessWidget {
-  const _ProgressRow({required this.done, required this.total});
+/// 그 주 전송 비율(0~100). 회원이 없으면 0 — 0 으로 나누지 않는다.
+///
+/// 반올림한다. 15명 중 1명이면 6.67% 인데, 내림하면 두 명째까지 같은 수가 서서
+/// 보낸 일이 막대에 드러나지 않는다(#2395).
+int reportSendPercent(int done, int total) {
+  if (total <= 0) return 0;
+  return (done.clamp(0, total) * 100 / total).round();
+}
 
+/// `n / m 전송` ─ 막대 ─ `n%` 진행 줄.
+///
+/// 수만 있으면 `6 / 15` 가 절반을 넘었는지 속으로 셈해야 한다. 막대 끝에 비율을
+/// 적어 한눈에 읽히게 한다(#2395).
+class ReportProgressRow extends StatelessWidget {
+  /// Creates the progress row.
+  const ReportProgressRow({super.key, required this.done, required this.total});
+
+  /// 그 주에 보낸 회원 수.
   final int done;
+
+  /// 그 주 작업대의 전체 회원 수.
   final int total;
 
   @override
@@ -350,16 +389,21 @@ class _ProgressRow extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final double fraction = total == 0 ? 0 : done / total;
+    final TextStyle style = tokens
+        .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+        .copyWith(color: tokens.brand.strong);
     return Row(
+      key: const ValueKey<String>('reports-progress'),
       children: <Widget>[
-        Text(
-          l.reportsSendProgress(done, total),
-          style: tokens
-              .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-              .copyWith(color: tokens.brand.strong),
-        ),
+        Text(l.reportsSendProgress(done, total), style: style),
         const SizedBox(width: OnCareSpacing.s12),
         Expanded(child: AppProgressBar(value: fraction)),
+        const SizedBox(width: OnCareSpacing.s12),
+        Text(
+          l.reportsSendPercent(reportSendPercent(done, total)),
+          key: const ValueKey<String>('reports-progress-percent'),
+          style: style,
+        ),
       ],
     );
   }
