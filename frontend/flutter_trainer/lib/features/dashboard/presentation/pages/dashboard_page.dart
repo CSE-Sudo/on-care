@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
@@ -121,10 +122,10 @@ class DashboardPage extends ConsumerWidget {
 const int _maxTaskProgressWeeksBack = 8;
 
 /// 할 일 진행률 그래프가 보는 주 — 0 이 이번 주, 음수가 지난 주.
-final _taskProgressWeekOffsetProvider = StateProvider<int>(
-  (ref) => 0,
-  name: 'taskProgressWeekOffset',
-);
+final _taskProgressWeekOffsetProvider = StateProvider<int>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+  return 0;
+}, name: 'taskProgressWeekOffset');
 
 /// 오늘 할 일 진행률 — 선택한 주의 일별 완료 현황, 지난 할일(carried-over)
 /// stacked in a different colour. `<`/`>` 로 지난 주 기록을 오갈 수 있다.

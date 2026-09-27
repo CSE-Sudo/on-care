@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -659,6 +660,7 @@ MemberWeeklyFeedback? memberWeeklyFeedbackFromJson(
 
 /// Provides the [ReportRepository] for the current mode.
 final reportRepositoryProvider = Provider<ReportRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return LocalReportRepository(
       ref.watch(scheduleRepositoryProvider),
@@ -673,14 +675,13 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
 typedef ReportKey = ({TrainerClient client, DateTime weekStart});
 
 /// Streams a client's weekly report.
-final weeklyReportProvider = StreamProvider.family<WeeklyReport, ReportKey>((
-  ref,
-  key,
-) {
-  return ref
-      .watch(reportRepositoryProvider)
-      .watch(client: key.client, weekStart: key.weekStart);
-});
+final weeklyReportProvider = StreamProvider.autoDispose
+    .family<WeeklyReport, ReportKey>((ref, key) {
+      keepAliveForAccount(ref);
+      return ref
+          .watch(reportRepositoryProvider)
+          .watch(client: key.client, weekStart: key.weekStart);
+    });
 
 /// 그 주에 저장돼 있는 피드백 초안. (#821)
 ///
