@@ -107,6 +107,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// A send is in flight for this client.
   String? _sending;
 
+  /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
+  bool _confirming = false;
+
   /// PDF binary를 만드는 동안 내보내기 중복 요청을 막는다.
   bool _generatingPdf = false;
 
@@ -396,7 +399,18 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _send(WeeklyReport report, String message) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final id = report.client.id;
-    if (_sending != null || _sent.contains(id)) return;
+    if (_sending != null || _confirming || _sent.contains(id)) return;
+    // 이미 보낸 주면 한 번 더 묻는다(#2288). 기록은 서버에서 오므로 새로고침한
+    // 뒤에도 이 확인이 선다 — 전에는 세션 메모리만 봐서 새로고침하면 같은
+    // 리포트가 아무 확인 없이 두 번 나갔다.
+    _confirming = true;
+    final bool proceed;
+    try {
+      proceed = await _confirmResend(l, report);
+    } finally {
+      _confirming = false;
+    }
+    if (!proceed || !mounted) return;
     setState(() => _sending = id);
     try {
       final bytes = await _generateReportPdf(l, report, message);
@@ -437,6 +451,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     ref
         .read(reportSendLogProvider.notifier)
         .record(clientId: id, weekStart: report.weekStart, message: message);
+    // 서버 기록을 다시 읽는다 — 방금 보낸 것이 새로고침 뒤에도 남는 근거다.
+    ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
     setState(() {
       _sending = null;
       _sent.add(id);
@@ -453,6 +469,47 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       type: AppToastType.success,
       actionLabel: l.reportsGoToChat,
       onAction: () => context.go(AppRoutes.messagesFor(id)),
+    );
+  }
+
+  /// [report] 의 회원에게 그 주 리포트가 이미 나갔으면 다시 보낼지 묻는다.
+  ///
+  /// 보낸 적이 없으면 묻지 않고 true 다. 서버 기록을 읽지 못했으면 아는
+  /// 만큼(세션 기록·데모 기록)으로 판단한다 — 그때 작업대에는 이력을 읽지
+  /// 못했다는 경고가 이미 서 있다.
+  Future<bool> _confirmResend(AppLocalizations l, WeeklyReport report) async {
+    final DateTime week = weekStartOf(report.weekStart);
+    Map<String, ReportSendRecord> history = const <String, ReportSendRecord>{};
+    try {
+      history = await ref.read(reportSendHistoryProvider(week).future);
+    } catch (_) {
+      // 위 주석대로 아는 만큼으로 판단한다.
+    }
+    if (!mounted) return false;
+    final List<TrainerClient> roster =
+        ref.read(clientsProvider).valueOrNull ?? const <TrainerClient>[];
+    final ReportSendRecord? previous = sendRecordFor(
+      withDemoSends(
+        mergeSendLogs(history, ref.read(reportSendLogProvider)),
+        <String>{for (final TrainerClient c in roster) c.id},
+        week,
+      ),
+      report.client.id,
+      week,
+    );
+    if (previous == null) return true;
+    final DateTime at = previous.sentAt;
+    return showAppConfirmDialog(
+      context: context,
+      title: l.reportsResendTitle,
+      message: l.reportsResendBody(
+        report.client.name,
+        dateLabel(l, at),
+        '${at.hour.toString().padLeft(2, '0')}:'
+        '${at.minute.toString().padLeft(2, '0')}',
+      ),
+      confirmLabel: l.reportsResendConfirm,
+      cancelLabel: l.actionCancel,
     );
   }
 
@@ -607,8 +664,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           // 데모 기록을 얹는다 — 작업대의 두 열이 다 차 있어야 이 화면이
           // 무엇인지 읽힌다. 트레이너가 이번 세션에 실제로 보낸 것이 언제나
           // 먼저다(#2232).
+          //
+          // 기록의 원본은 서버다(#2288) — 세션 기록은 보낸 직후 서버 기록을
+          // 다시 읽어 오는 사이를 잇는다. 새로고침해도 보낸 회원이 미전송으로
+          // 돌아가지 않는다.
+          final AsyncValue<Map<String, ReportSendRecord>> history = ref.watch(
+            reportSendHistoryProvider(_weekStart),
+          );
+          if (history.isLoading) anyLoading = true;
           final Map<String, ReportSendRecord> sendLog = withDemoSends(
-            ref.watch(reportSendLogProvider),
+            mergeSendLogs(
+              history.valueOrNull ?? const <String, ReportSendRecord>{},
+              ref.watch(reportSendLogProvider),
+            ),
             <String>{for (final TrainerClient c in clients) c.id},
             _weekStart,
           );
@@ -669,6 +737,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               },
               sort: _sort,
               loading: anyLoading,
+              historyFailed: history.hasError && !history.isLoading,
               weekNav: weekNav,
               onSortChanged: (value) => setState(() => _sort = value),
               onOpen: (entry) => _selectClient(entry.client.id),
