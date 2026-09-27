@@ -170,11 +170,11 @@ final notificationInboxEnabledProvider = Provider<bool>(
 ///
 /// 스트림인 이유는 배지와 짝을 맞추기 위해서다 — 알림함을 열어 둔 채 배지만
 /// 올라가면 목록에 없는 알림이 숫자로만 존재하게 된다. (#917)
-final trainerNotificationsProvider = StreamProvider<List<TrainerNotification>>((
-  ref,
-) {
-  return ref.watch(trainerNotificationRepositoryProvider).watch();
-}, name: 'trainerNotifications');
+final trainerNotificationsProvider =
+    StreamProvider.autoDispose<List<TrainerNotification>>((ref) {
+      keepAliveForAccount(ref);
+      return ref.watch(trainerNotificationRepositoryProvider).watch();
+    }, name: 'trainerNotifications');
 
 /// 미읽음 수 — 사이드바 배지.
 final trainerUnreadNotificationsProvider = StreamProvider.autoDispose<int>((

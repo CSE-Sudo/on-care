@@ -1174,11 +1174,15 @@ final clientRepositoryProvider = Provider<ClientRepository>((ref) {
 });
 
 /// Streams the client list for the 고객 관리 tab.
-final managedClientsProvider = StreamProvider<List<TrainerClient>>((ref) {
+final managedClientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((
+  ref,
+) {
+  keepAliveForAccount(ref);
   return ref.watch(clientRepositoryProvider).watchClients();
 });
 
-final clientsProvider = StreamProvider<List<TrainerClient>>((ref) {
+final clientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((ref) {
+  keepAliveForAccount(ref);
   return ref
       .watch(clientRepositoryProvider)
       .watchClients()
@@ -1201,15 +1205,17 @@ final clientsProvider = StreamProvider<List<TrainerClient>>((ref) {
 /// stream, and an empty stream *completes* — the provider then sat in
 /// `AsyncLoading` forever with nothing left to emit. Mapping the
 /// `AsyncValue` keeps loading/error/data flowing through untouched.
-final prioritizedClientsProvider = Provider<AsyncValue<List<TrainerClient>>>((
-  ref,
-) {
-  final lastChat =
-      ref.watch(lastChatAtProvider).valueOrNull ?? const <String, DateTime>{};
-  return ref
-      .watch(clientsProvider)
-      .whenData((clients) => prioritizeClients(clients, lastChatAt: lastChat));
-});
+final prioritizedClientsProvider =
+    Provider.autoDispose<AsyncValue<List<TrainerClient>>>((ref) {
+      final lastChat =
+          ref.watch(lastChatAtProvider).valueOrNull ??
+          const <String, DateTime>{};
+      return ref
+          .watch(clientsProvider)
+          .whenData(
+            (clients) => prioritizeClients(clients, lastChatAt: lastChat),
+          );
+    });
 
 /// 마지막 메시지가 새로운 순으로 정렬된 로스터 — 메시지 탭 목록이 쓴다.
 ///
@@ -1218,7 +1224,7 @@ final prioritizedClientsProvider = Provider<AsyncValue<List<TrainerClient>>>((
 /// 탭은 "방금 무슨 말이 오갔나"(최신순)다. 한 provider 를 돌려 쓰면 둘 중
 /// 하나는 자기 화면과 맞지 않는 차례를 보게 된다.
 final recentlyMessagedClientsProvider =
-    Provider<AsyncValue<List<TrainerClient>>>((ref) {
+    Provider.autoDispose<AsyncValue<List<TrainerClient>>>((ref) {
       final lastChat =
           ref.watch(lastChatAtProvider).valueOrNull ??
           const <String, DateTime>{};
@@ -1230,7 +1236,10 @@ final recentlyMessagedClientsProvider =
     });
 
 /// Streams the last chat time per client (priority tiebreak).
-final lastChatAtProvider = StreamProvider<Map<String, DateTime>>((ref) {
+final lastChatAtProvider = StreamProvider.autoDispose<Map<String, DateTime>>((
+  ref,
+) {
+  keepAliveForAccount(ref);
   return ref.watch(clientRepositoryProvider).watchLastChatAt();
 });
 
@@ -1276,18 +1285,16 @@ final todayPendingSessionCountProvider = Provider<AsyncValue<int>>((ref) {
 });
 
 /// Streams a client's meals for the 식단 sub-tab.
-final clientDietProvider = StreamProvider.family<List<ClientDietEntry>, String>(
-  (ref, clientId) {
-    return ref.watch(clientRepositoryProvider).watchDiet(clientId);
-  },
-);
+final clientDietProvider = StreamProvider.autoDispose
+    .family<List<ClientDietEntry>, String>((ref, clientId) {
+      keepAliveForAccount(ref);
+      return ref.watch(clientRepositoryProvider).watchDiet(clientId);
+    });
 
 /// 기간별 식단 조언. 회원 앱 `dietAdviceProvider` 와 같은 서버 문장이다. (#1017)
-final clientDietAdviceProvider =
-    FutureProvider.family<String, ({String clientId, ClientPeriod period})>((
-      ref,
-      key,
-    ) async {
+final clientDietAdviceProvider = FutureProvider.autoDispose
+    .family<String, ({String clientId, ClientPeriod period})>((ref, key) async {
+      keepAliveForAccount(ref);
       return ref
           .watch(clientRepositoryProvider)
           .fetchDietAdvice(key.clientId, key.period);
@@ -1320,24 +1327,24 @@ final clientExercisesOnProvider = FutureProvider.autoDispose
 
 /// 기간에 맞는 운동 조언. 식단(`clientDietAdviceProvider`)과 같은 모양이다.
 /// (#1025)
-final clientExerciseAdviceProvider =
-    FutureProvider.family<String, ({String clientId, ClientPeriod period})>((
-      ref,
-      key,
-    ) async {
+final clientExerciseAdviceProvider = FutureProvider.autoDispose
+    .family<String, ({String clientId, ClientPeriod period})>((ref, key) async {
+      keepAliveForAccount(ref);
       return ref
           .watch(clientRepositoryProvider)
           .fetchExerciseAdvice(key.clientId, key.period);
     });
 
 /// Streams a client's workout history for the 운동 sub-tab.
-final clientHistoryProvider =
-    StreamProvider.family<List<RoutineHistoryEntry>, String>((ref, clientId) {
+final clientHistoryProvider = StreamProvider.autoDispose
+    .family<List<RoutineHistoryEntry>, String>((ref, clientId) {
+      keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
     });
 
-final clientExerciseWeekProvider =
-    FutureProvider.family<ClientExerciseWeek, String>((ref, clientId) {
+final clientExerciseWeekProvider = FutureProvider.autoDispose
+    .family<ClientExerciseWeek, String>((ref, clientId) {
+      keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).fetchExerciseWeek(clientId);
     });
 

@@ -162,8 +162,9 @@ final trainerRoutineSuggestionRepositoryProvider =
 ///
 /// 회원별로 갈라 둔다(`family`) — 회원을 바꾸면 그 회원의 목록으로 갱신돼야
 /// 하고, 승인·거절 뒤에는 이 provider 를 invalidate 해 다시 읽는다.
-final routineSuggestionsProvider =
-    FutureProvider.family<List<RoutineSuggestion>, String>((ref, memberId) {
+final routineSuggestionsProvider = FutureProvider.autoDispose
+    .family<List<RoutineSuggestion>, String>((ref, memberId) {
+      keepAliveForAccount(ref);
       return ref
           .watch(trainerRoutineSuggestionRepositoryProvider)
           .pending(memberId);

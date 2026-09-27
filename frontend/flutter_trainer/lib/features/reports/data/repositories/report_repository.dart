@@ -608,14 +608,13 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
 typedef ReportKey = ({TrainerClient client, DateTime weekStart});
 
 /// Streams a client's weekly report.
-final weeklyReportProvider = StreamProvider.family<WeeklyReport, ReportKey>((
-  ref,
-  key,
-) {
-  return ref
-      .watch(reportRepositoryProvider)
-      .watch(client: key.client, weekStart: key.weekStart);
-});
+final weeklyReportProvider = StreamProvider.autoDispose
+    .family<WeeklyReport, ReportKey>((ref, key) {
+      keepAliveForAccount(ref);
+      return ref
+          .watch(reportRepositoryProvider)
+          .watch(client: key.client, weekStart: key.weekStart);
+    });
 
 /// 그 주에 저장돼 있는 피드백 초안. (#821)
 ///

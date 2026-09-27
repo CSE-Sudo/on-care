@@ -266,7 +266,8 @@ final programTemplateEditingEnabledProvider = Provider<bool>(
 );
 
 /// AI 코칭 탭의 템플릿 목록. 쓰기 뒤에는 invalidate 한다.
-final programTemplatesProvider = FutureProvider<List<ProgramTemplate>>(
-  (ref) => ref.watch(trainerProgramTemplateRepositoryProvider).list(),
-  name: 'programTemplates',
-);
+final programTemplatesProvider =
+    FutureProvider.autoDispose<List<ProgramTemplate>>((ref) {
+      keepAliveForAccount(ref);
+      return ref.watch(trainerProgramTemplateRepositoryProvider).list();
+    }, name: 'programTemplates');

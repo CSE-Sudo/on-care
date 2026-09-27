@@ -13,25 +13,23 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// Fetched through [dioProvider] rather than as a plain image URL: the photo
 /// route is authenticated and scoped to the trainer's own clients, so the
 /// request needs the auth header the interceptor attaches. (#699)
-final clientMealPhotoProvider = FutureProvider.family<Uint8List?, String>((
-  ref,
-  path,
-) async {
-  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
-  final Dio dio = ref.watch(dioProvider);
-  try {
-    final Response<List<int>> res = await dio.get<List<int>>(
-      path,
-      options: Options(responseType: ResponseType.bytes),
-    );
-    final List<int>? data = res.data;
-    if (data == null || data.isEmpty) return null;
-    return Uint8List.fromList(data);
-  } on DioException {
-    // 사진을 못 가져와도 끼니 카드는 그대로 읽혀야 한다.
-    return null;
-  }
-});
+final clientMealPhotoProvider = FutureProvider.autoDispose
+    .family<Uint8List?, String>((ref, path) async {
+      keepAliveForAccount(ref);
+      final Dio dio = ref.watch(dioProvider);
+      try {
+        final Response<List<int>> res = await dio.get<List<int>>(
+          path,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        final List<int>? data = res.data;
+        if (data == null || data.isEmpty) return null;
+        return Uint8List.fromList(data);
+      } on DioException {
+        // 사진을 못 가져와도 끼니 카드는 그대로 읽혀야 한다.
+        return null;
+      }
+    });
 
 /// Square thumbnail of a client's meal photo. Renders nothing at all when
 /// there is no photo (or it can't be loaded) — a placeholder box would only

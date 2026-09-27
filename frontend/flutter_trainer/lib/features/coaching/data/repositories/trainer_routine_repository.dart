@@ -216,8 +216,9 @@ final trainerRoutineRepositoryProvider = Provider<TrainerRoutineRepository>((
 ///
 /// 데모에서도 비어 있지 않다 — [MockTrainerRoutineRepository] 가 아직 하지
 /// 않은 개인 운동을 들고 있어, 취소가 목록에서 사라지는 것까지 보인다(#1020).
-final assignedRoutinesProvider =
-    StreamProvider.family<List<AssignedRoutine>, String>((ref, memberId) {
+final assignedRoutinesProvider = StreamProvider.autoDispose
+    .family<List<AssignedRoutine>, String>((ref, memberId) {
+      keepAliveForAccount(ref);
       return ref
           .watch(trainerRoutineRepositoryProvider)
           .watchAssignedRoutines(memberId);

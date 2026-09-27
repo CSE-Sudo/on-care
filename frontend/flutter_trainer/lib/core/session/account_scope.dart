@@ -25,3 +25,22 @@ final accountScopeProvider = StateProvider<int>(
   (ref) => 0,
   name: 'accountScope',
 );
+
+/// 계정 세션 동안만 값을 들고 있게 한다. (#2285)
+///
+/// 계정 범위의 비동기 값(회원 목록·알림·템플릿·리포트 등)은 `autoDispose` 로
+/// 선언하고 build 첫 줄에서 이 함수를 부른다. 효과는 두 가지다.
+///
+///  * 계정이 그대로인 동안에는 예전의 `autoDispose` 가 아닌 provider 처럼
+///    구독자가 없어도 값을 들고 있다 — 탭을 오갈 때 다시 읽지 않는다.
+///  * [accountScopeProvider] 가 바뀌면 붙잡아 둔 끈이 풀린다. 그 순간 구독자가
+///    없으면 provider 가 **통째로 버려지고**, 다음 계정은 빈 상태에서 새로 읽는다.
+///
+/// 버려지는 것이 핵심이다. Riverpod 은 provider 를 다시 계산할 때 이전 값을
+/// 로딩 상태에 실어 두므로(`AsyncLoading.valueOrNull`), 다시 계산만 하면 새
+/// 계정의 응답이 오기 전까지 `valueOrNull` 로 읽는 화면에 이전 계정의 값이
+/// 보인다. 버려진 provider 에는 실어 둘 이전 값이 없다.
+void keepAliveForAccount(Ref<Object?> ref) {
+  ref.watch(accountScopeProvider);
+  ref.keepAlive();
+}

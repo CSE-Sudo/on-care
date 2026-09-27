@@ -97,8 +97,9 @@ final aiRoutineRepositoryProvider = Provider<AiRoutineRepository>((ref) {
 typedef AiRoutineClientKey = ({String id, String name});
 
 /// Streams a client's AI routine suggestions.
-final aiRoutineProvider =
-    StreamProvider.family<List<AiRoutineItem>, AiRoutineClientKey>((ref, key) {
+final aiRoutineProvider = StreamProvider.autoDispose
+    .family<List<AiRoutineItem>, AiRoutineClientKey>((ref, key) {
+      keepAliveForAccount(ref);
       return ref
           .watch(aiRoutineRepositoryProvider)
           .watchRoutine(key.id, clientName: key.name);
