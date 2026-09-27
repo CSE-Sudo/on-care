@@ -2258,6 +2258,18 @@ abstract class AppLocalizations {
   /// **'AI personal exercise'**
   String get workoutKindAiPersonal;
 
+  /// Workout history kind for a completed PT session (server kind code pt_session).
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · Trainer-led'**
+  String get workoutKindPtSession;
+
+  /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned routine'**
+  String get workoutKindAssignedRoutine;
+
   /// No description provided for @trainerNote.
   ///
   /// In en, this message translates to:
@@ -2365,6 +2377,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yesterday'**
   String get dateYesterday;
+
+  /// Relative day label, used for two or more days ago (e.g. when the last routine was sent).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String dateDaysAgo(int count);
+
+  /// No description provided for @dateWeeksAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 week ago} other{{count} weeks ago}}'**
+  String dateWeeksAgo(int count);
+
+  /// Short date on a workout history card.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day}'**
+  String historyDate(int month, int day);
+
+  /// Workout history date with Today/Yesterday, e.g. 9/27 (Today).
+  ///
+  /// In en, this message translates to:
+  /// **'{date} ({relative})'**
+  String historyDateRelative(String date, String relative);
 
   /// No description provided for @dateMonthDayWeekday.
   ///

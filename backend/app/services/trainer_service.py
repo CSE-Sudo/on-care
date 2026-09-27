@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
 from app.core import clock
+from app.core.locale import localized
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
@@ -42,6 +43,8 @@ from app.schemas.trainer_api import (
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
     ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineCompleteOut,
+    RoutineHistoryExerciseOut,
+    RoutineHistoryKind,
     RoutineHistoryOut,
     RoutineOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
     TrainerFollowUpTaskOut,
@@ -103,21 +106,30 @@ def _meal_kr(meal_type: str) -> str:
 
 
 def relative_day_label(day: str) -> str:
-    """YYYY-MM-DD → 오늘/어제/N일 전 (마지막 루틴 전송 라벨용)."""
+    """YYYY-MM-DD → 오늘/어제/N일 전 (마지막 루틴 전송 라벨용).
+
+    화면 언어를 따르는 앱은 이 문장 대신 원래 날짜(`last_routine_date`)를 받아
+    직접 그린다(#2300). 이 라벨은 그 필드를 모르는 옛 앱을 위해 남았고, 요청
+    언어가 영어면 영어로 만든다 — 헤더가 없으면 지금까지와 같은 한국어다.
+    """
     try:
         then = date.fromisoformat(day)
     except ValueError:
         return day
     delta = (_today() - then).days
     if delta <= 0:
-        return "오늘"
+        return localized("오늘", "Today")
     if delta == 1:
-        return "어제"
-    return f"{delta}일 전"
+        return localized("어제", "Yesterday")
+    return localized(f"{delta}일 전", f"{delta} days ago")
 
 
 def history_date_label(day: str) -> str:
-    """YYYY-MM-DD → 'M/D' (+ ' (오늘)'/' (어제)') 운동기록 라벨."""
+    """YYYY-MM-DD → 'M/D' (+ ' (오늘)'/' (어제)') 운동기록 라벨.
+
+    [relative_day_label] 과 같은 이유로 앱은 `date` 필드를 쓰고(#2300), 이 라벨은
+    옛 앱을 위한 것이다.
+    """
     try:
         then = date.fromisoformat(day)
     except ValueError:
@@ -125,10 +137,124 @@ def history_date_label(day: str) -> str:
     label = f"{then.month}/{then.day}"
     delta = (_today() - then).days
     if delta == 0:
-        label += " (오늘)"
+        label += localized(" (오늘)", " (Today)")
     elif delta == 1:
-        label += " (어제)"
+        label += localized(" (어제)", " (Yesterday)")
     return label
+
+
+def _iso_day_or_none(day: str | None) -> str | None:
+    """`YYYY-MM-DD` 로 읽히는 값만 그대로, 아니면 None.
+
+    이력의 날짜 칸은 문자열이라 깨진 값이 들어 있을 수 있다. 그 값을 날짜라고
+    내려보내면 앱이 엉뚱한 날로 읽으므로, 모르는 날은 모른다고 보낸다 — 그때 앱은
+    `date_label` 을 그대로 쓴다.
+    """
+    if not day:
+        return None
+    try:
+        return date.fromisoformat(day).isoformat()
+    except ValueError:
+        return None
+
+
+#: 완료한 PT 세션이 운동 이력에 남기는 이름. **DB 에 그대로 저장되는 값**이라
+#: 번역하지 않는다 — 화면은 [history_kind_code] 가 준 코드로 그린다(#2300).
+PT_HISTORY_KIND_LABEL = "PT 세션 · 트레이너 지도"
+
+#: 이름 없이 배정된 루틴을 수행한 이력의 이름. 저장하지 않고 응답 때 붙인다.
+ASSIGNED_HISTORY_FALLBACK_LABEL = "배정 루틴 수행"
+
+#: 서버가 붙이는 고정 이름 → 이력 종류 코드. 트레이너가 지은 이름처럼 여기 없는
+#: 이름은 코드가 없다(사람이 쓴 말은 번역 대상이 아니다).
+_HISTORY_KIND_CODES: dict[str, RoutineHistoryKind] = {
+    PT_HISTORY_KIND_LABEL: "pt_session",
+    "AI 개인운동": "ai_personal",
+    # 옛 시드·픽스처의 이름. 지금은 `AI 개인운동` 으로 부른다(#1453).
+    "AI 루틴 · 자율 운동": "ai_personal",
+    ASSIGNED_HISTORY_FALLBACK_LABEL: "assigned_routine",
+}
+
+
+def history_kind_code(label: str | None) -> RoutineHistoryKind | None:
+    """이력 이름이 서버가 붙인 고정 이름이면 그 종류 코드, 아니면 None."""
+    if not label:
+        return None
+    return _HISTORY_KIND_CODES.get(label.strip())
+
+
+#: 이력 한 줄 끝에 붙는 양. `3세트`·`12회`·`60초`·`40kg`·`25분` 이 공백이나 `·` 로
+#: 이어진다. [_program_item_label] 과 시드가 만드는 모양이다.
+_HISTORY_AMOUNT_TAIL_RE = re.compile(
+    r"(?:(?:\s*·\s*|\s+)\d+(?:\.\d+)?(?:세트|회|초|kg|분))+\s*$"
+)
+_HISTORY_AMOUNT_RE = re.compile(r"(\d+(?:\.\d+)?)(세트|회|초|kg|분)")
+_HISTORY_MARK_RE = re.compile(r"\s*[✓✗]\s*")
+
+
+def parse_history_exercise(raw: object) -> RoutineHistoryExerciseOut:
+    """저장된 이력 한 줄 → 값으로 나눈 운동 한 종목(#2300).
+
+    `RoutineHistory.exercises_json` 은 `스쿼트 3세트 12회 40kg` 이나
+    `스쿼트 3세트 · 12회 · 40kg ✓` 같은 **한국어 문장**으로 저장돼 있다(완료한 PT
+    세션·시드). 이미 쌓인 행을 고치는 대신 읽을 때 값으로 되돌린다 — 단위가
+    이름 **끝에** 이어 붙은 모양만 값으로 읽고, 그 밖의 줄은 적힌 그대로 이름으로
+    둔다(`플랭크 ✗ (피로)` → 이름 `플랭크 (피로)`, 한 적 없음).
+    """
+    if isinstance(raw, dict):
+        return _history_exercise_from_dict(raw)
+    text = str(raw or "")
+    done = "✗" not in text
+    body = " ".join(_HISTORY_MARK_RE.sub(" ", text).split())
+    tail = _HISTORY_AMOUNT_TAIL_RE.search(body)
+    name = body[: tail.start()].strip().rstrip("·").strip() if tail else body
+    if tail is None or not name:
+        return RoutineHistoryExerciseOut(name=body, done=done)
+    amounts: dict[str, str] = {}
+    for value, unit in _HISTORY_AMOUNT_RE.findall(tail.group(0)):
+        # 같은 단위가 두 번 적힌 줄은 없다 — 있으면 처음 것을 믿는다.
+        amounts.setdefault(unit, value)
+
+    def _int(unit: str) -> int | None:
+        value = amounts.get(unit)
+        return int(float(value)) if value is not None else None
+
+    weight = amounts.get("kg")
+    strength = any(unit in amounts for unit in ("세트", "회", "초", "kg"))
+    return RoutineHistoryExerciseOut(
+        name=name,
+        type=exercise_types.STRENGTH if strength else "",
+        minutes=_int("분") or 0,
+        sets=_int("세트"),
+        reps=_int("회"),
+        hold_seconds=_int("초"),
+        weight=float(weight) if weight is not None else None,
+        done=done,
+    )
+
+
+def _history_exercise_from_dict(raw: dict) -> RoutineHistoryExerciseOut:
+    """값까지 실린 이력 항목(객체) → 같은 모양. 깨진 칸은 비운다."""
+
+    def _num(key: str, cast: Callable[[Any], Any]) -> Any:
+        value = raw.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        return cast(value)
+
+    type_ = raw.get("type")
+    intensity = raw.get("intensity")
+    return RoutineHistoryExerciseOut(
+        name=str(raw.get("name") or ""),
+        type=exercise_types.normalize(type_) if type_ else "",
+        minutes=_num("minutes", int) or 0,
+        sets=_num("sets", int),
+        reps=_num("reps", int),
+        hold_seconds=_num("hold_seconds", int),
+        weight=_num("weight", float),
+        intensity=intensity if isinstance(intensity, str) and intensity else None,
+        done=raw.get("done") is not False,
+    )
 
 
 def relative_time_label(ts: datetime) -> str:
@@ -445,6 +571,9 @@ def build_roster(
                 relative_day_label(_local_date_iso(last_rt.created_at))
                 if last_rt else "-"
             ),
+            last_routine_date=(
+                _local_date_iso(last_rt.created_at) if last_rt else None
+            ),
             week_completion=_week_completion(
                 hist_by_member.get(link.member_id, []) if link.active else [], monday
             ),
@@ -589,6 +718,9 @@ def build_client_history(
             label=r.kind_label,
             completion_rate=r.completion_rate,
             exercises=exercises,
+            date=_iso_day_or_none(r.date),
+            kind=history_kind_code(r.kind_label),
+            exercise_items=[parse_history_exercise(e) for e in exercises],
             client_feedback=r.client_feedback,
             trainer_note=r.trainer_note,
             # 배정 수행(`_assigned_history_out`)은 완료 시각을 함께 내려보내는데
@@ -1902,10 +2034,11 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
         exercise_activity.activity_date_of(row)
         or clock.to_seoul(completed_at).date()
     ).isoformat()
+    label = row.assigned_routine_name or ASSIGNED_HISTORY_FALLBACK_LABEL
     return RoutineHistoryOut(
         id=row.id,
         date_label=history_date_label(day),
-        label=row.assigned_routine_name or "배정 루틴 수행",
+        label=label,
         completion_rate=100,
         exercises=[
             f"{row.assigned_routine_name or row.type} · "
@@ -1916,11 +2049,35 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
             )
             + f" · {row.intensity}"
         ],
+        date=day,
+        # 이름이 있으면 트레이너가 지은 이름이라 코드가 없다.
+        kind=None if row.assigned_routine_name else "assigned_routine",
+        exercise_items=[_assigned_exercise_item(row)],
         # 개인 운동 회원 피드백은 없앴다(#1825). 옛 데이터가 있어도 내려보내지 않는다.
         client_feedback="",
         trainer_note=row.trainer_feedback,
         assigned_routine_id=row.assigned_routine_id,
         completed_at=completed_at,
+    )
+
+
+def _assigned_exercise_item(row: ExerciseSession) -> RoutineHistoryExerciseOut:
+    """배정 수행 한 건 → 값으로 나눈 운동 한 종목(#2300).
+
+    `exercises` 문장과 같은 규칙이다([_amount_label]) — 근력은 세트·횟수(또는
+    버틴 초)·중량, 나머지와 세트가 없던 옛 근력 배정은 분.
+    """
+    type_code = exercise_types.normalize(row.type)
+    strength = type_code == exercise_types.STRENGTH and row.sets is not None
+    return RoutineHistoryExerciseOut(
+        name=row.assigned_routine_name or row.type,
+        type=type_code,
+        minutes=0 if strength else row.minutes,
+        sets=row.sets if strength else None,
+        reps=row.reps if strength and not row.hold_seconds else None,
+        hold_seconds=row.hold_seconds if strength and row.hold_seconds else None,
+        weight=row.weight if strength else None,
+        intensity=row.intensity or None,
     )
 
 
@@ -4437,7 +4594,7 @@ def complete_session(
             member_id=s.member_id,
             trainer_id=trainer_id,
             date=s.date,
-            kind_label="PT 세션 · 트레이너 지도",
+            kind_label=PT_HISTORY_KIND_LABEL,
             completion_rate=100,
             exercises_json=json.dumps(exercises, ensure_ascii=False),
             trainer_note=note,

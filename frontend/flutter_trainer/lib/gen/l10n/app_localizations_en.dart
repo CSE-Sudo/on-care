@@ -1208,6 +1208,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
+  String get workoutKindPtSession => 'PT session · Trainer-led';
+
+  @override
+  String get workoutKindAssignedRoutine => 'Assigned routine';
+
+  @override
   String get trainerNote => 'Trainer\'s note';
 
   @override
@@ -1266,6 +1272,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateYesterday => 'Yesterday';
+
+  @override
+  String dateDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weeks ago',
+      one: '1 week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
