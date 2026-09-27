@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' show Locale;
 
@@ -6,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -1200,7 +1202,15 @@ final clientRepositoryProvider = Provider<ClientRepository>((ref) {
   if (config.useMockApi) {
     return DriftClientRepository(ref.watch(appDatabaseProvider));
   }
-  return DioClientRepository(ref.watch(dioProvider));
+  final repository = DioClientRepository(ref.watch(dioProvider));
+  // 서버가 회원 데이터를 404 로 거절하면(담당 해제, #2281) 명단만 곧바로 다시
+  // 읽는다. 명단에서 빠진 회원은 각 화면이 원래의 '찾을 수 없음' 상태로 보여 준다.
+  final StreamSubscription<String> accessLost = ref
+      .watch(clientAccessLostProvider)
+      .stream
+      .listen((_) => repository.refreshRoster());
+  ref.onDispose(accessLost.cancel);
+  return repository;
 });
 
 /// Streams the client list for the 고객 관리 tab.

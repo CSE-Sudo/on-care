@@ -391,17 +391,39 @@ def test_trainer_client_diet_survives_unexpected_food_shapes(client, db_session)
         db_session.commit()
 
 
-def test_trainer_client_macros_are_member_scoped_and_empty_day_is_empty(client):
+def test_trainer_client_macros_are_member_scoped_and_empty_day_is_empty(
+    client, db_session
+):
+    from sqlalchemy import select
+
+    from app.db.seed_trainer import TRAINER_ID
+    from app.models.models import TrainerClient
+
     token = _trainer_token(client)
 
     jisu = client.get(
         "/v1/trainer/clients/user-jisu/diet",
         headers=_auth(token),
     ).json()
-    sungho = client.get(
-        "/v1/trainer/clients/user-sungho/diet",
-        headers=_auth(token),
-    ).json()
+    # 시드의 박성호는 담당이 해제된 과거 회원이라 그대로는 404 다(#2281).
+    # 회원별 집계를 비교하려고 이 테스트 동안만 담당을 되살린다.
+    sungho_link = db_session.scalar(
+        select(TrainerClient).where(
+            TrainerClient.trainer_id == TRAINER_ID,
+            TrainerClient.member_id == "user-sungho",
+        )
+    )
+    assert sungho_link is not None and sungho_link.active is False
+    sungho_link.active = True
+    db_session.commit()
+    try:
+        sungho = client.get(
+            "/v1/trainer/clients/user-sungho/diet",
+            headers=_auth(token),
+        ).json()
+    finally:
+        sungho_link.active = False
+        db_session.commit()
     assert sum(meal["carbs_g"] for meal in jisu) == 150
     assert sum(meal["carbs_g"] for meal in sungho) == 175
     assert jisu != sungho

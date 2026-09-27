@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/auth_interceptor.dart';
+import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
 
 /// App-wide `Dio` instance, wired with language + auth + logging interceptors from
 /// the current [AppConfig]. Feature data sources read this provider
@@ -33,6 +34,10 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors
     ..add(AcceptLanguageInterceptor(ref))
     ..add(AuthInterceptor(ref));
+  // 담당이 해제된 회원의 404 를 로스터 재검증으로 잇는다(#2281).
+  dio.interceptors.add(
+    ClientAccessInterceptor(ref.watch(clientAccessLostProvider).report),
+  );
   if (!config.isProd) {
     dio.interceptors.add(const ApiLoggingInterceptor());
   }
