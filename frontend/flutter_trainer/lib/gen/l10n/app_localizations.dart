@@ -7684,6 +7684,78 @@ abstract class AppLocalizations {
   /// **'Rewrite from this'**
   String get reportsSentRewrite;
 
+  /// No description provided for @reportsHistoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Past reports'**
+  String get reportsHistoryButton;
+
+  /// No description provided for @reportsViewSent.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get reportsViewSent;
+
+  /// No description provided for @reportsHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s past reports'**
+  String reportsHistoryTitle(String name);
+
+  /// No description provided for @reportsHistoryBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Past reports'**
+  String get reportsHistoryBack;
+
+  /// No description provided for @reportsHistoryUnsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent'**
+  String get reportsHistoryUnsent;
+
+  /// No description provided for @reportsHistoryThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get reportsHistoryThisWeek;
+
+  /// No description provided for @reportsHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports sent yet'**
+  String get reportsHistoryEmpty;
+
+  /// No description provided for @reportsHistoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load past reports'**
+  String get reportsHistoryLoadFailed;
+
+  /// No description provided for @reportsHistoryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get reportsHistoryMore;
+
+  /// No description provided for @reportsHistoryMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load more. Tap to try again.'**
+  String get reportsHistoryMoreFailed;
+
+  /// No description provided for @reportsHistorySendCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sent once} other{Sent {count} times}}'**
+  String reportsHistorySendCount(int count);
+
+  /// No description provided for @reportsHistoryPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get reportsHistoryPdf;
+
   /// No description provided for @reportsResendTitle.
   ///
   /// In en, this message translates to:
