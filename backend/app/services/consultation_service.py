@@ -242,7 +242,8 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
     회원 행을 지우면 상담 요청은 CASCADE 로 함께 사라지지만 자리는 남는다 — 되돌리지
     않으면 `remaining = 0` 인 채로 **영영 잠긴다**. 예약 좌석을 탈퇴 전에 복구하는
     `reservation_service.cancel_member_reservations_for_account_deletion` 과 같은
-    자리에서 부른다. 트레이너에게 알리지 않는다 — 요청 자체가 사라진다.
+    자리에서 부른다. 요청을 받은 트레이너에게 알리는 일은
+    [notify_trainers_of_account_deletion] 이 따로 맡는다(#1632).
     """
     slot_ids = db.scalars(
         select(ConsultationRequest.slot_id).where(
@@ -253,6 +254,84 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
     ).all()
     for slot_id in slot_ids:
         reservation_service.release_consultation_hold(db, slot_id)
+
+
+def notify_trainers_of_account_deletion(
+    db: Session, member: User, *, now: datetime | None = None
+) -> int:
+    """탈퇴하는 회원의 대기 요청을 받은 트레이너에게 취소를 알린다. 알린 수를 준다.
+
+    회원 행을 지우면 요청은 CASCADE 로 함께 사라진다. 알리지 않으면 트레이너
+    인박스와 배지에서 요청이 이유 없이 빠진다 — 회원이 직접 취소할 때 알리는
+    [_notify_trainer_of_cancel] 과 같은 이유다(#1632). **회원을 지우기 전에**
+    불러야 한다. 지운 뒤에는 요청도, 적을 회원 이름도 남지 않는다.
+
+    - 알리는 것은 아직 답하지 않은(`pending`) 요청뿐이다. 수락·거절·취소·만료된
+      요청은 트레이너가 이미 결말을 안다.
+    - 만료 시각이 지났지만 아직 정리되지 않은 요청도 뺀다 — 인박스를 열면
+      만료로 정리될 요청이라, 탈퇴 알림을 보내면 이미 끝난 요청을 다시 꺼낸다.
+    - 담당 트레이너는 [member_departure.notify_trainer] 가 탈퇴를 알리므로 여기서
+      다시 알리지 않는다. 한 트레이너에게 대기 요청이 여럿이어도 한 건만 남긴다.
+    - 이름은 트레이너가 요청을 받을 때 본 회원 이름이다. 알림은 트레이너 계정에
+      달려 탈퇴 뒤에도 남는다. 떠난 회원의 상세는 열 수 없으므로 `subject_id` 를
+      남기지 않는다 — 알림은 상담 요청함으로만 간다.
+
+    커밋하지 않는다 — 탈퇴와 같은 트랜잭션에 얹는다.
+    """
+    current = now or _now()
+    rows = db.scalars(
+        select(ConsultationRequest)
+        .where(
+            ConsultationRequest.member_id == member.id,
+            ConsultationRequest.status == "pending",
+            ConsultationRequest.trainer_id.is_not(None),
+        )
+        .order_by(ConsultationRequest.created_at, ConsultationRequest.id)
+    ).all()
+    if not rows:
+        return 0
+
+    slot_ids = [row.slot_id for row in rows if row.slot_id]
+    starts: dict[str, datetime] = {}
+    if slot_ids:
+        starts = {
+            slot_id: starts_at
+            for slot_id, starts_at in db.execute(
+                select(
+                    TrainerReservationSlot.id, TrainerReservationSlot.starts_at
+                ).where(TrainerReservationSlot.id.in_(slot_ids))
+            ).all()
+        }
+
+    # 담당 트레이너에게는 탈퇴 알림이 따로 간다(#2174).
+    notified: set[str] = set()
+    coach_id = trainer_service.get_member_trainer_id(db, member.id)
+    if coach_id is not None:
+        notified.add(coach_id)
+
+    member_name = (member.name or "").strip()
+    sent = 0
+    for row in rows:
+        trainer_id = row.trainer_id
+        if trainer_id is None or trainer_id in notified:
+            continue
+        if _expires_at(row, starts.get(row.slot_id or "")) <= current:
+            continue
+        notified.add(trainer_id)
+        queued = notification_service.queue_for_trainer(
+            db,
+            trainer_id=trainer_id,
+            kind=notification_service.TRAINER_CONSULT_WITHDRAWN_KIND,
+            template=notification_templates.TRAINER_CONSULT_WITHDRAWN,
+            template_args={
+                "member_name": member_name,
+                "preferred_date": row.preferred_date,
+            },
+            target_date=row.preferred_date,
+        )
+        if queued is not None:
+            sent += 1
+    return sent
 
 
 #: 신청 한도([ConsultationRateLimited])를 세는 창. (#1628)
