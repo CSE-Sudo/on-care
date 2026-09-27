@@ -938,7 +938,27 @@ def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
 # ---- 회원 활성/휴면 관리 상태 (#707) ----
 
 class ClientLinkDetached(Exception):
-    """담당 관계가 이미 해제된 회원이다(라우터가 409 로 변환)."""
+    """담당 관계가 이미 해제된 회원이다.
+
+    활성/휴면 전환·재등록에서는 409, 해제된 회원에게 무언가를 보내려는 경로
+    (`send_session_program`)에서는 남의 회원과 같은 404 로 옮긴다.
+    """
+
+
+def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool:
+    """(trainer, member) 담당 관계가 살아 있는가(`active`). (#2281)
+
+    링크 행은 해제 뒤에도 남으므로(`remove_client`) 행 존재만으로는 담당이
+    아니다. 라우터의 `_require_client` 를 지나지 않는 경로(제안 승인·일정의
+    프로그램 전송)가 이 함수로 같은 경계를 본다.
+    """
+    return db.scalar(
+        select(TrainerClient.id).where(
+            TrainerClient.trainer_id == trainer_id,
+            TrainerClient.member_id == member_id,
+            TrainerClient.active.is_(True),
+        )
+    ) is not None
 
 
 def remove_client(db: Session, link: TrainerClient) -> None:
@@ -1553,6 +1573,9 @@ def approve_routine_suggestion(
     회원 조회·완료 처리·프로그램 묶음이 지금 쓰는 경로를 그대로 지난다.
     """
     row = _pending_suggestion(db, trainer_id, suggestion_id)
+    # 후보가 남아 있어도 담당이 해제된 회원에게는 배정·알림을 보내지 않는다. (#2281)
+    if not has_active_client_link(db, trainer_id, row.member_id):
+        raise RoutineNotFound("담당 고객을 찾을 수 없습니다.")
     if name is not None:
         row.name = name
     if minutes is not None:
@@ -3731,7 +3754,8 @@ def assign_program_with_schedule(
         )
         .with_for_update()
     )
-    if client_link is None:
+    # 해제된 담당(`active=False`)도 없는 담당과 같다 — 배정과 일정 모두 막는다. (#2281)
+    if client_link is None or not client_link.active:
         return None
 
     program_json = _dump_program(_schedule_program_items(sessions))
@@ -4162,6 +4186,9 @@ def send_session_program(
         return None
     if not s.member_id:
         raise ScheduleError("회원이 연결되지 않은 일정입니다.")
+    # 해제 전에 잡아 둔 일정이라도 해제 뒤에는 회원에게 루틴을 보내지 않는다. (#2281)
+    if not has_active_client_link(db, trainer_id, s.member_id):
+        raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
     if s.status != "완료":
         raise ScheduleError("완료한 일정만 보낼 수 있습니다.")
     items = _program_items(s.program_json)
