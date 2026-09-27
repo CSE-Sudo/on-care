@@ -21,6 +21,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    JSON,
     Integer,
     LargeBinary,
     String,
@@ -932,6 +933,12 @@ class Notification(Base):
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
     invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 문장 틀 코드와 그 인자(#2302). `title`·`body` 는 만든 순간의 한국어 문장이라
+    # 영어 화면에서도 한국어로 보였다. 틀과 인자를 함께 남기면 읽는 쪽이 자기
+    # 언어로 다시 조립한다(`notification_templates`). 틀이 생기기 전의 알림과
+    # 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
+    template: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    template_args: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
     # 스케줄을 그 날짜로 연다. 옛 알림에는 없다.
     target_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
@@ -1361,7 +1368,19 @@ class TrainerClient(Base):
     #: 트레이너는 담당이 되는 순간 회원의 건강 기록을 읽는다. 그 동의를 언제
     #: 받았는지 답할 수 있어야 하므로 링크에 함께 남긴다. 비어 있는 링크는 이
     #: 기능 이전에 만들어진 것이다.
+    #:
+    #: 담당이 끝나면(회원 해제·트레이너 해제) 비운다 — 담당 해제가 곧 동의
+    #: 철회다. 링크를 되살릴 때는 그 연결의 새 동의만 여기에 적는다. (#1631)
     data_consent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: 마지막으로 동의가 철회된 시각. (#1631)
+    #:
+    #: `data_consent_at` 을 비우기만 하면 "동의를 받은 적 없는 옛 링크"와
+    #: "동의했다가 철회한 링크"가 구분되지 않는다. 이 값이 있고 동의가 비어
+    #: 있으면 트레이너는 이 회원의 기록을 열 수 없다(`consent_blocks_access`).
+    #: 다시 동의해도 지우지 않는다 — 언제 철회했는지는 이력으로 남는다.
+    data_consent_revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     #: 트레이너의 관리 상태 — True 면 화면에 '휴면'으로 보인다.

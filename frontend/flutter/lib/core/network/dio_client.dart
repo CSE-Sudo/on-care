@@ -65,7 +65,8 @@ final dioProvider = Provider<Dio>((ref) {
       )
       ..add(MockApiInterceptor(logger, isRealApi: config.isRealApi));
   }
-  dio.interceptors.add(AuthInterceptor(ref));
+  // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
+  dio.interceptors.add(AuthInterceptor(ref, retryClient: dio));
   if (!config.isProd) {
     dio.interceptors.add(ApiLoggingInterceptor(logger));
   }

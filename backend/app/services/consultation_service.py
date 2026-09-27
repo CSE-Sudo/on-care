@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy import func, select, tuple_
 from sqlalchemy.exc import IntegrityError
@@ -33,7 +34,13 @@ from app.schemas.consultation_api import (
     TrainerConsultationOut,
 )
 from app.services import health_focus
-from app.services import notification_service, reservation_service, trainer_service
+from app.services import (
+    data_consent_service,
+    notification_service,
+    notification_templates,
+    reservation_service,
+    trainer_service,
+)
 
 
 class InvalidConsultationRequest(Exception):
@@ -198,8 +205,8 @@ def expire_stale_requests(
         _notify(
             db,
             user_id=row.member_id,
-            title="상담 신청이 만료되었어요",
-            body="트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
+            template=notification_templates.MEMBER_CONSULT_EXPIRED,
+            template_args={},
         )
         expired += 1
     if expired:
@@ -236,7 +243,8 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
     회원 행을 지우면 상담 요청은 CASCADE 로 함께 사라지지만 자리는 남는다 — 되돌리지
     않으면 `remaining = 0` 인 채로 **영영 잠긴다**. 예약 좌석을 탈퇴 전에 복구하는
     `reservation_service.cancel_member_reservations_for_account_deletion` 과 같은
-    자리에서 부른다. 트레이너에게 알리지 않는다 — 요청 자체가 사라진다.
+    자리에서 부른다. 요청을 받은 트레이너에게 알리는 일은
+    [notify_trainers_of_account_deletion] 이 따로 맡는다(#1632).
     """
     slot_ids = db.scalars(
         select(ConsultationRequest.slot_id).where(
@@ -247,6 +255,84 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
     ).all()
     for slot_id in slot_ids:
         reservation_service.release_consultation_hold(db, slot_id)
+
+
+def notify_trainers_of_account_deletion(
+    db: Session, member: User, *, now: datetime | None = None
+) -> int:
+    """탈퇴하는 회원의 대기 요청을 받은 트레이너에게 취소를 알린다. 알린 수를 준다.
+
+    회원 행을 지우면 요청은 CASCADE 로 함께 사라진다. 알리지 않으면 트레이너
+    인박스와 배지에서 요청이 이유 없이 빠진다 — 회원이 직접 취소할 때 알리는
+    [_notify_trainer_of_cancel] 과 같은 이유다(#1632). **회원을 지우기 전에**
+    불러야 한다. 지운 뒤에는 요청도, 적을 회원 이름도 남지 않는다.
+
+    - 알리는 것은 아직 답하지 않은(`pending`) 요청뿐이다. 수락·거절·취소·만료된
+      요청은 트레이너가 이미 결말을 안다.
+    - 만료 시각이 지났지만 아직 정리되지 않은 요청도 뺀다 — 인박스를 열면
+      만료로 정리될 요청이라, 탈퇴 알림을 보내면 이미 끝난 요청을 다시 꺼낸다.
+    - 담당 트레이너는 [member_departure.notify_trainer] 가 탈퇴를 알리므로 여기서
+      다시 알리지 않는다. 한 트레이너에게 대기 요청이 여럿이어도 한 건만 남긴다.
+    - 이름은 트레이너가 요청을 받을 때 본 회원 이름이다. 알림은 트레이너 계정에
+      달려 탈퇴 뒤에도 남는다. 떠난 회원의 상세는 열 수 없으므로 `subject_id` 를
+      남기지 않는다 — 알림은 상담 요청함으로만 간다.
+
+    커밋하지 않는다 — 탈퇴와 같은 트랜잭션에 얹는다.
+    """
+    current = now or _now()
+    rows = db.scalars(
+        select(ConsultationRequest)
+        .where(
+            ConsultationRequest.member_id == member.id,
+            ConsultationRequest.status == "pending",
+            ConsultationRequest.trainer_id.is_not(None),
+        )
+        .order_by(ConsultationRequest.created_at, ConsultationRequest.id)
+    ).all()
+    if not rows:
+        return 0
+
+    slot_ids = [row.slot_id for row in rows if row.slot_id]
+    starts: dict[str, datetime] = {}
+    if slot_ids:
+        starts = {
+            slot_id: starts_at
+            for slot_id, starts_at in db.execute(
+                select(
+                    TrainerReservationSlot.id, TrainerReservationSlot.starts_at
+                ).where(TrainerReservationSlot.id.in_(slot_ids))
+            ).all()
+        }
+
+    # 담당 트레이너에게는 탈퇴 알림이 따로 간다(#2174).
+    notified: set[str] = set()
+    coach_id = trainer_service.get_member_trainer_id(db, member.id)
+    if coach_id is not None:
+        notified.add(coach_id)
+
+    member_name = (member.name or "").strip()
+    sent = 0
+    for row in rows:
+        trainer_id = row.trainer_id
+        if trainer_id is None or trainer_id in notified:
+            continue
+        if _expires_at(row, starts.get(row.slot_id or "")) <= current:
+            continue
+        notified.add(trainer_id)
+        queued = notification_service.queue_for_trainer(
+            db,
+            trainer_id=trainer_id,
+            kind=notification_service.TRAINER_CONSULT_WITHDRAWN_KIND,
+            template=notification_templates.TRAINER_CONSULT_WITHDRAWN,
+            template_args={
+                "member_name": member_name,
+                "preferred_date": row.preferred_date,
+            },
+            target_date=row.preferred_date,
+        )
+        if queued is not None:
+            sent += 1
+    return sent
 
 
 #: 신청 한도([ConsultationRateLimited])를 세는 창. (#1628)
@@ -422,13 +508,17 @@ def _notify_trainer_of_new_request(
     if consultation.trainer_id is None:
         return
 
-    member_name = db.scalar(select(User.name).where(User.id == member_id)) or "회원"
+    # 이름이 없으면 틀이 대신 적는 말(`회원`)을 고른다(#2302).
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
         db,
         trainer_id=consultation.trainer_id,
         kind=notification_service.TRAINER_CONSULTATION_KIND,
-        title="새 상담 요청이 도착했어요",
-        body=f"{member_name} 회원 · {consultation.preferred_date}",
+        template=notification_templates.TRAINER_CONSULT_REQUESTED,
+        template_args={
+            "member_name": member_name,
+            "preferred_date": consultation.preferred_date,
+        },
         # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
         subject_id=member_id,
         target_date=consultation.preferred_date,
@@ -450,13 +540,17 @@ def _notify_trainer_of_cancel(
     if consultation.trainer_id is None:
         return
 
-    member_name = db.scalar(select(User.name).where(User.id == member_id)) or "회원"
+    # 이름이 없으면 틀이 대신 적는 말(`회원`)을 고른다(#2302).
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
         db,
         trainer_id=consultation.trainer_id,
         kind=notification_service.TRAINER_CONSULTATION_KIND,
-        title="상담 요청이 취소됐어요",
-        body=f"{member_name} 회원 · {consultation.preferred_date}",
+        template=notification_templates.TRAINER_CONSULT_CANCELLED,
+        template_args={
+            "member_name": member_name,
+            "preferred_date": consultation.preferred_date,
+        },
         # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
         subject_id=member_id,
         target_date=consultation.preferred_date,
@@ -771,7 +865,14 @@ def _commit_decision(db: Session) -> None:
         raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.") from exc
 
 
-def _notify(db: Session, *, user_id: str, title: str, body: str) -> None:
+def _notify(
+    db: Session,
+    *,
+    user_id: str,
+    template: str,
+    template_args: dict[str, Any],
+    body: str = "",
+) -> None:
     """회원에게 처리 결과 알림을 남긴다(커밋은 호출자가 한다).
 
     승인·거절은 회원이 앱을 열어 보기 전에는 알 수 없는 변화라 알림이 결과 전달의
@@ -784,15 +885,16 @@ def _notify(db: Session, *, user_id: str, title: str, body: str) -> None:
 
     수신 설정을 보지 않는 것은 의도다 — 내가 보낸 요청의 처리 결과는 끌 수 있는
     알림이 아니다. 그래서 `notification_service.queue` 가 아니라 여기서 직접 만든다.
+
+    문장은 틀과 인자로 남긴다(#2302) — 회원이 영어 화면이면 알림함이 영어로 조립한다.
     """
     db.add(
         Notification(
             id=f"noti-{uuid.uuid4().hex[:12]}",
             user_id=user_id,
-            title=title,
-            body=body,
             category=notification_service.MEMBER_CONSULTATION_DECISION,
             read=False,
+            **notification_templates.columns(template, template_args, body=body),
         )
     )
 
@@ -849,6 +951,10 @@ def attach_member_to_trainer(
 
     담당이 생기는 경로가 둘이라(상담 수락, 트레이너의 담당 요청 수락 #919) 공개
     함수다. 되살리기 규칙을 양쪽이 각자 들고 있으면 한쪽만 고쳐진다.
+
+    되살릴 때 동의는 **이번 연결의 것만** 적는다(#1631). 해제할 때 동의를
+    비웠으므로 `consented_at` 이 없으면 링크는 동의 없이 살아나고, 트레이너는
+    회원 기록을 열 수 없다 — 옛 동의가 말없이 다시 쓰이지 않는다.
     """
     dormant = db.scalar(
         select(TrainerClient).where(
@@ -858,9 +964,8 @@ def attach_member_to_trainer(
     )
     if dormant is not None:
         dormant.active = True
-        # 다시 담당이 되는 것도 새 연결이다 — 그때의 동의로 갱신한다. (#1022)
-        if consented_at is not None:
-            dormant.data_consent_at = consented_at
+        # 다시 담당이 되는 것도 새 연결이다 — 그때의 동의만 적는다. (#1022, #1631)
+        data_consent_service.grant(dormant, consented_at)
         return
 
     last_order = db.scalar(
@@ -940,6 +1045,14 @@ def accept(
     if existing is not None and existing.trainer_id != trainer_id:
         raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원입니다.")
 
+    if (
+        existing is not None
+        and data_consent_service.blocks_access(existing)
+        and row.data_consent_at is not None
+    ):
+        # 동의 없이 살아 있는 링크에 회원이 상담으로 새로 동의했다. (#1631)
+        data_consent_service.grant(existing, row.data_consent_at)
+
     if existing is None:
         attach_member_to_trainer(
             db,
@@ -985,18 +1098,17 @@ def accept(
     )
 
     trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
-    confirmed = f"{local:%m월 %d일 %H:%M}"
-    body = (
-        f"{trainer_name or '트레이너'} 트레이너가 담당으로 연결되었어요. "
-        f"첫 상담은 {confirmed} 입니다."
-    )
     _notify(
         db,
         user_id=row.member_id,
-        title="상담 요청이 승인되었어요",
         # 확정된 일시를 본문에 싣는다 — 예전에는 "담당으로 연결되었어요" 뿐이라
         # 회원이 자기가 언제 잡혔는지 알 길이 없었다. (#1873)
-        body=body if note is None else f"{body} {note}",
+        template=notification_templates.MEMBER_CONSULT_APPROVED,
+        template_args={
+            "trainer_name": trainer_name or "",
+            "starts_at": local.isoformat(),
+            "note": note,
+        },
     )
     _commit_decision(db)
     db.refresh(row)
@@ -1024,11 +1136,13 @@ def reject(
     # 거절하면 자리가 다시 열린다 — 다른 회원이 고를 수 있어야 한다. (#1873)
     reservation_service.release_consultation_hold(db, row.slot_id)
 
+    # 사유를 적었으면 본문은 그 사유 그대로다 — 번역할 수 없는 글이다.
     _notify(
         db,
         user_id=row.member_id,
-        title="상담 요청이 반려되었어요",
-        body=note or "다른 트레이너에게 상담을 요청해 보세요.",
+        template=notification_templates.MEMBER_CONSULT_REJECTED,
+        template_args={"has_note": bool(note)},
+        body=note or "",
     )
     _commit_decision(db)
     db.refresh(row)

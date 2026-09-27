@@ -512,6 +512,12 @@ abstract class AppLocalizations {
   /// **'Sign-in failed. Please try again in a moment.'**
   String get authErrSignInFailed;
 
+  /// No description provided for @authSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please sign in again.'**
+  String get authSessionExpired;
+
   /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
   ///
   /// In en, this message translates to:
@@ -547,6 +553,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use at least 8 characters, including letters and numbers'**
   String get authErrPasswordWeak;
+
+  /// Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords can be up to 64 characters, or fewer if they include Korean or emoji'**
+  String get authErrPasswordTooLong;
 
   /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
@@ -2264,12 +2276,6 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @clientFeedbackSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on this session'**
-  String get clientFeedbackSession;
-
   /// No description provided for @workoutKindAiPersonal.
   ///
   /// In en, this message translates to:
@@ -2287,12 +2293,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Assigned routine'**
   String get workoutKindAssignedRoutine;
-
-  /// No description provided for @trainerNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer\'s note'**
-  String get trainerNote;
 
   /// No description provided for @dietLoadFailed.
   ///
@@ -2365,6 +2365,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI all-time analysis'**
   String get aiAllAnalysis;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium is {over}mg over the target. Adding cardio to today\'s program would help.'**
+  String clientDietAdviceTodayOver(int over);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s meals are well balanced. Keep the current program.'**
+  String get clientDietAdviceTodayBalanced;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged this week yet. Even one meal shows the trend.'**
+  String get clientDietAdviceWeekEmpty;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Once you log more, we\'ll show how your sodium and calories are trending.'**
+  String get clientDietAdviceAllEmpty;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.'**
+  String clientDietAdviceWeekManyOver(int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.'**
+  String get clientDietAdviceWeekWeekend;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.'**
+  String clientDietAdviceWeekSomeOver(int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!'**
+  String clientDietAdviceWeekAllUnder(int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.'**
+  String clientDietAdviceAllWeekend(int weeks);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.'**
+  String clientDietAdviceAllRatio(int weeks, int percent);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.'**
+  String clientDietAdviceAllMostlyUnder(int weeks, int days);
 
   /// No description provided for @consultStatusRejected.
   ///
@@ -4076,12 +4142,6 @@ abstract class AppLocalizations {
   /// **'Enter your current password'**
   String get myPwCurrentRequired;
 
-  /// No description provided for @myPwTooShort.
-  ///
-  /// In en, this message translates to:
-  /// **'The new password must be at least {min} characters'**
-  String myPwTooShort(int min);
-
   /// No description provided for @myPwMismatch.
   ///
   /// In en, this message translates to:
@@ -4109,7 +4169,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPwNew.
   ///
   /// In en, this message translates to:
-  /// **'New password ({min}+ characters)'**
+  /// **'New password ({min}+ characters, letters and numbers)'**
   String myPwNew(int min);
 
   /// No description provided for @myPwConfirm.
@@ -4610,6 +4670,12 @@ abstract class AppLocalizations {
   /// **'AI custom suggestion ({option})'**
   String aiCustomRoutineNamed(String option);
 
+  /// Routine name sent when the trainer leaves the name blank (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'AI custom suggestion'**
+  String get aiCustomRoutineName;
+
   /// No description provided for @aiAnalysing.
   ///
   /// In en, this message translates to:
@@ -4819,6 +4885,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Why AI picked this'**
   String get aiPersonalRationaleLabel;
+
+  /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Recent PT feedback'**
+  String get routineEvidenceRecentPtFeedback;
+
+  /// Evidence chip; server code strength_heavy (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly strength lately'**
+  String get routineEvidenceStrengthHeavy;
+
+  /// Evidence chip; server code blood_pressure_goal (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Blood pressure goal'**
+  String get routineEvidenceBloodPressureGoal;
+
+  /// Evidence chip; server code low_cardio (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Little cardio lately'**
+  String get routineEvidenceLowCardio;
+
+  /// Evidence chip; server code recent_record (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Recent workout log'**
+  String get routineEvidenceRecentRecord;
+
+  /// Intensity of an AI A/B plan whose contract value is 낮음 (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get aiPlanIntensityLow;
 
   /// No description provided for @aiPersonalStepFull.
   ///
@@ -5306,6 +5408,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your question'**
   String get coachAskFailed;
 
+  /// No description provided for @coachRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve sent too many questions. Please try again in a minute'**
+  String get coachRateLimited;
+
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:
@@ -5413,6 +5521,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load notifications'**
   String get notifLoadFailed;
+
+  /// No description provided for @notifLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier notifications'**
+  String get notifLoadMore;
+
+  /// No description provided for @notifLoadMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier notifications'**
+  String get notifLoadMoreFailed;
+
+  /// No description provided for @notifNoEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'No earlier notifications'**
+  String get notifNoEarlier;
+
+  /// No description provided for @notifTplHealthGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member goals changed'**
+  String get notifTplHealthGoalTitle;
+
+  /// goals is the member's health goals joined with ' · '.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} changed their health goals: {goals}'**
+  String notifTplHealthGoalBody(String name, String goals);
+
+  /// Shown in place of the goal list when the member cleared every health goal.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get notifTplNoGoals;
+
+  /// No description provided for @notifTplMemberRenamedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member renamed'**
+  String get notifTplMemberRenamedTitle;
+
+  /// No description provided for @notifTplMemberRenamedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{oldName} changed their name to {newName}.'**
+  String notifTplMemberRenamedBody(String oldName, String newName);
+
+  /// No description provided for @notifTplMemberWithdrawnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member account deleted'**
+  String get notifTplMemberWithdrawnTitle;
+
+  /// No description provided for @notifTplMemberWithdrawnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted their account.'**
+  String notifTplMemberWithdrawnBody(String name);
+
+  /// No description provided for @notifTplMemberDisconnectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Client disconnected'**
+  String get notifTplMemberDisconnectedTitle;
+
+  /// No description provided for @notifTplMemberDisconnectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ended their connection with you.'**
+  String notifTplMemberDisconnectedBody(String name);
+
+  /// No description provided for @notifTplConsultRequestedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New consultation request'**
+  String get notifTplConsultRequestedTitle;
+
+  /// No description provided for @notifTplConsultCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request cancelled'**
+  String get notifTplConsultCancelledTitle;
+
+  /// No description provided for @notifTplConsultWithdrawnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request cancelled: member account deleted'**
+  String get notifTplConsultWithdrawnTitle;
+
+  /// No description provided for @notifTplInviteAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching request accepted'**
+  String get notifTplInviteAcceptedTitle;
+
+  /// No description provided for @notifTplInviteAcceptedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now your client.'**
+  String notifTplInviteAcceptedBody(String name);
+
+  /// No description provided for @notifTplInviteRejectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching request declined'**
+  String get notifTplInviteRejectedTitle;
+
+  /// No description provided for @notifTplInviteRejectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} declined your coaching request.'**
+  String notifTplInviteRejectedBody(String name);
+
+  /// No description provided for @notifTplReservationBookedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New booking'**
+  String get notifTplReservationBookedTitle;
+
+  /// No description provided for @notifTplReservationCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking cancelled'**
+  String get notifTplReservationCancelledTitle;
+
+  /// A member's name followed by a date or time, e.g. for a booking.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {detail}'**
+  String notifTplMemberWithDetail(String name, String detail);
+
+  /// Just the member's name, used when a cancelled booking has no time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}'**
+  String notifTplMemberOnly(String name);
+
+  /// Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} {time}'**
+  String notifTplWhen(String month, String day, String time);
+
+  /// No description provided for @notifTplMemberMessageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message from {name}'**
+  String notifTplMemberMessageTitle(String name);
+
+  /// Body of the new-message notification when a member sent only a photo in the coach chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent a photo'**
+  String get notifTplMemberPhotoBody;
 
   /// No description provided for @notifAllRead.
   ///
@@ -5689,42 +5953,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{percent}% completion this week'**
   String searchDetailCompletion(int percent);
-
-  /// No description provided for @routineFeedbackTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout feedback'**
-  String get routineFeedbackTitle;
-
-  /// No description provided for @routineFeedbackHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write coaching feedback for the member'**
-  String get routineFeedbackHint;
-
-  /// No description provided for @routineFeedbackWrite.
-  ///
-  /// In en, this message translates to:
-  /// **'Write feedback'**
-  String get routineFeedbackWrite;
-
-  /// No description provided for @routineFeedbackEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit feedback'**
-  String get routineFeedbackEdit;
-
-  /// No description provided for @routineFeedbackSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback saved'**
-  String get routineFeedbackSaved;
-
-  /// No description provided for @routineFeedbackFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save feedback. Please try again'**
-  String get routineFeedbackFailed;
 
   /// No description provided for @navOperationsGroup.
   ///
@@ -7378,23 +7606,11 @@ abstract class AppLocalizations {
   /// **'{percent}% complete'**
   String reportsReasonCompletion(int percent);
 
-  /// No description provided for @reportsReasonNoShow.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} no-show'**
-  String reportsReasonNoShow(int count);
-
   /// No description provided for @reportsReasonSessionDone.
   ///
   /// In en, this message translates to:
   /// **'PT {count} done'**
   String reportsReasonSessionDone(int count);
-
-  /// No description provided for @reportsReasonSilentDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days} days unlogged'**
-  String reportsReasonSilentDays(int days);
 
   /// No description provided for @reportsReasonSlump.
   ///
@@ -7473,6 +7689,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rewrite from this'**
   String get reportsSentRewrite;
+
+  /// No description provided for @reportsResendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already sent'**
+  String get reportsResendTitle;
+
+  /// No description provided for @reportsResendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.'**
+  String reportsResendBody(String name, String date, String time);
+
+  /// No description provided for @reportsResendConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get reportsResendConfirm;
+
+  /// No description provided for @reportsSendHistoryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
+  String get reportsSendHistoryFailed;
 
   /// No description provided for @reportsSentBody.
   ///

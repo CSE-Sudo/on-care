@@ -49,18 +49,20 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
   bool get supportsInbox => true;
 
   @override
-  Future<List<TrainerNotification>> fetch() async {
+  Future<TrainerNotificationPage> fetch({
+    TrainerNotificationCursor? before,
+  }) async {
     fetchCalls++;
     if (fetchFailures > 0) {
       fetchFailures--;
       throw StateError('DioException internal detail');
     }
-    return _rows;
+    return TrainerNotificationPage(items: _rows);
   }
 
   @override
-  Stream<List<TrainerNotification>> watch() =>
-      Stream<List<TrainerNotification>>.fromFuture(fetch());
+  Stream<TrainerNotificationPage> watch() =>
+      Stream<TrainerNotificationPage>.fromFuture(fetch());
 
   @override
   Future<int> unreadCount() async =>

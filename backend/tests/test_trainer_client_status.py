@@ -213,10 +213,10 @@ def test_unknown_member_is_rejected(client, trainer_token):
 def test_member_cannot_change_client_status(client):
     email = f"member-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     denied = client.put(
         f"/v1/trainer/clients/{MEMBER_ID}/status",

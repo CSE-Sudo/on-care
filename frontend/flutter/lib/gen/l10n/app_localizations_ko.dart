@@ -1921,7 +1921,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer) {
-    return '$gym 연결을 삭제하시겠습니까?\n담당 트레이너 $trainer 연결도 함께 해제됩니다.';
+    return '$gym 연결을 삭제하시겠습니까?\n담당 트레이너 $trainer 연결도 함께 해제됩니다.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없습니다. 이미 주고받은 대화와 리포트는 그대로 남습니다.';
   }
 
   @override
@@ -1931,7 +1931,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myTrainerDisconnectConfirm(String trainer, String gym) {
-    return '담당 트레이너 $trainer 연결을 삭제하시겠습니까?\n$gym 헬스장 연결은 유지됩니다.';
+    return '담당 트레이너 $trainer 연결을 삭제하시겠습니까?\n$gym 헬스장 연결은 유지됩니다.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없습니다. 이미 주고받은 대화와 리포트는 그대로 남습니다.';
   }
 
   @override
@@ -2021,7 +2021,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myLegalPrivacyBody =>
-      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n회사는 회원가입 및 서비스 제공을 위하여 이름, 이메일, 전화번호, 생년월일과 함께 식단·운동·건강 지표 등 건강 관련 정보를 수집합니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 개인정보는 회원 식별, 건강 관리 기능 제공, 맞춤형 AI 코칭, 서비스 개선 및 고객 문의 응대의 목적으로만 이용됩니다.\n\n3. 개인정보의 보유 및 이용 기간\n회원의 개인정보는 원칙적으로 회원 탈퇴 시 지체 없이 파기합니다. 다만 관련 법령에 따라 보존할 필요가 있는 경우 해당 기간 동안 안전하게 보관합니다.\n\n4. 개인정보의 제3자 제공\n회사는 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n5. 이용자의 권리\n회원은 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다.\n\n6. 개인정보 보호책임자\n개인정보와 관련한 문의는 고객 지원(support@oncare.com)으로 연락하실 수 있습니다.\n\n시행일: 2026년 1월 1일';
+      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n회사는 회원가입 및 서비스 제공을 위하여 이름, 이메일, 전화번호, 생년월일과 함께 식단·운동·건강 지표 등 건강 관련 정보를 수집합니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 개인정보는 회원 식별, 건강 관리 기능 제공, 맞춤형 AI 코칭, 서비스 개선 및 고객 문의 응대의 목적으로만 이용됩니다.\n\n3. 개인정보의 보유 및 이용 기간\n회원의 개인정보는 원칙적으로 회원 탈퇴 시 지체 없이 파기합니다. 다만 관련 법령에 따라 보존할 필요가 있는 경우 해당 기간 동안 안전하게 보관합니다.\n\n4. 개인정보의 제3자 제공\n회사는 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n5. 담당 트레이너와의 정보 공유 및 동의 철회\n회원이 상담 신청, 담당 요청 수락, 연결 코드 발급 중 하나로 데이터 공유에 동의하면 담당 트레이너는 회원의 식단 기록·운동 기록·신체 정보와 건강 목표를 볼 수 있습니다. 회원은 MY 탭에서 담당 트레이너 또는 헬스장 연결을 삭제하여 언제든지 동의를 철회할 수 있으며, 트레이너가 담당을 해제한 경우에도 동의는 철회된 것으로 봅니다. 회사는 동의한 시각과 철회한 시각을 기록합니다. 철회한 뒤에는 트레이너가 회원의 새 기록을 볼 수 없고, 같은 트레이너와 다시 연결하려면 새로 동의해야 합니다. 다만 철회 전에 트레이너와 주고받은 대화와 전달된 리포트는 삭제되지 않고 남습니다.\n\n6. 이용자의 권리\n회원은 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다.\n\n7. 개인정보 보호책임자\n개인정보와 관련한 문의는 고객 지원(support@oncare.com)으로 연락하실 수 있습니다.\n\n시행일: 2026년 1월 1일';
 
   @override
   String get myLegalEffectiveDate => '시행일 2026. 01. 01.';
@@ -2108,6 +2108,43 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
+
+  @override
+  String get coachPhotoAttach => '사진 보내기';
+
+  @override
+  String get coachPhotoSheetSubtitle => '식사·자세·인바디 사진을 트레이너에게 보내요';
+
+  @override
+  String get coachPhotoPickSub => '보관함에서 사진 고르기';
+
+  @override
+  String get coachPhotoTakeSub => '카메라로 바로 찍기';
+
+  @override
+  String get coachPhotoSending => '보내는 중';
+
+  @override
+  String get coachPhotoSendFailed => '사진을 보내지 못했어요';
+
+  @override
+  String get coachPhotoRetry => '다시 보내기';
+
+  @override
+  String get coachPhotoDiscard => '지우기';
+
+  @override
+  String get coachPhotoPermissionDenied => '사진을 보내려면 카메라·사진 접근을 허용해 주세요';
+
+  @override
+  String get coachPhotoPermissionPermanentlyDenied =>
+      '카메라·사진 접근이 꺼져 있어요. 설정에서 켜면 사진을 보낼 수 있어요';
+
+  @override
+  String get coachPhotoReadFailed => '사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요';
+
+  @override
+  String get a11yMyPhoto => '내가 보낸 사진';
 
   @override
   String get coachChatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
@@ -2844,6 +2881,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignInUnavailable => '지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요';
+
+  @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -2881,6 +2921,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get signUpPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
+
+  @override
+  String get signUpPasswordTooLong => '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)';
 
   @override
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';

@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import date as _date
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import PurePath
 from typing import Annotated, Literal
 
@@ -21,7 +21,9 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
+from app.api.v1 import chat_attachments
 from app.core.config import get_settings
+from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.core.rate_limit import limiter, rate_limit
 from app.core.security import hash_password, verify_password
@@ -62,7 +64,7 @@ from app.schemas.trainer_api import (
     ReportGoalsSaveRequest,
     ReportFeedbackOut,
     ReportFeedbackSaveRequest,
-    ReportSendRequest, ReportSummaryOut,
+    ReportSendRequest, ReportSendsOut, ReportSummaryOut,
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineFeedbackRequest,
     RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
@@ -95,14 +97,15 @@ from app.services import (
     diet_service,
     emote_service,
     exercise_service,
-    chat_image_storage,
     consultation_service,
+    data_consent_service,
     health_goal_change,
     member_pairing_service,
     trainer_client_invite_service,
     trainer_program_template_service,
     diet_photo_service,
     notification_service,
+    notification_templates,
     trainer_report_summary_service,
     report_pdf_storage,
     trainer_routine_options_service,
@@ -117,9 +120,12 @@ from app.services.coach.chat import answer as coach_answer
 
 router = APIRouter(tags=["trainer"])
 
-#: 알림함이 한 번에 내려주는 최대 건수. 회원 이력과 같은 이유로 상한을 둔다 —
-#: 오래된 알림 무제한 로드를 막는다.
-_NOTIFICATION_LIMIT = 100
+#: 트레이너 알림함 다음 쪽 커서를 싣는 응답 헤더(#2293). 본문은 전과 같은 배열로
+#: 두어 기존 클라이언트가 그대로 읽고, 다음 쪽이 있을 때만 두 헤더가 붙는다.
+#: 값은 쿼리 `before`·`before_id` 에 그대로 되돌려 준다. 브라우저(트레이너 웹)가
+#: 읽을 수 있게 CORS `expose_headers` 에도 올린다(`app/main.py`).
+NEXT_BEFORE_HEADER = "X-Next-Before"
+NEXT_BEFORE_ID_HEADER = "X-Next-Before-Id"
 
 # 계약 형식은 정확히 YYYY-MM-DD. date.fromisoformat 는 3.11+ 에서 basic ISO·주 날짜도 받으므로
 # 정규식으로 먼저 좁힌 뒤 달력 유효성을 확인한다(schedule 라우트와 동일 규약).
@@ -156,6 +162,10 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
     "예전에 담당했던 회원" 이라는 사실이 응답만으로 드러난다. 해제된 링크를
     다뤄야 하는 곳(담당 해제 자체·재등록·활성/휴면 전환)은 이 함수를 쓰지 않고
     링크를 직접 읽는다.
+
+    데이터 공유 동의가 철회된 뒤 새 동의 없이 살아 있는 링크도 같은 404 다
+    (#1631). 담당 해제가 곧 동의 철회이고, 링크를 되살려도 회원의 새 동의가
+    없으면 기록은 열리지 않는다.
     """
     link = db.scalar(
         select(TrainerClient).where(
@@ -163,7 +173,11 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
             TrainerClient.member_id == member_id,
         )
     )
-    if link is None or not link.active:
+    if (
+        link is None
+        or not link.active
+        or data_consent_service.blocks_access(link)
+    ):
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
 
@@ -381,6 +395,8 @@ def trainer_restore_client(
     try:
         trainer_service.restore_client(db, link)
     except trainer_service.ClientLinkDetached as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.ClientConsentRequired as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -699,7 +715,7 @@ def trainer_client_exercise_advice(
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=advice.text,
+        message=advice.text_for(),
         advice_key=advice.key,
         advice_params=advice.params,
     )
@@ -1941,8 +1957,19 @@ def trainer_client_ai_coach(
     호출자(트레이너)가 아니라 **담당 회원**이다 — 트레이너가 자기 자신의 (비어
     있는) 기록으로 코칭받는 일이 없도록. 담당 링크 확인이 접근 경계이며,
     남의 고객이면 404 로 존재조차 드러내지 않는다.
+
+    **분당 한도(#1548)** — 회원 AI 코치와 같은 `coach_chat_per_minute` 를 트레이너
+    단위 버킷으로 센다. 넘기면 429 와 `Retry-After` 다. 같은 헬스장(같은 IP)의 다른
+    트레이너가 한도를 대신 소진하지 않게 IP 가 아니라 트레이너 id 로 나눈다.
     """
     _require_client(db, trainer.id, member_id)
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"trainer-coach-chat:trainer:{trainer.id}",
+            settings.coach_chat_per_minute,
+            60.0,
+        )
     message = payload.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="메시지가 비어 있습니다.")
@@ -2024,12 +2051,15 @@ def trainer_client_report_summary(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
 ) -> ReportSummaryOut:
     """그 주의 리포트 요약.
 
     리포트 본문과 **따로** 부른다. 생성에 몇 초가 걸리는데 한 응답에 묶으면
     고객을 고를 때마다 화면 전체가 그만큼 멈춘다.
+
+    문장은 `Accept-Language` 언어로 만든다(#2298). 헤더가 없으면 한국어다.
     """
     _require_client(db, trainer.id, member_id)
     settings = get_settings()
@@ -2042,7 +2072,11 @@ def trainer_client_report_summary(
             60.0,
         )
     return trainer_report_summary_service.generate_summary(
-        db, trainer.id, member_id, _report_week(week_start or trainer_service.today_iso())
+        db,
+        trainer.id,
+        member_id,
+        _report_week(week_start or trainer_service.today_iso()),
+        locale,
     )
 
 
@@ -2162,6 +2196,23 @@ def trainer_save_report_goals(
     week = _report_week(payload.week_start or trainer_service.today_iso())
     return trainer_service.save_report_goals(
         db, trainer.id, member_id, week, payload.goals
+    )
+
+
+@router.get("/trainer/reports/sent", response_model=ReportSendsOut)
+def trainer_report_sends(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> ReportSendsOut:
+    """그 주 리포트가 이미 나간 담당 회원들. (#2288)
+
+    리포트 작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기
+    전에 확인을 받는 근거다. 회원마다 따로 묻지 않고 한 번에 준다 — 작업대는
+    로스터 전체를 한 화면에 세운다.
+    """
+    return trainer_service.list_report_sends(
+        db, trainer.id, _report_week(week_start or trainer_service.today_iso())
     )
 
 
@@ -2306,76 +2357,17 @@ async def trainer_send_chat_image(
     저장된다.
     """
     _require_client(db, trainer.id, member_id)
-    text = message.strip()
-
-    # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다(PDF 와 같은 규약).
-    if client_request_id:
-        existing = trainer_service.find_message_by_client_request(
-            db, trainer.id, member_id, "trainer", client_request_id
-        )
-        if existing is not None:
-            if existing.body != text or existing.attachment_type != "image":
-                raise HTTPException(
-                    status_code=409,
-                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
-                )
-            return trainer_service.chat_message_out(existing, "trainer")
-
-    settings = get_settings()
-    data = await image.read(settings.max_chat_image_bytes + 1)
-    if len(data) > settings.max_chat_image_bytes:
-        raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
-    try:
-        chat_image_storage.sniff(data)
-    except chat_image_storage.UnsupportedImage as exc:
-        raise HTTPException(status_code=415, detail=str(exc)) from exc
-
-    display_name = re.sub(
-        r"[\x00-\x1f]", "_", PurePath(image.filename or "photo").name
-    ) or "photo"
-    # DB 컬럼 길이를 넘는 사용자 filename이 메시지 저장을 깨지 않게 한다.
-    if len(display_name) > 255:
-        display_name = display_name[:255]
-
-    file_id: str | None = None
-    try:
-        file_id, _, _ = chat_image_storage.save(data)
-        sent = trainer_service.send_message(
-            db,
-            trainer.id,
-            member_id,
-            "trainer",
-            text,
-            notify=notification_service.TRAINER_MESSAGE,
-            client_request_id=client_request_id,
-            attachment_type="image",
-            attachment_file_name=display_name,
-            attachment_file_id=file_id,
-            attachment_file_size=len(data),
-        )
-        # 동시 재시도 두 건이 모두 사전 조회를 통과할 수 있다. DB 멱등키에서
-        # 진 요청이 기존 메시지를 반환했다면, 그 요청이 쓴 여분 파일을 지운다.
-        if sent.attachment is None or sent.attachment.file_id != file_id:
-            chat_image_storage.delete(file_id)
-        return sent
-    except trainer_service.IdempotencyConflict as exc:
-        if file_id:
-            chat_image_storage.delete(file_id)
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except chat_image_storage.ImageStorageError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-    except Exception:
-        # DB/notification 저장이 완료되지 않았다면 고립 파일을 남기지 않는다.
-        if file_id:
-            db.rollback()
-            persisted = db.scalar(
-                select(ChatMessage.id).where(
-                    ChatMessage.attachment_file_id == file_id
-                )
-            )
-            if persisted is None:
-                chat_image_storage.delete(file_id)
-        raise
+    # 받는 규약은 회원 발신(#1665)과 한곳에서 나눠 쓴다.
+    return await chat_attachments.receive_chat_image(
+        db,
+        trainer_id=trainer.id,
+        member_id=member_id,
+        sender="trainer",
+        image=image,
+        message=message,
+        client_request_id=client_request_id,
+        notify=notification_service.TRAINER_MESSAGE,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2689,33 +2681,84 @@ def trainer_reject_consultation(
 # 계정을 403 으로 막는 **회원 전용** 경로다(역할 분리). 저장되는 행은 같은
 # `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없다.
 
-def _notification_out(row: Notification) -> TrainerNotificationOut:
-    return TrainerNotificationOut(
-        id=row.id,
+def _notification_out(row: Notification, locale: Locale) -> TrainerNotificationOut:
+    """트레이너 알림 한 건. 제목·본문은 요청 언어로 조립한다(#2302).
+
+    트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립하고, 모르는 틀일 때만
+    `title`·`body` 를 쓴다. 그 값도 요청 언어라, 새 틀을 아직 모르는 빌드도 알맞은
+    언어로 보인다. 한국어이거나 틀이 없는 옛 알림은 저장된 문장 그대로다.
+    """
+    title, body = notification_templates.localize(
         title=row.title,
         body=row.body,
+        template=row.template,
+        template_args=row.template_args,
+        locale=locale,
+    )
+    return TrainerNotificationOut(
+        id=row.id,
+        title=title,
+        body=body,
         category=row.category,
         read=row.read,
         created_at=row.created_at,
-        time_ago=notification_service.time_ago(row.created_at),
+        time_ago=notification_service.time_ago(row.created_at, locale),
         subject_id=row.subject_id,
+        template=row.template,
+        args=row.template_args,
         target_date=row.target_date,
     )
+
+
+def _cursor_value(moment: datetime) -> str:
+    """커서 헤더에 싣는 시각. `parse_before` 가 그대로 읽는 ISO 형식(UTC)이다."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone(timezone.utc).isoformat()
 
 
 @router.get("/trainer/notifications", response_model=list[TrainerNotificationOut])
 def trainer_notifications(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
+    response: Response,
+    limit: int = Query(
+        notification_service.TRAINER_PAGE_DEFAULT,
+        ge=1,
+        le=notification_service.TRAINER_PAGE_MAX,
+        description="한 번에 가져올 최신 알림 수",
+    ),
+    before: str | None = Query(
+        None, description="ISO datetime 커서(다음 쪽) — 받은 마지막 알림의 created_at"
+    ),
+    before_id: str | None = Query(
+        None, description="복합 커서 tie-break — 받은 마지막 알림의 id"
+    ),
 ) -> list[TrainerNotificationOut]:
-    """트레이너가 받은 알림(최신순)."""
-    rows = db.scalars(
-        select(Notification)
-        .where(Notification.user_id == trainer.id)
-        .order_by(Notification.created_at.desc())
-        .limit(_NOTIFICATION_LIMIT)
-    ).all()
-    return [_notification_out(row) for row in rows]
+    """트레이너가 받은 알림 한 쪽(최신순). 다음 쪽은 커서로 이어 받는다. (#2293)
+
+    파라미터 없이 부르면 전처럼 최신 100건이다. 다음 쪽이 있으면
+    `X-Next-Before`·`X-Next-Before-Id` 헤더에 커서가 실리고, 없으면 두 헤더가
+    없다 — 그게 마지막 쪽이라는 뜻이다.
+
+    미읽음 배지(`/trainer/notifications/unread-count`)와 모두 읽음은 쪽 나눔과
+    무관하게 이 트레이너의 알림 전체를 대상으로 한다.
+    """
+    cursor = parse_before(before)
+    if before_id is not None and cursor is None:
+        # tie-break 만 오면 어디서 자를지 알 수 없다. 조용히 첫 쪽을 주면
+        # 클라이언트가 같은 알림을 다시 이어 붙인다.
+        raise HTTPException(
+            status_code=422, detail="before_id 는 before 와 함께 보내야 합니다."
+        )
+    rows, last = notification_service.list_for_trainer(
+        db, trainer.id, limit=limit, before=cursor, before_id=before_id
+    )
+    if last is not None:
+        response.headers[NEXT_BEFORE_HEADER] = _cursor_value(last.created_at)
+        response.headers[NEXT_BEFORE_ID_HEADER] = last.id
+    return [_notification_out(row, locale) for row in rows]
 
 
 @router.get("/trainer/notifications/unread-count", response_model=dict)

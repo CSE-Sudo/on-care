@@ -322,10 +322,10 @@ def test_member_cannot_reach_trainer_memos(client):
     """회원 앱에서 트레이너 메모에 닿을 수 없다(범위 밖 기능)."""
     email = f"member-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     denied = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/memos", headers=_headers(token)

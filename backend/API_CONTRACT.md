@@ -476,13 +476,40 @@ category: hospital|exercise|meal|medication|other
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id }]` (배열, 최신순, 기본 50건) |
+| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args }]` (배열, 최신순, 기본 50건) |
 | GET | `/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/notifications/{id}/read` | 단건 읽음 → `{ id, read: true }` |
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+
+#### 알림 문장의 언어 (#2302)
+
+알림은 만든 순간의 한국어 문장만 저장해 영어 화면에서도 한국어로 보였습니다. 이제 **문장 틀
+코드와 인자를 함께 저장하고, 읽을 때 요청 언어(`Accept-Language`)로 조립합니다.**
+회원 알림(`/notifications`)과 트레이너 알림(`/trainer/notifications`)이 같은 규칙입니다.
+
+- **저장**: `notifications.template`(틀 코드)·`template_args`(JSON 인자)와 함께, `title`·`body` 에는
+  예전과 **같은 한국어 문장**을 계속 적습니다 — 틀을 모르는 옛 앱과 푸시가 이 값을 씁니다.
+  인자에는 언어와 무관한 값(이름·날짜·수량·건강 목표 저장 값)만 담습니다. 회원·트레이너가
+  직접 쓴 글(메시지·반려 사유)은 번역하지 않고 저장된 `body` 를 그대로 씁니다.
+- **응답의 `title`·`body`**: 요청 언어로 조립한 문장입니다. 한국어(헤더 없음 포함)는 저장된
+  문장 **그대로**입니다 — 틀 문구를 나중에 다듬어도 받은 알림은 받은 순간의 문장으로 남습니다.
+  틀이 없는 옛 알림, 서버가 모르는 틀, 인자가 깨진 틀도 저장된 문장입니다(오류가 아닙니다).
+- **응답의 `template`·`args`**: 틀 코드와 인자(없으면 `null`). 트레이너 웹은 이 둘로 ARB 문장을
+  직접 조립하고, 모르는 틀일 때만 `title`·`body` 를 씁니다. 회원 앱은 `title`·`body` 를 그대로
+  그립니다.
+- **`action.label`** 도 요청 언어입니다(저장하지 않고 응답마다 만드는 말). 예: `운동 보기` / `View workouts`.
+- 틀 목록과 문장은 `app/services/notification_templates.py` 에 있습니다. 트레이너가 받는 틀
+  (`trainer_*`)은 트레이너 웹 `trainer_notification_text.dart` 가 같은 코드를 읽습니다.
+- 일정 등록·변경·취소·반복 등록, 포인트 쿠폰 만료 예고·취소, 주간 챌린지 결과도 틀로
+  저장합니다. 일정 종류는 저장 값(`1:1 PT`·`상담`)을 영어로 옮기고, 트레이너가 직접 적은 종류는
+  그대로 둡니다. 쿠폰 혜택 이름은 항목 id 로 영어를 고릅니다.
+- **`time_ago`** 도 요청 언어입니다. 한국어는 예전 그대로(`방금 전`·`5분 전`·`3시간 전`·`2일 전`),
+  영어는 `just now`·`5 min ago`·`1 hour ago`·`3 hours ago`·`1 day ago`·`2 days ago` 입니다.
+  회원 앱은 두 모양을 모두 읽어 자기 로케일 문장으로 옮기고, 트레이너 웹은 받은 값을 그대로
+  그립니다(요청 언어가 곧 화면 언어).
 
 #### 담당 요청 알림 (#1802)
 
@@ -579,6 +606,26 @@ tag: diet|exercise|hydration|...
   `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
   두 값을 싣는다.
 - 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다.
+
+**요청 크기·빈도 한도(#1548, #1549).** 한도를 넘는 요청은 LLM 을 부르기 전에 거절하고, 대화 저장·하루 한도 차감도 하지 않는다.
+
+| 한도 | 값 | 넘으면 |
+| --- | --- | --- |
+| `message` 길이 | 1000자 (트레이너 고객 AI 코치와 같음) | **422** |
+| `history` 턴 수 | 20 | **422** |
+| `history[].content` 길이 | 2000자 (`role` 은 16자) | **422** |
+| 요청 본문 전체 | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
+| 분당 요청 수 — 회원 `POST /ai-coach/chat` | 20 / IP (`COACH_CHAT_PER_MINUTE`) | **429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After: 60` |
+| 분당 요청 수 — 트레이너 `POST /trainer/clients/{member_id}/ai-coach` | 20 / **트레이너 id** (같은 설정) | 같은 429. 같은 IP 의 다른 트레이너와 버킷을 나누지 않고, 한 트레이너가 여러 고객에게 물어도 한 버킷이다. 담당이 아닌 회원은 한도를 세기 전에 404 |
+
+길이는 글자(유니코드 코드 포인트) 수다. 회원 앱은 입력칸을 1000자로 막고, `history` 는 최근 20턴·턴당 2000자로 잘라 보낸다(서버는
+저장된 대화를 먼저 쓰고 프롬프트에는 최근 몇 턴만 넣으므로 답이 달라지지 않는다). 분당 한도(429 `detail` 이 문자열)는 하루 한도의
+429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다. 트레이너 웹은 이 429 를 "1분 뒤 다시 물어봐 주세요" 로 보이고 쓰던 질문을 남긴다.
+
+**생성 실패 로그(#1559).** LLM 대신 검색 기반 대체 답으로 내려갈 때마다 `app.services.coach.chat` 로거가 `event=coach_llm_fallback` 레코드를
+남긴다. 필드는 `fallback_reason`(`llm_unavailable` 설정·키 문제 / `provider_error` 호출 실패 / `empty_reply` 빈 응답 — 셋은 WARNING,
+`internal_error` 우리 코드 오류 — ERROR+스택)·`llm_provider`·`llm_model`·`error_type`·`http_status`·`user_id` 이고, 요청 상관관계는
+`request_id` 로 잇는다. 예외 메시지·프롬프트·건강정보·질문은 남기지 않는다. 응답 계약은 그대로다.
 
 `DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 
@@ -780,18 +827,48 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, target_date }]` (최신순, 최대 100건) |
+| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, target_date, template, args }]` (최신순, 한 쪽 기본 100건 — 아래 [쪽 나눔](#트레이너-알림함-쪽-나눔-2293)) |
 | GET | `/trainer/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/trainer/notifications/{id}/read` | `{ id, read: true }` |
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
 - **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
-- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
+- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`, 사진은 `POST /me/coach/chat/image` — #1665), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
+- **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
 - 남의 알림 읽음 처리는 **404** 입니다.
+
+#### 트레이너 알림함 쪽 나눔 (#2293)
+
+`GET /trainer/notifications` 는 **한 쪽**만 돌려줍니다. 파라미터 없이 부르면 전처럼 최신 100건이고,
+본문은 그대로 배열입니다. 전에는 100건에서 끊기고 커서가 없어, 미읽음 배지는 전체를 세는데
+그보다 오래된 미읽음은 목록 어디에서도 볼 수 없었습니다.
+
+| 파라미터 | 기본 | 설명 |
+|---|---|---|
+| `limit` | 100 | 1~100. 범위를 벗어나면 **422** |
+| `before` | — | 다음 쪽 커서(ISO datetime). 받은 `X-Next-Before` 헤더 값을 그대로 넘깁니다. 파싱 실패는 **422** |
+| `before_id` | — | 복합 커서 tie-break. 받은 `X-Next-Before-Id` 헤더 값. `before` 없이 오면 **422** |
+
+| 응답 헤더 | 설명 |
+|---|---|
+| `X-Next-Before` | 다음 쪽이 있을 때만. 이 쪽 마지막 알림의 `created_at`(UTC ISO) |
+| `X-Next-Before-Id` | 다음 쪽이 있을 때만. 이 쪽 마지막 알림의 `id` |
+
+- **두 헤더가 없으면 마지막 쪽입니다.** 서버가 한 건 더 읽어 보고 판단하므로, 마지막 쪽이 정확히
+  `limit` 건이어도 빈 쪽을 한 번 더 부를 필요가 없습니다.
+- 정렬은 `(created_at, id)` 내림차순이고 커서도 이 쌍입니다. 훅 하나가 여러 알림을 한 트랜잭션에
+  넣어 같은 `created_at` 이 실제로 나오므로, 시각만으로 자르면 쪽 경계에서 알림이 빠지거나 겹칩니다.
+  `before` 만 보내면 그 시각보다 이전만 받습니다(회원 알림 `/notifications` 와 같은 규칙).
+- 오프셋 없는 `before` 는 UTC 로 읽습니다.
+- 브라우저가 두 헤더를 읽을 수 있게 CORS `Access-Control-Expose-Headers` 에 올려 둡니다.
+- **미읽음 배지(`/trainer/notifications/unread-count`)와 모두 읽음(`/trainer/notifications/read-all`)은
+  쪽 나눔과 무관합니다** — 이 트레이너의 알림 전체를 세고 바꿉니다.
+- 다른 쪽의 알림도 필드(`template`·`args`·`target_date`·`subject_id`)와 언어(`Accept-Language`)가
+  첫 쪽과 같습니다.
 
 ### 트레이너 도메인 / 회원측 코치 미러
 
@@ -861,6 +938,75 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 키는 `(member_id, week_start)` 다. 담당이 바뀌어도 그 주의 목표는 회원의 것이라,
   트레이너까지 키에 넣으면 인수인계한 주에 목록이 둘로 갈라진다.
 
+**리포트 전송 이력 (#2288)**: 그 주 리포트가 이미 나간 담당 회원들이다. 트레이너 웹 리포트
+작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기 전에 확인을 받는 근거다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `GET` | `/trainer/reports/sent?week_start=` | `{ week_start, sends: [{ member_id, week_start, sent_at, message, read, has_pdf, send_count }] }` |
+
+- **따로 저장하는 표가 없다.** 리포트 전송(`/report/send`·`/report/send-pdf`)이 채팅 메시지에
+  남기는 `report_week_start` 를 그대로 읽는다 — 전송 기록을 두 곳에 두면 한쪽만 남는 날이 온다.
+  앱 메모리에만 기록이 있던 때는 새로고침하면 보낸 회원이 미전송으로 돌아가 같은 리포트가
+  두 번 나갔다.
+- 한 회원에게 같은 주 리포트를 여러 번 보냈으면 **가장 최근 전송 하나로 접는다.** `sent_at`
+  (ISO, UTC)·`message`(회원이 받은 본문)·`read`(회원이 연 적 있는가, `read_at`)·`has_pdf` 는
+  모두 그 최근 전송의 값이고, `send_count` 는 그 주에 보낸 횟수다. 같은 `client_request_id`
+  로 재시도한 PDF 전송은 한 번이다.
+- `week_start` 기본값은 이번 주이고, 주 중간 날짜는 그 주 월요일로 접힌다. 형식이 틀리거나
+  아직 오지 않은 주는 **422**(리포트 조회와 같은 규칙).
+- **담당이 살아 있는 회원만** 싣는다. 해제된 회원의 기록은 빠진다(#2281). 보낸 적이 없는 주는
+  200 에 `sends: []` 다. 회원 계정은 **403**.
+
+**채팅 사진 (#921, #1665)**: 트레이너와 회원이 **서로** 사진을 보낸다. 식사·자세·인바디 결과지처럼
+코칭에 바로 쓰이는 사진이 대화 안에서 오가야, 사진만큼은 개인 메신저로 보내는 일이 없다.
+
+| 메서드 | 경로 | 보내는 쪽 |
+|---|---|---|
+| `POST` | `/trainer/clients/{member_id}/chat/image` | 트레이너 → 담당 회원 (#921) |
+| `POST` | `/me/coach/chat/image` | 회원 → 담당 트레이너 (#1665) |
+| `GET` | `/chat/attachments/{file_id}` | 그 스레드의 두 사람 — 내려받기 |
+
+- 요청은 `multipart/form-data` 다: `image`(파일, 필수)·`message`(글, 선택, 2000자)·`client_request_id`
+  (선택, 1~64자). 응답은 `201` 에 `ChatMessageOut` 이고 `attachment` 가
+  `{ type: "image", file_name, file_id, file_size, download_path }` 다. 사진만 보내도 된다(`body` 는 빈 글).
+- **형식은 바이트로 판정한다** — JPG·PNG·WebP 만 받고 나머지는 **415**. 확장자와 `Content-Type` 은
+  보내는 쪽이 자유롭게 적을 수 있어 참고하지 않는다. 용량 상한은 `max_chat_image_bytes`(6MB)이고
+  넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
+- **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
+  있으면 **409**.
+- 회원 경로는 **활성 담당 링크가 있어야 한다** — 없으면 글 메시지(`POST /me/coach/chat`)와 같이
+  **404**. 트레이너 계정은 **403**. 트레이너 경로는 담당 고객이 아니면 **404**.
+- 알림: 트레이너가 보내면 회원에게, 회원이 보내면 트레이너에게 새 메시지 알림이 남는다(글 메시지와
+  같은 종류). 사진만 보낸 메시지는 본문이 비어 있어 알림 본문을 `사진을 보냈어요`(`Sent a photo`)로
+  채우고, 트레이너 로스터의 마지막 메시지는 `사진`(`Photo`)이다.
+- 내려받기는 그 스레드의 회원 본인과 **활성 담당 트레이너**만 된다. 다른 사람에게는 존재 여부를
+  숨기려 **404** 다. 사진은 `inline` 으로 준다(대화 안에서 그린다).
+- **일반 파일은 받지 않는다.** 첨부 종류는 리포트 PDF(`pdf`, 리포트 전송 전용)와 사진(`image`)
+  두 가지뿐이다 — 이 대화는 코칭을 위한 것이고, 받는 쪽이 그릴 수 없는 형식은 아이콘 하나로만 남는다.
+
+**데이터 공유 동의 철회 (#1631)**: **담당 해제 = 데이터 공유 동의 철회**다. 링크
+(`trainer_clients`)에 동의 시각 `data_consent_at` 과 철회 시각 `data_consent_revoked_at` 을 둔다.
+
+| 경로 | 동의 |
+|---|---|
+| `DELETE /me/coach`, `DELETE /me/coach/trainer`(회원 해제), `DELETE /trainer/clients/{member_id}`(트레이너 해제) | `data_consent_at` 을 비우고 `data_consent_revoked_at` 에 그 시각. 두 번 해제해도 처음 시각이 남는다 |
+| `DELETE /users/me`, `DELETE /trainer/me`(탈퇴) | 링크 행이 계정과 함께 `CASCADE` 로 지워진다 — 남는 동의가 없다 |
+| 다른 트레이너로 옮김 | 옛 링크는 해제 때 철회, 새 링크에는 새 연결의 동의만 |
+| 끊긴 링크 되살리기(상담 수락·`/me/coach/invites/{id}/accept`·`/trainer/pairing-code`) | 그 연결의 새 동의만 적는다. 옛 동의는 되살아나지 않는다. `data_consent_revoked_at` 은 이력으로 남긴다 |
+| `PUT /trainer/clients/{member_id}/registration`(트레이너 혼자 재등록) | 동의가 철회된 링크면 **409** — 회원이 동의하는 경로(담당 요청·상담·연결 코드)로 다시 연결한다. 철회 기록이 없는 옛 해제 링크는 예전처럼 204 |
+
+- **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
+  `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.
+  로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 채팅 첨부
+  (`/chat/attachments/{id}`)도 트레이너에게는 404. 회원이 담당 요청을 수락하거나 연결 코드를 주면
+  그 시각이 새 동의가 되어 다시 열린다.
+- 동의 기능(#1022) 이전에 만들어져 **동의도 철회도 없는** 링크는 막지 않는다.
+- **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남고
+  회원 앱에서 계속 보인다. 철회는 **앞으로의 열람**만 막는다.
+- 마이그레이션 `0097_data_consent_revocation` 은 이미 해제된 링크(`active = false`)의 동의를 비우고
+  마이그레이션 시각을 철회 시각으로 적는다.
+
 ---
 
 ## 인증
@@ -868,6 +1014,27 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 두 앱 모두 로그인과 토큰 저장이 붙어 있다(`session_controller.dart`, `secure_token_store.dart`,
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
+
+### 소셜 로그인 실패 응답 (#1550)
+
+`POST /auth/social/{provider}` 는 provider(google·kakao·naver·apple)에 토큰을 확인한 뒤
+결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
+200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
+
+| 상황 | 상태 | `detail` |
+|---|---|---|
+| 지원하지 않는 provider | **400** | `지원하지 않는 소셜 로그인입니다.` |
+| 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 인증에 실패했습니다.` |
+| provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.` |
+| 검증 중 예상하지 못한 예외 | **502** | 위와 같음 |
+
+- 401 은 "이 토큰으로는 로그인할 수 없다", 502 는 "provider 쪽이 지금 제대로 답하지 않는다"
+  이다. 앱은 502 를 잠시 뒤 재시도할 일로 다루면 된다.
+- 선택 필드(이메일·이름·kakao `kakao_account`/`profile`·naver `response`)는 없거나 `null` 이면
+  빈 값으로 받는다. 있는데 타입이 다르면 형식 이상(502)이다. kakao id 는 정수로 와도 문자열로
+  저장한다.
+- 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
+  감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
 
 ### 가입 연락처 형식 (#1780)
 
@@ -949,6 +1116,66 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 
 표기(`YYYY-MM-DD`)와 실제 날짜를 **둘 다** 본다. 표기만 보면 `1990-13-45` 가 통과하고, 파서에만
 맡기면 `19900101`·`1990-01-01T00:00:00Z` 처럼 컬럼 길이(10)를 넘는 값이 지나간다.
+
+### 비밀번호 정책 (#1555)
+
+새로 정하는 비밀번호는 **서버가 기준을 본다.** 전에는 가입 스키마의 `password` 가 그냥
+문자열이라, 앱을 거치지 않은 요청은 빈 문자열이나 한 글자로도 계정을 만들 수 있었다. 기준을
+두는 곳은 `backend/app/services/password_policy.py` 의 `check_new_password` 하나이고, 두 앱의
+가입 화면(`oncare_ui` 의 `AppInputRules.signUpPassword`)이 **같은 규칙**을 미리 보여 준다.
+
+| 항목 | 기준 |
+|---|---|
+| 길이 | **8~64자**. 글자 수는 코드 포인트로 센다(이모지 한 개 = 1자, 앱은 `runes`) |
+| 바이트 | UTF-8 **72바이트 이하**(bcrypt 가 보는 길이). 한글은 3바이트, 이모지는 4바이트라 64자 안에서도 걸릴 수 있다 |
+| 구성 | 영문(`A-Za-z`)과 숫자(`0-9`)를 **각각 1자 이상**. 전각·아라비아 숫자는 숫자로 세지 않는다 |
+| 공백 | **자르지 않는다.** 공백도 비밀번호의 일부이고, 로그인도 입력 그대로 비교한다. 공백만 친 값은 영문·숫자가 없어 `password_weak` |
+
+**적용 경로**
+
+| 경로 | 필드 |
+|---|---|
+| `POST /auth/register` | `password` |
+| `POST /auth/trainer/register` | `password` |
+| `POST /trainer/me/password` | `new_password` (`current_password` 는 기준을 타지 않는다) |
+
+회원 비밀번호 변경·재설정 엔드포인트는 아직 없다. 생기면 같은 함수를 건다.
+
+**어긋나면 422** 이고, `detail[].type` 에 코드가 실린다. 앱은 문장(`msg`)이 아니라 이 코드로
+자기 로케일의 문구를 고른다. 검사 순서는 빈 값 → 상한 → 약함이다.
+
+| `type` | 뜻 | `ctx` |
+|---|---|---|
+| `password_empty` | 빈 문자열 | — |
+| `password_too_long` | 64자 초과 또는 72바이트 초과 | `max_length`·`max_bytes` |
+| `password_weak` | 8자 미만, 또는 영문·숫자 중 하나가 없음 | `min_length` |
+
+```json
+{
+  "detail": [
+    {
+      "type": "password_weak",
+      "loc": ["body", "password"],
+      "msg": "비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다.",
+      "input": "abcdefgh",
+      "ctx": { "min_length": 8 }
+    }
+  ]
+}
+```
+
+트레이너 가입에서는 비밀번호 검사가 스키마 단계라 **초대 코드를 쓰기 전에** 걸린다 — 약한
+비밀번호로 떨어진 요청이 초대 코드를 소모하지 않는다. 트레이너 웹은 password 코드가 실린 422 를
+초대 코드 오류보다 먼저 읽는다.
+
+**로그인에는 걸지 않는다.** 이 기준 이전에 만든 계정은 비밀번호가 기준에 못 미쳐도 그대로
+로그인되고, 트레이너는 `POST /trainer/me/password` 로 기준에 맞는 값으로 옮길 수 있다. 로그인에
+72바이트를 넘는 비밀번호가 오면 **401**(불일치)이다 — bcrypt 5 가 72바이트 초과 입력에
+ValueError 를 던져 500 이 나던 것을 `verify_password` 가 불일치로 돌려준다. 그런 값으로는
+애초에 가입할 수 없으므로 맞을 수 있는 비밀번호가 없다.
+
+회원 앱의 목업 백엔드(`local_api_interceptor`)와 트레이너 웹의 목업 저장소도 같은 규칙·같은
+422 모양을 따른다. **서버·`AppInputRules`·목업 세 곳은 함께 고쳐야 한다.**
 
 ### 세션 폐기 (#966)
 

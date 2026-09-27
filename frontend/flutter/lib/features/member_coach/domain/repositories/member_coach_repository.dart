@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 
@@ -69,6 +71,22 @@ abstract interface class MemberCoachRepository {
   /// 글 또는 이모티콘 하나를 보낸다. [emoteId] 를 주면 이모티콘 메시지다(#2020) —
   /// 이용권이 없으면 서버가 막는다.
   Future<void> sendMessage(String text, {String? emoteId});
+
+  /// 담당 트레이너에게 사진 한 장을 보낸다 — `POST /me/coach/chat/image`. (#1665)
+  ///
+  /// [bytes] 는 JPG·PNG·WebP 여야 하고(서버가 바이트로 다시 판정한다),
+  /// [fileName]·[mimeType] 은 그 바이트를 설명하는 값이다. [clientRequestId] 는
+  /// **부르는 쪽이 한 번 만들어 재시도에 그대로 쓴다** — 올리다 끊긴 사진을 다시
+  /// 보내도 대화에 두 장이 쌓이지 않는다. 보낸 메시지를 돌려준다.
+  ///
+  /// 담당 트레이너가 없으면 서버가 404 로 막는다. 일반 파일은 보낼 수 없다.
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  });
 
   /// Marks the thread read up to the newest coach message.
   Future<void> markRead();

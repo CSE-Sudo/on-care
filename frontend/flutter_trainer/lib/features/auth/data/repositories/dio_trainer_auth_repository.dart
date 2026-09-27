@@ -12,6 +12,7 @@ import 'package:oncare_trainer/features/auth/data/repositories/mock_trainer_auth
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// Real trainer auth against the FastAPI backend. Selected when
 /// `USE_MOCK_API=false` (see [trainerAuthRepositoryProvider]).
@@ -59,6 +60,11 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
         throw const AuthException(AuthFailure.emailTaken);
       }
       if (e.response?.statusCode == 422) {
+        // 비밀번호가 서버 기준(#1555)에 걸렸으면 코드 탓을 하지 않는다 —
+        // 전에는 422 를 모두 초대 코드 오류로 읽어, 비밀번호만 고치면 되는
+        // 트레이너가 헬스장에 코드를 다시 받으러 갔다.
+        final AuthFailure? password = _passwordFailure(e.response?.data);
+        if (password != null) throw AuthException(password);
         // 서버는 없는·만료된·이미 쓰인 코드를 구분하지 않는다. 어느 경우든
         // 트레이너가 할 일은 헬스장에 코드를 다시 받는 것이라 결론이 같다.
         throw const AuthException(AuthFailure.inviteCodeInvalid);
@@ -68,6 +74,14 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     // Registration returns the created user, not a token — sign in next.
     return login(email: email, password: password);
   }
+
+  /// 422 본문의 비밀번호 코드 → 가입 실패 종류. 비밀번호 오류가 없으면 null.
+  static AuthFailure? _passwordFailure(Object? data) =>
+      switch (AppInputRules.serverPasswordError(data)) {
+        null => null,
+        AppInputError.passwordTooLong => AuthFailure.passwordTooLong,
+        _ => AuthFailure.passwordWeak,
+      };
 
   @override
   Future<TrainerAuthTokens> socialLogin({
@@ -91,6 +105,8 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
         data: <String, Object?>{'refresh_token': refreshToken},
       ),
       on401: AuthFailure.sessionExpired,
+      // 회원 앱과 같은 기준 — 갱신을 403 으로 거부해도 세션의 끝이다(#1546).
+      on403: AuthFailure.sessionExpired,
     );
   }
 
@@ -143,6 +159,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
   Future<TrainerAuthTokens> _tokenCall(
     Future<Response<Map<String, Object?>>> Function() call, {
     required AuthFailure on401,
+    AuthFailure? on403,
   }) async {
     try {
       final res = await call();
@@ -150,7 +167,9 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
       if (data == null) throw const AuthException(AuthFailure.emptyResponse);
       return TrainerAuthTokens.fromJson(data);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) throw AuthException(on401);
+      final int? code = e.response?.statusCode;
+      if (code == 401) throw AuthException(on401);
+      if (code == 403 && on403 != null) throw AuthException(on403);
       throw _asAuth(e);
     } on FormatException catch (e) {
       throw AuthException(AuthFailure.emptyResponse, detail: e.message);

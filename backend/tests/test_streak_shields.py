@@ -70,10 +70,10 @@ def test_exercise_week_has_no_shield_fields():
 def _new_member(client, db_session, points: int = 0) -> tuple[str, dict[str, str]]:
     email = f"shd-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     member_id = client.get("/v1/users/me", headers=headers).json()["id"]

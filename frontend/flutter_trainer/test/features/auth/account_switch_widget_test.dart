@@ -41,7 +41,7 @@ class _Console extends ConsumerWidget {
     final prioritized =
         ref.watch(prioritizedClientsProvider).valueOrNull ?? const [];
     final notifications =
-        ref.watch(trainerNotificationsProvider).valueOrNull ?? const [];
+        ref.watch(trainerNotificationsProvider).valueOrNull?.items ?? const [];
     final templates =
         ref.watch(programTemplatesProvider).valueOrNull ?? const [];
     return ListView(

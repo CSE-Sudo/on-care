@@ -16,6 +16,7 @@ from sqlalchemy import func, select, tuple_, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
+from app.core.locale import Locale, RequestLocale, localized
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.db.session import get_db
 from app.models.models import Notification
@@ -26,6 +27,7 @@ from app.schemas.user import (
 )
 from app.services import (
     notification_service,
+    notification_templates,
     points_coupon_service,
     weekly_challenge_service,
 )
@@ -33,55 +35,67 @@ from app.services import (
 router = APIRouter(tags=["notifications"])
 
 # 알림 카테고리 → 바로가기 액션(프론트 라우트 힌트). system 은 액션 없음.
-_ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
+#
+# 라벨은 (한국어, 영어) 쌍이다(#2302). 저장되는 값이 아니라 응답마다 만드는 말이라
+# 요청 언어(`Accept-Language`)로 고른다. 헤더가 없으면 한국어 — 예전과 같다.
+_ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 성격만 나타내던 기존 값들.
-    "reminder": NotificationAction(label="기록하러 가기", target="dashboard"),
+    "reminder": ("기록하러 가기", "Log now", "dashboard"),
     # 일정을 여는 화면이 회원 앱에 없다(#1928) — 액션을 달면 눌러도 갈 곳이 없어
     # 고장 난 버튼이 된다. 회원이 일정을 볼 자리가 생기면 그때 되돌린다.
-    "health_check": NotificationAction(label="기록하러 가기", target="dashboard"),
-    "achievement": NotificationAction(label="대시보드 보기", target="dashboard"),
+    "health_check": ("기록하러 가기", "Log now", "dashboard"),
+    "achievement": ("대시보드 보기", "View dashboard", "dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
-    notification_service.MEMBER_COACH_CHAT: NotificationAction(
-        label="대화 보기", target="coach_chat"
-    ),
+    notification_service.MEMBER_COACH_CHAT: ("대화 보기", "View chat", "coach_chat"),
     # 주간 리포트 — 리포트 카드가 있는 코치 대화로 간다. 메시지와 목적지는 같고
     # 알림함 아이콘만 다르다(#2085).
-    notification_service.MEMBER_COACH_REPORT: NotificationAction(
-        label="리포트 보기", target="coach_chat"
-    ),
-    notification_service.MEMBER_ROUTINE: NotificationAction(
-        label="운동 보기", target="exercise"
-    ),
+    notification_service.MEMBER_COACH_REPORT: ("리포트 보기", "View report", "coach_chat"),
+    notification_service.MEMBER_ROUTINE: ("운동 보기", "View workouts", "exercise"),
     # MEMBER_SCHEDULE 은 액션을 달지 않는다(#1928). 회원 앱에 일정 화면이 없어
     # 어디로 보내든 알림이 말한 것을 보여 줄 수 없다 — 읽음 처리만 하고 제자리에
     # 두는 편이 갈 곳 없는 버튼보다 낫다.
-    notification_service.MEMBER_COACH_INVITE: NotificationAction(
-        label="요청 확인", target="exercise"
-    ),
-    notification_service.MEMBER_CONSULTATION: NotificationAction(
-        label="트레이너 보기", target="exercise"
-    ),
+    notification_service.MEMBER_COACH_INVITE: ("요청 확인", "View request", "exercise"),
+    notification_service.MEMBER_CONSULTATION: ("트레이너 보기", "View trainer", "exercise"),
     # 상담 요청의 승인·거절·만료 — 결과와 사유가 있는 내 상담 요청(#2067).
-    notification_service.MEMBER_CONSULTATION_DECISION: NotificationAction(
-        label="상담 요청 보기", target="consultations"
+    notification_service.MEMBER_CONSULTATION_DECISION: (
+        "상담 요청 보기", "View consultation requests", "consultations"
     ),
     # 쿠폰 사용 처리·취소·만료 임박 — MY 의 내 혜택으로 간다(#1787).
-    notification_service.MEMBER_BENEFITS: NotificationAction(
-        label="내 혜택 보기", target="my_benefits"
-    ),
+    notification_service.MEMBER_BENEFITS: ("내 혜택 보기", "View my benefits", "my_benefits"),
     # 주간 챌린지 결과 — 포인트 사용처로 간다(#1789).
-    notification_service.MEMBER_POINTS_SHOP: NotificationAction(
-        label="포인트 사용처 보기", target="points_shop"
+    notification_service.MEMBER_POINTS_SHOP: (
+        "포인트 사용처 보기", "View points shop", "points_shop"
     ),
     # 담당 트레이너가 건강 목표를 바꿨다 — 바뀐 목표를 확인하는 MY 건강 목표(#1832).
-    notification_service.MEMBER_HEALTH_GOALS: NotificationAction(
-        label="목표 보기", target="health_goals"
-    ),
+    notification_service.MEMBER_HEALTH_GOALS: ("목표 보기", "View goals", "health_goals"),
 }
 
 
-def _action_for(category: str) -> NotificationAction | None:
-    return _ACTION_BY_CATEGORY.get(category)
+def _action_for(category: str, locale: Locale = "ko") -> NotificationAction | None:
+    entry = _ACTION_BY_CATEGORY.get(category)
+    if entry is None:
+        return None
+    ko, en, target = entry
+    return NotificationAction(label=localized(ko, en, locale), target=target)
+
+
+def notification_out(row: Notification, locale: Locale) -> NotificationOut:
+    """회원 알림 한 건의 응답. 제목·본문·라벨은 요청 언어다(#2302).
+
+    제목·본문은 저장된 문장 틀을 요청 언어로 조립한다. 한국어이거나 틀이 없는 옛
+    알림이면 저장된 문장 그대로다(`notification_templates.localize`).
+    """
+    title, body = notification_templates.localize(
+        title=row.title, body=row.body, template=row.template,
+        template_args=row.template_args, locale=locale,
+    )
+    return NotificationOut(
+        id=row.id, title=title, body=body, category=row.category,
+        read=row.read, created_at=row.created_at,
+        time_ago=_time_ago(row.created_at, locale),
+        action=_action_for(row.category, locale), invite_id=row.invite_id,
+        template=row.template, args=row.template_args,
+    )
 
 
 #: 회원·트레이너 알림함이 같은 문구를 써야 해서 서비스로 옮겼다. (#503)
@@ -92,6 +106,7 @@ _time_ago = notification_service.time_ago
 def list_notifications(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
     limit: int = Query(
         DEFAULT_PAGE, ge=1, le=MAX_PAGE, description="한 번에 가져올 최신 알림 수"
     ),
@@ -113,6 +128,9 @@ def list_notifications(
     하나가 여러 건을 한 트랜잭션에 넣기도 해서 동시각이 실제로 나온다.
 
     파라미터 없이 부르면 최신 50건이다. 기존 클라이언트는 그대로 동작한다.
+
+    제목·본문·액션 라벨은 요청 언어(`Accept-Language`)로 준다(#2302). 헤더가 없으면
+    한국어 — 저장된 문장 그대로다.
 
     읽기 전에 만료가 3일 이내로 다가온 쿠폰의 알림을 만든다(#1787). 주기 작업이
     없어, 회원이 알림함을 여는 순간이 알림이 생기는 시점이다. 쿠폰마다 한 번뿐이고,
@@ -138,14 +156,7 @@ def list_notifications(
         query.order_by(Notification.created_at.desc(), Notification.id.desc())
         .limit(limit)
     ).all()
-    return [
-        NotificationOut(
-            id=r.id, title=r.title, body=r.body, category=r.category,
-            read=r.read, created_at=r.created_at, time_ago=_time_ago(r.created_at),
-            action=_action_for(r.category), invite_id=r.invite_id,
-        )
-        for r in rows
-    ]
+    return [notification_out(r, locale) for r in rows]
 
 
 @router.get(

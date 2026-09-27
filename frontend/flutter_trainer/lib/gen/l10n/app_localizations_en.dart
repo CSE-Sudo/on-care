@@ -234,6 +234,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign-in failed. Please try again in a moment.';
 
   @override
+  String get authSessionExpired =>
+      'Your session has expired. Please sign in again.';
+
+  @override
   String get authErrNameEmpty => 'Enter your name';
 
   @override
@@ -251,6 +255,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrPasswordWeak =>
       'Use at least 8 characters, including letters and numbers';
+
+  @override
+  String get authErrPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
 
   @override
   String get authErrPhoneInvalid => 'Enter your phone number as 010-0000-0000';
@@ -1213,9 +1221,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientFeedback => 'Member feedback';
 
   @override
-  String get clientFeedbackSession => 'Member feedback on this session';
-
-  @override
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
@@ -1223,9 +1228,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutKindAssignedRoutine => 'Assigned routine';
-
-  @override
-  String get trainerNote => 'Trainer\'s note';
 
   @override
   String get dietLoadFailed => 'Couldn\'t load meals';
@@ -1266,6 +1268,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiAllAnalysis => 'AI all-time analysis';
+
+  @override
+  String clientDietAdviceTodayOver(int over) {
+    return 'Sodium is ${over}mg over the target. Adding cardio to today\'s program would help.';
+  }
+
+  @override
+  String get clientDietAdviceTodayBalanced =>
+      'Today\'s meals are well balanced. Keep the current program.';
+
+  @override
+  String get clientDietAdviceWeekEmpty =>
+      'No meals logged this week yet. Even one meal shows the trend.';
+
+  @override
+  String get clientDietAdviceAllEmpty =>
+      'Once you log more, we\'ll show how your sodium and calories are trending.';
+
+  @override
+  String clientDietAdviceWeekManyOver(int days) {
+    return 'Sodium went over on $days days this week. With soups, eat the solids and leave the broth.';
+  }
+
+  @override
+  String get clientDietAdviceWeekWeekend =>
+      'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.';
+
+  @override
+  String clientDietAdviceWeekSomeOver(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return 'Only $_temp0 went over the sodium limit this week. The other days were well balanced.';
+  }
+
+  @override
+  String clientDietAdviceWeekAllUnder(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'all $days days',
+      one: 'the 1 day you logged',
+    );
+    return 'You kept sodium within the limit on $_temp0 this week!';
+  }
+
+  @override
+  String clientDietAdviceAllWeekend(int weeks) {
+    return 'Over the last $weeks weeks, sodium rises every weekend. Make one weekend meal lighter.';
+  }
+
+  @override
+  String clientDietAdviceAllRatio(int weeks, int percent) {
+    return '$percent% of days in the last $weeks weeks went over the sodium limit. Start by leaving the broth.';
+  }
+
+  @override
+  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Most of your $days logged days',
+      one: 'Your 1 logged day',
+    );
+    return '$_temp0 in the last $weeks weeks stayed within the sodium limit. Nice trend.';
+  }
 
   @override
   String get consultStatusRejected => 'Declined';
@@ -2301,11 +2372,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPwCurrentRequired => 'Enter your current password';
 
   @override
-  String myPwTooShort(int min) {
-    return 'The new password must be at least $min characters';
-  }
-
-  @override
   String get myPwMismatch => 'The new passwords don\'t match';
 
   @override
@@ -2320,7 +2386,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myPwNew(int min) {
-    return 'New password ($min+ characters)';
+    return 'New password ($min+ characters, letters and numbers)';
   }
 
   @override
@@ -2613,6 +2679,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aiCustomRoutineName => 'AI custom suggestion';
+
+  @override
   String get aiAnalysing => 'AI is analysing…';
 
   @override
@@ -2731,6 +2800,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalRationaleLabel => 'Why AI picked this';
+
+  @override
+  String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
+
+  @override
+  String get routineEvidenceStrengthHeavy => 'Mostly strength lately';
+
+  @override
+  String get routineEvidenceBloodPressureGoal => 'Blood pressure goal';
+
+  @override
+  String get routineEvidenceLowCardio => 'Little cardio lately';
+
+  @override
+  String get routineEvidenceRecentRecord => 'Recent workout log';
+
+  @override
+  String get aiPlanIntensityLow => 'Low';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -3025,6 +3112,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachAskFailed => 'Couldn\'t send your question';
 
   @override
+  String get coachRateLimited =>
+      'You\'ve sent too many questions. Please try again in a minute';
+
+  @override
   String get slotFutureOnly =>
       'Booking slots can only be set for future times.';
 
@@ -3091,6 +3182,105 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifLoadFailed => 'Couldn\'t load notifications';
+
+  @override
+  String get notifLoadMore => 'Load earlier notifications';
+
+  @override
+  String get notifLoadMoreFailed => 'Couldn\'t load earlier notifications';
+
+  @override
+  String get notifNoEarlier => 'No earlier notifications';
+
+  @override
+  String get notifTplHealthGoalTitle => 'Member goals changed';
+
+  @override
+  String notifTplHealthGoalBody(String name, String goals) {
+    return '$name changed their health goals: $goals';
+  }
+
+  @override
+  String get notifTplNoGoals => 'none';
+
+  @override
+  String get notifTplMemberRenamedTitle => 'Member renamed';
+
+  @override
+  String notifTplMemberRenamedBody(String oldName, String newName) {
+    return '$oldName changed their name to $newName.';
+  }
+
+  @override
+  String get notifTplMemberWithdrawnTitle => 'Member account deleted';
+
+  @override
+  String notifTplMemberWithdrawnBody(String name) {
+    return '$name deleted their account.';
+  }
+
+  @override
+  String get notifTplMemberDisconnectedTitle => 'Client disconnected';
+
+  @override
+  String notifTplMemberDisconnectedBody(String name) {
+    return '$name ended their connection with you.';
+  }
+
+  @override
+  String get notifTplConsultRequestedTitle => 'New consultation request';
+
+  @override
+  String get notifTplConsultCancelledTitle => 'Consultation request cancelled';
+
+  @override
+  String get notifTplConsultWithdrawnTitle =>
+      'Consultation request cancelled: member account deleted';
+
+  @override
+  String get notifTplInviteAcceptedTitle => 'Coaching request accepted';
+
+  @override
+  String notifTplInviteAcceptedBody(String name) {
+    return '$name is now your client.';
+  }
+
+  @override
+  String get notifTplInviteRejectedTitle => 'Coaching request declined';
+
+  @override
+  String notifTplInviteRejectedBody(String name) {
+    return '$name declined your coaching request.';
+  }
+
+  @override
+  String get notifTplReservationBookedTitle => 'New booking';
+
+  @override
+  String get notifTplReservationCancelledTitle => 'Booking cancelled';
+
+  @override
+  String notifTplMemberWithDetail(String name, String detail) {
+    return '$name · $detail';
+  }
+
+  @override
+  String notifTplMemberOnly(String name) {
+    return '$name';
+  }
+
+  @override
+  String notifTplWhen(String month, String day, String time) {
+    return '$month/$day $time';
+  }
+
+  @override
+  String notifTplMemberMessageTitle(String name) {
+    return 'Message from $name';
+  }
+
+  @override
+  String get notifTplMemberPhotoBody => 'Sent a photo';
 
   @override
   String get notifAllRead => 'All caught up';
@@ -3255,25 +3445,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String searchDetailCompletion(int percent) {
     return '$percent% completion this week';
   }
-
-  @override
-  String get routineFeedbackTitle => 'Workout feedback';
-
-  @override
-  String get routineFeedbackHint => 'Write coaching feedback for the member';
-
-  @override
-  String get routineFeedbackWrite => 'Write feedback';
-
-  @override
-  String get routineFeedbackEdit => 'Edit feedback';
-
-  @override
-  String get routineFeedbackSaved => 'Feedback saved';
-
-  @override
-  String get routineFeedbackFailed =>
-      'Could not save feedback. Please try again';
 
   @override
   String get navOperationsGroup => 'Operations';
@@ -4271,18 +4442,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '$count no-show';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count done';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days days unlogged';
   }
 
   @override
@@ -4334,6 +4495,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSentRewrite => 'Rewrite from this';
+
+  @override
+  String get reportsResendTitle => 'Already sent';
+
+  @override
+  String reportsResendBody(String name, String date, String time) {
+    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their chat.';
+  }
+
+  @override
+  String get reportsResendConfirm => 'Send again';
+
+  @override
+  String get reportsSendHistoryFailed =>
+      'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.';
 
   @override
   String get reportsSentBody => 'Message sent';
