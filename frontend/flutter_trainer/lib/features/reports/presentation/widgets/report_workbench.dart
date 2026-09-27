@@ -3,6 +3,7 @@ import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -488,12 +489,13 @@ class _QueueRow extends StatelessWidget {
   }
 
   Widget _tag(AppLocalizations l, ReportSignal signal) => switch (signal.kind) {
-    // 이 목록에서 색은 `먼저 열 줄인가` 하나만 가른다. 60% 와 79% 를 다른
-    // 색으로 두면 트레이너는 두 경고색의 뜻을 따로 외워야 하는데, 어차피 둘
-    // 다 이번 주에 손대야 하는 줄이다(#2232).
+    // 요약·회원 문구와 같은 세 구간이다(#2345) — 60 미만 빨강, 80 이상
+    // 초록, 그 사이는 회색. 예전에는 80 미만을 모두 빨강으로 두어, 요약이
+    // `좋은 점` 으로 꼽는 75% 가 작업대에서는 경고였다. 경고색은 여전히 한
+    // 가지뿐이라 외울 뜻이 늘지 않는다.
     ReportSignalKind.completion => AppTag(
       label: l.reportsReasonCompletion(signal.value),
-      tone: signal.value < 80 ? AppTagTone.danger : AppTagTone.success,
+      tone: completionTagTone(signal.value),
     ),
     ReportSignalKind.noShow => AppTag(
       label: l.reportsReasonNoShow(signal.value),
@@ -522,3 +524,10 @@ class _QueueRow extends StatelessWidget {
     ReportSignalKind.onboarding => AppTag(label: l.reportsReasonOnboarding),
   };
 }
+
+/// 이행률(%) 배지의 색 — 60 미만 빨강, 80 이상 초록, 그 사이 회색(#2345).
+AppTagTone completionTagTone(int percent) => percent < lowCompletionThreshold
+    ? AppTagTone.danger
+    : percent >= goodCompletionThreshold
+    ? AppTagTone.success
+    : AppTagTone.neutral;

@@ -1543,6 +1543,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String reportBodyCompletionSteady(int avg) {
+    return '운동은 평균 $avg%로 꾸준히 해 주셨어요.';
+  }
+
+  @override
   String reportBodyCompletionLow(int avg) {
     return '운동 이행률은 평균 $avg%였어요. 많이 바쁘셨나 봐요.';
   }

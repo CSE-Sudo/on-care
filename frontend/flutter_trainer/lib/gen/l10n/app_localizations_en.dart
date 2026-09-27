@@ -1630,6 +1630,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String reportBodyCompletionSteady(int avg) {
+    return 'You stayed steady — $avg% of your workouts done.';
+  }
+
+  @override
   String reportBodyCompletionLow(int avg) {
     return 'Workout completion came in at $avg%. Sounds like a busy one.';
   }

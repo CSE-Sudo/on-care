@@ -143,20 +143,20 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                        '2,000kcal이에요.\n'
                        '\n'
                        '정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!'},
- 'watch_only': {'evidence': ['운동 이행률 평균 40% · 기준 70% 미만'],
+ 'watch_only': {'evidence': ['운동 이행률 평균 40% · 기준 60% 미만'],
                 'headline': '김민수 고객은 운동 이행률 40%가 목표를 벗어나 다음 주 조정이 필요합니다.',
-                'points': ['운동 이행률 평균 40% · 기준 70% 미만'],
+                'points': ['운동 이행률 평균 40% · 기준 60% 미만'],
                 'topics': ['운동 이행률 40%'],
                 'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                            '\n'
                            '운동 이행률은 평균 40%였어요. 많이 바쁘셨나 봐요.\n'
                            '\n'
                            '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
- 'good_sodium_over1': {'evidence': ['운동 이행률 평균 50% · 기준 70% 미만',
+ 'good_sodium_over1': {'evidence': ['운동 이행률 평균 50% · 기준 60% 미만',
                                     '나트륨 평균 1,800mg · 기본 목표 2,000mg 초과 1일'],
                        'headline': '김민수 고객은 나트륨 목표 초과 1일으로 잘 지켰고, 다음 주는 운동 이행률 50%를 함께 '
                                    '챙기면 좋겠습니다.',
-                       'points': ['운동 이행률 평균 50% · 기준 70% 미만',
+                       'points': ['운동 이행률 평균 50% · 기준 60% 미만',
                                   '나트륨 평균 1,800mg · 기본 목표 2,000mg 초과 1일'],
                        'topics': ['운동 이행률 50%'],
                        'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
@@ -167,7 +167,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                                   '국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.\n'
                                   '\n'
                                   '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
- 'many': {'evidence': ['운동 이행률 평균 55% · 기준 70% 미만',
+ 'many': {'evidence': ['운동 이행률 평균 55% · 기준 60% 미만',
                        '나트륨 평균 2,600mg · 개인 목표 2,300mg 초과 5일',
                        '당류 평균 75g · 개인 목표 40g 초과 4일',
                        '칼로리 평균 2,600kcal · 개인 목표 2,100kcal 대비 초과 24%',
@@ -175,7 +175,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                        '탄수화물 평균 310g · 개인 목표 200g 대비 초과 55%',
                        '단백질 평균 55g · 개인 목표 120g 대비 부족 54%'],
           'headline': '김민수 고객은 운동 이행률 55%가 목표를 벗어나 다음 주 조정이 필요합니다. 그 밖에 6가지도 함께 보세요.',
-          'points': ['운동 이행률 평균 55% · 기준 70% 미만',
+          'points': ['운동 이행률 평균 55% · 기준 60% 미만',
                      '나트륨 평균 2,600mg · 개인 목표 2,300mg 초과 5일',
                      '외 5건 — 리포트 본문에서 확인'],
           'topics': ['운동 이행률 55%',
@@ -304,7 +304,7 @@ def test_english_evidence_for_the_default_week():
 def test_english_evidence_names_personal_targets():
     lines = svc._evidence(_report(**CASES["many"]), "en")
     assert lines == [
-        "Avg workout completion 55% · below the 70% bar",
+        "Avg workout completion 55% · below the 60% bar",
         "Avg sodium 2,600mg · over the personal target of 2,300mg on 5 days",
         "Avg sugar 75g · over the personal target of 40g on 4 days",
         "Avg calories 2,600kcal · 24% above the personal target of 2,100kcal",

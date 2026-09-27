@@ -641,6 +641,7 @@
   "reportsShareNoClient": "리포트를 볼 회원을 먼저 선택해 주세요",
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
+  "reportBodyCompletionSteady": "운동은 평균 {avg}%로 꾸준히 해 주셨어요.",
   "reportBodyCompletionLow": "운동 이행률은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
   "reportBodySilentDays": "{days}에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.",
   "@reportBodySilentDays": {

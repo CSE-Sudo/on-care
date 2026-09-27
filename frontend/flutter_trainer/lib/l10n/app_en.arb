@@ -1130,6 +1130,14 @@
       }
     }
   },
+  "reportBodyCompletionSteady": "You stayed steady — {avg}% of your workouts done.",
+  "@reportBodyCompletionSteady": {
+    "placeholders": {
+      "avg": {
+        "type": "int"
+      }
+    }
+  },
   "reportBodyCompletionLow": "Workout completion came in at {avg}%. Sounds like a busy one.",
   "@reportBodyCompletionLow": {
     "placeholders": {
