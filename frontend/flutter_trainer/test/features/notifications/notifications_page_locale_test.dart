@@ -22,11 +22,13 @@ class _Repo implements TrainerNotificationRepository {
   bool get supportsInbox => true;
 
   @override
-  Future<List<TrainerNotification>> fetch() async => _rows;
+  Future<TrainerNotificationPage> fetch({
+    TrainerNotificationCursor? before,
+  }) async => TrainerNotificationPage(items: _rows);
 
   @override
-  Stream<List<TrainerNotification>> watch() =>
-      Stream<List<TrainerNotification>>.fromFuture(fetch());
+  Stream<TrainerNotificationPage> watch() =>
+      Stream<TrainerNotificationPage>.fromFuture(fetch());
 
   @override
   Future<int> unreadCount() async =>

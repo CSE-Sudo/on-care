@@ -3269,6 +3269,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifLoadFailed => 'Couldn\'t load notifications';
 
   @override
+  String get notifLoadMore => 'Load earlier notifications';
+
+  @override
+  String get notifLoadMoreFailed => 'Couldn\'t load earlier notifications';
+
+  @override
+  String get notifNoEarlier => 'No earlier notifications';
+
+  @override
   String get notifTplHealthGoalTitle => 'Member goals changed';
 
   @override
