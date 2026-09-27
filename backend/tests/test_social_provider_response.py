@@ -266,11 +266,10 @@ def test_adapter_does_not_log_token_or_body(monkeypatch, caplog, provider):
     respond_raw(monkeypatch, f"<html>{BODY_MARKER}</html>".encode(), "text/html")
     with pytest.raises(SocialProviderResponseError):
         _verify(provider)
-    # 이 저장소 코드(app.*)가 남긴 로그만 본다. httpx 자체의 요청 로그는 이 변경의
-    # 범위 밖이다.
-    ours = "\n".join(r.getMessage() for r in caplog.records if r.name.startswith("app"))
-    assert SECRET_TOKEN not in ours
-    assert BODY_MARKER not in ours
+    # 앱 로거만이 아니라 httpx 등 모든 로거가 남긴 로그 전체를 본다(#2351).
+    logged = caplog.text + "\n".join(r.getMessage() for r in caplog.records)
+    assert SECRET_TOKEN not in logged
+    assert BODY_MARKER not in logged
 
 
 # ── 헬퍼 단위 ─────────────────────────────────────────────────────
