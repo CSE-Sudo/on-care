@@ -507,6 +507,38 @@ class DietAdviceState(Base):
     )
 
 
+class DietTrainerPick(Base):
+    """트레이너가 AI 후보 가운데 골라 회원에게 추천한 메뉴. (#2378)
+
+    후보는 회원의 4주 추천 메뉴 리스트(`DietMenuPlan`)에서 나온다. 회원 앱 홈
+    `추천 식단` 첫 장에 `트레이너 추천` 으로 뜬다. 회원당 한 건이다 — 트레이너가
+    다시 고르면 같은 행을 덮어쓴다.
+
+    회원이 그 메뉴를 기록하면 `resolved_at` 이 찍혀 홈에서 내려간다. 행은 남겨
+    트레이너 카드가 "회원이 채웠어요" 를 말하게 한다.
+    """
+
+    __tablename__ = "diet_trainer_picks"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    slot: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(80))
+    #: 추천 이유 태그(`protein_high` …)와 한눈에 보이는 이유 키워드(`고단백` …).
+    tag: Mapped[str] = mapped_column(String(20))
+    keyword: Mapped[str] = mapped_column(String(40), default="")
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 회원이 이 메뉴를 기록한 시각. 비어 있으면 아직 추천 중이다.
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class WeeklyReportPurchase(Base):
     """포인트로 받은 주간 리포트 한 주. (#2022)
 
