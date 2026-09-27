@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 
 /// AI 코칭 상담의 답변 한 건. (#497)
 class ClientCoachAnswer {
@@ -180,6 +181,7 @@ class DioClientCoachRepository implements ClientCoachRepository {
 
 /// 현재 모드에 맞는 저장소.
 final clientCoachRepositoryProvider = Provider<ClientCoachRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return const DemoClientCoachRepository();
   }

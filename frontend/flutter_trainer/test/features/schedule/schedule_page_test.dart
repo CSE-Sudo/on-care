@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
@@ -233,6 +236,32 @@ void main() {
       expect(logged.trainerNote, '벤치 폼 안정적');
       expect(logged.exercisesJson, contains('벤치프레스'));
       expect(logged.sortOrder, lessThan(0)); // sorts before seed rows
+
+      // 운동은 한국어 문장이 아니라 값으로 남는다 — 영어 화면이 단위를
+      // 스스로 붙인다(#2300).
+      final List<Object?> items =
+          jsonDecode(logged.exercisesJson) as List<Object?>;
+      expect(items, isNotEmpty);
+      expect(items, everyElement(isA<Map<String, Object?>>()));
+      final Map<String, Object?> bench = items
+          .cast<Map<String, Object?>>()
+          .firstWhere((m) => m['name'] == '벤치프레스');
+      expect(bench['sets'], isA<int>());
+      expect(bench['name'], isNot(contains('세트')));
+      // 날짜 문장에 `(오늘)` 을 박지 않는다 — 화면이 날짜로 다시 그린다.
+      final DateTime today = nowKst();
+      expect(logged.dateLabel, '${today.month}/${today.day}');
+
+      // 이력으로 읽으면 날짜가 붙어 있다.
+      final entry =
+          (await DriftClientRepository(db).watchHistory('seed-client-3').first)
+              .firstWhere((h) => h.id == logged.id);
+      expect(entry.date, DateTime(today.year, today.month, today.day));
+      expect(entry.exercises.any((e) => e.name == '벤치프레스'), isTrue);
+      expect(
+        entry.exercises.firstWhere((e) => e.name == '벤치프레스').sets,
+        isNotNull,
+      );
     });
 
     test('concurrent completeSession calls log the 운동기록 once', () async {
@@ -1069,7 +1098,9 @@ void main() {
         findsNothing,
       );
 
-      await enterTimeRange(tester, start: '16:30', end: '17:30');
+      // 17:00 에는 다음 수업이 있다 — 끝을 17:00 으로 두어 맞닿기만 하게
+      // 한다(겹치면 저장되지 않는다, #2284).
+      await enterTimeRange(tester, start: '16:30', end: '17:00');
       await tester.ensureVisible(find.text('저장'));
       await tester.pump();
       await tester.tap(find.text('저장'));
@@ -1079,7 +1110,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('week-detail')),
-          matching: find.text('16:30\u201317:30'),
+          matching: find.text('16:30\u201317:00'),
         ),
         findsOneWidget,
       );
@@ -1370,6 +1401,9 @@ void main() {
       await goTo(tester, AppRoutes.scheduleAt(date: ymd(tomorrow)));
       await tester.tap(find.text('새 일정'));
       await settle(tester);
+      // 기본 시각(10:00)에는 시드 수업이 있을 수 있다 — 겹치면 만들어지지
+      // 않으므로(#2284) 시드가 비워 둔 밤 시간으로 잡는다.
+      await enterTimeRange(tester, start: '23:00', end: '23:30');
       await tester.tap(find.text('추가'));
       await settle(tester);
 

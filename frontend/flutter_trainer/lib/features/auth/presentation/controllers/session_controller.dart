@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
@@ -21,10 +22,37 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 /// in-memory mock repository.
 class SessionController extends StateNotifier<SessionState> {
   SessionController(this._ref) : super(const SessionState()) {
+    // 첫 값(복구 전 unknown)은 기준으로만 삼는다 — provider 를 만드는 도중에
+    // 다른 provider 를 고치면 Riverpod 이 막는다.
+    addListener(_syncAccountScope, fireImmediately: false);
     _restore();
   }
 
   final Ref _ref;
+
+  /// 마지막으로 [accountScopeProvider] 에 반영한 계정 경계. (#2285)
+  SessionStatus _scopeStatus = SessionStatus.unknown;
+  String? _scopeEmail;
+
+  /// 세션이 계정 경계를 넘으면 계정 범위 provider 를 전부 새로 만들게 한다.
+  ///
+  /// 경계는 상태(로그인·데모·로그아웃)가 바뀌거나 로그인한 계정의 이메일이 바뀔
+  /// 때다. 로그아웃·토큰 만료·복구 실패가 모두 `signedOut` 으로 모이므로 어느
+  /// 길로 세션이 끝나도 이전 계정의 캐시가 남지 않는다. 같은 계정 안의 프로필
+  /// 편집([replaceProfile])은 경계가 아니다 — 거기서 올리면 MY 에서 이름만 고쳐도
+  /// 회원 목록을 다시 읽는다.
+  void _syncAccountScope(SessionState next) {
+    // 데모는 계정이 없다 — 데모에서 프로필을 고쳐도 같은 데모 세션이다.
+    final String? email = next.status == SessionStatus.authenticated
+        ? next.profile?.email
+        : null;
+    if (next.status == _scopeStatus && email == _scopeEmail) return;
+    _scopeStatus = next.status;
+    _scopeEmail = email;
+    _ref.read(accountSignedOutProvider.notifier).state =
+        next.status == SessionStatus.signedOut;
+    _ref.read(accountScopeProvider.notifier).state++;
+  }
 
   /// Set once the user drives an explicit auth action (login / register /
   /// social / demo / sign-out). The launch-time [_restore] is async, so on

@@ -293,6 +293,7 @@ class DioScheduleRepository implements ScheduleRepository {
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
+    int durationMinutes = 0,
   }) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
@@ -303,7 +304,9 @@ class DioScheduleRepository implements ScheduleRepository {
           rule: rule,
           clientName: '',
           type: '',
-          durationMinutes: 0,
+          // 겹침은 시간 구간으로 본다(#2284) — 길이를 빼면 10:00(60분) 위의
+          // 10:30 회차를 미리보기가 놓친다.
+          durationMinutes: durationMinutes,
         ),
       );
       final data = res.data ?? const <String, dynamic>{};
@@ -468,6 +471,12 @@ class DioScheduleRepository implements ScheduleRepository {
     try {
       await write();
     } on DioException catch (e) {
+      // 시간 겹침은 겹친 세션을 짚어 줘야 하므로 타입 있는 오류로 올린다(#2284).
+      final overlap = scheduleOverlapFromResponse(
+        e.response?.statusCode,
+        e.response?.data,
+      );
+      if (overlap != null) throw overlap;
       throw AppError.fromDio(e);
     }
     _bump();

@@ -48,3 +48,37 @@ String dateLabel(AppLocalizations l, DateTime d, {DateTime? relativeTo}) {
   );
   return prefix.isEmpty ? date : l.datePrefixed(prefix, date);
 }
+
+/// [from] 에서 [to] 까지 며칠인가(달력 날짜만). UTC 로 옮겨 빼는 이유는
+/// [dateLabel] 과 같다 — 서머타임이 시작하는 날 두 자정 사이가 23시간이다.
+int calendarDaysBetween(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
+
+/// 지난 날을 `오늘`·`어제`·`N일 전` 으로 — `Today`·`Yesterday`·`N days ago`.
+///
+/// 예전에는 서버가 이 문장을 한국어로 만들어 보냈다(#2300). 이제 서버는 날짜만
+/// 주고 문장은 화면 언어로 여기서 만든다. 미래 날짜(시계 오차)는 `오늘` 로 접는다
+/// — 서버 `relative_day_label` 과 같은 규칙이다.
+String relativeDayLabel(AppLocalizations l, DateTime day, {DateTime? now}) {
+  final int delta = calendarDaysBetween(day, now ?? nowKst());
+  if (delta <= 0) return l.dateToday;
+  if (delta == 1) return l.dateYesterday;
+  return l.dateDaysAgo(delta);
+}
+
+/// 운동 기록 카드의 날짜 — `9/27 (오늘)`·`9/26 (어제)`·`9/25`.
+///
+/// 서버 `history_date_label` 과 같은 모양이다(#2300). 미래 날짜는 꼬리표 없이
+/// 날짜만 적는다.
+String historyDateLabel(AppLocalizations l, DateTime day, {DateTime? now}) {
+  final String date = l.historyDate(day.month, day.day);
+  final int delta = calendarDaysBetween(day, now ?? nowKst());
+  return switch (delta) {
+    0 => l.historyDateRelative(date, l.dateToday),
+    1 => l.historyDateRelative(date, l.dateYesterday),
+    _ => date,
+  };
+}

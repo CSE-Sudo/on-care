@@ -1,3 +1,4 @@
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -17,15 +18,22 @@ class RoutineHistoryEntry {
     required this.trainerNote,
     this.assignedRoutineId,
     this.completedAt,
+    this.date,
+    this.kind,
   });
 
   /// Stable history id used when editing feedback.
   final String id;
 
   /// Display date (e.g. "7/12 (오늘)").
+  ///
+  /// 서버·데모가 한국어로 만든 문장이다. 화면은 [routineHistoryDateLabel] 로
+  /// 그린다 — [date] 가 있으면 화면 언어로 다시 만든다(#2300).
   final String dateLabel;
 
   /// Session kind (e.g. "PT 세션 · 트레이너 지도").
+  ///
+  /// 저장된 이름 그대로다. 화면은 [routineKindLabel] 로 그린다.
   final String label;
 
   /// 0–100 completion.
@@ -49,6 +57,16 @@ class RoutineHistoryEntry {
   /// 시드가 오늘 위에 얹은 날짜를 준다. [dateLabel] 은 화면에 그릴 문자열일
   /// 뿐이라 기간을 판단하는 데 쓸 수 없다 — 거르는 쪽은 언제나 이 값이다.
   final DateTime? completedAt;
+
+  /// 이 기록이 붙는 날(`date`, #2300). [dateLabel] 을 만든 바로 그 날이다.
+  ///
+  /// [completedAt] 과 다를 수 있다 — 배정 수행은 지난 주 운동을 오늘 고친
+  /// 기록도 그 운동을 한 날로 붙는다(#1264). 옛 서버는 주지 않는다.
+  final DateTime? date;
+
+  /// [label] 이 서버가 붙인 고정 이름이면 그 코드(`pt_session`·`ai_personal`·
+  /// `assigned_routine`). 트레이너가 지은 이름이면 null 이다(#2300).
+  final String? kind;
 }
 
 /// [range] 안에 있는 기록만. 시작·끝 모두 **포함**이고 시각은 버린다 —
@@ -100,16 +118,45 @@ extension RoutineHistoryCompletion on RoutineHistoryEntry {
       totalCount == 0 ? completionRate : (doneCount / totalCount * 100).round();
 }
 
-/// 화면에 그리는 기록 종류 이름. (#1453)
+/// 서버가 붙이는 고정 이름 → 종류 코드. 서버 `_HISTORY_KIND_CODES` 와 같다.
 ///
-/// 옛 시드·픽스처가 `AI 루틴 · 자율 운동` 이라는 이름으로 저장돼 있다. 지금
-/// 두 앱이 같은 대상을 부르는 이름은 `AI 개인운동` 이다. 저장된 문자열을
-/// 고치는 마이그레이션 대신 **그릴 때 정규화**한다 — 이미 깔린 데모 DB 와
-/// 실서버의 옛 행까지 한 번에 같은 이름으로 보이고, 새 시드는 애초에 새
-/// 이름으로 저장한다.
-String routineKindLabel(AppLocalizations l, String raw) {
-  const String legacyAiRoutine = 'AI 루틴 · 자율 운동';
-  return raw.trim() == legacyAiRoutine ? l.workoutKindAiPersonal : raw;
+/// 코드를 주지 않는 옛 서버와, 이름만 저장하는 데모 DB 의 행도 같은 문구로
+/// 그리려고 이름에서도 코드를 되짚는다.
+const Map<String, String> _kindByStoredLabel = <String, String>{
+  'PT 세션 · 트레이너 지도': 'pt_session',
+  'AI 개인운동': 'ai_personal',
+  // 옛 시드·픽스처의 이름. 지금은 `AI 개인운동` 으로 부른다(#1453).
+  'AI 루틴 · 자율 운동': 'ai_personal',
+  '배정 루틴 수행': 'assigned_routine',
+};
+
+/// 화면에 그리는 기록 종류 이름. (#1453, #2300)
+///
+/// 서버가 붙인 고정 이름은 [kind] 코드로(없으면 저장된 이름에서 되짚어) 화면
+/// 언어의 문구를 고른다 — 저장된 문자열을 고치는 마이그레이션 없이 옛 행과 데모
+/// DB 까지 같은 이름으로 보인다. 트레이너가 지은 이름은 그대로 둔다.
+String routineKindLabel(AppLocalizations l, String raw, {String? kind}) {
+  final String? code = kind ?? _kindByStoredLabel[raw.trim()];
+  return switch (code) {
+    'pt_session' => l.workoutKindPtSession,
+    'ai_personal' => l.workoutKindAiPersonal,
+    // 서버는 이름 없는 배정에만 이 코드를 붙인다 — 이름이 있으면 코드가 없다.
+    'assigned_routine' => l.workoutKindAssignedRoutine,
+    _ => raw,
+  };
+}
+
+/// 기록 카드의 날짜 문구 — `9/27 (오늘)` / `9/27 (Today)`. (#2300)
+///
+/// [RoutineHistoryEntry.date] 가 있으면 화면 언어로 만들고, 없는 옛 서버의
+/// 기록만 받은 문장([RoutineHistoryEntry.dateLabel])을 그대로 쓴다.
+String routineHistoryDateLabel(
+  AppLocalizations l,
+  RoutineHistoryEntry entry, {
+  DateTime? now,
+}) {
+  final DateTime? date = entry.date;
+  return date == null ? entry.dateLabel : historyDateLabel(l, date, now: now);
 }
 
 /// 고객 피드백 상자의 제목. (#1453)

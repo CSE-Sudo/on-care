@@ -1047,6 +1047,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exReserveFailed => '예약에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get exReserveTimeTaken =>
+      '트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요';
+
+  @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
     return '$slot · $gym 예약이 확정됐어요';
   }

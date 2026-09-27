@@ -410,6 +410,7 @@
   "exSlotsAllBooked": "예약 가능한 시간이 모두 찼어요",
   "exSlotsLoadError": "예약 시간을 불러오지 못했어요.",
   "exReserveFailed": "예약에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "exReserveTimeTaken": "트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요",
   "exReserveConfirmedSlotGym": "{slot} · {gym} 예약이 확정됐어요",
   "exReserveConfirm": "{slot} 예약 확정",
   "exGymInfo": "헬스장 정보",
