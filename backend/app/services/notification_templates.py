@@ -268,10 +268,12 @@ def _trainer_reservation_cancelled(args: Args, locale: Locale) -> Rendered:
 @_template(TRAINER_MEMBER_MESSAGE)
 def _trainer_member_message(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
-    # 본문은 회원이 쓴 메시지 그대로다.
+    # 본문은 회원이 쓴 메시지 그대로다. 사진만 보낸 메시지는 본문이 비어 있어
+    # 대신 적는 말이 있다(#1665) — 트레이너 발신 사진(#921)과 같은 규칙이다.
+    photo_only = bool(args.get("photo_only"))
     if locale == "ko":
-        return f"{name or '회원'} 회원의 메시지", None
-    return f"Message from {name or 'a member'}", None
+        return f"{name or '회원'} 회원의 메시지", "사진을 보냈어요" if photo_only else None
+    return f"Message from {name or 'a member'}", "Sent a photo" if photo_only else None
 
 
 # --------------------------------------------------------------------------
