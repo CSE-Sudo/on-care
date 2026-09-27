@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleStatusNoShow => 'No-show';
 
   @override
-  String get schedCancel => 'Cancel session';
+  String get schedCancel => 'Cancel';
 
   @override
   String get schedNoShow => 'Mark no-show';
@@ -538,6 +538,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$shown of $total members';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => 'Weekly adherence';
 
   @override
@@ -887,6 +892,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
+
+  @override
+  String get clientDietTotalCalories => 'Total calories';
+
+  @override
+  String get clientDietDayTotal => 'Day total';
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
 
   @override
   String get metricCarbs => 'Carbs';
@@ -1249,11 +1265,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String dietAmountRemaining(String amount) {
     return '$amount remaining to the goal';
-  }
-
-  @override
-  String dietSodiumValue(int value) {
-    return 'Sodium ${value}mg';
   }
 
   @override
@@ -1629,6 +1640,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return 'You kept up well — $avg% of your workouts done.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return 'You stayed steady — $avg% of your workouts done.';
   }
 
   @override

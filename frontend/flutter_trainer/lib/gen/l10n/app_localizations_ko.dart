@@ -24,7 +24,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scheduleStatusNoShow => '노쇼';
 
   @override
-  String get schedCancel => '취소 처리';
+  String get schedCancel => '취소';
 
   @override
   String get schedNoShow => '노쇼 처리';
@@ -522,6 +522,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$total명 중 $shown명';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => '주간 이행률';
 
   @override
@@ -861,6 +866,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientDietMacrosMissing => '탄·단·지 기록 없음';
+
+  @override
+  String get clientDietTotalCalories => '총 칼로리';
+
+  @override
+  String get clientDietDayTotal => '하루 합계';
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
 
   @override
   String get metricCarbs => '탄수화물';
@@ -1218,11 +1234,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String dietSodiumValue(int value) {
-    return '나트륨 ${value}mg';
-  }
-
-  @override
   String get aiAnalysis => 'AI 분석';
 
   @override
@@ -1542,6 +1553,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return '운동은 평균 $avg%로 잘 따라오셨어요.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return '운동은 평균 $avg%로 꾸준히 해 주셨어요.';
   }
 
   @override

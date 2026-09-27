@@ -37,7 +37,6 @@ class _CountingAccountRepository extends MockAccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   }) {
     saves++;
     return super.updateProfile(
@@ -48,7 +47,6 @@ class _CountingAccountRepository extends MockAccountRepository {
       gender: gender,
       heightCm: heightCm,
       weightKg: weightKg,
-      goals: goals,
     );
   }
 }

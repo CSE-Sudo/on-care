@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel session'**
+  /// **'Cancel'**
   String get schedCancel;
 
   /// No description provided for @schedNoShow.
@@ -1052,6 +1052,12 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// Roster subtitle while a dashboard preset or management filter narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} members'**
+  String clientsMemberCountFiltered(int shown, int total);
+
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
   /// In en, this message translates to:
@@ -1687,6 +1693,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No carbs/protein/fat recorded'**
   String get clientDietMacrosMissing;
+
+  /// No description provided for @clientDietTotalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Total calories'**
+  String get clientDietTotalCalories;
+
+  /// No description provided for @clientDietDayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Day total'**
+  String get clientDietDayTotal;
+
+  /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
+  ///
+  /// In en, this message translates to:
+  /// **'{name} {percent}%'**
+  String clientDietMacroShare(String name, int percent);
 
   /// No description provided for @metricCarbs.
   ///
@@ -2330,12 +2354,6 @@ abstract class AppLocalizations {
   /// **'{amount} remaining to the goal'**
   String dietAmountRemaining(String amount);
 
-  /// No description provided for @dietSodiumValue.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium {value}mg'**
-  String dietSodiumValue(int value);
-
   /// No description provided for @aiAnalysis.
   ///
   /// In en, this message translates to:
@@ -2857,6 +2875,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You kept up well — {avg}% of your workouts done.'**
   String reportBodyCompletionGood(int avg);
+
+  /// No description provided for @reportBodyCompletionSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'You stayed steady — {avg}% of your workouts done.'**
+  String reportBodyCompletionSteady(int avg);
 
   /// No description provided for @reportBodyCompletionLow.
   ///

@@ -416,7 +416,6 @@ class DriftClientRepository implements ClientRepository {
       conditions:
           saved['conditions'] as String? ??
           formatHealthFocus(parseHealthFocus(row.goal)),
-      goals: saved['goals'] as String? ?? row.goal,
       // 데모에서 트레이너가 목표를 바꾼 기록 — 실서버와 같은 줄을 그린다(#1832).
       focusChangedBy: saved['focus_changed_by'] as String?,
       focusChangedAt: switch (saved['focus_changed_at']) {
@@ -468,7 +467,6 @@ class DriftClientRepository implements ClientRepository {
       'conditions': normalizeHealthFocusText(
         value('conditions', current.conditions) as String? ?? '',
       ),
-      'goals': value('goals', current.goals),
       'weekly_workout_goal': value(
         'weekly_workout_goal',
         current.weeklyWorkoutGoal,

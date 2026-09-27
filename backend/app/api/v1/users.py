@@ -139,7 +139,6 @@ def _profile_view(user: User) -> ProfileView:
         height_cm=p.height_cm if p else None,
         weight_kg=p.weight_kg if p else None,
         conditions=p.conditions if p else "",
-        goals=p.goals if p else "",
         daily_calories=p.daily_calories if p else None,
         daily_sodium_mg=p.daily_sodium_mg if p else None,
         daily_sugar_g=p.daily_sugar_g if p else None,
@@ -256,7 +255,6 @@ def update_me(
         "gender",
         "height_cm",
         "weight_kg",
-        "goals",
     ):
         if field in data:
             setattr(profile, field, data[field])

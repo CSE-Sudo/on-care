@@ -4,6 +4,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
 
 /// ③ 지난 주 목표 하나의 판정. (#2287)
 enum GoalOutcome {
@@ -254,21 +255,24 @@ GoalCheck _logged(AppLocalizations l, WeeklyReport report, String goal) {
   );
 }
 
-/// 운동 목표 — 그 주 개인 운동 이행률. 요약이 이행률을 짚는 기준과 같은 값에
-/// 닿으면 달성이다.
+/// 운동 목표 — 그 주 개인 운동 이행률. 좋음(80) 이상이면 달성, 낮음(60)
+/// 아래면 미달, 그 사이는 부분 달성 — 요약·작업대 배지와 같은 세 구간이다(#2345).
 GoalCheck _workout(AppLocalizations l, WeeklyReport report, String goal) {
   final int? completion = report.completionAvg;
   if (completion == null) {
     return GoalCheck(goal: goal, outcome: GoalOutcome.unknown);
   }
-  final double ratio = completion / summaryLowCompletion;
   return GoalCheck(
     goal: goal,
-    outcome: ratio >= 1
+    outcome: completion >= goodCompletionThreshold
         ? GoalOutcome.met
-        : ratio >= _partialRatio
+        : completion >= lowCompletionThreshold
         ? GoalOutcome.partial
         : GoalOutcome.missed,
-    evidence: l.reportsLastGoalsEvidence(completion, summaryLowCompletion, '%'),
+    evidence: l.reportsLastGoalsEvidence(
+      completion,
+      goodCompletionThreshold,
+      '%',
+    ),
   );
 }
