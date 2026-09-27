@@ -72,9 +72,13 @@ void main() {
     testWidgets('sits between notifications and account', (tester) async {
       await _openSettings(tester);
 
-      final double notif = tester.getTopLeft(find.text('알림')).dy;
-      final double language = tester.getTopLeft(find.text('화면 언어').first).dy;
-      final double account = tester.getTopLeft(find.text('계정')).dy;
+      // 메뉴 항목끼리 비교한다 — 화면 제목도 '화면 언어' 다.
+      double top(String section) => tester
+          .getTopLeft(find.byKey(ValueKey<String>('my-$section-entry')))
+          .dy;
+      final double notif = top('notifications');
+      final double language = top('language');
+      final double account = top('account');
       expect(notif, lessThan(language));
       expect(language, lessThan(account));
     });

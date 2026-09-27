@@ -222,7 +222,7 @@ void main() {
         at: AppRoutes.mySection('edit'),
       );
 
-      expect(find.text(_ko.myEditVisibleTitle), findsOneWidget);
+      expect(find.text(_ko.myEditVisibleBody), findsOneWidget);
     });
   });
 
@@ -262,7 +262,7 @@ void main() {
       expect(find.byTooltip('뒤로'), findsNothing);
     });
 
-    testWidgets('내 정보는 프로필 요약 옆에 소속·자격을 둔다', (tester) async {
+    testWidgets('내 정보와 설정이 한 메뉴에 있고, 프로필은 메뉴 옆에 열린다', (tester) async {
       useWideView(tester);
       await pumpTrainerApp(
         tester,
@@ -270,14 +270,44 @@ void main() {
         at: AppRoutes.mySection('profile'),
       );
 
-      final double name = tester.getCenter(find.text('trainer@oncare.com')).dx;
-      final double gym = tester.getCenter(find.text(_ko.myGym)).dx;
-      expect(gym, greaterThan(name));
-      // 두 판이 한 줄에 선다 — 이번 달 지표가 프로필 아래로 밀리지 않는다.
+      // 토글 대신 메뉴 한 장이다(#2264).
       expect(
-        tester.getTopLeft(find.text(_ko.myStatClients)).dy,
-        lessThan(tester.getCenter(find.text('trainer@oncare.com')).dy),
+        find.byWidgetPredicate((w) => w is AppSegmentedToggle),
+        findsNothing,
       );
+      final double menu = tester
+          .getCenter(find.byKey(const ValueKey<String>('my-profile-entry')))
+          .dx;
+      final double email = tester
+          .getCenter(find.text('trainer@oncare.com').first)
+          .dx;
+      expect(email, greaterThan(menu));
+      expect(
+        find.byKey(const ValueKey<String>('my-notifications-entry')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('고치다 메뉴의 다른 항목을 눌러도 버릴지 묻는다', (tester) async {
+      useWideView(tester);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('edit'),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '010-9999-8888',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('my-notifications-entry')),
+      );
+      await settle(tester);
+      expect(find.text(_ko.myDiscardTitle), findsOneWidget);
+      await tester.tap(find.text(_ko.myKeepEditing));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('edit'));
     });
   });
 }

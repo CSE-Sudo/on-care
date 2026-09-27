@@ -4100,6 +4100,60 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save your settings. Please try again in a moment'**
   String get mySettingsSaveFailed;
 
+  /// No description provided for @myPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile & settings'**
+  String get myPageTitle;
+
+  /// No description provided for @myProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get myProfileTitle;
+
+  /// No description provided for @myEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get myEmail;
+
+  /// No description provided for @myBasicInfoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Members see this on your trainer profile'**
+  String get myBasicInfoHint;
+
+  /// No description provided for @myNotificationsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which alerts you get'**
+  String get myNotificationsHint;
+
+  /// No description provided for @myAccountInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get myAccountInfo;
+
+  /// No description provided for @myAccountInfoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The account you sign in with. To change your name or email, contact support.'**
+  String get myAccountInfoHint;
+
+  /// No description provided for @mySecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get mySecurity;
+
+  /// No description provided for @mySupportHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question or read our policies'**
+  String get mySupportHint;
+
   /// No description provided for @myDiscardTitle.
   ///
   /// In en, this message translates to:
@@ -4142,12 +4196,6 @@ abstract class AppLocalizations {
   /// **'No introduction yet. Add one in Edit profile — members see it.'**
   String get myIntroEmpty;
 
-  /// No description provided for @myPhoneEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No phone number'**
-  String get myPhoneEmpty;
-
   /// No description provided for @myCertsEmpty.
   ///
   /// In en, this message translates to:
@@ -4160,23 +4208,11 @@ abstract class AppLocalizations {
   /// **'No gym yet. You can pick one in Edit profile.'**
   String get myGymEmpty;
 
-  /// No description provided for @myEditVisibleTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Members see this'**
-  String get myEditVisibleTitle;
-
   /// No description provided for @myEditVisibleBody.
   ///
   /// In en, this message translates to:
   /// **'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.'**
   String get myEditVisibleBody;
-
-  /// No description provided for @myClientManagementEntryHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Tidy up your member connections'**
-  String get myClientManagementEntryHint;
 
   /// No description provided for @myClientManagementNoteTitle.
   ///

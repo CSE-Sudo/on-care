@@ -68,25 +68,22 @@ class MyPage extends ConsumerStatefulWidget {
 
 /// 이 화면의 구획 — `t` 쿼리 값과 이름이 같다.
 ///
-/// 하위 화면은 자기가 속한 탭([parent])으로 돌아간다. 회원 관리·프로필 수정은
-/// 내 정보에서, 알림·계정·고객 지원은 설정 목록에서 들어온다.
+/// `settings` 는 메뉴만 연 상태다(좁은 화면의 첫 화면). 프로필 수정은 프로필에서
+/// 들어가 프로필로 돌아간다([parent]).
 enum _MySection {
-  profile,
   settings,
-  clients(parent: profile),
+  profile,
+  clients,
   edit(parent: profile),
-  notifications(parent: settings),
-  language(parent: settings),
-  account(parent: settings),
-  support(parent: settings);
+  notifications,
+  language,
+  account,
+  support;
 
   const _MySection({this.parent});
 
-  /// 뒤로 가면 돌아갈 탭. 탭 자체는 null 이다.
+  /// 경로(`← 프로필 › 프로필 수정`)로 돌아갈 곳.
   final _MySection? parent;
-
-  /// 위쪽 토글에서 켜 둘 탭.
-  _MySection get tab => parent ?? this;
 
   static _MySection parse(String? value) => _MySection.values.firstWhere(
     (s) => s.name == value,
@@ -375,9 +372,27 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
-  void _go(_MySection section) => context.go(AppRoutes.mySection(section.name));
+  /// [section] 으로 간다. 프로필을 고치다 다른 곳으로 가면 버릴지 먼저 묻는다 —
+  /// 뒤로 가기든 메뉴의 다른 항목이든, 다 고친 뒤 눌러 조용히 날리는 일이
+  /// 생긴다. 저장 성공·실패 뒤의 이동은 이 확인을 거치지 않는다.
+  Future<void> _go(_MySection section) async {
+    if (_saving) return;
+    if (_section == _MySection.edit && section != _MySection.edit && _isDirty) {
+      final AppLocalizations l = AppLocalizations.of(context);
+      final bool leave = await showAppConfirmDialog(
+        context: context,
+        title: l.myDiscardTitle,
+        message: l.myDiscardBody,
+        cancelLabel: l.myKeepEditing,
+        confirmLabel: l.myDiscardAction,
+        destructive: true,
+      );
+      if (!leave || !mounted) return;
+    }
+    context.go(AppRoutes.mySection(section.name));
+  }
 
-  /// 편집 초안이 저장된 값과 다른가. 뒤로 갈 때 버릴지 묻는 기준이다.
+  /// 편집 초안이 저장된 값과 다른가. 떠날 때 버릴지 묻는 기준이다.
   bool get _isDirty {
     String text(String key) => _fields[key]?.text ?? '';
     return text('phone') != _profile.phone ||
@@ -394,34 +409,9 @@ class _MyPageState extends ConsumerState<MyPage> {
                 text('gymPhone') != _gym.phone));
   }
 
-  /// 하위 화면(프로필 수정·회원 관리)에서 뒤로. 고친 내용이 있으면 버릴지
-  /// 먼저 묻는다 — 저장 버튼이 헤더 오른쪽 끝에 있어, 다 고친 뒤 뒤로 가기를
-  /// 눌러 조용히 날리는 일이 생긴다.
-  Future<void> _leaveSubPage() async {
-    if (_saving) return;
-    if (_section == _MySection.edit && _isDirty) {
-      final AppLocalizations l = AppLocalizations.of(context);
-      final bool leave = await showAppConfirmDialog(
-        context: context,
-        title: l.myDiscardTitle,
-        message: l.myDiscardBody,
-        cancelLabel: l.myKeepEditing,
-        confirmLabel: l.myDiscardAction,
-        destructive: true,
-      );
-      if (!leave || !mounted) return;
-    }
-    _go(_section.parent ?? _MySection.profile);
-  }
-
-  /// 넓은 화면의 설정 오른쪽 판에 보일 항목. 목록만 연 상태면 첫 줄(알림)이다.
-  _MySection get _settingsDetail => _section.parent == _MySection.settings
-      ? _section
-      : _MySection.notifications;
-
   String _title(AppLocalizations l, _MySection section) => switch (section) {
-    _MySection.profile => l.myTabProfile,
-    _MySection.settings => l.myTabSettings,
+    _MySection.settings => l.myPageTitle,
+    _MySection.profile => l.myProfileTitle,
     _MySection.clients => l.myClientManagement,
     _MySection.edit => l.myEditProfile,
     _MySection.notifications => l.myNotifications,
@@ -434,245 +424,240 @@ class _MyPageState extends ConsumerState<MyPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final _MySection section = _section;
-    // 프로필 수정·회원 관리는 내 정보를 떠나는 화면이라 헤더에 뒤로 가기를
-    // 둔다. 설정의 하위 항목은 회원·메시지 탭처럼 목록 옆(좁으면 목록 대신)에
-    // 열리므로 헤더는 그대로 `설정` 이다.
-    final bool leavesTab =
-        section == _MySection.edit || section == _MySection.clients;
-    // 다른 탭과 같은 폭을 쓴다(#2227). 좁은 틀은 큰 화면에서 이 화면만 양옆이
-    // 크게 비어, 사이드바에서 옮겨 올 때 화면이 바뀐 것처럼 보였다.
-    return AppWebPage(
-      title: _title(l, leavesTab ? section : section.tab),
-      subtitle: _profile.name,
-      leading: leavesTab ? AppBackButton(onPressed: _leaveSubPage) : null,
-      actions: <Widget>[
-        if (section == _MySection.profile)
-          AppButton(
-            label: l.myEditProfile,
-            leadingIcon: Icons.edit_rounded,
-            variant: AppButtonVariant.secondary,
-            onPressed: () => _go(_MySection.edit),
-          )
-        else if (section == _MySection.edit)
-          AppButton(
-            label: _saving ? l.mySaving : l.actionSave,
-            leadingIcon: Icons.check_rounded,
-            loading: _saving,
-            onPressed: _save,
-          ),
-      ],
-      // 보기 전환은 헤더가 아니라 본문 맨 위에 둔다 — 좁은 틀의 헤더에 토글과
-      // 편집 버튼을 함께 올리면 화면 이름이 줄임표로 잘린다(#1004).
-      body: PageScrollResetListener(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            // 회원·메시지 탭의 분할과 같은 기준이다.
-            final bool wide =
-                constraints.maxWidth >= OnCareLayout.splitBreakpoint;
-            final bool showToggle =
-                !leavesTab && (wide || section.parent != _MySection.settings);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                if (showToggle) ...<Widget>[
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: AppSegmentedToggle<_MySection>(
-                      segments: <AppSegment<_MySection>>[
-                        AppSegment<_MySection>(
-                          value: _MySection.profile,
-                          label: l.myTabProfile,
-                        ),
-                        AppSegment<_MySection>(
-                          value: _MySection.settings,
-                          label: l.myTabSettings,
-                        ),
-                      ],
-                      selected: section.tab,
-                      onChanged: _go,
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // [AppSplitView] 가 보는 폭(페이지 좌우 여백을 뺀 값)으로 판단해, 분할
+        // 여부와 경로·메뉴 선택 표시가 어긋나지 않게 한다.
+        final bool wide =
+            constraints.maxWidth - context.oncare.density.pagePadding * 2 >=
+            OnCareLayout.splitBreakpoint;
+        // 넓은 화면에서 메뉴만 연 상태면 첫 항목(알림)을 옆에 연다.
+        final _MySection detail = section == _MySection.settings
+            ? _MySection.notifications
+            : section;
+        return AppWebPage(
+          title: _title(l, wide ? detail : section),
+          subtitle: _profile.name,
+          actions: <Widget>[
+            if (section == _MySection.edit)
+              AppButton(
+                label: _saving ? l.mySaving : l.actionSave,
+                leadingIcon: Icons.check_rounded,
+                loading: _saving,
+                onPressed: _save,
+              ),
+          ],
+          body: PageScrollResetListener(
+            child: AppSplitView(
+              showDetailWhenNarrow: section != _MySection.settings,
+              list: SingleChildScrollView(
+                key: const ValueKey<String>('my-settings'),
+                child: _menu(selected: wide ? detail : null),
+              ),
+              detail: SingleChildScrollView(
+                // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채 다른
+                // 항목으로 가면 중간부터 보였다.
+                key: ValueKey<String>('my-${detail.name}'),
+                child: Align(
+                  alignment: AlignmentDirectional.topStart,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: OnCareLayout.webNarrowMaxWidth,
                     ),
+                    child: _detail(detail, wide: wide),
                   ),
-                  const SizedBox(height: OnCareSpacing.s16),
-                ],
-                Expanded(
-                  child: section.tab == _MySection.settings
-                      ? _buildSettings(wide: wide)
-                      // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채
-                      // 회원 관리로 들어가면 목록이 중간부터 보였다.
-                      : SingleChildScrollView(
-                          key: ValueKey<String>('my-${section.name}'),
-                          child: switch (section) {
-                            _MySection.edit => _buildEdit(wide: wide),
-                            _MySection.clients => _buildClientManagement(),
-                            _ => _buildProfile(wide: wide),
-                          },
-                        ),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 왼쪽 메뉴 — 앱 사이드바와 같은 항목·묶음 제목이다. 내 정보(프로필·회원
+  /// 관리)와 설정(알림·화면 언어·계정·고객 지원)을 한 목록에 둔다. 예전에는
+  /// 둘이 토글로 갈려 있어, 설정을 보다 프로필을 보려면 화면을 바꿔야 했다.
+  /// 로그아웃은 맨 아래다(#2227).
+  Widget _menu({required _MySection? selected}) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    // 프로필 수정은 프로필 항목에 속한다.
+    final _MySection? current = selected == _MySection.edit
+        ? _MySection.profile
+        : selected;
+    Widget item(_MySection section, IconData icon) => KeyedSubtree(
+      key: ValueKey<String>('my-${section.name}-entry'),
+      child: AppSidebarItem(
+        icon: icon,
+        label: _title(l, section),
+        selected: current == section,
+        onTap: () => _go(section),
+      ),
+    );
+    return AppCard(
+      padding: const EdgeInsets.all(OnCareSpacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _MenuGroupLabel(label: l.myTabProfile),
+          item(_MySection.profile, Icons.person_rounded),
+          item(_MySection.clients, Icons.manage_accounts_rounded),
+          _MenuGroupLabel(label: l.myTabSettings),
+          item(_MySection.notifications, Icons.notifications_rounded),
+          item(_MySection.language, Icons.language_rounded),
+          item(_MySection.account, Icons.lock_rounded),
+          // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
+          // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
+          // 않는다(#505, #968).
+          item(_MySection.support, Icons.support_agent_rounded),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
+            child: AppDivider(),
+          ),
+          // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리).
+          AppButton(
+            key: const ValueKey<String>('my-logout-button'),
+            label: l.mySignOut,
+            leadingIcon: Icons.logout_rounded,
+            variant: AppButtonVariant.destructiveText,
+            fullWidth: true,
+            onPressed: _signOut,
+          ),
+        ],
       ),
     );
   }
 
-  /// 내 정보 — 읽기 전용이다. 회원 앱 MY 처럼 나를 먼저 둔다: 왼쪽(좁으면 위)
-  /// 프로필, 오른쪽에 이번 달 지표와 소속·자격, 회원 관리.
-  Widget _buildProfile({required bool wide}) {
+  /// 오른쪽(좁으면 메뉴 대신) 판. 돌아갈 곳이 있으면 맨 위에 경로를 둔다 —
+  /// `← 프로필 › 프로필 수정`.
+  Widget _detail(_MySection section, {required bool wide}) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final Widget main = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const _MonthStats(),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        _SectionCard(
-          title: l.myGym,
-          icon: Icons.home_work_rounded,
-          child: _GymView(gym: _gym),
-        ),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        _SectionCard(
-          title: l.myCertifications,
-          icon: Icons.workspace_premium_rounded,
-          child: _CertsList(certs: _certs),
-        ),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: _NavRow(
-            key: const ValueKey<String>('my-clients-entry'),
-            icon: Icons.manage_accounts_rounded,
-            title: l.myClientManagement,
-            subtitle: l.myClientManagementEntryHint,
-            onTap: () => _go(_MySection.clients),
-          ),
-        ),
-      ],
-    );
+    final _MySection? back =
+        section.parent ?? (wide ? null : _MySection.settings);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (_saveFlash) ...<Widget>[
-          AppBanner(title: l.mySaved, tone: AppBannerTone.success),
-          const SizedBox(height: OnCareSpacing.cardGap),
+        if (back != null) ...<Widget>[
+          _Breadcrumb(
+            parent: _title(l, back),
+            current: _title(l, section),
+            onBack: () => _go(back),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
         ],
-        _panes(
-          wide: wide,
-          side: _ProfileSummaryCard(profile: _profile),
-          main: main,
-        ),
+        ...switch (section) {
+          _MySection.edit => _editCards(),
+          _MySection.clients => <Widget>[_buildClientManagement()],
+          _MySection.language => <Widget>[_languageCard(wide: wide)],
+          _MySection.account => _accountCards(),
+          _MySection.support => <Widget>[_supportCard()],
+          _MySection.notifications => <Widget>[_notificationCard()],
+          _ => _profileCards(),
+        },
       ],
     );
   }
 
-  /// 목록 폭(380) 판 + 나머지. 회원·메시지 탭의 분할과 같은 치수다. 좁으면
-  /// 위아래로 쌓는다.
-  Widget _panes({
-    required bool wide,
-    required Widget side,
-    required Widget main,
-  }) {
-    if (!wide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          side,
-          const SizedBox(height: OnCareSpacing.cardGap),
-          main,
-        ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(width: OnCareLayout.splitListWidth, child: side),
-        const SizedBox(width: OnCareLayout.splitGap),
-        Expanded(child: main),
+  /// 프로필 — 읽기 전용이다. 나(신원·이번 달 지표)를 먼저, 회원에게 보이는
+  /// 기본 정보와 소속·자격을 그 아래에 둔다.
+  List<Widget> _profileCards() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String intro = _profile.intro.trim();
+    return <Widget>[
+      if (_saveFlash) ...<Widget>[
+        AppBanner(title: l.mySaved, tone: AppBannerTone.success),
+        const SizedBox(height: OnCareSpacing.cardGap),
       ],
-    );
+      _IdentityCard(profile: _profile, onEdit: () => _go(_MySection.edit)),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      const _MonthStats(),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.myBasicInfo,
+        description: l.myBasicInfoHint,
+        body: _InfoGrid(
+          fields: <_Info>[
+            _Info(l.myEmail, _profile.email),
+            _Info(l.myFieldPhone, _profile.phone),
+            _Info(l.myFieldSpecialty, _profile.specialty),
+            _Info(
+              l.myFieldCareer,
+              _profile.careerYears == null
+                  ? ''
+                  : l.myCareerYears(_profile.careerYears!),
+            ),
+          ],
+          wide: _Info(l.myFieldIntro, intro, empty: l.myIntroEmpty),
+        ),
+      ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.myGym,
+        body: _gym.name.trim().isEmpty
+            ? _EmptyLine(l.myGymEmpty)
+            : _InfoGrid(
+                fields: <_Info>[
+                  _Info(l.myGymName, _gym.name),
+                  _Info(l.myGymAddress, _gym.address),
+                  _Info(l.myGymHours, _gym.hours),
+                  _Info(l.myFieldPhone, _gym.phone),
+                ],
+              ),
+      ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.myCertifications,
+        body: _CertsList(certs: _certs),
+      ),
+    ];
   }
 
   /// 프로필 수정 — 내 정보 본문을 편집 모드로 바꾸지 않고 따로 연다(#2264).
-  /// 저장은 헤더 버튼, 취소는 뒤로 가기다. 넓으면 기본 정보와 자격·소속을
-  /// 두 열로 나눠, 긴 폼을 끝까지 내리지 않아도 한눈에 보인다.
-  Widget _buildEdit({required bool wide}) {
+  /// 저장은 헤더 버튼(스크롤해도 그 자리에 있다), 취소는 경로의 뒤로 가기다.
+  List<Widget> _editCards() {
     final AppLocalizations l = AppLocalizations.of(context);
-    final Widget basics = _SectionCard(
-      title: l.myBasicInfo,
-      icon: Icons.person_rounded,
-      child: _ProfileFields(
-        profile: _profile,
-        field: _field,
-        phoneError: _showPhoneError ? _phoneError(l) : null,
-        onPhoneChanged: _showPhoneError ? (_) => setState(() {}) : null,
-      ),
-    );
-    final Widget certs = _SectionCard(
-      title: l.myCertifications,
-      icon: Icons.workspace_premium_rounded,
-      child: _CertsEditor(
-        certs: _draftCerts,
-        newCert: _newCert,
-        onAdd: () {
-          final v = _newCert.text.trim();
-          if (v.isEmpty) return;
-          setState(() {
-            _draftCerts.add(v);
-            _newCert.clear();
-          });
-        },
-        onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
-      ),
-    );
-    final Widget gym = _SectionCard(
-      title: l.myGym,
-      icon: Icons.home_work_rounded,
-      child: _GymEditor(
-        gym: _gym,
-        field: _field,
-        choices: ref.watch(trainerGymChoicesProvider),
-        selectedGymId: _draftGymId,
-        onGymChanged: (value) => setState(() => _draftGymId = value),
-      ),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        // 누가 보는 정보인지 먼저 알린다 — 소개·경력·자격증은 담당 회원이 보는
-        // 트레이너 소개에 그대로 나간다.
-        AppBanner(
-          title: l.myEditVisibleTitle,
-          message: l.myEditVisibleBody,
-          icon: Icons.visibility_rounded,
+    return <Widget>[
+      _SettingsCard(
+        title: l.myBasicInfo,
+        // 누가 보는 정보인지 먼저 알린다 — 소개·경력·자격증은 담당 회원이
+        // 보는 트레이너 소개에 그대로 나간다.
+        description: l.myEditVisibleBody,
+        body: _ProfileFields(
+          profile: _profile,
+          field: _field,
+          phoneError: _showPhoneError ? _phoneError(l) : null,
+          onPhoneChanged: _showPhoneError ? (_) => setState(() {}) : null,
         ),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        if (wide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(child: basics),
-              const SizedBox(width: OnCareLayout.splitGap),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    certs,
-                    const SizedBox(height: OnCareSpacing.cardGap),
-                    gym,
-                  ],
-                ),
-              ),
-            ],
-          )
-        else ...<Widget>[
-          basics,
-          const SizedBox(height: OnCareSpacing.cardGap),
-          certs,
-          const SizedBox(height: OnCareSpacing.cardGap),
-          gym,
-        ],
-      ],
-    );
+      ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.myCertifications,
+        body: _CertsEditor(
+          certs: _draftCerts,
+          newCert: _newCert,
+          onAdd: () {
+            final v = _newCert.text.trim();
+            if (v.isEmpty) return;
+            setState(() {
+              _draftCerts.add(v);
+              _newCert.clear();
+            });
+          },
+          onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
+        ),
+      ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.myGym,
+        body: _GymEditor(
+          gym: _gym,
+          field: _field,
+          choices: ref.watch(trainerGymChoicesProvider),
+          selectedGymId: _draftGymId,
+          onGymChanged: (value) => setState(() => _draftGymId = value),
+        ),
+      ),
+    ];
   }
 
   Widget _buildClientManagement() => _ClientManagementCard(
@@ -703,245 +688,129 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
-  /// 설정 — 회원·메시지 탭과 같은 [AppSplitView] 다(#2264).
-  ///
-  /// 왼쪽은 앱 사이드바와 같은 항목([AppSidebarItem])으로 된 설정 목록이고,
-  /// 오른쪽에 고른 항목이 열린다. 좁으면 목록 대신 열린다. 고객 지원은 목록
-  /// 끝, 로그아웃은 그 아래 맨 끝이다(#2227).
-  Widget _buildSettings({required bool wide}) {
-    final _MySection detail = _settingsDetail;
-    return AppSplitView(
-      showDetailWhenNarrow: _section != _MySection.settings,
-      list: SingleChildScrollView(
-        key: const ValueKey<String>('my-settings'),
-        child: _settingsList(selected: wide ? detail : null),
-      ),
-      detail: SingleChildScrollView(
-        key: ValueKey<String>('my-${detail.name}'),
-        // 넓은 화면에서 한 줄이 끝까지 늘면 스위치·버튼이 제목에서 너무
-        // 멀어진다. 목록 + 한 열 폭이면 1440 창을 거의 채운다.
-        child: Align(
-          alignment: AlignmentDirectional.topStart,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: OnCareLayout.webNarrowMaxWidth,
-            ),
-            child: _settingsDetailPanel(detail, wide: wide),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _settingsList({required _MySection? selected}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    Widget item(_MySection section, IconData icon) => KeyedSubtree(
-      key: ValueKey<String>('my-${section.name}-entry'),
-      child: AppSidebarItem(
-        icon: icon,
-        label: _title(l, section),
-        selected: selected == section,
-        onTap: () => _go(section),
-      ),
-    );
-    return AppCard(
-      padding: const EdgeInsets.all(OnCareSpacing.s8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          item(_MySection.notifications, Icons.notifications_rounded),
-          item(_MySection.language, Icons.language_rounded),
-          item(_MySection.account, Icons.lock_rounded),
-          // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
-          // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
-          // 않는다(#505, #968).
-          item(_MySection.support, Icons.support_agent_rounded),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
-            child: AppDivider(),
-          ),
-          // 역할 전환 대신 로그아웃만 둔다(계정 기반 분리).
-          AppButton(
-            key: const ValueKey<String>('my-logout-button'),
-            label: l.mySignOut,
-            leadingIcon: Icons.logout_rounded,
-            variant: AppButtonVariant.destructiveText,
-            fullWidth: true,
-            onPressed: _signOut,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 설정 항목 하나 — 제목을 안에 둔 카드다(대시보드 카드와 같은 머리). 좁으면
-  /// 목록 대신 열리므로 머리 앞에 뒤로 가기를 둔다.
-  Widget _settingsDetailPanel(_MySection detail, {required bool wide}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final (IconData icon, List<Widget> rows, String? footer) = switch (detail) {
-      _MySection.language => (
-        Icons.language_rounded,
-        _languageRows(wide: wide),
-        l.myLanguageHint,
-      ),
-      _MySection.account => (Icons.lock_rounded, _accountRows(), null),
-      _MySection.support => (
-        Icons.support_agent_rounded,
-        _supportRows(),
-        l.myAppVersion,
-      ),
-      _ => (
-        Icons.notifications_rounded,
-        _notificationRows(),
-        l.myNotifAlwaysOnNote,
-      ),
-    };
-    final OnCareTokens tokens = context.oncare;
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              OnCareSpacing.s16,
-              OnCareSpacing.s16,
-              OnCareSpacing.s16,
-              OnCareSpacing.s8,
-            ),
-            child: Row(
-              children: <Widget>[
-                if (!wide) ...<Widget>[
-                  AppBackButton(onPressed: () => _go(_MySection.settings)),
-                  const SizedBox(width: OnCareSpacing.s4),
-                ],
-                Expanded(
-                  child: AppSectionHeader(title: _title(l, detail), icon: icon),
-                ),
-              ],
-            ),
-          ),
-          for (int i = 0; i < rows.length; i++) ...<Widget>[
-            if (i > 0) const AppDivider(),
-            rows[i],
-          ],
-          if (footer != null) ...<Widget>[
-            const AppDivider(),
-            Padding(
-              padding: const EdgeInsets.all(OnCareSpacing.s16),
-              child: Text(
-                footer,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ),
-          ] else
-            const SizedBox(height: OnCareSpacing.s8),
-        ],
-      ),
-    );
-  }
-
   /// 알림 — 끌 수 있는 알림과 항상 오는 알림을 한 목록에 둔다(#2264).
   ///
   /// 상담 요청·예약·담당 회원 소식은 서버가 수신 설정 없이 항상 보낸다
   /// (`notification_service._TRAINER_SETTING_COLUMN`). 목록에서 빼면 끌 수
   /// 있는지조차 알 수 없으니, 잠긴 태그로 보여 주고 이유를 붙인다.
-  List<Widget> _notificationRows() {
+  Widget _notificationCard() {
     final AppLocalizations l = AppLocalizations.of(context);
     final settings = ref.watch(trainerSettingsProvider);
     final controller = ref.read(trainerSettingsProvider.notifier);
-    return <Widget>[
-      AppListRow(
-        title: l.myNotifNewMessage,
-        subtitle: l.myNotifNewMessageHint,
-        // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
-        // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
-        trailing: Semantics(
-          label: l.myNotifNewMessage,
-          excludeSemantics: true,
-          child: Switch(
-            key: const ValueKey<String>('my-notif-new-message'),
-            value: settings.newMessageAlerts,
-            onChanged: (v) =>
-                _applySetting(() => controller.setNewMessageAlerts(v)),
+    return _SettingsCard(
+      title: l.myNotifications,
+      description: l.myNotificationsHint,
+      footer: l.myNotifAlwaysOnNote,
+      rows: <Widget>[
+        AppListRow(
+          title: l.myNotifNewMessage,
+          subtitle: l.myNotifNewMessageHint,
+          // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
+          // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
+          trailing: Semantics(
+            label: l.myNotifNewMessage,
+            excludeSemantics: true,
+            child: Switch(
+              key: const ValueKey<String>('my-notif-new-message'),
+              value: settings.newMessageAlerts,
+              onChanged: (v) =>
+                  _applySetting(() => controller.setNewMessageAlerts(v)),
+            ),
           ),
         ),
-      ),
-      for (final (String title, String hint) in <(String, String)>[
-        (l.myNotifConsultation, l.myNotifConsultationHint),
-        (l.myNotifReservation, l.myNotifReservationHint),
-        (l.myNotifMemberUpdates, l.myNotifMemberUpdatesHint),
-      ])
-        AppListRow(
-          title: title,
-          subtitle: hint,
-          trailing: AppTag(label: l.myNotifAlwaysOn, icon: Icons.lock_rounded),
-        ),
-    ];
+        for (final (String title, String hint) in <(String, String)>[
+          (l.myNotifConsultation, l.myNotifConsultationHint),
+          (l.myNotifReservation, l.myNotifReservationHint),
+          (l.myNotifMemberUpdates, l.myNotifMemberUpdatesHint),
+        ])
+          AppListRow(
+            title: title,
+            subtitle: hint,
+            trailing: AppTag(
+              label: l.myNotifAlwaysOn,
+              icon: Icons.lock_rounded,
+            ),
+          ),
+      ],
+    );
   }
 
   /// 화면 언어(#2296) — 세 가지 중 하나를 고르는 목록. 고른 줄에 체크를
-  /// 단다. 좁은 화면에서는 고르면 설정 목록으로 돌아간다 — 하나만 고르는
-  /// 칸이라 더 할 일이 없다.
-  List<Widget> _languageRows({required bool wide}) {
+  /// 단다. 좁은 화면에서는 고르면 메뉴로 돌아간다 — 하나만 고르는 칸이라 더
+  /// 할 일이 없다.
+  Widget _languageCard({required bool wide}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final TrainerLanguage current = TrainerLanguage.fromLocale(
       ref.watch(trainerLocaleProvider),
     );
-    return <Widget>[
-      for (final TrainerLanguage language in TrainerLanguage.values)
-        AppListRow(
-          key: ValueKey<String>('my-language-${language.name}'),
-          title: _languageLabel(l, language),
-          trailing: language == current
-              ? Icon(
-                  Icons.check_rounded,
-                  size: OnCareSize.iconMedium,
-                  color: context.oncare.brand.primary,
-                )
-              : null,
-          onTap: () {
-            ref.read(trainerLocaleProvider.notifier).setLanguage(language);
-            if (!wide) _go(_MySection.settings);
-          },
-        ),
-    ];
+    return _SettingsCard(
+      title: l.myLanguageApp,
+      description: l.myLanguageHint,
+      rows: <Widget>[
+        for (final TrainerLanguage language in TrainerLanguage.values)
+          AppListRow(
+            key: ValueKey<String>('my-language-${language.name}'),
+            title: _languageLabel(l, language),
+            trailing: language == current
+                ? Icon(
+                    Icons.check_rounded,
+                    size: OnCareSize.iconMedium,
+                    color: context.oncare.brand.primary,
+                  )
+                : null,
+            onTap: () {
+              ref.read(trainerLocaleProvider.notifier).setLanguage(language);
+              if (!wide) _go(_MySection.settings);
+            },
+          ),
+      ],
+    );
   }
 
-  /// 계정 — 로그인 계정과 비밀번호 변경. 이름·이메일도 계정 소관이라 프로필
-  /// 수정에서는 비활성이다.
-  List<Widget> _accountRows() {
+  /// 계정 — 로그인 계정과 보안(비밀번호)을 카드 둘로 나눈다. 이름·이메일은
+  /// 계정 소관이라 여기서도, 프로필 수정에서도 바꾸지 않고 문의 창구를 알린다.
+  List<Widget> _accountCards() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
     final OnCareTokens tokens = context.oncare;
     return <Widget>[
-      AppListRow(
-        title: l.myLoginAccount,
-        trailing: Text(
-          _profile.email,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: tokens
-              .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-              .copyWith(color: OnCareColors.textPrimary),
-        ),
+      _SettingsCard(
+        title: l.myAccountInfo,
+        description: l.myAccountInfoHint,
+        rows: <Widget>[
+          AppListRow(
+            title: l.myLoginAccount,
+            trailing: Text(
+              _profile.email,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+          ),
+        ],
       ),
-      AppListRow(
-        title: l.myChangePassword,
-        subtitle: account.supportsPasswordChange
-            ? l.myChangePasswordHint
-            : l.myChangePasswordDemo,
-        trailing: AppButton(
-          label: l.actionChange,
-          leadingIcon: Icons.key_rounded,
-          variant: AppButtonVariant.secondary,
-          size: OnCareButtonSize.small,
-          onPressed: account.supportsPasswordChange
-              ? _openPasswordDialog
-              : null,
-        ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.mySecurity,
+        rows: <Widget>[
+          AppListRow(
+            title: l.myChangePassword,
+            subtitle: account.supportsPasswordChange
+                ? l.myChangePasswordHint
+                : l.myChangePasswordDemo,
+            trailing: AppButton(
+              label: l.actionChange,
+              leadingIcon: Icons.key_rounded,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: account.supportsPasswordChange
+                  ? _openPasswordDialog
+                  : null,
+            ),
+          ),
+        ],
       ),
     ];
   }
@@ -949,44 +818,49 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 고객 지원 — FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보·
   /// 탈퇴를 함께 둔다. 회원 앱 `SupportPage` 와 같은 구성이다(#2227). 앱 버전은
   /// 카드 아래 칸에 둔다.
-  List<Widget> _supportRows() {
+  Widget _supportCard() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
-    return <Widget>[
-      _SupportRow(
-        key: const ValueKey<String>('support-faq'),
-        icon: Icons.help_rounded,
-        label: l.mySupportFaq,
-        hint: l.mySupportExternalHint,
-        external: true,
-        onTap: () => _openExternal(kSupportChannelUrl),
-      ),
-      _SupportRow(
-        key: const ValueKey<String>('support-inquiry'),
-        icon: Icons.chat_rounded,
-        label: l.mySupportInquiry,
-        hint: l.mySupportExternalHint,
-        external: true,
-        onTap: () => _openExternal(kSupportChatUrl),
-      ),
-      _LegalRow(
-        icon: Icons.description_rounded,
-        label: l.myLegalTermsTitle,
-        hint: l.myLegalTermsHint,
-        document: AppRoutes.legalTerms,
-      ),
-      _LegalRow(
-        icon: Icons.privacy_tip_rounded,
-        label: l.myLegalPrivacyTitle,
-        hint: l.myLegalPrivacyHint,
-        document: AppRoutes.legalPrivacy,
-      ),
-      // 탈퇴는 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다(#2019).
-      _DeleteAccountRow(
-        enabled: account.supportsDeletion,
-        onTap: _deleteAccount,
-      ),
-    ];
+    return _SettingsCard(
+      title: l.mySupportTitle,
+      description: l.mySupportHint,
+      footer: l.myAppVersion,
+      rows: <Widget>[
+        _SupportRow(
+          key: const ValueKey<String>('support-faq'),
+          icon: Icons.help_rounded,
+          label: l.mySupportFaq,
+          hint: l.mySupportExternalHint,
+          external: true,
+          onTap: () => _openExternal(kSupportChannelUrl),
+        ),
+        _SupportRow(
+          key: const ValueKey<String>('support-inquiry'),
+          icon: Icons.chat_rounded,
+          label: l.mySupportInquiry,
+          hint: l.mySupportExternalHint,
+          external: true,
+          onTap: () => _openExternal(kSupportChatUrl),
+        ),
+        _LegalRow(
+          icon: Icons.description_rounded,
+          label: l.myLegalTermsTitle,
+          hint: l.myLegalTermsHint,
+          document: AppRoutes.legalTerms,
+        ),
+        _LegalRow(
+          icon: Icons.privacy_tip_rounded,
+          label: l.myLegalPrivacyTitle,
+          hint: l.myLegalPrivacyHint,
+          document: AppRoutes.legalPrivacy,
+        ),
+        // 탈퇴는 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다(#2019).
+        _DeleteAccountRow(
+          enabled: account.supportsDeletion,
+          onTap: _deleteAccount,
+        ),
+      ],
+    );
   }
 
   /// 외부 링크를 연다. 실패하면 사유를 알린다 — 조용히 아무 일도 일어나지 않는
@@ -1016,58 +890,6 @@ class _MyPageState extends ConsumerState<MyPage> {
       final AppLocalizations l = AppLocalizations.of(context);
       showAppToast(context, l.myPasswordChanged, type: AppToastType.success);
     }
-  }
-}
-
-/// 목록의 아이콘 자리. 회원 앱 설정 목록과 같은 크기·색이다 — 줄마다 제목이
-/// 같은 선에서 시작한다.
-class _IconTile extends StatelessWidget {
-  const _IconTile({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: OnCareSize.avatarLarge,
-      height: OnCareSize.avatarLarge,
-      child: Icon(
-        icon,
-        size: OnCareSize.iconMedium,
-        color: context.oncare.brand.primary,
-      ),
-    );
-  }
-}
-
-/// 하위 화면으로 들어가는 한 줄 — 아이콘 자리 + 제목 + 화살표.
-class _NavRow extends StatelessWidget {
-  const _NavRow({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppListRow(
-      leading: _IconTile(icon: icon),
-      title: title,
-      subtitle: subtitle,
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        size: OnCareSize.iconMedium,
-        color: OnCareColors.textTertiary,
-      ),
-      onTap: onTap,
-    );
   }
 }
 
@@ -1202,155 +1024,324 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   }
 }
 
-/// 제목을 안에 둔 카드 — 대시보드 카드와 같은 모양이다(`AppSectionHeader` +
-/// 12 + 본문).
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
+/// 메뉴 묶음 제목 — 앱 사이드바의 `운영`·`코칭` 과 같은 글씨다.
+class _MenuGroupLabel extends StatelessWidget {
+  const _MenuGroupLabel({required this.label});
 
-  final String title;
-  final IconData icon;
-  final Widget child;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        OnCareSpacing.s12,
+        OnCareSpacing.s12,
+        OnCareSpacing.s12,
+        OnCareSpacing.s4,
+      ),
+      child: Text(
+        label,
+        style: context.oncare
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: OnCareColors.textTertiary),
+      ),
+    );
+  }
+}
+
+/// 판 맨 위의 경로 — 뒤로 가기 + `상위 › 지금`. 상위 이름을 눌러도 돌아간다.
+class _Breadcrumb extends StatelessWidget {
+  const _Breadcrumb({
+    required this.parent,
+    required this.current,
+    required this.onBack,
+  });
+
+  final String parent;
+  final String current;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Row(
+      children: <Widget>[
+        AppBackButton(onPressed: onBack),
+        const SizedBox(width: OnCareSpacing.s4),
+        InkWell(
+          onTap: onBack,
+          borderRadius: OnCareRadius.pillAll,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
+            child: Text(
+              parent,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          ),
+        ),
+        const Icon(
+          Icons.chevron_right_rounded,
+          size: OnCareSize.iconSmall,
+          color: OnCareColors.textTertiary,
+        ),
+        const SizedBox(width: OnCareSpacing.s4),
+        Flexible(
+          child: Text(
+            current,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 설정 카드 — 제목·설명 머리, 구분선, 그 아래 본문([body]) 또는 줄들([rows]),
+/// 필요하면 맨 아래 안내([footer]). 내 정보·설정의 모든 판이 이 한 모양이다.
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.title,
+    this.description,
+    this.body,
+    this.rows,
+    this.footer,
+  }) : assert((body == null) != (rows == null));
+
+  final String title;
+  final String? description;
+  final Widget? body;
+  final List<Widget>? rows;
+  final String? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final List<Widget>? rows = this.rows;
     return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          AppSectionHeader(title: title, icon: icon),
-          const SizedBox(height: OnCareSpacing.s12),
-          child,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              OnCareSpacing.s16,
+              OnCareSpacing.s16,
+              OnCareSpacing.s16,
+              OnCareSpacing.s12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+                if (description != null) ...<Widget>[
+                  const SizedBox(height: OnCareSpacing.s2),
+                  Text(
+                    description!,
+                    style: tokens
+                        .text(OnCareTypography.bodySmall)
+                        .copyWith(color: OnCareColors.textSecondary),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const AppDivider(),
+          if (rows != null)
+            for (int i = 0; i < rows.length; i++) ...<Widget>[
+              if (i > 0) const AppDivider(),
+              rows[i],
+            ]
+          else
+            Padding(
+              padding: const EdgeInsets.all(OnCareSpacing.s16),
+              child: body,
+            ),
+          if (footer != null) ...<Widget>[
+            const AppDivider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
+                vertical: OnCareSpacing.s12,
+              ),
+              child: Text(
+                footer!,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// 내 정보의 프로필 — 나를 소개하는 카드(#2264). 회원 앱 MY 의 프로필
-/// 카드처럼 화면의 첫 덩어리이고, 회원에게 보이는 소개도 여기서 확인한다.
-class _ProfileSummaryCard extends StatelessWidget {
-  const _ProfileSummaryCard({required this.profile});
+/// 비어 있음을 알리는 한 줄.
+class _EmptyLine extends StatelessWidget {
+  const _EmptyLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: context.oncare
+          .text(OnCareTypography.bodySmall)
+          .copyWith(color: OnCareColors.textTertiary),
+    );
+  }
+}
+
+/// 라벨·값 한 칸. 값이 비면 [empty](없으면 `–`)를 흐리게 보인다.
+class _Info {
+  const _Info(this.label, this.value, {this.empty});
+
+  final String label;
+  final String value;
+  final String? empty;
+}
+
+/// 라벨·값 격자 — 넓으면 두 칸씩, 좁으면 한 칸씩. [wide] 는 맨 아래 한 줄을
+/// 다 쓰는 칸이다(소개처럼 긴 글).
+class _InfoGrid extends StatelessWidget {
+  const _InfoGrid({required this.fields, this.wide});
+
+  final List<_Info> fields;
+  final _Info? wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final _Info? wide = this.wide;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final int columns = constraints.maxWidth >= 480 ? 2 : 1;
+        const double gap = OnCareSpacing.s16;
+        final double cell =
+            (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: OnCareSpacing.s16,
+          children: <Widget>[
+            for (final _Info info in fields)
+              SizedBox(
+                width: cell,
+                child: _InfoCell(info: info),
+              ),
+            if (wide != null)
+              SizedBox(
+                width: constraints.maxWidth,
+                child: _InfoCell(info: wide),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _InfoCell extends StatelessWidget {
+  const _InfoCell({required this.info});
+
+  final _Info info;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final bool blank = info.value.trim().isEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          info.label,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+        const SizedBox(height: OnCareSpacing.s2),
+        Text(
+          blank ? (info.empty ?? '–') : info.value,
+          style: tokens
+              .text(OnCareTypography.body)
+              .copyWith(
+                color: blank
+                    ? OnCareColors.textTertiary
+                    : OnCareColors.textPrimary,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 프로필의 첫 카드 — 누구인지와 고치는 곳. 수정 버튼은 레퍼런스처럼 카드
+/// 오른쪽에 둔다(헤더 버튼보다 무엇을 고치는지 분명하다).
+class _IdentityCard extends StatelessWidget {
+  const _IdentityCard({required this.profile, required this.onEdit});
 
   final TrainerProfile profile;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final String intro = profile.intro.trim();
     return AppCard(
-      padding: const EdgeInsets.all(OnCareSpacing.s24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.all(OnCareSpacing.s20),
+      child: Row(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              AppAvatar(name: profile.name, size: AppAvatarSize.xLarge),
-              const SizedBox(width: OnCareSpacing.s16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      profile.name,
-                      style: tokens
-                          .text(OnCareTypography.titleMedium)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s2),
-                    // 전문 분야·경력은 한 줄 글이다 — 회원 상세 머리와 같다.
-                    // 태그로 두면 긴 분야(영어)가 칸 밖으로 넘쳤다.
-                    Text(
-                      <String>[
-                        if (profile.specialty.trim().isNotEmpty)
-                          profile.specialty,
-                        if (profile.careerYears != null)
-                          l.myCareerYears(profile.careerYears!),
-                      ].join(' · '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: tokens
-                          .text(OnCareTypography.bodySmall)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                  ],
+          AppAvatar(name: profile.name, size: AppAvatarSize.xLarge),
+          const SizedBox(width: OnCareSpacing.s16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  profile.name,
+                  style: tokens
+                      .text(OnCareTypography.titleMedium)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s16),
-          // 소개는 회원이 트레이너 소개에서 읽는 글이다. 비어 있으면 비었다고
-          // 말한다 — 빈 자리가 조용히 사라지면 채워야 하는 줄 모른다.
-          Text(
-            intro.isEmpty ? l.myIntroEmpty : intro,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(
-                  color: intro.isEmpty
-                      ? OnCareColors.textTertiary
-                      : OnCareColors.textSecondary,
+                const SizedBox(height: OnCareSpacing.s2),
+                // 전문 분야·경력은 한 줄 글이다 — 회원 상세 머리와 같다.
+                // 태그로 두면 긴 분야(영어)가 칸 밖으로 넘쳤다.
+                Text(
+                  <String>[
+                    if (profile.specialty.trim().isNotEmpty) profile.specialty,
+                    if (profile.careerYears != null)
+                      l.myCareerYears(profile.careerYears!),
+                  ].join(' · '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
+              ],
+            ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
-            child: AppDivider(),
-          ),
-          _ContactLine(icon: Icons.mail_rounded, value: profile.email),
-          const SizedBox(height: OnCareSpacing.s8),
-          _ContactLine(
-            icon: Icons.call_rounded,
-            value: profile.phone.trim().isEmpty
-                ? l.myPhoneEmpty
-                : profile.phone,
-            muted: profile.phone.trim().isEmpty,
+          const SizedBox(width: OnCareSpacing.s12),
+          AppButton(
+            label: l.myEditProfile,
+            leadingIcon: Icons.edit_rounded,
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            onPressed: onEdit,
           ),
         ],
       ),
-    );
-  }
-}
-
-/// 프로필 카드의 연락처 한 줄.
-class _ContactLine extends StatelessWidget {
-  const _ContactLine({
-    required this.icon,
-    required this.value,
-    this.muted = false,
-  });
-
-  final IconData icon;
-  final String value;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Icon(
-          icon,
-          size: OnCareSize.iconSmall,
-          color: OnCareColors.textTertiary,
-        ),
-        const SizedBox(width: OnCareSpacing.s8),
-        Expanded(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.oncare
-                .text(OnCareTypography.bodySmall)
-                .copyWith(
-                  color: muted
-                      ? OnCareColors.textTertiary
-                      : OnCareColors.textPrimary,
-                ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1443,8 +1434,9 @@ class _ProfileFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // 넓으면 두 칸씩 놓는다(이름|이메일, 연락처|전문 분야, 경력). 소개는
+    // 긴 글이라 한 줄을 다 쓴다.
+    return _FormGrid(
       children: <Widget>[
         _EditField(
           label: l.myFieldName,
@@ -1485,6 +1477,39 @@ class _ProfileFields extends StatelessWidget {
           maxLines: 4,
         ),
       ],
+    );
+  }
+}
+
+/// 입력 칸 격자 — 넓으면 두 칸씩, 마지막 칸은 한 줄을 다 쓴다.
+class _FormGrid extends StatelessWidget {
+  const _FormGrid({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxWidth < 480) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          );
+        }
+        const double gap = OnCareSpacing.s16;
+        final double cell = (constraints.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          children: <Widget>[
+            for (int i = 0; i < children.length; i++)
+              SizedBox(
+                width: i == children.length - 1 ? constraints.maxWidth : cell,
+                child: children[i],
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1543,15 +1568,7 @@ class _CertsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    if (certs.isEmpty) {
-      return Text(
-        l.myCertsEmpty,
-        style: tokens
-            .text(OnCareTypography.bodySmall)
-            .copyWith(color: OnCareColors.textTertiary),
-      );
-    }
+    if (certs.isEmpty) return _EmptyLine(l.myCertsEmpty);
     return Wrap(
       spacing: OnCareSpacing.s8,
       runSpacing: OnCareSpacing.s8,
@@ -1778,58 +1795,6 @@ class _ManagedClientRow extends StatelessWidget {
   }
 }
 
-/// 소속 헬스장(읽기). 소속이 없으면 없다고 말하고 어디서 정하는지 알린다.
-///
-/// 예전에는 이름 옆에 `영업 중` 을 늘 붙였는데, 운영 시간을 보고 정한 값이
-/// 아니라 밤에도 영업 중으로 보였다. 운영 시간은 아래 줄에 그대로 둔다.
-class _GymView extends StatelessWidget {
-  const _GymView({required this.gym});
-
-  final TrainerGym gym;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    if (gym.name.trim().isEmpty) {
-      return Text(
-        l.myGymEmpty,
-        style: tokens
-            .text(OnCareTypography.bodySmall)
-            .copyWith(color: OnCareColors.textTertiary),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          gym.name,
-          style: tokens
-              .text(OnCareTypography.strong(OnCareTypography.bodyLarge))
-              .copyWith(color: OnCareColors.textPrimary),
-        ),
-        if (gym.address.trim().isNotEmpty)
-          Text(
-            gym.address,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTile(
-          tone: AppTileTone.neutral,
-          child: Row(
-            children: <Widget>[
-              _GymDetail(label: l.myGymHours, value: gym.hours),
-              _GymDetail(label: l.myFieldPhone, value: gym.phone),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// 소속 헬스장 고치기. 등록된 헬스장을 고르면 이름·주소는 서버가 채우므로
 /// 직접 쓰는 칸을 숨긴다 — 예전에는 고른 헬스장과 다른 옛 이름이 비활성 칸에
 /// 남아, 무엇이 저장될지 헷갈렸다.
@@ -1963,38 +1928,6 @@ class _GymChoiceField extends StatelessWidget {
             onChanged: (value) => onChanged(value ?? ''),
           );
         },
-      ),
-    );
-  }
-}
-
-class _GymDetail extends StatelessWidget {
-  const _GymDetail({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-          const SizedBox(height: OnCareSpacing.s2),
-          Text(
-            value,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-        ],
       ),
     );
   }

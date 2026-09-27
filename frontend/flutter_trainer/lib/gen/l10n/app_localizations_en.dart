@@ -2319,6 +2319,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save your settings. Please try again in a moment';
 
   @override
+  String get myPageTitle => 'Profile & settings';
+
+  @override
+  String get myProfileTitle => 'Profile';
+
+  @override
+  String get myEmail => 'Email';
+
+  @override
+  String get myBasicInfoHint => 'Members see this on your trainer profile';
+
+  @override
+  String get myNotificationsHint => 'Choose which alerts you get';
+
+  @override
+  String get myAccountInfo => 'Account';
+
+  @override
+  String get myAccountInfoHint =>
+      'The account you sign in with. To change your name or email, contact support.';
+
+  @override
+  String get mySecurity => 'Security';
+
+  @override
+  String get mySupportHint => 'Ask a question or read our policies';
+
+  @override
   String get myDiscardTitle => 'Stop editing?';
 
   @override
@@ -2341,23 +2369,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'No introduction yet. Add one in Edit profile — members see it.';
 
   @override
-  String get myPhoneEmpty => 'No phone number';
-
-  @override
   String get myCertsEmpty => 'No certifications yet';
 
   @override
   String get myGymEmpty => 'No gym yet. You can pick one in Edit profile.';
 
   @override
-  String get myEditVisibleTitle => 'Members see this';
-
-  @override
   String get myEditVisibleBody =>
       'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
-
-  @override
-  String get myClientManagementEntryHint => 'Tidy up your member connections';
 
   @override
   String get myClientManagementNoteTitle => 'Removing only hides members here';

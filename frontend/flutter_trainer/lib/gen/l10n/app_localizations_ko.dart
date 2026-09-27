@@ -2207,6 +2207,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySettingsSaveFailed => '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get myPageTitle => '내 정보 · 설정';
+
+  @override
+  String get myProfileTitle => '프로필';
+
+  @override
+  String get myEmail => '이메일';
+
+  @override
+  String get myBasicInfoHint => '담당 회원이 트레이너 소개에서 보는 정보예요';
+
+  @override
+  String get myNotificationsHint => '어떤 알림을 받을지 골라요';
+
+  @override
+  String get myAccountInfo => '계정 정보';
+
+  @override
+  String get myAccountInfoHint =>
+      '로그인에 쓰는 계정이에요. 이름·이메일을 바꾸려면 고객 지원으로 문의해 주세요.';
+
+  @override
+  String get mySecurity => '보안';
+
+  @override
+  String get mySupportHint => '궁금한 점을 묻거나 약관을 확인해요';
+
+  @override
   String get myDiscardTitle => '수정을 그만둘까요?';
 
   @override
@@ -2228,23 +2256,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myIntroEmpty => '아직 소개가 없어요. 프로필 수정에서 회원에게 보일 소개를 적어 주세요.';
 
   @override
-  String get myPhoneEmpty => '연락처 없음';
-
-  @override
   String get myCertsEmpty => '등록한 자격증이 없어요';
 
   @override
   String get myGymEmpty => '소속 헬스장이 없어요. 프로필 수정에서 고를 수 있어요.';
 
   @override
-  String get myEditVisibleTitle => '담당 회원에게 보이는 정보예요';
-
-  @override
   String get myEditVisibleBody =>
       '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.';
-
-  @override
-  String get myClientManagementEntryHint => '담당 회원 연결을 정리해요';
 
   @override
   String get myClientManagementNoteTitle => '삭제하면 트레이너 화면에서만 사라져요';

@@ -96,11 +96,10 @@ void main() {
     });
 
     testWidgets('회원 삭제 전 이름과 데이터 보존 범위를 확인한다', (tester) async {
-      await openTab(tester);
+      // 회원 관리는 메뉴의 `내 정보` 묶음에 있다(#2264).
+      await openSettings(tester);
 
-      final management = find.text('회원 관리');
-      await tester.scrollUntilVisible(management, 200);
-      await tester.tap(management);
+      await tester.tap(find.text('회원 관리'));
       await tester.pumpAndSettle();
       expect(currentLocation(tester), AppRoutes.mySection('clients'));
 
@@ -117,11 +116,10 @@ void main() {
     });
 
     testWidgets('담당 종료한 회원은 관리 화면에서 완전히 사라진다', (tester) async {
-      await openTab(tester);
+      // 회원 관리는 메뉴의 `내 정보` 묶음에 있다(#2264).
+      await openSettings(tester);
 
-      final management = find.text('회원 관리');
-      await tester.scrollUntilVisible(management, 200);
-      await tester.tap(management);
+      await tester.tap(find.text('회원 관리'));
       await tester.pumpAndSettle();
 
       final before = find.byTooltip('회원 삭제').evaluate().length;

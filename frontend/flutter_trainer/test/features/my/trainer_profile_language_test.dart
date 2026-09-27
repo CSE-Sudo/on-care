@@ -260,7 +260,10 @@ void main() {
           ),
         ],
       );
-      expect(find.textContaining('1 year of experience'), findsOneWidget);
+      expect(
+        find.text('Personal trainer · 1 year of experience'),
+        findsOneWidget,
+      );
     });
   });
 }
