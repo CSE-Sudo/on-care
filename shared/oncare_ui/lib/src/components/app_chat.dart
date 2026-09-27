@@ -55,7 +55,9 @@ class AppChatBubble extends StatelessWidget {
               maxWidth: constraints.maxWidth * maxWidthFactor,
             ),
             child: Container(
-              padding: bare ? EdgeInsets.zero : tokens.density.chatBubblePadding,
+              padding: bare
+                  ? EdgeInsets.zero
+                  : tokens.density.chatBubblePadding,
               decoration: bare
                   ? null
                   : BoxDecoration(
@@ -229,6 +231,7 @@ class AppChatInputBar extends StatelessWidget {
     this.onEmote,
     this.focusNode,
     this.enabled = true,
+    this.maxLength,
   });
 
   final TextEditingController controller;
@@ -244,6 +247,18 @@ class AppChatInputBar extends StatelessWidget {
   final VoidCallback? onEmote;
   final FocusNode? focusNode;
   final bool enabled;
+
+  /// 입력할 수 있는 최대 글자 수. 주지 않으면 제한이 없다(기존 동작).
+  ///
+  /// 서버가 받는 길이를 넘는 글은 보내 봐야 거절된다(#1549). 그 자리에서 더
+  /// 입력되지 않게 막고, 한도에 가까워졌을 때만([counterThreshold]) 입력줄 위
+  /// 오른쪽에 `현재/최대` 를 작게 띄운다 — 평소 대화에서는 입력줄이 예전
+  /// 그대로다. 입력칸 기본 카운터(아래 줄)를 쓰지 않는 이유는, 그 줄만큼 칸이
+  /// 자라 아래에 붙은 전송 버튼과 높이가 어긋나기 때문이다(#1827).
+  final int? maxLength;
+
+  /// [maxLength] 의 이 비율부터 글자 수를 보인다.
+  static const double counterThreshold = 0.9;
 
   @override
   Widget build(BuildContext context) {
@@ -293,56 +308,111 @@ class AppChatInputBar extends StatelessWidget {
             OnCareSpacing.s16,
             OnCareSpacing.s16,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              if (onAttach != null) ...<Widget>[
-                AppIconButton(
-                  icon: AppIcon.setOf(context).attachImage,
-                  tooltip: attachTooltip ?? '',
-                  onPressed: enabled ? onAttach : null,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-              ],
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  enabled: enabled,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.newline,
-                  textAlignVertical: TextAlignVertical.center,
-                  style: inputStyle,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s12,
-                      vertical: verticalPadding,
+              if (maxLength case final int max)
+                _LengthCounter(controller: controller, maxLength: max),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  if (onAttach != null) ...<Widget>[
+                    AppIconButton(
+                      icon: AppIcon.setOf(context).attachImage,
+                      tooltip: attachTooltip ?? '',
+                      onPressed: enabled ? onAttach : null,
                     ),
-                    constraints: BoxConstraints(minHeight: rowHeight),
+                    const SizedBox(width: OnCareSpacing.s8),
+                  ],
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      enabled: enabled,
+                      maxLength: maxLength,
+                      // 한도는 막기만 하고 글자 수는 위의 [_LengthCounter] 가 보인다.
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            required int currentLength,
+                            required bool isFocused,
+                            required int? maxLength,
+                          }) => null,
+                      minLines: 1,
+                      maxLines: 4,
+                      textInputAction: TextInputAction.newline,
+                      textAlignVertical: TextAlignVertical.center,
+                      style: inputStyle,
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: OnCareSpacing.s12,
+                          vertical: verticalPadding,
+                        ),
+                        constraints: BoxConstraints(minHeight: rowHeight),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              if (onEmote != null) ...<Widget>[
-                const SizedBox(width: OnCareSpacing.s8),
-                _EmoteButton(
-                  tooltip: emoteTooltip ?? '',
-                  size: rowHeight,
-                  onPressed: enabled ? onEmote : null,
-                ),
-              ],
-              const SizedBox(width: OnCareSpacing.s8),
-              AppIconButton(
-                icon: AppIcon.setOf(context).send,
-                tooltip: sendTooltip,
-                variant: AppIconButtonVariant.filled,
-                onPressed: enabled ? onSend : null,
+                  if (onEmote != null) ...<Widget>[
+                    const SizedBox(width: OnCareSpacing.s8),
+                    _EmoteButton(
+                      tooltip: emoteTooltip ?? '',
+                      size: rowHeight,
+                      onPressed: enabled ? onEmote : null,
+                    ),
+                  ],
+                  const SizedBox(width: OnCareSpacing.s8),
+                  AppIconButton(
+                    icon: AppIcon.setOf(context).send,
+                    tooltip: sendTooltip,
+                    variant: AppIconButtonVariant.filled,
+                    onPressed: enabled ? onSend : null,
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 입력줄 위 오른쪽의 `현재/최대` 글자 수(#1549).
+///
+/// 한도의 [AppChatInputBar.counterThreshold] 부터만 보인다. 한도에 닿으면 더
+/// 입력되지 않는다는 것을 위험 색으로 알린다. 평소에는 아무 자리도 차지하지
+/// 않아 입력줄 모양이 그대로다.
+class _LengthCounter extends StatelessWidget {
+  const _LengthCounter({required this.controller, required this.maxLength});
+
+  final TextEditingController controller;
+  final int maxLength;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (BuildContext context, Widget? _) {
+        final int length = controller.text.characters.length;
+        final int from = (maxLength * AppChatInputBar.counterThreshold).ceil();
+        if (length < from) return const SizedBox.shrink();
+        final bool full = length >= maxLength;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+          child: Text(
+            '$length/$maxLength',
+            key: const ValueKey<String>('chat-input-length-counter'),
+            textAlign: TextAlign.end,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(
+                  color: full ? OnCareColors.danger : OnCareColors.textTertiary,
+                ),
+          ),
+        );
+      },
     );
   }
 }

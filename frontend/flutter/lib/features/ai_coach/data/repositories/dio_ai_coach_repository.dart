@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/features/ai_coach/domain/ai_coach_limits.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
@@ -47,10 +48,9 @@ class DioAiCoachRepository implements AiCoachRepository {
         '/ai-coach/chat',
         options: Options(receiveTimeout: _chatTimeout),
         data: <String, Object?>{
-          'message': message,
-          'history': <Map<String, Object?>>[
-            for (final m in history) m.toJson(),
-          ],
+          'message': aiCoachMessagePayload(message),
+          // 서버 한도(최근 20턴·턴당 2000자, #1549)에 맞춰 잘라 보낸다.
+          'history': aiCoachHistoryPayload(history),
           'pay_with_points': payWithPoints,
           'client_request_id': ?clientRequestId,
         },
