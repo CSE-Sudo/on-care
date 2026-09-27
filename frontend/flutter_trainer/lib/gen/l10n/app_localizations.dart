@@ -7683,23 +7683,11 @@ abstract class AppLocalizations {
   /// **'{percent}% complete'**
   String reportsReasonCompletion(int percent);
 
-  /// No description provided for @reportsReasonNoShow.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} no-show'**
-  String reportsReasonNoShow(int count);
-
   /// No description provided for @reportsReasonSessionDone.
   ///
   /// In en, this message translates to:
   /// **'PT {count} done'**
   String reportsReasonSessionDone(int count);
-
-  /// No description provided for @reportsReasonSilentDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days} days unlogged'**
-  String reportsReasonSilentDays(int days);
 
   /// No description provided for @reportsReasonSlump.
   ///
