@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy import func, select, tuple_
 from sqlalchemy.exc import IntegrityError
@@ -33,7 +34,12 @@ from app.schemas.consultation_api import (
     TrainerConsultationOut,
 )
 from app.services import health_focus
-from app.services import notification_service, reservation_service, trainer_service
+from app.services import (
+    notification_service,
+    notification_templates,
+    reservation_service,
+    trainer_service,
+)
 
 
 class InvalidConsultationRequest(Exception):
@@ -198,8 +204,8 @@ def expire_stale_requests(
         _notify(
             db,
             user_id=row.member_id,
-            title="상담 신청이 만료되었어요",
-            body="트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
+            template=notification_templates.MEMBER_CONSULT_EXPIRED,
+            template_args={},
         )
         expired += 1
     if expired:
@@ -422,13 +428,17 @@ def _notify_trainer_of_new_request(
     if consultation.trainer_id is None:
         return
 
-    member_name = db.scalar(select(User.name).where(User.id == member_id)) or "회원"
+    # 이름이 없으면 틀이 대신 적는 말(`회원`)을 고른다(#2302).
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
         db,
         trainer_id=consultation.trainer_id,
         kind=notification_service.TRAINER_CONSULTATION_KIND,
-        title="새 상담 요청이 도착했어요",
-        body=f"{member_name} 회원 · {consultation.preferred_date}",
+        template=notification_templates.TRAINER_CONSULT_REQUESTED,
+        template_args={
+            "member_name": member_name,
+            "preferred_date": consultation.preferred_date,
+        },
         # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
         subject_id=member_id,
         target_date=consultation.preferred_date,
@@ -450,13 +460,17 @@ def _notify_trainer_of_cancel(
     if consultation.trainer_id is None:
         return
 
-    member_name = db.scalar(select(User.name).where(User.id == member_id)) or "회원"
+    # 이름이 없으면 틀이 대신 적는 말(`회원`)을 고른다(#2302).
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
         db,
         trainer_id=consultation.trainer_id,
         kind=notification_service.TRAINER_CONSULTATION_KIND,
-        title="상담 요청이 취소됐어요",
-        body=f"{member_name} 회원 · {consultation.preferred_date}",
+        template=notification_templates.TRAINER_CONSULT_CANCELLED,
+        template_args={
+            "member_name": member_name,
+            "preferred_date": consultation.preferred_date,
+        },
         # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
         subject_id=member_id,
         target_date=consultation.preferred_date,
@@ -771,7 +785,14 @@ def _commit_decision(db: Session) -> None:
         raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.") from exc
 
 
-def _notify(db: Session, *, user_id: str, title: str, body: str) -> None:
+def _notify(
+    db: Session,
+    *,
+    user_id: str,
+    template: str,
+    template_args: dict[str, Any],
+    body: str = "",
+) -> None:
     """회원에게 처리 결과 알림을 남긴다(커밋은 호출자가 한다).
 
     승인·거절은 회원이 앱을 열어 보기 전에는 알 수 없는 변화라 알림이 결과 전달의
@@ -784,15 +805,16 @@ def _notify(db: Session, *, user_id: str, title: str, body: str) -> None:
 
     수신 설정을 보지 않는 것은 의도다 — 내가 보낸 요청의 처리 결과는 끌 수 있는
     알림이 아니다. 그래서 `notification_service.queue` 가 아니라 여기서 직접 만든다.
+
+    문장은 틀과 인자로 남긴다(#2302) — 회원이 영어 화면이면 알림함이 영어로 조립한다.
     """
     db.add(
         Notification(
             id=f"noti-{uuid.uuid4().hex[:12]}",
             user_id=user_id,
-            title=title,
-            body=body,
             category=notification_service.MEMBER_CONSULTATION_DECISION,
             read=False,
+            **notification_templates.columns(template, template_args, body=body),
         )
     )
 
@@ -985,18 +1007,17 @@ def accept(
     )
 
     trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
-    confirmed = f"{local:%m월 %d일 %H:%M}"
-    body = (
-        f"{trainer_name or '트레이너'} 트레이너가 담당으로 연결되었어요. "
-        f"첫 상담은 {confirmed} 입니다."
-    )
     _notify(
         db,
         user_id=row.member_id,
-        title="상담 요청이 승인되었어요",
         # 확정된 일시를 본문에 싣는다 — 예전에는 "담당으로 연결되었어요" 뿐이라
         # 회원이 자기가 언제 잡혔는지 알 길이 없었다. (#1873)
-        body=body if note is None else f"{body} {note}",
+        template=notification_templates.MEMBER_CONSULT_APPROVED,
+        template_args={
+            "trainer_name": trainer_name or "",
+            "starts_at": local.isoformat(),
+            "note": note,
+        },
     )
     _commit_decision(db)
     db.refresh(row)
@@ -1024,11 +1045,13 @@ def reject(
     # 거절하면 자리가 다시 열린다 — 다른 회원이 고를 수 있어야 한다. (#1873)
     reservation_service.release_consultation_hold(db, row.slot_id)
 
+    # 사유를 적었으면 본문은 그 사유 그대로다 — 번역할 수 없는 글이다.
     _notify(
         db,
         user_id=row.member_id,
-        title="상담 요청이 반려되었어요",
-        body=note or "다른 트레이너에게 상담을 요청해 보세요.",
+        template=notification_templates.MEMBER_CONSULT_REJECTED,
+        template_args={"has_note": bool(note)},
+        body=note or "",
     )
     _commit_decision(db)
     db.refresh(row)

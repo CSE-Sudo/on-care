@@ -209,9 +209,9 @@ def test_sending_without_personal_routines_still_works(client, db_session):
             "/v1/trainer/schedule",
             json={
                 "date": day,
-                # 시드 일정과 겹치지 않는 시각이다 — 겹치면 새 겹침 검사가
-                # 409 로 막는다(#2284).
-                "time": "13:40",
+                # 시드 일정(10·12·15·17 시)과 겹치지 않는 시각이다. 17 시는
+                # 시드의 `윤가온 상담` 과 겹쳐 겹침 검사(#2284)가 409 로 막는다.
+                "time": "20:00",
                 "client_name": "이지수",
                 "member_id": MEMBER,
                 "type": "1:1 PT",

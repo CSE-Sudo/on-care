@@ -61,6 +61,7 @@ from app.services import (
     exercise_service,
     exercise_types,
     notification_service,
+    notification_templates,
     points_coupon_service,
     points_service,
     routine_advice,
@@ -991,7 +992,8 @@ def send_message(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_MESSAGE_KIND,
-            title=f"{member_name or '회원'} 회원의 메시지",
+            template=notification_templates.TRAINER_MEMBER_MESSAGE,
+            template_args={"member_name": member_name or ""},
             body=text,
             # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
             # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
@@ -1004,14 +1006,17 @@ def send_message(
             db,
             member_id=member_id,
             kind=notify,
-            title=(
-                "주간 리포트가 도착했어요"
-                if is_report
-                else f"{trainer_name or '트레이너'} 트레이너의 메시지"
-            ),
-            # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
-            # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
-            body=text or ("사진을 보냈어요" if attachment_file_id and attachment_type == "image" else text),
+            template=notification_templates.MEMBER_COACH_MESSAGE,
+            template_args={
+                "trainer_name": trainer_name or "",
+                "report": is_report,
+                # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
+                # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
+                "photo_only": not text
+                and bool(attachment_file_id)
+                and attachment_type == "image",
+            },
+            body=text,
             # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지는
             # 같지만 갈래를 나눠 회원 앱이 리포트를 메시지와 다른 아이콘으로
             # 그린다(#2085).
@@ -1224,7 +1229,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     for member_id in active_member_ids:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
 
-    trainer_name = trainer.name or "트레이너"
+    # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
+    trainer_name = trainer.name or ""
     for member_id in member_ids:
         notification_service.queue(
             db,
@@ -1232,8 +1238,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             kind=notification_service.TRAINER_MESSAGE,
             # 새 트레이너를 찾는 화면으로 보낸다.
             category=notification_service.MEMBER_CONSULTATION,
-            title="담당 트레이너 연결이 해제되었어요",
-            body=f"{trainer_name} 트레이너가 서비스를 떠났습니다. 새 트레이너를 찾아보세요.",
+            template=notification_templates.MEMBER_TRAINER_LEFT,
+            template_args={"trainer_name": trainer_name},
         )
     # 예약만 있고 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
     for member_id in booked_member_ids - set(member_ids):
@@ -1242,8 +1248,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             member_id=member_id,
             kind=notification_service.TRAINER_MESSAGE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="예약한 수업이 취소되었어요",
-            body=f"{trainer_name} 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
+            template=notification_templates.MEMBER_TRAINER_LEFT_BOOKING,
+            template_args={"trainer_name": trainer_name},
         )
 
     db.delete(trainer)
@@ -1767,9 +1773,9 @@ def approve_routine_suggestion(
         member_id=row.member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=f"{row.name} · " + _amount_label(
-            row.type, minutes=row.minutes,
+        template=notification_templates.MEMBER_ROUTINE_ASSIGNED,
+        template_args=_routine_notification_args(
+            row.name, row.type, minutes=row.minutes,
             sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
             weight=row.weight,
         ),
@@ -2170,9 +2176,9 @@ def assign_routine(
         member_id=member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=f"{name} · " + _amount_label(
-            type_, minutes=minutes, sets=sets, reps=reps,
+        template=notification_templates.MEMBER_ROUTINE_ASSIGNED,
+        template_args=_routine_notification_args(
+            name, type_, minutes=minutes, sets=sets, reps=reps,
             hold_seconds=hold_seconds, weight=weight,
         ),
     )
@@ -2397,12 +2403,13 @@ def _add_program_routines(
         member_id=member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=(
-            f"{name} · 세션 {len(created)}개 · {total_minutes}분"
-            if multi
-            else f"{name} · {total_minutes}분"
-        ),
+        template=notification_templates.MEMBER_ROUTINE_PROGRAM,
+        template_args={
+            "name": name,
+            "sessions": len(created),
+            "minutes": total_minutes,
+            "multi": multi,
+        },
     )
     return created
 
@@ -3122,6 +3129,33 @@ def _amount_label(
     return " · ".join(parts)
 
 
+def _routine_notification_args(
+    name: str,
+    type_: str,
+    *,
+    minutes: int,
+    sets: int | None,
+    reps: int | None,
+    weight: float | None,
+    hold_seconds: int | None = None,
+) -> dict[str, Any]:
+    """루틴 배정 알림의 틀 인자(#2302). 양은 [_amount_label] 과 같은 규칙으로 읽는다.
+
+    문장 대신 값을 남긴다 — 회원이 영어 화면이면 `15 min`·`3 sets` 로 조립된다.
+    근력인지는 여기서 정해 둔다. 유형이 두 어휘(`근력`·`strength`)로 들어오는데,
+    읽는 쪽마다 정규화 규칙을 다시 갖게 하면 한쪽이 어긋난다.
+    """
+    return {
+        "name": name,
+        "strength": exercise_types.normalize(type_) == exercise_types.STRENGTH,
+        "minutes": minutes,
+        "sets": sets,
+        "reps": reps,
+        "hold_seconds": hold_seconds,
+        "weight": weight,
+    }
+
+
 def _program_minutes_and_type(
     items: Sequence[ProgramItem],
 ) -> tuple[int, str | None]:
@@ -3433,8 +3467,8 @@ def _add_session(
             member_id=member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="새 일정이 등록되었어요",
-            body=f"{date} {time} · {type_}",
+            template=notification_templates.MEMBER_SCHEDULE_ADDED,
+            template_args={"date": date, "time": time, "type": type_},
         )
     return s
 
@@ -3764,8 +3798,10 @@ def create_recurring_sessions(
             member_id=member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="반복 일정이 등록되었어요",
-            body=f"{iso[0]} ~ {iso[-1]} · {time} · {len(iso)}회",
+            template=notification_templates.MEMBER_SCHEDULE_SERIES,
+            template_args={
+                "first": iso[0], "last": iso[-1], "time": time, "count": len(iso),
+            },
         )
     db.commit()
     for row in created:
@@ -4538,9 +4574,10 @@ def _member_visible_slot(s: TrainerSchedule) -> tuple[str, str, str, int]:
     return (s.date, s.time, s.type, s.duration_minutes)
 
 
-def _slot_body(slot: tuple[str, str, str, int]) -> str:
+def _slot_args(slot: tuple[str, str, str, int]) -> dict[str, str]:
+    """일정 알림 틀의 인자 — 본문 `날짜 시각 · 종류` 를 이룬다(#2302)."""
     date, time, type_, _ = slot
-    return f"{date} {time} · {type_}"
+    return {"date": date, "time": time, "type": type_}
 
 
 def _notify_schedule_changed(
@@ -4565,8 +4602,8 @@ def _notify_schedule_changed(
             member_id=session.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 변경되었어요",
-            body=_slot_body(after_slot),
+            template=notification_templates.MEMBER_SCHEDULE_CHANGED,
+            template_args=_slot_args(after_slot),
         )
         return
 
@@ -4578,8 +4615,8 @@ def _notify_schedule_changed(
             member_id=before_member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(before_slot),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(before_slot),
         )
     if session.member_id is not None:
         notification_service.queue(
@@ -4587,8 +4624,8 @@ def _notify_schedule_changed(
             member_id=session.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="새 일정이 등록되었어요",
-            body=_slot_body(after_slot),
+            template=notification_templates.MEMBER_SCHEDULE_ADDED,
+            template_args=_slot_args(after_slot),
         )
 
 
@@ -4713,8 +4750,8 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(_member_visible_slot(s)),
         )
     db.delete(s)
     db.commit()
@@ -5127,8 +5164,8 @@ def cancel_session(
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(_member_visible_slot(s)),
         )
     db.commit()
     db.refresh(s)

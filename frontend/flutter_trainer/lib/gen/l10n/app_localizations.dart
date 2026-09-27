@@ -2354,6 +2354,137 @@ abstract class AppLocalizations {
   /// **'AI all-time analysis'**
   String get aiAllAnalysis;
 
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium is {over}mg over the target. Adding cardio to today\'s program would help.'**
+  String clientDietAdviceTodayOver(int over);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s meals are well balanced. Keep the current program.'**
+  String get clientDietAdviceTodayBalanced;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged this week yet. Even one meal shows the trend.'**
+  String get clientDietAdviceWeekEmpty;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Once you log more, we\'ll show how your sodium and calories are trending.'**
+  String get clientDietAdviceAllEmpty;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.'**
+  String clientDietAdviceWeekManyOver(int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.'**
+  String get clientDietAdviceWeekWeekend;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.'**
+  String clientDietAdviceWeekSomeOver(int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!'**
+  String clientDietAdviceWeekAllUnder(int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.'**
+  String clientDietAdviceAllWeekend(int weeks);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.'**
+  String clientDietAdviceAllRatio(int weeks, int percent);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.'**
+  String clientDietAdviceAllMostlyUnder(int weeks, int days);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'No workout logged today yet. How about a 10-minute walk to start?'**
+  String get clientExerciseAdviceEmptyToday;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts logged this week yet. How about a 10-minute walk to start?'**
+  String get clientExerciseAdviceEmptyWeek;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Once you log more, we\'ll show how your workout volume and types are trending.'**
+  String get clientExerciseAdviceEmptyAll;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.'**
+  String clientExerciseAdviceToday(String type, int minutes, int calories);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Just one day this week ({minutes} min). One more session keeps the flow going.'**
+  String clientExerciseAdviceWeekOneDay(int minutes);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?'**
+  String clientExerciseAdviceWeekSkew(
+    int days,
+    int minutes,
+    String top,
+    String missing,
+  );
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.'**
+  String clientExerciseAdviceWeekBalanced(int days, int minutes);
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve done more over the last 4 weeks than before. This approach suits you.'**
+  String get clientExerciseAdviceAllUp;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.'**
+  String get clientExerciseAdviceAllDown;
+
+  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.'**
+  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes);
+
   /// No description provided for @consultStatusRejected.
   ///
   /// In en, this message translates to:
@@ -5401,6 +5532,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load notifications'**
   String get notifLoadFailed;
+
+  /// No description provided for @notifTplHealthGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member goals changed'**
+  String get notifTplHealthGoalTitle;
+
+  /// goals is the member's health goals joined with ' · '.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} changed their health goals: {goals}'**
+  String notifTplHealthGoalBody(String name, String goals);
+
+  /// Shown in place of the goal list when the member cleared every health goal.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get notifTplNoGoals;
+
+  /// No description provided for @notifTplMemberRenamedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member renamed'**
+  String get notifTplMemberRenamedTitle;
+
+  /// No description provided for @notifTplMemberRenamedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{oldName} changed their name to {newName}.'**
+  String notifTplMemberRenamedBody(String oldName, String newName);
+
+  /// No description provided for @notifTplMemberWithdrawnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member account deleted'**
+  String get notifTplMemberWithdrawnTitle;
+
+  /// No description provided for @notifTplMemberWithdrawnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted their account.'**
+  String notifTplMemberWithdrawnBody(String name);
+
+  /// No description provided for @notifTplMemberDisconnectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Client disconnected'**
+  String get notifTplMemberDisconnectedTitle;
+
+  /// No description provided for @notifTplMemberDisconnectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ended their connection with you.'**
+  String notifTplMemberDisconnectedBody(String name);
+
+  /// No description provided for @notifTplConsultRequestedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New consultation request'**
+  String get notifTplConsultRequestedTitle;
+
+  /// No description provided for @notifTplConsultCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request cancelled'**
+  String get notifTplConsultCancelledTitle;
+
+  /// No description provided for @notifTplInviteAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching request accepted'**
+  String get notifTplInviteAcceptedTitle;
+
+  /// No description provided for @notifTplInviteAcceptedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now your client.'**
+  String notifTplInviteAcceptedBody(String name);
+
+  /// No description provided for @notifTplInviteRejectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching request declined'**
+  String get notifTplInviteRejectedTitle;
+
+  /// No description provided for @notifTplInviteRejectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} declined your coaching request.'**
+  String notifTplInviteRejectedBody(String name);
+
+  /// No description provided for @notifTplReservationBookedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New booking'**
+  String get notifTplReservationBookedTitle;
+
+  /// No description provided for @notifTplReservationCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking cancelled'**
+  String get notifTplReservationCancelledTitle;
+
+  /// A member's name followed by a date or time, e.g. for a booking.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {detail}'**
+  String notifTplMemberWithDetail(String name, String detail);
+
+  /// Just the member's name, used when a cancelled booking has no time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}'**
+  String notifTplMemberOnly(String name);
+
+  /// Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} {time}'**
+  String notifTplWhen(String month, String day, String time);
+
+  /// No description provided for @notifTplMemberMessageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message from {name}'**
+  String notifTplMemberMessageTitle(String name);
 
   /// No description provided for @notifAllRead.
   ///

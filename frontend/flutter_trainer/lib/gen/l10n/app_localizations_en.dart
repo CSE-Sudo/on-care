@@ -1262,6 +1262,167 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiAllAnalysis => 'AI all-time analysis';
 
   @override
+  String clientDietAdviceTodayOver(int over) {
+    return 'Sodium is ${over}mg over the target. Adding cardio to today\'s program would help.';
+  }
+
+  @override
+  String get clientDietAdviceTodayBalanced =>
+      'Today\'s meals are well balanced. Keep the current program.';
+
+  @override
+  String get clientDietAdviceWeekEmpty =>
+      'No meals logged this week yet. Even one meal shows the trend.';
+
+  @override
+  String get clientDietAdviceAllEmpty =>
+      'Once you log more, we\'ll show how your sodium and calories are trending.';
+
+  @override
+  String clientDietAdviceWeekManyOver(int days) {
+    return 'Sodium went over on $days days this week. With soups, eat the solids and leave the broth.';
+  }
+
+  @override
+  String get clientDietAdviceWeekWeekend =>
+      'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.';
+
+  @override
+  String clientDietAdviceWeekSomeOver(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return 'Only $_temp0 went over the sodium limit this week. The other days were well balanced.';
+  }
+
+  @override
+  String clientDietAdviceWeekAllUnder(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'all $days days',
+      one: 'the 1 day you logged',
+    );
+    return 'You kept sodium within the limit on $_temp0 this week!';
+  }
+
+  @override
+  String clientDietAdviceAllWeekend(int weeks) {
+    return 'Over the last $weeks weeks, sodium rises every weekend. Make one weekend meal lighter.';
+  }
+
+  @override
+  String clientDietAdviceAllRatio(int weeks, int percent) {
+    return '$percent% of days in the last $weeks weeks went over the sodium limit. Start by leaving the broth.';
+  }
+
+  @override
+  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Most of your $days logged days',
+      one: 'Your 1 logged day',
+    );
+    return '$_temp0 in the last $weeks weeks stayed within the sodium limit. Nice trend.';
+  }
+
+  @override
+  String get clientExerciseAdviceEmptyToday =>
+      'No workout logged today yet. How about a 10-minute walk to start?';
+
+  @override
+  String get clientExerciseAdviceEmptyWeek =>
+      'No workouts logged this week yet. How about a 10-minute walk to start?';
+
+  @override
+  String get clientExerciseAdviceEmptyAll =>
+      'Once you log more, we\'ll show how your workout volume and types are trending.';
+
+  @override
+  String clientExerciseAdviceToday(String type, int minutes, int calories) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Today: $minutes min and $calories kcal, mostly $_temp0. Wrap up with a stretch.';
+  }
+
+  @override
+  String clientExerciseAdviceWeekOneDay(int minutes) {
+    return 'Just one day this week ($minutes min). One more session keeps the flow going.';
+  }
+
+  @override
+  String clientExerciseAdviceWeekSkew(
+    int days,
+    int minutes,
+    String top,
+    String missing,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week\'s $_temp0 and $minutes min leaned on $_temp1. Mix in some $_temp2?';
+  }
+
+  @override
+  String clientExerciseAdviceWeekBalanced(int days, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$_temp0 and $minutes min this week, with a good mix of types.';
+  }
+
+  @override
+  String get clientExerciseAdviceAllUp =>
+      'You\'ve done more over the last 4 weeks than before. This approach suits you.';
+
+  @override
+  String get clientExerciseAdviceAllDown =>
+      'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.';
+
+  @override
+  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      weeks,
+      locale: localeName,
+      other: '$weeks weeks',
+      one: '1 week',
+    );
+    return '$_temp0 and $minutes min over $_temp1 — nice and steady.';
+  }
+
+  @override
   String get consultStatusRejected => 'Declined';
 
   @override
@@ -3085,6 +3246,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifLoadFailed => 'Couldn\'t load notifications';
+
+  @override
+  String get notifTplHealthGoalTitle => 'Member goals changed';
+
+  @override
+  String notifTplHealthGoalBody(String name, String goals) {
+    return '$name changed their health goals: $goals';
+  }
+
+  @override
+  String get notifTplNoGoals => 'none';
+
+  @override
+  String get notifTplMemberRenamedTitle => 'Member renamed';
+
+  @override
+  String notifTplMemberRenamedBody(String oldName, String newName) {
+    return '$oldName changed their name to $newName.';
+  }
+
+  @override
+  String get notifTplMemberWithdrawnTitle => 'Member account deleted';
+
+  @override
+  String notifTplMemberWithdrawnBody(String name) {
+    return '$name deleted their account.';
+  }
+
+  @override
+  String get notifTplMemberDisconnectedTitle => 'Client disconnected';
+
+  @override
+  String notifTplMemberDisconnectedBody(String name) {
+    return '$name ended their connection with you.';
+  }
+
+  @override
+  String get notifTplConsultRequestedTitle => 'New consultation request';
+
+  @override
+  String get notifTplConsultCancelledTitle => 'Consultation request cancelled';
+
+  @override
+  String get notifTplInviteAcceptedTitle => 'Coaching request accepted';
+
+  @override
+  String notifTplInviteAcceptedBody(String name) {
+    return '$name is now your client.';
+  }
+
+  @override
+  String get notifTplInviteRejectedTitle => 'Coaching request declined';
+
+  @override
+  String notifTplInviteRejectedBody(String name) {
+    return '$name declined your coaching request.';
+  }
+
+  @override
+  String get notifTplReservationBookedTitle => 'New booking';
+
+  @override
+  String get notifTplReservationCancelledTitle => 'Booking cancelled';
+
+  @override
+  String notifTplMemberWithDetail(String name, String detail) {
+    return '$name · $detail';
+  }
+
+  @override
+  String notifTplMemberOnly(String name) {
+    return '$name';
+  }
+
+  @override
+  String notifTplWhen(String month, String day, String time) {
+    return '$month/$day $time';
+  }
+
+  @override
+  String notifTplMemberMessageTitle(String name) {
+    return 'Message from $name';
+  }
 
   @override
   String get notifAllRead => 'All caught up';
