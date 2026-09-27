@@ -451,6 +451,31 @@ void main() {
       expect(gymField(tester, '온케어짐 강남점').enabled, isFalse);
     });
 
+    testWidgets('이름을 다 쓰고 다음 칸으로 가면 목록이 닫힌다', (tester) async {
+      await openEdit(tester);
+      await unlinkGym(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '온케어',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsOneWidget,
+      );
+
+      // 주소 칸으로 포커스를 옮긴다(Tab 과 같은 효과).
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-address')),
+        '서울',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
+      );
+    });
+
     testWidgets('목록에 없는 곳은 직접 적어 저장한다', (tester) async {
       await openEdit(tester);
       await unlinkGym(tester);
@@ -459,12 +484,13 @@ void main() {
         '동네 PT 스튜디오',
       );
       await tester.pump();
-      // 맞는 등록 헬스장이 없다고 말한다. 주소·운영 시간은 비어 있다.
+      // 맞는 등록 헬스장이 없다고 칸 아래 한 줄로 말한다 — 떠 있는 창은 없어
+      // 주소 칸을 가리지 않는다. 주소·운영 시간은 비어 있다.
       expect(
-        find.byKey(const ValueKey<String>('gym-no-match')),
-        findsOneWidget,
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
       );
-      expect(find.text('등록된 헬스장이 없어요'), findsOneWidget);
+      expect(find.text('목록에 없는 헬스장이에요. 주소와 운영 시간을 직접 적어 주세요.'), findsOneWidget);
       expect(find.text('서울 서대문구 신촌로 120'), findsNothing);
 
       await tester.tap(find.text('저장'));

@@ -2167,10 +2167,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymListFailed => '헬스장 목록을 불러오지 못했습니다.';
 
   @override
-  String get myGymNoMatch => '등록된 헬스장이 없어요';
-
-  @override
-  String get myGymNoMatchHint => '그대로 적으면 직접 입력으로 저장돼요. 주소·운영 시간·연락처도 적어 주세요.';
+  String get myGymNoMatch => '목록에 없는 헬스장이에요. 주소와 운영 시간을 직접 적어 주세요.';
 
   @override
   String get myGymLinked => '등록된 헬스장';

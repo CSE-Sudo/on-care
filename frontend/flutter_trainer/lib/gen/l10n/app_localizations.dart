@@ -4031,14 +4031,8 @@ abstract class AppLocalizations {
   /// No description provided for @myGymNoMatch.
   ///
   /// In en, this message translates to:
-  /// **'No registered gym found'**
+  /// **'This gym isn\'t listed. Please add its address and hours yourself.'**
   String get myGymNoMatch;
-
-  /// No description provided for @myGymNoMatchHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep typing to save it as your own entry. Add the address, hours and phone too.'**
-  String get myGymNoMatchHint;
 
   /// No description provided for @myGymLinked.
   ///

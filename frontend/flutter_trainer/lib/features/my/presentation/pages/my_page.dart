@@ -2023,6 +2023,16 @@ class _GymNameFieldState extends State<_GymNameField> {
   final OverlayPortalController _dropdown = OverlayPortalController();
   final LayerLink _link = LayerLink();
   final ScrollController _scroll = ScrollController();
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // 이름을 다 쓰고 다음 칸으로 가면(Tab·다른 칸 누르기) 바로 닫는다.
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _dropdown.hide();
+    });
+  }
 
   /// 키보드가 가리키는 줄(↑/↓ 로 옮기고 Enter 로 고른다).
   int _highlight = 0;
@@ -2034,6 +2044,7 @@ class _GymNameFieldState extends State<_GymNameField> {
   @override
   void dispose() {
     _scroll.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -2048,11 +2059,16 @@ class _GymNameFieldState extends State<_GymNameField> {
     ];
   }
 
-  /// 목록을 띄울지 — 맞는 곳이 있거나, 목록을 다 읽었는데 맞는 곳이 없을 때
-  /// (그렇다고 말해 준다). 칸이 비었으면 닫는다.
-  bool get _shouldShow =>
+  /// 목록을 띄울지 — 맞는 곳이 있을 때만. 맞는 곳이 없다는 말은 떠 있는 창이
+  /// 아니라 칸 아래 한 줄로 한다: 창은 아래 주소 칸을 덮어, 주소를 적으려고
+  /// 누르면 창 안을 누른 셈이 되어 닫히지 않았다.
+  bool get _shouldShow => _matches.isNotEmpty;
+
+  /// 목록을 다 읽었는데 적은 이름에 맞는 등록 헬스장이 없다.
+  bool get _noMatch =>
+      widget.listReady &&
       widget.controller.text.trim().isNotEmpty &&
-      (_matches.isNotEmpty || widget.listReady);
+      _matches.isEmpty;
 
   void _refresh() {
     setState(() => _highlight = 0);
@@ -2126,7 +2142,9 @@ class _GymNameFieldState extends State<_GymNameField> {
                       label: l.myGymName,
                       hint: l.myGymNameHint,
                       controller: widget.controller,
+                      focusNode: _focus,
                       errorText: widget.errorText,
+                      helper: _noMatch ? l.myGymNoMatch : null,
                       onChanged: (String value) {
                         widget.onChanged?.call(value);
                         _refresh();
@@ -2170,88 +2188,57 @@ class _GymNameFieldState extends State<_GymNameField> {
             clipBehavior: Clip.antiAlias,
             child: Material(
               type: MaterialType.transparency,
-              child: matches.isEmpty
-                  // 맞는 곳이 없으면 그렇다고 말한다 — 그대로 쓰면 직접 입력이다.
-                  ? Padding(
-                      key: const ValueKey<String>('gym-no-match'),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: OnCareSpacing.s16,
-                        vertical: OnCareSpacing.s12,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            AppLocalizations.of(context).myGymNoMatch,
-                            style: tokens
-                                .text(OnCareTypography.body)
-                                .copyWith(color: OnCareColors.textPrimary),
-                          ),
-                          Text(
-                            AppLocalizations.of(context).myGymNoMatchHint,
-                            style: tokens
-                                .text(OnCareTypography.caption)
-                                .copyWith(color: OnCareColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      itemExtent: _rowHeight,
-                      itemCount: matches.length,
-                      itemBuilder: (BuildContext context, int i) {
-                        final TrainerGymChoice choice = matches[i];
-                        return MouseRegion(
-                          onEnter: (_) => setState(() => _highlight = i),
-                          child: InkWell(
-                            key: ValueKey<String>(
-                              'gym-suggestion-${choice.id}',
+              child: ListView.builder(
+                controller: _scroll,
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemExtent: _rowHeight,
+                itemCount: matches.length,
+                itemBuilder: (BuildContext context, int i) {
+                  final TrainerGymChoice choice = matches[i];
+                  return MouseRegion(
+                    onEnter: (_) => setState(() => _highlight = i),
+                    child: InkWell(
+                      key: ValueKey<String>('gym-suggestion-${choice.id}'),
+                      onTap: () => _pick(choice),
+                      child: Container(
+                        color: i == _highlight
+                            ? tokens.brand.surface
+                            : Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: OnCareSpacing.s16,
+                        ),
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              choice.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: tokens
+                                  .text(OnCareTypography.body)
+                                  .copyWith(color: OnCareColors.textPrimary),
                             ),
-                            onTap: () => _pick(choice),
-                            child: Container(
-                              color: i == _highlight
-                                  ? tokens.brand.surface
-                                  : Colors.transparent,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: OnCareSpacing.s16,
-                              ),
-                              alignment: AlignmentDirectional.centerStart,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    choice.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: tokens
-                                        .text(OnCareTypography.body)
-                                        .copyWith(
-                                          color: OnCareColors.textPrimary,
-                                        ),
-                                  ),
-                                  if (choice.address.isNotEmpty)
-                                    Text(
-                                      choice.address,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: tokens
-                                          .text(OnCareTypography.caption)
-                                          .copyWith(
-                                            color: OnCareColors.textSecondary,
-                                          ),
+                            if (choice.address.isNotEmpty)
+                              Text(
+                                choice.address,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: tokens
+                                    .text(OnCareTypography.caption)
+                                    .copyWith(
+                                      color: OnCareColors.textSecondary,
                                     ),
-                                ],
                               ),
-                            ),
-                          ),
-                        );
-                      },
+                          ],
+                        ),
+                      ),
                     ),
+                  );
+                },
+              ),
             ),
           ),
         ),
