@@ -7630,6 +7630,12 @@ abstract class AppLocalizations {
   /// **'{count}'**
   String reportsCountPeople(int count);
 
+  /// No description provided for @reportsSortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get reportsSortLabel;
+
   /// No description provided for @reportsSortPriority.
   ///
   /// In en, this message translates to:
@@ -7639,8 +7645,14 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSortName.
   ///
   /// In en, this message translates to:
-  /// **'By name'**
+  /// **'Name A–Z'**
   String get reportsSortName;
+
+  /// No description provided for @reportsSortNameDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z–A'**
+  String get reportsSortNameDescending;
 
   /// No description provided for @reportsSendProgress.
   ///

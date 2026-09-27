@@ -4251,10 +4251,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get reportsSortLabel => '정렬';
+
+  @override
   String get reportsSortPriority => '우선 확인 순';
 
   @override
-  String get reportsSortName => '이름 순';
+  String get reportsSortName => '이름 오름차순';
+
+  @override
+  String get reportsSortNameDescending => '이름 내림차순';
 
   @override
   String reportsSendProgress(int done, int total) {

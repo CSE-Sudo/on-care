@@ -1957,8 +1957,10 @@
       }
     }
   },
+  "reportsSortLabel": "정렬",
   "reportsSortPriority": "우선 확인 순",
-  "reportsSortName": "이름 순",
+  "reportsSortName": "이름 오름차순",
+  "reportsSortNameDescending": "이름 내림차순",
   "reportsSendProgress": "{done} / {total} 전송",
   "@reportsSendProgress": {
     "placeholders": {
