@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import exists, func, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -388,6 +388,36 @@ def _release(
     db.flush()
 
 
+def release_for_cancelled_schedule(
+    db: Session, schedule_id: str, *, cancelled_by: str
+) -> list[TrainerReservation]:
+    """트레이너가 취소한 일정에 걸린 예약을 풀어 준다. **커밋하지 않는다.** (#2283)
+
+    회원이 예약한 자리를 트레이너가 스케줄 화면에서 취소하면, 일정만 `취소` 가 되고
+    예약과 좌석은 그대로 남았다 — 회원 앱에는 '예약됨·취소 가능'으로 계속 보이고
+    그 시간은 누구도 다시 잡을 수 없었다. 회원 취소와 같은 [_release] 로 좌석을
+    되돌리고 예약을 지워, 어느 쪽이 취소하든 결과가 같게 한다.
+
+    일정 상태는 호출자가 이미 바꿔 둔다(취소 사유까지 함께 남기므로). [_release] 는
+    마무리된 일정을 건드리지 않으니 그 기록을 덮어쓰지 않는다.
+
+    돌려주는 목록은 풀어 준 예약들이다(이미 삭제 표시됨) — 호출자가 알림 등에 쓴다.
+    """
+    reservations = list(
+        db.scalars(
+            select(TrainerReservation)
+            .where(
+                TrainerReservation.schedule_id == schedule_id,
+                TrainerReservation.status == "booked",
+            )
+            .order_by(TrainerReservation.id)
+            .with_for_update()
+        ).all()
+    )
+    _release(db, reservations, cancelled_by=cancelled_by)
+    return reservations
+
+
 def cancel_member_reservations_for_account_deletion(
     db: Session, member_id: str
 ) -> None:
@@ -527,7 +557,17 @@ def list_member_reservations(
             TrainerReservationSlot,
             TrainerReservationSlot.id == TrainerReservation.slot_id,
         )
-        .where(TrainerReservation.member_id == member_id)
+        .where(
+            TrainerReservation.member_id == member_id,
+            # 취소된 예약은 목록에 없다 — 회원 취소도 트레이너 취소도 예약 행을
+            # 지우지만(#2283), 그 전에 트레이너가 취소해 행이 남아 있는 경우까지
+            # '예약됨·취소 가능'으로 보이지 않게 일정 상태로 한 번 더 거른다.
+            TrainerReservation.status == "booked",
+            ~exists().where(
+                TrainerSchedule.id == TrainerReservation.schedule_id,
+                TrainerSchedule.status == trainer_service.SCHEDULE_CANCELLED,
+            ),
+        )
     )
     if before is not None:
         if before_id is not None:
