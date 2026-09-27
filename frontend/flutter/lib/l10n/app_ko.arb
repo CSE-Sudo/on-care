@@ -57,6 +57,12 @@
   "homeMealNamulBibimbap": "나물 비빔밥",
   "homeMealReasonFiber": "식이섬유가 풍부해요",
   "homeMealTagLowFat": "저지방",
+  "homeTrainerPickReasonSodiumLow": "나트륨을 줄여 줘요",
+  "homeTrainerPickReasonProteinHigh": "단백질을 채워 줘요",
+  "homeTrainerPickReasonCalorieLow": "가볍게 먹기 좋아요",
+  "homeTrainerPickReasonCalorieHigh": "든든하게 채워 줘요",
+  "homeTrainerPickReasonSugarLow": "당류를 줄여 줘요",
+  "homeTrainerPickReasonFiberHigh": "식이섬유를 채워 줘요",
   "homeRecBasisSodium": "최근 {days}일 평균 나트륨 {sodium}mg",
   "@homeRecBasisSodium": {
     "placeholders": {

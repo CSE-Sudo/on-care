@@ -440,6 +440,42 @@ abstract class AppLocalizations {
   /// **'Low fat'**
   String get homeMealTagLowFat;
 
+  /// No description provided for @homeTrainerPickReasonSodiumLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Less sodium'**
+  String get homeTrainerPickReasonSodiumLow;
+
+  /// No description provided for @homeTrainerPickReasonProteinHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'More protein'**
+  String get homeTrainerPickReasonProteinHigh;
+
+  /// No description provided for @homeTrainerPickReasonCalorieLow.
+  ///
+  /// In en, this message translates to:
+  /// **'A lighter meal'**
+  String get homeTrainerPickReasonCalorieLow;
+
+  /// No description provided for @homeTrainerPickReasonCalorieHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'A filling meal'**
+  String get homeTrainerPickReasonCalorieHigh;
+
+  /// No description provided for @homeTrainerPickReasonSugarLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Less sugar'**
+  String get homeTrainerPickReasonSugarLow;
+
+  /// No description provided for @homeTrainerPickReasonFiberHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'More fiber'**
+  String get homeTrainerPickReasonFiberHigh;
+
   /// No description provided for @homeRecBasisSodium.
   ///
   /// In en, this message translates to:
