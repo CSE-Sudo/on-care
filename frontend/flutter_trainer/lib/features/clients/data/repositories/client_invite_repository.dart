@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
@@ -75,9 +76,12 @@ abstract interface class ClientInviteRepository {
 /// 로컬 로스터에 연결한다 — [demoProspectiveMembers] 가 "아직 연결되지 않은
 /// 회원", [demoAlreadyLinkedMemberId] 가 "이미 연결된 회원" 시나리오다.
 class DemoClientInviteRepository implements ClientInviteRepository {
-  DemoClientInviteRepository(this._db);
+  DemoClientInviteRepository(this._db, {this.language = DemoLanguage.ko});
 
   final AppDatabase _db;
+
+  /// 명부 회원의 목표를 보여 줄 데모 언어 (#2304).
+  final DemoLanguage language;
 
   @override
   bool get supportsInvites => true;
@@ -134,7 +138,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
       // 맞는지" 확인할 수 있게 데모에서만 함께 실어 준다.
       gender: prospect.gender,
       age: prospect.ageOn(now),
-      goal: prospect.goal,
+      goal: prospect.goalIn(language),
     );
   }
 
@@ -185,8 +189,9 @@ class DemoClientInviteRepository implements ClientInviteRepository {
               id: prospect.id,
               name: prospect.name,
               avatar: String.fromCharCode(prospect.name.runes.first),
-              goal: prospect.goal,
-              lastMessage: '아직 대화가 없어요',
+              goal: prospect.goalIn(language),
+              // 비워 둔다 — 화면이 로케일에 맞는 `대화 없음` 문구를 그린다(#2304).
+              lastMessage: '',
               lastTime: '-',
               active: const Value(true),
               caloriesToday: 0,
@@ -379,7 +384,10 @@ class DioClientInviteRepository implements ClientInviteRepository {
 /// 현재 모드에 맞는 저장소.
 final clientInviteRepositoryProvider = Provider<ClientInviteRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
-    return DemoClientInviteRepository(ref.watch(appDatabaseProvider));
+    return DemoClientInviteRepository(
+      ref.watch(appDatabaseProvider),
+      language: ref.watch(demoLanguageProvider),
+    );
   }
   return DioClientInviteRepository(ref.watch(dioProvider));
 }, name: 'clientInviteRepository');
