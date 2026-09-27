@@ -1591,11 +1591,10 @@ class _FormGrid extends StatelessWidget {
         return Wrap(
           spacing: gap,
           children: <Widget>[
-            for (int i = 0; i < children.length; i++)
-              SizedBox(
-                width: i == children.length - 1 ? constraints.maxWidth : cell,
-                child: children[i],
-              ),
+            for (final Widget child in children.take(children.length - 1))
+              SizedBox(width: cell, child: child),
+            if (children.isNotEmpty)
+              SizedBox(width: constraints.maxWidth, child: children.last),
           ],
         );
       },
