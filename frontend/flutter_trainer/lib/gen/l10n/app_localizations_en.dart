@@ -2456,6 +2456,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aiCustomRoutineName => 'AI custom suggestion';
+
+  @override
   String get aiAnalysing => 'AI is analysing…';
 
   @override
@@ -2574,6 +2577,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalRationaleLabel => 'Why AI picked this';
+
+  @override
+  String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
+
+  @override
+  String get routineEvidenceStrengthHeavy => 'Mostly strength lately';
+
+  @override
+  String get routineEvidenceBloodPressureGoal => 'Blood pressure goal';
+
+  @override
+  String get routineEvidenceLowCardio => 'Little cardio lately';
+
+  @override
+  String get routineEvidenceRecentRecord => 'Recent workout log';
+
+  @override
+  String get aiPlanIntensityLow => 'Low';
 
   @override
   String aiPersonalStepFull(int count) {

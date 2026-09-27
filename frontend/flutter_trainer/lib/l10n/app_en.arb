@@ -1566,6 +1566,10 @@
       }
     }
   },
+  "aiCustomRoutineName": "AI custom suggestion",
+  "@aiCustomRoutineName": {
+    "description": "Routine name sent when the trainer leaves the name blank (#2301)."
+  },
   "aiAnalysing": "AI is analysing…",
   "aiGenerateCandidates": "Generate candidates",
   "aiReviewDone": "Reviewed",
@@ -1636,6 +1640,30 @@
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
+  "routineEvidenceRecentPtFeedback": "Recent PT feedback",
+  "@routineEvidenceRecentPtFeedback": {
+    "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
+  },
+  "routineEvidenceStrengthHeavy": "Mostly strength lately",
+  "@routineEvidenceStrengthHeavy": {
+    "description": "Evidence chip; server code strength_heavy (#2301)."
+  },
+  "routineEvidenceBloodPressureGoal": "Blood pressure goal",
+  "@routineEvidenceBloodPressureGoal": {
+    "description": "Evidence chip; server code blood_pressure_goal (#2301)."
+  },
+  "routineEvidenceLowCardio": "Little cardio lately",
+  "@routineEvidenceLowCardio": {
+    "description": "Evidence chip; server code low_cardio (#2301)."
+  },
+  "routineEvidenceRecentRecord": "Recent workout log",
+  "@routineEvidenceRecentRecord": {
+    "description": "Evidence chip; server code recent_record (#2301)."
+  },
+  "aiPlanIntensityLow": "Low",
+  "@aiPlanIntensityLow": {
+    "description": "Intensity of an AI A/B plan whose contract value is 낮음 (#2301)."
+  },
   "aiPersonalStepFull": "You can set up to {count} personal exercises at once.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }

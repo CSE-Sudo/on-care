@@ -70,6 +70,24 @@ String routineIntensityLabel(AppLocalizations l, String intensity) =>
       _ => l.intensityModerate,
     };
 
+/// AI A/B 안의 강도 계약값(`낮음`/`보통`/`높음`, 서버 `RoutineIntensityLabel`)
+/// → 화면 문구. (#2301)
+///
+/// 배정 강도([routineIntensityLabel])와 값 모양이 달라 따로 둔다. 한국어 화면은
+/// 예전처럼 계약값 그대로 읽힌다. 모르는 값(직접 고른 안의 태그 등)은 원문이다.
+String routinePlanIntensityLabel(AppLocalizations l, String intensity) =>
+    switch (intensity) {
+      '낮음' => l.aiPlanIntensityLow,
+      '보통' => l.intensityModerate,
+      '높음' => l.intensityHigh,
+      _ => intensity,
+    };
+
+/// 트레이너가 이름을 비워 보낸 배정의 기본 이름(한국어). 화면 언어의 이름은
+/// `AppLocalizations.aiCustomRoutineName` 이고, 저장소가 그 값을
+/// [assignRoutineToJson] 의 `fallbackName` 으로 넘긴다. (#2301)
+const String kDefaultAiRoutineName = 'AI 맞춤 추천안';
+
 AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
   return AssignedRoutine(
     id: _str(json['id']),
@@ -93,14 +111,20 @@ AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
 ///
 /// [clientRequestId] 는 전송 시도의 멱등키다. 넣어 보내면 같은 키의 재요청이
 /// 새 배정을 만들지 않는다(#581). 생략하면 서버는 기존처럼 매번 새로 배정한다.
+///
+/// [fallbackName] 은 이름이 비었을 때 쓰는 이름이다. 회원에게 그대로 보이므로
+/// 보내는 트레이너의 화면 언어로 넘긴다(#2301). 생략하면 한국어다.
 Map<String, Object?> assignRoutineToJson(
   AssignedRoutine r, {
   String? clientRequestId,
+  String fallbackName = kDefaultAiRoutineName,
 }) {
   final String type = normaliseRoutineType(r.type);
   final bool strength = type == '근력';
   return <String, Object?>{
-    'name': r.name.trim().isEmpty ? 'AI 맞춤 추천안' : _truncate(r.name.trim(), 100),
+    'name': r.name.trim().isEmpty
+        ? _truncate(fallbackName, 100)
+        : _truncate(r.name.trim(), 100),
     'minutes': r.minutes.clamp(0, 600),
     'type': type,
     'exercise_date': r.date == null ? null : _ymd(r.date!),
