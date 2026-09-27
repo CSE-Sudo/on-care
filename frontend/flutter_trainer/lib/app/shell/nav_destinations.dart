@@ -115,16 +115,18 @@ const List<NavDestination> navDestinations = <NavDestination>[
   ),
   NavDestination(
     label: NavLabel.coaching,
-    icon: Icons.auto_awesome_rounded,
-    activeIcon: Icons.auto_awesome_rounded,
+    // 회원 상세의 '프로그램' 버튼과 같은 운동 계획서다(#2330). 예전 반짝이(✦)는
+    // AI 추천 표시와 같은 모양이라, 사이드바 메뉴가 AI 기능처럼 읽혔다.
+    icon: Icons.assignment_rounded,
+    activeIcon: Icons.assignment_rounded,
     route: AppRoutes.coaching,
   ),
   NavDestination(
     label: NavLabel.reports,
-    // 고객 상세의 '리포트' 버튼과 같은 막대그래프다 — 같은 화면으로 가는 두
+    // 고객 상세의 '리포트' 버튼과 같은 그림이다(#2330) — 같은 화면으로 가는 두
     // 자리가 서로 다른 그림이면 같은 곳인 줄 모른다.
-    icon: Icons.bar_chart_rounded,
-    activeIcon: Icons.bar_chart_rounded,
+    icon: Icons.analytics_rounded,
+    activeIcon: Icons.analytics_rounded,
     route: AppRoutes.reports,
   ),
 ];

@@ -829,17 +829,19 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         _StepSection(
           card: _OnboardCard(
             children: <Widget>[
+              // MY 건강 목표·트레이너 웹과 같은 순서다 — 당류는 탄수화물 바로
+              // 아래, 나트륨은 끝(#2353).
               _goalField(_GoalField.calories, l.myGoalCalories, 'onboardKcal'),
               const SizedBox(height: _kFieldGap),
               _goalField(_GoalField.carbs, l.myGoalCarbs, 'onboardCarbs'),
+              const SizedBox(height: _kFieldGap),
+              _goalField(_GoalField.sugar, l.myGoalSugar, 'onboardSugar'),
               const SizedBox(height: _kFieldGap),
               _goalField(_GoalField.protein, l.myGoalProtein, 'onboardProtein'),
               const SizedBox(height: _kFieldGap),
               _goalField(_GoalField.fat, l.myGoalFat, 'onboardFat'),
               const SizedBox(height: _kFieldGap),
               _goalField(_GoalField.sodium, l.myGoalSodium, 'onboardSodium'),
-              const SizedBox(height: _kFieldGap),
-              _goalField(_GoalField.sugar, l.myGoalSugar, 'onboardSugar'),
             ],
           ),
           note: _StepNote(

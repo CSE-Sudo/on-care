@@ -835,7 +835,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
 - `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
 - **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
-- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
+- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`, 사진은 `POST /me/coach/chat/image` — #1665), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
@@ -957,6 +957,33 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   아직 오지 않은 주는 **422**(리포트 조회와 같은 규칙).
 - **담당이 살아 있는 회원만** 싣는다. 해제된 회원의 기록은 빠진다(#2281). 보낸 적이 없는 주는
   200 에 `sends: []` 다. 회원 계정은 **403**.
+
+**채팅 사진 (#921, #1665)**: 트레이너와 회원이 **서로** 사진을 보낸다. 식사·자세·인바디 결과지처럼
+코칭에 바로 쓰이는 사진이 대화 안에서 오가야, 사진만큼은 개인 메신저로 보내는 일이 없다.
+
+| 메서드 | 경로 | 보내는 쪽 |
+|---|---|---|
+| `POST` | `/trainer/clients/{member_id}/chat/image` | 트레이너 → 담당 회원 (#921) |
+| `POST` | `/me/coach/chat/image` | 회원 → 담당 트레이너 (#1665) |
+| `GET` | `/chat/attachments/{file_id}` | 그 스레드의 두 사람 — 내려받기 |
+
+- 요청은 `multipart/form-data` 다: `image`(파일, 필수)·`message`(글, 선택, 2000자)·`client_request_id`
+  (선택, 1~64자). 응답은 `201` 에 `ChatMessageOut` 이고 `attachment` 가
+  `{ type: "image", file_name, file_id, file_size, download_path }` 다. 사진만 보내도 된다(`body` 는 빈 글).
+- **형식은 바이트로 판정한다** — JPG·PNG·WebP 만 받고 나머지는 **415**. 확장자와 `Content-Type` 은
+  보내는 쪽이 자유롭게 적을 수 있어 참고하지 않는다. 용량 상한은 `max_chat_image_bytes`(6MB)이고
+  넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
+- **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
+  있으면 **409**.
+- 회원 경로는 **활성 담당 링크가 있어야 한다** — 없으면 글 메시지(`POST /me/coach/chat`)와 같이
+  **404**. 트레이너 계정은 **403**. 트레이너 경로는 담당 고객이 아니면 **404**.
+- 알림: 트레이너가 보내면 회원에게, 회원이 보내면 트레이너에게 새 메시지 알림이 남는다(글 메시지와
+  같은 종류). 사진만 보낸 메시지는 본문이 비어 있어 알림 본문을 `사진을 보냈어요`(`Sent a photo`)로
+  채우고, 트레이너 로스터의 마지막 메시지는 `사진`(`Photo`)이다.
+- 내려받기는 그 스레드의 회원 본인과 **활성 담당 트레이너**만 된다. 다른 사람에게는 존재 여부를
+  숨기려 **404** 다. 사진은 `inline` 으로 준다(대화 안에서 그린다).
+- **일반 파일은 받지 않는다.** 첨부 종류는 리포트 PDF(`pdf`, 리포트 전송 전용)와 사진(`image`)
+  두 가지뿐이다 — 이 대화는 코칭을 위한 것이고, 받는 쪽이 그릴 수 없는 형식은 아이콘 하나로만 남는다.
 
 **데이터 공유 동의 철회 (#1631)**: **담당 해제 = 데이터 공유 동의 철회**다. 링크
 (`trainer_clients`)에 동의 시각 `data_consent_at` 과 철회 시각 `data_consent_revoked_at` 을 둔다.

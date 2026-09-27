@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
@@ -151,6 +153,38 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     }
     if (_pendingRequestIds[trimmed] == requestId) {
       _pendingRequestIds.remove(trimmed);
+    }
+  }
+
+  @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) async {
+    try {
+      final Response<Map<String, Object?>> res = await _dio
+          .post<Map<String, Object?>>(
+            '/me/coach/chat/image',
+            data: FormData.fromMap(<String, Object?>{
+              'image': MultipartFile.fromBytes(
+                bytes,
+                filename: fileName,
+                contentType: DioMediaType.parse(mimeType),
+              ),
+              'message': text.trim(),
+              'client_request_id': clientRequestId,
+            }),
+          );
+      final Map<String, Object?>? data = res.data;
+      if (data == null) {
+        throw const FormatException('Missing sent chat photo.');
+      }
+      return coachMessageFromJson(data);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
     }
   }
 

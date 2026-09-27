@@ -562,7 +562,7 @@ def build_roster(
             avatar=member.name[:1] if member.name else "?",
             gender=gender_by_member.get(link.member_id, ""),
             goal=goal_by_member.get(link.member_id, ""),
-            last_message=last_msg.body if last_msg else "",
+            last_message=_roster_preview(last_msg),
             last_time=relative_time_label(last_msg.created_at) if last_msg else "-",
             last_message_at=last_msg.created_at if last_msg else None,
             active=_roster_active(link),
@@ -810,6 +810,19 @@ def build_chat_thread(
     ]
 
 
+def _roster_preview(msg: ChatMessage | None) -> str:
+    """로스터의 마지막 메시지 한 줄.
+
+    사진만 보낸 메시지는 본문이 비어 있다(#921, #1665). 그대로 두면 회원이 사진을
+    보낸 직후 목록의 미리보기가 빈칸이 되어, 무엇이 왔는지 대화를 열어야 안다.
+    """
+    if msg is None:
+        return ""
+    if not msg.body and msg.attachment_type == "image" and msg.attachment_file_id:
+        return localized("사진", "Photo")
+    return msg.body
+
+
 def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
     attachment = None
     if msg.attachment_type in ("pdf", "image") and msg.attachment_file_id:
@@ -993,12 +1006,18 @@ def send_message(
 
     if sender == "member":
         member_name = db.scalar(select(User.name).where(User.id == member_id))
+        member_args: dict[str, object] = {"member_name": member_name or ""}
+        # 회원도 사진만 보낼 수 있다(#1665). 트레이너 알림이 제목만 남은 빈 줄이
+        # 되지 않게 표시를 싣는다. 글 메시지의 인자는 예전 그대로 둔다 — 이미
+        # 저장된 알림과 같은 모양이어야 앱이 한 규칙으로 읽는다.
+        if not text and attachment_file_id and attachment_type == "image":
+            member_args["photo_only"] = True
         notification_service.queue_for_trainer(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_MESSAGE_KIND,
             template=notification_templates.TRAINER_MEMBER_MESSAGE,
-            template_args={"member_name": member_name or ""},
+            template_args=member_args,
             body=text,
             # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
             # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
