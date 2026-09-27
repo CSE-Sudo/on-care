@@ -6,7 +6,6 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_ai_c
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_editor.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_last_goals_card.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -21,10 +20,8 @@ enum ReportEditorStage {
   /// ① 확인 — 자료를 읽는 단계. 입력이 없다.
   review,
 
-  /// ② 작성 — 회원에게 보낼 글을 쓴다. 요약에서 출발할 수 있고, 다음 주에
-  /// 바꿀 것을 함께 고른다. 예전에는 `다음 주 목표` 만 하는 단계였는데,
-  /// 목표를 고르는 일과 글을 쓰는 일은 트레이너 머릿속에서 한 번에 일어난다.
-  goals,
+  /// ② 작성 — 회원에게 보낼 글을 쓴다. 요약에서 출발할 수 있다.
+  write,
 
   /// ③ 전송 — 다 쓴 글을 회원에게 내보낸다.
   send,
@@ -130,7 +127,7 @@ class _ClientReportViewState extends State<ClientReportView> {
     final AppLocalizations l = AppLocalizations.of(context);
     final ReportEditorStage? stage = widget.stage;
     final bool showReview = stage == null || stage == ReportEditorStage.review;
-    final bool showGoals = stage == null || stage == ReportEditorStage.goals;
+    final bool showWrite = stage == null || stage == ReportEditorStage.write;
     final bool showSend = stage == null || stage == ReportEditorStage.send;
     // 단계가 있는 편집기인지. 없으면 한 화면에 전부 펼치던 예전 흐름이다.
     final bool staged = stage != null;
@@ -172,18 +169,10 @@ class _ClientReportViewState extends State<ClientReportView> {
               ],
             ),
           ),
-        // ③ 지난 주 목표 달성 — 지난 주에 ② 에서 고른 목표를 이 주 수치로
-        // 회수한다(#2287). 수치(②) 바로 아래에 둔다: 판정의 근거가 방금 읽은
-        // 그 수치이고, 탄단지 막대의 근거 줄이 이 칸의 `미달` 을 가리킨다.
-        if (showReview) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s16),
-          ReportLastGoalsCard(report: widget.report),
-        ],
-        // 요약 카드는 ② 다음 주 목표와 ③ 전송 두 단계에 선다. ②에서는
-        // `다음 주 코칭 제안` 이 목표를 고르는 재료이고, ③에서는 같은 카드의
-        // `피드백으로 가져오기` 가 보낼 글의 출발점이다 — 두 단계에서 쓰임이
-        // 달라 한쪽에만 둘 수 없다.
-        if ((showGoals || (showSend && staged)) &&
+        // 요약 카드는 ② 작성과 ③ 전송 두 단계에 선다. 같은 카드의
+        // `피드백으로 가져오기` 가 ② 에서는 글을 쓰기 시작하는 출발점이고,
+        // ③ 에서는 보내기 직전에 글을 다시 맞춰 보는 재료다.
+        if ((showWrite || (showSend && staged)) &&
             (widget.showSummary || staged)) ...<Widget>[
           if (stage == null) const SizedBox(height: OnCareSpacing.s16),
           ReportAiCard(
@@ -191,11 +180,9 @@ class _ClientReportViewState extends State<ClientReportView> {
             onUseAsDraft: widget.onUseSummaryAsDraft,
           ),
         ],
-        // 입력창은 **작성** 단계에 선다. 단계 이름이 `작성` 인데 글 쓰는
-        // 자리가 다음 단계에 있으면, 트레이너는 목표만 고르고 넘어간 뒤
-        // 전송 단계에서 처음 글을 만나게 된다. 전송 단계에도 남겨 두어
-        // 보내기 직전에 고칠 수 있다. (#2232)
-        if (showGoals || showSend) ...<Widget>[
+        // 입력창은 **작성** 단계에 선다. 전송 단계에도 남겨 두어 보내기
+        // 직전에 고칠 수 있다. (#2232)
+        if (showWrite || showSend) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
           _SectionCard(
             title: l.reportsFeedbackTitle,
@@ -276,12 +263,12 @@ class _ClientReportViewState extends State<ClientReportView> {
         ],
         if (showReview) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
-          // ④ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
+          // ③ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
           // 목표에 대한 비율로 바꿔야 한 화면에서 견줄 수 있다. 이번 주가
           // 흐름의 어디쯤인지는 이 카드에서만 보인다 — 앞의 둘은 한 주만
           // 말한다.
           _SectionCard(
-            number: 4,
+            number: 3,
             title: l.reportsExerciseTrend,
             subtitle: l.reportsTrendSubtitle(kReportTrendWeeks),
             child: ReportExerciseTrend(report: widget.report),

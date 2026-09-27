@@ -645,19 +645,7 @@
       }
     }
   },
-  "reportsSendStateSent": "전송됨",
-  "reportsSendStateSending": "전송 중…",
-  "reportsShare": "공유",
-  "reportsShareSendTo": "{name}님에게 전송",
-  "@reportsShareSendTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsShareNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
-  "reportsShareNoClient": "리포트를 볼 회원을 먼저 선택해 주세요",
+  "reportsSendNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
   "reportBodyCompletionSteady": "운동은 평균 {avg}%로 꾸준히 해 주셨어요.",
@@ -1710,34 +1698,7 @@
   "reportsAiUseAsDraft": "피드백으로 가져오기",
   "reportsAiRegenerate": "다시 생성",
   "reportsAiUnavailable": "실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.",
-  "reportsPdfLabel": "PDF 내보내기",
-  "reportsPdfGenerating": "PDF 생성 중…",
   "reportsPdfGenerationFailed": "PDF를 생성하지 못했어요. 다시 시도해 주세요.",
-  "reportsPdfReady": "{name}님의 주간 리포트가 준비됐어요.",
-  "@reportsPdfReady": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSending": "전송 중…",
-  "reportsPdfSendToClient": "회원에게 전송",
-  "reportsPdfSave": "PDF 저장",
-  "reportsPdfPrint": "인쇄",
-  "reportsPdfClose": "닫기",
-  "reportsPdfActionFailed": "작업을 완료하지 못했어요. 다시 시도해 주세요.",
-  "reportsPdfSent": "{name}님에게 PDF를 전송했어요.",
-  "@reportsPdfSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSaveStarted": "PDF 저장을 시작했어요.",
-  "reportsPdfPrintOpened": "인쇄 창을 열었어요.",
-  "reportsPdfMessage": "이번 주 리포트를 보내드려요.",
   "reportsPdfFallbackClient": "회원",
   "reportsPdfDocTitle": "주간 코칭 리포트",
   "reportsPdfDocTitleContinued": "주간 코칭 리포트 (계속)",
@@ -2074,32 +2035,11 @@
   "reportsSentBody": "보낸 피드백",
   "reportsSentFigures": "그때 보낸 수치",
   "reportsStepReview": "확인",
-  "reportsStepGoals": "작성",
+  "reportsStepWrite": "작성",
   "reportsStepSend": "전송",
   "reportsStepperLabel": "주간 리포트 작성 진행 단계",
   "reportsStepNext": "다음",
   "reportsStepPrev": "이전",
-  "reportsGoalsTitle": "다음 주 목표",
-  "reportsGoalsHint": "다음 주에 함께 챙길 것을 고르세요. 고른 목표는 보낼 글에 같이 담겨요.",
-  "reportsGoalsNone": "아직 고른 목표가 없어요",
-  "reportsGoalsPicked": "{count}개 고름",
-  "@reportsGoalsPicked": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsGoalsOwnHint": "직접 적기",
-  "reportsGoalsAdd": "추가",
-  "reportsGoalsRemove": "{goal} 빼기",
-  "@reportsGoalsRemove": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
   "reportsGridPtSession": "PT 세션",
   "reportsGridPtPerWeek": "주 {count}회",
   "@reportsGridPtPerWeek": {
@@ -2164,7 +2104,7 @@
       }
     }
   },
-  "reportsMacroShortfall": "{name}이(가) 목표에 많이 모자라요 — 다음 주 목표로 짚어 보세요",
+  "reportsMacroShortfall": "{name}이(가) 목표에 많이 모자라요 — 피드백에서 짚어 보세요",
   "@reportsMacroShortfall": {
     "placeholders": {
       "name": {
@@ -2200,70 +2140,6 @@
   "reportsMemberFeedbackIntensityRight": "적당했어요",
   "reportsMemberFeedbackIntensityHard": "힘들었어요",
   "reportsMemberFeedbackIntensityTooHard": "너무 힘들었어요",
-  "reportsLastGoalsTitle": "지난 주 목표 달성",
-  "reportsLastGoalsNone": "지난 주에 고른 목표가 없어요",
-  "reportsLastGoalsNoneHint": "이번 주에 다음 주 목표를 고르면 다음 리포트에서 여기로 돌아와요",
-  "reportsLastGoalsMetCount": "{met} / {total} 달성",
-  "@reportsLastGoalsMetCount": {
-    "placeholders": {
-      "met": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsMet": "달성",
-  "reportsLastGoalsPartial": "절반",
-  "reportsLastGoalsMissed": "미달",
-  "reportsLastGoalsUnknown": "직접 확인",
-  "reportsLastGoalsEvidence": "{done} / {target}{unit}",
-  "@reportsLastGoalsEvidence": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "target": {
-        "type": "int"
-      },
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceLogged": "{days}일 기록",
-  "@reportsLastGoalsEvidenceLogged": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceWorkout": "개인 운동 {done} / {total}회",
-  "@reportsLastGoalsEvidenceWorkout": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsSubtitle": "이번 주 기록으로 판정",
-  "reportsLastGoalsKeywordsCalories": "칼로리,kcal,섭취량",
-  "@reportsLastGoalsKeywordsCalories": {
-    "description": "지난 주 목표 문장이 칼로리 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
-  },
-  "reportsLastGoalsKeywordsWorkout": "운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장",
-  "@reportsLastGoalsKeywordsWorkout": {
-    "description": "지난 주 목표 문장이 운동 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
-  },
-  "reportsLastGoalsKeywordsLogged": "기록,끼니,식단",
-  "@reportsLastGoalsKeywordsLogged": {
-    "description": "지난 주 목표 문장이 식단 기록 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
-  },
   "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
   "reportsTrendNoGoal": "목표 없음",
   "reportsTrendOfGoal": "{value} / {goal}",
@@ -2297,14 +2173,6 @@
   "@reportsMemberFeedbackMeta": {
     "placeholders": {
       "date": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsMacroShortfallEvidence": "지난 주 목표 “{goal}”이 미이행으로 판정된 근거예요",
-  "@reportsMacroShortfallEvidence": {
-    "placeholders": {
-      "goal": {
         "type": "String"
       }
     }

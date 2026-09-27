@@ -2828,41 +2828,11 @@ abstract class AppLocalizations {
   /// **'{amount} {unit} over goal'**
   String chartOverGoal(String amount, String unit);
 
-  /// No description provided for @reportsSendStateSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent'**
-  String get reportsSendStateSent;
-
-  /// No description provided for @reportsSendStateSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsSendStateSending;
-
-  /// No description provided for @reportsShare.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get reportsShare;
-
-  /// No description provided for @reportsShareSendTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to {name}'**
-  String reportsShareSendTo(String name);
-
-  /// No description provided for @reportsShareNeedsFeedback.
+  /// No description provided for @reportsSendNeedsFeedback.
   ///
   /// In en, this message translates to:
   /// **'Write feedback first to send it.'**
-  String get reportsShareNeedsFeedback;
-
-  /// No description provided for @reportsShareNoClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a member to see their report first.'**
-  String get reportsShareNoClient;
+  String get reportsSendNeedsFeedback;
 
   /// No description provided for @reportBodyGreeting.
   ///
@@ -7222,89 +7192,11 @@ abstract class AppLocalizations {
   /// **'Available after the report summary API is connected. No summary is generated now.'**
   String get reportsAiUnavailable;
 
-  /// No description provided for @reportsPdfLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Export PDF'**
-  String get reportsPdfLabel;
-
-  /// No description provided for @reportsPdfGenerating.
-  ///
-  /// In en, this message translates to:
-  /// **'Generating PDF…'**
-  String get reportsPdfGenerating;
-
   /// No description provided for @reportsPdfGenerationFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t generate the PDF. Please try again.'**
   String get reportsPdfGenerationFailed;
-
-  /// No description provided for @reportsPdfReady.
-  ///
-  /// In en, this message translates to:
-  /// **'{name}\'s weekly report is ready.'**
-  String reportsPdfReady(String name);
-
-  /// No description provided for @reportsPdfSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsPdfSending;
-
-  /// No description provided for @reportsPdfSendToClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to member'**
-  String get reportsPdfSendToClient;
-
-  /// No description provided for @reportsPdfSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save PDF'**
-  String get reportsPdfSave;
-
-  /// No description provided for @reportsPdfPrint.
-  ///
-  /// In en, this message translates to:
-  /// **'Print'**
-  String get reportsPdfPrint;
-
-  /// No description provided for @reportsPdfClose.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get reportsPdfClose;
-
-  /// No description provided for @reportsPdfActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete the action. Please try again.'**
-  String get reportsPdfActionFailed;
-
-  /// No description provided for @reportsPdfSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent the PDF to {name}.'**
-  String reportsPdfSent(String name);
-
-  /// No description provided for @reportsPdfSaveStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Started saving the PDF.'**
-  String get reportsPdfSaveStarted;
-
-  /// No description provided for @reportsPdfPrintOpened.
-  ///
-  /// In en, this message translates to:
-  /// **'Opened the print dialog.'**
-  String get reportsPdfPrintOpened;
-
-  /// No description provided for @reportsPdfMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Here\'s your weekly report.'**
-  String get reportsPdfMessage;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///
@@ -7834,11 +7726,11 @@ abstract class AppLocalizations {
   /// **'Review'**
   String get reportsStepReview;
 
-  /// No description provided for @reportsStepGoals.
+  /// No description provided for @reportsStepWrite.
   ///
   /// In en, this message translates to:
   /// **'Write'**
-  String get reportsStepGoals;
+  String get reportsStepWrite;
 
   /// No description provided for @reportsStepSend.
   ///
@@ -7863,48 +7755,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get reportsStepPrev;
-
-  /// No description provided for @reportsGoalsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Next week\'s goals'**
-  String get reportsGoalsTitle;
-
-  /// No description provided for @reportsGoalsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick what to work on together next week. The goals you pick go out with the message.'**
-  String get reportsGoalsHint;
-
-  /// No description provided for @reportsGoalsNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No goals picked yet'**
-  String get reportsGoalsNone;
-
-  /// No description provided for @reportsGoalsPicked.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} picked'**
-  String reportsGoalsPicked(int count);
-
-  /// No description provided for @reportsGoalsOwnHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write your own'**
-  String get reportsGoalsOwnHint;
-
-  /// No description provided for @reportsGoalsAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get reportsGoalsAdd;
-
-  /// No description provided for @reportsGoalsRemove.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove {goal}'**
-  String reportsGoalsRemove(String goal);
 
   /// No description provided for @reportsGridPtSession.
   ///
@@ -7987,7 +7837,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroShortfall.
   ///
   /// In en, this message translates to:
-  /// **'{name} is well under target — worth picking as a goal for next week'**
+  /// **'{name} is well under target — worth raising in your feedback'**
   String reportsMacroShortfall(String name);
 
   /// No description provided for @reportsMemberFeedbackTitle.
@@ -8098,96 +7948,6 @@ abstract class AppLocalizations {
   /// **'Too hard'**
   String get reportsMemberFeedbackIntensityTooHard;
 
-  /// No description provided for @reportsLastGoalsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Last week\'s goals'**
-  String get reportsLastGoalsTitle;
-
-  /// No description provided for @reportsLastGoalsNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No goals were picked last week'**
-  String get reportsLastGoalsNone;
-
-  /// No description provided for @reportsLastGoalsNoneHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick next week\'s goals now and they come back here in the next report'**
-  String get reportsLastGoalsNoneHint;
-
-  /// No description provided for @reportsLastGoalsMetCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{met} / {total} met'**
-  String reportsLastGoalsMetCount(int met, int total);
-
-  /// No description provided for @reportsLastGoalsMet.
-  ///
-  /// In en, this message translates to:
-  /// **'Met'**
-  String get reportsLastGoalsMet;
-
-  /// No description provided for @reportsLastGoalsPartial.
-  ///
-  /// In en, this message translates to:
-  /// **'Partly'**
-  String get reportsLastGoalsPartial;
-
-  /// No description provided for @reportsLastGoalsMissed.
-  ///
-  /// In en, this message translates to:
-  /// **'Missed'**
-  String get reportsLastGoalsMissed;
-
-  /// No description provided for @reportsLastGoalsUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'Check yourself'**
-  String get reportsLastGoalsUnknown;
-
-  /// No description provided for @reportsLastGoalsEvidence.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} / {target}{unit}'**
-  String reportsLastGoalsEvidence(int done, int target, String unit);
-
-  /// No description provided for @reportsLastGoalsEvidenceLogged.
-  ///
-  /// In en, this message translates to:
-  /// **'Logged {days} days'**
-  String reportsLastGoalsEvidenceLogged(int days);
-
-  /// No description provided for @reportsLastGoalsEvidenceWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} / {total} personal workouts'**
-  String reportsLastGoalsEvidenceWorkout(int done, int total);
-
-  /// No description provided for @reportsLastGoalsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Judged from this week\'s records'**
-  String get reportsLastGoalsSubtitle;
-
-  /// Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'calorie,kcal,intake'**
-  String get reportsLastGoalsKeywordsCalories;
-
-  /// Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym'**
-  String get reportsLastGoalsKeywordsWorkout;
-
-  /// Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'log,record,meal'**
-  String get reportsLastGoalsKeywordsLogged;
-
   /// No description provided for @reportsTrendUnavailable.
   ///
   /// In en, this message translates to:
@@ -8265,12 +8025,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly · submitted {date}'**
   String reportsMemberFeedbackMeta(String date);
-
-  /// No description provided for @reportsMacroShortfallEvidence.
-  ///
-  /// In en, this message translates to:
-  /// **'This is the evidence last week\'s goal “{goal}” was judged unmet'**
-  String reportsMacroShortfallEvidence(String goal);
 
   /// No description provided for @reportsTrendSubtitle.
   ///

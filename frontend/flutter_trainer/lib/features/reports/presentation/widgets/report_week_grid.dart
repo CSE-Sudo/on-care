@@ -196,8 +196,8 @@ class ReportCalorieLine extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final List<int> calories = report.caloriesWeek;
-    // 회원이 하루 목표를 적어 두지 않았으면 기본 목표로 되돌아간다. 요약과
-    // ③ 판정이 이미 같은 기본값으로 말하고 있어서, 여기만 선을 지우면 글은
+    // 회원이 하루 목표를 적어 두지 않았으면 기본 목표로 되돌아간다. 요약이
+    // 이미 같은 기본값으로 말하고 있어서, 여기만 선을 지우면 글은
     // `기본 목표 2,000kcal 대비 부족` 이라는데 그래프에는 견줄 선이 없다.
     final int target = report.calorieTarget ?? calorieTargetKcal;
     final bool ownTarget = report.calorieTarget != null;
