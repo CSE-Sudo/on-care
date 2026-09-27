@@ -68,6 +68,13 @@ class ReportWorkbench extends StatelessWidget {
   /// 오른쪽(`전송 완료`)이 기본값 1 을 그대로 쓰므로 여기에는 왼쪽 몫만 적는다.
   static const int _queueFlex = 2;
 
+  /// 넓은 화면에서 머리말과 두 상자를 함께 세울 최소 높이.
+  ///
+  /// 창이 이보다 낮으면 상자를 더 줄이지 않고 페이지 스크롤로 넘긴다 — 상자
+  /// 머리만 남고 목록이 한 줄도 보이지 않는 상자는 스크롤할 수 있어도 읽을 수
+  /// 없다. 머리말(주 이동·진행 줄) 아래로 목록 세 줄 남짓이 서는 높이다(#2396).
+  static const double minWideHeight = 480;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -84,9 +91,11 @@ class ReportWorkbench extends StatelessWidget {
       builder: (context, constraints) {
         final bool wide = constraints.maxWidth >= OnCareLayout.splitBreakpoint;
         final Widget header = _header(context, l, done.length, entries.length);
-        final Widget queue = _queueCard(context, l, pending);
-        final Widget sentColumn = _sentCard(context, l, done);
         if (!wide) {
+          // 좁은 화면은 두 상자가 위아래로 쌓인다 — 높이를 고정하면 아래
+          // 상자가 늘 화면 밖에 서므로 지금처럼 페이지째 내린다(#2396).
+          final Widget queue = _queueCard(context, l, pending, fill: false);
+          final Widget sentColumn = _sentCard(context, l, done, fill: false);
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -99,21 +108,37 @@ class ReportWorkbench extends StatelessWidget {
             ),
           );
         }
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              header,
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        // 넓은 화면: 두 상자를 화면 아래 끝까지 **같은 높이로 고정**하고
+        // 목록만 상자 안에서 따로 내린다. 페이지째 내리면 미전송 목록을 볼 때
+        // 정렬 버튼과 전송 완료 목록까지 함께 밀려났고, 전송 완료 상자는 줄
+        // 수만큼만 서서 오른쪽 아래가 비었다(#2396).
+        final Widget columns = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            header,
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  Expanded(flex: _queueFlex, child: queue),
+                  Expanded(
+                    flex: _queueFlex,
+                    child: _queueCard(context, l, pending, fill: true),
+                  ),
                   const SizedBox(width: OnCareLayout.splitGap),
-                  Expanded(child: sentColumn),
+                  Expanded(child: _sentCard(context, l, done, fill: true)),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
+        );
+        if (!constraints.hasBoundedHeight) {
+          return SizedBox(height: minWideHeight, child: columns);
+        }
+        if (constraints.maxHeight >= minWideHeight) return columns;
+        // 창이 낮으면 상자를 최소 높이로 세우고 그 아래는 페이지 스크롤로.
+        return SingleChildScrollView(
+          key: const ValueKey<String>('reports-workbench-page-scroll'),
+          child: SizedBox(height: minWideHeight, child: columns),
         );
       },
     );
@@ -160,81 +185,68 @@ class ReportWorkbench extends StatelessWidget {
   Widget _queueCard(
     BuildContext context,
     AppLocalizations l,
-    List<ReportQueueEntry> pending,
-  ) {
+    List<ReportQueueEntry> pending, {
+    required bool fill,
+  }) {
     final OnCareTokens tokens = context.oncare;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // 영어·큰 글자에서는 `남은 사람` 과 정렬 토글이 한 줄에 다 서지 못한다.
+    // 줄을 넘겨 두 줄로 세운다 — 한쪽을 줄여 읽기 어렵게 만들지 않는다(#849).
+    final Widget head = Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: OnCareSpacing.s12,
+      runSpacing: OnCareSpacing.s8,
       children: <Widget>[
-        AppCard(
-          key: const ValueKey<String>('reports-workbench-queue'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // 영어·큰 글자에서는 `남은 사람` 과 정렬 토글이 한 줄에 다 서지
-              // 못한다. 줄을 넘겨 두 줄로 세운다 — 한쪽을 줄여 읽기 어렵게
-              // 만들지 않는다(#849).
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: OnCareSpacing.s12,
-                runSpacing: OnCareSpacing.s8,
-                children: <Widget>[
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        l.reportsPending,
-                        style: tokens.text(
-                          OnCareTypography.strong(OnCareTypography.bodySmall),
-                        ),
-                      ),
-                      const SizedBox(width: OnCareSpacing.s8),
-                      // 남은 수는 배지로 — 전송 완료 열의 수와 같은 모양으로 읽힌다.
-                      AppTag(
-                        label: l.reportsCountPeople(pending.length),
-                        tone: pending.isEmpty
-                            ? AppTagTone.success
-                            : AppTagTone.brand,
-                      ),
-                    ],
-                  ),
-                  AppSegmentedToggle<ReportQueueSort>(
-                    segments: <AppSegment<ReportQueueSort>>[
-                      AppSegment<ReportQueueSort>(
-                        value: ReportQueueSort.priority,
-                        label: l.reportsSortPriority,
-                      ),
-                      AppSegment<ReportQueueSort>(
-                        value: ReportQueueSort.name,
-                        label: l.reportsSortName,
-                      ),
-                    ],
-                    selected: sort,
-                    onChanged: onSortChanged,
-                  ),
-                ],
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              l.reportsPending,
+              style: tokens.text(
+                OnCareTypography.strong(OnCareTypography.bodySmall),
               ),
-              const SizedBox(height: OnCareSpacing.s12),
-              if (pending.isEmpty)
-                AppEmptyState(
-                  key: const ValueKey<String>('reports-queue-empty'),
-                  title: l.reportsQueueAllSent,
-                  icon: Icons.check_circle_rounded,
-                  placement: AppStatePlacement.card,
-                )
-              else
-                for (final ReportQueueEntry entry in pending) ...<Widget>[
-                  _QueueRow(
-                    entry: entry,
-                    loading: loading,
-                    onTap: () => onOpen(entry),
-                  ),
-                  const SizedBox(height: OnCareSpacing.s8),
-                ],
-            ],
-          ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            // 남은 수는 배지로 — 전송 완료 열의 수와 같은 모양으로 읽힌다.
+            AppTag(
+              label: l.reportsCountPeople(pending.length),
+              tone: pending.isEmpty ? AppTagTone.success : AppTagTone.brand,
+            ),
+          ],
         ),
+        AppSegmentedToggle<ReportQueueSort>(
+          segments: <AppSegment<ReportQueueSort>>[
+            AppSegment<ReportQueueSort>(
+              value: ReportQueueSort.priority,
+              label: l.reportsSortPriority,
+            ),
+            AppSegment<ReportQueueSort>(
+              value: ReportQueueSort.name,
+              label: l.reportsSortName,
+            ),
+          ],
+          selected: sort,
+          onChanged: onSortChanged,
+        ),
+      ],
+    );
+    final Widget? empty = pending.isEmpty
+        ? AppEmptyState(
+            key: const ValueKey<String>('reports-queue-empty'),
+            title: l.reportsQueueAllSent,
+            icon: Icons.check_circle_rounded,
+            placement: AppStatePlacement.card,
+          )
+        : null;
+    return _WorkbenchBox(
+      key: const ValueKey<String>('reports-workbench-queue'),
+      listKey: const ValueKey<String>('reports-workbench-queue-list'),
+      fill: fill,
+      head: head,
+      empty: empty,
+      rows: <Widget>[
+        for (final ReportQueueEntry entry in pending)
+          _QueueRow(entry: entry, loading: loading, onTap: () => onOpen(entry)),
       ],
     );
   }
@@ -242,55 +254,127 @@ class ReportWorkbench extends StatelessWidget {
   Widget _sentCard(
     BuildContext context,
     AppLocalizations l,
-    List<ReportQueueEntry> done,
-  ) {
+    List<ReportQueueEntry> done, {
+    required bool fill,
+  }) {
     final OnCareTokens tokens = context.oncare;
-    return AppCard(
-      key: const ValueKey<String>('reports-workbench-sent'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Text(
-                l.reportsSentColumn,
-                style: tokens.text(
-                  OnCareTypography.strong(OnCareTypography.bodySmall),
-                ),
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              AppTag(label: l.reportsCountPeople(done.length)),
-            ],
+    final Widget head = Row(
+      children: <Widget>[
+        Text(
+          l.reportsSentColumn,
+          style: tokens.text(
+            OnCareTypography.strong(OnCareTypography.bodySmall),
           ),
-          const SizedBox(height: OnCareSpacing.s12),
-          if (done.isEmpty)
-            Text(
-              l.reportsSentColumnEmpty,
+        ),
+        const SizedBox(width: OnCareSpacing.s8),
+        AppTag(label: l.reportsCountPeople(done.length)),
+      ],
+    );
+    final Widget? empty = done.isEmpty
+        ? Text(
+            l.reportsSentColumnEmpty,
+            key: const ValueKey<String>('reports-sent-empty'),
+            textAlign: fill ? TextAlign.center : TextAlign.start,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          )
+        : null;
+    return _WorkbenchBox(
+      key: const ValueKey<String>('reports-workbench-sent'),
+      listKey: const ValueKey<String>('reports-workbench-sent-list'),
+      fill: fill,
+      head: head,
+      empty: empty,
+      rows: <Widget>[
+        for (final ReportQueueEntry entry in done)
+          // 보낸 줄도 누를 수 있다 — 회원이 받은 리포트를 그대로 다시 연다.
+          // 흐리게 깔지 않는다: 이미 끝난 일이지 못 쓰는 줄이 아니다.
+          AppTile(
+            key: ValueKey<String>('reports-sent-${entry.client.id}'),
+            onTap: () => onOpenSent(entry),
+            child: _SentRow(entry: entry, record: records[entry.client.id]),
+          ),
+      ],
+      // 열람 여부가 다음 주 순서에 어떻게 쓰이는지 한 줄로 밝힌다 — `안 읽음`
+      // 배지가 그냥 표시가 아니라는 뜻이다. 목록과 함께 내려가지 않게 상자
+      // 바닥에 둔다(#2396).
+      foot: done.any((e) => records[e.client.id]?.read == false)
+          ? Text(
+              l.reportsSentUnreadHint,
+              key: const ValueKey<String>('reports-sent-unread-hint'),
               style: tokens
                   .text(OnCareTypography.caption)
                   .copyWith(color: OnCareColors.textTertiary),
             )
-          else ...<Widget>[
-            for (final ReportQueueEntry entry in done) ...<Widget>[
-              // 보낸 줄도 누를 수 있다 — 회원이 받은 리포트를 그대로 다시
-              // 연다. 흐리게 깔지 않는다: 이미 끝난 일이지 못 쓰는 줄이
-              // 아니다.
-              AppTile(
-                key: ValueKey<String>('reports-sent-${entry.client.id}'),
-                onTap: () => onOpenSent(entry),
-                child: _SentRow(entry: entry, record: records[entry.client.id]),
-              ),
-              const SizedBox(height: OnCareSpacing.s8),
-            ],
-            // 열람 여부가 다음 주 순서에 어떻게 쓰이는지 한 줄로 밝힌다 —
-            // `안 읽음` 배지가 그냥 표시가 아니라는 뜻이다.
-            if (done.any((e) => records[e.client.id]?.read == false))
-              Text(
-                l.reportsSentUnreadHint,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
+          : null,
+    );
+  }
+}
+
+/// 작업대의 상자 하나 — 머리, 목록, (있으면) 바닥 안내.
+///
+/// [fill] 이면 상자가 받은 높이를 다 채우고 **목록만** 안에서 스크롤한다 —
+/// 머리와 바닥 안내는 제자리에 선다. 아니면 목록 길이만큼 서서 바깥 페이지
+/// 스크롤을 따른다(#2396).
+class _WorkbenchBox extends StatelessWidget {
+  const _WorkbenchBox({
+    super.key,
+    required this.listKey,
+    required this.fill,
+    required this.head,
+    required this.rows,
+    this.empty,
+    this.foot,
+  });
+
+  final Key listKey;
+  final bool fill;
+  final Widget head;
+  final List<Widget> rows;
+  final Widget? empty;
+  final Widget? foot;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget? emptyState = empty;
+    final Widget? footer = foot;
+    final Widget body;
+    if (emptyState != null) {
+      // 한쪽이 비어도 상자 크기는 그대로 — 빈 문구는 가운데에 선다.
+      body = fill ? Center(child: emptyState) : emptyState;
+    } else if (fill) {
+      body = ListView.separated(
+        key: listKey,
+        primary: false,
+        itemCount: rows.length,
+        itemBuilder: (context, i) => rows[i],
+        separatorBuilder: (context, i) =>
+            const SizedBox(height: OnCareSpacing.s8),
+      );
+    } else {
+      body = Column(
+        key: listKey,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (int i = 0; i < rows.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: OnCareSpacing.s8),
+            rows[i],
+          ],
+        ],
+      );
+    }
+    return AppCard(
+      child: Column(
+        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          head,
+          const SizedBox(height: OnCareSpacing.s12),
+          if (fill) Expanded(child: body) else body,
+          if (footer != null) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            footer,
           ],
         ],
       ),
