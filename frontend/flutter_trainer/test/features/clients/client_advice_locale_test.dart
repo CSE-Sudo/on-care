@@ -1,4 +1,4 @@
-// 회원 상세 식단·운동 AI 조언의 언어(#2299).
+// 회원 상세 식단 AI 조언의 언어(#2299). 운동 AI 조언은 #2329 에서 걷어냈다.
 //
 // 트레이너웹은 서버 조언 문장을 그대로 보여 준다. 영어 화면에서도 한국어로만
 // 나오던 조언을 화면 언어로 맞춘다.
@@ -20,7 +20,6 @@ import 'package:oncare_trainer/core/network/interceptors/accept_language_interce
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
-import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -64,98 +63,22 @@ String _legacyAllRatio(int weeks, int pct) =>
 String _legacyAllMostlyUnder(int weeks, int days) =>
     '최근 $weeks주 기록한 $days일 대부분이 권장량 안이에요. '
     '지금 흐름이 좋아요.';
-const String _legacyExWeekEmpty = '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
-const String _legacyExAllEmpty = '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.';
-const String _legacyExTodayEmpty = '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
-String _legacyExToday(String label, int minutes, int calories) =>
-    '오늘 $label 위주로 $minutes분, '
-    '${calories}kcal 썼어요. 스트레칭으로 마무리해요.';
-String _legacyExOneDay(int minutes) =>
-    '이번 주는 $minutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
-String _legacyExCardioSkew(int days, int minutes) =>
-    '이번 주 $days일 $minutes분이 유산소에 몰렸어요. '
-    '근력도 섞어 볼까요?';
-String _legacyExStrengthSkew(int days, int minutes) =>
-    '이번 주 $days일 $minutes분이 근력에 몰렸어요. '
-    '유산소도 섞어 볼까요?';
-String _legacyExBalanced(int days, int minutes) =>
-    '이번 주 $days일 $minutes분, 유형도 고르게 섞였어요.';
-const String _legacyExAllUp = '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
-const String _legacyExAllDown = '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
-String _legacyExSteady(int days, int minutes) =>
-    '12주 동안 $days일 $minutes분, 기복 없이 이어가고 있어요.';
-
 // ---------------------------------------------------------------------------
 // 합성 데이터로 규칙의 모든 갈래를 여는 데모 저장소
 // ---------------------------------------------------------------------------
 
-/// 식단 기간(이번 주·전체)과 운동 주간을 테스트가 준 값으로 돌려준다.
+/// 식단 기간(이번 주·전체)을 테스트가 준 값으로 돌려준다.
 class _ScriptedRepository extends DriftClientRepository {
-  _ScriptedRepository(
-    super.db, {
-    this.dietDays = const <ClientDietDay>[],
-    this.exercise = const <String, _Ex>{},
-  });
+  _ScriptedRepository(super.db, {this.dietDays = const <ClientDietDay>[]});
 
   final List<ClientDietDay> dietDays;
-
-  /// `yyyy-MM-dd` → 그날 운동.
-  final Map<String, _Ex> exercise;
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(
     String clientId,
     ClientDateRange range,
   ) async => ClientDietPeriod(range: range, days: dietDays);
-
-  @override
-  Future<ClientExerciseWeek> fetchExerciseWeek(
-    String clientId, {
-    DateTime? weekStart,
-  }) async {
-    final DateTime monday = weekStart!;
-    List<int> pick(int Function(_Ex) f) => <int>[
-      for (int d = 0; d < 7; d++)
-        f(
-          exercise[_ymd(DateTime(monday.year, monday.month, monday.day + d))] ??
-              const _Ex(),
-        ),
-    ];
-    final List<int> minutes = pick((_Ex e) => e.total);
-    return ClientExerciseWeek(
-      dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
-      dailyMinutes: minutes,
-      dailyCalories: pick((_Ex e) => e.total * 7),
-      totalMinutes: minutes.fold<int>(0, (int a, int b) => a + b),
-      totalCalories: minutes.fold<int>(0, (int a, int b) => a + b * 7),
-      cardioMinutes: pick((_Ex e) => e.cardio),
-      strengthMinutes: pick((_Ex e) => e.strength),
-      stretchingMinutes: pick((_Ex e) => e.stretching),
-      otherMinutes: pick((_Ex e) => e.other),
-    );
-  }
 }
-
-class _Ex {
-  const _Ex({
-    this.cardio = 0,
-    this.strength = 0,
-    this.stretching = 0,
-    this.other = 0,
-  });
-
-  final int cardio;
-  final int strength;
-  final int stretching;
-  final int other;
-
-  int get total => cardio + strength + stretching + other;
-}
-
-String _ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
 
 /// 2026-08-20(목) — 주중이라 `이번 주` 가 주말 분기로 먼저 빠지지 않는다.
 final DateTime _thursday = DateTime(2026, 8, 20, 13);
@@ -191,45 +114,6 @@ void main() {
       expect(ko.clientDietAdviceWeekEmpty, _legacyWeekEmpty);
       expect(ko.clientDietAdviceAllEmpty, _legacyAllEmpty);
       expect(ko.clientDietAdviceWeekWeekend, _legacyWeekWeekend);
-    });
-
-    test('운동 조언', () {
-      const Map<String, String> labels = <String, String>{
-        'cardio': '유산소',
-        'strength': '근력',
-        'stretching': '스트레칭',
-        'other': '기타',
-      };
-      for (final MapEntry<String, String> e in labels.entries) {
-        expect(
-          ko.clientExerciseAdviceToday(e.key, 45, 310),
-          _legacyExToday(e.value, 45, 310),
-        );
-      }
-      for (final int n in <int>[1, 2, 7, 60]) {
-        expect(ko.clientExerciseAdviceWeekOneDay(n), _legacyExOneDay(n));
-        expect(
-          ko.clientExerciseAdviceWeekSkew(n, 90, 'cardio', 'strength'),
-          _legacyExCardioSkew(n, 90),
-        );
-        expect(
-          ko.clientExerciseAdviceWeekSkew(n, 90, 'strength', 'cardio'),
-          _legacyExStrengthSkew(n, 90),
-        );
-        expect(
-          ko.clientExerciseAdviceWeekBalanced(n, 90),
-          _legacyExBalanced(n, 90),
-        );
-        expect(
-          ko.clientExerciseAdviceAllSteady(12, n, 90),
-          _legacyExSteady(n, 90),
-        );
-      }
-      expect(ko.clientExerciseAdviceEmptyToday, _legacyExTodayEmpty);
-      expect(ko.clientExerciseAdviceEmptyWeek, _legacyExWeekEmpty);
-      expect(ko.clientExerciseAdviceEmptyAll, _legacyExAllEmpty);
-      expect(ko.clientExerciseAdviceAllUp, _legacyExAllUp);
-      expect(ko.clientExerciseAdviceAllDown, _legacyExAllDown);
     });
   });
 
@@ -307,67 +191,6 @@ void main() {
       );
     });
 
-    test('운동 조언은 회원 앱 영어 조언과 같은 문장이다', () {
-      expect(
-        en.clientExerciseAdviceEmptyToday,
-        'No workout logged today yet. How about a 10-minute walk to start?',
-      );
-      expect(
-        en.clientExerciseAdviceEmptyWeek,
-        'No workouts logged this week yet. How about a 10-minute walk to start?',
-      );
-      expect(
-        en.clientExerciseAdviceEmptyAll,
-        "Once you log more, we'll show how your workout volume and types are "
-        'trending.',
-      );
-      expect(
-        en.clientExerciseAdviceToday('cardio', 30, 210),
-        'Today: 30 min and 210 kcal, mostly cardio. Wrap up with a stretch.',
-      );
-      expect(
-        en.clientExerciseAdviceToday('other', 30, 210),
-        'Today: 30 min and 210 kcal, mostly other exercise. '
-        'Wrap up with a stretch.',
-      );
-      expect(
-        en.clientExerciseAdviceWeekOneDay(40),
-        'Just one day this week (40 min). One more session keeps the flow '
-        'going.',
-      );
-      expect(
-        en.clientExerciseAdviceWeekSkew(2, 60, 'cardio', 'strength'),
-        "This week's 2 days and 60 min leaned on cardio. "
-        'Mix in some strength?',
-      );
-      expect(
-        en.clientExerciseAdviceWeekBalanced(1, 30),
-        '1 day and 30 min this week, with a good mix of types.',
-      );
-      expect(
-        en.clientExerciseAdviceWeekBalanced(3, 90),
-        '3 days and 90 min this week, with a good mix of types.',
-      );
-      expect(
-        en.clientExerciseAdviceAllUp,
-        "You've done more over the last 4 weeks than before. "
-        'This approach suits you.',
-      );
-      expect(
-        en.clientExerciseAdviceAllDown,
-        'Your last 4 weeks are trending down. '
-        'Try to keep 3 days a week, even short ones.',
-      );
-      expect(
-        en.clientExerciseAdviceAllSteady(12, 20, 600),
-        '20 days and 600 min over 12 weeks — nice and steady.',
-      );
-      expect(
-        en.clientExerciseAdviceAllSteady(1, 1, 30),
-        '1 day and 30 min over 1 week — nice and steady.',
-      );
-    });
-
     test('영어 문장에 한국어가 남지 않는다', () {
       final List<String> all = <String>[
         en.clientDietAdviceTodayOver(1),
@@ -381,22 +204,6 @@ void main() {
         en.clientDietAdviceAllWeekend(12),
         en.clientDietAdviceAllRatio(12, 40),
         en.clientDietAdviceAllMostlyUnder(12, 3),
-        en.clientExerciseAdviceEmptyToday,
-        en.clientExerciseAdviceEmptyWeek,
-        en.clientExerciseAdviceEmptyAll,
-        for (final String t in <String>[
-          'cardio',
-          'strength',
-          'stretching',
-          'other',
-        ])
-          en.clientExerciseAdviceToday(t, 10, 70),
-        en.clientExerciseAdviceWeekOneDay(10),
-        en.clientExerciseAdviceWeekSkew(2, 60, 'strength', 'cardio'),
-        en.clientExerciseAdviceWeekBalanced(2, 60),
-        en.clientExerciseAdviceAllUp,
-        en.clientExerciseAdviceAllDown,
-        en.clientExerciseAdviceAllSteady(12, 2, 60),
       ];
       for (final String text in all) {
         expect(_hangul.hasMatch(text), isFalse, reason: text);
@@ -526,140 +333,6 @@ void main() {
     });
   });
 
-  group('데모 저장소 — 운동 조언의 갈래마다 두 언어', () {
-    late AppDatabase db;
-
-    setUp(() {
-      useFixedKstDate(_thursday);
-      db = AppDatabase.forTesting(NativeDatabase.memory());
-    });
-    tearDown(() => db.close());
-
-    Future<(String, String)> both(
-      Map<String, _Ex> exercise,
-      ClientPeriod period,
-    ) async {
-      final _ScriptedRepository repo = _ScriptedRepository(
-        db,
-        exercise: exercise,
-      );
-      return (
-        await repo.fetchExerciseAdvice('c', period, locale: _ko),
-        await repo.fetchExerciseAdvice('c', period, locale: _en),
-      );
-    }
-
-    String day(int back) => _ymd(_daysAgo(back));
-
-    test('기록 없음 — 기간마다', () async {
-      expect(await both(const <String, _Ex>{}, ClientPeriod.today), (
-        _legacyExTodayEmpty,
-        'No workout logged today yet. How about a 10-minute walk to start?',
-      ));
-      expect(await both(const <String, _Ex>{}, ClientPeriod.week), (
-        _legacyExWeekEmpty,
-        'No workouts logged this week yet. How about a 10-minute walk to start?',
-      ));
-      expect(await both(const <String, _Ex>{}, ClientPeriod.month), (
-        _legacyExAllEmpty,
-        "Once you log more, we'll show how your workout volume and types are "
-            'trending.',
-      ));
-    });
-
-    test('오늘 — 가장 오래 한 유형을 두 언어로', () async {
-      expect(
-        await both(<String, _Ex>{
-          day(0): const _Ex(strength: 40, cardio: 10),
-        }, ClientPeriod.today),
-        (
-          _legacyExToday('근력', 50, 350),
-          'Today: 50 min and 350 kcal, mostly strength. Wrap up with a stretch.',
-        ),
-      );
-      expect(
-        await both(<String, _Ex>{
-          day(0): const _Ex(stretching: 20),
-        }, ClientPeriod.today),
-        (
-          _legacyExToday('스트레칭', 20, 140),
-          'Today: 20 min and 140 kcal, mostly stretching. '
-              'Wrap up with a stretch.',
-        ),
-      );
-      expect(
-        await both(<String, _Ex>{
-          day(0): const _Ex(other: 15),
-        }, ClientPeriod.today),
-        (
-          _legacyExToday('기타', 15, 105),
-          'Today: 15 min and 105 kcal, mostly other exercise. '
-              'Wrap up with a stretch.',
-        ),
-      );
-    });
-
-    test('이번 주 — 하루뿐', () async {
-      expect(
-        await both(<String, _Ex>{
-          day(1): const _Ex(cardio: 40),
-        }, ClientPeriod.week),
-        (
-          _legacyExOneDay(40),
-          'Just one day this week (40 min). '
-              'One more session keeps the flow going.',
-        ),
-      );
-    });
-
-    test('이번 주 — 유산소 쏠림·근력 쏠림·고르게', () async {
-      expect(
-        await both(<String, _Ex>{
-          day(2): const _Ex(cardio: 30),
-          day(1): const _Ex(cardio: 30),
-        }, ClientPeriod.week),
-        (
-          _legacyExCardioSkew(2, 60),
-          "This week's 2 days and 60 min leaned on cardio. "
-              'Mix in some strength?',
-        ),
-      );
-      expect(
-        await both(<String, _Ex>{
-          day(2): const _Ex(strength: 45),
-          day(1): const _Ex(strength: 45),
-        }, ClientPeriod.week),
-        (
-          _legacyExStrengthSkew(2, 90),
-          "This week's 2 days and 90 min leaned on strength. "
-              'Mix in some cardio?',
-        ),
-      );
-      expect(
-        await both(<String, _Ex>{
-          day(2): const _Ex(cardio: 30),
-          day(1): const _Ex(strength: 30),
-        }, ClientPeriod.week),
-        (
-          _legacyExBalanced(2, 60),
-          '2 days and 60 min this week, with a good mix of types.',
-        ),
-      );
-    });
-
-    test('전체 — 꾸준하다', () async {
-      // 데모의 `전체` 운동 구간은 이번 주 월요일부터다(`clientRangeFor`) —
-      // 4주 전과 견주는 늘었다·줄었다 문장은 ARB 테스트가 두 언어로 본다.
-      final Map<String, _Ex> steady = <String, _Ex>{
-        for (int b = 0; b < 3; b++) day(b): const _Ex(cardio: 20),
-      };
-      expect(await both(steady, ClientPeriod.month), (
-        _legacyExSteady(3, 60),
-        '3 days and 60 min over 12 weeks — nice and steady.',
-      ));
-    });
-  });
-
   group('데모 저장소 — 시드 고객 전체', () {
     late AppDatabase db;
 
@@ -677,18 +350,12 @@ void main() {
       ];
       for (final String id in ids) {
         for (final ClientPeriod period in ClientPeriod.values) {
-          for (final bool diet in <bool>[true, false]) {
-            final String ko = diet
-                ? await repo.fetchDietAdvice(id, period, locale: _ko)
-                : await repo.fetchExerciseAdvice(id, period, locale: _ko);
-            final String en = diet
-                ? await repo.fetchDietAdvice(id, period, locale: _en)
-                : await repo.fetchExerciseAdvice(id, period, locale: _en);
-            final String where = '$id ${period.name} ${diet ? '식단' : '운동'}';
-            expect(_hangul.hasMatch(ko), isTrue, reason: '$where: $ko');
-            expect(_hangul.hasMatch(en), isFalse, reason: '$where: $en');
-            expect(_numbers(en), _numbers(ko), reason: '$where: $ko / $en');
-          }
+          final String ko = await repo.fetchDietAdvice(id, period, locale: _ko);
+          final String en = await repo.fetchDietAdvice(id, period, locale: _en);
+          final String where = '$id ${period.name}';
+          expect(_hangul.hasMatch(ko), isTrue, reason: '$where: $ko');
+          expect(_hangul.hasMatch(en), isFalse, reason: '$where: $en');
+          expect(_numbers(en), _numbers(ko), reason: '$where: $ko / $en');
         }
       }
     });
@@ -773,30 +440,6 @@ void main() {
       expect(repo.dietLocales, <Locale>[_ko, _en]);
     });
 
-    test('운동 조언', () async {
-      final _RecordingRepository repo = _RecordingRepository(db);
-      final ProviderContainer c = container(repo);
-      const ({String clientId, ClientPeriod period}) key = (
-        clientId: 'seed-client-7',
-        period: ClientPeriod.week,
-      );
-      final ProviderSubscription<AsyncValue<String>> sub = c.listen(
-        clientExerciseAdviceProvider(key),
-        (_, _) {},
-      );
-      addTearDown(sub.close);
-
-      await c.read(clientExerciseAdviceProvider(key).future);
-      expect(repo.exerciseLocales, <Locale>[_ko]);
-
-      await c
-          .read(trainerLocaleProvider.notifier)
-          .setLanguage(TrainerLanguage.english);
-      final String en = await c.read(clientExerciseAdviceProvider(key).future);
-      expect(_hangul.hasMatch(en), isFalse, reason: en);
-      expect(repo.exerciseLocales, <Locale>[_ko, _en]);
-    });
-
     test('고른 언어가 없으면 브라우저 언어를 따른다', () async {
       final _RecordingRepository repo = _RecordingRepository(db);
       final ProviderContainer c = ProviderContainer(
@@ -871,23 +514,6 @@ void main() {
           header,
         );
       });
-
-      test('운동 조언 — $locale → $header', () async {
-        const String path = '/trainer/clients/m1/exercise-advice';
-        answer(path, 'server says');
-        expect(
-          await repo.fetchExerciseAdvice(
-            'm1',
-            ClientPeriod.month,
-            locale: locale,
-          ),
-          'server says',
-        );
-        expect(
-          sentOptions(path).headers?[AcceptLanguageInterceptor.headerName],
-          header,
-        );
-      });
     }
 
     test('기간 이름은 언어와 상관없이 서버 이름이다', () async {
@@ -905,7 +531,7 @@ void main() {
     });
 
     test('메시지가 없으면 빈 문장 — 카드를 세우지 않는다', () async {
-      const String path = '/trainer/clients/m1/exercise-advice';
+      const String path = '/trainer/clients/m1/diet-advice';
       when(
         () => dio.get<Map<String, Object?>>(
           path,
@@ -920,7 +546,7 @@ void main() {
         ),
       );
       expect(
-        await repo.fetchExerciseAdvice('m1', ClientPeriod.today, locale: _en),
+        await repo.fetchDietAdvice('m1', ClientPeriod.today, locale: _en),
         '',
       );
     });
@@ -990,29 +616,6 @@ void main() {
       expect(find.textContaining('나트륨이 목표치를'), findsOneWidget);
       expect(find.textContaining('Sodium is '), findsNothing);
     });
-
-    testWidgets('영어 화면의 운동 AI 분석은 영어다', (tester) async {
-      final ProviderContainer container = await pumpTrainerApp(
-        tester,
-        token: 'demo-trainer-token',
-        at: AppRoutes.clientDetail('seed-client-1', section: 'workout'),
-        locale: _en,
-        seedClock: _thursday,
-      );
-      final String expected = await container.read(
-        clientExerciseAdviceProvider((
-          clientId: 'seed-client-1',
-          period: ClientPeriod.today,
-        )).future,
-      );
-      expect(_hangul.hasMatch(expected), isFalse, reason: expected);
-      await tester.scrollUntilVisible(
-        find.text(expected),
-        150,
-        scrollable: detailScrollable('seed-client-1'),
-      );
-      expect(find.text(expected), findsOneWidget);
-    });
   });
 }
 
@@ -1021,7 +624,6 @@ class _RecordingRepository extends DriftClientRepository {
   _RecordingRepository(super.db);
 
   final List<Locale> dietLocales = <Locale>[];
-  final List<Locale> exerciseLocales = <Locale>[];
 
   @override
   Future<String> fetchDietAdvice(
@@ -1031,16 +633,6 @@ class _RecordingRepository extends DriftClientRepository {
   }) {
     dietLocales.add(locale);
     return super.fetchDietAdvice(clientId, period, locale: locale);
-  }
-
-  @override
-  Future<String> fetchExerciseAdvice(
-    String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) {
-    exerciseLocales.add(locale);
-    return super.fetchExerciseAdvice(clientId, period, locale: locale);
   }
 }
 

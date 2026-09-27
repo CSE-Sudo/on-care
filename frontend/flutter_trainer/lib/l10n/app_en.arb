@@ -143,6 +143,7 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
+  "authSessionExpired": "Your session has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
   "@authErrNameTooLong": {
@@ -734,7 +735,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT session · Trainer-led",
   "@workoutKindPtSession": {
@@ -744,7 +744,6 @@
   "@workoutKindAssignedRoutine": {
     "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
   },
-  "trainerNote": "Trainer's note",
   "dietLoadFailed": "Couldn't load meals",
   "dietEmpty": "No meals logged yet",
   "dietDayEmpty": "No record",
@@ -860,95 +859,6 @@
         "type": "int"
       },
       "days": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",
-  "@clientExerciseAdviceEmptyToday": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceEmptyWeek": "No workouts logged this week yet. How about a 10-minute walk to start?",
-  "@clientExerciseAdviceEmptyWeek": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceEmptyAll": "Once you log more, we'll show how your workout volume and types are trending.",
-  "@clientExerciseAdviceEmptyAll": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceToday": "Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.",
-  "@clientExerciseAdviceToday": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "type": {
-        "type": "String"
-      },
-      "minutes": {
-        "type": "int"
-      },
-      "calories": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
-  "@clientExerciseAdviceWeekOneDay": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceWeekSkew": "This week's {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?",
-  "@clientExerciseAdviceWeekSkew": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "minutes": {
-        "type": "int"
-      },
-      "top": {
-        "type": "String"
-      },
-      "missing": {
-        "type": "String"
-      }
-    }
-  },
-  "clientExerciseAdviceWeekBalanced": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.",
-  "@clientExerciseAdviceWeekBalanced": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "clientExerciseAdviceAllUp": "You've done more over the last 4 weeks than before. This approach suits you.",
-  "@clientExerciseAdviceAllUp": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceAllDown": "Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.",
-  "@clientExerciseAdviceAllDown": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
-  },
-  "clientExerciseAdviceAllSteady": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.",
-  "@clientExerciseAdviceAllSteady": {
-    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
-    "placeholders": {
-      "weeks": {
-        "type": "int"
-      },
-      "days": {
-        "type": "int"
-      },
-      "minutes": {
         "type": "int"
       }
     }
@@ -2387,12 +2297,6 @@
       }
     }
   },
-  "routineFeedbackTitle": "Workout feedback",
-  "routineFeedbackHint": "Write coaching feedback for the member",
-  "routineFeedbackWrite": "Write feedback",
-  "routineFeedbackEdit": "Edit feedback",
-  "routineFeedbackSaved": "Feedback saved",
-  "routineFeedbackFailed": "Could not save feedback. Please try again",
   "navOperationsGroup": "Operations",
   "navCoachingGroup": "Coaching",
   "dashTodayTasks": "Today's tasks",

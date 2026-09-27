@@ -10,7 +10,16 @@ from dataclasses import dataclass
 
 
 class SocialAuthError(Exception):
-    """소셜 토큰 검증 실패(무효 토큰 등)."""
+    """소셜 토큰 검증 실패(무효 토큰 등). 라우터는 401 로 답한다."""
+
+
+class SocialProviderResponseError(SocialAuthError):
+    """provider 가 약속한 형식이 아닌 응답을 줬다(HTML·깨진 JSON·필드 타입 이상).
+
+    사용자 토큰 문제가 아니라 provider 쪽 문제라 라우터는 502 로 답한다. 인증 실패의
+    한 갈래이므로 SocialAuthError 를 상속한다 — 이 예외를 모르는 호출부도 최소한
+    인증 실패로는 처리한다.
+    """
 
 
 @dataclass
