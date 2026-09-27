@@ -92,6 +92,10 @@ enum _MySection {
 }
 
 class _MyPageState extends ConsumerState<MyPage> {
+  /// 메뉴 열 폭 — 고정이다. 항목 이름만 있는 메뉴라 이 폭이면 충분하고,
+  /// 남은 폭은 모두 본문이 받는다.
+  static const double _menuWidth = 260;
+
   _MySection get _section => _MySection.parse(widget.tab);
 
   bool _saving = false;
@@ -467,14 +471,10 @@ class _MyPageState extends ConsumerState<MyPage> {
                 if (!wide) {
                   return section == _MySection.settings ? menu : body;
                 }
-                // 메뉴 폭은 본문의 20%(260~340) — 넓은 창일수록 메뉴가 조금
-                // 넓어져 본문이 끝없이 늘지 않는다. 여백은 두지 않는다.
-                final double menuWidth =
-                    (MediaQuery.sizeOf(context).width * 0.2).clamp(260, 340);
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    SizedBox(width: menuWidth, child: menu),
+                    SizedBox(width: _menuWidth, child: menu),
                     const SizedBox(width: OnCareSpacing.sectionGap),
                     Expanded(child: body),
                   ],
