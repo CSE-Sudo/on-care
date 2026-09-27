@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
@@ -171,6 +173,24 @@ void main() {
   bool sendEnabled(WidgetTester tester) =>
       tester.widget<AppButton>(sendButton).onPressed != null;
 
+  /// ③ 전송의 회원 수신 PDF 미리보기(#2402).
+  final Finder preview = find.byKey(
+    const ValueKey<String>('report-send-preview'),
+  );
+  final Finder previewLoading = find.byKey(
+    const ValueKey<String>('report-send-preview-loading'),
+  );
+  final Finder previewFailed = find.byKey(
+    const ValueKey<String>('report-send-preview-failed'),
+  );
+
+  /// 미리보기가 지금 보여 주는 쪽 — `1 / 3쪽`.
+  String? pageLabel(WidgetTester tester) => tester
+      .widget<Text>(
+        find.byKey(const ValueKey<String>('report-send-preview-page-label')),
+      )
+      .data;
+
   /// 보낸 뒤 돌아온 작업대의 `전송 완료` 열에 [clientId] 가 섰는가.
   Finder sentRow(String clientId) =>
       find.byKey(ValueKey<String>('reports-sent-$clientId'));
@@ -214,6 +234,8 @@ void main() {
     DateTime? weekStart,
     int stage = 0,
     Size size = const Size(1600, 1200),
+    ReportPdfGenerator? pdf,
+    _FakeRasterizer? raster,
     List<Override> extraOverrides = const <Override>[],
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -229,15 +251,28 @@ void main() {
               clientId ?? 'seed-client-1',
               weekStart: weekStart,
             ),
-      extraOverrides: extraOverrides,
+      // ③ 전송은 들어서자마자 PDF 를 만들어 보여 준다(#2402). 실 생성기는
+      // dart:ui 래스터를 거쳐 fake pump 로는 끝나지 않고, 쪽 그림을 굽는
+      // printing 플러그인은 테스트에 없어 둘 다 가짜로 둔다.
+      extraOverrides: <Override>[
+        reportPdfGeneratorProvider.overrideWithValue(
+          pdf ?? _QueuedPdfGenerator(const <Future<Uint8List>>[]),
+        ),
+        reportPdfRasterizerProvider.overrideWithValue(
+          (raster ?? _FakeRasterizer()).call,
+        ),
+        ...extraOverrides,
+      ],
     );
     if (!workbench && stage > 0) {
-      await tester.pumpAndSettle();
+      await settle(tester);
       for (int i = 0; i < stage; i++) {
         await tester.tap(
           find.byKey(const ValueKey<String>('report-step-next')),
         );
-        await tester.pumpAndSettle();
+        // pumpAndSettle 은 쓰지 않는다 — 미리보기를 만드는 동안 도는
+        // 스피너가 끝나지 않는다.
+        await settle(tester);
       }
     }
     return container;
@@ -276,9 +311,7 @@ void main() {
     );
   });
 
-  testWidgets('헤더에는 공유 버튼이 없다 — 전송은 편집기 하단 하나뿐 (#2389)', (
-    tester,
-  ) async {
+  testWidgets('헤더에는 공유 버튼이 없다 — 전송은 편집기 하단 하나뿐 (#2389)', (tester) async {
     await openReports(tester);
 
     expect(
@@ -311,39 +344,54 @@ void main() {
     expect(tester.getCenter(sendButton).dy, greaterThan(88));
   });
 
-  testWidgets('PDF 생성이 실패하면 전송 실패를 알리고 다시 보낼 수 있다 (#2389)', (
-    tester,
-  ) async {
-    final first = Completer<Uint8List>();
-    final generator = _QueuedPdfGenerator(<Future<Uint8List>>[
-      first.future,
-      Future<Uint8List>.value(
-        Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
-      ),
-    ]);
+  testWidgets('미리보기를 만들지 못한 채 전송하면 새로 만들어 보낸다 (#2389, #2402)', (tester) async {
+    final Completer<Uint8List> first = Completer<Uint8List>();
+    final _DraftStore drafts = _DraftStore();
+    final _QueuedPdfGenerator generator = _QueuedPdfGenerator(
+      <Future<Uint8List>>[first.future],
+    );
     await openReports(
       tester,
       stage: 2,
+      pdf: generator,
       extraOverrides: <Override>[
-        reportPdfGeneratorProvider.overrideWithValue(generator),
+        reportRepositoryProvider.overrideWithValue(drafts),
       ],
     );
+    expect(generator.calls, 1);
+
+    first.completeError(StateError('render failed'));
+    await settle(tester);
+    expect(previewFailed, findsOneWidget);
+    // 미리보기가 실패해도 보내는 길은 막지 않는다 — 전송이 다시 만든다.
+    expect(sendEnabled(tester), isTrue);
+
+    await tapSend(tester);
+    expect(generator.calls, 2);
+    expect(drafts.sentBytes, <List<int>>[_pdfBytes]);
+    expect(sentRow('seed-client-1'), findsOneWidget);
+  });
+
+  testWidgets('PDF 를 만드는 중에는 전송 버튼이 잠겨 두 번 나가지 않는다 (#2389, #2402)', (
+    tester,
+  ) async {
+    final Completer<Uint8List> first = Completer<Uint8List>();
+    final _QueuedPdfGenerator generator = _QueuedPdfGenerator(
+      <Future<Uint8List>>[first.future],
+    );
+    await openReports(tester, stage: 2, pdf: generator);
 
     await tester.ensureVisible(sendButton);
     await tester.pump();
     await tester.tap(sendButton);
     await tester.pump();
+    // 미리보기로 만들고 있는 한 부를 기다린다 — 새로 만들지 않는다.
     expect(generator.calls, 1);
-    // 만드는 동안에는 버튼이 잠겨 같은 리포트가 두 번 나가지 않는다.
     expect(sendEnabled(tester), isFalse);
 
-    first.completeError(StateError('render failed'));
+    first.complete(Uint8List.fromList(_pdfBytes));
     await settle(tester);
-    expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
-    expect(sendEnabled(tester), isTrue);
-
-    await tapSend(tester);
-    expect(generator.calls, 2);
+    expect(generator.calls, 1);
     expect(sentRow('seed-client-1'), findsOneWidget);
   });
 
@@ -730,21 +778,61 @@ void main() {
   testWidgets('the report previews exactly what the member will receive', (
     tester,
   ) async {
-    await openReports(tester, stage: 2);
+    final _QueuedPdfGenerator pdf = _QueuedPdfGenerator(<Future<Uint8List>>[
+      Future<Uint8List>.value(Uint8List.fromList(<int>[1, 2, 3])),
+    ]);
+    final _FakeRasterizer raster = _FakeRasterizer(pages: 3);
+    await openReports(tester, stage: 1, pdf: pdf, raster: raster);
+    final String draft = tester
+        .widget<TextField>(feedbackField)
+        .controller!
+        .text;
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
 
-    // The preview box is the message body itself, so the trainer can
-    // read it before sending rather than discovering it in the thread.
-    expect(find.textContaining('주간 리포트'), findsWidgets);
-    // PT 진행 횟수는 초안에서 뺐다 — 회원에게 보낼 글이 아니다(#1177).
-    expect(find.textContaining('PT 세션'), findsNothing);
+    // 받는 사람·대상 주·전달 방식을 먼저 적는다(#2402).
+    expect(find.text('회원이 받는 리포트'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('report-send-preview-recipient')),
+          )
+          .data,
+      '김민수',
+    );
+    final DateTime week = weekStartOf(nowKst());
+    final DateTime weekEnd = week.add(const Duration(days: 6));
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('report-send-preview-week')),
+          )
+          .data,
+      '${week.month}월 ${week.day}일 – ${weekEnd.month}월 ${weekEnd.day}일',
+    );
+    expect(find.text('김민수님 채팅으로 PDF 파일이 전송돼요'), findsOneWidget);
+    // 보여 주는 것은 전송과 같은 생성기가 입력창의 글로 만든 PDF 다.
+    expect(pdf.calls, 1);
+    expect(pdf.feedbacks, <String>[draft]);
+    expect(raster.inputs, <List<int>>[
+      <int>[1, 2, 3],
+    ]);
+    expect(
+      find.byKey(const ValueKey<String>('report-send-preview-page-0')),
+      findsOneWidget,
+    );
+    expect(pageLabel(tester), '1 / 3쪽');
     // 전송 경로는 화면에 하나뿐이다 — 편집기 하단의 전송 버튼(#2389).
     expect(sendButton, findsOneWidget);
   });
 
   testWidgets('empty feedback cannot be sent', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     await tester.enterText(feedbackField, '   ');
+    await settle(tester);
+    // 글은 ② 에서 쓰고, 보내는 것은 ③ 이다(#2402).
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
     await settle(tester);
 
     expect(sendEnabled(tester), isFalse);
@@ -767,15 +855,11 @@ void main() {
     final container = await openReports(
       tester,
       stage: 2,
-      extraOverrides: <Override>[
-        reportPdfGeneratorProvider.overrideWithValue(
-          _QueuedPdfGenerator(<Future<Uint8List>>[
-            Future<Uint8List>.value(
-              Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
-            ),
-          ]),
+      pdf: _QueuedPdfGenerator(<Future<Uint8List>>[
+        Future<Uint8List>.value(
+          Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]),
         ),
-      ],
+      ]),
     );
     await tapSend(tester);
 
@@ -819,10 +903,11 @@ void main() {
             ),
           ]),
         ),
+        reportPdfRasterizerProvider.overrideWithValue(_FakeRasterizer().call),
       ],
     );
     await settle(tester);
-    // 피드백 입력창은 ③ 전송 단계에 있다(#2232).
+    // 전송 버튼은 ③ 전송 단계에 있다(#2232).
     await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
@@ -833,12 +918,15 @@ void main() {
     // got a report that never arrived.
     expect(sentRow('seed-client-1'), findsNothing);
     expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
-    // 실패해도 작성한 피드백이 남고 다시 보낼 수 있다.
+    // 실패해도 ③ 에 머물러 다시 보낼 수 있고, 작성한 피드백도 남아 있다.
+    expect(preview, findsOneWidget);
+    expect(sendEnabled(tester), isTrue);
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-prev')));
+    await settle(tester);
     expect(
       tester.widget<TextField>(feedbackField).controller!.text,
       contains('주간 리포트'),
     );
-    expect(sendEnabled(tester), isTrue);
   });
 
   testWidgets('주를 가리키는 말은 이번 주·지난 주·선택 주 셋뿐이다', (tester) async {
@@ -889,7 +977,7 @@ void main() {
   });
 
   testWidgets('요약을 피드백 초안으로 가져온다 (#755)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     // 헤더의 통합 검색창도 TextField 다 — 피드백 입력창만 집는다.
     final field = find.byWidgetPredicate(
@@ -910,7 +998,7 @@ void main() {
   });
 
   testWidgets('초안이 자동으로 채워졌다고 입력창이 말해 준다 (#755)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     // 회원에게 그대로 나가는 글이라, 확인하고 보내라는 신호가 그 자리에
     // 있어야 한다. 'AI' 라고 하지 않는다 — 이 초안은 수치에서 조립한
@@ -922,7 +1010,7 @@ void main() {
   });
 
   testWidgets('가져온 요약은 되돌리기로 가져오기 전 글로 돌아간다 (#755, #2187)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     final field = find.byWidgetPredicate(
       (w) => w is TextField && w.minLines == 4,
@@ -974,7 +1062,7 @@ void main() {
   testWidgets('피드백 저장 버튼이 켜져 있고 입력창의 현재 문구를 저장한다 (#821)', (tester) async {
     final drafts = _DraftStore();
     await openReports(
-      stage: 2,
+      stage: 1,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(drafts),
@@ -995,7 +1083,7 @@ void main() {
   });
 
   testWidgets('이번 주 리포트에는 저장·되돌리기가 있다 (#1177)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     expect(saveFeedback, findsOneWidget);
     expect(undoFeedback, findsOneWidget);
@@ -1006,7 +1094,7 @@ void main() {
     await openReports(
       tester,
       weekStart: weekStartOf(nowKst()).subtract(const Duration(days: 7)),
-      stage: 2,
+      stage: 1,
     );
 
     // 트레이너가 손볼 것은 이번 주에 보낼 글이다. 이미 지나간 주의 초안을
@@ -1026,7 +1114,7 @@ void main() {
 
   testWidgets('저장에 실패해도 쓰던 문구는 입력창에 남는다 (#821)', (tester) async {
     await openReports(
-      stage: 2,
+      stage: 1,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(_DraftStore(failSave: true)),
@@ -1050,7 +1138,7 @@ void main() {
 
   testWidgets('저장해 둔 초안이 있으면 입력창이 그 문구로 열린다 (#821)', (tester) async {
     await openReports(
-      stage: 2,
+      stage: 1,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(
@@ -1067,7 +1155,7 @@ void main() {
 
   testWidgets('되돌리기는 자동 생성본이 아니라 저장된 초안으로 돌아간다 (#821)', (tester) async {
     await openReports(
-      stage: 2,
+      stage: 1,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(
@@ -1098,7 +1186,7 @@ void main() {
   testWidgets('되돌리기·다시 실행은 편집을 한 단계씩 오간다 (#2187)', (tester) async {
     final drafts = _DraftStore(stored: '처음 문구');
     await openReports(
-      stage: 2,
+      stage: 1,
       tester,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(drafts),
@@ -1164,7 +1252,7 @@ void main() {
   );
 
   testWidgets('직접 작성하기는 자동 초안을 비워 빈 화면에서 시작하게 한다 (#2232)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     expect(
       tester.widget<TextField>(feedbackField).controller!.text,
@@ -1182,7 +1270,7 @@ void main() {
   testWidgets('비운 초안은 되돌리기 한 번으로 돌아온다 — 잘못 누른 것을 되돌릴 수 있다 (#2232)', (
     tester,
   ) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     // 커서를 넣어야 편집 기록이 지금 글을 첫 단계로 잡는다.
     await tester.tap(feedbackField);
@@ -1206,18 +1294,20 @@ void main() {
   });
 
   testWidgets('비운 채로는 보낼 수 없다 — 빈 리포트가 회원에게 가지 않게 (#2232)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     await tester.ensureVisible(writeFromScratch);
     await tester.pump();
     await tester.tap(writeFromScratch);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
     await settle(tester);
 
     expect(sendEnabled(tester), isFalse);
   });
 
   testWidgets('직접 작성하기는 피드백 카드 안, 입력창 바로 위에 선다 (#2232)', (tester) async {
-    await openReports(tester, stage: 2);
+    await openReports(tester, stage: 1);
 
     expect(writeFromScratch, findsOneWidget);
     // 초안을 정하는 다른 길(요약 가져오기)도 같은 화면에 남아 있다.
@@ -1274,7 +1364,7 @@ void main() {
   testWidgets('③ 전송에는 고른 목표를 되짚는 카드가 없다 (#2400)', (tester) async {
     await openReports(tester, stage: 2);
 
-    expect(feedbackField, findsOneWidget);
+    expect(preview, findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('report-goals-recap')),
       findsNothing,
@@ -1305,15 +1395,17 @@ void main() {
     ]);
     await openReports(
       tester,
-      stage: 2,
+      stage: 1,
+      pdf: pdf,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(drafts),
-        reportPdfGeneratorProvider.overrideWithValue(pdf),
       ],
     );
 
     const String feedback = '이번 주 하체 루틴 잘 따라오셨어요.';
     await tester.enterText(feedbackField, feedback);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
     await settle(tester);
     await tapSend(tester);
 
@@ -1337,10 +1429,10 @@ void main() {
     ]);
     await openReports(
       tester,
-      stage: 2,
+      stage: 1,
+      pdf: pdf,
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(drafts),
-        reportPdfGeneratorProvider.overrideWithValue(pdf),
       ],
     );
 
@@ -1348,11 +1440,216 @@ void main() {
         .widget<TextField>(feedbackField)
         .controller!
         .text;
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
     await tapSend(tester);
 
     // 입력창에 떠 있던 글이 한 글자도 더해지지 않고 그대로 나간다.
     expect(drafts.sentMessages, <String>[draft]);
     expect(pdf.feedbacks, <String>[draft]);
+  });
+
+  // ---- ③ 전송 — 회원이 받는 PDF 미리보기 (#2402) ----
+
+  /// 편집기 하단의 `다음` / `이전`.
+  Future<void> step(WidgetTester tester, String key) async {
+    await tester.tap(find.byKey(ValueKey<String>('report-step-$key')));
+    await settle(tester);
+  }
+
+  testWidgets('③ 에는 요약 카드와 피드백 입력창이 없고 미리보기만 선다 (#2402)', (tester) async {
+    await openReports(tester, stage: 2);
+
+    expect(preview, findsOneWidget);
+    expect(feedbackField, findsNothing);
+    expect(find.text('이번 주 요약'), findsNothing);
+    expect(find.text('피드백으로 가져오기'), findsNothing);
+    expect(find.byType(ClientReportView), findsNothing);
+    // 고치려면 ② 로 돌아가라고 그 자리에서 말한다.
+    expect(find.text('글을 고치려면 이전을 눌러 작성 단계로 돌아가세요'), findsOneWidget);
+  });
+
+  testWidgets('② 에서 글을 고치고 돌아오면 미리보기를 새로 만든다 (#2402)', (tester) async {
+    final _DraftStore drafts = _DraftStore();
+    final _QueuedPdfGenerator pdf = _QueuedPdfGenerator(
+      const <Future<Uint8List>>[],
+    );
+    final _FakeRasterizer raster = _FakeRasterizer();
+    await openReports(
+      tester,
+      stage: 2,
+      pdf: pdf,
+      raster: raster,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(drafts),
+      ],
+    );
+    expect(pdf.calls, 1);
+
+    await step(tester, 'prev');
+    const String edited = '다음 주는 상체 위주로 가 볼게요.';
+    await tester.enterText(feedbackField, edited);
+    await settle(tester);
+    await step(tester, 'next');
+
+    expect(pdf.calls, 2);
+    expect(pdf.feedbacks.last, edited);
+    expect(raster.inputs, hasLength(2));
+
+    // 고친 것이 없으면 다시 만들지 않는다.
+    await step(tester, 'prev');
+    await step(tester, 'next');
+    expect(pdf.calls, 2);
+
+    // 보내는 것도 마지막 미리보기 그 한 부다.
+    await tapSend(tester);
+    expect(pdf.calls, 2);
+    expect(drafts.sentMessages, <String>[edited]);
+    expect(drafts.sentBytes, <List<int>>[_pdfBytes]);
+  });
+
+  testWidgets('단계 표시로 ③ 에 다시 들어와도 고친 글로 새로 만든다 (#2402)', (tester) async {
+    final _QueuedPdfGenerator pdf = _QueuedPdfGenerator(
+      const <Future<Uint8List>>[],
+    );
+    await openReports(tester, stage: 2, pdf: pdf);
+
+    await tester.tap(find.byKey(const ValueKey<String>('report-stage-1')));
+    await settle(tester);
+    await tester.enterText(feedbackField, '고친 문구');
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('report-stage-2')));
+    await settle(tester);
+
+    expect(pdf.calls, 2);
+    expect(pdf.feedbacks.last, '고친 문구');
+  });
+
+  testWidgets('미리보기를 만드는 동안과 실패했을 때를 보여 주고 다시 만들 수 있다 (#2402)', (tester) async {
+    final Completer<Uint8List> first = Completer<Uint8List>();
+    final Completer<Uint8List> second = Completer<Uint8List>();
+    final _QueuedPdfGenerator pdf = _QueuedPdfGenerator(<Future<Uint8List>>[
+      first.future,
+      second.future,
+    ]);
+    await openReports(tester, stage: 2, pdf: pdf);
+
+    expect(previewLoading, findsOneWidget);
+    expect(find.text('미리보기를 만드는 중이에요'), findsOneWidget);
+    expect(previewFailed, findsNothing);
+
+    first.completeError(StateError('render failed'));
+    await settle(tester);
+    expect(previewLoading, findsNothing);
+    expect(previewFailed, findsOneWidget);
+    expect(find.text('미리보기를 만들지 못했어요'), findsOneWidget);
+
+    await tester.tap(
+      find.descendant(of: previewFailed, matching: find.text('다시 시도')),
+    );
+    await settle(tester);
+    expect(pdf.calls, 2);
+    // 다시 만드는 동안에는 지난 실패를 두지 않는다.
+    expect(previewLoading, findsOneWidget);
+    expect(previewFailed, findsNothing);
+
+    second.complete(Uint8List.fromList(_pdfBytes));
+    await settle(tester);
+    expect(previewLoading, findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('report-send-preview-page-0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('쪽을 넘기고 확대·축소한다 (#2402)', (tester) async {
+    await openReports(tester, stage: 2, raster: _FakeRasterizer());
+
+    AppIconButton button(String key) => tester.widget<AppIconButton>(
+      find.byKey(ValueKey<String>('report-send-preview-$key')),
+    );
+    double pageWidth() => tester
+        .getSize(
+          find.byKey(const ValueKey<String>('report-send-preview-page-0')),
+        )
+        .width;
+
+    expect(pageLabel(tester), '1 / 2쪽');
+    expect(button('prev').onPressed, isNull);
+    expect(button('zoom-out').onPressed, isNull);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('report-send-preview-next')),
+    );
+    await settle(tester);
+    expect(pageLabel(tester), '2 / 2쪽');
+    expect(
+      find.byKey(const ValueKey<String>('report-send-preview-page-1')),
+      findsOneWidget,
+    );
+    expect(button('next').onPressed, isNull);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('report-send-preview-prev')),
+    );
+    await settle(tester);
+    expect(pageLabel(tester), '1 / 2쪽');
+
+    final double before = pageWidth();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('report-send-preview-zoom-in')),
+    );
+    await settle(tester);
+    expect(pageWidth(), greaterThan(before));
+    expect(button('zoom-out').onPressed, isNotNull);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('report-send-preview-zoom-out')),
+    );
+    await settle(tester);
+    expect(pageWidth(), before);
+  });
+
+  testWidgets('직접 작성하기 바로가기는 입력창이 있는 ② 로 간다 (#2402)', (tester) async {
+    await openReports(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('report-skip-to-write')),
+    );
+    await settle(tester);
+
+    expect(preview, findsNothing);
+    expect(feedbackField, findsOneWidget);
+    expect(tester.widget<TextField>(feedbackField).controller!.text, isEmpty);
+    // 빈 글로는 ③ 에서도 보낼 수 없다.
+    await step(tester, 'next');
+    expect(preview, findsOneWidget);
+    expect(sendEnabled(tester), isFalse);
+  });
+
+  testWidgets('③ 의 전송 버튼은 글이 있을 때만 켜진다 — 미리보기 상태와 무관하다 (#2402)', (
+    tester,
+  ) async {
+    final Completer<Uint8List> pending = Completer<Uint8List>();
+    await openReports(
+      tester,
+      stage: 1,
+      pdf: _QueuedPdfGenerator(<Future<Uint8List>>[pending.future]),
+    );
+    await tester.enterText(feedbackField, '이번 주도 수고하셨어요.');
+    await settle(tester);
+    await step(tester, 'next');
+    // 미리보기를 만드는 중이어도 보낼 수 있다 — 전송은 그 한 부를 기다린다.
+    expect(previewLoading, findsOneWidget);
+    expect(sendEnabled(tester), isTrue);
+
+    await step(tester, 'prev');
+    await tester.enterText(feedbackField, '');
+    await settle(tester);
+    await step(tester, 'next');
+    expect(sendEnabled(tester), isFalse);
+    pending.complete(Uint8List.fromList(_pdfBytes));
+    await settle(tester);
   });
 }
 
@@ -1400,6 +1697,9 @@ class _DraftStore implements ReportRepository {
   /// PDF 와 함께 회원에게 나간 글.
   final List<String> sentMessages = <String>[];
 
+  /// 보낸 PDF — 미리보기로 만든 한 부와 같은지 본다(#2402).
+  final List<List<int>> sentBytes = <List<int>>[];
+
   @override
   Future<void> sendPdf({
     required String clientId,
@@ -1409,6 +1709,7 @@ class _DraftStore implements ReportRepository {
     required String message,
   }) async {
     sentMessages.add(message);
+    sentBytes.add(bytes.toList());
   }
 
   @override
@@ -1450,9 +1751,35 @@ class _QueuedPdfGenerator extends ReportPdfGenerator {
     WeeklyReport? previousReport,
   }) {
     feedbacks.add(feedback);
-    final result = _results[calls];
+    // 준비한 결과를 다 쓰면 곧바로 끝나는 한 부를 낸다.
+    final result = calls < _results.length
+        ? _results[calls]
+        : Future<Uint8List>.value(Uint8List.fromList(_pdfBytes));
     calls++;
     return result;
+  }
+}
+
+/// 가짜 생성기가 기본으로 내는 PDF.
+const List<int> _pdfBytes = <int>[0x25, 0x50, 0x44, 0x46];
+
+/// 1×1 투명 PNG — 미리보기 쪽 그림 자리에 넣는다.
+final Uint8List _pagePng = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+);
+
+/// 미리보기의 쪽 굽기 자리. 넘겨받은 PDF 를 기억하고 [pages] 쪽을 낸다.
+class _FakeRasterizer {
+  _FakeRasterizer({this.pages = 2});
+
+  final int pages;
+
+  /// 구워 달라고 받은 PDF — 부를 때마다 하나씩 쌓인다.
+  final List<List<int>> inputs = <List<int>>[];
+
+  Future<List<Uint8List>> call(Uint8List pdf) async {
+    inputs.add(pdf.toList());
+    return List<Uint8List>.filled(pages, _pagePng);
   }
 }
 

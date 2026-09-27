@@ -137,6 +137,10 @@ enum ReportQueueSort {
 
   /// 이름 가나다순 — 특정 회원을 찾을 때.
   name,
+
+  /// 이름 역순 — 회원 탭 정렬과 같은 세 가지를 두어 탭마다 고를 수 있는 것이
+  /// 달라지지 않게 한다(#2398).
+  nameDescending,
 }
 
 /// 작업대에 서는 한 줄 — 한 회원의 이번 주.
@@ -220,8 +224,13 @@ List<ReportQueueEntry> buildReportQueue({
       ),
   ];
   entries.sort((a, b) {
-    if (sort == ReportQueueSort.name) {
-      return a.client.name.compareTo(b.client.name);
+    switch (sort) {
+      case ReportQueueSort.name:
+        return a.client.name.compareTo(b.client.name);
+      case ReportQueueSort.nameDescending:
+        return b.client.name.compareTo(a.client.name);
+      case ReportQueueSort.priority:
+        break;
     }
     final int byPriority = a.priority.compareTo(b.priority);
     // 점수가 같으면 이름으로 — 다시 그릴 때마다 순서가 뒤바뀌면 방금 보던

@@ -7522,6 +7522,12 @@ abstract class AppLocalizations {
   /// **'{count}'**
   String reportsCountPeople(int count);
 
+  /// No description provided for @reportsSortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get reportsSortLabel;
+
   /// No description provided for @reportsSortPriority.
   ///
   /// In en, this message translates to:
@@ -7531,8 +7537,14 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSortName.
   ///
   /// In en, this message translates to:
-  /// **'By name'**
+  /// **'Name A–Z'**
   String get reportsSortName;
+
+  /// No description provided for @reportsSortNameDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z–A'**
+  String get reportsSortNameDescending;
 
   /// No description provided for @reportsSendProgress.
   ///
@@ -7743,6 +7755,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get reportsStepPrev;
+
+  /// No description provided for @reportsPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What the member receives'**
+  String get reportsPreviewTitle;
+
+  /// No description provided for @reportsPreviewRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get reportsPreviewRecipient;
+
+  /// No description provided for @reportsPreviewWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get reportsPreviewWeek;
+
+  /// No description provided for @reportsPreviewDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to {name}\'s chat as a PDF file'**
+  String reportsPreviewDelivery(String name);
+
+  /// No description provided for @reportsPreviewEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To change the text, tap Back to return to the Write step'**
+  String get reportsPreviewEditHint;
+
+  /// No description provided for @reportsPreviewGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the preview'**
+  String get reportsPreviewGenerating;
+
+  /// No description provided for @reportsPreviewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t prepare the preview'**
+  String get reportsPreviewFailed;
+
+  /// No description provided for @reportsPreviewPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current} of {total}'**
+  String reportsPreviewPage(int current, int total);
+
+  /// No description provided for @reportsPreviewPrevPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get reportsPreviewPrevPage;
+
+  /// No description provided for @reportsPreviewNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get reportsPreviewNextPage;
+
+  /// No description provided for @reportsPreviewZoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get reportsPreviewZoomIn;
+
+  /// No description provided for @reportsPreviewZoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom out'**
+  String get reportsPreviewZoomOut;
 
   /// No description provided for @reportsGridPtSession.
   ///
