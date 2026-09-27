@@ -10,6 +10,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자). TODO: 실 백엔드
 // 도입 시 세션 계층을 core/session 으로 승격해 이 의존을 정리한다.
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
@@ -81,7 +82,9 @@ class _MyPageState extends ConsumerState<MyPage> {
   void initState() {
     super.initState();
     final session = ref.read(sessionControllerProvider);
-    _profile = session.profile ?? seedTrainerProfile;
+    _profile =
+        session.profile ??
+        seedTrainerProfileFor(ref.read(demoLanguageProvider));
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
@@ -128,7 +131,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       _field('email', _profile.email).text = _profile.email;
       _field('phone', _profile.phone).text = _profile.phone;
       _field('specialty', _profile.specialty).text = _profile.specialty;
-      _field('career', _profile.career).text = _profile.career;
+      _field('career', _careerText(_profile)).text = _careerText(_profile);
       _field('intro', _profile.intro).text = _profile.intro;
       _field('gymName', _gym.name).text = _gym.name;
       _field('gymAddress', _gym.address).text = _gym.address;
@@ -859,6 +862,11 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   }
 }
 
+/// 경력 입력칸에 채울 값 — 숫자만 둔다. 단위는 칸 라벨이 말하고, 저장할 때도
+/// 숫자만 읽는다 (#2304). 모르면 비운다.
+String _careerText(TrainerProfile profile) =>
+    profile.careerYears == null ? '' : '${profile.careerYears}';
+
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.profile,
@@ -917,7 +925,8 @@ class _ProfileCard extends StatelessWidget {
                           label: profile.specialty,
                           tone: AppTagTone.brand,
                         ),
-                        AppTag(label: l.myCareerYears(profile.career)),
+                        if (profile.careerYears != null)
+                          AppTag(label: l.myCareerYears(profile.careerYears!)),
                       ],
                     ),
                   ],
@@ -960,7 +969,7 @@ class _ProfileCard extends StatelessWidget {
             ),
             _EditField(
               label: l.myFieldCareer,
-              controller: field('career', profile.career),
+              controller: field('career', _careerText(profile)),
               inputKey: const ValueKey<String>('profile-career'),
             ),
             _EditField(

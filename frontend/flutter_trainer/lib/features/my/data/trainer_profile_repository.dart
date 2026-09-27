@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/dtos/trainer_me_dto.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
@@ -164,24 +165,29 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
 
 /// Stateful mock with the same mutation contract as the real repository.
 class MockTrainerProfileRepository implements TrainerProfileRepository {
-  TrainerProfile _profile = seedTrainerProfile;
+  /// [language] 데모의 프로필로 시작한다 (#2304).
+  MockTrainerProfileRepository({this.language = DemoLanguage.ko})
+    : _profile = seedTrainerProfileFor(language);
+
+  final DemoLanguage language;
+  TrainerProfile _profile;
 
   @override
   Future<TrainerProfile> fetch() async => _profile;
 
   @override
-  Future<List<TrainerGymChoice>> listGyms() async => const <TrainerGymChoice>[
+  Future<List<TrainerGymChoice>> listGyms() async => <TrainerGymChoice>[
     TrainerGymChoice(
       id: 'gym-1',
-      name: '온케어짐 신촌점',
-      address: '서울 서대문구',
+      name: language.isEnglish ? 'OnCare Gym Sinchon' : '온케어짐 신촌점',
+      address: language.isEnglish ? 'Seodaemun-gu, Seoul' : '서울 서대문구',
       hours: '06:00 – 23:00',
       phone: '02-1234-5678',
     ),
     TrainerGymChoice(
       id: 'gym-2',
-      name: '온케어짐 강남점',
-      address: '서울 강남구',
+      name: language.isEnglish ? 'OnCare Gym Gangnam' : '온케어짐 강남점',
+      address: language.isEnglish ? 'Gangnam-gu, Seoul' : '서울 강남구',
       hours: '06:00 – 24:00',
       phone: '02-9876-5432',
     ),
@@ -192,7 +198,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
     _profile = _profile.copyWith(
       phone: update.phone,
       specialty: update.specialty,
-      career: '${update.careerYears}년',
+      // 숫자로 남긴다 — 단위는 화면이 로케일에 맞춰 붙인다 (#2304).
+      careerYears: update.careerYears,
       intro: update.intro,
       certifications: List<String>.unmodifiable(update.certifications),
       gym: update.gymName == null
@@ -244,7 +251,11 @@ final trainerProfileRepositoryProvider = Provider<TrainerProfileRepository>((
   ref,
 ) {
   final config = ref.watch(appConfigProvider);
-  if (config.useMockApi) return MockTrainerProfileRepository();
+  if (config.useMockApi) {
+    return MockTrainerProfileRepository(
+      language: ref.watch(demoLanguageProvider),
+    );
+  }
   return DioTrainerProfileRepository(ref.watch(dioProvider));
 }, name: 'trainerProfileRepository');
 

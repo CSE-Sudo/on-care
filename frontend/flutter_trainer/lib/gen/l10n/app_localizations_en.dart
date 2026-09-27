@@ -2038,8 +2038,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPasswordChanged => 'Password changed';
 
   @override
-  String myCareerYears(String career) {
-    return '$career experience';
+  String myCareerYears(int years) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '1 year',
+    );
+    return '$_temp0 of experience';
   }
 
   @override
