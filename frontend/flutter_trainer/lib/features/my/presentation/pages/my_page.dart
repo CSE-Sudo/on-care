@@ -426,8 +426,8 @@ class _MyPageState extends ConsumerState<MyPage> {
     final _MySection section = _section;
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        // [AppSplitView] 가 보는 폭(페이지 좌우 여백을 뺀 값)으로 판단해, 분할
-        // 여부와 경로·메뉴 선택 표시가 어긋나지 않게 한다.
+        // 페이지 좌우 여백을 뺀 본문 폭으로 판단한다 — 회원·메시지 탭의 분할
+        // 기준과 같은 값이다.
         final bool wide =
             constraints.maxWidth - context.oncare.density.pagePadding * 2 >=
             OnCareLayout.splitBreakpoint;
@@ -448,26 +448,34 @@ class _MyPageState extends ConsumerState<MyPage> {
               ),
           ],
           body: PageScrollResetListener(
-            child: AppSplitView(
-              showDetailWhenNarrow: section != _MySection.settings,
-              list: SingleChildScrollView(
-                key: const ValueKey<String>('my-settings'),
-                child: _menu(selected: wide ? detail : null),
-              ),
-              detail: SingleChildScrollView(
-                // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채 다른
-                // 항목으로 가면 중간부터 보였다.
-                key: ValueKey<String>('my-${detail.name}'),
-                child: Align(
-                  alignment: AlignmentDirectional.topStart,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: OnCareLayout.webNarrowMaxWidth,
-                    ),
-                    child: _detail(detail, wide: wide),
-                  ),
-                ),
-              ),
+            // 좁은 메뉴 + 넓은 본문 두 열이다. 공용 [AppSplitView] 는 목록이
+            // 380 이라, 항목 이름만 있는 메뉴에는 넓고 본문 오른쪽이 비었다.
+            // 메뉴는 앱 사이드바와 같은 폭을 쓰고 본문이 남은 폭을 다 받는다.
+            // 좁으면 둘 중 하나만 보이는 것은 같다.
+            child: Builder(
+              builder: (BuildContext context) {
+                final Widget menu = SingleChildScrollView(
+                  key: const ValueKey<String>('my-settings'),
+                  child: _menu(selected: wide ? detail : null),
+                );
+                final Widget body = SingleChildScrollView(
+                  // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채 다른
+                  // 항목으로 가면 중간부터 보였다.
+                  key: ValueKey<String>('my-${detail.name}'),
+                  child: _detail(detail, wide: wide),
+                );
+                if (!wide) {
+                  return section == _MySection.settings ? menu : body;
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    SizedBox(width: OnCareLayout.sidebarWidth, child: menu),
+                    const SizedBox(width: OnCareSpacing.sectionGap),
+                    Expanded(child: body),
+                  ],
+                );
+              },
             ),
           ),
         );
@@ -1227,7 +1235,12 @@ class _InfoGrid extends StatelessWidget {
     final _Info? wide = this.wide;
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final int columns = constraints.maxWidth >= 480 ? 2 : 1;
+        // 본문이 넓으면 세 칸까지 — 한 줄에 라벨·값이 너무 멀어지지 않게.
+        final int columns = constraints.maxWidth >= 760
+            ? 3
+            : constraints.maxWidth >= 480
+            ? 2
+            : 1;
         const double gap = OnCareSpacing.s16;
         final double cell =
             (constraints.maxWidth - gap * (columns - 1)) / columns;
