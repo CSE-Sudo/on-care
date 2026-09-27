@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 
 /// 트레이너가 반복해 쓰는 운동 블록. (#920)
@@ -251,6 +252,7 @@ class DioTrainerProgramTemplateRepository
 /// 현재 모드에 맞는 저장소.
 final trainerProgramTemplateRepositoryProvider =
     Provider<TrainerProgramTemplateRepository>((ref) {
+      ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
         return MockTrainerProgramTemplateRepository();
       }

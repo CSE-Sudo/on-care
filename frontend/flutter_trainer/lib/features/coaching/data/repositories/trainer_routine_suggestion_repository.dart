@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 
@@ -149,6 +150,7 @@ class MockTrainerRoutineSuggestionRepository
 /// Picks the Dio-backed repository, or the demo one for `USE_MOCK_API=true`.
 final trainerRoutineSuggestionRepositoryProvider =
     Provider<TrainerRoutineSuggestionRepository>((ref) {
+      ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       final config = ref.watch(appConfigProvider);
       if (config.useMockApi) {
         return MockTrainerRoutineSuggestionRepository();

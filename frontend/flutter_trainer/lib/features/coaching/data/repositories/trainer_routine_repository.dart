@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 
@@ -199,10 +200,11 @@ extension _StartWith<T> on Stream<T> {
 final trainerRoutineRepositoryProvider = Provider<TrainerRoutineRepository>((
   ref,
 ) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    // 배정을 메모리에 들고 있으므로 const 가 아니다. provider 가 한 번만
-    // 만들어 앱이 사는 동안 같은 목록을 보게 한다.
+    // 배정을 메모리에 들고 있으므로 const 가 아니다. provider 가 계정마다
+    // 한 번 만들어 그 세션이 사는 동안 같은 목록을 보게 한다.
     final MockTrainerRoutineRepository demo = MockTrainerRoutineRepository();
     ref.onDispose(demo.dispose);
     return demo;

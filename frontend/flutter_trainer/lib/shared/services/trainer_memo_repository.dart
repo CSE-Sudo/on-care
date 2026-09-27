@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_trainer_memo_repository.dart';
@@ -150,6 +151,7 @@ class LocalTrainerMemoRepository implements TrainerMemoRepository {
 /// Provides the [TrainerMemoRepository]: the backend-backed source, or the
 /// browser-local one for demo / `USE_MOCK_API=true`.
 final trainerMemoRepositoryProvider = Provider<TrainerMemoRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
     return LocalTrainerMemoRepository(ref.watch(sharedPreferencesProvider));

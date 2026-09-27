@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_parser/http_parser.dart';
 
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 
@@ -45,6 +46,7 @@ class ReportPdfSender {
   }
 }
 
-final reportPdfSenderProvider = Provider<ReportPdfSender>(
-  (ref) => ReportPdfSender(ref.watch(dioProvider)),
-);
+final reportPdfSenderProvider = Provider<ReportPdfSender>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+  return ReportPdfSender(ref.watch(dioProvider));
+});

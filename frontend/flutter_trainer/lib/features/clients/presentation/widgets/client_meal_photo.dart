@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Bytes of a client's meal photo, keyed by its API path.
@@ -16,6 +17,7 @@ final clientMealPhotoProvider = FutureProvider.family<Uint8List?, String>((
   ref,
   path,
 ) async {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final Dio dio = ref.watch(dioProvider);
   try {
     final Response<List<int>> res = await dio.get<List<int>>(
