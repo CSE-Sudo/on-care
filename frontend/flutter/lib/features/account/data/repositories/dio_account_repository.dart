@@ -30,7 +30,6 @@ class DioAccountRepository implements AccountRepository {
     num? heightCm,
     num? weightKg,
     String? conditions,
-    String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
     int? dailySugarG,
@@ -52,7 +51,6 @@ class DioAccountRepository implements AccountRepository {
         'height_cm': ?heightCm,
         'weight_kg': ?weightKg,
         'conditions': ?conditions,
-        'goals': ?goals,
         'daily_calories': ?dailyCalories,
         'daily_sodium_mg': ?dailySodiumMg,
         'daily_sugar_g': ?dailySugarG,
@@ -77,7 +75,6 @@ class DioAccountRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   }) async {
     final res = await _dio.put<Map<String, Object?>>(
       '/users/me',
@@ -91,7 +88,6 @@ class DioAccountRepository implements AccountRepository {
         // 빼면 지움이 '손대지 않음'이 되어 비운 값이 되살아난다(#1941).
         if (heightCm != null) 'height_cm': heightCm.value,
         if (weightKg != null) 'weight_kg': weightKg.value,
-        'goals': ?goals,
       },
     );
     return UserProfile.fromJson(res.data!);
@@ -100,7 +96,6 @@ class DioAccountRepository implements AccountRepository {
   @override
   Future<UserProfile> updateHealthGoals({
     String? conditions,
-    String? goals,
     GoalUpdate? dailyCalories,
     GoalUpdate? dailySodiumMg,
     GoalUpdate? dailySugarG,
@@ -122,7 +117,6 @@ class DioAccountRepository implements AccountRepository {
       data: <String, Object?>{
         // 문자열 둘은 비워서 저장할 수 있다 — 빈 문자열이 '적지 않음' 이다.
         'conditions': ?conditions,
-        'goals': ?goals,
         if (dailyCalories != null) 'daily_calories': dailyCalories.value,
         if (dailySodiumMg != null) 'daily_sodium_mg': dailySodiumMg.value,
         if (dailySugarG != null) 'daily_sugar_g': dailySugarG.value,

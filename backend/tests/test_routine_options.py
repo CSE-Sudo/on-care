@@ -207,8 +207,10 @@ def test_routine_options_generates_ab_for_owned_member(client, monkeypatch):
     # analysis reflects the member + echoes the trainer note.
     assert body["analysis"]["note"] == "테스트"
     assert isinstance(body["analysis"]["sodium_over_target"], bool)
+    # 자유 서술 `member_goal` 은 걷어냈다 — 목표는 `goal`(건강 목표 칩)이다(#2358).
+    assert "member_goal" not in body["analysis"]
     assert {
-        "member_goal",
+        "goal",
         "conditions",
         "gender",
         "height_cm",

@@ -453,7 +453,6 @@ def _member_health_out(db: Session, member_id: str) -> MemberHealthProfileOut:
         member_name=member.name if member is not None else "",
         gender=profile.gender if profile is not None else "",
         conditions=profile.conditions if profile is not None else "",
-        goals=profile.goals if profile is not None else "",
         focus_changed_by=profile.focus_changed_by if profile is not None else None,
         focus_changed_at=profile.focus_changed_at if profile is not None else None,
         **values,

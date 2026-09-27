@@ -2929,8 +2929,6 @@ class LocalApiInterceptor extends Interceptor {
     'weight_kg': 72.0,
     // 건강 목표(#1814) — 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다.
     'conditions': '체중 감량, 혈압 관리',
-    // 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다 (#1140).
-    'goals': '혈압 관리 · 체중 감량',
     'daily_calories': 2000,
     'daily_sodium_mg': 2000,
     'daily_sugar_g': 50,
@@ -2989,7 +2987,6 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
     }
@@ -3012,7 +3009,6 @@ class LocalApiInterceptor extends Interceptor {
       // MY 건강 목표가 목표 칸과 함께 보내는 건강 목표·자유 입력 목표. 빠져 있어
       // 데모에서 고른 목표가 저장되지 않았다(#1814).
       'conditions',
-      'goals',
       'daily_calories',
       'daily_sodium_mg',
       'daily_sugar_g',
@@ -3080,7 +3076,6 @@ class LocalApiInterceptor extends Interceptor {
       'height_cm',
       'weight_kg',
       'conditions',
-      'goals',
       // 목표 열 칸은 PUT /users/me/health-goals 가 쓰는 열과 같다 — 온보딩이
       // 채운 값을 MY 건강 목표가 그대로 이어 고친다.
       'daily_calories',

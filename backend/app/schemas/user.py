@@ -19,7 +19,6 @@ from app.schemas.health_goal_ranges import (
     DailyProteinG,
     DailySodiumMg,
     DailySugarG,
-    GoalsText,
     WeeklyBurnGoal,
     WeeklyCardioMinutes,
     WeeklyExerciseMinutesGoal,
@@ -207,7 +206,6 @@ class ProfileView(BaseModel):
     height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
     conditions: str = ""
-    goals: str = ""
     daily_calories: Optional[int] = None
     daily_sodium_mg: Optional[int] = None
     daily_sugar_g: Optional[int] = None
@@ -250,7 +248,6 @@ class HealthGoalsUpdate(BaseModel):
     #: 저장됐는데, 그 값을 트레이너가 화면에서 고치려 하면 트레이너 스키마의
     #: 하한에 걸려 422 가 났다 — 넣은 문과 고치는 문이 달랐다.
     conditions: Optional[ConditionsText] = None
-    goals: Optional[GoalsText] = None
     daily_calories: Optional[DailyCalories] = None
     daily_sodium_mg: Optional[DailySodiumMg] = None
     daily_sugar_g: Optional[DailySugarG] = None
@@ -289,7 +286,6 @@ class OnboardingRequest(BaseModel):
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
     conditions: Optional[ConditionsText] = None  # "체중 감량, 혈압 관리" — 옛 질환 이름은 정리(#1814)
-    goals: Optional[GoalsText] = None
     # 목표 칸은 `HealthGoalsUpdate` 와 **같은 열**이다 — 온보딩이 권장값으로
     # 채워 둔 목표를 MY 건강 목표가 그대로 이어 고친다. 두 스키마가 서로 다른
     # 열을 다루면 온보딩에서 정한 목표가 MY 에서 보이지 않는다.
@@ -375,7 +371,6 @@ class ProfileUpdate(PartialUpdate):
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
-    goals: Optional[GoalsText] = None
 
     # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
     # 한쪽이 정리한 값을 다른 쪽이 되돌린다.

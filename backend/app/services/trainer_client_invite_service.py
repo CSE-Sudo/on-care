@@ -39,6 +39,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     consultation_service,
+    health_focus,
     member_pairing_service,
     notification_service,
     notification_templates,
@@ -114,7 +115,10 @@ def _paired_out(db: Session, member: User) -> PairedMemberOut:
             if profile is not None
             else None
         ),
-        goal=profile.goals if profile is not None else "",
+        # 회원 목표는 건강 목표 칩이다 — 로스터·상세 헤더와 같은 말(#2358).
+        goal=health_focus.focus_label(
+            profile.conditions if profile is not None else None
+        ),
     )
 
 
