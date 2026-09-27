@@ -320,12 +320,6 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get actionRetry;
 
-  /// No description provided for @actionRefresh.
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh'**
-  String get actionRefresh;
-
   /// No description provided for @actionChange.
   ///
   /// In en, this message translates to:
@@ -1058,6 +1052,12 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// Roster subtitle while a dashboard preset or management filter narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} members'**
+  String clientsMemberCountFiltered(int shown, int total);
+
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
   /// In en, this message translates to:
@@ -1321,12 +1321,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
-
-  /// No description provided for @memberHealthGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Member goals'**
-  String get memberHealthGoals;
 
   /// No description provided for @memberHealthDietGoal.
   ///
@@ -1730,17 +1724,29 @@ abstract class AppLocalizations {
   /// **'Dormant'**
   String get clientDormant;
 
+  /// No description provided for @clientDormantActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to mark active'**
+  String get clientDormantActivate;
+
+  /// No description provided for @clientSignalLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get clientSignalLess;
+
+  /// No description provided for @clientSignalMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String clientSignalMore(int count);
+
   /// No description provided for @clientStatusChangeFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t change the status. Please try again.'**
   String get clientStatusChangeFailed;
-
-  /// No description provided for @clientClosePanel.
-  ///
-  /// In en, this message translates to:
-  /// **'Close panel'**
-  String get clientClosePanel;
 
   /// No description provided for @chatTooLong.
   ///
@@ -5666,6 +5672,12 @@ abstract class AppLocalizations {
   /// **'Message from {name}'**
   String notifTplMemberMessageTitle(String name);
 
+  /// Body of the new-message notification when a member sent only a photo in the coach chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent a photo'**
+  String get notifTplMemberPhotoBody;
+
   /// No description provided for @notifAllRead.
   ///
   /// In en, this message translates to:
@@ -6110,41 +6122,11 @@ abstract class AppLocalizations {
   /// **'Undo completion'**
   String get dashTaskUncheckConfirm;
 
-  /// No description provided for @churnNoRecentWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'No workout logged in 7 days'**
-  String get churnNoRecentWorkout;
-
   /// No description provided for @churnNoRecentFeedback.
   ///
   /// In en, this message translates to:
   /// **'No trainer feedback in 7 days'**
   String get churnNoRecentFeedback;
-
-  /// No description provided for @churnConsecutiveCancel.
-  ///
-  /// In en, this message translates to:
-  /// **'2 consecutive cancellations/no-shows'**
-  String get churnConsecutiveCancel;
-
-  /// No description provided for @churnDietStopped.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet logging stopped'**
-  String get churnDietStopped;
-
-  /// No description provided for @churnGoalStagnant.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal metric stagnant long-term'**
-  String get churnGoalStagnant;
-
-  /// No description provided for @churnUnresolvedRequest.
-  ///
-  /// In en, this message translates to:
-  /// **'Unanswered message'**
-  String get churnUnresolvedRequest;
 
   /// No description provided for @navMessages.
   ///
@@ -6248,16 +6230,10 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get clientQuickReport;
 
-  /// No description provided for @clientHealthGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Body profile & goals'**
-  String get clientHealthGoals;
-
   /// No description provided for @clientProfileSectionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Body, goals & memo'**
+  /// **'Body and goals'**
   String get clientProfileSectionTitle;
 
   /// No description provided for @clientTrainerMemo.
@@ -6265,6 +6241,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Memo'**
   String get clientTrainerMemo;
+
+  /// No description provided for @clientHealthUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get clientHealthUnset;
+
+  /// No description provided for @clientHealthTabBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Body'**
+  String get clientHealthTabBody;
+
+  /// No description provided for @clientHealthTabFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals'**
+  String get clientHealthTabFocus;
+
+  /// No description provided for @clientGoalPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Per day'**
+  String get clientGoalPerDay;
+
+  /// No description provided for @clientGoalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories'**
+  String get clientGoalCalories;
+
+  /// No description provided for @clientGoalSodium.
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium'**
+  String get clientGoalSodium;
+
+  /// No description provided for @clientGoalSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar'**
+  String get clientGoalSugar;
+
+  /// No description provided for @clientGoalCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs'**
+  String get clientGoalCarbs;
+
+  /// No description provided for @clientGoalProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein'**
+  String get clientGoalProtein;
+
+  /// No description provided for @clientGoalFat.
+  ///
+  /// In en, this message translates to:
+  /// **'Fat'**
+  String get clientGoalFat;
+
+  /// No description provided for @clientGoalBurnDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily burn'**
+  String get clientGoalBurnDaily;
+
+  /// No description provided for @clientGoalCardioWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly cardio'**
+  String get clientGoalCardioWeekly;
+
+  /// No description provided for @clientGoalStrengthWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly strength'**
+  String get clientGoalStrengthWeekly;
+
+  /// No description provided for @clientGoalStretchWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly stretching'**
+  String get clientGoalStretchWeekly;
+
+  /// No description provided for @clientBodyHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get clientBodyHeight;
+
+  /// No description provided for @clientBodyWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get clientBodyWeight;
+
+  /// No description provided for @clientUnitCm.
+  ///
+  /// In en, this message translates to:
+  /// **'cm'**
+  String get clientUnitCm;
+
+  /// No description provided for @clientGoalDefaultHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Faded values are the defaults used until a goal is set. Empty fields use them.'**
+  String get clientGoalDefaultHint;
 
   /// No description provided for @clientTrainerMemoHint.
   ///

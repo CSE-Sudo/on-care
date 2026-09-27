@@ -182,6 +182,15 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     'Message from 지수',
     _storedBody,
   ),
+  // 글 없이 사진만 보냈으면 본문을 화면 언어로 적는다(#1665).
+  (
+    'trainer_member_message',
+    <String, Object?>{'member_name': '지수', 'photo_only': true},
+    '지수 회원의 메시지',
+    '사진을 보냈어요',
+    'Message from 지수',
+    'Sent a photo',
+  ),
 ];
 
 /// 서버가 아는 트레이너 틀 전부. 백엔드 테스트가 이 코드들이 조립 파일에 있는지
@@ -391,6 +400,17 @@ void main() {
       }),
     );
     expect(text.body, 'Alex · 12/31 23:30');
+  });
+
+  test('사진 전용 표시가 거짓이면 회원이 쓴 글을 그대로 둔다', () {
+    final TrainerNotificationText text = _text(
+      _en,
+      _n('trainer_member_message', <String, Object?>{
+        'member_name': 'Alex',
+        'photo_only': false,
+      }, body: '사진과 함께 보내요'),
+    );
+    expect(text.body, '사진과 함께 보내요');
   });
 
   test('메시지 본문이 비었으면 비어 있는 그대로다', () {

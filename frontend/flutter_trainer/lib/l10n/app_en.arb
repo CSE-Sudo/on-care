@@ -85,7 +85,6 @@
   "actionDelete": "Delete",
   "actionClose": "Close",
   "actionRetry": "Retry",
-  "actionRefresh": "Refresh",
   "actionChange": "Change",
   "actionBack": "Back",
   "notFoundTitle": "Page not found",
@@ -358,6 +357,18 @@
       }
     }
   },
+  "clientsMemberCountFiltered": "{shown} of {total} members",
+  "@clientsMemberCountFiltered": {
+    "description": "Roster subtitle while a dashboard preset or management filter narrows the list.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "clientWeeklyRoutineAdherence": "Weekly adherence",
   "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
@@ -462,7 +473,6 @@
   "healthFocusExerciseHabit": "Exercise habit",
   "healthFocusBloodPressure": "Blood pressure care",
   "memberHealthConditions": "Conditions and cautions",
-  "memberHealthGoals": "Member goals",
   "memberHealthDietGoal": "Nutrition goals",
   "memberHealthExerciseGoal": "Exercise goals",
   "memberHealthGoalCalories": "Daily calories (kcal)",
@@ -554,8 +564,15 @@
   "metricFat": "Fat",
   "clientActive": "Active",
   "clientDormant": "Dormant",
+  "clientDormantActivate": "Tap to mark active",
+  "clientSignalLess": "Less",
+  "clientSignalMore": "+{count}",
+  "@clientSignalMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "clientStatusChangeFailed": "Couldn't change the status. Please try again.",
-  "clientClosePanel": "Close panel",
   "chatTooLong": "Message is too long (2000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
@@ -2181,6 +2198,10 @@
       }
     }
   },
+  "notifTplMemberPhotoBody": "Sent a photo",
+  "@notifTplMemberPhotoBody": {
+    "description": "Body of the new-message notification when a member sent only a photo in the coach chat."
+  },
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
   "notifUnreadCount": "{count} unread",
@@ -2364,12 +2385,7 @@
   },
   "dashTaskUncheckBody": "It also drops off the task progress chart.",
   "dashTaskUncheckConfirm": "Undo completion",
-  "churnNoRecentWorkout": "No workout logged in 7 days",
   "churnNoRecentFeedback": "No trainer feedback in 7 days",
-  "churnConsecutiveCancel": "2 consecutive cancellations/no-shows",
-  "churnDietStopped": "Diet logging stopped",
-  "churnGoalStagnant": "Goal metric stagnant long-term",
-  "churnUnresolvedRequest": "Unanswered message",
   "navMessages": "Messages",
   "messagesSubtitle": "Exchange coaching updates with members and follow up quickly",
   "messagesLoadFailed": "Couldn't load conversations.",
@@ -2394,9 +2410,26 @@
   "clientQuickMessages": "Messages",
   "clientQuickProgram": "Program",
   "clientQuickReport": "Report",
-  "clientHealthGoals": "Body profile & goals",
-  "clientProfileSectionTitle": "Body, goals & memo",
+  "clientProfileSectionTitle": "Body and goals",
   "clientTrainerMemo": "Memo",
+  "clientHealthUnset": "Not set",
+  "clientHealthTabBody": "Body",
+  "clientHealthTabFocus": "Health goals",
+  "clientGoalPerDay": "Per day",
+  "clientGoalCalories": "Calories",
+  "clientGoalSodium": "Sodium",
+  "clientGoalSugar": "Sugar",
+  "clientGoalCarbs": "Carbs",
+  "clientGoalProtein": "Protein",
+  "clientGoalFat": "Fat",
+  "clientGoalBurnDaily": "Daily burn",
+  "clientGoalCardioWeekly": "Weekly cardio",
+  "clientGoalStrengthWeekly": "Weekly strength",
+  "clientGoalStretchWeekly": "Weekly stretching",
+  "clientBodyHeight": "Height",
+  "clientBodyWeight": "Weight",
+  "clientUnitCm": "cm",
+  "clientGoalDefaultHint": "Faded values are the defaults used until a goal is set. Empty fields use them.",
   "clientTrainerMemoHint": "Note what you want to remember about this member",
   "clientTrainerMemoAdd": "Add memo",
   "clientTrainerMemoEmpty": "No memos yet.",
