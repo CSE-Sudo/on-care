@@ -1,0 +1,26 @@
+# 검사에 걸려야 하는 워크플로 예시(check_action_pins 테스트용, 실제로 돌지 않는다).
+name: Unpinned fixture
+
+on:
+  pull_request:
+
+jobs:
+  call-reusable:
+    uses: octo-org/shared/.github/workflows/build.yml@v1
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Branch reference
+        uses: subosito/flutter-action@main
+      - name: Short SHA
+        uses: actions/setup-python@a26af69
+      - name: Missing ref
+        uses: actions/cache
+      - name: Expression reference
+        uses: ${{ matrix.action }}
+      - name: Quoted tag
+        uses: 'actions/upload-artifact@v7' # v7
+      - name: Pinned step between violations
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
