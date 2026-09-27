@@ -2008,10 +2008,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLanguageApp => 'Display language';
 
   @override
-  String get myLanguageHint =>
-      'Choose the language this browser shows the console in';
-
-  @override
   String get myLanguageSystem => 'Match browser';
 
   @override
@@ -2158,6 +2154,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myClientManagementEmpty => 'No members assigned';
+
+  @override
+  String get myBasicInfo => 'Basic info';
+
+  @override
+  String myClientManagementHint(int count) {
+    return '$count members';
+  }
 
   @override
   String get myStatSessionsDone => 'Sessions done';

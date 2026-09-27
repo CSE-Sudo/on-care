@@ -3584,12 +3584,6 @@ abstract class AppLocalizations {
   /// **'Display language'**
   String get myLanguageApp;
 
-  /// No description provided for @myLanguageHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose the language this browser shows the console in'**
-  String get myLanguageHint;
-
   /// No description provided for @myLanguageSystem.
   ///
   /// In en, this message translates to:
@@ -3859,6 +3853,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No members assigned'**
   String get myClientManagementEmpty;
+
+  /// No description provided for @myBasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic info'**
+  String get myBasicInfo;
+
+  /// No description provided for @myClientManagementHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String myClientManagementHint(int count);
 
   /// No description provided for @myStatSessionsDone.
   ///

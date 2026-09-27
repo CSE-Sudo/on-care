@@ -356,6 +356,17 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   void _go(_MySection section) => context.go(AppRoutes.mySection(section.name));
 
+  /// 두 판으로 펼칠 만큼 넓은가(#2264). 넓으면 설정은 목록 옆에 고른 항목을,
+  /// 내 정보는 프로필 요약 옆에 상세를 둔다 — 한 열을 늘이면 오른쪽 절반이
+  /// 비고, 줄 끝의 화살표·스위치가 제목에서 너무 멀어진다.
+  bool get _wide =>
+      MediaQuery.sizeOf(context).width >= OnCareLayout.twoColumnBreakpoint;
+
+  /// 넓은 화면의 설정 오른쪽 판에 보일 항목. 목록만 연 상태면 첫 줄(알림)이다.
+  _MySection get _settingsDetail => _section.parent == _MySection.settings
+      ? _section
+      : _MySection.notifications;
+
   String _title(AppLocalizations l, _MySection section) => switch (section) {
     _MySection.profile => l.myTabProfile,
     _MySection.settings => l.myTabSettings,
@@ -379,7 +390,12 @@ class _MyPageState extends ConsumerState<MyPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final _MySection section = _section;
+    final bool wide = _wide;
+    // 넓은 화면에서는 설정의 하위 항목도 목록 옆에 열린다 — 따로 떠난 화면이
+    // 아니므로 뒤로 가기 대신 토글을 그대로 둔다.
+    final _MySection section = wide && _section.parent == _MySection.settings
+        ? _MySection.settings
+        : _section;
     final _MySection? parent = section.parent;
     // 다른 탭과 같은 폭을 쓴다(#2227). 좁은 틀은 큰 화면에서 이 화면만 양옆이
     // 크게 비어, 사이드바에서 옮겨 올 때 화면이 바뀐 것처럼 보였다.
@@ -440,19 +456,8 @@ class _MyPageState extends ConsumerState<MyPage> {
               // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채 회원 관리로
               // 들어가면 목록이 중간부터 보였다.
               child: SingleChildScrollView(
-                key: ValueKey<String>('my-${section.name}'),
-                // 헤더·토글은 다른 탭과 같은 폭을 쓰고, 읽는 본문만 한 열
-                // 폭에서 멈춘다(#2264). 1440px 이상에서 한 열 카드가 끝까지
-                // 늘어나면 줄 끝의 화살표·스위치가 제목에서 너무 멀어진다.
-                child: Align(
-                  alignment: AlignmentDirectional.topStart,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: OnCareLayout.webNarrowMaxWidth,
-                    ),
-                    child: _body(section),
-                  ),
-                ),
+                key: ValueKey<String>('my-${_section.name}'),
+                child: _body(section),
               ),
             ),
           ],
@@ -461,7 +466,43 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
   }
 
-  /// 내 정보 — 읽기 전용이다. 순서는 회원 앱 MY 와 같다: 나 → 소속 → 활동.
+  /// 넓은 화면의 두 판. [side] 는 고정 폭, [main] 이 남은 폭을 받는다.
+  /// 좁으면 위아래로 쌓는다.
+  Widget _twoPane({required Widget side, required Widget main}) {
+    if (!_wide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          side,
+          const SizedBox(height: OnCareSpacing.sectionGap),
+          main,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(width: OnCareLayout.splitListWidth, child: side),
+        const SizedBox(width: OnCareSpacing.sectionGap),
+        Expanded(child: main),
+      ],
+    );
+  }
+
+  /// 섹션 제목 + 본문 묶음.
+  Widget _titled(String title, Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AppSectionHeader(title: title),
+        const SizedBox(height: OnCareSpacing.s8),
+        child,
+      ],
+    );
+  }
+
+  /// 내 정보 — 읽기 전용이다. 회원 앱 MY 처럼 나(프로필·이번 달 활동)를 먼저,
+  /// 소속과 자격, 회원 관리를 그 옆(좁으면 아래)에 둔다.
   Widget _buildProfile() {
     final AppLocalizations l = AppLocalizations.of(context);
     final clientCount = ref.watch(clientsProvider).valueOrNull?.length ?? 0;
@@ -472,40 +513,48 @@ class _MyPageState extends ConsumerState<MyPage> {
           AppBanner(title: l.mySaved, tone: AppBannerTone.success),
           const SizedBox(height: OnCareSpacing.s12),
         ],
-        _ProfileCard(profile: _profile, editing: false, field: _field),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        AppSectionHeader(title: l.myGym),
-        const SizedBox(height: OnCareSpacing.s8),
-        _GymCard(
-          gym: _gym,
-          editing: false,
-          field: _field,
-          choices: const AsyncValue<List<TrainerGymChoice>>.loading(),
-          selectedGymId: _gym.id ?? '',
-          onGymChanged: (_) {},
-        ),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        AppSectionHeader(title: l.myCertifications),
-        const SizedBox(height: OnCareSpacing.s8),
-        _CertsCard(
-          certs: _certs,
-          editing: false,
-          newCert: _newCert,
-          onAdd: () {},
-          onRemove: (_) {},
-        ),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        AppSectionHeader(title: l.myMonthStats),
-        const SizedBox(height: OnCareSpacing.s8),
-        _StatsCard(clientCount: clientCount),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: _NavRow(
-            key: const ValueKey<String>('my-clients-entry'),
-            icon: Icons.manage_accounts_rounded,
-            title: l.myClientManagement,
-            onTap: () => _go(_MySection.clients),
+        _twoPane(
+          side: _ProfileSummaryCard(
+            profile: _profile,
+            clientCount: clientCount,
+          ),
+          main: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _titled(
+                l.myGym,
+                _GymCard(
+                  gym: _gym,
+                  editing: false,
+                  field: _field,
+                  choices: const AsyncValue<List<TrainerGymChoice>>.loading(),
+                  selectedGymId: _gym.id ?? '',
+                  onGymChanged: (_) {},
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.sectionGap),
+              _titled(
+                l.myCertifications,
+                _CertsCard(
+                  certs: _certs,
+                  editing: false,
+                  newCert: _newCert,
+                  onAdd: () {},
+                  onRemove: (_) {},
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.sectionGap),
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: _NavRow(
+                  key: const ValueKey<String>('my-clients-entry'),
+                  icon: Icons.manage_accounts_rounded,
+                  title: l.myClientManagement,
+                  subtitle: l.myClientManagementHint(clientCount),
+                  onTap: () => _go(_MySection.clients),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -513,47 +562,66 @@ class _MyPageState extends ConsumerState<MyPage> {
   }
 
   /// 프로필 수정 — 내 정보 본문을 편집 모드로 바꾸지 않고 따로 연다(#2264).
-  /// 저장은 헤더 버튼, 취소는 뒤로 가기다.
+  /// 저장은 헤더 버튼, 취소는 뒤로 가기다. 넓으면 기본 정보와 자격·소속을
+  /// 두 열로 나눠, 긴 폼을 끝까지 내리지 않아도 한눈에 보인다.
   Widget _buildEdit() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
+    final Widget basics = _ProfileCard(
+      profile: _profile,
+      field: _field,
+      phoneError: _showPhoneError ? _phoneError(l) : null,
+      onPhoneChanged: _showPhoneError ? (_) => setState(() {}) : null,
+    );
+    final Widget extras = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _ProfileCard(
-          profile: _profile,
-          editing: true,
-          field: _field,
-          phoneError: _showPhoneError ? _phoneError(l) : null,
-          onPhoneChanged: _showPhoneError ? (_) => setState(() {}) : null,
+        _titled(
+          l.myCertifications,
+          _CertsCard(
+            certs: _draftCerts,
+            editing: true,
+            newCert: _newCert,
+            onAdd: () {
+              final v = _newCert.text.trim();
+              if (v.isEmpty) return;
+              setState(() {
+                _draftCerts.add(v);
+                _newCert.clear();
+              });
+            },
+            onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
+          ),
         ),
         const SizedBox(height: OnCareSpacing.sectionGap),
-        AppSectionHeader(title: l.myCertifications),
-        const SizedBox(height: OnCareSpacing.s8),
-        _CertsCard(
-          certs: _draftCerts,
-          editing: true,
-          newCert: _newCert,
-          onAdd: () {
-            final v = _newCert.text.trim();
-            if (v.isEmpty) return;
-            setState(() {
-              _draftCerts.add(v);
-              _newCert.clear();
-            });
-          },
-          onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
+        _titled(
+          l.myGym,
+          _GymCard(
+            gym: _gym,
+            editing: true,
+            field: _field,
+            choices: ref.watch(trainerGymChoicesProvider),
+            selectedGymId: _draftGymId,
+            onGymChanged: (value) => setState(() => _draftGymId = value),
+          ),
         ),
-        const SizedBox(height: OnCareSpacing.sectionGap),
-        AppSectionHeader(title: l.myGym),
-        const SizedBox(height: OnCareSpacing.s8),
-        _GymCard(
-          gym: _gym,
-          editing: true,
-          field: _field,
-          choices: ref.watch(trainerGymChoicesProvider),
-          selectedGymId: _draftGymId,
-          onGymChanged: (value) => setState(() => _draftGymId = value),
-        ),
+      ],
+    );
+    if (!_wide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          basics,
+          const SizedBox(height: OnCareSpacing.sectionGap),
+          extras,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(child: _titled(l.myBasicInfo, basics)),
+        const SizedBox(width: OnCareSpacing.sectionGap),
+        Expanded(child: extras),
       ],
     );
   }
@@ -588,12 +656,15 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   /// 설정 — 회원 앱 MY 의 설정 목록과 같은 한 장짜리 목록이다(#2264).
   ///
-  /// 줄마다 하위 화면으로 들어가고, 화면 언어만 줄 안에서 고른다(선택지가
-  /// 셋뿐이다). 고객 지원은 목록 끝, 로그아웃은 그 아래 맨 끝이다(#2227) —
-  /// 계정 줄들 사이에 버튼이 끼면 어디에 걸린 동작인지 흐려진다.
+  /// 좁으면 줄마다 하위 화면으로 들어가고, 넓으면 고른 항목이 목록 오른쪽에
+  /// 열린다. 화면 언어만 줄 안에서 고른다(선택지가 셋뿐이다). 고객 지원은
+  /// 목록 끝, 로그아웃은 그 아래 맨 끝이다(#2227) — 계정 줄들 사이에 버튼이
+  /// 끼면 어디에 걸린 동작인지 흐려진다.
   Widget _buildSettings() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
+    final bool wide = _wide;
+    final _MySection? selected = wide ? _settingsDetail : null;
+    final Widget list = AppCard(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -602,6 +673,7 @@ class _MyPageState extends ConsumerState<MyPage> {
             key: const ValueKey<String>('my-notifications-entry'),
             icon: Icons.notifications_rounded,
             title: l.myNotifications,
+            selected: selected == _MySection.notifications,
             onTap: () => _go(_MySection.notifications),
           ),
           const AppDivider(),
@@ -611,6 +683,7 @@ class _MyPageState extends ConsumerState<MyPage> {
             key: const ValueKey<String>('my-account-entry'),
             icon: Icons.lock_rounded,
             title: l.myAccount,
+            selected: selected == _MySection.account,
             onTap: () => _go(_MySection.account),
           ),
           const AppDivider(),
@@ -621,6 +694,7 @@ class _MyPageState extends ConsumerState<MyPage> {
             key: const ValueKey<String>('my-support-entry'),
             icon: Icons.support_agent_rounded,
             title: l.mySupportTitle,
+            selected: selected == _MySection.support,
             onTap: () => _go(_MySection.support),
           ),
           const AppDivider(),
@@ -638,6 +712,17 @@ class _MyPageState extends ConsumerState<MyPage> {
             ),
           ),
         ],
+      ),
+    );
+    if (selected == null) return list;
+    return _twoPane(
+      side: list,
+      main: _titled(
+        _title(l, selected),
+        KeyedSubtree(
+          key: ValueKey<String>('my-detail-${selected.name}'),
+          child: _body(selected),
+        ),
       ),
     );
   }
@@ -883,17 +968,25 @@ class _NavRow extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.subtitle,
+    this.selected = false,
   });
 
   final IconData icon;
   final String title;
   final VoidCallback onTap;
+  final String? subtitle;
+
+  /// 넓은 화면에서 오른쪽 판에 열려 있는 줄.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return AppListRow(
       leading: _IconTile(icon: icon),
       title: title,
+      subtitle: subtitle,
+      selected: selected,
       trailing: const Icon(
         Icons.chevron_right_rounded,
         size: OnCareSize.iconMedium,
@@ -926,7 +1019,6 @@ class _LanguageRow extends ConsumerWidget {
     return AppListRow(
       leading: const _IconTile(icon: Icons.language_rounded),
       title: l.myLanguageApp,
-      subtitle: l.myLanguageHint,
       trailing: AppMenu(
         items: <AppMenuItem>[
           for (final TrainerLanguage language in TrainerLanguage.values)
@@ -1076,17 +1168,99 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   }
 }
 
+/// 내 정보의 프로필 요약 — 나를 소개하는 줄과 이번 달 활동을 한 장에 묶는다
+/// (#2264). 회원 앱 MY 의 프로필 카드처럼 화면의 첫 덩어리다.
+class _ProfileSummaryCard extends StatelessWidget {
+  const _ProfileSummaryCard({required this.profile, required this.clientCount});
+
+  final TrainerProfile profile;
+  final int clientCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      padding: const EdgeInsets.all(OnCareSpacing.s24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              AppAvatar(name: profile.name, size: AppAvatarSize.xLarge),
+              const SizedBox(width: OnCareSpacing.s16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      profile.name,
+                      style: tokens
+                          .text(OnCareTypography.titleMedium)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s2),
+                    Text(
+                      profile.email,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          Wrap(
+            spacing: OnCareSpacing.s4,
+            runSpacing: OnCareSpacing.s4,
+            children: <Widget>[
+              AppTag(label: profile.specialty, tone: AppTagTone.brand),
+              AppTag(label: l.myCareerYears(profile.career)),
+            ],
+          ),
+          // 소개도 본문에 보인다 — 예전에는 편집 모드에서만 보여, 무엇을 써
+          // 두었는지 확인하려면 수정 화면을 열어야 했다.
+          if (profile.intro.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            Text(
+              profile.intro,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
+            child: AppDivider(),
+          ),
+          Text(
+            l.myMonthStats,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _StatsRow(clientCount: clientCount),
+        ],
+      ),
+    );
+  }
+}
+
+/// 프로필 수정의 기본 정보 칸. 이름·이메일은 계정 소관이라 비활성이다.
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.profile,
-    required this.editing,
     required this.field,
     this.phoneError,
     this.onPhoneChanged,
   });
 
   final TrainerProfile profile;
-  final bool editing;
   final TextEditingController Function(String, String) field;
 
   /// 전화번호 칸 아래 안내(#1914). 저장을 눌러 한 번 막히기 전에는 null 이다.
@@ -1099,103 +1273,48 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              AppAvatar(name: profile.name, size: AppAvatarSize.xLarge),
-              const SizedBox(width: OnCareSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      profile.name,
-                      style: tokens
-                          .text(OnCareTypography.titleSmall)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                    Text(
-                      profile.email,
-                      style: tokens
-                          .text(OnCareTypography.bodySmall)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    Wrap(
-                      spacing: OnCareSpacing.s4,
-                      runSpacing: OnCareSpacing.s4,
-                      children: <Widget>[
-                        AppTag(
-                          label: profile.specialty,
-                          tone: AppTagTone.brand,
-                        ),
-                        AppTag(label: l.myCareerYears(profile.career)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          _EditField(
+            label: l.myFieldName,
+            controller: field('name', profile.name),
+            enabled: false,
           ),
-          // 읽기 전용 본문에도 소개를 보인다 — 예전에는 편집 모드에서만 보여,
-          // 무엇을 써 두었는지 확인하려면 수정 화면을 열어야 했다(#2264).
-          if (!editing && profile.intro.trim().isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            Text(
-              profile.intro,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          ],
-          if (editing) ...<Widget>[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
-              child: AppDivider(),
-            ),
-            _EditField(
-              label: l.myFieldName,
-              controller: field('name', profile.name),
-              enabled: false,
-            ),
-            _EditField(
-              label: l.myFieldEmail,
-              controller: field('email', profile.email),
-              enabled: false,
-            ),
-            _EditField(
-              label: l.myFieldPhone,
-              controller: field('phone', profile.phone),
-              inputKey: const ValueKey<String>('profile-phone'),
-              keyboardType: TextInputType.phone,
-              // 숫자만 쳐도 하이픈을 넣어 준다 — 회원 앱 가입 화면과 같은
-              // 서식이다(#1914).
-              inputFormatters: const <TextInputFormatter>[
-                AppPhoneNumberFormatter(),
-              ],
-              errorText: phoneError,
-              // 오류를 보인 뒤에는 고치는 대로 다시 검사한다.
-              onChanged: onPhoneChanged,
-            ),
-            _EditField(
-              label: l.myFieldSpecialty,
-              controller: field('specialty', profile.specialty),
-            ),
-            _EditField(
-              label: l.myFieldCareer,
-              controller: field('career', profile.career),
-              inputKey: const ValueKey<String>('profile-career'),
-            ),
-            _EditField(
-              label: l.myFieldIntro,
-              controller: field('intro', profile.intro),
-              maxLines: 3,
-            ),
-          ],
+          _EditField(
+            label: l.myFieldEmail,
+            controller: field('email', profile.email),
+            enabled: false,
+          ),
+          _EditField(
+            label: l.myFieldPhone,
+            controller: field('phone', profile.phone),
+            inputKey: const ValueKey<String>('profile-phone'),
+            keyboardType: TextInputType.phone,
+            // 숫자만 쳐도 하이픈을 넣어 준다 — 회원 앱 가입 화면과 같은
+            // 서식이다(#1914).
+            inputFormatters: const <TextInputFormatter>[
+              AppPhoneNumberFormatter(),
+            ],
+            errorText: phoneError,
+            // 오류를 보인 뒤에는 고치는 대로 다시 검사한다.
+            onChanged: onPhoneChanged,
+          ),
+          _EditField(
+            label: l.myFieldSpecialty,
+            controller: field('specialty', profile.specialty),
+          ),
+          _EditField(
+            label: l.myFieldCareer,
+            controller: field('career', profile.career),
+            inputKey: const ValueKey<String>('profile-career'),
+          ),
+          _EditField(
+            label: l.myFieldIntro,
+            controller: field('intro', profile.intro),
+            maxLines: 3,
+          ),
         ],
       ),
     );
@@ -1460,37 +1579,35 @@ class _ManagedClientRow extends StatelessWidget {
 ///
 /// [AppStatCard] 는 숫자와 단위를 한 줄(`15 명`)로 묶는데, 이 화면은 숫자만
 /// 따로 읽히는 계약(테스트가 `15` 를 찾는다)이라 한 카드 안에 세 칸을 조립한다.
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.clientCount});
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.clientCount});
 
   final int clientCount;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
-      child: Row(
-        children: <Widget>[
-          _Stat(
-            icon: Icons.people_alt_rounded,
-            value: '$clientCount',
-            unit: l.dashUnitPeople,
-            label: l.myStatClients,
-          ),
-          _Stat(
-            icon: Icons.check_circle_outline_rounded,
-            value: '24',
-            unit: l.unitTimes,
-            label: l.myStatSessionsDone,
-          ),
-          _Stat(
-            icon: Icons.send_rounded,
-            value: '18',
-            unit: l.dashUnitCount,
-            label: l.myStatRoutinesSent,
-          ),
-        ],
-      ),
+    return Row(
+      children: <Widget>[
+        _Stat(
+          icon: Icons.people_alt_rounded,
+          value: '$clientCount',
+          unit: l.dashUnitPeople,
+          label: l.myStatClients,
+        ),
+        _Stat(
+          icon: Icons.check_circle_outline_rounded,
+          value: '24',
+          unit: l.unitTimes,
+          label: l.myStatSessionsDone,
+        ),
+        _Stat(
+          icon: Icons.send_rounded,
+          value: '18',
+          unit: l.dashUnitCount,
+          label: l.myStatRoutinesSent,
+        ),
+      ],
     );
   }
 }

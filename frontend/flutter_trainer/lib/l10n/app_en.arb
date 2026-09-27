@@ -1310,7 +1310,6 @@
   "myNotifNewMessageHint": "A sidebar badge appears when a member messages you",
   "myLanguage": "Language",
   "myLanguageApp": "Display language",
-  "myLanguageHint": "Choose the language this browser shows the console in",
   "myLanguageSystem": "Match browser",
   "myLanguageKorean": "한국어",
   "@myLanguageKorean": {
@@ -1376,6 +1375,15 @@
   "myClientRemoveSuccess": "Member removed",
   "myClientRemoveFailed": "Couldn't remove the member. Please try again",
   "myClientManagementEmpty": "No members assigned",
+  "myBasicInfo": "Basic info",
+  "myClientManagementHint": "{count} members",
+  "@myClientManagementHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myStatSessionsDone": "Sessions done",
   "myStatRoutinesSent": "Programs sent",
   "myGymName": "Gym name",

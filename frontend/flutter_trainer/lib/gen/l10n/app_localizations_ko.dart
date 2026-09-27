@@ -1926,9 +1926,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLanguageApp => '화면 언어';
 
   @override
-  String get myLanguageHint => '이 브라우저에서 콘솔을 볼 언어를 골라요';
-
-  @override
   String get myLanguageSystem => '브라우저 설정 따르기';
 
   @override
@@ -2069,6 +2066,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myClientManagementEmpty => '담당 회원이 없어요';
+
+  @override
+  String get myBasicInfo => '기본 정보';
+
+  @override
+  String myClientManagementHint(int count) {
+    return '담당 회원 $count명';
+  }
 
   @override
   String get myStatSessionsDone => '완료 세션';

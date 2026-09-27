@@ -59,7 +59,6 @@ void main() {
 
       // 설정 목록의 한 줄이다(#2264) — 카드 제목 '언어' 는 따로 없다.
       expect(find.text('화면 언어'), findsOneWidget);
-      expect(find.text('이 브라우저에서 콘솔을 볼 언어를 골라요'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(_button),

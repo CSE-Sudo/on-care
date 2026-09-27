@@ -191,22 +191,58 @@ void main() {
     });
   });
 
-  testWidgets('넓은 화면에서도 본문은 한 열 폭에서 멈춘다', (tester) async {
-    tester.view
-      ..physicalSize = const Size(1600, 1000)
-      ..devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await _openSettings(tester);
+  group('넓은 화면', () {
+    void useWideView(WidgetTester tester) {
+      tester.view
+        ..physicalSize = const Size(1600, 1000)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
 
-    final Finder card = find
-        .ancestor(
-          of: find.byKey(const ValueKey<String>('my-support-entry')),
-          matching: find.byType(AppCard),
-        )
-        .first;
-    expect(
-      tester.getSize(card).width,
-      lessThanOrEqualTo(OnCareLayout.webNarrowMaxWidth),
-    );
+    testWidgets('설정은 목록 옆에 고른 항목을 연다 — 처음에는 알림', (tester) async {
+      useWideView(tester);
+      await _openSettings(tester);
+
+      final Finder list = find.byKey(
+        const ValueKey<String>('my-support-entry'),
+      );
+      final Finder detail = find.byKey(
+        const ValueKey<String>('my-notif-new-message'),
+      );
+      expect(detail, findsOneWidget);
+      expect(
+        tester.getCenter(detail).dx,
+        greaterThan(tester.getCenter(list).dx),
+      );
+
+      await tester.tap(list);
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('support'));
+      // 목록은 그대로 있고 오른쪽만 바뀐다 — 뒤로 가기 대신 토글이 남는다.
+      expect(
+        find.byKey(const ValueKey<String>('my-logout-button')),
+        findsOneWidget,
+      );
+      expect(find.text(_ko.mySupportFaq), findsOneWidget);
+      expect(find.byTooltip('뒤로'), findsNothing);
+    });
+
+    testWidgets('내 정보는 프로필 요약 옆에 소속·자격을 둔다', (tester) async {
+      useWideView(tester);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('profile'),
+      );
+
+      final double name = tester.getCenter(find.text('trainer@oncare.com')).dx;
+      final double gym = tester.getCenter(find.text(_ko.myGym)).dx;
+      expect(gym, greaterThan(name));
+      // 두 판이 한 줄에 선다 — 소속 헬스장이 요약 아래로 밀리지 않는다.
+      expect(
+        tester.getTopLeft(find.text(_ko.myGym)).dy,
+        lessThan(tester.getBottomLeft(find.text(_ko.myMonthStats)).dy),
+      );
+    });
   });
 }
