@@ -55,8 +55,18 @@ class RequestIdLogFilter(logging.Filter):
         return True
 
 
+# 외부 호출 HTTP 클라이언트 로거. httpx 는 INFO 로 요청마다 전체 URL(쿼리 포함)을 남기고
+# httpcore 는 DEBUG 로 연결 단계를 남긴다. 외부 API 의 URL 쿼리에는 토큰·키가 실릴 수
+# 있으므로 루트 수준과 상관없이 WARNING 이상만 남긴다(#2351).
+_QUIET_HTTP_CLIENT_LOGGERS = ("httpx", "httpcore")
+
+
 def setup_logging(level: str = "INFO") -> None:
-    """루트 로거를 request_id 포함 포맷으로 설정한다(호출당 핸들러 1개로 재설정)."""
+    """루트 로거를 request_id 포함 포맷으로 설정한다(호출당 핸들러 1개로 재설정).
+
+    외부 호출 HTTP 클라이언트 로거(httpx·httpcore)는 WARNING 으로 고정한다 — 요청 URL 이
+    INFO 로그에 남지 않게 한다.
+    """
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(
         "%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s"
@@ -65,6 +75,8 @@ def setup_logging(level: str = "INFO") -> None:
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(level)
+    for name in _QUIET_HTTP_CLIENT_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 # LB/오케스트레이터가 자주 폴링하는 헬스 경로는 액세스 로그에서 제외(로그 도배 방지).
