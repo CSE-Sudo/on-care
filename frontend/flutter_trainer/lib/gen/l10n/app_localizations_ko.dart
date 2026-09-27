@@ -868,6 +868,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietMacrosMissing => '탄·단·지 기록 없음';
 
   @override
+  String get clientDietTotalCalories => '총 칼로리';
+
+  @override
+  String get clientDietDayTotal => '하루 합계';
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
+
+  @override
   String get metricCarbs => '탄수화물';
 
   @override
@@ -1220,11 +1231,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String dietAmountRemaining(String amount) {
     return '목표까지 $amount 남았어요';
-  }
-
-  @override
-  String dietSodiumValue(int value) {
-    return '나트륨 ${value}mg';
   }
 
   @override
