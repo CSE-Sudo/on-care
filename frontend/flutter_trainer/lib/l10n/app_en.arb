@@ -14,7 +14,7 @@
   },
   "scheduleStatusCancelled": "Cancelled",
   "scheduleStatusNoShow": "No-show",
-  "schedCancel": "Cancel session",
+  "schedCancel": "Cancel",
   "schedNoShow": "Mark no-show",
   "schedCancelTitle": "Cancel this PT?",
   "schedCancelConfirm": "The {time} session with {name} will be recorded as cancelled. The entry stays.",

@@ -5,7 +5,7 @@
   "scheduleStatusDone": "완료",
   "scheduleStatusCancelled": "취소",
   "scheduleStatusNoShow": "노쇼",
-  "schedCancel": "취소 처리",
+  "schedCancel": "취소",
   "schedNoShow": "노쇼 처리",
   "schedCancelTitle": "이 PT를 취소할까요?",
   "schedCancelConfirm": "{time} {name} 님 PT가 취소로 기록됩니다. 일정은 지워지지 않아요.",
