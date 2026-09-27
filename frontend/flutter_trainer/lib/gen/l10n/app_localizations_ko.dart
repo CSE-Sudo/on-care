@@ -1146,6 +1146,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI 개인운동';
 
   @override
+  String get workoutKindPtSession => 'PT 세션 · 트레이너 지도';
+
+  @override
+  String get workoutKindAssignedRoutine => '배정 루틴 수행';
+
+  @override
   String get trainerNote => '트레이너 메모';
 
   @override
@@ -1204,6 +1210,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dateYesterday => '어제';
+
+  @override
+  String dateDaysAgo(int count) {
+    return '$count일 전';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    return '$count주 전';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {

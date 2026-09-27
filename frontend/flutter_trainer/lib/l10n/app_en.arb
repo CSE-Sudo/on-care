@@ -717,6 +717,14 @@
   "clientFeedback": "Member feedback",
   "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
+  "workoutKindPtSession": "PT session · Trainer-led",
+  "@workoutKindPtSession": {
+    "description": "Workout history kind for a completed PT session (server kind code pt_session)."
+  },
+  "workoutKindAssignedRoutine": "Assigned routine",
+  "@workoutKindAssignedRoutine": {
+    "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
+  },
   "trainerNote": "Trainer's note",
   "dietLoadFailed": "Couldn't load meals",
   "dietEmpty": "No meals logged yet",
@@ -756,6 +764,47 @@
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",
   "dateYesterday": "Yesterday",
+  "dateDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@dateDaysAgo": {
+    "description": "Relative day label, used for two or more days ago (e.g. when the last routine was sent).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dateWeeksAgo": "{count, plural, =1{1 week ago} other{{count} weeks ago}}",
+  "@dateWeeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyDate": "{month}/{day}",
+  "@historyDate": {
+    "description": "Short date on a workout history card.",
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "historyDateRelative": "{date} ({relative})",
+  "@historyDateRelative": {
+    "description": "Workout history date with Today/Yesterday, e.g. 9/27 (Today).",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "relative": {
+        "type": "String"
+      }
+    }
+  },
   "dateMonthDayWeekday": "{month}/{day} ({weekday})",
   "@dateMonthDayWeekday": {
     "placeholders": {
