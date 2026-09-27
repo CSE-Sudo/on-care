@@ -217,19 +217,26 @@ class ReportWorkbench extends StatelessWidget {
             ),
           ],
         ),
-        AppSegmentedToggle<ReportQueueSort>(
-          segments: <AppSegment<ReportQueueSort>>[
-            AppSegment<ReportQueueSort>(
-              value: ReportQueueSort.priority,
-              label: l.reportsSortPriority,
-            ),
-            AppSegment<ReportQueueSort>(
-              value: ReportQueueSort.name,
-              label: l.reportsSortName,
-            ),
+        // 회원 탭과 같은 `정렬: … ▾` 메뉴 — 토글은 항목이 늘 때마다 폭이 넓어져
+        // 머리 줄을 밀어냈고, 같은 "정렬" 이 탭마다 다른 모양이었다(#2398).
+        AppMenu(
+          items: <AppMenuItem>[
+            for (final ReportQueueSort item in ReportQueueSort.values)
+              AppMenuItem(
+                key: ValueKey<String>('reports-sort-${item.name}'),
+                label: _sortLabel(l, item),
+                selected: item == sort,
+                onSelected: () => onSortChanged(item),
+              ),
           ],
-          selected: sort,
-          onChanged: onSortChanged,
+          triggerBuilder: (context, toggle) => AppButton(
+            key: const ValueKey<String>('reports-sort-button'),
+            label: '${l.reportsSortLabel}: ${_sortLabel(l, sort)}',
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            trailingIcon: Icons.arrow_drop_down_rounded,
+            onPressed: toggle,
+          ),
         ),
       ],
     );
@@ -252,6 +259,14 @@ class ReportWorkbench extends StatelessWidget {
           _QueueRow(entry: entry, loading: loading, onTap: () => onOpen(entry)),
       ],
     );
+  }
+
+  String _sortLabel(AppLocalizations l, ReportQueueSort value) {
+    return switch (value) {
+      ReportQueueSort.priority => l.reportsSortPriority,
+      ReportQueueSort.name => l.reportsSortName,
+      ReportQueueSort.nameDescending => l.reportsSortNameDescending,
+    };
   }
 
   Widget _sentCard(
