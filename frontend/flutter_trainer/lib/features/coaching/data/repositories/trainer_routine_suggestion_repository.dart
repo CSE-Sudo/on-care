@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
+import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Reads and reviews the AI personal-exercise suggestions for one member.
 ///
@@ -67,7 +69,17 @@ class RoutineSuggestionAlreadyReviewed implements Exception {
 class MockTrainerRoutineSuggestionRepository
     implements TrainerRoutineSuggestionRepository {
   /// Creates the demo repository.
-  MockTrainerRoutineSuggestionRepository();
+  ///
+  /// [languageCode] 는 후보를 **처음 준비하는 순간의** 화면 언어다(#2301).
+  /// 실서버가 준비하는 요청의 언어로 이름·사유를 만들어 저장하는 것과 같다 —
+  /// 한 번 준비한 후보의 문장은 언어를 바꿔도 그대로이고, 근거는 코드라
+  /// 화면 언어를 따른다. 생략하면 한국어다.
+  MockTrainerRoutineSuggestionRepository({String Function()? languageCode})
+    : _languageCode = languageCode ?? _korean;
+
+  final String Function() _languageCode;
+
+  static String _korean() => 'ko';
 
   /// 회원별 검토 대기 목록. 처음 조회할 때 시드한다.
   final Map<String, List<RoutineSuggestion>> _pending =
@@ -86,7 +98,10 @@ class MockTrainerRoutineSuggestionRepository
       minutes: 30,
       type: '유산소',
       reason: '빠르게 걷다 천천히 걷기를 번갈아 하는 회복 목적 유산소예요. 숨이 차면 속도를 낮추세요.',
-      evidence: <String>['혈압 관리 목표', '최근 근력운동 비중 높음'],
+      evidence: <String>[
+        RoutineEvidence.bloodPressureGoal,
+        RoutineEvidence.strengthHeavy,
+      ],
     ),
     RoutineSuggestion(
       id: 'demo-suggestion-thoracic',
@@ -94,7 +109,7 @@ class MockTrainerRoutineSuggestionRepository
       minutes: 10,
       type: '스트레칭',
       reason: '등 위쪽을 돌려 어깨 부담을 줄이는 스트레칭이에요. 통증이 있으면 멈추세요.',
-      evidence: <String>['최근 PT 피드백 반영'],
+      evidence: <String>[RoutineEvidence.recentPtFeedback],
     ),
     // 근력 후보를 하나 둔다 — 세트·횟수·중량을 묻는 자리가 데모에서도 보여야
     // 그 칸이 실제로 동작하는지 시연에서 확인할 수 있다. (#1321)
@@ -107,12 +122,58 @@ class MockTrainerRoutineSuggestionRepository
       reps: 15,
       weight: 0,
       reason: '누워서 엉덩이를 들어 올리는 하체 근력 운동이에요. 허리가 아프면 범위를 줄이세요.',
-      evidence: <String>['최근 근력운동 비중 높음'],
+      evidence: <String>[RoutineEvidence.strengthHeavy],
     ),
   ];
 
-  List<RoutineSuggestion> _listFor(String memberId) =>
-      _pending.putIfAbsent(memberId, () => List<RoutineSuggestion>.of(_seed));
+  /// [_seed] 의 영어판(#2301). id·시간·유형·근거는 같고 이름·사유만 다르다.
+  static const List<RoutineSuggestion> _seedEn = <RoutineSuggestion>[
+    RoutineSuggestion(
+      id: 'demo-suggestion-interval',
+      name: 'Light interval run',
+      minutes: 30,
+      type: '유산소',
+      reason:
+          'Recovery cardio that alternates brisk and easy walking. '
+          'Slow down if you get out of breath.',
+      evidence: <String>[
+        RoutineEvidence.bloodPressureGoal,
+        RoutineEvidence.strengthHeavy,
+      ],
+    ),
+    RoutineSuggestion(
+      id: 'demo-suggestion-thoracic',
+      name: 'Thoracic rotation stretch',
+      minutes: 10,
+      type: '스트레칭',
+      reason:
+          'A stretch that rotates the upper back to ease shoulder strain. '
+          'Stop if you feel any pain.',
+      evidence: <String>[RoutineEvidence.recentPtFeedback],
+    ),
+    RoutineSuggestion(
+      id: 'demo-suggestion-hip-bridge',
+      name: 'Hip bridge',
+      minutes: 12,
+      type: '근력',
+      sets: 3,
+      reps: 15,
+      weight: 0,
+      reason:
+          'A lower-body strength move lifting your hips while lying down. '
+          'Shorten the range if your lower back hurts.',
+      evidence: <String>[RoutineEvidence.strengthHeavy],
+    ),
+  ];
+
+  /// 이 언어의 데모 후보. 영어가 아니면 한국어다.
+  static List<RoutineSuggestion> seedFor(String languageCode) =>
+      languageCode == 'en' ? _seedEn : _seed;
+
+  List<RoutineSuggestion> _listFor(String memberId) => _pending.putIfAbsent(
+    memberId,
+    () => List<RoutineSuggestion>.of(seedFor(_languageCode())),
+  );
 
   @override
   Future<List<RoutineSuggestion>> pending(String memberId) async =>
@@ -151,7 +212,10 @@ final trainerRoutineSuggestionRepositoryProvider =
     Provider<TrainerRoutineSuggestionRepository>((ref) {
       final config = ref.watch(appConfigProvider);
       if (config.useMockApi) {
-        return MockTrainerRoutineSuggestionRepository();
+        return MockTrainerRoutineSuggestionRepository(
+          languageCode: () =>
+              ref.read(trainerResolvedLocaleProvider).languageCode,
+        );
       }
       return DioTrainerRoutineSuggestionRepository(ref.watch(dioProvider));
     }, name: 'trainerRoutineSuggestionRepository');

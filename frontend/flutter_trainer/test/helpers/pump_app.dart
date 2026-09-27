@@ -91,6 +91,14 @@ Future<ProviderContainer> pumpTrainerApp(
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final prefs = await SharedPreferences.getInstance();
 
+  // [locale] 은 '기기(브라우저) 언어' 자리다. 화면만이 아니라 위젯 밖에서
+  // 언어를 읽는 곳([trainerResolvedLocaleProvider] — 데모 저장소의 문구,
+  // Accept-Language)도 같은 언어를 보게 브라우저 언어 목록까지 맞춘다. 그러지
+  // 않으면 테스트 바인딩의 기본값 en 이 새어 들어가, 한국어 화면에 영어 데모
+  // 데이터가 섞인다. (#2301)
+  tester.platformDispatcher.localesTestValue = <Locale>[locale];
+  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   if (seedClock != null) useFixedKstDate(seedClock);
   if (seed) await seedIfEmpty(db, clock: seedClock);
