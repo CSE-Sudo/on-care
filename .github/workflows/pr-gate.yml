@@ -32,9 +32,14 @@ jobs:
       - name: Confirm the branch is current with the base
         # strict 규칙이 병합 버튼을 막는 실제 주체다. 이 단계는 왜 이 검사가
         # 있는지 로그에 남겨, 나중에 보는 사람이 빈 job 으로 오해하지 않게 한다.
+        # GitHub context 값은 `run:` 본문에 직접 보간하지 않고 env 로 넘긴다 —
+        # 셸 스크립트에 식이 그대로 박히는 주입 형태를 남기지 않기 위해서다(#1558).
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          echo "PR #${{ github.event.pull_request.number }}"
-          echo "base: ${{ github.event.pull_request.base.ref }}"
+          echo "PR #${PR_NUMBER}"
+          echo "base: ${BASE_REF}"
           echo "이 검사는 브랜치 보호의 최신화 요구를 걸기 위한 앵커다(#807)."
 
       - name: Check out the PR head with full history
