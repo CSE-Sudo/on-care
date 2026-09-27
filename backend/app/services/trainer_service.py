@@ -36,7 +36,8 @@ from app.models.models import (
     User,
 )
 from app.schemas.trainer_api import (
-    ChatAttachmentOut, ChatMessageOut, ClientDietEntryOut, MemberCoachOut,
+    ChatAttachmentOut, ChatMessageOut, ClientDietEntryOut, DeliveryOut,
+    MemberCoachOut,
     PersonalRoutineItem,
     ProgramDraftExercise,
     ProgramDraftSession,
@@ -3996,6 +3997,132 @@ def _add_scheduled_routines(
         created.append(rt)
     db.flush()
     return created
+
+
+def _delivery_base_key(client_request_id: str | None) -> str | None:
+    """한 번의 전송이 만든 줄들이 함께 쓰는 값. (#2225)
+
+    `일정 추가`·`개인운동만` 은 전송 시도마다 키 하나(`base`)를 만들고, 거기서
+    나온 줄에 `{base}#0`(프로그램)·`{base}#routine0`(개인운동)·
+    `{base}#schedule`(일정)을 붙인다. 앞부분이 곧 그 전송의 이름이다.
+    """
+    if not client_request_id:
+        return None
+    return client_request_id.split("#", 1)[0]
+
+
+def latest_delivery(
+    db: Session, trainer_id: str, member_id: str
+) -> DeliveryOut | None:
+    """이 회원에게 **가장 최근에 보낸 것** 한 묶음. (#2225)
+
+    전송 이력이 PT 프로그램과 개인운동을 따로 나열하던 동안에는, PT 완료 때 함께
+    보낸 개인운동이 어느 PT 와 짝인지 알 수 없었다(#2224).
+
+    묶는 기준은 멱등키의 앞부분이다([_delivery_base_key]). 키가 없는 옛 배정은
+    **보낸 날과 종류**로 묶는다 — 그 시절에는 한 날 한 종류가 한 전송이었다.
+
+    아직 보내지 않은 것(`scheduled`)은 보낸 것이 아니므로 빼고, 트레이너가
+    물린 것(`dismissed`)도 뺀다.
+    """
+    newest = db.scalar(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            TrainerRoutine.delivery_kind.is_not(None),
+        )
+        # 같은 날 두 번 보내면 `created_at` 이 같은 초에 걸릴 수 있다. 그때
+        # `id` 로 가르면 난수라 순서가 뒤집힌다 — `sort_order` 는 이 회원의
+        # 배정이 늘 때마다 커지므로 나중 것이 늘 뒤다.
+        .order_by(
+            TrainerRoutine.active_from.desc(),
+            TrainerRoutine.created_at.desc(),
+            TrainerRoutine.sort_order.desc(),
+        )
+        .limit(1)
+    )
+    if newest is None:
+        return None
+
+    base = _delivery_base_key(newest.client_request_id)
+    same = [
+        TrainerRoutine.trainer_id == trainer_id,
+        TrainerRoutine.member_id == member_id,
+        TrainerRoutine.status == ROUTINE_APPROVED,
+    ]
+    if base is not None:
+        # `LIKE` 의 와일드카드가 키에 섞여 들면 남의 전송까지 긁는다.
+        escaped = base.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        same.append(
+            TrainerRoutine.client_request_id.like(f"{escaped}#%", escape="\\")
+        )
+    elif newest.schedule_id:
+        # 키가 없어도 붙은 PT 가 있으면 그 일정이 곧 이 전송이다.
+        same.append(TrainerRoutine.schedule_id == newest.schedule_id)
+    else:
+        same.extend(
+            [
+                TrainerRoutine.active_from == newest.active_from,
+                TrainerRoutine.delivery_kind == newest.delivery_kind,
+                TrainerRoutine.schedule_id.is_(None),
+            ]
+        )
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(*same)
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+
+    kind = next(
+        (r.delivery_kind for r in rows if r.delivery_kind), newest.delivery_kind
+    )
+    # `delivery_kind` 를 단 줄이 곧 회원이 혼자 할 운동이다. PT 와 함께 간
+    # 전송에서는 개인운동 줄이 그 값을 달고 PT 프로그램 줄은 비어 있으며,
+    # `개인운동만` 전송은 그 줄 자체가 개인운동이다(#2223).
+    personal = [r for r in rows if r.delivery_kind]
+
+    # 일정은 **가장 최근 줄** 이 가리키는 것이다. 묶음의 첫 줄에서 고르면,
+    # 키 없는 옛 배정이 한 날에 여럿일 때 엉뚱한 PT 를 가리킨다.
+    schedule_id = newest.schedule_id or next(
+        (r.schedule_id for r in rows if r.schedule_id), None
+    )
+    session = db.get(TrainerSchedule, schedule_id) if schedule_id else None
+    if session is not None and session.trainer_id != trainer_id:
+        session = None
+
+    sent_on = _iso_day_or_none(newest.active_from)
+    return DeliveryOut(
+        kind=kind,
+        sent_on=date.fromisoformat(sent_on) if sent_on else None,
+        session=_schedule_out(session) if session is not None else None,
+        routines=[_routine_out(db, r) for r in personal],
+    )
+
+
+def unsent_personal_routines(
+    db: Session, trainer_id: str, member_id: str
+) -> list[RoutineOut]:
+    """이 회원의 PT 에 붙여만 두고 **아직 보내지 않은** 개인운동. (#2225)
+
+    프로그램 탭에서도 "보낼 것이 남았다" 를 알리고 거기서 보낼 수 있어야 한다 —
+    지금은 그 사실이 스케줄 탭의 그 일정을 열어야만 보인다.
+
+    **PT 프로그램 줄은 빼야 한다.** 그 줄도 같은 일정에 `scheduled` 로 붙어
+    있지만(#2279) `delivery_kind` 가 비어 있다. 개인운동만 그 값을 단다(#2223).
+    """
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+            TrainerRoutine.delivery_kind.is_not(None),
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    return [_routine_out(db, row) for row in rows]
 
 
 def list_scheduled_routines(
