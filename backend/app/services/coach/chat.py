@@ -14,6 +14,7 @@ from collections import Counter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.models import HealthProfile
 from app.services.coach import grounding, insights, prompt_safety
 from app.services.coach.llm import get_coach_llm
@@ -44,6 +45,29 @@ _SYSTEM = (
 logger = logging.getLogger(__name__)
 
 _MAX_HISTORY = 6
+
+# ---- 생성 폴백 사유 (#1559) ----
+# 예상한 바깥 실패(설정·provider)와 우리 코드의 오류를 나눠 센다. 앞의 셋은 규칙 기반
+# 폴백이 정상 동작이라 WARNING, 마지막은 고쳐야 할 버그라 ERROR + 스택이다.
+#: LLM 을 만들지 못함 — 키 미설정·알 수 없는 provider 등 설정 문제.
+FALLBACK_LLM_UNAVAILABLE = "llm_unavailable"
+#: provider 호출 실패 — timeout·인증·429·응답 계약 위반.
+FALLBACK_PROVIDER_ERROR = "provider_error"
+#: provider 는 답했는데 본문이 비었다.
+FALLBACK_EMPTY_REPLY = "empty_reply"
+#: 프롬프트를 만들다 우리 코드에서 난 오류(프로필·기간 요약 조회 등).
+FALLBACK_INTERNAL_ERROR = "internal_error"
+
+#: 로그 레코드의 `event` — 로그 수집기에서 폴백만 골라 볼 때 쓰는 키.
+FALLBACK_EVENT = "coach_llm_fallback"
+
+#: provider 별로 설정에서 읽는 모델 id. LLM 을 만들지 못했을 때도 무엇을 부르려
+#: 했는지 남기기 위해서다.
+_CONFIGURED_MODEL_SETTING = {
+    "openai": "openai_chat_model",
+    "gemini": "gemini_model",
+    "litellm": "litellm_chat_model",
+}
 
 
 def _format_context(hits: dict) -> str:
@@ -165,6 +189,75 @@ def _safe_retrieve(db: Session, user_id: str, message: str) -> dict:
         return {"personal": [], "public": []}
 
 
+def _configured_provider() -> str:
+    return (get_settings().coach_llm or "").lower() or "-"
+
+
+def _configured_model(provider: str) -> str:
+    field = _CONFIGURED_MODEL_SETTING.get(provider)
+    return str(getattr(get_settings(), field, "") or "-") if field else "-"
+
+
+def _http_status(exc: BaseException) -> int | None:
+    """provider SDK 예외에 실린 HTTP 상태(401·429·5xx…). 없으면 None.
+
+    SDK 마다 이름이 달라(`status_code`·`code`) 정수인 것만 쓴다 — 인증 오류와
+    한도 초과를 운영에서 가르는 데 가장 쓸모 있는 값이다.
+    """
+    for attr in ("status_code", "code"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
+
+
+def _log_fallback(
+    reason: str,
+    *,
+    user_id: str,
+    provider: str,
+    model: str,
+    exc: BaseException | None = None,
+) -> None:
+    """생성 폴백 한 건을 구조화 로그로 남긴다 (#1559).
+
+    남기는 것은 **사유·provider·model·오류 유형·HTTP 상태·user_id** 뿐이다. 예외
+    메시지는 남기지 않는다 — provider SDK 는 오류 메시지에 요청 본문(프롬프트:
+    회원 프로필·식단·대화)이나 키 일부를 되풀이하는 일이 있다. 요청 상관관계는
+    로깅 필터가 모든 레코드에 붙이는 `request_id` 로 잇는다.
+
+    내부 오류만 스택을 붙인다. 우리 코드의 버그라 어디서 났는지가 필요하고, 그
+    경로의 예외는 provider 응답을 싣지 않는다.
+    """
+    error_type = (
+        f"{type(exc).__module__}.{type(exc).__qualname__}" if exc is not None else "-"
+    )
+    status = _http_status(exc) if exc is not None else None
+    fields = {
+        "event": FALLBACK_EVENT,
+        "fallback_reason": reason,
+        "llm_provider": provider,
+        "llm_model": model,
+        "error_type": error_type,
+        "http_status": status,
+        "user_id": user_id,
+    }
+    internal = reason == FALLBACK_INTERNAL_ERROR
+    logger.log(
+        logging.ERROR if internal else logging.WARNING,
+        "AI 코치 생성 폴백 reason=%s provider=%s model=%s error_type=%s "
+        "http_status=%s user_id=%s",
+        reason,
+        provider,
+        model,
+        error_type,
+        status if status is not None else "-",
+        user_id,
+        extra=fields,
+        exc_info=exc if internal else None,
+    )
+
+
 def answer(
     db: Session,
     user_id: str,
@@ -174,14 +267,28 @@ def answer(
     """(답변 텍스트, 근거 공공문서 제목들, LLM 이 답했는가) 반환.
 
     세 번째 값이 거짓이면 검색 기반 대체 답이다 — 회원 챗봇의 하루 한도는 LLM 이
-    답한 대화만 센다(#2145).
+    답한 대화만 센다(#2145). 대체 답으로 내려갈 때마다 사유를 구조화 로그로
+    남긴다(#1559) — 예전에는 조용히 삼켜 provider 장애가 정상 폴백과 구별되지 않았다.
     """
     history = history or []
     hits = _safe_retrieve(db, user_id, message)
     sources = list(dict.fromkeys(d.title for d in hits["public"] if d.title))
+    fallback = _fallback_reply(hits), sources, False
 
+    provider = _configured_provider()
+    model = _configured_model(provider)
     try:
         llm = get_coach_llm()
+    except Exception as exc:  # noqa: BLE001 — 키 미설정/알 수 없는 provider → 폴백
+        _log_fallback(
+            FALLBACK_LLM_UNAVAILABLE,
+            user_id=user_id, provider=provider, model=model, exc=exc,
+        )
+        return fallback
+    provider = str(getattr(llm, "name", "") or provider)
+    model = str(getattr(llm, "model_name", "") or model)
+
+    try:
         # 이번 주·이번 달 식단 요약(#933)도 함께 준다 — retrieve 는 의미상 가까운
         # 개별 기록 몇 건만 뽑아오므로 "이번 주 평균 나트륨" 같은 질문에는
         # 계산된 값이 따로 필요하다.
@@ -198,9 +305,25 @@ def answer(
             if part
         )
         prompt = _build_user_prompt(context, history, message)
-        text = llm.generate(_SYSTEM, prompt).text.strip()
-        if text:
-            return text, sources, True
-    except Exception:  # noqa: BLE001 — 키 미설정/네트워크/모델 오류 → 검색 기반 폴백
-        pass
-    return _fallback_reply(hits), sources, False
+    except Exception as exc:  # noqa: BLE001 — 우리 코드 오류도 답은 준다
+        _log_fallback(
+            FALLBACK_INTERNAL_ERROR,
+            user_id=user_id, provider=provider, model=model, exc=exc,
+        )
+        return fallback
+
+    try:
+        # `.text` 가 없거나 문자열이 아닌 응답도 provider 응답 계약 위반으로 센다.
+        text = (llm.generate(_SYSTEM, prompt).text or "").strip()
+    except Exception as exc:  # noqa: BLE001 — 네트워크/인증/한도/모델 오류 → 폴백
+        _log_fallback(
+            FALLBACK_PROVIDER_ERROR,
+            user_id=user_id, provider=provider, model=model, exc=exc,
+        )
+        return fallback
+    if not text:
+        _log_fallback(
+            FALLBACK_EMPTY_REPLY, user_id=user_id, provider=provider, model=model,
+        )
+        return fallback
+    return text, sources, True

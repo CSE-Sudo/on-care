@@ -19,6 +19,11 @@ class LLMResult:
 class CoachLLM(ABC):
     name: str = "base"
 
+    @property
+    def model_name(self) -> str:
+        """호출하는 모델 id. 구현이 `_model` 로 들고 있다 — 운영 로그용(#1559)."""
+        return str(getattr(self, "_model", "") or "")
+
     @abstractmethod
     def generate(
         self,

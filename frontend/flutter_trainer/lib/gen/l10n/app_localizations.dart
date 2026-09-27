@@ -5396,6 +5396,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your question'**
   String get coachAskFailed;
 
+  /// No description provided for @coachRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve sent too many questions. Please try again in a minute'**
+  String get coachRateLimited;
+
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:

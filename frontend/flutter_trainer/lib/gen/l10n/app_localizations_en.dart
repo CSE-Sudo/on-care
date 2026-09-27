@@ -3107,6 +3107,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachAskFailed => 'Couldn\'t send your question';
 
   @override
+  String get coachRateLimited =>
+      'You\'ve sent too many questions. Please try again in a minute';
+
+  @override
   String get slotFutureOnly =>
       'Booking slots can only be set for future times.';
 
