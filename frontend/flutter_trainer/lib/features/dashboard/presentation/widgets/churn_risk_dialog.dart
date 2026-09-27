@@ -92,8 +92,25 @@ class _ChurnRiskTile extends StatelessWidget {
             spacing: OnCareSpacing.s4,
             runSpacing: OnCareSpacing.s4,
             children: <Widget>[
+              // 회원 상세 헤더와 같은 배지 — 같은 회원을 여기서 다른 말로
+              // 부르지 않는다(#2364).
               for (final signal in entry.signals)
-                AppTag(label: signal.label(l), tone: AppTagTone.danger),
+                KeyedSubtree(
+                  key: ValueKey<String>(
+                    'churn-risk-alert-${client.id}-${signal.kind.wire}',
+                  ),
+                  child: AppTag(
+                    label: signal.detailLabel(l),
+                    icon: Icons.error_outline_rounded,
+                    tone: signal.kind.tone,
+                  ),
+                ),
+              // 트레이너 자신의 활동이지 회원의 상태가 아니다 — 회색으로 둔다.
+              if (entry.noRecentFeedback)
+                AppTag(
+                  key: ValueKey<String>('churn-risk-no-feedback-${client.id}'),
+                  label: l.churnNoRecentFeedback,
+                ),
             ],
           ),
         ),

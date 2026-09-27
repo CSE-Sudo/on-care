@@ -6104,41 +6104,11 @@ abstract class AppLocalizations {
   /// **'Undo completion'**
   String get dashTaskUncheckConfirm;
 
-  /// No description provided for @churnNoRecentWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'No workout logged in 7 days'**
-  String get churnNoRecentWorkout;
-
   /// No description provided for @churnNoRecentFeedback.
   ///
   /// In en, this message translates to:
   /// **'No trainer feedback in 7 days'**
   String get churnNoRecentFeedback;
-
-  /// No description provided for @churnConsecutiveCancel.
-  ///
-  /// In en, this message translates to:
-  /// **'2 consecutive cancellations/no-shows'**
-  String get churnConsecutiveCancel;
-
-  /// No description provided for @churnDietStopped.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet logging stopped'**
-  String get churnDietStopped;
-
-  /// No description provided for @churnGoalStagnant.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal metric stagnant long-term'**
-  String get churnGoalStagnant;
-
-  /// No description provided for @churnUnresolvedRequest.
-  ///
-  /// In en, this message translates to:
-  /// **'Unanswered message'**
-  String get churnUnresolvedRequest;
 
   /// No description provided for @navMessages.
   ///
