@@ -30,6 +30,7 @@ export 'src/components/app_toast.dart';
 export 'src/forms/app_field_errors.dart';
 export 'src/forms/app_goal_ranges.dart';
 export 'src/forms/app_input_rules.dart';
+export 'src/forms/app_recommended_goals.dart';
 export 'src/theme/oncare_theme.dart';
 export 'src/theme/oncare_tokens.dart';
 export 'src/tokens/brand.dart';

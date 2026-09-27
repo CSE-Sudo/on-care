@@ -65,7 +65,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v33'), _todayString());
+      expect(await db.readValue('trainer_seeded_v34'), _todayString());
     });
 
     test(
@@ -414,13 +414,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v33', '2020-01-01');
+      await db.putValue('trainer_seeded_v34', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v33'), _todayString());
+      expect(await db.readValue('trainer_seeded_v34'), _todayString());
     });
 
     test(
@@ -502,6 +502,28 @@ void main() {
         isTrue,
         reason: '20:10(단일 날짜)이 18:18(다일 스레드)보다 최신이어야 한다',
       );
+    });
+
+    test('데모 회원 모두의 음식에 먹은 양이 실린다 (#2368)', () async {
+      // 트레이너 끼니 카드는 음식 이름 옆에 양을 적는다(#2087). 예전 시드는
+      // 김민수(픽스처)만 양을 들고 있어, 다른 회원을 고르면 데모가 양을
+      // 빠뜨린 것처럼 읽혔다. 양이 0 이면 화면이 적지 않으므로 0 도 안 된다.
+      await seedIfEmpty(db);
+
+      final meals = await db.select(db.clientDietEntries).get();
+      final withFoods = meals.where((m) => m.foodsJson != '[]').toList();
+      expect(withFoods, isNotEmpty);
+      for (final meal in withFoods) {
+        final foods = (jsonDecode(meal.foodsJson) as List<Object?>)
+            .cast<Map<String, Object?>>();
+        for (final food in foods) {
+          expect(
+            (food['amount_g'] as num?) ?? 0,
+            greaterThan(0),
+            reason: '${meal.clientId} ${meal.meal} ${food['name']}: 양이 없다',
+          );
+        }
+      }
     });
 
     test('per-meal sums match each client\'s daily totals', () async {
@@ -590,7 +612,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v33'), today);
+        expect(await db.readValue('trainer_seeded_v34'), today);
       },
     );
 
@@ -699,7 +721,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v33', '2020-01-01');
+      await db.putValue('trainer_seeded_v34', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();

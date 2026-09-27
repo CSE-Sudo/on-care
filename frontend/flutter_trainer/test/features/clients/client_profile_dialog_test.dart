@@ -116,6 +116,7 @@ Future<void> _pumpDialog(
   TrainerMemoRepository memos, {
   ClientRepository? clients,
   String fallbackGender = '',
+  int? ageYears,
   bool settle = true,
   // 메모 검사가 대부분이라 메모 창이 기본이다. 신체·목표 검사는 자기 창을
   // 건넨다(#2330).
@@ -164,6 +165,7 @@ Future<void> _pumpDialog(
             clientId: 'm1',
             clientName: '이지수',
             fallbackGender: fallbackGender,
+            ageYears: ageYears,
             section: section,
           ),
         ),
@@ -577,6 +579,96 @@ void main() {
       find.byKey(const ValueKey<String>('client-profile-dialog')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('권장값은 회원 앱과 같은 계산이고 누르면 그 묶음만 채운다 (#2359)', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final clients = _DelayedClientRepository(db)
+      ..profile.complete(
+        const MemberHealthProfile(
+          memberId: 'm1',
+          memberName: '회원',
+          gender: 'male',
+          heightCm: 175,
+          weightKg: 72,
+          conditions: '체중 감량',
+        ),
+      );
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: clients,
+      ageYears: 35,
+      section: ClientProfileSection.health,
+    );
+    String textOf(String key) => tester
+        .widget<AppTextField>(find.byKey(ValueKey<String>(key)))
+        .controller!
+        .text;
+
+    // 회원 앱 온보딩·MY 가 쓰는 바로 그 함수로 기대값을 낸다.
+    final RecommendedGoals expected = recommendedGoalsFor(
+      ageYears: 35,
+      gender: 'male',
+      heightCm: 175,
+      weightKg: 72,
+      focus: const <String>{'체중 감량'},
+    );
+    expect(expected.isPersonalized, isTrue);
+
+    await _openTab(tester, '운동 목표');
+    expect(textOf('client-goal-burn'), isEmpty);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-goal-apply-exercise')),
+    );
+    await tester.pumpAndSettle();
+    expect(textOf('client-goal-burn'), '${expected.dailyBurnKcal}');
+    expect(textOf('client-goal-cardio'), '${expected.weeklyCardioMinutes}');
+
+    // 운동을 채워도 식단 칸은 그대로다.
+    await _openTab(tester, '식단 목표');
+    expect(textOf('client-goal-calories'), isEmpty);
+    expect(
+      find.textContaining('${expected.dailyCalories}kcal'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-goal-apply-diet')),
+    );
+    await tester.pumpAndSettle();
+    expect(textOf('client-goal-calories'), '${expected.dailyCalories}');
+    expect(textOf('client-goal-protein'), '${expected.dailyProteinG}');
+    expect(textOf('client-goal-sodium'), '${expected.dailySodiumMg}');
+
+    // 채운 값은 저장을 눌러야 나간다.
+    await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
+    await tester.pump();
+    expect(clients.savedProfile!['daily_calories'], expected.dailyCalories);
+    expect(clients.savedProfile!['daily_burn_kcal'], expected.dailyBurnKcal);
+  });
+
+  testWidgets('나이를 모르면 기본 기준에 건강 목표만 반영한다고 말한다 (#2359)', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final clients = _DelayedClientRepository(db)
+      ..profile.complete(
+        const MemberHealthProfile(
+          memberId: 'm1',
+          memberName: '회원',
+          heightCm: 175,
+          weightKg: 72,
+        ),
+      );
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: clients,
+      section: ClientProfileSection.health,
+    );
+    await _openTab(tester, '식단 목표');
+    expect(find.text('나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요'), findsOneWidget);
+    expect(find.textContaining('권장: 2000kcal'), findsOneWidget);
   });
 
   testWidgets('빈 목표 칸은 회원 앱 기본값을 흐리게 보여 주고 저장하지 않는다 (#2331)', (tester) async {
