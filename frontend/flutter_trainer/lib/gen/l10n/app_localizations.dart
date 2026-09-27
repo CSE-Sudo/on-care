@@ -2246,12 +2246,6 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @clientFeedbackSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on this session'**
-  String get clientFeedbackSession;
-
   /// No description provided for @workoutKindAiPersonal.
   ///
   /// In en, this message translates to:
@@ -2269,12 +2263,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Assigned routine'**
   String get workoutKindAssignedRoutine;
-
-  /// No description provided for @trainerNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer\'s note'**
-  String get trainerNote;
 
   /// No description provided for @dietLoadFailed.
   ///
@@ -2419,71 +2407,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.'**
   String clientDietAdviceAllMostlyUnder(int weeks, int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'No workout logged today yet. How about a 10-minute walk to start?'**
-  String get clientExerciseAdviceEmptyToday;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'No workouts logged this week yet. How about a 10-minute walk to start?'**
-  String get clientExerciseAdviceEmptyWeek;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Once you log more, we\'ll show how your workout volume and types are trending.'**
-  String get clientExerciseAdviceEmptyAll;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.'**
-  String clientExerciseAdviceToday(String type, int minutes, int calories);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Just one day this week ({minutes} min). One more session keeps the flow going.'**
-  String clientExerciseAdviceWeekOneDay(int minutes);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'This week\'s {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?'**
-  String clientExerciseAdviceWeekSkew(
-    int days,
-    int minutes,
-    String top,
-    String missing,
-  );
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.'**
-  String clientExerciseAdviceWeekBalanced(int days, int minutes);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'You\'ve done more over the last 4 weeks than before. This approach suits you.'**
-  String get clientExerciseAdviceAllUp;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.'**
-  String get clientExerciseAdviceAllDown;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.'**
-  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes);
 
   /// No description provided for @consultStatusRejected.
   ///
@@ -5575,6 +5498,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load notifications'**
   String get notifLoadFailed;
 
+  /// No description provided for @notifLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier notifications'**
+  String get notifLoadMore;
+
+  /// No description provided for @notifLoadMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier notifications'**
+  String get notifLoadMoreFailed;
+
+  /// No description provided for @notifNoEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'No earlier notifications'**
+  String get notifNoEarlier;
+
   /// No description provided for @notifTplHealthGoalTitle.
   ///
   /// In en, this message translates to:
@@ -5976,42 +5917,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{percent}% completion this week'**
   String searchDetailCompletion(int percent);
-
-  /// No description provided for @routineFeedbackTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout feedback'**
-  String get routineFeedbackTitle;
-
-  /// No description provided for @routineFeedbackHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write coaching feedback for the member'**
-  String get routineFeedbackHint;
-
-  /// No description provided for @routineFeedbackWrite.
-  ///
-  /// In en, this message translates to:
-  /// **'Write feedback'**
-  String get routineFeedbackWrite;
-
-  /// No description provided for @routineFeedbackEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit feedback'**
-  String get routineFeedbackEdit;
-
-  /// No description provided for @routineFeedbackSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback saved'**
-  String get routineFeedbackSaved;
-
-  /// No description provided for @routineFeedbackFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save feedback. Please try again'**
-  String get routineFeedbackFailed;
 
   /// No description provided for @navOperationsGroup.
   ///
@@ -7760,6 +7665,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rewrite from this'**
   String get reportsSentRewrite;
+
+  /// No description provided for @reportsResendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already sent'**
+  String get reportsResendTitle;
+
+  /// No description provided for @reportsResendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.'**
+  String reportsResendBody(String name, String date, String time);
+
+  /// No description provided for @reportsResendConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get reportsResendConfirm;
+
+  /// No description provided for @reportsSendHistoryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
+  String get reportsSendHistoryFailed;
 
   /// No description provided for @reportsSentBody.
   ///
