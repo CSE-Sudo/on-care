@@ -2994,6 +2994,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use at least 8 characters, including letters and numbers';
 
   @override
+  String get signUpPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
+
+  @override
   String get signUpPasswordMismatch => 'Passwords do not match';
 
   @override
