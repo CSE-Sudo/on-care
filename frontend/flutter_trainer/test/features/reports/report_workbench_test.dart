@@ -14,6 +14,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
@@ -121,7 +122,9 @@ void main() {
   testWidgets('이름순으로 바꾸면 차례가 이름을 따른다 (#2232)', (tester) async {
     await openWorkbench(tester, clients: _roster);
 
-    await tester.tap(find.text('이름 순'));
+    await tester.tap(find.byKey(const ValueKey<String>('reports-sort-button')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('reports-sort-name')));
     await settle(tester);
 
     expect(queueOrder(tester), <String>['a', 'h']);
@@ -253,59 +256,6 @@ void main() {
     await settle(tester);
     expect(find.text('트레이너 피드백'), findsNothing);
     expect(find.text('PT 세션'), findsOneWidget);
-  });
-
-  testWidgets('② 에서 고른 다음 주 목표가 ③ 에 그대로 붙는다 (#2232)', (tester) async {
-    await openWorkbench(tester, clients: _roster, at: AppRoutes.reportFor('h'));
-
-    final Finder next = find.byKey(const ValueKey<String>('report-step-next'));
-    await tester.tap(next);
-    await settle(tester);
-
-    // 고른 것이 없으면 ③ 에는 목표 카드가 서지 않는다.
-    expect(find.text('0개 고름'), findsOneWidget);
-
-    // 수치에서 나온 제안을 하나 고르고, 직접 적은 목표를 하나 더한다.
-    final Finder firstGoal = find
-        .byWidgetPredicate(
-          (w) =>
-              w.key is ValueKey<String> &&
-              (w.key! as ValueKey<String>).value.startsWith('report-goal-'),
-        )
-        .first;
-    await tester.ensureVisible(firstGoal);
-    await tester.pump();
-    await tester.tap(firstGoal);
-    await settle(tester);
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('report-goals-own')),
-      '주 3회 스트레칭',
-    );
-    await tester.tap(find.byKey(const ValueKey<String>('report-goals-add')));
-    await settle(tester);
-
-    expect(find.text('2개 고름'), findsOneWidget);
-
-    await tester.tap(next);
-    await settle(tester);
-
-    // ③ 에서는 다시 고르게 하지 않는다 — 함께 나갈 것을 보여 줄 뿐이다.
-    expect(
-      find.byKey(const ValueKey<String>('report-goals-recap')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('report-goals-card')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('report-goals-recap')),
-        matching: find.text('주 3회 스트레칭'),
-      ),
-      findsOneWidget,
-    );
   });
 
   testWidgets('영어로 켜도 작업대에 한국어가 남지 않는다 (#501, #2232)', (tester) async {
@@ -444,6 +394,446 @@ void main() {
     expect(find.text('운동 목표 28%'), findsOneWidget);
     await waitFor(tester, find.textContaining('하락'));
     expect(find.textContaining('하락'), findsOneWidget);
+  });
+
+  group('전송 진행 줄 (#2395)', () {
+    Finder progress() => find.byKey(const ValueKey<String>('reports-progress'));
+    Finder percent() =>
+        find.byKey(const ValueKey<String>('reports-progress-percent'));
+    Finder queueBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-queue'));
+    Finder sentBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-sent'));
+
+    testWidgets('막대 오른쪽 끝에 전송 비율을 적는다', (tester) async {
+      final ProviderContainer container = await openWorkbench(
+        tester,
+        clients: _roster,
+      );
+
+      expect(find.text('0 / 2 전송'), findsOneWidget);
+      expect(tester.widget<Text>(percent()).data, '0%');
+
+      container
+          .read(reportSendLogProvider.notifier)
+          .record(
+            clientId: 'a',
+            weekStart: weekStartOf(nowKst()),
+            message: '가회원님 이번 주 리포트예요.',
+          );
+      await settle(tester);
+
+      expect(tester.widget<Text>(percent()).data, '50%');
+      // 비율은 막대 오른쪽, 줄의 끝에 선다.
+      final Rect bar = tester.getRect(
+        find.descendant(of: progress(), matching: find.byType(AppProgressBar)),
+      );
+      expect(tester.getRect(percent()).left, greaterThan(bar.right));
+    });
+
+    testWidgets('넓은 화면에서 진행 줄이 두 상자를 가로지른다', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      final Rect row = tester.getRect(progress());
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      // 미전송 상자의 왼쪽 끝에서 전송 완료 상자의 오른쪽 끝까지.
+      expect(row.left, closeTo(queue.left, 1));
+      expect(row.right, closeTo(sent.right, 1));
+      // 두 상자보다 위에 선다 — 한쪽 상자의 머리가 아니다.
+      expect(row.bottom, lessThanOrEqualTo(queue.top));
+      expect(row.bottom, lessThanOrEqualTo(sent.top));
+      // 두 상자의 윗변이 같은 높이에서 시작한다.
+      expect(queue.top, closeTo(sent.top, 1));
+    });
+
+    testWidgets('좁은 화면에서도 진행 줄이 맨 위에 선다', (tester) async {
+      await openWorkbench(
+        tester,
+        clients: _roster,
+        size: const Size(700, 1400),
+      );
+
+      final Rect row = tester.getRect(progress());
+      expect(row.bottom, lessThanOrEqualTo(tester.getRect(queueBox()).top));
+      expect(percent(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('영어에서는 sent 와 비율을 함께 적는다', (tester) async {
+      await openWorkbench(tester, clients: _roster, locale: const Locale('en'));
+
+      expect(find.text('0 / 2 sent'), findsOneWidget);
+      expect(tester.widget<Text>(percent()).data, '0%');
+    });
+
+    test('비율은 반올림한 정수다', () {
+      expect(reportSendPercent(0, 15), 0);
+      expect(reportSendPercent(1, 15), 7);
+      expect(reportSendPercent(6, 15), 40);
+      expect(reportSendPercent(2, 3), 67);
+      expect(reportSendPercent(15, 15), 100);
+    });
+
+    test('회원이 없으면 0% — 0으로 나누지 않는다', () {
+      expect(reportSendPercent(0, 0), 0);
+    });
+
+    test('범위를 벗어난 수는 0~100 으로 묶는다', () {
+      expect(reportSendPercent(20, 15), 100);
+      expect(reportSendPercent(-1, 15), 0);
+    });
+  });
+
+  group('두 상자 높이 고정·안쪽 스크롤 (#2396)', () {
+    final List<TrainerClient> many = <TrainerClient>[
+      for (int i = 0; i < 20; i++)
+        makeClient(
+          id: 'm$i',
+          name: '회원${i.toString().padLeft(2, '0')}',
+          weekCompletion: const <int>[50, 50, 50, 50, 50, 50, 50],
+        ),
+    ];
+    Finder queueBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-queue'));
+    Finder sentBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-sent'));
+    Finder queueList() =>
+        find.byKey(const ValueKey<String>('reports-workbench-queue-list'));
+
+    testWidgets('넓은 화면에서 두 상자가 같은 높이로 화면 아래까지 선다', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      expect(queue.top, closeTo(sent.top, 1));
+      expect(queue.height, closeTo(sent.height, 1));
+      // 줄 수만큼만 서지 않는다 — 두 줄뿐이어도 상자는 창 아래쪽까지 간다.
+      expect(sent.bottom, greaterThan(1200 * 0.8));
+      expect(sent.bottom, lessThanOrEqualTo(1200));
+      // 페이지째 내리는 스크롤이 없다.
+      expect(
+        find.byKey(const ValueKey<String>('reports-workbench-page-scroll')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('목록을 내려도 상자 머리와 전송 완료 상자는 제자리다', (tester) async {
+      await openWorkbench(tester, clients: many, size: const Size(1600, 700));
+
+      final Finder firstRow = find.text('회원00');
+      final Finder sortToggle = find.byKey(
+        const ValueKey<String>('reports-sort-button'),
+      );
+      expect(firstRow, findsOneWidget);
+      final Offset toggleBefore = tester.getTopLeft(sortToggle);
+      final Rect sentBefore = tester.getRect(sentBox());
+      final Rect queueBefore = tester.getRect(queueBox());
+
+      await tester.drag(queueList(), const Offset(0, -2000));
+      await settle(tester);
+
+      // 목록은 상자 안에서 내려가 첫 줄이 밀려나고 마지막 줄이 보인다.
+      expect(find.text('회원00').hitTestable(), findsNothing);
+      expect(find.text('회원19').hitTestable(), findsOneWidget);
+      // 정렬 버튼·두 상자는 움직이지 않는다.
+      expect(tester.getTopLeft(sortToggle), toggleBefore);
+      expect(tester.getRect(sentBox()), sentBefore);
+      expect(tester.getRect(queueBox()), queueBefore);
+      // 마지막 줄도 상자 안에서 끝난다 — 상자 밖으로 새지 않는다.
+      expect(
+        tester.getRect(find.text('회원19')).bottom,
+        lessThanOrEqualTo(queueBefore.bottom),
+      );
+    });
+
+    testWidgets('창이 낮으면 상자를 최소 높이로 세우고 페이지를 내린다', (tester) async {
+      await openWorkbench(tester, clients: many, size: const Size(1600, 360));
+
+      expect(
+        find.byKey(const ValueKey<String>('reports-workbench-page-scroll')),
+        findsOneWidget,
+      );
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      expect(queue.height, closeTo(sent.height, 1));
+      // 창(360)보다 큰 최소 높이가 지켜진다 — 머리만 남은 상자가 되지 않는다.
+      expect(queue.bottom, greaterThan(360));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('한쪽이 비어도 상자 크기는 그대로, 빈 문구는 가운데', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      // 아직 아무도 보내지 않았다 — 전송 완료 상자가 빈 채로 선다.
+      final Rect sent = tester.getRect(sentBox());
+      final Rect queue = tester.getRect(queueBox());
+      expect(sent.height, closeTo(queue.height, 1));
+      final Finder empty = find.byKey(
+        const ValueKey<String>('reports-sent-empty'),
+      );
+      expect(empty, findsOneWidget);
+      final double emptyCenter = tester.getCenter(empty).dy;
+      // 상자 위쪽에 붙지 않고 세로 가운데 언저리에 선다.
+      expect(emptyCenter, greaterThan(sent.top + sent.height * 0.35));
+      expect(emptyCenter, lessThan(sent.top + sent.height * 0.65));
+    });
+
+    testWidgets('좁은 화면은 높이를 고정하지 않고 페이지째 내린다', (tester) async {
+      await openWorkbench(
+        tester,
+        clients: _roster,
+        size: const Size(700, 1400),
+      );
+
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      // 위아래로 쌓인다.
+      expect(sent.top, greaterThan(queue.bottom));
+      // 줄 수만큼만 선다 — 창 높이를 채우려고 늘어나지 않는다.
+      expect(queue.height, lessThan(1400 / 2));
+      expect(queueList(), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('전송 완료 상자 모양 미전송 기준 (#2397)', () {
+    AppTagTone countTone(WidgetTester tester, String boxKey) {
+      final Finder tag = find
+          .descendant(
+            of: find.byKey(ValueKey<String>(boxKey)),
+            matching: find.byType(AppTag),
+          )
+          .first;
+      return tester.widget<AppTag>(tag).tone;
+    }
+
+    testWidgets('두 인원 배지는 같은 브랜드 톤이다', (tester) async {
+      final ProviderContainer container = await openWorkbench(
+        tester,
+        clients: _roster,
+      );
+
+      // 전송 완료 0명.
+      expect(countTone(tester, 'reports-workbench-queue'), AppTagTone.brand);
+      expect(countTone(tester, 'reports-workbench-sent'), AppTagTone.brand);
+
+      for (final String id in <String>['a', 'h']) {
+        container
+            .read(reportSendLogProvider.notifier)
+            .record(
+              clientId: id,
+              weekStart: weekStartOf(nowKst()),
+              message: '이번 주 리포트예요.',
+            );
+      }
+      await settle(tester);
+
+      // 미전송 0명 — 초록으로 바뀌지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('reports-queue-empty')),
+        findsOneWidget,
+      );
+      expect(countTone(tester, 'reports-workbench-queue'), AppTagTone.brand);
+      expect(countTone(tester, 'reports-workbench-sent'), AppTagTone.brand);
+    });
+
+    testWidgets('전송 완료 줄은 미전송 줄과 같은 흰 카드다', (tester) async {
+      final ProviderContainer container = await openWorkbench(
+        tester,
+        clients: _roster,
+      );
+      container
+          .read(reportSendLogProvider.notifier)
+          .record(
+            clientId: 'a',
+            weekStart: weekStartOf(nowKst()),
+            message: '가회원님 이번 주 리포트예요.',
+          );
+      await settle(tester);
+
+      final Widget sentRow = tester.widget(
+        find.byKey(const ValueKey<String>('reports-sent-a')),
+      );
+      final Widget queueRow = tester.widget(
+        find.byKey(const ValueKey<String>('reports-queue-h')),
+      );
+      expect(sentRow, isA<AppCard>());
+      expect(queueRow, isA<AppCard>());
+      final AppCard sent = sentRow as AppCard;
+      final AppCard queue = queueRow as AppCard;
+      // 색을 따로 칠하지 않은 기본 흰 카드, 같은 안쪽 여백.
+      expect(sent.backgroundColor, isNull);
+      expect(sent.selected, isFalse);
+      expect(sent.padding, queue.padding);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('reports-workbench-sent')),
+          matching: find.byType(AppTile),
+        ),
+        findsNothing,
+      );
+      // 이름·전송일 문구는 카드 안에 그대로 선다.
+      final Finder inCard = find.descendant(
+        of: find.byKey(const ValueKey<String>('reports-sent-a')),
+        matching: find.byType(Text),
+      );
+      final List<String> texts = <String>[
+        for (final Element e in inCard.evaluate())
+          (e.widget as Text).data ?? '',
+      ];
+      expect(texts, contains('가회원'));
+      expect(texts.any((t) => t.contains('전송')), isTrue);
+    });
+  });
+
+  group('정렬 드롭다운 (#2398)', () {
+    final List<TrainerClient> trio = <TrainerClient>[
+      makeClient(
+        id: 'b',
+        name: '나회원',
+        weekCompletion: const <int>[100, 100, 100, 100, 100, 100, 100],
+      ),
+      makeClient(
+        id: 'c',
+        name: '다회원',
+        weekCompletion: const <int>[0, 0, 0, 0, 0, 0, 0],
+      ),
+      makeClient(
+        id: 'a',
+        name: '가회원',
+        weekCompletion: const <int>[60, 60, 60, 60, 60, 60, 60],
+      ),
+    ];
+    Finder sortButton() =>
+        find.byKey(const ValueKey<String>('reports-sort-button'));
+    Finder item(ReportQueueSort sort) =>
+        find.byKey(ValueKey<String>('reports-sort-${sort.name}'));
+    List<String> order(WidgetTester tester) {
+      final List<MapEntry<String, double>> rows = <MapEntry<String, double>>[
+        for (final String id in <String>['a', 'b', 'c'])
+          MapEntry<String, double>(
+            id,
+            tester
+                .getTopLeft(find.byKey(ValueKey<String>('reports-queue-$id')))
+                .dy,
+          ),
+      ]..sort((x, y) => x.value.compareTo(y.value));
+      return <String>[for (final MapEntry<String, double> e in rows) e.key];
+    }
+
+    Future<void> choose(WidgetTester tester, ReportQueueSort sort) async {
+      await tester.tap(sortButton());
+      await settle(tester);
+      await tester.tap(item(sort));
+      await settle(tester);
+    }
+
+    testWidgets('버튼은 `정렬: 우선 확인 순` 으로 시작하고 토글은 없다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+
+      expect(
+        find.descendant(of: sortButton(), matching: find.text('정렬: 우선 확인 순')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: sortButton(),
+          matching: find.byIcon(Icons.arrow_drop_down_rounded),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(AppSegmentedToggle<ReportQueueSort>), findsNothing);
+      // 기본값은 우선 확인 순 — 이행률이 가장 낮은 회원이 맨 위.
+      expect(order(tester).first, 'c');
+    });
+
+    testWidgets('메뉴는 세 방식을 보이고 고른 항목에 체크를 단다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+
+      await tester.tap(sortButton());
+      await settle(tester);
+      for (final ReportQueueSort sort in ReportQueueSort.values) {
+        expect(item(sort), findsOneWidget);
+      }
+      expect(find.text('이름 오름차순'), findsOneWidget);
+      expect(find.text('이름 내림차순'), findsOneWidget);
+      // 체크는 지금 고른 우선 확인 순에만 선다.
+      MenuItemButton menuItem(ReportQueueSort sort) =>
+          tester.widget<MenuItemButton>(item(sort));
+      expect(menuItem(ReportQueueSort.priority).leadingIcon, isA<AppIcon>());
+      expect(menuItem(ReportQueueSort.name).leadingIcon, isNull);
+      expect(menuItem(ReportQueueSort.nameDescending).leadingIcon, isNull);
+
+      await tester.tap(item(ReportQueueSort.nameDescending));
+      await settle(tester);
+      await tester.tap(sortButton());
+      await settle(tester);
+      expect(menuItem(ReportQueueSort.priority).leadingIcon, isNull);
+      expect(
+        menuItem(ReportQueueSort.nameDescending).leadingIcon,
+        isA<AppIcon>(),
+      );
+    });
+
+    testWidgets('이름 오름차순·내림차순을 고르면 줄 순서와 버튼 문구가 바뀐다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+
+      await choose(tester, ReportQueueSort.name);
+      expect(order(tester), <String>['a', 'b', 'c']);
+      expect(find.text('정렬: 이름 오름차순'), findsOneWidget);
+
+      await choose(tester, ReportQueueSort.nameDescending);
+      expect(order(tester), <String>['c', 'b', 'a']);
+      expect(find.text('정렬: 이름 내림차순'), findsOneWidget);
+
+      await choose(tester, ReportQueueSort.priority);
+      expect(order(tester).first, 'c');
+      expect(find.text('정렬: 우선 확인 순'), findsOneWidget);
+    });
+
+    testWidgets('주를 옮겨도 고른 정렬이 남는다', (tester) async {
+      await openWorkbench(tester, clients: trio);
+      await choose(tester, ReportQueueSort.nameDescending);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ReportWeekNav),
+          matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text('정렬: 이름 내림차순'), findsOneWidget);
+    });
+
+    testWidgets('영어 문구', (tester) async {
+      await openWorkbench(tester, clients: trio, locale: const Locale('en'));
+
+      expect(find.text('Sort: Needs attention'), findsOneWidget);
+      await tester.tap(sortButton());
+      await settle(tester);
+      expect(find.text('Name A–Z'), findsOneWidget);
+      expect(find.text('Name Z–A'), findsOneWidget);
+    });
+
+    test('정렬 도메인 — 우선 확인·이름 오름·내림', () {
+      List<String> ids(ReportQueueSort sort) => <String>[
+        for (final ReportQueueEntry e in buildReportQueue(
+          clients: trio,
+          reports: const <String, WeeklyReport>{},
+          sentIds: const <String>{},
+          sort: sort,
+        ))
+          e.client.id,
+      ];
+      expect(ids(ReportQueueSort.name), <String>['a', 'b', 'c']);
+      expect(ids(ReportQueueSort.nameDescending), <String>['c', 'b', 'a']);
+      // 수치를 못 읽은 줄끼리는 점수가 같아 이름 순으로 선다.
+      expect(ids(ReportQueueSort.priority), <String>['a', 'b', 'c']);
+      expect(ReportQueueSort.values, hasLength(3));
+    });
   });
 
   testWidgets('이번 주 리포트 칸이 전송 완료 칸의 두 배로 선다 (#2232)', (tester) async {

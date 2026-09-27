@@ -104,10 +104,13 @@ void main() {
     return container;
   }
 
-  Future<void> openShareMenu(WidgetTester tester) async {
-    await tester.tap(
-      find.byKey(const ValueKey<String>('reports-share-action')),
-    );
+  /// 편집기 하단의 `전송` 버튼을 누른다 — 헤더 공유 메뉴가 물러난 뒤(#2389)
+  /// 리포트를 보내는 길은 이것 하나뿐이다.
+  Future<void> tapSend(WidgetTester tester) async {
+    final Finder send = find.byKey(const ValueKey<String>('report-step-send'));
+    await tester.ensureVisible(send);
+    await tester.pump();
+    await tester.tap(send);
     await settle(tester);
   }
 
@@ -134,6 +137,26 @@ void main() {
         find.byKey(const ValueKey<String>('reports-queue-$_minsu')),
         findsNothing,
       );
+    });
+
+    testWidgets('안 읽음 안내는 목록 밑이 아니라 전송 완료 상자 바닥에 선다 (#2396)', (tester) async {
+      await open(tester, history: _History(_sentThisWeek(_minsu)));
+
+      final Finder hint = find.byKey(
+        const ValueKey<String>('reports-sent-unread-hint'),
+      );
+      expect(hint, findsOneWidget);
+      final Rect box = tester.getRect(
+        find.byKey(const ValueKey<String>('reports-workbench-sent')),
+      );
+      final Rect row = tester.getRect(
+        find.byKey(const ValueKey<String>('reports-sent-$_minsu')),
+      );
+      final Rect hintRect = tester.getRect(hint);
+      // 상자 바닥 — 카드 안쪽 여백만큼만 위다.
+      expect(box.bottom - hintRect.bottom, lessThan(40));
+      // 한 줄뿐이니 줄 바로 밑과는 떨어져 있다.
+      expect(hintRect.top - row.bottom, greaterThan(100));
     });
 
     testWidgets('서버 이력이 비어 있으면 그 회원은 미전송 줄에 선다', (tester) async {
@@ -216,9 +239,7 @@ void main() {
       );
       final int before = await reportMessages(tester, container, _minsu);
 
-      await openShareMenu(tester);
-      await tester.tap(find.text('김민수님에게 전송'));
-      await settle(tester);
+      await tapSend(tester);
 
       expect(find.text('이미 보낸 리포트예요'), findsOneWidget);
       expect(find.textContaining('김민수님에게'), findsWidgets);
@@ -242,9 +263,7 @@ void main() {
       final int before = await reportMessages(tester, container, _minsu);
       final int askedBefore = history.asked;
 
-      await openShareMenu(tester);
-      await tester.tap(find.text('김민수님에게 전송'));
-      await settle(tester);
+      await tapSend(tester);
       await tester.tap(find.text('다시 보내기'));
       await settle(tester);
 
@@ -261,9 +280,7 @@ void main() {
       );
       final int before = await reportMessages(tester, container, _minsu);
 
-      await openShareMenu(tester);
-      await tester.tap(find.text('김민수님에게 전송'));
-      await settle(tester);
+      await tapSend(tester);
 
       expect(find.text('이미 보낸 리포트예요'), findsNothing);
       expect(await reportMessages(tester, container, _minsu), before + 1);
@@ -283,9 +300,7 @@ void main() {
       );
       final int before = await reportMessages(tester, container, _minsu);
 
-      await openShareMenu(tester);
-      await tester.tap(find.text('김민수님에게 전송'));
-      await settle(tester);
+      await tapSend(tester);
 
       expect(find.text('이미 보낸 리포트예요'), findsNothing);
       expect(await reportMessages(tester, container, _minsu), before + 1);
@@ -300,9 +315,7 @@ void main() {
         stage: 2,
       );
 
-      await openShareMenu(tester);
-      await tester.tap(find.textContaining('님에게 전송'));
-      await settle(tester);
+      await tapSend(tester);
 
       expect(find.text('이미 보낸 리포트예요'), findsOneWidget);
     });
@@ -316,9 +329,7 @@ void main() {
         stage: 2,
       );
 
-      await openShareMenu(tester);
-      await tester.tap(find.textContaining('Send to'));
-      await settle(tester);
+      await tapSend(tester);
 
       expect(find.text('Already sent'), findsOneWidget);
       expect(find.text('Send again'), findsOneWidget);

@@ -559,6 +559,20 @@
   "metricSodium": "Sodium",
   "metricSugar": "Sugar",
   "clientDietMacrosMissing": "No carbs/protein/fat recorded",
+  "clientDietTotalCalories": "Total calories",
+  "clientDietDayTotal": "Day total",
+  "clientDietMacroShare": "{name} {percent}%",
+  "@clientDietMacroShare": {
+    "description": "끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "metricCarbs": "Carbs",
   "metricProtein": "Protein",
   "metricFat": "Fat",
@@ -785,14 +799,6 @@
     "placeholders": {
       "amount": {
         "type": "String"
-      }
-    }
-  },
-  "dietSodiumValue": "Sodium {value}mg",
-  "@dietSodiumValue": {
-    "placeholders": {
-      "value": {
-        "type": "int"
       }
     }
   },
@@ -1115,19 +1121,7 @@
       }
     }
   },
-  "reportsSendStateSent": "Sent",
-  "reportsSendStateSending": "Sending…",
-  "reportsShare": "Share",
-  "reportsShareSendTo": "Send to {name}",
-  "@reportsShareSendTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsShareNeedsFeedback": "Write feedback first to send it.",
-  "reportsShareNoClient": "Pick a member to see their report first.",
+  "reportsSendNeedsFeedback": "Write feedback first to send it.",
   "reportBodyGreeting": "{name}, here's your weekly report for {range}.",
   "@reportBodyGreeting": {
     "placeholders": {
@@ -2796,34 +2790,7 @@
   "reportsAiUseAsDraft": "Use as feedback",
   "reportsAiRegenerate": "Regenerate",
   "reportsAiUnavailable": "Available after the report summary API is connected. No summary is generated now.",
-  "reportsPdfLabel": "Export PDF",
-  "reportsPdfGenerating": "Generating PDF…",
   "reportsPdfGenerationFailed": "Couldn't generate the PDF. Please try again.",
-  "reportsPdfReady": "{name}'s weekly report is ready.",
-  "@reportsPdfReady": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSending": "Sending…",
-  "reportsPdfSendToClient": "Send to member",
-  "reportsPdfSave": "Save PDF",
-  "reportsPdfPrint": "Print",
-  "reportsPdfClose": "Close",
-  "reportsPdfActionFailed": "Couldn't complete the action. Please try again.",
-  "reportsPdfSent": "Sent the PDF to {name}.",
-  "@reportsPdfSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSaveStarted": "Started saving the PDF.",
-  "reportsPdfPrintOpened": "Opened the print dialog.",
-  "reportsPdfMessage": "Here's your weekly report.",
   "reportsPdfFallbackClient": "member",
   "reportsPdfDocTitle": "Weekly coaching report",
   "reportsPdfDocTitleContinued": "Weekly coaching report (continued)",
@@ -3061,8 +3028,10 @@
       }
     }
   },
+  "reportsSortLabel": "Sort",
   "reportsSortPriority": "Needs attention",
-  "reportsSortName": "By name",
+  "reportsSortName": "Name A–Z",
+  "reportsSortNameDescending": "Name Z–A",
   "reportsSendProgress": "{done} / {total} sent",
   "@reportsSendProgress": {
     "placeholders": {
@@ -3070,6 +3039,14 @@
         "type": "int"
       },
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSendPercent": "{percent}%",
+  "@reportsSendPercent": {
+    "placeholders": {
+      "percent": {
         "type": "int"
       }
     }
@@ -3167,32 +3144,11 @@
   "reportsSentBody": "Message sent",
   "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",
-  "reportsStepGoals": "Write",
+  "reportsStepWrite": "Write",
   "reportsStepSend": "Send",
   "reportsStepperLabel": "Weekly report steps",
   "reportsStepNext": "Next",
   "reportsStepPrev": "Back",
-  "reportsGoalsTitle": "Next week's goals",
-  "reportsGoalsHint": "Pick what to work on together next week. The goals you pick go out with the message.",
-  "reportsGoalsNone": "No goals picked yet",
-  "reportsGoalsPicked": "{count} picked",
-  "@reportsGoalsPicked": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsGoalsOwnHint": "Write your own",
-  "reportsGoalsAdd": "Add",
-  "reportsGoalsRemove": "Remove {goal}",
-  "@reportsGoalsRemove": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
   "reportsGridPtSession": "PT sessions",
   "reportsGridPtPerWeek": "{count}/week",
   "@reportsGridPtPerWeek": {
@@ -3257,7 +3213,7 @@
       }
     }
   },
-  "reportsMacroShortfall": "{name} is well under target — worth picking as a goal for next week",
+  "reportsMacroShortfall": "{name} is well under target — worth raising in your feedback",
   "@reportsMacroShortfall": {
     "placeholders": {
       "name": {
@@ -3293,70 +3249,6 @@
   "reportsMemberFeedbackIntensityRight": "About right",
   "reportsMemberFeedbackIntensityHard": "Hard",
   "reportsMemberFeedbackIntensityTooHard": "Too hard",
-  "reportsLastGoalsTitle": "Last week's goals",
-  "reportsLastGoalsNone": "No goals were picked last week",
-  "reportsLastGoalsNoneHint": "Pick next week's goals now and they come back here in the next report",
-  "reportsLastGoalsMetCount": "{met} / {total} met",
-  "@reportsLastGoalsMetCount": {
-    "placeholders": {
-      "met": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsMet": "Met",
-  "reportsLastGoalsPartial": "Partly",
-  "reportsLastGoalsMissed": "Missed",
-  "reportsLastGoalsUnknown": "Check yourself",
-  "reportsLastGoalsEvidence": "{done} / {target}{unit}",
-  "@reportsLastGoalsEvidence": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "target": {
-        "type": "int"
-      },
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceLogged": "Logged {days} days",
-  "@reportsLastGoalsEvidenceLogged": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceWorkout": "{done} / {total} personal workouts",
-  "@reportsLastGoalsEvidenceWorkout": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsSubtitle": "Judged from this week's records",
-  "reportsLastGoalsKeywordsCalories": "calorie,kcal,intake",
-  "@reportsLastGoalsKeywordsCalories": {
-    "description": "Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen."
-  },
-  "reportsLastGoalsKeywordsWorkout": "workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym",
-  "@reportsLastGoalsKeywordsWorkout": {
-    "description": "Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen."
-  },
-  "reportsLastGoalsKeywordsLogged": "log,record,meal",
-  "@reportsLastGoalsKeywordsLogged": {
-    "description": "Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen."
-  },
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
   "reportsTrendOfGoal": "{value} / {goal}",
@@ -3390,14 +3282,6 @@
   "@reportsMemberFeedbackMeta": {
     "placeholders": {
       "date": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsMacroShortfallEvidence": "This is the evidence last week's goal “{goal}” was judged unmet",
-  "@reportsMacroShortfallEvidence": {
-    "placeholders": {
-      "goal": {
         "type": "String"
       }
     }
