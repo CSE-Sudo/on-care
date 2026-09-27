@@ -38,7 +38,28 @@ class SessionCard extends ConsumerWidget {
     required this.programDateLabel,
     required this.sendingProgram,
     required this.onSendProgram,
+    this.personalRoutines,
+    this.hasUnsentRoutines = false,
+    this.onSendRoutines,
+    this.onSkipRoutines,
+    this.onEditRoutines,
   });
+
+  /// 이 PT 에 붙은 개인운동 덩어리. (#2224)
+  ///
+  /// PT 프로그램과 **나란히** 선다 — 같은 PT 를 두고 "회원이 여기서 할 것" 과
+  /// "회원이 혼자 할 것" 이 갈리므로, 한 카드 안에서 두 갈래로 읽혀야 한다.
+  final Widget? personalRoutines;
+
+  /// 아직 회원에게 가지 않은 개인운동이 붙어 있는가. (#2224)
+  final bool hasUnsentRoutines;
+
+  /// 취소·노쇼로 끝나 보낼 프로그램이 없을 때, 그 자리를 대신하는 전송.
+  final VoidCallback? onSendRoutines;
+  final VoidCallback? onSkipRoutines;
+
+  /// 연필 메뉴의 `개인운동 수정` — 아직 보내지 않았을 때만 선다. (#2224)
+  final VoidCallback? onEditRoutines;
 
   final ScheduleSession session;
   final VoidCallback onEditSchedule;
@@ -79,6 +100,10 @@ class SessionCard extends ConsumerWidget {
     // 자리다. 그래서 프로그램 목록도, "아직 계획된 프로그램이 없어요" 안내도,
     // 회원에게 보내는 버튼도 두지 않는다. 남는 것은 메모뿐이다(#988).
     final noteOnly = s.type == SessionType.consultation;
+    // `PT 프로그램 전송` 자리가 서는가 — 개인운동은 그 전송에 실려 나가므로
+    // 이 값이 개인운동을 어느 자리에서 보낼지까지 가른다(#2224).
+    final bool programSendStands =
+        !noteOnly && s.isDone && s.program.isNotEmpty;
     final client = findClientIdentity(
       roster,
       clientId: session.clientId,
@@ -157,6 +182,10 @@ class SessionCard extends ConsumerWidget {
                 // 프로그램은 더 손댈 수 없어야 하므로도 세우지 않는다
                 // (#1247).
                 showEditProgram: s.program.isNotEmpty && !s.programSent,
+                // 아직 보내지 않은 개인운동이 붙어 있을 때만 — 보낸 뒤에
+                // 바뀌면 회원이 어제 본 목록과 오늘 본 목록이 말없이
+                // 달라진다(#2224).
+                onEditRoutines: hasUnsentRoutines ? onEditRoutines : null,
                 onDelete: onDelete,
               ),
             ],
@@ -246,16 +275,21 @@ class SessionCard extends ConsumerWidget {
           const AppDivider(),
           const SizedBox(height: OnCareSpacing.s12),
           if (!noteOnly)
-            if (s.program.isNotEmpty)
+            if (s.program.isNotEmpty) ...<Widget>[
+              _GroupLabel(label: l.schedGroupProgram),
+              const SizedBox(height: OnCareSpacing.s8),
               for (var i = 0; i < s.program.length; i++) ...<Widget>[
                 SessionProgramRow(index: i + 1, item: s.program[i]),
                 const SizedBox(height: OnCareSpacing.s8),
-              ]
-            else if (s.isUpcoming) ...<Widget>[
+              ],
+            ] else if (s.isUpcoming) ...<Widget>[
               // 예정 session without a plan yet.
               SessionNoPlanBox(onGoToProgram: onGoToProgram),
               const SizedBox(height: OnCareSpacing.s12),
             ],
+          // PT 에서 할 것과 회원이 혼자 할 것을 한 카드에서 갈라 보여 준다
+          // (#2224) — 완료하면 이 개인운동이 함께 나간다.
+          if (!noteOnly && personalRoutines != null) personalRoutines!,
           if (s.note.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
             SessionNoteBox(note: s.note),
@@ -271,20 +305,54 @@ class SessionCard extends ConsumerWidget {
             const SizedBox(height: OnCareSpacing.s12),
           ],
           if (manage.hasActions) manage,
-          if (!noteOnly && s.isDone && s.program.isNotEmpty) ...<Widget>[
+          // 개인운동은 PT 프로그램 전송에 실려 나간다(#2224). 그 자리가 서지
+          // 않는 끝난 PT 에서는 같은 자리가 `개인운동 보내기` 가 된다 —
+          // 버튼을 새로 만들지 않는다: 개인운동은 늘 이 한 자리에서 나간다.
+          //
+          // 취소·노쇼뿐 아니라 **프로그램 없이 완료된 PT** 도 여기 걸린다.
+          // 스케줄에서 바로 잡아 프로그램 없이 마친 PT 에 개인운동만 붙어
+          // 있으면, 예전에는 어느 조건에도 걸리지 않아 보낼 길이 아예 막혔다.
+          //
+          // **끝난 PT 만이다.** 예정인 PT 의 개인운동은 아직 보낼 때가
+          // 아니다 — 프로그램을 보낼 때 함께 간다.
+          if (!noteOnly &&
+              hasUnsentRoutines &&
+              !programSendStands &&
+              (s.isDone || s.isCancelled || s.isNoShow)) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            AppButtonPair(
+              cancelKey: const ValueKey<String>('session-routines-skip'),
+              cancelLabel: l.schedRoutinesSkip,
+              onCancel: onSkipRoutines,
+              confirmKey: const ValueKey<String>('session-routines-send'),
+              confirmLabel: l.schedRoutinesSend,
+              onConfirm: onSendRoutines,
+            ),
+          ],
+          if (programSendStands) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
             // 이미 보냈으면 같은 자리에서 그 사실을 말하고 누를 수 없다 —
             // 다시 누를 수 있게 두면 트레이너가 두 번 보냈는지 알 수 없다.
             AppButton(
               key: const ValueKey<String>('schedule-send-program'),
+              // 개인운동이 함께 실린다(#2224) — 버튼이 그 사실을 말한다.
+              //
+              // 누구에게 가는지는 바로 위 카드 머리글이 이미 말하므로 버튼에는
+              // 이름을 넣지 않는다 — 버튼은 높이가 묶여 있어 한 줄뿐이라,
+              // 이름까지 넣으면 정작 무엇을 보내는지가 잘린다.
               label: s.programSent
                   ? l.schedSentTo(s.clientName)
-                  : l.schedSentProgramTo(s.clientName, programDateLabel),
+                  : hasUnsentRoutines
+                  ? l.schedSendProgramWithRoutines(programDateLabel)
+                  : l.schedSentProgramTo(programDateLabel),
               leadingIcon: s.programSent
                   ? Icons.check_circle_outline_rounded
                   : Icons.send_rounded,
               variant: AppButtonVariant.secondary,
               fullWidth: true,
+              // 무엇을 보내는지가 이 버튼의 전부다 — 좁은 카드에서 말줄임으로
+              // 끝나면 `개인운동도 함께 간다` 는 사실이 통째로 잘린다(#2224).
+              shrinkLabel: true,
               loading: sendingProgram,
               onPressed: (s.programSent || sendingProgram)
                   ? null
@@ -295,4 +363,22 @@ class SessionCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// 카드 안에서 갈래를 가르는 작은 제목 — `PT 프로그램` / `개인운동`. (#2224)
+class _GroupLabel extends StatelessWidget {
+  const _GroupLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(
+      label,
+      style: context.oncare
+          .text(OnCareTypography.strong(OnCareTypography.caption))
+          .copyWith(color: OnCareColors.textSecondary),
+    ),
+  );
 }

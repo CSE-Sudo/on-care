@@ -24,7 +24,7 @@ void main() {
       });
 
       expect(profile.name, '김트레이너');
-      expect(profile.career, '7년');
+      expect(profile.careerYears, 7);
       expect(profile.certifications, <String>['CPT', '영양사']);
       expect(profile.gym.name, '온케어짐 신촌점');
       expect(profile.gym.id, 'gym-1');

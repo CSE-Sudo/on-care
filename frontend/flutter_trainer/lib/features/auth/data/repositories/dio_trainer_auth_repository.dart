@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/dtos/trainer_me_dto.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/mock_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
@@ -172,7 +173,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
 final trainerAuthRepositoryProvider = Provider<TrainerAuthRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    return const MockTrainerAuthRepository();
+    return MockTrainerAuthRepository(language: ref.watch(demoLanguageProvider));
   }
   return DioTrainerAuthRepository(ref.watch(dioProvider));
 }, name: 'trainerAuthRepository');
