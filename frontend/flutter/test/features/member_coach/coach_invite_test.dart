@@ -95,6 +95,15 @@ class _FakeCoachRepository implements MemberCoachRepository {
   Future<void> sendMessage(String text, {String? emoteId}) async {}
 
   @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) => throw UnimplementedError();
+
+  @override
   Future<void> markRead() async {}
 
   @override

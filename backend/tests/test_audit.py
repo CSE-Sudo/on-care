@@ -10,11 +10,11 @@ def test_login_and_register_events_are_audited(client, db_session):
     from app.models.models import AuditLog
 
     email = f"aud-{uuid4().hex[:8]}@oncare.com"
-    reg = client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
+    reg = client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
     uid = reg.json()["id"]
 
     client.post("/v1/auth/login", data={"username": email, "password": "wrong-pw"})  # 실패
-    client.post("/v1/auth/login", data={"username": email, "password": "pw!"})        # 성공
+    client.post("/v1/auth/login", data={"username": email, "password": "test-pw-1234"})        # 성공
 
     db_session.expire_all()
 
@@ -51,11 +51,11 @@ def test_admin_upload_is_audited(client, db_session):
     from app.models.models import AuditLog, User
 
     email = f"aud-admin-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "a"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "a"})
     user = db_session.scalar(select(User).where(User.email == email))
     user.is_admin = True
     db_session.commit()
-    token = client.post("/v1/auth/login", data={"username": email, "password": "pw!"}).json()["access_token"]
+    token = client.post("/v1/auth/login", data={"username": email, "password": "test-pw-1234"}).json()["access_token"]
 
     client.post(
         "/v1/coach/documents/public",

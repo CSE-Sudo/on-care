@@ -13,10 +13,11 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
+from app.api.v1 import chat_attachments
 from app.core import clock
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
@@ -70,6 +71,9 @@ def disconnect_my_coach(
     오류 화면을 보일 이유가 없다.
 
     담당 트레이너에게는 연결이 끊겼다고 알린다(#2174). 해제와 같은 커밋에 얹는다.
+
+    담당 해제는 데이터 공유 동의 철회다(#1631) — 링크의 동의를 비우고 철회 시각을
+    남긴다. 이미 주고받은 채팅·리포트는 지우지 않는다.
     """
     member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_gym(db, current_user.id)
@@ -85,7 +89,8 @@ def disconnect_my_trainer(
     헬스장은 그대로 두고 담당만 바꾸는 흐름(트레이너 교체)이 있어야 하므로 전체
     해제와 나눈다. 전체 해제와 마찬가지로 멱등이다. (#444)
 
-    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174).
+    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174). 전체 해제와 같이 데이터
+    공유 동의도 철회된다(#1631).
     """
     member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_coach(db, current_user.id)
@@ -271,6 +276,41 @@ def send_to_coach(
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/me/coach/chat/image", response_model=ChatMessageOut, status_code=201
+)
+async def send_image_to_coach(
+    member: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+    image: UploadFile = File(...),
+    message: str = Form("", max_length=2000),
+    client_request_id: str | None = Form(None, min_length=1, max_length=64),
+) -> ChatMessageOut:
+    """회원이 담당 트레이너에게 사진을 보낸다. (#1665)
+
+    식사·자세·인바디 결과지처럼 코칭에 바로 쓰이는 사진을 대화 안에서 보낸다.
+    이 길이 없으면 회원은 사진만큼은 개인 메신저로 보내게 되고, 코칭 기록이 두
+    곳으로 갈라진다.
+
+    규약은 트레이너가 보내는 사진(#921)과 **같다** — 바이트로 형식 판정(JPG·PNG·
+    WebP), 같은 용량 상한, `client_request_id` 멱등. 담당 트레이너가 없으면(활성
+    담당 링크가 없으면) 받는 사람이 없으므로 글 메시지와 같이 404 다.
+
+    일반 파일은 받지 않는다. 이 대화는 코칭을 위한 것이고, 받는 쪽이 그릴 수 없는
+    형식은 아이콘 하나로만 남는다(`ChatAttachmentOut`).
+    """
+    trainer_id = _my_trainer_or_404(db, member.id)
+    return await chat_attachments.receive_chat_image(
+        db,
+        trainer_id=trainer_id,
+        member_id=member.id,
+        sender="member",
+        image=image,
+        message=message,
+        client_request_id=client_request_id,
+    )
 
 
 @router.post("/me/coach/chat/read")

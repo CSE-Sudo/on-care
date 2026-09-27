@@ -243,6 +243,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
+  String get authErrPasswordTooLong => '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)';
+
+  @override
   String get authErrPhoneInvalid => '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 
   @override
@@ -2234,11 +2237,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPwCurrentRequired => '현재 비밀번호를 입력해 주세요';
 
   @override
-  String myPwTooShort(int min) {
-    return '새 비밀번호는 $min자 이상이어야 해요';
-  }
-
-  @override
   String get myPwMismatch => '새 비밀번호가 서로 달라요';
 
   @override
@@ -2252,7 +2250,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myPwNew(int min) {
-    return '새 비밀번호 ($min자 이상)';
+    return '새 비밀번호 (영문·숫자 포함 $min자 이상)';
   }
 
   @override
@@ -3067,6 +3065,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplConsultCancelledTitle => '상담 요청이 취소됐어요';
 
   @override
+  String get notifTplConsultWithdrawnTitle => '회원 탈퇴로 상담 요청이 취소됐어요';
+
+  @override
   String get notifTplInviteAcceptedTitle => '담당 요청이 수락되었어요';
 
   @override
@@ -3107,6 +3108,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String notifTplMemberMessageTitle(String name) {
     return '$name 회원의 메시지';
   }
+
+  @override
+  String get notifTplMemberPhotoBody => '사진을 보냈어요';
 
   @override
   String get notifAllRead => '모두 확인했어요';
@@ -4280,18 +4284,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '노쇼 $count회';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count회 전량 소화';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days일 무기록';
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:oncare/core/points/points_award.dart';
 
 /// The member's assigned trainer (coach) summary — `/me/coach`.
@@ -294,6 +296,7 @@ class CoachAttachment {
     required this.fileId,
     required this.fileSize,
     required this.downloadPath,
+    this.localBytes,
   });
 
   final CoachAttachmentKind kind;
@@ -304,6 +307,13 @@ class CoachAttachment {
   final String fileId;
   final int fileSize;
   final String downloadPath;
+
+  /// 서버에서 받아 오지 않아도 이미 가진 사진 바이트. (#1665)
+  ///
+  /// 회원이 보내는 사진은 올리는 동안에도 대화에 보여야 하고, 데모에는 내려받을
+  /// 서버가 없다. 두 경우 모두 고른 바이트를 그대로 그린다. 서버가 준 첨부에는
+  /// 없다 — 그때는 [downloadPath] 로 받아 온다.
+  final Uint8List? localBytes;
 }
 
 /// 배정된 세션 안의 운동 한 항목 — 트레이너 편집기가 적어 준 값 그대로다.

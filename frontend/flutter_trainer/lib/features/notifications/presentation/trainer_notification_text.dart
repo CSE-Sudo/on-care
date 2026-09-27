@@ -69,12 +69,16 @@ TrainerNotificationText? _assemble(
       );
     case 'trainer_consult_requested':
     case 'trainer_consult_cancelled':
+    // 회원 탈퇴로 대기 요청이 함께 사라졌다(#1632). 이름은 탈퇴 직전 이름이다.
+    case 'trainer_consult_withdrawn':
       final Object? day = args['preferred_date'];
       if (name == null || day is! String || day.isEmpty) return null;
       return (
-        title: template == 'trainer_consult_requested'
-            ? l.notifTplConsultRequestedTitle
-            : l.notifTplConsultCancelledTitle,
+        title: switch (template) {
+          'trainer_consult_requested' => l.notifTplConsultRequestedTitle,
+          'trainer_consult_withdrawn' => l.notifTplConsultWithdrawnTitle,
+          _ => l.notifTplConsultCancelledTitle,
+        },
         body: l.notifTplMemberWithDetail(name, day),
       );
     case 'trainer_invite_accepted':
@@ -114,8 +118,14 @@ TrainerNotificationText? _assemble(
       );
     case 'trainer_member_message':
       if (name == null) return null;
-      // 본문은 회원이 쓴 메시지 그대로다.
-      return (title: l.notifTplMemberMessageTitle(name), body: storedBody);
+      // 본문은 회원이 쓴 메시지 그대로다. 글 없이 사진만 보냈으면 서버가
+      // 적어 둔 한국어 안내 대신 화면 언어로 적는다(#1665).
+      return (
+        title: l.notifTplMemberMessageTitle(name),
+        body: args['photo_only'] == true
+            ? l.notifTplMemberPhotoBody
+            : storedBody,
+      );
   }
   return null;
 }
