@@ -133,18 +133,13 @@ void main() {
       at: AppRoutes.clientDetail('seed-client-3'),
     );
 
-    // 식단·운동을 읽다가 그 자리에서 이어지는 동작들. 예전에는 이 줄이
-    // 신체·목표와 메모 둘뿐이라, 말을 걸려면 메시지 탭에서 같은 사람을 다시
-    // 찾아야 했다(#823). 신체·목표·후속 관리·메모는 #1024 에서 이 줄을
-    // 떠났다 — 앞의 둘은 메모와 한 대화상자로 합쳐졌고, 메모 자신은 위
-    // 프로필 줄의 아이콘 버튼이 되었다. 이 줄에는 '다른 화면으로 나가는'
-    // 동작만 남는다.
-    expect(find.text('메시지'), findsOneWidget);
-    expect(find.text('프로그램'), findsOneWidget);
-    expect(find.text('리포트'), findsOneWidget);
-    expect(find.text('회원 신체·목표 관리'), findsNothing);
+    // 식단·운동을 읽다가 그 자리에서 이어지는 동작들. 예전에는 말을 걸려면
+    // 메시지 탭에서 같은 사람을 다시 찾아야 했다(#823). 이 묶음에는 '다른
+    // 화면으로 나가는' 동작만 있고, 아이콘만 그린다 — 이름은 툴팁이다(#2330).
+    expect(find.byTooltip('메시지'), findsOneWidget);
+    expect(find.byTooltip('프로그램'), findsOneWidget);
+    expect(find.byTooltip('리포트'), findsOneWidget);
     expect(find.text('후속 관리'), findsNothing);
-    expect(find.text('메모'), findsNothing);
     // 일정 등록은 스케줄 라우트에 회원을 실을 자리가 없어 아직 넣지 않는다.
     expect(find.text('일정 등록'), findsNothing);
     expect(find.text('주간 리포트'), findsNothing);
@@ -163,18 +158,21 @@ void main() {
       closeTo(tester.getRect(actions).right, 0.1),
     );
 
-    // 메모는 새로고침 바로 왼쪽에, 같은 아이콘 버튼 모양으로 선다 — 화면을
-    // 떠나지 않고 여기서 끝나는 동작끼리 한 줄에 모인다(#1024).
+    // 신체·목표 → 메모는 이 화면에서 끝나는 동작이라 이름 옆, 나가는 묶음보다
+    // 왼쪽의 같은 줄에 선다(#2330). 새로고침은 없다 — 늘 자동으로 맞춘다.
+    final health = tester.getRect(
+      find.byKey(const ValueKey<String>('client-detail-open-health')),
+    );
     final memo = tester.getRect(
       find.byKey(const ValueKey<String>('client-detail-open-memo')),
     );
-    final refresh = tester.getRect(
+    expect(health.right, lessThanOrEqualTo(memo.left));
+    expect(memo.right, lessThan(tester.getRect(actions).left));
+    expect(memo.center.dy, closeTo(tester.getRect(actions).center.dy, 0.5));
+    expect(
       find.byKey(const ValueKey<String>('client-data-refresh')),
+      findsNothing,
     );
-    expect(memo.right, lessThanOrEqualTo(refresh.left));
-    expect(memo.center.dy, closeTo(refresh.center.dy, 0.1));
-    // 빠른 동작 줄보다 위다 — 프로필 줄로 옮겨 갔다는 뜻이다.
-    expect(memo.bottom, lessThanOrEqualTo(tester.getRect(actions).top));
   });
 
   testWidgets('빠른 동작이 지금 보고 있는 회원을 물고 간다 (#823)', (tester) async {
@@ -195,7 +193,7 @@ void main() {
     expect(location(), contains('client=seed-client-3'));
   });
 
-  testWidgets('메모 버튼이 신체·목표와 메모를 한 창으로 연다 (#1024)', (tester) async {
+  testWidgets('신체·목표와 메모는 각자 창을 연다 (#2330)', (tester) async {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
@@ -203,23 +201,51 @@ void main() {
     );
 
     const dialog = ValueKey<String>('client-profile-dialog');
+    const memoDialog = ValueKey<String>('client-memo-dialog');
     // 열기 전에는 어느 쪽도 화면에 없다 — 페이지에 펼쳐 두지 않고, 눌렀을
     // 때만 뜨는 작은 창이다.
     expect(find.byKey(dialog), findsNothing);
-    expect(find.text('회원 신체·목표 관리'), findsNothing);
+    expect(find.byKey(memoDialog), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('client-detail-open-memo')),
     );
     await tester.pumpAndSettle();
 
-    // 한 창 안에 상단 신체·목표, 하단 메모가 함께 선다 — 예전처럼 하나를
-    // 닫아야 다른 하나를 열 수 있지 않다.
-    expect(find.byKey(dialog), findsOneWidget);
-    expect(find.text('회원 신체·목표 관리'), findsOneWidget);
+    // 메모 창에는 메모만 있다 — 목표 폼을 지나 스크롤하지 않는다.
+    expect(find.byKey(memoDialog), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('client-memo-input')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('client-profile-gender')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(memoDialog),
+        matching: find.byTooltip('닫기'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-detail-open-health')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(dialog), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(dialog), matching: find.text('신체·목표')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('client-profile-gender')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('client-memo-input')),
+      findsNothing,
     );
 
     // 닫기는 창 헤더의 X 하나다(AppDialog) — 접근성 이름으로 찾는다.
