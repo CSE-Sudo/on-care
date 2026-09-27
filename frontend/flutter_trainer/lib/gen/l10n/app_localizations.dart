@@ -5575,6 +5575,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load notifications'**
   String get notifLoadFailed;
 
+  /// No description provided for @notifLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier notifications'**
+  String get notifLoadMore;
+
+  /// No description provided for @notifLoadMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier notifications'**
+  String get notifLoadMoreFailed;
+
+  /// No description provided for @notifNoEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'No earlier notifications'**
+  String get notifNoEarlier;
+
   /// No description provided for @notifTplHealthGoalTitle.
   ///
   /// In en, this message translates to:

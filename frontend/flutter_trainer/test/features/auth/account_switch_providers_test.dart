@@ -180,8 +180,9 @@ void main() {
   });
 
   group('알림', () {
-    bool inboxOf(List<TrainerNotification> items, TestTrainer t) =>
-        items.any((TrainerNotification n) => n.title == t.notificationTitle);
+    bool inboxOf(TrainerNotificationPage page, TestTrainer t) => page.items.any(
+      (TrainerNotification n) => n.title == t.notificationTitle,
+    );
 
     test('trainerNotificationsProvider — B 에게 B 의 알림만', () async {
       final result = await switchAccounts(trainerNotificationsProvider);

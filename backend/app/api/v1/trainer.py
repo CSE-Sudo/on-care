@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import date as _date
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import PurePath
 from typing import Annotated, Literal
 
@@ -119,9 +119,12 @@ from app.services.coach.chat import answer as coach_answer
 
 router = APIRouter(tags=["trainer"])
 
-#: 알림함이 한 번에 내려주는 최대 건수. 회원 이력과 같은 이유로 상한을 둔다 —
-#: 오래된 알림 무제한 로드를 막는다.
-_NOTIFICATION_LIMIT = 100
+#: 트레이너 알림함 다음 쪽 커서를 싣는 응답 헤더(#2293). 본문은 전과 같은 배열로
+#: 두어 기존 클라이언트가 그대로 읽고, 다음 쪽이 있을 때만 두 헤더가 붙는다.
+#: 값은 쿼리 `before`·`before_id` 에 그대로 되돌려 준다. 브라우저(트레이너 웹)가
+#: 읽을 수 있게 CORS `expose_headers` 에도 올린다(`app/main.py`).
+NEXT_BEFORE_HEADER = "X-Next-Before"
+NEXT_BEFORE_ID_HEADER = "X-Next-Before-Id"
 
 # 계약 형식은 정확히 YYYY-MM-DD. date.fromisoformat 는 3.11+ 에서 basic ISO·주 날짜도 받으므로
 # 정규식으로 먼저 좁힌 뒤 달력 유효성을 확인한다(schedule 라우트와 동일 규약).
@@ -2744,19 +2747,54 @@ def _notification_out(row: Notification, locale: Locale) -> TrainerNotificationO
     )
 
 
+def _cursor_value(moment: datetime) -> str:
+    """커서 헤더에 싣는 시각. `parse_before` 가 그대로 읽는 ISO 형식(UTC)이다."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone(timezone.utc).isoformat()
+
+
 @router.get("/trainer/notifications", response_model=list[TrainerNotificationOut])
 def trainer_notifications(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
     locale: RequestLocale,
+    response: Response,
+    limit: int = Query(
+        notification_service.TRAINER_PAGE_DEFAULT,
+        ge=1,
+        le=notification_service.TRAINER_PAGE_MAX,
+        description="한 번에 가져올 최신 알림 수",
+    ),
+    before: str | None = Query(
+        None, description="ISO datetime 커서(다음 쪽) — 받은 마지막 알림의 created_at"
+    ),
+    before_id: str | None = Query(
+        None, description="복합 커서 tie-break — 받은 마지막 알림의 id"
+    ),
 ) -> list[TrainerNotificationOut]:
-    """트레이너가 받은 알림(최신순)."""
-    rows = db.scalars(
-        select(Notification)
-        .where(Notification.user_id == trainer.id)
-        .order_by(Notification.created_at.desc())
-        .limit(_NOTIFICATION_LIMIT)
-    ).all()
+    """트레이너가 받은 알림 한 쪽(최신순). 다음 쪽은 커서로 이어 받는다. (#2293)
+
+    파라미터 없이 부르면 전처럼 최신 100건이다. 다음 쪽이 있으면
+    `X-Next-Before`·`X-Next-Before-Id` 헤더에 커서가 실리고, 없으면 두 헤더가
+    없다 — 그게 마지막 쪽이라는 뜻이다.
+
+    미읽음 배지(`/trainer/notifications/unread-count`)와 모두 읽음은 쪽 나눔과
+    무관하게 이 트레이너의 알림 전체를 대상으로 한다.
+    """
+    cursor = parse_before(before)
+    if before_id is not None and cursor is None:
+        # tie-break 만 오면 어디서 자를지 알 수 없다. 조용히 첫 쪽을 주면
+        # 클라이언트가 같은 알림을 다시 이어 붙인다.
+        raise HTTPException(
+            status_code=422, detail="before_id 는 before 와 함께 보내야 합니다."
+        )
+    rows, last = notification_service.list_for_trainer(
+        db, trainer.id, limit=limit, before=cursor, before_id=before_id
+    )
+    if last is not None:
+        response.headers[NEXT_BEFORE_HEADER] = _cursor_value(last.created_at)
+        response.headers[NEXT_BEFORE_ID_HEADER] = last.id
     return [_notification_out(row, locale) for row in rows]
 
 

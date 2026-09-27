@@ -2149,6 +2149,9 @@
   "notifReadAll": "Mark all read",
   "notifEmpty": "No notifications yet",
   "notifLoadFailed": "Couldn't load notifications",
+  "notifLoadMore": "Load earlier notifications",
+  "notifLoadMoreFailed": "Couldn't load earlier notifications",
+  "notifNoEarlier": "No earlier notifications",
   "notifTplHealthGoalTitle": "Member goals changed",
   "notifTplHealthGoalBody": "{name} changed their health goals: {goals}",
   "@notifTplHealthGoalBody": {

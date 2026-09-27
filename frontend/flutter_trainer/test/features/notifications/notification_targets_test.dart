@@ -63,11 +63,15 @@ class _FakeRepo implements TrainerNotificationRepository {
   bool get supportsInbox => true;
 
   @override
-  Future<List<TrainerNotification>> fetch() async => _rows;
+  Future<TrainerNotificationPage> fetch({
+    TrainerNotificationCursor? before,
+  }) async => TrainerNotificationPage(items: _rows);
 
   @override
-  Stream<List<TrainerNotification>> watch() =>
-      Stream<List<TrainerNotification>>.value(_rows);
+  Stream<TrainerNotificationPage> watch() =>
+      Stream<TrainerNotificationPage>.value(
+        TrainerNotificationPage(items: _rows),
+      );
 
   @override
   Future<int> unreadCount() async =>
