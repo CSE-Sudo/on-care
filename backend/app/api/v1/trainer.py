@@ -41,6 +41,10 @@ from app.schemas.diet_api import (
     DietAdviceResponse,
     DietPeriodResponse,
     RecordSpanResponse,
+    TrainerDietCandidate,
+    TrainerDietPick,
+    TrainerDietPickRequest,
+    TrainerDietRecommendationsResponse,
 )
 from app.schemas.exercise_api import (
     ExercisePeriodResponse,
@@ -96,6 +100,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     diet_service,
+    diet_trainer_pick,
     emote_service,
     exercise_service,
     consultation_service,
@@ -683,6 +688,87 @@ def trainer_client_diet_advice(
         days_logged=len(days),
         message=diet_service.period_coach_message(days, period),
     )
+
+
+def _diet_pick_out(pick) -> TrainerDietPick:
+    return TrainerDietPick(
+        slot=pick.slot,
+        name=pick.name,
+        tag=pick.tag,
+        keyword=pick.keyword,
+        status=diet_trainer_pick.status_of(pick),
+        confirmed_at=pick.confirmed_at.isoformat(),
+        resolved_at=pick.resolved_at.isoformat() if pick.resolved_at else None,
+    )
+
+
+def _diet_recommendations(
+    db: Session, trainer_id: str, member_id: str, locale: str
+) -> TrainerDietRecommendationsResponse:
+    pick = diet_trainer_pick.current(db, member_id, trainer_id)
+    exclude = {diet_trainer_pick.norm(pick.name)} if pick is not None else set()
+    found = diet_trainer_pick.candidates(db, member_id, lang=locale, exclude=exclude)
+    return TrainerDietRecommendationsResponse(
+        needs=found.needs,
+        basis_days=found.basis_days,
+        pick=_diet_pick_out(pick) if pick is not None else None,
+        candidates=[
+            TrainerDietCandidate(
+                slot=c.menu.slot, name=c.menu.name, tag=c.menu.tag,
+                keyword=c.menu.keyword, kcal=c.menu.kcal,
+                protein_g=c.menu.protein_g, sodium_mg=c.menu.sodium_mg,
+                urgent=c.urgent,
+            )
+            for c in found.items
+        ],
+    )
+
+
+@router.get(
+    "/trainer/clients/{member_id}/diet-recommendations",
+    response_model=TrainerDietRecommendationsResponse,
+)
+def trainer_client_diet_recommendations(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
+) -> TrainerDietRecommendationsResponse:
+    """담당 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378)
+
+    후보는 회원의 4주 추천 메뉴 리스트에서 급한 태그를 채우는 메뉴부터다. 저장된
+    리스트를 읽기만 하므로 후보를 넘겨 봐도 AI 를 새로 부르지 않는다.
+    """
+    _require_client(db, trainer.id, member_id)
+    return _diet_recommendations(db, trainer.id, member_id, locale)
+
+
+@router.put(
+    "/trainer/clients/{member_id}/diet-recommendations",
+    response_model=TrainerDietRecommendationsResponse,
+)
+def trainer_confirm_diet_recommendation(
+    member_id: str,
+    payload: TrainerDietPickRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
+) -> TrainerDietRecommendationsResponse:
+    """후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. (#2378)
+
+    다시 부르면 바꾸기다(회원당 한 건). 지금 후보 리스트에 없는 메뉴는 422.
+    """
+    _require_client(db, trainer.id, member_id)
+    try:
+        diet_trainer_pick.confirm(
+            db, member_id, trainer.id,
+            name=payload.name, slot=payload.slot, lang=locale,
+        )
+    except diet_trainer_pick.PickNotInPlan as exc:
+        raise HTTPException(
+            status_code=422, detail="추천 후보에 없는 메뉴입니다."
+        ) from exc
+    return _diet_recommendations(db, trainer.id, member_id, locale)
 
 
 @router.get(
@@ -1745,6 +1831,9 @@ def trainer_send_schedule_routines(
         sent = trainer_service.send_scheduled_routines(
             db, trainer.id, session_id, items=payload.personal_routines
         )
+    except trainer_service.ClientLinkDetached as exc:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except trainer_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if sent is None:
@@ -1787,6 +1876,9 @@ def trainer_update_session(
         _require_client(db, trainer.id, fields["member_id"])
     try:
         out = trainer_service.update_session(db, trainer.id, session_id, fields)
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleOverlap as e:
         raise HTTPException(
             status_code=409, detail=trainer_service.overlap_detail(e)
@@ -1828,6 +1920,9 @@ def trainer_complete_session(
     """
     try:
         out = trainer_service.complete_session(db, trainer.id, session_id, payload.note)
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except trainer_service.ScheduleConflict as e:
@@ -1883,6 +1978,9 @@ def trainer_reopen_session(
         out = trainer_service.reopen_session(
             db, trainer.id, session_id, new_date=payload.date
         )
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:

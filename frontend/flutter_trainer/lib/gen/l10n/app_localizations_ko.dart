@@ -4290,6 +4290,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSentRewrite => '이 내용으로 다시 작성';
 
   @override
+  String get reportsHistoryButton => '지난 리포트';
+
+  @override
+  String get reportsViewSent => '보기';
+
+  @override
+  String reportsHistoryTitle(String name) {
+    return '$name님의 지난 리포트';
+  }
+
+  @override
+  String get reportsHistoryBack => '지난 리포트';
+
+  @override
+  String get reportsHistoryUnsent => '미전송';
+
+  @override
+  String get reportsHistoryThisWeek => '이번 주';
+
+  @override
+  String get reportsHistoryEmpty => '아직 보낸 리포트가 없어요';
+
+  @override
+  String get reportsHistoryLoadFailed => '지난 리포트를 불러오지 못했어요';
+
+  @override
+  String get reportsHistoryMore => '더 보기';
+
+  @override
+  String get reportsHistoryMoreFailed => '더 불러오지 못했어요. 다시 눌러 주세요.';
+
+  @override
+  String reportsHistorySendCount(int count) {
+    return '$count번 보냄';
+  }
+
+  @override
+  String get reportsHistoryPdf => 'PDF';
+
+  @override
   String get reportsResendTitle => '이미 보낸 리포트예요';
 
   @override

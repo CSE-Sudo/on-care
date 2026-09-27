@@ -4,7 +4,7 @@
 /// 열다섯 명이 전부 `미전송` 에 섰다. 이 파일이 지키는 것:
 ///  * 지난 주 작업대의 `전송 완료`·`미전송` 이 그 주 데모 이력과 같다.
 ///  * 이번 주에 붙은 신규 회원은 지난 주에 보낸 기록이 없다.
-///  * 지난 주 `전송 완료` 줄을 누르면 그때 보낸 글이 그대로 열린다.
+///  * 지난 주 `전송 완료` 줄의 `보기` 를 누르면 그때 보낸 글이 그대로 열린다.
 library;
 
 import 'package:flutter/material.dart';
@@ -90,7 +90,7 @@ void main() {
     );
   });
 
-  testWidgets('지난 주 전송 완료 줄을 누르면 그때 보낸 글이 열린다', (tester) async {
+  testWidgets('지난 주 전송 완료 줄의 보기를 누르면 그때 보낸 글이 열린다', (tester) async {
     await openLastWeek(tester);
 
     // 최우진은 매주 빠짐없이 받는다 — 지난 주도 전송 완료다.
@@ -103,9 +103,9 @@ void main() {
     // 회원 목표(체력 강화)를 말하는 글이다.
     expect(record.message, contains('체력'));
 
-    final Finder row = find.byKey(const ValueKey<String>('reports-sent-$id'));
-    await tester.ensureVisible(row);
-    await tester.tap(row);
+    final Finder view = find.byKey(const ValueKey<String>('reports-view-$id'));
+    await tester.ensureVisible(view);
+    await tester.tap(view);
     await settle(tester);
 
     expect(find.byType(SentReportView), findsOneWidget);
