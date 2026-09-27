@@ -245,12 +245,23 @@ void main() {
         db.appKeyValues,
       )..where((t) => t.key.like('report_msg_seed-%'))).get();
       expect(seeded, isNotEmpty, reason: '시드에 리포트 안내가 있어야 이 테스트가 뜻이 있다');
+      // 지난 주에는 데모 로스터의 리포트 이력이 선다(#2399). 그 이력은 시드
+      // 안내가 아니라 회원 목표로 쓴 글이다 — 안내 본문이 이력에 섞이면 안 된다.
+      final Set<String> guideBodies = <String>{
+        for (final ClientChatMessageRow row in await (db.select(
+          db.clientChatMessages,
+        )..where((t) => t.id.like('seed-%'))).get())
+          row.body,
+      };
 
       for (final AppKeyValue marker in seeded) {
         final List<ReportSendRecord> records = await _local(
           db,
         ).sentReports(weekStart: DateTime.parse(marker.value));
-        expect(records, isEmpty);
+        for (final ReportSendRecord r in records) {
+          expect(guideBodies, isNot(contains(r.message)));
+          expect(r.sendCount, 1);
+        }
       }
     });
   });
