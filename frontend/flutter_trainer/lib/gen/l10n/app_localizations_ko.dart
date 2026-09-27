@@ -4375,6 +4375,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSentRewrite => '이 내용으로 다시 작성';
 
   @override
+  String get reportsResendTitle => '이미 보낸 리포트예요';
+
+  @override
+  String reportsResendBody(String name, String date, String time) {
+    return '$name님에게 $date $time에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.';
+  }
+
+  @override
+  String get reportsResendConfirm => '다시 보내기';
+
+  @override
+  String get reportsSendHistoryFailed =>
+      '전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.';
+
+  @override
   String get reportsSentBody => '보낸 피드백';
 
   @override

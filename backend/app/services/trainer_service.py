@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
 from app.core import clock
-from app.core.locale import localized
+from app.core.locale import Locale, current_locale, localized
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
@@ -42,6 +42,8 @@ from app.schemas.trainer_api import (
     ProgramDraftSession,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
+    ReportSendOut,
+    ReportSendsOut,
     ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineCompleteOut,
     RoutineHistoryExerciseOut,
     RoutineHistoryKind,
@@ -5717,7 +5719,7 @@ def build_weekly_report(
     return report.model_copy(update={"message": report_message(report)})
 
 
-def report_message(report: WeeklyReportOut) -> str:
+def report_message(report: WeeklyReportOut, locale: Locale | None = None) -> str:
     """회원 채팅 스레드에 그대로 들어갈 본문.
 
     별도 리포트 함이 아니라 이미 읽고 있는 대화에 도착하도록 평문으로 쓴다 —
@@ -5729,7 +5731,19 @@ def report_message(report: WeeklyReportOut) -> str:
     손보지 않고 그대로 보내도 사람이 쓴 것으로 읽혀야 한다.
 
     기록이 없는 항목은 문장을 아예 뺀다 — '이행률 0%'는 거짓말이다.
+
+    [locale] 은 초안을 쓰는 트레이너 화면의 언어다(#2298). 생략하면 지금 요청의
+    언어이고, 헤더가 없으면 지금까지처럼 한국어다. 영어 문장은 트레이너 웹의
+    `reportBody*` 문구와 같은 말투로 쓴다 — 서버 초안과 화면 초안이 다른 사람이
+    쓴 글처럼 읽히면 안 된다.
     """
+    if (locale or current_locale()) == "en":
+        return _report_message_en(report)
+    return _report_message_ko(report)
+
+
+def _report_message_ko(report: WeeklyReportOut) -> str:
+    """한국어 본문. 헤더가 없는 요청과 한국어 화면이 받는 지금까지의 문장이다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
     good = (report.completion_avg or 0) >= 70 and report.sodium_over_days <= 2
@@ -5793,6 +5807,74 @@ def report_message(report: WeeklyReportOut) -> str:
             "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!"
             if good
             else "다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요."
+        )
+    return "\n\n".join(paragraphs)
+
+
+def _plural_days(n: int) -> str:
+    """영어 날 수(`1 day`·`3 days`)."""
+    return f"{n} day" if n == 1 else f"{n} days"
+
+
+def _report_message_en(report: WeeklyReportOut) -> str:
+    """영어 본문. 한국어 본문과 같은 문단·같은 판정이고 문장만 영어다."""
+    start = date.fromisoformat(report.week_start)
+    end = date.fromisoformat(report.week_end)
+    good = (report.completion_avg or 0) >= 70 and report.sodium_over_days <= 2
+    # 트레이너 웹 `dateMonthDay`·`dateRange` 와 같은 모양(`8/10 – 8/16`).
+    period = f"{start.month}/{start.day} – {end.month}/{end.day}"
+
+    paragraphs: list[str] = [
+        f"Hi {report.member_name}, here's your weekly report for {period}."
+    ]
+
+    workout: list[str] = []
+    if report.completion_avg is not None:
+        workout.append(
+            f"You kept up well — {report.completion_avg}% of your workouts done."
+            if report.completion_avg >= 70
+            else f"Workout completion came in at {report.completion_avg}%. "
+            "Sounds like a busy week."
+        )
+    skipped = _skipped_names(report)
+    if skipped:
+        workout.append(
+            f"One thing — {', '.join(skipped)} got skipped. If that was down to how "
+            "you were feeling, tell me at the next session and I'll swap in an "
+            "alternative."
+        )
+    if workout:
+        paragraphs.append(" ".join(workout))
+
+    diet: list[str] = []
+    if report.sodium_avg is not None:
+        diet.append(
+            f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
+            f"{SODIUM_TARGET_MG:,}mg target on {_plural_days(report.sodium_over_days)}. "
+            "Leaving half the broth behind saves 400–500mg a day."
+            if report.sodium_over_days > 0
+            else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
+            f"inside the {SODIUM_TARGET_MG:,}mg target."
+        )
+    recorded = [v for v in report.calories_week if v > 0]
+    if recorded:
+        diet.append(
+            f"Calories averaged {round(sum(recorded) / len(recorded)):,}kcal a day."
+        )
+    if diet:
+        paragraphs.append(" ".join(diet))
+
+    if len(paragraphs) == 1:
+        paragraphs.append(
+            "There's nothing logged for this week, so nothing to sum up. "
+            "Let's plan next week's start together."
+        )
+    else:
+        paragraphs.append(
+            "Great work — let's keep this pace next week!"
+            if good
+            else "Let's focus on just these things next week. "
+            "I'll adjust your program and send it over."
         )
     return "\n\n".join(paragraphs)
 
@@ -6079,6 +6161,56 @@ def get_report_goals(db: Session, member_id: str, week: date) -> ReportGoalsOut:
         if isinstance(decoded, list):
             goals = [g for g in decoded if isinstance(g, str) and g.strip()]
     return ReportGoalsOut(week_start=week.isoformat(), goals=goals)
+
+
+def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOut:
+    """[week] 주 리포트가 나간 담당 회원들. (#2288)
+
+    근거는 리포트 전송이 남긴 채팅 메시지의 `report_week_start` 다. 본문 전송
+    (`/report/send`)과 PDF 전송(`/report/send-pdf`)이 모두 이 값을 남기므로,
+    어느 길로 보냈든 여기서 한 번에 보인다. 앱이 들고 있던 기록은 새로고침하면
+    사라져, 이미 보낸 회원이 미전송으로 돌아가 같은 리포트가 두 번 나갔다.
+
+    담당이 살아 있는 회원만 싣는다 — 해제된 회원의 기록은 다른 트레이너 화면
+    에서 읽을 이유가 없고, 실으면 해제 사실이 응답으로 드러난다(#2281).
+    한 회원에게 여러 번 보냈으면 **가장 최근 것** 하나로 접고 횟수를 함께 준다.
+    """
+    week_iso = week_start_of(week).isoformat()
+    active_members = select(TrainerClient.member_id).where(
+        TrainerClient.trainer_id == trainer_id,
+        TrainerClient.active.is_(True),
+    )
+    rows = db.scalars(
+        select(ChatMessage)
+        .where(
+            ChatMessage.trainer_id == trainer_id,
+            ChatMessage.sender == "trainer",
+            ChatMessage.report_week_start == week_iso,
+            ChatMessage.member_id.in_(active_members),
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+    ).all()
+    latest: dict[str, ChatMessage] = {}
+    counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        latest.setdefault(row.member_id, row)
+        counts[row.member_id] += 1
+    return ReportSendsOut(
+        week_start=week_iso,
+        sends=[
+            ReportSendOut(
+                member_id=member_id,
+                week_start=week_iso,
+                sent_at=_iso(msg.created_at),
+                message=msg.body,
+                read=msg.read_at is not None,
+                has_pdf=msg.attachment_type == "pdf"
+                and msg.attachment_file_id is not None,
+                send_count=counts[member_id],
+            )
+            for member_id, msg in latest.items()
+        ],
+    )
 
 
 def save_report_goals(
