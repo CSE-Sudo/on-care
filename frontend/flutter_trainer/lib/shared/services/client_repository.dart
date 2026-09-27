@@ -73,11 +73,6 @@ abstract interface class ClientRepository {
     DateTime date,
   );
   Stream<List<RoutineHistoryEntry>> watchHistory(String clientId);
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  );
   Future<MemberHealthProfile> fetchHealthProfile(String clientId);
   Future<MemberHealthProfile> updateHealthProfile(
     String clientId,
@@ -114,9 +109,6 @@ abstract interface class ClientRepository {
   /// 기간을 두 화면이 다르게 말하면 상담에서 둘이 다른 이야기를 들고 앉는다.
   /// (#1017)
   Future<String> fetchDietAdvice(String clientId, ClientPeriod period);
-
-  /// 기간에 맞는 운동 조언. 식단(#1017)과 같은 규칙으로 서버가 만든다. (#1025)
-  Future<String> fetchExerciseAdvice(String clientId, ClientPeriod period);
 
   Future<ClientDietPeriod> fetchDietPeriod(
     String clientId,
@@ -225,15 +217,6 @@ class DriftClientRepository implements ClientRepository {
   const DriftClientRepository(this._db);
 
   final AppDatabase _db;
-
-  @override
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  ) => throw UnsupportedError(
-    'Assigned-routine feedback is available from the backend only.',
-  );
 
   @override
   bool get supportsRosterMutations => true;
@@ -761,164 +744,6 @@ class DriftClientRepository implements ClientRepository {
         '지금 흐름이 좋아요.';
   }
 
-  @override
-  Future<String> fetchExerciseAdvice(
-    String clientId,
-    ClientPeriod period,
-  ) async {
-    // 데모도 서버 규칙(`exercise_service.period_coach_message`)을 로컬 데이터로
-    // 흉내 낸다 — 고정 문장이면 기간을 바꿔도 조언이 그대로라, 이 화면이 무엇을
-    // 하는지 데모에서 보이지 않는다. (#1025)
-    final ClientExercisePeriod window = await _exercisePeriod(clientId, period);
-    // 기록이 없는 날은 0 으로 채워져 온다. 쉰 날과 적지 않은 날을 갈라 세려면
-    // 여기서 걸러야 서버(`daily_totals`)와 같은 수를 센다.
-    final List<ClientExerciseDay> logged = window.days
-        .where((ClientExerciseDay day) => day.minutes > 0)
-        .toList();
-    if (logged.isEmpty) {
-      return switch (period) {
-        ClientPeriod.week => '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?',
-        ClientPeriod.month => '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.',
-        ClientPeriod.today => '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?',
-      };
-    }
-
-    if (period == ClientPeriod.today) {
-      final ClientExerciseDay day = logged.last;
-      return '오늘 ${_mainTypeLabel(day)} 위주로 ${day.minutes}분, '
-          '${day.calories}kcal 썼어요. 스트레칭으로 마무리해요.';
-    }
-
-    final int totalMinutes = logged.fold<int>(
-      0,
-      (int sum, ClientExerciseDay day) => sum + day.minutes,
-    );
-    if (period == ClientPeriod.week) {
-      if (logged.length <= 1) {
-        return '이번 주는 $totalMinutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
-      }
-      final int cardio = logged.fold<int>(
-        0,
-        (int s, ClientExerciseDay d) => s + d.cardioMinutes,
-      );
-      final int strength = logged.fold<int>(
-        0,
-        (int s, ClientExerciseDay d) => s + d.strengthMinutes,
-      );
-      // 서버와 같은 8할 기준 — 한 유형에 쏠렸는지가 코칭의 첫 질문이다.
-      if (totalMinutes > 0 && cardio * 10 >= totalMinutes * 8) {
-        return '이번 주 ${logged.length}일 $totalMinutes분이 유산소에 몰렸어요. '
-            '근력도 섞어 볼까요?';
-      }
-      if (totalMinutes > 0 && strength * 10 >= totalMinutes * 8) {
-        return '이번 주 ${logged.length}일 $totalMinutes분이 근력에 몰렸어요. '
-            '유산소도 섞어 볼까요?';
-      }
-      return '이번 주 ${logged.length}일 $totalMinutes분, 유형도 고르게 섞였어요.';
-    }
-
-    // 전체 — 최근 4주와 그 이전을 견준다.
-    final DateTime recentFrom = logged.last.date.subtract(
-      const Duration(days: 27),
-    );
-    final List<int> recent = <int>[
-      for (final ClientExerciseDay d in logged)
-        if (!d.date.isBefore(recentFrom)) d.minutes,
-    ];
-    final List<int> earlier = <int>[
-      for (final ClientExerciseDay d in logged)
-        if (d.date.isBefore(recentFrom)) d.minutes,
-    ];
-    double mean(List<int> xs) =>
-        xs.isEmpty ? 0 : xs.fold<int>(0, (int a, int b) => a + b) / xs.length;
-    if (recent.isNotEmpty && earlier.isNotEmpty) {
-      if (mean(recent) > mean(earlier) * 1.1) {
-        return '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
-      }
-      if (mean(recent) < mean(earlier) * 0.9) {
-        return '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
-      }
-    }
-    return '12주 동안 ${logged.length}일 $totalMinutes분, 기복 없이 이어가고 있어요.';
-  }
-
-  /// [period] 가 덮는 구간의 일별 운동 집계.
-  ///
-  /// 운동 이력은 서버도 데모도 **주 단위**라, 구간이 걸친 주를 각각 읽어 이어
-  /// 붙인다. `clientExercisePeriodProvider` 가 화면을 위해 하는 일과 같은데,
-  /// 조언은 위젯 없이도 같은 수를 세야 해서 여기에 한 벌 더 둔다.
-  Future<ClientExercisePeriod> _exercisePeriod(
-    String clientId,
-    ClientPeriod period,
-  ) async {
-    final ClientDateRange range = clientRangeNow(period, exercise: true);
-    final Map<String, ClientExerciseDay> byDate = <String, ClientExerciseDay>{};
-    int weeklyGoalMinutes = 0;
-    int weeklyGoalCalories = 0;
-    // 주를 한꺼번에 읽는다 — 위 provider 와 같은 이유다 (#1170).
-    final List<DateTime> mondays = clientRangeWeekStarts(range);
-    final List<ClientExerciseWeek> weeks =
-        await Future.wait(<Future<ClientExerciseWeek>>[
-          for (final DateTime monday in mondays)
-            fetchExerciseWeek(clientId, weekStart: monday),
-        ]);
-    for (int w = 0; w < mondays.length; w++) {
-      final DateTime monday = mondays[w];
-      final ClientExerciseWeek week = weeks[w];
-      weeklyGoalMinutes = week.weeklyGoalMinutes;
-      weeklyGoalCalories = week.weeklyGoalCalories;
-      for (var d = 0; d < 7; d++) {
-        final DateTime date = DateTime(
-          monday.year,
-          monday.month,
-          monday.day + d,
-        );
-        int at(List<int> xs) => d < xs.length ? xs[d] : 0;
-        byDate[ymd(date)] = ClientExerciseDay(
-          date: date,
-          minutes: at(week.dailyMinutes),
-          calories: at(week.dailyCalories),
-          cardioMinutes: at(week.cardioMinutes),
-          strengthMinutes: at(week.strengthMinutes),
-          stretchingMinutes: at(week.stretchingMinutes),
-          otherMinutes: at(week.otherMinutes),
-          cardioCalories: at(week.cardioCalories),
-          strengthCalories: at(week.strengthCalories),
-          stretchingCalories: at(week.stretchingCalories),
-          otherCalories: at(week.otherCalories),
-        );
-      }
-    }
-    return ClientExercisePeriod(
-      weeklyGoalMinutes: weeklyGoalMinutes,
-      weeklyGoalCalories: weeklyGoalCalories,
-      range: range,
-      days: <ClientExerciseDay>[
-        for (final DateTime date in clientRangeDates(range))
-          byDate[ymd(date)] ?? ClientExerciseDay(date: date),
-      ],
-    );
-  }
-
-  /// 그날 가장 오래 한 유형의 이름. 같으면 유산소 → 근력 → 스트레칭 순이다.
-  String _mainTypeLabel(ClientExerciseDay day) {
-    final Map<String, int> byType = <String, int>{
-      '유산소': day.cardioMinutes,
-      '근력': day.strengthMinutes,
-      '스트레칭': day.stretchingMinutes,
-      '기타': day.otherMinutes,
-    };
-    String best = '유산소';
-    int bestMinutes = -1;
-    for (final MapEntry<String, int> e in byType.entries) {
-      if (e.value > bestMinutes) {
-        best = e.key;
-        bestMinutes = e.value;
-      }
-    }
-    return best;
-  }
-
   /// 주말(토·일) 평균이 평일보다 뚜렷하게 높은지 — 서버와 같은 1.3배 기준.
   bool _weekendRuns(List<ClientDietDay> days) {
     final List<int> weekend = <int>[
@@ -1341,16 +1166,6 @@ final clientExercisesOnProvider = FutureProvider.autoDispose
       return ref
           .watch(clientRepositoryProvider)
           .fetchExercisesOn(key.clientId, key.date);
-    });
-
-/// 기간에 맞는 운동 조언. 식단(`clientDietAdviceProvider`)과 같은 모양이다.
-/// (#1025)
-final clientExerciseAdviceProvider = FutureProvider.autoDispose
-    .family<String, ({String clientId, ClientPeriod period})>((ref, key) async {
-      keepAliveForAccount(ref);
-      return ref
-          .watch(clientRepositoryProvider)
-          .fetchExerciseAdvice(key.clientId, key.period);
     });
 
 /// Streams a client's workout history for the 운동 sub-tab.

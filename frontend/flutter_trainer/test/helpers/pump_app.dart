@@ -229,13 +229,6 @@ class _StillClientRepository implements ClientRepository {
       Stream<List<RoutineHistoryEntry>>.value(const <RoutineHistoryEntry>[]);
 
   @override
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
   Future<MemberHealthProfile> fetchHealthProfile(String clientId) =>
       throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
@@ -265,10 +258,6 @@ class _StillClientRepository implements ClientRepository {
 
   @override
   Future<String> fetchDietAdvice(String clientId, ClientPeriod period) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<String> fetchExerciseAdvice(String clientId, ClientPeriod period) =>
       throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override

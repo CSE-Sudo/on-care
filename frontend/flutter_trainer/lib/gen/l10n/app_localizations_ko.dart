@@ -1170,9 +1170,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedback => '회원 피드백';
 
   @override
-  String get clientFeedbackSession => '이 세션에 대한 회원 피드백';
-
-  @override
   String get workoutKindAiPersonal => 'AI 개인운동';
 
   @override
@@ -1180,9 +1177,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get workoutKindAssignedRoutine => '배정 루틴 수행';
-
-  @override
-  String get trainerNote => '트레이너 메모';
 
   @override
   String get dietLoadFailed => '식단을 불러오지 못했어요';
@@ -3099,24 +3093,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String searchDetailCompletion(int percent) {
     return '이번 주 이행률 $percent%';
   }
-
-  @override
-  String get routineFeedbackTitle => '수행 피드백';
-
-  @override
-  String get routineFeedbackHint => '회원에게 전할 코칭 피드백을 입력해 주세요';
-
-  @override
-  String get routineFeedbackWrite => '피드백 작성';
-
-  @override
-  String get routineFeedbackEdit => '피드백 수정';
-
-  @override
-  String get routineFeedbackSaved => '피드백을 저장했어요';
-
-  @override
-  String get routineFeedbackFailed => '피드백을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get navOperationsGroup => '운영';

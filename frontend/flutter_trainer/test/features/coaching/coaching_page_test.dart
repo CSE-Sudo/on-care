@@ -240,13 +240,6 @@ class _FixedClientRepository implements ClientRepository {
       Stream.value(const <RoutineHistoryEntry>[]);
 
   @override
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  ) async => throw UnsupportedError('not used');
-
-  @override
   Future<MemberHealthProfile> fetchHealthProfile(String clientId) async =>
       MemberHealthProfile(memberId: clientId, memberName: '회원');
 
@@ -282,12 +275,6 @@ class _FixedClientRepository implements ClientRepository {
   @override
   Future<String> fetchDietAdvice(String clientId, ClientPeriod period) async =>
       '';
-
-  @override
-  Future<String> fetchExerciseAdvice(
-    String clientId,
-    ClientPeriod period,
-  ) async => '';
 
   @override
   Future<List<ClientDietEntry>> fetchDietOn(

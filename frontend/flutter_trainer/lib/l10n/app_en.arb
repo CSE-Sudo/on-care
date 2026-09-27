@@ -734,7 +734,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT session · Trainer-led",
   "@workoutKindPtSession": {
@@ -744,7 +743,6 @@
   "@workoutKindAssignedRoutine": {
     "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
   },
-  "trainerNote": "Trainer's note",
   "dietLoadFailed": "Couldn't load meals",
   "dietEmpty": "No meals logged yet",
   "dietDayEmpty": "No record",
@@ -2068,12 +2066,6 @@
       }
     }
   },
-  "routineFeedbackTitle": "Workout feedback",
-  "routineFeedbackHint": "Write coaching feedback for the member",
-  "routineFeedbackWrite": "Write feedback",
-  "routineFeedbackEdit": "Edit feedback",
-  "routineFeedbackSaved": "Feedback saved",
-  "routineFeedbackFailed": "Could not save feedback. Please try again",
   "navOperationsGroup": "Operations",
   "navCoachingGroup": "Coaching",
   "dashTodayTasks": "Today's tasks",

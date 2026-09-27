@@ -2246,12 +2246,6 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @clientFeedbackSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on this session'**
-  String get clientFeedbackSession;
-
   /// No description provided for @workoutKindAiPersonal.
   ///
   /// In en, this message translates to:
@@ -2269,12 +2263,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Assigned routine'**
   String get workoutKindAssignedRoutine;
-
-  /// No description provided for @trainerNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer\'s note'**
-  String get trainerNote;
 
   /// No description provided for @dietLoadFailed.
   ///
@@ -5677,42 +5665,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{percent}% completion this week'**
   String searchDetailCompletion(int percent);
-
-  /// No description provided for @routineFeedbackTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout feedback'**
-  String get routineFeedbackTitle;
-
-  /// No description provided for @routineFeedbackHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write coaching feedback for the member'**
-  String get routineFeedbackHint;
-
-  /// No description provided for @routineFeedbackWrite.
-  ///
-  /// In en, this message translates to:
-  /// **'Write feedback'**
-  String get routineFeedbackWrite;
-
-  /// No description provided for @routineFeedbackEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit feedback'**
-  String get routineFeedbackEdit;
-
-  /// No description provided for @routineFeedbackSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback saved'**
-  String get routineFeedbackSaved;
-
-  /// No description provided for @routineFeedbackFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save feedback. Please try again'**
-  String get routineFeedbackFailed;
 
   /// No description provided for @navOperationsGroup.
   ///

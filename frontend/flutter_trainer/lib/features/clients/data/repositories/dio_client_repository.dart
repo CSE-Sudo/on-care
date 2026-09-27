@@ -185,29 +185,6 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
   }
 
   @override
-  Future<String> fetchExerciseAdvice(
-    String clientId,
-    ClientPeriod period,
-  ) async {
-    // 식단 조언과 같은 계약이다(#1017, #1025) — 두 카드가 한 화면에 나란히
-    // 서므로 같은 이름으로 같은 것을 묻는다.
-    final String wire = switch (period) {
-      ClientPeriod.today => 'today',
-      ClientPeriod.week => 'week',
-      ClientPeriod.month => 'all',
-    };
-    try {
-      final response = await _dio.get<Map<String, Object?>>(
-        '/trainer/clients/${Uri.encodeComponent(clientId)}/exercise-advice',
-        queryParameters: <String, Object?>{'period': wire},
-      );
-      return (response.data?['message'] as String?) ?? '';
-    } on DioException catch (error) {
-      throw AppError.fromDio(error);
-    }
-  }
-
-  @override
   Future<ClientDietPeriod> fetchDietPeriod(
     String clientId,
     ClientDateRange range,
@@ -332,28 +309,6 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
     '/trainer/clients/${Uri.encodeComponent(clientId)}/history',
     routineHistoryEntryFromJson,
   );
-
-  @override
-  Future<RoutineHistoryEntry> updateHistoryFeedback(
-    String clientId,
-    String historyId,
-    String feedback,
-  ) async {
-    final String path =
-        '/trainer/clients/${Uri.encodeComponent(clientId)}/history/'
-        '${Uri.encodeComponent(historyId)}/feedback';
-    try {
-      final Response<Map<String, Object?>> response = await _dio.put(
-        path,
-        data: <String, Object?>{'feedback': feedback.trim()},
-      );
-      final Map<String, Object?>? data = response.data;
-      if (data == null) throw const FormatException('Missing history row.');
-      return routineHistoryEntryFromJson(data);
-    } on DioException catch (error) {
-      throw AppError.fromDio(error);
-    }
-  }
 
   @override
   Future<MemberHealthProfile> fetchHealthProfile(String clientId) async {
