@@ -36,7 +36,6 @@ class _RecordingRepository implements AccountRepository {
     num? heightCm,
     num? weightKg,
     String? conditions,
-    String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
     int? dailySugarG,
@@ -54,7 +53,6 @@ class _RecordingRepository implements AccountRepository {
       'height_cm': heightCm,
       'weight_kg': weightKg,
       'conditions': conditions,
-      'goals': goals,
       'daily_calories': dailyCalories,
       'daily_sodium_mg': dailySodiumMg,
       'daily_sugar_g': dailySugarG,
@@ -85,7 +83,6 @@ class _RecordingRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   }) => _inner.updateProfile(
     name: name,
     email: email,
@@ -94,13 +91,11 @@ class _RecordingRepository implements AccountRepository {
     gender: gender,
     heightCm: heightCm,
     weightKg: weightKg,
-    goals: goals,
   );
 
   @override
   Future<UserProfile> updateHealthGoals({
     String? conditions,
-    String? goals,
     GoalUpdate? dailyCalories,
     GoalUpdate? dailySodiumMg,
     GoalUpdate? dailySugarG,

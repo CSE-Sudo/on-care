@@ -10,7 +10,6 @@ class MemberHealthProfile {
     this.weightKg,
     this.gender = '',
     this.conditions = '',
-    this.goals = '',
     this.dailyCalories,
     this.dailySodiumMg,
     this.dailySugarG,
@@ -34,7 +33,6 @@ class MemberHealthProfile {
   final double? weightKg;
   final String gender;
   final String conditions;
-  final String goals;
   final int? dailyCalories;
   final int? dailySodiumMg;
 
@@ -72,7 +70,6 @@ class MemberHealthProfile {
         weightKg: (json['weight_kg'] as num?)?.toDouble(),
         gender: json['gender'] as String? ?? '',
         conditions: json['conditions'] as String? ?? '',
-        goals: json['goals'] as String? ?? '',
         dailyCalories: (json['daily_calories'] as num?)?.toInt(),
         dailySodiumMg: (json['daily_sodium_mg'] as num?)?.toInt(),
         dailySugarG: (json['daily_sugar_g'] as num?)?.toInt(),

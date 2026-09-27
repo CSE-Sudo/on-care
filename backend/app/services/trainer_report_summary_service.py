@@ -56,8 +56,10 @@ SUGAR_OVER_DAYS = 2
 #: 탄·단·지가 목표에서 이만큼 벗어나면 균형 이탈로 본다.
 MACRO_TOLERANCE = 0.25
 
-#: 이행률이 이 아래면 주의로 본다 — 주의 배지·리포트 막대와 같은 기준.
-LOW_COMPLETION = 70
+#: 이행률이 이 아래면 주의로, 좋음 이상이면 좋은 점으로 본다. 그 사이(보통)는
+#: 어느 쪽으로도 말하지 않는다. 값은 `client_signals` 한 곳에 둔다(#2345).
+LOW_COMPLETION = client_signals.COMPLETION_LOW_PERCENT
+GOOD_COMPLETION = client_signals.COMPLETION_GOOD_PERCENT
 
 #: 목표를 이 날 수보다 많이 넘겼으면 주의로 본다 — 리포트의 `isGoodWeek` 와 같은
 #: 기준이다. 평균만 보면 사흘을 넘긴 주가 `목표 범위 안` 으로 넘어갔다(#1177).
@@ -549,7 +551,7 @@ def _rule_summary(
 
     watch = watchpoints(report, locale)
     good: list[str] = []
-    if report.completion_avg is not None and report.completion_avg >= LOW_COMPLETION:
+    if report.completion_avg is not None and report.completion_avg >= GOOD_COMPLETION:
         good.append(
             localized(
                 f"운동 이행률 {report.completion_avg}%",

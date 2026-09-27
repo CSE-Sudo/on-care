@@ -55,7 +55,6 @@ def _limits(model, field: str) -> dict:
     "field",
     [
         "conditions",
-        "goals",
         "daily_calories",
         "daily_sodium_mg",
         "daily_sugar_g",
@@ -127,13 +126,11 @@ def test_clearing_a_goal_still_works(schema):
 
 @pytest.mark.parametrize("schema", ALL_SCHEMAS)
 def test_free_text_goals_have_the_same_limit(schema):
-    """`conditions`·`goals` 도 같은 모양으로 갈라져 있었다.
+    """`conditions` 도 같은 모양으로 갈라져 있었다.
 
     컬럼이 `Text` 라 500 은 아니지만, 회원 경로에는 상한이 없어 20만자가
     200 으로 저장됐다.
     """
-    with pytest.raises(ValidationError):
-        schema(goals="가" * 200_000)
     with pytest.raises(ValidationError):
         schema(conditions="가" * 1001)
 

@@ -216,7 +216,6 @@ void main() {
       final updated = await repository.updateHealthProfile('seed-client-1', {
         'weight_kg': 68.4,
         'weekly_workout_goal': 0,
-        'goals': '체지방 감량',
       });
       final fetchedAgain = await repository.fetchHealthProfile('seed-client-1');
 
@@ -224,7 +223,6 @@ void main() {
       expect(updated.weeklyWorkoutGoal, 0);
       expect(fetchedAgain.weightKg, 68.4);
       expect(fetchedAgain.weeklyWorkoutGoal, 0);
-      expect(fetchedAgain.goals, '체지방 감량');
       expect(fetchedAgain.heightCm, before.heightCm);
     },
   );

@@ -33,7 +33,6 @@ from app.schemas.health_goal_ranges import (
     DailyProteinG,
     DailySodiumMg,
     DailySugarG,
-    GoalsText,
     WeeklyBurnGoal,
     WeeklyCardioMinutes,
     WeeklyExerciseMinutesGoal,
@@ -184,7 +183,6 @@ class MemberHealthProfileOut(BaseModel):
     weight_kg: float | None = None
     gender: str = ""
     conditions: str = ""
-    goals: str = ""
     daily_calories: int | None = None
     daily_sodium_mg: int | None = None
     daily_sugar_g: int | None = None
@@ -219,7 +217,6 @@ class MemberHealthProfileUpdate(PartialUpdate):
     #: 것**이다(#1888). 같은 컬럼을 고치는 두 문이 다른 기준을 쓰면, 한쪽으로
     #: 들어온 값이 다른 쪽에서 고칠 수 없는 값이 된다.
     conditions: ConditionsText | None = None
-    goals: GoalsText | None = None
     daily_calories: DailyCalories | None = None
     daily_sodium_mg: DailySodiumMg | None = None
     daily_sugar_g: DailySugarG | None = None
@@ -1087,7 +1084,6 @@ RecommendationStatus = Literal["template", "learning", "personalized"]
 
 class RoutineOptionAnalysisOut(BaseModel):
     goal: str
-    member_goal: str = ""
     conditions: str = ""
     gender: str = ""
     height_cm: float | None = None

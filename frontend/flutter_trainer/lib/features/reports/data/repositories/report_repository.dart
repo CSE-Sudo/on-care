@@ -101,17 +101,6 @@ abstract interface class ReportRepository {
     required DateTime weekStart,
     required String body,
   });
-
-  /// ② 에서 고른 목표를 **다음 주**에 적용해 남긴다. (#2232)
-  ///
-  /// [weekStart] 는 고른 주다 — 저장되는 주는 그 다음 주이고, 그 주의 리포트가
-  /// ③ 으로 회수한다. 회수되지 않는 목표는 공수표라, 목표를 고르는 화면만
-  /// 있고 이 자리가 없으면 기능이 반쪽이다.
-  Future<void> saveNextWeekGoals({
-    required String clientId,
-    required DateTime weekStart,
-    required List<String> goals,
-  });
 }
 
 /// 한 주에 저장돼 있는 피드백 초안.
@@ -152,11 +141,9 @@ class LocalReportRepository implements ReportRepository {
             // 데모도 그 주의 이력에서 계열을 만든다 — 로스터가 준 이번 주
             // 계열을 과거 주에 붙이지 않는다(#752).
             week: await _weekSeries(client.id, start),
-            // ② 회원이 낸 답과 ③ 그 주에 적용돼 있던 목표(#2232). 둘 다 없는
-            // 주가 정상이라 null·빈 목록으로 돌아오고, 화면이 그때 "아직
-            // 받지 못함"·"고른 목표 없음"을 그린다.
+            // 회원이 낸 답(#2232). 없는 주가 정상이라 null 로 돌아오고,
+            // 화면이 그때 "아직 받지 못함"을 그린다.
             memberFeedback: await _memberFeedback(client.id, start),
-            weekGoals: await _weekGoals(client.id, start),
           ),
         );
   }
@@ -259,53 +246,6 @@ class LocalReportRepository implements ReportRepository {
       painOn: row.painOn,
       note: row.note,
     );
-  }
-
-  /// 그 주에 **적용돼 있던** 목표 — 지난 주에 트레이너가 고른 것이다.
-  Future<List<String>> _weekGoals(String clientId, DateTime monday) async {
-    final ClientReportGoalRow? row =
-        await (_db.select(_db.clientReportGoals)..where(
-              (t) =>
-                  t.clientId.equals(clientId) & t.weekStart.equals(ymd(monday)),
-            ))
-            .getSingleOrNull();
-    if (row == null) return const <String>[];
-    try {
-      final Object? decoded = jsonDecode(row.goalsJson);
-      if (decoded is! List) return const <String>[];
-      return <String>[
-        for (final Object? item in decoded)
-          if (item is String && item.trim().isNotEmpty) item,
-      ];
-    } on FormatException {
-      // 깨진 값은 "목표가 없다"로 읽는다 — 화면을 세우는 쪽이 지어낸 목표를
-      // 회원에게 보내는 것보다 낫다.
-      return const <String>[];
-    }
-  }
-
-  /// 트레이너가 ② 에서 고른 목표를 **다음 주**에 적용한다. (#2232)
-  ///
-  /// 고른 주가 아니라 지켜야 할 주에 저장하는 것이 핵심이다 — 다음 주 리포트가
-  /// 자기 주의 목표를 꺼내 ③ 으로 회수한다.
-  @override
-  Future<void> saveNextWeekGoals({
-    required String clientId,
-    required DateTime weekStart,
-    required List<String> goals,
-  }) {
-    final DateTime applies = weekStartOf(
-      weekStart,
-    ).add(const Duration(days: 7));
-    return _db
-        .into(_db.clientReportGoals)
-        .insertOnConflictUpdate(
-          ClientReportGoalsCompanion.insert(
-            clientId: clientId,
-            weekStart: ymd(applies),
-            goalsJson: Value(jsonEncode(goals)),
-          ),
-        );
   }
 
   @override
@@ -461,9 +401,6 @@ class DioReportRepository implements ReportRepository {
       client.id,
       weekStart,
     );
-    // 그 주에 적용돼 있던 목표 — 지난 주에 고른 것이다(#2287). 피드백과 같은
-    // 까닭으로 나란히 부르고, 실패하면 빈 목록으로 끝난다.
-    final Future<List<String>> goals = _weekGoals(client.id, weekStart);
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         '/trainer/clients/${Uri.encodeComponent(client.id)}/report',
@@ -474,12 +411,7 @@ class DioReportRepository implements ReportRepository {
         // 문구는 화면이 붙인다 — 리포지토리는 로케일을 모른다. (#501)
         throw const ServerError();
       }
-      return weeklyReportFromJson(
-        json,
-        client,
-        memberFeedback: await feedback,
-        weekGoals: await goals,
-      );
+      return weeklyReportFromJson(json, client, memberFeedback: await feedback);
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
@@ -507,26 +439,6 @@ class DioReportRepository implements ReportRepository {
       // 네트워크 오류(404·500·끊김)뿐 아니라 모양이 다른 응답도 여기서 멈춘다
       // — 어느 쪽이든 이 칸만 비우고 리포트는 그대로 그린다.
       return null;
-    }
-  }
-
-  /// 그 주에 **적용돼 있던** 목표 — 지난 주 리포트를 보낼 때 고른 것. (#2287)
-  ///
-  /// 저장(`PUT`)은 고른 주의 다음 주에 남기므로, 여기서는 보고 있는 주를 그대로
-  /// 묻는다 — 주 경계는 서버가 한 곳에서 계산한다. 목표가 없는 주가 정상이고,
-  /// 이 요청만 실패해도 빈 목록으로 끝낸다: 수치는 멀쩡히 왔는데 목표 한 칸
-  /// 때문에 리포트 전체를 오류 화면으로 바꾸지 않는다.
-  Future<List<String>> _weekGoals(String clientId, DateTime weekStart) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/trainer/clients/${Uri.encodeComponent(clientId)}/report/goals',
-        queryParameters: <String, String>{'week_start': ymd(weekStart)},
-      );
-      final json = res.data;
-      if (json == null) return const <String>[];
-      return reportGoalsFromJson(json);
-    } on Object {
-      return const <String>[];
     }
   }
 
@@ -668,36 +580,17 @@ class DioReportRepository implements ReportRepository {
       saved: json['updated_at'] != null,
     );
   }
-
-  @override
-  Future<void> saveNextWeekGoals({
-    required String clientId,
-    required DateTime weekStart,
-    required List<String> goals,
-  }) async {
-    try {
-      // 서버도 같은 규칙으로 다음 주에 저장한다 — 주 경계 계산이 양쪽에
-      // 흩어지면 한쪽만 고쳤을 때 목표가 한 주 어긋난 채 돌아온다.
-      await _dio.put<Map<String, dynamic>>(
-        '/trainer/clients/${Uri.encodeComponent(clientId)}/report/goals',
-        data: <String, Object>{'week_start': ymd(weekStart), 'goals': goals},
-      );
-    } on DioException catch (e) {
-      throw AppError.fromDio(e);
-    }
-  }
 }
 
 /// Decodes `WeeklyReportOut`. 계열도 함께 온다 — 로스터의 것은 이번 주 것이라
 /// 과거 주 화면에 쓸 수 없다(#752).
 ///
-/// [memberFeedback] 은 다른 응답(`/report/member-feedback`)에서, [weekGoals]
-/// 는 `/report/goals` 에서 온다 — 둘 다 본문 응답에는 없다.
+/// [memberFeedback] 은 다른 응답(`/report/member-feedback`)에서 온다 — 본문
+/// 응답에는 없다.
 WeeklyReport weeklyReportFromJson(
   Map<String, dynamic> json,
   TrainerClient client, {
   MemberWeeklyFeedback? memberFeedback,
-  List<String> weekGoals = const <String>[],
 }) {
   int? optInt(String key) => (json[key] as num?)?.toInt();
   List<int> ints(String key) =>
@@ -750,7 +643,6 @@ WeeklyReport weeklyReportFromJson(
           ),
     ],
     memberFeedback: memberFeedback,
-    weekGoals: weekGoals,
   );
 }
 
@@ -815,20 +707,6 @@ DateTime _kstWallClock(DateTime t) {
     seoul.millisecond,
     seoul.microsecond,
   );
-}
-
-/// Decodes `ReportGoalsOut` 의 `goals`. (#2287)
-///
-/// 데모 저장소와 같은 규칙으로 읽는다 — 문자열이 아니거나 비어 있는 줄은
-/// 버린다. 목록이 아니면 "목표가 없다"로 읽는다: 지어낸 목표로 ③ 을 판정하는
-/// 것보다 빈 칸이 낫다.
-List<String> reportGoalsFromJson(Map<String, dynamic> json) {
-  final Object? goals = json['goals'];
-  if (goals is! List) return const <String>[];
-  return <String>[
-    for (final Object? item in goals)
-      if (item is String && item.trim().isNotEmpty) item,
-  ];
 }
 
 /// Decodes `MemberWeeklyFeedbackOut`. 답이 없으면 null. (#2286)
