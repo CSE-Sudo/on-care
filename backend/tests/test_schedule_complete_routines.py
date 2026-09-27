@@ -107,10 +107,15 @@ def _attach(client, token, day: str, **overrides) -> str:
 
 
 def _routines(db_session, session_id: str) -> list[TrainerRoutine]:
+    """그 PT 에 붙은 **개인운동**만. PT 프로그램 줄도 같은 일정에 붙어 있지만
+    (#2279) 그쪽은 `delivery_kind` 가 비어 있다."""
     return list(
         db_session.scalars(
             select(TrainerRoutine)
-            .where(TrainerRoutine.schedule_id == session_id)
+            .where(
+                TrainerRoutine.schedule_id == session_id,
+                TrainerRoutine.delivery_kind.is_not(None),
+            )
             .order_by(TrainerRoutine.sort_order)
         ).all()
     )
@@ -204,7 +209,9 @@ def test_sending_without_personal_routines_still_works(client, db_session):
             "/v1/trainer/schedule",
             json={
                 "date": day,
-                "time": "17:00",
+                # 시드 일정과 겹치지 않는 시각이다 — 겹치면 새 겹침 검사가
+                # 409 로 막는다(#2284).
+                "time": "13:40",
                 "client_name": "이지수",
                 "member_id": MEMBER,
                 "type": "1:1 PT",
