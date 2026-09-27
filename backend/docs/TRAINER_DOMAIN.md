@@ -168,6 +168,27 @@
 `409`다. 키가 없는 구버전 요청은 기존처럼 매번 새 행을 만든다. 채팅은 발신자까지
 scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어도 충돌하지 않는다.
 
+### 시간 겹침 (#2284)
+
+한 트레이너의 일정은 시간이 겹치면 안 된다. 겹침은 `(날짜, 시작 시각, 길이)` 로 만든
+반열린 구간 `[시작, 끝)` 끼리 본다 — 10:00(60분)과 10:30 은 겹치고, 10:00–11:00 과
+11:00 시작은 이어질 뿐이다. 길이 0인 일정은 시작 1분, 자정을 넘는 일정은 다음 날까지
+차지한다. 시간을 차지하는 상태는 `예정`·`완료` 뿐이다(취소·노쇼·공백은 빈 시간).
+
+판정은 `trainer_service.conflicting_sessions` 한 곳에 있고 아래 경로가 모두 쓴다.
+겹치면 **409** `detail = { code: "schedule_overlap", message, conflicts[] }` 다.
+
+| 경로 | 비교에서 빼는 것 |
+|---|---|
+| `POST /trainer/schedule` · `POST /trainer/schedule/recurring`(+ preview) | — |
+| `PUT /trainer/schedule/{id}` (날짜·시각·길이를 바꿀 때만) | 자기 자신 |
+| `POST /trainer/clients/{id}/program-schedule` (새 일정을 만들 때만) | — |
+| `POST`·`PUT /trainer/reservation-slots` (열려 있는 자리만) | 그 자리의 예약이 만든 일정 |
+| `POST /reservations` (회원) | — · 응답에 `conflicts` 없음 |
+| `POST /trainer/consultations/{id}/accept` | — |
+
+회원 예약 응답에는 `conflicts` 를 싣지 않는다 — 트레이너의 다른 일정(남의 이름·시각)이다.
+
 ### 스케줄 구간 조회 (`from`/`to`)
 
 주 캘린더가 7일치를 한 번에 읽기 위한 것 — 하루짜리 요청을 요일마다 반복하면 요청이

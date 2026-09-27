@@ -365,11 +365,12 @@ def test_schedule_crud(client):
     # 수정
     u = client.put(
         f"/v1/trainer/schedule/{sid}",
-        json={"time": "16:30", "duration_minutes": 50},
+        # 시드의 17:00 상담과 겹치지 않는 범위에서 옮긴다(#2284).
+        json={"time": "16:10", "duration_minutes": 50},
         headers=_h(token),
     )
     assert u.status_code == 200, u.text
-    assert u.json()["time"] == "16:30"
+    assert u.json()["time"] == "16:10"
     assert u.json()["duration_minutes"] == 50
 
     # 삭제
@@ -388,7 +389,7 @@ def test_schedule_update_member_id_empty_unassigns(client, db_session):
     c = client.post(
         "/v1/trainer/schedule",
         json={
-            "date": _today(), "time": "16:45", "client_name": "이지수",
+            "date": _today(), "time": "17:30", "client_name": "이지수",
             "member_id": "user-jisu", "type": "1:1 PT", "duration_minutes": 40,
         },
         headers=_h(token),
@@ -423,7 +424,7 @@ def test_schedule_update_rejects_null_for_non_nullable_fields(
     token = _tok(client)
     # 파라미터마다 세션이 하나씩 생긴다 — 지우지 않으면 실행 한 번에 여섯 건이
     # 그대로 남아 이 파일에서 가장 크게 누적된다(#558).
-    sid = make_pt_session(token, time="16:50", duration_minutes=40)
+    sid = make_pt_session(token, time="17:40", duration_minutes=40)
 
     r = client.put(
         f"/v1/trainer/schedule/{sid}",
@@ -589,7 +590,8 @@ def test_completed_session_cannot_be_edited(client, make_pt_session):
 def test_schedule_invalid_date_time_422(client):
     """달력상 불가능한 날짜/시간은 create·update 모두 422(DB 저장 방지, 리뷰 재-#4)."""
     token = _tok(client)
-    base = {"date": _today(), "time": "10:00", "type": "1:1 PT"}
+    # 시드 타임라인(10:00 PT)과 겹치지 않는 시각 — 겹치면 422 전에 409 가 난다.
+    base = {"date": _today(), "time": "08:00", "type": "1:1 PT"}
     url = "/v1/trainer/schedule"
     # 잘못된 날짜
     assert client.post(url, json={**base, "date": "2026-99-99"}, headers=_h(token)).status_code == 422
