@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -88,6 +89,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .login(email: email, password: password);
+      // 서버가 받아 준 자격 증명만 기기·브라우저 비밀번호 저장으로 넘긴다
+      // (#2295). 성공하면 세션 가드가 곧 이 화면을 걷어 내므로 다음 await
+      // 전에 알린다 — 실패한 경로는 여기를 지나지 않는다.
+      TextInput.finishAutofillContext();
       // 첫 설정을 아직 안 한 회원**만** 옮긴다(#1927). 로그인에 성공하면 라우터의
       // 세션 가드가 이미 홈으로 보내 두었으므로, 홈으로 한 번 더 `go` 하면
       // 탭 껍데기(`StatefulShellRoute`)가 다시 세워지며 열려 있던 탭이 초기화된다.
@@ -149,106 +154,119 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       ),
       title: 'On - Care',
       subtitle: l.authTagline,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppTextField(
-            key: const ValueKey<String>('member-login-email'),
-            controller: _email,
-            hint: l.authEmailHint,
-            errorText: _errors.of(_Field.email),
-            prefixIcon: AppIcon.setOf(context).mail,
-            size: AppFieldSize.large,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('member-login-password'),
-            controller: _password,
-            hint: l.authPasswordHint,
-            errorText: _errors.of(_Field.password),
-            prefixIcon: AppIcon.setOf(context).lock,
-            size: AppFieldSize.large,
-            obscureText: _obscure,
-            textInputAction: TextInputAction.done,
-            onChanged: _onEdited,
-            onSubmitted: (_) => _login(),
-            // 트레이너 웹 로그인과 같은 부품이다(#2226).
-            suffix: AppPasswordToggle(
-              obscure: _obscure,
-              showLabel: l.a11yShowPassword,
-              hideLabel: l.a11yHidePassword,
-              onPressed: () => setState(() => _obscure = !_obscure),
+      // 이메일·비밀번호를 한 묶음으로 알려 함께 채우고 저장하게 한다(#2295).
+      // 화면을 그냥 떠날 때는 저장하지 않는다 — 기본값(commit)이면 틀린
+      // 비밀번호를 남기고 나가도 저장 제안이 뜬다.
+      child: AutofillGroup(
+        onDisposeAction: AutofillContextAction.cancel,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            AppTextField(
+              key: const ValueKey<String>('member-login-email'),
+              controller: _email,
+              hint: l.authEmailHint,
+              errorText: _errors.of(_Field.email),
+              prefixIcon: AppIcon.setOf(context).mail,
+              size: AppFieldSize.large,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              // 로그인 아이디가 이메일이다 — 비밀번호 관리자는 username 을 보고
+              // 비밀번호 칸과 짝을 짓는다(#2295).
+              autofillHints: const <String>[
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
+              onChanged: _onEdited,
             ),
-          ),
-          const SizedBox(height: OnCareSpacing.s24),
-          AppButton(
-            key: const ValueKey<String>('member-login-submit'),
-            label: l.authSignInAction,
-            onPressed: _login,
-            loading: _loading,
-            size: OnCareButtonSize.large,
-            fullWidth: true,
-          ),
-          const SizedBox(height: OnCareSpacing.s16),
-          ...<Widget>[
-            AppLabeledDivider(label: l.authSocialDivider),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('member-login-password'),
+              controller: _password,
+              hint: l.authPasswordHint,
+              errorText: _errors.of(_Field.password),
+              prefixIcon: AppIcon.setOf(context).lock,
+              size: AppFieldSize.large,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              autofillHints: const <String>[AutofillHints.password],
+              onChanged: _onEdited,
+              onSubmitted: (_) => _login(),
+              // 트레이너 웹 로그인과 같은 부품이다(#2226).
+              suffix: AppPasswordToggle(
+                obscure: _obscure,
+                showLabel: l.a11yShowPassword,
+                hideLabel: l.a11yHidePassword,
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s24),
+            AppButton(
+              key: const ValueKey<String>('member-login-submit'),
+              label: l.authSignInAction,
+              onPressed: _login,
+              loading: _loading,
+              size: OnCareButtonSize.large,
+              fullWidth: true,
+            ),
             const SizedBox(height: OnCareSpacing.s16),
-            // 전체 폭 버튼이면 로그인 버튼과 무게가 같고 화면이 길어진다 —
-            // 원형 아이콘 버튼으로 가운데에 나란히 둔다(#1783).
-            AppSocialLoginRow(
+            ...<Widget>[
+              AppLabeledDivider(label: l.authSocialDivider),
+              const SizedBox(height: OnCareSpacing.s16),
+              // 전체 폭 버튼이면 로그인 버튼과 무게가 같고 화면이 길어진다 —
+              // 원형 아이콘 버튼으로 가운데에 나란히 둔다(#1783).
+              AppSocialLoginRow(
+                children: <Widget>[
+                  AppSocialLoginButton(
+                    key: const ValueKey<String>('member-login-kakao'),
+                    provider: AppSocialProvider.kakao,
+                    label: l.authKakaoAction,
+                    onPressed: _loading ? null : () => _social('kakao'),
+                  ),
+                  AppSocialLoginButton(
+                    key: const ValueKey<String>('member-login-google'),
+                    provider: AppSocialProvider.google,
+                    label: l.authGoogleAction,
+                    onPressed: _loading ? null : () => _social('google'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: OnCareSpacing.s12),
+            ],
+            // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
+            // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
-                AppSocialLoginButton(
-                  key: const ValueKey<String>('member-login-kakao'),
-                  provider: AppSocialProvider.kakao,
-                  label: l.authKakaoAction,
-                  onPressed: _loading ? null : () => _social('kakao'),
+                Text(
+                  l.authNoAccountQuestion,
+                  style: context.oncare
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
-                AppSocialLoginButton(
-                  key: const ValueKey<String>('member-login-google'),
-                  provider: AppSocialProvider.google,
-                  label: l.authGoogleAction,
-                  onPressed: _loading ? null : () => _social('google'),
+                AppButton(
+                  label: l.authSignUpAction,
+                  onPressed: () => context.push(AppRoutes.signUp),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
                 ),
               ],
             ),
-            const SizedBox(height: OnCareSpacing.s12),
+            // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
+            // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
+            if (ref.watch(appConfigProvider).showDemoEntry)
+              Center(
+                child: AppButton(
+                  key: const Key('demoEnterButton'),
+                  label: l.authDemoAction,
+                  onPressed: _enterDemo,
+                  variant: AppButtonVariant.text,
+                ),
+              ),
           ],
-          // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
-          // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              Text(
-                l.authNoAccountQuestion,
-                style: context.oncare
-                    .text(OnCareTypography.bodySmall)
-                    .copyWith(color: OnCareColors.textSecondary),
-              ),
-              AppButton(
-                label: l.authSignUpAction,
-                onPressed: () => context.push(AppRoutes.signUp),
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
-            ],
-          ),
-          // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
-          // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
-          if (ref.watch(appConfigProvider).showDemoEntry)
-            Center(
-              child: AppButton(
-                key: const Key('demoEnterButton'),
-                label: l.authDemoAction,
-                onPressed: _enterDemo,
-                variant: AppButtonVariant.text,
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

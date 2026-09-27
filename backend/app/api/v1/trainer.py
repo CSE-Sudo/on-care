@@ -146,14 +146,24 @@ def _require_profile(db: Session, trainer_id: str) -> TrainerProfile:
 
 
 def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClient:
-    """(trainer, member) 담당 링크를 확인. 남의 고객/미담당이면 404(소유권 경계)."""
+    """(trainer, member) **살아 있는** 담당 링크를 확인한다. 없으면 404(소유권 경계).
+
+    담당 해제는 행을 지우지 않고 `active=False` 로 내린다(`remove_client`). 행이
+    있는지만 보면 해제된 회원의 식단·사진·채팅·루틴·메모·리포트·일정을 해제 뒤에도
+    읽고 쓸 수 있으므로 `active` 까지 본다. (#2281)
+
+    해제된 회원도 남의 회원·없는 회원과 **같은 404·같은 문구**다 — 다른 답을 주면
+    "예전에 담당했던 회원" 이라는 사실이 응답만으로 드러난다. 해제된 링크를
+    다뤄야 하는 곳(담당 해제 자체·재등록·활성/휴면 전환)은 이 함수를 쓰지 않고
+    링크를 직접 읽는다.
+    """
     link = db.scalar(
         select(TrainerClient).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
         )
     )
-    if link is None:
+    if link is None or not link.active:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
 
@@ -617,9 +627,7 @@ def trainer_update_routine_feedback(
     db: Annotated[Session, Depends(get_db)],
 ) -> RoutineHistoryOut:
     """담당 회원의 배정 루틴 수행 기록에 피드백을 남기거나 고친다."""
-    link = _require_client(db, trainer.id, member_id)
-    if not link.active:
-        raise HTTPException(status_code=404, detail="현재 담당 고객을 찾을 수 없습니다.")
+    _require_client(db, trainer.id, member_id)
     feedback = payload.feedback.strip()
     if not feedback:
         raise HTTPException(status_code=400, detail="피드백 내용이 필요합니다.")
@@ -1821,6 +1829,8 @@ def trainer_send_session_program(
             db, trainer.id, session_id,
             client_request_id=payload.client_request_id,
         )
+    except trainer_service.ClientLinkDetached as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     if out is None:
@@ -2112,9 +2122,7 @@ async def trainer_send_report_pdf(
     client_request_id: str | None = Form(None, min_length=1, max_length=64),
 ) -> ChatMessageOut:
     """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다."""
-    link = _require_client(db, trainer.id, member_id)
-    if not link.active:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+    _require_client(db, trainer.id, member_id)
     week = _report_week(week_start)
     text = message.strip() or "이번 주 리포트입니다."
 
@@ -2209,9 +2217,7 @@ async def trainer_send_chat_image(
     자유롭게 적을 수 있어, 그 말을 믿으면 `image/png` 라고 적힌 아무 파일이나
     저장된다.
     """
-    link = _require_client(db, trainer.id, member_id)
-    if not link.active:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+    _require_client(db, trainer.id, member_id)
     text = message.strip()
 
     # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다(PDF 와 같은 규약).

@@ -69,7 +69,8 @@ class TrainerNotification {
   final String timeAgo;
 
   /// 알림이 가리키는 회원 id. 종류만으로 갈 곳이 정해지지 않는 알림(건강 목표
-  /// 변경)에만 있다(#1832).
+  /// 변경)에만 있다(#1832). 메시지 알림은 보낸 회원이다(#2291) — 그 전에 만든
+  /// 메시지 알림에는 없다.
   final String? subjectId;
 
   factory TrainerNotification.fromJson(Map<String, Object?> json) =>

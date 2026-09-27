@@ -338,6 +338,30 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get actionBack;
 
+  /// Heading of the 404 page shown for a URL that matches no screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found'**
+  String get notFoundTitle;
+
+  /// No description provided for @notFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may be broken, or the page may no longer exist. Please check the address and try again.'**
+  String get notFoundMessage;
+
+  /// Primary button on the 404 page for a signed-in trainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to dashboard'**
+  String get notFoundGoDashboard;
+
+  /// Primary button on the 404 page when no one is signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get notFoundGoSignIn;
+
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
   /// In en, this message translates to:
