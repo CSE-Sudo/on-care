@@ -49,7 +49,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 알림의 상대 시각("10분 전" / "10m ago"). (#1812)
 ///
 ///  * 데모 알림은 [AlertItem.age] 로 로케일에 맞게 쓴다.
-///  * 서버·로컬 알림은 이미 셈해 온 한국어 `time_ago` 를 로케일 문장으로 옮긴다.
+///  * 서버·로컬 알림은 이미 셈해 온 `time_ago`(한국어, 또는 영어 요청이면 서버가
+///    준 영어)를 로케일 문장으로 옮긴다.
 ///
 /// 서버 알림을 `created_at` 으로 다시 셈하지 않는 이유: 서버는 오프셋 없는 시각을
 /// UTC 로, 로컬 목 모드는 서울 벽시계로 저장한다. 앱이 둘을 구분할 수 없어
@@ -72,20 +73,35 @@ String formatAlertAge(AppLocalizations l, Duration age) {
 
 final RegExp _koreanAgo = RegExp(r'^(\d+)\s*(분|시간|일)\s*전$');
 
-/// 서버·로컬 인터셉터가 만든 한국어 상대 시각 → 로케일 문장.
+/// 서버가 영어 요청에 주는 모양(`5 min ago`·`1 hour ago`·`2 days ago`, #2302).
+final RegExp _englishAgo = RegExp(r'^(\d+) (min|hours?|days?) ago$');
+
+/// 서버·로컬 인터셉터가 만든 상대 시각 → 로케일 문장.
 ///
-/// 두 곳이 쓰는 모양(`방금`·`방금 전`·`N분 전`·`N시간 전`·`어제`·`N일 전`)만
+/// 한국어 모양(`방금`·`방금 전`·`N분 전`·`N시간 전`·`어제`·`N일 전`)과 서버가
+/// 영어 요청에 주는 모양(`just now`·`N min ago`·`N hours ago`·`N days ago`)만
 /// 옮기고, 모르는 모양은 받은 그대로 둔다 — 틀리게 옮기느니 원문이 낫다.
 String localizeTimeAgo(AppLocalizations l, String raw) {
   final String text = raw.trim();
-  if (text == '방금' || text == '방금 전') return l.alertTimeJustNow;
+  if (text == '방금' || text == '방금 전' || text == 'just now') {
+    return l.alertTimeJustNow;
+  }
   if (text == '어제') return l.alertTimeYesterday;
-  final RegExpMatch? match = _koreanAgo.firstMatch(text);
-  if (match == null) return raw;
-  final int n = int.parse(match.group(1)!);
-  return switch (match.group(2)) {
-    '분' => l.alertTimeMinutesAgo(n),
-    '시간' => l.alertTimeHoursAgo(n),
+  final RegExpMatch? korean = _koreanAgo.firstMatch(text);
+  if (korean != null) {
+    final int n = int.parse(korean.group(1)!);
+    return switch (korean.group(2)) {
+      '분' => l.alertTimeMinutesAgo(n),
+      '시간' => l.alertTimeHoursAgo(n),
+      _ => l.alertTimeDaysAgo(n),
+    };
+  }
+  final RegExpMatch? english = _englishAgo.firstMatch(text);
+  if (english == null) return raw;
+  final int n = int.parse(english.group(1)!);
+  return switch (english.group(2)) {
+    'min' => l.alertTimeMinutesAgo(n),
+    'hour' || 'hours' => l.alertTimeHoursAgo(n),
     _ => l.alertTimeDaysAgo(n),
   };
 }
