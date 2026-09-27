@@ -3824,6 +3824,78 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your message. Please try again'**
   String get coachChatSendFailed;
 
+  /// Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665).
+  ///
+  /// In en, this message translates to:
+  /// **'Send a photo'**
+  String get coachPhotoAttach;
+
+  /// No description provided for @coachPhotoSheetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a meal, form, or InBody photo with your trainer'**
+  String get coachPhotoSheetSubtitle;
+
+  /// No description provided for @coachPhotoPickSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from your photo library'**
+  String get coachPhotoPickSub;
+
+  /// No description provided for @coachPhotoTakeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Take one with the camera'**
+  String get coachPhotoTakeSub;
+
+  /// Status under a photo the member is still uploading to the trainer chat (#1665).
+  ///
+  /// In en, this message translates to:
+  /// **'Sending'**
+  String get coachPhotoSending;
+
+  /// No description provided for @coachPhotoSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the photo'**
+  String get coachPhotoSendFailed;
+
+  /// No description provided for @coachPhotoRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get coachPhotoRetry;
+
+  /// Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665).
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get coachPhotoDiscard;
+
+  /// No description provided for @coachPhotoPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera and photo access to send a photo'**
+  String get coachPhotoPermissionDenied;
+
+  /// No description provided for @coachPhotoPermissionPermanentlyDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera and photo access is off. Turn it on in Settings to send photos'**
+  String get coachPhotoPermissionPermanentlyDenied;
+
+  /// No description provided for @coachPhotoReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that photo. Please try a different one'**
+  String get coachPhotoReadFailed;
+
+  /// Screen reader label for a photo the member sent in the trainer chat (#1665).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo you sent'**
+  String get a11yMyPhoto;
+
   /// No description provided for @coachChatPdfOpenFailed.
   ///
   /// In en, this message translates to:
@@ -5190,6 +5262,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use at least 8 characters, including letters and numbers'**
   String get signUpPasswordWeak;
+
+  /// Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords can be up to 64 characters, or fewer if they include Korean or emoji'**
+  String get signUpPasswordTooLong;
 
   /// No description provided for @signUpPasswordMismatch.
   ///

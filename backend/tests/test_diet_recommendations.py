@@ -29,7 +29,7 @@ def _h(token: str) -> dict:
 
 def _login(client, email: str) -> str:
     return client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
 
 
@@ -48,7 +48,7 @@ def _make_high_sodium_member(db_session) -> tuple:
     email = f"rec-sodium-{uuid.uuid4().hex[:8]}@example.com"
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email, name="나트륨 과다",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.commit()
@@ -251,13 +251,13 @@ def test_user_without_diet_history_gets_current_home_order(client, db_session):
     email = f"rec-empty-{uuid.uuid4().hex[:8]}@example.com"
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email, name="추천 테스트",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.commit()
     try:
         token = client.post(
-            "/v1/auth/login", data={"username": email, "password": "pw!"}
+            "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
         ).json()["access_token"]
         body = client.get(
             "/v1/diet/recommendations?use_llm=false", headers=_h(token)

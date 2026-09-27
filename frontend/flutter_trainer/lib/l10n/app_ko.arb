@@ -67,7 +67,6 @@
   "actionDelete": "삭제",
   "actionClose": "닫기",
   "actionRetry": "다시 시도",
-  "actionRefresh": "새로고침",
   "actionChange": "변경",
   "actionBack": "뒤로",
   "notFoundTitle": "페이지를 찾을 수 없어요",
@@ -106,6 +105,7 @@
   "authErrEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authErrPasswordEmpty": "비밀번호를 입력해 주세요",
   "authErrPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
+  "authErrPasswordTooLong": "비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)",
   "authErrPhoneInvalid": "전화번호를 010-0000-0000 형식으로 입력해 주세요",
   "authErrBirthDateInvalid": "생년월일을 1996-03-21 형식으로 입력해 주세요",
   "authErrPasswordMismatch": "비밀번호가 일치하지 않아요",
@@ -244,7 +244,6 @@
   "healthFocusExerciseHabit": "운동 습관",
   "healthFocusBloodPressure": "혈압 관리",
   "memberHealthConditions": "건강상태·주의사항",
-  "memberHealthGoals": "회원 목표",
   "memberHealthDietGoal": "식단 목표",
   "memberHealthExerciseGoal": "운동 목표",
   "memberHealthGoalCalories": "일일 칼로리 제한 (kcal)",
@@ -336,8 +335,15 @@
   "metricFat": "지방",
   "clientActive": "활성",
   "clientDormant": "휴면",
+  "clientDormantActivate": "눌러서 활성으로 전환",
+  "clientSignalLess": "접기",
+  "clientSignalMore": "+{count}",
+  "@clientSignalMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "clientStatusChangeFailed": "상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요",
-  "clientClosePanel": "패널 닫기",
   "chatTooLong": "메시지가 너무 길어요 (최대 2000자)",
   "chatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
   "chatLoadFailed": "대화를 불러오지 못했어요",
@@ -928,12 +934,11 @@
   "myNoGym": "소속 없음",
   "mySignOut": "로그아웃",
   "myPwCurrentRequired": "현재 비밀번호를 입력해 주세요",
-  "myPwTooShort": "새 비밀번호는 {min}자 이상이어야 해요",
   "myPwMismatch": "새 비밀번호가 서로 달라요",
   "myPwChangeFailed": "비밀번호를 변경할 수 없어요",
   "myPwChangeRetry": "변경에 실패했어요. 잠시 후 다시 시도해 주세요",
   "myPwCurrent": "현재 비밀번호",
-  "myPwNew": "새 비밀번호 ({min}자 이상)",
+  "myPwNew": "새 비밀번호 (영문·숫자 포함 {min}자 이상)",
   "myPwConfirm": "새 비밀번호 확인",
   "myPwChanging": "변경 중…",
   "mySettingsSaveFailed": "설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -1264,6 +1269,7 @@
   "notifTplMemberOnly": "{name} 회원",
   "notifTplWhen": "{month}월 {day}일 {time}",
   "notifTplMemberMessageTitle": "{name} 회원의 메시지",
+  "notifTplMemberPhotoBody": "사진을 보냈어요",
   "notifAllRead": "모두 확인했어요",
   "notifReadAllFailed": "읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요",
   "notifUnreadCount": "읽지 않은 알림 {count}건",
@@ -1338,12 +1344,7 @@
   "dashTaskUncheckTitle": "'{name}' 완료를 취소할까요?",
   "dashTaskUncheckBody": "할 일 진행률에서도 빠져요.",
   "dashTaskUncheckConfirm": "완료 취소",
-  "churnNoRecentWorkout": "최근 7일 운동 기록 없음",
   "churnNoRecentFeedback": "최근 7일 트레이너 피드백 없음",
-  "churnConsecutiveCancel": "PT 2회 연속 취소·노쇼",
-  "churnDietStopped": "식단 기록 중단",
-  "churnGoalStagnant": "목표 지표 장기간 정체",
-  "churnUnresolvedRequest": "미응답 메시지 있음",
   "navMessages": "메시지",
   "messagesSubtitle": "회원과 코칭 내용을 주고받고 빠르게 후속 조치하세요",
   "messagesLoadFailed": "대화 목록을 불러오지 못했어요.",
@@ -1361,9 +1362,26 @@
   "clientQuickMessages": "메시지",
   "clientQuickProgram": "프로그램",
   "clientQuickReport": "리포트",
-  "clientHealthGoals": "회원 신체·목표 관리",
-  "clientProfileSectionTitle": "신체·목표·메모",
+  "clientProfileSectionTitle": "신체·목표",
   "clientTrainerMemo": "메모",
+  "clientHealthUnset": "미입력",
+  "clientHealthTabBody": "신체",
+  "clientHealthTabFocus": "건강 목표",
+  "clientGoalPerDay": "하루 기준",
+  "clientGoalCalories": "칼로리",
+  "clientGoalSodium": "나트륨",
+  "clientGoalSugar": "당류",
+  "clientGoalCarbs": "탄수화물",
+  "clientGoalProtein": "단백질",
+  "clientGoalFat": "지방",
+  "clientGoalBurnDaily": "하루 소모 칼로리",
+  "clientGoalCardioWeekly": "주간 유산소",
+  "clientGoalStrengthWeekly": "주간 근력",
+  "clientGoalStretchWeekly": "주간 스트레칭",
+  "clientBodyHeight": "키",
+  "clientBodyWeight": "몸무게",
+  "clientUnitCm": "cm",
+  "clientGoalDefaultHint": "흐린 값은 회원이 목표를 세우기 전의 기본 기준이에요. 비워 두면 이 값으로 계산해요.",
   "clientTrainerMemoHint": "이 회원에 대해 기억할 내용을 적어 주세요",
   "clientTrainerMemoAdd": "메모 추가",
   "clientTrainerMemoEmpty": "아직 남긴 메모가 없어요.",
@@ -1952,26 +1970,10 @@
       }
     }
   },
-  "reportsReasonNoShow": "노쇼 {count}회",
-  "@reportsReasonNoShow": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "reportsReasonSessionDone": "PT {count}회 전량 소화",
   "@reportsReasonSessionDone": {
     "placeholders": {
       "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsReasonSilentDays": "{days}일 무기록",
-  "@reportsReasonSilentDays": {
-    "placeholders": {
-      "days": {
         "type": "int"
       }
     }

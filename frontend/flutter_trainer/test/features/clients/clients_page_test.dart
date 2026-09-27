@@ -498,7 +498,7 @@ void main() {
       expect(find.text('오세라'), findsOneWidget);
     });
 
-    testWidgets('the detail refresh action targets the selected client', (
+    testWidgets('the detail revalidates the selected client on open and every 30s (#2330)', (
       tester,
     ) async {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -518,13 +518,20 @@ void main() {
         ],
       );
       expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
-
-      await tester.tap(
+      // 새로고침 버튼은 없다 — 여는 순간 한 번 당기고, 열어 둔 동안 30초마다
+      // 다시 맞춘다.
+      expect(
         find.byKey(const ValueKey<String>('client-data-refresh')),
+        findsNothing,
       );
-      await settle(tester);
-
       expect(repository.clientRefreshes, <String>['seed-client-1']);
+
+      await tester.pump(const Duration(seconds: 31));
+      await settle(tester);
+      expect(repository.clientRefreshes, <String>[
+        'seed-client-1',
+        'seed-client-1',
+      ]);
       expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
     });
 
@@ -658,7 +665,7 @@ void main() {
       // button of its own (#1024), and 메모 is icon-only.
       expect(find.text('식단'), findsOneWidget);
       expect(find.text('운동'), findsOneWidget);
-      expect(find.text('리포트'), findsOneWidget);
+      expect(find.byTooltip('리포트'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('client-detail-open-memo')),
         findsOneWidget,
@@ -800,26 +807,30 @@ void main() {
       expect(find.textContaining('새 코드를 받아'), findsOneWidget);
     });
 
-    testWidgets('the detail header chip toggles 활성/휴면', (tester) async {
+    testWidgets('the detail header 휴면 chip returns the client to 활성', (
+      tester,
+    ) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
       );
 
-      final minsu = find.byKey(const ValueKey<String>('client-seed-client-1'));
-      await scrollToClient(tester, minsu);
-      await tester.tap(minsu.last);
+      // 박성호는 시드의 휴면 회원이다. `활성` 은 적지 않고 휴면만 말한다(#2330).
+      final seongho = find.byKey(
+        const ValueKey<String>('client-seed-client-3'),
+      );
+      await scrollToClient(tester, seongho);
+      await tester.tap(seongho.last);
       await settle(tester);
-      expect(find.text('활성'), findsOneWidget);
+      final Finder chip = find.byKey(
+        const ValueKey<String>('client-status-toggle'),
+      );
+      expect(find.descendant(of: chip, matching: find.text('휴면')), findsOne);
 
-      await tester.tap(find.text('활성'));
+      await tester.tap(chip);
       await settle(tester);
-      expect(find.text('휴면'), findsOneWidget);
-
-      await tester.tap(find.text('휴면'));
-      await settle(tester);
-      expect(find.text('활성'), findsOneWidget);
+      expect(chip, findsNothing);
     });
 
     testWidgets('a source that cannot add clients still allows 활성/휴면', (

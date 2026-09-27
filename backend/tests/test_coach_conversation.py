@@ -42,13 +42,13 @@ def member(client, db_session):
     email = f"coach-chat-{uuid.uuid4().hex[:8]}@example.com"
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email, name="대화 테스트",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.commit()
 
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     yield user, token
 
@@ -215,13 +215,13 @@ def test_history_is_isolated_per_user(client, db_session, member):
     email_b = f"coach-other-{uuid.uuid4().hex[:8]}@example.com"
     user_b = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email_b, name="다른 사용자",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user_b)
     db_session.commit()
     try:
         token_b = client.post(
-            "/v1/auth/login", data={"username": email_b, "password": "pw!"}
+            "/v1/auth/login", data={"username": email_b, "password": "test-pw-1234"}
         ).json()["access_token"]
         body = client.get("/v1/ai-coach/messages", headers=_h(token_b)).json()
         assert body["messages"] == []

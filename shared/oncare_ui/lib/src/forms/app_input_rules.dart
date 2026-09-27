@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 
 /// 입력 칸 형식 검사의 결과 — 무엇이 잘못됐는가(#1784).
@@ -26,6 +28,9 @@ enum AppInputError {
   /// 가입 비밀번호 규칙(8자 이상, 영문·숫자 각 1자 이상)에 맞지 않는다.
   passwordWeak,
 
+  /// 비밀번호가 64자 또는 UTF-8 72바이트를 넘는다(#1555).
+  passwordTooLong,
+
   /// 비밀번호 확인이 비밀번호와 다르다.
   passwordMismatch,
 
@@ -39,7 +44,7 @@ enum AppInputError {
 /// 저장되는 값의 기준은 서버에 있다 — 가입 이메일·전화번호는
 /// `backend/app/services/contact_format.py` 가, 이름·생년월일은
 /// `backend/app/services/profile_format.py` 가 같은 것을 다시 본다(#1780·#1887).
-/// 비밀번호는 아직 서버 기준이 없다(#1555).
+/// 새 비밀번호는 `backend/app/services/password_policy.py` 가 같은 기준을 본다(#1555).
 abstract final class AppInputRules {
   /// 로컬 부분@도메인.최상위 — 흔히 쓰는 주소는 통과시키고 빈칸·골뱅이 누락·
   /// 최상위 도메인 누락 같은 오타를 잡는 정도로만 엄격하다.
@@ -71,8 +76,25 @@ abstract final class AppInputRules {
   static final RegExp _letter = RegExp('[A-Za-z]');
   static final RegExp _digit = RegExp(r'\d');
 
-  /// 가입 비밀번호의 최소 길이.
+  /// 가입 비밀번호의 최소 길이. 서버 `password_policy.PASSWORD_MIN_LENGTH` 와 같다.
   static const int passwordMinLength = 8;
+
+  /// 새 비밀번호의 최대 글자 수. 서버 `password_policy.PASSWORD_MAX_LENGTH` 와
+  /// 같다(#1555). 문장형 비밀번호를 쓰기에 넉넉한 길이다.
+  static const int passwordMaxLength = 64;
+
+  /// 새 비밀번호의 최대 UTF-8 바이트. 서버 `password_policy.PASSWORD_MAX_BYTES`
+  /// 와 같다(#1555). 비밀번호를 저장하는 bcrypt 가 앞 72바이트만 보기 때문이다 —
+  /// 한글은 한 글자에 3바이트, 이모지는 4바이트라 64자 안에서도 넘을 수 있다.
+  static const int passwordMaxBytes = 72;
+
+  /// 서버가 422 `detail[].type` 에 싣는 비밀번호 오류 코드 → 오류 종류(#1555).
+  static const Map<String, AppInputError> _serverPasswordCodes =
+      <String, AppInputError>{
+        'password_empty': AppInputError.passwordEmpty,
+        'password_weak': AppInputError.passwordWeak,
+        'password_too_long': AppInputError.passwordTooLong,
+      };
 
   /// 전화번호 숫자 개수(3 + 4 + 4).
   static const int phoneDigits = 11;
@@ -148,13 +170,45 @@ abstract final class AppInputRules {
   static AppInputError? signInPassword(String value) =>
       value.isEmpty ? AppInputError.passwordEmpty : null;
 
-  /// 가입 비밀번호 — 8자 이상, 영문과 숫자를 각각 1자 이상.
+  /// 새 비밀번호(가입·변경) — 8자 이상 64자 이하, UTF-8 72바이트 이하, 영문과
+  /// 숫자를 각각 1자 이상.
+  ///
+  /// 서버(`password_policy.check_new_password`)와 **같은 순서·같은 경계**다.
+  /// 길이를 먼저 보므로 너무 긴 값에 "더 길게 쓰라" 는 안내가 붙지 않는다.
+  ///
+  /// 글자 수는 [String.runes] 로 센다. [String.length] 는 UTF-16 단위라 이모지
+  /// 한 개를 두 글자로 세어, 서버(코드 포인트)와 판정이 갈라진다.
+  ///
+  /// 공백은 잘라내지 않는다 — 친 그대로 보내고 로그인도 그대로 비교한다.
   static AppInputError? signUpPassword(String value) {
     if (value.isEmpty) return AppInputError.passwordEmpty;
-    if (value.length < passwordMinLength ||
+    final int length = value.runes.length;
+    if (length > passwordMaxLength ||
+        utf8.encode(value).length > passwordMaxBytes) {
+      return AppInputError.passwordTooLong;
+    }
+    if (length < passwordMinLength ||
         !_letter.hasMatch(value) ||
         !_digit.hasMatch(value)) {
       return AppInputError.passwordWeak;
+    }
+    return null;
+  }
+
+  /// 서버 422 응답 본문에서 새 비밀번호 오류를 찾는다. 없으면 null(#1555).
+  ///
+  /// FastAPI 검증 오류는 `{"detail": [{"type": ..., "loc": [...]}, ...]}` 꼴이다.
+  /// 서버가 문장이 아니라 코드(`password_weak` 등)를 실으므로, 두 앱은 이 값으로
+  /// 자기 로케일의 문구를 고른다. 한 응답에 다른 칸의 오류가 섞여 있어도
+  /// 비밀번호 오류만 골라낸다.
+  static AppInputError? serverPasswordError(Object? responseData) {
+    if (responseData is! Map) return null;
+    final Object? detail = responseData['detail'];
+    if (detail is! List) return null;
+    for (final Object? item in detail) {
+      if (item is! Map) continue;
+      final AppInputError? error = _serverPasswordCodes[item['type']];
+      if (error != null) return error;
     }
     return null;
   }

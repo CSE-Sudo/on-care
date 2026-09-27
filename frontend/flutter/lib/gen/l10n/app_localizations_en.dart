@@ -2181,6 +2181,46 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your message. Please try again';
 
   @override
+  String get coachPhotoAttach => 'Send a photo';
+
+  @override
+  String get coachPhotoSheetSubtitle =>
+      'Share a meal, form, or InBody photo with your trainer';
+
+  @override
+  String get coachPhotoPickSub => 'Choose from your photo library';
+
+  @override
+  String get coachPhotoTakeSub => 'Take one with the camera';
+
+  @override
+  String get coachPhotoSending => 'Sending';
+
+  @override
+  String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoRetry => 'Retry';
+
+  @override
+  String get coachPhotoDiscard => 'Remove';
+
+  @override
+  String get coachPhotoPermissionDenied =>
+      'Allow camera and photo access to send a photo';
+
+  @override
+  String get coachPhotoPermissionPermanentlyDenied =>
+      'Camera and photo access is off. Turn it on in Settings to send photos';
+
+  @override
+  String get coachPhotoReadFailed =>
+      'Couldn\'t read that photo. Please try a different one';
+
+  @override
+  String get a11yMyPhoto => 'Photo you sent';
+
+  @override
   String get coachChatPdfOpenFailed =>
       'Couldn\'t open the PDF. Please try again';
 
@@ -2992,6 +3032,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signUpPasswordWeak =>
       'Use at least 8 characters, including letters and numbers';
+
+  @override
+  String get signUpPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
 
   @override
   String get signUpPasswordMismatch => 'Passwords do not match';

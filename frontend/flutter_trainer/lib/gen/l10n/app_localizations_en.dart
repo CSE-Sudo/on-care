@@ -130,9 +130,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionRetry => 'Retry';
 
   @override
-  String get actionRefresh => 'Refresh';
-
-  @override
   String get actionChange => 'Change';
 
   @override
@@ -255,6 +252,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrPasswordWeak =>
       'Use at least 8 characters, including letters and numbers';
+
+  @override
+  String get authErrPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
 
   @override
   String get authErrPhoneInvalid => 'Enter your phone number as 010-0000-0000';
@@ -692,9 +693,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthConditions => 'Conditions and cautions';
 
   @override
-  String get memberHealthGoals => 'Member goals';
-
-  @override
   String get memberHealthDietGoal => 'Nutrition goals';
 
   @override
@@ -911,11 +909,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDormant => 'Dormant';
 
   @override
-  String get clientStatusChangeFailed =>
-      'Couldn\'t change the status. Please try again.';
+  String get clientDormantActivate => 'Tap to mark active';
 
   @override
-  String get clientClosePanel => 'Close panel';
+  String get clientSignalLess => 'Less';
+
+  @override
+  String clientSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientStatusChangeFailed =>
+      'Couldn\'t change the status. Please try again.';
 
   @override
   String get chatTooLong => 'Message is too long (2000 characters max)';
@@ -2367,11 +2373,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPwCurrentRequired => 'Enter your current password';
 
   @override
-  String myPwTooShort(int min) {
-    return 'The new password must be at least $min characters';
-  }
-
-  @override
   String get myPwMismatch => 'The new passwords don\'t match';
 
   @override
@@ -2386,7 +2387,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myPwNew(int min) {
-    return 'New password ($min+ characters)';
+    return 'New password ($min+ characters, letters and numbers)';
   }
 
   @override
@@ -3280,6 +3281,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifTplMemberPhotoBody => 'Sent a photo';
+
+  @override
   String get notifAllRead => 'All caught up';
 
   @override
@@ -3541,22 +3545,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTaskUncheckConfirm => 'Undo completion';
 
   @override
-  String get churnNoRecentWorkout => 'No workout logged in 7 days';
-
-  @override
   String get churnNoRecentFeedback => 'No trainer feedback in 7 days';
-
-  @override
-  String get churnConsecutiveCancel => '2 consecutive cancellations/no-shows';
-
-  @override
-  String get churnDietStopped => 'Diet logging stopped';
-
-  @override
-  String get churnGoalStagnant => 'Goal metric stagnant long-term';
-
-  @override
-  String get churnUnresolvedRequest => 'Unanswered message';
 
   @override
   String get navMessages => 'Messages';
@@ -3614,13 +3603,65 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientQuickReport => 'Report';
 
   @override
-  String get clientHealthGoals => 'Body profile & goals';
-
-  @override
-  String get clientProfileSectionTitle => 'Body, goals & memo';
+  String get clientProfileSectionTitle => 'Body and goals';
 
   @override
   String get clientTrainerMemo => 'Memo';
+
+  @override
+  String get clientHealthUnset => 'Not set';
+
+  @override
+  String get clientHealthTabBody => 'Body';
+
+  @override
+  String get clientHealthTabFocus => 'Health goals';
+
+  @override
+  String get clientGoalPerDay => 'Per day';
+
+  @override
+  String get clientGoalCalories => 'Calories';
+
+  @override
+  String get clientGoalSodium => 'Sodium';
+
+  @override
+  String get clientGoalSugar => 'Sugar';
+
+  @override
+  String get clientGoalCarbs => 'Carbs';
+
+  @override
+  String get clientGoalProtein => 'Protein';
+
+  @override
+  String get clientGoalFat => 'Fat';
+
+  @override
+  String get clientGoalBurnDaily => 'Daily burn';
+
+  @override
+  String get clientGoalCardioWeekly => 'Weekly cardio';
+
+  @override
+  String get clientGoalStrengthWeekly => 'Weekly strength';
+
+  @override
+  String get clientGoalStretchWeekly => 'Weekly stretching';
+
+  @override
+  String get clientBodyHeight => 'Height';
+
+  @override
+  String get clientBodyWeight => 'Weight';
+
+  @override
+  String get clientUnitCm => 'cm';
+
+  @override
+  String get clientGoalDefaultHint =>
+      'Faded values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
   String get clientTrainerMemoHint =>
@@ -4439,18 +4480,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '$count no-show';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count done';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days days unlogged';
   }
 
   @override

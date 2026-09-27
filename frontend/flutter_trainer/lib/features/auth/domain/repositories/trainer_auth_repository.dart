@@ -11,6 +11,12 @@ enum AuthFailure {
   invalidCredentials,
   emailTaken,
   inviteCodeInvalid,
+
+  /// 서버가 가입 비밀번호를 기준 미달로 거절했다(#1555).
+  passwordWeak,
+
+  /// 서버가 가입 비밀번호를 너무 길다고 거절했다 — 64자·UTF-8 72바이트(#1555).
+  passwordTooLong,
   sessionExpired,
   noSocialToken,
   emptyCredentials,
@@ -126,6 +132,8 @@ String authFailureText(AppLocalizations l, AuthException e) {
     AuthFailure.invalidCredentials => l.authErrInvalidCredentials,
     AuthFailure.emailTaken => l.authErrEmailTaken,
     AuthFailure.inviteCodeInvalid => l.authErrInviteCodeInvalid,
+    AuthFailure.passwordWeak => l.authErrPasswordWeak,
+    AuthFailure.passwordTooLong => l.authErrPasswordTooLong,
     AuthFailure.sessionExpired => l.authErrSessionExpired,
     AuthFailure.noSocialToken => l.authErrNoSocialToken,
     AuthFailure.emptyCredentials => l.authErrEmptyCredentials,

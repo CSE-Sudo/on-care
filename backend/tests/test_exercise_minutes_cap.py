@@ -28,10 +28,10 @@ def _member_h(client) -> dict:
     """기록이 비어 있는 새 회원. 시드 회원은 기록이 섞여 있어 합계를 견주기 어렵다."""
     email = f"excap-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 

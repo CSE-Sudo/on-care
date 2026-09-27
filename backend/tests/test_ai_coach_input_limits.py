@@ -151,12 +151,12 @@ def member(client, db_session) -> Iterator[tuple[User, str]]:
     email = f"input-limit-{uuid.uuid4().hex[:8]}@example.com"
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email, name="입력 한도",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.commit()
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     yield user, token
     db_session.rollback()

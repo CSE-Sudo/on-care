@@ -5,6 +5,8 @@
 /// 갈림길을 한 화면 안에서 만들 수 없다. 여기서는 그 갈림길만 만든다.
 library;
 
+import 'dart:typed_data';
+
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
@@ -124,6 +126,15 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<void> sendMessage(String text, {String? emoteId}) =>
       throw UnimplementedError();
+
+  @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) => throw UnimplementedError();
 
   @override
   Future<void> markRead() async {}

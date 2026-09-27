@@ -33,7 +33,7 @@ def test_register_is_rate_limited(client):
     for _ in range(11):
         last = client.post(
             "/v1/auth/register",
-            json={"email": f"rl-{uuid4().hex[:10]}@oncare.com", "password": "pw!", "name": "u"},
+            json={"email": f"rl-{uuid4().hex[:10]}@oncare.com", "password": "test-pw-1234", "name": "u"},
         )
     assert last.status_code == 429, last.text
     assert "Retry-After" in last.headers

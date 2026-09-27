@@ -6,6 +6,7 @@
 library;
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,6 +125,15 @@ class _FakeCoachRepository implements MemberCoachRepository {
 
   @override
   Future<void> sendMessage(String text, {String? emoteId}) async {}
+
+  @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) => throw UnimplementedError();
 
   // 주간 피드백은 이 대역이 서는 화면의 관심사가 아니다 — 안 낸 주로 답한다.
   // (#2232)

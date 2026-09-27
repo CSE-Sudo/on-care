@@ -2110,6 +2110,43 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get coachPhotoAttach => '사진 보내기';
+
+  @override
+  String get coachPhotoSheetSubtitle => '식사·자세·인바디 사진을 트레이너에게 보내요';
+
+  @override
+  String get coachPhotoPickSub => '보관함에서 사진 고르기';
+
+  @override
+  String get coachPhotoTakeSub => '카메라로 바로 찍기';
+
+  @override
+  String get coachPhotoSending => '보내는 중';
+
+  @override
+  String get coachPhotoSendFailed => '사진을 보내지 못했어요';
+
+  @override
+  String get coachPhotoRetry => '다시 보내기';
+
+  @override
+  String get coachPhotoDiscard => '지우기';
+
+  @override
+  String get coachPhotoPermissionDenied => '사진을 보내려면 카메라·사진 접근을 허용해 주세요';
+
+  @override
+  String get coachPhotoPermissionPermanentlyDenied =>
+      '카메라·사진 접근이 꺼져 있어요. 설정에서 켜면 사진을 보낼 수 있어요';
+
+  @override
+  String get coachPhotoReadFailed => '사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요';
+
+  @override
+  String get a11yMyPhoto => '내가 보낸 사진';
+
+  @override
   String get coachChatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
 
   @override
@@ -2884,6 +2921,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get signUpPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
+
+  @override
+  String get signUpPasswordTooLong => '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)';
 
   @override
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';

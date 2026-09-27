@@ -1,7 +1,8 @@
-// 회원 상세의 활성/휴면 배지가 서버 상태를 따르는지. (#707)
+// 회원 상세의 휴면 배지가 서버 상태를 따르는지. (#707, #2330)
 //
-// 배지는 로스터를 그대로 그린다 — 탭한 순간이 아니라 **소스가 확인해 준 뒤에만**
-// 바뀐다. 그래야 실패한 저장이 화면에 확정값처럼 남지 않는다.
+// `활성` 은 기본값이라 적지 않고, 휴면인 회원에만 배지가 선다. 배지를 누르면
+// 활성으로 돌린다. 배지는 로스터를 그대로 그린다 — 탭한 순간이 아니라 **소스가
+// 확인해 준 뒤에만** 바뀐다. 그래야 실패한 저장이 화면에 확정값처럼 남지 않는다.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -42,43 +43,52 @@ class _GatedStatusRepository extends DriftClientRepository {
 
 Finder get _badge => find.byKey(const ValueKey<String>('client-status-toggle'));
 
+/// 시드의 휴면 회원 — 박성호.
+const String _dormantId = 'seed-client-3';
+
 void main() {
-  testWidgets('탭하면 배지가 휴면으로 바뀌고 회원 목록에도 반영된다', (tester) async {
+  testWidgets('활성 회원에게는 상태 배지가 없다', (tester) async {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.clientDetail('seed-client-1'),
     );
 
-    expect(find.text('활성'), findsWidgets);
-    await tester.tap(_badge);
-    await settle(tester);
-
-    // 상세의 배지와 목록 요약이 같은 값을 쓴다.
-    expect(find.text('휴면'), findsWidgets);
-
-    await tester.tap(_badge);
-    await settle(tester);
-    expect(find.text('활성'), findsWidgets);
+    expect(_badge, findsNothing);
+    expect(find.text('활성'), findsNothing);
   });
 
-  testWidgets('휴면으로 바꾸면 필터·대시보드가 읽는 로스터 값이 함께 바뀐다', (tester) async {
+  testWidgets('휴면 배지를 누르면 활성으로 돌아가고 배지가 사라진다', (tester) async {
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      at: AppRoutes.clientDetail(_dormantId),
+    );
+
+    expect(find.descendant(of: _badge, matching: find.text('휴면')), findsOne);
+    await tester.tap(_badge);
+    await settle(tester);
+
+    expect(_badge, findsNothing);
+  });
+
+  testWidgets('활성으로 돌리면 필터·대시보드가 읽는 로스터 값이 함께 바뀐다', (tester) async {
     await withWideSurface(tester, () async {
       final container = await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
-        at: AppRoutes.clientDetail('seed-client-1'),
+        at: AppRoutes.clientDetail(_dormantId),
       );
 
       final before = await container.read(clientsProvider.future);
-      expect(before.firstWhere((c) => c.id == 'seed-client-1').active, isTrue);
+      expect(before.firstWhere((c) => c.id == _dormantId).active, isFalse);
 
       await tester.tap(_badge);
       await settle(tester);
 
       // 필터·대시보드가 읽는 바로 그 값이 바뀐다(둘 다 roster 의 active 파생).
       final after = await container.read(clientsProvider.future);
-      expect(after.firstWhere((c) => c.id == 'seed-client-1').active, isFalse);
+      expect(after.firstWhere((c) => c.id == _dormantId).active, isTrue);
     });
   });
 
@@ -86,7 +96,7 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      at: AppRoutes.clientDetail('seed-client-1'),
+      at: AppRoutes.clientDetail(_dormantId),
       extraOverrides: <Override>[
         clientRepositoryProvider.overrideWith(
           (ref) => _FailingStatusRepository(ref.watch(appDatabaseProvider)),
@@ -94,19 +104,15 @@ void main() {
       ],
     );
 
-    expect(find.text('활성'), findsWidgets);
     await tester.tap(_badge);
     await settle(tester);
 
     expect(find.textContaining('상태를 바꾸지 못했어요'), findsOneWidget);
     // 서버가 받지 않은 값이 화면에 확정처럼 남지 않는다.
-    expect(find.text('휴면'), findsNothing);
+    expect(find.descendant(of: _badge, matching: find.text('휴면')), findsOne);
 
     // 배지는 다시 눌리는 상태다(잠긴 채로 남지 않는다).
-    expect(
-      tester.widget<InkWell>(find.byKey(_badgeInkWellKey)).onTap,
-      isNotNull,
-    );
+    expect(tester.widget<InkWell>(_badge).onTap, isNotNull);
   });
 
   testWidgets('저장 중 다시 탭해도 요청은 한 번만 나간다', (tester) async {
@@ -115,7 +121,7 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      at: AppRoutes.clientDetail('seed-client-1'),
+      at: AppRoutes.clientDetail(_dormantId),
       extraOverrides: <Override>[
         clientRepositoryProvider.overrideWith((ref) {
           repository = _GatedStatusRepository(
@@ -137,10 +143,6 @@ void main() {
 
     gate.complete();
     await settle(tester);
-    expect(find.text('휴면'), findsWidgets);
+    expect(_badge, findsNothing);
   });
 }
-
-const ValueKey<String> _badgeInkWellKey = ValueKey<String>(
-  'client-status-toggle',
-);

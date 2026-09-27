@@ -1483,6 +1483,30 @@
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
+  "coachPhotoAttach": "Send a photo",
+  "@coachPhotoAttach": {
+    "description": "Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665)."
+  },
+  "coachPhotoSheetSubtitle": "Share a meal, form, or InBody photo with your trainer",
+  "coachPhotoPickSub": "Choose from your photo library",
+  "coachPhotoTakeSub": "Take one with the camera",
+  "coachPhotoSending": "Sending",
+  "@coachPhotoSending": {
+    "description": "Status under a photo the member is still uploading to the trainer chat (#1665)."
+  },
+  "coachPhotoSendFailed": "Couldn't send the photo",
+  "coachPhotoRetry": "Retry",
+  "coachPhotoDiscard": "Remove",
+  "@coachPhotoDiscard": {
+    "description": "Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665)."
+  },
+  "coachPhotoPermissionDenied": "Allow camera and photo access to send a photo",
+  "coachPhotoPermissionPermanentlyDenied": "Camera and photo access is off. Turn it on in Settings to send photos",
+  "coachPhotoReadFailed": "Couldn't read that photo. Please try a different one",
+  "a11yMyPhoto": "Photo you sent",
+  "@a11yMyPhoto": {
+    "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
+  },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
   "coachChatReportRegistered": "Weekly report added",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
@@ -2171,6 +2195,10 @@
   "signUpAction": "Sign up and start",
   "signUpHaveAccountQuestion": "Already have an account?",
   "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
+  "signUpPasswordTooLong": "Passwords can be up to 64 characters, or fewer if they include Korean or emoji",
+  "@signUpPasswordTooLong": {
+    "description": "Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster."
+  },
   "signUpPasswordMismatch": "Passwords do not match",
   "signUpPhoneFormatInvalid": "Enter your phone number as 010-0000-0000",
   "myFieldBirthInvalid": "Enter your date of birth as 1996-03-21",

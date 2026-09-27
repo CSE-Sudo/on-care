@@ -1248,6 +1248,9 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
         AppSectionHeader(title: l.myGoalsDietSection),
         const SizedBox(height: OnCareSpacing.s8),
         _card(<Widget>[
+          // 차례는 칼로리 → 그 칼로리를 이루는 탄·단·지 → 나트륨이다(#2353).
+          // 당류는 탄수화물의 일부라 바로 아래 — 식품 영양성분표와 같은
+          // 자리다. 트레이너 웹 신체·목표 창·온보딩과 같은 순서다.
           _goalField(
             _kKcal,
             l.myGoalCalories,
@@ -1265,36 +1268,6 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                 _kcalFromMacros = false;
                 _markTouched(_kKcal);
               }),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          _goalField(
-            _kSodium,
-            l.myGoalSodium,
-            AppTextField(
-              key: const Key('goalSodiumField'),
-              label: l.myGoalSodium,
-              controller: _sodium,
-              keyboardType: TextInputType.number,
-              inputFormatters: _digitsOnly,
-              hint: '${UserProfile.defaultDailySodiumMg}',
-              errorText: _errors.of(_kSodium),
-              onChanged: (_) => _onGoalEdited(_kSodium),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          _goalField(
-            _kSugar,
-            l.myGoalSugar,
-            AppTextField(
-              key: const Key('goalSugarField'),
-              label: l.myGoalSugar,
-              controller: _sugar,
-              keyboardType: TextInputType.number,
-              inputFormatters: _digitsOnly,
-              hint: '${UserProfile.defaultDailySugarG}',
-              errorText: _errors.of(_kSugar),
-              onChanged: (_) => _onGoalEdited(_kSugar),
             ),
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -1317,6 +1290,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                 // 칸이 있으면 그 문구도 이때 다시 그려진다.
                 _syncCaloriesFromMacros();
               },
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kSugar,
+            l.myGoalSugar,
+            AppTextField(
+              key: const Key('goalSugarField'),
+              label: l.myGoalSugar,
+              controller: _sugar,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${UserProfile.defaultDailySugarG}',
+              errorText: _errors.of(_kSugar),
+              onChanged: (_) => _onGoalEdited(_kSugar),
             ),
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -1361,6 +1349,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                 // 칸이 있으면 그 문구도 이때 다시 그려진다.
                 _syncCaloriesFromMacros();
               },
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kSodium,
+            l.myGoalSodium,
+            AppTextField(
+              key: const Key('goalSodiumField'),
+              label: l.myGoalSodium,
+              controller: _sodium,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${UserProfile.defaultDailySodiumMg}',
+              errorText: _errors.of(_kSodium),
+              onChanged: (_) => _onGoalEdited(_kSodium),
             ),
           ),
           // 안내 줄과 버튼은 늘 함께 보인다. 칸이 이미 권장값과 같아도 감추지
