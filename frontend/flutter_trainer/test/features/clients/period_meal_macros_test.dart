@@ -88,17 +88,20 @@ void main() {
     }
   }
 
-  /// 펼친 끼니의 탄단지 줄. 키에 끼니 id 가 들어 있다.
-  Finder macroLines() => find.byWidgetPredicate(
-    (Widget w) =>
-        w.key is ValueKey<String> &&
-        (w.key! as ValueKey<String>).value.startsWith('client-diet-macros-'),
-  );
-
   testWidgets('오늘 끼니 카드에는 지금처럼 탄단지가 보인다', (tester) async {
     await openDiet(tester);
 
-    expect(macroLines(), findsWidgets);
+    // `오늘` 카드는 막대 아래 칸으로 적는다(#2333) — 탄수화물 칸이 끼니마다 선다.
+    expect(
+      find.byWidgetPredicate(
+        (Widget w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith(
+              'client-diet-col-carbs-',
+            ),
+      ),
+      findsWidgets,
+    );
     expect(find.textContaining('탄수화물'), findsWidgets);
   });
 
@@ -113,19 +116,17 @@ void main() {
       find.byKey(const ValueKey<String>('client-diet-macros-meal-with-macros')),
       findsOneWidget,
     );
-    final Text withMacros = tester.widget<Text>(
-      find.byKey(const ValueKey<String>('client-diet-macros-meal-with-macros')),
+    // `오늘` 카드와 같은 묶음·순서다 — 비중(%)과 g, 당류는 탄수화물 안에 괄호로.
+    expect(
+      _plain(tester, 'client-diet-macros-meal-with-macros'),
+      '탄수화물 64% 92.5g (당류 9g) · 단백질 14% 21g · 지방 22% 14g',
     );
-    // `오늘` 카드와 같은 순서·단위·서식이다.
-    expect(withMacros.data, '탄수화물 92.5g · 단백질 21g · 지방 14g');
 
     // 영양이 아예 없는 옛 기록은 0g 이 아니라 `기록 없음` 이라고 말한다.
-    final Text missing = tester.widget<Text>(
-      find.byKey(
-        const ValueKey<String>('client-diet-macros-meal-without-macros'),
-      ),
+    expect(
+      _plain(tester, 'client-diet-macros-meal-without-macros'),
+      '탄·단·지 기록 없음 · 당류 0g',
     );
-    expect(missing.data, '탄·단·지 기록 없음');
   });
 
   testWidgets('전체도 같은 컴포넌트를 쓴다', (tester) async {
@@ -135,12 +136,23 @@ void main() {
     await tester.pumpAndSettle();
     await expandUntilMeals(tester);
 
-    final Text withMacros = tester.widget<Text>(
-      find.byKey(const ValueKey<String>('client-diet-macros-meal-with-macros')),
+    expect(
+      _plain(tester, 'client-diet-macros-meal-with-macros'),
+      '탄수화물 64% 92.5g (당류 9g) · 단백질 14% 21g · 지방 22% 14g',
     );
-    expect(withMacros.data, '탄수화물 92.5g · 단백질 21g · 지방 14g');
   });
 }
+
+/// [key] 아래 글자 조각을 이어 붙인 것 — 세부 줄은 항목마다 따로 선다.
+String _plain(WidgetTester tester, String key) => tester
+    .widgetList<RichText>(
+      find.descendant(
+        of: find.byKey(ValueKey<String>(key)),
+        matching: find.byType(RichText),
+      ),
+    )
+    .map((RichText t) => t.text.toPlainText())
+    .join();
 
 /// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
 Finder _periodSegment(String label) => find.descendant(
