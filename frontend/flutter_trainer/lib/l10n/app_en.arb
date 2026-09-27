@@ -3124,6 +3124,32 @@
     }
   },
   "reportsSentRewrite": "Rewrite from this",
+  "reportsHistoryButton": "Past reports",
+  "reportsViewSent": "View",
+  "reportsHistoryTitle": "{name}'s past reports",
+  "@reportsHistoryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsHistoryBack": "Past reports",
+  "reportsHistoryUnsent": "Not sent",
+  "reportsHistoryThisWeek": "This week",
+  "reportsHistoryEmpty": "No reports sent yet",
+  "reportsHistoryLoadFailed": "Couldn't load past reports",
+  "reportsHistoryMore": "Load more",
+  "reportsHistoryMoreFailed": "Couldn't load more. Tap to try again.",
+  "reportsHistorySendCount": "{count, plural, =1{Sent once} other{Sent {count} times}}",
+  "@reportsHistorySendCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsHistoryPdf": "PDF",
   "reportsResendTitle": "Already sent",
   "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
   "@reportsResendBody": {

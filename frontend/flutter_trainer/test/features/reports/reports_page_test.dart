@@ -9,6 +9,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
+import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -35,6 +36,13 @@ class _SummaryFailsRepository implements ReportRepository {
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async => const <ReportSendRecord>[];
+
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async => const MemberReportHistoryPage.empty();
 
   @override
   Stream<WeeklyReport> watch({
@@ -89,6 +97,13 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async => const <ReportSendRecord>[];
+
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async => const MemberReportHistoryPage.empty();
 
   @override
   Future<ReportSummary> summary({
@@ -603,7 +618,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('reports-queue-mobile-client')),
+      find.byKey(const ValueKey<String>('reports-open-mobile-client')),
     );
     await settle(tester);
 
@@ -698,7 +713,7 @@ void main() {
     expect(find.text('report transport detail'), findsNothing);
   });
 
-  testWidgets('작업대에서 회원 줄을 누르면 그 회원의 편집기로 들어간다 (#2232)', (tester) async {
+  testWidgets('작업대에서 회원 줄의 열기를 누르면 그 회원의 편집기로 들어간다 (#2232)', (tester) async {
     await openReports(tester, workbench: true);
 
     // The API does not expose saved feedback status. Session-local send state
@@ -711,7 +726,7 @@ void main() {
     // 이미 리포트가 나간 회원(데모 기록)은 큐에 서지 않으므로, 미전송 줄
     // 하나를 고른다.
     await tester.tap(
-      find.byKey(const ValueKey<String>('reports-queue-seed-client-3')),
+      find.byKey(const ValueKey<String>('reports-open-seed-client-3')),
     );
     await settle(tester);
     expect(find.text('박성호님 주간 리포트'), findsOneWidget);
@@ -1667,6 +1682,13 @@ class _DraftStore implements ReportRepository {
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async => const <ReportSendRecord>[];
+
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async => const MemberReportHistoryPage.empty();
 
   @override
   Stream<WeeklyReport> watch({
