@@ -342,14 +342,9 @@ void main() {
           find.descendant(of: mealCardFinder('아침'), matching: f);
       expect(inBreakfast(find.text('총 칼로리')), findsOneWidget);
       expect(inBreakfast(find.text('247 kcal')), findsOneWidget);
-      // `총 칼로리` 옆에는 탄단지 **비중만** — 아래 막대의 범례다. 탄·단
-      // 4kcal, 지 9kcal 로 잰다(41.6 · 64 · 133.2 kcal).
-      expect(inBreakfast(find.text('탄수화물 17%')), findsOneWidget);
-      expect(inBreakfast(find.text('단백질 27%')), findsOneWidget);
-      expect(inBreakfast(find.text('지방 56%')), findsOneWidget);
-      // g 은 오른쪽 세부 줄에 — 회원 앱 상세 `영양 정보` 순서다.
-      // 항목마다 따로 선다 — 줄은 항목 사이에서만 바뀐다.
-      final List<String> details = tester
+      // 막대 아래 네 칸 — 탄수화물(당류) / 단백질 / 지방 | 나트륨. 칸 머리의
+      // 비중은 칼로리로 잰다(탄·단 4kcal, 지 9kcal → 41.6 · 64 · 133.2 kcal).
+      String column(String key) => tester
           .widgetList<Text>(
             inBreakfast(
               find.descendant(
@@ -357,19 +352,19 @@ void main() {
                   (Widget w) =>
                       w.key is ValueKey<String> &&
                       (w.key! as ValueKey<String>).value.startsWith(
-                        'client-diet-extras-',
+                        'client-diet-col-$key-',
                       ),
                 ),
                 matching: find.byType(Text),
               ),
             ),
           )
-          .map((Text t) => t.data!)
-          .toList();
-      expect(
-        details.join(),
-        '탄수화물 10.4g · 당류 6.8g · 단백질 16g · 지방 14.8g · 나트륨 359mg',
-      );
+          .map((Text t) => t.data ?? t.textSpan!.toPlainText())
+          .join(' / ');
+      expect(column('carbs'), '탄수화물 17% / 10.4g / 당류 6.8g');
+      expect(column('protein'), '단백질 27% / 16g');
+      expect(column('fat'), '지방 56% / 14.8g');
+      expect(column('sodium'), '나트륨 / 359mg');
       await tester.scrollUntilVisible(
         find.text('점심'),
         150,

@@ -6,7 +6,10 @@
 /// 목표의 절반을 넘기면 그 영양을 가장 많이 보탠 음식을 짚는다.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -101,7 +104,22 @@ Future<void> _open(
   await tester.pumpAndSettle();
 }
 
+/// 실제 서체를 싣는다. 테스트 기본 서체는 모든 글자를 정사각형으로 그려 폭이
+/// 부풀려진다 — 당류를 한 줄에 둘지 가르는 폭 셈을 실제 폭으로 봐야 한다.
+Future<void> _loadFonts() async {
+  final FontLoader loader = FontLoader('Pretendard');
+  for (final String w in <String>['Regular', 'Medium', 'SemiBold', 'Bold']) {
+    final Uint8List b = File(
+      'assets/fonts/Pretendard-$w.otf',
+    ).readAsBytesSync();
+    loader.addFont(Future<ByteData>.value(ByteData.view(b.buffer)));
+  }
+  await loader.load();
+}
+
 void main() {
+  setUpAll(_loadFonts);
+
   // 회원이 **얼마나** 먹었는지는 코칭의 기본 단위다. 백엔드는 `foods_json` 을
   // 그대로 흘려 보내 `amount_g` 가 이미 응답에 실려 있었는데, 엔티티가 그 키를
   // 읽지 않아 트레이너 화면까지 오지 못했다 (#2087).
@@ -237,26 +255,24 @@ void main() {
 
       // 합계 줄의 넘긴 값만 빨강이다.
       // 세부 줄의 항목 하나(`당류 56g · `)의 글자색.
-      Color? colorOf(Finder card, String part) {
-        final Text text = find
-            .descendant(
-              of: find.descendant(
-                of: card,
-                matching: find.byWidgetPredicate(
-                  (Widget w) =>
-                      w.key is ValueKey<String> &&
-                      (w.key! as ValueKey<String>).value.startsWith(
-                        'client-diet-extras-',
-                      ),
-                ),
+      // 합계 칸의 당류(`당류 56g`)·나트륨 값(`900mg`) 글자색.
+      Color? colorOf(Finder card, String part) => tester
+          .widget<Text>(
+            find.descendant(
+              of: card,
+              matching: find.byWidgetPredicate(
+                (Widget w) =>
+                    w.key is ValueKey<String> &&
+                    (w.key! as ValueKey<String>).value.startsWith(
+                      part == '당류'
+                          ? 'client-diet-sugar-'
+                          : 'client-diet-sodium-',
+                    ),
               ),
-              matching: find.byType(Text),
-            )
-            .evaluate()
-            .map((Element e) => e.widget as Text)
-            .firstWhere((Text t) => (t.data ?? '').startsWith(part));
-        return text.style?.color;
-      }
+            ),
+          )
+          .style
+          ?.color;
 
       expect(colorOf(dinner.first, '당류'), OnCareColors.danger);
       expect(colorOf(dinner.first, '나트륨'), isNot(OnCareColors.danger));
@@ -305,6 +321,57 @@ void main() {
       expect(own.sugarG, 15);
     });
   });
+
+  // 당류는 탄수화물의 일부라 그 칸 안에 적는다. 폭이 넉넉하면 g 값 오른쪽 한
+  // 줄에, 칸이 좁아 그 한 줄이 줄어들 만큼이면 아래 줄로 내린다 — 한 줄로 두면
+  // 좁은 폭에서 두 값이 함께 읽을 수 없을 만큼 작아졌다.
+  for (final (String label, Size size, bool inline) in <(String, Size, bool)>[
+    ('넓은 화면에서는 탄수화물 값 오른쪽', const Size(1400, 2400), true),
+    ('좁은 폭에서는 탄수화물 값 아래 줄', const Size(480, 2400), false),
+  ]) {
+    testWidgets('당류 자리 — $label', (tester) async {
+      await _open(tester, clientId: 'seed-client-1', size: size);
+
+      final Finder carbs = find.byWidgetPredicate(
+        (Widget w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith(
+              'client-diet-col-carbs-',
+            ),
+      );
+      final Finder sugar = find
+          .descendant(
+            of: carbs.first,
+            matching: find.byWidgetPredicate(
+              (Widget w) =>
+                  w.key is ValueKey<String> &&
+                  (w.key! as ValueKey<String>).value.startsWith(
+                    'client-diet-sugar-',
+                  ),
+            ),
+          )
+          .first;
+      final Finder grams = find
+          .descendant(
+            of: carbs.first,
+            matching: find.textContaining(RegExp(r'^[\d.]+g$')),
+          )
+          .first;
+      final Rect s = tester.getRect(sugar);
+      final Rect g = tester.getRect(grams);
+      if (inline) {
+        expect(s.left, greaterThan(g.right), reason: '당류가 g 값 오른쪽이 아니다');
+        expect(s.top, lessThan(g.bottom), reason: '당류가 g 값과 다른 줄이다');
+      } else {
+        expect(
+          s.top,
+          greaterThanOrEqualTo(g.bottom - 1),
+          reason: '당류가 아래 줄이 아니다',
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('좁은 화면·큰 글씨에서도 끼니 카드가 넘치지 않는다', (tester) async {
     // 480 폭은 분할 패널의 좁은 쪽, 1.3 배는 접근성 검사(#1004)가 쓰는 값이다.
