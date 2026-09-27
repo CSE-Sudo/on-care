@@ -199,10 +199,22 @@ class DioGymRepository implements GymRepository {
       if (code == 404) {
         throw StateError('slot not found: $slotId');
       }
+      // 같은 409 라도 "트레이너의 다른 일정과 겹침" 은 코드로 따로 온다
+      // (#2284) — 마감과 다른 안내를 보여야 한다.
+      if (code == 409 && _isScheduleOverlap(e.response?.data)) {
+        throw SlotTimeTakenError(slotId);
+      }
       if (code == 409 || code == 410) {
         throw StateError('slot no longer bookable: $slotId');
       }
       rethrow;
     }
+  }
+
+  /// 서버의 시간 겹침 409 인가 — `detail.code == 'schedule_overlap'`. (#2284)
+  static bool _isScheduleOverlap(Object? body) {
+    if (body is! Map) return false;
+    final detail = body['detail'];
+    return detail is Map && detail['code'] == 'schedule_overlap';
   }
 }

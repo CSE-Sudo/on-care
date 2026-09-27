@@ -6,7 +6,9 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -29,6 +31,11 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
   TimeOfDay _time = const TimeOfDay(hour: 10, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 11, minute: 0);
   bool _saving = false;
+
+  /// 방금 연 자리가 다른 일정과 시간이 겹쳐 막혔다(#2284). null 이면 막히지
+  /// 않았다. 토스트 대신 폼 아래에 남겨 무엇과 겹쳤는지 보며 시간을 고치게
+  /// 한다 — 다시 열기를 누르면 지운다.
+  List<ScheduleSession>? _overlaps;
 
   /// 정원 대신 종류를 고른다 — 슬롯은 늘 한 사람 몫이다(#1012). 회원 예약이
   /// 만드는 일정이 이 종류를 그대로 물려받는다(#1083).
@@ -84,7 +91,10 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
       _showMessage(l.slotPastTime);
       return;
     }
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _overlaps = null;
+    });
     try {
       await ref
           .read(reservationSlotRepositoryProvider)
@@ -97,6 +107,8 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
       // 이어서 새 목록을 낸다(#1590). 무효화하면 구독이 처음부터 다시 서서
       // 방금 만든 자리 대신 로딩 표시가 한 번 스쳐 지나간다.
       _showMessage(l.slotOpened, type: AppToastType.success);
+    } on ScheduleOverlapError catch (error) {
+      if (mounted) setState(() => _overlaps = error.conflicts);
     } catch (error) {
       _showMessage(_errorMessage(l, error), type: AppToastType.error);
     } finally {
@@ -284,6 +296,10 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             ),
           ],
         ),
+        if (_overlaps != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          ScheduleOverlapBanner(conflicts: _overlaps!, hint: l.slotOverlapHint),
+        ],
         const SizedBox(height: OnCareSpacing.s24),
         const AppDivider(),
         const SizedBox(height: OnCareSpacing.s12),

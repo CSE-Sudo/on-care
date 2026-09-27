@@ -429,6 +429,9 @@ def _notify_trainer_of_new_request(
         kind=notification_service.TRAINER_CONSULTATION_KIND,
         title="새 상담 요청이 도착했어요",
         body=f"{member_name} 회원 · {consultation.preferred_date}",
+        # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
+        subject_id=member_id,
+        target_date=consultation.preferred_date,
     )
 
 
@@ -454,6 +457,9 @@ def _notify_trainer_of_cancel(
         kind=notification_service.TRAINER_CONSULTATION_KIND,
         title="상담 요청이 취소됐어요",
         body=f"{member_name} 회원 · {consultation.preferred_date}",
+        # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
+        subject_id=member_id,
+        target_date=consultation.preferred_date,
     )
 
 
@@ -885,8 +891,11 @@ def accept(
     (`uq_trainer_client_active_member`)을 IntegrityError 로 만나기 전에 막는다.
 
     **승인은 시각을 정하지 않는다.** 날짜·시각·종류·소요 시간은 회원이 신청할 때
-    고른 자리가 이미 들고 있다(#1873). 겹침 검사도 없앴다 — 자리는 트레이너 자신이
-    연 것이고 한 자리는 한 사람 몫이라 구조적으로 겹치지 않는다.
+    고른 자리가 이미 들고 있다(#1873).
+
+    그래도 겹침은 본다(#2284). 자리를 연 뒤 신청이 기다리는 동안 트레이너가 그
+    시간에 다른 일정을 직접 잡을 수 있다 — 그대로 승인하면 이중 예약이 된다.
+    겹치면 [trainer_service.ScheduleOverlap] 으로 멈추고 아무것도 바꾸지 않는다.
 
     상태 전이·링크 생성·헬스장 연결·알림을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면
     승인 표시만 남고 담당은 안 생긴 반쪽 상태가 생긴다.
@@ -910,6 +919,17 @@ def accept(
         raise ConsultationSlotGone(
             "회원이 고른 시간이 사라졌습니다. 요청을 거절하고 다시 받아 주세요."
         )
+
+    local = _aware(slot.starts_at).astimezone(SEOUL)
+    # 담당 연결·상태 전이보다 먼저 본다 — 겹쳐서 멈출 때 반쪽 상태가 남지 않는다.
+    trainer_service.ensure_no_overlap(
+        db,
+        trainer_id,
+        date=local.date().isoformat(),
+        time=local.strftime("%H:%M"),
+        duration_minutes=slot.duration_minutes,
+        message="회원이 고른 시간에 이미 다른 일정이 있습니다. 일정을 옮긴 뒤 승인해 주세요.",
+    )
 
     existing = db.scalar(
         select(TrainerClient).where(
@@ -943,7 +963,6 @@ def accept(
 
     # 자리가 정해 둔 시각 그대로 첫 일정을 만든다. 결정과 같은 트랜잭션에 둔다 —
     # 요청이 인박스에서 사라졌는데 약속된 일정은 없는 상태가 나오면 안 된다.
-    local = _aware(slot.starts_at).astimezone(SEOUL)
     schedule_id = f"sched-{uuid.uuid4().hex[:12]}"
     db.add(
         TrainerSchedule(

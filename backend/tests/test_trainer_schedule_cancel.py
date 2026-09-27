@@ -190,8 +190,8 @@ def test_cancel_and_no_show_create_no_workout_record(
 ):
     """진행되지 않은 PT 는 회원 운동 기록으로 적재되지 않는다."""
     token = _tok(client)
-    cancelled_id = make_pt_session(token, time="20:50")
-    no_show_id = make_pt_session(token, time="20:55")
+    cancelled_id = make_pt_session(token, time="20:50", duration_minutes=5)
+    no_show_id = make_pt_session(token, time="20:55", duration_minutes=5)
 
     _cancel(client, token, cancelled_id)
     _no_show(client, token, no_show_id)

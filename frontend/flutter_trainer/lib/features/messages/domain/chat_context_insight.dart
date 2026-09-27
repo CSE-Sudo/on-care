@@ -4,6 +4,14 @@ import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 /// A coaching signal found in a message sent by a client.
 enum ChatInsightKind { discomfort, negativeFeedback }
 
+/// 감지가 짚는 신체 부위의 **안정된 코드**.
+///
+/// 예전에는 규칙이 화면에 박힐 이름(`무릎`·`Knee`)을 그대로 들고 있어, 영어
+/// 메시지에서 잡힌 부위는 한국어 화면에도 `Knee` 로 떴다. 이제 감지는 코드만
+/// 내고, 이름은 화면이 로케일에 맞춰 ARB 에서 꺼낸다([chatBodyPartLabel]).
+/// 한국어 `허리` 와 영어 `back` 은 같은 부위다.
+enum ChatBodyPart { knee, back, ankle, shoulder, wrist, neck }
+
 /// The small, explainable result rendered under the source message.
 class ChatContextInsight {
   const ChatContextInsight({
@@ -18,8 +26,28 @@ class ChatContextInsight {
   final String messageId;
   final ChatInsightKind kind;
   final String evidence;
-  final String? bodyPart;
+  final ChatBodyPart? bodyPart;
 }
+
+/// 부위 코드를 현재 로케일의 이름으로 옮긴다.
+String chatBodyPartLabel(AppLocalizations l, ChatBodyPart part) =>
+    switch (part) {
+      ChatBodyPart.knee => l.chatInsightBodyPartKnee,
+      ChatBodyPart.back => l.chatInsightBodyPartBack,
+      ChatBodyPart.ankle => l.chatInsightBodyPartAnkle,
+      ChatBodyPart.shoulder => l.chatInsightBodyPartShoulder,
+      ChatBodyPart.wrist => l.chatInsightBodyPartWrist,
+      ChatBodyPart.neck => l.chatInsightBodyPartNeck,
+    };
+
+/// 배너·메모가 쓰는 부위 이름. 짚은 부위가 없으면 부위 없는 일반 이름이다.
+String chatInsightBodyPartLabel(
+  AppLocalizations l,
+  ChatContextInsight insight,
+) => switch (insight.bodyPart) {
+  final ChatBodyPart part => chatBodyPartLabel(l, part),
+  null => l.chatInsightBodyPartGeneral,
+};
 
 /// 문장에서 신체 부위 하나를 찾는 규칙.
 ///
@@ -27,10 +55,10 @@ class ChatContextInsight {
 /// `목` 은 목요일·목표에, `back` 은 come back 에 들어 있다. 그래서 부위마다
 /// "어디까지가 그 낱말인가" 를 규칙으로 갖는다.
 class _BodyPartRule {
-  const _BodyPartRule(this.display, this.pattern);
+  const _BodyPartRule(this.part, this.pattern);
 
-  /// 배너에 그대로 박히는 이름. 문장이 한국어면 한국어, 영어면 영어를 준다.
-  final String display;
+  /// 화면에 박히는 이름이 아니라 코드다. 이름은 화면이 로케일로 정한다.
+  final ChatBodyPart part;
   final RegExp pattern;
 }
 
@@ -43,7 +71,9 @@ class ChatContextInsightDetector {
 
   ChatContextInsight? detect(ClientChatMessage message) {
     if (message.fromTrainer) return null;
-    final text = message.body.toLowerCase();
+    // 휴대폰 자판은 `’` 를 넣는다. `can’t` 가 `can't` 규칙을 지나치지 않게
+    // 곧은 따옴표로 맞춘다.
+    final text = message.body.toLowerCase().replaceAll('\u2019', "'");
 
     final part = _bodyPartIn(text);
     if (_matches(_discomfortPatterns, text)) {
@@ -72,9 +102,9 @@ class ChatContextInsightDetector {
 
   /// 문장이 가리키는 신체 부위. 짚을 것이 없으면 null 이고, 그때 배너는
   /// 부위 없는 문구로 뜬다.
-  static String? _bodyPartIn(String text) {
+  static ChatBodyPart? _bodyPartIn(String text) {
     for (final rule in _bodyParts) {
-      if (rule.pattern.hasMatch(text)) return rule.display;
+      if (rule.pattern.hasMatch(text)) return rule.part;
     }
     return null;
   }
@@ -87,26 +117,31 @@ class ChatContextInsightDetector {
   /// 뒤쪽은 조사가 붙어야 하므로(`목이`·`목만`) 한글을 막을 수 없다. 대신 그
   /// 음절로 시작하는 **다른 낱말**을 명시해 배제한다.
   static final List<_BodyPartRule> _bodyParts = <_BodyPartRule>[
-    _BodyPartRule('무릎', RegExp(r'(?<![가-힣])무릎')),
-    _BodyPartRule('허리', RegExp(r'(?<![가-힣])허리(?!띠|춤)')),
-    _BodyPartRule('발목', RegExp(r'(?<![가-힣])발목')),
-    _BodyPartRule('어깨', RegExp(r'(?<![가-힣])어깨')),
-    _BodyPartRule('손목', RegExp(r'(?<![가-힣])손목(?!시계)')),
+    _BodyPartRule(ChatBodyPart.knee, RegExp(r'(?<![가-힣])무릎')),
+    _BodyPartRule(ChatBodyPart.back, RegExp(r'(?<![가-힣])허리(?!띠|춤)')),
+    _BodyPartRule(ChatBodyPart.ankle, RegExp(r'(?<![가-힣])발목')),
+    _BodyPartRule(ChatBodyPart.shoulder, RegExp(r'(?<![가-힣])어깨')),
+    _BodyPartRule(ChatBodyPart.wrist, RegExp(r'(?<![가-힣])손목(?!시계)')),
     // 목요일·목표·목적·목록·목소리·목도리·목걸이·목욕.
-    _BodyPartRule('목', RegExp(r'(?<![가-힣])목(?!요일|표|적|록|소리|도리|걸이|욕)')),
-    _BodyPartRule('Knee', RegExp(r'\bknees?\b')),
-    _BodyPartRule('Ankle', RegExp(r'\bankles?\b')),
-    _BodyPartRule('Shoulder', RegExp(r'\bshoulders?\b')),
-    _BodyPartRule('Wrist', RegExp(r'\bwrists?\b')),
-    _BodyPartRule('Neck', RegExp(r'\bnecks?\b')),
+    _BodyPartRule(
+      ChatBodyPart.neck,
+      RegExp(r'(?<![가-힣])목(?!요일|표|적|록|소리|도리|걸이|욕)'),
+    ),
+    _BodyPartRule(ChatBodyPart.knee, RegExp(r'\bknees?\b')),
+    _BodyPartRule(ChatBodyPart.ankle, RegExp(r'\bankles?\b')),
+    _BodyPartRule(ChatBodyPart.shoulder, RegExp(r'\bshoulders?\b')),
+    _BodyPartRule(ChatBodyPart.wrist, RegExp(r'\bwrists?\b')),
+    _BodyPartRule(ChatBodyPart.neck, RegExp(r'\bnecks?\b|\bneckaches?\b')),
     // `back` 만 단어 경계로는 못 가른다 — "i'm back", "back at the gym" 이
     // 전부 온전한 낱말이다. 부위로 읽으려면 그 앞에 소유격·위치어가 오거나
-    // 뒤에 통증어가 붙어야 한다.
+    // 뒤에 통증어가 붙어야 한다. `backache` 는 한 낱말이라 그대로 부위다.
     _BodyPartRule(
-      'Back',
+      ChatBodyPart.back,
       RegExp(
         r'\b(?:my|your|his|her|their|our|the|lower|upper|mid|middle)\s+backs?\b'
-        r'|\bbacks?\s+(?:pain|ache|aches|injury)\b',
+        r'|\bbacks?\s+(?:pain|ache|aches|aching|hurts?|injury|is\s+sore'
+        r'|feels?\s+(?:sore|stiff|tight))\b'
+        r'|\bbackaches?\b',
       ),
     ),
   ];
@@ -137,15 +172,39 @@ class ChatContextInsightDetector {
     RegExp(r'(?<![가-힣])(?:붓|부어|부었|부기)'),
     RegExp(r'(?<![가-힣])뻐근'),
     // 영어는 낱말 경계로 가른다. 부위의 `back` 과 달리 이 낱말들은 문맥 없이도
-    // 통증을 뜻한다.
-    RegExp(r'\bpain(?:s|ful|fully)?\b'),
+    // 통증을 뜻한다. `painting` 은 통증이 아니지만 `painkillers` 는 통증을 말한다.
+    RegExp(r'\bpain(?:s|ful|fully|killers?)?\b'),
     RegExp(r'\bhurt(?:s|ing)?\b'),
     RegExp(r'\bsore(?:s|ness)?\b'),
-    RegExp(r'\bdiscomforts?\b'),
+    RegExp(r'\b(?:discomforts?|uncomfortable)\b'),
     RegExp(r'\bstiff(?:ness)?\b'),
     // 부위 규칙이 `back ache` 를 부위로 읽으면서도 통증어 목록에는 없어,
     // `my back aches` 가 아무 신호도 만들지 않고 있었다.
     RegExp(r'\bach(?:e|es|ed|ing|y)\b'),
+    // `backache`·`headache` 는 한 낱말이라 위 규칙의 경계에 걸리지 않는다.
+    RegExp(r'\b(?:back|neck|head)aches?\b'),
+    // `tight` 하나만으로는 `schedule is tight` 까지 걸린다. 느낌을 말하거나
+    // 근육·부위가 주어일 때만 통증으로 읽는다.
+    RegExp(
+      r'\b(?:feels?|felt|feeling|getting|got)\s+'
+      r'(?:really\s+|so\s+|a\s+bit\s+|very\s+|super\s+)?tight\b'
+      r'|\b(?:muscles?|hamstrings?|calf|calves|quads?|hips?|legs?|glutes?'
+      r'|knees?|shoulders?|necks?|backs?|wrists?|ankles?)\s+'
+      r'(?:is|are|was|were)\s+(?:really\s+|so\s+|a\s+bit\s+|very\s+)?tight\b',
+    ),
+    RegExp(r'\btightness\b'),
+    RegExp(
+      r'\b(?:swollen|swelling|numb(?:ness)?|tingl(?:e|es|ing)|throbb(?:ing|s))\b',
+    ),
+    RegExp(r'\b(?:sprain(?:s|ed)?|cramp(?:s|ed|ing)?|injur(?:y|ies|ed))\b'),
+    // `pulled a muscle`·`tweaked my knee`·`twisted my ankle`. 동사 하나만으로는
+    // `pulled up the app`·`rolled my eyes` 처럼 일상 말이 되므로 뒤에 붙는
+    // 말까지 본다.
+    RegExp(r'\b(?:pulled|strained|tweaked)\s+(?:a|my)\b'),
+    RegExp(
+      r'\b(?:twisted|rolled)\s+my\s+'
+      r'(?:ankles?|knees?|wrists?|backs?|necks?|shoulders?)\b',
+    ),
   ];
 
   /// 운동을 못 했다는 보고. 같은 경계 규칙을 쓴다.
@@ -162,11 +221,29 @@ class ChatContextInsightDetector {
     RegExp(r'(?<![가-힣])부담'),
     // 지쳐요·지쳤어요. `지침`(안내)은 지친 것이 아니다.
     RegExp(r'(?<![가-힣])지(?:쳐|쳤)'),
-    RegExp(r'\btoo hard\b'),
-    RegExp(r"\bcouldn'?t\b"),
-    RegExp(r'\bcannot\b'),
-    RegExp(r'\bgave up\b'),
-    RegExp(r'\bexhausted\b'),
+    // 영어도 "못 했다·너무 힘들다·지쳤다·포기했다" 를 같은 무게로 잡는다.
+    // `ate too much` 는 운동 부담이 아니라 `too much` 는 두지 않는다.
+    RegExp(r'\btoo\s+(?:hard|heavy|intense|difficult|tough)\b'),
+    RegExp(r"\b(?:couldn'?t|cannot|wasn't able to|unable to)\b"),
+    // `can't wait for the next session` 은 기대다. 무엇을 못 하는지까지 본다.
+    RegExp(
+      r"\bcan'?t\s+(?:do|go|make|finish|keep up|lift|train|work\s?out"
+      r'|continue|handle|move|bend|walk|run|squat)\b',
+    ),
+    RegExp(r"\bdidn'?t\s+(?:go|make it|work\s?out|train|finish|do|get to)\b"),
+    RegExp(r'\b(?:gave|give|giving)\s+up\b'),
+    // `skipped dessert` 는 운동 보고가 아니다. 무엇을 빠졌는지까지 본다.
+    RegExp(
+      r"\b(?:miss|skip)(?:ed|ped|ing|ping)?\s+(?:the\s+|my\s+|today'?s\s+|a\s+)?"
+      r'(?:workouts?|sessions?|gym|class(?:es)?|training|pt|cardio|leg day)\b',
+    ),
+    RegExp(r'\b(?:exhausted|drained|worn out|burn(?:ed|t) out|overwhelmed)\b'),
+    RegExp(r'\b(?:too|so|really|very)\s+tired\b'),
+    RegExp(r'\bstruggl(?:e|ed|es|ing)\b'),
+    // 한국어 `무리했어요` 에 해당한다.
+    RegExp(r'\boverd(?:id|o|oing|one)\s+it\b'),
+    RegExp(r'\bburden(?:some)?\b'),
+    RegExp(r'\bhard to (?:keep up|follow|finish)\b'),
   ];
 }
 
@@ -179,7 +256,5 @@ class ChatContextInsightDetector {
 /// 프로그램 생성 프롬프트에 지시문처럼 섞여 들어가지도 않는다.
 String chatInsightMemoSummary(AppLocalizations l, ChatContextInsight insight) =>
     insight.kind == ChatInsightKind.discomfort
-    ? l.chatInsightMemoSummaryDiscomfort(
-        insight.bodyPart ?? l.chatInsightBodyPartGeneral,
-      )
+    ? l.chatInsightMemoSummaryDiscomfort(chatInsightBodyPartLabel(l, insight))
     : l.chatInsightMemoSummaryNegative;

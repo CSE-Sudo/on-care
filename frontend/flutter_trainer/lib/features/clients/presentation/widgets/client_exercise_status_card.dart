@@ -329,7 +329,8 @@ class _DetailEntry extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  '${entry.dateLabel} · ${entry.label}',
+                  '${routineHistoryDateLabel(l, entry)} · '
+                  '${routineKindLabel(l, entry.label, kind: entry.kind)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: tokens

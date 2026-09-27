@@ -251,6 +251,11 @@ TRAINER_MEMBER_NAME_KIND = "member_name"
 #: 담당 회원이 떠났다 — 탈퇴했거나 담당 연결을 끊었다(#2174). 회원이 목록에서
 #: 사라진 뒤라 갈 곳이 없고, 알림함에서 확인만 한다.
 TRAINER_MEMBER_LEFT_KIND = "member_left"
+#: 회원이 트레이너의 담당 요청을 수락했다 → 새 담당 회원 상세(`subject_id`).
+#: 전에는 상담 종류로 남아 스케줄로 갔다(#2292).
+TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"
+#: 회원이 담당 요청을 거절했다 → 고객 목록. 담당이 아니라 상세는 열 수 없다(#2292).
+TRAINER_INVITE_REJECTED_KIND = "invite_rejected"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
@@ -287,11 +292,15 @@ def queue_for_trainer(
     title: str,
     body: str = "",
     subject_id: str | None = None,
+    target_date: str | None = None,
 ) -> Notification | None:
     """트레이너에게 남기는 알림. 꺼져 있으면 None. **커밋하지 않는다**.
 
     [subject_id] 는 알림이 가리키는 회원이다 — 종류만으로 갈 곳이 정해지지 않는
     알림(건강 목표 변경 → 그 회원 상세)에만 준다(#1832).
+
+    [target_date] 는 알림이 가리키는 날짜(`YYYY-MM-DD`)다 — 예약·상담 알림이
+    스케줄을 그 날짜로 여는 데 쓴다(#2292).
 
     커밋하지 않는 이유는 [queue] 와 같다 — 호출부의 트랜잭션에 얹는다.
 
@@ -309,6 +318,7 @@ def queue_for_trainer(
         category=kind,
         read=False,
         subject_id=subject_id,
+        target_date=target_date,
     )
     db.add(notification)
     return notification

@@ -27,6 +27,26 @@ ScheduleSession scheduleSessionFromJson(Map<String, dynamic> json) {
   );
 }
 
+/// 서버가 시간 겹침을 알리는 409 의 `detail.code`. (#2284)
+const String scheduleOverlapCode = 'schedule_overlap';
+
+/// 409 `schedule_overlap` 응답이면 [ScheduleOverlapError], 아니면 null.
+///
+/// 문구가 아니라 코드로 알아본다 — 서버 문구는 한국어 한 벌이라 영어 화면이
+/// 그대로 쓸 수 없고, 같은 409 라도 멱등키 충돌·완료 세션 수정 같은 다른
+/// 사유와 섞이면 안 된다. 일정·예약 슬롯·상담 승인 저장소가 함께 쓴다.
+ScheduleOverlapError? scheduleOverlapFromResponse(int? status, Object? body) {
+  if (status != 409 || body is! Map) return null;
+  final detail = body['detail'];
+  if (detail is! Map || detail['code'] != scheduleOverlapCode) return null;
+  final rows = detail['conflicts'];
+  return ScheduleOverlapError(<ScheduleSession>[
+    if (rows is List)
+      for (final row in rows)
+        if (row is Map<String, dynamic>) scheduleSessionFromJson(row),
+  ]);
+}
+
 /// Encodes a program for `ScheduleCreateRequest` / `ScheduleUpdateRequest`.
 List<Map<String, Object?>> programToJson(List<ProgramItem> program) {
   return <Map<String, Object?>>[

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,6 +102,7 @@ Map<String, Object?> trainerSettingsToJson(TrainerSettings settings) {
 final trainerSettingsRepositoryProvider = Provider<TrainerSettingsRepository>((
   ref,
 ) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return LocalTrainerSettingsRepository(ref.watch(sharedPreferencesProvider));
   }
