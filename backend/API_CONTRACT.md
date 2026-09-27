@@ -807,7 +807,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, target_date, template, args }]` (최신순, 최대 100건) |
+| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, target_date, template, args }]` (최신순, 한 쪽 기본 100건 — 아래 [쪽 나눔](#트레이너-알림함-쪽-나눔-2293)) |
 | GET | `/trainer/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/trainer/notifications/{id}/read` | `{ id, read: true }` |
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
@@ -820,6 +820,35 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
 - 남의 알림 읽음 처리는 **404** 입니다.
+
+#### 트레이너 알림함 쪽 나눔 (#2293)
+
+`GET /trainer/notifications` 는 **한 쪽**만 돌려줍니다. 파라미터 없이 부르면 전처럼 최신 100건이고,
+본문은 그대로 배열입니다. 전에는 100건에서 끊기고 커서가 없어, 미읽음 배지는 전체를 세는데
+그보다 오래된 미읽음은 목록 어디에서도 볼 수 없었습니다.
+
+| 파라미터 | 기본 | 설명 |
+|---|---|---|
+| `limit` | 100 | 1~100. 범위를 벗어나면 **422** |
+| `before` | — | 다음 쪽 커서(ISO datetime). 받은 `X-Next-Before` 헤더 값을 그대로 넘깁니다. 파싱 실패는 **422** |
+| `before_id` | — | 복합 커서 tie-break. 받은 `X-Next-Before-Id` 헤더 값. `before` 없이 오면 **422** |
+
+| 응답 헤더 | 설명 |
+|---|---|
+| `X-Next-Before` | 다음 쪽이 있을 때만. 이 쪽 마지막 알림의 `created_at`(UTC ISO) |
+| `X-Next-Before-Id` | 다음 쪽이 있을 때만. 이 쪽 마지막 알림의 `id` |
+
+- **두 헤더가 없으면 마지막 쪽입니다.** 서버가 한 건 더 읽어 보고 판단하므로, 마지막 쪽이 정확히
+  `limit` 건이어도 빈 쪽을 한 번 더 부를 필요가 없습니다.
+- 정렬은 `(created_at, id)` 내림차순이고 커서도 이 쌍입니다. 훅 하나가 여러 알림을 한 트랜잭션에
+  넣어 같은 `created_at` 이 실제로 나오므로, 시각만으로 자르면 쪽 경계에서 알림이 빠지거나 겹칩니다.
+  `before` 만 보내면 그 시각보다 이전만 받습니다(회원 알림 `/notifications` 와 같은 규칙).
+- 오프셋 없는 `before` 는 UTC 로 읽습니다.
+- 브라우저가 두 헤더를 읽을 수 있게 CORS `Access-Control-Expose-Headers` 에 올려 둡니다.
+- **미읽음 배지(`/trainer/notifications/unread-count`)와 모두 읽음(`/trainer/notifications/read-all`)은
+  쪽 나눔과 무관합니다** — 이 트레이너의 알림 전체를 세고 바꿉니다.
+- 다른 쪽의 알림도 필드(`template`·`args`·`target_date`·`subject_id`)와 언어(`Accept-Language`)가
+  첫 쪽과 같습니다.
 
 ### 트레이너 도메인 / 회원측 코치 미러
 
@@ -888,6 +917,26 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   한 줄 120자, 한 주 20줄까지. 넘으면 **422**.
 - 키는 `(member_id, week_start)` 다. 담당이 바뀌어도 그 주의 목표는 회원의 것이라,
   트레이너까지 키에 넣으면 인수인계한 주에 목록이 둘로 갈라진다.
+
+**리포트 전송 이력 (#2288)**: 그 주 리포트가 이미 나간 담당 회원들이다. 트레이너 웹 리포트
+작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기 전에 확인을 받는 근거다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `GET` | `/trainer/reports/sent?week_start=` | `{ week_start, sends: [{ member_id, week_start, sent_at, message, read, has_pdf, send_count }] }` |
+
+- **따로 저장하는 표가 없다.** 리포트 전송(`/report/send`·`/report/send-pdf`)이 채팅 메시지에
+  남기는 `report_week_start` 를 그대로 읽는다 — 전송 기록을 두 곳에 두면 한쪽만 남는 날이 온다.
+  앱 메모리에만 기록이 있던 때는 새로고침하면 보낸 회원이 미전송으로 돌아가 같은 리포트가
+  두 번 나갔다.
+- 한 회원에게 같은 주 리포트를 여러 번 보냈으면 **가장 최근 전송 하나로 접는다.** `sent_at`
+  (ISO, UTC)·`message`(회원이 받은 본문)·`read`(회원이 연 적 있는가, `read_at`)·`has_pdf` 는
+  모두 그 최근 전송의 값이고, `send_count` 는 그 주에 보낸 횟수다. 같은 `client_request_id`
+  로 재시도한 PDF 전송은 한 번이다.
+- `week_start` 기본값은 이번 주이고, 주 중간 날짜는 그 주 월요일로 접힌다. 형식이 틀리거나
+  아직 오지 않은 주는 **422**(리포트 조회와 같은 규칙).
+- **담당이 살아 있는 회원만** 싣는다. 해제된 회원의 기록은 빠진다(#2281). 보낸 적이 없는 주는
+  200 에 `sends: []` 다. 회원 계정은 **403**.
 
 ---
 

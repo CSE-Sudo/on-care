@@ -5575,6 +5575,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load notifications'**
   String get notifLoadFailed;
 
+  /// No description provided for @notifLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier notifications'**
+  String get notifLoadMore;
+
+  /// No description provided for @notifLoadMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier notifications'**
+  String get notifLoadMoreFailed;
+
+  /// No description provided for @notifNoEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'No earlier notifications'**
+  String get notifNoEarlier;
+
   /// No description provided for @notifTplHealthGoalTitle.
   ///
   /// In en, this message translates to:
@@ -7760,6 +7778,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rewrite from this'**
   String get reportsSentRewrite;
+
+  /// No description provided for @reportsResendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already sent'**
+  String get reportsResendTitle;
+
+  /// No description provided for @reportsResendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.'**
+  String reportsResendBody(String name, String date, String time);
+
+  /// No description provided for @reportsResendConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get reportsResendConfirm;
+
+  /// No description provided for @reportsSendHistoryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
+  String get reportsSendHistoryFailed;
 
   /// No description provided for @reportsSentBody.
   ///

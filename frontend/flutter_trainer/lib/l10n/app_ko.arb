@@ -1248,6 +1248,9 @@
   "notifReadAll": "모두 읽음",
   "notifEmpty": "아직 받은 알림이 없어요",
   "notifLoadFailed": "알림을 불러오지 못했어요",
+  "notifLoadMore": "지난 알림 더 보기",
+  "notifLoadMoreFailed": "지난 알림을 불러오지 못했어요",
+  "notifNoEarlier": "더 지난 알림이 없어요",
   "notifTplHealthGoalTitle": "회원 건강 목표 변경",
   "notifTplHealthGoalBody": "{name} 회원이 건강 목표를 바꿨어요: {goals}",
   "notifTplNoGoals": "목표 없음",
@@ -2038,6 +2041,23 @@
     }
   },
   "reportsSentRewrite": "이 내용으로 다시 작성",
+  "reportsResendTitle": "이미 보낸 리포트예요",
+  "reportsResendBody": "{name}님에게 {date} {time}에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.",
+  "@reportsResendBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsResendConfirm": "다시 보내기",
+  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.",
   "reportsSentBody": "보낸 피드백",
   "reportsSentFigures": "그때 보낸 수치",
   "reportsStepReview": "확인",

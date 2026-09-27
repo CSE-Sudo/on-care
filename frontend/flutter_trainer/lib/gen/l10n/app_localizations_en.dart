@@ -3269,6 +3269,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifLoadFailed => 'Couldn\'t load notifications';
 
   @override
+  String get notifLoadMore => 'Load earlier notifications';
+
+  @override
+  String get notifLoadMoreFailed => 'Couldn\'t load earlier notifications';
+
+  @override
+  String get notifNoEarlier => 'No earlier notifications';
+
+  @override
   String get notifTplHealthGoalTitle => 'Member goals changed';
 
   @override
@@ -4593,6 +4602,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSentRewrite => 'Rewrite from this';
+
+  @override
+  String get reportsResendTitle => 'Already sent';
+
+  @override
+  String reportsResendBody(String name, String date, String time) {
+    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their chat.';
+  }
+
+  @override
+  String get reportsResendConfirm => 'Send again';
+
+  @override
+  String get reportsSendHistoryFailed =>
+      'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.';
 
   @override
   String get reportsSentBody => 'Message sent';
