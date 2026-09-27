@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
@@ -105,8 +106,14 @@ def test_token_is_sent_to_provider(monkeypatch, provider):
     assert len(seen) == 1
     req = seen[0]
     if provider == "google":
-        assert req.url.params["id_token"] == SECRET_TOKEN
+        # 토큰은 URL 이 아니라 POST form 본문으로만 간다(#2351).
+        assert req.method == "POST"
+        assert SECRET_TOKEN not in str(req.url)
+        assert req.url.query == b""
+        assert req.headers["content-type"] == "application/x-www-form-urlencoded"
+        assert parse_qs(req.content.decode()) == {"id_token": [SECRET_TOKEN]}
     else:
+        assert SECRET_TOKEN not in str(req.url)
         assert req.headers["authorization"] == f"Bearer {SECRET_TOKEN}"
 
 
