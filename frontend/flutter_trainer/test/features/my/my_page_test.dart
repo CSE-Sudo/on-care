@@ -1,5 +1,6 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -391,6 +392,9 @@ void main() {
 
       await unlinkGym(tester);
       expect(find.text('등록된 헬스장'), findsNothing);
+      // 연결을 풀면 칸을 모두 비운다 — 앞 헬스장의 주소가 섞이지 않게.
+      expect(find.text('서울 서대문구'), findsNothing);
+      expect(find.text('06:00 – 23:00'), findsNothing);
       await tester.enterText(
         find.byKey(const ValueKey<String>('gym-name')),
         '강남',
@@ -417,6 +421,36 @@ void main() {
       );
     });
 
+    testWidgets('목록은 칸 아래에 떠서 다른 칸을 밀지 않고, 키보드로 고른다', (tester) async {
+      await openEdit(tester);
+      await unlinkGym(tester);
+      final Finder address = find.byKey(const ValueKey<String>('gym-address'));
+      final double before = tester.getTopLeft(address).dy;
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '온케어',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsOneWidget,
+      );
+      expect(tester.getTopLeft(address).dy, before);
+
+      // 두 번째 줄(강남점)로 내려 Enter.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
+      );
+      expect(find.text('등록된 헬스장'), findsOneWidget);
+      expect(gymField(tester, '온케어짐 강남점').enabled, isFalse);
+    });
+
     testWidgets('목록에 없는 곳은 직접 적어 저장한다', (tester) async {
       await openEdit(tester);
       await unlinkGym(tester);
@@ -425,10 +459,13 @@ void main() {
         '동네 PT 스튜디오',
       );
       await tester.pump();
+      // 맞는 등록 헬스장이 없다고 말한다. 주소·운영 시간은 비어 있다.
       expect(
-        find.byKey(const ValueKey<String>('gym-suggestions')),
-        findsNothing,
+        find.byKey(const ValueKey<String>('gym-no-match')),
+        findsOneWidget,
       );
+      expect(find.text('등록된 헬스장이 없어요'), findsOneWidget);
+      expect(find.text('서울 서대문구 신촌로 120'), findsNothing);
 
       await tester.tap(find.text('저장'));
       await settle(tester);

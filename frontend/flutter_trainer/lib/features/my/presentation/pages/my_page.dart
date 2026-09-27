@@ -720,10 +720,19 @@ class _MyPageState extends ConsumerState<MyPage> {
             _gymTouched = true;
             _fillGym(choice);
           }),
-          // 연결을 풀면 채워진 글자는 그대로 두고 직접 고치게 한다.
+          // 연결을 풀면 칸을 모두 비운다 — 다른 헬스장을 찾거나 새로 적는
+          // 자리라, 앞 헬스장의 주소·운영 시간이 남으면 섞여 저장된다.
           onUnlink: () => setState(() {
             _gymTouched = true;
             _draftGymId = '';
+            for (final String key in <String>[
+              'gymName',
+              'gymAddress',
+              'gymHours',
+              'gymPhone',
+            ]) {
+              _fields[key]?.clear();
+            }
           }),
           nameError: _showGymError ? _gymError(l) : null,
           onNameChanged: (_) {
@@ -1606,7 +1615,6 @@ class _EditField extends StatelessWidget {
     this.inputFormatters,
     this.errorText,
     this.onChanged,
-    this.hint,
   });
 
   final String label;
@@ -1621,9 +1629,6 @@ class _EditField extends StatelessWidget {
   final String? errorText;
   final ValueChanged<String>? onChanged;
 
-  /// 칸이 비었을 때 보이는 안내.
-  final String? hint;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1631,7 +1636,6 @@ class _EditField extends StatelessWidget {
       child: AppTextField(
         key: inputKey,
         label: label,
-        hint: hint,
         controller: controller,
         enabled: enabled,
         maxLines: maxLines,
@@ -1932,59 +1936,43 @@ class _GymEditor extends StatelessWidget {
           ),
           const SizedBox(height: OnCareSpacing.s8),
         ],
-        _EditField(
-          label: l.myGymName,
-          controller: name,
-          inputKey: const ValueKey<String>('gym-name'),
-          hint: l.myGymNameHint,
-          enabled: !linked,
-          errorText: nameError,
-          onChanged: onNameChanged,
-        ),
-        if (!linked)
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: name,
-            builder: (BuildContext context, TextEditingValue value, _) {
-              final String query = value.text.trim().toLowerCase();
-              if (query.isEmpty) return const SizedBox.shrink();
-              final List<TrainerGymChoice> matches = <TrainerGymChoice>[
-                for (final TrainerGymChoice choice in items)
-                  if (choice.name.toLowerCase().contains(query) ||
-                      choice.address.toLowerCase().contains(query))
-                    choice,
-              ];
-              if (matches.isNotEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-                  child: _GymSuggestions(matches: matches, onPick: onLink),
-                );
-              }
-              // 목록을 읽는 중이거나 못 읽었으면 그렇다고 말한다 — 아니면 맞는
-              // 헬스장이 없는 것이고, 그대로 쓰면 직접 입력이다.
-              final String? status = choices.isLoading
-                  ? l.myGymListLoading
-                  : choices.hasError
-                  ? l.myGymListFailed
-                  : null;
-              if (status == null) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-                child: Text(
-                  status,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(
-                        color: choices.hasError
-                            ? OnCareColors.danger
-                            : OnCareColors.textTertiary,
-                      ),
-                ),
-              );
-            },
+        if (linked)
+          _EditField(
+            label: l.myGymName,
+            controller: name,
+            inputKey: const ValueKey<String>('gym-name'),
+            enabled: false,
+          )
+        else ...<Widget>[
+          _GymNameField(
+            controller: name,
+            choices: items,
+            listReady: choices.hasValue,
+            onPick: onLink,
+            errorText: nameError,
+            onChanged: onNameChanged,
           ),
+          // 목록을 읽는 중이거나 못 읽었으면 그렇다고 말한다 — 그 사이에도
+          // 직접 적을 수 있다.
+          if (choices.isLoading || choices.hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+              child: Text(
+                choices.hasError ? l.myGymListFailed : l.myGymListLoading,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(
+                      color: choices.hasError
+                          ? OnCareColors.danger
+                          : OnCareColors.textTertiary,
+                    ),
+              ),
+            ),
+        ],
         _EditField(
           label: l.myGymAddress,
           controller: field('gymAddress', gym.address),
+          inputKey: const ValueKey<String>('gym-address'),
           enabled: !linked,
         ),
         _EditField(
@@ -2002,56 +1990,269 @@ class _GymEditor extends StatelessWidget {
   }
 }
 
-/// 이름에 맞는 등록 헬스장 — 맞는 곳은 모두 싣고, 한 번에 네 줄쯤 보이는
-/// 높이에서 멈춰 나머지는 스크롤한다.
-class _GymSuggestions extends StatelessWidget {
-  const _GymSuggestions({required this.matches, required this.onPick});
+/// 헬스장 이름 칸 + 맞는 등록 헬스장 목록(칸 아래에 떠 있는 드롭다운).
+///
+/// 상단 회원 검색과 같은 방식이다(#1693 메뉴 규격) — 칸과 같은 폭으로 칸
+/// 바로 아래에 떠서 다른 칸을 밀지 않는다. 맞는 곳은 모두 싣고, 네 줄쯤 보이는
+/// 높이에서 멈춰 나머지는 스크롤한다. ↑/↓ 로 옮기고 Enter 로 고르며, 고르거나
+/// 바깥을 누르거나 Esc 를 누르면 닫힌다.
+class _GymNameField extends StatefulWidget {
+  const _GymNameField({
+    required this.controller,
+    required this.choices,
+    required this.onPick,
+    this.listReady = true,
+    this.errorText,
+    this.onChanged,
+  });
 
-  final List<TrainerGymChoice> matches;
+  final TextEditingController controller;
+  final List<TrainerGymChoice> choices;
+
+  /// 목록을 다 읽었는가. 읽기 전에는 '없어요' 를 말하지 않는다.
+  final bool listReady;
   final ValueChanged<TrainerGymChoice> onPick;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
 
-  /// 한 번에 보이는 높이 — 줄 네 개 남짓.
-  static const double _maxHeight = 232;
+  @override
+  State<_GymNameField> createState() => _GymNameFieldState();
+}
+
+class _GymNameFieldState extends State<_GymNameField> {
+  final OverlayPortalController _dropdown = OverlayPortalController();
+  final LayerLink _link = LayerLink();
+  final ScrollController _scroll = ScrollController();
+
+  /// 키보드가 가리키는 줄(↑/↓ 로 옮기고 Enter 로 고른다).
+  int _highlight = 0;
+
+  /// 한 줄 높이와 한 번에 보이는 높이(네 줄 남짓).
+  static const double _rowHeight = 56;
+  static const double _maxHeight = _rowHeight * 4 + _rowHeight / 2;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  List<TrainerGymChoice> get _matches {
+    final String query = widget.controller.text.trim().toLowerCase();
+    if (query.isEmpty) return const <TrainerGymChoice>[];
+    return <TrainerGymChoice>[
+      for (final TrainerGymChoice choice in widget.choices)
+        if (choice.name.toLowerCase().contains(query) ||
+            choice.address.toLowerCase().contains(query))
+          choice,
+    ];
+  }
+
+  /// 목록을 띄울지 — 맞는 곳이 있거나, 목록을 다 읽었는데 맞는 곳이 없을 때
+  /// (그렇다고 말해 준다). 칸이 비었으면 닫는다.
+  bool get _shouldShow =>
+      widget.controller.text.trim().isNotEmpty &&
+      (_matches.isNotEmpty || widget.listReady);
+
+  void _refresh() {
+    setState(() => _highlight = 0);
+    if (_shouldShow) {
+      _dropdown.show();
+    } else {
+      _dropdown.hide();
+    }
+  }
+
+  void _move(int delta) {
+    final int count = _matches.length;
+    if (count == 0) return;
+    setState(() => _highlight = (_highlight + delta).clamp(0, count - 1));
+    // 가리키는 줄이 보이게 스크롤을 따라 옮긴다.
+    final double top = _highlight * _rowHeight;
+    final double bottom = top + _rowHeight;
+    if (_scroll.hasClients) {
+      final double offset = _scroll.offset;
+      if (top < offset) {
+        _scroll.jumpTo(top);
+      } else if (bottom > offset + _maxHeight) {
+        _scroll.jumpTo(bottom - _maxHeight);
+      }
+    }
+  }
+
+  void _pick(TrainerGymChoice choice) {
+    _dropdown.hide();
+    widget.onPick(choice);
+  }
+
+  void _submit() {
+    final List<TrainerGymChoice> matches = _matches;
+    if (_dropdown.isShowing && matches.isNotEmpty) {
+      _pick(matches[_highlight.clamp(0, matches.length - 1)]);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return DecoratedBox(
-      key: const ValueKey<String>('gym-suggestions'),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: OnCareColors.lineSubtle),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return CompositedTransformTarget(
+            link: _link,
+            child: OverlayPortal(
+              controller: _dropdown,
+              overlayChildBuilder: (context) => _overlay(constraints.maxWidth),
+              child: TapRegion(
+                groupId: this,
+                onTapOutside: (_) => _dropdown.hide(),
+                child: CallbackShortcuts(
+                  bindings: <ShortcutActivator, VoidCallback>{
+                    const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                        _move(1),
+                    const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                        _move(-1),
+                    const SingleActivator(LogicalKeyboardKey.escape):
+                        _dropdown.hide,
+                  },
+                  // 칸을 다시 누르면 남아 있는 글자로 목록을 다시 연다.
+                  child: Listener(
+                    onPointerDown: (_) {
+                      if (_shouldShow) _dropdown.show();
+                    },
+                    child: AppTextField(
+                      key: const ValueKey<String>('gym-name'),
+                      label: l.myGymName,
+                      hint: l.myGymNameHint,
+                      controller: widget.controller,
+                      errorText: widget.errorText,
+                      onChanged: (String value) {
+                        widget.onChanged?.call(value);
+                        _refresh();
+                      },
+                      onSubmitted: (_) => _submit(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
-      child: ClipRRect(
-        borderRadius: OnCareRadius.mdAll,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: _maxHeight),
-          child: ListView.separated(
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            itemCount: matches.length,
-            separatorBuilder: (_, _) => const AppDivider(),
-            itemBuilder: (BuildContext context, int i) {
-              final TrainerGymChoice choice = matches[i];
-              return AppListRow(
-                key: ValueKey<String>('gym-suggestion-${choice.id}'),
-                leading: const Icon(
-                  Icons.home_work_rounded,
-                  size: OnCareSize.iconMedium,
-                  color: OnCareColors.textSecondary,
-                ),
-                title: choice.name,
-                subtitle: choice.address.isEmpty ? null : choice.address,
-                trailing: Text(
-                  l.myGymPick,
-                  style: context.oncare
-                      .text(OnCareTypography.strong(OnCareTypography.caption))
-                      .copyWith(color: context.oncare.brand.primary),
-                ),
-                onTap: () => onPick(choice),
-              );
-            },
+    );
+  }
+
+  Widget _overlay(double width) {
+    final List<TrainerGymChoice> matches = _matches;
+    final OnCareTokens tokens = context.oncare;
+    return CompositedTransformFollower(
+      link: _link,
+      targetAnchor: Alignment.bottomLeft,
+      offset: const Offset(0, OnCareSpacing.s4),
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: TapRegion(
+          groupId: this,
+          child: Container(
+            key: const ValueKey<String>('gym-suggestions'),
+            width: width,
+            constraints: const BoxConstraints(maxHeight: _maxHeight),
+            decoration: const BoxDecoration(
+              color: OnCareColors.surfaceCard,
+              borderRadius: OnCareRadius.mdAll,
+              border: Border.fromBorderSide(
+                BorderSide(color: OnCareColors.lineStrong),
+              ),
+              boxShadow: OnCareShadows.overlay,
+            ),
+            // 가리킨 줄의 채움이 둥근 모서리 밖으로 나가지 않게 자른다.
+            clipBehavior: Clip.antiAlias,
+            child: Material(
+              type: MaterialType.transparency,
+              child: matches.isEmpty
+                  // 맞는 곳이 없으면 그렇다고 말한다 — 그대로 쓰면 직접 입력이다.
+                  ? Padding(
+                      key: const ValueKey<String>('gym-no-match'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: OnCareSpacing.s16,
+                        vertical: OnCareSpacing.s12,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            AppLocalizations.of(context).myGymNoMatch,
+                            style: tokens
+                                .text(OnCareTypography.body)
+                                .copyWith(color: OnCareColors.textPrimary),
+                          ),
+                          Text(
+                            AppLocalizations.of(context).myGymNoMatchHint,
+                            style: tokens
+                                .text(OnCareTypography.caption)
+                                .copyWith(color: OnCareColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scroll,
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemExtent: _rowHeight,
+                      itemCount: matches.length,
+                      itemBuilder: (BuildContext context, int i) {
+                        final TrainerGymChoice choice = matches[i];
+                        return MouseRegion(
+                          onEnter: (_) => setState(() => _highlight = i),
+                          child: InkWell(
+                            key: ValueKey<String>(
+                              'gym-suggestion-${choice.id}',
+                            ),
+                            onTap: () => _pick(choice),
+                            child: Container(
+                              color: i == _highlight
+                                  ? tokens.brand.surface
+                                  : Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: OnCareSpacing.s16,
+                              ),
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    choice.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tokens
+                                        .text(OnCareTypography.body)
+                                        .copyWith(
+                                          color: OnCareColors.textPrimary,
+                                        ),
+                                  ),
+                                  if (choice.address.isNotEmpty)
+                                    Text(
+                                      choice.address,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tokens
+                                          .text(OnCareTypography.caption)
+                                          .copyWith(
+                                            color: OnCareColors.textSecondary,
+                                          ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ),
       ),

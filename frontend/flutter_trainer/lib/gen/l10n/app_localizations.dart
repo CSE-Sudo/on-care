@@ -4028,6 +4028,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the gym list.'**
   String get myGymListFailed;
 
+  /// No description provided for @myGymNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No registered gym found'**
+  String get myGymNoMatch;
+
+  /// No description provided for @myGymNoMatchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep typing to save it as your own entry. Add the address, hours and phone too.'**
+  String get myGymNoMatchHint;
+
   /// No description provided for @myGymLinked.
   ///
   /// In en, this message translates to:
@@ -4045,12 +4057,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type to find a registered gym'**
   String get myGymNameHint;
-
-  /// No description provided for @myGymPick.
-  ///
-  /// In en, this message translates to:
-  /// **'Select'**
-  String get myGymPick;
 
   /// No description provided for @myGymRequired.
   ///

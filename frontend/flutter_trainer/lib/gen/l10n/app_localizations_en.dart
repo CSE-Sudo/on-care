@@ -2277,6 +2277,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymListFailed => 'Couldn\'t load the gym list.';
 
   @override
+  String get myGymNoMatch => 'No registered gym found';
+
+  @override
+  String get myGymNoMatchHint =>
+      'Keep typing to save it as your own entry. Add the address, hours and phone too.';
+
+  @override
   String get myGymLinked => 'Registered gym';
 
   @override
@@ -2284,9 +2291,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGymNameHint => 'Type to find a registered gym';
-
-  @override
-  String get myGymPick => 'Select';
 
   @override
   String get myGymRequired => 'Enter your gym';
