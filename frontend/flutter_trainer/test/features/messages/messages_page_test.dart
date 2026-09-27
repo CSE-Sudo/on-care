@@ -17,7 +17,8 @@ import 'package:oncare_ui/oncare_ui.dart'
         OnCareAlpha,
         OnCareColors,
         OnCareLayout,
-        OnCareSize;
+        OnCareSize,
+        OnCareSpacing;
 
 import '../../helpers/pump_app.dart';
 
@@ -387,19 +388,94 @@ void main() {
       expect(find.text('활성'), findsNothing);
       // PT 관리 신호는 **전부**, 근거 수치까지 선다(#2243) — 통증을 말했거나
       // 목표에서 벗어났다는 사실은 지금 이 대화에서 할 말을 바꾼다.
-      final labels = tester
-          .widgetList<AppTag>(
-            find.descendant(of: identity, matching: find.byType(AppTag)),
-          )
-          .map((t) => t.label)
-          .toList();
+      // `+N` 칩은 넘칠 때를 대비해 늘 만들어 두므로, 신호 배지 키로만 센다.
+      final alerts = find.descendant(
+        of: identity,
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'messages-thread-alert-',
+              ),
+        ),
+      );
+      final labels = <String>[
+        for (final e in alerts.evaluate())
+          tester
+              .widget<AppTag>(
+                find.descendant(
+                  of: find.byWidget(e.widget),
+                  matching: find.byType(AppTag),
+                ),
+              )
+              .label,
+      ];
       expect(labels, <String>['통증·불편', '운동 목표 28%', '칼로리 24% 과다']);
+      // 배지는 이름 줄이 아니라 이름·목표 오른쪽 빈자리에, 그 두 줄의 세로
+      // 가운데로 선다(#2375) — 이름 줄에 붙으면 배지만 위로 쏠렸다.
+      final Rect name = tester.getRect(
+        find.descendant(of: identity, matching: find.text('오세라')),
+      );
+      final Rect goal = tester.getRect(
+        find.descendant(of: identity, matching: find.text('혈압 관리')),
+      );
+      final Rect first = tester.getRect(alerts.first);
+      final Rect detail = tester.getRect(
+        find.byKey(const ValueKey<String>('messages-client-detail-button')),
+      );
+      expect(first.left, greaterThan(goal.right));
+      expect(first.left, greaterThan(name.right));
+      expect(
+        first.center.dy,
+        moreOrLessEquals((name.top + goal.bottom) / 2, epsilon: 1),
+      );
+      // 오른쪽 정렬이 아니다 — 배지는 이름·목표 묶음 바로 뒤에서 시작하고,
+      // 남는 자리는 `회원 상세` 앞에 둔다.
+      final Rect demographics = tester.getRect(
+        find.descendant(of: identity, matching: find.textContaining('22세')),
+      );
+      final double whoRight = demographics.right > goal.right
+          ? demographics.right
+          : goal.right;
+      expect(
+        first.left - whoRight,
+        moreOrLessEquals(OnCareSpacing.s12, epsilon: 0.5),
+      );
+      expect(detail.left, greaterThan(first.left));
       // 답장 대기는 없다 — 지금 열어 둔 이 대화가 곧 그 답장 자리다.
       expect(labels, isNot(contains('답장 대기')));
       expect(labels.where((l) => l.contains('나트륨')), isEmpty);
       // 대화 화면은 대화만 한다 — 운동 데이터는 회원 탭이 보여 준다.
       expect(find.textContaining('최근 운동'), findsNothing);
       expect(find.textContaining('주간 이행률'), findsNothing);
+    });
+  });
+
+  testWidgets('thread header signals fold into +N on a narrow split', (
+    tester,
+  ) async {
+    await withWideSurface(tester, size: const Size(1024, 760), () async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token-existing',
+        seedClock: DateTime(2026, 8, 16), // 일요일
+      );
+      await goTo(tester, AppRoutes.messagesFor('seed-client-8'));
+
+      // 좁은 분할에서도 배지 줄은 한 줄을 지키고, 못 세운 것은 `+N` 으로
+      // 묶는다 — 배지가 `회원 상세` 버튼을 밀거나 머리를 늘리지 않는다.
+      final Rect identity = tester.getRect(
+        find.byKey(const ValueKey<String>('messages-thread-identity')),
+      );
+      final Rect signals = tester.getRect(
+        find.byKey(const ValueKey<String>('messages-thread-signals')),
+      );
+      expect(signals.height, lessThanOrEqualTo(identity.height));
+      final Rect detail = tester.getRect(
+        find.byKey(const ValueKey<String>('messages-client-detail-button')),
+      );
+      expect(signals.right, lessThanOrEqualTo(detail.left));
+      expect(tester.takeException(), isNull);
     });
   });
 

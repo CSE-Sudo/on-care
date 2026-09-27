@@ -198,12 +198,15 @@ class ClientPickerCard extends StatelessWidget {
     super.key,
     required this.client,
     required this.selected,
-    required this.onTap,
+    this.onTap,
   });
 
   final TrainerClient client;
   final bool selected;
-  final VoidCallback onTap;
+
+  /// 누르면 부른다. null 이면 누를 수 없는 이름 칸이다 — 리포트 작업대처럼
+  /// 갈 곳을 줄 끝 버튼이 말하는 자리(#2394).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

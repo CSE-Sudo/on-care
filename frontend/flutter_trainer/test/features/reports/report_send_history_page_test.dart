@@ -18,6 +18,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -94,6 +95,11 @@ void main() {
       extraOverrides: <Override>[
         history.override,
         reportPdfGeneratorProvider.overrideWithValue(_InstantPdfGenerator()),
+        // ③ 전송의 미리보기가 쪽 그림을 굽는 자리(#2402). printing 플러그인은
+        // 테스트에 없다.
+        reportPdfRasterizerProvider.overrideWithValue(
+          (Uint8List pdf) async => <Uint8List>[pdf],
+        ),
       ],
     );
     await settle(tester);
@@ -172,14 +178,14 @@ void main() {
       );
     });
 
-    testWidgets('서버 이력의 줄을 누르면 회원이 받은 글을 그대로 본다', (tester) async {
+    testWidgets('서버 이력 줄의 보기를 누르면 회원이 받은 글을 그대로 본다', (tester) async {
       await open(
         tester,
         history: _History(_sentThisWeek(_minsu, message: '서버에 남은 그 글')),
       );
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('reports-sent-$_minsu')),
+        find.byKey(const ValueKey<String>('reports-view-$_minsu')),
       );
       await settle(tester);
 

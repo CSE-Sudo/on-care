@@ -202,6 +202,9 @@ GoRouter buildAppRouter({
                 path: AppRoutes.reports,
                 builder: (context, state) => ReportsPage(
                   clientId: state.uri.queryParameters['client'],
+                  // 회원별 지난 리포트(#2394). `client` 가 함께 오면 편집기가
+                  // 먼저다 — 화면이 그렇게 고른다.
+                  historyClientId: state.uri.queryParameters['history'],
                   // 형식이 깨진 값은 무시하고 이번 주로 연다 — 링크 하나 때문에
                   // 리포트 화면이 열리지 않는 편이 더 나쁘다.
                   weekStart: AppRoutes.parseReportWeek(

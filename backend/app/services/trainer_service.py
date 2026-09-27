@@ -1135,19 +1135,40 @@ class ClientLinkDetached(Exception):
 
 
 def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool:
-    """(trainer, member) 담당 관계가 살아 있는가(`active`). (#2281)
+    """(trainer, member) 담당 관계가 살아 있고 열람 동의가 있는가. (#2281)
 
     링크 행은 해제 뒤에도 남으므로(`remove_client`) 행 존재만으로는 담당이
     아니다. 라우터의 `_require_client` 를 지나지 않는 경로(제안 승인·일정의
-    프로그램 전송)가 이 함수로 같은 경계를 본다.
+    프로그램·개인운동 전송·완료 등)가 이 함수로 같은 경계를 본다.
+
+    동의가 철회된 뒤 새 동의 없이 살아 있는 링크도 `_require_client` 처럼
+    막는다(#1631) — 한쪽만 동의를 보면 같은 회원이 경로에 따라 열리고 닫힌다.
     """
     return db.scalar(
         select(TrainerClient.id).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
             TrainerClient.active.is_(True),
+            data_consent_service.allows_access_clause(),
         )
     ) is not None
+
+
+def _ensure_session_member_linked(
+    db: Session, trainer_id: str, s: TrainerSchedule
+) -> None:
+    """일정에 붙은 회원이 아직 담당·동의 경계 안인지 본다. 아니면 [ClientLinkDetached].
+
+    일정 id 로 여는 경로는 `_get_owned_session`(내 일정인가)만 보므로, 해제 전에
+    잡아 둔 일정으로 해제된 회원의 운동 기록을 쓰거나 알림을 보낼 수 있었다.
+    해제된 회원의 일정은 목록에서도 빠지므로(`list_schedule`) 남의 회원과 같은
+    404 로 옮긴다. 회원이 없는 일정(상담·공백)은 지나간다.
+
+    취소·삭제는 이 확인을 하지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는
+    해제 뒤에도 회원이 알아야 하는 정리다.
+    """
+    if s.member_id and not has_active_client_link(db, trainer_id, s.member_id):
+        raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
 
 
 def remove_client(db: Session, link: TrainerClient) -> None:
@@ -4248,6 +4269,7 @@ def send_scheduled_routines(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     if s.status == SCHEDULE_UPCOMING:
         raise ScheduleError(
             "아직 예정인 PT 입니다. 완료할 때 개인운동이 함께 나갑니다."
@@ -4514,7 +4536,12 @@ def assign_program_with_schedule(
         .with_for_update()
     )
     # 해제된 담당(`active=False`)도 없는 담당과 같다 — 배정과 일정 모두 막는다. (#2281)
-    if client_link is None or not client_link.active:
+    # 동의가 철회된 채 살아 있는 링크도 `_require_client` 와 같이 막는다. (#1631)
+    if (
+        client_link is None
+        or not client_link.active
+        or data_consent_service.blocks_access(client_link)
+    ):
         return None
 
     program_json = _dump_program(_schedule_program_items(sessions))
@@ -4691,6 +4718,7 @@ def update_session(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     # 회원에게 알릴지 판단하려면 **바꾸기 전** 값을 들고 있어야 한다. 넘긴
     # 일정의 취소 알림에는 옛 시각을 써야 회원이 어느 약속인지 안다.
     before_member_id = s.member_id
@@ -4823,6 +4851,7 @@ def reopen_session(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     if _is_reservation_schedule(db, session_id):
         raise ScheduleConflict(
             "예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없습니다."
@@ -5064,6 +5093,7 @@ def complete_session(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     if s.status == "공백":
         raise ScheduleError("빈 슬롯은 완료할 수 없습니다.")
     if s.date > _today().isoformat():
