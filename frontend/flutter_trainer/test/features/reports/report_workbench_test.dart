@@ -593,6 +593,96 @@ void main() {
     });
   });
 
+  group('전송 완료 상자 모양 미전송 기준 (#2397)', () {
+    AppTagTone countTone(WidgetTester tester, String boxKey) {
+      final Finder tag = find
+          .descendant(
+            of: find.byKey(ValueKey<String>(boxKey)),
+            matching: find.byType(AppTag),
+          )
+          .first;
+      return tester.widget<AppTag>(tag).tone;
+    }
+
+    testWidgets('두 인원 배지는 같은 브랜드 톤이다', (tester) async {
+      final ProviderContainer container = await openWorkbench(
+        tester,
+        clients: _roster,
+      );
+
+      // 전송 완료 0명.
+      expect(countTone(tester, 'reports-workbench-queue'), AppTagTone.brand);
+      expect(countTone(tester, 'reports-workbench-sent'), AppTagTone.brand);
+
+      for (final String id in <String>['a', 'h']) {
+        container
+            .read(reportSendLogProvider.notifier)
+            .record(
+              clientId: id,
+              weekStart: weekStartOf(nowKst()),
+              message: '이번 주 리포트예요.',
+            );
+      }
+      await settle(tester);
+
+      // 미전송 0명 — 초록으로 바뀌지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('reports-queue-empty')),
+        findsOneWidget,
+      );
+      expect(countTone(tester, 'reports-workbench-queue'), AppTagTone.brand);
+      expect(countTone(tester, 'reports-workbench-sent'), AppTagTone.brand);
+    });
+
+    testWidgets('전송 완료 줄은 미전송 줄과 같은 흰 카드다', (tester) async {
+      final ProviderContainer container = await openWorkbench(
+        tester,
+        clients: _roster,
+      );
+      container
+          .read(reportSendLogProvider.notifier)
+          .record(
+            clientId: 'a',
+            weekStart: weekStartOf(nowKst()),
+            message: '가회원님 이번 주 리포트예요.',
+          );
+      await settle(tester);
+
+      final Widget sentRow = tester.widget(
+        find.byKey(const ValueKey<String>('reports-sent-a')),
+      );
+      final Widget queueRow = tester.widget(
+        find.byKey(const ValueKey<String>('reports-queue-h')),
+      );
+      expect(sentRow, isA<AppCard>());
+      expect(queueRow, isA<AppCard>());
+      final AppCard sent = sentRow as AppCard;
+      final AppCard queue = queueRow as AppCard;
+      // 색을 따로 칠하지 않은 기본 흰 카드, 같은 안쪽 여백.
+      expect(sent.backgroundColor, isNull);
+      expect(sent.selected, isFalse);
+      expect(sent.padding, queue.padding);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('reports-workbench-sent')),
+          matching: find.byType(AppTile),
+        ),
+        findsNothing,
+      );
+      // 이름·전송일 문구는 카드 안에 그대로 선다.
+      final Finder inCard = find.descendant(
+        of: find.byKey(const ValueKey<String>('reports-sent-a')),
+        matching: find.byType(Text),
+      );
+      final List<String> texts = <String>[
+        for (final Element e in inCard.evaluate())
+          (e.widget as Text).data ?? '',
+      ];
+      expect(texts, contains('가회원'));
+      expect(texts.any((t) => t.contains('전송')), isTrue);
+    });
+  });
+
   testWidgets('이번 주 리포트 칸이 전송 완료 칸의 두 배로 선다 (#2232)', (tester) async {
     await openWorkbench(tester, clients: _roster);
 

@@ -207,10 +207,13 @@ class ReportWorkbench extends StatelessWidget {
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            // 남은 수는 배지로 — 전송 완료 열의 수와 같은 모양으로 읽힌다.
+            // 남은 수는 배지로 — 전송 완료 열의 수와 같은 모양·같은 색으로
+            // 읽힌다. 0명일 때 초록으로 바꾸지 않는다: 다 보냈다는 사실은 빈
+            // 상태 문구가 말하고, 배지 색이 바뀌면 같은 종류의 수가 다른 뜻처럼
+            // 보였다(#2397).
             AppTag(
               label: l.reportsCountPeople(pending.length),
-              tone: pending.isEmpty ? AppTagTone.success : AppTagTone.brand,
+              tone: AppTagTone.brand,
             ),
           ],
         ),
@@ -267,7 +270,11 @@ class ReportWorkbench extends StatelessWidget {
           ),
         ),
         const SizedBox(width: OnCareSpacing.s8),
-        AppTag(label: l.reportsCountPeople(done.length)),
+        // 미전송 배지와 같은 톤 — 회색이면 보조 정보처럼 읽혔다(#2397).
+        AppTag(
+          label: l.reportsCountPeople(done.length),
+          tone: AppTagTone.brand,
+        ),
       ],
     );
     final Widget? empty = done.isEmpty
@@ -289,10 +296,13 @@ class ReportWorkbench extends StatelessWidget {
       rows: <Widget>[
         for (final ReportQueueEntry entry in done)
           // 보낸 줄도 누를 수 있다 — 회원이 받은 리포트를 그대로 다시 연다.
-          // 흐리게 깔지 않는다: 이미 끝난 일이지 못 쓰는 줄이 아니다.
-          AppTile(
+          // 흐리게 깔지 않는다: 이미 끝난 일이지 못 쓰는 줄이 아니다. 미전송
+          // 줄과 같은 흰 카드다 — 옅은 색 타일이면 두 목록이 서로 다른 부품
+          // 으로 보였다(#2397).
+          AppCard(
             key: ValueKey<String>('reports-sent-${entry.client.id}'),
             onTap: () => onOpenSent(entry),
+            padding: _rowPadding,
             child: _SentRow(entry: entry, record: records[entry.client.id]),
           ),
       ],
@@ -381,6 +391,12 @@ class _WorkbenchBox extends StatelessWidget {
     );
   }
 }
+
+/// 작업대 줄 카드의 안쪽 여백 — 미전송·전송 완료 줄이 같은 값을 쓴다(#2397).
+const EdgeInsets _rowPadding = EdgeInsets.symmetric(
+  horizontal: OnCareSpacing.s16,
+  vertical: OnCareSpacing.s12,
+);
 
 /// 전송 완료 열의 한 줄 — 누구에게, 언제 나갔고, 열어 봤는가.
 class _SentRow extends StatelessWidget {
@@ -541,10 +557,7 @@ class _QueueRow extends StatelessWidget {
     return AppCard(
       key: ValueKey<String>('reports-queue-${entry.client.id}'),
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s16,
-        vertical: OnCareSpacing.s12,
-      ),
+      padding: _rowPadding,
       child: LayoutBuilder(
         builder: (context, constraints) {
           // 이름 칸·이유·버튼이 한 줄에 다 서려면 이유가 설 자리가 있어야
