@@ -2280,6 +2280,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNoGym => 'No gym';
 
   @override
+  String get myGymSelect => 'Choose a gym';
+
+  @override
+  String get myGymManual => 'Not listed (enter it myself)';
+
+  @override
+  String get myGymListLoading => 'Loading gyms…';
+
+  @override
   String get mySignOut => 'Sign out';
 
   @override

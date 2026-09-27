@@ -2170,6 +2170,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNoGym => '소속 없음';
 
   @override
+  String get myGymSelect => '헬스장 선택';
+
+  @override
+  String get myGymManual => '목록에 없어요 (직접 입력)';
+
+  @override
+  String get myGymListLoading => '헬스장 목록을 불러오는 중이에요';
+
+  @override
   String get mySignOut => '로그아웃';
 
   @override

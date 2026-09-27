@@ -358,36 +358,53 @@ void main() {
       }
     });
 
-    testWidgets('gym selection rebuilds the manual gym fields', (tester) async {
+    testWidgets('직접 입력을 골랐을 때만 헬스장 칸이 보인다 (#2264)', (tester) async {
       await openTab(tester);
       await tester.tap(find.text('프로필 수정'));
       // 헬스장 목록은 수정 화면이 열려야 읽는다 — 목록이 올 때까지 기다린다.
       await settle(tester);
-      await tester.ensureVisible(
-        find.byType(DropdownButtonFormField<String>).last,
-      );
-      await tester.pump();
 
       Finder gymNameField() => find.byWidgetPredicate(
         (widget) =>
             widget is TextField && widget.controller?.text == '온케어짐 신촌점',
       );
+      DropdownButtonFormField<String> dropdown() =>
+          tester.widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>).last,
+          );
 
-      expect(tester.widget<TextField>(gymNameField()).enabled, isTrue);
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>).last,
-      );
-      dropdown.onChanged!('gym-1');
+      // 데모 프로필은 목록과 연결되지 않은 옛 방식 글자라 `직접 입력` 으로 연다.
+      expect(gymNameField(), findsOneWidget);
+      expect(find.text('목록에 없어요 (직접 입력)'), findsWidgets);
+
+      // 등록된 헬스장을 고르면 이름·주소는 서버가 채우므로 칸이 사라진다.
+      dropdown().onChanged!('gym-1');
       await tester.pump();
-      // 등록된 헬스장을 고르면 이름·주소는 서버가 채우므로 직접 쓰는 칸이
-      // 사라진다(#2264).
       expect(gymNameField(), findsNothing);
 
-      await tester.tap(find.byType(DropdownButtonFormField<String>).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('소속 없음').last);
-      await tester.pumpAndSettle();
-      expect(tester.widget<TextField>(gymNameField()).enabled, isTrue);
+      // 소속 없음도 적을 칸이 없다.
+      dropdown().onChanged!('');
+      await tester.pump();
+      expect(gymNameField(), findsNothing);
+      expect(find.text('소속 없음'), findsWidgets);
+    });
+
+    testWidgets('소속 없음으로 저장하면 옛 방식 헬스장 글자도 비운다', (tester) async {
+      await openTab(tester);
+      await tester.tap(find.text('프로필 수정'));
+      await settle(tester);
+
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>).last,
+          )
+          .onChanged!('');
+      await tester.pump();
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('소속 헬스장이 없어요. 프로필 수정에서 고를 수 있어요.'), findsOneWidget);
     });
 
     testWidgets('gym-only failure reports that profile fields were saved', (

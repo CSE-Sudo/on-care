@@ -4034,6 +4034,24 @@ abstract class AppLocalizations {
   /// **'No gym'**
   String get myNoGym;
 
+  /// No description provided for @myGymSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a gym'**
+  String get myGymSelect;
+
+  /// No description provided for @myGymManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Not listed (enter it myself)'**
+  String get myGymManual;
+
+  /// No description provided for @myGymListLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading gyms…'**
+  String get myGymListLoading;
+
   /// No description provided for @mySignOut.
   ///
   /// In en, this message translates to:
