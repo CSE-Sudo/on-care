@@ -2160,14 +2160,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalTermsTitle => 'Terms of Service';
 
   @override
-  String get myLegalTermsHint => 'The terms your trainer account runs under';
-
-  @override
   String get myLegalPrivacyTitle => 'Privacy Policy';
-
-  @override
-  String get myLegalPrivacyHint =>
-      'How member records and sent reports are handled';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -2362,9 +2355,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mySecurity => 'Security';
-
-  @override
-  String get mySupportHint => 'Ask a question or read our policies';
 
   @override
   String get myDiscardTitle => 'Stop editing?';
@@ -3211,9 +3201,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDeleteAction => 'Delete';
 
   @override
-  String get myDeleteHint => 'Your member links and bookings go with it';
-
-  @override
   String get myDeleteDemo => 'Demo mode has no account to delete';
 
   @override
@@ -3231,6 +3218,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String myDeleteConfirmPrompt(String name) {
     return 'Type your name ($name) to continue';
   }
+
+  @override
+  String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What didn\'t work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'Pick as many as you like, or skip.';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I rarely use it';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It\'s hard to use';
+
+  @override
+  String get myWithdrawReasonMissingFeature =>
+      'It lacks features I need for members';
+
+  @override
+  String get myWithdrawReasonLeavingWork => 'I\'m taking a break from training';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I use another tool';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'Turn on alerts so you don\'t miss member messages and bookings. Change them in Settings › Notifications.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what felt awkward via 1:1 inquiry and we\'ll work on it.';
+
+  @override
+  String get myWithdrawKeepMissingFeature =>
+      'Tell us which feature you need via 1:1 inquiry — we\'ll consider it next.';
+
+  @override
+  String get myWithdrawKeepLeavingWork =>
+      'If it\'s just a break, you can keep your account. Leaving disconnects all your members.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Leaving removes member records, programs and reports from your console for good.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Your feedback via 1:1 inquiry would help us a lot.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawStay => 'Keep using';
+
+  @override
+  String get myWithdrawContinue => 'Continue leaving';
 
   @override
   String get routineAlreadyGone => 'That program is already gone';

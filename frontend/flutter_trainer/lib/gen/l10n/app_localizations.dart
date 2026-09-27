@@ -3824,23 +3824,11 @@ abstract class AppLocalizations {
   /// **'Terms of Service'**
   String get myLegalTermsTitle;
 
-  /// No description provided for @myLegalTermsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The terms your trainer account runs under'**
-  String get myLegalTermsHint;
-
   /// No description provided for @myLegalPrivacyTitle.
   ///
   /// In en, this message translates to:
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
-
-  /// No description provided for @myLegalPrivacyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'How member records and sent reports are handled'**
-  String get myLegalPrivacyHint;
 
   /// No description provided for @myLegalEffectiveDate.
   ///
@@ -4183,12 +4171,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Security'**
   String get mySecurity;
-
-  /// No description provided for @mySupportHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask a question or read our policies'**
-  String get mySupportHint;
 
   /// No description provided for @myDiscardTitle.
   ///
@@ -5624,12 +5606,6 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get myDeleteAction;
 
-  /// No description provided for @myDeleteHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Your member links and bookings go with it'**
-  String get myDeleteHint;
-
   /// No description provided for @myDeleteDemo.
   ///
   /// In en, this message translates to:
@@ -5659,6 +5635,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type your name ({name}) to continue'**
   String myDeleteConfirmPrompt(String name);
+
+  /// No description provided for @myWithdrawReasonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave?'**
+  String get myWithdrawReasonTitle;
+
+  /// No description provided for @myWithdrawReasonQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What didn\'t work for you?'**
+  String get myWithdrawReasonQuestion;
+
+  /// No description provided for @myWithdrawReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick as many as you like, or skip.'**
+  String get myWithdrawReasonHint;
+
+  /// No description provided for @myWithdrawReasonRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'I rarely use it'**
+  String get myWithdrawReasonRarelyUsed;
+
+  /// No description provided for @myWithdrawReasonHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s hard to use'**
+  String get myWithdrawReasonHardToUse;
+
+  /// No description provided for @myWithdrawReasonMissingFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'It lacks features I need for members'**
+  String get myWithdrawReasonMissingFeature;
+
+  /// No description provided for @myWithdrawReasonLeavingWork.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m taking a break from training'**
+  String get myWithdrawReasonLeavingWork;
+
+  /// No description provided for @myWithdrawReasonAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'I use another tool'**
+  String get myWithdrawReasonAlternative;
+
+  /// No description provided for @myWithdrawReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get myWithdrawReasonOther;
+
+  /// No description provided for @myWithdrawKeepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Before you go'**
+  String get myWithdrawKeepTitle;
+
+  /// No description provided for @myWithdrawKeepRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on alerts so you don\'t miss member messages and bookings. Change them in Settings › Notifications.'**
+  String get myWithdrawKeepRarelyUsed;
+
+  /// No description provided for @myWithdrawKeepHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what felt awkward via 1:1 inquiry and we\'ll work on it.'**
+  String get myWithdrawKeepHardToUse;
+
+  /// No description provided for @myWithdrawKeepMissingFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us which feature you need via 1:1 inquiry — we\'ll consider it next.'**
+  String get myWithdrawKeepMissingFeature;
+
+  /// No description provided for @myWithdrawKeepLeavingWork.
+  ///
+  /// In en, this message translates to:
+  /// **'If it\'s just a break, you can keep your account. Leaving disconnects all your members.'**
+  String get myWithdrawKeepLeavingWork;
+
+  /// No description provided for @myWithdrawKeepAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving removes member records, programs and reports from your console for good.'**
+  String get myWithdrawKeepAlternative;
+
+  /// No description provided for @myWithdrawKeepOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Your feedback via 1:1 inquiry would help us a lot.'**
+  String get myWithdrawKeepOther;
+
+  /// No description provided for @myWithdrawKeepDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
+  String get myWithdrawKeepDefault;
+
+  /// No description provided for @myWithdrawNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get myWithdrawNext;
+
+  /// No description provided for @myWithdrawStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using'**
+  String get myWithdrawStay;
+
+  /// No description provided for @myWithdrawContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue leaving'**
+  String get myWithdrawContinue;
 
   /// No description provided for @routineAlreadyGone.
   ///

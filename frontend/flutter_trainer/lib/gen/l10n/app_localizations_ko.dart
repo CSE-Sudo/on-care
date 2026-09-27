@@ -2058,13 +2058,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegalTermsTitle => '이용약관';
 
   @override
-  String get myLegalTermsHint => '트레이너 계정의 서비스 이용 조건';
-
-  @override
   String get myLegalPrivacyTitle => '개인정보 처리방침';
-
-  @override
-  String get myLegalPrivacyHint => '회원 정보를 열람하고 리포트를 보낼 때의 처리 기준';
 
   @override
   String get myLegalEffectiveDate => '시행일 2026. 01. 01.';
@@ -2248,9 +2242,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mySecurity => '보안';
-
-  @override
-  String get mySupportHint => '궁금한 점을 묻거나 약관을 확인해요';
 
   @override
   String get myDiscardTitle => '수정을 그만둘까요?';
@@ -3060,9 +3051,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDeleteAction => '탈퇴';
 
   @override
-  String get myDeleteHint => '담당 회원 연결과 예약이 함께 사라져요';
-
-  @override
   String get myDeleteDemo => '데모 모드에는 지울 계정이 없어요';
 
   @override
@@ -3079,6 +3067,71 @@ class AppLocalizationsKo extends AppLocalizations {
   String myDeleteConfirmPrompt(String name) {
     return '계속하려면 이름($name)을 입력해 주세요';
   }
+
+  @override
+  String get myWithdrawReasonTitle => '정말 탈퇴하시겠어요?';
+
+  @override
+  String get myWithdrawReasonQuestion => '어떤 점이 아쉬우셨나요?';
+
+  @override
+  String get myWithdrawReasonHint => '여러 개 골라도 되고, 고르지 않아도 넘어갈 수 있어요.';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => '자주 사용하지 않아요';
+
+  @override
+  String get myWithdrawReasonHardToUse => '쓰기가 불편해요';
+
+  @override
+  String get myWithdrawReasonMissingFeature => '회원 관리에 필요한 기능이 없어요';
+
+  @override
+  String get myWithdrawReasonLeavingWork => '트레이너 일을 쉬거나 그만둬요';
+
+  @override
+  String get myWithdrawReasonAlternative => '다른 도구를 쓰고 있어요';
+
+  @override
+  String get myWithdrawReasonOther => '그 밖의 이유';
+
+  @override
+  String get myWithdrawKeepTitle => '탈퇴하기 전에';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      '알림을 켜 두면 회원 메시지와 예약을 놓치지 않아요. 설정 › 알림에서 바꿀 수 있어요.';
+
+  @override
+  String get myWithdrawKeepHardToUse => '불편했던 점을 1:1 문의로 알려 주시면 고쳐 볼게요.';
+
+  @override
+  String get myWithdrawKeepMissingFeature =>
+      '필요한 기능을 1:1 문의로 알려 주세요. 다음 개선에 반영할게요.';
+
+  @override
+  String get myWithdrawKeepLeavingWork =>
+      '잠시 쉬는 거라면 계정을 그대로 두어도 돼요. 탈퇴하면 담당 회원 연결이 모두 끊겨요.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      '탈퇴하면 회원 기록·프로그램·리포트가 트레이너 화면에서 모두 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawKeepOther => '더 나은 서비스를 위해 1:1 문의로 의견을 남겨 주시면 큰 도움이 돼요.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      '탈퇴하면 담당 회원 연결과 예약이 사라지고, 회원에게 알림이 가요. 되돌릴 수 없어요.';
+
+  @override
+  String get myWithdrawNext => '다음';
+
+  @override
+  String get myWithdrawStay => '계속 사용하기';
+
+  @override
+  String get myWithdrawContinue => '탈퇴 계속';
 
   @override
   String get routineAlreadyGone => '이미 삭제된 프로그램이에요';

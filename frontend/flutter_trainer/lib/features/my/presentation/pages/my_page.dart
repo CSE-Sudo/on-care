@@ -78,7 +78,8 @@ enum _MySection {
   notifications,
   language,
   account,
-  support;
+  support,
+  withdraw(parent: support);
 
   const _MySection({this.parent});
 
@@ -123,6 +124,10 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   /// 이번 수정에서 헬스장을 손댔는가. 손댄 뒤에는 자동 연결을 하지 않는다.
   bool _gymTouched = false;
+
+  /// 탈퇴 — 고른 사유와 두 번째 칸('탈퇴하기 전에')에 있는지.
+  final Set<_WithdrawReason> _withdrawReasons = <_WithdrawReason>{};
+  bool _withdrawKeepStep = false;
 
   /// 헬스장 이름 안내를 띄울지 — 저장을 눌러 한 번 막힌 뒤부터(전화번호와 같다).
   bool _showGymError = false;
@@ -416,6 +421,14 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (_section == _MySection.edit && oldWidget.tab != _MySection.edit.name) {
       setState(_loadDrafts);
     }
+    // 탈퇴 화면은 들어올 때마다 첫 칸(사유)부터 다시 시작한다.
+    if (_section == _MySection.withdraw &&
+        oldWidget.tab != _MySection.withdraw.name) {
+      setState(() {
+        _withdrawReasons.clear();
+        _withdrawKeepStep = false;
+      });
+    }
   }
 
   /// [section] 으로 간다. 프로필을 고치다 다른 곳으로 가면 버릴지 먼저 묻는다 —
@@ -464,6 +477,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     _MySection.language => l.myLanguageApp,
     _MySection.account => l.myAccount,
     _MySection.support => l.mySupportTitle,
+    _MySection.withdraw => l.myDeleteAccount,
   };
 
   @override
@@ -611,7 +625,8 @@ class _MyPageState extends ConsumerState<MyPage> {
           _MySection.clients => <Widget>[_buildClientManagement()],
           _MySection.language => <Widget>[_languageCard(wide: wide)],
           _MySection.account => _accountCards(),
-          _MySection.support => <Widget>[_supportCard()],
+          _MySection.support => _supportCards(),
+          _MySection.withdraw => _withdrawCards(),
           _MySection.notifications => <Widget>[_notificationCard()],
           _ => _profileCards(),
         },
@@ -899,52 +914,177 @@ class _MyPageState extends ConsumerState<MyPage> {
     ];
   }
 
-  /// 고객 지원 — FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보·
-  /// 탈퇴를 함께 둔다. 회원 앱 `SupportPage` 와 같은 구성이다(#2227). 앱 버전은
-  /// 카드 아래 칸에 둔다.
-  Widget _supportCard() {
+  /// 고객 지원 — 회원 앱 `SupportPage` 와 같은 다섯 줄이다(#2227, #2264).
+  /// FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보는 앱 안
+  /// 화면, 탈퇴는 따로 여는 화면이다. 앱 버전은 카드 아래 가운데.
+  List<Widget> _supportCards() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
-    return _SettingsCard(
-      title: l.mySupportTitle,
-      description: l.mySupportHint,
-      footer: l.myAppVersion,
-      rows: <Widget>[
-        _SupportRow(
-          key: const ValueKey<String>('support-faq'),
-          icon: Icons.help_rounded,
-          label: l.mySupportFaq,
-          hint: l.mySupportExternalHint,
-          external: true,
-          onTap: () => _openExternal(kSupportChannelUrl),
+    return <Widget>[
+      _SettingsCard(
+        title: l.mySupportTitle,
+        rows: <Widget>[
+          _SupportRow(
+            key: const ValueKey<String>('support-faq'),
+            icon: Icons.help_rounded,
+            label: l.mySupportFaq,
+            hint: l.mySupportExternalHint,
+            external: true,
+            onTap: () => _openExternal(kSupportChannelUrl),
+          ),
+          _SupportRow(
+            key: const ValueKey<String>('support-inquiry'),
+            icon: Icons.chat_rounded,
+            label: l.mySupportInquiry,
+            hint: l.mySupportExternalHint,
+            external: true,
+            onTap: () => _openExternal(kSupportChatUrl),
+          ),
+          // 약관·개인정보는 셸 밖의 `/legal/<문서>` 라우트가 그리므로 push 로
+          // 열고, 뒤로 누르면 이 화면으로 돌아온다(#968).
+          _SupportRow(
+            icon: Icons.description_rounded,
+            label: l.myLegalTermsTitle,
+            onTap: () =>
+                context.push(AppRoutes.legalDocument(AppRoutes.legalTerms)),
+          ),
+          _SupportRow(
+            icon: Icons.privacy_tip_rounded,
+            label: l.myLegalPrivacyTitle,
+            onTap: () =>
+                context.push(AppRoutes.legalDocument(AppRoutes.legalPrivacy)),
+          ),
+          // 탈퇴는 약관·개인정보 다음, 따로 여는 화면이다(회원 앱 #2019). 데모
+          // 빌드에는 지울 계정이 없어 막고 그 이유를 말한다.
+          _SupportRow(
+            key: const ValueKey<String>('delete-account'),
+            icon: Icons.logout_rounded,
+            label: l.myDeleteAccount,
+            hint: account.supportsDeletion ? null : l.myDeleteDemo,
+            onTap: account.supportsDeletion
+                ? () => _go(_MySection.withdraw)
+                : null,
+          ),
+        ],
+      ),
+      const SizedBox(height: OnCareSpacing.s12),
+      Center(
+        child: Text(
+          l.myAppVersion,
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
         ),
-        _SupportRow(
-          key: const ValueKey<String>('support-inquiry'),
-          icon: Icons.chat_rounded,
-          label: l.mySupportInquiry,
-          hint: l.mySupportExternalHint,
-          external: true,
-          onTap: () => _openExternal(kSupportChatUrl),
+      ),
+    ];
+  }
+
+  /// 계정 탈퇴 — 회원 앱 `WithdrawPage` 와 같은 두 칸이다(#2264).
+  ///
+  /// 1. 무엇이 아쉬웠는지 고르게 한다(여러 개, 건너뛸 수 있다).
+  /// 2. 고른 것마다 탈퇴 말고 무엇으로 풀리는지 말한 뒤 탈퇴를 이어 간다.
+  ///
+  /// 마지막 확인은 이름을 그대로 입력하는 창이다(#505) — 담당 회원 연결과
+  /// 예약이 함께 사라지고 회원에게 알림이 가는, 회원 탈퇴보다 무거운 동작이다.
+  /// 사유는 아직 서버가 받지 않아 화면에서만 쓴다.
+  List<Widget> _withdrawCards() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    if (!_withdrawKeepStep) {
+      return <Widget>[
+        _SettingsCard(
+          title: l.myWithdrawReasonTitle,
+          description: l.myWithdrawReasonQuestion,
+          rows: <Widget>[
+            for (final _WithdrawReason reason in _WithdrawReason.values)
+              AppListRow(
+                key: ValueKey<String>('withdraw-reason-${reason.name}'),
+                title: reason.label(l),
+                // 고르지 않은 줄에도 같은 자리를 비워 둔다 — 체크가 들고 날 때
+                // 글이 밀리지 않게.
+                trailing: SizedBox.square(
+                  dimension: OnCareSize.iconMedium,
+                  child: _withdrawReasons.contains(reason)
+                      ? Icon(
+                          Icons.check_circle_rounded,
+                          size: OnCareSize.iconMedium,
+                          color: context.oncare.brand.primary,
+                        )
+                      : null,
+                ),
+                onTap: () => setState(() {
+                  if (!_withdrawReasons.remove(reason)) {
+                    _withdrawReasons.add(reason);
+                  }
+                }),
+              ),
+          ],
+          footer: l.myWithdrawReasonHint,
         ),
-        _LegalRow(
-          icon: Icons.description_rounded,
-          label: l.myLegalTermsTitle,
-          hint: l.myLegalTermsHint,
-          document: AppRoutes.legalTerms,
+        const SizedBox(height: OnCareSpacing.cardGap),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: AppButton(
+            key: const ValueKey<String>('withdraw-next'),
+            label: l.myWithdrawNext,
+            // 아무것도 고르지 않아도 넘어간다 — 사유는 묻는 것이지 받아 내는
+            // 것이 아니다.
+            onPressed: () => setState(() => _withdrawKeepStep = true),
+          ),
         ),
-        _LegalRow(
-          icon: Icons.privacy_tip_rounded,
-          label: l.myLegalPrivacyTitle,
-          hint: l.myLegalPrivacyHint,
-          document: AppRoutes.legalPrivacy,
+      ];
+    }
+    final List<_WithdrawReason> picked = <_WithdrawReason>[
+      for (final _WithdrawReason r in _WithdrawReason.values)
+        if (_withdrawReasons.contains(r)) r,
+    ];
+    return <Widget>[
+      _SettingsCard(
+        title: l.myWithdrawKeepTitle,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (picked.isEmpty)
+              // 하나도 고르지 않았으면 할 말은 하나 — 무엇이 사라지는지.
+              _WithdrawKeepItem(
+                key: const ValueKey<String>('withdraw-keep-default'),
+                text: l.myWithdrawKeepDefault,
+              )
+            else
+              for (int i = 0; i < picked.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(height: OnCareSpacing.s12),
+                _WithdrawKeepItem(
+                  key: ValueKey<String>('withdraw-keep-${picked[i].name}'),
+                  title: picked[i].label(l),
+                  text: picked[i].keepText(l),
+                ),
+              ],
+          ],
         ),
-        // 탈퇴는 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다(#2019).
-        _DeleteAccountRow(
-          enabled: account.supportsDeletion,
-          onTap: _deleteAccount,
-        ),
-      ],
-    );
+      ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          // 위험 동작은 빨간 글자 버튼으로 두고, 확정은 확인창에서 한다(#1690).
+          AppButton(
+            key: const ValueKey<String>('withdraw-continue'),
+            label: l.myWithdrawContinue,
+            variant: AppButtonVariant.destructiveText,
+            // 데모 빌드에는 지울 계정이 없다 — 주소로 바로 들어와도 막는다.
+            onPressed:
+                ref.watch(trainerAccountRepositoryProvider).supportsDeletion
+                ? _deleteAccount
+                : null,
+          ),
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          AppButton(
+            key: const ValueKey<String>('withdraw-stay'),
+            label: l.myWithdrawStay,
+            onPressed: () => _go(_MySection.support),
+          ),
+        ],
+      ),
+    ];
   }
 
   /// 외부 링크를 연다. 실패하면 사유를 알린다 — 조용히 아무 일도 일어나지 않는
@@ -984,63 +1124,68 @@ String _languageLabel(AppLocalizations l, TrainerLanguage language) =>
       TrainerLanguage.english => l.myLanguageEnglish,
     };
 
-/// 약관·개인정보 처리방침 한 줄. 문서는 셸 밖의 `/legal/<문서>` 라우트가
-/// 그리므로 push 로 열고, 뒤로 누르면 이 화면으로 돌아온다. (#968)
-class _LegalRow extends StatelessWidget {
-  const _LegalRow({
-    required this.icon,
-    required this.label,
-    required this.hint,
-    required this.document,
-  });
+/// 트레이너 탈퇴 사유. 회원 앱 `WithdrawReason` 과 같은 자리지만, 트레이너가
+/// 떠나는 이유에 맞춘 항목이다.
+enum _WithdrawReason {
+  rarelyUsed,
+  hardToUse,
+  missingFeature,
+  leavingWork,
+  alternative,
+  other;
 
-  final IconData icon;
-  final String label;
-  final String hint;
-  final String document;
+  String label(AppLocalizations l) => switch (this) {
+    _WithdrawReason.rarelyUsed => l.myWithdrawReasonRarelyUsed,
+    _WithdrawReason.hardToUse => l.myWithdrawReasonHardToUse,
+    _WithdrawReason.missingFeature => l.myWithdrawReasonMissingFeature,
+    _WithdrawReason.leavingWork => l.myWithdrawReasonLeavingWork,
+    _WithdrawReason.alternative => l.myWithdrawReasonAlternative,
+    _WithdrawReason.other => l.myWithdrawReasonOther,
+  };
 
-  @override
-  Widget build(BuildContext context) {
-    return AppListRow(
-      leading: Icon(
-        icon,
-        size: OnCareSize.iconMedium,
-        color: OnCareColors.textSecondary,
-      ),
-      title: label,
-      subtitle: hint,
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        size: OnCareSize.iconMedium,
-        color: OnCareColors.textTertiary,
-      ),
-      onTap: () => context.push(AppRoutes.legalDocument(document)),
-    );
-  }
+  /// 그 아쉬움이 탈퇴 말고 무엇으로 풀리는지. 사유를 묻고 아무 답도 하지 않으면
+  /// 묻는 쪽만 얻어 가는 절차가 된다(회원 앱과 같은 생각).
+  String keepText(AppLocalizations l) => switch (this) {
+    _WithdrawReason.rarelyUsed => l.myWithdrawKeepRarelyUsed,
+    _WithdrawReason.hardToUse => l.myWithdrawKeepHardToUse,
+    _WithdrawReason.missingFeature => l.myWithdrawKeepMissingFeature,
+    _WithdrawReason.leavingWork => l.myWithdrawKeepLeavingWork,
+    _WithdrawReason.alternative => l.myWithdrawKeepAlternative,
+    _WithdrawReason.other => l.myWithdrawKeepOther,
+  };
 }
 
-/// 계정 탈퇴 진입점. 되돌릴 수 없는 동작이라 이름을 그대로 입력받는다.
-///
-/// 확인 다이얼로그의 예/아니오만으로는 실수를 거르지 못한다 — 담당 회원 링크와
-/// 예약이 함께 사라지고, 회원에게는 알림이 간다. (#505)
-class _DeleteAccountRow extends StatelessWidget {
-  const _DeleteAccountRow({required this.enabled, required this.onTap});
+/// '탈퇴하기 전에' 의 한 칸 — 사유 이름과 그 답.
+class _WithdrawKeepItem extends StatelessWidget {
+  const _WithdrawKeepItem({super.key, required this.text, this.title});
 
-  final bool enabled;
-  final Future<void> Function() onTap;
+  final String? title;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppListRow(
-      title: l.myDeleteAccount,
-      subtitle: enabled ? l.myDeleteHint : l.myDeleteDemo,
-      trailing: AppButton(
-        key: const ValueKey<String>('delete-account'),
-        label: l.myDeleteAction,
-        variant: AppButtonVariant.destructiveText,
-        size: OnCareButtonSize.small,
-        onPressed: enabled ? onTap : null,
+    final OnCareTokens tokens = context.oncare;
+    return AppTile(
+      tone: AppTileTone.neutral,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (title != null) ...<Widget>[
+            Text(
+              title!,
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.body))
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            const SizedBox(height: OnCareSpacing.s4),
+          ],
+          Text(
+            text,
+            style: tokens
+                .text(OnCareTypography.body)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        ],
       ),
     );
   }
@@ -1756,25 +1901,35 @@ class _SupportRow extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+
+  /// 비어 있으면 누를 수 없는 줄이다(데모의 탈퇴처럼).
+  final VoidCallback? onTap;
   final String? hint;
   final bool external;
 
   @override
   Widget build(BuildContext context) {
     return AppListRow(
+      // 회원 앱 고객 지원과 같은 브랜드 색 아이콘이다.
       leading: Icon(
         icon,
         size: OnCareSize.iconMedium,
-        color: OnCareColors.textSecondary,
+        color: onTap == null
+            ? OnCareColors.textTertiary
+            : context.oncare.brand.primary,
       ),
       title: label,
       subtitle: hint,
-      trailing: Icon(
-        external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
-        size: OnCareSize.iconMedium,
-        color: OnCareColors.textTertiary,
-      ),
+      // 누를 수 없는 줄에는 화살표를 두지 않는다 — 갈 곳이 있다는 표시다.
+      trailing: onTap == null
+          ? null
+          : Icon(
+              external
+                  ? Icons.open_in_new_rounded
+                  : Icons.chevron_right_rounded,
+              size: OnCareSize.iconMedium,
+              color: OnCareColors.textTertiary,
+            ),
       onTap: onTap,
     );
   }
