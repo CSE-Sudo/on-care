@@ -3107,6 +3107,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get notifTplMemberPhotoBody => '사진을 보냈어요';
+
+  @override
   String get notifAllRead => '모두 확인했어요';
 
   @override
