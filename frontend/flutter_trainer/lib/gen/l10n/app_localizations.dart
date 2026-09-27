@@ -512,6 +512,12 @@ abstract class AppLocalizations {
   /// **'Sign-in failed. Please try again in a moment.'**
   String get authErrSignInFailed;
 
+  /// No description provided for @authSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please sign in again.'**
+  String get authSessionExpired;
+
   /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
   ///
   /// In en, this message translates to:
