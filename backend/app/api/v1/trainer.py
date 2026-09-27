@@ -1745,6 +1745,9 @@ def trainer_send_schedule_routines(
         sent = trainer_service.send_scheduled_routines(
             db, trainer.id, session_id, items=payload.personal_routines
         )
+    except trainer_service.ClientLinkDetached as exc:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except trainer_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if sent is None:
@@ -1787,6 +1790,9 @@ def trainer_update_session(
         _require_client(db, trainer.id, fields["member_id"])
     try:
         out = trainer_service.update_session(db, trainer.id, session_id, fields)
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleOverlap as e:
         raise HTTPException(
             status_code=409, detail=trainer_service.overlap_detail(e)
@@ -1828,6 +1834,9 @@ def trainer_complete_session(
     """
     try:
         out = trainer_service.complete_session(db, trainer.id, session_id, payload.note)
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except trainer_service.ScheduleConflict as e:
@@ -1883,6 +1892,9 @@ def trainer_reopen_session(
         out = trainer_service.reopen_session(
             db, trainer.id, session_id, new_date=payload.date
         )
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
