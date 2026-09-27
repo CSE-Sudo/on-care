@@ -1526,24 +1526,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsSendStateSent => '전송됨';
-
-  @override
-  String get reportsSendStateSending => '전송 중…';
-
-  @override
-  String get reportsShare => '공유';
-
-  @override
-  String reportsShareSendTo(String name) {
-    return '$name님에게 전송';
-  }
-
-  @override
-  String get reportsShareNeedsFeedback => '피드백을 입력하면 전송할 수 있어요';
-
-  @override
-  String get reportsShareNoClient => '리포트를 볼 회원을 먼저 선택해 주세요';
+  String get reportsSendNeedsFeedback => '피드백을 입력하면 전송할 수 있어요';
 
   @override
   String reportBodyGreeting(String name, String range) {
@@ -4000,50 +3983,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.';
 
   @override
-  String get reportsPdfLabel => 'PDF 내보내기';
-
-  @override
-  String get reportsPdfGenerating => 'PDF 생성 중…';
-
-  @override
   String get reportsPdfGenerationFailed => 'PDF를 생성하지 못했어요. 다시 시도해 주세요.';
-
-  @override
-  String reportsPdfReady(String name) {
-    return '$name님의 주간 리포트가 준비됐어요.';
-  }
-
-  @override
-  String get reportsPdfSending => '전송 중…';
-
-  @override
-  String get reportsPdfSendToClient => '회원에게 전송';
-
-  @override
-  String get reportsPdfSave => 'PDF 저장';
-
-  @override
-  String get reportsPdfPrint => '인쇄';
-
-  @override
-  String get reportsPdfClose => '닫기';
-
-  @override
-  String get reportsPdfActionFailed => '작업을 완료하지 못했어요. 다시 시도해 주세요.';
-
-  @override
-  String reportsPdfSent(String name) {
-    return '$name님에게 PDF를 전송했어요.';
-  }
-
-  @override
-  String get reportsPdfSaveStarted => 'PDF 저장을 시작했어요.';
-
-  @override
-  String get reportsPdfPrintOpened => '인쇄 창을 열었어요.';
-
-  @override
-  String get reportsPdfMessage => '이번 주 리포트를 보내드려요.';
 
   @override
   String get reportsPdfFallbackClient => '회원';
@@ -4368,7 +4308,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepReview => '확인';
 
   @override
-  String get reportsStepGoals => '작성';
+  String get reportsStepWrite => '작성';
 
   @override
   String get reportsStepSend => '전송';
@@ -4381,31 +4321,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsStepPrev => '이전';
-
-  @override
-  String get reportsGoalsTitle => '다음 주 목표';
-
-  @override
-  String get reportsGoalsHint => '다음 주에 함께 챙길 것을 고르세요. 고른 목표는 보낼 글에 같이 담겨요.';
-
-  @override
-  String get reportsGoalsNone => '아직 고른 목표가 없어요';
-
-  @override
-  String reportsGoalsPicked(int count) {
-    return '$count개 고름';
-  }
-
-  @override
-  String get reportsGoalsOwnHint => '직접 적기';
-
-  @override
-  String get reportsGoalsAdd => '추가';
-
-  @override
-  String reportsGoalsRemove(String goal) {
-    return '$goal 빼기';
-  }
 
   @override
   String get reportsGridPtSession => 'PT 세션';
@@ -4460,7 +4375,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name이(가) 목표에 많이 모자라요 — 다음 주 목표로 짚어 보세요';
+    return '$name이(가) 목표에 많이 모자라요 — 피드백에서 짚어 보세요';
   }
 
   @override
@@ -4520,60 +4435,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsMemberFeedbackIntensityTooHard => '너무 힘들었어요';
 
   @override
-  String get reportsLastGoalsTitle => '지난 주 목표 달성';
-
-  @override
-  String get reportsLastGoalsNone => '지난 주에 고른 목표가 없어요';
-
-  @override
-  String get reportsLastGoalsNoneHint => '이번 주에 다음 주 목표를 고르면 다음 리포트에서 여기로 돌아와요';
-
-  @override
-  String reportsLastGoalsMetCount(int met, int total) {
-    return '$met / $total 달성';
-  }
-
-  @override
-  String get reportsLastGoalsMet => '달성';
-
-  @override
-  String get reportsLastGoalsPartial => '절반';
-
-  @override
-  String get reportsLastGoalsMissed => '미달';
-
-  @override
-  String get reportsLastGoalsUnknown => '직접 확인';
-
-  @override
-  String reportsLastGoalsEvidence(int done, int target, String unit) {
-    return '$done / $target$unit';
-  }
-
-  @override
-  String reportsLastGoalsEvidenceLogged(int days) {
-    return '$days일 기록';
-  }
-
-  @override
-  String reportsLastGoalsEvidenceWorkout(int done, int total) {
-    return '개인 운동 $done / $total회';
-  }
-
-  @override
-  String get reportsLastGoalsSubtitle => '이번 주 기록으로 판정';
-
-  @override
-  String get reportsLastGoalsKeywordsCalories => '칼로리,kcal,섭취량';
-
-  @override
-  String get reportsLastGoalsKeywordsWorkout =>
-      '운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장';
-
-  @override
-  String get reportsLastGoalsKeywordsLogged => '기록,끼니,식단';
-
-  @override
   String get reportsTrendUnavailable => '이 주의 운동 기록을 불러오지 못했어요';
 
   @override
@@ -4616,11 +4477,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportsMemberFeedbackMeta(String date) {
     return '주 1회 · $date 제출';
-  }
-
-  @override
-  String reportsMacroShortfallEvidence(String goal) {
-    return '지난 주 목표 “$goal”이 미이행으로 판정된 근거예요';
   }
 
   @override

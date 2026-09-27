@@ -255,59 +255,6 @@ void main() {
     expect(find.text('PT 세션'), findsOneWidget);
   });
 
-  testWidgets('② 에서 고른 다음 주 목표가 ③ 에 그대로 붙는다 (#2232)', (tester) async {
-    await openWorkbench(tester, clients: _roster, at: AppRoutes.reportFor('h'));
-
-    final Finder next = find.byKey(const ValueKey<String>('report-step-next'));
-    await tester.tap(next);
-    await settle(tester);
-
-    // 고른 것이 없으면 ③ 에는 목표 카드가 서지 않는다.
-    expect(find.text('0개 고름'), findsOneWidget);
-
-    // 수치에서 나온 제안을 하나 고르고, 직접 적은 목표를 하나 더한다.
-    final Finder firstGoal = find
-        .byWidgetPredicate(
-          (w) =>
-              w.key is ValueKey<String> &&
-              (w.key! as ValueKey<String>).value.startsWith('report-goal-'),
-        )
-        .first;
-    await tester.ensureVisible(firstGoal);
-    await tester.pump();
-    await tester.tap(firstGoal);
-    await settle(tester);
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('report-goals-own')),
-      '주 3회 스트레칭',
-    );
-    await tester.tap(find.byKey(const ValueKey<String>('report-goals-add')));
-    await settle(tester);
-
-    expect(find.text('2개 고름'), findsOneWidget);
-
-    await tester.tap(next);
-    await settle(tester);
-
-    // ③ 에서는 다시 고르게 하지 않는다 — 함께 나갈 것을 보여 줄 뿐이다.
-    expect(
-      find.byKey(const ValueKey<String>('report-goals-recap')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('report-goals-card')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('report-goals-recap')),
-        matching: find.text('주 3회 스트레칭'),
-      ),
-      findsOneWidget,
-    );
-  });
-
   testWidgets('영어로 켜도 작업대에 한국어가 남지 않는다 (#501, #2232)', (tester) async {
     await openWorkbench(
       tester,
