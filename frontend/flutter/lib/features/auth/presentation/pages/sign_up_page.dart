@@ -100,6 +100,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .register(email: email, password: password, name: name, phone: phone);
+      // 계정이 만들어지고 로그인까지 된 뒤에만 새 비밀번호를 저장하게 한다
+      // (#2295). 세션 가드가 곧 이 화면을 걷어 낼 수 있어 `mounted` 를 보기
+      // 전에 알린다.
+      TextInput.finishAutofillContext();
       if (!mounted) return;
       // 가입한 사람은 언제나 이 앱을 처음 쓰는 사람이다 — 이 기기에서 다른
       // 계정이 사용 가이드를 본 적이 있어도 다시 보여 준다(#1857).
@@ -109,6 +113,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       context.go(AppRoutes.onboarding);
     } on AccountCreatedSignInFailed {
       // 계정은 만들어졌다. 다시 가입하라고 하면 409 를 만나므로 로그인으로 보낸다.
+      // 이 자격 증명은 이제 유효하다 — 저장해 두면 곧 볼 로그인 화면에서
+      // 그대로 채워진다(#2295).
+      TextInput.finishAutofillContext();
       if (!mounted) return;
       setState(() => _loading = false);
       _error(l.signUpCreatedSignInNeeded);
@@ -133,114 +140,134 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       leading: AppBackButton(onPressed: _backToSignIn),
       title: l.signUpTitle,
       subtitle: l.signUpSubtitle,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppTextField(
-            key: const ValueKey<String>('member-signup-name'),
-            controller: _name,
-            hint: l.signUpNameHint,
-            errorText: _errors.of(_Field.name),
-            prefixIcon: AppIcons.person,
-            size: AppFieldSize.large,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('member-signup-email'),
-            controller: _email,
-            hint: l.authEmailHint,
-            errorText: _errors.of(_Field.email),
-            prefixIcon: AppIcons.mail,
-            size: AppFieldSize.large,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          // 왜 전화번호를 받는지 그 자리에서 말해 준다. 건강 앱이 이유 없이
-          // 번호를 물으면 가입을 그만두는 쪽이 자연스럽다. 오류가 뜨면 도움말
-          // 자리를 오류 문구가 대신한다.
-          AppTextField(
-            key: const ValueKey<String>('member-signup-phone'),
-            controller: _phone,
-            hint: l.signUpPhoneHint,
-            helper: l.signUpPhoneHelper,
-            errorText: _errors.of(_Field.phone),
-            prefixIcon: AppIcons.phone,
-            size: AppFieldSize.large,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            inputFormatters: const <TextInputFormatter>[
-              AppPhoneNumberFormatter(),
-            ],
-            onChanged: _onEdited,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('member-signup-password'),
-            controller: _password,
-            hint: l.signUpPasswordHint,
-            errorText: _errors.of(_Field.password),
-            prefixIcon: AppIcons.lock,
-            size: AppFieldSize.large,
-            obscureText: _obscure,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-            // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가 툴팁뿐이다(#972).
-            suffix: AppIconButton(
-              icon: _obscure ? AppIcons.visibilityOff : AppIcons.visibility,
-              tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
-              color: OnCareColors.textTertiary,
-              onPressed: () => setState(() => _obscure = !_obscure),
+      // 새 계정의 입력을 한 묶음으로 알린다(#2295). 가입하지 않고 떠날 때는
+      // 저장하지 않는다 — 기본값(commit)이면 뒤로만 가도 쓰다 만 비밀번호의
+      // 저장 제안이 뜬다.
+      child: AutofillGroup(
+        onDisposeAction: AutofillContextAction.cancel,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            AppTextField(
+              key: const ValueKey<String>('member-signup-name'),
+              controller: _name,
+              hint: l.signUpNameHint,
+              errorText: _errors.of(_Field.name),
+              prefixIcon: AppIcons.person,
+              size: AppFieldSize.large,
+              textInputAction: TextInputAction.next,
+              autofillHints: const <String>[AutofillHints.name],
+              onChanged: _onEdited,
             ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('member-signup-password-confirm'),
-            controller: _passwordConfirm,
-            hint: l.signUpPasswordConfirmHint,
-            errorText: _errors.of(_Field.passwordConfirm),
-            prefixIcon: AppIcons.lock,
-            size: AppFieldSize.large,
-            obscureText: _obscure,
-            textInputAction: TextInputAction.done,
-            onChanged: _onEdited,
-            onSubmitted: (_) => _register(),
-          ),
-          const SizedBox(height: OnCareSpacing.s24),
-          AppButton(
-            key: const ValueKey<String>('member-signup-submit'),
-            label: l.signUpAction,
-            onPressed: _register,
-            loading: _loading,
-            size: OnCareButtonSize.large,
-            fullWidth: true,
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
-          // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              Text(
-                l.signUpHaveAccountQuestion,
-                style: context.oncare
-                    .text(OnCareTypography.bodySmall)
-                    .copyWith(color: OnCareColors.textSecondary),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('member-signup-email'),
+              controller: _email,
+              hint: l.authEmailHint,
+              errorText: _errors.of(_Field.email),
+              prefixIcon: AppIcons.mail,
+              size: AppFieldSize.large,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              // 새 비밀번호를 저장할 때 이 값이 아이디가 된다(#2295).
+              autofillHints: const <String>[
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
+              onChanged: _onEdited,
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            // 왜 전화번호를 받는지 그 자리에서 말해 준다. 건강 앱이 이유 없이
+            // 번호를 물으면 가입을 그만두는 쪽이 자연스럽다. 오류가 뜨면 도움말
+            // 자리를 오류 문구가 대신한다.
+            AppTextField(
+              key: const ValueKey<String>('member-signup-phone'),
+              controller: _phone,
+              hint: l.signUpPhoneHint,
+              helper: l.signUpPhoneHelper,
+              errorText: _errors.of(_Field.phone),
+              prefixIcon: AppIcons.phone,
+              size: AppFieldSize.large,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              // 국가 번호 없는 국내 번호 — `+82` 가 붙어 채워지면 010 형식
+              // 검사에 걸린다.
+              autofillHints: const <String>[
+                AutofillHints.telephoneNumberNational,
+              ],
+              inputFormatters: const <TextInputFormatter>[
+                AppPhoneNumberFormatter(),
+              ],
+              onChanged: _onEdited,
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('member-signup-password'),
+              controller: _password,
+              hint: l.signUpPasswordHint,
+              errorText: _errors.of(_Field.password),
+              prefixIcon: AppIcons.lock,
+              size: AppFieldSize.large,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.next,
+              // 저장된 비밀번호를 채우지 않고 새 비밀번호를 제안받는 칸이다.
+              autofillHints: const <String>[AutofillHints.newPassword],
+              onChanged: _onEdited,
+              // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가 툴팁뿐이다(#972).
+              suffix: AppIconButton(
+                icon: _obscure ? AppIcons.visibilityOff : AppIcons.visibility,
+                tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
+                color: OnCareColors.textTertiary,
+                onPressed: () => setState(() => _obscure = !_obscure),
               ),
-              AppButton(
-                label: l.authSignInAction,
-                onPressed: _backToSignIn,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('member-signup-password-confirm'),
+              controller: _passwordConfirm,
+              hint: l.signUpPasswordConfirmHint,
+              errorText: _errors.of(_Field.passwordConfirm),
+              prefixIcon: AppIcons.lock,
+              size: AppFieldSize.large,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              autofillHints: const <String>[AutofillHints.newPassword],
+              onChanged: _onEdited,
+              onSubmitted: (_) => _register(),
+            ),
+            const SizedBox(height: OnCareSpacing.s24),
+            AppButton(
+              key: const ValueKey<String>('member-signup-submit'),
+              label: l.signUpAction,
+              onPressed: _register,
+              loading: _loading,
+              size: OnCareButtonSize.large,
+              fullWidth: true,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
+            // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                Text(
+                  l.signUpHaveAccountQuestion,
+                  style: context.oncare
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                AppButton(
+                  label: l.authSignInAction,
+                  onPressed: _backToSignIn,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

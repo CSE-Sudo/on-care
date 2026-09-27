@@ -121,23 +121,25 @@ def test_unread_and_mark_read(client, db_session):
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import ChatMessage
 
+    # 담당 중인 회원으로 본다 — 시드의 user-sungho 는 해제된 과거 회원이라
+    # 읽음 처리 자체가 404 다(#2281).
     cid = f"chat-unreadtest-{uuid4().hex[:6]}"
     db_session.add(ChatMessage(
-        id=cid, trainer_id=TRAINER_ID, member_id="user-sungho",
+        id=cid, trainer_id=TRAINER_ID, member_id="user-hayun",
         sender="member", body="확인 부탁드려요", created_at=datetime.now(timezone.utc),
     ))
     db_session.commit()
     try:
         token = _tok(client)
         unread = client.get("/v1/trainer/chat/unread", headers=_h(token)).json()
-        assert unread.get("user-sungho", 0) >= 1
+        assert unread.get("user-hayun", 0) >= 1
 
-        rd = client.post("/v1/trainer/clients/user-sungho/chat/read", headers=_h(token))
+        rd = client.post("/v1/trainer/clients/user-hayun/chat/read", headers=_h(token))
         assert rd.status_code == 200
         assert rd.json()["marked_read"] >= 1
 
         unread2 = client.get("/v1/trainer/chat/unread", headers=_h(token)).json()
-        assert unread2.get("user-sungho", 0) == 0
+        assert unread2.get("user-hayun", 0) == 0
     finally:
         db_session.query(ChatMessage).filter(ChatMessage.id == cid).delete()
         db_session.commit()

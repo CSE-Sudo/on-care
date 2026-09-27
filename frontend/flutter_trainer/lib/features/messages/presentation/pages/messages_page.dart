@@ -5,6 +5,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -266,7 +267,6 @@ class _ConversationTile extends StatelessWidget {
     // `last_message=… if last_msg else ""`). 빈 `Text` 는 아무것도 그리지
     // 않아 그 줄이 통째로 사라졌고, 옆 고객만 한 줄 높은 타일을 가졌다 —
     // 화면은 "미리보기가 없다"가 아니라 "아직 대화가 없다"를 말해야 한다.
-    final hasPreview = client.lastMessage.trim().isNotEmpty;
     final previewStyle = tokens
         .text(OnCareTypography.bodySmall)
         .copyWith(color: OnCareColors.textSecondary);
@@ -313,7 +313,7 @@ class _ConversationTile extends StatelessWidget {
                   key: ValueKey<String>('messages-preview-${client.id}'),
                   height: _twoLinePreviewHeight(context, previewStyle),
                   child: Text(
-                    hasPreview ? client.lastMessage : l.messagesNoPreview,
+                    client.previewMessage(l),
                     maxLines: _previewLines,
                     overflow: TextOverflow.ellipsis,
                     style: previewStyle,
@@ -329,7 +329,7 @@ class _ConversationTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               Text(
-                client.lastTime,
+                client.previewTime(l),
                 style: tokens
                     .text(OnCareTypography.caption)
                     .copyWith(color: OnCareColors.textTertiary),

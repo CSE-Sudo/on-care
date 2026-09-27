@@ -28,6 +28,7 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
+import 'package:oncare/features/member_coach/presentation/pages/coach_reports_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
@@ -162,6 +163,11 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.myPointsHistory,
         builder: (context, state) => const PointsHistoryPage(),
+      ),
+      // 트레이너 리포트 — 받은 리포트 목록과 보낸 주간 피드백(#2232).
+      GoRoute(
+        path: AppRoutes.myCoachReports,
+        builder: (context, state) => const CoachReportsPage(),
       ),
       GoRoute(
         path: AppRoutes.myCouponDetail,

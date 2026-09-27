@@ -335,6 +335,7 @@ def build_member_analysis(
         select(TrainerClient).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
+            TrainerClient.active.is_(True),
         )
     )
     if link is None:
