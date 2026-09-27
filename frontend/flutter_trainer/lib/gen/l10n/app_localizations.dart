@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel session'**
+  /// **'Cancel'**
   String get schedCancel;
 
   /// No description provided for @schedNoShow.

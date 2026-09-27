@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleStatusNoShow => 'No-show';
 
   @override
-  String get schedCancel => 'Cancel session';
+  String get schedCancel => 'Cancel';
 
   @override
   String get schedNoShow => 'Mark no-show';

@@ -24,7 +24,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scheduleStatusNoShow => '노쇼';
 
   @override
-  String get schedCancel => '취소 처리';
+  String get schedCancel => '취소';
 
   @override
   String get schedNoShow => '노쇼 처리';
