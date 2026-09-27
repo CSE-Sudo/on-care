@@ -779,6 +779,180 @@
   "aiAnalysis": "AI analysis",
   "aiPeriodAnalysis": "AI period analysis",
   "aiAllAnalysis": "AI all-time analysis",
+  "clientDietAdviceTodayOver": "Sodium is {over}mg over the target. Adding cardio to today's program would help.",
+  "@clientDietAdviceTodayOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "over": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceTodayBalanced": "Today's meals are well balanced. Keep the current program.",
+  "@clientDietAdviceTodayBalanced": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekEmpty": "No meals logged this week yet. Even one meal shows the trend.",
+  "@clientDietAdviceWeekEmpty": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceAllEmpty": "Once you log more, we'll show how your sodium and calories are trending.",
+  "@clientDietAdviceAllEmpty": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekManyOver": "Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.",
+  "@clientDietAdviceWeekManyOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceWeekWeekend": "Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.",
+  "@clientDietAdviceWeekWeekend": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekSomeOver": "Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.",
+  "@clientDietAdviceWeekSomeOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceWeekAllUnder": "You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!",
+  "@clientDietAdviceWeekAllUnder": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllWeekend": "Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.",
+  "@clientDietAdviceAllWeekend": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllRatio": "{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.",
+  "@clientDietAdviceAllRatio": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllMostlyUnder": "{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
+  "@clientDietAdviceAllMostlyUnder": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",
+  "@clientExerciseAdviceEmptyToday": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceEmptyWeek": "No workouts logged this week yet. How about a 10-minute walk to start?",
+  "@clientExerciseAdviceEmptyWeek": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceEmptyAll": "Once you log more, we'll show how your workout volume and types are trending.",
+  "@clientExerciseAdviceEmptyAll": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceToday": "Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.",
+  "@clientExerciseAdviceToday": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "calories": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
+  "@clientExerciseAdviceWeekOneDay": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceWeekSkew": "This week's {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?",
+  "@clientExerciseAdviceWeekSkew": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "top": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "String"
+      }
+    }
+  },
+  "clientExerciseAdviceWeekBalanced": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.",
+  "@clientExerciseAdviceWeekBalanced": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceAllUp": "You've done more over the last 4 weeks than before. This approach suits you.",
+  "@clientExerciseAdviceAllUp": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceAllDown": "Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.",
+  "@clientExerciseAdviceAllDown": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceAllSteady": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.",
+  "@clientExerciseAdviceAllSteady": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "consultStatusRejected": "Declined",
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",

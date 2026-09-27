@@ -90,6 +90,12 @@ Future<ProviderContainer> pumpTrainerApp(
   );
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final prefs = await SharedPreferences.getInstance();
+  // 테스트의 '브라우저 언어' 도 [locale] 로 맞춘다. 화면(`MaterialApp`)만 그
+  // 언어이고 브라우저가 테스트 기본값(en-US)으로 남으면, 브라우저 언어를 읽는
+  // 서버 문장·데모 조언(`trainerResolvedLocaleProvider`, #2299)이 화면과 다른
+  // 언어로 나온다.
+  tester.platformDispatcher.localesTestValue = <Locale>[locale];
+  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   if (seedClock != null) useFixedKstDate(seedClock);
@@ -264,12 +270,18 @@ class _StillClientRepository implements ClientRepository {
   }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
-  Future<String> fetchDietAdvice(String clientId, ClientPeriod period) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+  Future<String> fetchDietAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
-  Future<String> fetchExerciseAdvice(String clientId, ClientPeriod period) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+  Future<String> fetchExerciseAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<List<ClientDietEntry>> fetchDietOn(String clientId, DateTime date) =>

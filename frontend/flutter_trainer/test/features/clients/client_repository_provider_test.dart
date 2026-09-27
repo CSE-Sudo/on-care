@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Locale;
 
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
@@ -103,14 +104,18 @@ class _StreamingClientRepository implements ClientRepository {
   );
 
   @override
-  Future<String> fetchDietAdvice(String clientId, ClientPeriod period) async =>
-      '';
+  Future<String> fetchDietAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  }) async => '';
 
   @override
   Future<String> fetchExerciseAdvice(
     String clientId,
-    ClientPeriod period,
-  ) async => '';
+    ClientPeriod period, {
+    required Locale locale,
+  }) async => '';
 
   @override
   Future<List<ClientDietEntry>> fetchDietOn(

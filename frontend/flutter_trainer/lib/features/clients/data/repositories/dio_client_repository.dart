@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui' show Locale;
 
 import 'package:dio/dio.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
@@ -166,8 +168,22 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
   /// 끼니 목록(`/diet?date=`)을 날마다 부르면 한 달에 서른 번 넘게 오간다.
   /// 리포트는 한 주의 일별 칼로리·나트륨·당류를 한 번에 주므로, 한 달이라도
   /// 요청은 다섯 번 남짓이다. 두 경로 모두 같은 `diet_entries` 를 읽는다.
+  /// 조언을 [locale] 의 언어로 달라고 한다(#2299). 공용 인터셉터도 화면 언어를
+  /// 싣지만, 여기서 직접 적어 provider 가 캐시한 언어와 응답 언어가 어긋나지 않게
+  /// 한다 — 인터셉터는 이미 있는 헤더를 덮지 않는다.
+  static Options _adviceLanguage(Locale locale) => Options(
+    headers: <String, Object?>{
+      AcceptLanguageInterceptor.headerName:
+          AcceptLanguageInterceptor.headerValue(locale),
+    },
+  );
+
   @override
-  Future<String> fetchDietAdvice(String clientId, ClientPeriod period) async {
+  Future<String> fetchDietAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  }) async {
     final String wire = switch (period) {
       ClientPeriod.today => 'today',
       ClientPeriod.week => 'week',
@@ -177,6 +193,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
       final response = await _dio.get<Map<String, Object?>>(
         '/trainer/clients/${Uri.encodeComponent(clientId)}/diet-advice',
         queryParameters: <String, Object?>{'period': wire},
+        options: _adviceLanguage(locale),
       );
       return (response.data?['message'] as String?) ?? '';
     } on DioException catch (error) {
@@ -187,8 +204,9 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
   @override
   Future<String> fetchExerciseAdvice(
     String clientId,
-    ClientPeriod period,
-  ) async {
+    ClientPeriod period, {
+    required Locale locale,
+  }) async {
     // 식단 조언과 같은 계약이다(#1017, #1025) — 두 카드가 한 화면에 나란히
     // 서므로 같은 이름으로 같은 것을 묻는다.
     final String wire = switch (period) {
@@ -200,6 +218,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
       final response = await _dio.get<Map<String, Object?>>(
         '/trainer/clients/${Uri.encodeComponent(clientId)}/exercise-advice',
         queryParameters: <String, Object?>{'period': wire},
+        options: _adviceLanguage(locale),
       );
       return (response.data?['message'] as String?) ?? '';
     } on DioException catch (error) {
