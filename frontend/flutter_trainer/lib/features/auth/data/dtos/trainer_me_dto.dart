@@ -30,7 +30,7 @@ TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
     email: _str(json['email']),
     phone: _str(json['phone']),
     specialty: _str(json['specialty']),
-    career: _str(json['career']),
+    careerYears: careerYearsFromJson(json),
     intro: _str(json['intro']),
     certifications: certifications,
     gym: gym,
@@ -38,5 +38,19 @@ TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
 }
 
 String _str(Object? v) => v is String ? v : '';
+
+/// 경력 연수를 숫자로 읽는다 (#2304).
+///
+/// `career_years`(숫자)가 있으면 그것을, 없으면 서버가 조립해 보내는 `career`
+/// 문구(`'7년'`)의 앞 숫자를 읽는다 — 화면이 로케일에 맞는 단위를 붙이므로
+/// 서버의 한국어 단위는 버린다. 둘 다 없거나 숫자가 아니면 `null` 이다.
+int? careerYearsFromJson(Map<String, Object?> json) {
+  final Object? years = json['career_years'];
+  if (years is num) return years.toInt();
+  final Object? career = json['career'];
+  if (career is! String) return null;
+  final RegExpMatch? match = RegExp(r'^\s*(\d+)').firstMatch(career);
+  return match == null ? null : int.parse(match.group(1)!);
+}
 
 String? _nullableStr(Object? value) => value?.toString();

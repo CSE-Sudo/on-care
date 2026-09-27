@@ -3925,11 +3925,11 @@ abstract class AppLocalizations {
   /// **'Password changed'**
   String get myPasswordChanged;
 
-  /// No description provided for @myCareerYears.
+  /// Career tag on the trainer profile. The value is stored as a number of years.
   ///
   /// In en, this message translates to:
-  /// **'{career} experience'**
-  String myCareerYears(String career);
+  /// **'{years, plural, =1{1 year} other{{years} years}} of experience'**
+  String myCareerYears(int years);
 
   /// No description provided for @myFieldName.
   ///
