@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
@@ -241,6 +242,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
 final reservationSlotRepositoryProvider = Provider<ReservationSlotRepository>((
   ref,
 ) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final ReservationSlotRepository repository =
       ref.watch(appConfigProvider).useMockApi
       ? MockReservationSlotRepository()

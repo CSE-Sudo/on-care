@@ -136,6 +136,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionBack => '뒤로';
 
   @override
+  String get notFoundTitle => '페이지를 찾을 수 없어요';
+
+  @override
+  String get notFoundMessage => '주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.';
+
+  @override
+  String get notFoundGoDashboard => '대시보드로 가기';
+
+  @override
+  String get notFoundGoSignIn => '로그인하러 가기';
+
+  @override
   String get appWordmarkTrainer => '트레이너';
 
   @override
@@ -1893,6 +1905,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 사이드바 뱃지로 알려드려요';
+
+  @override
+  String get myLanguage => '언어';
+
+  @override
+  String get myLanguageApp => '화면 언어';
+
+  @override
+  String get myLanguageHint => '이 브라우저에서 콘솔을 볼 언어를 골라요';
+
+  @override
+  String get myLanguageSystem => '브라우저 설정 따르기';
+
+  @override
+  String get myLanguageKorean => '한국어';
+
+  @override
+  String get myLanguageEnglish => 'English';
 
   @override
   String get myAccount => '계정';

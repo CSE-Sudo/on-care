@@ -88,6 +88,19 @@
   "actionRefresh": "Refresh",
   "actionChange": "Change",
   "actionBack": "Back",
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Heading of the 404 page shown for a URL that matches no screen."
+  },
+  "notFoundMessage": "The link may be broken, or the page may no longer exist. Please check the address and try again.",
+  "notFoundGoDashboard": "Go to dashboard",
+  "@notFoundGoDashboard": {
+    "description": "Primary button on the 404 page for a signed-in trainer."
+  },
+  "notFoundGoSignIn": "Go to sign in",
+  "@notFoundGoSignIn": {
+    "description": "Primary button on the 404 page when no one is signed in."
+  },
   "appWordmarkTrainer": "Trainer",
   "@appWordmarkTrainer": {
     "description": "Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'."
@@ -1291,6 +1304,18 @@
   "myNotifications": "Notifications",
   "myNotifNewMessage": "New message alerts",
   "myNotifNewMessageHint": "A sidebar badge appears when a member messages you",
+  "myLanguage": "Language",
+  "myLanguageApp": "Display language",
+  "myLanguageHint": "Choose the language this browser shows the console in",
+  "myLanguageSystem": "Match browser",
+  "myLanguageKorean": "한국어",
+  "@myLanguageKorean": {
+    "description": "Korean, written in Korean so it can be found from either language."
+  },
+  "myLanguageEnglish": "English",
+  "@myLanguageEnglish": {
+    "description": "English, written in English so it can be found from either language."
+  },
   "myAccount": "Account",
   "myChangePassword": "Change password",
   "myChangePasswordHint": "We'll confirm your current password first",

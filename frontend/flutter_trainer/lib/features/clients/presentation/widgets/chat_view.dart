@@ -12,6 +12,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dar
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_image_attachment.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/trainer_emote_sheet.dart';
 import 'package:oncare_trainer/features/messages/domain/chat_context_insight.dart';
+import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -419,9 +420,14 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   try {
                     await repo.markThreadRead(widget.clientId);
                     // Drift updates unread via its stream; the Dio source
-                    // needs an explicit refetch of the badge counts.
+                    // needs an explicit refetch of the badge counts. The
+                    // server also marks this member's message notifications
+                    // read (#2291), so the inbox and its badge refetch too.
                     if (realApi && mounted) {
-                      ref.invalidate(unreadCountsProvider);
+                      ref
+                        ..invalidate(unreadCountsProvider)
+                        ..invalidate(trainerNotificationsProvider)
+                        ..invalidate(trainerUnreadNotificationsProvider);
                     }
                   } catch (_) {
                     // Reading the thread still succeeded. A transient read

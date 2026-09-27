@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -215,6 +216,7 @@ class DriftChatRepository implements ChatRepository {
 /// Provides the [ChatRepository]: the real Dio-backed source (thread shared
 /// with the member app) or the local drift source for demo / `USE_MOCK_API`.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
     return DriftChatRepository(ref.watch(appDatabaseProvider));

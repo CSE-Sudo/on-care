@@ -14,8 +14,13 @@ export 'package:oncare_trainer/core/utils/korean_josa.dart'
 
 /// Monday of the week containing [day], stripped to a date.
 DateTime weekStartOf(DateTime day) {
-  final date = DateTime(day.year, day.month, day.day);
-  return date.subtract(Duration(days: date.weekday - DateTime.monday));
+  // 달력 날짜로 뺀다 — `Duration` 으로 빼면 서머타임이 있는 곳에서 자정이
+  // 한 시간 밀려 전날 23시가 된다.
+  return DateTime(
+    day.year,
+    day.month,
+    day.day - (day.weekday - DateTime.monday),
+  );
 }
 
 /// One client's week, as the trainer would summarise it to them.

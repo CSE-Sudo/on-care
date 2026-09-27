@@ -139,6 +139,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionBack => 'Back';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoDashboard => 'Go to dashboard';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get appWordmarkTrainer => 'Trainer';
 
   @override
@@ -1972,6 +1985,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myNotifNewMessageHint =>
       'A sidebar badge appears when a member messages you';
+
+  @override
+  String get myLanguage => 'Language';
+
+  @override
+  String get myLanguageApp => 'Display language';
+
+  @override
+  String get myLanguageHint =>
+      'Choose the language this browser shows the console in';
+
+  @override
+  String get myLanguageSystem => 'Match browser';
+
+  @override
+  String get myLanguageKorean => '한국어';
+
+  @override
+  String get myLanguageEnglish => 'English';
 
   @override
   String get myAccount => 'Account';
