@@ -509,7 +509,7 @@ class _Header extends StatelessWidget {
                                   borderRadius: OnCareRadius.pillAll,
                                   child: AppTag(
                                     label: l.clientDormant,
-                                    icon: Icons.bedtime_outlined,
+                                    icon: Icons.bedtime_rounded,
                                   ),
                                 ),
                               ),
@@ -521,7 +521,7 @@ class _Header extends StatelessWidget {
                             key: const ValueKey<String>(
                               'client-detail-open-health',
                             ),
-                            icon: Icons.flag_outlined,
+                            icon: Icons.flag_rounded,
                             label: l.clientProfileSectionTitle,
                             onPressed: onOpenHealth,
                             quiet: true,
@@ -530,7 +530,7 @@ class _Header extends StatelessWidget {
                             key: const ValueKey<String>(
                               'client-detail-open-memo',
                             ),
-                            icon: Icons.sticky_note_2_outlined,
+                            icon: Icons.sticky_note_2_rounded,
                             label: l.clientTrainerMemo,
                             onPressed: onOpenMemo,
                             quiet: true,
@@ -560,7 +560,7 @@ class _Header extends StatelessWidget {
                           key: const ValueKey<String>(
                             'client-detail-open-program',
                           ),
-                          icon: Icons.assignment_outlined,
+                          icon: Icons.assignment_rounded,
                           label: l.clientQuickProgram,
                           onPressed: () =>
                               context.go(AppRoutes.coachingFor(client.id)),
@@ -569,7 +569,7 @@ class _Header extends StatelessWidget {
                           key: const ValueKey<String>(
                             'client-detail-open-report',
                           ),
-                          icon: Icons.analytics_outlined,
+                          icon: Icons.analytics_rounded,
                           label: l.clientQuickReport,
                           onPressed: () =>
                               context.go(AppRoutes.reportFor(client.id)),
