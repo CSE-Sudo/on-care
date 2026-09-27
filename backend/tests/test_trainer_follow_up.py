@@ -281,19 +281,27 @@ def test_another_trainer_cannot_read_or_complete_my_task(
         trainer_id=other_id,
         member_id=MEMBER_ID,
         # 회원 하나에 활성 담당은 한 명뿐이다(`uq_trainer_client_active_member`).
-        # 담당 관계가 있으면 되는 검증이라 지난 담당으로 둔다.
+        # 그래서 같은 회원을 예전에 담당했던 트레이너로 둔다.
         active=False,
     )
     db_session.add(link)
     db_session.commit()
     try:
         other_headers = _headers(create_access_token(other_id))
-        # 같은 회원을 담당하더라도 남이 남긴 업무는 보이지 않는다.
+        # 해제된 담당은 담당이 아니다 — 그 회원의 할 일 목록 자체가 404 다. (#2281)
         listed = client.get(
             f"/v1/trainer/clients/{MEMBER_ID}/follow-ups", headers=other_headers
         )
-        assert listed.status_code == 200, listed.text
-        assert task["id"] not in [item["id"] for item in listed.json()]
+        assert listed.status_code == 404, listed.text
+        # 내 할 일 전체 목록에도 남의 업무는 섞이지 않는다.
+        for scope in ("due", "open"):
+            mine = client.get(
+                "/v1/trainer/follow-ups",
+                params={"scope": scope},
+                headers=other_headers,
+            )
+            assert mine.status_code == 200, mine.text
+            assert task["id"] not in [item["id"] for item in mine.json()]
 
         denied = client.post(
             f"/v1/trainer/follow-ups/{task['id']}/complete", headers=other_headers

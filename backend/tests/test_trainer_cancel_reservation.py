@@ -196,9 +196,10 @@ def created_slots(db_session):
 
 
 def _create_slot(client, trainer_token: str, created: _Created) -> dict:
-    # 같은 테스트 안의 슬롯끼리 시각이 겹치지 않게 조금씩 민다.
+    # 같은 테스트 안의 슬롯끼리 시간 구간이 겹치지 않게 민다 — 기본 길이가
+    # 60분이라 몇 분 차이로는 겹침(#2284)으로 예약이 막힌다.
     starts_at = datetime.now(timezone.utc) + timedelta(
-        days=3, minutes=len(created.slots)
+        days=3, hours=2 * len(created.slots)
     )
     response = client.post(
         "/v1/trainer/reservation-slots",

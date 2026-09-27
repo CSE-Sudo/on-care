@@ -4,9 +4,11 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/dio_schedule_repository.dart';
@@ -138,10 +140,14 @@ abstract interface class ScheduleRepository {
   ///
   /// 반복은 한 번에 여러 건을 만든다 — 요일이나 종료일을 잘못 골랐을 때 되돌리는
   /// 비용이 한 건씩 지우는 일이라, 그 전에 보여 주는 편이 싸다.
+  ///
+  /// [durationMinutes] 는 회차 하나의 길이다. 겹침은 시작 시각이 아니라 시간
+  /// 구간으로 본다(#2284).
   Future<RecurrencePreview> previewRecurring({
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
+    int durationMinutes = 0,
   });
 
   /// 반복 규칙대로 회차를 한 번에 만든다. (#870)
@@ -343,8 +349,58 @@ class DriftScheduleRepository implements ScheduleRepository {
     return rows.map(_toEntity).toList();
   }
 
+  /// [date] 에서 [time]부터 [durationMinutes] 동안과 겹치는 예정·완료 세션
+  /// (#2284). 취소·노쇼·공백은 그 시간을 차지하지 않는다. [excludeId] 는
+  /// 옮기는 세션 자신이다.
+  ///
+  /// 데모는 같은 날만 본다 — 자정을 넘기는 세션까지 따지는 것은 서버 몫이다.
+  Future<List<ScheduleSession>> _overlapping({
+    required String date,
+    required String time,
+    required int durationMinutes,
+    String? excludeId,
+  }) async {
+    final rows =
+        await (_db.select(_db.trainerScheduleEntries)..where(
+              (t) =>
+                  t.date.equals(date) &
+                  t.status.isIn(<String>[
+                    ScheduleStatus.upcoming,
+                    ScheduleStatus.done,
+                  ]),
+            ))
+            .get();
+    return <ScheduleSession>[
+      for (final row in rows)
+        if (row.id != excludeId &&
+            timeRangesOverlap(
+              row.time,
+              row.durationMinutes,
+              time,
+              durationMinutes,
+            ))
+          _toEntity(row),
+    ];
+  }
+
+  Future<void> _ensureNoOverlap({
+    required String date,
+    required String time,
+    required int durationMinutes,
+    String? excludeId,
+  }) async {
+    final conflicts = await _overlapping(
+      date: date,
+      time: time,
+      durationMinutes: durationMinutes,
+      excludeId: excludeId,
+    );
+    if (conflicts.isNotEmpty) throw ScheduleOverlapError(conflicts);
+  }
+
   /// Books a new session on [date]'s timeline (status 예정). The
-  /// non-`seed-` id survives the daily re-seed.
+  /// non-`seed-` id survives the daily re-seed. 다른 일정과 시간이 겹치면
+  /// [ScheduleOverlapError] 로 멈춘다(#2284).
   @override
   Future<void> addSession({
     required String date,
@@ -355,6 +411,11 @@ class DriftScheduleRepository implements ScheduleRepository {
     required int durationMinutes,
     String note = '',
   }) async {
+    await _ensureNoOverlap(
+      date: date,
+      time: time,
+      durationMinutes: durationMinutes,
+    );
     await _db
         .into(_db.trainerScheduleEntries)
         .insert(
@@ -373,7 +434,8 @@ class DriftScheduleRepository implements ScheduleRepository {
         );
   }
 
-  /// Edits a booked session's date/time/client/type/duration.
+  /// Edits a booked session's date/time/client/type/duration. 옮긴 시간이
+  /// 자기 말고 다른 일정과 겹치면 [ScheduleOverlapError] 로 멈춘다(#2284).
   @override
   Future<void> updateSession(
     String id, {
@@ -385,6 +447,17 @@ class DriftScheduleRepository implements ScheduleRepository {
     required int durationMinutes,
     required String note,
   }) async {
+    final current = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (current != null) {
+      await _ensureNoOverlap(
+        date: date ?? current.date,
+        time: time,
+        durationMinutes: durationMinutes,
+        excludeId: id,
+      );
+    }
     await (_db.update(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).write(
@@ -502,6 +575,16 @@ class DriftScheduleRepository implements ScheduleRepository {
         throw const ProgramAttachConflictError();
       } else if (candidates.isNotEmpty) {
         existing = candidates.single;
+      }
+
+      // 붙일 PT 가 없어 새로 잡는 자리 — 다른 회원 일정과도 겹치면 안 된다
+      // (#2284). 이 회원의 겹치는 PT 는 위에서 이미 후보로 걸렀다.
+      if (existing == null) {
+        await _ensureNoOverlap(
+          date: date,
+          time: time,
+          durationMinutes: durationMinutes,
+        );
       }
 
       final encodedProgram = jsonEncode(programToJson(program));
@@ -629,7 +712,6 @@ class DriftScheduleRepository implements ScheduleRepository {
       // Label with the SESSION's calendar day — completing a session
       // browsed on another date must not claim '오늘'.
       final day = DateTime.tryParse(session.date) ?? now;
-      final isToday = session.date == ymd(now);
       await _db
           .into(_db.clientRoutineHistory)
           .insert(
@@ -639,16 +721,21 @@ class DriftScheduleRepository implements ScheduleRepository {
               // otherwise collide on this PK (review PR 237).
               id: 'hist-$id-${now.microsecondsSinceEpoch}',
               clientId: client.id,
-              dateLabel: '${day.month}/${day.day}${isToday ? ' (오늘)' : ''}',
+              // 화면은 이 문자열이 아니라 아래 날짜(`completedAt`)로 `9/27
+              // (오늘)` 을 화면 언어에 맞춰 그린다(#2300). 칸이 필수라 언어가
+              // 없는 날짜만 남긴다.
+              dateLabel: '${day.month}/${day.day}',
               // 라벨과 같은 날을 견줄 수 있는 형태로도 남긴다 — 고객 상세의
               // 날짜별 기록이 이 값으로 이력을 그날에 붙인다(#1025, #1114).
               completedAt: Value(day),
+              // 서버가 저장하는 이름과 같다. 화면은 이 이름에서 종류 코드를
+              // 되짚어 화면 언어로 그린다(`routineKindLabel`).
               label: 'PT 세션 · 트레이너 지도',
               completionRate: 100,
-              // 근력은 세트·중량으로, 나머지는 시간으로 읽는다 — 서버의
-              // `_program_item_label` 과 같은 규칙이다 (#1276).
-              exercisesJson: jsonEncode(<String>[
-                for (final m in program) _programItemLabel(m),
+              // 문장이 아니라 값으로 남긴다 — 단위는 화면이 로케일에 맞춰
+              // 붙인다(#2300). 읽는 규칙은 서버 `_program_item_label` 과 같다.
+              exercisesJson: jsonEncode(<Map<String, Object?>>[
+                for (final m in program) programHistoryItem(m).toJson(),
               ]),
               trainerNote: Value(note),
               // Seed rows use ascending sortOrder from 0; a negative,
@@ -708,6 +795,7 @@ class DriftScheduleRepository implements ScheduleRepository {
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
+    int durationMinutes = 0,
   }) async {
     final dates = seriesOccurrences(start, rule);
     final wanted = dates.map(ymd).toSet();
@@ -716,16 +804,25 @@ class DriftScheduleRepository implements ScheduleRepository {
         await (_db.select(_db.trainerScheduleEntries)..where(
               (t) =>
                   t.date.isIn(wanted) &
-                  t.time.equals(time) &
                   t.status.isIn(<String>[
                     ScheduleStatus.upcoming,
                     ScheduleStatus.done,
                   ]),
             ))
             .get();
+    // 시작 시각이 같을 때만이 아니라 시간 구간이 겹치면 겹침이다(#2284).
     return (
       dates: dates,
-      conflicts: rows.map(_toEntity).toList(growable: false),
+      conflicts: <ScheduleSession>[
+        for (final row in rows)
+          if (timeRangesOverlap(
+            row.time,
+            row.durationMinutes,
+            time,
+            durationMinutes,
+          ))
+            _toEntity(row),
+      ],
     );
   }
 
@@ -745,6 +842,7 @@ class DriftScheduleRepository implements ScheduleRepository {
       start: start,
       time: time,
       rule: rule,
+      durationMinutes: durationMinutes,
     );
     if (preview.conflicts.isNotEmpty) {
       throw ScheduleSeriesConflictError(preview.conflicts);
@@ -811,44 +909,46 @@ class DriftScheduleRepository implements ScheduleRepository {
   }
 }
 
-/// 이력 목록에 적히는 한 줄. 근력은 세트·횟수·중량, 나머지는 시간으로 읽는다.
+/// 완료한 PT 의 프로그램 한 항목 → 이력의 운동 한 종목. (#2300)
 ///
-/// 서버 `_program_item_label` 과 같은 규칙이다(#1276) — 유형마다 재는 단위가
-/// 달라서, 근력을 "30분"으로 적으면 다음 무게를 정할 근거가 사라지고 유산소를
-/// "3세트"로 적으면 뜻이 없다. 횟수도 함께 적는다: 세트·중량만으로는 근력 한
-/// 줄이 회원 기록에서 그대로 재현되지 않는다.
-String _programItemLabel(ProgramItem raw) {
+/// 서버 `_program_item_label` 과 같은 규칙을 **값으로** 남긴다(#1276) — 근력은
+/// 세트·횟수(버티는 운동은 초, #1969)·중량, 나머지는 시간이다. 예전에는
+/// `스쿼트 3세트 12회 40kg` 문장으로 저장해 영어 화면에도 `세트`·`회` 가 나왔다.
+ClientExerciseItem programHistoryItem(ProgramItem raw) {
   final ProgramItem item = raw.byType;
-  final List<String> parts = <String>[];
-  if (item.type == '근력') {
-    if (item.sets != null) parts.add('${item.sets}세트');
-    // 버티는 운동은 회가 아니라 초로 읽는다 — `플랭크 3세트 60초`. 둘은
-    // 배타라 한 줄에 함께 서지 않는다. (#1969)
-    final int? holdSeconds = item.holdSeconds;
-    final int? reps = item.reps;
-    if (holdSeconds != null && holdSeconds > 0) {
-      parts.add('$holdSeconds초');
-    } else if (reps != null && reps > 0) {
-      parts.add('$reps회');
-    }
-    // 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 적지 않은 값과
-    // 0 은 다른 뜻이다. 값이 없는 것은 규칙 이전의 옛 행뿐이다.
-    final double? weight = item.weight;
-    if (weight != null) {
-      parts.add(
-        '${weight == weight.roundToDouble() ? weight.round() : weight}kg',
-      );
-    }
-  } else if (item.duration != null) {
-    parts.add('${item.duration}분');
+  final String type = switch (item.type) {
+    '근력' => 'strength',
+    '유산소' => 'cardio',
+    '스트레칭' => 'stretching',
+    _ => 'other',
+  };
+  if (type != 'strength') {
+    return ClientExerciseItem(
+      name: item.name,
+      type: type,
+      minutes: item.duration ?? 0,
+    );
   }
-  return <String>[item.name, ...parts].join(' ');
+  final int? holdSeconds = item.holdSeconds;
+  final int? reps = item.reps;
+  final bool holds = holdSeconds != null && holdSeconds > 0;
+  return ClientExerciseItem(
+    name: item.name,
+    type: type,
+    sets: item.sets,
+    // 버티는 운동은 회가 아니라 초로 읽는다. 둘은 배타다.
+    holdSeconds: holds ? holdSeconds : null,
+    reps: !holds && reps != null && reps > 0 ? reps : null,
+    // 맨몸 운동은 `0kg` 이다 — 적지 않은 값과 0 은 다른 뜻이다.
+    weight: item.weight,
+  );
 }
 
 /// Provides the [ScheduleRepository]: the real Dio-backed source against
 /// the FastAPI backend, or the local drift source for demo /
 /// `USE_MOCK_API=true`.
 final scheduleRepositoryProvider = Provider<ScheduleRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return DriftScheduleRepository(ref.watch(appDatabaseProvider));
   }

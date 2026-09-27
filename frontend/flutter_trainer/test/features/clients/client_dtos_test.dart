@@ -189,12 +189,13 @@ void main() {
       });
       expect(h.dateLabel, '7/12 (오늘)');
       expect(h.completionRate, 80);
-      // 이름만 싣던 옛 응답도 읽는다 — 수행 표시(`✗`)는 이름에서 떼어 값으로
-      // 든다(#1902).
+      // 문장만 싣던 옛 응답도 읽는다 — 수행 표시(`✗`)는 이름에서 떼어 값으로
+      // 든다(#1902). 끝에 붙은 한국어 단위도 값으로 되돌린다(#2300).
       expect(
         h.exercises.map((ClientExerciseItem e) => e.name).toList(),
-        <String>['스쿼트 3세트', '런지'],
+        <String>['스쿼트', '런지'],
       );
+      expect(h.exercises.first.sets, 3);
       expect(h.exercises.map((ClientExerciseItem e) => e.done).toList(), <bool>[
         true,
         false,

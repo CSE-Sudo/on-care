@@ -20,6 +20,8 @@ from contextvars import ContextVar
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.core.locale import get_request_locale, localized
+
 # 로그·헤더에 그대로 싣기 안전한 request ID 형식(영숫자 . _ -, 1~64자). 그 외 입력은 신뢰하지 않는다.
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 _REQUEST_ID_HEADER = "X-Request-ID"
@@ -119,6 +121,15 @@ def install(app: FastAPI) -> None:
             request_id_ctx.reset(token)
         return JSONResponse(
             status_code=500,
-            content={"detail": "내부 서버 오류가 발생했습니다.", "request_id": rid},
+            # 이 핸들러는 요청 언어 미들웨어 바깥에서 돌아 컨텍스트가 이미 되돌려졌을 수
+            # 있다 — 언어는 요청에서 직접 읽는다(#2297).
+            content={
+                "detail": localized(
+                    "내부 서버 오류가 발생했습니다.",
+                    "An internal server error occurred.",
+                    get_request_locale(request),
+                ),
+                "request_id": rid,
+            },
             headers={_REQUEST_ID_HEADER: rid},
         )

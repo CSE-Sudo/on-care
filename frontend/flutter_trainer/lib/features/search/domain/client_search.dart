@@ -1,3 +1,4 @@
+import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 /// How many matches the 고객 검색 dropdown shows at once. A picker, not a
@@ -29,7 +30,8 @@ List<TrainerClient> searchClients(
     final name = client.name.toLowerCase();
     final relatedRecords = <String>[
       client.goal,
-      client.lastMessage,
+      // 미리보기 코드(`@emote`)는 회원의 말이 아니다.
+      if (!ChatPreviewCode.isCode(client.lastMessage)) client.lastMessage,
       client.lastRoutine,
     ].join('\n').toLowerCase();
     final tier = name.startsWith(normalized)

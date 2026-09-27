@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_repeat_preview.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -63,6 +64,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
 
   /// 저장 시도가 찾아낸 겹치는 회차. 비어 있지 않으면 아무것도 만들어지지 않았다.
   List<ScheduleSession> _conflicts = const <ScheduleSession>[];
+
+  /// 한 건 저장이 다른 일정과 시간이 겹쳐 막혔다(#2284). null 이면 막히지
+  /// 않았다 — 겹친 목록이 비어 있어도 막힌 것은 막힌 것이라 null 로 구분한다.
+  List<ScheduleSession>? _overlaps;
 
   // Option lists always CONTAIN the edited session's own values. Falling
   // back to a default instead would silently rewrite the session on an
@@ -184,7 +189,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       final confirmed = await _confirmReopen(l);
       if (!confirmed || !mounted) return;
     }
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _overlaps = null;
+    });
     final repo = ref.read(scheduleRepositoryProvider);
     final navigator = Navigator.of(context);
     try {
@@ -197,6 +205,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           start: start,
           time: _time,
           rule: rule,
+          durationMinutes: duration,
         );
         if (preview.conflicts.isNotEmpty) {
           if (mounted) {
@@ -253,6 +262,17 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         });
       }
       return;
+    } on ScheduleOverlapError catch (error) {
+      // 시간이 겹쳐 아무것도 저장되지 않았다(#2284). 토스트는 금방 사라져
+      // 무엇과 겹쳤는지 다시 볼 수 없다 — 버튼 바로 위에 남겨 두고, 입력은
+      // 그대로 둔 채 시간만 바꿔 다시 저장하게 한다.
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _overlaps = error.conflicts;
+        });
+      }
+      return;
     } catch (_) {
       // Surface the failure and keep the sheet open so the input isn't
       // lost (review PR 218).
@@ -302,6 +322,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       start: nextStart,
       time: _time,
       rule: rule,
+      durationMinutes: duration,
     );
     if (preview.conflicts.isNotEmpty) {
       throw ScheduleSeriesConflictError(preview.conflicts);
@@ -518,6 +539,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
             minLines: 2,
             maxLines: 4,
           ),
+        ],
+        if (_overlaps != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          ScheduleOverlapBanner(conflicts: _overlaps!),
         ],
         const SizedBox(height: OnCareSpacing.s24),
         AppButtonPair(

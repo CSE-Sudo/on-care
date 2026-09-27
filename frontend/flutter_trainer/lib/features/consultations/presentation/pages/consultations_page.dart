@@ -8,6 +8,8 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -225,6 +227,10 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// would otherwise race and the second call would 409.
   bool _busy = false;
 
+  /// 승인하려던 시간에 이미 다른 일정이 있어 막혔다(#2284). null 이면 막히지
+  /// 않았다. 신청은 대기로 남아 있으므로 카드 안, 승인 버튼 바로 위에 남긴다.
+  List<ScheduleSession>? _overlaps;
+
   Future<void> _run(Future<void> Function() action, String success) async {
     setState(() => _busy = true);
     final AppLocalizations l = AppLocalizations.of(context);
@@ -256,11 +262,14 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// 승인한다. 시각을 정하지 않는다 — 회원이 고른 자리가 날짜·시각·길이를 이미
   /// 들고 있고, 서버가 그 자리를 첫 일정으로 확정한다(#1873).
   ///
-  /// 예전에는 여기서 희망 시각에 코드 상수 30분을 더해 일정을 보냈고, 겹치면
-  /// 버튼 옆에 인라인 문구를 띄웠다. 자리를 연 사람이 트레이너 자신이고 한 자리는
-  /// 한 사람 몫이라 겹침이 구조적으로 나지 않아 그 경로를 걷어냈다.
+  /// 자리를 연 뒤 트레이너가 같은 시간에 다른 일정을 넣었으면 서버가 승인을
+  /// 막는다(#2284). 그때는 신청이 대기로 남으므로 토스트로 흘려보내지 않고,
+  /// 무엇과 겹쳤는지 카드 안에 남겨 그 일정을 옮긴 뒤 다시 승인하게 한다.
   Future<void> _accept() async {
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _overlaps = null;
+    });
     final AppLocalizations l = AppLocalizations.of(context);
     final request = widget.request;
     try {
@@ -273,6 +282,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             : l.consultApproved(request.memberName),
         type: AppToastType.success,
       );
+    } on ScheduleOverlapError catch (e) {
+      if (mounted) setState(() => _overlaps = e.conflicts);
     } on AppError catch (e) {
       ref.invalidate(consultationsProvider);
       ref.invalidate(consultationPendingCountProvider);
@@ -370,6 +381,13 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               (request.decisionNote?.isNotEmpty ?? false)) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
             _Field(label: l.consultDecisionNote, value: request.decisionNote!),
+          ],
+          if (request.isPending && _overlaps != null) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            ScheduleOverlapBanner(
+              conflicts: _overlaps!,
+              hint: l.consultOverlapHint,
+            ),
           ],
           if (request.isPending) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s16),
