@@ -74,7 +74,7 @@ void main() {
     test('YYYY-MM-DD 는 통과한다', () {
       expect(AppInputRules.birthDate('1996-03-21'), isNull);
       expect(AppInputRules.birthDate('  1996-03-21  '), isNull);
-      expect(AppInputRules.birthDate('2024-02-29'), isNull);  // 윤년
+      expect(AppInputRules.birthDate('2024-02-29'), isNull); // 윤년
     });
 
     test('비어 있으면 통과한다 — 처음부터 없는 회원이 있다', () {
@@ -85,13 +85,16 @@ void main() {
     test('날짜가 아니면 형식 오류다', () {
       for (final String value in <String>[
         'asdfghjkl',
-        '1990-01-01T00:00:00Z',  // 컬럼 길이(10)를 넘긴다
+        '1990-01-01T00:00:00Z', // 컬럼 길이(10)를 넘긴다
         '19900101',
         '90-01-01',
         '1990-1-1',
       ]) {
-        expect(AppInputRules.birthDate(value), AppInputError.birthDateInvalid,
-            reason: value);
+        expect(
+          AppInputRules.birthDate(value),
+          AppInputError.birthDateInvalid,
+          reason: value,
+        );
       }
     });
 
@@ -102,10 +105,13 @@ void main() {
         '1990-13-45',
         '1990-02-30',
         '1990-00-01',
-        '2023-02-29',  // 평년
+        '2023-02-29', // 평년
       ]) {
-        expect(AppInputRules.birthDate(value), AppInputError.birthDateInvalid,
-            reason: value);
+        expect(
+          AppInputRules.birthDate(value),
+          AppInputError.birthDateInvalid,
+          reason: value,
+        );
       }
     });
   });
@@ -224,6 +230,186 @@ void main() {
       expect(AppInputRules.signInPassword('pw'), isNull);
       expect(AppInputRules.signInPassword('12345678'), isNull);
       expect(AppInputRules.signInPassword('oncare123'), isNull);
+    });
+
+    group('서버 기준과 같은 경계(#1555)', () {
+      test('상수가 서버 password_policy 와 같다', () {
+        expect(AppInputRules.passwordMinLength, 8);
+        expect(AppInputRules.passwordMaxLength, 64);
+        expect(AppInputRules.passwordMaxBytes, 72);
+      });
+
+      test('7자는 약하고 8자는 통과한다', () {
+        expect(
+          AppInputRules.signUpPassword('abcd123'),
+          AppInputError.passwordWeak,
+        );
+        expect(AppInputRules.signUpPassword('abcd1234'), isNull);
+      });
+
+      test('64자는 통과하고 65자는 너무 길다', () {
+        final String max = 'a1' * 32;
+        expect(max.length, 64);
+        expect(AppInputRules.signUpPassword(max), isNull);
+        expect(
+          AppInputRules.signUpPassword('${max}x'),
+          AppInputError.passwordTooLong,
+        );
+        expect(
+          AppInputRules.signUpPassword('a1' * 500),
+          AppInputError.passwordTooLong,
+        );
+      });
+
+      test('한글은 72바이트까지 통과하고 73바이트는 너무 길다', () {
+        // 한글 22자(66바이트) + 6바이트 = 72바이트, 28자
+        final String at72 = '${'가' * 22}abc123';
+        final String at73 = '${'가' * 22}abc1234';
+        expect(at72.runes.length, lessThan(AppInputRules.passwordMaxLength));
+        expect(AppInputRules.signUpPassword(at72), isNull);
+        expect(
+          AppInputRules.signUpPassword(at73),
+          AppInputError.passwordTooLong,
+        );
+        expect(
+          AppInputRules.signUpPassword('${'가' * 24}a1'),
+          AppInputError.passwordTooLong,
+        );
+      });
+
+      test('이모지는 72바이트까지 통과하고 73바이트는 너무 길다', () {
+        const String emoji = '\u{1F4AA}';
+        expect(AppInputRules.signUpPassword('${emoji * 16}abcd1234'), isNull);
+        expect(
+          AppInputRules.signUpPassword('${emoji * 16}abcd12345'),
+          AppInputError.passwordTooLong,
+        );
+      });
+
+      test('이모지 한 개는 한 글자로 센다 — 서버(코드 포인트)와 같다', () {
+        const String emoji = '\u{1F4AA}';
+        final String seven = 'abc12${emoji * 2}';
+        // UTF-16 으로는 9단위라 length 로 세면 통과해 버린다.
+        expect(seven.length, 9);
+        expect(seven.runes.length, 7);
+        expect(AppInputRules.signUpPassword(seven), AppInputError.passwordWeak);
+        expect(AppInputRules.signUpPassword('${seven}x'), isNull);
+      });
+
+      test('길이를 먼저 본다 — 긴 값에 더 길게 쓰라고 하지 않는다', () {
+        expect(
+          AppInputRules.signUpPassword('a' * 65),
+          AppInputError.passwordTooLong,
+        );
+        expect(
+          AppInputRules.signUpPassword('가' * 30),
+          AppInputError.passwordTooLong,
+        );
+      });
+
+      test('공백은 잘라내지 않고 글자로 센다', () {
+        expect(AppInputRules.signUpPassword(' abcd123 '), isNull);
+        expect(
+          AppInputRules.signUpPassword('abc123 '),
+          AppInputError.passwordWeak,
+        );
+        expect(
+          AppInputRules.signUpPassword('        '),
+          AppInputError.passwordWeak,
+        );
+        expect(
+          AppInputRules.signUpPassword('\t' * 8),
+          AppInputError.passwordWeak,
+        );
+      });
+
+      test('전각 숫자·영문은 영문·숫자로 치지 않는다 — 서버와 같다', () {
+        expect(
+          AppInputRules.signUpPassword('abcdefg\u{FF11}'),
+          AppInputError.passwordWeak,
+        );
+        expect(
+          AppInputRules.signUpPassword('abcdefg\u{0661}'),
+          AppInputError.passwordWeak,
+        );
+      });
+
+      test('로그인은 긴 값도 막지 않는다', () {
+        expect(AppInputRules.signInPassword('a1' * 40), isNull);
+      });
+    });
+
+    group('서버 422 에서 비밀번호 오류 읽기(#1555)', () {
+      Map<String, Object?> body(List<Map<String, Object?>> detail) =>
+          <String, Object?>{'detail': detail};
+
+      test('세 코드를 각각의 오류 종류로 읽는다', () {
+        for (final MapEntry<String, AppInputError> e in <String, AppInputError>{
+          'password_empty': AppInputError.passwordEmpty,
+          'password_weak': AppInputError.passwordWeak,
+          'password_too_long': AppInputError.passwordTooLong,
+        }.entries) {
+          expect(
+            AppInputRules.serverPasswordError(
+              body(<Map<String, Object?>>[
+                <String, Object?>{
+                  'type': e.key,
+                  'loc': <Object?>['body', 'password'],
+                  'msg': '비밀번호',
+                },
+              ]),
+            ),
+            e.value,
+            reason: e.key,
+          );
+        }
+      });
+
+      test('다른 칸 오류와 섞여 있어도 비밀번호 오류를 고른다', () {
+        expect(
+          AppInputRules.serverPasswordError(
+            body(<Map<String, Object?>>[
+              <String, Object?>{
+                'type': 'string_too_short',
+                'loc': <Object?>['body', 'invite_code'],
+              },
+              <String, Object?>{
+                'type': 'password_weak',
+                'loc': <Object?>['body', 'new_password'],
+              },
+            ]),
+          ),
+          AppInputError.passwordWeak,
+        );
+      });
+
+      test('비밀번호 오류가 없으면 null', () {
+        expect(
+          AppInputRules.serverPasswordError(
+            body(<Map<String, Object?>>[
+              <String, Object?>{
+                'type': 'value_error',
+                'loc': <Object?>['body', 'email'],
+              },
+            ]),
+          ),
+          isNull,
+        );
+        expect(AppInputRules.serverPasswordError(null), isNull);
+        expect(AppInputRules.serverPasswordError('oops'), isNull);
+        expect(
+          AppInputRules.serverPasswordError(<String, Object?>{
+            'detail': '현재 비밀번호가 일치하지 않습니다.',
+          }),
+          isNull,
+        );
+        expect(
+          AppInputRules.serverPasswordError(<String, Object?>{
+            'detail': <Object?>['password_weak', 3, null],
+          }),
+          isNull,
+        );
+      });
     });
 
     test('확인은 글자 그대로 같아야 한다', () {

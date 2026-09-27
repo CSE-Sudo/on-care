@@ -1990,7 +1990,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer) {
-    return 'Disconnect $gym?\nYour trainer link with $trainer will also be removed.';
+    return 'Disconnect $gym?\nYour trainer link with $trainer will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged will stay.';
   }
 
   @override
@@ -2000,7 +2000,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myTrainerDisconnectConfirm(String trainer, String gym) {
-    return 'Disconnect trainer $trainer?\nYour connection to $gym will remain.';
+    return 'Disconnect trainer $trainer?\nYour connection to $gym will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged will stay.';
   }
 
   @override
@@ -2090,7 +2090,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myLegalPrivacyBody =>
-      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
+      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -2179,6 +2179,46 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachChatSendFailed =>
       'Couldn\'t send your message. Please try again';
+
+  @override
+  String get coachPhotoAttach => 'Send a photo';
+
+  @override
+  String get coachPhotoSheetSubtitle =>
+      'Share a meal, form, or InBody photo with your trainer';
+
+  @override
+  String get coachPhotoPickSub => 'Choose from your photo library';
+
+  @override
+  String get coachPhotoTakeSub => 'Take one with the camera';
+
+  @override
+  String get coachPhotoSending => 'Sending';
+
+  @override
+  String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoRetry => 'Retry';
+
+  @override
+  String get coachPhotoDiscard => 'Remove';
+
+  @override
+  String get coachPhotoPermissionDenied =>
+      'Allow camera and photo access to send a photo';
+
+  @override
+  String get coachPhotoPermissionPermanentlyDenied =>
+      'Camera and photo access is off. Turn it on in Settings to send photos';
+
+  @override
+  String get coachPhotoReadFailed =>
+      'Couldn\'t read that photo. Please try a different one';
+
+  @override
+  String get a11yMyPhoto => 'Photo you sent';
 
   @override
   String get coachChatPdfOpenFailed =>
@@ -2992,6 +3032,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signUpPasswordWeak =>
       'Use at least 8 characters, including letters and numbers';
+
+  @override
+  String get signUpPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
 
   @override
   String get signUpPasswordMismatch => 'Passwords do not match';
