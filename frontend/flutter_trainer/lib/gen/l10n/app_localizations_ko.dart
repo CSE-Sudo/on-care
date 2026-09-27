@@ -2602,6 +2602,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aiCustomRoutineName => 'AI 맞춤 추천안';
+
+  @override
   String get aiAnalysing => 'AI가 분석 중…';
 
   @override
@@ -2715,6 +2718,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalRationaleLabel => 'AI 추천 사유';
+
+  @override
+  String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
+
+  @override
+  String get routineEvidenceStrengthHeavy => '최근 근력운동 비중 높음';
+
+  @override
+  String get routineEvidenceBloodPressureGoal => '혈압 관리 목표';
+
+  @override
+  String get routineEvidenceLowCardio => '최근 유산소 비중 낮음';
+
+  @override
+  String get routineEvidenceRecentRecord => '최근 운동 기록 반영';
+
+  @override
+  String get aiPlanIntensityLow => '낮음';
 
   @override
   String aiPersonalStepFull(int count) {

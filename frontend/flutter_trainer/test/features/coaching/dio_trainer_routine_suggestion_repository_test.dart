@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 
@@ -45,7 +46,7 @@ void main() {
           'minutes': 8,
           'type': '스트레칭',
           'reason': '어깨 안정화',
-          'evidence': <dynamic>['최근 PT 피드백 반영', '', 42],
+          'evidence': <dynamic>['recent_pt_feedback', '', 42],
         },
         // 모양이 다른 항목 하나가 목록 전체를 막지 않는다.
         'not an object',
@@ -58,7 +59,41 @@ void main() {
     expect(rows.single.id, 's1');
     expect(rows.single.minutes, 8);
     // 빈 문자열과 문자열이 아닌 값은 빠진다.
-    expect(rows.single.evidence, <String>['최근 PT 피드백 반영']);
+    expect(rows.single.evidence, <String>[RoutineEvidence.recentPtFeedback]);
+  });
+
+  test('evidence codes pass through untouched — the screen translates them '
+      '(#2301)', () async {
+    when(() => dio.get<List<dynamic>>(listPath)).thenAnswer(
+      (_) async => _ok<List<dynamic>>(<dynamic>[
+        <String, Object?>{
+          'id': 's1',
+          'name': 'Hip bridge',
+          'minutes': 12,
+          'type': '근력',
+          'reason': 'Shorten the range if your lower back hurts.',
+          'evidence': <dynamic>[
+            'blood_pressure_goal',
+            'low_cardio',
+            'strength_heavy',
+            'recent_record',
+            'a_future_code',
+          ],
+        },
+      ], listPath),
+    );
+
+    final rows = await repo.pending('m1');
+
+    // 저장소는 코드를 문장으로 바꾸지 않는다 — 화면 언어는 화면이 안다.
+    // 모르는 코드도 버리지 않는다(화면이 그대로 보여 준다).
+    expect(rows.single.evidence, <String>[
+      RoutineEvidence.bloodPressureGoal,
+      RoutineEvidence.lowCardio,
+      RoutineEvidence.strengthHeavy,
+      RoutineEvidence.recentRecord,
+      'a_future_code',
+    ]);
   });
 
   test('approve without edits sends an empty body', () async {

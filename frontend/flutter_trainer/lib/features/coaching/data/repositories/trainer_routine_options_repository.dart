@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Generates A/B routine options for a member (the AI generation step). The
 /// result is *generated*, not assigned — the trainer picks/edits one and
@@ -30,9 +31,19 @@ abstract interface class TrainerRoutineOptionsRepository {
 /// Deterministic demo generator mirroring the backend rule-based output, so
 /// the 3-step flow works with no backend. Uses a fixed member snapshot
 /// (over-target sodium, mid adherence) that tells the demo story.
+///
+/// 실서버처럼 **생성을 요청하는 순간의 화면 언어**로 이름·사유·근거 문장을
+/// 만든다(#2301). 문장은 서버 규칙형(`routine_ai.rule_based_plans`)의 영어판과
+/// 같다. `intensity`·`type` 은 번역하지 않는 계약값이다.
 class MockTrainerRoutineOptionsRepository
     implements TrainerRoutineOptionsRepository {
-  const MockTrainerRoutineOptionsRepository();
+  /// [languageCode] 를 생략하면 한국어다.
+  const MockTrainerRoutineOptionsRepository({this.languageCode = _korean});
+
+  /// 생성을 요청하는 순간의 화면 언어 코드(`ko`·`en`).
+  final String Function() languageCode;
+
+  static String _korean() => 'ko';
 
   /// Matches the backend default used when the trainer leaves conditions
   /// blank (`trainer_routine_options_service.DEFAULT_AVAILABLE_MINUTES`).
@@ -47,11 +58,18 @@ class MockTrainerRoutineOptionsRepository
     required String trainerNote,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
+    final bool en = languageCode() == 'en';
     const sodium = 2100;
     const completion = 55;
+    // 회원 목표는 회원이 고른 목표 이름이라 서버도 옮기지 않는다 — 데모도 같다.
     const goal = '혈압 관리 · 체중 감량';
     final note = trainerNote.trim();
-    final noteSuffix = note.isEmpty ? '' : ' 트레이너 메모 반영: $note.';
+    final noteSuffix = note.isEmpty
+        ? ''
+        : en
+        ? ' Trainer note applied: $note.'
+        : ' 트레이너 메모 반영: $note.';
+    String t(String ko, String english) => en ? english : ko;
     final minutes = availableMinutes ?? _defaultMinutes;
     final intensityPref = intensityPreference ?? _defaultIntensity;
 
@@ -82,51 +100,71 @@ class MockTrainerRoutineOptionsRepository
         sodiumTodayMg: sodium,
         sodiumOverTarget: true,
         avgCompletionRate: completion,
-        latestRoutine: '저강도 유산소 (걷기)',
+        latestRoutine: t('저강도 유산소 (걷기)', 'Low-intensity cardio (walk)'),
         note: note,
         // 데모 회원은 실제 축적 이력이 없다 — #776 의 "데이터 부족" 상태를
         // 그대로 보여 준다(개인화한 것처럼 보이지 않아야 한다는 요구와도 맞다).
       ),
       planA: RoutinePlan(
         key: 'A',
-        label: '회복·지속 중심',
+        label: t('회복·지속 중심', 'Recovery & consistency'),
         totalMinutes: totalA,
         intensity: '낮음',
         exercises: <RoutineExercise>[
           RoutineExercise(
-            name: '저강도 걷기',
+            name: t('저강도 걷기', 'Low-intensity walk'),
             minutes: (totalA * 0.6).round().clamp(1, totalA),
             type: '유산소',
           ),
           RoutineExercise(
-            name: '코어 스트레칭',
+            name: t('코어 스트레칭', 'Core stretch'),
             minutes: (totalA - (totalA * 0.6).round()).clamp(1, totalA),
             type: '스트레칭',
           ),
         ],
-        reason: '짧고 지속하기 쉬운 회복 중심 프로그램',
-        rationale:
-            '오늘 나트륨 ${sodium}mg (목표 초과), 최근 운동 완료율 $completion% → '
-            '부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.$noteSuffix',
+        reason: t(
+          '짧고 지속하기 쉬운 회복 중심 프로그램',
+          'A short, easy-to-sustain recovery program',
+        ),
+        rationale: en
+            ? 'Sodium today ${sodium}mg (over target), recent workout '
+                  'completion $completion% → focusing on consistency with '
+                  'low-strain cardio and stretching.$noteSuffix'
+            : '오늘 나트륨 ${sodium}mg (목표 초과), 최근 운동 완료율 $completion% → '
+                  '부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.$noteSuffix',
       ),
       planB: RoutinePlan(
         key: 'B',
-        label: '강도·운동량 중심',
+        label: t('강도·운동량 중심', 'Intensity & volume'),
         totalMinutes: totalB,
         intensity: intensityPref == 'low' ? '보통' : '높음',
         exercises: <RoutineExercise>[
           RoutineExercise(
-            name: '인터벌 러닝',
+            name: t('인터벌 러닝', 'Interval running'),
             minutes: intervalMinutes,
             type: '유산소',
           ),
-          RoutineExercise(name: '스쿼트', minutes: squatMinutes, type: '근력'),
-          RoutineExercise(name: '플랭크', minutes: plankMinutes, type: '근력'),
+          RoutineExercise(
+            name: t('스쿼트', 'Squat'),
+            minutes: squatMinutes,
+            type: '근력',
+          ),
+          RoutineExercise(
+            name: t('플랭크', 'Plank'),
+            minutes: plankMinutes,
+            type: '근력',
+          ),
         ],
-        reason: '운동량과 강도를 높인 프로그램',
-        rationale:
-            "목표 '$goal' 기준, 완료율 $completion%로 점진적으로 근력·유산소를 더해 "
-            '운동량을 높임.$noteSuffix',
+        reason: t(
+          '운동량과 강도를 높인 프로그램',
+          'A program with more volume and intensity',
+        ),
+        rationale: en
+            ? "Based on the goal '$goal' and a $completion% completion rate, "
+                  'gradually adding strength and cardio to raise the '
+                  'workload.$noteSuffix'
+            : "목표 '$goal' 기준, 완료율 $completion%로 점진적으로 근력·유산소를 더해 "
+                  '운동량을 높임.$noteSuffix',
       ),
       generatedBy: 'rule',
     );
@@ -139,7 +177,10 @@ final trainerRoutineOptionsRepositoryProvider =
     Provider<TrainerRoutineOptionsRepository>((ref) {
       ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
-        return const MockTrainerRoutineOptionsRepository();
+        return MockTrainerRoutineOptionsRepository(
+          languageCode: () =>
+              ref.read(trainerResolvedLocaleProvider).languageCode,
+        );
       }
       return DioTrainerRoutineOptionsRepository(ref.watch(dioProvider));
     }, name: 'trainerRoutineOptionsRepository');

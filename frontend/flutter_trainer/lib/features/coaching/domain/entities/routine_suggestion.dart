@@ -49,9 +49,10 @@ class RoutineSuggestion {
   final int? holdSeconds;
   final double? weight;
 
-  /// 이 제안이 무엇을 보고 만들어졌나(`최근 PT 피드백 반영` 등). 트레이너의
-  /// 판단 재료이고 회원에게는 가지 않는다. 서버가 만든 문구이므로 번역하지 않고
-  /// 그대로 보여 준다.
+  /// 이 제안이 무엇을 보고 만들어졌나 — 근거 코드(`recent_pt_feedback` 등).
+  /// 트레이너의 판단 재료이고 회원에게는 가지 않는다. 화면에는
+  /// `routineEvidenceLabel` 로 화면 언어의 문구를 붙여 보여 준다(#2301).
+  /// 코드가 아닌 값(직접 적은 근거)은 원문 그대로 보인다.
   final List<String> evidence;
 
   /// 수정 후 승인에 쓰는 사본. 보내지 않을 필드는 그대로 둔다.

@@ -8,10 +8,23 @@
 LLM 생성과 이 규칙형 생성기로의 폴백은 `trainer_routine_options_service`가 담당한다.
 이 모듈은 결정적인 규칙형 계획만 만들며, 의료 진단·치료 지시를 하지 않는다
 (운동 구성과 근거만 제시).
+
+**언어(#2301).** 판단(부위 주의·대체 운동 고르기)은 언제나 한국어 운동 이름으로
+하고, 결과 문장·라이브러리 운동 이름만 마지막에 요청 언어로 옮긴다. 판단 규칙의
+키워드가 한국어라, 영어 이름으로 판단하면 영어 화면에서만 주의 부위를 놓친다.
+`intensity`·`type` 은 번역하지 않는 계약값이다.
 """
 from __future__ import annotations
 
+from app.core.locale import Locale, localized
+
 SODIUM_TARGET_MG = 2000
+
+#: 근거 문장 길이 상한 — 응답 스키마(`RoutineOptionPlanOut.rationale`)와 같은 값이다.
+#: 트레이너 메모(최대 500자)를 그대로 인용하므로, 긴 메모에 주의 문장이 붙으면
+#: 상한을 넘어 폴백 자체가 검증 오류로 죽는다. 영어 문장은 더 길어 더 쉽게
+#: 넘는다(#2301). 넘칠 때만 끝을 줄임표로 자른다 — 짧은 문장은 그대로다.
+RATIONALE_MAX_CHARS = 500
 
 # 타입별 운동 라이브러리(부담 낮음 → 높음).
 _CARDIO_EASY = ("저강도 걷기", "유산소")
@@ -22,6 +35,25 @@ _STRETCH = ("코어 스트레칭", "스트레칭")
 _STRETCH2 = ("목·어깨 스트레칭", "스트레칭")
 
 _B_LABEL = {"low": "낮음", "moderate": "보통", "high": "높음"}
+
+#: 라이브러리 운동 이름 → 영어(#2301). 회원이 직접 적은 반복 운동 이름은 여기
+#: 없으므로 원문 그대로 나간다 — 회원 기록에 적힌 이름을 서버가 바꿔 부르지 않는다.
+_EN_EXERCISE_NAMES = {
+    "저강도 걷기": "Low-intensity walk",
+    "인터벌 러닝": "Interval running",
+    "스쿼트": "Squat",
+    "플랭크": "Plank",
+    "코어 스트레칭": "Core stretch",
+    "목·어깨 스트레칭": "Neck & shoulder stretch",
+}
+
+#: 주의 부위 이름 → 영어(#2301). 근거 문장에만 쓴다.
+_EN_CAUTION_PARTS = {
+    "무릎": "knee",
+    "허리": "lower back",
+    "어깨": "shoulder",
+    "발목": "ankle",
+}
 
 #: 반복 운동 이름으로 타입을 대략 짐작한다. 완료 기록엔 이름만 있고 타입이
 #: 없어서, 화면에 보여줄 타입 하나는 정해야 한다(#776).
@@ -125,14 +157,43 @@ def _safe_parts(
     return kept or alternatives
 
 
-def _caution_suffix(cautions: list[str], escalate: bool) -> str:
+def _caution_suffix(
+    cautions: list[str], escalate: bool, locale: Locale = "ko"
+) -> str:
     """근거 문장에 붙일 안전 메모. 트레이너가 무엇이 반영됐는지 읽는 자리다."""
     parts: list[str] = []
     if cautions:
-        parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐습니다.")
+        if locale == "en":
+            names = ", ".join(_EN_CAUTION_PARTS.get(c, c) for c in cautions)
+            parts.append(
+                f" Cautions ({names}) applied: removed movements that load "
+                "those areas."
+            )
+        else:
+            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐습니다.")
     if escalate:
-        parts.append(" 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.")
+        parts.append(
+            localized(
+                " 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+                " Intensity was not raised — adjust after a professional check.",
+                locale,
+            )
+        )
     return "".join(parts)
+
+
+def exercise_name(name: str, locale: Locale = "ko") -> str:
+    """라이브러리 운동 이름을 [locale] 로. 라이브러리 밖 이름은 그대로다(#2301)."""
+    if locale == "en":
+        return _EN_EXERCISE_NAMES.get(name, name)
+    return name
+
+
+def _localize_exercises(items: list[dict], locale: Locale) -> list[dict]:
+    """구성이 끝난 운동 목록의 이름만 [locale] 로 옮긴다. 시간·유형은 그대로다."""
+    if locale != "en":
+        return items
+    return [{**item, "name": exercise_name(item["name"], locale)} for item in items]
 
 
 def _guess_type(name: str) -> str:
@@ -159,9 +220,20 @@ def _compose(total: int, parts: list[tuple[str, str, int]]) -> list[dict]:
     return out
 
 
-def _note_suffix(trainer_note: str) -> str:
+def _clip_rationale(text: str) -> str:
+    """[RATIONALE_MAX_CHARS] 를 넘으면 끝을 줄임표로 자른다."""
+    if len(text) <= RATIONALE_MAX_CHARS:
+        return text
+    return text[: RATIONALE_MAX_CHARS - 1] + "…"
+
+
+def _note_suffix(trainer_note: str, locale: Locale = "ko") -> str:
     note = trainer_note.strip()
-    return f" 트레이너 메모 반영: {note}." if note else ""
+    if not note:
+        return ""
+    return localized(
+        f" 트레이너 메모 반영: {note}.", f" Trainer note applied: {note}.", locale
+    )
 
 
 def rule_based_plans(
@@ -176,8 +248,12 @@ def rule_based_plans(
     conditions: str = "",
     recent_messages: list[str] | tuple[str, ...] = (),
     insight_memos: list[str] | tuple[str, ...] = (),
+    locale: Locale = "ko",
 ) -> tuple[dict, dict]:
     """결정적 규칙형 A/B. 회원 수치를 근거 문구에 인용한다.
+
+    [locale] 은 이름·사유·근거 문장의 언어다(#2301). 구성(운동·시간·강도)은
+    언어와 무관하게 같다.
 
     `frequent_exercises` 가 있으면(#776, 개인화 가능한 회원) 고정 라이브러리
     대신 그 운동들로 A/B 를 구성한다 — 데이터가 없는 회원과 같은 함수를 쓰되
@@ -200,11 +276,12 @@ def rule_based_plans(
             trainer_note=trainer_note,
             cautions=cautions,
             escalate=escalate,
+            locale=locale,
         )
 
     over = sodium_today_mg > SODIUM_TARGET_MG
     low_adherence = avg_completion_rate < 50
-    goal_label = goal.strip() or "설정된 목표"
+    goal_label = goal.strip() or localized("설정된 목표", "the set goal", locale)
 
     # A안 — 회복·지속: 가능 시간의 ~70%, 낮은 강도, 유산소+스트레칭 중심.
     total_a = min(available_minutes, max(5, round(available_minutes * 0.7)))
@@ -218,17 +295,30 @@ def rule_based_plans(
         ]
     plan_a = {
         "key": "A",
-        "label": "회복·지속 중심",
+        "label": localized("회복·지속 중심", "Recovery & consistency", locale),
         "total_minutes": total_a,
         "intensity": "낮음",
-        "exercises": _compose(total_a, _safe_parts(parts_a, cautions)),
-        "reason": "짧고 지속하기 쉬운 회복 중심 루틴",
-        "rationale": (
-            f"오늘 나트륨 {sodium_today_mg}mg"
-            f"{' (목표 초과)' if over else ''}, 최근 운동 완료율 "
-            f"{avg_completion_rate}% → 부담이 적은 유산소·스트레칭으로 지속 가능성에 집중."
-            + _note_suffix(trainer_note)
-            + _caution_suffix(cautions, escalate)
+        "exercises": _localize_exercises(
+            _compose(total_a, _safe_parts(parts_a, cautions)), locale
+        ),
+        "reason": localized(
+            "짧고 지속하기 쉬운 회복 중심 루틴",
+            "A short, easy-to-sustain recovery routine",
+            locale,
+        ),
+        "rationale": _clip_rationale(
+            localized(
+                f"오늘 나트륨 {sodium_today_mg}mg"
+                f"{' (목표 초과)' if over else ''}, 최근 운동 완료율 "
+                f"{avg_completion_rate}% → 부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.",
+                f"Sodium today {sodium_today_mg}mg"
+                f"{' (over target)' if over else ''}, recent workout completion "
+                f"{avg_completion_rate}% → focusing on consistency with "
+                "low-strain cardio and stretching.",
+                locale,
+            )
+            + _note_suffix(trainer_note, locale)
+            + _caution_suffix(cautions, escalate, locale)
         ),
     }
 
@@ -242,18 +332,31 @@ def rule_based_plans(
     ]
     plan_b = {
         "key": "B",
-        "label": "강도·운동량 중심",
+        "label": localized("강도·운동량 중심", "Intensity & volume", locale),
         "total_minutes": total_b,
         # 판단이 어려운 상태에서는 강도를 올리지 않는다.
         "intensity": "보통" if escalate else _B_LABEL.get(intensity_preference, "높음"),
-        "exercises": _compose(total_b, _safe_parts(parts_b, cautions)),
-        "reason": "운동량과 강도를 높인 루틴",
-        "rationale": (
-            f"목표 '{goal_label}' 기준, 완료율 {avg_completion_rate}%로 "
-            f"{'상향 여력이 있어' if avg_completion_rate >= 60 else '점진적으로'} "
-            f"근력·유산소를 더해 운동량을 높임."
-            + _note_suffix(trainer_note)
-            + _caution_suffix(cautions, escalate)
+        "exercises": _localize_exercises(
+            _compose(total_b, _safe_parts(parts_b, cautions)), locale
+        ),
+        "reason": localized(
+            "운동량과 강도를 높인 루틴",
+            "A routine with more volume and intensity",
+            locale,
+        ),
+        "rationale": _clip_rationale(
+            localized(
+                f"목표 '{goal_label}' 기준, 완료율 {avg_completion_rate}%로 "
+                f"{'상향 여력이 있어' if avg_completion_rate >= 60 else '점진적으로'} "
+                f"근력·유산소를 더해 운동량을 높임.",
+                f"Based on the goal '{goal_label}' and a {avg_completion_rate}% "
+                "completion rate, "
+                f"{'there is room to step up — adding' if avg_completion_rate >= 60 else 'gradually adding'} "
+                "strength and cardio to raise the workload.",
+                locale,
+            )
+            + _note_suffix(trainer_note, locale)
+            + _caution_suffix(cautions, escalate, locale)
         ),
     }
     return plan_a, plan_b
@@ -267,6 +370,7 @@ def _pattern_based_plans(
     trainer_note: str,
     cautions: list[str] | None = None,
     escalate: bool = False,
+    locale: Locale = "ko",
 ) -> tuple[dict, dict]:
     """반복 패턴이 확인된 회원용 A/B(#776).
 
@@ -290,16 +394,25 @@ def _pattern_based_plans(
     total_a = min(available_minutes, max(len(core_parts), round(available_minutes * 0.75)))
     plan_a = {
         "key": "A",
-        "label": "기존 패턴 유지형",
+        "label": localized("기존 패턴 유지형", "Keep current pattern", locale),
         "total_minutes": total_a,
         "intensity": intensity_label,
-        "exercises": _compose(total_a, core_parts),
-        "reason": "최근 자주 수행한 운동을 그대로 유지",
-        "rationale": (
-            f"최근 기록에서 반복 확인된 운동({core_label})을 유지하고 "
-            "부족한 부분만 보완."
-            + _note_suffix(trainer_note)
-            + _caution_suffix(safe, escalate)
+        "exercises": _localize_exercises(_compose(total_a, core_parts), locale),
+        "reason": localized(
+            "최근 자주 수행한 운동을 그대로 유지",
+            "Keeps the exercises done most often recently",
+            locale,
+        ),
+        "rationale": _clip_rationale(
+            localized(
+                f"최근 기록에서 반복 확인된 운동({core_label})을 유지하고 "
+                "부족한 부분만 보완.",
+                f"Keeps the exercises repeated in recent records ({core_label}) "
+                "and fills in only what is missing.",
+                locale,
+            )
+            + _note_suffix(trainer_note, locale)
+            + _caution_suffix(safe, escalate, locale)
         ),
     }
 
@@ -318,16 +431,28 @@ def _pattern_based_plans(
     total_b = available_minutes
     plan_b = {
         "key": "B",
-        "label": "점진적 강화형",
+        "label": localized("점진적 강화형", "Gradual progression", locale),
         "total_minutes": total_b,
         "intensity": "보통" if escalate else _B_LABEL.get(intensity_preference, "높음"),
-        "exercises": _compose(total_b, [*core_parts, (extra_name, extra_type, 1)]),
-        "reason": "기존 핵심 운동을 유지하며 운동량을 소폭 확대",
-        "rationale": (
-            f"기존 핵심 운동({core_label})은 유지하고 '{extra_name}'을(를) 더해 "
-            "운동량을 점진적으로 늘림."
-            + _note_suffix(trainer_note)
-            + _caution_suffix(safe, escalate)
+        "exercises": _localize_exercises(
+            _compose(total_b, [*core_parts, (extra_name, extra_type, 1)]), locale
+        ),
+        "reason": localized(
+            "기존 핵심 운동을 유지하며 운동량을 소폭 확대",
+            "Keeps the core exercises and slightly raises the workload",
+            locale,
+        ),
+        "rationale": _clip_rationale(
+            localized(
+                f"기존 핵심 운동({core_label})은 유지하고 '{extra_name}'을(를) 더해 "
+                "운동량을 점진적으로 늘림.",
+                f"Keeps the core exercises ({core_label}) and adds "
+                f"'{exercise_name(extra_name, locale)}' to gradually raise the "
+                "workload.",
+                locale,
+            )
+            + _note_suffix(trainer_note, locale)
+            + _caution_suffix(safe, escalate, locale)
         ),
     }
     return plan_a, plan_b

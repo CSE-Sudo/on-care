@@ -4729,6 +4729,12 @@ abstract class AppLocalizations {
   /// **'AI custom suggestion ({option})'**
   String aiCustomRoutineNamed(String option);
 
+  /// Routine name sent when the trainer leaves the name blank (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'AI custom suggestion'**
+  String get aiCustomRoutineName;
+
   /// No description provided for @aiAnalysing.
   ///
   /// In en, this message translates to:
@@ -4938,6 +4944,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Why AI picked this'**
   String get aiPersonalRationaleLabel;
+
+  /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Recent PT feedback'**
+  String get routineEvidenceRecentPtFeedback;
+
+  /// Evidence chip; server code strength_heavy (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly strength lately'**
+  String get routineEvidenceStrengthHeavy;
+
+  /// Evidence chip; server code blood_pressure_goal (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Blood pressure goal'**
+  String get routineEvidenceBloodPressureGoal;
+
+  /// Evidence chip; server code low_cardio (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Little cardio lately'**
+  String get routineEvidenceLowCardio;
+
+  /// Evidence chip; server code recent_record (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Recent workout log'**
+  String get routineEvidenceRecentRecord;
+
+  /// Intensity of an AI A/B plan whose contract value is 낮음 (#2301).
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get aiPlanIntensityLow;
 
   /// No description provided for @aiPersonalStepFull.
   ///

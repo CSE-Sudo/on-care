@@ -2791,6 +2791,9 @@ def suggestion_evidence(evidence_json: str) -> list[str]:
 
     `draft_exercises` 와 같은 이유로 관대하다 — 근거 하나가 이상해서 제안 카드
     자체가 안 뜨면, 트레이너는 검토할 것이 있는지조차 알 수 없다.
+
+    자동 후보의 근거는 코드다(#2301). 코드로 바꾸기 전에 문장으로 저장된 행은
+    여기서 코드로 되돌려, 이미 쌓인 검토 대기 후보도 화면 언어로 표시되게 한다.
     """
     try:
         raw = json.loads(evidence_json) if evidence_json else []
@@ -2798,8 +2801,9 @@ def suggestion_evidence(evidence_json: str) -> list[str]:
         return []
     if not isinstance(raw, list):
         return []
+    legacy = routine_suggestion_service.LEGACY_EVIDENCE_LABELS
     return [
-        item.strip()[:_EVIDENCE_MAX_LEN]
+        legacy.get(item.strip(), item.strip())[:_EVIDENCE_MAX_LEN]
         for item in raw[:_EVIDENCE_MAX_ITEMS]
         if isinstance(item, str) and item.strip()
     ]

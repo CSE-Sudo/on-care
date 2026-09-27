@@ -1068,6 +1068,7 @@
   "aiRoutineSent": "{name}님에게 프로그램을 전송했어요",
   "aiExerciseWithMinutes": "{name} {minutes}분",
   "aiCustomRoutineNamed": "AI 맞춤 추천안 ({option})",
+  "aiCustomRoutineName": "AI 맞춤 추천안",
   "aiAnalysing": "AI가 분석 중…",
   "aiGenerateCandidates": "맞춤 추천안 후보 생성",
   "aiReviewDone": "검토 완료",
@@ -1103,6 +1104,12 @@
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
   "aiPersonalRationaleLabel": "AI 추천 사유",
+  "routineEvidenceRecentPtFeedback": "최근 PT 피드백 반영",
+  "routineEvidenceStrengthHeavy": "최근 근력운동 비중 높음",
+  "routineEvidenceBloodPressureGoal": "혈압 관리 목표",
+  "routineEvidenceLowCardio": "최근 유산소 비중 낮음",
+  "routineEvidenceRecentRecord": "최근 운동 기록 반영",
+  "aiPlanIntensityLow": "낮음",
   "aiPersonalStepFull": "개인운동은 한 번에 {count}개까지 정할 수 있어요.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }

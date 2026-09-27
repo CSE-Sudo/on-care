@@ -25,6 +25,12 @@
 
 신호가 하나도 없는 회원에게는 아무것도 만들지 않는다. 근거 없는 후보는
 트레이너에게 판단할 재료를 주지 못하면서 검토 목록만 채운다.
+
+**언어(#2301).** 근거는 코드로 저장해 트레이너 웹이 화면 언어로 표시한다. 운동
+이름과 `reason` 은 후보를 준비하는 요청(= 트레이너의 검토 목록 조회)의 언어로
+만들어 저장한다. `reason` 은 승인하면 회원에게 그대로 가는 **트레이너 명의의
+안내문**이라, 트레이너가 검토하며 읽고 고친 그 문장이 그대로 전달돼야 한다 —
+회원 화면 언어로 다시 바꾸면 트레이너가 승인한 적 없는 문장이 나간다.
 """
 from __future__ import annotations
 
@@ -38,6 +44,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.locale import Locale, current_locale, localized
 from app.models.models import (
     ExerciseSession,
     HealthProfile,
@@ -71,13 +78,35 @@ MAX_NEW_SUGGESTIONS = 2
 #: 목록이 된다.
 MAX_PENDING_BACKLOG = 4
 
-#: 근거 문구. 스키마(`RoutineSuggestionCreateRequest.evidence`)의 길이 상한
-#: 안에서 한 줄로 읽히게 짧게 둔다.
-EV_RECENT_PT = "최근 PT 피드백 반영"
-EV_STRENGTH_HEAVY = "최근 근력운동 비중 높음"
-EV_BLOOD_PRESSURE = "혈압 관리 목표"
-EV_LOW_CARDIO = "최근 유산소 비중 낮음"
-EV_RECENT_RECORD = "최근 운동 기록 반영"
+#: 근거 **코드**. 문장이 아니라 코드로 저장하고 보낸다 — 트레이너 웹이 화면
+#: 언어에 맞는 문구(ARB)로 바꿔 보여 준다(#2301). 문장으로 저장하면 한 번 만든
+#: 후보의 근거가 영어 화면에서도 영영 한국어로 남는다. 스키마
+#: (`RoutineSuggestionCreateRequest.evidence`)의 길이 상한 안에 든다.
+EV_RECENT_PT = "recent_pt_feedback"
+EV_STRENGTH_HEAVY = "strength_heavy"
+EV_BLOOD_PRESSURE = "blood_pressure_goal"
+EV_LOW_CARDIO = "low_cardio"
+EV_RECENT_RECORD = "recent_record"
+
+#: 서버가 만드는 근거 코드 전부. 앱은 이 밖의 값을 받으면 원문 그대로 보여 준다.
+EVIDENCE_CODES: tuple[str, ...] = (
+    EV_RECENT_PT,
+    EV_STRENGTH_HEAVY,
+    EV_BLOOD_PRESSURE,
+    EV_LOW_CARDIO,
+    EV_RECENT_RECORD,
+)
+
+#: 코드로 바꾸기 전(#2301)에 문장으로 저장된 근거 → 코드. 이미 준비된 검토 대기
+#: 후보가 영어 화면에서도 번역되게, 읽는 쪽(`trainer_service.suggestion_evidence`)이
+#: 이 표로 코드로 되돌린다. 모르는 문장은 원문 그대로 둔다.
+LEGACY_EVIDENCE_LABELS: dict[str, str] = {
+    "최근 PT 피드백 반영": EV_RECENT_PT,
+    "최근 근력운동 비중 높음": EV_STRENGTH_HEAVY,
+    "혈압 관리 목표": EV_BLOOD_PRESSURE,
+    "최근 유산소 비중 낮음": EV_LOW_CARDIO,
+    "최근 운동 기록 반영": EV_RECENT_RECORD,
+}
 
 #: 혈압 관리로 읽을 질환 표기. 회원이 적는 표기가 일정하지 않아 부분 문자열로
 #: 본다. 이 신호는 **강도를 내리는 쪽으로만** 쓴다.
@@ -157,7 +186,7 @@ def ensure_suggestions(db: Session, trainer_id: str, member_id: str) -> None:
         return
 
     signals = _collect_signals(db, trainer_id, member_id)
-    candidates = _candidates_for(signals)
+    candidates = _candidates_for(signals, current_locale())
     if not candidates:
         return
 
@@ -331,12 +360,16 @@ def _recent_sessions_query(member_id: str, window: tuple[date, date]):
     )
 
 
-def _candidates_for(signals: _Signals) -> list[_Candidate]:
+def _candidates_for(
+    signals: _Signals, locale: Locale = "ko"
+) -> list[_Candidate]:
     """신호를 회복 범위의 후보로 옮긴다. 신호가 없으면 빈 목록.
 
     순서가 곧 우선순위다 — 상한([MAX_NEW_SUGGESTIONS])에 걸리면 뒤가 잘린다.
     회복(PT 직후·근력 편중)을 먼저 두는 이유는 그쪽이 다음 수업까지의 컨디션에
     직접 닿기 때문이다.
+
+    이름·`reason` 은 [locale] 로 쓴다(#2301). 근거는 언어와 무관한 코드다.
     """
     if signals.empty:
         return []
@@ -353,12 +386,19 @@ def _candidates_for(signals: _Signals) -> list[_Candidate]:
             evidence.append(EV_RECENT_RECORD)
         out.append(
             _Candidate(
-                name="하체·전신 회복 스트레칭",
+                name=localized(
+                    "하체·전신 회복 스트레칭",
+                    "Lower & full-body recovery stretch",
+                    locale,
+                ),
                 minutes=10,
                 type="스트레칭",
-                reason=(
+                reason=localized(
                     "최근 수업과 근력 운동 뒤 회복을 돕는 가벼운 스트레칭이에요. "
-                    "통증이 느껴지면 멈추세요."
+                    "통증이 느껴지면 멈추세요.",
+                    "A light stretch to help you recover after recent sessions "
+                    "and strength work. Stop if you feel any pain.",
+                    locale,
                 ),
                 evidence=tuple(evidence),
             )
@@ -372,12 +412,15 @@ def _candidates_for(signals: _Signals) -> list[_Candidate]:
             evidence.append(EV_LOW_CARDIO)
         out.append(
             _Candidate(
-                name="저강도 걷기",
+                name=localized("저강도 걷기", "Low-intensity walk", locale),
                 minutes=20,
                 type="유산소",
-                reason=(
+                reason=localized(
                     "대화할 수 있는 속도로 걷는 회복 목적 유산소예요. "
-                    "숨이 차면 속도를 낮추세요."
+                    "숨이 차면 속도를 낮추세요.",
+                    "Recovery cardio at a pace where you can still hold a "
+                    "conversation. Slow down if you get out of breath.",
+                    locale,
                 ),
                 evidence=tuple(evidence),
             )
@@ -388,12 +431,17 @@ def _candidates_for(signals: _Signals) -> list[_Candidate]:
         # 않고, 다음 수업을 준비하는 범위에서 가장 가벼운 것 하나만 둔다.
         out.append(
             _Candidate(
-                name="목·어깨 스트레칭",
+                name=localized(
+                    "목·어깨 스트레칭", "Neck & shoulder stretch", locale
+                ),
                 minutes=8,
                 type="스트레칭",
-                reason=(
+                reason=localized(
                     "다음 수업을 준비하는 가벼운 스트레칭이에요. "
-                    "가동 범위 안에서만 움직이세요."
+                    "가동 범위 안에서만 움직이세요.",
+                    "A light stretch to get ready for your next session. "
+                    "Only move within a comfortable range of motion.",
+                    locale,
                 ),
                 evidence=(
                     EV_RECENT_PT if signals.trainer_feedback else EV_RECENT_RECORD,
