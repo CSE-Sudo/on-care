@@ -3009,6 +3009,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifLoadFailed => '알림을 불러오지 못했어요';
 
   @override
+  String get notifLoadMore => '지난 알림 더 보기';
+
+  @override
+  String get notifLoadMoreFailed => '지난 알림을 불러오지 못했어요';
+
+  @override
+  String get notifNoEarlier => '더 지난 알림이 없어요';
+
+  @override
   String get notifTplHealthGoalTitle => '회원 건강 목표 변경';
 
   @override

@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
 from app.core import clock
@@ -363,6 +363,52 @@ def queue_for_trainer(
     )
     db.add(notification)
     return notification
+
+
+#: 트레이너 알림함 한 쪽의 기본·최대 건수(#2293). 쪽 나눔이 없던 시절의 상한과
+#: 같은 값이라, 파라미터 없이 부르는 기존 클라이언트는 전과 같은 결과를 받는다.
+TRAINER_PAGE_DEFAULT = 100
+TRAINER_PAGE_MAX = 100
+
+
+def list_for_trainer(
+    db: Session,
+    trainer_id: str,
+    *,
+    limit: int = TRAINER_PAGE_DEFAULT,
+    before: datetime | None = None,
+    before_id: str | None = None,
+) -> tuple[list[Notification], Notification | None]:
+    """트레이너 알림 한 쪽(최신순)과, 다음 쪽이 있으면 그 커서가 될 마지막 행.
+
+    전에는 최신 100건에서 끊기고 커서가 없어, 미읽음 배지는 전체를 세는데 그보다
+    오래된 미읽음은 목록 어디에도 나오지 않았다(#2293).
+
+    정렬은 `(created_at, id)` 내림차순이다. 훅 하나가 여러 알림을 한 트랜잭션에
+    넣어 같은 `created_at` 이 실제로 나오므로, 시각만으로 자르면 쪽 경계에서 알림이
+    빠지거나 겹친다. `before_id` 가 없으면 시각만으로 자른다(회원 알림과 같은 규칙).
+
+    다음 쪽이 있는지는 한 건 더 읽어 본다 — 마지막 쪽이 정확히 [limit] 건일 때
+    빈 쪽을 한 번 더 부르게 하지 않으려는 것이다.
+    """
+    query = select(Notification).where(Notification.user_id == trainer_id)
+    if before is not None:
+        if before_id is not None:
+            query = query.where(
+                tuple_(Notification.created_at, Notification.id) < (before, before_id)
+            )
+        else:
+            query = query.where(Notification.created_at < before)
+    rows = list(
+        db.scalars(
+            query.order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(limit + 1)
+        ).all()
+    )
+    if len(rows) > limit:
+        page = rows[:limit]
+        return page, page[-1]
+    return rows, None
 
 
 # --------------------------------------------------------------------------

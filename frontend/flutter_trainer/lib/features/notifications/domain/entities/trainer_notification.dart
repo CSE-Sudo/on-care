@@ -89,6 +89,22 @@ class TrainerNotification {
   /// — 잘못된 날짜로 스케줄을 여는 것보다 오늘 스케줄로 가는 편이 낫다.
   final String? targetDate;
 
+  /// 읽음 상태만 바꾼 사본. 이어 받은 과거 쪽을 다시 읽지 않고 읽음 처리를
+  /// 반영하는 데 쓴다(#2293).
+  TrainerNotification copyWith({bool? read}) => TrainerNotification(
+    id: id,
+    title: title,
+    body: body,
+    kind: kind,
+    read: read ?? this.read,
+    createdAt: createdAt,
+    timeAgo: timeAgo,
+    subjectId: subjectId,
+    template: template,
+    args: args,
+    targetDate: targetDate,
+  );
+
   factory TrainerNotification.fromJson(Map<String, Object?> json) =>
       TrainerNotification(
         id: json['id']! as String,
@@ -132,4 +148,66 @@ String? _ymdOrNull(Object? raw) {
       '${parsed.month.toString().padLeft(2, '0')}-'
       '${parsed.day.toString().padLeft(2, '0')}';
   return roundTrip == raw ? raw : null;
+}
+
+/// 다음 쪽을 받을 자리 — 서버가 준 `(before, before_id)` 그대로. (#2293)
+///
+/// 값을 [DateTime] 으로 바꾸지 않고 받은 글자 그대로 되돌려 준다. 한 번 읽고
+/// 다시 쓰면 정밀도나 시간대가 달라져 쪽 경계에서 알림이 빠지거나 겹칠 수 있다.
+class TrainerNotificationCursor {
+  const TrainerNotificationCursor({
+    required this.before,
+    required this.beforeId,
+  });
+
+  /// `X-Next-Before` 헤더 값(ISO 시각).
+  final String before;
+
+  /// `X-Next-Before-Id` 헤더 값(알림 id).
+  final String beforeId;
+
+  /// 응답 헤더에서 읽는다. 둘 중 하나라도 없으면 마지막 쪽이다.
+  static TrainerNotificationCursor? fromHeaders(
+    String? before,
+    String? beforeId,
+  ) {
+    if (before == null || before.isEmpty) return null;
+    if (beforeId == null || beforeId.isEmpty) return null;
+    return TrainerNotificationCursor(before: before, beforeId: beforeId);
+  }
+
+  /// 다음 요청의 쿼리.
+  Map<String, String> toQuery() => <String, String>{
+    'before': before,
+    'before_id': beforeId,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is TrainerNotificationCursor &&
+      other.before == before &&
+      other.beforeId == beforeId;
+
+  @override
+  int get hashCode => Object.hash(before, beforeId);
+}
+
+/// 알림 한 쪽과 그다음 쪽 커서. [next] 가 없으면 마지막 쪽이다. (#2293)
+class TrainerNotificationPage {
+  const TrainerNotificationPage({
+    this.items = const <TrainerNotification>[],
+    this.next,
+  });
+
+  /// 빈 쪽 — 알림이 없고 더 받을 것도 없다.
+  static const TrainerNotificationPage empty = TrainerNotificationPage();
+
+  /// 최신순 알림.
+  final List<TrainerNotification> items;
+
+  /// 다음 쪽 커서.
+  final TrainerNotificationCursor? next;
+
+  /// 더 받을 쪽이 있는가.
+  bool get hasMore => next != null;
 }
