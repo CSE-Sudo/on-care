@@ -3479,6 +3479,38 @@ class AppLocalizationsKo extends AppLocalizations {
       '흐린 값은 회원이 목표를 세우기 전의 기본 기준이에요. 비워 두면 이 값으로 계산해요.';
 
   @override
+  String clientGoalSuggestionDiet(
+    int kcal,
+    int carbs,
+    int sugar,
+    int protein,
+    int fat,
+    int sodium,
+  ) {
+    return '권장: ${kcal}kcal · 탄수화물 ${carbs}g · 당류 ${sugar}g · 단백질 ${protein}g · 지방 ${fat}g · 나트륨 ${sodium}mg';
+  }
+
+  @override
+  String clientGoalSuggestionExercise(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return '권장: 하루 소모 ${burn}kcal · 주 유산소 $cardio분 · 근력 $strength세트 · 스트레칭 $flexibility분';
+  }
+
+  @override
+  String get clientGoalSuggestionPersonal =>
+      '나이·성별·키·몸무게와 건강 목표로 계산했어요 (2020 한국인 영양소 섭취기준·WHO 권고)';
+
+  @override
+  String get clientGoalSuggestionFallback => '나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요';
+
+  @override
+  String get clientGoalApplySuggestion => '권장값으로 채우기';
+
+  @override
   String get clientTrainerMemoHint => '이 회원에 대해 기억할 내용을 적어 주세요';
 
   @override
