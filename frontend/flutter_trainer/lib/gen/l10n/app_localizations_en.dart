@@ -4524,6 +4524,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsStepPrev => 'Back';
 
   @override
+  String get reportsPreviewTitle => 'What the member receives';
+
+  @override
+  String get reportsPreviewRecipient => 'To';
+
+  @override
+  String get reportsPreviewWeek => 'Week';
+
+  @override
+  String reportsPreviewDelivery(String name) {
+    return 'Sent to $name\'s chat as a PDF file';
+  }
+
+  @override
+  String get reportsPreviewEditHint =>
+      'To change the text, tap Back to return to the Write step';
+
+  @override
+  String get reportsPreviewGenerating => 'Preparing the preview';
+
+  @override
+  String get reportsPreviewFailed => 'Couldn\'t prepare the preview';
+
+  @override
+  String reportsPreviewPage(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
+  String get reportsPreviewPrevPage => 'Previous page';
+
+  @override
+  String get reportsPreviewNextPage => 'Next page';
+
+  @override
+  String get reportsPreviewZoomIn => 'Zoom in';
+
+  @override
+  String get reportsPreviewZoomOut => 'Zoom out';
+
+  @override
   String get reportsGridPtSession => 'PT sessions';
 
   @override
