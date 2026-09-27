@@ -11,6 +11,10 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 
+/// 한국어 문구 — 지표 요약의 단위는 ARB 가 정한다 (#2304).
+final AppLocalizations _ko = lookupAppLocalizations(const Locale('ko'));
+final AppLocalizations _en = lookupAppLocalizations(const Locale('en'));
+
 void main() {
   const duplicateSuggestions = <AiRoutineItem>[
     AiRoutineItem(
@@ -395,7 +399,7 @@ void main() {
     );
 
     test('근력이 아니면 세트·중량이 값이 있어도 요약에 뜨지 않는다', () {
-      final metrics = programExerciseMetrics(nonStrength, korean: true);
+      final metrics = programExerciseMetrics(_ko, nonStrength);
       expect(metrics.any((m) => m.contains('세트') || m.contains('kg')), isFalse);
       expect(metrics, contains('20분'));
     });
@@ -403,8 +407,8 @@ void main() {
     test('스트레칭·기타도 마찬가지다', () {
       for (final type in <String>['스트레칭', '기타']) {
         final metrics = programExerciseMetrics(
+          _ko,
           nonStrength.copyWith(type: type),
-          korean: true,
         );
         expect(
           metrics.any((m) => m.contains('세트') || m.contains('kg')),
@@ -416,11 +420,54 @@ void main() {
 
     test('근력이면 세트와 중량을 보여준다', () {
       final metrics = programExerciseMetrics(
+        _ko,
         nonStrength.copyWith(type: '근력', sets: 4, weight: 60),
-        korean: true,
       );
       expect(metrics, contains('4세트'));
       expect(metrics, contains('60kg'));
+    });
+
+    // 예전에는 `korean ?` 분기로 두 언어를 코드에 박아 두었다 (#2304).
+    test('한국어 — 세트·횟수·분 단위가 ARB 문구다', () {
+      expect(
+        programExerciseMetrics(
+          _ko,
+          nonStrength.copyWith(type: '근력', sets: 1, reps: 12, weight: 0),
+        ),
+        <String>['1세트', '12회', '0kg'],
+      );
+      expect(programExerciseMetrics(_ko, nonStrength), <String>['20분']);
+    });
+
+    test('영어 — 단수·복수를 가려 한글이 남지 않는다', () {
+      expect(
+        programExerciseMetrics(
+          _en,
+          nonStrength.copyWith(type: '근력', sets: 1, reps: 1, weight: 22.5),
+        ),
+        <String>['1 set', '1 rep', '22.5kg'],
+      );
+      expect(
+        programExerciseMetrics(
+          _en,
+          nonStrength.copyWith(type: '근력', sets: 4, reps: 12, weight: 60),
+        ),
+        <String>['4 sets', '12 reps', '60kg'],
+      );
+      expect(programExerciseMetrics(_en, nonStrength), <String>['20 min']);
+      for (final type in <String>['스트레칭', '기타']) {
+        expect(
+          programExerciseMetrics(_en, nonStrength.copyWith(type: type)),
+          <String>['20 min'],
+          reason: type,
+        );
+      }
+    });
+
+    test('횟수가 0이면 횟수 칸을 빼는 것은 두 언어가 같다', () {
+      final draft = nonStrength.copyWith(type: '근력', sets: 3, reps: 0);
+      expect(programExerciseMetrics(_en, draft), <String>['3 sets', '20kg']);
+      expect(programExerciseMetrics(_ko, draft), <String>['3세트', '20kg']);
     });
   });
 

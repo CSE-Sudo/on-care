@@ -14,7 +14,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.models.models import User
-from app.services import notification_service
+from app.services import notification_service, notification_templates
 from app.services.trainer_service import get_member_trainer_id
 
 
@@ -35,8 +35,8 @@ def record_member_rename(db: Session, member: User, *, before: str | None) -> bo
         db,
         trainer_id=trainer_id,
         kind=notification_service.TRAINER_MEMBER_NAME_KIND,
-        title="회원 이름 변경",
-        body=f"{old} 회원이 이름을 바꿨어요: {new}",
+        template=notification_templates.TRAINER_MEMBER_RENAMED,
+        template_args={"old_name": old, "new_name": new},
         subject_id=member.id,
     )
     return True

@@ -143,6 +143,27 @@ Map<String, Object?> programAssignToJson(
 /// **AI 추천 사유(`reason`)는 싣지 않는다.** 그 글은 트레이너가 이 제안을
 /// 그대로 둘지 판단하는 재료이지 회원이 읽을 문구가 아니다 — 회원 화면에는
 /// 운동 이름·유형·양만 선다.
+/// `RoutineOut` JSON → 붙어 있는 개인운동 한 줄. (#2224)
+///
+/// 일정 상세와 완료 확인창이 "무엇이 함께 가는지" 를 보여 주는 데 쓴다.
+/// 회원에게 나가지 않는 `reason` 은 트레이너 화면에서만 읽으므로 그대로
+/// 싣는다 — 왜 이 운동이 올라왔는지는 보낼지 판단하는 재료다.
+RoutineExercise scheduledRoutineFromJson(Map<String, dynamic> json) {
+  final int holdSeconds = (json['hold_seconds'] as num?)?.toInt() ?? 0;
+  return RoutineExercise(
+    name: (json['name'] as String?) ?? '',
+    minutes: (json['minutes'] as num?)?.toInt() ?? 0,
+    type: normaliseRoutineType((json['type'] as String?) ?? ''),
+    sets: (json['sets'] as num?)?.toInt() ?? 0,
+    reps: (json['reps'] as num?)?.toInt() ?? 0,
+    holdSeconds: holdSeconds,
+    isHold: holdSeconds > 0,
+    weight: (json['weight'] as num?)?.toDouble() ?? 0,
+    reason: (json['reason'] as String?) ?? '',
+    source: (json['source'] as String?) ?? 'trainer',
+  );
+}
+
 List<Map<String, Object?>> personalRoutinesToJson(
   List<RoutineExercise> routines,
 ) {

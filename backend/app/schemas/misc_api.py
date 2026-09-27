@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 from datetime import date as _date, datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.partial_update import PartialUpdate
@@ -42,7 +42,7 @@ def _valid_hhmm_or_empty(v: str) -> str:
 # ---- 일정 ----
 class NotificationAction(BaseModel):
     """알림에서 바로 갈 수 있는 액션(카테고리에서 파생). 프론트가 target 으로 이동."""
-    label: str         # "기록하러 가기"
+    label: str         # "기록하러 가기" / "Log now" — 요청 언어(#2302)
     target: str        # 프론트 라우트 힌트: schedule|dashboard
 
 
@@ -56,6 +56,10 @@ class NotificationOut(BaseModel):
     time_ago: str
     action: NotificationAction | None = None
     invite_id: str | None = None
+    #: 문장 틀 코드와 인자(#2302). 틀이 생기기 전의 알림은 둘 다 없다. `title`·
+    #: `body` 는 이미 요청 언어로 조립돼 있어, 앱이 직접 조립할 때만 쓴다.
+    template: str | None = None
+    args: dict[str, Any] | None = None
 
 
 # ---- 장소 ----

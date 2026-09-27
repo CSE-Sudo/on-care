@@ -1,3 +1,5 @@
+import 'package:oncare_trainer/core/storage/demo_language.dart';
+
 /// 아직 트레이너와 연결되지 않은 데모 회원 한 명 — 회원 앱 마이페이지에 이미
 /// 등록해 둔 프로필이라고 가정한다. "신규 고객 등록"(회원 ID로 연결) 데모
 /// 시나리오가 이 명부에서 찾아 연결한다.
@@ -13,6 +15,7 @@ class DemoProspectiveMember {
     required this.gender,
     required this.birthDate,
     required this.goal,
+    required this.goalEn,
   });
 
   /// 이 회원이 자기 앱에 띄웠다고 가정하는 6자리 동기화 코드. (#1634)
@@ -31,7 +34,15 @@ class DemoProspectiveMember {
   /// `male`/`female`/`other` — 회원이 이미 등록해 둔 값.
   final String gender;
   final DateTime birthDate;
+
+  /// 회원이 적어 둔 운동 목표(한국어 데모).
   final String goal;
+
+  /// 같은 목표의 영어 데모 문구 (#2304). 이름은 어느 언어에서든 그대로다.
+  final String goalEn;
+
+  /// [language] 데모에서 보여 줄 목표.
+  String goalIn(DemoLanguage language) => language.isEnglish ? goalEn : goal;
 
   /// [today] 기준 만 나이. 생일이 지났는지까지 본다 — 연도 차만 빼면 생일
   /// 전 몇 달은 실제보다 한 살 많게 나온다.
@@ -60,6 +71,7 @@ final List<DemoProspectiveMember> demoProspectiveMembers =
         gender: 'female',
         birthDate: DateTime(1996, 4, 12),
         goal: '체중 감량',
+        goalEn: 'Weight loss',
       ),
       DemoProspectiveMember(
         id: 'user-1c7b93f04a58',
@@ -68,6 +80,7 @@ final List<DemoProspectiveMember> demoProspectiveMembers =
         gender: 'male',
         birthDate: DateTime(1990, 11, 3),
         goal: '근력 향상',
+        goalEn: 'Strength',
       ),
     ];
 

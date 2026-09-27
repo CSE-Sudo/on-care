@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.core.config import get_settings
-from app.core.locale import RequestLocale
+from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.core.rate_limit import limiter, rate_limit
 from app.core.security import hash_password, verify_password
@@ -70,6 +70,8 @@ from app.schemas.trainer_api import (
     ProgramAssignRequest, ProgramScheduleOut, ProgramScheduleRequest,
     RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
     ScheduleCancelRequest, ScheduleCompleteRequest,
+    ScheduleRoutineSendRequest,
+    ScheduleRoutineUpdateRequest,
     ScheduleProgramSendRequest, ScheduleCreateRequest,
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
     ScheduleSessionOut, ScheduleUpdateRequest,
@@ -102,6 +104,7 @@ from app.services import (
     trainer_program_template_service,
     diet_photo_service,
     notification_service,
+    notification_templates,
     trainer_report_summary_service,
     report_pdf_storage,
     trainer_routine_options_service,
@@ -698,7 +701,7 @@ def trainer_client_exercise_advice(
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=advice.text,
+        message=advice.text_for(),
         advice_key=advice.key,
         advice_params=advice.params,
     )
@@ -1684,6 +1687,78 @@ def trainer_schedule_routines(
     return trainer_service.list_scheduled_routines(db, trainer.id, session_id)
 
 
+@router.put(
+    "/trainer/schedule/{session_id}/routines", response_model=list[RoutineOut]
+)
+def trainer_update_schedule_routines(
+    session_id: str,
+    payload: ScheduleRoutineUpdateRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
+
+    일정 상세에서 바로 고친다. 이미 보낸 것은 손댈 수 없다.
+    """
+    try:
+        rows = trainer_service.update_scheduled_routines(
+            db, trainer.id, session_id, payload.personal_routines
+        )
+    except trainer_service.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if rows is None:
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+    return rows
+
+
+@router.post(
+    "/trainer/schedule/{session_id}/routines/send",
+    response_model=list[RoutineOut],
+)
+def trainer_send_schedule_routines(
+    session_id: str,
+    payload: ScheduleRoutineSendRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """마무리된 PT 에 남은 개인운동을 회원에게 보낸다. (#2224)
+
+    취소·노쇼로 끝난 PT 의 개인운동은 자동으로 가지 않는다 — 아파서 쉬는
+    회원에게 운동이 저절로 가면 안 된다. 트레이너가 누를 때만 온다.
+    `personal_routines` 를 주면 그 내용으로 고쳐서 보낸다.
+    """
+    try:
+        sent = trainer_service.send_scheduled_routines(
+            db, trainer.id, session_id, items=payload.personal_routines
+        )
+    except trainer_service.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if sent is None:
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+    return sent
+
+
+@router.post("/trainer/schedule/{session_id}/routines/dismiss")
+def trainer_dismiss_schedule_routines(
+    session_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, bool]:
+    """마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
+
+    `개인운동 미전송` 표시를 걷어낸다. 무엇을 짰다가 안 보냈는지는 남는다.
+    """
+    try:
+        done = trainer_service.dismiss_scheduled_routines(
+            db, trainer.id, session_id
+        )
+    except trainer_service.ScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if done is None:
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+    return {"dismissed": done}
+
+
 @router.put("/trainer/schedule/{session_id}", response_model=ScheduleSessionOut)
 def trainer_update_session(
     session_id: str,
@@ -2623,16 +2698,31 @@ def trainer_reject_consultation(
 # 계정을 403 으로 막는 **회원 전용** 경로다(역할 분리). 저장되는 행은 같은
 # `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없다.
 
-def _notification_out(row: Notification) -> TrainerNotificationOut:
-    return TrainerNotificationOut(
-        id=row.id,
+def _notification_out(row: Notification, locale: Locale) -> TrainerNotificationOut:
+    """트레이너 알림 한 건. 제목·본문은 요청 언어로 조립한다(#2302).
+
+    트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립하고, 모르는 틀일 때만
+    `title`·`body` 를 쓴다. 그 값도 요청 언어라, 새 틀을 아직 모르는 빌드도 알맞은
+    언어로 보인다. 한국어이거나 틀이 없는 옛 알림은 저장된 문장 그대로다.
+    """
+    title, body = notification_templates.localize(
         title=row.title,
         body=row.body,
+        template=row.template,
+        template_args=row.template_args,
+        locale=locale,
+    )
+    return TrainerNotificationOut(
+        id=row.id,
+        title=title,
+        body=body,
         category=row.category,
         read=row.read,
         created_at=row.created_at,
-        time_ago=notification_service.time_ago(row.created_at),
+        time_ago=notification_service.time_ago(row.created_at, locale),
         subject_id=row.subject_id,
+        template=row.template,
+        args=row.template_args,
         target_date=row.target_date,
     )
 
@@ -2641,6 +2731,7 @@ def _notification_out(row: Notification) -> TrainerNotificationOut:
 def trainer_notifications(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
 ) -> list[TrainerNotificationOut]:
     """트레이너가 받은 알림(최신순)."""
     rows = db.scalars(
@@ -2649,7 +2740,7 @@ def trainer_notifications(
         .order_by(Notification.created_at.desc())
         .limit(_NOTIFICATION_LIMIT)
     ).all()
-    return [_notification_out(row) for row in rows]
+    return [_notification_out(row, locale) for row in rows]
 
 
 @router.get("/trainer/notifications/unread-count", response_model=dict)
