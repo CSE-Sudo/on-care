@@ -139,6 +139,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionBack => 'Back';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoDashboard => 'Go to dashboard';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get appWordmarkTrainer => 'Trainer';
 
   @override
