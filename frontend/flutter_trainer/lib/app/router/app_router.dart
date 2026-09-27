@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/router/not_found_page.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
@@ -102,6 +103,11 @@ GoRouter buildAppRouter({
       // rides on the query string.
       state.uri.toString(),
     ),
+    // A URL that matches no route — mistyped, or a stale link whose prefix
+    // is a real screen (`/clients/<id>/diet/old`) and so survives the
+    // sign-in round trip — lands here instead of go_router's bare English
+    // error page. The auth gate above still runs first. (#2294)
+    errorBuilder: (context, state) => const NotFoundPage(),
     routes: <RouteBase>[
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(
@@ -198,8 +204,8 @@ GoRouter buildAppRouter({
                   clientId: state.uri.queryParameters['client'],
                   // 형식이 깨진 값은 무시하고 이번 주로 연다 — 링크 하나 때문에
                   // 리포트 화면이 열리지 않는 편이 더 나쁘다.
-                  weekStart: DateTime.tryParse(
-                    state.uri.queryParameters['week'] ?? '',
+                  weekStart: AppRoutes.parseReportWeek(
+                    state.uri.queryParameters['week'],
                   ),
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
@@ -190,7 +191,8 @@ class DemoClientInviteRepository implements ClientInviteRepository {
               name: prospect.name,
               avatar: String.fromCharCode(prospect.name.runes.first),
               goal: prospect.goalIn(language),
-              // 비워 둔다 — 화면이 로케일에 맞는 `대화 없음` 문구를 그린다(#2304).
+              // 대화가 없으면 비워 둔다 — 화면이 로케일에 맞춰
+              // "아직 대화가 없어요" 를 그린다.
               lastMessage: '',
               lastTime: '-',
               active: const Value(true),
@@ -383,6 +385,7 @@ class DioClientInviteRepository implements ClientInviteRepository {
 
 /// 현재 모드에 맞는 저장소.
 final clientInviteRepositoryProvider = Provider<ClientInviteRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return DemoClientInviteRepository(
       ref.watch(appDatabaseProvider),

@@ -30,6 +30,7 @@ TrainerClient trainerClientFromJson(Map<String, Object?> json) {
     proteinG: _double(json['protein_g']),
     fatG: _double(json['fat_g']),
     lastRoutine: _str(json['last_routine']),
+    lastRoutineDate: _dayOrNull(json['last_routine_date']),
     weekCompletion: _intList(json['week_completion']),
     sodiumWeek: _intList(json['sodium_week']),
     caloriesWeek: _intList(json['calories_week']),
@@ -71,7 +72,9 @@ ClientDietEntry clientDietEntryFromJson(Map<String, Object?> json) {
 
 /// `exercisesJson` / 서버 `exercises` → 운동 목록.
 ///
-/// 값까지 실린 객체를 읽되(#1902), 이름만 싣던 옛 자료(`벤치프레스 ✓`)도 받는다.
+/// 값까지 실린 객체를 읽되(#1902), 문장으로 저장된 옛 자료(`벤치프레스 ✓`,
+/// `스쿼트 3세트 12회 40kg`)도 받는다 — 끝에 붙은 한국어 단위는 값으로 되돌려
+/// 화면 언어로 다시 적는다(#2300).
 List<ClientExerciseItem> clientExerciseItems(Object? raw) {
   if (raw is! List) return const <ClientExerciseItem>[];
   return <ClientExerciseItem>[
@@ -79,7 +82,7 @@ List<ClientExerciseItem> clientExerciseItems(Object? raw) {
       if (item is Map<String, Object?>)
         ClientExerciseItem.fromJson(item)
       else if (item is String)
-        ClientExerciseItem.nameOnly(item),
+        ClientExerciseItem.fromLegacyLine(item),
   ];
 }
 
@@ -90,12 +93,38 @@ RoutineHistoryEntry routineHistoryEntryFromJson(Map<String, Object?> json) {
     dateLabel: _str(json['date_label']),
     label: _str(json['label']),
     completionRate: _int(json['completion_rate']),
-    exercises: clientExerciseItems(json['exercises']),
+    // 값으로 나눈 `exercise_items` 가 먼저다(#2300). 그 필드를 모르는 옛 서버는
+    // 문장(`exercises`)만 준다.
+    exercises: switch (json['exercise_items']) {
+      final List<Object?> items when items.isNotEmpty => clientExerciseItems(
+        items,
+      ),
+      _ => clientExerciseItems(json['exercises']),
+    },
     clientFeedback: _str(json['client_feedback']),
     trainerNote: _str(json['trainer_note']),
     assignedRoutineId: _nullableStr(json['assigned_routine_id']),
     completedAt: DateTime.tryParse(_str(json['completed_at'])),
+    date: _dayOrNull(json['date']),
+    kind: _nullableStr(json['kind']),
   );
+}
+
+/// `YYYY-MM-DD` → 그날 0시(현지). 날짜가 아닌 값·빈 값은 null.
+///
+/// 시각이 붙은 값은 받지 않는다 — 이 칸은 **달력 날짜**라, 시각과 시간대를
+/// 섞어 읽으면 자정 근처에서 하루가 밀린다.
+DateTime? _dayOrNull(Object? raw) {
+  if (raw is! String) return null;
+  final RegExpMatch? m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(raw);
+  if (m == null) return null;
+  final int year = int.parse(m.group(1)!);
+  final int month = int.parse(m.group(2)!);
+  final int day = int.parse(m.group(3)!);
+  final DateTime date = DateTime(year, month, day);
+  // `2026-02-30` 처럼 넘치는 날은 다음 달로 굴러가지 않게 버린다.
+  if (date.year != year || date.month != month || date.day != day) return null;
+  return date;
 }
 
 /// Orders the roster by coaching priority: `주의 회원`([needsAttention] — PT

@@ -28,21 +28,43 @@ class NotificationsPage extends ConsumerWidget {
   /// 건강 목표 변경은 **그 회원** 상세로 간다(#1832). 회원 id 가 빠진 알림이면
   /// 고객 목록으로 간다 — 누구의 목표인지는 본문에 적혀 있다. 회원 이름 변경도
   /// 같은 길이다(#2065). 회원이 떠난 알림은 이동하지 않는다(#2174).
+  ///
+  /// 상담은 상담 요청함으로, 예약은 그 수업 날짜의 스케줄로, 담당 요청 수락은
+  /// 새 담당 회원 상세로, 거절은 고객 목록으로 간다(#2292). 대상이 기록되기
+  /// 전의 옛 알림은 전처럼 오늘 스케줄로 간다.
   @visibleForTesting
-  static String? targetOf(TrainerNotification notification) =>
-      switch (notification.kind) {
-        TrainerNotificationKind.message => AppRoutes.clients,
-        TrainerNotificationKind.consultation => AppRoutes.schedule,
-        TrainerNotificationKind.reservation => AppRoutes.schedule,
-        TrainerNotificationKind.healthGoal ||
-        TrainerNotificationKind.memberName => switch (notification.subjectId) {
-          final String id => AppRoutes.clientDetail(id),
-          null => AppRoutes.clients,
-        },
-        // 떠난 회원의 상세는 더 열 수 없다(#2174).
-        TrainerNotificationKind.memberLeft ||
-        TrainerNotificationKind.other => null,
-      };
+  static String? targetOf(
+    TrainerNotification notification,
+  ) => switch (notification.kind) {
+    // 메시지는 보낸 회원의 대화로 간다(#2291). 보낸 회원이 기록되기 전의
+    // 옛 알림은 누구와의 대화인지 몰라 메시지 목록으로 간다.
+    TrainerNotificationKind.message => switch (notification.subjectId) {
+      final String id => AppRoutes.messagesFor(id),
+      null => AppRoutes.messages,
+    },
+    // 옛 상담 알림에는 담당 요청 결과도 섞여 있어(같은 종류로 남았다)
+    // 상담 요청함이 맞는 곳인지 알 수 없다 — 회원이 기록된 알림만 보낸다.
+    TrainerNotificationKind.consultation => switch (notification.subjectId) {
+      String() => AppRoutes.consultations,
+      null => AppRoutes.schedule,
+    },
+    TrainerNotificationKind.reservation => switch (notification.targetDate) {
+      final String date => AppRoutes.scheduleAt(date: date),
+      null => AppRoutes.schedule,
+    },
+    TrainerNotificationKind.inviteAccepted => switch (notification.subjectId) {
+      final String id => AppRoutes.clientDetail(id),
+      null => AppRoutes.clients,
+    },
+    TrainerNotificationKind.inviteRejected => AppRoutes.clients,
+    TrainerNotificationKind.healthGoal ||
+    TrainerNotificationKind.memberName => switch (notification.subjectId) {
+      final String id => AppRoutes.clientDetail(id),
+      null => AppRoutes.clients,
+    },
+    // 떠난 회원의 상세는 더 열 수 없다(#2174).
+    TrainerNotificationKind.memberLeft || TrainerNotificationKind.other => null,
+  };
 
   Future<void> _open(
     BuildContext context,
@@ -192,6 +214,8 @@ class _NotificationTile extends StatelessWidget {
     TrainerNotificationKind.healthGoal => Icons.flag_rounded,
     TrainerNotificationKind.memberName => Icons.badge_rounded,
     TrainerNotificationKind.memberLeft => Icons.person_remove_rounded,
+    TrainerNotificationKind.inviteAccepted => Icons.how_to_reg_rounded,
+    TrainerNotificationKind.inviteRejected => Icons.person_off_rounded,
     TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 

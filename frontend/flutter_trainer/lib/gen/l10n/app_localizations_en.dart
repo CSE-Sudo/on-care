@@ -139,6 +139,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionBack => 'Back';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoDashboard => 'Go to dashboard';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get appWordmarkTrainer => 'Trainer';
 
   @override
@@ -941,6 +954,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatInsightBodyPartGeneral => 'Physical';
 
   @override
+  String get chatInsightBodyPartKnee => 'Knee';
+
+  @override
+  String get chatInsightBodyPartBack => 'Back';
+
+  @override
+  String get chatInsightBodyPartAnkle => 'Ankle';
+
+  @override
+  String get chatInsightBodyPartShoulder => 'Shoulder';
+
+  @override
+  String get chatInsightBodyPartWrist => 'Wrist';
+
+  @override
+  String get chatInsightBodyPartNeck => 'Neck';
+
+  @override
   String get chatInsightNegativeTitle => 'Negative feedback detected';
 
   @override
@@ -1177,6 +1208,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
+  String get workoutKindPtSession => 'PT session · Trainer-led';
+
+  @override
+  String get workoutKindAssignedRoutine => 'Assigned routine';
+
+  @override
   String get trainerNote => 'Trainer\'s note';
 
   @override
@@ -1235,6 +1272,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateYesterday => 'Yesterday';
+
+  @override
+  String dateDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weeks ago',
+      one: '1 week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
@@ -1734,6 +1803,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing was created. Change the time, or clear the sessions that clash.';
 
   @override
+  String get schedOverlapTitle => 'This time overlaps another session';
+
+  @override
+  String get schedOverlapHint =>
+      'Nothing was saved. Change the time or move the overlapping session, then save again.';
+
+  @override
+  String get slotOverlapHint =>
+      'The slot wasn\'t opened. Pick another time or move the overlapping session.';
+
+  @override
+  String get consultOverlapHint =>
+      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
+
+  @override
   String get schedNote => 'Trainer\'s note';
 
   @override
@@ -1954,6 +2038,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myNotifNewMessageHint =>
       'A sidebar badge appears when a member messages you';
+
+  @override
+  String get myLanguage => 'Language';
+
+  @override
+  String get myLanguageApp => 'Display language';
+
+  @override
+  String get myLanguageHint =>
+      'Choose the language this browser shows the console in';
+
+  @override
+  String get myLanguageSystem => 'Match browser';
+
+  @override
+  String get myLanguageKorean => '한국어';
+
+  @override
+  String get myLanguageEnglish => 'English';
 
   @override
   String get myAccount => 'Account';
@@ -3254,6 +3357,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messagesNoPreview => 'No messages yet';
 
   @override
+  String get messagesPreviewEmote => 'Sent an emote';
+
+  @override
+  String get messagesTimeJustNow => 'Just now';
+
+  @override
   String get messagesClientDetail => 'Member details';
 
   @override
@@ -3451,6 +3560,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachAttachTargetChanged =>
       'The PT session to attach to has changed. Tap Add to schedule again to check';
+
+  @override
+  String get coachScheduleOverlap =>
+      'Another session is already booked at that time, so nothing was added. Pick a different time and try again';
 
   @override
   String get programEditorNoExercises => 'Add at least one exercise';
@@ -4360,6 +4473,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportsLastGoalsEvidenceWorkout(int done, int total) {
     return '$done / $total personal workouts';
   }
+
+  @override
+  String get reportsLastGoalsSubtitle => 'Judged from this week\'s records';
+
+  @override
+  String get reportsLastGoalsKeywordsCalories => 'calorie,kcal,intake';
+
+  @override
+  String get reportsLastGoalsKeywordsWorkout =>
+      'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym';
+
+  @override
+  String get reportsLastGoalsKeywordsLogged => 'log,record,meal';
 
   @override
   String get reportsTrendUnavailable =>

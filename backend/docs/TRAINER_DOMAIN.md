@@ -76,6 +76,31 @@
 담당이 이미 해제된 회원의 상태 전환은 409 다(되돌려 봐야 로스터가 휴면 그대로라
 "저장했는데 그대로"가 된다). 담당 재배정은 상담 승인 경로의 몫이다.
 
+### 해제된 담당은 데이터 접근 경계 밖이다 (#2281)
+
+담당 해제는 링크 행을 지우지 않고 `active=False` 로 내린다(`remove_client`). 그래서
+트레이너 권한 확인(`trainer._require_client`)은 행이 있는지가 아니라 **`active`
+까지** 본다. 해제된 회원은 남의 회원·없는 회원과 **같은 404·같은 문구**
+(`담당 고객을 찾을 수 없습니다.`)다 — 다른 답을 주면 "예전에 담당했던 회원"이라는
+사실이 응답만으로 드러난다.
+
+| 구분 | 해제 뒤 |
+|---|---|
+| `/trainer/clients/{id}/…` 회원 단위 읽기·쓰기 전부(식단·사진·건강 정보·기록·조언·채팅·사진/PDF 전송·루틴·제안·프로그램·메모·할 일 등록·루틴 후보·AI 코치·리포트) | 404 |
+| 회원을 붙이는 일정(`POST /trainer/schedule`·반복·`program-schedule`, `member_id` 로 옮기는 `PUT`, `member_id` 필터 조회) | 404 — 알림도 나가지 않는다 |
+| 경로에 회원 id 가 없는 쓰기: 제안 승인·완료한 일정의 프로그램 전송 | 404 (`trainer_service.has_active_client_link`) |
+| 해제 자체(`DELETE`)·재등록(`/registration`)·활성/휴면 전환(`/status`) | 링크를 직접 읽는다 — 다시 해제 404, 재등록 204, 상태 전환 409(기존 그대로) |
+| 로스터 | 미등록(`registered=false`)으로 남는다 |
+| 내가 남긴 할 일의 조회·수정·완료, 제안 치우기 | 그대로 — `trainer_id` 만 본다 |
+| 해제 전 채팅 첨부 | 이미 막혀 있었다(`chat_attachments`) |
+
+휴면(`dormant`)은 담당 해제가 아니므로 전부 그대로 열린다. 기록 자체는 지우지 않으므로
+재등록하면 다시 열린다.
+
+트레이너 웹은 회원 단위 요청이 404 로 돌아오면(`ClientAccessInterceptor`) 명단만
+곧바로 다시 읽는다. 명단에서 빠진 회원은 상세·메시지·리포트가 원래의 '찾을 수 없음'
+상태로 보여 준다.
+
 ### 트레이너 헬스장 소속 정책 (`0020_gym_profiles_trainer_fk`)
 
 - 트레이너는 현재 **헬스장 한 곳**에만 소속한다. `TrainerProfile.gym_id`는
@@ -133,7 +158,7 @@
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
-| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`) |
+| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283) |
 | POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |
@@ -167,6 +192,27 @@
 동작·키·payload면 처음 생성된 결과를 다시 반환하고, 같은 키에 다른 payload면
 `409`다. 키가 없는 구버전 요청은 기존처럼 매번 새 행을 만든다. 채팅은 발신자까지
 scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어도 충돌하지 않는다.
+
+### 시간 겹침 (#2284)
+
+한 트레이너의 일정은 시간이 겹치면 안 된다. 겹침은 `(날짜, 시작 시각, 길이)` 로 만든
+반열린 구간 `[시작, 끝)` 끼리 본다 — 10:00(60분)과 10:30 은 겹치고, 10:00–11:00 과
+11:00 시작은 이어질 뿐이다. 길이 0인 일정은 시작 1분, 자정을 넘는 일정은 다음 날까지
+차지한다. 시간을 차지하는 상태는 `예정`·`완료` 뿐이다(취소·노쇼·공백은 빈 시간).
+
+판정은 `trainer_service.conflicting_sessions` 한 곳에 있고 아래 경로가 모두 쓴다.
+겹치면 **409** `detail = { code: "schedule_overlap", message, conflicts[] }` 다.
+
+| 경로 | 비교에서 빼는 것 |
+|---|---|
+| `POST /trainer/schedule` · `POST /trainer/schedule/recurring`(+ preview) | — |
+| `PUT /trainer/schedule/{id}` (날짜·시각·길이를 바꿀 때만) | 자기 자신 |
+| `POST /trainer/clients/{id}/program-schedule` (새 일정을 만들 때만) | — |
+| `POST`·`PUT /trainer/reservation-slots` (열려 있는 자리만) | 그 자리의 예약이 만든 일정 |
+| `POST /reservations` (회원) | — · 응답에 `conflicts` 없음 |
+| `POST /trainer/consultations/{id}/accept` | — |
+
+회원 예약 응답에는 `conflicts` 를 싣지 않는다 — 트레이너의 다른 일정(남의 이름·시각)이다.
 
 ### 스케줄 구간 조회 (`from`/`to`)
 

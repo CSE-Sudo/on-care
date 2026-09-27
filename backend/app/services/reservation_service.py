@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import exists, func, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -211,6 +211,48 @@ def list_trainer_slots(
     ]
 
 
+def _ensure_slot_free(
+    db: Session,
+    trainer_id: str,
+    starts_at: datetime,
+    duration_minutes: int,
+    *,
+    exclude_schedule_ids: list[str] | None = None,
+) -> None:
+    """그 시간에 트레이너의 다른 일정이 없는지 본다. 겹치면 `ScheduleOverlap`. (#2284)
+
+    이미 일정이 있는 시간에 자리를 열면 회원이 그 자리를 잡는 순간 이중 예약이
+    된다. 자리 자체가 만든 일정(예약된 자리를 옮길 때)은 [exclude_schedule_ids] 로
+    뺀다 — 함께 움직이는 일정이 자기와 겹친다고 막으면 안 된다.
+    """
+    local = _aware(starts_at).astimezone(SEOUL)
+    trainer_service.ensure_no_overlap(
+        db,
+        trainer_id,
+        date=local.date().isoformat(),
+        time=local.strftime("%H:%M"),
+        duration_minutes=duration_minutes,
+        exclude_ids=exclude_schedule_ids or (),
+        message="이 시간에 이미 다른 일정이 있어 예약 자리를 열 수 없습니다.",
+    )
+
+
+def _booked_schedules(db: Session, slot_id: str) -> list[TrainerSchedule]:
+    """그 자리에 걸린 예약이 만든 일정들. 자리를 옮기면 함께 옮겨 간다."""
+    return list(
+        db.scalars(
+            select(TrainerSchedule)
+            .join(
+                TrainerReservation, TrainerReservation.schedule_id == TrainerSchedule.id
+            )
+            .where(
+                TrainerReservation.slot_id == slot_id,
+                TrainerReservation.status == "booked",
+            )
+        ).all()
+    )
+
+
 def create_slot(
     db: Session,
     trainer_id: str,
@@ -220,14 +262,17 @@ def create_slot(
 ) -> TrainerSlotOut:
     if _aware(starts_at) <= datetime.now(timezone.utc):
         raise SlotUnavailable("지난 시간에는 예약 슬롯을 만들 수 없습니다.")
+    resolved_minutes = duration_minutes or _SESSION_DURATION_MINUTES.get(
+        session_type, 60
+    )
+    _ensure_slot_free(db, trainer_id, starts_at, resolved_minutes)
     # 슬롯은 늘 한 사람 몫이다 — 1:1 PT 이거나 상담이고, 여럿이 함께 듣는
     # 자리는 없다(#1012). 정원 대신 종류를 고른다(#1083).
     slot = TrainerReservationSlot(
         id=f"slot-{uuid.uuid4().hex[:12]}",
         trainer_id=trainer_id,
         starts_at=starts_at,
-        duration_minutes=duration_minutes
-        or _SESSION_DURATION_MINUTES.get(session_type, 60),
+        duration_minutes=resolved_minutes,
         capacity=1,
         remaining=1,
         session_type=session_type,
@@ -272,35 +317,35 @@ def update_slot(
             # 때 본 종류(1:1 PT/상담)를 그대로 믿고 그 시간을 비워 둔다.
             raise CapacityConflict("이미 예약된 자리의 종류는 바꿀 수 없습니다.")
         slot.session_type = fields["session_type"]
+    if "starts_at" in fields and _aware(fields["starts_at"]) <= datetime.now(
+        timezone.utc
+    ):
+        raise SlotUnavailable("지난 시간으로 슬롯을 변경할 수 없습니다.")
+    reopening = fields.get("is_closed") is False and slot.is_closed
+    if "starts_at" in fields or "duration_minutes" in fields or reopening:
+        # 옮기거나 늘린 뒤의 시간, 또는 다시 여는 자리의 시간이 다른 일정과
+        # 겹치는지 **바꾸기 전에** 본다. 닫힌 채 옮기는 자리는 회원이 잡을 수
+        # 없으니 보지 않는다. (#2284)
+        will_be_open = not fields.get("is_closed", slot.is_closed)
+        if will_be_open:
+            _ensure_slot_free(
+                db,
+                trainer_id,
+                fields.get("starts_at", slot.starts_at),
+                fields.get("duration_minutes", slot.duration_minutes),
+                exclude_schedule_ids=[s.id for s in _booked_schedules(db, slot.id)],
+            )
     if "starts_at" in fields:
         starts_at = fields["starts_at"]
-        if _aware(starts_at) <= datetime.now(timezone.utc):
-            raise SlotUnavailable("지난 시간으로 슬롯을 변경할 수 없습니다.")
         slot.starts_at = starts_at
         local = _aware(starts_at).astimezone(SEOUL)
-        schedules = db.scalars(
-            select(TrainerSchedule)
-            .join(
-                TrainerReservation, TrainerReservation.schedule_id == TrainerSchedule.id
-            )
-            .where(
-                TrainerReservation.slot_id == slot.id,
-                TrainerReservation.status == "booked",
-            )
-        ).all()
+        schedules = _booked_schedules(db, slot.id)
         for schedule in schedules:
             schedule.date = local.date().isoformat()
             schedule.time = local.strftime("%H:%M")
     if "duration_minutes" in fields:
         slot.duration_minutes = fields["duration_minutes"]
-        schedules = db.scalars(
-            select(TrainerSchedule)
-            .join(TrainerReservation, TrainerReservation.schedule_id == TrainerSchedule.id)
-            .where(
-                TrainerReservation.slot_id == slot.id,
-                TrainerReservation.status == "booked",
-            )
-        ).all()
+        schedules = _booked_schedules(db, slot.id)
         for schedule in schedules:
             schedule.duration_minutes = slot.duration_minutes
     if "is_closed" in fields:
@@ -388,6 +433,36 @@ def _release(
     db.flush()
 
 
+def release_for_cancelled_schedule(
+    db: Session, schedule_id: str, *, cancelled_by: str
+) -> list[TrainerReservation]:
+    """트레이너가 취소한 일정에 걸린 예약을 풀어 준다. **커밋하지 않는다.** (#2283)
+
+    회원이 예약한 자리를 트레이너가 스케줄 화면에서 취소하면, 일정만 `취소` 가 되고
+    예약과 좌석은 그대로 남았다 — 회원 앱에는 '예약됨·취소 가능'으로 계속 보이고
+    그 시간은 누구도 다시 잡을 수 없었다. 회원 취소와 같은 [_release] 로 좌석을
+    되돌리고 예약을 지워, 어느 쪽이 취소하든 결과가 같게 한다.
+
+    일정 상태는 호출자가 이미 바꿔 둔다(취소 사유까지 함께 남기므로). [_release] 는
+    마무리된 일정을 건드리지 않으니 그 기록을 덮어쓰지 않는다.
+
+    돌려주는 목록은 풀어 준 예약들이다(이미 삭제 표시됨) — 호출자가 알림 등에 쓴다.
+    """
+    reservations = list(
+        db.scalars(
+            select(TrainerReservation)
+            .where(
+                TrainerReservation.schedule_id == schedule_id,
+                TrainerReservation.status == "booked",
+            )
+            .order_by(TrainerReservation.id)
+            .with_for_update()
+        ).all()
+    )
+    _release(db, reservations, cancelled_by=cancelled_by)
+    return reservations
+
+
 def cancel_member_reservations_for_account_deletion(
     db: Session, member_id: str
 ) -> None:
@@ -436,9 +511,21 @@ def reserve(
     if duplicate is not None:
         raise DuplicateReservation("이미 예약한 슬롯입니다.")
 
+    local = _aware(slot.starts_at).astimezone(SEOUL)
+    # 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 직접 잡았을 수 있다. 그대로
+    # 받으면 이중 예약이다. 회원에게는 남의 일정이 보이지 않게 라우터가 목록을
+    # 빼고 코드와 문구만 준다. (#2284)
+    trainer_service.ensure_no_overlap(
+        db,
+        slot.trainer_id,
+        date=local.date().isoformat(),
+        time=local.strftime("%H:%M"),
+        duration_minutes=slot.duration_minutes,
+        message="이 시간은 트레이너의 다른 일정과 겹쳐 예약할 수 없습니다.",
+    )
+
     reservation_id = f"res-{uuid.uuid4().hex[:12]}"
     schedule_id = f"sched-{uuid.uuid4().hex[:12]}"
-    local = _aware(slot.starts_at).astimezone(SEOUL)
     schedule = TrainerSchedule(
         id=schedule_id,
         trainer_id=slot.trainer_id,
@@ -477,6 +564,9 @@ def reserve(
             kind=notification_service.TRAINER_RESERVATION_KIND,
             title="새 예약이 들어왔어요",
             body=f"{member.name} 회원 · {local:%m월 %d일 %H:%M}",
+            # 알림을 누르면 그 회원 수업이 있는 날의 스케줄로 간다(#2292).
+            subject_id=member.id,
+            target_date=local.date().isoformat(),
         )
         db.commit()
     except IntegrityError as exc:
@@ -527,7 +617,17 @@ def list_member_reservations(
             TrainerReservationSlot,
             TrainerReservationSlot.id == TrainerReservation.slot_id,
         )
-        .where(TrainerReservation.member_id == member_id)
+        .where(
+            TrainerReservation.member_id == member_id,
+            # 취소된 예약은 목록에 없다 — 회원 취소도 트레이너 취소도 예약 행을
+            # 지우지만(#2283), 그 전에 트레이너가 취소해 행이 남아 있는 경우까지
+            # '예약됨·취소 가능'으로 보이지 않게 일정 상태로 한 번 더 거른다.
+            TrainerReservation.status == "booked",
+            ~exists().where(
+                TrainerSchedule.id == TrainerReservation.schedule_id,
+                TrainerSchedule.status == trainer_service.SCHEDULE_CANCELLED,
+            ),
+        )
     )
     if before is not None:
         if before_id is not None:
@@ -602,5 +702,8 @@ def cancel(
                 if local is not None
                 else f"{member_name} 회원"
             ),
+            # 취소된 일정도 스케줄에 `취소` 로 남는다 — 그 날짜로 연다(#2292).
+            subject_id=member_id,
+            target_date=local.date().isoformat() if local is not None else None,
         )
     db.commit()

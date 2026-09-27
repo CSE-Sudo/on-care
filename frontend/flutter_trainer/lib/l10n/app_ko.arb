@@ -70,6 +70,10 @@
   "actionRefresh": "새로고침",
   "actionChange": "변경",
   "actionBack": "뒤로",
+  "notFoundTitle": "페이지를 찾을 수 없어요",
+  "notFoundMessage": "주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.",
+  "notFoundGoDashboard": "대시보드로 가기",
+  "notFoundGoSignIn": "로그인하러 가기",
   "appWordmarkTrainer": "트레이너",
   "appAvatarFallback": "트",
   "sidebarMyTooltip": "{name} · 내 정보",
@@ -352,6 +356,12 @@
     }
   },
   "chatInsightBodyPartGeneral": "신체",
+  "chatInsightBodyPartKnee": "무릎",
+  "chatInsightBodyPartBack": "허리",
+  "chatInsightBodyPartAnkle": "발목",
+  "chatInsightBodyPartShoulder": "어깨",
+  "chatInsightBodyPartWrist": "손목",
+  "chatInsightBodyPartNeck": "목",
   "chatInsightNegativeTitle": "부정적 피드백 감지",
   "chatInsightDiscomfortDescription": "AI가 불편감 호소를 감지했어요. 증상을 확인하고 다음 운동 강도를 조절해 보세요.",
   "chatInsightNegativeDescription": "AI가 운동 부담 또는 수행 어려움을 감지했어요. 원인을 확인하고 프로그램 조정을 고려해 보세요.",
@@ -452,6 +462,8 @@
   "clientFeedback": "회원 피드백",
   "clientFeedbackSession": "이 세션에 대한 회원 피드백",
   "workoutKindAiPersonal": "AI 개인운동",
+  "workoutKindPtSession": "PT 세션 · 트레이너 지도",
+  "workoutKindAssignedRoutine": "배정 루틴 수행",
   "trainerNote": "트레이너 메모",
   "dietLoadFailed": "식단을 불러오지 못했어요",
   "dietEmpty": "아직 기록된 식단이 없어요",
@@ -484,6 +496,10 @@
   "dateToday": "오늘",
   "dateTomorrow": "내일",
   "dateYesterday": "어제",
+  "dateDaysAgo": "{count}일 전",
+  "dateWeeksAgo": "{count}주 전",
+  "historyDate": "{month}/{day}",
+  "historyDateRelative": "{date} ({relative})",
   "dateMonthDayWeekday": "{month}월 {day}일 ({weekday})",
   "datePrefixed": "{prefix} · {date}",
   "dateMonthDay": "{month}월 {day}일",
@@ -742,6 +758,10 @@
     }
   },
   "schedRepeatConflictHint": "겹치는 회차가 있어 아무 일정도 만들지 않았어요. 시간을 바꾸거나 겹치는 일정을 정리해 주세요.",
+  "schedOverlapTitle": "다른 일정과 시간이 겹쳐요",
+  "schedOverlapHint": "저장하지 않았어요. 시간을 바꾸거나 겹치는 일정을 옮긴 뒤 다시 저장해 주세요.",
+  "slotOverlapHint": "자리를 열지 않았어요. 다른 시간을 고르거나 겹치는 일정을 옮겨 주세요.",
+  "consultOverlapHint": "회원이 고른 시간에 이미 다른 일정이 있어 승인하지 않았어요. 겹치는 일정을 옮긴 뒤 다시 승인해 주세요.",
   "schedNote": "트레이너 메모",
   "schedEditNote": "메모 수정",
   "schedAddNote": "메모 추가",
@@ -813,6 +833,12 @@
   "myNotifications": "알림",
   "myNotifNewMessage": "새 메시지 알림",
   "myNotifNewMessageHint": "회원이 메시지를 보내면 사이드바 뱃지로 알려드려요",
+  "myLanguage": "언어",
+  "myLanguageApp": "화면 언어",
+  "myLanguageHint": "이 브라우저에서 콘솔을 볼 언어를 골라요",
+  "myLanguageSystem": "브라우저 설정 따르기",
+  "myLanguageKorean": "한국어",
+  "myLanguageEnglish": "English",
   "myAccount": "계정",
   "myChangePassword": "비밀번호 변경",
   "myChangePasswordHint": "현재 비밀번호를 확인한 뒤 교체해요",
@@ -1271,6 +1297,8 @@
   "messagesFilterUnreadCount": "읽지 않음 {count}",
   "messagesBackToList": "대화 목록",
   "messagesNoPreview": "아직 대화가 없어요",
+  "messagesPreviewEmote": "이모티콘을 보냈어요",
+  "messagesTimeJustNow": "방금",
   "messagesClientDetail": "회원 상세",
   "messagesSelectPrompt": "왼쪽 목록에서 대화할 회원을 선택하세요.",
   "clientQuickMessages": "메시지",
@@ -1382,6 +1410,7 @@
     }
   },
   "coachAttachTargetChanged": "연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요",
+  "coachScheduleOverlap": "고른 시간에 이미 다른 일정이 있어 등록하지 않았어요. 시간을 바꿔 다시 보내 주세요",
   "programEditorNoExercises": "운동을 하나 이상 추가해 주세요",
   "programEditorExerciseNameInvalid": "이름이 비었거나 100자를 넘는 운동이 있어요",
   "programEditorRegisterDatePast": "지난 날짜예요. 오늘 이후 날짜를 골라 주세요",
@@ -2120,6 +2149,19 @@
         "type": "int"
       }
     }
+  },
+  "reportsLastGoalsSubtitle": "이번 주 기록으로 판정",
+  "reportsLastGoalsKeywordsCalories": "칼로리,kcal,섭취량",
+  "@reportsLastGoalsKeywordsCalories": {
+    "description": "지난 주 목표 문장이 칼로리 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
+  },
+  "reportsLastGoalsKeywordsWorkout": "운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장",
+  "@reportsLastGoalsKeywordsWorkout": {
+    "description": "지난 주 목표 문장이 운동 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
+  },
+  "reportsLastGoalsKeywordsLogged": "기록,끼니,식단",
+  "@reportsLastGoalsKeywordsLogged": {
+    "description": "지난 주 목표 문장이 식단 기록 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
   },
   "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
   "reportsTrendNoGoal": "목표 없음",

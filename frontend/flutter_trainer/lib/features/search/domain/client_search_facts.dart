@@ -2,6 +2,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
@@ -115,7 +116,9 @@ String clientSearchDetail(
     details.add(l.searchDetailUnread(unread));
   } else if (client.lastMessage.trim().isNotEmpty &&
       client.lastMessage != '-') {
-    details.add(l.searchDetailMessage(client.lastMessage, client.lastTime));
+    details.add(
+      l.searchDetailMessage(client.previewMessage(l), client.previewTime(l)),
+    );
   }
 
   final next = facts.nextSession[client.id];
@@ -129,8 +132,9 @@ String clientSearchDetail(
     );
   }
 
-  final lastRoutine = client.lastRoutine.trim();
-  if (lastRoutine.isNotEmpty && lastRoutine != '-') {
+  // 서버가 준 날짜로 화면 언어의 `오늘`·`N일 전` 을 만든다(#2300).
+  final lastRoutine = lastRoutineLabel(l, client);
+  if (lastRoutine.isNotEmpty) {
     details.add(l.searchDetailLastRoutine(lastRoutine));
   }
 

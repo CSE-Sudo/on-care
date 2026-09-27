@@ -338,6 +338,30 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get actionBack;
 
+  /// Heading of the 404 page shown for a URL that matches no screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found'**
+  String get notFoundTitle;
+
+  /// No description provided for @notFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may be broken, or the page may no longer exist. Please check the address and try again.'**
+  String get notFoundMessage;
+
+  /// Primary button on the 404 page for a signed-in trainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to dashboard'**
+  String get notFoundGoDashboard;
+
+  /// Primary button on the 404 page when no one is signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get notFoundGoSignIn;
+
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
   /// In en, this message translates to:
@@ -1784,6 +1808,42 @@ abstract class AppLocalizations {
   /// **'Physical'**
   String get chatInsightBodyPartGeneral;
 
+  /// No description provided for @chatInsightBodyPartKnee.
+  ///
+  /// In en, this message translates to:
+  /// **'Knee'**
+  String get chatInsightBodyPartKnee;
+
+  /// No description provided for @chatInsightBodyPartBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get chatInsightBodyPartBack;
+
+  /// No description provided for @chatInsightBodyPartAnkle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ankle'**
+  String get chatInsightBodyPartAnkle;
+
+  /// No description provided for @chatInsightBodyPartShoulder.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder'**
+  String get chatInsightBodyPartShoulder;
+
+  /// No description provided for @chatInsightBodyPartWrist.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrist'**
+  String get chatInsightBodyPartWrist;
+
+  /// No description provided for @chatInsightBodyPartNeck.
+  ///
+  /// In en, this message translates to:
+  /// **'Neck'**
+  String get chatInsightBodyPartNeck;
+
   /// No description provided for @chatInsightNegativeTitle.
   ///
   /// In en, this message translates to:
@@ -2198,6 +2258,18 @@ abstract class AppLocalizations {
   /// **'AI personal exercise'**
   String get workoutKindAiPersonal;
 
+  /// Workout history kind for a completed PT session (server kind code pt_session).
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · Trainer-led'**
+  String get workoutKindPtSession;
+
+  /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned routine'**
+  String get workoutKindAssignedRoutine;
+
   /// No description provided for @trainerNote.
   ///
   /// In en, this message translates to:
@@ -2305,6 +2377,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yesterday'**
   String get dateYesterday;
+
+  /// Relative day label, used for two or more days ago (e.g. when the last routine was sent).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String dateDaysAgo(int count);
+
+  /// No description provided for @dateWeeksAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 week ago} other{{count} weeks ago}}'**
+  String dateWeeksAgo(int count);
+
+  /// Short date on a workout history card.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day}'**
+  String historyDate(int month, int day);
+
+  /// Workout history date with Today/Yesterday, e.g. 9/27 (Today).
+  ///
+  /// In en, this message translates to:
+  /// **'{date} ({relative})'**
+  String historyDateRelative(String date, String relative);
 
   /// No description provided for @dateMonthDayWeekday.
   ///
@@ -3104,6 +3200,30 @@ abstract class AppLocalizations {
   /// **'Nothing was created. Change the time, or clear the sessions that clash.'**
   String get schedRepeatConflictHint;
 
+  /// No description provided for @schedOverlapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This time overlaps another session'**
+  String get schedOverlapTitle;
+
+  /// No description provided for @schedOverlapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was saved. Change the time or move the overlapping session, then save again.'**
+  String get schedOverlapHint;
+
+  /// No description provided for @slotOverlapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The slot wasn\'t opened. Pick another time or move the overlapping session.'**
+  String get slotOverlapHint;
+
+  /// No description provided for @consultOverlapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.'**
+  String get consultOverlapHint;
+
   /// No description provided for @schedNote.
   ///
   /// In en, this message translates to:
@@ -3487,6 +3607,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A sidebar badge appears when a member messages you'**
   String get myNotifNewMessageHint;
+
+  /// No description provided for @myLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get myLanguage;
+
+  /// No description provided for @myLanguageApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Display language'**
+  String get myLanguageApp;
+
+  /// No description provided for @myLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the language this browser shows the console in'**
+  String get myLanguageHint;
+
+  /// No description provided for @myLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Match browser'**
+  String get myLanguageSystem;
+
+  /// Korean, written in Korean so it can be found from either language.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get myLanguageKorean;
+
+  /// English, written in English so it can be found from either language.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get myLanguageEnglish;
 
   /// No description provided for @myAccount.
   ///
@@ -5714,6 +5870,18 @@ abstract class AppLocalizations {
   /// **'No messages yet'**
   String get messagesNoPreview;
 
+  /// No description provided for @messagesPreviewEmote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent an emote'**
+  String get messagesPreviewEmote;
+
+  /// No description provided for @messagesTimeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get messagesTimeJustNow;
+
   /// No description provided for @messagesClientDetail.
   ///
   /// In en, this message translates to:
@@ -6046,6 +6214,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
   String get coachAttachTargetChanged;
+
+  /// No description provided for @coachScheduleOverlap.
+  ///
+  /// In en, this message translates to:
+  /// **'Another session is already booked at that time, so nothing was added. Pick a different time and try again'**
+  String get coachScheduleOverlap;
 
   /// No description provided for @programEditorNoExercises.
   ///
@@ -7527,6 +7701,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{done} / {total} personal workouts'**
   String reportsLastGoalsEvidenceWorkout(int done, int total);
+
+  /// No description provided for @reportsLastGoalsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Judged from this week\'s records'**
+  String get reportsLastGoalsSubtitle;
+
+  /// Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'calorie,kcal,intake'**
+  String get reportsLastGoalsKeywordsCalories;
+
+  /// Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym'**
+  String get reportsLastGoalsKeywordsWorkout;
+
+  /// Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'log,record,meal'**
+  String get reportsLastGoalsKeywordsLogged;
 
   /// No description provided for @reportsTrendUnavailable.
   ///

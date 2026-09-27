@@ -509,6 +509,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   String _sendFailureMessage(AppLocalizations l, Object error) =>
       switch (error) {
         ProgramAttachConflictError() => l.coachAttachTargetChanged,
+        // 새로 잡을 자리가 다른 회원 일정과 겹친다(#2284) — 재시도해도 같으니
+        // 시간을 바꾸게 한다.
+        ScheduleOverlapError() => l.coachScheduleOverlap,
         NetworkError() => l.coachSendNetworkFailed,
         NotFoundError() => l.coachSendClientNotFound,
         ValidationError() => l.coachSendInvalid,
