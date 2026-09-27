@@ -139,6 +139,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionBack => 'Back';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoDashboard => 'Go to dashboard';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get appWordmarkTrainer => 'Trainer';
 
   @override
@@ -939,6 +952,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatInsightBodyPartGeneral => 'Physical';
+
+  @override
+  String get chatInsightBodyPartKnee => 'Knee';
+
+  @override
+  String get chatInsightBodyPartBack => 'Back';
+
+  @override
+  String get chatInsightBodyPartAnkle => 'Ankle';
+
+  @override
+  String get chatInsightBodyPartShoulder => 'Shoulder';
+
+  @override
+  String get chatInsightBodyPartWrist => 'Wrist';
+
+  @override
+  String get chatInsightBodyPartNeck => 'Neck';
 
   @override
   String get chatInsightNegativeTitle => 'Negative feedback detected';
@@ -3265,6 +3296,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messagesNoPreview => 'No messages yet';
+
+  @override
+  String get messagesPreviewEmote => 'Sent an emote';
+
+  @override
+  String get messagesTimeJustNow => 'Just now';
 
   @override
   String get messagesClientDetail => 'Member details';

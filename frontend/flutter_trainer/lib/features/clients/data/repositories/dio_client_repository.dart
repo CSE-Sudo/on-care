@@ -97,6 +97,17 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
   @override
   void refreshClientData(String clientId) => _refreshes.add(clientId);
 
+  /// Revalidates the roster alone — no member's own data streams re-read.
+  ///
+  /// Used when the server refuses a member's data with 404 (link ended,
+  /// #2281). Re-reading that member's streams too would hit the same 404
+  /// and report it again; the roster is what decides whether the member is
+  /// still ours.
+  void refreshRoster() => _refreshes.add(_rosterOnly);
+
+  /// Refresh target matched only by the roster stream: no member id is empty.
+  static const String _rosterOnly = '';
+
   @override
   Future<ClientExerciseWeek> fetchExerciseWeek(
     String clientId, {

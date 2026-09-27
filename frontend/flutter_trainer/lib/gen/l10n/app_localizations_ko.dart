@@ -136,6 +136,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionBack => '뒤로';
 
   @override
+  String get notFoundTitle => '페이지를 찾을 수 없어요';
+
+  @override
+  String get notFoundMessage => '주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.';
+
+  @override
+  String get notFoundGoDashboard => '대시보드로 가기';
+
+  @override
+  String get notFoundGoSignIn => '로그인하러 가기';
+
+  @override
   String get appWordmarkTrainer => '트레이너';
 
   @override
@@ -915,6 +927,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatInsightBodyPartGeneral => '신체';
+
+  @override
+  String get chatInsightBodyPartKnee => '무릎';
+
+  @override
+  String get chatInsightBodyPartBack => '허리';
+
+  @override
+  String get chatInsightBodyPartAnkle => '발목';
+
+  @override
+  String get chatInsightBodyPartShoulder => '어깨';
+
+  @override
+  String get chatInsightBodyPartWrist => '손목';
+
+  @override
+  String get chatInsightBodyPartNeck => '목';
 
   @override
   String get chatInsightNegativeTitle => '부정적 피드백 감지';
@@ -3133,6 +3163,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messagesNoPreview => '아직 대화가 없어요';
+
+  @override
+  String get messagesPreviewEmote => '이모티콘을 보냈어요';
+
+  @override
+  String get messagesTimeJustNow => '방금';
 
   @override
   String get messagesClientDetail => '회원 상세';

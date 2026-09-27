@@ -338,6 +338,30 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get actionBack;
 
+  /// Heading of the 404 page shown for a URL that matches no screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found'**
+  String get notFoundTitle;
+
+  /// No description provided for @notFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may be broken, or the page may no longer exist. Please check the address and try again.'**
+  String get notFoundMessage;
+
+  /// Primary button on the 404 page for a signed-in trainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to dashboard'**
+  String get notFoundGoDashboard;
+
+  /// Primary button on the 404 page when no one is signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get notFoundGoSignIn;
+
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
   /// In en, this message translates to:
@@ -1783,6 +1807,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Physical'**
   String get chatInsightBodyPartGeneral;
+
+  /// No description provided for @chatInsightBodyPartKnee.
+  ///
+  /// In en, this message translates to:
+  /// **'Knee'**
+  String get chatInsightBodyPartKnee;
+
+  /// No description provided for @chatInsightBodyPartBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get chatInsightBodyPartBack;
+
+  /// No description provided for @chatInsightBodyPartAnkle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ankle'**
+  String get chatInsightBodyPartAnkle;
+
+  /// No description provided for @chatInsightBodyPartShoulder.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder'**
+  String get chatInsightBodyPartShoulder;
+
+  /// No description provided for @chatInsightBodyPartWrist.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrist'**
+  String get chatInsightBodyPartWrist;
+
+  /// No description provided for @chatInsightBodyPartNeck.
+  ///
+  /// In en, this message translates to:
+  /// **'Neck'**
+  String get chatInsightBodyPartNeck;
 
   /// No description provided for @chatInsightNegativeTitle.
   ///
@@ -5749,6 +5809,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No messages yet'**
   String get messagesNoPreview;
+
+  /// No description provided for @messagesPreviewEmote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent an emote'**
+  String get messagesPreviewEmote;
+
+  /// No description provided for @messagesTimeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get messagesTimeJustNow;
 
   /// No description provided for @messagesClientDetail.
   ///

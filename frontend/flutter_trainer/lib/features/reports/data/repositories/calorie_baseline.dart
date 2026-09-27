@@ -20,22 +20,25 @@ const int kCalorieBaselineWeeks = 4;
 ///
 /// 아직 읽히지 않았거나 넉 주 내내 기록이 없으면 null 이고, 그때는 비교 줄을
 /// 아예 그리지 않는다. `평소 0kcal` 은 모른다는 뜻이 아니라 굶었다는 뜻이다.
-final calorieBaselineProvider = Provider.family<double?, ReportKey>((ref, key) {
-  final List<int> recorded = <int>[];
-  for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
-    // 같은 family 를 그대로 다시 읽는다 — 주마다 API 를 새로 만들 것이 없고,
-    // 이미 본 주는 캐시에 남아 있어 주를 오갈 때 다시 부르지 않는다.
-    final WeeklyReport? past = ref
-        .watch(
-          weeklyReportProvider((
-            client: key.client,
-            weekStart: key.weekStart.subtract(Duration(days: 7 * back)),
-          )),
-        )
-        .valueOrNull;
-    if (past == null) continue;
-    recorded.addAll(past.caloriesWeek.where((int kcal) => kcal > 0));
-  }
-  if (recorded.isEmpty) return null;
-  return recorded.fold<int>(0, (int a, int b) => a + b) / recorded.length;
-}, name: 'calorieBaseline');
+final calorieBaselineProvider = Provider.autoDispose.family<double?, ReportKey>(
+  (ref, key) {
+    final List<int> recorded = <int>[];
+    for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
+      // 같은 family 를 그대로 다시 읽는다 — 주마다 API 를 새로 만들 것이 없고,
+      // 이미 본 주는 캐시에 남아 있어 주를 오갈 때 다시 부르지 않는다.
+      final WeeklyReport? past = ref
+          .watch(
+            weeklyReportProvider((
+              client: key.client,
+              weekStart: key.weekStart.subtract(Duration(days: 7 * back)),
+            )),
+          )
+          .valueOrNull;
+      if (past == null) continue;
+      recorded.addAll(past.caloriesWeek.where((int kcal) => kcal > 0));
+    }
+    if (recorded.isEmpty) return null;
+    return recorded.fold<int>(0, (int a, int b) => a + b) / recorded.length;
+  },
+  name: 'calorieBaseline',
+);
