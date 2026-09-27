@@ -1734,6 +1734,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing was created. Change the time, or clear the sessions that clash.';
 
   @override
+  String get schedOverlapTitle => 'This time overlaps another session';
+
+  @override
+  String get schedOverlapHint =>
+      'Nothing was saved. Change the time or move the overlapping session, then save again.';
+
+  @override
+  String get slotOverlapHint =>
+      'The slot wasn\'t opened. Pick another time or move the overlapping session.';
+
+  @override
+  String get consultOverlapHint =>
+      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
+
+  @override
   String get schedNote => 'Trainer\'s note';
 
   @override
@@ -3464,6 +3479,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachAttachTargetChanged =>
       'The PT session to attach to has changed. Tap Add to schedule again to check';
+
+  @override
+  String get coachScheduleOverlap =>
+      'Another session is already booked at that time, so nothing was added. Pick a different time and try again';
 
   @override
   String get programEditorNoExercises => 'Add at least one exercise';

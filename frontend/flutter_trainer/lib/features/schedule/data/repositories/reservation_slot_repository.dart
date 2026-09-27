@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 
 abstract interface class ReservationSlotRepository {
@@ -20,6 +21,8 @@ abstract interface class ReservationSlotRepository {
   /// 같은 언어다.
   Stream<List<ReservationSlot>> watch();
 
+  /// 자리의 시간이 다른 일정과 겹치면 `ScheduleOverlapError` 로 멈춘다
+  /// (#2284). [update] 도 같다.
   Future<ReservationSlot> create({
     required DateTime startsAt,
     int durationMinutes = 60,
@@ -78,19 +81,39 @@ class DioReservationSlotRepository implements ReservationSlotRepository {
         .toList();
   }
 
+  /// 시간 겹침 409 는 겹친 일정을 짚어 줄 수 있게 타입 있는 오류로 바꾸고
+  /// (#2284), 그 밖의 실패는 지금처럼 그대로 올린다 — 화면이 서버 문구를
+  /// 읽는 경로(`serverDetailOr`)를 바꾸지 않는다.
+  Future<Response<Map<String, dynamic>>> _write(
+    Future<Response<Map<String, dynamic>>> Function() request,
+  ) async {
+    try {
+      return await request();
+    } on DioException catch (e) {
+      final overlap = scheduleOverlapFromResponse(
+        e.response?.statusCode,
+        e.response?.data,
+      );
+      if (overlap != null) throw overlap;
+      rethrow;
+    }
+  }
+
   @override
   Future<ReservationSlot> create({
     required DateTime startsAt,
     int durationMinutes = 60,
     required String sessionType,
   }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      '/trainer/reservation-slots',
-      data: <String, dynamic>{
-        'starts_at': startsAt.toUtc().toIso8601String(),
-        'duration_minutes': durationMinutes,
-        'session_type': sessionType,
-      },
+    final response = await _write(
+      () => _dio.post<Map<String, dynamic>>(
+        '/trainer/reservation-slots',
+        data: <String, dynamic>{
+          'starts_at': startsAt.toUtc().toIso8601String(),
+          'duration_minutes': durationMinutes,
+          'session_type': sessionType,
+        },
+      ),
     );
     _bump();
     return ReservationSlot.fromJson(response.data!);
@@ -103,13 +126,15 @@ class DioReservationSlotRepository implements ReservationSlotRepository {
     int? durationMinutes,
     String? sessionType,
   }) async {
-    final response = await _dio.put<Map<String, dynamic>>(
-      '/trainer/reservation-slots/$id',
-      data: <String, dynamic>{
-        'starts_at': ?startsAt?.toUtc().toIso8601String(),
-        'duration_minutes': ?durationMinutes,
-        'session_type': ?sessionType,
-      },
+    final response = await _write(
+      () => _dio.put<Map<String, dynamic>>(
+        '/trainer/reservation-slots/$id',
+        data: <String, dynamic>{
+          'starts_at': ?startsAt?.toUtc().toIso8601String(),
+          'duration_minutes': ?durationMinutes,
+          'session_type': ?sessionType,
+        },
+      ),
     );
     _bump();
     return ReservationSlot.fromJson(response.data!);

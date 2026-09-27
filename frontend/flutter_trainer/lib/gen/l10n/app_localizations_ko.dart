@@ -1675,6 +1675,19 @@ class AppLocalizationsKo extends AppLocalizations {
       '겹치는 회차가 있어 아무 일정도 만들지 않았어요. 시간을 바꾸거나 겹치는 일정을 정리해 주세요.';
 
   @override
+  String get schedOverlapTitle => '다른 일정과 시간이 겹쳐요';
+
+  @override
+  String get schedOverlapHint => '저장하지 않았어요. 시간을 바꾸거나 겹치는 일정을 옮긴 뒤 다시 저장해 주세요.';
+
+  @override
+  String get slotOverlapHint => '자리를 열지 않았어요. 다른 시간을 고르거나 겹치는 일정을 옮겨 주세요.';
+
+  @override
+  String get consultOverlapHint =>
+      '회원이 고른 시간에 이미 다른 일정이 있어 승인하지 않았어요. 겹치는 일정을 옮긴 뒤 다시 승인해 주세요.';
+
+  @override
   String get schedNote => '트레이너 메모';
 
   @override
@@ -3319,6 +3332,10 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get coachAttachTargetChanged =>
       '연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요';
+
+  @override
+  String get coachScheduleOverlap =>
+      '고른 시간에 이미 다른 일정이 있어 등록하지 않았어요. 시간을 바꿔 다시 보내 주세요';
 
   @override
   String get programEditorNoExercises => '운동을 하나 이상 추가해 주세요';

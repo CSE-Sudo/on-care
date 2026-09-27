@@ -1183,6 +1183,10 @@
     }
   },
   "schedRepeatConflictHint": "Nothing was created. Change the time, or clear the sessions that clash.",
+  "schedOverlapTitle": "This time overlaps another session",
+  "schedOverlapHint": "Nothing was saved. Change the time or move the overlapping session, then save again.",
+  "slotOverlapHint": "The slot wasn't opened. Pick another time or move the overlapping session.",
+  "consultOverlapHint": "The member's chosen time is already booked, so the request wasn't approved. Move the overlapping session, then approve again.",
   "schedNote": "Trainer's note",
   "schedEditNote": "Edit note",
   "schedAddNote": "Add note",
@@ -2188,6 +2192,7 @@
     }
   },
   "coachAttachTargetChanged": "The PT session to attach to has changed. Tap Add to schedule again to check",
+  "coachScheduleOverlap": "Another session is already booked at that time, so nothing was added. Pick a different time and try again",
   "programEditorNoExercises": "Add at least one exercise",
   "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
   "programEditorRegisterDatePast": "That date has passed. Pick today or a later date",
