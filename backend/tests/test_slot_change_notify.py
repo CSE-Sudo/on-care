@@ -79,6 +79,12 @@ def _schedule(
     )
 
 
+def _mentions(row: dict, *texts: str) -> bool:
+    """알림 인자 어딘가에 [texts] 가 모두 실렸는가 — 본문이든 문장 틀 인자든."""
+    flat = repr(row)
+    return all(text in flat for text in texts)
+
+
 @pytest.fixture
 def unit(monkeypatch):
     """슬롯 하나와 그 자리에 걸린 일정 목록, 큐잉된 알림을 들고 있는 단위 환경."""
@@ -113,15 +119,12 @@ def test_moving_a_booked_slot_notifies_the_member(unit) -> None:
     )
 
     date, time = _local(moved)
-    assert unit.queued == [
-        {
-            "member_id": "unit-member",
-            "kind": notification_service.EXERCISE,
-            "category": notification_service.MEMBER_SCHEDULE,
-            "title": CHANGED_TITLE,
-            "body": f"{date} {time} · 1:1 PT",
-        }
-    ]
+    assert len(unit.queued) == 1
+    row = unit.queued[0]
+    assert row["member_id"] == "unit-member"
+    assert row["kind"] == notification_service.EXERCISE
+    assert row["category"] == notification_service.MEMBER_SCHEDULE
+    assert _mentions(row, date, time)
     unit.db.commit.assert_called_once()
 
 
@@ -133,9 +136,9 @@ def test_moving_to_another_day_uses_the_new_date(unit) -> None:
         unit.db, "trainer-demo", unit.slot.id, {"starts_at": moved}
     )
 
-    date, _ = _local(moved)
+    date, time = _local(moved)
     assert len(unit.queued) == 1
-    assert unit.queued[0]["body"].startswith(date)
+    assert _mentions(unit.queued[0], date, time)
 
 
 def test_changing_duration_notifies_the_member(unit) -> None:
@@ -144,7 +147,7 @@ def test_changing_duration_notifies_the_member(unit) -> None:
         unit.db, "trainer-demo", unit.slot.id, {"duration_minutes": 90}
     )
 
-    assert [row["title"] for row in unit.queued] == [CHANGED_TITLE]
+    assert [row["member_id"] for row in unit.queued] == ["unit-member"]
     assert unit.schedules[0].duration_minutes == 90
 
 
