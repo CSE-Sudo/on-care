@@ -143,6 +143,7 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
+  "authSessionExpired": "Your session has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
   "@authErrNameTooLong": {

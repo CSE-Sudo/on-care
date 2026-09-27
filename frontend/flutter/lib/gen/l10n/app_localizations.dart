@@ -5107,6 +5107,12 @@ abstract class AppLocalizations {
   /// **'Can\'t sign in right now. Please try again in a moment'**
   String get authSignInUnavailable;
 
+  /// No description provided for @authSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please sign in again'**
+  String get authSessionExpired;
+
   /// No description provided for @authSocialSignInFailed.
   ///
   /// In en, this message translates to:
