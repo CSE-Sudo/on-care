@@ -3274,6 +3274,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifTplMemberPhotoBody => 'Sent a photo';
+
+  @override
   String get notifAllRead => 'All caught up';
 
   @override

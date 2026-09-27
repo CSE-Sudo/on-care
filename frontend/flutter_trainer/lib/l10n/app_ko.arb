@@ -1263,6 +1263,7 @@
   "notifTplMemberOnly": "{name} 회원",
   "notifTplWhen": "{month}월 {day}일 {time}",
   "notifTplMemberMessageTitle": "{name} 회원의 메시지",
+  "notifTplMemberPhotoBody": "사진을 보냈어요",
   "notifAllRead": "모두 확인했어요",
   "notifReadAllFailed": "읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요",
   "notifUnreadCount": "읽지 않은 알림 {count}건",

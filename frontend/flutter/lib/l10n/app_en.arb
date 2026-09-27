@@ -1483,6 +1483,30 @@
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
+  "coachPhotoAttach": "Send a photo",
+  "@coachPhotoAttach": {
+    "description": "Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665)."
+  },
+  "coachPhotoSheetSubtitle": "Share a meal, form, or InBody photo with your trainer",
+  "coachPhotoPickSub": "Choose from your photo library",
+  "coachPhotoTakeSub": "Take one with the camera",
+  "coachPhotoSending": "Sending",
+  "@coachPhotoSending": {
+    "description": "Status under a photo the member is still uploading to the trainer chat (#1665)."
+  },
+  "coachPhotoSendFailed": "Couldn't send the photo",
+  "coachPhotoRetry": "Retry",
+  "coachPhotoDiscard": "Remove",
+  "@coachPhotoDiscard": {
+    "description": "Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665)."
+  },
+  "coachPhotoPermissionDenied": "Allow camera and photo access to send a photo",
+  "coachPhotoPermissionPermanentlyDenied": "Camera and photo access is off. Turn it on in Settings to send photos",
+  "coachPhotoReadFailed": "Couldn't read that photo. Please try a different one",
+  "a11yMyPhoto": "Photo you sent",
+  "@a11yMyPhoto": {
+    "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
+  },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
   "coachChatReportRegistered": "Weekly report added",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",

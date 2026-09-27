@@ -2173,6 +2173,10 @@
       }
     }
   },
+  "notifTplMemberPhotoBody": "Sent a photo",
+  "@notifTplMemberPhotoBody": {
+    "description": "Body of the new-message notification when a member sent only a photo in the coach chat."
+  },
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
   "notifUnreadCount": "{count} unread",

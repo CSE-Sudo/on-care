@@ -5660,6 +5660,12 @@ abstract class AppLocalizations {
   /// **'Message from {name}'**
   String notifTplMemberMessageTitle(String name);
 
+  /// Body of the new-message notification when a member sent only a photo in the coach chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent a photo'**
+  String get notifTplMemberPhotoBody;
+
   /// No description provided for @notifAllRead.
   ///
   /// In en, this message translates to:
