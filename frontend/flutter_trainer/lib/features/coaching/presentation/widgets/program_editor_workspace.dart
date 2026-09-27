@@ -1672,8 +1672,10 @@ class _ExerciseSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final korean = Localizations.localeOf(context).languageCode == 'ko';
-    final metrics = programExerciseMetrics(exercise, korean: korean);
+    final metrics = programExerciseMetrics(
+      AppLocalizations.of(context),
+      exercise,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -1714,22 +1716,25 @@ class _ExerciseSummary extends StatelessWidget {
 
 /// 운동 한 줄의 지표 요약 — 근력은 세트·횟수·중량, 그 외 유형은 시간. 유형마다
 /// 재는 단위가 다르다는 규칙은 회원 앱·서버와도 같다 (#1276).
+///
+/// 단위는 ARB 가 로케일마다 정한다 (#2304). 예전에는 `korean ?` 분기로 두 언어만
+/// 코드에 박혀 있었고, 영어는 `1 sets` 처럼 단수를 가리지 못했다.
 List<String> programExerciseMetrics(
-  ProgramExerciseDraft exercise, {
-  required bool korean,
-}) {
+  AppLocalizations l,
+  ProgramExerciseDraft exercise,
+) {
   final metrics = <String>[];
   if (exercise.isStrength) {
-    metrics.add(korean ? '${exercise.sets}세트' : '${exercise.sets} sets');
+    metrics.add(l.progSetsValue(exercise.sets));
     if (exercise.reps > 0) {
-      metrics.add(korean ? '${exercise.reps}회' : '${exercise.reps} reps');
+      metrics.add(l.progRepsValue(exercise.reps));
     }
     // 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 트레이너가 적은
     // 값이다.
     final double w = exercise.weight;
     metrics.add('${w == w.roundToDouble() ? w.round() : w}kg');
   } else {
-    metrics.add(korean ? '${exercise.minutes}분' : '${exercise.minutes} min');
+    metrics.add(l.minutesShort(exercise.minutes));
   }
   return metrics;
 }

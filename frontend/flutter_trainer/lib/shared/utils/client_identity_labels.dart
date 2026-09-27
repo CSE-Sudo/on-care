@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 // 동명이인 구분 문구·로스터 조회는 위젯이 아니라서 `shared/widgets` 밖에 둔다.
@@ -24,13 +25,15 @@ String demographicsLabel(
   required String gender,
   required int age,
 }) {
-  final korean = Localizations.localeOf(context).languageCode == 'ko';
+  // 성별·나이 문구는 ARB 가 정한다 (#2304) — 예전의 `korean ?` 분기는 두 언어만
+  // 코드에 박아 두어, 로케일이 늘면 그 언어도 영어로 떨어졌다.
+  final AppLocalizations l = AppLocalizations.of(context);
   final genderLabel = switch (gender) {
-    'female' => korean ? '여성' : 'Female',
-    'male' => korean ? '남성' : 'Male',
-    _ => korean ? '기타' : 'Other',
+    'female' => l.memberHealthGenderFemale,
+    'male' => l.memberHealthGenderMale,
+    _ => l.memberHealthGenderOther,
   };
-  return '$genderLabel · ${korean ? '$age세' : 'Age $age'}';
+  return l.coachClientDemographics(genderLabel, age);
 }
 
 /// Returns a plain-text identity for places that cannot compose text styles.
