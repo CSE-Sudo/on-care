@@ -1208,6 +1208,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
+  String get workoutKindPtSession => 'PT session · Trainer-led';
+
+  @override
+  String get workoutKindAssignedRoutine => 'Assigned routine';
+
+  @override
   String get trainerNote => 'Trainer\'s note';
 
   @override
@@ -1266,6 +1272,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateYesterday => 'Yesterday';
+
+  @override
+  String dateDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weeks ago',
+      one: '1 week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
@@ -1824,6 +1862,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get schedRepeatConflictHint =>
       'Nothing was created. Change the time, or clear the sessions that clash.';
+
+  @override
+  String get schedOverlapTitle => 'This time overlaps another session';
+
+  @override
+  String get schedOverlapHint =>
+      'Nothing was saved. Change the time or move the overlapping session, then save again.';
+
+  @override
+  String get slotOverlapHint =>
+      'The slot wasn\'t opened. Pick another time or move the overlapping session.';
+
+  @override
+  String get consultOverlapHint =>
+      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
 
   @override
   String get schedNote => 'Trainer\'s note';
@@ -3564,6 +3617,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The PT session to attach to has changed. Tap Add to schedule again to check';
 
   @override
+  String get coachScheduleOverlap =>
+      'Another session is already booked at that time, so nothing was added. Pick a different time and try again';
+
+  @override
   String get programEditorNoExercises => 'Add at least one exercise';
 
   @override
@@ -4471,6 +4528,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportsLastGoalsEvidenceWorkout(int done, int total) {
     return '$done / $total personal workouts';
   }
+
+  @override
+  String get reportsLastGoalsSubtitle => 'Judged from this week\'s records';
+
+  @override
+  String get reportsLastGoalsKeywordsCalories => 'calorie,kcal,intake';
+
+  @override
+  String get reportsLastGoalsKeywordsWorkout =>
+      'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym';
+
+  @override
+  String get reportsLastGoalsKeywordsLogged => 'log,record,meal';
 
   @override
   String get reportsTrendUnavailable =>

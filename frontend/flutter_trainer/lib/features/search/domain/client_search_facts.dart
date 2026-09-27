@@ -132,8 +132,9 @@ String clientSearchDetail(
     );
   }
 
-  final lastRoutine = client.lastRoutine.trim();
-  if (lastRoutine.isNotEmpty && lastRoutine != '-') {
+  // 서버가 준 날짜로 화면 언어의 `오늘`·`N일 전` 을 만든다(#2300).
+  final lastRoutine = lastRoutineLabel(l, client);
+  if (lastRoutine.isNotEmpty) {
     details.add(l.searchDetailLastRoutine(lastRoutine));
   }
 

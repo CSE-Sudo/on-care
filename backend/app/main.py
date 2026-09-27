@@ -40,6 +40,7 @@ from app.api.v1 import (
 from app.core import observability
 from app.core.body_limit import RequestBodySizeLimitMiddleware
 from app.core.config import get_settings
+from app.core.locale import RequestLocaleMiddleware
 from app.db.init_db import init_db
 
 settings = get_settings()
@@ -103,6 +104,11 @@ if settings.security_headers:
                 "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
             )
         return response
+
+
+# 요청 언어(#2297): `Accept-Language` 를 읽어 `current_locale()` 을 채운다. 서버가 만드는
+# 문장은 이 값으로 한국어·영어를 고른다(헤더가 없으면 한국어).
+app.add_middleware(RequestLocaleMiddleware)
 
 
 # 관측성: request-id 미들웨어(가장 바깥 — 컨텍스트를 먼저 세팅) + 액세스 로그 + 전역 500 핸들러.

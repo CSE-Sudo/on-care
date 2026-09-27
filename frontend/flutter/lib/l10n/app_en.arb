@@ -652,6 +652,7 @@
   "exSlotsAllBooked": "All available times are fully booked",
   "exSlotsLoadError": "Could not load available times.",
   "exReserveFailed": "Could not book that time. Please try again.",
+  "exReserveTimeTaken": "Your trainer already has something else at this time, so it can't be booked. Please pick another time.",
   "exReserveConfirmedSlotGym": "{slot} · {gym} reservation confirmed",
   "@exReserveConfirmedSlotGym": {
     "placeholders": {

@@ -42,10 +42,12 @@ def _key() -> str:
     return f"{KEY_PREFIX}{uuid4().hex[:12]}"
 
 
-def _schedule_body(key: str | None, *, note: str = "") -> dict:
+def _schedule_body(
+    key: str | None, *, note: str = "", time: str = "16:00"
+) -> dict:
     body = {
         "date": "2026-12-31",
-        "time": "16:00",
+        "time": time,
         "client_name": "신규 상담",
         "type": "상담",
         "duration_minutes": 30,
@@ -289,17 +291,22 @@ def test_different_keys_and_missing_keys_keep_creating(client, db_session):
         json=_schedule_body(_key()),
         headers=_headers(token),
     )
+    # 같은 시간이면 겹침(#2284)으로 409 가 나므로 시각만 달리한다 — 여기서 보는
+    # 것은 키가 다르거나 없을 때 멱등 재생으로 합쳐지지 않는다는 점이다.
     second = client.post(
         "/v1/trainer/schedule",
-        json=_schedule_body(_key()),
+        json=_schedule_body(_key(), time="17:00"),
         headers=_headers(token),
     )
-    no_key_body = _schedule_body(None, note=f"{KEY_PREFIX}no-key")
     third = client.post(
-        "/v1/trainer/schedule", json=no_key_body, headers=_headers(token)
+        "/v1/trainer/schedule",
+        json=_schedule_body(None, note=f"{KEY_PREFIX}no-key", time="18:00"),
+        headers=_headers(token),
     )
     fourth = client.post(
-        "/v1/trainer/schedule", json=no_key_body, headers=_headers(token)
+        "/v1/trainer/schedule",
+        json=_schedule_body(None, note=f"{KEY_PREFIX}no-key", time="19:00"),
+        headers=_headers(token),
     )
 
     assert {

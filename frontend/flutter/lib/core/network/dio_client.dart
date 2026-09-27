@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
@@ -34,6 +35,10 @@ final dioProvider = Provider<Dio>((ref) {
       validateStatus: (int? status) => status != null && status < 400,
     ),
   );
+
+  // 화면 언어는 가장 먼저 싣는다 — 목업 인터셉터도 같은 요청 헤더를 보게.
+  // 언어는 요청마다 읽으므로 언어가 바뀌어도 Dio 를 다시 만들지 않는다(#2297).
+  dio.interceptors.add(AcceptLanguageInterceptor(ref));
 
   // Order matters: LocalApi (drift-backed) and the legacy in-memory
   // MockApi both short-circuit before auth/logging fire.

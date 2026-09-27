@@ -145,6 +145,11 @@ class TrainerClientOut(BaseModel):
     protein_g: float             # 오늘 총 단백질(g)
     fat_g: float                 # 오늘 총 지방(g)
     last_routine: str            # 마지막 루틴 전송 라벨(오늘/어제/N일 전)
+    #: 마지막 루틴을 보낸 날(KST, YYYY-MM-DD). 없으면 None (#2300).
+    #: `last_routine` 은 서버가 문장으로 만든 라벨이라 화면 언어를 따라가지 못한다
+    #: — 앱은 이 날짜로 `오늘`·`N일 전` 을 로케일에 맞춰 직접 그린다. 옛 앱을 위해
+    #: `last_routine` 도 계속 보낸다.
+    last_routine_date: str | None = None
     week_completion: list[int]   # 이번 주 일별 완료율 7개(월→일)
     sodium_week: list[int]       # 최근 7일 일별 나트륨(오래된→오늘)
     #: 최근 7일 일별 칼로리·당류. 나트륨과 같은 창이라 세 지표를 한 그래프에서
@@ -279,6 +284,35 @@ class ClientDietEntryOut(BaseModel):
     photo_url: str | None = None
 
 
+#: 이력 종류 코드(#2300). 서버가 붙이는 고정 이름만 코드가 있다 — 트레이너가
+#: 지은 루틴 이름처럼 사람이 쓴 이름은 코드 없이 `label` 로만 온다.
+#: - ``pt_session``: 완료한 PT 세션 (`PT 세션 · 트레이너 지도`)
+#: - ``ai_personal``: AI 개인운동 (`AI 개인운동`, 옛 `AI 루틴 · 자율 운동`)
+#: - ``assigned_routine``: 이름 없는 배정 루틴 수행 (`배정 루틴 수행`)
+RoutineHistoryKind = Literal["pt_session", "ai_personal", "assigned_routine"]
+
+
+class RoutineHistoryExerciseOut(BaseModel):
+    """이력의 운동 한 종목 — 문장이 아닌 값(#2300).
+
+    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 한국어로 박힌 문장이라 영어
+    화면에서도 `세트`·`회` 가 그대로 나온다. 같은 내용을 값으로 나눠 보내고 단위는
+    앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
+    """
+    name: str
+    #: `cardio` | `strength` | `stretching` | `other`. 모르면 빈 문자열.
+    type: str = ""
+    minutes: int = 0
+    sets: int | None = None
+    reps: int | None = None
+    hold_seconds: int | None = None
+    weight: float | None = None
+    #: `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 채운다.
+    intensity: str | None = None
+    #: 실제로 했는가(`✓`/`✗`). 표시가 없던 기록은 한 것으로 본다.
+    done: bool = True
+
+
 class RoutineHistoryOut(BaseModel):
     """고객 운동기록 서브탭 항목 — 프론트 RoutineHistoryEntry 계약 정렬."""
     id: str = ""
@@ -286,6 +320,13 @@ class RoutineHistoryOut(BaseModel):
     label: str               # "PT 세션 · 트레이너 지도"
     completion_rate: int     # 0..100
     exercises: list[str]
+    #: 이력이 붙는 날(KST, YYYY-MM-DD) — `date_label` 을 만든 바로 그 날이다.
+    #: 앱은 이 값으로 `7/12 (오늘)` 을 로케일에 맞춰 그린다(#2300).
+    date: str | None = None
+    #: `label` 이 서버가 붙인 고정 이름이면 그 코드. 사람이 지은 이름이면 None.
+    kind: RoutineHistoryKind | None = None
+    #: `exercises` 와 같은 순서·같은 개수의 값 목록(#2300).
+    exercise_items: list[RoutineHistoryExerciseOut] = Field(default_factory=list)
     client_feedback: str
     trainer_note: str
     assigned_routine_id: str | None = None
@@ -1695,6 +1736,9 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
     #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
     subject_id: str | None = None
+    #: 알림이 가리키는 날짜(`YYYY-MM-DD`) — 예약·상담 알림이 스케줄을 그 날짜로
+    #: 여는 데 쓴다(#2292). 옛 알림에는 없다.
+    target_date: str | None = None
 
 
 #: 미션 키 하나(`report-<id>` 등). 서버는 내용을 해석하지 않고 길이만 막는다.

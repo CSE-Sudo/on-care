@@ -211,7 +211,7 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
                     // 날짜는 적지 않는다 — 이 판을 펼친 줄이 바로 위에서
                     // 이미 그 날을 말하고 있다(#1025).
                     AppTag(
-                      label: routineKindLabel(l, entry.label),
+                      label: routineKindLabel(l, entry.label, kind: entry.kind),
                       tone: AppTagTone.brand,
                     ),
                   ],
@@ -995,9 +995,21 @@ String clientExerciseLine(AppLocalizations l, ClientExerciseItem item) {
     if (weight != null && weight > 0)
       '${_trimZeroKg(weight)}${l.routineUnitKg}',
     if (sets == null && item.minutes > 0) l.minutesShort(item.minutes),
+    // 강도는 계약값(`moderate`)으로 온다 — 예전 서버 문장은 그 코드를 그대로
+    // 적어 한국어 화면에도 `moderate` 가 나왔다(#2300).
+    ?_intensityLabel(l, item.intensity),
   ];
   return parts.join(' · ');
 }
+
+/// 강도 계약값 → 화면 문구. 모르는 값·빈 값은 적지 않는다.
+String? _intensityLabel(AppLocalizations l, String? intensity) =>
+    switch (intensity) {
+      'light' => l.intensityLight,
+      'moderate' => l.intensityModerate,
+      'high' => l.intensityHigh,
+      _ => null,
+    };
 
 /// 20.0 → `20`, 62.5 → `62.5`. 정수 무게에 소수점이 붙으면 원판 단위가 아닌
 /// 값을 적은 것처럼 읽힌다.
