@@ -450,7 +450,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           body: PageScrollResetListener(
             // 좁은 메뉴 + 넓은 본문 두 열이다. 공용 [AppSplitView] 는 목록이
             // 380 이라, 항목 이름만 있는 메뉴에는 넓고 본문 오른쪽이 비었다.
-            // 메뉴는 앱 사이드바와 같은 폭을 쓰고 본문이 남은 폭을 다 받는다.
+            // 메뉴는 좁게, 본문이 남은 폭을 다 받는다.
             // 좁으면 둘 중 하나만 보이는 것은 같다.
             child: Builder(
               builder: (BuildContext context) {
@@ -467,10 +467,14 @@ class _MyPageState extends ConsumerState<MyPage> {
                 if (!wide) {
                   return section == _MySection.settings ? menu : body;
                 }
+                // 메뉴 폭은 본문의 20%(260~340) — 넓은 창일수록 메뉴가 조금
+                // 넓어져 본문이 끝없이 늘지 않는다. 여백은 두지 않는다.
+                final double menuWidth =
+                    (MediaQuery.sizeOf(context).width * 0.2).clamp(260, 340);
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    SizedBox(width: OnCareLayout.sidebarWidth, child: menu),
+                    SizedBox(width: menuWidth, child: menu),
                     const SizedBox(width: OnCareSpacing.sectionGap),
                     Expanded(child: body),
                   ],
