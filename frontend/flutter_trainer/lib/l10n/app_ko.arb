@@ -632,19 +632,7 @@
       }
     }
   },
-  "reportsSendStateSent": "전송됨",
-  "reportsSendStateSending": "전송 중…",
-  "reportsShare": "공유",
-  "reportsShareSendTo": "{name}님에게 전송",
-  "@reportsShareSendTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsShareNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
-  "reportsShareNoClient": "리포트를 볼 회원을 먼저 선택해 주세요",
+  "reportsSendNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
   "reportBodyCompletionSteady": "운동은 평균 {avg}%로 꾸준히 해 주셨어요.",
@@ -1697,34 +1685,7 @@
   "reportsAiUseAsDraft": "피드백으로 가져오기",
   "reportsAiRegenerate": "다시 생성",
   "reportsAiUnavailable": "실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.",
-  "reportsPdfLabel": "PDF 내보내기",
-  "reportsPdfGenerating": "PDF 생성 중…",
   "reportsPdfGenerationFailed": "PDF를 생성하지 못했어요. 다시 시도해 주세요.",
-  "reportsPdfReady": "{name}님의 주간 리포트가 준비됐어요.",
-  "@reportsPdfReady": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSending": "전송 중…",
-  "reportsPdfSendToClient": "회원에게 전송",
-  "reportsPdfSave": "PDF 저장",
-  "reportsPdfPrint": "인쇄",
-  "reportsPdfClose": "닫기",
-  "reportsPdfActionFailed": "작업을 완료하지 못했어요. 다시 시도해 주세요.",
-  "reportsPdfSent": "{name}님에게 PDF를 전송했어요.",
-  "@reportsPdfSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSaveStarted": "PDF 저장을 시작했어요.",
-  "reportsPdfPrintOpened": "인쇄 창을 열었어요.",
-  "reportsPdfMessage": "이번 주 리포트를 보내드려요.",
   "reportsPdfFallbackClient": "회원",
   "reportsPdfDocTitle": "주간 코칭 리포트",
   "reportsPdfDocTitleContinued": "주간 코칭 리포트 (계속)",

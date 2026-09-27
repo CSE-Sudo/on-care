@@ -1607,24 +1607,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsSendStateSent => 'Sent';
-
-  @override
-  String get reportsSendStateSending => 'Sending…';
-
-  @override
-  String get reportsShare => 'Share';
-
-  @override
-  String reportsShareSendTo(String name) {
-    return 'Send to $name';
-  }
-
-  @override
-  String get reportsShareNeedsFeedback => 'Write feedback first to send it.';
-
-  @override
-  String get reportsShareNoClient => 'Pick a member to see their report first.';
+  String get reportsSendNeedsFeedback => 'Write feedback first to send it.';
 
   @override
   String reportBodyGreeting(String name, String range) {
@@ -4197,52 +4180,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Available after the report summary API is connected. No summary is generated now.';
 
   @override
-  String get reportsPdfLabel => 'Export PDF';
-
-  @override
-  String get reportsPdfGenerating => 'Generating PDF…';
-
-  @override
   String get reportsPdfGenerationFailed =>
       'Couldn\'t generate the PDF. Please try again.';
-
-  @override
-  String reportsPdfReady(String name) {
-    return '$name\'s weekly report is ready.';
-  }
-
-  @override
-  String get reportsPdfSending => 'Sending…';
-
-  @override
-  String get reportsPdfSendToClient => 'Send to member';
-
-  @override
-  String get reportsPdfSave => 'Save PDF';
-
-  @override
-  String get reportsPdfPrint => 'Print';
-
-  @override
-  String get reportsPdfClose => 'Close';
-
-  @override
-  String get reportsPdfActionFailed =>
-      'Couldn\'t complete the action. Please try again.';
-
-  @override
-  String reportsPdfSent(String name) {
-    return 'Sent the PDF to $name.';
-  }
-
-  @override
-  String get reportsPdfSaveStarted => 'Started saving the PDF.';
-
-  @override
-  String get reportsPdfPrintOpened => 'Opened the print dialog.';
-
-  @override
-  String get reportsPdfMessage => 'Here\'s your weekly report.';
 
   @override
   String get reportsPdfFallbackClient => 'member';

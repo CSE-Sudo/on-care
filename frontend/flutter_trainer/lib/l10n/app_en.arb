@@ -1115,19 +1115,7 @@
       }
     }
   },
-  "reportsSendStateSent": "Sent",
-  "reportsSendStateSending": "Sending…",
-  "reportsShare": "Share",
-  "reportsShareSendTo": "Send to {name}",
-  "@reportsShareSendTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsShareNeedsFeedback": "Write feedback first to send it.",
-  "reportsShareNoClient": "Pick a member to see their report first.",
+  "reportsSendNeedsFeedback": "Write feedback first to send it.",
   "reportBodyGreeting": "{name}, here's your weekly report for {range}.",
   "@reportBodyGreeting": {
     "placeholders": {
@@ -2796,34 +2784,7 @@
   "reportsAiUseAsDraft": "Use as feedback",
   "reportsAiRegenerate": "Regenerate",
   "reportsAiUnavailable": "Available after the report summary API is connected. No summary is generated now.",
-  "reportsPdfLabel": "Export PDF",
-  "reportsPdfGenerating": "Generating PDF…",
   "reportsPdfGenerationFailed": "Couldn't generate the PDF. Please try again.",
-  "reportsPdfReady": "{name}'s weekly report is ready.",
-  "@reportsPdfReady": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSending": "Sending…",
-  "reportsPdfSendToClient": "Send to member",
-  "reportsPdfSave": "Save PDF",
-  "reportsPdfPrint": "Print",
-  "reportsPdfClose": "Close",
-  "reportsPdfActionFailed": "Couldn't complete the action. Please try again.",
-  "reportsPdfSent": "Sent the PDF to {name}.",
-  "@reportsPdfSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSaveStarted": "Started saving the PDF.",
-  "reportsPdfPrintOpened": "Opened the print dialog.",
-  "reportsPdfMessage": "Here's your weekly report.",
   "reportsPdfFallbackClient": "member",
   "reportsPdfDocTitle": "Weekly coaching report",
   "reportsPdfDocTitleContinued": "Weekly coaching report (continued)",
