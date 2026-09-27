@@ -57,13 +57,13 @@ def member(client, db_session):
     email = f"coach-personal-{uuid.uuid4().hex[:8]}@example.com"
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=email, name="개인화 테스트",
-        hashed_password=hash_password("pw!"), role="member",
+        hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.commit()
 
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     yield user, token
 
@@ -147,7 +147,7 @@ def test_other_users_diet_never_reaches_my_prompt(
     other = User(
         id=f"user-{uuid.uuid4().hex[:12]}",
         email=f"coach-other-{uuid.uuid4().hex[:8]}@example.com",
-        name="다른 사용자", hashed_password=hash_password("pw!"), role="member",
+        name="다른 사용자", hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(other)
     db_session.commit()

@@ -72,6 +72,8 @@ const Map<String, String> _koAdded = <String, String>{
   'authPasswordEmpty': '비밀번호를 입력해 주세요',
   'signUpPhoneFormatInvalid': '전화번호를 010-0000-0000 형식으로 입력해 주세요',
   'signUpPasswordWeak': '영문과 숫자를 포함해 8자 이상 입력해 주세요',
+  // 서버 비밀번호 상한(64자·72바이트)과 같은 안내(#1555).
+  'signUpPasswordTooLong': '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)',
   'onboardOptionalTag': '(선택)',
   'onboardSkipStep': '이 단계 건너뛰기',
   'onboardBirthLabel': '생년월일',
@@ -141,6 +143,7 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'signUpAction' => l.signUpAction,
   'signUpHaveAccountQuestion' => l.signUpHaveAccountQuestion,
   'signUpPasswordWeak' => l.signUpPasswordWeak,
+  'signUpPasswordTooLong' => l.signUpPasswordTooLong,
   'signUpPhoneFormatInvalid' => l.signUpPhoneFormatInvalid,
   'signUpPasswordMismatch' => l.signUpPasswordMismatch,
   'signUpEmailTaken' => l.signUpEmailTaken,

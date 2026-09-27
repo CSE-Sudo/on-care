@@ -1514,6 +1514,7 @@
   "signUpAction": "가입하고 시작하기",
   "signUpHaveAccountQuestion": "이미 계정이 있으신가요?",
   "signUpPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
+  "signUpPasswordTooLong": "비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)",
   "signUpPasswordMismatch": "비밀번호가 일치하지 않아요",
   "signUpPhoneFormatInvalid": "전화번호를 010-0000-0000 형식으로 입력해 주세요",
   "myFieldBirthInvalid": "생년월일을 1996-03-21 형식으로 입력해 주세요",

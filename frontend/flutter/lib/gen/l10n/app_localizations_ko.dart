@@ -2886,6 +2886,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
+  String get signUpPasswordTooLong => '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)';
+
+  @override
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override

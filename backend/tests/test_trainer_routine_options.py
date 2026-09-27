@@ -85,7 +85,7 @@ def _register_and_link_member(client, *, goal: str = "체중 감량") -> str:
     email = f"routine-options-776-{uuid4().hex[:8]}@oncare.com"
     response = client.post(
         "/v1/auth/register",
-        json={"email": email, "password": "pw!", "name": "분석 테스트 회원"},
+        json={"email": email, "password": "test-pw-1234", "name": "분석 테스트 회원"},
     )
     assert response.status_code == 201, response.text
     member_id = response.json()["id"]
