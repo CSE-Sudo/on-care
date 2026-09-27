@@ -607,6 +607,26 @@ tag: diet|exercise|hydration|...
   두 값을 싣는다.
 - 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다.
 
+**요청 크기·빈도 한도(#1548, #1549).** 한도를 넘는 요청은 LLM 을 부르기 전에 거절하고, 대화 저장·하루 한도 차감도 하지 않는다.
+
+| 한도 | 값 | 넘으면 |
+| --- | --- | --- |
+| `message` 길이 | 1000자 (트레이너 고객 AI 코치와 같음) | **422** |
+| `history` 턴 수 | 20 | **422** |
+| `history[].content` 길이 | 2000자 (`role` 은 16자) | **422** |
+| 요청 본문 전체 | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
+| 분당 요청 수 — 회원 `POST /ai-coach/chat` | 20 / IP (`COACH_CHAT_PER_MINUTE`) | **429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After: 60` |
+| 분당 요청 수 — 트레이너 `POST /trainer/clients/{member_id}/ai-coach` | 20 / **트레이너 id** (같은 설정) | 같은 429. 같은 IP 의 다른 트레이너와 버킷을 나누지 않고, 한 트레이너가 여러 고객에게 물어도 한 버킷이다. 담당이 아닌 회원은 한도를 세기 전에 404 |
+
+길이는 글자(유니코드 코드 포인트) 수다. 회원 앱은 입력칸을 1000자로 막고, `history` 는 최근 20턴·턴당 2000자로 잘라 보낸다(서버는
+저장된 대화를 먼저 쓰고 프롬프트에는 최근 몇 턴만 넣으므로 답이 달라지지 않는다). 분당 한도(429 `detail` 이 문자열)는 하루 한도의
+429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다. 트레이너 웹은 이 429 를 "1분 뒤 다시 물어봐 주세요" 로 보이고 쓰던 질문을 남긴다.
+
+**생성 실패 로그(#1559).** LLM 대신 검색 기반 대체 답으로 내려갈 때마다 `app.services.coach.chat` 로거가 `event=coach_llm_fallback` 레코드를
+남긴다. 필드는 `fallback_reason`(`llm_unavailable` 설정·키 문제 / `provider_error` 호출 실패 / `empty_reply` 빈 응답 — 셋은 WARNING,
+`internal_error` 우리 코드 오류 — ERROR+스택)·`llm_provider`·`llm_model`·`error_type`·`http_status`·`user_id` 이고, 요청 상관관계는
+`request_id` 로 잇는다. 예외 메시지·프롬프트·건강정보·질문은 남기지 않는다. 응답 계약은 그대로다.
+
 `DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
@@ -945,6 +965,27 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 두 앱 모두 로그인과 토큰 저장이 붙어 있다(`session_controller.dart`, `secure_token_store.dart`,
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
+
+### 소셜 로그인 실패 응답 (#1550)
+
+`POST /auth/social/{provider}` 는 provider(google·kakao·naver·apple)에 토큰을 확인한 뒤
+결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
+200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
+
+| 상황 | 상태 | `detail` |
+|---|---|---|
+| 지원하지 않는 provider | **400** | `지원하지 않는 소셜 로그인입니다.` |
+| 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 인증에 실패했습니다.` |
+| provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.` |
+| 검증 중 예상하지 못한 예외 | **502** | 위와 같음 |
+
+- 401 은 "이 토큰으로는 로그인할 수 없다", 502 는 "provider 쪽이 지금 제대로 답하지 않는다"
+  이다. 앱은 502 를 잠시 뒤 재시도할 일로 다루면 된다.
+- 선택 필드(이메일·이름·kakao `kakao_account`/`profile`·naver `response`)는 없거나 `null` 이면
+  빈 값으로 받는다. 있는데 타입이 다르면 형식 이상(502)이다. kakao id 는 정수로 와도 문자열로
+  저장한다.
+- 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
+  감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
 
 ### 가입 연락처 형식 (#1780)
 

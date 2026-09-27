@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import httpx
 
+from app.services.social._response import json_object, optional_str, required_id
 from app.services.social.base import SocialAuthError, SocialIdentity, SocialVerifier
 
 _TOKENINFO = "https://oauth2.googleapis.com/tokeninfo"
@@ -25,14 +26,12 @@ class GoogleVerifier(SocialVerifier):
         if resp.status_code != 200:
             raise SocialAuthError(f"google 토큰 검증 실패({resp.status_code})")
 
-        data = resp.json()
-        uid = str(data.get("sub") or "")
-        if not uid:
-            raise SocialAuthError("google 사용자 id(sub) 없음")
+        data = json_object("google", resp)
+        uid = required_id("google", data, "sub")
 
         return SocialIdentity(
             provider="google",
             provider_user_id=uid,
-            email=data.get("email") or "",
-            name=data.get("name") or "",
+            email=optional_str("google", data, "email"),
+            name=optional_str("google", data, "name"),
         )

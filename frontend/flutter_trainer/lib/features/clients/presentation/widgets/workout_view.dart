@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
@@ -19,12 +16,6 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-
-/// 수행 피드백 입력의 최대 글자 수 — 서버 계약 값이다.
-const int _feedbackMaxLength = 2000;
-
-/// 수행 피드백 입력 칸의 줄 수.
-const int _feedbackLines = 5;
 
 /// 운동 — 기록 확인 중심 화면. 얼마나 했나(운동 현황) → 무엇을 했나(운동
 /// 기록) 순서로 답한다(#1025).
@@ -80,10 +71,8 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
       // 무관한 '앞으로 할 일' 이 거기 계속 붙어 있으면 두 성격이 섞인다 —
       // 기간 토글이 목록을 지배한다는 이 화면의 규칙과도 어긋난다.
       if (_period == ClientPeriod.today) _PendingRoutines(clientId: client.id),
-      const SizedBox(height: OnCareSpacing.s12),
-      // 현황을 본 다음 같은 기간의 AI 해석을 읽고, 바로 아래에서 날짜별
-      // 근거를 확인한다. 긴 기록 끝에 분석을 두지 않는다. (#1284)
-      _ExerciseAiComment(clientId: client.id, period: _period),
+      // 운동 탭에는 AI 분석 카드를 두지 않는다(#2329) — 현황과 날짜별 기록이
+      // 이미 같은 기간을 말하고 있어, 한 문장 해석이 기록을 밀어내기만 했다.
       const SizedBox(height: OnCareSpacing.s12),
       // 기록은 이 목록 하나다. 예전에는 날짜별 목록 아래에 `운동 기록` 카드
       // 목록이 또 있어, 이번 주·전체에서 같은 날의 같은 운동이 두 벌로
@@ -105,136 +94,28 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
   }
 }
 
-/// 완료 상태 색 — 100% 완료(초록) / 진행 중(주황) / 미시작(회색).
+/// 운동 기록 한 건 — 종류와 운동 줄(걸른 것은 취소선)만 말한다.
 ///
-/// '부분' 은 진행 상태이지 주의가 아니다. 빨강으로 올리면 아무것도 하지 않은
-/// 0%(회색)보다 부분 완료가 더 위험해 보여 척도가 뒤집힌다(#690).
-///
-/// 화면 밖에서도 읽을 수 있게 열어 둔다 — 이 세 단계가 곧 `완료` 의 정의라,
-/// 색이 흔들리면 테스트가 먼저 걸린다(#1239).
-Color workoutRateColor(int rate) {
-  // 100% 는 두 앱이 함께 쓰는 **완료 초록**이다(#1239). 예전에는 어두운 초록
-  // (`#22A882`)이었는데, 그 색은 회원 앱에서 식단 화면의 계열색으로 남아 있어
-  // 같은 `완료` 를 두 앱이 다른 초록으로 칠하고 있었다 — 트레이너 앱 안에서도
-  // 일정·할 일 완료와 이 배지의 초록이 갈렸다.
-  if (rate >= 100) return OnCareColors.success;
-  if (rate > 0) return OnCareColors.caution;
-  // 미시작은 `borderStrong`(#DEE8F1) 이었다. 4px 띠일 때는 옅어도 보였지만,
-  // 색 띠를 걷어낸 지금은 이 색이 배지의 글자색이라 판에 거의 묻힌다.
-  // 비활성이되 읽히는 회색으로 내린다 — 뜻은 그대로다(#1025).
-  return OnCareColors.textSecondary;
-}
+/// 완료 배지(`100%`·트로피)와 `4/4`, 회원 피드백·트레이너 메모 상자는
+/// 걷어냈다(#2329). 몇 개를 했는지는 줄마다 붙은 체크와 취소선이 이미 말하고,
+/// 피드백은 기록 카드가 아니라 채팅·메모에서 모은다.
+class _HistoryCard extends StatelessWidget {
+  const _HistoryCard({required this.entry});
 
-/// [workoutRateColor] 와 같은 세 단계를 태그 톤으로 옮긴 것. 배지는 [AppTag]
-/// 라 색을 직접 받지 않는다 — 두 함수가 같은 단계를 같은 색으로 말한다.
-AppTagTone workoutRateTone(int rate) {
-  if (rate >= 100) return AppTagTone.success;
-  if (rate > 0) return AppTagTone.caution;
-  return AppTagTone.neutral;
-}
-
-/// A single workout record, styled as a mission card: date/kind, a
-/// completion badge, exercise lines (skipped ones struck through), client
-/// feedback, trainer note.
-class _HistoryCard extends ConsumerStatefulWidget {
-  const _HistoryCard({required this.clientId, required this.entry});
-
-  final String clientId;
   final RoutineHistoryEntry entry;
-
-  @override
-  ConsumerState<_HistoryCard> createState() => _HistoryCardState();
-}
-
-class _HistoryCardState extends ConsumerState<_HistoryCard> {
-  bool _saving = false;
-
-  Future<void> _editFeedback() async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final String? feedback = await showAppDialog<String>(
-      context: context,
-      builder: (_) => _FeedbackDialog(initialValue: widget.entry.trainerNote),
-    );
-    if (feedback == null || !mounted) return;
-
-    setState(() => _saving = true);
-    try {
-      await ref
-          .read(clientRepositoryProvider)
-          .updateHistoryFeedback(widget.clientId, widget.entry.id, feedback);
-      ref.invalidate(clientHistoryProvider(widget.clientId));
-      if (!mounted) return;
-      showAppToast(context, l.routineFeedbackSaved, type: AppToastType.success);
-    } catch (error) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        serverDetailOr(
-          l,
-          error is AppError ? error.message : null,
-          l.routineFeedbackFailed,
-        ),
-        type: AppToastType.error,
-      );
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final RoutineHistoryEntry entry = widget.entry;
-    // 미션 카드 — 왼쪽 띠 색이 완료 상태를 한눈에 말한다. 원형 게이지는
-    // 지웠다: 몇 개 중 몇 개를 했는지는 바로 아래 줄이 이미 정확히 말하고,
-    // 카드 전체가 "이 미션을 깼는가" 를 색 하나로 답하면 충분하다(#1025).
-    //
-    // 다른 세 변에는 색을 주지 않는다 — `Border` 에 보이는 색이 두 가지면
-    // (띠 색 + 회색 테두리) `borderRadius` 와 함께 그릴 수 없어 런타임에
-    // 터진다(Flutter `BoxBorder`, 보이는 색이 하나일 때만 둥근 모서리를
-    // 그린다). `_NoteBox` 의 왼쪽 띠와 같은 규칙이다.
-    // 배포된 화면과 같은 흰 판이다 — 색 띠를 두르지 않는다. 완료 상태는
-    // 오른쪽 배지가 색과 숫자로 말하고, 판까지 그 색을 입으면 한 카드가
-    // 같은 말을 두 번 한다(#1025).
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // 날짜는 적지 않는다 — 이 판을 펼친 줄이 바로 위에서
-                    // 이미 그 날을 말하고 있다(#1025).
-                    AppTag(
-                      label: routineKindLabel(l, entry.label, kind: entry.kind),
-                      tone: AppTagTone.brand,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              // 배지의 `67%` 가 어디서 나온 값인지 — 배정한 운동 중 몇 개를
-              // 했는가다. 왼쪽에 한 문장으로 두던 것을 퍼센트 바로 옆으로
-              // 옮겨 두 값을 한눈에 함께 읽는다(#1484).
-              if (entry.totalCount > 0) ...<Widget>[
-                Text(
-                  entry.completionCountLabel,
-                  key: ValueKey<String>('workout-done-count-${entry.id}'),
-                  style: OnCareTypography.numeric(
-                    tokens.text(
-                      OnCareTypography.strong(OnCareTypography.caption),
-                    ),
-                  ).copyWith(color: OnCareColors.textTertiary),
-                ),
-                const SizedBox(width: OnCareSpacing.s4),
-              ],
-              _MissionBadge(rate: entry.displayRate),
-            ],
+          // 날짜는 적지 않는다 — 이 판을 펼친 줄이 바로 위에서 이미 그 날을
+          // 말하고 있다(#1025).
+          AppTag(
+            label: routineKindLabel(l, entry.label, kind: entry.kind),
+            tone: AppTagTone.brand,
           ),
           const SizedBox(height: OnCareSpacing.s8),
           for (final (int i, ClientExerciseItem item)
@@ -244,173 +125,6 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
               line: clientExerciseLine(l, item),
               done: item.done,
             ),
-          // 개인 운동(배정 루틴)에 회원이 적는 피드백은 없앴다(#1825) — 회원의
-          // 불편·부정적 반응은 채팅에서 감지해 모은다. 옛 데이터가 남아 있어도
-          // 그리지 않는다. PT·프로그램 세션에 대한 회원 피드백은 그대로 보인다.
-          if (entry.clientFeedback.isNotEmpty &&
-              entry.assignedRoutineId == null) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            _NoteBox(
-              // 이 피드백이 **무엇에 대한 말인지** 제목이 말한다(#1453).
-              title: clientFeedbackTitle(l, entry),
-              body: entry.clientFeedback,
-              color: tokens.brand.primary,
-            ),
-          ],
-          if (entry.trainerNote.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s4),
-            _NoteBox(
-              title: l.trainerNote,
-              body: entry.trainerNote,
-              // 노트다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
-              color: OnCareColors.caution,
-            ),
-          ],
-          if (entry.assignedRoutineId != null) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: AppButton(
-                key: ValueKey<String>('routine-feedback-${entry.id}'),
-                label: entry.trainerNote.isEmpty
-                    ? l.routineFeedbackWrite
-                    : l.routineFeedbackEdit,
-                onPressed: _saving ? null : _editFeedback,
-                variant: AppButtonVariant.secondary,
-                size: OnCareButtonSize.small,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _FeedbackDialog extends StatefulWidget {
-  const _FeedbackDialog({required this.initialValue});
-
-  final String initialValue;
-
-  @override
-  State<_FeedbackDialog> createState() => _FeedbackDialogState();
-}
-
-class _FeedbackDialogState extends State<_FeedbackDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    // 입력 폼이라 중간 폭이다.
-    return AppDialog(
-      title: l.routineFeedbackTitle,
-      size: AppDialogSize.medium,
-      footer: AppButtonPair(
-        cancelLabel: l.actionCancel,
-        onCancel: () => Navigator.of(context).pop(),
-        confirmKey: const ValueKey<String>('routine-feedback-save'),
-        confirmLabel: l.actionSave,
-        onConfirm: () {
-          final String text = _controller.text.trim();
-          if (text.isNotEmpty) Navigator.of(context).pop(text);
-        },
-      ),
-      child: AppTextField(
-        key: const ValueKey<String>('routine-feedback-input'),
-        controller: _controller,
-        autofocus: true,
-        maxLength: _feedbackMaxLength,
-        maxLines: _feedbackLines,
-        hint: l.routineFeedbackHint,
-      ),
-    );
-  }
-}
-
-/// 완료 배지 — 원형 게이지 대신 아이콘·색·글자로 한 번에 말한다(#1025).
-///
-/// 미션을 깼는지가 중요하지, 정밀한 gauge 가 중요한 자리가 아니다. 100%는
-/// 트로피, 진행 중은 깃발, 0%는 빈 원으로 — 숫자를 안 읽어도 색과 아이콘만
-/// 으로 상태가 읽힌다.
-class _MissionBadge extends StatelessWidget {
-  const _MissionBadge({required this.rate});
-
-  final int rate;
-
-  @override
-  Widget build(BuildContext context) {
-    final IconData icon = rate >= 100
-        ? Icons.emoji_events_rounded
-        : rate > 0
-        ? Icons.flag_rounded
-        : Icons.radio_button_unchecked_rounded;
-    // 판에서 색 띠를 걷어낸 뒤로 완료 상태를 말하는 것은 이 배지뿐이다.
-    // 예전에는 오른쪽 원형 게이지가 그만한 자리를 차지했으니(배포된 화면),
-    // 그 자리를 이어받을 만큼은 읽혀야 한다(#1025).
-    return AppTag(label: '$rate%', icon: icon, tone: workoutRateTone(rate));
-  }
-}
-
-/// Left-bordered note box ("고객 피드백" navy / "트레이너 메모" orange).
-class _NoteBox extends StatelessWidget {
-  const _NoteBox({
-    required this.title,
-    required this.body,
-    required this.color,
-  });
-
-  final String title;
-  final String body;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s12,
-        vertical: OnCareSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: OnCareColors.onWhite(color, OnCareAlpha.subtle),
-        borderRadius: OnCareRadius.mdAll,
-        border: Border(
-          left: BorderSide(
-            color: OnCareColors.onWhite(color, OnCareAlpha.strong),
-            width: OnCareSpacing.s4,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.caption))
-                .copyWith(color: color),
-          ),
-          const SizedBox(height: OnCareSpacing.s2),
-          Text(
-            body,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
         ],
       ),
     );
@@ -469,39 +183,6 @@ class _ExerciseLine extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// 기간에 맞는 운동 조언. 식단과 **같은 카드**를 쓴다. (#1025)
-///
-/// 서버가 만든 문장이다 — 화면이 따로 계산하면 같은 회원의 같은 주를 두 곳이
-/// 다르게 말한다(식단이 #1017 에서 겪은 것과 같은 문제다).
-class _ExerciseAiComment extends ConsumerWidget {
-  const _ExerciseAiComment({required this.clientId, required this.period});
-
-  final String clientId;
-  final ClientPeriod period;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 아직 오지 않았거나 실패하면 카드를 세우지 않는다. 운동에는 식단의
-    // `dietAiBalanced` 같은 화면 쪽 대체 문구가 없다 — 없는 조언을 지어내는
-    // 대신 자리를 비운다.
-    final String message =
-        ref
-            .watch(
-              clientExerciseAdviceProvider((
-                clientId: clientId,
-                period: period,
-              )),
-            )
-            .valueOrNull ??
-        '';
-    return ClientAiAnalysisCard(
-      cardKey: const ValueKey<String>('exercise-ai-analysis'),
-      period: period,
-      message: message,
     );
   }
 }
@@ -593,7 +274,7 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
           AppSectionHeader(title: l.workoutUndatedTitle),
           const SizedBox(height: OnCareSpacing.s8),
           for (final RoutineHistoryEntry entry in undated) ...<Widget>[
-            _HistoryCard(clientId: widget.clientId, entry: entry),
+            _HistoryCard(entry: entry),
             const SizedBox(height: OnCareSpacing.s8),
           ],
         ],
@@ -623,8 +304,8 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
                     _openDay = _openDay == ymd(day.date) ? null : ymd(day.date);
                   }),
                   emptyLabel: l.dietDayEmpty,
-                  // 그날의 미션 카드가 펼친 자리로 들어온다 — 이행률·종류·
-                  // 피드백·메모까지, 예전 `운동 기록` 카드가 하던 말 그대로다.
+                  // 그날의 기록 카드가 펼친 자리로 들어온다 — 종류와 운동
+                  // 줄이다(완료 배지·피드백·메모는 #2329 에서 걷어냈다).
                   // 이력이 없는 날에는 지표에 남은 운동 이름만 보여 준다.
                   extra: (today || _openDay == ymd(day.date)) && logged
                       ? _DayDetail(
@@ -708,7 +389,7 @@ class _DayDetail extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             for (final RoutineHistoryEntry entry in entries) ...<Widget>[
-              _HistoryCard(clientId: clientId, entry: entry),
+              _HistoryCard(entry: entry),
               const SizedBox(height: OnCareSpacing.s8),
             ],
           ],

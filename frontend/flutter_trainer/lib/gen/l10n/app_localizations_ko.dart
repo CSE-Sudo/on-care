@@ -225,6 +225,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요.';
+
+  @override
   String get authErrNameEmpty => '이름을 입력해 주세요';
 
   @override
@@ -1170,9 +1173,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedback => '회원 피드백';
 
   @override
-  String get clientFeedbackSession => '이 세션에 대한 회원 피드백';
-
-  @override
   String get workoutKindAiPersonal => 'AI 개인운동';
 
   @override
@@ -1180,9 +1180,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get workoutKindAssignedRoutine => '배정 루틴 수행';
-
-  @override
-  String get trainerNote => '트레이너 메모';
 
   @override
   String get dietLoadFailed => '식단을 불러오지 못했어요';
@@ -1277,73 +1274,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String clientDietAdviceAllMostlyUnder(int weeks, int days) {
     return '최근 $weeks주 기록한 $days일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
-  }
-
-  @override
-  String get clientExerciseAdviceEmptyToday =>
-      '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
-
-  @override
-  String get clientExerciseAdviceEmptyWeek =>
-      '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
-
-  @override
-  String get clientExerciseAdviceEmptyAll => '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.';
-
-  @override
-  String clientExerciseAdviceToday(String type, int minutes, int calories) {
-    String _temp0 = intl.Intl.selectLogic(type, {
-      'cardio': '유산소',
-      'strength': '근력',
-      'stretching': '스트레칭',
-      'other': '기타',
-    });
-    return '오늘 $_temp0 위주로 $minutes분, ${calories}kcal 썼어요. 스트레칭으로 마무리해요.';
-  }
-
-  @override
-  String clientExerciseAdviceWeekOneDay(int minutes) {
-    return '이번 주는 $minutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
-  }
-
-  @override
-  String clientExerciseAdviceWeekSkew(
-    int days,
-    int minutes,
-    String top,
-    String missing,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(top, {
-      'cardio': '유산소',
-      'strength': '근력',
-      'stretching': '스트레칭',
-      'other': '기타',
-    });
-    String _temp1 = intl.Intl.selectLogic(missing, {
-      'cardio': '유산소',
-      'strength': '근력',
-      'stretching': '스트레칭',
-      'other': '기타',
-    });
-    return '이번 주 $days일 $minutes분이 $_temp0에 몰렸어요. $_temp1도 섞어 볼까요?';
-  }
-
-  @override
-  String clientExerciseAdviceWeekBalanced(int days, int minutes) {
-    return '이번 주 $days일 $minutes분, 유형도 고르게 섞였어요.';
-  }
-
-  @override
-  String get clientExerciseAdviceAllUp =>
-      '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
-
-  @override
-  String get clientExerciseAdviceAllDown =>
-      '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
-
-  @override
-  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes) {
-    return '$weeks주 동안 $days일 $minutes분, 기복 없이 이어가고 있어요.';
   }
 
   @override
@@ -3016,6 +2946,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachAskFailed => '질문을 보낼 수 없어요';
 
   @override
+  String get coachRateLimited => '질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요';
+
+  @override
   String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';
 
   @override
@@ -3329,24 +3262,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String searchDetailCompletion(int percent) {
     return '이번 주 이행률 $percent%';
   }
-
-  @override
-  String get routineFeedbackTitle => '수행 피드백';
-
-  @override
-  String get routineFeedbackHint => '회원에게 전할 코칭 피드백을 입력해 주세요';
-
-  @override
-  String get routineFeedbackWrite => '피드백 작성';
-
-  @override
-  String get routineFeedbackEdit => '피드백 수정';
-
-  @override
-  String get routineFeedbackSaved => '피드백을 저장했어요';
-
-  @override
-  String get routineFeedbackFailed => '피드백을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get navOperationsGroup => '운영';
