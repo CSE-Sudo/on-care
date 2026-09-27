@@ -1410,11 +1410,12 @@
   "myVersion": "Version",
   "myContact": "Contact",
   "myPasswordChanged": "Password changed",
-  "myCareerYears": "{career} experience",
+  "myCareerYears": "{years, plural, =1{1 year} other{{years} years}} of experience",
   "@myCareerYears": {
+    "description": "Career tag on the trainer profile. The value is stored as a number of years.",
     "placeholders": {
-      "career": {
-        "type": "String"
+      "years": {
+        "type": "int"
       }
     }
   },

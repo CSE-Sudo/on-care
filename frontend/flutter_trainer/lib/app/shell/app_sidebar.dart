@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
@@ -157,6 +158,7 @@ class AppSidebar extends ConsumerWidget {
             ),
             _ProfileFooter(
               profile: profile,
+              fallback: seedTrainerProfileFor(ref.watch(demoLanguageProvider)),
               expanded: expanded,
               selected: profileSelected,
               onTap: () {
@@ -330,12 +332,16 @@ class _NavTile extends StatelessWidget {
 class _ProfileFooter extends StatelessWidget {
   const _ProfileFooter({
     required this.profile,
+    required this.fallback,
     required this.expanded,
     required this.selected,
     required this.onTap,
   });
 
   final TrainerProfile? profile;
+
+  /// 프로필이 없는 데모에서 대신 보여 줄 신원 — 데모 언어를 따른다 (#2304).
+  final TrainerProfile fallback;
   final bool expanded;
   final bool selected;
   final VoidCallback onTap;
@@ -346,8 +352,8 @@ class _ProfileFooter extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     // Demo mode carries no profile; fall back to the seed identity so
     // the footer never renders as a nameless blank.
-    final name = profile?.name ?? seedTrainerProfile.name;
-    final gym = profile?.gym.name ?? seedTrainerProfile.gym.name;
+    final name = profile?.name ?? fallback.name;
+    final gym = profile?.gym.name ?? fallback.gym.name;
     final avatar = AppAvatar(name: name.isEmpty ? l.appAvatarFallback : name);
 
     return Container(
