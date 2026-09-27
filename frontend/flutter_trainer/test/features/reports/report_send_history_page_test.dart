@@ -172,14 +172,14 @@ void main() {
       );
     });
 
-    testWidgets('서버 이력의 줄을 누르면 회원이 받은 글을 그대로 본다', (tester) async {
+    testWidgets('서버 이력 줄의 보기를 누르면 회원이 받은 글을 그대로 본다', (tester) async {
       await open(
         tester,
         history: _History(_sentThisWeek(_minsu, message: '서버에 남은 그 글')),
       );
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('reports-sent-$_minsu')),
+        find.byKey(const ValueKey<String>('reports-view-$_minsu')),
       );
       await settle(tester);
 

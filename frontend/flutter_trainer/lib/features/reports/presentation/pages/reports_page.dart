@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/reports/data/member_report_history_provider.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -13,6 +14,7 @@ import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/member_report_history_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_goal_picker.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
@@ -39,10 +41,19 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// works identically in demo and against the real API.
 class ReportsPage extends ConsumerStatefulWidget {
   /// Creates the reports page. [clientId] preselects a client.
-  const ReportsPage({super.key, this.clientId, this.weekStart});
+  const ReportsPage({
+    super.key,
+    this.clientId,
+    this.weekStart,
+    this.historyClientId,
+  });
 
   /// Client focused via the `client` query parameter.
   final String? clientId;
+
+  /// 지난 리포트를 여는 회원 — `history` 쿼리(#2394). [clientId] 가 함께
+  /// 오면 편집기가 먼저다.
+  final String? historyClientId;
 
   /// Week focused via the `week` query parameter. 채팅의 리포트 카드가
   /// 가리키는 주로 열기 위한 값이라 월요일이 아닌 날짜가 와도 그 주의
@@ -101,6 +112,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// `보낸 리포트` 를 열어 둔 회원. null 이면 작업대나 편집기다.
   String? _sentViewFor;
+
+  /// 지난 리포트를 보고 있는 회원(#2394). URL 의 `history` 가 원본이다.
+  late String? _historyFor = widget.historyClientId;
+
+  /// 지난 리포트에서 `보기` 로 연 주. 그 화면의 돌아가기는 지난 리포트로
+  /// 간다 — 작업대에서 바로 연 [_sentViewFor] 와 돌아가는 곳이 다르다.
+  ///
+  /// 작업대의 주([_weekStart])는 옮기지 않는다. 지난 리포트를 훑다 `회원 목록`
+  /// 으로 돌아가면 보던 주의 작업대가 그대로 서야 한다.
+  DateTime? _historyWeek;
 
   /// A send is in flight for this client.
   String? _sending;
@@ -243,6 +264,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _stage = 0;
       _maxStage = 0;
     }
+    if (widget.historyClientId != oldWidget.historyClientId) {
+      _historyFor = widget.historyClientId;
+      _historyWeek = null;
+      _sentViewFor = null;
+    }
     // 살아 있는 탭에 다른 주를 가리키는 링크가 들어왔다(#2289). 화면이 주를
     // 옮길 때는 URL 보다 상태를 먼저 바꾸므로 여기서 같은 값이 되어 다시
     // 비우지 않는다.
@@ -280,6 +306,28 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // 회원을 바꿔도 보던 주는 그대로다 — 작업대에서 고른 주의 리포트를 쓰러
     // 들어가는 것이다(#2289).
     context.go(_locationFor(id));
+  }
+
+  /// [clientId] 의 지난 리포트를 연다(#2394). 보던 주는 URL 에 남긴다 —
+  /// `회원 목록` 으로 돌아가면 그 주 작업대다.
+  void _openHistory(String clientId) {
+    setState(() {
+      _sentViewFor = null;
+      _historyWeek = null;
+    });
+    context.go(AppRoutes.reportHistoryFor(clientId, weekStart: _weekParam));
+  }
+
+  /// [clientId] 의 [week] 주 편집기를 연다 — 지난 리포트의 `열기` 와 다시
+  /// 쓰기가 부른다. 이번 주는 URL 에 싣지 않는다([_weekParam] 과 같은 규칙).
+  void _openEditor(String clientId, DateTime week) {
+    final DateTime monday = weekStartOf(week);
+    context.go(
+      AppRoutes.reportFor(
+        clientId,
+        weekStart: monday == weekStartOf(nowKst()) ? null : monday,
+      ),
+    );
   }
 
   /// 달력 날짜로 한 주씩 옮긴다. `Duration(days: 7)` 을 더하면 서머타임이
@@ -446,6 +494,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         .record(clientId: id, weekStart: report.weekStart, message: message);
     // 서버 기록을 다시 읽는다 — 방금 보낸 것이 새로고침 뒤에도 남는 근거다.
     ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
+    ref.invalidate(memberReportHistoryProvider(id));
     setState(() {
       _sending = null;
       _sent.add(id);
@@ -521,6 +570,55 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       ],
     ),
   );
+
+  /// 지난 리포트에서 `보기` 로 연 [week] 주의 보낸 리포트.
+  ///
+  /// 작업대와 같은 기록(그 주 서버 기록 + 세션 기록 + 데모 기록)과 같은
+  /// 화면([SentReportView])을 쓴다 — 두 길로 연 같은 주가 다르게 보이지
+  /// 않는다. 기록이나 수치를 끝내 못 찾으면 지난 리포트로 되돌린다.
+  Widget _historySentView(
+    AppLocalizations l,
+    List<TrainerClient> clients,
+    TrainerClient client,
+    DateTime week,
+  ) {
+    final AsyncValue<Map<String, ReportSendRecord>> weekHistory = ref.watch(
+      reportSendHistoryProvider(week),
+    );
+    final Map<String, ReportSendRecord> log = withDemoSends(
+      mergeSendLogs(
+        weekHistory.valueOrNull ?? const <String, ReportSendRecord>{},
+        ref.watch(reportSendLogProvider),
+      ),
+      <String>{for (final TrainerClient c in clients) c.id},
+      week,
+    );
+    final ReportSendRecord? record = sendRecordFor(log, client.id, week);
+    final AsyncValue<WeeklyReport> reportAsync = ref.watch(
+      weeklyReportProvider((client: client, weekStart: week)),
+    );
+    final WeeklyReport? report = reportAsync.valueOrNull;
+    if (record != null && report != null) {
+      return SentReportView(
+        key: ValueKey<String>('reports-history-sent-${ymd(week)}'),
+        report: report,
+        record: record,
+        backLabel: l.reportsHistoryBack,
+        onBack: () => setState(() => _historyWeek = null),
+        onRewrite: () {
+          setState(() => _historyWeek = null);
+          _openEditor(client.id, week);
+        },
+      );
+    }
+    if (weekHistory.isLoading || reportAsync.isLoading) {
+      return const AppLoading();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _historyWeek = null);
+    });
+    return const AppLoading();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -640,6 +738,26 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             onThisWeek: isThisWeek ? null : _goToCurrentWeek,
           );
 
+          // ── 지난 리포트 ───────────────────────────────────────────────
+          // 편집기(`client`)가 함께 열려 있으면 편집기가 먼저다.
+          final String? historyFor = _clientId == null ? _historyFor : null;
+          final TrainerClient? historyClient = historyFor == null
+              ? null
+              : clients.where((c) => c.id == historyFor).firstOrNull;
+          if (historyClient != null) {
+            final DateTime? week = _historyWeek;
+            if (week != null) {
+              return _historySentView(l, clients, historyClient, week);
+            }
+            return MemberReportHistoryView(
+              client: historyClient,
+              onBack: () => context.go(_locationFor(null)),
+              onView: (DateTime week) => setState(() => _historyWeek = week),
+              onOpenThisWeek: () =>
+                  _openEditor(historyClient.id, weekStartOf(nowKst())),
+            );
+          }
+
           // ── 보낸 리포트 ───────────────────────────────────────────────
           final String? sentFor = _sentViewFor;
           if (sentFor != null) {
@@ -654,6 +772,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 report: sentReport,
                 record: record,
                 onBack: () => setState(() => _sentViewFor = null),
+                onHistory: () => _openHistory(sentFor),
                 onRewrite: () {
                   setState(() => _sentViewFor = null);
                   _selectClient(sentFor);
@@ -688,6 +807,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               onOpen: (entry) => _selectClient(entry.client.id),
               onOpenSent: (entry) =>
                   setState(() => _sentViewFor = entry.client.id),
+              onHistory: (entry) => _openHistory(entry.client.id),
             );
           }
 
@@ -728,6 +848,23 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       });
                     },
                   );
+                  // 이 회원에게 그동안 보낸 리포트 — 쓰기 전에 지난 주에
+                  // 무엇을 말했는지 되짚는 길이다(#2394). 바로 쓰기와 한
+                  // 묶음이라 좁은 창에서는 함께 아랫줄로 내려간다.
+                  final Widget history = AppButton(
+                    key: const ValueKey<String>('reports-editor-history'),
+                    label: l.reportsHistoryButton,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    onPressed: () => _openHistory(selected.id),
+                  );
+                  final Widget actions = Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: OnCareSpacing.s4,
+                    runSpacing: OnCareSpacing.s4,
+                    children: <Widget>[history, skip],
+                  );
                   final Widget head = Row(
                     children: <Widget>[
                       AppButton(
@@ -753,11 +890,20 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           ),
                         ),
                       ),
-                      const Spacer(),
                       // 주 이동은 목록 화면에서만 한다 — 편집기는 이미 고른
                       // 한 주를 쓰는 자리라, 여기서 주가 바뀌면 쓰던 글이 다른
-                      // 주의 수치 옆에 선다.
-                      if (wide) skip,
+                      // 주의 수치 옆에 선다. 오른쪽 두 버튼은 큰 글자에서
+                      // 넘치지 않게 제 자리 안에서 아랫줄로 접힌다.
+                      if (wide) ...<Widget>[
+                        const SizedBox(width: OnCareSpacing.s8),
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: actions,
+                          ),
+                        ),
+                      ] else
+                        const Spacer(),
                     ],
                   );
                   if (wide) return head;
@@ -768,7 +914,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       const SizedBox(height: OnCareSpacing.s8),
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
-                        child: skip,
+                        child: actions,
                       ),
                     ],
                   );

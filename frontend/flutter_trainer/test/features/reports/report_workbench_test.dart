@@ -158,7 +158,7 @@ void main() {
     );
   });
 
-  testWidgets('전송 완료 줄을 누르면 회원이 받은 리포트를 그대로 본다 (#2232)', (tester) async {
+  testWidgets('전송 완료 줄의 보기를 누르면 회원이 받은 리포트를 그대로 본다 (#2232)', (tester) async {
     final ProviderContainer container = await openWorkbench(
       tester,
       clients: _roster,
@@ -172,7 +172,7 @@ void main() {
         );
     await settle(tester);
 
-    await tester.tap(find.byKey(const ValueKey<String>('reports-sent-a')));
+    await tester.tap(find.byKey(const ValueKey<String>('reports-view-a')));
     await settle(tester);
 
     expect(find.byType(SentReportView), findsOneWidget);
@@ -207,7 +207,7 @@ void main() {
           message: '가회원님 이번 주도 잘 지키셨어요.',
         );
     await settle(tester);
-    await tester.tap(find.byKey(const ValueKey<String>('reports-sent-a')));
+    await tester.tap(find.byKey(const ValueKey<String>('reports-view-a')));
     await settle(tester);
 
     await tester.tap(

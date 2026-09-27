@@ -583,7 +583,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('reports-queue-mobile-client')),
+      find.byKey(const ValueKey<String>('reports-open-mobile-client')),
     );
     await settle(tester);
 
@@ -678,7 +678,7 @@ void main() {
     expect(find.text('report transport detail'), findsNothing);
   });
 
-  testWidgets('작업대에서 회원 줄을 누르면 그 회원의 편집기로 들어간다 (#2232)', (tester) async {
+  testWidgets('작업대에서 회원 줄의 열기를 누르면 그 회원의 편집기로 들어간다 (#2232)', (tester) async {
     await openReports(tester, workbench: true);
 
     // The API does not expose saved feedback status. Session-local send state
@@ -691,7 +691,7 @@ void main() {
     // 이미 리포트가 나간 회원(데모 기록)은 큐에 서지 않으므로, 미전송 줄
     // 하나를 고른다.
     await tester.tap(
-      find.byKey(const ValueKey<String>('reports-queue-seed-client-3')),
+      find.byKey(const ValueKey<String>('reports-open-seed-client-3')),
     );
     await settle(tester);
     expect(find.text('박성호님 주간 리포트'), findsOneWidget);

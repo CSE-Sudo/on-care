@@ -261,7 +261,7 @@ void main() {
       await tester.tap(prevWeek);
       await settle(tester);
 
-      await tester.tap(find.byKey(const ValueKey<String>('reports-queue-h')));
+      await tester.tap(find.byKey(const ValueKey<String>('reports-open-h')));
       await settle(tester);
 
       expect(find.text('하회원님 주간 리포트'), findsOneWidget);
@@ -280,7 +280,7 @@ void main() {
       expect(find.text(koRange(_lastWeek)), findsWidgets);
       expect(query(tester), <String, String>{'week': '2026-08-10'});
 
-      await tester.tap(find.byKey(const ValueKey<String>('reports-queue-a')));
+      await tester.tap(find.byKey(const ValueKey<String>('reports-open-a')));
       await settle(tester);
       expect(query(tester), <String, String>{
         'client': 'a',
@@ -291,7 +291,7 @@ void main() {
     testWidgets('이번 주에 고르면 URL 에 주를 싣지 않는다', (tester) async {
       await pump(tester, at: AppRoutes.reports);
 
-      await tester.tap(find.byKey(const ValueKey<String>('reports-queue-a')));
+      await tester.tap(find.byKey(const ValueKey<String>('reports-open-a')));
       await settle(tester);
 
       expect(currentLocation(tester), AppRoutes.reportFor('a'));
