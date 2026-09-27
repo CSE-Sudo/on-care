@@ -36,6 +36,7 @@ Future<void> showClientProfileDialog(
   required String clientId,
   required String clientName,
   String fallbackGender = '',
+  int? ageYears,
   ClientProfileSection section = ClientProfileSection.health,
 }) => showAppDialog<void>(
   context: context,
@@ -43,6 +44,7 @@ Future<void> showClientProfileDialog(
     clientId: clientId,
     clientName: clientName,
     fallbackGender: fallbackGender,
+    ageYears: ageYears,
     section: section,
   ),
 );
@@ -58,6 +60,7 @@ class ClientProfileDialog extends StatelessWidget {
     required this.clientId,
     required this.clientName,
     this.fallbackGender = '',
+    this.ageYears,
     this.section = ClientProfileSection.health,
   });
 
@@ -69,6 +72,10 @@ class ClientProfileDialog extends StatelessWidget {
 
   /// 저장된 성별이 없을 때 열어 둘 값 — 로스터가 이미 말하고 있는 성별이다(#960).
   final String fallbackGender;
+
+  /// 회원 나이(만). 권장값 계산에만 쓴다(#2359). 서버가 준 값만 넘긴다 —
+  /// 모르면 비워 두고, 권장값은 기본 기준에 건강 목표만 반영한다.
+  final int? ageYears;
 
   /// 어느 창인가.
   final ClientProfileSection section;
@@ -87,6 +94,7 @@ class ClientProfileDialog extends StatelessWidget {
         child: _HealthProfileSection(
           clientId: clientId,
           fallbackGender: fallbackGender,
+          ageYears: ageYears,
         ),
       ),
       ClientProfileSection.memo => AppDialog(
@@ -106,10 +114,12 @@ class _HealthProfileSection extends ConsumerStatefulWidget {
   const _HealthProfileSection({
     required this.clientId,
     this.fallbackGender = '',
+    this.ageYears,
   });
 
   final String clientId;
   final String fallbackGender;
+  final int? ageYears;
 
   @override
   ConsumerState<_HealthProfileSection> createState() =>
@@ -418,6 +428,84 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     }
   }
 
+  /// 지금 칸에 적힌 신체 정보·건강 목표로 낸 권장값(#2359).
+  ///
+  /// 회원 앱 온보딩·MY 와 **같은 계산**(`oncare_ui` 의 [recommendedGoalsFor])이다.
+  /// 키·몸무게를 고치면 그 자리에서 다시 계산한다. 식단은 칼로리 칸에 값이 있으면
+  /// 그 칼로리를 나눈 배분이다 — 회원 앱 MY 와 같은 규칙이다.
+  RecommendedGoals _suggestion() {
+    final double? height = double.tryParse(_height.text.trim());
+    final double? weight = double.tryParse(_weight.text.trim());
+    final RecommendedGoals base = recommendedGoalsFor(
+      ageYears: widget.ageYears,
+      gender: _gender,
+      heightCm: height,
+      weightKg: weight,
+      focus: _focus,
+    );
+    final int? kcal = int.tryParse(_goalCalories.text.trim());
+    if (kcal == null || kcal <= 0) return base;
+    return recommendedGoalsFromCalories(
+      kcal,
+      basis: base.basis,
+      focus: _focus,
+      weightKg: weight,
+    );
+  }
+
+  /// 권장값 한 줄과 `권장값으로 채우기` — 회원 앱 MY 의 같은 자리(#1139)를
+  /// 트레이너 창에 옮겼다. 누르면 이 묶음의 칸만 채우고, 저장은 따로 누른다.
+  Widget _suggestionRow(
+    BuildContext context, {
+    required Key buttonKey,
+    required String note,
+    required String basis,
+    required VoidCallback onApply,
+  }) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  note,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                const SizedBox(height: OnCareSpacing.s2),
+                Text(
+                  basis,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          AppButton(
+            key: buttonKey,
+            label: l.clientGoalApplySuggestion,
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            onPressed: onApply,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _basisLabel(AppLocalizations l, RecommendedGoals g) => g.isPersonalized
+      ? l.clientGoalSuggestionPersonal
+      : l.clientGoalSuggestionFallback;
+
   /// 한 줄 — `이름 · 값 · 단위`(#2330).
   ///
   /// 예전에는 칸 둘을 한 줄에 세웠는데, 옆 칸끼리 짝이 아니라(칼로리 | 나트륨)
@@ -538,6 +626,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         // 한 번에 한 묶음만 보인다(#2330) — 신체·건강 목표·식단 목표·운동
         // 목표가 한 창에 길게 이어져 어디가 무엇인지 헷갈렸다. 칸의 값은
         // 이 상태가 들고 있어, 탭을 옮겨 다녀도 쓰던 값이 남는다.
+        final RecommendedGoals suggestion = _suggestion();
         final List<Widget> tabBody = switch (_tab) {
           _HealthTab.body => <Widget>[
             _line(
@@ -634,6 +723,27 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             number(6, l.clientGoalProtein, l.unitGram),
             number(7, l.clientGoalFat, l.unitGram),
             number(3, l.clientGoalSodium, l.unitMg),
+            _suggestionRow(
+              context,
+              buttonKey: const ValueKey<String>('client-goal-apply-diet'),
+              note: l.clientGoalSuggestionDiet(
+                suggestion.dailyCalories,
+                suggestion.dailyCarbsG,
+                suggestion.dailySugarG,
+                suggestion.dailyProteinG,
+                suggestion.dailyFatG,
+                suggestion.dailySodiumMg,
+              ),
+              basis: _basisLabel(l, suggestion),
+              onApply: () => setState(() {
+                _goalCalories.text = '${suggestion.dailyCalories}';
+                _goalCarbs.text = '${suggestion.dailyCarbsG}';
+                _goalSugar.text = '${suggestion.dailySugarG}';
+                _goalProtein.text = '${suggestion.dailyProteinG}';
+                _goalFat.text = '${suggestion.dailyFatG}';
+                _goalSodium.text = '${suggestion.dailySodiumMg}';
+              }),
+            ),
             const SizedBox(height: OnCareSpacing.s8),
             defaultHint,
           ],
@@ -644,6 +754,24 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             number(9, l.clientGoalCardioWeekly, l.routineUnitMinutes),
             number(10, l.clientGoalStrengthWeekly, l.routineUnitSets),
             number(11, l.clientGoalStretchWeekly, l.routineUnitMinutes),
+            _suggestionRow(
+              context,
+              buttonKey: const ValueKey<String>('client-goal-apply-exercise'),
+              note: l.clientGoalSuggestionExercise(
+                suggestion.dailyBurnKcal,
+                suggestion.weeklyCardioMinutes,
+                suggestion.weeklyStrengthSets,
+                suggestion.weeklyFlexibilityMinutes,
+              ),
+              basis: _basisLabel(l, suggestion),
+              onApply: () => setState(() {
+                _goalBurn.text = '${suggestion.dailyBurnKcal}';
+                _goalCardio.text = '${suggestion.weeklyCardioMinutes}';
+                _goalStrength.text = '${suggestion.weeklyStrengthSets}';
+                _goalFlexibility.text =
+                    '${suggestion.weeklyFlexibilityMinutes}';
+              }),
+            ),
             const SizedBox(height: OnCareSpacing.s8),
             defaultHint,
           ],
@@ -724,8 +852,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
 }
 
 /// 신체·목표 창에서 묶음 내용이 차지하는 최소 높이 — 가장 긴 `식단 목표`
-/// 묶음(머리·여섯 줄·각주)의 높이다(#2330).
-const double _healthTabBodyMinHeight = 344;
+/// 묶음(머리·여섯 줄·권장값 줄·각주)의 높이다(#2330, #2359).
+const double _healthTabBodyMinHeight = 406;
 
 /// 한 줄 목록의 값 칸 폭 — 다섯 자리 수(나트륨 mg)가 여유 있게 든다.
 const double _lineValueWidth = 120;

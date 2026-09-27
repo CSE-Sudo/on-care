@@ -6338,6 +6338,48 @@ abstract class AppLocalizations {
   /// **'Faded values are the defaults used until a goal is set. Empty fields use them.'**
   String get clientGoalDefaultHint;
 
+  /// No description provided for @clientGoalSuggestionDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested: {kcal} kcal · carbs {carbs} g · sugar {sugar} g · protein {protein} g · fat {fat} g · sodium {sodium} mg'**
+  String clientGoalSuggestionDiet(
+    int kcal,
+    int carbs,
+    int sugar,
+    int protein,
+    int fat,
+    int sodium,
+  );
+
+  /// No description provided for @clientGoalSuggestionExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested: {burn} kcal burned a day · {cardio} min cardio · {strength} strength sets · {flexibility} min stretching a week'**
+  String clientGoalSuggestionExercise(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  );
+
+  /// No description provided for @clientGoalSuggestionPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)'**
+  String get clientGoalSuggestionPersonal;
+
+  /// No description provided for @clientGoalSuggestionFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Age, height, or weight is missing, so only the health goals adjust the defaults'**
+  String get clientGoalSuggestionFallback;
+
+  /// No description provided for @clientGoalApplySuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill with suggestion'**
+  String get clientGoalApplySuggestion;
+
   /// No description provided for @clientTrainerMemoHint.
   ///
   /// In en, this message translates to:
