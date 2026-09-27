@@ -1923,8 +1923,10 @@
       }
     }
   },
+  "reportsSortLabel": "정렬",
   "reportsSortPriority": "우선 확인 순",
-  "reportsSortName": "이름 순",
+  "reportsSortName": "이름 오름차순",
+  "reportsSortNameDescending": "이름 내림차순",
   "reportsSendProgress": "{done} / {total} 전송",
   "@reportsSendProgress": {
     "placeholders": {
@@ -1932,6 +1934,15 @@
         "type": "int"
       },
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSendPercent": "{percent}%",
+  "@reportsSendPercent": {
+    "description": "리포트 작업대 진행 막대 오른쪽 끝의 전송 비율",
+    "placeholders": {
+      "percent": {
         "type": "int"
       }
     }

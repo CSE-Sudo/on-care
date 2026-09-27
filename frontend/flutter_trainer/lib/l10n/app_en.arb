@@ -3035,8 +3035,10 @@
       }
     }
   },
+  "reportsSortLabel": "Sort",
   "reportsSortPriority": "Needs attention",
-  "reportsSortName": "By name",
+  "reportsSortName": "Name A–Z",
+  "reportsSortNameDescending": "Name Z–A",
   "reportsSendProgress": "{done} / {total} sent",
   "@reportsSendProgress": {
     "placeholders": {
@@ -3044,6 +3046,14 @@
         "type": "int"
       },
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSendPercent": "{percent}%",
+  "@reportsSendPercent": {
+    "placeholders": {
+      "percent": {
         "type": "int"
       }
     }

@@ -4429,14 +4429,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reportsSortLabel => 'Sort';
+
+  @override
   String get reportsSortPriority => 'Needs attention';
 
   @override
-  String get reportsSortName => 'By name';
+  String get reportsSortName => 'Name A–Z';
+
+  @override
+  String get reportsSortNameDescending => 'Name Z–A';
 
   @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total sent';
+  }
+
+  @override
+  String reportsSendPercent(int percent) {
+    return '$percent%';
   }
 
   @override
