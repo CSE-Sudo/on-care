@@ -1127,7 +1127,7 @@ class _RecMealCard extends StatelessWidget {
     width: double.infinity,
     color: context.oncare.brand.surface,
     alignment: const Alignment(0, 0.6),
-    child: Icon(
+    child: AppIcon(
       meal.icon ?? AppIcons.diet,
       size: OnCareSize.iconLarge,
       color: context.oncare.brand.primary,
