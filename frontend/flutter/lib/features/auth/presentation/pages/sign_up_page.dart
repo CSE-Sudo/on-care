@@ -123,9 +123,17 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      _error(
-        e.response?.statusCode == 409 ? l.signUpEmailTaken : l.signUpFailed,
-      );
+      if (e.response?.statusCode == 409) {
+        _error(l.signUpEmailTaken);
+        return;
+      }
+      // 화면 규칙과 서버 기준이 같아(#1555) 여기까지 오는 일은 드물지만,
+      // 서버가 비밀번호를 거절했다면 "가입에 실패했어요" 대신 무엇을 고칠지
+      // 알린다. 서버는 문장이 아니라 코드를 주므로 문구는 이 앱의 로케일이다.
+      final AppInputError? password = e.response?.statusCode == 422
+          ? AppInputRules.serverPasswordError(e.response?.data)
+          : null;
+      _error(authInputErrorText(l, password) ?? l.signUpFailed);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);

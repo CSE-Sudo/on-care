@@ -94,8 +94,8 @@ void main() {
     await _openClient(tester);
 
     expect(find.text('AI에게 묻기'), findsNothing);
-    // 신체·목표는 통합 대화상자로 옮겼고 메모는 아이콘만 남았다(#1024).
-    expect(find.text('리포트'), findsOneWidget);
+    // 헤더 버튼은 아이콘만이다 — 이름은 툴팁(#2330).
+    expect(find.byTooltip('리포트'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('client-detail-open-memo')),
       findsOneWidget,

@@ -565,10 +565,10 @@ def _register_member(client) -> str:
     """새 회원을 만들고 토큰을 준다. 시드 회원은 다른 테스트와 상태를 공유한다."""
     email = f"cancel-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     return client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
 
 

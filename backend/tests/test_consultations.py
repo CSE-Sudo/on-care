@@ -59,12 +59,12 @@ def _register_member(client) -> tuple[str, str]:
     email = f"{TEST_EMAIL_PREFIX}{suffix}@oncare.com"
     response = client.post(
         "/v1/auth/register",
-        json={"email": email, "password": "pw!", "name": "상담 테스트 회원"},
+        json={"email": email, "password": "test-pw-1234", "name": "상담 테스트 회원"},
     )
     assert response.status_code == 201, response.text
     token_response = client.post(
         "/v1/auth/login",
-        data={"username": email, "password": "pw!"},
+        data={"username": email, "password": "test-pw-1234"},
     )
     assert token_response.status_code == 200, token_response.text
     return response.json()["id"], token_response.json()["access_token"]

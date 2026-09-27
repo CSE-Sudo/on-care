@@ -39,6 +39,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     consultation_service,
+    data_consent_service,
     member_pairing_service,
     notification_service,
     notification_templates,
@@ -182,7 +183,19 @@ def redeem_pairing_code(
 
         current = _active_trainer_id(db, member.id)
         if current == trainer_id:
-            raise MemberAlreadyCoached("이미 담당하고 있는 회원이에요.")
+            link = db.scalar(
+                select(TrainerClient).where(
+                    TrainerClient.trainer_id == trainer_id,
+                    TrainerClient.member_id == member.id,
+                )
+            )
+            if link is None or not data_consent_service.blocks_access(link):
+                raise MemberAlreadyCoached("이미 담당하고 있는 회원이에요.")
+            # 동의 없이 살아 있는 링크다. 회원이 코드를 띄운 것이 새 동의이므로
+            # 그 시각을 적는다(#1631). 코드는 이미 소비됐다.
+            data_consent_service.grant(link, used.consented_at)
+            db.commit()
+            return _paired_out(db, member)
         if current is not None:
             raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원이에요.")
 
@@ -360,6 +373,9 @@ def accept(
             member_id,
             consented_at=_now(),
         )
+    elif data_consent_service.blocks_access(existing):
+        # 동의 없이 살아 있는 링크다 — 방금 받은 동의를 적는다. (#1631)
+        data_consent_service.grant(existing, _now())
     consultation_service.link_member_gym(
         db, member_id, consultation_service.trainer_gym_id(db, row.trainer_id)
     )

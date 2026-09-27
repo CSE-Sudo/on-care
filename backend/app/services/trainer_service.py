@@ -58,6 +58,7 @@ from app.services import health_focus
 from app.services import (
     auto_routine_service,
     client_signals,
+    data_consent_service,
     diet_photo_service,
     exercise_activity,
     exercise_service,
@@ -545,13 +546,15 @@ def build_roster(
         if member is None:
             continue
         # 미등록 관계는 고객 관리의 이름·상태만 남긴다. 회원 원본 데이터는
-        # 보존하되 트레이너에게 다시 노출하지 않는다.
-        diet_rows = diet_by_member.get(link.member_id, []) if link.active else []
+        # 보존하되 트레이너에게 다시 노출하지 않는다. 동의가 철회된 뒤 새 동의
+        # 없이 살아 있는 링크도 같다(#1631).
+        readable = link.active and not data_consent_service.blocks_access(link)
+        diet_rows = diet_by_member.get(link.member_id, []) if readable else []
         calories, sodium_mg, sugar_g, carbs_g, protein_g, fat_g = _today_totals(
             diet_rows, today_str
         )
-        last_msg = last_msg_by.get(link.member_id) if link.active else None
-        last_rt = last_rt_by.get(link.member_id) if link.active else None
+        last_msg = last_msg_by.get(link.member_id) if readable else None
+        last_rt = last_rt_by.get(link.member_id) if readable else None
 
         out.append(TrainerClientOut(
             id=link.member_id,
@@ -559,7 +562,7 @@ def build_roster(
             avatar=member.name[:1] if member.name else "?",
             gender=gender_by_member.get(link.member_id, ""),
             goal=goal_by_member.get(link.member_id, ""),
-            last_message=last_msg.body if last_msg else "",
+            last_message=_roster_preview(last_msg),
             last_time=relative_time_label(last_msg.created_at) if last_msg else "-",
             last_message_at=last_msg.created_at if last_msg else None,
             active=_roster_active(link),
@@ -578,12 +581,12 @@ def build_roster(
                 _local_date_iso(last_rt.created_at) if last_rt else None
             ),
             week_completion=_week_completion(
-                hist_by_member.get(link.member_id, []) if link.active else [], monday
+                hist_by_member.get(link.member_id, []) if readable else [], monday
             ),
             sodium_week=_sodium_week(diet_rows, monday),
             calories_week=_calories_week(diet_rows, monday),
             sugar_week=_sugar_week(diet_rows, monday),
-            signals=signals_by_member.get(link.member_id, []),
+            signals=signals_by_member.get(link.member_id, []) if readable else [],
         ))
     return out
 
@@ -807,6 +810,19 @@ def build_chat_thread(
     ]
 
 
+def _roster_preview(msg: ChatMessage | None) -> str:
+    """로스터의 마지막 메시지 한 줄.
+
+    사진만 보낸 메시지는 본문이 비어 있다(#921, #1665). 그대로 두면 회원이 사진을
+    보낸 직후 목록의 미리보기가 빈칸이 되어, 무엇이 왔는지 대화를 열어야 안다.
+    """
+    if msg is None:
+        return ""
+    if not msg.body and msg.attachment_type == "image" and msg.attachment_file_id:
+        return localized("사진", "Photo")
+    return msg.body
+
+
 def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
     attachment = None
     if msg.attachment_type in ("pdf", "image") and msg.attachment_file_id:
@@ -990,12 +1006,18 @@ def send_message(
 
     if sender == "member":
         member_name = db.scalar(select(User.name).where(User.id == member_id))
+        member_args: dict[str, object] = {"member_name": member_name or ""}
+        # 회원도 사진만 보낼 수 있다(#1665). 트레이너 알림이 제목만 남은 빈 줄이
+        # 되지 않게 표시를 싣는다. 글 메시지의 인자는 예전 그대로 둔다 — 이미
+        # 저장된 알림과 같은 모양이어야 앱이 한 규칙으로 읽는다.
+        if not text and attachment_file_id and attachment_type == "image":
+            member_args["photo_only"] = True
         notification_service.queue_for_trainer(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_MESSAGE_KIND,
             template=notification_templates.TRAINER_MEMBER_MESSAGE,
-            template_args={"member_name": member_name or ""},
+            template_args=member_args,
             body=text,
             # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
             # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
@@ -1094,6 +1116,14 @@ def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
 
 # ---- 회원 활성/휴면 관리 상태 (#707) ----
 
+class ClientConsentRequired(Exception):
+    """회원이 데이터 공유 동의를 철회한 링크를 트레이너 혼자 되살리려 했다. (#1631)
+
+    재등록 라우트에서 409 로 옮긴다. 다시 담당이 되려면 회원이 동의하는 경로
+    (담당 요청 수락·상담·연결 코드)를 지나야 한다.
+    """
+
+
 class ClientLinkDetached(Exception):
     """담당 관계가 이미 해제된 회원이다.
 
@@ -1126,16 +1156,29 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     기존 기록을 계속 볼 수 있다.
 
     담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
+
+    트레이너가 끊어도 담당 해제는 데이터 공유 동의 철회다(#1631) — 동의를 비우고
+    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다.
     """
     link.active = False
+    data_consent_service.revoke(link)
     points_coupon_service.cancel_renewal_coupons(db, link.member_id)
     db.commit()
 
 
 def restore_client(db: Session, link: TrainerClient) -> None:
-    """과거 담당 관계를 다시 등록 상태로 전환한다."""
+    """과거 담당 관계를 다시 등록 상태로 전환한다.
+
+    동의가 철회된 링크는 되살리지 않는다(#1631) — 회원이 끊은 관계를 트레이너가
+    혼자 되돌리면 회원은 동의하지 않은 트레이너에게 다시 묶인다.
+    [ClientConsentRequired] 다.
+    """
     if link.active:
         return
+    if data_consent_service.blocks_access(link):
+        raise ClientConsentRequired(
+            "회원이 데이터 공유 동의를 철회했습니다. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
+        )
     occupied = db.scalar(
         select(TrainerClient.id).where(
             TrainerClient.member_id == link.member_id,
@@ -5269,6 +5312,8 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     ).all()
     for link in links:
         link.active = False
+        # 담당 해제 = 데이터 공유 동의 철회(#1631).
+        data_consent_service.revoke(link)
     if links:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
     return bool(links)

@@ -546,9 +546,9 @@ def test_schedule_ownership_and_role(client):
     # 회원 계정 → 403
     from uuid import uuid4
     email = f"m-{uuid4().hex[:8]}@oncare.com"
-    client.post("/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"})
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
     mtok = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     assert client.get("/v1/trainer/schedule", headers=_h(mtok)).status_code == 403
 
