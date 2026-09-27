@@ -2111,53 +2111,72 @@ class _GymNameFieldState extends State<_GymNameField> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 목록에 없다는 안내는 입력 칸의 도움말 자리가 아니라 칸 밖에 둔다 —
+    // 도움말은 칸 안쪽 여백만큼 들어가, 라벨과 다른 선에서 시작했다.
+    final Widget? noMatch = _noMatch
+        ? Padding(
+            padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+            child: Text(
+              l.myGymNoMatch,
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          )
+        : null;
     return Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          return CompositedTransformTarget(
-            link: _link,
-            child: OverlayPortal(
-              controller: _dropdown,
-              overlayChildBuilder: (context) => _overlay(constraints.maxWidth),
-              child: TapRegion(
-                groupId: this,
-                onTapOutside: (_) => _dropdown.hide(),
-                child: CallbackShortcuts(
-                  bindings: <ShortcutActivator, VoidCallback>{
-                    const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-                        _move(1),
-                    const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-                        _move(-1),
-                    const SingleActivator(LogicalKeyboardKey.escape):
-                        _dropdown.hide,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[_field(l), ?noMatch],
+      ),
+    );
+  }
+
+  Widget _field(AppLocalizations l) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return CompositedTransformTarget(
+          link: _link,
+          child: OverlayPortal(
+            controller: _dropdown,
+            overlayChildBuilder: (context) => _overlay(constraints.maxWidth),
+            child: TapRegion(
+              groupId: this,
+              onTapOutside: (_) => _dropdown.hide(),
+              child: CallbackShortcuts(
+                bindings: <ShortcutActivator, VoidCallback>{
+                  const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                      _move(1),
+                  const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                      _move(-1),
+                  const SingleActivator(LogicalKeyboardKey.escape):
+                      _dropdown.hide,
+                },
+                // 칸을 다시 누르면 남아 있는 글자로 목록을 다시 연다.
+                child: Listener(
+                  onPointerDown: (_) {
+                    if (_shouldShow) _dropdown.show();
                   },
-                  // 칸을 다시 누르면 남아 있는 글자로 목록을 다시 연다.
-                  child: Listener(
-                    onPointerDown: (_) {
-                      if (_shouldShow) _dropdown.show();
+                  child: AppTextField(
+                    key: const ValueKey<String>('gym-name'),
+                    label: l.myGymName,
+                    hint: l.myGymNameHint,
+                    controller: widget.controller,
+                    focusNode: _focus,
+                    errorText: widget.errorText,
+                    onChanged: (String value) {
+                      widget.onChanged?.call(value);
+                      _refresh();
                     },
-                    child: AppTextField(
-                      key: const ValueKey<String>('gym-name'),
-                      label: l.myGymName,
-                      hint: l.myGymNameHint,
-                      controller: widget.controller,
-                      focusNode: _focus,
-                      errorText: widget.errorText,
-                      helper: _noMatch ? l.myGymNoMatch : null,
-                      onChanged: (String value) {
-                        widget.onChanged?.call(value);
-                        _refresh();
-                      },
-                      onSubmitted: (_) => _submit(),
-                    ),
+                    onSubmitted: (_) => _submit(),
                   ),
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
