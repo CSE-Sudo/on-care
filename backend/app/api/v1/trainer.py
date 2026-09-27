@@ -2026,12 +2026,15 @@ def trainer_client_report_summary(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
 ) -> ReportSummaryOut:
     """그 주의 리포트 요약.
 
     리포트 본문과 **따로** 부른다. 생성에 몇 초가 걸리는데 한 응답에 묶으면
     고객을 고를 때마다 화면 전체가 그만큼 멈춘다.
+
+    문장은 `Accept-Language` 언어로 만든다(#2298). 헤더가 없으면 한국어다.
     """
     _require_client(db, trainer.id, member_id)
     settings = get_settings()
@@ -2044,7 +2047,11 @@ def trainer_client_report_summary(
             60.0,
         )
     return trainer_report_summary_service.generate_summary(
-        db, trainer.id, member_id, _report_week(week_start or trainer_service.today_iso())
+        db,
+        trainer.id,
+        member_id,
+        _report_week(week_start or trainer_service.today_iso()),
+        locale,
     )
 
 
