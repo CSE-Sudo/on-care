@@ -2864,6 +2864,12 @@ abstract class AppLocalizations {
   /// **'You kept up well — {avg}% of your workouts done.'**
   String reportBodyCompletionGood(int avg);
 
+  /// No description provided for @reportBodyCompletionSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'You stayed steady — {avg}% of your workouts done.'**
+  String reportBodyCompletionSteady(int avg);
+
   /// No description provided for @reportBodyCompletionLow.
   ///
   /// In en, this message translates to:
