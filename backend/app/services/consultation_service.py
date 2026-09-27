@@ -35,6 +35,7 @@ from app.schemas.consultation_api import (
 )
 from app.services import health_focus
 from app.services import (
+    data_consent_service,
     notification_service,
     notification_templates,
     reservation_service,
@@ -871,6 +872,10 @@ def attach_member_to_trainer(
 
     담당이 생기는 경로가 둘이라(상담 수락, 트레이너의 담당 요청 수락 #919) 공개
     함수다. 되살리기 규칙을 양쪽이 각자 들고 있으면 한쪽만 고쳐진다.
+
+    되살릴 때 동의는 **이번 연결의 것만** 적는다(#1631). 해제할 때 동의를
+    비웠으므로 `consented_at` 이 없으면 링크는 동의 없이 살아나고, 트레이너는
+    회원 기록을 열 수 없다 — 옛 동의가 말없이 다시 쓰이지 않는다.
     """
     dormant = db.scalar(
         select(TrainerClient).where(
@@ -880,9 +885,8 @@ def attach_member_to_trainer(
     )
     if dormant is not None:
         dormant.active = True
-        # 다시 담당이 되는 것도 새 연결이다 — 그때의 동의로 갱신한다. (#1022)
-        if consented_at is not None:
-            dormant.data_consent_at = consented_at
+        # 다시 담당이 되는 것도 새 연결이다 — 그때의 동의만 적는다. (#1022, #1631)
+        data_consent_service.grant(dormant, consented_at)
         return
 
     last_order = db.scalar(
@@ -961,6 +965,14 @@ def accept(
     )
     if existing is not None and existing.trainer_id != trainer_id:
         raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원입니다.")
+
+    if (
+        existing is not None
+        and data_consent_service.blocks_access(existing)
+        and row.data_consent_at is not None
+    ):
+        # 동의 없이 살아 있는 링크에 회원이 상담으로 새로 동의했다. (#1631)
+        data_consent_service.grant(existing, row.data_consent_at)
 
     if existing is None:
         attach_member_to_trainer(
