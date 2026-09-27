@@ -1,7 +1,7 @@
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 
-/// ④ 운동 추세가 거슬러 보는 주 수. (#2232)
+/// ③ 운동 추세가 거슬러 보는 주 수. (#2232)
 ///
 /// 여덟 주인 까닭: 한 주는 아프거나 출장 가면 무너진다. 두세 주로는 그 한 주와
 /// 진짜 내리막을 구분할 수 없고, 반대로 반년을 보면 이번 달에 바꾼 것이 흐름에

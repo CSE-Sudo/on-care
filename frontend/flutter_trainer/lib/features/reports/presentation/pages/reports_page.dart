@@ -762,7 +762,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     keyPrefix: 'report-stage',
                     labels: <String>[
                       l.reportsStepReview,
-                      l.reportsStepGoals,
+                      l.reportsStepWrite,
                       l.reportsStepSend,
                     ],
                     semanticsLabel: l.reportsStepperLabel,

@@ -275,7 +275,7 @@ void main() {
 
     expect(
       find.textContaining(
-        'Protein is well under target — worth picking as a goal for next week',
+        'Protein is well under target — worth raising in your feedback',
       ),
       findsOneWidget,
     );
