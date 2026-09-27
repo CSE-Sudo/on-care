@@ -4246,6 +4246,19 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get reportsLastGoalsSubtitle => '이번 주 기록으로 판정';
+
+  @override
+  String get reportsLastGoalsKeywordsCalories => '칼로리,kcal,섭취량';
+
+  @override
+  String get reportsLastGoalsKeywordsWorkout =>
+      '운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장';
+
+  @override
+  String get reportsLastGoalsKeywordsLogged => '기록,끼니,식단';
+
+  @override
   String get reportsTrendUnavailable => '이 주의 운동 기록을 불러오지 못했어요';
 
   @override

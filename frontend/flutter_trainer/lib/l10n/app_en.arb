@@ -3011,6 +3011,19 @@
       }
     }
   },
+  "reportsLastGoalsSubtitle": "Judged from this week's records",
+  "reportsLastGoalsKeywordsCalories": "calorie,kcal,intake",
+  "@reportsLastGoalsKeywordsCalories": {
+    "description": "Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen."
+  },
+  "reportsLastGoalsKeywordsWorkout": "workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym",
+  "@reportsLastGoalsKeywordsWorkout": {
+    "description": "Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen."
+  },
+  "reportsLastGoalsKeywordsLogged": "log,record,meal",
+  "@reportsLastGoalsKeywordsLogged": {
+    "description": "Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen."
+  },
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
   "reportsTrendOfGoal": "{value} / {goal}",

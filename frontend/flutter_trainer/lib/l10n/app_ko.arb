@@ -2139,6 +2139,19 @@
       }
     }
   },
+  "reportsLastGoalsSubtitle": "이번 주 기록으로 판정",
+  "reportsLastGoalsKeywordsCalories": "칼로리,kcal,섭취량",
+  "@reportsLastGoalsKeywordsCalories": {
+    "description": "지난 주 목표 문장이 칼로리 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
+  },
+  "reportsLastGoalsKeywordsWorkout": "운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장",
+  "@reportsLastGoalsKeywordsWorkout": {
+    "description": "지난 주 목표 문장이 운동 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
+  },
+  "reportsLastGoalsKeywordsLogged": "기록,끼니,식단",
+  "@reportsLastGoalsKeywordsLogged": {
+    "description": "지난 주 목표 문장이 식단 기록 목표인지 가르는 검색어. 쉼표로 구분하며 화면에 보이지 않는다."
+  },
   "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
   "reportsTrendNoGoal": "목표 없음",
   "reportsTrendOfGoal": "{value} / {goal}",
