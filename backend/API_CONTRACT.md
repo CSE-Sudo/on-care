@@ -958,6 +958,28 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **담당이 살아 있는 회원만** 싣는다. 해제된 회원의 기록은 빠진다(#2281). 보낸 적이 없는 주는
   200 에 `sends: []` 다. 회원 계정은 **403**.
 
+**데이터 공유 동의 철회 (#1631)**: **담당 해제 = 데이터 공유 동의 철회**다. 링크
+(`trainer_clients`)에 동의 시각 `data_consent_at` 과 철회 시각 `data_consent_revoked_at` 을 둔다.
+
+| 경로 | 동의 |
+|---|---|
+| `DELETE /me/coach`, `DELETE /me/coach/trainer`(회원 해제), `DELETE /trainer/clients/{member_id}`(트레이너 해제) | `data_consent_at` 을 비우고 `data_consent_revoked_at` 에 그 시각. 두 번 해제해도 처음 시각이 남는다 |
+| `DELETE /users/me`, `DELETE /trainer/me`(탈퇴) | 링크 행이 계정과 함께 `CASCADE` 로 지워진다 — 남는 동의가 없다 |
+| 다른 트레이너로 옮김 | 옛 링크는 해제 때 철회, 새 링크에는 새 연결의 동의만 |
+| 끊긴 링크 되살리기(상담 수락·`/me/coach/invites/{id}/accept`·`/trainer/pairing-code`) | 그 연결의 새 동의만 적는다. 옛 동의는 되살아나지 않는다. `data_consent_revoked_at` 은 이력으로 남긴다 |
+| `PUT /trainer/clients/{member_id}/registration`(트레이너 혼자 재등록) | 동의가 철회된 링크면 **409** — 회원이 동의하는 경로(담당 요청·상담·연결 코드)로 다시 연결한다. 철회 기록이 없는 옛 해제 링크는 예전처럼 204 |
+
+- **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
+  `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.
+  로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 채팅 첨부
+  (`/chat/attachments/{id}`)도 트레이너에게는 404. 회원이 담당 요청을 수락하거나 연결 코드를 주면
+  그 시각이 새 동의가 되어 다시 열린다.
+- 동의 기능(#1022) 이전에 만들어져 **동의도 철회도 없는** 링크는 막지 않는다.
+- **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남고
+  회원 앱에서 계속 보인다. 철회는 **앞으로의 열람**만 막는다.
+- 마이그레이션 `0097_data_consent_revocation` 은 이미 해제된 링크(`active = false`)의 동의를 비우고
+  마이그레이션 시각을 철회 시각으로 적는다.
+
 ---
 
 ## 인증
