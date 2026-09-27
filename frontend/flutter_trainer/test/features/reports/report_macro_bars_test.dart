@@ -34,7 +34,6 @@ WeeklyReport _report({
   double? carbsTarget = 250,
   double? proteinTarget = 120,
   double? fatTarget = 60,
-  List<String> weekGoals = const <String>[],
 }) => WeeklyReport(
   client: makeClient(name: '김민수'),
   weekStart: _week,
@@ -51,7 +50,6 @@ WeeklyReport _report({
   carbsTarget: carbsTarget,
   proteinTarget: proteinTarget,
   fatTarget: fatTarget,
-  weekGoals: weekGoals,
 );
 
 Future<void> _pump(
@@ -215,19 +213,15 @@ void main() {
     expect(find.textContaining('단백질이(가) 목표에'), findsOneWidget);
   });
 
-  testWidgets('그 모자람이 지난 주 목표를 떨어뜨렸다면 근거로 이어 적는다', (tester) async {
+  testWidgets('모자람 줄은 지난 주 목표를 근거로 잇지 않는다 (#2400)', (tester) async {
     await _pump(
       tester,
-      report: _report(
-        proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60],
-        weekGoals: const <String>['저녁 단백질 챙기기'],
-      ),
+      report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(
-      find.textContaining('지난 주 목표 “저녁 단백질 챙기기”이 미이행으로 판정된 근거예요'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('단백질이(가) 목표에'), findsOneWidget);
+    expect(find.textContaining('지난 주 목표'), findsNothing);
+    expect(find.textContaining('판정된 근거'), findsNothing);
   });
 
   testWidgets('목표의 90%인 주는 짚지 않는다 — 매주 빨간 줄이 서면 색이 뜻을 잃는다', (tester) async {

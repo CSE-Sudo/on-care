@@ -78,13 +78,6 @@ class _SummaryFailsRepository implements ReportRepository {
     required DateTime weekStart,
     required String body,
   }) async => ReportFeedbackDraft(body: body, saved: true);
-
-  @override
-  Future<void> saveNextWeekGoals({
-    required String clientId,
-    required DateTime weekStart,
-    required List<String> goals,
-  }) async {}
 }
 
 class _ReportFailsOncePerKeyRepository implements ReportRepository {
@@ -156,13 +149,6 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
     required DateTime weekStart,
     required String body,
   }) async => ReportFeedbackDraft(body: body, saved: true);
-
-  @override
-  Future<void> saveNextWeekGoals({
-    required String clientId,
-    required DateTime weekStart,
-    required List<String> goals,
-  }) async {}
 }
 
 /// 리포트 against the seeded roster — the trainer's own week plus one
@@ -1351,13 +1337,6 @@ class _DraftStore implements ReportRepository {
     saved.add(body);
     return ReportFeedbackDraft(body: body, saved: true);
   }
-
-  @override
-  Future<void> saveNextWeekGoals({
-    required String clientId,
-    required DateTime weekStart,
-    required List<String> goals,
-  }) async {}
 }
 
 class _RecordingPdfActions implements ReportPdfActions {
