@@ -70,4 +70,5 @@ WeeklyBurnGoal = Annotated[int, Field(ge=0, le=100000)]
 
 #: 건강 목표(최대 2개)와 트레이너가 적은 건강상태·주의사항이 함께 담긴다.
 ConditionsText = Annotated[str, Field(max_length=1000)]
-GoalsText = Annotated[str, Field(max_length=500)]
+# 자유 서술 회원 목표(`goals`)의 상한은 걷어냈다 — 목표는 건강 목표 칩으로만
+# 고르고, API 가 더는 그 칸을 받지 않는다(#2358).

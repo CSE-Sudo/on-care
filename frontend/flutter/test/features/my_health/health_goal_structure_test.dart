@@ -24,7 +24,6 @@ const UserProfile _saved = UserProfile(
   email: 'minsu@oncare.com',
   // 트레이너가 적은 주의사항이 같은 칸에 함께 있다.
   conditions: '혈압 관리, 무릎 통증으로 러닝 자제',
-  goals: '3개월 안에 5km 완주',
 );
 
 Future<(AppLocalizations, MockAccountRepository)> _openGoals(
@@ -206,7 +205,5 @@ void main() {
     final UserProfile saved = await repository.fetchProfile();
     // 트레이너가 적은 주의사항은 지워지지 않는다.
     expect(saved.conditions, '근력 향상, 혈압 관리, 무릎 통증으로 러닝 자제');
-    // 회원이 이 화면에서 적지 않는 값이라 그대로 남는다(#1829).
-    expect(saved.goals, '3개월 안에 5km 완주');
   });
 }

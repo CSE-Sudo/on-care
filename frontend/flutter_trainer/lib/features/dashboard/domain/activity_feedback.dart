@@ -83,12 +83,11 @@ class ActivityFeedbackItem {
 ///
 /// 무엇이 문제인지는 회원 목록 배지와 같은 PT 관리 신호가 정한다(#2244) —
 /// 목록에서 `운동 목표 28%` 인 회원이 여기서 다른 기준으로 불리지 않게.
-/// "최근 7일 트레이너 피드백 없음" 만 [computeChurnSignals] 에서 가져온다 —
+/// "최근 7일 트레이너 피드백 없음" 만 [hasRecentTrainerFeedback] 로 따로 센다 —
 /// 트레이너 자신의 활동이라 서버 신호에 없는 값이다.
 List<ActivityFeedbackItem> buildActivityFeedback({
   required List<TrainerClient> clients,
   required Map<String, List<ScheduleSession>> recentSessionsByClient,
-  required Map<String, int> unread,
   required DateTime now,
 }) {
   final difficultyReview = <TrainerClient>[];
@@ -96,14 +95,6 @@ List<ActivityFeedbackItem> buildActivityFeedback({
   final dietFeedbackPending = <TrainerClient>[];
 
   for (final client in clients.where((c) => c.active)) {
-    final signals = computeChurnSignals(
-      client,
-      recentSessions:
-          recentSessionsByClient[client.id] ?? const <ScheduleSession>[],
-      unreadCount: unread[client.id] ?? 0,
-      now: now,
-    );
-
     final kinds = <ClientSignalKind>{for (final s in client.signals) s.kind};
 
     if (kinds.contains(ClientSignalKind.exerciseGoalLow) ||
@@ -116,7 +107,10 @@ List<ActivityFeedbackItem> buildActivityFeedback({
     }
 
     if (kinds.any((k) => k.isDiet) &&
-        signals.contains(ChurnSignal.noRecentFeedback)) {
+        !hasRecentTrainerFeedback(
+          recentSessionsByClient[client.id] ?? const <ScheduleSession>[],
+          now: now,
+        )) {
       dietFeedbackPending.add(client);
     }
   }

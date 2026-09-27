@@ -36,7 +36,6 @@ def test_onboarding_saves_profile_and_marks_done(client):
         "weight_kg": 72.5,
         # 옛 질환 이름으로 보내면 새 건강 목표로 정리해 저장한다(#1814).
         "conditions": "고혈압, 당뇨 전단계",
-        "goals": "혈압 정상화",
         "daily_calories": 2000,
         "daily_sodium_mg": 2000,
     }
@@ -140,7 +139,6 @@ def test_update_me_changes_body_profile_and_goal(client):
             "gender": "female",
             "height_cm": 163.5,
             "weight_kg": 54.2,
-            "goals": "주 3회 근력 운동",
         },
         headers=_auth(token),
     )
@@ -149,7 +147,8 @@ def test_update_me_changes_body_profile_and_goal(client):
     assert profile["gender"] == "female"
     assert profile["height_cm"] == 163.5
     assert profile["weight_kg"] == 54.2
-    assert profile["goals"] == "주 3회 근력 운동"
+    # 자유 서술 회원 목표는 더 받지도 돌려주지도 않는다(#2358).
+    assert "goals" not in profile
 
     cleared = client.put(
         "/v1/users/me",
@@ -163,7 +162,7 @@ def test_update_me_changes_body_profile_and_goal(client):
 
 def test_update_me_still_rejects_null_for_non_nullable_profile_fields(client):
     token, _ = _register_and_login(client)
-    for field in ("phone", "birth_date", "gender", "goals"):
+    for field in ("phone", "birth_date", "gender"):
         response = client.put(
             "/v1/users/me",
             json={field: None},
@@ -320,8 +319,12 @@ def test_profile_writes_require_auth(client):
 # ---- 건강 목표가 관리 초점·자유 입력 목표까지 다룬다 (#1471) ----
 
 
-def test_health_goals_saves_focus_and_free_text_goal(client):
-    """온보딩이 저장하던 두 값을 MY `건강 목표` 도 같은 열로 고친다."""
+def test_health_goals_saves_focus_and_ignores_free_text_goal(client):
+    """MY `건강 목표` 가 관리 초점을 고친다. 자유 서술 목표는 받지 않는다(#2358).
+
+    목표는 건강 목표 칩으로만 고른다. 옛 앱이 `goals` 를 보내도 오류 없이
+    무시한다 — 응답에도 싣지 않는다.
+    """
     token, _ = _register_and_login(client)
 
     saved = client.put(
@@ -332,12 +335,11 @@ def test_health_goals_saves_focus_and_free_text_goal(client):
 
     assert saved.status_code == 200
     assert saved.json()["conditions"] == "체중 감량, 혈압 관리"
-    assert saved.json()["goals"] == "3개월 안에 5km 완주"
+    assert "goals" not in saved.json()
 
     # 다시 읽어도 그대로다 — 온보딩과 MY 가 같은 값을 본다.
     again = client.get("/v1/users/me/profile", headers=_auth(token))
     assert again.json()["conditions"] == "체중 감량, 혈압 관리"
-    assert again.json()["goals"] == "3개월 안에 5km 완주"
 
 
 def test_health_goals_does_not_wipe_focus_when_only_numbers_change(client):
@@ -345,7 +347,7 @@ def test_health_goals_does_not_wipe_focus_when_only_numbers_change(client):
     token, _ = _register_and_login(client)
     client.put(
         "/v1/users/me/health-goals",
-        json={"conditions": "근력 향상", "goals": "주 3회 근력"},
+        json={"conditions": "근력 향상"},
         headers=_auth(token),
     )
 
@@ -357,7 +359,6 @@ def test_health_goals_does_not_wipe_focus_when_only_numbers_change(client):
 
     view = client.get("/v1/users/me/profile", headers=_auth(token))
     assert view.json()["conditions"] == "근력 향상"
-    assert view.json()["goals"] == "주 3회 근력"
     assert view.json()["daily_calories"] == 2100
 
 

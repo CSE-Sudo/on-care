@@ -99,6 +99,54 @@ def test_report_message_praises_only_a_genuinely_good_week():
     # 이행률이 좋아도 식단이 무너졌으면 칭찬만 하고 넘어가지 않는다.
     assert "잘하셨어요" not in message(80, 4)
     assert "잘하셨어요" not in message(40, 0)
+    # 보통 구간(60~79)은 칭찬할 주가 아니다(#2345).
+    assert "잘하셨어요" not in message(79, 0)
+
+
+def test_report_message_speaks_in_three_completion_bands():
+    """좋음(80+)·보통(60~79)·낮음(<60) — 앱 초안과 같은 세 구간이다(#2345)."""
+    from app.schemas.trainer_api import WeeklyReportOut
+    from app.services.trainer_service import report_message
+
+    def message(completion: int, locale: str = "ko") -> str:
+        return report_message(WeeklyReportOut(
+            member_id="m", member_name="김민수",
+            week_start="2026-08-03", week_end="2026-08-09",
+            sessions_booked=0, sessions_done=0,
+            completion_avg=completion, sodium_over_days=0,
+            sodium_avg=None, message="",
+        ), locale=locale)
+
+    assert "운동은 평균 80%로 잘 따라오셨어요." in message(80)
+    assert "운동은 평균 75%로 꾸준히 해 주셨어요." in message(75)
+    assert "운동은 평균 60%로 꾸준히 해 주셨어요." in message(60)
+    assert "운동 이행률은 평균 59%였어요." in message(59)
+    assert "You stayed steady — 70% of your workouts done." in message(70, "en")
+
+
+def test_summary_praises_and_warns_only_outside_the_middle_band():
+    """요약은 60 미만만 주의로, 80 이상만 좋은 점으로 말한다(#2345)."""
+    from app.schemas.trainer_api import WeeklyReportOut
+    from app.services.trainer_report_summary_service import (
+        GOOD_COMPLETION,
+        LOW_COMPLETION,
+        watchpoints,
+    )
+
+    assert (LOW_COMPLETION, GOOD_COMPLETION) == (60, 80)
+
+    def kinds(completion: int) -> list[str]:
+        return [w.kind for w in watchpoints(WeeklyReportOut(
+            member_id="m", member_name="김민수",
+            week_start="2026-08-03", week_end="2026-08-09",
+            sessions_booked=0, sessions_done=0,
+            completion_avg=completion, sodium_over_days=0,
+            sodium_avg=None, message="",
+        ), "ko")]
+
+    assert "completion" in kinds(59)
+    assert "completion" not in kinds(60)
+    assert "completion" not in kinds(79)
 
 
 # ---- 엔드포인트 ----

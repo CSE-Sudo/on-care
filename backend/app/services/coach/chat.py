@@ -20,6 +20,7 @@ from app.services.coach import grounding, insights, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve
 from app.services.coach_service import diet_period_context
+from app.services import health_focus
 
 _SYSTEM = (
     # 대상 집단을 스타트 단계의 `고혈압·당뇨 위험군` 으로 소개하고 있었다(#2026).
@@ -106,7 +107,9 @@ def _profile_context(db: Session, user_id: str) -> str:
         f"키: {profile.height_cm or '미입력'}cm",
         f"체중: {profile.weight_kg or '미입력'}kg",
         f"건강 상태: {profile.conditions or '미입력'}",
-        f"회원 목표: {profile.goals or '미입력'}",
+        # 회원 목표는 회원이 고른 건강 목표 칩이다(#2358). 예전 자유 서술 `goals`
+        # 는 어느 화면에서도 고칠 수 없게 되어 읽지 않는다.
+        f"회원 목표: {health_focus.focus_label(profile.conditions) or '미입력'}",
         f"주간 운동 횟수 목표: {profile.weekly_workout_goal if profile.weekly_workout_goal is not None else '미입력'}",
         f"주간 운동 시간 목표: {profile.weekly_exercise_minutes_goal if profile.weekly_exercise_minutes_goal is not None else '미입력'}분",
         f"주간 소모 칼로리 목표: {profile.weekly_burn_goal if profile.weekly_burn_goal is not None else '미입력'}kcal",
