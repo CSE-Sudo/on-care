@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
@@ -191,6 +193,37 @@ void main() {
       expect(reportFor(completion: 80, overDays: 1).isGoodWeek, isTrue);
       expect(reportFor(completion: 50, overDays: 1).isGoodWeek, isFalse);
       expect(reportFor(completion: 80, overDays: 4).isGoodWeek, isFalse);
+      // 보통 구간(60~79)은 칭찬할 주가 아니다(#2345).
+      expect(reportFor(completion: 79, overDays: 1).isGoodWeek, isFalse);
+    });
+  });
+
+  group('reportMessage — 이행률 세 구간 (#2345)', () {
+    String workoutLine(AppLocalizations l, int completion) {
+      final report = buildWeeklyReport(
+        client: makeClient(weekCompletion: List<int>.filled(7, completion)),
+        sessions: const <ScheduleSession>[],
+        weekStart: wednesday,
+        today: wednesday,
+      );
+      return reportMessage(l, report).split('\n\n')[1];
+    }
+
+    test('80% 이상은 칭찬, 60~79% 는 꾸준함, 60% 미만은 격려', () {
+      expect(workoutLine(_ko, 80), startsWith('운동은 평균 80%로 잘 따라오셨어요.'));
+      expect(workoutLine(_ko, 75), startsWith('운동은 평균 75%로 꾸준히 해 주셨어요.'));
+      expect(workoutLine(_ko, 60), startsWith('운동은 평균 60%로 꾸준히 해 주셨어요.'));
+      expect(workoutLine(_ko, 59), startsWith('운동 이행률은 평균 59%였어요.'));
+    });
+
+    test('영어도 같은 세 구간으로 말한다', () {
+      final AppLocalizationsEn en = AppLocalizationsEn();
+      expect(workoutLine(en, 85), startsWith('You kept up well'));
+      expect(workoutLine(en, 70), startsWith('You stayed steady — 70%'));
+      expect(
+        workoutLine(en, 40),
+        startsWith('Workout completion came in at 40%'),
+      );
     });
   });
 

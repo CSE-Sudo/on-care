@@ -24,7 +24,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scheduleStatusNoShow => '노쇼';
 
   @override
-  String get schedCancel => '취소 처리';
+  String get schedCancel => '취소';
 
   @override
   String get schedNoShow => '노쇼 처리';
@@ -519,6 +519,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String clientsMemberCount(int total) {
     return '$total명';
+  }
+
+  @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$total명 중 $shown명';
   }
 
   @override
@@ -1542,6 +1547,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return '운동은 평균 $avg%로 잘 따라오셨어요.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return '운동은 평균 $avg%로 꾸준히 해 주셨어요.';
   }
 
   @override

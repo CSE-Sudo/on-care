@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleStatusNoShow => 'No-show';
 
   @override
-  String get schedCancel => 'Cancel session';
+  String get schedCancel => 'Cancel';
 
   @override
   String get schedNoShow => 'Mark no-show';
@@ -535,6 +535,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String clientsMemberCount(int total) {
     return '$total members';
+  }
+
+  @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$shown of $total members';
   }
 
   @override
@@ -1629,6 +1634,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return 'You kept up well — $avg% of your workouts done.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return 'You stayed steady — $avg% of your workouts done.';
   }
 
   @override

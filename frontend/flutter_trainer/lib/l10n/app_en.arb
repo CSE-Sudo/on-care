@@ -14,7 +14,7 @@
   },
   "scheduleStatusCancelled": "Cancelled",
   "scheduleStatusNoShow": "No-show",
-  "schedCancel": "Cancel session",
+  "schedCancel": "Cancel",
   "schedNoShow": "Mark no-show",
   "schedCancelTitle": "Cancel this PT?",
   "schedCancelConfirm": "The {time} session with {name} will be recorded as cancelled. The entry stays.",
@@ -352,6 +352,18 @@
   "clientsMemberCount": "{total} members",
   "@clientsMemberCount": {
     "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "clientsMemberCountFiltered": "{shown} of {total} members",
+  "@clientsMemberCountFiltered": {
+    "description": "Roster subtitle while a dashboard preset or management filter narrows the list.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
       "total": {
         "type": "int"
       }
@@ -1129,6 +1141,14 @@
   },
   "reportBodyCompletionGood": "You kept up well — {avg}% of your workouts done.",
   "@reportBodyCompletionGood": {
+    "placeholders": {
+      "avg": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCompletionSteady": "You stayed steady — {avg}% of your workouts done.",
+  "@reportBodyCompletionSteady": {
     "placeholders": {
       "avg": {
         "type": "int"

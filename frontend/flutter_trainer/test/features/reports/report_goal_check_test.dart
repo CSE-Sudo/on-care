@@ -142,7 +142,7 @@ void main() {
       final GoalCheck c = _one(
         _report(goals: <String>['운동 기록 3회'], completionAvg: 70),
       );
-      expect(c.evidence, '70 / 70%');
+      expect(c.evidence, '70 / 80%');
     });
 
     test('데모 목표들이 각자 맞는 주제로 간다', () {
@@ -154,16 +154,16 @@ void main() {
           caloriesWeek: <int>[1800, 1800, 1800, 1800, 1800, 0, 0],
         ),
       );
-      expect(checks[0].evidence, '90 / 70%');
+      expect(checks[0].evidence, '90 / 80%');
       expect(checks[1].evidence, '5일 기록');
-      expect(checks[2].evidence, '90 / 70%');
+      expect(checks[2].evidence, '90 / 80%');
     });
 
     test('요약이 내놓은 제안 문장도 주제를 찾는다', () {
       for (final (String goal, String evidence) in <(String, String)>[
-        (ko.summaryCompletionLow('40', '70'), '40 / 70%'),
+        (ko.summaryCompletionLow('40', '60'), '40 / 80%'),
         (ko.summarySodium('2,400', '목표', '2,000', '3'), '1800 / 2000mg'),
-        (en.summarySkipped('Squat'), '40 / 70%'),
+        (en.summarySkipped('Squat'), '40 / 80%'),
         (en.reportsActionUnlogged(3), 'Logged 4 days'),
       ]) {
         final GoalCheck c = _one(
@@ -376,18 +376,18 @@ void main() {
     GoalOutcome workout(int? pct) =>
         _one(_report(goals: <String>['운동 이행률'], completionAvg: pct)).outcome;
 
-    test('이행률 기준(70%)에 닿으면 달성', () {
-      expect(workout(70), GoalOutcome.met);
+    test('좋음 기준(80%)에 닿으면 달성 (#2345)', () {
+      expect(workout(80), GoalOutcome.met);
       expect(workout(100), GoalOutcome.met);
     });
 
-    test('기준의 절반 이상이면 절반', () {
-      expect(workout(69), GoalOutcome.partial);
-      expect(workout(35), GoalOutcome.partial);
+    test('보통 구간(60~79%)은 절반 (#2345)', () {
+      expect(workout(79), GoalOutcome.partial);
+      expect(workout(60), GoalOutcome.partial);
     });
 
-    test('그 아래는 미달', () {
-      expect(workout(34), GoalOutcome.missed);
+    test('낮음(60% 미만)은 미달 (#2345)', () {
+      expect(workout(59), GoalOutcome.missed);
       expect(workout(0), GoalOutcome.missed);
     });
 

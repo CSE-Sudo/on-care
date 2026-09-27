@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel session'**
+  /// **'Cancel'**
   String get schedCancel;
 
   /// No description provided for @schedNoShow.
@@ -1051,6 +1051,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{total} members'**
   String clientsMemberCount(int total);
+
+  /// Roster subtitle while a dashboard preset or management filter narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} members'**
+  String clientsMemberCountFiltered(int shown, int total);
 
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
@@ -2857,6 +2863,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You kept up well — {avg}% of your workouts done.'**
   String reportBodyCompletionGood(int avg);
+
+  /// No description provided for @reportBodyCompletionSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'You stayed steady — {avg}% of your workouts done.'**
+  String reportBodyCompletionSteady(int avg);
 
   /// No description provided for @reportBodyCompletionLow.
   ///
