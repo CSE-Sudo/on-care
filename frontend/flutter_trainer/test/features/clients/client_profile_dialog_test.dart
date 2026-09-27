@@ -285,6 +285,26 @@ void main() {
     expect(find.text('신체 불편 표현 감지'), findsOneWidget);
   });
 
+  testWidgets('채팅 인사이트 태그는 채팅 카드·PT 관리 신호와 같은 빨강이다 (#2360)', (tester) async {
+    final repository = _FakeMemoRepository();
+    await repository.create(
+      'm1',
+      body: '무릎이 아파요',
+      source: TrainerMemoSource.chatInsight,
+      insightId: 'seed-chat-1-16:discomfort',
+      insightKind: 'discomfort',
+    );
+    await _pumpDialog(tester, repository);
+
+    final AppTag tag = tester.widget<AppTag>(
+      find.ancestor(
+        of: find.text('신체 불편 표현 감지'),
+        matching: find.byType(AppTag),
+      ),
+    );
+    expect(tag.tone, AppTagTone.danger);
+  });
+
   testWidgets('the client detail memo action opens the memo dialog (#2330)', (
     tester,
   ) async {
