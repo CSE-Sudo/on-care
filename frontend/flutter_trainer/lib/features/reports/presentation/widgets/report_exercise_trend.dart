@@ -9,7 +9,7 @@ import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// ④ 운동 추세 — 유형별 주간 목표 달성률 도넛 셋과 최근 여덟 주. (#2232)
+/// ③ 운동 추세 — 유형별 주간 목표 달성률 도넛 셋과 최근 여덟 주. (#2232)
 ///
 /// 유산소는 분, 근력은 세트, 스트레칭은 분으로 재는 값이라 **서로 더할 수도,
 /// 나란히 높이를 견줄 수도 없다.** 그래서 셋을 각자의 주간 목표에 대한

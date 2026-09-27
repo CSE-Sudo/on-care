@@ -68,11 +68,6 @@ class ReportMacroBars extends StatelessWidget {
     // 가장 크게 모자란 항목 하나만 짚는다. 셋을 모두 설명하면 어느 것부터
     // 손댈지가 다시 트레이너의 몫으로 돌아간다.
     final _Macro? worst = _worstShortfall(rows);
-    // 그 모자람이 지난 주 목표 하나를 직접 떨어뜨렸다면 그것까지 적는다 —
-    // ③ 의 `미이행` 이 어디서 나온 판정인지가 여기서 이어진다.
-    final String? evidence = worst == null
-        ? null
-        : _goalAbout(worst.label, report.weekGoals);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,24 +75,11 @@ class ReportMacroBars extends StatelessWidget {
         _StackedBar(rows: rows, height: _barHeight),
         if (worst != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
-          Text.rich(
-            TextSpan(
-              children: <InlineSpan>[
-                TextSpan(
-                  text: '▼ ${l.reportsMacroShortfall(worst.label)}',
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.caption))
-                      .copyWith(color: OnCareColors.danger),
-                ),
-                if (evidence != null)
-                  TextSpan(
-                    text: ' — ${l.reportsMacroShortfallEvidence(evidence)}',
-                    style: tokens
-                        .text(OnCareTypography.caption)
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-              ],
-            ),
+          Text(
+            '▼ ${l.reportsMacroShortfall(worst.label)}',
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.danger),
           ),
         ],
       ],
@@ -118,14 +100,6 @@ class ReportMacroBars extends StatelessWidget {
       worst = row;
     }
     return worst;
-  }
-
-  /// 그 영양소를 말하는 지난 주 목표. 없으면 null.
-  static String? _goalAbout(String macro, List<String> goals) {
-    for (final String goal in goals) {
-      if (goal.contains(macro)) return goal;
-    }
-    return null;
   }
 }
 
