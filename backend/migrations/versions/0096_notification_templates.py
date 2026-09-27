@@ -7,8 +7,8 @@
 둘 다 비워 둘 수 있다 — 이미 쌓인 알림에는 틀이 없고, 그 알림은 저장된 문장을 그대로
 보여 준다. 백필하지 않는 이유는 옛 문장에서 인자를 거꾸로 뽑아낼 규칙이 없어서다.
 
-Revision ID: 0095_notification_templates
-Revises: 0094_trainer_report_goals
+Revision ID: 0096_notification_templates
+Revises: 0095_notification_target_date
 """
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0095_notification_templates"
-down_revision: str | Sequence[str] | None = "0094_trainer_report_goals"
+revision: str = "0096_notification_templates"
+down_revision: str | Sequence[str] | None = "0095_notification_target_date"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
