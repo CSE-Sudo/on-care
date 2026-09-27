@@ -16,6 +16,7 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_prompter.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
@@ -177,7 +178,11 @@ class _MainShellState extends ConsumerState<MainShell>
       extendBody: true,
       // 받은 담당 요청은 어느 탭에 있든 가운데 창으로 뜬다(#1801). 탭 전체를
       // 감싸 두어 탭을 옮겨도 요청을 듣는 일이 끊기지 않는다.
-      body: CoachInvitePrompter(child: navigationShell),
+      body: CoachInvitePrompter(
+        // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
+        // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
+        child: WeeklyFeedbackPrompter(child: navigationShell),
+      ),
       // AI 조언 진입점이 이 자리에 있을지가 아직 정해지지 않아 **노출만** 끈다
       // (#862). 기능·라우트·provider 는 그대로라, 자리가 정해지면 이 상수를
       // 되돌리는 것으로 복원된다 — 아래 [kShowCoachingFab] 주석 참고.

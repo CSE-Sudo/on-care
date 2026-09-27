@@ -7,15 +7,13 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
-import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
-import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:printing/printing.dart';
@@ -679,40 +677,18 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     try {
-      final CoachAttachment? attachment = widget.message.attachment;
-      final Uint8List bytes;
-      final String fileName;
-      if (attachment != null) {
-        bytes = await ref
-            .read(chatPdfRepositoryProvider)
-            .download(attachment.downloadPath);
-        fileName = attachment.fileName;
-      } else {
-        final MemberWeeklyReport report = await ref.read(
-          memberWeeklyReportProvider(widget.weekStart).future,
-        );
-        bytes = await ref
-            .read(memberReportPdfGeneratorProvider)
-            .generate(
-              l: l,
-              report: report,
-              // 안내 상자가 본문을 감추므로, 트레이너가 리포트와 함께 보낸 글은
-              // 문서 안에서 읽게 한다 — 트레이너 화면의 `트레이너 피드백` 자리다.
-              trainerNote: widget.message.body,
-            );
-        fileName = l.coachReportPdfFileName(_ymd(widget.weekStart));
-      }
-      if (!mounted) return;
-      await openPdfPreviewPage(context, bytes, fileName);
+      // 여는 규칙은 MY 탭 목록과 한곳에서 나눠 쓴다 — 두 화면이 서로 다른
+      // 문서를 열면 회원은 같은 주 리포트를 두 벌 가진 셈이 된다(#2232).
+      await openCoachReport(
+        context,
+        ref,
+        message: widget.message,
+        weekStart: widget.weekStart,
+      );
     } catch (_) {
       toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _opening = false);
     }
   }
-
-  static String _ymd(DateTime value) =>
-      '${value.year.toString().padLeft(4, '0')}-'
-      '${value.month.toString().padLeft(2, '0')}-'
-      '${value.day.toString().padLeft(2, '0')}';
 }

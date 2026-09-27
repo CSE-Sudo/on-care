@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -92,10 +93,13 @@ class ReportSendLog extends StateNotifier<Map<String, ReportSendRecord>> {
 }
 
 /// 이번 세션에 나간 리포트 기록.
+///
+/// 로그인한 계정의 기록이다 — 계정이 바뀌면 빈 기록에서 다시 시작한다(#2285).
 final reportSendLogProvider =
-    StateNotifierProvider<ReportSendLog, Map<String, ReportSendRecord>>(
-      (ref) => ReportSendLog(),
-    );
+    StateNotifierProvider<ReportSendLog, Map<String, ReportSendRecord>>((ref) {
+      ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+      return ReportSendLog();
+    });
 
 /// 데모 로스터에서 **이미 리포트가 나간** 회원.
 ///

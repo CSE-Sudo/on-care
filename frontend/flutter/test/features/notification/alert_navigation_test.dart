@@ -20,6 +20,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
@@ -123,6 +124,22 @@ class _FakeCoachRepository implements MemberCoachRepository {
 
   @override
   Future<void> sendMessage(String text, {String? emoteId}) async {}
+
+  // 주간 피드백은 이 대역이 서는 화면의 관심사가 아니다 — 안 낸 주로 답한다.
+  // (#2232)
+  @override
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({DateTime? weekStart}) async =>
+      MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
+
+  @override
+  Future<MemberWeeklyFeedback> saveWeeklyFeedback({
+    required DateTime weekStart,
+    required WeekCondition condition,
+    required WeekIntensity intensity,
+    String painArea = '',
+    DateTime? painOn,
+    String note = '',
+  }) async => throw UnimplementedError();
 }
 
 /// 내 상담 요청 목록을 몇 번 받았는지만 센다.

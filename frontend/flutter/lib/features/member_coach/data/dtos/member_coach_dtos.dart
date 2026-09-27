@@ -1,5 +1,6 @@
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 
 /// `/me/coach` (MemberCoachOut) → [MemberCoach].
 MemberCoach memberCoachFromJson(Map<String, Object?> json) {
@@ -212,3 +213,35 @@ CoachInvite coachInviteFromJson(Map<String, Object?> json) => CoachInvite(
   gymName: json['gym_name'] as String?,
   message: json['message'] as String?,
 );
+
+/// `/me/coach/weekly-feedback` (MemberWeeklyFeedbackOut) → [MemberWeeklyFeedback].
+/// (#2232)
+///
+/// 두 문항 중 하나라도 읽히지 않으면 **안 낸 주**로 둔다. 반쯤 그린 답은
+/// 회원에게 "이미 보냈다" 고 말하면서 트레이너에게는 아무것도 주지 않는다.
+MemberWeeklyFeedback memberWeeklyFeedbackFromJson(Map<String, Object?> json) {
+  final DateTime weekStart =
+      DateTime.tryParse(_str(json['week_start'])) ?? DateTime(1970);
+  final WeekCondition? condition = WeekCondition.parse(
+    json['condition'] as String?,
+  );
+  final WeekIntensity? intensity = WeekIntensity.parse(
+    json['intensity'] as String?,
+  );
+  if (json['submitted'] != true || condition == null || intensity == null) {
+    return MemberWeeklyFeedback.empty(weekStart);
+  }
+  final String painArea = _str(json['pain_area']).trim();
+  return MemberWeeklyFeedback(
+    weekStart: weekStart,
+    submitted: true,
+    condition: condition,
+    intensity: intensity,
+    painArea: painArea,
+    // 아픈 곳이 없으면 날짜도 버린다 — 화면이 "(빈칸) 이 아팠다" 를 그리지
+    // 않게. 서버도 같은 규칙으로 저장한다.
+    painOn: painArea.isEmpty ? null : DateTime.tryParse(_str(json['pain_on'])),
+    note: _str(json['note']).trim(),
+    submittedAt: DateTime.tryParse(_str(json['submitted_at'])),
+  );
+}

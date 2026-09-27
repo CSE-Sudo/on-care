@@ -1917,5 +1917,90 @@
   "dietAdviceAllFewHint": "7일이 넘으면 흐름을 짚어 드릴게요.",
   "dietAdviceTipCarb": "밥 양을 줄이고 반찬을 늘려 봐요.",
   "dietAdviceTipSwap": "곁들임 반찬만 바꿔 봐요.",
-  "dietAdviceTipVariety": "생선·두부를 주 2회 더해요."
+  "dietAdviceTipVariety": "생선·두부를 주 2회 더해요.",
+  "weeklyFeedbackSheetTitle": "이번 주 어땠어요?",
+  "weeklyFeedbackSheetSubtitle": "{range} 한 주를 담당 트레이너에게 알려 주세요",
+  "@weeklyFeedbackSheetSubtitle": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "weeklyFeedbackWhy": "30초면 끝나요. 다음 주 운동 강도가 이 답에서 정해져요.",
+  "weeklyFeedbackConditionQuestion": "한 주 컨디션은 어땠나요?",
+  "weeklyFeedbackIntensityQuestion": "운동 강도는 어땠나요?",
+  "weeklyFeedbackPainQuestion": "아팠던 곳이 있나요?",
+  "weeklyFeedbackPainHint": "예: 오른 무릎",
+  "weeklyFeedbackPainDateLabel": "아팠던 날",
+  "weeklyFeedbackPainDatePick": "날짜 고르기",
+  "weeklyFeedbackNoteQuestion": "트레이너에게 한 줄 (선택)",
+  "weeklyFeedbackNoteHint": "그 주에 있었던 일을 적어 주세요",
+  "weeklyFeedbackSend": "보내기",
+  "weeklyFeedbackResend": "다시 보내기",
+  "weeklyFeedbackLater": "나중에",
+  "weeklyFeedbackIncomplete": "컨디션과 운동 강도를 골라 주세요",
+  "weeklyFeedbackSent": "주간 피드백을 보냈어요",
+  "weeklyFeedbackSendFailed": "주간 피드백을 보내지 못했어요. 다시 시도해 주세요",
+  "weeklyFeedbackAlreadySent": "이미 보낸 주예요. 다시 보내면 마지막 답으로 바뀌어요.",
+  "weekConditionGreat": "아주 좋았어요",
+  "weekConditionGood": "좋았어요",
+  "weekConditionOk": "보통이었어요",
+  "weekConditionTired": "지쳤어요",
+  "weekConditionBad": "많이 안 좋았어요",
+  "weekIntensityTooEasy": "너무 쉬웠어요",
+  "weekIntensityRight": "딱 맞았어요",
+  "weekIntensityHard": "조금 힘들었어요",
+  "weekIntensityTooHard": "너무 힘들었어요",
+  "myCoachReportsEntry": "트레이너 리포트",
+  "myCoachReportsEntryHint": "받은 리포트와 보낸 주간 피드백",
+  "coachReportsSectionTitle": "받은 리포트",
+  "coachReportsEmpty": "아직 받은 리포트가 없어요",
+  "coachReportsEmptyHint": "담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요",
+  "coachReportOpen": "리포트 열기",
+  "coachReportSentOn": "{month}월 {day}일 보냄",
+  "@coachReportSentOn": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "myWeeklyFeedbackSectionTitle": "보낸 주간 피드백",
+  "myWeeklyFeedbackOnlyLastWeek": "직전 주에 보낸 답만 보여 드려요",
+  "myWeeklyFeedbackEmpty": "직전 주 피드백을 아직 보내지 않았어요",
+  "myWeeklyFeedbackConditionLabel": "컨디션",
+  "myWeeklyFeedbackIntensityLabel": "운동 강도",
+  "myWeeklyFeedbackPainLabel": "통증",
+  "myWeeklyFeedbackPainNone": "없음",
+  "myWeeklyFeedbackPainWithDate": "{area} ({month}월 {day}일)",
+  "@myWeeklyFeedbackPainWithDate": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "myWeeklyFeedbackNoteLabel": "남긴 말",
+  "myWeeklyFeedbackSentAt": "{month}월 {day}일 보냄",
+  "@myWeeklyFeedbackSentAt": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "weeklyFeedbackNowButton": "지금 피드백 보내기"
 }

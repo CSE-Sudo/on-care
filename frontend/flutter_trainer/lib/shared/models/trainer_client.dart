@@ -108,7 +108,8 @@ class TrainerClient {
   /// Preview of the most recent chat message.
   final String lastMessage;
 
-  /// Relative time label for [lastMessage] (e.g. 방금).
+  /// Relative time label for [lastMessage] (e.g. `18:16`), or the
+  /// `ChatPreviewCode.justNow` code — render it with `previewTime`.
   final String lastTime;
 
   /// Timestamp of the most recent chat message, when the source can provide
@@ -145,12 +146,13 @@ class TrainerClient {
   /// This week's daily completion rates (7 entries, 월→일).
   final List<int> weekCompletion;
 
-  /// Last 7 days of daily sodium (mg), oldest→today (index 6 == today's
-  /// [sodiumMg]). Empty for pre-v2 rows (before the next re-seed
-  /// backfills it).
+  /// This week's daily sodium (mg), 월→일 — the same fixed window as
+  /// [weekCompletion], with days that haven't come yet at 0 (today's
+  /// [sodiumMg] sits at index `weekday - 1`). Empty for pre-v2 rows
+  /// (before the next re-seed backfills it).
   final List<int> sodiumWeek;
 
-  /// 최근 7일 일별 칼로리·당류. [sodiumWeek] 와 같은 창이라 한 그래프에서 지표만
+  /// 이번 주(월→일) 일별 칼로리·당류. [sodiumWeek] 와 같은 창이라 한 그래프에서 지표만
   /// 바꿔 볼 수 있다(#746). 당류는 소수를 유지한다.
   final List<int> caloriesWeek;
   final List<double> sugarWeek;

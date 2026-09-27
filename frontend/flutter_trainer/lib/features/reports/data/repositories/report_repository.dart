@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -385,6 +386,14 @@ class DioReportRepository implements ReportRepository {
     required TrainerClient client,
     required DateTime weekStart,
   }) async {
+    // 회원 주간 피드백은 리포트 본문과 **나란히** 부른다(#2286) — 차례로
+    // 부르면 리포트가 뜨는 시간이 두 요청을 더한 만큼 늘어난다. 이 요청은
+    // 실패해도 null 로 끝나므로(아래), 본문이 실패해 먼저 빠져나가도 처리되지
+    // 않은 오류로 남지 않는다.
+    final Future<MemberWeeklyFeedback?> feedback = _memberFeedback(
+      client.id,
+      weekStart,
+    );
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         '/trainer/clients/${Uri.encodeComponent(client.id)}/report',
@@ -395,9 +404,34 @@ class DioReportRepository implements ReportRepository {
         // 문구는 화면이 붙인다 — 리포지토리는 로케일을 모른다. (#501)
         throw const ServerError();
       }
-      return weeklyReportFromJson(json, client);
+      return weeklyReportFromJson(json, client, memberFeedback: await feedback);
     } on DioException catch (e) {
       throw AppError.fromDio(e);
+    }
+  }
+
+  /// 회원이 그 주에 낸 세 문항. 안 냈거나 읽지 못하면 null. (#2286)
+  ///
+  /// 이 칸 하나 때문에 리포트 전체를 오류 화면으로 바꾸지 않는다 — 수치는
+  /// 멀쩡히 왔는데 피드백 요청만 실패했을 때 화면이 통째로 사라지면, 트레이너는
+  /// 읽을 수 있던 한 주를 잃는다. 그때 ① 칸은 "아직 받지 못함" 을 그린다.
+  Future<MemberWeeklyFeedback?> _memberFeedback(
+    String clientId,
+    DateTime weekStart,
+  ) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}'
+        '/report/member-feedback',
+        queryParameters: <String, String>{'week_start': ymd(weekStart)},
+      );
+      final json = res.data;
+      if (json == null) return null;
+      return memberWeeklyFeedbackFromJson(json, weekStart);
+    } on Object {
+      // 네트워크 오류(404·500·끊김)뿐 아니라 모양이 다른 응답도 여기서 멈춘다
+      // — 어느 쪽이든 이 칸만 비우고 리포트는 그대로 그린다.
+      return null;
     }
   }
 
@@ -533,10 +567,14 @@ class DioReportRepository implements ReportRepository {
 
 /// Decodes `WeeklyReportOut`. 계열도 함께 온다 — 로스터의 것은 이번 주 것이라
 /// 과거 주 화면에 쓸 수 없다(#752).
+///
+/// [memberFeedback] 은 다른 응답(`/report/member-feedback`)에서 온다 — 본문
+/// 응답에는 없다.
 WeeklyReport weeklyReportFromJson(
   Map<String, dynamic> json,
-  TrainerClient client,
-) {
+  TrainerClient client, {
+  MemberWeeklyFeedback? memberFeedback,
+}) {
   int? optInt(String key) => (json[key] as num?)?.toInt();
   List<int> ints(String key) =>
       (json[key] as List<Object?>? ?? const <Object?>[])
@@ -587,11 +625,42 @@ WeeklyReport weeklyReportFromJson(
                 .toList(growable: false),
           ),
     ],
+    memberFeedback: memberFeedback,
+  );
+}
+
+/// Decodes `MemberWeeklyFeedbackOut`. 답이 없으면 null. (#2286)
+///
+/// `submitted` 가 false 면 서버가 기본값(빈 문자열)을 채워 보낸다 — 그 값을
+/// 답으로 읽지 않는다. 컨디션·강도를 읽지 못해도 null 이다: 반쯤 읽힌 답을
+/// 그리면 트레이너가 나머지를 짐작하게 된다([MemberWeeklyFeedback.fromWire]).
+///
+/// 주는 서버가 월요일로 맞춰 돌려준 `week_start` 를 믿고, 없거나 깨졌으면
+/// 요청한 [requestedWeek] 의 월요일로 되돌아간다.
+MemberWeeklyFeedback? memberWeeklyFeedbackFromJson(
+  Map<String, dynamic> json,
+  DateTime requestedWeek,
+) {
+  if (json['submitted'] != true) return null;
+  String text(String key) {
+    final Object? value = json[key];
+    return value is String ? value : '';
+  }
+
+  final DateTime? served = DateTime.tryParse(text('week_start'));
+  return MemberWeeklyFeedback.fromWire(
+    weekStart: weekStartOf(served ?? requestedWeek),
+    condition: text('condition'),
+    intensity: text('intensity'),
+    painArea: text('pain_area'),
+    painOn: text('pain_on'),
+    note: text('note'),
   );
 }
 
 /// Provides the [ReportRepository] for the current mode.
 final reportRepositoryProvider = Provider<ReportRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return LocalReportRepository(
       ref.watch(scheduleRepositoryProvider),
@@ -606,14 +675,13 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
 typedef ReportKey = ({TrainerClient client, DateTime weekStart});
 
 /// Streams a client's weekly report.
-final weeklyReportProvider = StreamProvider.family<WeeklyReport, ReportKey>((
-  ref,
-  key,
-) {
-  return ref
-      .watch(reportRepositoryProvider)
-      .watch(client: key.client, weekStart: key.weekStart);
-});
+final weeklyReportProvider = StreamProvider.autoDispose
+    .family<WeeklyReport, ReportKey>((ref, key) {
+      keepAliveForAccount(ref);
+      return ref
+          .watch(reportRepositoryProvider)
+          .watch(client: key.client, weekStart: key.weekStart);
+    });
 
 /// 그 주에 저장돼 있는 피드백 초안. (#821)
 ///

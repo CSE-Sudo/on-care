@@ -4342,4 +4342,147 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietAdviceTipVariety => '생선·두부를 주 2회 더해요.';
+
+  @override
+  String get weeklyFeedbackSheetTitle => '이번 주 어땠어요?';
+
+  @override
+  String weeklyFeedbackSheetSubtitle(String range) {
+    return '$range 한 주를 담당 트레이너에게 알려 주세요';
+  }
+
+  @override
+  String get weeklyFeedbackWhy => '30초면 끝나요. 다음 주 운동 강도가 이 답에서 정해져요.';
+
+  @override
+  String get weeklyFeedbackConditionQuestion => '한 주 컨디션은 어땠나요?';
+
+  @override
+  String get weeklyFeedbackIntensityQuestion => '운동 강도는 어땠나요?';
+
+  @override
+  String get weeklyFeedbackPainQuestion => '아팠던 곳이 있나요?';
+
+  @override
+  String get weeklyFeedbackPainHint => '예: 오른 무릎';
+
+  @override
+  String get weeklyFeedbackPainDateLabel => '아팠던 날';
+
+  @override
+  String get weeklyFeedbackPainDatePick => '날짜 고르기';
+
+  @override
+  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 (선택)';
+
+  @override
+  String get weeklyFeedbackNoteHint => '그 주에 있었던 일을 적어 주세요';
+
+  @override
+  String get weeklyFeedbackSend => '보내기';
+
+  @override
+  String get weeklyFeedbackResend => '다시 보내기';
+
+  @override
+  String get weeklyFeedbackLater => '나중에';
+
+  @override
+  String get weeklyFeedbackIncomplete => '컨디션과 운동 강도를 골라 주세요';
+
+  @override
+  String get weeklyFeedbackSent => '주간 피드백을 보냈어요';
+
+  @override
+  String get weeklyFeedbackSendFailed => '주간 피드백을 보내지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get weeklyFeedbackAlreadySent => '이미 보낸 주예요. 다시 보내면 마지막 답으로 바뀌어요.';
+
+  @override
+  String get weekConditionGreat => '아주 좋았어요';
+
+  @override
+  String get weekConditionGood => '좋았어요';
+
+  @override
+  String get weekConditionOk => '보통이었어요';
+
+  @override
+  String get weekConditionTired => '지쳤어요';
+
+  @override
+  String get weekConditionBad => '많이 안 좋았어요';
+
+  @override
+  String get weekIntensityTooEasy => '너무 쉬웠어요';
+
+  @override
+  String get weekIntensityRight => '딱 맞았어요';
+
+  @override
+  String get weekIntensityHard => '조금 힘들었어요';
+
+  @override
+  String get weekIntensityTooHard => '너무 힘들었어요';
+
+  @override
+  String get myCoachReportsEntry => '트레이너 리포트';
+
+  @override
+  String get myCoachReportsEntryHint => '받은 리포트와 보낸 주간 피드백';
+
+  @override
+  String get coachReportsSectionTitle => '받은 리포트';
+
+  @override
+  String get coachReportsEmpty => '아직 받은 리포트가 없어요';
+
+  @override
+  String get coachReportsEmptyHint => '담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요';
+
+  @override
+  String get coachReportOpen => '리포트 열기';
+
+  @override
+  String coachReportSentOn(int month, int day) {
+    return '$month월 $day일 보냄';
+  }
+
+  @override
+  String get myWeeklyFeedbackSectionTitle => '보낸 주간 피드백';
+
+  @override
+  String get myWeeklyFeedbackOnlyLastWeek => '직전 주에 보낸 답만 보여 드려요';
+
+  @override
+  String get myWeeklyFeedbackEmpty => '직전 주 피드백을 아직 보내지 않았어요';
+
+  @override
+  String get myWeeklyFeedbackConditionLabel => '컨디션';
+
+  @override
+  String get myWeeklyFeedbackIntensityLabel => '운동 강도';
+
+  @override
+  String get myWeeklyFeedbackPainLabel => '통증';
+
+  @override
+  String get myWeeklyFeedbackPainNone => '없음';
+
+  @override
+  String myWeeklyFeedbackPainWithDate(String area, int month, int day) {
+    return '$area ($month월 $day일)';
+  }
+
+  @override
+  String get myWeeklyFeedbackNoteLabel => '남긴 말';
+
+  @override
+  String myWeeklyFeedbackSentAt(int month, int day) {
+    return '$month월 $day일 보냄';
+  }
+
+  @override
+  String get weeklyFeedbackNowButton => '지금 피드백 보내기';
 }

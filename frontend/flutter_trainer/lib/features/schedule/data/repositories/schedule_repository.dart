@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -1012,6 +1013,7 @@ String _programItemLabel(ProgramItem raw) {
 /// the FastAPI backend, or the local drift source for demo /
 /// `USE_MOCK_API=true`.
 final scheduleRepositoryProvider = Provider<ScheduleRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return DriftScheduleRepository(ref.watch(appDatabaseProvider));
   }
