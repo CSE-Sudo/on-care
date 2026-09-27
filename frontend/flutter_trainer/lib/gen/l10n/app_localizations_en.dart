@@ -3658,6 +3658,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'Faded values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
+  String clientGoalSuggestionDiet(
+    int kcal,
+    int carbs,
+    int sugar,
+    int protein,
+    int fat,
+    int sodium,
+  ) {
+    return 'Suggested: $kcal kcal · carbs $carbs g · sugar $sugar g · protein $protein g · fat $fat g · sodium $sodium mg';
+  }
+
+  @override
+  String clientGoalSuggestionExercise(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return 'Suggested: $burn kcal burned a day · $cardio min cardio · $strength strength sets · $flexibility min stretching a week';
+  }
+
+  @override
+  String get clientGoalSuggestionPersonal =>
+      'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
+
+  @override
+  String get clientGoalSuggestionFallback =>
+      'Age, height, or weight is missing, so only the health goals adjust the defaults';
+
+  @override
+  String get clientGoalApplySuggestion => 'Fill with suggestion';
+
+  @override
   String get clientTrainerMemoHint =>
       'Note what you want to remember about this member';
 
