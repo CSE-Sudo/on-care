@@ -16,8 +16,10 @@ import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
 import '../../helpers/pump_app.dart';
@@ -65,6 +67,20 @@ void main() {
     );
     await settle(tester);
     return container;
+  }
+
+  /// 줄의 리포트 수치가 붙을 때까지 기다린다.
+  ///
+  /// PT 관리 신호는 로스터에서 바로 오지만, 이행률·주 후반 하락 같은 리포트
+  /// 배지는 데모 DB(drift)를 **실제 시간**으로 읽은 뒤에 붙는다. 전체 스위트처럼
+  /// 머신이 바쁠 때는 [settle] 의 가짜 시간 2초 안에 끝나지 않는다.
+  Future<void> waitFor(WidgetTester tester, Finder finder) async {
+    for (var i = 0; i < 40 && finder.evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+    }
   }
 
   /// 작업대에 선 미전송 줄의 회원 id — 화면에 보이는 차례 그대로.
@@ -335,12 +351,20 @@ void main() {
           calories: 3400,
           sugarG: 90,
           weekCompletion: const <int>[80, 0, 70, 0, 0, 60, 90],
+          // 서버가 식단 신호를 실어 보내도 작업대에는 오지 않는다.
+          signals: const <ClientSignal>[
+            ClientSignal(ClientSignalKind.calorieOff, percent: 22, over: true),
+            ClientSignal(ClientSignalKind.proteinLow, percent: 64),
+          ],
         ),
       ],
     );
 
-    // 기록이 끊긴 날은 요일 수로 말한다.
-    expect(find.text('3일 무기록'), findsOneWidget);
+    // 운동 이행률 0 인 날을 따로 세어 `N일 무기록` 이라 말하지 않는다 — 기록
+    // 끊김은 PT 관리 신호가 말한다(#2344).
+    await waitFor(tester, find.text('이행 75%'));
+    expect(find.textContaining('무기록'), findsNothing);
+    expect(find.text('이행 75%'), findsOneWidget);
     // 식단 지표는 작업대에 오지 않는다 — 그 답은 리포트 본문의 식단 카드다.
     for (final String banned in <String>['나트륨', '칼로리', '당류']) {
       expect(
@@ -351,6 +375,75 @@ void main() {
         reason: '작업대 줄에 $banned 이(가) 남아 있다',
       );
     }
+  });
+
+  testWidgets('작업대 줄은 회원 상세와 같은 PT 관리 신호 배지를 단다 (#2344)', (tester) async {
+    await openWorkbench(
+      tester,
+      clients: <TrainerClient>[
+        makeClient(
+          id: 's',
+          name: '신호회원',
+          weekCompletion: const <int>[80, 80, 80, 80, 80, 80, 80],
+          signals: const <ClientSignal>[
+            ClientSignal(ClientSignalKind.noShow, count: 2),
+            ClientSignal(ClientSignalKind.recordGap, days: 4),
+          ],
+        ),
+      ],
+    );
+
+    // 문구는 회원 상세 헤더의 `detailLabel` 그대로, 급한 순서 그대로.
+    final Finder gap = find.byKey(
+      const ValueKey<String>('reports-queue-alert-s-record_gap'),
+    );
+    final Finder noShow = find.byKey(
+      const ValueKey<String>('reports-queue-alert-s-no_show'),
+    );
+    expect(
+      find.descendant(of: gap, matching: find.text('4일째 기록 없음')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: noShow, matching: find.text('노쇼·취소 2회')),
+      findsOneWidget,
+    );
+    expect(tester.getTopLeft(gap).dx, lessThan(tester.getTopLeft(noShow).dx));
+    // 모양도 같다 — 빨강 톤에 ⓘ 아이콘.
+    final AppTag tag = tester.widget<AppTag>(
+      find.descendant(of: gap, matching: find.byType(AppTag)),
+    );
+    expect(tag.tone, AppTagTone.danger);
+    expect(tag.icon, Icons.error_outline_rounded);
+    // 리포트 고유 배지는 그 뒤에 남는다.
+    await waitFor(tester, find.text('이행 80%'));
+    expect(find.text('이행 80%'), findsOneWidget);
+    // 예전의 앱 로컬 노쇼 문구는 없다.
+    expect(find.text('노쇼 1회'), findsNothing);
+  });
+
+  testWidgets('PT 관리 신호가 여럿이어도 리포트 고유 배지는 남는다 (#2344)', (tester) async {
+    await openWorkbench(
+      tester,
+      clients: <TrainerClient>[
+        makeClient(
+          id: 'm',
+          name: '많은회원',
+          weekCompletion: const <int>[100, 90, 100, 60, 40, 30, 40],
+          signals: const <ClientSignal>[
+            ClientSignal(ClientSignalKind.discomfort),
+            ClientSignal(ClientSignalKind.noShow, count: 2),
+            ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 28),
+          ],
+        ),
+      ],
+    );
+
+    expect(find.text('통증·불편'), findsOneWidget);
+    expect(find.text('노쇼·취소 2회'), findsOneWidget);
+    expect(find.text('운동 목표 28%'), findsOneWidget);
+    await waitFor(tester, find.textContaining('하락'));
+    expect(find.textContaining('하락'), findsOneWidget);
   });
 
   testWidgets('이번 주 리포트 칸이 전송 완료 칸의 두 배로 선다 (#2232)', (tester) async {
@@ -391,7 +484,9 @@ void main() {
       ]);
     });
 
-    test('빠진 세션은 이행률 다음에 온다', () {
+    test('예약 − 완료 를 노쇼로 말하지 않는다 — 남은 예정 세션일 수 있다 (#2343)', () {
+      // 실서버의 `sessions_booked` 는 예정 + 완료다. 수요일에 금요일 PT 가
+      // 남아 있는 주도 이렇게 보인다.
       final List<ReportSignal> signals = reportSignals(
         report(
           week: const <int>[90, 80, 90, 80, 90, 80, 90],
@@ -400,11 +495,10 @@ void main() {
           done: 1,
         ),
       );
-      expect(
-        signals.first,
-        const ReportSignal(ReportSignalKind.completion, 85),
-      );
-      expect(signals[1], const ReportSignal(ReportSignalKind.noShow, 1));
+      expect(signals, const <ReportSignal>[
+        ReportSignal(ReportSignalKind.completion, 85),
+        ReportSignal(ReportSignalKind.fullLog),
+      ]);
     });
 
     test('주 후반이 무너진 주는 하락으로 읽는다', () {
@@ -435,6 +529,64 @@ void main() {
         isTrue,
         reason: '$signals',
       );
+    });
+  });
+
+  group('ReportQueueEntry.priority', () {
+    WeeklyReport report({
+      required int completion,
+      int booked = 0,
+      int done = 0,
+    }) => WeeklyReport(
+      client: makeClient(),
+      weekStart: weekStartOf(nowKst()),
+      sessionsBooked: booked,
+      sessionsDone: done,
+      completionAvg: completion,
+      sodiumOverDays: 0,
+      sodiumAvg: 0,
+      isCurrentWeek: false,
+      weekCompletion: List<int>.filled(7, completion),
+    );
+
+    ReportQueueEntry entry(
+      int completion, {
+      int booked = 0,
+      int done = 0,
+      List<ClientSignal> signals = const <ClientSignal>[],
+    }) => ReportQueueEntry(
+      client: makeClient(signals: signals),
+      report: report(completion: completion, booked: booked, done: done),
+      sent: false,
+    );
+
+    test('아직 하지 않은 예정 세션은 순서를 끌어올리지 않는다 (#2343)', () {
+      expect(entry(90, booked: 3).priority, greaterThan(entry(80).priority));
+    });
+
+    test('PT 관리 신호가 걸린 회원이 위로 온다 (#2344)', () {
+      expect(
+        entry(
+          85,
+          signals: const <ClientSignal>[
+            ClientSignal(ClientSignalKind.noShow, count: 2),
+          ],
+        ).priority,
+        lessThan(entry(60).priority),
+      );
+    });
+
+    test('식단 신호·답장 대기는 순서에 들지 않는다 (#2232)', () {
+      final ReportQueueEntry diet = entry(
+        80,
+        signals: const <ClientSignal>[
+          ClientSignal(ClientSignalKind.calorieOff, percent: 30, over: true),
+          ClientSignal(ClientSignalKind.proteinLow, percent: 50),
+          ClientSignal(ClientSignalKind.unanswered),
+        ],
+      );
+      expect(diet.attention, isEmpty);
+      expect(diet.priority, entry(80).priority);
     });
   });
 

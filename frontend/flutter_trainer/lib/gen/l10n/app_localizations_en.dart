@@ -4433,18 +4433,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '$count no-show';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count done';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days days unlogged';
   }
 
   @override
