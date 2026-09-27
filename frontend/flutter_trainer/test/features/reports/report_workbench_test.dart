@@ -5,6 +5,8 @@
 /// **일의 흐름** 이다 — 누가 남았나, 어디까지 왔나, 보낸 건 무엇이었나.
 library;
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,9 +16,12 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -49,6 +54,7 @@ void main() {
     List<TrainerClient> clients = const <TrainerClient>[],
     String at = AppRoutes.reports,
     Locale locale = const Locale('ko'),
+    List<Override> extraOverrides = const <Override>[],
   }) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = size;
@@ -64,6 +70,7 @@ void main() {
           clientsProvider.overrideWith(
             (ref) => Stream<List<TrainerClient>>.value(clients),
           ),
+        ...extraOverrides,
       ],
     );
     await settle(tester);
@@ -219,7 +226,19 @@ void main() {
   });
 
   testWidgets('단계는 ① 확인 → ② 작성 → ③ 전송 으로 오간다 (#2232)', (tester) async {
-    await openWorkbench(tester, clients: _roster, at: AppRoutes.reportFor('a'));
+    await openWorkbench(
+      tester,
+      clients: _roster,
+      at: AppRoutes.reportFor('a'),
+      // ③ 은 들어서자마자 PDF 를 만든다(#2402) — 실 생성기와 쪽 굽기는
+      // 테스트에서 끝나지 않아 곧바로 끝나는 가짜를 둔다.
+      extraOverrides: <Override>[
+        reportPdfGeneratorProvider.overrideWithValue(_InstantPdfGenerator()),
+        reportPdfRasterizerProvider.overrideWithValue(
+          (Uint8List pdf) async => <Uint8List>[pdf],
+        ),
+      ],
+    );
 
     final Finder next = find.byKey(const ValueKey<String>('report-step-next'));
     final Finder prev = find.byKey(const ValueKey<String>('report-step-prev'));
@@ -239,7 +258,12 @@ void main() {
 
     await tester.tap(next);
     await settle(tester);
-    expect(find.text('트레이너 피드백'), findsOneWidget);
+    // ③ 전송은 회원이 받을 PDF 를 보여 준다 — 입력창은 ② 에만 있다(#2402).
+    expect(find.text('트레이너 피드백'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('report-send-preview')),
+      findsOneWidget,
+    );
     // 마지막 단계에는 `다음` 대신 `전송` 이 선다.
     expect(next, findsNothing);
     expect(
@@ -1062,4 +1086,15 @@ void main() {
       );
     });
   });
+}
+
+/// 곧바로 끝나는 PDF 생성기.
+class _InstantPdfGenerator extends ReportPdfGenerator {
+  @override
+  Future<Uint8List> generate({
+    required AppLocalizations l,
+    required WeeklyReport report,
+    required String feedback,
+    WeeklyReport? previousReport,
+  }) async => Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]);
 }
