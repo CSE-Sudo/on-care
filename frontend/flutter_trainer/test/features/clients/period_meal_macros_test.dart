@@ -123,10 +123,10 @@ void main() {
       find.byKey(const ValueKey<String>('client-diet-macros-meal-with-macros')),
       findsOneWidget,
     );
-    // `오늘` 카드와 같은 순서·단위·서식이다 — 당류는 탄수화물 안에 괄호로.
+    // `오늘` 카드와 같은 묶음·순서다 — 비중(%)과 g, 당류는 탄수화물 안에 괄호로.
     expect(
       _plain(tester, 'client-diet-macros-meal-with-macros'),
-      '탄수화물 92.5g (당류 9g) · 단백질 21g · 지방 14g',
+      '탄수화물 64% 92.5g (당류 9g) · 단백질 14% 21g · 지방 22% 14g',
     );
 
     // 영양이 아예 없는 옛 기록은 0g 이 아니라 `기록 없음` 이라고 말한다.
@@ -145,7 +145,7 @@ void main() {
 
     expect(
       _plain(tester, 'client-diet-macros-meal-with-macros'),
-      '탄수화물 92.5g (당류 9g) · 단백질 21g · 지방 14g',
+      '탄수화물 64% 92.5g (당류 9g) · 단백질 14% 21g · 지방 22% 14g',
     );
   });
 }

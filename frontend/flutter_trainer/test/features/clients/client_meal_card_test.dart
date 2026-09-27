@@ -420,6 +420,151 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('이번 주에서 펼친 끼니에는 사진을 받지 않는다 — 사진은 오늘에서', (tester) async {
+    // 날짜별 조회도 사진 정보를 준다. 그래도 그리지 않는다 — 사진은 끼니마다
+    // 서버에서 받아 오고, 여러 날을 오가며 펼치는 자리라 받을 사진이 많다.
+    // 여기서 보려는 것은 무엇을 얼마나 먹었나다.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1400, 2400);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+      extraOverrides: <Override>[
+        clientDietOnProvider.overrideWith(
+          (ref, key) async => const <ClientDietEntry>[
+            ClientDietEntry(
+              id: 'with-photo',
+              meal: '아침',
+              items: '오트밀',
+              calories: 300,
+              sodiumMg: 10,
+              carbsG: 50,
+              proteinG: 10,
+              fatG: 5,
+              photoAsset: 'assets/images/diet-oatmeal-banana.jpeg',
+            ),
+            ClientDietEntry(
+              id: 'without-photo',
+              meal: '점심',
+              items: '김밥',
+              calories: 400,
+              sodiumMg: 700,
+              carbsG: 60,
+              proteinG: 12,
+              fatG: 10,
+            ),
+          ],
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('client-period-toggle')),
+        matching: find.text('이번 주'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final Finder records = find.byKey(
+      const ValueKey<String>('diet-daily-records'),
+    );
+    await tester.ensureVisible(records);
+    await tester.pumpAndSettle();
+    final Finder openable = find.descendant(
+      of: records,
+      matching: find.byIcon(Icons.expand_more_rounded),
+    );
+    await tester.tap(
+      find.ancestor(of: openable.first, matching: find.byType(InkWell)).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: records, matching: find.byType(Image)),
+      findsNothing,
+      reason: '펼친 끼니가 사진을 받는다',
+    );
+    // 사진 대신 이름과 양, 끼니 kcal 이 선다.
+    expect(
+      find.descendant(
+        of: records,
+        matching: find.text('오트밀', findRichText: true),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: records, matching: find.text('300 kcal')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('펼친 날 맨 위에 하루 합계가 끼니 줄과 같은 모양으로 선다', (tester) async {
+    // 예전에는 알약 셋(`칼로리 … 탄수화물 · 단백질 · 지방`, `나트륨`, `당류`)
+    // 이었다 — 칼로리 알약 안에 탄단지를 품고 당류를 떼어 끼니 줄과 말투가
+    // 달랐다. 하루 합계의 빨강은 회원 **하루 목표**(나트륨 2,000mg)다.
+    await _open(tester, clientId: 'seed-client-1');
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('client-period-toggle')),
+        matching: find.text('이번 주'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final Finder records = find.byKey(
+      const ValueKey<String>('diet-daily-records'),
+    );
+    await tester.ensureVisible(records);
+    await tester.pumpAndSettle();
+    final Finder openable = find.descendant(
+      of: records,
+      matching: find.byIcon(Icons.expand_more_rounded),
+    );
+    await tester.tap(
+      find.ancestor(of: openable.first, matching: find.byType(InkWell)).first,
+    );
+    await tester.pumpAndSettle();
+
+    final Finder total = find.byWidgetPredicate(
+      (Widget w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith(
+            'client-diet-day-total-',
+          ),
+    );
+    expect(total, findsOneWidget);
+    expect(
+      find.descendant(of: total, matching: find.text('하루 합계')),
+      findsOneWidget,
+    );
+    // 알약은 없다.
+    expect(
+      find
+          .descendant(of: records, matching: find.byType(AppTag))
+          .evaluate()
+          .where((Element e) => (e.widget as AppTag).label.startsWith('칼로리')),
+      isEmpty,
+    );
+    // 김민수의 오늘은 나트륨 4,657mg — 하루 목표 2,000mg 을 넘어 빨강이다.
+    Color? sodiumColor;
+    for (final RichText rich in tester.widgetList<RichText>(
+      find.descendant(of: total, matching: find.byType(RichText)),
+    )) {
+      rich.text.visitChildren((InlineSpan span) {
+        if (span is TextSpan && (span.text ?? '').startsWith('나트륨')) {
+          sodiumColor = span.style?.color;
+          return false;
+        }
+        return true;
+      });
+    }
+    expect(sodiumColor, OnCareColors.danger);
+  });
+
   testWidgets('펼친 날의 나트륨 알약에 이름이 두 번 나오지 않는다', (tester) async {
     await _open(tester, clientId: 'seed-client-1');
     await tester.tap(

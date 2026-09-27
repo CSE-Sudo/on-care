@@ -606,14 +606,15 @@ void main() {
       await tester.tap(row);
       await tester.pumpAndSettle();
 
-      // 펼친 줄에는 그날의 항목이 이름표와 값을 한 알약에 담아 선다.
-      // 이 목록 안에서만 찾는다 — 위 영양 요약 카드에도 같은 낱말이 있다.
-      Finder pill(String label) => find.descendant(
+      // 펼친 줄에는 그날의 합계가 끼니 줄과 같은 모양의 `하루 합계` 줄로
+      // 선다(#2333). 이 목록 안에서만 찾는다 — 위 요약 카드에도 같은 낱말이
+      // 있다.
+      Finder inRecords(String text) => find.descendant(
         of: records,
-        matching: find.textContaining(label, findRichText: true),
+        matching: find.textContaining(text, findRichText: true),
       );
-      expect(pill('칼로리'), findsWidgets);
-      expect(pill('나트륨'), findsWidgets);
+      expect(inRecords('하루 합계'), findsOneWidget);
+      expect(inRecords('나트륨'), findsWidgets);
     });
 
     testWidgets('좁은 화면·큰 글씨에서도 날짜 줄이 넘치지 않는다 (#1025)', (tester) async {

@@ -890,6 +890,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietTotalCalories => 'Total calories';
 
   @override
+  String get clientDietDayTotal => 'Day total';
+
+  @override
   String clientDietMacroShare(String name, int percent) {
     return '$name $percent%';
   }

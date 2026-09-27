@@ -109,4 +109,7 @@ class ClientDietEntry {
   /// 이고 [photoUrl] 이 쓰인다 — 데모에는 회원이 올린 사진을 받아 올 백엔드가
   /// 없어 사진이 한 장도 뜨지 않았다(#819).
   final String? photoAsset;
+
+  /// 그릴 사진이 있는가 — 회원이 올린 사진이나 데모 번들 이미지.
+  bool get hasPhoto => photoUrl != null || photoAsset != null;
 }

@@ -1694,6 +1694,12 @@ abstract class AppLocalizations {
   /// **'Total calories'**
   String get clientDietTotalCalories;
 
+  /// No description provided for @clientDietDayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Day total'**
+  String get clientDietDayTotal;
+
   /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
   ///
   /// In en, this message translates to:
