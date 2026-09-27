@@ -1877,6 +1877,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 사이드바 뱃지로 알려드려요';
 
   @override
+  String get myLanguage => '언어';
+
+  @override
+  String get myLanguageApp => '화면 언어';
+
+  @override
+  String get myLanguageHint => '이 브라우저에서 콘솔을 볼 언어를 골라요';
+
+  @override
+  String get myLanguageSystem => '브라우저 설정 따르기';
+
+  @override
+  String get myLanguageKorean => '한국어';
+
+  @override
+  String get myLanguageEnglish => 'English';
+
+  @override
   String get myAccount => '계정';
 
   @override
