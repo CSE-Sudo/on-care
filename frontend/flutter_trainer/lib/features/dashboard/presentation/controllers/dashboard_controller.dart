@@ -23,14 +23,15 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 /// Unread counts are folded in as a plain value (not awaited): the
 /// roster is what gates the dashboard, and a still-loading unread map
 /// just means the 답장 필요 count starts at 0 and fills in.
-final dashboardSummaryProvider = Provider<AsyncValue<DashboardSummary>>((ref) {
-  final clients = ref.watch(prioritizedClientsProvider);
-  final unread =
-      ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
-  return clients.whenData(
-    (list) => buildDashboardSummary(clients: list, unread: unread),
-  );
-});
+final dashboardSummaryProvider =
+    Provider.autoDispose<AsyncValue<DashboardSummary>>((ref) {
+      final clients = ref.watch(prioritizedClientsProvider);
+      final unread =
+          ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
+      return clients.whenData(
+        (list) => buildDashboardSummary(clients: list, unread: unread),
+      );
+    });
 
 /// 이탈 위험 신호(연속 취소/노쇼, 최근 세션 메모)를 찾아볼 창. 신호 자체는
 /// 7일치만 보지만, "가장 최근 두 예약"을 찾으려면 그보다 넓게 봐야 하는

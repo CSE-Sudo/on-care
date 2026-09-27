@@ -79,7 +79,8 @@ void main() {
         NotificationsPage.targetOf(
           _notice(<String, Object?>{'category': 'message'}),
         ),
-        AppRoutes.clients,
+        // 보낸 회원이 없는 메시지 알림은 메시지 목록으로 간다(#2291).
+        AppRoutes.messages,
       );
       expect(
         NotificationsPage.targetOf(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -365,6 +366,7 @@ class DioConsultationRepository implements ConsultationRepository {
 
 /// Provides the inbox source for the current mode.
 final consultationRepositoryProvider = Provider<ConsultationRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return DemoConsultationRepository(
       scheduleRepository: () => ref.read(scheduleRepositoryProvider),
@@ -380,10 +382,10 @@ final consultationInboxEnabledProvider = Provider<bool>(
 );
 
 /// Current inbox filter — `pending` (default) or `all`.
-final consultationFilterProvider = StateProvider<String>(
-  (ref) => 'pending',
-  name: 'consultationFilter',
-);
+final consultationFilterProvider = StateProvider<String>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+  return 'pending';
+}, name: 'consultationFilter');
 
 /// 인박스 한 쪽의 건수. 서버 기본값과 같다(#980).
 const int consultationPageSize = 50;

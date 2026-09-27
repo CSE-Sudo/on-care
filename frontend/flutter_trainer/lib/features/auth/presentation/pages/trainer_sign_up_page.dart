@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -119,6 +120,10 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
             name: name,
             inviteCode: inviteCode,
           );
+      // 계정이 만들어진 뒤에만 새 비밀번호를 브라우저에 저장하게 한다(#2295).
+      // 가입이 끝나면 인증 게이트가 곧 이 화면을 걷어 내므로 `mounted` 를
+      // 보기 전에 알린다 — 실패한 경로는 여기를 지나지 않는다.
+      TextInput.finishAutofillContext();
       if (!mounted) return;
       context.go(AppRoutes.dashboard);
     } on AuthException catch (e) {
@@ -152,131 +157,146 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
       leading: AppBackButton(onPressed: _backToSignIn),
       title: l.authSignUpAction,
       subtitle: l.authSignUpSubtitle,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppTextField(
-            key: const ValueKey<String>('trainer-signup-name'),
-            controller: _name,
-            hint: l.authName,
-            errorText: _errors.of(_Field.name),
-            prefixIcon: Icons.person_outline_rounded,
-            size: AppFieldSize.large,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('trainer-signup-email'),
-            controller: _email,
-            hint: l.authEmailHint,
-            errorText: _errors.of(_Field.email),
-            prefixIcon: Icons.mail_outline_rounded,
-            size: AppFieldSize.large,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('trainer-signup-password'),
-            controller: _password,
-            hint: l.signUpPasswordHint,
-            errorText: _errors.of(_Field.password),
-            prefixIcon: Icons.lock_outline_rounded,
-            size: AppFieldSize.large,
-            obscureText: _obscure,
-            textInputAction: TextInputAction.next,
-            onChanged: _onEdited,
-            suffix: AppIconButton(
-              // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할
-              // 데가 툴팁뿐이다(#972).
-              tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
-              icon: _obscure
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              color: OnCareColors.textTertiary,
-              onPressed: () => setState(() => _obscure = !_obscure),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('trainer-signup-password-confirm'),
-            controller: _passwordConfirm,
-            hint: l.authPasswordConfirm,
-            errorText: _errors.of(_Field.passwordConfirm),
-            prefixIcon: Icons.lock_outline_rounded,
-            size: AppFieldSize.large,
-            obscureText: _obscure,
-            // 데모에서는 이 필드가 마지막이라 제출 액션이 여기 붙는다.
-            textInputAction: showInviteCode
-                ? TextInputAction.next
-                : TextInputAction.done,
-            onChanged: _onEdited,
-            onSubmitted: showInviteCode ? null : (_) => _register(),
-          ),
-          if (showInviteCode) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            // 안내는 칸의 도움말로 둔다 — 코드를 비우고 제출하면 같은 자리를
-            // 오류 문구가 대신해, 안내와 오류가 두 줄로 겹쳐 뜨지 않는다(#1784).
+      // 새 계정의 이름·이메일·비밀번호를 한 묶음으로 알린다(#2295). 가입하지
+      // 않고 떠날 때는 저장하지 않는다 — 기본값(commit)이면 뒤로만 가도
+      // 쓰다 만 비밀번호의 저장 제안이 뜬다.
+      child: AutofillGroup(
+        onDisposeAction: AutofillContextAction.cancel,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
             AppTextField(
-              key: const ValueKey<String>('trainer-signup-invite-code'),
-              controller: _inviteCode,
-              hint: l.authInviteCode,
-              helper: l.authInviteCodeHelp,
-              errorText: _errors.of(_Field.inviteCode),
-              prefixIcon: Icons.confirmation_number_rounded,
+              key: const ValueKey<String>('trainer-signup-name'),
+              controller: _name,
+              hint: l.authName,
+              errorText: _errors.of(_Field.name),
+              prefixIcon: Icons.person_outline_rounded,
               size: AppFieldSize.large,
-              textInputAction: TextInputAction.done,
+              textInputAction: TextInputAction.next,
+              autofillHints: const <String>[AutofillHints.name],
               onChanged: _onEdited,
-              onSubmitted: (_) => _register(),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('trainer-signup-email'),
+              controller: _email,
+              hint: l.authEmailHint,
+              errorText: _errors.of(_Field.email),
+              prefixIcon: Icons.mail_outline_rounded,
+              size: AppFieldSize.large,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              // 새 비밀번호를 저장할 때 이 값이 아이디가 된다(#2295).
+              autofillHints: const <String>[
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
+              onChanged: _onEdited,
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('trainer-signup-password'),
+              controller: _password,
+              hint: l.signUpPasswordHint,
+              errorText: _errors.of(_Field.password),
+              prefixIcon: Icons.lock_outline_rounded,
+              size: AppFieldSize.large,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.next,
+              // 저장된 비밀번호를 채우지 않고 새 비밀번호를 제안받는 칸이다.
+              autofillHints: const <String>[AutofillHints.newPassword],
+              onChanged: _onEdited,
+              suffix: AppIconButton(
+                // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할
+                // 데가 툴팁뿐이다(#972).
+                tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
+                icon: _obscure
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                color: OnCareColors.textTertiary,
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              key: const ValueKey<String>('trainer-signup-password-confirm'),
+              controller: _passwordConfirm,
+              hint: l.authPasswordConfirm,
+              errorText: _errors.of(_Field.passwordConfirm),
+              prefixIcon: Icons.lock_outline_rounded,
+              size: AppFieldSize.large,
+              obscureText: _obscure,
+              // 데모에서는 이 필드가 마지막이라 제출 액션이 여기 붙는다.
+              textInputAction: showInviteCode
+                  ? TextInputAction.next
+                  : TextInputAction.done,
+              autofillHints: const <String>[AutofillHints.newPassword],
+              onChanged: _onEdited,
+              onSubmitted: showInviteCode ? null : (_) => _register(),
+            ),
+            if (showInviteCode) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s12),
+              // 안내는 칸의 도움말로 둔다 — 코드를 비우고 제출하면 같은 자리를
+              // 오류 문구가 대신해, 안내와 오류가 두 줄로 겹쳐 뜨지 않는다(#1784).
+              AppTextField(
+                key: const ValueKey<String>('trainer-signup-invite-code'),
+                controller: _inviteCode,
+                hint: l.authInviteCode,
+                helper: l.authInviteCodeHelp,
+                errorText: _errors.of(_Field.inviteCode),
+                prefixIcon: Icons.confirmation_number_rounded,
+                size: AppFieldSize.large,
+                textInputAction: TextInputAction.done,
+                onChanged: _onEdited,
+                onSubmitted: (_) => _register(),
+              ),
+            ],
+            const SizedBox(height: OnCareSpacing.s24),
+            AppButton(
+              key: const ValueKey<String>('trainer-signup-submit'),
+              label: l.authSignUpAndStart,
+              onPressed: _register,
+              size: OnCareButtonSize.large,
+              loading: _loading,
+              fullWidth: true,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 동의 대상 문서는 동의하기 전에 열 수 있어야 한다 —
+            // 두 문서 모두 세션 없이 열리는 라우트다. (#968)
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                Text(l.authLegalNotice, style: mutedStyle),
+                _LegalLink(
+                  label: l.myLegalTermsTitle,
+                  document: AppRoutes.legalTerms,
+                ),
+                _LegalLink(
+                  label: l.myLegalPrivacyTitle,
+                  document: AppRoutes.legalPrivacy,
+                ),
+              ],
+            ),
+            const SizedBox(height: OnCareSpacing.s4),
+            // Row 가 아니라 Wrap — 영어 문구가 길어 좁은 폭에서
+            // 넘친다(로그인 화면과 같은 이유). (#501)
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                Text(l.authHasAccount, style: mutedStyle),
+                AppButton(
+                  label: l.authSignInAction,
+                  onPressed: _backToSignIn,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+              ],
             ),
           ],
-          const SizedBox(height: OnCareSpacing.s24),
-          AppButton(
-            key: const ValueKey<String>('trainer-signup-submit'),
-            label: l.authSignUpAndStart,
-            onPressed: _register,
-            size: OnCareButtonSize.large,
-            loading: _loading,
-            fullWidth: true,
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 동의 대상 문서는 동의하기 전에 열 수 있어야 한다 —
-          // 두 문서 모두 세션 없이 열리는 라우트다. (#968)
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              Text(l.authLegalNotice, style: mutedStyle),
-              _LegalLink(
-                label: l.myLegalTermsTitle,
-                document: AppRoutes.legalTerms,
-              ),
-              _LegalLink(
-                label: l.myLegalPrivacyTitle,
-                document: AppRoutes.legalPrivacy,
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          // Row 가 아니라 Wrap — 영어 문구가 길어 좁은 폭에서
-          // 넘친다(로그인 화면과 같은 이유). (#501)
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              Text(l.authHasAccount, style: mutedStyle),
-              AppButton(
-                label: l.authSignInAction,
-                onPressed: _backToSignIn,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

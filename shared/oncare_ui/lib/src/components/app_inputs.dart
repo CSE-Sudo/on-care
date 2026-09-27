@@ -72,6 +72,7 @@ class AppTextField extends StatelessWidget {
     this.onSubmitted,
     this.textAlign = TextAlign.start,
     this.undoController,
+    this.autofillHints = const <String>[],
   });
 
   final TextEditingController? controller;
@@ -103,6 +104,10 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
+  /// 브라우저·OS 가 이 칸을 무엇으로 채울지 알리는 힌트([AutofillHints]).
+  /// 비워 두면 [TextField] 의 기본값과 같다 — 로그인·가입 칸만 채운다(#2295).
+  final Iterable<String>? autofillHints;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -126,6 +131,7 @@ class AppTextField extends StatelessWidget {
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         textAlign: textAlign,
+        autofillHints: autofillHints,
         // 비활성 칸은 회색 채움(테마)에 흐린 글자 — 고칠 수 있는 값처럼
         // 읽히지 않는다(#1776).
         style: tokens

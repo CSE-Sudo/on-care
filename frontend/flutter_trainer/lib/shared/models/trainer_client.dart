@@ -108,7 +108,8 @@ class TrainerClient {
   /// Preview of the most recent chat message.
   final String lastMessage;
 
-  /// Relative time label for [lastMessage] (e.g. 방금).
+  /// Relative time label for [lastMessage] (e.g. `18:16`), or the
+  /// `ChatPreviewCode.justNow` code — render it with `previewTime`.
   final String lastTime;
 
   /// Timestamp of the most recent chat message, when the source can provide

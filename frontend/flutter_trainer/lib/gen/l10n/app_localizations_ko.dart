@@ -136,6 +136,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionBack => '뒤로';
 
   @override
+  String get notFoundTitle => '페이지를 찾을 수 없어요';
+
+  @override
+  String get notFoundMessage => '주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.';
+
+  @override
+  String get notFoundGoDashboard => '대시보드로 가기';
+
+  @override
+  String get notFoundGoSignIn => '로그인하러 가기';
+
+  @override
   String get appWordmarkTrainer => '트레이너';
 
   @override
@@ -915,6 +927,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatInsightBodyPartGeneral => '신체';
+
+  @override
+  String get chatInsightBodyPartKnee => '무릎';
+
+  @override
+  String get chatInsightBodyPartBack => '허리';
+
+  @override
+  String get chatInsightBodyPartAnkle => '발목';
+
+  @override
+  String get chatInsightBodyPartShoulder => '어깨';
+
+  @override
+  String get chatInsightBodyPartWrist => '손목';
+
+  @override
+  String get chatInsightBodyPartNeck => '목';
 
   @override
   String get chatInsightNegativeTitle => '부정적 피드백 감지';
@@ -3148,6 +3178,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messagesNoPreview => '아직 대화가 없어요';
 
   @override
+  String get messagesPreviewEmote => '이모티콘을 보냈어요';
+
+  @override
+  String get messagesTimeJustNow => '방금';
+
+  @override
   String get messagesClientDetail => '회원 상세';
 
   @override
@@ -4225,6 +4261,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String reportsLastGoalsEvidenceWorkout(int done, int total) {
     return '개인 운동 $done / $total회';
   }
+
+  @override
+  String get reportsLastGoalsSubtitle => '이번 주 기록으로 판정';
+
+  @override
+  String get reportsLastGoalsKeywordsCalories => '칼로리,kcal,섭취량';
+
+  @override
+  String get reportsLastGoalsKeywordsWorkout =>
+      '운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장';
+
+  @override
+  String get reportsLastGoalsKeywordsLogged => '기록,끼니,식단';
 
   @override
   String get reportsTrendUnavailable => '이 주의 운동 기록을 불러오지 못했어요';
