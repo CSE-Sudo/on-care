@@ -3217,6 +3217,23 @@
     }
   },
   "reportsSentRewrite": "Rewrite from this",
+  "reportsResendTitle": "Already sent",
+  "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
+  "@reportsResendBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsResendConfirm": "Send again",
+  "reportsSendHistoryFailed": "Couldn't load send history. Members you've already sent to may show as not sent.",
   "reportsSentBody": "Message sent",
   "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",

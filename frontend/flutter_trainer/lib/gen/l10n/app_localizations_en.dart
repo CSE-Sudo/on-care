@@ -4595,6 +4595,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSentRewrite => 'Rewrite from this';
 
   @override
+  String get reportsResendTitle => 'Already sent';
+
+  @override
+  String reportsResendBody(String name, String date, String time) {
+    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their chat.';
+  }
+
+  @override
+  String get reportsResendConfirm => 'Send again';
+
+  @override
+  String get reportsSendHistoryFailed =>
+      'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.';
+
+  @override
   String get reportsSentBody => 'Message sent';
 
   @override

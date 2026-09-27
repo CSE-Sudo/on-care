@@ -8,6 +8,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
+import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
@@ -29,6 +30,11 @@ import '../../helpers/pump_app.dart';
 
 /// 요약 생성만 실패한다 — 리포트 본문은 정상이라 카드 하나만 폴백으로 간다.
 class _SummaryFailsRepository implements ReportRepository {
+  @override
+  Future<List<ReportSendRecord>> sentReports({
+    required DateTime weekStart,
+  }) async => const <ReportSendRecord>[];
+
   @override
   Stream<WeeklyReport> watch({
     required TrainerClient client,
@@ -84,6 +90,11 @@ class _SummaryFailsRepository implements ReportRepository {
 class _ReportFailsOncePerKeyRepository implements ReportRepository {
   final Map<String, int> _attempts = <String, int>{};
   final List<ReportKey> calls = <ReportKey>[];
+
+  @override
+  Future<List<ReportSendRecord>> sentReports({
+    required DateTime weekStart,
+  }) async => const <ReportSendRecord>[];
 
   @override
   Future<ReportSummary> summary({
@@ -1383,6 +1394,11 @@ class _DraftStore implements ReportRepository {
   /// 목표 남기기가 실패하는 주 — 전송은 이미 끝난 뒤다.
   final bool failGoals;
   final List<String> saved = <String>[];
+
+  @override
+  Future<List<ReportSendRecord>> sentReports({
+    required DateTime weekStart,
+  }) async => const <ReportSendRecord>[];
 
   @override
   Stream<WeeklyReport> watch({
