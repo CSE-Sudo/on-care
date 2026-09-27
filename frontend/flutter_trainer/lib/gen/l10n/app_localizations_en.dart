@@ -1986,9 +1986,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertifications => 'Certifications';
 
   @override
-  String get myMonthStats => 'This month';
-
-  @override
   String get myGym => 'My gym';
 
   @override
@@ -2000,9 +1997,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myNotifNewMessageHint =>
       'A sidebar badge appears when a member messages you';
-
-  @override
-  String get myLanguage => 'Language';
 
   @override
   String get myLanguageApp => 'Display language';
@@ -2093,9 +2087,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myVersion => 'Version';
 
   @override
-  String get myContact => 'Contact';
-
-  @override
   String get myPasswordChanged => 'Password changed';
 
   @override
@@ -2159,11 +2150,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myBasicInfo => 'Basic info';
 
   @override
-  String myClientManagementHint(int count) {
-    return '$count members';
-  }
-
-  @override
   String get myStatSessionsDone => 'Sessions done';
 
   @override
@@ -2177,9 +2163,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGymHours => 'Hours';
-
-  @override
-  String get myGymOpen => 'Open now';
 
   @override
   String get myGymListFailed => 'Couldn\'t load the gym list.';
@@ -2225,6 +2208,54 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mySettingsSaveFailed =>
       'Couldn\'t save your settings. Please try again in a moment';
+
+  @override
+  String get myDiscardTitle => 'Stop editing?';
+
+  @override
+  String get myDiscardBody => 'Your changes won\'t be saved.';
+
+  @override
+  String get myKeepEditing => 'Keep editing';
+
+  @override
+  String get myDiscardAction => 'Leave';
+
+  @override
+  String get mySignOutConfirm => 'Log out of this browser?';
+
+  @override
+  String get myThisMonth => 'This month';
+
+  @override
+  String get myIntroEmpty =>
+      'No introduction yet. Add one in Edit profile — members see it.';
+
+  @override
+  String get myPhoneEmpty => 'No phone number';
+
+  @override
+  String get myCertsEmpty => 'No certifications yet';
+
+  @override
+  String get myGymEmpty => 'No gym yet. You can pick one in Edit profile.';
+
+  @override
+  String get myEditVisibleTitle => 'Members see this';
+
+  @override
+  String get myEditVisibleBody =>
+      'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
+
+  @override
+  String get myClientManagementEntryHint => 'Tidy up your member connections';
+
+  @override
+  String get myClientManagementNoteTitle => 'Removing only hides members here';
+
+  @override
+  String get myClientManagementNote =>
+      'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.';
 
   @override
   String get myNotifConsultation => 'Consultation requests';

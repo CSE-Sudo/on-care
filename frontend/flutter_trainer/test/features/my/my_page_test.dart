@@ -85,11 +85,12 @@ void main() {
       expect(find.text('생활스포츠지도사 2급'), findsOneWidget);
 
       await tester.scrollUntilVisible(find.text('담당 회원'), 150);
-      expect(find.text('15'), findsOneWidget); // live client count
+      expect(find.text('15 명'), findsOneWidget); // live client count
       expect(find.text('완료 세션'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('온케어짐 신촌점'), 150);
-      expect(find.text('영업 중'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('온케어짐 신촌점').last, 150);
+      // 운영 시간으로 정한 값이 아니라 늘 붙던 '영업 중' 은 없앴다(#2264).
+      expect(find.text('영업 중'), findsNothing);
 
       // 역할 전환은 계정 분리 정책상 존재하지 않는다.
       expect(find.textContaining('역할 전환'), findsNothing);
@@ -155,6 +156,15 @@ void main() {
       await tester.ensureVisible(find.text('로그아웃'));
       await tester.pump();
       await tester.tap(find.text('로그아웃'));
+      await settle(tester);
+
+      // 회원 앱처럼 한 번 묻는다 — 취소하면 그대로 남는다.
+      expect(find.text('이 브라우저에서 로그아웃할까요?'), findsOneWidget);
+      await tester.tap(
+        find
+            .descendant(of: find.byType(AppDialog), matching: find.text('로그아웃'))
+            .last,
+      );
       await settle(tester);
 
       // 로그인 화면으로 돌아왔다 — 표식은 가입 링크(데모 진입은 감춤, #1526).
@@ -372,7 +382,9 @@ void main() {
       );
       dropdown.onChanged!('gym-1');
       await tester.pump();
-      expect(tester.widget<TextField>(gymNameField()).enabled, isFalse);
+      // 등록된 헬스장을 고르면 이름·주소는 서버가 채우므로 직접 쓰는 칸이
+      // 사라진다(#2264).
+      expect(gymNameField(), findsNothing);
 
       await tester.tap(find.byType(DropdownButtonFormField<String>).last);
       await tester.pumpAndSettle();

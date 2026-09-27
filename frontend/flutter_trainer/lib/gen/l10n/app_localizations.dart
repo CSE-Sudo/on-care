@@ -3542,12 +3542,6 @@ abstract class AppLocalizations {
   /// **'Certifications'**
   String get myCertifications;
 
-  /// No description provided for @myMonthStats.
-  ///
-  /// In en, this message translates to:
-  /// **'This month'**
-  String get myMonthStats;
-
   /// No description provided for @myGym.
   ///
   /// In en, this message translates to:
@@ -3571,12 +3565,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A sidebar badge appears when a member messages you'**
   String get myNotifNewMessageHint;
-
-  /// No description provided for @myLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Language'**
-  String get myLanguage;
 
   /// No description provided for @myLanguageApp.
   ///
@@ -3740,12 +3728,6 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get myVersion;
 
-  /// No description provided for @myContact.
-  ///
-  /// In en, this message translates to:
-  /// **'Contact'**
-  String get myContact;
-
   /// No description provided for @myPasswordChanged.
   ///
   /// In en, this message translates to:
@@ -3860,12 +3842,6 @@ abstract class AppLocalizations {
   /// **'Basic info'**
   String get myBasicInfo;
 
-  /// No description provided for @myClientManagementHint.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} members'**
-  String myClientManagementHint(int count);
-
   /// No description provided for @myStatSessionsDone.
   ///
   /// In en, this message translates to:
@@ -3895,12 +3871,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hours'**
   String get myGymHours;
-
-  /// No description provided for @myGymOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open now'**
-  String get myGymOpen;
 
   /// No description provided for @myGymListFailed.
   ///
@@ -3979,6 +3949,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save your settings. Please try again in a moment'**
   String get mySettingsSaveFailed;
+
+  /// No description provided for @myDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop editing?'**
+  String get myDiscardTitle;
+
+  /// No description provided for @myDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes won\'t be saved.'**
+  String get myDiscardBody;
+
+  /// No description provided for @myKeepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get myKeepEditing;
+
+  /// No description provided for @myDiscardAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get myDiscardAction;
+
+  /// No description provided for @mySignOutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out of this browser?'**
+  String get mySignOutConfirm;
+
+  /// No description provided for @myThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get myThisMonth;
+
+  /// No description provided for @myIntroEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No introduction yet. Add one in Edit profile — members see it.'**
+  String get myIntroEmpty;
+
+  /// No description provided for @myPhoneEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No phone number'**
+  String get myPhoneEmpty;
+
+  /// No description provided for @myCertsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No certifications yet'**
+  String get myCertsEmpty;
+
+  /// No description provided for @myGymEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gym yet. You can pick one in Edit profile.'**
+  String get myGymEmpty;
+
+  /// No description provided for @myEditVisibleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Members see this'**
+  String get myEditVisibleTitle;
+
+  /// No description provided for @myEditVisibleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.'**
+  String get myEditVisibleBody;
+
+  /// No description provided for @myClientManagementEntryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy up your member connections'**
+  String get myClientManagementEntryHint;
+
+  /// No description provided for @myClientManagementNoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing only hides members here'**
+  String get myClientManagementNoteTitle;
+
+  /// No description provided for @myClientManagementNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.'**
+  String get myClientManagementNote;
 
   /// No description provided for @myNotifConsultation.
   ///

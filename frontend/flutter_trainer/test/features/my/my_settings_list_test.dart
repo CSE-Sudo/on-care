@@ -172,7 +172,7 @@ void main() {
       );
     });
 
-    testWidgets('저장하지 않고 뒤로 가면 입력을 버린다', (tester) async {
+    testWidgets('고친 뒤 뒤로 가면 버릴지 묻고, 나가면 입력을 버린다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
@@ -183,11 +183,46 @@ void main() {
       await tester.enterText(phone, '010-9999-8888');
       await tester.tap(find.byTooltip('뒤로'));
       await settle(tester);
+
+      // 계속 수정하면 그대로 남는다.
+      expect(find.text(_ko.myDiscardTitle), findsOneWidget);
+      await tester.tap(find.text(_ko.myKeepEditing));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('edit'));
+      expect(find.text('010-9999-8888'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('뒤로'));
+      await settle(tester);
+      await tester.tap(find.text(_ko.myDiscardAction));
+      await settle(tester);
       expect(currentLocation(tester), AppRoutes.mySection('profile'));
 
       await tester.tap(find.text(_ko.myEditProfile));
       await settle(tester);
       expect(find.text('010-9999-8888'), findsNothing);
+    });
+
+    testWidgets('고친 것이 없으면 묻지 않고 돌아간다', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('edit'),
+      );
+
+      await tester.tap(find.byTooltip('뒤로'));
+      await settle(tester);
+      expect(find.text(_ko.myDiscardTitle), findsNothing);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+    });
+
+    testWidgets('회원에게 보이는 정보라고 먼저 알린다', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('edit'),
+      );
+
+      expect(find.text(_ko.myEditVisibleTitle), findsOneWidget);
     });
   });
 
@@ -238,10 +273,10 @@ void main() {
       final double name = tester.getCenter(find.text('trainer@oncare.com')).dx;
       final double gym = tester.getCenter(find.text(_ko.myGym)).dx;
       expect(gym, greaterThan(name));
-      // 두 판이 한 줄에 선다 — 소속 헬스장이 요약 아래로 밀리지 않는다.
+      // 두 판이 한 줄에 선다 — 이번 달 지표가 프로필 아래로 밀리지 않는다.
       expect(
-        tester.getTopLeft(find.text(_ko.myGym)).dy,
-        lessThan(tester.getBottomLeft(find.text(_ko.myMonthStats)).dy),
+        tester.getTopLeft(find.text(_ko.myStatClients)).dy,
+        lessThan(tester.getCenter(find.text('trainer@oncare.com')).dy),
       );
     });
   });

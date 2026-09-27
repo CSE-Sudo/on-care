@@ -1905,9 +1905,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCertifications => '자격증 · 인증';
 
   @override
-  String get myMonthStats => '이번 달 통계';
-
-  @override
   String get myGym => '소속 헬스장';
 
   @override
@@ -1918,9 +1915,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 사이드바 뱃지로 알려드려요';
-
-  @override
-  String get myLanguage => '언어';
 
   @override
   String get myLanguageApp => '화면 언어';
@@ -2006,9 +2000,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myVersion => '버전';
 
   @override
-  String get myContact => '문의';
-
-  @override
   String get myPasswordChanged => '비밀번호를 변경했어요';
 
   @override
@@ -2071,11 +2062,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myBasicInfo => '기본 정보';
 
   @override
-  String myClientManagementHint(int count) {
-    return '담당 회원 $count명';
-  }
-
-  @override
   String get myStatSessionsDone => '완료 세션';
 
   @override
@@ -2089,9 +2075,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myGymHours => '운영 시간';
-
-  @override
-  String get myGymOpen => '영업 중';
 
   @override
   String get myGymListFailed => '헬스장 목록을 불러오지 못했습니다.';
@@ -2135,6 +2118,53 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mySettingsSaveFailed => '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get myDiscardTitle => '수정을 그만둘까요?';
+
+  @override
+  String get myDiscardBody => '고친 내용은 저장되지 않아요.';
+
+  @override
+  String get myKeepEditing => '계속 수정';
+
+  @override
+  String get myDiscardAction => '나가기';
+
+  @override
+  String get mySignOutConfirm => '이 브라우저에서 로그아웃할까요?';
+
+  @override
+  String get myThisMonth => '이번 달';
+
+  @override
+  String get myIntroEmpty => '아직 소개가 없어요. 프로필 수정에서 회원에게 보일 소개를 적어 주세요.';
+
+  @override
+  String get myPhoneEmpty => '연락처 없음';
+
+  @override
+  String get myCertsEmpty => '등록한 자격증이 없어요';
+
+  @override
+  String get myGymEmpty => '소속 헬스장이 없어요. 프로필 수정에서 고를 수 있어요.';
+
+  @override
+  String get myEditVisibleTitle => '담당 회원에게 보이는 정보예요';
+
+  @override
+  String get myEditVisibleBody =>
+      '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.';
+
+  @override
+  String get myClientManagementEntryHint => '담당 회원 연결을 정리해요';
+
+  @override
+  String get myClientManagementNoteTitle => '삭제하면 트레이너 화면에서만 사라져요';
+
+  @override
+  String get myClientManagementNote =>
+      '회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 신규 회원 등록에서 회원 ID로 연결해 주세요.';
 
   @override
   String get myNotifConsultation => '상담 요청';
