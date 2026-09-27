@@ -4262,6 +4262,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String reportsSendPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
   String get reportsQueueAllSent => '이번 주 리포트를 모두 보냈어요';
 
   @override
