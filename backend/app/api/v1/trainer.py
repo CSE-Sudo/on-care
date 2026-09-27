@@ -689,7 +689,7 @@ def trainer_client_exercise_advice(
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=advice.text,
+        message=advice.text_for(),
         advice_key=advice.key,
         advice_params=advice.params,
     )
