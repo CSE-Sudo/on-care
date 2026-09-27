@@ -88,13 +88,6 @@ void main() {
     }
   }
 
-  /// 펼친 끼니의 탄단지 줄. 키에 끼니 id 가 들어 있다.
-  Finder macroLines() => find.byWidgetPredicate(
-    (Widget w) =>
-        w.key is ValueKey<String> &&
-        (w.key! as ValueKey<String>).value.startsWith('client-diet-macros-'),
-  );
-
   testWidgets('오늘 끼니 카드에는 지금처럼 탄단지가 보인다', (tester) async {
     await openDiet(tester);
 
