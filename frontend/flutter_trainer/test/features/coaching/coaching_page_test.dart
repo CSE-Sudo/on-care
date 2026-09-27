@@ -1921,6 +1921,15 @@ void main() {
       await goTo(tester, AppRoutes.coaching);
 
       await _ensureSendButtonReady(tester);
+      // 기본 시각(10:00)에는 내일도 다른 회원 수업이 있다 — 다른 일정과
+      // 겹치는 자리는 등록되지 않으므로(#2284) 비어 있는 시각을 고른다.
+      tester
+          .widget<ProgramEditorWorkspace>(find.byType(ProgramEditorWorkspace))
+          .onRegisterTimeRangeChanged((
+            start: const TimeOfDay(hour: 14, minute: 30),
+            end: const TimeOfDay(hour: 15, minute: 45),
+          ));
+      await tester.pump();
       final dateButton = find.byKey(
         const ValueKey<String>('program-register-date'),
       );

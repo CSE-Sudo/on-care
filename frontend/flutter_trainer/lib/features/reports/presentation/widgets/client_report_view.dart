@@ -6,6 +6,7 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_ai_c
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_editor.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_last_goals_card.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -171,6 +172,13 @@ class _ClientReportViewState extends State<ClientReportView> {
               ],
             ),
           ),
+        // ③ 지난 주 목표 달성 — 지난 주에 ② 에서 고른 목표를 이 주 수치로
+        // 회수한다(#2287). 수치(②) 바로 아래에 둔다: 판정의 근거가 방금 읽은
+        // 그 수치이고, 탄단지 막대의 근거 줄이 이 칸의 `미달` 을 가리킨다.
+        if (showReview) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s16),
+          ReportLastGoalsCard(report: widget.report),
+        ],
         // 요약 카드는 ② 다음 주 목표와 ③ 전송 두 단계에 선다. ②에서는
         // `다음 주 코칭 제안` 이 목표를 고르는 재료이고, ③에서는 같은 카드의
         // `피드백으로 가져오기` 가 보낼 글의 출발점이다 — 두 단계에서 쓰임이
@@ -268,12 +276,12 @@ class _ClientReportViewState extends State<ClientReportView> {
         ],
         if (showReview) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
-          // ③ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
+          // ④ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
           // 목표에 대한 비율로 바꿔야 한 화면에서 견줄 수 있다. 이번 주가
           // 흐름의 어디쯤인지는 이 카드에서만 보인다 — 앞의 둘은 한 주만
           // 말한다.
           _SectionCard(
-            number: 3,
+            number: 4,
             title: l.reportsExerciseTrend,
             subtitle: l.reportsTrendSubtitle(kReportTrendWeeks),
             child: ReportExerciseTrend(report: widget.report),

@@ -1524,6 +1524,11 @@ def trainer_create_session(
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.ScheduleOverlap as exc:
+        # 겹친 세션을 함께 실어 화면이 어느 일정과 겹치는지 짚게 한다. (#2284)
+        raise HTTPException(
+            status_code=409, detail=trainer_service.overlap_detail(exc)
+        ) from exc
 
 
 @router.post(
@@ -1550,6 +1555,7 @@ def trainer_preview_recurring_sessions(
         weekdays=payload.weekdays,
         count=payload.count,
         until=payload.until,
+        duration_minutes=payload.duration_minutes,
     )
     return ScheduleRecurringPreviewOut(dates=dates, conflicts=conflicts)
 
@@ -1591,6 +1597,8 @@ def trainer_create_recurring_sessions(
         raise HTTPException(
             status_code=409,
             detail={
+                # 단건 겹침과 같은 코드 — 화면이 한 가지 규칙으로 알아본다. (#2284)
+                "code": trainer_service.SCHEDULE_OVERLAP_CODE,
                 "message": str(exc),
                 "conflicts": [
                     conflict.model_dump(mode="json") for conflict in exc.conflicts
@@ -1639,6 +1647,10 @@ def trainer_assign_program_with_schedule(
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.ScheduleOverlap as exc:
+        raise HTTPException(
+            status_code=409, detail=trainer_service.overlap_detail(exc)
+        ) from exc
     except trainer_service.AttachTargetConflict as exc:
         # 겹치는 후보를 함께 실어 화면이 어느 회차를 고를지 다시 물을 수 있게 한다.
         raise HTTPException(
@@ -1687,6 +1699,10 @@ def trainer_update_session(
         _require_client(db, trainer.id, fields["member_id"])
     try:
         out = trainer_service.update_session(db, trainer.id, session_id, fields)
+    except trainer_service.ScheduleOverlap as e:
+        raise HTTPException(
+            status_code=409, detail=trainer_service.overlap_detail(e)
+        ) from e
     except trainer_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
@@ -2568,6 +2584,11 @@ def trainer_accept_consultation(
         )
     except consultation_service.ConsultationNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except trainer_service.ScheduleOverlap as exc:
+        # 회원이 고른 자리에 그 사이 트레이너가 다른 일정을 잡았다. (#2284)
+        raise HTTPException(
+            status_code=409, detail=trainer_service.overlap_detail(exc)
+        ) from exc
     except (
         consultation_service.ConsultationAlreadyDecided,
         consultation_service.MemberAlreadyCoached,
@@ -2621,6 +2642,7 @@ def _notification_out(row: Notification, locale: Locale) -> TrainerNotificationO
         subject_id=row.subject_id,
         template=row.template,
         args=row.template_args,
+        target_date=row.target_date,
     )
 
 

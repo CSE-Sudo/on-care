@@ -929,6 +929,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatInsightBodyPartGeneral => '신체';
 
   @override
+  String get chatInsightBodyPartKnee => '무릎';
+
+  @override
+  String get chatInsightBodyPartBack => '허리';
+
+  @override
+  String get chatInsightBodyPartAnkle => '발목';
+
+  @override
+  String get chatInsightBodyPartShoulder => '어깨';
+
+  @override
+  String get chatInsightBodyPartWrist => '손목';
+
+  @override
+  String get chatInsightBodyPartNeck => '목';
+
+  @override
   String get chatInsightNegativeTitle => '부정적 피드백 감지';
 
   @override
@@ -1158,6 +1176,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI 개인운동';
 
   @override
+  String get workoutKindPtSession => 'PT 세션 · 트레이너 지도';
+
+  @override
+  String get workoutKindAssignedRoutine => '배정 루틴 수행';
+
+  @override
   String get trainerNote => '트레이너 메모';
 
   @override
@@ -1216,6 +1240,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dateYesterday => '어제';
+
+  @override
+  String dateDaysAgo(int count) {
+    return '$count일 전';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    return '$count주 전';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
@@ -1685,6 +1729,19 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get schedRepeatConflictHint =>
       '겹치는 회차가 있어 아무 일정도 만들지 않았어요. 시간을 바꾸거나 겹치는 일정을 정리해 주세요.';
+
+  @override
+  String get schedOverlapTitle => '다른 일정과 시간이 겹쳐요';
+
+  @override
+  String get schedOverlapHint => '저장하지 않았어요. 시간을 바꾸거나 겹치는 일정을 옮긴 뒤 다시 저장해 주세요.';
+
+  @override
+  String get slotOverlapHint => '자리를 열지 않았어요. 다른 시간을 고르거나 겹치는 일정을 옮겨 주세요.';
+
+  @override
+  String get consultOverlapHint =>
+      '회원이 고른 시간에 이미 다른 일정이 있어 승인하지 않았어요. 겹치는 일정을 옮긴 뒤 다시 승인해 주세요.';
 
   @override
   String get schedNote => '트레이너 메모';
@@ -3230,6 +3287,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messagesNoPreview => '아직 대화가 없어요';
 
   @override
+  String get messagesPreviewEmote => '이모티콘을 보냈어요';
+
+  @override
+  String get messagesTimeJustNow => '방금';
+
+  @override
   String get messagesClientDetail => '회원 상세';
 
   @override
@@ -3414,6 +3477,10 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get coachAttachTargetChanged =>
       '연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요';
+
+  @override
+  String get coachScheduleOverlap =>
+      '고른 시간에 이미 다른 일정이 있어 등록하지 않았어요. 시간을 바꿔 다시 보내 주세요';
 
   @override
   String get programEditorNoExercises => '운동을 하나 이상 추가해 주세요';
@@ -4303,6 +4370,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String reportsLastGoalsEvidenceWorkout(int done, int total) {
     return '개인 운동 $done / $total회';
   }
+
+  @override
+  String get reportsLastGoalsSubtitle => '이번 주 기록으로 판정';
+
+  @override
+  String get reportsLastGoalsKeywordsCalories => '칼로리,kcal,섭취량';
+
+  @override
+  String get reportsLastGoalsKeywordsWorkout =>
+      '운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장';
+
+  @override
+  String get reportsLastGoalsKeywordsLogged => '기록,끼니,식단';
 
   @override
   String get reportsTrendUnavailable => '이 주의 운동 기록을 불러오지 못했어요';

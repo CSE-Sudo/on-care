@@ -14,6 +14,7 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/fixed_clock.dart';
 import '../../helpers/record_span.dart';
 
 /// 회원 운동 현황은 회원 앱 `운동 현황` 과 **같은 그림**이다. (#943)
@@ -575,6 +576,127 @@ void main() {
       expect(find.textContaining('오늘 기록'), findsOneWidget);
       expect(toggle, findsNothing);
       expect(collapse, findsNothing);
+    });
+  });
+
+  group('이력 제목·운동 줄은 화면 언어를 따른다 (#2300)', () {
+    // 서버는 `date`·`kind`·값을 따로 보낸다. 옛 한국어 문장(`date_label`·
+    // `label`)도 함께 오지만 화면은 그 문장을 쓰지 않는다.
+    RoutineHistoryEntry ptToday() => const RoutineHistoryEntry(
+      id: 'sched-hist-1',
+      dateLabel: '8/20 (오늘)',
+      label: 'PT 세션 · 트레이너 지도',
+      completionRate: 100,
+      exercises: <ClientExerciseItem>[
+        ClientExerciseItem(
+          name: '스쿼트',
+          type: 'strength',
+          sets: 3,
+          reps: 12,
+          weight: 40,
+        ),
+        ClientExerciseItem(name: '걷기', minutes: 30, intensity: 'light'),
+      ],
+      clientFeedback: '',
+      trainerNote: '',
+      kind: 'pt_session',
+    );
+
+    RoutineHistoryEntry withDate(RoutineHistoryEntry e, DateTime date) =>
+        RoutineHistoryEntry(
+          id: e.id,
+          dateLabel: e.dateLabel,
+          label: e.label,
+          completionRate: e.completionRate,
+          exercises: e.exercises,
+          clientFeedback: e.clientFeedback,
+          trainerNote: e.trainerNote,
+          date: date,
+          kind: e.kind,
+        );
+
+    Future<void> pumpIn(
+      WidgetTester tester,
+      Locale locale,
+      List<RoutineHistoryEntry> fixture,
+    ) async {
+      useFixedKstDate();
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(900, 1400);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            ...withSplit(),
+            clientHistoryProvider.overrideWith(
+              (ref, clientId) =>
+                  Stream<List<RoutineHistoryEntry>>.value(fixture),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: locale,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: ClientExerciseStatusCard(
+                  clientId: 'c1',
+                  clientName: '김민수',
+                  period: ClientPeriod.week,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('한국어 화면은 예전과 같은 글자다', (tester) async {
+      await pumpIn(tester, const Locale('ko'), <RoutineHistoryEntry>[
+        withDate(ptToday(), DateTime(2026, 8, 20)),
+      ]);
+
+      expect(find.text('8/20 (오늘) · PT 세션 · 트레이너 지도'), findsOneWidget);
+      expect(find.text('스쿼트 · 3세트 · 12회 · 40kg'), findsOneWidget);
+      expect(find.text('걷기 · 30분 · 가벼움'), findsOneWidget);
+    });
+
+    testWidgets('영어 화면에는 한국어 날짜·종류·단위가 없다', (tester) async {
+      await pumpIn(tester, const Locale('en'), <RoutineHistoryEntry>[
+        withDate(ptToday(), DateTime(2026, 8, 19)),
+      ]);
+
+      expect(
+        find.text('8/19 (Yesterday) · PT session · Trainer-led'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('어제'), findsNothing);
+      expect(find.textContaining('트레이너 지도'), findsNothing);
+      expect(find.textContaining('세트'), findsNothing);
+      expect(find.textContaining('가벼움'), findsNothing);
+      expect(find.textContaining('40kg'), findsOneWidget);
+      expect(find.textContaining('Light'), findsOneWidget);
+    });
+
+    testWidgets('날짜·종류 코드가 없는 옛 응답도 영어 종류는 옮긴다', (tester) async {
+      await pumpIn(tester, const Locale('en'), <RoutineHistoryEntry>[
+        const RoutineHistoryEntry(
+          id: 'rh-1',
+          dateLabel: '8/18',
+          label: '배정 루틴 수행',
+          completionRate: 100,
+          exercises: <ClientExerciseItem>[
+            ClientExerciseItem(name: '플랭크', sets: 3, holdSeconds: 60),
+          ],
+          clientFeedback: '',
+          trainerNote: '',
+        ),
+      ]);
+
+      expect(find.text('8/18 · Assigned routine'), findsOneWidget);
+      expect(find.textContaining('배정 루틴'), findsNothing);
     });
   });
 }

@@ -181,13 +181,40 @@ class AppRoutes {
   /// [weekStart] 를 주면 그 주가 선택된 채로 열린다. 채팅의 리포트 카드가
   /// 가리키는 주와 리포트 화면이 보여 주는 주가 어긋나면, 트레이너는 카드를
   /// 누르고도 어느 주였는지 다시 찾아야 한다(#1421).
-  static String reportFor(String clientId, {DateTime? weekStart}) => Uri(
-    path: reports,
-    queryParameters: <String, String>{
-      'client': clientId,
+  ///
+  /// [clientId] 가 null 이면 작업대(회원을 고르기 전 목록)다. 주를 옮긴
+  /// 작업대도 새로고침·뒤로 가기에서 그 주로 돌아와야 해서 주만 싣는다(#2289).
+  static String reportFor(String? clientId, {DateTime? weekStart}) {
+    final Map<String, String> query = <String, String>{
+      'client': ?clientId,
       if (weekStart != null) 'week': ymd(weekStart),
-    },
-  ).toString();
+    };
+    return Uri(
+      path: reports,
+      queryParameters: query.isEmpty ? null : query,
+    ).toString();
+  }
+
+  /// 리포트 URL 의 `week` 값을 날짜로 읽는다.
+  ///
+  /// `yyyy-MM-dd` 만 받는다. 형식이 깨졌거나 달력에 없는 날(`2026-02-30`)은
+  /// null — 다음 달로 넘겨 엉뚱한 주를 여는 것보다 이번 주로 여는 편이
+  /// 낫다(#2289).
+  static DateTime? parseReportWeek(String? raw) {
+    if (raw == null) return null;
+    final RegExpMatch? m = RegExp(
+      r'^(\d{4})-(\d{2})-(\d{2})$',
+    ).firstMatch(raw.trim());
+    if (m == null) return null;
+    final int year = int.parse(m.group(1)!);
+    final int month = int.parse(m.group(2)!);
+    final int day = int.parse(m.group(3)!);
+    final DateTime date = DateTime(year, month, day);
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
+  }
 
   /// Builds the 스케줄 tab on a given date.
   ///

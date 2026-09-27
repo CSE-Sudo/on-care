@@ -684,6 +684,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **남의 예약·없는 예약은 404** 로 같습니다. 존재 여부조차 드러내지 않습니다(상담 요청과 같은 규칙).
 - `cancellable` 은 **서버 판단**입니다. 앱이 자기 시계로 다시 계산하면 시각이 어긋난 기기에서 버튼은 눌리는데 서버가 409 를 주는 상태가 됩니다.
 - 취소는 트레이너에게 알림 행을 남깁니다(`notifications`). 트레이너는 `/trainer/notifications` 로 읽습니다(#503).
+- **트레이너의 다른 일정과 시간이 겹치면 409** `detail = { code: "schedule_overlap", message }` 입니다.
+  자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡은 경우입니다. 겹친 일정 목록은 싣지 않습니다(남의 일정).
+  트레이너 쪽 일정·자리·상담 승인 경로의 같은 409 는 `conflicts[]` 를 함께 줍니다 — 규칙은
+  [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "시간 겹침" 참조. (#2284)
 
 #### 목록 페이지네이션과 순서 (#980)
 
@@ -793,21 +797,24 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   전체입니다. 미처리 배지(`/trainer/consultations/pending-count`)는 **쪽 나눔과 무관하게**
   전체를 셉니다. 상태 필터에 `expired` 가 있습니다(#1873).
 - **승인은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
-  하나뿐이고, 날짜·시각·종류·소요 시간 인자와 겹침 검사는 없앴습니다 — 자리를 연 사람이
-  트레이너 자신이고 한 자리는 한 사람 몫이라 겹침이 구조적으로 나지 않습니다. 회원이 고른
+  하나뿐이고, 날짜·시각·종류·소요 시간은 회원이 고른 자리가 정합니다. 회원이 고른
   자리가 사라진 뒤 승인하면 **409** 입니다.
+- 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡았으면 승인은 **409**
+  `detail = { code: "schedule_overlap", message, conflicts[] }` 이고 아무것도 바뀌지 않습니다
+  (요청은 대기로 남습니다). 일정을 옮긴 뒤 다시 승인합니다. (#2284)
 
 ### 트레이너 알림함
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, template, args }]` (최신순, 최대 100건) |
+| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, target_date, template, args }]` (최신순, 최대 100건) |
 | GET | `/trainer/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/trainer/notifications/{id}/read` | `{ id, read: true }` |
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
+- **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)

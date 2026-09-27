@@ -939,6 +939,9 @@ class Notification(Base):
     # 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
     template: Mapped[str | None] = mapped_column(String(40), nullable=True)
     template_args: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
+    # 스케줄을 그 날짜로 연다. 옛 알림에는 없다.
+    target_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

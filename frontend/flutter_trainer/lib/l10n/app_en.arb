@@ -585,6 +585,12 @@
     }
   },
   "chatInsightBodyPartGeneral": "Physical",
+  "chatInsightBodyPartKnee": "Knee",
+  "chatInsightBodyPartBack": "Back",
+  "chatInsightBodyPartAnkle": "Ankle",
+  "chatInsightBodyPartShoulder": "Shoulder",
+  "chatInsightBodyPartWrist": "Wrist",
+  "chatInsightBodyPartNeck": "Neck",
   "chatInsightNegativeTitle": "Negative feedback detected",
   "chatInsightDiscomfortDescription": "AI detected a report of discomfort. Check the symptoms and consider adjusting the next workout's intensity.",
   "chatInsightNegativeDescription": "AI detected workout strain or difficulty completing the plan. Check the cause and consider adjusting the program.",
@@ -730,6 +736,14 @@
   "clientFeedback": "Member feedback",
   "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
+  "workoutKindPtSession": "PT session · Trainer-led",
+  "@workoutKindPtSession": {
+    "description": "Workout history kind for a completed PT session (server kind code pt_session)."
+  },
+  "workoutKindAssignedRoutine": "Assigned routine",
+  "@workoutKindAssignedRoutine": {
+    "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
+  },
   "trainerNote": "Trainer's note",
   "dietLoadFailed": "Couldn't load meals",
   "dietEmpty": "No meals logged yet",
@@ -769,6 +783,47 @@
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",
   "dateYesterday": "Yesterday",
+  "dateDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@dateDaysAgo": {
+    "description": "Relative day label, used for two or more days ago (e.g. when the last routine was sent).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dateWeeksAgo": "{count, plural, =1{1 week ago} other{{count} weeks ago}}",
+  "@dateWeeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyDate": "{month}/{day}",
+  "@historyDate": {
+    "description": "Short date on a workout history card.",
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "historyDateRelative": "{date} ({relative})",
+  "@historyDateRelative": {
+    "description": "Workout history date with Today/Yesterday, e.g. 9/27 (Today).",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "relative": {
+        "type": "String"
+      }
+    }
+  },
   "dateMonthDayWeekday": "{month}/{day} ({weekday})",
   "@dateMonthDayWeekday": {
     "placeholders": {
@@ -1196,6 +1251,10 @@
     }
   },
   "schedRepeatConflictHint": "Nothing was created. Change the time, or clear the sessions that clash.",
+  "schedOverlapTitle": "This time overlaps another session",
+  "schedOverlapHint": "Nothing was saved. Change the time or move the overlapping session, then save again.",
+  "slotOverlapHint": "The slot wasn't opened. Pick another time or move the overlapping session.",
+  "consultOverlapHint": "The member's chosen time is already booked, so the request wasn't approved. Move the overlapping session, then approve again.",
   "schedNote": "Trainer's note",
   "schedEditNote": "Edit note",
   "schedAddNote": "Add note",
@@ -2196,6 +2255,8 @@
   },
   "messagesBackToList": "Conversation list",
   "messagesNoPreview": "No messages yet",
+  "messagesPreviewEmote": "Sent an emote",
+  "messagesTimeJustNow": "Just now",
   "messagesClientDetail": "Member details",
   "messagesSelectPrompt": "Select a member from the list to start a conversation.",
   "clientQuickMessages": "Messages",
@@ -2314,6 +2375,7 @@
     }
   },
   "coachAttachTargetChanged": "The PT session to attach to has changed. Tap Add to schedule again to check",
+  "coachScheduleOverlap": "Another session is already booked at that time, so nothing was added. Pick a different time and try again",
   "programEditorNoExercises": "Add at least one exercise",
   "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
   "programEditorRegisterDatePast": "That date has passed. Pick today or a later date",
@@ -3115,6 +3177,19 @@
         "type": "int"
       }
     }
+  },
+  "reportsLastGoalsSubtitle": "Judged from this week's records",
+  "reportsLastGoalsKeywordsCalories": "calorie,kcal,intake",
+  "@reportsLastGoalsKeywordsCalories": {
+    "description": "Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen."
+  },
+  "reportsLastGoalsKeywordsWorkout": "workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym",
+  "@reportsLastGoalsKeywordsWorkout": {
+    "description": "Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen."
+  },
+  "reportsLastGoalsKeywordsLogged": "log,record,meal",
+  "@reportsLastGoalsKeywordsLogged": {
+    "description": "Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen."
   },
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
