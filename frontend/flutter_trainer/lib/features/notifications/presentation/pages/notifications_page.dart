@@ -36,7 +36,8 @@ class NotificationsPage extends ConsumerWidget {
   ///
   /// 상담은 상담 요청함으로, 예약은 그 수업 날짜의 스케줄로, 담당 요청 수락은
   /// 새 담당 회원 상세로, 거절은 고객 목록으로 간다(#2292). 대상이 기록되기
-  /// 전의 옛 알림은 전처럼 오늘 스케줄로 간다.
+  /// 전의 옛 알림은 전처럼 오늘 스케줄로 간다. 회원 탈퇴로 사라진 상담 요청은
+  /// 상담 요청함으로 간다(#1632).
   @visibleForTesting
   static String? targetOf(
     TrainerNotification notification,
@@ -62,6 +63,9 @@ class NotificationsPage extends ConsumerWidget {
       null => AppRoutes.clients,
     },
     TrainerNotificationKind.inviteRejected => AppRoutes.clients,
+    // 요청은 사라졌지만 남은 요청을 이어 볼 자리다(#1632). 떠난 회원 상세는
+    // 열 수 없어 회원으로 가지 않는다.
+    TrainerNotificationKind.consultationWithdrawn => AppRoutes.consultations,
     TrainerNotificationKind.healthGoal ||
     TrainerNotificationKind.memberName => switch (notification.subjectId) {
       final String id => AppRoutes.clientDetail(id),
@@ -318,6 +322,7 @@ class _NotificationTile extends StatelessWidget {
     TrainerNotificationKind.memberLeft => Icons.person_remove_rounded,
     TrainerNotificationKind.inviteAccepted => Icons.how_to_reg_rounded,
     TrainerNotificationKind.inviteRejected => Icons.person_off_rounded,
+    TrainerNotificationKind.consultationWithdrawn => Icons.event_busy_rounded,
     TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 
