@@ -2,6 +2,10 @@
 
 운영 규모에서는 Google JWKS 로컬 검증(google-auth)이 권장되나,
 MVP 단계에서는 tokeninfo 엔드포인트로 검증한다.
+
+id_token 은 URL 쿼리가 아니라 POST form 본문(`id_token=`)으로 보낸다(#2351).
+tokeninfo 는 GET·POST 모두 `id_token` 파라미터를 받는다. 쿼리에 실으면 요청 URL 을
+남기는 로그(httpx 요청 로그·프록시·게이트웨이 액세스 로그)에 토큰이 그대로 남는다.
 """
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ class GoogleVerifier(SocialVerifier):
     async def verify(self, token: str) -> SocialIdentity:
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(_TOKENINFO, params={"id_token": token})
+                resp = await client.post(_TOKENINFO, data={"id_token": token})
         except httpx.HTTPError as exc:
             raise SocialAuthError(f"google 요청 실패: {exc}") from exc
 

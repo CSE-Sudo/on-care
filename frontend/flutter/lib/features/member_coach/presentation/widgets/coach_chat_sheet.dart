@@ -5,12 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/coach_photo_send_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_photo_picker.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
@@ -47,6 +50,10 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   /// 마지막으로 그린 메시지 수. 길이가 바뀐 프레임에서만 스크롤한다.
   int _lastCount = -1;
   bool _sending = false;
+
+  /// OS 사진 선택기가 떠 있는 동안 다시 열지 않는다 — image_picker 는 겹친
+  /// 요청을 `multiple_request` 로 거절한다.
+  bool _picking = false;
 
   /// 대화 목록 전체 — 일반 말풍선과 리포트 안내를 한 타임라인에 둔다.
   ///
@@ -238,6 +245,23 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     ref.invalidate(coachChatProvider);
   }
 
+  /// 트레이너에게 보낼 사진을 골라 보낸다. (#1665)
+  ///
+  /// 보내는 동안과 실패는 대화 끝의 내 말풍선이 보여 준다 — 알림 한 줄로 끝내면
+  /// 무엇을 다시 보내야 하는지 남지 않는다.
+  Future<void> _attachPhoto() async {
+    if (_picking) return;
+    setState(() => _picking = true);
+    final MealPhoto? photo;
+    try {
+      photo = await pickCoachPhoto(context, ref);
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+    if (photo == null || !mounted) return;
+    await ref.read(coachPhotoSendProvider.notifier).send(photo);
+  }
+
   Future<void> _send() async {
     if (_sending) return;
     final text = _input.text.trim();
@@ -349,14 +373,35 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                   final CoachChatHistoryState history = ref.watch(
                     coachChatHistoryProvider,
                   );
-                  final List<CoachMessage> messages = <CoachMessage>[
+                  final List<CoachMessage> thread = <CoachMessage>[
                     ...history.messages,
                     ...latest,
                   ];
+                  // 내가 보낸 사진(#1665). 서버가 받은 것은 대화를 다시 받아
+                  // 올 때까지 그 메시지로 끼워 두고(id 로 겹침을 거른다),
+                  // 아직 못 받은 것은 대화 끝에 상태와 함께 둔다.
+                  final List<PendingCoachPhoto> photos = ref.watch(
+                    coachPhotoSendProvider,
+                  );
+                  final Set<String> threadIds = <String>{
+                    for (final CoachMessage m in thread) m.id,
+                  };
+                  final List<CoachMessage> messages = <CoachMessage>[
+                    ...thread,
+                    for (final PendingCoachPhoto p in photos)
+                      if (p.message case final CoachMessage sent?
+                          when !threadIds.contains(sent.id))
+                        sent,
+                  ];
+                  final List<PendingCoachPhoto> unsent = <PendingCoachPhoto>[
+                    for (final PendingCoachPhoto p in photos)
+                      if (p.status != CoachPhotoSendStatus.sent) p,
+                  ];
+                  final int count = messages.length + unsent.length;
                   // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
                   // 위로 올려 읽는 중에도 아래로 끌어내린다.
-                  if (messages.length != _lastCount) {
-                    _lastCount = messages.length;
+                  if (count != _lastCount) {
+                    _lastCount = count;
                     _scrollToBottom();
                     // Mark newly polled trainer messages read while this
                     // full-screen route is visible, then refresh its badge.
@@ -401,6 +446,13 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                         messages,
                         showDemoBanners: showDemoBanners,
                       ),
+                      for (final PendingCoachPhoto photo in unsent)
+                        _PendingPhotoRow(
+                          key: ValueKey<String>(
+                            'coach-pending-photo-${photo.requestId}',
+                          ),
+                          photo: photo,
+                        ),
                     ],
                   );
                 },
@@ -415,6 +467,8 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 sendTooltip: l.a11ySendMessage,
                 emoteTooltip: l.a11yOpenEmotes,
                 onEmote: _pickEmote,
+                attachTooltip: l.coachPhotoAttach,
+                onAttach: _picking ? null : _attachPhoto,
                 enabled: !_sending,
                 onSend: _send,
               ),
@@ -531,7 +585,7 @@ class _MessageRow extends ConsumerWidget {
           // 카드로 둔다. 사진을 카드로 두면 볼 때마다 파일을
           // 열어야 한다. (#921)
           if (attachment.isImage)
-            CoachImageAttachment(attachment: attachment)
+            CoachImageAttachment(attachment: attachment, mine: message.fromMe)
           else
             AppChatFileCard(
               key: ValueKey<String>('coach-pdf-${attachment.fileId}'),
@@ -568,6 +622,82 @@ class _MessageRow extends ConsumerWidget {
   static String _fileSize(int bytes) => bytes >= 1024 * 1024
       ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
       : '${(bytes / 1024).toStringAsFixed(1)} KB';
+}
+
+/// 아직 대화에 들어가지 않은 내 사진 — 말풍선 아래에 보내는 중·실패를 적는다.
+/// (#1665)
+///
+/// 실패하면 그 자리에서 다시 보내거나 지운다. 다시 보내기는 같은 멱등키를 써서,
+/// 서버는 받았는데 응답만 끊긴 경우에도 사진이 두 장 쌓이지 않는다.
+class _PendingPhotoRow extends ConsumerWidget {
+  const _PendingPhotoRow({required this.photo, super.key});
+
+  final PendingCoachPhoto photo;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final bool failed = photo.status == CoachPhotoSendStatus.failed;
+    final CoachPhotoSendController controller = ref.read(
+      coachPhotoSendProvider.notifier,
+    );
+    final TextStyle caption = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(
+          color: failed ? OnCareColors.danger : OnCareColors.textTertiary,
+        );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          AppChatBubble(
+            mine: true,
+            child: CoachImageAttachment(
+              attachment: photo.attachment,
+              mine: true,
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          if (failed)
+            Wrap(
+              key: const ValueKey<String>('coach-pending-photo-failed'),
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: OnCareSpacing.s4,
+              children: <Widget>[
+                Text(l.coachPhotoSendFailed, style: caption),
+                AppButton(
+                  key: const ValueKey<String>('coach-pending-photo-retry'),
+                  label: l.coachPhotoRetry,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  onPressed: () => controller.retry(photo.requestId),
+                ),
+                AppButton(
+                  key: const ValueKey<String>('coach-pending-photo-discard'),
+                  label: l.coachPhotoDiscard,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  onPressed: () => controller.discard(photo.requestId),
+                ),
+              ],
+            )
+          else
+            Row(
+              key: const ValueKey<String>('coach-pending-photo-sending'),
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const AppLoading.inline(),
+                const SizedBox(width: OnCareSpacing.s4),
+                Text(l.coachPhotoSending, style: caption),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// PDF 한 부를 미리보기로 연다. 첨부 파일과 회원 기록으로 만든 문서가 같은

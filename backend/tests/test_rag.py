@@ -77,11 +77,11 @@ def test_personal_docs_are_isolated_between_users(client, db_session):
 
     a = client.post(
         "/v1/auth/register",
-        json={"email": f"raga-{uuid4().hex[:8]}@oncare.com", "password": "pw!", "name": "A"},
+        json={"email": f"raga-{uuid4().hex[:8]}@oncare.com", "password": "test-pw-1234", "name": "A"},
     ).json()["id"]
     b = client.post(
         "/v1/auth/register",
-        json={"email": f"ragb-{uuid4().hex[:8]}@oncare.com", "password": "pw!", "name": "B"},
+        json={"email": f"ragb-{uuid4().hex[:8]}@oncare.com", "password": "test-pw-1234", "name": "B"},
     ).json()["id"]
 
     ingest_personal_text(db_session, a, "나는 김치찌개를 자주 먹어 나트륨이 높다", domain="diet", source="diet")

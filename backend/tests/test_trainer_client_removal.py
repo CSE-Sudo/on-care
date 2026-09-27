@@ -115,6 +115,9 @@ def test_trainer_removes_assignment_but_keeps_member(client, db_session):
         detached = db_session.get(TrainerClient, link_id)
         assert detached is not None
         assert detached.active is False
+        # 담당 해제는 데이터 공유 동의 철회다(#1631).
+        assert detached.data_consent_at is None
+        assert detached.data_consent_revoked_at is not None
         for model, row_id in expected_preserved:
             assert db_session.get(model, row_id) is not None
         roster = client.get("/v1/trainer/clients", headers=_headers(token)).json()
@@ -131,13 +134,14 @@ def test_trainer_removes_assignment_but_keeps_member(client, db_session):
         )
         assert repeated.status_code == 404
 
+        # 동의가 철회된 회원은 트레이너 혼자 되살릴 수 없다(#1631).
         restored = client.put(
             f"/v1/trainer/clients/{member_id}/registration", headers=_headers(token)
         )
-        assert restored.status_code == 204
+        assert restored.status_code == 409
         roster = client.get("/v1/trainer/clients", headers=_headers(token)).json()
         roster_row = next(row for row in roster if row["id"] == member_id)
-        assert roster_row["registered"] is True
+        assert roster_row["registered"] is False
     finally:
         db_session.expire_all()
         saved_link = db_session.get(TrainerClient, link_id)

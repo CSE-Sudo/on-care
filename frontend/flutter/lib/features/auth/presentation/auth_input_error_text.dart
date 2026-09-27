@@ -16,6 +16,7 @@ String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
       AppInputError.phoneInvalid => l.signUpPhoneFormatInvalid,
       AppInputError.passwordEmpty => l.authPasswordEmpty,
       AppInputError.passwordWeak => l.signUpPasswordWeak,
+      AppInputError.passwordTooLong => l.signUpPasswordTooLong,
       AppInputError.passwordMismatch => l.signUpPasswordMismatch,
       AppInputError.birthDateInvalid => l.myFieldBirthInvalid,
     };

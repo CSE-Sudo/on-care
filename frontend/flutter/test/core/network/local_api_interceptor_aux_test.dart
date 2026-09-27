@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppInputRules;
 
 void main() {
   late AppDatabase db;
@@ -169,10 +170,7 @@ void main() {
     expect(res.data!['reply'], isNotEmpty);
     final sources = (res.data!['sources']! as List<Object?>).cast<String>();
     // 목업도 서버가 실제로 돌려주는 공개 문서 제목을 그대로 싣는다(#1652).
-    expect(
-      sources,
-      contains('2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회 — 나트륨과 염소'),
-    );
+    expect(sources, contains('2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회 — 나트륨과 염소'));
   });
 
   test(
@@ -326,6 +324,58 @@ void main() {
     expect(res.statusCode, 400);
   });
 
+  // 목업 가입도 서버와 같은 비밀번호 기준을 본다 — 목업에서만 되는 비밀번호가
+  // 있으면 실서버에서 처음 실패를 보게 된다(#1555).
+  group('POST /auth/register 비밀번호 기준(#1555)', () {
+    Future<Response<Map<String, Object?>>> register(String password) =>
+        dio.post<Map<String, Object?>>(
+          '/auth/register',
+          data: <String, Object?>{
+            'email': 'policy@oncare.com',
+            'password': password,
+            'name': '정책',
+          },
+          options: Options(validateStatus: (int? s) => true),
+        );
+
+    for (final MapEntry<String, String> c in <String, String>{
+      '': 'password_empty',
+      'abc1234': 'password_weak',
+      '12345678': 'password_weak',
+      'abcdefgh': 'password_weak',
+      '        ': 'password_weak',
+      '${'a1' * 32}x': 'password_too_long',
+      '${'가' * 22}abc1234': 'password_too_long',
+    }.entries) {
+      test(
+        '"${c.key.length > 12 ? '${c.key.substring(0, 12)}…' : c.key}" → 422 ${c.value}',
+        () async {
+          final res = await register(c.key);
+          expect(res.statusCode, 422);
+          final List<Object?> detail = res.data!['detail']! as List<Object?>;
+          final Map<String, Object?> item =
+              detail.single! as Map<String, Object?>;
+          expect(item['type'], c.value);
+          expect(item['loc'], <Object?>['body', 'password']);
+          // 앱이 서버 응답을 읽는 것과 같은 방법으로 읽힌다.
+          expect(AppInputRules.serverPasswordError(res.data), isNotNull);
+        },
+      );
+    }
+
+    for (final String ok in <String>[
+      'abcd1234',
+      'a1' * 32,
+      '${'가' * 22}abc123',
+      ' abcd123 ',
+    ]) {
+      test('기준에 맞으면 201 (${ok.runes.length}자)', () async {
+        final res = await register(ok);
+        expect(res.statusCode, 201);
+      });
+    }
+  });
+
   // MY 건강 목표가 보내는 건강 목표·자유 입력 목표도 저장한다. 빠져 있어 데모에서
   // 고른 목표가 사라졌다(#1814).
   test('PUT /users/me/health-goals 가 건강 목표와 운동 목표 문구를 저장한다', () async {
@@ -404,8 +454,6 @@ void main() {
     final prof = await dio.get<Map<String, Object?>>('/users/me/profile');
     expect(prof.data!['name'], '김민수');
   });
-
-
 
   test('DELETE /diet/entries/{id} deletes an entry; 404 once gone', () async {
     await db
@@ -534,5 +582,4 @@ void main() {
       expect(gone.statusCode, 404);
     },
   );
-
 }

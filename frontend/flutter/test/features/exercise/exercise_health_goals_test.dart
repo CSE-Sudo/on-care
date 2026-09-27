@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -111,6 +113,15 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
       const Stream<List<CoachMessage>>.empty();
   @override
   Future<void> sendMessage(String text, {String? emoteId}) async {}
+
+  @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) => throw UnimplementedError();
   @override
   Future<void> markRead() async {}
   @override
