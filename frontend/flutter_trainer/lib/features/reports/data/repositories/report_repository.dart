@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -47,8 +48,9 @@ abstract interface class ReportRepository {
   /// 리포트 본문과 **따로** 가져온다. 실서버는 생성에 몇 초가 걸리는데 한
   /// 응답에 묶으면 고객을 고를 때마다 화면 전체가 그만큼 멈춘다(#755).
   ///
-  /// [l] 은 기기에서 조립하는 규칙 기반 요약의 언어다. 실서버가 만든 문장은
-  /// 서버가 쓴 그대로 온다.
+  /// [l] 은 요약 문장의 언어다. 데모는 이 언어로 규칙 기반 요약을 조립하고,
+  /// 실서버에는 같은 언어를 `Accept-Language` 로 요청한다(#2298) — 캐시 열쇠
+  /// ([ReportSummaryKey])가 가리키는 언어와 받아 온 문장의 언어가 늘 같다.
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
@@ -444,6 +446,15 @@ class DioReportRepository implements ReportRepository {
       final res = await _dio.get<Map<String, dynamic>>(
         '/trainer/clients/${Uri.encodeComponent(client.id)}/report/summary',
         queryParameters: <String, String>{'week_start': ymd(weekStart)},
+        // 화면 언어를 전역 인터셉터에 맡기지 않고 [l] 로 직접 고른다(#2298).
+        // 요약은 언어별로 캐시되므로, 요청 도중 언어를 바꿔도 이 응답은
+        // 요청한 언어의 칸에만 들어가야 한다. 인터셉터는 이미 있는 헤더를
+        // 덮지 않는다.
+        options: Options(
+          headers: <String, String>{
+            AcceptLanguageInterceptor.headerName: summaryLanguageTag(l),
+          },
+        ),
       );
       final json = res.data;
       if (json == null) throw const ServerError();
@@ -696,6 +707,12 @@ final reportFeedbackDraftProvider = FutureProvider.autoDispose
           .watch(reportRepositoryProvider)
           .feedbackDraft(client: key.client, weekStart: key.weekStart);
     });
+
+/// 요약을 요청할 언어 태그 — [l] 의 주 언어(`ko`·`en`). 서버는 주 언어만 본다.
+String summaryLanguageTag(AppLocalizations l) =>
+    AcceptLanguageInterceptor.headerValue(
+      Locale(l.localeName.split('_').first),
+    );
 
 /// 한 주의 리포트 요약. 리포트 본문과 따로 부른다(#755).
 ///
