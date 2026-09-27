@@ -376,9 +376,9 @@ void main() {
     }
   });
 
-  // MY 건강 목표가 보내는 건강 목표·자유 입력 목표도 저장한다. 빠져 있어 데모에서
-  // 고른 목표가 사라졌다(#1814).
-  test('PUT /users/me/health-goals 가 건강 목표와 운동 목표 문구를 저장한다', () async {
+  // MY 건강 목표가 보내는 건강 목표도 저장한다. 빠져 있어 데모에서 고른 목표가
+  // 사라졌다(#1814). 자유 입력 목표(`goals`)는 없앴다 — 보내도 남지 않는다(#2358).
+  test('PUT /users/me/health-goals 가 건강 목표를 저장하고 자유 목표는 버린다', () async {
     final res = await dio.put<Map<String, Object?>>(
       '/users/me/health-goals',
       data: <String, Object?>{
@@ -391,7 +391,7 @@ void main() {
 
     final prof = await dio.get<Map<String, Object?>>('/users/me/profile');
     expect(prof.data!['conditions'], '체중 감량, 혈압 관리, 무릎 통증');
-    expect(prof.data!['goals'], '주 3회 근력 운동');
+    expect(prof.data!.containsKey('goals'), isFalse);
     expect(prof.data!['daily_calories'], 2100);
   });
 
