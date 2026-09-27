@@ -7684,6 +7684,78 @@ abstract class AppLocalizations {
   /// **'Rewrite from this'**
   String get reportsSentRewrite;
 
+  /// No description provided for @reportsHistoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Past reports'**
+  String get reportsHistoryButton;
+
+  /// No description provided for @reportsViewSent.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get reportsViewSent;
+
+  /// No description provided for @reportsHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s past reports'**
+  String reportsHistoryTitle(String name);
+
+  /// No description provided for @reportsHistoryBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Past reports'**
+  String get reportsHistoryBack;
+
+  /// No description provided for @reportsHistoryUnsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent'**
+  String get reportsHistoryUnsent;
+
+  /// No description provided for @reportsHistoryThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get reportsHistoryThisWeek;
+
+  /// No description provided for @reportsHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports sent yet'**
+  String get reportsHistoryEmpty;
+
+  /// No description provided for @reportsHistoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load past reports'**
+  String get reportsHistoryLoadFailed;
+
+  /// No description provided for @reportsHistoryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get reportsHistoryMore;
+
+  /// No description provided for @reportsHistoryMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load more. Tap to try again.'**
+  String get reportsHistoryMoreFailed;
+
+  /// No description provided for @reportsHistorySendCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sent once} other{Sent {count} times}}'**
+  String reportsHistorySendCount(int count);
+
+  /// No description provided for @reportsHistoryPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get reportsHistoryPdf;
+
   /// No description provided for @reportsResendTitle.
   ///
   /// In en, this message translates to:
@@ -7755,6 +7827,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get reportsStepPrev;
+
+  /// No description provided for @reportsPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What the member receives'**
+  String get reportsPreviewTitle;
+
+  /// No description provided for @reportsPreviewRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get reportsPreviewRecipient;
+
+  /// No description provided for @reportsPreviewWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get reportsPreviewWeek;
+
+  /// No description provided for @reportsPreviewDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to {name}\'s chat as a PDF file'**
+  String reportsPreviewDelivery(String name);
+
+  /// No description provided for @reportsPreviewEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To change the text, tap Back to return to the Write step'**
+  String get reportsPreviewEditHint;
+
+  /// No description provided for @reportsPreviewGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the preview'**
+  String get reportsPreviewGenerating;
+
+  /// No description provided for @reportsPreviewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t prepare the preview'**
+  String get reportsPreviewFailed;
+
+  /// No description provided for @reportsPreviewPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current} of {total}'**
+  String reportsPreviewPage(int current, int total);
+
+  /// No description provided for @reportsPreviewPrevPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get reportsPreviewPrevPage;
+
+  /// No description provided for @reportsPreviewNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get reportsPreviewNextPage;
+
+  /// No description provided for @reportsPreviewZoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get reportsPreviewZoomIn;
+
+  /// No description provided for @reportsPreviewZoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom out'**
+  String get reportsPreviewZoomOut;
 
   /// No description provided for @reportsGridPtSession.
   ///

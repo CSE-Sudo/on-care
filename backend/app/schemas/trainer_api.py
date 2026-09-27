@@ -1725,6 +1725,37 @@ class ReportSendsOut(BaseModel):
     sends: list[ReportSendOut] = Field(default_factory=list)
 
 
+class MemberReportSendOut(BaseModel):
+    """한 회원에게 한 주 리포트가 나간 기록 — 회원별 지난 리포트 한 줄. (#2393)
+
+    `ReportSendOut` 과 근거·접는 규칙이 같다(그 주의 가장 최근 전송 하나 + 횟수).
+    본문 전체 대신 첫 줄만 싣는다 — 목록은 여러 주를 한 번에 세우고, 전문은
+    `message_id` 로 채팅에서 찾아 연다.
+    """
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 가장 최근에 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 회원이 가장 최근 전송을 열어 봤는가(`read_at`).
+    read: bool
+    #: 그 주 리포트를 몇 번 보냈는가. 다시 보낸 적이 있으면 2 이상이다.
+    send_count: int = Field(ge=1)
+    #: 가장 최근 전송의 채팅 메시지 id. PDF 로 보냈으면 그 첨부를 가진 메시지다.
+    message_id: str
+    #: 가장 최근 전송이 PDF 첨부였는가.
+    has_pdf: bool
+    #: 가장 최근 전송 본문의 첫 줄(비어 있지 않은 첫 줄, 길면 잘라 `…` 를 붙인다).
+    feedback_preview: str
+
+
+class MemberReportSendsOut(BaseModel):
+    """한 회원에게 나간 리포트를 최신 주부터. 보낸 적이 없으면 빈 목록이다. (#2393)"""
+    member_id: str
+    sends: list[MemberReportSendOut] = Field(default_factory=list)
+    #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
+    #: 더 없으면 null 이다.
+    next_before: str | None = None
+
+
 class TrainerPasswordChange(BaseModel):
     """비밀번호 변경 — 현재 비밀번호 확인 후 교체.
 

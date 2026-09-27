@@ -23,6 +23,7 @@ class ReportWorkbench extends StatelessWidget {
     required this.onSortChanged,
     required this.onOpen,
     required this.onOpenSent,
+    required this.onHistory,
     required this.records,
     required this.weekNav,
     required this.loading,
@@ -38,11 +39,14 @@ class ReportWorkbench extends StatelessWidget {
   /// 정렬을 바꿀 때.
   final ValueChanged<ReportQueueSort> onSortChanged;
 
-  /// 미전송 줄을 눌러 편집기로 들어간다.
+  /// 미전송 줄의 `열기` — 편집기로 들어간다.
   final ValueChanged<ReportQueueEntry> onOpen;
 
-  /// 전송 완료 줄을 눌러 보낸 리포트를 연다.
+  /// 전송 완료 줄의 `보기` — 보낸 리포트를 연다.
   final ValueChanged<ReportQueueEntry> onOpenSent;
+
+  /// 두 열 모든 줄의 `지난 리포트` — 그 회원의 지난 리포트를 연다(#2394).
+  final ValueChanged<ReportQueueEntry> onHistory;
 
   /// 그 주에 나간 기록 — `회원 id → 기록`. 전송 완료 열이 언제 나갔는지,
   /// 회원이 열어 봤는지를 여기서 읽는다.
@@ -256,7 +260,12 @@ class ReportWorkbench extends StatelessWidget {
       empty: empty,
       rows: <Widget>[
         for (final ReportQueueEntry entry in pending)
-          _QueueRow(entry: entry, loading: loading, onTap: () => onOpen(entry)),
+          _QueueRow(
+            entry: entry,
+            loading: loading,
+            onOpen: () => onOpen(entry),
+            onHistory: () => onHistory(entry),
+          ),
       ],
     );
   }
@@ -310,15 +319,21 @@ class ReportWorkbench extends StatelessWidget {
       empty: empty,
       rows: <Widget>[
         for (final ReportQueueEntry entry in done)
-          // 보낸 줄도 누를 수 있다 — 회원이 받은 리포트를 그대로 다시 연다.
-          // 흐리게 깔지 않는다: 이미 끝난 일이지 못 쓰는 줄이 아니다. 미전송
-          // 줄과 같은 흰 카드다 — 옅은 색 타일이면 두 목록이 서로 다른 부품
-          // 으로 보였다(#2397).
+          // 보낸 줄은 `보기` 로 회원이 받은 리포트를 그대로 다시 연다. 흐리게
+          // 깔지 않는다: 이미 끝난 일이지 못 쓰는 줄이 아니다. 미전송 줄과
+          // 같은 흰 카드다 — 옅은 색 타일이면 두 목록이 서로 다른 부품으로
+          // 보였다(#2397). 줄 전체를 누르는 대신 버튼으로만 옮긴다 — 한 줄에
+          // 갈 곳이 둘(`지난 리포트`·`보기`)이 되면서, 줄을 누르면 어디로
+          // 가는지 읽히지 않는다(#2394).
           AppCard(
             key: ValueKey<String>('reports-sent-${entry.client.id}'),
-            onTap: () => onOpenSent(entry),
             padding: _rowPadding,
-            child: _SentRow(entry: entry, record: records[entry.client.id]),
+            child: _SentRow(
+              entry: entry,
+              record: records[entry.client.id],
+              onView: () => onOpenSent(entry),
+              onHistory: () => onHistory(entry),
+            ),
           ),
       ],
       // 열람 여부가 다음 주 순서에 어떻게 쓰이는지 한 줄로 밝힌다 — `안 읽음`
@@ -415,10 +430,21 @@ const EdgeInsets _rowPadding = EdgeInsets.symmetric(
 
 /// 전송 완료 열의 한 줄 — 누구에게, 언제 나갔고, 열어 봤는가.
 class _SentRow extends StatelessWidget {
-  const _SentRow({required this.entry, required this.record});
+  const _SentRow({
+    required this.entry,
+    required this.record,
+    required this.onView,
+    required this.onHistory,
+  });
 
   final ReportQueueEntry entry;
   final ReportSendRecord? record;
+  final VoidCallback onView;
+  final VoidCallback onHistory;
+
+  /// 이름·배지와 두 버튼이 한 줄에 서는 최소 폭. 모자라면 버튼을 아랫줄로
+  /// 내린다 — 이름을 말줄임 한 글자로 줄이지 않는다.
+  static const double _oneLineMinWidth = 380;
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +454,14 @@ class _SentRow extends StatelessWidget {
     final String subtitle = sent == null
         ? l.reportsSentSubtitle
         : l.reportsSentOn(l.dateMonthDay(sent.sentAt.month, sent.sentAt.day));
-    return Row(
+    final Widget buttons = _RowButtons(
+      clientId: entry.client.id,
+      onHistory: onHistory,
+      primaryKey: ValueKey<String>('reports-view-${entry.client.id}'),
+      primaryLabel: l.reportsViewSent,
+      onPrimary: onView,
+    );
+    final Widget identity = Row(
       children: <Widget>[
         ClientAvatar(label: entry.client.avatar, size: OnCareSize.avatarSmall),
         const SizedBox(width: OnCareSpacing.s8),
@@ -465,12 +498,80 @@ class _SentRow extends StatelessWidget {
             tone: sent.read ? AppTagTone.neutral : AppTagTone.danger,
           ),
         ],
-        const SizedBox(width: OnCareSpacing.s4),
-        AppIcon(
-          AppIcon.setOf(context).disclosure,
-          size: OnCareSize.iconSmall,
-          color: OnCareColors.textTertiary,
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= _oneLineMinWidth) {
+          return Row(
+            children: <Widget>[
+              Expanded(child: identity),
+              const SizedBox(width: OnCareSpacing.s8),
+              buttons,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            identity,
+            const SizedBox(height: OnCareSpacing.s8),
+            Align(alignment: AlignmentDirectional.centerEnd, child: buttons),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 작업대 줄 끝의 두 버튼 — `지난 리포트` 와 그 줄의 주 버튼(`열기`·`보기`).
+///
+/// 두 열이 같은 순서·같은 모양이다. `지난 리포트` 는 글자 버튼으로 한 단계
+/// 물러서 있다 — 줄의 일은 이번 주 리포트이고, 지난 것은 곁길이다(#2394).
+class _RowButtons extends StatelessWidget {
+  const _RowButtons({
+    required this.clientId,
+    required this.onHistory,
+    required this.primaryKey,
+    required this.primaryLabel,
+    required this.onPrimary,
+  });
+
+  final String clientId;
+  final VoidCallback onHistory;
+  final Key primaryKey;
+  final String primaryLabel;
+
+  /// null 이면 주 버튼 자리에 불러오는 중 표시가 선다.
+  final VoidCallback? onPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final VoidCallback? primary = onPrimary;
+    // 좁은 폭·큰 글자에서는 두 버튼이 넘치지 않게 아랫줄로 접힌다.
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: OnCareSpacing.s4,
+      runSpacing: OnCareSpacing.s4,
+      children: <Widget>[
+        AppButton(
+          key: ValueKey<String>('reports-history-$clientId'),
+          label: l.reportsHistoryButton,
+          variant: AppButtonVariant.text,
+          size: OnCareButtonSize.small,
+          onPressed: onHistory,
         ),
+        if (primary == null)
+          const AppLoading.inline()
+        else
+          AppButton(
+            key: primaryKey,
+            label: primaryLabel,
+            size: OnCareButtonSize.small,
+            onPressed: primary,
+          ),
       ],
     );
   }
@@ -529,12 +630,14 @@ class _QueueRow extends StatelessWidget {
   const _QueueRow({
     required this.entry,
     required this.loading,
-    required this.onTap,
+    required this.onOpen,
+    required this.onHistory,
   });
 
   final ReportQueueEntry entry;
   final bool loading;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
+  final VoidCallback onHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -543,10 +646,9 @@ class _QueueRow extends StatelessWidget {
     final Widget identity = ClientPickerCard(
       key: ValueKey<String>('report-client-${entry.client.id}'),
       client: entry.client,
-      // 작업대에는 고른 회원이 없다 — 줄을 누르면 곧바로 편집기로 들어가지,
-      // 이 화면에서 골라 둔 채 머무르지 않는다.
+      // 작업대에는 고른 회원이 없다. 이름 칸도 누르지 않는다 — 갈 곳은 줄
+      // 끝의 두 버튼이 말한다(#2394).
       selected: false,
-      onTap: onTap,
     );
     // 그 주를 한 줄로 말하는 자리. 이 줄을 먼저 봐야 하는 이유가 여기 적힌다
     // — 기록이 끊겼다, 노쇼·취소가 잦다, 이행률이 낮다, 주 후반에 무너졌다.
@@ -556,22 +658,17 @@ class _QueueRow extends StatelessWidget {
       runSpacing: OnCareSpacing.s4,
       children: _reasons(l, entry),
     );
-    final Widget action = loading && report == null
-        ? const AppLoading.inline()
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              AppButton(
-                label: l.reportsOpenDraft,
-                size: OnCareButtonSize.small,
-                onPressed: onTap,
-              ),
-            ],
-          );
+    // 지난 리포트는 수치를 기다리지 않는다 — 이번 주 집계와 상관없는 길이다.
+    final Widget action = _RowButtons(
+      clientId: entry.client.id,
+      onHistory: onHistory,
+      primaryKey: ValueKey<String>('reports-open-${entry.client.id}'),
+      primaryLabel: l.reportsOpenDraft,
+      onPrimary: loading && report == null ? null : onOpen,
+    );
 
     return AppCard(
       key: ValueKey<String>('reports-queue-${entry.client.id}'),
-      onTap: onTap,
       padding: _rowPadding,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -617,8 +714,8 @@ class _QueueRow extends StatelessWidget {
   /// 이유 칸이 한 줄에 설 수 있다고 보는 최소 폭.
   static const double _reasonsMinWidth = 260;
 
-  /// `열기` 버튼 자리로 잡아 두는 최소 폭.
-  static const double _actionMinWidth = 200;
+  /// `지난 리포트`·`열기` 버튼 자리로 잡아 두는 최소 폭.
+  static const double _actionMinWidth = 240;
 
   /// 그 주를 설명하는 배지 — 앞에 PT 관리 신호, 뒤에 리포트 고유 신호.
   ///

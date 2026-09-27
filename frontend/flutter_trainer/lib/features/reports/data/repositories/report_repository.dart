@@ -10,8 +10,11 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
+import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
@@ -21,6 +24,9 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+
+/// 회원별 지난 리포트 한 쪽의 주 수 — 서버의 기본값과 같다(#2393).
+const int memberReportHistoryPageSize = 12;
 
 /// Builds and delivers a client's weekly report.
 ///
@@ -85,6 +91,17 @@ abstract interface class ReportRepository {
   /// 하는 근거라, 앱 메모리가 아니라 전송이 남긴 기록에서 읽는다.
   Future<List<ReportSendRecord>> sentReports({required DateTime weekStart});
 
+  /// [clientId] 회원에게 그동안 보낸 리포트 — 최신 주부터 한 쪽. (#2394)
+  ///
+  /// 한 쪽은 [limit] 주다. [before] 를 주면 그 주(제외)보다 오래된 주만 온다 —
+  /// 앞 쪽의 [MemberReportHistoryPage.nextBefore] 를 그대로 넘긴다. 보내지
+  /// 않은 주는 싣지 않는다. 보낸 적이 없으면 빈 쪽이다.
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  });
+
   /// [client] 의 [weekStart] 주에 저장해 둔 피드백 초안. (#821)
   ///
   /// 저장한 적이 없으면 [ReportFeedbackDraft.saved] 가 false 다 — 화면은 그때
@@ -119,11 +136,19 @@ class ReportFeedbackDraft {
 /// Computes the report locally from the drift-backed streams.
 class LocalReportRepository implements ReportRepository {
   /// Creates the local source.
-  const LocalReportRepository(this._schedule, this._chat, this._db);
+  const LocalReportRepository(
+    this._schedule,
+    this._chat,
+    this._db, {
+    this.language = DemoLanguage.ko,
+  });
 
   final ScheduleRepository _schedule;
   final ChatRepository _chat;
   final AppDatabase _db;
+
+  /// 데모 내용의 언어 — 지난 주 데모 리포트의 본문이 이 언어로 선다(#2399).
+  final DemoLanguage language;
 
   @override
   Stream<WeeklyReport> watch({
@@ -285,11 +310,39 @@ class LocalReportRepository implements ReportRepository {
   ///
   /// 데모에는 회원이 없어 읽음 여부를 알 수 없다 — 세션 기록과 같은 값(읽음)
   /// 으로 둬, 새로고침 전후로 표시가 바뀌지 않게 한다.
+  ///
+  /// **지난 주**에는 데모 로스터의 리포트 이력([demoSentReportsForWeek])이
+  /// 함께 선다(#2399) — 석 달 넘게 PT 를 해 온 트레이너의 지난 주가 전부
+  /// 미전송이면 데모가 거짓말을 한다. 실행 중에 그 주로 보낸 것이 있으면 그
+  /// 회원은 실행 중 기록이 이긴다.
   @override
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async {
     final DateTime monday = weekStartOf(weekStart);
+    final List<ReportSendRecord> sent = await _sentAtRuntime(monday);
+    final Set<String> sentIds = <String>{
+      for (final ReportSendRecord r in sent) r.clientId,
+    };
+    final List<TrainerClientRow> roster = await _db
+        .select(_db.trainerClients)
+        .get();
+    return <ReportSendRecord>[
+      ...sent,
+      for (final ReportSendRecord demo in demoSentReportsForWeek(
+        roster: <DemoReportMember>[
+          for (final TrainerClientRow row in roster)
+            (id: row.id, goal: row.goal),
+        ],
+        weekStart: monday,
+        language: language,
+      ))
+        if (!sentIds.contains(demo.clientId)) demo,
+    ];
+  }
+
+  /// 실행 중에 [monday] 주로 보낸 리포트 — 로컬 채팅의 전송 표시가 근거다.
+  Future<List<ReportSendRecord>> _sentAtRuntime(DateTime monday) async {
     final List<AppKeyValue> markers =
         await (_db.select(_db.appKeyValues)..where(
               (t) =>
@@ -330,6 +383,91 @@ class LocalReportRepository implements ReportRepository {
 
   /// [DriftChatRepository] 가 리포트 전송 안내에 남기는 표시의 앞머리.
   static const String _reportMarkerPrefix = 'report_msg_';
+
+  /// 데모 회원의 지난 리포트 이력([demoReportHistoryFor])에 실행 중 보낸
+  /// 것을 얹는다(#2394). 같은 주는 실행 중 기록이 이긴다 — 작업대의 주 단위
+  /// 기록([sentReports])과 같은 규칙이라 두 화면이 같은 주를 다르게 말하지
+  /// 않는다. 피드백 문구는 로스터에 심긴 회원 목표를 따른다.
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async {
+    final TrainerClientRow? row = await (_db.select(
+      _db.trainerClients,
+    )..where((t) => t.id.equals(clientId))).getSingleOrNull();
+    final Map<String, MemberReportHistoryItem> byWeek =
+        <String, MemberReportHistoryItem>{
+          for (final DemoReportWeek week in demoReportHistoryFor(
+            clientId: clientId,
+            goal: row?.goal ?? '',
+            language: language,
+          ))
+            if (week.record case final ReportSendRecord record)
+              ymd(week.weekStart): MemberReportHistoryItem.fromRecord(record),
+        };
+    for (final ReportSendRecord record in await _sentAtRuntimeFor(clientId)) {
+      byWeek[ymd(record.weekStart)] = MemberReportHistoryItem.fromRecord(
+        record,
+      );
+    }
+    final DateTime? cutoff = before == null ? null : weekStartOf(before);
+    final List<MemberReportHistoryItem> all = <MemberReportHistoryItem>[
+      for (final MemberReportHistoryItem item in byWeek.values)
+        if (cutoff == null || item.weekStart.isBefore(cutoff)) item,
+    ]..sort((a, b) => b.weekStart.compareTo(a.weekStart));
+    final int size = limit < 1 ? 1 : limit;
+    final List<MemberReportHistoryItem> page = all.take(size).toList();
+    return MemberReportHistoryPage(
+      items: page,
+      nextBefore: all.length > size ? page.last.weekStart : null,
+    );
+  }
+
+  /// 실행 중에 [clientId] 에게 보낸 리포트를 주마다 하나씩 — 가장 최근 전송과
+  /// 그 주에 보낸 횟수. [_sentAtRuntime] 을 회원 하나로 좁힌 것이다.
+  Future<List<ReportSendRecord>> _sentAtRuntimeFor(String clientId) async {
+    final List<AppKeyValue> markers = await (_db.select(
+      _db.appKeyValues,
+    )..where((t) => t.key.like('$_reportMarkerPrefix%'))).get();
+    final Map<String, String> weekOf = <String, String>{
+      for (final AppKeyValue m in markers)
+        if (!m.key.substring(_reportMarkerPrefix.length).startsWith('seed-'))
+          m.key.substring(_reportMarkerPrefix.length): m.value,
+    };
+    if (weekOf.isEmpty) return const <ReportSendRecord>[];
+    final List<ClientChatMessageRow> rows =
+        await (_db.select(_db.clientChatMessages)
+              ..where(
+                (t) =>
+                    t.id.isIn(weekOf.keys) &
+                    t.clientId.equals(clientId) &
+                    t.sender.equals('trainer'),
+              )
+              ..orderBy(<OrderingTerm Function($ClientChatMessagesTable)>[
+                (t) => OrderingTerm.desc(t.createdAt),
+              ]))
+            .get();
+    final latest = <String, ClientChatMessageRow>{};
+    final counts = <String, int>{};
+    for (final ClientChatMessageRow row in rows) {
+      final String? week = weekOf[row.id];
+      if (week == null || DateTime.tryParse(week) == null) continue;
+      latest.putIfAbsent(week, () => row);
+      counts[week] = (counts[week] ?? 0) + 1;
+    }
+    return <ReportSendRecord>[
+      for (final MapEntry<String, ClientChatMessageRow> e in latest.entries)
+        ReportSendRecord(
+          clientId: clientId,
+          weekStart: weekStartOf(DateTime.parse(e.key)),
+          sentAt: e.value.createdAt,
+          message: e.value.body,
+          sendCount: counts[e.key] ?? 1,
+        ),
+    ];
+  }
 
   @override
   Future<ReportFeedbackDraft> feedbackDraft({
@@ -536,6 +674,30 @@ class DioReportRepository implements ReportRepository {
   }
 
   @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/reports/sent',
+        queryParameters: <String, String>{
+          'limit': '$limit',
+          if (before != null) 'before': ymd(weekStartOf(before)),
+        },
+      );
+      final json = res.data;
+      if (json == null) throw const ServerError();
+      return memberReportHistoryFromJson(json);
+    } on DioException catch (e) {
+      // 빈 이력으로 삼키지 않는다 — `보낸 적 없음` 과 `못 읽음` 은 다르다.
+      // 화면이 실패를 알고 다시 시도를 세운다.
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
   Future<ReportFeedbackDraft> feedbackDraft({
     required TrainerClient client,
     required DateTime weekStart,
@@ -709,6 +871,47 @@ DateTime _kstWallClock(DateTime t) {
   );
 }
 
+/// Decodes `MemberReportSendsOut`. (#2393, #2394)
+///
+/// 주·보낸 시각을 읽지 못한 줄은 버린다 — 언제 보낸 어느 주인지 모르는
+/// 기록으로 줄을 세우지 않는다. 줄은 최신 주부터 다시 세운다. `next_before`
+/// 가 없거나 깨졌으면 더 불러올 쪽이 없는 것으로 읽는다.
+MemberReportHistoryPage memberReportHistoryFromJson(Map<String, dynamic> json) {
+  final Object? sends = json['sends'];
+  final List<MemberReportHistoryItem> items = <MemberReportHistoryItem>[
+    if (sends is List)
+      for (final Object? item in sends)
+        if (item is Map<String, dynamic>) ?_memberReportSendFromJson(item),
+  ]..sort((a, b) => b.weekStart.compareTo(a.weekStart));
+  final DateTime? next = _parseDay(json['next_before']);
+  return MemberReportHistoryPage(
+    items: items,
+    nextBefore: next == null ? null : weekStartOf(next),
+  );
+}
+
+MemberReportHistoryItem? _memberReportSendFromJson(Map<String, dynamic> json) {
+  final DateTime? week = _parseDay(json['week_start']);
+  if (week == null) return null;
+  final Object? rawSentAt = json['sent_at'];
+  final DateTime? sentAt = rawSentAt is String
+      ? DateTime.tryParse(rawSentAt)
+      : null;
+  if (sentAt == null) return null;
+  final Object? preview = json['feedback_preview'];
+  final Object? count = json['send_count'];
+  final Object? messageId = json['message_id'];
+  return MemberReportHistoryItem(
+    weekStart: weekStartOf(week),
+    sentAt: _kstWallClock(sentAt),
+    read: json['read'] == true,
+    sendCount: count is num && count >= 1 ? count.toInt() : 1,
+    feedbackPreview: preview is String ? preview : '',
+    messageId: messageId is String && messageId.isNotEmpty ? messageId : null,
+    hasPdf: json['has_pdf'] == true,
+  );
+}
+
 /// Decodes `MemberWeeklyFeedbackOut`. 답이 없으면 null. (#2286)
 ///
 /// `submitted` 가 false 면 서버가 기본값(빈 문자열)을 채워 보낸다 — 그 값을
@@ -746,6 +949,7 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
       ref.watch(scheduleRepositoryProvider),
       ref.watch(chatRepositoryProvider),
       ref.watch(appDatabaseProvider),
+      language: ref.watch(demoLanguageProvider),
     );
   }
   return DioReportRepository(ref.watch(dioProvider));

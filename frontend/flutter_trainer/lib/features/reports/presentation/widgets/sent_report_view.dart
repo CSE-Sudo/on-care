@@ -19,6 +19,8 @@ class SentReportView extends StatelessWidget {
     required this.record,
     required this.onBack,
     required this.onRewrite,
+    this.onHistory,
+    this.backLabel,
   });
 
   /// 그 주의 수치.
@@ -27,11 +29,18 @@ class SentReportView extends StatelessWidget {
   /// 무엇을 언제 보냈는가.
   final ReportSendRecord record;
 
-  /// 작업대로 돌아간다.
+  /// 들어온 곳으로 돌아간다 — 작업대, 또는 그 회원의 지난 리포트(#2394).
   final VoidCallback onBack;
 
   /// 이 내용으로 편집기를 다시 연다.
   final VoidCallback onRewrite;
+
+  /// 이 회원의 지난 리포트를 연다(#2394). null 이면 링크를 두지 않는다 —
+  /// 지난 리포트에서 들어왔으면 돌아가기가 이미 그곳으로 간다.
+  final VoidCallback? onHistory;
+
+  /// 돌아가기 버튼의 글. 비우면 작업대로 돌아가는 글이다.
+  final String? backLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +54,7 @@ class SentReportView extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: AppButton(
               key: const ValueKey<String>('reports-sent-back'),
-              label: l.reportsBackToWorkbench,
+              label: backLabel ?? l.reportsBackToWorkbench,
               variant: AppButtonVariant.text,
               leadingIcon: Icons.chevron_left_rounded,
               onPressed: onBack,
@@ -77,6 +86,16 @@ class SentReportView extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (onHistory case final VoidCallback openHistory) ...<Widget>[
+                  AppButton(
+                    key: const ValueKey<String>('reports-sent-history'),
+                    label: l.reportsHistoryButton,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    onPressed: openHistory,
+                  ),
+                  const SizedBox(width: OnCareSpacing.s4),
+                ],
                 AppButton(
                   key: const ValueKey<String>('reports-sent-rewrite'),
                   label: l.reportsSentRewrite,

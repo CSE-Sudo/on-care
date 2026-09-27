@@ -23,7 +23,8 @@ enum ReportEditorStage {
   /// ② 작성 — 회원에게 보낼 글을 쓴다. 요약에서 출발할 수 있다.
   write,
 
-  /// ③ 전송 — 다 쓴 글을 회원에게 내보낸다.
+  /// ③ 전송 — 회원이 받을 PDF 를 확인하고 내보낸다. 이 위젯이 아니라
+  /// 전송 미리보기(`ReportSendPreview`)가 그린다(#2402).
   send,
 }
 
@@ -128,7 +129,6 @@ class _ClientReportViewState extends State<ClientReportView> {
     final ReportEditorStage? stage = widget.stage;
     final bool showReview = stage == null || stage == ReportEditorStage.review;
     final bool showWrite = stage == null || stage == ReportEditorStage.write;
-    final bool showSend = stage == null || stage == ReportEditorStage.send;
     // 단계가 있는 편집기인지. 없으면 한 화면에 전부 펼치던 예전 흐름이다.
     final bool staged = stage != null;
     return Column(
@@ -169,20 +169,19 @@ class _ClientReportViewState extends State<ClientReportView> {
               ],
             ),
           ),
-        // 요약 카드는 ② 작성과 ③ 전송 두 단계에 선다. 같은 카드의
-        // `피드백으로 가져오기` 가 ② 에서는 글을 쓰기 시작하는 출발점이고,
-        // ③ 에서는 보내기 직전에 글을 다시 맞춰 보는 재료다.
-        if ((showWrite || (showSend && staged)) &&
-            (widget.showSummary || staged)) ...<Widget>[
+        // 요약 카드는 ② 작성에 선다. `피드백으로 가져오기` 가 글을 쓰기
+        // 시작하는 출발점이다. ③ 전송은 회원이 받을 PDF 만 보여 준다(#2402).
+        if (showWrite && (widget.showSummary || staged)) ...<Widget>[
           if (stage == null) const SizedBox(height: OnCareSpacing.s16),
           ReportAiCard(
             report: widget.report,
             onUseAsDraft: widget.onUseSummaryAsDraft,
           ),
         ],
-        // 입력창은 **작성** 단계에 선다. 전송 단계에도 남겨 두어 보내기
-        // 직전에 고칠 수 있다. (#2232)
-        if (showWrite || showSend) ...<Widget>[
+        // 입력창은 **작성** 단계에만 선다. ③ 전송에서 글을 고치려면 `이전` 으로
+        // 돌아온다 — 보내기 직전의 화면이 회원이 받을 모습과 달라지지 않게
+        // (#2232, #2402).
+        if (showWrite) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
           _SectionCard(
             title: l.reportsFeedbackTitle,

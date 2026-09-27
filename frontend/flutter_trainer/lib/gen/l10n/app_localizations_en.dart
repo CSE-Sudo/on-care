@@ -4496,6 +4496,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSentRewrite => 'Rewrite from this';
 
   @override
+  String get reportsHistoryButton => 'Past reports';
+
+  @override
+  String get reportsViewSent => 'View';
+
+  @override
+  String reportsHistoryTitle(String name) {
+    return '$name\'s past reports';
+  }
+
+  @override
+  String get reportsHistoryBack => 'Past reports';
+
+  @override
+  String get reportsHistoryUnsent => 'Not sent';
+
+  @override
+  String get reportsHistoryThisWeek => 'This week';
+
+  @override
+  String get reportsHistoryEmpty => 'No reports sent yet';
+
+  @override
+  String get reportsHistoryLoadFailed => 'Couldn\'t load past reports';
+
+  @override
+  String get reportsHistoryMore => 'Load more';
+
+  @override
+  String get reportsHistoryMoreFailed =>
+      'Couldn\'t load more. Tap to try again.';
+
+  @override
+  String reportsHistorySendCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sent $count times',
+      one: 'Sent once',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportsHistoryPdf => 'PDF';
+
+  @override
   String get reportsResendTitle => 'Already sent';
 
   @override
@@ -4533,6 +4580,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsStepPrev => 'Back';
+
+  @override
+  String get reportsPreviewTitle => 'What the member receives';
+
+  @override
+  String get reportsPreviewRecipient => 'To';
+
+  @override
+  String get reportsPreviewWeek => 'Week';
+
+  @override
+  String reportsPreviewDelivery(String name) {
+    return 'Sent to $name\'s chat as a PDF file';
+  }
+
+  @override
+  String get reportsPreviewEditHint =>
+      'To change the text, tap Back to return to the Write step';
+
+  @override
+  String get reportsPreviewGenerating => 'Preparing the preview';
+
+  @override
+  String get reportsPreviewFailed => 'Couldn\'t prepare the preview';
+
+  @override
+  String reportsPreviewPage(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
+  String get reportsPreviewPrevPage => 'Previous page';
+
+  @override
+  String get reportsPreviewNextPage => 'Next page';
+
+  @override
+  String get reportsPreviewZoomIn => 'Zoom in';
+
+  @override
+  String get reportsPreviewZoomOut => 'Zoom out';
 
   @override
   String get reportsGridPtSession => 'PT sessions';

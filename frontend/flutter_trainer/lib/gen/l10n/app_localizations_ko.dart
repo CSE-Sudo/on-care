@@ -4290,6 +4290,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSentRewrite => '이 내용으로 다시 작성';
 
   @override
+  String get reportsHistoryButton => '지난 리포트';
+
+  @override
+  String get reportsViewSent => '보기';
+
+  @override
+  String reportsHistoryTitle(String name) {
+    return '$name님의 지난 리포트';
+  }
+
+  @override
+  String get reportsHistoryBack => '지난 리포트';
+
+  @override
+  String get reportsHistoryUnsent => '미전송';
+
+  @override
+  String get reportsHistoryThisWeek => '이번 주';
+
+  @override
+  String get reportsHistoryEmpty => '아직 보낸 리포트가 없어요';
+
+  @override
+  String get reportsHistoryLoadFailed => '지난 리포트를 불러오지 못했어요';
+
+  @override
+  String get reportsHistoryMore => '더 보기';
+
+  @override
+  String get reportsHistoryMoreFailed => '더 불러오지 못했어요. 다시 눌러 주세요.';
+
+  @override
+  String reportsHistorySendCount(int count) {
+    return '$count번 보냄';
+  }
+
+  @override
+  String get reportsHistoryPdf => 'PDF';
+
+  @override
   String get reportsResendTitle => '이미 보낸 리포트예요';
 
   @override
@@ -4327,6 +4367,46 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsStepPrev => '이전';
+
+  @override
+  String get reportsPreviewTitle => '회원이 받는 리포트';
+
+  @override
+  String get reportsPreviewRecipient => '받는 사람';
+
+  @override
+  String get reportsPreviewWeek => '대상 주';
+
+  @override
+  String reportsPreviewDelivery(String name) {
+    return '$name님 채팅으로 PDF 파일이 전송돼요';
+  }
+
+  @override
+  String get reportsPreviewEditHint => '글을 고치려면 이전을 눌러 작성 단계로 돌아가세요';
+
+  @override
+  String get reportsPreviewGenerating => '미리보기를 만드는 중이에요';
+
+  @override
+  String get reportsPreviewFailed => '미리보기를 만들지 못했어요';
+
+  @override
+  String reportsPreviewPage(int current, int total) {
+    return '$current / $total쪽';
+  }
+
+  @override
+  String get reportsPreviewPrevPage => '이전 쪽';
+
+  @override
+  String get reportsPreviewNextPage => '다음 쪽';
+
+  @override
+  String get reportsPreviewZoomIn => '확대';
+
+  @override
+  String get reportsPreviewZoomOut => '축소';
 
   @override
   String get reportsGridPtSession => 'PT 세션';
