@@ -5903,7 +5903,10 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
     """한국어 본문. 헤더가 없는 요청과 한국어 화면이 받는 지금까지의 문장이다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
-    good = (report.completion_avg or 0) >= 70 and report.sodium_over_days <= 2
+    good = (
+        (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
+        and report.sodium_over_days <= 2
+    )
     period = f"{start.month}월 {start.day}일 – {end.month}월 {end.day}일"
 
     paragraphs: list[str] = [
@@ -5916,11 +5919,15 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
     if report.completion_avg is not None:
         # `이번 주` 로 시작하지 않는다 — 지난 주 리포트에도 그대로 나가는
         # 문장이고, 어느 주인지는 첫 줄의 날짜 범위가 이미 말한다(#1177).
-        workout.append(
-            f"운동은 평균 {report.completion_avg}%로 잘 따라오셨어요."
-            if report.completion_avg >= 70
-            else f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
-        )
+        # 좋음·보통·낮음 세 구간 — 75% 에게 "잘 따라오셨어요" 도, "많이
+        # 바쁘셨나 봐요" 도 맞지 않는다(#2345).
+        if report.completion_avg >= client_signals.COMPLETION_GOOD_PERCENT:
+            line = f"운동은 평균 {report.completion_avg}%로 잘 따라오셨어요."
+        elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
+            line = f"운동은 평균 {report.completion_avg}%로 꾸준히 해 주셨어요."
+        else:
+            line = f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
+        workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
         workout.append(
@@ -5977,7 +5984,10 @@ def _report_message_en(report: WeeklyReportOut) -> str:
     """영어 본문. 한국어 본문과 같은 문단·같은 판정이고 문장만 영어다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
-    good = (report.completion_avg or 0) >= 70 and report.sodium_over_days <= 2
+    good = (
+        (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
+        and report.sodium_over_days <= 2
+    )
     # 트레이너 웹 `dateMonthDay`·`dateRange` 와 같은 모양(`8/10 – 8/16`).
     period = f"{start.month}/{start.day} – {end.month}/{end.day}"
 
@@ -5987,12 +5997,16 @@ def _report_message_en(report: WeeklyReportOut) -> str:
 
     workout: list[str] = []
     if report.completion_avg is not None:
-        workout.append(
-            f"You kept up well — {report.completion_avg}% of your workouts done."
-            if report.completion_avg >= 70
-            else f"Workout completion came in at {report.completion_avg}%. "
-            "Sounds like a busy week."
-        )
+        if report.completion_avg >= client_signals.COMPLETION_GOOD_PERCENT:
+            line = f"You kept up well — {report.completion_avg}% of your workouts done."
+        elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
+            line = f"You stayed steady — {report.completion_avg}% of your workouts done."
+        else:
+            line = (
+                f"Workout completion came in at {report.completion_avg}%. "
+                "Sounds like a busy week."
+            )
+        workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
         workout.append(

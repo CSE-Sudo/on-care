@@ -131,7 +131,7 @@ void main() {
 
       expect(_row(tester, 0), <String>['달성', '저녁 단백질 챙기기', '110 / 120g']);
       expect(_row(tester, 1), <String>['절반', '나트륨 줄이기', '2300 / 2000mg']);
-      expect(_row(tester, 2), <String>['미달', '주 3회 운동', '20 / 70%']);
+      expect(_row(tester, 2), <String>['미달', '주 3회 운동', '20 / 80%']);
       // 수치로 볼 수 없는 목표에는 근거를 지어내지 않는다.
       expect(_row(tester, 3), <String>['직접 확인', '물 2L 마시기']);
     });
@@ -186,7 +186,7 @@ void main() {
 
       expect(_row(tester, 0), <String>['Met', '저녁 단백질 챙기기', '110 / 120g']);
       expect(_row(tester, 1), <String>['Partly', '나트륨 줄이기', '2300 / 2000mg']);
-      expect(_row(tester, 2), <String>['Missed', '주 3회 운동', '20 / 70%']);
+      expect(_row(tester, 2), <String>['Missed', '주 3회 운동', '20 / 80%']);
       expect(_row(tester, 3), <String>['Check yourself', '물 2L 마시기']);
       expect(find.text('1 / 4 met'), findsOneWidget);
       expect(find.text("· Judged from this week's records"), findsOneWidget);

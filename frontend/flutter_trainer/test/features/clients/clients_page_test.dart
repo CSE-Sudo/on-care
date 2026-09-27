@@ -590,6 +590,9 @@ void main() {
         find.byKey(const ValueKey<String>('client-seed-client-2')),
         findsNothing,
       );
+      // 걸러져 있으면 부제가 전체 중 보이는 수를 적는다 — 필터를 풀어도
+      // 첫 화면이 같아, 숫자가 아니면 `×` 가 한 일이 드러나지 않았다(#2365).
+      expect(find.textContaining(RegExp(r'^15명 중 \d+명$')), findsOneWidget);
       // 주의 회원으로 들어오면 막대 아래에 가장 급한 주의 신호 하나가 붙는다.
       expect(
         tester
@@ -611,6 +614,8 @@ void main() {
 
       expect(currentLocation(tester), AppRoutes.clients);
       expect(clear, findsNothing);
+      expect(find.textContaining('명 중'), findsNothing);
+      expect(find.text('15명'), findsWidgets);
       // 필터가 풀리면 걸린 이유도 사라지고 막대만 남는다.
       expect(find.byType(AppTag), findsNothing);
       await scrollToClient(tester, find.text('이지수'));

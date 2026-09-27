@@ -32,7 +32,6 @@ LOGGER = "app.services.coach.chat"
 #: 로그에 절대 나오면 안 되는 값들 — 프롬프트·건강정보·질문·키.
 SECRET_MESSAGE = "무릎 수술 뒤 재활 중인데 스쿼트 해도 되나요 1559"
 SECRET_CONDITION = "당뇨전단계-1559-민감"
-SECRET_GOAL = "체지방 18퍼센트-1559"
 SECRET_KEY = "sk-live-1559-DO-NOT-LOG"
 
 
@@ -89,7 +88,7 @@ def member(db_session) -> Iterator[User]:
     db_session.add(user)
     db_session.flush()
     db_session.add(
-        HealthProfile(user_id=user.id, conditions=SECRET_CONDITION, goals=SECRET_GOAL)
+        HealthProfile(user_id=user.id, conditions=SECRET_CONDITION)
     )
     db_session.commit()
     yield user
@@ -113,7 +112,7 @@ def _assert_no_sensitive(caplog, *extra: str) -> None:
     rendered = caplog.text + "".join(
         str(getattr(r, "__dict__", {})) for r in caplog.records
     )
-    for secret in (SECRET_MESSAGE, SECRET_CONDITION, SECRET_GOAL, SECRET_KEY, *extra):
+    for secret in (SECRET_MESSAGE, SECRET_CONDITION, SECRET_KEY, *extra):
         assert secret not in rendered, secret
 
 

@@ -24,7 +24,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scheduleStatusNoShow => '노쇼';
 
   @override
-  String get schedCancel => '취소 처리';
+  String get schedCancel => '취소';
 
   @override
   String get schedNoShow => '노쇼 처리';
@@ -522,6 +522,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$total명 중 $shown명';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => '주간 이행률';
 
   @override
@@ -861,6 +866,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientDietMacrosMissing => '탄·단·지 기록 없음';
+
+  @override
+  String get clientDietTotalCalories => '총 칼로리';
+
+  @override
+  String get clientDietDayTotal => '하루 합계';
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
 
   @override
   String get metricCarbs => '탄수화물';
@@ -1218,11 +1234,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String dietSodiumValue(int value) {
-    return '나트륨 ${value}mg';
-  }
-
-  @override
   String get aiAnalysis => 'AI 분석';
 
   @override
@@ -1515,24 +1526,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsSendStateSent => '전송됨';
-
-  @override
-  String get reportsSendStateSending => '전송 중…';
-
-  @override
-  String get reportsShare => '공유';
-
-  @override
-  String reportsShareSendTo(String name) {
-    return '$name님에게 전송';
-  }
-
-  @override
-  String get reportsShareNeedsFeedback => '피드백을 입력하면 전송할 수 있어요';
-
-  @override
-  String get reportsShareNoClient => '리포트를 볼 회원을 먼저 선택해 주세요';
+  String get reportsSendNeedsFeedback => '피드백을 입력하면 전송할 수 있어요';
 
   @override
   String reportBodyGreeting(String name, String range) {
@@ -1542,6 +1536,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return '운동은 평균 $avg%로 잘 따라오셨어요.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return '운동은 평균 $avg%로 꾸준히 해 주셨어요.';
   }
 
   @override
@@ -3363,22 +3362,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTaskUncheckConfirm => '완료 취소';
 
   @override
-  String get churnNoRecentWorkout => '최근 7일 운동 기록 없음';
-
-  @override
   String get churnNoRecentFeedback => '최근 7일 트레이너 피드백 없음';
-
-  @override
-  String get churnConsecutiveCancel => 'PT 2회 연속 취소·노쇼';
-
-  @override
-  String get churnDietStopped => '식단 기록 중단';
-
-  @override
-  String get churnGoalStagnant => '목표 지표 장기간 정체';
-
-  @override
-  String get churnUnresolvedRequest => '미응답 메시지 있음';
 
   @override
   String get navMessages => '메시지';
@@ -3999,50 +3983,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.';
 
   @override
-  String get reportsPdfLabel => 'PDF 내보내기';
-
-  @override
-  String get reportsPdfGenerating => 'PDF 생성 중…';
-
-  @override
   String get reportsPdfGenerationFailed => 'PDF를 생성하지 못했어요. 다시 시도해 주세요.';
-
-  @override
-  String reportsPdfReady(String name) {
-    return '$name님의 주간 리포트가 준비됐어요.';
-  }
-
-  @override
-  String get reportsPdfSending => '전송 중…';
-
-  @override
-  String get reportsPdfSendToClient => '회원에게 전송';
-
-  @override
-  String get reportsPdfSave => 'PDF 저장';
-
-  @override
-  String get reportsPdfPrint => '인쇄';
-
-  @override
-  String get reportsPdfClose => '닫기';
-
-  @override
-  String get reportsPdfActionFailed => '작업을 완료하지 못했어요. 다시 시도해 주세요.';
-
-  @override
-  String reportsPdfSent(String name) {
-    return '$name님에게 PDF를 전송했어요.';
-  }
-
-  @override
-  String get reportsPdfSaveStarted => 'PDF 저장을 시작했어요.';
-
-  @override
-  String get reportsPdfPrintOpened => '인쇄 창을 열었어요.';
-
-  @override
-  String get reportsPdfMessage => '이번 주 리포트를 보내드려요.';
 
   @override
   String get reportsPdfFallbackClient => '회원';

@@ -5,7 +5,7 @@
   "scheduleStatusDone": "완료",
   "scheduleStatusCancelled": "취소",
   "scheduleStatusNoShow": "노쇼",
-  "schedCancel": "취소 처리",
+  "schedCancel": "취소",
   "schedNoShow": "노쇼 처리",
   "schedCancelTitle": "이 PT를 취소할까요?",
   "schedCancelConfirm": "{time} {name} 님 PT가 취소로 기록됩니다. 일정은 지워지지 않아요.",
@@ -199,6 +199,7 @@
   "clientsEmpty": "아직 담당 회원이 없어요",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
   "clientsMemberCount": "{total}명",
+  "clientsMemberCountFiltered": "{total}명 중 {shown}명",
   "clientWeeklyRoutineAdherence": "주간 이행률",
   "clientRoutineAdherenceUnmeasured": "미집계",
   "clientsSignalDiscomfort": "통증·불편",
@@ -329,6 +330,20 @@
   "metricSodium": "나트륨",
   "metricSugar": "당류",
   "clientDietMacrosMissing": "탄·단·지 기록 없음",
+  "clientDietTotalCalories": "총 칼로리",
+  "clientDietDayTotal": "하루 합계",
+  "clientDietMacroShare": "{name} {percent}%",
+  "@clientDietMacroShare": {
+    "description": "끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "metricCarbs": "탄수화물",
   "metricProtein": "단백질",
   "metricFat": "지방",
@@ -493,7 +508,6 @@
       }
     }
   },
-  "dietSodiumValue": "나트륨 {value}mg",
   "aiAnalysis": "AI 분석",
   "aiPeriodAnalysis": "AI 기간 분석",
   "aiAllAnalysis": "AI 전체 분석",
@@ -631,21 +645,10 @@
       }
     }
   },
-  "reportsSendStateSent": "전송됨",
-  "reportsSendStateSending": "전송 중…",
-  "reportsShare": "공유",
-  "reportsShareSendTo": "{name}님에게 전송",
-  "@reportsShareSendTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsShareNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
-  "reportsShareNoClient": "리포트를 볼 회원을 먼저 선택해 주세요",
+  "reportsSendNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
+  "reportBodyCompletionSteady": "운동은 평균 {avg}%로 꾸준히 해 주셨어요.",
   "reportBodyCompletionLow": "운동 이행률은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
   "reportBodySilentDays": "{days}에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.",
   "@reportBodySilentDays": {
@@ -1343,12 +1346,7 @@
   "dashTaskUncheckTitle": "'{name}' 완료를 취소할까요?",
   "dashTaskUncheckBody": "할 일 진행률에서도 빠져요.",
   "dashTaskUncheckConfirm": "완료 취소",
-  "churnNoRecentWorkout": "최근 7일 운동 기록 없음",
   "churnNoRecentFeedback": "최근 7일 트레이너 피드백 없음",
-  "churnConsecutiveCancel": "PT 2회 연속 취소·노쇼",
-  "churnDietStopped": "식단 기록 중단",
-  "churnGoalStagnant": "목표 지표 장기간 정체",
-  "churnUnresolvedRequest": "미응답 메시지 있음",
   "navMessages": "메시지",
   "messagesSubtitle": "회원과 코칭 내용을 주고받고 빠르게 후속 조치하세요",
   "messagesLoadFailed": "대화 목록을 불러오지 못했어요.",
@@ -1700,34 +1698,7 @@
   "reportsAiUseAsDraft": "피드백으로 가져오기",
   "reportsAiRegenerate": "다시 생성",
   "reportsAiUnavailable": "실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.",
-  "reportsPdfLabel": "PDF 내보내기",
-  "reportsPdfGenerating": "PDF 생성 중…",
   "reportsPdfGenerationFailed": "PDF를 생성하지 못했어요. 다시 시도해 주세요.",
-  "reportsPdfReady": "{name}님의 주간 리포트가 준비됐어요.",
-  "@reportsPdfReady": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSending": "전송 중…",
-  "reportsPdfSendToClient": "회원에게 전송",
-  "reportsPdfSave": "PDF 저장",
-  "reportsPdfPrint": "인쇄",
-  "reportsPdfClose": "닫기",
-  "reportsPdfActionFailed": "작업을 완료하지 못했어요. 다시 시도해 주세요.",
-  "reportsPdfSent": "{name}님에게 PDF를 전송했어요.",
-  "@reportsPdfSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSaveStarted": "PDF 저장을 시작했어요.",
-  "reportsPdfPrintOpened": "인쇄 창을 열었어요.",
-  "reportsPdfMessage": "이번 주 리포트를 보내드려요.",
   "reportsPdfFallbackClient": "회원",
   "reportsPdfDocTitle": "주간 코칭 리포트",
   "reportsPdfDocTitleContinued": "주간 코칭 리포트 (계속)",

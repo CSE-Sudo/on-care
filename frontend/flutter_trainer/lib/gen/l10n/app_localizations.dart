@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel session'**
+  /// **'Cancel'**
   String get schedCancel;
 
   /// No description provided for @schedNoShow.
@@ -1052,6 +1052,12 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// Roster subtitle while a dashboard preset or management filter narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} members'**
+  String clientsMemberCountFiltered(int shown, int total);
+
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
   /// In en, this message translates to:
@@ -1687,6 +1693,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No carbs/protein/fat recorded'**
   String get clientDietMacrosMissing;
+
+  /// No description provided for @clientDietTotalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Total calories'**
+  String get clientDietTotalCalories;
+
+  /// No description provided for @clientDietDayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Day total'**
+  String get clientDietDayTotal;
+
+  /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
+  ///
+  /// In en, this message translates to:
+  /// **'{name} {percent}%'**
+  String clientDietMacroShare(String name, int percent);
 
   /// No description provided for @metricCarbs.
   ///
@@ -2330,12 +2354,6 @@ abstract class AppLocalizations {
   /// **'{amount} remaining to the goal'**
   String dietAmountRemaining(String amount);
 
-  /// No description provided for @dietSodiumValue.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium {value}mg'**
-  String dietSodiumValue(int value);
-
   /// No description provided for @aiAnalysis.
   ///
   /// In en, this message translates to:
@@ -2810,41 +2828,11 @@ abstract class AppLocalizations {
   /// **'{amount} {unit} over goal'**
   String chartOverGoal(String amount, String unit);
 
-  /// No description provided for @reportsSendStateSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent'**
-  String get reportsSendStateSent;
-
-  /// No description provided for @reportsSendStateSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsSendStateSending;
-
-  /// No description provided for @reportsShare.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get reportsShare;
-
-  /// No description provided for @reportsShareSendTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to {name}'**
-  String reportsShareSendTo(String name);
-
-  /// No description provided for @reportsShareNeedsFeedback.
+  /// No description provided for @reportsSendNeedsFeedback.
   ///
   /// In en, this message translates to:
   /// **'Write feedback first to send it.'**
-  String get reportsShareNeedsFeedback;
-
-  /// No description provided for @reportsShareNoClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a member to see their report first.'**
-  String get reportsShareNoClient;
+  String get reportsSendNeedsFeedback;
 
   /// No description provided for @reportBodyGreeting.
   ///
@@ -2857,6 +2845,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You kept up well — {avg}% of your workouts done.'**
   String reportBodyCompletionGood(int avg);
+
+  /// No description provided for @reportBodyCompletionSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'You stayed steady — {avg}% of your workouts done.'**
+  String reportBodyCompletionSteady(int avg);
 
   /// No description provided for @reportBodyCompletionLow.
   ///
@@ -6110,41 +6104,11 @@ abstract class AppLocalizations {
   /// **'Undo completion'**
   String get dashTaskUncheckConfirm;
 
-  /// No description provided for @churnNoRecentWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'No workout logged in 7 days'**
-  String get churnNoRecentWorkout;
-
   /// No description provided for @churnNoRecentFeedback.
   ///
   /// In en, this message translates to:
   /// **'No trainer feedback in 7 days'**
   String get churnNoRecentFeedback;
-
-  /// No description provided for @churnConsecutiveCancel.
-  ///
-  /// In en, this message translates to:
-  /// **'2 consecutive cancellations/no-shows'**
-  String get churnConsecutiveCancel;
-
-  /// No description provided for @churnDietStopped.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet logging stopped'**
-  String get churnDietStopped;
-
-  /// No description provided for @churnGoalStagnant.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal metric stagnant long-term'**
-  String get churnGoalStagnant;
-
-  /// No description provided for @churnUnresolvedRequest.
-  ///
-  /// In en, this message translates to:
-  /// **'Unanswered message'**
-  String get churnUnresolvedRequest;
 
   /// No description provided for @navMessages.
   ///
@@ -7228,89 +7192,11 @@ abstract class AppLocalizations {
   /// **'Available after the report summary API is connected. No summary is generated now.'**
   String get reportsAiUnavailable;
 
-  /// No description provided for @reportsPdfLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Export PDF'**
-  String get reportsPdfLabel;
-
-  /// No description provided for @reportsPdfGenerating.
-  ///
-  /// In en, this message translates to:
-  /// **'Generating PDF…'**
-  String get reportsPdfGenerating;
-
   /// No description provided for @reportsPdfGenerationFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t generate the PDF. Please try again.'**
   String get reportsPdfGenerationFailed;
-
-  /// No description provided for @reportsPdfReady.
-  ///
-  /// In en, this message translates to:
-  /// **'{name}\'s weekly report is ready.'**
-  String reportsPdfReady(String name);
-
-  /// No description provided for @reportsPdfSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsPdfSending;
-
-  /// No description provided for @reportsPdfSendToClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to member'**
-  String get reportsPdfSendToClient;
-
-  /// No description provided for @reportsPdfSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save PDF'**
-  String get reportsPdfSave;
-
-  /// No description provided for @reportsPdfPrint.
-  ///
-  /// In en, this message translates to:
-  /// **'Print'**
-  String get reportsPdfPrint;
-
-  /// No description provided for @reportsPdfClose.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get reportsPdfClose;
-
-  /// No description provided for @reportsPdfActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete the action. Please try again.'**
-  String get reportsPdfActionFailed;
-
-  /// No description provided for @reportsPdfSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent the PDF to {name}.'**
-  String reportsPdfSent(String name);
-
-  /// No description provided for @reportsPdfSaveStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Started saving the PDF.'**
-  String get reportsPdfSaveStarted;
-
-  /// No description provided for @reportsPdfPrintOpened.
-  ///
-  /// In en, this message translates to:
-  /// **'Opened the print dialog.'**
-  String get reportsPdfPrintOpened;
-
-  /// No description provided for @reportsPdfMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Here\'s your weekly report.'**
-  String get reportsPdfMessage;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///
