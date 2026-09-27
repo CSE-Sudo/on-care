@@ -2828,41 +2828,11 @@ abstract class AppLocalizations {
   /// **'{amount} {unit} over goal'**
   String chartOverGoal(String amount, String unit);
 
-  /// No description provided for @reportsSendStateSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent'**
-  String get reportsSendStateSent;
-
-  /// No description provided for @reportsSendStateSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsSendStateSending;
-
-  /// No description provided for @reportsShare.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get reportsShare;
-
-  /// No description provided for @reportsShareSendTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to {name}'**
-  String reportsShareSendTo(String name);
-
-  /// No description provided for @reportsShareNeedsFeedback.
+  /// No description provided for @reportsSendNeedsFeedback.
   ///
   /// In en, this message translates to:
   /// **'Write feedback first to send it.'**
-  String get reportsShareNeedsFeedback;
-
-  /// No description provided for @reportsShareNoClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a member to see their report first.'**
-  String get reportsShareNoClient;
+  String get reportsSendNeedsFeedback;
 
   /// No description provided for @reportBodyGreeting.
   ///
@@ -7222,89 +7192,11 @@ abstract class AppLocalizations {
   /// **'Available after the report summary API is connected. No summary is generated now.'**
   String get reportsAiUnavailable;
 
-  /// No description provided for @reportsPdfLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Export PDF'**
-  String get reportsPdfLabel;
-
-  /// No description provided for @reportsPdfGenerating.
-  ///
-  /// In en, this message translates to:
-  /// **'Generating PDF…'**
-  String get reportsPdfGenerating;
-
   /// No description provided for @reportsPdfGenerationFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t generate the PDF. Please try again.'**
   String get reportsPdfGenerationFailed;
-
-  /// No description provided for @reportsPdfReady.
-  ///
-  /// In en, this message translates to:
-  /// **'{name}\'s weekly report is ready.'**
-  String reportsPdfReady(String name);
-
-  /// No description provided for @reportsPdfSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsPdfSending;
-
-  /// No description provided for @reportsPdfSendToClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to member'**
-  String get reportsPdfSendToClient;
-
-  /// No description provided for @reportsPdfSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save PDF'**
-  String get reportsPdfSave;
-
-  /// No description provided for @reportsPdfPrint.
-  ///
-  /// In en, this message translates to:
-  /// **'Print'**
-  String get reportsPdfPrint;
-
-  /// No description provided for @reportsPdfClose.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get reportsPdfClose;
-
-  /// No description provided for @reportsPdfActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete the action. Please try again.'**
-  String get reportsPdfActionFailed;
-
-  /// No description provided for @reportsPdfSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent the PDF to {name}.'**
-  String reportsPdfSent(String name);
-
-  /// No description provided for @reportsPdfSaveStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Started saving the PDF.'**
-  String get reportsPdfSaveStarted;
-
-  /// No description provided for @reportsPdfPrintOpened.
-  ///
-  /// In en, this message translates to:
-  /// **'Opened the print dialog.'**
-  String get reportsPdfPrintOpened;
-
-  /// No description provided for @reportsPdfMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Here\'s your weekly report.'**
-  String get reportsPdfMessage;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///

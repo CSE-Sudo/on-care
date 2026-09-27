@@ -12,10 +12,8 @@ import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_pdf_export_dialog.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
-import 'package:oncare_trainer/features/reports/services/report_pdf_actions.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -168,13 +166,27 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
 /// 리포트 against the seeded roster — the trainer's own week plus one
 /// client's report, and sending it into their chat thread.
 void main() {
-  /// 헤더의 공유 메뉴를 연다 — 전송은 이제 이 메뉴 안에 있다(#735).
-  Future<void> openShareMenu(WidgetTester tester) async {
-    await tester.tap(
-      find.byKey(const ValueKey<String>('reports-share-action')),
-    );
+  /// 편집기 하단의 `전송` 버튼. 헤더 공유 메뉴가 물러난 뒤(#2389) 회원에게
+  /// 리포트를 보내는 길은 이것 하나뿐이다.
+  final Finder sendButton = find.byKey(
+    const ValueKey<String>('report-step-send'),
+  );
+
+  /// 하단 `전송` 버튼을 누른다.
+  Future<void> tapSend(WidgetTester tester) async {
+    await tester.ensureVisible(sendButton);
+    await tester.pump();
+    await tester.tap(sendButton);
     await settle(tester);
   }
+
+  /// 하단 `전송` 버튼이 눌리는가.
+  bool sendEnabled(WidgetTester tester) =>
+      tester.widget<AppButton>(sendButton).onPressed != null;
+
+  /// 보낸 뒤 돌아온 작업대의 `전송 완료` 열에 [clientId] 가 섰는가.
+  Finder sentRow(String clientId) =>
+      find.byKey(ValueKey<String>('reports-sent-$clientId'));
 
   /// 리포트 본문의 피드백 입력창.
   final Finder feedbackField = find.byWidgetPredicate(
@@ -201,9 +213,6 @@ void main() {
     of: find.byType(ReportWeekNav),
     matching: find.widgetWithIcon(IconButton, Icons.chevron_right_rounded),
   );
-
-  /// 공유 메뉴 항목. 공용 `AppMenu` 항목에는 키가 없어 문구로 찾는다.
-  Finder shareItem(String label) => find.widgetWithText(MenuItemButton, label);
 
   /// 리포트 탭을 연다.
   ///
@@ -280,61 +289,44 @@ void main() {
     );
   });
 
-  testWidgets('공유는 상단에서 전송과 PDF 내보내기를 함께 보여 준다 (#735)', (tester) async {
+  testWidgets('헤더에는 공유 버튼이 없다 — 전송은 편집기 하단 하나뿐 (#2389)', (
+    tester,
+  ) async {
     await openReports(tester);
 
-    final shareAction = find.byKey(
-      const ValueKey<String>('reports-share-action'),
-    );
-    expect(shareAction, findsOneWidget);
-    expect(tester.getCenter(shareAction).dy, lessThan(88));
-    // 메뉴를 열기 전에는 항목이 보이지 않는다.
-    expect(find.text('PDF 내보내기'), findsNothing);
-
-    await openShareMenu(tester);
-    expect(find.text('김민수님에게 전송'), findsOneWidget);
-    expect(find.text('PDF 내보내기'), findsOneWidget);
-    // PDF 는 현재 리포트로 실제 binary를 만드는 경로와 연결된다.
     expect(
-      tester.widget<MenuItemButton>(shareItem('PDF 내보내기')).onPressed,
-      isNotNull,
+      find.byKey(const ValueKey<String>('reports-share-action')),
+      findsNothing,
     );
+    expect(find.text('공유'), findsNothing);
+    expect(find.text('PDF 내보내기'), findsNothing);
+    // ① 확인에서는 아직 보낼 단계가 아니다.
+    expect(sendButton, findsNothing);
   });
 
-  testWidgets('PDF 대화상자의 저장과 인쇄는 각각 플랫폼 경계를 호출한다', (tester) async {
-    final actions = _RecordingPdfActions();
-    final container = await openReports(
-      tester,
-      extraOverrides: <Override>[
-        reportPdfActionsProvider.overrideWithValue(actions),
-      ],
-    );
-    final client = (await container.read(clientsProvider.future)).first;
-    final report = buildWeeklyReport(
-      client: client,
-      sessions: const [],
-      weekStart: DateTime(2026, 8, 10),
-    );
-    final bytes = Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]);
+  testWidgets('작업대 헤더에도 공유 버튼이 없다 (#2389)', (tester) async {
+    await openReports(tester, workbench: true);
 
-    showDialog<void>(
-      context: tester.element(find.byType(Scaffold).last),
-      builder: (_) => ReportPdfExportDialog(report: report, bytes: bytes),
+    expect(
+      find.byKey(const ValueKey<String>('reports-share-action')),
+      findsNothing,
     );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey<String>('report-pdf-save')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey<String>('report-pdf-print')));
-    await tester.pump();
-
-    expect(actions.savedBytes, same(bytes));
-    expect(actions.printedBytes, same(bytes));
-    expect(actions.savedName, '${client.name}_2026-08-10_주간리포트.pdf');
-    expect(actions.printedName, actions.savedName);
+    expect(find.text('공유'), findsNothing);
   });
 
-  testWidgets('PDF 생성 중에는 중복을 막고 실패 후 재시도한다', (tester) async {
+  testWidgets('③ 전송 단계에서 하단 전송 버튼이 선다 (#2389)', (tester) async {
+    await openReports(tester, stage: 2);
+
+    expect(sendButton, findsOneWidget);
+    expect(find.text('김민수님에게 전송'), findsNothing);
+    expect(sendEnabled(tester), isTrue);
+    // 하단 줄에 선다 — 헤더(위 88px 안)가 아니다.
+    expect(tester.getCenter(sendButton).dy, greaterThan(88));
+  });
+
+  testWidgets('PDF 생성이 실패하면 전송 실패를 알리고 다시 보낼 수 있다 (#2389)', (
+    tester,
+  ) async {
     final first = Completer<Uint8List>();
     final generator = _QueuedPdfGenerator(<Future<Uint8List>>[
       first.future,
@@ -344,43 +336,28 @@ void main() {
     ]);
     await openReports(
       tester,
+      stage: 2,
       extraOverrides: <Override>[
         reportPdfGeneratorProvider.overrideWithValue(generator),
       ],
     );
 
-    await openShareMenu(tester);
-    await tester.tap(shareItem('PDF 내보내기'));
-    await settle(tester);
+    await tester.ensureVisible(sendButton);
+    await tester.pump();
+    await tester.tap(sendButton);
+    await tester.pump();
     expect(generator.calls, 1);
+    // 만드는 동안에는 버튼이 잠겨 같은 리포트가 두 번 나가지 않는다.
+    expect(sendEnabled(tester), isFalse);
 
-    await openShareMenu(tester);
-    expect(
-      tester.widget<MenuItemButton>(shareItem('PDF 생성 중…')).onPressed,
-      isNull,
-    );
-    await openShareMenu(tester); // 열려 있는 메뉴를 닫는다. 재시도는 아래에서 연다.
     first.completeError(StateError('render failed'));
     await settle(tester);
-    expect(find.text('PDF를 생성하지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
+    expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+    expect(sendEnabled(tester), isTrue);
 
-    // 실패가 현재 리포트를 없애지 않고, 재시도는 액션 대화상자로 이어진다.
-    await openShareMenu(tester);
-    await tester.tap(shareItem('PDF 내보내기'));
-    await settle(tester);
+    await tapSend(tester);
     expect(generator.calls, 2);
-    expect(
-      find.byKey(const ValueKey<String>('report-pdf-send')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('report-pdf-save')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('report-pdf-print')),
-      findsOneWidget,
-    );
+    expect(sentRow('seed-client-1'), findsOneWidget);
   });
 
   // ---- 요약 카드 자리와 주 이동 라벨 (#897) ----
@@ -773,9 +750,8 @@ void main() {
     expect(find.textContaining('주간 리포트'), findsWidgets);
     // PT 진행 횟수는 초안에서 뺐다 — 회원에게 보낼 글이 아니다(#1177).
     expect(find.textContaining('PT 세션'), findsNothing);
-    // 전송 경로는 화면에 하나뿐이다 — 본문에는 더 이상 전송 버튼이 없다.
-    await openShareMenu(tester);
-    expect(find.text('김민수님에게 전송'), findsOneWidget);
+    // 전송 경로는 화면에 하나뿐이다 — 편집기 하단의 전송 버튼(#2389).
+    expect(sendButton, findsOneWidget);
   });
 
   testWidgets('empty feedback cannot be sent', (tester) async {
@@ -784,10 +760,13 @@ void main() {
     await tester.enterText(feedbackField, '   ');
     await settle(tester);
 
-    await openShareMenu(tester);
+    expect(sendEnabled(tester), isFalse);
+    // 잠긴 이유를 버튼이 말한다.
     expect(
-      tester.widget<MenuItemButton>(shareItem('김민수님에게 전송')).onPressed,
-      isNull,
+      find.byWidgetPredicate(
+        (w) => w is Tooltip && w.message == '피드백을 입력하면 전송할 수 있어요',
+      ),
+      findsOneWidget,
     );
   });
 
@@ -811,14 +790,10 @@ void main() {
         ),
       ],
     );
-    await openShareMenu(tester);
+    await tapSend(tester);
 
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
-
-    // 메뉴 항목이 잠겨 두 번 보내지지 않는다.
-    await openShareMenu(tester);
-    expect(find.text('전송됨'), findsOneWidget);
+    // 보내고 나면 작업대로 돌아가고, 그 회원은 `전송 완료` 열에 선다.
+    expect(sentRow('seed-client-1'), findsOneWidget);
 
     final messages = await tester.runAsync(
       () => container
@@ -865,25 +840,18 @@ void main() {
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
     await settle(tester);
-    await openShareMenu(tester);
+    await tapSend(tester);
 
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
-
-    // No false "전송됨" — the trainer would otherwise believe the member
+    // No false "sent" — the trainer would otherwise believe the member
     // got a report that never arrived.
-    expect(find.text('전송됨'), findsNothing);
+    expect(sentRow('seed-client-1'), findsNothing);
     expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
     // 실패해도 작성한 피드백이 남고 다시 보낼 수 있다.
     expect(
       tester.widget<TextField>(feedbackField).controller!.text,
       contains('주간 리포트'),
     );
-    await openShareMenu(tester);
-    expect(
-      tester.widget<MenuItemButton>(shareItem('김민수님에게 전송')).onPressed,
-      isNotNull,
-    );
+    expect(sendEnabled(tester), isTrue);
   });
 
   testWidgets('주를 가리키는 말은 이번 주·지난 주·선택 주 셋뿐이다', (tester) async {
@@ -1272,11 +1240,7 @@ void main() {
     await tester.tap(writeFromScratch);
     await settle(tester);
 
-    await openShareMenu(tester);
-    expect(
-      tester.widget<MenuItemButton>(shareItem('김민수님에게 전송')).onPressed,
-      isNull,
-    );
+    expect(sendEnabled(tester), isFalse);
   });
 
   testWidgets('직접 작성하기는 피드백 카드 안, 입력창 바로 위에 선다 (#2232)', (tester) async {
@@ -1318,9 +1282,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
     await settle(tester);
-    await openShareMenu(tester);
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
+    await tapSend(tester);
 
     expect(drafts.savedGoals, <List<String>>[
       <String>['화요일 저녁 15분 루틴'],
@@ -1346,9 +1308,7 @@ void main() {
       ],
     );
 
-    await openShareMenu(tester);
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
+    await tapSend(tester);
 
     expect(drafts.savedGoals, <List<String>>[<String>[]]);
   });
@@ -1372,13 +1332,10 @@ void main() {
       ],
     );
 
-    await openShareMenu(tester);
-    await tester.tap(find.text('김민수님에게 전송'));
-    await settle(tester);
+    await tapSend(tester);
 
     expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
-    await openShareMenu(tester);
-    expect(find.text('전송됨'), findsOneWidget);
+    expect(sentRow('seed-client-1'), findsOneWidget);
   });
 }
 
@@ -1467,25 +1424,6 @@ class _DraftStore implements ReportRepository {
   }) async {
     if (failGoals) throw StateError('goal save failed');
     savedGoals.add(List<String>.of(goals));
-  }
-}
-
-class _RecordingPdfActions implements ReportPdfActions {
-  Uint8List? savedBytes;
-  Uint8List? printedBytes;
-  String? savedName;
-  String? printedName;
-
-  @override
-  Future<void> save(Uint8List bytes, String fileName) async {
-    savedBytes = bytes;
-    savedName = fileName;
-  }
-
-  @override
-  Future<void> print(Uint8List bytes, String fileName) async {
-    printedBytes = bytes;
-    printedName = fileName;
   }
 }
 
