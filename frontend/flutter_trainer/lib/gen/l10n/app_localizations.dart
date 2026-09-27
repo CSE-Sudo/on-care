@@ -1304,12 +1304,6 @@ abstract class AppLocalizations {
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
 
-  /// No description provided for @memberHealthGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Member goals'**
-  String get memberHealthGoals;
-
   /// No description provided for @memberHealthDietGoal.
   ///
   /// In en, this message translates to:
@@ -6056,10 +6050,94 @@ abstract class AppLocalizations {
   /// **'Health goals'**
   String get clientHealthTabFocus;
 
+  /// No description provided for @clientGoalPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Per day'**
+  String get clientGoalPerDay;
+
+  /// No description provided for @clientGoalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories'**
+  String get clientGoalCalories;
+
+  /// No description provided for @clientGoalSodium.
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium'**
+  String get clientGoalSodium;
+
+  /// No description provided for @clientGoalSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar'**
+  String get clientGoalSugar;
+
+  /// No description provided for @clientGoalCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs'**
+  String get clientGoalCarbs;
+
+  /// No description provided for @clientGoalProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein'**
+  String get clientGoalProtein;
+
+  /// No description provided for @clientGoalFat.
+  ///
+  /// In en, this message translates to:
+  /// **'Fat'**
+  String get clientGoalFat;
+
+  /// No description provided for @clientGoalBurnDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily burn'**
+  String get clientGoalBurnDaily;
+
+  /// No description provided for @clientGoalCardioWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly cardio'**
+  String get clientGoalCardioWeekly;
+
+  /// No description provided for @clientGoalStrengthWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly strength'**
+  String get clientGoalStrengthWeekly;
+
+  /// No description provided for @clientGoalStretchWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly stretching'**
+  String get clientGoalStretchWeekly;
+
+  /// No description provided for @clientBodyHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get clientBodyHeight;
+
+  /// No description provided for @clientBodyWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get clientBodyWeight;
+
+  /// No description provided for @clientUnitCm.
+  ///
+  /// In en, this message translates to:
+  /// **'cm'**
+  String get clientUnitCm;
+
   /// No description provided for @clientGoalDefaultHint.
   ///
   /// In en, this message translates to:
-  /// **'Faded numbers are the member app defaults. Empty fields use them.'**
+  /// **'Faded values are the defaults used until a goal is set. Empty fields use them.'**
   String get clientGoalDefaultHint;
 
   /// No description provided for @clientTrainerMemoHint.

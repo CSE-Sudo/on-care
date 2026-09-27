@@ -680,9 +680,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthConditions => 'Conditions and cautions';
 
   @override
-  String get memberHealthGoals => 'Member goals';
-
-  @override
   String get memberHealthDietGoal => 'Nutrition goals';
 
   @override
@@ -3460,8 +3457,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientHealthTabFocus => 'Health goals';
 
   @override
+  String get clientGoalPerDay => 'Per day';
+
+  @override
+  String get clientGoalCalories => 'Calories';
+
+  @override
+  String get clientGoalSodium => 'Sodium';
+
+  @override
+  String get clientGoalSugar => 'Sugar';
+
+  @override
+  String get clientGoalCarbs => 'Carbs';
+
+  @override
+  String get clientGoalProtein => 'Protein';
+
+  @override
+  String get clientGoalFat => 'Fat';
+
+  @override
+  String get clientGoalBurnDaily => 'Daily burn';
+
+  @override
+  String get clientGoalCardioWeekly => 'Weekly cardio';
+
+  @override
+  String get clientGoalStrengthWeekly => 'Weekly strength';
+
+  @override
+  String get clientGoalStretchWeekly => 'Weekly stretching';
+
+  @override
+  String get clientBodyHeight => 'Height';
+
+  @override
+  String get clientBodyWeight => 'Weight';
+
+  @override
+  String get clientUnitCm => 'cm';
+
+  @override
   String get clientGoalDefaultHint =>
-      'Faded numbers are the member app defaults. Empty fields use them.';
+      'Faded values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
   String get clientTrainerMemoHint =>

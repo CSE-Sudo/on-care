@@ -125,7 +125,6 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   /// 회원 건강 목표(최대 2개). 회원앱과 같은 칸을 고친다 — [_conditions] 에는
   /// 목표가 아닌 건강상태·주의사항 글만 남긴다(#1818).
   Set<String> _focus = <String>{};
-  final _goals = TextEditingController();
   // 회원 앱 마이페이지와 **같은 목표 필드**다(#1449). 옛 주간 목표(횟수·
   // 시간·소모)는 회원 화면에 대응하는 자리가 없어 편집 폼에서 뺐다 — 응답에는
   // 남아 있어 다른 화면이 읽던 값은 그대로다.
@@ -170,7 +169,6 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       _height,
       _weight,
       _conditions,
-      _goals,
       _goalCalories,
       _goalSodium,
       _goalSugar,
@@ -195,7 +193,6 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     _weight.text = _displayNumber(profile.weightKg);
     _focus = parseHealthFocus(profile.conditions);
     _conditions.text = healthFocusNotes(profile.conditions);
-    _goals.text = profile.goals;
     _goalCalories.text = profile.dailyCalories?.toString() ?? '';
     _goalSodium.text = profile.dailySodiumMg?.toString() ?? '';
     _goalSugar.text = profile.dailySugarG?.toString() ?? '';
@@ -378,7 +375,6 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           'weight_kg': _number(_weight.text, integer: false),
           // 목표가 앞, 주의사항 글이 뒤인 한 칸이다 — 회원앱 저장과 같은 모양.
           'conditions': mergeHealthFocus(_conditions.text, _focus),
-          'goals': _goals.text.trim(),
           'daily_calories': _number(_goalCalories.text, integer: true),
           'daily_sodium_mg': _number(_goalSodium.text, integer: true),
           'daily_sugar_g': _number(_goalSugar.text, integer: true),
@@ -422,28 +418,88 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     }
   }
 
-  /// 한 줄에 칸 여럿. 좁은 창에서도 라벨이 잘리지 않게 폭을 나눈다.
-  Widget _fieldRow(List<Widget> fields) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      for (int i = 0; i < fields.length; i++) ...<Widget>[
-        if (i > 0) const SizedBox(width: OnCareSpacing.s8),
-        Expanded(child: fields[i]),
-      ],
-    ],
-  );
+  /// 한 줄 — `이름 · 값 · 단위`(#2330).
+  ///
+  /// 예전에는 칸 둘을 한 줄에 세웠는데, 옆 칸끼리 짝이 아니라(칼로리 | 나트륨)
+  /// 눈이 지그재그로 움직였고, `일일 … 제한 (단위)` 이 칸마다 되풀이돼 좁은
+  /// 창에서 이름이 잘렸다. 이름은 짧게, 단위는 값 바로 옆에 둔다.
+  Widget _line(BuildContext context, String name, Widget value, String unit) {
+    final OnCareTokens tokens = context.oncare;
+    // 이름과 값 사이가 넓어 줄을 따라 읽도록 옅은 밑줄을 긋는다.
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: OnCareColors.lineSubtle)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              name,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+          ),
+          SizedBox(width: _lineValueWidth, child: value),
+          SizedBox(
+            width: _lineUnitWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(left: OnCareSpacing.s8),
+              child: Text(
+                unit,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  /// 숫자 한 칸. 목표 칸은 비우면 `없음` 이고, 서버가 그 자리를 지운다.
-  Widget _numberField(_NumberField field) => AppTextField(
-    key: field.id.startsWith('client-goal-')
-        ? ValueKey<String>(field.id)
-        : null,
-    controller: field.controller,
-    label: field.label,
-    hint: field.hint,
-    keyboardType: TextInputType.number,
-    errorText: _errors[field.id],
-  );
+  /// 숫자 한 줄. 목표 칸은 비우면 `없음` 이고, 서버가 그 자리를 지운다.
+  ///
+  /// 범위 오류는 칸 밑이 아니라 줄 아래 오른쪽에 적는다 — 값 칸이 좁아 칸
+  /// 밑에 두면 여러 줄로 접힌다. 칸은 빨간 테두리로 자리만 알린다.
+  Widget _numberLine(
+    BuildContext context,
+    _NumberField field,
+    String name,
+    String unit,
+  ) {
+    final String? error = _errors[field.id];
+    final Widget line = _line(
+      context,
+      name,
+      AppTextField(
+        key: field.id.startsWith('client-goal-')
+            ? ValueKey<String>(field.id)
+            : null,
+        controller: field.controller,
+        hint: field.hint,
+        textAlign: TextAlign.end,
+        keyboardType: TextInputType.number,
+        // 빈 문자열이면 테두리만 붉고 칸 밑에 글줄을 남기지 않는다.
+        errorText: error == null ? null : '',
+      ),
+      unit,
+    );
+    if (error == null) return line;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        line,
+        Text(
+          error,
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.danger),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -466,7 +522,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         final profile = snapshot.data!;
         _initialize(profile);
         final fields = _numberFields(l);
-        Widget number(int index) => _numberField(fields[index]);
+        Widget number(int index, String name, String unit) =>
+            _numberLine(context, fields[index], name, unit);
         final TextStyle groupStyle = tokens
             .text(OnCareTypography.titleSmall)
             .copyWith(color: OnCareColors.textPrimary);
@@ -483,34 +540,38 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         // 이 상태가 들고 있어, 탭을 옮겨 다녀도 쓰던 값이 남는다.
         final List<Widget> tabBody = switch (_tab) {
           _HealthTab.body => <Widget>[
-            AppSelectField<String>(
-              key: const ValueKey<String>('client-profile-gender'),
-              label: l.memberHealthGender,
-              value: <String>['', 'male', 'female', 'other'].contains(_gender)
-                  ? _gender
-                  : '',
-              items: <DropdownMenuItem<String>>[
-                DropdownMenuItem<String>(
-                  value: '',
-                  child: Text(l.memberHealthGenderUnset),
-                ),
-                DropdownMenuItem<String>(
-                  value: 'male',
-                  child: Text(l.memberHealthGenderMale),
-                ),
-                DropdownMenuItem<String>(
-                  value: 'female',
-                  child: Text(l.memberHealthGenderFemale),
-                ),
-                DropdownMenuItem<String>(
-                  value: 'other',
-                  child: Text(l.memberHealthGenderOther),
-                ),
-              ],
-              onChanged: (value) => _gender = value ?? '',
+            _line(
+              context,
+              l.memberHealthGender,
+              AppSelectField<String>(
+                key: const ValueKey<String>('client-profile-gender'),
+                value: <String>['', 'male', 'female', 'other'].contains(_gender)
+                    ? _gender
+                    : '',
+                items: <DropdownMenuItem<String>>[
+                  DropdownMenuItem<String>(
+                    value: '',
+                    child: Text(l.memberHealthGenderUnset),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'male',
+                    child: Text(l.memberHealthGenderMale),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'female',
+                    child: Text(l.memberHealthGenderFemale),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'other',
+                    child: Text(l.memberHealthGenderOther),
+                  ),
+                ],
+                onChanged: (value) => _gender = value ?? '',
+              ),
+              '',
             ),
-            const SizedBox(height: OnCareSpacing.s8),
-            _fieldRow(<Widget>[number(0), number(1)]),
+            number(0, l.clientBodyHeight, l.clientUnitCm),
+            number(1, l.clientBodyWeight, l.routineUnitKg),
           ],
           _HealthTab.focus => <Widget>[
             Text(l.memberHealthFocus, style: groupStyle),
@@ -555,32 +616,34 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               label: l.memberHealthConditions,
               maxLines: 2,
             ),
-            const SizedBox(height: OnCareSpacing.s8),
-            AppTextField(
-              controller: _goals,
-              label: l.memberHealthGoals,
-              maxLines: 2,
-            ),
+            // `회원 목표` 글 칸은 없앴다(#2330) — 목표는 위 칩으로 고른다. 글
+            // 칸은 칩과 같은 말을 되풀이했고 회원 앱 어디에도 보이지 않았다.
           ],
           _HealthTab.diet => <Widget>[
-            // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위·라벨이다.
-            // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위·라벨이다.
-            _fieldRow(<Widget>[number(2), number(3)]),
-            const SizedBox(height: OnCareSpacing.s8),
-            _fieldRow(<Widget>[number(4), number(5)]),
-            const SizedBox(height: OnCareSpacing.s8),
-            _fieldRow(<Widget>[number(6), number(7)]),
+            // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위다. 모두
+            // 하루 기준이라 그 말은 머리에 한 번만 둔다.
+            //
+            // 차례는 칼로리 → 그 칼로리를 이루는 탄·단·지 → 나트륨이다(#2330).
+            // 당류는 탄수화물의 일부라 바로 아래에 둔다 — 식품 영양성분표와
+            // 같은 자리다.
+            Text(l.clientGoalPerDay, style: groupStyle),
+            const SizedBox(height: OnCareSpacing.s4),
+            number(2, l.clientGoalCalories, l.unitKcal),
+            number(5, l.clientGoalCarbs, l.unitGram),
+            number(4, l.clientGoalSugar, l.unitGram),
+            number(6, l.clientGoalProtein, l.unitGram),
+            number(7, l.clientGoalFat, l.unitGram),
+            number(3, l.clientGoalSodium, l.unitMg),
             const SizedBox(height: OnCareSpacing.s8),
             defaultHint,
           ],
           _HealthTab.exercise => <Widget>[
-            // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139).
-            // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139). 옛 주간
-            // 횟수·시간·소모 목표는 회원 화면에 대응하는 자리가 없어 여기서
-            // 다루지 않는다.
-            _fieldRow(<Widget>[number(8), number(9)]),
-            const SizedBox(height: OnCareSpacing.s8),
-            _fieldRow(<Widget>[number(10), number(11)]),
+            // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139). 소모만 하루,
+            // 나머지는 주 기준이라 이름에 기준을 적는다.
+            number(8, l.clientGoalBurnDaily, l.unitKcal),
+            number(9, l.clientGoalCardioWeekly, l.routineUnitMinutes),
+            number(10, l.clientGoalStrengthWeekly, l.routineUnitSets),
+            number(11, l.clientGoalStretchWeekly, l.routineUnitMinutes),
             const SizedBox(height: OnCareSpacing.s8),
             defaultHint,
           ],
@@ -602,13 +665,15 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                   value: _HealthTab.focus,
                   label: l.clientHealthTabFocus,
                 ),
-                AppSegment<_HealthTab>(
-                  value: _HealthTab.diet,
-                  label: l.memberHealthDietGoal,
-                ),
+                // 회원 앱 MY `건강 목표` 와 같은 차례다 — 관리 항목 → 운동 →
+                // 식단. 두 화면이 같은 목표를 같은 순서로 말한다.
                 AppSegment<_HealthTab>(
                   value: _HealthTab.exercise,
                   label: l.memberHealthExerciseGoal,
+                ),
+                AppSegment<_HealthTab>(
+                  value: _HealthTab.diet,
+                  label: l.memberHealthDietGoal,
                 ),
               ],
             ),
@@ -658,9 +723,15 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   }
 }
 
-/// 신체·목표 창에서 묶음 내용이 차지하는 최소 높이 — 가장 긴 `건강 목표`
-/// 묶음(칩 두 줄·주의사항·회원 목표)의 높이다(#2330).
-const double _healthTabBodyMinHeight = 312;
+/// 신체·목표 창에서 묶음 내용이 차지하는 최소 높이 — 가장 긴 `식단 목표`
+/// 묶음(머리·여섯 줄·각주)의 높이다(#2330).
+const double _healthTabBodyMinHeight = 344;
+
+/// 한 줄 목록의 값 칸 폭 — 다섯 자리 수(나트륨 mg)가 여유 있게 든다.
+const double _lineValueWidth = 120;
+
+/// 한 줄 목록의 단위 칸 폭 — 가장 긴 단위(`kcal`·`세트`)가 든다.
+const double _lineUnitWidth = 48;
 
 /// 신체·목표 창의 묶음(#2330).
 enum _HealthTab {
@@ -670,11 +741,11 @@ enum _HealthTab {
   /// 건강 목표 칩·주의사항·회원 목표 글.
   focus,
 
-  /// 식단 목표 여섯.
-  diet,
-
   /// 운동 목표 넷.
-  exercise;
+  exercise,
+
+  /// 식단 목표 여섯.
+  diet;
 
   /// 숫자 칸 [fieldId] 가 사는 묶음.
   static _HealthTab of(String fieldId) => switch (fieldId) {
