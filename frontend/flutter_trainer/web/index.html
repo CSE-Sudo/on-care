@@ -18,11 +18,19 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+
+  <!-- 라이트 전용이다(#1604). 브라우저가 다크 모드여도 첫 프레임 전 배경·스크롤바·
+       주소창이 어둡게 칠해지지 않게 한다. 색은 앱 배경 토큰 OnCareColors.surfacePage 과 같다. -->
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#F5F7FA">
+  <style>
+    html, body { background-color: #F5F7FA; }
+  </style>
   <meta name="description" content="On-Care 트레이너 앱 — 트레이너용 회원 관리 / AI 루틴 / 스케줄 (Android / iOS / Web).">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="On-Care 트레이너">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
