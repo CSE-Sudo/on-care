@@ -14,8 +14,6 @@ import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_goal_picker.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_pdf_export_dialog.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_share_menu.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
@@ -110,14 +108,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
   bool _confirming = false;
 
-  /// PDF binary를 만드는 동안 내보내기 중복 요청을 막는다.
-  bool _generatingPdf = false;
-
-  /// 피드백 입력창의 현재 내용. 전송 버튼이 헤더의 공유 메뉴로 올라가면서
-  /// 입력창과 전송이 서로 다른 위젯에 있게 되어, 그 사이를 잇는 값이다.
+  /// 피드백 입력창의 현재 내용. 입력창과 하단 전송 버튼이 서로 다른 위젯에
+  /// 있어, 그 사이를 잇는 값이다.
   ///
-  /// `setState` 를 부르지 않는다 — 메뉴는 열릴 때 `itemBuilder` 가 이 값을 다시
-  /// 읽으므로, 글자 하나마다 리포트 화면 전체를 다시 그릴 이유가 없다.
+  /// `setState` 를 부르지 않는다 — 전송 버튼은 누를 때 이 값을 읽으므로, 글자
+  /// 하나마다 리포트 화면 전체를 다시 그릴 이유가 없다.
   String? _feedbackDraft;
 
   /// [_feedbackDraft] 가 어느 리포트의 것인가(`고객|주`). 고객이나 주가 바뀌면
@@ -349,7 +344,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       )
       .valueOrNull;
 
-  /// 헤더 공유 메뉴의 전송. 화면에 떠 있는 리포트와 입력창의 현재 문구를 함께
+  /// 하단 `전송` 버튼의 전송. 화면에 떠 있는 리포트와 입력창의 현재 문구를 함께
   /// 보낸다 — 입력창과 전송 버튼이 서로 다른 위젯이 되면서 필요해진 연결이다.
   Future<void> _sendSelected(WeeklyReport report) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -363,9 +358,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
-  /// 리포트 PDF binary. [_send]의 기본 전송과 [_openPdfExport]의 내보내기가
-  /// 같은 문서를 만든다 — 전송이 실제로 받는 것과 내보내기 미리보기가 다른
-  /// 문서면 안 된다.
+  /// 리포트 PDF binary. 회원이 채팅으로 받는 문서가 이것이다.
   Future<Uint8List> _generateReportPdf(
     AppLocalizations l,
     WeeklyReport report,
@@ -392,10 +385,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         );
   }
 
-  /// 헤더 공유 메뉴의 기본 전송 — PDF로 만들어 보낸다(#1378). 예전에는 순수
+  /// 리포트 전송 — PDF로 만들어 회원 채팅에 보낸다(#1378). 예전에는 순수
   /// 텍스트만 갔는데, 회원 채팅에서 PDF를 열람하는 길(#778, #921)이 이미 있어
-  /// 굳이 글만 보낼 이유가 없었다. "PDF 내보내기"(별도 저장·인쇄용, [_openPdfExport])는
-  /// 그대로 둔다.
+  /// 굳이 글만 보낼 이유가 없었다. 따로 저장·인쇄하던 `PDF 내보내기` 는 헤더
+  /// 공유 메뉴와 함께 물러났다(#2389) — 회원에게 가는 길은 이 하나뿐이다.
   Future<void> _send(WeeklyReport report, String message) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final id = report.client.id;
@@ -513,37 +506,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
-  Future<void> _openPdfExport(WeeklyReport report) async {
-    if (_generatingPdf) return;
-    // PDF 문구도 화면과 같은 로케일이어야 한다 (#964).
-    final AppLocalizations l = AppLocalizations.of(context);
-    // 내보낸 PDF 와 전송한 글이 달라서는 안 된다 — 목표도 같이 싣는다.
-    final feedback = _outgoingMessage(
-      l,
-      report,
-      _messageFor(l, report, _savedDraftOf(report)),
-    );
-    setState(() => _generatingPdf = true);
-    try {
-      final bytes = await _generateReportPdf(l, report, feedback);
-      if (!mounted) return;
-      await showAppDialog<void>(
-        context: context,
-        builder: (_) => ReportPdfExportDialog(report: report, bytes: bytes),
-      );
-    } catch (_) {
-      if (mounted) {
-        showAppToast(
-          context,
-          l.reportsPdfGenerationFailed,
-          type: AppToastType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _generatingPdf = false);
-    }
-  }
-
   /// 리포트를 읽는 중이거나 못 읽은 주의 카드. 주 이동은 편집기 위쪽 줄에
   /// 늘 있으니, 여기서는 제목만 두고 실패한 주에서 나갈 길은 그쪽이 맡는다.
   static Widget _weeklyStateCard(AppLocalizations l, Widget child) => AppCard(
@@ -570,11 +532,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       to: ymd(DateTime(_weekStart.year, _weekStart.month, _weekStart.day + 6)),
     );
     final weekSessions = ref.watch(scheduleRangeProvider(range));
-    // 헤더는 본문(LayoutBuilder)보다 위에 있어 본문이 고른 고객을 볼 수 없다.
-    // 본문과 **같은 규칙**으로 여기서 한 번 더 고른다 — 메뉴 항목에 이름을
-    // 함께 보여 주므로 누구에게 가는 리포트인지 화면에서 드러난다.
+    // 초안 구독은 본문(LayoutBuilder)보다 위에서 해야 해 본문이 고른 고객을
+    // 볼 수 없다. 본문과 **같은 규칙**으로 여기서 한 번 더 고른다.
     final roster = clientsAsync.valueOrNull ?? const <TrainerClient>[];
-    final TrainerClient? shareTarget = roster.isEmpty
+    final TrainerClient? openClient = roster.isEmpty
         ? null
         : roster.firstWhere(
             (c) => c.id == _clientId,
@@ -586,16 +547,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     //
     // `ref.listen` 은 build 안에서만 부를 수 있어 본문(LayoutBuilder 콜백은
     // layout 단계에 돈다)이 아니라 여기에 둔다. 고객을 고르는 규칙은 본문과
-    // 같은 [shareTarget] 이다.
-    if (shareTarget != null) {
+    // 같은 [openClient] 이다.
+    if (openClient != null) {
       ref.listen<AsyncValue<ReportFeedbackDraft>>(
         reportFeedbackDraftProvider((
-          client: shareTarget,
+          client: openClient,
           weekStart: _weekStart,
         )),
         (previous, next) {
           if (next.valueOrNull == null) return;
-          if (_feedbackFor == _feedbackKeyOf(shareTarget.id, _weekStart)) {
+          if (_feedbackFor == _feedbackKeyOf(openClient.id, _weekStart)) {
             return;
           }
           setState(() => _draftEpoch++);
@@ -610,22 +571,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       // 헤더 검색은 가운데 자리다 — 다른 탭과 같은 가로 위치에 서고, 자리가
       // 모자라면 검색 바가 스스로 아이콘으로 접힌다.
       headerCenter: const ClientSearchBar(),
-      actions: <Widget>[
-        // 주 이동은 통째로 리포트 카드 제목 줄에 있다 — 화살표도, 이번 주로
-        // 돌아가는 버튼도. 헤더에 두면 옮기는 대상과 버튼이 다른 줄에 서고,
-        // 날짜 버튼이 가운데 고객 검색 바의 폭을 먹어 다른 탭과 다른 모양으로
-        // 접혔다(#1177).
-        ReportShareMenu(
-          client: shareTarget,
-          weekStart: _weekStart,
-          sent: shareTarget != null && _sent.contains(shareTarget.id),
-          sending: shareTarget != null && _sending == shareTarget.id,
-          feedbackBlank: _feedbackBlank,
-          onSend: _sendSelected,
-          generatingPdf: _generatingPdf,
-          onPdf: _openPdfExport,
-        ),
-      ],
       body: clientsAsync.when(
         loading: () => const AppLoading(),
         // 재시도 버튼은 상태 위젯 안에 있어 키를 줄 수 없다 — 묶음에 키를 둔다.
@@ -1008,10 +953,17 @@ class _StepFooter extends StatelessWidget {
           ),
         const Spacer(),
         if (last)
-          AppButton(
-            key: const ValueKey<String>('report-step-send'),
-            label: l.reportsStepSend,
-            onPressed: sending || !canSend ? null : onSend,
+          // 빈 피드백으로 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
+          Tooltip(
+            message: canSend ? '' : l.reportsSendNeedsFeedback,
+            child: AppButton(
+              key: const ValueKey<String>('report-step-send'),
+              label: l.reportsStepSend,
+              // 전송 중에는 버튼 자리에서 진행을 보여 준다 — 같은 리포트가 두 번
+              // 나가지 않게 잠그는 것도 이 자리다.
+              loading: sending,
+              onPressed: sending || !canSend ? null : onSend,
+            ),
           )
         else
           AppButton(
