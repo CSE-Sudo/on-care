@@ -10,6 +10,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
+import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
@@ -1282,7 +1283,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           ),
           const SizedBox(height: OnCareSpacing.s8),
           Text(
-            l.aiTotalAndIntensity(total, choice.intensity),
+            l.aiTotalAndIntensity(
+              total,
+              routinePlanIntensityLabel(l, choice.intensity),
+            ),
             style: _text(OnCareTypography.label, brand),
           ),
           const SizedBox(height: OnCareSpacing.s8),
@@ -1585,8 +1589,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               spacing: OnCareSpacing.s4,
               runSpacing: OnCareSpacing.s4,
               children: <Widget>[
+                // 서버는 근거를 코드로 보낸다 — 화면 언어의 문구로 바꿔 보인다(#2301).
                 for (final String item in evidence)
-                  AppTag(label: item, tone: AppTagTone.brand),
+                  AppTag(
+                    label: routineEvidenceLabel(l, item),
+                    tone: AppTagTone.brand,
+                  ),
               ],
             ),
           ],

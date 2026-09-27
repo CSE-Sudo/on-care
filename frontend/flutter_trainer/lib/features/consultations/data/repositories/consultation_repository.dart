@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -93,9 +94,13 @@ class ConsultationAcceptResult {
 /// error, and decisions are refused rather than silently doing nothing.
 class DemoConsultationRepository implements ConsultationRepository {
   /// Creates the demo source.
+  ///
+  /// [language] 는 회원이 남긴 신청 메시지의 데모 언어다(#2304). 이름은 어느
+  /// 언어에서든 그대로다.
   DemoConsultationRepository({
     List<ConsultationRequest>? requests,
     this.scheduleRepository,
+    DemoLanguage language = DemoLanguage.ko,
   }) : _requests =
            requests ??
            <ConsultationRequest>[
@@ -112,7 +117,10 @@ class DemoConsultationRepository implements ConsultationRepository {
                slotStartsAt: _demoSlot(days: 1, hour: 19),
                slotDurationMinutes: 30,
                status: 'pending',
-               message: '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
+               message: language.isEnglish
+                   ? "I'd like my first consultation at a time that works "
+                         'after work.'
+                   : '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
              ),
              // 이미 담당 고객인 회원도 재상담을 요청할 수 있다 — 김민수
              // (`demoAlreadyLinkedMemberId`)로 그 시나리오를 보여준다.
@@ -127,7 +135,10 @@ class DemoConsultationRepository implements ConsultationRepository {
                slotStartsAt: _demoSlot(days: 3, hour: 12),
                slotDurationMinutes: 60,
                status: 'pending',
-               message: '혈압 관리도 같이 봐주시면 좋겠어요.',
+               message: language.isEnglish
+                   ? 'It would be great if you could help with my blood '
+                         'pressure too.'
+                   : '혈압 관리도 같이 봐주시면 좋겠어요.',
              ),
            ];
 
@@ -370,6 +381,7 @@ final consultationRepositoryProvider = Provider<ConsultationRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     return DemoConsultationRepository(
       scheduleRepository: () => ref.read(scheduleRepositoryProvider),
+      language: ref.watch(demoLanguageProvider),
     );
   }
   return DioConsultationRepository(ref.watch(dioProvider));

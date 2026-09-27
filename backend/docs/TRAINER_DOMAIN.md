@@ -149,7 +149,7 @@
 | POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건) |
 | POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581) |
-| GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는(아직 보내지 않은) 개인운동 (#2223) |
+| GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는 개인운동 — 보낸 것까지, 건마다 `pending_send` (#2223, #2224) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
@@ -445,6 +445,22 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   를 다른 화면도 그대로 가져다 쓴다.
 - 답장 대기는 서버 신호가 아니다. 안 읽은 메시지 수는 앱이 실시간으로 받아, 로스터 시점의 값으로
   굳히면 답장한 뒤에도 배지가 남는다.
+
+### AI 운동 추천의 언어 (#2301)
+
+요청의 `Accept-Language`(#2297)로 언어를 고른다. 헤더가 없거나 `ko` 면 지금까지와 같은 한국어다.
+
+- **개인운동 후보의 근거(`RoutineOut.evidence`)는 코드다** — `recent_pt_feedback`,
+  `strength_heavy`, `blood_pressure_goal`, `low_cardio`, `recent_record`. 트레이너 웹이 화면
+  언어로 바꿔 보여 주고, 모르는 값은 원문 그대로 보인다. 코드 도입 전에 문장으로 저장된 행은
+  읽을 때 코드로 돌려준다(`routine_suggestion_service.LEGACY_EVIDENCE_LABELS`).
+- **후보 이름·`reason`, AI A/B(`/routine-options`)의 이름·사유·근거 문장, 시작 템플릿
+  (`starter:*`)** 은 요청한 트레이너의 언어로 만든다. AI 가 실패했을 때의 규칙형 폴백도 같다.
+  `intensity`·`type` 은 번역하지 않는 계약값(한국어 Literal)이다.
+- **회원에게 가는 사유는 트레이너가 승인한 언어 그대로다.** `reason` 은 트레이너 명의로
+  회원에게 가는 안내문이라, 트레이너가 검토하고 고친 문장을 회원 화면 언어로 다시 쓰지 않는다.
+  트레이너와 회원의 언어가 다르면 트레이너가 승인 전에 사유를 고쳐 보낸다.
+- 트레이너가 저장한 템플릿과 회원 기록에서 온 운동 이름은 사람이 쓴 글이라 옮기지 않는다.
 
 ## 5. 예약 → 수업 → 기록 루프
 

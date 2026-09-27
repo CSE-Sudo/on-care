@@ -21,7 +21,7 @@ from app.schemas.reservation_api import (
     ReservationOut,
     TrainerSlotOut,
 )
-from app.services import notification_service, trainer_service
+from app.services import notification_service, notification_templates, trainer_service
 
 
 class SlotNotFound(Exception):
@@ -574,8 +574,11 @@ def reserve(
             db,
             trainer_id=slot.trainer_id,
             kind=notification_service.TRAINER_RESERVATION_KIND,
-            title="새 예약이 들어왔어요",
-            body=f"{member.name} 회원 · {local:%m월 %d일 %H:%M}",
+            template=notification_templates.TRAINER_RESERVATION_BOOKED,
+            template_args={
+                "member_name": member.name,
+                "starts_at": local.isoformat(),
+            },
             # 알림을 누르면 그 회원 수업이 있는 날의 스케줄로 간다(#2292).
             subject_id=member.id,
             target_date=local.date().isoformat(),
@@ -708,12 +711,11 @@ def cancel(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_RESERVATION_KIND,
-            title="예약이 취소되었습니다",
-            body=(
-                f"{member_name} 회원 · {local:%m월 %d일 %H:%M}"
-                if local is not None
-                else f"{member_name} 회원"
-            ),
+            template=notification_templates.TRAINER_RESERVATION_CANCELLED,
+            template_args={
+                "member_name": member_name,
+                "starts_at": local.isoformat() if local is not None else None,
+            },
             # 취소된 일정도 스케줄에 `취소` 로 남는다 — 그 날짜로 연다(#2292).
             subject_id=member_id,
             target_date=local.date().isoformat() if local is not None else None,
