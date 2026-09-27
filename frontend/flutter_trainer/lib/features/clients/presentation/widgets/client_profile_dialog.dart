@@ -803,9 +803,13 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           if (memo.source == TrainerMemoSource.chatInsight)
             Padding(
               padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+              // 이 메모가 나온 채팅 인사이트 카드와 PT 관리 신호(`통증·불편`)가
+              // 같은 사실을 빨강으로 말한다. 여기만 주황이면 트레이너가 두
+              // 세기를 따로 외워야 한다(#690, #2360).
               child: AppTag(
+                key: ValueKey<String>('client-memo-insight-${memo.id}'),
                 label: _insightReasonLabel(l, memo.insightKind),
-                tone: AppTagTone.caution,
+                tone: AppTagTone.danger,
                 icon: Icons.warning_amber_rounded,
               ),
             ),
