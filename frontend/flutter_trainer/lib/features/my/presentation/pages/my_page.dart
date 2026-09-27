@@ -11,6 +11,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자). TODO: 실 백엔드
 // 도입 시 세션 계층을 core/session 으로 승격해 이 의존을 정리한다.
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -116,7 +117,9 @@ class _MyPageState extends ConsumerState<MyPage> {
   void initState() {
     super.initState();
     final session = ref.read(sessionControllerProvider);
-    _profile = session.profile ?? seedTrainerProfile;
+    _profile =
+        session.profile ??
+        seedTrainerProfileFor(ref.read(demoLanguageProvider));
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
@@ -166,7 +169,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     _field('email', _profile.email).text = _profile.email;
     _field('phone', _profile.phone).text = _profile.phone;
     _field('specialty', _profile.specialty).text = _profile.specialty;
-    _field('career', _profile.career).text = _profile.career;
+    _field('career', _careerText(_profile)).text = _careerText(_profile);
     _field('intro', _profile.intro).text = _profile.intro;
     _field('gymName', _gym.name).text = _gym.name;
     _field('gymAddress', _gym.address).text = _gym.address;
@@ -378,7 +381,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     String text(String key) => _fields[key]?.text ?? '';
     return text('phone') != _profile.phone ||
         text('specialty') != _profile.specialty ||
-        text('career') != _profile.career ||
+        text('career') != _careerText(_profile) ||
         text('intro') != _profile.intro ||
         _newCert.text.trim().isNotEmpty ||
         !listEquals(_draftCerts, _certs) ||
@@ -1299,18 +1302,21 @@ class _ProfileSummaryCard extends StatelessWidget {
                           .text(OnCareTypography.titleMedium)
                           .copyWith(color: OnCareColors.textPrimary),
                     ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    Wrap(
-                      spacing: OnCareSpacing.s4,
-                      runSpacing: OnCareSpacing.s4,
-                      children: <Widget>[
+                    const SizedBox(height: OnCareSpacing.s2),
+                    // 전문 분야·경력은 한 줄 글이다 — 회원 상세 머리와 같다.
+                    // 태그로 두면 긴 분야(영어)가 칸 밖으로 넘쳤다.
+                    Text(
+                      <String>[
                         if (profile.specialty.trim().isNotEmpty)
-                          AppTag(
-                            label: profile.specialty,
-                            tone: AppTagTone.brand,
-                          ),
-                        AppTag(label: l.myCareerYears(profile.career)),
-                      ],
+                          profile.specialty,
+                        if (profile.careerYears != null)
+                          l.myCareerYears(profile.careerYears!),
+                      ].join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textSecondary),
                     ),
                   ],
                 ),
@@ -1451,6 +1457,11 @@ class _MonthStats extends ConsumerWidget {
   }
 }
 
+/// 경력 입력칸에 채울 값 — 숫자만 둔다. 단위는 칸 라벨이 말하고, 저장할 때도
+/// 숫자만 읽는다 (#2304). 모르면 비운다.
+String _careerText(TrainerProfile profile) =>
+    profile.careerYears == null ? '' : '${profile.careerYears}';
+
 /// 프로필 수정의 기본 정보 칸. 이름·이메일은 계정 소관이라 비활성이다.
 class _ProfileFields extends StatelessWidget {
   const _ProfileFields({
@@ -1506,7 +1517,7 @@ class _ProfileFields extends StatelessWidget {
         ),
         _EditField(
           label: l.myFieldCareer,
-          controller: field('career', profile.career),
+          controller: field('career', _careerText(profile)),
           inputKey: const ValueKey<String>('profile-career'),
         ),
         _EditField(

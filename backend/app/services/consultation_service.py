@@ -429,6 +429,9 @@ def _notify_trainer_of_new_request(
         kind=notification_service.TRAINER_CONSULTATION_KIND,
         title="새 상담 요청이 도착했어요",
         body=f"{member_name} 회원 · {consultation.preferred_date}",
+        # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
+        subject_id=member_id,
+        target_date=consultation.preferred_date,
     )
 
 
@@ -454,6 +457,9 @@ def _notify_trainer_of_cancel(
         kind=notification_service.TRAINER_CONSULTATION_KIND,
         title="상담 요청이 취소됐어요",
         body=f"{member_name} 회원 · {consultation.preferred_date}",
+        # 상담 요청함에서 그 회원·희망 날짜를 찾을 수 있게 남긴다(#2292).
+        subject_id=member_id,
+        target_date=consultation.preferred_date,
     )
 
 

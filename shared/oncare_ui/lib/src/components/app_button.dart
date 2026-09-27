@@ -58,6 +58,7 @@ class AppButton extends StatelessWidget {
     this.trailingIcon,
     this.loading = false,
     this.fullWidth = false,
+    this.shrinkLabel = false,
   });
 
   final String label;
@@ -76,6 +77,14 @@ class AppButton extends StatelessWidget {
   /// 처리 중이면 라벨 자리에 스피너를 두고 탭을 막는다. 모양은 활성 그대로다.
   final bool loading;
   final bool fullWidth;
+
+  /// 자리가 모자라면 라벨을 **줄여서라도** 다 보여 준다.
+  ///
+  /// 버튼은 높이가 밀도에 묶여 있어 두 줄이 될 수 없다. 긴 문장을 담는 버튼은
+  /// 좁은 폭에서 말줄임으로 끝나 정작 무엇을 하는 버튼인지가 잘린다 — 그런
+  /// 자리에만 켠다. 짧은 라벨에는 켜지 않는다: 폭이 남으면 아무 일도 하지
+  /// 않지만, 켜 두면 언젠가 글자 크기가 제멋대로 줄어드는 버튼이 된다.
+  final bool shrinkLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -198,11 +207,17 @@ class AppButton extends StatelessWidget {
                 const SizedBox(width: OnCareSpacing.s8),
               ],
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: shrinkLabel
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(label, maxLines: 1, softWrap: false),
+                      )
+                    : Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
               ),
               if (trailingIcon != null) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s4),

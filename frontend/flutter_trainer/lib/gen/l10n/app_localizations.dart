@@ -2258,6 +2258,18 @@ abstract class AppLocalizations {
   /// **'AI personal exercise'**
   String get workoutKindAiPersonal;
 
+  /// Workout history kind for a completed PT session (server kind code pt_session).
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · Trainer-led'**
+  String get workoutKindPtSession;
+
+  /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned routine'**
+  String get workoutKindAssignedRoutine;
+
   /// No description provided for @trainerNote.
   ///
   /// In en, this message translates to:
@@ -2365,6 +2377,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yesterday'**
   String get dateYesterday;
+
+  /// Relative day label, used for two or more days ago (e.g. when the last routine was sent).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String dateDaysAgo(int count);
+
+  /// No description provided for @dateWeeksAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 week ago} other{{count} weeks ago}}'**
+  String dateWeeksAgo(int count);
+
+  /// Short date on a workout history card.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day}'**
+  String historyDate(int month, int day);
+
+  /// Workout history date with Today/Yesterday, e.g. 9/27 (Today).
+  ///
+  /// In en, this message translates to:
+  /// **'{date} ({relative})'**
+  String historyDateRelative(String date, String relative);
 
   /// No description provided for @dateMonthDayWeekday.
   ///
@@ -2863,6 +2899,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t mark it complete. Please try again'**
   String get schedCompleteFailed;
+
+  /// No description provided for @schedGroupProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'PT program'**
+  String get schedGroupProgram;
+
+  /// No description provided for @schedGroupPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get schedGroupPersonal;
+
+  /// No description provided for @schedRoutinesGoesOnComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Goes to the member together with this PT\'s program.'**
+  String get schedRoutinesGoesOnComplete;
+
+  /// No description provided for @schedRoutinesNotSentYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent to the member yet.'**
+  String get schedRoutinesNotSentYet;
+
+  /// No description provided for @schedRoutinesSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the personal exercise?'**
+  String get schedRoutinesSendTitle;
+
+  /// No description provided for @schedEditRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal exercise'**
+  String get schedEditRoutines;
+
+  /// No description provided for @schedEditRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal exercise'**
+  String get schedEditRoutinesTitle;
+
+  /// No description provided for @schedEditRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.'**
+  String get schedEditRoutinesBody;
+
+  /// No description provided for @schedRoutinesSendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.'**
+  String get schedRoutinesSendBody;
+
+  /// No description provided for @schedRoutinesSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send personal exercise'**
+  String get schedRoutinesSend;
+
+  /// No description provided for @schedRoutinesSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t send'**
+  String get schedRoutinesSkip;
+
+  /// No description provided for @schedSendProgramWithRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the {date} PT program and personal exercise'**
+  String schedSendProgramWithRoutines(String date);
+
+  /// No description provided for @schedRoutineSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get schedRoutineSent;
+
+  /// No description provided for @schedRoutinesSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent the personal exercise to the member.'**
+  String get schedRoutinesSent;
+
+  /// No description provided for @schedRoutinesSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the personal exercise. Please try again.'**
+  String get schedRoutinesSendFailed;
+
+  /// No description provided for @schedRoutinesSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as not sent.'**
+  String get schedRoutinesSkipped;
+
+  /// No description provided for @schedRoutinesUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise updated.'**
+  String get schedRoutinesUpdated;
+
+  /// No description provided for @schedRoutinesUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the personal exercise. Please try again.'**
+  String get schedRoutinesUpdateFailed;
 
   /// No description provided for @schedTimeRange.
   ///
@@ -3377,8 +3521,8 @@ abstract class AppLocalizations {
   /// No description provided for @schedSentProgramTo.
   ///
   /// In en, this message translates to:
-  /// **'Sent {name} the PT program for {date}'**
-  String schedSentProgramTo(String name, String date);
+  /// **'Send the {date} PT program'**
+  String schedSentProgramTo(String date);
 
   /// No description provided for @slotPastTime.
   ///
@@ -3734,11 +3878,11 @@ abstract class AppLocalizations {
   /// **'Password changed'**
   String get myPasswordChanged;
 
-  /// No description provided for @myCareerYears.
+  /// Career tag on the trainer profile. The value is stored as a number of years.
   ///
   /// In en, this message translates to:
-  /// **'{career} experience'**
-  String myCareerYears(String career);
+  /// **'{years, plural, =1{1 year} other{{years} years}} of experience'**
+  String myCareerYears(int years);
 
   /// No description provided for @myFieldName.
   ///
@@ -4979,7 +5123,7 @@ abstract class AppLocalizations {
   /// No description provided for @progPersonalRoutinesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Personal exercise going with it'**
+  /// **'Personal exercise for this PT'**
   String get progPersonalRoutinesTitle;
 
   /// No description provided for @progPersonalRoutinesCount.

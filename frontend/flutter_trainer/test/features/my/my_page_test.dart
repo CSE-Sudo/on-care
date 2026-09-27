@@ -80,8 +80,7 @@ void main() {
 
       expect(find.text(kDemoTrainerName), findsWidgets);
       expect(find.text('trainer@oncare.com'), findsOneWidget);
-      expect(find.text('퍼스널 트레이너'), findsOneWidget);
-      expect(find.text('경력 7년'), findsOneWidget);
+      expect(find.text('퍼스널 트레이너 · 경력 7년'), findsOneWidget);
       expect(find.text('생활스포츠지도사 2급'), findsOneWidget);
 
       await tester.scrollUntilVisible(find.text('담당 회원'), 150);

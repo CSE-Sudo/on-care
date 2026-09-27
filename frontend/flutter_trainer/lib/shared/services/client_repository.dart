@@ -1113,6 +1113,12 @@ class DriftClientRepository implements ClientRepository {
               clientFeedback: row.clientFeedback,
               trainerNote: row.trainerNote,
               completedAt: row.completedAt,
+              // 데모는 이 기록이 붙는 날을 `completedAt` 으로 들고 있다. 날짜로
+              // 넘겨 화면이 `9/27 (오늘)` 을 화면 언어로 그리게 한다(#2300).
+              date: switch (row.completedAt) {
+                final DateTime at => DateTime(at.year, at.month, at.day),
+                null => null,
+              },
             ),
           )
           .toList(),

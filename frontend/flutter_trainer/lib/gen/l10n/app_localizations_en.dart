@@ -1208,6 +1208,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
+  String get workoutKindPtSession => 'PT session · Trainer-led';
+
+  @override
+  String get workoutKindAssignedRoutine => 'Assigned routine';
+
+  @override
   String get trainerNote => 'Trainer\'s note';
 
   @override
@@ -1266,6 +1272,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateYesterday => 'Yesterday';
+
+  @override
+  String dateDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weeks ago',
+      one: '1 week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
@@ -1598,6 +1636,67 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t mark it complete. Please try again';
 
   @override
+  String get schedGroupProgram => 'PT program';
+
+  @override
+  String get schedGroupPersonal => 'Personal exercise';
+
+  @override
+  String get schedRoutinesGoesOnComplete =>
+      'Goes to the member together with this PT\'s program.';
+
+  @override
+  String get schedRoutinesNotSentYet => 'Not sent to the member yet.';
+
+  @override
+  String get schedRoutinesSendTitle => 'Send the personal exercise?';
+
+  @override
+  String get schedEditRoutines => 'Edit personal exercise';
+
+  @override
+  String get schedEditRoutinesTitle => 'Edit personal exercise';
+
+  @override
+  String get schedEditRoutinesBody =>
+      'This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.';
+
+  @override
+  String get schedRoutinesSendBody =>
+      'This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.';
+
+  @override
+  String get schedRoutinesSend => 'Send personal exercise';
+
+  @override
+  String get schedRoutinesSkip => 'Don\'t send';
+
+  @override
+  String schedSendProgramWithRoutines(String date) {
+    return 'Send the $date PT program and personal exercise';
+  }
+
+  @override
+  String get schedRoutineSent => 'Sent';
+
+  @override
+  String get schedRoutinesSent => 'Sent the personal exercise to the member.';
+
+  @override
+  String get schedRoutinesSendFailed =>
+      'Couldn\'t send the personal exercise. Please try again.';
+
+  @override
+  String get schedRoutinesSkipped => 'Marked as not sent.';
+
+  @override
+  String get schedRoutinesUpdated => 'Personal exercise updated.';
+
+  @override
+  String get schedRoutinesUpdateFailed =>
+      'Couldn\'t update the personal exercise. Please try again.';
+
+  @override
   String schedTimeRange(String start, String end) {
     return '$start–$end';
   }
@@ -1895,8 +1994,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String schedSentProgramTo(String name, String date) {
-    return 'Sent $name the PT program for $date';
+  String schedSentProgramTo(String date) {
+    return 'Send the $date PT program';
   }
 
   @override
@@ -2090,8 +2189,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPasswordChanged => 'Password changed';
 
   @override
-  String myCareerYears(String career) {
-    return '$career experience';
+  String myCareerYears(int years) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '1 year',
+    );
+    return '$_temp0 of experience';
   }
 
   @override
@@ -2812,7 +2917,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get progPersonalRoutinesTitle => 'Personal exercise going with it';
+  String get progPersonalRoutinesTitle => 'Personal exercise for this PT';
 
   @override
   String progPersonalRoutinesCount(int count) {

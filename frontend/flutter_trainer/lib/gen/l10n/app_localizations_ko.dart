@@ -1176,6 +1176,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI 개인운동';
 
   @override
+  String get workoutKindPtSession => 'PT 세션 · 트레이너 지도';
+
+  @override
+  String get workoutKindAssignedRoutine => '배정 루틴 수행';
+
+  @override
   String get trainerNote => '트레이너 메모';
 
   @override
@@ -1234,6 +1240,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dateYesterday => '어제';
+
+  @override
+  String dateDaysAgo(int count) {
+    return '$count일 전';
+  }
+
+  @override
+  String dateWeeksAgo(int count) {
+    return '$count주 전';
+  }
+
+  @override
+  String historyDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String historyDateRelative(String date, String relative) {
+    return '$date ($relative)';
+  }
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
@@ -1541,6 +1567,64 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedCompleteFailed => '완료 처리에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get schedGroupProgram => 'PT 프로그램';
+
+  @override
+  String get schedGroupPersonal => '개인운동';
+
+  @override
+  String get schedRoutinesGoesOnComplete => '이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.';
+
+  @override
+  String get schedRoutinesNotSentYet => '아직 회원에게 가지 않았어요.';
+
+  @override
+  String get schedRoutinesSendTitle => '개인운동을 보낼까요?';
+
+  @override
+  String get schedEditRoutines => '개인운동 수정';
+
+  @override
+  String get schedEditRoutinesTitle => '개인운동 수정';
+
+  @override
+  String get schedEditRoutinesBody =>
+      'PT 프로그램과 함께 나갈 개인운동이에요. 아직 보내지 않아 지금은 마음껏 고칠 수 있어요.';
+
+  @override
+  String get schedRoutinesSendBody =>
+      '이 PT 는 열리지 않았지만 짜 둔 개인운동은 보낼 수 있어요. 보낸 날부터 7일 동안 회원 앱에 매일 떠요.';
+
+  @override
+  String get schedRoutinesSend => '개인운동 보내기';
+
+  @override
+  String get schedRoutinesSkip => '보내지 않음';
+
+  @override
+  String schedSendProgramWithRoutines(String date) {
+    return '$date PT 프로그램 · 개인운동 전송';
+  }
+
+  @override
+  String get schedRoutineSent => '전송됨';
+
+  @override
+  String get schedRoutinesSent => '개인운동을 회원에게 보냈어요.';
+
+  @override
+  String get schedRoutinesSendFailed => '개인운동을 보내지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get schedRoutinesSkipped => '보내지 않기로 했어요.';
+
+  @override
+  String get schedRoutinesUpdated => '개인운동을 고커어요.';
+
+  @override
+  String get schedRoutinesUpdateFailed => '개인운동을 고치지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String schedTimeRange(String start, String end) {
     return '$start–$end';
   }
@@ -1819,8 +1903,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String schedSentProgramTo(String name, String date) {
-    return '$name님에게 $date PT 프로그램 전송';
+  String schedSentProgramTo(String date) {
+    return '$date PT 프로그램 전송';
   }
 
   @override
@@ -2003,8 +2087,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPasswordChanged => '비밀번호를 변경했어요';
 
   @override
-  String myCareerYears(String career) {
-    return '경력 $career';
+  String myCareerYears(int years) {
+    return '경력 $years년';
   }
 
   @override
@@ -2697,7 +2781,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get progPersonalRoutinesTitle => '함께 보낼 개인운동';
+  String get progPersonalRoutinesTitle => '이 PT 에 붙일 개인운동';
 
   @override
   String progPersonalRoutinesCount(int count) {

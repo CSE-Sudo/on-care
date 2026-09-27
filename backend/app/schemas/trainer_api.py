@@ -145,6 +145,11 @@ class TrainerClientOut(BaseModel):
     protein_g: float             # 오늘 총 단백질(g)
     fat_g: float                 # 오늘 총 지방(g)
     last_routine: str            # 마지막 루틴 전송 라벨(오늘/어제/N일 전)
+    #: 마지막 루틴을 보낸 날(KST, YYYY-MM-DD). 없으면 None (#2300).
+    #: `last_routine` 은 서버가 문장으로 만든 라벨이라 화면 언어를 따라가지 못한다
+    #: — 앱은 이 날짜로 `오늘`·`N일 전` 을 로케일에 맞춰 직접 그린다. 옛 앱을 위해
+    #: `last_routine` 도 계속 보낸다.
+    last_routine_date: str | None = None
     week_completion: list[int]   # 이번 주 일별 완료율 7개(월→일)
     sodium_week: list[int]       # 최근 7일 일별 나트륨(오래된→오늘)
     #: 최근 7일 일별 칼로리·당류. 나트륨과 같은 창이라 세 지표를 한 그래프에서
@@ -279,6 +284,35 @@ class ClientDietEntryOut(BaseModel):
     photo_url: str | None = None
 
 
+#: 이력 종류 코드(#2300). 서버가 붙이는 고정 이름만 코드가 있다 — 트레이너가
+#: 지은 루틴 이름처럼 사람이 쓴 이름은 코드 없이 `label` 로만 온다.
+#: - ``pt_session``: 완료한 PT 세션 (`PT 세션 · 트레이너 지도`)
+#: - ``ai_personal``: AI 개인운동 (`AI 개인운동`, 옛 `AI 루틴 · 자율 운동`)
+#: - ``assigned_routine``: 이름 없는 배정 루틴 수행 (`배정 루틴 수행`)
+RoutineHistoryKind = Literal["pt_session", "ai_personal", "assigned_routine"]
+
+
+class RoutineHistoryExerciseOut(BaseModel):
+    """이력의 운동 한 종목 — 문장이 아닌 값(#2300).
+
+    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 한국어로 박힌 문장이라 영어
+    화면에서도 `세트`·`회` 가 그대로 나온다. 같은 내용을 값으로 나눠 보내고 단위는
+    앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
+    """
+    name: str
+    #: `cardio` | `strength` | `stretching` | `other`. 모르면 빈 문자열.
+    type: str = ""
+    minutes: int = 0
+    sets: int | None = None
+    reps: int | None = None
+    hold_seconds: int | None = None
+    weight: float | None = None
+    #: `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 채운다.
+    intensity: str | None = None
+    #: 실제로 했는가(`✓`/`✗`). 표시가 없던 기록은 한 것으로 본다.
+    done: bool = True
+
+
 class RoutineHistoryOut(BaseModel):
     """고객 운동기록 서브탭 항목 — 프론트 RoutineHistoryEntry 계약 정렬."""
     id: str = ""
@@ -286,6 +320,13 @@ class RoutineHistoryOut(BaseModel):
     label: str               # "PT 세션 · 트레이너 지도"
     completion_rate: int     # 0..100
     exercises: list[str]
+    #: 이력이 붙는 날(KST, YYYY-MM-DD) — `date_label` 을 만든 바로 그 날이다.
+    #: 앱은 이 값으로 `7/12 (오늘)` 을 로케일에 맞춰 그린다(#2300).
+    date: str | None = None
+    #: `label` 이 서버가 붙인 고정 이름이면 그 코드. 사람이 지은 이름이면 None.
+    kind: RoutineHistoryKind | None = None
+    #: `exercises` 와 같은 순서·같은 개수의 값 목록(#2300).
+    exercise_items: list[RoutineHistoryExerciseOut] = Field(default_factory=list)
     client_feedback: str
     trainer_note: str
     assigned_routine_id: str | None = None
@@ -552,6 +593,10 @@ class RoutineOut(BaseModel):
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
     schedule_id: str | None = None
+    #: PT 일정에 붙여만 두고 **아직 회원에게 보내지 않았는가**(#2224). 일정
+    #: 상세가 보낸 것과 보낼 것을 같은 목록에서 가르는 데 쓴다. 회원 앱이 보는
+    #: 배정은 모두 이미 보낸 것이라 언제나 거짓이다.
+    pending_send: bool = False
     #: 어떤 전송에 속한 개인운동인가(#2225). 이 칸이 생기기 전 배정은 비어 있다.
     delivery_kind: RoutineDeliveryKind | None = None
     #: 전송에 붙인 회원에게 한마디. 선택 입력이라 보통 빈 문자열이다(#2223).
@@ -804,6 +849,31 @@ class PersonalRoutineItem(BaseModel):
 #: 값이다(#2223) — `개인운동만` 은 운동 하나가 세션 하나가 되므로, 두 경로에
 #: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
+
+
+class ScheduleRoutineUpdateRequest(BaseModel):
+    """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
+
+    비울 수 없다: 개인운동은 PT 마다 최소 한 개라는 규칙(#2223)이 여기서도
+    같다.
+    """
+
+    personal_routines: list[PersonalRoutineItem] = Field(
+        min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+
+
+class ScheduleRoutineSendRequest(BaseModel):
+    """마무리된 PT 의 개인운동을 보낸다 — 고쳐서 보낼 수도 있다. (#2224)
+
+    [personal_routines] 를 비우면 붙어 있던 그대로 보낸다. 주면 그 내용으로
+    갈아 끼운 뒤 보낸다 — 취소된 PT 에는 프로그램 만들기로 다시 붙일 수 없어
+    (`예정` 세션만 찾는다) 고치는 자리가 이 요청뿐이다.
+    """
+
+    personal_routines: list[PersonalRoutineItem] | None = Field(
+        default=None, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
 
 class ProgramAssignRequest(BaseModel):
@@ -1666,6 +1736,9 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
     #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
     subject_id: str | None = None
+    #: 알림이 가리키는 날짜(`YYYY-MM-DD`) — 예약·상담 알림이 스케줄을 그 날짜로
+    #: 여는 데 쓴다(#2292). 옛 알림에는 없다.
+    target_date: str | None = None
 
 
 #: 미션 키 하나(`report-<id>` 등). 서버는 내용을 해석하지 않고 길이만 막는다.

@@ -1,4 +1,5 @@
 import 'package:demo_fixture/demo_fixture.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 
 /// The trainer's gym / workplace details.
 class TrainerGym {
@@ -42,7 +43,7 @@ class TrainerProfile {
     required this.email,
     required this.phone,
     required this.specialty,
-    required this.career,
+    required this.careerYears,
     required this.intro,
     required this.certifications,
     required this.gym,
@@ -60,8 +61,11 @@ class TrainerProfile {
   /// Specialty label (e.g. "퍼스널 트레이너").
   final String specialty;
 
-  /// Career length label (e.g. "7년").
-  final String career;
+  /// 경력 연수(예: 7). 모르면 `null` 이다.
+  ///
+  /// 숫자로 들고 화면이 ARB(`myCareerYears`)로 적는다 (#2304). 예전에는
+  /// `'7년'` 문구를 그대로 들고 있어 영어 화면에도 `7년 experience` 가 떴다.
+  final int? careerYears;
 
   /// Short self-introduction shown on the MY screen.
   final String intro;
@@ -79,7 +83,7 @@ class TrainerProfile {
     String? email,
     String? phone,
     String? specialty,
-    String? career,
+    int? careerYears,
     String? intro,
     List<String>? certifications,
     TrainerGym? gym,
@@ -89,7 +93,7 @@ class TrainerProfile {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       specialty: specialty ?? this.specialty,
-      career: career ?? this.career,
+      careerYears: careerYears ?? this.careerYears,
       intro: intro ?? this.intro,
       certifications: certifications ?? this.certifications,
       gym: gym ?? this.gym,
@@ -104,7 +108,7 @@ const TrainerProfile seedTrainerProfile = TrainerProfile(
   email: 'trainer@oncare.com',
   phone: '010-1234-5678',
   specialty: '퍼스널 트레이너',
-  career: '7년',
+  careerYears: 7,
   // 회원앱 `MockGymRepository._kim.intro` 와 같은 문구여야 한다 — 한 사람이 두 앱에서
   // 같게 읽혀야 하고, 회원앱 테스트가 이 값을 그대로 비교한다.
   intro:
@@ -118,3 +122,32 @@ const TrainerProfile seedTrainerProfile = TrainerProfile(
     phone: '02-1234-5678',
   ),
 );
+
+/// 영어 데모의 같은 트레이너 (#2304). 이름·연락처는 그대로 두고 소개·자격·
+/// 헬스장 문구만 영어로 적는다.
+const TrainerProfile seedTrainerProfileEn = TrainerProfile(
+  name: kDemoTrainerName,
+  email: 'trainer@oncare.com',
+  phone: '010-1234-5678',
+  specialty: 'Personal trainer',
+  careerYears: 7,
+  intro:
+      'A personal trainer who works on blood pressure and weight loss '
+      'together. I use AI-recommended programs tailored to each member and '
+      'start from a safe intensity.',
+  certifications: <String>[
+    'Sports Instructor Level 2',
+    'Certified Personal Trainer (CPT)',
+    'Sports Nutritionist',
+  ],
+  gym: TrainerGym(
+    name: 'OnCare Gym Sinchon',
+    address: '120 Sinchon-ro, Seodaemun-gu, Seoul',
+    hours: '06:00 – 23:00',
+    phone: '02-1234-5678',
+  ),
+);
+
+/// [language] 데모의 트레이너 프로필.
+TrainerProfile seedTrainerProfileFor(DemoLanguage language) =>
+    language.isEnglish ? seedTrainerProfileEn : seedTrainerProfile;

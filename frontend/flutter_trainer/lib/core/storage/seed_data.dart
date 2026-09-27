@@ -4,6 +4,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
@@ -13,6 +14,7 @@ import 'package:oncare_trainer/shared/models/client_signal.dart';
 // lives next door. `part` keeps the `_Client` family private to this
 // library rather than making the shapes public just to split a file.
 part 'seed_clients.dart';
+part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
@@ -118,17 +120,30 @@ part 'seed_clients.dart';
 /// anything before Monday belongs to last week. Pinned dates are the only
 /// way to assert that rule in both directions instead of on whichever day
 /// the suite happens to run (#826).
+///
+/// [language] 는 심을 내용의 언어다(#2304). 회원 목표·대화·식단·운동·메모를
+/// 그 언어로 심고, 사람 이름은 그대로 둔다. 심은 언어는 [seedLanguageKey] 에
+/// 남는다 — 같은 날이라도 언어가 바뀌면 다시 심어, 영어 화면에 어제 심은
+/// 한국어 대화가 남지 않게 한다. 기록이 없으면(이 키가 생기기 전에 심은 DB)
+/// 한국어로 심은 것으로 본다.
 Future<void> seedIfEmpty(
   AppDatabase db, {
   DemoFixture? fixture,
   DateTime? clock,
+  DemoLanguage language = DemoLanguage.ko,
 }) async {
   final DateTime now = clock ?? nowKst();
   final today = ymd(now);
   // 주간 계열을 요일 자리에 놓기 위한 오늘의 인덱스(월=0).
   final todayIndex = now.weekday - 1;
+  final _SeedText t = _SeedText(language);
 
-  if (await db.readValue('trainer_seeded_v33') == today) return;
+  final String seededLanguage =
+      await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
+  if (await db.readValue('trainer_seeded_v33') == today &&
+      seededLanguage == language.name) {
+    return;
+  }
 
   // 김민수의 하루는 픽스처가 정한다 — 이 앱은 날짜에 붙여 저장하기만 한다(#757).
   final DemoFixture demo = fixture ?? DemoFixture.load();
@@ -258,17 +273,17 @@ Future<void> seedIfEmpty(
               id: 'seed-client-${client.id}',
               name: client.name,
               avatar: client.avatar,
-              goal: client.goal,
+              goal: t(client.goal),
               // 목록의 미리보기는 **그 스레드의 마지막 메시지**다. 예전에는
               // 여기에 손으로 적어 둔 문장이 들어가서, 대화를 손볼 때마다
               // 한쪽만 바뀌었다 — 김민수는 우연히 맞고 박성호는 회원이
               // 보낸 옛 메시지가 떠서, 목록이 고객마다 다른 말을 했다.
-              lastMessage: _lastChatText(client.chat),
+              lastMessage: t(_lastChatText(client.chat)),
               // 시각도 같다 — 카카오톡처럼 오늘이면 시각, 어제는 `어제`,
               // 그 전이면 날짜다. 문구를 픽스처에 적어 두면 하루만
               // 지나도 거짓이 되므로, 며칠 전인지만 적고 심을 때마다
               // 오늘 기준으로 다시 만든다.
-              lastTime: _lastTimeLabel(client, now),
+              lastTime: _lastTimeLabel(client, now, t),
               active: Value(client.active),
               caloriesToday: fromFixture
                   ? fixtureClient.today.calories
@@ -284,7 +299,7 @@ Future<void> seedIfEmpty(
                 fromFixture ? fixtureClient.proteinToday : client.proteinG,
               ),
               fatG: Value(fromFixture ? fixtureClient.fatToday : client.fatG),
-              lastRoutine: client.lastRoutine,
+              lastRoutine: t(client.lastRoutine),
               weekCompletionJson: jsonEncode(
                 fromFixture
                     ? fixtureClient.completionWeek
@@ -337,13 +352,13 @@ Future<void> seedIfEmpty(
             ClientDietEntriesCompanion.insert(
               id: 'seed-diet-${client.id}-$i',
               clientId: 'seed-client-${client.id}',
-              meal: diet[i].meal,
-              items: diet[i].items,
+              meal: t(diet[i].meal),
+              items: t.items(diet[i].items),
               calories: diet[i].calories,
               sodiumMg: diet[i].sodiumMg,
               sugarG: Value(diet[i].sugarG),
               timeLabel: Value(diet[i].timeLabel),
-              foodsJson: Value(diet[i].foodsJson),
+              foodsJson: Value(t.foodsJson(diet[i].foodsJson)),
               // 날짜가 없는 끼니는 오늘 것이다 — 픽스처가 아닌 고객들은
               // 오늘 하루치만 갖고 있다(#1025).
               date: Value(diet[i].date ?? today),
@@ -364,10 +379,12 @@ Future<void> seedIfEmpty(
             ClientAiRoutinesCompanion.insert(
               id: 'seed-airoutine-${client.id}-$i',
               clientId: 'seed-client-${client.id}',
-              name: aiRoutine[i].name,
+              name: t(aiRoutine[i].name),
               minutes: aiRoutine[i].minutes,
+              // 유형은 화면 문구가 아니라 계약값('근력'·'유산소'…)이라 옮기지
+              // 않는다 — 화면이 이 값으로 단위를 고른다.
               type: aiRoutine[i].type,
-              reason: aiRoutine[i].reason,
+              reason: t(aiRoutine[i].reason),
               sortOrder: Value(i),
             ),
         ]);
@@ -380,12 +397,12 @@ Future<void> seedIfEmpty(
             ClientRoutineHistoryCompanion.insert(
               id: 'seed-history-${client.id}-$i',
               clientId: 'seed-client-${client.id}',
-              dateLabel: _historyLabel(now, history[i].daysAgo),
-              label: history[i].label,
+              dateLabel: _historyLabel(now, history[i].daysAgo, t),
+              label: t(history[i].label),
               completionRate: history[i].completionRate,
-              exercisesJson: jsonEncode(history[i].exercises),
-              clientFeedback: Value(history[i].clientFeedback),
-              trainerNote: Value(history[i].trainerNote),
+              exercisesJson: jsonEncode(t.exercises(history[i].exercises)),
+              clientFeedback: Value(t(history[i].clientFeedback)),
+              trainerNote: Value(t(history[i].trainerNote)),
               sortOrder: Value(i),
               completedAt: Value(_daysBefore(now, history[i].daysAgo)),
             ),
@@ -394,8 +411,8 @@ Future<void> seedIfEmpty(
         b.insertAll(
           db.clientDailyMetrics,
           fromFixture
-              ? fixtureClient.dailyMetrics().toList(growable: false)
-              : _dailyMetrics(client, now).toList(growable: false),
+              ? fixtureClient.dailyMetrics(t).toList(growable: false)
+              : _dailyMetrics(client, now, t).toList(growable: false),
         );
 
         // 리포트 ②·③ 이 읽는 두 가지(#2232). 회원이 낸 답과, 지난 주에 고른
@@ -403,11 +420,11 @@ Future<void> seedIfEmpty(
         // "아직 받지 못함" 이 어떻게 보이는지를 숨긴다.
         b.insertAll(
           db.clientWeeklyFeedbacks,
-          _weeklyFeedbacks(client.id, now).toList(growable: false),
+          _weeklyFeedbacks(client.id, now, t).toList(growable: false),
         );
         b.insertAll(
           db.clientReportGoals,
-          _reportGoals(client.id, now).toList(growable: false),
+          _reportGoals(client.id, now, t).toList(growable: false),
         );
 
         b.insertAll(db.clientChatMessages, <ClientChatMessagesCompanion>[
@@ -416,8 +433,8 @@ Future<void> seedIfEmpty(
               id: 'seed-chat-${client.id}-$i',
               clientId: 'seed-client-${client.id}',
               sender: client.chat[i].sender,
-              body: client.chat[i].text,
-              timeLabel: client.chat[i].timeLabel,
+              body: t(client.chat[i].text),
+              timeLabel: t.timeLabel(client.chat[i].timeLabel),
               // 시각 계산은 [chatCreatedAt] 한 곳에서 맡는다.
               createdAt: chatCreatedAt(client, i, lastDayIndex),
             ),
@@ -493,8 +510,8 @@ Future<void> seedIfEmpty(
             type: Value(_schedule[i].type),
             durationMinutes: Value(_schedule[i].durationMinutes),
             status: _schedule[i].status,
-            note: Value(_schedule[i].note),
-            programJson: Value(jsonEncode(_schedule[i].program)),
+            note: Value(t(_schedule[i].note)),
+            programJson: Value(jsonEncode(t.program(_schedule[i].program))),
             sortOrder: Value(i),
           ),
         // 오늘을 뺀 요일에 이번 주 나머지 수업을 놓는다 (#1210). 예전에는 시드가
@@ -520,8 +537,10 @@ Future<void> seedIfEmpty(
               status: _weekSchedule[i].weekday < now.weekday
                   ? ScheduleStatus.done
                   : ScheduleStatus.upcoming,
-              note: Value(_weekSchedule[i].note),
-              programJson: Value(jsonEncode(_weekSchedule[i].program)),
+              note: Value(t(_weekSchedule[i].note)),
+              programJson: Value(
+                jsonEncode(t.program(_weekSchedule[i].program)),
+              ),
               sortOrder: Value(_schedule.length + i),
             ),
       ]);
@@ -529,7 +548,91 @@ Future<void> seedIfEmpty(
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
     await db.putValue('trainer_seeded_v33', today);
+    await db.putValue(seedLanguageKey, language.name);
   });
+}
+
+/// 마지막으로 심은 데모 내용의 언어(`ko`·`en`)를 남기는 키. (#2304)
+const String seedLanguageKey = 'trainer_seed_language';
+
+/// 시드 문구를 [language] 로 옮긴다. (#2304)
+///
+/// 한국어는 원문 그대로다. 영어는 [_seedEnglish] 에서 찾고, 표에 없는 값(사람
+/// 이름·숫자만 있는 값)은 그대로 둔다. 화면이 계약값으로 읽는 칸(운동 유형·
+/// 끼니 순서 키)은 여기로 보내지 않는다.
+class _SeedText {
+  const _SeedText(this.language);
+
+  final DemoLanguage language;
+
+  String call(String ko) => language.isEnglish ? (_seedEnglish[ko] ?? ko) : ko;
+
+  /// 쉼표로 이은 음식 이름(`오트밀, 바나나`)을 한 이름씩 옮긴다.
+  String items(String joined) => language.isEnglish && joined.isNotEmpty
+      ? joined.split(', ').map(call).join(', ')
+      : joined;
+
+  /// 음식별 영양 JSON 의 `name` 만 옮긴다 — 수치는 그대로다.
+  String foodsJson(String json) {
+    if (!language.isEnglish) return json;
+    final Object? decoded = jsonDecode(json);
+    if (decoded is! List) return json;
+    return jsonEncode(<Object?>[
+      for (final Object? food in decoded)
+        if (food is Map<String, Object?>)
+          <String, Object?>{
+            ...food,
+            if (food['name'] is String) 'name': call(food['name']! as String),
+          }
+        else
+          food,
+    ]);
+  }
+
+  /// 운동 목록 — 값까지 실린 객체는 `name` 만, 옛 문자열은 통째로 옮긴다.
+  List<Object> exercises(List<Object> items) => <Object>[
+    for (final Object item in items)
+      if (item is String)
+        call(item)
+      else if (item is Map<String, Object?>)
+        _named(item)
+      else
+        item,
+  ];
+
+  /// 수업 프로그램 — 운동 이름만 옮기고 유형(`근력` 등 계약값)은 둔다.
+  List<Map<String, Object?>> program(List<Map<String, Object?>> items) =>
+      <Map<String, Object?>>[
+        for (final Map<String, Object?> item in items) _named(item),
+      ];
+
+  Map<String, Object?> _named(Map<String, Object?> item) {
+    final Object? name = item['name'];
+    if (!language.isEnglish || name is! String) return item;
+    return <String, Object?>{...item, 'name': call(name)};
+  }
+
+  /// `'화 10:02'` 처럼 요일을 단 말풍선 시각. 요일만 옮기고 시각은 둔다 —
+  /// 시딩은 뒤의 `HH:MM` 을 읽어 정렬하므로 그 모양을 지켜야 한다.
+  String timeLabel(String label) {
+    if (!language.isEnglish) return label;
+    final RegExpMatch? match = RegExp(r'^([월화수목금토일]) (.+)$').firstMatch(label);
+    if (match == null) return label;
+    const Map<String, String> weekdays = <String, String>{
+      '월': 'Mon',
+      '화': 'Tue',
+      '수': 'Wed',
+      '목': 'Thu',
+      '금': 'Fri',
+      '토': 'Sat',
+      '일': 'Sun',
+    };
+    return '${weekdays[match.group(1)]} ${match.group(2)}';
+  }
+
+  /// 목록·기록 카드의 `오늘`·`어제`.
+  String get today => call('오늘');
+  String get yesterday => call('어제');
 }
 
 // ---------------------------------------------------------------------------
@@ -904,7 +1007,7 @@ class _FixtureClient {
   }
 
   /// 날짜별 하루 집계. 기록이 아예 없는 날은 넣지 않는다.
-  Iterable<ClientDailyMetricsCompanion> dailyMetrics() sync* {
+  Iterable<ClientDailyMetricsCompanion> dailyMetrics(_SeedText t) sync* {
     for (final FixtureDay day in days) {
       if (!day.hasRecord) continue;
       yield ClientDailyMetricsCompanion.insert(
@@ -936,7 +1039,7 @@ class _FixtureClient {
             for (final FixtureExercise e in day.exercises)
               if (e.done)
                 <String, Object?>{
-                  'name': e.name,
+                  'name': t(e.name),
                   'type': e.type,
                   'minutes': e.minutes,
                   if (e.sets != null) 'sets': e.sets,
@@ -968,6 +1071,7 @@ String mealLabel(String mealType) => switch (mealType) {
 Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
   _Client client,
   DateTime now,
+  _SeedText t,
 ) sync* {
   final today = DateTime(now.year, now.month, now.day);
   final monday = today.subtract(Duration(days: today.weekday - 1));
@@ -1029,8 +1133,12 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
         exercisesJson: Value(
           jsonEncode(
             date == today
-                ? _exercisesFor(client, done, today: true)
-                : _routineFor(client.id, day, done),
+                ? _exercisesFor(client, done, t, today: true)
+                : _routineFor(
+                    client.id,
+                    day,
+                    done,
+                  ).map(t.call).toList(growable: false),
           ),
         ),
       );
@@ -1091,7 +1199,8 @@ const List<List<String>> _routinePool = <List<String>>[
 /// 고객 상세의 운동 기록이 각각 다른 운동으로 보여 주면 안 된다.
 List<String> _exercisesFor(
   _Client client,
-  int completion, {
+  int completion,
+  _SeedText t, {
   bool today = false,
 }) {
   if (completion <= 0) return const <String>[];
@@ -1103,7 +1212,8 @@ List<String> _exercisesFor(
         best = entry;
       }
     }
-    return _doneNames(best.exercises);
+    // 옮긴 뒤에 추린다 — 원문의 `✓` 를 뗀 이름은 번역 표의 키가 아니다.
+    return _doneNames(t.exercises(best.exercises));
   }
   return const <String>[];
 }
@@ -1257,10 +1367,10 @@ const int _chatSpreadDays = 40;
 ///
 /// 백엔드 `trainer_service.relative_time_label` 과 같은 규칙이다 — 데모와 실
 /// API 가 같은 자리에 다른 모양을 그리면 안 된다.
-String _lastTimeLabel(_Client client, DateTime now) {
+String _lastTimeLabel(_Client client, DateTime now, _SeedText t) {
   if (client.chat.isEmpty) return '-';
   if (client.daysAgo == 0) return _clockOf(_lastChat(client.chat).timeLabel);
-  if (client.daysAgo == 1) return '어제';
+  if (client.daysAgo == 1) return t.yesterday;
   return ymd(now.subtract(Duration(days: client.daysAgo)));
 }
 
@@ -1283,12 +1393,12 @@ int _daysBetween(DateTime from, DateTime to) => DateTime.utc(
 /// 저장된 완료 날짜에서 만든다. 예전에는 시드에 박아 둔 고정 문자열이라 날이
 /// 바뀌어도 7월에 머물렀고, 이제 기간 필터가 붙으면서 라벨과 필터가 서로 다른
 /// 날을 가리키는 것이 눈에 보이게 됐다(#1114).
-String _historyLabel(DateTime now, int daysAgo) {
+String _historyLabel(DateTime now, int daysAgo, _SeedText t) {
   final DateTime date = _daysBefore(now, daysAgo);
   final String base = '${date.month}/${date.day}';
   return switch (daysAgo) {
-    0 => '$base (오늘)',
-    1 => '$base (어제)',
+    0 => '$base (${t.today})',
+    1 => '$base (${t.yesterday})',
     _ => base,
   };
 }
@@ -1818,6 +1928,7 @@ const List<_Slot> _schedule = <_Slot>[
 Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
   int clientId,
   DateTime now,
+  _SeedText t,
 ) sync* {
   final List<_Feedback>? weeks = _demoFeedback[clientId];
   if (weeks == null) return;
@@ -1830,13 +1941,13 @@ Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
       weekStart: ymd(week),
       condition: Value(f.condition),
       intensity: Value(f.intensity),
-      painArea: Value(f.painArea),
+      painArea: Value(t(f.painArea)),
       // 통증 날짜는 그 주 안의 요일로 적는다 — 데모를 언제 열어도 "지난 주
       // 목요일" 이 되도록. 고정 날짜로 박으면 한 주만 지나도 과거가 된다.
       painOn: Value(
         f.painArea.isEmpty ? '' : ymd(week.add(Duration(days: f.painDay))),
       ),
-      note: Value(f.note),
+      note: Value(t(f.note)),
     );
   }
 }
@@ -1848,6 +1959,7 @@ Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
 Iterable<ClientReportGoalsCompanion> _reportGoals(
   int clientId,
   DateTime now,
+  _SeedText t,
 ) sync* {
   final List<String>? goals = _demoGoals[clientId];
   if (goals == null) return;
@@ -1859,7 +1971,7 @@ Iterable<ClientReportGoalsCompanion> _reportGoals(
     yield ClientReportGoalsCompanion.insert(
       clientId: 'seed-client-$clientId',
       weekStart: ymd(monday.subtract(Duration(days: 7 * weeksAgo))),
-      goalsJson: Value(jsonEncode(goals)),
+      goalsJson: Value(jsonEncode(goals.map(t.call).toList(growable: false))),
     );
   }
 }

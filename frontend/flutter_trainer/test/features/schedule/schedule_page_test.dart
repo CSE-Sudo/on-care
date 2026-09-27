@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
@@ -233,6 +236,32 @@ void main() {
       expect(logged.trainerNote, '벤치 폼 안정적');
       expect(logged.exercisesJson, contains('벤치프레스'));
       expect(logged.sortOrder, lessThan(0)); // sorts before seed rows
+
+      // 운동은 한국어 문장이 아니라 값으로 남는다 — 영어 화면이 단위를
+      // 스스로 붙인다(#2300).
+      final List<Object?> items =
+          jsonDecode(logged.exercisesJson) as List<Object?>;
+      expect(items, isNotEmpty);
+      expect(items, everyElement(isA<Map<String, Object?>>()));
+      final Map<String, Object?> bench = items
+          .cast<Map<String, Object?>>()
+          .firstWhere((m) => m['name'] == '벤치프레스');
+      expect(bench['sets'], isA<int>());
+      expect(bench['name'], isNot(contains('세트')));
+      // 날짜 문장에 `(오늘)` 을 박지 않는다 — 화면이 날짜로 다시 그린다.
+      final DateTime today = nowKst();
+      expect(logged.dateLabel, '${today.month}/${today.day}');
+
+      // 이력으로 읽으면 날짜가 붙어 있다.
+      final entry =
+          (await DriftClientRepository(db).watchHistory('seed-client-3').first)
+              .firstWhere((h) => h.id == logged.id);
+      expect(entry.date, DateTime(today.year, today.month, today.day));
+      expect(entry.exercises.any((e) => e.name == '벤치프레스'), isTrue);
+      expect(
+        entry.exercises.firstWhere((e) => e.name == '벤치프레스').sets,
+        isNotNull,
+      );
     });
 
     test('concurrent completeSession calls log the 운동기록 once', () async {
@@ -1264,7 +1293,7 @@ void main() {
       await openSchedule(tester);
 
       await openSession(tester, '김민수');
-      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램 전송'));
+      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
       // There is no delivery endpoint, so merely rendering the disabled
       // action must not manufacture a trainer-authored chat event.
       await goTo(
@@ -1601,7 +1630,7 @@ void main() {
       await goTo(tester, AppRoutes.schedule);
 
       await openSession(tester, '김민수'); // 완료 session with a program
-      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램 전송'));
+      await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
       expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
       expect(find.text('김민수님에게 전송됨'), findsNothing);
     });

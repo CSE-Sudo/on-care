@@ -233,7 +233,7 @@ void main() {
 
     final restored = await repository.fetch();
     expect(restored.phone, '010-7777-8888');
-    expect(restored.career, '9년');
+    expect(restored.careerYears, 9);
     expect(restored.gym.id, 'gym-2');
     expect(restored.gym.hours, '06:00 – 24:00');
 
