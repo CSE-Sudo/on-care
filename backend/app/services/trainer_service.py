@@ -27,7 +27,7 @@ from app.core import clock
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
-    MemberWeeklyFeedback,
+    MemberWeeklyFeedback, Notification,
     TrainerReportGoal, Place, RoutineHistory,
     TrainerClient, TrainerClientMemo, TrainerProfile, TrainerProgramDraft,
     TrainerFollowUpTask, TrainerReportFeedback,
@@ -861,6 +861,9 @@ def send_message(
             kind=notification_service.TRAINER_MESSAGE_KIND,
             title=f"{member_name or '회원'} 회원의 메시지",
             body=text,
+            # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
+            # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
+            subject_id=member_id,
         )
     if notify is not None and sender == "trainer":
         trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
@@ -917,6 +920,21 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
         )
         .values(read_at=datetime.now(timezone.utc))
     )
+    if reader == "trainer":
+        # 대화를 읽었으면 그 회원이 보낸 메시지 알림도 확인한 것이다(#2291).
+        # 전에는 채팅만 읽음이 되고 알림은 미읽음으로 남아, 이미 본 메시지가
+        # 알림 배지에 계속 걸려 있었다. 보낸 회원이 기록되지 않은 옛 알림은
+        # 누구의 것인지 알 수 없어 건드리지 않는다 — 알림함에서 직접 읽는다.
+        db.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == trainer_id,
+                Notification.category == notification_service.TRAINER_MESSAGE_KIND,
+                Notification.subject_id == member_id,
+                Notification.read.is_(False),
+            )
+            .values(read=True)
+        )
     db.commit()
     return result.rowcount or 0
 
