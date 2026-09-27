@@ -110,6 +110,14 @@ class _ClientCoachSheetState extends ConsumerState<_ClientCoachSheet> {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
       setState(() {
+        // 분당 한도(429, #1548)는 고장이 아니라 잠시 뒤 되는 상태다. 서버의 일반
+        // 문구 대신 이 화면의 말로 언제 다시 물으면 되는지까지 알린다. 쓰던
+        // 질문은 지우지 않는다 — 1분 뒤 그대로 다시 보내면 된다.
+        if (e is RateLimitedError) {
+          _error = l.coachRateLimited;
+          _asking = false;
+          return;
+        }
         // 서버가 준 사유가 있으면 그대로(서버 문구의 다국어는 별건), 없으면
         // 오류 종류에 맞는 문구를 화면이 붙인다. (#501)
         final fallback = switch (e) {

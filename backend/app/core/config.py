@@ -147,6 +147,7 @@ class Settings(BaseSettings):
     rate_limit_auth_per_minute: int = 10  # IP·엔드포인트당 분당 시도 한도
     # AI 코치 채팅 한도. 브루트포스 방어가 아니라 LLM 비용 가드라서 목적이 다르다.
     # 사람이 대화하는 속도로는 걸리지 않되, 폭주하는 클라이언트는 막는 값.
+    # 회원 AI 코치(IP 버킷)와 트레이너 고객 AI 코치(트레이너 id 버킷, #1548)가 같이 쓴다.
     coach_chat_per_minute: int = 20
     # AI 챗봇 하루 대화 한도(#2145). 분당 한도는 폭주하는 클라이언트를 막고, 이 값들은
     # 한 회원의 하루 비용을 묶는다. 무료를 다 쓰면 한 번에 `coach_chat_paid_cost` 포인트로

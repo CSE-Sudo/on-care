@@ -3016,6 +3016,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachAskFailed => '질문을 보낼 수 없어요';
 
   @override
+  String get coachRateLimited => '질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요';
+
+  @override
   String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';
 
   @override

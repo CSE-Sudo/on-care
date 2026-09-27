@@ -171,6 +171,41 @@ void main() {
     });
   });
 
+  group('분당 한도(429, #1548)', () {
+    test('429 는 잠시 뒤 되는 상태(RateLimitedError)로 옮긴다', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/trainer/clients/m1/ai-coach',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(
+        _httpError(
+          429,
+          body: <String, Object?>{'detail': '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'},
+        ),
+      );
+
+      await expectLater(
+        repo.ask(memberId: 'm1', message: 'q'),
+        throwsA(isA<RateLimitedError>()),
+      );
+    });
+
+    test('본문이 없는 429 도 같은 오류다', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/trainer/clients/m1/ai-coach',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(_httpError(429));
+
+      await expectLater(
+        repo.ask(memberId: 'm1', message: 'q'),
+        throwsA(isA<RateLimitedError>()),
+      );
+    });
+  });
+
   group('provider 분기', () {
     test('데모는 물어볼 수 없고 진입점도 숨긴다', () {
       final container = ProviderContainer(
