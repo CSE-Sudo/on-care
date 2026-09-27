@@ -114,6 +114,28 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "상담 요청이 취소됐어요",
         "지수 회원 · 2026-10-01",
     ),
+    # 회원 탈퇴로 사라진 대기 요청(#1632). 새 틀이라 확정 문장을 고정한다.
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "지수", "preferred_date": "2026-10-01"},
+        "",
+        "회원 탈퇴로 상담 요청이 취소됐어요",
+        "지수 회원 · 2026-10-01",
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "", "preferred_date": "2026-10-01"},
+        "",
+        "회원 탈퇴로 상담 요청이 취소됐어요",
+        "이름 없는 회원 · 2026-10-01",
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "  ", "preferred_date": "2026-10-01"},
+        "",
+        "회원 탈퇴로 상담 요청이 취소됐어요",
+        "이름 없는 회원 · 2026-10-01",
+    ),
     (
         nt.TRAINER_INVITE_ACCEPTED,
         {"member_name": "지수"},
@@ -541,6 +563,22 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.TRAINER_CONSULT_CANCELLED,
         {"member_name": "Alex", "preferred_date": "2026-10-01"},
         ("Consultation request cancelled", "Alex · 2026-10-01"),
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "Alex", "preferred_date": "2026-10-01"},
+        (
+            "Consultation request cancelled: member account deleted",
+            "Alex · 2026-10-01",
+        ),
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "", "preferred_date": "2026-10-01"},
+        (
+            "Consultation request cancelled: member account deleted",
+            "A member · 2026-10-01",
+        ),
     ),
     (
         nt.TRAINER_INVITE_ACCEPTED,

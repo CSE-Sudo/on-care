@@ -2112,6 +2112,7 @@
   },
   "notifTplConsultRequestedTitle": "New consultation request",
   "notifTplConsultCancelledTitle": "Consultation request cancelled",
+  "notifTplConsultWithdrawnTitle": "Consultation request cancelled: member account deleted",
   "notifTplInviteAcceptedTitle": "Coaching request accepted",
   "notifTplInviteAcceptedBody": "{name} is now your client.",
   "@notifTplInviteAcceptedBody": {

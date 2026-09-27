@@ -58,6 +58,7 @@ from app.services import health_focus
 from app.services import (
     auto_routine_service,
     client_signals,
+    data_consent_service,
     diet_photo_service,
     exercise_activity,
     exercise_service,
@@ -545,13 +546,15 @@ def build_roster(
         if member is None:
             continue
         # 미등록 관계는 고객 관리의 이름·상태만 남긴다. 회원 원본 데이터는
-        # 보존하되 트레이너에게 다시 노출하지 않는다.
-        diet_rows = diet_by_member.get(link.member_id, []) if link.active else []
+        # 보존하되 트레이너에게 다시 노출하지 않는다. 동의가 철회된 뒤 새 동의
+        # 없이 살아 있는 링크도 같다(#1631).
+        readable = link.active and not data_consent_service.blocks_access(link)
+        diet_rows = diet_by_member.get(link.member_id, []) if readable else []
         calories, sodium_mg, sugar_g, carbs_g, protein_g, fat_g = _today_totals(
             diet_rows, today_str
         )
-        last_msg = last_msg_by.get(link.member_id) if link.active else None
-        last_rt = last_rt_by.get(link.member_id) if link.active else None
+        last_msg = last_msg_by.get(link.member_id) if readable else None
+        last_rt = last_rt_by.get(link.member_id) if readable else None
 
         out.append(TrainerClientOut(
             id=link.member_id,
@@ -578,12 +581,12 @@ def build_roster(
                 _local_date_iso(last_rt.created_at) if last_rt else None
             ),
             week_completion=_week_completion(
-                hist_by_member.get(link.member_id, []) if link.active else [], monday
+                hist_by_member.get(link.member_id, []) if readable else [], monday
             ),
             sodium_week=_sodium_week(diet_rows, monday),
             calories_week=_calories_week(diet_rows, monday),
             sugar_week=_sugar_week(diet_rows, monday),
-            signals=signals_by_member.get(link.member_id, []),
+            signals=signals_by_member.get(link.member_id, []) if readable else [],
         ))
     return out
 
@@ -1094,6 +1097,14 @@ def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
 
 # ---- 회원 활성/휴면 관리 상태 (#707) ----
 
+class ClientConsentRequired(Exception):
+    """회원이 데이터 공유 동의를 철회한 링크를 트레이너 혼자 되살리려 했다. (#1631)
+
+    재등록 라우트에서 409 로 옮긴다. 다시 담당이 되려면 회원이 동의하는 경로
+    (담당 요청 수락·상담·연결 코드)를 지나야 한다.
+    """
+
+
 class ClientLinkDetached(Exception):
     """담당 관계가 이미 해제된 회원이다.
 
@@ -1126,16 +1137,29 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     기존 기록을 계속 볼 수 있다.
 
     담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
+
+    트레이너가 끊어도 담당 해제는 데이터 공유 동의 철회다(#1631) — 동의를 비우고
+    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다.
     """
     link.active = False
+    data_consent_service.revoke(link)
     points_coupon_service.cancel_renewal_coupons(db, link.member_id)
     db.commit()
 
 
 def restore_client(db: Session, link: TrainerClient) -> None:
-    """과거 담당 관계를 다시 등록 상태로 전환한다."""
+    """과거 담당 관계를 다시 등록 상태로 전환한다.
+
+    동의가 철회된 링크는 되살리지 않는다(#1631) — 회원이 끊은 관계를 트레이너가
+    혼자 되돌리면 회원은 동의하지 않은 트레이너에게 다시 묶인다.
+    [ClientConsentRequired] 다.
+    """
     if link.active:
         return
+    if data_consent_service.blocks_access(link):
+        raise ClientConsentRequired(
+            "회원이 데이터 공유 동의를 철회했습니다. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
+        )
     occupied = db.scalar(
         select(TrainerClient.id).where(
             TrainerClient.member_id == link.member_id,
@@ -2325,6 +2349,9 @@ def _add_program_routines(
     trainer_message: str = "",
     start_date: date | None = None,
     active_days: int | None = None,
+    status: str = ROUTINE_APPROVED,
+    schedule_id: str | None = None,
+    notify: bool = True,
 ) -> list[TrainerRoutine]:
     """세션 루틴과 배정 알림을 세션에 올리고 flush 한다. 커밋은 호출부 몫이다.
 
@@ -2334,6 +2361,12 @@ def _add_program_routines(
 
     [active_days] 가 오면 그만큼만 회원 목록에 걸어 둔다(#2223) — 배정한 날을
     1일로 세어 `ended_on` 을 찍는다. 비우면 철회할 때까지 걸려 있다(#2161).
+
+    [status] 를 `scheduled` 로 주면 **회원에게 보이지 않는다**(#2279). PT 일정에
+    붙는 프로그램이 그렇다 — 개인운동과 같이 붙여만 두었다가 PT 를 마치고
+    보낼 때 함께 올라간다. 그때는 [schedule_id] 로 어느 PT 의 것인지 묶고,
+    [notify] 를 내려 배정 알림도 미룬다: 지금 알리면 회원은 아직 오지 않은
+    운동의 알림을 먼저 받는다.
     """
     multi = len(sessions) > 1
     today_iso = clock.today_iso()
@@ -2377,6 +2410,8 @@ def _add_program_routines(
             exercise_date=start_date.isoformat() if start_date else None,
             active_from=today_iso,
             ended_on=ended_on,
+            status=status,
+            schedule_id=schedule_id,
             delivery_kind=delivery_kind,
             trainer_message=trainer_message,
             created_at=now,
@@ -2384,6 +2419,9 @@ def _add_program_routines(
         db.add(rt)
         created.append(rt)
     db.flush()
+
+    if not notify:
+        return created
 
     total_minutes = sum(rt.minutes for rt in created)
     notification_service.queue(
@@ -3915,10 +3953,11 @@ def _scheduled_routines_for_request(
 def _clear_scheduled_routines(
     db: Session, trainer_id: str, schedule_id: str
 ) -> None:
-    """그 PT 에 붙어 있던 **아직 보내지 않은** 개인운동을 지운다. (#2224)
+    """그 PT 에 붙어 있던 **아직 보내지 않은** 줄을 지운다. (#2224, #2279)
 
-    보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은 건드리지 않는다 —
-    회원이 이미 받았거나 트레이너가 이미 답한 것이다.
+    프로그램과 개인운동을 함께 걷는다 — 둘 다 `scheduled` 로 붙어 있다가 전송
+    때 함께 나간다. 보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은
+    건드리지 않는다: 회원이 이미 받았거나 트레이너가 이미 답한 것이다.
     """
     for row in db.scalars(
         select(TrainerRoutine).where(
@@ -4068,6 +4107,48 @@ def _retire_personal_routines(
     )
 
 
+def _raise_scheduled_program(
+    db: Session, trainer_id: str, session: TrainerSchedule
+) -> bool:
+    """이 PT 에 붙여 둔 프로그램을 회원에게 올린다(커밋 없음). (#2279)
+
+    프로그램 만들기(#1580)로 짠 PT 는 등록 때 배정하지 않고 `scheduled` 로
+    붙여만 둔다. 여기서 `approved` 로 올리며 **오늘부터** 건다 — 며칠 전에 짜
+    둔 것이라도 회원에게는 오늘 받은 운동이다.
+
+    올린 것이 있으면 참. 붙은 줄이 없으면 거짓이고, 부르는 쪽이 예전처럼 새로
+    배정한다.
+    """
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session.id,
+            # 프로그램 줄만 — 개인운동은 `delivery_kind` 를 달고 있다(#2223).
+            TrainerRoutine.delivery_kind.is_(None),
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        return False
+    today_iso = clock.today_iso()
+    for row in rows:
+        row.status = ROUTINE_APPROVED
+        row.active_from = today_iso
+    db.flush()
+    total_minutes = sum(row.minutes for row in rows)
+    notification_service.queue(
+        db,
+        member_id=session.member_id,
+        kind=notification_service.EXERCISE,
+        category=notification_service.MEMBER_ROUTINE,
+        title="새 운동 루틴이 배정되었어요",
+        body=f"{rows[0].name} · {total_minutes}분",
+    )
+    return True
+
+
 def _send_scheduled_routines(
     db: Session,
     trainer_id: str,
@@ -4089,6 +4170,9 @@ def _send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session.id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 `scheduled` 로 붙어
+            # 있지만(#2279) 그쪽은 `delivery_kind` 가 비어 있다.
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4154,6 +4238,8 @@ def send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4169,6 +4255,8 @@ def send_scheduled_routines(
             .where(
                 TrainerRoutine.trainer_id == trainer_id,
                 TrainerRoutine.schedule_id == session_id,
+                # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+                TrainerRoutine.delivery_kind.is_not(None),
                 TrainerRoutine.status == ROUTINE_SCHEDULED,
             )
             .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4269,6 +4357,8 @@ def update_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4300,6 +4390,8 @@ def dismiss_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .values(status=ROUTINE_DISMISSED)
@@ -4444,10 +4536,6 @@ def assign_program_with_schedule(
         ensure_no_overlap(
             db, trainer_id, date=date, time=time, duration_minutes=duration_minutes
         )
-    routines = _add_program_routines(
-        db, trainer_id, member_id,
-        name=name, sessions=sessions, client_request_id=client_request_id,
-    )
     if target is None:
         session = _add_session(
             db,
@@ -4467,11 +4555,23 @@ def assign_program_with_schedule(
     else:
         target.program_json = program_json
         session = target
-    # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 개인운동은 걷어낸다. 프로그램을
-    # 다시 짜서 보내면 `program_json` 은 덮어쓰는데 개인운동만 뒤에 쌓여, 두 번
-    # 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로 아는데 회원은
-    # 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이 본 것은 없다.
+    # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 프로그램·개인운동은 걷어낸다.
+    # 프로그램을 다시 짜서 보내면 `program_json` 은 덮어쓰는데 붙은 줄만 뒤에
+    # 쌓여, 두 번 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로
+    # 아는데 회원은 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이
+    # 본 것은 없다.
     _clear_scheduled_routines(db, trainer_id, session.id)
+    # 프로그램은 **회원에게 보내지 않고 이 PT 에 붙여만 둔다**(#2279). 예전에는
+    # 여기서 바로 배정해, 등록만 해도 회원 목록에 떴고 PT 를 마치고 보낼 때
+    # 한 벌이 더 생겼다 — 회원은 같은 운동을 두 번 해야 하는 것으로 봤다.
+    # 개인운동과 같은 자리에서, 같은 규칙으로 나간다(#2224).
+    routines = _add_program_routines(
+        db, trainer_id, member_id,
+        name=name, sessions=sessions, client_request_id=client_request_id,
+        status=ROUTINE_SCHEDULED,
+        schedule_id=session.id,
+        notify=False,
+    )
     personal = _add_scheduled_routines(
         db, trainer_id, member_id,
         items=personal_routines,
@@ -4896,14 +4996,20 @@ def send_session_program(
         )
         for index, item in enumerate(items)
     ]
-    assign_program(
-        db,
-        trainer_id,
-        s.member_id,
-        name=f"{s.date} {s.type}".strip() or s.date,
-        sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
-        client_request_id=client_request_id,
-    )
+    # 프로그램 만들기로 짠 PT 는 이미 이 일정에 붙어 있다(#2279) — 올리기만
+    # 하면 된다. 여기서 또 배정하면 회원이 같은 운동을 두 벌 받는다.
+    #
+    # 붙은 것이 없으면 예전처럼 새로 배정한다 — 스케줄에서 연필로 바로 짠
+    # 프로그램에는 붙은 줄이 없고, 이 칸이 생기기 전에 만든 일정도 그렇다.
+    if not _raise_scheduled_program(db, trainer_id, s):
+        assign_program(
+            db,
+            trainer_id,
+            s.member_id,
+            name=f"{s.date} {s.type}".strip() or s.date,
+            sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
+            client_request_id=client_request_id,
+        )
     # 개인운동은 **이 전송에 함께 실린다**(#2224) — 회원은 "오늘 한 것" 과
     # "혼자 할 것" 을 한 번에 받는다. 프로그램과 같은 트랜잭션이라 둘 다
     # 가거나 둘 다 안 간다: 프로그램만 가고 개인운동이 빠지면 트레이너는
@@ -5187,6 +5293,8 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     ).all()
     for link in links:
         link.active = False
+        # 담당 해제 = 데이터 공유 동의 철회(#1631).
+        data_consent_service.revoke(link)
     if links:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
     return bool(links)

@@ -49,6 +49,7 @@ TRAINER_MEMBER_WITHDRAWN = "trainer_member_withdrawn"
 TRAINER_MEMBER_DISCONNECTED = "trainer_member_disconnected"
 TRAINER_CONSULT_REQUESTED = "trainer_consult_requested"
 TRAINER_CONSULT_CANCELLED = "trainer_consult_cancelled"
+TRAINER_CONSULT_WITHDRAWN = "trainer_consult_withdrawn"
 TRAINER_INVITE_ACCEPTED = "trainer_invite_accepted"
 TRAINER_INVITE_REJECTED = "trainer_invite_rejected"
 TRAINER_RESERVATION_BOOKED = "trainer_reservation_booked"
@@ -227,6 +228,19 @@ def _trainer_consult_cancelled(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return "상담 요청이 취소됐어요", f"{name or '회원'} 회원 · {day}"
     return "Consultation request cancelled", f"{name or 'Member'} · {day}"
+
+
+@_template(TRAINER_CONSULT_WITHDRAWN)
+def _trainer_consult_withdrawn(args: Args, locale: Locale) -> Rendered:
+    # 회원이 탈퇴해 대기 중이던 요청이 함께 사라졌다(#1632). 이름이 비면 탈퇴
+    # 알림(`trainer_member_withdrawn`)과 같은 말을 대신 적는다.
+    name, day = _text(args, "member_name").strip(), _text(args, "preferred_date")
+    if locale == "ko":
+        return "회원 탈퇴로 상담 요청이 취소됐어요", f"{name or '이름 없는'} 회원 · {day}"
+    return (
+        "Consultation request cancelled: member account deleted",
+        f"{name or 'A member'} · {day}",
+    )
 
 
 @_template(TRAINER_INVITE_ACCEPTED)
