@@ -636,7 +636,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 |---|---|---|
 | GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed }]` |
 | POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }` |
-| GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서) |
+| GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서). 회원·트레이너가 취소한 예약은 빠진다(#2283) |
 | DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled" }` |
 
 - **예약은 트레이너 일정을 만듭니다.** 확정 시 `trainer_schedule` 에 `1:1 PT` 세션이 생기고, 취소하면 그 일정과 좌석이 함께 돌아갑니다. 회원 탈퇴 경로와 **같은 함수**(`reservation_service._release`)를 씁니다. (#502)
