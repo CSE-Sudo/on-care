@@ -228,6 +228,14 @@ void main() {
     expect(feedback.label, '최근 7일 트레이너 피드백 없음');
     expect(feedback.tone, AppTagTone.neutral);
 
+    // 성별·나이는 이름과 한 문자열이 아니라 옆에 작은 글씨로 붙는다.
+    final AppListRow row = tester.widget<AppListRow>(
+      find.byKey(const ValueKey<String>('churn-risk-tile-c1')),
+    );
+    expect(row.title, '배준혁');
+    expect(row.titleMeta, isNotNull);
+    expect(row.titleMeta, isNot(contains('배준혁')));
+
     // 옛 앱 로컬 칩 문구는 없다.
     for (final String gone in <String>[
       'PT 2회 연속 취소·노쇼',
