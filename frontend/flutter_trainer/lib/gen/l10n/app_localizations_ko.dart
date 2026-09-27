@@ -225,6 +225,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요.';
+
+  @override
   String get authErrNameEmpty => '이름을 입력해 주세요';
 
   @override
@@ -2941,6 +2944,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachAskFailed => '질문을 보낼 수 없어요';
+
+  @override
+  String get coachRateLimited => '질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요';
 
   @override
   String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';

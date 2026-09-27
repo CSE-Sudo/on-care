@@ -86,16 +86,35 @@ class AiCoachFeedback(BaseModel):
 
 
 # ---- AI 코치 챗봇 (대화형) ----
+#: 회원 질문 한 건의 최대 길이(#1549). 트레이너 고객 AI 코치(`ClientCoachRequest`)와 같다.
+COACH_MESSAGE_MAX_CHARS = 1000
+#: `history` 한 턴의 최대 길이. 코치 답변도 실려 오므로 질문보다 넉넉히 잡는다 —
+#: 회원 앱은 이 길이로 잘라 보낸다.
+COACH_TURN_MAX_CHARS = 2000
+#: `history` 최대 턴 수. 프롬프트에는 최근 몇 턴만 들어가므로 이보다 긴 기록은
+#: 비용·메모리만 늘린다. 회원 앱은 최근 이만큼만 보낸다.
+COACH_HISTORY_MAX_TURNS = 20
+
+
 class ChatTurn(BaseModel):
-    role: str          # user | coach
-    content: str
+    role: str = Field(max_length=16)  # user | coach
+    content: str = Field(max_length=COACH_TURN_MAX_CHARS)
 
 
 class ChatRequest(BaseModel):
-    message: str
+    """회원 AI 코치 질문.
+
+    길이·개수 제한(#1549)은 provider 를 부르기 전에 422 로 거절한다 — 요청 수 한도
+    (분당)만으로는 한 요청의 크기가 만드는 토큰 비용·context 초과를 막지 못한다.
+    본문 전체 상한은 `coach_chat_max_body_bytes`(413)가 따로 건다.
+    """
+
+    message: str = Field(max_length=COACH_MESSAGE_MAX_CHARS)
     # 직전 대화(선택). 이제 서버가 대화를 저장하므로 보내지 않아도 맥락이 이어진다.
     # 서버에 저장분이 없을 때만 쓰인다(목업→실 서버 전환 클라이언트 호환).
-    history: list[ChatTurn] = []
+    history: list[ChatTurn] = Field(
+        default_factory=list, max_length=COACH_HISTORY_MAX_TURNS
+    )
     #: 오늘 무료 대화를 다 썼을 때 포인트로 보내는 데 동의했는가(#2145). 무료가 남아
     #: 있으면 보지 않는다. 동의 없이 무료를 넘기면 402 다.
     pay_with_points: bool = False

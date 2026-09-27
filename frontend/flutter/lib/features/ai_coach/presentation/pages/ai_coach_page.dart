@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/ai_coach/domain/ai_coach_limits.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -268,8 +269,10 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           controller: _controller,
           hint: l.aicInputHint,
           sendTooltip: l.a11ySendMessage,
-          enabled:
-              !chat.sending && chat.quota?.next != AiChatNext.exhausted,
+          // 서버가 받는 질문 길이(#1549). 넘기면 더 입력되지 않고, 가까워지면
+          // 입력줄 위에 글자 수가 보인다.
+          maxLength: AiCoachLimits.messageMaxLength,
+          enabled: !chat.sending && chat.quota?.next != AiChatNext.exhausted,
           onSend: () => _send(),
         ),
       ],

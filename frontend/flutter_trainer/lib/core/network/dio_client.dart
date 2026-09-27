@@ -31,9 +31,10 @@ final dioProvider = Provider<Dio>((ref) {
   );
 
   // 화면 언어는 요청마다 읽는다 — 언어를 바꿔도 Dio 를 다시 만들지 않는다(#2297).
+  // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
   dio.interceptors
     ..add(AcceptLanguageInterceptor(ref))
-    ..add(AuthInterceptor(ref));
+    ..add(AuthInterceptor(ref, retryClient: dio));
   // 담당이 해제된 회원의 404 를 로스터 재검증으로 잇는다(#2281).
   dio.interceptors.add(
     ClientAccessInterceptor(ref.watch(clientAccessLostProvider).report),

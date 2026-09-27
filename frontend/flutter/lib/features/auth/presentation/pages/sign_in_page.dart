@@ -41,6 +41,22 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   late final AppFieldErrors<_Field> _errors = AppFieldErrors<_Field>(_check);
 
   @override
+  void initState() {
+    super.initState();
+    // 실행 중 세션이 만료되어 이 화면으로 왔다면 한 번 알린다(#1546). 알리지
+    // 않으면 쓰던 화면이 이유 없이 로그인 폼으로 바뀐 것처럼 보인다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final StateController<bool> notice = ref.read(
+        sessionExpiredNoticeProvider.notifier,
+      );
+      if (!notice.state) return;
+      notice.state = false;
+      showAppToast(context, AppLocalizations.of(context).authSessionExpired);
+    });
+  }
+
+  @override
   void dispose() {
     _email.dispose();
     _password.dispose();

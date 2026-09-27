@@ -234,6 +234,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign-in failed. Please try again in a moment.';
 
   @override
+  String get authSessionExpired =>
+      'Your session has expired. Please sign in again.';
+
+  @override
   String get authErrNameEmpty => 'Enter your name';
 
   @override
@@ -3101,6 +3105,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachAskFailed => 'Couldn\'t send your question';
+
+  @override
+  String get coachRateLimited =>
+      'You\'ve sent too many questions. Please try again in a minute';
 
   @override
   String get slotFutureOnly =>

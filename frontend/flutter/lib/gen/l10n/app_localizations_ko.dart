@@ -2844,6 +2844,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignInUnavailable => '지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요';
+
+  @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override

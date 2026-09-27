@@ -143,6 +143,7 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
+  "authSessionExpired": "Your session has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
   "@authErrNameTooLong": {
@@ -1986,6 +1987,7 @@
   "coachDemoUnavailable": "AI coaching isn't available in demo mode",
   "coachNotMyClient": "That isn't one of your members",
   "coachAskFailed": "Couldn't send your question",
+  "coachRateLimited": "You've sent too many questions. Please try again in a minute",
   "slotFutureOnly": "Booking slots can only be set for future times.",
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",

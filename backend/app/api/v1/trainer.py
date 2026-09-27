@@ -1946,8 +1946,19 @@ def trainer_client_ai_coach(
     호출자(트레이너)가 아니라 **담당 회원**이다 — 트레이너가 자기 자신의 (비어
     있는) 기록으로 코칭받는 일이 없도록. 담당 링크 확인이 접근 경계이며,
     남의 고객이면 404 로 존재조차 드러내지 않는다.
+
+    **분당 한도(#1548)** — 회원 AI 코치와 같은 `coach_chat_per_minute` 를 트레이너
+    단위 버킷으로 센다. 넘기면 429 와 `Retry-After` 다. 같은 헬스장(같은 IP)의 다른
+    트레이너가 한도를 대신 소진하지 않게 IP 가 아니라 트레이너 id 로 나눈다.
     """
     _require_client(db, trainer.id, member_id)
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"trainer-coach-chat:trainer:{trainer.id}",
+            settings.coach_chat_per_minute,
+            60.0,
+        )
     message = payload.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="메시지가 비어 있습니다.")
