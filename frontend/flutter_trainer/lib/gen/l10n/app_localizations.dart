@@ -7522,6 +7522,12 @@ abstract class AppLocalizations {
   /// **'{count}'**
   String reportsCountPeople(int count);
 
+  /// No description provided for @reportsSortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get reportsSortLabel;
+
   /// No description provided for @reportsSortPriority.
   ///
   /// In en, this message translates to:
@@ -7531,14 +7537,26 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSortName.
   ///
   /// In en, this message translates to:
-  /// **'By name'**
+  /// **'Name A–Z'**
   String get reportsSortName;
+
+  /// No description provided for @reportsSortNameDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z–A'**
+  String get reportsSortNameDescending;
 
   /// No description provided for @reportsSendProgress.
   ///
   /// In en, this message translates to:
   /// **'{done} / {total} sent'**
   String reportsSendProgress(int done, int total);
+
+  /// No description provided for @reportsSendPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String reportsSendPercent(int percent);
 
   /// No description provided for @reportsQueueAllSent.
   ///
@@ -7708,11 +7726,11 @@ abstract class AppLocalizations {
   /// **'Review'**
   String get reportsStepReview;
 
-  /// No description provided for @reportsStepGoals.
+  /// No description provided for @reportsStepWrite.
   ///
   /// In en, this message translates to:
   /// **'Write'**
-  String get reportsStepGoals;
+  String get reportsStepWrite;
 
   /// No description provided for @reportsStepSend.
   ///
@@ -7737,48 +7755,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get reportsStepPrev;
-
-  /// No description provided for @reportsGoalsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Next week\'s goals'**
-  String get reportsGoalsTitle;
-
-  /// No description provided for @reportsGoalsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick what to work on together next week. The goals you pick go out with the message.'**
-  String get reportsGoalsHint;
-
-  /// No description provided for @reportsGoalsNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No goals picked yet'**
-  String get reportsGoalsNone;
-
-  /// No description provided for @reportsGoalsPicked.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} picked'**
-  String reportsGoalsPicked(int count);
-
-  /// No description provided for @reportsGoalsOwnHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Write your own'**
-  String get reportsGoalsOwnHint;
-
-  /// No description provided for @reportsGoalsAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get reportsGoalsAdd;
-
-  /// No description provided for @reportsGoalsRemove.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove {goal}'**
-  String reportsGoalsRemove(String goal);
 
   /// No description provided for @reportsGridPtSession.
   ///
@@ -7861,7 +7837,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroShortfall.
   ///
   /// In en, this message translates to:
-  /// **'{name} is well under target — worth picking as a goal for next week'**
+  /// **'{name} is well under target — worth raising in your feedback'**
   String reportsMacroShortfall(String name);
 
   /// No description provided for @reportsMemberFeedbackTitle.
@@ -7972,96 +7948,6 @@ abstract class AppLocalizations {
   /// **'Too hard'**
   String get reportsMemberFeedbackIntensityTooHard;
 
-  /// No description provided for @reportsLastGoalsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Last week\'s goals'**
-  String get reportsLastGoalsTitle;
-
-  /// No description provided for @reportsLastGoalsNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No goals were picked last week'**
-  String get reportsLastGoalsNone;
-
-  /// No description provided for @reportsLastGoalsNoneHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick next week\'s goals now and they come back here in the next report'**
-  String get reportsLastGoalsNoneHint;
-
-  /// No description provided for @reportsLastGoalsMetCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{met} / {total} met'**
-  String reportsLastGoalsMetCount(int met, int total);
-
-  /// No description provided for @reportsLastGoalsMet.
-  ///
-  /// In en, this message translates to:
-  /// **'Met'**
-  String get reportsLastGoalsMet;
-
-  /// No description provided for @reportsLastGoalsPartial.
-  ///
-  /// In en, this message translates to:
-  /// **'Partly'**
-  String get reportsLastGoalsPartial;
-
-  /// No description provided for @reportsLastGoalsMissed.
-  ///
-  /// In en, this message translates to:
-  /// **'Missed'**
-  String get reportsLastGoalsMissed;
-
-  /// No description provided for @reportsLastGoalsUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'Check yourself'**
-  String get reportsLastGoalsUnknown;
-
-  /// No description provided for @reportsLastGoalsEvidence.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} / {target}{unit}'**
-  String reportsLastGoalsEvidence(int done, int target, String unit);
-
-  /// No description provided for @reportsLastGoalsEvidenceLogged.
-  ///
-  /// In en, this message translates to:
-  /// **'Logged {days} days'**
-  String reportsLastGoalsEvidenceLogged(int days);
-
-  /// No description provided for @reportsLastGoalsEvidenceWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} / {total} personal workouts'**
-  String reportsLastGoalsEvidenceWorkout(int done, int total);
-
-  /// No description provided for @reportsLastGoalsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Judged from this week\'s records'**
-  String get reportsLastGoalsSubtitle;
-
-  /// Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'calorie,kcal,intake'**
-  String get reportsLastGoalsKeywordsCalories;
-
-  /// Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym'**
-  String get reportsLastGoalsKeywordsWorkout;
-
-  /// Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'log,record,meal'**
-  String get reportsLastGoalsKeywordsLogged;
-
   /// No description provided for @reportsTrendUnavailable.
   ///
   /// In en, this message translates to:
@@ -8139,12 +8025,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly · submitted {date}'**
   String reportsMemberFeedbackMeta(String date);
-
-  /// No description provided for @reportsMacroShortfallEvidence.
-  ///
-  /// In en, this message translates to:
-  /// **'This is the evidence last week\'s goal “{goal}” was judged unmet'**
-  String reportsMacroShortfallEvidence(String goal);
 
   /// No description provided for @reportsTrendSubtitle.
   ///
