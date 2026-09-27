@@ -644,6 +644,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **남의 예약·없는 예약은 404** 로 같습니다. 존재 여부조차 드러내지 않습니다(상담 요청과 같은 규칙).
 - `cancellable` 은 **서버 판단**입니다. 앱이 자기 시계로 다시 계산하면 시각이 어긋난 기기에서 버튼은 눌리는데 서버가 409 를 주는 상태가 됩니다.
 - 취소는 트레이너에게 알림 행을 남깁니다(`notifications`). 트레이너는 `/trainer/notifications` 로 읽습니다(#503).
+- **트레이너의 다른 일정과 시간이 겹치면 409** `detail = { code: "schedule_overlap", message }` 입니다.
+  자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡은 경우입니다. 겹친 일정 목록은 싣지 않습니다(남의 일정).
+  트레이너 쪽 일정·자리·상담 승인 경로의 같은 409 는 `conflicts[]` 를 함께 줍니다 — 규칙은
+  [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "시간 겹침" 참조. (#2284)
 
 #### 목록 페이지네이션과 순서 (#980)
 
@@ -753,9 +757,11 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   전체입니다. 미처리 배지(`/trainer/consultations/pending-count`)는 **쪽 나눔과 무관하게**
   전체를 셉니다. 상태 필터에 `expired` 가 있습니다(#1873).
 - **승인은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
-  하나뿐이고, 날짜·시각·종류·소요 시간 인자와 겹침 검사는 없앴습니다 — 자리를 연 사람이
-  트레이너 자신이고 한 자리는 한 사람 몫이라 겹침이 구조적으로 나지 않습니다. 회원이 고른
+  하나뿐이고, 날짜·시각·종류·소요 시간은 회원이 고른 자리가 정합니다. 회원이 고른
   자리가 사라진 뒤 승인하면 **409** 입니다.
+- 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡았으면 승인은 **409**
+  `detail = { code: "schedule_overlap", message, conflicts[] }` 이고 아무것도 바뀌지 않습니다
+  (요청은 대기로 남습니다). 일정을 옮긴 뒤 다시 승인합니다. (#2284)
 
 ### 트레이너 알림함
 

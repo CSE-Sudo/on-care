@@ -217,6 +217,21 @@ class ProgramAttachConflictError implements Exception {
   String toString() => 'ProgramAttachConflictError';
 }
 
+/// 잡거나 옮기려는 시간이 트레이너의 다른 일정과 겹쳐 아무것도 바꾸지 않았다.
+/// (#2284)
+///
+/// 서버 409 `schedule_overlap` 이다. 겹친 세션을 들고 다니는 까닭은 "겹칩니다"
+/// 만으로는 트레이너가 무엇을 옮겨야 할지 모르기 때문이다 — 화면이 몇 시 누구
+/// 일정인지 짚어 준다. 서버가 목록을 싣지 않으면 비어 있다.
+class ScheduleOverlapError implements Exception {
+  const ScheduleOverlapError([this.conflicts = const <ScheduleSession>[]]);
+
+  final List<ScheduleSession> conflicts;
+
+  @override
+  String toString() => 'ScheduleOverlapError(${conflicts.length})';
+}
+
 /// 자정부터의 분을 `HH:mm` 으로.
 String _hhmm(int minutes) {
   final wrapped = minutes % (24 * 60);

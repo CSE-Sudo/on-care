@@ -12,6 +12,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
+import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -65,6 +66,9 @@ abstract interface class ConsultationRepository {
   ///
   /// 시각을 받지 않는다 — 회원이 신청할 때 고른 자리가 날짜·시각·길이·종류를
   /// 모두 들고 있고, 승인은 그 자리를 첫 일정으로 확정할 뿐이다(#1873).
+  ///
+  /// 그 시간에 이미 다른 일정이 있으면 `ScheduleOverlapError` 로 멈추고
+  /// 신청은 대기로 남는다(#2284).
   Future<ConsultationAcceptResult> accept(String id);
 
   /// Rejects [id]. [note] is delivered to the member as the reason.
@@ -178,8 +182,10 @@ class DemoConsultationRepository implements ConsultationRepository {
       throw const ValidationError();
     }
     final request = _requests[index];
-    // 회원이 고른 자리가 그대로 첫 일정이 된다(#1873). 겹침 검사는 없앴다 —
-    // 자리를 연 사람이 트레이너 자신이고 한 자리는 한 사람 몫이다.
+    // 회원이 고른 자리가 그대로 첫 일정이 된다(#1873). 자리를 연 뒤 트레이너가
+    // 같은 시간에 다른 일정을 넣었을 수 있어, 일정 저장소가 겹침을 막으면
+    // (`ScheduleOverlapError`, #2284) 승인하지 않고 신청을 대기로 둔다 —
+    // 아래 `_decide` 까지 가지 않는다.
     final DateTime? startsAt = request.slotStartsAt;
     final repositoryFactory = scheduleRepository;
     final bool scheduled = startsAt != null && repositoryFactory != null;
@@ -339,6 +345,10 @@ class DioConsultationRepository implements ConsultationRepository {
       return response.data ?? const <String, Object?>{};
     } on DioException catch (e) {
       final status = e.response?.statusCode;
+      // 시간 겹침은 일반 409 문구가 아니라 겹친 일정을 짚어 주는 안내로
+      // 보여 준다(#2284).
+      final overlap = scheduleOverlapFromResponse(status, e.response?.data);
+      if (overlap != null) throw overlap;
       if (status == 409 || status == 400 || status == 422) {
         throw ValidationError(message: _detail(e));
       }

@@ -3164,6 +3164,30 @@ abstract class AppLocalizations {
   /// **'Nothing was created. Change the time, or clear the sessions that clash.'**
   String get schedRepeatConflictHint;
 
+  /// No description provided for @schedOverlapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This time overlaps another session'**
+  String get schedOverlapTitle;
+
+  /// No description provided for @schedOverlapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was saved. Change the time or move the overlapping session, then save again.'**
+  String get schedOverlapHint;
+
+  /// No description provided for @slotOverlapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The slot wasn\'t opened. Pick another time or move the overlapping session.'**
+  String get slotOverlapHint;
+
+  /// No description provided for @consultOverlapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.'**
+  String get consultOverlapHint;
+
   /// No description provided for @schedNote.
   ///
   /// In en, this message translates to:
@@ -6154,6 +6178,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
   String get coachAttachTargetChanged;
+
+  /// No description provided for @coachScheduleOverlap.
+  ///
+  /// In en, this message translates to:
+  /// **'Another session is already booked at that time, so nothing was added. Pick a different time and try again'**
+  String get coachScheduleOverlap;
 
   /// No description provided for @programEditorNoExercises.
   ///

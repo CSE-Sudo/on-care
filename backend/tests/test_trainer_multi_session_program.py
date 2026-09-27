@@ -380,7 +380,8 @@ def test_a_schedule_row_without_session_keys_still_reads(client, trainer_token):
         headers=_headers(trainer_token),
         json={
             "date": date,
-            "time": "12:00",
+            # 시드 타임라인의 빈 시간 — 겹치면 409(#2284).
+            "time": "13:00",
             "client_name": "이지수",
             "member_id": MEMBER_ID,
             "type": "1:1 PT",
