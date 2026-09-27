@@ -446,6 +446,99 @@ void main() {
     expect(find.textContaining('하락'), findsOneWidget);
   });
 
+  group('전송 진행 줄 (#2395)', () {
+    Finder progress() => find.byKey(const ValueKey<String>('reports-progress'));
+    Finder percent() =>
+        find.byKey(const ValueKey<String>('reports-progress-percent'));
+    Finder queueBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-queue'));
+    Finder sentBox() =>
+        find.byKey(const ValueKey<String>('reports-workbench-sent'));
+
+    testWidgets('막대 오른쪽 끝에 전송 비율을 적는다', (tester) async {
+      final ProviderContainer container = await openWorkbench(
+        tester,
+        clients: _roster,
+      );
+
+      expect(find.text('0 / 2 전송'), findsOneWidget);
+      expect(tester.widget<Text>(percent()).data, '0%');
+
+      container
+          .read(reportSendLogProvider.notifier)
+          .record(
+            clientId: 'a',
+            weekStart: weekStartOf(nowKst()),
+            message: '가회원님 이번 주 리포트예요.',
+          );
+      await settle(tester);
+
+      expect(tester.widget<Text>(percent()).data, '50%');
+      // 비율은 막대 오른쪽, 줄의 끝에 선다.
+      final Rect bar = tester.getRect(
+        find.descendant(of: progress(), matching: find.byType(AppProgressBar)),
+      );
+      expect(tester.getRect(percent()).left, greaterThan(bar.right));
+    });
+
+    testWidgets('넓은 화면에서 진행 줄이 두 상자를 가로지른다', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      final Rect row = tester.getRect(progress());
+      final Rect queue = tester.getRect(queueBox());
+      final Rect sent = tester.getRect(sentBox());
+      // 미전송 상자의 왼쪽 끝에서 전송 완료 상자의 오른쪽 끝까지.
+      expect(row.left, closeTo(queue.left, 1));
+      expect(row.right, closeTo(sent.right, 1));
+      // 두 상자보다 위에 선다 — 한쪽 상자의 머리가 아니다.
+      expect(row.bottom, lessThanOrEqualTo(queue.top));
+      expect(row.bottom, lessThanOrEqualTo(sent.top));
+      // 두 상자의 윗변이 같은 높이에서 시작한다.
+      expect(queue.top, closeTo(sent.top, 1));
+    });
+
+    testWidgets('좁은 화면에서도 진행 줄이 맨 위에 선다', (tester) async {
+      await openWorkbench(
+        tester,
+        clients: _roster,
+        size: const Size(700, 1400),
+      );
+
+      final Rect row = tester.getRect(progress());
+      expect(row.bottom, lessThanOrEqualTo(tester.getRect(queueBox()).top));
+      expect(percent(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('영어에서는 sent 와 비율을 함께 적는다', (tester) async {
+      await openWorkbench(
+        tester,
+        clients: _roster,
+        locale: const Locale('en'),
+      );
+
+      expect(find.text('0 / 2 sent'), findsOneWidget);
+      expect(tester.widget<Text>(percent()).data, '0%');
+    });
+
+    test('비율은 반올림한 정수다', () {
+      expect(reportSendPercent(0, 15), 0);
+      expect(reportSendPercent(1, 15), 7);
+      expect(reportSendPercent(6, 15), 40);
+      expect(reportSendPercent(2, 3), 67);
+      expect(reportSendPercent(15, 15), 100);
+    });
+
+    test('회원이 없으면 0% — 0으로 나누지 않는다', () {
+      expect(reportSendPercent(0, 0), 0);
+    });
+
+    test('범위를 벗어난 수는 0~100 으로 묶는다', () {
+      expect(reportSendPercent(20, 15), 100);
+      expect(reportSendPercent(-1, 15), 0);
+    });
+  });
+
   testWidgets('이번 주 리포트 칸이 전송 완료 칸의 두 배로 선다 (#2232)', (tester) async {
     await openWorkbench(tester, clients: _roster);
 
