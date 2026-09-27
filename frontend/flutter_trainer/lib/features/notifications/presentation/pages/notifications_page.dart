@@ -31,7 +31,12 @@ class NotificationsPage extends ConsumerWidget {
   @visibleForTesting
   static String? targetOf(TrainerNotification notification) =>
       switch (notification.kind) {
-        TrainerNotificationKind.message => AppRoutes.clients,
+        // 메시지는 보낸 회원의 대화로 간다(#2291). 보낸 회원이 기록되기 전의
+        // 옛 알림은 누구와의 대화인지 몰라 메시지 목록으로 간다.
+        TrainerNotificationKind.message => switch (notification.subjectId) {
+          final String id => AppRoutes.messagesFor(id),
+          null => AppRoutes.messages,
+        },
         TrainerNotificationKind.consultation => AppRoutes.schedule,
         TrainerNotificationKind.reservation => AppRoutes.schedule,
         TrainerNotificationKind.healthGoal ||
