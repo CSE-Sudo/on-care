@@ -88,6 +88,19 @@
   "actionRefresh": "Refresh",
   "actionChange": "Change",
   "actionBack": "Back",
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Heading of the 404 page shown for a URL that matches no screen."
+  },
+  "notFoundMessage": "The link may be broken, or the page may no longer exist. Please check the address and try again.",
+  "notFoundGoDashboard": "Go to dashboard",
+  "@notFoundGoDashboard": {
+    "description": "Primary button on the 404 page for a signed-in trainer."
+  },
+  "notFoundGoSignIn": "Go to sign in",
+  "@notFoundGoSignIn": {
+    "description": "Primary button on the 404 page when no one is signed in."
+  },
   "appWordmarkTrainer": "Trainer",
   "@appWordmarkTrainer": {
     "description": "Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'."
