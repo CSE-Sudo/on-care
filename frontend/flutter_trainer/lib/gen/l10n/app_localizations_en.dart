@@ -3248,6 +3248,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifLoadFailed => 'Couldn\'t load notifications';
 
   @override
+  String get notifTplHealthGoalTitle => 'Member goals changed';
+
+  @override
+  String notifTplHealthGoalBody(String name, String goals) {
+    return '$name changed their health goals: $goals';
+  }
+
+  @override
+  String get notifTplNoGoals => 'none';
+
+  @override
+  String get notifTplMemberRenamedTitle => 'Member renamed';
+
+  @override
+  String notifTplMemberRenamedBody(String oldName, String newName) {
+    return '$oldName changed their name to $newName.';
+  }
+
+  @override
+  String get notifTplMemberWithdrawnTitle => 'Member account deleted';
+
+  @override
+  String notifTplMemberWithdrawnBody(String name) {
+    return '$name deleted their account.';
+  }
+
+  @override
+  String get notifTplMemberDisconnectedTitle => 'Client disconnected';
+
+  @override
+  String notifTplMemberDisconnectedBody(String name) {
+    return '$name ended their connection with you.';
+  }
+
+  @override
+  String get notifTplConsultRequestedTitle => 'New consultation request';
+
+  @override
+  String get notifTplConsultCancelledTitle => 'Consultation request cancelled';
+
+  @override
+  String get notifTplInviteAcceptedTitle => 'Coaching request accepted';
+
+  @override
+  String notifTplInviteAcceptedBody(String name) {
+    return '$name is now your client.';
+  }
+
+  @override
+  String get notifTplInviteRejectedTitle => 'Coaching request declined';
+
+  @override
+  String notifTplInviteRejectedBody(String name) {
+    return '$name declined your coaching request.';
+  }
+
+  @override
+  String get notifTplReservationBookedTitle => 'New booking';
+
+  @override
+  String get notifTplReservationCancelledTitle => 'Booking cancelled';
+
+  @override
+  String notifTplMemberWithDetail(String name, String detail) {
+    return '$name · $detail';
+  }
+
+  @override
+  String notifTplMemberOnly(String name) {
+    return '$name';
+  }
+
+  @override
+  String notifTplWhen(String month, String day, String time) {
+    return '$month/$day $time';
+  }
+
+  @override
+  String notifTplMemberMessageTitle(String name) {
+    return 'Message from $name';
+  }
+
+  @override
   String get notifAllRead => 'All caught up';
 
   @override

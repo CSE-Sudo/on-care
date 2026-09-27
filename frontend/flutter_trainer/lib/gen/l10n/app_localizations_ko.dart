@@ -3061,6 +3061,89 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifLoadFailed => '알림을 불러오지 못했어요';
 
   @override
+  String get notifTplHealthGoalTitle => '회원 건강 목표 변경';
+
+  @override
+  String notifTplHealthGoalBody(String name, String goals) {
+    return '$name 회원이 건강 목표를 바꿨어요: $goals';
+  }
+
+  @override
+  String get notifTplNoGoals => '목표 없음';
+
+  @override
+  String get notifTplMemberRenamedTitle => '회원 이름 변경';
+
+  @override
+  String notifTplMemberRenamedBody(String oldName, String newName) {
+    return '$oldName 회원이 이름을 바꿨어요: $newName';
+  }
+
+  @override
+  String get notifTplMemberWithdrawnTitle => '회원 탈퇴';
+
+  @override
+  String notifTplMemberWithdrawnBody(String name) {
+    return '$name 회원이 탈퇴했어요.';
+  }
+
+  @override
+  String get notifTplMemberDisconnectedTitle => '담당 연결 해제';
+
+  @override
+  String notifTplMemberDisconnectedBody(String name) {
+    return '$name 회원이 담당 연결을 끊었어요.';
+  }
+
+  @override
+  String get notifTplConsultRequestedTitle => '새 상담 요청이 도착했어요';
+
+  @override
+  String get notifTplConsultCancelledTitle => '상담 요청이 취소됐어요';
+
+  @override
+  String get notifTplInviteAcceptedTitle => '담당 요청이 수락되었어요';
+
+  @override
+  String notifTplInviteAcceptedBody(String name) {
+    return '$name 회원이 담당으로 연결되었어요.';
+  }
+
+  @override
+  String get notifTplInviteRejectedTitle => '담당 요청이 거절되었어요';
+
+  @override
+  String notifTplInviteRejectedBody(String name) {
+    return '$name 회원이 담당 요청을 거절했어요.';
+  }
+
+  @override
+  String get notifTplReservationBookedTitle => '새 예약이 들어왔어요';
+
+  @override
+  String get notifTplReservationCancelledTitle => '예약이 취소되었습니다';
+
+  @override
+  String notifTplMemberWithDetail(String name, String detail) {
+    return '$name 회원 · $detail';
+  }
+
+  @override
+  String notifTplMemberOnly(String name) {
+    return '$name 회원';
+  }
+
+  @override
+  String notifTplWhen(String month, String day, String time) {
+    return '$month월 $day일 $time';
+  }
+
+  @override
+  String notifTplMemberMessageTitle(String name) {
+    return '$name 회원의 메시지';
+  }
+
+  @override
   String get notifAllRead => '모두 확인했어요';
 
   @override

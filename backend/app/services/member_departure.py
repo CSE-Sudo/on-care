@@ -14,18 +14,15 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from app.models.models import User
-from app.services import notification_service
+from app.services import notification_service, notification_templates
 from app.services.trainer_service import get_member_trainer_id
 
 Reason = Literal["withdrawn", "disconnected"]
 
-_TITLES: dict[str, str] = {
-    "withdrawn": "회원 탈퇴",
-    "disconnected": "담당 연결 해제",
-}
-_BODIES: dict[str, str] = {
-    "withdrawn": "{name} 회원이 탈퇴했어요.",
-    "disconnected": "{name} 회원이 담당 연결을 끊었어요.",
+#: 떠난 이유 → 알림 문장 틀(#2302). 문장은 `notification_templates` 에 있다.
+_TEMPLATES: dict[str, str] = {
+    "withdrawn": notification_templates.TRAINER_MEMBER_WITHDRAWN,
+    "disconnected": notification_templates.TRAINER_MEMBER_DISCONNECTED,
 }
 
 
@@ -41,12 +38,12 @@ def notify_trainer(db: Session, member: User, *, reason: Reason) -> bool:
     trainer_id = get_member_trainer_id(db, member.id)
     if trainer_id is None:
         return False
-    name = (member.name or "").strip() or "이름 없는"
+    # 이름이 비어 있으면 틀이 대신 적는 말(`이름 없는`)을 고른다.
     notification_service.queue_for_trainer(
         db,
         trainer_id=trainer_id,
         kind=notification_service.TRAINER_MEMBER_LEFT_KIND,
-        title=_TITLES[reason],
-        body=_BODIES[reason].format(name=name),
+        template=_TEMPLATES[reason],
+        template_args={"member_name": (member.name or "").strip()},
     )
     return True
