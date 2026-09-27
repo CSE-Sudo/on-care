@@ -22,6 +22,7 @@ TrainerClient makeClient({
   String lastRoutine = '오늘',
   List<int>? weekCompletion,
   List<int>? sodiumWeek,
+  List<int> caloriesWeek = const <int>[],
   List<ClientSignal> signals = const <ClientSignal>[],
 }) {
   return TrainerClient(
@@ -42,6 +43,7 @@ TrainerClient makeClient({
     weekCompletion: weekCompletion ?? const <int>[80, 80, 80, 80, 80, 80, 80],
     sodiumWeek:
         sodiumWeek ?? const <int>[1500, 1500, 1500, 1500, 1500, 1500, 1500],
+    caloriesWeek: caloriesWeek,
     signals: signals,
   );
 }
