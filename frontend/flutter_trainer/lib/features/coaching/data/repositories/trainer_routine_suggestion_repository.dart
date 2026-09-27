@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
@@ -210,6 +211,7 @@ class MockTrainerRoutineSuggestionRepository
 /// Picks the Dio-backed repository, or the demo one for `USE_MOCK_API=true`.
 final trainerRoutineSuggestionRepositoryProvider =
     Provider<TrainerRoutineSuggestionRepository>((ref) {
+      ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       final config = ref.watch(appConfigProvider);
       if (config.useMockApi) {
         return MockTrainerRoutineSuggestionRepository(
@@ -224,8 +226,9 @@ final trainerRoutineSuggestionRepositoryProvider =
 ///
 /// 회원별로 갈라 둔다(`family`) — 회원을 바꾸면 그 회원의 목록으로 갱신돼야
 /// 하고, 승인·거절 뒤에는 이 provider 를 invalidate 해 다시 읽는다.
-final routineSuggestionsProvider =
-    FutureProvider.family<List<RoutineSuggestion>, String>((ref, memberId) {
+final routineSuggestionsProvider = FutureProvider.autoDispose
+    .family<List<RoutineSuggestion>, String>((ref, memberId) {
+      keepAliveForAccount(ref);
       return ref
           .watch(trainerRoutineSuggestionRepositoryProvider)
           .pending(memberId);

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
@@ -303,6 +304,7 @@ class DioTrainerProgramTemplateRepository
 /// 현재 모드에 맞는 저장소.
 final trainerProgramTemplateRepositoryProvider =
     Provider<TrainerProgramTemplateRepository>((ref) {
+      ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
         return MockTrainerProgramTemplateRepository(
           languageCode: () =>
@@ -319,7 +321,8 @@ final programTemplateEditingEnabledProvider = Provider<bool>(
 );
 
 /// AI 코칭 탭의 템플릿 목록. 쓰기 뒤에는 invalidate 한다.
-final programTemplatesProvider = FutureProvider<List<ProgramTemplate>>(
-  (ref) => ref.watch(trainerProgramTemplateRepositoryProvider).list(),
-  name: 'programTemplates',
-);
+final programTemplatesProvider =
+    FutureProvider.autoDispose<List<ProgramTemplate>>((ref) {
+      keepAliveForAccount(ref);
+      return ref.watch(trainerProgramTemplateRepositoryProvider).list();
+    }, name: 'programTemplates');

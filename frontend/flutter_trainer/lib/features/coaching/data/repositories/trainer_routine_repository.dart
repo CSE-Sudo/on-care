@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -201,10 +202,11 @@ extension _StartWith<T> on Stream<T> {
 final trainerRoutineRepositoryProvider = Provider<TrainerRoutineRepository>((
   ref,
 ) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    // 배정을 메모리에 들고 있으므로 const 가 아니다. provider 가 한 번만
-    // 만들어 앱이 사는 동안 같은 목록을 보게 한다.
+    // 배정을 메모리에 들고 있으므로 const 가 아니다. provider 가 계정마다
+    // 한 번 만들어 그 세션이 사는 동안 같은 목록을 보게 한다.
     final MockTrainerRoutineRepository demo = MockTrainerRoutineRepository();
     ref.onDispose(demo.dispose);
     return demo;
@@ -222,8 +224,9 @@ final trainerRoutineRepositoryProvider = Provider<TrainerRoutineRepository>((
 ///
 /// 데모에서도 비어 있지 않다 — [MockTrainerRoutineRepository] 가 아직 하지
 /// 않은 개인 운동을 들고 있어, 취소가 목록에서 사라지는 것까지 보인다(#1020).
-final assignedRoutinesProvider =
-    StreamProvider.family<List<AssignedRoutine>, String>((ref, memberId) {
+final assignedRoutinesProvider = StreamProvider.autoDispose
+    .family<List<AssignedRoutine>, String>((ref, memberId) {
+      keepAliveForAccount(ref);
       return ref
           .watch(trainerRoutineRepositoryProvider)
           .watchAssignedRoutines(memberId);

@@ -369,9 +369,11 @@ def accept(
     notification_service.queue_for_trainer(
         db,
         trainer_id=row.trainer_id,
-        kind=notification_service.TRAINER_CONSULTATION_KIND,
+        # 상담이 아니라 담당 요청의 결과다 — 새 담당 회원 상세로 간다(#2292).
+        kind=notification_service.TRAINER_INVITE_ACCEPTED_KIND,
         title="담당 요청이 수락되었어요",
         body=f"{member_name} 회원이 담당으로 연결되었어요.",
+        subject_id=member_id,
     )
     db.commit()
     db.refresh(row)
@@ -388,9 +390,11 @@ def reject(db: Session, member_id: str, invite_id: str) -> MemberClientInviteOut
     notification_service.queue_for_trainer(
         db,
         trainer_id=row.trainer_id,
-        kind=notification_service.TRAINER_CONSULTATION_KIND,
+        # 담당이 아니어서 상세는 열 수 없다 — 고객 목록으로 간다(#2292).
+        kind=notification_service.TRAINER_INVITE_REJECTED_KIND,
         title="담당 요청이 거절되었어요",
         body=f"{member_name} 회원이 담당 요청을 거절했어요.",
+        subject_id=member_id,
     )
     db.commit()
     db.refresh(row)

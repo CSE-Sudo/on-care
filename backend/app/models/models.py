@@ -932,6 +932,9 @@ class Notification(Base):
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
     invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
+    # 스케줄을 그 날짜로 연다. 옛 알림에는 없다.
+    target_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -239,7 +239,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     final sodium = client.sodiumOverBudget
         ? l.aiReasonSodium
         : l.aiReasonBalanced;
-    return '${l.aiReasonGoal(client.goal, client.lastRoutine)} '
+    // 보낸 적이 없으면 예전처럼 저장된 `-` 를 그대로 둔다.
+    final last = lastRoutineLabel(l, client);
+    return '${l.aiReasonGoal(client.goal, last.isEmpty ? client.lastRoutine : last)} '
         '$sodium';
   }
 

@@ -1994,6 +1994,12 @@ abstract class AppLocalizations {
   /// **'Could not book that time. Please try again.'**
   String get exReserveFailed;
 
+  /// No description provided for @exReserveTimeTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.'**
+  String get exReserveTimeTaken;
+
   /// No description provided for @exReserveConfirmedSlotGym.
   ///
   /// In en, this message translates to:
