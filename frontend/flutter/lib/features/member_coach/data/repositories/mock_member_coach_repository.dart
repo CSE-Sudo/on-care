@@ -566,6 +566,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<void> sendMessage(String text, {String? emoteId}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && emoteId == null) return;
+    _requireCoachForChat();
     final now = nowKst();
     _chat.add(
       CoachMessage(
@@ -594,6 +595,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required String clientRequestId,
     String text = '',
   }) async {
+    _requireCoachForChat();
     final CoachMessage? sent = _sentPhotos[clientRequestId];
     if (sent != null) return sent;
     final DateTime now = nowKst();
@@ -622,6 +624,17 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   /// 멱등키 → 그 키로 보낸 사진 메시지.
   final Map<String, CoachMessage> _sentPhotos = <String, CoachMessage>{};
+
+  /// 담당이 끊긴 데모에서는 메시지를 받을 트레이너가 없다. (#2388)
+  ///
+  /// 실서버는 활성 담당이 없으면 글·사진 전송 모두 404 다(`POST /me/coach/chat`,
+  /// `/me/coach/chat/image`). 목록만 비우고 전송을 받아 주면 데모에서만 해제한
+  /// 트레이너에게 말이 간다 — 다시 불러오면 끊긴 대화에 그 말이 붙어 있다.
+  void _requireCoachForChat() {
+    if (!_hasCoach()) {
+      throw StateError('담당 트레이너가 없으면 메시지를 보낼 수 없습니다.');
+    }
+  }
 
   @override
   Future<void> markRead() async => _read = true;
