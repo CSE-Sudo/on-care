@@ -1736,6 +1736,10 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
     #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
     subject_id: str | None = None
+    #: 문장 틀 코드와 인자(#2302). 트레이너 웹이 이 둘로 ARB 문장을 조립한다. 틀이
+    #: 생기기 전의 알림은 둘 다 없고, 그때는 `title`·`body` 를 그대로 쓴다.
+    template: str | None = None
+    args: dict[str, Any] | None = None
     #: 알림이 가리키는 날짜(`YYYY-MM-DD`) — 예약·상담 알림이 스케줄을 그 날짜로
     #: 여는 데 쓴다(#2292). 옛 알림에는 없다.
     target_date: str | None = None

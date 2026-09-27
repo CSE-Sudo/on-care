@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.services import health_focus
 from app.core import clock, metrics
+from app.core.locale import Locale, current_locale
 from app.models.models import (
     ChatMessage,
     DietEntry,
@@ -217,6 +218,30 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
 각 plan의 total_minutes는 exercises의 minutes 합과 정확히 같아야 합니다.
 """
 )
+
+#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2301).
+#:
+#: 한국어 프롬프트는 한 글자도 바꾸지 않는다 — 지금까지 검증한 한국어 출력이 그대로
+#: 남아야 한다. 영어는 같은 지시 위에 "쓰는 언어만 바꾸라" 를 얹는다. `intensity`·
+#: `type` 은 스키마 Literal(한국어 계약값)이라 번역하면 422 로 떨어져 규칙형 폴백이
+#: 되므로, 번역하지 말라고 못 박는다. `reason` 은 승인하면 회원에게 가는 트레이너
+#: 명의의 안내문이라 트레이너가 읽고 보내는 언어(= 요청 언어)로 쓴다.
+_ENGLISH_OUTPUT_RULE = """
+Output language: the trainer is using the app in English.
+Write every free-text value in natural English: plan label, exercises[].name,
+reason and rationale. Ignore the "한국어 이름" hint in the JSON example above.
+Do NOT translate "intensity" or exercises[].type — they are contract values and
+must be exactly one of the Korean values listed in the JSON example.
+Quote member data (messages, memos, exercise names from records) as-is when you
+cite it, but write the surrounding sentence in English.
+"""
+
+
+def system_prompt(locale: Locale = "ko") -> str:
+    """요청 언어에 맞는 시스템 프롬프트. 한국어는 [_SYSTEM_PROMPT] 그대로다(#2301)."""
+    if locale == "en":
+        return _SYSTEM_PROMPT + _ENGLISH_OUTPUT_RULE
+    return _SYSTEM_PROMPT
 
 
 def _exercise_name(item: object) -> str:
@@ -528,8 +553,13 @@ def _recent_insight_memos(
 def build_rule_options(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
+    locale: Locale = "ko",
 ) -> RoutineOptionsOut:
-    """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다."""
+    """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다.
+
+    [locale] 은 이름·사유·근거 문장의 언어다 — AI 가 죽은 주에도 영어 화면에는
+    영어 후보가 나와야 한다(#2301).
+    """
     plan_a, plan_b = routine_ai.rule_based_plans(
         goal=analysis.goal,
         sodium_today_mg=analysis.sodium_today_mg,
@@ -546,6 +576,7 @@ def build_rule_options(
         # 트레이너가 감지에서 남긴 메모도 같은 주의사항으로 읽는다(#1655) —
         # LLM 이 죽은 주라고 해서 "무릎 불편 감지" 를 못 본 척할 수는 없다.
         insight_memos=analysis.insight_memos,
+        locale=locale,
     )
     return RoutineOptionsOut(
         analysis=analysis,
@@ -580,8 +611,11 @@ def _decode_json_object(text: str) -> dict:
     return parsed
 
 
-def _call_llm(prompt: str):
+def _call_llm(prompt: str, system: str = _SYSTEM_PROMPT):
     """LLM 호출 + 타임아웃. 실패는 호출부가 잡아 규칙 폴백으로 내린다.
+
+    [system] 은 부르는 쪽이 요청 언어로 골라 넘긴다(#2301). 워커 스레드에서는
+    요청 컨텍스트(`current_locale`)가 보이지 않으므로 여기서 다시 읽지 않는다.
 
     빈 워커가 없으면 큐에서 기다리지 않고 즉시 실패시킨다(`_llm_slots` 주석 참고).
     기다려 봐야 타임아웃이고, 그동안 요청 스레드만 붙잡아 두기 때문이다.
@@ -604,7 +638,7 @@ def _call_llm(prompt: str):
             # 이 짧은 JSON 하나에도 10초 이상 걸려 클라이언트가 먼저 끊고 규칙형만
             # 보게 된다. json_mode 만 켜면 오히려 더 느려진다(실측은 coach/llm.py).
             return get_coach_llm().generate(
-                _SYSTEM_PROMPT, prompt,
+                system, prompt,
                 json_mode=True,
                 thinking_budget=LLM_THINKING_BUDGET,
             )
@@ -626,6 +660,7 @@ def _call_llm(prompt: str):
 def _generate_with_llm(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
+    locale: Locale = "ko",
 ) -> RoutineOptionsOut:
     prompt = json.dumps(
         {
@@ -636,7 +671,7 @@ def _generate_with_llm(
         },
         ensure_ascii=False,
     )
-    result = _call_llm(prompt)
+    result = _call_llm(prompt, system_prompt(locale))
     payload = _decode_json_object(result.text)
     payload["analysis"] = analysis.model_dump()
     payload["generated_by"] = "ai"
@@ -678,11 +713,14 @@ def generate_routine_options(
 ) -> RoutineOptionsOut:
     analysis = build_member_analysis(db, trainer_id, member_id, request)
     request = _resolve_conditions(analysis, request)
-    fallback = build_rule_options(analysis, request)
+    # 출력 언어는 요청한 트레이너의 화면 언어다(#2301). 워커 스레드로 넘어가기 전에
+    # 요청 컨텍스트에서 한 번 읽어 AI·폴백 양쪽에 같은 값을 쓴다.
+    locale = current_locale()
+    fallback = build_rule_options(analysis, request, locale)
     started = time.monotonic()
     had_chat = bool(analysis.recent_messages)
     try:
-        options = _generate_with_llm(analysis, request)
+        options = _generate_with_llm(analysis, request, locale)
     except LLMBusyError:
         # 포화 — 장애가 아니다. 부르지 않았으니 stack trace 도 남길 게 없다.
         # 이 값이 자주 오르면 늘릴 것은 타임아웃이 아니라 동시성 한도다.

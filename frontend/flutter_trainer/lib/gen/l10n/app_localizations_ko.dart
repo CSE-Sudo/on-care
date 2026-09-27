@@ -1224,6 +1224,56 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAllAnalysis => 'AI 전체 분석';
 
   @override
+  String clientDietAdviceTodayOver(int over) {
+    return '나트륨이 목표치를 ${over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.';
+  }
+
+  @override
+  String get clientDietAdviceTodayBalanced =>
+      '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
+
+  @override
+  String get clientDietAdviceWeekEmpty =>
+      '이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.';
+
+  @override
+  String get clientDietAdviceAllEmpty => '기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.';
+
+  @override
+  String clientDietAdviceWeekManyOver(int days) {
+    return '이번 주 $days일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.';
+  }
+
+  @override
+  String get clientDietAdviceWeekWeekend =>
+      '주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.';
+
+  @override
+  String clientDietAdviceWeekSomeOver(int days) {
+    return '이번 주 $days일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.';
+  }
+
+  @override
+  String clientDietAdviceWeekAllUnder(int days) {
+    return '이번 주 $days일 모두 나트륨을 권장량 안에서 지켰어요!';
+  }
+
+  @override
+  String clientDietAdviceAllWeekend(int weeks) {
+    return '최근 $weeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
+  }
+
+  @override
+  String clientDietAdviceAllRatio(int weeks, int percent) {
+    return '최근 $weeks주 중 $percent%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
+  }
+
+  @override
+  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
+    return '최근 $weeks주 기록한 $days일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
+  }
+
+  @override
   String get consultStatusRejected => '거절됨';
 
   @override
@@ -2479,6 +2529,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aiCustomRoutineName => 'AI 맞춤 추천안';
+
+  @override
   String get aiAnalysing => 'AI가 분석 중…';
 
   @override
@@ -2592,6 +2645,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalRationaleLabel => 'AI 추천 사유';
+
+  @override
+  String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
+
+  @override
+  String get routineEvidenceStrengthHeavy => '최근 근력운동 비중 높음';
+
+  @override
+  String get routineEvidenceBloodPressureGoal => '혈압 관리 목표';
+
+  @override
+  String get routineEvidenceLowCardio => '최근 유산소 비중 낮음';
+
+  @override
+  String get routineEvidenceRecentRecord => '최근 운동 기록 반영';
+
+  @override
+  String get aiPlanIntensityLow => '낮음';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -2936,6 +3007,89 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifLoadFailed => '알림을 불러오지 못했어요';
+
+  @override
+  String get notifTplHealthGoalTitle => '회원 건강 목표 변경';
+
+  @override
+  String notifTplHealthGoalBody(String name, String goals) {
+    return '$name 회원이 건강 목표를 바꿨어요: $goals';
+  }
+
+  @override
+  String get notifTplNoGoals => '목표 없음';
+
+  @override
+  String get notifTplMemberRenamedTitle => '회원 이름 변경';
+
+  @override
+  String notifTplMemberRenamedBody(String oldName, String newName) {
+    return '$oldName 회원이 이름을 바꿨어요: $newName';
+  }
+
+  @override
+  String get notifTplMemberWithdrawnTitle => '회원 탈퇴';
+
+  @override
+  String notifTplMemberWithdrawnBody(String name) {
+    return '$name 회원이 탈퇴했어요.';
+  }
+
+  @override
+  String get notifTplMemberDisconnectedTitle => '담당 연결 해제';
+
+  @override
+  String notifTplMemberDisconnectedBody(String name) {
+    return '$name 회원이 담당 연결을 끊었어요.';
+  }
+
+  @override
+  String get notifTplConsultRequestedTitle => '새 상담 요청이 도착했어요';
+
+  @override
+  String get notifTplConsultCancelledTitle => '상담 요청이 취소됐어요';
+
+  @override
+  String get notifTplInviteAcceptedTitle => '담당 요청이 수락되었어요';
+
+  @override
+  String notifTplInviteAcceptedBody(String name) {
+    return '$name 회원이 담당으로 연결되었어요.';
+  }
+
+  @override
+  String get notifTplInviteRejectedTitle => '담당 요청이 거절되었어요';
+
+  @override
+  String notifTplInviteRejectedBody(String name) {
+    return '$name 회원이 담당 요청을 거절했어요.';
+  }
+
+  @override
+  String get notifTplReservationBookedTitle => '새 예약이 들어왔어요';
+
+  @override
+  String get notifTplReservationCancelledTitle => '예약이 취소되었습니다';
+
+  @override
+  String notifTplMemberWithDetail(String name, String detail) {
+    return '$name 회원 · $detail';
+  }
+
+  @override
+  String notifTplMemberOnly(String name) {
+    return '$name 회원';
+  }
+
+  @override
+  String notifTplWhen(String month, String day, String time) {
+    return '$month월 $day일 $time';
+  }
+
+  @override
+  String notifTplMemberMessageTitle(String name) {
+    return '$name 회원의 메시지';
+  }
 
   @override
   String get notifAllRead => '모두 확인했어요';

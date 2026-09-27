@@ -21,7 +21,7 @@ from app.schemas.reservation_api import (
     ReservationOut,
     TrainerSlotOut,
 )
-from app.services import notification_service, trainer_service
+from app.services import notification_service, notification_templates, trainer_service
 
 
 class SlotNotFound(Exception):
@@ -335,21 +335,33 @@ def update_slot(
                 fields.get("duration_minutes", slot.duration_minutes),
                 exclude_schedule_ids=[s.id for s in _booked_schedules(db, slot.id)],
             )
+    moving = "starts_at" in fields or "duration_minutes" in fields
+    booked = _booked_schedules(db, slot.id) if moving else []
+    # 회원에게 알릴지 판단하려면 **바꾸기 전** 값을 들고 있어야 한다 — 일반
+    # 일정 수정과 같은 기준으로 비교한다. (#2290)
+    before = {s.id: trainer_service._member_visible_slot(s) for s in booked}
     if "starts_at" in fields:
         starts_at = fields["starts_at"]
         slot.starts_at = starts_at
         local = _aware(starts_at).astimezone(SEOUL)
-        schedules = _booked_schedules(db, slot.id)
-        for schedule in schedules:
+        for schedule in booked:
             schedule.date = local.date().isoformat()
             schedule.time = local.strftime("%H:%M")
     if "duration_minutes" in fields:
         slot.duration_minutes = fields["duration_minutes"]
-        schedules = _booked_schedules(db, slot.id)
-        for schedule in schedules:
+        for schedule in booked:
             schedule.duration_minutes = slot.duration_minutes
     if "is_closed" in fields:
         slot.is_closed = fields["is_closed"]
+    for schedule in booked:
+        # 예약으로 잡힌 약속이 옮겨지거나 늘고 줄면 회원이 알아야 그 시간에
+        # 나온다. 실제로 달라진 경우만 알린다(같은 값이면 헬퍼가 건너뛴다).
+        trainer_service._notify_schedule_changed(
+            db,
+            session=schedule,
+            before_member_id=schedule.member_id,
+            before_slot=before[schedule.id],
+        )
     db.commit()
     db.refresh(slot)
     return _slot_out(slot)
@@ -562,8 +574,11 @@ def reserve(
             db,
             trainer_id=slot.trainer_id,
             kind=notification_service.TRAINER_RESERVATION_KIND,
-            title="새 예약이 들어왔어요",
-            body=f"{member.name} 회원 · {local:%m월 %d일 %H:%M}",
+            template=notification_templates.TRAINER_RESERVATION_BOOKED,
+            template_args={
+                "member_name": member.name,
+                "starts_at": local.isoformat(),
+            },
             # 알림을 누르면 그 회원 수업이 있는 날의 스케줄로 간다(#2292).
             subject_id=member.id,
             target_date=local.date().isoformat(),
@@ -696,12 +711,11 @@ def cancel(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_RESERVATION_KIND,
-            title="예약이 취소되었습니다",
-            body=(
-                f"{member_name} 회원 · {local:%m월 %d일 %H:%M}"
-                if local is not None
-                else f"{member_name} 회원"
-            ),
+            template=notification_templates.TRAINER_RESERVATION_CANCELLED,
+            template_args={
+                "member_name": member_name,
+                "starts_at": local.isoformat() if local is not None else None,
+            },
             # 취소된 일정도 스케줄에 `취소` 로 남는다 — 그 날짜로 연다(#2292).
             subject_id=member_id,
             target_date=local.date().isoformat() if local is not None else None,

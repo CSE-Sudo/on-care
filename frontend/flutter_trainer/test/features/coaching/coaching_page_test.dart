@@ -273,8 +273,11 @@ class _FixedClientRepository implements ClientRepository {
   );
 
   @override
-  Future<String> fetchDietAdvice(String clientId, ClientPeriod period) async =>
-      '';
+  Future<String> fetchDietAdvice(
+    String clientId,
+    ClientPeriod period, {
+    required Locale locale,
+  }) async => '';
 
   @override
   Future<List<ClientDietEntry>> fetchDietOn(
