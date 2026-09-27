@@ -62,6 +62,7 @@ from app.services import (
     client_signals,
     data_consent_service,
     diet_photo_service,
+    diet_trainer_pick,
     exercise_activity,
     exercise_service,
     exercise_types,
@@ -1186,6 +1187,9 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     link.active = False
     data_consent_service.revoke(link)
     points_coupon_service.cancel_renewal_coupons(db, link.member_id)
+    # 이 트레이너가 확정해 둔 식단 추천도 내린다(#2378) — 담당이 끝난 트레이너의
+    # 추천이 회원 홈에 남으면 안 된다.
+    diet_trainer_pick.clear(db, link.member_id, link.trainer_id)
     db.commit()
 
 

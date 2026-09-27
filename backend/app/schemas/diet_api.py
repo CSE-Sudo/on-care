@@ -355,3 +355,68 @@ class DietRecommendationsResponse(BaseModel):
     days_with_data: int = 0
     avg_sodium_mg: int = 0
     sodium_limit_mg: int = 0
+
+    # 담당 트레이너가 AI 후보 가운데 골라 확정한 추천(#2378). 홈 `추천 식단` 첫 장에
+    # `트레이너 추천` 으로 그린다. 확정한 것이 없거나 회원이 이미 먹었으면 null 이다.
+    # `items` 와 따로 두는 것은 이 메뉴가 카탈로그(`key`)가 아니라 이름으로 오기 때문이다.
+    trainer_pick: MemberTrainerPick | None = None
+
+
+class MemberTrainerPick(BaseModel):
+    """회원 홈에 뜨는 트레이너 추천 한 장. (#2378)
+
+    `tag` 는 추천 이유의 키(`protein_high` …)라 앱이 자기 문구로 이유 줄을 만든다.
+    `keyword` 는 메뉴 리스트와 같은 언어의 짧은 이유(`고단백` …)다.
+    """
+    slot: str
+    name: str
+    tag: str
+    keyword: str = ""
+    trainer_name: str = ""
+
+
+DietRecommendationsResponse.model_rebuild()
+
+
+class TrainerDietCandidate(BaseModel):
+    """트레이너에게 보여 줄 AI 후보 한 개 — 회원의 4주 추천 메뉴 리스트의 한 줄."""
+    slot: str
+    name: str
+    tag: str
+    keyword: str = ""
+    kcal: int = 0
+    protein_g: int = 0
+    sodium_mg: int = 0
+    # 회원의 급한 태그를 채우는 메뉴인가 — 이유 문장을 "○○이 부족해요" 로 쓸지 가른다.
+    urgent: bool = False
+
+
+class TrainerDietPick(BaseModel):
+    """트레이너가 확정한 추천의 지금 상태."""
+    slot: str
+    name: str
+    tag: str
+    keyword: str = ""
+    # active — 회원 홈에 떠 있다 / resolved — 회원이 그 메뉴를 기록해 내려갔다.
+    status: Literal["active", "resolved"]
+    confirmed_at: str
+    resolved_at: str | None = None
+
+
+class TrainerDietRecommendationsResponse(BaseModel):
+    """GET /trainer/clients/{id}/diet-recommendations 응답. (#2378)
+
+    `needs` 는 최근 4주 평균이 목표에서 벗어난 태그를 급한 순서로 담는다. 비어 있으면
+    채울 점이 없다는 뜻이고 `candidates` 도 비어 있다. `candidates` 는 급한 태그를 채우는
+    메뉴부터 늘어놓는다 — 화면이 세 개씩 끊어 보여 준다.
+    """
+    needs: list[str] = Field(default_factory=list)
+    basis_days: int = 0
+    pick: TrainerDietPick | None = None
+    candidates: list[TrainerDietCandidate] = Field(default_factory=list)
+
+
+class TrainerDietPickRequest(BaseModel):
+    """PUT /trainer/clients/{id}/diet-recommendations 요청 — 후보 하나를 확정한다."""
+    slot: str = Field(min_length=1, max_length=20)
+    name: str = Field(min_length=1, max_length=80)
