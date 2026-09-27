@@ -296,6 +296,40 @@ void main() {
           find.byKey(ValueKey<String>('messages-conversation-$id')),
         );
         expect(sizeOf('short').height, sizeOf('long').height);
+
+        // 이름·말 묶음은 말이 한 줄이든 두 줄이든 카드의 세로 가운데에
+        // 놓인다 — 빈 줄을 말 아래에 몰아 두면 한 줄 말 카드만 위로
+        // 쏠려 보였다.
+        for (final id in <String>['short', 'long']) {
+          final Rect card = tester.getRect(
+            find.byKey(ValueKey<String>('messages-conversation-$id')),
+          );
+          final Rect name = tester.getRect(
+            find.byKey(ValueKey<String>('messages-identity-$id')),
+          );
+          final Rect preview = tester.getRect(
+            find.byKey(ValueKey<String>('messages-preview-$id')),
+          );
+          expect(
+            (name.top + preview.bottom) / 2,
+            moreOrLessEquals(card.center.dy, epsilon: 1),
+            reason: id,
+          );
+        }
+        expect(
+          tester
+              .getSize(
+                find.byKey(const ValueKey<String>('messages-preview-short')),
+              )
+              .height,
+          lessThan(
+            tester
+                .getSize(
+                  find.byKey(const ValueKey<String>('messages-preview-long')),
+                )
+                .height,
+          ),
+        );
         expect(tester.takeException(), isNull);
       });
     });
