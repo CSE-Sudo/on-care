@@ -19,8 +19,19 @@ def hash_password(plain: str) -> str:
     return _password_hash.hash(plain)
 
 
+#: bcrypt 가 보는 최대 길이(UTF-8 바이트). 새 비밀번호의 상한도 이 값이다
+#: (`password_policy.PASSWORD_MAX_BYTES`, #1555).
+BCRYPT_MAX_BYTES = 72
+
+
 def verify_password(plain: str, hashed: str) -> bool:
     if not hashed:
+        return False
+    # bcrypt 5 는 72바이트를 넘는 값을 자르지 않고 ValueError 로 거절한다. 그대로
+    # 두면 긴 값을 친 로그인이 500 이 된다. 새 비밀번호는 72바이트까지만 받으므로
+    # (#1555) 그보다 긴 값은 어떤 저장된 비밀번호와도 같을 수 없다 — 틀린
+    # 비밀번호와 똑같이 다룬다.
+    if len(plain.encode("utf-8")) > BCRYPT_MAX_BYTES:
         return False
     return _password_hash.verify(plain, hashed)
 

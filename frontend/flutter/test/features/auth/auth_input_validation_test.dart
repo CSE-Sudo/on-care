@@ -25,9 +25,12 @@ const AppConfig _config = AppConfig(
 
 /// 들어온 요청을 적어 두고 [status] 로 거절하는 서버 흉내.
 class _FakeServer {
-  _FakeServer(this.status);
+  _FakeServer(this.status, {this.body});
 
   final int status;
+
+  /// 거절 응답 본문. 422 의 `detail` 처럼 앱이 읽는 값을 실을 때 쓴다(#1555).
+  final Object? body;
   final List<RequestOptions> requests = <RequestOptions>[];
 
   late final Dio dio = Dio(BaseOptions(baseUrl: _config.apiBaseUrl))
@@ -41,6 +44,7 @@ class _FakeServer {
               response: Response<Object?>(
                 requestOptions: options,
                 statusCode: status,
+                data: body,
               ),
               type: DioExceptionType.badResponse,
             ),
@@ -57,9 +61,10 @@ Future<_FakeServer> _pump(
   WidgetTester tester,
   Widget page, {
   int status = 401,
+  Object? body,
 }) async {
   FlutterSecureStorage.setMockInitialValues(<String, String>{});
-  final _FakeServer server = _FakeServer(status);
+  final _FakeServer server = _FakeServer(status, body: body);
   addTearDown(server.dio.close);
   await tester.pumpWidget(
     ProviderScope(
@@ -118,6 +123,7 @@ const String _emailInvalid = '이메일 형식이 올바르지 않아요';
 const String _passwordEmpty = '비밀번호를 입력해 주세요';
 const String _phoneInvalid = '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 const String _passwordWeak = '영문과 숫자를 포함해 8자 이상 입력해 주세요';
+const String _passwordTooLong = '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)';
 const String _mismatch = '비밀번호가 일치하지 않아요';
 
 void main() {
@@ -215,9 +221,7 @@ void main() {
       expect(find.text(_emailInvalid), findsNothing);
     });
 
-    testWidgets('서버 장애는 비밀번호 탓을 하지 않는다 (#1940)', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('서버 장애는 비밀번호 탓을 하지 않는다 (#1940)', (WidgetTester tester) async {
       await _pump(tester, const SignInPage(), status: 503);
       await _type(tester, email, 'minsu@oncare.com');
       await _type(tester, password, 'oncare123');
@@ -409,6 +413,94 @@ void main() {
       expect(data['password'], '1234567a');
       // 이메일 중복은 서버가 알려 주는 실패라 예전처럼 토스트다.
       expect(find.text('이미 가입된 이메일이에요. 로그인해 주세요.'), findsOneWidget);
+    });
+
+    // ---- 서버 비밀번호 기준과 같은 상한(#1555) ----
+
+    Future<void> fillAllBut(WidgetTester tester, String pw) async {
+      await _type(tester, name, '김민수');
+      await _type(tester, email, 'minsu@oncare.com');
+      await _type(tester, phone, '01012345678');
+      await _type(tester, password, pw);
+      await _type(tester, confirm, pw);
+    }
+
+    testWidgets('64자를 넘으면 칸 아래에 상한을 알리고 요청하지 않는다', (WidgetTester tester) async {
+      final _FakeServer server = await _pump(tester, const SignUpPage());
+
+      await fillAllBut(tester, '${'a1' * 32}x');
+      await _submit(tester, submit);
+
+      expect(_errorUnder(password, _passwordTooLong), findsOneWidget);
+      expect(find.text(_passwordWeak), findsNothing);
+      expect(server.requests, isEmpty);
+
+      // 딱 64자로 줄이면 문구가 사라지고 요청을 보낸다.
+      await _type(tester, password, 'a1' * 32);
+      await _type(tester, confirm, 'a1' * 32);
+      expect(find.text(_passwordTooLong), findsNothing);
+      await _submit(tester, submit);
+      expect(server.to('/auth/register'), hasLength(1));
+    });
+
+    testWidgets('한글은 64자 안이어도 72바이트를 넘으면 상한 문구다', (WidgetTester tester) async {
+      final _FakeServer server = await _pump(tester, const SignUpPage());
+
+      await fillAllBut(tester, '${'가' * 22}abc1234');
+      await _submit(tester, submit);
+
+      expect(_errorUnder(password, _passwordTooLong), findsOneWidget);
+      expect(server.requests, isEmpty);
+    });
+
+    testWidgets('서버가 비밀번호 코드로 422 를 주면 그 코드의 문구를 알린다', (
+      WidgetTester tester,
+    ) async {
+      final _FakeServer server = await _pump(
+        tester,
+        const SignUpPage(),
+        status: 422,
+        body: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'password_too_long',
+              'loc': <Object?>['body', 'password'],
+              'msg': '비밀번호는 64자(UTF-8 72바이트)까지 입력할 수 있습니다.',
+            },
+          ],
+        },
+      );
+
+      await fillAllBut(tester, 'abcd1234');
+      await _submit(tester, submit);
+
+      expect(server.to('/auth/register'), hasLength(1));
+      expect(find.text(_passwordTooLong), findsOneWidget);
+      expect(find.text('회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.'), findsNothing);
+      // 서버 문장은 로케일을 모르므로 그대로 그리지 않는다.
+      expect(find.textContaining('UTF-8'), findsNothing);
+    });
+
+    testWidgets('비밀번호와 무관한 422 는 예전처럼 가입 실패 문구다', (WidgetTester tester) async {
+      await _pump(
+        tester,
+        const SignUpPage(),
+        status: 422,
+        body: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'value_error',
+              'loc': <Object?>['body', 'email'],
+            },
+          ],
+        },
+      );
+
+      await fillAllBut(tester, 'abcd1234');
+      await _submit(tester, submit);
+
+      expect(find.text('회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+      expect(find.text(_passwordWeak), findsNothing);
     });
   });
 }

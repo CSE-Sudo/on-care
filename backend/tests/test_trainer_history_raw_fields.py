@@ -477,10 +477,10 @@ def test_history_api_english_request_localizes_only_date_label(client):
 def test_history_api_is_trainer_only(client):
     email = f"member-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     r = client.get(
         "/v1/trainer/clients/user-jisu/history",
