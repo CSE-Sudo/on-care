@@ -42,6 +42,8 @@ from app.schemas.trainer_api import (
     ProgramDraftSession,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
+    ReportSendOut,
+    ReportSendsOut,
     ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineCompleteOut,
     RoutineHistoryExerciseOut,
     RoutineHistoryKind,
@@ -5701,6 +5703,56 @@ def get_report_goals(db: Session, member_id: str, week: date) -> ReportGoalsOut:
         if isinstance(decoded, list):
             goals = [g for g in decoded if isinstance(g, str) and g.strip()]
     return ReportGoalsOut(week_start=week.isoformat(), goals=goals)
+
+
+def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOut:
+    """[week] 주 리포트가 나간 담당 회원들. (#2288)
+
+    근거는 리포트 전송이 남긴 채팅 메시지의 `report_week_start` 다. 본문 전송
+    (`/report/send`)과 PDF 전송(`/report/send-pdf`)이 모두 이 값을 남기므로,
+    어느 길로 보냈든 여기서 한 번에 보인다. 앱이 들고 있던 기록은 새로고침하면
+    사라져, 이미 보낸 회원이 미전송으로 돌아가 같은 리포트가 두 번 나갔다.
+
+    담당이 살아 있는 회원만 싣는다 — 해제된 회원의 기록은 다른 트레이너 화면
+    에서 읽을 이유가 없고, 실으면 해제 사실이 응답으로 드러난다(#2281).
+    한 회원에게 여러 번 보냈으면 **가장 최근 것** 하나로 접고 횟수를 함께 준다.
+    """
+    week_iso = week_start_of(week).isoformat()
+    active_members = select(TrainerClient.member_id).where(
+        TrainerClient.trainer_id == trainer_id,
+        TrainerClient.active.is_(True),
+    )
+    rows = db.scalars(
+        select(ChatMessage)
+        .where(
+            ChatMessage.trainer_id == trainer_id,
+            ChatMessage.sender == "trainer",
+            ChatMessage.report_week_start == week_iso,
+            ChatMessage.member_id.in_(active_members),
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+    ).all()
+    latest: dict[str, ChatMessage] = {}
+    counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        latest.setdefault(row.member_id, row)
+        counts[row.member_id] += 1
+    return ReportSendsOut(
+        week_start=week_iso,
+        sends=[
+            ReportSendOut(
+                member_id=member_id,
+                week_start=week_iso,
+                sent_at=_iso(msg.created_at),
+                message=msg.body,
+                read=msg.read_at is not None,
+                has_pdf=msg.attachment_type == "pdf"
+                and msg.attachment_file_id is not None,
+                send_count=counts[member_id],
+            )
+            for member_id, msg in latest.items()
+        ],
+    )
 
 
 def save_report_goals(

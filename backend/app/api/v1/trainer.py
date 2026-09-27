@@ -62,7 +62,7 @@ from app.schemas.trainer_api import (
     ReportGoalsSaveRequest,
     ReportFeedbackOut,
     ReportFeedbackSaveRequest,
-    ReportSendRequest, ReportSummaryOut,
+    ReportSendRequest, ReportSendsOut, ReportSummaryOut,
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineFeedbackRequest,
     RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
@@ -2088,6 +2088,23 @@ def trainer_save_report_goals(
     week = _report_week(payload.week_start or trainer_service.today_iso())
     return trainer_service.save_report_goals(
         db, trainer.id, member_id, week, payload.goals
+    )
+
+
+@router.get("/trainer/reports/sent", response_model=ReportSendsOut)
+def trainer_report_sends(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> ReportSendsOut:
+    """그 주 리포트가 이미 나간 담당 회원들. (#2288)
+
+    리포트 작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기
+    전에 확인을 받는 근거다. 회원마다 따로 묻지 않고 한 번에 준다 — 작업대는
+    로스터 전체를 한 화면에 세운다.
+    """
+    return trainer_service.list_report_sends(
+        db, trainer.id, _report_week(week_start or trainer_service.today_iso())
     )
 
 
