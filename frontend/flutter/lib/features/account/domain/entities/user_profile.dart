@@ -23,7 +23,6 @@ class UserProfile {
     this.heightCm,
     this.weightKg,
     this.conditions = '',
-    this.goals = '',
     this.dailyCalories,
     this.dailySodiumMg,
     this.dailySugarG,
@@ -59,9 +58,6 @@ class UserProfile {
   /// 값이 아니라 **어디에 초점을 둘지**다(#1471). 온보딩과 MY `건강 목표` 가
   /// 같은 값을 읽고 고친다.
   final String conditions;
-
-  /// 자유 입력 운동 목표. 예전에는 내 프로필 수정에 있던 칸이다(#1471).
-  final String goals;
 
   // 식단 일일 목표 — 홈 영양 현황의 목표치와 같은 값을 공유한다.
   final int? dailyCalories;
@@ -114,7 +110,6 @@ class UserProfile {
     heightCm: (json['height_cm'] as num?)?.toDouble(),
     weightKg: (json['weight_kg'] as num?)?.toDouble(),
     conditions: (json['conditions'] as String?) ?? '',
-    goals: (json['goals'] as String?) ?? '',
     dailyCalories: (json['daily_calories'] as num?)?.toInt(),
     dailySodiumMg: (json['daily_sodium_mg'] as num?)?.toInt(),
     dailySugarG: (json['daily_sugar_g'] as num?)?.toInt(),

@@ -84,9 +84,13 @@ void main() {
 
     // Panel opened in place with the unified detail, no push.
     expect(find.text('운동'), findsOneWidget);
-    expect(find.text('메시지'), findsWidgets);
+    expect(find.byTooltip('메시지'), findsWidgets);
     expect(find.text('식단'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
+    // 닫기(X) 대신 늘 `<` 가 있다(#2330).
+    expect(
+      find.byKey(const ValueKey<String>('client-detail-back')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('회원 리스트 바로 위에 pill 필터·정렬 버튼이 있다', (tester) async {
@@ -151,7 +155,7 @@ void main() {
     expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
   });
 
-  testWidgets('the close button collapses the panel back to the list', (
+  testWidgets('the back button collapses the panel back to the list', (
     tester,
   ) async {
     await openWide(tester);
@@ -161,7 +165,7 @@ void main() {
     await settle(tester);
     expect(find.text('운동'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey<String>('client-detail-close')));
+    await tester.tap(find.byKey(const ValueKey<String>('client-detail-back')));
     await settle(tester);
 
     expect(find.text('운동'), findsNothing);
@@ -184,8 +188,9 @@ void main() {
     await settle(tester);
 
     expect(find.textContaining('111.6', findRichText: true), findsNothing);
-    // Still embedded — no full-screen push happened.
-    expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
+    // Still embedded — no full-screen push happened: the roster is still
+    // beside the panel. (`<` is always shown now, so it can't tell, #2330.)
+    expect(find.byType(ClientCard), findsWidgets);
   });
 
   testWidgets('the detail tab state does not leak into another client', (
@@ -457,9 +462,9 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('통증·불편'), findsWidgets);
     expect(find.text('칼로리 24% 과다'), findsWidgets);
-    // 신체·목표는 메모와 한 대화상자로 합쳐졌고, 메모 버튼은 프로필 줄의
-    // 아이콘 버튼으로 옮겨 갔다(#1024).
-    expect(find.text('리포트'), findsOneWidget);
+    // 헤더 버튼은 아이콘만이고, 신호 배지는 이름 아래 한 줄에 넘치는 만큼
+    // `+N` 으로 묶인다(#2330) — 가장 좁은 칸에서도 넘치지 않는다.
+    expect(find.byTooltip('리포트'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('client-detail-open-memo')),
       findsOneWidget,

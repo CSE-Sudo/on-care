@@ -11,13 +11,11 @@ void main() {
       gender: 'female',
       heightCm: 164.5,
       weightKg: 56.2,
-      goals: '주 3회 근력 운동',
     );
     var profile = await repository.fetchProfile();
     expect(profile.gender, 'female');
     expect(profile.heightCm, 164.5);
     expect(profile.weightKg, 56.2);
-    expect(profile.goals, '주 3회 근력 운동');
 
     await repository.updateProfile(
       name: '수정 회원',
@@ -26,6 +24,5 @@ void main() {
     profile = await repository.fetchProfile();
     expect(profile.name, '수정 회원');
     expect(profile.weightKg, 55.8);
-    expect(profile.goals, '주 3회 근력 운동');
   });
 }

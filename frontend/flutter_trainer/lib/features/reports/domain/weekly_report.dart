@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
@@ -158,7 +159,8 @@ class WeeklyReport {
   /// An unknown figure is not a good one: praise has to be earned by
   /// data we actually have.
   bool get isGoodWeek =>
-      (completionAvg ?? 0) >= 70 && (sodiumOverDays ?? 99) <= 2;
+      (completionAvg ?? 0) >= goodCompletionThreshold &&
+      (sodiumOverDays ?? 99) <= 2;
 }
 
 /// Builds [client]'s report for the week starting [weekStart].
@@ -327,9 +329,13 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
   final workout = <String>[];
   final completion = report.completionAvg;
   if (completion != null) {
+    // 좋음·보통·낮음 세 구간 — 75% 에게 "잘 따라오셨어요" 도, "많이
+    // 바쁘셨나 봐요" 도 맞지 않는다(#2345).
     workout.add(
-      completion >= 70
+      completion >= goodCompletionThreshold
           ? l.reportBodyCompletionGood(completion)
+          : completion >= lowCompletionThreshold
+          ? l.reportBodyCompletionSteady(completion)
           : l.reportBodyCompletionLow(completion),
     );
   }
@@ -341,7 +347,7 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
     workout.add(l.reportBodySilentDays(silent.join(' · ')));
   } else if (report.weekCompletion.length == weekdayCount &&
       completion != null &&
-      completion >= 70) {
+      completion >= goodCompletionThreshold) {
     workout.add(l.reportBodySteadyDays(weekdayNames(l).last));
   }
   final skipped = _skippedNames(report);

@@ -28,7 +28,6 @@ class _CountingAccountRepository extends MockAccountRepository {
   @override
   Future<UserProfile> updateHealthGoals({
     String? conditions,
-    String? goals,
     GoalUpdate? dailyCalories,
     GoalUpdate? dailySodiumMg,
     GoalUpdate? dailySugarG,
@@ -46,7 +45,6 @@ class _CountingAccountRepository extends MockAccountRepository {
     saves++;
     return super.updateHealthGoals(
       conditions: conditions,
-      goals: goals,
       dailyCalories: dailyCalories,
       dailySodiumMg: dailySodiumMg,
       dailySugarG: dailySugarG,

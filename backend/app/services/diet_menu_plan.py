@@ -442,7 +442,6 @@ def build_prompt(
         f"- 칼로리 {targets.calories}kcal, 단백질 {targets.protein_g}g, "
         f"나트륨 {targets.sodium_mg}mg, 당류 {targets.sugar_g}g",
         f"- 건강 목표: {(profile.conditions if profile else '') or '정보 없음'}",
-        f"- 목표 메모: {(profile.goals if profile else '') or '정보 없음'}",
         "",
         f"[최근 {PLAN_DAYS}일 기록]",
     ]

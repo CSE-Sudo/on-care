@@ -73,7 +73,9 @@ class _CancelSessionDialogState extends State<CancelSessionDialog> {
       title: _isNoShow ? l.schedNoShowTitle : l.schedCancelTitle,
       showClose: false,
       footer: AppButtonPair(
-        cancelLabel: l.actionCancel,
+        // 확정 버튼이 카드에서 누른 그 `취소` 라서, 창을 그냥 닫는 쪽은
+        // `닫기` 다 — 둘 다 `취소` 면 어느 쪽이 기록하는지 알 수 없다(#2377).
+        cancelLabel: l.actionClose,
         onCancel: () => Navigator.of(context).pop(),
         confirmKey: const ValueKey<String>('session-cancel-confirm'),
         confirmLabel: _isNoShow ? l.schedNoShow : l.schedCancel,
