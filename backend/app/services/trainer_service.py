@@ -59,6 +59,7 @@ from app.services import (
     auto_routine_service,
     client_signals,
     data_consent_service,
+    diet_coach_inputs,
     diet_photo_service,
     exercise_activity,
     exercise_service,
@@ -1163,6 +1164,8 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     link.active = False
     data_consent_service.revoke(link)
     points_coupon_service.cancel_renewal_coupons(db, link.member_id)
+    # 끊은 트레이너의 메시지로 만든 식단 AI 조언·추천 메뉴를 내려놓는다(#1631).
+    diet_coach_inputs.forget_trainer_notes(db, link.member_id)
     db.commit()
 
 
@@ -1273,6 +1276,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     ).all()
     for member_id in active_member_ids:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
+        # 탈퇴한 트레이너의 메시지로 만든 식단 AI 보관물도 내려놓는다(#1631).
+        diet_coach_inputs.forget_trainer_notes(db, member_id)
 
     # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
     trainer_name = trainer.name or ""
@@ -5316,6 +5321,8 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
         data_consent_service.revoke(link)
     if links:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
+        # 끊은 트레이너의 메시지로 만든 식단 AI 조언·추천 메뉴를 내려놓는다(#1631).
+        diet_coach_inputs.forget_trainer_notes(db, member_id)
     return bool(links)
 
 
