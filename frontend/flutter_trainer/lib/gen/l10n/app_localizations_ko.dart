@@ -2167,13 +2167,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymListFailed => '헬스장 목록을 불러오지 못했습니다.';
 
   @override
-  String get myNoGym => '소속 없음';
+  String get myGymLinked => '등록된 헬스장';
 
   @override
-  String get myGymSelect => '헬스장 선택';
+  String get myGymUnlink => '연결 해제';
 
   @override
-  String get myGymManual => '목록에 없어요 (직접 입력)';
+  String get myGymNameHint => '이름을 치면 등록된 헬스장을 찾아요';
+
+  @override
+  String get myGymPick => '선택';
+
+  @override
+  String get myGymRequired => '소속 헬스장을 입력해 주세요';
+
+  @override
+  String get myGymEditHint => '등록된 헬스장을 고르면 주소·운영 시간이 채워져요. 목록에 없으면 직접 적어 주세요.';
 
   @override
   String get myGymListLoading => '헬스장 목록을 불러오는 중이에요';
@@ -2268,7 +2277,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCertsEmpty => '등록한 자격증이 없어요';
 
   @override
-  String get myGymEmpty => '소속 헬스장이 없어요. 프로필 수정에서 고를 수 있어요.';
+  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 등록해 주세요.';
 
   @override
   String get myEditVisibleBody =>

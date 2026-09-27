@@ -4028,23 +4028,41 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the gym list.'**
   String get myGymListFailed;
 
-  /// No description provided for @myNoGym.
+  /// No description provided for @myGymLinked.
   ///
   /// In en, this message translates to:
-  /// **'No gym'**
-  String get myNoGym;
+  /// **'Registered gym'**
+  String get myGymLinked;
 
-  /// No description provided for @myGymSelect.
+  /// No description provided for @myGymUnlink.
   ///
   /// In en, this message translates to:
-  /// **'Choose a gym'**
-  String get myGymSelect;
+  /// **'Unlink'**
+  String get myGymUnlink;
 
-  /// No description provided for @myGymManual.
+  /// No description provided for @myGymNameHint.
   ///
   /// In en, this message translates to:
-  /// **'Not listed (enter it myself)'**
-  String get myGymManual;
+  /// **'Type to find a registered gym'**
+  String get myGymNameHint;
+
+  /// No description provided for @myGymPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get myGymPick;
+
+  /// No description provided for @myGymRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your gym'**
+  String get myGymRequired;
+
+  /// No description provided for @myGymEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.'**
+  String get myGymEditHint;
 
   /// No description provided for @myGymListLoading.
   ///
@@ -4223,7 +4241,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No gym yet. You can pick one in Edit profile.'**
+  /// **'No gym yet. Add yours in Edit profile.'**
   String get myGymEmpty;
 
   /// No description provided for @myEditVisibleBody.
