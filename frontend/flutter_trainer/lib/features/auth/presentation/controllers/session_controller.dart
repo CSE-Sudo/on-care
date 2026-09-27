@@ -49,6 +49,8 @@ class SessionController extends StateNotifier<SessionState> {
     if (next.status == _scopeStatus && email == _scopeEmail) return;
     _scopeStatus = next.status;
     _scopeEmail = email;
+    _ref.read(accountSignedOutProvider.notifier).state =
+        next.status == SessionStatus.signedOut;
     _ref.read(accountScopeProvider.notifier).state++;
   }
 
