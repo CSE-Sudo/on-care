@@ -4230,18 +4230,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '노쇼 $count회';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count회 전량 소화';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days일 무기록';
   }
 
   @override
