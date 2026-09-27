@@ -5174,6 +5174,132 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load notifications'**
   String get notifLoadFailed;
 
+  /// No description provided for @notifTplHealthGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member goals changed'**
+  String get notifTplHealthGoalTitle;
+
+  /// goals is the member's health goals joined with ' · '.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} changed their health goals: {goals}'**
+  String notifTplHealthGoalBody(String name, String goals);
+
+  /// Shown in place of the goal list when the member cleared every health goal.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get notifTplNoGoals;
+
+  /// No description provided for @notifTplMemberRenamedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member renamed'**
+  String get notifTplMemberRenamedTitle;
+
+  /// No description provided for @notifTplMemberRenamedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{oldName} changed their name to {newName}.'**
+  String notifTplMemberRenamedBody(String oldName, String newName);
+
+  /// No description provided for @notifTplMemberWithdrawnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member account deleted'**
+  String get notifTplMemberWithdrawnTitle;
+
+  /// No description provided for @notifTplMemberWithdrawnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted their account.'**
+  String notifTplMemberWithdrawnBody(String name);
+
+  /// No description provided for @notifTplMemberDisconnectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Client disconnected'**
+  String get notifTplMemberDisconnectedTitle;
+
+  /// No description provided for @notifTplMemberDisconnectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ended their connection with you.'**
+  String notifTplMemberDisconnectedBody(String name);
+
+  /// No description provided for @notifTplConsultRequestedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New consultation request'**
+  String get notifTplConsultRequestedTitle;
+
+  /// No description provided for @notifTplConsultCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request cancelled'**
+  String get notifTplConsultCancelledTitle;
+
+  /// No description provided for @notifTplInviteAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching request accepted'**
+  String get notifTplInviteAcceptedTitle;
+
+  /// No description provided for @notifTplInviteAcceptedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now your client.'**
+  String notifTplInviteAcceptedBody(String name);
+
+  /// No description provided for @notifTplInviteRejectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching request declined'**
+  String get notifTplInviteRejectedTitle;
+
+  /// No description provided for @notifTplInviteRejectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} declined your coaching request.'**
+  String notifTplInviteRejectedBody(String name);
+
+  /// No description provided for @notifTplReservationBookedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New booking'**
+  String get notifTplReservationBookedTitle;
+
+  /// No description provided for @notifTplReservationCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking cancelled'**
+  String get notifTplReservationCancelledTitle;
+
+  /// A member's name followed by a date or time, e.g. for a booking.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {detail}'**
+  String notifTplMemberWithDetail(String name, String detail);
+
+  /// Just the member's name, used when a cancelled booking has no time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}'**
+  String notifTplMemberOnly(String name);
+
+  /// Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} {time}'**
+  String notifTplWhen(String month, String day, String time);
+
+  /// No description provided for @notifTplMemberMessageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message from {name}'**
+  String notifTplMemberMessageTitle(String name);
+
   /// No description provided for @notifAllRead.
   ///
   /// In en, this message translates to:

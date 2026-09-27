@@ -1858,6 +1858,119 @@
   "notifReadAll": "Mark all read",
   "notifEmpty": "No notifications yet",
   "notifLoadFailed": "Couldn't load notifications",
+  "notifTplHealthGoalTitle": "Member goals changed",
+  "notifTplHealthGoalBody": "{name} changed their health goals: {goals}",
+  "@notifTplHealthGoalBody": {
+    "description": "goals is the member's health goals joined with ' · '.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "goals": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplNoGoals": "none",
+  "@notifTplNoGoals": {
+    "description": "Shown in place of the goal list when the member cleared every health goal."
+  },
+  "notifTplMemberRenamedTitle": "Member renamed",
+  "notifTplMemberRenamedBody": "{oldName} changed their name to {newName}.",
+  "@notifTplMemberRenamedBody": {
+    "placeholders": {
+      "oldName": {
+        "type": "String"
+      },
+      "newName": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberWithdrawnTitle": "Member account deleted",
+  "notifTplMemberWithdrawnBody": "{name} deleted their account.",
+  "@notifTplMemberWithdrawnBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberDisconnectedTitle": "Client disconnected",
+  "notifTplMemberDisconnectedBody": "{name} ended their connection with you.",
+  "@notifTplMemberDisconnectedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplConsultRequestedTitle": "New consultation request",
+  "notifTplConsultCancelledTitle": "Consultation request cancelled",
+  "notifTplInviteAcceptedTitle": "Coaching request accepted",
+  "notifTplInviteAcceptedBody": "{name} is now your client.",
+  "@notifTplInviteAcceptedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplInviteRejectedTitle": "Coaching request declined",
+  "notifTplInviteRejectedBody": "{name} declined your coaching request.",
+  "@notifTplInviteRejectedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplReservationBookedTitle": "New booking",
+  "notifTplReservationCancelledTitle": "Booking cancelled",
+  "notifTplMemberWithDetail": "{name} · {detail}",
+  "@notifTplMemberWithDetail": {
+    "description": "A member's name followed by a date or time, e.g. for a booking.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberOnly": "{name}",
+  "@notifTplMemberOnly": {
+    "description": "Just the member's name, used when a cancelled booking has no time.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWhen": "{month}/{day} {time}",
+  "@notifTplWhen": {
+    "description": "Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberMessageTitle": "Message from {name}",
+  "@notifTplMemberMessageTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
   "notifUnreadCount": "{count} unread",

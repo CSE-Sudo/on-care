@@ -779,7 +779,7 @@ def test_render_unknown_or_empty_code_is_none():
 
 _TRAINER_TEXT = (
     Path(__file__).resolve().parents[2]
-    / "frontend/flutter_trainer/lib/features/notifications/domain/trainer_notification_text.dart"
+    / "frontend/flutter_trainer/lib/features/notifications/presentation/trainer_notification_text.dart"
 )
 
 

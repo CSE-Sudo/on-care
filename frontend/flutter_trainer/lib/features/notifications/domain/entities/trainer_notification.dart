@@ -45,6 +45,8 @@ class TrainerNotification {
     required this.createdAt,
     required this.timeAgo,
     this.subjectId,
+    this.template,
+    this.args = const <String, Object?>{},
   });
 
   final String id;
@@ -53,6 +55,14 @@ class TrainerNotification {
   final TrainerNotificationKind kind;
   final bool read;
   final DateTime createdAt;
+
+  /// 문장 틀 코드(#2302). 있으면 화면이 [args] 로 ARB 문장을 조립한다
+  /// (`trainer_notification_text.dart`). 틀이 생기기 전의 알림에는 없고, 그때는
+  /// [title]·[body] 를 그대로 쓴다.
+  final String? template;
+
+  /// 틀 인자 — 이름·날짜·건강 목표 저장 값처럼 언어와 무관한 값만 담긴다.
+  final Map<String, Object?> args;
 
   /// 서버가 만든 상대 시각 문구("3분 전"). 회원 알림함과 같은 규칙을 쓰도록
   /// 서버 판단을 그대로 받는다.
@@ -74,6 +84,18 @@ class TrainerNotification {
         subjectId: switch (json['subject_id']) {
           final String id when id.isNotEmpty => id,
           _ => null,
+        },
+        template: switch (json['template']) {
+          final String code when code.isNotEmpty => code,
+          _ => null,
+        },
+        // 계약이 깨진 인자 하나로 목록 전체가 실패하지 않게, 모양이 다르면 비운다.
+        // 비어 있으면 조립하지 못해 저장된 문장으로 돌아간다.
+        args: switch (json['args']) {
+          final Map<String, Object?> map => Map<String, Object?>.unmodifiable(
+            map,
+          ),
+          _ => const <String, Object?>{},
         },
       );
 }
