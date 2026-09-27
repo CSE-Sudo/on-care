@@ -229,17 +229,33 @@ StrutStyle _previewStrut(TextStyle style) =>
     StrutStyle.fromTextStyle(style, forceStrutHeight: true);
 
 /// 미리보기 두 줄의 높이 — 현재 글자 배율을 반영해 잰다.
-double _twoLinePreviewHeight(BuildContext context, TextStyle style) {
+double _twoLinePreviewHeight(BuildContext context, TextStyle style) =>
+    _previewHeight(
+      context,
+      List<String>.filled(_previewLines, ' ').join('\n'),
+      style,
+      double.infinity,
+    );
+
+/// 미리보기 [text] 가 [maxWidth] 폭에서 실제로 그려지는 높이 — 한 줄이면
+/// 한 줄, 넘치면 두 줄에서 자른 높이다.
+double _previewHeight(
+  BuildContext context,
+  String text,
+  TextStyle style,
+  double maxWidth,
+) {
   final painter = TextPainter(
     text: TextSpan(
-      text: List<String>.filled(_previewLines, ' ').join('\n'),
+      text: text,
       style: DefaultTextStyle.of(context).style.merge(style),
     ),
     strutStyle: _previewStrut(style),
     maxLines: _previewLines,
+    ellipsis: '…',
     textDirection: Directionality.of(context),
     textScaler: MediaQuery.textScalerOf(context),
-  )..layout();
+  )..layout(maxWidth: maxWidth);
   final height = painter.height;
   painter.dispose();
   return height;
@@ -290,37 +306,59 @@ class _ConversationTile extends StatelessWidget {
           AppAvatar(name: client.avatar, size: AppAvatarSize.large),
           const SizedBox(width: OnCareSpacing.s12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ClientIdentity(
-                  key: ValueKey<String>('messages-identity-${client.id}'),
-                  client: client,
-                  nameStyle: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodyLarge))
-                      .copyWith(color: OnCareColors.textPrimary),
-                  demographicsStyle: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final String preview = client.previewMessage(l);
                 // 미리보기는 **항상 두 줄 자리**를 차지한다. 한 줄짜리 말과
                 // 두 줄을 넘는 말이 같은 목록에 섞이면 카드 높이가 고객마다
                 // 달라져 목록이 들쭉날쭉했다. 줄 높이를 고정(strut)하고, 그
-                // 두 줄 높이를 현재 글자 배율로 재어 상자 높이로 삼는다 —
+                // 두 줄 높이를 현재 글자 배율로 재어 자리 높이로 삼는다 —
                 // 배율이 커지면 잘리지 않고 카드가 함께 커진다.
-                SizedBox(
-                  key: ValueKey<String>('messages-preview-${client.id}'),
-                  height: _twoLinePreviewHeight(context, previewStyle),
-                  child: Text(
-                    client.previewMessage(l),
-                    maxLines: _previewLines,
-                    overflow: TextOverflow.ellipsis,
-                    style: previewStyle,
-                    strutStyle: _previewStrut(previewStyle),
+                //
+                // 한 줄짜리 말이 남기는 빈 줄은 이름 위와 말 아래로 반씩
+                // 나눈다. 빈 줄을 말 아래에 몰아 두면 이름·말 묶음이 카드
+                // 위로 쏠려 보였고, 말만 가운데로 내리면 이름과 말 사이가
+                // 벌어졌다 — 묶음째 카드의 세로 가운데에 둔다.
+                final double slack =
+                    _twoLinePreviewHeight(context, previewStyle) -
+                    _previewHeight(
+                      context,
+                      preview,
+                      previewStyle,
+                      constraints.maxWidth,
+                    );
+                return Padding(
+                  padding: EdgeInsets.symmetric(vertical: slack / 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      ClientIdentity(
+                        key: ValueKey<String>('messages-identity-${client.id}'),
+                        client: client,
+                        nameStyle: tokens
+                            .text(
+                              OnCareTypography.strong(
+                                OnCareTypography.bodyLarge,
+                              ),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
+                        demographicsStyle: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                      Text(
+                        preview,
+                        key: ValueKey<String>('messages-preview-${client.id}'),
+                        maxLines: _previewLines,
+                        overflow: TextOverflow.ellipsis,
+                        style: previewStyle,
+                        strutStyle: _previewStrut(previewStyle),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
