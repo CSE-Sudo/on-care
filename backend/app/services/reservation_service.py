@@ -507,6 +507,9 @@ def reserve(
             kind=notification_service.TRAINER_RESERVATION_KIND,
             title="새 예약이 들어왔어요",
             body=f"{member.name} 회원 · {local:%m월 %d일 %H:%M}",
+            # 알림을 누르면 그 회원 수업이 있는 날의 스케줄로 간다(#2292).
+            subject_id=member.id,
+            target_date=local.date().isoformat(),
         )
         db.commit()
     except IntegrityError as exc:
@@ -642,5 +645,8 @@ def cancel(
                 if local is not None
                 else f"{member_name} 회원"
             ),
+            # 취소된 일정도 스케줄에 `취소` 로 남는다 — 그 날짜로 연다(#2292).
+            subject_id=member_id,
+            target_date=local.date().isoformat() if local is not None else None,
         )
     db.commit()

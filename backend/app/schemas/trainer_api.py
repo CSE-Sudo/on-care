@@ -1666,6 +1666,9 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
     #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
     subject_id: str | None = None
+    #: 알림이 가리키는 날짜(`YYYY-MM-DD`) — 예약·상담 알림이 스케줄을 그 날짜로
+    #: 여는 데 쓴다(#2292). 옛 알림에는 없다.
+    target_date: str | None = None
 
 
 #: 미션 키 하나(`report-<id>` 등). 서버는 내용을 해석하지 않고 길이만 막는다.
