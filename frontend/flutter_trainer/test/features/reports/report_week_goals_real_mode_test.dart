@@ -4,7 +4,8 @@
 /// 본다. 이 파일은 그 목록이 리포트 화면까지 가서 **한·영 두 로케일로** 쓰이는지를
 /// 본다 — 확인 단계의 탄단지 막대는 크게 모자란 영양소가 지난 주 목표 하나를
 /// 떨어뜨렸으면 그 목표를 근거로 이어 적는데, 예전에는 실서버에서 목표가 언제나
-/// 비어 있어 이 줄이 한 번도 서지 않았다.
+/// 비어 있어 이 줄이 한 번도 서지 않았다. 확인 단계의 ③ `지난 주 목표 달성`
+/// 카드도 같은 목록을 판정해 그린다.
 library;
 
 import 'package:dio/dio.dart';
@@ -203,5 +204,99 @@ void main() {
     );
     expect(find.textContaining('Protein is well under target'), findsOneWidget);
     expect(find.textContaining('was judged unmet'), findsNothing);
+  });
+
+  /// ③ 카드의 [index] 번째 줄 글자들.
+  List<String> goalRow(WidgetTester tester, int index) => <String>[
+    for (final Text t in tester.widgetList<Text>(
+      find.descendant(
+        of: find.byKey(ValueKey<String>('report-last-goal-$index')),
+        matching: find.byType(Text),
+      ),
+    ))
+      t.data ?? '',
+  ];
+
+  group('③ 지난 주 목표 달성 카드', () {
+    testWidgets('한국어 — 받아 온 목표마다 판정과 근거가 선다', (tester) async {
+      await openReport(
+        tester,
+        dio: _server(goals: <String>['주 5일 이상 기록', '저녁 단백질 챙기기', '물 2L']),
+      );
+
+      expect(find.text('지난 주 목표 달성'), findsOneWidget);
+      // 일곱 날 모두 칼로리가 있다 — 실서버 응답에는 끼니 수가 없어 칼로리로 센다.
+      expect(goalRow(tester, 0), <String>['달성', '주 5일 이상 기록', '7일 기록']);
+      // 단백질은 목표 120g 의 절반.
+      expect(goalRow(tester, 1), <String>['절반', '저녁 단백질 챙기기', '60 / 120g']);
+      expect(goalRow(tester, 2), <String>['직접 확인', '물 2L']);
+      expect(find.text('1 / 3 달성'), findsOneWidget);
+    });
+
+    testWidgets('English — verdicts and evidence read in English', (
+      tester,
+    ) async {
+      await openReport(
+        tester,
+        locale: const Locale('en'),
+        dio: _server(goals: <String>['Log 5+ days', 'Protein at every dinner']),
+      );
+
+      expect(find.text("Last week's goals"), findsOneWidget);
+      expect(goalRow(tester, 0), <String>[
+        'Met',
+        'Log 5+ days',
+        'Logged 7 days',
+      ]);
+      expect(goalRow(tester, 1), <String>[
+        'Partly',
+        'Protein at every dinner',
+        '60 / 120g',
+      ]);
+      expect(find.text('1 / 2 met'), findsOneWidget);
+    });
+
+    testWidgets('한국어로 고른 목표도 영어 화면에서 판정한다', (tester) async {
+      await openReport(
+        tester,
+        locale: const Locale('en'),
+        dio: _server(goals: <String>['저녁 단백질 챙기기']),
+      );
+
+      expect(goalRow(tester, 0), <String>['Partly', '저녁 단백질 챙기기', '60 / 120g']);
+    });
+
+    testWidgets('고른 목표가 없는 주는 빈 상태를 그린다', (tester) async {
+      await openReport(tester, dio: _server(goals: const <String>[]));
+
+      expect(
+        find.byKey(const ValueKey<String>('report-last-goals-empty')),
+        findsOneWidget,
+      );
+      expect(find.text('지난 주에 고른 목표가 없어요'), findsOneWidget);
+    });
+
+    testWidgets('목표 요청만 실패해도 카드는 빈 상태로 서고 리포트는 뜬다', (tester) async {
+      await openReport(tester, dio: _server(goals: null));
+
+      expect(
+        find.byKey(const ValueKey<String>('report-last-goals-empty')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('reports-weekly-retry')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('No goals picked reads naturally in English', (tester) async {
+      await openReport(
+        tester,
+        locale: const Locale('en'),
+        dio: _server(goals: null),
+      );
+
+      expect(find.text('No goals were picked last week'), findsOneWidget);
+    });
   });
 }
