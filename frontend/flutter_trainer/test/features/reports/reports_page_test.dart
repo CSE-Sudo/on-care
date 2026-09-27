@@ -8,6 +8,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
+import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -32,6 +33,13 @@ class _SummaryFailsRepository implements ReportRepository {
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async => const <ReportSendRecord>[];
+
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async => const MemberReportHistoryPage.empty();
 
   @override
   Stream<WeeklyReport> watch({
@@ -93,6 +101,13 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async => const <ReportSendRecord>[];
+
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async => const MemberReportHistoryPage.empty();
 
   @override
   Future<ReportSummary> summary({
@@ -1356,6 +1371,13 @@ class _DraftStore implements ReportRepository {
   Future<List<ReportSendRecord>> sentReports({
     required DateTime weekStart,
   }) async => const <ReportSendRecord>[];
+
+  @override
+  Future<MemberReportHistoryPage> memberReportHistory({
+    required String clientId,
+    DateTime? before,
+    int limit = memberReportHistoryPageSize,
+  }) async => const MemberReportHistoryPage.empty();
 
   @override
   Stream<WeeklyReport> watch({
