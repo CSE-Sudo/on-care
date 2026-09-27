@@ -357,6 +357,18 @@
       }
     }
   },
+  "clientsMemberCountFiltered": "{shown} of {total} members",
+  "@clientsMemberCountFiltered": {
+    "description": "Roster subtitle while a dashboard preset or management filter narrows the list.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "clientWeeklyRoutineAdherence": "Weekly adherence",
   "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",

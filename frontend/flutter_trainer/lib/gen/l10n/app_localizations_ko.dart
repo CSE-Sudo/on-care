@@ -522,6 +522,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$total명 중 $shown명';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => '주간 이행률';
 
   @override
