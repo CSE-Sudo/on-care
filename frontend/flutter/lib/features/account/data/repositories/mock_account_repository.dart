@@ -17,7 +17,6 @@ class MockAccountRepository implements AccountRepository {
     // 트레이너 앱의 김민수와 같은 사람이다 — 성별과 목표가 두 앱에서 같아야
     // 한다 (#1140).
     gender: 'male',
-    goals: '혈압 관리 · 체중 감량',
     dailyCalories: 2000,
     dailySodiumMg: 2000,
     dailySugarG: 50,
@@ -56,7 +55,6 @@ class MockAccountRepository implements AccountRepository {
     num? heightCm,
     num? weightKg,
     String? conditions,
-    String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
     int? dailySugarG,
@@ -74,7 +72,6 @@ class MockAccountRepository implements AccountRepository {
       // 온보딩은 첫 저장이라 '지움'이 없다 — 비운 칸은 손대지 않는다.
       heightCm: heightCm == null ? null : MeasureUpdate(heightCm),
       weightKg: weightKg == null ? null : MeasureUpdate(weightKg),
-      goals: goals,
       dailyCalories: dailyCalories,
       dailySodiumMg: dailySodiumMg,
       dailySugarG: dailySugarG,
@@ -98,7 +95,6 @@ class MockAccountRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   }) async {
     _profile = _replaceProfile(
       name: name,
@@ -108,7 +104,6 @@ class MockAccountRepository implements AccountRepository {
       gender: gender,
       heightCm: heightCm,
       weightKg: weightKg,
-      goals: goals,
     );
     return _profile;
   }
@@ -126,7 +121,6 @@ class MockAccountRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
     int? dailySugarG,
@@ -151,7 +145,6 @@ class MockAccountRepository implements AccountRepository {
     weightKg: weightKg == null
         ? _profile.weightKg
         : weightKg.value?.toDouble(),
-    goals: goals ?? _profile.goals,
     dailyCalories: dailyCalories ?? _profile.dailyCalories,
     dailySodiumMg: dailySodiumMg ?? _profile.dailySodiumMg,
     dailySugarG: dailySugarG ?? _profile.dailySugarG,
@@ -171,7 +164,6 @@ class MockAccountRepository implements AccountRepository {
   @override
   Future<UserProfile> updateHealthGoals({
     String? conditions,
-    String? goals,
     GoalUpdate? dailyCalories,
     GoalUpdate? dailySodiumMg,
     GoalUpdate? dailySugarG,
@@ -197,7 +189,6 @@ class MockAccountRepository implements AccountRepository {
       weightKg: _profile.weightKg,
       // 관리 초점과 자유 입력 운동 목표도 이 화면에서 고친다(#1471).
       conditions: conditions ?? _profile.conditions,
-      goals: goals ?? _profile.goals,
       dailyCalories: dailyCalories == null
           ? _profile.dailyCalories
           : dailyCalories.value,

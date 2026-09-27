@@ -692,7 +692,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainers/{trainer_id}` | 단건(없으면 404) |
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
-- **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·목표(`goals`)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
+- **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
@@ -965,6 +965,25 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   아직 오지 않은 주는 **422**(리포트 조회와 같은 규칙).
 - **담당이 살아 있는 회원만** 싣는다. 해제된 회원의 기록은 빠진다(#2281). 보낸 적이 없는 주는
   200 에 `sends: []` 다. 회원 계정은 **403**.
+
+**회원별 리포트 전송 이력 (#2393)**: 한 담당 회원에게 그동안 보낸 리포트를 주별로 모은다. 위 주 단위
+조회는 한 주의 로스터 전체라, 회원별 지난 리포트 화면을 세우려면 주마다 따로 물어야 했다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `GET` | `/trainer/clients/{member_id}/reports/sent?limit=&before=` | `{ member_id, sends: [{ week_start, sent_at, read, send_count, message_id, has_pdf, feedback_preview }], next_before }` |
+
+- 근거와 접는 규칙은 주 단위 조회와 **같다** — 채팅 메시지의 `report_week_start`(본문·PDF 전송 모두),
+  한 주에 여러 번 보냈으면 가장 최근 전송 하나와 `send_count`. `sent_at`(ISO, UTC)·`read`(`read_at`)·
+  `message_id`(그 최근 전송의 채팅 메시지 id)·`has_pdf` 는 모두 그 최근 전송의 값이다.
+- `feedback_preview` 는 최근 전송 본문의 **비어 있지 않은 첫 줄**이고, 80자를 넘으면 잘라 `…` 를 붙인다.
+  전문은 `message_id` 로 채팅에서 연다.
+- 정렬은 `week_start` 내림차순(최신 주부터). 쪽은 **주 단위**로 나눈다 — `limit` 은 주 수(기본 12,
+  1~100, 벗어나면 **422**). 더 오래된 주가 있으면 `next_before` 에 이 쪽 마지막 `week_start` 가 오고,
+  그 값을 `before`(`YYYY-MM-DD`, 그 주 **제외**)로 다시 주면 다음 쪽이다. 더 없으면 `null`.
+  주 중간 날짜를 주면 그 주 월요일로 접힌다. 형식이 틀리면 **422**.
+- 담당이 아니거나 해제된 회원은 다른 `/trainer/clients/{member_id}/…` 경로와 같은 **404**(#2281).
+  보낸 적이 없으면 200 에 `sends: []`·`next_before: null`. 회원 계정은 **403**.
 
 **채팅 사진 (#921, #1665)**: 트레이너와 회원이 **서로** 사진을 보낸다. 식사·자세·인바디 결과지처럼
 코칭에 바로 쓰이는 사진이 대화 안에서 오가야, 사진만큼은 개인 메신저로 보내는 일이 없다.

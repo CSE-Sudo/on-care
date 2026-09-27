@@ -15,7 +15,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 읽어야 할지 애매했다.
 ///
 /// 제목은 "AI 진단"이었지만 실제로는 AI(LLM) 를 부르지 않고 클라이언트에서
-/// 규칙(`buildActivityFeedback`/`computeChurnSignals`)으로만 계산한다 —
+/// 규칙(`buildActivityFeedback`/`hasRecentTrainerFeedback`)으로만 계산한다 —
 /// 이름이 실제로 하는 일과 달라 "활동 피드백"으로 고쳤다.
 class AiSummaryCard extends StatelessWidget {
   /// Creates the card.

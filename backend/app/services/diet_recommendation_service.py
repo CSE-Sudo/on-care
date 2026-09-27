@@ -31,6 +31,7 @@ from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, 
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet_api import DietRecommendationItem, DietRecommendationsResponse
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services import health_focus
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,8 @@ class NutritionContext:
     sugar_limit_g: int
     calorie_limit: int
     conditions: str
+    #: 회원이 고른 건강 목표 칩(`체중 감량 · 혈압 관리`). 예전 자유 서술
+    #: `goals` 를 대신한다(#2358).
     goals: str
     signals: tuple[str, ...]
 
@@ -217,7 +220,7 @@ def build_context(db: Session, user_id: str, today: date | None = None) -> Nutri
         sugar_limit_g=sugar_limit,
         calorie_limit=calorie_limit,
         conditions=(profile.conditions if profile else "") or "",
-        goals=(profile.goals if profile else "") or "",
+        goals=health_focus.focus_label(profile.conditions if profile else None),
         signals=tuple(signals),
     )
 
