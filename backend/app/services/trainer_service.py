@@ -61,6 +61,7 @@ from app.services import (
     exercise_service,
     exercise_types,
     notification_service,
+    notification_templates,
     points_coupon_service,
     points_service,
     routine_advice,
@@ -991,7 +992,8 @@ def send_message(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_MESSAGE_KIND,
-            title=f"{member_name or '회원'} 회원의 메시지",
+            template=notification_templates.TRAINER_MEMBER_MESSAGE,
+            template_args={"member_name": member_name or ""},
             body=text,
             # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
             # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
@@ -1004,14 +1006,17 @@ def send_message(
             db,
             member_id=member_id,
             kind=notify,
-            title=(
-                "주간 리포트가 도착했어요"
-                if is_report
-                else f"{trainer_name or '트레이너'} 트레이너의 메시지"
-            ),
-            # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
-            # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
-            body=text or ("사진을 보냈어요" if attachment_file_id and attachment_type == "image" else text),
+            template=notification_templates.MEMBER_COACH_MESSAGE,
+            template_args={
+                "trainer_name": trainer_name or "",
+                "report": is_report,
+                # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
+                # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
+                "photo_only": not text
+                and bool(attachment_file_id)
+                and attachment_type == "image",
+            },
+            body=text,
             # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지는
             # 같지만 갈래를 나눠 회원 앱이 리포트를 메시지와 다른 아이콘으로
             # 그린다(#2085).
@@ -1224,7 +1229,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     for member_id in active_member_ids:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
 
-    trainer_name = trainer.name or "트레이너"
+    # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
+    trainer_name = trainer.name or ""
     for member_id in member_ids:
         notification_service.queue(
             db,
@@ -1232,8 +1238,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             kind=notification_service.TRAINER_MESSAGE,
             # 새 트레이너를 찾는 화면으로 보낸다.
             category=notification_service.MEMBER_CONSULTATION,
-            title="담당 트레이너 연결이 해제되었어요",
-            body=f"{trainer_name} 트레이너가 서비스를 떠났습니다. 새 트레이너를 찾아보세요.",
+            template=notification_templates.MEMBER_TRAINER_LEFT,
+            template_args={"trainer_name": trainer_name},
         )
     # 예약만 있고 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
     for member_id in booked_member_ids - set(member_ids):
@@ -1242,8 +1248,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             member_id=member_id,
             kind=notification_service.TRAINER_MESSAGE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="예약한 수업이 취소되었어요",
-            body=f"{trainer_name} 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
+            template=notification_templates.MEMBER_TRAINER_LEFT_BOOKING,
+            template_args={"trainer_name": trainer_name},
         )
 
     db.delete(trainer)
@@ -1567,6 +1573,7 @@ def _routine_out(
             completion.trainer_feedback if completion is not None else ""
         ),
         schedule_id=getattr(rt, "schedule_id", None),
+        pending_send=getattr(rt, "status", "") == ROUTINE_SCHEDULED,
         delivery_kind=getattr(rt, "delivery_kind", None),
         trainer_message=getattr(rt, "trainer_message", "") or "",
     )
@@ -1766,9 +1773,9 @@ def approve_routine_suggestion(
         member_id=row.member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=f"{row.name} · " + _amount_label(
-            row.type, minutes=row.minutes,
+        template=notification_templates.MEMBER_ROUTINE_ASSIGNED,
+        template_args=_routine_notification_args(
+            row.name, row.type, minutes=row.minutes,
             sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
             weight=row.weight,
         ),
@@ -2169,9 +2176,9 @@ def assign_routine(
         member_id=member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=f"{name} · " + _amount_label(
-            type_, minutes=minutes, sets=sets, reps=reps,
+        template=notification_templates.MEMBER_ROUTINE_ASSIGNED,
+        template_args=_routine_notification_args(
+            name, type_, minutes=minutes, sets=sets, reps=reps,
             hold_seconds=hold_seconds, weight=weight,
         ),
     )
@@ -2382,12 +2389,13 @@ def _add_program_routines(
         member_id=member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=(
-            f"{name} · 세션 {len(created)}개 · {total_minutes}분"
-            if multi
-            else f"{name} · {total_minutes}분"
-        ),
+        template=notification_templates.MEMBER_ROUTINE_PROGRAM,
+        template_args={
+            "name": name,
+            "sessions": len(created),
+            "minutes": total_minutes,
+            "multi": multi,
+        },
     )
     return created
 
@@ -3111,6 +3119,33 @@ def _amount_label(
     return " · ".join(parts)
 
 
+def _routine_notification_args(
+    name: str,
+    type_: str,
+    *,
+    minutes: int,
+    sets: int | None,
+    reps: int | None,
+    weight: float | None,
+    hold_seconds: int | None = None,
+) -> dict[str, Any]:
+    """루틴 배정 알림의 틀 인자(#2302). 양은 [_amount_label] 과 같은 규칙으로 읽는다.
+
+    문장 대신 값을 남긴다 — 회원이 영어 화면이면 `15 min`·`3 sets` 로 조립된다.
+    근력인지는 여기서 정해 둔다. 유형이 두 어휘(`근력`·`strength`)로 들어오는데,
+    읽는 쪽마다 정규화 규칙을 다시 갖게 하면 한쪽이 어긋난다.
+    """
+    return {
+        "name": name,
+        "strength": exercise_types.normalize(type_) == exercise_types.STRENGTH,
+        "minutes": minutes,
+        "sets": sets,
+        "reps": reps,
+        "hold_seconds": hold_seconds,
+        "weight": weight,
+    }
+
+
 def _program_minutes_and_type(
     items: Sequence[ProgramItem],
 ) -> tuple[int, str | None]:
@@ -3422,8 +3457,8 @@ def _add_session(
             member_id=member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="새 일정이 등록되었어요",
-            body=f"{date} {time} · {type_}",
+            template=notification_templates.MEMBER_SCHEDULE_ADDED,
+            template_args={"date": date, "time": time, "type": type_},
         )
     return s
 
@@ -3753,8 +3788,10 @@ def create_recurring_sessions(
             member_id=member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="반복 일정이 등록되었어요",
-            body=f"{iso[0]} ~ {iso[-1]} · {time} · {len(iso)}회",
+            template=notification_templates.MEMBER_SCHEDULE_SERIES,
+            template_args={
+                "first": iso[0], "last": iso[-1], "time": time, "count": len(iso),
+            },
         )
     db.commit()
     for row in created:
@@ -3873,6 +3910,25 @@ def _scheduled_routines_for_request(
     )
 
 
+def _clear_scheduled_routines(
+    db: Session, trainer_id: str, schedule_id: str
+) -> None:
+    """그 PT 에 붙어 있던 **아직 보내지 않은** 개인운동을 지운다. (#2224)
+
+    보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은 건드리지 않는다 —
+    회원이 이미 받았거나 트레이너가 이미 답한 것이다.
+    """
+    for row in db.scalars(
+        select(TrainerRoutine).where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == schedule_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+    ).all():
+        db.delete(row)
+    db.flush()
+
+
 def _add_scheduled_routines(
     db: Session, trainer_id: str, member_id: str, *,
     items: Sequence[PersonalRoutineItem],
@@ -3943,21 +3999,311 @@ def _add_scheduled_routines(
 def list_scheduled_routines(
     db: Session, trainer_id: str, schedule_id: str,
 ) -> list[RoutineOut]:
-    """그 PT 일정에 붙어 있는(아직 보내지 않은) 개인운동. (#2223)
+    """그 PT 일정에 붙어 있는 개인운동 — 보낸 것과 아직 보내지 않은 것. (#2223)
 
-    일정 상세가 "이 PT 와 함께 갈 개인운동"을 보여 주는 데 쓴다(#2224). 이미
-    보낸 뒤에는 상태가 `approved` 로 바뀌므로 이 목록에서 빠진다.
+    일정 상세의 `개인운동` 갈래가 이 목록을 그린다(#2224). **보낸 뒤에도
+    빠지지 않는다** — 트레이너가 나중에 그 PT 를 열었을 때 "이 회원에게 무엇을
+    딸려 보냈나" 를 볼 데가 여기뿐이라, 보내자마자 사라지면 보낸 기록을 어디서도
+    확인할 수 없다. 대신 건마다 `pending_send` 로 갈라 놓아 부르는 쪽이 아직
+    보낼 것이 남았는지 안다.
+
+    `dismissed`(보내지 않기로 한 것) 는 뺀다 — 트레이너가 이미 아니라고 답한
+    것이다.
+
+    **PT 프로그램 줄은 여기 오지 않는다.** 개인운동만 `delivery_kind` 를 달고
+    있어(#2223) 그 값으로 가른다.
     """
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == schedule_id,
-            TrainerRoutine.status == ROUTINE_SCHEDULED,
+            TrainerRoutine.delivery_kind.is_not(None),
+            TrainerRoutine.status.in_((ROUTINE_SCHEDULED, ROUTINE_APPROVED)),
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     return [_routine_out(db, row) for row in rows]
+
+
+#: PT 완료로 보낸 개인운동이 회원 목록에 걸려 있는 날 수 — 보낸 날을 1일로 센다.
+#:
+#: `개인운동만`(#2223) 과 같은 7 일이다. 두 경로가 같은 규칙으로 움직여야 회원이
+#: "이번 주에 할 것" 하나만 본다. 끊기는 것이 곧 트레이너에게 "이번 주 것을
+#: 보내라" 는 신호다.
+PERSONAL_ROUTINE_ACTIVE_DAYS = 7
+
+
+def _retire_personal_routines(
+    db: Session, trainer_id: str, member_id: str, *, today: date
+) -> None:
+    """이 트레이너가 이 회원에게 보내 둔 개인운동을 오늘부로 내린다. (#2224)
+
+    새로 보낼 때마다 부른다. 내리지 않으면 PT 가 당겨진 주에 지난 개인운동과
+    새 개인운동이 **함께** 걸려 회원이 두 배를 받는다 — 트레이너는 바꿔 준
+    것으로 아는데 회원은 더해진 것을 본다.
+
+    지우지 않고 `ended_on` 만 오늘로 찍는다 — 회원이 지난 날짜를 열면 그날
+    걸려 있던 목록이 그대로 보여야 한다(#2161).
+
+    **프로그램 세션 줄은 건드리지 않는다.** 개인운동만 `delivery_kind` 를 달고
+    있어(#2223) 그 값으로 가른다 — PT 프로그램 배정은 비어 있다.
+    """
+    iso = today.isoformat()
+    db.execute(
+        update(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            TrainerRoutine.delivery_kind.is_not(None),
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > iso,
+            ),
+        )
+        .values(ended_on=iso)
+    )
+
+
+def _send_scheduled_routines(
+    db: Session,
+    trainer_id: str,
+    session: TrainerSchedule,
+    *,
+    delivery_kind: str,
+) -> list[TrainerRoutine]:
+    """그 PT 에 붙여 둔 개인운동을 회원에게 보낸다(커밋 없음). (#2224)
+
+    붙일 때는 `scheduled` 로 두어 회원에게 보이지 않았다(#2223). 여기서
+    `approved` 로 올리며 **오늘부터** 다시 건다 — 며칠 전에 짜 둔 것이라도
+    회원에게는 오늘 받은 운동이다. 그대로 두면 `active_from` 이 짠 날이라
+    이미 며칠 지나간 채로 걸린다.
+
+    보낸 것이 없으면 빈 목록이다 — 부르는 쪽이 판단한다.
+    """
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session.id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        return []
+    today = clock.today()
+    _retire_personal_routines(db, trainer_id, session.member_id or "", today=today)
+    ended_on = (
+        today + timedelta(days=PERSONAL_ROUTINE_ACTIVE_DAYS)
+    ).isoformat()
+    for row in rows:
+        row.status = ROUTINE_APPROVED
+        row.delivery_kind = delivery_kind
+        row.active_from = today.isoformat()
+        row.ended_on = ended_on
+        row.exercise_date = today.isoformat()
+    db.flush()
+    notification_service.queue(
+        db,
+        member_id=session.member_id,
+        kind=notification_service.EXERCISE,
+        category=notification_service.MEMBER_ROUTINE,
+        title="이번 주에 할 개인운동이 왔어요",
+        body=" · ".join(row.name for row in rows),
+    )
+    return rows
+
+
+def send_scheduled_routines(
+    db: Session,
+    trainer_id: str,
+    session_id: str,
+    *,
+    items: Sequence[PersonalRoutineItem] | None = None,
+) -> list[RoutineOut] | None:
+    """마무리된 PT 에 남아 있던 개인운동을 회원에게 보낸다. (#2224)
+
+    PT 가 취소·노쇼로 끝나면 붙여 둔 개인운동은 갈 곳을 잃는다. 자동으로
+    보내지는 않는다 — 아파서 쉬는 회원에게 운동이 저절로 가면 안 된다.
+    트레이너가 `개인운동 미전송` 에서 눌렀을 때만 온다.
+
+    [items] 를 주면 그 내용으로 **고쳐서** 보낸다. 개인운동은 "이 PT 다음에
+    할 것" 으로 짜였으므로, PT 가 열리지 않았으면 그대로 보내기 어렵다.
+    취소된 PT 에는 프로그램 만들기로 다시 붙일 수 없어(`예정` 세션만 찾는다)
+    고치는 자리가 여기뿐이다.
+
+    - 소유 슬롯 아님 → None(404).
+    - 아직 `예정` → ScheduleError. 완료를 누르면 그때 함께 나간다.
+    - 보낼 것이 없음 → ScheduleError.
+    """
+    s = _get_owned_session(db, trainer_id, session_id)
+    if s is None:
+        return None
+    if s.status == SCHEDULE_UPCOMING:
+        raise ScheduleError(
+            "아직 예정인 PT 입니다. 완료할 때 개인운동이 함께 나갑니다."
+        )
+    if not s.member_id:
+        raise ScheduleError("회원이 없는 일정입니다.")
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        raise ScheduleError("보낼 개인운동이 없습니다.")
+    if items is not None:
+        if not items:
+            raise ScheduleError("보낼 개인운동이 없습니다.")
+        _rewrite_scheduled_routines(db, rows, items)
+        rows = db.scalars(
+            select(TrainerRoutine)
+            .where(
+                TrainerRoutine.trainer_id == trainer_id,
+                TrainerRoutine.schedule_id == session_id,
+                TrainerRoutine.status == ROUTINE_SCHEDULED,
+            )
+            .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+        ).all()
+    kind = (
+        DELIVERY_CANCELLED_ROUTINE_ONLY
+        if s.status in {SCHEDULE_CANCELLED, SCHEDULE_NO_SHOW}
+        else DELIVERY_PT_WITH_ROUTINE
+    )
+    sent = _send_scheduled_routines(db, trainer_id, s, delivery_kind=kind)
+    db.commit()
+    return [_routine_out(db, row) for row in sent]
+
+
+def _rewrite_scheduled_routines(
+    db: Session,
+    rows: Sequence[TrainerRoutine],
+    items: Sequence[PersonalRoutineItem],
+) -> None:
+    """붙어 있던 개인운동을 [items] 로 갈아 끼운다(커밋 없음). (#2224)
+
+    있던 줄을 앞에서부터 고쳐 쓰고, 모자라면 만들고, 남으면 지운다 — 줄을
+    전부 지우고 새로 만들면 `client_request_id` 의 멱등 키가 끊겨 재시도가
+    같은 운동을 두 번 만든다.
+
+    **손댄 줄은 트레이너 것이 된다.** AI 가 제안한 운동이라도 트레이너가
+    고치는 순간 더는 AI 의 추천이 아니다 — 그대로 두면 트레이너가 손본 운동을
+    회원이 `AI 추천` 으로 본다. 프로그램 만들기가 이미 같은 규칙으로 움직인다
+    (#2223). 여기서도 **서버가** 판단한다: 클라이언트가 보낸 `source` 를 그대로
+    믿으면 길마다 규칙이 갈린다.
+    """
+    base = rows[0]
+    for index, item in enumerate(items):
+        if index < len(rows):
+            row = rows[index]
+        else:
+            row = TrainerRoutine(
+                id=f"routine-{uuid.uuid4().hex[:12]}",
+                trainer_id=base.trainer_id,
+                member_id=base.member_id,
+                schedule_id=base.schedule_id,
+                status=ROUTINE_SCHEDULED,
+                delivery_kind=base.delivery_kind,
+                source="trainer",
+                client_request_id=_personal_request_key(
+                    base.client_request_id, index
+                ),
+            )
+            db.add(row)
+        touched = (
+            row.name != item.name
+            or row.minutes != item.minutes
+            or row.type != item.type
+            or row.sets != item.sets
+            or row.reps != item.reps
+            or row.hold_seconds != item.hold_seconds
+            or row.weight != item.weight
+        )
+        row.name = item.name
+        row.minutes = item.minutes
+        row.type = item.type
+        row.sets = item.sets
+        row.reps = item.reps
+        row.hold_seconds = item.hold_seconds
+        row.weight = item.weight
+        row.source = "trainer" if touched else item.source
+        row.sort_order = base.sort_order + index
+    for row in rows[len(items):]:
+        db.delete(row)
+    db.flush()
+
+
+def update_scheduled_routines(
+    db: Session,
+    trainer_id: str,
+    session_id: str,
+    items: Sequence[PersonalRoutineItem],
+) -> list[RoutineOut] | None:
+    """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
+
+    일정 상세에서 바로 고치는 길이다. 프로그램 만들기로 돌아가지 않고 운동
+    하나를 빼거나 시간을 줄일 수 있어야 한다 — PT 직전에 회원 상태를 보고
+    손보는 일이 흔하다.
+
+    이미 보낸 것은 손댈 수 없다(`scheduled` 만 고친다). 보낸 뒤에 바뀌면
+    회원이 어제 본 목록과 오늘 본 목록이 말없이 달라진다.
+
+    - 소유 슬롯 아님 → None(404).
+    - 붙은 것이 없음 / 빈 목록으로 비우려 함 → ScheduleError.
+    """
+    s = _get_owned_session(db, trainer_id, session_id)
+    if s is None:
+        return None
+    if not items:
+        raise ScheduleError("개인운동을 최소 한 개는 남겨 주세요.")
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        raise ScheduleError("고칠 개인운동이 없습니다.")
+    _rewrite_scheduled_routines(db, rows, items)
+    db.commit()
+    return list_scheduled_routines(db, trainer_id, session_id)
+
+
+def dismiss_scheduled_routines(
+    db: Session, trainer_id: str, session_id: str
+) -> bool | None:
+    """마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
+
+    `개인운동 미전송` 표시를 걷어내는 길이다. 보내지 않기로 한 것을 계속
+    띄워 두면 트레이너가 매번 다시 판단해야 한다.
+
+    지우지 않고 `dismissed` 로 내린다 — 무엇을 짰다가 안 보냈는지가 남는다.
+    """
+    s = _get_owned_session(db, trainer_id, session_id)
+    if s is None:
+        return None
+    if s.status == SCHEDULE_UPCOMING:
+        raise ScheduleError("아직 예정인 PT 입니다.")
+    changed = db.execute(
+        update(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .values(status=ROUTINE_DISMISSED)
+    ).rowcount
+    db.commit()
+    return changed > 0
 
 
 def _replayed_program_schedule(
@@ -4119,6 +4465,11 @@ def assign_program_with_schedule(
     else:
         target.program_json = program_json
         session = target
+    # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 개인운동은 걷어낸다. 프로그램을
+    # 다시 짜서 보내면 `program_json` 은 덮어쓰는데 개인운동만 뒤에 쌓여, 두 번
+    # 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로 아는데 회원은
+    # 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이 본 것은 없다.
+    _clear_scheduled_routines(db, trainer_id, session.id)
     personal = _add_scheduled_routines(
         db, trainer_id, member_id,
         items=personal_routines,
@@ -4151,9 +4502,10 @@ def _member_visible_slot(s: TrainerSchedule) -> tuple[str, str, str, int]:
     return (s.date, s.time, s.type, s.duration_minutes)
 
 
-def _slot_body(slot: tuple[str, str, str, int]) -> str:
+def _slot_args(slot: tuple[str, str, str, int]) -> dict[str, str]:
+    """일정 알림 틀의 인자 — 본문 `날짜 시각 · 종류` 를 이룬다(#2302)."""
     date, time, type_, _ = slot
-    return f"{date} {time} · {type_}"
+    return {"date": date, "time": time, "type": type_}
 
 
 def _notify_schedule_changed(
@@ -4178,8 +4530,8 @@ def _notify_schedule_changed(
             member_id=session.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 변경되었어요",
-            body=_slot_body(after_slot),
+            template=notification_templates.MEMBER_SCHEDULE_CHANGED,
+            template_args=_slot_args(after_slot),
         )
         return
 
@@ -4191,8 +4543,8 @@ def _notify_schedule_changed(
             member_id=before_member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(before_slot),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(before_slot),
         )
     if session.member_id is not None:
         notification_service.queue(
@@ -4200,8 +4552,8 @@ def _notify_schedule_changed(
             member_id=session.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="새 일정이 등록되었어요",
-            body=_slot_body(after_slot),
+            template=notification_templates.MEMBER_SCHEDULE_ADDED,
+            template_args=_slot_args(after_slot),
         )
 
 
@@ -4249,6 +4601,17 @@ def update_session(
         )
     if "date" in fields:
         s.date = fields["date"]
+        # 붙어 있는 개인운동도 새 날짜로 따라간다(#2224). 아직 보내지 않은
+        # 것이라 묻지도 보내지도 않는다 — 옮긴 PT 를 완료할 때 그날 기준으로
+        # 나간다. 두고 가면 옛 날짜를 가리킨 채 남는다.
+        db.execute(
+            update(TrainerRoutine)
+            .where(
+                TrainerRoutine.schedule_id == s.id,
+                TrainerRoutine.status == ROUTINE_SCHEDULED,
+            )
+            .values(exercise_date=fields["date"])
+        )
     if "time" in fields:
         s.time = fields["time"]
     if "client_name" in fields:
@@ -4315,8 +4678,8 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(_member_visible_slot(s)),
         )
     db.delete(s)
     db.commit()
@@ -4539,6 +4902,17 @@ def send_session_program(
         sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
         client_request_id=client_request_id,
     )
+    # 개인운동은 **이 전송에 함께 실린다**(#2224) — 회원은 "오늘 한 것" 과
+    # "혼자 할 것" 을 한 번에 받는다. 프로그램과 같은 트랜잭션이라 둘 다
+    # 가거나 둘 다 안 간다: 프로그램만 가고 개인운동이 빠지면 트레이너는
+    # 보냈다고 아는데 회원은 혼자 할 것이 없다.
+    #
+    # **붙은 것이 없어도 막지 않는다.** 개인운동을 필수로 받는 자리는 프로그램
+    # 만들기다(#2223) — 스케줄에서 연필로 바로 짠 프로그램에는 붙을 자리가
+    # 없어, 여기서 막으면 그 길로 짠 프로그램을 보낼 수 없게 된다.
+    _send_scheduled_routines(
+        db, trainer_id, s, delivery_kind=DELIVERY_PT_WITH_ROUTINE
+    )
     # 배정이 커밋된 뒤에만 보낸 것으로 남긴다. 반대 순서면 배정에 실패한 세션이
     # 화면에서 '전송됨' 이 되어 다시 보낼 수 없다.
     s.program_sent_at = datetime.now(timezone.utc)
@@ -4712,8 +5086,8 @@ def cancel_session(
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
-            title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
+            template_args=_slot_args(_member_visible_slot(s)),
         )
     db.commit()
     db.refresh(s)

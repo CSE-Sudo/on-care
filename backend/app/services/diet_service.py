@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.locale import Locale, current_locale, localized
 from app.models.models import DietEntry
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
@@ -125,13 +126,30 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
     )
 
 
-def coach_message(total_sodium_mg: int, has_entries: bool) -> str:
-    """오늘 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다."""
+def coach_message(
+    total_sodium_mg: int, has_entries: bool, locale: Locale | None = None
+) -> str:
+    """오늘 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다.
+
+    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
+    """
     if total_sodium_mg > SODIUM_LIMIT_MG:
-        return "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!"
+        return localized(
+            "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!",
+            "You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!",
+            locale,
+        )
     if not has_entries:
-        return "아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?"
-    return "균형 잡힌 하루였어요. 내일도 이대로 가요!"
+        return localized(
+            "아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?",
+            "No meals logged today yet. Want to log your first meal?",
+            locale,
+        )
+    return localized(
+        "균형 잡힌 하루였어요. 내일도 이대로 가요!",
+        "A well-balanced day. Keep it up tomorrow!",
+        locale,
+    )
 
 
 #: 기간 조언이 다루는 구간. 정의는 [period_window] 하나뿐이다 — 운동 조언
@@ -155,7 +173,14 @@ def _avg(values: list[int]) -> float:
     return sum(values) / len(values) if values else 0
 
 
-def period_coach_message(days: list[DietDayTotals], period: str) -> str:
+def _en_days(n: int, one: str, many: str) -> str:
+    """영어 문장의 단·복수 — 1 이면 [one], 아니면 [many] 의 `{n}` 을 채운다."""
+    return one if n == 1 else many.format(n=n)
+
+
+def period_coach_message(
+    days: list[DietDayTotals], period: str, locale: Locale | None = None
+) -> str:
     """기간에 맞는 식단 조언. (#1017, #1574)
 
     기간을 바꾸는 것은 "무엇을 볼지" 를 바꾸는 일이다. 그래프만 갈아 끼우고
@@ -168,26 +193,64 @@ def period_coach_message(days: list[DietDayTotals], period: str) -> str:
 
     **한 문장 반을 넘기지 않는다.** 좁은 카드 안에서 길어질수록 정작 짚어야 할
     수치가 묻힌다 — 근거 하나와 다음 행동 하나면 충분하다. (#1574)
+
+    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어) — 트레이너웹이
+    영어 화면에서 이 문장을 그대로 보여 준다(#2299). 한국어 문장은 그대로 두고, 영어
+    문장은 같은 근거·같은 수치를 같은 순서로 말한다.
     """
+    lang = locale or current_locale()
+
+    def say(ko: str, en: str) -> str:
+        return localized(ko, en, lang)
+
     if not days:
         # 없는 기록으로 조언을 지어내지 않는다.
         if period == PERIOD_WEEK:
-            return "이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요."
+            return say(
+                "이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.",
+                "No meals logged this week yet. Even one meal shows the trend.",
+            )
         if period == PERIOD_ALL:
-            return "기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요."
-        return "오늘 식단 기록이 아직 없어요. 첫 끼니를 기록해 볼까요?"
+            return say(
+                "기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.",
+                "Once you log more, we'll show how your sodium and calories are trending.",
+            )
+        return say(
+            "오늘 식단 기록이 아직 없어요. 첫 끼니를 기록해 볼까요?",
+            "No meals logged today yet. Want to log your first meal?",
+        )
 
     over = [d for d in days if d.over_sodium]
 
     if period == PERIOD_WEEK:
         if len(over) >= 3:
-            return f"이번 주 {len(over)}일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요."
+            return say(
+                f"이번 주 {len(over)}일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.",
+                f"Sodium went over on {len(over)} days this week. With soups, eat the solids and leave the broth.",
+            )
         weekday, weekend = _weekday_split(days)
         if weekend and weekday and _avg(weekend) > _avg(weekday) * 1.3:
-            return "주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요."
+            return say(
+                "주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.",
+                "Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.",
+            )
         if over:
-            return f"이번 주 {len(over)}일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요."
-        return f"이번 주 {len(days)}일 모두 나트륨을 권장량 안에서 지켰어요!"
+            return say(
+                f"이번 주 {len(over)}일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.",
+                _en_days(
+                    len(over),
+                    "Only 1 day went over the sodium limit this week. The other days were well balanced.",
+                    "Only {n} days went over the sodium limit this week. The other days were well balanced.",
+                ),
+            )
+        return say(
+            f"이번 주 {len(days)}일 모두 나트륨을 권장량 안에서 지켰어요!",
+            _en_days(
+                len(days),
+                "You kept sodium within the limit on the 1 day you logged this week!",
+                "You kept sodium within the limit on all {n} days this week!",
+            ),
+        )
 
     if period == PERIOD_ALL:
         # 최근 4주와 그 이전을 견준다 — 나아지는 중인지가 이 화면의 질문이다.
@@ -196,26 +259,51 @@ def period_coach_message(days: list[DietDayTotals], period: str) -> str:
         earlier = [d.sodium_mg for d in days if d.date < recent_from]
         if earlier and recent:
             if _avg(recent) < _avg(earlier) * 0.9:
-                return "최근 4주 나트륨이 그 전보다 낮아졌어요. 지금 방식이 잘 맞아요."
+                return say(
+                    "최근 4주 나트륨이 그 전보다 낮아졌어요. 지금 방식이 잘 맞아요.",
+                    "Sodium over the last 4 weeks is lower than before. This approach suits you.",
+                )
             if _avg(recent) > _avg(earlier) * 1.1:
-                return "최근 4주 나트륨이 다시 올라가고 있어요. 한 주만 되짚어 볼까요?"
+                return say(
+                    "최근 4주 나트륨이 다시 올라가고 있어요. 한 주만 되짚어 볼까요?",
+                    "Sodium is creeping back up over the last 4 weeks. Want to look back over one week?",
+                )
         weekday, weekend = _weekday_split(days)
         # 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
         # 이 조언은 최근 [period_window.ALL_PERIOD_DAYS] 일만 읽는다 — "기록을
         # 통틀어" 라고 말하면 그래프가 보여 주는 앞 기록까지 본 것처럼 읽힌다.
         weeks = period_window.ALL_PERIOD_DAYS // 7
         if weekend and weekday and _avg(weekend) > _avg(weekday) * 1.3:
-            return f"최근 {weeks}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요."
+            return say(
+                f"최근 {weeks}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.",
+                f"Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.",
+            )
         ratio = round(len(over) * 100 / len(days))
         if ratio >= 40:
-            return f"최근 {weeks}주 중 {ratio}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요."
-        return f"최근 {weeks}주 기록한 {len(days)}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요."
+            return say(
+                f"최근 {weeks}주 중 {ratio}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.",
+                f"{ratio}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.",
+            )
+        return say(
+            f"최근 {weeks}주 기록한 {len(days)}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.",
+            _en_days(
+                len(days),
+                f"Your 1 logged day in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
+                f"Most of your {{n}} logged days in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
+            ),
+        )
 
     # 오늘 — 그날 합계 하나로 말한다.
     today = days[-1]
     if today.over_sodium:
-        return f"오늘 나트륨 {today.sodium_mg}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게."
-    return f"오늘 나트륨 {today.sodium_mg}mg 로 권장량 안이에요. 이대로 마무리해요."
+        return say(
+            f"오늘 나트륨 {today.sodium_mg}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
+            f"Sodium is at {today.sodium_mg}mg today, over the limit. Keep the rest of your meals light.",
+        )
+    return say(
+        f"오늘 나트륨 {today.sodium_mg}mg 로 권장량 안이에요. 이대로 마무리해요.",
+        f"Sodium is at {today.sodium_mg}mg today, within the limit. Finish the day like this.",
+    )
 
 
 def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:

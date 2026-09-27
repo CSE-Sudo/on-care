@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
+import 'package:oncare_trainer/features/notifications/presentation/trainer_notification_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -223,6 +224,10 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final bool unread = !notification.read;
+    final TrainerNotificationText text = trainerNotificationText(
+      AppLocalizations.of(context),
+      notification,
+    );
     // 미읽음은 옅은 브랜드 채움 + 빨간 점 + 제목 600 으로 구분한다(#1690).
     // 진한 남색 채움은 목록 글자를 가려 규격에서 뺐다(#1703).
     return DecoratedBox(
@@ -232,8 +237,8 @@ class _NotificationTile extends StatelessWidget {
       ),
       child: AppListRow(
         key: ValueKey<String>('notification-${notification.id}'),
-        title: notification.title,
-        subtitle: notification.body.isEmpty ? null : notification.body,
+        title: text.title,
+        subtitle: text.body.isEmpty ? null : text.body,
         unread: unread,
         onTap: onTap,
         leading: Icon(
