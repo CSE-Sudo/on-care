@@ -136,6 +136,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionBack => '뒤로';
 
   @override
+  String get notFoundTitle => '페이지를 찾을 수 없어요';
+
+  @override
+  String get notFoundMessage => '주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.';
+
+  @override
+  String get notFoundGoDashboard => '대시보드로 가기';
+
+  @override
+  String get notFoundGoSignIn => '로그인하러 가기';
+
+  @override
   String get appWordmarkTrainer => '트레이너';
 
   @override
