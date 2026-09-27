@@ -199,6 +199,7 @@
   "clientsEmpty": "아직 담당 회원이 없어요",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
   "clientsMemberCount": "{total}명",
+  "clientsMemberCountFiltered": "{total}명 중 {shown}명",
   "clientWeeklyRoutineAdherence": "주간 이행률",
   "clientRoutineAdherenceUnmeasured": "미집계",
   "clientsSignalDiscomfort": "통증·불편",

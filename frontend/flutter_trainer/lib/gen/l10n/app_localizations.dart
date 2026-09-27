@@ -1052,6 +1052,12 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// Roster subtitle while a dashboard preset or management filter narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} members'**
+  String clientsMemberCountFiltered(int shown, int total);
+
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
   /// In en, this message translates to:

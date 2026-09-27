@@ -538,6 +538,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$shown of $total members';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => 'Weekly adherence';
 
   @override
