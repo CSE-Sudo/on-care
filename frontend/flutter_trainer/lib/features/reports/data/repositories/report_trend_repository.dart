@@ -5,7 +5,7 @@ import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 
-/// ④ 운동 추세가 읽는 키 — 누구의, 어느 주로 끝나는 여덟 주인가.
+/// ③ 운동 추세가 읽는 키 — 누구의, 어느 주로 끝나는 여덟 주인가.
 typedef ReportTrendKey = ({String clientId, DateTime weekStart});
 
 /// [ReportTrendKey] 로 끝나는 [kReportTrendWeeks] 주치 운동 실적. (#2232)

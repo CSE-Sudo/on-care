@@ -2,10 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 
+export 'package:oncare_trainer/features/reports/data/demo_report_history.dart'
+    show demoSentReports;
 export 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 
 /// 전송 기록의 열쇠 — `회원 id|그 주 월요일`.
@@ -123,37 +126,6 @@ Map<String, ReportSendRecord> mergeSendLogs(
   return merged;
 }
 
-/// 데모 로스터에서 **이미 리포트가 나간** 회원.
-///
-/// 작업대는 두 열이 다 차 있어야 무슨 화면인지 읽힌다. 세션을 새로 열면
-/// 기록이 비어 있어 열다섯 명이 전부 미전송으로 서고, `전송 완료` 는 빈 칸만
-/// 남는다 — 데모에서 가장 먼저 보이는 화면이 가장 설명이 안 되는 화면이 된다.
-///
-/// 그래서 로스터를 **둘로 갈라** 여섯 명은 이번 주 리포트가 나간 것으로
-/// 둔다. 남는 쪽이 더 길다 — 작업대는 아직 할 일이 있는 화면이라야 한다. 누가 어느 쪽에 서는지는 임의가 아니라 그 회원의 한 주에서 나온다:
-///
-///  * 남는 쪽(미전송)은 **트레이너가 아직 할 말을 정하지 못한 회원**이다 —
-///    김민수(시연의 주인공, 그의 리포트는 화면에서 직접 쓴다), 박성호·문가영
-///    (휴면), 오세라(급성 악화), 배준혁(답장 대기), 임도현(신규), 노은채
-///    (기록 하루), 강서연(주말 붕괴), 류태경(극단 진폭). 작업대 줄에 신호가
-///    붙어야 할 회원이 전부 여기 있다.
-///  * 나간 쪽(전송 완료)은 이야기가 이미 끝난 회원이다. 보낸 시각은 월요일
-///    아침부터 어제 밤까지 흩어 두고, 열람 여부도 갈라 둔다 — 넷 중 하나쯤은
-///    아직 안 읽은 것이 실제 비율에 가깝고, `우선 확인` 안내가 그 값을 읽는다.
-///
-/// 실서버 로스터에는 `seed-client-*` 가 없어 이 목록은 데모에서만 붙는다.
-/// 데모 로컬 채팅의 시드 리포트 안내도 이 자리를 넘보지 않는다 — 전송 이력은
-/// 실행 중에 보낸 것만 센다(#2288). (#2232)
-const List<({String clientId, int daysAgo, int hour, bool read})>
-demoSentReports = <({String clientId, int daysAgo, int hour, bool read})>[
-  (clientId: 'seed-client-5', daysAgo: 5, hour: 9, read: true),
-  (clientId: 'seed-client-4', daysAgo: 3, hour: 18, read: true),
-  (clientId: 'seed-client-11', daysAgo: 3, hour: 21, read: false),
-  (clientId: 'seed-client-10', daysAgo: 2, hour: 20, read: true),
-  (clientId: 'seed-client-2', daysAgo: 1, hour: 9, read: true),
-  (clientId: 'seed-client-14', daysAgo: 1, hour: 20, read: false),
-];
-
 /// [log] 에 데모 기록을 얹은 사본.
 ///
 /// 트레이너가 이번 세션에 실제로 보낸 것이 언제나 먼저다 — 같은 회원·같은
@@ -167,32 +139,17 @@ Map<String, ReportSendRecord> withDemoSends(
 }) {
   final DateTime monday = weekStartOf(weekStart);
   final DateTime now = today ?? nowKst();
-  // 지난 주를 열어 놓고 이번 주 기록을 보여 주지 않는다. 데모 기록이 붙는
-  // 곳은 지금 주 하나뿐이다.
+  // 이 함수가 얹는 곳은 지금 주 하나뿐이다. 지난 주 데모 이력은 데모 저장소의
+  // `sentReports` 가 서버 기록 자리로 돌려준다(#2399) — 지난 주를 열어 놓고
+  // 이번 주 명단을 보여 주지 않는다.
   if (monday != weekStartOf(now)) return log;
   final merged = <String, ReportSendRecord>{...log};
   for (final demo in demoSentReports) {
     if (!rosterIds.contains(demo.clientId)) continue;
-    final String key = '${demo.clientId}|${ymd(monday)}';
+    final String key = sendLogKey(demo.clientId, monday);
     if (merged.containsKey(key)) continue;
-    final DateTime day = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: demo.daysAgo));
-    // 보낸 날이 그 주보다 앞설 수는 없다 — 주 초에 데모를 열면 월요일로 맞춘다.
-    final DateTime sentAt = day.isBefore(monday)
-        ? DateTime(monday.year, monday.month, monday.day, demo.hour)
-        : DateTime(day.year, day.month, day.day, demo.hour);
-    merged[key] = ReportSendRecord(
-      clientId: demo.clientId,
-      weekStart: monday,
-      sentAt: sentAt,
-      // 본문은 비워 둔다. `보낸 리포트` 화면이 그 주 수치에서 만든 문구로
-      // 채운다 — 손으로 적어 두면 화면의 수치와 어긋난 글이 남는다.
-      message: '',
-      read: demo.read,
-    );
+    final ReportSendRecord? record = demoCurrentWeekRecord(demo.clientId, now);
+    if (record != null) merged[key] = record;
   }
   return merged;
 }

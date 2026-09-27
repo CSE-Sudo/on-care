@@ -37,7 +37,6 @@ class _RecordingAccountRepository extends MockAccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   }) {
     saves++;
     lastGender = gender;
@@ -51,7 +50,6 @@ class _RecordingAccountRepository extends MockAccountRepository {
       gender: gender,
       heightCm: heightCm,
       weightKg: weightKg,
-      goals: goals,
     );
   }
 }

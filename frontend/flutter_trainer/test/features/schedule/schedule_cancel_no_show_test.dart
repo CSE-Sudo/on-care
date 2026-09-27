@@ -214,7 +214,7 @@ void main() {
       expect(tester.widget<AppButton>(confirm).onPressed, isNotNull);
     });
 
-    testWidgets('취소 처리는 완료와 같은 모양의 글씨 버튼이다 (#2176)', (tester) async {
+    testWidgets('취소는 완료와 같은 모양의 글씨 버튼이다 (#2176, #2377)', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
 
@@ -224,10 +224,47 @@ void main() {
       final AppButton cancel = tester.widget<AppButton>(
         find.byKey(const ValueKey<String>('session-cancel-chip')),
       );
-      expect(cancel.label, '취소 처리');
+      expect(cancel.label, '취소');
       expect(cancel.leadingIcon, isNotNull);
       expect(cancel.variant, complete.variant);
       expect(cancel.size, complete.size);
+    });
+
+    testWidgets('취소 창은 닫기와 취소 두 버튼이다 (#2377)', (tester) async {
+      await openSchedule(tester);
+      await openSession(tester, '박성호');
+      await tapChip(tester, 'session-cancel-chip');
+
+      // 확정 버튼은 카드에서 누른 그 `취소` 와 같은 글씨고, 그냥 닫는 쪽은
+      // `닫기` 다 — 창 안에 `취소` 가 둘이면 어느 쪽이 기록하는지 모른다.
+      final AppButton confirm = tester.widget<AppButton>(
+        find.byKey(const ValueKey<String>('session-cancel-confirm')),
+      );
+      expect(confirm.label, '취소');
+      final Finder dialogButtons = find.descendant(
+        of: find.byType(AppDialog),
+        matching: find.byType(AppButton),
+      );
+      final List<String> labels = tester
+          .widgetList<AppButton>(dialogButtons)
+          .map((AppButton b) => b.label)
+          .toList();
+      expect(labels.where((String t) => t == '취소'), hasLength(1));
+      expect(labels, contains('닫기'));
+
+      // 닫기는 아무것도 기록하지 않고 창만 닫는다.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.widgetWithText(AppButton, '닫기'),
+        ),
+      );
+      await settle(tester);
+      expect(find.byType(AppDialog), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('session-cancel-chip')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('취소한 세션은 목록에 남고 상태와 기록을 보여 준다', (tester) async {

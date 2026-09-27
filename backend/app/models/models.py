@@ -83,7 +83,8 @@ class HealthProfile(Base):
         String(20), default="low"
     )  # low|medium|high
     conditions: Mapped[str] = mapped_column(Text, default="")  # "고혈압, 당뇨 전단계"
-    goals: Mapped[str] = mapped_column(Text, default="")
+    # 자유 서술 회원 목표(`goals`)는 지웠다 — 목표는 건강 목표 칩(`conditions`)으로만
+    # 고른다(#2358).
 
     # 개인정보(내 프로필 모달) + 온보딩 인구통계
     phone: Mapped[str] = mapped_column(String(20), default="")

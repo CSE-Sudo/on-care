@@ -20,7 +20,6 @@ abstract class AccountRepository {
     /// 건강 목표(`체중 감량, 혈압 관리`)과 자유 입력 운동 목표. 온보딩이
     /// 저장하던 두 값을 MY `건강 목표` 도 같은 열로 고친다(#1471).
     String? conditions,
-    String? goals,
     GoalUpdate? dailyCalories,
     GoalUpdate? dailySodiumMg,
     GoalUpdate? dailySugarG,
@@ -48,7 +47,6 @@ abstract class AccountRepository {
     num? heightCm,
     num? weightKg,
     String? conditions,
-    String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
     int? dailySugarG,
@@ -74,6 +72,5 @@ abstract class AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   });
 }
