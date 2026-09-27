@@ -175,7 +175,7 @@ rationale 에는 어떤 회원 데이터가 이 구성에 영향을 줬는지(�
 민감한 건강 정보를 그대로 옮기지 말고 운동 구성만 짧게 적으세요.
 
 member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르게 하세요.
-- "template": 개인 데이터를 분석한 것처럼 표현하지 마세요. member_goal/goal
+- "template": 개인 데이터를 분석한 것처럼 표현하지 마세요. goal
   기준의 일반적인 추천이며, rationale 에 그 사실을 명시하세요.
 - "learning": frequent_exercises 가 있으면 최대한 유지하고 부족한 부분만 보완하세요.
   아직 반복 패턴이라 부르기엔 이르다는 점을 rationale 에 남기세요.
@@ -432,7 +432,6 @@ def build_member_analysis(
     return RoutineOptionAnalysisOut(
         # 코칭 목표는 회원이 고른 건강 목표다(#1818).
         goal=health_focus.focus_label(profile.conditions if profile is not None else None),
-        member_goal=profile.goals if profile is not None else "",
         conditions=profile.conditions if profile is not None else "",
         gender=profile.gender if profile is not None else "",
         height_cm=profile.height_cm if profile is not None else None,

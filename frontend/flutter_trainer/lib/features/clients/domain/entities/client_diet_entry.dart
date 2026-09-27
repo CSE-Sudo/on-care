@@ -7,21 +7,34 @@ class ClientDietFood {
   /// Creates one food row.
   const ClientDietFood({
     required this.name,
+    this.amountG,
     this.calories = 0,
     this.sodiumMg = 0,
     this.sugarG = 0,
   });
 
-  /// `{name, calories, sodium_mg, sugar_g}` — 회원 앱 `DietFood` 와 같은 키다.
-  /// 두 앱이 같은 `foods_json` 을 읽으므로 키가 갈리면 한쪽만 비어 보인다.
+  /// `{name, amount_g, calories, sodium_mg, sugar_g}` — 회원 앱 `DietFood` 와
+  /// 같은 키다. 두 앱이 같은 `foods_json` 을 읽으므로 키가 갈리면 한쪽만 비어
+  /// 보인다.
   factory ClientDietFood.fromJson(Map<String, Object?> json) => ClientDietFood(
     name: (json['name'] as String?) ?? '',
+    amountG: switch ((json['amount_g'] as num?)?.toDouble()) {
+      // 0 이하는 양으로 읽지 않는다 — 없는 것과 같이 다룬다.
+      final double g when g > 0 => g,
+      _ => null,
+    },
     calories: (json['calories'] as num?)?.toInt() ?? 0,
     sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
     sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
   );
 
   final String name;
+
+  /// 회원이 먹은 양(g). 아래 영양이 **무엇을 재고 나온 값인가** 다 — 공공 DB 가
+  /// 100g 기준이라 저장 시 이 양으로 환산된다(#1876). 양을 못 얻은 음식과 이
+  /// 필드 이전 기록은 null 이고, 그때는 화면에 아무것도 적지 않는다(#1964).
+  final double? amountG;
+
   final int calories;
   final int sodiumMg;
   final double sugarG;
@@ -96,4 +109,7 @@ class ClientDietEntry {
   /// 이고 [photoUrl] 이 쓰인다 — 데모에는 회원이 올린 사진을 받아 올 백엔드가
   /// 없어 사진이 한 장도 뜨지 않았다(#819).
   final String? photoAsset;
+
+  /// 그릴 사진이 있는가 — 회원이 올린 사진이나 데모 번들 이미지.
+  bool get hasPhoto => photoUrl != null || photoAsset != null;
 }

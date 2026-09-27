@@ -560,7 +560,6 @@ def test_trainer_can_read_and_update_member_health_profile(client, db_session):
             "conditions": profile_before.conditions,
             "height_cm": profile_before.height_cm,
             "weight_kg": profile_before.weight_kg,
-            "goals": profile_before.goals,
             "weekly_workout_goal": profile_before.weekly_workout_goal,
             "weekly_exercise_minutes_goal": (
                 profile_before.weekly_exercise_minutes_goal
@@ -581,7 +580,6 @@ def test_trainer_can_read_and_update_member_health_profile(client, db_session):
                 "conditions": "고혈압",
                 "height_cm": 164.5,
                 "weight_kg": 57.2,
-                "goals": "근력 향상과 체지방 감량",
                 "weekly_workout_goal": 4,
                 "weekly_exercise_minutes_goal": 180,
                 "weekly_burn_goal": 1600,
@@ -594,7 +592,8 @@ def test_trainer_can_read_and_update_member_health_profile(client, db_session):
         assert body["conditions"] == "혈압 관리"
         assert body["height_cm"] == 164.5
         assert body["weight_kg"] == 57.2
-        assert body["goals"] == "근력 향상과 체지방 감량"
+        # 자유 서술 회원 목표는 더 싣지 않는다 — 목표는 건강 목표 칩이다(#2358).
+        assert "goals" not in body
         assert body["weekly_workout_goal"] == 4
 
         fetched = client.get(url, headers=_auth(token))

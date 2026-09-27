@@ -124,7 +124,14 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
 
         return _Frame(
           // 활성 수는 적지 않는다 — 활성·휴면은 목록에서 없앴다(#2204).
-          subtitle: l.clientsMemberCount(all.length),
+          //
+          // 걸러져 있으면 전체 중 보이는 수를 적는다. 정렬 기본값이 `관리
+          // 필요 우선` 이라 주의 회원 필터를 풀어도 첫 화면이 같고, 늘 전체
+          // 수만 적던 부제도 그대로여서 `×` 를 눌러도 아무 일이 없어
+          // 보였다(#2365).
+          subtitle: activeFilter != ClientFilter.all || view.filters.isNotEmpty
+              ? l.clientsMemberCountFiltered(list.length, all.length)
+              : l.clientsMemberCount(all.length),
           actions: <Widget>[
             if (canConnect)
               AppButton(

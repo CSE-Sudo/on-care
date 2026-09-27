@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel session'**
+  /// **'Cancel'**
   String get schedCancel;
 
   /// No description provided for @schedNoShow.
@@ -319,12 +319,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get actionRetry;
-
-  /// No description provided for @actionRefresh.
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh'**
-  String get actionRefresh;
 
   /// No description provided for @actionChange.
   ///
@@ -1058,6 +1052,12 @@ abstract class AppLocalizations {
   /// **'{total} members'**
   String clientsMemberCount(int total);
 
+  /// Roster subtitle while a dashboard preset or management filter narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} members'**
+  String clientsMemberCountFiltered(int shown, int total);
+
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
   /// In en, this message translates to:
@@ -1321,12 +1321,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
-
-  /// No description provided for @memberHealthGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Member goals'**
-  String get memberHealthGoals;
 
   /// No description provided for @memberHealthDietGoal.
   ///
@@ -1700,6 +1694,24 @@ abstract class AppLocalizations {
   /// **'No carbs/protein/fat recorded'**
   String get clientDietMacrosMissing;
 
+  /// No description provided for @clientDietTotalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Total calories'**
+  String get clientDietTotalCalories;
+
+  /// No description provided for @clientDietDayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Day total'**
+  String get clientDietDayTotal;
+
+  /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
+  ///
+  /// In en, this message translates to:
+  /// **'{name} {percent}%'**
+  String clientDietMacroShare(String name, int percent);
+
   /// No description provided for @metricCarbs.
   ///
   /// In en, this message translates to:
@@ -1730,17 +1742,29 @@ abstract class AppLocalizations {
   /// **'Dormant'**
   String get clientDormant;
 
+  /// No description provided for @clientDormantActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to mark active'**
+  String get clientDormantActivate;
+
+  /// No description provided for @clientSignalLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get clientSignalLess;
+
+  /// No description provided for @clientSignalMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String clientSignalMore(int count);
+
   /// No description provided for @clientStatusChangeFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t change the status. Please try again.'**
   String get clientStatusChangeFailed;
-
-  /// No description provided for @clientClosePanel.
-  ///
-  /// In en, this message translates to:
-  /// **'Close panel'**
-  String get clientClosePanel;
 
   /// No description provided for @chatTooLong.
   ///
@@ -2330,12 +2354,6 @@ abstract class AppLocalizations {
   /// **'{amount} remaining to the goal'**
   String dietAmountRemaining(String amount);
 
-  /// No description provided for @dietSodiumValue.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium {value}mg'**
-  String dietSodiumValue(int value);
-
   /// No description provided for @aiAnalysis.
   ///
   /// In en, this message translates to:
@@ -2810,41 +2828,11 @@ abstract class AppLocalizations {
   /// **'{amount} {unit} over goal'**
   String chartOverGoal(String amount, String unit);
 
-  /// No description provided for @reportsSendStateSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent'**
-  String get reportsSendStateSent;
-
-  /// No description provided for @reportsSendStateSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsSendStateSending;
-
-  /// No description provided for @reportsShare.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get reportsShare;
-
-  /// No description provided for @reportsShareSendTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to {name}'**
-  String reportsShareSendTo(String name);
-
-  /// No description provided for @reportsShareNeedsFeedback.
+  /// No description provided for @reportsSendNeedsFeedback.
   ///
   /// In en, this message translates to:
   /// **'Write feedback first to send it.'**
-  String get reportsShareNeedsFeedback;
-
-  /// No description provided for @reportsShareNoClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a member to see their report first.'**
-  String get reportsShareNoClient;
+  String get reportsSendNeedsFeedback;
 
   /// No description provided for @reportBodyGreeting.
   ///
@@ -2857,6 +2845,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You kept up well — {avg}% of your workouts done.'**
   String reportBodyCompletionGood(int avg);
+
+  /// No description provided for @reportBodyCompletionSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'You stayed steady — {avg}% of your workouts done.'**
+  String reportBodyCompletionSteady(int avg);
 
   /// No description provided for @reportBodyCompletionLow.
   ///
@@ -6110,41 +6104,11 @@ abstract class AppLocalizations {
   /// **'Undo completion'**
   String get dashTaskUncheckConfirm;
 
-  /// No description provided for @churnNoRecentWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'No workout logged in 7 days'**
-  String get churnNoRecentWorkout;
-
   /// No description provided for @churnNoRecentFeedback.
   ///
   /// In en, this message translates to:
   /// **'No trainer feedback in 7 days'**
   String get churnNoRecentFeedback;
-
-  /// No description provided for @churnConsecutiveCancel.
-  ///
-  /// In en, this message translates to:
-  /// **'2 consecutive cancellations/no-shows'**
-  String get churnConsecutiveCancel;
-
-  /// No description provided for @churnDietStopped.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet logging stopped'**
-  String get churnDietStopped;
-
-  /// No description provided for @churnGoalStagnant.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal metric stagnant long-term'**
-  String get churnGoalStagnant;
-
-  /// No description provided for @churnUnresolvedRequest.
-  ///
-  /// In en, this message translates to:
-  /// **'Unanswered message'**
-  String get churnUnresolvedRequest;
 
   /// No description provided for @navMessages.
   ///
@@ -6248,16 +6212,10 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get clientQuickReport;
 
-  /// No description provided for @clientHealthGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Body profile & goals'**
-  String get clientHealthGoals;
-
   /// No description provided for @clientProfileSectionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Body, goals & memo'**
+  /// **'Body and goals'**
   String get clientProfileSectionTitle;
 
   /// No description provided for @clientTrainerMemo.
@@ -6265,6 +6223,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Memo'**
   String get clientTrainerMemo;
+
+  /// No description provided for @clientHealthUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get clientHealthUnset;
+
+  /// No description provided for @clientHealthTabBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Body'**
+  String get clientHealthTabBody;
+
+  /// No description provided for @clientHealthTabFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals'**
+  String get clientHealthTabFocus;
+
+  /// No description provided for @clientGoalPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Per day'**
+  String get clientGoalPerDay;
+
+  /// No description provided for @clientGoalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories'**
+  String get clientGoalCalories;
+
+  /// No description provided for @clientGoalSodium.
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium'**
+  String get clientGoalSodium;
+
+  /// No description provided for @clientGoalSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar'**
+  String get clientGoalSugar;
+
+  /// No description provided for @clientGoalCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs'**
+  String get clientGoalCarbs;
+
+  /// No description provided for @clientGoalProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein'**
+  String get clientGoalProtein;
+
+  /// No description provided for @clientGoalFat.
+  ///
+  /// In en, this message translates to:
+  /// **'Fat'**
+  String get clientGoalFat;
+
+  /// No description provided for @clientGoalBurnDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily burn'**
+  String get clientGoalBurnDaily;
+
+  /// No description provided for @clientGoalCardioWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly cardio'**
+  String get clientGoalCardioWeekly;
+
+  /// No description provided for @clientGoalStrengthWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly strength'**
+  String get clientGoalStrengthWeekly;
+
+  /// No description provided for @clientGoalStretchWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly stretching'**
+  String get clientGoalStretchWeekly;
+
+  /// No description provided for @clientBodyHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get clientBodyHeight;
+
+  /// No description provided for @clientBodyWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get clientBodyWeight;
+
+  /// No description provided for @clientUnitCm.
+  ///
+  /// In en, this message translates to:
+  /// **'cm'**
+  String get clientUnitCm;
+
+  /// No description provided for @clientGoalDefaultHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Faded values are the defaults used until a goal is set. Empty fields use them.'**
+  String get clientGoalDefaultHint;
 
   /// No description provided for @clientTrainerMemoHint.
   ///
@@ -7126,89 +7192,11 @@ abstract class AppLocalizations {
   /// **'Available after the report summary API is connected. No summary is generated now.'**
   String get reportsAiUnavailable;
 
-  /// No description provided for @reportsPdfLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Export PDF'**
-  String get reportsPdfLabel;
-
-  /// No description provided for @reportsPdfGenerating.
-  ///
-  /// In en, this message translates to:
-  /// **'Generating PDF…'**
-  String get reportsPdfGenerating;
-
   /// No description provided for @reportsPdfGenerationFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t generate the PDF. Please try again.'**
   String get reportsPdfGenerationFailed;
-
-  /// No description provided for @reportsPdfReady.
-  ///
-  /// In en, this message translates to:
-  /// **'{name}\'s weekly report is ready.'**
-  String reportsPdfReady(String name);
-
-  /// No description provided for @reportsPdfSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get reportsPdfSending;
-
-  /// No description provided for @reportsPdfSendToClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to member'**
-  String get reportsPdfSendToClient;
-
-  /// No description provided for @reportsPdfSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save PDF'**
-  String get reportsPdfSave;
-
-  /// No description provided for @reportsPdfPrint.
-  ///
-  /// In en, this message translates to:
-  /// **'Print'**
-  String get reportsPdfPrint;
-
-  /// No description provided for @reportsPdfClose.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get reportsPdfClose;
-
-  /// No description provided for @reportsPdfActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete the action. Please try again.'**
-  String get reportsPdfActionFailed;
-
-  /// No description provided for @reportsPdfSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent the PDF to {name}.'**
-  String reportsPdfSent(String name);
-
-  /// No description provided for @reportsPdfSaveStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Started saving the PDF.'**
-  String get reportsPdfSaveStarted;
-
-  /// No description provided for @reportsPdfPrintOpened.
-  ///
-  /// In en, this message translates to:
-  /// **'Opened the print dialog.'**
-  String get reportsPdfPrintOpened;
-
-  /// No description provided for @reportsPdfMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Here\'s your weekly report.'**
-  String get reportsPdfMessage;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///
@@ -7534,6 +7522,12 @@ abstract class AppLocalizations {
   /// **'{count}'**
   String reportsCountPeople(int count);
 
+  /// No description provided for @reportsSortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get reportsSortLabel;
+
   /// No description provided for @reportsSortPriority.
   ///
   /// In en, this message translates to:
@@ -7543,14 +7537,26 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSortName.
   ///
   /// In en, this message translates to:
-  /// **'By name'**
+  /// **'Name A–Z'**
   String get reportsSortName;
+
+  /// No description provided for @reportsSortNameDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z–A'**
+  String get reportsSortNameDescending;
 
   /// No description provided for @reportsSendProgress.
   ///
   /// In en, this message translates to:
   /// **'{done} / {total} sent'**
   String reportsSendProgress(int done, int total);
+
+  /// No description provided for @reportsSendPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String reportsSendPercent(int percent);
 
   /// No description provided for @reportsQueueAllSent.
   ///
@@ -7678,6 +7684,78 @@ abstract class AppLocalizations {
   /// **'Rewrite from this'**
   String get reportsSentRewrite;
 
+  /// No description provided for @reportsHistoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Past reports'**
+  String get reportsHistoryButton;
+
+  /// No description provided for @reportsViewSent.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get reportsViewSent;
+
+  /// No description provided for @reportsHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s past reports'**
+  String reportsHistoryTitle(String name);
+
+  /// No description provided for @reportsHistoryBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Past reports'**
+  String get reportsHistoryBack;
+
+  /// No description provided for @reportsHistoryUnsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent'**
+  String get reportsHistoryUnsent;
+
+  /// No description provided for @reportsHistoryThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get reportsHistoryThisWeek;
+
+  /// No description provided for @reportsHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports sent yet'**
+  String get reportsHistoryEmpty;
+
+  /// No description provided for @reportsHistoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load past reports'**
+  String get reportsHistoryLoadFailed;
+
+  /// No description provided for @reportsHistoryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get reportsHistoryMore;
+
+  /// No description provided for @reportsHistoryMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load more. Tap to try again.'**
+  String get reportsHistoryMoreFailed;
+
+  /// No description provided for @reportsHistorySendCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sent once} other{Sent {count} times}}'**
+  String reportsHistorySendCount(int count);
+
+  /// No description provided for @reportsHistoryPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get reportsHistoryPdf;
+
   /// No description provided for @reportsResendTitle.
   ///
   /// In en, this message translates to:
@@ -7720,11 +7798,11 @@ abstract class AppLocalizations {
   /// **'Review'**
   String get reportsStepReview;
 
-  /// No description provided for @reportsStepGoals.
+  /// No description provided for @reportsStepWrite.
   ///
   /// In en, this message translates to:
   /// **'Write'**
-  String get reportsStepGoals;
+  String get reportsStepWrite;
 
   /// No description provided for @reportsStepSend.
   ///
@@ -7750,47 +7828,77 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get reportsStepPrev;
 
-  /// No description provided for @reportsGoalsTitle.
+  /// No description provided for @reportsPreviewTitle.
   ///
   /// In en, this message translates to:
-  /// **'Next week\'s goals'**
-  String get reportsGoalsTitle;
+  /// **'What the member receives'**
+  String get reportsPreviewTitle;
 
-  /// No description provided for @reportsGoalsHint.
+  /// No description provided for @reportsPreviewRecipient.
   ///
   /// In en, this message translates to:
-  /// **'Pick what to work on together next week. The goals you pick go out with the message.'**
-  String get reportsGoalsHint;
+  /// **'To'**
+  String get reportsPreviewRecipient;
 
-  /// No description provided for @reportsGoalsNone.
+  /// No description provided for @reportsPreviewWeek.
   ///
   /// In en, this message translates to:
-  /// **'No goals picked yet'**
-  String get reportsGoalsNone;
+  /// **'Week'**
+  String get reportsPreviewWeek;
 
-  /// No description provided for @reportsGoalsPicked.
+  /// No description provided for @reportsPreviewDelivery.
   ///
   /// In en, this message translates to:
-  /// **'{count} picked'**
-  String reportsGoalsPicked(int count);
+  /// **'Sent to {name}\'s chat as a PDF file'**
+  String reportsPreviewDelivery(String name);
 
-  /// No description provided for @reportsGoalsOwnHint.
+  /// No description provided for @reportsPreviewEditHint.
   ///
   /// In en, this message translates to:
-  /// **'Write your own'**
-  String get reportsGoalsOwnHint;
+  /// **'To change the text, tap Back to return to the Write step'**
+  String get reportsPreviewEditHint;
 
-  /// No description provided for @reportsGoalsAdd.
+  /// No description provided for @reportsPreviewGenerating.
   ///
   /// In en, this message translates to:
-  /// **'Add'**
-  String get reportsGoalsAdd;
+  /// **'Preparing the preview'**
+  String get reportsPreviewGenerating;
 
-  /// No description provided for @reportsGoalsRemove.
+  /// No description provided for @reportsPreviewFailed.
   ///
   /// In en, this message translates to:
-  /// **'Remove {goal}'**
-  String reportsGoalsRemove(String goal);
+  /// **'Couldn\'t prepare the preview'**
+  String get reportsPreviewFailed;
+
+  /// No description provided for @reportsPreviewPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current} of {total}'**
+  String reportsPreviewPage(int current, int total);
+
+  /// No description provided for @reportsPreviewPrevPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get reportsPreviewPrevPage;
+
+  /// No description provided for @reportsPreviewNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get reportsPreviewNextPage;
+
+  /// No description provided for @reportsPreviewZoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get reportsPreviewZoomIn;
+
+  /// No description provided for @reportsPreviewZoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom out'**
+  String get reportsPreviewZoomOut;
 
   /// No description provided for @reportsGridPtSession.
   ///
@@ -7873,7 +7981,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroShortfall.
   ///
   /// In en, this message translates to:
-  /// **'{name} is well under target — worth picking as a goal for next week'**
+  /// **'{name} is well under target — worth raising in your feedback'**
   String reportsMacroShortfall(String name);
 
   /// No description provided for @reportsMemberFeedbackTitle.
@@ -7984,96 +8092,6 @@ abstract class AppLocalizations {
   /// **'Too hard'**
   String get reportsMemberFeedbackIntensityTooHard;
 
-  /// No description provided for @reportsLastGoalsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Last week\'s goals'**
-  String get reportsLastGoalsTitle;
-
-  /// No description provided for @reportsLastGoalsNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No goals were picked last week'**
-  String get reportsLastGoalsNone;
-
-  /// No description provided for @reportsLastGoalsNoneHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick next week\'s goals now and they come back here in the next report'**
-  String get reportsLastGoalsNoneHint;
-
-  /// No description provided for @reportsLastGoalsMetCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{met} / {total} met'**
-  String reportsLastGoalsMetCount(int met, int total);
-
-  /// No description provided for @reportsLastGoalsMet.
-  ///
-  /// In en, this message translates to:
-  /// **'Met'**
-  String get reportsLastGoalsMet;
-
-  /// No description provided for @reportsLastGoalsPartial.
-  ///
-  /// In en, this message translates to:
-  /// **'Partly'**
-  String get reportsLastGoalsPartial;
-
-  /// No description provided for @reportsLastGoalsMissed.
-  ///
-  /// In en, this message translates to:
-  /// **'Missed'**
-  String get reportsLastGoalsMissed;
-
-  /// No description provided for @reportsLastGoalsUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'Check yourself'**
-  String get reportsLastGoalsUnknown;
-
-  /// No description provided for @reportsLastGoalsEvidence.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} / {target}{unit}'**
-  String reportsLastGoalsEvidence(int done, int target, String unit);
-
-  /// No description provided for @reportsLastGoalsEvidenceLogged.
-  ///
-  /// In en, this message translates to:
-  /// **'Logged {days} days'**
-  String reportsLastGoalsEvidenceLogged(int days);
-
-  /// No description provided for @reportsLastGoalsEvidenceWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} / {total} personal workouts'**
-  String reportsLastGoalsEvidenceWorkout(int done, int total);
-
-  /// No description provided for @reportsLastGoalsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Judged from this week\'s records'**
-  String get reportsLastGoalsSubtitle;
-
-  /// Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'calorie,kcal,intake'**
-  String get reportsLastGoalsKeywordsCalories;
-
-  /// Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym'**
-  String get reportsLastGoalsKeywordsWorkout;
-
-  /// Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen.
-  ///
-  /// In en, this message translates to:
-  /// **'log,record,meal'**
-  String get reportsLastGoalsKeywordsLogged;
-
   /// No description provided for @reportsTrendUnavailable.
   ///
   /// In en, this message translates to:
@@ -8151,12 +8169,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly · submitted {date}'**
   String reportsMemberFeedbackMeta(String date);
-
-  /// No description provided for @reportsMacroShortfallEvidence.
-  ///
-  /// In en, this message translates to:
-  /// **'This is the evidence last week\'s goal “{goal}” was judged unmet'**
-  String reportsMacroShortfallEvidence(String goal);
 
   /// No description provided for @reportsTrendSubtitle.
   ///

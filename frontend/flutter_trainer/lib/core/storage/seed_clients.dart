@@ -660,7 +660,7 @@ const List<_Client> _clients = <_Client>[
     sodiumMg: 0,
     sugarG: 0,
     lastRoutine: '-',
-    // 기록이 하나도 없다. `isLowCompletion` 이 0 만 있는 주를 실패로 세지
+    // 기록이 하나도 없다. `recordedCompletionMean` 이 0 만 있는 주를 실패로 세지
     // 않는다는 규칙이 여기서 눈으로 확인된다 — 배지가 뜨면 안 된다.
     weekCompletion: <int>[0, 0, 0, 0, 0, 0, 0],
     sodiumWeek: <int>[],

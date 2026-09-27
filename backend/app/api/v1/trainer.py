@@ -64,6 +64,7 @@ from app.schemas.trainer_api import (
     ReportGoalsSaveRequest,
     ReportFeedbackOut,
     ReportFeedbackSaveRequest,
+    MemberReportSendsOut,
     ReportSendRequest, ReportSendsOut, ReportSummaryOut,
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineFeedbackRequest,
@@ -464,7 +465,6 @@ def _member_health_out(db: Session, member_id: str) -> MemberHealthProfileOut:
         member_name=member.name if member is not None else "",
         gender=profile.gender if profile is not None else "",
         conditions=profile.conditions if profile is not None else "",
-        goals=profile.goals if profile is not None else "",
         focus_changed_by=profile.focus_changed_by if profile is not None else None,
         focus_changed_at=profile.focus_changed_at if profile is not None else None,
         **values,
@@ -2213,6 +2213,44 @@ def trainer_report_sends(
     """
     return trainer_service.list_report_sends(
         db, trainer.id, _report_week(week_start or trainer_service.today_iso())
+    )
+
+
+#: 회원별 지난 리포트 한 쪽의 기본 주 수. 석 달 남짓 — 한 화면에 세우는 선이다.
+_REPORT_HISTORY_PAGE = 12
+
+
+@router.get(
+    "/trainer/clients/{member_id}/reports/sent",
+    response_model=MemberReportSendsOut,
+)
+def trainer_client_report_sends(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(
+        _REPORT_HISTORY_PAGE, ge=1, le=MAX_PAGE, description="한 번에 가져올 주 수"
+    ),
+    before: str | None = Query(
+        None, description="YYYY-MM-DD — 이 주보다 이전 주만(앞 쪽의 next_before)"
+    ),
+) -> MemberReportSendsOut:
+    """담당 회원에게 그동안 보낸 리포트, 주별로 최신 주부터. (#2393)
+
+    주 단위 조회(`/trainer/reports/sent`)는 한 주의 로스터 전체를 준다. 한
+    회원의 지난 리포트를 보려면 주마다 따로 물어야 해 이 경로를 따로 둔다.
+    해제·비담당 회원은 다른 회원 경로와 같은 404 다(#2281).
+    """
+    _require_client(db, trainer.id, member_id)
+    cursor: _date | None = None
+    if before is not None:
+        if not _is_ymd(before):
+            raise HTTPException(
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 합니다."
+            )
+        cursor = _date.fromisoformat(before)
+    return trainer_service.list_member_report_sends(
+        db, trainer.id, member_id, limit=limit, before=cursor
     )
 
 

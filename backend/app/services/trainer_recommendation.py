@@ -7,7 +7,7 @@
 
 여기서 쓰는 신호는 전부 이미 DB 에 있다 — 새로 수집하는 것이 없다.
 
-  회원   `HealthProfile.conditions`(온보딩 건강 목표) · `goals` ·
+  회원   `HealthProfile.conditions`(온보딩 건강 목표) ·
          가장 최근 `ConsultationRequest.exercise_goal` · `MemberGym`(내 헬스장)
   트레이너 `TrainerProfile.specialty` · `intro` · `career_years` ·
          `gym_id` → `places.lat/lng`
@@ -180,12 +180,8 @@ def collect_member_signals(db: Session, member_id: str) -> MemberSignals:
             need = _CONDITION_NEEDS.get(focus)
             if need is not None:
                 needs.append(need)
-        # goals 는 자유 서술이라 키워드가 그대로 들어 있으면 그 needs 로 본다.
-        goals_text = (profile.goals or "").strip()
-        if goals_text:
-            for need in (*_CONDITION_NEEDS.values(), *_EXERCISE_GOAL_NEEDS.values()):
-                if any(k in goals_text for k in need.keywords):
-                    needs.append(need)
+        # 예전에는 자유 서술 `goals` 에서도 키워드를 찾았다. 목표는 이제 위
+        # 건강 목표 칩 하나로 고르므로 읽지 않는다(#2358).
 
     # 가장 최근 상담 요청의 운동 목표 — 회원이 직접 고른 값이라 신뢰도가 높다.
     goal = db.scalar(

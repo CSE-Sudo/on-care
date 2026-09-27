@@ -256,7 +256,7 @@ void main() {
       expect(clients.where((c) => c.sugarG > 50), isNotEmpty, reason: '당류 경고');
       expect(clients.where((c) => !c.active), isNotEmpty, reason: '휴면');
 
-      // A brand-new client: no meals, no history. `isLowCompletion` must
+      // A brand-new client: no meals, no history. the low-completion check must
       // NOT flag an all-zero week, or day one reads as failure.
       final blank = clients.where((c) => recorded(c) == 0).first;
       expect(low(blank), isFalse);

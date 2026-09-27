@@ -75,7 +75,6 @@ def goal_fingerprint(profile: HealthProfile | None) -> str:
     else:
         raw = {
             "focus": sorted(health_focus.focus_in(profile.conditions)),
-            "goals": (profile.goals or "").strip(),
             "calories": profile.daily_calories,
             "protein": profile.daily_protein_g,
             "sodium": profile.daily_sodium_mg,
