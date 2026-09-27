@@ -27,7 +27,7 @@ from app.core import clock
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
-    MemberWeeklyFeedback,
+    MemberWeeklyFeedback, Notification,
     TrainerReportGoal, Place, RoutineHistory,
     TrainerClient, TrainerClientMemo, TrainerProfile, TrainerProgramDraft,
     TrainerFollowUpTask, TrainerReportFeedback,
@@ -861,6 +861,9 @@ def send_message(
             kind=notification_service.TRAINER_MESSAGE_KIND,
             title=f"{member_name or '회원'} 회원의 메시지",
             body=text,
+            # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
+            # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
+            subject_id=member_id,
         )
     if notify is not None and sender == "trainer":
         trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
@@ -917,6 +920,21 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
         )
         .values(read_at=datetime.now(timezone.utc))
     )
+    if reader == "trainer":
+        # 대화를 읽었으면 그 회원이 보낸 메시지 알림도 확인한 것이다(#2291).
+        # 전에는 채팅만 읽음이 되고 알림은 미읽음으로 남아, 이미 본 메시지가
+        # 알림 배지에 계속 걸려 있었다. 보낸 회원이 기록되지 않은 옛 알림은
+        # 누구의 것인지 알 수 없어 건드리지 않는다 — 알림함에서 직접 읽는다.
+        db.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == trainer_id,
+                Notification.category == notification_service.TRAINER_MESSAGE_KIND,
+                Notification.subject_id == member_id,
+                Notification.read.is_(False),
+            )
+            .values(read=True)
+        )
     db.commit()
     return result.rowcount or 0
 
@@ -4276,6 +4294,26 @@ def complete_session(
     return out
 
 
+def _release_cancelled_reservation(
+    db: Session, s: TrainerSchedule, *, source: str | None = None
+) -> bool:
+    """취소된 일정에 걸린 회원 예약을 풀고 좌석을 돌려준다(커밋 없음). (#2283)
+
+    취소 주체는 이번 취소의 [source] 를, 없으면 일정에 이미 적힌 값을 넘긴다 —
+    트레이너 화면에서 고른 `회원 사정`·`트레이너 사정` 이 예약 정리에서도 같은
+    뜻이다.
+
+    reservation_service 가 이 모듈을 가져다 쓰므로 순환을 피해 함수 안에서 부른다.
+    풀어 준 예약이 있으면 True.
+    """
+    from app.services import reservation_service
+
+    released = reservation_service.release_for_cancelled_schedule(
+        db, s.id, cancelled_by=source or s.cancellation_source or "trainer"
+    )
+    return bool(released)
+
+
 def cancel_session(
     db: Session,
     trainer_id: str,
@@ -4302,7 +4340,12 @@ def cancel_session(
     if s.status == SCHEDULE_GAP:
         raise ScheduleError("빈 슬롯은 취소할 수 없습니다.")
     if s.status == SCHEDULE_CANCELLED:
-        return _schedule_out(s)  # 멱등 no-op
+        # 멱등 no-op. 다만 예약 좌석을 풀지 않던 때(#2283 이전)에 취소된 일정은
+        # 예약이 남아 있을 수 있어, 다시 누르면 그 자리만 마저 풀어 준다.
+        if _release_cancelled_reservation(db, s):
+            db.commit()
+            db.refresh(s)
+        return _schedule_out(s)
     if s.status in SCHEDULE_TERMINAL:
         raise ScheduleConflict(
             "완료·노쇼로 마무리된 세션은 취소할 수 없습니다."
@@ -4329,6 +4372,11 @@ def cancel_session(
         db.commit()
         db.refresh(s)
         return _schedule_out(s)
+
+    # 회원 앱 예약으로 생긴 일정이면 예약도 함께 거두고 좌석을 돌려준다(#2283).
+    # 일정만 `취소` 로 두면 회원 앱에는 '예약됨' 으로 남고 그 시간은 다시 잡을 수
+    # 없다. 회원 취소와 같은 경로라 두 쪽 결과가 어긋나지 않는다.
+    _release_cancelled_reservation(db, s, source=source)
 
     # 회원에게는 취소 사실만 간다 — 내부 사유는 트레이너가 보는 기록이다.
     # 삭제 경로와 같은 알림을 쓴다: 회원 입장에서 달라진 것은 "그 시간의 PT 가

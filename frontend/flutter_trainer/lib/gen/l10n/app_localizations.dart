@@ -3512,6 +3512,42 @@ abstract class AppLocalizations {
   /// **'A sidebar badge appears when a member messages you'**
   String get myNotifNewMessageHint;
 
+  /// No description provided for @myLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get myLanguage;
+
+  /// No description provided for @myLanguageApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Display language'**
+  String get myLanguageApp;
+
+  /// No description provided for @myLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the language this browser shows the console in'**
+  String get myLanguageHint;
+
+  /// No description provided for @myLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Match browser'**
+  String get myLanguageSystem;
+
+  /// Korean, written in Korean so it can be found from either language.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get myLanguageKorean;
+
+  /// English, written in English so it can be found from either language.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get myLanguageEnglish;
+
   /// No description provided for @myAccount.
   ///
   /// In en, this message translates to:

@@ -1969,6 +1969,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'A sidebar badge appears when a member messages you';
 
   @override
+  String get myLanguage => 'Language';
+
+  @override
+  String get myLanguageApp => 'Display language';
+
+  @override
+  String get myLanguageHint =>
+      'Choose the language this browser shows the console in';
+
+  @override
+  String get myLanguageSystem => 'Match browser';
+
+  @override
+  String get myLanguageKorean => '한국어';
+
+  @override
+  String get myLanguageEnglish => 'English';
+
+  @override
   String get myAccount => 'Account';
 
   @override
