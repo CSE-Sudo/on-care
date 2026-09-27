@@ -1702,6 +1702,32 @@ class ReportGoalsSaveRequest(BaseModel):
     goals: list[str] = Field(default_factory=list, max_length=20)
 
 
+class ReportSendOut(BaseModel):
+    """한 회원에게 그 주 리포트가 나간 기록. (#2288)
+
+    따로 저장한 표가 아니라 리포트 전송이 남긴 채팅 메시지(`report_week_start`)
+    에서 읽는다 — 전송 기록을 두 곳에 두면 한쪽만 남는 날이 온다.
+    """
+    member_id: str
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 가장 최근에 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 가장 최근에 보낸 본문 — 회원이 받은 글 그대로다.
+    message: str
+    #: 회원이 가장 최근 전송을 열어 봤는가(`read_at`).
+    read: bool
+    #: 가장 최근 전송이 PDF 첨부였는가.
+    has_pdf: bool
+    #: 그 주 리포트를 몇 번 보냈는가. 다시 보낸 적이 있으면 2 이상이다.
+    send_count: int = Field(ge=1)
+
+
+class ReportSendsOut(BaseModel):
+    """그 주에 리포트가 나간 담당 회원들. 보낸 적이 없으면 빈 목록이다. (#2288)"""
+    week_start: str              # YYYY-MM-DD (월요일)
+    sends: list[ReportSendOut] = Field(default_factory=list)
+
+
 class TrainerPasswordChange(BaseModel):
     """비밀번호 변경 — 현재 비밀번호 확인 후 교체.
 

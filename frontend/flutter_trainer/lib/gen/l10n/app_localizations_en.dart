@@ -1206,9 +1206,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientFeedback => 'Member feedback';
 
   @override
-  String get clientFeedbackSession => 'Member feedback on this session';
-
-  @override
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
@@ -1216,9 +1213,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutKindAssignedRoutine => 'Assigned routine';
-
-  @override
-  String get trainerNote => 'Trainer\'s note';
 
   @override
   String get dietLoadFailed => 'Couldn\'t load meals';
@@ -1332,98 +1326,6 @@ class AppLocalizationsEn extends AppLocalizations {
       one: 'Your 1 logged day',
     );
     return '$_temp0 in the last $weeks weeks stayed within the sodium limit. Nice trend.';
-  }
-
-  @override
-  String get clientExerciseAdviceEmptyToday =>
-      'No workout logged today yet. How about a 10-minute walk to start?';
-
-  @override
-  String get clientExerciseAdviceEmptyWeek =>
-      'No workouts logged this week yet. How about a 10-minute walk to start?';
-
-  @override
-  String get clientExerciseAdviceEmptyAll =>
-      'Once you log more, we\'ll show how your workout volume and types are trending.';
-
-  @override
-  String clientExerciseAdviceToday(String type, int minutes, int calories) {
-    String _temp0 = intl.Intl.selectLogic(type, {
-      'cardio': 'cardio',
-      'strength': 'strength',
-      'stretching': 'stretching',
-      'other': 'other exercise',
-    });
-    return 'Today: $minutes min and $calories kcal, mostly $_temp0. Wrap up with a stretch.';
-  }
-
-  @override
-  String clientExerciseAdviceWeekOneDay(int minutes) {
-    return 'Just one day this week ($minutes min). One more session keeps the flow going.';
-  }
-
-  @override
-  String clientExerciseAdviceWeekSkew(
-    int days,
-    int minutes,
-    String top,
-    String missing,
-  ) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    String _temp1 = intl.Intl.selectLogic(top, {
-      'cardio': 'cardio',
-      'strength': 'strength',
-      'stretching': 'stretching',
-      'other': 'other exercise',
-    });
-    String _temp2 = intl.Intl.selectLogic(missing, {
-      'cardio': 'cardio',
-      'strength': 'strength',
-      'stretching': 'stretching',
-      'other': 'other exercise',
-    });
-    return 'This week\'s $_temp0 and $minutes min leaned on $_temp1. Mix in some $_temp2?';
-  }
-
-  @override
-  String clientExerciseAdviceWeekBalanced(int days, int minutes) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    return '$_temp0 and $minutes min this week, with a good mix of types.';
-  }
-
-  @override
-  String get clientExerciseAdviceAllUp =>
-      'You\'ve done more over the last 4 weeks than before. This approach suits you.';
-
-  @override
-  String get clientExerciseAdviceAllDown =>
-      'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.';
-
-  @override
-  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      weeks,
-      locale: localeName,
-      other: '$weeks weeks',
-      one: '1 week',
-    );
-    return '$_temp0 and $minutes min over $_temp1 — nice and steady.';
   }
 
   @override
@@ -3273,6 +3175,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifLoadFailed => 'Couldn\'t load notifications';
 
   @override
+  String get notifLoadMore => 'Load earlier notifications';
+
+  @override
+  String get notifLoadMoreFailed => 'Couldn\'t load earlier notifications';
+
+  @override
+  String get notifNoEarlier => 'No earlier notifications';
+
+  @override
   String get notifTplHealthGoalTitle => 'Member goals changed';
 
   @override
@@ -3518,25 +3429,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String searchDetailCompletion(int percent) {
     return '$percent% completion this week';
   }
-
-  @override
-  String get routineFeedbackTitle => 'Workout feedback';
-
-  @override
-  String get routineFeedbackHint => 'Write coaching feedback for the member';
-
-  @override
-  String get routineFeedbackWrite => 'Write feedback';
-
-  @override
-  String get routineFeedbackEdit => 'Edit feedback';
-
-  @override
-  String get routineFeedbackSaved => 'Feedback saved';
-
-  @override
-  String get routineFeedbackFailed =>
-      'Could not save feedback. Please try again';
 
   @override
   String get navOperationsGroup => 'Operations';
@@ -4597,6 +4489,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSentRewrite => 'Rewrite from this';
+
+  @override
+  String get reportsResendTitle => 'Already sent';
+
+  @override
+  String reportsResendBody(String name, String date, String time) {
+    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their chat.';
+  }
+
+  @override
+  String get reportsResendConfirm => 'Send again';
+
+  @override
+  String get reportsSendHistoryFailed =>
+      'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.';
 
   @override
   String get reportsSentBody => 'Message sent';

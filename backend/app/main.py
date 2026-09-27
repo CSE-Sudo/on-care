@@ -87,6 +87,9 @@ app.add_middleware(
     allow_credentials=not settings.is_cors_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
+    # 트레이너 알림함 다음 쪽 커서(#2293). 노출하지 않으면 브라우저가 헤더를
+    # 가려, 트레이너 웹은 늘 마지막 쪽이라고 읽는다.
+    expose_headers=[trainer.NEXT_BEFORE_HEADER, trainer.NEXT_BEFORE_ID_HEADER],
 )
 
 

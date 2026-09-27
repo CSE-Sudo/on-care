@@ -72,13 +72,14 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
   bool get supportsInbox => true;
 
   @override
-  Future<List<TrainerNotification>> fetch() async =>
-      const <TrainerNotification>[];
+  Future<TrainerNotificationPage> fetch({
+    TrainerNotificationCursor? before,
+  }) async => TrainerNotificationPage.empty;
 
   @override
-  Stream<List<TrainerNotification>> watch() {
+  Stream<TrainerNotificationPage> watch() {
     listCalls++;
-    return Stream<List<TrainerNotification>>.fromFuture(fetch());
+    return Stream<TrainerNotificationPage>.fromFuture(fetch());
   }
 
   @override
