@@ -2,10 +2,12 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_chat_repository.dart';
+import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
     show demoUnregisteredClientIdsSnapshot;
@@ -101,9 +103,10 @@ class DriftChatRepository implements ChatRepository {
               id: id,
               clientId: clientId,
               sender: 'trainer',
-              // 본문은 이모티콘을 그리지 못하는 자리(고객 목록의 마지막
-              // 메시지)가 읽는 글이다.
-              body: trimmed.isEmpty ? '(이모티콘)' : trimmed,
+              // 글 없는 이모티콘은 본문을 비워 둔다. 대화는 그림을 그리고,
+              // 고객 목록은 아래의 [ChatPreviewCode.emote] 로 로케일 문구를
+              // 그린다 — 본문에 한국어를 적어 두면 영어 화면에도 남는다.
+              body: trimmed,
               timeLabel: _timeLabel(now),
               createdAt: now,
               emoteId: Value<String?>(emoteId),
@@ -116,8 +119,8 @@ class DriftChatRepository implements ChatRepository {
         _db.trainerClients,
       )..where((t) => t.id.equals(clientId))).write(
         TrainerClientsCompanion(
-          lastMessage: Value(trimmed),
-          lastTime: const Value('방금'),
+          lastMessage: Value(trimmed.isEmpty ? ChatPreviewCode.emote : trimmed),
+          lastTime: const Value(ChatPreviewCode.justNow),
         ),
       );
     });
@@ -213,6 +216,7 @@ class DriftChatRepository implements ChatRepository {
 /// Provides the [ChatRepository]: the real Dio-backed source (thread shared
 /// with the member app) or the local drift source for demo / `USE_MOCK_API`.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
     return DriftChatRepository(ref.watch(appDatabaseProvider));

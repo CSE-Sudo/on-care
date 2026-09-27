@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -139,10 +140,14 @@ abstract interface class ScheduleRepository {
   ///
   /// 반복은 한 번에 여러 건을 만든다 — 요일이나 종료일을 잘못 골랐을 때 되돌리는
   /// 비용이 한 건씩 지우는 일이라, 그 전에 보여 주는 편이 싸다.
+  ///
+  /// [durationMinutes] 는 회차 하나의 길이다. 겹침은 시작 시각이 아니라 시간
+  /// 구간으로 본다(#2284).
   Future<RecurrencePreview> previewRecurring({
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
+    int durationMinutes = 0,
   });
 
   /// 반복 규칙대로 회차를 한 번에 만든다. (#870)
@@ -344,8 +349,58 @@ class DriftScheduleRepository implements ScheduleRepository {
     return rows.map(_toEntity).toList();
   }
 
+  /// [date] 에서 [time]부터 [durationMinutes] 동안과 겹치는 예정·완료 세션
+  /// (#2284). 취소·노쇼·공백은 그 시간을 차지하지 않는다. [excludeId] 는
+  /// 옮기는 세션 자신이다.
+  ///
+  /// 데모는 같은 날만 본다 — 자정을 넘기는 세션까지 따지는 것은 서버 몫이다.
+  Future<List<ScheduleSession>> _overlapping({
+    required String date,
+    required String time,
+    required int durationMinutes,
+    String? excludeId,
+  }) async {
+    final rows =
+        await (_db.select(_db.trainerScheduleEntries)..where(
+              (t) =>
+                  t.date.equals(date) &
+                  t.status.isIn(<String>[
+                    ScheduleStatus.upcoming,
+                    ScheduleStatus.done,
+                  ]),
+            ))
+            .get();
+    return <ScheduleSession>[
+      for (final row in rows)
+        if (row.id != excludeId &&
+            timeRangesOverlap(
+              row.time,
+              row.durationMinutes,
+              time,
+              durationMinutes,
+            ))
+          _toEntity(row),
+    ];
+  }
+
+  Future<void> _ensureNoOverlap({
+    required String date,
+    required String time,
+    required int durationMinutes,
+    String? excludeId,
+  }) async {
+    final conflicts = await _overlapping(
+      date: date,
+      time: time,
+      durationMinutes: durationMinutes,
+      excludeId: excludeId,
+    );
+    if (conflicts.isNotEmpty) throw ScheduleOverlapError(conflicts);
+  }
+
   /// Books a new session on [date]'s timeline (status 예정). The
-  /// non-`seed-` id survives the daily re-seed.
+  /// non-`seed-` id survives the daily re-seed. 다른 일정과 시간이 겹치면
+  /// [ScheduleOverlapError] 로 멈춘다(#2284).
   @override
   Future<void> addSession({
     required String date,
@@ -356,6 +411,11 @@ class DriftScheduleRepository implements ScheduleRepository {
     required int durationMinutes,
     String note = '',
   }) async {
+    await _ensureNoOverlap(
+      date: date,
+      time: time,
+      durationMinutes: durationMinutes,
+    );
     await _db
         .into(_db.trainerScheduleEntries)
         .insert(
@@ -374,7 +434,8 @@ class DriftScheduleRepository implements ScheduleRepository {
         );
   }
 
-  /// Edits a booked session's date/time/client/type/duration.
+  /// Edits a booked session's date/time/client/type/duration. 옮긴 시간이
+  /// 자기 말고 다른 일정과 겹치면 [ScheduleOverlapError] 로 멈춘다(#2284).
   @override
   Future<void> updateSession(
     String id, {
@@ -386,6 +447,17 @@ class DriftScheduleRepository implements ScheduleRepository {
     required int durationMinutes,
     required String note,
   }) async {
+    final current = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (current != null) {
+      await _ensureNoOverlap(
+        date: date ?? current.date,
+        time: time,
+        durationMinutes: durationMinutes,
+        excludeId: id,
+      );
+    }
     await (_db.update(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).write(
@@ -503,6 +575,16 @@ class DriftScheduleRepository implements ScheduleRepository {
         throw const ProgramAttachConflictError();
       } else if (candidates.isNotEmpty) {
         existing = candidates.single;
+      }
+
+      // 붙일 PT 가 없어 새로 잡는 자리 — 다른 회원 일정과도 겹치면 안 된다
+      // (#2284). 이 회원의 겹치는 PT 는 위에서 이미 후보로 걸렀다.
+      if (existing == null) {
+        await _ensureNoOverlap(
+          date: date,
+          time: time,
+          durationMinutes: durationMinutes,
+        );
       }
 
       final encodedProgram = jsonEncode(programToJson(program));
@@ -713,6 +795,7 @@ class DriftScheduleRepository implements ScheduleRepository {
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
+    int durationMinutes = 0,
   }) async {
     final dates = seriesOccurrences(start, rule);
     final wanted = dates.map(ymd).toSet();
@@ -721,16 +804,25 @@ class DriftScheduleRepository implements ScheduleRepository {
         await (_db.select(_db.trainerScheduleEntries)..where(
               (t) =>
                   t.date.isIn(wanted) &
-                  t.time.equals(time) &
                   t.status.isIn(<String>[
                     ScheduleStatus.upcoming,
                     ScheduleStatus.done,
                   ]),
             ))
             .get();
+    // 시작 시각이 같을 때만이 아니라 시간 구간이 겹치면 겹침이다(#2284).
     return (
       dates: dates,
-      conflicts: rows.map(_toEntity).toList(growable: false),
+      conflicts: <ScheduleSession>[
+        for (final row in rows)
+          if (timeRangesOverlap(
+            row.time,
+            row.durationMinutes,
+            time,
+            durationMinutes,
+          ))
+            _toEntity(row),
+      ],
     );
   }
 
@@ -750,6 +842,7 @@ class DriftScheduleRepository implements ScheduleRepository {
       start: start,
       time: time,
       rule: rule,
+      durationMinutes: durationMinutes,
     );
     if (preview.conflicts.isNotEmpty) {
       throw ScheduleSeriesConflictError(preview.conflicts);
@@ -855,6 +948,7 @@ ClientExerciseItem programHistoryItem(ProgramItem raw) {
 /// the FastAPI backend, or the local drift source for demo /
 /// `USE_MOCK_API=true`.
 final scheduleRepositoryProvider = Provider<ScheduleRepository>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
     return DriftScheduleRepository(ref.watch(appDatabaseProvider));
   }

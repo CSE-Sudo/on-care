@@ -9,6 +9,7 @@ import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
@@ -276,6 +277,13 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     setState(() => _reserving = slot.id);
     try {
       await ref.read(gymRepositoryProvider).reserve(slot.id);
+    } on SlotTimeTakenError {
+      // 트레이너가 그 시간을 다른 일정으로 쓰게 됐다(#2284). 다시 눌러도 같은
+      // 결과라 재시도 대신 다른 시간을 고르게 하고, 자리 목록을 새로 읽는다.
+      if (mounted) setState(() => _reserving = null);
+      ref.invalidate(trainerSlotsProvider(widget.trainer.id));
+      toast.show(l.exReserveTimeTaken, type: AppToastType.error);
+      return;
     } catch (_) {
       if (mounted) setState(() => _reserving = null);
       toast.show(l.exReserveFailed, type: AppToastType.error);

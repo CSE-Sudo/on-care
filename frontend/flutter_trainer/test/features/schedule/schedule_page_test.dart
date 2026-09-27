@@ -1098,7 +1098,9 @@ void main() {
         findsNothing,
       );
 
-      await enterTimeRange(tester, start: '16:30', end: '17:30');
+      // 17:00 에는 다음 수업이 있다 — 끝을 17:00 으로 두어 맞닿기만 하게
+      // 한다(겹치면 저장되지 않는다, #2284).
+      await enterTimeRange(tester, start: '16:30', end: '17:00');
       await tester.ensureVisible(find.text('저장'));
       await tester.pump();
       await tester.tap(find.text('저장'));
@@ -1108,7 +1110,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('week-detail')),
-          matching: find.text('16:30\u201317:30'),
+          matching: find.text('16:30\u201317:00'),
         ),
         findsOneWidget,
       );
@@ -1399,6 +1401,9 @@ void main() {
       await goTo(tester, AppRoutes.scheduleAt(date: ymd(tomorrow)));
       await tester.tap(find.text('새 일정'));
       await settle(tester);
+      // 기본 시각(10:00)에는 시드 수업이 있을 수 있다 — 겹치면 만들어지지
+      // 않으므로(#2284) 시드가 비워 둔 밤 시간으로 잡는다.
+      await enterTimeRange(tester, start: '23:00', end: '23:30');
       await tester.tap(find.text('추가'));
       await settle(tester);
 

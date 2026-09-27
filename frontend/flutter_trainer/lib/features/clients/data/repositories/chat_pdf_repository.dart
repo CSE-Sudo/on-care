@@ -6,6 +6,7 @@ import 'package:http_parser/http_parser.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 
 class TrainerChatPdfRepository {
@@ -22,9 +23,12 @@ class TrainerChatPdfRepository {
   }
 }
 
-final trainerChatPdfRepositoryProvider = Provider<TrainerChatPdfRepository>(
-  (ref) => TrainerChatPdfRepository(ref.watch(dioProvider)),
-);
+final trainerChatPdfRepositoryProvider = Provider<TrainerChatPdfRepository>((
+  ref,
+) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+  return TrainerChatPdfRepository(ref.watch(dioProvider));
+});
 
 /// 채팅에 붙이는 사진의 전송. (#921)
 ///
@@ -81,5 +85,8 @@ class TrainerChatImageRepository {
 }
 
 final trainerChatImageRepositoryProvider = Provider<TrainerChatImageRepository>(
-  (ref) => TrainerChatImageRepository(ref.watch(dioProvider)),
+  (ref) {
+    ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+    return TrainerChatImageRepository(ref.watch(dioProvider));
+  },
 );

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 
 /// 로스터를 관리 상태로 좁히는 필터. URL 의 `f` 프리셋과는 다른 축이다 —
@@ -63,7 +64,10 @@ class RosterView {
 /// 상태로 들고 있으면 목록에서 고객을 여는 순간 새 상태가 만들어져 방금 고른
 /// 정렬이 기본값으로 돌아갔다 — 주의 고객만 추려 차례로 확인하는 흐름이 첫
 /// 고객에서 끊겼다(#816).
-final rosterViewProvider = StateProvider<RosterView>(
-  (ref) => const RosterView(),
-  name: 'rosterView',
-);
+///
+/// 다만 계정을 넘어가지는 않는다 — 다른 트레이너가 로그인하면 기본값에서
+/// 시작한다(#2285).
+final rosterViewProvider = StateProvider<RosterView>((ref) {
+  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
+  return const RosterView();
+}, name: 'rosterView');
