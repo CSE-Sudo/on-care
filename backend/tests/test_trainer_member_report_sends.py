@@ -6,8 +6,12 @@
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
+
+import pytest
+from sqlalchemy import text
 
 from app.core.security import create_access_token
 from app.models.models import ChatMessage, TrainerClient, User
@@ -16,6 +20,27 @@ from app.services import trainer_service
 TRAINER_ID = "trainer-demo"
 PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF\n"
 BASE = datetime(2025, 9, 2, 1, 0, tzinfo=timezone.utc)
+
+# 이 파일이 만든 사용자. 회원은 데모 트레이너의 로스터에 `sort_order` 0 으로 끼어들어,
+# 남겨 두면 로스터 첫 줄을 쓰는 다른 파일의 테스트가 이 회원을 집는다.
+_created: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_created_users() -> Iterator[None]:
+    yield
+    if not _created:
+        return
+    from app.db.session import SessionLocal
+
+    db = SessionLocal()
+    try:
+        # 링크·메시지·알림은 `users.id` CASCADE 로 함께 지워진다.
+        db.execute(text("DELETE FROM users WHERE id = ANY(:ids)"), {"ids": list(_created)})
+        db.commit()
+    finally:
+        db.close()
+        _created.clear()
 
 
 def _h(token: str) -> dict[str, str]:
@@ -38,6 +63,7 @@ def _trainer_tok(client) -> str:
 def _member(db, *, trainer_id: str = TRAINER_ID, active: bool = True) -> str:
     """이 테스트만 쓰는 담당 회원. 다른 테스트의 전송과 섞이지 않게 새로 만든다."""
     member_id = f"history-member-{uuid4().hex[:10]}"
+    _created.append(member_id)
     db.add(
         User(
             id=member_id,
@@ -62,6 +88,7 @@ def _member(db, *, trainer_id: str = TRAINER_ID, active: bool = True) -> str:
 
 def _trainer(db) -> str:
     trainer_id = f"history-trainer-{uuid4().hex[:10]}"
+    _created.append(trainer_id)
     db.add(
         User(
             id=trainer_id,
