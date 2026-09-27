@@ -22,14 +22,11 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.models.models import HealthProfile, Notification, User
-from app.services import health_focus, notification_service
+from app.services import health_focus, notification_service, notification_templates
 from app.services.trainer_service import get_member_trainer_id
 
 CHANGED_BY_MEMBER = "member"
 CHANGED_BY_TRAINER = "trainer"
-
-#: 알림 본문에서 목표를 모두 비웠을 때 쓰는 말.
-NO_FOCUS_LABEL = "목표 없음"
 
 
 def focus_changed(before: str | None, after: str | None) -> bool:
@@ -38,10 +35,6 @@ def focus_changed(before: str | None, after: str | None) -> bool:
     주의사항 글은 보지 않고, 목표의 순서도 보지 않는다.
     """
     return set(health_focus.focus_in(before)) != set(health_focus.focus_in(after))
-
-
-def _label(conditions: str | None) -> str:
-    return health_focus.focus_label(conditions) or NO_FOCUS_LABEL
 
 
 def _stamp(profile: HealthProfile, changed_by: str, actor_id: str) -> None:
@@ -66,8 +59,11 @@ def record_member_change(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_HEALTH_GOAL_KIND,
-            title="회원 건강 목표 변경",
-            body=f"{member.name} 회원이 건강 목표를 바꿨어요: {_label(profile.conditions)}",
+            template=notification_templates.TRAINER_HEALTH_GOAL,
+            template_args={
+                "member_name": member.name,
+                "focus": health_focus.focus_in(profile.conditions),
+            },
             subject_id=member.id,
         )
     return True
@@ -93,11 +89,16 @@ def record_trainer_change(
         Notification(
             id=f"noti-{uuid.uuid4().hex[:12]}",
             user_id=member_id,
-            title="건강 목표가 바뀌었어요",
-            body=f"{trainer.name} 트레이너님이 건강 목표를 바꿨어요: {_label(profile.conditions)}",
             category=notification_service.MEMBER_HEALTH_GOALS,
             read=False,
             subject_id=member_id,
+            **notification_templates.columns(
+                notification_templates.MEMBER_HEALTH_GOAL,
+                {
+                    "trainer_name": trainer.name,
+                    "focus": health_focus.focus_in(profile.conditions),
+                },
+            ),
         )
     )
     return True

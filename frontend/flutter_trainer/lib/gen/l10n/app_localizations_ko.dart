@@ -1230,6 +1230,123 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAllAnalysis => 'AI 전체 분석';
 
   @override
+  String clientDietAdviceTodayOver(int over) {
+    return '나트륨이 목표치를 ${over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.';
+  }
+
+  @override
+  String get clientDietAdviceTodayBalanced =>
+      '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
+
+  @override
+  String get clientDietAdviceWeekEmpty =>
+      '이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.';
+
+  @override
+  String get clientDietAdviceAllEmpty => '기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.';
+
+  @override
+  String clientDietAdviceWeekManyOver(int days) {
+    return '이번 주 $days일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.';
+  }
+
+  @override
+  String get clientDietAdviceWeekWeekend =>
+      '주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.';
+
+  @override
+  String clientDietAdviceWeekSomeOver(int days) {
+    return '이번 주 $days일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.';
+  }
+
+  @override
+  String clientDietAdviceWeekAllUnder(int days) {
+    return '이번 주 $days일 모두 나트륨을 권장량 안에서 지켰어요!';
+  }
+
+  @override
+  String clientDietAdviceAllWeekend(int weeks) {
+    return '최근 $weeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
+  }
+
+  @override
+  String clientDietAdviceAllRatio(int weeks, int percent) {
+    return '최근 $weeks주 중 $percent%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
+  }
+
+  @override
+  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
+    return '최근 $weeks주 기록한 $days일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
+  }
+
+  @override
+  String get clientExerciseAdviceEmptyToday =>
+      '오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
+
+  @override
+  String get clientExerciseAdviceEmptyWeek =>
+      '이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?';
+
+  @override
+  String get clientExerciseAdviceEmptyAll => '기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.';
+
+  @override
+  String clientExerciseAdviceToday(String type, int minutes, int calories) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '오늘 $_temp0 위주로 $minutes분, ${calories}kcal 썼어요. 스트레칭으로 마무리해요.';
+  }
+
+  @override
+  String clientExerciseAdviceWeekOneDay(int minutes) {
+    return '이번 주는 $minutes분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.';
+  }
+
+  @override
+  String clientExerciseAdviceWeekSkew(
+    int days,
+    int minutes,
+    String top,
+    String missing,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': '유산소',
+      'strength': '근력',
+      'stretching': '스트레칭',
+      'other': '기타',
+    });
+    return '이번 주 $days일 $minutes분이 $_temp0에 몰렸어요. $_temp1도 섞어 볼까요?';
+  }
+
+  @override
+  String clientExerciseAdviceWeekBalanced(int days, int minutes) {
+    return '이번 주 $days일 $minutes분, 유형도 고르게 섞였어요.';
+  }
+
+  @override
+  String get clientExerciseAdviceAllUp =>
+      '최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.';
+
+  @override
+  String get clientExerciseAdviceAllDown =>
+      '최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.';
+
+  @override
+  String clientExerciseAdviceAllSteady(int weeks, int days, int minutes) {
+    return '$weeks주 동안 $days일 $minutes분, 기복 없이 이어가고 있어요.';
+  }
+
+  @override
   String get consultStatusRejected => '거절됨';
 
   @override
@@ -1567,6 +1684,64 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedCompleteFailed => '완료 처리에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get schedGroupProgram => 'PT 프로그램';
+
+  @override
+  String get schedGroupPersonal => '개인운동';
+
+  @override
+  String get schedRoutinesGoesOnComplete => '이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.';
+
+  @override
+  String get schedRoutinesNotSentYet => '아직 회원에게 가지 않았어요.';
+
+  @override
+  String get schedRoutinesSendTitle => '개인운동을 보낼까요?';
+
+  @override
+  String get schedEditRoutines => '개인운동 수정';
+
+  @override
+  String get schedEditRoutinesTitle => '개인운동 수정';
+
+  @override
+  String get schedEditRoutinesBody =>
+      'PT 프로그램과 함께 나갈 개인운동이에요. 아직 보내지 않아 지금은 마음껏 고칠 수 있어요.';
+
+  @override
+  String get schedRoutinesSendBody =>
+      '이 PT 는 열리지 않았지만 짜 둔 개인운동은 보낼 수 있어요. 보낸 날부터 7일 동안 회원 앱에 매일 떠요.';
+
+  @override
+  String get schedRoutinesSend => '개인운동 보내기';
+
+  @override
+  String get schedRoutinesSkip => '보내지 않음';
+
+  @override
+  String schedSendProgramWithRoutines(String date) {
+    return '$date PT 프로그램 · 개인운동 전송';
+  }
+
+  @override
+  String get schedRoutineSent => '전송됨';
+
+  @override
+  String get schedRoutinesSent => '개인운동을 회원에게 보냈어요.';
+
+  @override
+  String get schedRoutinesSendFailed => '개인운동을 보내지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get schedRoutinesSkipped => '보내지 않기로 했어요.';
+
+  @override
+  String get schedRoutinesUpdated => '개인운동을 고커어요.';
+
+  @override
+  String get schedRoutinesUpdateFailed => '개인운동을 고치지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String schedTimeRange(String start, String end) {
     return '$start–$end';
   }
@@ -1845,8 +2020,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String schedSentProgramTo(String name, String date) {
-    return '$name님에게 $date PT 프로그램 전송';
+  String schedSentProgramTo(String date) {
+    return '$date PT 프로그램 전송';
   }
 
   @override
@@ -2041,8 +2216,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPasswordChanged => '비밀번호를 변경했어요';
 
   @override
-  String myCareerYears(String career) {
-    return '경력 $career';
+  String myCareerYears(int years) {
+    return '경력 $years년';
   }
 
   @override
@@ -2427,6 +2602,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aiCustomRoutineName => 'AI 맞춤 추천안';
+
+  @override
   String get aiAnalysing => 'AI가 분석 중…';
 
   @override
@@ -2540,6 +2718,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalRationaleLabel => 'AI 추천 사유';
+
+  @override
+  String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
+
+  @override
+  String get routineEvidenceStrengthHeavy => '최근 근력운동 비중 높음';
+
+  @override
+  String get routineEvidenceBloodPressureGoal => '혈압 관리 목표';
+
+  @override
+  String get routineEvidenceLowCardio => '최근 유산소 비중 낮음';
+
+  @override
+  String get routineEvidenceRecentRecord => '최근 운동 기록 반영';
+
+  @override
+  String get aiPlanIntensityLow => '낮음';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -2664,7 +2860,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get progPersonalRoutinesTitle => '함께 보낼 개인운동';
+  String get progPersonalRoutinesTitle => '이 PT 에 붙일 개인운동';
 
   @override
   String progPersonalRoutinesCount(int count) {
@@ -2884,6 +3080,89 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifLoadFailed => '알림을 불러오지 못했어요';
+
+  @override
+  String get notifTplHealthGoalTitle => '회원 건강 목표 변경';
+
+  @override
+  String notifTplHealthGoalBody(String name, String goals) {
+    return '$name 회원이 건강 목표를 바꿨어요: $goals';
+  }
+
+  @override
+  String get notifTplNoGoals => '목표 없음';
+
+  @override
+  String get notifTplMemberRenamedTitle => '회원 이름 변경';
+
+  @override
+  String notifTplMemberRenamedBody(String oldName, String newName) {
+    return '$oldName 회원이 이름을 바꿨어요: $newName';
+  }
+
+  @override
+  String get notifTplMemberWithdrawnTitle => '회원 탈퇴';
+
+  @override
+  String notifTplMemberWithdrawnBody(String name) {
+    return '$name 회원이 탈퇴했어요.';
+  }
+
+  @override
+  String get notifTplMemberDisconnectedTitle => '담당 연결 해제';
+
+  @override
+  String notifTplMemberDisconnectedBody(String name) {
+    return '$name 회원이 담당 연결을 끊었어요.';
+  }
+
+  @override
+  String get notifTplConsultRequestedTitle => '새 상담 요청이 도착했어요';
+
+  @override
+  String get notifTplConsultCancelledTitle => '상담 요청이 취소됐어요';
+
+  @override
+  String get notifTplInviteAcceptedTitle => '담당 요청이 수락되었어요';
+
+  @override
+  String notifTplInviteAcceptedBody(String name) {
+    return '$name 회원이 담당으로 연결되었어요.';
+  }
+
+  @override
+  String get notifTplInviteRejectedTitle => '담당 요청이 거절되었어요';
+
+  @override
+  String notifTplInviteRejectedBody(String name) {
+    return '$name 회원이 담당 요청을 거절했어요.';
+  }
+
+  @override
+  String get notifTplReservationBookedTitle => '새 예약이 들어왔어요';
+
+  @override
+  String get notifTplReservationCancelledTitle => '예약이 취소되었습니다';
+
+  @override
+  String notifTplMemberWithDetail(String name, String detail) {
+    return '$name 회원 · $detail';
+  }
+
+  @override
+  String notifTplMemberOnly(String name) {
+    return '$name 회원';
+  }
+
+  @override
+  String notifTplWhen(String month, String day, String time) {
+    return '$month월 $day일 $time';
+  }
+
+  @override
+  String notifTplMemberMessageTitle(String name) {
+    return '$name 회원의 메시지';
+  }
 
   @override
   String get notifAllRead => '모두 확인했어요';

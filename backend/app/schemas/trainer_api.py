@@ -593,6 +593,10 @@ class RoutineOut(BaseModel):
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
     schedule_id: str | None = None
+    #: PT 일정에 붙여만 두고 **아직 회원에게 보내지 않았는가**(#2224). 일정
+    #: 상세가 보낸 것과 보낼 것을 같은 목록에서 가르는 데 쓴다. 회원 앱이 보는
+    #: 배정은 모두 이미 보낸 것이라 언제나 거짓이다.
+    pending_send: bool = False
     #: 어떤 전송에 속한 개인운동인가(#2225). 이 칸이 생기기 전 배정은 비어 있다.
     delivery_kind: RoutineDeliveryKind | None = None
     #: 전송에 붙인 회원에게 한마디. 선택 입력이라 보통 빈 문자열이다(#2223).
@@ -845,6 +849,31 @@ class PersonalRoutineItem(BaseModel):
 #: 값이다(#2223) — `개인운동만` 은 운동 하나가 세션 하나가 되므로, 두 경로에
 #: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
+
+
+class ScheduleRoutineUpdateRequest(BaseModel):
+    """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
+
+    비울 수 없다: 개인운동은 PT 마다 최소 한 개라는 규칙(#2223)이 여기서도
+    같다.
+    """
+
+    personal_routines: list[PersonalRoutineItem] = Field(
+        min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+
+
+class ScheduleRoutineSendRequest(BaseModel):
+    """마무리된 PT 의 개인운동을 보낸다 — 고쳐서 보낼 수도 있다. (#2224)
+
+    [personal_routines] 를 비우면 붙어 있던 그대로 보낸다. 주면 그 내용으로
+    갈아 끼운 뒤 보낸다 — 취소된 PT 에는 프로그램 만들기로 다시 붙일 수 없어
+    (`예정` 세션만 찾는다) 고치는 자리가 이 요청뿐이다.
+    """
+
+    personal_routines: list[PersonalRoutineItem] | None = Field(
+        default=None, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
 
 class ProgramAssignRequest(BaseModel):
@@ -1733,6 +1762,10 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
     #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
     subject_id: str | None = None
+    #: 문장 틀 코드와 인자(#2302). 트레이너 웹이 이 둘로 ARB 문장을 조립한다. 틀이
+    #: 생기기 전의 알림은 둘 다 없고, 그때는 `title`·`body` 를 그대로 쓴다.
+    template: str | None = None
+    args: dict[str, Any] | None = None
     #: 알림이 가리키는 날짜(`YYYY-MM-DD`) — 예약·상담 알림이 스케줄을 그 날짜로
     #: 여는 데 쓴다(#2292). 옛 알림에는 없다.
     target_date: str | None = None

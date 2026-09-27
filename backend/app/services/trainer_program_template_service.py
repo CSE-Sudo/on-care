@@ -9,6 +9,10 @@
 읽을 때 만들어지는 값이고(`id` 가 `starter:` 로 시작한다), 고치거나 지울 수 없다 —
 편집하면 그 트레이너의 첫 템플릿으로 **새로 저장된다.** 그래서 "지웠는데 되살아
 난다" 가 생기지 않는다: 하나라도 자기 것이 생기는 순간 시작 구성은 사라진다.
+
+시작 구성은 저장된 값이 아니라 읽을 때 만드는 값이라 **요청 언어로 만든다**
+(#2301). 트레이너가 저장한 템플릿은 트레이너가 쓴 글이라 옮기지 않는다 — 영어
+화면에서 시작 구성을 고쳐 저장하면 영어 템플릿으로 남는다.
 """
 from __future__ import annotations
 
@@ -19,6 +23,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.locale import Locale, current_locale
 from app.models.models import TrainerProgramTemplate
 from app.schemas.trainer_api import (
     ProgramTemplateExercise,
@@ -62,6 +67,38 @@ _STARTERS: tuple[tuple[str, str, tuple[tuple[str, int, str], ...]], ...] = (
             ("레그프레스", 15, "근력"),
             ("루마니안 데드리프트", 15, "근력"),
             ("카프 레이즈", 10, "근력"),
+        ),
+    ),
+)
+
+#: [_STARTERS] 의 영어판(#2301). 순서·시간·유형은 같고 이름·목표만 다르다 —
+#: 같은 `starter:N` 이 언어마다 다른 운동이 되면 안 된다.
+_STARTERS_EN: tuple[tuple[str, str, tuple[tuple[str, int, str], ...]], ...] = (
+    (
+        "Blood pressure basics",
+        "Blood pressure care · Beginner",
+        (
+            ("Warm-up stretch", 10, "스트레칭"),
+            ("Low-intensity walk", 20, "유산소"),
+            ("Breathing & relaxation", 10, "스트레칭"),
+        ),
+    ),
+    (
+        "Weight-loss circuit",
+        "Weight loss · Intermediate",
+        (
+            ("Interval cardio", 20, "유산소"),
+            ("Full-body circuit", 20, "근력"),
+            ("Cool-down stretch", 10, "스트레칭"),
+        ),
+    ),
+    (
+        "Lower-body strength A",
+        "Strength building · Intermediate",
+        (
+            ("Leg press", 15, "근력"),
+            ("Romanian deadlift", 15, "근력"),
+            ("Calf raise", 10, "근력"),
         ),
     ),
 )
@@ -113,8 +150,12 @@ def _to_out(row: TrainerProgramTemplate) -> TrainerProgramTemplateOut:
     )
 
 
-def starter_templates() -> list[TrainerProgramTemplateOut]:
-    """저장된 것이 없을 때 보여 주는 읽기 전용 시작 구성."""
+def starter_templates(locale: Locale | None = None) -> list[TrainerProgramTemplateOut]:
+    """저장된 것이 없을 때 보여 주는 읽기 전용 시작 구성.
+
+    [locale] 을 생략하면 요청 언어다(#2301).
+    """
+    starters = _STARTERS_EN if (locale or current_locale()) == "en" else _STARTERS
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
     return [
         TrainerProgramTemplateOut(
@@ -129,7 +170,7 @@ def starter_templates() -> list[TrainerProgramTemplateOut]:
             # 고정값을 준다 — 매 요청 달라지면 화면이 이유 없이 다시 그려진다.
             updated_at=stamp,
         )
-        for index, (name, goal, items) in enumerate(_STARTERS)
+        for index, (name, goal, items) in enumerate(starters)
     ]
 
 

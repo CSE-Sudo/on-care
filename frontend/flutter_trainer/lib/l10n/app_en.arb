@@ -779,6 +779,180 @@
   "aiAnalysis": "AI analysis",
   "aiPeriodAnalysis": "AI period analysis",
   "aiAllAnalysis": "AI all-time analysis",
+  "clientDietAdviceTodayOver": "Sodium is {over}mg over the target. Adding cardio to today's program would help.",
+  "@clientDietAdviceTodayOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "over": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceTodayBalanced": "Today's meals are well balanced. Keep the current program.",
+  "@clientDietAdviceTodayBalanced": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekEmpty": "No meals logged this week yet. Even one meal shows the trend.",
+  "@clientDietAdviceWeekEmpty": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceAllEmpty": "Once you log more, we'll show how your sodium and calories are trending.",
+  "@clientDietAdviceAllEmpty": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekManyOver": "Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.",
+  "@clientDietAdviceWeekManyOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceWeekWeekend": "Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.",
+  "@clientDietAdviceWeekWeekend": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientDietAdviceWeekSomeOver": "Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.",
+  "@clientDietAdviceWeekSomeOver": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceWeekAllUnder": "You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!",
+  "@clientDietAdviceWeekAllUnder": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllWeekend": "Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.",
+  "@clientDietAdviceAllWeekend": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllRatio": "{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.",
+  "@clientDietAdviceAllRatio": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAdviceAllMostlyUnder": "{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
+  "@clientDietAdviceAllMostlyUnder": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",
+  "@clientExerciseAdviceEmptyToday": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceEmptyWeek": "No workouts logged this week yet. How about a 10-minute walk to start?",
+  "@clientExerciseAdviceEmptyWeek": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceEmptyAll": "Once you log more, we'll show how your workout volume and types are trending.",
+  "@clientExerciseAdviceEmptyAll": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceToday": "Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.",
+  "@clientExerciseAdviceToday": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "calories": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
+  "@clientExerciseAdviceWeekOneDay": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceWeekSkew": "This week's {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?",
+  "@clientExerciseAdviceWeekSkew": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "top": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "String"
+      }
+    }
+  },
+  "clientExerciseAdviceWeekBalanced": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.",
+  "@clientExerciseAdviceWeekBalanced": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseAdviceAllUp": "You've done more over the last 4 weeks than before. This approach suits you.",
+  "@clientExerciseAdviceAllUp": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceAllDown": "Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.",
+  "@clientExerciseAdviceAllDown": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다)."
+  },
+  "clientExerciseAdviceAllSteady": "{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.",
+  "@clientExerciseAdviceAllSteady": {
+    "description": "트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "consultStatusRejected": "Declined",
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",
@@ -1138,6 +1312,25 @@
     }
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
+  "schedGroupProgram": "PT program",
+  "schedGroupPersonal": "Personal exercise",
+  "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
+  "schedRoutinesNotSentYet": "Not sent to the member yet.",
+  "schedRoutinesSendTitle": "Send the personal exercise?",
+  "schedEditRoutines": "Edit personal exercise",
+  "schedEditRoutinesTitle": "Edit personal exercise",
+  "schedEditRoutinesBody": "This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.",
+  "schedRoutinesSendBody": "This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.",
+  "schedRoutinesSend": "Send personal exercise",
+  "schedRoutinesSkip": "Don't send",
+  "schedSendProgramWithRoutines": "Send the {date} PT program and personal exercise",
+  "@schedSendProgramWithRoutines": {"placeholders": {"date": {"type": "String"}}},
+  "schedRoutineSent": "Sent",
+  "schedRoutinesSent": "Sent the personal exercise to the member.",
+  "schedRoutinesSendFailed": "Couldn't send the personal exercise. Please try again.",
+  "schedRoutinesSkipped": "Marked as not sent.",
+  "schedRoutinesUpdated": "Personal exercise updated.",
+  "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
   "schedTimeRange": "{start}–{end}",
   "@schedTimeRange": {
     "placeholders": {
@@ -1314,12 +1507,9 @@
       }
     }
   },
-  "schedSentProgramTo": "Sent {name} the PT program for {date}",
+  "schedSentProgramTo": "Send the {date} PT program",
   "@schedSentProgramTo": {
     "placeholders": {
-      "name": {
-        "type": "String"
-      },
       "date": {
         "type": "String"
       }
@@ -1394,11 +1584,12 @@
   "myVersion": "Version",
   "myContact": "Contact",
   "myPasswordChanged": "Password changed",
-  "myCareerYears": "{career} experience",
+  "myCareerYears": "{years, plural, =1{1 year} other{{years} years}} of experience",
   "@myCareerYears": {
+    "description": "Career tag on the trainer profile. The value is stored as a number of years.",
     "placeholders": {
-      "career": {
-        "type": "String"
+      "years": {
+        "type": "int"
       }
     }
   },
@@ -1638,6 +1829,10 @@
       }
     }
   },
+  "aiCustomRoutineName": "AI custom suggestion",
+  "@aiCustomRoutineName": {
+    "description": "Routine name sent when the trainer leaves the name blank (#2301)."
+  },
   "aiAnalysing": "AI is analysing…",
   "aiGenerateCandidates": "Generate candidates",
   "aiReviewDone": "Reviewed",
@@ -1708,6 +1903,30 @@
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
+  "routineEvidenceRecentPtFeedback": "Recent PT feedback",
+  "@routineEvidenceRecentPtFeedback": {
+    "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
+  },
+  "routineEvidenceStrengthHeavy": "Mostly strength lately",
+  "@routineEvidenceStrengthHeavy": {
+    "description": "Evidence chip; server code strength_heavy (#2301)."
+  },
+  "routineEvidenceBloodPressureGoal": "Blood pressure goal",
+  "@routineEvidenceBloodPressureGoal": {
+    "description": "Evidence chip; server code blood_pressure_goal (#2301)."
+  },
+  "routineEvidenceLowCardio": "Little cardio lately",
+  "@routineEvidenceLowCardio": {
+    "description": "Evidence chip; server code low_cardio (#2301)."
+  },
+  "routineEvidenceRecentRecord": "Recent workout log",
+  "@routineEvidenceRecentRecord": {
+    "description": "Evidence chip; server code recent_record (#2301)."
+  },
+  "aiPlanIntensityLow": "Low",
+  "@aiPlanIntensityLow": {
+    "description": "Intensity of an AI A/B plan whose contract value is 낮음 (#2301)."
+  },
   "aiPersonalStepFull": "You can set up to {count} personal exercises at once.",
   "@aiPersonalStepFull": {
     "placeholders": { "count": { "type": "int" } }
@@ -1765,7 +1984,7 @@
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }
   },
-  "progPersonalRoutinesTitle": "Personal exercise going with it",
+  "progPersonalRoutinesTitle": "Personal exercise for this PT",
   "progPersonalRoutinesCount": "{count} personal exercises going with it",
   "@progPersonalRoutinesCount": {
     "placeholders": {
@@ -1930,6 +2149,119 @@
   "notifReadAll": "Mark all read",
   "notifEmpty": "No notifications yet",
   "notifLoadFailed": "Couldn't load notifications",
+  "notifTplHealthGoalTitle": "Member goals changed",
+  "notifTplHealthGoalBody": "{name} changed their health goals: {goals}",
+  "@notifTplHealthGoalBody": {
+    "description": "goals is the member's health goals joined with ' · '.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "goals": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplNoGoals": "none",
+  "@notifTplNoGoals": {
+    "description": "Shown in place of the goal list when the member cleared every health goal."
+  },
+  "notifTplMemberRenamedTitle": "Member renamed",
+  "notifTplMemberRenamedBody": "{oldName} changed their name to {newName}.",
+  "@notifTplMemberRenamedBody": {
+    "placeholders": {
+      "oldName": {
+        "type": "String"
+      },
+      "newName": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberWithdrawnTitle": "Member account deleted",
+  "notifTplMemberWithdrawnBody": "{name} deleted their account.",
+  "@notifTplMemberWithdrawnBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberDisconnectedTitle": "Client disconnected",
+  "notifTplMemberDisconnectedBody": "{name} ended their connection with you.",
+  "@notifTplMemberDisconnectedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplConsultRequestedTitle": "New consultation request",
+  "notifTplConsultCancelledTitle": "Consultation request cancelled",
+  "notifTplInviteAcceptedTitle": "Coaching request accepted",
+  "notifTplInviteAcceptedBody": "{name} is now your client.",
+  "@notifTplInviteAcceptedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplInviteRejectedTitle": "Coaching request declined",
+  "notifTplInviteRejectedBody": "{name} declined your coaching request.",
+  "@notifTplInviteRejectedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplReservationBookedTitle": "New booking",
+  "notifTplReservationCancelledTitle": "Booking cancelled",
+  "notifTplMemberWithDetail": "{name} · {detail}",
+  "@notifTplMemberWithDetail": {
+    "description": "A member's name followed by a date or time, e.g. for a booking.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberOnly": "{name}",
+  "@notifTplMemberOnly": {
+    "description": "Just the member's name, used when a cancelled booking has no time.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWhen": "{month}/{day} {time}",
+  "@notifTplWhen": {
+    "description": "Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplMemberMessageTitle": "Message from {name}",
+  "@notifTplMemberMessageTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
   "notifUnreadCount": "{count} unread",
