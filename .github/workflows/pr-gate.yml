@@ -43,10 +43,13 @@ jobs:
           echo "이 검사는 브랜치 보호의 최신화 요구를 걸기 위한 앵커다(#807)."
 
       - name: Check out the PR head with full history
-        uses: actions/checkout@v4
+        # 다른 워크플로와 같이 검토한 커밋 SHA 로 고정하고, 토큰을 .git/config 에
+        # 남기지 않는다(#1554). 아래 `git fetch origin` 은 공개 저장소라 익명으로 된다.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Reject AI co-author trailers
         # 2026-08-25: 커밋 하나에 붙은 `Co-Authored-By: Claude …` 때문에 GitHub
