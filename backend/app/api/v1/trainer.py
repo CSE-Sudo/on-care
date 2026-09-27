@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.core.config import get_settings
+from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.core.rate_limit import limiter, rate_limit
 from app.core.security import hash_password, verify_password
@@ -101,6 +102,7 @@ from app.services import (
     trainer_program_template_service,
     diet_photo_service,
     notification_service,
+    notification_templates,
     trainer_report_summary_service,
     report_pdf_storage,
     trainer_routine_options_service,
@@ -2588,16 +2590,31 @@ def trainer_reject_consultation(
 # 계정을 403 으로 막는 **회원 전용** 경로다(역할 분리). 저장되는 행은 같은
 # `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없다.
 
-def _notification_out(row: Notification) -> TrainerNotificationOut:
-    return TrainerNotificationOut(
-        id=row.id,
+def _notification_out(row: Notification, locale: Locale) -> TrainerNotificationOut:
+    """트레이너 알림 한 건. 제목·본문은 요청 언어로 조립한다(#2302).
+
+    트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립하고, 모르는 틀일 때만
+    `title`·`body` 를 쓴다. 그 값도 요청 언어라, 새 틀을 아직 모르는 빌드도 알맞은
+    언어로 보인다. 한국어이거나 틀이 없는 옛 알림은 저장된 문장 그대로다.
+    """
+    title, body = notification_templates.localize(
         title=row.title,
         body=row.body,
+        template=row.template,
+        template_args=row.template_args,
+        locale=locale,
+    )
+    return TrainerNotificationOut(
+        id=row.id,
+        title=title,
+        body=body,
         category=row.category,
         read=row.read,
         created_at=row.created_at,
         time_ago=notification_service.time_ago(row.created_at),
         subject_id=row.subject_id,
+        template=row.template,
+        args=row.template_args,
     )
 
 
@@ -2605,6 +2622,7 @@ def _notification_out(row: Notification) -> TrainerNotificationOut:
 def trainer_notifications(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
 ) -> list[TrainerNotificationOut]:
     """트레이너가 받은 알림(최신순)."""
     rows = db.scalars(
@@ -2613,7 +2631,7 @@ def trainer_notifications(
         .order_by(Notification.created_at.desc())
         .limit(_NOTIFICATION_LIMIT)
     ).all()
-    return [_notification_out(row) for row in rows]
+    return [_notification_out(row, locale) for row in rows]
 
 
 @router.get("/trainer/notifications/unread-count", response_model=dict)

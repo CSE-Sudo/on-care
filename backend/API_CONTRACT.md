@@ -476,13 +476,35 @@ category: hospital|exercise|meal|medication|other
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id }]` (배열, 최신순, 기본 50건) |
+| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args }]` (배열, 최신순, 기본 50건) |
 | GET | `/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/notifications/{id}/read` | 단건 읽음 → `{ id, read: true }` |
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+
+#### 알림 문장의 언어 (#2302)
+
+알림은 만든 순간의 한국어 문장만 저장해 영어 화면에서도 한국어로 보였습니다. 이제 **문장 틀
+코드와 인자를 함께 저장하고, 읽을 때 요청 언어(`Accept-Language`)로 조립합니다.**
+회원 알림(`/notifications`)과 트레이너 알림(`/trainer/notifications`)이 같은 규칙입니다.
+
+- **저장**: `notifications.template`(틀 코드)·`template_args`(JSON 인자)와 함께, `title`·`body` 에는
+  예전과 **같은 한국어 문장**을 계속 적습니다 — 틀을 모르는 옛 앱과 푸시가 이 값을 씁니다.
+  인자에는 언어와 무관한 값(이름·날짜·수량·건강 목표 저장 값)만 담습니다. 회원·트레이너가
+  직접 쓴 글(메시지·반려 사유)은 번역하지 않고 저장된 `body` 를 그대로 씁니다.
+- **응답의 `title`·`body`**: 요청 언어로 조립한 문장입니다. 한국어(헤더 없음 포함)는 저장된
+  문장 **그대로**입니다 — 틀 문구를 나중에 다듬어도 받은 알림은 받은 순간의 문장으로 남습니다.
+  틀이 없는 옛 알림, 서버가 모르는 틀, 인자가 깨진 틀도 저장된 문장입니다(오류가 아닙니다).
+- **응답의 `template`·`args`**: 틀 코드와 인자(없으면 `null`). 트레이너 웹은 이 둘로 ARB 문장을
+  직접 조립하고, 모르는 틀일 때만 `title`·`body` 를 씁니다. 회원 앱은 `title`·`body` 를 그대로
+  그립니다.
+- **`action.label`** 도 요청 언어입니다(저장하지 않고 응답마다 만드는 말). 예: `운동 보기` / `View workouts`.
+- 틀 목록과 문장은 `app/services/notification_templates.py` 에 있습니다. 트레이너가 받는 틀
+  (`trainer_*`)은 트레이너 웹 `trainer_notification_text.dart` 가 같은 코드를 읽습니다.
+- 아직 틀로 옮기지 않은 알림(일정 등록·변경·취소, 포인트 쿠폰, 주간 챌린지)은 저장된 한국어
+  문장 그대로입니다.
 
 #### 담당 요청 알림 (#1802)
 
@@ -774,7 +796,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago }]` (최신순, 최대 100건) |
+| GET | `/trainer/notifications` | `[{ id, title, body, category, read, created_at, time_ago, subject_id, template, args }]` (최신순, 최대 100건) |
 | GET | `/trainer/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/trainer/notifications/{id}/read` | `{ id, read: true }` |
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
@@ -782,6 +804,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
 - `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174)
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
+- **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
 - 남의 알림 읽음 처리는 **404** 입니다.

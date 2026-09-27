@@ -21,6 +21,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    JSON,
     Integer,
     LargeBinary,
     String,
@@ -932,6 +933,12 @@ class Notification(Base):
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
     invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 문장 틀 코드와 그 인자(#2302). `title`·`body` 는 만든 순간의 한국어 문장이라
+    # 영어 화면에서도 한국어로 보였다. 틀과 인자를 함께 남기면 읽는 쪽이 자기
+    # 언어로 다시 조립한다(`notification_templates`). 틀이 생기기 전의 알림과
+    # 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
+    template: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    template_args: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

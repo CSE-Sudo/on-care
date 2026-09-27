@@ -11,7 +11,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,6 +24,7 @@ from app.models.models import (
     Notification,
     TrainerProfile,
 )
+from app.services import notification_templates
 
 #: 알림 종류 → 회원 설정 키. 키는 사용자 앱이 이미 쓰던 것 그대로다
 #: (`my_flows.dart` 의 `_notifItems`) — 앱이 로컬에 저장하던 값을 서버로 옮기는
@@ -143,14 +146,38 @@ def wants(db: Session, member_id: str, kind: str) -> bool:
         return True
 
 
+def texts(
+    *,
+    title: str | None,
+    body: str = "",
+    template: str | None = None,
+    template_args: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """알림 행의 문장 칸(`title`·`body`·`template`·`template_args`). (#2302)
+
+    틀을 주면 한국어 문장을 틀로 만든다 — 저장되는 `title`·`body` 는 틀이 생기기
+    전과 같은 문장이고, 틀과 인자는 읽는 쪽이 자기 언어로 다시 조립하는 데 쓴다
+    (`notification_templates`). [body] 는 틀의 본문이 사람이 쓴 글일 때 그 글이다.
+
+    틀 없이 문장만 주는 호출부도 그대로 받는다 — 아직 틀로 옮기지 않은 알림이다.
+    """
+    if template is not None:
+        return notification_templates.columns(template, template_args or {}, body=body)
+    if title is None:
+        raise ValueError("알림에는 제목이나 문장 틀이 있어야 합니다.")
+    return {"title": title, "body": body}
+
+
 def queue(
     db: Session,
     *,
     member_id: str,
     kind: str,
-    title: str,
+    title: str | None = None,
     body: str = "",
     category: str | None = None,
+    template: str | None = None,
+    template_args: Mapping[str, Any] | None = None,
 ) -> Notification | None:
     """알림을 세션에 **추가만** 한다(커밋하지 않는다). 꺼져 있으면 None.
 
@@ -165,16 +192,18 @@ def queue(
     [category] 는 **회원이 이 알림을 누르면 갈 곳**이다. `kind` 로는 정할 수 없어
     호출부가 밝힌다([_CATEGORY] 참고). 앱이 모르는 값을 받으면 목록에는 싣고 이동만
     하지 않으므로, 새 값을 더해도 기존 앱이 깨지지 않는다.
+
+    [template] 을 주면 [title] 대신 문장 틀로 한국어 제목·본문을 만들고 틀과
+    인자를 함께 남긴다(#2302, [texts] 참고).
     """
     if not wants(db, member_id, kind):
         return None
     notification = Notification(
         id=f"noti-{uuid.uuid4().hex[:12]}",
         user_id=member_id,
-        title=title,
-        body=body,
         category=category or _CATEGORY.get(kind, "system"),
         read=False,
+        **texts(title=title, body=body, template=template, template_args=template_args),
     )
     db.add(notification)
     return notification
@@ -284,9 +313,11 @@ def queue_for_trainer(
     *,
     trainer_id: str,
     kind: str,
-    title: str,
+    title: str | None = None,
     body: str = "",
     subject_id: str | None = None,
+    template: str | None = None,
+    template_args: Mapping[str, Any] | None = None,
 ) -> Notification | None:
     """트레이너에게 남기는 알림. 꺼져 있으면 None. **커밋하지 않는다**.
 
@@ -304,11 +335,10 @@ def queue_for_trainer(
     notification = Notification(
         id=f"noti-{uuid.uuid4().hex[:12]}",
         user_id=trainer_id,
-        title=title,
-        body=body,
         category=kind,
         read=False,
         subject_id=subject_id,
+        **texts(title=title, body=body, template=template, template_args=template_args),
     )
     db.add(notification)
     return notification
