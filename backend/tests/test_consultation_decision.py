@@ -680,7 +680,10 @@ def test_accept_links_the_gym_for_an_existing_client(client, db_session):
     ).delete(synchronize_session=False)
     db_session.commit()
 
-    second = _request_consultation(client, member_token, trainer_id=trainer.id)
+    # 첫 상담이 잡은 시간과 겹치지 않는 자리를 고른다 — 겹치면 승인이 409(#2284).
+    second = _request_consultation(
+        client, member_token, trainer_id=trainer.id, hours_ahead=72
+    )
     accepted = client.post(
         f"/v1/trainer/consultations/{second}/accept",
         headers=_auth(trainer_token),
@@ -727,7 +730,7 @@ def test_accept_reactivates_a_dormant_link(client, db_session):
     )
 
     second_request = _request_consultation(
-        client, member_token, trainer_id=trainer.id
+        client, member_token, trainer_id=trainer.id, hours_ahead=72
     )
     again = client.post(
         f"/v1/trainer/consultations/{second_request}/accept",

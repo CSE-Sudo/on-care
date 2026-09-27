@@ -59,9 +59,34 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// Selected client id; null falls back to the first in the roster.
   late String? _clientId = widget.clientId;
 
-  /// Monday of the week being reported. Starts on the week the caller
-  /// asked for, otherwise this week.
-  late DateTime _weekStart = weekStartOf(widget.weekStart ?? nowKst());
+  /// Monday of the week being reported.
+  ///
+  /// URL 의 `week` 가 원본이다(#2289). 리포트 탭은 다른 탭에 다녀와도 살아
+  /// 있어서, 여기서 한 번 정하고 끝내면 채팅의 리포트 카드가 다른 주를
+  /// 가리켜도 보던 주가 그대로 열린다 — [didUpdateWidget] 이 URL 을 다시
+  /// 읽고, 주를 옮기는 쪽은 URL 을 먼저 바꾼다.
+  late DateTime _weekStart = _weekFromUrl(widget.weekStart);
+
+  /// URL 이 가리키는 주의 월요일. 없으면 이번 주다.
+  ///
+  /// 아직 오지 않은 주는 이번 주로 당긴다 — 화면의 `다음 주` 화살표도 이번
+  /// 주에서 멈추니, 손으로 고친 URL 이 그 너머의 빈 리포트를 열 이유가 없다.
+  static DateTime _weekFromUrl(DateTime? requested) {
+    final DateTime current = weekStartOf(nowKst());
+    if (requested == null) return current;
+    final DateTime monday = weekStartOf(requested);
+    return monday.isAfter(current) ? current : monday;
+  }
+
+  /// URL 에 실을 주. 이번 주는 싣지 않는다 — 주소가 짧게 남고, 다음 주에
+  /// 다시 열었을 때도 `이번 주` 로 열린다.
+  DateTime? get _weekParam =>
+      _weekStart == weekStartOf(nowKst()) ? null : _weekStart;
+
+  /// 지금 보고 있는 주를 그대로 둔 채 [clientId] 의 편집기(null 이면
+  /// 작업대)로 가는 주소.
+  String _locationFor(String? clientId) =>
+      AppRoutes.reportFor(clientId, weekStart: _weekParam);
 
   /// Clients whose report was sent this session — keeps the button from
   /// being pressed twice in a row by accident.
@@ -220,26 +245,50 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _stage = 0;
       _maxStage = 0;
     }
+    // 살아 있는 탭에 다른 주를 가리키는 링크가 들어왔다(#2289). 화면이 주를
+    // 옮길 때는 URL 보다 상태를 먼저 바꾸므로 여기서 같은 값이 되어 다시
+    // 비우지 않는다.
+    final DateTime urlWeek = _weekFromUrl(widget.weekStart);
+    if (urlWeek != _weekStart) _enterWeek(urlWeek);
+  }
+
+  /// [week] 로 옮기고 앞 주에 매인 것을 비운다. `setState` 안이나
+  /// [didUpdateWidget] 에서 부른다.
+  void _enterWeek(DateTime week) {
+    _weekStart = week;
+    // A different week is a different report — allow sending again.
+    _sent.clear();
+    _stage = 0;
+    _maxStage = 0;
+    _sentViewFor = null;
+    _feedbackDraft = null;
+    _feedbackFor = null;
+    _feedbackBlank = false;
+  }
+
+  /// 주를 옮기고 URL 에 싣는다.
+  ///
+  /// 화살표를 누를 때마다 방문 기록이 쌓이면 뒤로 가기가 지나온 주를 하나씩
+  /// 되짚는다 — 기록은 남기지 않고 주소만 바꾼다([Router.neglect]).
+  /// 새로고침·주소 공유는 그 주로 열린다(#2289).
+  void _moveToWeek(DateTime week) {
+    if (week == _weekStart) return;
+    setState(() => _enterWeek(week));
+    Router.neglect(context, () => context.go(_locationFor(_clientId)));
   }
 
   void _selectClient(String id) {
     if (_clientId == id) return;
-    context.go(AppRoutes.reportFor(id));
+    // 회원을 바꿔도 보던 주는 그대로다 — 작업대에서 고른 주의 리포트를 쓰러
+    // 들어가는 것이다(#2289).
+    context.go(_locationFor(id));
   }
 
-  void _shiftWeek(int direction) {
-    setState(() {
-      _weekStart = _weekStart.add(Duration(days: 7 * direction));
-      // A different week is a different report — allow sending again.
-      _sent.clear();
-      _stage = 0;
-      _maxStage = 0;
-      _sentViewFor = null;
-      _feedbackDraft = null;
-      _feedbackFor = null;
-      _feedbackBlank = false;
-    });
-  }
+  /// 달력 날짜로 한 주씩 옮긴다. `Duration(days: 7)` 을 더하면 서머타임이
+  /// 있는 곳에서 자정이 한 시간 밀려 주가 어긋난다.
+  void _shiftWeek(int direction) => _moveToWeek(
+    DateTime(_weekStart.year, _weekStart.month, _weekStart.day + 7 * direction),
+  );
 
   /// 다음 주 목표 하나를 고르거나 뺀다.
   void _toggleGoal(WeeklyReport report, String goal) {
@@ -273,27 +322,18 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// `8월 3일 – 8월 9일` — 카드 제목 줄에 적는 지금 보고 있는 주.
   static String _weekRangeLabel(AppLocalizations l, DateTime weekStart) {
-    final DateTime weekEnd = weekStart.add(const Duration(days: 6));
+    final DateTime weekEnd = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day + 6,
+    );
     return l.dateRange(
       l.dateMonthDay(weekStart.month, weekStart.day),
       l.dateMonthDay(weekEnd.month, weekEnd.day),
     );
   }
 
-  void _goToCurrentWeek() {
-    final currentWeek = weekStartOf(nowKst());
-    if (_weekStart == currentWeek) return;
-    setState(() {
-      _weekStart = currentWeek;
-      _sent.clear();
-      _stage = 0;
-      _maxStage = 0;
-      _sentViewFor = null;
-      _feedbackDraft = null;
-      _feedbackFor = null;
-      _feedbackBlank = false;
-    });
-  }
+  void _goToCurrentWeek() => _moveToWeek(weekStartOf(nowKst()));
 
   /// 그 주에 저장된 초안. 아직 안 읽혔으면 null 이다 — 전송·PDF 처럼 지금
   /// 당장 값이 필요한 자리에서 쓴다. (#821)
@@ -404,7 +444,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _stage = 0;
       _maxStage = 0;
     });
-    context.go(AppRoutes.reports);
+    context.go(_locationFor(null));
     // 전송 확인은 하단 SnackBar가 아니라 상단 토스트로 뜬다 — 채팅으로
     // 바로 넘어갈 수 있는 동작 버튼을 붙이기 위해서다(#1378).
     showAppToast(
@@ -470,7 +510,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final clientsAsync = ref.watch(clientsProvider);
     final range = (
       from: ymd(_weekStart),
-      to: ymd(_weekStart.add(const Duration(days: 6))),
+      to: ymd(DateTime(_weekStart.year, _weekStart.month, _weekStart.day + 6)),
     );
     final weekSessions = ref.watch(scheduleRangeProvider(range));
     // 헤더는 본문(LayoutBuilder)보다 위에 있어 본문이 고른 고객을 볼 수 없다.
@@ -681,7 +721,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         label: l.reportsBackToWorkbench,
                         variant: AppButtonVariant.text,
                         leadingIcon: Icons.chevron_left_rounded,
-                        onPressed: () => context.go(AppRoutes.reports),
+                        onPressed: () => context.go(_locationFor(null)),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       // 누구의 리포트인지는 편집기 머리에 한 번만 선다. 카드마다

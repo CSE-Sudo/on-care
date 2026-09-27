@@ -1084,6 +1084,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exReserveFailed => 'Could not book that time. Please try again.';
 
   @override
+  String get exReserveTimeTaken =>
+      'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.';
+
+  @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
     return '$slot · $gym reservation confirmed';
   }

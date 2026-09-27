@@ -24,6 +24,7 @@ def test_reserve_flushes_schedule_before_reservation() -> None:
         id="slot-order-test",
         trainer_id="trainer-demo",
         starts_at=now + timedelta(days=1),
+        duration_minutes=60,
         capacity=1,
         remaining=1,
         session_type="1:1 PT",
@@ -36,6 +37,8 @@ def test_reserve_flushes_schedule_before_reservation() -> None:
     )
     db = Mock(spec=Session)
     db.scalar.side_effect = [slot, "trainer-client-id", None]
+    # 겹침 검사(#2284)가 읽는 트레이너의 그날 일정 — 비어 있다.
+    db.scalars.return_value.all.return_value = []
 
     def set_database_defaults(instance) -> None:
         if isinstance(instance, TrainerReservation):

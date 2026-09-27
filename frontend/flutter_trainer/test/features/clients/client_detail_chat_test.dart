@@ -14,6 +14,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
@@ -199,7 +200,8 @@ void main() {
         db.trainerClients,
       )..where((t) => t.id.equals('seed-client-2'))).getSingle();
       expect(row.lastMessage, '내일 봬요!');
-      expect(row.lastTime, '방금');
+      // 문구가 아니라 코드다 — 화면이 로케일로 옮긴다(#2303).
+      expect(row.lastTime, ChatPreviewCode.justNow);
     });
 
     test(
