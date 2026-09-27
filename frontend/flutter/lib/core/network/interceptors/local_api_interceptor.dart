@@ -39,6 +39,7 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
+import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -2849,16 +2850,43 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// POST /auth/register — mirrors FastAPI: returns the created user
-  /// `{id, name, email}` with 201. The demo accepts any non-empty
-  /// email/password (real duplicate/validation is enforced by FastAPI
-  /// when USE_MOCK_API=false). `name` defaults to the email local-part.
+  /// `{id, name, email}` with 201. Duplicate emails are only enforced by
+  /// FastAPI when USE_MOCK_API=false. `name` defaults to the email local-part.
+  ///
+  /// 비밀번호는 서버와 같은 기준(`AppInputRules.signUpPassword`, #1555)을 보고,
+  /// 어기면 서버와 같은 모양의 422(`detail[].type` 코드)를 준다 — 목업에서만
+  /// 가입되는 비밀번호가 있으면 실서버에서 처음 실패를 보게 된다. 서버처럼
+  /// 비밀번호의 앞뒤 공백은 자르지 않는다.
   Future<Response<Object?>> _authRegister(RequestOptions options) async {
     final body = _jsonBody(options);
     final email = (body['email'] as String? ?? '').trim();
-    final password = (body['password'] as String? ?? '').trim();
+    final password = body['password'] as String? ?? '';
     final name = (body['name'] as String? ?? '').trim();
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty) {
       return _badRequest(options, 'email and password are required');
+    }
+    final String? passwordCode = switch (AppInputRules.signUpPassword(
+      password,
+    )) {
+      null => null,
+      AppInputError.passwordEmpty => 'password_empty',
+      AppInputError.passwordTooLong => 'password_too_long',
+      _ => 'password_weak',
+    };
+    if (passwordCode != null) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': passwordCode,
+              'loc': <Object?>['body', 'password'],
+              'msg': passwordCode,
+            },
+          ],
+        },
+      );
     }
     return Response<Object?>(
       requestOptions: options,

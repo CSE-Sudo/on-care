@@ -3479,7 +3479,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymDisconnectWithTrainerConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.'**
+  /// **'Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged will stay.'**
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer);
 
   /// No description provided for @myGymDisconnectConfirm.
@@ -3491,7 +3491,7 @@ abstract class AppLocalizations {
   /// No description provided for @myTrainerDisconnectConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect trainer {trainer}?\nYour connection to {gym} will remain.'**
+  /// **'Disconnect trainer {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged will stay.'**
   String myTrainerDisconnectConfirm(String trainer, String gym);
 
   /// No description provided for @myGymDetailTooltip.
@@ -3665,7 +3665,7 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
+  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
   String get myLegalPrivacyBody;
 
   /// No description provided for @myLegalEffectiveDate.
@@ -5262,6 +5262,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use at least 8 characters, including letters and numbers'**
   String get signUpPasswordWeak;
+
+  /// Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords can be up to 64 characters, or fewer if they include Korean or emoji'**
+  String get signUpPasswordTooLong;
 
   /// No description provided for @signUpPasswordMismatch.
   ///

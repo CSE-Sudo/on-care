@@ -50,7 +50,7 @@ def _trainer(db_session) -> str:
             id=trainer_id,
             email=f"{trainer_id}@oncare.com",
             name="게이트 트레이너",
-            hashed_password=hash_password("pw!"),
+            hashed_password=hash_password("test-pw-1234"),
             role="trainer",
         )
     )

@@ -18,6 +18,9 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
   String? inviteCode;
   int registerCalls = 0;
 
+  /// 가입이 거절될 때 던질 실패. 비밀번호 기준(#1555) 거절을 흉내 낸다.
+  AuthException? error;
+
   static const TrainerAuthTokens _tokens = TrainerAuthTokens(
     access: 'a',
     refresh: 'r',
@@ -40,6 +43,7 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
     this.email = email;
     this.name = name;
     this.inviteCode = inviteCode;
+    if (error != null) throw error!;
     return _tokens;
   }
 
@@ -79,8 +83,9 @@ const AppConfig _realConfig = AppConfig(
 Future<_RecordingAuthRepository> _pumpSignUp(
   WidgetTester tester, {
   bool demo = false,
+  AuthException? error,
 }) async {
-  final repo = _RecordingAuthRepository();
+  final repo = _RecordingAuthRepository()..error = error;
   await pumpTrainerApp(
     tester,
     at: AppRoutes.signUp,
@@ -319,6 +324,60 @@ void main() {
     await _submit(tester);
     expect(repo.registerCalls, 1);
   });
+
+  // --- 서버 비밀번호 기준과 같은 상한(#1555) ------------------------------
+
+  testWidgets('64자를 넘으면 칸 아래에 상한을 알리고 보내지 않는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+    final String tooLong = '${'a1' * 32}x';
+
+    await _fill(tester, password: tooLong, confirm: tooLong, code: 'ONCARE1');
+    await _submit(tester);
+
+    expect(
+      _errorUnder(_passwordKey, '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)'),
+      findsOneWidget,
+    );
+    expect(repo.registerCalls, 0);
+
+    // 딱 64자면 보낸다.
+    await _type(tester, _passwordKey, 'a1' * 32);
+    await _type(tester, _confirmKey, 'a1' * 32);
+    await _submit(tester);
+    expect(repo.registerCalls, 1);
+  });
+
+  testWidgets('한글로 72바이트를 넘으면 64자 안이어도 보내지 않는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+    final String hangul = '${'가' * 22}abc1234';
+
+    await _fill(tester, password: hangul, confirm: hangul, code: 'ONCARE1');
+    await _submit(tester);
+
+    expect(
+      _errorUnder(_passwordKey, '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)'),
+      findsOneWidget,
+    );
+    expect(repo.registerCalls, 0);
+  });
+
+  for (final MapEntry<AuthFailure, String> c in <AuthFailure, String>{
+    AuthFailure.passwordWeak: '영문과 숫자를 포함해 8자 이상 입력해 주세요',
+    AuthFailure.passwordTooLong: '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)',
+  }.entries) {
+    testWidgets('서버가 비밀번호를 거절하면(${c.key.name}) 코드가 아니라 비밀번호 문구다', (
+      WidgetTester tester,
+    ) async {
+      final repo = await _pumpSignUp(tester, error: AuthException(c.key));
+
+      await _fill(tester, code: 'ONCARE1');
+      await _submit(tester);
+
+      expect(repo.registerCalls, 1);
+      expect(find.text(c.value), findsOneWidget);
+      expect(find.text('사용할 수 없는 초대 코드예요. 헬스장에 확인해 주세요.'), findsNothing);
+    });
+  }
 
   // --- 데모 불변 -----------------------------------------------------------
 

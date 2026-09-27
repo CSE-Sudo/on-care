@@ -71,6 +71,9 @@ def disconnect_my_coach(
     오류 화면을 보일 이유가 없다.
 
     담당 트레이너에게는 연결이 끊겼다고 알린다(#2174). 해제와 같은 커밋에 얹는다.
+
+    담당 해제는 데이터 공유 동의 철회다(#1631) — 링크의 동의를 비우고 철회 시각을
+    남긴다. 이미 주고받은 채팅·리포트는 지우지 않는다.
     """
     member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_gym(db, current_user.id)
@@ -86,7 +89,8 @@ def disconnect_my_trainer(
     헬스장은 그대로 두고 담당만 바꾸는 흐름(트레이너 교체)이 있어야 하므로 전체
     해제와 나눈다. 전체 해제와 마찬가지로 멱등이다. (#444)
 
-    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174).
+    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174). 전체 해제와 같이 데이터
+    공유 동의도 철회된다(#1631).
     """
     member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_coach(db, current_user.id)

@@ -15,14 +15,16 @@ Response<Map<String, Object?>> _ok(Map<String, Object?> body, String path) =>
       data: body,
     );
 
-DioException _httpError(int status, String path) => DioException(
-  requestOptions: RequestOptions(path: path),
-  type: DioExceptionType.badResponse,
-  response: Response<Object?>(
-    requestOptions: RequestOptions(path: path),
-    statusCode: status,
-  ),
-);
+DioException _httpError(int status, String path, {Object? body}) =>
+    DioException(
+      requestOptions: RequestOptions(path: path),
+      type: DioExceptionType.badResponse,
+      response: Response<Object?>(
+        requestOptions: RequestOptions(path: path),
+        statusCode: status,
+        data: body,
+      ),
+    );
 
 void main() {
   late _MockDio dio;
@@ -236,6 +238,100 @@ void main() {
             AuthFailure.inviteCodeInvalid,
           ),
         ),
+      );
+    });
+
+    // 서버 비밀번호 기준(#1555)에 걸린 422 는 초대 코드 탓이 아니다. 전에는
+    // 모든 422 를 코드 오류로 읽어, 비밀번호만 고치면 되는 트레이너가 헬스장에
+    // 코드를 다시 받으러 갔다.
+    Map<String, Object?> detail(List<Map<String, Object?>> items) =>
+        <String, Object?>{'detail': items};
+
+    Future<void> expectFailure(Object? body, AuthFailure failure) async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          path,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(_httpError(422, path, body: body));
+
+      await expectLater(
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          inviteCode: 'ONCARE1',
+        ),
+        throwsA(
+          isA<AuthException>().having((e) => e.failure, 'failure', failure),
+        ),
+      );
+    }
+
+    test('maps a password_weak 422 to passwordWeak, not the invite code', () {
+      return expectFailure(
+        detail(<Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'password_weak',
+            'loc': <Object?>['body', 'password'],
+          },
+        ]),
+        AuthFailure.passwordWeak,
+      );
+    });
+
+    test('maps a password_empty 422 to passwordWeak', () {
+      return expectFailure(
+        detail(<Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'password_empty',
+            'loc': <Object?>['body', 'password'],
+          },
+        ]),
+        AuthFailure.passwordWeak,
+      );
+    });
+
+    test('maps a password_too_long 422 to passwordTooLong', () {
+      return expectFailure(
+        detail(<Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'password_too_long',
+            'loc': <Object?>['body', 'password'],
+          },
+        ]),
+        AuthFailure.passwordTooLong,
+      );
+    });
+
+    test('a password problem wins when the code is also wrong', () {
+      // 스키마 오류는 한 번에 모두 온다. 비밀번호를 먼저 알려야 코드를
+      // 다시 받아 온 뒤에 또 막히지 않는다.
+      return expectFailure(
+        detail(<Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'string_too_short',
+            'loc': <Object?>['body', 'invite_code'],
+          },
+          <String, Object?>{
+            'type': 'password_weak',
+            'loc': <Object?>['body', 'password'],
+          },
+        ]),
+        AuthFailure.passwordWeak,
+      );
+    });
+
+    test('a 422 without a password code is still the invite code', () {
+      return expectFailure(
+        detail(<Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'value_error',
+            'loc': <Object?>['body', 'invite_code'],
+          },
+        ]),
+        AuthFailure.inviteCodeInvalid,
       );
     });
 

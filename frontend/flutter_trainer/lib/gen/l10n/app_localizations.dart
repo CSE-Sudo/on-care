@@ -554,6 +554,12 @@ abstract class AppLocalizations {
   /// **'Use at least 8 characters, including letters and numbers'**
   String get authErrPasswordWeak;
 
+  /// Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords can be up to 64 characters, or fewer if they include Korean or emoji'**
+  String get authErrPasswordTooLong;
+
   /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
   /// In en, this message translates to:
@@ -4124,12 +4130,6 @@ abstract class AppLocalizations {
   /// **'Enter your current password'**
   String get myPwCurrentRequired;
 
-  /// No description provided for @myPwTooShort.
-  ///
-  /// In en, this message translates to:
-  /// **'The new password must be at least {min} characters'**
-  String myPwTooShort(int min);
-
   /// No description provided for @myPwMismatch.
   ///
   /// In en, this message translates to:
@@ -4157,7 +4157,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPwNew.
   ///
   /// In en, this message translates to:
-  /// **'New password ({min}+ characters)'**
+  /// **'New password ({min}+ characters, letters and numbers)'**
   String myPwNew(int min);
 
   /// No description provided for @myPwConfirm.
@@ -5593,6 +5593,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consultation request cancelled'**
   String get notifTplConsultCancelledTitle;
+
+  /// No description provided for @notifTplConsultWithdrawnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request cancelled: member account deleted'**
+  String get notifTplConsultWithdrawnTitle;
 
   /// No description provided for @notifTplInviteAcceptedTitle.
   ///

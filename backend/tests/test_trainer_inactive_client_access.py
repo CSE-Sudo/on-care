@@ -590,17 +590,37 @@ def test_detach_twice_is_404_and_status_change_is_409(client, pair):
     assert status.status_code == 409, status.text
 
 
-def test_restoring_registration_reopens_access(client, pair):
-    """재등록은 해제된 링크를 직접 읽는다 — 막히면 되돌릴 길이 없다."""
+def test_restoring_registration_reopens_access(client, db_session):
+    """재등록은 해제된 링크를 직접 읽는다 — 막히면 되돌릴 길이 없다.
+
+    철회 기록이 없는 옛 해제 링크가 대상이다. 지금의 해제는 동의를 철회하므로
+    그 링크는 재등록이 409 다(#1631, 아래 테스트).
+    """
+    legacy = _make_pair(db_session, active=False)
+    try:
+        diet = f"/v1/trainer/clients/{legacy.member_id}/diet"
+        _assert_guard(client.get(diet, headers=legacy.headers))
+
+        restored = client.put(
+            f"/v1/trainer/clients/{legacy.member_id}/registration",
+            headers=legacy.headers,
+        )
+        assert restored.status_code == 204, restored.text
+        assert client.get(diet, headers=legacy.headers).status_code == 200
+    finally:
+        _cleanup(db_session, [legacy.trainer_id, legacy.member_id])
+
+
+def test_restoring_after_detach_needs_the_members_new_consent(client, pair):
+    """해제는 동의 철회라, 트레이너 혼자 재등록해 기록을 다시 열 수 없다. (#1631)"""
     diet = f"/v1/trainer/clients/{pair.member_id}/diet"
     _detach(client, pair)
-    _assert_guard(client.get(diet, headers=pair.headers))
 
     restored = client.put(
         f"/v1/trainer/clients/{pair.member_id}/registration", headers=pair.headers
     )
-    assert restored.status_code == 204, restored.text
-    assert client.get(diet, headers=pair.headers).status_code == 200
+    assert restored.status_code == 409, restored.text
+    _assert_guard(client.get(diet, headers=pair.headers))
 
 
 def test_my_follow_up_stays_mine_after_detach(client, db_session, pair):

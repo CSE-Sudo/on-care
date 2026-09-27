@@ -119,6 +119,14 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     '지수 · 2026-10-01',
   ),
   (
+    'trainer_consult_withdrawn',
+    <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
+    '회원 탈퇴로 상담 요청이 취소됐어요',
+    '지수 회원 · 2026-10-01',
+    'Consultation request cancelled: member account deleted',
+    '지수 · 2026-10-01',
+  ),
+  (
     'trainer_invite_accepted',
     <String, Object?>{'member_name': '지수'},
     '담당 요청이 수락되었어요',
@@ -194,6 +202,7 @@ const Set<String> _trainerTemplates = <String>{
   'trainer_member_disconnected',
   'trainer_consult_requested',
   'trainer_consult_cancelled',
+  'trainer_consult_withdrawn',
   'trainer_invite_accepted',
   'trainer_invite_rejected',
   'trainer_reservation_booked',

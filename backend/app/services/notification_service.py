@@ -291,6 +291,10 @@ TRAINER_MEMBER_NAME_KIND = "member_name"
 #: 담당 회원이 떠났다 — 탈퇴했거나 담당 연결을 끊었다(#2174). 회원이 목록에서
 #: 사라진 뒤라 갈 곳이 없고, 알림함에서 확인만 한다.
 TRAINER_MEMBER_LEFT_KIND = "member_left"
+#: 회원이 탈퇴해 그 트레이너에게 낸 대기 중 상담 요청이 함께 사라졌다(#1632) →
+#: 상담 요청함. 요청도 회원도 남지 않아 `subject_id` 를 두지 않는다 — 떠난 회원의
+#: 상세로 가는 길을 만들지 않는다.
+TRAINER_CONSULT_WITHDRAWN_KIND = "consult_withdrawn"
 #: 회원이 트레이너의 담당 요청을 수락했다 → 새 담당 회원 상세(`subject_id`).
 #: 전에는 상담 종류로 남아 스케줄로 갔다(#2292).
 TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"

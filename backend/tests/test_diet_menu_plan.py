@@ -181,7 +181,7 @@ def member(db_session):
 
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}", email=f"menuplan-{uuid.uuid4().hex[:8]}@example.com",
-        name="메뉴 리스트", hashed_password=hash_password("pw!"), role="member",
+        name="메뉴 리스트", hashed_password=hash_password("test-pw-1234"), role="member",
     )
     db_session.add(user)
     db_session.add(HealthProfile(user_id=user.id, daily_protein_g=90))

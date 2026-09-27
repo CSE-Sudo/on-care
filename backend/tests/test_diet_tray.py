@@ -57,10 +57,10 @@ def trainer_id(db_session) -> Iterator[str]:
 def _new_member(client) -> tuple[str, dict[str, str]]:
     email = f"tray-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     member_id = client.get("/v1/users/me", headers=headers).json()["id"]
