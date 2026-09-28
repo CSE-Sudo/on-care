@@ -137,6 +137,52 @@ class WeeklyReport {
   /// Sunday of the reported week.
   DateTime get weekEnd => weekStart.add(const Duration(days: 6));
 
+  /// 문서에 실리는 내용 전부를 이은 열쇠. (#2484)
+  ///
+  /// 리포트는 스트림으로 온다 — 데모는 일정 표를 지켜보다 내용이 같은 리포트를
+  /// 새 객체로 다시 보낸다. ③ 미리보기가 객체 동일성으로 재료를 가르면 그때마다
+  /// PDF 를 처음부터 다시 만든다. 내용이 같으면 열쇠도 같다.
+  String get contentKey {
+    final MemberWeeklyFeedback? member = memberFeedback;
+    return <Object?>[
+      client.id,
+      client.name,
+      weekStart.toIso8601String(),
+      sessionsBooked,
+      sessionsDone,
+      completionAvg,
+      sodiumOverDays,
+      sodiumAvg,
+      isCurrentWeek,
+      weekCompletion.join(','),
+      sodiumWeek.join(','),
+      caloriesWeek.join(','),
+      sugarWeek.join(','),
+      carbsWeek.join(','),
+      proteinWeek.join(','),
+      fatWeek.join(','),
+      calorieTarget,
+      sodiumTarget,
+      sugarTarget,
+      carbsTarget,
+      proteinTarget,
+      fatTarget,
+      for (final ReportDay day in days)
+        '${day.completion}:${day.assigned}:${day.exercises.join('␟')}',
+      mealCounts.join(','),
+      if (member == null)
+        '-'
+      else
+        <Object?>[
+          member.condition.name,
+          member.intensity.name,
+          member.painArea,
+          member.painOn?.toIso8601String(),
+          member.note,
+        ].join('␟'),
+    ].join('␞');
+  }
+
   /// `M월 D일 – M월 D일` / `M/D – M/D`, in the current locale.
   String rangeLabel(AppLocalizations l) => l.dateRange(
     l.dateMonthDay(weekStart.month, weekStart.day),

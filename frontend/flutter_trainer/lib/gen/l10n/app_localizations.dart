@@ -9302,6 +9302,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}}'**
   String clientDietRecSlot(String slot);
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get reportsSheetInfoMember;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get reportsSheetInfoPeriod;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal logs'**
+  String get reportsSheetInfoMealDays;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'{days}/{due} days'**
+  String reportsSheetDaysOf(String days, String due);
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Diet analysis'**
+  String get reportsSheetDietTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Daily average vs. goal'**
+  String get reportsSheetDietHint;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise analysis'**
+  String get reportsSheetExerciseTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'This week vs. goal'**
+  String get reportsSheetExerciseHint;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Daily log'**
+  String get reportsSheetDailyTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get reportsSheetDailyCompletion;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Calories'**
+  String get reportsSheetDailyCalories;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Meals'**
+  String get reportsSheetDailyMeals;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get reportsSheetDailyWorkouts;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Trends'**
+  String get reportsSheetTrendTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly exercise achievement (8 weeks)'**
+  String get reportsSheetTrendWeekly;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Daily calories · goal line'**
+  String get reportsSheetTrendDaily;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get reportsSheetBandUnder;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'On target'**
+  String get reportsSheetBandNormal;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get reportsSheetBandOver;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Goal {value}'**
+  String reportsSheetGoal(String value);
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'PT attendance'**
+  String get reportsSheetAttendance;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly care score'**
+  String get reportsSheetScoreTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'/100'**
+  String get reportsSheetScoreUnit;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.'**
+  String get reportsSheetScoreFormula;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'No records to score yet'**
+  String get reportsSheetScoreNone;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation'**
+  String get reportsSheetEvalTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'vs. 4-week average'**
+  String get reportsSheetAverageTitle;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get reportsSheetAverageNow;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'4-wk avg'**
+  String get reportsSheetAverageBase;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get reportsSheetAverageChange;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal log days'**
+  String get reportsSheetMealDaysLabel;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'Ranges compare this week with the member\'s goals. Items without records show as Not measured.'**
+  String get reportsSheetFootnote;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'On-target calorie days'**
+  String get reportsSheetCalorieDays;
+
+  /// 리포트 PDF 한 장 결과지 (#2485).
+  ///
+  /// In en, this message translates to:
+  /// **'{start} – {end}'**
+  String reportsSheetPeriodValue(String start, String end);
 }
 
 class _AppLocalizationsDelegate
