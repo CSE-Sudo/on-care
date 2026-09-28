@@ -2691,8 +2691,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiAnalysedData =>
-      'Reviewed the workout goal, recent activity, and today\'s nutrition';
+  String get aiAnalysedData => 'Member status';
 
   @override
   String get aiGoal => 'Goal';
@@ -2752,7 +2751,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiReviewedSuggestion(String option) {
-    return 'Reviewed · AI suggestion ($option)';
+    return 'Confirmed plan · $option';
   }
 
   @override
@@ -2788,7 +2787,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepReview => 'Program selection';
 
   @override
-  String get aiStepDone => 'Final review';
+  String get aiStepDone => 'Program review';
 
   @override
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
@@ -2958,7 +2957,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiInsightMemoTitle => 'AI insights (last 7 days)';
+  String get aiInsightMemoTitle => 'Needs attention (last 7 days)';
 
   @override
   String get aiInsightMemoEmpty => 'No insights detected in the last 7 days';

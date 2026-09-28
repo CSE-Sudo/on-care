@@ -2548,7 +2548,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiAnalysedData => '운동 목표와 최근 활동, 오늘의 식단 정보를 확인했어요';
+  String get aiAnalysedData => '회원 현황';
 
   @override
   String get aiGoal => '목표';
@@ -2607,7 +2607,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiReviewedSuggestion(String option) {
-    return '검토 완료 · AI 추천안 ($option)';
+    return '확정한 구성 · $option';
   }
 
   @override
@@ -2640,7 +2640,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepReview => '프로그램 선택';
 
   @override
-  String get aiStepDone => '최종 검토';
+  String get aiStepDone => '프로그램 검토';
 
   @override
   String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
@@ -2805,7 +2805,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiInsightMemoTitle => '최근 7일 AI 감지 메모';
+  String get aiInsightMemoTitle => '최근 7일 확인 필요';
 
   @override
   String get aiInsightMemoEmpty => '최근 7일간 감지된 메모가 없어요';

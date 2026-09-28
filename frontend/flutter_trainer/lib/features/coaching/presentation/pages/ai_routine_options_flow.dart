@@ -51,7 +51,8 @@ enum _Step {
   /// 개인운동 짜기.
   personal,
 
-  /// 최종 검토.
+  /// 프로그램 검토 — 확정 전 마지막 확인이다. 그 뒤에도 개인운동 단계와
+  /// 편집기의 `일정 추가` 가 남아 있어 "최종" 이라 부르지 않는다. (#2372)
   review,
 }
 
@@ -411,7 +412,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         }
         _advance();
       case _Step.review:
-        // 최종 검토 다음은 개인운동 단계다.
+        // 프로그램 검토 다음은 개인운동 단계다.
         _seedPersonalFromSuggestions();
         _advance();
       case _Step.personal:
@@ -427,9 +428,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   /// PT 프로그램 짜기를 건너뛰고 개인운동만 짠다. (#2223)
   ///
-  /// 회원이 미리 "이번 주는 PT 를 못 한다"고 말한 주다. 단계가 3칸(조건 설정 →
-  /// 개인운동 → 최종 검토)으로 줄고, 붙일 PT 일정이 없으므로 최종 검토에서
-  /// 곧바로 회원에게 보낸다. 후보 생성은 부르지 않는다 — 쓰지 않을 PT 프로그램을
+  /// 회원이 미리 "이번 주는 PT 를 못 한다"고 말한 주다. `프로그램 선택`·
+  /// `프로그램 검토` 를 `건너뜀` 으로 지나 마지막 칸(개인운동)에서 짜고 끝낸다.
+  /// 후보 생성은 부르지 않는다 — 쓰지 않을 PT 프로그램을
   /// 만드느라 기다릴 이유가 없다.
   void _skipPtProgram() {
     if (_generating) return;
@@ -619,7 +620,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     });
   }
 
-  /// 최종 검토에서 확정한 구성을 **바로 고객에게 보내지 않고**, 2열의
+  /// 프로그램 검토에서 확정한 구성을 **바로 고객에게 보내지 않고**, 2열의
   /// (지금은 비어 있는) `프로그램 정보` 박스로만 반영한다.
   ///
   /// 실제 전송은 프로그램 탭 편집기의 단일 `보내기` 버튼에서만 일어난다 —
@@ -828,14 +829,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         ),
       ],
     );
-    // AI 가 읽은 자료 박스는 옅은 브랜드 채움·브랜드 테두리로 다른 카드와 구분한다.
+    // 회원 데이터를 규칙으로 계산한 값만 담는다 — AI 를 부르지 않으므로 AI
+    // 아이콘·브랜드 강조 카드를 쓰지 않는다. 눈에 띄어야 하는 것은 카드가 아니라
+    // 경고 줄(빨강)과 오른쪽 확인 필요 칸이다. (#2372)
     return AppCard(
       key: const ValueKey<String>('ai-analysis-card'),
-      selected: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _AssistantLabel(text: l.aiAnalysedData),
+          AppSectionHeader(
+            title: l.aiAnalysedData,
+            icon: Icons.fact_check_rounded,
+          ),
           const SizedBox(height: OnCareSpacing.s12),
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -2096,7 +2101,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// PT 모드 최종 검토의 유일한 동작 — 개인운동 단계로 넘어간다. (#2223)
+  /// PT 모드 프로그램 검토의 유일한 동작 — 개인운동 단계로 넘어간다. (#2223)
   ///
   /// **여기서는 아직 아무것도 반영하지 않는다.** 위저드를 빠져나가는 출구는
   /// 다음 단계(개인운동)의 `프로그램에 반영` 하나뿐이고, 그때 PT 구성과
@@ -2167,7 +2172,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 /// 근력 한 줄에 빠진 세트·횟수를 채운다.
 ///
 /// AI 는 근력 운동을 분으로만 주기도 한다. 그때 편집기의 숫자 칸은 `3`·`10`
-/// 을 보여 주면서 값은 0 으로 두었다 — 최종 검토가 `0세트 · 0회` 를 그리고,
+/// 을 보여 주면서 값은 0 으로 두었다 — 프로그램 검토가 `0세트 · 0회` 를 그리고,
 /// 편집기로 넘어갈 때 또 다른 기본값이 붙어 **한 운동이 세 화면에서 다른
 /// 숫자로 보였다**. 보이는 값을 그대로 저장해 셋을 하나로 맞춘다.
 ///

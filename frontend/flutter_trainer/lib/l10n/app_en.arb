@@ -1769,7 +1769,7 @@
       }
     }
   },
-  "aiAnalysedData": "Reviewed the workout goal, recent activity, and today's nutrition",
+  "aiAnalysedData": "Member status",
   "aiGoal": "Goal",
   "aiTodaySodium": "Sodium today",
   "aiOverTarget": " · over target",
@@ -1801,7 +1801,7 @@
   "aiExerciseNameExample": "e.g. leg press, 3 sets",
   "aiRegister": "Add",
   "aiNoteForClient": "A note to send with it",
-  "aiReviewedSuggestion": "Reviewed · AI suggestion ({option})",
+  "aiReviewedSuggestion": "Confirmed plan · {option}",
   "@aiReviewedSuggestion": {
     "placeholders": {
       "option": {
@@ -1825,7 +1825,7 @@
   "aiAppliedToTemplate": "The AI suggestion was applied to the program template.",
   "aiStepConditions": "Set up",
   "aiStepReview": "Program selection",
-  "aiStepDone": "Final review",
+  "aiStepDone": "Program review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
   "routineEvidenceRecentPtFeedback": "Recent PT feedback",
@@ -1931,7 +1931,7 @@
       }
     }
   },
-  "aiInsightMemoTitle": "AI insights (last 7 days)",
+  "aiInsightMemoTitle": "Needs attention (last 7 days)",
   "aiInsightMemoEmpty": "No insights detected in the last 7 days",
   "aiInsightMemoFailed": "Couldn't load the detected memos",
   "aiRecentRoutineMore": "{name} and {count} more",
