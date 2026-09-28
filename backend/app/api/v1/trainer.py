@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.api.v1 import chat_attachments
+from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
@@ -39,6 +40,7 @@ from app.models.models import (
 )
 from app.schemas.diet_api import (
     DietAdviceResponse,
+    DietAdviceSentence,
     DietPeriodResponse,
     RecordSpanResponse,
     TrainerDietCandidate,
@@ -100,6 +102,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     diet_service,
+    diet_trainer_analysis,
     diet_trainer_pick,
     emote_service,
     exercise_service,
@@ -668,25 +671,30 @@ def trainer_client_diet_advice(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
     period: Annotated[
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 회원 앱 기간 토글과 같은 이름"),
     ] = "today",
 ) -> DietAdviceResponse:
-    """담당 고객의 기간별 식단 조언. 회원 앱과 **같은 문장**이다. (#1017)
+    """담당 고객의 기간별 `식단 분석` — 원인까지 짚는 서술형 규칙 문장. (#2379)
 
-    같은 회원의 같은 기간을 두 화면이 다르게 말하면, 상담에서 둘이 서로 다른
-    이야기를 들고 앉게 된다.
+    회원 앱 조언과 **같은 기간·같은 판정**이다(이번 주는 월·화 지난주 회고 포함,
+    전체는 최근 4주). 같은 회원의 같은 기간을 두 화면이 다른 기준으로 말하면 상담에서
+    둘이 서로 다른 이야기를 들고 앉게 된다. AI 는 부르지 않는다 — 회원 앱 조언의 AI
+    문장은 회원에게 하는 말이다. 문장은 `sentences` 의 키·값으로 트레이너 웹이 그린다.
     """
     _require_client(db, trainer.id, member_id)
-    start, end = diet_service.period_bounds(period)
-    days = diet_service.daily_totals(db, member_id, start, end)
+    result = diet_trainer_analysis.analysis(db, member_id, period, now=clock.now())
     return DietAdviceResponse(
-        period=period,
-        from_date=start,
-        to_date=end,
-        days_logged=len(days),
-        message=diet_service.period_coach_message(days, period),
+        period=result.period,
+        from_date=result.from_date,
+        to_date=result.to_date,
+        days_logged=result.days_logged,
+        message=result.message_in(locale),
+        sentences=[
+            DietAdviceSentence(key=s.key, params=s.params) for s in result.sentences
+        ],
     )
 
 

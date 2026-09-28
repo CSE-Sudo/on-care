@@ -1,0 +1,2577 @@
+{
+ "cases": [
+  {
+   "name": "today_empty",
+   "period": "today",
+   "now": "2026-09-24T13:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_empty",
+      "params": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_sodium_food_and_chronic_protein",
+   "period": "today",
+   "now": "2026-09-24T16:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "avg_protein_g": 54,
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "스크램블 에그",
+       "calories": 213,
+       "sodium_mg": 358,
+       "sugar_g": 0.7
+      },
+      {
+       "name": "딸기",
+       "calories": 34,
+       "sodium_mg": 1,
+       "sugar_g": 6.1
+      }
+     ],
+     "kcal": 247,
+     "protein_g": 16,
+     "sodium_mg": 359,
+     "sugar_g": 7,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "짬뽕",
+       "calories": 707,
+       "sodium_mg": 4286,
+       "sugar_g": 8.6
+      }
+     ],
+     "kcal": 707,
+     "protein_g": 35,
+     "sodium_mg": 4286,
+     "sugar_g": 9,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_over",
+      "params": {
+       "nutrient": "sodium",
+       "slot": "lunch",
+       "food_value": 4286,
+       "value": 4645,
+       "target": 2000,
+       "ratio": "2.3",
+       "food": "짬뽕"
+      }
+     },
+     {
+      "key": "tr_today_protein_chronic",
+      "params": {
+       "nutrient": "protein",
+       "value": 51,
+       "gap": 49,
+       "avg": 54
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_meal_without_food_values",
+   "period": "today",
+   "now": "2026-09-24T13:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "현미밥",
+       "calories": 300,
+       "sodium_mg": 980,
+       "sugar_g": 1
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 980,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [],
+     "kcal": 900,
+     "protein_g": 50,
+     "sodium_mg": 6000,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_over_meal",
+      "params": {
+       "nutrient": "sodium",
+       "slot": "lunch",
+       "food_value": 6000,
+       "value": 6980,
+       "target": 2000,
+       "ratio": "3.5"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_sugar_over",
+   "period": "today",
+   "now": "2026-09-24T10:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "라떼",
+       "calories": 250,
+       "sodium_mg": 150,
+       "sugar_g": 30.5
+      },
+      {
+       "name": "케이크",
+       "calories": 400,
+       "sodium_mg": 200,
+       "sugar_g": 40
+      }
+     ],
+     "kcal": 650,
+     "protein_g": 95,
+     "sodium_mg": 350,
+     "sugar_g": 70,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_over",
+      "params": {
+       "nutrient": "sugar",
+       "slot": "breakfast",
+       "food_value": 40,
+       "value": 70,
+       "target": 50,
+       "ratio": "1.4",
+       "food": "케이크"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_calorie_over",
+   "period": "today",
+   "now": "2026-09-24T22:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트",
+       "calories": 500,
+       "sodium_mg": 400,
+       "sugar_g": 5
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 30,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "돈가스",
+       "calories": 1100,
+       "sodium_mg": 900,
+       "sugar_g": 8
+      }
+     ],
+     "kcal": 1100,
+     "protein_g": 35,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "치킨",
+       "calories": 1000,
+       "sodium_mg": 1000,
+       "sugar_g": 5
+      }
+     ],
+     "kcal": 1000,
+     "protein_g": 40,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_over",
+      "params": {
+       "nutrient": "calorie",
+       "slot": "lunch",
+       "food_value": 1100,
+       "value": 2600,
+       "target": 2000,
+       "ratio": "1.3",
+       "food": "돈가스"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_short_protein",
+   "period": "today",
+   "now": "2026-09-24T10:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "avg_protein_g": 95,
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트",
+       "calories": 400,
+       "sodium_mg": 400,
+       "sugar_g": 5
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 60,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_protein_short",
+      "params": {
+       "nutrient": "protein",
+       "value": 60,
+       "gap": 40
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_missing_lunch",
+   "period": "today",
+   "now": "2026-09-24T16:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트",
+       "calories": 400,
+       "sodium_mg": 400,
+       "sugar_g": 5
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 95,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_missing",
+      "params": {
+       "slot": "lunch"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_good",
+   "period": "today",
+   "now": "2026-09-24T13:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트",
+       "calories": 500,
+       "sodium_mg": 400,
+       "sugar_g": 5
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥",
+       "calories": 700,
+       "sodium_mg": 900,
+       "sugar_g": 5
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 60,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_good",
+      "params": {
+       "kcal": 1200
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_empty",
+   "period": "week",
+   "now": "2026-09-24T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [],
+   "expected": {
+    "from": "2026-09-21",
+    "to": "2026-09-24",
+    "logged": 0,
+    "sentences": [
+     {
+      "key": "tr_week_empty",
+      "params": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_sodium_over",
+   "period": "week",
+   "now": "2026-09-24T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-21",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "짬뽕"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 4286,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 1500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "from": "2026-09-21",
+    "to": "2026-09-24",
+    "logged": 4,
+    "sentences": [
+     {
+      "key": "tr_week_over",
+      "params": {
+       "scope": "this",
+       "logged": 4,
+       "days": 3,
+       "nutrient": "sodium"
+      }
+     },
+     {
+      "key": "tr_week_cause",
+      "params": {
+       "weekday": 0,
+       "slot": "lunch",
+       "food": "짬뽕",
+       "food_value": 4286,
+       "nutrient": "sodium"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_skip_breakfast_snack",
+   "period": "week",
+   "now": "2026-09-24T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "snack",
+     "foods": [
+      {
+       "name": "과자"
+      }
+     ],
+     "kcal": 200,
+     "protein_g": 2,
+     "sodium_mg": 100,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "snack",
+     "foods": [
+      {
+       "name": "과자"
+      }
+     ],
+     "kcal": 200,
+     "protein_g": 2,
+     "sodium_mg": 100,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "snack",
+     "foods": [
+      {
+       "name": "과자"
+      }
+     ],
+     "kcal": 200,
+     "protein_g": 2,
+     "sodium_mg": 100,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "from": "2026-09-21",
+    "to": "2026-09-24",
+    "logged": 4,
+    "sentences": [
+     {
+      "key": "tr_week_skip_breakfast_snack",
+      "params": {
+       "scope": "this",
+       "logged": 4,
+       "days": 4,
+       "snack_days": 3
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_good",
+   "period": "week",
+   "now": "2026-09-24T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-21",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "현미밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 40,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "from": "2026-09-21",
+    "to": "2026-09-24",
+    "logged": 3,
+    "sentences": [
+     {
+      "key": "tr_week_good",
+      "params": {
+       "scope": "this",
+       "days": 3
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_protein_short",
+   "period": "week",
+   "now": "2026-09-24T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-21",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 15,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "from": "2026-09-21",
+    "to": "2026-09-24",
+    "logged": 3,
+    "sentences": [
+     {
+      "key": "tr_week_protein_short",
+      "params": {
+       "scope": "this",
+       "logged": 3,
+       "days": 3
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_last_week",
+   "period": "week",
+   "now": "2026-09-22T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-14",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 30,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-15",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 30,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-16",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 30,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 30,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "from": "2026-09-14",
+    "to": "2026-09-20",
+    "logged": 3,
+    "sentences": [
+     {
+      "key": "tr_week_over",
+      "params": {
+       "scope": "last",
+       "logged": 3,
+       "days": 3,
+       "nutrient": "sodium"
+      }
+     },
+     {
+      "key": "tr_week_cause",
+      "params": {
+       "weekday": 0,
+       "slot": "breakfast",
+       "food": "토스트",
+       "food_value": 2500,
+       "nutrient": "sodium"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "all_few",
+   "period": "all",
+   "today": "2026-09-28",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-27",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "비빔밥"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 30,
+     "sodium_mg": 500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "logged": 1,
+    "sentences": [
+     {
+      "key": "tr_all_few",
+      "params": {
+       "days": 1
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "all_slot_sodium",
+   "period": "all",
+   "today": "2026-09-28",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-27",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "짬뽕"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-27",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-26",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "짬뽕"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-26",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-25",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "짬뽕"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-25",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김치찌개"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김치찌개"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김치찌개"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-19",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김치찌개"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-19",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    },
+    {
+     "date": "2026-09-18",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김치찌개"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 80,
+     "fat_g": 20
+    },
+    {
+     "date": "2026-09-18",
+     "meal_type": "dinner",
+     "foods": [
+      {
+       "name": "닭가슴살"
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 50,
+     "sodium_mg": 400,
+     "sugar_g": 5,
+     "carbs_g": 30,
+     "fat_g": 10
+    }
+   ],
+   "expected": {
+    "logged": 10,
+    "sentences": [
+     {
+      "key": "tr_all_slot_sodium",
+      "params": {
+       "slot": "lunch",
+       "days": 10
+      }
+     },
+     {
+      "key": "tr_foods_two",
+      "params": {
+       "food1": "김치찌개",
+       "count1": 5,
+       "food2": "짬뽕",
+       "count2": 3
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "all_carb_heavy",
+   "period": "all",
+   "today": "2026-09-28",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-27",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "떡볶이"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-26",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-25",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "떡볶이"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "떡볶이"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "떡볶이"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "국수"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 10,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 150,
+     "fat_g": 5
+    }
+   ],
+   "expected": {
+    "logged": 8,
+    "sentences": [
+     {
+      "key": "tr_all_carb_heavy",
+      "params": {
+       "pct": 88
+      }
+     },
+     {
+      "key": "tr_foods_two",
+      "params": {
+       "food1": "떡볶이",
+       "count1": 4,
+       "food2": "국수",
+       "count2": 4
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "all_protein_trend_up",
+   "period": "all",
+   "today": "2026-09-28",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-27",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴0"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-26",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴1"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-25",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴2"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴3"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴4"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴5"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴6"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 95,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴7"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-19",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴8"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-18",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴9"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-17",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴10"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-16",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴11"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-15",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴12"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-14",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴13"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-13",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴14"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-12",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴15"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-11",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴16"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-10",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴17"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-09",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴18"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-08",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴19"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    }
+   ],
+   "expected": {
+    "logged": 20,
+    "sentences": [
+     {
+      "key": "tr_all_protein_trend_up",
+      "params": {
+       "before": 0,
+       "after": 7
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "all_frequent",
+   "period": "all",
+   "today": "2026-09-28",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-27",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-26",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-25",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "김밥"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴6"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴7"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-19",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴8"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    }
+   ],
+   "expected": {
+    "logged": 9,
+    "sentences": [
+     {
+      "key": "tr_all_frequent",
+      "params": {
+       "slot": "lunch",
+       "food": "김밥",
+       "count": 6
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "all_good",
+   "period": "all",
+   "today": "2026-09-28",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-27",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴0"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-26",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴1"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-25",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴2"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴3"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴4"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴5"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴6"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "메뉴7"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 600,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 30
+    }
+   ],
+   "expected": {
+    "logged": 8,
+    "sentences": [
+     {
+      "key": "tr_all_good",
+      "params": {
+       "days": 8
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "renderings": [
+  {
+   "key": "tr_today_empty",
+   "params": {},
+   "ko": "오늘 식단 기록이 아직 없어요.",
+   "en": "No meals logged today yet."
+  },
+  {
+   "key": "tr_today_over",
+   "params": {
+    "nutrient": "sodium",
+    "slot": "lunch",
+    "food": "짬뽕",
+    "food_value": 4286,
+    "value": 4645,
+    "target": 2000,
+    "ratio": "2.3"
+   },
+   "ko": "점심에 먹은 짬뽕(4,286mg) 때문에 오늘 나트륨이 4,645mg까지 올라 목표 2,000mg의 2.3배가 됐어요.",
+   "en": "짬뽕 at lunch (4,286mg) pushed today's sodium to 4,645mg, 2.3x the 2,000mg goal."
+  },
+  {
+   "key": "tr_today_over_meal",
+   "params": {
+    "nutrient": "calorie",
+    "slot": "dinner",
+    "food_value": 1500,
+    "value": 2600,
+    "target": 2000,
+    "ratio": "1.3"
+   },
+   "ko": "저녁 식사(1,500kcal) 때문에 오늘 칼로리가 2,600kcal까지 올라 목표 2,000kcal의 1.3배가 됐어요.",
+   "en": "Dinner (1,500kcal) pushed today's calories to 2,600kcal, 1.3x the 2,000kcal goal."
+  },
+  {
+   "key": "tr_today_protein_short",
+   "params": {
+    "nutrient": "protein",
+    "value": 60,
+    "gap": 40
+   },
+   "ko": "단백질은 60g으로 목표보다 40g 모자라요.",
+   "en": "Protein is at 60g, 40g short of the goal."
+  },
+  {
+   "key": "tr_today_protein_chronic",
+   "params": {
+    "nutrient": "protein",
+    "value": 51,
+    "gap": 49,
+    "avg": 54
+   },
+   "ko": "단백질은 51g으로 목표보다 49g 모자라고, 최근 4주 평균도 하루 54g이라 꾸준히 부족한 편이에요.",
+   "en": "Protein is at 51g, 49g short of the goal, and the 4-week average of 54g a day stays low."
+  },
+  {
+   "key": "tr_today_missing",
+   "params": {
+    "slot": "breakfast"
+   },
+   "ko": "아침 기록이 아직 없어요.",
+   "en": "No breakfast logged yet."
+  },
+  {
+   "key": "tr_today_good",
+   "params": {
+    "kcal": 1200
+   },
+   "ko": "오늘 1,200kcal, 목표 안에서 고르게 드셨어요.",
+   "en": "1,200kcal today, evenly within the goals."
+  },
+  {
+   "key": "tr_week_empty",
+   "params": {},
+   "ko": "이번 주 식단 기록이 아직 없어요.",
+   "en": "No meals logged this week yet."
+  },
+  {
+   "key": "tr_week_skip_breakfast",
+   "params": {
+    "scope": "this",
+    "logged": 4,
+    "days": 3
+   },
+   "ko": "이번 주 기록한 4일 중 3일 아침을 걸렀어요.",
+   "en": "Skipped breakfast on 3 of 4 logged days this week."
+  },
+  {
+   "key": "tr_week_skip_breakfast_snack",
+   "params": {
+    "scope": "last",
+    "logged": 5,
+    "days": 3,
+    "snack_days": 2
+   },
+   "ko": "지난주 기록한 5일 중 3일 아침을 걸렀고, 그중 2일은 간식으로 채웠어요.",
+   "en": "Skipped breakfast on 3 of 5 logged days last week, snacking instead on 2."
+  },
+  {
+   "key": "tr_week_over",
+   "params": {
+    "scope": "this",
+    "logged": 4,
+    "days": 3,
+    "nutrient": "sugar"
+   },
+   "ko": "이번 주 기록한 4일 중 3일 당류가 목표를 넘었어요.",
+   "en": "Sugar went over the goal on 3 of 4 logged days this week."
+  },
+  {
+   "key": "tr_week_cause",
+   "params": {
+    "weekday": 0,
+    "slot": "lunch",
+    "food": "짬뽕",
+    "food_value": 4286,
+    "nutrient": "sodium"
+   },
+   "ko": "월요일 점심에 먹은 짬뽕(4,286mg) 영향이 가장 컸어요.",
+   "en": "The biggest was 짬뽕 at Monday lunch (4,286mg)."
+  },
+  {
+   "key": "tr_week_protein_short",
+   "params": {
+    "scope": "this",
+    "logged": 3,
+    "days": 3
+   },
+   "ko": "이번 주 기록한 3일 중 3일 단백질이 목표의 80%에 못 미쳤어요.",
+   "en": "Protein fell below 80% of the goal on 3 of 3 logged days this week."
+  },
+  {
+   "key": "tr_week_good",
+   "params": {
+    "scope": "this",
+    "days": 3
+   },
+   "ko": "이번 주 기록한 3일 모두 목표 안에서 드셨어요.",
+   "en": "All 3 logged days this week stayed within the goals."
+  },
+  {
+   "key": "tr_all_few",
+   "params": {
+    "days": 3
+   },
+   "ko": "최근 4주 기록이 3일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
+   "en": "Only 3 days logged in the last 4 weeks. The trend shows after 7."
+  },
+  {
+   "key": "tr_all_slot_sodium",
+   "params": {
+    "slot": "dinner",
+    "days": 6
+   },
+   "ko": "최근 4주 동안 저녁 나트륨이 6번 목표의 절반을 넘었어요.",
+   "en": "In the last 4 weeks, dinner sodium went over half the goal 6 times."
+  },
+  {
+   "key": "tr_all_carb_heavy",
+   "params": {
+    "pct": 68
+   },
+   "ko": "최근 4주 섭취 열량 중 탄수화물이 68%로 높은 편이에요.",
+   "en": "Carbs made up 68% of calories in the last 4 weeks."
+  },
+  {
+   "key": "tr_all_protein_light",
+   "params": {
+    "pct": 12
+   },
+   "ko": "최근 4주 섭취 열량 중 단백질이 12%로 낮은 편이에요.",
+   "en": "Protein made up only 12% of calories in the last 4 weeks."
+  },
+  {
+   "key": "tr_all_protein_trend_up",
+   "params": {
+    "before": 2,
+    "after": 6
+   },
+   "ko": "단백질 목표를 채운 날이 앞선 2주 2일에서 최근 2주 6일로 늘었어요.",
+   "en": "Days meeting the protein goal rose from 2 to 6 over the last 2 weeks."
+  },
+  {
+   "key": "tr_all_protein_trend_down",
+   "params": {
+    "before": 6,
+    "after": 2
+   },
+   "ko": "단백질 목표를 채운 날이 앞선 2주 6일에서 최근 2주 2일로 줄었어요.",
+   "en": "Days meeting the protein goal fell from 6 to 2 over the last 2 weeks."
+  },
+  {
+   "key": "tr_all_frequent",
+   "params": {
+    "slot": "lunch",
+    "food": "김밥",
+    "count": 6
+   },
+   "ko": "최근 4주 동안 점심 메뉴로 김밥 6번이 가장 많았어요.",
+   "en": "김밥 was the most common lunch in the last 4 weeks (6 times)."
+  },
+  {
+   "key": "tr_all_repeated",
+   "params": {
+    "food1": "김밥",
+    "food2": "라면"
+   },
+   "ko": "최근 4주 음식 기록에서 김밥·라면 비중이 높아요.",
+   "en": "김밥 and 라면 make up much of the last 4 weeks' log."
+  },
+  {
+   "key": "tr_all_good",
+   "params": {
+    "days": 20
+   },
+   "ko": "최근 4주 동안 20일 기록했고, 흐름이 고른 편이에요.",
+   "en": "20 days logged in the last 4 weeks, with an even trend."
+  },
+  {
+   "key": "tr_foods_one",
+   "params": {
+    "food1": "짬뽕",
+    "count1": 3
+   },
+   "ko": "짬뽕 3번이 대부분이에요.",
+   "en": "Mostly 짬뽕 (3 times)."
+  },
+  {
+   "key": "tr_foods_two",
+   "params": {
+    "food1": "짬뽕",
+    "count1": 3,
+    "food2": "라면",
+    "count2": 2
+   },
+   "ko": "짬뽕 3번, 라면 2번이 대부분이에요.",
+   "en": "Mostly 짬뽕 (3 times) and 라면 (2 times)."
+  }
+ ]
+}

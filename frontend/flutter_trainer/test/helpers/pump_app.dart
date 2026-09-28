@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
@@ -271,9 +272,23 @@ class _StillClientRepository implements ClientRepository {
   }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
-  Future<String> fetchDietAdvice(
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
+    required Locale locale,
+  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+
+  @override
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+
+  @override
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
     required Locale locale,
   }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
