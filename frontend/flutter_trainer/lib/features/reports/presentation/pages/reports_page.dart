@@ -1170,7 +1170,7 @@ class _StepFooter extends StatelessWidget {
                   key: const ValueKey<String>('report-step-print'),
                   label: l.reportsStepPrint,
                   variant: AppButtonVariant.secondary,
-                  leadingIcon: Icons.print_outlined,
+                  leadingIcon: Icons.print_rounded,
                   loading: printing,
                   onPressed: bytes == null || !ready || printing || sending
                       ? null
