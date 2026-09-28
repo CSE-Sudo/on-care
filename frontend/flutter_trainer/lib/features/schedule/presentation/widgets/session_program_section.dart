@@ -112,29 +112,15 @@ class SessionNoPlanBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return AppTile(
       key: const ValueKey<String>('session-no-plan'),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  l.progEmpty,
-                  style: tokens
-                      .text(OnCareTypography.label)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-                const SizedBox(height: OnCareSpacing.s2),
-                Text(
-                  l.progEmptyHint,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ],
+            child: AppEmptyState(
+              title: l.progEmpty,
+              message: l.progEmptyHint,
+              placement: AppStatePlacement.inline,
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),

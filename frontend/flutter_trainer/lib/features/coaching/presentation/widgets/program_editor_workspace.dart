@@ -1170,12 +1170,9 @@ class _SessionEditorState extends State<_SessionEditor> {
           if (widget.session.exercises.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-              child: Text(
-                l.programEditorSessionEmpty,
-                textAlign: TextAlign.center,
-                style: context.oncare
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
+              child: AppEmptyState(
+                title: l.programEditorSessionEmpty,
+                placement: AppStatePlacement.inline,
               ),
             ),
           for (

@@ -295,11 +295,9 @@ class _PendingInvitesList extends ConsumerWidget {
         placement: AppStatePlacement.card,
       ),
       data: (rows) => rows.isEmpty
-          ? Text(
-              l.clientInvitePendingEmpty,
-              style: context.oncare
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textTertiary),
+          ? AppEmptyState(
+              title: l.clientInvitePendingEmpty,
+              placement: AppStatePlacement.inline,
             )
           : Column(
               children: <Widget>[

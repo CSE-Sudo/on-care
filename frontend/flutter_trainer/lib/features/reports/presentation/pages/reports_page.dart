@@ -883,11 +883,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               // 않는다.
               Row(
                 children: <Widget>[
-                  AppButton(
+                  AppBackLink(
                     key: const ValueKey<String>('reports-back-to-list'),
                     label: l.reportsBackToWorkbench,
-                    variant: AppButtonVariant.text,
-                    leadingIcon: Icons.chevron_left_rounded,
                     onPressed: () => context.go(_locationFor(null)),
                   ),
                   const SizedBox(width: OnCareSpacing.s8),

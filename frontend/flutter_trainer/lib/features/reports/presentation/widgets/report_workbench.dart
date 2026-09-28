@@ -352,13 +352,10 @@ class ReportWorkbench extends StatelessWidget {
       ],
     );
     final Widget? empty = done.isEmpty
-        ? Text(
-            l.reportsSentColumnEmpty,
+        ? AppEmptyState(
             key: const ValueKey<String>('reports-sent-empty'),
-            textAlign: fill ? TextAlign.center : TextAlign.start,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
+            title: l.reportsSentColumnEmpty,
+            placement: AppStatePlacement.inline,
           )
         : null;
     return _WorkbenchBox(
@@ -377,7 +374,7 @@ class ReportWorkbench extends StatelessWidget {
           // 가는지 읽히지 않는다(#2394).
           AppCard(
             key: ValueKey<String>('reports-sent-${entry.client.id}'),
-            padding: _rowPadding,
+            padding: AppCard.compactPadding,
             child: _SentRow(
               entry: entry,
               record: records[entry.client.id],
@@ -452,12 +449,6 @@ class _WorkbenchBox extends StatelessWidget {
     );
   }
 }
-
-/// 작업대 줄 카드의 안쪽 여백 — 미전송·전송 완료 줄이 같은 값을 쓴다(#2397).
-const EdgeInsets _rowPadding = EdgeInsets.symmetric(
-  horizontal: OnCareSpacing.s16,
-  vertical: OnCareSpacing.s12,
-);
 
 /// 전송 완료 열의 한 줄 — 누구에게, 언제 나갔고, 열어 봤는가.
 class _SentRow extends StatelessWidget {
@@ -721,7 +712,7 @@ class _QueueRow extends StatelessWidget {
 
     return AppCard(
       key: ValueKey<String>('reports-queue-${entry.client.id}'),
-      padding: _rowPadding,
+      padding: AppCard.compactPadding,
       child: LayoutBuilder(
         builder: (context, constraints) {
           // 이름 칸·이유·버튼이 한 줄에 다 서려면 이유가 설 자리가 있어야

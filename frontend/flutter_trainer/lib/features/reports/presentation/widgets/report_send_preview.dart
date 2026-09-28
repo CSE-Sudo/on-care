@@ -260,14 +260,14 @@ class _RecipientCard extends StatelessWidget {
             icon: Icons.picture_as_pdf_rounded,
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          _Field(
-            fieldKey: 'report-send-preview-recipient',
+          AppKeyValueRow(
+            valueKey: const ValueKey<String>('report-send-preview-recipient'),
             label: l.reportsPreviewRecipient,
             value: report.client.name,
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          _Field(
-            fieldKey: 'report-send-preview-week',
+          AppKeyValueRow(
+            valueKey: const ValueKey<String>('report-send-preview-week'),
             label: l.reportsPreviewWeek,
             value: report.rangeLabel(l),
           ),
@@ -280,49 +280,6 @@ class _RecipientCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Field extends StatelessWidget {
-  const _Field({
-    required this.fieldKey,
-    required this.label,
-    required this.value,
-  });
-
-  final String fieldKey;
-  final String label;
-  final String value;
-
-  /// 이름 칸 폭 — 두 줄의 값이 같은 세로선에서 시작하게 한다.
-  static const double _labelWidth = 72;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(
-          width: _labelWidth,
-          child: Text(
-            label,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            key: ValueKey<String>(fieldKey),
-            style: tokens.text(
-              OnCareTypography.strong(OnCareTypography.bodySmall),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

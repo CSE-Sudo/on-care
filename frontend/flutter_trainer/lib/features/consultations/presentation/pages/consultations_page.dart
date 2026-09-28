@@ -89,20 +89,17 @@ class ConsultationsPage extends ConsumerWidget {
           children: <Widget>[
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: AppButton(
+              child: AppBackLink(
                 key: const ValueKey<String>('consultations-back-to-schedule'),
                 label: fromDashboard
                     ? l.consultBackToDashboard
                     : l.consultBackToSchedule,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-                leadingIcon: Icons.chevron_left_rounded,
                 onPressed: () => context.go(
                   fromDashboard ? AppRoutes.dashboard : AppRoutes.schedule,
                 ),
               ),
             ),
-            const SizedBox(height: OnCareSpacing.s16),
+            const SizedBox(height: OnCareSpacing.s8),
             const _Inbox(),
           ],
         ),

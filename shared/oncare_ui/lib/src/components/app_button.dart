@@ -90,9 +90,11 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final double height = tokens.density.buttonHeight(size);
-    final (Color background, Color foreground, BorderSide? side) = switch (
-      variant
-    ) {
+    final (
+      Color background,
+      Color foreground,
+      BorderSide? side,
+    ) = switch (variant) {
       AppButtonVariant.primary => (
         tokens.brand.primary,
         OnCareColors.textOnFill,
@@ -113,11 +115,7 @@ class AppButton extends StatelessWidget {
         tokens.brand.strong,
         BorderSide(color: tokens.brand.strong),
       ),
-      AppButtonVariant.text => (
-        Colors.transparent,
-        tokens.brand.primary,
-        null,
-      ),
+      AppButtonVariant.text => (Colors.transparent, tokens.brand.primary, null),
       AppButtonVariant.destructive => (
         OnCareColors.danger,
         OnCareColors.textOnFill,
@@ -191,10 +189,7 @@ class AppButton extends StatelessWidget {
     final Widget content = loading
         ? SizedBox.square(
             dimension: OnCareSize.inlineSpinner,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: foreground,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: foreground),
           )
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -213,11 +208,7 @@ class AppButton extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         child: Text(label, maxLines: 1, softWrap: false),
                       )
-                    : Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    : Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
               if (trailingIcon != null) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s4),
@@ -242,9 +233,7 @@ class AppButton extends StatelessWidget {
         child: AbsorbPointer(child: button),
       );
     }
-    return fullWidth
-        ? SizedBox(width: double.infinity, child: button)
-        : button;
+    return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
   }
 }
 
@@ -359,6 +348,30 @@ class AppActionRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 탭 안 하위 화면의 뒤로가기 `‹ 윗 화면`(#2469) — 작은 글자 버튼 + 꺾쇠.
+///
+/// 본문 맨 위(또는 머리 줄 맨 앞)에 두고, 뒤 간격은 [OnCareSpacing.s8] 이다.
+/// 트레이너웹 상담·코칭·리포트·마이의 하위 화면이 모두 이 한 모양을 쓴다.
+/// 분할 화면 패널 머리의 아이콘 뒤로는 [AppBackButton] 이다.
+class AppBackLink extends StatelessWidget {
+  const AppBackLink({super.key, required this.label, required this.onPressed});
+
+  /// 돌아갈 곳을 말하는 글.
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppButton(
+      label: label,
+      onPressed: onPressed,
+      variant: AppButtonVariant.text,
+      size: OnCareButtonSize.small,
+      leadingIcon: AppIcon.setOf(context).back,
     );
   }
 }

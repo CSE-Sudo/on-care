@@ -116,10 +116,8 @@ class AppSidebar extends ConsumerWidget {
                 children: <Widget>[
                   for (var i = 0; i < navDestinations.length; i++) ...<Widget>[
                     if (expanded && (i == 0 || i == 4))
-                      _NavGroupLabel(
-                        label: i == 0
-                            ? l.navOperationsGroup
-                            : l.navCoachingGroup,
+                      AppOverline(
+                        i == 0 ? l.navOperationsGroup : l.navCoachingGroup,
                       ),
                     _NavTile(
                       destination: navDestinations[i],
@@ -168,30 +166,6 @@ class AppSidebar extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _NavGroupLabel extends StatelessWidget {
-  const _NavGroupLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        OnCareSpacing.s12,
-        OnCareSpacing.s12,
-        OnCareSpacing.s12,
-        OnCareSpacing.s4,
-      ),
-      child: Text(
-        label,
-        style: context.oncare
-            .text(OnCareTypography.strong(OnCareTypography.caption))
-            .copyWith(color: OnCareColors.textTertiary),
       ),
     );
   }

@@ -60,12 +60,10 @@ class SentReportView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppBackLink(
               key: const ValueKey<String>('reports-sent-back'),
               label: backLabel ?? l.reportsBackToWorkbench,
-              variant: AppButtonVariant.text,
-              leadingIcon: Icons.chevron_left_rounded,
               onPressed: onBack,
             ),
           ),

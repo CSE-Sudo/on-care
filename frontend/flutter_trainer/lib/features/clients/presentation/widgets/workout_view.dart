@@ -551,10 +551,7 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
         .text(OnCareTypography.caption)
         .copyWith(color: OnCareColors.textTertiary);
     return AppCard(
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s16,
-        vertical: OnCareSpacing.s12,
-      ),
+      padding: AppCard.compactPadding,
       child: Row(
         children: <Widget>[
           Expanded(
