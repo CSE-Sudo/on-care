@@ -617,6 +617,29 @@ void main() {
     );
   });
 
+  testWidgets('분할 보기에서도 `<` 가 있고, 누르면 필터를 지킨 채 대화를 닫는다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(tester, token: 'demo-trainer-token-existing');
+      await goTo(
+        tester,
+        AppRoutes.messagesFor('seed-client-1', filter: 'unread'),
+      );
+
+      final back = find.byKey(const ValueKey<String>('messages-thread-back'));
+      expect(back, findsOneWidget);
+      await tester.tap(back);
+      await settle(tester);
+
+      final uri = GoRouter.of(
+        tester.element(find.byType(Navigator).first),
+      ).routerDelegate.currentConfiguration.uri;
+      expect(uri.queryParameters['client'], isNull);
+      expect(uri.queryParameters['f'], 'unread');
+      expect(back, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('detected discomfort can be persisted as a trainer memo', (
     tester,
   ) async {
