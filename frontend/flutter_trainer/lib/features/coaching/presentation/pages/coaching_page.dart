@@ -1370,6 +1370,11 @@ class _TemplateCard extends ConsumerWidget {
               SizedBox(
                 width: width,
                 child: AppTile(
+                  key: ValueKey<String>('template-card-${template.id}'),
+                  // 중립 회색이다. 옅은 네이비로 두면 화면의 다른 네이비
+                  // 강조와 섞여 **이미 고른 템플릿처럼** 보인다 — 고르기
+                  // 전인데 고른 것으로 읽힌다(#2220).
+                  tone: AppTileTone.neutral,
                   onTap: () => onApply(template),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
