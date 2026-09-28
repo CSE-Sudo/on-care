@@ -6,13 +6,25 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
+import 'package:oncare_trainer/features/reports/data/repositories/report_trend_repository.dart';
+import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
+import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_review_cards.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
+import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
@@ -25,6 +37,7 @@ WeeklyReport _report({
   String name = '김민수',
   int? completionAvg = 86,
   List<int> weekCompletion = const <int>[100, 50, 0, 67, 100, 100, 100],
+  MemberWeeklyFeedback? memberFeedback,
 }) => WeeklyReport(
   client: makeClient(name: name),
   weekStart: _week,
@@ -46,6 +59,7 @@ WeeklyReport _report({
   proteinTarget: 120,
   fatTarget: 60,
   mealCounts: const <int>[3, 3, 0, 2, 3, 2, 3],
+  memberFeedback: memberFeedback,
   days: const <ReportDay>[
     ReportDay(completion: 100, exercises: <String>['스쿼트', '런지'], assigned: 2),
     ReportDay(completion: 50, exercises: <String>['벤치프레스'], assigned: 2),
@@ -55,6 +69,38 @@ WeeklyReport _report({
     ReportDay(completion: 100, exercises: <String>['사이클'], assigned: 1),
     ReportDay(completion: 100, exercises: <String>['스트레칭'], assigned: 1),
   ],
+);
+
+/// ③ 운동 추세가 읽는 여덟 주. 보낸 리포트도 편집기와 같은 추세 카드를
+/// 그린다(#2425) — 이번 주 한 칸이면 도넛이 선다.
+final ReportTrend _trend = ReportTrend(
+  weeks: <ReportTrendWeek>[
+    ReportTrendWeek(
+      weekStart: _week,
+      cardioMinutes: 90,
+      strengthSets: 12,
+      stretchingMinutes: 30,
+      cardioCalories: 520,
+      strengthCalories: 310,
+      stretchingCalories: 80,
+    ),
+  ],
+  goals: const ExerciseBurnGoals(),
+);
+
+/// 편집기·보낸 리포트가 함께 쓰는 앱 틀. 추세 카드가 provider 를 읽어
+/// [ProviderScope] 가 필요하다.
+Widget _app(Widget child, {String locale = 'ko'}) => ProviderScope(
+  overrides: <Override>[
+    reportTrendProvider.overrideWith((ref, key) async => _trend),
+  ],
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: Locale(locale),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  ),
 );
 
 ReportSendRecord _record({
@@ -83,24 +129,21 @@ Future<({int back, int rewrite})> _pump(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
-    MaterialApp(
-      theme: AppTheme.light(),
-      locale: Locale(locale),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(OnCareSpacing.s16),
-          child: SentReportView(
-            report: report ?? _report(),
-            record: record ?? _record(),
-            onBack: () => back++,
-            onRewrite: () => rewrite++,
-          ),
+    _app(
+      Padding(
+        padding: const EdgeInsets.all(OnCareSpacing.s16),
+        child: SentReportView(
+          report: report ?? _report(),
+          record: record ?? _record(),
+          onBack: () => back++,
+          onRewrite: () => rewrite++,
         ),
       ),
+      locale: locale,
     ),
   );
+  // 추세는 비동기 provider 다 — 한 번 더 그려야 도넛이 선다.
+  await tester.pump();
   await tester.pump();
   return (back: back, rewrite: rewrite);
 }
@@ -172,18 +215,12 @@ void main() {
     // 나서 예외가 없고 버튼이 살아 있는지를 본다.
     int back = 0;
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('ko'),
-        home: Scaffold(
-          body: SentReportView(
-            report: _report(),
-            record: _record(),
-            onBack: () => back++,
-            onRewrite: () {},
-          ),
+      _app(
+        SentReportView(
+          report: _report(),
+          record: _record(),
+          onBack: () => back++,
+          onRewrite: () {},
         ),
       ),
     );
@@ -198,18 +235,12 @@ void main() {
   testWidgets('이 내용으로 다시 쓰는 길이 있다', (tester) async {
     int rewrite = 0;
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('ko'),
-        home: Scaffold(
-          body: SentReportView(
-            report: _report(),
-            record: _record(),
-            onBack: () {},
-            onRewrite: () => rewrite++,
-          ),
+      _app(
+        SentReportView(
+          report: _report(),
+          record: _record(),
+          onBack: () {},
+          onRewrite: () => rewrite++,
         ),
       ),
     );
@@ -223,10 +254,141 @@ void main() {
     expect(rewrite, 1);
   });
 
-  testWidgets('그때 보낸 수치도 함께 남는다 — 글만으로는 근거를 되짚을 수 없다', (tester) async {
+  testWidgets('편집기 ① 확인의 카드를 그대로 세운다 — 그래프까지 같은 위젯이다', (tester) async {
     await _pump(tester);
 
-    expect(find.text('그때 보낸 수치'), findsOneWidget);
+    // 따로 그린 요약 카드가 아니라 편집기와 같은 묶음이다(#2425).
+    expect(find.byType(ReportReviewCards), findsOneWidget);
+    expect(find.byType(MemberFeedbackCard), findsOneWidget);
+    expect(find.byType(ReportWeekGrid), findsOneWidget);
+    expect(find.byType(ReportMacroBars), findsOneWidget);
+    expect(find.byType(ReportExerciseTrend), findsOneWidget);
+    // 카드 제목도 편집기의 번호·제목 그대로다.
+    expect(find.text(_ko.reportsCardWeekTitle), findsOneWidget);
+    expect(find.text(_ko.reportsExerciseTrend), findsOneWidget);
+    // 추세 카드는 비어 있지 않고 도넛을 그린다.
+    expect(
+      find.byKey(const ValueKey<String>('report-trend-empty')),
+      findsNothing,
+    );
+    // 예전의 따로 그린 `그때 보낸 수치` 카드는 없다.
+    expect(find.text('그때 보낸 수치'), findsNothing);
+  });
+
+  testWidgets('편집기 ② 작성의 피드백 카드에 보낸 글이 선다', (tester) async {
+    await _pump(tester, record: _record(message: '그때 보낸 글입니다'));
+
+    final Finder card = find.byType(ReportFeedbackCard);
+    expect(card, findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.text(_ko.reportsFeedbackTitle)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.text('그때 보낸 글입니다')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('① 확인 카드가 ② 작성 피드백보다 먼저 선다 — 편집기 차례 그대로', (tester) async {
+    await _pump(tester);
+
+    final double review = tester.getTopLeft(find.byType(ReportReviewCards)).dy;
+    final double feedback = tester
+        .getTopLeft(find.byType(ReportFeedbackCard))
+        .dy;
+    expect(review, lessThan(feedback));
+  });
+
+  testWidgets('회원이 낸 답도 편집기와 같은 카드로 보인다', (tester) async {
+    await _pump(
+      tester,
+      report: _report(
+        memberFeedback: MemberWeeklyFeedback(
+          weekStart: _week,
+          condition: WeekCondition.tired,
+          intensity: WeekIntensity.hard,
+          note: '무릎이 좀 뻐근했어요',
+        ),
+      ),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byType(MemberFeedbackCard),
+        matching: find.byKey(const ValueKey<String>('report-feedback-note')),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('무릎이 좀 뻐근했어요'), findsOneWidget);
+  });
+
+  testWidgets('편집기 ① 확인도 같은 카드 묶음을 쓴다', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: ClientReportView(
+            stage: ReportEditorStage.review,
+            report: _report(),
+            showSummary: true,
+            draftEpoch: 0,
+            summaryEpoch: 0,
+            initialFeedback: '',
+            onUseSummaryAsDraft: (_) {},
+            onFeedbackChanged: (_) {},
+            savingFeedback: false,
+            onSaveFeedback: () {},
+            weekNav: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(ReportReviewCards), findsOneWidget);
+    // ① 에는 쓰는 자리가 없다.
+    expect(find.byType(ReportFeedbackCard), findsNothing);
+  });
+
+  testWidgets('편집기 ② 작성도 같은 피드백 카드 틀에 입력창을 담는다', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: ClientReportView(
+            stage: ReportEditorStage.write,
+            report: _report(),
+            showSummary: true,
+            draftEpoch: 0,
+            summaryEpoch: 0,
+            initialFeedback: '초안',
+            onUseSummaryAsDraft: (_) {},
+            onFeedbackChanged: (_) {},
+            savingFeedback: false,
+            onSaveFeedback: () {},
+            weekNav: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final Finder card = find.byType(ReportFeedbackCard);
+    expect(card, findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.byType(TextField)),
+      findsOneWidget,
+    );
+    expect(find.byType(ReportReviewCards), findsNothing);
+  });
+
+  testWidgets('읽기 전용 피드백이 비어 있으면 `피드백 없음` 을 적는다', (tester) async {
+    await tester.pumpWidget(
+      _app(const ReportFeedbackCard(child: ReportFeedbackText(text: '  '))),
+    );
+
+    expect(find.text(_ko.reportsPdfNoFeedback), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets('이름이 바뀌면 제목도 그 회원을 가리킨다', (tester) async {
@@ -243,15 +405,14 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('보낸 피드백'), findsOneWidget);
+    expect(find.text(_ko.reportsFeedbackTitle), findsOneWidget);
   });
 
   testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
     await _pump(tester, locale: 'en');
 
     expect(find.text('Report sent to 김민수'), findsOneWidget);
-    expect(find.text('Message sent'), findsOneWidget);
-    expect(find.text('Figures sent'), findsOneWidget);
+    expect(find.text('Trainer feedback'), findsOneWidget);
     expect(find.text('Rewrite from this'), findsOneWidget);
     expect(find.text("This week's reports"), findsOneWidget);
   });
@@ -260,9 +421,15 @@ void main() {
     await _pump(tester, locale: 'en');
 
     final RegExp hangul = RegExp(r'[가-힣]');
+    // 운동 이름은 트레이너가 적은 사용자 데이터라 번역하지 않는다 — ① 격자가
+    // 그대로 옮겨 적는다.
+    final Set<String> exercises = <String>{
+      for (final ReportDay day in _report().days) ...day.exercises,
+    };
     for (final String t in _texts(tester)) {
       // 회원 이름은 사람 이름이라 번역하지 않는다.
       if (t.contains('김민수')) continue;
+      if (exercises.any(t.contains)) continue;
       expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
     }
   });
