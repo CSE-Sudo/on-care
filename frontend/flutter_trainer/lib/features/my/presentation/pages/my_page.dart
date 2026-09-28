@@ -15,6 +15,7 @@ import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
@@ -148,8 +149,26 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (_section == _MySection.edit) _loadDrafts();
   }
 
+  /// 새로 고침·탭 닫기 지킴이 켜져 있는가(프로필 수정 화면에서만).
+  bool _leaveGuarded = false;
+
+  /// 프로필 수정 화면에 있는 동안 새로 고침·탭 닫기 앞에서 브라우저가 묻게 한다.
+  /// 앱 안의 이동은 [_go] 가 묻는다. 막을지는 떠나는 그 순간에 정한다 —
+  /// 고친 것이 없거나 저장 중이면 묻지 않는다.
+  void _syncLeaveGuard() {
+    final bool want = _section == _MySection.edit;
+    if (want == _leaveGuarded) return;
+    _leaveGuarded = want;
+    setLeaveGuard(
+      want
+          ? () => mounted && _section == _MySection.edit && !_saving && _isDirty
+          : null,
+    );
+  }
+
   @override
   void dispose() {
+    if (_leaveGuarded) setLeaveGuard(null);
     _flashTimer?.cancel();
     for (final c in _fields.values) {
       c.dispose();
@@ -508,6 +527,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final _MySection section = _section;
+    _syncLeaveGuard();
     if (section == _MySection.edit) {
       // 헬스장 목록이 수정 화면을 연 뒤에 도착해도 같은 이름이면 연결한다.
       ref.listen(trainerGymChoicesProvider, (_, next) {
