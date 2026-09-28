@@ -4684,6 +4684,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSortNameDescending => 'Name Z–A';
 
   @override
+  String get reportsSentSortUnread => 'Unread first';
+
+  @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total sent';
   }
@@ -4750,10 +4753,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSentUnread => 'Unread';
-
-  @override
-  String get reportsSentUnreadHint =>
-      'Members who haven\'t opened theirs move to the top next week.';
 
   @override
   String get reportsBackToWorkbench => 'This week\'s reports';
@@ -4841,6 +4840,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsStepSend => 'Send';
+
+  @override
+  String get reportsStepPrint => 'Print';
+
+  @override
+  String get reportsPrintNeedsPdf =>
+      'You can print once the preview PDF is ready';
+
+  @override
+  String get reportsPrintFailed =>
+      'Couldn\'t open the print dialog. Please try again';
 
   @override
   String get reportsStepperLabel => 'Weekly report steps';
@@ -5118,9 +5128,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportsTrendTrackedTimes(int count) {
     return '$count×';
   }
-
-  @override
-  String get reportsSkipToWrite => 'Write without a draft';
 
   @override
   String reportsCalorieThisWeekAvg(String kcal) {

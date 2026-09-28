@@ -6,6 +6,7 @@ import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -22,6 +23,8 @@ class ReportWorkbench extends StatelessWidget {
     required this.entries,
     required this.sort,
     required this.onSortChanged,
+    required this.sentSort,
+    required this.onSentSortChanged,
     required this.onOpen,
     required this.onOpenSent,
     required this.onHistory,
@@ -39,6 +42,12 @@ class ReportWorkbench extends StatelessWidget {
 
   /// 정렬을 바꿀 때.
   final ValueChanged<ReportQueueSort> onSortChanged;
+
+  /// 전송 완료 목록 순서(#2447).
+  final ReportSentSort sentSort;
+
+  /// 전송 완료 정렬을 바꿀 때.
+  final ValueChanged<ReportSentSort> onSentSortChanged;
 
   /// 미전송 줄의 `열기` — 편집기로 들어간다.
   final ValueChanged<ReportQueueEntry> onOpen;
@@ -87,10 +96,14 @@ class ReportWorkbench extends StatelessWidget {
       for (final ReportQueueEntry e in entries)
         if (!e.sent) e,
     ];
-    final List<ReportQueueEntry> done = <ReportQueueEntry>[
-      for (final ReportQueueEntry e in entries)
-        if (e.sent) e,
-    ];
+    final List<ReportQueueEntry> done = sortSentEntries(
+      <ReportQueueEntry>[
+        for (final ReportQueueEntry e in entries)
+          if (e.sent) e,
+      ],
+      records: records,
+      sort: sentSort,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -271,6 +284,14 @@ class ReportWorkbench extends StatelessWidget {
     );
   }
 
+  String _sentSortLabel(AppLocalizations l, ReportSentSort value) {
+    return switch (value) {
+      ReportSentSort.unreadFirst => l.reportsSentSortUnread,
+      ReportSentSort.name => l.reportsSortName,
+      ReportSentSort.nameDescending => l.reportsSortNameDescending,
+    };
+  }
+
   String _sortLabel(AppLocalizations l, ReportQueueSort value) {
     return switch (value) {
       ReportQueueSort.priority => l.reportsSortPriority,
@@ -286,19 +307,48 @@ class ReportWorkbench extends StatelessWidget {
     required bool fill,
   }) {
     final OnCareTokens tokens = context.oncare;
-    final Widget head = Row(
+    // 미전송 상자와 같은 머리 — 제목·배지 왼쪽, `정렬: … ▾` 오른쪽(#2447).
+    final Widget head = Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: OnCareSpacing.s12,
+      runSpacing: OnCareSpacing.s8,
       children: <Widget>[
-        Text(
-          l.reportsSentColumn,
-          style: tokens.text(
-            OnCareTypography.strong(OnCareTypography.bodySmall),
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              l.reportsSentColumn,
+              style: tokens.text(
+                OnCareTypography.strong(OnCareTypography.bodySmall),
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            // 미전송 배지와 같은 톤 — 회색이면 보조 정보처럼 읽혔다(#2397).
+            AppTag(
+              label: l.reportsCountPeople(done.length),
+              tone: AppTagTone.brand,
+            ),
+          ],
         ),
-        const SizedBox(width: OnCareSpacing.s8),
-        // 미전송 배지와 같은 톤 — 회색이면 보조 정보처럼 읽혔다(#2397).
-        AppTag(
-          label: l.reportsCountPeople(done.length),
-          tone: AppTagTone.brand,
+        AppMenu(
+          items: <AppMenuItem>[
+            for (final ReportSentSort item in ReportSentSort.values)
+              AppMenuItem(
+                key: ValueKey<String>('reports-sent-sort-${item.name}'),
+                label: _sentSortLabel(l, item),
+                selected: item == sentSort,
+                onSelected: () => onSentSortChanged(item),
+              ),
+          ],
+          triggerBuilder: (context, toggle) => AppButton(
+            key: const ValueKey<String>('reports-sent-sort-button'),
+            label: '${l.reportsSortLabel}: ${_sentSortLabel(l, sentSort)}',
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            trailingIcon: AppIcons.expandMore,
+            onPressed: toggle,
+          ),
         ),
       ],
     );
@@ -337,26 +387,14 @@ class ReportWorkbench extends StatelessWidget {
             ),
           ),
       ],
-      // 열람 여부가 다음 주 순서에 어떻게 쓰이는지 한 줄로 밝힌다 — `안 읽음`
-      // 배지가 그냥 표시가 아니라는 뜻이다. 목록과 함께 내려가지 않게 상자
-      // 바닥에 둔다(#2396).
-      foot: done.any((e) => records[e.client.id]?.read == false)
-          ? Text(
-              l.reportsSentUnreadHint,
-              key: const ValueKey<String>('reports-sent-unread-hint'),
-              style: tokens
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
-            )
-          : null,
     );
   }
 }
 
-/// 작업대의 상자 하나 — 머리, 목록, (있으면) 바닥 안내.
+/// 작업대의 상자 하나 — 머리와 목록.
 ///
 /// [fill] 이면 상자가 받은 높이를 다 채우고 **목록만** 안에서 스크롤한다 —
-/// 머리와 바닥 안내는 제자리에 선다. 아니면 목록 길이만큼 서서 바깥 페이지
+/// 머리는 제자리에 선다. 아니면 목록 길이만큼 서서 바깥 페이지
 /// 스크롤을 따른다(#2396).
 class _WorkbenchBox extends StatelessWidget {
   const _WorkbenchBox({
@@ -366,7 +404,6 @@ class _WorkbenchBox extends StatelessWidget {
     required this.head,
     required this.rows,
     this.empty,
-    this.foot,
   });
 
   final Key listKey;
@@ -374,12 +411,10 @@ class _WorkbenchBox extends StatelessWidget {
   final Widget head;
   final List<Widget> rows;
   final Widget? empty;
-  final Widget? foot;
 
   @override
   Widget build(BuildContext context) {
     final Widget? emptyState = empty;
-    final Widget? footer = foot;
     final Widget body;
     if (emptyState != null) {
       // 한쪽이 비어도 상자 크기는 그대로 — 빈 문구는 가운데에 선다.
@@ -413,10 +448,6 @@ class _WorkbenchBox extends StatelessWidget {
           head,
           const SizedBox(height: OnCareSpacing.s12),
           if (fill) Expanded(child: body) else body,
-          if (footer != null) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            footer,
-          ],
         ],
       ),
     );
@@ -471,13 +502,29 @@ class _SentRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(
-                entry.client.name,
+              // 미전송 줄처럼 이름 옆에 성별·나이를 적는다(#2447) — 같은
+              // 회원이 두 상자에서 다른 정보량으로 서지 않게.
+              Text.rich(
+                TextSpan(
+                  children: <InlineSpan>[
+                    TextSpan(
+                      text: entry.client.name,
+                      style: tokens.text(
+                        OnCareTypography.strong(OnCareTypography.bodySmall),
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          '  ${clientDemographicsLabel(context, entry.client)}',
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textSecondary),
+                    ),
+                  ],
+                ),
+                key: ValueKey<String>('reports-sent-name-${entry.client.id}'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: tokens.text(
-                  OnCareTypography.strong(OnCareTypography.bodySmall),
-                ),
               ),
               Text(
                 subtitle,

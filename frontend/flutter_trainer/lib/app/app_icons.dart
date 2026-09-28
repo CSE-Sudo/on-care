@@ -168,6 +168,9 @@ class AppIcons {
   static const IconData editSchedule = Symbols.edit_calendar_rounded;
   static const IconData history = Symbols.history_rounded;
 
+  /// 리포트 인쇄(#2451).
+  static const IconData print = Symbols.print_rounded;
+
   /// 보낸 기록이 없을 때.
   static const IconData sent = Symbols.outbox_rounded;
   static const IconData keyboard = Symbols.keyboard_rounded;

@@ -735,11 +735,14 @@ void main() {
         of: find.byKey(const ValueKey<String>('reports-sent-a')),
         matching: find.byType(Text),
       );
+      // 이름 줄은 성별·나이를 이어 붙인 Text.rich 라 span 까지 읽는다(#2447).
       final List<String> texts = <String>[
         for (final Element e in inCard.evaluate())
-          (e.widget as Text).data ?? '',
+          (e.widget as Text).data ??
+              (e.widget as Text).textSpan?.toPlainText() ??
+              '',
       ];
-      expect(texts, contains('가회원'));
+      expect(texts.any((t) => t.startsWith('가회원')), isTrue);
       expect(texts.any((t) => t.contains('전송')), isTrue);
     });
   });

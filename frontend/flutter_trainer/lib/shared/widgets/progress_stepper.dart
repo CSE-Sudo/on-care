@@ -25,6 +25,7 @@ class ProgressStepper extends StatelessWidget {
     this.keyPrefix = 'stage',
     this.skipped = const <int>{},
     this.skippedLabel = '',
+    this.gap = defaultGap,
   });
 
   /// 단계 이름. 로케일을 따르므로 호출자가 만들어 넘긴다. 칸 수는 받은
@@ -54,6 +55,12 @@ class ProgressStepper extends StatelessWidget {
   /// 건너뛴 칸 아래에 붙는 말.
   final String skippedLabel;
 
+  /// 원과 원 사이 간격. 리포트 편집기는 기본의 두 배를 쓴다(#2449).
+  final double gap;
+
+  /// 기본 원 사이 간격.
+  static const double defaultGap = OnCareSpacing.s48 + OnCareSpacing.s32;
+
   /// 번호 원의 지름.
   static const double _circle = OnCareSize.avatarMedium;
 
@@ -62,8 +69,7 @@ class ProgressStepper extends StatelessWidget {
   /// 칸 폭이 곧 **원 중심 사이의 거리**다. 화면 폭을 n등분하면 창이 넓어질수록
   /// 원들이 좌우 끝으로 멀어진다. 단계 표시는 "몇 걸음 중 몇 번째"를 읽는 작은
   /// 눈금이라, 폭과 무관하게 같은 간격으로 모여 가운데에 선다.
-  static const double _stepWidth =
-      _circle + OnCareSpacing.s48 + OnCareSpacing.s32;
+  double get _stepWidth => _circle + gap;
 
   bool _open(int index) => index <= maxReachedStage && !skipped.contains(index);
 
