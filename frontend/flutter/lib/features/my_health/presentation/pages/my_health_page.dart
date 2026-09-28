@@ -172,6 +172,40 @@ class _CoachReportsEntry extends ConsumerWidget {
   }
 }
 
+/// MY 탭의 이동 행 — 앞머리 아이콘 칸, 제목(+부제), 오른쪽 화살표.
+///
+/// 설정 목록과 트레이너 리포트 입구가 함께 쓴다(#2482). 아이콘 색·크기와
+/// 화살표 규격을 한곳에 두어, 한 상자만 기본 아이콘 테마로 그려지는 일을 막는다.
+class _MyNavRow extends StatelessWidget {
+  const _MyNavRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListRow(
+      leading: _IconTile(icon: icon),
+      title: title,
+      subtitle: subtitle,
+      trailing: const AppIcon(
+        AppIcons.chevronRight,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textTertiary,
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
 /// 헤더 알림 버튼 — 읽지 않은 알림이 있으면 빨간 점을 단다.
 class _BellButton extends StatelessWidget {
   const _BellButton({required this.hasUnread, required this.onPressed});
@@ -1329,14 +1363,9 @@ class _Settings extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               for (final _SettingItem item in _items) ...<Widget>[
-                AppListRow(
-                  leading: _IconTile(icon: item.icon),
+                _MyNavRow(
+                  icon: item.icon,
                   title: _label(l, item.id),
-                  trailing: const AppIcon(
-                    AppIcons.chevronRight,
-                    size: OnCareSize.iconMedium,
-                    color: OnCareColors.textTertiary,
-                  ),
                   onTap: () => onTap(item.id),
                 ),
                 const AppDivider(),
