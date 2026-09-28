@@ -19,6 +19,7 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_send
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_printer.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -1666,6 +1667,189 @@ void main() {
     pending.complete(Uint8List.fromList(_pdfBytes));
     await settle(tester);
   });
+
+  group('③ 인쇄 (#2451)', () {
+    final Finder printButton = find.byKey(
+      const ValueKey<String>('report-step-print'),
+    );
+
+    /// 하단 `인쇄` 버튼이 눌리는가.
+    bool printEnabled(WidgetTester tester) =>
+        tester.widget<AppButton>(printButton).onPressed != null;
+
+    Future<void> tapPrint(WidgetTester tester) async {
+      await tester.ensureVisible(printButton);
+      await tester.pump();
+      await tester.tap(printButton);
+      await settle(tester);
+    }
+
+    testWidgets('인쇄 버튼은 ③ 에만 있고 전송 바로 왼쪽에 선다', (tester) async {
+      await openReports(tester);
+      expect(printButton, findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+      await settle(tester);
+      expect(printButton, findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+      await settle(tester);
+      expect(printButton, findsOneWidget);
+      expect(sendButton, findsOneWidget);
+      // 같은 줄, 전송의 왼쪽.
+      expect(
+        tester.getCenter(printButton).dy,
+        moreOrLessEquals(tester.getCenter(sendButton).dy),
+      );
+      expect(
+        tester.getTopRight(printButton).dx,
+        lessThan(tester.getTopLeft(sendButton).dx),
+      );
+      expect(find.text('인쇄'), findsOneWidget);
+    });
+
+    testWidgets('인쇄는 미리보기와 같은 한 부를 전송과 같은 파일 이름으로 넘긴다', (tester) async {
+      final _FakePrinter printer = _FakePrinter();
+      final _FakeRasterizer raster = _FakeRasterizer();
+      final _QueuedPdfGenerator pdf = _QueuedPdfGenerator(<Future<Uint8List>>[
+        Future<Uint8List>.value(Uint8List.fromList(<int>[1, 2, 3, 4])),
+      ]);
+      await openReports(
+        tester,
+        stage: 2,
+        pdf: pdf,
+        raster: raster,
+        extraOverrides: <Override>[
+          reportPdfPrinterProvider.overrideWithValue(printer.call),
+        ],
+      );
+      expect(printEnabled(tester), isTrue);
+
+      await tapPrint(tester);
+
+      expect(printer.inputs, <List<int>>[
+        <int>[1, 2, 3, 4],
+      ]);
+      // 미리보기에 구운 것과 같은 바이트다.
+      expect(printer.inputs.single, raster.inputs.single);
+      // 인쇄한다고 PDF 를 새로 만들지 않는다.
+      expect(pdf.calls, 1);
+      expect(printer.names.single, endsWith('.pdf'));
+      expect(printer.names.single, startsWith('김민수_'));
+    });
+
+    testWidgets('PDF 를 만드는 동안에는 인쇄가 잠겨 있다', (tester) async {
+      final Completer<Uint8List> first = Completer<Uint8List>();
+      final _FakePrinter printer = _FakePrinter();
+      await openReports(
+        tester,
+        stage: 2,
+        pdf: _QueuedPdfGenerator(<Future<Uint8List>>[first.future]),
+        extraOverrides: <Override>[
+          reportPdfPrinterProvider.overrideWithValue(printer.call),
+        ],
+      );
+      expect(previewLoading, findsOneWidget);
+      expect(printEnabled(tester), isFalse);
+      // 잠긴 이유를 말해 준다.
+      expect(
+        tester
+            .widget<Tooltip>(
+              find.ancestor(of: printButton, matching: find.byType(Tooltip)),
+            )
+            .message,
+        '미리보기 PDF가 준비되면 인쇄할 수 있어요',
+      );
+
+      first.complete(Uint8List.fromList(_pdfBytes));
+      await settle(tester);
+      expect(printEnabled(tester), isTrue);
+      expect(printer.inputs, isEmpty);
+    });
+
+    testWidgets('PDF 를 만들지 못했으면 인쇄가 잠기고, 다시 만들면 풀린다', (tester) async {
+      final Completer<Uint8List> first = Completer<Uint8List>();
+      await openReports(
+        tester,
+        stage: 2,
+        pdf: _QueuedPdfGenerator(<Future<Uint8List>>[first.future]),
+        extraOverrides: <Override>[
+          reportPdfPrinterProvider.overrideWithValue(_FakePrinter().call),
+        ],
+      );
+
+      first.completeError(StateError('render failed'));
+      await settle(tester);
+      expect(previewFailed, findsOneWidget);
+      expect(printEnabled(tester), isFalse);
+
+      await tester.tap(
+        find.descendant(of: previewFailed, matching: find.text('다시 시도')),
+      );
+      await settle(tester);
+      expect(previewFailed, findsNothing);
+      expect(printEnabled(tester), isTrue);
+    });
+
+    testWidgets('인쇄 창을 열지 못하면 알리고 다시 누를 수 있다', (tester) async {
+      final _FakePrinter printer = _FakePrinter(fail: true);
+      await openReports(
+        tester,
+        stage: 2,
+        extraOverrides: <Override>[
+          reportPdfPrinterProvider.overrideWithValue(printer.call),
+        ],
+      );
+
+      await tapPrint(tester);
+
+      expect(find.text('인쇄 창을 열지 못했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(printEnabled(tester), isTrue);
+      // 인쇄 실패는 전송과 상관없다 — ③ 에 그대로 머문다.
+      expect(preview, findsOneWidget);
+      expect(sendEnabled(tester), isTrue);
+    });
+
+    testWidgets('인쇄 창이 떠 있는 동안에는 한 번 더 눌리지 않는다', (tester) async {
+      final Completer<bool> dialog = Completer<bool>();
+      final _FakePrinter printer = _FakePrinter(result: dialog.future);
+      await openReports(
+        tester,
+        stage: 2,
+        extraOverrides: <Override>[
+          reportPdfPrinterProvider.overrideWithValue(printer.call),
+        ],
+      );
+
+      await tapPrint(tester);
+      expect(printer.inputs, hasLength(1));
+      expect(printEnabled(tester), isFalse);
+      expect(tester.widget<AppButton>(printButton).loading, isTrue);
+
+      dialog.complete(true);
+      await settle(tester);
+      expect(printEnabled(tester), isTrue);
+      expect(tester.widget<AppButton>(printButton).loading, isFalse);
+      expect(printer.inputs, hasLength(1));
+    });
+
+    testWidgets('인쇄는 피드백이 비어 있어도 할 수 있다 — 전송만 잠긴다', (tester) async {
+      await openReports(
+        tester,
+        stage: 1,
+        extraOverrides: <Override>[
+          reportPdfPrinterProvider.overrideWithValue(_FakePrinter().call),
+        ],
+      );
+      await tester.enterText(feedbackField, '');
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+      await settle(tester);
+
+      expect(sendEnabled(tester), isFalse);
+      expect(printEnabled(tester), isTrue);
+    });
+  });
 }
 
 /// 저장한 초안을 기억하는 리포트 저장소. 리포트 본문·요약은 데모 계산을 그대로
@@ -1817,5 +2001,26 @@ class _FailingChatRepository extends DriftChatRepository {
     String? emoteId,
   }) async {
     throw StateError('send failed');
+  }
+}
+
+/// 인쇄 창 대신 넘겨받은 PDF 와 이름을 적어 둔다.
+class _FakePrinter {
+  _FakePrinter({this.fail = false, this.result});
+
+  /// 인쇄 창을 열지 못한 것처럼 던진다.
+  final bool fail;
+
+  /// 인쇄 창이 닫히는 때. 없으면 곧바로 닫힌다.
+  final Future<bool>? result;
+
+  final List<List<int>> inputs = <List<int>>[];
+  final List<String> names = <String>[];
+
+  Future<bool> call(Uint8List pdf, {required String name}) async {
+    inputs.add(pdf.toList());
+    names.add(name);
+    if (fail) throw StateError('print dialog unavailable');
+    return result ?? Future<bool>.value(true);
   }
 }
