@@ -44,6 +44,7 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 창 닫기 X | 웹은 하단 버튼이 있는 창에 두지 않고 하단 버튼이 없는 조회용 창에만 둔다. 모바일은 기본으로 둔다(`AppDialog.showClose` 기본값, #2465) |
 | 모서리 | 4 · 8 · 12(조작 요소) · 16 · 20(카드·창) · 알약 |
 | 세그먼트 토글 | 트랙·선택 칸 알약, 라벨 14(700), 높이는 글자 맞춤(칩 높이 아님), 트랙·비선택 글자색은 브랜드별(#1777). `thumb` 모양은 옅은 브랜드 띠 44 + 흰 엄지·브랜드 그림자(트레이너웹 식단/운동 전환) |
+| 카드 제목 | `AppSectionHeader` 한 모양 — `titleSmall` 검정 + 앞 아이콘 20(브랜드색) 또는 번호 원 22(순서대로 읽는 카드). 같은 줄 곁말 `titleMeta`(caption, 먼저 말줄임)·제목 옆 배지 `titleBadge`, 아래 줄 설명 `subtitle`(caption), 줄 끝 `trailing`(폭이 모자라면 `trailingFit`: 제 폭 / 반씩 나눠 줄어듦 / 다음 줄). 화면에서 `Row(Expanded(AppSectionHeader), …)` 로 감싸지 않는다 (#2468) |
 | 간격 | 4의 배수(2는 선·점 사이만) |
 | 아이콘 | 16 / 20 / 24 (빈 화면 40). 두 앱 모두 Material Symbols Rounded(채움, 굵기 400), 앱마다 `lib/app/app_icons.dart` 목록. 선택 상태는 색·배경으로 구분 |
 | 창 폭 | 웹 400 / 560 / 800, 모바일 확인창 400 · 시트 최대 높이 90% |

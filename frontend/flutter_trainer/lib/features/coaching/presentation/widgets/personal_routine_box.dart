@@ -66,29 +66,15 @@ class PersonalRoutineBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              const AppIcon(
-                AppIcons.personalRoutine,
-                size: OnCareSize.iconMedium,
-                color: OnCareColors.textSecondary,
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              Expanded(
-                child: Text(
-                  routineOnly
-                      ? l.aiRoutineOnlyProgramName
-                      : l.progPersonalRoutinesTitle,
-                  style: context.oncare
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
-              ),
-              AppTag(
-                label: l.aiPersonalStepBadge(routines.length),
-                tone: AppTagTone.brand,
-              ),
-            ],
+          AppSectionHeader(
+            title: routineOnly
+                ? l.aiRoutineOnlyProgramName
+                : l.progPersonalRoutinesTitle,
+            icon: AppIcons.personalRoutine,
+            trailing: AppTag(
+              label: l.aiPersonalStepBadge(routines.length),
+              tone: AppTagTone.brand,
+            ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           for (final RoutineExercise routine in routines)

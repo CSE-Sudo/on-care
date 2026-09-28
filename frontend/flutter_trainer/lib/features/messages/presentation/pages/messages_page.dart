@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/one_line_overflow.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
@@ -12,10 +11,9 @@ import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart'
-    show ClientIdentity, clientDemographicsLabel;
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 enum _ConversationFilter {
@@ -299,15 +297,18 @@ class _ConversationTile extends StatelessWidget {
     // 안읽음은 숫자 배지 하나로 말한다 — 행의 빨간 점까지 켜면 같은 사실이
     // 한 뼘 안에 두 번 선다.
     //
-    // 이름 옆 성별·나이는 회원 탭 카드처럼 한 단계 작고 흐리게 둔다 — 한
-    // 줄에 같은 굵기로 이어 붙이면 이름과 구분되지 않았다.
+    // 이름 줄은 회원 목록과 같은 공용 이름 묶음이다(#2467) — 성별·나이는
+    // 이름 옆에 한 단계 작고 흐리게 선다.
     return AppCard(
       selected: selected,
       onTap: onTap,
       child: Row(
         children: <Widget>[
-          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
-          const SizedBox(width: OnCareSpacing.s12),
+          ClientAvatar(
+            name: client.avatar,
+            size: ClientRowDensity.list.avatarSize,
+          ),
+          SizedBox(width: ClientRowDensity.list.avatarGap),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -339,19 +340,10 @@ class _ConversationTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      ClientIdentity(
+                      ClientIdentityBlock(
                         key: ValueKey<String>('messages-identity-${client.id}'),
                         client: client,
-                        nameStyle: tokens
-                            .text(
-                              OnCareTypography.strong(
-                                OnCareTypography.bodyLarge,
-                              ),
-                            )
-                            .copyWith(color: OnCareColors.textPrimary),
-                        demographicsStyle: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textTertiary),
+                        showDetail: false,
                       ),
                       Text(
                         preview,
@@ -415,8 +407,11 @@ class _ThreadPanel extends StatelessWidget {
                   AppBackButton(onPressed: onBack),
                   const SizedBox(width: OnCareSpacing.s4),
                 ],
-                ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
-                const SizedBox(width: OnCareSpacing.s12),
+                ClientAvatar(
+                  name: client.avatar,
+                  size: ClientRowDensity.header.avatarSize,
+                ),
+                SizedBox(width: ClientRowDensity.header.avatarGap),
                 Expanded(child: _Identity(client: client)),
                 // 식단·운동은 고객 탭이 훨씬 자세히 보여 준다. 이 화면은
                 // 대화를 하는 곳이므로, 그 데이터를 여기로 옮겨 오는 대신
@@ -468,52 +463,15 @@ class _Identity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.oncare;
     // PT 관리 신호(#2243) — 답장 대기는 빼고 센다. 지금 열어 둔 이 대화가 곧
     // 그 답장 자리라, 대화 머리에 다시 적을 까닭이 없다.
     final signals = <ClientSignal>[
       for (final s in sortedSignals(client.signals))
         if (s.kind.isAttention) s,
     ];
-    final Widget who = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Flexible(
-              child: Text(
-                client.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.titleSmall)
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s4),
-            Flexible(
-              child: Text(
-                clientDemographicsLabel(context, client),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ),
-          ],
-        ),
-        Text(
-          healthFocusGoalLabel(AppLocalizations.of(context), client.goal),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-      ],
+    final Widget who = ClientIdentityBlock(
+      client: client,
+      density: ClientRowDensity.header,
     );
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints c) => Row(
@@ -535,84 +493,14 @@ class _Identity extends StatelessWidget {
           // **지금 이 대화에서 할 말**을 바꾼다.
           if (signals.isNotEmpty) ...<Widget>[
             const SizedBox(width: OnCareSpacing.s12),
-            Expanded(child: _ThreadSignals(signals: signals)),
+            Expanded(
+              child: ClientSignalBadges(
+                signals: signals,
+                keyPrefix: 'messages-thread',
+              ),
+            ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// 대화 머리의 신호 배지 줄 — 회원 상세 헤더의 배지 줄과 같은 규칙이다(#2330).
-///
-/// 급한 순으로 한 줄에 들어가는 만큼 세우고, 넘치는 것은 `+N` 으로 묶는다.
-/// `+N` 을 누르면 이 자리에서 전부 펼치고(줄바꿈), `접기` 로 다시 한 줄이 된다.
-/// 문구는 근거 수치까지(`칼로리 22% 과다`) 적는다.
-class _ThreadSignals extends StatefulWidget {
-  const _ThreadSignals({required this.signals});
-
-  final List<ClientSignal> signals;
-
-  @override
-  State<_ThreadSignals> createState() => _ThreadSignalsState();
-}
-
-class _ThreadSignalsState extends State<_ThreadSignals> {
-  bool _expanded = false;
-
-  Widget _tappable({
-    required Key key,
-    required VoidCallback onTap,
-    required Widget child,
-  }) => Material(
-    type: MaterialType.transparency,
-    child: InkWell(
-      key: key,
-      onTap: onTap,
-      borderRadius: OnCareRadius.pillAll,
-      child: child,
-    ),
-  );
-
-  List<Widget> _badges(AppLocalizations l) => <Widget>[
-    for (final ClientSignal signal in widget.signals)
-      KeyedSubtree(
-        key: ValueKey<String>('messages-thread-alert-${signal.kind.wire}'),
-        child: AppTag(
-          label: signal.detailLabel(l),
-          tone: signal.kind.tone,
-          icon: AppIcons.error,
-        ),
-      ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    if (_expanded) {
-      return Wrap(
-        key: const ValueKey<String>('messages-thread-signals'),
-        spacing: OnCareSpacing.s8,
-        runSpacing: OnCareSpacing.s4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          ..._badges(l),
-          _tappable(
-            key: const ValueKey<String>('messages-thread-signals-less'),
-            onTap: () => setState(() => _expanded = false),
-            child: AppTag(label: l.clientSignalLess),
-          ),
-        ],
-      );
-    }
-    return OneLineOverflow(
-      key: const ValueKey<String>('messages-thread-signals'),
-      spacing: OnCareSpacing.s8,
-      items: _badges(l),
-      moreBuilder: (int hidden) => _tappable(
-        key: ValueKey<String>('messages-thread-signals-more-$hidden'),
-        onTap: () => setState(() => _expanded = true),
-        child: AppTag(label: l.clientSignalMore(hidden)),
       ),
     );
   }

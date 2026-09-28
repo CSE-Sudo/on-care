@@ -5,9 +5,9 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
-import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Opens the 이탈 위험 dialog: who's flagged, and why.
@@ -66,25 +66,44 @@ class _ChurnRiskTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        AppListRow(
+        // 이름·성별 나이·목표는 회원 목록과 같은 공용 이름 묶음이다(#2364·
+        // #2467) — 같은 회원을 이 창에서만 다른 글씨로 부르지 않는다. 줄의
+        // 여백·높이·눌림은 목록 줄([AppListRow])과 같다.
+        Material(
           key: ValueKey<String>('churn-risk-tile-${client.id}'),
-          // 성별·나이는 이름과 같은 크기로 붙이지 않는다 — 회원 목록·할 일처럼
-          // 이름 옆 한 단계 작은 회색 글씨다(#2364).
-          title: client.name,
-          titleMeta: clientDemographicsLabel(context, client),
-          subtitle: client.goal.trim().isNotEmpty
-              ? healthFocusGoalLabel(l, client.goal)
-              : null,
-          leading: ClientAvatar(name: client.name),
-          trailing: const AppIcon(
-            AppIcons.chevronRight,
-            size: OnCareSize.iconMedium,
-            color: OnCareColors.textDisabled,
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).pop();
+              context.go(AppRoutes.clientDetail(client.id));
+            },
+            hoverColor: context.oncare.brand.surface,
+            borderRadius: OnCareRadius.mdAll,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: context.oncare.density.listRowMin,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s16,
+                  vertical: OnCareSpacing.s12,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    ClientAvatar(name: client.avatar),
+                    const SizedBox(width: OnCareSpacing.s12),
+                    Expanded(child: ClientIdentityBlock(client: client)),
+                    const SizedBox(width: OnCareSpacing.s8),
+                    const AppIcon(
+                      AppIcons.chevronRight,
+                      size: OnCareSize.iconMedium,
+                      color: OnCareColors.textDisabled,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          onTap: () {
-            Navigator.of(context).pop();
-            context.go(AppRoutes.clientDetail(client.id));
-          },
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -104,11 +123,7 @@ class _ChurnRiskTile extends StatelessWidget {
                   key: ValueKey<String>(
                     'churn-risk-alert-${client.id}-${signal.kind.wire}',
                   ),
-                  child: AppTag(
-                    label: signal.detailLabel(l),
-                    icon: AppIcons.error,
-                    tone: signal.kind.tone,
-                  ),
+                  child: ClientSignalTag(signal: signal),
                 ),
               // 트레이너 자신의 활동이지 회원의 상태가 아니다 — 회색으로 둔다.
               if (entry.noRecentFeedback)

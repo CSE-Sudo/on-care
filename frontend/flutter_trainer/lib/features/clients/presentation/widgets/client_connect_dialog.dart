@@ -336,9 +336,12 @@ class _PairedMemberCard extends StatelessWidget {
       gender: paired.rosterGender,
       age: paired.rosterAge,
     );
-    final TextStyle detail = tokens
-        .text(OnCareTypography.bodySmall)
-        .copyWith(color: OnCareColors.textTertiary);
+    // 글씨는 회원 행 머리 밀도와 같다(#2467) — 지금 잇는 사람을 목록의 그
+    // 사람과 견주는 자리라, 같은 위계로 적는다.
+    final TextStyle detail = clientDetailStyle(
+      context,
+      ClientRowDensity.header,
+    );
 
     return AppCard(
       key: const ValueKey<String>('client-connect-result'),
@@ -358,9 +361,10 @@ class _PairedMemberCard extends StatelessWidget {
                       child: Text(
                         paired.name,
                         overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.titleSmall)
-                            .copyWith(color: OnCareColors.textPrimary),
+                        style: clientNameStyle(
+                          context,
+                          ClientRowDensity.header,
+                        ),
                       ),
                     ),
                     const SizedBox(width: OnCareSpacing.s4),
@@ -368,7 +372,7 @@ class _PairedMemberCard extends StatelessWidget {
                       child: Text(
                         demographics,
                         overflow: TextOverflow.ellipsis,
-                        style: OnCareTypography.strong(detail),
+                        style: clientDemographicsStyle(context),
                       ),
                     ),
                   ],

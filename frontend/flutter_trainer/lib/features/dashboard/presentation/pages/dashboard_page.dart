@@ -153,65 +153,64 @@ class _TaskProgressCard extends ConsumerWidget {
         children: <Widget>[
           // 범례(오늘 할 일/지난 할 일)를 그래프 위 별도 줄 대신 제목 옆으로 —
           // 자리가 모자라면 범례만 FittedBox 로 줄어들고, 주 이동 버튼은
-          // 터치 크기를 지킨다. 범례 칸은 Expanded 로 몫을 다 쓰고 그 안에서
-          // 오른쪽 정렬한다 — Flexible(loose) 이면 범례가 안 쓴 몫이 버튼
-          // 오른쪽 빈칸으로 남아 버튼이 카드 오른쪽 끝에 붙지 않았다.
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AppSectionHeader(
-                  title: l.dashTaskProgressTitle,
-                  icon: AppIcons.progress,
-                ),
-              ),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      TaskProgressLegend(
-                        color: brand.primary,
-                        label: l.dashTaskProgressToday,
-                      ),
-                      const SizedBox(width: OnCareSpacing.s8),
-                      TaskProgressLegend(
-                        // 막대의 지난 할 일 칸과 같은 색이다(#2214).
-                        color: OnCareColors.chartGoalLine,
-                        label: l.dashTaskProgressCarriedOver,
-                      ),
-                    ],
+          // 터치 크기를 지킨다. 끝 요소는 제목과 폭을 반씩 나눠 갖고 그 안에서
+          // 오른쪽에 붙는다(`AppSectionTrailingFit.shrink`).
+          AppSectionHeader(
+            title: l.dashTaskProgressTitle,
+            icon: AppIcons.progress,
+            trailingFit: AppSectionTrailingFit.shrink,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        TaskProgressLegend(
+                          color: brand.primary,
+                          label: l.dashTaskProgressToday,
+                        ),
+                        const SizedBox(width: OnCareSpacing.s8),
+                        TaskProgressLegend(
+                          // 막대의 지난 할 일 칸과 같은 색이다(#2214).
+                          color: OnCareColors.chartGoalLine,
+                          label: l.dashTaskProgressCarriedOver,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: OnCareSpacing.s12),
-              AppIconButton(
-                key: const ValueKey<String>('task-progress-prev-week'),
-                icon: AppIcons.chevronLeft,
-                tooltip: l.a11yPrevWeek,
-                // 배경 상자 없이 화살표만 — 제목 줄에서 화살표만 무거워
-                // 보였다(#2202). 넘어갈 수 없는 쪽은 비활성 회색이 된다.
-                color: brand.primary,
-                onPressed: offset <= -_maxTaskProgressWeeksBack
-                    ? null
-                    : () => ref
-                          .read(_taskProgressWeekOffsetProvider.notifier)
-                          .state--,
-              ),
-              const SizedBox(width: OnCareSpacing.s4),
-              AppIconButton(
-                key: const ValueKey<String>('task-progress-next-week'),
-                icon: AppIcons.chevronRight,
-                tooltip: l.a11yNextWeek,
-                color: brand.primary,
-                onPressed: offset >= 0
-                    ? null
-                    : () => ref
-                          .read(_taskProgressWeekOffsetProvider.notifier)
-                          .state++,
-              ),
-            ],
+                const SizedBox(width: OnCareSpacing.s12),
+                AppIconButton(
+                  key: const ValueKey<String>('task-progress-prev-week'),
+                  icon: AppIcons.chevronLeft,
+                  tooltip: l.a11yPrevWeek,
+                  // 배경 상자 없이 화살표만 — 제목 줄에서 화살표만 무거워
+                  // 보였다(#2202). 넘어갈 수 없는 쪽은 비활성 회색이 된다.
+                  color: brand.primary,
+                  onPressed: offset <= -_maxTaskProgressWeeksBack
+                      ? null
+                      : () => ref
+                            .read(_taskProgressWeekOffsetProvider.notifier)
+                            .state--,
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
+                AppIconButton(
+                  key: const ValueKey<String>('task-progress-next-week'),
+                  icon: AppIcons.chevronRight,
+                  tooltip: l.a11yNextWeek,
+                  color: brand.primary,
+                  onPressed: offset >= 0
+                      ? null
+                      : () => ref
+                            .read(_taskProgressWeekOffsetProvider.notifier)
+                            .state++,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: OnCareSpacing.s12),
           TaskProgressChart(

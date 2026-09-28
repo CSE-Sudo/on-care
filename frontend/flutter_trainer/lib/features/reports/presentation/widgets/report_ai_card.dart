@@ -4,7 +4,6 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -93,19 +92,12 @@ class ReportAiCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: ReportCardHeader(
-                title: l.reportsAiTitle,
-                subtitle: l.reportsAiSubtitle,
-              ),
-            ),
-            if (summary.valueOrNull?.isGenerated ?? false) ...<Widget>[
-              const SizedBox(width: OnCareSpacing.s8),
-              AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand),
-            ],
-          ],
+        AppSectionHeader(
+          title: l.reportsAiTitle,
+          titleMeta: l.reportsAiSubtitle,
+          trailing: (summary.valueOrNull?.isGenerated ?? false)
+              ? AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand)
+              : null,
         ),
         const SizedBox(height: OnCareSpacing.s8),
         if (fill) Expanded(child: content) else content,

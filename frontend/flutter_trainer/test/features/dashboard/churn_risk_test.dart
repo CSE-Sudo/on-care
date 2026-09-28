@@ -10,6 +10,7 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
@@ -229,13 +230,24 @@ void main() {
     expect(feedback.label, '최근 7일 트레이너 피드백 없음');
     expect(feedback.tone, AppTagTone.neutral);
 
-    // 성별·나이는 이름과 한 문자열이 아니라 옆에 작은 글씨로 붙는다.
-    final AppListRow row = tester.widget<AppListRow>(
-      find.byKey(const ValueKey<String>('churn-risk-tile-c1')),
+    // 성별·나이는 이름과 한 문자열이 아니라 옆에 작은 글씨로 붙는다 — 회원
+    // 목록과 같은 공용 이름 묶음이다(#2467).
+    final Finder tile = find.byKey(
+      const ValueKey<String>('churn-risk-tile-c1'),
     );
-    expect(row.title, '배준혁');
-    expect(row.titleMeta, isNotNull);
-    expect(row.titleMeta, isNot(contains('배준혁')));
+    final Finder block = find.descendant(
+      of: tile,
+      matching: find.byType(ClientIdentityBlock),
+    );
+    expect(block, findsOneWidget);
+    final List<Text> texts = tester
+        .widgetList<Text>(
+          find.descendant(of: block, matching: find.byType(Text)),
+        )
+        .toList();
+    expect(texts.first.data, '배준혁');
+    expect(texts[1].data, isNot(contains('배준혁')));
+    expect(texts[1].style!.fontSize!, lessThan(texts.first.style!.fontSize!));
 
     // 옛 앱 로컬 칩 문구는 없다.
     for (final String gone in <String>[
