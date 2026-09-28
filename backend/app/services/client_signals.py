@@ -131,6 +131,14 @@ PROTEIN_FOCUS = frozenset({health_focus.FOCUS_STRENGTH, health_focus.FOCUS_WEIGH
 #: 개인 단백질 목표의 이 비율에 못 미치면 부족. 리포트의 탄단지 ±25% 와 같은 폭이다.
 PROTEIN_LOW_RATIO = 0.75
 
+#: 주간 루틴 이행률(기록한 날만 평균) 구간 — 이 아래면 낮음, 좋음 이상이면 좋음,
+#: 그 사이는 보통이다. 리포트 요약의 주의·좋은 점과 회원에게 가는 리포트 초안이
+#: 이 둘을 쓴다. 트레이너 웹 `client_alerts.dart` 의 `lowCompletionThreshold`·
+#: `goodCompletionThreshold` 와 같아야 한다 — 예전에는 화면마다 60·70·80 으로
+#: 갈려, 75% 회원이 한쪽에서는 경고, 다른 쪽에서는 칭찬을 받았다(#2345).
+COMPLETION_LOW_PERCENT = 60
+COMPLETION_GOOD_PERCENT = 80
+
 
 def calorie_gap(mean_kcal: float, target_kcal: float) -> float:
     """목표 대비 벗어난 비율. 양수면 과다, 음수면 부족."""

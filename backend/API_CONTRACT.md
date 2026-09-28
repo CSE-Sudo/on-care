@@ -120,6 +120,7 @@
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
+| GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
@@ -136,6 +137,13 @@
 - `이번 주` 의 `action` 은 AI 가 `lang` 으로 만든 한 문장이다(`action_key` 없음, `action_source: "llm"`). 원인 메뉴를 짚거나 대안을 주고, **수치를 쓰지 않는다**(검사해서 걸러 낸다). AI 가 실패하면 규칙 문장 `tip_breakfast|sodium|calorie|sugar|protein` 을 주고 1시간 뒤 다시 만든다. 칭찬은 `tip_keep`, 기록이 없으면 `week_empty_hint` 로 AI 를 부르지 않는다.
 - `전체` 는 **최근 4주(28일)** 를 읽고 **한 주(월~일)에 한 번** 만든다(#2254). 그래프의 `전체` 기간(#2079)과는 무관하다. 기록이 7일 미만이면 `all_few_records{days}` + `all_few_hint` 로 AI 를 부르지 않는다. 그 밖의 `analysis_key` 는 `all_slot_sodium{slot, days}`·`all_carb_heavy{pct}`·`all_protein_light{pct}`·`all_protein_trend_up|down{before, after}`·`all_frequent_menu{slot, food, count}`·`all_repeated_foods{food1, food2}` 중 하나이고, 지난주에 말한 종류는 한 번 건너뛴다. 말할 것이 없으면 `all_good{days}` + `tip_keep`. `action` 은 AI 가 쓴 다음 4주의 행동 목표·대안이고(수치 없음), 실패하면 `tip_sodium|carb|protein|keep|swap|variety` 를 주고 1시간 뒤 다시 만든다.
 - 트레이너웹 `GET /trainer/clients/{id}/diet-advice` 는 아직 예전 한 문장(`message`)이다.
+
+**트레이너 식단 추천(#2378).** 트레이너가 회원의 4주 추천 메뉴 리스트(#2250)에서 AI 후보를 골라 확정하면, 회원 `GET /diet/recommendations` 의 `trainer_pick` 이 되어 홈 `추천 식단` 첫 장에 `트레이너 추천` 으로 뜬다.
+
+- `GET /trainer/clients/{id}/diet-recommendations` → `{ needs[], basis_days, pick?, candidates[] }`. `needs` 는 최근 4주 평균이 목표에서 벗어난 태그(`sodium_low`·`protein_high`·`calorie_low|high`·`sugar_low`)를 급한 순서로 담고, 비면 채울 점이 없어 `candidates` 도 빈다. `candidates[{ slot, name, tag, keyword, kcal, protein_g, sodium_mg, urgent }]` 는 급한 태그의 메뉴부터 끼니 순이며 지금 확정한 메뉴는 뺀다. 저장된 리스트를 읽기만 하므로 조회로 AI 를 부르지 않고, 리스트는 회원 언어 그대로다(없을 때만 요청 언어로 한 번 만든다).
+- `pick{ slot, name, tag, keyword, status(active|resolved), confirmed_at, resolved_at? }` — 회원이 확정 뒤 기록한 끼니의 음식 이름이 메뉴 이름을 품으면(띄어쓰기·대소문자 무시) 즉시 `resolved` 가 되고 회원 홈에서 내려간다.
+- `PUT /trainer/clients/{id}/diet-recommendations` `{ slot, name }` → 같은 응답. 회원당 한 건이라 다시 부르면 바꾸기다. 지금 리스트에 없는 메뉴는 422.
+- 담당이 아니거나 해제·동의 철회된 회원은 다른 트레이너 경로와 같은 404. 담당을 해제하면 그 트레이너의 추천도 지운다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
 `meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
@@ -684,7 +692,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainers/{trainer_id}` | 단건(없으면 404) |
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
-- **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·목표(`goals`)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
+- **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
@@ -958,6 +966,25 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **담당이 살아 있는 회원만** 싣는다. 해제된 회원의 기록은 빠진다(#2281). 보낸 적이 없는 주는
   200 에 `sends: []` 다. 회원 계정은 **403**.
 
+**회원별 리포트 전송 이력 (#2393)**: 한 담당 회원에게 그동안 보낸 리포트를 주별로 모은다. 위 주 단위
+조회는 한 주의 로스터 전체라, 회원별 지난 리포트 화면을 세우려면 주마다 따로 물어야 했다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `GET` | `/trainer/clients/{member_id}/reports/sent?limit=&before=` | `{ member_id, sends: [{ week_start, sent_at, read, send_count, message_id, has_pdf, feedback_preview }], next_before }` |
+
+- 근거와 접는 규칙은 주 단위 조회와 **같다** — 채팅 메시지의 `report_week_start`(본문·PDF 전송 모두),
+  한 주에 여러 번 보냈으면 가장 최근 전송 하나와 `send_count`. `sent_at`(ISO, UTC)·`read`(`read_at`)·
+  `message_id`(그 최근 전송의 채팅 메시지 id)·`has_pdf` 는 모두 그 최근 전송의 값이다.
+- `feedback_preview` 는 최근 전송 본문의 **비어 있지 않은 첫 줄**이고, 80자를 넘으면 잘라 `…` 를 붙인다.
+  전문은 `message_id` 로 채팅에서 연다.
+- 정렬은 `week_start` 내림차순(최신 주부터). 쪽은 **주 단위**로 나눈다 — `limit` 은 주 수(기본 12,
+  1~100, 벗어나면 **422**). 더 오래된 주가 있으면 `next_before` 에 이 쪽 마지막 `week_start` 가 오고,
+  그 값을 `before`(`YYYY-MM-DD`, 그 주 **제외**)로 다시 주면 다음 쪽이다. 더 없으면 `null`.
+  주 중간 날짜를 주면 그 주 월요일로 접힌다. 형식이 틀리면 **422**.
+- 담당이 아니거나 해제된 회원은 다른 `/trainer/clients/{member_id}/…` 경로와 같은 **404**(#2281).
+  보낸 적이 없으면 200 에 `sends: []`·`next_before: null`. 회원 계정은 **403**.
+
 **채팅 사진 (#921, #1665)**: 트레이너와 회원이 **서로** 사진을 보낸다. 식사·자세·인바디 결과지처럼
 코칭에 바로 쓰이는 사진이 대화 안에서 오가야, 사진만큼은 개인 메신저로 보내는 일이 없다.
 
@@ -999,13 +1026,19 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
   `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.
   로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 채팅 첨부
-  (`/chat/attachments/{id}`)도 트레이너에게는 404. 회원이 담당 요청을 수락하거나 연결 코드를 주면
+  (`/chat/attachments/{id}`)도 트레이너에게는 404. 해제·철회 전에 잡아 둔 일정을 id 로 여는
+  쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
+  회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
   그 시각이 새 동의가 되어 다시 열린다.
 - 동의 기능(#1022) 이전에 만들어져 **동의도 철회도 없는** 링크는 막지 않는다.
-- **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남고
-  회원 앱에서 계속 보인다. 철회는 **앞으로의 열람**만 막는다.
+- **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남는다.
+  철회는 **앞으로의 열람**만 막는다. 회원의 `/me/coach/chat`·`/me/coach/sessions`·`/me/coach/routines` 는
+  활성 담당 기준이라 해제한 동안은 트레이너와의 기록이 보이지 않고(채팅 404, 일정 빈 목록, 루틴은 AI
+  추천으로 바뀐다), 같은 트레이너와 다시 연결하면 다시 보인다(#2387).
 - 마이그레이션 `0097_data_consent_revocation` 은 이미 해제된 링크(`active = false`)의 동의를 비우고
   마이그레이션 시각을 철회 시각으로 적는다.
+- 담당이 끝나면 그 트레이너의 메시지로 만든 식단 AI 보관물을 내려놓는다(#2386) — 이번 주·전체
+  조언(`/diet/advice`)은 다음 조회가 담당 없이 다시 만들고, 추천 메뉴 리스트는 오늘로 만료되어 다시 만든다.
 
 ---
 

@@ -36,10 +36,6 @@ String demographicsLabel(
   return l.coachClientDemographics(genderLabel, age);
 }
 
-/// Returns a plain-text identity for places that cannot compose text styles.
-String clientIdentityLabel(BuildContext context, TrainerClient client) =>
-    '${client.name} ${clientDemographicsLabel(context, client)}';
-
 /// Resolves display-only records that carry a client id and a legacy name.
 /// A name fallback is safe only when it identifies exactly one roster entry.
 TrainerClient? findClientIdentity(

@@ -9,7 +9,6 @@ import 'package:oncare/features/account/data/repositories/mock_account_repositor
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
-import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -37,7 +36,6 @@ class _RecordingRepository implements AccountRepository {
     num? heightCm,
     num? weightKg,
     String? conditions,
-    String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
     int? dailySugarG,
@@ -55,7 +53,6 @@ class _RecordingRepository implements AccountRepository {
       'height_cm': heightCm,
       'weight_kg': weightKg,
       'conditions': conditions,
-      'goals': goals,
       'daily_calories': dailyCalories,
       'daily_sodium_mg': dailySodiumMg,
       'daily_sugar_g': dailySugarG,
@@ -86,7 +83,6 @@ class _RecordingRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
-    String? goals,
   }) => _inner.updateProfile(
     name: name,
     email: email,
@@ -95,13 +91,11 @@ class _RecordingRepository implements AccountRepository {
     gender: gender,
     heightCm: heightCm,
     weightKg: weightKg,
-    goals: goals,
   );
 
   @override
   Future<UserProfile> updateHealthGoals({
     String? conditions,
-    String? goals,
     GoalUpdate? dailyCalories,
     GoalUpdate? dailySodiumMg,
     GoalUpdate? dailySugarG,

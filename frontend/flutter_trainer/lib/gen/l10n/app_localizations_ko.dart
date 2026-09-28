@@ -24,7 +24,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scheduleStatusNoShow => '노쇼';
 
   @override
-  String get schedCancel => '취소 처리';
+  String get schedCancel => '취소';
 
   @override
   String get schedNoShow => '노쇼 처리';
@@ -125,9 +125,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get actionRetry => '다시 시도';
-
-  @override
-  String get actionRefresh => '새로고침';
 
   @override
   String get actionChange => '변경';
@@ -525,6 +522,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$total명 중 $shown명';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => '주간 이행률';
 
   @override
@@ -671,9 +673,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get memberHealthConditions => '건강상태·주의사항';
-
-  @override
-  String get memberHealthGoals => '회원 목표';
 
   @override
   String get memberHealthDietGoal => '식단 목표';
@@ -869,6 +868,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietMacrosMissing => '탄·단·지 기록 없음';
 
   @override
+  String get clientDietTotalCalories => '총 칼로리';
+
+  @override
+  String get clientDietDayTotal => '하루 합계';
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
+
+  @override
   String get metricCarbs => '탄수화물';
 
   @override
@@ -884,10 +894,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDormant => '휴면';
 
   @override
-  String get clientStatusChangeFailed => '상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get clientDormantActivate => '눌러서 활성으로 전환';
 
   @override
-  String get clientClosePanel => '패널 닫기';
+  String get clientSignalLess => '접기';
+
+  @override
+  String clientSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientStatusChangeFailed => '상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';
@@ -1216,11 +1234,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String dietSodiumValue(int value) {
-    return '나트륨 ${value}mg';
-  }
-
-  @override
   String get aiAnalysis => 'AI 분석';
 
   @override
@@ -1513,24 +1526,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsSendStateSent => '전송됨';
-
-  @override
-  String get reportsSendStateSending => '전송 중…';
-
-  @override
-  String get reportsShare => '공유';
-
-  @override
-  String reportsShareSendTo(String name) {
-    return '$name님에게 전송';
-  }
-
-  @override
-  String get reportsShareNeedsFeedback => '피드백을 입력하면 전송할 수 있어요';
-
-  @override
-  String get reportsShareNoClient => '리포트를 볼 회원을 먼저 선택해 주세요';
+  String get reportsSendNeedsFeedback => '피드백을 입력하면 전송할 수 있어요';
 
   @override
   String reportBodyGreeting(String name, String range) {
@@ -1540,6 +1536,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return '운동은 평균 $avg%로 잘 따라오셨어요.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return '운동은 평균 $avg%로 꾸준히 해 주셨어요.';
   }
 
   @override
@@ -3530,22 +3531,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTaskUncheckConfirm => '완료 취소';
 
   @override
-  String get churnNoRecentWorkout => '최근 7일 운동 기록 없음';
-
-  @override
   String get churnNoRecentFeedback => '최근 7일 트레이너 피드백 없음';
-
-  @override
-  String get churnConsecutiveCancel => 'PT 2회 연속 취소·노쇼';
-
-  @override
-  String get churnDietStopped => '식단 기록 중단';
-
-  @override
-  String get churnGoalStagnant => '목표 지표 장기간 정체';
-
-  @override
-  String get churnUnresolvedRequest => '미응답 메시지 있음';
 
   @override
   String get navMessages => '메시지';
@@ -3601,13 +3587,97 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientQuickReport => '리포트';
 
   @override
-  String get clientHealthGoals => '회원 신체·목표 관리';
-
-  @override
-  String get clientProfileSectionTitle => '신체·목표·메모';
+  String get clientProfileSectionTitle => '신체·목표';
 
   @override
   String get clientTrainerMemo => '메모';
+
+  @override
+  String get clientHealthUnset => '미입력';
+
+  @override
+  String get clientHealthTabBody => '신체';
+
+  @override
+  String get clientHealthTabFocus => '건강 목표';
+
+  @override
+  String get clientGoalPerDay => '하루 기준';
+
+  @override
+  String get clientGoalCalories => '칼로리';
+
+  @override
+  String get clientGoalSodium => '나트륨';
+
+  @override
+  String get clientGoalSugar => '당류';
+
+  @override
+  String get clientGoalCarbs => '탄수화물';
+
+  @override
+  String get clientGoalProtein => '단백질';
+
+  @override
+  String get clientGoalFat => '지방';
+
+  @override
+  String get clientGoalBurnDaily => '하루 소모 칼로리';
+
+  @override
+  String get clientGoalCardioWeekly => '주간 유산소';
+
+  @override
+  String get clientGoalStrengthWeekly => '주간 근력';
+
+  @override
+  String get clientGoalStretchWeekly => '주간 스트레칭';
+
+  @override
+  String get clientBodyHeight => '키';
+
+  @override
+  String get clientBodyWeight => '몸무게';
+
+  @override
+  String get clientUnitCm => 'cm';
+
+  @override
+  String get clientGoalDefaultHint =>
+      '흐린 값은 회원이 목표를 세우기 전의 기본 기준이에요. 비워 두면 이 값으로 계산해요.';
+
+  @override
+  String clientGoalSuggestionDiet(
+    int kcal,
+    int carbs,
+    int sugar,
+    int protein,
+    int fat,
+    int sodium,
+  ) {
+    return '권장: ${kcal}kcal · 탄수화물 ${carbs}g · 당류 ${sugar}g · 단백질 ${protein}g · 지방 ${fat}g · 나트륨 ${sodium}mg';
+  }
+
+  @override
+  String clientGoalSuggestionExercise(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return '권장: 하루 소모 ${burn}kcal · 주 유산소 $cardio분 · 근력 $strength세트 · 스트레칭 $flexibility분';
+  }
+
+  @override
+  String get clientGoalSuggestionPersonal =>
+      '나이·성별·키·몸무게와 건강 목표로 계산했어요 (2020 한국인 영양소 섭취기준·WHO 권고)';
+
+  @override
+  String get clientGoalSuggestionFallback => '나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요';
+
+  @override
+  String get clientGoalApplySuggestion => '권장값으로 채우기';
 
   @override
   String get clientTrainerMemoHint => '이 회원에 대해 기억할 내용을 적어 주세요';
@@ -4114,50 +4184,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.';
 
   @override
-  String get reportsPdfLabel => 'PDF 내보내기';
-
-  @override
-  String get reportsPdfGenerating => 'PDF 생성 중…';
-
-  @override
   String get reportsPdfGenerationFailed => 'PDF를 생성하지 못했어요. 다시 시도해 주세요.';
-
-  @override
-  String reportsPdfReady(String name) {
-    return '$name님의 주간 리포트가 준비됐어요.';
-  }
-
-  @override
-  String get reportsPdfSending => '전송 중…';
-
-  @override
-  String get reportsPdfSendToClient => '회원에게 전송';
-
-  @override
-  String get reportsPdfSave => 'PDF 저장';
-
-  @override
-  String get reportsPdfPrint => '인쇄';
-
-  @override
-  String get reportsPdfClose => '닫기';
-
-  @override
-  String get reportsPdfActionFailed => '작업을 완료하지 못했어요. 다시 시도해 주세요.';
-
-  @override
-  String reportsPdfSent(String name) {
-    return '$name님에게 PDF를 전송했어요.';
-  }
-
-  @override
-  String get reportsPdfSaveStarted => 'PDF 저장을 시작했어요.';
-
-  @override
-  String get reportsPdfPrintOpened => '인쇄 창을 열었어요.';
-
-  @override
-  String get reportsPdfMessage => '이번 주 리포트를 보내드려요.';
 
   @override
   String get reportsPdfFallbackClient => '회원';
@@ -4365,14 +4392,25 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get reportsSortLabel => '정렬';
+
+  @override
   String get reportsSortPriority => '우선 확인 순';
 
   @override
-  String get reportsSortName => '이름 순';
+  String get reportsSortName => '이름 오름차순';
+
+  @override
+  String get reportsSortNameDescending => '이름 내림차순';
 
   @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total 전송';
+  }
+
+  @override
+  String reportsSendPercent(int percent) {
+    return '$percent%';
   }
 
   @override
@@ -4453,6 +4491,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSentRewrite => '이 내용으로 다시 작성';
 
   @override
+  String get reportsHistoryButton => '지난 리포트';
+
+  @override
+  String get reportsViewSent => '보기';
+
+  @override
+  String reportsHistoryTitle(String name) {
+    return '$name님의 지난 리포트';
+  }
+
+  @override
+  String get reportsHistoryBack => '지난 리포트';
+
+  @override
+  String get reportsHistoryUnsent => '미전송';
+
+  @override
+  String get reportsHistoryThisWeek => '이번 주';
+
+  @override
+  String get reportsHistoryEmpty => '아직 보낸 리포트가 없어요';
+
+  @override
+  String get reportsHistoryLoadFailed => '지난 리포트를 불러오지 못했어요';
+
+  @override
+  String get reportsHistoryMore => '더 보기';
+
+  @override
+  String get reportsHistoryMoreFailed => '더 불러오지 못했어요. 다시 눌러 주세요.';
+
+  @override
+  String reportsHistorySendCount(int count) {
+    return '$count번 보냄';
+  }
+
+  @override
+  String get reportsHistoryPdf => 'PDF';
+
+  @override
   String get reportsResendTitle => '이미 보낸 리포트예요';
 
   @override
@@ -4477,7 +4555,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepReview => '확인';
 
   @override
-  String get reportsStepGoals => '작성';
+  String get reportsStepWrite => '작성';
 
   @override
   String get reportsStepSend => '전송';
@@ -4492,29 +4570,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepPrev => '이전';
 
   @override
-  String get reportsGoalsTitle => '다음 주 목표';
+  String get reportsPreviewTitle => '회원이 받는 리포트';
 
   @override
-  String get reportsGoalsHint => '다음 주에 함께 챙길 것을 고르세요. 고른 목표는 보낼 글에 같이 담겨요.';
+  String get reportsPreviewRecipient => '받는 사람';
 
   @override
-  String get reportsGoalsNone => '아직 고른 목표가 없어요';
+  String get reportsPreviewWeek => '대상 주';
 
   @override
-  String reportsGoalsPicked(int count) {
-    return '$count개 고름';
+  String reportsPreviewDelivery(String name) {
+    return '$name님 채팅으로 PDF 파일이 전송돼요';
   }
 
   @override
-  String get reportsGoalsOwnHint => '직접 적기';
+  String get reportsPreviewEditHint => '글을 고치려면 이전을 눌러 작성 단계로 돌아가세요';
 
   @override
-  String get reportsGoalsAdd => '추가';
+  String get reportsPreviewGenerating => '미리보기를 만드는 중이에요';
 
   @override
-  String reportsGoalsRemove(String goal) {
-    return '$goal 빼기';
+  String get reportsPreviewFailed => '미리보기를 만들지 못했어요';
+
+  @override
+  String reportsPreviewPage(int current, int total) {
+    return '$current / $total쪽';
   }
+
+  @override
+  String get reportsPreviewPrevPage => '이전 쪽';
+
+  @override
+  String get reportsPreviewNextPage => '다음 쪽';
+
+  @override
+  String get reportsPreviewZoomIn => '확대';
+
+  @override
+  String get reportsPreviewZoomOut => '축소';
 
   @override
   String get reportsGridPtSession => 'PT 세션';
@@ -4569,7 +4662,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name이(가) 목표에 많이 모자라요 — 다음 주 목표로 짚어 보세요';
+    return '$name이(가) 목표에 많이 모자라요 — 피드백에서 짚어 보세요';
   }
 
   @override
@@ -4629,60 +4722,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsMemberFeedbackIntensityTooHard => '너무 힘들었어요';
 
   @override
-  String get reportsLastGoalsTitle => '지난 주 목표 달성';
-
-  @override
-  String get reportsLastGoalsNone => '지난 주에 고른 목표가 없어요';
-
-  @override
-  String get reportsLastGoalsNoneHint => '이번 주에 다음 주 목표를 고르면 다음 리포트에서 여기로 돌아와요';
-
-  @override
-  String reportsLastGoalsMetCount(int met, int total) {
-    return '$met / $total 달성';
-  }
-
-  @override
-  String get reportsLastGoalsMet => '달성';
-
-  @override
-  String get reportsLastGoalsPartial => '절반';
-
-  @override
-  String get reportsLastGoalsMissed => '미달';
-
-  @override
-  String get reportsLastGoalsUnknown => '직접 확인';
-
-  @override
-  String reportsLastGoalsEvidence(int done, int target, String unit) {
-    return '$done / $target$unit';
-  }
-
-  @override
-  String reportsLastGoalsEvidenceLogged(int days) {
-    return '$days일 기록';
-  }
-
-  @override
-  String reportsLastGoalsEvidenceWorkout(int done, int total) {
-    return '개인 운동 $done / $total회';
-  }
-
-  @override
-  String get reportsLastGoalsSubtitle => '이번 주 기록으로 판정';
-
-  @override
-  String get reportsLastGoalsKeywordsCalories => '칼로리,kcal,섭취량';
-
-  @override
-  String get reportsLastGoalsKeywordsWorkout =>
-      '운동,이행,루틴,건너뛴,세트,스트레칭,하체,상체,헬스장';
-
-  @override
-  String get reportsLastGoalsKeywordsLogged => '기록,끼니,식단';
-
-  @override
   String get reportsTrendUnavailable => '이 주의 운동 기록을 불러오지 못했어요';
 
   @override
@@ -4725,11 +4764,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportsMemberFeedbackMeta(String date) {
     return '주 1회 · $date 제출';
-  }
-
-  @override
-  String reportsMacroShortfallEvidence(String goal) {
-    return '지난 주 목표 “$goal”이 미이행으로 판정된 근거예요';
   }
 
   @override

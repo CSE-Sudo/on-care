@@ -207,38 +207,40 @@ void main() {
     });
   });
 
-  group('isLowCompletion', () {
-    test('flags a recorded week averaging under the threshold', () {
-      expect(
-        isLowCompletion(
-          makeClient(weekCompletion: const <int>[40, 30, 50, 0, 0, 0, 0]),
-        ),
-        isTrue,
+  // 예전에는 `isLowCompletion()` 을 여기서 검증했지만 앱에서 부르는 곳이 없어
+  // 지웠다(#2345). 그 테스트가 지키던 것은 "기록한 날만 평균낸다" 는 규칙이라
+  // 그 계산을 직접 본다 — 낮음 판정은 이 평균을 [lowCompletionThreshold] 와 견준다.
+  group('recordedCompletionMean', () {
+    test('a recorded week under the threshold reads as low', () {
+      final mean = recordedCompletionMean(
+        makeClient(weekCompletion: const <int>[40, 30, 50, 0, 0, 0, 0]),
       );
+      expect(mean, 40);
+      expect(mean! < lowCompletionThreshold, isTrue);
     });
 
-    test('does NOT flag a client who has logged nothing yet', () {
+    test('a client who has logged nothing yet has no mean, not 0%', () {
       // A client registered this morning must not read as failing —
       // that trains the trainer to ignore the badge.
       expect(
-        isLowCompletion(
+        recordedCompletionMean(
           makeClient(weekCompletion: const <int>[0, 0, 0, 0, 0, 0, 0]),
         ),
-        isFalse,
+        isNull,
       );
       expect(
-        isLowCompletion(makeClient(weekCompletion: const <int>[])),
-        isFalse,
+        recordedCompletionMean(makeClient(weekCompletion: const <int>[])),
+        isNull,
       );
     });
 
     test('averages only the days that were recorded', () {
       // 90% on the one day they trained is not a 13% week.
       expect(
-        isLowCompletion(
+        recordedCompletionMean(
           makeClient(weekCompletion: const <int>[90, 0, 0, 0, 0, 0, 0]),
         ),
-        isFalse,
+        90,
       );
     });
   });

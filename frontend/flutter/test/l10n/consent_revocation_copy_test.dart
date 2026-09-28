@@ -3,7 +3,8 @@
 /// 서버는 담당을 끊는 순간 동의를 비우고 철회 시각을 남긴다. 회원이 그 사실을
 /// 모른 채 해제하지 않도록, 해제 확인 창과 개인정보 처리방침이 같은 규칙을 말해야
 /// 한다 — 철회되면 트레이너가 새 기록을 볼 수 없고, 이미 주고받은 대화·리포트는
-/// 남는다.
+/// 지워지지 않는다. 해제한 동안은 회원 앱에서도 보이지 않고 같은 트레이너와 다시
+/// 연결해야 다시 보인다(#2387).
 ///
 /// 문장을 통째로 비교하지 않는다. 문안은 다듬을 수 있어야 하므로, 빠지면 안 되는
 /// 사실이 남아 있는지만 본다.
@@ -36,11 +37,20 @@ void main() {
       }
     });
 
-    test('이미 주고받은 대화와 리포트는 남는다고 말한다', () {
+    test('이미 주고받은 대화와 리포트는 지워지지 않는다고 말한다', () {
       for (final String message in messages) {
         expect(message, contains('대화'));
         expect(message, contains('리포트'));
-        expect(message, contains('남습니다'));
+        expect(message, contains('지워지지 않'));
+      }
+    });
+
+    test('해제 뒤 앱에서 계속 보인다고 약속하지 않는다 — 다시 연결해야 보인다 (#2387)', () {
+      // 서버는 해제 뒤 코치 채팅·일정을 "지금의 담당" 기준으로 읽어 빈다.
+      // "그대로 남습니다" 는 앱에서 계속 볼 수 있다는 뜻으로 읽혔다.
+      for (final String message in messages) {
+        expect(message, contains('다시 연결하면 다시 볼 수 있'));
+        expect(message, isNot(contains('그대로 남습니다')));
       }
     });
 
@@ -69,7 +79,9 @@ void main() {
         expect(message, contains('withdrawn'));
         expect(message, contains('new records'));
         expect(message, contains('Messages and reports'));
-        expect(message, contains('will stay'));
+        expect(message, contains('are not deleted'));
+        expect(message, contains('reconnect with the same trainer'));
+        expect(message, isNot(contains('will stay')));
       }
     });
 
