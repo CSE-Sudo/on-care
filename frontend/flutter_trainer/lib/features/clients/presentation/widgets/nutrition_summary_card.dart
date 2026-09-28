@@ -32,6 +32,7 @@ import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/widgets/nutrition_calorie_donut.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원 앱 `UserProfile` 의 기본 목표와 같은 값. 칼로리·나트륨·당류는
@@ -197,7 +198,12 @@ class NutritionSummaryCard extends StatelessWidget {
             final Widget row = Row(
               children: <Widget>[
                 // 1열 — 달성률 도넛.
-                _CalorieDonut(calories: calories, color: calorieColor),
+                NutritionCalorieDonut(
+                  ratio: calories.ratio,
+                  color: calorieColor,
+                  diameter: _donutDimension,
+                  stroke: _donutStroke,
+                ),
                 SizedBox(width: gap),
                 // 2열 — 칼로리.
                 SizedBox(
@@ -293,114 +299,6 @@ class NutritionSummaryCard extends StatelessWidget {
 Color _statusColor(BuildContext context, _Item item) => item.isOverGoal
     ? OnCareColors.danger
     : context.oncare.brand.statusWithinGoal;
-
-/// 칼로리 달성률 링. 한 바퀴에서 멈춘다 — 넘긴 양은 링이 그릴 수 없다.
-///
-/// [value] 는 0~1 로 자른 값이고, 숫자(`113%`)는 링 바깥에서 자르지 않고 적는다.
-class NutritionCalorieRing extends StatelessWidget {
-  /// Creates a ring filled to [value] with [color].
-  const NutritionCalorieRing({
-    super.key,
-    required this.value,
-    required this.color,
-  });
-
-  /// 채운 비율(0~1).
-  final double value;
-
-  /// 채운 호의 색.
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-    painter: _RingPainter(value: value.clamp(0.0, 1.0), color: color),
-    child: const SizedBox.expand(),
-  );
-}
-
-class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.value, required this.color});
-
-  final double value;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Rect rect = (Offset.zero & size).deflate(_donutStroke / 2);
-    final Paint track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = _donutStroke
-      ..color = OnCareColors.surfaceInput;
-    canvas.drawArc(rect, 0, math.pi * 2, false, track);
-    if (value <= 0) return;
-    final Paint fill = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = _donutStroke
-      ..strokeCap = StrokeCap.round
-      ..color = color;
-    canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * value, false, fill);
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.value != value || old.color != color;
-}
-
-/// 칼로리 달성률 도넛. 링은 한 바퀴에서 멈추지만 숫자는 자르지 않는다.
-class _CalorieDonut extends StatelessWidget {
-  const _CalorieDonut({required this.calories, required this.color});
-
-  final _Item calories;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    return SizedBox.square(
-      dimension: _donutDimension,
-      child: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          Positioned.fill(
-            child: NutritionCalorieRing(
-              key: const Key('client-nutrition-calorie-progress'),
-              value: calories.gaugeValue,
-              color: color,
-            ),
-          ),
-          // 링은 지름이 고정이라 글자 배율이 커지면 안쪽 두 줄이 원을 넘어선다.
-          // 원 안에 들어가도록 함께 줄인다.
-          Padding(
-            padding: const EdgeInsets.all(OnCareSpacing.s20),
-            child: FittedBox(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    '${(calories.ratio * 100).round()}%',
-                    style: tokens
-                        .text(
-                          OnCareTypography.numeric(OnCareTypography.display),
-                        )
-                        .copyWith(color: color),
-                  ),
-                  const SizedBox(height: OnCareSpacing.s4),
-                  Text(
-                    l.dietAchieveRate,
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.caption))
-                        .copyWith(color: OnCareColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// 탄·단·지 한 칸 — 라벨(+초과분) · 값/목표 · 진행 바. 회원 앱 `오늘` 카드의
 /// `_MacroProgressItem` 과 같은 구성·같은 글자 규격이다(#2156).

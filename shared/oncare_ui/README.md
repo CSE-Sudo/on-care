@@ -67,6 +67,15 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 - 동사만으로 뜻이 모자라면 붙입니다. 옆의 `취소` 와 헷갈리는 `완료 취소`, 바뀐 뒤의 상태가 곧 결과인 `예정으로 바꾸기` 가 그렇습니다.
 - 같은 문구 키를 창 하단과 본문이 함께 쓰면, 창 하단은 공용 동사 키(`actionSave` · `actionAdd` · `actionSend` · `actionDelete` · `actionReset`)로 바꿔 씁니다.
 
+## 차트 부품(#2469)
+
+| 부품 | 규칙 |
+|---|---|
+| `AppRingGauge` | 링 하나 — 받은 칸을 채우는 원, 12시에서 시계 방향, 가운데 `child`. `plain` 은 회색 트랙에 한 바퀴까지(식단 칼로리 달성률), `lap` 은 값 색을 옅게 깐 트랙에 목표를 넘기면 한 바퀴를 넘어 이어 돌고 끝에 그림자·흰 `>`, 12시 흰 기호(운동 소모·목표 링). 여러 겹 링은 지름을 줄여 겹쳐 쌓는다 |
+| `AppChartLegendItem` | 범례 한 칸 — 견본 8 + 간격 4 + `caption` 600·보조 글자색 |
+| `periodRangeText`·`PeriodRangeLabel` | 기간 카드가 보는 기간 한 줄 — 1년 미만은 `9. 14. ~ 9. 20.`, 넘으면 연도까지 |
+| `chartSemanticsLabel`·`chartSeriesPoints` | 그래프 음성 안내 조립 규칙. 문구는 앱 l10n 에서 `AppChartA11yLabels` 로 넘긴다(두 앱 `l.chartA11y`) |
+
 ## 글자 배율
 
 앱 전역 글자 배율은 없습니다(#1707). 기기 접근성 배율만 `OnCareTypography.scaler` 로 1.0 ~ 1.3 사이에서 따릅니다. 두 앱 모두 `lib/design_system` 없이 이 패키지만 쓰며, 화면 코드의 새 하드코딩은 `tool/ui_guard` 가 막습니다(앱별 기준선 `ui_guard_baseline.json` 은 비어 있습니다).

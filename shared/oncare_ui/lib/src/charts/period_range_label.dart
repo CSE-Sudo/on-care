@@ -5,13 +5,17 @@
 /// 를 카드 안에서 스스로 말해야 한다. 두 탭이 각자 형식을 정하면 같은 그림이
 /// 서로 다른 말투로 읽힌다.
 ///
-/// 그래서 형식을 한 곳에 둔다. 한쪽만 고치는 일이 생기지 않도록, 문자열을
-/// 만드는 [periodRangeText] 와 그것을 그리는 [PeriodRangeLabel] 을 함께 둔다.
+/// 그래서 형식을 한 곳에 둔다. 문자열을 만드는 [periodRangeText] 와 그것을
+/// 그리는 [PeriodRangeLabel] 을 함께 둔다. 두 앱에 똑같이 복사해 두던 것을
+/// 여기로 모았다(#2469).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:oncare_ui/oncare_ui.dart';
+
+import 'package:oncare_ui/src/theme/oncare_tokens.dart';
+import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/typography.dart';
 
 /// 기간이 1년이 안 되면 연도를 적지 않는다 — 같은 월·일이 한 번만 나오므로 해가
 /// 바뀌어도(`12. 16. ~ 1. 5.`) 가리키는 날이 하나뿐이고, 한 줄에 들어가야 한다.

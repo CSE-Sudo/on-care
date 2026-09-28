@@ -34,8 +34,7 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
-import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
-import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
+import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 소모 칼로리 색. **트레이너 메인 색**이다 (#1168).
@@ -88,14 +87,6 @@ const double kActivityCardHeight = 218;
 
 /// 도넛·링 오른쪽 상세 목록 칸의 너비. 회원 앱과 같은 값이다.
 const double _kDetailWidth = 150;
-
-/// 원호 끝 그림자 두 겹 — 넓고 흐린 것 / 좁고 진한 것. 회원 앱 #1161 과 같은 값.
-const double _kCapShadowOuterSpread = 4;
-const double _kCapShadowOuterBlur = 12;
-const double _kCapShadowOuterAlpha = 0.75;
-const double _kCapShadowInnerSpread = 1;
-const double _kCapShadowInnerBlur = 5;
-const double _kCapShadowInnerAlpha = 0.65;
 
 /// `397/500` — 값과 목표를 한 덩어리로. 목표를 따로 떼어 적으면 머리 줄이
 /// 길어져 카드 폭을 다 먹는다.
@@ -206,7 +197,7 @@ class BurnDonut extends StatelessWidget {
                   Semantics(
                     container: true,
                     label: chartSemanticsLabel(
-                      l,
+                      l.chartA11y,
                       title: title,
                       points: calories == 0
                           ? const <String>[]
@@ -216,22 +207,30 @@ class BurnDonut extends StatelessWidget {
                       child: SizedBox(
                         width: size,
                         height: size,
-                        child: CustomPaint(
-                          painter: _DonutPainter(
-                            ratio: goal <= 0 ? 0 : calories / goal,
-                            center: NumberFormat.decimalPattern(
-                              locale,
-                            ).format(calories),
-                            // 도넛 안에서 `411` 아래 `/300kcal` 로 읽힌다
-                            // (#1127) — 목표는 한 단계 작고 흐리게.
-                            unit:
-                                '/${NumberFormat.decimalPattern(locale).format(goal.round())}'
-                                '${l.unitKcal}',
-                            // 회원 앱 홈 운동 카드가 쓰는 것과 같은 말이다 —
-                            // 두 화면이 같은 값을 다른 이름으로 부르지 않게
-                            // 한 문구를 나눠 쓴다. (회원 앱 #1352)
-                            caption: l.clientTrendCaloriesBurned,
-                            startIcon: kBurnStartIcon,
+                        // 링은 공용 게이지(한 바퀴 넘김 모양, 두께 지름의
+                        // 13%), 가운데 세 줄은 지름에 맞춰 이 파일이 그린다.
+                        child: AppRingGauge(
+                          value: goal <= 0 ? 0 : calories / goal,
+                          color: kBurnColor,
+                          stroke: size * _kBurnDonutStrokeRatio,
+                          style: AppRingGaugeStyle.lap,
+                          startIcon: kBurnStartIcon,
+                          child: CustomPaint(
+                            painter: _DonutLabelPainter(
+                              stroke: size * _kBurnDonutStrokeRatio,
+                              center: NumberFormat.decimalPattern(
+                                locale,
+                              ).format(calories),
+                              // 도넛 안에서 `411` 아래 `/300kcal` 로 읽힌다
+                              // (#1127) — 목표는 한 단계 작고 흐리게.
+                              unit:
+                                  '/${NumberFormat.decimalPattern(locale).format(goal.round())}'
+                                  '${l.unitKcal}',
+                              // 회원 앱 홈 운동 카드가 쓰는 것과 같은 말이다 —
+                              // 두 화면이 같은 값을 다른 이름으로 부르지 않게
+                              // 한 문구를 나눠 쓴다. (회원 앱 #1352)
+                              caption: l.clientTrendCaloriesBurned,
+                            ),
                           ),
                         ),
                       ),
@@ -439,7 +438,7 @@ class BurnGoalRings extends StatelessWidget {
                   Semantics(
                     container: true,
                     label: chartSemanticsLabel(
-                      l,
+                      l.chartA11y,
                       title: title,
                       points: <String>[
                         for (int i = 0; i < ExerciseKind.values.length; i++)
@@ -450,7 +449,7 @@ class BurnGoalRings extends StatelessWidget {
                       child: SizedBox(
                         width: size,
                         height: size,
-                        child: CustomPaint(painter: _GoalRingsPainter(ratios)),
+                        child: _GoalRings(ratios: ratios, size: size),
                       ),
                     ),
                   ),
@@ -689,30 +688,6 @@ class ActivityValueRow extends StatelessWidget {
   }
 }
 
-/// 범례 한 줄 — 색 사각형 + 이름. 식단 기간 카드가 함께 쓴다.
-class ActivityLegend extends StatelessWidget {
-  /// Creates one legend entry.
-  const ActivityLegend({super.key, required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: <Widget>[
-      AppChartSwatch(color: color),
-      const SizedBox(width: OnCareSpacing.s8),
-      Text(
-        label,
-        style: context.oncare
-            .text(OnCareTypography.strong(OnCareTypography.caption))
-            .copyWith(color: OnCareColors.textSecondary),
-      ),
-    ],
-  );
-}
-
 /// [BurnBarChart] 가 막대 영역 **밖에** 더 쓰는 세로 크기(간격 + 날짜 라벨 줄).
 /// 남는 자리를 그래프에 넘길 때 이만큼을 빼야 카드가 넘치지 않는다.
 const double kBurnBarChartExtraHeight =
@@ -787,7 +762,11 @@ class BurnBarChart extends StatelessWidget {
     return Semantics(
       container: true,
       label: empty
-          ? chartSemanticsLabel(l, title: title, points: const <String>[])
+          ? chartSemanticsLabel(
+              l.chartA11y,
+              title: title,
+              points: const <String>[],
+            )
           : null,
       child: ExcludeSemantics(
         excluding: empty,
@@ -949,18 +928,21 @@ class _BurnBarColumn extends StatelessWidget {
   }
 }
 
-/// 소모 칼로리 도넛. 목표를 넘기면 한 바퀴를 넘어 계속 돈다. 가운데에 값과
-/// 목표를 두 줄로 적는다 (#1127).
-class _DonutPainter extends CustomPainter {
-  _DonutPainter({
-    required this.ratio,
+/// 소모 칼로리 도넛의 두께 — 지름에 대한 비율.
+const double _kBurnDonutStrokeRatio = 0.13;
+
+/// 소모 칼로리 도넛 **가운데** 글자 — 값과 목표를 두 줄로 적는다(#1127). 링은
+/// 공용 [AppRingGauge] 가 그린다(#2469).
+class _DonutLabelPainter extends CustomPainter {
+  _DonutLabelPainter({
+    required this.stroke,
     required this.center,
     required this.unit,
     this.caption = '',
-    this.startIcon,
   });
 
-  final double ratio;
+  /// 링 두께 — 글자가 들어갈 안쪽 구멍을 잰다.
+  final double stroke;
 
   /// 값 **위**에 얹는 회색 머리 — 이 링이 무엇을 재는지 (회원 앱 #1352). 비면
   /// 그리지 않는다. 불꽃 기호만으로는 12시의 그림이 소모 칼로리를 뜻하는지 알
@@ -970,15 +952,10 @@ class _DonutPainter extends CustomPainter {
   final String center;
   final String unit;
 
-  /// 12시 방향 링 머리에 얹을 기호. null 이면 그리지 않는다.
-  final IconData? startIcon;
-
   @override
   void paint(Canvas canvas, Size size) {
     final Offset c = Offset(size.width / 2, size.height / 2);
-    final double stroke = size.width * 0.13;
     final double r = size.width / 2 - stroke / 2;
-    paintRing(canvas, c, r, stroke, ratio, kBurnColor, startIcon: startIcon);
     // 안쪽 구멍의 지름. 세 줄 다 이 폭 안에 들어간다.
     final double inner = (r - stroke / 2) * 1.75;
     // 머리 → 값 → 목표 순으로 쌓아 **구멍 한가운데**에 세운다 (회원 앱 #1352).
@@ -1055,8 +1032,8 @@ class _DonutPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DonutPainter old) =>
-      old.ratio != ratio ||
+  bool shouldRepaint(covariant _DonutLabelPainter old) =>
+      old.stroke != stroke ||
       old.center != center ||
       old.unit != unit ||
       old.caption != caption;
@@ -1102,241 +1079,39 @@ class _ChartGridPainter extends CustomPainter {
       old.count != count || old.monthBreaks != monthBreaks;
 }
 
-/// 유형별 주간 목표를 크기 순으로 겹친 세 링.
-class _GoalRingsPainter extends CustomPainter {
-  _GoalRingsPainter(this.ratios);
+/// 유형별 주간 목표를 크기 순으로 겹친 세 링 — 공용 [AppRingGauge] 셋을
+/// 지름을 줄여 가며 가운데에 겹친다(#2469).
+class _GoalRings extends StatelessWidget {
+  const _GoalRings({required this.ratios, required this.size});
 
   final List<double> ratios;
 
+  /// 바깥 링의 지름.
+  final double size;
+
+  /// 링 사이 틈.
   static const double _gap = 3;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final Offset c = Offset(size.width / 2, size.height / 2);
-    final double radius = size.width / 2;
+  Widget build(BuildContext context) {
+    final double radius = size / 2;
     final double hole = radius * 0.22;
     final double stroke = (radius - _gap * 2 - hole) / 3;
-    double r = radius - stroke / 2;
-    for (int i = 0; i < ratios.length; i++) {
-      final ExerciseKind kind = ExerciseKind.values[i];
-      paintRing(
-        canvas,
-        c,
-        r,
-        stroke,
-        ratios[i],
-        kindColor(kind),
-        startIcon: ringStartIcon(kind),
-      );
-      r -= stroke + _gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GoalRingsPainter old) => old.ratios != ratios;
-}
-
-/// 한 바퀴를 넘긴 원호가 **다시 도는 몫**(0 이상 1 미만).
-///
-/// 넘친 몫을 1 에서 자르면 두 바퀴를 넘긴 순간(209%, 300% …) 끝이 12시로
-/// 되돌아가, 그 자리에 고정으로 얹는 유형 기호 아래 캡 표시가 숨는다 —
-/// 도넛이 그냥 꽉 찬 원으로만 보인다. 자르지 말고 **바퀴마다 감아 돌린다**
-/// (#1178). 209% 면 두 번째 바퀴의 9% 지점, 200%·300% 면 12시가 맞다.
-double ringOverflowTurn(double ratio) {
-  if (!ratio.isFinite) return 0;
-  return ratio - ratio.floorToDouble();
-}
-
-/// 부동소수점 오차를 감안한 허용 오차 (회원 앱 #1462).
-const double _kRingMultipleEpsilon = 1e-6;
-
-/// [filled] 가 목표의 정확한 양의 정수 배(1, 2, 3 …)에 아주 가까운가.
-///
-/// 이 자리에서는 원호 끝이 12시의 고정 시작 기호와 겹친다 — 캡 그림자와
-/// 진행 끝 `>` 기호를 여기 또 그리면 검은 얼룩과 아이콘 중복으로 보인다
-/// (회원 앱 #1462). 0(아직 시작 전)은 배수로 치지 않는다.
-bool isAtRingMultiple(double filled) {
-  if (!filled.isFinite || filled < 1 - _kRingMultipleEpsilon) return false;
-  final double nearest = filled.roundToDouble();
-  return nearest >= 1 && (filled - nearest).abs() <= _kRingMultipleEpsilon;
-}
-
-/// 링 하나 — 트랙 + 채운 호. 목표를 넘기면 한 바퀴를 넘어 이어 그리고, 겹친
-/// 끝 아래에 그림자를 깔아 어디서 멈췄는지 보이게 한다. 그림자는 그 링의
-/// 두께로 잘라 밖으로 번지지 않는다.
-///
-/// [startIcon] 을 주면 12시에 흰 기호를 얹는다 — 이 링이 무엇인지와 어디서
-/// 출발했는지를 말한다. 원호의 **끝**에는 얇은 `>` 를 얹어 어디까지 왔는지와
-/// 어느 쪽으로 도는지를 함께 짚는다.
-void paintRing(
-  Canvas canvas,
-  Offset center,
-  double radius,
-  double stroke,
-  double ratio,
-  Color color, {
-  IconData? startIcon,
-}) {
-  final Rect rect = Rect.fromCircle(center: center, radius: radius);
-  canvas.drawCircle(
-    center,
-    radius,
-    Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      // 흰 카드 위 트랙 — 불투명 값이라 한 바퀴 넘긴 원호 아래로 비치지 않는다.
-      ..color = OnCareColors.onWhite(color, OnCareAlpha.medium),
-  );
-  double capAngle = -math.pi / 2;
-  final Paint arc = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = stroke
-    ..strokeCap = StrokeCap.round
-    ..color = color;
-  // 정확한 목표 배수(100%, 200% …)에서는 캡 그림자와 끝 `>` 를 그리지 않는다
-  // (회원 앱 #1462) — 끝이 12시 기호와 겹쳐 검은 얼룩과 기호 둘로 보인다.
-  final bool atMultiple = isAtRingMultiple(ratio);
-  if (ratio >= 1 - _kRingMultipleEpsilon) {
-    // 한 바퀴는 **끝이 없는 원**으로. 2π 원호에 둥근 끝을 주면 시작과 끝의
-    // 캡이 같은 자리에 겹쳐 혹처럼 튀어나온다.
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..color = color,
+    return Stack(
+      alignment: Alignment.center,
+      children: <Widget>[
+        for (int i = 0; i < ratios.length; i++)
+          SizedBox.square(
+            dimension: size - (stroke + _gap) * 2 * i,
+            child: AppRingGauge(
+              value: ratios[i],
+              color: kindColor(ExerciseKind.values[i]),
+              stroke: stroke,
+              style: AppRingGaugeStyle.lap,
+              startIcon: ringStartIcon(ExerciseKind.values[i]),
+            ),
+          ),
+      ],
     );
-    final double over = atMultiple ? 0 : ringOverflowTurn(ratio);
-    capAngle = -math.pi / 2 + math.pi * 2 * over;
-    if (!atMultiple) {
-      _paintCapShadow(canvas, center, radius, stroke, capAngle);
-      if (over > 0) {
-        canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * over, false, arc);
-      }
-    }
-  } else if (ratio > 0) {
-    capAngle = -math.pi / 2 + math.pi * 2 * ratio;
-    _paintCapShadow(canvas, center, radius, stroke, capAngle);
-    canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * ratio, false, arc);
   }
-  if (ratio > 0 && !atMultiple) {
-    _paintCapChevron(canvas, center, radius, stroke, capAngle);
-  }
-  // 유형 기호는 12시에 고정한다 — 링이 한 바퀴를 넘겨 겹쳐도 가려지지 않게
-  // 맨 위에 그린다.
-  if (startIcon != null) {
-    _paintStartIcon(canvas, center, radius, stroke, startIcon);
-  }
-}
-
-/// 원호의 **끝(캡)** 아래에 깔 그림자. 넓고 흐린 것 위에 좁고 진한 것을 겹쳐
-/// 찍어, 끝이 아래 트랙(또는 한 바퀴 돈 같은 색 원)에 묻히지 않게 한다.
-///
-/// 그리기 전에 캔버스를 **그 링의 두께**로 자른다 — 자르지 않으면 흐린
-/// 가장자리가 링 밖으로 번져 도넛 주위에 얼룩이 남는다.
-void _paintCapShadow(
-  Canvas canvas,
-  Offset center,
-  double radius,
-  double stroke,
-  double capAngle,
-) {
-  final Path ring = Path()
-    ..fillType = PathFillType.evenOdd
-    ..addOval(Rect.fromCircle(center: center, radius: radius + stroke / 2))
-    ..addOval(Rect.fromCircle(center: center, radius: radius - stroke / 2));
-  final Offset cap =
-      center + Offset(math.cos(capAngle), math.sin(capAngle)) * radius;
-  canvas
-    ..save()
-    ..clipPath(ring)
-    // 두 겹으로 깐다. 넓고 흐린 것이 링 위에 얹힌 느낌을 만들고, 좁고 진한
-    // 것이 끝의 위치를 못 박는다. 가장 연한 링(스트레칭) 위에서도 보여야
-    // 하므로 진하고 넓게 둔다. (회원 앱 #1161 과 같은 값)
-    ..drawCircle(
-      cap,
-      stroke / 2 + _kCapShadowOuterSpread,
-      Paint()
-        ..color = Color.lerp(
-          Colors.transparent,
-          OnCareColors.overlayInk,
-          _kCapShadowOuterAlpha,
-        )!
-        ..maskFilter = const MaskFilter.blur(
-          BlurStyle.normal,
-          _kCapShadowOuterBlur,
-        ),
-    )
-    ..drawCircle(
-      cap,
-      stroke / 2 + _kCapShadowInnerSpread,
-      Paint()
-        ..color = Color.lerp(
-          Colors.transparent,
-          OnCareColors.overlayInk,
-          _kCapShadowInnerAlpha,
-        )!
-        ..maskFilter = const MaskFilter.blur(
-          BlurStyle.normal,
-          _kCapShadowInnerBlur,
-        ),
-    )
-    ..restore();
-}
-
-/// 원호의 **끝**에 얹는 얇고 작은 흰 `>`. 어디까지 왔는지와 어느 쪽으로 도는지를
-/// 함께 짚는다. 링이 너무 얇으면 기호가 링을 다 덮으므로 그리지 않는다.
-void _paintCapChevron(
-  Canvas canvas,
-  Offset center,
-  double radius,
-  double stroke,
-  double angle,
-) {
-  final double arm = stroke * 0.16;
-  if (arm < 1.4) return;
-  final Offset at = center + Offset(math.cos(angle), math.sin(angle)) * radius;
-  canvas
-    ..save()
-    ..translate(at.dx, at.dy)
-    // 접선 방향으로 눕힌다 — 시계 방향으로 도는 원호에서는 각도 + 90도다.
-    ..rotate(angle + math.pi / 2)
-    ..drawPath(
-      Path()
-        ..moveTo(-arm * 0.55, -arm)
-        ..lineTo(arm * 0.55, 0)
-        ..lineTo(-arm * 0.55, arm),
-      Paint()
-        ..color = OnCareColors.textOnFill
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(stroke * 0.07, 1)
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    )
-    ..restore();
-}
-
-/// 링 12시에 흰 기호를 얹는다. 링 두께 안에 들어가도록 두께에 맞춰 줄인다.
-///
-/// 캔버스에 직접 찍는 글자라 테마를 타지 않는다 — 아이콘 묶음의 채움·굵기를
-/// [AppIcon.glyphPainter] 로 실어 준다. 싣지 않으면 같은 아이콘이 화면 다른
-/// 곳에서는 채워지고 링 위에서만 빈 외곽선으로 나온다(회원 앱 #1866, #2466).
-void _paintStartIcon(
-  Canvas canvas,
-  Offset center,
-  double radius,
-  double stroke,
-  IconData icon,
-) {
-  final double glyph = stroke * 0.78;
-  if (glyph < 6) return;
-  final TextPainter tp = AppIcon.glyphPainter(
-    AppIcons.oncare,
-    icon,
-    size: glyph,
-    color: OnCareColors.textOnFill,
-  );
-  final Offset at = center + const Offset(0, -1) * radius;
-  tp.paint(canvas, Offset(at.dx - tp.width / 2, at.dy - tp.height / 2));
 }
