@@ -1522,6 +1522,15 @@
       }
     }
   },
+  "myCareerYearsValue": "{years, plural, =1{1 year} other{{years} years}}",
+  "@myCareerYearsValue": {
+    "description": "Career value under the 경력 label — the label already says it is career, so only the years.",
+    "placeholders": {
+      "years": {
+        "type": "int"
+      }
+    }
+  },
   "myFieldName": "Name (account)",
   "myFieldEmail": "Email (account)",
   "myFieldPhone": "Phone",

@@ -3944,6 +3944,12 @@ abstract class AppLocalizations {
   /// **'{years, plural, =1{1 year} other{{years} years}} of experience'**
   String myCareerYears(int years);
 
+  /// Career value under the 경력 label — the label already says it is career, so only the years.
+  ///
+  /// In en, this message translates to:
+  /// **'{years, plural, =1{1 year} other{{years} years}}'**
+  String myCareerYearsValue(int years);
+
   /// No description provided for @myFieldName.
   ///
   /// In en, this message translates to:

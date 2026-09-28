@@ -2143,6 +2143,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String myCareerYearsValue(int years) {
+    return '$years년';
+  }
+
+  @override
   String get myFieldName => '이름 (계정 정보)';
 
   @override

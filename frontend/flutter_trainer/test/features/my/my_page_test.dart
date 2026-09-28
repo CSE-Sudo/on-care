@@ -82,6 +82,8 @@ void main() {
       expect(find.text(kDemoTrainerName), findsWidgets);
       expect(find.text('trainer@oncare.com'), findsOneWidget);
       expect(find.text('퍼스널 트레이너 · 경력 7년'), findsOneWidget);
+      // 기본 정보의 '경력' 칸에는 연수만 — 라벨과 같은 말을 되풀이하지 않는다.
+      expect(find.text('7년'), findsOneWidget);
       expect(find.text('생활스포츠지도사 2급'), findsOneWidget);
 
       await tester.scrollUntilVisible(find.text('담당 회원'), 150);

@@ -678,7 +678,8 @@ class _MyPageState extends ConsumerState<MyPage> {
               l.myFieldCareer,
               _profile.careerYears == null
                   ? ''
-                  : l.myCareerYears(_profile.careerYears!),
+                  // 라벨이 이미 '경력' 이라 값에는 연수만 둔다.
+                  : l.myCareerYearsValue(_profile.careerYears!),
             ),
           ],
           wide: _Info(l.myFieldIntro, intro, empty: l.myIntroEmpty),

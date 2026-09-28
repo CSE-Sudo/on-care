@@ -2272,6 +2272,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String myCareerYearsValue(int years) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '1 year',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get myFieldName => 'Name (account)';
 
   @override
