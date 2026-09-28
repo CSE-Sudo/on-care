@@ -15,7 +15,6 @@ import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/pages/reports_page.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
@@ -1343,8 +1342,8 @@ void main() {
 
   /// 편집기에 서 있는 카드 번호들, 위에서부터.
   List<int?> cardNumbers(WidgetTester tester) => tester
-      .widgetList<ReportCardHeader>(find.byType(ReportCardHeader))
-      .map((ReportCardHeader h) => h.number)
+      .widgetList<AppSectionHeader>(find.byType(AppSectionHeader))
+      .map((AppSectionHeader h) => h.number)
       .where((int? n) => n != null)
       .toList();
 

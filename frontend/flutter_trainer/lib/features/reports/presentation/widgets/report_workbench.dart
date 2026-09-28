@@ -205,57 +205,40 @@ class ReportWorkbench extends StatelessWidget {
     List<ReportQueueEntry> pending, {
     required bool fill,
   }) {
-    final OnCareTokens tokens = context.oncare;
     // 영어·큰 글자에서는 `남은 사람` 과 정렬 토글이 한 줄에 다 서지 못한다.
     // 줄을 넘겨 두 줄로 세운다 — 한쪽을 줄여 읽기 어렵게 만들지 않는다(#849).
-    final Widget head = Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: OnCareSpacing.s12,
-      runSpacing: OnCareSpacing.s8,
-      children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              l.reportsPending,
-              style: tokens.text(
-                OnCareTypography.strong(OnCareTypography.bodySmall),
-              ),
+    final Widget head = AppSectionHeader(
+      title: l.reportsPending,
+      // 남은 수는 배지로 — 전송 완료 열의 수와 같은 모양·같은 색으로
+      // 읽힌다. 0명일 때 초록으로 바꾸지 않는다: 다 보냈다는 사실은 빈
+      // 상태 문구가 말하고, 배지 색이 바뀌면 같은 종류의 수가 다른 뜻처럼
+      // 보였다(#2397).
+      titleBadge: AppTag(
+        label: l.reportsCountPeople(pending.length),
+        tone: AppTagTone.brand,
+      ),
+      trailingFit: AppSectionTrailingFit.wrap,
+      // 회원 탭과 같은 `정렬: … ▾` 메뉴 — 토글은 항목이 늘 때마다 폭이 넓어져
+      // 머리 줄을 밀어냈고, 같은 "정렬" 이 탭마다 다른 모양이었다(#2398).
+      trailing: AppMenu(
+        items: <AppMenuItem>[
+          for (final ReportQueueSort item in ReportQueueSort.values)
+            AppMenuItem(
+              key: ValueKey<String>('reports-sort-${item.name}'),
+              label: _sortLabel(l, item),
+              selected: item == sort,
+              onSelected: () => onSortChanged(item),
             ),
-            const SizedBox(width: OnCareSpacing.s8),
-            // 남은 수는 배지로 — 전송 완료 열의 수와 같은 모양·같은 색으로
-            // 읽힌다. 0명일 때 초록으로 바꾸지 않는다: 다 보냈다는 사실은 빈
-            // 상태 문구가 말하고, 배지 색이 바뀌면 같은 종류의 수가 다른 뜻처럼
-            // 보였다(#2397).
-            AppTag(
-              label: l.reportsCountPeople(pending.length),
-              tone: AppTagTone.brand,
-            ),
-          ],
+        ],
+        triggerBuilder: (context, toggle) => AppButton(
+          key: const ValueKey<String>('reports-sort-button'),
+          label: '${l.reportsSortLabel}: ${_sortLabel(l, sort)}',
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
+          trailingIcon: Icons.arrow_drop_down_rounded,
+          onPressed: toggle,
         ),
-        // 회원 탭과 같은 `정렬: … ▾` 메뉴 — 토글은 항목이 늘 때마다 폭이 넓어져
-        // 머리 줄을 밀어냈고, 같은 "정렬" 이 탭마다 다른 모양이었다(#2398).
-        AppMenu(
-          items: <AppMenuItem>[
-            for (final ReportQueueSort item in ReportQueueSort.values)
-              AppMenuItem(
-                key: ValueKey<String>('reports-sort-${item.name}'),
-                label: _sortLabel(l, item),
-                selected: item == sort,
-                onSelected: () => onSortChanged(item),
-              ),
-          ],
-          triggerBuilder: (context, toggle) => AppButton(
-            key: const ValueKey<String>('reports-sort-button'),
-            label: '${l.reportsSortLabel}: ${_sortLabel(l, sort)}',
-            variant: AppButtonVariant.secondary,
-            size: OnCareButtonSize.small,
-            trailingIcon: Icons.arrow_drop_down_rounded,
-            onPressed: toggle,
-          ),
-        ),
-      ],
+      ),
     );
     final Widget? empty = pending.isEmpty
         ? AppEmptyState(
@@ -307,49 +290,33 @@ class ReportWorkbench extends StatelessWidget {
   }) {
     final OnCareTokens tokens = context.oncare;
     // 미전송 상자와 같은 머리 — 제목·배지 왼쪽, `정렬: … ▾` 오른쪽(#2447).
-    final Widget head = Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: OnCareSpacing.s12,
-      runSpacing: OnCareSpacing.s8,
-      children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              l.reportsSentColumn,
-              style: tokens.text(
-                OnCareTypography.strong(OnCareTypography.bodySmall),
-              ),
+    final Widget head = AppSectionHeader(
+      title: l.reportsSentColumn,
+      // 미전송 배지와 같은 톤 — 회색이면 보조 정보처럼 읽혔다(#2397).
+      titleBadge: AppTag(
+        label: l.reportsCountPeople(done.length),
+        tone: AppTagTone.brand,
+      ),
+      trailingFit: AppSectionTrailingFit.wrap,
+      trailing: AppMenu(
+        items: <AppMenuItem>[
+          for (final ReportSentSort item in ReportSentSort.values)
+            AppMenuItem(
+              key: ValueKey<String>('reports-sent-sort-${item.name}'),
+              label: _sentSortLabel(l, item),
+              selected: item == sentSort,
+              onSelected: () => onSentSortChanged(item),
             ),
-            const SizedBox(width: OnCareSpacing.s8),
-            // 미전송 배지와 같은 톤 — 회색이면 보조 정보처럼 읽혔다(#2397).
-            AppTag(
-              label: l.reportsCountPeople(done.length),
-              tone: AppTagTone.brand,
-            ),
-          ],
+        ],
+        triggerBuilder: (context, toggle) => AppButton(
+          key: const ValueKey<String>('reports-sent-sort-button'),
+          label: '${l.reportsSortLabel}: ${_sentSortLabel(l, sentSort)}',
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
+          trailingIcon: Icons.arrow_drop_down_rounded,
+          onPressed: toggle,
         ),
-        AppMenu(
-          items: <AppMenuItem>[
-            for (final ReportSentSort item in ReportSentSort.values)
-              AppMenuItem(
-                key: ValueKey<String>('reports-sent-sort-${item.name}'),
-                label: _sentSortLabel(l, item),
-                selected: item == sentSort,
-                onSelected: () => onSentSortChanged(item),
-              ),
-          ],
-          triggerBuilder: (context, toggle) => AppButton(
-            key: const ValueKey<String>('reports-sent-sort-button'),
-            label: '${l.reportsSortLabel}: ${_sentSortLabel(l, sentSort)}',
-            variant: AppButtonVariant.secondary,
-            size: OnCareButtonSize.small,
-            trailingIcon: Icons.arrow_drop_down_rounded,
-            onPressed: toggle,
-          ),
-        ),
-      ],
+      ),
     );
     final Widget? empty = done.isEmpty
         ? Text(
