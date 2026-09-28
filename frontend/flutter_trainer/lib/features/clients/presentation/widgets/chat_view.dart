@@ -17,6 +17,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:printing/printing.dart';
 
@@ -782,7 +783,7 @@ class _Bubble extends ConsumerWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: <Widget>[
-        AppAvatar(name: avatar, size: AppAvatarSize.small),
+        ClientAvatar(name: avatar, size: AppAvatarSize.small),
         const SizedBox(width: OnCareSpacing.s8),
         Expanded(child: bubble),
       ],

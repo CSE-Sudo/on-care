@@ -11,6 +11,7 @@ import 'package:oncare_trainer/features/consultations/domain/entities/consultati
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
@@ -330,7 +331,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
           // 그 아래 필드 줄 옆으로 떨어져 보였다(#1395).
           Row(
             children: <Widget>[
-              AppAvatar(
+              ClientAvatar(
                 name: request.memberName.isEmpty
                     ? '?'
                     : request.memberName.characters.first,

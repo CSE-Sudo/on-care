@@ -41,10 +41,10 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
-        AppAvatar,
         AppAvatarSize,
         AppButton,
         AppIconButton,
@@ -975,8 +975,8 @@ void main() {
           ),
           findsNothing,
         );
-        final avatar = tester.widget<AppAvatar>(
-          find.descendant(of: programCard, matching: find.byType(AppAvatar)),
+        final avatar = tester.widget<ClientAvatar>(
+          find.descendant(of: programCard, matching: find.byType(ClientAvatar)),
         );
         expect(avatar.size, AppAvatarSize.medium);
         expect(avatar.size.dimension, 32);

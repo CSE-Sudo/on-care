@@ -42,6 +42,7 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 예외 둘: 탭 이동 시 스크롤 초기화(UI 위젯 아님), 그리고 요일별 막대그래프
 // — 패키지에 대응 차트가 없고 리포트 탭·테스트가 같은 위젯 타입을 쓴다.
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_trainer/shared/widgets/page_scroll_reset.dart';
@@ -840,7 +841,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 child: AppListRow(
                   title: c.name,
                   subtitle: _clientDemographics(l, c),
-                  leading: AppAvatar(name: c.name),
+                  leading: ClientAvatar(name: c.name),
                   selected: c.id == client.id,
                   onTap: () => _selectClient(c.id),
                 ),

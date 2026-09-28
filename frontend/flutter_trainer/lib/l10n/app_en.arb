@@ -3191,6 +3191,7 @@
   "reportsSortPriority": "Needs attention",
   "reportsSortName": "Name A–Z",
   "reportsSortNameDescending": "Name Z–A",
+  "reportsSentSortUnread": "Unread first",
   "reportsSendProgress": "{done} / {total} sent",
   "@reportsSendProgress": {
     "placeholders": {
@@ -3261,7 +3262,6 @@
   },
   "reportsSentRead": "Read",
   "reportsSentUnread": "Unread",
-  "reportsSentUnreadHint": "Members who haven't opened theirs move to the top next week.",
   "reportsBackToWorkbench": "This week's reports",
   "reportsSentHeadline": "Report sent to {name}",
   "@reportsSentHeadline": {
@@ -3329,6 +3329,9 @@
   "reportsStepReview": "Review",
   "reportsStepWrite": "Write",
   "reportsStepSend": "Send",
+  "reportsStepPrint": "Print",
+  "reportsPrintNeedsPdf": "You can print once the preview PDF is ready",
+  "reportsPrintFailed": "Couldn't open the print dialog. Please try again",
   "reportsStepperLabel": "Weekly report steps",
   "reportsStepNext": "Next",
   "reportsStepPrev": "Back",
@@ -3441,6 +3444,9 @@
   "reportsMemberFeedbackIntensityLabel": "Intensity",
   "reportsMemberFeedbackPainLabel": "Pain",
   "reportsMemberFeedbackPainNone": "None",
+  "reportsMemberFeedbackUnanswered": "No answer",
+  "reportsMemberFeedbackNoteLabel": "Note",
+  "reportsMemberFeedbackNoteNone": "No note",
   "reportsMemberFeedbackPainOn": "{area} ({date})",
   "@reportsMemberFeedbackPainOn": {
     "placeholders": {
@@ -3574,7 +3580,6 @@
       }
     }
   },
-  "reportsSkipToWrite": "Write without a draft",
   "reportsCalorieThisWeekAvg": "This week {kcal} kcal/day",
   "@reportsCalorieThisWeekAvg": {
     "placeholders": { "kcal": { "type": "String" } }
