@@ -251,7 +251,13 @@ class AppButton extends StatelessWidget {
 /// 처리 중인 [AppButton] 이 활성 모양을 유지하면서 아무것도 하지 않도록 넘기는 동작.
 void _ignorePress() {}
 
-/// 확인창·시트·폼 하단의 두 버튼 — [취소] 왼쪽, [확인] 오른쪽, 폭 반반(#1690 확정).
+/// 확인창·시트·폼 하단의 두 버튼 — [취소] 왼쪽, [확인] 오른쪽(#1690 확정).
+///
+/// 모양은 밀도가 정한다(#2465).
+/// - 모바일: 폭을 반씩 꽉 채운다. 손가락으로 누르는 바텀시트·확인창의 모양이다.
+/// - 웹: 오른쪽 끝에 내용 폭으로 붙는다([AppActionRow]). 400~800 폭 창에서
+///   반반으로 채우면 버튼이 창 폭만큼 늘어나, 마우스로 누르는 화면에서는
+///   무엇을 누르는 자리인지가 오히려 흐려진다.
 class AppButtonPair extends StatelessWidget {
   const AppButtonPair({
     super.key,
@@ -283,30 +289,73 @@ class AppButtonPair extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool fill = !context.oncare.density.isWeb;
+    final Widget cancel = AppButton(
+      key: cancelKey,
+      label: cancelLabel,
+      onPressed: onCancel,
+      variant: AppButtonVariant.secondary,
+      size: size,
+      fullWidth: fill,
+    );
+    final Widget confirm = AppButton(
+      key: confirmKey,
+      label: confirmLabel,
+      onPressed: onConfirm,
+      variant: destructive
+          ? AppButtonVariant.destructive
+          : AppButtonVariant.primary,
+      size: size,
+      loading: confirmLoading,
+      fullWidth: fill,
+    );
+    if (!fill) {
+      return AppActionRow(actions: <Widget>[cancel, confirm]);
+    }
     return Row(
       children: <Widget>[
-        Expanded(
-          child: AppButton(
-            key: cancelKey,
-            label: cancelLabel,
-            onPressed: onCancel,
-            variant: AppButtonVariant.secondary,
-            size: size,
-            fullWidth: true,
-          ),
-        ),
+        Expanded(child: cancel),
+        const SizedBox(width: OnCareSpacing.buttonGap),
+        Expanded(child: confirm),
+      ],
+    );
+  }
+}
+
+/// 동작 버튼 줄 — 버튼을 오른쪽 끝에 내용 폭으로 붙인다(#2465).
+///
+/// 트레이너 웹의 창 하단·카드 결정·줄 끝 동작은 모두 이 줄로 그린다. 주 동작을
+/// [actions] 의 **마지막**에 두면 가장 오른쪽 끝에 온다([취소][확정] 순서).
+/// 자리가 모자라면 오른쪽 정렬을 지킨 채 다음 줄로 넘어간다.
+///
+/// [leading] 은 왼쪽 끝에 떼어 놓는 자리다. 단계가 있는 흐름의 `이전` 처럼
+/// 오른쪽 동작과 한 쌍의 선택이 아닌 되돌아가기에만 쓴다.
+class AppActionRow extends StatelessWidget {
+  const AppActionRow({super.key, required this.actions, this.leading});
+
+  final List<Widget> actions;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget trailing = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: OnCareSpacing.buttonGap,
+      runSpacing: OnCareSpacing.buttonGap,
+      children: actions,
+    );
+    if (leading == null) {
+      return Align(alignment: AlignmentDirectional.centerEnd, child: trailing);
+    }
+    return Row(
+      children: <Widget>[
+        leading!,
         const SizedBox(width: OnCareSpacing.buttonGap),
         Expanded(
-          child: AppButton(
-            key: confirmKey,
-            label: confirmLabel,
-            onPressed: onConfirm,
-            variant: destructive
-                ? AppButtonVariant.destructive
-                : AppButtonVariant.primary,
-            size: size,
-            loading: confirmLoading,
-            fullWidth: true,
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: trailing,
           ),
         ),
       ],
