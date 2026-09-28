@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -42,7 +43,7 @@ void main() {
       expect(
         find.descendant(
           of: detail,
-          matching: find.byIcon(Icons.chevron_right_rounded),
+          matching: find.byIcon(AppIcons.chevronRight),
         ),
         findsOneWidget,
       );

@@ -8,7 +8,7 @@ import 'package:oncare_ui/src/tokens/icons.dart';
 ///
 /// 테마의 [OnCareIconSet] 이 정한 채움·굵기·등급을 싣고, 광학 크기는 실제로
 /// 그려지는 크기에 맞춘다. 기본 묶음([OnCareIconSet.material])은 변형이 없어
-/// [Icon] 과 똑같이 그린다 — 트레이너웹 모양이 달라지지 않는다.
+/// [Icon] 과 똑같이 그린다.
 class AppIcon extends StatelessWidget {
   const AppIcon(
     this.icon, {

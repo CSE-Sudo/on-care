@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -138,7 +139,7 @@ class NotificationsPage extends ConsumerWidget {
         if (unread != null && unread > 0)
           AppButton(
             label: l.notifReadAll,
-            leadingIcon: Icons.done_all_rounded,
+            leadingIcon: AppIcons.markAllRead,
             variant: AppButtonVariant.secondary,
             onPressed: () => _readAll(context, ref),
           ),
@@ -146,8 +147,9 @@ class NotificationsPage extends ConsumerWidget {
       body: PageScrollResetListener(
         child: notifications.when(
           loading: () => const AppLoading(),
-          error: (error, _) => _ErrorView(
-            message: serverDetailOr(
+          error: (error, _) => AppErrorState(
+            retryKey: const ValueKey<String>('notifications-retry'),
+            title: serverDetailOr(
               l,
               error is AppError ? error.message : null,
               l.notifLoadFailed,
@@ -166,7 +168,7 @@ class NotificationsPage extends ConsumerWidget {
             if (rows.isEmpty) {
               return AppEmptyState(
                 title: l.notifEmpty,
-                icon: Icons.notifications_none_rounded,
+                icon: AppIcons.notifications,
               );
             }
             void loadMore() => ref
@@ -251,7 +253,7 @@ class _LoadMoreFooter extends StatelessWidget {
         key: const ValueKey<String>('notifications-load-more'),
         label: l.notifLoadMore,
         variant: AppButtonVariant.secondary,
-        leadingIcon: Icons.history_rounded,
+        leadingIcon: AppIcons.history,
         onPressed: onLoadMore,
       );
     } else {
@@ -268,45 +270,6 @@ class _LoadMoreFooter extends StatelessWidget {
   }
 }
 
-/// 오류 화면. [AppErrorState] 와 같은 모양이지만 재시도 버튼에 테스트·자동화가
-/// 찾는 Key(`notifications-retry`)를 달아야 해서 버튼을 따로 둔다.
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.retryLabel,
-    required this.onRetry,
-  });
-
-  final String message;
-  final String retryLabel;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(OnCareSpacing.s24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            AppEmptyState(
-              title: message,
-              icon: Icons.cloud_off_rounded,
-              placement: AppStatePlacement.card,
-            ),
-            AppButton(
-              key: const ValueKey<String>('notifications-retry'),
-              label: retryLabel,
-              variant: AppButtonVariant.secondary,
-              onPressed: onRetry,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({required this.notification, required this.onTap});
 
@@ -314,16 +277,16 @@ class _NotificationTile extends StatelessWidget {
   final VoidCallback onTap;
 
   IconData get _icon => switch (notification.kind) {
-    TrainerNotificationKind.message => Icons.chat_bubble_outline_rounded,
-    TrainerNotificationKind.consultation => Icons.mark_email_unread_rounded,
-    TrainerNotificationKind.reservation => Icons.event_available_rounded,
-    TrainerNotificationKind.healthGoal => Icons.flag_rounded,
-    TrainerNotificationKind.memberName => Icons.badge_rounded,
-    TrainerNotificationKind.memberLeft => Icons.person_remove_rounded,
-    TrainerNotificationKind.inviteAccepted => Icons.how_to_reg_rounded,
-    TrainerNotificationKind.inviteRejected => Icons.person_off_rounded,
-    TrainerNotificationKind.consultationWithdrawn => Icons.event_busy_rounded,
-    TrainerNotificationKind.other => Icons.notifications_none_rounded,
+    TrainerNotificationKind.message => AppIcons.chat,
+    TrainerNotificationKind.consultation => AppIcons.consultation,
+    TrainerNotificationKind.reservation => AppIcons.eventAvailable,
+    TrainerNotificationKind.healthGoal => AppIcons.goal,
+    TrainerNotificationKind.memberName => AppIcons.badge,
+    TrainerNotificationKind.memberLeft => AppIcons.memberLeft,
+    TrainerNotificationKind.inviteAccepted => AppIcons.inviteAccepted,
+    TrainerNotificationKind.inviteRejected => AppIcons.personOff,
+    TrainerNotificationKind.consultationWithdrawn => AppIcons.eventBusy,
+    TrainerNotificationKind.other => AppIcons.notifications,
   };
 
   @override
@@ -347,7 +310,7 @@ class _NotificationTile extends StatelessWidget {
         subtitle: text.body.isEmpty ? null : text.body,
         unread: unread,
         onTap: onTap,
-        leading: Icon(
+        leading: AppIcon(
           _icon,
           size: OnCareSize.iconMedium,
           color: unread ? tokens.brand.primary : OnCareColors.textSecondary,

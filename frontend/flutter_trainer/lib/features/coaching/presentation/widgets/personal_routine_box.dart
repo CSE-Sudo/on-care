@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
@@ -69,7 +70,7 @@ class PersonalRoutineBox extends StatelessWidget {
             title: routineOnly
                 ? l.aiRoutineOnlyProgramName
                 : l.progPersonalRoutinesTitle,
-            icon: Icons.directions_run_rounded,
+            icon: AppIcons.personalRoutine,
             trailing: AppTag(
               label: l.aiPersonalStepBadge(routines.length),
               tone: AppTagTone.brand,
@@ -120,7 +121,7 @@ class PersonalRoutineBox extends StatelessWidget {
                       : () => _pickStartDate(context, start),
                   variant: AppButtonVariant.secondary,
                   size: OnCareButtonSize.small,
-                  leadingIcon: Icons.event_rounded,
+                  leadingIcon: AppIcons.calendar,
                 ),
               ],
             ),
@@ -138,7 +139,7 @@ class PersonalRoutineBox extends StatelessWidget {
               label: sent ? l.aiRoutineOnlySentLabel : l.aiRoutineOnlySend,
               onPressed: sending || sent ? null : onSend,
               size: OnCareButtonSize.large,
-              leadingIcon: sent ? Icons.check_rounded : Icons.send_rounded,
+              leadingIcon: sent ? AppIcons.check : AppIcons.send,
               fullWidth: true,
               loading: sending,
             ),

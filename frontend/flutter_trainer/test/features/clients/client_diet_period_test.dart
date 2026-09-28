@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
@@ -161,7 +162,7 @@ void main() {
       expect(
         find.descendant(
           of: header,
-          matching: find.byIcon(Icons.restaurant_rounded),
+          matching: find.byIcon(AppIcons.diet),
         ),
         findsOneWidget,
       );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -727,7 +728,7 @@ Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
     await tester.tap(
       find.descendant(
         of: dialog,
-        matching: find.byIcon(Icons.chevron_right_rounded),
+        matching: find.byIcon(AppIcons.chevronRight),
       ),
     );
     await tester.pumpAndSettle();
@@ -1277,8 +1278,8 @@ void main() {
         AppSegmentedToggleStyle.thumb,
       );
       for (final (String label, IconData icon) in <(String, IconData)>[
-        ('식단', Icons.restaurant_rounded),
-        ('운동', Icons.fitness_center_rounded),
+        ('식단', AppIcons.diet),
+        ('운동', AppIcons.exercise),
       ]) {
         final text = find.descendant(of: tabs, matching: find.text(label));
         expect(text, findsOneWidget);
@@ -1571,7 +1572,7 @@ void main() {
         expect(
           find.descendant(
             of: back,
-            matching: find.byIcon(Icons.chevron_left_rounded),
+            matching: find.byIcon(AppIcons.chevronLeft),
           ),
           findsOneWidget,
         );

@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
@@ -124,13 +125,13 @@ void main() {
     await _pump(tester, report: _report(sessionsBooked: 3));
 
     expect(find.text('주 3회'), findsOneWidget);
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.check), findsNWidgets(2));
   });
 
   testWidgets('한 번도 안 나온 주에는 체크가 하나도 없다', (tester) async {
     await _pump(tester, report: _report(sessionsDone: 0));
 
-    expect(find.byIcon(Icons.check_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.check), findsNothing);
   });
 
   testWidgets('개인 운동은 수행과 배정을 함께 적는다', (tester) async {

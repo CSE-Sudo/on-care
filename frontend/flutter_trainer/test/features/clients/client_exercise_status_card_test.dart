@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -72,7 +73,7 @@ class _HostState extends State<_Host> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: ClientPeriodSection(
-          icon: Icons.monitor_heart_outlined,
+          icon: AppIcons.exercise,
           title: '운동 현황',
           period: _period,
           onChanged: (ClientPeriod p) => setState(() => _period = p),
@@ -159,10 +160,7 @@ void main() {
     await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
 
-    final Tooltip tip = tester.widget<Tooltip>(
-      find.byKey(const Key('client-exercise-bar-0')),
-    );
-    final String text = tip.richMessage!.toPlainText();
+    final String text = _barTip(tester, 'client-exercise-bar-0');
     expect(text, contains('kcal'));
   });
 
@@ -193,10 +191,7 @@ void main() {
     expect(bars, weeks);
 
     // 한 칸이 한 주면 그 칸의 소모 칼로리도 일곱 날을 더한 값이다.
-    final Tooltip tip = tester.widget<Tooltip>(
-      find.byKey(const Key('client-exercise-bar-1')),
-    );
-    expect(tip.richMessage!.toPlainText(), contains('kcal'));
+    expect(_barTip(tester, 'client-exercise-bar-1'), contains('kcal'));
   });
 
   testWidgets('기간을 바꿔도 토글 자리가 움직이지 않는다', (tester) async {
@@ -246,10 +241,7 @@ void main() {
     await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
 
-    final Tooltip tip = tester.widget<Tooltip>(
-      find.byKey(const Key('client-exercise-bar-0')),
-    );
-    final String text = tip.richMessage!.toPlainText();
+    final String text = _barTip(tester, 'client-exercise-bar-0');
     expect(text, contains('유산소'));
     // 없는 근력·스트레칭 값을 지어내면 안 된다.
     expect(text, isNot(contains('근력')));
@@ -454,7 +446,7 @@ void main() {
       expect(find.textContaining('100%'), findsNothing);
       expect(find.textContaining('1/1'), findsNothing);
       expect(toggle, findsOneWidget);
-      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.expandMore), findsOneWidget);
       // 접힌 상태에서는 접을 것이 없다 — 버튼도 없다.
       expect(collapse, findsNothing);
     });
@@ -472,7 +464,7 @@ void main() {
       // 두 건뿐이라 더 펼칠 것이 없다 — `더보기` 는 사라지고 `접기` 만 남는다.
       expect(toggle, findsNothing);
       expect(collapse, findsOneWidget);
-      expect(find.byIcon(Icons.expand_less_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.expandLess), findsOneWidget);
 
       await tester.tap(collapse);
       await tester.pumpAndSettle();
@@ -709,3 +701,14 @@ Finder _periodSegment(String label) => find.descendant(
   of: find.byKey(const ValueKey<String>('client-period-toggle')),
   matching: find.text(label),
 );
+
+/// 막대 툴팁 문구 — 상자는 [AppChartTooltip] 위젯이라, 같은 문구를 싣는
+/// 바깥 시맨틱 라벨로 읽는다(#2469).
+String _barTip(WidgetTester tester, String key) => tester
+    .widget<Semantics>(
+      find
+          .ancestor(of: find.byKey(Key(key)), matching: find.byType(Semantics))
+          .first,
+    )
+    .properties
+    .label!;

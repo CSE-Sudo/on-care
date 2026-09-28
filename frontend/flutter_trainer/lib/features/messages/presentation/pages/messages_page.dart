@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
@@ -190,7 +191,7 @@ class _ConversationList extends StatelessWidget {
           child: clients.isEmpty
               ? AppEmptyState(
                   title: l.messagesEmpty,
-                  icon: Icons.forum_rounded,
+                  icon: AppIcons.chat,
                   placement: AppStatePlacement.card,
                 )
               : ListView.separated(
@@ -420,7 +421,7 @@ class _ThreadPanel extends StatelessWidget {
                   label: l.messagesClientDetail,
                   variant: AppButtonVariant.text,
                   size: OnCareButtonSize.small,
-                  trailingIcon: Icons.chevron_right_rounded,
+                  trailingIcon: AppIcons.chevronRight,
                   onPressed: () =>
                       context.go(AppRoutes.clientDetail(client.id)),
                 ),
@@ -514,7 +515,7 @@ class _EmptyThread extends StatelessWidget {
     return AppCard(
       child: AppEmptyState(
         title: l.messagesSelectPrompt,
-        icon: Icons.chat_bubble_outline_rounded,
+        icon: AppIcons.chat,
       ),
     );
   }

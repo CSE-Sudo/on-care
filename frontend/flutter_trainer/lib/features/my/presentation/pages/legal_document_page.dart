@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -49,8 +50,8 @@ class LegalDocumentPage extends StatelessWidget {
                     AppSectionHeader(
                       title: title,
                       icon: isPrivacy
-                          ? Icons.privacy_tip_rounded
-                          : Icons.description_rounded,
+                          ? AppIcons.privacy
+                          : AppIcons.document,
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
                     SelectableText(

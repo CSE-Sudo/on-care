@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
@@ -497,8 +498,8 @@ void main() {
 
         expect(find.text('담당 요청이 수락되었어요'), findsOneWidget);
         expect(find.text('담당 요청이 거절되었어요'), findsOneWidget);
-        expect(find.byIcon(Icons.how_to_reg_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.person_off_rounded), findsOneWidget);
+        expect(find.byIcon(AppIcons.inviteAccepted), findsOneWidget);
+        expect(find.byIcon(AppIcons.personOff), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     });

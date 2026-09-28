@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -184,8 +185,8 @@ class ClientDayRecordTile extends StatelessWidget {
                               turns: expanded ? 0.5 : 0,
                               duration: OnCareMotion.normal,
                               curve: OnCareMotion.curve,
-                              child: const Icon(
-                                Icons.expand_more_rounded,
+                              child: const AppIcon(
+                                AppIcons.expandMore,
                                 size: OnCareSize.iconMedium,
                                 color: OnCareColors.textTertiary,
                               ),

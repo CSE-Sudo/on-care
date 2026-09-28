@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -232,7 +233,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
             showBack: widget.showBack,
             child: AppEmptyState(
               title: l.clientNotFound,
-              icon: Icons.person_search_rounded,
+              icon: AppIcons.selectClient,
               placement: AppStatePlacement.card,
             ),
           );
@@ -305,12 +306,12 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
           AppSegment<String>(
             value: 'diet',
             label: l.clientTabDiet,
-            icon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
           ),
           AppSegment<String>(
             value: 'workout',
             label: l.clientTabWorkout,
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
           ),
         ],
       );
@@ -513,7 +514,7 @@ class _Header extends StatelessWidget {
                             borderRadius: OnCareRadius.pillAll,
                             child: AppTag(
                               label: l.clientDormant,
-                              icon: Icons.bedtime_rounded,
+                              icon: AppIcons.dormant,
                             ),
                           ),
                         ),
@@ -523,14 +524,14 @@ class _Header extends StatelessWidget {
                     // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
                     _HeaderAction(
                       key: const ValueKey<String>('client-detail-open-health'),
-                      icon: Icons.flag_rounded,
+                      icon: AppIcons.goal,
                       label: l.clientProfileSectionTitle,
                       onPressed: onOpenHealth,
                       quiet: true,
                     ),
                     _HeaderAction(
                       key: const ValueKey<String>('client-detail-open-memo'),
-                      icon: Icons.sticky_note_2_rounded,
+                      icon: AppIcons.note,
                       label: l.clientTrainerMemo,
                       onPressed: onOpenMemo,
                       quiet: true,
@@ -584,19 +585,19 @@ class _Header extends StatelessWidget {
             children: <Widget>[
               _HeaderAction(
                 key: const ValueKey<String>('client-detail-open-messages'),
-                icon: Icons.chat_bubble_outline_rounded,
+                icon: AppIcons.chat,
                 label: l.clientQuickMessages,
                 onPressed: () => context.go(AppRoutes.messagesFor(client.id)),
               ),
               _HeaderAction(
                 key: const ValueKey<String>('client-detail-open-program'),
-                icon: Icons.assignment_rounded,
+                icon: AppIcons.coaching,
                 label: l.clientQuickProgram,
                 onPressed: () => context.go(AppRoutes.coachingFor(client.id)),
               ),
               _HeaderAction(
                 key: const ValueKey<String>('client-detail-open-report'),
-                icon: Icons.analytics_rounded,
+                icon: AppIcons.reports,
                 label: l.clientQuickReport,
                 onPressed: () => context.go(AppRoutes.reportFor(client.id)),
               ),

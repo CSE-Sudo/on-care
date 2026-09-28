@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
@@ -399,8 +400,8 @@ class RoutineDateField extends StatelessWidget {
               ),
               child: Row(
                 children: <Widget>[
-                  Icon(
-                    Icons.calendar_today_rounded,
+                  AppIcon(
+                    AppIcons.calendar,
                     size: OnCareSize.iconSmall,
                     color: tokens.brand.primary,
                   ),
@@ -415,8 +416,8 @@ class RoutineDateField extends StatelessWidget {
                           .copyWith(color: OnCareColors.textPrimary),
                     ),
                   ),
-                  const Icon(
-                    Icons.keyboard_arrow_down_rounded,
+                  const AppIcon(
+                    AppIcons.expandMore,
                     size: OnCareSize.iconMedium,
                     color: OnCareColors.textTertiary,
                   ),
@@ -453,8 +454,8 @@ class RoutineCaloriesLine extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.local_fire_department_rounded,
+              const AppIcon(
+                AppIcons.calories,
                 size: OnCareSize.iconSmall,
                 color: OnCareColors.cautionFill,
               ),
@@ -655,7 +656,7 @@ class _NumberInputState extends State<_NumberInput> {
           children: <Widget>[
             AppIconButton(
               key: _key('minus'),
-              icon: Icons.remove_rounded,
+              icon: AppIcons.remove,
               tooltip: l.routineFormDecrease,
               variant: AppIconButtonVariant.tonal,
               onPressed: widget.value > widget.min ? () => _bump(-1) : null,
@@ -665,7 +666,7 @@ class _NumberInputState extends State<_NumberInput> {
             const SizedBox(width: OnCareSpacing.s8),
             AppIconButton(
               key: _key('plus'),
-              icon: Icons.add_rounded,
+              icon: AppIcons.add,
               tooltip: l.routineFormIncrease,
               variant: AppIconButtonVariant.tonal,
               onPressed: widget.value < widget.max ? () => _bump(1) : null,

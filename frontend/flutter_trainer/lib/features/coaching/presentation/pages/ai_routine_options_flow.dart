@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -24,7 +25,6 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이번에 짜는 프로그램이 어떤 것인가. (#2223)
@@ -660,25 +660,25 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             onPressed: widget.onManualCreate,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
-            leadingIcon: Icons.edit_note_rounded,
+            leadingIcon: AppIcons.write,
           ),
         ),
         const SizedBox(height: OnCareSpacing.s8),
       ],
       KeyedSubtree(
         key: _topKey,
-        child: ProgressStepper(
+        child: AppStepIndicator.numbered(
           keyPrefix: 'routine-stage',
           semanticsLabel: l.aiStepperLabel,
-          stage: _stage,
-          maxReachedStage: _maxReachedStage,
+          current: _stage,
+          maxReached: _maxReachedStage,
           labels: _stepLabels(l),
           skipped: <int>{
             for (int i = 0; i < _steps.length; i++)
               if (_skipped.contains(_steps[i])) i,
           },
           skippedLabel: l.aiStepSkipped,
-          onStageTap: _goToStage,
+          onStepTap: _goToStage,
         ),
       ),
       const SizedBox(height: OnCareSpacing.s16),
@@ -693,7 +693,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _primaryButton(
             key: const ValueKey<String>('generate-routine-options'),
             label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
-            icon: Icons.auto_awesome_rounded,
+            icon: AppIcons.ai,
             busy: _generating,
             onTap: _next,
           ),
@@ -708,7 +708,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               onPressed: _generating ? null : _skipPtProgram,
               variant: AppButtonVariant.text,
               size: OnCareButtonSize.small,
-              leadingIcon: Icons.directions_run_rounded,
+              leadingIcon: AppIcons.personalRoutine,
             ),
           ),
         ],
@@ -722,7 +722,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _primaryButton(
             key: const ValueKey<String>('complete-routine-review'),
             label: l.aiReviewDone,
-            icon: Icons.fact_check_rounded,
+            icon: AppIcons.review,
             onTap: _next,
           ),
         ],
@@ -734,7 +734,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _primaryButton(
             key: const ValueKey<String>('complete-personal-routines'),
             label: l.aiApplyToTemplate,
-            icon: Icons.playlist_add_check_rounded,
+            icon: AppIcons.applyToTemplate,
             onTap: _next,
           ),
         ],
@@ -856,10 +856,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppSectionHeader(
-            title: l.aiAnalysedData,
-            icon: Icons.fact_check_rounded,
-          ),
+          AppSectionHeader(title: l.aiAnalysedData, icon: AppIcons.review),
           const SizedBox(height: OnCareSpacing.s12),
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -927,8 +924,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.warning_amber_rounded,
+              const AppIcon(
+                AppIcons.warning,
                 size: OnCareSize.iconSmall,
                 color: OnCareColors.danger,
               ),
@@ -1171,7 +1168,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       children: <Widget>[
         AppSectionHeader(
           title: l.aiCompareCandidates,
-          icon: Icons.auto_awesome_rounded,
+          icon: AppIcons.ai,
         ),
         const SizedBox(height: OnCareSpacing.s8),
         // 데모에서는 목표 기반 기본 추천 안내를 띄우지 않는다 —
@@ -1215,51 +1212,60 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _ChatEvidence(lines: options.analysis.recentMessages),
         ],
         const SizedBox(height: OnCareSpacing.s12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            // Side by side whenever they fit: this is a COMPARISON, and a
-            // comparison you have to scroll through isn't one. The console
-            // splits the workspace into two columns, so the editor column
-            // is narrower than the full-width page this flow was built
-            // for.
-            final choices = _choicesOf(l);
-            final needed =
-                choices.length * _minOptionCardWidth +
-                (choices.length - 1) * OnCareSpacing.cardGap;
-            if (constraints.maxWidth >= needed) {
+        // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
+        RadioGroup<String>(
+          groupValue: _selectedKey,
+          onChanged: (String? key) {
+            for (final choice in _choicesOf(l)) {
+              if (choice.key == key) _selectChoice(choice);
+            }
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Side by side whenever they fit: this is a COMPARISON, and a
+              // comparison you have to scroll through isn't one. The console
+              // splits the workspace into two columns, so the editor column
+              // is narrower than the full-width page this flow was built
+              // for.
+              final choices = _choicesOf(l);
+              final needed =
+                  choices.length * _minOptionCardWidth +
+                  (choices.length - 1) * OnCareSpacing.cardGap;
+              if (constraints.maxWidth >= needed) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        for (final choice in choices) ...<Widget>[
+                          Expanded(child: _optionCard(choice)),
+                          if (choice != choices.last)
+                            const SizedBox(width: OnCareSpacing.cardGap),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }
+              // 폭이 부족하면 가로 스크롤 대신 세로로 쌓는다 — 옆으로 밀어야
+              // 보이는 후보는 "비교"가 아니다. 각 카드는 폭 전체를 쓰고,
+              // 내용만큼 세로로 자연스럽게 늘어난다(카드 내부 재스크롤 없음).
               return Padding(
                 padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      for (final choice in choices) ...<Widget>[
-                        Expanded(child: _optionCard(choice)),
-                        if (choice != choices.last)
-                          const SizedBox(width: OnCareSpacing.cardGap),
-                      ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (final choice in choices) ...<Widget>[
+                      _optionCard(choice),
+                      if (choice != choices.last)
+                        const SizedBox(height: OnCareSpacing.cardGap),
                     ],
-                  ),
+                  ],
                 ),
               );
-            }
-            // 폭이 부족하면 가로 스크롤 대신 세로로 쌓는다 — 옆으로 밀어야
-            // 보이는 후보는 "비교"가 아니다. 각 카드는 폭 전체를 쓰고,
-            // 내용만큼 세로로 자연스럽게 늘어난다(카드 내부 재스크롤 없음).
-            return Padding(
-              padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  for (final choice in choices) ...<Widget>[
-                    _optionCard(choice),
-                    if (choice != choices.last)
-                      const SizedBox(height: OnCareSpacing.cardGap),
-                  ],
-                ],
-              ),
-            );
-          },
+            },
+          ),
         ),
       ],
     );
@@ -1283,12 +1289,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                size: OnCareSize.iconMedium,
-                color: selected ? brand : OnCareColors.textSecondary,
+              // 빈 동그라미 글리프 대신 라디오 조작 요소다(#2466) — 아이콘은
+              // 늘 채움이라 `안 고름` 을 그릴 모양이 없다. 카드 전체가 눌리는
+              // 자리라 라디오는 고른 안을 보이는 일만 맡는다.
+              SizedBox.square(
+                dimension: OnCareSize.iconMedium,
+                child: Radio<String>(value: choice.key),
               ),
               const SizedBox(width: OnCareSpacing.s8),
               Expanded(
@@ -1358,7 +1364,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             label: l.aiAddExerciseManually,
             onPressed: () => setState(() => _showAddExercise = true),
             variant: AppButtonVariant.secondary,
-            leadingIcon: Icons.add_rounded,
+            leadingIcon: AppIcons.add,
             fullWidth: true,
           ),
       ],
@@ -1402,7 +1408,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               if (_currentStep == _Step.personal && _editingPersonal == index)
                 AppIconButton(
                   key: ValueKey<String>('personal-routine-done-$index'),
-                  icon: Icons.check_rounded,
+                  icon: AppIcons.check,
                   tooltip: l.aiPersonalEditDone,
                   color: context.oncare.brand.primary,
                   onPressed: () => setState(() => _editingPersonal = null),
@@ -1412,7 +1418,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   key: ValueKey<String>(
                     'routine-remove-$_activeKeyPrefix-$index',
                   ),
-                  icon: Icons.close_rounded,
+                  icon: AppIcons.close,
                   // 개인운동 단계에서 AI 제안을 빼는 것은 없앤 카드의
                   // `추천 안 함`(휴지통)과 같은 일이다 — 서버의 대기 중 제안도
                   // 함께 거절해, 뺀 제안이 내일 다시 올라오지 않게 한다(#2223).
@@ -1673,7 +1679,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           title: _kind == ProgramKind.routineOnly
               ? l.aiPersonalStepTitleRoutineOnly
               : l.aiPersonalStepTitle,
-          icon: Icons.auto_awesome_rounded,
+          icon: AppIcons.ai,
           subtitle: _kind == ProgramKind.routineOnly
               ? l.aiPersonalStepBlurbRoutineOnly
               : l.aiPersonalStepBlurb,
@@ -1745,7 +1751,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 ? null
                 : () => setState(() => _showAddExercise = true),
             variant: AppButtonVariant.secondary,
-            leadingIcon: Icons.add_rounded,
+            leadingIcon: AppIcons.add,
             fullWidth: true,
           ),
         if (_personal.length >= _maxPersonalRoutines) ...<Widget>[
@@ -1826,14 +1832,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 const SizedBox(width: OnCareSpacing.s4),
                 AppIconButton(
                   key: ValueKey<String>('personal-routine-edit-$index'),
-                  icon: Icons.edit_rounded,
+                  icon: AppIcons.edit,
                   tooltip: l.actionEdit,
                   color: context.oncare.brand.primary,
                   onPressed: () => setState(() => _editingPersonal = index),
                 ),
                 AppIconButton(
                   key: ValueKey<String>('personal-routine-remove-$index'),
-                  icon: Icons.delete_outline_rounded,
+                  icon: AppIcons.delete,
                   tooltip: l.aiPersonalDismissTooltip,
                   color: OnCareColors.textSecondary,
                   onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
@@ -1998,7 +2004,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       children: <Widget>[
         AppSectionHeader(
           title: l.aiReviewedSuggestion(optionName),
-          icon: Icons.check_circle_rounded,
+          icon: AppIcons.checkCircle,
           subtitle: l.aiEditsApplied,
         ),
         const SizedBox(height: OnCareSpacing.s12),
@@ -2043,8 +2049,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Icon(
-                  Icons.sticky_note_2_rounded,
+                const AppIcon(
+                  AppIcons.note,
                   size: OnCareSize.iconMedium,
                   // 메모다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
                   color: OnCareColors.cautionFill,
@@ -2091,7 +2097,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       label: l.aiGoToPersonalStep,
       onPressed: _next,
       size: OnCareButtonSize.large,
-      leadingIcon: Icons.directions_run_rounded,
+      leadingIcon: AppIcons.personalRoutine,
       fullWidth: true,
     );
   }

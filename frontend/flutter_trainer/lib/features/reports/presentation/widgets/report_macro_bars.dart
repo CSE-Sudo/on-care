@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -60,7 +61,7 @@ class ReportMacroBars extends StatelessWidget {
     if (rows.every((_Macro m) => m.value == null)) {
       return AppEmptyState(
         title: l.reportsMacroNone,
-        icon: Icons.restaurant_rounded,
+        icon: AppIcons.diet,
         placement: AppStatePlacement.card,
       );
     }
