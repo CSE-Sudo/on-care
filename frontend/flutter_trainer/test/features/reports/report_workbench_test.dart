@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -388,7 +389,7 @@ void main() {
       find.descendant(of: gap, matching: find.byType(AppTag)),
     );
     expect(tag.tone, AppTagTone.danger);
-    expect(tag.icon, Icons.error_outline_rounded);
+    expect(tag.icon, AppIcons.error);
     // 리포트 고유 배지는 그 뒤에 남는다.
     await waitFor(tester, find.text('이행 80%'));
     expect(find.text('이행 80%'), findsOneWidget);
@@ -798,7 +799,7 @@ void main() {
       expect(
         find.descendant(
           of: sortButton(),
-          matching: find.byIcon(Icons.arrow_drop_down_rounded),
+          matching: find.byIcon(AppIcons.expandMore),
         ),
         findsOneWidget,
       );
@@ -858,7 +859,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(ReportWeekNav),
-          matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+          matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
         ),
       );
       await settle(tester);

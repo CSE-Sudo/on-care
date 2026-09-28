@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_sidebar.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
@@ -224,7 +225,7 @@ class _CompactBar extends StatelessWidget implements PreferredSizeWidget {
         child: Row(
           children: <Widget>[
             AppIconButton(
-              icon: Icons.menu_rounded,
+              icon: AppIcons.menu,
               tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
               color: OnCareColors.textSecondary,
               onPressed: () => Scaffold.of(context).openDrawer(),

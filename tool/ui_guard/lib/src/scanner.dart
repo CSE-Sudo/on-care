@@ -170,8 +170,8 @@ class _Visitor extends RecursiveAstVisitor<void> {
       }
     }
 
-    // 회원앱 화면은 `Icon` 대신 `AppIcon` 으로 그린다 — 채움·굵기·광학 크기가
-    // 목록의 모양대로 실리게 하기 위해서다(#1803).
+    // 앱 화면은 `Icon` 대신 `AppIcon` 으로 그린다 — 채움·굵기·광학 크기가
+    // 목록의 모양대로 실리게 하기 위해서다(#1803, #2466).
     if (_iconPolicy == IconPolicy.registry &&
         type == 'Icon' &&
         call.name == null) {

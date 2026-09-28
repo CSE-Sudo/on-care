@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/presentation/diet_analysis_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -40,7 +41,7 @@ class ClientDietAnalysisCard extends StatelessWidget {
     return AppBanner(
       key: const ValueKey<String>('diet-analysis'),
       placement: AppBannerPlacement.card,
-      icon: Icons.insights_rounded,
+      icon: AppIcons.insights,
       title: l.clientDietAnalysisTitle,
       message: text,
       child: recommendation,
@@ -489,7 +490,7 @@ class _Resolved extends StatelessWidget {
     return Row(
       children: <Widget>[
         const AppIcon(
-          Icons.check_circle_rounded,
+          AppIcons.checkCircle,
           size: OnCareSize.iconMedium,
           color: OnCareColors.success,
         ),

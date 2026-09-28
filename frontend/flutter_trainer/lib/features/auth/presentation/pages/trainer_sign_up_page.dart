@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
@@ -171,7 +172,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
               controller: _name,
               hint: l.authName,
               errorText: _errors.of(_Field.name),
-              prefixIcon: Icons.person_outline_rounded,
+              prefixIcon: AppIcons.person,
               size: AppFieldSize.large,
               textInputAction: TextInputAction.next,
               autofillHints: const <String>[AutofillHints.name],
@@ -183,7 +184,8 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
               controller: _email,
               hint: l.authEmailHint,
               errorText: _errors.of(_Field.email),
-              prefixIcon: Icons.mail_outline_rounded,
+              // 로그인 화면과 같은 채운 편지·자물쇠다(#2466).
+              prefixIcon: AppIcon.setOf(context).mail,
               size: AppFieldSize.large,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
@@ -200,21 +202,19 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
               controller: _password,
               hint: l.signUpPasswordHint,
               errorText: _errors.of(_Field.password),
-              prefixIcon: Icons.lock_outline_rounded,
+              prefixIcon: AppIcon.setOf(context).lock,
               size: AppFieldSize.large,
               obscureText: _obscure,
               textInputAction: TextInputAction.next,
               // 저장된 비밀번호를 채우지 않고 새 비밀번호를 제안받는 칸이다.
               autofillHints: const <String>[AutofillHints.newPassword],
               onChanged: _onEdited,
-              suffix: AppIconButton(
-                // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할
-                // 데가 툴팁뿐이다(#972).
-                tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
-                icon: _obscure
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
-                color: OnCareColors.textTertiary,
+              // 로그인 화면과 같은 부품이다(#2466). 아이콘만 있는 버튼이라
+              // 무엇을 켜고 끄는지는 툴팁이 말한다(#972).
+              suffix: AppPasswordToggle(
+                obscure: _obscure,
+                showLabel: l.a11yShowPassword,
+                hideLabel: l.a11yHidePassword,
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
@@ -224,7 +224,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
               controller: _passwordConfirm,
               hint: l.authPasswordConfirm,
               errorText: _errors.of(_Field.passwordConfirm),
-              prefixIcon: Icons.lock_outline_rounded,
+              prefixIcon: AppIcon.setOf(context).lock,
               size: AppFieldSize.large,
               obscureText: _obscure,
               // 데모에서는 이 필드가 마지막이라 제출 액션이 여기 붙는다.
@@ -245,7 +245,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
                 hint: l.authInviteCode,
                 helper: l.authInviteCodeHelp,
                 errorText: _errors.of(_Field.inviteCode),
-                prefixIcon: Icons.confirmation_number_rounded,
+                prefixIcon: AppIcons.inviteCode,
                 size: AppFieldSize.large,
                 textInputAction: TextInputAction.done,
                 onChanged: _onEdited,

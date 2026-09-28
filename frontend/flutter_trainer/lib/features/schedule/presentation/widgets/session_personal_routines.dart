@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
@@ -110,8 +111,8 @@ class _SessionPersonalRoutinesState
               tone: AppTileTone.neutral,
               child: Row(
                 children: <Widget>[
-                  const Icon(
-                    Icons.directions_run_rounded,
+                  const AppIcon(
+                    AppIcons.personalRoutine,
                     size: OnCareSize.iconSmall,
                     color: OnCareColors.textTertiary,
                   ),
@@ -248,7 +249,7 @@ class _SendPersonalRoutinesDialogState
           ? AppButton(
               key: const ValueKey<String>('session-routine-add'),
               label: l.progAddExercise,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               variant: AppButtonVariant.text,
               size: OnCareButtonSize.small,
               onPressed: _add,
@@ -321,7 +322,7 @@ class _RoutineRow extends StatelessWidget {
             if (onRemove != null)
               AppIconButton(
                 key: ValueKey<String>('session-routine-remove-$index'),
-                icon: Icons.close_rounded,
+                icon: AppIcons.close,
                 tooltip: AppLocalizations.of(context).actionDelete,
                 color: OnCareColors.textTertiary,
                 onPressed: onRemove,

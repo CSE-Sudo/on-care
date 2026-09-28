@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
@@ -516,7 +517,7 @@ void main() {
     testWidgets('sending a message appends it to the thread', (tester) async {
       await openMessages(tester);
       await tester.enterText(find.byType(TextField).last, '다음 세션 때 봐요!');
-      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(AppIcons.send));
       await settle(tester);
       // The sent message appears in both the thread and the conversation
       // preview, keeping the two-pane workspace in sync.
@@ -606,7 +607,7 @@ void main() {
     ) async {
       await openMessages(tester);
       await tester.enterText(find.byType(TextField).last, '다음 세션 때 봬요!');
-      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(AppIcons.send));
       await settle(tester);
 
       // 배너는 그날의 분석 → 대화 → 루틴 전송이라는 하루의 **끝**을 표시한다.
@@ -636,9 +637,9 @@ void main() {
           ],
         );
         await tester.enterText(find.byType(TextField).last, '중복 방지 확인');
-        await tester.tap(find.byIcon(Icons.send_rounded));
+        await tester.tap(find.byIcon(AppIcons.send));
         await tester.pump(const Duration(milliseconds: 50));
-        await tester.tap(find.byIcon(Icons.send_rounded), warnIfMissed: false);
+        await tester.tap(find.byIcon(AppIcons.send), warnIfMissed: false);
         await settle(tester);
         expect(find.text('중복 방지 확인'), findsOneWidget);
       },
@@ -658,7 +659,7 @@ void main() {
         ],
       );
       await tester.enterText(find.byType(TextField).last, '이탈 중 전송');
-      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(AppIcons.send));
       await tester.pump(const Duration(milliseconds: 50));
       await goTo(tester, AppRoutes.dashboard);
       await settle(tester);
@@ -687,7 +688,7 @@ void main() {
           ],
         );
         await tester.enterText(find.byType(TextField).last, '이탈 중 실패');
-        await tester.tap(find.byIcon(Icons.send_rounded));
+        await tester.tap(find.byIcon(AppIcons.send));
         await tester.pump(const Duration(milliseconds: 50));
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();

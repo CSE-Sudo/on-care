@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -271,13 +272,13 @@ class _ScheduleTimePickerDialogState extends State<_ScheduleTimePickerDialog> {
                 if (!_range || _step > 0) ...<Widget>[
                   AppIconButton(
                     key: ValueKey<String>(keys.back),
-                    icon: Icons.chevron_left_rounded,
+                    icon: AppIcons.chevronLeft,
                     tooltip: l.schedTimePickerPrevStep,
                     onPressed: _step > 0 ? () => setState(() => _step--) : null,
                   ),
                   AppIconButton(
                     key: ValueKey<String>(keys.next),
-                    icon: Icons.chevron_right_rounded,
+                    icon: AppIcons.chevronRight,
                     tooltip: l.schedTimePickerNextStep,
                     onPressed: _step < _lastStep
                         ? () => setState(() => _step++)

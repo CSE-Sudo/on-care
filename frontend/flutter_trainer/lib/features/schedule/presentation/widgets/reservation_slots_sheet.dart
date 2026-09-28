@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -192,7 +193,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
           InputDecorator(
             decoration: InputDecoration(
               enabled: onTap != null,
-              prefixIcon: Icon(
+              prefixIcon: AppIcon(
                 icon,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
@@ -200,8 +201,8 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               prefixIconConstraints: const BoxConstraints(
                 minWidth: OnCareSpacing.s32,
               ),
-              suffixIcon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
+              suffixIcon: const AppIcon(
+                AppIcons.expandMore,
                 size: OnCareSize.iconMedium,
               ),
             ),
@@ -256,7 +257,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 triggerBuilder: (context, toggle) => _fieldColumn(
                   key: const ValueKey<String>('slot-session-type'),
                   label: l.schedFieldType,
-                  icon: Icons.badge_rounded,
+                  icon: AppIcons.badge,
                   value: sessionTypeLabel(l, _type),
                   onTap: _saving ? null : toggle,
                 ),
@@ -267,7 +268,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               child: _fieldColumn(
                 key: const ValueKey<String>('slot-date'),
                 label: l.schedFieldDate,
-                icon: Icons.calendar_today_rounded,
+                icon: AppIcons.calendar,
                 value: l.dateMonthDay(_date.month, _date.day),
                 onTap: _saving ? null : _pickDate,
               ),
@@ -282,7 +283,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               child: _fieldColumn(
                 key: const ValueKey<String>('slot-time-range'),
                 label: l.schedFieldTime,
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.clock,
                 value: '${_hhmm(_time)} – ${_hhmm(_endTime)}',
                 onTap: _saving ? null : _pickRange,
               ),
@@ -291,7 +292,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             AppButton(
               key: const ValueKey<String>('slot-create'),
               label: l.slotOpenAction,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               onPressed: _saving ? null : _create,
             ),
           ],
@@ -308,7 +309,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
           error: (_, _) => Center(
             child: AppButton(
               label: l.slotReload,
-              leadingIcon: Icons.refresh_rounded,
+              leadingIcon: AppIcons.refresh,
               variant: AppButtonVariant.secondary,
               onPressed: () => ref.invalidate(reservationSlotsProvider),
             ),
@@ -321,7 +322,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             if (allSlots.isEmpty) {
               return AppEmptyState(
                 title: l.slotEmpty,
-                icon: Icons.event_available_rounded,
+                icon: AppIcons.eventAvailable,
                 placement: AppStatePlacement.card,
               );
             }
@@ -425,7 +426,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
               // 삭제다(#1394).
               AppIconButton(
-                icon: Icons.delete_outline_rounded,
+                icon: AppIcons.delete,
                 tooltip: l.slotCloseAction,
                 color: OnCareColors.danger,
                 onPressed: _saving ? null : () => _close(slot),

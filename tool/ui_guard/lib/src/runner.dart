@@ -12,10 +12,11 @@ const baselineFileName = 'ui_guard_baseline.json';
 
 /// 아이콘을 목록 한 곳에서만 고르는 앱과 그 목록 파일(앱 디렉터리 기준, #1803).
 ///
-/// 여기 있는 앱은 [IconPolicy.registry] 로, 없는 앱(트레이너웹)은
-/// [IconPolicy.rounded] 로 검사한다.
+/// 여기 있는 앱은 [IconPolicy.registry] 로, 없는 앱은 [IconPolicy.rounded] 로
+/// 검사한다. 트레이너웹도 목록을 두면서 두 앱 모두 여기 있다(#2466).
 const iconRegistries = <String, String>{
   'frontend/flutter': 'lib/app/app_icons.dart',
+  'frontend/flutter_trainer': 'lib/app/app_icons.dart',
 };
 
 /// [app] 의 아이콘 목록 파일. 목록을 쓰지 않는 앱이면 `null` 이다.

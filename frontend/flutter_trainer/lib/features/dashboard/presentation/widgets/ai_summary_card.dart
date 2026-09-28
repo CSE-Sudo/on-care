@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/domain/activity_feedback.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -32,7 +33,7 @@ class AiSummaryCard extends StatelessWidget {
     // 탭 요약 카드·회원 식단 분석과 같은 모양이다(#2468).
     return AppBanner(
       placement: AppBannerPlacement.card,
-      icon: Icons.tips_and_updates_rounded,
+      icon: AppIcons.activityFeedback,
       title: l.dashAiSummaryTitle,
       message: active.isEmpty ? l.dashAiNoClients : null,
       child: active.isEmpty
@@ -123,7 +124,7 @@ class _ActivityFeedbackDetail extends StatelessWidget {
             // 기본 채움(메인 색 = 로고 네이비) — 흰 버튼은 옅은 남색 카드 위에서
             // 묻혔다(#2202).
             size: OnCareButtonSize.small,
-            trailingIcon: Icons.chevron_right_rounded,
+            trailingIcon: AppIcons.chevronRight,
           ),
       ],
     );

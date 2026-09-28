@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -46,7 +47,7 @@ class SessionManageRow extends StatelessWidget {
             // Keyed: l.legendDone is also a status word elsewhere on this row,
             // so text alone no longer identifies the action.
             key: const ValueKey<String>('session-complete-chip'),
-            leadingIcon: Icons.check_rounded,
+            leadingIcon: AppIcons.check,
             label: l.legendDone,
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
@@ -57,7 +58,7 @@ class SessionManageRow extends StatelessWidget {
         if (onCancel != null)
           AppButton(
             key: const ValueKey<String>('session-cancel-chip'),
-            leadingIcon: Icons.event_busy_rounded,
+            leadingIcon: AppIcons.eventBusy,
             label: l.schedCancel,
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
@@ -130,14 +131,14 @@ class SessionEditMenu extends StatelessWidget {
     final edits = <AppMenuItem>[
       AppMenuItem(
         key: const ValueKey<String>('session-edit-schedule-chip'),
-        icon: Icons.edit_calendar_rounded,
+        icon: AppIcons.editSchedule,
         label: l.schedEditTitle,
         onSelected: onEditSchedule,
       ),
       if (hasProgram && showEditProgram)
         AppMenuItem(
           key: const ValueKey<String>('session-edit-program-chip'),
-          icon: Icons.fitness_center_rounded,
+          icon: AppIcons.exercise,
           label: l.progEditTitle,
           onSelected: onEditProgram,
         ),
@@ -147,14 +148,14 @@ class SessionEditMenu extends StatelessWidget {
       if (onEditRoutines != null)
         AppMenuItem(
           key: const ValueKey<String>('session-edit-routines-chip'),
-          icon: Icons.directions_run_rounded,
+          icon: AppIcons.personalRoutine,
           label: l.schedEditRoutines,
           onSelected: onEditRoutines,
         ),
       if (showEditNote)
         AppMenuItem(
           key: const ValueKey<String>('session-edit-note-chip'),
-          icon: hasNote ? Icons.edit_note_rounded : Icons.note_add_rounded,
+          icon: hasNote ? AppIcons.note : AppIcons.note,
           label: hasNote ? l.schedEditNote : l.schedAddNote,
           onSelected: onEditNote,
         ),
@@ -162,7 +163,7 @@ class SessionEditMenu extends StatelessWidget {
       // 확인창이 먼저 뜬다.
       AppMenuItem(
         key: const ValueKey<String>('session-delete-chip'),
-        icon: Icons.delete_outline_rounded,
+        icon: AppIcons.delete,
         label: l.actionDelete,
         destructive: true,
         onSelected: onDelete,
@@ -173,7 +174,7 @@ class SessionEditMenu extends StatelessWidget {
       items: edits,
       triggerBuilder: (context, toggle) => AppIconButton(
         key: const ValueKey<String>('session-edit-menu'),
-        icon: Icons.edit_rounded,
+        icon: AppIcons.edit,
         tooltip: l.actionEdit,
         color: OnCareColors.textSecondary,
         onPressed: toggle,

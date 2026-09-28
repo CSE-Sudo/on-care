@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -73,7 +74,7 @@ class _FollowUpCardState extends ConsumerState<FollowUpCard> {
         children: <Widget>[
           AppSectionHeader(
             title: l.followUp,
-            icon: Icons.event_available_rounded,
+            icon: AppIcons.eventAvailable,
             trailing: loaded != null && loaded.isNotEmpty
                 ? Text(
                     l.followUpCount(loaded.length),
@@ -99,7 +100,7 @@ class _FollowUpCardState extends ConsumerState<FollowUpCard> {
             data: (list) => list.isEmpty
                 ? AppEmptyState(
                     title: l.followUpDashboardEmpty,
-                    icon: Icons.check_circle_rounded,
+                    icon: AppIcons.checkCircle,
                     placement: AppStatePlacement.card,
                   )
                 : Column(

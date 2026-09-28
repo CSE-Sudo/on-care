@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
@@ -180,7 +181,7 @@ void main() {
         at: AppRoutes.schedule,
       );
 
-      await tester.tap(find.byIcon(Icons.add_rounded).first);
+      await tester.tap(find.byIcon(AppIcons.add).first);
       await settle(tester);
 
       // 기본은 반복 없음 — 지금까지의 동작 그대로다.

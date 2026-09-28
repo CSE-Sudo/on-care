@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/one_line_overflow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
@@ -27,7 +28,7 @@ class ClientSignalTag extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppTag(
       label: detailed ? signal.detailLabel(l) : signal.badgeLabel(l),
-      icon: detailed ? Icons.error_outline_rounded : null,
+      icon: detailed ? AppIcons.error : null,
       tone: signal.kind.tone,
       onTap: onTap,
     );

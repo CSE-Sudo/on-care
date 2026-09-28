@@ -5,6 +5,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
@@ -359,7 +361,7 @@ void main() {
         find.byKey(const ValueKey<String>('workout-done-count-assigned-ex-r1')),
         findsNothing,
       );
-      expect(find.byIcon(Icons.emoji_events_rounded), findsNothing);
+      expect(find.byIcon(Symbols.emoji_events_rounded), findsNothing);
     });
 
     testWidgets('운동 이번 주에 날짜별 기록이 서고 AI 카드는 없다 (#1025, #2329)', (tester) async {
@@ -386,7 +388,7 @@ void main() {
       expect(
         find.descendant(
           of: todayRow,
-          matching: find.byIcon(Icons.expand_more_rounded),
+          matching: find.byIcon(AppIcons.expandMore),
         ),
         findsOneWidget,
       );
@@ -425,7 +427,7 @@ void main() {
       expect(
         find.descendant(
           of: todayRow,
-          matching: find.byIcon(Icons.expand_more_rounded),
+          matching: find.byIcon(AppIcons.expandMore),
         ),
         findsOneWidget,
       );
@@ -448,7 +450,7 @@ void main() {
       expect(
         find.descendant(
           of: todayRow,
-          matching: find.byIcon(Icons.expand_more_rounded),
+          matching: find.byIcon(AppIcons.expandMore),
         ),
         findsNothing,
       );
@@ -458,7 +460,7 @@ void main() {
       expect(find.text('트레이너 메모'), findsNothing);
       expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsNothing);
       expect(find.textContaining('회원 피드백'), findsNothing);
-      expect(find.byIcon(Icons.emoji_events_rounded), findsNothing);
+      expect(find.byIcon(Symbols.emoji_events_rounded), findsNothing);
 
       // 거른 항목은 지난 날에 있다. 이 목록은 고른 기간만 다루므로(식단과
       // 같은 규칙, #1025) 기간을 넓힌 뒤 그 날을 펼친다.

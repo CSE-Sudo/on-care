@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -44,7 +45,7 @@ class TodayTimelineCard extends ConsumerWidget {
         children: <Widget>[
           AppSectionHeader(
             title: l.dashTodaySchedule,
-            icon: Icons.today_rounded,
+            icon: AppIcons.calendar,
             actionLabel: l.dashSeeAll,
             onAction: () => context.go(AppRoutes.scheduleAt()),
           ),
@@ -53,7 +54,7 @@ class TodayTimelineCard extends ConsumerWidget {
             loading: () => const AppLoading(placement: AppStatePlacement.card),
             error: (e, _) => AppEmptyState(
               title: l.dashScheduleLoadFailed,
-              icon: Icons.cloud_off_rounded,
+              icon: AppIcons.offline,
               placement: AppStatePlacement.card,
             ),
             data: (sessions) {
@@ -61,7 +62,7 @@ class TodayTimelineCard extends ConsumerWidget {
               if (booked.isEmpty) {
                 return AppEmptyState(
                   title: l.dashNoScheduleToday,
-                  icon: Icons.event_busy_rounded,
+                  icon: AppIcons.eventBusy,
                   placement: AppStatePlacement.card,
                 );
               }
@@ -145,8 +146,8 @@ class _NextUpBanner extends StatelessWidget {
       tone: AppTileTone.neutral,
       child: Row(
         children: <Widget>[
-          Icon(
-            Icons.schedule_rounded,
+          AppIcon(
+            AppIcons.clock,
             size: OnCareSize.iconMedium,
             color: tokens.brand.primary,
           ),
@@ -190,7 +191,7 @@ class _NextUpBanner extends StatelessWidget {
                   : AppRoutes.coachingFor(clientId),
             ),
             size: OnCareButtonSize.small,
-            leadingIcon: Icons.arrow_forward_rounded,
+            leadingIcon: AppIcons.forward,
           ),
         ],
       ),

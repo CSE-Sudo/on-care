@@ -9,8 +9,9 @@ On-Care 두 앱(회원앱 `frontend/flutter`, 트레이너웹 `frontend/flutter_
   - `OnCareBrand` — 브랜드 색(회원 파랑 `#3EAFDF` / 트레이너 남색 `#235C88`)
   - `OnCareDensity` — 플랫폼 밀도(모바일 / 웹): 버튼·입력·칩 높이, 페이지 여백 등
   - `OnCareIconSet` — 공용 컴포넌트가 그리는 아이콘(뒤로·닫기·꺾쇠·빈 화면·배너·토스트 …)과 글꼴 변형(#1803).
-    기본값은 Material Icons `_rounded`(트레이너웹)이고, 회원앱은 `AppIcons.oncare`(Material Symbols Rounded,
-    채움·굵기 400)를 넣습니다. 패키지는 아이콘 글꼴 패키지에 기대지 않습니다.
+    기본값은 Material Icons `_rounded` 이고, 두 앱은 각자의 아이콘 목록에서 만든 `AppIcons.oncare`(Material Symbols
+    Rounded, 채움·굵기 400)를 넣습니다(회원앱 #1803, 트레이너웹 #2466). 패키지는 아이콘 글꼴 패키지에 기대지 않습니다.
+- 아이콘은 전부 채움입니다. 켜짐·꺼짐(사이드바·하단 탭 선택 등)은 아이콘 모양을 바꾸지 않고 색·배경으로 구분합니다.
 - 아이콘은 `Icon` 대신 `AppIcon` 으로 그립니다. 묶음의 채움·굵기·등급을 싣고 광학 크기를 그리는 크기에 맞춥니다.
   기본 묶음은 변형이 없어 `Icon` 과 똑같이 그려집니다.
 - 상태색(완료 초록·주의 주황·위험 빨강)은 두 앱이 같은 값을 씁니다.
@@ -47,7 +48,7 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 안내 배너 | `AppBanner` 한 컴포넌트 — 톤(info·success·caution·danger)별 옅은 채움 + 톤 테두리. 카드·창 안은 반경 12(`inline`), 페이지에 홀로 서는 AI·요약 안내(활동 피드백·리포트 요약·식단 분석)는 카드와 같은 반경 20·그림자·안쪽 16에 카드 제목 머리(`AppBannerPlacement.card`). 감지 경고는 아이콘 16·톤색 제목·caption 본문의 `AppBannerDensity.compact`. 제목 줄 끝 `trailing`, 본문 아래 자유 내용 `child`(고정 높이면 `expandChild`) (#2468) |
 | 카드 안 구획 | `AppTile` — 반경 12·안쪽 12(`dense` 는 세로 8). 채움은 옅은 브랜드(`brand`·`brandSoft`), 회색(`neutral`, 입력 칸·다음 일정·근거 인용), 흰 바탕 + `lineStrong` 테두리(`outline`, 초안 폼·편집 행·예약 슬롯), 없음(`none`). 카드 안 박스에 `BoxDecoration` 을 직접 쓰지 않는다 (#2468) |
 | 간격 | 4의 배수(2는 선·점 사이만) |
-| 아이콘 | 16 / 20 / 24 (빈 화면 40). 트레이너웹 Material Icons `_rounded` · 회원앱 Material Symbols Rounded(채움, 굵기 400 · 운동만 300) |
+| 아이콘 | 16 / 20 / 24 (빈 화면 40). 두 앱 모두 Material Symbols Rounded(채움, 굵기 400), 앱마다 `lib/app/app_icons.dart` 목록. 선택 상태는 색·배경으로 구분 |
 | 창 폭 | 웹 400 / 560 / 800, 모바일 확인창 400 · 시트 최대 높이 90% |
 | 텍스트 색 | `#1A1A1A` · `#465568` · `#667585` · `#768596` |
 | 표면 | 페이지 회원앱 `#FFFFFF` · 트레이너웹 `#F5F7FA`(`OnCareTokens.pageBackground`) · 카드 `#FFFFFF` · 입력 `#FFFFFF` + 테두리 `#D8E0E8`(비활성 입력과 트레이너웹 여러 줄 입력은 `#F2F4F7` 채움) · 트랙 `#F2F4F7` |
