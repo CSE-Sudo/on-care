@@ -26,11 +26,11 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
+import '../../helpers/progress_bar_finder.dart';
 import '../../helpers/pump_app.dart';
 
 /// 요약 생성만 실패한다 — 리포트 본문은 정상이라 카드 하나만 폴백으로 간다.
@@ -757,13 +757,14 @@ void main() {
 
     // 같은 값을 편집기가 훨씬 자세히 말한다 — 고르는 자리에는 이름과 왜
     // 이 회원이 위에 있는지만 둔다.
-    expect(
-      find.descendant(
-        of: find.byType(ReportWorkbench),
-        matching: find.byType(InlineBarValue),
-      ),
-      findsNothing,
+    // 범위는 회원 줄이다 — 작업대 머리의 전송 진행 막대(#2395)는 회원이 아니라
+    // 그 주의 일을 재므로 여기에 걸리지 않는다. 줄이 없어도 아래 `findsNothing`
+    // 은 통과하므로 먼저 떠 있는지 본다.
+    final Finder row = find.byKey(
+      const ValueKey<String>('reports-queue-measured'),
     );
+    expect(row, findsOneWidget);
+    expect(findProgressBars(of: row), findsNothing);
     expect(find.text('기록회원'), findsWidgets);
   });
 
