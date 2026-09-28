@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/messages/presentation/pages/messages_page.dart';
 
@@ -97,7 +98,7 @@ void main() {
         await tester.tap(
           find.descendant(
             of: find.byKey(const ValueKey<String>('client-chat-input')),
-            matching: find.byIcon(Icons.send_rounded),
+            matching: find.byIcon(AppIcons.send),
           ),
         );
         await pumpUntil(tester, find.text(fromTrainer), step: '보낸 답장 표시');

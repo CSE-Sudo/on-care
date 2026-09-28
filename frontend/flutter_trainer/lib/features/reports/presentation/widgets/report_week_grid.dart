@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
@@ -586,8 +587,8 @@ class _PtCell extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     return Center(
       child: done
-          ? Icon(
-              Icons.check_rounded,
+          ? AppIcon(
+              AppIcons.check,
               size: OnCareSize.iconSmall,
               color: tokens.brand.primary,
             )

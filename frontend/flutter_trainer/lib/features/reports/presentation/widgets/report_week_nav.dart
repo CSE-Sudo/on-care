@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -54,7 +55,7 @@ class ReportWeekNav extends StatelessWidget {
             key: const ValueKey<String>('reports-go-this-week'),
             label: l.labelToday,
             variant: AppButtonVariant.strongOutline,
-            leadingIcon: Icons.today_rounded,
+            leadingIcon: AppIcons.calendar,
             onPressed: onThisWeek,
           ),
         ],

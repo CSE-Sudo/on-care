@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -629,7 +630,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             if (clients.isEmpty) {
               return AppEmptyState(
                 title: l.coachNoClients,
-                icon: Icons.people_outline_rounded,
+                icon: AppIcons.clients,
               );
             }
             final selected = clients.firstWhere(
@@ -978,7 +979,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     }),
                     variant: AppButtonVariant.text,
                     size: OnCareButtonSize.small,
-                    leadingIcon: Icons.chevron_left_rounded,
+                    leadingIcon: AppIcons.back,
                   ),
                 ),
               )
@@ -1107,7 +1108,7 @@ class _WeekCompletionBars extends StatelessWidget {
     final week = client.weekCompletion;
     return _SectionCard(
       title: l.reportsCompletionByDay,
-      icon: Icons.calendar_view_week_rounded,
+      icon: AppIcons.calendar,
       child: week.length != weekdayCount
           ? AppEmptyState(
               title: l.reportsNoWorkoutsThisWeek,
@@ -1182,12 +1183,12 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
                   AppSegment<_ClientDataView>(
                     value: _ClientDataView.diet,
                     label: l.clientTabDiet,
-                    icon: Icons.restaurant_rounded,
+                    icon: AppIcons.diet,
                   ),
                   AppSegment<_ClientDataView>(
                     value: _ClientDataView.workout,
                     label: l.clientTabWorkout,
-                    icon: Icons.fitness_center_rounded,
+                    icon: AppIcons.exercise,
                   ),
                 ],
               ),
@@ -1330,7 +1331,7 @@ class _TemplateCard extends ConsumerWidget {
       );
       return _SectionCard(
         title: l.coachTemplates,
-        icon: Icons.dashboard_customize_rounded,
+        icon: AppIcons.template,
         // 정상 경로와 같은 규칙이다 — `fixedBox`(넓은 사이드바)일 때는 오류
         // 상태도 부모가 준 고정 높이 안에서만 그린다(코드리뷰).
         expand: fixedBox,
@@ -1388,8 +1389,8 @@ class _TemplateCard extends ConsumerWidget {
                                     : () => _delete(context, ref, template),
                               )
                             else
-                              Icon(
-                                Icons.add_circle_outline_rounded,
+                              AppIcon(
+                                AppIcons.addCircle,
                                 size: OnCareSize.iconMedium,
                                 color: tokens.brand.primary,
                               ),
@@ -1419,14 +1420,14 @@ class _TemplateCard extends ConsumerWidget {
     );
     return _SectionCard(
       title: l.coachTemplates,
-      icon: Icons.dashboard_customize_rounded,
+      icon: AppIcons.template,
       expand: fixedBox,
       // 아이콘만 쓴다(#1028) — 좁은 사이드바에서 영어·큰 글자 배율이면
       // "새 템플릿" 글자가 제목과 함께 넘친다.
       trailing: canEdit
           ? AppIconButton(
               key: const ValueKey<String>('template-new'),
-              icon: Icons.add_rounded,
+              icon: AppIcons.add,
               tooltip: l.coachTemplateNew,
               onPressed: () => _edit(context),
             )
@@ -1510,7 +1511,7 @@ class _TemplateMenu extends StatelessWidget {
       items: <AppMenuItem>[
         AppMenuItem(
           label: l.coachTemplateEdit,
-          icon: Icons.edit_rounded,
+          icon: AppIcons.edit,
           onSelected: onEdit,
         ),
         // 지울 수 없으면 내린다(#2220). 회색으로 남겨 "못 하는 동작" 을
@@ -1524,14 +1525,14 @@ class _TemplateMenu extends StatelessWidget {
         if (onDelete case final VoidCallback delete)
           AppMenuItem(
             label: l.coachTemplateDelete,
-            icon: Icons.delete_outline_rounded,
+            icon: AppIcons.delete,
             destructive: true,
             onSelected: delete,
           ),
       ],
       triggerBuilder: (context, toggle) => AppIconButton(
         key: ValueKey<String>('template-menu-${template.id}'),
-        icon: Icons.more_vert_rounded,
+        icon: AppIcons.more,
         tooltip: l.coachTemplateMenu,
         color: OnCareColors.textTertiary,
         onPressed: toggle,
@@ -1557,7 +1558,7 @@ class _SendHistoryCard extends ConsumerWidget {
     final latest = ref.watch(_latestDeliveryProvider(client.id));
     return _SectionCard(
       title: l.coachSentHistory,
-      icon: Icons.history_rounded,
+      icon: AppIcons.history,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -1577,7 +1578,7 @@ class _SendHistoryCard extends ConsumerWidget {
             data: (delivery) => delivery == null
                 ? AppEmptyState(
                     title: l.coachHistoryEmpty,
-                    icon: Icons.outbox_rounded,
+                    icon: AppIcons.sent,
                     placement: AppStatePlacement.card,
                   )
                 : _LastDeliveryBox(delivery: delivery),
@@ -1664,7 +1665,7 @@ class _UnsentRoutinesNotice extends ConsumerWidget {
             AppButton(
               key: const ValueKey<String>('coach-open-unsent-schedule'),
               label: l.coachSendUnsentRoutines,
-              leadingIcon: Icons.event_rounded,
+              leadingIcon: AppIcons.calendar,
               variant: AppButtonVariant.secondary,
               size: OnCareButtonSize.small,
               shrinkLabel: true,

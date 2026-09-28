@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 
@@ -49,7 +50,7 @@ void main() {
 
     final Rect title = tester.getRect(find.text('상세 일정'));
     final Rect dateRow = tester.getRect(
-      find.byIcon(Icons.chevron_left_rounded).first,
+      find.byIcon(AppIcons.chevronLeft).first,
     );
 
     // 같은 `Row` 에 있으므로 세로로 겹친다 — 어느 한쪽 높이를 상수로 베끼면
