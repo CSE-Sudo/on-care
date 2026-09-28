@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart'
     show
@@ -1226,7 +1227,29 @@ class LocalApiInterceptor extends Interceptor {
       'days_with_data': 0,
       'avg_sodium_mg': 0,
       'sodium_limit_mg': 0,
+      'trainer_pick': _demoTrainerPick(options),
     });
+  }
+
+  /// 데모 담당 트레이너가 확정해 둔 식단 추천(#2380). 서버 `trainer_pick` 과 같은
+  /// 모양이다. 4주 추천 메뉴 리스트(`kDemoMenuPlan`)의 저녁 고단백 메뉴를 쓴다 —
+  /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
+  /// 홈이 담당을 확인해 그리지 않는다.
+  Map<String, Object?> _demoTrainerPick(RequestOptions options) {
+    final Object? header = options.headers['Accept-Language'];
+    final String lang =
+        header is String && header.toLowerCase().startsWith('en') ? 'en' : 'ko';
+    final DemoPlanMenu menu = (kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!)
+        .firstWhere(
+          (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
+        );
+    return <String, Object?>{
+      'slot': menu.slot,
+      'name': menu.name,
+      'tag': menu.tag,
+      'keyword': menu.keyword,
+      'trainer_name': kDemoTrainerName,
+    };
   }
 
   /// 시드가 정해 둔 그 날짜의 코치 문구. 없으면 null.

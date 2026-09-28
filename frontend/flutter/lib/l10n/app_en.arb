@@ -89,6 +89,12 @@
   "homeMealNamulBibimbap": "Namul bibimbap",
   "homeMealReasonFiber": "Rich in dietary fiber",
   "homeMealTagLowFat": "Low fat",
+  "homeTrainerPickReasonSodiumLow": "Less sodium",
+  "homeTrainerPickReasonProteinHigh": "More protein",
+  "homeTrainerPickReasonCalorieLow": "A lighter meal",
+  "homeTrainerPickReasonCalorieHigh": "A filling meal",
+  "homeTrainerPickReasonSugarLow": "Less sugar",
+  "homeTrainerPickReasonFiberHigh": "More fiber",
   "homeRecBasisSodium": "{days}-day avg sodium {sodium}mg",
   "@homeRecBasisSodium": {
     "placeholders": {

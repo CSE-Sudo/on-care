@@ -144,6 +144,17 @@ void main() {
         expect(item['reason_key'], isA<String>());
       }
     });
+
+    // 데모 담당 트레이너가 확정해 둔 추천 — 서버 `trainer_pick` 과 같은 모양이고
+    // 4주 추천 메뉴 리스트의 메뉴다(#2380).
+    test('데모 트레이너가 확정한 추천을 함께 돌려준다', () async {
+      final res = await dio.get<Map<String, Object?>>('/diet/recommendations');
+      final pick = res.data!['trainer_pick']! as Map<String, Object?>;
+      expect(pick['slot'], 'dinner');
+      expect(pick['tag'], 'protein_high');
+      expect(pick['name'], '구운 고등어 정식');
+      expect(pick['trainer_name'], isNotEmpty);
+    });
   });
 
   group('분석 결과 저장', () {

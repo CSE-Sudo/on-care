@@ -5,8 +5,9 @@
 /// 요리마다 색이 달라지면 색이 영양 특성을 뜻하는지 요리 종류를 뜻하는지 알
 /// 수 없다.
 ///
-/// 출처 배지는 담당 트레이너가 있을 때만 첫 장에 붙는다. 담당이 없는 회원의
-/// 화면에 `트레이너 추천` 이 뜨면 없는 사람의 추천이라고 말하는 셈이다.
+/// 출처 배지 `트레이너 추천` 은 담당 트레이너가 실제로 확정한 메뉴에만 붙는다
+/// (#2380). 담당이 있다는 것만으로 AI 카드에 붙이면 트레이너가 고르지 않은 것을
+/// 트레이너 추천이라고 말하는 셈이다.
 library;
 
 import 'package:flutter/material.dart';
@@ -190,17 +191,85 @@ void main() {
     }
   });
 
-  testWidgets('담당이 있으면 첫 장만 트레이너 추천이다', (WidgetTester tester) async {
+  testWidgets('담당이 있어도 확정한 추천이 없으면 트레이너 추천이 없다', (WidgetTester tester) async {
     await _pump(tester, coach: _coach);
 
-    expect(find.text('트레이너 추천'), findsOneWidget);
-    expect(find.text('AI 추천'), findsWidgets);
+    expect(find.text('트레이너 추천'), findsNothing);
+    expect(find.text('AI 추천'), findsNWidgets(kDefaultMealKeys.length));
   });
 
-  testWidgets('담당이 없으면 트레이너 추천 배지를 달지 않는다', (WidgetTester tester) async {
-    await _pump(tester);
+  testWidgets('확정한 추천은 첫 장에 트레이너 추천으로 이유와 함께 뜬다', (WidgetTester tester) async {
+    await _pump(tester, coach: _coach, recs: _withPick('protein_high'));
+
+    expect(find.text('트레이너 추천'), findsOneWidget);
+    expect(find.text('AI 추천'), findsNWidgets(kDefaultMealKeys.length));
+    expect(find.text('구운 고등어 정식'), findsOneWidget);
+    expect(find.text('단백질을 채워 줘요'), findsOneWidget);
+    // 사진이 없는 메뉴라 끼니 아이콘을 그린다.
+    expect(find.byKey(const Key('rec-meal-icon')), findsOneWidget);
+
+    // 첫 장이다 — 트레이너 추천 카드가 AI 카드들보다 왼쪽에 있다.
+    final double pickX = tester.getTopLeft(find.text('구운 고등어 정식')).dx;
+    for (final Element ai in find.text('AI 추천').evaluate()) {
+      final double x = tester
+          .getTopLeft(find.byElementPredicate((Element e) => e == ai))
+          .dx;
+      expect(pickX, lessThan(x));
+    }
+    // 이유 태그는 정해 둔 어휘로 그린다.
+    expect(find.text('고단백질'), findsWidgets);
+  });
+
+  testWidgets('여섯 어휘로 말할 수 없는 이유는 배지 없이 이유 줄만 쓴다', (WidgetTester tester) async {
+    await _pump(tester, coach: _coach, recs: _withPick('fiber_high'));
+
+    expect(find.text('식이섬유를 채워 줘요'), findsOneWidget);
+    // 카탈로그 카드만 배지를 단다.
+    expect(
+      find.byKey(const Key('rec-meal-tag')),
+      findsNWidgets(kDefaultMealKeys.length),
+    );
+  });
+
+  testWidgets('담당이 없으면 확정 추천이 와도 그리지 않는다', (WidgetTester tester) async {
+    await _pump(tester, recs: _withPick('protein_high'));
 
     expect(find.text('트레이너 추천'), findsNothing);
-    expect(find.text('AI 추천'), findsWidgets);
+    expect(find.text('구운 고등어 정식'), findsNothing);
+  });
+
+  test('응답의 trainer_pick 을 읽고, 없으면 null 이다', () {
+    final MealRecommendations withPick = MealRecommendations.fromJson(
+      <String, Object?>{
+        'items': <Object?>[],
+        'trainer_pick': <String, Object?>{
+          'slot': 'dinner',
+          'name': '구운 고등어 정식',
+          'tag': 'protein_high',
+          'keyword': '고단백',
+          'trainer_name': '김트레이너',
+        },
+      },
+    );
+    expect(withPick.trainerPick?.name, '구운 고등어 정식');
+    expect(withPick.trainerPick?.trainerName, '김트레이너');
+    expect(
+      MealRecommendations.fromJson(<String, Object?>{
+        'items': <Object?>[],
+        'trainer_pick': null,
+      }).trainerPick,
+      isNull,
+    );
   });
 }
+
+MealRecommendations _withPick(String tag) => MealRecommendations(
+  items: MealRecommendations.fallback.items,
+  trainerPick: TrainerMealPick(
+    slot: 'dinner',
+    name: '구운 고등어 정식',
+    tag: tag,
+    keyword: '키워드',
+    trainerName: '김트레이너',
+  ),
+);
