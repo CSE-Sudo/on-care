@@ -1666,21 +1666,134 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportBodyCalories(String avg) {
-    return 'Calories averaged ${avg}kcal a day.';
-  }
-
-  @override
   String get reportBodyPraise =>
       'Great work — let\'s keep this pace next week!';
 
   @override
   String get reportBodyEncourage =>
-      'Let\'s focus on just that one thing next week. I\'ll adjust your program and send it over.';
+      'Take those one at a time and you\'ll see it come together. I\'ll adjust your program and send it over.';
 
   @override
   String get reportBodyNoRecords =>
       'There\'s nothing logged for this week, so nothing to sum up. Let\'s plan next week\'s start together.';
+
+  @override
+  String reportBodySessionsAll(int booked) {
+    return 'You made all $booked of your booked PT sessions.';
+  }
+
+  @override
+  String reportBodySessionsSome(int booked, int done) {
+    return 'You made $done of your $booked booked PT sessions.';
+  }
+
+  @override
+  String get reportBodySessionsNone => 'There were no PT sessions this week.';
+
+  @override
+  String reportBodyExerciseCount(int total, int done) {
+    return 'You finished $done of the $total assigned exercises.';
+  }
+
+  @override
+  String reportBodyMealDaysAll(int total) {
+    return 'You logged your meals on all $total days.';
+  }
+
+  @override
+  String reportBodyMealDays(int total, int days) {
+    return 'You logged your meals on $days of $total days.';
+  }
+
+  @override
+  String reportBodyCaloriesOver(
+    String avg,
+    String target,
+    String pct,
+    int days,
+  ) {
+    return 'Calories averaged ${avg}kcal a day — $pct% above your ${target}kcal target, and over it on $days days.';
+  }
+
+  @override
+  String reportBodyCaloriesUnder(String avg, String target, String pct) {
+    return 'Calories averaged ${avg}kcal a day — $pct% below your ${target}kcal target. Eating too little tends to cost muscle first.';
+  }
+
+  @override
+  String reportBodyCaloriesNearOver(String avg, String target, int days) {
+    return 'Calories averaged ${avg}kcal a day, close to your ${target}kcal target, but went over it on $days days.';
+  }
+
+  @override
+  String reportBodyCaloriesOk(String avg, String target) {
+    return 'Calories averaged ${avg}kcal a day — right around your ${target}kcal target.';
+  }
+
+  @override
+  String reportBodySugarOver(String avg, String target, int days) {
+    return 'Sugar averaged ${avg}g a day and went over the ${target}g limit on $days days.';
+  }
+
+  @override
+  String reportBodySugarOk(String avg, String target) {
+    return 'Sugar averaged ${avg}g a day, inside the ${target}g limit.';
+  }
+
+  @override
+  String reportBodyMemberPain(String area) {
+    return 'You mentioned pain in your $area. Let me know how it feels before the next session — I\'ll ease off that area.';
+  }
+
+  @override
+  String get reportBodyMemberTooHard =>
+      'You said the workouts felt too hard, so I\'ll drop next week\'s intensity a notch.';
+
+  @override
+  String get reportBodyMemberTooEasy =>
+      'You said the workouts felt easy, so I\'ll raise next week\'s intensity a notch.';
+
+  @override
+  String get reportBodyMemberNoted =>
+      'Thanks for the weekly check-in — I read it.';
+
+  @override
+  String get reportBodyNextWeek => 'Here\'s the plan for next week.';
+
+  @override
+  String get reportTipCaloriesOver =>
+      'Cut dinner carbs to about two-thirds and switch snacks to protein.';
+
+  @override
+  String get reportTipCaloriesUnder =>
+      'Don\'t skip meals, and add one protein snack on workout days.';
+
+  @override
+  String get reportTipSugar => 'Keep sweet drinks and desserts to once a day.';
+
+  @override
+  String get reportTipSodium =>
+      'Keep takeout and processed foods to twice a week.';
+
+  @override
+  String get reportTipWorkout =>
+      'Aim to get three workouts in first, even if each is only 20 minutes.';
+
+  @override
+  String get reportTipMeals =>
+      'Log every meal, even with just a photo, so I can give you sharper feedback.';
+
+  @override
+  String get reportTipSessionsNone =>
+      'Let\'s book next week\'s PT sessions together now.';
+
+  @override
+  String get reportTipSessionsMissed =>
+      'I\'ll set up make-up slots next week for the sessions we missed.';
+
+  @override
+  String get reportTipKeep =>
+      'Keep the current routine as it is, and I\'ll raise the intensity step by step.';
 
   @override
   String get schedTitle => 'Schedule';

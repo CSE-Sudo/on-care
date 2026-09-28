@@ -667,7 +667,7 @@
       }
     }
   },
-  "reportBodySteadyDays": "{days}까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.",
+  "reportBodySteadyDays": "{days}요일까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.",
   "@reportBodySteadyDays": {
     "placeholders": {
       "days": {
@@ -678,10 +678,161 @@
   "reportBodySkipped": "다만 {names} 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.",
   "reportBodySodiumOver": "나트륨은 하루 평균 {avg}mg이었고, 목표({target}mg)를 넘긴 날이 {days}일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.",
   "reportBodySodiumOk": "나트륨은 하루 평균 {avg}mg으로 목표({target}mg) 안에서 잘 지키고 계세요.",
-  "reportBodyCalories": "칼로리는 하루 평균 {avg}kcal이에요.",
   "reportBodyPraise": "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!",
-  "reportBodyEncourage": "다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.",
+  "reportBodyEncourage": "위 내용만 하나씩 같이 챙겨 가면 충분히 좋아질 거예요. 프로그램은 제가 조정해서 올려둘게요.",
   "reportBodyNoRecords": "이 주에는 남은 기록이 없어서 정리해 드릴 내용이 없네요. 다음 주 시작을 같이 잡아 봐요.",
+  "reportBodySessionsAll": "PT는 예약된 {booked}회를 모두 진행했어요.",
+  "@reportBodySessionsAll": {
+    "placeholders": {
+      "booked": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodySessionsSome": "PT는 예약된 {booked}회 중 {done}회 진행했어요.",
+  "@reportBodySessionsSome": {
+    "placeholders": {
+      "booked": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodySessionsNone": "이 주에는 진행한 PT 세션이 없었어요.",
+  "reportBodyExerciseCount": "배정된 개인 운동 {total}개 중 {done}개를 완료하셨어요.",
+  "@reportBodyExerciseCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyMealDaysAll": "식단은 {total}일 모두 빠짐없이 기록해 주셨어요.",
+  "@reportBodyMealDaysAll": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyMealDays": "식단은 {total}일 중 {days}일 기록해 주셨어요.",
+  "@reportBodyMealDays": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCaloriesOver": "칼로리는 하루 평균 {avg}kcal로 목표({target}kcal)보다 {pct}% 많았고, 목표를 넘긴 날이 {days}일이었어요.",
+  "@reportBodyCaloriesOver": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCaloriesUnder": "칼로리는 하루 평균 {avg}kcal로 목표({target}kcal)보다 {pct}% 적었어요. 너무 적게 드시면 근육이 먼저 빠질 수 있어요.",
+  "@reportBodyCaloriesUnder": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodyCaloriesNearOver": "칼로리는 하루 평균 {avg}kcal로 목표({target}kcal) 근처였지만, 목표를 넘긴 날이 {days}일 있었어요.",
+  "@reportBodyCaloriesNearOver": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCaloriesOk": "칼로리는 하루 평균 {avg}kcal로 목표({target}kcal)에 맞게 잘 조절해 주셨어요.",
+  "@reportBodyCaloriesOk": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 기준({target}g)을 넘긴 날이 {days}일이었어요.",
+  "@reportBodySugarOver": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 기준({target}g) 안이었어요.",
+  "@reportBodySugarOk": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodyMemberPain": "{area} 아프셨다고 남겨 주셨는데, 다음 세션 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.",
+  "@reportBodyMemberPain": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodyMemberTooHard": "운동이 많이 힘들었다고 남겨 주셔서, 다음 주 강도는 한 단계 낮춰 둘게요.",
+  "reportBodyMemberTooEasy": "운동이 쉬웠다고 남겨 주셔서, 다음 주에는 강도를 한 단계 올려 볼게요.",
+  "reportBodyMemberNoted": "남겨 주신 이번 주 소감도 잘 읽었어요.",
+  "reportBodyNextWeek": "다음 주에는 이렇게 해 봐요.",
+  "reportTipCaloriesOver": "저녁 밥 양을 3분의 2로 줄이고, 간식은 단백질 위주로 바꿔 보세요.",
+  "reportTipCaloriesUnder": "끼니를 거르지 말고, 운동한 날에는 단백질 간식을 하나 더 챙겨 주세요.",
+  "reportTipSugar": "단 음료와 디저트는 하루 한 번까지만 드셔 보세요.",
+  "reportTipSodium": "배달 음식과 가공식품은 주 2회까지로 줄여 보세요.",
+  "reportTipWorkout": "운동은 한 번에 20분이라도 주 3회를 먼저 채우는 걸 목표로 해요.",
+  "reportTipMeals": "식사는 사진 한 장이라도 매 끼니 남겨 주시면 더 정확하게 봐 드릴 수 있어요.",
+  "reportTipSessionsNone": "다음 주 PT 일정도 이번에 같이 잡아 둘게요.",
+  "reportTipSessionsMissed": "빠진 PT 세션은 다음 주에 보강 일정으로 잡아 드릴게요.",
+  "reportTipKeep": "지금 루틴은 그대로 유지하면서, 운동 강도만 조금씩 올려 볼게요.",
   "schedTitle": "스케줄",
   "schedDetailTitle": "상세 일정",
   "schedDeleteTitle": "일정 삭제",

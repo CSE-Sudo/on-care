@@ -1215,17 +1215,161 @@
       }
     }
   },
-  "reportBodyCalories": "Calories averaged {avg}kcal a day.",
-  "@reportBodyCalories": {
+  "reportBodyPraise": "Great work — let's keep this pace next week!",
+  "reportBodyEncourage": "Take those one at a time and you'll see it come together. I'll adjust your program and send it over.",
+  "reportBodyNoRecords": "There's nothing logged for this week, so nothing to sum up. Let's plan next week's start together.",
+  "reportBodySessionsAll": "You made all {booked} of your booked PT sessions.",
+  "@reportBodySessionsAll": {
+    "placeholders": {
+      "booked": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodySessionsSome": "You made {done} of your {booked} booked PT sessions.",
+  "@reportBodySessionsSome": {
+    "placeholders": {
+      "booked": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodySessionsNone": "There were no PT sessions this week.",
+  "reportBodyExerciseCount": "You finished {done} of the {total} assigned exercises.",
+  "@reportBodyExerciseCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyMealDaysAll": "You logged your meals on all {total} days.",
+  "@reportBodyMealDaysAll": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyMealDays": "You logged your meals on {days} of {total} days.",
+  "@reportBodyMealDays": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCaloriesOver": "Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.",
+  "@reportBodyCaloriesOver": {
     "placeholders": {
       "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCaloriesUnder": "Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.",
+  "@reportBodyCaloriesUnder": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "pct": {
         "type": "String"
       }
     }
   },
-  "reportBodyPraise": "Great work — let's keep this pace next week!",
-  "reportBodyEncourage": "Let's focus on just that one thing next week. I'll adjust your program and send it over.",
-  "reportBodyNoRecords": "There's nothing logged for this week, so nothing to sum up. Let's plan next week's start together.",
+  "reportBodyCaloriesNearOver": "Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.",
+  "@reportBodyCaloriesNearOver": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCaloriesOk": "Calories averaged {avg}kcal a day — right around your {target}kcal target.",
+  "@reportBodyCaloriesOk": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodySugarOver": "Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.",
+  "@reportBodySugarOver": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodySugarOk": "Sugar averaged {avg}g a day, inside the {target}g limit.",
+  "@reportBodySugarOk": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodyMemberPain": "You mentioned pain in your {area}. Let me know how it feels before the next session — I'll ease off that area.",
+  "@reportBodyMemberPain": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "reportBodyMemberTooHard": "You said the workouts felt too hard, so I'll drop next week's intensity a notch.",
+  "reportBodyMemberTooEasy": "You said the workouts felt easy, so I'll raise next week's intensity a notch.",
+  "reportBodyMemberNoted": "Thanks for the weekly check-in — I read it.",
+  "reportBodyNextWeek": "Here's the plan for next week.",
+  "reportTipCaloriesOver": "Cut dinner carbs to about two-thirds and switch snacks to protein.",
+  "reportTipCaloriesUnder": "Don't skip meals, and add one protein snack on workout days.",
+  "reportTipSugar": "Keep sweet drinks and desserts to once a day.",
+  "reportTipSodium": "Keep takeout and processed foods to twice a week.",
+  "reportTipWorkout": "Aim to get three workouts in first, even if each is only 20 minutes.",
+  "reportTipMeals": "Log every meal, even with just a photo, so I can give you sharper feedback.",
+  "reportTipSessionsNone": "Let's book next week's PT sessions together now.",
+  "reportTipSessionsMissed": "I'll set up make-up slots next week for the sessions we missed.",
+  "reportTipKeep": "Keep the current routine as it is, and I'll raise the intensity step by step.",
   "schedTitle": "Schedule",
   "schedDetailTitle": "Session detail",
   "schedDeleteTitle": "Delete session",
