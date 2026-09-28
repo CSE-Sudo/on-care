@@ -46,7 +46,6 @@ import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
-import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatarSize,
@@ -58,6 +57,7 @@ import 'package:oncare_ui/oncare_ui.dart'
         OnCareMotion;
 
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/progress_bar_finder.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/record_span.dart';
 
@@ -971,13 +971,7 @@ void main() {
         expect(programCard, findsOneWidget);
         // 이행률 막대·퍼센트는 이 목록에서 뺐다(#1029) — 이 목록은 회원을
         // 고르는 자리다.
-        expect(
-          find.descendant(
-            of: programCard,
-            matching: find.byType(InlineBarValue),
-          ),
-          findsNothing,
-        );
+        expect(findProgressBars(of: programCard), findsNothing);
         final avatar = tester.widget<ClientAvatar>(
           find.descendant(of: programCard, matching: find.byType(ClientAvatar)),
         );
