@@ -12,11 +12,17 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.models.models import ChatMessage, DietEntry, HealthProfile
+from app.models.models import (
+    ChatMessage,
+    DietAdviceState,
+    DietEntry,
+    DietMenuPlan,
+    HealthProfile,
+)
 from app.services import health_focus
 
 #: 개인 목표가 없을 때의 기본값. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소
@@ -111,6 +117,39 @@ def trainer_notes(db: Session, member_id: str) -> list[str]:
         if body:
             notes.append(body[:TRAINER_NOTE_MAX_CHARS])
     return notes
+
+
+#: 트레이너 메시지를 읽어 AI 가 만든 뒤 보관하는 조언의 기간. `today` 는 추천 메뉴
+#: 리스트에서 고른 메뉴 이름만 기억하므로 여기에 없다 — 리스트를 다시 만들면 따라온다.
+_ADVICE_PERIODS_WITH_NOTES = ("week", "all")
+
+
+def forget_trainer_notes(db: Session, member_id: str) -> None:
+    """담당이 끝났을 때 [trainer_notes] 로 만든 보관물을 내려놓는다(커밋 없음). (#1631)
+
+    새 프롬프트는 활성 담당만 읽으므로 해제 뒤에는 트레이너 메시지가 들어가지
+    않는다. 하지만 이미 만든 결과는 보관 기간 동안 그대로 쓰였다 — 추천 메뉴는
+    4주, 전체 조언은 그 주, 이번 주 조언은 그날. 끊은 트레이너의 지시가 그 사이
+    회원의 "다음 식사" 를 계속 정한다.
+
+    - 이번 주·전체 조언은 지운다. 다음 조회가 담당 없이 다시 만든다.
+    - 추천 메뉴 리스트는 지우지 않고 오늘로 만료시킨다 — 바로 앞 리스트는
+      "이전 메뉴를 다시 추천하지 않는다" 의 근거라 남겨 둔다.
+
+    회원이 이미 받은 채팅 자체(개인 문서 포함)는 회원의 기록이라 건드리지 않는다.
+    """
+    today = clock.today_iso()
+    db.execute(
+        delete(DietAdviceState).where(
+            DietAdviceState.user_id == member_id,
+            DietAdviceState.period.in_(_ADVICE_PERIODS_WITH_NOTES),
+        )
+    )
+    db.execute(
+        update(DietMenuPlan)
+        .where(DietMenuPlan.user_id == member_id, DietMenuPlan.expires_on > today)
+        .values(expires_on=today)
+    )
 
 
 @dataclass(frozen=True)
