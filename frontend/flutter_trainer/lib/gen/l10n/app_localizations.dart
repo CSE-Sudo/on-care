@@ -8793,12 +8793,6 @@ abstract class AppLocalizations {
   /// **'{count}×'**
   String reportsTrendTrackedTimes(int count);
 
-  /// No description provided for @reportsSkipToWrite.
-  ///
-  /// In en, this message translates to:
-  /// **'Write without a draft'**
-  String get reportsSkipToWrite;
-
   /// No description provided for @reportsCalorieThisWeekAvg.
   ///
   /// In en, this message translates to:
