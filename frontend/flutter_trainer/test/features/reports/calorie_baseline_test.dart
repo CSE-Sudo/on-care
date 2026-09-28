@@ -42,7 +42,6 @@ WeeklyReport _report(
   sodiumOverDays: 0,
   sodiumAvg: 0,
   isCurrentWeek: false,
-  days: const <ReportDay>[],
   mealCounts: const <int>[0, 0, 0, 0, 0, 0, 0],
   caloriesWeek: caloriesWeek,
 );
