@@ -136,7 +136,7 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
               confirmKey: const ValueKey<String>(
                 'program-assign-confirm-submit',
               ),
-              confirmLabel: l.programEditorAddSchedule,
+              confirmLabel: l.actionAdd,
               onConfirm: candidates.length > 1 && chosen == null
                   ? null
                   : () => Navigator.of(dialogContext).pop((sessionId: chosen)),
