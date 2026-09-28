@@ -900,6 +900,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietDayTotal => 'Day total';
 
   @override
+  String clientDietDayTotalCalories(String calories) {
+    return 'Total $calories kcal';
+  }
+
+  @override
   String clientDietMacroShare(String name, int percent) {
     return '$name $percent%';
   }
@@ -2157,9 +2162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertifications => 'Certifications';
 
   @override
-  String get myMonthStats => 'This month';
-
-  @override
   String get myGym => 'My gym';
 
   @override
@@ -2169,18 +2171,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifNewMessage => 'New message alerts';
 
   @override
-  String get myNotifNewMessageHint =>
-      'A sidebar badge appears when a member messages you';
+  String get myNotifNotReady => 'Coming soon — always on for now';
 
   @override
-  String get myLanguage => 'Language';
+  String get myNotifNewMessageHint =>
+      'Get an inbox alert and a sidebar count when a member messages you';
 
   @override
   String get myLanguageApp => 'Display language';
 
   @override
   String get myLanguageHint =>
-      'Choose the language this browser shows the console in';
+      'Your choice is saved in this browser only. Other devices follow their own browser setting.';
 
   @override
   String get myLanguageSystem => 'Match browser';
@@ -2232,20 +2234,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'FAQ, inquiries, policies and account clean-up in one place';
 
   @override
-  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
+  String myAppVersion(String version) {
+    return 'On-Care Trainer · Version $version';
+  }
+
+  @override
+  String get myAppName => 'On-Care Trainer';
 
   @override
   String get myLegalTermsTitle => 'Terms of Service';
 
   @override
-  String get myLegalTermsHint => 'The terms your trainer account runs under';
-
-  @override
   String get myLegalPrivacyTitle => 'Privacy Policy';
-
-  @override
-  String get myLegalPrivacyHint =>
-      'How member records and sent reports are handled';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -2268,9 +2268,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myVersion => 'Version';
 
   @override
-  String get myContact => 'Contact';
-
-  @override
   String get myPasswordChanged => 'Password changed';
 
   @override
@@ -2282,6 +2279,17 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 year',
     );
     return '$_temp0 of experience';
+  }
+
+  @override
+  String myCareerYearsValue(int years) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '1 year',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -2337,6 +2345,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientManagementEmpty => 'No members assigned';
 
   @override
+  String get myBasicInfo => 'Basic info';
+
+  @override
   String get myStatSessionsDone => 'Sessions done';
 
   @override
@@ -2352,13 +2363,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymHours => 'Hours';
 
   @override
-  String get myGymOpen => 'Open now';
-
-  @override
   String get myGymListFailed => 'Couldn\'t load the gym list.';
 
   @override
-  String get myNoGym => 'No gym';
+  String get myGymNoMatch =>
+      'This gym isn\'t listed. Please add its address and hours yourself.';
+
+  @override
+  String get myGymLinked => 'Registered gym';
+
+  @override
+  String get myGymUnlink => 'Unlink';
+
+  @override
+  String get myGymNameHint => 'Type to find a registered gym';
+
+  @override
+  String get myGymRequired => 'Enter your gym';
+
+  @override
+  String get myGymEditHint =>
+      'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.';
+
+  @override
+  String get myGymListLoading => 'Loading gyms…';
 
   @override
   String get mySignOut => 'Sign out';
@@ -2393,6 +2421,110 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mySettingsSaveFailed =>
       'Couldn\'t save your settings. Please try again in a moment';
+
+  @override
+  String get myProfileSubtitle =>
+      'How members see you, and this month\'s activity';
+
+  @override
+  String get myClientsSubtitle => 'Tidy up your member connections';
+
+  @override
+  String get myLanguageSubtitle => 'Choose the console language';
+
+  @override
+  String get myAccountSubtitle => 'Manage your sign-in account and password';
+
+  @override
+  String get mySupportSubtitle => 'Ask a question or read our policies';
+
+  @override
+  String get myWithdrawSubtitle => 'Please check once before you leave';
+
+  @override
+  String get myPageTitle => 'Profile & settings';
+
+  @override
+  String get myProfileTitle => 'Profile';
+
+  @override
+  String get myEmail => 'Email';
+
+  @override
+  String get myBasicInfoHint => 'Members see this on your trainer profile';
+
+  @override
+  String get myNotificationsHint => 'Choose which alerts you get';
+
+  @override
+  String get myAccountInfo => 'Account';
+
+  @override
+  String get myAccountInfoHint =>
+      'To change your name or email, contact support.';
+
+  @override
+  String get mySecurity => 'Security';
+
+  @override
+  String get myDiscardTitle => 'Stop editing?';
+
+  @override
+  String get myDiscardBody => 'Your changes won\'t be saved.';
+
+  @override
+  String get myKeepEditing => 'Keep editing';
+
+  @override
+  String get myDiscardAction => 'Leave';
+
+  @override
+  String get mySignOutConfirm => 'Log out of this browser?';
+
+  @override
+  String get myThisMonth => 'This month';
+
+  @override
+  String get myIntroEmpty =>
+      'No introduction yet. Add one in Edit profile — members see it.';
+
+  @override
+  String get myCertsEmpty => 'No certifications yet';
+
+  @override
+  String get myGymEmpty => 'No gym yet. Add yours in Edit profile.';
+
+  @override
+  String get myEditVisibleBody =>
+      'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
+
+  @override
+  String get myClientManagementNoteTitle => 'Removing only hides members here';
+
+  @override
+  String get myClientManagementNote =>
+      'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.';
+
+  @override
+  String get myNotifConsultation => 'Consultation requests';
+
+  @override
+  String get myNotifConsultationHint =>
+      'When a member requests a consultation or answers your invite';
+
+  @override
+  String get myNotifReservation => 'Bookings';
+
+  @override
+  String get myNotifReservationHint =>
+      'When a member books or changes a session';
+
+  @override
+  String get myNotifMemberUpdates => 'Member updates';
+
+  @override
+  String get myNotifMemberUpdatesHint =>
+      'When a member changes goals or name, or disconnects';
 
   @override
   String get routineTypeWalking => 'Walking';
@@ -3295,9 +3427,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDeleteAction => 'Delete';
 
   @override
-  String get myDeleteHint => 'Your member links and bookings go with it';
-
-  @override
   String get myDeleteDemo => 'Demo mode has no account to delete';
 
   @override
@@ -3315,6 +3444,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String myDeleteConfirmPrompt(String name) {
     return 'Type your name ($name) to continue';
   }
+
+  @override
+  String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What didn\'t work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'Pick as many as you like, or skip.';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I rarely use it';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It\'s hard to use';
+
+  @override
+  String get myWithdrawReasonMissingFeature =>
+      'It lacks features I need for members';
+
+  @override
+  String get myWithdrawReasonLeavingWork => 'I\'m taking a break from training';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I use another tool';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'Turn on alerts so you don\'t miss member messages and bookings. Change them in Settings › Notifications.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what felt awkward via 1:1 inquiry and we\'ll work on it.';
+
+  @override
+  String get myWithdrawKeepMissingFeature =>
+      'Tell us which feature you need via 1:1 inquiry — we\'ll consider it next.';
+
+  @override
+  String get myWithdrawKeepLeavingWork =>
+      'If it\'s just a break, you can keep your account. Leaving disconnects all your members.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Leaving removes member records, programs and reports from your console for good.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Your feedback via 1:1 inquiry would help us a lot.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawStay => 'Keep using';
+
+  @override
+  String get myWithdrawContinue => 'Continue leaving';
 
   @override
   String get routineAlreadyGone => 'That program is already gone';
