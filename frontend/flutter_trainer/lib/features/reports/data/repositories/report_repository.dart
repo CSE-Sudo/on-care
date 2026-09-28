@@ -10,7 +10,6 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
@@ -136,19 +135,11 @@ class ReportFeedbackDraft {
 /// Computes the report locally from the drift-backed streams.
 class LocalReportRepository implements ReportRepository {
   /// Creates the local source.
-  const LocalReportRepository(
-    this._schedule,
-    this._chat,
-    this._db, {
-    this.language = DemoLanguage.ko,
-  });
+  const LocalReportRepository(this._schedule, this._chat, this._db);
 
   final ScheduleRepository _schedule;
   final ChatRepository _chat;
   final AppDatabase _db;
-
-  /// 데모 내용의 언어 — 지난 주 데모 리포트의 본문이 이 언어로 선다(#2399).
-  final DemoLanguage language;
 
   @override
   Stream<WeeklyReport> watch({
@@ -331,11 +322,9 @@ class LocalReportRepository implements ReportRepository {
       ...sent,
       for (final ReportSendRecord demo in demoSentReportsForWeek(
         roster: <DemoReportMember>[
-          for (final TrainerClientRow row in roster)
-            (id: row.id, goal: row.goal),
+          for (final TrainerClientRow row in roster) (id: row.id),
         ],
         weekStart: monday,
-        language: language,
       ))
         if (!sentIds.contains(demo.clientId)) demo,
     ];
@@ -387,22 +376,18 @@ class LocalReportRepository implements ReportRepository {
   /// 데모 회원의 지난 리포트 이력([demoReportHistoryFor])에 실행 중 보낸
   /// 것을 얹는다(#2394). 같은 주는 실행 중 기록이 이긴다 — 작업대의 주 단위
   /// 기록([sentReports])과 같은 규칙이라 두 화면이 같은 주를 다르게 말하지
-  /// 않는다. 피드백 문구는 로스터에 심긴 회원 목표를 따른다.
+  /// 않는다. 데모 기록은 본문이 비어 있어, 목록이 그 주 수치로 만든 초안의
+  /// 첫 줄로 채운다(#2423).
   @override
   Future<MemberReportHistoryPage> memberReportHistory({
     required String clientId,
     DateTime? before,
     int limit = memberReportHistoryPageSize,
   }) async {
-    final TrainerClientRow? row = await (_db.select(
-      _db.trainerClients,
-    )..where((t) => t.id.equals(clientId))).getSingleOrNull();
     final Map<String, MemberReportHistoryItem> byWeek =
         <String, MemberReportHistoryItem>{
           for (final DemoReportWeek week in demoReportHistoryFor(
             clientId: clientId,
-            goal: row?.goal ?? '',
-            language: language,
           ))
             if (week.record case final ReportSendRecord record)
               ymd(week.weekStart): MemberReportHistoryItem.fromRecord(record),
@@ -949,7 +934,6 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
       ref.watch(scheduleRepositoryProvider),
       ref.watch(chatRepositoryProvider),
       ref.watch(appDatabaseProvider),
-      language: ref.watch(demoLanguageProvider),
     );
   }
   return DioReportRepository(ref.watch(dioProvider));
