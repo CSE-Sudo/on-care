@@ -85,6 +85,63 @@ void main() {
     );
   });
 
+  testWidgets('두 버튼은 모바일에서 반반, 웹에서 오른쪽 끝 내용 폭이다 (#2465)', (
+    tester,
+  ) async {
+    Widget pair() => SizedBox(
+      width: 480,
+      child: AppButtonPair(
+        cancelKey: const Key('pair-cancel'),
+        cancelLabel: '취소',
+        onCancel: () {},
+        confirmKey: const Key('pair-confirm'),
+        confirmLabel: '저장',
+        onConfirm: () {},
+      ),
+    );
+
+    await _pump(tester, pair());
+    final Rect row = tester.getRect(find.byType(AppButtonPair));
+    Rect cancel = tester.getRect(find.byKey(const Key('pair-cancel')));
+    Rect confirm = tester.getRect(find.byKey(const Key('pair-confirm')));
+    expect(cancel.width, confirm.width);
+    expect(cancel.left, row.left);
+    expect(confirm.right, row.right);
+
+    await _pump(tester, pair(), density: OnCareDensity.web);
+    cancel = tester.getRect(find.byKey(const Key('pair-cancel')));
+    confirm = tester.getRect(find.byKey(const Key('pair-confirm')));
+    expect(confirm.right, row.right);
+    expect(confirm.left - cancel.right, OnCareSpacing.buttonGap);
+    expect(cancel.left, greaterThan(row.center.dx));
+  });
+
+  testWidgets('동작 줄은 버튼을 오른쪽 끝에, leading 은 왼쪽 끝에 둔다 (#2465)', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      SizedBox(
+        width: 480,
+        child: AppActionRow(
+          leading: AppButton(
+            key: const Key('prev'),
+            label: '이전',
+            onPressed: () {},
+            variant: AppButtonVariant.text,
+          ),
+          actions: <Widget>[
+            AppButton(key: const Key('next'), label: '다음', onPressed: () {}),
+          ],
+        ),
+      ),
+      density: OnCareDensity.web,
+    );
+    final Rect row = tester.getRect(find.byType(AppActionRow));
+    expect(tester.getRect(find.byKey(const Key('prev'))).left, row.left);
+    expect(tester.getRect(find.byKey(const Key('next'))).right, row.right);
+  });
+
   testWidgets('버튼 아이콘은 글자와 같은 색이다', (tester) async {
     Color iconColorOf(IconData icon) {
       final BuildContext context = tester.element(find.byIcon(icon));
