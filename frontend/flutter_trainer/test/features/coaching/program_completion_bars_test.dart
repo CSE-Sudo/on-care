@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays;
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
+import '../../helpers/progress_bar_finder.dart';
 import '../../helpers/pump_app.dart';
 
 /// 프로그램 탭의 운동 이행률. (#899, #1029)
@@ -50,6 +54,39 @@ void main() {
 
   Finder rowOf(String id) => find.byKey(ValueKey<String>('program-client-$id'));
 
+  // 아래 `findsNothing` 이 헛돌지 않도록, 막대 찾기가 막대를 그리는 방식마다
+  // 실제로 걸리는지 먼저 본다. 지운 `InlineBarValue` 와 같은 방식
+  // (FractionallySizedBox)도 포함한다(#2470).
+  testWidgets('막대 찾기는 막대를 그리는 방식마다 걸린다 (#2470)', (tester) async {
+    const Key host = ValueKey<String>('bar-host');
+    for (final Widget bar in <Widget>[
+      const FractionallySizedBox(widthFactor: 0.5, child: SizedBox(height: 6)),
+      const AppProgressBar(value: 0.5),
+      BarSeriesChart(
+        title: '주간 이행률',
+        values: const <int>[80, 60],
+        labels: const <String>['월', '화'],
+      ),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(key: host, width: 240, child: bar),
+          ),
+        ),
+      );
+      expect(
+        findProgressBars(of: find.byKey(host)),
+        findsWidgets,
+        reason: '${bar.runtimeType} 를 막대로 찾아야 한다',
+      );
+    }
+  });
+
   testWidgets('회원 목록 행에는 이행률 막대도 퍼센트도 없다 (#1029)', (tester) async {
     await openCoaching(tester, <TrainerClient>[
       makeClient(
@@ -63,13 +100,7 @@ void main() {
     // 행이 아예 없어도 그대로 통과해 버려서, 이 양성 확인이 없으면 위양성이
     // 된다.
     expect(rowOf('steady'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: rowOf('steady'),
-        matching: find.byType(InlineBarValue),
-      ),
-      findsNothing,
-    );
+    expect(findProgressBars(of: rowOf('steady')), findsNothing);
     expect(
       find.descendant(of: rowOf('steady'), matching: find.text('90%')),
       findsNothing,
