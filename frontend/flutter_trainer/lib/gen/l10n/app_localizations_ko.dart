@@ -812,6 +812,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateExerciseRequired => '운동을 하나 이상 넣어 주세요';
 
   @override
+  String get coachTemplateExerciseNameRequired => '운동 이름을 적어 주세요';
+
+  @override
   String get coachTemplateSaveFailed => '템플릿을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
@@ -3890,9 +3893,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String programEditorDefaultName(String goal) {
     return '$goal 프로그램';
   }
-
-  @override
-  String get programEditorDefaultSession => '세션 A';
 
   @override
   String get programEditorSaveUnsupported => '프로그램 이름을 입력해 주세요';

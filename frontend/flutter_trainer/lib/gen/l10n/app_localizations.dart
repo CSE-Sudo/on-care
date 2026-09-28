@@ -1586,6 +1586,12 @@ abstract class AppLocalizations {
   /// **'Add at least one exercise'**
   String get coachTemplateExerciseRequired;
 
+  /// No description provided for @coachTemplateExerciseNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the exercise name'**
+  String get coachTemplateExerciseNameRequired;
+
   /// No description provided for @coachTemplateSaveFailed.
   ///
   /// In en, this message translates to:
@@ -7062,12 +7068,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{goal} program'**
   String programEditorDefaultName(String goal);
-
-  /// No description provided for @programEditorDefaultSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Session A'**
-  String get programEditorDefaultSession;
 
   /// No description provided for @programEditorSaveUnsupported.
   ///
