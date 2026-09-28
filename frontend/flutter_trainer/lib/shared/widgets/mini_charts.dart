@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
+import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// A compact labelled bar series (주간 이행률, 세션 수 …).
@@ -82,7 +82,7 @@ class BarSeriesChart extends StatelessWidget {
       for (var i = 0; i < values.length && i < labels.length; i++)
         if (i < pendingFrom && !missingIndices.contains(i))
           chartPointLabel(
-            AppLocalizations.of(context),
+            AppLocalizations.of(context).chartA11y,
             labels[i],
             '${values[i]}$valueSuffix',
           ),
@@ -91,7 +91,7 @@ class BarSeriesChart extends StatelessWidget {
     return Semantics(
       container: true,
       label: chartSemanticsLabel(
-        AppLocalizations.of(context),
+        AppLocalizations.of(context).chartA11y,
         title: title,
         points: points,
       ),

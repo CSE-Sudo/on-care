@@ -9,7 +9,6 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -274,7 +273,7 @@ void main() {
         find.byKey(const Key('client-nutrition-calorie-progress')),
         findsOneWidget,
       );
-      final calorieProgress = tester.widget<NutritionCalorieRing>(
+      final calorieProgress = tester.widget<AppRingGauge>(
         find.byKey(const Key('client-nutrition-calorie-progress')),
       );
       // 목표 안쪽은 **메인 색**이다 (#1166) — 회원 앱이 자기 메인 색을 쓰는
@@ -387,7 +386,7 @@ void main() {
       // 강서연은 2,260 / 2,000 kcal 로 목표를 넘겼다.
       await openDiet(tester, '강서연');
 
-      final ring = tester.widget<NutritionCalorieRing>(
+      final ring = tester.widget<AppRingGauge>(
         find.byKey(const Key('client-nutrition-calorie-progress')),
       );
       // 링은 한 바퀴에서 멈춘다 — 넘긴 양은 링이 그릴 수 없다.

@@ -11,6 +11,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # 기간 라벨의 날짜 형식(#2469). 두 앱이 이미 쓰는 패키지라 버전을 묶지 않는다.
+  intl: any
 
 dev_dependencies:
   flutter_test:

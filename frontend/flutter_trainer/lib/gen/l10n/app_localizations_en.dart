@@ -3872,6 +3872,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messagesPreviewEmote => 'Sent an emote';
 
   @override
+  String get messagesPreviewPhoto => 'Photo';
+
+  @override
   String get messagesTimeJustNow => 'Just now';
 
   @override

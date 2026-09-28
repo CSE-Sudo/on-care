@@ -6697,6 +6697,12 @@ abstract class AppLocalizations {
   /// **'Sent an emote'**
   String get messagesPreviewEmote;
 
+  /// No description provided for @messagesPreviewPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get messagesPreviewPhoto;
+
   /// No description provided for @messagesTimeJustNow.
   ///
   /// In en, this message translates to:

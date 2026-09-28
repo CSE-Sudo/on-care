@@ -132,7 +132,6 @@ class ScheduleWeekTimetable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final days = <DateTime>[
       for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i)),
     ];
@@ -235,13 +234,14 @@ class ScheduleWeekTimetable extends ConsumerWidget {
             ),
             if (bodyOverride == null && byDate.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
-                child: Text(
-                  l.schedEmptyWeek,
-                  textAlign: TextAlign.center,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
+                // 시간표 테두리에 붙지 않게 가로도 띄운다.
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s12,
+                  vertical: OnCareSpacing.s8,
+                ),
+                child: AppEmptyState(
+                  title: l.schedEmptyWeek,
+                  placement: AppStatePlacement.inline,
                 ),
               ),
           ],
