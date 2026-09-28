@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -220,6 +222,11 @@ class _Row extends StatelessWidget {
   /// 시간 칸 폭 — `18:00–18:50` 이 한 줄에 들어간다.
   static const double _timeColumnWidth = 92;
 
+  /// 오른쪽 상태 칸 앞에 늘 서는 폭 — 시간 칸 · 상태 점과 그 뒤 간격 ·
+  /// 이름 칸 뒤 간격.
+  static const double _leadingWidth =
+      _timeColumnWidth + OnCareSize.dot + OnCareSpacing.s8 + OnCareSpacing.s4;
+
   Color _dotColor(BuildContext context) {
     if (session.isDone) return OnCareColors.success;
     if (session.isUpcoming) return context.oncare.brand.primary;
@@ -282,93 +289,114 @@ class _Row extends StatelessWidget {
         ),
         // 오른쪽 칸(완료/예정 + 상태 알약)이 둘로 쌓이면 왼쪽보다 키가 커진다
         // — Row 기본값인 가운데 정렬이라 시간·점도 그 가운데로 맞춰진다.
-        child: Row(
-          children: <Widget>[
-            SizedBox(
-              width: _timeColumnWidth,
-              child: Text(
-                timeRangeLabel(l, session),
-                maxLines: 1,
-                style: OnCareTypography.numeric(
-                  tokens.text(OnCareTypography.label),
-                ).copyWith(color: timeColor),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: OnCareSpacing.s8),
-              child: AppStatusDot(color: _dotColor(context)),
-            ),
-            Expanded(
-              child: Row(
-                children: <Widget>[
-                  Flexible(
-                    flex: 3,
-                    child: client == null
-                        ? Text(
-                            fallbackName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: nameStyle,
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Flexible(
-                                child: Text(
-                                  client!.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: nameStyle,
-                                ),
-                              ),
-                              const SizedBox(width: OnCareSpacing.s4),
-                              Flexible(
-                                child: Text(
-                                  clientDemographicsLabel(context, client!),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: tokens
-                                      .text(OnCareTypography.caption)
-                                      .copyWith(
-                                        color: OnCareColors.textTertiary,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints c) => Row(
+            children: <Widget>[
+              // 큰 글씨(배율 1.3 부터)에서는 시간이 칸보다 길다 — 줄여서
+              // 들인다(#2433). 예전에는 `12:00–12:` 처럼 잘려 다른 시간으로
+              // 읽혔다.
+              SizedBox(
+                width: _timeColumnWidth,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    timeRangeLabel(l, session),
+                    maxLines: 1,
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.label),
+                    ).copyWith(color: timeColor),
                   ),
-                  const SizedBox(width: OnCareSpacing.s4),
-                  // 이름이 길어 좁아지면 종류 태그가 먼저 줄어든다 — `Flexible`
-                  // 로 상한을 받고 `FittedBox` 로 그 안에서 축소된다.
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: AppTag(
-                        label: session.type,
-                        tone: session.isDone
-                            ? AppTagTone.neutral
-                            : AppTagTone.brand,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: OnCareSpacing.s8),
+                child: AppStatusDot(color: _dotColor(context)),
+              ),
+              Expanded(
+                child: Row(
+                  children: <Widget>[
+                    Flexible(
+                      flex: 3,
+                      child: client == null
+                          ? Text(
+                              fallbackName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: nameStyle,
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Flexible(
+                                  child: Text(
+                                    client!.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: nameStyle,
+                                  ),
+                                ),
+                                const SizedBox(width: OnCareSpacing.s4),
+                                Flexible(
+                                  child: Text(
+                                    clientDemographicsLabel(context, client!),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tokens
+                                        .text(OnCareTypography.caption)
+                                        .copyWith(
+                                          color: OnCareColors.textTertiary,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    // 이름이 길어 좁아지면 종류 태그가 먼저 줄어든다 — `Flexible`
+                    // 로 상한을 받고 `FittedBox` 로 그 안에서 축소된다.
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: AppTag(
+                          label: session.type,
+                          tone: session.isDone
+                              ? AppTagTone.neutral
+                              : AppTagTone.brand,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: OnCareSpacing.s4),
-            // 완료/예정 알약과 나란히, 세로로는 이 줄 전체 기준 가운데 —
-            // 아래에 쌓지 않아야 왼쪽 시간·점과 같은 높이로 읽힌다.
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (statusTagLabel != null) ...<Widget>[
-                  AppTag(label: statusTagLabel, tone: statusTagTone),
-                  const SizedBox(width: OnCareSpacing.s4),
-                ],
-                SessionStatusChip(status: session.status),
-              ],
-            ),
-          ],
+              const SizedBox(width: OnCareSpacing.s4),
+              // 완료/예정 알약과 나란히, 세로로는 이 줄 전체 기준 가운데 —
+              // 아래에 쌓지 않아야 왼쪽 시간·점과 같은 높이로 읽힌다.
+              //
+              // 시간·점을 뺀 폭보다 길면(좁은 화면 · 큰 글씨) 줄여서 들인다
+              // (#2433). 들어갈 때는 그대로라 평소 모양은 달라지지 않는다.
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: math.max(0, c.maxWidth - _leadingWidth),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if (statusTagLabel != null) ...<Widget>[
+                        AppTag(label: statusTagLabel, tone: statusTagTone),
+                        const SizedBox(width: OnCareSpacing.s4),
+                      ],
+                      SessionStatusChip(status: session.status),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

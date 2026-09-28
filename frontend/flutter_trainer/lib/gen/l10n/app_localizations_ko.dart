@@ -1239,65 +1239,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiAnalysis => 'AI 분석';
-
-  @override
-  String get aiPeriodAnalysis => 'AI 기간 분석';
-
-  @override
-  String get aiAllAnalysis => 'AI 전체 분석';
-
-  @override
-  String clientDietAdviceTodayOver(int over) {
-    return '나트륨이 목표치를 ${over}mg 초과했어요. 오늘 운동 프로그램에 유산소를 추가하면 도움이 돼요.';
-  }
-
-  @override
-  String get clientDietAdviceTodayBalanced =>
-      '오늘 식단은 균형이 잘 맞아요. 현재 프로그램을 유지하세요.';
-
-  @override
-  String get clientDietAdviceWeekEmpty =>
-      '이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.';
-
-  @override
-  String get clientDietAdviceAllEmpty => '기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.';
-
-  @override
-  String clientDietAdviceWeekManyOver(int days) {
-    return '이번 주 $days일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.';
-  }
-
-  @override
-  String get clientDietAdviceWeekWeekend =>
-      '주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.';
-
-  @override
-  String clientDietAdviceWeekSomeOver(int days) {
-    return '이번 주 $days일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.';
-  }
-
-  @override
-  String clientDietAdviceWeekAllUnder(int days) {
-    return '이번 주 $days일 모두 나트륨을 권장량 안에서 지켰어요!';
-  }
-
-  @override
-  String clientDietAdviceAllWeekend(int weeks) {
-    return '최근 $weeks주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.';
-  }
-
-  @override
-  String clientDietAdviceAllRatio(int weeks, int percent) {
-    return '최근 $weeks주 중 $percent%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.';
-  }
-
-  @override
-  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
-    return '최근 $weeks주 기록한 $days일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.';
-  }
-
-  @override
   String get consultStatusRejected => '거절됨';
 
   @override
@@ -1560,7 +1501,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodySteadyDays(String days) {
-    return '$days까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.';
+    return '$days요일까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.';
   }
 
   @override
@@ -1579,20 +1520,125 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String reportBodyCalories(String avg) {
-    return '칼로리는 하루 평균 ${avg}kcal이에요.';
-  }
-
-  @override
   String get reportBodyPraise => '정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!';
 
   @override
   String get reportBodyEncourage =>
-      '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.';
+      '위 내용만 하나씩 같이 챙겨 가면 충분히 좋아질 거예요. 프로그램은 제가 조정해서 올려둘게요.';
 
   @override
   String get reportBodyNoRecords =>
       '이 주에는 남은 기록이 없어서 정리해 드릴 내용이 없네요. 다음 주 시작을 같이 잡아 봐요.';
+
+  @override
+  String reportBodySessionsAll(int booked) {
+    return 'PT는 예약된 $booked회를 모두 진행했어요.';
+  }
+
+  @override
+  String reportBodySessionsSome(int booked, int done) {
+    return 'PT는 예약된 $booked회 중 $done회 진행했어요.';
+  }
+
+  @override
+  String get reportBodySessionsNone => '이 주에는 진행한 PT 세션이 없었어요.';
+
+  @override
+  String reportBodyExerciseCount(int total, int done) {
+    return '배정된 개인 운동 $total개 중 $done개를 완료하셨어요.';
+  }
+
+  @override
+  String reportBodyMealDaysAll(int total) {
+    return '식단은 $total일 모두 빠짐없이 기록해 주셨어요.';
+  }
+
+  @override
+  String reportBodyMealDays(int total, int days) {
+    return '식단은 $total일 중 $days일 기록해 주셨어요.';
+  }
+
+  @override
+  String reportBodyCaloriesOver(
+    String avg,
+    String target,
+    String pct,
+    int days,
+  ) {
+    return '칼로리는 하루 평균 ${avg}kcal로 목표(${target}kcal)보다 $pct% 많았고, 목표를 넘긴 날이 $days일이었어요.';
+  }
+
+  @override
+  String reportBodyCaloriesUnder(String avg, String target, String pct) {
+    return '칼로리는 하루 평균 ${avg}kcal로 목표(${target}kcal)보다 $pct% 적었어요. 너무 적게 드시면 근육이 먼저 빠질 수 있어요.';
+  }
+
+  @override
+  String reportBodyCaloriesNearOver(String avg, String target, int days) {
+    return '칼로리는 하루 평균 ${avg}kcal로 목표(${target}kcal) 근처였지만, 목표를 넘긴 날이 $days일 있었어요.';
+  }
+
+  @override
+  String reportBodyCaloriesOk(String avg, String target) {
+    return '칼로리는 하루 평균 ${avg}kcal로 목표(${target}kcal)에 맞게 잘 조절해 주셨어요.';
+  }
+
+  @override
+  String reportBodySugarOver(String avg, String target, int days) {
+    return '당류는 하루 평균 ${avg}g이었고, 기준(${target}g)을 넘긴 날이 $days일이었어요.';
+  }
+
+  @override
+  String reportBodySugarOk(String avg, String target) {
+    return '당류는 하루 평균 ${avg}g으로 기준(${target}g) 안이었어요.';
+  }
+
+  @override
+  String reportBodyMemberPain(String area) {
+    return '$area 아프셨다고 남겨 주셨는데, 다음 세션 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.';
+  }
+
+  @override
+  String get reportBodyMemberTooHard =>
+      '운동이 많이 힘들었다고 남겨 주셔서, 다음 주 강도는 한 단계 낮춰 둘게요.';
+
+  @override
+  String get reportBodyMemberTooEasy =>
+      '운동이 쉬웠다고 남겨 주셔서, 다음 주에는 강도를 한 단계 올려 볼게요.';
+
+  @override
+  String get reportBodyMemberNoted => '남겨 주신 이번 주 소감도 잘 읽었어요.';
+
+  @override
+  String get reportBodyNextWeek => '다음 주에는 이렇게 해 봐요.';
+
+  @override
+  String get reportTipCaloriesOver => '저녁 밥 양을 3분의 2로 줄이고, 간식은 단백질 위주로 바꿔 보세요.';
+
+  @override
+  String get reportTipCaloriesUnder =>
+      '끼니를 거르지 말고, 운동한 날에는 단백질 간식을 하나 더 챙겨 주세요.';
+
+  @override
+  String get reportTipSugar => '단 음료와 디저트는 하루 한 번까지만 드셔 보세요.';
+
+  @override
+  String get reportTipSodium => '배달 음식과 가공식품은 주 2회까지로 줄여 보세요.';
+
+  @override
+  String get reportTipWorkout => '운동은 한 번에 20분이라도 주 3회를 먼저 채우는 걸 목표로 해요.';
+
+  @override
+  String get reportTipMeals => '식사는 사진 한 장이라도 매 끼니 남겨 주시면 더 정확하게 봐 드릴 수 있어요.';
+
+  @override
+  String get reportTipSessionsNone => '다음 주 PT 일정도 이번에 같이 잡아 둘게요.';
+
+  @override
+  String get reportTipSessionsMissed => '빠진 PT 세션은 다음 주에 보강 일정으로 잡아 드릴게요.';
+
+  @override
+  String get reportTipKeep => '지금 루틴은 그대로 유지하면서, 운동 강도만 조금씩 올려 볼게요.';
 
   @override
   String get schedTitle => '스케줄';
@@ -4570,12 +4616,6 @@ class AppLocalizationsKo extends AppLocalizations {
       '전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.';
 
   @override
-  String get reportsSentBody => '보낸 피드백';
-
-  @override
-  String get reportsSentFigures => '그때 보낸 수치';
-
-  @override
   String get reportsStepReview => '확인';
 
   @override
@@ -5006,4 +5046,346 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsPdfFileSuffix => '주간리포트';
+
+  @override
+  String get clientDietAnalysisTitle => '식단 분석';
+
+  @override
+  String get clientDietAnalysisTodayEmpty => '오늘 식단 기록이 아직 없어요.';
+
+  @override
+  String clientDietAnalysisTodayOver(
+    String slot,
+    String food,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': '나트륨이',
+      'sugar': '당류가',
+      'other': '칼로리가',
+    });
+    return '$_temp0에 먹은 $food($foodValue) 때문에 오늘 $_temp1 $value까지 올라 목표 $target의 $ratio배가 됐어요.';
+  }
+
+  @override
+  String clientDietAnalysisTodayOverMeal(
+    String slot,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': '나트륨이',
+      'sugar': '당류가',
+      'other': '칼로리가',
+    });
+    return '$_temp0 식사($foodValue) 때문에 오늘 $_temp1 $value까지 올라 목표 $target의 $ratio배가 됐어요.';
+  }
+
+  @override
+  String clientDietAnalysisTodayProteinShort(String value, String gap) {
+    return '단백질은 $value으로 목표보다 $gap 모자라요.';
+  }
+
+  @override
+  String clientDietAnalysisTodayProteinChronic(
+    String value,
+    String gap,
+    String avg,
+  ) {
+    return '단백질은 $value으로 목표보다 $gap 모자라고, 최근 4주 평균도 하루 $avg이라 꾸준히 부족한 편이에요.';
+  }
+
+  @override
+  String clientDietAnalysisTodayMissing(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    return '$_temp0 기록이 아직 없어요.';
+  }
+
+  @override
+  String clientDietAnalysisTodayGood(String kcal) {
+    return '오늘 $kcal, 목표 안에서 고르게 드셨어요.';
+  }
+
+  @override
+  String get clientDietAnalysisWeekEmpty => '이번 주 식단 기록이 아직 없어요.';
+
+  @override
+  String clientDietAnalysisWeekSkipBreakfast(
+    String scope,
+    int logged,
+    int days,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 기록한 $logged일 중 $days일 아침을 걸렀어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekSkipBreakfastSnack(
+    String scope,
+    int logged,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 기록한 $logged일 중 $days일 아침을 걸렀고, 그중 $snackDays일은 간식으로 채웠어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekOver(
+    String scope,
+    int logged,
+    int days,
+    String nutrient,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': '나트륨이',
+      'sugar': '당류가',
+      'other': '칼로리가',
+    });
+    return '$_temp0 기록한 $logged일 중 $days일 $_temp1 목표를 넘었어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekCause(
+    String weekday,
+    String slot,
+    String food,
+    String foodValue,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(weekday, {
+      '0': '월요일',
+      '1': '화요일',
+      '2': '수요일',
+      '3': '목요일',
+      '4': '금요일',
+      '5': '토요일',
+      'other': '일요일',
+    });
+    String _temp1 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    return '$_temp0 $_temp1에 먹은 $food($foodValue) 영향이 가장 컸어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinShort(
+    String scope,
+    int logged,
+    int days,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 기록한 $logged일 중 $days일 단백질이 목표의 80%에 못 미쳤어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': '지난주',
+      'other': '이번 주',
+    });
+    return '$_temp0 기록한 $days일 모두 목표 안에서 드셨어요.';
+  }
+
+  @override
+  String clientDietAnalysisAllFew(int days) {
+    return '최근 4주 기록이 $days일이라, 7일이 넘으면 흐름을 짚어 드릴게요.';
+  }
+
+  @override
+  String clientDietAnalysisAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    return '최근 4주 동안 $_temp0 나트륨이 $days번 목표의 절반을 넘었어요.';
+  }
+
+  @override
+  String clientDietAnalysisAllCarbHeavy(int pct) {
+    return '최근 4주 섭취 열량 중 탄수화물이 $pct%로 높은 편이에요.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinLight(int pct) {
+    return '최근 4주 섭취 열량 중 단백질이 $pct%로 낮은 편이에요.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinTrendUp(int before, int after) {
+    return '단백질 목표를 채운 날이 앞선 2주 $before일에서 최근 2주 $after일로 늘었어요.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinTrendDown(int before, int after) {
+    return '단백질 목표를 채운 날이 앞선 2주 $before일에서 최근 2주 $after일로 줄었어요.';
+  }
+
+  @override
+  String clientDietAnalysisAllFrequent(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    return '최근 4주 동안 $_temp0 메뉴로 $food $count번이 가장 많았어요.';
+  }
+
+  @override
+  String clientDietAnalysisAllRepeated(String food1, String food2) {
+    return '최근 4주 음식 기록에서 $food1·$food2 비중이 높아요.';
+  }
+
+  @override
+  String clientDietAnalysisAllGood(int days) {
+    return '최근 4주 동안 $days일 기록했고, 흐름이 고른 편이에요.';
+  }
+
+  @override
+  String clientDietAnalysisFoodsOne(String food1, int count1) {
+    return '$food1 $count1번이 대부분이에요.';
+  }
+
+  @override
+  String clientDietAnalysisFoodsTwo(
+    String food1,
+    int count1,
+    String food2,
+    int count2,
+  ) {
+    return '$food1 $count1번, $food2 $count2번이 대부분이에요.';
+  }
+
+  @override
+  String clientDietRecQuestion(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침으로',
+      'lunch': '점심으로',
+      'dinner': '저녁으로',
+      'lateNight': '야식으로',
+      'other': '간식으로',
+    });
+    return '$_temp0 이 메뉴를 회원에게 추천할까요?';
+  }
+
+  @override
+  String get clientDietRecQuestionNext => '다음 식사로 이 메뉴를 회원에게 추천할까요?';
+
+  @override
+  String clientDietRecCounter(int index, int total) {
+    return 'AI 추천 $index / $total';
+  }
+
+  @override
+  String get clientDietRecNo => '아니오';
+
+  @override
+  String get clientDietRecYes => '예, 추천할게요';
+
+  @override
+  String clientDietRecExhausted(int count) {
+    return 'AI 추천 메뉴 $count개를 모두 넘겼어요.';
+  }
+
+  @override
+  String get clientDietRecRestart => '처음부터 다시 보기';
+
+  @override
+  String get clientDietRecMore => '다른 메뉴 보기';
+
+  @override
+  String clientDietRecActive(String date) {
+    return '$date에 이 메뉴를 추천했어요. 회원 앱 홈에 트레이너 추천으로 떠 있어요.';
+  }
+
+  @override
+  String get clientDietRecChange => '바꾸기';
+
+  @override
+  String clientDietRecResolved(String name, String date, String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    return '회원이 $date $_temp0에 추천한 메뉴($name)를 먹었어요.';
+  }
+
+  @override
+  String clientDietRecResolvedNoSlot(String name, String date) {
+    return '회원이 $date에 추천한 메뉴($name)를 먹었어요.';
+  }
+
+  @override
+  String get clientDietRecNext => '다음 추천 보기';
+
+  @override
+  String get clientDietRecConfirmFailed => '추천을 저장하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String clientDietRecNutrition(String kcal, String protein, String sodium) {
+    return '${kcal}kcal · 단백질 ${protein}g · 나트륨 ${sodium}mg';
+  }
+
+  @override
+  String clientDietRecSlot(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': '아침',
+      'lunch': '점심',
+      'dinner': '저녁',
+      'lateNight': '야식',
+      'other': '간식',
+    });
+    return '$_temp0';
+  }
 }

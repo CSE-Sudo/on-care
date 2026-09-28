@@ -2360,90 +2360,6 @@ abstract class AppLocalizations {
   /// **'{amount} remaining to the goal'**
   String dietAmountRemaining(String amount);
 
-  /// No description provided for @aiAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'AI analysis'**
-  String get aiAnalysis;
-
-  /// No description provided for @aiPeriodAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'AI period analysis'**
-  String get aiPeriodAnalysis;
-
-  /// No description provided for @aiAllAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'AI all-time analysis'**
-  String get aiAllAnalysis;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium is {over}mg over the target. Adding cardio to today\'s program would help.'**
-  String clientDietAdviceTodayOver(int over);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s meals are well balanced. Keep the current program.'**
-  String get clientDietAdviceTodayBalanced;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'No meals logged this week yet. Even one meal shows the trend.'**
-  String get clientDietAdviceWeekEmpty;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Once you log more, we\'ll show how your sodium and calories are trending.'**
-  String get clientDietAdviceAllEmpty;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.'**
-  String clientDietAdviceWeekManyOver(int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.'**
-  String get clientDietAdviceWeekWeekend;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.'**
-  String clientDietAdviceWeekSomeOver(int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!'**
-  String clientDietAdviceWeekAllUnder(int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.'**
-  String clientDietAdviceAllWeekend(int weeks);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.'**
-  String clientDietAdviceAllRatio(int weeks, int percent);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.'**
-  String clientDietAdviceAllMostlyUnder(int weeks, int days);
-
   /// No description provided for @consultStatusRejected.
   ///
   /// In en, this message translates to:
@@ -2894,12 +2810,6 @@ abstract class AppLocalizations {
   /// **'Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.'**
   String reportBodySodiumOk(String avg, String target);
 
-  /// No description provided for @reportBodyCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day.'**
-  String reportBodyCalories(String avg);
-
   /// No description provided for @reportBodyPraise.
   ///
   /// In en, this message translates to:
@@ -2909,7 +2819,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyEncourage.
   ///
   /// In en, this message translates to:
-  /// **'Let\'s focus on just that one thing next week. I\'ll adjust your program and send it over.'**
+  /// **'Take those one at a time and you\'ll see it come together. I\'ll adjust your program and send it over.'**
   String get reportBodyEncourage;
 
   /// No description provided for @reportBodyNoRecords.
@@ -2917,6 +2827,167 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'There\'s nothing logged for this week, so nothing to sum up. Let\'s plan next week\'s start together.'**
   String get reportBodyNoRecords;
+
+  /// No description provided for @reportBodySessionsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You made all {booked} of your booked PT sessions.'**
+  String reportBodySessionsAll(int booked);
+
+  /// No description provided for @reportBodySessionsSome.
+  ///
+  /// In en, this message translates to:
+  /// **'You made {done} of your {booked} booked PT sessions.'**
+  String reportBodySessionsSome(int booked, int done);
+
+  /// No description provided for @reportBodySessionsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'There were no PT sessions this week.'**
+  String get reportBodySessionsNone;
+
+  /// No description provided for @reportBodyExerciseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished {done} of the {total} assigned exercises.'**
+  String reportBodyExerciseCount(int total, int done);
+
+  /// No description provided for @reportBodyMealDaysAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You logged your meals on all {total} days.'**
+  String reportBodyMealDaysAll(int total);
+
+  /// No description provided for @reportBodyMealDays.
+  ///
+  /// In en, this message translates to:
+  /// **'You logged your meals on {days} of {total} days.'**
+  String reportBodyMealDays(int total, int days);
+
+  /// No description provided for @reportBodyCaloriesOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.'**
+  String reportBodyCaloriesOver(
+    String avg,
+    String target,
+    String pct,
+    int days,
+  );
+
+  /// No description provided for @reportBodyCaloriesUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.'**
+  String reportBodyCaloriesUnder(String avg, String target, String pct);
+
+  /// No description provided for @reportBodyCaloriesNearOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.'**
+  String reportBodyCaloriesNearOver(String avg, String target, int days);
+
+  /// No description provided for @reportBodyCaloriesOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — right around your {target}kcal target.'**
+  String reportBodyCaloriesOk(String avg, String target);
+
+  /// No description provided for @reportBodySugarOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.'**
+  String reportBodySugarOver(String avg, String target, int days);
+
+  /// No description provided for @reportBodySugarOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar averaged {avg}g a day, inside the {target}g limit.'**
+  String reportBodySugarOk(String avg, String target);
+
+  /// No description provided for @reportBodyMemberPain.
+  ///
+  /// In en, this message translates to:
+  /// **'You mentioned pain in your {area}. Let me know how it feels before the next session — I\'ll ease off that area.'**
+  String reportBodyMemberPain(String area);
+
+  /// No description provided for @reportBodyMemberTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'You said the workouts felt too hard, so I\'ll drop next week\'s intensity a notch.'**
+  String get reportBodyMemberTooHard;
+
+  /// No description provided for @reportBodyMemberTooEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'You said the workouts felt easy, so I\'ll raise next week\'s intensity a notch.'**
+  String get reportBodyMemberTooEasy;
+
+  /// No description provided for @reportBodyMemberNoted.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for the weekly check-in — I read it.'**
+  String get reportBodyMemberNoted;
+
+  /// No description provided for @reportBodyNextWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Here\'s the plan for next week.'**
+  String get reportBodyNextWeek;
+
+  /// No description provided for @reportTipCaloriesOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut dinner carbs to about two-thirds and switch snacks to protein.'**
+  String get reportTipCaloriesOver;
+
+  /// No description provided for @reportTipCaloriesUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t skip meals, and add one protein snack on workout days.'**
+  String get reportTipCaloriesUnder;
+
+  /// No description provided for @reportTipSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep sweet drinks and desserts to once a day.'**
+  String get reportTipSugar;
+
+  /// No description provided for @reportTipSodium.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep takeout and processed foods to twice a week.'**
+  String get reportTipSodium;
+
+  /// No description provided for @reportTipWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Aim to get three workouts in first, even if each is only 20 minutes.'**
+  String get reportTipWorkout;
+
+  /// No description provided for @reportTipMeals.
+  ///
+  /// In en, this message translates to:
+  /// **'Log every meal, even with just a photo, so I can give you sharper feedback.'**
+  String get reportTipMeals;
+
+  /// No description provided for @reportTipSessionsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s book next week\'s PT sessions together now.'**
+  String get reportTipSessionsNone;
+
+  /// No description provided for @reportTipSessionsMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll set up make-up slots next week for the sessions we missed.'**
+  String get reportTipSessionsMissed;
+
+  /// No description provided for @reportTipKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the current routine as it is, and I\'ll raise the intensity step by step.'**
+  String get reportTipKeep;
 
   /// No description provided for @schedTitle.
   ///
@@ -8182,18 +8253,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
   String get reportsSendHistoryFailed;
 
-  /// No description provided for @reportsSentBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Message sent'**
-  String get reportsSentBody;
-
-  /// No description provided for @reportsSentFigures.
-  ///
-  /// In en, this message translates to:
-  /// **'Figures sent'**
-  String get reportsSentFigures;
-
   /// No description provided for @reportsStepReview.
   ///
   /// In en, this message translates to:
@@ -8852,6 +8911,301 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'weekly_report'**
   String get reportsPdfFileSuffix;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Diet analysis'**
+  String get clientDietAnalysisTitle;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged today yet.'**
+  String get clientDietAnalysisTodayEmpty;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{food} at {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} ({foodValue}) pushed today\'s {nutrient, select, sodium{sodium} sugar{sugar} other{calories}} to {value}, {ratio}x the {target} goal.'**
+  String clientDietAnalysisTodayOver(
+    String slot,
+    String food,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}} ({foodValue}) pushed today\'s {nutrient, select, sodium{sodium} sugar{sugar} other{calories}} to {value}, {ratio}x the {target} goal.'**
+  String clientDietAnalysisTodayOverMeal(
+    String slot,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein is at {value}, {gap} short of the goal.'**
+  String clientDietAnalysisTodayProteinShort(String value, String gap);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein is at {value}, {gap} short of the goal, and the 4-week average of {avg} a day stays low.'**
+  String clientDietAnalysisTodayProteinChronic(
+    String value,
+    String gap,
+    String avg,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} logged yet.'**
+  String clientDietAnalysisTodayMissing(String slot);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{kcal} today, evenly within the goals.'**
+  String clientDietAnalysisTodayGood(String kcal);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged this week yet.'**
+  String get clientDietAnalysisWeekEmpty;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped breakfast on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  String clientDietAnalysisWeekSkipBreakfast(
+    String scope,
+    int logged,
+    int days,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped breakfast on {days} of {logged} logged days {scope, select, last{last week} other{this week}}, snacking instead on {snackDays}.'**
+  String clientDietAnalysisWeekSkipBreakfastSnack(
+    String scope,
+    int logged,
+    int days,
+    int snackDays,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{nutrient, select, sodium{Sodium} sugar{Sugar} other{Calories}} went over the goal on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  String clientDietAnalysisWeekOver(
+    String scope,
+    int logged,
+    int days,
+    String nutrient,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'The biggest was {food} at {weekday, select, 0{Monday} 1{Tuesday} 2{Wednesday} 3{Thursday} 4{Friday} 5{Saturday} other{Sunday}} {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} ({foodValue}).'**
+  String clientDietAnalysisWeekCause(
+    String weekday,
+    String slot,
+    String food,
+    String foodValue,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein fell below 80% of the goal on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  String clientDietAnalysisWeekProteinShort(String scope, int logged, int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'All {days} logged days {scope, select, last{last week} other{this week}} stayed within the goals.'**
+  String clientDietAnalysisWeekGood(String scope, int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Only {days} days logged in the last 4 weeks. The trend shows after 7.'**
+  String clientDietAnalysisAllFew(int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'In the last 4 weeks, {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} sodium went over half the goal {days} times.'**
+  String clientDietAnalysisAllSlotSodium(String slot, int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs made up {pct}% of calories in the last 4 weeks.'**
+  String clientDietAnalysisAllCarbHeavy(int pct);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein made up only {pct}% of calories in the last 4 weeks.'**
+  String clientDietAnalysisAllProteinLight(int pct);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.'**
+  String clientDietAnalysisAllProteinTrendUp(int before, int after);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.'**
+  String clientDietAnalysisAllProteinTrendDown(int before, int after);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{food} was the most common {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} in the last 4 weeks ({count} times).'**
+  String clientDietAnalysisAllFrequent(String slot, String food, int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{food1} and {food2} make up much of the last 4 weeks\' log.'**
+  String clientDietAnalysisAllRepeated(String food1, String food2);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days logged in the last 4 weeks, with an even trend.'**
+  String clientDietAnalysisAllGood(int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly {food1} ({count1} times).'**
+  String clientDietAnalysisFoodsOne(String food1, int count1);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly {food1} ({count1} times) and {food2} ({count2} times).'**
+  String clientDietAnalysisFoodsTwo(
+    String food1,
+    int count1,
+    String food2,
+    int count2,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend this {slot, select, breakfast{for breakfast} lunch{for lunch} dinner{for dinner} lateNight{as a late-night snack} other{as a snack}} to the member?'**
+  String clientDietRecQuestion(String slot);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend this for the next meal to the member?'**
+  String get clientDietRecQuestionNext;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'AI pick {index} / {total}'**
+  String clientDietRecCounter(int index, int total);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get clientDietRecNo;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, recommend'**
+  String get clientDietRecYes;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'You passed on all {count} AI picks.'**
+  String clientDietRecExhausted(int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get clientDietRecRestart;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'See other menus'**
+  String get clientDietRecMore;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'You recommended this on {date}. It\'s on the member\'s home as a trainer pick.'**
+  String clientDietRecActive(String date);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get clientDietRecChange;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'The member had the recommended {name} for {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} on {date}.'**
+  String clientDietRecResolved(String name, String date, String slot);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'The member had the recommended {name} on {date}.'**
+  String clientDietRecResolvedNoSlot(String name, String date);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'See next pick'**
+  String get clientDietRecNext;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the pick. Please try again.'**
+  String get clientDietRecConfirmFailed;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{kcal}kcal · protein {protein}g · sodium {sodium}mg'**
+  String clientDietRecNutrition(String kcal, String protein, String sodium);
+
+  /// 트레이너웹 AI 식단 추천의 끼니 배지 (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}}'**
+  String clientDietRecSlot(String slot);
 }
 
 class _AppLocalizationsDelegate
