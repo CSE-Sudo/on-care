@@ -159,12 +159,13 @@ class _CoachReportsEntry extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: OnCareSpacing.sectionGap),
       child: AppCard(
         padding: EdgeInsets.zero,
-        child: AppListRow(
+        // 설정 목록과 같은 이동 행을 쓴다(#2482). 따로 그리면 아이콘이 기본
+        // 아이콘 테마(검정·큰 크기)를 받아 이 상자만 도드라진다.
+        child: _MyNavRow(
           key: const ValueKey<String>('my-coach-reports-entry'),
+          icon: AppIcons.document,
           title: l.myCoachReportsEntry,
           subtitle: l.myCoachReportsEntryHint,
-          leading: const AppIcon(AppIcons.document),
-          trailing: const AppIcon(AppIcons.chevronRight),
           onTap: () => context.push(AppRoutes.myCoachReports),
         ),
       ),
