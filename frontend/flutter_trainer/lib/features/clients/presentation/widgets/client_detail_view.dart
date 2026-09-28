@@ -9,7 +9,6 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/one_line_overflow.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
@@ -19,6 +18,8 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목표 글이 배지 줄과 나눠 쓰는 폭 중 목표 몫의 상한.
@@ -446,7 +447,6 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: OnCareSpacing.s16,
@@ -471,8 +471,13 @@ class _Header extends StatelessWidget {
               onPressed: onBack,
             ),
           ),
-          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
-          const SizedBox(width: OnCareSpacing.s12),
+          // 이름 줄에 휴면·동작이, 목표 줄에 신호 배지가 붙어 [ClientRow] 대신
+          // 같은 머리 밀도의 아바타·글씨를 직접 쓴다(#2467).
+          ClientAvatar(
+            name: client.avatar,
+            size: ClientRowDensity.header.avatarSize,
+          ),
+          SizedBox(width: ClientRowDensity.header.avatarGap),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,9 +496,10 @@ class _Header extends StatelessWidget {
                               client.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(OnCareTypography.titleSmall)
-                                  .copyWith(color: OnCareColors.textPrimary),
+                              style: clientNameStyle(
+                                context,
+                                ClientRowDensity.header,
+                              ),
                             ),
                           ),
                           // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
@@ -596,16 +602,18 @@ class _Header extends StatelessWidget {
                           key: const ValueKey<String>('client-detail-goal'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: tokens
-                              .text(OnCareTypography.caption)
-                              .copyWith(color: OnCareColors.textTertiary),
+                          style: clientDetailStyle(
+                            context,
+                            ClientRowDensity.header,
+                          ),
                         ),
                       ),
                       if (signals.isNotEmpty) ...<Widget>[
                         const SizedBox(width: OnCareSpacing.s8),
                         Expanded(
-                          child: _SignalLine(
+                          child: ClientSignalBadges(
                             signals: signals,
+                            keyPrefix: 'client-detail',
                             onOpen: onOpenSignal,
                           ),
                         ),
@@ -617,90 +625,6 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 목표 옆 신호 배지 줄(#2330).
-///
-/// 급한 순으로 한 줄에 들어가는 만큼 세우고, 넘치는 것은 `+N` 으로 묶는다.
-/// `+N` 을 누르면 이 자리에서 전부 펼치고(줄바꿈), `접기` 로 다시 한 줄이 된다.
-/// 문구는 근거 수치까지(`칼로리 22% 과다`) — 이 회원을 열어 무엇을 얼마나
-/// 손볼지 정하는 자리다.
-class _SignalLine extends StatefulWidget {
-  const _SignalLine({required this.signals, required this.onOpen});
-
-  final List<ClientSignal> signals;
-  final ValueChanged<ClientSignal> onOpen;
-
-  @override
-  State<_SignalLine> createState() => _SignalLineState();
-}
-
-class _SignalLineState extends State<_SignalLine> {
-  bool _expanded = false;
-
-  Widget _tappable({
-    required Key key,
-    required VoidCallback onTap,
-    required Widget child,
-  }) => Material(
-    type: MaterialType.transparency,
-    child: InkWell(
-      key: key,
-      onTap: onTap,
-      borderRadius: OnCareRadius.pillAll,
-      child: child,
-    ),
-  );
-
-  // 펼친 `Wrap` 에서 배지 하나가 줄 폭보다 길면(좁은 패널 · 큰 글씨) 줄여서
-  // 들인다(#2337). 말줄임하지 않는다 — `칼로리 22% 과…` 처럼 잘린 문구·숫자는
-  // 다른 값으로 읽힌다. 접힌 줄은 폭 제약 없이 재므로 여기서 달라지지 않는다.
-  List<Widget> _badges(AppLocalizations l) => <Widget>[
-    for (final ClientSignal signal in widget.signals)
-      _tappable(
-        key: ValueKey<String>('client-detail-alert-${signal.kind.wire}'),
-        onTap: () => widget.onOpen(signal),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: AppTag(
-            label: signal.detailLabel(l),
-            icon: Icons.error_outline_rounded,
-            tone: signal.kind.tone,
-          ),
-        ),
-      ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    if (_expanded) {
-      return Wrap(
-        key: const ValueKey<String>('client-detail-signals'),
-        spacing: OnCareSpacing.s8,
-        runSpacing: OnCareSpacing.s4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          ..._badges(l),
-          _tappable(
-            key: const ValueKey<String>('client-detail-signals-less'),
-            onTap: () => setState(() => _expanded = false),
-            child: AppTag(label: l.clientSignalLess),
-          ),
-        ],
-      );
-    }
-    return OneLineOverflow(
-      key: const ValueKey<String>('client-detail-signals'),
-      spacing: OnCareSpacing.s8,
-      items: _badges(l),
-      moreBuilder: (int hidden) => _tappable(
-        key: ValueKey<String>('client-detail-signals-more-$hidden'),
-        onTap: () => setState(() => _expanded = true),
-        child: AppTag(label: l.clientSignalMore(hidden)),
       ),
     );
   }

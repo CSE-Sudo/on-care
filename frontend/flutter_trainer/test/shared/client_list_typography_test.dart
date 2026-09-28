@@ -98,8 +98,9 @@ void main() {
   testWidgets('프로그램 탭 회원명은 공용 규격 크기·굵기를 쓴다 (#1705)', (tester) async {
     await openTab(tester, AppRoutes.coaching);
 
-    // 첫 회원이 기본으로 선택된다 — 고른 쪽은 600 강조, 나머지는 기본 굵기.
-    // 글씨 크기는 같다(고를 때 행 높이가 흔들리지 않는다).
+    // 첫 회원이 기본으로 선택된다. 이름은 고르든 말든 촘촘한 회원 행의 굵은
+    // 글씨 하나다(#2467) — 고른 회원은 채움·테두리로 드러난다. 글씨 크기가
+    // 같아 고를 때 행 높이가 흔들리지 않는다.
     final TextStyle selected = nameStyleIn(
       tester,
       'program-client-type-a',
@@ -118,8 +119,7 @@ void main() {
     expect(selected.fontSize, nameRole.fontSize);
     expect(unselected.fontSize, nameRole.fontSize);
     expect(selected.fontWeight, FontWeight.w600);
-    expect(unselected.fontWeight, nameRole.fontWeight);
-    expect(unselected.fontWeight, isNot(FontWeight.w600));
+    expect(unselected.fontWeight, FontWeight.w600);
     expect(selected.color, OnCareColors.textPrimary);
     expect(unselected.color, OnCareColors.textPrimary);
     // 목표 줄은 이름보다 한 단계 작고 흐리다.
