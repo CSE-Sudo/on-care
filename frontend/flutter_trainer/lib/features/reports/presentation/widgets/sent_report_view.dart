@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_review_cards.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -11,6 +12,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 작업대의 `전송 완료` 줄을 누르면 열린다. 편집기가 아니다 — 여기서 고친
 /// 글은 이미 회원 손에 있는 글을 바꾸지 못한다. 그래서 입력창 대신 보낸
 /// 본문을 그대로 얹고, 다시 쓰려면 새 초안으로 편집기를 연다. (#2232)
+///
+/// 카드는 편집기 ① 확인·② 작성과 같은 위젯이다 — 따로 그린 요약 카드를 두면
+/// 트레이너가 본 화면, 회원이 받은 PDF, 되짚는 화면이 서로 달라진다(#2425).
 class SentReportView extends StatelessWidget {
   /// Creates the view.
   const SentReportView({
@@ -21,10 +25,15 @@ class SentReportView extends StatelessWidget {
     required this.onRewrite,
     this.onHistory,
     this.backLabel,
+    this.calorieBaseline,
   });
 
   /// 그 주의 수치.
   final WeeklyReport report;
+
+  /// 직전 넉 주의 하루 평균 섭취 칼로리 — 편집기 ① 칼로리 줄과 같은 `평소`.
+  /// 아직 안 읽혔거나 견줄 기록이 없으면 null 이다.
+  final double? calorieBaseline;
 
   /// 무엇을 언제 보냈는가.
   final ReportSendRecord record;
@@ -107,44 +116,19 @@ class SentReportView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: OnCareSpacing.s16),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                AppSectionHeader(
-                  icon: Icons.mail_outline_rounded,
-                  title: l.reportsSentBody,
-                ),
-                const SizedBox(height: OnCareSpacing.s12),
-                // 보낸 글은 입력창에 담지 않는다 — 고칠 수 없는 글을 고칠 수
-                // 있게 생긴 자리에 두면 고친 뒤에야 못 보낸다는 걸 안다.
-                Text(
-                  // 데모로 깔아 둔 기록은 본문이 비어 있다. 그 자리는 그 주
-                  // 수치에서 만든 문구가 채운다 — 빈 카드를 보여 주는 대신,
-                  // 회원이 받았을 글과 같은 규칙으로 만든 글을 세운다.
-                  record.message.isEmpty
-                      ? reportMessage(l, report)
-                      : record.message,
-                  style: tokens.text(OnCareTypography.bodySmall),
-                ),
-              ],
-            ),
-          ),
+          // 편집기 ① 확인과 **같은 카드**다(#2425). 다른 그림으로 되짚으면
+          // "그때 이걸 보고 이렇게 썼다" 를 확인할 수 없다.
+          ReportReviewCards(report: report, calorieBaseline: calorieBaseline),
           const SizedBox(height: OnCareSpacing.s16),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                AppSectionHeader(
-                  icon: Icons.insights_rounded,
-                  title: l.reportsSentFigures,
-                ),
-                const SizedBox(height: OnCareSpacing.s12),
-                // 보낼 때 트레이너가 본 것과 **같은 격자**다. 다른 그림으로
-                // 되짚으면 "그때 이걸 보고 이렇게 썼다" 를 확인할 수 없다.
-                ReportWeekGrid(report: report),
-                const SizedBox(height: OnCareSpacing.s16),
-              ],
+          // ② 작성의 피드백 카드 — 입력창 대신 보낸 글을 같은 칸에 얹는다.
+          ReportFeedbackCard(
+            child: ReportFeedbackText(
+              // 데모로 깔아 둔 기록은 본문이 비어 있다. 그 자리는 그 주
+              // 수치에서 만든 문구가 채운다 — 빈 카드를 보여 주는 대신,
+              // 회원이 받았을 글과 같은 규칙으로 만든 글을 세운다.
+              text: record.message.isEmpty
+                  ? reportMessage(l, report)
+                  : record.message,
             ),
           ),
         ],
