@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
@@ -42,6 +43,12 @@ abstract interface class TrainerRoutineRepository {
 
   /// The member's currently assigned routines (newest first).
   Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId);
+
+  /// 이 회원에게 **가장 최근에 보낸 것** 한 묶음. 보낸 적이 없으면 null. (#2225)
+  ///
+  /// 이력이 PT 프로그램과 개인운동을 따로 나열하면, PT 완료 때 함께 보낸
+  /// 개인운동이 어느 PT 와 짝인지 알 수 없다(#2224).
+  Future<SentDelivery?> fetchLatestDelivery(String memberId);
 
   /// 배정한 루틴을 고친다(PUT). 보낸 필드만 바뀐다. (#504)
   ///
@@ -79,6 +86,10 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
         for (final String memberId in _seededMembers)
           memberId: List<AssignedRoutine>.from(_seedRoutines),
       };
+
+  /// 데모에서 마지막으로 보낸 묶음. 데모에는 전송 이력 표가 없어 메모리로
+  /// 기억한다.
+  final Map<String, SentDelivery> _lastDelivery = <String, SentDelivery>{};
 
   final Map<String, StreamController<List<AssignedRoutine>>> _controllers =
       <String, StreamController<List<AssignedRoutine>>>{};
@@ -178,7 +189,40 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
       ...added,
       ..._listFor(memberId),
     ];
+    // 직전 전송으로 기억한다(#2225). 데모에는 PT 일정이 붙지 않는 `개인운동만`
+    // 경로뿐이라 종류도 그것이다.
+    _lastDelivery[memberId] = SentDelivery(
+      kind: DeliveryKinds.routineOnly,
+      sentOn: date,
+      routines: added,
+    );
     _emit(memberId);
+  }
+
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async =>
+      _lastDelivery[memberId] ?? _seededDelivery(memberId);
+
+  /// 이 세션에서 아직 아무것도 보내지 않았을 때의 직전 전송. (#2225)
+  ///
+  /// 씨앗 배정은 **이미 회원에게 간 것**이다. 그런데 기억해 둔 전송이 없다고
+  /// 비워 두면, 데모를 처음 연 트레이너는 전송 이력이 늘 비어 있는 화면을 본다
+  /// — 실제 백엔드는 지난 전송을 보여 주므로 두 곳이 다르게 움직인다.
+  ///
+  /// 데모에는 PT 일정이 붙는 경로가 없어 종류는 `개인운동만` 이다.
+  SentDelivery? _seededDelivery(String memberId) {
+    final List<AssignedRoutine> rows = _listFor(memberId);
+    if (rows.isEmpty) return null;
+    DateTime? sentOn;
+    for (final r in rows) {
+      final DateTime? d = r.date;
+      if (d != null && (sentOn == null || d.isAfter(sentOn))) sentOn = d;
+    }
+    return SentDelivery(
+      kind: DeliveryKinds.routineOnly,
+      sentOn: sentOn,
+      routines: rows,
+    );
   }
 
   static DateTime? _parseDate(Object? value) =>

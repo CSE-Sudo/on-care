@@ -248,13 +248,17 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
             const SizedBox(height: OnCareSpacing.s8),
             _PairedMemberCard(paired: found),
             const SizedBox(height: OnCareSpacing.s12),
-            AppButton(
-              key: const ValueKey<String>('client-connect-register'),
-              label: l.clientInviteConnectAction,
-              onPressed: _busy ? null : () => _connect(found),
-              leadingIcon: Icons.person_add_alt_1_rounded,
-              size: OnCareButtonSize.large,
-              fullWidth: true,
+            // 찾은 회원 카드 바로 아래의 확정이다. 창 아래(footer)로 떼면
+            // 대기 목록 너머로 멀어져 무엇을 등록하는지가 떨어져 읽힌다(#2465).
+            AppActionRow(
+              actions: <Widget>[
+                AppButton(
+                  key: const ValueKey<String>('client-connect-register'),
+                  label: l.clientInviteConnectAction,
+                  onPressed: _busy ? null : () => _connect(found),
+                  leadingIcon: Icons.person_add_alt_1_rounded,
+                ),
+              ],
             ),
           ],
           if (!connectsImmediately) ...<Widget>[

@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -137,6 +138,10 @@ class _HistoryFailsOnceRepository extends DriftClientRepository {
 /// 데모 시드에는 완료된 배정이 없어, "완료한 것에는 취소가 없다" 를 시드만으로는
 /// 볼 수 없다(#1020).
 class _MixedRoutineRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   @override
   Future<void> assignRoutine(
     String memberId,
