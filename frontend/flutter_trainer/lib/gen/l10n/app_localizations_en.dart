@@ -4921,6 +4921,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsStepSend => 'Send';
 
   @override
+  String get reportsStepPrint => 'Print';
+
+  @override
+  String get reportsPrintNeedsPdf =>
+      'You can print once the preview PDF is ready';
+
+  @override
+  String get reportsPrintFailed =>
+      'Couldn\'t open the print dialog. Please try again';
+
+  @override
   String get reportsStepperLabel => 'Weekly report steps';
 
   @override
