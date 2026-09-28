@@ -166,6 +166,27 @@ void main() {
     expect(sent!.sessions.single.exercises.single.name, '스쿼트');
   });
 
+  testWidgets('AI 추천 사유는 운동 메모가 되지 않고, 메모 칸도 없다 (#2371)', (tester) async {
+    await pumpEditor(tester);
+    await mergeSuggestions(tester);
+
+    // 접힌 카드 — 사유(`하체 강화`)가 회색 줄로 붙지 않는다.
+    expect(find.text('하체 강화'), findsNothing);
+
+    // 펼친 칸 — 칼로리 줄에서 끝나고 메모 입력칸이 없다.
+    await chooseExerciseAction(tester, 'exercise-2', '수정');
+    expect(find.byKey(const ValueKey<String>('exercise-2-memo')), findsNothing);
+    expect(find.text('메모'), findsNothing);
+
+    // 전송에도 사유가 메모로 실리지 않는다.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('program-editor-send')),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('program-editor-send')));
+    await tester.pump();
+    expect(sent!.sessions.single.exercises.single.memo, isEmpty);
+  });
+
   group('일정 추가', () {
     testWidgets('넓은 화면에서 날짜 → 시간 범위 → 추가가 오른쪽 정렬로 한 줄이다', (tester) async {
       await pumpEditor(tester);
