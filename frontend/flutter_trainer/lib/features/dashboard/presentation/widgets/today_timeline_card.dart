@@ -117,8 +117,8 @@ class TodayTimelineCard extends ConsumerWidget {
 /// 바탕은 옅은 회색(`surfaceInput`)이고 테두리가 없다(#2202). 예전에는 안내
 /// 배너(`AppBanner` info)처럼 옅은 남색 + 남색 테두리였는데, 바로 아래
 /// 활동 피드백 카드(카드형 `AppBanner`)와 바탕·채움 버튼이 같아 두 영역이 한
-/// 덩어리처럼 보였다. 한 줄 요약 글자와 키가 달린 동작 버튼을 담아야 해서
-/// 토큰으로 그 자리에서 조립한다.
+/// 덩어리처럼 보였다. 회색 카드 안 구획([AppTileTone.neutral])에 한 줄 요약
+/// 글자와 키가 달린 동작 버튼을 담는다.
 class _NextUpBanner extends StatelessWidget {
   const _NextUpBanner({required this.now, required this.next, this.client});
 
@@ -141,12 +141,8 @@ class _NextUpBanner extends StatelessWidget {
         .text(OnCareTypography.bodySmall)
         .copyWith(color: OnCareColors.textSecondary);
 
-    return Container(
-      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
-        borderRadius: OnCareRadius.mdAll,
-      ),
+    return AppTile(
+      tone: AppTileTone.neutral,
       child: Row(
         children: <Widget>[
           Icon(

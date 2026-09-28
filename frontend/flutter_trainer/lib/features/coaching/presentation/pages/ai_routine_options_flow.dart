@@ -2264,34 +2264,33 @@ class _ChatEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    return Container(
+    // 근거 인용이라 안내 배너가 아니라 회색 카드 안 구획이다(#2468).
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(OnCareSpacing.s8),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
-        borderRadius: OnCareRadius.smAll,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            l.aiChatEvidenceTitle,
-            style: tokens
-                .text(OnCareTypography.label)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          for (final String line in lines)
-            Padding(
-              padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-              child: Text(
-                line,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
-              ),
+      child: AppTile(
+        tone: AppTileTone.neutral,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              l.aiChatEvidenceTitle,
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
-        ],
+            const SizedBox(height: OnCareSpacing.s4),
+            for (final String line in lines)
+              Padding(
+                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+                child: Text(
+                  line,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
