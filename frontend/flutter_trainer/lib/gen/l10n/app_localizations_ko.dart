@@ -3854,9 +3854,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get programEditorDefaultSession => '세션 A';
-
-  @override
   String get programEditorSaveUnsupported => '프로그램 이름을 입력해 주세요';
 
   @override

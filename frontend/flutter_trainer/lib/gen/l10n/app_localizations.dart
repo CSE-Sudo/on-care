@@ -6997,12 +6997,6 @@ abstract class AppLocalizations {
   /// **'{goal} program'**
   String programEditorDefaultName(String goal);
 
-  /// No description provided for @programEditorDefaultSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Session A'**
-  String get programEditorDefaultSession;
-
   /// No description provided for @programEditorSaveUnsupported.
   ///
   /// In en, this message translates to:

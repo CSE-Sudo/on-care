@@ -1647,7 +1647,6 @@
   "followUpSaveFailed": "후속 관리를 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "followUpCompleteFailed": "완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "programEditorDefaultName": "{goal} 프로그램",
-  "programEditorDefaultSession": "세션 A",
   "programEditorSaveUnsupported": "프로그램 이름을 입력해 주세요",
   "programEditorSaveEdit": "수정 저장",
   "programSavedTitle": "저장한 프로그램",

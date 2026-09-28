@@ -4046,9 +4046,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get programEditorDefaultSession => 'Session A';
-
-  @override
   String get programEditorSaveUnsupported => 'Give the program a name first.';
 
   @override
