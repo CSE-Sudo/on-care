@@ -15,7 +15,6 @@ import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/pages/reports_page.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
@@ -1343,8 +1342,8 @@ void main() {
 
   /// 편집기에 서 있는 카드 번호들, 위에서부터.
   List<int?> cardNumbers(WidgetTester tester) => tester
-      .widgetList<ReportCardHeader>(find.byType(ReportCardHeader))
-      .map((ReportCardHeader h) => h.number)
+      .widgetList<AppSectionHeader>(find.byType(AppSectionHeader))
+      .map((AppSectionHeader h) => h.number)
       .where((int? n) => n != null)
       .toList();
 
@@ -1394,12 +1393,12 @@ void main() {
     );
   });
 
-  testWidgets('단계 이름은 확인 · 작성 · 전송이다 (#2400)', (tester) async {
+  testWidgets('단계 이름은 확인 · 작성 · 보내기다 (#2400, #2479)', (tester) async {
     await openReports(tester);
 
     expect(find.text('확인'), findsWidgets);
     expect(find.text('작성'), findsWidgets);
-    expect(find.text('전송'), findsWidgets);
+    expect(find.text('보내기'), findsWidgets);
   });
 
   testWidgets('보낸 글과 PDF 에는 입력창의 문구만 실린다 — 목표 목록이 붙지 않는다 (#2400)', (

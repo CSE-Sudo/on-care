@@ -388,7 +388,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       title: l.myClientRemoveTitle(client.name),
       message: l.myClientRemoveBody,
       cancelLabel: l.actionCancel,
-      confirmLabel: l.myClientRemove,
+      confirmLabel: l.actionDelete,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -1444,26 +1444,7 @@ class _SettingsCard extends StatelessWidget {
                 OnCareSpacing.s16,
                 OnCareSpacing.s12,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    title!,
-                    style: tokens
-                        .text(OnCareTypography.titleSmall)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                  if (description != null) ...<Widget>[
-                    const SizedBox(height: OnCareSpacing.s2),
-                    Text(
-                      description!,
-                      style: tokens
-                          .text(OnCareTypography.bodySmall)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                  ],
-                ],
-              ),
+              child: AppSectionHeader(title: title!, subtitle: description),
             ),
             const AppDivider(),
           ],

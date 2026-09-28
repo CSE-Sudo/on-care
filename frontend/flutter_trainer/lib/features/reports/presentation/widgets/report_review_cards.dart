@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
@@ -159,30 +158,23 @@ class ReportSectionCard extends StatelessWidget {
           // 고정 폭 오른쪽 동작(주 이동)은 큰 글자 배율에서 카드 폭을 넘칠 수
           // 있다 — 모자랄 때만 통째로 줄여 그린다.
           LayoutBuilder(
-            builder: (context, constraints) => Row(
-              children: <Widget>[
-                Expanded(
-                  child: ReportCardHeader(
-                    number: number,
-                    title: title,
-                    subtitle: subtitle,
-                  ),
-                ),
-                if (end != null) ...<Widget>[
-                  const SizedBox(width: OnCareSpacing.s8),
-                  ConstrainedBox(
-                    // 앞 간격만큼 뺀다 — 그대로 두면 그 간격만큼 넘친다.
-                    constraints: BoxConstraints(
-                      maxWidth: constraints.maxWidth - OnCareSpacing.s8,
+            builder: (context, constraints) => AppSectionHeader(
+              number: number,
+              title: title,
+              titleMeta: subtitle.isEmpty ? null : subtitle,
+              trailing: end == null
+                  ? null
+                  : ConstrainedBox(
+                      // 앞 간격만큼 뺀다 — 그대로 두면 그 간격만큼 넘친다.
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth - OnCareSpacing.s8,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: end,
+                      ),
                     ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: end,
-                    ),
-                  ),
-                ],
-              ],
             ),
           ),
           const SizedBox(height: OnCareSpacing.s12),

@@ -389,22 +389,20 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(child: AppSectionHeader(title: l.dashTodayTasks)),
-              Text(
-                allKeys.isEmpty || allDone
-                    ? l.dashTasksReviewed
-                    : l.dashTasksNeedReview(remaining),
-                style: tokens
-                    .text(OnCareTypography.label)
-                    .copyWith(
-                      color: allKeys.isEmpty || allDone
-                          ? OnCareColors.success
-                          : tokens.brand.primary,
-                    ),
-              ),
-            ],
+          AppSectionHeader(
+            title: l.dashTodayTasks,
+            trailing: Text(
+              allKeys.isEmpty || allDone
+                  ? l.dashTasksReviewed
+                  : l.dashTasksNeedReview(remaining),
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(
+                    color: allKeys.isEmpty || allDone
+                        ? OnCareColors.success
+                        : tokens.brand.primary,
+                  ),
+            ),
           ),
           const SizedBox(height: OnCareSpacing.s12),
           // 카테고리 다섯은 항목이 없어도 항상 그 자리에 있다 — "오늘 할 일이
