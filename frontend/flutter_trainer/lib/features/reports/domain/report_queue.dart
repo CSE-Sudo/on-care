@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show weekdayCount;
+import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -240,4 +241,47 @@ List<ReportQueueEntry> buildReportQueue({
         : a.client.name.compareTo(b.client.name);
   });
   return entries;
+}
+
+/// 전송 완료 목록의 순서 (#2447).
+///
+/// 미전송 목록과 같은 세 갈래다. 보낸 줄에서 먼저 볼 것은 **아직 안 읽은
+/// 회원**이라 그 순서가 기본이다.
+enum ReportSentSort {
+  /// 안 읽은 회원이 위로 — 기본값. 같은 무리 안에서는 이름순.
+  unreadFirst,
+
+  /// 이름 가나다순.
+  name,
+
+  /// 이름 역순.
+  nameDescending,
+}
+
+/// 전송 완료 줄 [done] 을 [sort] 순서로 세운 새 목록.
+///
+/// [records] 는 `회원 id → 그 주 전송 기록` 이다. 기록이 없는 줄(방금 보내
+/// 이력이 아직 안 온 줄)은 열람 여부를 모르므로 읽은 줄과 같이 둔다 — 안
+/// 읽었다고 단정해 위로 올리지 않는다.
+List<ReportQueueEntry> sortSentEntries(
+  List<ReportQueueEntry> done, {
+  required Map<String, ReportSendRecord> records,
+  required ReportSentSort sort,
+}) {
+  bool unread(ReportQueueEntry e) => records[e.client.id]?.read == false;
+  final List<ReportQueueEntry> sorted = List<ReportQueueEntry>.of(done);
+  sorted.sort((a, b) {
+    switch (sort) {
+      case ReportSentSort.name:
+        return a.client.name.compareTo(b.client.name);
+      case ReportSentSort.nameDescending:
+        return b.client.name.compareTo(a.client.name);
+      case ReportSentSort.unreadFirst:
+        final bool ua = unread(a);
+        final bool ub = unread(b);
+        if (ua != ub) return ua ? -1 : 1;
+        return a.client.name.compareTo(b.client.name);
+    }
+  });
+  return sorted;
 }
