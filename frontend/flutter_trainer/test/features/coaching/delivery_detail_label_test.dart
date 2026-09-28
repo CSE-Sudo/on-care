@@ -18,9 +18,9 @@ void main() {
   // 몇 kg 로 보냈는지 보려고 일정을 다시 열어야 한다. (#2225)
   group('보낸 프로그램 한 줄', () {
     test('근력은 세트·횟수·중량까지 적는다', () {
+      // `근력` 이 ProgramItem 의 기본 유형이다.
       const item = ProgramItem(
         name: '레그프레스',
-        type: '근력',
         sets: 4,
         reps: 10,
         weight: 70,
@@ -32,7 +32,6 @@ void main() {
     test('버티는 운동은 횟수 대신 초로 적는다', () {
       const item = ProgramItem(
         name: '플랭크',
-        type: '근력',
         sets: 3,
         reps: 12,
         holdSeconds: 45,
