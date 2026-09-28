@@ -4474,6 +4474,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSortNameDescending => '이름 내림차순';
 
   @override
+  String get reportsSentSortUnread => '안 읽은 회원 먼저';
+
+  @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total 전송';
   }
@@ -4540,9 +4543,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsSentUnread => '안 읽음';
-
-  @override
-  String get reportsSentUnreadHint => '안 읽은 회원은 다음 주 우선 확인으로 올라와요.';
 
   @override
   String get reportsBackToWorkbench => '이번 주 리포트';
@@ -4623,6 +4623,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsStepSend => '전송';
+
+  @override
+  String get reportsStepPrint => '인쇄';
+
+  @override
+  String get reportsPrintNeedsPdf => '미리보기 PDF가 준비되면 인쇄할 수 있어요';
+
+  @override
+  String get reportsPrintFailed => '인쇄 창을 열지 못했어요. 다시 시도해 주세요';
 
   @override
   String get reportsStepperLabel => '주간 리포트 작성 진행 단계';
@@ -4752,6 +4761,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsMemberFeedbackPainNone => '없음';
+
+  @override
+  String get reportsMemberFeedbackUnanswered => '미응답';
+
+  @override
+  String get reportsMemberFeedbackNoteLabel => '한 줄 메모';
+
+  @override
+  String get reportsMemberFeedbackNoteNone => '남긴 말 없음';
 
   @override
   String reportsMemberFeedbackPainOn(String area, String date) {
@@ -4886,9 +4904,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String reportsTrendTrackedTimes(int count) {
     return '$count회';
   }
-
-  @override
-  String get reportsSkipToWrite => '초안 없이 직접 쓰기';
 
   @override
   String reportsCalorieThisWeekAvg(String kcal) {

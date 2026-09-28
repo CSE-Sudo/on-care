@@ -8019,6 +8019,12 @@ abstract class AppLocalizations {
   /// **'Name Z–A'**
   String get reportsSortNameDescending;
 
+  /// No description provided for @reportsSentSortUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread first'**
+  String get reportsSentSortUnread;
+
   /// No description provided for @reportsSendProgress.
   ///
   /// In en, this message translates to:
@@ -8126,12 +8132,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unread'**
   String get reportsSentUnread;
-
-  /// No description provided for @reportsSentUnreadHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Members who haven\'t opened theirs move to the top next week.'**
-  String get reportsSentUnreadHint;
 
   /// No description provided for @reportsBackToWorkbench.
   ///
@@ -8270,6 +8270,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send'**
   String get reportsStepSend;
+
+  /// No description provided for @reportsStepPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get reportsStepPrint;
+
+  /// No description provided for @reportsPrintNeedsPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'You can print once the preview PDF is ready'**
+  String get reportsPrintNeedsPdf;
+
+  /// No description provided for @reportsPrintFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the print dialog. Please try again'**
+  String get reportsPrintFailed;
 
   /// No description provided for @reportsStepperLabel.
   ///
@@ -8493,6 +8511,24 @@ abstract class AppLocalizations {
   /// **'None'**
   String get reportsMemberFeedbackPainNone;
 
+  /// No description provided for @reportsMemberFeedbackUnanswered.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get reportsMemberFeedbackUnanswered;
+
+  /// No description provided for @reportsMemberFeedbackNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get reportsMemberFeedbackNoteLabel;
+
+  /// No description provided for @reportsMemberFeedbackNoteNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No note'**
+  String get reportsMemberFeedbackNoteNone;
+
   /// No description provided for @reportsMemberFeedbackPainOn.
   ///
   /// In en, this message translates to:
@@ -8708,12 +8744,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count}×'**
   String reportsTrendTrackedTimes(int count);
-
-  /// No description provided for @reportsSkipToWrite.
-  ///
-  /// In en, this message translates to:
-  /// **'Write without a draft'**
-  String get reportsSkipToWrite;
 
   /// No description provided for @reportsCalorieThisWeekAvg.
   ///

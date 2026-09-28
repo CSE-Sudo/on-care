@@ -22,6 +22,7 @@ Future<List<int>> _pump(
   String keyPrefix = 'stage',
   String semanticsLabel = '주간 리포트 작성 진행 단계',
   Size size = const Size(600, 200),
+  double gap = ProgressStepper.defaultGap,
 }) async {
   final List<int> tapped = <int>[];
   tester.view.devicePixelRatio = 1.0;
@@ -41,6 +42,7 @@ Future<List<int>> _pump(
             keyPrefix: keyPrefix,
             semanticsLabel: semanticsLabel,
             onStageTap: tapped.add,
+            gap: gap,
           ),
         ),
       ),
@@ -190,5 +192,63 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
+  });
+
+  group('원 사이 간격 (#2449)', () {
+    double centerGap(WidgetTester tester) {
+      final Offset a = tester.getCenter(
+        find.byKey(const ValueKey<String>('stage-0')),
+      );
+      final Offset b = tester.getCenter(
+        find.byKey(const ValueKey<String>('stage-1')),
+      );
+      return b.dx - a.dx;
+    }
+
+    testWidgets('기본 간격은 원 지름 + 기본 간격만큼 중심이 떨어진다', (tester) async {
+      await _pump(tester, stage: 0, maxReachedStage: 0);
+
+      expect(
+        centerGap(tester),
+        closeTo(OnCareSize.avatarMedium + ProgressStepper.defaultGap, 0.01),
+      );
+    });
+
+    testWidgets('간격을 두 배로 주면 원 사이 빈 칸이 두 배다', (tester) async {
+      await _pump(
+        tester,
+        stage: 0,
+        maxReachedStage: 0,
+        size: const Size(1200, 200),
+      );
+      final double normal = centerGap(tester) - OnCareSize.avatarMedium;
+
+      await _pump(
+        tester,
+        stage: 0,
+        maxReachedStage: 0,
+        size: const Size(1200, 200),
+        gap: ProgressStepper.defaultGap * 2,
+      );
+      final double doubled = centerGap(tester) - OnCareSize.avatarMedium;
+
+      expect(doubled, closeTo(normal * 2, 0.01));
+    });
+
+    testWidgets('간격이 넓어도 좁은 창에서는 넘치지 않고 좁혀 선다', (tester) async {
+      await _pump(
+        tester,
+        stage: 0,
+        maxReachedStage: 0,
+        size: const Size(320, 200),
+        gap: ProgressStepper.defaultGap * 2,
+      );
+
+      expect(tester.takeException(), isNull);
+      final Rect last = tester.getRect(
+        find.byKey(const ValueKey<String>('stage-2')),
+      );
+      expect(last.right, lessThanOrEqualTo(320));
+    });
   });
 }
