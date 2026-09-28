@@ -540,8 +540,9 @@ Future<void> seedIfEmpty(
     // 수업 배치가 이미 겹치지 않으므로 지난 주도 겹치지 않는다. 리포트의 PT
     // 횟수는 이 행들에서 나온다(스케줄 탭과 같은 자료). 상담·미등록자·공백은
     // 되풀이하지 않고, 회원이 붙기 전 주에는 넣지 않는다
-    // ([demoMemberJoinedWeeksAgo]). 메모는 비운다 — 같은 메모가 열세 주 반복되면
-    // 그 수업에 남긴 기록처럼 읽히지 않는다.
+    // ([demoMemberJoinedWeeksAgo]). 메모·프로그램은 비운다 — 같은 메모와 운동이
+    // 열세 주 반복되면 그 수업에 남긴 기록처럼 읽히지 않고, 프로그램이 붙은
+    // 수업은 코칭 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다.
     final List<({int weekday, String time, _SeedSession slot, int order})>
     recurring = <({int weekday, String time, _SeedSession slot, int order})>[
       for (var i = 0; i < _schedule.length; i++)
@@ -621,9 +622,7 @@ Future<void> seedIfEmpty(
                 type: const Value(SessionType.personalTraining),
                 durationMinutes: Value(recurring[k].slot.durationMinutes),
                 status: ScheduleStatus.done,
-                programJson: Value(
-                  jsonEncode(t.program(recurring[k].slot.program)),
-                ),
+                programJson: const Value('[]'),
                 sortOrder: Value(recurring[k].order),
               ),
       ]);
@@ -1548,29 +1547,16 @@ class _Slot {
 
 /// 지난 주로 되풀이할 수업 한 건 — 오늘 슬롯과 요일 슬롯의 공통 부분. (#2452)
 class _SeedSession {
-  const _SeedSession({
-    required this.clientName,
-    required this.durationMinutes,
-    required this.program,
-  });
+  const _SeedSession({required this.clientName, required this.durationMinutes});
 
   _SeedSession.of(_Slot s)
-    : this(
-        clientName: s.clientName,
-        durationMinutes: s.durationMinutes,
-        program: s.program,
-      );
+    : this(clientName: s.clientName, durationMinutes: s.durationMinutes);
 
   _SeedSession.ofWeek(_WeekSlot s)
-    : this(
-        clientName: s.clientName,
-        durationMinutes: s.durationMinutes,
-        program: s.program,
-      );
+    : this(clientName: s.clientName, durationMinutes: s.durationMinutes);
 
   final String clientName;
   final int durationMinutes;
-  final List<Map<String, Object?>> program;
 }
 
 /// 오늘이 아닌 요일에 놓이는 데모 세션. (#1210)
