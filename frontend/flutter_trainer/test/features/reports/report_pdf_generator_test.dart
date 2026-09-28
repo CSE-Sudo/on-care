@@ -5,15 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_trend_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_review_cards.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_result_sheet.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
 import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -22,6 +18,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 
 import '../../helpers/client_factory.dart';
+import 'pdf_test_images.dart';
 
 /// 문구 기대값은 로케일을 명시해 읽는다.
 final AppLocalizationsKo _ko = AppLocalizationsKo();
@@ -107,6 +104,7 @@ class _SpyCapture {
 
   final List<Widget> shots = <Widget>[];
   final List<double> widths = <double>[];
+  final List<double> ratios = <double>[];
 
   Future<CapturedWidget> call(
     Widget child, {
@@ -116,6 +114,7 @@ class _SpyCapture {
     if (failAt == shots.length) throw StateError('capture failed');
     shots.add(child);
     widths.add(width);
+    ratios.add(pixelRatio);
     final int w = (width * pixelRatio).round();
     return CapturedWidget(
       rgba: Uint8List(w * height * 4)..fillRange(0, w * height * 4, 0xff),
@@ -133,69 +132,98 @@ int _imageCount(Uint8List bytes) => RegExp(
   r'/Subtype\s*/Image\b',
 ).allMatches(latin1.decode(bytes, allowInvalid: true)).length;
 
+/// 받은 그림 크기를 적어 두고 작은 진짜 JPEG 를 돌려주는 인코더 — 웹의
+/// 캔버스 인코더 자리다(#2484).
+class _SpyJpeg {
+  final List<(int, int)> sizes = <(int, int)>[];
+
+  Future<Uint8List?> call(
+    Uint8List rgba, {
+    required int width,
+    required int height,
+  }) async {
+    sizes.add((width, height));
+    return tinyJpeg;
+  }
+}
+
+/// 양보 횟수를 센다.
+class _Yields {
+  int count = 0;
+
+  Future<void> call() async => count++;
+}
+
+int _jpegCount(Uint8List bytes) =>
+    RegExp(r'/DCTDecode\b').allMatches(pdfSource(bytes)).length;
+
 /// 글자 문서(물러설 자리)의 쪽 그림이 실렸는가.
 bool _hasTextPageRaster(Uint8List bytes) => RegExp(
   r'/Width\s+1240\b',
 ).hasMatch(latin1.decode(bytes, allowInvalid: true));
 
+/// 결과지가 빠짐없이 싣는 칸.
+const List<String> _sheetSections = <String>[
+  'sheet-header',
+  'sheet-diet',
+  'sheet-exercise',
+  'sheet-daily',
+  'sheet-trend',
+  'sheet-score',
+  'sheet-eval',
+  'sheet-average',
+  'sheet-member',
+  'sheet-feedback',
+];
+
+/// 구운 결과지 위젯을 결과지 크기의 화면에 올린다.
+Future<void> _show(WidgetTester tester, Widget shot) async {
+  tester.view.physicalSize = const Size(
+    ReportResultSheet.width,
+    ReportResultSheet.height,
+  );
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(Align(alignment: Alignment.topLeft, child: shot));
+  await tester.pump();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('① 확인·② 작성 카드 문서 (#2424)', () {
-    testWidgets('편집기의 카드 위젯을 그대로 구워 담는다 — 머리·① 셋·② 피드백 차례', (tester) async {
+  group('A4 한 장 결과지 문서 (#2485)', () {
+    testWidgets('결과지 한 장을 결과지 폭에서 구워 담는다', (tester) async {
       final _SpyCapture spy = _SpyCapture();
-      final report = _report();
       final bytes = await tester.runAsync(
         () => ReportPdfGenerator(
           container: _container(),
           capture: spy.call,
-        ).generate(l: _ko, report: report, feedback: '이번 주 잘했어요'),
+        ).generate(l: _ko, report: _report(), feedback: '이번 주 잘했어요'),
       );
 
       expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
-      // 첫 쪽 머리, 이어지는 쪽 머리, ① 카드 셋, ② 피드백 카드.
-      expect(spy.shots, hasLength(6));
-      // 카드는 편집기 본문 폭에서 굽는다 — 좁으면 추세 세 칸이 세로로 쌓인다.
-      expect(spy.widths.toSet(), hasLength(1));
+      // 카드 여러 장이 아니라 결과지 한 장만 굽는다.
+      expect(spy.shots, hasLength(1));
+      expect(spy.widths, <double>[ReportResultSheet.width]);
 
       // 구운 위젯을 실제 트리에 올려 무엇이 그려졌는지 본다. 테마·로케일·
       // provider 를 스스로 두르고 있어 그대로 올릴 수 있다.
-      Future<void> show(int i) async {
-        await tester.pumpWidget(SingleChildScrollView(child: spy.shots[i]));
-        await tester.pump();
-      }
-
-      await show(0);
-      expect(find.byType(ReportPdfHeader), findsOneWidget);
-      expect(find.text(_ko.reportsPdfDocTitle), findsOneWidget);
-      expect(find.text(_ko.reportsPdfClient('김회원')), findsOneWidget);
-
-      await show(2);
-      expect(find.byType(MemberFeedbackCard), findsOneWidget);
-      expect(find.byType(ReportWeekGrid), findsNothing);
-
-      await show(3);
-      expect(find.byType(ReportWeekGrid), findsOneWidget);
-      expect(find.byType(ReportMacroBars), findsOneWidget);
-      expect(find.text(_ko.reportsCardWeekTitle), findsOneWidget);
-
-      await show(4);
-      expect(find.byType(ReportExerciseTrend), findsOneWidget);
-      // 앱 컨테이너의 추세가 실려 도넛이 선다 — `불러올 수 없음` 이 아니다.
-      expect(
-        find.byKey(const ValueKey<String>('report-trend-empty')),
-        findsNothing,
+      await _show(tester, spy.shots.single);
+      final ReportResultSheet sheet = tester.widget<ReportResultSheet>(
+        find.byType(ReportResultSheet),
       );
-
-      await show(5);
-      expect(find.byType(ReportFeedbackCard), findsOneWidget);
+      expect(sheet.feedback, '이번 주 잘했어요');
+      expect(find.text(_ko.reportsPdfDocTitle), findsOneWidget);
       expect(find.text('이번 주 잘했어요'), findsOneWidget);
+      for (final String key in _sheetSections) {
+        expect(find.byKey(ValueKey<String>(key)), findsOneWidget, reason: key);
+      }
       // 회원에게 가는 문서에 입력창은 없다.
       expect(find.byType(TextField), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('카드 차례는 편집기 ① 확인과 같다', (tester) async {
+    testWidgets('앱 컨테이너의 운동 추세를 결과지에 싣는다', (tester) async {
       final _SpyCapture spy = _SpyCapture();
       await tester.runAsync(
         () => ReportPdfGenerator(
@@ -204,60 +232,90 @@ void main() {
         ).generate(l: _ko, report: _report(), feedback: 'x'),
       );
 
-      final List<List<ReportReviewSection>> sections =
-          <List<ReportReviewSection>>[
-            for (final Widget shot in spy.shots.sublist(2, 5))
-              _reviewOf(shot).sections,
-          ];
-      expect(sections, <List<ReportReviewSection>>[
-        <ReportReviewSection>[ReportReviewSection.member],
-        <ReportReviewSection>[ReportReviewSection.week],
-        <ReportReviewSection>[ReportReviewSection.trend],
+      await _show(tester, spy.shots.single);
+      final ReportResultSheet sheet = tester.widget<ReportResultSheet>(
+        find.byType(ReportResultSheet),
+      );
+      expect(sheet.trend, isNotNull);
+      expect(sheet.trend!.current!.cardioMinutes, 90);
+      // `불러올 수 없음` 이 아니다.
+      expect(find.text(_ko.reportsTrendUnavailable), findsNothing);
+    });
+
+    testWidgets('직전 넉 주의 리포트를 4주 평균 대비에 넘긴다', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          reportTrendProvider.overrideWith(
+            (ref, key) async => const ReportTrend(
+              weeks: <ReportTrendWeek>[],
+              goals: ExerciseBurnGoals(),
+            ),
+          ),
+          weeklyReportProvider.overrideWith(
+            (ref, key) => Stream<WeeklyReport>.value(
+              WeeklyReport(
+                client: key.client,
+                weekStart: key.weekStart,
+                sessionsBooked: 2,
+                sessionsDone: 2,
+                completionAvg: 60,
+                sodiumOverDays: 0,
+                sodiumAvg: 1800,
+                isCurrentWeek: false,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: c,
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      await _show(tester, spy.shots.single);
+      final ReportResultSheet sheet = tester.widget<ReportResultSheet>(
+        find.byType(ReportResultSheet),
+      );
+      expect(sheet.history, hasLength(4));
+      expect(sheet.history.map((WeeklyReport r) => r.weekStart), <DateTime>[
+        DateTime(2026, 8, 3),
+        DateTime(2026, 7, 27),
+        DateTime(2026, 7, 20),
+        DateTime(2026, 7, 13),
       ]);
     });
 
-    testWidgets('짧은 리포트는 한 쪽에 담기고 카드마다 그림 하나다', (tester) async {
-      final _SpyCapture spy = _SpyCapture(height: 200);
+    testWidgets('짧은 리포트도 한 쪽에 그림 하나다', (tester) async {
       final bytes = await tester.runAsync(
         () => ReportPdfGenerator(
           container: _container(),
-          capture: spy.call,
+          capture: _SpyCapture(height: 200).call,
         ).generate(l: _ko, report: _report(), feedback: 'x'),
       );
 
       expect(_pageCount(bytes!), 1);
-      // 머리 + ① 셋 + ② 하나. 이어지는 쪽 머리는 쓰이지 않아 실리지 않는다.
-      expect(_imageCount(bytes), 5);
+      expect(_imageCount(bytes), 1);
     });
 
-    testWidgets('쪽을 넘기는 카드는 다음 쪽으로 통째로 넘어간다', (tester) async {
-      // 한 장이 쪽 높이의 절반을 조금 넘는다 — 두 장이 한 쪽에 서지 못한다.
-      final _SpyCapture spy = _SpyCapture(height: 1100);
+    testWidgets('구운 그림이 아무리 길어도 쪽을 나누지 않는다', (tester) async {
+      // 예전에는 한 쪽보다 긴 카드를 여러 쪽에 잘라 담았다.
       final bytes = await tester.runAsync(
         () => ReportPdfGenerator(
           container: _container(),
-          capture: spy.call,
+          capture: _SpyCapture(height: 9000).call,
         ).generate(l: _ko, report: _report(), feedback: 'x'),
       );
 
-      expect(_pageCount(bytes!), greaterThan(1));
+      expect(_pageCount(bytes!), 1);
+      expect(_imageCount(bytes), 1);
     });
 
-    testWidgets('한 쪽보다 긴 카드는 여러 쪽에 나눠 담는다', (tester) async {
-      final _SpyCapture spy = _SpyCapture(height: 9000);
-      final bytes = await tester.runAsync(
-        () => ReportPdfGenerator(
-          container: _container(),
-          capture: spy.call,
-        ).generate(l: _ko, report: _report(), feedback: 'x'),
-      );
-
-      // 카드 넷이 각각 여러 쪽에 걸친다.
-      expect(_pageCount(bytes!), greaterThan(8));
-    });
-
-    testWidgets('카드를 굽지 못하면 글자만 담은 문서로 물러선다', (tester) async {
-      final _SpyCapture spy = _SpyCapture(failAt: 3);
+    testWidgets('결과지를 굽지 못하면 글자만 담은 문서로 물러선다', (tester) async {
+      final _SpyCapture spy = _SpyCapture(failAt: 0);
       final bytes = await tester.runAsync(
         () => ReportPdfGenerator(
           container: _container(),
@@ -268,24 +326,51 @@ void main() {
       expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
       // 글자 문서는 쪽 전체를 한 장으로 구운 1240px 폭 그림이다.
       expect(_hasTextPageRaster(bytes), isTrue);
+      expect(_pageCount(bytes), 1);
     });
 
-    testWidgets('앱 컨테이너가 없어도 카드 문서를 만든다 — 추세는 빈 상태로 선다', (tester) async {
-      // 추세를 읽을 길이 없으면 편집기가 읽지 못했을 때처럼 `불러올 수 없음`
-      // 카드가 서고, 문서는 글자 문서로 물러서지 않는다.
+    testWidgets('물러선 글자 문서도 긴 피드백을 한 쪽에서 끊는다', (tester) async {
+      final report = _report();
       final bytes = await tester.runAsync(
-        () => const ReportPdfGenerator().generate(
-          l: _ko,
-          report: _report(),
-          feedback: 'x',
-        ),
+        () =>
+            ReportPdfGenerator(
+              container: _container(),
+              capture: _SpyCapture(failAt: 0).call,
+            ).generate(
+              l: _ko,
+              report: report,
+              previousReport: _previous(report),
+              feedback: List<String>.filled(
+                400,
+                '한글 피드백을 PDF에 정확히 반영합니다.',
+              ).join(' '),
+            ),
+      );
+
+      expect(_hasTextPageRaster(bytes!), isTrue);
+      expect(_pageCount(bytes), 1);
+    });
+
+    testWidgets('앱 컨테이너가 없어도 결과지 문서를 만든다 — 추세는 빈 칸으로 선다', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
       );
 
       expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
       expect(_hasTextPageRaster(bytes), isFalse);
+      await _show(tester, spy.shots.single);
+      final ReportResultSheet sheet = tester.widget<ReportResultSheet>(
+        find.byType(ReportResultSheet),
+      );
+      expect(sheet.trend, isNull);
+      expect(sheet.history, isEmpty);
+      expect(find.text(_ko.reportsTrendUnavailable), findsOneWidget);
     });
 
-    testWidgets('영어 로케일이면 카드도 영어로 굽는다', (tester) async {
+    testWidgets('영어 로케일이면 결과지도 영어로 굽는다', (tester) async {
       final _SpyCapture spy = _SpyCapture();
       await tester.runAsync(
         () => ReportPdfGenerator(
@@ -294,13 +379,13 @@ void main() {
         ).generate(l: _en, report: _report(), feedback: 'Nice week'),
       );
 
-      await tester.pumpWidget(SingleChildScrollView(child: spy.shots[0]));
+      await _show(tester, spy.shots.single);
       expect(find.text(_en.reportsPdfDocTitle), findsOneWidget);
-      await tester.pumpWidget(SingleChildScrollView(child: spy.shots[5]));
       expect(find.text(_en.reportsFeedbackTitle), findsOneWidget);
+      expect(find.text('Nice week'), findsOneWidget);
     });
 
-    testWidgets('실제 렌더러로 카드를 구워 그림이 담긴 PDF 를 만든다', (tester) async {
+    testWidgets('실제 렌더러로 결과지를 구워 그림 한 장짜리 한 쪽 PDF 를 만든다', (tester) async {
       final bytes = await tester.runAsync(
         () => ReportPdfGenerator(
           container: _container(),
@@ -308,9 +393,81 @@ void main() {
       );
 
       expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
-      // 글자 문서로 물러서지 않았다 — 카드마다 그림이 따로 실린다.
+      // 글자 문서로 물러서지 않았다.
       expect(_hasTextPageRaster(bytes), isFalse);
-      expect(_imageCount(bytes), greaterThanOrEqualTo(5));
+      expect(_pageCount(bytes), 1);
+      expect(_imageCount(bytes), 1);
+    });
+
+    testWidgets('결과지는 1.5 배율로 굽는다 — 굽고 싣을 픽셀을 줄인다 (#2484)', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(spy.ratios, <double>[1.5]);
+    });
+
+    testWidgets('굽고 나서 싣기 전에 이벤트 루프에 양보한다 (#2484)', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      final _Yields yields = _Yields();
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+          yieldFrame: yields.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      // 굽고 나서 한 번, 날 RGB 로 싣는 동안에도.
+      expect(yields.count, greaterThan(spy.shots.length));
+    });
+
+    testWidgets('JPEG 인코더가 있으면 결과지를 JPEG 한 장으로 싣는다 (#2484)', (tester) async {
+      final _SpyJpeg jpeg = _SpyJpeg();
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: _SpyCapture(height: 200).call,
+          encodeImage: jpeg.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(jpeg.sizes, <(int, int)>[
+        ((ReportResultSheet.width * 1.5).round(), 200),
+      ]);
+      expect(_jpegCount(bytes!), 1);
+      expect(_pageCount(bytes), 1);
+      // 날 RGB 로 실은 그림은 없다 — 결과지 폭(px)의 이미지 사전이 없다.
+      final int sheetPx = jpeg.sizes.single.$1;
+      expect(
+        RegExp('/Width\\s+$sheetPx\\b').hasMatch(pdfSource(bytes)),
+        isFalse,
+      );
+    });
+
+    testWidgets('JPEG 로 바꾸지 못하면 날 RGB 로 실어 문서는 그대로 나온다', (tester) async {
+      Future<Uint8List?> none(
+        Uint8List rgba, {
+        required int width,
+        required int height,
+      }) async => null;
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: _SpyCapture(height: 200).call,
+          encodeImage: none,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+      expect(_jpegCount(bytes), 0);
+      expect(_imageCount(bytes), 1);
+      expect(_pageCount(bytes), 1);
+      expect(_hasTextPageRaster(bytes), isFalse);
     });
 
     test('provider 는 앱 컨테이너를 생성기에 넘긴다', () {
@@ -411,27 +568,41 @@ void main() {
     expect(en, contains('No feedback'));
   });
 
-  testWidgets('한글 리포트와 긴 피드백을 실제 다중 페이지 PDF로 만든다', (tester) async {
+  testWidgets('한글 리포트와 긴 피드백도 실제 렌더러로 한 쪽 PDF 가 된다', (tester) async {
     final report = _report();
     final bytes = await tester.runAsync(
       () => const ReportPdfGenerator().generate(
         l: _ko,
         report: report,
         previousReport: _previous(report),
-        // 페이지 수는 TextPainter 가 잰 높이로 갈리고, 높이는 러너에 깔린 한글
-        // 폰트 폴백에 따라 달라진다. 두 번째 페이지 경계에 걸치지 않도록 넉넉히
-        // 넘긴다.
         feedback: List<String>.filled(400, '한글 피드백을 PDF에 정확히 반영합니다.').join(' '),
       ),
     );
 
     expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
-    final source = latin1.decode(bytes, allowInvalid: true);
-    expect(
-      RegExp(r'/Type\s*/Page\b').allMatches(source).length,
-      greaterThan(1),
-      reason: 'A4 여러 장으로 나뉘어야 한다. 한 장만 나오면 폰트 폴백으로 글자 높이가 달라진 것이다.',
+    expect(_pageCount(bytes), 1, reason: '결과지는 피드백 길이와 상관없이 A4 한 장이다.');
+  });
+
+  testWidgets('영어 로케일·빈 데이터도 한 쪽 PDF 가 된다', (tester) async {
+    final bytes = await tester.runAsync(
+      () => const ReportPdfGenerator().generate(
+        l: _en,
+        report: WeeklyReport(
+          client: makeClient(id: 'pdf-empty', name: 'No Records'),
+          weekStart: DateTime(2026, 8, 10),
+          sessionsBooked: 0,
+          sessionsDone: 0,
+          completionAvg: null,
+          sodiumOverDays: null,
+          sodiumAvg: null,
+          isCurrentWeek: false,
+        ),
+        feedback: '',
+      ),
     );
+
+    expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+    expect(_pageCount(bytes), 1);
   });
 
   testWidgets('영어 로케일에서도 PDF 를 그려 낸다', (tester) async {
@@ -447,27 +618,4 @@ void main() {
 
     expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
   });
-}
-
-/// 구운 위젯 틀 안의 ① 확인 카드 묶음.
-ReportReviewCards _reviewOf(Widget shot) {
-  ReportReviewCards? found;
-  void visit(Widget w) {
-    if (w is ReportReviewCards) {
-      found = w;
-      return;
-    }
-    final Widget? child = switch (w) {
-      final SingleChildRenderObjectWidget r => r.child,
-      final ProxyWidget p => p.child,
-      final Localizations loc => loc.child,
-      final Theme t => t.child,
-      final Material m => m.child,
-      _ => null,
-    };
-    if (child != null) visit(child);
-  }
-
-  visit(shot);
-  return found!;
 }
