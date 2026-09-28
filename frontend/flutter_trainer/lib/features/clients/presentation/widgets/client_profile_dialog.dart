@@ -782,6 +782,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             AppSegmentedToggle<_HealthTab>(
               key: const ValueKey<String>('client-health-tabs'),
               expand: true,
+              // 회원 상세·코칭의 보기 전환과 같은 thumb 모양(#2469).
+              style: AppSegmentedToggleStyle.thumb,
               selected: _tab,
               onChanged: (_HealthTab tab) => setState(() => _tab = tab),
               segments: <AppSegment<_HealthTab>>[

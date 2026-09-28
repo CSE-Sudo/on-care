@@ -608,6 +608,7 @@ class AppEmptyState extends StatelessWidget {
     this.icon,
     this.actionLabel,
     this.onAction,
+    this.actionKey,
     this.placement = AppStatePlacement.page,
   });
 
@@ -618,6 +619,9 @@ class AppEmptyState extends StatelessWidget {
   final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// 동작 버튼의 Key — 테스트·자동화가 버튼을 찾을 때.
+  final Key? actionKey;
   final AppStatePlacement placement;
 
   @override
@@ -652,6 +656,7 @@ class AppEmptyState extends StatelessWidget {
         if (actionLabel != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
           AppButton(
+            key: actionKey,
             label: actionLabel!,
             onPressed: onAction,
             variant: AppButtonVariant.secondary,
@@ -671,6 +676,7 @@ class AppErrorState extends StatelessWidget {
     this.message,
     required this.retryLabel,
     required this.onRetry,
+    this.retryKey,
     this.placement = AppStatePlacement.page,
   });
 
@@ -678,6 +684,9 @@ class AppErrorState extends StatelessWidget {
   final String? message;
   final String retryLabel;
   final VoidCallback? onRetry;
+
+  /// [다시 시도] 버튼의 Key.
+  final Key? retryKey;
   final AppStatePlacement placement;
 
   @override
@@ -688,6 +697,7 @@ class AppErrorState extends StatelessWidget {
       icon: AppIcon.setOf(context).offline,
       actionLabel: retryLabel,
       onAction: onRetry,
+      actionKey: retryKey,
       placement: placement,
     );
   }

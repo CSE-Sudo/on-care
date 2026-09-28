@@ -146,8 +146,9 @@ class NotificationsPage extends ConsumerWidget {
       body: PageScrollResetListener(
         child: notifications.when(
           loading: () => const AppLoading(),
-          error: (error, _) => _ErrorView(
-            message: serverDetailOr(
+          error: (error, _) => AppErrorState(
+            retryKey: const ValueKey<String>('notifications-retry'),
+            title: serverDetailOr(
               l,
               error is AppError ? error.message : null,
               l.notifLoadFailed,
@@ -264,45 +265,6 @@ class _LoadMoreFooter extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
       child: Center(child: child),
-    );
-  }
-}
-
-/// 오류 화면. [AppErrorState] 와 같은 모양이지만 재시도 버튼에 테스트·자동화가
-/// 찾는 Key(`notifications-retry`)를 달아야 해서 버튼을 따로 둔다.
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.retryLabel,
-    required this.onRetry,
-  });
-
-  final String message;
-  final String retryLabel;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(OnCareSpacing.s24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            AppEmptyState(
-              title: message,
-              icon: Icons.cloud_off_rounded,
-              placement: AppStatePlacement.card,
-            ),
-            AppButton(
-              key: const ValueKey<String>('notifications-retry'),
-              label: retryLabel,
-              variant: AppButtonVariant.secondary,
-              onPressed: onRetry,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

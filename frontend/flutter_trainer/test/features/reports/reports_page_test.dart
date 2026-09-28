@@ -27,7 +27,6 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
@@ -1680,9 +1679,9 @@ void main() {
               .dx;
       expect(
         centers - OnCareSize.avatarMedium,
-        closeTo(ProgressStepper.defaultGap * 2, 0.01),
+        closeTo(AppStepIndicator.numberedGap * 2, 0.01),
       );
-      expect(reportStepperGap, ProgressStepper.defaultGap * 2);
+      expect(reportStepperGap, AppStepIndicator.numberedGap * 2);
     });
 
     testWidgets('좁은 창에서도 머리 줄이 넘치지 않는다', (tester) async {
