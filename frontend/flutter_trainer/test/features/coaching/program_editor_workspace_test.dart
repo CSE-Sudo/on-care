@@ -101,6 +101,66 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  group('기본 세션', () {
+    // `세션 추가` 는 유형부터 묻고 `{유형} 세션` 으로 이름을 정한다(#2222).
+    // 기본 세션만 유형 없이 `세션 A` 로 서서, 이 앱에서 유형 없는 세션은
+    // 그것 하나뿐이었다. (#2474)
+    testWidgets('직접 만들기는 근력 세션으로 연다', (tester) async {
+      await pumpEditor(tester);
+
+      expect(find.text('근력 세션'), findsOneWidget);
+      expect(find.text('세션 A'), findsNothing);
+    });
+
+    // 기본 세션이 `근력 세션` 이름을 이미 차지하므로, 근력을 또 고르면
+    // 번호가 붙어야 한다 — 이름이 겹치면 어느 세션을 말하는지 알 수 없다.
+    testWidgets('근력을 또 고르면 근력 세션 2 가 된다', (tester) async {
+      await pumpEditor(tester);
+
+      await tester.tap(find.text(_ko.programEditorAddSession));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-editor-session-type-근력')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('근력 세션'), findsOneWidget);
+      expect(find.text('근력 세션 2'), findsOneWidget);
+    });
+
+    // 재사용은 첫 세션 하나가 비어 있을 때만 걸린다. 세션을 더 만들어 둔
+    // 뒤 반영하면 빈 세션이 그대로 남았다. (#2474)
+    testWidgets('추천안을 반영하면 빈 세션이 남지 않는다', (tester) async {
+      await pumpEditor(tester);
+
+      await tester.tap(find.text(_ko.programEditorAddSession));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-editor-session-type-유산소')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('유산소 세션'), findsOneWidget);
+
+      await mergeSuggestions(tester);
+      await tester.pumpAndSettle();
+
+      // 반영된 근력만 남고, 운동이 들어가지 않은 유산소 세션은 내려간다.
+      expect(find.text('근력 세션'), findsOneWidget);
+      expect(find.text('유산소 세션'), findsNothing);
+    });
+
+    // 반영할 구성이 없으면 세션을 통째로 비우지 않는다 — 하나도 없으면
+    // 운동을 넣을 자리가 사라진다.
+    testWidgets('반영할 구성이 없으면 세션이 사라지지 않는다', (tester) async {
+      await pumpEditor(tester);
+
+      await tester.pumpWidget(buildApp(const <AiRoutineItem>[]));
+      await tester.pump();
+
+      expect(find.text('근력 세션'), findsOneWidget);
+    });
+  });
+
   testWidgets('AI suggestions are deduplicated within the same batch', (
     tester,
   ) async {
