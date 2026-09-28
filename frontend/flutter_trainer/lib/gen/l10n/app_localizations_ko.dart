@@ -133,6 +133,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionBack => '뒤로';
 
   @override
+  String get actionAdd => '추가';
+
+  @override
+  String get actionSend => '보내기';
+
+  @override
+  String get actionReset => '초기화';
+
+  @override
   String get notFoundTitle => '페이지를 찾을 수 없어요';
 
   @override
@@ -1708,7 +1717,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedSendProgramWithRoutines(String date) {
-    return '$date PT 프로그램 · 개인운동 전송';
+    return '$date PT 프로그램 · 개인운동 보내기';
   }
 
   @override
@@ -1952,10 +1961,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progSaving => '저장 중...';
 
   @override
-  String get progSaveAction => '프로그램 저장';
+  String get progSaveAction => '저장';
 
   @override
-  String get progSaveNoteAction => '메모 저장';
+  String get progSaveNoteAction => '저장';
 
   @override
   String get progExerciseName => '운동 이름';
@@ -2009,7 +2018,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedSentProgramTo(String date) {
-    return '$date PT 프로그램 전송';
+    return '$date PT 프로그램 보내기';
   }
 
   @override
@@ -2821,7 +2830,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiExerciseNameExample => '예: 레그프레스 3세트';
 
   @override
-  String get aiRegister => '등록';
+  String get aiRegister => '추가';
 
   @override
   String get aiNoteForClient => '회원에게 함께 전달할 내용';
@@ -4174,7 +4183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsFeedbackRedo => '다시 실행';
 
   @override
-  String get reportsFeedbackSave => '피드백 저장';
+  String get reportsFeedbackSave => '저장';
 
   @override
   String get reportsFeedbackSaving => '저장 중…';
@@ -4660,7 +4669,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepWrite => '작성';
 
   @override
-  String get reportsStepSend => '전송';
+  String get reportsStepSend => '보내기';
 
   @override
   String get reportsStepPrint => '인쇄';

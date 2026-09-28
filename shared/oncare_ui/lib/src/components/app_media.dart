@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_icon.dart';
@@ -272,25 +274,87 @@ class AppProgressBar extends StatelessWidget {
   }
 }
 
-/// 단계 표시 — N칸 막대(4px) + 현재 단계 `caption` 라벨.
+/// 단계 표시.
+///
+/// - 기본: N칸 막대(4px) + 현재 단계 `caption` 라벨 — 회원앱 온보딩.
+/// - [AppStepIndicator.numbered]: 번호 원 `① → ② → ③` + 단계마다 이름 —
+///   트레이너웹 AI 추천안 만들기·주간 리포트 작성(#2232, #2469).
 class AppStepIndicator extends StatelessWidget {
   const AppStepIndicator({
     super.key,
-    required this.count,
+    required int count,
     required this.current,
     this.label,
     this.onStepTap,
-  });
+  }) : _count = count,
+       labels = null,
+       maxReached = null,
+       semanticsLabel = null,
+       keyPrefix = 'step',
+       skipped = const <int>{},
+       skippedLabel = '',
+       gap = numberedGap;
 
-  final int count;
+  /// 번호형 — 지나온 단계([maxReached] 까지)만 눌러 되돌아갈 수 있다.
+  const AppStepIndicator.numbered({
+    super.key,
+    required List<String> this.labels,
+    required this.current,
+    required int this.maxReached,
+    required ValueChanged<int> this.onStepTap,
+    required String this.semanticsLabel,
+    this.keyPrefix = 'step',
+    this.skipped = const <int>{},
+    this.skippedLabel = '',
+    this.gap = numberedGap,
+  }) : _count = null,
+       label = null;
+
+  final int? _count;
+
+  /// 칸 수.
+  int get count => labels?.length ?? _count!;
 
   /// 0 부터.
   final int current;
   final String? label;
   final ValueChanged<int>? onStepTap;
 
+  /// 번호형의 단계 이름. 로케일을 따르므로 호출자가 만들어 넘긴다. 칸 수는
+  /// 받은 만큼이다(#2223).
+  final List<String>? labels;
+
+  /// 번호형에서 지금까지 가 본 가장 먼 단계.
+  final int? maxReached;
+
+  /// 번호형에서 스크린 리더가 읽을 묶음 이름.
+  final String? semanticsLabel;
+
+  /// 번호형 단계 위젯 키의 앞자리 — `'$keyPrefix-$index'`.
+  final String keyPrefix;
+
+  /// 이번 흐름에서 밟지 않는 칸. 자리를 지우지 않고 흐리게 남겨
+  /// [skippedLabel] 을 붙인다 — 칸이 사라지면 흐름이 짧아진 것처럼 보인다.
+  final Set<int> skipped;
+
+  /// 건너뛴 칸 아래에 붙는 말.
+  final String skippedLabel;
+
+  /// 번호 원 사이 간격.
+  final double gap;
+
+  /// 번호형 기본 원 사이 간격.
+  static const double numberedGap = OnCareSpacing.s48 + OnCareSpacing.s32;
+
+  /// 번호 원의 지름.
+  static const double _circle = OnCareSize.avatarMedium;
+
   @override
   Widget build(BuildContext context) {
+    return labels == null ? _bars(context) : _numbered(context);
+  }
+
+  Widget _bars(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,6 +391,151 @@ class AppStepIndicator extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  bool _open(int index) => index <= maxReached! && !skipped.contains(index);
+
+  Widget _numbered(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final List<String> names = labels!;
+    // 칸 폭이 곧 원 중심 사이의 거리다. 화면 폭을 n등분하면 창이 넓어질수록
+    // 원들이 좌우 끝으로 멀어진다 — 폭과 무관하게 같은 간격으로 모여
+    // 가운데에 선다(#2219).
+    final double fullStep = _circle + gap;
+    return Semantics(
+      // 이름만 달면 스크린리더에 닿지 않는다 — 아래 단계들이 저마다 노드를
+      // 만들어 얹을 자리가 없다. 묶음 노드를 만들어 이름을 그 위에 단다.
+      container: true,
+      explicitChildNodes: true,
+      label: semanticsLabel,
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // 칸을 다 늘어놓을 폭이 없으면(아주 좁은 창) 그만큼 좁힌다.
+          final double available = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : fullStep * names.length;
+          final double stepWidth = math.min(fullStep, available / names.length);
+          return Center(
+            child: SizedBox(
+              width: stepWidth * names.length,
+              child: Stack(
+                children: <Widget>[
+                  // 첫 원의 가운데에서 마지막 원의 가운데까지만 잇는 가는 선.
+                  Positioned(
+                    top: (_circle - OnCareSize.hairline) / 2,
+                    left: stepWidth / 2,
+                    right: stepWidth / 2,
+                    child: const ColoredBox(
+                      color: OnCareColors.lineSubtle,
+                      child: SizedBox(height: OnCareSize.hairline),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (int index = 0; index < names.length; index++)
+                        SizedBox(
+                          width: stepWidth,
+                          child: _numberedStep(
+                            context,
+                            tokens,
+                            names[index],
+                            index,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _numberedStep(
+    BuildContext context,
+    OnCareTokens tokens,
+    String name,
+    int index,
+  ) {
+    final bool isCurrent = index == current;
+    final bool isSkipped = skipped.contains(index);
+    return InkWell(
+      key: ValueKey<String>('$keyPrefix-$index'),
+      borderRadius: OnCareRadius.smAll,
+      onTap: _open(index) ? () => onStepTap!(index) : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: _circle,
+            height: _circle,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isCurrent
+                  ? tokens.brand.primary
+                  : OnCareColors.surfaceInput,
+              border: isCurrent
+                  ? null
+                  : Border.all(
+                      color: isSkipped
+                          ? OnCareColors.lineSubtle
+                          : OnCareColors.lineStrong,
+                    ),
+            ),
+            // 건너뛴 칸은 번호 대신 가로줄 — 밟지 않았을 뿐 자리는 그대로다.
+            child: isSkipped
+                ? AppIcon(
+                    AppIcon.setOf(context).remove,
+                    size: OnCareSize.iconSmall,
+                    color: OnCareColors.textTertiary,
+                  )
+                : Text(
+                    '${index + 1}',
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.label))
+                        .copyWith(
+                          color: isCurrent
+                              ? OnCareColors.textOnFill
+                              : OnCareColors.textSecondary,
+                        ),
+                  ),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: tokens
+                .text(
+                  isCurrent
+                      ? OnCareTypography.strong(OnCareTypography.caption)
+                      : OnCareTypography.caption,
+                )
+                .copyWith(
+                  color: isCurrent
+                      ? OnCareColors.textPrimary
+                      : OnCareColors.textTertiary,
+                ),
+          ),
+          if (isSkipped)
+            Text(
+              skippedLabel,
+              key: ValueKey<String>('$keyPrefix-skipped-$index'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+        ],
+      ),
     );
   }
 }

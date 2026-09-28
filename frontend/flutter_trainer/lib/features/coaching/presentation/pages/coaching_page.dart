@@ -267,7 +267,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         ymd(start),
         ymd(start.add(const Duration(days: PersonalRoutineBox.activeDays - 1))),
       ),
-      confirmLabel: l.aiRoutineOnlySend,
+      confirmLabel: l.actionSend,
       cancelLabel: l.actionCancel,
     );
     if (!confirmed || !mounted || !_isStillSelected(client.id)) return;

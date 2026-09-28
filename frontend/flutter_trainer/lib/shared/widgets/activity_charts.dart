@@ -825,30 +825,28 @@ class BurnBarChart extends StatelessWidget {
             ),
             // 한 칸이 한 주라, 어느 주를 고른 것인지 달 라벨에서도 읽혀야 한다.
             boldSelectedLabel: true,
-            barBuilder: (BuildContext context, int i) => Tooltip(
-              key: Key('client-exercise-bar-$i'),
-              richMessage: TextSpan(
-                style: context.oncare
-                    .text(OnCareTypography.strong(OnCareTypography.caption))
-                    .copyWith(color: OnCareColors.textPrimary),
-                children: _tipSpans(l, i),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSpacing.s12,
-                vertical: OnCareSpacing.s8,
-              ),
-              decoration: BoxDecoration(
-                color: OnCareColors.surfaceInput,
-                borderRadius: OnCareRadius.mdAll,
-                border: Border.all(color: OnCareColors.lineStrong),
-                boxShadow: OnCareShadows.card,
-              ),
-              child: _BurnBarColumn(
-                value: calories[i].toDouble(),
-                max: max,
-                height: chartHeight,
-                parts: splits[i].minutesByKind,
-                dimmed: selection.selected != null && selection.selected != i,
+            // 상자는 식단 차트와 같은 공용 [AppChartTooltip] 이 그린다 — 회원
+            // 상세 한 화면에서 두 차트의 툴팁이 달라 보이지 않게(#2469). 같은
+            // 내용을 시맨틱 라벨로도 준다(식단 차트 #972 와 같은 방식).
+            barBuilder: (BuildContext context, int i) => Semantics(
+              label: TextSpan(children: _tipSpans(l, i)).toPlainText(),
+              child: Tooltip(
+                key: Key('client-exercise-bar-$i'),
+                excludeFromSemantics: true,
+                decoration: const BoxDecoration(),
+                padding: EdgeInsets.zero,
+                richMessage: WidgetSpan(
+                  child: AppChartTooltip(
+                    child: Text.rich(TextSpan(children: _tipSpans(l, i))),
+                  ),
+                ),
+                child: _BurnBarColumn(
+                  value: calories[i].toDouble(),
+                  max: max,
+                  height: chartHeight,
+                  parts: splits[i].minutesByKind,
+                  dimmed: selection.selected != null && selection.selected != i,
+                ),
               ),
             ),
           ),
