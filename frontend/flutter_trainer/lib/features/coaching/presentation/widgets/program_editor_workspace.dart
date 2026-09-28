@@ -487,36 +487,27 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // 프로그램`) 그대로 저장되는 유일한 경로가 되면 안 된다. 편집
           // UI는 이제 카드 제목 자리에서 바로 뜬다(`_programNameTitle`,
           // 깃허브 이슈/PR 제목 수정과 같은 자리 전환 방식).
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  l.programEditorExerciseConfig,
-                  style: context.oncare
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
+          AppSectionHeader(
+            title: l.programEditorExerciseConfig,
+            // 박스형 버튼이던 `세션 추가`를 작은 텍스트 액션으로 줄였다 —
+            // 시각 형태만 낮은 우선순위다. 누르면 이제 빈 세션이 바로
+            // 붙지 않고 유형 네 가지가 펼쳐진다(#2222).
+            trailing: Tooltip(
+              key: _addSessionKey,
+              message: _draft.canAddSession
+                  ? ''
+                  : l.programEditorSessionLimitReached(kProgramMaxSessions),
+              child: AppButton(
+                key: const ValueKey<String>('program-editor-add-session'),
+                onPressed: _draft.canAddSession
+                    ? () => unawaited(_pickSessionType())
+                    : null,
+                leadingIcon: Icons.add_rounded,
+                label: l.programEditorAddSession,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
               ),
-              // 박스형 버튼이던 `세션 추가`를 작은 텍스트 액션으로 줄였다 —
-              // 시각 형태만 낮은 우선순위다. 누르면 이제 빈 세션이 바로
-              // 붙지 않고 유형 네 가지가 펼쳐진다(#2222).
-              Tooltip(
-                key: _addSessionKey,
-                message: _draft.canAddSession
-                    ? ''
-                    : l.programEditorSessionLimitReached(kProgramMaxSessions),
-                child: AppButton(
-                  key: const ValueKey<String>('program-editor-add-session'),
-                  onPressed: _draft.canAddSession
-                      ? () => unawaited(_pickSessionType())
-                      : null,
-                  leadingIcon: Icons.add_rounded,
-                  label: l.programEditorAddSession,
-                  variant: AppButtonVariant.text,
-                  size: OnCareButtonSize.small,
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           for (
@@ -1131,28 +1122,33 @@ class _SessionEditorState extends State<_SessionEditor> {
                       label: l.actionEdit,
                       onSelected: () => _handleSessionAction('edit'),
                     ),
-                    AppMenuItem(
-                      icon: Icons.keyboard_arrow_up_rounded,
-                      label: l.programEditorSessionUp,
-                      onSelected: widget.canMoveUp
-                          ? () => _handleSessionAction('up')
-                          : null,
-                    ),
-                    AppMenuItem(
-                      icon: Icons.keyboard_arrow_down_rounded,
-                      label: l.programEditorSessionDown,
-                      onSelected: widget.canMoveDown
-                          ? () => _handleSessionAction('down')
-                          : null,
-                    ),
-                    AppMenuItem(
-                      icon: Icons.delete_outline_rounded,
-                      label: l.actionDelete,
-                      destructive: true,
-                      onSelected: widget.canDelete
-                          ? () => _handleSessionAction('delete')
-                          : null,
-                    ),
+                    // 세션이 하나뿐이면 옮길 데도, 지울 것도 없다. 셋을
+                    // 비활성으로 남겨 두면 메뉴가 **할 수 없는 일 셋**으로
+                    // 채워지고, 그중 `삭제` 는 위험 항목이라 비활성인데도
+                    // 빨간 글씨 그대로다 — 눌러 보고 아무 일도 없는 것을
+                    // 겪게 된다. (#2220)
+                    if (widget.canDelete) ...<AppMenuItem>[
+                      AppMenuItem(
+                        icon: Icons.keyboard_arrow_up_rounded,
+                        label: l.programEditorSessionUp,
+                        onSelected: widget.canMoveUp
+                            ? () => _handleSessionAction('up')
+                            : null,
+                      ),
+                      AppMenuItem(
+                        icon: Icons.keyboard_arrow_down_rounded,
+                        label: l.programEditorSessionDown,
+                        onSelected: widget.canMoveDown
+                            ? () => _handleSessionAction('down')
+                            : null,
+                      ),
+                      AppMenuItem(
+                        icon: Icons.delete_outline_rounded,
+                        label: l.actionDelete,
+                        destructive: true,
+                        onSelected: () => _handleSessionAction('delete'),
+                      ),
+                    ],
                   ],
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>(

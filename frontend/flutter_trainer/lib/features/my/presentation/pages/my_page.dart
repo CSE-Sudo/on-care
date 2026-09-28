@@ -1374,26 +1374,7 @@ class _SettingsCard extends StatelessWidget {
                 OnCareSpacing.s16,
                 OnCareSpacing.s12,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    title!,
-                    style: tokens
-                        .text(OnCareTypography.titleSmall)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                  if (description != null) ...<Widget>[
-                    const SizedBox(height: OnCareSpacing.s2),
-                    Text(
-                      description!,
-                      style: tokens
-                          .text(OnCareTypography.bodySmall)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                  ],
-                ],
-              ),
+              child: AppSectionHeader(title: title!, subtitle: description),
             ),
             const AppDivider(),
           ],

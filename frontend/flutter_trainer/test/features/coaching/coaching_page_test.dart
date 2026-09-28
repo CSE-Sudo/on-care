@@ -36,25 +36,28 @@ import 'package:oncare_trainer/features/coaching/presentation/widgets/program_ed
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_nutrition_summary_card.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatarSize,
         AppButton,
         AppIconButton,
-        AppListRow,
         AppSegmentedToggle,
         AppSegmentedToggleStyle,
         OnCareLayout,
         OnCareMotion;
 
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/progress_bar_finder.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/record_span.dart';
 
@@ -968,13 +971,7 @@ void main() {
         expect(programCard, findsOneWidget);
         // 이행률 막대·퍼센트는 이 목록에서 뺐다(#1029) — 이 목록은 회원을
         // 고르는 자리다.
-        expect(
-          find.descendant(
-            of: programCard,
-            matching: find.byType(InlineBarValue),
-          ),
-          findsNothing,
-        );
+        expect(findProgressBars(of: programCard), findsNothing);
         final avatar = tester.widget<ClientAvatar>(
           find.descendant(of: programCard, matching: find.byType(ClientAvatar)),
         );
@@ -1479,29 +1476,43 @@ void main() {
         seedClock: kMidWeekKst,
       );
 
-      // 좁은 화면의 회원 고르기 줄은 `AppListRow` 다(#1705) — 이름이 title,
-      // 성별·나이가 subtitle 로 이름 아래에 쌓인다.
+      // 좁은 화면의 회원 고르기 줄도 회원 고르기 카드다(#2467) — 성별·나이가
+      // 이름 아래에 쌓이고, 목표 줄은 없다.
       final minsuRow = find.byWidgetPredicate(
         (widget) =>
-            widget is AppListRow &&
-            widget.title == '김민수' &&
-            (widget.subtitle ?? '').isNotEmpty,
+            widget is ClientPickerCard &&
+            widget.stacked &&
+            widget.client.name == '김민수',
       );
       expect(minsuRow, findsOneWidget);
-      final row = tester.widget<AppListRow>(minsuRow);
+      final client = tester.widget<ClientPickerCard>(minsuRow).client;
       final name = find.descendant(
         of: minsuRow,
-        matching: find.text(row.title),
+        matching: find.text(client.name),
       );
       final detail = find.descendant(
         of: minsuRow,
-        matching: find.text(row.subtitle!),
+        matching: find.text(
+          clientDemographicsLabel(tester.element(minsuRow), client),
+        ),
       );
       expect(name, findsOneWidget);
       expect(detail, findsOneWidget);
       expect(
         tester.getTopLeft(detail).dy,
         greaterThan(tester.getTopLeft(name).dy),
+      );
+      expect(
+        find.descendant(
+          of: minsuRow,
+          matching: find.text(
+            healthFocusGoalLabel(
+              AppLocalizations.of(tester.element(minsuRow)),
+              client.goal,
+            ),
+          ),
+        ),
+        findsNothing,
       );
       expect(find.byType(ProgramNutritionSummaryCard), findsOneWidget);
       expect(tester.takeException(), isNull);

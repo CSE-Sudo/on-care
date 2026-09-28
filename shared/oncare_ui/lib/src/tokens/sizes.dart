@@ -39,6 +39,9 @@ class OnCareSize {
   static const double countBadgeMin = 20;
   static const double dot = 8;
 
+  /// 카드 제목 앞 번호 원([AppSectionHeader.number]) — 제목 글자(16)보다 조금 크다.
+  static const double sectionNumber = 22;
+
   // --- 진행 표시 ---
   static const double progressBar = 8;
 

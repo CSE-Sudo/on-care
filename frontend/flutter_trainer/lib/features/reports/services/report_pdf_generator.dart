@@ -11,8 +11,8 @@ import 'package:oncare_trainer/features/reports/data/repositories/report_reposit
 import 'package:oncare_trainer/features/reports/data/repositories/report_trend_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_review_cards.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_result_sheet.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_image.dart';
 import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -32,26 +32,28 @@ const String _kFont = 'Pretendard';
 
 /// 회원에게 보내는 주간 리포트 PDF 를 만든다.
 ///
-/// 문서는 편집기 ① 확인의 카드(회원의 답·한 주 격자·영양 막대·운동 추세)와
-/// ② 작성의 피드백 카드를 **화면과 같은 위젯**으로 그려 담는다(#2424). 예전
-/// 문서는 수치를 글로만 늘어놓아, 트레이너가 그래프를 보고 쓴 글이 그래프 없이
-/// 회원에게 갔다. 카드를 PDF 용으로 다시 그리지 않고 화면의 위젯을 화면 밖에서
-/// 구워(`captureReportWidget`) A4 쪽에 얹는다 — 모양을 흉내 낸 사본은 한쪽만
-/// 고쳐지는 날이 온다.
+/// 문서는 **A4 한 장**이다(#2485). 결과지 위젯([ReportResultSheet])을 화면
+/// 밖에서 구워(`captureReportWidget`) 한 쪽에 그대로 얹는다. 결과지는 크기가
+/// A4 비율로 고정이고 글 칸마다 줄 수 제한과 말줄임이 있어, 피드백이 아무리
+/// 길어도 쪽이 늘지 않는다. 예전에는 편집기 카드를 차례로 구워 쪽을 나눠
+/// 얹어(#2424) 긴 피드백이면 두세 장이 되었다.
 ///
-/// 카드를 굽지 못하면(렌더러 오류 등) 예전처럼 글자만 담은 문서로 물러선다.
-/// 회원에게 아무것도 못 보내는 것보다 그래프 없는 리포트가 낫다.
+/// 그림을 굽지 못하면(렌더러 오류 등) 글자만 담은 문서로 물러선다. 그 문서도
+/// 한 쪽에서 멈추고 말줄임으로 끝난다. 회원에게 아무것도 못 보내는 것보다
+/// 그래프 없는 리포트가 낫다.
 ///
 /// 문구는 전부 [AppLocalizations] 에서 온다. 이 PDF 는 회원이 실제로 받아 보는
 /// 산출물이라, 화면은 영어인데 문서만 한국어로 나가면 안 된다(#964).
 class ReportPdfGenerator {
   /// Creates the generator.
   ///
-  /// [container] 는 카드가 읽는 provider(운동 추세·칼로리 평소)를 앱과 함께
-  /// 쓰려고 받는다. 없으면 추세 카드는 `불러올 수 없음` 으로 선다.
+  /// [container] 는 결과지가 싣는 값(운동 추세·직전 넉 주 리포트)을 앱과 함께
+  /// 쓰려고 받는다. 없으면 그 칸들은 `미집계`·`불러올 수 없음` 으로 선다.
   const ReportPdfGenerator({
     this.container,
     this.capture = captureReportWidget,
+    this.encodeImage = platformReportJpegEncoder,
+    this.yieldFrame = yieldToFrame,
   });
 
   final ProviderContainer? container;
@@ -59,22 +61,23 @@ class ReportPdfGenerator {
   /// 위젯을 그림으로 굽는 방법. 테스트가 갈아 끼운다.
   final ReportWidgetCapture capture;
 
+  /// 구운 그림을 JPEG 로 바꾸는 방법(#2484). 웹은 브라우저가 네이티브로
+  /// 인코딩하고, 네이티브는 날 RGB 로 싣는다. 테스트가 갈아 끼운다.
+  final ReportJpegEncoder encodeImage;
+
+  /// 긴 계산 사이에 이벤트 루프에 양보하는 방법(#2484).
+  final ReportFrameYield yieldFrame;
+
   static const int _pageWidth = 1240;
   static const int _pageHeight = 1754;
   static const double _margin = 92;
 
-  /// 카드를 굽는 논리 폭. 편집기 본문 폭과 같은 너비에서 그려야 운동 추세의
-  /// 세 칸이 화면처럼 가로로 선다 — 좁으면 세로로 쌓인다
-  /// ([OnCareLayout.splitBreakpoint]).
-  static const double _cardWidth = 960;
+  /// 굽는 배율. 결과지 폭(1,000)을 1,500px 로 구우면 A4 폭에 담았을 때 180dpi
+  /// 남짓이라, 인쇄해도 작은 글씨가 뭉개지지 않는다. 더 올리면 웹에서 굽고
+  /// 싣는 동안 화면이 멈추던 문제(#2484)가 되살아난다.
+  static const double _pixelRatio = 1.5;
 
-  /// 굽는 배율. A4 한 쪽 폭에 담았을 때 인쇄해도 글자가 뭉개지지 않을 만큼.
-  static const double _pixelRatio = 2;
-
-  /// 쪽 여백(pt). 카드 그림에는 그림자가 잘리지 않을 만큼 둘레가 이미 있다.
-  static const double _pageMarginPt = 20;
-
-  /// 카드가 읽는 provider 를 기다리는 한도. 넘기면 읽힌 만큼으로 그린다.
+  /// 결과지가 읽는 provider 를 기다리는 한도. 넘기면 읽힌 만큼으로 그린다.
   static const Duration _prepareTimeout = Duration(seconds: 10);
 
   Future<Uint8List> generate({
@@ -84,20 +87,21 @@ class ReportPdfGenerator {
     WeeklyReport? previousReport,
   }) async {
     try {
-      return await _cardPdf(l, report, feedback);
+      return await _sheetPdf(l, report, feedback);
     } catch (error, stack) {
-      // 카드를 굽지 못했다 — 글자만 담은 문서로 물러선다. 원인은 개발 로그에
-      // 남긴다: 회원에게는 그래프 없는 리포트가 가므로 조용히 삼키면 안 된다.
-      debugPrint('report pdf: card rendering failed, text fallback: $error');
+      // 결과지를 굽지 못했다 — 글자만 담은 문서로 물러선다. 원인은 개발
+      // 로그에 남긴다: 회원에게는 그래프 없는 리포트가 가므로 조용히 삼키면
+      // 안 된다.
+      debugPrint('report pdf: sheet rendering failed, text fallback: $error');
       debugPrintStack(stackTrace: stack, maxFrames: 8);
       return _textPdf(l, report, feedback, previousReport);
     }
   }
 
-  // ── 카드 문서 ─────────────────────────────────────────────────────────
+  // ── 결과지 문서 ────────────────────────────────────────────────────────
 
-  /// 편집기 카드를 구워 A4 쪽에 얹은 문서.
-  Future<Uint8List> _cardPdf(
+  /// 결과지 한 장을 구워 A4 한 쪽에 얹은 문서.
+  Future<Uint8List> _sheetPdf(
     AppLocalizations l,
     WeeklyReport report,
     String feedback,
@@ -106,35 +110,24 @@ class ReportPdfGenerator {
     final List<ProviderSubscription<Object?>> keep =
         <ProviderSubscription<Object?>>[];
     try {
-      final double? baseline = await _prepare(scope, report, keep);
-      Future<CapturedWidget> shoot(Widget card) => capture(
-        _frame(scope, l, card),
-        width: _cardWidth + _cardInset.horizontal,
+      final _SheetInputs inputs = await _prepare(scope, report, keep);
+      final CapturedWidget shot = await capture(
+        _frame(
+          scope,
+          l,
+          ReportResultSheet(
+            report: report,
+            feedback: feedback,
+            trend: inputs.trend,
+            history: inputs.history,
+          ),
+        ),
+        width: ReportResultSheet.width,
         pixelRatio: _pixelRatio,
       );
-      final CapturedWidget header = await shoot(
-        ReportPdfHeader(report: report),
-      );
-      final CapturedWidget continued = await shoot(
-        ReportPdfHeader(report: report, continued: true),
-      );
-      final List<CapturedWidget> cards = <CapturedWidget>[
-        // 카드를 하나씩 따로 굽는다 — 쪽을 카드 경계에서 나누려면 경계를
-        // 알아야 한다. 편집기 ① 확인과 같은 차례다.
-        for (final ReportReviewSection section in ReportReviewSection.values)
-          await shoot(
-            ReportReviewCards(
-              report: report,
-              calorieBaseline: baseline,
-              sections: <ReportReviewSection>[section],
-            ),
-          ),
-        // ② 작성의 피드백 카드. 입력창 대신 보낼 글을 같은 칸에 얹는다.
-        await shoot(
-          ReportFeedbackCard(child: ReportFeedbackText(text: feedback)),
-        ),
-      ];
-      return _paginate(header: header, continued: continued, cards: cards);
+      // 굽기는 웹에서 UI 스레드에서 돈다 — 싣기 전에 한 번 양보한다(#2484).
+      await yieldFrame();
+      return await _onePage(shot);
     } finally {
       for (final ProviderSubscription<Object?> sub in keep) {
         sub.close();
@@ -155,12 +148,12 @@ class ReportPdfGenerator {
     ],
   );
 
-  /// 카드가 읽는 비동기 값을 굽기 전에 채워 둔다.
+  /// 결과지가 싣는 비동기 값을 굽기 전에 읽어 둔다.
   ///
-  /// 화면 밖 트리는 한 번만 그리므로, 그때 아직 읽히는 중이면 추세 카드가
-  /// 빈 채로 구워진다. 굽는 동안 값이 치워지지 않도록 [keep] 에 구독을 잡아
-  /// 두고, 끝나면 호출부가 놓는다. 돌려주는 값은 ① 칼로리 줄의 `평소` 다.
-  Future<double?> _prepare(
+  /// 화면 밖 트리는 한 번만 그리므로 값을 미리 채워 위젯에 넘긴다. 읽는 동안
+  /// 값이 치워지지 않도록 [keep] 에 구독을 잡아 두고, 끝나면 호출부가 놓는다.
+  /// 운동 추세와, 4주 평균 대비에 쓰는 직전 넉 주의 리포트를 돌려준다.
+  Future<_SheetInputs> _prepare(
     ProviderContainer scope,
     WeeklyReport report,
     List<ProviderSubscription<Object?>> keep,
@@ -170,45 +163,48 @@ class ReportPdfGenerator {
       weekStart: report.weekStart,
     );
     keep.add(scope.listen(reportTrendProvider(trendKey), (_, _) {}));
-    final List<Future<Object?>> pending = <Future<Object?>>[
-      scope.read(reportTrendProvider(trendKey).future),
-    ];
-    final ReportKey key = (client: report.client, weekStart: report.weekStart);
+    final Future<ReportTrend?> trend = scope
+        .read(reportTrendProvider(trendKey).future)
+        .then<ReportTrend?>((ReportTrend t) => t, onError: (Object _) => null);
+    final List<Future<WeeklyReport?>> past = <Future<WeeklyReport?>>[];
     if (container != null) {
-      // `평소` 는 직전 넉 주의 리포트에서 나온다. ③ 전송 단계에서는 편집기가
-      // 그 주들을 더는 보고 있지 않아 치워졌을 수 있다 — 다시 읽어 둔다.
+      // ③ 전송 단계에서는 편집기가 직전 주들을 더는 보고 있지 않아 치워졌을
+      // 수 있다 — 다시 읽어 둔다.
       for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
-        final ReportKey past = (
+        final ReportKey key = (
           client: report.client,
           weekStart: report.weekStart.subtract(Duration(days: 7 * back)),
         );
-        keep.add(scope.listen(weeklyReportProvider(past), (_, _) {}));
-        pending.add(scope.read(weeklyReportProvider(past).future));
+        keep.add(scope.listen(weeklyReportProvider(key), (_, _) {}));
+        past.add(
+          scope
+              .read(weeklyReportProvider(key).future)
+              .then<WeeklyReport?>(
+                (WeeklyReport r) => r,
+                onError: (Object _) => null,
+              ),
+        );
       }
     }
-    // 하나가 실패해도 나머지는 기다린다 — 실패한 자리는 편집기처럼 빈 상태로
-    // 그린다.
-    await Future.wait<Object?>(<Future<Object?>>[
-      for (final Future<Object?> f in pending)
-        f.then<Object?>((v) => v, onError: (Object _) => null),
+    // 하나가 실패해도 나머지는 기다린다 — 실패한 자리는 `미집계` 로 선다.
+    final List<Object?> read = await Future.wait<Object?>(<Future<Object?>>[
+      trend,
+      ...past,
     ]).timeout(_prepareTimeout, onTimeout: () => const <Object?>[]);
-    if (container == null) return null;
-    keep.add(scope.listen(calorieBaselineProvider(key), (_, _) {}));
-    return scope.read(calorieBaselineProvider(key));
+    return _SheetInputs(
+      trend: read.isEmpty ? null : read.first as ReportTrend?,
+      history: <WeeklyReport>[
+        for (final Object? r in read.skip(1))
+          if (r is WeeklyReport) r,
+      ],
+    );
   }
-
-  /// 카드 둘레. 그림자가 잘리지 않을 만큼, 그리고 위아래 둘레를 합치면
-  /// 화면의 카드 사이 간격(`s16`)이 되도록 둔다.
-  static const EdgeInsets _cardInset = EdgeInsets.symmetric(
-    horizontal: OnCareSpacing.s16,
-    vertical: OnCareSpacing.s8,
-  );
 
   /// 화면 밖 트리가 앱 안에서처럼 그려지도록 테마·로케일·provider 를 두른다.
   static Widget _frame(
     ProviderContainer scope,
     AppLocalizations l,
-    Widget card,
+    Widget sheet,
   ) => UncontrolledProviderScope(
     container: scope,
     child: Localizations(
@@ -219,204 +215,41 @@ class ReportPdfGenerator {
         data: const MediaQueryData(textScaler: TextScaler.noScaling),
         child: Theme(
           data: AppTheme.light(),
-          child: Material(
-            color: OnCareColors.surfacePage,
-            child: Padding(padding: _cardInset, child: card),
-          ),
+          child: Material(color: OnCareColors.surfaceCard, child: sheet),
         ),
       ),
     ),
   );
 
-  /// 구운 카드를 A4 쪽에 차례로 얹는다.
-  ///
-  /// 카드는 쪽 경계에서 자르지 않고 다음 쪽으로 넘긴다. 한 쪽보다 긴 카드
-  /// (아주 긴 피드백)만 쪽마다 나눠 담는데, 글줄 한가운데를 자르지 않도록
-  /// 경계 근처의 빈 줄을 찾아 자른다.
-  Future<Uint8List> _paginate({
-    required CapturedWidget header,
-    required CapturedWidget continued,
-    required List<CapturedWidget> cards,
-  }) {
+  /// 구운 결과지를 A4 한 쪽에 가득 얹는다. 결과지가 A4 비율이라 여백이
+  /// 남지 않는다.
+  Future<Uint8List> _onePage(CapturedWidget shot) async {
     const PdfPageFormat format = PdfPageFormat.a4;
-    final double contentWidth = format.width - _pageMarginPt * 2;
-    final double contentHeight = format.height - _pageMarginPt * 2;
     final pw.Document document = pw.Document();
-    // 그림마다 한 번만 문서에 싣는다 — 긴 카드를 여러 쪽에 나눠 얹어도 같은
-    // 그림을 가리킨다. 카드는 바탕까지 칠해 구운 불투명한 그림이라 투명도
-    // 가면(SMask)을 따로 싣지 않는다 — 실으면 그림마다 한 장씩 더 붙는다.
-    final Map<CapturedWidget, pw.ImageProvider> images =
-        <CapturedWidget, pw.ImageProvider>{};
-    pw.ImageProvider imageOf(CapturedWidget c) => images.putIfAbsent(
-      c,
-      () => pw.ImageProxy(
-        PdfImage(
-          document.document,
-          image: _rgb(c.rgba),
-          width: c.width,
-          height: c.height,
-          alpha: false,
-        ),
+    final pw.ImageProvider image = await embedReportImage(
+      document.document,
+      shot,
+      encode: encodeImage,
+      yieldFrame: yieldFrame,
+    );
+    document.addPage(
+      pw.Page(
+        pageFormat: format,
+        margin: pw.EdgeInsets.zero,
+        build: (_) =>
+            pw.Image(image, width: format.width, height: format.height),
       ),
     );
-
-    final List<List<pw.Widget>> pages = <List<pw.Widget>>[<pw.Widget>[]];
-    double used = 0;
-
-    void place(CapturedWidget image, {int from = 0, int? to}) {
-      final int end = to ?? image.height;
-      final double scale = contentWidth / image.width;
-      pages.last.add(
-        _slice(imageOf(image), image.height, from, end, contentWidth, scale),
-      );
-      used += (end - from) * scale;
-    }
-
-    // 이어지는 쪽 머리는 짧을 때만 둔다. 쪽의 대부분을 머리가 차지하면
-    // 카드를 담을 자리가 남지 않는다.
-    final double continuedHeight =
-        continued.height * (contentWidth / continued.width);
-    final bool withContinued = continuedHeight <= contentHeight / 4;
-    final double pageStart = withContinued ? continuedHeight : 0;
-
-    void newPage() {
-      pages.add(<pw.Widget>[]);
-      used = 0;
-      if (withContinued) place(continued);
-    }
-
-    place(header);
-    final double headerRoom = contentHeight - pageStart;
-    for (final CapturedWidget card in cards) {
-      final double scale = contentWidth / card.width;
-      final double height = card.height * scale;
-      if (used + height <= contentHeight) {
-        place(card);
-        continue;
-      }
-      // 새 쪽에 통째로 들어가면 넘긴다.
-      if (height <= headerRoom) {
-        newPage();
-        place(card);
-        continue;
-      }
-      // 한 쪽보다 긴 카드 — 남은 자리만큼씩 잘라 담는다.
-      int from = 0;
-      while (from < card.height) {
-        final int room = ((contentHeight - used) / scale).floor();
-        // 새 쪽에는 언제나 자리가 넉넉하다 — 머리만 선 쪽을 또 넘기지 않는다.
-        if (room < _minSlicePx && used > pageStart) {
-          newPage();
-          continue;
-        }
-        final int to = from + room >= card.height
-            ? card.height
-            : _quietRow(card, from + room, from + room ~/ 2);
-        place(card, from: from, to: to);
-        from = to;
-        if (from < card.height) newPage();
-      }
-    }
-
-    final PdfColor background = PdfColor.fromInt(
-      OnCareColors.surfacePage.toARGB32(),
-    );
-    for (final List<pw.Widget> children in pages) {
-      document.addPage(
-        pw.Page(
-          pageTheme: pw.PageTheme(
-            pageFormat: format,
-            margin: const pw.EdgeInsets.all(_pageMarginPt),
-            // 화면처럼 연회색 바탕 위에 흰 카드가 선다.
-            buildBackground: (_) => pw.FullPage(
-              ignoreMargins: true,
-              child: pw.Container(color: background),
-            ),
-          ),
-          build: (_) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: children,
-          ),
-        ),
-      );
-    }
-    return document.save();
-  }
-
-  /// `RGBA` 에서 투명도를 뺀 `RGB`.
-  static Uint8List _rgb(Uint8List rgba) {
-    final int pixels = rgba.length ~/ 4;
-    final Uint8List out = Uint8List(pixels * 3);
-    for (int i = 0; i < pixels; i++) {
-      out[i * 3] = rgba[i * 4];
-      out[i * 3 + 1] = rgba[i * 4 + 1];
-      out[i * 3 + 2] = rgba[i * 4 + 2];
-    }
-    return out;
-  }
-
-  /// 조각으로 담을 가장 작은 높이(px). 쪽 끝에 이보다 적게 남으면 다음 쪽에서
-  /// 시작한다 — 한두 줄짜리 조각은 읽는 흐름만 끊는다.
-  static const int _minSlicePx = 160;
-
-  /// 그림의 [from]..[to] 줄만 [width] 폭으로 보이는 조각.
-  static pw.Widget _slice(
-    pw.ImageProvider image,
-    int imageHeight,
-    int from,
-    int to,
-    double width,
-    double scale,
-  ) {
-    final pw.Widget full = pw.Image(
-      image,
-      width: width,
-      height: imageHeight * scale,
-      fit: pw.BoxFit.fill,
-    );
-    if (from == 0 && to == imageHeight) return full;
-    return pw.SizedBox(
-      width: width,
-      height: (to - from) * scale,
-      child: pw.ClipRect(
-        child: pw.Stack(
-          children: <pw.Widget>[
-            pw.Positioned(left: 0, top: -from * scale, child: full),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// [target] 에서 위로 [floor] 까지 올라가며 한 줄 전체가 같은 색인 줄을
-  /// 찾는다 — 글줄 사이의 빈 줄이다. 못 찾으면 [target] 에서 자른다.
-  static int _quietRow(CapturedWidget image, int target, int floor) {
-    final Uint8List px = image.rgba;
-    final int stride = image.width * 4;
-    // 카드 테두리·그림자가 있는 양옆은 빼고 본문 폭만 본다.
-    final int left = (image.width * 0.06).round();
-    final int right = image.width - left;
-    for (int row = target; row > floor; row--) {
-      final int base = row * stride;
-      final int r = px[base + left * 4];
-      final int g = px[base + left * 4 + 1];
-      final int b = px[base + left * 4 + 2];
-      bool quiet = true;
-      for (int x = left; x < right; x++) {
-        final int i = base + x * 4;
-        if (px[i] != r || px[i + 1] != g || px[i + 2] != b) {
-          quiet = false;
-          break;
-        }
-      }
-      if (quiet) return row;
-    }
-    return target;
+    // 날 RGB 로 실은 그림의 압축이 여기서 돈다 — 도는 동안 양보한다.
+    return document.save(enableEventLoopBalancing: true);
   }
 
   // ── 글자 문서(물러설 자리) ──────────────────────────────────────────────
 
-  /// 카드를 굽지 못했을 때의 문서 — 수치와 피드백을 글로만 담는다.
+  /// 결과지를 굽지 못했을 때의 문서 — 수치와 피드백을 글로만 담는다.
+  ///
+  /// 이 문서도 **한 쪽**이다(#2485). 쪽 끝에 닿은 글은 남은 줄만큼만 싣고
+  /// 말줄임으로 끝내며, 그 뒤의 글은 싣지 않는다.
   Future<Uint8List> _textPdf(
     AppLocalizations l,
     WeeklyReport report,
@@ -424,45 +257,56 @@ class ReportPdfGenerator {
     WeeklyReport? previousReport,
   ) async {
     final blocks = _blocks(l, report, feedback, previousReport);
-    final pageImages = <Uint8List>[];
-    var recorder = ui.PictureRecorder();
-    var canvas = Canvas(recorder);
-    double y = _beginPage(canvas, l, 1);
-    var pageNumber = 1;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    double y = _beginPage(canvas, l);
+    const double bottom = _pageHeight - _margin;
+    const double width = _pageWidth - (_margin * 2);
 
     for (final block in blocks) {
       final painter = TextPainter(
         text: TextSpan(text: block.text, style: block.style),
         textDirection: TextDirection.ltr,
         textScaler: TextScaler.noScaling,
-      )..layout(maxWidth: _pageWidth - (_margin * 2));
-      if (y + painter.height + block.after > _pageHeight - _margin) {
-        pageImages.add(await _finishPage(recorder));
-        recorder = ui.PictureRecorder();
-        canvas = Canvas(recorder);
-        pageNumber++;
-        y = _beginPage(canvas, l, pageNumber);
+      )..layout(maxWidth: width);
+      final double height = painter.height;
+      if (y + height <= bottom) {
+        painter.paint(canvas, Offset(_margin, y));
+        painter.dispose();
+        y += height + block.after;
+        continue;
       }
-      painter.paint(canvas, Offset(_margin, y));
-      y += painter.height + block.after;
+      // 쪽 끝 — 남은 줄만큼 싣고 말줄임으로 끝낸다.
+      final int lines = ((bottom - y) / painter.preferredLineHeight).floor();
+      if (lines > 0) {
+        final clipped = TextPainter(
+          text: TextSpan(text: block.text, style: block.style),
+          textDirection: TextDirection.ltr,
+          textScaler: TextScaler.noScaling,
+          maxLines: lines,
+          ellipsis: '…',
+        )..layout(maxWidth: width);
+        clipped.paint(canvas, Offset(_margin, y));
+        clipped.dispose();
+      }
+      painter.dispose();
+      break;
     }
-    pageImages.add(await _finishPage(recorder));
+    final Uint8List page = await _finishPage(recorder);
 
     final document = pw.Document();
-    for (final image in pageImages) {
-      document.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.zero,
-          build: (_) => pw.Image(
-            pw.MemoryImage(image),
-            width: PdfPageFormat.a4.width,
-            height: PdfPageFormat.a4.height,
-            fit: pw.BoxFit.fill,
-          ),
+    document.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: pw.EdgeInsets.zero,
+        build: (_) => pw.Image(
+          pw.MemoryImage(page),
+          width: PdfPageFormat.a4.width,
+          height: PdfPageFormat.a4.height,
+          fit: pw.BoxFit.fill,
         ),
-      );
-    }
+      ),
+    );
     return document.save();
   }
 
@@ -479,14 +323,11 @@ class ReportPdfGenerator {
     previousReport,
   ).map((block) => block.text).toList(growable: false);
 
-  double _beginPage(Canvas canvas, AppLocalizations l, int pageNumber) {
+  double _beginPage(Canvas canvas, AppLocalizations l) {
     canvas.drawColor(Colors.white, BlendMode.src);
-    final title = pageNumber == 1
-        ? l.reportsPdfDocTitle
-        : l.reportsPdfDocTitleContinued;
     final titlePainter = TextPainter(
       text: TextSpan(
-        text: title,
+        text: l.reportsPdfDocTitle,
         style: const TextStyle(
           fontFamily: _kFont,
           color: Color(0xff173b36),
@@ -695,64 +536,18 @@ class ReportPdfGenerator {
   }
 }
 
-/// 카드가 앱과 같은 provider 값(운동 추세·칼로리 평소)을 읽도록 앱의
+/// 결과지가 앱과 같은 provider 값(운동 추세·직전 넉 주)을 읽도록 앱의
 /// 컨테이너를 넘긴다(#2424).
 final reportPdfGeneratorProvider = Provider<ReportPdfGenerator>(
   (ref) => ReportPdfGenerator(container: ref.container),
 );
 
-/// PDF 첫 쪽 머리 — 무슨 문서이고 누구의 어느 주인가.
-///
-/// 이어지는 쪽에는 [continued] 로 제목만 짧게 둔다. 카드와 같은 폭·테마로
-/// 구워 한 문서로 읽히게 한다(#2424).
-class ReportPdfHeader extends StatelessWidget {
-  /// Creates the header for [report].
-  const ReportPdfHeader({
-    super.key,
-    required this.report,
-    this.continued = false,
-  });
+/// 결과지에 넘길, 미리 읽어 둔 값.
+class _SheetInputs {
+  const _SheetInputs({required this.trend, required this.history});
 
-  final WeeklyReport report;
-
-  /// 둘째 쪽부터의 짧은 머리인가.
-  final bool continued;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    if (continued) {
-      return Text(
-        l.reportsPdfDocTitleContinued,
-        style: tokens
-            .text(OnCareTypography.caption)
-            .copyWith(color: OnCareColors.textTertiary),
-      );
-    }
-    final TextStyle meta = tokens
-        .text(OnCareTypography.bodySmall)
-        .copyWith(color: OnCareColors.textSecondary);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          l.reportsPdfDocTitle,
-          style: tokens.text(OnCareTypography.titleLarge),
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        Text(l.reportsPdfClient(report.client.name), style: meta),
-        Text(
-          l.reportsPdfPeriod(
-            ReportPdfGenerator._date(report.weekStart),
-            ReportPdfGenerator._date(report.weekEnd),
-          ),
-          style: meta,
-        ),
-      ],
-    );
-  }
+  final ReportTrend? trend;
+  final List<WeeklyReport> history;
 }
 
 class _PdfBlock {

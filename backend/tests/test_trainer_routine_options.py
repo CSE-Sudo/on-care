@@ -12,6 +12,7 @@ from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import delete
 
 from app.schemas.trainer_api import (
     RoutineOptionAnalysisOut,
@@ -26,6 +27,7 @@ from app.models.models import (
     TrainerClient,
     TrainerClientMemo,
     TrainerRoutine,
+    User,
 )
 from app.services import trainer_routine_options_service
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET
@@ -74,9 +76,14 @@ def _headers(token: str) -> dict[str, str]:
 
 
 def _first_client_id(client, token: str) -> str:
+    """로스터에서 담당 중인 첫 회원. (#2471)
+
+    로스터는 담당이 끝난 회원도 `registered=false` 로 돌려주고, 그 회원의 루틴
+    API 는 404 다. 다른 테스트가 남긴 회원이 맨 앞에 와도 흔들리지 않게 고른다.
+    """
     response = client.get("/v1/trainer/clients", headers=_headers(token))
     assert response.status_code == 200, response.text
-    return response.json()[0]["id"]
+    return next(c["id"] for c in response.json() if c["registered"])
 
 
 def _register_and_link_member(client, *, goal: str = "체중 감량") -> str:
@@ -1041,3 +1048,45 @@ def test_rule_fallback_avoids_the_part_named_by_an_insight_memo():
     assert not any("스쿼트" in name for name in names)
     assert names, "대안까지 사라져 빈 루틴이 되면 안 된다"
     assert "무릎" in options.plan_b.rationale
+
+
+def test_first_client_skips_an_ended_member_at_the_front(client, db_session):
+    """담당이 끝난 회원이 로스터 맨 앞에 있어도 담당 중인 회원을 고른다. (#2471)"""
+    member_id = f"ended-front-{uuid4().hex[:10]}"
+    db_session.add(
+        User(
+            id=member_id,
+            email=f"{member_id}@oncare.com",
+            name="담당 끝난 회원",
+            hashed_password="unused",
+            role="member",
+        )
+    )
+    db_session.commit()
+    db_session.add(
+        TrainerClient(
+            id=f"link-{uuid4().hex[:12]}",
+            trainer_id=TRAINER_ID,
+            member_id=member_id,
+            active=False,
+            sort_order=-1,
+        )
+    )
+    db_session.commit()
+    try:
+        token = _trainer_token(client)
+        roster = client.get(
+            "/v1/trainer/clients", headers=_headers(token)
+        ).json()
+        # 전제: 끝난 회원이 정말 맨 앞에 섰다.
+        assert roster[0]["id"] == member_id
+        assert roster[0]["registered"] is False
+
+        picked = _first_client_id(client, token)
+
+        assert picked != member_id
+        assert next(c for c in roster if c["id"] == picked)["registered"] is True
+    finally:
+        db_session.rollback()
+        db_session.execute(delete(User).where(User.id == member_id))
+        db_session.commit()

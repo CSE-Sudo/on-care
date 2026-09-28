@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -98,12 +97,12 @@ class MemberFeedbackCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          ReportCardHeader(
+          AppSectionHeader(
             number: 1,
             title: l.reportsMemberFeedbackTitle,
             // 언제 낸 답인지를 제목 줄에 적는다 — 주가 끝난 뒤에 받는 답이라,
             // 날짜가 없으면 이번 주 도중에 쓴 말처럼 읽힌다.
-            subtitle: given == null
+            titleMeta: given == null
                 ? l.reportsMemberFeedbackNone
                 : l.reportsMemberFeedbackMeta(
                     l.dateMonthDay(
