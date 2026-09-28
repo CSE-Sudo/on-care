@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
+import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 
@@ -19,10 +20,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v35']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v36']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v36` 은 김민수를 뺀 고객의 일별 기록을 리포트 이력 전체와 그 앞 4주까지
+/// 늘렸다(#2453). 올리지 않으면 오늘 이미 시드된 브라우저의 오래된 지난
+/// 리포트에 `지난 4주 평균` 이 비어 `이번 주 평균` 만 남는다.
 ///
 /// `_v35` 는 회원마다 매주 PT 를 1회(몇 명은 2회) 두고, 지난 주들에도 같은
 /// 수업을 되풀이해 심었다(#2452). 올리지 않으면 오늘 이미 시드된 브라우저의
@@ -148,7 +153,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v35') == today &&
+  if (await db.readValue('trainer_seeded_v36') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -629,7 +634,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v35', today);
+    await db.putValue('trainer_seeded_v36', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -912,9 +917,16 @@ class _Chat {
 }
 
 /// 데모가 들고 있는 주 수(이번 주 포함). '최근 4주' 카드는 보고 있는 주에서
-/// 3주를 더 거슬러 읽으므로, 뒤로 이동한 만큼 더 있어야 카드가 꽉 찬다.
-/// 12주면 8주 전까지 뒤로 가도 빈 칸이 없다. 백엔드 시드도 같은 값이다(#752).
-const int _demoHistoryWeeks = 12;
+/// 3주를 더 거슬러 읽으므로, 뒤로 이동한 만큼 더 있어야 카드가 꽉 찬다(#752).
+///
+/// 지난 리포트의 ① 칼로리 줄은 그 주 앞 4주를 평소로 삼는다(#2453). 데모
+/// 리포트 이력의 가장 오래된 주도 그 4주가 있어야 `지난 4주 평균` 과 증감이
+/// 선다 — 그래서 이력 주 수에 기준 주 수를 더한 값으로 둔다. 12주에 멈춰
+/// 있을 때는 이력의 오래된 주들이 `이번 주 평균` 만 보여 줬다. 백엔드
+/// 시드도 같은 값이다.
+@visibleForTesting
+const int demoMetricsHistoryWeeks =
+    demoReportHistoryWeeks + kCalorieBaselineWeeks;
 
 /// 주마다 곱하는 계수. 과거로 갈수록 값이 조금씩 다르게 보이도록 고정된 수를
 /// 돌려 쓴다 — 난수를 쓰면 재시딩마다 이력이 바뀌어 어제 본 화면과 달라진다.
@@ -1171,7 +1183,7 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
   final monday = today.subtract(Duration(days: today.weekday - 1));
   final todayIndex = today.weekday - 1;
 
-  for (var back = 0; back < _demoHistoryWeeks; back++) {
+  for (var back = 0; back < demoMetricsHistoryWeeks; back++) {
     final weekMonday = monday.subtract(Duration(days: 7 * back));
     final calorieFactor = _calorieFactors[back % _calorieFactors.length];
     final sodiumFactor = _sodiumFactors[back % _sodiumFactors.length];

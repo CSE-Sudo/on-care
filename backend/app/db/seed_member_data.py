@@ -41,6 +41,7 @@ from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
 from app.db.demo_fixture import FixtureRoutine, load_fixture
+from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
@@ -91,8 +92,10 @@ _TODAY_MEALS: dict[
 }
 
 # 최근 7일 일별 나트륨(오래된→오늘). 마지막 값은 오늘 3끼 합과 일치.
-#: 시드가 채우는 과거 주 수(이번 주 포함) — `seed_roster` 와 같은 값이다.
-_HISTORY_WEEKS = 12
+#: 시드가 채우는 과거 주 수(이번 주 포함) — `seed_roster` 의 값을 그대로 쓴다.
+#: 둘이 따로 적혀 있으면 한쪽만 늘어, 같은 데모에서 회원마다 지난 리포트의
+#: `지난 4주 평균` 이 서거나 비었다(#2453).
+_HISTORY_WEEKS = HISTORY_WEEKS
 
 #: 과거 주에 곱하는 계수 — `seed_roster` 의 같은 이름들과 값을 맞춘다.
 #: 지표마다 갈라 둔 이유는 그쪽 주석에 적어 뒀다.
@@ -1179,7 +1182,7 @@ def _seed_diet(db: Session, member_id: str) -> None:
     # 과거 일별 기록 (해당 날짜에 기록이 없을 때만 — 중복 합산 방지).
     # 리포트가 과거 주로 이동할 수 있어 이번 주만 채우면 한 주만 뒤로 가도
     # 화면이 빈다(#752).
-    # 이미 기록이 있는 날짜를 한 번에 읽는다 — 날마다 조회하면 12주치 시딩이
+    # 이미 기록이 있는 날짜를 한 번에 읽는다 — 날마다 조회하면 여러 주치 시딩이
     # 눈에 띄게 느려진다.
     logged = set(
         db.scalars(
