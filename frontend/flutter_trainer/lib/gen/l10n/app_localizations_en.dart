@@ -834,6 +834,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseRequired => 'Add at least one exercise';
 
   @override
+  String get coachTemplateExerciseNameRequired => 'Enter the exercise name';
+
+  @override
   String get coachTemplateSaveFailed =>
       'Couldn\'t save the template. Please try again';
 
