@@ -150,7 +150,13 @@ def confirm(
     slot: str,
     lang: str = "ko",
 ) -> DietTrainerPick:
-    """후보 하나를 확정한다. 지금 리스트에 없는 메뉴는 받지 않는다."""
+    """후보 하나를 확정한다. 지금 리스트에 없는 메뉴는 받지 않는다.
+
+    트레이너가 이름을 직접 적어 추천하는 길은 일부러 두지 않았다. PT 트레이너의 일은
+    운동 지도가 중심이고 끼니별 식단 추천은 거의 하지 않는다 — 메뉴를 짓는 일은 회원
+    기록을 읽은 AI 가 맡고, 트레이너는 권할지만 정한다. 리스트 밖 이름을 받으면 이유
+    태그·영양 추정도 없는 메뉴가 회원 홈에 뜬다.
+    """
     plan = _plan(db, member_id, lang=lang)
     wanted = diet_menu_plan.norm_name(name)
     menu = next(
