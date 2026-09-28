@@ -8,9 +8,9 @@ import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dar
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
-        AppAvatar,
         AppBackButton,
         AppCard,
         AppTag,
@@ -80,8 +80,8 @@ void main() {
         demographicsText.style!.fontSize!,
         lessThan(nameText.style!.fontSize!),
       );
-      final avatar = tester.widget<AppAvatar>(
-        find.descendant(of: selectedTile, matching: find.byType(AppAvatar)),
+      final avatar = tester.widget<ClientAvatar>(
+        find.descendant(of: selectedTile, matching: find.byType(ClientAvatar)),
       );
       // 목록 아바타에는 활성/휴면 점이 없다.
       expect(avatar.online, isNull);
