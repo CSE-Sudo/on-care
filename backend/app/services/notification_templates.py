@@ -49,6 +49,7 @@ TRAINER_MEMBER_WITHDRAWN = "trainer_member_withdrawn"
 TRAINER_MEMBER_DISCONNECTED = "trainer_member_disconnected"
 TRAINER_CONSULT_REQUESTED = "trainer_consult_requested"
 TRAINER_CONSULT_CANCELLED = "trainer_consult_cancelled"
+TRAINER_CONSULT_WITHDRAWN = "trainer_consult_withdrawn"
 TRAINER_INVITE_ACCEPTED = "trainer_invite_accepted"
 TRAINER_INVITE_REJECTED = "trainer_invite_rejected"
 TRAINER_RESERVATION_BOOKED = "trainer_reservation_booked"
@@ -229,6 +230,19 @@ def _trainer_consult_cancelled(args: Args, locale: Locale) -> Rendered:
     return "Consultation request cancelled", f"{name or 'Member'} · {day}"
 
 
+@_template(TRAINER_CONSULT_WITHDRAWN)
+def _trainer_consult_withdrawn(args: Args, locale: Locale) -> Rendered:
+    # 회원이 탈퇴해 대기 중이던 요청이 함께 사라졌다(#1632). 이름이 비면 탈퇴
+    # 알림(`trainer_member_withdrawn`)과 같은 말을 대신 적는다.
+    name, day = _text(args, "member_name").strip(), _text(args, "preferred_date")
+    if locale == "ko":
+        return "회원 탈퇴로 상담 요청이 취소됐어요", f"{name or '이름 없는'} 회원 · {day}"
+    return (
+        "Consultation request cancelled: member account deleted",
+        f"{name or 'A member'} · {day}",
+    )
+
+
 @_template(TRAINER_INVITE_ACCEPTED)
 def _trainer_invite_accepted(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
@@ -268,10 +282,12 @@ def _trainer_reservation_cancelled(args: Args, locale: Locale) -> Rendered:
 @_template(TRAINER_MEMBER_MESSAGE)
 def _trainer_member_message(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
-    # 본문은 회원이 쓴 메시지 그대로다.
+    # 본문은 회원이 쓴 메시지 그대로다. 사진만 보낸 메시지는 본문이 비어 있어
+    # 대신 적는 말이 있다(#1665) — 트레이너 발신 사진(#921)과 같은 규칙이다.
+    photo_only = bool(args.get("photo_only"))
     if locale == "ko":
-        return f"{name or '회원'} 회원의 메시지", None
-    return f"Message from {name or 'a member'}", None
+        return f"{name or '회원'} 회원의 메시지", "사진을 보냈어요" if photo_only else None
+    return f"Message from {name or 'a member'}", "Sent a photo" if photo_only else None
 
 
 # --------------------------------------------------------------------------

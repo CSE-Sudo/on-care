@@ -58,9 +58,10 @@ def _assert_nothing_leaked(resp, db, caplog) -> None:
         )
     ).all()
     assert leaked == []
-    ours = "\n".join(r.getMessage() for r in caplog.records if r.name.startswith("app"))
-    assert SECRET_TOKEN not in ours
-    assert BODY_MARKER not in ours
+    # 앱 로거만이 아니라 httpx 등 모든 로거가 남긴 로그 전체를 본다(#2351).
+    logged = caplog.text + "\n".join(r.getMessage() for r in caplog.records)
+    assert SECRET_TOKEN not in logged
+    assert BODY_MARKER not in logged
 
 
 # ── 형식 이상 → 502 + 실패 감사 ─────────────────────────────────────

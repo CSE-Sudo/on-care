@@ -682,31 +682,66 @@ class _RecMeal {
     this.reason,
     this.tag, {
     this.source = _RecSource.ai,
+    this.icon,
   });
 
   /// Bundled dish photo shown on the card. [emoji] over the tile colour is
   /// the fallback when the asset is missing, so the section still renders
-  /// end-to-end.
-  final String photo;
+  /// end-to-end. 트레이너 추천은 사진이 없어(null) [icon] 으로 끼니를 그린다.
+  final String? photo;
   final String emoji;
   final String name;
   final String reason;
 
   /// 영양 특성 배지. 어휘는 여섯 가지로 고정한다 — 같은 뜻을 화면마다 다른
-  /// 말로 부르지 않기 위해서다. (#1056)
-  final String tag;
+  /// 말로 부르지 않기 위해서다. (#1056) 여섯 어휘로 말할 수 없는 트레이너
+  /// 추천(열량 채우기·식이섬유)은 배지 없이 이유 줄이 말한다(null).
+  final String? tag;
 
   final _RecSource source;
+
+  /// 사진이 없을 때 머리에 그리는 끼니 아이콘. (#2380)
+  final IconData? icon;
 
   /// 사진·태그는 그대로 두고 추천 이유 문구만 바꾼 사본.
   /// 서버가 개인화 문구를 보냈을 때 쓴다.
   _RecMeal withReason(String newReason) =>
-      _RecMeal(photo, emoji, name, newReason, tag, source: source);
-
-  /// 출처만 바꾼 사본.
-  _RecMeal withSource(_RecSource newSource) =>
-      _RecMeal(photo, emoji, name, reason, tag, source: newSource);
+      _RecMeal(photo, emoji, name, newReason, tag, source: source, icon: icon);
 }
+
+/// 담당 트레이너가 확정한 추천 → 카드. (#2380)
+///
+/// 이름으로 오는 메뉴라 번들 사진이 없다 — 끼니 아이콘을 그린다. 이유는 태그로
+/// 앱이 자기 말로 만든다. AI 가 후보를 냈더라도 트레이너가 골랐으니 회원에게는
+/// `트레이너 추천` 이다.
+_RecMeal _trainerPickCard(AppLocalizations l, TrainerMealPick pick) => _RecMeal(
+  null,
+  '',
+  pick.name,
+  switch (pick.tag) {
+    'sodium_low' => l.homeTrainerPickReasonSodiumLow,
+    'protein_high' => l.homeTrainerPickReasonProteinHigh,
+    'calorie_low' => l.homeTrainerPickReasonCalorieLow,
+    'calorie_high' => l.homeTrainerPickReasonCalorieHigh,
+    'sugar_low' => l.homeTrainerPickReasonSugarLow,
+    'fiber_high' => l.homeTrainerPickReasonFiberHigh,
+    _ => pick.keyword,
+  },
+  switch (pick.tag) {
+    'sodium_low' => l.homeMealTagLowSodium,
+    'protein_high' => l.homeMealTagHighProtein,
+    'calorie_low' => l.homeMealTagLowCal,
+    'sugar_low' => l.homeMealTagLowSugar,
+    _ => null,
+  },
+  source: _RecSource.trainer,
+  icon: switch (pick.slot) {
+    'breakfast' => AppIcons.mealBreakfast,
+    'lunch' => AppIcons.mealLunch,
+    'dinner' => AppIcons.mealDinner,
+    _ => AppIcons.mealSnack,
+  },
+);
 
 /// 서버 카탈로그 key → 화면 표시(사진·이모지·문구).
 ///
@@ -828,12 +863,15 @@ class _RecommendedMeals extends ConsumerWidget {
     final MealRecommendations recs =
         ref.watch(dietRecommendationsProvider).valueOrNull ??
         MealRecommendations.fallback;
-    // 담당 트레이너가 있는 회원의 첫 장은 트레이너가 짚어 준 자리다. 담당이
-    // 없으면 그 배지를 달지 않는다 — 없는 사람의 추천이라고 말하게 된다.
+    // 첫 장의 `트레이너 추천` 은 담당 트레이너가 실제로 골라 확정한 메뉴일 때만
+    // 붙는다(#2380). 예전에는 담당이 있기만 하면 AI 카드 첫 장에 배지를 달았다.
+    // 서버가 담당·동의를 이미 보지만, 담당이 없는 화면에 트레이너 추천이 새지
+    // 않도록 여기서도 담당을 확인한다.
     final bool hasCoach = ref.watch(memberCoachProvider).valueOrNull != null;
+    final TrainerMealPick? pick = hasCoach ? recs.trainerPick : null;
     final List<_RecMeal> meals = <_RecMeal>[
-      for (final (int i, _RecMeal meal) in _cardsFor(l, recs).indexed)
-        i == 0 && hasCoach ? meal.withSource(_RecSource.trainer) : meal,
+      if (pick != null) _trainerPickCard(l, pick),
+      ..._cardsFor(l, recs),
     ];
     // 개인화된 응답일 때만 근거를 보여준다. 목업/데모 모드와 신규 가입자는
     // personalized=false 라 이 줄이 아예 나타나지 않는다(화면 불변).
@@ -990,21 +1028,24 @@ class _RecMealCard extends StatelessWidget {
           children: <Widget>[
             Stack(
               children: <Widget>[
-                Image.asset(
-                  meal.photo,
-                  height: _kRecMealPhotoHeight,
-                  width: double.infinity,
-                  // 카드에서 이름은 사진 아래 따로 읽히지만, 사진 자체에
-                  // 이름이 없으면 무엇의 사진인지 알 수 없다(#1942).
-                  semanticLabel: AppLocalizations.of(
-                    context,
-                  ).a11yMealPhotoOf(meal.name),
-                  fit: BoxFit.cover,
-                  // Fall back to the emoji tile if the bundled photo is missing.
-                  errorBuilder:
-                      (BuildContext context, Object _, StackTrace? _) =>
-                          _emojiHeader(context),
-                ),
+                if (meal.photo case final String photo)
+                  Image.asset(
+                    photo,
+                    height: _kRecMealPhotoHeight,
+                    width: double.infinity,
+                    // 카드에서 이름은 사진 아래 따로 읽히지만, 사진 자체에
+                    // 이름이 없으면 무엇의 사진인지 알 수 없다(#1942).
+                    semanticLabel: AppLocalizations.of(
+                      context,
+                    ).a11yMealPhotoOf(meal.name),
+                    fit: BoxFit.cover,
+                    // Fall back to the emoji tile if the bundled photo is missing.
+                    errorBuilder:
+                        (BuildContext context, Object _, StackTrace? _) =>
+                            _emojiHeader(context),
+                  )
+                else
+                  _iconHeader(context),
                 // 누가 고른 추천인지 사진 위에 얹는다 — 카드가 좁아 아래 글자
                 // 자리를 더 쓰면 이름이나 이유가 밀린다. (#1056)
                 // 끝쪽도 묶어 두어야 긴 영어 배지가 카드 밖으로 나가지 않고
@@ -1060,12 +1101,13 @@ class _RecMealCard extends StatelessWidget {
                     const Spacer(),
                     // 배지 색은 하나다 (#1056). 요리마다 색이 달라지면 색이
                     // 영양 특성을 뜻하는지 요리 종류를 뜻하는지 알 수 없다.
-                    _Badge(
-                      label: meal.tag,
-                      textKey: const Key('rec-meal-tag'),
-                      fill: tokens.brand.surface,
-                      foreground: tokens.brand.primary,
-                    ),
+                    if (meal.tag case final String tag)
+                      _Badge(
+                        label: tag,
+                        textKey: const Key('rec-meal-tag'),
+                        fill: tokens.brand.surface,
+                        foreground: tokens.brand.primary,
+                      ),
                   ],
                 ),
               ),
@@ -1075,6 +1117,22 @@ class _RecMealCard extends StatelessWidget {
       ),
     );
   }
+
+  /// 사진이 없는 트레이너 추천의 머리 — 끼니 아이콘. 사진 자리와 같은 높이라
+  /// 옆 카드와 이름·배지 줄이 맞는다. (#2380) 왼쪽 위에 출처 배지가 얹히므로
+  /// 아이콘은 가운데보다 아래에 둔다 — 가운데면 배지에 가려진다.
+  Widget _iconHeader(BuildContext context) => Container(
+    key: const Key('rec-meal-icon'),
+    height: _kRecMealPhotoHeight,
+    width: double.infinity,
+    color: context.oncare.brand.surface,
+    alignment: const Alignment(0, 0.6),
+    child: AppIcon(
+      meal.icon ?? AppIcons.diet,
+      size: OnCareSize.iconLarge,
+      color: context.oncare.brand.primary,
+    ),
+  );
 
   Widget _emojiHeader(BuildContext context) => Container(
     height: _kRecMealPhotoHeight,

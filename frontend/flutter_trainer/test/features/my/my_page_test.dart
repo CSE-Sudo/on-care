@@ -158,7 +158,7 @@ void main() {
       await settle(tester);
 
       // 로그인 화면으로 돌아왔다 — 표식은 가입 링크(데모 진입은 감춤, #1526).
-      expect(find.text('계정 만들기'), findsOneWidget);
+      expect(find.text('회원가입'), findsOneWidget);
     });
 
     testWidgets('edit mode saves changes with a confirmation flash', (

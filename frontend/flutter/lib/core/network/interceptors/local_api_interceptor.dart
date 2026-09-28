@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart'
     show
@@ -39,6 +40,7 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
+import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -1225,7 +1227,29 @@ class LocalApiInterceptor extends Interceptor {
       'days_with_data': 0,
       'avg_sodium_mg': 0,
       'sodium_limit_mg': 0,
+      'trainer_pick': _demoTrainerPick(options),
     });
+  }
+
+  /// 데모 담당 트레이너가 확정해 둔 식단 추천(#2380). 서버 `trainer_pick` 과 같은
+  /// 모양이다. 4주 추천 메뉴 리스트(`kDemoMenuPlan`)의 저녁 고단백 메뉴를 쓴다 —
+  /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
+  /// 홈이 담당을 확인해 그리지 않는다.
+  Map<String, Object?> _demoTrainerPick(RequestOptions options) {
+    final Object? header = options.headers['Accept-Language'];
+    final String lang =
+        header is String && header.toLowerCase().startsWith('en') ? 'en' : 'ko';
+    final DemoPlanMenu menu = (kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!)
+        .firstWhere(
+          (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
+        );
+    return <String, Object?>{
+      'slot': menu.slot,
+      'name': menu.name,
+      'tag': menu.tag,
+      'keyword': menu.keyword,
+      'trainer_name': kDemoTrainerName,
+    };
   }
 
   /// 시드가 정해 둔 그 날짜의 코치 문구. 없으면 null.
@@ -2849,16 +2873,43 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// POST /auth/register — mirrors FastAPI: returns the created user
-  /// `{id, name, email}` with 201. The demo accepts any non-empty
-  /// email/password (real duplicate/validation is enforced by FastAPI
-  /// when USE_MOCK_API=false). `name` defaults to the email local-part.
+  /// `{id, name, email}` with 201. Duplicate emails are only enforced by
+  /// FastAPI when USE_MOCK_API=false. `name` defaults to the email local-part.
+  ///
+  /// 비밀번호는 서버와 같은 기준(`AppInputRules.signUpPassword`, #1555)을 보고,
+  /// 어기면 서버와 같은 모양의 422(`detail[].type` 코드)를 준다 — 목업에서만
+  /// 가입되는 비밀번호가 있으면 실서버에서 처음 실패를 보게 된다. 서버처럼
+  /// 비밀번호의 앞뒤 공백은 자르지 않는다.
   Future<Response<Object?>> _authRegister(RequestOptions options) async {
     final body = _jsonBody(options);
     final email = (body['email'] as String? ?? '').trim();
-    final password = (body['password'] as String? ?? '').trim();
+    final password = body['password'] as String? ?? '';
     final name = (body['name'] as String? ?? '').trim();
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty) {
       return _badRequest(options, 'email and password are required');
+    }
+    final String? passwordCode = switch (AppInputRules.signUpPassword(
+      password,
+    )) {
+      null => null,
+      AppInputError.passwordEmpty => 'password_empty',
+      AppInputError.passwordTooLong => 'password_too_long',
+      _ => 'password_weak',
+    };
+    if (passwordCode != null) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': passwordCode,
+              'loc': <Object?>['body', 'password'],
+              'msg': passwordCode,
+            },
+          ],
+        },
+      );
     }
     return Response<Object?>(
       requestOptions: options,
@@ -2929,8 +2980,6 @@ class LocalApiInterceptor extends Interceptor {
     'weight_kg': 72.0,
     // 건강 목표(#1814) — 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다.
     'conditions': '체중 감량, 혈압 관리',
-    // 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다 (#1140).
-    'goals': '혈압 관리 · 체중 감량',
     'daily_calories': 2000,
     'daily_sodium_mg': 2000,
     'daily_sugar_g': 50,
@@ -2989,7 +3038,6 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
     }
@@ -3012,7 +3060,6 @@ class LocalApiInterceptor extends Interceptor {
       // MY 건강 목표가 목표 칸과 함께 보내는 건강 목표·자유 입력 목표. 빠져 있어
       // 데모에서 고른 목표가 저장되지 않았다(#1814).
       'conditions',
-      'goals',
       'daily_calories',
       'daily_sodium_mg',
       'daily_sugar_g',
@@ -3080,7 +3127,6 @@ class LocalApiInterceptor extends Interceptor {
       'height_cm',
       'weight_kg',
       'conditions',
-      'goals',
       // 목표 열 칸은 PUT /users/me/health-goals 가 쓰는 열과 같다 — 온보딩이
       // 채운 값을 MY 건강 목표가 그대로 이어 고친다.
       'daily_calories',

@@ -130,6 +130,39 @@ void main() {
     });
   });
 
+  group('이행률 세 구간 (#2345)', () {
+    test('60% 미만만 주의로 짚고, 기준 문구는 60% 다', () {
+      final watch = summaryWatchpoints(
+        _ko,
+        _report(completionAvg: 59, sodiumAvg: 1500, sodiumOverDays: 0),
+      );
+      expect(watch.map((w) => w.kind), contains('completion'));
+      expect(
+        watch.firstWhere((w) => w.kind == 'completion').text,
+        contains('기준 60% 미만'),
+      );
+      expect(
+        summaryWatchpoints(
+          _ko,
+          _report(completionAvg: 60, sodiumAvg: 1500, sodiumOverDays: 0),
+        ).map((w) => w.kind),
+        isNot(contains('completion')),
+      );
+    });
+
+    test('80% 이상만 좋은 점으로 꼽는다 — 보통 구간은 말하지 않는다', () {
+      String headline(int completion) => ruleReportSummary(
+        _ko,
+        // 주의가 하나 있어야 머리 문장이 좋은 점을 꺼낸다.
+        _report(completionAvg: completion, sodiumAvg: 2600, sodiumOverDays: 4),
+        makeClient(name: '김민수'),
+      ).headline;
+
+      expect(headline(85), contains('운동 이행률 85%'));
+      expect(headline(75), isNot(contains('운동 이행률 75%')));
+    });
+  });
+
   group('summaryWatchpoints (#1430)', () {
     test('당류만 넘긴 주도 주의 주간으로 판정한다', () {
       final report = _report(

@@ -94,11 +94,6 @@ Future<List<(String, String)>> _displayText(AppDatabase db) async {
     add('${row.clientId}/${row.weekStart}.painArea', row.painArea);
     add('${row.clientId}/${row.weekStart}.note', row.note);
   }
-  for (final row in await db.select(db.clientReportGoals).get()) {
-    for (final Object? goal in jsonDecode(row.goalsJson) as List<Object?>) {
-      add('${row.clientId}/${row.weekStart}.goal', goal as String?);
-    }
-  }
   for (final row in await db.select(db.clientChatMessages).get()) {
     add('${row.id}.body', row.body);
     add('${row.id}.timeLabel', row.timeLabel);
@@ -315,7 +310,7 @@ void main() {
       expect(lastTimes, isNot(contains('어제')));
     });
 
-    test('리포트 피드백·목표도 영어다', () async {
+    test('리포트 피드백도 영어다', () async {
       final AppDatabase db = await _seeded(DemoLanguage.en);
       addTearDown(db.close);
 
@@ -323,10 +318,13 @@ void main() {
         db.clientWeeklyFeedbacks,
       )..where((t) => t.clientId.equals('seed-client-8'))).getSingle();
       expect(feedback.painArea, 'Lower back');
-      final goals = await (db.select(
-        db.clientReportGoals,
-      )..where((t) => t.clientId.equals('seed-client-1'))).get();
-      expect(jsonDecode(goals.first.goalsJson), contains('Stretch before bed'));
+    });
+
+    test('리포트 목표는 더 시드하지 않는다 (#2400)', () async {
+      final AppDatabase db = await _seeded(DemoLanguage.ko);
+      addTearDown(db.close);
+
+      expect(await db.select(db.clientReportGoals).get(), isEmpty);
     });
 
     test('수업 메모·프로그램은 영어지만 운동 유형은 계약값 그대로다', () async {

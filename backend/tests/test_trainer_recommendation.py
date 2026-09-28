@@ -13,10 +13,10 @@ def _register(client, **onboarding) -> dict:
     """새 회원을 만들고 온보딩까지 마친 뒤 인증 헤더를 준다."""
     email = f"rec-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     if onboarding:
@@ -39,7 +39,7 @@ def _rank_of(ids: list[str], trainer_id: str) -> int:
 def test_goals_change_the_order(client):
     """목표가 다른 두 회원은 다른 순서를 받는다 — 이 이슈의 본질."""
     slimming = _register(client, conditions="비만")
-    strength = _register(client, goals="근력을 키우고 싶어요")
+    strength = _register(client, conditions="근력 향상")
 
     slimming_ids = _ids(client, slimming)
     strength_ids = _ids(client, strength)
@@ -100,7 +100,7 @@ def test_generated_reason_fills_an_empty_one(client, db_session):
     yoon.recommend_reason = ""
     db_session.commit()
     try:
-        headers = _register(client, goals="근력을 키우고 싶어요")
+        headers = _register(client, conditions="근력 향상")
         body = client.get("/v1/trainers/recommended", headers=headers).json()
         entry = next((t for t in body if t["id"] == "trainer-yoon"), None)
         assert entry is not None, "점수가 붙었으면 사유가 비어도 레일에 오른다"

@@ -33,7 +33,6 @@ from app.schemas.health_goal_ranges import (
     DailyProteinG,
     DailySodiumMg,
     DailySugarG,
-    GoalsText,
     WeeklyBurnGoal,
     WeeklyCardioMinutes,
     WeeklyExerciseMinutesGoal,
@@ -43,6 +42,7 @@ from app.schemas.health_goal_ranges import (
 )
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.points_api import PointsOut
+from app.services.password_policy import check_new_password
 from app.services import contact_format
 from app.services import health_focus
 from app.services import exercise_types
@@ -183,7 +183,6 @@ class MemberHealthProfileOut(BaseModel):
     weight_kg: float | None = None
     gender: str = ""
     conditions: str = ""
-    goals: str = ""
     daily_calories: int | None = None
     daily_sodium_mg: int | None = None
     daily_sugar_g: int | None = None
@@ -218,7 +217,6 @@ class MemberHealthProfileUpdate(PartialUpdate):
     #: 것**이다(#1888). 같은 컬럼을 고치는 두 문이 다른 기준을 쓰면, 한쪽으로
     #: 들어온 값이 다른 쪽에서 고칠 수 없는 값이 된다.
     conditions: ConditionsText | None = None
-    goals: GoalsText | None = None
     daily_calories: DailyCalories | None = None
     daily_sodium_mg: DailySodiumMg | None = None
     daily_sugar_g: DailySugarG | None = None
@@ -1091,7 +1089,6 @@ RecommendationStatus = Literal["template", "learning", "personalized"]
 
 class RoutineOptionAnalysisOut(BaseModel):
     goal: str
-    member_goal: str = ""
     conditions: str = ""
     gender: str = ""
     height_cm: float | None = None
@@ -1753,14 +1750,55 @@ class ReportSendsOut(BaseModel):
     sends: list[ReportSendOut] = Field(default_factory=list)
 
 
+class MemberReportSendOut(BaseModel):
+    """한 회원에게 한 주 리포트가 나간 기록 — 회원별 지난 리포트 한 줄. (#2393)
+
+    `ReportSendOut` 과 근거·접는 규칙이 같다(그 주의 가장 최근 전송 하나 + 횟수).
+    본문 전체 대신 첫 줄만 싣는다 — 목록은 여러 주를 한 번에 세우고, 전문은
+    `message_id` 로 채팅에서 찾아 연다.
+    """
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 가장 최근에 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 회원이 가장 최근 전송을 열어 봤는가(`read_at`).
+    read: bool
+    #: 그 주 리포트를 몇 번 보냈는가. 다시 보낸 적이 있으면 2 이상이다.
+    send_count: int = Field(ge=1)
+    #: 가장 최근 전송의 채팅 메시지 id. PDF 로 보냈으면 그 첨부를 가진 메시지다.
+    message_id: str
+    #: 가장 최근 전송이 PDF 첨부였는가.
+    has_pdf: bool
+    #: 가장 최근 전송 본문의 첫 줄(비어 있지 않은 첫 줄, 길면 잘라 `…` 를 붙인다).
+    feedback_preview: str
+
+
+class MemberReportSendsOut(BaseModel):
+    """한 회원에게 나간 리포트를 최신 주부터. 보낸 적이 없으면 빈 목록이다. (#2393)"""
+    member_id: str
+    sends: list[MemberReportSendOut] = Field(default_factory=list)
+    #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
+    #: 더 없으면 null 이다.
+    next_before: str | None = None
+
+
 class TrainerPasswordChange(BaseModel):
     """비밀번호 변경 — 현재 비밀번호 확인 후 교체.
 
     현재 비밀번호를 요구하는 이유: 토큰이 탈취된 상태에서 비밀번호까지
     바꿔 계정을 완전히 뺏기는 경로를 막는다.
     """
+    #: 지금 쓰는 비밀번호는 기준 이전에 만든 것일 수 있어 새 기준을 보지 않는다
+    #: — 여기서 막으면 약한 비밀번호를 가진 계정이 그 비밀번호를 바꿀 길이 없다.
     current_password: str = Field(min_length=1, max_length=200)
-    new_password: str = Field(min_length=8, max_length=200)
+    #: 가입과 같은 기준(`password_policy.check_new_password`, #1555). 전에는
+    #: 8~200자만 봐서 가입 화면이 막는 `12345678` 도, bcrypt 가 앞 72바이트만
+    #: 보는 200자짜리도 새 비밀번호로 받았다.
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return check_new_password(value)
 
 
 # ---- 알림 수신 설정 (#379) ----

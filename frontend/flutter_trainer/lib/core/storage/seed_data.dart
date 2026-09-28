@@ -18,10 +18,13 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v33']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v34']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v34` 는 김민수를 뺀 고객의 음식마다 먹은 양(`amount_g`)을 실었다(#2368).
+/// 올리지 않으면 오늘 이미 시드된 브라우저의 끼니 카드에 음식 이름만 남는다.
 ///
 /// `_v33` 은 로스터에 PT 관리 신호(`signalsJson`)를 싣고, 오세라 대화에 통증을
 /// 말하는 한 줄을 더했다(#2204). 올리지 않으면 오늘 이미 시드된 브라우저의 회원
@@ -140,7 +143,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v33') == today &&
+  if (await db.readValue('trainer_seeded_v34') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -253,7 +256,8 @@ Future<void> seedIfEmpty(
     await (db.delete(
       db.clientDailyMetrics,
     )..where((t) => t.clientId.like('seed-%'))).go();
-    // 주간 피드백·목표도 같다(고객+주가 키다).
+    // 주간 피드백도 같다(고객+주가 키다). 목표 표는 더 채우지 않지만(#2400),
+    // 예전 시드가 남긴 줄은 여기서 치운다.
     await (db.delete(
       db.clientWeeklyFeedbacks,
     )..where((t) => t.clientId.like('seed-%'))).go();
@@ -415,16 +419,11 @@ Future<void> seedIfEmpty(
               : _dailyMetrics(client, now, t).toList(growable: false),
         );
 
-        // 리포트 ②·③ 이 읽는 두 가지(#2232). 회원이 낸 답과, 지난 주에 고른
-        // 목표다. 둘 다 회원별로 있는 사람만 갖는다 — 모두가 답을 낸 데모는
-        // "아직 받지 못함" 이 어떻게 보이는지를 숨긴다.
+        // 리포트 ① 이 읽는 회원의 주간 답(#2232). 낸 사람만 갖는다 — 모두가
+        // 답을 낸 데모는 "아직 받지 못함" 이 어떻게 보이는지를 숨긴다.
         b.insertAll(
           db.clientWeeklyFeedbacks,
           _weeklyFeedbacks(client.id, now, t).toList(growable: false),
-        );
-        b.insertAll(
-          db.clientReportGoals,
-          _reportGoals(client.id, now, t).toList(growable: false),
         );
 
         b.insertAll(db.clientChatMessages, <ClientChatMessagesCompanion>[
@@ -547,7 +546,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v33', today);
+    await db.putValue('trainer_seeded_v34', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -725,6 +724,7 @@ class _Meal {
           for (final _Food f in foods)
             <String, Object?>{
               'name': f.name,
+              'amount_g': f.amountG,
               'calories': f.calories,
               'sodium_mg': f.sodiumMg,
               'sugar_g': f.sugarG,
@@ -732,16 +732,27 @@ class _Meal {
         ]);
 }
 
-/// 끼니 안의 음식 하나 — `이름 · kcal · mg · g`. (#1381)
+/// 끼니 안의 음식 하나 — 이름·먹은 양·kcal·mg·g. (#1381, #2368)
 ///
-/// 트레이너 식단 카드가 음식마다 회색 작은 글씨로 적는 세 값이다. 키는
-/// 픽스처의 `FixtureFood.toJson` 과 같다.
+/// 키는 픽스처의 `FixtureFood.toJson` 과 같다.
 class _Food {
-  const _Food(this.name, this.calories, this.sodiumMg, this.sugarG);
+  const _Food(
+    this.name,
+    this.calories,
+    this.sodiumMg,
+    this.sugarG, {
+    required this.amountG,
+  });
   final String name;
   final int calories;
   final int sodiumMg;
   final double sugarG;
+
+  /// 먹은 양(g·ml). 트레이너 끼니 카드가 음식 이름 옆에 적는다(#2087). 아래
+  /// 영양이 **이 양을 재고 나온 값**이라, 흔한 1회 제공량 중 적힌 칼로리가
+  /// 무리 없이 나오는 양으로 정했다. 양이 없으면 카드에 이름만 나와 데모가
+  /// 양을 빠뜨린 것처럼 읽혔다(#2368).
+  final int amountG;
 }
 
 class _Routine {
@@ -1952,30 +1963,6 @@ Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
   }
 }
 
-/// 트레이너가 지난 주 ② 에서 골라 이번 주에 적용된 목표.
-///
-/// 리포트 ③ `지난 주 목표 달성` 이 이걸 회수한다. 이 표가 없으면 ② 는 고르는
-/// 시늉으로 끝나고, 목표는 다음 주에 확인될 때 비로소 목표가 된다.
-Iterable<ClientReportGoalsCompanion> _reportGoals(
-  int clientId,
-  DateTime now,
-  _SeedText t,
-) sync* {
-  final List<String>? goals = _demoGoals[clientId];
-  if (goals == null) return;
-  final DateTime today = DateTime(now.year, now.month, now.day);
-  final DateTime monday = today.subtract(Duration(days: today.weekday - 1));
-  // 지난 주에 고른 목표는 **이번 주**에 적용된다. 리포트가 이번 주를 볼 때
-  // 그 주에 적용된 목표를 꺼내 달성 여부를 판정한다.
-  for (final int weeksAgo in <int>[0, 1]) {
-    yield ClientReportGoalsCompanion.insert(
-      clientId: 'seed-client-$clientId',
-      weekStart: ymd(monday.subtract(Duration(days: 7 * weeksAgo))),
-      goalsJson: Value(jsonEncode(goals.map(t.call).toList(growable: false))),
-    );
-  }
-}
-
 /// 한 주치 피드백 한 건.
 class _Feedback {
   const _Feedback({
@@ -2050,12 +2037,4 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
   // 배준혁 — 답장 대기 중이지만 피드백은 냈다. 채팅을 안 읽는 것과
   // 답을 안 내는 것이 서로 다른 일이라는 것을 보여 준다.
   9: <_Feedback>[_Feedback(weeksAgo: 0, condition: 'good', intensity: 'hard')],
-};
-
-/// 회원 번호 → 그 주에 적용된 목표. 지난 주 ② 에서 고른 것이다.
-const Map<int, List<String>> _demoGoals = <int, List<String>>{
-  1: <String>['주 2회 하체 추가', '저녁 단백질 30g 이상', '취침 전 스트레칭'],
-  2: <String>['스쿼트 60kg 3세트', '주 5일 이상 기록'],
-  3: <String>['주 1회라도 헬스장 방문'],
-  8: <String>['허리 부담 없는 하체로 교체', '스트레칭 매일'],
 };

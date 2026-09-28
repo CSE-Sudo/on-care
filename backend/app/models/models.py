@@ -83,7 +83,8 @@ class HealthProfile(Base):
         String(20), default="low"
     )  # low|medium|high
     conditions: Mapped[str] = mapped_column(Text, default="")  # "고혈압, 당뇨 전단계"
-    goals: Mapped[str] = mapped_column(Text, default="")
+    # 자유 서술 회원 목표(`goals`)는 지웠다 — 목표는 건강 목표 칩(`conditions`)으로만
+    # 고른다(#2358).
 
     # 개인정보(내 프로필 모달) + 온보딩 인구통계
     phone: Mapped[str] = mapped_column(String(20), default="")
@@ -504,6 +505,38 @@ class DietAdviceState(Base):
         UniqueConstraint(
             "user_id", "period", "key_date", "lang", name="uq_diet_advice_state"
         ),
+    )
+
+
+class DietTrainerPick(Base):
+    """트레이너가 AI 후보 가운데 골라 회원에게 추천한 메뉴. (#2378)
+
+    후보는 회원의 4주 추천 메뉴 리스트(`DietMenuPlan`)에서 나온다. 회원 앱 홈
+    `추천 식단` 첫 장에 `트레이너 추천` 으로 뜬다. 회원당 한 건이다 — 트레이너가
+    다시 고르면 같은 행을 덮어쓴다.
+
+    회원이 그 메뉴를 기록하면 `resolved_at` 이 찍혀 홈에서 내려간다. 행은 남겨
+    트레이너 카드가 "회원이 채웠어요" 를 말하게 한다.
+    """
+
+    __tablename__ = "diet_trainer_picks"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    slot: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(80))
+    #: 추천 이유 태그(`protein_high` …)와 한눈에 보이는 이유 키워드(`고단백` …).
+    tag: Mapped[str] = mapped_column(String(20))
+    keyword: Mapped[str] = mapped_column(String(40), default="")
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 회원이 이 메뉴를 기록한 시각. 비어 있으면 아직 추천 중이다.
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
 
@@ -1368,7 +1401,19 @@ class TrainerClient(Base):
     #: 트레이너는 담당이 되는 순간 회원의 건강 기록을 읽는다. 그 동의를 언제
     #: 받았는지 답할 수 있어야 하므로 링크에 함께 남긴다. 비어 있는 링크는 이
     #: 기능 이전에 만들어진 것이다.
+    #:
+    #: 담당이 끝나면(회원 해제·트레이너 해제) 비운다 — 담당 해제가 곧 동의
+    #: 철회다. 링크를 되살릴 때는 그 연결의 새 동의만 여기에 적는다. (#1631)
     data_consent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: 마지막으로 동의가 철회된 시각. (#1631)
+    #:
+    #: `data_consent_at` 을 비우기만 하면 "동의를 받은 적 없는 옛 링크"와
+    #: "동의했다가 철회한 링크"가 구분되지 않는다. 이 값이 있고 동의가 비어
+    #: 있으면 트레이너는 이 회원의 기록을 열 수 없다(`consent_blocks_access`).
+    #: 다시 동의해도 지우지 않는다 — 언제 철회했는지는 이력으로 남는다.
+    data_consent_revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     #: 트레이너의 관리 상태 — True 면 화면에 '휴면'으로 보인다.

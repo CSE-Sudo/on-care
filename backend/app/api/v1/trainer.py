@@ -21,6 +21,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
+from app.api.v1 import chat_attachments
 from app.core.config import get_settings
 from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
@@ -40,6 +41,10 @@ from app.schemas.diet_api import (
     DietAdviceResponse,
     DietPeriodResponse,
     RecordSpanResponse,
+    TrainerDietCandidate,
+    TrainerDietPick,
+    TrainerDietPickRequest,
+    TrainerDietRecommendationsResponse,
 )
 from app.schemas.exercise_api import (
     ExercisePeriodResponse,
@@ -63,6 +68,7 @@ from app.schemas.trainer_api import (
     ReportGoalsSaveRequest,
     ReportFeedbackOut,
     ReportFeedbackSaveRequest,
+    MemberReportSendsOut,
     ReportSendRequest, ReportSendsOut, ReportSummaryOut,
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineFeedbackRequest,
@@ -94,10 +100,11 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     diet_service,
+    diet_trainer_pick,
     emote_service,
     exercise_service,
-    chat_image_storage,
     consultation_service,
+    data_consent_service,
     health_goal_change,
     member_pairing_service,
     trainer_client_invite_service,
@@ -161,6 +168,10 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
     "예전에 담당했던 회원" 이라는 사실이 응답만으로 드러난다. 해제된 링크를
     다뤄야 하는 곳(담당 해제 자체·재등록·활성/휴면 전환)은 이 함수를 쓰지 않고
     링크를 직접 읽는다.
+
+    데이터 공유 동의가 철회된 뒤 새 동의 없이 살아 있는 링크도 같은 404 다
+    (#1631). 담당 해제가 곧 동의 철회이고, 링크를 되살려도 회원의 새 동의가
+    없으면 기록은 열리지 않는다.
     """
     link = db.scalar(
         select(TrainerClient).where(
@@ -168,7 +179,11 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
             TrainerClient.member_id == member_id,
         )
     )
-    if link is None or not link.active:
+    if (
+        link is None
+        or not link.active
+        or data_consent_service.blocks_access(link)
+    ):
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
 
@@ -387,6 +402,8 @@ def trainer_restore_client(
         trainer_service.restore_client(db, link)
     except trainer_service.ClientLinkDetached as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.ClientConsentRequired as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.put(
@@ -453,7 +470,6 @@ def _member_health_out(db: Session, member_id: str) -> MemberHealthProfileOut:
         member_name=member.name if member is not None else "",
         gender=profile.gender if profile is not None else "",
         conditions=profile.conditions if profile is not None else "",
-        goals=profile.goals if profile is not None else "",
         focus_changed_by=profile.focus_changed_by if profile is not None else None,
         focus_changed_at=profile.focus_changed_at if profile is not None else None,
         **values,
@@ -672,6 +688,87 @@ def trainer_client_diet_advice(
         days_logged=len(days),
         message=diet_service.period_coach_message(days, period),
     )
+
+
+def _diet_pick_out(pick) -> TrainerDietPick:
+    return TrainerDietPick(
+        slot=pick.slot,
+        name=pick.name,
+        tag=pick.tag,
+        keyword=pick.keyword,
+        status=diet_trainer_pick.status_of(pick),
+        confirmed_at=pick.confirmed_at.isoformat(),
+        resolved_at=pick.resolved_at.isoformat() if pick.resolved_at else None,
+    )
+
+
+def _diet_recommendations(
+    db: Session, trainer_id: str, member_id: str, locale: str
+) -> TrainerDietRecommendationsResponse:
+    pick = diet_trainer_pick.current(db, member_id, trainer_id)
+    exclude = {diet_trainer_pick.norm(pick.name)} if pick is not None else set()
+    found = diet_trainer_pick.candidates(db, member_id, lang=locale, exclude=exclude)
+    return TrainerDietRecommendationsResponse(
+        needs=found.needs,
+        basis_days=found.basis_days,
+        pick=_diet_pick_out(pick) if pick is not None else None,
+        candidates=[
+            TrainerDietCandidate(
+                slot=c.menu.slot, name=c.menu.name, tag=c.menu.tag,
+                keyword=c.menu.keyword, kcal=c.menu.kcal,
+                protein_g=c.menu.protein_g, sodium_mg=c.menu.sodium_mg,
+                urgent=c.urgent,
+            )
+            for c in found.items
+        ],
+    )
+
+
+@router.get(
+    "/trainer/clients/{member_id}/diet-recommendations",
+    response_model=TrainerDietRecommendationsResponse,
+)
+def trainer_client_diet_recommendations(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
+) -> TrainerDietRecommendationsResponse:
+    """담당 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378)
+
+    후보는 회원의 4주 추천 메뉴 리스트에서 급한 태그를 채우는 메뉴부터다. 저장된
+    리스트를 읽기만 하므로 후보를 넘겨 봐도 AI 를 새로 부르지 않는다.
+    """
+    _require_client(db, trainer.id, member_id)
+    return _diet_recommendations(db, trainer.id, member_id, locale)
+
+
+@router.put(
+    "/trainer/clients/{member_id}/diet-recommendations",
+    response_model=TrainerDietRecommendationsResponse,
+)
+def trainer_confirm_diet_recommendation(
+    member_id: str,
+    payload: TrainerDietPickRequest,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
+) -> TrainerDietRecommendationsResponse:
+    """후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. (#2378)
+
+    다시 부르면 바꾸기다(회원당 한 건). 지금 후보 리스트에 없는 메뉴는 422.
+    """
+    _require_client(db, trainer.id, member_id)
+    try:
+        diet_trainer_pick.confirm(
+            db, member_id, trainer.id,
+            name=payload.name, slot=payload.slot, lang=locale,
+        )
+    except diet_trainer_pick.PickNotInPlan as exc:
+        raise HTTPException(
+            status_code=422, detail="추천 후보에 없는 메뉴입니다."
+        ) from exc
+    return _diet_recommendations(db, trainer.id, member_id, locale)
 
 
 @router.get(
@@ -1771,6 +1868,9 @@ def trainer_send_schedule_routines(
         sent = trainer_service.send_scheduled_routines(
             db, trainer.id, session_id, items=payload.personal_routines
         )
+    except trainer_service.ClientLinkDetached as exc:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except trainer_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if sent is None:
@@ -1813,6 +1913,9 @@ def trainer_update_session(
         _require_client(db, trainer.id, fields["member_id"])
     try:
         out = trainer_service.update_session(db, trainer.id, session_id, fields)
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleOverlap as e:
         raise HTTPException(
             status_code=409, detail=trainer_service.overlap_detail(e)
@@ -1854,6 +1957,9 @@ def trainer_complete_session(
     """
     try:
         out = trainer_service.complete_session(db, trainer.id, session_id, payload.note)
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except trainer_service.ScheduleConflict as e:
@@ -1909,6 +2015,9 @@ def trainer_reopen_session(
         out = trainer_service.reopen_session(
             db, trainer.id, session_id, new_date=payload.date
         )
+    except trainer_service.ClientLinkDetached as e:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except trainer_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
@@ -2242,6 +2351,44 @@ def trainer_report_sends(
     )
 
 
+#: 회원별 지난 리포트 한 쪽의 기본 주 수. 석 달 남짓 — 한 화면에 세우는 선이다.
+_REPORT_HISTORY_PAGE = 12
+
+
+@router.get(
+    "/trainer/clients/{member_id}/reports/sent",
+    response_model=MemberReportSendsOut,
+)
+def trainer_client_report_sends(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(
+        _REPORT_HISTORY_PAGE, ge=1, le=MAX_PAGE, description="한 번에 가져올 주 수"
+    ),
+    before: str | None = Query(
+        None, description="YYYY-MM-DD — 이 주보다 이전 주만(앞 쪽의 next_before)"
+    ),
+) -> MemberReportSendsOut:
+    """담당 회원에게 그동안 보낸 리포트, 주별로 최신 주부터. (#2393)
+
+    주 단위 조회(`/trainer/reports/sent`)는 한 주의 로스터 전체를 준다. 한
+    회원의 지난 리포트를 보려면 주마다 따로 물어야 해 이 경로를 따로 둔다.
+    해제·비담당 회원은 다른 회원 경로와 같은 404 다(#2281).
+    """
+    _require_client(db, trainer.id, member_id)
+    cursor: _date | None = None
+    if before is not None:
+        if not _is_ymd(before):
+            raise HTTPException(
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 합니다."
+            )
+        cursor = _date.fromisoformat(before)
+    return trainer_service.list_member_report_sends(
+        db, trainer.id, member_id, limit=limit, before=cursor
+    )
+
+
 @router.post(
     "/trainer/clients/{member_id}/report/send",
     response_model=ChatMessageOut,
@@ -2383,76 +2530,17 @@ async def trainer_send_chat_image(
     저장된다.
     """
     _require_client(db, trainer.id, member_id)
-    text = message.strip()
-
-    # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다(PDF 와 같은 규약).
-    if client_request_id:
-        existing = trainer_service.find_message_by_client_request(
-            db, trainer.id, member_id, "trainer", client_request_id
-        )
-        if existing is not None:
-            if existing.body != text or existing.attachment_type != "image":
-                raise HTTPException(
-                    status_code=409,
-                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
-                )
-            return trainer_service.chat_message_out(existing, "trainer")
-
-    settings = get_settings()
-    data = await image.read(settings.max_chat_image_bytes + 1)
-    if len(data) > settings.max_chat_image_bytes:
-        raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
-    try:
-        chat_image_storage.sniff(data)
-    except chat_image_storage.UnsupportedImage as exc:
-        raise HTTPException(status_code=415, detail=str(exc)) from exc
-
-    display_name = re.sub(
-        r"[\x00-\x1f]", "_", PurePath(image.filename or "photo").name
-    ) or "photo"
-    # DB 컬럼 길이를 넘는 사용자 filename이 메시지 저장을 깨지 않게 한다.
-    if len(display_name) > 255:
-        display_name = display_name[:255]
-
-    file_id: str | None = None
-    try:
-        file_id, _, _ = chat_image_storage.save(data)
-        sent = trainer_service.send_message(
-            db,
-            trainer.id,
-            member_id,
-            "trainer",
-            text,
-            notify=notification_service.TRAINER_MESSAGE,
-            client_request_id=client_request_id,
-            attachment_type="image",
-            attachment_file_name=display_name,
-            attachment_file_id=file_id,
-            attachment_file_size=len(data),
-        )
-        # 동시 재시도 두 건이 모두 사전 조회를 통과할 수 있다. DB 멱등키에서
-        # 진 요청이 기존 메시지를 반환했다면, 그 요청이 쓴 여분 파일을 지운다.
-        if sent.attachment is None or sent.attachment.file_id != file_id:
-            chat_image_storage.delete(file_id)
-        return sent
-    except trainer_service.IdempotencyConflict as exc:
-        if file_id:
-            chat_image_storage.delete(file_id)
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except chat_image_storage.ImageStorageError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-    except Exception:
-        # DB/notification 저장이 완료되지 않았다면 고립 파일을 남기지 않는다.
-        if file_id:
-            db.rollback()
-            persisted = db.scalar(
-                select(ChatMessage.id).where(
-                    ChatMessage.attachment_file_id == file_id
-                )
-            )
-            if persisted is None:
-                chat_image_storage.delete(file_id)
-        raise
+    # 받는 규약은 회원 발신(#1665)과 한곳에서 나눠 쓴다.
+    return await chat_attachments.receive_chat_image(
+        db,
+        trainer_id=trainer.id,
+        member_id=member_id,
+        sender="trainer",
+        image=image,
+        message=message,
+        client_request_id=client_request_id,
+        notify=notification_service.TRAINER_MESSAGE,
+    )
 
 
 # ---------------------------------------------------------------------------

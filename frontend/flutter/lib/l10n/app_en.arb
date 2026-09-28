@@ -89,6 +89,12 @@
   "homeMealNamulBibimbap": "Namul bibimbap",
   "homeMealReasonFiber": "Rich in dietary fiber",
   "homeMealTagLowFat": "Low fat",
+  "homeTrainerPickReasonSodiumLow": "Less sodium",
+  "homeTrainerPickReasonProteinHigh": "More protein",
+  "homeTrainerPickReasonCalorieLow": "A lighter meal",
+  "homeTrainerPickReasonCalorieHigh": "A filling meal",
+  "homeTrainerPickReasonSugarLow": "Less sugar",
+  "homeTrainerPickReasonFiberHigh": "More fiber",
   "homeRecBasisSodium": "{days}-day avg sodium {sodium}mg",
   "@homeRecBasisSodium": {
     "placeholders": {
@@ -1371,7 +1377,7 @@
   "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
   "myDelete": "Remove",
-  "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.",
+  "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myGymDisconnectWithTrainerConfirm": {
     "placeholders": {
       "gym": {
@@ -1390,7 +1396,7 @@
       }
     }
   },
-  "myTrainerDisconnectConfirm": "Disconnect trainer {trainer}?\nYour connection to {gym} will remain.",
+  "myTrainerDisconnectConfirm": "Disconnect trainer {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myTrainerDisconnectConfirm": {
     "placeholders": {
       "trainer": {
@@ -1429,7 +1435,7 @@
   "myLegalTermsTitle": "Terms of Service",
   "myLegalPrivacyTitle": "Privacy Policy",
   "myLegalTermsBody": "Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member's health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company's policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
-  "myLegalPrivacyBody": "On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member's personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member's consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
+  "myLegalPrivacyBody": "On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member's personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member's consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
   "myLegalEffectiveDate": "Effective Jan 1, 2026",
   "myAppVersion": "On-Care · Version 1.0.0",
   "coachHeaderPill": "AI Health Assistant",
@@ -1483,6 +1489,30 @@
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
+  "coachPhotoAttach": "Send a photo",
+  "@coachPhotoAttach": {
+    "description": "Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665)."
+  },
+  "coachPhotoSheetSubtitle": "Share a meal, form, or InBody photo with your trainer",
+  "coachPhotoPickSub": "Choose from your photo library",
+  "coachPhotoTakeSub": "Take one with the camera",
+  "coachPhotoSending": "Sending",
+  "@coachPhotoSending": {
+    "description": "Status under a photo the member is still uploading to the trainer chat (#1665)."
+  },
+  "coachPhotoSendFailed": "Couldn't send the photo",
+  "coachPhotoRetry": "Retry",
+  "coachPhotoDiscard": "Remove",
+  "@coachPhotoDiscard": {
+    "description": "Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665)."
+  },
+  "coachPhotoPermissionDenied": "Allow camera and photo access to send a photo",
+  "coachPhotoPermissionPermanentlyDenied": "Camera and photo access is off. Turn it on in Settings to send photos",
+  "coachPhotoReadFailed": "Couldn't read that photo. Please try a different one",
+  "a11yMyPhoto": "Photo you sent",
+  "@a11yMyPhoto": {
+    "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
+  },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
   "coachChatReportRegistered": "Weekly report added",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
@@ -2171,6 +2201,10 @@
   "signUpAction": "Sign up and start",
   "signUpHaveAccountQuestion": "Already have an account?",
   "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
+  "signUpPasswordTooLong": "Passwords can be up to 64 characters, or fewer if they include Korean or emoji",
+  "@signUpPasswordTooLong": {
+    "description": "Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster."
+  },
   "signUpPasswordMismatch": "Passwords do not match",
   "signUpPhoneFormatInvalid": "Enter your phone number as 010-0000-0000",
   "myFieldBirthInvalid": "Enter your date of birth as 1996-03-21",

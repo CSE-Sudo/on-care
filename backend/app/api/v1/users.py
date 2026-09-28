@@ -139,7 +139,6 @@ def _profile_view(user: User) -> ProfileView:
         height_cm=p.height_cm if p else None,
         weight_kg=p.weight_kg if p else None,
         conditions=p.conditions if p else "",
-        goals=p.goals if p else "",
         daily_calories=p.daily_calories if p else None,
         daily_sodium_mg=p.daily_sodium_mg if p else None,
         daily_sugar_g=p.daily_sugar_g if p else None,
@@ -256,7 +255,6 @@ def update_me(
         "gender",
         "height_cm",
         "weight_kg",
-        "goals",
     ):
         if field in data:
             setattr(profile, field, data[field])
@@ -335,7 +333,8 @@ def delete_me(
     payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
-    소셜계정·개인 코치문서를 함께 삭제한다.
+    소셜계정·개인 코치문서를 함께 삭제한다. 대기 중 상담 요청은 요청을 받은
+    트레이너에게 취소를 알린 뒤 함께 지운다(#1632).
 
     고른 사유가 있으면 **회원 행과 잇지 않고** 따로 남긴다(#2019). 회원은 이
     요청으로 사라지므로 FK 를 걸면 남길 수가 없고, 남기는 것도 사유 코드와
@@ -354,6 +353,9 @@ def delete_me(
     # 대기 중인 상담이 잡고 있던 자리도 풀어 준다 — 요청 행은 CASCADE 로 사라져도
     # 자리는 남아 잠긴 채가 된다(#1873).
     consultation_service.release_holds_for_account_deletion(db, user.id)
+    # 대기 요청도 CASCADE 로 사라진다 — 요청을 받은 트레이너(담당 제외)에게 지우기
+    # 전에 알린다. 이름·희망 날짜는 지금 읽어 둔다(#1632).
+    consultation_service.notify_trainers_of_account_deletion(db, user)
     # 담당 링크는 회원과 함께 CASCADE 로 사라진다 — 지우기 전에 담당 트레이너에게
     # 알린다. 알림은 트레이너 계정에 달려 탈퇴 뒤에도 남는다(#2174).
     member_departure.notify_trainer(db, user, reason="withdrawn")

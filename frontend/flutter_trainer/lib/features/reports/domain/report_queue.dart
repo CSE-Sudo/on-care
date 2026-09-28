@@ -1,9 +1,16 @@
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show weekdayCount;
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
-/// 작업대의 한 줄이 다는 신호 — **운동 쪽 사실만** 담는다.
+/// 작업대의 한 줄이 다는 **리포트 고유** 신호 — 그 주의 흐름만 담는다.
+///
+/// 회원의 상태(기록 끊김·노쇼·취소·통증 등)는 여기서 판정하지 않는다. 그건
+/// 회원 목록·상세·메시지가 쓰는 PT 관리 신호([reportAttentionSignals])가
+/// 말하고, 작업대도 그 배지를 그대로 단다(#2344). 예전에는 여기서 `N일 무기록`·
+/// `노쇼 N회` 를 따로 셌는데, 같은 회원이 목록에서는 `기록 끊김` 이 아니고
+/// 리포트에서는 `무기록` 이었고, 노쇼는 아직 하지 않은 예정 세션까지 셌다(#2343).
 ///
 /// 식단 지표(칼로리·나트륨·당류)는 여기 오지 않는다. 이 목록이 답하는 질문은
 /// "이 회원의 리포트를 왜 먼저 열어야 하나" 이고, 그 답은 훈련이 어떻게
@@ -12,14 +19,8 @@ enum ReportSignalKind {
   /// 이행률.
   completion,
 
-  /// 예약한 PT 를 빠졌다.
-  noShow,
-
   /// 예약한 PT 를 전부 소화했다.
   sessionDone,
-
-  /// 기록이 아예 없는 날이 여럿이다.
-  silentDays,
 
   /// 주 후반이 앞쪽보다 크게 떨어졌다.
   slump,
@@ -77,16 +78,9 @@ List<ReportSignal> reportSignals(WeeklyReport report) {
   if (completion != null) {
     signals.add(ReportSignal(ReportSignalKind.completion, completion));
   }
-  final int missed = report.sessionsBooked - report.sessionsDone;
-  if (missed > 0) {
-    signals.add(ReportSignal(ReportSignalKind.noShow, missed));
-  }
   final int silent = week.length == weekdayCount
       ? week.where((v) => v == 0).length
       : 0;
-  if (silent >= 2) {
-    signals.add(ReportSignal(ReportSignalKind.silentDays, silent));
-  }
   // 앞 사흘과 뒤 사흘을 견준다. 같은 이행률 70% 라도 오르는 주와 무너지는
   // 주는 다음 주에 할 말이 다르다.
   final double? front = _mean(week.take(3));
@@ -102,13 +96,26 @@ List<ReportSignal> reportSignals(WeeklyReport report) {
   if (silent == 0 && week.length == weekdayCount) {
     signals.add(const ReportSignal(ReportSignalKind.fullLog));
   }
-  if (missed == 0 && report.sessionsBooked > 0) {
+  if (report.sessionsBooked > 0 &&
+      report.sessionsDone == report.sessionsBooked) {
     signals.add(
       ReportSignal(ReportSignalKind.sessionDone, report.sessionsDone),
     );
   }
   return signals.take(reportSignalLimit).toList(growable: false);
 }
+
+/// 작업대 줄이 다는 PT 관리 신호 — 회원 상세 헤더와 **같은 신호·같은 순서**.
+///
+/// 판정은 서버(`client_signals.py`)가 하고 여기서는 고르기만 한다. 운동·몸
+/// 상태 쪽(통증·불편, 기록 끊김, 노쇼·취소, 배정 루틴 미수행, 운동 목표 미달)만
+/// 남긴다 — 칼로리·단백질은 작업대가 운동 쪽 사실만 적는다는 결정(#2232)을
+/// 따라 빼고, 답장 대기는 리포트와 무관한 받은편지함이라 뺀다.
+List<ClientSignal> reportAttentionSignals(TrainerClient client) =>
+    <ClientSignal>[
+      for (final ClientSignal s in sortedSignals(client.signals))
+        if (s.kind.isAttention && !s.kind.isDiet) s,
+    ];
 
 double? _mean(Iterable<int> values) {
   final List<int> logged = <int>[
@@ -130,6 +137,10 @@ enum ReportQueueSort {
 
   /// 이름 가나다순 — 특정 회원을 찾을 때.
   name,
+
+  /// 이름 역순 — 회원 탭 정렬과 같은 세 가지를 두어 탭마다 고를 수 있는 것이
+  /// 달라지지 않게 한다(#2398).
+  nameDescending,
 }
 
 /// 작업대에 서는 한 줄 — 한 회원의 이번 주.
@@ -154,35 +165,41 @@ class ReportQueueEntry {
   /// 이행률(%). 모르면 null.
   int? get completion => report?.completionAvg;
 
-  /// 이 줄이 다는 신호. 수치를 못 읽었으면 비어 있다.
+  /// 이 줄이 다는 리포트 고유 신호. 수치를 못 읽었으면 비어 있다.
   List<ReportSignal> get signals {
     final WeeklyReport? r = report;
     return r == null ? const <ReportSignal>[] : reportSignals(r);
   }
 
+  /// 이 줄이 다는 PT 관리 신호 — 로스터에서 오므로 리포트를 못 읽어도 있다.
+  List<ClientSignal> get attention => reportAttentionSignals(client);
+
   /// 우선 확인 점수 — **낮을수록 위**.
   ///
-  /// 이행률이 낮을수록, 세션을 빠졌을수록, 기록이 끊긴 날이 많을수록 위로
-  /// 온다. 아직 못 읽은 줄은 가운데에 둔다 — 맨 위로 올리면 불러오기 실패가
+  /// 이행률이 낮을수록, PT 관리 신호가 걸렸을수록 위로 온다. 아직 못 읽은
+  /// 줄은 이행률 자리를 가운데(50)로 둔다 — 맨 위로 올리면 불러오기 실패가
   /// 곧 "가장 급한 회원"이 되고, 맨 아래로 내리면 정말 급한 회원이 화면
-  /// 밖으로 밀린다.
+  /// 밖으로 밀린다. PT 관리 신호는 리포트와 무관하게 로스터에 있으므로 그때도
+  /// 셈에 넣는다.
   ///
   /// 식단 수치는 점수에 넣지 않는다. 먼저 열 리포트를 고르는 기준은 훈련이
   /// 무너진 정도이고, 나트륨이 잦은 주가 운동을 못 한 주보다 급하지는
   /// 않다(#2232).
   int get priority {
     final WeeklyReport? r = report;
-    if (r == null) return 50;
-    int score = r.completionAvg ?? 50;
-    // 예약한 세션을 빠진 주는 이행률과 무관하게 먼저 본다.
-    if (r.sessionsBooked > r.sessionsDone) score -= 30;
-    for (final ReportSignal s in reportSignals(r)) {
+    int score = r?.completionAvg ?? 50;
+    for (final ClientSignal s in attention) {
       score += switch (s.kind) {
-        ReportSignalKind.silentDays => -6 * s.value,
-        ReportSignalKind.slump => -10,
-        ReportSignalKind.onboarding => 0,
-        _ => 0,
+        // 몸이 아프다는 말과 반복된 노쇼·취소는 이행률과 무관하게 먼저 본다.
+        ClientSignalKind.discomfort || ClientSignalKind.noShow => -30,
+        // 끊긴 날이 길수록 위로 — 한 주(7일)를 넘으면 더 가르지 않는다.
+        ClientSignalKind.recordGap => -6 * (s.days ?? 3).clamp(0, weekdayCount),
+        _ => -10,
       };
+    }
+    if (r != null &&
+        reportSignals(r).any((s) => s.kind == ReportSignalKind.slump)) {
+      score -= 10;
     }
     return score;
   }
@@ -207,8 +224,13 @@ List<ReportQueueEntry> buildReportQueue({
       ),
   ];
   entries.sort((a, b) {
-    if (sort == ReportQueueSort.name) {
-      return a.client.name.compareTo(b.client.name);
+    switch (sort) {
+      case ReportQueueSort.name:
+        return a.client.name.compareTo(b.client.name);
+      case ReportQueueSort.nameDescending:
+        return b.client.name.compareTo(a.client.name);
+      case ReportQueueSort.priority:
+        break;
     }
     final int byPriority = a.priority.compareTo(b.priority);
     // 점수가 같으면 이름으로 — 다시 그릴 때마다 순서가 뒤바뀌면 방금 보던

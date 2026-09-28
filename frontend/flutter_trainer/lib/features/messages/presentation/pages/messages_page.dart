@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/one_line_overflow.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
@@ -229,17 +230,33 @@ StrutStyle _previewStrut(TextStyle style) =>
     StrutStyle.fromTextStyle(style, forceStrutHeight: true);
 
 /// 미리보기 두 줄의 높이 — 현재 글자 배율을 반영해 잰다.
-double _twoLinePreviewHeight(BuildContext context, TextStyle style) {
+double _twoLinePreviewHeight(BuildContext context, TextStyle style) =>
+    _previewHeight(
+      context,
+      List<String>.filled(_previewLines, ' ').join('\n'),
+      style,
+      double.infinity,
+    );
+
+/// 미리보기 [text] 가 [maxWidth] 폭에서 실제로 그려지는 높이 — 한 줄이면
+/// 한 줄, 넘치면 두 줄에서 자른 높이다.
+double _previewHeight(
+  BuildContext context,
+  String text,
+  TextStyle style,
+  double maxWidth,
+) {
   final painter = TextPainter(
     text: TextSpan(
-      text: List<String>.filled(_previewLines, ' ').join('\n'),
+      text: text,
       style: DefaultTextStyle.of(context).style.merge(style),
     ),
     strutStyle: _previewStrut(style),
     maxLines: _previewLines,
+    ellipsis: '…',
     textDirection: Directionality.of(context),
     textScaler: MediaQuery.textScalerOf(context),
-  )..layout();
+  )..layout(maxWidth: maxWidth);
   final height = painter.height;
   painter.dispose();
   return height;
@@ -290,37 +307,62 @@ class _ConversationTile extends StatelessWidget {
           AppAvatar(name: client.avatar, size: AppAvatarSize.large),
           const SizedBox(width: OnCareSpacing.s12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ClientIdentity(
-                  key: ValueKey<String>('messages-identity-${client.id}'),
-                  client: client,
-                  nameStyle: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodyLarge))
-                      .copyWith(color: OnCareColors.textPrimary),
-                  demographicsStyle: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final String preview = client.previewMessage(l);
                 // 미리보기는 **항상 두 줄 자리**를 차지한다. 한 줄짜리 말과
                 // 두 줄을 넘는 말이 같은 목록에 섞이면 카드 높이가 고객마다
                 // 달라져 목록이 들쭉날쭉했다. 줄 높이를 고정(strut)하고, 그
-                // 두 줄 높이를 현재 글자 배율로 재어 상자 높이로 삼는다 —
+                // 두 줄 높이를 현재 글자 배율로 재어 자리 높이로 삼는다 —
                 // 배율이 커지면 잘리지 않고 카드가 함께 커진다.
-                SizedBox(
-                  key: ValueKey<String>('messages-preview-${client.id}'),
-                  height: _twoLinePreviewHeight(context, previewStyle),
-                  child: Text(
-                    client.previewMessage(l),
-                    maxLines: _previewLines,
-                    overflow: TextOverflow.ellipsis,
-                    style: previewStyle,
-                    strutStyle: _previewStrut(previewStyle),
+                //
+                // 한 줄짜리 말이 남기는 빈 줄은 이름 위와 말 아래로 반씩
+                // 나눈다. 빈 줄을 말 아래에 몰아 두면 이름·말 묶음이 카드
+                // 위로 쏠려 보였고, 말만 가운데로 내리면 이름과 말 사이가
+                // 벌어졌다 — 묶음째 카드의 세로 가운데에 둔다.
+                //
+                // 여백은 잰 높이에서 나온 값이지 간격 토큰 자리가 아니다.
+                final double halfSlack =
+                    (_twoLinePreviewHeight(context, previewStyle) -
+                        _previewHeight(
+                          context,
+                          preview,
+                          previewStyle,
+                          constraints.maxWidth,
+                        )) /
+                    2;
+                return Padding(
+                  padding: EdgeInsets.symmetric(vertical: halfSlack),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      ClientIdentity(
+                        key: ValueKey<String>('messages-identity-${client.id}'),
+                        client: client,
+                        nameStyle: tokens
+                            .text(
+                              OnCareTypography.strong(
+                                OnCareTypography.bodyLarge,
+                              ),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
+                        demographicsStyle: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                      Text(
+                        preview,
+                        key: ValueKey<String>('messages-preview-${client.id}'),
+                        maxLines: _previewLines,
+                        overflow: TextOverflow.ellipsis,
+                        style: previewStyle,
+                        strutStyle: _previewStrut(previewStyle),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
@@ -404,13 +446,19 @@ class _ThreadPanel extends StatelessWidget {
   }
 }
 
-/// 대화 헤더가 말하는 이 사람 — 이름 · 성별·나이 · 주의사항, 그 아래 목표.
+/// 신호가 있을 때 이름·목표 묶음이 쓸 수 있는 폭의 상한 — 회원 상세 헤더의
+/// 목표 글과 같은 비율이다(#2330). 나머지는 신호 배지 줄이 쓴다.
+const double _identityWidthShare = 0.4;
+
+/// 대화 헤더가 말하는 이 사람 — 이름 · 성별·나이, 그 아래 목표, 그 오른쪽에
+/// 주의 신호.
 ///
 /// 여기가 목록보다 **자세한** 자리다. 목록은 어느 대화를 열까만 정하고,
 /// 연 뒤에 이 사람이 어떤 상태인지는 여기서 읽는다.
 ///
-/// `Row` 가 아니라 `Wrap` 인 이유: 태그는 글자 길이만큼 자리를 요구할
-/// 뿐 줄어들 수 없어서, 좁은 폭에서는 다음 줄로 내려야 한다.
+/// 신호 배지는 이름 줄이 아니라 이름·목표 **오른쪽 빈자리**에, 두 줄의 세로
+/// 가운데로 선다(#2375). 이름 줄에 붙이면 배지만 머리 위쪽으로 쏠리고, 그
+/// 오른쪽부터 `회원 상세` 앞까지가 비었다.
 class _Identity extends StatelessWidget {
   const _Identity({required this.client});
 
@@ -418,7 +466,6 @@ class _Identity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final tokens = context.oncare;
     // PT 관리 신호(#2243) — 답장 대기는 빼고 센다. 지금 열어 둔 이 대화가 곧
     // 그 답장 자리라, 대화 머리에 다시 적을 까닭이 없다.
@@ -426,64 +473,35 @@ class _Identity extends StatelessWidget {
       for (final s in sortedSignals(client.signals))
         if (s.kind.isAttention) s,
     ];
-    return Column(
+    final Widget who = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints c) => Wrap(
-            key: const ValueKey<String>('messages-thread-identity'),
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: OnCareSpacing.s4,
-            runSpacing: OnCareSpacing.s4,
-            children: <Widget>[
-              // 이름만은 줄 폭 안에서 말줄임한다 — `Wrap` 의 자식은 폭이
-              // 무제한이라 기대는 곳이 없으면 긴 이름이 그대로 뻗는다.
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: c.maxWidth),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Flexible(
-                      child: Text(
-                        client.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.titleSmall)
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: OnCareSpacing.s4),
-                    Flexible(
-                      child: Text(
-                        clientDemographicsLabel(context, client),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textTertiary),
-                      ),
-                    ),
-                  ],
-                ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Flexible(
+              child: Text(
+                client.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.titleSmall)
+                    .copyWith(color: OnCareColors.textPrimary),
               ),
-              // 활성/휴면은 없다 — 이 사람과 지금 이야기하는 데 쓰이지 않는
-              // 값이다. 신호는 다르다: 통증을 말했거나 기록이 끊겼다는 사실은
-              // **지금 이 대화에서 할 말**을 바꾼다. 회원 상세 헤더처럼 근거
-              // 수치까지 **전부** 세운다.
-              for (final signal in signals)
-                KeyedSubtree(
-                  key: ValueKey<String>(
-                    'messages-thread-alert-${signal.kind.wire}',
-                  ),
-                  child: AppTag(
-                    label: signal.detailLabel(l),
-                    tone: signal.kind.tone,
-                    icon: Icons.error_outline_rounded,
-                  ),
-                ),
-            ],
-          ),
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
+            Flexible(
+              child: Text(
+                clientDemographicsLabel(context, client),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ),
+          ],
         ),
         Text(
           healthFocusGoalLabel(AppLocalizations.of(context), client.goal),
@@ -494,6 +512,106 @@ class _Identity extends StatelessWidget {
               .copyWith(color: OnCareColors.textTertiary),
         ),
       ],
+    );
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) => Row(
+        key: const ValueKey<String>('messages-thread-identity'),
+        children: <Widget>[
+          // 이름·목표는 제 글 폭만큼만 쓴다 — 배지가 그 바로 뒤에서 시작해야
+          // 빈자리가 가운데에 남지 않는다. 신호가 있으면 폭에 상한을 둬
+          // 긴 이름이 배지 자리를 다 먹지 않게 한다.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: signals.isEmpty
+                  ? c.maxWidth
+                  : c.maxWidth * _identityWidthShare,
+            ),
+            child: who,
+          ),
+          // 활성/휴면은 없다 — 이 사람과 지금 이야기하는 데 쓰이지 않는
+          // 값이다. 신호는 다르다: 통증을 말했거나 기록이 끊겼다는 사실은
+          // **지금 이 대화에서 할 말**을 바꾼다.
+          if (signals.isNotEmpty) ...<Widget>[
+            const SizedBox(width: OnCareSpacing.s12),
+            Expanded(child: _ThreadSignals(signals: signals)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 대화 머리의 신호 배지 줄 — 회원 상세 헤더의 배지 줄과 같은 규칙이다(#2330).
+///
+/// 급한 순으로 한 줄에 들어가는 만큼 세우고, 넘치는 것은 `+N` 으로 묶는다.
+/// `+N` 을 누르면 이 자리에서 전부 펼치고(줄바꿈), `접기` 로 다시 한 줄이 된다.
+/// 문구는 근거 수치까지(`칼로리 22% 과다`) 적는다.
+class _ThreadSignals extends StatefulWidget {
+  const _ThreadSignals({required this.signals});
+
+  final List<ClientSignal> signals;
+
+  @override
+  State<_ThreadSignals> createState() => _ThreadSignalsState();
+}
+
+class _ThreadSignalsState extends State<_ThreadSignals> {
+  bool _expanded = false;
+
+  Widget _tappable({
+    required Key key,
+    required VoidCallback onTap,
+    required Widget child,
+  }) => Material(
+    type: MaterialType.transparency,
+    child: InkWell(
+      key: key,
+      onTap: onTap,
+      borderRadius: OnCareRadius.pillAll,
+      child: child,
+    ),
+  );
+
+  List<Widget> _badges(AppLocalizations l) => <Widget>[
+    for (final ClientSignal signal in widget.signals)
+      KeyedSubtree(
+        key: ValueKey<String>('messages-thread-alert-${signal.kind.wire}'),
+        child: AppTag(
+          label: signal.detailLabel(l),
+          tone: signal.kind.tone,
+          icon: Icons.error_outline_rounded,
+        ),
+      ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    if (_expanded) {
+      return Wrap(
+        key: const ValueKey<String>('messages-thread-signals'),
+        spacing: OnCareSpacing.s8,
+        runSpacing: OnCareSpacing.s4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          ..._badges(l),
+          _tappable(
+            key: const ValueKey<String>('messages-thread-signals-less'),
+            onTap: () => setState(() => _expanded = false),
+            child: AppTag(label: l.clientSignalLess),
+          ),
+        ],
+      );
+    }
+    return OneLineOverflow(
+      key: const ValueKey<String>('messages-thread-signals'),
+      spacing: OnCareSpacing.s8,
+      items: _badges(l),
+      moreBuilder: (int hidden) => _tappable(
+        key: ValueKey<String>('messages-thread-signals-more-$hidden'),
+        onTap: () => setState(() => _expanded = true),
+        child: AppTag(label: l.clientSignalMore(hidden)),
+      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
@@ -55,7 +56,6 @@ class WeeklyReport {
     this.days = const <ReportDay>[],
     this.mealCounts = const <int>[],
     this.memberFeedback,
-    this.weekGoals = const <String>[],
   });
 
   /// Who the report is about.
@@ -134,12 +134,6 @@ class WeeklyReport {
   /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
   final MemberWeeklyFeedback? memberFeedback;
 
-  /// 그 주에 **적용되어 있던** 목표 — 지난 주에 트레이너가 ② 에서 고른 것이다.
-  ///
-  /// 리포트 ③ 이 이걸 회수해 달성 여부를 판정한다. 회수되지 않는 목표는
-  /// 공수표라, 목표를 고르는 화면(②)만 있고 이 자리가 비면 기능이 반쪽이다.
-  final List<String> weekGoals;
-
   /// Sunday of the reported week.
   DateTime get weekEnd => weekStart.add(const Duration(days: 6));
 
@@ -158,7 +152,8 @@ class WeeklyReport {
   /// An unknown figure is not a good one: praise has to be earned by
   /// data we actually have.
   bool get isGoodWeek =>
-      (completionAvg ?? 0) >= 70 && (sodiumOverDays ?? 99) <= 2;
+      (completionAvg ?? 0) >= goodCompletionThreshold &&
+      (sodiumOverDays ?? 99) <= 2;
 }
 
 /// Builds [client]'s report for the week starting [weekStart].
@@ -173,7 +168,6 @@ WeeklyReport buildWeeklyReport({
   DateTime? today,
   WeekSeries? week,
   MemberWeeklyFeedback? memberFeedback,
-  List<String> weekGoals = const <String>[],
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
@@ -211,7 +205,6 @@ WeeklyReport buildWeeklyReport({
     fatWeek: series?.fat ?? const <double>[],
     mealCounts: series?.mealCounts ?? const <int>[],
     memberFeedback: memberFeedback,
-    weekGoals: weekGoals,
   );
 }
 
@@ -327,9 +320,13 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
   final workout = <String>[];
   final completion = report.completionAvg;
   if (completion != null) {
+    // 좋음·보통·낮음 세 구간 — 75% 에게 "잘 따라오셨어요" 도, "많이
+    // 바쁘셨나 봐요" 도 맞지 않는다(#2345).
     workout.add(
-      completion >= 70
+      completion >= goodCompletionThreshold
           ? l.reportBodyCompletionGood(completion)
+          : completion >= lowCompletionThreshold
+          ? l.reportBodyCompletionSteady(completion)
           : l.reportBodyCompletionLow(completion),
     );
   }
@@ -341,7 +338,7 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
     workout.add(l.reportBodySilentDays(silent.join(' · ')));
   } else if (report.weekCompletion.length == weekdayCount &&
       completion != null &&
-      completion >= 70) {
+      completion >= goodCompletionThreshold) {
     workout.add(l.reportBodySteadyDays(weekdayNames(l).last));
   }
   final skipped = _skippedNames(report);

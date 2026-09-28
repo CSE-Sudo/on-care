@@ -41,6 +41,8 @@ from app.schemas.trainer_api import (
     PersonalRoutineItem,
     ProgramDraftExercise,
     ProgramDraftSession,
+    MemberReportSendOut,
+    MemberReportSendsOut,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
     ReportSendOut,
@@ -59,7 +61,10 @@ from app.services import health_focus
 from app.services import (
     auto_routine_service,
     client_signals,
+    data_consent_service,
+    diet_coach_inputs,
     diet_photo_service,
+    diet_trainer_pick,
     exercise_activity,
     exercise_service,
     exercise_types,
@@ -546,13 +551,15 @@ def build_roster(
         if member is None:
             continue
         # 미등록 관계는 고객 관리의 이름·상태만 남긴다. 회원 원본 데이터는
-        # 보존하되 트레이너에게 다시 노출하지 않는다.
-        diet_rows = diet_by_member.get(link.member_id, []) if link.active else []
+        # 보존하되 트레이너에게 다시 노출하지 않는다. 동의가 철회된 뒤 새 동의
+        # 없이 살아 있는 링크도 같다(#1631).
+        readable = link.active and not data_consent_service.blocks_access(link)
+        diet_rows = diet_by_member.get(link.member_id, []) if readable else []
         calories, sodium_mg, sugar_g, carbs_g, protein_g, fat_g = _today_totals(
             diet_rows, today_str
         )
-        last_msg = last_msg_by.get(link.member_id) if link.active else None
-        last_rt = last_rt_by.get(link.member_id) if link.active else None
+        last_msg = last_msg_by.get(link.member_id) if readable else None
+        last_rt = last_rt_by.get(link.member_id) if readable else None
 
         out.append(TrainerClientOut(
             id=link.member_id,
@@ -560,7 +567,7 @@ def build_roster(
             avatar=member.name[:1] if member.name else "?",
             gender=gender_by_member.get(link.member_id, ""),
             goal=goal_by_member.get(link.member_id, ""),
-            last_message=last_msg.body if last_msg else "",
+            last_message=_roster_preview(last_msg),
             last_time=relative_time_label(last_msg.created_at) if last_msg else "-",
             last_message_at=last_msg.created_at if last_msg else None,
             active=_roster_active(link),
@@ -579,12 +586,12 @@ def build_roster(
                 _local_date_iso(last_rt.created_at) if last_rt else None
             ),
             week_completion=_week_completion(
-                hist_by_member.get(link.member_id, []) if link.active else [], monday
+                hist_by_member.get(link.member_id, []) if readable else [], monday
             ),
             sodium_week=_sodium_week(diet_rows, monday),
             calories_week=_calories_week(diet_rows, monday),
             sugar_week=_sugar_week(diet_rows, monday),
-            signals=signals_by_member.get(link.member_id, []),
+            signals=signals_by_member.get(link.member_id, []) if readable else [],
         ))
     return out
 
@@ -808,6 +815,19 @@ def build_chat_thread(
     ]
 
 
+def _roster_preview(msg: ChatMessage | None) -> str:
+    """로스터의 마지막 메시지 한 줄.
+
+    사진만 보낸 메시지는 본문이 비어 있다(#921, #1665). 그대로 두면 회원이 사진을
+    보낸 직후 목록의 미리보기가 빈칸이 되어, 무엇이 왔는지 대화를 열어야 안다.
+    """
+    if msg is None:
+        return ""
+    if not msg.body and msg.attachment_type == "image" and msg.attachment_file_id:
+        return localized("사진", "Photo")
+    return msg.body
+
+
 def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
     attachment = None
     if msg.attachment_type in ("pdf", "image") and msg.attachment_file_id:
@@ -991,12 +1011,18 @@ def send_message(
 
     if sender == "member":
         member_name = db.scalar(select(User.name).where(User.id == member_id))
+        member_args: dict[str, object] = {"member_name": member_name or ""}
+        # 회원도 사진만 보낼 수 있다(#1665). 트레이너 알림이 제목만 남은 빈 줄이
+        # 되지 않게 표시를 싣는다. 글 메시지의 인자는 예전 그대로 둔다 — 이미
+        # 저장된 알림과 같은 모양이어야 앱이 한 규칙으로 읽는다.
+        if not text and attachment_file_id and attachment_type == "image":
+            member_args["photo_only"] = True
         notification_service.queue_for_trainer(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_MESSAGE_KIND,
             template=notification_templates.TRAINER_MEMBER_MESSAGE,
-            template_args={"member_name": member_name or ""},
+            template_args=member_args,
             body=text,
             # 보낸 회원을 남겨야 알림을 눌렀을 때 그 회원 대화로 가고, 대화를
             # 읽으면 이 알림도 함께 읽음 처리할 수 있다(#2291).
@@ -1095,6 +1121,14 @@ def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
 
 # ---- 회원 활성/휴면 관리 상태 (#707) ----
 
+class ClientConsentRequired(Exception):
+    """회원이 데이터 공유 동의를 철회한 링크를 트레이너 혼자 되살리려 했다. (#1631)
+
+    재등록 라우트에서 409 로 옮긴다. 다시 담당이 되려면 회원이 동의하는 경로
+    (담당 요청 수락·상담·연결 코드)를 지나야 한다.
+    """
+
+
 class ClientLinkDetached(Exception):
     """담당 관계가 이미 해제된 회원이다.
 
@@ -1104,39 +1138,79 @@ class ClientLinkDetached(Exception):
 
 
 def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool:
-    """(trainer, member) 담당 관계가 살아 있는가(`active`). (#2281)
+    """(trainer, member) 담당 관계가 살아 있고 열람 동의가 있는가. (#2281)
 
     링크 행은 해제 뒤에도 남으므로(`remove_client`) 행 존재만으로는 담당이
     아니다. 라우터의 `_require_client` 를 지나지 않는 경로(제안 승인·일정의
-    프로그램 전송)가 이 함수로 같은 경계를 본다.
+    프로그램·개인운동 전송·완료 등)가 이 함수로 같은 경계를 본다.
+
+    동의가 철회된 뒤 새 동의 없이 살아 있는 링크도 `_require_client` 처럼
+    막는다(#1631) — 한쪽만 동의를 보면 같은 회원이 경로에 따라 열리고 닫힌다.
     """
     return db.scalar(
         select(TrainerClient.id).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
             TrainerClient.active.is_(True),
+            data_consent_service.allows_access_clause(),
         )
     ) is not None
+
+
+def _ensure_session_member_linked(
+    db: Session, trainer_id: str, s: TrainerSchedule
+) -> None:
+    """일정에 붙은 회원이 아직 담당·동의 경계 안인지 본다. 아니면 [ClientLinkDetached].
+
+    일정 id 로 여는 경로는 `_get_owned_session`(내 일정인가)만 보므로, 해제 전에
+    잡아 둔 일정으로 해제된 회원의 운동 기록을 쓰거나 알림을 보낼 수 있었다.
+    해제된 회원의 일정은 목록에서도 빠지므로(`list_schedule`) 남의 회원과 같은
+    404 로 옮긴다. 회원이 없는 일정(상담·공백)은 지나간다.
+
+    취소·삭제는 이 확인을 하지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는
+    해제 뒤에도 회원이 알아야 하는 정리다.
+    """
+    if s.member_id and not has_active_client_link(db, trainer_id, s.member_id):
+        raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
 
 
 def remove_client(db: Session, link: TrainerClient) -> None:
     """담당 목록에서만 제거하고 회원이 보는 공유 데이터는 보존한다.
 
     관계 행이 사라지면 트레이너의 고객 기반 화면과 권한에서 제외된다. 스케줄,
-    프로그램·루틴, 리포트, PT 이력과 대화 원본은 삭제하지 않으므로 회원 앱에서는
-    기존 기록을 계속 볼 수 있다.
+    프로그램·루틴, 리포트, PT 이력과 대화 원본은 삭제하지 않는다. 회원 운동 기록에
+    적재된 PT 는 회원 앱에 계속 보이고, 코치 채팅·일정은 같은 트레이너와 다시
+    연결하면 다시 보인다(`build_member_*` 는 활성 담당 기준이다).
 
     담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
+
+    트레이너가 끊어도 담당 해제는 데이터 공유 동의 철회다(#1631) — 동의를 비우고
+    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다.
     """
     link.active = False
+    data_consent_service.revoke(link)
     points_coupon_service.cancel_renewal_coupons(db, link.member_id)
+    # 이 트레이너가 확정해 둔 식단 추천도 내린다(#2378) — 담당이 끝난 트레이너의
+    # 추천이 회원 홈에 남으면 안 된다.
+    diet_trainer_pick.clear(db, link.member_id, link.trainer_id)
+    # 끊은 트레이너의 메시지로 만든 식단 AI 조언·추천 메뉴를 내려놓는다(#1631).
+    diet_coach_inputs.forget_trainer_notes(db, link.member_id)
     db.commit()
 
 
 def restore_client(db: Session, link: TrainerClient) -> None:
-    """과거 담당 관계를 다시 등록 상태로 전환한다."""
+    """과거 담당 관계를 다시 등록 상태로 전환한다.
+
+    동의가 철회된 링크는 되살리지 않는다(#1631) — 회원이 끊은 관계를 트레이너가
+    혼자 되돌리면 회원은 동의하지 않은 트레이너에게 다시 묶인다.
+    [ClientConsentRequired] 다.
+    """
     if link.active:
         return
+    if data_consent_service.blocks_access(link):
+        raise ClientConsentRequired(
+            "회원이 데이터 공유 동의를 철회했습니다. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
+        )
     occupied = db.scalar(
         select(TrainerClient.id).where(
             TrainerClient.member_id == link.member_id,
@@ -1231,6 +1305,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     ).all()
     for member_id in active_member_ids:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
+        # 탈퇴한 트레이너의 메시지로 만든 식단 AI 보관물도 내려놓는다(#1631).
+        diet_coach_inputs.forget_trainer_notes(db, member_id)
 
     # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
     trainer_name = trainer.name or ""
@@ -2326,6 +2402,9 @@ def _add_program_routines(
     trainer_message: str = "",
     start_date: date | None = None,
     active_days: int | None = None,
+    status: str = ROUTINE_APPROVED,
+    schedule_id: str | None = None,
+    notify: bool = True,
 ) -> list[TrainerRoutine]:
     """세션 루틴과 배정 알림을 세션에 올리고 flush 한다. 커밋은 호출부 몫이다.
 
@@ -2335,6 +2414,12 @@ def _add_program_routines(
 
     [active_days] 가 오면 그만큼만 회원 목록에 걸어 둔다(#2223) — 배정한 날을
     1일로 세어 `ended_on` 을 찍는다. 비우면 철회할 때까지 걸려 있다(#2161).
+
+    [status] 를 `scheduled` 로 주면 **회원에게 보이지 않는다**(#2279). PT 일정에
+    붙는 프로그램이 그렇다 — 개인운동과 같이 붙여만 두었다가 PT 를 마치고
+    보낼 때 함께 올라간다. 그때는 [schedule_id] 로 어느 PT 의 것인지 묶고,
+    [notify] 를 내려 배정 알림도 미룬다: 지금 알리면 회원은 아직 오지 않은
+    운동의 알림을 먼저 받는다.
     """
     multi = len(sessions) > 1
     today_iso = clock.today_iso()
@@ -2378,6 +2463,8 @@ def _add_program_routines(
             exercise_date=start_date.isoformat() if start_date else None,
             active_from=today_iso,
             ended_on=ended_on,
+            status=status,
+            schedule_id=schedule_id,
             delivery_kind=delivery_kind,
             trainer_message=trainer_message,
             created_at=now,
@@ -2385,6 +2472,9 @@ def _add_program_routines(
         db.add(rt)
         created.append(rt)
     db.flush()
+
+    if not notify:
+        return created
 
     total_minutes = sum(rt.minutes for rt in created)
     notification_service.queue(
@@ -3916,10 +4006,11 @@ def _scheduled_routines_for_request(
 def _clear_scheduled_routines(
     db: Session, trainer_id: str, schedule_id: str
 ) -> None:
-    """그 PT 에 붙어 있던 **아직 보내지 않은** 개인운동을 지운다. (#2224)
+    """그 PT 에 붙어 있던 **아직 보내지 않은** 줄을 지운다. (#2224, #2279)
 
-    보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은 건드리지 않는다 —
-    회원이 이미 받았거나 트레이너가 이미 답한 것이다.
+    프로그램과 개인운동을 함께 걷는다 — 둘 다 `scheduled` 로 붙어 있다가 전송
+    때 함께 나간다. 보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은
+    건드리지 않는다: 회원이 이미 받았거나 트레이너가 이미 답한 것이다.
     """
     for row in db.scalars(
         select(TrainerRoutine).where(
@@ -4210,6 +4301,48 @@ def _retire_personal_routines(
     )
 
 
+def _raise_scheduled_program(
+    db: Session, trainer_id: str, session: TrainerSchedule
+) -> bool:
+    """이 PT 에 붙여 둔 프로그램을 회원에게 올린다(커밋 없음). (#2279)
+
+    프로그램 만들기(#1580)로 짠 PT 는 등록 때 배정하지 않고 `scheduled` 로
+    붙여만 둔다. 여기서 `approved` 로 올리며 **오늘부터** 건다 — 며칠 전에 짜
+    둔 것이라도 회원에게는 오늘 받은 운동이다.
+
+    올린 것이 있으면 참. 붙은 줄이 없으면 거짓이고, 부르는 쪽이 예전처럼 새로
+    배정한다.
+    """
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.schedule_id == session.id,
+            # 프로그램 줄만 — 개인운동은 `delivery_kind` 를 달고 있다(#2223).
+            TrainerRoutine.delivery_kind.is_(None),
+            TrainerRoutine.status == ROUTINE_SCHEDULED,
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
+    ).all()
+    if not rows:
+        return False
+    today_iso = clock.today_iso()
+    for row in rows:
+        row.status = ROUTINE_APPROVED
+        row.active_from = today_iso
+    db.flush()
+    total_minutes = sum(row.minutes for row in rows)
+    notification_service.queue(
+        db,
+        member_id=session.member_id,
+        kind=notification_service.EXERCISE,
+        category=notification_service.MEMBER_ROUTINE,
+        title="새 운동 루틴이 배정되었어요",
+        body=f"{rows[0].name} · {total_minutes}분",
+    )
+    return True
+
+
 def _send_scheduled_routines(
     db: Session,
     trainer_id: str,
@@ -4231,6 +4364,9 @@ def _send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session.id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 `scheduled` 로 붙어
+            # 있지만(#2279) 그쪽은 `delivery_kind` 가 비어 있다.
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4285,6 +4421,7 @@ def send_scheduled_routines(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     if s.status == SCHEDULE_UPCOMING:
         raise ScheduleError(
             "아직 예정인 PT 입니다. 완료할 때 개인운동이 함께 나갑니다."
@@ -4296,6 +4433,8 @@ def send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4311,6 +4450,8 @@ def send_scheduled_routines(
             .where(
                 TrainerRoutine.trainer_id == trainer_id,
                 TrainerRoutine.schedule_id == session_id,
+                # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+                TrainerRoutine.delivery_kind.is_not(None),
                 TrainerRoutine.status == ROUTINE_SCHEDULED,
             )
             .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4411,6 +4552,8 @@ def update_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
@@ -4442,6 +4585,8 @@ def dismiss_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
+            TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
         )
         .values(status=ROUTINE_DISMISSED)
@@ -4543,7 +4688,12 @@ def assign_program_with_schedule(
         .with_for_update()
     )
     # 해제된 담당(`active=False`)도 없는 담당과 같다 — 배정과 일정 모두 막는다. (#2281)
-    if client_link is None or not client_link.active:
+    # 동의가 철회된 채 살아 있는 링크도 `_require_client` 와 같이 막는다. (#1631)
+    if (
+        client_link is None
+        or not client_link.active
+        or data_consent_service.blocks_access(client_link)
+    ):
         return None
 
     program_json = _dump_program(_schedule_program_items(sessions))
@@ -4586,10 +4736,6 @@ def assign_program_with_schedule(
         ensure_no_overlap(
             db, trainer_id, date=date, time=time, duration_minutes=duration_minutes
         )
-    routines = _add_program_routines(
-        db, trainer_id, member_id,
-        name=name, sessions=sessions, client_request_id=client_request_id,
-    )
     if target is None:
         session = _add_session(
             db,
@@ -4609,11 +4755,23 @@ def assign_program_with_schedule(
     else:
         target.program_json = program_json
         session = target
-    # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 개인운동은 걷어낸다. 프로그램을
-    # 다시 짜서 보내면 `program_json` 은 덮어쓰는데 개인운동만 뒤에 쌓여, 두 번
-    # 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로 아는데 회원은
-    # 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이 본 것은 없다.
+    # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 프로그램·개인운동은 걷어낸다.
+    # 프로그램을 다시 짜서 보내면 `program_json` 은 덮어쓰는데 붙은 줄만 뒤에
+    # 쌓여, 두 번 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로
+    # 아는데 회원은 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이
+    # 본 것은 없다.
     _clear_scheduled_routines(db, trainer_id, session.id)
+    # 프로그램은 **회원에게 보내지 않고 이 PT 에 붙여만 둔다**(#2279). 예전에는
+    # 여기서 바로 배정해, 등록만 해도 회원 목록에 떴고 PT 를 마치고 보낼 때
+    # 한 벌이 더 생겼다 — 회원은 같은 운동을 두 번 해야 하는 것으로 봤다.
+    # 개인운동과 같은 자리에서, 같은 규칙으로 나간다(#2224).
+    routines = _add_program_routines(
+        db, trainer_id, member_id,
+        name=name, sessions=sessions, client_request_id=client_request_id,
+        status=ROUTINE_SCHEDULED,
+        schedule_id=session.id,
+        notify=False,
+    )
     personal = _add_scheduled_routines(
         db, trainer_id, member_id,
         items=personal_routines,
@@ -4712,6 +4870,7 @@ def update_session(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     # 회원에게 알릴지 판단하려면 **바꾸기 전** 값을 들고 있어야 한다. 넘긴
     # 일정의 취소 알림에는 옛 시각을 써야 회원이 어느 약속인지 안다.
     before_member_id = s.member_id
@@ -4844,6 +5003,7 @@ def reopen_session(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     if _is_reservation_schedule(db, session_id):
         raise ScheduleConflict(
             "예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없습니다."
@@ -5038,14 +5198,20 @@ def send_session_program(
         )
         for index, item in enumerate(items)
     ]
-    assign_program(
-        db,
-        trainer_id,
-        s.member_id,
-        name=f"{s.date} {s.type}".strip() or s.date,
-        sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
-        client_request_id=client_request_id,
-    )
+    # 프로그램 만들기로 짠 PT 는 이미 이 일정에 붙어 있다(#2279) — 올리기만
+    # 하면 된다. 여기서 또 배정하면 회원이 같은 운동을 두 벌 받는다.
+    #
+    # 붙은 것이 없으면 예전처럼 새로 배정한다 — 스케줄에서 연필로 바로 짠
+    # 프로그램에는 붙은 줄이 없고, 이 칸이 생기기 전에 만든 일정도 그렇다.
+    if not _raise_scheduled_program(db, trainer_id, s):
+        assign_program(
+            db,
+            trainer_id,
+            s.member_id,
+            name=f"{s.date} {s.type}".strip() or s.date,
+            sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
+            client_request_id=client_request_id,
+        )
     # 개인운동은 **이 전송에 함께 실린다**(#2224) — 회원은 "오늘 한 것" 과
     # "혼자 할 것" 을 한 번에 받는다. 프로그램과 같은 트랜잭션이라 둘 다
     # 가거나 둘 다 안 간다: 프로그램만 가고 개인운동이 빠지면 트레이너는
@@ -5079,6 +5245,7 @@ def complete_session(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    _ensure_session_member_linked(db, trainer_id, s)
     if s.status == "공백":
         raise ScheduleError("빈 슬롯은 완료할 수 없습니다.")
     if s.date > _today().isoformat():
@@ -5329,8 +5496,12 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     ).all()
     for link in links:
         link.active = False
+        # 담당 해제 = 데이터 공유 동의 철회(#1631).
+        data_consent_service.revoke(link)
     if links:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
+        # 끊은 트레이너의 메시지로 만든 식단 AI 조언·추천 메뉴를 내려놓는다(#1631).
+        diet_coach_inputs.forget_trainer_notes(db, member_id)
     return bool(links)
 
 
@@ -5888,7 +6059,10 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
     """한국어 본문. 헤더가 없는 요청과 한국어 화면이 받는 지금까지의 문장이다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
-    good = (report.completion_avg or 0) >= 70 and report.sodium_over_days <= 2
+    good = (
+        (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
+        and report.sodium_over_days <= 2
+    )
     period = f"{start.month}월 {start.day}일 – {end.month}월 {end.day}일"
 
     paragraphs: list[str] = [
@@ -5901,11 +6075,15 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
     if report.completion_avg is not None:
         # `이번 주` 로 시작하지 않는다 — 지난 주 리포트에도 그대로 나가는
         # 문장이고, 어느 주인지는 첫 줄의 날짜 범위가 이미 말한다(#1177).
-        workout.append(
-            f"운동은 평균 {report.completion_avg}%로 잘 따라오셨어요."
-            if report.completion_avg >= 70
-            else f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
-        )
+        # 좋음·보통·낮음 세 구간 — 75% 에게 "잘 따라오셨어요" 도, "많이
+        # 바쁘셨나 봐요" 도 맞지 않는다(#2345).
+        if report.completion_avg >= client_signals.COMPLETION_GOOD_PERCENT:
+            line = f"운동은 평균 {report.completion_avg}%로 잘 따라오셨어요."
+        elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
+            line = f"운동은 평균 {report.completion_avg}%로 꾸준히 해 주셨어요."
+        else:
+            line = f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
+        workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
         workout.append(
@@ -5962,7 +6140,10 @@ def _report_message_en(report: WeeklyReportOut) -> str:
     """영어 본문. 한국어 본문과 같은 문단·같은 판정이고 문장만 영어다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
-    good = (report.completion_avg or 0) >= 70 and report.sodium_over_days <= 2
+    good = (
+        (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
+        and report.sodium_over_days <= 2
+    )
     # 트레이너 웹 `dateMonthDay`·`dateRange` 와 같은 모양(`8/10 – 8/16`).
     period = f"{start.month}/{start.day} – {end.month}/{end.day}"
 
@@ -5972,12 +6153,16 @@ def _report_message_en(report: WeeklyReportOut) -> str:
 
     workout: list[str] = []
     if report.completion_avg is not None:
-        workout.append(
-            f"You kept up well — {report.completion_avg}% of your workouts done."
-            if report.completion_avg >= 70
-            else f"Workout completion came in at {report.completion_avg}%. "
-            "Sounds like a busy week."
-        )
+        if report.completion_avg >= client_signals.COMPLETION_GOOD_PERCENT:
+            line = f"You kept up well — {report.completion_avg}% of your workouts done."
+        elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
+            line = f"You stayed steady — {report.completion_avg}% of your workouts done."
+        else:
+            line = (
+                f"Workout completion came in at {report.completion_avg}%. "
+                "Sounds like a busy week."
+            )
+        workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
         workout.append(
@@ -6305,6 +6490,41 @@ def get_report_goals(db: Session, member_id: str, week: date) -> ReportGoalsOut:
     return ReportGoalsOut(week_start=week.isoformat(), goals=goals)
 
 
+def _report_sends_query(trainer_id: str):
+    """리포트 전송 메시지 — 트레이너가 보낸 것 중 `report_week_start` 를 실은 것.
+
+    주 단위 조회(#2288)와 회원별 조회(#2393)가 같은 근거를 읽도록 조건을
+    여기 한 곳에 둔다. 최신 전송이 먼저 오게 정렬해 두어 `_fold_report_sends`
+    가 첫 행을 "가장 최근" 으로 잡는다.
+    """
+    return (
+        select(ChatMessage)
+        .where(
+            ChatMessage.trainer_id == trainer_id,
+            ChatMessage.sender == "trainer",
+            ChatMessage.report_week_start.is_not(None),
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+    )
+
+
+def _fold_report_sends(
+    rows: Sequence[ChatMessage], key: Callable[[ChatMessage], str]
+) -> tuple[dict[str, ChatMessage], dict[str, int]]:
+    """최신순 전송들을 [key] 마다 **가장 최근 것** 하나와 횟수로 접는다.
+
+    주 단위 조회는 회원으로, 회원별 조회는 주로 접는다 — 접는 규칙이 두 벌이면
+    같은 전송이 두 화면에서 다른 횟수로 보이는 날이 온다.
+    """
+    latest: dict[str, ChatMessage] = {}
+    counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        k = key(row)
+        latest.setdefault(k, row)
+        counts[k] += 1
+    return latest, counts
+
+
 def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOut:
     """[week] 주 리포트가 나간 담당 회원들. (#2288)
 
@@ -6323,20 +6543,12 @@ def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOu
         TrainerClient.active.is_(True),
     )
     rows = db.scalars(
-        select(ChatMessage)
-        .where(
-            ChatMessage.trainer_id == trainer_id,
-            ChatMessage.sender == "trainer",
+        _report_sends_query(trainer_id).where(
             ChatMessage.report_week_start == week_iso,
             ChatMessage.member_id.in_(active_members),
         )
-        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
     ).all()
-    latest: dict[str, ChatMessage] = {}
-    counts: dict[str, int] = defaultdict(int)
-    for row in rows:
-        latest.setdefault(row.member_id, row)
-        counts[row.member_id] += 1
+    latest, counts = _fold_report_sends(rows, lambda m: m.member_id)
     return ReportSendsOut(
         week_start=week_iso,
         sends=[
@@ -6346,12 +6558,95 @@ def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOu
                 sent_at=_iso(msg.created_at),
                 message=msg.body,
                 read=msg.read_at is not None,
-                has_pdf=msg.attachment_type == "pdf"
-                and msg.attachment_file_id is not None,
+                has_pdf=_is_report_pdf(msg),
                 send_count=counts[member_id],
             )
             for member_id, msg in latest.items()
         ],
+    )
+
+
+def _is_report_pdf(msg: ChatMessage) -> bool:
+    return msg.attachment_type == "pdf" and msg.attachment_file_id is not None
+
+
+#: 회원별 지난 리포트 목록이 싣는 본문 첫 줄의 길이. 한 줄 요약 칸에 들어가는
+#: 선에서 끊는다 — 전문은 채팅 메시지에 그대로 있다.
+REPORT_PREVIEW_LENGTH = 80
+
+
+def report_feedback_preview(body: str) -> str:
+    """본문의 비어 있지 않은 첫 줄. 길면 잘라 `…` 를 붙인다."""
+    first = next((line.strip() for line in body.splitlines() if line.strip()), "")
+    if len(first) <= REPORT_PREVIEW_LENGTH:
+        return first
+    return first[: REPORT_PREVIEW_LENGTH - 1].rstrip() + "…"
+
+
+def list_member_report_sends(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    *,
+    limit: int,
+    before: date | None = None,
+) -> MemberReportSendsOut:
+    """[member_id] 에게 나간 리포트를 주별로, 최신 주부터. (#2393)
+
+    근거와 접는 규칙은 주 단위 조회(`list_report_sends`)와 같다 — 한 주에 여러
+    번 보냈으면 가장 최근 것 하나와 횟수. 담당 링크 확인은 라우터가
+    `_require_client` 로 먼저 한다(#2281).
+
+    쪽은 **주** 단위로 나눈다. 전송 한 건씩 자르면 같은 주의 재전송이 쪽 경계에
+    걸려 횟수가 두 쪽에 나뉘어 실린다. 주 시작일은 이 목록에서 겹치지 않으므로
+    커서는 그 값 하나(`before`, 그 주 제외)로 충분하다. 주 중간 날짜를 주면
+    그 주 월요일로 접는다.
+    """
+    week_q = (
+        select(ChatMessage.report_week_start)
+        .where(
+            ChatMessage.trainer_id == trainer_id,
+            ChatMessage.member_id == member_id,
+            ChatMessage.sender == "trainer",
+            ChatMessage.report_week_start.is_not(None),
+        )
+        .group_by(ChatMessage.report_week_start)
+        .order_by(ChatMessage.report_week_start.desc())
+        .limit(limit + 1)
+    )
+    if before is not None:
+        # 저장값이 `YYYY-MM-DD` 라 문자열 비교가 곧 날짜 비교다.
+        week_q = week_q.where(
+            ChatMessage.report_week_start < week_start_of(before).isoformat()
+        )
+    weeks = [w for w in db.scalars(week_q).all() if w]
+    has_more = len(weeks) > limit
+    weeks = weeks[:limit]
+    if not weeks:
+        return MemberReportSendsOut(member_id=member_id)
+
+    rows = db.scalars(
+        _report_sends_query(trainer_id).where(
+            ChatMessage.member_id == member_id,
+            ChatMessage.report_week_start.in_(weeks),
+        )
+    ).all()
+    latest, counts = _fold_report_sends(rows, lambda m: m.report_week_start or "")
+    return MemberReportSendsOut(
+        member_id=member_id,
+        sends=[
+            MemberReportSendOut(
+                week_start=week,
+                sent_at=_iso(latest[week].created_at),
+                read=latest[week].read_at is not None,
+                send_count=counts[week],
+                message_id=latest[week].id,
+                has_pdf=_is_report_pdf(latest[week]),
+                feedback_preview=report_feedback_preview(latest[week].body),
+            )
+            for week in weeks
+        ],
+        next_before=weeks[-1] if has_more else None,
     )
 
 

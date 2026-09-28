@@ -331,10 +331,10 @@ def test_another_trainer_cannot_reach_the_draft(
 def test_member_cannot_reach_program_drafts(client):
     email = f"member-{uuid4().hex[:8]}@oncare.com"
     client.post(
-        "/v1/auth/register", json={"email": email, "password": "pw!", "name": "u"}
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
     token = client.post(
-        "/v1/auth/login", data={"username": email, "password": "pw!"}
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
     ).json()["access_token"]
     assert client.get(
         "/v1/trainer/programs", headers=_headers(token)

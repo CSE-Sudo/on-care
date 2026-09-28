@@ -14,7 +14,7 @@
   },
   "scheduleStatusCancelled": "Cancelled",
   "scheduleStatusNoShow": "No-show",
-  "schedCancel": "Cancel session",
+  "schedCancel": "Cancel",
   "schedNoShow": "Mark no-show",
   "schedCancelTitle": "Cancel this PT?",
   "schedCancelConfirm": "The {time} session with {name} will be recorded as cancelled. The entry stays.",
@@ -85,7 +85,6 @@
   "actionDelete": "Delete",
   "actionClose": "Close",
   "actionRetry": "Retry",
-  "actionRefresh": "Refresh",
   "actionChange": "Change",
   "actionBack": "Back",
   "notFoundTitle": "Page not found",
@@ -159,6 +158,10 @@
   "authErrEmailInvalid": "Enter a valid email address",
   "authErrPasswordEmpty": "Enter your password",
   "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
+  "authErrPasswordTooLong": "Passwords can be up to 64 characters, or fewer if they include Korean or emoji",
+  "@authErrPasswordTooLong": {
+    "description": "Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster."
+  },
   "authErrPhoneInvalid": "Enter your phone number as 010-0000-0000",
   "@authErrPhoneInvalid": {
     "description": "Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive."
@@ -354,6 +357,18 @@
       }
     }
   },
+  "clientsMemberCountFiltered": "{shown} of {total} members",
+  "@clientsMemberCountFiltered": {
+    "description": "Roster subtitle while a dashboard preset or management filter narrows the list.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "clientWeeklyRoutineAdherence": "Weekly adherence",
   "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
@@ -458,7 +473,6 @@
   "healthFocusExerciseHabit": "Exercise habit",
   "healthFocusBloodPressure": "Blood pressure care",
   "memberHealthConditions": "Conditions and cautions",
-  "memberHealthGoals": "Member goals",
   "memberHealthDietGoal": "Nutrition goals",
   "memberHealthExerciseGoal": "Exercise goals",
   "memberHealthGoalCalories": "Daily calories (kcal)",
@@ -545,13 +559,43 @@
   "metricSodium": "Sodium",
   "metricSugar": "Sugar",
   "clientDietMacrosMissing": "No carbs/protein/fat recorded",
+  "clientDietTotalCalories": "Total calories",
+  "clientDietDayTotal": "Day total",
+  "clientDietDayTotalCalories": "Total {calories} kcal",
+  "@clientDietDayTotalCalories": {
+    "description": "트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
+    "placeholders": {
+      "calories": {
+        "type": "String"
+      }
+    }
+  },
+  "clientDietMacroShare": "{name} {percent}%",
+  "@clientDietMacroShare": {
+    "description": "끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "metricCarbs": "Carbs",
   "metricProtein": "Protein",
   "metricFat": "Fat",
   "clientActive": "Active",
   "clientDormant": "Dormant",
+  "clientDormantActivate": "Tap to mark active",
+  "clientSignalLess": "Less",
+  "clientSignalMore": "+{count}",
+  "@clientSignalMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "clientStatusChangeFailed": "Couldn't change the status. Please try again.",
-  "clientClosePanel": "Close panel",
   "chatTooLong": "Message is too long (2000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
@@ -764,14 +808,6 @@
     "placeholders": {
       "amount": {
         "type": "String"
-      }
-    }
-  },
-  "dietSodiumValue": "Sodium {value}mg",
-  "@dietSodiumValue": {
-    "placeholders": {
-      "value": {
-        "type": "int"
       }
     }
   },
@@ -1094,19 +1130,7 @@
       }
     }
   },
-  "reportsSendStateSent": "Sent",
-  "reportsSendStateSending": "Sending…",
-  "reportsShare": "Share",
-  "reportsShareSendTo": "Send to {name}",
-  "@reportsShareSendTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsShareNeedsFeedback": "Write feedback first to send it.",
-  "reportsShareNoClient": "Pick a member to see their report first.",
+  "reportsSendNeedsFeedback": "Write feedback first to send it.",
   "reportBodyGreeting": "{name}, here's your weekly report for {range}.",
   "@reportBodyGreeting": {
     "placeholders": {
@@ -1120,6 +1144,14 @@
   },
   "reportBodyCompletionGood": "You kept up well — {avg}% of your workouts done.",
   "@reportBodyCompletionGood": {
+    "placeholders": {
+      "avg": {
+        "type": "int"
+      }
+    }
+  },
+  "reportBodyCompletionSteady": "You stayed steady — {avg}% of your workouts done.",
+  "@reportBodyCompletionSteady": {
     "placeholders": {
       "avg": {
         "type": "int"
@@ -1536,19 +1568,11 @@
   "myNoGym": "No gym",
   "mySignOut": "Sign out",
   "myPwCurrentRequired": "Enter your current password",
-  "myPwTooShort": "The new password must be at least {min} characters",
-  "@myPwTooShort": {
-    "placeholders": {
-      "min": {
-        "type": "int"
-      }
-    }
-  },
   "myPwMismatch": "The new passwords don't match",
   "myPwChangeFailed": "Couldn't change your password",
   "myPwChangeRetry": "That didn't work. Please try again in a moment",
   "myPwCurrent": "Current password",
-  "myPwNew": "New password ({min}+ characters)",
+  "myPwNew": "New password ({min}+ characters, letters and numbers)",
   "@myPwNew": {
     "placeholders": {
       "min": {
@@ -2125,6 +2149,7 @@
   },
   "notifTplConsultRequestedTitle": "New consultation request",
   "notifTplConsultCancelledTitle": "Consultation request cancelled",
+  "notifTplConsultWithdrawnTitle": "Consultation request cancelled: member account deleted",
   "notifTplInviteAcceptedTitle": "Coaching request accepted",
   "notifTplInviteAcceptedBody": "{name} is now your client.",
   "@notifTplInviteAcceptedBody": {
@@ -2188,6 +2213,10 @@
         "type": "String"
       }
     }
+  },
+  "notifTplMemberPhotoBody": "Sent a photo",
+  "@notifTplMemberPhotoBody": {
+    "description": "Body of the new-message notification when a member sent only a photo in the coach chat."
   },
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
@@ -2372,12 +2401,7 @@
   },
   "dashTaskUncheckBody": "It also drops off the task progress chart.",
   "dashTaskUncheckConfirm": "Undo completion",
-  "churnNoRecentWorkout": "No workout logged in 7 days",
   "churnNoRecentFeedback": "No trainer feedback in 7 days",
-  "churnConsecutiveCancel": "2 consecutive cancellations/no-shows",
-  "churnDietStopped": "Diet logging stopped",
-  "churnGoalStagnant": "Goal metric stagnant long-term",
-  "churnUnresolvedRequest": "Unanswered message",
   "navMessages": "Messages",
   "messagesSubtitle": "Exchange coaching updates with members and follow up quickly",
   "messagesLoadFailed": "Couldn't load conversations.",
@@ -2402,9 +2426,33 @@
   "clientQuickMessages": "Messages",
   "clientQuickProgram": "Program",
   "clientQuickReport": "Report",
-  "clientHealthGoals": "Body profile & goals",
-  "clientProfileSectionTitle": "Body, goals & memo",
+  "clientProfileSectionTitle": "Body and goals",
   "clientTrainerMemo": "Memo",
+  "clientHealthUnset": "Not set",
+  "clientHealthTabBody": "Body",
+  "clientHealthTabFocus": "Health goals",
+  "clientGoalPerDay": "Per day",
+  "clientGoalCalories": "Calories",
+  "clientGoalSodium": "Sodium",
+  "clientGoalSugar": "Sugar",
+  "clientGoalCarbs": "Carbs",
+  "clientGoalProtein": "Protein",
+  "clientGoalFat": "Fat",
+  "clientGoalBurnDaily": "Daily burn",
+  "clientGoalCardioWeekly": "Weekly cardio",
+  "clientGoalStrengthWeekly": "Weekly strength",
+  "clientGoalStretchWeekly": "Weekly stretching",
+  "clientBodyHeight": "Height",
+  "clientBodyWeight": "Weight",
+  "clientUnitCm": "cm",
+  "clientGoalDefaultHint": "Faded values are the defaults used until a goal is set. Empty fields use them.",
+  "clientGoalSuggestionDiet": "Suggested: {kcal} kcal · carbs {carbs} g · sugar {sugar} g · protein {protein} g · fat {fat} g · sodium {sodium} mg",
+  "@clientGoalSuggestionDiet": { "placeholders": { "kcal": { "type": "int" }, "carbs": { "type": "int" }, "sugar": { "type": "int" }, "protein": { "type": "int" }, "fat": { "type": "int" }, "sodium": { "type": "int" } } },
+  "clientGoalSuggestionExercise": "Suggested: {burn} kcal burned a day · {cardio} min cardio · {strength} strength sets · {flexibility} min stretching a week",
+  "@clientGoalSuggestionExercise": { "placeholders": { "burn": { "type": "int" }, "cardio": { "type": "int" }, "strength": { "type": "int" }, "flexibility": { "type": "int" } } },
+  "clientGoalSuggestionPersonal": "Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)",
+  "clientGoalSuggestionFallback": "Age, height, or weight is missing, so only the health goals adjust the defaults",
+  "clientGoalApplySuggestion": "Fill with suggestion",
   "clientTrainerMemoHint": "Note what you want to remember about this member",
   "clientTrainerMemoAdd": "Add memo",
   "clientTrainerMemoEmpty": "No memos yet.",
@@ -2771,34 +2819,7 @@
   "reportsAiUseAsDraft": "Use as feedback",
   "reportsAiRegenerate": "Regenerate",
   "reportsAiUnavailable": "Available after the report summary API is connected. No summary is generated now.",
-  "reportsPdfLabel": "Export PDF",
-  "reportsPdfGenerating": "Generating PDF…",
   "reportsPdfGenerationFailed": "Couldn't generate the PDF. Please try again.",
-  "reportsPdfReady": "{name}'s weekly report is ready.",
-  "@reportsPdfReady": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSending": "Sending…",
-  "reportsPdfSendToClient": "Send to member",
-  "reportsPdfSave": "Save PDF",
-  "reportsPdfPrint": "Print",
-  "reportsPdfClose": "Close",
-  "reportsPdfActionFailed": "Couldn't complete the action. Please try again.",
-  "reportsPdfSent": "Sent the PDF to {name}.",
-  "@reportsPdfSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsPdfSaveStarted": "Started saving the PDF.",
-  "reportsPdfPrintOpened": "Opened the print dialog.",
-  "reportsPdfMessage": "Here's your weekly report.",
   "reportsPdfFallbackClient": "member",
   "reportsPdfDocTitle": "Weekly coaching report",
   "reportsPdfDocTitleContinued": "Weekly coaching report (continued)",
@@ -3036,8 +3057,10 @@
       }
     }
   },
+  "reportsSortLabel": "Sort",
   "reportsSortPriority": "Needs attention",
-  "reportsSortName": "By name",
+  "reportsSortName": "Name A–Z",
+  "reportsSortNameDescending": "Name Z–A",
   "reportsSendProgress": "{done} / {total} sent",
   "@reportsSendProgress": {
     "placeholders": {
@@ -3045,6 +3068,14 @@
         "type": "int"
       },
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsSendPercent": "{percent}%",
+  "@reportsSendPercent": {
+    "placeholders": {
+      "percent": {
         "type": "int"
       }
     }
@@ -3063,26 +3094,10 @@
       }
     }
   },
-  "reportsReasonNoShow": "{count} no-show",
-  "@reportsReasonNoShow": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "reportsReasonSessionDone": "PT {count} done",
   "@reportsReasonSessionDone": {
     "placeholders": {
       "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsReasonSilentDays": "{days} days unlogged",
-  "@reportsReasonSilentDays": {
-    "placeholders": {
-      "days": {
         "type": "int"
       }
     }
@@ -3138,6 +3153,32 @@
     }
   },
   "reportsSentRewrite": "Rewrite from this",
+  "reportsHistoryButton": "Past reports",
+  "reportsViewSent": "View",
+  "reportsHistoryTitle": "{name}'s past reports",
+  "@reportsHistoryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsHistoryBack": "Past reports",
+  "reportsHistoryUnsent": "Not sent",
+  "reportsHistoryThisWeek": "This week",
+  "reportsHistoryEmpty": "No reports sent yet",
+  "reportsHistoryLoadFailed": "Couldn't load past reports",
+  "reportsHistoryMore": "Load more",
+  "reportsHistoryMoreFailed": "Couldn't load more. Tap to try again.",
+  "reportsHistorySendCount": "{count, plural, =1{Sent once} other{Sent {count} times}}",
+  "@reportsHistorySendCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsHistoryPdf": "PDF",
   "reportsResendTitle": "Already sent",
   "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
   "@reportsResendBody": {
@@ -3158,32 +3199,40 @@
   "reportsSentBody": "Message sent",
   "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",
-  "reportsStepGoals": "Write",
+  "reportsStepWrite": "Write",
   "reportsStepSend": "Send",
   "reportsStepperLabel": "Weekly report steps",
   "reportsStepNext": "Next",
   "reportsStepPrev": "Back",
-  "reportsGoalsTitle": "Next week's goals",
-  "reportsGoalsHint": "Pick what to work on together next week. The goals you pick go out with the message.",
-  "reportsGoalsNone": "No goals picked yet",
-  "reportsGoalsPicked": "{count} picked",
-  "@reportsGoalsPicked": {
+  "reportsPreviewTitle": "What the member receives",
+  "reportsPreviewRecipient": "To",
+  "reportsPreviewWeek": "Week",
+  "reportsPreviewDelivery": "Sent to {name}'s chat as a PDF file",
+  "@reportsPreviewDelivery": {
     "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsGoalsOwnHint": "Write your own",
-  "reportsGoalsAdd": "Add",
-  "reportsGoalsRemove": "Remove {goal}",
-  "@reportsGoalsRemove": {
-    "placeholders": {
-      "goal": {
+      "name": {
         "type": "String"
       }
     }
   },
+  "reportsPreviewEditHint": "To change the text, tap Back to return to the Write step",
+  "reportsPreviewGenerating": "Preparing the preview",
+  "reportsPreviewFailed": "Couldn't prepare the preview",
+  "reportsPreviewPage": "Page {current} of {total}",
+  "@reportsPreviewPage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsPreviewPrevPage": "Previous page",
+  "reportsPreviewNextPage": "Next page",
+  "reportsPreviewZoomIn": "Zoom in",
+  "reportsPreviewZoomOut": "Zoom out",
   "reportsGridPtSession": "PT sessions",
   "reportsGridPtPerWeek": "{count}/week",
   "@reportsGridPtPerWeek": {
@@ -3248,7 +3297,7 @@
       }
     }
   },
-  "reportsMacroShortfall": "{name} is well under target — worth picking as a goal for next week",
+  "reportsMacroShortfall": "{name} is well under target — worth raising in your feedback",
   "@reportsMacroShortfall": {
     "placeholders": {
       "name": {
@@ -3284,70 +3333,6 @@
   "reportsMemberFeedbackIntensityRight": "About right",
   "reportsMemberFeedbackIntensityHard": "Hard",
   "reportsMemberFeedbackIntensityTooHard": "Too hard",
-  "reportsLastGoalsTitle": "Last week's goals",
-  "reportsLastGoalsNone": "No goals were picked last week",
-  "reportsLastGoalsNoneHint": "Pick next week's goals now and they come back here in the next report",
-  "reportsLastGoalsMetCount": "{met} / {total} met",
-  "@reportsLastGoalsMetCount": {
-    "placeholders": {
-      "met": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsMet": "Met",
-  "reportsLastGoalsPartial": "Partly",
-  "reportsLastGoalsMissed": "Missed",
-  "reportsLastGoalsUnknown": "Check yourself",
-  "reportsLastGoalsEvidence": "{done} / {target}{unit}",
-  "@reportsLastGoalsEvidence": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "target": {
-        "type": "int"
-      },
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceLogged": "Logged {days} days",
-  "@reportsLastGoalsEvidenceLogged": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsEvidenceWorkout": "{done} / {total} personal workouts",
-  "@reportsLastGoalsEvidenceWorkout": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "reportsLastGoalsSubtitle": "Judged from this week's records",
-  "reportsLastGoalsKeywordsCalories": "calorie,kcal,intake",
-  "@reportsLastGoalsKeywordsCalories": {
-    "description": "Search words that mark a last-week goal as a calorie goal. Comma-separated; never shown on screen."
-  },
-  "reportsLastGoalsKeywordsWorkout": "workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym",
-  "@reportsLastGoalsKeywordsWorkout": {
-    "description": "Search words that mark a last-week goal as a workout goal. Comma-separated; never shown on screen."
-  },
-  "reportsLastGoalsKeywordsLogged": "log,record,meal",
-  "@reportsLastGoalsKeywordsLogged": {
-    "description": "Search words that mark a last-week goal as a food-logging goal. Comma-separated; never shown on screen."
-  },
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
   "reportsTrendOfGoal": "{value} / {goal}",
@@ -3381,14 +3366,6 @@
   "@reportsMemberFeedbackMeta": {
     "placeholders": {
       "date": {
-        "type": "String"
-      }
-    }
-  },
-  "reportsMacroShortfallEvidence": "This is the evidence last week's goal “{goal}” was judged unmet",
-  "@reportsMacroShortfallEvidence": {
-    "placeholders": {
-      "goal": {
         "type": "String"
       }
     }

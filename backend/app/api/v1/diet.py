@@ -38,6 +38,7 @@ from app.schemas.diet_api import (
     DietTodayResponse,
     FoodNutritionOut,
     FoodNutritionRequest,
+    MemberTrainerPick,
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
@@ -47,6 +48,7 @@ from app.services import (
     diet_photo_service,
     diet_recommendation_service,
     diet_service,
+    diet_trainer_pick,
     diet_week_advice,
     points_service,
 )
@@ -162,8 +164,22 @@ def diet_recommendations(
 
     LLM 실패·지연·근거 부족 어느 경우에도 카드 수가 줄지 않는다(서비스 주석 참고).
     """
-    return diet_recommendation_service.build_recommendations(
+    response = diet_recommendation_service.build_recommendations(
         db, current_user.id, use_llm=use_llm
+    )
+    # 트레이너가 확정한 추천(#2378)은 캐시 밖에서 붙인다 — 회원이 방금 그 메뉴를
+    # 먹었거나 트레이너가 방금 바꿨는데 캐시가 옛 추천을 들고 있으면 안 된다.
+    found = diet_trainer_pick.for_member(db, current_user.id)
+    if found is None:
+        return response
+    pick, trainer_name = found
+    return response.model_copy(
+        update={
+            "trainer_pick": MemberTrainerPick(
+                slot=pick.slot, name=pick.name, tag=pick.tag,
+                keyword=pick.keyword, trainer_name=trainer_name,
+            )
+        }
     )
 
 

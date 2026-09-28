@@ -28,6 +28,10 @@ enum TrainerNotificationKind {
   /// 회원이 담당 요청을 거절했다 — 담당이 아니라 상세가 없어 고객 목록으로
   /// 간다(#2292).
   inviteRejected,
+
+  /// 회원이 탈퇴해 대기 중이던 상담 요청이 함께 사라졌다(#1632) — 상담 요청함으로
+  /// 간다. 떠난 회원의 상세는 열 수 없어 회원을 가리키지 않는다.
+  consultationWithdrawn,
   other,
 }
 
@@ -40,6 +44,7 @@ TrainerNotificationKind _kindFrom(String? raw) => switch (raw) {
   'member_left' => TrainerNotificationKind.memberLeft,
   'invite_accepted' => TrainerNotificationKind.inviteAccepted,
   'invite_rejected' => TrainerNotificationKind.inviteRejected,
+  'consult_withdrawn' => TrainerNotificationKind.consultationWithdrawn,
   // 서버가 새 종류를 추가했는데 앱이 모르는 경우. 목록에서 빼지 않고 이동만
   // 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다.
   _ => TrainerNotificationKind.other,

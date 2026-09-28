@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleStatusNoShow => 'No-show';
 
   @override
-  String get schedCancel => 'Cancel session';
+  String get schedCancel => 'Cancel';
 
   @override
   String get schedNoShow => 'Mark no-show';
@@ -128,9 +128,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionRetry => 'Retry';
-
-  @override
-  String get actionRefresh => 'Refresh';
 
   @override
   String get actionChange => 'Change';
@@ -255,6 +252,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrPasswordWeak =>
       'Use at least 8 characters, including letters and numbers';
+
+  @override
+  String get authErrPasswordTooLong =>
+      'Passwords can be up to 64 characters, or fewer if they include Korean or emoji';
 
   @override
   String get authErrPhoneInvalid => 'Enter your phone number as 010-0000-0000';
@@ -537,6 +538,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String clientsMemberCountFiltered(int shown, int total) {
+    return '$shown of $total members';
+  }
+
+  @override
   String get clientWeeklyRoutineAdherence => 'Weekly adherence';
 
   @override
@@ -685,9 +691,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memberHealthConditions => 'Conditions and cautions';
-
-  @override
-  String get memberHealthGoals => 'Member goals';
 
   @override
   String get memberHealthDietGoal => 'Nutrition goals';
@@ -891,6 +894,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
 
   @override
+  String get clientDietTotalCalories => 'Total calories';
+
+  @override
+  String get clientDietDayTotal => 'Day total';
+
+  @override
+  String clientDietDayTotalCalories(String calories) {
+    return 'Total $calories kcal';
+  }
+
+  @override
+  String clientDietMacroShare(String name, int percent) {
+    return '$name $percent%';
+  }
+
+  @override
   String get metricCarbs => 'Carbs';
 
   @override
@@ -906,11 +925,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDormant => 'Dormant';
 
   @override
-  String get clientStatusChangeFailed =>
-      'Couldn\'t change the status. Please try again.';
+  String get clientDormantActivate => 'Tap to mark active';
 
   @override
-  String get clientClosePanel => 'Close panel';
+  String get clientSignalLess => 'Less';
+
+  @override
+  String clientSignalMore(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get clientStatusChangeFailed =>
+      'Couldn\'t change the status. Please try again.';
 
   @override
   String get chatTooLong => 'Message is too long (2000 characters max)';
@@ -1243,11 +1270,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String dietAmountRemaining(String amount) {
     return '$amount remaining to the goal';
-  }
-
-  @override
-  String dietSodiumValue(int value) {
-    return 'Sodium ${value}mg';
   }
 
   @override
@@ -1596,24 +1618,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsSendStateSent => 'Sent';
-
-  @override
-  String get reportsSendStateSending => 'Sending…';
-
-  @override
-  String get reportsShare => 'Share';
-
-  @override
-  String reportsShareSendTo(String name) {
-    return 'Send to $name';
-  }
-
-  @override
-  String get reportsShareNeedsFeedback => 'Write feedback first to send it.';
-
-  @override
-  String get reportsShareNoClient => 'Pick a member to see their report first.';
+  String get reportsSendNeedsFeedback => 'Write feedback first to send it.';
 
   @override
   String reportBodyGreeting(String name, String range) {
@@ -1623,6 +1628,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String reportBodyCompletionGood(int avg) {
     return 'You kept up well — $avg% of your workouts done.';
+  }
+
+  @override
+  String reportBodyCompletionSteady(int avg) {
+    return 'You stayed steady — $avg% of your workouts done.';
   }
 
   @override
@@ -2362,11 +2372,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPwCurrentRequired => 'Enter your current password';
 
   @override
-  String myPwTooShort(int min) {
-    return 'The new password must be at least $min characters';
-  }
-
-  @override
   String get myPwMismatch => 'The new passwords don\'t match';
 
   @override
@@ -2381,7 +2386,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myPwNew(int min) {
-    return 'New password ($min+ characters)';
+    return 'New password ($min+ characters, letters and numbers)';
   }
 
   @override
@@ -3268,6 +3273,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifTplConsultCancelledTitle => 'Consultation request cancelled';
 
   @override
+  String get notifTplConsultWithdrawnTitle =>
+      'Consultation request cancelled: member account deleted';
+
+  @override
   String get notifTplInviteAcceptedTitle => 'Coaching request accepted';
 
   @override
@@ -3308,6 +3317,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String notifTplMemberMessageTitle(String name) {
     return 'Message from $name';
   }
+
+  @override
+  String get notifTplMemberPhotoBody => 'Sent a photo';
 
   @override
   String get notifAllRead => 'All caught up';
@@ -3571,22 +3583,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTaskUncheckConfirm => 'Undo completion';
 
   @override
-  String get churnNoRecentWorkout => 'No workout logged in 7 days';
-
-  @override
   String get churnNoRecentFeedback => 'No trainer feedback in 7 days';
-
-  @override
-  String get churnConsecutiveCancel => '2 consecutive cancellations/no-shows';
-
-  @override
-  String get churnDietStopped => 'Diet logging stopped';
-
-  @override
-  String get churnGoalStagnant => 'Goal metric stagnant long-term';
-
-  @override
-  String get churnUnresolvedRequest => 'Unanswered message';
 
   @override
   String get navMessages => 'Messages';
@@ -3644,13 +3641,98 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientQuickReport => 'Report';
 
   @override
-  String get clientHealthGoals => 'Body profile & goals';
-
-  @override
-  String get clientProfileSectionTitle => 'Body, goals & memo';
+  String get clientProfileSectionTitle => 'Body and goals';
 
   @override
   String get clientTrainerMemo => 'Memo';
+
+  @override
+  String get clientHealthUnset => 'Not set';
+
+  @override
+  String get clientHealthTabBody => 'Body';
+
+  @override
+  String get clientHealthTabFocus => 'Health goals';
+
+  @override
+  String get clientGoalPerDay => 'Per day';
+
+  @override
+  String get clientGoalCalories => 'Calories';
+
+  @override
+  String get clientGoalSodium => 'Sodium';
+
+  @override
+  String get clientGoalSugar => 'Sugar';
+
+  @override
+  String get clientGoalCarbs => 'Carbs';
+
+  @override
+  String get clientGoalProtein => 'Protein';
+
+  @override
+  String get clientGoalFat => 'Fat';
+
+  @override
+  String get clientGoalBurnDaily => 'Daily burn';
+
+  @override
+  String get clientGoalCardioWeekly => 'Weekly cardio';
+
+  @override
+  String get clientGoalStrengthWeekly => 'Weekly strength';
+
+  @override
+  String get clientGoalStretchWeekly => 'Weekly stretching';
+
+  @override
+  String get clientBodyHeight => 'Height';
+
+  @override
+  String get clientBodyWeight => 'Weight';
+
+  @override
+  String get clientUnitCm => 'cm';
+
+  @override
+  String get clientGoalDefaultHint =>
+      'Faded values are the defaults used until a goal is set. Empty fields use them.';
+
+  @override
+  String clientGoalSuggestionDiet(
+    int kcal,
+    int carbs,
+    int sugar,
+    int protein,
+    int fat,
+    int sodium,
+  ) {
+    return 'Suggested: $kcal kcal · carbs $carbs g · sugar $sugar g · protein $protein g · fat $fat g · sodium $sodium mg';
+  }
+
+  @override
+  String clientGoalSuggestionExercise(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return 'Suggested: $burn kcal burned a day · $cardio min cardio · $strength strength sets · $flexibility min stretching a week';
+  }
+
+  @override
+  String get clientGoalSuggestionPersonal =>
+      'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
+
+  @override
+  String get clientGoalSuggestionFallback =>
+      'Age, height, or weight is missing, so only the health goals adjust the defaults';
+
+  @override
+  String get clientGoalApplySuggestion => 'Fill with suggestion';
 
   @override
   String get clientTrainerMemoHint =>
@@ -4181,52 +4263,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Available after the report summary API is connected. No summary is generated now.';
 
   @override
-  String get reportsPdfLabel => 'Export PDF';
-
-  @override
-  String get reportsPdfGenerating => 'Generating PDF…';
-
-  @override
   String get reportsPdfGenerationFailed =>
       'Couldn\'t generate the PDF. Please try again.';
-
-  @override
-  String reportsPdfReady(String name) {
-    return '$name\'s weekly report is ready.';
-  }
-
-  @override
-  String get reportsPdfSending => 'Sending…';
-
-  @override
-  String get reportsPdfSendToClient => 'Send to member';
-
-  @override
-  String get reportsPdfSave => 'Save PDF';
-
-  @override
-  String get reportsPdfPrint => 'Print';
-
-  @override
-  String get reportsPdfClose => 'Close';
-
-  @override
-  String get reportsPdfActionFailed =>
-      'Couldn\'t complete the action. Please try again.';
-
-  @override
-  String reportsPdfSent(String name) {
-    return 'Sent the PDF to $name.';
-  }
-
-  @override
-  String get reportsPdfSaveStarted => 'Started saving the PDF.';
-
-  @override
-  String get reportsPdfPrintOpened => 'Opened the print dialog.';
-
-  @override
-  String get reportsPdfMessage => 'Here\'s your weekly report.';
 
   @override
   String get reportsPdfFallbackClient => 'member';
@@ -4435,14 +4473,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reportsSortLabel => 'Sort';
+
+  @override
   String get reportsSortPriority => 'Needs attention';
 
   @override
-  String get reportsSortName => 'By name';
+  String get reportsSortName => 'Name A–Z';
+
+  @override
+  String get reportsSortNameDescending => 'Name Z–A';
 
   @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total sent';
+  }
+
+  @override
+  String reportsSendPercent(int percent) {
+    return '$percent%';
   }
 
   @override
@@ -4469,18 +4518,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportsReasonNoShow(int count) {
-    return '$count no-show';
-  }
-
-  @override
   String reportsReasonSessionDone(int count) {
     return 'PT $count done';
-  }
-
-  @override
-  String reportsReasonSilentDays(int days) {
-    return '$days days unlogged';
   }
 
   @override
@@ -4534,6 +4573,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSentRewrite => 'Rewrite from this';
 
   @override
+  String get reportsHistoryButton => 'Past reports';
+
+  @override
+  String get reportsViewSent => 'View';
+
+  @override
+  String reportsHistoryTitle(String name) {
+    return '$name\'s past reports';
+  }
+
+  @override
+  String get reportsHistoryBack => 'Past reports';
+
+  @override
+  String get reportsHistoryUnsent => 'Not sent';
+
+  @override
+  String get reportsHistoryThisWeek => 'This week';
+
+  @override
+  String get reportsHistoryEmpty => 'No reports sent yet';
+
+  @override
+  String get reportsHistoryLoadFailed => 'Couldn\'t load past reports';
+
+  @override
+  String get reportsHistoryMore => 'Load more';
+
+  @override
+  String get reportsHistoryMoreFailed =>
+      'Couldn\'t load more. Tap to try again.';
+
+  @override
+  String reportsHistorySendCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sent $count times',
+      one: 'Sent once',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportsHistoryPdf => 'PDF';
+
+  @override
   String get reportsResendTitle => 'Already sent';
 
   @override
@@ -4558,7 +4644,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsStepReview => 'Review';
 
   @override
-  String get reportsStepGoals => 'Write';
+  String get reportsStepWrite => 'Write';
 
   @override
   String get reportsStepSend => 'Send';
@@ -4573,30 +4659,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsStepPrev => 'Back';
 
   @override
-  String get reportsGoalsTitle => 'Next week\'s goals';
+  String get reportsPreviewTitle => 'What the member receives';
 
   @override
-  String get reportsGoalsHint =>
-      'Pick what to work on together next week. The goals you pick go out with the message.';
+  String get reportsPreviewRecipient => 'To';
 
   @override
-  String get reportsGoalsNone => 'No goals picked yet';
+  String get reportsPreviewWeek => 'Week';
 
   @override
-  String reportsGoalsPicked(int count) {
-    return '$count picked';
+  String reportsPreviewDelivery(String name) {
+    return 'Sent to $name\'s chat as a PDF file';
   }
 
   @override
-  String get reportsGoalsOwnHint => 'Write your own';
+  String get reportsPreviewEditHint =>
+      'To change the text, tap Back to return to the Write step';
 
   @override
-  String get reportsGoalsAdd => 'Add';
+  String get reportsPreviewGenerating => 'Preparing the preview';
 
   @override
-  String reportsGoalsRemove(String goal) {
-    return 'Remove $goal';
+  String get reportsPreviewFailed => 'Couldn\'t prepare the preview';
+
+  @override
+  String reportsPreviewPage(int current, int total) {
+    return 'Page $current of $total';
   }
+
+  @override
+  String get reportsPreviewPrevPage => 'Previous page';
+
+  @override
+  String get reportsPreviewNextPage => 'Next page';
+
+  @override
+  String get reportsPreviewZoomIn => 'Zoom in';
+
+  @override
+  String get reportsPreviewZoomOut => 'Zoom out';
 
   @override
   String get reportsGridPtSession => 'PT sessions';
@@ -4652,7 +4753,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name is well under target — worth picking as a goal for next week';
+    return '$name is well under target — worth raising in your feedback';
   }
 
   @override
@@ -4713,61 +4814,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackIntensityTooHard => 'Too hard';
 
   @override
-  String get reportsLastGoalsTitle => 'Last week\'s goals';
-
-  @override
-  String get reportsLastGoalsNone => 'No goals were picked last week';
-
-  @override
-  String get reportsLastGoalsNoneHint =>
-      'Pick next week\'s goals now and they come back here in the next report';
-
-  @override
-  String reportsLastGoalsMetCount(int met, int total) {
-    return '$met / $total met';
-  }
-
-  @override
-  String get reportsLastGoalsMet => 'Met';
-
-  @override
-  String get reportsLastGoalsPartial => 'Partly';
-
-  @override
-  String get reportsLastGoalsMissed => 'Missed';
-
-  @override
-  String get reportsLastGoalsUnknown => 'Check yourself';
-
-  @override
-  String reportsLastGoalsEvidence(int done, int target, String unit) {
-    return '$done / $target$unit';
-  }
-
-  @override
-  String reportsLastGoalsEvidenceLogged(int days) {
-    return 'Logged $days days';
-  }
-
-  @override
-  String reportsLastGoalsEvidenceWorkout(int done, int total) {
-    return '$done / $total personal workouts';
-  }
-
-  @override
-  String get reportsLastGoalsSubtitle => 'Judged from this week\'s records';
-
-  @override
-  String get reportsLastGoalsKeywordsCalories => 'calorie,kcal,intake';
-
-  @override
-  String get reportsLastGoalsKeywordsWorkout =>
-      'workout,exercise,routine,completion,training,skip,stretch,lower body,upper body,leg day,gym';
-
-  @override
-  String get reportsLastGoalsKeywordsLogged => 'log,record,meal';
-
-  @override
   String get reportsTrendUnavailable =>
       'Couldn\'t load this week\'s workout records';
 
@@ -4812,11 +4858,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String reportsMemberFeedbackMeta(String date) {
     return 'Weekly · submitted $date';
-  }
-
-  @override
-  String reportsMacroShortfallEvidence(String goal) {
-    return 'This is the evidence last week\'s goal “$goal” was judged unmet';
   }
 
   @override

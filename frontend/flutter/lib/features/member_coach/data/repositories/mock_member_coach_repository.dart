@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:demo_fixture/demo_fixture.dart';
 
 import 'package:oncare/core/points/demo_points_ledger.dart';
@@ -564,6 +566,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<void> sendMessage(String text, {String? emoteId}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && emoteId == null) return;
+    _requireCoachForChat();
     final now = nowKst();
     _chat.add(
       CoachMessage(
@@ -577,6 +580,60 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         createdAt: now,
       ),
     );
+  }
+
+  /// 데모의 사진 전송 — 고른 바이트를 그대로 대화에 붙인다. (#1665)
+  ///
+  /// 데모에는 내려받을 서버가 없어 [CoachAttachment.localBytes] 로 그린다. 같은
+  /// [clientRequestId] 로 다시 보내면 실서버처럼 먼저 보낸 것을 돌려준다 — 재시도로
+  /// 사진이 두 장 쌓이지 않는다.
+  @override
+  Future<CoachMessage> sendPhoto(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String clientRequestId,
+    String text = '',
+  }) async {
+    _requireCoachForChat();
+    final CoachMessage? sent = _sentPhotos[clientRequestId];
+    if (sent != null) return sent;
+    final DateTime now = nowKst();
+    final String fileId = 'demo-photo-${now.microsecondsSinceEpoch}';
+    final CoachMessage message = CoachMessage(
+      id: 'me-${now.microsecondsSinceEpoch}',
+      sender: CoachSender.me,
+      body: text.trim(),
+      timeLabel:
+          '${now.hour.toString().padLeft(2, '0')}:'
+          '${now.minute.toString().padLeft(2, '0')}',
+      createdAt: now,
+      attachment: CoachAttachment(
+        kind: CoachAttachmentKind.image,
+        fileName: fileName,
+        fileId: fileId,
+        fileSize: bytes.length,
+        downloadPath: '/chat/attachments/$fileId',
+        localBytes: bytes,
+      ),
+    );
+    _sentPhotos[clientRequestId] = message;
+    _chat.add(message);
+    return message;
+  }
+
+  /// 멱등키 → 그 키로 보낸 사진 메시지.
+  final Map<String, CoachMessage> _sentPhotos = <String, CoachMessage>{};
+
+  /// 담당이 끊긴 데모에서는 메시지를 받을 트레이너가 없다. (#2388)
+  ///
+  /// 실서버는 활성 담당이 없으면 글·사진 전송 모두 404 다(`POST /me/coach/chat`,
+  /// `/me/coach/chat/image`). 목록만 비우고 전송을 받아 주면 데모에서만 해제한
+  /// 트레이너에게 말이 간다 — 다시 불러오면 끊긴 대화에 그 말이 붙어 있다.
+  void _requireCoachForChat() {
+    if (!_hasCoach()) {
+      throw StateError('담당 트레이너가 없으면 메시지를 보낼 수 없습니다.');
+    }
   }
 
   @override

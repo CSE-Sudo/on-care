@@ -4,6 +4,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays;
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 /// 한 주를 트레이너가 손볼 수 있는 문장으로 압축한 것.
@@ -38,9 +39,6 @@ class ReportSummary {
 
 /// 하루 목표 — 백엔드 `trainer_report_summary_service` 와 같은 값이다.
 const int summarySodiumTargetMg = 2000;
-
-/// 이행률이 이 아래면 주의로 본다 — 주의 배지·리포트 막대와 같은 기준.
-const int summaryLowCompletion = 70;
 
 /// 목표를 이 날 수보다 많이 넘겼으면 주의로 본다 — [WeeklyReport.isGoodWeek]
 /// 와 같은 기준이다.
@@ -120,11 +118,11 @@ List<SummaryWatchpoint> summaryWatchpoints(
   final found = <SummaryWatchpoint>[];
 
   final completion = report.completionAvg;
-  if (completion != null && completion < summaryLowCompletion) {
+  if (completion != null && completion < lowCompletionThreshold) {
     found.add(
       SummaryWatchpoint(
         kind: 'completion',
-        text: l.summaryCompletionLow('$completion', '$summaryLowCompletion'),
+        text: l.summaryCompletionLow('$completion', '$lowCompletionThreshold'),
         topic: l.summaryCompletionTopic('$completion'),
         severity: 90,
       ),
@@ -335,7 +333,8 @@ ReportSummary ruleReportSummary(
   final watch = summaryWatchpoints(l, report);
   final good = <String>[];
   final completion = report.completionAvg;
-  if (completion != null && completion >= summaryLowCompletion) {
+  // 낮지 않다고 곧 좋은 점은 아니다 — 60~79 는 보통이라 말하지 않는다(#2345).
+  if (completion != null && completion >= goodCompletionThreshold) {
     good.add(l.summaryCompletionTopic('$completion'));
   }
   final sodium = report.sodiumAvg;

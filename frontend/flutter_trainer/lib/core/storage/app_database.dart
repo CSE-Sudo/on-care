@@ -310,11 +310,11 @@ class ClientWeeklyFeedbacks extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{clientId, weekStart};
 }
 
-/// 트레이너가 ② 에서 고른 다음 주 목표 — 다음 주 ③ 이 그대로 회수한다. (#2232)
+/// 예전 리포트 ② 에서 고르던 다음 주 목표. (#2232)
 ///
-/// 이 표가 없으면 ② 는 고르는 시늉으로 끝난다. 목표는 **다음 주에 확인될 때**
-/// 비로소 목표이고, 확인되지 않는 목표를 매주 새로 고르는 화면은 트레이너에게
-/// 일만 늘린다. `weekStart` 는 그 목표가 적용되는 주(고른 주의 다음 주)다.
+/// 편집기에서 목표 고르기·지난 주 목표 달성이 빠져(#2400) 앱은 더 읽거나 쓰지
+/// 않는다. 표를 지우려면 스키마 버전을 올리는 마이그레이션이 따라와, 그 일은
+/// 이 변경과 떼어 두고 정의만 남긴다.
 @DataClassName('ClientReportGoalRow')
 class ClientReportGoals extends Table {
   TextColumn get clientId => text()();

@@ -95,6 +95,12 @@ class AppIcons {
   /// 분석용 식판 — 사진 기록 달성 보상 카드·수령 쿠폰(#2150).
   static const IconData dietTray = Symbols.bento_rounded;
 
+  /// 끼니 — 사진이 없는 트레이너 추천 카드의 머리(#2380).
+  static const IconData mealBreakfast = Symbols.bakery_dining_rounded;
+  static const IconData mealLunch = Symbols.lunch_dining_rounded;
+  static const IconData mealDinner = Symbols.dinner_dining_rounded;
+  static const IconData mealSnack = Symbols.cookie_rounded;
+
   /// 연속 기록 보호권 — 사용처 카드·내 혜택(#1788).
   static const IconData streakShield = Symbols.shield_rounded;
 

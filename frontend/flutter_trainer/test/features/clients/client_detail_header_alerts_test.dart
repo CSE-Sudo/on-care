@@ -11,15 +11,20 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/client_factory.dart';
 import '../../helpers/pump_app.dart';
 
-/// 회원 상세 헤더의 주의사항 배지는 **프로필 줄**에 산다. (#926)
+/// 회원 상세 헤더(#2330).
 ///
-/// 활성/휴면 배지와 같이 "이 사람이 어떤 상태인가" 를 말하는 값이라, 혼자 한
-/// 줄을 쓸 이유가 없었다. 배지가 하나뿐인 경우가 대부분이라 그 줄은 거의 언제나
-/// 배지 한 개와 빈 여백이었고, 그만큼 아래 식단·운동이 밀렸다.
+/// 한 줄: `<` · 아바타 · 이름 · 신체·목표 · 메모 ─ 메시지 · 프로그램 · 리포트.
+/// 신호 배지는 이름 아래 **전용 줄**이다 — 이름 줄에 붙어 있을 때는 여러 개가
+/// 걸리면 이름과 버튼을 밀어냈다. 전용 줄도 한 줄 높이를 지키고, 넘치는 것은
+/// `+N` 으로 묶는다.
 void main() {
   const String flagged = 'seed-client-1';
 
-  Future<void> open(WidgetTester tester, List<TrainerClient> roster) async {
+  Future<void> open(
+    WidgetTester tester,
+    List<TrainerClient> roster, {
+    String section = 'diet',
+  }) async {
     tester.view.devicePixelRatio = 1;
     // 좁은 화면이면 목록 없이 상세만 뜬다 — 이름이 로스터 카드와 헤더에
     // 두 번 그려지지 않아 자리를 잴 수 있다.
@@ -31,7 +36,7 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      at: AppRoutes.clientDetail(flagged),
+      at: AppRoutes.clientDetail(flagged, section: section),
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
           (ref) => Stream<List<TrainerClient>>.value(roster),
@@ -51,90 +56,138 @@ void main() {
     ],
   );
 
-  /// 아무 신호도 없는 회원 — 나트륨이 넘어도 더는 주의가 아니다.
-  TrainerClient calm() =>
-      makeClient(id: flagged, name: '무난회원', sodiumMg: sodiumTargetMg + 900);
-
-  Finder quickActions() =>
-      find.byKey(const ValueKey<String>('client-detail-quick-actions'));
-
-  /// 프로필 줄 안의 주의사항 배지. 헤더 어딘가가 아니라 **이 줄에** 있어야 한다.
-  Finder headerAlerts() => find.descendant(
-    of: find.byKey(const ValueKey<String>('client-detail-identity')),
-    matching: find.byType(AppTag),
+  /// 신호가 여덟 가지 모두 걸린 회원 — 620px 한 줄에는 다 서지 못한다.
+  TrainerClient crowded() => makeClient(
+    id: flagged,
+    name: '붐비는회원',
+    signals: const <ClientSignal>[
+      ClientSignal(ClientSignalKind.discomfort),
+      ClientSignal(ClientSignalKind.recordGap, days: 6),
+      ClientSignal(ClientSignalKind.noShow, count: 2),
+      ClientSignal(ClientSignalKind.routineMissed, days: 4),
+      ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 45),
+      ClientSignal(ClientSignalKind.calorieOff, percent: 22, over: true),
+      ClientSignal(ClientSignalKind.proteinLow, percent: 60),
+      ClientSignal(ClientSignalKind.unanswered),
+    ],
   );
 
-  testWidgets('주의사항 배지가 이름·상태와 같은 줄에 보인다', (tester) async {
+  /// 아무 신호도 없는 회원.
+  TrainerClient calm() => makeClient(id: flagged, name: '무난회원');
+
+  Finder byKey(String key) => find.byKey(ValueKey<String>(key));
+
+  /// 배지 줄에 **보이는** 배지 — 한 줄에 못 선 배지는 트리에 있어도 그리지
+  /// 않으므로, 눌리는 것만 센다.
+  List<String> visibleBadges(WidgetTester tester) => tester
+      .widgetList<AppTag>(
+        find
+            .descendant(
+              of: byKey('client-detail-signals'),
+              matching: find.byType(AppTag),
+            )
+            .hitTestable(),
+      )
+      .map((AppTag t) => t.label)
+      .toList();
+
+  testWidgets('신호 배지는 이름 아래 자기 줄에 급한 순으로 선다', (tester) async {
     await open(tester, <TrainerClient>[over()]);
 
-    // 신호를 **전부**, 근거 수치까지 세운다 — 목록과 달리 접지 않는다.
-    expect(
-      tester.widgetList<AppTag>(headerAlerts()).map((t) => t.label).toList(),
-      <String>['통증·불편', '칼로리 22% 과다'],
-    );
-    expect(
-      tester.widgetList<AppTag>(headerAlerts()).map((t) => t.tone).toSet(),
-      <AppTagTone>{AppTagTone.danger},
-    );
-
-    // 이름과 세로로 겹친다 = 같은 줄이다. 예전에는 이름 줄 **아래**의 자기
-    // 줄에 있었다.
+    expect(visibleBadges(tester), <String>['통증·불편', '칼로리 22% 과다']);
+    // 이름 줄이 아니라 그 아래다.
     final Rect name = tester.getRect(find.text('주의회원'));
-    final Rect badge = tester.getRect(headerAlerts().first);
-    expect(badge.top, lessThan(name.bottom));
-    expect(badge.bottom, greaterThan(name.top));
-    // 상태 배지 오른쪽에 붙는다.
-    final Rect status = tester.getRect(
-      find.byKey(const ValueKey<String>('client-status-toggle')),
+    final Rect badges = tester.getRect(byKey('client-detail-signals'));
+    expect(badges.top, greaterThanOrEqualTo(name.bottom));
+    // 이름 줄에는 배지가 없다 — 여러 개가 걸려도 이름·버튼이 밀리지 않는다.
+    expect(
+      tester.getRect(byKey('client-detail-open-report')).right,
+      lessThanOrEqualTo(620),
     );
-    expect(badge.left, greaterThanOrEqualTo(status.right - 0.5));
   });
 
-  /// 프로필 줄 바로 다음이 빠른 버튼 줄인가. 사이에 주의사항 줄이 끼어 있으면
-  /// 간격이 그만큼 벌어진다.
-  double gapUnderIdentity(WidgetTester tester) =>
-      tester.getRect(quickActions()).top -
-      tester
-          .getRect(find.byKey(const ValueKey<String>('client-detail-identity')))
-          .bottom;
-
-  testWidgets('경고가 있는 회원도 프로필 줄 바로 다음이 빠른 버튼 줄이다', (tester) async {
-    await open(tester, <TrainerClient>[over()]);
-
-    expect(headerAlerts(), findsWidgets);
-    // 주의사항만 있던 줄이 사라졌으므로, 남는 것은 원래의 한 칸 간격뿐이다.
-    expect(gapUnderIdentity(tester), closeTo(OnCareSpacing.s12, 0.5));
-  });
-
-  testWidgets('경고가 없는 회원의 간격도 같다', (tester) async {
+  testWidgets('신호가 없으면 배지 줄이 통째로 없다', (tester) async {
     await open(tester, <TrainerClient>[calm()]);
 
-    expect(headerAlerts(), findsNothing);
-    // 회원을 옮겨 다녀도 빠른 버튼 줄의 세로 위치가 흔들리지 않는다.
-    expect(gapUnderIdentity(tester), closeTo(OnCareSpacing.s12, 0.5));
+    expect(byKey('client-detail-signals'), findsNothing);
   });
 
-  testWidgets('빠른 버튼 줄이 #1024 정리 이후의 구성이다', (tester) async {
+  testWidgets('한 줄에 넘치는 배지는 +N 으로 묶이고 누르면 펼친다', (tester) async {
+    await open(tester, <TrainerClient>[crowded()]);
+    expect(tester.takeException(), isNull);
+
+    final List<String> shown = visibleBadges(tester);
+    // 급한 순으로 앞에서부터, 마지막 자리는 숨긴 개수다.
+    expect(shown.first, '통증·불편');
+    expect(shown.last, startsWith('+'));
+    final int hidden = int.parse(shown.last.substring(1));
+    expect(shown.length - 1 + hidden, 8);
+    // 한 줄 높이를 지킨다.
+    final double collapsed = tester
+        .getRect(byKey('client-detail-signals'))
+        .height;
+    expect(
+      collapsed,
+      lessThan(tester.getRect(find.byType(AppTag).first).height * 1.5),
+    );
+
+    await tester.tap(byKey('client-detail-signals-more-$hidden'));
+    await tester.pumpAndSettle();
+    expect(visibleBadges(tester), hasLength(9)); // 여덟 + 접기
+    expect(visibleBadges(tester).last, '접기');
+
+    await tester.tap(byKey('client-detail-signals-less'));
+    await tester.pumpAndSettle();
+    expect(visibleBadges(tester).last, '+$hidden');
+  });
+
+  testWidgets('식단 신호를 누르면 식단 탭으로 간다', (tester) async {
+    await open(tester, <TrainerClient>[over()], section: 'workout');
+
+    await tester.tap(byKey('client-detail-alert-calorie_off'));
+    await tester.pumpAndSettle();
+    expect(currentLocation(tester), AppRoutes.clientDetail(flagged));
+    expect(byKey('diet-$flagged'), findsOneWidget);
+  });
+
+  testWidgets('통증 신호를 누르면 그 회원의 대화로 간다', (tester) async {
     await open(tester, <TrainerClient>[over()]);
 
-    // 신체·목표 관리와 후속 관리는 이 줄을 떠났다 — 전자는 메모와 한
-    // 대화상자로 합쳐졌고, 후자는 걷어냈다. 리포트가 새로 생겼다.
-    expect(find.text('메시지'), findsOneWidget);
-    expect(find.text('프로그램'), findsOneWidget);
-    expect(find.text('리포트'), findsOneWidget);
-    expect(find.text('회원 신체·목표 관리'), findsNothing);
-    expect(find.text('후속 관리'), findsNothing);
-    // 메모도 이 줄을 떠나 프로필 줄의 아이콘 버튼이 되었다 — 텍스트가 아니라
-    // 키로 찾고, 빠른 동작 줄 밖(위)에 있는지까지 확인한다.
-    expect(find.text('메모'), findsNothing);
-    final memoButton = find.byKey(
-      const ValueKey<String>('client-detail-open-memo'),
-    );
-    expect(memoButton, findsOneWidget);
+    await tester.tap(byKey('client-detail-alert-discomfort'));
+    await tester.pumpAndSettle();
+    expect(currentLocation(tester), AppRoutes.messagesFor(flagged));
+  });
+
+  testWidgets('헤더 버튼은 두 묶음의 아이콘 버튼이다', (tester) async {
+    await open(tester, <TrainerClient>[over()]);
+
+    // 이 화면에서 끝나는 동작(신체·목표 → 메모)이 이름 옆, 다른 화면으로
+    // 가는 동작(메시지 → 프로그램 → 리포트)이 오른쪽 끝이다.
+    final List<String> order = <String>[
+      'client-detail-open-health',
+      'client-detail-open-memo',
+      'client-detail-open-messages',
+      'client-detail-open-program',
+      'client-detail-open-report',
+    ];
+    final List<double> lefts = <double>[
+      for (final String key in order) tester.getRect(byKey(key)).left,
+    ];
+    expect(lefts, orderedEquals(<double>[...lefts]..sort()));
     expect(
-      tester.getRect(memoButton).bottom,
-      lessThanOrEqualTo(tester.getRect(quickActions()).top),
+      tester.getRect(byKey('client-detail-open-memo')).right,
+      lessThan(tester.getRect(byKey('client-detail-quick-actions')).left),
     );
+    // 아이콘만 — 이름은 툴팁이다.
+    for (final String label in <String>['메시지', '프로그램', '리포트', '메모']) {
+      expect(find.text(label), findsNothing);
+      expect(find.byTooltip(label), findsOneWidget);
+    }
+    expect(find.byTooltip('신체·목표'), findsOneWidget);
+    // 새로고침·닫기(X)는 없고, `<` 가 늘 있다.
+    expect(byKey('client-data-refresh'), findsNothing);
+    expect(byKey('client-detail-close'), findsNothing);
+    expect(byKey('client-detail-back'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
