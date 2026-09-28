@@ -494,7 +494,7 @@ class _SentRow extends StatelessWidget {
     );
     final Widget identity = Row(
       children: <Widget>[
-        ClientAvatar(label: entry.client.avatar, size: OnCareSize.avatarSmall),
+        ClientAvatar(name: entry.client.avatar, size: AppAvatarSize.small),
         const SizedBox(width: OnCareSpacing.s8),
         Expanded(
           child: Column(
@@ -660,7 +660,16 @@ class ReportProgressRow extends StatelessWidget {
       children: <Widget>[
         Text(l.reportsSendProgress(done, total), style: style),
         const SizedBox(width: OnCareSpacing.s12),
-        Expanded(child: AppProgressBar(value: fraction)),
+        // 페이지 배경 위에 홀로 선다 — 기본 두께·트랙이면 빈 구간이 배경에
+        // 묻혀 막대 길이가 안 보인다(#2446).
+        Expanded(
+          child: AppProgressBar(
+            key: const ValueKey<String>('reports-progress-bar'),
+            value: fraction,
+            height: OnCareSize.progressBarThick,
+            trackColor: OnCareColors.lineStrong,
+          ),
+        ),
         const SizedBox(width: OnCareSpacing.s12),
         Text(
           l.reportsSendPercent(reportSendPercent(done, total)),

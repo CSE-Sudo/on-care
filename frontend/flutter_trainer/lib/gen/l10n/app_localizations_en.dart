@@ -1273,84 +1273,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiAnalysis => 'AI analysis';
-
-  @override
-  String get aiPeriodAnalysis => 'AI period analysis';
-
-  @override
-  String get aiAllAnalysis => 'AI all-time analysis';
-
-  @override
-  String clientDietAdviceTodayOver(int over) {
-    return 'Sodium is ${over}mg over the target. Adding cardio to today\'s program would help.';
-  }
-
-  @override
-  String get clientDietAdviceTodayBalanced =>
-      'Today\'s meals are well balanced. Keep the current program.';
-
-  @override
-  String get clientDietAdviceWeekEmpty =>
-      'No meals logged this week yet. Even one meal shows the trend.';
-
-  @override
-  String get clientDietAdviceAllEmpty =>
-      'Once you log more, we\'ll show how your sodium and calories are trending.';
-
-  @override
-  String clientDietAdviceWeekManyOver(int days) {
-    return 'Sodium went over on $days days this week. With soups, eat the solids and leave the broth.';
-  }
-
-  @override
-  String get clientDietAdviceWeekWeekend =>
-      'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.';
-
-  @override
-  String clientDietAdviceWeekSomeOver(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    return 'Only $_temp0 went over the sodium limit this week. The other days were well balanced.';
-  }
-
-  @override
-  String clientDietAdviceWeekAllUnder(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'all $days days',
-      one: 'the 1 day you logged',
-    );
-    return 'You kept sodium within the limit on $_temp0 this week!';
-  }
-
-  @override
-  String clientDietAdviceAllWeekend(int weeks) {
-    return 'Over the last $weeks weeks, sodium rises every weekend. Make one weekend meal lighter.';
-  }
-
-  @override
-  String clientDietAdviceAllRatio(int weeks, int percent) {
-    return '$percent% of days in the last $weeks weeks went over the sodium limit. Start by leaving the broth.';
-  }
-
-  @override
-  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'Most of your $days logged days',
-      one: 'Your 1 logged day',
-    );
-    return '$_temp0 in the last $weeks weeks stayed within the sodium limit. Nice trend.';
-  }
-
-  @override
   String get consultStatusRejected => 'Declined';
 
   @override
@@ -5052,6 +4974,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackPainNone => 'None';
 
   @override
+  String get reportsMemberFeedbackUnanswered => 'No answer';
+
+  @override
+  String get reportsMemberFeedbackNoteLabel => 'Note';
+
+  @override
+  String get reportsMemberFeedbackNoteNone => 'No note';
+
+  @override
   String reportsMemberFeedbackPainOn(String area, String date) {
     return '$area ($date)';
   }
@@ -5346,4 +5277,348 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsPdfFileSuffix => 'weekly_report';
+
+  @override
+  String get clientDietAnalysisTitle => 'Diet analysis';
+
+  @override
+  String get clientDietAnalysisTodayEmpty => 'No meals logged today yet.';
+
+  @override
+  String clientDietAnalysisTodayOver(
+    String slot,
+    String food,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': 'sodium',
+      'sugar': 'sugar',
+      'other': 'calories',
+    });
+    return '$food at $_temp0 ($foodValue) pushed today\'s $_temp1 to $value, ${ratio}x the $target goal.';
+  }
+
+  @override
+  String clientDietAnalysisTodayOverMeal(
+    String slot,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'Breakfast',
+      'lunch': 'Lunch',
+      'dinner': 'Dinner',
+      'lateNight': 'Late-night snack',
+      'other': 'Snack',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': 'sodium',
+      'sugar': 'sugar',
+      'other': 'calories',
+    });
+    return '$_temp0 ($foodValue) pushed today\'s $_temp1 to $value, ${ratio}x the $target goal.';
+  }
+
+  @override
+  String clientDietAnalysisTodayProteinShort(String value, String gap) {
+    return 'Protein is at $value, $gap short of the goal.';
+  }
+
+  @override
+  String clientDietAnalysisTodayProteinChronic(
+    String value,
+    String gap,
+    String avg,
+  ) {
+    return 'Protein is at $value, $gap short of the goal, and the 4-week average of $avg a day stays low.';
+  }
+
+  @override
+  String clientDietAnalysisTodayMissing(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'No $_temp0 logged yet.';
+  }
+
+  @override
+  String clientDietAnalysisTodayGood(String kcal) {
+    return '$kcal today, evenly within the goals.';
+  }
+
+  @override
+  String get clientDietAnalysisWeekEmpty => 'No meals logged this week yet.';
+
+  @override
+  String clientDietAnalysisWeekSkipBreakfast(
+    String scope,
+    int logged,
+    int days,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'Skipped breakfast on $days of $logged logged days $_temp0.';
+  }
+
+  @override
+  String clientDietAnalysisWeekSkipBreakfastSnack(
+    String scope,
+    int logged,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'Skipped breakfast on $days of $logged logged days $_temp0, snacking instead on $snackDays.';
+  }
+
+  @override
+  String clientDietAnalysisWeekOver(
+    String scope,
+    int logged,
+    int days,
+    String nutrient,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(nutrient, {
+      'sodium': 'Sodium',
+      'sugar': 'Sugar',
+      'other': 'Calories',
+    });
+    String _temp1 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return '$_temp0 went over the goal on $days of $logged logged days $_temp1.';
+  }
+
+  @override
+  String clientDietAnalysisWeekCause(
+    String weekday,
+    String slot,
+    String food,
+    String foodValue,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(weekday, {
+      '0': 'Monday',
+      '1': 'Tuesday',
+      '2': 'Wednesday',
+      '3': 'Thursday',
+      '4': 'Friday',
+      '5': 'Saturday',
+      'other': 'Sunday',
+    });
+    String _temp1 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'The biggest was $food at $_temp0 $_temp1 ($foodValue).';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinShort(
+    String scope,
+    int logged,
+    int days,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'Protein fell below 80% of the goal on $days of $logged logged days $_temp0.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'All $days logged days $_temp0 stayed within the goals.';
+  }
+
+  @override
+  String clientDietAnalysisAllFew(int days) {
+    return 'Only $days days logged in the last 4 weeks. The trend shows after 7.';
+  }
+
+  @override
+  String clientDietAnalysisAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'In the last 4 weeks, $_temp0 sodium went over half the goal $days times.';
+  }
+
+  @override
+  String clientDietAnalysisAllCarbHeavy(int pct) {
+    return 'Carbs made up $pct% of calories in the last 4 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinLight(int pct) {
+    return 'Protein made up only $pct% of calories in the last 4 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinTrendUp(int before, int after) {
+    return 'Days meeting the protein goal rose from $before to $after over the last 2 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinTrendDown(int before, int after) {
+    return 'Days meeting the protein goal fell from $before to $after over the last 2 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllFrequent(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return '$food was the most common $_temp0 in the last 4 weeks ($count times).';
+  }
+
+  @override
+  String clientDietAnalysisAllRepeated(String food1, String food2) {
+    return '$food1 and $food2 make up much of the last 4 weeks\' log.';
+  }
+
+  @override
+  String clientDietAnalysisAllGood(int days) {
+    return '$days days logged in the last 4 weeks, with an even trend.';
+  }
+
+  @override
+  String clientDietAnalysisFoodsOne(String food1, int count1) {
+    return 'Mostly $food1 ($count1 times).';
+  }
+
+  @override
+  String clientDietAnalysisFoodsTwo(
+    String food1,
+    int count1,
+    String food2,
+    int count2,
+  ) {
+    return 'Mostly $food1 ($count1 times) and $food2 ($count2 times).';
+  }
+
+  @override
+  String clientDietRecQuestion(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'for breakfast',
+      'lunch': 'for lunch',
+      'dinner': 'for dinner',
+      'lateNight': 'as a late-night snack',
+      'other': 'as a snack',
+    });
+    return 'Recommend this $_temp0 to the member?';
+  }
+
+  @override
+  String get clientDietRecQuestionNext =>
+      'Recommend this for the next meal to the member?';
+
+  @override
+  String clientDietRecCounter(int index, int total) {
+    return 'AI pick $index / $total';
+  }
+
+  @override
+  String get clientDietRecNo => 'No';
+
+  @override
+  String get clientDietRecYes => 'Yes, recommend';
+
+  @override
+  String clientDietRecExhausted(int count) {
+    return 'You passed on all $count AI picks.';
+  }
+
+  @override
+  String get clientDietRecRestart => 'Start over';
+
+  @override
+  String get clientDietRecMore => 'See other menus';
+
+  @override
+  String clientDietRecActive(String date) {
+    return 'You recommended this on $date. It\'s on the member\'s home as a trainer pick.';
+  }
+
+  @override
+  String get clientDietRecChange => 'Change';
+
+  @override
+  String clientDietRecResolved(String name, String date, String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'The member had the recommended $name for $_temp0 on $date.';
+  }
+
+  @override
+  String clientDietRecResolvedNoSlot(String name, String date) {
+    return 'The member had the recommended $name on $date.';
+  }
+
+  @override
+  String get clientDietRecNext => 'See next pick';
+
+  @override
+  String get clientDietRecConfirmFailed =>
+      'Couldn\'t save the pick. Please try again.';
+
+  @override
+  String clientDietRecNutrition(String kcal, String protein, String sodium) {
+    return '${kcal}kcal · protein ${protein}g · sodium ${sodium}mg';
+  }
+
+  @override
+  String clientDietRecSlot(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'Breakfast',
+      'lunch': 'Lunch',
+      'dinner': 'Dinner',
+      'lateNight': 'Late-night snack',
+      'other': 'Snack',
+    });
+    return '$_temp0';
+  }
 }

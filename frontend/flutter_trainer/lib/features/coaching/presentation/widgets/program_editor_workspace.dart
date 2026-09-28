@@ -332,7 +332,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           minutes: exercise.minutes > 0 ? exercise.minutes : 30,
           sets: exercise.sets > 0 ? exercise.sets : 3,
           reps: exercise.reps > 0 ? exercise.reps : 10,
-          weight: exercise.weight > 0 ? exercise.weight : 20,
+          // 중량은 채우지 않는다 — 맨몸이 기본이고 `0kg` 은 트레이너가 적은
+          // 값이다(#1310). 세트·횟수와 달리 기본값을 둘 근거가 없다(#2265).
+          weight: exercise.weight,
           // `source` 는 그대로 서버 계약값(`trainer`)으로 남긴다 — 출처
           // 배지만 이 값을 우선해서 `<템플릿명> 템플릿 추가` 를 보여 준다.
           templateName: template.name,
@@ -901,7 +903,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // 물어야 한다 (#1310).
           sets: item.sets > 0 ? item.sets : 3,
           reps: item.reps > 0 ? item.reps : 10,
-          weight: item.weight > 0 ? item.weight : 20,
+          // 중량은 채우지 않는다 — AI 가 분으로만 준 근력에 20kg 를 지어내면
+          // 맨몸 운동이 회원에게 `20kg` 지시로 간다(#2265).
+          weight: item.weight,
         ),
       );
     }

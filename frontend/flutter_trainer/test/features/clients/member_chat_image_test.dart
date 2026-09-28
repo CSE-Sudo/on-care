@@ -20,6 +20,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 1×1 투명 PNG.
@@ -177,7 +178,7 @@ void main() {
     );
     // 받은 메시지 쪽이다 — 사진 왼쪽에 회원 아바타가 있다.
     final Finder avatar = find.byWidgetPredicate(
-      (Widget w) => w is AppAvatar && w.size == AppAvatarSize.small,
+      (Widget w) => w is ClientAvatar && w.size == AppAvatarSize.small,
     );
     expect(avatar, findsWidgets);
     expect(
