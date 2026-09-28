@@ -27,6 +27,7 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   final bool supportsDeletion;
   final bool fails;
   int deleteCalls = 0;
+  List<String> lastReasons = const <String>[];
 
   @override
   bool get supportsPasswordChange => true;
@@ -38,9 +39,10 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   }) async {}
 
   @override
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
     if (fails) throw const ServerError(message: '지금은 탈퇴할 수 없어요');
     deleteCalls++;
+    lastReasons = reasons;
   }
 }
 
@@ -66,13 +68,20 @@ Future<_FakeAccountRepository> _pumpSettings(
   return repo;
 }
 
-/// 화면이 길어 탈퇴 행이 뷰포트 밖일 수 있다 — 탭 전에 보이게 한다.
+/// 고객 지원의 탈퇴 줄 → 사유(건너뜀) → 탈퇴하기 전에 → 탈퇴 계속까지 간다.
+/// 회원 앱과 같은 두 칸을 지나야 마지막 확인창이 뜬다(#2264).
 Future<void> _tapDelete(WidgetTester tester) async {
-  final button = find.byKey(const ValueKey<String>('delete-account'));
-  await tester.ensureVisible(button);
-  await settle(tester);
-  await tester.tap(button);
-  await settle(tester);
+  Future<void> tap(String key) async {
+    final Finder target = find.byKey(ValueKey<String>(key));
+    await tester.ensureVisible(target);
+    await settle(tester);
+    await tester.tap(target);
+    await settle(tester);
+  }
+
+  await tap('delete-account');
+  await tap('withdraw-next');
+  await tap('withdraw-continue');
 }
 
 void main() {
@@ -90,10 +99,13 @@ void main() {
     await _pumpSettings(tester, supportsDeletion: false);
 
     expect(find.text(_ko.myDeleteDemo), findsOneWidget);
-    final button = tester.widget<AppButton>(
-      find.byKey(const ValueKey<String>('delete-account')),
+    final row = tester.widget<AppListRow>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('delete-account')),
+        matching: find.byType(AppListRow),
+      ),
     );
-    expect(button.onPressed, isNull);
+    expect(row.onTap, isNull);
   });
 
   testWidgets('이름을 정확히 입력해야 탈퇴가 진행된다', (tester) async {
@@ -151,5 +163,62 @@ void main() {
     await settle(tester);
 
     expect(find.text('지금은 탈퇴할 수 없어요'), findsOneWidget);
+  });
+
+  testWidgets('회원 앱처럼 사유를 고르면 탈퇴하기 전에 그 답을 보여 준다', (tester) async {
+    await _pumpSettings(tester);
+
+    final Finder row = find.byKey(const ValueKey<String>('delete-account'));
+    await tester.ensureVisible(row);
+    await settle(tester);
+    await tester.tap(row);
+    await settle(tester);
+    expect(find.text(_ko.myWithdrawReasonTitle), findsOneWidget);
+
+    Future<void> tap(String key) async {
+      final Finder target = find.byKey(ValueKey<String>(key));
+      await tester.ensureVisible(target);
+      await settle(tester);
+      await tester.tap(target);
+      await settle(tester);
+    }
+
+    await tap('withdraw-reason-leavingWork');
+    await tap('withdraw-next');
+
+    expect(find.text(_ko.myWithdrawKeepTitle), findsWidgets);
+    expect(find.text(_ko.myWithdrawKeepLeavingWork), findsOneWidget);
+
+    // 계속 사용하기를 누르면 고객 지원으로 돌아간다.
+    await tap('withdraw-stay');
+    expect(currentLocation(tester), AppRoutes.mySection('support'));
+  });
+
+  testWidgets('고른 사유를 탈퇴 요청에 실어 보낸다 (#2264)', (tester) async {
+    final repo = await _pumpSettings(tester);
+
+    Future<void> tap(String key) async {
+      final Finder target = find.byKey(ValueKey<String>(key));
+      await tester.ensureVisible(target);
+      await settle(tester);
+      await tester.tap(target);
+      await settle(tester);
+    }
+
+    await tap('delete-account');
+    await tap('withdraw-reason-leavingWork');
+    await tap('withdraw-reason-missingFeature');
+    await tap('withdraw-next');
+    await tap('withdraw-continue');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('delete-account-confirm')),
+      seedTrainerProfile.name,
+    );
+    await settle(tester);
+    await tap('delete-account-submit');
+
+    expect(repo.deleteCalls, 1);
+    // 화면에 보이는 순서가 아니라 사유 목록 순서다 — 서버 코드 그대로.
+    expect(repo.lastReasons, <String>['missing_feature', 'leaving_work']);
   });
 }

@@ -561,6 +561,15 @@
   "clientDietMacrosMissing": "No carbs/protein/fat recorded",
   "clientDietTotalCalories": "Total calories",
   "clientDietDayTotal": "Day total",
+  "clientDietDayTotalCalories": "Total {calories} kcal",
+  "@clientDietDayTotalCalories": {
+    "description": "트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
+    "placeholders": {
+      "calories": {
+        "type": "String"
+      }
+    }
+  },
   "clientDietMacroShare": "{name} {percent}%",
   "@clientDietMacroShare": {
     "description": "끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)",
@@ -1619,14 +1628,13 @@
   "myEditProfile": "Edit profile",
   "mySaved": "Changes saved",
   "myCertifications": "Certifications",
-  "myMonthStats": "This month",
   "myGym": "My gym",
   "myNotifications": "Notifications",
   "myNotifNewMessage": "New message alerts",
-  "myNotifNewMessageHint": "A sidebar badge appears when a member messages you",
-  "myLanguage": "Language",
+  "myNotifNotReady": "Coming soon — always on for now",
+  "myNotifNewMessageHint": "Get an inbox alert and a sidebar count when a member messages you",
   "myLanguageApp": "Display language",
-  "myLanguageHint": "Choose the language this browser shows the console in",
+  "myLanguageHint": "Your choice is saved in this browser only. Other devices follow their own browser setting.",
   "myLanguageSystem": "Match browser",
   "myLanguageKorean": "한국어",
   "@myLanguageKorean": {
@@ -1648,22 +1656,36 @@
   "mySupportExternalHint": "Opens the KakaoTalk channel",
   "mySupportOpenFailed": "Couldn't open the link. Please try again in a moment",
   "mySupportEntryHint": "FAQ, inquiries, policies and account clean-up in one place",
-  "myAppVersion": "On-Care Trainer · Version 0.1.0",
+  "myAppVersion": "On-Care Trainer · Version {version}",
+  "@myAppVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "myAppName": "On-Care Trainer",
   "myLegalTermsTitle": "Terms of Service",
-  "myLegalTermsHint": "The terms your trainer account runs under",
   "myLegalPrivacyTitle": "Privacy Policy",
-  "myLegalPrivacyHint": "How member records and sent reports are handled",
   "myLegalEffectiveDate": "Effective Jan 1, 2026",
   "myLegalTermsBody": "This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member's consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their member assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.",
   "myLegalPrivacyBody": "This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\nFor trainer sign-up and service delivery, On-Care (the \"Company\") collects name, email and phone number, along with gym affiliation, certifications, career, speciality and service access logs.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and verify their credentials, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer's access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer's personal information is destroyed without delay on account deletion, unless the law requires it to be kept, in which case it is stored securely for that period. Reports and messages already delivered belong to the member's record and follow the member's retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent, except where the law specifically requires it.\n\n6. Safeguards\nAccess to member information is limited by assignment, traffic is encrypted in transit, and access logs are retained.\n\n7. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time.\n\n8. Privacy officer\nFor privacy enquiries, contact customer support (support@oncare.com).\n\nEffective: January 1, 2026",
   "myAppInfo": "About",
   "myService": "Service",
   "myVersion": "Version",
-  "myContact": "Contact",
   "myPasswordChanged": "Password changed",
   "myCareerYears": "{years, plural, =1{1 year} other{{years} years}} of experience",
   "@myCareerYears": {
     "description": "Career tag on the trainer profile. The value is stored as a number of years.",
+    "placeholders": {
+      "years": {
+        "type": "int"
+      }
+    }
+  },
+  "myCareerYearsValue": "{years, plural, =1{1 year} other{{years} years}}",
+  "@myCareerYearsValue": {
+    "description": "Career value under the 경력 label — the label already says it is career, so only the years.",
     "placeholders": {
       "years": {
         "type": "int"
@@ -1693,14 +1715,20 @@
   "myClientRemoveSuccess": "Member removed",
   "myClientRemoveFailed": "Couldn't remove the member. Please try again",
   "myClientManagementEmpty": "No members assigned",
+  "myBasicInfo": "Basic info",
   "myStatSessionsDone": "Sessions done",
   "myStatRoutinesSent": "Programs sent",
   "myGymName": "Gym name",
   "myGymAddress": "Address",
   "myGymHours": "Hours",
-  "myGymOpen": "Open now",
   "myGymListFailed": "Couldn't load the gym list.",
-  "myNoGym": "No gym",
+  "myGymNoMatch": "This gym isn't listed. Please add its address and hours yourself.",
+  "myGymLinked": "Registered gym",
+  "myGymUnlink": "Unlink",
+  "myGymNameHint": "Type to find a registered gym",
+  "myGymRequired": "Enter your gym",
+  "myGymEditHint": "Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.",
+  "myGymListLoading": "Loading gyms…",
   "mySignOut": "Sign out",
   "myPwCurrentRequired": "Enter your current password",
   "myPwMismatch": "The new passwords don't match",
@@ -1718,6 +1746,38 @@
   "myPwConfirm": "Confirm new password",
   "myPwChanging": "Changing…",
   "mySettingsSaveFailed": "Couldn't save your settings. Please try again in a moment",
+  "myProfileSubtitle": "How members see you, and this month's activity",
+  "myClientsSubtitle": "Tidy up your member connections",
+  "myLanguageSubtitle": "Choose the console language",
+  "myAccountSubtitle": "Manage your sign-in account and password",
+  "mySupportSubtitle": "Ask a question or read our policies",
+  "myWithdrawSubtitle": "Please check once before you leave",
+  "myPageTitle": "Profile & settings",
+  "myProfileTitle": "Profile",
+  "myEmail": "Email",
+  "myBasicInfoHint": "Members see this on your trainer profile",
+  "myNotificationsHint": "Choose which alerts you get",
+  "myAccountInfo": "Account",
+  "myAccountInfoHint": "To change your name or email, contact support.",
+  "mySecurity": "Security",
+  "myDiscardTitle": "Stop editing?",
+  "myDiscardBody": "Your changes won't be saved.",
+  "myKeepEditing": "Keep editing",
+  "myDiscardAction": "Leave",
+  "mySignOutConfirm": "Log out of this browser?",
+  "myThisMonth": "This month",
+  "myIntroEmpty": "No introduction yet. Add one in Edit profile — members see it.",
+  "myCertsEmpty": "No certifications yet",
+  "myGymEmpty": "No gym yet. Add yours in Edit profile.",
+  "myEditVisibleBody": "Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.",
+  "myClientManagementNoteTitle": "Removing only hides members here",
+  "myClientManagementNote": "Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.",
+  "myNotifConsultation": "Consultation requests",
+  "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
+  "myNotifReservation": "Bookings",
+  "myNotifReservationHint": "When a member books or changes a session",
+  "myNotifMemberUpdates": "Member updates",
+  "myNotifMemberUpdatesHint": "When a member changes goals or name, or disconnects",
   "routineTypeWalking": "Walking",
   "@routineTypeWalking": {
     "description": "Display label for the '걷기' routine type. The stored/wire value stays Korean — see kRoutineTypes."
@@ -1773,7 +1833,6 @@
   "coachNoClients": "No members yet",
   "coachRecommended": "AI suggestions",
   "coachBackToList": "Back to suggestions",
-  "coachReviewed": "AI-generated, reviewed by you",
   "coachTrainerAdded": "Added by trainer",
   "coachTemplateAdded": "Added from {name} template",
   "@coachTemplateAdded": {
@@ -1913,7 +1972,7 @@
       }
     }
   },
-  "aiAnalysedData": "Reviewed the workout goal, recent activity, and today's nutrition",
+  "aiAnalysedData": "Member status",
   "aiGoal": "Goal",
   "aiTodaySodium": "Sodium today",
   "aiOverTarget": " · over target",
@@ -1930,6 +1989,12 @@
     }
   },
   "aiSugarAlsoOver": " · sugar also over",
+  "aiDirectionLabel": "Direction",
+  "aiDirectionLower": "Lower intensity — recent completion is low",
+  "aiDirectionCardio": "More cardio — sodium is often over target",
+  "aiDirectionLowerAndCardio": "Lower intensity · more cardio",
+  "aiDirectionKeep": "Keep current intensity",
+  "aiDirectionNoData": "Not enough records yet",
   "aiBasisRuleBased": " · rule-based",
   "aiChatEvidenceTitle": "Recent conversation used",
   "aiEditOption": "Edit {option}",
@@ -1945,7 +2010,7 @@
   "aiExerciseNameExample": "e.g. leg press, 3 sets",
   "aiRegister": "Add",
   "aiNoteForClient": "A note to send with it",
-  "aiReviewedSuggestion": "Reviewed · AI suggestion ({option})",
+  "aiReviewedSuggestion": "Confirmed plan · {option}",
   "@aiReviewedSuggestion": {
     "placeholders": {
       "option": {
@@ -1969,7 +2034,7 @@
   "aiAppliedToTemplate": "The AI suggestion was applied to the program template.",
   "aiStepConditions": "Set up",
   "aiStepReview": "Program selection",
-  "aiStepDone": "Final review",
+  "aiStepDone": "Program review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
   "routineEvidenceRecentPtFeedback": "Recent PT feedback",
@@ -2075,7 +2140,7 @@
       }
     }
   },
-  "aiInsightMemoTitle": "AI insights (last 7 days)",
+  "aiInsightMemoTitle": "Needs attention (last 7 days)",
   "aiInsightMemoEmpty": "No insights detected in the last 7 days",
   "aiInsightMemoFailed": "Couldn't load the detected memos",
   "aiRecentRoutineMore": "{name} and {count} more",
@@ -2352,12 +2417,31 @@
   },
   "myDeleteAccount": "Delete account",
   "myDeleteAction": "Delete",
-  "myDeleteHint": "Your member links and bookings go with it",
   "myDeleteDemo": "Demo mode has no account to delete",
   "myDeleteTitle": "Delete your account?",
   "myDeleteBody": "Your member links and bookings are removed and your members are notified. This can't be undone.",
   "myDeleteFailed": "Couldn't delete your account. Please try again in a moment",
   "myDeleteConfirmPrompt": "Type your name ({name}) to continue",
+  "myWithdrawReasonTitle": "Are you sure you want to leave?",
+  "myWithdrawReasonQuestion": "What didn't work for you?",
+  "myWithdrawReasonHint": "Pick as many as you like, or skip.",
+  "myWithdrawReasonRarelyUsed": "I rarely use it",
+  "myWithdrawReasonHardToUse": "It's hard to use",
+  "myWithdrawReasonMissingFeature": "It lacks features I need for members",
+  "myWithdrawReasonLeavingWork": "I'm taking a break from training",
+  "myWithdrawReasonAlternative": "I use another tool",
+  "myWithdrawReasonOther": "Something else",
+  "myWithdrawKeepTitle": "Before you go",
+  "myWithdrawKeepRarelyUsed": "Turn on alerts so you don't miss member messages and bookings. Change them in Settings › Notifications.",
+  "myWithdrawKeepHardToUse": "Tell us what felt awkward via 1:1 inquiry and we'll work on it.",
+  "myWithdrawKeepMissingFeature": "Tell us which feature you need via 1:1 inquiry — we'll consider it next.",
+  "myWithdrawKeepLeavingWork": "If it's just a break, you can keep your account. Leaving disconnects all your members.",
+  "myWithdrawKeepAlternative": "Leaving removes member records, programs and reports from your console for good.",
+  "myWithdrawKeepOther": "Your feedback via 1:1 inquiry would help us a lot.",
+  "myWithdrawKeepDefault": "Leaving removes your member connections and bookings, and your members are notified. This can't be undone.",
+  "myWithdrawNext": "Next",
+  "myWithdrawStay": "Keep using",
+  "myWithdrawContinue": "Continue leaving",
   "@myDeleteConfirmPrompt": {
     "placeholders": {
       "name": {
@@ -2810,7 +2894,6 @@
   "programEditorWeight": "Weight kg",
   "programEditorDuration": "Time min",
   "programEditorDistance": "Distance m",
-  "programEditorExerciseMemo": "Memo",
   "reportsComparisonTitle": "{week} vs last week",
   "@reportsComparisonTitle": {
     "placeholders": {
