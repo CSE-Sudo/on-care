@@ -27,9 +27,10 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 /// 날짜 값 자체가 입력창이라 따로 전환할 필요 없이 타이핑도, 바로 아래 달력에서
 /// 탭으로 고르는 것도 둘 다 항상 된다. 입력창에 타이핑하면
 /// [MaterialLocalizations.parseCompactDate] 로 즉시 해석해 달력도 같이 움직이고,
-/// 달력에서 고르면 입력창 글자도 같이 바뀐다. 오른쪽 위 X 와 아래 2열
-/// `취소 / 확인` 을 모두 둔다 — [showClose] 를 끄면 X 없이 `취소` 로만 닫는다.
-/// 회원 앱은 부분 창에 X 를 두지 않아 꺼서 쓴다(#2170). 달 이동 꺾쇠·달 보기
+/// 달력에서 고르면 입력창 글자도 같이 바뀐다. 아래에 `취소 / 확인` 을 두고,
+/// 오른쪽 위 X 는 [showClose] 가 정한다 — 비워 두면 [AppDialog] 기본값대로 웹은
+/// X 없이 `취소` 로만 닫고(#2465) 모바일은 X 를 둔다. 회원 앱은 부분 창에 X 를
+/// 두지 않아 꺼서 쓴다(#2170). 달 이동 꺾쇠·달 보기
 /// 삼각형은 앱의 아이콘 묶음(#1803)으로 그린다.
 Future<DateTime?> showAppDatePicker({
   required BuildContext context,
@@ -37,7 +38,7 @@ Future<DateTime?> showAppDatePicker({
   required DateTime firstDate,
   required DateTime lastDate,
   String? helpText,
-  bool showClose = true,
+  bool? showClose,
 }) {
   return showAppDialog<DateTime>(
     context: context,
@@ -59,7 +60,7 @@ class AppDatePickerDialog extends StatefulWidget {
     required this.firstDate,
     required this.lastDate,
     this.helpText,
-    this.showClose = true,
+    this.showClose,
   });
 
   /// 창·입력창·버튼 키. 테스트가 이 창을 지목한다(옛 `portraitDatePicker*` 키).
@@ -79,8 +80,9 @@ class AppDatePickerDialog extends StatefulWidget {
   /// 제목. 비우면 플랫폼 문구(`날짜 선택`)다.
   final String? helpText;
 
-  /// 오른쪽 위 닫기 X 를 둘지. 끄면 하단 `취소` 로만 닫는다.
-  final bool showClose;
+  /// 오른쪽 위 닫기 X 를 둘지. 끄면 하단 `취소` 로만 닫는다. 비워 두면
+  /// [AppDialog] 기본값을 따른다.
+  final bool? showClose;
 
   @override
   State<AppDatePickerDialog> createState() => _AppDatePickerDialogState();

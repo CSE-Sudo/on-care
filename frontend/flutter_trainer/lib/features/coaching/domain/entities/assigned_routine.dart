@@ -16,6 +16,8 @@ class AssignedRoutine {
     this.reps,
     this.holdSeconds,
     this.weight,
+    this.scheduleId,
+    this.deliveryKind,
   });
 
   /// Server id (empty before assignment).
@@ -53,6 +55,16 @@ class AssignedRoutine {
 
   /// `ai` (AI-suggested) or `trainer` (hand-assigned).
   final String source;
+
+  /// 이 배정이 붙어 있는 PT 일정. 개인운동만 보낸 배정은 비어 있다. (#2223)
+  ///
+  /// 아직 보내지 않은 개인운동을 프로그램 탭에서 보낼 때, 어느 일정의 전송을
+  /// 부를지 이 값으로 정한다(#2225).
+  final String? scheduleId;
+
+  /// 어떤 전송에 속한 배정인가 — `pt_with_routine` · `routine_only` ·
+  /// `cancelled_routine_only`. 이 칸이 생기기 전 배정은 비어 있다. (#2223)
+  final String? deliveryKind;
 
   /// 회원이 이 배정을 이미 수행했는가. 서버가 `completed` 로 함께 내려준다.
   ///

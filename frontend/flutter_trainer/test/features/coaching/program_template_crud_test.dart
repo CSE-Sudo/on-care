@@ -272,4 +272,67 @@ void main() {
       );
     });
   });
+
+  // 오류 문구 하나를 세 경우가 돌려 쓰며 언제나 이름 칸에 붙던 동안에는,
+  // 이름을 제대로 적어 둔 트레이너가 빨개진 이름 칸을 들여다보며 무엇이
+  // 틀렸는지 찾아야 했다. 오류는 저마다 제 자리에서 말한다. (#2220)
+  group('저장 창 오류 자리', () {
+    testWidgets('운동이 없으면 이름 칸이 아니라 운동 쪽에서 말한다', (tester) async {
+      final repository = _FakeTemplateRepository();
+      await _pumpDialog(tester, repository);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('template-name')),
+        '이름은 멀쩡하다',
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('template-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('template-exercise-error')),
+        findsOneWidget,
+      );
+      // 이름 칸은 건드리지 않는다 — 이름은 틀리지 않았다.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('template-name')),
+          matching: find.text('운동을 하나 이상 넣어 주세요'),
+        ),
+        findsNothing,
+      );
+      // 어느 줄이 모자란지 그 줄에서 짚는다.
+      expect(find.text('운동 이름을 적어 주세요'), findsOneWidget);
+      expect(repository.created, isEmpty);
+    });
+
+    testWidgets('이름이 비면 이름 칸에서 말한다', (tester) async {
+      final repository = _FakeTemplateRepository();
+      await _pumpDialog(tester, repository);
+
+      await tester.tap(find.byKey(const ValueKey<String>('template-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('템플릿 이름을 입력해 주세요'), findsOneWidget);
+      expect(repository.created, isEmpty);
+    });
+
+    testWidgets('저장이 막히면 창 아래에서 말한다', (tester) async {
+      final repository = _FakeTemplateRepository()
+        ..failure = const ValidationError(message: '서버가 거절했어요');
+      await _pumpDialog(tester, repository);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('template-name')),
+        '내 블록',
+      );
+      await tester.enterText(find.byType(TextField).at(2), '걷기');
+      await tester.tap(find.byKey(const ValueKey<String>('template-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('template-save-error')),
+        findsOneWidget,
+      );
+    });
+  });
 }
