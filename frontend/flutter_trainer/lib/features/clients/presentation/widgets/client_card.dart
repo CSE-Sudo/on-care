@@ -25,6 +25,7 @@ class ClientCard extends StatelessWidget {
     this.selected = false,
     this.unread = 0,
     this.signals = const <ClientSignal>[],
+    this.action,
   });
 
   /// The client to render.
@@ -43,6 +44,10 @@ class ClientCard extends StatelessWidget {
 
   /// 필터로 좁힌 동안 이 회원이 걸린 이유. 비어 있으면(평소) 배지 줄이 없다.
   final List<ClientSignal> signals;
+
+  /// 이름 줄 오른쪽 끝의 동작(예: 내 정보 › 회원 관리의 삭제 아이콘). 카드
+  /// 안에 두어 어느 회원의 동작인지 한눈에 보이게 한다. 없으면 자리도 없다.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +69,10 @@ class ClientCard extends StatelessWidget {
                     if (signals.isNotEmpty) ...<Widget>[
                       const SizedBox(width: OnCareSpacing.s8),
                       _MatchedSignals(clientId: client.id, signals: signals),
+                    ],
+                    if (action != null) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s8),
+                      action!,
                     ],
                   ],
                 ),

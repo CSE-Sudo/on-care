@@ -541,6 +541,36 @@ void main() {
       find.descendant(of: total, matching: find.text('하루 합계')),
       findsOneWidget,
     );
+    // 합계 줄은 첫 줄에 음식 이름이 없어, 영양 한 줄이 라벨과 같은 줄에
+    // 선다(#2421) — 둘째 줄로 내려가면 첫 줄이 통째로 빈다.
+    final Finder macros = find.descendant(
+      of: total,
+      matching: find.byWidgetPredicate(
+        (Widget w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith(
+              'client-diet-macros-',
+            ),
+      ),
+    );
+    expect(
+      (tester.getCenter(macros).dy -
+              tester
+                  .getCenter(
+                    find.descendant(of: total, matching: find.text('하루 합계')),
+                  )
+                  .dy)
+          .abs(),
+      lessThan(4),
+    );
+    // 합계 kcal 은 끼니 kcal 과 같은 열에 서므로 `총` 을 붙여 가른다.
+    expect(
+      find.descendant(
+        of: total,
+        matching: find.textContaining(RegExp(r'^총 [\d,]+ kcal$')),
+      ),
+      findsOneWidget,
+    );
     // 알약은 없다.
     expect(
       find

@@ -206,7 +206,10 @@ void main() {
         weekStart: wednesday,
         today: wednesday,
       );
-      return reportMessage(l, report).split('\n\n')[1];
+      // 운동 문단은 PT 세션 문장으로 시작한다(#2422) — 이행률 문장은 그 뒤다.
+      final String paragraph = reportMessage(l, report).split('\n\n')[1];
+      final int at = paragraph.indexOf(RegExp('운동|You |Workout'));
+      return paragraph.substring(at);
     }
 
     test('80% 이상은 칭찬, 60~79% 는 꾸준함, 60% 미만은 격려', () {

@@ -230,4 +230,60 @@ void main() {
     expect(tester.getRect(badge).top, lessThan(icon.top));
     expect(find.text('99+'), findsOneWidget);
   });
+
+  group('웹 페이지 머리는 글자 배율이 커져도 넘치지 않는다 (#2431)', () {
+    Future<void> pumpPage(
+      WidgetTester tester, {
+      required double scale,
+      required bool withCenter,
+    }) async {
+      tester.view.physicalSize = const Size(480, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: _theme(OnCareDensity.web),
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+            child: Scaffold(
+              body: AppWebPage(
+                title: '고객',
+                subtitle: '담당 회원',
+                headerCenter: withCenter ? const SizedBox.expand() : null,
+                body: const ColoredBox(key: Key('body'), color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    double headerHeight(WidgetTester tester) =>
+        tester.getTopLeft(find.byKey(const Key('body'))).dy;
+
+    for (final bool withCenter in <bool>[false, true]) {
+      final String layout = withCenter ? '가운데 자리 있음' : '가운데 자리 없음';
+
+      testWidgets('$layout: 배율 1.0·1.3 은 88 그대로다', (tester) async {
+        for (final double scale in <double>[1.0, 1.3]) {
+          await pumpPage(tester, scale: scale, withCenter: withCenter);
+          expect(tester.takeException(), isNull);
+          expect(headerHeight(tester), OnCareLayout.webHeaderHeight);
+        }
+      });
+
+      testWidgets('$layout: 배율 2.0 은 제목·부제만큼 늘어난다', (tester) async {
+        await pumpPage(tester, scale: 2.0, withCenter: withCenter);
+        expect(tester.takeException(), isNull);
+        final double header = headerHeight(tester);
+        expect(header, greaterThan(OnCareLayout.webHeaderHeight));
+        // 제목·부제가 머리 안에 있다 — 본문과 겹치지 않는다.
+        expect(tester.getRect(find.text('고객')).top, greaterThanOrEqualTo(0));
+        expect(
+          tester.getRect(find.text('담당 회원')).bottom,
+          lessThanOrEqualTo(header),
+        );
+      });
+    }
+  });
 }
