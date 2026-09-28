@@ -4,10 +4,9 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart'
     show recordedCompletionMean;
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
-import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart'
-    show clientDemographicsLabel;
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// A member row on the 회원 관리 list: avatar, identity, goal, and this
@@ -57,8 +56,13 @@ class ClientCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: <Widget>[
-          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
-          const SizedBox(width: OnCareSpacing.s12),
+          // 이름 줄 옆 배지·동작과 아래 막대까지 한 묶음이라 [ClientRow] 대신
+          // 같은 밀도의 아바타·이름 묶음을 직접 놓는다(#2467).
+          ClientAvatar(
+            name: client.avatar,
+            size: ClientRowDensity.list.avatarSize,
+          ),
+          SizedBox(width: ClientRowDensity.list.avatarGap),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +70,7 @@ class ClientCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Expanded(child: _Identity(client: client)),
+                    Expanded(child: ClientIdentityBlock(client: client)),
                     if (signals.isNotEmpty) ...<Widget>[
                       const SizedBox(width: OnCareSpacing.s8),
                       _MatchedSignals(clientId: client.id, signals: signals),
@@ -88,62 +92,6 @@ class ClientCard extends StatelessWidget {
   }
 }
 
-/// 이름 + 인구정보(`여성 · 29세`) 한 줄, 그 아래 목표 한 줄.
-///
-/// 이름이 같은 회원을 가르는 인구정보는 이름 옆에 한 단계 흐리게 둔다.
-class _Identity extends StatelessWidget {
-  const _Identity({required this.client});
-
-  final TrainerClient client;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: <Widget>[
-            Flexible(
-              child: Text(
-                client.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.strong(OnCareTypography.bodyLarge))
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s4),
-            Flexible(
-              child: Text(
-                clientDemographicsLabel(context, client),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ),
-          ],
-        ),
-        // 회원 건강 목표를 로케일 문구로(#1818).
-        Text(
-          healthFocusGoalLabel(AppLocalizations.of(context), client.goal),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: tokens
-              .text(OnCareTypography.bodySmall)
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
 /// 필터로 좁힌 동안 카드 오른쪽 위에 붙는 **걸린 이유** — 목록 배지와 같은
 /// 문구·색. 여럿이면 오른쪽 끝을 맞춰 아래로 쌓는다 — 옆으로 늘어놓으면 이름이
 /// 먼저 잘린다.
@@ -155,14 +103,13 @@ class _MatchedSignals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
     return Column(
       key: ValueKey<String>('client-signals-$clientId'),
       crossAxisAlignment: CrossAxisAlignment.end,
       spacing: OnCareSpacing.s4,
       children: <Widget>[
         for (final ClientSignal signal in signals)
-          AppTag(label: signal.badgeLabel(l), tone: signal.kind.tone),
+          ClientSignalTag(signal: signal, detailed: false),
       ],
     );
   }

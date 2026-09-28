@@ -23,6 +23,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -243,7 +244,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         : l.aiReasonBalanced;
     // 보낸 적이 없으면 예전처럼 저장된 `-` 를 그대로 둔다.
     final last = lastRoutineLabel(l, client);
-    return '${l.aiReasonGoal(client.goal, last.isEmpty ? client.lastRoutine : last)} '
+    // 목표는 저장 값(한국어)이 아니라 화면 언어로 적는다(#2467).
+    final goal = healthFocusGoalLabel(l, client.goal);
+    return '${l.aiReasonGoal(goal, last.isEmpty ? client.lastRoutine : last)} '
         '$sodium';
   }
 
@@ -807,7 +810,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _analysisRow(l.aiGoal, client.goal),
+        _analysisRow(l.aiGoal, healthFocusGoalLabel(l, client.goal)),
         // "오늘"·"어제" 같은 날짜가 아니라 **무엇을 했는지**를 적는다 —
         // 프로그램을 짜는 자리에서 알아야 하는 것은 마지막 기록이 언제였나가
         // 아니라 어떤 운동을 마쳤나다 (#1655).
@@ -1189,7 +1192,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         ],
         Text(
           l.aiBasisGoalCompletion(
-                options.analysis.goal,
+                healthFocusGoalLabel(l, options.analysis.goal),
                 options.analysis.avgCompletionRate,
               ) +
               (options.generatedBy == 'rule' ? l.aiBasisRuleBased : ''),
