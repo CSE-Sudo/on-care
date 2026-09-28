@@ -636,7 +636,8 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
     그 주에 이 회원의 다른 수업(예정·완료 — 타임라인이 깐 수업이나 트레이너가
     직접 잡은 수업)이 이미 있으면 그 주는 건드리지 않는다. 그 위에 한 번 더
     얹으면 주 1회 회원이 2회로 부풀어 오른다. 행 id 가 결정론적이라 이미 넣은
-    자리는 건너뛰어 재실행해도 늘지 않는다(멱등).
+    자리는 건너뛰어 재실행해도 늘지 않는다(멱등). 계정 재생성으로 주인이 비어 버린
+    행은 다시 그 회원에게 붙인다.
     지난 날의 수업이라 전부 `완료` 로 넣는다.
     """
     if db.scalar(
@@ -671,7 +672,15 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
             for n, (weekday, at, minutes) in enumerate(slots):
                 day = week_monday + timedelta(days=weekday)
                 row_id = f"seed-pt-{member_id}-{day.isoformat()}-{n}"
-                if day >= today or db.get(models.TrainerSchedule, row_id) is not None:
+                if day >= today:
+                    continue
+                existing = db.get(models.TrainerSchedule, row_id)
+                if existing is not None:
+                    # 회원 계정이 지워졌다 다시 만들어지면 FK(`SET NULL`)가 이
+                    # 행의 member_id 만 비워 둔다. id 가 그대로라 새로 넣지 못하니
+                    # 주인을 되붙인다 — 안 그러면 그 회원의 지난 주가 0회로 선다.
+                    if existing.member_id is None:
+                        existing.member_id = member_id
                     continue
                 db.add(models.TrainerSchedule(
                     id=row_id,
