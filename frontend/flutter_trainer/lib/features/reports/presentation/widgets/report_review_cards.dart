@@ -17,6 +17,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 날이 오므로, 그림 자체를 나눠 쓴다.
 ///
 /// 입력이 없다 — 읽는 단계의 카드라 어디에 얹어도 그대로 읽기 전용이다.
+///
+/// 확인 단계에는 요약을 두지 않는다. AI 가 내린 결론을 먼저 읽으면 자료를 보는
+/// 일이 **그 결론이 맞는지 확인하는 일**로 바뀌어, 요약이 짚지 않은 것은
+/// 트레이너도 짚지 않게 된다. 요약은 글을 쓰는 자리의 출발점이므로 ② 작성에
+/// 선다. (#2232)
 class ReportReviewCards extends StatelessWidget {
   /// Creates the review-stage cards of [report].
   const ReportReviewCards({
@@ -24,6 +29,7 @@ class ReportReviewCards extends StatelessWidget {
     required this.report,
     this.calorieBaseline,
     this.weekNav,
+    this.sections = ReportReviewSection.values,
   });
 
   final WeeklyReport report;
@@ -36,57 +42,84 @@ class ReportReviewCards extends StatelessWidget {
   /// 이미 정해진 한 주라 옮겨 갈 곳이 없다.
   final Widget? weekNav;
 
+  /// 그릴 카드와 차례. 화면은 셋을 다 그린다. PDF 는 쪽을 카드 경계에서
+  /// 나누려고 카드를 하나씩 따로 굽는다(#2424) — 같은 위젯에서 한 장씩
+  /// 떼어 내므로 모양은 화면과 같다.
+  final List<ReportReviewSection> sections;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final List<Widget> cards = <Widget>[
+      for (final ReportReviewSection section in sections)
+        switch (section) {
+          ReportReviewSection.member => _member(),
+          ReportReviewSection.week => _week(l),
+          ReportReviewSection.trend => _trend(l),
+        },
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 확인 단계에는 요약을 두지 않는다. AI 가 내린 결론을 먼저 읽으면
-        // 자료를 보는 일이 **그 결론이 맞는지 확인하는 일**로 바뀌어, 요약이
-        // 짚지 않은 것은 트레이너도 짚지 않게 된다. 요약은 글을 쓰는 자리의
-        // 출발점이므로 ② 작성에 선다. (#2232)
-        // ① 회원이 낸 답. 수치만으로는 같은 한 주가 `게으름` 으로도
-        // `과부하` 로도 읽히는데, 그 둘은 다음 주 처방이 정반대다.
-        MemberFeedbackCard(feedback: report.memberFeedback),
-        const SizedBox(height: OnCareSpacing.s16),
-        ReportSectionCard(
-          key: const ValueKey<String>('report-review-week'),
-          number: 2,
-          title: l.reportsCardWeekTitle,
-          subtitle: l.reportsCardWeekSubtitle,
-          // 고객 이름·나이는 적지 않는다 — 카드 제목이 이미 누구의 리포트인지
-          // 말하고, 왼쪽 목록에서 방금 고른 고객이다(#1177). 그 자리를 주
-          // 이동이 가져간다: 옮기는 것은 이 카드의 내용이다.
-          trailing: weekNav,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // ① 격자 — 요일마다 무엇이 있었는지. 칼로리·나트륨·당류를
-              // 나란히 세우던 예전 비교 표를 대신한다(#2232). 지표를 나열하면
-              // 트레이너가 어느 줄부터 읽어야 할지를 매번 다시 정해야 했다.
-              ReportWeekGrid(report: report, calorieBaseline: calorieBaseline),
-              const SizedBox(height: OnCareSpacing.s16),
-              // 총량이 말하지 않는 것 — 같은 칼로리가 무엇으로 채워졌는가.
-              ReportMacroBars(report: report),
-            ],
-          ),
-        ),
-        const SizedBox(height: OnCareSpacing.s16),
-        // ③ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
-        // 목표에 대한 비율로 바꿔야 한 화면에서 견줄 수 있다. 이번 주가
-        // 흐름의 어디쯤인지는 이 카드에서만 보인다 — 앞의 둘은 한 주만
-        // 말한다.
-        ReportSectionCard(
-          key: const ValueKey<String>('report-review-trend'),
-          number: 3,
-          title: l.reportsExerciseTrend,
-          subtitle: l.reportsTrendSubtitle(kReportTrendWeeks),
-          child: ReportExerciseTrend(report: report),
-        ),
+        for (int i = 0; i < cards.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: OnCareSpacing.s16),
+          cards[i],
+        ],
       ],
     );
   }
+
+  Widget _member() =>
+      // ① 회원이 낸 답. 수치만으로는 같은 한 주가 `게으름` 으로도
+      // `과부하` 로도 읽히는데, 그 둘은 다음 주 처방이 정반대다.
+      MemberFeedbackCard(feedback: report.memberFeedback);
+
+  Widget _week(AppLocalizations l) => ReportSectionCard(
+    key: const ValueKey<String>('report-review-week'),
+    number: 2,
+    title: l.reportsCardWeekTitle,
+    subtitle: l.reportsCardWeekSubtitle,
+    // 고객 이름·나이는 적지 않는다 — 카드 제목이 이미 누구의 리포트인지
+    // 말하고, 왼쪽 목록에서 방금 고른 고객이다(#1177). 그 자리를 주
+    // 이동이 가져간다: 옮기는 것은 이 카드의 내용이다.
+    trailing: weekNav,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        // ① 격자 — 요일마다 무엇이 있었는지. 칼로리·나트륨·당류를
+        // 나란히 세우던 예전 비교 표를 대신한다(#2232). 지표를 나열하면
+        // 트레이너가 어느 줄부터 읽어야 할지를 매번 다시 정해야 했다.
+        ReportWeekGrid(report: report, calorieBaseline: calorieBaseline),
+        const SizedBox(height: OnCareSpacing.s16),
+        // 총량이 말하지 않는 것 — 같은 칼로리가 무엇으로 채워졌는가.
+        ReportMacroBars(report: report),
+      ],
+    ),
+  );
+
+  // ③ 유형별 주간 목표 달성률. 분·세트·분으로 재는 셋을 각자의
+  // 목표에 대한 비율로 바꿔야 한 화면에서 견줄 수 있다. 이번 주가
+  // 흐름의 어디쯤인지는 이 카드에서만 보인다 — 앞의 둘은 한 주만
+  // 말한다.
+  Widget _trend(AppLocalizations l) => ReportSectionCard(
+    key: const ValueKey<String>('report-review-trend'),
+    number: 3,
+    title: l.reportsExerciseTrend,
+    subtitle: l.reportsTrendSubtitle(kReportTrendWeeks),
+    child: ReportExerciseTrend(report: report),
+  );
+}
+
+/// ① 확인의 카드 하나. 선언 차례가 화면의 차례다.
+enum ReportReviewSection {
+  /// 회원이 낸 이번 주 답.
+  member,
+
+  /// 요일 격자와 영양 막대.
+  week,
+
+  /// 운동 유형별 추세.
+  trend,
 }
 
 /// 제목 줄(+ 오른쪽 동작)과 내용을 담는 리포트 카드.
