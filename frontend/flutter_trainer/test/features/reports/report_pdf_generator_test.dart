@@ -22,6 +22,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 
 import '../../helpers/client_factory.dart';
+import 'pdf_test_images.dart';
 
 /// 문구 기대값은 로케일을 명시해 읽는다.
 final AppLocalizationsKo _ko = AppLocalizationsKo();
@@ -107,6 +108,7 @@ class _SpyCapture {
 
   final List<Widget> shots = <Widget>[];
   final List<double> widths = <double>[];
+  final List<double> ratios = <double>[];
 
   Future<CapturedWidget> call(
     Widget child, {
@@ -116,6 +118,7 @@ class _SpyCapture {
     if (failAt == shots.length) throw StateError('capture failed');
     shots.add(child);
     widths.add(width);
+    ratios.add(pixelRatio);
     final int w = (width * pixelRatio).round();
     return CapturedWidget(
       rgba: Uint8List(w * height * 4)..fillRange(0, w * height * 4, 0xff),
@@ -132,6 +135,31 @@ int _pageCount(Uint8List bytes) => RegExp(
 int _imageCount(Uint8List bytes) => RegExp(
   r'/Subtype\s*/Image\b',
 ).allMatches(latin1.decode(bytes, allowInvalid: true)).length;
+
+/// 받은 그림 크기를 적어 두고 작은 진짜 JPEG 를 돌려주는 인코더 — 웹의
+/// 캔버스 인코더 자리다(#2484).
+class _SpyJpeg {
+  final List<(int, int)> sizes = <(int, int)>[];
+
+  Future<Uint8List?> call(
+    Uint8List rgba, {
+    required int width,
+    required int height,
+  }) async {
+    sizes.add((width, height));
+    return tinyJpeg;
+  }
+}
+
+/// 양보 횟수를 센다.
+class _Yields {
+  int count = 0;
+
+  Future<void> call() async => count++;
+}
+
+int _jpegCount(Uint8List bytes) =>
+    RegExp(r'/DCTDecode\b').allMatches(pdfSource(bytes)).length;
 
 /// 글자 문서(물러설 자리)의 쪽 그림이 실렸는가.
 bool _hasTextPageRaster(Uint8List bytes) => RegExp(
@@ -311,6 +339,94 @@ void main() {
       // 글자 문서로 물러서지 않았다 — 카드마다 그림이 따로 실린다.
       expect(_hasTextPageRaster(bytes), isFalse);
       expect(_imageCount(bytes), greaterThanOrEqualTo(5));
+    });
+
+    testWidgets('카드는 1.5 배율로 굽는다 — 굽고 싣을 픽셀을 줄인다 (#2484)', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(spy.ratios.toSet(), <double>{1.5});
+    });
+
+    testWidgets('카드를 한 장 구울 때마다 이벤트 루프에 양보한다 (#2484)', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      final _Yields yields = _Yields();
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+          yieldFrame: yields.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      // 머리 둘·① 셋·② 하나를 구울 때마다, 그리고 날 RGB 로 싣는 동안에도.
+      expect(yields.count, greaterThanOrEqualTo(spy.shots.length));
+    });
+
+    testWidgets('JPEG 인코더가 있으면 쓰인 그림마다 한 번씩 JPEG 로 싣는다 (#2484)', (
+      tester,
+    ) async {
+      final _SpyJpeg jpeg = _SpyJpeg();
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: _SpyCapture(height: 200).call,
+          encodeImage: jpeg.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      // 머리 + ① 셋 + ② 하나. 쓰이지 않은 이어지는 쪽 머리는 인코딩하지 않는다.
+      expect(jpeg.sizes, hasLength(5));
+      expect(_jpegCount(bytes!), 5);
+      expect(_pageCount(bytes), 1);
+      // 날 RGB 로 실은 카드는 없다 — 카드 폭(px)의 이미지 사전이 없다.
+      final int cardPx = jpeg.sizes.first.$1;
+      expect(
+        RegExp('/Width\\s+$cardPx\\b').hasMatch(pdfSource(bytes)),
+        isFalse,
+      );
+    });
+
+    testWidgets('여러 쪽에 나눠 담은 긴 카드도 JPEG 는 한 장만 싣는다', (tester) async {
+      final _SpyJpeg jpeg = _SpyJpeg();
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: _SpyCapture(height: 9000).call,
+          encodeImage: jpeg.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(_pageCount(bytes!), greaterThan(8));
+      // 머리·카드 넷 — 조각마다 새로 싣지 않는다. 이어지는 쪽 머리도 이
+      // 가짜 굽기에서는 쪽의 넷째보다 길어 쓰이지 않는다.
+      expect(jpeg.sizes, hasLength(5));
+      expect(_jpegCount(bytes), 5);
+    });
+
+    testWidgets('JPEG 로 바꾸지 못하면 날 RGB 로 실어 문서는 그대로 나온다', (tester) async {
+      Future<Uint8List?> none(
+        Uint8List rgba, {
+        required int width,
+        required int height,
+      }) async => null;
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: _SpyCapture(height: 200).call,
+          encodeImage: none,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+      expect(_jpegCount(bytes), 0);
+      expect(_imageCount(bytes), 5);
+      expect(_hasTextPageRaster(bytes), isFalse);
     });
 
     test('provider 는 앱 컨테이너를 생성기에 넘긴다', () {
