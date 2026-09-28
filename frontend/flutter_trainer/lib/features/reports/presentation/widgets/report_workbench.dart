@@ -287,7 +287,6 @@ class ReportWorkbench extends StatelessWidget {
     List<ReportQueueEntry> done, {
     required bool fill,
   }) {
-    final OnCareTokens tokens = context.oncare;
     // 미전송 상자와 같은 머리 — 제목·배지 왼쪽, `정렬: … ▾` 오른쪽(#2447).
     final Widget head = AppSectionHeader(
       title: l.reportsSentColumn,
