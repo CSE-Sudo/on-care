@@ -238,7 +238,8 @@ void main() {
       find.byKey(const ValueKey<String>('report-feedback-empty')),
       findsOneWidget,
     );
-    expect(find.text('아직 받지 못했어요'), findsOneWidget);
+    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
+    expect(find.text('· 아직 받지 못했어요'), findsOneWidget);
     expect(find.text('회원이 주간 피드백을 보내면 여기에 표시돼요'), findsOneWidget);
   });
 
@@ -402,7 +403,8 @@ void main() {
   testWidgets('영어 빈 카드도 번역되어 있다', (tester) async {
     await _pump(tester, locale: 'en', none: true);
 
-    expect(find.text('Not received yet'), findsOneWidget);
+    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
+    expect(find.text('· Not received yet'), findsOneWidget);
     expect(
       find.text('It shows up here once the member sends their weekly feedback'),
       findsOneWidget,
