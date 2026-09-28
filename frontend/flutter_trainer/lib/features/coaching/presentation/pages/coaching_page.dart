@@ -966,8 +966,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
                 child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: AppButton(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AppBackLink(
                     key: const ValueKey<String>('return-to-ai-flow'),
                     label: l.aiReturnToWizard,
                     // 위저드로 되돌아가면 거기서 다시 반영할 때까지 개인운동을
@@ -977,9 +977,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                       _aiWizardVisible = true;
                       _personalRoutines.remove(client.id);
                     }),
-                    variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
-                    leadingIcon: AppIcons.back,
                   ),
                 ),
               )
