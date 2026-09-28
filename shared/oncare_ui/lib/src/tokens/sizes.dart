@@ -41,6 +41,9 @@ class OnCareSize {
 
   // --- 진행 표시 ---
   static const double progressBar = 8;
+
+  /// 페이지 배경 위에 홀로 서는 진행 막대 — 얇으면 선처럼 보여 길이가 안 읽힌다.
+  static const double progressBarThick = 14;
   static const double stepBar = 4;
   static const double spinner = 24;
   static const double spinnerStroke = 2.5;
@@ -88,5 +91,4 @@ class OnCareSize {
 
   /// 고르는 창의 이모티콘 한 변.
   static const double emotePick = 64;
-
 }
