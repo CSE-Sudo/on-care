@@ -171,7 +171,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authNoAccountQuestion => '계정이 없으신가요?';
 
   @override
-  String get authSignUpAction => '계정 만들기';
+  String get authSignUpAction => '회원가입';
 
   @override
   String get authDemoAction => '로그인 없이 데모 둘러보기';

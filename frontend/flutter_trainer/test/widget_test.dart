@@ -35,7 +35,7 @@ void main() {
     // The login screen shows the On-Care logo (image, not a title) plus
     // the login / sign-up entry points.
     expect(find.text('로그인'), findsOneWidget);
-    expect(find.text('계정 만들기'), findsOneWidget);
+    expect(find.text('회원가입'), findsOneWidget);
     // 데모 진입은 기본 빌드에서 감춰 뒀다 — SHOW_DEMO_ENTRY 로만 뜬다. (#1526)
     expect(find.text('로그인 없이 데모 둘러보기'), findsNothing);
   });
