@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -257,7 +258,7 @@ void main() {
       // 스케줄 화면에도 삭제 아이콘이 있으므로 그 줄 안에서만 찾는다.
       final Finder deleteInRow = find.descendant(
         of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
-        matching: find.byIcon(Icons.delete_outline_rounded),
+        matching: find.byIcon(AppIcons.delete),
       );
       expect(deleteInRow, findsOneWidget);
       expect(find.text('김하늘'), findsNothing);

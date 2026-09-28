@@ -8,8 +8,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/app/app_theme.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 const List<String> _labels = <String>['이번 주 확인', '다음 주 목표', '전송'];
@@ -22,7 +20,7 @@ Future<List<int>> _pump(
   String keyPrefix = 'stage',
   String semanticsLabel = '주간 리포트 작성 진행 단계',
   Size size = const Size(600, 200),
-  double gap = ProgressStepper.defaultGap,
+  double gap = AppStepIndicator.numberedGap,
 }) async {
   final List<int> tapped = <int>[];
   tester.view.devicePixelRatio = 1.0;
@@ -31,17 +29,20 @@ Future<List<int>> _pump(
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     MaterialApp(
-      theme: AppTheme.light(),
+      theme: OnCareTheme.light(
+        brand: OnCareBrand.trainer,
+        density: OnCareDensity.web,
+      ),
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(OnCareSpacing.s16),
-          child: ProgressStepper(
+          child: AppStepIndicator.numbered(
             labels: labels,
-            stage: stage,
-            maxReachedStage: maxReachedStage,
+            current: stage,
+            maxReached: maxReachedStage,
             keyPrefix: keyPrefix,
             semanticsLabel: semanticsLabel,
-            onStageTap: tapped.add,
+            onStepTap: tapped.add,
             gap: gap,
           ),
         ),
@@ -82,7 +83,7 @@ void main() {
   testWidgets('지금 서 있는 단계만 브랜드 색으로 채워진다', (tester) async {
     await _pump(tester, stage: 1, maxReachedStage: 2);
 
-    final BuildContext context = tester.element(find.byType(ProgressStepper));
+    final BuildContext context = tester.element(find.byType(AppStepIndicator));
     final Color brand = context.oncare.brand.primary;
     expect(_circleColor(tester, 1), brand);
     // 지나온 단계도, 아직 안 간 단계도 채워지지 않는다 — 채워진 원이 둘이면
@@ -210,7 +211,7 @@ void main() {
 
       expect(
         centerGap(tester),
-        closeTo(OnCareSize.avatarMedium + ProgressStepper.defaultGap, 0.01),
+        closeTo(OnCareSize.avatarMedium + AppStepIndicator.numberedGap, 0.01),
       );
     });
 
@@ -228,7 +229,7 @@ void main() {
         stage: 0,
         maxReachedStage: 0,
         size: const Size(1200, 200),
-        gap: ProgressStepper.defaultGap * 2,
+        gap: AppStepIndicator.numberedGap * 2,
       );
       final double doubled = centerGap(tester) - OnCareSize.avatarMedium;
 
@@ -241,7 +242,7 @@ void main() {
         stage: 0,
         maxReachedStage: 0,
         size: const Size(320, 200),
-        gap: ProgressStepper.defaultGap * 2,
+        gap: AppStepIndicator.numberedGap * 2,
       );
 
       expect(tester.takeException(), isNull);

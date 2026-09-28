@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -93,8 +94,8 @@ class _ChurnRiskTile extends StatelessWidget {
                     const SizedBox(width: OnCareSpacing.s12),
                     Expanded(child: ClientIdentityBlock(client: client)),
                     const SizedBox(width: OnCareSpacing.s8),
-                    const Icon(
-                      Icons.chevron_right_rounded,
+                    const AppIcon(
+                      AppIcons.chevronRight,
                       size: OnCareSize.iconMedium,
                       color: OnCareColors.textDisabled,
                     ),

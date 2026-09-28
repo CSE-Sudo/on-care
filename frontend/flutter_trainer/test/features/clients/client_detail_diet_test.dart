@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
@@ -553,7 +554,7 @@ void main() {
       expect(find.text('탄단지'), findsNothing);
       final Finder openable = find.descendant(
         of: records,
-        matching: find.byIcon(Icons.expand_more_rounded),
+        matching: find.byIcon(AppIcons.expandMore),
       );
       expect(openable, findsWidgets);
       await tester.ensureVisible(openable.first);
@@ -602,7 +603,7 @@ void main() {
       );
       final Finder openable = find.descendant(
         of: records,
-        matching: find.byIcon(Icons.expand_more_rounded),
+        matching: find.byIcon(AppIcons.expandMore),
       );
       await tester.ensureVisible(openable.first);
       await tester.pumpAndSettle();

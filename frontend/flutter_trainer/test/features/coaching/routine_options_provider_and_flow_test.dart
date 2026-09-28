@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -1233,11 +1234,11 @@ void main() {
       expect(find.text('회원 현황'), findsOneWidget);
       // 회원 현황은 규칙으로 계산한 값이라 AI 아이콘을 달지 않는다(#2372).
       // AI 아이콘은 실제로 AI 를 부르는 생성 버튼에만 남는다.
-      expect(find.byIcon(Icons.auto_awesome_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.ai), findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('ai-analysis-card')),
-          matching: find.byIcon(Icons.fact_check_rounded),
+          matching: find.byIcon(AppIcons.review),
         ),
         findsOneWidget,
       );

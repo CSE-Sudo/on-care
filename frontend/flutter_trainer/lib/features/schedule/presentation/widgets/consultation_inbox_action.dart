@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -49,7 +50,7 @@ class ConsultationInboxAction extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.mark_email_unread_rounded,
+          icon: AppIcons.consultation,
           tooltip: l.consultTitle,
           variant: AppIconButtonVariant.tonal,
           onPressed: onTap,

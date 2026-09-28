@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/client_filter.dart';
@@ -136,7 +137,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
             if (canConnect)
               AppButton(
                 label: l.clientsNew,
-                leadingIcon: Icons.person_add_rounded,
+                leadingIcon: AppIcons.addClient,
                 onPressed: () => _openConnectDialog(context),
               ),
           ],
@@ -186,7 +187,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                       detail: selected == null
                           ? AppEmptyState(
                               title: l.clientsPickHint,
-                              icon: Icons.person_search_rounded,
+                              icon: AppIcons.selectClient,
                             )
                           : ClientDetailView(
                               clientId: selected,
@@ -387,7 +388,7 @@ class _MemberManagementToolbar extends StatelessWidget {
             label: '${l.clientsSortLabel}: ${_sortLabel(l, sort)}',
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
-            trailingIcon: Icons.arrow_drop_down_rounded,
+            trailingIcon: AppIcons.expandMore,
             onPressed: toggle,
           ),
         ),
@@ -403,7 +404,7 @@ class _MemberManagementToolbar extends StatelessWidget {
               label: preset.label(l),
               variant: AppButtonVariant.text,
               size: OnCareButtonSize.small,
-              trailingIcon: Icons.close_rounded,
+              trailingIcon: AppIcons.close,
               onPressed: onClearPreset,
             ),
           ),
@@ -495,8 +496,8 @@ class _FilterMenuButtonState extends State<_FilterMenuButton> {
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
             trailingIcon: _panel.isShowing
-                ? Icons.arrow_drop_up_rounded
-                : Icons.arrow_drop_down_rounded,
+                ? AppIcons.expandLess
+                : AppIcons.expandMore,
             onPressed: _toggle,
           ),
         ),
@@ -668,7 +669,7 @@ class _RosterList extends StatelessWidget {
             title: filter == ClientFilter.all
                 ? l.clientsEmpty
                 : l.clientsEmptyForFilter(filter.label(l)),
-            icon: Icons.people_rounded,
+            icon: AppIcons.clients,
             placement: AppStatePlacement.card,
           )
         else

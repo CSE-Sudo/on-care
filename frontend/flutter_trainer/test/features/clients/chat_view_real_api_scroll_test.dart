@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
@@ -100,7 +101,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '방금 보낸 메시지');
-      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(AppIcons.send));
       // Let the send future, the provider invalidation, the refetch, and
       // the resulting scroll animation all settle.
       await tester.pumpAndSettle();

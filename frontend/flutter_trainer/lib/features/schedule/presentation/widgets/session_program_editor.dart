@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -125,7 +126,7 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
           ? null
           : AppButton(
               label: l.progAddExercise,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               variant: AppButtonVariant.text,
               size: OnCareButtonSize.small,
               onPressed: _saving ? null : _addItem,
@@ -227,7 +228,7 @@ class _ProgramDraftFields extends StatelessWidget {
                 ),
               ),
               AppIconButton(
-                icon: Icons.delete_outline_rounded,
+                icon: AppIcons.delete,
                 tooltip: l.progDeleteExercise,
                 color: OnCareColors.textTertiary,
                 onPressed: onRemove,
