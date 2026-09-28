@@ -32,6 +32,43 @@ class MealRecommendation {
   final String? reasonText;
 }
 
+/// 담당 트레이너가 AI 후보 가운데 골라 회원에게 추천한 메뉴. (#2378, #2380)
+///
+/// 카탈로그 [MealRecommendation] 과 달리 이름으로 온다 — 트레이너가 고르는 후보는
+/// 회원의 4주 추천 메뉴 리스트라 번들 사진이 없다. 이유 문구는 [tag] 로 앱이
+/// 자기 언어로 만든다.
+class TrainerMealPick {
+  const TrainerMealPick({
+    required this.slot,
+    required this.name,
+    required this.tag,
+    this.keyword = '',
+    this.trainerName = '',
+  });
+
+  factory TrainerMealPick.fromJson(Map<String, Object?> json) {
+    return TrainerMealPick(
+      slot: (json['slot'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      tag: (json['tag'] as String?) ?? '',
+      keyword: (json['keyword'] as String?) ?? '',
+      trainerName: (json['trainer_name'] as String?) ?? '',
+    );
+  }
+
+  /// 끼니 — `breakfast`·`lunch`·`dinner`·`snack`.
+  final String slot;
+  final String name;
+
+  /// 추천 이유 태그 — `sodium_low`·`protein_high`·`calorie_low`·`calorie_high`·
+  /// `sugar_low`·`fiber_high`.
+  final String tag;
+
+  /// 리스트와 같은 언어의 짧은 이유(`고단백` …).
+  final String keyword;
+  final String trainerName;
+}
+
 /// 서버 카탈로그와 짝을 이루는 기본 노출 순서.
 ///
 /// 홈 화면이 서버 응답을 받기 전(첫 프레임)과 실패했을 때 그리는 순서이고,
@@ -54,6 +91,7 @@ class MealRecommendations {
     this.daysWithData = 0,
     this.avgSodiumMg = 0,
     this.sodiumLimitMg = 0,
+    this.trainerPick,
   });
 
   factory MealRecommendations.fromJson(Map<String, Object?> json) {
@@ -68,6 +106,10 @@ class MealRecommendations {
       daysWithData: (json['days_with_data'] as num?)?.toInt() ?? 0,
       avgSodiumMg: (json['avg_sodium_mg'] as num?)?.toInt() ?? 0,
       sodiumLimitMg: (json['sodium_limit_mg'] as num?)?.toInt() ?? 0,
+      trainerPick: switch (json['trainer_pick']) {
+        final Map<String, Object?> pick => TrainerMealPick.fromJson(pick),
+        _ => null,
+      },
     );
   }
 
@@ -85,6 +127,9 @@ class MealRecommendations {
   final int daysWithData;
   final int avgSodiumMg;
   final int sodiumLimitMg;
+
+  /// 담당 트레이너가 확정한 추천. 없거나 회원이 이미 먹었으면 null. (#2380)
+  final TrainerMealPick? trainerPick;
 
   /// 나트륨이 권장치를 넘겼는지 — 근거 문구에 "권장 초과"를 붙일지 결정한다.
   bool get sodiumOverLimit => sodiumLimitMg > 0 && avgSodiumMg > sodiumLimitMg;

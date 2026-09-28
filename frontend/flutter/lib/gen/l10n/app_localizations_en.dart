@@ -192,6 +192,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeMealTagLowFat => 'Low fat';
 
   @override
+  String get homeTrainerPickReasonSodiumLow => 'Less sodium';
+
+  @override
+  String get homeTrainerPickReasonProteinHigh => 'More protein';
+
+  @override
+  String get homeTrainerPickReasonCalorieLow => 'A lighter meal';
+
+  @override
+  String get homeTrainerPickReasonCalorieHigh => 'A filling meal';
+
+  @override
+  String get homeTrainerPickReasonSugarLow => 'Less sugar';
+
+  @override
+  String get homeTrainerPickReasonFiberHigh => 'More fiber';
+
+  @override
   String homeRecBasisSodium(int days, String sodium) {
     return '$days-day avg sodium ${sodium}mg';
   }

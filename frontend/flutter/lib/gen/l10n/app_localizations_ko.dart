@@ -187,6 +187,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeMealTagLowFat => '저지방';
 
   @override
+  String get homeTrainerPickReasonSodiumLow => '나트륨을 줄여 줘요';
+
+  @override
+  String get homeTrainerPickReasonProteinHigh => '단백질을 채워 줘요';
+
+  @override
+  String get homeTrainerPickReasonCalorieLow => '가볍게 먹기 좋아요';
+
+  @override
+  String get homeTrainerPickReasonCalorieHigh => '든든하게 채워 줘요';
+
+  @override
+  String get homeTrainerPickReasonSugarLow => '당류를 줄여 줘요';
+
+  @override
+  String get homeTrainerPickReasonFiberHigh => '식이섬유를 채워 줘요';
+
+  @override
   String homeRecBasisSodium(int days, String sodium) {
     return '최근 $days일 평균 나트륨 ${sodium}mg';
   }
