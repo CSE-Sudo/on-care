@@ -188,3 +188,28 @@ def test_weekly_pt_seed_skips_a_week_that_already_has_a_session(client, db_sessi
             if r.id.startswith("seed-pt-")
         ]
         assert seeded == [], f"{member_id} 는 오늘 타임라인에 이미 수업이 있다"
+
+
+def test_weekly_pt_seed_reattaches_rows_orphaned_by_account_recreation(client, db_session):
+    """계정이 지워졌다 다시 생기면 FK 가 member_id 만 비운다 — 재시드가 주인을 되붙인다."""
+    from app.db.seed_member_data import _seed_weekly_pt, _valid_member_ids
+    from app.models.models import TrainerSchedule
+
+    row = db_session.scalar(
+        select(TrainerSchedule)
+        .where(TrainerSchedule.id.like("seed-pt-%"))
+        .order_by(TrainerSchedule.id)
+        .limit(1)
+    )
+    assert row is not None
+    row_id, owner = row.id, row.member_id
+    row.member_id = None
+    db_session.commit()
+    try:
+        _seed_weekly_pt(db_session, _valid_member_ids(db_session))
+        db_session.expire_all()
+        assert db_session.get(TrainerSchedule, row_id).member_id == owner
+    finally:
+        restored = db_session.get(TrainerSchedule, row_id)
+        restored.member_id = owner
+        db_session.commit()
