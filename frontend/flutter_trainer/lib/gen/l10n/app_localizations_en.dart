@@ -834,6 +834,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseRequired => 'Add at least one exercise';
 
   @override
+  String get coachTemplateExerciseNameRequired => 'Enter the exercise name';
+
+  @override
   String get coachTemplateSaveFailed =>
       'Couldn\'t save the template. Please try again';
 
@@ -4083,9 +4086,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String programEditorDefaultName(String goal) {
     return '$goal program';
   }
-
-  @override
-  String get programEditorDefaultSession => 'Session A';
 
   @override
   String get programEditorSaveUnsupported => 'Give the program a name first.';
