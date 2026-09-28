@@ -6,6 +6,7 @@ import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Opens the 이탈 위험 dialog: who's flagged, and why.
@@ -73,7 +74,7 @@ class _ChurnRiskTile extends StatelessWidget {
           subtitle: client.goal.trim().isNotEmpty
               ? healthFocusGoalLabel(l, client.goal)
               : null,
-          leading: AppAvatar(name: client.name),
+          leading: ClientAvatar(name: client.name),
           trailing: const Icon(
             Icons.chevron_right_rounded,
             size: OnCareSize.iconMedium,

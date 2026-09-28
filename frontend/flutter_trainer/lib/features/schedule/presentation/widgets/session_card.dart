@@ -11,6 +11,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel, findClientIdentity;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -195,7 +196,7 @@ class SessionCard extends ConsumerWidget {
             // 프로필(아바타)과 이름을 세로 가운데로 맞춘다 — `Row` 의 기본값이
             // 가운데라 값을 명시하지 않는다.
             children: <Widget>[
-              AppAvatar(name: s.clientName),
+              ClientAvatar(name: s.clientName),
               const SizedBox(width: OnCareSpacing.s12),
               Expanded(
                 child: Column(
