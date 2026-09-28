@@ -4591,12 +4591,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.';
 
   @override
-  String get reportsSentBody => 'Message sent';
-
-  @override
-  String get reportsSentFigures => 'Figures sent';
-
-  @override
   String get reportsStepReview => 'Review';
 
   @override

@@ -3174,8 +3174,6 @@
   },
   "reportsResendConfirm": "Send again",
   "reportsSendHistoryFailed": "Couldn't load send history. Members you've already sent to may show as not sent.",
-  "reportsSentBody": "Message sent",
-  "reportsSentFigures": "Figures sent",
   "reportsStepReview": "Review",
   "reportsStepWrite": "Write",
   "reportsStepSend": "Send",
