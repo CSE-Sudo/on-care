@@ -205,8 +205,18 @@ void main() {
     expect(find.text('AI 추천'), findsNWidgets(kDefaultMealKeys.length));
     expect(find.text('구운 고등어 정식'), findsOneWidget);
     expect(find.text('단백질을 채워 줘요'), findsOneWidget);
-    // 사진이 없는 메뉴라 끼니 아이콘을 그린다.
-    expect(find.byKey(const Key('rec-meal-icon')), findsOneWidget);
+    // 이름 속 재료로 고른 대표 사진을 그린다(#2435) — 공유 UI 패키지 에셋이다.
+    final Image photo = tester.widget<Image>(
+      find.byWidgetPredicate(
+        (Widget w) =>
+            w is Image &&
+            w.image is AssetImage &&
+            (w.image as AssetImage).assetName ==
+                'assets/meals/grilled-mackerel-set.jpg',
+      ),
+    );
+    expect((photo.image as AssetImage).package, 'oncare_ui');
+    expect(find.byKey(const Key('rec-meal-icon')), findsNothing);
 
     // 첫 장이다 — 트레이너 추천 카드가 AI 카드들보다 왼쪽에 있다.
     final double pickX = tester.getTopLeft(find.text('구운 고등어 정식')).dx;
@@ -229,6 +239,16 @@ void main() {
       find.byKey(const Key('rec-meal-tag')),
       findsNWidgets(kDefaultMealKeys.length),
     );
+  });
+
+  testWidgets('맞는 사진이 없는 메뉴는 끼니 아이콘을 그린다 (#2435)', (WidgetTester tester) async {
+    await _pump(
+      tester,
+      coach: _coach,
+      recs: _withPick('protein_high', name: '미역국 정식'),
+    );
+    expect(find.text('미역국 정식'), findsOneWidget);
+    expect(find.byKey(const Key('rec-meal-icon')), findsOneWidget);
   });
 
   testWidgets('담당이 없으면 확정 추천이 와도 그리지 않는다', (WidgetTester tester) async {
@@ -263,13 +283,14 @@ void main() {
   });
 }
 
-MealRecommendations _withPick(String tag) => MealRecommendations(
-  items: MealRecommendations.fallback.items,
-  trainerPick: TrainerMealPick(
-    slot: 'dinner',
-    name: '구운 고등어 정식',
-    tag: tag,
-    keyword: '키워드',
-    trainerName: '김트레이너',
-  ),
-);
+MealRecommendations _withPick(String tag, {String name = '구운 고등어 정식'}) =>
+    MealRecommendations(
+      items: MealRecommendations.fallback.items,
+      trainerPick: TrainerMealPick(
+        slot: 'dinner',
+        name: name,
+        tag: tag,
+        keyword: '키워드',
+        trainerName: '김트레이너',
+      ),
+    );
