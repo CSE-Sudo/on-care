@@ -117,7 +117,8 @@ class SentReportView extends StatelessWidget {
           ),
           const SizedBox(height: OnCareSpacing.s16),
           // 편집기 ① 확인과 **같은 카드**다(#2425). 다른 그림으로 되짚으면
-          // "그때 이걸 보고 이렇게 썼다" 를 확인할 수 없다.
+          // "그때 이걸 보고 이렇게 썼다" 를 확인할 수 없다. 회원이 받은 PDF 도
+          // 같은 카드를 구워 담는다(#2424).
           ReportReviewCards(report: report, calorieBaseline: calorieBaseline),
           const SizedBox(height: OnCareSpacing.s16),
           // ② 작성의 피드백 카드 — 입력창 대신 보낸 글을 같은 칸에 얹는다.
