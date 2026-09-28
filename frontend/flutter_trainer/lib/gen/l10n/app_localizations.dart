@@ -332,6 +332,24 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get actionBack;
 
+  /// No description provided for @actionAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get actionAdd;
+
+  /// No description provided for @actionSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get actionSend;
+
+  /// No description provided for @actionReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get actionReset;
+
   /// Heading of the 404 page shown for a URL that matches no screen.
   ///
   /// In en, this message translates to:
@@ -3568,13 +3586,13 @@ abstract class AppLocalizations {
   /// No description provided for @progSaveAction.
   ///
   /// In en, this message translates to:
-  /// **'Save program'**
+  /// **'Save'**
   String get progSaveAction;
 
   /// No description provided for @progSaveNoteAction.
   ///
   /// In en, this message translates to:
-  /// **'Save note'**
+  /// **'Save'**
   String get progSaveNoteAction;
 
   /// No description provided for @progExerciseName.
@@ -7548,7 +7566,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsFeedbackSave.
   ///
   /// In en, this message translates to:
-  /// **'Save feedback'**
+  /// **'Save'**
   String get reportsFeedbackSave;
 
   /// No description provided for @reportsFeedbackSaving.

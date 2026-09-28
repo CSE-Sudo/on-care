@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -260,7 +261,15 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ..add(const SizedBox(height: OnCareSpacing.s12));
         }
         // 구분선은 위아래 여백을 스스로 갖는다.
-        out.add(_DateDivider(date: m.createdAt));
+        final DateTime localDate = m.createdAt.toLocal();
+        out.add(
+          AppChatDateDivider(
+            AppLocalizations.of(context).chatDateDivider(localDate),
+            key: ValueKey<String>(
+              'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+            ),
+          ),
+        );
         if (showDemoBanners && m.id.startsWith('seed-')) {
           out
             ..add(
@@ -513,8 +522,8 @@ class _ChatInsightBanner extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
-            Icons.warning_amber_rounded,
+          const AppIcon(
+            AppIcons.warning,
             size: OnCareSize.iconMedium,
             color: OnCareColors.danger,
           ),
@@ -561,8 +570,8 @@ class _ChatInsightBanner extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Icon(
-                      saved ? Icons.check_rounded : Icons.add_rounded,
+                    AppIcon(
+                      saved ? AppIcons.check : AppIcons.add,
                       size: OnCareSize.iconSmall,
                       color: OnCareColors.danger,
                     ),
@@ -631,7 +640,7 @@ class _ThreadNotice extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(icon, size: OnCareSize.iconSmall, color: accent),
+                AppIcon(icon, size: OnCareSize.iconSmall, color: accent),
                 const SizedBox(width: OnCareSpacing.s4),
                 Flexible(
                   child: Text(
@@ -675,7 +684,7 @@ class _SystemBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return _ThreadNotice(
-      icon: Icons.auto_awesome_rounded,
+      icon: AppIcons.ai,
       title: l.chatDemoAnalyzed(clientName),
       message: l.chatDemoReportSent,
       fill: _noticeFill(context),
@@ -696,39 +705,11 @@ class _SentBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return _ThreadNotice(
-      icon: Icons.check_circle_outline_rounded,
+      icon: AppIcons.checkCircle,
       title: l.chatDemoRoutineSent(clientName),
       message: l.chatDemoNotified,
       fill: _noticeFill(context),
       border: _noticeBorder(context),
-    );
-  }
-}
-
-/// 날짜 — 가운데 흐린 굵은 글자만. 선을 긋지 않는다: 스레드 안에 이미
-/// 안내 상자·말풍선 테두리가 있어, 선까지 더하면 줄이 겹쳐 보인다.
-class _DateDivider extends StatelessWidget {
-  const _DateDivider({required this.date});
-
-  final DateTime date;
-
-  @override
-  Widget build(BuildContext context) {
-    final localDate = date.toLocal();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-      child: Center(
-        child: Text(
-          AppLocalizations.of(context).chatDateDivider(localDate),
-          key: ValueKey<String>(
-            'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
-          ),
-          textAlign: TextAlign.center,
-          style: context.oncare
-              .text(OnCareTypography.strong(OnCareTypography.caption))
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-      ),
     );
   }
 }
@@ -890,7 +871,7 @@ class ReportRegisteredCard extends StatelessWidget {
     // 바탕은 흰색이고 테두리만 앱의 메인 색이다. 구조가 같으면 같은 안내로
     // 읽히고, 흰 바탕은 이 안내에만 **누를 것**이 있다는 것을 말해 준다.
     return _ThreadNotice(
-      icon: Icons.description_rounded,
+      icon: AppIcons.document,
       title: l.chatReportRegistered,
       message: range,
       fill: OnCareColors.surfaceCard,

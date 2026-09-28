@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
@@ -388,7 +389,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       title: l.myClientRemoveTitle(client.name),
       message: l.myClientRemoveBody,
       cancelLabel: l.actionCancel,
-      confirmLabel: l.myClientRemove,
+      confirmLabel: l.actionDelete,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -555,7 +556,7 @@ class _MyPageState extends ConsumerState<MyPage> {
             if (section == _MySection.edit)
               AppButton(
                 label: _saving ? l.mySaving : l.actionSave,
-                leadingIcon: Icons.check_rounded,
+                leadingIcon: AppIcons.check,
                 loading: _saving,
                 onPressed: _save,
               ),
@@ -621,16 +622,16 @@ class _MyPageState extends ConsumerState<MyPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           AppOverline(l.myTabProfile),
-          item(_MySection.profile, Icons.person_rounded),
-          item(_MySection.clients, Icons.manage_accounts_rounded),
+          item(_MySection.profile, AppIcons.person),
+          item(_MySection.clients, AppIcons.clients),
           AppOverline(l.myTabSettings),
-          item(_MySection.notifications, Icons.notifications_rounded),
-          item(_MySection.language, Icons.language_rounded),
-          item(_MySection.account, Icons.lock_rounded),
+          item(_MySection.notifications, AppIcons.notifications),
+          item(_MySection.language, AppIcons.language),
+          item(_MySection.account, AppIcons.lock),
           // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
           // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
           // 않는다(#505, #968).
-          item(_MySection.support, Icons.support_agent_rounded),
+          item(_MySection.support, AppIcons.support),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
             child: AppDivider(),
@@ -639,7 +640,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           AppButton(
             key: const ValueKey<String>('my-logout-button'),
             label: l.mySignOut,
-            leadingIcon: Icons.logout_rounded,
+            leadingIcon: AppIcons.logout,
             variant: AppButtonVariant.destructiveText,
             fullWidth: true,
             onPressed: _signOut,
@@ -925,8 +926,8 @@ class _MyPageState extends ConsumerState<MyPage> {
             key: ValueKey<String>('my-language-${language.name}'),
             title: _languageLabel(l, language),
             trailing: language == current
-                ? Icon(
-                    Icons.check_rounded,
+                ? AppIcon(
+                    AppIcons.check,
                     size: OnCareSize.iconMedium,
                     color: context.oncare.brand.primary,
                   )
@@ -976,7 +977,7 @@ class _MyPageState extends ConsumerState<MyPage> {
             trailing: AppButton(
               key: const ValueKey<String>('change-password'),
               label: l.actionChange,
-              leadingIcon: Icons.key_rounded,
+              leadingIcon: AppIcons.password,
               variant: AppButtonVariant.secondary,
               size: OnCareButtonSize.small,
               onPressed: account.supportsPasswordChange
@@ -1000,7 +1001,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         rows: <Widget>[
           _SupportRow(
             key: const ValueKey<String>('support-faq'),
-            icon: Icons.help_rounded,
+            icon: AppIcons.help,
             label: l.mySupportFaq,
             hint: l.mySupportExternalHint,
             external: true,
@@ -1008,7 +1009,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           ),
           _SupportRow(
             key: const ValueKey<String>('support-inquiry'),
-            icon: Icons.chat_rounded,
+            icon: AppIcons.chat,
             label: l.mySupportInquiry,
             hint: l.mySupportExternalHint,
             external: true,
@@ -1017,13 +1018,13 @@ class _MyPageState extends ConsumerState<MyPage> {
           // 약관·개인정보는 셸 밖의 `/legal/<문서>` 라우트가 그리므로 push 로
           // 열고, 뒤로 누르면 이 화면으로 돌아온다(#968).
           _SupportRow(
-            icon: Icons.description_rounded,
+            icon: AppIcons.document,
             label: l.myLegalTermsTitle,
             onTap: () =>
                 context.push(AppRoutes.legalDocument(AppRoutes.legalTerms)),
           ),
           _SupportRow(
-            icon: Icons.privacy_tip_rounded,
+            icon: AppIcons.privacy,
             label: l.myLegalPrivacyTitle,
             onTap: () =>
                 context.push(AppRoutes.legalDocument(AppRoutes.legalPrivacy)),
@@ -1032,7 +1033,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           // 빌드에는 지울 계정이 없어 막고 그 이유를 말한다.
           _SupportRow(
             key: const ValueKey<String>('delete-account'),
-            icon: Icons.logout_rounded,
+            icon: AppIcons.logout,
             label: l.myDeleteAccount,
             hint: account.supportsDeletion ? null : l.myDeleteDemo,
             onTap: account.supportsDeletion
@@ -1082,8 +1083,8 @@ class _MyPageState extends ConsumerState<MyPage> {
                 trailing: SizedBox.square(
                   dimension: OnCareSize.iconMedium,
                   child: _withdrawReasons.contains(reason)
-                      ? Icon(
-                          Icons.check_circle_rounded,
+                      ? AppIcon(
+                          AppIcons.checkCircle,
                           size: OnCareSize.iconMedium,
                           color: context.oncare.brand.primary,
                         )
@@ -1513,7 +1514,7 @@ class _IdentityCard extends StatelessWidget {
           const SizedBox(width: OnCareSpacing.s12),
           AppButton(
             label: l.myEditProfile,
-            leadingIcon: Icons.edit_rounded,
+            leadingIcon: AppIcons.edit,
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
             onPressed: onEdit,
@@ -1551,14 +1552,14 @@ class _MonthStats extends ConsumerWidget {
         label: l.myStatClients,
         value: count(clients?.length),
         unit: l.dashUnitPeople,
-        icon: Icons.people_alt_rounded,
+        icon: AppIcons.clients,
         onTap: () => context.go(AppRoutes.clients),
       ),
       AppStatCard(
         label: l.myStatSessionsDone,
         value: count(sessions?.where((s) => s.isDone).length),
         unit: l.unitTimes,
-        icon: Icons.check_circle_rounded,
+        icon: AppIcons.checkCircle,
         caption: l.myThisMonth,
         onTap: () => context.go(AppRoutes.schedule),
       ),
@@ -1566,7 +1567,7 @@ class _MonthStats extends ConsumerWidget {
         label: l.myStatRoutinesSent,
         value: count(sessions?.where((s) => s.programSent).length),
         unit: l.dashUnitCount,
-        icon: Icons.send_rounded,
+        icon: AppIcons.send,
         caption: l.myThisMonth,
         onTap: () => context.go(AppRoutes.coaching),
       ),
@@ -1756,7 +1757,7 @@ class _CertsList extends StatelessWidget {
       runSpacing: OnCareSpacing.s8,
       children: <Widget>[
         for (final String cert in certs)
-          AppTag(label: cert, icon: Icons.workspace_premium_rounded),
+          AppTag(label: cert, icon: AppIcons.certificate),
       ],
     );
   }
@@ -1788,8 +1789,8 @@ class _CertsEditor extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
             child: Row(
               children: <Widget>[
-                Icon(
-                  Icons.workspace_premium_rounded,
+                AppIcon(
+                  AppIcons.certificate,
                   size: OnCareSize.iconMedium,
                   color: tokens.brand.primary,
                 ),
@@ -1805,7 +1806,7 @@ class _CertsEditor extends StatelessWidget {
                 // 아이콘 하나뿐인 버튼이라 무엇을 지우는지 툴팁이 접근성
                 // 이름으로 말한다(#972).
                 AppIconButton(
-                  icon: Icons.close_rounded,
+                  icon: AppIcons.close,
                   tooltip: l.a11yRemoveCertification,
                   color: OnCareColors.textTertiary,
                   onPressed: () => onRemove(i),
@@ -1860,7 +1861,7 @@ class _SupportRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppListRow(
       // 회원 앱 고객 지원과 같은 브랜드 색 아이콘이다.
-      leading: Icon(
+      leading: AppIcon(
         icon,
         size: OnCareSize.iconMedium,
         color: onTap == null
@@ -1872,10 +1873,10 @@ class _SupportRow extends StatelessWidget {
       // 누를 수 없는 줄에는 화살표를 두지 않는다 — 갈 곳이 있다는 표시다.
       trailing: onTap == null
           ? null
-          : Icon(
+          : AppIcon(
               external
-                  ? Icons.open_in_new_rounded
-                  : Icons.chevron_right_rounded,
+                  ? AppIcons.external
+                  : AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),
@@ -1902,13 +1903,13 @@ class _ClientManagementCard extends StatelessWidget {
       loading: () => const AppLoading(),
       error: (_, _) => AppEmptyState(
         title: l.clientsLoadFailed,
-        icon: Icons.cloud_off_rounded,
+        icon: AppIcons.offline,
       ),
       data: (items) {
         if (items.isEmpty) {
           return AppEmptyState(
             title: l.myClientManagementEmpty,
-            icon: Icons.people_rounded,
+            icon: AppIcons.clients,
           );
         }
         return Column(
@@ -1969,7 +1970,7 @@ class _ManagedClientRow extends StatelessWidget {
           ? const AppLoading.inline()
           // 확인창을 여는 위험 동작이라 빨간 아이콘이다. 툴팁이 접근성 이름이다.
           : AppIconButton(
-              icon: Icons.delete_outline_rounded,
+              icon: AppIcons.delete,
               tooltip: l.myClientRemove,
               color: OnCareColors.danger,
               onPressed: onRemove,
@@ -2024,7 +2025,7 @@ class _GymEditor extends StatelessWidget {
             children: <Widget>[
               AppTag(
                 label: l.myGymLinked,
-                icon: Icons.verified_rounded,
+                icon: AppIcons.verified,
                 tone: AppTagTone.brand,
               ),
               const Spacer(),

@@ -183,14 +183,14 @@ class A {
       );
     });
 
-    test('트레이너웹(rounded)은 Symbols·Icon 생성을 보지 않는다', () {
+    test('목록 없는 앱(rounded)은 Symbols·Icon 생성을 보지 않는다', () {
       expect(
         scan('Row(children: [Icon(Symbols.home_rounded), const Icon(x)])'),
         isEmpty,
       );
     });
 
-    test('회원앱 화면(registry)은 목록 밖 아이콘과 Icon 생성을 잡는다', () {
+    test('앱 화면(registry)은 목록 밖 아이콘과 Icon 생성을 잡는다', () {
       expect(
         scan(
           'Row(children: [Icon(Icons.close_rounded), '

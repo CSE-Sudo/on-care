@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
@@ -357,7 +358,7 @@ void main() {
       expect(
         find.descendant(
           of: date,
-          matching: find.byIcon(Icons.calendar_today_rounded),
+          matching: find.byIcon(AppIcons.calendar),
         ),
         findsOneWidget,
       );
@@ -852,7 +853,7 @@ void main() {
 
       // 근력 세트·횟수·중량은 compact 입력이라 −/+ 스테퍼 버튼이 없다 —
       // 키보드로 직접 값을 바꾼다.
-      expect(find.byIcon(Icons.remove), findsNothing);
+      expect(find.byIcon(AppIcons.remove), findsNothing);
 
       final setsField = find.byKey(
         const ValueKey<String>('custom-exercise-sets-field'),
@@ -963,7 +964,7 @@ void main() {
 
       await openAddForm(tester);
 
-      expect(find.byIcon(Icons.search), findsNothing);
+      expect(find.byIcon(AppIcons.search), findsNothing);
       expect(find.text('운동 이름 검색 또는 직접 입력'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('custom-exercise-date')),

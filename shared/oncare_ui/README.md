@@ -9,8 +9,9 @@ On-Care 두 앱(회원앱 `frontend/flutter`, 트레이너웹 `frontend/flutter_
   - `OnCareBrand` — 브랜드 색(회원 파랑 `#3EAFDF` / 트레이너 남색 `#235C88`)
   - `OnCareDensity` — 플랫폼 밀도(모바일 / 웹): 버튼·입력·칩 높이, 페이지 여백 등
   - `OnCareIconSet` — 공용 컴포넌트가 그리는 아이콘(뒤로·닫기·꺾쇠·빈 화면·배너·토스트 …)과 글꼴 변형(#1803).
-    기본값은 Material Icons `_rounded`(트레이너웹)이고, 회원앱은 `AppIcons.oncare`(Material Symbols Rounded,
-    채움·굵기 400)를 넣습니다. 패키지는 아이콘 글꼴 패키지에 기대지 않습니다.
+    기본값은 Material Icons `_rounded` 이고, 두 앱은 각자의 아이콘 목록에서 만든 `AppIcons.oncare`(Material Symbols
+    Rounded, 채움·굵기 400)를 넣습니다(회원앱 #1803, 트레이너웹 #2466). 패키지는 아이콘 글꼴 패키지에 기대지 않습니다.
+- 아이콘은 전부 채움입니다. 켜짐·꺼짐(사이드바·하단 탭 선택 등)은 아이콘 모양을 바꾸지 않고 색·배경으로 구분합니다.
 - 아이콘은 `Icon` 대신 `AppIcon` 으로 그립니다. 묶음의 채움·굵기·등급을 싣고 광학 크기를 그리는 크기에 맞춥니다.
   기본 묶음은 변형이 없어 `Icon` 과 똑같이 그려집니다.
 - 상태색(완료 초록·주의 주황·위험 빨강)은 두 앱이 같은 값을 씁니다.
@@ -45,7 +46,7 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 세그먼트 토글 | 트랙·선택 칸 알약, 라벨 14(700), 높이는 글자 맞춤(칩 높이 아님), 트랙·비선택 글자색은 브랜드별(#1777). `thumb` 모양은 옅은 브랜드 띠 44 + 흰 엄지·브랜드 그림자(트레이너웹 식단/운동 전환) |
 | 카드 제목 | `AppSectionHeader` 한 모양 — `titleSmall` 검정 + 앞 아이콘 20(브랜드색) 또는 번호 원 22(순서대로 읽는 카드). 같은 줄 곁말 `titleMeta`(caption, 먼저 말줄임)·제목 옆 배지 `titleBadge`, 아래 줄 설명 `subtitle`(caption), 줄 끝 `trailing`(폭이 모자라면 `trailingFit`: 제 폭 / 반씩 나눠 줄어듦 / 다음 줄). 화면에서 `Row(Expanded(AppSectionHeader), …)` 로 감싸지 않는다 (#2468) |
 | 간격 | 4의 배수(2는 선·점 사이만) |
-| 아이콘 | 16 / 20 / 24 (빈 화면 40). 트레이너웹 Material Icons `_rounded` · 회원앱 Material Symbols Rounded(채움, 굵기 400 · 운동만 300) |
+| 아이콘 | 16 / 20 / 24 (빈 화면 40). 두 앱 모두 Material Symbols Rounded(채움, 굵기 400), 앱마다 `lib/app/app_icons.dart` 목록. 선택 상태는 색·배경으로 구분 |
 | 창 폭 | 웹 400 / 560 / 800, 모바일 확인창 400 · 시트 최대 높이 90% |
 | 텍스트 색 | `#1A1A1A` · `#465568` · `#667585` · `#768596` |
 | 표면 | 페이지 회원앱 `#FFFFFF` · 트레이너웹 `#F5F7FA`(`OnCareTokens.pageBackground`) · 카드 `#FFFFFF` · 입력 `#FFFFFF` + 테두리 `#D8E0E8`(비활성 입력과 트레이너웹 여러 줄 입력은 `#F2F4F7` 채움) · 트랙 `#F2F4F7` |
@@ -63,6 +64,19 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | `AppKeyValueRow` | 라벨 폭 80(`OnCareLayout.keyValueLabelWidth`), 라벨 `bodySmall` 흐린 글자 + 값 `bodySmall` 600. `.stacked` 는 라벨(`caption`) 아래 값(`body`) |
 | `AppOverline` | 메뉴 묶음 이름 — `caption` 600·흐린 글자 |
 | `AppCard.compactPadding` | 목록에 줄지어 선 줄 카드의 안쪽 — 가로 16·세로 12 |
+
+## 확정 버튼 문구
+
+확정 버튼의 문구는 가까운 제목이 대상을 말해 주느냐로 정합니다(#2479). 지금은 트레이너 웹에 적용돼 있고, 회원 앱은 필요할 때 같은 규칙으로 맞춥니다.
+
+| 자리 | 문구 | 예 |
+|---|---|---|
+| 창 하단 · 카드 머리 · 펼친 입력 폼의 [취소][확정] | 동사만 — 대상은 제목이 말한다 | `프로그램 수정` 창 → `저장`, `{이름} 회원을 삭제할까요?` → `삭제` |
+| 가까이 제목이 없는 본문 버튼 | 대상 + 동사 | `메모 추가`, `개인운동 보내기`, `{날짜} PT 프로그램 보내기` |
+
+- 같은 동작은 한 낱말로 씁니다. 목록에 더하기는 `추가`, 회원에게 보내기는 `보내기` 입니다. `등록` 은 서버에 올리는 뜻(`회원 등록`)으로만 쓰고, `전송` 은 버튼에 쓰지 않습니다(`전송됨` 같은 상태 문구는 그대로).
+- 동사만으로 뜻이 모자라면 붙입니다. 옆의 `취소` 와 헷갈리는 `완료 취소`, 바뀐 뒤의 상태가 곧 결과인 `예정으로 바꾸기` 가 그렇습니다.
+- 같은 문구 키를 창 하단과 본문이 함께 쓰면, 창 하단은 공용 동사 키(`actionSave` · `actionAdd` · `actionSend` · `actionDelete` · `actionReset`)로 바꿔 씁니다.
 
 ## 글자 배율
 

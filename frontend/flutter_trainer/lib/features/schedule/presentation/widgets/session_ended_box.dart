@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
@@ -33,8 +34,8 @@ class SessionEndedBox extends StatelessWidget {
       child: AppBanner(
         tone: AppBannerTone.caution,
         icon: session.isCancelled
-            ? Icons.event_busy_rounded
-            : Icons.person_off_rounded,
+            ? AppIcons.eventBusy
+            : AppIcons.personOff,
         title: detail.isEmpty ? head : '$head · $detail',
         message: session.cancellationReason.isEmpty
             ? null

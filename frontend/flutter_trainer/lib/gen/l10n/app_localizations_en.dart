@@ -136,6 +136,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionBack => 'Back';
 
   @override
+  String get actionAdd => 'Add';
+
+  @override
+  String get actionSend => 'Send';
+
+  @override
+  String get actionReset => 'Reset';
+
+  @override
   String get notFoundTitle => 'Page not found';
 
   @override
@@ -2040,10 +2049,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progSaving => 'Saving...';
 
   @override
-  String get progSaveAction => 'Save program';
+  String get progSaveAction => 'Save';
 
   @override
-  String get progSaveNoteAction => 'Save note';
+  String get progSaveNoteAction => 'Save';
 
   @override
   String get progExerciseName => 'Exercise';
@@ -4380,7 +4389,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsFeedbackRedo => 'Redo';
 
   @override
-  String get reportsFeedbackSave => 'Save feedback';
+  String get reportsFeedbackSave => 'Save';
 
   @override
   String get reportsFeedbackSaving => 'Saving…';

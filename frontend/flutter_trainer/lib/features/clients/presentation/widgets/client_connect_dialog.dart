@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
@@ -256,7 +257,7 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
                   key: const ValueKey<String>('client-connect-register'),
                   label: l.clientInviteConnectAction,
                   onPressed: _busy ? null : () => _connect(found),
-                  leadingIcon: Icons.person_add_alt_1_rounded,
+                  leadingIcon: AppIcons.addClient,
                 ),
               ],
             ),
@@ -387,8 +388,8 @@ class _PairedMemberCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.check_circle_rounded,
+          AppIcon(
+            AppIcons.checkCircle,
             size: OnCareSize.iconMedium,
             color: tokens.brand.primary,
           ),

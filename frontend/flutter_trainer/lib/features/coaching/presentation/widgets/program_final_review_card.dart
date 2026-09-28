@@ -60,38 +60,40 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
               style: bodyStyle,
             );
           } else {
-            body = Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text(
-                  l.programAssignConfirmChooseBody(
-                    clientName,
-                    ymd(registerDate),
-                    selectedRange,
-                  ),
-                  style: bodyStyle,
-                ),
-                const SizedBox(height: OnCareSpacing.s8),
-                for (final session in candidates)
-                  AppListRow(
-                    key: ValueKey<String>(
-                      'program-attach-candidate-${session.id}',
+            // 하나만 고르는 칸은 빈 동그라미 글리프 대신 라디오 조작 요소로
+            // 그린다(#2466) — 아이콘은 늘 채움이라 `안 고름` 을 모양으로 그릴
+            // 글리프가 없다. 회원앱이 동의 칸에 체크박스를 쓰는 것과 같다.
+            body = RadioGroup<String>(
+              groupValue: chosen,
+              onChanged: (String? id) => setDialogState(() => chosen = id),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Text(
+                    l.programAssignConfirmChooseBody(
+                      clientName,
+                      ymd(registerDate),
+                      selectedRange,
                     ),
-                    selected: chosen == session.id,
-                    leading: Icon(
-                      chosen == session.id
-                          ? Icons.radio_button_checked_rounded
-                          : Icons.radio_button_unchecked_rounded,
-                      size: OnCareSize.iconMedium,
-                      color: chosen == session.id
-                          ? context.oncare.brand.primary
-                          : OnCareColors.textTertiary,
-                    ),
-                    title: timeRangeLabel(l, session),
-                    onTap: () => setDialogState(() => chosen = session.id),
+                    style: bodyStyle,
                   ),
-              ],
+                  const SizedBox(height: OnCareSpacing.s8),
+                  for (final session in candidates)
+                    AppListRow(
+                      key: ValueKey<String>(
+                        'program-attach-candidate-${session.id}',
+                      ),
+                      selected: chosen == session.id,
+                      leading: SizedBox.square(
+                        dimension: OnCareSize.iconMedium,
+                        child: Radio<String>(value: session.id),
+                      ),
+                      title: timeRangeLabel(l, session),
+                      onTap: () => setDialogState(() => chosen = session.id),
+                    ),
+                ],
+              ),
             );
           }
           // PT 와 함께 갈 개인운동(#2223). 편집기에는 개인운동 자리가 없어,
@@ -136,7 +138,7 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
               confirmKey: const ValueKey<String>(
                 'program-assign-confirm-submit',
               ),
-              confirmLabel: l.programEditorAddSchedule,
+              confirmLabel: l.actionAdd,
               onConfirm: candidates.length > 1 && chosen == null
                   ? null
                   : () => Navigator.of(dialogContext).pop((sessionId: chosen)),

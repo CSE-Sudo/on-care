@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -727,7 +728,7 @@ Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
     await tester.tap(
       find.descendant(
         of: dialog,
-        matching: find.byIcon(Icons.chevron_right_rounded),
+        matching: find.byIcon(AppIcons.chevronRight),
       ),
     );
     await tester.pumpAndSettle();
@@ -1277,8 +1278,8 @@ void main() {
         AppSegmentedToggleStyle.thumb,
       );
       for (final (String label, IconData icon) in <(String, IconData)>[
-        ('식단', Icons.restaurant_rounded),
-        ('운동', Icons.fitness_center_rounded),
+        ('식단', AppIcons.diet),
+        ('운동', AppIcons.exercise),
       ]) {
         final text = find.descendant(of: tabs, matching: find.text(label));
         expect(text, findsOneWidget);
@@ -1571,7 +1572,7 @@ void main() {
         expect(
           find.descendant(
             of: back,
-            matching: find.byIcon(Icons.chevron_left_rounded),
+            matching: find.byIcon(AppIcons.chevronLeft),
           ),
           findsOneWidget,
         );
@@ -2544,7 +2545,8 @@ void main() {
 
       // 보내기 전에 기간을 보여 주며 한 번 묻는다.
       expect(find.textContaining('회원 앱에 매일'), findsWidgets);
-      await tester.tap(find.text('회원에게 보내기').last);
+      // 확인창 제목이 `회원에게 보내기` 라 확정 버튼은 동사만 쓴다(#2479).
+      await tester.tap(find.text('보내기').last);
       // 드리프트 `.watch()` 가 살아 있어 `pumpAndSettle` 은 멈추지 않는다 —
       // 이 파일의 다른 전송 테스트와 같이 프레임 수를 정해 돌린다.
       await tester.pump();
@@ -2599,7 +2601,7 @@ void main() {
       await _ensureCentered(tester, send);
       await tester.tap(send);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('회원에게 보내기').last);
+      await tester.tap(find.text('보내기').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(routines.programs, hasLength(1));

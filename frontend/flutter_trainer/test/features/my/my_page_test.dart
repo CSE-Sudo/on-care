@@ -132,10 +132,7 @@ void main() {
       await tester.tap(find.byTooltip('회원 삭제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(
-          of: find.byType(AppDialog),
-          matching: find.text('회원 삭제'),
-        ),
+        find.descendant(of: find.byType(AppDialog), matching: find.text('삭제')),
       );
       await tester.pumpAndSettle();
 

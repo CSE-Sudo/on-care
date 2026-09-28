@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -129,7 +130,7 @@ class SessionNoPlanBox extends StatelessWidget {
           // 탭으로 나간다.
           AppIconButton(
             key: const ValueKey<String>('session-add-program-chip'),
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
             tooltip: l.progAddTitle,
             variant: AppIconButtonVariant.tonal,
             onPressed: onGoToProgram,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
@@ -53,7 +54,7 @@ Future<void> _choose(WidgetTester tester, TrainerLanguage language) async {
 /// 지금 고른 언어 — 그 줄에 체크가 달린다.
 Finder _checked(TrainerLanguage language) => find.descendant(
   of: find.byKey(_item(language)),
-  matching: find.byIcon(Icons.check_rounded),
+  matching: find.byIcon(AppIcons.check),
 );
 
 void main() {
@@ -66,7 +67,7 @@ void main() {
       // 설정 목록의 한 항목이고, 고르면 옆 판이 열린다(#2264).
       expect(find.text('화면 언어'), findsWidgets);
       expect(_checked(TrainerLanguage.system), findsOneWidget);
-      expect(find.byIcon(Icons.language_rounded), findsWidgets);
+      expect(find.byIcon(AppIcons.language), findsWidgets);
     });
 
     testWidgets('sits between notifications and account', (tester) async {
@@ -109,14 +110,14 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(_item(TrainerLanguage.system)),
-          matching: find.byIcon(Icons.check_rounded),
+          matching: find.byIcon(AppIcons.check),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(_item(TrainerLanguage.english)),
-          matching: find.byIcon(Icons.check_rounded),
+          matching: find.byIcon(AppIcons.check),
         ),
         findsNothing,
       );
