@@ -455,6 +455,37 @@ void main() {
       expect(tester.getRect(percent()).left, greaterThan(bar.right));
     });
 
+    testWidgets('막대가 두껍고 빈 구간이 배경과 구분되는 색이다 (#2446)', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      final Finder bar = find.byKey(
+        const ValueKey<String>('reports-progress-bar'),
+      );
+      expect(bar, findsOneWidget);
+      final AppProgressBar widget = tester.widget<AppProgressBar>(bar);
+      expect(widget.height, OnCareSize.progressBarThick);
+      expect(widget.height, greaterThan(OnCareSize.progressBar));
+      // 빈 구간은 페이지 배경(입력 채움과 거의 같은 색)과 다른 선 색이다.
+      expect(widget.trackColor, OnCareColors.lineStrong);
+      expect(widget.trackColor, isNot(OnCareColors.surfaceInput));
+      expect(tester.getSize(bar).height, OnCareSize.progressBarThick);
+    });
+
+    testWidgets('아무도 안 보낸 주에도 막대 전체 길이가 트랙으로 그려진다 (#2446)', (tester) async {
+      await openWorkbench(tester, clients: _roster);
+
+      final LinearProgressIndicator indicator = tester
+          .widget<LinearProgressIndicator>(
+            find.descendant(
+              of: find.byKey(const ValueKey<String>('reports-progress-bar')),
+              matching: find.byType(LinearProgressIndicator),
+            ),
+          );
+      expect(indicator.value, 0);
+      expect(indicator.backgroundColor, OnCareColors.lineStrong);
+      expect(indicator.minHeight, OnCareSize.progressBarThick);
+    });
+
     testWidgets('넓은 화면에서 진행 줄이 두 상자를 가로지른다', (tester) async {
       await openWorkbench(tester, clients: _roster);
 
@@ -703,11 +734,14 @@ void main() {
         of: find.byKey(const ValueKey<String>('reports-sent-a')),
         matching: find.byType(Text),
       );
+      // 이름 줄은 성별·나이를 이어 붙인 Text.rich 라 span 까지 읽는다(#2447).
       final List<String> texts = <String>[
         for (final Element e in inCard.evaluate())
-          (e.widget as Text).data ?? '',
+          (e.widget as Text).data ??
+              (e.widget as Text).textSpan?.toPlainText() ??
+              '',
       ];
-      expect(texts, contains('가회원'));
+      expect(texts.any((t) => t.startsWith('가회원')), isTrue);
       expect(texts.any((t) => t.contains('전송')), isTrue);
     });
   });

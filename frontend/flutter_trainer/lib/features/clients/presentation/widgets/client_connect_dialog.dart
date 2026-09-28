@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/pairing_cod
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -340,7 +341,7 @@ class _PairedMemberCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppAvatar(name: paired.name, size: AppAvatarSize.large),
+          ClientAvatar(name: paired.name, size: AppAvatarSize.large),
           const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(

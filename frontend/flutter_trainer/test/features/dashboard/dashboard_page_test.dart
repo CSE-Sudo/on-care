@@ -1,12 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -545,6 +548,96 @@ void main() {
           contains(kind.detailSection),
           reason: '${kind.wire}의 이동 대상이 없는 섹션이에요',
         );
+      }
+    });
+  });
+
+  group('오늘의 일정 행은 좁은 화면·큰 글씨에서도 값을 자르지 않는다 (#2433)', () {
+    Finder scheduleRows() => find.byWidgetPredicate(
+      (Widget widget) =>
+          widget.key is ValueKey<String> &&
+          (widget.key! as ValueKey<String>).value.startsWith(
+            'dashboard-schedule-',
+          ),
+    );
+
+    Future<void> openAt(WidgetTester tester, Size size, double scale) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.dashboard,
+      );
+    }
+
+    testWidgets('배율 1.3 에서 시간이 잘리지 않고 칸 안으로 줄어든다', (tester) async {
+      // 시간 칸은 92 로 고정이라, 배율 1.3 부터는 `12:00–12:50` 이 칸보다
+      // 길다. 넓은 화면에서도 마찬가지다.
+      await openAt(tester, const Size(1600, 1200), 1.3);
+      await settle(tester);
+
+      for (final String time in <String>['12:00–12:50', '18:00–18:50']) {
+        final Finder label = find.descendant(
+          of: scheduleRows(),
+          matching: find.text(time),
+        );
+        final RenderParagraph paragraph = tester.renderObject<RenderParagraph>(
+          label,
+        );
+        // 문구는 끝까지 배치된다 — 잘리지 않았다.
+        expect(
+          paragraph.size.width,
+          greaterThanOrEqualTo(
+            paragraph.getMaxIntrinsicWidth(double.infinity) - 0.5,
+          ),
+        );
+        // 대신 화면에서는 칸(92) 안으로 줄어 있다.
+        expect(tester.getRect(label).width, lessThanOrEqualTo(92.5));
+      }
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('폭 360 · 배율 2.0 에서 상태 알약이 줄 밖으로 넘치지 않는다', (tester) async {
+      // 이 조합에서는 페이지 머리의 넘침(#2431)도 함께 나므로, 일정 행에서
+      // 난 오류만 골라 센다.
+      final List<String> rowErrors = <String>[];
+      final FlutterExceptionHandler? previous = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        bool inRow = false;
+        for (final DiagnosticsNode node
+            in details.informationCollector?.call() ??
+                const <DiagnosticsNode>[]) {
+          final Object? creator = node.value;
+          if (node is DiagnosticsDebugCreator && creator is DebugCreator) {
+            creator.element.visitAncestorElements((Element e) {
+              final Key? key = e.widget.key;
+              inRow =
+                  key is ValueKey<String> &&
+                  key.value.startsWith('dashboard-schedule-');
+              return !inRow;
+            });
+          }
+        }
+        if (inRow) rowErrors.add(details.exceptionAsString());
+      };
+      await openAt(tester, const Size(360, 2400), 2.0);
+      await settle(tester);
+      FlutterError.onError = previous;
+
+      expect(rowErrors, isEmpty);
+      expect(scheduleRows(), findsWidgets);
+      for (int i = 0; i < scheduleRows().evaluate().length; i++) {
+        final Rect row = tester.getRect(scheduleRows().at(i));
+        final Finder chip = find.descendant(
+          of: scheduleRows().at(i),
+          matching: find.byType(SessionStatusChip),
+        );
+        expect(tester.getRect(chip).right, lessThanOrEqualTo(row.right + 0.5));
       }
     });
   });
