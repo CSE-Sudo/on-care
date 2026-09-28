@@ -215,15 +215,16 @@ void main() {
     });
   });
 
-  group('MyPage 경력 태그', () {
+  // 전문 분야·경력은 프로필 카드의 한 줄 글이다(#2264) — `분야 · 경력`.
+  group('MyPage 경력 표기', () {
     testWidgets('한국어 — 경력 7년', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.my,
       );
-      expect(find.text('경력 7년'), findsOneWidget);
-      expect(find.text('7 years of experience'), findsNothing);
+      expect(find.text('퍼스널 트레이너 · 경력 7년'), findsOneWidget);
+      expect(find.textContaining('7 years of experience'), findsNothing);
     });
 
     testWidgets('영어 — 7 years of experience, 프로필도 영어', (tester) async {
@@ -236,8 +237,10 @@ void main() {
           demoLanguageProvider.overrideWithValue(DemoLanguage.en),
         ],
       );
-      expect(find.text('7 years of experience'), findsOneWidget);
-      expect(find.text('Personal trainer'), findsOneWidget);
+      expect(
+        find.text('Personal trainer · 7 years of experience'),
+        findsOneWidget,
+      );
       expect(find.text('Sports Instructor Level 2'), findsOneWidget);
       expect(find.text(kDemoTrainerName), findsWidgets);
       expect(find.textContaining('경력'), findsNothing);
@@ -257,7 +260,10 @@ void main() {
           ),
         ],
       );
-      expect(find.text('1 year of experience'), findsOneWidget);
+      expect(
+        find.text('Personal trainer · 1 year of experience'),
+        findsOneWidget,
+      );
     });
   });
 }
