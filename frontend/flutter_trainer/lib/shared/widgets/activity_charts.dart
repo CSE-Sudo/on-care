@@ -1097,12 +1097,14 @@ class _GoalRings extends StatelessWidget {
     final double radius = size / 2;
     final double hole = radius * 0.22;
     final double stroke = (radius - _gap * 2 - hole) / 3;
+    // 안쪽 링은 바깥보다 (두께 + 틈) 만큼 양쪽에서 줄어든다.
+    final double step = (stroke + _gap) * 2;
     return Stack(
       alignment: Alignment.center,
       children: <Widget>[
         for (int i = 0; i < ratios.length; i++)
           SizedBox.square(
-            dimension: size - (stroke + _gap) * 2 * i,
+            dimension: size - step * i,
             child: AppRingGauge(
               value: ratios[i],
               color: kindColor(ExerciseKind.values[i]),
