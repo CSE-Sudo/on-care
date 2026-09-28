@@ -42,7 +42,7 @@ void main() {
       DateTime? firstDate,
       DateTime? lastDate,
       Size viewSize = const Size(800, 1400),
-      bool showClose = true,
+      bool? showClose,
     }) async {
       tester.view.physicalSize = viewSize;
       tester.view.devicePixelRatio = 1;
@@ -133,7 +133,7 @@ void main() {
     ];
 
     for (final (OnCareBrand brand, OnCareDensity density) in themes) {
-      testWidgets('$brand · 흰 창에 닫기 X·입력창·달력·2열 취소/확인이 모두 보인다', (
+      testWidgets('$brand · 흰 창에 입력창·달력·취소/확인이 보이고 X·버튼 배치는 밀도를 따른다', (
         WidgetTester tester,
       ) async {
         await openPicker(tester, brand: brand, density: density);
@@ -155,12 +155,13 @@ void main() {
           tester.getSize(surface).width,
           lessThanOrEqualTo(OnCareLayout.dialogSmall),
         );
+        // 모바일은 X 를 두고, 웹은 하단 `취소` 가 있어 X 를 두지 않는다(#2465).
         expect(
           find.descendant(
             of: dialog,
             matching: find.byIcon(Icons.close_rounded),
           ),
-          findsOneWidget,
+          density.isWeb ? findsNothing : findsOneWidget,
         );
         // 전환 없이 입력창과 달력이 항상 같이 보인다.
         expect(find.byKey(AppDatePickerDialog.inputKey), findsOneWidget);
@@ -169,16 +170,30 @@ void main() {
         // Material 기본 달력(연도 목록으로만 바뀌는 머리)은 쓰지 않는다.
         expect(find.byType(CalendarDatePicker), findsNothing);
 
-        // 아래 버튼은 창 안 2열 둥근 네모 — 왼쪽 취소, 오른쪽 확인, 폭이 같다.
+        // 아래 버튼은 왼쪽 취소, 오른쪽 확인. 모바일은 폭이 같은 반반, 웹은
+        // 창 오른쪽 끝에 내용 폭으로 붙는다(#2465).
         final Rect cancel = tester.getRect(
           find.byKey(AppDatePickerDialog.cancelKey),
         );
         final Rect confirm = tester.getRect(
           find.byKey(AppDatePickerDialog.confirmKey),
         );
-        expect(cancel.width, confirm.width);
         expect(cancel.top, confirm.top);
         expect(cancel.right, lessThan(confirm.left));
+        final Rect panel = tester.getRect(surface);
+        if (density.isWeb) {
+          expect(
+            confirm.right,
+            closeTo(panel.right - OnCareSpacing.dialogPadding, 0.5),
+          );
+          // 줄을 꽉 채우지 않는다 — 왼쪽 끝에 남는 자리가 있다.
+          expect(
+            cancel.left,
+            greaterThan(panel.left + OnCareSpacing.dialogPadding),
+          );
+        } else {
+          expect(cancel.width, confirm.width);
+        }
         expect(find.byType(AppButtonPair), findsOneWidget);
       });
     }

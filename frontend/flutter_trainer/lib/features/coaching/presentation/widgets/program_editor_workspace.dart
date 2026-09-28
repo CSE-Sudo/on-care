@@ -373,12 +373,15 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
         key: ValueKey<String>(keyPrefix),
         title: title,
         showClose: false,
-        footer: AppButton(
-          key: ValueKey<String>('$keyPrefix-cancel'),
-          label: l.actionCancel,
-          variant: AppButtonVariant.secondary,
-          fullWidth: true,
-          onPressed: () => Navigator.of(dialogContext).pop(),
+        footer: AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: ValueKey<String>('$keyPrefix-cancel'),
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1063,6 +1066,24 @@ class _SessionEditorState extends State<_SessionEditor> {
               ),
               const SizedBox(width: OnCareSpacing.s4),
               Expanded(child: _buildSessionName()),
+              // 목록을 늘리는 `+ 운동 추가` 는 목록 제목 오른쪽 글자 버튼이다 — 회원 앱
+              // 음식 수정의 `먹은 음식 [+ 음식 추가]`, 편집기의 `운동 구성 [+ 세션 추가]`
+              // 와 같은 자리·모양이다. 목록 끝에 두면 목록이 길수록 멀어진다(#2465).
+              if (!_editingName && !widget.addingExercise)
+                Tooltip(
+                  message: widget.canAddExercise
+                      ? ''
+                      : l.programEditorExerciseLimitReached(
+                          kProgramMaxExercises,
+                        ),
+                  child: AppButton(
+                    label: l.programEditorAddExercise,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    leadingIcon: Icons.add_rounded,
+                    onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+                  ),
+                ),
               if (_editingName)
                 AppIconButton(
                   tooltip: l.actionClose,
@@ -1255,38 +1276,17 @@ class _SessionEditorState extends State<_SessionEditor> {
                         ),
                   ),
                   const SizedBox(height: OnCareSpacing.s8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: <Widget>[
-                      AppButton(
-                        label: l.actionCancel,
-                        variant: AppButtonVariant.secondary,
-                        size: OnCareButtonSize.small,
-                        onPressed: widget.onCancelAdd,
-                      ),
-                      const SizedBox(width: OnCareSpacing.buttonGap),
-                      AppButton(
-                        label: l.programEditorAdd,
-                        size: OnCareButtonSize.small,
-                        onPressed: widget.canAddExercise
-                            ? widget.onConfirmAdd
-                            : null,
-                      ),
-                    ],
+                  // AI 루틴의 운동 직접 추가 폼과 같은 모양이다(#2465).
+                  AppButtonPair(
+                    size: OnCareButtonSize.small,
+                    cancelLabel: l.actionCancel,
+                    onCancel: widget.onCancelAdd,
+                    confirmLabel: l.programEditorAdd,
+                    onConfirm: widget.canAddExercise
+                        ? widget.onConfirmAdd
+                        : null,
                   ),
                 ],
-              ),
-            )
-          else
-            Tooltip(
-              message: widget.canAddExercise
-                  ? ''
-                  : l.programEditorExerciseLimitReached(kProgramMaxExercises),
-              child: AppButton(
-                label: l.programEditorAddExercise,
-                variant: AppButtonVariant.secondary,
-                leadingIcon: Icons.add_rounded,
-                onPressed: widget.canAddExercise ? widget.onStartAdd : null,
               ),
             ),
         ],
