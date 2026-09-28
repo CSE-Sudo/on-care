@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart'
-    show clientDemographicsLabel;
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램·리포트 탭 왼쪽 회원 열의 폭.
@@ -188,9 +186,10 @@ class _ClientPickerListState extends State<ClientPickerList> {
 
 /// 프로그램·리포트 탭 왼쪽 목록의 회원 한 줄.
 ///
+/// 공용 회원 행([ClientRow], 촘촘한 밀도)을 고르기 카드에 담는다(#2467) —
 /// 아바타 옆 첫 줄에 이름과 `성별 · 나이` 를, 그 아래에 목표를 한 줄로 둔다.
-/// 좁은 열에서도 넘치지 않도록 모든 글은 한 줄 말줄임이다. 고른 회원은 옅은
-/// 브랜드 채움과 브랜드 테두리, 이름 굵기로 드러난다.
+/// 고른 회원은 옅은 브랜드 채움과 브랜드 테두리로 드러난다. 이름 굵기는
+/// 고르든 말든 같다 — 같은 밀도의 다른 탭 행과 같은 글씨를 쓴다.
 ///
 /// 행의 바닥에 [OnCareSpacing.s4] 간격을 포함하므로, 목록은 행 사이 간격을
 /// 따로 두지 않고 [clientPickerRowHeight] 를 `itemExtent` 로 쓴다.
@@ -200,10 +199,15 @@ class ClientPickerCard extends StatelessWidget {
     required this.client,
     required this.selected,
     this.onTap,
+    this.stacked = false,
   });
 
   final TrainerClient client;
   final bool selected;
+
+  /// 성별·나이를 이름 아래에 쌓고 목표 줄은 두지 않는다 — 프로그램 탭 좁은
+  /// 화면의 가로로 늘어선 회원 줄처럼 칸 폭이 좁은 자리.
+  final bool stacked;
 
   /// 누르면 부른다. null 이면 누를 수 없는 이름 칸이다 — 리포트 작업대처럼
   /// 갈 곳을 줄 끝 버튼이 말하는 자리(#2394).
@@ -212,16 +216,6 @@ class ClientPickerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.oncare;
-    final nameStyle = tokens
-        .text(
-          selected
-              ? OnCareTypography.strong(OnCareTypography.bodySmall)
-              : OnCareTypography.bodySmall,
-        )
-        .copyWith(color: OnCareColors.textPrimary);
-    final detailStyle = tokens
-        .text(OnCareTypography.caption)
-        .copyWith(color: OnCareColors.textTertiary);
     return Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
       child: Material(
@@ -238,48 +232,12 @@ class ClientPickerCard extends StatelessWidget {
           hoverColor: tokens.brand.surface,
           child: Padding(
             padding: const EdgeInsets.all(OnCareSpacing.s8),
-            child: Row(
-              children: <Widget>[
-                ClientAvatar(name: client.name),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              client.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: nameStyle,
-                            ),
-                          ),
-                          const SizedBox(width: OnCareSpacing.s4),
-                          Flexible(
-                            child: Text(
-                              clientDemographicsLabel(context, client),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: detailStyle,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // 목표는 늘 보인다(#898). 비어 있으면 빈 줄을 만들지 않는다.
-                      if (client.goal.trim().isNotEmpty)
-                        Text(
-                          client.goal,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: detailStyle,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+            // 목표는 늘 보인다(#898). 비어 있으면 빈 줄을 만들지 않는다.
+            child: ClientRow(
+              client: client,
+              density: ClientRowDensity.compact,
+              stacked: stacked,
+              showDetail: !stacked,
             ),
           ),
         ),
