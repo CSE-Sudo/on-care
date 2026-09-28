@@ -2520,9 +2520,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachBackToList => '추천 목록으로';
 
   @override
-  String get coachReviewed => 'AI 생성 후 트레이너 검토 완료';
-
-  @override
   String get coachTrainerAdded => '트레이너 추가';
 
   @override
@@ -4051,9 +4048,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get programEditorDistance => '거리 m';
-
-  @override
-  String get programEditorExerciseMemo => '메모';
 
   @override
   String reportsComparisonTitle(String week) {

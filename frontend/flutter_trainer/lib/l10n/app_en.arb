@@ -1689,7 +1689,6 @@
   "coachNoClients": "No members yet",
   "coachRecommended": "AI suggestions",
   "coachBackToList": "Back to suggestions",
-  "coachReviewed": "AI-generated, reviewed by you",
   "coachTrainerAdded": "Added by trainer",
   "coachTemplateAdded": "Added from {name} template",
   "@coachTemplateAdded": {
@@ -2751,7 +2750,6 @@
   "programEditorWeight": "Weight kg",
   "programEditorDuration": "Time min",
   "programEditorDistance": "Distance m",
-  "programEditorExerciseMemo": "Memo",
   "reportsComparisonTitle": "{week} vs last week",
   "@reportsComparisonTitle": {
     "placeholders": {

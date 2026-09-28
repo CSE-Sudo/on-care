@@ -949,7 +949,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           name: exercises[index].name,
                           minutes: exercises[index].minutes,
                           type: exercises[index].type,
-                          reason: l.coachReviewed,
+                          reason: '',
                           sets: exercises[index].sets,
                           reps: exercises[index].reps,
                           holdSeconds: exercises[index].holdSeconds,

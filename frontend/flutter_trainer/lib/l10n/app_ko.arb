@@ -1047,7 +1047,6 @@
   "coachNoClients": "등록된 회원이 없어요",
   "coachRecommended": "AI 추천안",
   "coachBackToList": "추천 목록으로",
-  "coachReviewed": "AI 생성 후 트레이너 검토 완료",
   "coachTrainerAdded": "트레이너 추가",
   "coachTemplateAdded": "{name} 템플릿 추가",
   "@coachTemplateAdded": {
@@ -1687,7 +1686,6 @@
   "programEditorWeight": "중량 kg",
   "programEditorDuration": "시간 분",
   "programEditorDistance": "거리 m",
-  "programEditorExerciseMemo": "메모",
   "reportsComparisonTitle": "{week} vs 지난 주",
   "@reportsComparisonTitle": {
     "placeholders": {
