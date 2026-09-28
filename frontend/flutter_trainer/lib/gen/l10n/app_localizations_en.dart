@@ -5059,6 +5059,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackPainNone => 'None';
 
   @override
+  String get reportsMemberFeedbackUnanswered => 'No answer';
+
+  @override
+  String get reportsMemberFeedbackNoteLabel => 'Note';
+
+  @override
+  String get reportsMemberFeedbackNoteNone => 'No note';
+
+  @override
   String reportsMemberFeedbackPainOn(String area, String date) {
     return '$area ($date)';
   }

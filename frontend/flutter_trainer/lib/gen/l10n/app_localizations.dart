@@ -8589,6 +8589,24 @@ abstract class AppLocalizations {
   /// **'None'**
   String get reportsMemberFeedbackPainNone;
 
+  /// No description provided for @reportsMemberFeedbackUnanswered.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get reportsMemberFeedbackUnanswered;
+
+  /// No description provided for @reportsMemberFeedbackNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get reportsMemberFeedbackNoteLabel;
+
+  /// No description provided for @reportsMemberFeedbackNoteNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No note'**
+  String get reportsMemberFeedbackNoteNone;
+
   /// No description provided for @reportsMemberFeedbackPainOn.
   ///
   /// In en, this message translates to:
