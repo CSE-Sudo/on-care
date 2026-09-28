@@ -463,7 +463,7 @@ class _SentRow extends StatelessWidget {
     );
     final Widget identity = Row(
       children: <Widget>[
-        ClientAvatar(label: entry.client.avatar, size: OnCareSize.avatarSmall),
+        ClientAvatar(name: entry.client.avatar, size: AppAvatarSize.small),
         const SizedBox(width: OnCareSpacing.s8),
         Expanded(
           child: Column(

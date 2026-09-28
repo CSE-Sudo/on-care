@@ -5,6 +5,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart'
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -56,7 +57,7 @@ class ClientCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: <Widget>[
-          AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
           const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(
