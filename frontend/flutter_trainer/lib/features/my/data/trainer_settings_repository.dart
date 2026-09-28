@@ -34,17 +34,31 @@ class LocalTrainerSettingsRepository implements TrainerSettingsRepository {
   final SharedPreferences _prefs;
 
   static const String _kNewMessage = 'trainer.notify.newMessage';
+  static const String _kConsultation = 'trainer.notify.consultation';
+  static const String _kReservation = 'trainer.notify.reservation';
+  static const String _kMemberUpdates = 'trainer.notify.memberUpdates';
 
   @override
   Future<TrainerSettings> load() async {
+    // 데모는 네 가지 모두 이 기기에 둔다 — 서버가 없으니 '아직 모름'도 없다.
     return TrainerSettings(
       newMessageAlerts: _prefs.getBool(_kNewMessage) ?? true,
+      consultationAlerts: _prefs.getBool(_kConsultation) ?? true,
+      reservationAlerts: _prefs.getBool(_kReservation) ?? true,
+      memberUpdateAlerts: _prefs.getBool(_kMemberUpdates) ?? true,
     );
   }
 
   @override
   Future<TrainerSettings> save(TrainerSettings settings) async {
     await _prefs.setBool(_kNewMessage, settings.newMessageAlerts);
+    for (final (String key, bool? value) in <(String, bool?)>[
+      (_kConsultation, settings.consultationAlerts),
+      (_kReservation, settings.reservationAlerts),
+      (_kMemberUpdates, settings.memberUpdateAlerts),
+    ]) {
+      if (value != null) await _prefs.setBool(key, value);
+    }
     return settings;
   }
 }
@@ -83,9 +97,16 @@ class DioTrainerSettingsRepository implements TrainerSettingsRepository {
 }
 
 /// Decodes `TrainerNotificationSettings`.
+///
+/// 상담·예약·담당 회원 소식은 서버에 칸이 생기기 전이다(#2264). 응답에 없으면
+/// `null` 로 두어 화면이 그 스위치를 막는다 — 기본값(켬)으로 채우면 끈 값이
+/// 서버에 없는데도 저장된 것처럼 보인다.
 TrainerSettings trainerSettingsFromJson(Map<String, dynamic> json) {
   return TrainerSettings(
     newMessageAlerts: json['notify_new_message'] as bool? ?? true,
+    consultationAlerts: json['notify_consultation'] as bool?,
+    reservationAlerts: json['notify_reservation'] as bool?,
+    memberUpdateAlerts: json['notify_member_updates'] as bool?,
   );
 }
 
@@ -93,9 +114,18 @@ TrainerSettings trainerSettingsFromJson(Map<String, dynamic> json) {
 ///
 /// 서버의 수정 스키마는 모든 항목이 선택이라, 앱이 다루지 않는 항목
 /// (`notify_session_reminder`·`reminder_lead_minutes`)은 아예 보내지 않는다 —
-/// 보내지 않은 값은 서버에 그대로 남는다.
+/// 보내지 않은 값은 서버에 그대로 남는다. 서버가 아직 모르는 항목(`null`)도
+/// 보내지 않는다.
 Map<String, Object?> trainerSettingsToJson(TrainerSettings settings) {
-  return <String, Object?>{'notify_new_message': settings.newMessageAlerts};
+  return <String, Object?>{
+    'notify_new_message': settings.newMessageAlerts,
+    if (settings.consultationAlerts != null)
+      'notify_consultation': settings.consultationAlerts,
+    if (settings.reservationAlerts != null)
+      'notify_reservation': settings.reservationAlerts,
+    if (settings.memberUpdateAlerts != null)
+      'notify_member_updates': settings.memberUpdateAlerts,
+  };
 }
 
 /// Provides the settings repository for the current mode.

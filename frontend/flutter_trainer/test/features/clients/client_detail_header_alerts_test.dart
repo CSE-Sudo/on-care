@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -189,5 +190,76 @@ void main() {
     expect(byKey('client-detail-close'), findsNothing);
     expect(byKey('client-detail-back'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('좁은 화면·큰 글씨에서 펼친 배지가 넘치지 않고 줄어든다', (tester) async {
+    // 1.3 배는 접근성 검사(#1004)가 쓰는 값이다. 시드 회원 강서연은 배지 문구가
+    // 길어, 폭 400 에서 `+N` 으로 펼치면 배지 하나가 배지 줄 폭보다 길다(#2337).
+    // 목표 글 옆으로 배지 줄이 넓어진 뒤(#2330)로는 폭 480 에서는 들어간다.
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(400, 2400);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      at: AppRoutes.clientDetail('seed-client-6', section: 'diet'),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // 한 줄에 다 서지 못해 `+N` 이 선다 — 눌러 펼친다.
+    final Finder more = find.byWidgetPredicate(
+      (Widget w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith(
+            'client-detail-signals-more-',
+          ),
+    );
+    expect(more.hitTestable(), findsOneWidget);
+    await tester.tap(more.hitTestable());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    final Finder alerts = find.descendant(
+      of: find.byWidgetPredicate(
+        (Widget w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith(
+              'client-detail-alert-',
+            ),
+      ),
+      matching: find.byType(AppTag),
+    );
+    expect(alerts, findsWidgets);
+    // 말줄임이 아니라 축소다 — 잘린 문구·숫자는 다른 값으로 읽힌다.
+    final Rect line = tester.getRect(byKey('client-detail-signals'));
+    bool shrunk = false;
+    for (int i = 0; i < alerts.evaluate().length; i++) {
+      final Finder tag = alerts.at(i);
+      final Rect onScreen = tester.getRect(tag);
+      expect(onScreen.right, lessThanOrEqualTo(line.right + 0.5));
+      // 화면에 그려진 폭이 배치된 폭보다 좁으면 축소된 것이다.
+      if (onScreen.width < tester.getSize(tag).width - 0.5) shrunk = true;
+      // 문구는 끝까지 배치된다 — 잘리지 않았다.
+      final RenderParagraph label = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: tag,
+          matching: find.text(tester.widget<AppTag>(tag).label),
+        ),
+      );
+      expect(label.didExceedMaxLines, isFalse);
+      expect(
+        label.size.width,
+        greaterThanOrEqualTo(label.getMaxIntrinsicWidth(double.infinity) - 0.5),
+      );
+    }
+    // 이 조합에서 적어도 한 배지는 실제로 줄어들어야 회귀를 잡는 검사다.
+    expect(shrunk, isTrue);
   });
 }

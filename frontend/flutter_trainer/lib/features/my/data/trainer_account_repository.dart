@@ -45,7 +45,10 @@ abstract interface class TrainerAccountRepository {
 
   /// 계정 탈퇴(`DELETE /trainer/me`). 담당 회원 링크·예약이 함께 정리되고
   /// 회원에게는 알림이 간다. 실패는 [AppError]. (#505)
-  Future<void> deleteAccount();
+  ///
+  /// [reasons] 는 탈퇴 화면에서 고른 사유 코드다(#2264). 서버는 모르는 값을
+  /// 버리고, 계정과 잇지 않고 남긴다. 비어 있어도 된다.
+  Future<void> deleteAccount({List<String> reasons = const <String>[]});
 }
 
 /// Demo build: no server account to change.
@@ -70,7 +73,7 @@ class MockTrainerAccountRepository implements TrainerAccountRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
     throw const ValidationError(message: '데모 모드에는 지울 계정이 없어요');
   }
 }
@@ -89,9 +92,13 @@ class DioTrainerAccountRepository implements TrainerAccountRepository {
   bool get supportsDeletion => true;
 
   @override
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
     try {
-      await _dio.delete<Map<String, dynamic>>('/trainer/me');
+      await _dio.delete<Map<String, dynamic>>(
+        '/trainer/me',
+        // 회원 탈퇴와 같은 본문이다 — 고른 사유가 없으면 빈 목록.
+        data: <String, Object?>{'reasons': reasons},
+      );
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
