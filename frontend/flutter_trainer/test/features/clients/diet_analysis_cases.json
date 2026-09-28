@@ -159,6 +159,100 @@
    }
   },
   {
+   "name": "today_ratio_exact_half",
+   "period": "today",
+   "now": "2026-09-24T10:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "라면",
+       "calories": 500,
+       "sodium_mg": 4500,
+       "sugar_g": 3
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 95,
+     "sodium_mg": 4500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_over",
+      "params": {
+       "nutrient": "sodium",
+       "slot": "breakfast",
+       "food_value": 4500,
+       "value": 4500,
+       "target": 2000,
+       "ratio": "2.2",
+       "food": "라면"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "today_ratio_below_half",
+   "period": "today",
+   "now": "2026-09-24T10:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "김치찌개",
+       "calories": 500,
+       "sodium_mg": 2300,
+       "sugar_g": 3
+      }
+     ],
+     "kcal": 500,
+     "protein_g": 95,
+     "sodium_mg": 2300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "sentences": [
+     {
+      "key": "tr_today_over",
+      "params": {
+       "nutrient": "sodium",
+       "slot": "breakfast",
+       "food_value": 2300,
+       "value": 2300,
+       "target": 2000,
+       "ratio": "1.1",
+       "food": "김치찌개"
+      }
+     }
+    ]
+   }
+  },
+  {
    "name": "today_sugar_over",
    "period": "today",
    "now": "2026-09-24T10:00:00",

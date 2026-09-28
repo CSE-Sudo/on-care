@@ -120,6 +120,18 @@ def cases() -> list[dict]:
                   entry(THU, "breakfast", [("현미밥", 300, 980, 1)], sodium=980, protein=50),
                   entry(THU, "lunch", None, kcal=900, sodium=6000, protein=50),
               ]})
+    # 비율이 정확한 절반(2.25)과 이진수로 절반 아래(1.15)인 경계 — 서버 `:.1f` 와 데모가
+    # 같은 문자열을 내는지 본다(#2441 리뷰).
+    c.append({"name": "today_ratio_exact_half", "period": "today", "now": at(THU, 10),
+              "targets": t, "entries": [
+                  entry(THU, "breakfast", [("라면", 500, 4500, 3)], kcal=500, protein=95,
+                        sodium=4500),
+              ]})
+    c.append({"name": "today_ratio_below_half", "period": "today", "now": at(THU, 10),
+              "targets": t, "entries": [
+                  entry(THU, "breakfast", [("김치찌개", 500, 2300, 3)], kcal=500, protein=95,
+                        sodium=2300),
+              ]})
     c.append({"name": "today_sugar_over", "period": "today", "now": at(THU, 10),
               "targets": t, "entries": [
                   entry(THU, "breakfast", [("라떼", 250, 150, 30.5), ("케이크", 400, 200, 40)],

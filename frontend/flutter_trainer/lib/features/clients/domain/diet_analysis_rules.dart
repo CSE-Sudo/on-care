@@ -132,6 +132,21 @@ int pyRound(num value) {
   return f.isEven ? f : f + 1;
 }
 
+/// 파이썬 `f"{x:.1f}"` — 소수 첫째 자리까지.
+///
+/// 둘 다 **실제 이진수 값**으로 반올림하지만, 정확히 절반일 때 파이썬은 짝수 쪽,
+/// Dart `toStringAsFixed` 는 0 에서 먼 쪽이다(`2.25` → `2.2` / `2.3`). 소수 첫째
+/// 자리의 절반이 이진수로 정확히 떨어지는 것은 `x × 4` 가 정수일 때(`.25`·`.75`)뿐이라,
+/// 그때만 짝수 쪽으로 고른다. `x × 10` 을 반올림하면 안 된다 — `1.15` 는 이진수로
+/// `1.1499…` 라 파이썬은 `1.1` 인데, `11.5` 로 올라가 `1.2` 가 된다.
+String pyFixed1(double x) {
+  final double quarters = x * 4;
+  if (quarters == quarters.roundToDouble() && (x * 10) % 1 == 0.5) {
+    return (pyRound(x * 10) / 10).toStringAsFixed(1);
+  }
+  return x.toStringAsFixed(1);
+}
+
 String _ymd(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-'
     '${d.month.toString().padLeft(2, '0')}-'
@@ -241,7 +256,7 @@ List<ClientDietSentence> todaySentences(
       'food_value': cause.value,
       'value': totals[worst]!,
       'target': goals[worst]!,
-      'ratio': (totals[worst]! / goals[worst]!).toStringAsFixed(1),
+      'ratio': pyFixed1(totals[worst]! / goals[worst]!),
     };
     if (cause.food != null) {
       params['food'] = cause.food!;
