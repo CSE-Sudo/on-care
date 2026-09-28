@@ -598,8 +598,8 @@ enum AppBannerDensity {
   /// 오른쪽 칸에 들여 선다.
   regular,
 
-  /// 아이콘 16 + 톤색 굵은 `bodySmall` 제목 + `caption` 본문, 안쪽 세로 8·가로
-  /// 12. 제목 줄 아래 본문은 폭을 다 쓴다. 대화 흐름이나 카드 안 좁은 칸에
+  /// 아이콘 16 + 톤색 굵은 `bodySmall` 한 줄 제목 + `caption` 본문, 안쪽 세로
+  /// 8·가로 12. 제목 줄 아래 본문은 폭을 다 쓴다. 대화 흐름이나 카드 안 좁은 칸에
   /// 서는 감지 경고처럼 무게를 낮춰야 하는 안내에 쓴다.
   compact,
 }
@@ -785,9 +785,11 @@ class AppBanner extends StatelessWidget {
               AppIcon(resolvedIcon, size: OnCareSize.iconSmall, color: accent),
               const SizedBox(width: OnCareSpacing.s4),
               Expanded(
+                // compact 는 고정 높이 칸에도 서므로 제목을 한 줄로 둔다.
                 child: _BannerTitle(
                   title: title,
                   meta: titleMeta,
+                  oneLine: true,
                   style: tokens
                       .text(OnCareTypography.strong(OnCareTypography.bodySmall))
                       .copyWith(color: accent),
@@ -851,16 +853,31 @@ class AppBanner extends StatelessWidget {
 
 /// 배너 제목 — 곁말이 있으면 한 줄(곁말이 먼저 말줄임), 없으면 줄바꿈한다.
 class _BannerTitle extends StatelessWidget {
-  const _BannerTitle({required this.title, required this.style, this.meta});
+  const _BannerTitle({
+    required this.title,
+    required this.style,
+    this.meta,
+    this.oneLine = false,
+  });
 
   final String title;
   final String? meta;
   final TextStyle style;
 
+  /// 곁말이 없어도 한 줄로 두고 말줄임한다.
+  final bool oneLine;
+
   @override
   Widget build(BuildContext context) {
     final String? meta = this.meta;
-    if (meta == null) return Text(title, style: style);
+    if (meta == null) {
+      return Text(
+        title,
+        maxLines: oneLine ? 1 : null,
+        overflow: oneLine ? TextOverflow.ellipsis : null,
+        style: style,
+      );
+    }
     return Row(
       children: <Widget>[
         Flexible(
