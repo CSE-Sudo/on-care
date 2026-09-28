@@ -197,7 +197,8 @@ void main() {
       find.byKey(const ValueKey<String>('report-feedback-empty')),
       findsOneWidget,
     );
-    expect(find.text('아직 받지 못했어요'), findsOneWidget);
+    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
+    expect(find.text('· 아직 받지 못했어요'), findsOneWidget);
   });
 
   testWidgets('Not submitted yet reads naturally in English', (tester) async {
@@ -212,7 +213,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Not received yet'), findsOneWidget);
+    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
+    expect(find.text('· Not received yet'), findsOneWidget);
   });
 
   testWidgets('피드백 요청만 실패하면 그 칸만 비고 리포트는 뜬다', (tester) async {

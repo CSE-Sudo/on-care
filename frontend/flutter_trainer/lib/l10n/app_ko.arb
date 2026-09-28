@@ -2383,6 +2383,9 @@
   "reportsMemberFeedbackIntensityLabel": "운동 강도",
   "reportsMemberFeedbackPainLabel": "통증",
   "reportsMemberFeedbackPainNone": "없음",
+  "reportsMemberFeedbackUnanswered": "미응답",
+  "reportsMemberFeedbackNoteLabel": "한 줄 메모",
+  "reportsMemberFeedbackNoteNone": "남긴 말 없음",
   "reportsMemberFeedbackPainOn": "{area} ({date})",
   "@reportsMemberFeedbackPainOn": {
     "placeholders": {

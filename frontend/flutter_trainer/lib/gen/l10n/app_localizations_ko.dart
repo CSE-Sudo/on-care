@@ -4754,6 +4754,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsMemberFeedbackPainNone => '없음';
 
   @override
+  String get reportsMemberFeedbackUnanswered => '미응답';
+
+  @override
+  String get reportsMemberFeedbackNoteLabel => '한 줄 메모';
+
+  @override
+  String get reportsMemberFeedbackNoteNone => '남긴 말 없음';
+
+  @override
   String reportsMemberFeedbackPainOn(String area, String date) {
     return '$area ($date)';
   }

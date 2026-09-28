@@ -3428,6 +3428,9 @@
   "reportsMemberFeedbackIntensityLabel": "Intensity",
   "reportsMemberFeedbackPainLabel": "Pain",
   "reportsMemberFeedbackPainNone": "None",
+  "reportsMemberFeedbackUnanswered": "No answer",
+  "reportsMemberFeedbackNoteLabel": "Note",
+  "reportsMemberFeedbackNoteNone": "No note",
   "reportsMemberFeedbackPainOn": "{area} ({date})",
   "@reportsMemberFeedbackPainOn": {
     "placeholders": {
