@@ -269,10 +269,11 @@ class ReportPdfGenerator {
         textDirection: TextDirection.ltr,
         textScaler: TextScaler.noScaling,
       )..layout(maxWidth: width);
-      if (y + painter.height <= bottom) {
+      final double height = painter.height;
+      if (y + height <= bottom) {
         painter.paint(canvas, Offset(_margin, y));
         painter.dispose();
-        y += painter.height + block.after;
+        y += height + block.after;
         continue;
       }
       // 쪽 끝 — 남은 줄만큼 싣고 말줄임으로 끝낸다.
