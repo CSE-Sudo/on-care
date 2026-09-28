@@ -2282,8 +2282,6 @@
   },
   "reportsResendConfirm": "다시 보내기",
   "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.",
-  "reportsSentBody": "보낸 피드백",
-  "reportsSentFigures": "그때 보낸 수치",
   "reportsStepReview": "확인",
   "reportsStepWrite": "작성",
   "reportsStepSend": "전송",

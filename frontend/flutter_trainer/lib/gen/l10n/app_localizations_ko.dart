@@ -4675,12 +4675,6 @@ class AppLocalizationsKo extends AppLocalizations {
       '전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.';
 
   @override
-  String get reportsSentBody => '보낸 피드백';
-
-  @override
-  String get reportsSentFigures => '그때 보낸 수치';
-
-  @override
   String get reportsStepReview => '확인';
 
   @override
