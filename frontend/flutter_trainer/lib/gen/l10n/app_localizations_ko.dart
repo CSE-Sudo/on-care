@@ -2580,6 +2580,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiSugarAlsoOver => ' · 당류도 초과';
 
   @override
+  String get aiDirectionLabel => '권장 방향';
+
+  @override
+  String get aiDirectionLower => '강도 낮춤 — 최근 완료율이 낮아요';
+
+  @override
+  String get aiDirectionCardio => '유산소 비중 확대 — 나트륨 초과가 잦아요';
+
+  @override
+  String get aiDirectionLowerAndCardio => '강도 낮춤 · 유산소 비중 확대';
+
+  @override
+  String get aiDirectionKeep => '현재 강도 유지';
+
+  @override
+  String get aiDirectionNoData => '기록이 쌓이면 판단해요';
+
+  @override
   String get aiBasisRuleBased => ' · 규칙 기반 생성';
 
   @override

@@ -4742,6 +4742,42 @@ abstract class AppLocalizations {
   /// **' · sugar also over'**
   String get aiSugarAlsoOver;
 
+  /// No description provided for @aiDirectionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Direction'**
+  String get aiDirectionLabel;
+
+  /// No description provided for @aiDirectionLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower intensity — recent completion is low'**
+  String get aiDirectionLower;
+
+  /// No description provided for @aiDirectionCardio.
+  ///
+  /// In en, this message translates to:
+  /// **'More cardio — sodium is often over target'**
+  String get aiDirectionCardio;
+
+  /// No description provided for @aiDirectionLowerAndCardio.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower intensity · more cardio'**
+  String get aiDirectionLowerAndCardio;
+
+  /// No description provided for @aiDirectionKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep current intensity'**
+  String get aiDirectionKeep;
+
+  /// No description provided for @aiDirectionNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough records yet'**
+  String get aiDirectionNoData;
+
   /// No description provided for @aiBasisRuleBased.
   ///
   /// In en, this message translates to:
