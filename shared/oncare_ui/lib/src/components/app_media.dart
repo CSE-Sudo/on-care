@@ -226,12 +226,27 @@ class AppImageFrame extends StatelessWidget {
 }
 
 /// 진행 막대 — 높이 8, 알약, 트랙 입력 채움, 채움 기본 브랜드색.
+///
+/// 카드 밖 페이지 배경 위에 놓일 때는 [height]·[trackColor] 로 두께와 빈 구간
+/// 색을 바꾼다. 기본 트랙(입력 채움)은 페이지 배경과 거의 같은 색이다.
 class AppProgressBar extends StatelessWidget {
-  const AppProgressBar({super.key, required this.value, this.color});
+  const AppProgressBar({
+    super.key,
+    required this.value,
+    this.color,
+    this.height = OnCareSize.progressBar,
+    this.trackColor = OnCareColors.surfaceInput,
+  });
 
   /// 0~1. 넘치면 1 로 그린다.
   final double value;
   final Color? color;
+
+  /// 막대 두께.
+  final double height;
+
+  /// 채워지지 않은 구간 색.
+  final Color trackColor;
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +254,7 @@ class AppProgressBar extends StatelessWidget {
     return ClipRRect(
       borderRadius: OnCareRadius.pillAll,
       child: SizedBox(
-        height: OnCareSize.progressBar,
+        height: height,
         child: TweenAnimationBuilder<double>(
           tween: Tween<double>(end: value.clamp(0.0, 1.0)),
           duration: OnCareMotion.meterFill,
@@ -247,9 +262,9 @@ class AppProgressBar extends StatelessWidget {
           builder: (BuildContext context, double t, Widget? _) =>
               LinearProgressIndicator(
                 value: t,
-                minHeight: OnCareSize.progressBar,
+                minHeight: height,
                 color: fill,
-                backgroundColor: OnCareColors.surfaceInput,
+                backgroundColor: trackColor,
               ),
         ),
       ),
