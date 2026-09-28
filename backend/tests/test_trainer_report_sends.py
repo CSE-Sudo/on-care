@@ -10,6 +10,9 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+from sqlalchemy import delete, select
+
 from app.core.security import create_access_token
 from app.models.models import ChatMessage, TrainerClient, User
 from app.services import trainer_service
@@ -17,6 +20,28 @@ from app.services import trainer_service
 TRAINER_ID = "trainer-demo"
 SENT = "/v1/trainer/reports/sent"
 PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF\n"
+
+# 이 파일이 만든 계정 id. 테스트가 끝날 때마다 지운다.
+_created: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def _drop_created_accounts(db_session):
+    """이 파일이 만든 회원·트레이너를 테스트마다 지운다. (#2471)
+
+    남겨 두면 `trainer-demo` 로스터 맨 앞에 선다 — 새 담당 링크는 `sort_order`
+    0 이고 로스터는 `sort_order` → 회원 id 순이라 `sends-…` 가 시드의 `user-…`
+    보다 앞이다. 로스터 첫 회원을 집어 쓰는 다른 파일의 테스트가, 담당이 끝난
+    회원을 우연히 집는 실행에서만 404 로 떨어졌다. `users.id` 를 참조하는 FK 는
+    모두 CASCADE/SET NULL 이라 `User` 행만 지우면 링크·메시지가 함께 정리된다.
+    """
+    yield
+    if not _created:
+        return
+    db_session.rollback()
+    db_session.execute(delete(User).where(User.id.in_(list(_created))))
+    db_session.commit()
+    _created.clear()
 
 
 def _h(token: str) -> dict[str, str]:
@@ -35,6 +60,7 @@ def _trainer_tok(client) -> str:
 def _member(db, *, trainer_id: str = TRAINER_ID, active: bool = True) -> str:
     """이 테스트만 쓰는 담당 회원. 다른 테스트의 전송과 섞이지 않게 새로 만든다."""
     member_id = f"sends-member-{uuid4().hex[:10]}"
+    _created.append(member_id)
     db.add(
         User(
             id=member_id,
@@ -59,6 +85,7 @@ def _member(db, *, trainer_id: str = TRAINER_ID, active: bool = True) -> str:
 
 def _trainer(db) -> str:
     trainer_id = f"sends-trainer-{uuid4().hex[:10]}"
+    _created.append(trainer_id)
     db.add(
         User(
             id=trainer_id,
@@ -396,3 +423,35 @@ def test_another_trainer_sees_none_of_my_sends(client, db_session):
     theirs = _sends(client, create_access_token(other), "2026-02-02")
 
     assert member not in theirs
+
+
+# ---- 정리 (#2471) ----
+
+
+def test_accounts_made_here_are_tracked_for_cleanup(client, db_session):
+    member = _member(db_session, active=False)
+    trainer = _trainer(db_session)
+
+    assert member in _created
+    assert trainer in _created
+
+
+def test_no_account_from_an_earlier_test_is_left_behind(client, db_session):
+    """앞 테스트들이 만든 `sends-…` 계정은 이 테스트가 시작할 때 이미 없다."""
+    assert _created == []
+    left = db_session.scalars(
+        select(User.id).where(
+            User.id.like("sends-member-%") | User.id.like("sends-trainer-%")
+        )
+    ).all()
+    assert left == []
+
+
+def test_the_roster_does_not_open_with_a_test_account(client, db_session):
+    """정리 뒤 `trainer-demo` 로스터의 첫 회원은 시드 회원이다."""
+    token = _trainer_tok(client)
+    r = client.get("/v1/trainer/clients", headers=_h(token))
+    assert r.status_code == 200, r.text
+    roster = r.json()
+    assert roster
+    assert not roster[0]["id"].startswith("sends-member-")
