@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -178,13 +179,41 @@ class PersonalRoutineBox extends StatelessWidget {
 }
 
 /// 개인운동 한 줄의 양 — 근력은 세트·횟수·중량, 그 밖은 분. (#2223)
-String personalRoutineAmount(AppLocalizations l, RoutineExercise e) {
-  if (e.type != '근력') return l.minutesShort(e.minutes);
-  final double w = e.weight;
-  final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
-  return e.isHold
-      ? l.aiHoldSummary(e.sets, e.holdSeconds, weight)
-      : l.aiStrengthSummary(e.sets, e.reps, weight);
+String personalRoutineAmount(AppLocalizations l, RoutineExercise e) =>
+    routineAmount(
+      l,
+      type: e.type,
+      minutes: e.minutes,
+      sets: e.sets,
+      reps: e.reps,
+      holdSeconds: e.holdSeconds,
+      weight: e.weight,
+      isHold: e.isHold,
+    );
+
+/// 개인운동 한 줄의 양을 값만 받아 적는다.
+///
+/// 편집 중인 개인운동([RoutineExercise])과 이미 보낸 개인운동
+/// ([AssignedRoutine])이 **같은 문구**를 써야 한다(#2225) — 짤 때와 보낸 뒤를
+/// 다르게 적으면 트레이너는 같은 운동인지부터 따져야 한다. 두 타입이 따로
+/// 자기 셈을 들면 한쪽만 고쳐져 어긋나므로, 셈은 여기 하나뿐이다.
+String routineAmount(
+  AppLocalizations l, {
+  required String type,
+  required int minutes,
+  required int sets,
+  required int reps,
+  required int holdSeconds,
+  required double weight,
+  required bool isHold,
+}) {
+  if (type != '근력') return l.minutesShort(minutes);
+  final String kg = weight == weight.roundToDouble()
+      ? '${weight.round()}'
+      : '$weight';
+  return isHold
+      ? l.aiHoldSummary(sets, holdSeconds, kg)
+      : l.aiStrengthSummary(sets, reps, kg);
 }
 
 /// 개인운동 한 줄 — `걷기 · 유산소 · 30분`. (#2224)
@@ -194,3 +223,11 @@ String personalRoutineAmount(AppLocalizations l, RoutineExercise e) {
 String personalRoutineLabel(AppLocalizations l, RoutineExercise e) =>
     '${e.name} · ${routineTypeLabel(l, e.type)} · '
     '${personalRoutineAmount(l, e)}';
+
+/// 이미 보낸 개인운동 한 줄 — [personalRoutineLabel] 과 같은 모양. (#2225)
+///
+/// 전송 이력이 "무엇을 보냈나" 를 적는 자리라 짤 때와 같은 굵기로 읽혀야
+/// 한다 — 이름만 적으면 몇 세트 몇 회로 보냈는지 다시 일정을 열어야 안다.
+String assignedRoutineLabel(AppLocalizations l, AssignedRoutine r) =>
+    '${r.name} · ${routineTypeLabel(l, r.type)} · '
+    '${routineAmount(l, type: r.type, minutes: r.minutes, sets: r.sets ?? 0, reps: r.reps ?? 0, holdSeconds: r.holdSeconds ?? 0, weight: r.weight ?? 0, isHold: (r.holdSeconds ?? 0) > 0)}';

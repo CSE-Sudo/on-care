@@ -2752,6 +2752,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSentHistory => 'Sent history';
 
   @override
+  String get coachLastDelivery => 'Last send';
+
+  @override
+  String get coachDeliveryPtWithRoutine => 'PT · personal';
+
+  @override
+  String get coachDeliveryRoutineOnly => 'Personal only';
+
+  @override
+  String get coachDeliveryCancelledRoutineOnly =>
+      'PT cancelled · personal only';
+
+  @override
+  String coachDeliveryOn(String date) {
+    return 'Sent $date';
+  }
+
+  @override
+  String coachUnsentRoutines(int count) {
+    return '$count personal exercise(s) not sent yet';
+  }
+
+  @override
+  String get coachUnsentRoutinesBody =>
+      'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.';
+
+  @override
+  String get coachSendUnsentRoutines => 'Open in schedule';
+
+  @override
+  String get coachDeliveryProgramSection => 'Program';
+
+  @override
+  String get coachDeliveryRoutineSection => 'Personal workout';
+
+  @override
+  String get coachDeliveryNothing => 'Nothing sent';
+
+  @override
   String get coachHistoryFailed => 'Couldn\'t load history';
 
   @override
@@ -4046,9 +4085,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get programEditorDefaultSession => 'Session A';
-
-  @override
   String get programEditorSaveUnsupported => 'Give the program a name first.';
 
   @override
@@ -4842,6 +4878,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsStepSend => 'Send';
 
   @override
+  String get reportsStepPrint => 'Print';
+
+  @override
+  String get reportsPrintNeedsPdf =>
+      'You can print once the preview PDF is ready';
+
+  @override
+  String get reportsPrintFailed =>
+      'Couldn\'t open the print dialog. Please try again';
+
+  @override
   String get reportsStepperLabel => 'Weekly report steps';
 
   @override
@@ -5117,9 +5164,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportsTrendTrackedTimes(int count) {
     return '$count×';
   }
-
-  @override
-  String get reportsSkipToWrite => 'Write without a draft';
 
   @override
   String reportsCalorieThisWeekAvg(String kcal) {

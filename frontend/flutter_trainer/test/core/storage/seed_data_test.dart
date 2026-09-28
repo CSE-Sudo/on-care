@@ -10,6 +10,9 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
+import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
+import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
@@ -65,7 +68,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v34'), _todayString());
+      expect(await db.readValue('trainer_seeded_v36'), _todayString());
     });
 
     test(
@@ -219,7 +222,9 @@ void main() {
       // 시드가 고정된 날짜 기준으로 만들어졌으므로, 얼마나 거슬러 올라가는지도
       // 그 날짜에서 센다. 실제 오늘로 재면 시드가 만들어진 주와 어긋나 CI 가
       // 도는 날에 따라 결과가 달라진다(#826).
-      final twelveWeeksAgo = pinned.subtract(const Duration(days: 7 * 11));
+      final historyStart = pinned.subtract(
+        const Duration(days: 7 * (demoMetricsHistoryWeeks - 1)),
+      );
       final dailyRows = await (db.select(
         db.clientDailyMetrics,
       )..where((t) => t.clientId.equals(full.id))).get();
@@ -227,9 +232,9 @@ void main() {
           .map((row) => row.date)
           .reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
       expect(
-        DateTime.parse(oldest).isBefore(twelveWeeksAgo),
+        DateTime.parse(oldest).isBefore(historyStart),
         isTrue,
-        reason: '${full.name} 이력이 12주에 못 미친다 ($oldest)',
+        reason: '${full.name} 이력이 $demoMetricsHistoryWeeks주에 못 미친다 ($oldest)',
       );
 
       // Alert combinations, including the two that are easy to lose.
@@ -270,6 +275,51 @@ void main() {
       expect(history, isEmpty, reason: '운동 기록 빈 상태 렌더링 경로');
     });
 
+    test('일별 기록이 리포트 이력 전체와 그 앞 4주를 덮는다 (#2453)', () async {
+      // 지난 리포트의 칼로리 줄은 그 주 앞 4주를 평소로 삼는다. 이력의 가장
+      // 오래된 주까지 그 4주가 있어야 `지난 4주 평균` 이 선다.
+      expect(
+        demoMetricsHistoryWeeks,
+        demoReportHistoryWeeks + kCalorieBaselineWeeks,
+      );
+      expect(demoMetricsHistoryWeeks, greaterThanOrEqualTo(18));
+
+      final pinned = DateTime(2026, 8, 20, 10);
+      await seedIfEmpty(db, clock: pinned);
+      final DateTime thisMonday = weekStartOf(pinned);
+      final rows = await db.select(db.clientDailyMetrics).get();
+
+      // 이번 주에서 몇 주 전인가(이번 주 = 0).
+      int weeksBack(String ymdDate) =>
+          thisMonday.difference(weekStartOf(DateTime.parse(ymdDate))).inDays ~/
+          7;
+      Set<int> caloriesWeeksOf(String clientId) => <int>{
+        for (final row in rows)
+          if (row.clientId == clientId && row.calories > 0) weeksBack(row.date),
+      };
+
+      // 칼로리를 적어 온 회원이면 누구든 이력 창의 모든 주에 기록이 있다.
+      final Set<String> recorders = <String>{
+        for (final row in rows)
+          if (row.calories > 0 && row.clientId != 'seed-client-1') row.clientId,
+      };
+      expect(recorders, isNotEmpty);
+      for (final String id in recorders) {
+        expect(
+          caloriesWeeksOf(id),
+          containsAll(<int>[
+            for (int back = 1; back < demoMetricsHistoryWeeks; back++) back,
+          ]),
+          reason: '$id 의 지난 주 칼로리 기록이 이력 창을 다 덮지 못한다',
+        );
+        expect(
+          caloriesWeeksOf(id).reduce((int a, int b) => a > b ? a : b),
+          demoMetricsHistoryWeeks - 1,
+          reason: '$id 의 기록은 이력 창보다 앞으로 가지 않는다',
+        );
+      }
+    });
+
     test('schedule seeds onto this week, with today filled (#1210)', () async {
       await seedIfEmpty(db);
 
@@ -280,8 +330,8 @@ void main() {
         isTrue,
         reason: '오늘 열이 비면 스케줄 탭 첫 화면이 빈다',
       );
-      // 주간 시간표는 월~일만 그린다 — 그 밖의 날짜에 놓인 행은 어디에도 보이지
-      // 않는다.
+      // 주간 시간표는 월~일만 그린다 — 이번 주 밖의 행은 지난 주에 되풀이한
+      // 회원 PT 뿐이다(#2452). 다음 주 이후로 넘어간 행은 어디에도 보이지 않는다.
       final DateTime now = nowKst();
       final DateTime monday = DateTime(
         now.year,
@@ -292,9 +342,20 @@ void main() {
         for (int i = 0; i < 7; i++)
           ymd(DateTime(monday.year, monday.month, monday.day + i)),
       };
-      expect(schedule.every((s) => week.contains(s.date)), isTrue);
+      final String mondayYmd = ymd(monday);
+      for (final s in schedule.where((s) => !week.contains(s.date))) {
+        expect(s.date.compareTo(mondayYmd), lessThan(0), reason: s.date);
+        expect(s.id, startsWith('seed-schedule-p'), reason: s.date);
+      }
+      expect(
+        schedule.where((s) => week.contains(s.date)).length,
+        greaterThan(7),
+        reason: '이번 주 시간표가 비면 안 된다',
+      );
       // Program JSON is well-formed for a PT session.
-      final pt = schedule.firstWhere((s) => s.clientName == '김민수');
+      final pt = schedule.firstWhere(
+        (s) => s.clientName == '김민수' && s.date == _todayString(),
+      );
       expect(jsonDecode(pt.programJson), isA<List<Object?>>());
     });
 
@@ -414,13 +475,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v34', '2020-01-01');
+      await db.putValue('trainer_seeded_v36', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v34'), _todayString());
+      expect(await db.readValue('trainer_seeded_v36'), _todayString());
     });
 
     test(
@@ -612,7 +673,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v34'), today);
+        expect(await db.readValue('trainer_seeded_v36'), today);
       },
     );
 
@@ -721,7 +782,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v34', '2020-01-01');
+      await db.putValue('trainer_seeded_v36', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();

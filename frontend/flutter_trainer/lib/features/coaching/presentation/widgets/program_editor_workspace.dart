@@ -153,11 +153,17 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
       // AI 루틴을 생성하기 전에는 임의의 추천 내용으로 채우지 않는다 — 프로그램
       // 정보 박스는 빈 상태로 시작하고, 이후 "템플릿에 반영"(AI 루틴 생성
       // 플로우) 또는 아래 AI 힌트 배너의 "편집기에 반영"을 눌러야만 채워진다.
+      // 기본 세션도 `세션 추가` 가 만드는 세션과 **똑같이** 연다(#2474).
+      // 전에는 여기만 `세션 A` 라는 이름에 유형이 없어, 이 앱에서 유형 없는
+      // 세션은 이것 하나뿐이었다. 유형은 새로 고른 값이 아니다 — 이 세션에
+      // 운동을 추가하면 이미 [_kDefaultExerciseType] 으로 떨어지고 있었고,
+      // 감춰져 있던 그 값을 이름과 유형에 드러낼 뿐이라 흐름은 그대로다.
       _draft = ProgramEditorState.initial(
         clientGoal: widget.clientGoal,
         programName: l.programEditorDefaultName(widget.clientGoal),
-        sessionName: l.programEditorDefaultSession,
+        sessionName: l.programEditorSessionNameTyped(_kDefaultExerciseType),
       );
+      _sessionType[_draft.sessions.first.id] = _kDefaultExerciseType;
     }
     _initialized = true;
   }
@@ -373,12 +379,15 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
         key: ValueKey<String>(keyPrefix),
         title: title,
         showClose: false,
-        footer: AppButton(
-          key: ValueKey<String>('$keyPrefix-cancel'),
-          label: l.actionCancel,
-          variant: AppButtonVariant.secondary,
-          fullWidth: true,
-          onPressed: () => Navigator.of(dialogContext).pop(),
+        footer: AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: ValueKey<String>('$keyPrefix-cancel'),
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -911,10 +920,22 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     }
     if (grouped.isEmpty) return;
 
-    final sessions = <ProgramSessionDraft>[..._draft.sessions];
-    // 비어 있는 첫 세션은 새로 만들지 않고 첫 유형에 내준다 — 그대로 두면
-    // 아무것도 없는 `세션 A` 가 맨 위에 남는다.
-    var reuseFirst = sessions.length == 1 && sessions.first.exercises.isEmpty;
+    // 운동이 하나도 없는 세션은 새 유형에 **내준다**(#2474). 전에는 첫 세션
+    // 하나가 비어 있을 때만 내줘서, 세션을 더 만들어 두었거나 첫 세션에
+    // 무언가 적어 둔 뒤 반영하면 빈 세션이 그대로 남았다.
+    //
+    // 내주는 것은 **빈 세션뿐**이다 — 트레이너가 적어 둔 것은 건드리지 않는다.
+    // 쓰이지 않고 남은 빈 세션은 내린다. 남겨 두면 아무것도 없는 세션이 이름을
+    // 차지해, 정작 운동이 들어간 세션이 `근력 세션 2` 처럼 어긋난 번호를 단다.
+    final spare = <ProgramSessionDraft>[
+      for (final ProgramSessionDraft session in _draft.sessions)
+        if (session.exercises.isEmpty) session,
+    ];
+    final sessions = <ProgramSessionDraft>[
+      for (final ProgramSessionDraft session in _draft.sessions)
+        if (session.exercises.isNotEmpty) session,
+    ];
+    var spareIndex = 0;
     for (final MapEntry<String, List<ProgramExerciseDraft>> group
         in grouped.entries) {
       final Set<String> taken = <String>{
@@ -924,13 +945,12 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
       for (var n = 2; taken.contains(name); n++) {
         name = l.programEditorSessionNameNumbered(group.key, n);
       }
-      if (reuseFirst) {
-        sessions[0] = sessions.first.copyWith(
-          name: name,
-          exercises: group.value,
-        );
-        _sessionType[sessions.first.id] = group.key;
-        reuseFirst = false;
+      if (spareIndex < spare.length) {
+        // 빈 세션의 id 를 그대로 물려준다 — 열어 둔 자리가 새 id 로 바뀌면
+        // 그 세션을 가리키던 화면 상태가 엉뚱한 세션을 가리킨다.
+        final ProgramSessionDraft reused = spare[spareIndex++];
+        sessions.add(reused.copyWith(name: name, exercises: group.value));
+        _sessionType[reused.id] = group.key;
       } else if (sessions.length < kProgramMaxSessions) {
         final id = 'session-${_nextId++}';
         sessions.add(
@@ -947,6 +967,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           ],
         );
       }
+    }
+    // 내주지 못하고 남은 빈 세션은 여기서 사라진다.
+    for (final ProgramSessionDraft leftover in spare.skip(spareIndex)) {
+      _sessionType.remove(leftover.id);
     }
     if (_initialized) {
       _update(_draft.copyWith(sessions: sessions));
@@ -1063,6 +1087,24 @@ class _SessionEditorState extends State<_SessionEditor> {
               ),
               const SizedBox(width: OnCareSpacing.s4),
               Expanded(child: _buildSessionName()),
+              // 목록을 늘리는 `+ 운동 추가` 는 목록 제목 오른쪽 글자 버튼이다 — 회원 앱
+              // 음식 수정의 `먹은 음식 [+ 음식 추가]`, 편집기의 `운동 구성 [+ 세션 추가]`
+              // 와 같은 자리·모양이다. 목록 끝에 두면 목록이 길수록 멀어진다(#2465).
+              if (!_editingName && !widget.addingExercise)
+                Tooltip(
+                  message: widget.canAddExercise
+                      ? ''
+                      : l.programEditorExerciseLimitReached(
+                          kProgramMaxExercises,
+                        ),
+                  child: AppButton(
+                    label: l.programEditorAddExercise,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    leadingIcon: Icons.add_rounded,
+                    onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+                  ),
+                ),
               if (_editingName)
                 AppIconButton(
                   tooltip: l.actionClose,
@@ -1255,38 +1297,17 @@ class _SessionEditorState extends State<_SessionEditor> {
                         ),
                   ),
                   const SizedBox(height: OnCareSpacing.s8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: <Widget>[
-                      AppButton(
-                        label: l.actionCancel,
-                        variant: AppButtonVariant.secondary,
-                        size: OnCareButtonSize.small,
-                        onPressed: widget.onCancelAdd,
-                      ),
-                      const SizedBox(width: OnCareSpacing.buttonGap),
-                      AppButton(
-                        label: l.programEditorAdd,
-                        size: OnCareButtonSize.small,
-                        onPressed: widget.canAddExercise
-                            ? widget.onConfirmAdd
-                            : null,
-                      ),
-                    ],
+                  // AI 루틴의 운동 직접 추가 폼과 같은 모양이다(#2465).
+                  AppButtonPair(
+                    size: OnCareButtonSize.small,
+                    cancelLabel: l.actionCancel,
+                    onCancel: widget.onCancelAdd,
+                    confirmLabel: l.programEditorAdd,
+                    onConfirm: widget.canAddExercise
+                        ? widget.onConfirmAdd
+                        : null,
                   ),
                 ],
-              ),
-            )
-          else
-            Tooltip(
-              message: widget.canAddExercise
-                  ? ''
-                  : l.programEditorExerciseLimitReached(kProgramMaxExercises),
-              child: AppButton(
-                label: l.programEditorAddExercise,
-                variant: AppButtonVariant.secondary,
-                leadingIcon: Icons.add_rounded,
-                onPressed: widget.canAddExercise ? widget.onStartAdd : null,
               ),
             ),
         ],
