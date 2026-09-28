@@ -11,6 +11,8 @@
 * 막힌 쓰기는 아무 행도 남기지 않는다(채팅·일정·루틴·메모·리포트·알림).
 * `_require_client` 를 지나지 않는 경로(제안 승인·일정의 프로그램 전송·일정 등록 뒤
   배정)도 같은 경계를 본다.
+* 해제 전에 잡아 둔 일정을 id 로 여는 경로(개인운동 전송·완료·수정·되돌리기)도
+  막힌다. 취소는 열려 있다. 동의 없이 살아 있는 링크도 같다(#1631).
 * 해제된 링크를 다뤄야 하는 곳(해제·재등록·활성/휴면 전환·로스터·내 할 일)은
   예전 동작 그대로다.
 * 휴면(`dormant`)은 담당 해제가 아니다 — 계속 열린다.
@@ -30,7 +32,9 @@ from app.core import clock
 from app.core.security import create_access_token
 from app.models.models import (
     ChatMessage,
+    ExerciseSession,
     Notification,
+    RoutineHistory,
     TrainerClient,
     TrainerClientMemo,
     TrainerFollowUpTask,
@@ -797,3 +801,242 @@ def test_routine_option_analysis_ignores_a_detached_link(db_session, pair):
         svc.build_member_analysis(
             db_session, pair.trainer_id, pair.member_id, RoutineOptionsRequest()
         )
+
+
+# ---------------------------------------------------------------------------
+# 일정 id 로 여는 경로 — 해제 전에 잡아 둔 일정 (#1631)
+# ---------------------------------------------------------------------------
+
+
+def _member_detaches(client, p: Pair) -> None:
+    """회원이 앱에서 담당을 끊는다 — 동의 철회까지 함께 일어나는 경로."""
+    r = client.delete(
+        "/v1/me/coach/trainer",
+        headers=_h(create_access_token(p.member_id)),
+    )
+    assert r.status_code == 204, r.text
+
+
+def _session_with_personal_routine(client, p: Pair, *, time: str) -> str:
+    """오늘 PT 를 잡고 개인운동을 붙인 뒤 일정 id 를 준다."""
+    r = client.post(
+        f"/v1/trainer/clients/{p.member_id}/program-schedule",
+        json={
+            "name": "해제 확인 PT",
+            "sessions": _PROGRAM_SESSIONS,
+            "date": clock.today_iso(),
+            "time": time,
+            "duration_minutes": 30,
+            "personal_routines": [
+                {"name": "해제 확인 걷기", "minutes": 30, "type": "유산소"},
+            ],
+        },
+        headers=p.headers,
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["session"]["id"]
+
+
+def _plain_session(client, p: Pair, *, day: str, time: str) -> str:
+    r = client.post(
+        "/v1/trainer/schedule",
+        json={
+            "date": day,
+            "time": time,
+            "member_id": p.member_id,
+            "client_name": "해제 확인 회원",
+            "type": "1:1 PT",
+            "duration_minutes": 50,
+            "program": [{"name": "스쿼트", "sets": 3, "reps": "10회"}],
+        },
+        headers=p.headers,
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def test_personal_routines_are_not_sent_after_the_member_detaches(
+    client, db_session, pair
+):
+    """취소한 PT 의 개인운동을 해제 뒤에 보내면 회원에게 운동과 알림이 갔다."""
+    session_id = _session_with_personal_routine(client, pair, time="06:20")
+    cancelled = client.post(
+        f"/v1/trainer/schedule/{session_id}/cancel",
+        json={"source": "member", "reason": "몸살"},
+        headers=pair.headers,
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    _member_detaches(client, pair)
+    before = _count(db_session, Notification, user_id=pair.member_id)
+
+    r = client.post(
+        f"/v1/trainer/schedule/{session_id}/routines/send",
+        json={},
+        headers=pair.headers,
+    )
+    _assert_guard(r)
+    db_session.expire_all()
+    statuses = db_session.scalars(
+        select(TrainerRoutine.status).where(
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.delivery_kind.is_not(None),
+        )
+    ).all()
+    assert statuses == ["scheduled"]
+    assert _count(db_session, Notification, user_id=pair.member_id) == before
+
+
+def test_personal_routines_are_sent_while_linked(client, db_session, pair):
+    """같은 흐름이라도 담당 중이면 그대로 간다 — 막은 것은 해제 뒤뿐이다."""
+    session_id = _session_with_personal_routine(client, pair, time="06:40")
+    assert client.post(
+        f"/v1/trainer/schedule/{session_id}/cancel",
+        json={"source": "member", "reason": "몸살"},
+        headers=pair.headers,
+    ).status_code == 200
+
+    r = client.post(
+        f"/v1/trainer/schedule/{session_id}/routines/send",
+        json={},
+        headers=pair.headers,
+    )
+    assert r.status_code == 200, r.text
+    db_session.expire_all()
+    assert db_session.scalars(
+        select(TrainerRoutine.status).where(
+            TrainerRoutine.schedule_id == session_id,
+            TrainerRoutine.delivery_kind.is_not(None),
+        )
+    ).all() == ["approved"]
+
+
+def test_completing_a_session_after_detach_writes_nothing_for_the_member(
+    client, db_session, pair
+):
+    """해제 전에 잡은 오늘 PT 를 해제 뒤 완료하면 회원 운동 기록이 생겼다."""
+    session_id = _plain_session(client, pair, day=clock.today_iso(), time="07:10")
+    _member_detaches(client, pair)
+
+    r = client.post(
+        f"/v1/trainer/schedule/{session_id}/complete",
+        json={"note": "해제 뒤 완료"},
+        headers=pair.headers,
+    )
+    _assert_guard(r)
+    db_session.expire_all()
+    assert db_session.get(TrainerSchedule, session_id).status == "예정"
+    assert _count(db_session, ExerciseSession, user_id=pair.member_id) == 0
+    assert _count(db_session, RoutineHistory, member_id=pair.member_id) == 0
+
+
+def test_rescheduling_a_session_after_detach_sends_no_notice(
+    client, db_session, pair
+):
+    """해제 뒤 시간을 옮기면 회원에게 일정 변경 알림이 갔다."""
+    session_id = _plain_session(client, pair, day=_future_day(), time="07:30")
+    _member_detaches(client, pair)
+    before = _count(db_session, Notification, user_id=pair.member_id)
+
+    r = client.put(
+        f"/v1/trainer/schedule/{session_id}",
+        json={"time": "08:30"},
+        headers=pair.headers,
+    )
+    _assert_guard(r)
+    db_session.expire_all()
+    assert db_session.get(TrainerSchedule, session_id).time == "07:30"
+    assert _count(db_session, Notification, user_id=pair.member_id) == before
+
+
+def test_reopening_a_completed_session_after_detach_keeps_the_member_record(
+    client, db_session, pair
+):
+    """되돌리기는 회원 운동 기록을 지운다 — 해제 뒤에는 회원 기록에 손대지 않는다."""
+    session_id = _plain_session(client, pair, day=clock.today_iso(), time="07:50")
+    done = client.post(
+        f"/v1/trainer/schedule/{session_id}/complete",
+        json={"note": "완료"},
+        headers=pair.headers,
+    )
+    assert done.status_code == 200, done.text
+    records = _count(db_session, ExerciseSession, user_id=pair.member_id)
+    assert records == 1
+    _member_detaches(client, pair)
+
+    r = client.post(
+        f"/v1/trainer/schedule/{session_id}/reopen",
+        json={"date": _future_day()},
+        headers=pair.headers,
+    )
+    _assert_guard(r)
+    assert _count(db_session, ExerciseSession, user_id=pair.member_id) == records
+
+
+def test_cancelling_a_session_after_detach_still_works(client, db_session, pair):
+    """취소는 막지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는 해제 뒤에도 필요하다."""
+    session_id = _plain_session(client, pair, day=_future_day(), time="08:10")
+    _member_detaches(client, pair)
+
+    r = client.post(
+        f"/v1/trainer/schedule/{session_id}/cancel",
+        json={"source": "trainer", "reason": "담당 종료"},
+        headers=pair.headers,
+    )
+    assert r.status_code == 200, r.text
+
+
+# ---------------------------------------------------------------------------
+# 동의 없이 살아 있는 링크 — `_require_client` 밖의 경로도 같이 닫힌다 (#1631)
+# ---------------------------------------------------------------------------
+
+
+def _revoke_but_keep_active(db_session, p: Pair) -> None:
+    """철회된 뒤 새 동의 없이 되살아난 링크(예: 동의 시각이 없던 옛 상담의 수락)."""
+    link = db_session.get(TrainerClient, p.link_id)
+    link.data_consent_at = None
+    link.data_consent_revoked_at = clock.now()
+    link.active = True
+    db_session.commit()
+
+
+def test_has_active_client_link_needs_consent(db_session, pair):
+    from app.services import trainer_service
+
+    _revoke_but_keep_active(db_session, pair)
+    assert not trainer_service.has_active_client_link(
+        db_session, pair.trainer_id, pair.member_id
+    )
+
+
+def test_program_schedule_is_blocked_without_consent(client, db_session, pair):
+    _revoke_but_keep_active(db_session, pair)
+    r = client.post(
+        f"/v1/trainer/clients/{pair.member_id}/program-schedule",
+        json={
+            "name": "동의 없는 일정 추가",
+            "sessions": _PROGRAM_SESSIONS,
+            "date": _future_day(),
+            "time": "10:00",
+            "duration_minutes": 50,
+        },
+        headers=pair.headers,
+    )
+    _assert_guard(r)
+    who = {"trainer_id": pair.trainer_id, "member_id": pair.member_id}
+    assert _count(db_session, TrainerSchedule, **who) == 0
+    assert _count(db_session, TrainerRoutine, **who) == 0
+
+
+def test_session_paths_are_blocked_without_consent(client, db_session, pair):
+    """링크가 살아 있어도 동의가 없으면 일정 id 경로가 회원에게 쓰지 않는다."""
+    session_id = _plain_session(client, pair, day=clock.today_iso(), time="08:40")
+    _revoke_but_keep_active(db_session, pair)
+
+    _assert_guard(
+        client.post(
+            f"/v1/trainer/schedule/{session_id}/complete",
+            json={"note": "동의 없음"},
+            headers=pair.headers,
+        )
+    )
+    assert _count(db_session, ExerciseSession, user_id=pair.member_id) == 0

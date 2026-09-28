@@ -3515,7 +3515,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymDisconnectWithTrainerConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged will stay.'**
+  /// **'Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.'**
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer);
 
   /// No description provided for @myGymDisconnectConfirm.
@@ -3527,7 +3527,7 @@ abstract class AppLocalizations {
   /// No description provided for @myTrainerDisconnectConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect trainer {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged will stay.'**
+  /// **'Disconnect trainer {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.'**
   String myTrainerDisconnectConfirm(String trainer, String gym);
 
   /// No description provided for @myGymDetailTooltip.
