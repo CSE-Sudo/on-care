@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
@@ -205,7 +206,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               _programName.text = _draft.name;
               _editingProgramInfo = true;
             }),
-            icon: Icons.edit_rounded,
+            icon: AppIcons.edit,
             color: OnCareColors.textTertiary,
           ),
         ],
@@ -272,8 +273,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           : l.programEditorSaveTemplate,
       onPressed: canSave && !widget.saving ? _handleSaveTemplate : null,
       icon: _templateSaved
-          ? Icons.bookmark_rounded
-          : Icons.bookmark_border_rounded,
+          ? AppIcons.templateSaved
+          : AppIcons.saveTemplate,
       color: _templateSaved
           ? context.oncare.brand.primary
           : OnCareColors.textTertiary,
@@ -502,7 +503,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                 onPressed: _draft.canAddSession
                     ? () => unawaited(_pickSessionType())
                     : null,
-                leadingIcon: Icons.add_rounded,
+                leadingIcon: AppIcons.add,
                 label: l.programEditorAddSession,
                 variant: AppButtonVariant.text,
                 size: OnCareButtonSize.small,
@@ -591,13 +592,13 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
             children: <Widget>[
               _RegisterFieldBox(
                 key: const ValueKey<String>('program-register-date'),
-                icon: Icons.calendar_today_rounded,
+                icon: AppIcons.calendar,
                 value: ymd(widget.registerDate),
                 onTap: () => unawaited(_pickRegisterDate(context)),
               ),
               _RegisterFieldBox(
                 key: const ValueKey<String>('program-register-time'),
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.clock,
                 value:
                     '${widget.registerStartTime.format(context)} – '
                     '${widget.registerEndTime.format(context)}',
@@ -1071,8 +1072,8 @@ class _SessionEditorState extends State<_SessionEditor> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(
-                Icons.drag_indicator_rounded,
+              AppIcon(
+                AppIcons.dragHandle,
                 size: OnCareSize.iconMedium,
                 color: context.oncare.brand.primary,
               ),
@@ -1092,7 +1093,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                     label: l.programEditorAddExercise,
                     variant: AppButtonVariant.text,
                     size: OnCareButtonSize.small,
-                    leadingIcon: Icons.add_rounded,
+                    leadingIcon: AppIcons.add,
                     onPressed: widget.canAddExercise ? widget.onStartAdd : null,
                   ),
                 ),
@@ -1100,7 +1101,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                 AppIconButton(
                   tooltip: l.actionClose,
                   onPressed: () => setState(() => _editingName = false),
-                  icon: Icons.check_rounded,
+                  icon: AppIcons.check,
                   color: context.oncare.brand.primary,
                 )
               else ...<Widget>[
@@ -1112,13 +1113,13 @@ class _SessionEditorState extends State<_SessionEditor> {
                   onPressed: widget.session.exercises.isEmpty
                       ? null
                       : () => unawaited(_confirmReset()),
-                  icon: Icons.refresh_rounded,
+                  icon: AppIcons.refresh,
                   color: OnCareColors.textTertiary,
                 ),
                 AppMenu(
                   items: <AppMenuItem>[
                     AppMenuItem(
-                      icon: Icons.edit_rounded,
+                      icon: AppIcons.edit,
                       label: l.actionEdit,
                       onSelected: () => _handleSessionAction('edit'),
                     ),
@@ -1129,21 +1130,21 @@ class _SessionEditorState extends State<_SessionEditor> {
                     // 겪게 된다. (#2220)
                     if (widget.canDelete) ...<AppMenuItem>[
                       AppMenuItem(
-                        icon: Icons.keyboard_arrow_up_rounded,
+                        icon: AppIcons.moveUp,
                         label: l.programEditorSessionUp,
                         onSelected: widget.canMoveUp
                             ? () => _handleSessionAction('up')
                             : null,
                       ),
                       AppMenuItem(
-                        icon: Icons.keyboard_arrow_down_rounded,
+                        icon: AppIcons.moveDown,
                         label: l.programEditorSessionDown,
                         onSelected: widget.canMoveDown
                             ? () => _handleSessionAction('down')
                             : null,
                       ),
                       AppMenuItem(
-                        icon: Icons.delete_outline_rounded,
+                        icon: AppIcons.delete,
                         label: l.actionDelete,
                         destructive: true,
                         onSelected: () => _handleSessionAction('delete'),
@@ -1155,7 +1156,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                       'session-actions-${widget.session.id}',
                     ),
                     tooltip: l.actionEdit,
-                    icon: Icons.more_horiz_rounded,
+                    icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
                   ),
@@ -1428,8 +1429,8 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.drag_indicator_rounded,
+              const AppIcon(
+                AppIcons.dragHandle,
                 size: OnCareSize.iconSmall,
                 color: OnCareColors.textTertiary,
               ),
@@ -1453,26 +1454,26 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   key: ValueKey<String>('exercise-edit-${exercise.id}'),
                   tooltip: l.actionClose,
                   onPressed: () => setState(() => _editing = false),
-                  icon: Icons.check_rounded,
+                  icon: AppIcons.check,
                   color: context.oncare.brand.primary,
                 )
               else
                 AppMenu(
                   items: <AppMenuItem>[
                     AppMenuItem(
-                      icon: Icons.edit_rounded,
+                      icon: AppIcons.edit,
                       label: l.actionEdit,
                       onSelected: () => _handleExerciseAction('edit'),
                     ),
                     AppMenuItem(
-                      icon: Icons.keyboard_arrow_up_rounded,
+                      icon: AppIcons.moveUp,
                       label: l.programEditorExerciseUp,
                       onSelected: widget.canMoveUp
                           ? () => _handleExerciseAction('up')
                           : null,
                     ),
                     AppMenuItem(
-                      icon: Icons.keyboard_arrow_down_rounded,
+                      icon: AppIcons.moveDown,
                       label: l.programEditorExerciseDown,
                       onSelected: widget.canMoveDown
                           ? () => _handleExerciseAction('down')
@@ -1480,12 +1481,12 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                     ),
                     if (widget.onMoveToSession != null)
                       AppMenuItem(
-                        icon: Icons.drive_file_move_rounded,
+                        icon: AppIcons.moveToSession,
                         label: l.programEditorExerciseMoveSession,
                         onSelected: () => _handleExerciseAction('move'),
                       ),
                     AppMenuItem(
-                      icon: Icons.delete_outline_rounded,
+                      icon: AppIcons.delete,
                       label: l.actionDelete,
                       destructive: true,
                       onSelected: () => _handleExerciseAction('delete'),
@@ -1494,7 +1495,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>('exercise-edit-${exercise.id}'),
                     tooltip: l.actionEdit,
-                    icon: Icons.more_horiz_rounded,
+                    icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
                   ),
@@ -1655,7 +1656,7 @@ class _RegisterFieldBox extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
@@ -1668,8 +1669,8 @@ class _RegisterFieldBox extends StatelessWidget {
                       .copyWith(color: OnCareColors.textPrimary),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                const AppIcon(
+                  AppIcons.expandMore,
                   size: OnCareSize.iconMedium,
                   color: OnCareColors.textTertiary,
                 ),

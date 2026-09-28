@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_ai_card.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
@@ -172,7 +173,7 @@ class _ClientReportViewState extends State<ClientReportView> {
                       AppButton(
                         key: const ValueKey<String>('report-feedback-scratch'),
                         label: l.reportsWriteFromScratch,
-                        leadingIcon: Icons.edit_note_rounded,
+                        leadingIcon: AppIcons.write,
                         variant: AppButtonVariant.text,
                         size: OnCareButtonSize.small,
                         onPressed: () => widget.onUseSummaryAsDraft(''),
@@ -187,7 +188,7 @@ class _ClientReportViewState extends State<ClientReportView> {
                               key: const ValueKey<String>(
                                 'report-feedback-undo',
                               ),
-                              icon: Icons.undo_rounded,
+                              icon: AppIcons.undo,
                               tooltip: l.reportsFeedbackUndo,
                               size: AppIconButtonSize.small,
                               onPressed: history.canUndo ? _undo.undo : null,
@@ -196,7 +197,7 @@ class _ClientReportViewState extends State<ClientReportView> {
                               key: const ValueKey<String>(
                                 'report-feedback-redo',
                               ),
-                              icon: Icons.redo_rounded,
+                              icon: AppIcons.redo,
                               tooltip: l.reportsFeedbackRedo,
                               size: AppIconButtonSize.small,
                               onPressed: history.canRedo ? _undo.redo : null,
@@ -210,7 +211,7 @@ class _ClientReportViewState extends State<ClientReportView> {
                         label: widget.savingFeedback
                             ? l.reportsFeedbackSaving
                             : l.reportsFeedbackSave,
-                        leadingIcon: Icons.save_rounded,
+                        leadingIcon: AppIcons.save,
                         variant: AppButtonVariant.secondary,
                         size: OnCareButtonSize.small,
                         onPressed: widget.savingFeedback

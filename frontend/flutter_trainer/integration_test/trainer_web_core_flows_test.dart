@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/bootstrap.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
@@ -387,7 +388,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: _chatComposer,
-        matching: find.byIcon(Icons.send_rounded),
+        matching: find.byIcon(AppIcons.send),
       ),
     );
     // 입력창은 **서버 저장이 끝난 뒤에만** 비워진다(`ChatView._send`) — 실패하면 초안이

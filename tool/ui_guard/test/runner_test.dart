@@ -140,9 +140,12 @@ Widget a() => const SizedBox(height: AppSpacing.sm, child: Text('a', style: Text
     expect(check().$1, 0);
   });
 
-  test('회원앱은 아이콘 목록 밖 아이콘을 잡고 목록 파일은 뺀다(#1803)', () {
+  test('두 앱은 아이콘 목록 밖 아이콘을 잡고 목록 파일은 뺀다(#1803, #2466)', () {
     expect(iconRegistryOf('frontend/flutter/'), 'lib/app/app_icons.dart');
-    expect(iconRegistryOf('frontend/flutter_trainer'), isNull);
+    expect(
+      iconRegistryOf('frontend/flutter_trainer'),
+      'lib/app/app_icons.dart',
+    );
     write(
       'lib/app/app_icons.dart',
       'class AppIcons { static const home = Symbols.home_rounded; }\n',
@@ -164,21 +167,49 @@ Widget a() => const SizedBox(height: AppSpacing.sm, child: Text('a', style: Text
       Rule.rawIcon: 1,
     });
 
-    // 트레이너웹은 지금 규칙(_rounded) 그대로다.
+    // 트레이너웹도 같은 규칙이다(#2466).
     const trainer = 'frontend/flutter_trainer';
-    File('${root.path}/$trainer/lib/page.dart')
-      ..createSync(recursive: true)
-      ..writeAsStringSync(
-        'Widget a() => Icon(Icons.close);\n'
-        'Widget b() => Icon(Icons.close_rounded);\n',
-      );
+    void writeTrainer(String path, String content) =>
+        File('${root.path}/$trainer/$path')
+          ..createSync(recursive: true)
+          ..writeAsStringSync(content);
+    writeTrainer(
+      'lib/app/app_icons.dart',
+      'class AppIcons { static const menu = Symbols.menu_rounded; }\n',
+    );
+    writeTrainer(
+      'lib/page.dart',
+      'Widget a() => Icon(Icons.close_rounded);\n'
+          'Widget b() => AppIcon(AppIcons.menu);\n',
+    );
     final trainerCounts = countFindings(
       scanApp(
         Directory('${root.path}/$trainer'),
         iconRegistry: iconRegistryOf(trainer),
       ),
     );
-    expect(trainerCounts['lib/page.dart'], {Rule.nonRoundedIcon: 1});
+    expect(trainerCounts.containsKey('lib/app/app_icons.dart'), isFalse);
+    expect(trainerCounts['lib/page.dart'], {
+      Rule.iconOutsideRegistry: 1,
+      Rule.rawIcon: 1,
+    });
+
+    // 목록이 없는 앱은 `_rounded` 규칙만 본다.
+    const other = 'frontend/other';
+    expect(iconRegistryOf(other), isNull);
+    File('${root.path}/$other/lib/page.dart')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        'Widget a() => Icon(Icons.close);\n'
+        'Widget b() => Icon(Icons.close_rounded);\n',
+      );
+    final otherCounts = countFindings(
+      scanApp(
+        Directory('${root.path}/$other'),
+        iconRegistry: iconRegistryOf(other),
+      ),
+    );
+    expect(otherCounts['lib/page.dart'], {Rule.nonRoundedIcon: 1});
   });
 
   test('check 는 회원앱 화면의 목록 밖 아이콘을 늘어난 것으로 본다', () {

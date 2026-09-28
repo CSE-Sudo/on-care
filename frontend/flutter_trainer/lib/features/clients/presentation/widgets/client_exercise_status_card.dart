@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -226,14 +227,14 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
           ),
           error: (_, _) => AppEmptyState(
             title: l.workoutLoadFailed,
-            icon: Icons.cloud_off_rounded,
+            icon: AppIcons.offline,
             placement: AppStatePlacement.card,
           ),
           data: (List<RoutineHistoryEntry> entries) {
             if (entries.isEmpty) {
               return AppEmptyState(
                 title: l.workoutEmpty,
-                icon: Icons.fitness_center_rounded,
+                icon: AppIcons.exercise,
                 placement: AppStatePlacement.card,
               );
             }
@@ -291,8 +292,8 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
                           ? l.workoutRecordsShowLess
                           : l.workoutRecordsShowMore,
                       trailingIcon: _expanded
-                          ? Icons.expand_less_rounded
-                          : Icons.expand_more_rounded,
+                          ? AppIcons.expandLess
+                          : AppIcons.expandMore,
                       variant: AppButtonVariant.text,
                       size: OnCareButtonSize.small,
                       onPressed: _toggle,
@@ -369,8 +370,8 @@ class _ExerciseLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Icon(
-          skipped ? Icons.close_rounded : Icons.check_rounded,
+        AppIcon(
+          skipped ? AppIcons.close : AppIcons.check,
           size: OnCareSize.iconSmall,
           color: skipped ? OnCareColors.textDisabled : OnCareColors.success,
         ),
@@ -445,7 +446,7 @@ class _Today extends ConsumerWidget {
       return _ChartSlot(
         child: AppEmptyState(
           title: l.clientTrendTodayEmpty,
-          icon: Icons.fitness_center_rounded,
+          icon: AppIcons.exercise,
         ),
       );
     }

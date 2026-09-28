@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
@@ -155,7 +156,7 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
             setState(() => _exercises.add(_ExerciseDraft.empty())),
         variant: AppButtonVariant.text,
         size: OnCareButtonSize.small,
-        leadingIcon: Icons.add_rounded,
+        leadingIcon: AppIcons.add,
       ),
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
@@ -370,7 +371,7 @@ class _ExerciseRow extends StatelessWidget {
               AppIconButton(
                 tooltip: l.a11yRemoveExercise,
                 onPressed: onRemove,
-                icon: Icons.remove_circle_outline_rounded,
+                icon: AppIcons.delete,
                 color: OnCareColors.textSecondary,
               ),
             ],

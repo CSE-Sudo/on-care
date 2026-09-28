@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_trend_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
@@ -43,7 +44,7 @@ class ReportExerciseTrend extends ConsumerWidget {
       return AppEmptyState(
         key: const ValueKey<String>('report-trend-empty'),
         title: l.reportsTrendUnavailable,
-        icon: Icons.fitness_center_rounded,
+        icon: AppIcons.exercise,
         placement: AppStatePlacement.card,
       );
     }

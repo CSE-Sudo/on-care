@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -74,7 +75,7 @@ class ReportAiCard extends ConsumerWidget {
     return AppBanner(
       key: const ValueKey<String>('reports-ai-card'),
       placement: AppBannerPlacement.card,
-      icon: Icons.auto_awesome_rounded,
+      icon: AppIcons.ai,
       title: l.reportsAiTitle,
       titleMeta: l.reportsAiSubtitle,
       trailing: (summary.valueOrNull?.isGenerated ?? false)
@@ -145,8 +146,8 @@ class _SummaryBody extends StatelessWidget {
               key: ValueKey<String>('reports-summary-action-$i'),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(
-                  Icons.check_circle_outline_rounded,
+                AppIcon(
+                  AppIcons.checkCircle,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
                 ),
@@ -178,14 +179,14 @@ class _SummaryBody extends StatelessWidget {
         children: <Widget>[
           AppButton(
             label: l.reportsAiUseAsDraft,
-            leadingIcon: Icons.edit_note_rounded,
+            leadingIcon: AppIcons.write,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
             onPressed: onUseAsDraft,
           ),
           AppButton(
             label: l.reportsAiRegenerate,
-            leadingIcon: Icons.refresh_rounded,
+            leadingIcon: AppIcons.refresh,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
             onPressed: onRegenerate,

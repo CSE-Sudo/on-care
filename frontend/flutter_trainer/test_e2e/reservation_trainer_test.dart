@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_page.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
@@ -40,11 +41,11 @@ Future<void> _openSchedule(WidgetTester tester, DateTime day) async {
   final Finder cell = find.byKey(ValueKey<String>('schedule-day-${ymd(day)}'));
   await pumpUntil(
     tester,
-    find.byIcon(Icons.chevron_right_rounded).first,
+    find.byIcon(AppIcons.chevronRight).first,
     step: '주 이동 화살표',
   );
   if (cell.evaluate().isEmpty) {
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded).first);
+    await tester.tap(find.byIcon(AppIcons.chevronRight).first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
   }

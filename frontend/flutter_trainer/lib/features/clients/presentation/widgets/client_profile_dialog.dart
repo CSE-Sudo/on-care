@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -1054,7 +1055,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             AppButton(
               key: const ValueKey<String>('client-memo-add'),
               onPressed: _busy ? null : _add,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               label: l.clientTrainerMemoAdd,
             ),
           ],
@@ -1113,7 +1114,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                 key: ValueKey<String>('client-memo-insight-${memo.id}'),
                 label: _insightReasonLabel(l, memo.insightKind),
                 tone: AppTagTone.danger,
-                icon: Icons.warning_amber_rounded,
+                icon: AppIcons.warning,
               ),
             ),
           if (editing)
@@ -1166,7 +1167,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                 // 메모를 열면 쓰던 글이 확인도 없이 사라진다.
                 AppIconButton(
                   key: ValueKey<String>('client-memo-edit-open-${memo.id}'),
-                  icon: Icons.edit_rounded,
+                  icon: AppIcons.edit,
                   tooltip: l.actionEdit,
                   color: OnCareColors.textSecondary,
                   onPressed: _busy || _editingId != null
@@ -1178,7 +1179,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                 ),
                 AppIconButton(
                   key: ValueKey<String>('client-memo-delete-${memo.id}'),
-                  icon: Icons.delete_outline_rounded,
+                  icon: AppIcons.delete,
                   tooltip: l.actionDelete,
                   color: OnCareColors.danger,
                   onPressed: _busy || _editingId != null

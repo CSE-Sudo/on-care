@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
@@ -604,7 +605,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           const SizedBox(height: OnCareSpacing.s8),
           InputDecorator(
             decoration: InputDecoration(
-              suffixIcon: Icon(icon, size: OnCareSize.iconSmall),
+              suffixIcon: AppIcon(icon, size: OnCareSize.iconSmall),
             ),
             child: Text(
               value,
@@ -626,7 +627,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       key: const ValueKey<String>('session-time-range-field'),
       label: l.schedFieldTime,
       value: l.schedTimeRange(_time, _endTime),
-      icon: Icons.schedule_rounded,
+      icon: AppIcons.clock,
       onTap: _pickTimeRange,
     );
   }
@@ -648,7 +649,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
               _repeatUntil == null ? '-' : ymd(_repeatUntil!),
             )
           : ymd(_date),
-      icon: Icons.calendar_today_rounded,
+      icon: AppIcons.calendar,
       onTap: _pickDate,
     );
   }

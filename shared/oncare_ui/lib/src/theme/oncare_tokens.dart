@@ -18,7 +18,8 @@ class OnCareTokens extends ThemeExtension<OnCareTokens> {
   final OnCareBrand brand;
   final OnCareDensity density;
 
-  /// 공용 컴포넌트가 그리는 아이콘 묶음(#1803). 트레이너웹은 기본 묶음이다.
+  /// 공용 컴포넌트가 그리는 아이콘 묶음(#1803). 두 앱 모두 자기 목록의 묶음을
+  /// 넣는다(#2466).
   final OnCareIconSet icons;
 
   /// 화면이 쓰는 역할 글자. 전역 글자 배율이 없어져(#1707) 역할 크기 그대로다 —
