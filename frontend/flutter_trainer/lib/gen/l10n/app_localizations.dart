@@ -8337,18 +8337,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
   String get reportsSendHistoryFailed;
 
-  /// No description provided for @reportsSentBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Message sent'**
-  String get reportsSentBody;
-
-  /// No description provided for @reportsSentFigures.
-  ///
-  /// In en, this message translates to:
-  /// **'Figures sent'**
-  String get reportsSentFigures;
-
   /// No description provided for @reportsStepReview.
   ///
   /// In en, this message translates to:
