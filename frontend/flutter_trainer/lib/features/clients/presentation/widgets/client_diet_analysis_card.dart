@@ -437,12 +437,7 @@ class _WithActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget buttons = Wrap(
-      alignment: WrapAlignment.end,
-      spacing: OnCareSpacing.s8,
-      runSpacing: OnCareSpacing.s8,
-      children: actions,
-    );
+    final Widget buttons = AppActionRow(actions: actions);
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints c) {
         if (c.maxWidth < _oneLineMinWidth) {

@@ -373,12 +373,15 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
         key: ValueKey<String>(keyPrefix),
         title: title,
         showClose: false,
-        footer: AppButton(
-          key: ValueKey<String>('$keyPrefix-cancel'),
-          label: l.actionCancel,
-          variant: AppButtonVariant.secondary,
-          fullWidth: true,
-          onPressed: () => Navigator.of(dialogContext).pop(),
+        footer: AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: ValueKey<String>('$keyPrefix-cancel'),
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1255,38 +1258,36 @@ class _SessionEditorState extends State<_SessionEditor> {
                         ),
                   ),
                   const SizedBox(height: OnCareSpacing.s8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: <Widget>[
-                      AppButton(
-                        label: l.actionCancel,
-                        variant: AppButtonVariant.secondary,
-                        size: OnCareButtonSize.small,
-                        onPressed: widget.onCancelAdd,
-                      ),
-                      const SizedBox(width: OnCareSpacing.buttonGap),
-                      AppButton(
-                        label: l.programEditorAdd,
-                        size: OnCareButtonSize.small,
-                        onPressed: widget.canAddExercise
-                            ? widget.onConfirmAdd
-                            : null,
-                      ),
-                    ],
+                  // AI 루틴의 운동 직접 추가 폼과 같은 모양이다(#2465).
+                  AppButtonPair(
+                    size: OnCareButtonSize.small,
+                    cancelLabel: l.actionCancel,
+                    onCancel: widget.onCancelAdd,
+                    confirmLabel: l.programEditorAdd,
+                    onConfirm: widget.canAddExercise
+                        ? widget.onConfirmAdd
+                        : null,
                   ),
                 ],
               ),
             )
           else
-            Tooltip(
-              message: widget.canAddExercise
-                  ? ''
-                  : l.programEditorExerciseLimitReached(kProgramMaxExercises),
-              child: AppButton(
-                label: l.programEditorAddExercise,
-                variant: AppButtonVariant.secondary,
-                leadingIcon: Icons.add_rounded,
-                onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+            // 목록을 늘리는 `+ 운동 추가` 는 목록 시작선에 작은 보조 버튼으로 둔다 —
+            // 창·카드의 확정 버튼이 아니라서 오른쪽 동작 줄에 서지 않고, 폭을 채우면
+            // 확정 버튼보다 먼저 눈에 든다(#2465).
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Tooltip(
+                message: widget.canAddExercise
+                    ? ''
+                    : l.programEditorExerciseLimitReached(kProgramMaxExercises),
+                child: AppButton(
+                  label: l.programEditorAddExercise,
+                  variant: AppButtonVariant.secondary,
+                  size: OnCareButtonSize.small,
+                  leadingIcon: Icons.add_rounded,
+                  onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+                ),
               ),
             ),
         ],

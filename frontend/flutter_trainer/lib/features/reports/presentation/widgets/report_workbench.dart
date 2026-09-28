@@ -550,12 +550,8 @@ class _RowButtons extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final VoidCallback? primary = onPrimary;
     // 좁은 폭·큰 글자에서는 두 버튼이 넘치지 않게 아랫줄로 접힌다.
-    return Wrap(
-      alignment: WrapAlignment.end,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: OnCareSpacing.s4,
-      runSpacing: OnCareSpacing.s4,
-      children: <Widget>[
+    return AppActionRow(
+      actions: <Widget>[
         AppButton(
           key: ValueKey<String>('reports-history-$clientId'),
           label: l.reportsHistoryButton,

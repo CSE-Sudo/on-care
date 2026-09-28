@@ -146,14 +146,17 @@ class PersonalRoutineBox extends StatelessWidget {
                   .copyWith(color: OnCareColors.textSecondary),
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            AppButton(
-              key: const ValueKey<String>('personal-routine-send'),
-              label: sent ? l.aiRoutineOnlySentLabel : l.aiRoutineOnlySend,
-              onPressed: sending || sent ? null : onSend,
-              size: OnCareButtonSize.large,
-              leadingIcon: sent ? Icons.check_rounded : Icons.send_rounded,
-              fullWidth: true,
-              loading: sending,
+            AppActionRow(
+              actions: <Widget>[
+                AppButton(
+                  key: const ValueKey<String>('personal-routine-send'),
+                  label: sent ? l.aiRoutineOnlySentLabel : l.aiRoutineOnlySend,
+                  onPressed: sending || sent ? null : onSend,
+                  size: OnCareButtonSize.large,
+                  leadingIcon: sent ? Icons.check_rounded : Icons.send_rounded,
+                  loading: sending,
+                ),
+              ],
             ),
           ],
         ],

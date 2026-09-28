@@ -1101,17 +1101,19 @@ class _StepFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool last = stage == 2;
-    return Row(
-      children: <Widget>[
-        if (onPrev != null)
-          AppButton(
-            key: const ValueKey<String>('report-step-prev'),
-            label: l.reportsStepPrev,
-            variant: AppButtonVariant.text,
-            leadingIcon: Icons.chevron_left_rounded,
-            onPressed: onPrev,
-          ),
-        const Spacer(),
+    // 단계 흐름이라 `이전` 은 왼쪽 끝에 떼어 둔다 — 오른쪽 `다음` 과 한 쌍의
+    // 선택이 아니라 되돌아가기다(#2465).
+    return AppActionRow(
+      leading: onPrev == null
+          ? null
+          : AppButton(
+              key: const ValueKey<String>('report-step-prev'),
+              label: l.reportsStepPrev,
+              variant: AppButtonVariant.text,
+              leadingIcon: Icons.chevron_left_rounded,
+              onPressed: onPrev,
+            ),
+      actions: <Widget>[
         if (last)
           // 빈 피드백으로 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
           Tooltip(

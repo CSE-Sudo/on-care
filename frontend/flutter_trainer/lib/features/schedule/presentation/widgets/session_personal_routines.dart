@@ -280,13 +280,19 @@ class _SendPersonalRoutinesDialogState
           // 만들기까지 돌아가야 한다 — 고치는 자리가 반쪽이 된다(#2224).
           if (_draft.length < kProgramMaxSessions) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
-            AppButton(
-              key: const ValueKey<String>('session-routine-add'),
-              label: l.progAddExercise,
-              leadingIcon: Icons.add_rounded,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              onPressed: _add,
+            // 목록을 늘리는 `+ 운동 추가` 는 목록 시작선에 작은 보조 버튼으로 둔다 —
+            // 창·카드의 확정 버튼이 아니라서 오른쪽 동작 줄에 서지 않고, 폭을 채우면
+            // 확정 버튼보다 먼저 눈에 든다(#2465).
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: AppButton(
+                key: const ValueKey<String>('session-routine-add'),
+                label: l.progAddExercise,
+                leadingIcon: Icons.add_rounded,
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
+                onPressed: _add,
+              ),
             ),
           ],
         ],

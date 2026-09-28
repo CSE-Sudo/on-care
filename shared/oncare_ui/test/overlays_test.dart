@@ -51,6 +51,39 @@ void main() {
     }
   });
 
+  testWidgets('웹 창은 하단 버튼이 있으면 X 를 두지 않는다, 모바일은 둔다 (#2465)', (tester) async {
+    Future<void> open(OnCareDensity density, {Widget? footer}) async {
+      final BuildContext context = await _pump(tester, density: density);
+      showAppDialog<void>(
+        context: context,
+        builder: (_) =>
+            AppDialog(title: '제목', footer: footer, child: const Text('본문')),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final Widget footer = AppButtonPair(
+      cancelLabel: '취소',
+      onCancel: () {},
+      confirmLabel: '확인',
+      onConfirm: () {},
+    );
+
+    await open(OnCareDensity.web, footer: footer);
+    expect(find.byType(AppCloseButton), findsNothing);
+    Navigator.pop(tester.element(find.text('본문')));
+    await tester.pumpAndSettle();
+
+    // 하단 버튼이 없는 조회용 창은 X 로 닫는다.
+    await open(OnCareDensity.web);
+    expect(find.byType(AppCloseButton), findsOneWidget);
+    Navigator.pop(tester.element(find.text('본문')));
+    await tester.pumpAndSettle();
+
+    await open(OnCareDensity.mobile, footer: footer);
+    expect(find.byType(AppCloseButton), findsOneWidget);
+  });
+
   testWidgets('확인창은 확정하면 true, 위험 확정은 빨간 채움이다', (tester) async {
     final BuildContext context = await _pump(tester);
     final Future<bool> result = showAppConfirmDialog(
