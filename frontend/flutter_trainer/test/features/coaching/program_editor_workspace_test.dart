@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
+import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -164,6 +165,89 @@ void main() {
 
     expect(sent, isNotNull);
     expect(sent!.sessions.single.exercises.single.name, '스쿼트');
+  });
+
+  group('중량을 지어내지 않는다 (#2265)', () {
+    Future<ProgramExerciseDraft> sendFirst(WidgetTester tester) async {
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('program-editor-send')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-editor-send')),
+      );
+      await tester.pump();
+      return sent!.sessions.first.exercises.first;
+    }
+
+    testWidgets('중량 없는 AI 근력 후보는 0kg 로 들어온다', (tester) async {
+      await pumpEditor(tester);
+      // `스쿼트` 는 분으로만 온 근력 후보다 — 중량이 없다.
+      await mergeSuggestions(tester);
+
+      expect(find.textContaining('20kg'), findsNothing);
+      expect((await sendFirst(tester)).weight, 0);
+    });
+
+    Widget withTemplate(ProgramTemplate? template, int revision) => MaterialApp(
+      locale: const Locale('ko'),
+      theme: AppTheme.light(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: ProgramEditorWorkspace(
+            clientGoal: '체중 감량',
+            aiSuggestions: const <AiRoutineItem>[],
+            template: template,
+            templateRevision: revision,
+            onSend: (draft) => sent = draft,
+            registerDate: DateTime(2026),
+            onRegisterDateChanged: (_) {},
+            registerStartTime: const TimeOfDay(hour: 10, minute: 0),
+            registerEndTime: const TimeOfDay(hour: 11, minute: 0),
+            onRegisterTimeRangeChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('템플릿의 0kg(맨몸)은 그대로, 적은 중량도 그대로 붙는다', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1400, 1000);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const template = ProgramTemplate(
+        id: 't1',
+        name: '하체 기본',
+        goal: '근력',
+        exercises: <TemplateExercise>[
+          TemplateExercise(
+            name: '맨몸 스쿼트',
+            minutes: 10,
+            type: '근력',
+            sets: 3,
+            reps: 15,
+          ),
+          TemplateExercise(
+            name: '덤벨 런지',
+            minutes: 10,
+            type: '근력',
+            sets: 3,
+            reps: 10,
+            weight: 8,
+          ),
+        ],
+      );
+      await tester.pumpWidget(withTemplate(null, 0));
+      await tester.pump();
+      await tester.pumpWidget(withTemplate(template, 1));
+      await tester.pumpAndSettle();
+
+      await sendFirst(tester);
+      final exercises = sent!.sessions.first.exercises;
+      expect(exercises.map((e) => e.name), <String>['맨몸 스쿼트', '덤벨 런지']);
+      expect(exercises.map((e) => e.weight), <double>[0, 8]);
+    });
   });
 
   testWidgets('AI 추천 사유는 운동 메모가 되지 않고, 메모 칸도 없다 (#2371)', (tester) async {
