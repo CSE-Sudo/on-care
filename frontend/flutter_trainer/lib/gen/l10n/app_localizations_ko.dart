@@ -874,6 +874,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietDayTotal => '하루 합계';
 
   @override
+  String clientDietDayTotalCalories(String calories) {
+    return '총 $calories kcal';
+  }
+
+  @override
   String clientDietMacroShare(String name, int percent) {
     return '$name $percent%';
   }

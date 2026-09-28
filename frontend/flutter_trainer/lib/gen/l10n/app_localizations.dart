@@ -1706,6 +1706,12 @@ abstract class AppLocalizations {
   /// **'Day total'**
   String get clientDietDayTotal;
 
+  /// 트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
+  ///
+  /// In en, this message translates to:
+  /// **'Total {calories} kcal'**
+  String clientDietDayTotalCalories(String calories);
+
   /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
   ///
   /// In en, this message translates to:
