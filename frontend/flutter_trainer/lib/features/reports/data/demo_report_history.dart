@@ -1,4 +1,3 @@
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
@@ -10,7 +9,12 @@ import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 /// 열다섯 명이 전부 미전송으로 섰다. PT 를 석 달 넘게 굴려 온 트레이너의
 /// 작업대가 지난 주마다 비어 있으면 데모가 거짓말을 한다. 이 파일은 데모
 /// 로스터 한 사람 한 사람의 지난 주 리포트를 **결정적으로** 만든다 — 같은
-/// 회원·같은 주·같은 오늘이면 새로고침해도 같은 시각·같은 글이다.
+/// 회원·같은 주·같은 오늘이면 새로고침해도 같은 시각이다.
+///
+/// 본문은 적지 않는다(#2423). 목표에 맞춘 고정 문장을 깔아 두었더니, 칼로리를
+/// 매일 넘긴 주에도 "잘하고 계세요" 가 남아 그 주 수치와 어긋났다. 이번 주와
+/// 같이 비워 두면, 보낸 리포트 화면과 이력 목록이 그 주 수치로 만든 초안
+/// ([reportMessage])을 보여 준다.
 ///
 /// 이번 주는 여기서 정하지 않는다. 작업대의 두 열을 가르는 [demoSentReports]
 /// 가 정하고, 이 파일은 그 명단을 이력의 맨 위 한 줄로 그대로 옮긴다.
@@ -22,10 +26,7 @@ import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 const int demoReportHistoryWeeks = 14;
 
 /// 데모 로스터의 한 사람 — 이력을 만드는 데 필요한 것만 든다.
-///
-/// [goal] 은 로스터에 심긴 그대로의 목표다(`체중 감량 · 혈압 관리`,
-/// `Weight loss · Blood pressure`). 피드백 문구가 이 목표를 따라간다.
-typedef DemoReportMember = ({String id, String goal});
+typedef DemoReportMember = ({String id});
 
 /// 데모 회원 한 명의 한 주 — 보냈으면 [record], 안 보냈으면 null.
 class DemoReportWeek {
@@ -132,8 +133,6 @@ const Map<String, _ReportHabit> _habits = <String, _ReportHabit>{
 /// 목록이다. [today] 는 이력의 기준 시각(KST)이다. 비우면 [nowKst].
 List<DemoReportWeek> demoReportHistoryFor({
   required String clientId,
-  required String goal,
-  DemoLanguage language = DemoLanguage.ko,
   DateTime? today,
   int weeks = demoReportHistoryWeeks,
 }) {
@@ -141,14 +140,14 @@ List<DemoReportWeek> demoReportHistoryFor({
   final DateTime now = today ?? nowKst();
   final DateTime thisMonday = weekStartOf(now);
   final int joined = demoMemberJoinedWeeksAgo[clientId] ?? weeks;
-  final DemoReportMember member = (id: clientId, goal: goal);
+  final DemoReportMember member = (id: clientId);
   return <DemoReportWeek>[
     for (int back = 0; back < weeks && back <= joined; back++)
       DemoReportWeek(
         weekStart: _mondayBefore(thisMonday, back),
         record: back == 0
             ? demoCurrentWeekRecord(clientId, now)
-            : _pastWeekRecord(member, back, thisMonday, now, language),
+            : _pastWeekRecord(member, back, thisMonday, now),
       ),
   ];
 }
@@ -161,7 +160,6 @@ List<DemoReportWeek> demoReportHistoryFor({
 List<ReportSendRecord> demoSentReportsForWeek({
   required Iterable<DemoReportMember> roster,
   required DateTime weekStart,
-  DemoLanguage language = DemoLanguage.ko,
   DateTime? today,
 }) {
   final DateTime now = today ?? nowKst();
@@ -174,7 +172,7 @@ List<ReportSendRecord> demoSentReportsForWeek({
     for (final DemoReportMember m in roster)
       if (_isDemoMember(m.id) &&
           back <= (demoMemberJoinedWeeksAgo[m.id] ?? demoReportHistoryWeeks))
-        ?_pastWeekRecord(m, back, thisMonday, now, language),
+        ?_pastWeekRecord(m, back, thisMonday, now),
   ];
 }
 
@@ -228,7 +226,6 @@ ReportSendRecord? _pastWeekRecord(
   int back,
   DateTime thisMonday,
   DateTime now,
-  DemoLanguage language,
 ) {
   final DateTime monday = _mondayBefore(thisMonday, back);
   final _ReportHabit habit = _habits[member.id] ?? _defaultHabit;
@@ -244,11 +241,9 @@ ReportSendRecord? _pastWeekRecord(
     clientId: member.id,
     weekStart: monday,
     sentAt: _sentAt(member.id, monday, now),
-    message: demoReportMessage(
-      goal: member.goal,
-      language: language,
-      variant: _seed(member.id, monday, 'text'),
-    ),
+    // 이번 주 기록([demoCurrentWeekRecord])과 같은 규칙 — 화면이 그 주
+    // 수치에서 만든 초안으로 채운다(#2423).
+    message: '',
     read: read,
   );
 }
@@ -283,184 +278,3 @@ int _seed(String clientId, DateTime monday, String salt) {
   }
   return h;
 }
-
-/// 목표 하나 — 로스터의 목표 문구가 이 중 하나 이상을 말한다.
-enum DemoReportGoal {
-  weightLoss,
-  strength,
-  bloodPressure,
-  rehab,
-  posture,
-  eatingHabits,
-  exerciseHabit,
-  fitness,
-}
-
-/// 목표 문구를 이루는 낱말 — 한국어·영어 데모 로스터 둘 다 읽는다.
-///
-/// 순서가 판정 순서다. `운동 습관` 을 `체력` 보다 먼저 보는 것처럼, 더 좁은
-/// 말이 앞에 선다.
-const List<(DemoReportGoal, List<String>)> _goalWords =
-    <(DemoReportGoal, List<String>)>[
-      (DemoReportGoal.weightLoss, <String>['체중', '감량', 'weight']),
-      (DemoReportGoal.strength, <String>['근력', 'strength']),
-      (DemoReportGoal.bloodPressure, <String>['혈압', 'blood pressure']),
-      (DemoReportGoal.rehab, <String>['재활', 'rehab']),
-      (DemoReportGoal.posture, <String>['자세', 'posture']),
-      (DemoReportGoal.eatingHabits, <String>['식습관', 'eating']),
-      (DemoReportGoal.exerciseHabit, <String>['운동 습관', 'exercise habit']),
-      (DemoReportGoal.fitness, <String>['체력', 'fitness']),
-    ];
-
-/// [goal] 이 말하는 목표 — 적힌 순서대로. `체중 감량 · 혈압 관리` 는
-/// `[weightLoss, bloodPressure]` 다. 알아듣는 말이 없으면 빈 목록.
-List<DemoReportGoal> demoReportGoalsOf(String goal) {
-  final List<DemoReportGoal> goals = <DemoReportGoal>[];
-  for (final String part in goal.split('·')) {
-    final String text = part.trim().toLowerCase();
-    if (text.isEmpty) continue;
-    for (final (DemoReportGoal kind, List<String> words) in _goalWords) {
-      if (words.any(text.contains)) {
-        if (!goals.contains(kind)) goals.add(kind);
-        break;
-      }
-    }
-  }
-  return goals;
-}
-
-/// 데모로 깔아 둔 지난 주 리포트의 본문 — 회원 목표에 맞춘 피드백.
-///
-/// 여는 말 · 목표마다 한 문장 · 맺는 말. [variant] 로 문장을 골라 주마다
-/// 글이 달라진다. 숫자는 적지 않는다 — 데모 수치는 여는 요일에 따라
-/// 흔들려, 글에 숫자를 박으면 어떤 날에는 격자와 어긋난다.
-///
-/// 언어는 로스터를 심은 데모 내용의 언어([DemoLanguage])다. 회원이 받은 글은
-/// 그때 쓴 언어 그대로라 화면 문구(ARB)를 거치지 않는다.
-String demoReportMessage({
-  required String goal,
-  required DemoLanguage language,
-  int variant = 0,
-}) {
-  final _ReportCopy copy = language.isEnglish ? _en : _ko;
-  final List<DemoReportGoal> goals = demoReportGoalsOf(goal);
-  String pick(List<String> options, int shift) =>
-      options[(variant ~/ shift) % options.length];
-  return <String>[
-    pick(copy.openers, 1),
-    if (goals.isEmpty)
-      pick(copy.general, 3)
-    else
-      for (final (int i, DemoReportGoal g) in goals.take(2).indexed)
-        pick(copy.byGoal[g]!, 3 + i * 5),
-    pick(copy.closers, 7),
-  ].join(' ');
-}
-
-typedef _ReportCopy = ({
-  List<String> openers,
-  List<String> closers,
-  List<String> general,
-  Map<DemoReportGoal, List<String>> byGoal,
-});
-
-const _ReportCopy _ko = (
-  openers: <String>['이번 주도 수고 많으셨어요.', '한 주 기록 잘 봤어요.', '이번 주 리포트 보내 드려요.'],
-  closers: <String>[
-    '다음 수업에서 뵐게요!',
-    '궁금한 점은 채팅으로 편하게 물어봐 주세요.',
-    '다음 주도 같이 가 봐요 🙂',
-  ],
-  general: <String>['지금 흐름을 다음 주에도 그대로 이어가 봐요.', '다음 주에는 기록을 하루만 더 채워 봐요.'],
-  byGoal: <DemoReportGoal, List<String>>{
-    DemoReportGoal.weightLoss: <String>[
-      '체중 감량은 한 주의 숫자보다 흐름이 중요해요 — 저녁 한 끼의 양만 꾸준히 지켜 봐요.',
-      '감량 중에는 끼니를 거르기보다 규칙적으로 드시는 게 더 효과적이에요.',
-      '다음 주에는 유산소를 한 번만 더 넣어 감량 흐름을 이어가 볼게요.',
-    ],
-    DemoReportGoal.strength: <String>[
-      '근력은 반복한 만큼 올라와요. 다음 주에는 주 운동 무게를 무리 없는 선에서 조금 올려 볼게요.',
-      '근력 향상에는 회복이 운동만큼 중요해요 — 운동한 날은 단백질을 한 끼 더 챙겨 주세요.',
-      '세트 사이 휴식을 지켜야 근력 운동의 질이 올라가요. 다음 주엔 휴식 시간도 같이 재 봐요.',
-    ],
-    DemoReportGoal.bloodPressure: <String>[
-      '혈압 관리는 나트륨이 가장 큰 변수예요. 국물은 절반만 드시는 습관을 이어가 봐요.',
-      '꾸준한 유산소가 혈압을 안정시키는 데 도움이 돼요. 빠르게 걷기 30분을 세 번 채워 봐요.',
-      '혈압약 드시는 시간과 운동 시간이 겹치지 않게 다음 주 일정도 그대로 맞춰 둘게요.',
-    ],
-    DemoReportGoal.rehab: <String>[
-      '재활은 통증 없는 범위를 지키는 게 먼저예요. 불편한 동작이 있으면 바로 말씀해 주세요.',
-      '재활 운동으로 가동 범위가 조금씩 넓어지고 있어요. 운동 전후 스트레칭을 꼭 챙겨 주세요.',
-    ],
-    DemoReportGoal.posture: <String>[
-      '자세 교정은 짧게라도 매일 하는 게 효과가 커요. 한 시간에 한 번 어깨를 펴 주세요.',
-      '운동할 때 거울로 자세를 한 번씩 확인해 보세요. 다음 수업에서 코어 버티기를 늘려 볼게요.',
-    ],
-    DemoReportGoal.eatingHabits: <String>[
-      '식습관은 한 가지씩 바꾸는 게 오래가요. 간식 한 번을 과일이나 견과로 바꿔 봐요.',
-      '식습관은 기록에서 시작해요 — 끼니를 적으면 흐름이 보여요. 채소 반찬을 한 끼에 하나씩 더해 봐요.',
-    ],
-    DemoReportGoal.exerciseHabit: <String>[
-      '운동 습관은 횟수를 지키는 데서 시작해요. 다음 주도 주 3회만 채워 봐요.',
-      '운동 습관은 요일과 시간을 미리 정해 두면 훨씬 단단해져요. 다음 주 계획을 먼저 세워 봐요.',
-    ],
-    DemoReportGoal.fitness: <String>[
-      '체력은 쉬지 않고 이어 가는 게 핵심이에요. 다음 주에는 유산소 시간을 조금씩 늘려 볼게요.',
-      '회복이 빨라졌다면 체력이 붙고 있다는 신호예요. 다음 주엔 인터벌을 한 세트 더해 볼게요.',
-    ],
-  },
-);
-
-const _ReportCopy _en = (
-  openers: <String>[
-    'Great work this week.',
-    'I went through your week.',
-    "Here's your weekly report.",
-  ],
-  closers: <String>[
-    'See you at the next session!',
-    'Message me anytime if you have questions.',
-    "Let's keep going next week 🙂",
-  ],
-  general: <String>[
-    "Let's carry this rhythm into next week.",
-    'Next week, try to log just one more day.',
-  ],
-  byGoal: <DemoReportGoal, List<String>>{
-    DemoReportGoal.weightLoss: <String>[
-      'For weight loss the trend matters more than any single week — just keep dinner portions steady.',
-      'While losing weight, regular meals work better than skipping them.',
-      "Next week we'll add one more cardio session to keep the weight-loss trend going.",
-    ],
-    DemoReportGoal.strength: <String>[
-      "Strength comes with repetition. Next week we'll add a little weight to your main lift.",
-      'Recovery matters as much as training for strength — add protein to one more meal on workout days.',
-      'Keeping rest between sets improves your strength work. Time your rests next week too.',
-    ],
-    DemoReportGoal.bloodPressure: <String>[
-      'Sodium is the biggest lever for blood pressure. Keep leaving half the soup.',
-      'Steady cardio helps stabilise blood pressure. Aim for three 30-minute brisk walks.',
-      "I'll keep next week's sessions clear of the time you take your blood-pressure medication.",
-    ],
-    DemoReportGoal.rehab: <String>[
-      'In rehab, staying pain-free comes first. Tell me right away if any movement feels off.',
-      'Rehab is paying off — your range of motion is slowly improving. Keep stretching before and after each workout.',
-    ],
-    DemoReportGoal.posture: <String>[
-      'Posture work pays off when done daily, even briefly. Open up your shoulders once an hour.',
-      "Check your posture in the mirror now and then. We'll extend core holds next session.",
-    ],
-    DemoReportGoal.eatingHabits: <String>[
-      'Eating habits stick when you change one thing at a time. Swap one snack for fruit or nuts.',
-      'Better eating habits start with logging — add one vegetable side to each meal.',
-    ],
-    DemoReportGoal.exerciseHabit: <String>[
-      'An exercise habit starts with showing up. Aim for three sessions again next week.',
-      "Your exercise habit gets stronger when you plan workout days ahead. Let's set next week's plan first.",
-    ],
-    DemoReportGoal.fitness: <String>[
-      "Fitness is about consistency. Next week we'll stretch your cardio time a little.",
-      "Faster recovery means your fitness is building. Next week we'll add one more interval set.",
-    ],
-  },
-);
