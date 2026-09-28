@@ -446,7 +446,13 @@ void main() {
         personalRoutines: composed,
       );
       final rows = await db.select(db.trainerScheduleEntries).get();
-      final made = rows.firstWhere((r) => r.date == '2026-08-25');
+      // 시드가 지난 주들에도 PT 를 깔아 두므로(#2452) 날짜만으로는 고르지 않는다.
+      final made = rows.firstWhere(
+        (r) =>
+            r.date == '2026-08-25' &&
+            r.time == '11:00' &&
+            r.clientId == 'seed-client-1',
+      );
       final attached = await repo.fetchScheduledRoutines(made.id);
       expect(attached.map((r) => r.exercise.name).toList(), <String>[
         '실내 자전거',

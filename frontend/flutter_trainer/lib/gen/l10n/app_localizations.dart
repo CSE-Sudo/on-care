@@ -1586,6 +1586,12 @@ abstract class AppLocalizations {
   /// **'Add at least one exercise'**
   String get coachTemplateExerciseRequired;
 
+  /// No description provided for @coachTemplateExerciseNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the exercise name'**
+  String get coachTemplateExerciseNameRequired;
+
   /// No description provided for @coachTemplateSaveFailed.
   ///
   /// In en, this message translates to:
@@ -4801,6 +4807,72 @@ abstract class AppLocalizations {
   /// **'Sent history'**
   String get coachSentHistory;
 
+  /// No description provided for @coachLastDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Last send'**
+  String get coachLastDelivery;
+
+  /// No description provided for @coachDeliveryPtWithRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'PT · personal'**
+  String get coachDeliveryPtWithRoutine;
+
+  /// No description provided for @coachDeliveryRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal only'**
+  String get coachDeliveryRoutineOnly;
+
+  /// No description provided for @coachDeliveryCancelledRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'PT cancelled · personal only'**
+  String get coachDeliveryCancelledRoutineOnly;
+
+  /// No description provided for @coachDeliveryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {date}'**
+  String coachDeliveryOn(String date);
+
+  /// No description provided for @coachUnsentRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} personal exercise(s) not sent yet'**
+  String coachUnsentRoutines(int count);
+
+  /// No description provided for @coachUnsentRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.'**
+  String get coachUnsentRoutinesBody;
+
+  /// No description provided for @coachSendUnsentRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in schedule'**
+  String get coachSendUnsentRoutines;
+
+  /// No description provided for @coachDeliveryProgramSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get coachDeliveryProgramSection;
+
+  /// No description provided for @coachDeliveryRoutineSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal workout'**
+  String get coachDeliveryRoutineSection;
+
+  /// No description provided for @coachDeliveryNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing sent'**
+  String get coachDeliveryNothing;
+
   /// No description provided for @coachHistoryFailed.
   ///
   /// In en, this message translates to:
@@ -6996,12 +7068,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{goal} program'**
   String programEditorDefaultName(String goal);
-
-  /// No description provided for @programEditorDefaultSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Session A'**
-  String get programEditorDefaultSession;
 
   /// No description provided for @programEditorSaveUnsupported.
   ///

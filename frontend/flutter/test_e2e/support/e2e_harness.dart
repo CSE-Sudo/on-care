@@ -36,6 +36,7 @@ import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
+import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart' show AppLoading;
@@ -635,20 +636,34 @@ Future<void> loginAsMember(WidgetTester tester, {String? email}) async {
 /// 뒤에 뜨는데, 그 시점이 흐름마다 달라(상담 수락 직후처럼) 기다린 창 밖에서
 /// 뜬다. 대신 `나중에` 를 누른 것과 같은 상태를 이 세션에 먼저 둔다. 그러면
 /// 시트는 아예 뜨지 않는다. 이미 떠 있으면 닫는다.
+///
+/// "이미 떠 있으면" 은 한 프레임만 보고 정하지 않는다(#2477). 서버가 빠르면
+/// 시트가 플래그보다 **먼저** push 되는데, 막 push 된 시트의 `나중에` 는 그
+/// 다음 한 프레임 안에 잡히지 않을 수 있다 — 그러면 닫지 않고 지나가 시트가
+/// 하단 탭을 가린다. 플래그가 선 뒤로는 새 시트가 뜨지 않으므로 잠깐 지켜보며
+/// 이미 떠 있던 한 장만 치운다. 묻는 요일이 아니면 기다리지 않는다.
 Future<void> dismissWeeklyFeedbackIfAsked(WidgetTester tester) async {
   final ProviderContainer container = ProviderScope.containerOf(
     tester.element(find.byType(DashboardPage)),
   );
   container.read(weeklyFeedbackDismissedProvider.notifier).state = true;
+  if (askableWeek() == null) return;
   final Finder later = find.byKey(
     const ValueKey<String>('weekly-feedback-later'),
   );
-  await tester.pump();
-  if (later.evaluate().isNotEmpty) {
+  final DateTime deadline = DateTime.now().add(const Duration(seconds: 2));
+  while (DateTime.now().isBefore(deadline)) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (later.evaluate().isEmpty) continue;
     await tester.tap(later);
-    for (int i = 0; i < 10; i++) {
+    final DateTime closeDeadline = DateTime.now().add(
+      const Duration(seconds: 3),
+    );
+    while (later.evaluate().isNotEmpty &&
+        DateTime.now().isBefore(closeDeadline)) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+    return;
   }
 }
 

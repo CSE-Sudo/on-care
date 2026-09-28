@@ -17,6 +17,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// (15-minute steps), and duration.
 class SessionSheet extends ConsumerStatefulWidget {
   const SessionSheet({
+    required this.title,
     required this.clientNames,
     required this.date,
     required this.existing,
@@ -25,6 +26,9 @@ class SessionSheet extends ConsumerStatefulWidget {
     this.onCancel,
     super.key,
   });
+
+  /// 창 제목(`schedAddTitle`/`schedEditTitle`).
+  final String title;
 
   final List<String> clientNames;
 
@@ -402,12 +406,32 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     });
   }
 
-  /// 일정 입력 내용. `showAppDialog` + `AppDialog(size: medium)` 본문에
-  /// 들어간다 — 제목(`schedAddTitle`/`schedEditTitle`)·닫기(X)·스크롤은
-  /// 다이얼로그 틀이 맡고, 이 위젯은 틀 없이 내용만 세로로 쌓는다.
+  /// 일정 입력 창. `showAppDialog` 로 띄우는 `AppDialog(size: medium)` 을
+  /// 이 위젯이 직접 짓는다 — `추가`·`저장` 은 저장 중 상태를 이 위젯이 쥐고
+  /// 있어, 버튼을 창 아래(footer)에 고정하려면 틀까지 여기서 그려야 한다.
+  /// 본문 끝에 두면 긴 폼에서 버튼이 스크롤 끝으로 밀려 보이지 않았다(#2465).
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    return AppDialog(
+      title: widget.title,
+      size: AppDialogSize.medium,
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: _saving
+            ? null
+            : widget.onCancel ?? () => Navigator.of(context).maybePop(),
+        confirmLabel: widget.existing == null
+            ? l.schedAddAction
+            : l.schedSaveAction,
+        onConfirm: _saving ? null : _save,
+        confirmLoading: _saving,
+      ),
+      child: _fields(l),
+    );
+  }
+
+  Widget _fields(AppLocalizations l) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -544,18 +568,6 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           const SizedBox(height: OnCareSpacing.s12),
           ScheduleOverlapBanner(conflicts: _overlaps!),
         ],
-        const SizedBox(height: OnCareSpacing.s24),
-        AppButtonPair(
-          cancelLabel: l.actionCancel,
-          onCancel: _saving
-              ? null
-              : widget.onCancel ?? () => Navigator.of(context).maybePop(),
-          confirmLabel: widget.existing == null
-              ? l.schedAddAction
-              : l.schedSaveAction,
-          onConfirm: _saving ? null : _save,
-          confirmLoading: _saving,
-        ),
       ],
     );
   }

@@ -821,30 +821,24 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               ),
             ),
             const SizedBox(height: OnCareSpacing.s16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
-                  // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
-                  if (_saved) ...<Widget>[
-                    Text(
-                      l.actionSaved,
-                      // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
-                      style: tokens
-                          .text(OnCareTypography.strong(OnCareTypography.label))
-                          .copyWith(color: OnCareColors.success),
-                    ),
-                    const SizedBox(width: OnCareSpacing.s8),
-                  ],
-                  AppButton(
-                    key: const ValueKey<String>('client-profile-save'),
-                    onPressed: _saving || !_profileLoaded ? null : _save,
-                    label: _saving ? l.memberHealthSaving : l.actionSave,
+            AppActionRow(
+              actions: <Widget>[
+                // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
+                // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
+                if (_saved)
+                  Text(
+                    l.actionSaved,
+                    // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.label))
+                        .copyWith(color: OnCareColors.success),
                   ),
-                ],
-              ),
+                AppButton(
+                  key: const ValueKey<String>('client-profile-save'),
+                  onPressed: _saving || !_profileLoaded ? null : _save,
+                  label: _saving ? l.memberHealthSaving : l.actionSave,
+                ),
+              ],
             ),
           ],
         );
@@ -1055,14 +1049,15 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
         // 입력 상자와 바로 붙어 있으면 `추가` 가 상자의 일부처럼 보인다 —
         // 다른 카드 사이 간격과 같은 여백을 준다.
         const SizedBox(height: OnCareSpacing.s8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: AppButton(
-            key: const ValueKey<String>('client-memo-add'),
-            onPressed: _busy ? null : _add,
-            leadingIcon: Icons.add_rounded,
-            label: l.clientTrainerMemoAdd,
-          ),
+        AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: const ValueKey<String>('client-memo-add'),
+              onPressed: _busy ? null : _add,
+              leadingIcon: Icons.add_rounded,
+              label: l.clientTrainerMemoAdd,
+            ),
+          ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
         memos.when(

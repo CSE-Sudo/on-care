@@ -3,6 +3,8 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
+import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 
 /// Assigns/reads a member's routines against the FastAPI backend. A routine
 /// assigned here is what the member app receives via `/me/coach/routines`.
@@ -138,6 +140,34 @@ class DioTrainerRoutineRepository implements TrainerRoutineRepository {
             return assignedRoutineFromJson(item);
           })
           .toList(growable: false);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async {
+    final encodedId = Uri.encodeComponent(memberId);
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/trainer/clients/$encodedId/deliveries/latest',
+      );
+      final data = res.data;
+      // 보낸 적이 없으면 서버가 `null` 을 준다.
+      if (data == null) return null;
+      final session = data['session'];
+      return SentDelivery(
+        kind: (data['kind'] as String?) ?? DeliveryKinds.routineOnly,
+        sentOn: DateTime.tryParse((data['sent_on'] as String?) ?? ''),
+        session: session is Map<String, dynamic>
+            ? scheduleSessionFromJson(session)
+            : null,
+        routines: <AssignedRoutine>[
+          for (final row in (data['routines'] as List<dynamic>? ??
+              const <dynamic>[]))
+            if (row is Map<String, Object?>) assignedRoutineFromJson(row),
+        ],
+      );
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }

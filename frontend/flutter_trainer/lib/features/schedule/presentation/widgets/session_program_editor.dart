@@ -17,12 +17,16 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 하단 [취소]·[저장] 두 버튼만 세운다.
 class SessionProgramEditor extends ConsumerStatefulWidget {
   const SessionProgramEditor({
+    required this.title,
     required this.session,
     required this.onSaved,
     required this.onCancel,
     this.noteOnly = false,
     super.key,
   });
+
+  /// 창 제목(`progEditTitle`/`schedEditNote`).
+  final String title;
 
   final ScheduleSession session;
 
@@ -106,61 +110,72 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
     widget.onSaved();
   }
 
+  /// 창 틀까지 이 위젯이 그린다 — 저장 버튼을 창 아래(footer)에 고정하려면
+  /// 저장 중 상태를 쥔 이 위젯이 틀을 지어야 한다(#2465).
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        if (!widget.noteOnly) ...<Widget>[
-          for (var index = 0; index < _items.length; index++) ...<Widget>[
-            _ProgramDraftFields(
-              index: index,
-              draft: _items[index],
-              onRemove: () => _removeItem(index),
-              onChanged: () => setState(() {}),
+    return AppDialog(
+      title: widget.title,
+      size: AppDialogSize.medium,
+      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
+      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
+      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
+      trailing: widget.noteOnly
+          ? null
+          : AppButton(
+              label: l.progAddExercise,
+              leadingIcon: Icons.add_rounded,
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              onPressed: _saving ? null : _addItem,
             ),
-            const SizedBox(height: OnCareSpacing.s8),
-          ],
-          AppButton(
-            label: l.progAddExercise,
-            leadingIcon: Icons.add_rounded,
-            variant: AppButtonVariant.secondary,
-            size: OnCareButtonSize.small,
-            fullWidth: true,
-            onPressed: _saving ? null : _addItem,
-          ),
-          const SizedBox(height: OnCareSpacing.s16),
-        ],
-        // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
-        // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
-        // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
-        if (widget.noteOnly) ...<Widget>[
-          AppTextField(
-            key: const ValueKey<String>('program-trainer-note'),
-            controller: _note,
-            label: l.schedNote,
-            hint: l.progNoteHint,
-            minLines: 2,
-            maxLines: 4,
-          ),
-          const SizedBox(height: OnCareSpacing.s24),
-        ],
-        AppButtonPair(
-          cancelLabel: l.actionCancel,
-          onCancel: _saving ? null : widget.onCancel,
-          confirmKey: const ValueKey<String>('save-program'),
-          confirmLabel: _saving
-              ? l.progSaving
-              : widget.noteOnly
-              ? l.progSaveNoteAction
-              : l.progSaveAction,
-          confirmLoading: _saving,
-          onConfirm: _saving ? null : _save,
-        ),
-      ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: _saving ? null : widget.onCancel,
+        confirmKey: const ValueKey<String>('save-program'),
+        confirmLabel: _saving
+            ? l.progSaving
+            : widget.noteOnly
+            ? l.progSaveNoteAction
+            : l.progSaveAction,
+        confirmLoading: _saving,
+        onConfirm: _saving ? null : _save,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: _fields(l),
+      ),
     );
+  }
+
+  List<Widget> _fields(AppLocalizations l) {
+    return <Widget>[
+      if (!widget.noteOnly) ...<Widget>[
+        for (var index = 0; index < _items.length; index++) ...<Widget>[
+          _ProgramDraftFields(
+            index: index,
+            draft: _items[index],
+            onRemove: () => _removeItem(index),
+            onChanged: () => setState(() {}),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+        ],
+      ],
+      // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
+      // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
+      // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
+      if (widget.noteOnly)
+        AppTextField(
+          key: const ValueKey<String>('program-trainer-note'),
+          controller: _note,
+          label: l.schedNote,
+          hint: l.progNoteHint,
+          minLines: 2,
+          maxLines: 4,
+        ),
+    ];
   }
 }
 
