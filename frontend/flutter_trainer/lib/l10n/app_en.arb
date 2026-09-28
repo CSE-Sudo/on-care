@@ -4142,5 +4142,162 @@
         "type": "String"
       }
     }
+  },
+  "reportsSheetInfoMember": "Member",
+  "@reportsSheetInfoMember": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetInfoPeriod": "Period",
+  "@reportsSheetInfoPeriod": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetInfoMealDays": "Meal logs",
+  "@reportsSheetInfoMealDays": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDaysOf": "{days}/{due} days",
+  "@reportsSheetDaysOf": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSheetDietTitle": "Diet analysis",
+  "@reportsSheetDietTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDietHint": "Daily average vs. goal",
+  "@reportsSheetDietHint": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetExerciseTitle": "Exercise analysis",
+  "@reportsSheetExerciseTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetExerciseHint": "This week vs. goal",
+  "@reportsSheetExerciseHint": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyTitle": "Daily log",
+  "@reportsSheetDailyTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyCompletion": "Done",
+  "@reportsSheetDailyCompletion": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyCalories": "Calories",
+  "@reportsSheetDailyCalories": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyMeals": "Meals",
+  "@reportsSheetDailyMeals": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyWorkouts": "Workouts",
+  "@reportsSheetDailyWorkouts": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetTrendTitle": "Trends",
+  "@reportsSheetTrendTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetTrendWeekly": "Weekly exercise achievement (8 weeks)",
+  "@reportsSheetTrendWeekly": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetTrendDaily": "Daily calories · goal line",
+  "@reportsSheetTrendDaily": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetBandUnder": "Low",
+  "@reportsSheetBandUnder": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetBandNormal": "On target",
+  "@reportsSheetBandNormal": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetBandOver": "High",
+  "@reportsSheetBandOver": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetGoal": "Goal {value}",
+  "@reportsSheetGoal": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSheetAttendance": "PT attendance",
+  "@reportsSheetAttendance": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreTitle": "Weekly care score",
+  "@reportsSheetScoreTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreUnit": "/100",
+  "@reportsSheetScoreUnit": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreFormula": "Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.",
+  "@reportsSheetScoreFormula": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreNone": "No records to score yet",
+  "@reportsSheetScoreNone": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetEvalTitle": "Evaluation",
+  "@reportsSheetEvalTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageTitle": "vs. 4-week average",
+  "@reportsSheetAverageTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageNow": "This week",
+  "@reportsSheetAverageNow": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageBase": "4-wk avg",
+  "@reportsSheetAverageBase": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageChange": "Change",
+  "@reportsSheetAverageChange": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetMealDaysLabel": "Meal log days",
+  "@reportsSheetMealDaysLabel": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetFootnote": "Ranges compare this week with the member's goals. Items without records show as Not measured.",
+  "@reportsSheetFootnote": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetCalorieDays": "On-target calorie days",
+  "@reportsSheetCalorieDays": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetPeriodValue": "{start} – {end}",
+  "@reportsSheetPeriodValue": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -23,6 +23,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -243,7 +244,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         : l.aiReasonBalanced;
     // 보낸 적이 없으면 예전처럼 저장된 `-` 를 그대로 둔다.
     final last = lastRoutineLabel(l, client);
-    return '${l.aiReasonGoal(client.goal, last.isEmpty ? client.lastRoutine : last)} '
+    // 목표는 저장 값(한국어)이 아니라 화면 언어로 적는다(#2467).
+    final goal = healthFocusGoalLabel(l, client.goal);
+    return '${l.aiReasonGoal(goal, last.isEmpty ? client.lastRoutine : last)} '
         '$sodium';
   }
 
@@ -807,7 +810,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _analysisRow(l.aiGoal, client.goal),
+        _analysisRow(l.aiGoal, healthFocusGoalLabel(l, client.goal)),
         // "오늘"·"어제" 같은 날짜가 아니라 **무엇을 했는지**를 적는다 —
         // 프로그램을 짜는 자리에서 알아야 하는 것은 마지막 기록이 언제였나가
         // 아니라 어떤 운동을 마쳤나다 (#1655).
@@ -1069,16 +1072,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            l.aiPromptTitle,
-            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiPromptBlurb,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+          AppSectionHeader(
+            title: l.aiPromptTitle,
+            subtitle: l.aiPromptBlurb,
+            subtitleMaxLines: 1,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
@@ -1119,14 +1116,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            l.aiGenerateConditions,
-            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiConditionsAutoHint,
-            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+          AppSectionHeader(
+            title: l.aiGenerateConditions,
+            subtitle: l.aiConditionsAutoHint,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           RoutineMinutesField(
@@ -1177,7 +1169,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _AssistantLabel(text: l.aiCompareCandidates),
+        AppSectionHeader(
+          title: l.aiCompareCandidates,
+          icon: Icons.auto_awesome_rounded,
+        ),
         const SizedBox(height: OnCareSpacing.s8),
         // 데모에서는 목표 기반 기본 추천 안내를 띄우지 않는다 —
         // [_hideTemplateState] 참고.
@@ -1189,7 +1184,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         ],
         Text(
           l.aiBasisGoalCompletion(
-                options.analysis.goal,
+                healthFocusGoalLabel(l, options.analysis.goal),
                 options.analysis.avgCompletionRate,
               ) +
               (options.generatedBy == 'rule' ? l.aiBasisRuleBased : ''),
@@ -1346,14 +1341,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          l.aiEditOption(optionName),
-          style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        Text(
-          l.aiEditBlurb,
-          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+        AppSectionHeader(
+          title: l.aiEditOption(optionName),
+          subtitle: l.aiEditBlurb,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         for (int index = 0; index < _edited.length; index++) ...<Widget>[
@@ -1677,31 +1667,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       key: const ValueKey<String>('personal-routine-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _AssistantLabel(
-                // `개인운동만` 은 붙을 PT 가 없다 — "PT 사이에 할" 이라고 하면
-                // 방금 PT 를 건너뛴 트레이너에게 어긋난 말이 된다.
-                text: _kind == ProgramKind.routineOnly
-                    ? l.aiPersonalStepTitleRoutineOnly
-                    : l.aiPersonalStepTitle,
-              ),
-            ),
-            if (aiCount > 0)
-              AppTag(
-                key: const ValueKey<String>('personal-routine-badge'),
-                label: l.aiPersonalStepBadge(aiCount),
-                tone: AppTagTone.brand,
-              ),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        Text(
-          _kind == ProgramKind.routineOnly
+        AppSectionHeader(
+          // `개인운동만` 은 붙을 PT 가 없다 — "PT 사이에 할" 이라고 하면
+          // 방금 PT 를 건너뛴 트레이너에게 어긋난 말이 된다.
+          title: _kind == ProgramKind.routineOnly
+              ? l.aiPersonalStepTitleRoutineOnly
+              : l.aiPersonalStepTitle,
+          icon: Icons.auto_awesome_rounded,
+          subtitle: _kind == ProgramKind.routineOnly
               ? l.aiPersonalStepBlurbRoutineOnly
               : l.aiPersonalStepBlurb,
-          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+          trailing: aiCount > 0
+              ? AppTag(
+                  key: const ValueKey<String>('personal-routine-badge'),
+                  label: l.aiPersonalStepBadge(aiCount),
+                  tone: AppTagTone.brand,
+                )
+              : null,
         ),
         if (aiCount > 0) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
@@ -1871,10 +1853,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(
-            l.aiAddExerciseManually,
-            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
-          ),
+          AppSectionHeader(title: l.aiAddExerciseManually),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
             key: const ValueKey<String>('new-exercise-name'),
@@ -1988,10 +1967,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            l.schedNote,
-            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
-          ),
+          AppSectionHeader(title: l.schedNote),
           const SizedBox(height: OnCareSpacing.s8),
           AppTextField(
             key: const ValueKey<String>('final-trainer-memo'),
@@ -2020,29 +1996,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       key: const ValueKey<String>('reviewed-routine-list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            const Icon(
-              Icons.check_circle_rounded,
-              size: OnCareSize.iconMedium,
-              color: OnCareColors.success,
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
-            Expanded(
-              child: Text(
-                l.aiReviewedSuggestion(optionName),
-                style: _text(
-                  OnCareTypography.titleSmall,
-                  OnCareColors.textPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        Text(
-          l.aiEditsApplied,
-          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+        AppSectionHeader(
+          title: l.aiReviewedSuggestion(optionName),
+          icon: Icons.check_circle_rounded,
+          subtitle: l.aiEditsApplied,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         for (final exercise in _edited) ...<Widget>[
@@ -2325,18 +2282,6 @@ class _PersonalOrigin {
 
   final String id;
   final List<String> evidence;
-}
-
-/// AI 가 말하는 구획의 제목 — AI 아이콘 + `titleSmall`.
-class _AssistantLabel extends StatelessWidget {
-  const _AssistantLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppSectionHeader(title: text, icon: Icons.auto_awesome_rounded);
-  }
 }
 
 /// The trainer↔member chat lines the generation was grounded on (#580).

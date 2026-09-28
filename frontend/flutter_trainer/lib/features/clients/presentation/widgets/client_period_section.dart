@@ -41,61 +41,26 @@ class ClientPeriodSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
+        // 제목·토글 둘 다 접힌다. 좁은 열·큰 글자 배율에서 제목이 토글을
+        // 밀어내 줄이 넘치면 안 된다 — 토글은 제 절반 안에서 줄어든다.
+        AppSectionHeader(
           key: const ValueKey<String>('client-period-section-header'),
-          // 남는 폭은 제목과 토글 **사이**로 간다. 제목을 `Expanded` 로 늘리면
-          // 제목이 절반을 tight 로 가져가고, 그 절반을 다 쓰지 않은 토글의
-          // 잔여분이 줄 끝에 빈 자리로 쌓여 토글이 가운데에 뜬다.
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            // 제목·토글 둘 다 접힌다. 좁은 열·큰 글자 배율에서 제목이 토글을
-            // 밀어내 줄이 넘치면 안 된다.
-            Flexible(
-              child: Padding(
-                padding: const EdgeInsets.only(right: OnCareSpacing.s8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // 아이콘·간격·글자는 `AppSectionHeader` 와 같은 규격이다.
-                    // 그 위젯은 제목을 `Expanded` 로 늘려 토글 자리를 밀어내므로
-                    // 같은 값으로 이 자리에서 조립한다.
-                    Icon(
-                      icon,
-                      size: OnCareSize.iconMedium,
-                      color: tokens.brand.primary,
-                    ),
-                    const SizedBox(width: OnCareSpacing.s8),
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.titleSmall)
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          title: title,
+          icon: icon,
+          trailingFit: AppSectionTrailingFit.shrink,
+          trailing: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: AppSegmentedToggle<ClientPeriod>(
+              key: const ValueKey<String>('client-period-toggle'),
+              segments: clientPeriodSegments(l),
+              selected: period,
+              onChanged: onChanged,
             ),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: AppSegmentedToggle<ClientPeriod>(
-                  key: const ValueKey<String>('client-period-toggle'),
-                  segments: clientPeriodSegments(l),
-                  selected: period,
-                  onChanged: onChanged,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: OnCareSpacing.s8),
         child,
