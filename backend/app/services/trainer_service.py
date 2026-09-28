@@ -2276,24 +2276,40 @@ def _session_summary(
     'ai'. 규칙을 서버로 옮긴 것은 세션이 여러 개가 되면서 클라이언트마다
     다르게 접히는 것을 막기 위해서다.
 
-    근력은 시간을 적지 않으므로 세트에서 환산한다 — `_program_minutes_and_type`
+    근력은 시간을 적지 않으므로 세트에서 환산한다 — `_program_seconds_and_type`
     과 같은 값이라야 배정과 PT 완료가 같은 분을 센다(#1276).
+
+    시간은 초로 더한 뒤 한 번만 분으로 접는다(#2221) — 45초짜리 셋을 각각 1분으로
+    올려 더하면 2분 15초가 3분이 된다.
     """
-    minutes = 0
+    seconds = 0
     counts: dict[str, int] = {}
     has_ai = False
     for exercise in exercises:
-        if exercise.duration:
-            minutes += exercise.duration
-        elif exercise.type == "근력" and exercise.sets:
-            minutes += round(
-                exercise.sets * exercise_service.STRENGTH_MINUTES_PER_SET
-            )
+        seconds += _exercise_seconds(exercise.type, exercise.duration_seconds, exercise.sets)
         counts[exercise.type] = counts.get(exercise.type, 0) + 1
         if exercise.source == "ai":
             has_ai = True
     type_ = max(counts, key=lambda t: counts[t]) if counts else "근력"
-    return minutes, type_, ("ai" if has_ai else "trainer")
+    return _minutes_of(seconds), type_, ("ai" if has_ai else "trainer")
+
+
+def _exercise_seconds(type_: str, duration_seconds: int | None, sets: int | None) -> int:
+    """운동 한 항목이 차지하는 시간(초). 근력은 적은 시간이 없어 세트에서 환산한다.
+
+    회원 기록이 세트를 분으로 되짚는 것과 같은 값(세트당 3분)이라야 두 집계가
+    어긋나지 않는다(#1276).
+    """
+    if duration_seconds:
+        return duration_seconds
+    if type_ == "근력" and sets:
+        return round(sets * exercise_service.STRENGTH_MINUTES_PER_SET) * 60
+    return 0
+
+
+def _minutes_of(seconds: int) -> int:
+    """초를 분으로 접는다 — 0 이 아니면 최소 1분(`ExerciseSessionCreate` 와 같다)."""
+    return max(1, round(seconds / 60)) if seconds > 0 else 0
 
 
 def _program_request_key(base: str, index: int) -> str:
@@ -3141,6 +3157,8 @@ def _program_items(program_json: str) -> list[ProgramItem]:
             hold_seconds=m.get("hold_seconds"),
             weight=m.get("weight"),
             duration=m.get("duration"),
+            # 이 키가 없는 예전 행은 분 × 60 으로 채워진다(#2221).
+            duration_seconds=m.get("duration_seconds"),
             date=m.get("date"),
             intensity=m.get("intensity") or "moderate",
             # 이 키가 없는 예전 행은 세션 구분 없는 목록으로 그대로 읽힌다(#709).
@@ -3171,6 +3189,9 @@ def _program_item_label(item: ProgramItem) -> str:
         if item.weight is not None:
             parts.append(f"{item.weight:g}kg")
     else:
+        # 초로 적은 시간도 분으로 적는다(#2221) — 이 줄을 되읽는
+        # `parse_history_exercise` 는 `초` 를 버티는 운동의 초로 읽어, `걷기 45초`
+        # 를 근력으로 바꿔 버린다. 초까지의 값은 회원 기록(`duration_seconds`)에 남는다.
         parts = [f"{item.duration}분"] if item.duration else []
     return " ".join([item.name, *parts])
 
@@ -3239,28 +3260,24 @@ def _routine_notification_args(
     }
 
 
-def _program_minutes_and_type(
+def _program_seconds_and_type(
     items: Sequence[ProgramItem],
 ) -> tuple[int, str | None]:
-    """프로그램 항목들을 (총 분, 가장 많은 유형)으로 요약한다. (#1233)
+    """프로그램 항목들을 (총 초, 가장 많은 유형)으로 요약한다. (#1233, #2221)
 
-    `_session_summary` 와 같은 규칙이다 — 분은 각 항목 `duration` 의 합,
-    유형은 가장 많은 유형. 항목이 하나도 없으면 유형은 None 이라 호출부가
+    `_session_summary` 와 같은 규칙이다 — 시간은 각 항목 `duration_seconds` 의
+    합, 유형은 가장 많은 유형. 항목이 하나도 없으면 유형은 None 이라 호출부가
     기존 폴백(세션 유형 고정값)을 쓸 수 있다.
 
-    근력 항목은 시간을 적지 않으므로 세트에서 환산한다 — 회원 기록이 세트를
-    분으로 되짚는 것과 같은 값(세트당 3분)이라야 두 집계가 어긋나지 않는다.
+    근력 항목은 시간을 적지 않으므로 세트에서 환산한다([_exercise_seconds]).
     """
-    minutes = 0
+    seconds = 0
     counts: dict[str, int] = {}
     for item in items:
-        if item.duration:
-            minutes += item.duration
-        elif item.type == "근력" and item.sets:
-            minutes += round(item.sets * exercise_service.STRENGTH_MINUTES_PER_SET)
+        seconds += _exercise_seconds(item.type, item.duration_seconds, item.sets)
         counts[item.type] = counts.get(item.type, 0) + 1
     type_ = max(counts, key=lambda t: counts[t]) if counts else None
-    return minutes, type_
+    return seconds, type_
 
 
 def _schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
@@ -3908,6 +3925,7 @@ def _schedule_program_items(
             type=exercise.type,
             date=exercise.date,
             duration=exercise.duration,
+            duration_seconds=exercise.duration_seconds,
             sets=exercise.sets,
             reps=exercise.reps,
             hold_seconds=exercise.hold_seconds,
@@ -5071,7 +5089,8 @@ def _add_member_exercise_log(
     # 프로그램에 적힌 실제 운동 항목의 분·유형을 우선 쓴다 — 분을 하나도
     # 적지 않은(예전) 프로그램만 슬롯 전체 길이·고정 유형으로 되돌아간다(#1233).
     items = _program_items(s.program_json)
-    program_minutes, program_type_ko = _program_minutes_and_type(items)
+    program_seconds, program_type_ko = _program_seconds_and_type(items)
+    program_minutes = _minutes_of(program_seconds)
     minutes = program_minutes if program_minutes > 0 else s.duration_minutes
     if program_type_ko is not None:
         ex_type = exercise_types.normalize(program_type_ko)
@@ -5116,6 +5135,14 @@ def _add_member_exercise_log(
         type=ex_type,
         name=", ".join(i.name for i in items),
         minutes=minutes,
+        # 프로그램에 적힌 시간을 초까지 남긴다(#2221) — 회원 앱이 `45초` 를
+        # `1분` 이 아니라 적힌 대로 읽는다. 근력은 세트로 읽고, 프로그램에 시간이
+        # 없어 슬롯 길이로 되돌아간 기록은 분뿐이다.
+        duration_seconds=(
+            program_seconds
+            if program_minutes > 0 and ex_type != exercise_types.STRENGTH
+            else None
+        ),
         sets=sets if ex_type == exercise_types.STRENGTH else None,
         reps=(
             max(rep_counts)
@@ -5190,6 +5217,7 @@ def send_session_program(
             type=item.type,
             date=item.date,
             duration=item.duration,
+            duration_seconds=item.duration_seconds,
             sets=item.sets,
             reps=item.reps,
             hold_seconds=item.hold_seconds,

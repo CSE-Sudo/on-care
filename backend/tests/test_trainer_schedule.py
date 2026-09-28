@@ -845,6 +845,39 @@ def test_complete_session_adds_member_exercise_log(client, make_pt_session):
     assert derived[0]["type"] == "strength"
 
 
+
+def test_complete_session_exercise_log_keeps_program_seconds(client, make_pt_session):
+    """프로그램에 초까지 적은 시간은 회원 기록에도 초로 남는다(#2221).
+
+    분만 남기면 회원 앱이 `45초` 를 `1분` 으로 읽는다 — 분은 집계용으로 반올림한
+    값이고, 적힌 시간은 `duration_seconds` 가 들고 간다.
+    """
+    token = _tok(client)
+    mh = _member_h(client)
+
+    sid = make_pt_session(
+        token,
+        time="20:45",
+        duration_minutes=60,
+        program=[
+            {"name": "버피", "type": "유산소", "duration_seconds": 45},
+            {"name": "로잉", "type": "유산소", "duration_seconds": 5400},
+        ],
+    )
+    day = client.get(f"/v1/trainer/schedule?date={_today()}", headers=_h(token))
+    stored = next(s for s in day.json() if s["id"] == sid)["program"]
+    assert [(i["duration_seconds"], i["duration"]) for i in stored] == [
+        (45, 1), (5400, 90),
+    ]
+
+    done = client.post(f"/v1/trainer/schedule/{sid}/complete", json={}, headers=_h(token))
+    assert done.status_code == 200, done.text
+
+    after = client.get("/v1/exercise/weeks/current", headers=mh).json()
+    derived = next(s for s in after["sessions"] if s["id"] == f"sched-ex-{sid}")
+    assert derived["duration_seconds"] == 5445
+    assert derived["minutes"] == 91
+
 def test_complete_session_exercise_log_uses_program_item_duration_and_type(
     client, make_pt_session
 ):
