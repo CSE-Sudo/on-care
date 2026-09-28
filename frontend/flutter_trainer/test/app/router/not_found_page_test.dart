@@ -187,7 +187,7 @@ void main() {
       );
       expect(_page, findsOneWidget);
       expect(find.text(_ko.notFoundTitle), findsOneWidget);
-      expect(find.text('계정 만들기'), findsNothing);
+      expect(find.text('회원가입'), findsNothing);
     });
 
     testWidgets('a refresh on a path under no screen lands on the 대시보드', (

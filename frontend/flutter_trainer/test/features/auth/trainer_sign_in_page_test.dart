@@ -395,7 +395,7 @@ void main() {
       );
       // Left the login screen (no more login button / demo link).
       expect(find.text('로그인 없이 데모 둘러보기'), findsNothing);
-      expect(find.text('계정 만들기'), findsNothing);
+      expect(find.text('회원가입'), findsNothing);
     });
 
     testWidgets('login with credentials authenticates and navigates away', (
@@ -415,7 +415,7 @@ void main() {
         container.read(sessionControllerProvider).status,
         SessionStatus.authenticated,
       );
-      expect(find.text('계정 만들기'), findsNothing);
+      expect(find.text('회원가입'), findsNothing);
     });
   });
 }
