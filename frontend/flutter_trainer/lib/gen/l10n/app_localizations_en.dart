@@ -5119,9 +5119,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsSkipToWrite => 'Write without a draft';
-
-  @override
   String reportsCalorieThisWeekAvg(String kcal) {
     return 'This week $kcal kcal/day';
   }

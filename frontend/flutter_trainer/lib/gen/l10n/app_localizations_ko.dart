@@ -4897,9 +4897,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsSkipToWrite => '초안 없이 직접 쓰기';
-
-  @override
   String reportsCalorieThisWeekAvg(String kcal) {
     return '이번 주 평균 ${kcal}kcal';
   }

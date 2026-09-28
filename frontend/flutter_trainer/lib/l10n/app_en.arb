@@ -3564,7 +3564,6 @@
       }
     }
   },
-  "reportsSkipToWrite": "Write without a draft",
   "reportsCalorieThisWeekAvg": "This week {kcal} kcal/day",
   "@reportsCalorieThisWeekAvg": {
     "placeholders": { "kcal": { "type": "String" } }
