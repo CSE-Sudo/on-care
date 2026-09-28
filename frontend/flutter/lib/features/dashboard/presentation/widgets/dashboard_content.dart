@@ -683,12 +683,17 @@ class _RecMeal {
     this.tag, {
     this.source = _RecSource.ai,
     this.icon,
+    this.photoPackage,
   });
 
   /// Bundled dish photo shown on the card. [emoji] over the tile colour is
   /// the fallback when the asset is missing, so the section still renders
-  /// end-to-end. 트레이너 추천은 사진이 없어(null) [icon] 으로 끼니를 그린다.
+  /// end-to-end. 트레이너 추천은 메뉴 이름에 맞는 대표 사진([AppMealPhotos],
+  /// #2435)이고, 맞는 사진이 없으면(null) [icon] 으로 끼니를 그린다.
   final String? photo;
+
+  /// [photo] 가 공유 UI 패키지 에셋이면 그 패키지 이름.
+  final String? photoPackage;
   final String emoji;
   final String name;
   final String reason;
@@ -705,17 +710,26 @@ class _RecMeal {
 
   /// 사진·태그는 그대로 두고 추천 이유 문구만 바꾼 사본.
   /// 서버가 개인화 문구를 보냈을 때 쓴다.
-  _RecMeal withReason(String newReason) =>
-      _RecMeal(photo, emoji, name, newReason, tag, source: source, icon: icon);
+  _RecMeal withReason(String newReason) => _RecMeal(
+    photo,
+    emoji,
+    name,
+    newReason,
+    tag,
+    source: source,
+    icon: icon,
+    photoPackage: photoPackage,
+  );
 }
 
 /// 담당 트레이너가 확정한 추천 → 카드. (#2380)
 ///
-/// 이름으로 오는 메뉴라 번들 사진이 없다 — 끼니 아이콘을 그린다. 이유는 태그로
+/// 이름으로 오는 메뉴라 카탈로그 사진이 없다 — 이름 속 재료·요리로 고른 대표
+/// 사진을 그리고(#2435), 맞는 사진이 없으면 끼니 아이콘을 그린다. 이유는 태그로
 /// 앱이 자기 말로 만든다. AI 가 후보를 냈더라도 트레이너가 골랐으니 회원에게는
 /// `트레이너 추천` 이다.
 _RecMeal _trainerPickCard(AppLocalizations l, TrainerMealPick pick) => _RecMeal(
-  null,
+  AppMealPhotos.assetFor(pick.name, slot: pick.slot),
   '',
   pick.name,
   switch (pick.tag) {
@@ -735,6 +749,7 @@ _RecMeal _trainerPickCard(AppLocalizations l, TrainerMealPick pick) => _RecMeal(
     _ => null,
   },
   source: _RecSource.trainer,
+  photoPackage: AppMealPhotos.package,
   icon: switch (pick.slot) {
     'breakfast' => AppIcons.mealBreakfast,
     'lunch' => AppIcons.mealLunch,
@@ -1031,6 +1046,7 @@ class _RecMealCard extends StatelessWidget {
                 if (meal.photo case final String photo)
                   Image.asset(
                     photo,
+                    package: meal.photoPackage,
                     height: _kRecMealPhotoHeight,
                     width: double.infinity,
                     // 카드에서 이름은 사진 아래 따로 읽히지만, 사진 자체에
@@ -1040,9 +1056,12 @@ class _RecMealCard extends StatelessWidget {
                     ).a11yMealPhotoOf(meal.name),
                     fit: BoxFit.cover,
                     // Fall back to the emoji tile if the bundled photo is missing.
+                    // 트레이너 추천은 이모지가 없어 끼니 아이콘으로 떨어진다.
                     errorBuilder:
                         (BuildContext context, Object _, StackTrace? _) =>
-                            _emojiHeader(context),
+                            meal.emoji.isEmpty
+                            ? _iconHeader(context)
+                            : _emojiHeader(context),
                   )
                 else
                   _iconHeader(context),
