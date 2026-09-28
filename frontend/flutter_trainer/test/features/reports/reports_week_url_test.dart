@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
@@ -33,11 +34,11 @@ final DateTime _twoWeeksAgo = DateTime(2026, 8, 3);
 void main() {
   final Finder prevWeek = find.descendant(
     of: find.byType(ReportWeekNav),
-    matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+    matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
   );
   final Finder nextWeek = find.descendant(
     of: find.byType(ReportWeekNav),
-    matching: find.widgetWithIcon(IconButton, Icons.chevron_right_rounded),
+    matching: find.widgetWithIcon(IconButton, AppIcons.chevronRight),
   );
   final Finder goThisWeek = find.byKey(
     const ValueKey<String>('reports-go-this-week'),

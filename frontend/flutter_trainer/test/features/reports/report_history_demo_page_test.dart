@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
@@ -30,7 +31,7 @@ final List<DemoReportMember> _roster = <DemoReportMember>[
 void main() {
   final Finder prevWeek = find.descendant(
     of: find.byType(ReportWeekNav),
-    matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+    matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
   );
 
   Future<void> openLastWeek(WidgetTester tester) async {

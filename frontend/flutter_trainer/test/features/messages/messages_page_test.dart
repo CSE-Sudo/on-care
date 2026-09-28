@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -42,7 +43,7 @@ void main() {
       expect(
         find.descendant(
           of: detail,
-          matching: find.byIcon(Icons.chevron_right_rounded),
+          matching: find.byIcon(AppIcons.chevronRight),
         ),
         findsOneWidget,
       );
@@ -615,6 +616,29 @@ void main() {
       ).routerDelegate.currentConfiguration.uri.queryParameters['f'],
       'unread',
     );
+  });
+
+  testWidgets('분할 보기에서도 `<` 가 있고, 누르면 필터를 지킨 채 대화를 닫는다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(tester, token: 'demo-trainer-token-existing');
+      await goTo(
+        tester,
+        AppRoutes.messagesFor('seed-client-1', filter: 'unread'),
+      );
+
+      final back = find.byKey(const ValueKey<String>('messages-thread-back'));
+      expect(back, findsOneWidget);
+      await tester.tap(back);
+      await settle(tester);
+
+      final uri = GoRouter.of(
+        tester.element(find.byType(Navigator).first),
+      ).routerDelegate.currentConfiguration.uri;
+      expect(uri.queryParameters['client'], isNull);
+      expect(uri.queryParameters['f'], 'unread');
+      expect(back, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   testWidgets('detected discomfort can be persisted as a trainer memo', (

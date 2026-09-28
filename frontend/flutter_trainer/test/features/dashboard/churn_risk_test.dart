@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/churn_risk_dialog.dart';
@@ -220,7 +221,7 @@ void main() {
       find.descendant(of: noShow, matching: find.byType(AppTag)),
     );
     expect(tag.tone, AppTagTone.danger);
-    expect(tag.icon, Icons.error_outline_rounded);
+    expect(tag.icon, AppIcons.error);
     expect(find.text('배정 루틴 3일 미수행'), findsOneWidget);
 
     final AppTag feedback = tester.widget<AppTag>(

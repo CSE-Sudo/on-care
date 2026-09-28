@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -140,7 +141,7 @@ class _ClientDietPeriodCardState extends ConsumerState<ClientDietPeriodCard> {
         data: (ClientDietPeriod period) => period.isEmpty
             ? AppEmptyState(
                 title: l.clientPeriodEmpty,
-                icon: Icons.restaurant_rounded,
+                icon: AppIcons.diet,
                 placement: AppStatePlacement.card,
               )
             : _Body(

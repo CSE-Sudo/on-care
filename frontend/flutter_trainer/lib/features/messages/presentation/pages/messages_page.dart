@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
@@ -91,8 +92,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   orElse: () => null,
                 );
 
-          // 좁은 폭에서는 목록·대화 중 하나만 보이므로, 그때만 대화에
-          // 목록으로 돌아가는 길을 단다. [AppSplitView] 와 같은 기준 폭이다.
+          // 대화 머리의 `<` 는 폭과 상관없이 늘 있다 — 회원 탭 상세 머리와
+          // 같다. 좁은 폭에서는 목록으로 돌아가고, 분할 보기에서는 고른
+          // 대화를 닫아 오른쪽이 `대화를 고르라` 는 빈 자리로 돌아간다.
+          // 목록 선택 표시만 [AppSplitView] 와 같은 기준 폭으로 가른다.
           return LayoutBuilder(
             builder: (context, constraints) {
               final narrow =
@@ -114,14 +117,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     ? const _EmptyThread()
                     : _ThreadPanel(
                         client: selected,
-                        onBack: narrow
-                            ? () => context.go(
-                                AppRoutes.messagesFor(
-                                  null,
-                                  filter: widget.filter,
-                                ),
-                              )
-                            : null,
+                        onBack: () => context.go(
+                          AppRoutes.messagesFor(null, filter: widget.filter),
+                        ),
                       ),
               );
             },
@@ -193,7 +191,7 @@ class _ConversationList extends StatelessWidget {
           child: clients.isEmpty
               ? AppEmptyState(
                   title: l.messagesEmpty,
-                  icon: Icons.forum_rounded,
+                  icon: AppIcons.chat,
                   placement: AppStatePlacement.card,
                 )
               : ListView.separated(
@@ -385,10 +383,12 @@ class _ConversationTile extends StatelessWidget {
 }
 
 class _ThreadPanel extends StatelessWidget {
-  const _ThreadPanel({required this.client, this.onBack});
+  const _ThreadPanel({required this.client, required this.onBack});
 
   final TrainerClient client;
-  final VoidCallback? onBack;
+
+  /// `<` — 좁은 화면에서는 목록으로 가고, 분할 보기에서는 대화를 닫는다.
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -402,10 +402,11 @@ class _ThreadPanel extends StatelessWidget {
             padding: const EdgeInsets.all(OnCareSpacing.s12),
             child: Row(
               children: <Widget>[
-                if (onBack != null) ...<Widget>[
-                  AppBackButton(onPressed: onBack),
-                  const SizedBox(width: OnCareSpacing.s4),
-                ],
+                AppBackButton(
+                  key: const ValueKey<String>('messages-thread-back'),
+                  onPressed: onBack,
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
                 ClientAvatar(
                   name: client.avatar,
                   size: ClientRowDensity.header.avatarSize,
@@ -420,7 +421,7 @@ class _ThreadPanel extends StatelessWidget {
                   label: l.messagesClientDetail,
                   variant: AppButtonVariant.text,
                   size: OnCareButtonSize.small,
-                  trailingIcon: Icons.chevron_right_rounded,
+                  trailingIcon: AppIcons.chevronRight,
                   onPressed: () =>
                       context.go(AppRoutes.clientDetail(client.id)),
                 ),
@@ -514,7 +515,7 @@ class _EmptyThread extends StatelessWidget {
     return AppCard(
       child: AppEmptyState(
         title: l.messagesSelectPrompt,
-        icon: Icons.chat_bubble_outline_rounded,
+        icon: AppIcons.chat,
       ),
     );
   }

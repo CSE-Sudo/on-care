@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -232,7 +233,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
             showBack: widget.showBack,
             child: AppEmptyState(
               title: l.clientNotFound,
-              icon: Icons.person_search_rounded,
+              icon: AppIcons.selectClient,
               placement: AppStatePlacement.card,
             ),
           );
@@ -305,12 +306,12 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
           AppSegment<String>(
             value: 'diet',
             label: l.clientTabDiet,
-            icon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
           ),
           AppSegment<String>(
             value: 'workout',
             label: l.clientTabWorkout,
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
           ),
         ],
       );
@@ -460,7 +461,9 @@ class _Header extends StatelessWidget {
         // 주의사항 줄이 사라졌는지를 테스트가 재려면 프로필 줄의 끝을 지목할 수
         // 있어야 한다(#926).
         key: const ValueKey<String>('client-detail-identity'),
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // `<`·아바타·나가는 버튼이 이름·목표 두 줄의 세로 가운데에 선다 —
+        // 메시지 탭 대화 머리와 같은 정렬이다. 윗줄에 붙이면 아래 목표 줄
+        // 옆이 비어 머리가 위로 쏠려 보였다.
         children: <Widget>[
           // 닫기(X) 대신 늘 `<` 다(#2330) — 분할 보기에서도 같은 자리·같은
           // 모양이라, 화면 폭이 바뀌어도 나가는 길이 한 곳이다.
@@ -484,106 +487,54 @@ class _Header extends StatelessWidget {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    // 이름·휴면·신체·목표·메모는 왼쪽 묶음이 남는 폭을 다 쓴다 —
-                    // 이름이 짧아도 나가는 묶음은 오른쪽 끝에 붙는다.
-                    Expanded(
-                      child: Row(
-                        children: <Widget>[
-                          // 이름만 — 성별·나이는 목록 카드가 말한다(#1024). 긴
-                          // 이름은 말줄임해 버튼 자리를 뺏지 않는다.
-                          Flexible(
-                            child: Text(
-                              client.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: clientNameStyle(
-                                context,
-                                ClientRowDensity.header,
-                              ),
-                            ),
-                          ),
-                          // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
-                          // 말하고, 누르면 활성으로 돌린다.
-                          if (!client.active) ...<Widget>[
-                            const SizedBox(width: OnCareSpacing.s8),
-                            Tooltip(
-                              message: l.clientDormantActivate,
-                              child: Material(
-                                type: MaterialType.transparency,
-                                child: InkWell(
-                                  key: const ValueKey<String>(
-                                    'client-status-toggle',
-                                  ),
-                                  onTap: onActivate,
-                                  borderRadius: OnCareRadius.pillAll,
-                                  child: AppTag(
-                                    label: l.clientDormant,
-                                    icon: Icons.bedtime_rounded,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(width: OnCareSpacing.s4),
-                          // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
-                          _HeaderAction(
-                            key: const ValueKey<String>(
-                              'client-detail-open-health',
-                            ),
-                            icon: Icons.flag_rounded,
-                            label: l.clientProfileSectionTitle,
-                            onPressed: onOpenHealth,
-                            quiet: true,
-                          ),
-                          _HeaderAction(
-                            key: const ValueKey<String>(
-                              'client-detail-open-memo',
-                            ),
-                            icon: Icons.sticky_note_2_rounded,
-                            label: l.clientTrainerMemo,
-                            onPressed: onOpenMemo,
-                            quiet: true,
-                          ),
-                        ],
+                    // 이름만 — 성별·나이는 목록 카드가 말한다(#1024). 긴 이름은
+                    // 말줄임해 버튼 자리를 뺏지 않는다.
+                    Flexible(
+                      child: Text(
+                        client.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: clientNameStyle(
+                          context,
+                          ClientRowDensity.header,
+                        ),
                       ),
                     ),
-                    // 다른 화면으로 넘어가는 동작 — 파랑, 오른쪽 끝. 예전에는
-                    // 식단·운동을 다 읽고도 메시지 탭·프로그램 탭으로 건너가 같은
-                    // 사람을 목록에서 다시 찾아야 했다(#823).
-                    Row(
-                      key: const ValueKey<String>(
-                        'client-detail-quick-actions',
+                    // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
+                    // 말하고, 누르면 활성으로 돌린다.
+                    if (!client.active) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s8),
+                      Tooltip(
+                        message: l.clientDormantActivate,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: InkWell(
+                            key: const ValueKey<String>('client-status-toggle'),
+                            onTap: onActivate,
+                            borderRadius: OnCareRadius.pillAll,
+                            child: AppTag(
+                              label: l.clientDormant,
+                              icon: AppIcons.dormant,
+                            ),
+                          ),
+                        ),
                       ),
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        _HeaderAction(
-                          key: const ValueKey<String>(
-                            'client-detail-open-messages',
-                          ),
-                          icon: Icons.chat_bubble_outline_rounded,
-                          label: l.clientQuickMessages,
-                          onPressed: () =>
-                              context.go(AppRoutes.messagesFor(client.id)),
-                        ),
-                        _HeaderAction(
-                          key: const ValueKey<String>(
-                            'client-detail-open-program',
-                          ),
-                          icon: Icons.assignment_rounded,
-                          label: l.clientQuickProgram,
-                          onPressed: () =>
-                              context.go(AppRoutes.coachingFor(client.id)),
-                        ),
-                        _HeaderAction(
-                          key: const ValueKey<String>(
-                            'client-detail-open-report',
-                          ),
-                          icon: Icons.analytics_rounded,
-                          label: l.clientQuickReport,
-                          onPressed: () =>
-                              context.go(AppRoutes.reportFor(client.id)),
-                        ),
-                      ],
+                    ],
+                    const SizedBox(width: OnCareSpacing.s4),
+                    // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
+                    _HeaderAction(
+                      key: const ValueKey<String>('client-detail-open-health'),
+                      icon: AppIcons.goal,
+                      label: l.clientProfileSectionTitle,
+                      onPressed: onOpenHealth,
+                      quiet: true,
+                    ),
+                    _HeaderAction(
+                      key: const ValueKey<String>('client-detail-open-memo'),
+                      icon: AppIcons.note,
+                      label: l.clientTrainerMemo,
+                      onPressed: onOpenMemo,
+                      quiet: true,
                     ),
                   ],
                 ),
@@ -623,6 +574,34 @@ class _Header extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          // 다른 화면으로 넘어가는 동작 — 파랑, 오른쪽 끝. 예전에는 식단·운동을
+          // 다 읽고도 메시지 탭·프로그램 탭으로 건너가 같은 사람을 목록에서
+          // 다시 찾아야 했다(#823).
+          Row(
+            key: const ValueKey<String>('client-detail-quick-actions'),
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _HeaderAction(
+                key: const ValueKey<String>('client-detail-open-messages'),
+                icon: AppIcons.chat,
+                label: l.clientQuickMessages,
+                onPressed: () => context.go(AppRoutes.messagesFor(client.id)),
+              ),
+              _HeaderAction(
+                key: const ValueKey<String>('client-detail-open-program'),
+                icon: AppIcons.coaching,
+                label: l.clientQuickProgram,
+                onPressed: () => context.go(AppRoutes.coachingFor(client.id)),
+              ),
+              _HeaderAction(
+                key: const ValueKey<String>('client-detail-open-report'),
+                icon: AppIcons.reports,
+                label: l.clientQuickReport,
+                onPressed: () => context.go(AppRoutes.reportFor(client.id)),
+              ),
+            ],
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
@@ -48,7 +49,7 @@ class _DietViewState extends ConsumerState<DietView> {
     // 이름과 토글은 카드 밖 섹션 헤더가 든다 — 운동 탭과 같은 모양이다(#944).
     Widget section(Widget child) => _wrap(<Widget>[
       ClientPeriodSection(
-        icon: Icons.restaurant_rounded,
+        icon: AppIcons.diet,
         title: l.clientNutritionSummary,
         period: _period,
         onChanged: (ClientPeriod p) => setState(() => _period = p),
@@ -145,7 +146,7 @@ class _TodayDiet extends ConsumerWidget {
             if (meals.isEmpty)
               AppEmptyState(
                 title: l.dietEmpty,
-                icon: Icons.restaurant_rounded,
+                icon: AppIcons.diet,
                 placement: AppStatePlacement.card,
               )
             else ...<Widget>[

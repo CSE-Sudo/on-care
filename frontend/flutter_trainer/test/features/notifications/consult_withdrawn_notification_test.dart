@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
@@ -285,7 +286,7 @@ void main() {
 
           expect(find.text(title), findsOneWidget);
           expect(find.text(body), findsOneWidget);
-          expect(find.byIcon(Icons.event_busy_rounded), findsOneWidget);
+          expect(find.byIcon(AppIcons.eventBusy), findsOneWidget);
           expect(tester.takeException(), isNull);
         });
       });
@@ -348,8 +349,8 @@ void main() {
 
         expect(find.text(_koTitle), findsOneWidget);
         expect(find.text('회원 탈퇴'), findsOneWidget);
-        expect(find.byIcon(Icons.event_busy_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.person_remove_rounded), findsOneWidget);
+        expect(find.byIcon(AppIcons.eventBusy), findsOneWidget);
+        expect(find.byIcon(AppIcons.memberLeft), findsOneWidget);
       });
     });
   });

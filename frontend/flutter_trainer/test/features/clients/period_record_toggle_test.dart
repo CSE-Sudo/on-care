@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 
 import '../../helpers/pump_app.dart';
@@ -48,7 +49,7 @@ void main() {
     expect(
       find.descendant(
         of: collapsed,
-        matching: find.byIcon(Icons.expand_more_rounded),
+        matching: find.byIcon(AppIcons.expandMore),
       ),
       findsWidgets,
     );

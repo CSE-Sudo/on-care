@@ -159,7 +159,7 @@ void main() {
     );
 
     // 신체·목표 → 메모는 이 화면에서 끝나는 동작이라 이름 옆, 나가는 묶음보다
-    // 왼쪽의 같은 줄에 선다(#2330). 새로고침은 없다 — 늘 자동으로 맞춘다.
+    // 왼쪽에 선다(#2330). 새로고침은 없다 — 늘 자동으로 맞춘다.
     final health = tester.getRect(
       find.byKey(const ValueKey<String>('client-detail-open-health')),
     );
@@ -168,7 +168,17 @@ void main() {
     );
     expect(health.right, lessThanOrEqualTo(memo.left));
     expect(memo.right, lessThan(tester.getRect(actions).left));
-    expect(memo.center.dy, closeTo(tester.getRect(actions).center.dy, 0.5));
+    // 나가는 묶음은 이름 줄이 아니라 `<`·아바타와 함께 이름·목표 두 줄의
+    // 세로 가운데에 선다 — 메시지 탭 대화 머리와 같은 정렬이다.
+    final back = tester.getRect(
+      find.byKey(const ValueKey<String>('client-detail-back')),
+    );
+    final identity = tester.getRect(
+      find.byKey(const ValueKey<String>('client-detail-identity')),
+    );
+    expect(tester.getRect(actions).center.dy, closeTo(back.center.dy, 0.5));
+    expect(back.center.dy, closeTo(identity.center.dy, 0.5));
+    expect(memo.center.dy, lessThan(tester.getRect(actions).center.dy));
     expect(
       find.byKey(const ValueKey<String>('client-data-refresh')),
       findsNothing,
