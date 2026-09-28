@@ -81,6 +81,38 @@ void main() {
     expect(find.byIcon(Icons.check), findsNothing);
   });
 
+  testWidgets('태그는 onTap 이 있을 때만 눌린다 (#2467)', (tester) async {
+    int taps = 0;
+    await _pump(
+      tester,
+      Row(
+        children: <Widget>[
+          AppTag(
+            key: const ValueKey<String>('tap'),
+            label: '누름',
+            onTap: () => taps++,
+          ),
+          const AppTag(key: ValueKey<String>('still'), label: '그냥'),
+        ],
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('tap')));
+    expect(taps, 1);
+    // 누를 수 없는 태그에는 물결 자리(InkWell)가 없다.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('still')),
+        matching: find.byType(InkWell),
+      ),
+      findsNothing,
+    );
+    // 누르는 자리는 태그 높이 그대로다 — 줄 높이를 늘리지 않는다.
+    expect(
+      tester.getSize(find.byKey(const ValueKey<String>('tap'))).height,
+      OnCareSize.tagHeight,
+    );
+  });
+
   testWidgets('세그먼트 토글은 누른 값을 알린다', (tester) async {
     String value = 'day';
     await _pump(

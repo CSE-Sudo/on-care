@@ -5,6 +5,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 
 /// 통합 검색 결과에 함께 노출할 교차 영역 데이터입니다.
 class ClientSearchFacts {
@@ -143,7 +144,8 @@ String clientSearchDetail(
     details.add(l.searchDetailCompletion(completion.round()));
   }
 
-  if (details.isEmpty) return client.goal;
+  // 적을 것이 없으면 목표다 — 저장 값은 한국어라 화면 언어로 옮긴다(#2467).
+  if (details.isEmpty) return healthFocusGoalLabel(l, client.goal);
   return details.join(' · ');
 }
 

@@ -36,18 +36,21 @@ import 'package:oncare_trainer/features/coaching/presentation/widgets/program_ed
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_nutrition_summary_card.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatarSize,
         AppButton,
         AppIconButton,
-        AppListRow,
         AppSegmentedToggle,
         AppSegmentedToggleStyle,
         OnCareLayout,
@@ -1473,29 +1476,43 @@ void main() {
         seedClock: kMidWeekKst,
       );
 
-      // 좁은 화면의 회원 고르기 줄은 `AppListRow` 다(#1705) — 이름이 title,
-      // 성별·나이가 subtitle 로 이름 아래에 쌓인다.
+      // 좁은 화면의 회원 고르기 줄도 회원 고르기 카드다(#2467) — 성별·나이가
+      // 이름 아래에 쌓이고, 목표 줄은 없다.
       final minsuRow = find.byWidgetPredicate(
         (widget) =>
-            widget is AppListRow &&
-            widget.title == '김민수' &&
-            (widget.subtitle ?? '').isNotEmpty,
+            widget is ClientPickerCard &&
+            widget.stacked &&
+            widget.client.name == '김민수',
       );
       expect(minsuRow, findsOneWidget);
-      final row = tester.widget<AppListRow>(minsuRow);
+      final client = tester.widget<ClientPickerCard>(minsuRow).client;
       final name = find.descendant(
         of: minsuRow,
-        matching: find.text(row.title),
+        matching: find.text(client.name),
       );
       final detail = find.descendant(
         of: minsuRow,
-        matching: find.text(row.subtitle!),
+        matching: find.text(
+          clientDemographicsLabel(tester.element(minsuRow), client),
+        ),
       );
       expect(name, findsOneWidget);
       expect(detail, findsOneWidget);
       expect(
         tester.getTopLeft(detail).dy,
         greaterThan(tester.getTopLeft(name).dy),
+      );
+      expect(
+        find.descendant(
+          of: minsuRow,
+          matching: find.text(
+            healthFocusGoalLabel(
+              AppLocalizations.of(tester.element(minsuRow)),
+              client.goal,
+            ),
+          ),
+        ),
+        findsNothing,
       );
       expect(find.byType(ProgramNutritionSummaryCard), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -2527,7 +2544,8 @@ void main() {
 
       // 보내기 전에 기간을 보여 주며 한 번 묻는다.
       expect(find.textContaining('회원 앱에 매일'), findsWidgets);
-      await tester.tap(find.text('회원에게 보내기').last);
+      // 확인창 제목이 `회원에게 보내기` 라 확정 버튼은 동사만 쓴다(#2479).
+      await tester.tap(find.text('보내기').last);
       // 드리프트 `.watch()` 가 살아 있어 `pumpAndSettle` 은 멈추지 않는다 —
       // 이 파일의 다른 전송 테스트와 같이 프레임 수를 정해 돌린다.
       await tester.pump();
@@ -2582,7 +2600,7 @@ void main() {
       await _ensureCentered(tester, send);
       await tester.tap(send);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('회원에게 보내기').last);
+      await tester.tap(find.text('보내기').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(routines.programs, hasLength(1));
