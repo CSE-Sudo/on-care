@@ -654,15 +654,21 @@ class _SignalLineState extends State<_SignalLine> {
     ),
   );
 
+  // 펼친 `Wrap` 에서 배지 하나가 줄 폭보다 길면(좁은 패널 · 큰 글씨) 줄여서
+  // 들인다(#2337). 말줄임하지 않는다 — `칼로리 22% 과…` 처럼 잘린 문구·숫자는
+  // 다른 값으로 읽힌다. 접힌 줄은 폭 제약 없이 재므로 여기서 달라지지 않는다.
   List<Widget> _badges(AppLocalizations l) => <Widget>[
     for (final ClientSignal signal in widget.signals)
       _tappable(
         key: ValueKey<String>('client-detail-alert-${signal.kind.wire}'),
         onTap: () => widget.onOpen(signal),
-        child: AppTag(
-          label: signal.detailLabel(l),
-          icon: Icons.error_outline_rounded,
-          tone: signal.kind.tone,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: AppTag(
+            label: signal.detailLabel(l),
+            icon: Icons.error_outline_rounded,
+            tone: signal.kind.tone,
+          ),
         ),
       ),
   ];
