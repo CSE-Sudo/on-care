@@ -1793,6 +1793,19 @@
   },
   "coachTemplates": "Program templates",
   "coachSentHistory": "Sent history",
+  "coachLastDelivery": "Last send",
+  "coachDeliveryPtWithRoutine": "PT · personal",
+  "coachDeliveryRoutineOnly": "Personal only",
+  "coachDeliveryCancelledRoutineOnly": "PT cancelled · personal only",
+  "coachDeliveryOn": "Sent {date}",
+  "@coachDeliveryOn": {"placeholders": {"date": {"type": "String"}}},
+  "coachUnsentRoutines": "{count} personal exercise(s) not sent yet",
+  "@coachUnsentRoutines": {"placeholders": {"count": {"type": "int"}}},
+  "coachUnsentRoutinesBody": "The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.",
+  "coachSendUnsentRoutines": "Open in schedule",
+  "coachDeliveryProgramSection": "Program",
+  "coachDeliveryRoutineSection": "Personal workout",
+  "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
   "coachHomework": "Personal",
@@ -2631,7 +2644,6 @@
       }
     }
   },
-  "programEditorDefaultSession": "Session A",
   "programEditorSaveUnsupported": "Give the program a name first.",
   "programEditorSaveEdit": "Save changes",
   "programSavedTitle": "Saved programs",
@@ -3317,6 +3329,9 @@
   "reportsStepReview": "Review",
   "reportsStepWrite": "Write",
   "reportsStepSend": "Send",
+  "reportsStepPrint": "Print",
+  "reportsPrintNeedsPdf": "You can print once the preview PDF is ready",
+  "reportsPrintFailed": "Couldn't open the print dialog. Please try again",
   "reportsStepperLabel": "Weekly report steps",
   "reportsStepNext": "Next",
   "reportsStepPrev": "Back",
@@ -3565,7 +3580,6 @@
       }
     }
   },
-  "reportsSkipToWrite": "Write without a draft",
   "reportsCalorieThisWeekAvg": "This week {kcal} kcal/day",
   "@reportsCalorieThisWeekAvg": {
     "placeholders": { "kcal": { "type": "String" } }

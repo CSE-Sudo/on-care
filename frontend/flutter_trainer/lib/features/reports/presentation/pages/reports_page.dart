@@ -20,6 +20,7 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_work
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_file_name.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_printer.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -27,6 +28,9 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 리포트 편집기 단계 원 사이 간격 — 공용 기본의 두 배(#2449).
+const double reportStepperGap = ProgressStepper.defaultGap * 2;
 
 /// 리포트 — the week, from two angles.
 ///
@@ -128,6 +132,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
   bool _confirming = false;
+
+  /// 인쇄 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다(#2451).
+  bool _printing = false;
 
   /// 피드백 입력창의 현재 내용. 입력창과 하단 전송 버튼이 서로 다른 위젯에
   /// 있어, 그 사이를 잇는 값이다.
@@ -492,6 +499,28 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
+  /// ③ 의 `인쇄` — 미리보기에 떠 있는 그 한 부를 인쇄 창에 넘긴다(#2451).
+  ///
+  /// 새로 만들지 않는다. 화면에서 본 것, 회원에게 가는 것, 종이에 찍히는 것이
+  /// 모두 같은 파일이어야 한다. 파일 이름도 전송과 같다.
+  Future<void> _print(WeeklyReport report, Uint8List bytes) async {
+    if (_printing) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    setState(() => _printing = true);
+    try {
+      await ref.read(reportPdfPrinterProvider)(
+        bytes,
+        name: reportPdfFileName(l, report),
+      );
+    } catch (_) {
+      if (mounted) {
+        showAppToast(context, l.reportsPrintFailed, type: AppToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _printing = false);
+    }
+  }
+
   /// 보낼 PDF — ③ 에 떠 있는 미리보기 한 부다(#2402).
   ///
   /// 미리보기가 없거나(문구가 바뀌었거나) 만들다 실패했으면 새로 만들고, 그
@@ -847,121 +876,65 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // 좁은 창에서는 머리줄을 둘로 접는다. 한 줄에 목록·이름·주
-              // 이동·바로 쓰기를 모두 세우면 노트북보다 좁은 창에서 넘친다.
-              LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  final bool wide =
-                      constraints.maxWidth >= OnCareLayout.splitBreakpoint;
-                  final Widget skip = AppButton(
-                    key: const ValueKey<String>('report-skip-to-write'),
-                    label: l.reportsSkipToWrite,
-                    leadingIcon: Icons.edit_note_rounded,
+              // 머리 한 줄 — 목록으로 · 누구의 리포트 · (맨 오른쪽) 지난 리포트.
+              // `지난 리포트` 는 스케줄 탭 `예약 슬롯` 과 같은 네이비 외곽선
+              // 버튼이다(#2449). 글자 버튼이면 머리 줄에서 버튼으로 읽히지
+              // 않았다. 초안 없이 바로 쓰기는 ② 에서 초안을 지우면 되므로 두지
+              // 않는다.
+              Row(
+                children: <Widget>[
+                  AppButton(
+                    key: const ValueKey<String>('reports-back-to-list'),
+                    label: l.reportsBackToWorkbench,
                     variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
-                    onPressed: () {
-                      final WeeklyReport? data = reportAsync.valueOrNull;
-                      if (data != null) _useSummaryAsDraft(data, '');
-                      // 빈 입력창이 있는 ② 작성으로 간다. ③ 은 다 쓴 글을
-                      // 확인하는 자리라 입력창이 없다(#2402).
-                      setState(() {
-                        _stage = ReportEditorStage.write.index;
-                        if (_stage > _maxStage) _maxStage = _stage;
-                      });
-                    },
-                  );
+                    leadingIcon: Icons.chevron_left_rounded,
+                    onPressed: () => context.go(_locationFor(null)),
+                  ),
+                  const SizedBox(width: OnCareSpacing.s8),
+                  // 누구의 리포트인지는 편집기 머리에 한 번만 선다. 카드마다
+                  // 이름을 적으면 네 카드가 같은 말을 네 번 하고, 정작 카드
+                  // 제목이 말해야 할 `무엇을 보는 칸인가` 가 밀린다.
+                  Expanded(
+                    child: Text(
+                      l.reportsClientWeekly(selected.name),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.oncare.text(
+                        OnCareTypography.strong(OnCareTypography.titleSmall),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: OnCareSpacing.s8),
                   // 이 회원에게 그동안 보낸 리포트 — 쓰기 전에 지난 주에
-                  // 무엇을 말했는지 되짚는 길이다(#2394). 바로 쓰기와 한
-                  // 묶음이라 좁은 창에서는 함께 아랫줄로 내려간다.
-                  final Widget history = AppButton(
+                  // 무엇을 말했는지 되짚는 길이다(#2394).
+                  AppButton(
                     key: const ValueKey<String>('reports-editor-history'),
                     label: l.reportsHistoryButton,
-                    variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
+                    variant: AppButtonVariant.strongOutline,
+                    leadingIcon: Icons.history_rounded,
                     onPressed: () => _openHistory(selected.id),
-                  );
-                  final Widget actions = Wrap(
-                    alignment: WrapAlignment.end,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: OnCareSpacing.s4,
-                    runSpacing: OnCareSpacing.s4,
-                    children: <Widget>[history, skip],
-                  );
-                  final Widget head = Row(
-                    children: <Widget>[
-                      AppButton(
-                        key: const ValueKey<String>('reports-back-to-list'),
-                        label: l.reportsBackToWorkbench,
-                        variant: AppButtonVariant.text,
-                        leadingIcon: Icons.chevron_left_rounded,
-                        onPressed: () => context.go(_locationFor(null)),
-                      ),
-                      const SizedBox(width: OnCareSpacing.s8),
-                      // 누구의 리포트인지는 편집기 머리에 한 번만 선다. 카드마다
-                      // 이름을 적으면 네 카드가 같은 말을 네 번 하고, 정작 카드
-                      // 제목이 말해야 할 `무엇을 보는 칸인가` 가 밀린다.
-                      Flexible(
-                        child: Text(
-                          l.reportsClientWeekly(selected.name),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.oncare.text(
-                            OnCareTypography.strong(
-                              OnCareTypography.titleSmall,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // 주 이동은 목록 화면에서만 한다 — 편집기는 이미 고른
-                      // 한 주를 쓰는 자리라, 여기서 주가 바뀌면 쓰던 글이 다른
-                      // 주의 수치 옆에 선다. 오른쪽 두 버튼은 큰 글자에서
-                      // 넘치지 않게 제 자리 안에서 아랫줄로 접힌다.
-                      if (wide) ...<Widget>[
-                        const SizedBox(width: OnCareSpacing.s8),
-                        Expanded(
-                          child: Align(
-                            alignment: AlignmentDirectional.centerEnd,
-                            child: actions,
-                          ),
-                        ),
-                      ] else
-                        const Spacer(),
-                    ],
-                  );
-                  if (wide) return head;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      head,
-                      const SizedBox(height: OnCareSpacing.s8),
-                      Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: actions,
-                      ),
-                    ],
-                  );
-                },
+                  ),
+                ],
               ),
               const SizedBox(height: OnCareSpacing.s12),
               // 단계 표시는 AI 코칭의 추천안 만들기와 같은 것을 쓴다 — 같은
               // 일(여러 단계를 거쳐 회원에게 보낼 것을 만든다)이라 형태가
               // 달라야 할 이유가 없다.
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: ProgressStepper(
-                    keyPrefix: 'report-stage',
-                    labels: <String>[
-                      l.reportsStepReview,
-                      l.reportsStepWrite,
-                      l.reportsStepSend,
-                    ],
-                    semanticsLabel: l.reportsStepperLabel,
-                    stage: _stage,
-                    maxReachedStage: _maxStage,
-                    onStageTap: (value) => setState(() => _stage = value),
-                  ),
-                ),
+              // 원 사이를 기본의 두 배로 벌린다(#2449) — 편집기 폭에서 세 단계가
+              // 한데 붙어 보였다. 표시줄은 스스로 가운데에 서고, 모자란 폭에서는
+              // 스스로 좁힌다.
+              ProgressStepper(
+                keyPrefix: 'report-stage',
+                labels: <String>[
+                  l.reportsStepReview,
+                  l.reportsStepWrite,
+                  l.reportsStepSend,
+                ],
+                semanticsLabel: l.reportsStepperLabel,
+                stage: _stage,
+                maxReachedStage: _maxStage,
+                onStageTap: (value) => setState(() => _stage = value),
+                gap: reportStepperGap,
               ),
               const SizedBox(height: OnCareSpacing.s16),
               Expanded(
@@ -1049,6 +1022,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 stage: _stage,
                 sending: _sending == selected.id,
                 canSend: !_feedbackBlank,
+                // ③ 에서는 미리보기 한 부가 다 만들어져야 인쇄할 수 있다.
+                pdf: _stage == ReportEditorStage.send.index ? _preview : null,
+                printing: _printing,
+                onPrint: reportAsync.valueOrNull == null
+                    ? null
+                    : (bytes) => _print(reportAsync.value!, bytes),
                 onPrev: _stage == 0 ? null : () => setState(() => _stage--),
                 onNext: _stage == 2
                     ? null
@@ -1079,12 +1058,15 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   }
 }
 
-/// 편집기 아래 줄 — 이전 / 다음, 마지막 단계에서는 전송.
+/// 편집기 아래 줄 — 이전 / 다음, 마지막 단계에서는 인쇄 · 전송.
 class _StepFooter extends StatelessWidget {
   const _StepFooter({
     required this.stage,
     required this.sending,
     required this.canSend,
+    required this.pdf,
+    required this.printing,
+    required this.onPrint,
     required this.onPrev,
     required this.onNext,
     required this.onSend,
@@ -1096,6 +1078,15 @@ class _StepFooter extends StatelessWidget {
   /// 보낼 글이 있는가. 빈 피드백은 보내지 않는다.
   final bool canSend;
 
+  /// ③ 에 떠 있는 PDF. 다 만들어지기 전이나 만들다 실패했으면 인쇄를 잠근다.
+  final Future<Uint8List>? pdf;
+
+  /// 인쇄 창이 떠 있다.
+  final bool printing;
+
+  /// [pdf] 로 만든 한 부를 인쇄한다.
+  final ValueChanged<Uint8List>? onPrint;
+
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
   final VoidCallback? onSend;
@@ -1104,18 +1095,42 @@ class _StepFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool last = stage == 2;
-    return Row(
-      children: <Widget>[
-        if (onPrev != null)
-          AppButton(
-            key: const ValueKey<String>('report-step-prev'),
-            label: l.reportsStepPrev,
-            variant: AppButtonVariant.text,
-            leadingIcon: Icons.chevron_left_rounded,
-            onPressed: onPrev,
+    // 단계 흐름이라 `이전` 은 왼쪽 끝에 떼어 둔다 — 오른쪽 `다음` 과 한 쌍의
+    // 선택이 아니라 되돌아가기다(#2465).
+    return AppActionRow(
+      leading: onPrev == null
+          ? null
+          : AppButton(
+              key: const ValueKey<String>('report-step-prev'),
+              label: l.reportsStepPrev,
+              variant: AppButtonVariant.text,
+              leadingIcon: Icons.chevron_left_rounded,
+              onPressed: onPrev,
+            ),
+      actions: <Widget>[
+        if (last) ...<Widget>[
+          // 인쇄는 전송 왼쪽이다(#2451). 보내기 전에 종이로 한 번 더 보는
+          // 자리라 보조 버튼으로 둔다.
+          FutureBuilder<Uint8List>(
+            future: pdf,
+            builder: (context, snapshot) {
+              final Uint8List? bytes = snapshot.data;
+              final bool ready = bytes != null && onPrint != null;
+              return Tooltip(
+                message: ready ? '' : l.reportsPrintNeedsPdf,
+                child: AppButton(
+                  key: const ValueKey<String>('report-step-print'),
+                  label: l.reportsStepPrint,
+                  variant: AppButtonVariant.secondary,
+                  leadingIcon: Icons.print_rounded,
+                  loading: printing,
+                  onPressed: bytes == null || !ready || printing || sending
+                      ? null
+                      : () => onPrint!(bytes),
+                ),
+              );
+            },
           ),
-        const Spacer(),
-        if (last)
           // 빈 피드백으로 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
           Tooltip(
             message: canSend ? '' : l.reportsSendNeedsFeedback,
@@ -1127,8 +1142,8 @@ class _StepFooter extends StatelessWidget {
               loading: sending,
               onPressed: sending || !canSend ? null : onSend,
             ),
-          )
-        else
+          ),
+        ] else
           AppButton(
             key: const ValueKey<String>('report-step-next'),
             label: l.reportsStepNext,

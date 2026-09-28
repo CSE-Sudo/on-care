@@ -146,6 +146,17 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       size: AppDialogSize.medium,
       // 하단 [취소, 저장] 으로만 닫는다 — 예전 창에도 닫기 X 는 없었다.
       showClose: false,
+      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
+      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
+      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
+      trailing: AppButton(
+        label: l.coachTemplateAddExercise,
+        onPressed: () =>
+            setState(() => _exercises.add(_ExerciseDraft.empty())),
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        leadingIcon: Icons.add_rounded,
+      ),
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : () => Navigator.of(context).pop(),
@@ -187,7 +198,10 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
                       _exercises.removeAt(index).dispose();
                     }),
             ),
-          if (_exerciseError case final String message) ...<Widget>[
+          // 운동 목록 바로 아래 — 이 오류가 가리키는 것은 목록이다(#2220).
+          // `운동 추가` 는 창 제목 오른쪽으로 옮겨 갔으므로(#2465) 그 자리를
+          // 기준으로 삼지 않는다.
+          if (_exerciseError case final String message)
             Text(
               message,
               key: const ValueKey<String>('template-exercise-error'),
@@ -195,19 +209,6 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
                   .text(OnCareTypography.caption)
                   .copyWith(color: OnCareColors.danger),
             ),
-            const SizedBox(height: OnCareSpacing.s4),
-          ],
-          Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
-              label: l.coachTemplateAddExercise,
-              onPressed: () =>
-                  setState(() => _exercises.add(_ExerciseDraft.empty())),
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              leadingIcon: Icons.add_rounded,
-            ),
-          ),
           if (_saveError case final String message) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             Text(

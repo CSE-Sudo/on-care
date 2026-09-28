@@ -20,8 +20,8 @@ import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_re
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
-import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
@@ -34,7 +34,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount, weekdayLabels;
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
-import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_section.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -1573,211 +1573,262 @@ class _SendHistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final tokens = context.oncare;
-    final sessionArgs = (id: client.id, name: client.name);
-    final sessions = ref.watch(clientSessionsProvider(sessionArgs));
-    // Homework goes out via `assignRoutine`, which writes no schedule row.
-    // Watching only the schedule left this card empty right after a send.
-    final assigned = ref.watch(assignedRoutinesProvider(client.id));
-    final rowStyle = tokens
-        .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-        .copyWith(color: OnCareColors.textPrimary);
+    final latest = ref.watch(_latestDeliveryProvider(client.id));
     return _SectionCard(
       title: l.coachSentHistory,
       icon: Icons.history_rounded,
-      child: sessions.when(
-        loading: () => const AppLoading(placement: AppStatePlacement.card),
-        error: (e, _) => AppErrorState(
-          title: l.coachHistoryFailed,
-          retryLabel: l.actionRetry,
-          onRetry: () => ref.invalidate(clientSessionsProvider(sessionArgs)),
-          placement: AppStatePlacement.card,
-        ),
-        data: (list) {
-          final withProgram = list
-              .where((s) => s.program.isNotEmpty)
-              .take(4)
-              .toList();
-          final routines = assigned.valueOrNull ?? const <AssignedRoutine>[];
-          if (withProgram.isEmpty && routines.isEmpty) {
-            return AppEmptyState(
-              title: l.coachHistoryEmpty,
-              icon: Icons.outbox_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // 아직 보내지 않은 것이 있으면 맨 위에서 알린다(#2225) — 지금은 그
+          // 사실이 스케줄 탭의 그 일정을 열어야만 보인다. 보내는 일 자체는
+          // 여기서 하지 않는다. 무엇을 보내는지는 일정 상세에서 고치고 확인한
+          // 뒤에 보내야 하고, 그 화면이 이미 그 일을 맡고 있다(#2224).
+          _UnsentRoutinesNotice(client: client),
+          latest.when(
+            loading: () => const AppLoading(placement: AppStatePlacement.card),
+            error: (_, _) => AppErrorState(
+              title: l.coachHistoryFailed,
+              retryLabel: l.actionRetry,
+              onRetry: () => ref.invalidate(_latestDeliveryProvider(client.id)),
               placement: AppStatePlacement.card,
-            );
-          }
-          return Column(
-            children: <Widget>[
-              for (final routine in routines.take(3))
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: OnCareSpacing.s4,
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      _SendHistoryTypeBadge(label: l.coachHomework),
-                      Expanded(
-                        child: Text(
-                          l.coachRoutineSummary(routine.name, routine.minutes),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: rowStyle,
-                        ),
-                      ),
-                      const SizedBox(width: OnCareSpacing.s4),
-                      AppTag(
-                        label: routine.source == 'ai' ? 'AI' : l.coachTrainer,
-                        tone: AppTagTone.brand,
-                        icon: routine.source == 'ai'
-                            ? Icons.auto_awesome_rounded
-                            : Icons.badge_rounded,
-                      ),
-                      // 보낸 뒤 물리는 자리. 여기 목록이 배정된 개인운동을
-                      // 보여 주는 유일한 곳이다. (#1020)
-                      _CancelRoutineButton(
-                        clientId: client.id,
-                        routine: routine,
-                      ),
-                    ],
-                  ),
-                ),
-              for (final s in withProgram)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: OnCareSpacing.s4,
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      _SendHistoryTypeBadge(label: l.coachPersonalTraining),
-                      Expanded(
-                        child: Text(
-                          s.program.length == 1
-                              ? s.program.first.name
-                              : l.coachSessionProgramSummary(
-                                  s.program.first.name,
-                                  s.program.length - 1,
-                                ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: rowStyle,
-                        ),
-                      ),
-                      const SizedBox(width: OnCareSpacing.s4),
-                      Text(
-                        scheduleStatusLabel(l, s.status),
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(
-                              color: s.isDone
-                                  ? OnCareColors.success
-                                  : tokens.brand.primary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          );
-        },
+            ),
+            data: (delivery) => delivery == null
+                ? AppEmptyState(
+                    title: l.coachHistoryEmpty,
+                    icon: Icons.outbox_rounded,
+                    placement: AppStatePlacement.card,
+                  )
+                : _LastDeliveryBox(delivery: delivery),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// 전송 이력의 프로그램 종류 — 개인운동과 PT를 같은 폭의 태그로 구분한다.
-class _SendHistoryTypeBadge extends StatelessWidget {
-  const _SendHistoryTypeBadge({required this.label});
+/// 끝난 PT 에 남아 있는 개인운동 — 보낼 수 있는데 아직 안 보낸 것. (#2225)
+///
+/// 위젯이 아니라 provider 가 들고 있다. 보낸 뒤 이 자리를 다시 읽어야 하는데,
+/// 위젯이 제 상태에 들고 있으면 그 사이 다시 그려져 상태가 버려질 때 읽기가
+/// 조용히 사라진다 — 보냈는데 알림이 그대로 남는다.
+final _unsentRoutinesProvider = FutureProvider.autoDispose
+    .family<List<UnsentRoutine>, String>(
+      (ref, clientId) => ref
+          .watch(scheduleRepositoryProvider)
+          .fetchUnsentRoutinesFor(clientId),
+    );
 
-  final String label;
+/// 가장 최근에 보낸 것 한 묶음. (#2225)
+final _latestDeliveryProvider = FutureProvider.autoDispose
+    .family<SentDelivery?, String>(
+      (ref, clientId) => ref
+          .watch(trainerRoutineRepositoryProvider)
+          .fetchLatestDelivery(clientId),
+    );
+
+/// 아직 보내지 않은 개인운동이 있다고 알리고, 그 일정으로 데려다준다. (#2225)
+///
+/// 붙여만 둔 개인운동은 그 PT 를 완료하고 보낼 때 함께 간다(#2224). 그 사실이
+/// 스케줄 탭의 그 일정을 열어야만 보여, 프로그램 탭만 보는 트레이너는 보낼
+/// 것이 남은 줄 몰랐다.
+///
+/// **여기서 보내지는 않는다.** 무엇을 보내는지 고치고 확인한 뒤에 보내야 하고,
+/// 그 일은 일정 상세가 이미 맡고 있다. 여기서 바로 보내면 트레이너는 무엇이
+/// 나갔는지 못 본 채 보내게 된다.
+class _UnsentRoutinesNotice extends ConsumerWidget {
+  const _UnsentRoutinesNotice({required this.client});
+
+  final TrainerClient client;
 
   @override
-  Widget build(BuildContext context) {
-    // 종류마다 글자 수가 달라도 줄의 이름 칸이 같은 자리에서 시작하도록
-    // 칸 폭을 고정한다.
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rows =
+        ref.watch(_unsentRoutinesProvider(client.id)).valueOrNull ??
+        const <UnsentRoutine>[];
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    // 여러 일정에 남아 있으면 가장 오래된 것부터 — 오래 묵은 것이 먼저
+    // 잊히고, 트레이너가 찾아야 할 것도 그쪽이다.
+    final target = rows.reduce(
+      (a, b) => a.scheduleDate.compareTo(b.scheduleDate) <= 0 ? a : b,
+    );
     return Padding(
-      padding: const EdgeInsets.only(right: OnCareSpacing.s8),
-      child: SizedBox(
-        key: ValueKey<String>('send-history-type-$label'),
-        width: OnCareSpacing.s48,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: AppTag(label: label, tone: AppTagTone.brand),
-          ),
+      key: const ValueKey<String>('coach-unsent-routines'),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: Container(
+        padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+        decoration: const BoxDecoration(
+          color: OnCareColors.surfaceInput,
+          borderRadius: OnCareRadius.mdAll,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              l.coachUnsentRoutines(rows.length),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              l.coachUnsentRoutinesBody,
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppButton(
+              key: const ValueKey<String>('coach-open-unsent-schedule'),
+              label: l.coachSendUnsentRoutines,
+              leadingIcon: Icons.event_rounded,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              shrinkLabel: true,
+              onPressed: () => context.go(
+                AppRoutes.scheduleAt(
+                  // 날짜가 비면 그 주를 못 찾는다. 옛 응답이 그럴 수 있어
+                  // 빈 값은 실어 보내지 않는다 — 일정 id 만으로도 이번 주
+                  // 안이면 열린다.
+                  date: target.scheduleDate.isEmpty
+                      ? null
+                      : target.scheduleDate,
+                  sessionId: target.scheduleId,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// 배정한 개인운동을 물리는 버튼. (#1020)
+/// 직전 전송 한 묶음 — 언제 보냈는지, 프로그램과 개인운동으로 갈라서. (#2225)
 ///
-/// 지운다고 회원이 이미 수행한 기록까지 사라지지는 않는다 — 지우는 것은
-/// **배정**이지 한 일이 아니다.
-class _CancelRoutineButton extends ConsumerStatefulWidget {
-  const _CancelRoutineButton({required this.clientId, required this.routine});
+/// 전송 이력은 **직전 한 번만** 보여 준다. 여러 번을 나열하면 트레이너가
+/// 찾는 것("방금 무엇이 나갔나")이 목록에 묻힌다. PT 와 그때 함께 간
+/// 개인운동이 한 번의 전송이었다는 사실도 여기서만 드러난다(#2224).
+class _LastDeliveryBox extends StatelessWidget {
+  const _LastDeliveryBox({required this.delivery});
 
-  final String clientId;
-  final AssignedRoutine routine;
+  final SentDelivery delivery;
 
-  @override
-  ConsumerState<_CancelRoutineButton> createState() =>
-      _CancelRoutineButtonState();
-}
-
-class _CancelRoutineButtonState extends ConsumerState<_CancelRoutineButton> {
-  bool _busy = false;
-
-  Future<void> _cancel() async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final bool ok = await showAppConfirmDialog(
-      context: context,
-      title: l.routineDeleteTitle,
-      message: l.routineDeleteBody(widget.routine.name),
-      confirmLabel: l.actionDelete,
-      cancelLabel: l.actionCancel,
-      destructive: true,
-    );
-    if (!ok || !mounted) return;
-
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(trainerRoutineRepositoryProvider)
-          .deleteRoutine(widget.clientId, widget.routine.id);
-      if (!mounted) return;
-      showAppToast(context, l.routineDeleted, type: AppToastType.success);
-    } on StateError {
-      // 404 — 이미 없는 것을 지우려 했다. 목적은 이뤄진 셈이라 목록만 다시 읽고
-      // 그 줄을 화면에서 걷어낸다.
-      if (!mounted) return;
-      showAppToast(context, l.routineAlreadyGone);
-    } on Object {
-      if (!mounted) return;
-      showAppToast(context, l.routineDeleteFailed, type: AppToastType.error);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-      ref.invalidate(assignedRoutinesProvider(widget.clientId));
-    }
-  }
+  String _kindLabel(AppLocalizations l, String kind) => switch (kind) {
+    DeliveryKinds.ptWithRoutine => l.coachDeliveryPtWithRoutine,
+    DeliveryKinds.cancelledRoutineOnly => l.coachDeliveryCancelledRoutineOnly,
+    _ => l.coachDeliveryRoutineOnly,
+  };
 
   @override
   Widget build(BuildContext context) {
-    if (_busy) {
-      return const Padding(
-        padding: EdgeInsets.only(left: OnCareSpacing.s8),
-        child: AppLoading.inline(),
-      );
-    }
-    return AppIconButton(
-      key: ValueKey<String>('history-cancel-routine-${widget.routine.id}'),
-      icon: Icons.close_rounded,
-      tooltip: AppLocalizations.of(context).routineDelete,
-      color: OnCareColors.textSecondary,
-      onPressed: _cancel,
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    // 짜 둔 프로그램이 아니라 **간 프로그램**이다. PT 를 취소하면 프로그램은
+    // 나가지 않으므로 여기도 비어야 한다 — 아니면 스케줄 탭은 안 갔다고 하고
+    // 전송 이력은 갔다고 하는 두 말이 선다.
+    final program = delivery.program;
+    // 전송 이력 카드 위에 그대로 적는다. 상자 안에 또 상자를 두면 이 카드가
+    // 무엇을 말하는 카드인지 흐려진다.
+    return Column(
+      key: const ValueKey<String>('coach-last-delivery'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            AppTag(label: _kindLabel(l, delivery.kind), tone: AppTagTone.brand),
+            const SizedBox(width: OnCareSpacing.s8),
+            Expanded(
+              child: Text(
+                delivery.sentOn == null
+                    ? l.coachLastDelivery
+                    : l.coachDeliveryOn(ymd(delivery.sentOn!)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+        // 이름만으로는 무엇을 보냈는지 알 수 없다 — 몇 세트 몇 회 몇 kg 로
+        // 보냈는지 보려고 다시 일정을 열어야 했다. 일정 상세와 **같은
+        // 표기**를 쓴다(#2225).
+        _DeliverySection(
+          title: l.coachDeliveryProgramSection,
+          lines: <String>[
+            for (final item in program)
+              switch (programItemAmount(l, item)) {
+                '' => item.name,
+                final String amount => '${item.name} · $amount',
+              },
+          ],
+        ),
+        _DeliverySection(
+          title: l.coachDeliveryRoutineSection,
+          lines: <String>[
+            for (final r in delivery.routines) assignedRoutineLabel(l, r),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 직전 전송의 한 갈래 — 프로그램이든 개인운동이든 같은 모양으로 적는다.
+///
+/// 비어 있어도 자리를 남긴다. 한 갈래가 통째로 사라지면 트레이너는 그것이
+/// **안 간 것인지 원래 없는 것인지** 알 수 없다.
+class _DeliverySection extends StatelessWidget {
+  const _DeliverySection({required this.title, required this.lines});
+
+  final String title;
+  final List<String> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    return Padding(
+      key: ValueKey<String>('coach-delivery-section-$title'),
+      padding: const EdgeInsets.only(top: OnCareSpacing.s12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            title,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          if (lines.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+              child: Text(
+                l.coachDeliveryNothing,
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            )
+          else
+            for (final line in lines)
+              Padding(
+                padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+                child: Text(
+                  line,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+              ),
+        ],
+      ),
     );
   }
 }
