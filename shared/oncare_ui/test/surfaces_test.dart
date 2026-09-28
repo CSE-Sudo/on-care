@@ -187,4 +187,93 @@ void main() {
     expect(fill('tile-brand'), OnCareBrand.member.surface);
     expect(fill('tile-soft'), OnCareBrand.member.surfaceSoft);
   });
+
+  group('AppSectionHeader (#2468)', () {
+    testWidgets('번호 원·곁말·배지·끝 요소가 한 줄에 선다', (tester) async {
+      await _pump(
+        tester,
+        const AppSectionHeader(
+          title: '회원 주간 피드백',
+          number: 1,
+          titleMeta: '8월 23일 제출',
+          titleBadge: Text('3명'),
+          trailing: Text('확인 필요'),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('1'), findsOneWidget);
+      // 곁말은 제목과 따로 선 글자다 — 제목만 짚어 읽을 수 있다.
+      expect(find.text('· 8월 23일 제출'), findsOneWidget);
+      final double titleY = tester.getCenter(find.text('회원 주간 피드백')).dy;
+      for (final String text in <String>['· 8월 23일 제출', '3명', '확인 필요']) {
+        expect(tester.getCenter(find.text(text)).dy, closeTo(titleY, 1));
+      }
+      // 끝 요소는 줄 오른쪽 끝, 배지는 제목 바로 옆이다.
+      expect(
+        tester.getTopRight(find.text('확인 필요')).dx,
+        tester.getTopRight(find.byType(AppSectionHeader)).dx,
+      );
+      expect(
+        tester.getTopLeft(find.text('3명')).dx,
+        lessThan(tester.getTopLeft(find.text('확인 필요')).dx),
+      );
+    });
+
+    testWidgets('subtitle 은 제목 아래 줄에 선다', (tester) async {
+      await _pump(
+        tester,
+        const AppSectionHeader(title: '생성 조건', subtitle: '비워두면 자동 설정돼요.'),
+      );
+      expect(
+        tester.getTopLeft(find.text('비워두면 자동 설정돼요.')).dy,
+        greaterThan(tester.getBottomLeft(find.text('생성 조건')).dy - 1),
+      );
+    });
+
+    testWidgets('shrink 는 제목과 끝 요소가 폭을 반씩 나눈다', (tester) async {
+      await _pump(
+        tester,
+        const Center(
+          child: SizedBox(
+            width: 300,
+            child: AppSectionHeader(
+              title: '할 일 진행률',
+              trailingFit: AppSectionTrailingFit.shrink,
+              trailing: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(width: 400, height: 20),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getSize(find.byType(FittedBox)).width,
+        lessThanOrEqualTo(150),
+      );
+    });
+
+    testWidgets('wrap 은 한 줄에 못 서면 끝 요소를 다음 줄로 넘긴다', (tester) async {
+      await _pump(
+        tester,
+        const Center(
+          child: SizedBox(
+            width: 200,
+            child: AppSectionHeader(
+              title: '미전송',
+              titleBadge: Text('3명'),
+              trailingFit: AppSectionTrailingFit.wrap,
+              trailing: SizedBox(key: ValueKey<String>('end'), width: 160),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey<String>('end'))).dy,
+        greaterThan(tester.getBottomLeft(find.text('미전송')).dy - 1),
+      );
+    });
+  });
 }

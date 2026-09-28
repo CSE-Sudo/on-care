@@ -147,16 +147,7 @@ class _ClientPickerListState extends State<ClientPickerList> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AppSectionHeader(
-                  title: l.navClients,
-                  icon: clientPickerHeaderIcon,
-                ),
-              ),
-            ],
-          ),
+          AppSectionHeader(title: l.navClients, icon: clientPickerHeaderIcon),
           const SizedBox(height: OnCareSpacing.s12),
           // 한 번에 5줄만 보이고, 넘치면 목록 안에서 스크롤한다(#1423).
           SizedBox(

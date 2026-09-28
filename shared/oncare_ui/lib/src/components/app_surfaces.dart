@@ -128,25 +128,90 @@ class AppTile extends StatelessWidget {
   }
 }
 
-/// 섹션·카드 제목 — `titleSmall` + 앞 아이콘 + 뒤 링크.
+/// [AppSectionHeader.trailing] 이 폭이 모자랄 때 서는 방식.
+enum AppSectionTrailingFit {
+  /// 제 폭만큼 선다. 제목이 남는 폭을 모두 갖는다 — 수·배지·작은 버튼.
+  natural,
+
+  /// 제목과 끝 요소가 남는 폭을 반씩 나눠 갖고, 끝 요소는 그 절반 안에서
+  /// 오른쪽에 붙는다. 범례·기간 토글처럼 줄어들어도 되는 끝 요소에 쓴다 —
+  /// 무엇을 줄일지는 끝 요소가 정한다(범례만 `FittedBox` 로 줄이고 주 이동
+  /// 버튼은 터치 크기를 지키는 식).
+  shrink,
+
+  /// 한 줄에 다 서지 못하면 끝 요소를 다음 줄로 넘긴다. 줄이면 읽기 어려워지는
+  /// 끝 요소(정렬 메뉴 버튼)에 쓴다(#849).
+  wrap,
+}
+
+/// 섹션·카드 제목 — `titleSmall` 검정 + 앞 아이콘(브랜드색) 또는 번호 원 +
+/// 곁말·배지·아래 줄 설명 + 뒤 요소·링크 (#2468).
+///
+/// 카드 제목은 모두 이 한 모양이다. 제목 줄 오른쪽에 무언가(수·배지·버튼·토글)
+/// 를 둘 때 화면에서 `Row(Expanded(AppSectionHeader), …)` 로 감싸지 않고
+/// [trailing] 에 넣는다.
 class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
     super.key,
     required this.title,
     this.icon,
+    this.number,
+    this.titleMeta,
+    this.titleBadge,
+    this.subtitle,
+    this.subtitleMaxLines,
+    this.trailing,
+    this.trailingFit = AppSectionTrailingFit.natural,
     this.actionLabel,
     this.onAction,
-  });
+  }) : assert(icon == null || number == null, '아이콘과 번호는 하나만 단다');
 
   final String title;
+
+  /// 제목 앞 아이콘. 늘 브랜드색 20 이다.
   final IconData? icon;
+
+  /// 제목 앞 번호 원(1부터). 순서대로 읽는 카드(리포트 ①~③)에 아이콘 대신
+  /// 단다 — 아이콘은 무엇에 관한 카드인지만 말하고 읽는 순서는 말하지 않는다.
+  final int? number;
+
+  /// 제목 옆 **같은 줄**에 ` · ` 로 이어 붙는 짧은 곁말(caption·흐린 색).
+  ///
+  /// 아래 줄로 내리지 않는 까닭은 나란히 선 카드의 제목 줄 높이가 달라지지
+  /// 않게 하려는 것이다. 곁말이 있으면 제목 줄은 한 줄이고, 좁아지면 곁말이
+  /// 먼저 말줄임된다([AppListRow.titleMeta] 와 같은 뜻).
+  final String? titleMeta;
+
+  /// 제목(곁말) 바로 옆에 붙는 배지 — 목록 상자의 인원 수처럼 제목을 꾸미는
+  /// 것. 줄 끝으로 밀리는 [trailing] 과 다르다.
+  final Widget? titleBadge;
+
+  /// 제목 **아래 줄** 설명(caption·보조 글자색).
+  final String? subtitle;
+
+  /// [subtitle] 의 최대 줄 수. 비우면 줄바꿈한다. 주면 넘칠 때 말줄임한다.
+  final int? subtitleMaxLines;
+
+  /// 줄 오른쪽 끝에 놓는 것(수·배지·버튼·토글·주 이동). 제 폭만큼 선다.
+  final Widget? trailing;
+
+  /// 폭이 모자랄 때 [trailing] 이 서는 방식.
+  final AppSectionTrailingFit trailingFit;
+
   final String? actionLabel;
   final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    return Row(
+    final TextStyle titleStyle = tokens
+        .text(OnCareTypography.titleSmall)
+        .copyWith(color: OnCareColors.textPrimary);
+    final bool oneLine = titleMeta != null || titleBadge != null;
+    // 제목 줄은 내용 폭만큼만 선다 — 끝 요소를 다음 줄로 넘기는 배치([wrap])
+    // 에서도 같은 줄을 쓰고, 다른 배치에서는 바깥 `Expanded` 가 폭을 준다.
+    final Widget titleLine = Row(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         if (icon != null) ...<Widget>[
           AppIcon(
@@ -155,15 +220,87 @@ class AppSectionHeader extends StatelessWidget {
             color: tokens.brand.primary,
           ),
           const SizedBox(width: OnCareSpacing.s8),
+        ] else if (number != null) ...<Widget>[
+          _SectionNumber(number!),
+          const SizedBox(width: OnCareSpacing.s8),
         ],
-        Expanded(
-          child: Text(
-            title,
-            style: tokens
-                .text(OnCareTypography.titleSmall)
-                .copyWith(color: OnCareColors.textPrimary),
+        if (!oneLine)
+          Flexible(child: Text(title, style: titleStyle))
+        else ...<Widget>[
+          // 제목과 곁말을 **따로** 둔다. 한 덩이로 묶으면 제목만 짚어 읽을 수
+          // 없고, 좁아졌을 때 줄어드는 쪽을 고를 수 없다 — 곁말이 먼저(flex 1),
+          // 제목이 나중(flex 2)이다.
+          Flexible(
+            flex: 2,
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: titleStyle,
+            ),
           ),
-        ),
+          if (titleMeta != null) ...<Widget>[
+            const SizedBox(width: OnCareSpacing.s8),
+            Flexible(
+              child: Text(
+                '· $titleMeta',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ),
+          ],
+          if (titleBadge != null) ...<Widget>[
+            const SizedBox(width: OnCareSpacing.s8),
+            titleBadge!,
+          ],
+        ],
+      ],
+    );
+    final Widget titleBlock = subtitle == null
+        ? titleLine
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              titleLine,
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                subtitle!,
+                maxLines: subtitleMaxLines,
+                overflow: subtitleMaxLines == null
+                    ? null
+                    : TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ],
+          );
+    final Widget? end = trailing;
+    if (end != null && trailingFit == AppSectionTrailingFit.wrap) {
+      return Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: OnCareSpacing.s12,
+        runSpacing: OnCareSpacing.s8,
+        children: <Widget>[titleBlock, end],
+      );
+    }
+    return Row(
+      children: <Widget>[
+        Expanded(child: titleBlock),
+        if (end != null) ...<Widget>[
+          const SizedBox(width: OnCareSpacing.s8),
+          if (trailingFit == AppSectionTrailingFit.shrink)
+            Expanded(
+              child: Align(alignment: Alignment.centerRight, child: end),
+            )
+          else
+            end,
+        ],
         if (actionLabel != null)
           AppButton(
             label: actionLabel!,
@@ -173,6 +310,33 @@ class AppSectionHeader extends StatelessWidget {
             trailingIcon: AppIcon.setOf(context).disclosure,
           ),
       ],
+    );
+  }
+}
+
+/// [AppSectionHeader.number] 의 번호 원 — 브랜드 채움 + 흰 숫자.
+class _SectionNumber extends StatelessWidget {
+  const _SectionNumber(this.number);
+
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Container(
+      width: OnCareSize.sectionNumber,
+      height: OnCareSize.sectionNumber,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: tokens.brand.primary,
+      ),
+      child: Text(
+        '$number',
+        style: tokens
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: OnCareColors.textOnFill),
+      ),
     );
   }
 }

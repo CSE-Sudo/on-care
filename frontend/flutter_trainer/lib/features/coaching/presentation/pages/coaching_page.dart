@@ -1082,14 +1082,7 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AppSectionHeader(title: title, icon: icon),
-              ),
-              ?trailing,
-            ],
-          ),
+          AppSectionHeader(title: title, icon: icon, trailing: trailing),
           const SizedBox(height: OnCareSpacing.s12),
           if (expand) Expanded(child: child) else child,
         ],
