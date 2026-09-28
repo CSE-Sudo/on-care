@@ -4907,7 +4907,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAnalysedData.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed the workout goal, recent activity, and today\'s nutrition'**
+  /// **'Member status'**
   String get aiAnalysedData;
 
   /// No description provided for @aiGoal.
@@ -5015,7 +5015,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiReviewedSuggestion.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed · AI suggestion ({option})'**
+  /// **'Confirmed plan · {option}'**
   String aiReviewedSuggestion(String option);
 
   /// No description provided for @aiEditsApplied.
@@ -5075,7 +5075,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiStepDone.
   ///
   /// In en, this message translates to:
-  /// **'Final review'**
+  /// **'Program review'**
   String get aiStepDone;
 
   /// No description provided for @aiSkipPtProgram.
@@ -5351,7 +5351,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiInsightMemoTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI insights (last 7 days)'**
+  /// **'Needs attention (last 7 days)'**
   String get aiInsightMemoTitle;
 
   /// No description provided for @aiInsightMemoEmpty.

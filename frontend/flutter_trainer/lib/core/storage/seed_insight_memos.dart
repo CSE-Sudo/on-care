@@ -8,7 +8,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 데모에서 프로그램 탭의 `최근 7일 AI 감지 메모` 칸이 비어 보이지 않게,
+/// 데모에서 프로그램 탭의 `최근 7일 확인 필요` 칸이 비어 보이지 않게,
 /// 이미 심어 둔 대화의 감지 결과를 메모로 옮겨 둔다 (#1655).
 ///
 /// 지어낸 메모가 아니다 — 채팅 화면이 붉은 배너로 띄우는 것과 **같은 감지**를
