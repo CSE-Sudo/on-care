@@ -339,6 +339,7 @@ def seed_member_health_data() -> None:
             _seed_routines(db, user_id)
             _seed_health_profile(db, user_id)
         _seed_schedule(db, valid)
+        _seed_weekly_pt(db, valid)
     finally:
         db.close()
     # 성별은 건강 프로필 행에 담기므로 **여기가 끝난 뒤** 채운다(#960). 먼저
@@ -552,12 +553,15 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
     ) is None:
         return
     today = clock.today_iso()
-    # 오늘 스케줄이 이미 있으면 스킵(날짜 넘어가면 새로 시드)
+    # 오늘 타임라인이 이미 있으면 스킵(날짜 넘어가면 새로 시드). 타임라인 행만
+    # 본다 — 주간 PT 시드(`_seed_weekly_pt`)가 앞선 날에 오늘 날짜로 넣어 둔
+    # 수업이 있어도 오늘 타임라인은 깔려야 한다(#2452).
     if db.scalar(
         select(models.TrainerSchedule.id)
         .where(
             models.TrainerSchedule.trainer_id == TRAINER_ID,
             models.TrainerSchedule.date == today,
+            models.TrainerSchedule.id.like(f"seed-schedule-{today}-%"),
         )
         .limit(1)
     ) is not None:
@@ -578,6 +582,120 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             program_json=json.dumps(program, ensure_ascii=False),
             sort_order=i,
         ))
+    _safe_commit(db)
+
+
+#: 회원별 주간 PT 자리 — (요일 0=월, 시각, 길이 분). (#2452)
+#:
+#: 실제 PT 회원은 매주 같은 요일·시각에 1회(몇 명은 2회) 수업을 받는다. 예전
+#: 시드는 오늘 타임라인만 깔아서 그 셋을 뺀 회원은 리포트에서 매주 PT 0회였다.
+#: 리포트의 PT 횟수는 스케줄 행을 그대로 세므로(`build_weekly_report`) 여기서
+#: 심는 행이 곧 리포트 숫자다.
+#:
+#: 시각은 오늘 타임라인(`_SCHEDULE`)이 쓰는 10:00·12:00·15:00·17:00 칸과
+#: 저녁 19시 이후를 피한다 — 오래 켜 둔 서버는 지난 날마다 타임라인이 깔려 있고,
+#: 저녁 칸은 트레이너가 직접 잡는 수업이 몰리는 자리다. 같은 요일 안에서도 서로
+#: 겹치지 않는다(테스트가 지킨다).
+_WEEKLY_PT: dict[str, list[tuple[int, str, int]]] = {
+    "user-7d4e9a2c5f18": [(3, "18:00", 50)],  # 김민수
+    "user-jisu": [(1, "13:00", 50), (4, "18:00", 60)],  # 이지수 — 주 2회
+    "user-sungho": [(2, "16:00", 45), (5, "13:00", 60)],  # 박성호 — 주 2회
+    "user-hayun": [(5, "09:00", 45)],  # 정하윤
+    "user-woojin": [(0, "09:00", 30), (4, "16:00", 30)],  # 최우진 — 주 2회
+    "user-kangseoyeon": [(3, "09:00", 60)],  # 강서연
+    "user-dohyun": [(0, "18:00", 60), (6, "16:00", 50)],  # 임도현 — 주 2회
+    "user-sera": [(1, "16:00", 50)],  # 오세라
+    "user-junhyuk": [(2, "18:00", 60)],  # 배준혁
+    "user-yuna": [(1, "09:00", 45)],  # 신유나
+    "user-jiho": [(1, "18:00", 60)],  # 한지호
+    "user-gayoung": [(6, "13:00", 60)],  # 문가영
+    "user-taekyung": [(3, "16:00", 45)],  # 류태경
+    "user-seojin": [(2, "13:00", 30)],  # 백서진
+    "user-eunchae": [(4, "09:00", 50)],  # 노은채
+}
+
+#: 트레이너에게 붙은 지 몇 주 됐나. 없는 회원은 이력 창보다 오래 됐다.
+#: 트레이너 웹 데모(`demoMemberJoinedWeeksAgo`)와 같은 이야기다 — 임도현은 이번
+#: 주에 붙은 신규, 노은채는 지난 주에 붙었다. 붙기 전 주에는 수업을 넣지 않는다.
+_JOINED_WEEKS_AGO: dict[str, int] = {
+    "user-dohyun": 0,
+    "user-eunchae": 1,
+}
+
+#: 주간 PT 가 차지하는 `sort_order` 시작값 — 타임라인(0~5) 뒤에 선다.
+_WEEKLY_PT_SORT_BASE = 100
+
+
+def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
+    """회원마다 지난 주들과 이번 주의 지난 요일에 PT 를 1~2회 둔다. (#2452)
+
+    **오늘 이전 날짜에만** 넣는다. 오늘과 남은 요일은 트레이너가 실서버에서 직접
+    잡는 자리라, 시드가 미리 채우면 그 시간의 예약이 겹침(409)으로 막힌다. 오늘
+    몫은 오늘 타임라인(`_seed_schedule`)이 깐다.
+
+    그 주에 이 회원의 다른 수업(예정·완료 — 타임라인이 깐 수업이나 트레이너가
+    직접 잡은 수업)이 이미 있으면 그 주는 건드리지 않는다. 그 위에 한 번 더
+    얹으면 주 1회 회원이 2회로 부풀어 오른다. 행 id 가 결정론적이라 이미 넣은
+    자리는 건너뛰어 재실행해도 늘지 않는다(멱등). 계정 재생성으로 주인이 비어 버린
+    행은 다시 그 회원에게 붙인다.
+    지난 날의 수업이라 전부 `완료` 로 넣는다.
+    """
+    if db.scalar(
+        select(models.User.id).where(
+            models.User.id == TRAINER_ID, models.User.role == "trainer"
+        )
+    ) is None:
+        return
+    today = clock.today()
+    monday = today - timedelta(days=today.weekday())
+    names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
+    for member_id, slots in _WEEKLY_PT.items():
+        if member_id not in valid:
+            continue
+        joined = _JOINED_WEEKS_AGO.get(member_id, _HISTORY_WEEKS - 1)
+        for back in range(min(joined, _HISTORY_WEEKS - 1) + 1):
+            week_monday = monday - timedelta(weeks=back)
+            week_sunday = week_monday + timedelta(days=6)
+            if db.scalar(
+                select(models.TrainerSchedule.id)
+                .where(
+                    models.TrainerSchedule.trainer_id == TRAINER_ID,
+                    models.TrainerSchedule.member_id == member_id,
+                    models.TrainerSchedule.date >= week_monday.isoformat(),
+                    models.TrainerSchedule.date <= week_sunday.isoformat(),
+                    models.TrainerSchedule.status.in_(("예정", "완료")),
+                    models.TrainerSchedule.id.not_like("seed-pt-%"),
+                )
+                .limit(1)
+            ) is not None:
+                continue
+            for n, (weekday, at, minutes) in enumerate(slots):
+                day = week_monday + timedelta(days=weekday)
+                row_id = f"seed-pt-{member_id}-{day.isoformat()}-{n}"
+                if day >= today:
+                    continue
+                existing = db.get(models.TrainerSchedule, row_id)
+                if existing is not None:
+                    # 회원 계정이 지워졌다 다시 만들어지면 FK(`SET NULL`)가 이
+                    # 행의 member_id 만 비워 둔다. id 가 그대로라 새로 넣지 못하니
+                    # 주인을 되붙인다 — 안 그러면 그 회원의 지난 주가 0회로 선다.
+                    if existing.member_id is None:
+                        existing.member_id = member_id
+                    continue
+                db.add(models.TrainerSchedule(
+                    id=row_id,
+                    trainer_id=TRAINER_ID,
+                    member_id=member_id,
+                    date=day.isoformat(),
+                    time=at,
+                    client_name=names.get(member_id, ""),
+                    type="1:1 PT",
+                    duration_minutes=minutes,
+                    status="완료",
+                    note="",
+                    program_json="[]",
+                    sort_order=_WEEKLY_PT_SORT_BASE + n,
+                ))
     _safe_commit(db)
 
 
