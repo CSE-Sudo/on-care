@@ -4104,25 +4104,40 @@ def latest_delivery(
 def unsent_personal_routines(
     db: Session, trainer_id: str, member_id: str
 ) -> list[RoutineOut]:
-    """이 회원의 PT 에 붙여만 두고 **아직 보내지 않은** 개인운동. (#2225)
+    """**끝난 PT 에 남아 있는** 개인운동 — 보낼 수 있는데 아직 안 보낸 것. (#2225)
 
     프로그램 탭에서도 "보낼 것이 남았다" 를 알리고 거기서 보낼 수 있어야 한다 —
     지금은 그 사실이 스케줄 탭의 그 일정을 열어야만 보인다.
 
-    **PT 프로그램 줄은 빼야 한다.** 그 줄도 같은 일정에 `scheduled` 로 붙어
+    **예정인 PT 에 붙은 것은 미전송이 아니다.** 그것은 그 PT 를 완료할 때 함께
+    나간다(#2224) — `send_scheduled_routines` 도 예정이면 거절한다. 그런 줄까지
+    세면 트레이너에게 **누르면 반드시 실패하는 버튼**을 내밀게 된다.
+
+    **PT 프로그램 줄도 뺀다.** 그 줄도 같은 일정에 `scheduled` 로 붙어
     있지만(#2279) `delivery_kind` 가 비어 있다. 개인운동만 그 값을 단다(#2223).
     """
-    rows = db.scalars(
-        select(TrainerRoutine)
+    rows = db.execute(
+        select(TrainerRoutine, TrainerSchedule.date)
+        .join(TrainerSchedule, TrainerSchedule.id == TrainerRoutine.schedule_id)
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.member_id == member_id,
             TrainerRoutine.status == ROUTINE_SCHEDULED,
             TrainerRoutine.delivery_kind.is_not(None),
+            TrainerSchedule.status != SCHEDULE_UPCOMING,
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    out: list[RoutineOut] = []
+    for row, schedule_date in rows:
+        # 보내는 자리는 스케줄 탭의 그 일정 상세다. 날짜를 함께 줘야 그 주를
+        # 열 수 있다 — 일정 id 만으로는 이번 주에서 찾지 못한다. (#2225)
+        out.append(
+            _routine_out(db, row).model_copy(
+                update={"schedule_date": schedule_date}
+            )
+        )
+    return out
 
 
 def list_scheduled_routines(

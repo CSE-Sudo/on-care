@@ -93,17 +93,32 @@ def _attach(
 
 
 def test_unsent_lists_what_is_waiting_on_a_pt(client, db_session):
-    """붙여만 두고 아직 보내지 않은 개인운동이 목록에 선다."""
+    """**끝난** PT 에 남은 개인운동만 미전송이다.
+
+    예정인 PT 에 붙은 것은 그 PT 를 완료할 때 함께 나가고, 지금 보내려 하면
+    서버가 거절한다(#2224). 그런 줄까지 세면 화면이 **누르면 반드시 실패하는**
+    버튼을 내민다.
+    """
     token = _tok(client)
     _cleanup(db_session)
     try:
         assert client.get(_UNSENT_URL, headers=_h(token)).json() == []
         session_id = _attach(client, token)
+        # 아직 예정이라 미전송이 아니다.
+        assert client.get(_UNSENT_URL, headers=_h(token)).json() == []
 
+        client.post(
+            f"/v1/trainer/schedule/{session_id}/cancel",
+            json={"source": "member", "reason": "몸살"},
+            headers=_h(token),
+        )
         rows = client.get(_UNSENT_URL, headers=_h(token)).json()
         assert [r["name"] for r in rows] == [f"{_NAME} 걷기"]
-        # 어느 PT 의 것인지 알아야 그 자리에서 보낼 수 있다.
+        # 어느 PT 의 것인지 알아야 그 일정으로 데려다줄 수 있다.
         assert rows[0]["schedule_id"] == session_id
+        # 날짜도 있어야 스케줄 탭의 **그 주**를 연다(#2225). 일정 id 만
+        # 보내면 이번 주에 없는 일정은 찾지 못한 채 화면만 바뀐다.
+        assert rows[0]["schedule_date"] == clock.today().isoformat()
         assert rows[0]["pending_send"] is True
         # 아직 보낸 것이 없으므로 직전 전송도 없다.
         assert client.get(_LATEST_URL, headers=_h(token)).json() is None

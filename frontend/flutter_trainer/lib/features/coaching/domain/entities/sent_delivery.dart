@@ -32,12 +32,26 @@ class SentDelivery {
   /// 회원 목록에 걸린 날(=보낸 날).
   final DateTime? sentOn;
 
-  /// PT 와 함께 간 전송이면 그 일정. `개인운동만` 은 비어 있다.
+  /// 이 전송이 딸린 PT 일정. `개인운동만` 은 비어 있다.
+  ///
+  /// 일정이 있다고 그 프로그램이 나간 것은 아니다 — PT 가 취소되면 짜 둔
+  /// 프로그램은 **그대로 남고 회원에게는 가지 않는다**. 무엇이 갔는지는
+  /// [hasProgram] 이 가른다.
   final ScheduleSession? session;
 
   /// 회원이 혼자 할 개인운동.
   final List<AssignedRoutine> routines;
 
-  /// 이 전송에 PT 프로그램이 함께 갔는가.
-  bool get hasProgram => (session?.program.isNotEmpty ?? false);
+  /// 이 전송에 PT 프로그램이 **실제로** 함께 갔는가.
+  ///
+  /// 일정에 프로그램이 짜여 있는가가 아니라 그것을 보냈는가를 본다. PT 를
+  /// 취소하면 프로그램은 나가지 않는데(#822 의 `program_sent`), 짜여 있다는
+  /// 이유로 보낸 것처럼 적으면 전송 이력이 스케줄 탭과 어긋난다.
+  bool get hasProgram =>
+      (session?.programSent ?? false) &&
+      (session?.program.isNotEmpty ?? false);
+
+  /// 회원에게 간 PT 프로그램. 가지 않았으면 비어 있다.
+  List<ProgramItem> get program =>
+      hasProgram ? session!.program : const <ProgramItem>[];
 }

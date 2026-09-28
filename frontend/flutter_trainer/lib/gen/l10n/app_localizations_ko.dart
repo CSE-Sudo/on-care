@@ -2474,10 +2474,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachUnsentRoutinesBody =>
-      'PT 에 붙여 두었지만 아직 회원에게 가지 않았어요. 그 PT 를 마치고 보내면 함께 가요.';
+      'PT 가 끝났는데 아직 회원에게 가지 않았어요. 스케줄에서 그 일정을 열어 보낼 수 있어요.';
 
   @override
-  String get coachSendUnsentRoutines => '개인운동 보내기';
+  String get coachSendUnsentRoutines => '스케줄에서 보내기';
+
+  @override
+  String get coachDeliveryProgramSection => '프로그램';
+
+  @override
+  String get coachDeliveryRoutineSection => '개인운동';
+
+  @override
+  String get coachDeliveryNothing => '보낸 것 없음';
 
   @override
   String get coachHistoryFailed => '이력을 불러오지 못했어요';

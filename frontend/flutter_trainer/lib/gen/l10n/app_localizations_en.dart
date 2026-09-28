@@ -2612,10 +2612,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachUnsentRoutinesBody =>
-      'Attached to a PT but not sent to the member yet. It goes out when you finish that PT and send.';
+      'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.';
 
   @override
-  String get coachSendUnsentRoutines => 'Send personal exercise';
+  String get coachSendUnsentRoutines => 'Open in schedule';
+
+  @override
+  String get coachDeliveryProgramSection => 'Program';
+
+  @override
+  String get coachDeliveryRoutineSection => 'Personal workout';
+
+  @override
+  String get coachDeliveryNothing => 'Nothing sent';
 
   @override
   String get coachHistoryFailed => 'Couldn\'t load history';

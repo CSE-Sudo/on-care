@@ -4559,14 +4559,32 @@ abstract class AppLocalizations {
   /// No description provided for @coachUnsentRoutinesBody.
   ///
   /// In en, this message translates to:
-  /// **'Attached to a PT but not sent to the member yet. It goes out when you finish that PT and send.'**
+  /// **'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.'**
   String get coachUnsentRoutinesBody;
 
   /// No description provided for @coachSendUnsentRoutines.
   ///
   /// In en, this message translates to:
-  /// **'Send personal exercise'**
+  /// **'Open in schedule'**
   String get coachSendUnsentRoutines;
+
+  /// No description provided for @coachDeliveryProgramSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get coachDeliveryProgramSection;
+
+  /// No description provided for @coachDeliveryRoutineSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal workout'**
+  String get coachDeliveryRoutineSection;
+
+  /// No description provided for @coachDeliveryNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing sent'**
+  String get coachDeliveryNothing;
 
   /// No description provided for @coachHistoryFailed.
   ///

@@ -231,12 +231,20 @@ abstract interface class ScheduleRepository {
 /// 아직 보내지 않은 개인운동 한 건과 그것이 붙은 PT. (#2225)
 class UnsentRoutine {
   /// Creates an unsent routine row.
-  const UnsentRoutine({required this.exercise, required this.scheduleId});
+  const UnsentRoutine({
+    required this.exercise,
+    required this.scheduleId,
+    this.scheduleDate = '',
+  });
 
   final RoutineExercise exercise;
 
   /// 이 개인운동이 붙은 PT 일정 — 보내는 것은 그 일정의 전송이 맡는다.
   final String scheduleId;
+
+  /// 그 일정의 날짜(`YYYY-MM-DD`). 스케줄 탭의 **그 주**를 열어야 일정 상세에
+  /// 닿는다 — 일정 id 만으로는 이번 주에서 찾지 못한다. (#2225)
+  final String scheduleDate;
 }
 
 /// PT 일정에 붙어 있는 개인운동 한 건과 그 처지. (#2224)
@@ -812,18 +820,30 @@ class DriftScheduleRepository implements ScheduleRepository {
     ];
   }
 
-  /// 이 회원의 일정을 돌며 아직 보내지 않은 개인운동을 모은다. 실 API 는
-  /// 서버가 한 번에 준다.
+  /// 이 회원의 **끝난** PT 를 돌며 아직 보내지 않은 개인운동을 모은다. 실
+  /// API 는 서버가 한 번에 준다.
+  ///
+  /// 서버와 같은 규칙 — 예정인 PT 에 붙은 것은 미전송이 아니다. 그것은 그 PT 를
+  /// 완료할 때 함께 나가고, 지금 보내려 하면 거절당한다(#2224).
   @override
   Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
-    final rows = await (_db.select(
-      _db.trainerScheduleEntries,
-    )..where((t) => t.clientId.equals(clientId))).get();
+    final rows =
+        await (_db.select(_db.trainerScheduleEntries)..where(
+          (t) =>
+              t.clientId.equals(clientId) &
+              t.status.equals(ScheduleStatus.upcoming).not(),
+        )).get();
     final out = <UnsentRoutine>[];
     for (final row in rows) {
       for (final r in await fetchScheduledRoutines(row.id)) {
         if (!r.sent) {
-          out.add(UnsentRoutine(exercise: r.exercise, scheduleId: row.id));
+          out.add(
+            UnsentRoutine(
+              exercise: r.exercise,
+              scheduleId: row.id,
+              scheduleDate: row.date,
+            ),
+          );
         }
       }
     }

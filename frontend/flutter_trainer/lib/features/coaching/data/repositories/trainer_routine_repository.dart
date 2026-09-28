@@ -201,7 +201,29 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
 
   @override
   Future<SentDelivery?> fetchLatestDelivery(String memberId) async =>
-      _lastDelivery[memberId];
+      _lastDelivery[memberId] ?? _seededDelivery(memberId);
+
+  /// 이 세션에서 아직 아무것도 보내지 않았을 때의 직전 전송. (#2225)
+  ///
+  /// 씨앗 배정은 **이미 회원에게 간 것**이다. 그런데 기억해 둔 전송이 없다고
+  /// 비워 두면, 데모를 처음 연 트레이너는 전송 이력이 늘 비어 있는 화면을 본다
+  /// — 실제 백엔드는 지난 전송을 보여 주므로 두 곳이 다르게 움직인다.
+  ///
+  /// 데모에는 PT 일정이 붙는 경로가 없어 종류는 `개인운동만` 이다.
+  SentDelivery? _seededDelivery(String memberId) {
+    final List<AssignedRoutine> rows = _listFor(memberId);
+    if (rows.isEmpty) return null;
+    DateTime? sentOn;
+    for (final r in rows) {
+      final DateTime? d = r.date;
+      if (d != null && (sentOn == null || d.isAfter(sentOn))) sentOn = d;
+    }
+    return SentDelivery(
+      kind: DeliveryKinds.routineOnly,
+      sentOn: sentOn,
+      routines: rows,
+    );
+  }
 
   static DateTime? _parseDate(Object? value) =>
       value is String ? DateTime.tryParse(value) : null;
