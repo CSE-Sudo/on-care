@@ -8271,6 +8271,24 @@ abstract class AppLocalizations {
   /// **'Send'**
   String get reportsStepSend;
 
+  /// No description provided for @reportsStepPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get reportsStepPrint;
+
+  /// No description provided for @reportsPrintNeedsPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'You can print once the preview PDF is ready'**
+  String get reportsPrintNeedsPdf;
+
+  /// No description provided for @reportsPrintFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the print dialog. Please try again'**
+  String get reportsPrintFailed;
+
   /// No description provided for @reportsStepperLabel.
   ///
   /// In en, this message translates to:

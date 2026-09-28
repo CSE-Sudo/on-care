@@ -20,6 +20,7 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_work
 import 'package:oncare_trainer/features/reports/presentation/widgets/sent_report_view.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_file_name.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_printer.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -131,6 +132,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
   bool _confirming = false;
+
+  /// 인쇄 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다(#2451).
+  bool _printing = false;
 
   /// 피드백 입력창의 현재 내용. 입력창과 하단 전송 버튼이 서로 다른 위젯에
   /// 있어, 그 사이를 잇는 값이다.
@@ -493,6 +497,28 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       actionLabel: l.reportsGoToChat,
       onAction: () => context.go(AppRoutes.messagesFor(id)),
     );
+  }
+
+  /// ③ 의 `인쇄` — 미리보기에 떠 있는 그 한 부를 인쇄 창에 넘긴다(#2451).
+  ///
+  /// 새로 만들지 않는다. 화면에서 본 것, 회원에게 가는 것, 종이에 찍히는 것이
+  /// 모두 같은 파일이어야 한다. 파일 이름도 전송과 같다.
+  Future<void> _print(WeeklyReport report, Uint8List bytes) async {
+    if (_printing) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    setState(() => _printing = true);
+    try {
+      await ref.read(reportPdfPrinterProvider)(
+        bytes,
+        name: reportPdfFileName(l, report),
+      );
+    } catch (_) {
+      if (mounted) {
+        showAppToast(context, l.reportsPrintFailed, type: AppToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _printing = false);
+    }
   }
 
   /// 보낼 PDF — ③ 에 떠 있는 미리보기 한 부다(#2402).
@@ -996,6 +1022,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 stage: _stage,
                 sending: _sending == selected.id,
                 canSend: !_feedbackBlank,
+                // ③ 에서는 미리보기 한 부가 다 만들어져야 인쇄할 수 있다.
+                pdf: _stage == ReportEditorStage.send.index ? _preview : null,
+                printing: _printing,
+                onPrint: reportAsync.valueOrNull == null
+                    ? null
+                    : (bytes) => _print(reportAsync.value!, bytes),
                 onPrev: _stage == 0 ? null : () => setState(() => _stage--),
                 onNext: _stage == 2
                     ? null
@@ -1026,12 +1058,15 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   }
 }
 
-/// 편집기 아래 줄 — 이전 / 다음, 마지막 단계에서는 전송.
+/// 편집기 아래 줄 — 이전 / 다음, 마지막 단계에서는 인쇄 · 전송.
 class _StepFooter extends StatelessWidget {
   const _StepFooter({
     required this.stage,
     required this.sending,
     required this.canSend,
+    required this.pdf,
+    required this.printing,
+    required this.onPrint,
     required this.onPrev,
     required this.onNext,
     required this.onSend,
@@ -1042,6 +1077,15 @@ class _StepFooter extends StatelessWidget {
 
   /// 보낼 글이 있는가. 빈 피드백은 보내지 않는다.
   final bool canSend;
+
+  /// ③ 에 떠 있는 PDF. 다 만들어지기 전이나 만들다 실패했으면 인쇄를 잠근다.
+  final Future<Uint8List>? pdf;
+
+  /// 인쇄 창이 떠 있다.
+  final bool printing;
+
+  /// [pdf] 로 만든 한 부를 인쇄한다.
+  final ValueChanged<Uint8List>? onPrint;
 
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
@@ -1062,7 +1106,30 @@ class _StepFooter extends StatelessWidget {
             onPressed: onPrev,
           ),
         const Spacer(),
-        if (last)
+        if (last) ...<Widget>[
+          // 인쇄는 전송 왼쪽이다(#2451). 보내기 전에 종이로 한 번 더 보는
+          // 자리라 보조 버튼으로 둔다.
+          FutureBuilder<Uint8List>(
+            future: pdf,
+            builder: (context, snapshot) {
+              final Uint8List? bytes = snapshot.data;
+              final bool ready = bytes != null && onPrint != null;
+              return Tooltip(
+                message: ready ? '' : l.reportsPrintNeedsPdf,
+                child: AppButton(
+                  key: const ValueKey<String>('report-step-print'),
+                  label: l.reportsStepPrint,
+                  variant: AppButtonVariant.secondary,
+                  leadingIcon: Icons.print_rounded,
+                  loading: printing,
+                  onPressed: bytes == null || !ready || printing || sending
+                      ? null
+                      : () => onPrint!(bytes),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
           // 빈 피드백으로 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
           Tooltip(
             message: canSend ? '' : l.reportsSendNeedsFeedback,
@@ -1074,8 +1141,8 @@ class _StepFooter extends StatelessWidget {
               loading: sending,
               onPressed: sending || !canSend ? null : onSend,
             ),
-          )
-        else
+          ),
+        ] else
           AppButton(
             key: const ValueKey<String>('report-step-next'),
             label: l.reportsStepNext,

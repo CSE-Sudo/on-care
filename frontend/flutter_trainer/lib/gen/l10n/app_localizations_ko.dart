@@ -4625,6 +4625,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepSend => '전송';
 
   @override
+  String get reportsStepPrint => '인쇄';
+
+  @override
+  String get reportsPrintNeedsPdf => '미리보기 PDF가 준비되면 인쇄할 수 있어요';
+
+  @override
+  String get reportsPrintFailed => '인쇄 창을 열지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get reportsStepperLabel => '주간 리포트 작성 진행 단계';
 
   @override
