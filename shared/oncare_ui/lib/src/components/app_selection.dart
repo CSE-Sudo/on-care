@@ -336,11 +336,18 @@ class AppTag extends StatelessWidget {
     this.tone = AppTagTone.neutral,
     this.icon,
     this.accent,
+    this.onTap,
   });
 
   final String label;
   final AppTagTone tone;
   final IconData? icon;
+
+  /// 누르면 부른다(#2467). null 이면 누를 수 없는 태그다.
+  ///
+  /// 신호 배지처럼 태그 자체가 갈 곳이거나, `+N` 펼치기처럼 태그가 곧 동작인
+  /// 자리가 쓴다. 누르는 자리는 알약 모양 그대로다.
+  final VoidCallback? onTap;
 
   /// 톤 대신 쓸 색 — 회원이 고른 색을 따라야 하는 태그의 자리(#2076).
   ///
@@ -369,7 +376,7 @@ class AppTag extends StatelessWidget {
             AppTagTone.brand => tokens.brand.surface,
             _ => OnCareColors.onWhite(accent, OnCareAlpha.subtle),
           };
-    return Container(
+    final Widget tag = Container(
       height: OnCareSize.tagHeight,
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
       decoration: BoxDecoration(
@@ -391,6 +398,16 @@ class AppTag extends StatelessWidget {
                 .copyWith(color: accent),
           ),
         ],
+      ),
+    );
+    final VoidCallback? onTap = this.onTap;
+    if (onTap == null) return tag;
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: OnCareRadius.pillAll,
+        child: tag,
       ),
     );
   }

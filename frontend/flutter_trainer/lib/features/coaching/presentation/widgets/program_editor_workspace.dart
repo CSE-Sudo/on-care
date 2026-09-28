@@ -1357,7 +1357,7 @@ class _SessionEditorState extends State<_SessionEditor> {
           cancelLabel: l.actionCancel,
           onCancel: () => Navigator.of(dialogContext).pop(false),
           confirmKey: const ValueKey<String>('session-reset-submit'),
-          confirmLabel: l.programEditorSessionReset,
+          confirmLabel: l.actionReset,
           destructive: true,
           onConfirm: () => Navigator.of(dialogContext).pop(true),
         ),

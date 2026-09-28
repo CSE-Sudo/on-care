@@ -16,8 +16,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Width cap that keeps the full search scope readable without letting the
@@ -525,67 +524,11 @@ class _ResultRowState extends State<_ResultRow> {
                       top: OnCareSpacing.s12,
                       bottom: OnCareSpacing.s12,
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        ClientAvatar(
-                          name: widget.client.avatar,
-                          size: AppAvatarSize.large,
-                        ),
-                        const SizedBox(width: OnCareSpacing.s12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Row(
-                                children: <Widget>[
-                                  Flexible(
-                                    child: Text(
-                                      widget.client.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: tokens
-                                          .text(
-                                            OnCareTypography.strong(
-                                              OnCareTypography.bodyLarge,
-                                            ),
-                                          )
-                                          .copyWith(
-                                            color: OnCareColors.textPrimary,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: OnCareSpacing.s4),
-                                  Flexible(
-                                    child: Text(
-                                      clientDemographicsLabel(
-                                        context,
-                                        widget.client,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: tokens
-                                          .text(OnCareTypography.caption)
-                                          .copyWith(
-                                            color: OnCareColors.textTertiary,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                widget.detail,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(OnCareTypography.bodySmall)
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    // 요약은 두 줄까지 — 무엇이 걸려 이 회원이 나왔는지다.
+                    child: ClientRow(
+                      client: widget.client,
+                      detail: widget.detail,
+                      detailMaxLines: 2,
                     ),
                   ),
                 ),

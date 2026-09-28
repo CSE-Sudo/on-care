@@ -133,6 +133,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionBack => '뒤로';
 
   @override
+  String get actionAdd => '추가';
+
+  @override
+  String get actionSend => '보내기';
+
+  @override
+  String get actionReset => '초기화';
+
+  @override
   String get notFoundTitle => '페이지를 찾을 수 없어요';
 
   @override
@@ -1708,7 +1717,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedSendProgramWithRoutines(String date) {
-    return '$date PT 프로그램 · 개인운동 전송';
+    return '$date PT 프로그램 · 개인운동 보내기';
   }
 
   @override
@@ -1952,10 +1961,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progSaving => '저장 중...';
 
   @override
-  String get progSaveAction => '프로그램 저장';
+  String get progSaveAction => '저장';
 
   @override
-  String get progSaveNoteAction => '메모 저장';
+  String get progSaveNoteAction => '저장';
 
   @override
   String get progExerciseName => '운동 이름';
@@ -2009,7 +2018,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedSentProgramTo(String date) {
-    return '$date PT 프로그램 전송';
+    return '$date PT 프로그램 보내기';
   }
 
   @override
@@ -2821,7 +2830,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiExerciseNameExample => '예: 레그프레스 3세트';
 
   @override
-  String get aiRegister => '등록';
+  String get aiRegister => '추가';
 
   @override
   String get aiNoteForClient => '회원에게 함께 전달할 내용';
@@ -4174,7 +4183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsFeedbackRedo => '다시 실행';
 
   @override
-  String get reportsFeedbackSave => '피드백 저장';
+  String get reportsFeedbackSave => '저장';
 
   @override
   String get reportsFeedbackSaving => '저장 중…';
@@ -4660,7 +4669,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsStepWrite => '작성';
 
   @override
-  String get reportsStepSend => '전송';
+  String get reportsStepSend => '보내기';
 
   @override
   String get reportsStepPrint => '인쇄';
@@ -5440,5 +5449,115 @@ class AppLocalizationsKo extends AppLocalizations {
       'other': '간식',
     });
     return '$_temp0';
+  }
+
+  @override
+  String get reportsSheetInfoMember => '회원';
+
+  @override
+  String get reportsSheetInfoPeriod => '기간';
+
+  @override
+  String get reportsSheetInfoMealDays => '식단 기록';
+
+  @override
+  String reportsSheetDaysOf(String days, String due) {
+    return '$days/$due일';
+  }
+
+  @override
+  String get reportsSheetDietTitle => '식단 분석';
+
+  @override
+  String get reportsSheetDietHint => '하루 평균 · 목표 대비';
+
+  @override
+  String get reportsSheetExerciseTitle => '운동 분석';
+
+  @override
+  String get reportsSheetExerciseHint => '이번 주 · 목표 대비';
+
+  @override
+  String get reportsSheetDailyTitle => '요일별 기록';
+
+  @override
+  String get reportsSheetDailyCompletion => '수행률';
+
+  @override
+  String get reportsSheetDailyCalories => '열량';
+
+  @override
+  String get reportsSheetDailyMeals => '끼니';
+
+  @override
+  String get reportsSheetDailyWorkouts => '운동';
+
+  @override
+  String get reportsSheetTrendTitle => '추이';
+
+  @override
+  String get reportsSheetTrendWeekly => '주별 운동 달성률 (8주)';
+
+  @override
+  String get reportsSheetTrendDaily => '요일별 섭취 열량 · 목표선';
+
+  @override
+  String get reportsSheetBandUnder => '부족';
+
+  @override
+  String get reportsSheetBandNormal => '적정';
+
+  @override
+  String get reportsSheetBandOver => '초과';
+
+  @override
+  String reportsSheetGoal(String value) {
+    return '목표 $value';
+  }
+
+  @override
+  String get reportsSheetAttendance => 'PT 출석';
+
+  @override
+  String get reportsSheetScoreTitle => '주간 관리 점수';
+
+  @override
+  String get reportsSheetScoreUnit => '/100점';
+
+  @override
+  String get reportsSheetScoreFormula =>
+      '운동 수행률·PT 출석·식단 기록·열량 적정일 비율의 평균입니다. 기록이 없는 항목은 빠집니다.';
+
+  @override
+  String get reportsSheetScoreNone => '점수를 낼 기록이 없어요';
+
+  @override
+  String get reportsSheetEvalTitle => '항목별 평가';
+
+  @override
+  String get reportsSheetAverageTitle => '4주 평균 대비';
+
+  @override
+  String get reportsSheetAverageNow => '이번 주';
+
+  @override
+  String get reportsSheetAverageBase => '4주 평균';
+
+  @override
+  String get reportsSheetAverageChange => '변화';
+
+  @override
+  String get reportsSheetMealDaysLabel => '식단 기록일';
+
+  @override
+  String get reportsSheetFootnote =>
+      '범위는 이번 주 기록을 회원의 목표와 견줍니다. 기록이 없는 항목은 미집계로 표시합니다.';
+
+  @override
+  String get reportsSheetCalorieDays => '열량 적정일';
+
+  @override
+  String reportsSheetPeriodValue(String start, String end) {
+    return '$start ~ $end';
   }
 }

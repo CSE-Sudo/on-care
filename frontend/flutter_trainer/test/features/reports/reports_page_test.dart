@@ -25,11 +25,10 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
+import '../../helpers/progress_bar_finder.dart';
 import '../../helpers/pump_app.dart';
 
 /// 요약 생성만 실패한다 — 리포트 본문은 정상이라 카드 하나만 폴백으로 간다.
@@ -756,13 +755,14 @@ void main() {
 
     // 같은 값을 편집기가 훨씬 자세히 말한다 — 고르는 자리에는 이름과 왜
     // 이 회원이 위에 있는지만 둔다.
-    expect(
-      find.descendant(
-        of: find.byType(ReportWorkbench),
-        matching: find.byType(InlineBarValue),
-      ),
-      findsNothing,
+    // 범위는 회원 줄이다 — 작업대 머리의 전송 진행 막대(#2395)는 회원이 아니라
+    // 그 주의 일을 재므로 여기에 걸리지 않는다. 줄이 없어도 아래 `findsNothing`
+    // 은 통과하므로 먼저 떠 있는지 본다.
+    final Finder row = find.byKey(
+      const ValueKey<String>('reports-queue-measured'),
     );
+    expect(row, findsOneWidget);
+    expect(findProgressBars(of: row), findsNothing);
     expect(find.text('기록회원'), findsWidgets);
   });
 
@@ -1393,12 +1393,12 @@ void main() {
     );
   });
 
-  testWidgets('단계 이름은 확인 · 작성 · 전송이다 (#2400)', (tester) async {
+  testWidgets('단계 이름은 확인 · 작성 · 보내기다 (#2400, #2479)', (tester) async {
     await openReports(tester);
 
     expect(find.text('확인'), findsWidgets);
     expect(find.text('작성'), findsWidgets);
-    expect(find.text('전송'), findsWidgets);
+    expect(find.text('보내기'), findsWidgets);
   });
 
   testWidgets('보낸 글과 PDF 에는 입력창의 문구만 실린다 — 목표 목록이 붙지 않는다 (#2400)', (
@@ -1523,6 +1523,69 @@ void main() {
     expect(pdf.calls, 2);
     expect(drafts.sentMessages, <String>[edited]);
     expect(drafts.sentBytes, <List<int>>[_pdfBytes]);
+  });
+
+  group('같은 재료면 다시 만들지 않는다 (#2484)', () {
+    Future<(_StreamedReports, _QueuedPdfGenerator, _FakeRasterizer)> openSend(
+      WidgetTester tester,
+    ) async {
+      final _StreamedReports reports = _StreamedReports();
+      addTearDown(reports.close);
+      final _QueuedPdfGenerator pdf = _QueuedPdfGenerator(
+        const <Future<Uint8List>>[],
+      );
+      final _FakeRasterizer raster = _FakeRasterizer();
+      await openReports(
+        tester,
+        stage: 2,
+        pdf: pdf,
+        raster: raster,
+        extraOverrides: <Override>[
+          reportRepositoryProvider.overrideWithValue(reports),
+        ],
+      );
+      return (reports, pdf, raster);
+    }
+
+    testWidgets('내용이 같은 리포트가 새 객체로 다시 와도 PDF 를 다시 만들지 않는다', (tester) async {
+      final (reports, pdf, raster) = await openSend(tester);
+      expect(pdf.calls, 1);
+      expect(raster.inputs, hasLength(1));
+
+      // 스트림이 같은 내용을 새 객체로 두 번 더 보낸다 — 데모의 drift 스트림이
+      // 일정 표가 건드려질 때마다 그렇게 한다.
+      reports.pushSame();
+      await settle(tester);
+      reports.pushSame();
+      await settle(tester);
+
+      expect(pdf.calls, 1);
+      expect(raster.inputs, hasLength(1));
+      expect(previewLoading, findsNothing);
+      expect(preview, findsOneWidget);
+    });
+
+    testWidgets('수치가 바뀐 리포트가 오면 새로 만든다', (tester) async {
+      final (reports, pdf, raster) = await openSend(tester);
+      expect(pdf.calls, 1);
+
+      reports.pushChanged();
+      await settle(tester);
+
+      expect(pdf.calls, 2);
+      expect(raster.inputs, hasLength(2));
+    });
+
+    testWidgets('같은 내용이 다시 와도 전송은 떠 있는 한 부를 보낸다', (tester) async {
+      final (reports, pdf, _) = await openSend(tester);
+
+      reports.pushSame();
+      await settle(tester);
+      await tapSend(tester);
+
+      expect(pdf.calls, 1);
+      expect(reports.sentBytes, <List<int>>[_pdfBytes]);
+    });
   });
 
   testWidgets('단계 표시로 ③ 에 다시 들어와도 고친 글로 새로 만든다 (#2402)', (tester) async {
@@ -1679,9 +1742,9 @@ void main() {
               .dx;
       expect(
         centers - OnCareSize.avatarMedium,
-        closeTo(ProgressStepper.defaultGap * 2, 0.01),
+        closeTo(AppStepIndicator.numberedGap * 2, 0.01),
       );
-      expect(reportStepperGap, ProgressStepper.defaultGap * 2);
+      expect(reportStepperGap, AppStepIndicator.numberedGap * 2);
     });
 
     testWidgets('좁은 창에서도 머리 줄이 넘치지 않는다', (tester) async {
@@ -1987,6 +2050,57 @@ class _DraftStore implements ReportRepository {
     saved.add(body);
     return ReportFeedbackDraft(body: body, saved: true);
   }
+}
+
+/// 리포트를 스트림으로 흘려 보내는 저장소. 데모의 drift 스트림처럼 같은 주를
+/// 다시 보낼 수 있다(#2484).
+class _StreamedReports extends _DraftStore {
+  final StreamController<WeeklyReport> _pushed =
+      StreamController<WeeklyReport>.broadcast();
+
+  TrainerClient? _client;
+  DateTime? _week;
+
+  @override
+  Stream<WeeklyReport> watch({
+    required TrainerClient client,
+    required DateTime weekStart,
+  }) async* {
+    final DateTime week = weekStartOf(weekStart);
+    // 편집기가 여는 주가 가장 늦은 주다 — 평소 칼로리를 내려고 읽는 지난
+    // 주들보다 뒤다. 그 주를 흘려 보낼 주로 삼는다.
+    if (_week == null || week.isAfter(_week!)) {
+      _client = client;
+      _week = week;
+    }
+    yield buildWeeklyReport(
+      client: client,
+      sessions: const [],
+      weekStart: week,
+    );
+    yield* _pushed.stream.where((WeeklyReport r) => r.weekStart == week);
+  }
+
+  /// 처음과 내용이 같은 리포트를 새 객체로 보낸다.
+  void pushSame() => _pushed.add(
+    buildWeeklyReport(client: _client!, sessions: const [], weekStart: _week!),
+  );
+
+  /// PT 기록이 달라진 리포트를 보낸다.
+  void pushChanged() => _pushed.add(
+    WeeklyReport(
+      client: _client!,
+      weekStart: _week!,
+      sessionsBooked: 3,
+      sessionsDone: 2,
+      completionAvg: 64,
+      sodiumOverDays: 1,
+      sodiumAvg: 2100,
+      isCurrentWeek: true,
+    ),
+  );
+
+  Future<void> close() => _pushed.close();
 }
 
 class _QueuedPdfGenerator extends ReportPdfGenerator {

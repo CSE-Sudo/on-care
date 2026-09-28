@@ -228,7 +228,7 @@ void main() {
     await openDashboard(tester);
 
     expect(find.text('오늘의 일정'), findsOneWidget);
-    // ClientIdentity 가 이름과 성별·나이(회색)를 별도 Text 로 그린다.
+    // 이름과 성별·나이(회색)는 별도 Text 로 그린다.
     expect(find.text('김민수'), findsWidgets);
     expect(find.text('남성 · 35세'), findsWidgets);
     expect(find.text('1:1 PT'), findsWidgets);

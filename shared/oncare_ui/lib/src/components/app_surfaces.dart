@@ -621,8 +621,8 @@ enum AppBannerDensity {
   /// 오른쪽 칸에 들여 선다.
   regular,
 
-  /// 아이콘 16 + 톤색 굵은 `bodySmall` 제목 + `caption` 본문, 안쪽 세로 8·가로
-  /// 12. 제목 줄 아래 본문은 폭을 다 쓴다. 대화 흐름이나 카드 안 좁은 칸에
+  /// 아이콘 16 + 톤색 굵은 `bodySmall` 한 줄 제목 + `caption` 본문, 안쪽 세로
+  /// 8·가로 12. 제목 줄 아래 본문은 폭을 다 쓴다. 대화 흐름이나 카드 안 좁은 칸에
   /// 서는 감지 경고처럼 무게를 낮춰야 하는 안내에 쓴다.
   compact,
 }
@@ -808,9 +808,11 @@ class AppBanner extends StatelessWidget {
               AppIcon(resolvedIcon, size: OnCareSize.iconSmall, color: accent),
               const SizedBox(width: OnCareSpacing.s4),
               Expanded(
+                // compact 는 고정 높이 칸에도 서므로 제목을 한 줄로 둔다.
                 child: _BannerTitle(
                   title: title,
                   meta: titleMeta,
+                  oneLine: true,
                   style: tokens
                       .text(OnCareTypography.strong(OnCareTypography.bodySmall))
                       .copyWith(color: accent),
@@ -874,16 +876,31 @@ class AppBanner extends StatelessWidget {
 
 /// 배너 제목 — 곁말이 있으면 한 줄(곁말이 먼저 말줄임), 없으면 줄바꿈한다.
 class _BannerTitle extends StatelessWidget {
-  const _BannerTitle({required this.title, required this.style, this.meta});
+  const _BannerTitle({
+    required this.title,
+    required this.style,
+    this.meta,
+    this.oneLine = false,
+  });
 
   final String title;
   final String? meta;
   final TextStyle style;
 
+  /// 곁말이 없어도 한 줄로 두고 말줄임한다.
+  final bool oneLine;
+
   @override
   Widget build(BuildContext context) {
     final String? meta = this.meta;
-    if (meta == null) return Text(title, style: style);
+    if (meta == null) {
+      return Text(
+        title,
+        maxLines: oneLine ? 1 : null,
+        overflow: oneLine ? TextOverflow.ellipsis : null,
+        style: style,
+      );
+    }
     return Row(
       children: <Widget>[
         Flexible(
@@ -997,6 +1014,7 @@ class AppEmptyState extends StatelessWidget {
     this.icon,
     this.actionLabel,
     this.onAction,
+    this.actionKey,
     this.placement = AppStatePlacement.page,
   });
 
@@ -1007,6 +1025,9 @@ class AppEmptyState extends StatelessWidget {
   final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// 동작 버튼의 Key — 테스트·자동화가 버튼을 찾을 때.
+  final Key? actionKey;
   final AppStatePlacement placement;
 
   @override
@@ -1041,6 +1062,7 @@ class AppEmptyState extends StatelessWidget {
         if (actionLabel != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
           AppButton(
+            key: actionKey,
             label: actionLabel!,
             onPressed: onAction,
             variant: AppButtonVariant.secondary,
@@ -1060,6 +1082,7 @@ class AppErrorState extends StatelessWidget {
     this.message,
     required this.retryLabel,
     required this.onRetry,
+    this.retryKey,
     this.placement = AppStatePlacement.page,
   });
 
@@ -1067,6 +1090,9 @@ class AppErrorState extends StatelessWidget {
   final String? message;
   final String retryLabel;
   final VoidCallback? onRetry;
+
+  /// [다시 시도] 버튼의 Key.
+  final Key? retryKey;
   final AppStatePlacement placement;
 
   @override
@@ -1077,6 +1103,7 @@ class AppErrorState extends StatelessWidget {
       icon: AppIcon.setOf(context).offline,
       actionLabel: retryLabel,
       onAction: onRetry,
+      actionKey: retryKey,
       placement: placement,
     );
   }

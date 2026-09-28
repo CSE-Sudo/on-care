@@ -42,7 +42,6 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 예외 둘: 탭 이동 시 스크롤 초기화(UI 위젯 아님), 그리고 요일별 막대그래프
 // — 패키지에 대응 차트가 없고 리포트 탭·테스트가 같은 위젯 타입을 쓴다.
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_trainer/shared/widgets/page_scroll_reset.dart';
@@ -267,7 +266,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         ymd(start),
         ymd(start.add(const Duration(days: PersonalRoutineBox.activeDays - 1))),
       ),
-      confirmLabel: l.aiRoutineOnlySend,
+      confirmLabel: l.actionSend,
       cancelLabel: l.actionCancel,
     );
     if (!confirmed || !mounted || !_isStillSelected(client.id)) return;
@@ -838,10 +837,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 width: OnCareLayout.sidebarWidth,
                 // 이름 아래에 성별·나이를 쌓는다 — 이름이 같은 회원을
                 // 가려내는 정보다.
-                child: AppListRow(
-                  title: c.name,
-                  subtitle: _clientDemographics(l, c),
-                  leading: ClientAvatar(name: c.name),
+                child: ClientPickerCard(
+                  client: c,
+                  stacked: true,
                   selected: c.id == client.id,
                   onTap: () => _selectClient(c.id),
                 ),
@@ -1058,16 +1056,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       ),
     ];
   }
-}
-
-/// 이름이 같은 회원을 가려내는 `성별 · 나이`.
-String _clientDemographics(AppLocalizations l, TrainerClient client) {
-  final gender = switch (client.rosterGender) {
-    'female' => l.memberHealthGenderFemale,
-    'male' => l.memberHealthGenderMale,
-    _ => l.memberHealthGenderOther,
-  };
-  return l.coachClientDemographics(gender, client.rosterAge);
 }
 
 /// 카드 제목 줄 + 본문. [expand] 면 카드가 부모가 준 높이를 그대로 받고

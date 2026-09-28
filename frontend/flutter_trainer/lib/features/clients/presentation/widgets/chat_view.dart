@@ -260,7 +260,15 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ..add(const SizedBox(height: OnCareSpacing.s12));
         }
         // 구분선은 위아래 여백을 스스로 갖는다.
-        out.add(_DateDivider(date: m.createdAt));
+        final DateTime localDate = m.createdAt.toLocal();
+        out.add(
+          AppChatDateDivider(
+            AppLocalizations.of(context).chatDateDivider(localDate),
+            key: ValueKey<String>(
+              'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+            ),
+          ),
+        );
         if (showDemoBanners && m.id.startsWith('seed-')) {
           out
             ..add(
@@ -664,34 +672,6 @@ class _SentBanner extends StatelessWidget {
       message: l.chatDemoNotified,
       fill: _noticeFill(context),
       border: _noticeBorder(context),
-    );
-  }
-}
-
-/// 날짜 — 가운데 흐린 굵은 글자만. 선을 긋지 않는다: 스레드 안에 이미
-/// 안내 상자·말풍선 테두리가 있어, 선까지 더하면 줄이 겹쳐 보인다.
-class _DateDivider extends StatelessWidget {
-  const _DateDivider({required this.date});
-
-  final DateTime date;
-
-  @override
-  Widget build(BuildContext context) {
-    final localDate = date.toLocal();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-      child: Center(
-        child: Text(
-          AppLocalizations.of(context).chatDateDivider(localDate),
-          key: ValueKey<String>(
-            'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
-          ),
-          textAlign: TextAlign.center,
-          style: context.oncare
-              .text(OnCareTypography.strong(OnCareTypography.caption))
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-      ),
     );
   }
 }

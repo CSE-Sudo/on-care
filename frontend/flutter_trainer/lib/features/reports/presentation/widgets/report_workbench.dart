@@ -5,8 +5,7 @@ import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
-import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -447,7 +446,6 @@ class _SentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final ReportSendRecord? sent = record;
     final String subtitle = sent == null
         ? l.reportsSentSubtitle
@@ -459,60 +457,22 @@ class _SentRow extends StatelessWidget {
       primaryLabel: l.reportsViewSent,
       onPrimary: onView,
     );
-    final Widget identity = Row(
-      children: <Widget>[
-        ClientAvatar(name: entry.client.avatar, size: AppAvatarSize.small),
-        const SizedBox(width: OnCareSpacing.s8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // 미전송 줄처럼 이름 옆에 성별·나이를 적는다(#2447) — 같은
-              // 회원이 두 상자에서 다른 정보량으로 서지 않게.
-              Text.rich(
-                TextSpan(
-                  children: <InlineSpan>[
-                    TextSpan(
-                      text: entry.client.name,
-                      style: tokens.text(
-                        OnCareTypography.strong(OnCareTypography.bodySmall),
-                      ),
-                    ),
-                    TextSpan(
-                      text:
-                          '  ${clientDemographicsLabel(context, entry.client)}',
-                      style: tokens
-                          .text(OnCareTypography.caption)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                  ],
-                ),
-                key: ValueKey<String>('reports-sent-name-${entry.client.id}'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ],
-          ),
-        ),
-        if (sent != null) ...<Widget>[
-          const SizedBox(width: OnCareSpacing.s8),
-          // 안 읽은 줄만 눈에 띄게 둔다 — 읽은 줄이 더 조용해야 남은 일이
-          // 먼저 보인다.
-          AppTag(
-            label: sent.read ? l.reportsSentRead : l.reportsSentUnread,
-            tone: sent.read ? AppTagTone.neutral : AppTagTone.danger,
-          ),
-        ],
-      ],
+    // 미전송 줄(회원 고르기 카드)과 같은 촘촘한 회원 행이다(#2447·#2467) —
+    // 같은 회원이 두 상자에서 다른 크기·정보량으로 서지 않게. 둘째 줄은
+    // 목표 대신 언제 나갔는가다.
+    final Widget identity = ClientRow(
+      key: ValueKey<String>('reports-sent-name-${entry.client.id}'),
+      client: entry.client,
+      density: ClientRowDensity.compact,
+      detail: subtitle,
+      // 안 읽은 줄만 눈에 띄게 둔다 — 읽은 줄이 더 조용해야 남은 일이
+      // 먼저 보인다.
+      trailing: sent == null
+          ? null
+          : AppTag(
+              label: sent.read ? l.reportsSentRead : l.reportsSentUnread,
+              tone: sent.read ? AppTagTone.neutral : AppTagTone.danger,
+            ),
     );
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -89,15 +89,18 @@ List<String> _rowOrder(WidgetTester tester) {
   return ids;
 }
 
+/// 전송 완료 줄 첫 줄 — `이름  성별 · 나이`. 공용 회원 행([ClientRow])은 이름과
+/// 성별·나이를 따로 그리고 그 아래에 전송일을 둔다(#2467).
 String _nameLine(WidgetTester tester, String id) => tester
-    .widget<RichText>(
+    .widgetList<Text>(
       find.descendant(
         of: find.byKey(ValueKey<String>('reports-sent-name-$id')),
-        matching: find.byType(RichText),
+        matching: find.byType(Text),
       ),
     )
-    .text
-    .toPlainText();
+    .take(2)
+    .map((Text t) => t.data!)
+    .join('  ');
 
 Future<void> _pick(WidgetTester tester, String sortName) async {
   await tester.tap(
