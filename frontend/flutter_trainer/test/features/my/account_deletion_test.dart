@@ -27,6 +27,7 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   final bool supportsDeletion;
   final bool fails;
   int deleteCalls = 0;
+  List<String> lastReasons = const <String>[];
 
   @override
   bool get supportsPasswordChange => true;
@@ -38,9 +39,10 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   }) async {}
 
   @override
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
     if (fails) throw const ServerError(message: '지금은 탈퇴할 수 없어요');
     deleteCalls++;
+    lastReasons = reasons;
   }
 }
 
@@ -190,5 +192,33 @@ void main() {
     // 계속 사용하기를 누르면 고객 지원으로 돌아간다.
     await tap('withdraw-stay');
     expect(currentLocation(tester), AppRoutes.mySection('support'));
+  });
+
+  testWidgets('고른 사유를 탈퇴 요청에 실어 보낸다 (#2264)', (tester) async {
+    final repo = await _pumpSettings(tester);
+
+    Future<void> tap(String key) async {
+      final Finder target = find.byKey(ValueKey<String>(key));
+      await tester.ensureVisible(target);
+      await settle(tester);
+      await tester.tap(target);
+      await settle(tester);
+    }
+
+    await tap('delete-account');
+    await tap('withdraw-reason-leavingWork');
+    await tap('withdraw-reason-missingFeature');
+    await tap('withdraw-next');
+    await tap('withdraw-continue');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('delete-account-confirm')),
+      seedTrainerProfile.name,
+    );
+    await settle(tester);
+    await tap('delete-account-submit');
+
+    expect(repo.deleteCalls, 1);
+    // 화면에 보이는 순서가 아니라 사유 목록 순서다 — 서버 코드 그대로.
+    expect(repo.lastReasons, <String>['missing_feature', 'leaving_work']);
   });
 }

@@ -18,6 +18,7 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
+import 'package:oncare_trainer/features/my/data/app_version.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
@@ -399,7 +400,14 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await ref.read(trainerAccountRepositoryProvider).deleteAccount();
+      await ref
+          .read(trainerAccountRepositoryProvider)
+          .deleteAccount(
+            reasons: <String>[
+              for (final _WithdrawReason r in _WithdrawReason.values)
+                if (_withdrawReasons.contains(r)) r.code,
+            ],
+          );
     } on AppError catch (e) {
       if (!mounted) return;
       showAppToast(
@@ -1008,7 +1016,11 @@ class _MyPageState extends ConsumerState<MyPage> {
       const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
-          l.myAppVersion,
+          // 버전은 빌드에서 읽는다 — 읽기 전·읽지 못하면 앱 이름만.
+          switch (ref.watch(appVersionProvider).valueOrNull) {
+            final String version => l.myAppVersion(version),
+            null => l.myAppName,
+          },
           style: context.oncare
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),
@@ -1024,7 +1036,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   ///
   /// 마지막 확인은 이름을 그대로 입력하는 창이다(#505) — 담당 회원 연결과
   /// 예약이 함께 사라지고 회원에게 알림이 가는, 회원 탈퇴보다 무거운 동작이다.
-  /// 사유는 아직 서버가 받지 않아 화면에서만 쓴다.
+  /// 고른 사유는 탈퇴 요청 본문으로 보낸다(서버가 계정과 잇지 않고 남긴다).
   List<Widget> _withdrawCards() {
     final AppLocalizations l = AppLocalizations.of(context);
     if (!_withdrawKeepStep) {
@@ -1163,14 +1175,20 @@ String _languageLabel(AppLocalizations l, TrainerLanguage language) =>
     };
 
 /// 트레이너 탈퇴 사유. 회원 앱 `WithdrawReason` 과 같은 자리지만, 트레이너가
-/// 떠나는 이유에 맞춘 항목이다.
+/// 떠나는 이유에 맞춘 항목이다. 고른 사유는 탈퇴 요청과 함께 서버에 남는다.
 enum _WithdrawReason {
-  rarelyUsed,
-  hardToUse,
-  missingFeature,
-  leavingWork,
-  alternative,
-  other;
+  rarelyUsed('rarely_used'),
+  hardToUse('hard_to_use'),
+  missingFeature('missing_feature'),
+  leavingWork('leaving_work'),
+  alternative('found_alternative'),
+  other('other');
+
+  const _WithdrawReason(this.code);
+
+  /// 서버가 받는 코드(`TRAINER_DELETION_REASONS`). 화면 글은 번역되고 바뀌지만
+  /// 집계는 이 코드로 이어진다.
+  final String code;
 
   String label(AppLocalizations l) => switch (this) {
     _WithdrawReason.rarelyUsed => l.myWithdrawReasonRarelyUsed,

@@ -3881,8 +3881,14 @@ abstract class AppLocalizations {
   /// No description provided for @myAppVersion.
   ///
   /// In en, this message translates to:
-  /// **'On-Care Trainer · Version 0.1.0'**
-  String get myAppVersion;
+  /// **'On-Care Trainer · Version {version}'**
+  String myAppVersion(String version);
+
+  /// No description provided for @myAppName.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care Trainer'**
+  String get myAppName;
 
   /// No description provided for @myLegalTermsTitle.
   ///

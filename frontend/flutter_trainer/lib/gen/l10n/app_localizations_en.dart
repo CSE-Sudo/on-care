@@ -2229,7 +2229,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'FAQ, inquiries, policies and account clean-up in one place';
 
   @override
-  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
+  String myAppVersion(String version) {
+    return 'On-Care Trainer · Version $version';
+  }
+
+  @override
+  String get myAppName => 'On-Care Trainer';
 
   @override
   String get myLegalTermsTitle => 'Terms of Service';

@@ -1503,7 +1503,15 @@
   "mySupportExternalHint": "Opens the KakaoTalk channel",
   "mySupportOpenFailed": "Couldn't open the link. Please try again in a moment",
   "mySupportEntryHint": "FAQ, inquiries, policies and account clean-up in one place",
-  "myAppVersion": "On-Care Trainer · Version 0.1.0",
+  "myAppVersion": "On-Care Trainer · Version {version}",
+  "@myAppVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "myAppName": "On-Care Trainer",
   "myLegalTermsTitle": "Terms of Service",
   "myLegalPrivacyTitle": "Privacy Policy",
   "myLegalEffectiveDate": "Effective Jan 1, 2026",

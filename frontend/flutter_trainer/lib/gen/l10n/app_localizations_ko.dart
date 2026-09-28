@@ -2106,7 +2106,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySupportEntryHint => 'FAQ·문의와 약관, 계정 정리를 한곳에서 볼 수 있어요';
 
   @override
-  String get myAppVersion => 'On-Care 트레이너 · 버전 0.1.0';
+  String myAppVersion(String version) {
+    return 'On-Care 트레이너 · 버전 $version';
+  }
+
+  @override
+  String get myAppName => 'On-Care 트레이너';
 
   @override
   String get myLegalTermsTitle => '이용약관';
