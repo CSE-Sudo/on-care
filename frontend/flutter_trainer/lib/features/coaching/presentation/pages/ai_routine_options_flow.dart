@@ -16,6 +16,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
+import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
@@ -770,9 +771,17 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   ///
   /// 메모가 늘어도 카드가 아래로 자라면 안 된다 — 프로그램 탭은 이 박스 아래에
   /// 생성 조건과 버튼을 두고 있어, 박스가 자랄 때마다 트레이너가 누르던 자리가
-  /// 밀린다. 왼쪽 네 줄과 같은 키를 못 박고, 넘치는 메모는 칸 안에서 스크롤한다.
+  /// 밀린다. 넘치는 메모는 칸 안에서 스크롤한다.
+  ///
+  /// 두 칸을 위아래로 쌓을 때의 높이다. 나란히 둘 때는 왼쪽 다섯 줄(사실 넷 +
+  /// 권장 방향, #2373)과 키를 맞춰 [_analysisPanelSideHeight] 를 쓴다 — 쌓을
+  /// 때까지 그 키를 쓰면 빈 칸만 커진다.
   static const double _analysisPanelHeight =
       OnCareSpacing.s48 + OnCareSpacing.s48;
+
+  /// 두 칸을 나란히 둘 때 오른쪽 칸의 고정 높이 — 왼쪽 다섯 줄의 키.
+  static const double _analysisPanelSideHeight =
+      _analysisPanelHeight + OnCareSpacing.s24;
 
   /// 이 폭 아래에서는 두 칸을 위아래로 쌓는다.
   static const double _analysisSplitWidth = OnCareLayout.dialogMedium;
@@ -827,6 +836,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           '${client.sugarOverBudget ? l.aiSugarAlsoOver : ''}',
           warn: client.sodiumOverBudget || client.sugarOverBudget,
         ),
+        // 위 네 줄을 어떻게 읽을지 — 규칙으로 정한 한 줄이다(#2373). 같은
+        // 회원 데이터에는 언제나 같은 말이 나온다.
+        _analysisRow(
+          l.aiDirectionLabel,
+          _directionLabel(l, programDirectionFor(client)),
+          key: const ValueKey<String>('ai-analysis-direction'),
+        ),
       ],
     );
     // 회원 데이터를 규칙으로 계산한 값만 담는다 — AI 를 부르지 않으므로 AI
@@ -844,8 +860,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           const SizedBox(height: OnCareSpacing.s12),
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final Widget memos = _chatInsightMemoPanel();
-              if (constraints.maxWidth < _analysisSplitWidth) {
+              final bool stacked = constraints.maxWidth < _analysisSplitWidth;
+              final Widget memos = _chatInsightMemoPanel(
+                height: stacked
+                    ? _analysisPanelHeight
+                    : _analysisPanelSideHeight,
+              );
+              if (stacked) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
@@ -882,14 +903,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 모양은 [AppBanner] 의 `danger` 톤(8% 채움·40% 테두리·반경 12·안쪽 12)과
   /// 같다. 다만 고정 높이 안에서 메모 목록을 스크롤해야 해(#1655) 제목·본문
   /// 두 칸뿐인 [AppBanner] 를 그대로 쓰지 못한다.
-  Widget _chatInsightMemoPanel() {
+  Widget _chatInsightMemoPanel({required double height}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final AsyncValue<List<TrainerMemo>> memos = ref.watch(
       trainerMemosProvider(widget.client.id),
     );
     return Container(
       key: const ValueKey<String>('ai-chat-insight-memos'),
-      height: _analysisPanelHeight,
+      height: height,
       padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
       decoration: BoxDecoration(
         color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.subtle),
@@ -2118,8 +2139,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  Widget _analysisRow(String label, String value, {bool warn = false}) {
+  String _directionLabel(AppLocalizations l, ProgramDirection direction) =>
+      switch (direction) {
+        ProgramDirection.lowerIntensity => l.aiDirectionLower,
+        ProgramDirection.moreCardio => l.aiDirectionCardio,
+        ProgramDirection.lowerIntensityMoreCardio =>
+          l.aiDirectionLowerAndCardio,
+        ProgramDirection.keep => l.aiDirectionKeep,
+        ProgramDirection.noData => l.aiDirectionNoData,
+      };
+
+  Widget _analysisRow(
+    String label,
+    String value, {
+    bool warn = false,
+    Key? key,
+  }) {
     return Padding(
+      key: key,
       padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
