@@ -3764,10 +3764,16 @@ abstract class AppLocalizations {
   /// **'New message alerts'**
   String get myNotifNewMessage;
 
+  /// No description provided for @myNotifNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon — always on for now'**
+  String get myNotifNotReady;
+
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
-  /// **'A sidebar badge appears when a member messages you'**
+  /// **'Get an inbox alert and a sidebar count when a member messages you'**
   String get myNotifNewMessageHint;
 
   /// No description provided for @myLanguageApp.
@@ -4369,18 +4375,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When a member changes goals or name, or disconnects'**
   String get myNotifMemberUpdatesHint;
-
-  /// No description provided for @myNotifAlwaysOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Always on'**
-  String get myNotifAlwaysOn;
-
-  /// No description provided for @myNotifAlwaysOnNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Consultation, booking and member alerts can\'t be turned off — they\'re ones you shouldn\'t miss'**
-  String get myNotifAlwaysOnNote;
 
   /// Display label for the '걷기' routine type. The stored/wire value stays Korean — see kRoutineTypes.
   ///

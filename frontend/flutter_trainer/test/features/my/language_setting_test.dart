@@ -227,7 +227,9 @@ void main() {
       // 하위 화면에 있다(#2264).
       await tester.tap(find.text('Notifications'));
       await settle(tester);
-      final Finder toggle = find.byType(Switch);
+      final Finder toggle = find.byKey(
+        const ValueKey<String>('my-notif-new-message'),
+      );
       expect(toggle, findsOneWidget);
       expect(tester.widget<Switch>(toggle).value, isTrue);
       await tester.ensureVisible(toggle);

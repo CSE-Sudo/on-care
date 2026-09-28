@@ -2049,7 +2049,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifNewMessage => '새 메시지 알림';
 
   @override
-  String get myNotifNewMessageHint => '회원이 메시지를 보내면 사이드바 뱃지로 알려드려요';
+  String get myNotifNotReady => '곧 끌 수 있어요 — 지금은 항상 받아요';
+
+  @override
+  String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요';
 
   @override
   String get myLanguageApp => '화면 언어';
@@ -2361,12 +2364,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifMemberUpdatesHint => '회원이 목표·이름을 바꾸거나 연결을 끊으면 알려드려요';
-
-  @override
-  String get myNotifAlwaysOn => '항상 받음';
-
-  @override
-  String get myNotifAlwaysOnNote => '상담·예약·담당 회원 소식은 놓치면 안 되는 알림이라 끌 수 없어요';
 
   @override
   String get routineTypeWalking => '걷기';

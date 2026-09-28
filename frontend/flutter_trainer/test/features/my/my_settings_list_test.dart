@@ -31,6 +31,18 @@ class _FailingRepository implements TrainerSettingsRepository {
   }
 }
 
+/// 서버에 새 메시지 설정만 있는 상태 — 상담·예약·담당 회원 소식은 아직 모른다.
+class _MessageOnlyServerRepository implements TrainerSettingsRepository {
+  const _MessageOnlyServerRepository();
+
+  @override
+  Future<TrainerSettings> load() async =>
+      trainerSettingsFromJson(<String, dynamic>{'notify_new_message': true});
+
+  @override
+  Future<TrainerSettings> save(TrainerSettings settings) async => settings;
+}
+
 Future<void> _openSettings(
   WidgetTester tester, {
   List<Override> overrides = const <Override>[],
@@ -98,20 +110,62 @@ void main() {
   });
 
   group('알림 설정', () {
-    testWidgets('끌 수 있는 새 메시지와 항상 오는 알림을 함께 보인다', (tester) async {
+    testWidgets('네 종류 모두 켜고 끌 수 있다 (#2264)', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.mySection('notifications'),
       );
 
-      expect(find.text(_ko.myNotifNewMessage), findsOneWidget);
-      expect(find.byType(Switch), findsOneWidget);
-      expect(find.text(_ko.myNotifConsultation), findsOneWidget);
-      expect(find.text(_ko.myNotifReservation), findsOneWidget);
-      expect(find.text(_ko.myNotifMemberUpdates), findsOneWidget);
-      expect(find.text(_ko.myNotifAlwaysOn), findsNWidgets(3));
-      expect(find.text(_ko.myNotifAlwaysOnNote), findsOneWidget);
+      for (final String key in <String>[
+        'new-message',
+        'consultation',
+        'reservation',
+        'member-updates',
+      ]) {
+        final Finder toggle = find.byKey(ValueKey<String>('my-notif-$key'));
+        expect(tester.widget<Switch>(toggle).onChanged, isNotNull);
+        expect(tester.widget<Switch>(toggle).value, isTrue);
+      }
+
+      // 휴가처럼 상담 요청을 잠시 끈다.
+      final Finder consultation = find.byKey(
+        const ValueKey<String>('my-notif-consultation'),
+      );
+      await tester.tap(consultation);
+      await settle(tester);
+      expect(tester.widget<Switch>(consultation).value, isFalse);
+    });
+
+    testWidgets('서버가 아직 모르는 알림은 막고 그렇다고 알린다', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('notifications'),
+        extraOverrides: <Override>[
+          trainerSettingsRepositoryProvider.overrideWithValue(
+            const _MessageOnlyServerRepository(),
+          ),
+        ],
+      );
+
+      expect(
+        tester
+            .widget<Switch>(
+              find.byKey(const ValueKey<String>('my-notif-new-message')),
+            )
+            .onChanged,
+        isNotNull,
+      );
+      expect(
+        tester
+            .widget<Switch>(
+              find.byKey(const ValueKey<String>('my-notif-reservation')),
+            )
+            .onChanged,
+        isNull,
+      );
+      expect(find.text(_ko.myNotifNotReady), findsNWidgets(3));
     });
 
     testWidgets('저장이 실패하면 스위치를 되돌리고 토스트로 알린다', (tester) async {

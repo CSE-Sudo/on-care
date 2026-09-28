@@ -2166,8 +2166,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifNewMessage => 'New message alerts';
 
   @override
+  String get myNotifNotReady => 'Coming soon — always on for now';
+
+  @override
   String get myNotifNewMessageHint =>
-      'A sidebar badge appears when a member messages you';
+      'Get an inbox alert and a sidebar count when a member messages you';
 
   @override
   String get myLanguageApp => 'Display language';
@@ -2501,13 +2504,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myNotifMemberUpdatesHint =>
       'When a member changes goals or name, or disconnects';
-
-  @override
-  String get myNotifAlwaysOn => 'Always on';
-
-  @override
-  String get myNotifAlwaysOnNote =>
-      'Consultation, booking and member alerts can\'t be turned off — they\'re ones you shouldn\'t miss';
 
   @override
   String get routineTypeWalking => 'Walking';

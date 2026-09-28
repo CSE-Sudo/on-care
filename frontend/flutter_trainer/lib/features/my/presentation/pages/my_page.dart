@@ -802,47 +802,72 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
-  /// 알림 — 끌 수 있는 알림과 항상 오는 알림을 한 목록에 둔다(#2264).
+  /// 알림 — 종류마다 알림함에 넣을지 켜고 끈다(#2264). 휴가처럼 잠시 알림이
+  /// 필요 없을 때도 여기서 끈다. 사이드바의 안 읽은 숫자는 알림과 별개라 계속
+  /// 보인다.
   ///
-  /// 상담 요청·예약·담당 회원 소식은 서버가 수신 설정 없이 항상 보낸다
-  /// (`notification_service._TRAINER_SETTING_COLUMN`). 목록에서 빼면 끌 수
-  /// 있는지조차 알 수 없으니, 잠긴 태그로 보여 주고 이유를 붙인다.
+  /// 상담·예약·담당 회원 소식은 서버에 설정 칸이 생기기 전에는 값이 `null` 이라
+  /// 스위치를 막고 그렇다고 말한다 — 눌러도 서버가 켜짐으로 되돌려 보내면
+  /// 저장된 것처럼 보이다가 조용히 되돌아간다.
   Widget _notificationCard() {
     final AppLocalizations l = AppLocalizations.of(context);
     final settings = ref.watch(trainerSettingsProvider);
     final controller = ref.read(trainerSettingsProvider.notifier);
-    return _SettingsCard(
-      footer: l.myNotifAlwaysOnNote,
-      rows: <Widget>[
-        AppListRow(
-          title: l.myNotifNewMessage,
-          subtitle: l.myNotifNewMessageHint,
-          // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
-          // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
-          trailing: Semantics(
-            label: l.myNotifNewMessage,
-            excludeSemantics: true,
-            child: Switch(
-              key: const ValueKey<String>('my-notif-new-message'),
-              value: settings.newMessageAlerts,
-              onChanged: (v) =>
-                  _applySetting(() => controller.setNewMessageAlerts(v)),
-            ),
+    Widget row({
+      required String key,
+      required String title,
+      required String hint,
+      required bool? value,
+      required Future<void> Function(bool) onChanged,
+    }) {
+      final bool ready = value != null;
+      return AppListRow(
+        title: title,
+        subtitle: ready ? hint : l.myNotifNotReady,
+        // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
+        // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
+        trailing: Semantics(
+          label: title,
+          excludeSemantics: true,
+          child: Switch(
+            key: ValueKey<String>('my-notif-$key'),
+            value: value ?? true,
+            onChanged: ready ? (v) => _applySetting(() => onChanged(v)) : null,
           ),
         ),
-        for (final (String title, String hint) in <(String, String)>[
-          (l.myNotifConsultation, l.myNotifConsultationHint),
-          (l.myNotifReservation, l.myNotifReservationHint),
-          (l.myNotifMemberUpdates, l.myNotifMemberUpdatesHint),
-        ])
-          AppListRow(
-            title: title,
-            subtitle: hint,
-            trailing: AppTag(
-              label: l.myNotifAlwaysOn,
-              icon: Icons.lock_rounded,
-            ),
-          ),
+      );
+    }
+
+    return _SettingsCard(
+      rows: <Widget>[
+        row(
+          key: 'new-message',
+          title: l.myNotifNewMessage,
+          hint: l.myNotifNewMessageHint,
+          value: settings.newMessageAlerts,
+          onChanged: controller.setNewMessageAlerts,
+        ),
+        row(
+          key: 'consultation',
+          title: l.myNotifConsultation,
+          hint: l.myNotifConsultationHint,
+          value: settings.consultationAlerts,
+          onChanged: controller.setConsultationAlerts,
+        ),
+        row(
+          key: 'reservation',
+          title: l.myNotifReservation,
+          hint: l.myNotifReservationHint,
+          value: settings.reservationAlerts,
+          onChanged: controller.setReservationAlerts,
+        ),
+        row(
+          key: 'member-updates',
+          title: l.myNotifMemberUpdates,
+          hint: l.myNotifMemberUpdatesHint,
+          value: settings.memberUpdateAlerts,
+          onChanged: controller.setMemberUpdateAlerts,
+        ),
       ],
     );
   }
