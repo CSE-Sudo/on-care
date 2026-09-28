@@ -33,13 +33,6 @@ typedef ClientDateRange = ({DateTime from, DateTime to});
 /// 없거나 아직 못 읽었을 때)만 이 값이 쓰인다 — 지어낸 기간보다 하루가 낫다.
 const int kClientMinPeriodDays = 1;
 
-/// AI 맞춤 조언이 **읽는** 날 수. 서버 `period_window.ALL_PERIOD_DAYS` 와 같다.
-///
-/// 그래프가 보여 주는 기간과 뜻이 다르다(#2079) — 그래프는 "지금까지 어땠나",
-/// 조언은 "무엇을 근거로 말하나" 다. 그래서 `전체` 그래프가 모든 기록으로
-/// 넓어져도 이 값은 그대로이고, 대신 조언 문구가 제 기간을 밝힌다.
-const int kAdvicePeriodDays = 84;
-
 /// 기록이 없을 때 `전체` 운동이 그리는 주 수 — **한 주**다(이번 주만).
 /// 회원 앱 `kExerciseMinPeriodWeeks` 와 같다.
 const int kClientMinExerciseWeeks = 1;
