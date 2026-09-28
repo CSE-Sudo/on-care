@@ -89,6 +89,26 @@ class DietPeriod {
 
   final List<DietPeriodDay> days;
 
+  /// [dates] 의 날마다 한 칸씩 다시 세운다. 응답에 없는 날은 기록 없는 빈
+  /// 날이다. (#2462)
+  ///
+  /// 서버는 `to` 가 오늘보다 뒤면 오늘로 당긴다 — `전체` 그래프에서는 아직 오지
+  /// 않은 날이 칸이 아니다. 그런데 `이번 주` 는 월~일을 묻고 그 빈 칸이 있어야
+  /// 한 주의 모양이 읽힌다. 월요일에는 칸이 하나만 와 점 하나가 떠 있었다.
+  DietPeriod filledTo(List<DateTime> dates) {
+    final Map<DateTime, DietPeriodDay> byDate = <DateTime, DietPeriodDay>{
+      for (final DietPeriodDay d in days)
+        DateTime(d.date.year, d.date.month, d.date.day): d,
+    };
+    return DietPeriod(
+      days: <DietPeriodDay>[
+        for (final DateTime date in dates)
+          byDate[DateTime(date.year, date.month, date.day)] ??
+              DietPeriodDay(date: date, calories: 0, sodiumMg: 0, sugarG: 0),
+      ],
+    );
+  }
+
   List<DietPeriodDay> get logged =>
       days.where((DietPeriodDay d) => d.hasRecord).toList();
 

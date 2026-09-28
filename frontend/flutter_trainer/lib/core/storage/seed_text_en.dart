@@ -453,6 +453,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Weekend consultation. Match gym hours with their goals.',
   '가벼운 마무리 수업. 다음 주 계획을 함께 정한다.':
       'Light wrap-up session. Plan next week together.',
+  '오랜만의 수업. 가벼운 전신 운동으로 다시 리듬을 잡는다.':
+      'First session in a while. Light full-body work to get back into rhythm.',
   '무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.':
       'Knee range of motion needs checking. Adjust weights next session.',
   '덤벨 숄더프레스': 'Dumbbell shoulder press',

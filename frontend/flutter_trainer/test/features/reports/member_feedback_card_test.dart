@@ -176,12 +176,52 @@ void main() {
     expect(find.text('야근이 많아 화·목을 못 갔어요'), findsOneWidget);
   });
 
-  testWidgets('한 줄을 안 적었으면 그 칸이 아예 서지 않는다', (tester) async {
+  testWidgets('한 줄을 안 적었으면 메모 칸은 서고 `남긴 말 없음` 이 적힌다 (#2450)', (tester) async {
     await _pump(tester);
 
     expect(
       find.byKey(const ValueKey<String>('report-feedback-note')),
       findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('report-feedback-note-tile')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('report-feedback-note-empty')),
+          )
+          .data,
+      '남긴 말 없음',
+    );
+  });
+
+  testWidgets('메모 칸에도 제목이 있다 (#2450)', (tester) async {
+    await _pump(tester, feedback: _feedback(note: '야근이 많았어요'));
+
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('report-feedback-note-label')),
+          )
+          .data,
+      '한 줄 메모',
+    );
+    // 제목이 회원의 말보다 위에 선다.
+    expect(
+      tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('report-feedback-note-label')),
+          )
+          .dy,
+      lessThan(
+        tester
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('report-feedback-note')),
+            )
+            .dy,
+      ),
     );
   });
 
@@ -198,18 +238,109 @@ void main() {
       find.byKey(const ValueKey<String>('report-feedback-empty')),
       findsOneWidget,
     );
-    expect(find.text('아직 받지 못했어요'), findsOneWidget);
+    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
+    expect(find.text('· 아직 받지 못했어요'), findsOneWidget);
     expect(find.text('회원이 주간 피드백을 보내면 여기에 표시돼요'), findsOneWidget);
   });
 
-  testWidgets('안 낸 주에는 문항 줄이 하나도 서지 않는다 — 빈 답을 그리지 않는다', (tester) async {
-    await _pump(tester, none: true);
+  group('안 낸 주에도 칸이 그대로 선다 (#2450)', () {
+    const List<String> rows = <String>[
+      'report-feedback-condition',
+      'report-feedback-intensity',
+      'report-feedback-pain',
+    ];
 
-    expect(
-      find.byKey(const ValueKey<String>('report-feedback-condition')),
-      findsNothing,
-    );
-    expect(find.text('확인 필요'), findsNothing);
+    testWidgets('세 문항 줄이 모두 서고 답 자리에 `미응답` 이 적힌다', (tester) async {
+      await _pump(tester, none: true);
+
+      for (final String key in rows) {
+        expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+        expect(_answer(tester, key).text, '미응답');
+      }
+    });
+
+    testWidgets('문항 제목은 답한 주와 같다', (tester) async {
+      await _pump(tester, none: true);
+
+      expect(find.text('컨디션'), findsOneWidget);
+      expect(find.text('운동 강도'), findsOneWidget);
+      expect(find.text('통증'), findsOneWidget);
+      expect(find.text('한 줄 메모'), findsOneWidget);
+    });
+
+    testWidgets('메모 칸도 서고 `미응답` 이 적힌다', (tester) async {
+      await _pump(tester, none: true);
+
+      expect(
+        find.byKey(const ValueKey<String>('report-feedback-note-tile')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey<String>('report-feedback-note-empty')),
+            )
+            .data,
+        '미응답',
+      );
+    });
+
+    testWidgets('미응답은 흐린 글자이고 경고 빨강이 아니다', (tester) async {
+      await _pump(tester, none: true);
+
+      for (final String key in rows) {
+        final Color? color = _answer(tester, key).color;
+        expect(color, OnCareColors.textTertiary);
+        expect(color, isNot(OnCareColors.danger));
+      }
+      expect(find.text('확인 필요'), findsNothing);
+    });
+
+    testWidgets('답한 주와 안 낸 주의 칸 배치가 같다', (tester) async {
+      await _pump(tester, none: true);
+      final List<Offset> empty = <Offset>[
+        for (final String key in rows)
+          tester.getTopLeft(find.byKey(ValueKey<String>(key))),
+      ];
+      final Rect emptyNote = tester.getRect(
+        find.byKey(const ValueKey<String>('report-feedback-note-tile')),
+      );
+
+      await _pump(tester);
+      for (int i = 0; i < rows.length; i++) {
+        expect(
+          tester.getTopLeft(find.byKey(ValueKey<String>(rows[i]))).dx,
+          empty[i].dx,
+        );
+      }
+      expect(
+        tester
+            .getRect(
+              find.byKey(const ValueKey<String>('report-feedback-note-tile')),
+            )
+            .left,
+        emptyNote.left,
+      );
+    });
+
+    testWidgets('영어에서도 `No answer` 로 선다', (tester) async {
+      await _pump(tester, none: true, locale: 'en');
+
+      for (final String key in rows) {
+        expect(_answer(tester, key).text, 'No answer');
+      }
+      expect(find.text('Note'), findsOneWidget);
+    });
+
+    testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {
+      await _pump(tester, none: true, size: const Size(360, 900));
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const ValueKey<String>('report-feedback-note-tile')),
+        findsOneWidget,
+      );
+    });
   });
 
   group('로케일 이름', () {
@@ -272,7 +403,8 @@ void main() {
   testWidgets('영어 빈 카드도 번역되어 있다', (tester) async {
     await _pump(tester, locale: 'en', none: true);
 
-    expect(find.text('Not received yet'), findsOneWidget);
+    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
+    expect(find.text('· Not received yet'), findsOneWidget);
     expect(
       find.text('It shows up here once the member sends their weekly feedback'),
       findsOneWidget,

@@ -11,6 +11,7 @@ import 'package:oncare_trainer/features/consultations/domain/entities/consultati
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
@@ -330,7 +331,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
           // 그 아래 필드 줄 옆으로 떨어져 보였다(#1395).
           Row(
             children: <Widget>[
-              AppAvatar(
+              ClientAvatar(
                 name: request.memberName.isEmpty
                     ? '?'
                     : request.memberName.characters.first,
@@ -391,9 +392,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
           ],
           if (request.isPending) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s16),
-            Row(
-              children: <Widget>[
-                const Spacer(),
+            AppActionRow(
+              actions: <Widget>[
                 // 거절은 사유를 받는 확인창을 연다. 빨간 글자만 있던 때에는 옆
                 // `승인` 과 모양이 달라, 흰 카드 위 네이비 외곽선으로 짝을
                 // 맞춘다(#2184). 위험 색은 확인창의 확정 버튼이 맡는다.
@@ -404,7 +404,6 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   size: OnCareButtonSize.small,
                   onPressed: _busy ? null : _reject,
                 ),
-                const SizedBox(width: OnCareSpacing.buttonGap),
                 AppButton(
                   key: ValueKey<String>('consultation-accept-${request.id}'),
                   label: l.consultApprove,

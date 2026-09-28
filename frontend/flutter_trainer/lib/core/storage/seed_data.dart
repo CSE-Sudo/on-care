@@ -20,14 +20,18 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v35']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v36']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
 ///
-/// `_v35` 는 김민수를 뺀 고객의 일별 기록을 리포트 이력 전체와 그 앞 4주까지
+/// `_v36` 은 김민수를 뺀 고객의 일별 기록을 리포트 이력 전체와 그 앞 4주까지
 /// 늘렸다(#2453). 올리지 않으면 오늘 이미 시드된 브라우저의 오래된 지난
 /// 리포트에 `지난 4주 평균` 이 비어 `이번 주 평균` 만 남는다.
+///
+/// `_v35` 는 회원마다 매주 PT 를 1회(몇 명은 2회) 두고, 지난 주들에도 같은
+/// 수업을 되풀이해 심었다(#2452). 올리지 않으면 오늘 이미 시드된 브라우저의
+/// 리포트가 지난 주마다 PT 0회로 선다.
 ///
 /// `_v34` 는 김민수를 뺀 고객의 음식마다 먹은 양(`amount_g`)을 실었다(#2368).
 /// 올리지 않으면 오늘 이미 시드된 브라우저의 끼니 카드에 음식 이름만 남는다.
@@ -149,7 +153,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v35') == today &&
+  if (await db.readValue('trainer_seeded_v36') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -503,6 +507,69 @@ Future<void> seedIfEmpty(
     final seedClientIdByName = <String, String>{
       for (final _Client c in _clients) c.name: 'seed-client-${c.id}',
     };
+    // 오늘 목록에 PT 가 이미 있는 회원. 이들의 요일 슬롯이 오늘이면 그 주의
+    // 몫은 오늘 수업이 채우므로 옮기지 않는다 — 같은 날 한 회원에게 수업이
+    // 둘 서거나, 이번 주에만 한 번 더 늘어난다.
+    final Set<String> todayTrainees = <String>{
+      for (final _Slot s in _schedule)
+        if (s.type == SessionType.personalTraining) s.clientName,
+    };
+    // 이번 주 요일 슬롯이 실제로 놓이는 요일·시각. 오늘에 해당하는 슬롯은 오늘
+    // 목록을 건드리지 않도록 건너뛰되, 옮겨 갈 자리([_WeekSlot.altWeekday])가
+    // 있는 회원 수업은 그리로 보낸다 — 버리면 그 회원의 이번 주 PT 가 0회다(#2452).
+    final List<({int index, int weekday, String time})> placed =
+        <({int index, int weekday, String time})>[
+          for (var i = 0; i < _weekSchedule.length; i++)
+            if (_weekSchedule[i].weekday != now.weekday)
+              (
+                index: i,
+                weekday: _weekSchedule[i].weekday,
+                time: _weekSchedule[i].time,
+              )
+            else if (_weekSchedule[i].altWeekday != null &&
+                !todayTrainees.contains(_weekSchedule[i].clientName))
+              (
+                index: i,
+                weekday: _weekSchedule[i].altWeekday!,
+                time: _weekSchedule[i].altTime!,
+              ),
+        ];
+    DateTime dayOfWeek(int weekday, {int weeksAgo = 0}) => DateTime(
+      monday.year,
+      monday.month,
+      monday.day + weekday - 1 - 7 * weeksAgo,
+    );
+
+    // 지난 주들의 PT (#2452). 실제 PT 회원은 매주 같은 요일·시각에 수업을
+    // 받으므로, 이번 주에 놓인 회원 PT 를 그대로 앞 주로 되풀이한다 — 한 주의
+    // 수업 배치가 이미 겹치지 않으므로 지난 주도 겹치지 않는다. 리포트의 PT
+    // 횟수는 이 행들에서 나온다(스케줄 탭과 같은 자료). 상담·미등록자·공백은
+    // 되풀이하지 않고, 회원이 붙기 전 주에는 넣지 않는다
+    // ([demoMemberJoinedWeeksAgo]). 메모·프로그램은 비운다 — 같은 메모와 운동이
+    // 열세 주 반복되면 그 수업에 남긴 기록처럼 읽히지 않고, 프로그램이 붙은
+    // 수업은 코칭 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다.
+    final List<({int weekday, String time, _SeedSession slot, int order})>
+    recurring = <({int weekday, String time, _SeedSession slot, int order})>[
+      for (var i = 0; i < _schedule.length; i++)
+        if (_schedule[i].type == SessionType.personalTraining &&
+            seedClientIdByName.containsKey(_schedule[i].clientName))
+          (
+            weekday: now.weekday,
+            time: _schedule[i].time,
+            slot: _SeedSession.of(_schedule[i]),
+            order: i,
+          ),
+      for (final p in placed)
+        if (_weekSchedule[p.index].type == SessionType.personalTraining &&
+            seedClientIdByName.containsKey(_weekSchedule[p.index].clientName))
+          (
+            weekday: p.weekday,
+            time: p.time,
+            slot: _SeedSession.ofWeek(_weekSchedule[p.index]),
+            order: _schedule.length + p.index,
+          ),
+    ];
+
     await db.batch((Batch b) {
       b.insertAll(db.trainerScheduleEntries, <TrainerScheduleEntriesCompanion>[
         for (var i = 0; i < _schedule.length; i++)
@@ -521,38 +588,53 @@ Future<void> seedIfEmpty(
           ),
         // 오늘을 뺀 요일에 이번 주 나머지 수업을 놓는다 (#1210). 예전에는 시드가
         // 오늘 하루치뿐이어서 주간 시간표의 다른 요일 열이 전부 비어 보였다.
-        // 오늘 몫은 위 목록이 이미 넣었으므로 같은 요일은 건너뛴다.
-        for (var i = 0; i < _weekSchedule.length; i++)
-          if (_weekSchedule[i].weekday != now.weekday)
-            TrainerScheduleEntriesCompanion.insert(
-              id: 'seed-schedule-w${_weekSchedule[i].weekday}-$i',
-              date: ymd(
-                DateTime(
-                  monday.year,
-                  monday.month,
-                  monday.day + _weekSchedule[i].weekday - 1,
-                ),
-              ),
-              time: _weekSchedule[i].time,
-              clientId: Value(seedClientIdByName[_weekSchedule[i].clientName]),
-              clientName: Value(_weekSchedule[i].clientName),
-              type: Value(_weekSchedule[i].type),
-              durationMinutes: Value(_weekSchedule[i].durationMinutes),
-              // 지난 요일은 끝난 수업, 남은 요일은 예정된 수업이다.
-              status: _weekSchedule[i].weekday < now.weekday
-                  ? ScheduleStatus.done
-                  : ScheduleStatus.upcoming,
-              note: Value(t(_weekSchedule[i].note)),
-              programJson: Value(
-                jsonEncode(t.program(_weekSchedule[i].program)),
-              ),
-              sortOrder: Value(_schedule.length + i),
+        for (final p in placed)
+          TrainerScheduleEntriesCompanion.insert(
+            id: 'seed-schedule-w${p.weekday}-${p.index}',
+            date: ymd(dayOfWeek(p.weekday)),
+            time: p.time,
+            clientId: Value(
+              seedClientIdByName[_weekSchedule[p.index].clientName],
             ),
+            clientName: Value(_weekSchedule[p.index].clientName),
+            type: Value(_weekSchedule[p.index].type),
+            durationMinutes: Value(_weekSchedule[p.index].durationMinutes),
+            // 지난 요일은 끝난 수업, 남은 요일은 예정된 수업이다.
+            status: p.weekday < now.weekday
+                ? ScheduleStatus.done
+                : ScheduleStatus.upcoming,
+            note: Value(t(_weekSchedule[p.index].note)),
+            programJson: Value(
+              jsonEncode(t.program(_weekSchedule[p.index].program)),
+            ),
+            sortOrder: Value(_schedule.length + p.index),
+          ),
+        for (int back = 1; back < demoReportHistoryWeeks; back++)
+          for (var k = 0; k < recurring.length; k++)
+            if (back <=
+                (demoMemberJoinedWeeksAgo[seedClientIdByName[recurring[k]
+                        .slot
+                        .clientName]] ??
+                    demoReportHistoryWeeks))
+              TrainerScheduleEntriesCompanion.insert(
+                id: 'seed-schedule-p$back-$k',
+                date: ymd(dayOfWeek(recurring[k].weekday, weeksAgo: back)),
+                time: recurring[k].time,
+                clientId: Value(
+                  seedClientIdByName[recurring[k].slot.clientName],
+                ),
+                clientName: Value(recurring[k].slot.clientName),
+                type: const Value(SessionType.personalTraining),
+                durationMinutes: Value(recurring[k].slot.durationMinutes),
+                status: ScheduleStatus.done,
+                programJson: const Value('[]'),
+                sortOrder: Value(recurring[k].order),
+              ),
       ]);
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v35', today);
+    await db.putValue('trainer_seeded_v36', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -1475,6 +1557,20 @@ class _Slot {
   final List<Map<String, Object?>> program; // {name,type,sets,weight,duration}
 }
 
+/// 지난 주로 되풀이할 수업 한 건 — 오늘 슬롯과 요일 슬롯의 공통 부분. (#2452)
+class _SeedSession {
+  const _SeedSession({required this.clientName, required this.durationMinutes});
+
+  _SeedSession.of(_Slot s)
+    : this(clientName: s.clientName, durationMinutes: s.durationMinutes);
+
+  _SeedSession.ofWeek(_WeekSlot s)
+    : this(clientName: s.clientName, durationMinutes: s.durationMinutes);
+
+  final String clientName;
+  final int durationMinutes;
+}
+
 /// 오늘이 아닌 요일에 놓이는 데모 세션. (#1210)
 ///
 /// 상태를 데이터에 적지 않는다 — 시연하는 요일이 매번 다르므로 `완료` 를 박아
@@ -1493,11 +1589,21 @@ class _WeekSlot {
     required this.durationMinutes,
     required this.note,
     this.program = const <Map<String, Object?>>[],
+    this.altWeekday,
+    this.altTime,
   });
 
   /// 1=월 … 7=일 (`DateTime.weekday` 와 같다).
   final int weekday;
   final String time;
+
+  /// [weekday] 가 오늘이라 오늘 목록([_schedule])에 자리를 내줄 때 이 회원의
+  /// 수업이 옮겨 가는 요일·시각 (#2452). 오늘 열은 원래 하루 그대로 두어야
+  /// 하지만, 수업을 그냥 버리면 그 회원의 이번 주 PT 가 0회가 된다. 옮겨 간
+  /// 자리는 그 요일의 다른 수업과 겹치지 않게 골라 두었다
+  /// (`schedule_week_seed_test` 가 일곱 요일 모두에서 확인한다).
+  final int? altWeekday;
+  final String? altTime;
 
   /// 시드 고객 이름. 명단에 없는 이름은 미등록 상담자로 남는다(고객 id 없음).
   final String clientName;
@@ -1524,6 +1630,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '09:00',
     clientName: '최우진',
     type: SessionType.personalTraining,
+    altWeekday: 2,
+    altTime: '12:00',
     durationMinutes: 30,
     note: '출근 전 수업. 상체 위주로 짧게 끊어 간다.',
     program: <Map<String, Object?>>[
@@ -1556,6 +1664,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '18:00',
     clientName: '임도현',
     type: SessionType.personalTraining,
+    altWeekday: 2,
+    altTime: '16:00',
     durationMinutes: 90,
     note: '데드리프트 자세 교정 중. 허리 통증 여부를 매 세트 확인한다.',
     program: <Map<String, Object?>>[
@@ -1581,6 +1691,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '09:30',
     clientName: '신유나',
     type: SessionType.personalTraining,
+    altWeekday: 3,
+    altTime: '12:00',
     durationMinutes: 45,
     note: '유산소 비중을 늘리는 주. 심박 130 안쪽으로 유지한다.',
   ),
@@ -1589,6 +1701,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '14:00',
     clientName: '오세라',
     type: SessionType.personalTraining,
+    altWeekday: 3,
+    altTime: '18:00',
     durationMinutes: 50,
     note: '어깨 가동 범위 회복 단계. 중량보다 자세를 본다.',
     program: <Map<String, Object?>>[
@@ -1613,6 +1727,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '20:00',
     clientName: '한지호',
     type: SessionType.personalTraining,
+    altWeekday: 1,
+    altTime: '20:00',
     durationMinutes: 90,
     note: '하체 중량 구간. 무릎 각도 확인하며 스쿼트 깊이를 잡는다.',
   ),
@@ -1622,6 +1738,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '10:00',
     clientName: '배준혁',
     type: SessionType.personalTraining,
+    altWeekday: 4,
+    altTime: '12:00',
     durationMinutes: 60,
     note: '체지방 감량 목표. 근력과 유산소를 반씩 섞는다.',
     program: <Map<String, Object?>>[
@@ -1648,6 +1766,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '20:00',
     clientName: '백서진',
     type: SessionType.personalTraining,
+    altWeekday: 4,
+    altTime: '20:00',
     durationMinutes: 30,
     note: '야간 수업. 다음 날 근육통을 고려해 볼륨을 낮게 잡는다.',
   ),
@@ -1657,6 +1777,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '09:00',
     clientName: '강서연',
     type: SessionType.personalTraining,
+    altWeekday: 3,
+    altTime: '12:00',
     durationMinutes: 90,
     note: '전신 순환. 세트 사이 휴식을 45초로 줄여 본다.',
     program: <Map<String, Object?>>[
@@ -1683,6 +1805,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '16:00',
     clientName: '류태경',
     type: SessionType.personalTraining,
+    altWeekday: 3,
+    altTime: '18:00',
     durationMinutes: 45,
     note: '재활 마무리 단계. 통증 없는 범위에서만 중량을 올린다.',
   ),
@@ -1692,6 +1816,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '10:00',
     clientName: '노은채',
     type: SessionType.personalTraining,
+    altWeekday: 4,
+    altTime: '12:00',
     durationMinutes: 50,
     note: '주 마지막 근력 수업. 상체 볼륨을 채운다.',
   ),
@@ -1708,6 +1834,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '16:00',
     clientName: '최우진',
     type: SessionType.personalTraining,
+    altWeekday: 4,
+    altTime: '18:00',
     durationMinutes: 30,
     note: '주 2회 중 두 번째 수업. 월요일에 못 채운 하체를 넣는다.',
     program: <Map<String, Object?>>[
@@ -1741,6 +1869,8 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '09:30',
     clientName: '정하윤',
     type: SessionType.personalTraining,
+    altWeekday: 5,
+    altTime: '12:00',
     durationMinutes: 45,
     note: '주말 수업. 평일보다 길게 가져가되 마무리 스트레칭을 넉넉히 둔다.',
     program: <Map<String, Object?>>[
@@ -1784,8 +1914,22 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     time: '10:00',
     clientName: '임도현',
     type: SessionType.personalTraining,
+    altWeekday: 6,
+    altTime: '12:00',
     durationMinutes: 50,
     note: '가벼운 마무리 수업. 다음 주 계획을 함께 정한다.',
+  ),
+  // 문가영은 수요일 상담만 있어 주간 PT 가 0회였다(#2452). 휴면 회원이라도
+  // 잡혀 있는 수업은 있다 — 리포트의 PT 횟수가 이 자리에서 나온다.
+  _WeekSlot(
+    weekday: 7,
+    time: '14:00',
+    clientName: '문가영',
+    type: SessionType.personalTraining,
+    durationMinutes: 60,
+    note: '오랜만의 수업. 가벼운 전신 운동으로 다시 리듬을 잡는다.',
+    altWeekday: 6,
+    altTime: '16:00',
   ),
 ];
 

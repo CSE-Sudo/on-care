@@ -18,6 +18,7 @@ export 'src/components/app_icon.dart';
 export 'src/components/app_icon_button.dart';
 export 'src/components/app_inputs.dart';
 export 'src/components/app_layout.dart';
+export 'src/components/app_meal_photo.dart';
 export 'src/components/app_media.dart';
 export 'src/components/app_menu.dart';
 export 'src/components/app_pickers.dart';

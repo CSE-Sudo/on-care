@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/network/interceptors/accept_language_interce
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
@@ -179,7 +180,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
   );
 
   @override
-  Future<String> fetchDietAdvice(
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
     required Locale locale,
@@ -195,7 +196,51 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         queryParameters: <String, Object?>{'period': wire},
         options: _adviceLanguage(locale),
       );
-      return (response.data?['message'] as String?) ?? '';
+      // 문장은 키·값(`sentences`)으로 온다(#2379) — 화면이 ARB 로 그린다.
+      return ClientDietAnalysis(<ClientDietSentence>[
+        for (final Object? s
+            in (response.data?['sentences'] as List<Object?>?) ?? const [])
+          if (s is Map<String, Object?>) ClientDietSentence.fromJson(s),
+      ]);
+    } on DioException catch (error) {
+      throw AppError.fromDio(error);
+    }
+  }
+
+  @override
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, Object?>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/diet-recommendations',
+        options: _adviceLanguage(locale),
+      );
+      return ClientDietRecommendations.fromJson(
+        response.data ?? const <String, Object?>{},
+      );
+    } on DioException catch (error) {
+      throw AppError.fromDio(error);
+    }
+  }
+
+  @override
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
+    required Locale locale,
+  }) async {
+    try {
+      final response = await _dio.put<Map<String, Object?>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/diet-recommendations',
+        data: <String, Object?>{'slot': slot, 'name': name},
+        options: _adviceLanguage(locale),
+      );
+      return ClientDietRecommendations.fromJson(
+        response.data ?? const <String, Object?>{},
+      );
     } on DioException catch (error) {
       throw AppError.fromDio(error);
     }

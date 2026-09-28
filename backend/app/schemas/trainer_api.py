@@ -591,6 +591,11 @@ class RoutineOut(BaseModel):
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
     schedule_id: str | None = None
+    #: 그 PT 일정의 날짜(#2225). 미전송 알림이 스케줄 탭의 **그 주**를 열어야
+    #: 해서 필요하다 — 날짜 없이 일정 id 만 보내면 이번 주에서 찾지 못한다.
+    #: 미전송 조회에서만 채운다. 일정의 날짜 칸과 같은 `YYYY-MM-DD` 문자열이다
+    #: (`ScheduleSessionOut.date` 와 같은 어휘).
+    schedule_date: str = ""
     #: PT 일정에 붙여만 두고 **아직 회원에게 보내지 않았는가**(#2224). 일정
     #: 상세가 보낸 것과 보낼 것을 같은 목록에서 가르는 데 쓴다. 회원 앱이 보는
     #: 배정은 모두 이미 보낸 것이라 언제나 거짓이다.
@@ -1229,6 +1234,26 @@ class ScheduleSessionOut(BaseModel):
     cancellation_source: CancellationSource = ""
     cancellation_reason: str = ""
     no_show_at: _datetime | None = None
+
+
+class DeliveryOut(BaseModel):
+    """트레이너가 회원에게 **한 번에 보낸 것** 한 묶음. (#2225)
+
+    전송 이력이 PT 프로그램과 개인운동을 따로 나열하던 동안에는, PT 완료 때 함께
+    보낸 개인운동이 어느 PT 와 짝인지 알 수 없었다(#2224). 한 번의 전송이 만든
+    줄은 멱등키의 `#` 앞부분(`{base}#0`·`{base}#routine0`)을 함께 쓰므로, 그
+    값으로 묶는다. 옛 배정처럼 키가 없으면 보낸 날과 종류로 묶는다.
+    """
+
+    #: 이 전송이 어떤 것인가 — 화면이 종류를 글자로 보여 준다.
+    kind: RoutineDeliveryKind
+    #: 회원 목록에 걸린 날(=보낸 날).
+    sent_on: _date | None = None
+    #: PT 와 함께 간 전송이면 그 일정(그 안에 PT 프로그램이 들어 있다).
+    #: `개인운동만` 은 비어 있다.
+    session: ScheduleSessionOut | None = None
+    #: 회원이 혼자 할 개인운동. `개인운동만` 전송은 이 목록이 전부다.
+    routines: list[RoutineOut] = Field(default_factory=list)
 
 
 class ScheduleProgramSendRequest(BaseModel):

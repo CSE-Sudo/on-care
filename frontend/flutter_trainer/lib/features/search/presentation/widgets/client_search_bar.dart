@@ -17,6 +17,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Width cap that keeps the full search scope readable without letting the
@@ -526,7 +527,7 @@ class _ResultRowState extends State<_ResultRow> {
                     ),
                     child: Row(
                       children: <Widget>[
-                        AppAvatar(
+                        ClientAvatar(
                           name: widget.client.avatar,
                           size: AppAvatarSize.large,
                         ),
