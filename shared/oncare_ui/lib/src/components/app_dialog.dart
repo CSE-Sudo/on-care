@@ -34,6 +34,7 @@ class AppDialog extends StatelessWidget {
     this.size = AppDialogSize.small,
     this.showClose,
     this.bodyPadding,
+    this.trailing,
   });
 
   final String? title;
@@ -51,6 +52,10 @@ class AppDialog extends StatelessWidget {
   /// 본문 안쪽. 미리보기처럼 가장자리까지 채울 때만 바꾼다.
   final EdgeInsetsGeometry? bodyPadding;
 
+  /// 제목 오른쪽에 두는 위젯 — 창 안 목록을 늘리는 `+ 추가` 같은 보조 동작
+  /// 자리다(#2465). 회원 앱 [AppSheet.trailing] 과 같은 자리·쓰임이다.
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -64,7 +69,7 @@ class AppDialog extends StatelessWidget {
         : OnCareLayout.mobileDialogMaxWidth;
     final bool showClose =
         this.showClose ?? !(tokens.density.isWeb && footer != null);
-    final bool hasHeader = title != null || showClose;
+    final bool hasHeader = title != null || showClose || trailing != null;
 
     return Dialog(
       clipBehavior: Clip.antiAlias,
@@ -98,6 +103,7 @@ class AppDialog extends StatelessWidget {
                                   .copyWith(color: OnCareColors.textPrimary),
                             ),
                     ),
+                    ?trailing,
                     if (showClose) const AppCloseButton(),
                   ],
                 ),

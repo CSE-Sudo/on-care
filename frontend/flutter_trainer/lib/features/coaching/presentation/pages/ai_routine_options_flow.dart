@@ -693,12 +693,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             icon: Icons.auto_awesome_rounded,
             busy: _generating,
             onTap: _next,
-            // 이번 주는 PT 가 없는 회원 — PT 프로그램 짜기를 통째로 건너뛰고
-            // 개인운동만 짜서 바로 보낸다(#2223). 후보 생성을 거치지 않으므로
-            // 기다릴 일도, 쓰지 않을 후보를 만들 일도 없다. 주 버튼 왼쪽 옆의
-            // 곁길이다 — 주 버튼이 오른쪽으로 간 뒤 가운데 홀로 두면 어느
-            // 버튼에 딸린 말인지 떨어져 읽힌다(#2465).
-            alternative: AppButton(
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 이번 주는 PT 가 없는 회원 — PT 프로그램 짜기를 통째로 건너뛰고
+          // 개인운동만 짜서 바로 보낸다(#2223). 후보 생성을 거치지 않으므로
+          // 기다릴 일도, 쓰지 않을 후보를 만들 일도 없다.
+          Align(
+            child: AppButton(
               key: const ValueKey<String>('skip-pt-program'),
               label: l.aiSkipPtProgram,
               onPressed: _generating ? null : _skipPtProgram,
@@ -1362,19 +1363,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         if (_showAddExercise)
           _addExerciseForm()
         else
-          // 목록을 늘리는 `+ 운동 추가` 는 목록 시작선에 작은 보조 버튼으로 둔다 —
-          // 창·카드의 확정 버튼이 아니라서 오른쪽 동작 줄에 서지 않고, 폭을 채우면
-          // 확정 버튼보다 먼저 눈에 든다(#2465).
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AppButton(
-              key: const ValueKey<String>('show-add-exercise-form'),
-              label: l.aiAddExerciseManually,
-              onPressed: () => setState(() => _showAddExercise = true),
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-              leadingIcon: Icons.add_rounded,
-            ),
+          AppButton(
+            key: const ValueKey<String>('show-add-exercise-form'),
+            label: l.aiAddExerciseManually,
+            onPressed: () => setState(() => _showAddExercise = true),
+            variant: AppButtonVariant.secondary,
+            leadingIcon: Icons.add_rounded,
+            fullWidth: true,
           ),
       ],
     );
@@ -1758,21 +1753,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         if (_showAddExercise)
           _addExerciseForm()
         else
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AppButton(
-              key: const ValueKey<String>('show-add-personal-exercise-form'),
-              label: l.aiAddExerciseManually,
-              // 운동 하나가 배정 한 건이 되므로 서버의 세션 상한을 넘길 수
-              // 없다. 넘기기 전에 여기서 막는다 — 다 적은 뒤 422 로 되돌려
-              //받는 것보다 낫다.
-              onPressed: _personal.length >= _maxPersonalRoutines
-                  ? null
-                  : () => setState(() => _showAddExercise = true),
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-              leadingIcon: Icons.add_rounded,
-            ),
+          AppButton(
+            key: const ValueKey<String>('show-add-personal-exercise-form'),
+            label: l.aiAddExerciseManually,
+            // 운동 하나가 배정 한 건이 되므로 서버의 세션 상한을 넘길 수
+            // 없다. 넘기기 전에 여기서 막는다 — 다 적은 뒤 422 로 되돌려
+            //받는 것보다 낫다.
+            onPressed: _personal.length >= _maxPersonalRoutines
+                ? null
+                : () => setState(() => _showAddExercise = true),
+            variant: AppButtonVariant.secondary,
+            leadingIcon: Icons.add_rounded,
+            fullWidth: true,
           ),
         if (_personal.length >= _maxPersonalRoutines) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
@@ -1977,9 +1969,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               }),
             ),
           const SizedBox(height: OnCareSpacing.s12),
-          // 프로그램 편집기의 운동 추가 폼과 같은 모양이다(#2465).
           AppButtonPair(
-            size: OnCareButtonSize.small,
             cancelKey: const ValueKey<String>('hide-add-exercise-form'),
             cancelLabel: l.actionCancel,
             onCancel: () => setState(() => _showAddExercise = false),
@@ -2139,16 +2129,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 개인운동이 **함께** 편집기로 간다. 전송은 그 뒤 편집기의 `일정 추가` 다.
   Widget _reviewActions() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppActionRow(
-      actions: <Widget>[
-        AppButton(
-          key: const ValueKey<String>('apply-routine-to-template'),
-          label: l.aiGoToPersonalStep,
-          onPressed: _next,
-          size: OnCareButtonSize.large,
-          leadingIcon: Icons.directions_run_rounded,
-        ),
-      ],
+    return AppButton(
+      key: const ValueKey<String>('apply-routine-to-template'),
+      label: l.aiGoToPersonalStep,
+      onPressed: _next,
+      size: OnCareButtonSize.large,
+      leadingIcon: Icons.directions_run_rounded,
+      fullWidth: true,
     );
   }
 
@@ -2199,29 +2186,22 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// 단계를 넘기는 주 버튼 — 오른쪽 끝, 내용 폭(#2465). [alternative] 는 그
-  /// 왼쪽 옆에 두는 곁길 버튼이다.
   Widget _primaryButton({
     required Key key,
     required String label,
     required IconData icon,
     required VoidCallback? onTap,
     bool busy = false,
-    Widget? alternative,
   }) {
-    return AppActionRow(
-      actions: <Widget>[
-        ?alternative,
-        AppButton(
-          key: key,
-          label: label,
-          onPressed: onTap,
-          size: OnCareButtonSize.large,
-          leadingIcon: icon,
-          // 처리 중이면 스피너를 두고 탭을 막는다([_generate] 도 중복 호출을 막는다).
-          loading: busy,
-        ),
-      ],
+    return AppButton(
+      key: key,
+      label: label,
+      onPressed: onTap,
+      size: OnCareButtonSize.large,
+      leadingIcon: icon,
+      // 처리 중이면 스피너를 두고 탭을 막는다([_generate] 도 중복 호출을 막는다).
+      loading: busy,
+      fullWidth: true,
     );
   }
 }

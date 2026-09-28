@@ -128,6 +128,17 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       size: AppDialogSize.medium,
       // 하단 [취소, 저장] 으로만 닫는다 — 예전 창에도 닫기 X 는 없었다.
       showClose: false,
+      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
+      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
+      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
+      trailing: AppButton(
+        label: l.coachTemplateAddExercise,
+        onPressed: () =>
+            setState(() => _exercises.add(_ExerciseDraft.empty())),
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        leadingIcon: Icons.add_rounded,
+      ),
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : () => Navigator.of(context).pop(),
@@ -163,20 +174,6 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
                       _exercises.removeAt(index).dispose();
                     }),
             ),
-          // 목록을 늘리는 `+ 운동 추가` 는 목록 시작선에 작은 보조 버튼으로 둔다 —
-          // 창·카드의 확정 버튼이 아니라서 오른쪽 동작 줄에 서지 않고, 폭을 채우면
-          // 확정 버튼보다 먼저 눈에 든다(#2465).
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AppButton(
-              label: l.coachTemplateAddExercise,
-              onPressed: () =>
-                  setState(() => _exercises.add(_ExerciseDraft.empty())),
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-              leadingIcon: Icons.add_rounded,
-            ),
-          ),
         ],
       ),
     );

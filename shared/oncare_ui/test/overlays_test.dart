@@ -84,6 +84,31 @@ void main() {
     expect(find.byType(AppCloseButton), findsOneWidget);
   });
 
+  testWidgets('창 제목 오른쪽에 trailing 을 둔다 (#2465)', (tester) async {
+    final BuildContext context = await _pump(tester);
+    showAppDialog<void>(
+      context: context,
+      builder: (_) => AppDialog(
+        title: '제목',
+        trailing: AppButton(
+          key: const Key('dialog-trailing'),
+          label: '추가',
+          onPressed: () {},
+          variant: AppButtonVariant.text,
+        ),
+        child: const Text('본문'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final Rect title = tester.getRect(find.text('제목'));
+    final Rect trailing = tester.getRect(
+      find.byKey(const Key('dialog-trailing')),
+    );
+    // 제목은 남는 폭을 다 쓰므로 버튼은 그 바로 오른쪽에 붙는다.
+    expect(trailing.left, greaterThanOrEqualTo(title.right));
+    expect(trailing.center.dy, closeTo(title.center.dy, 8));
+  });
+
   testWidgets('확인창은 확정하면 true, 위험 확정은 빨간 채움이다', (tester) async {
     final BuildContext context = await _pump(tester);
     final Future<bool> result = showAppConfirmDialog(
