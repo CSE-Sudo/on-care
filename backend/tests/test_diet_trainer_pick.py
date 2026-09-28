@@ -330,3 +330,37 @@ def test_revoked_consent_hides_the_pick_from_home(client, db_session, pair, llm)
     link.data_consent_at = None
     db_session.commit()
     assert _member_pick(client, pair) is None
+
+
+# ── 회원 쪽 해제 ──────────────────────────────────────────────────────────
+
+
+def _relink(db_session, pair: Pair) -> None:
+    """같은 트레이너와 다시 연결됐다 — 새 동의로 링크가 살아난다."""
+    db_session.expire_all()
+    link = db_session.get(TrainerClient, pair.link_id)
+    link.active = True
+    link.data_consent_at = clock.now()
+    db_session.commit()
+
+
+@pytest.mark.parametrize("path", ["/v1/me/coach/trainer", "/v1/me/coach"])
+def test_member_releasing_the_trainer_drops_the_pick(client, db_session, pair, llm, path):
+    """회원이 트레이너만(`/me/coach/trainer`) 또는 헬스장째(`/me/coach`) 끊어도 추천을
+    지운다 — 트레이너가 해제할 때(`remove_client`)와 같다. 남겨 두면 같은 트레이너와
+    다시 연결될 때 끊기 전의 추천이 회원 홈에 되살아난다."""
+    _salty_low_protein_week(db_session, pair.member_id)
+    first = client.get(pair.base, headers=_h(pair.trainer_id)).json()["candidates"][0]
+    _confirm(client, pair, first)
+    assert _member_pick(client, pair) is not None
+
+    r = client.delete(path, headers=_h(pair.member_id))
+    assert r.status_code == 204, r.text
+    db_session.expire_all()
+    assert db_session.scalar(
+        select(DietTrainerPick).where(DietTrainerPick.member_id == pair.member_id)
+    ) is None
+
+    _relink(db_session, pair)
+    assert _member_pick(client, pair) is None
+    assert client.get(pair.base, headers=_h(pair.trainer_id)).json()["pick"] is None

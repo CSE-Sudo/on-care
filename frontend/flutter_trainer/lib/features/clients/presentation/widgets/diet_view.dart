@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_analysis_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_meal_photo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
@@ -767,14 +768,16 @@ String _grams(double value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(1);
 
-/// "✦ AI 분석" — 서버가 기간에 맞춰 만든 문장을 그대로 보여 준다. (#1017)
+/// `식단 분석` — 서버 규칙이 기간에 맞춰 만든 서술형 문장. (#1017, #2379)
 ///
-/// 예전에는 이 카드가 나트륨 목표만 보고 문구를 골랐다. 회원 앱은 서버 문장을
-/// 쓰는데 여기만 따로 계산하면, 같은 회원의 같은 날을 두 화면이 다르게 말한다.
+/// 예전 이름은 `✦ AI 분석` 이었는데 문장은 AI 가 아니라 서버 규칙이 만든다. 회원
+/// 앱과 같은 기간·같은 판정에 원인 음식·끼니를 붙여 트레이너가 읽기 좋게 말한다.
 ///
-/// 서버 문장이 아직 오지 않았거나 실패하면 카드를 세우지 않는다 — 운동 탭과
-/// 같다. 예전에는 그 사이 화면이 나트륨 목표만 보고 대체 문구를 지어냈는데,
-/// 배지가 PT 관리 신호로 바뀐 뒤(#2242)에는 폐기된 기준으로 말하는 셈이었다(#2271).
+/// `오늘` 은 같은 파란 카드 안에서 그 이유로 AI 가 고른 메뉴를 회원에게 추천할지
+/// 묻는다([ClientDietRecommendationSection]). 이번 주·전체는 분석만 있다.
+///
+/// 서버 문장이 아직 오지 않았거나 실패하면 카드를 세우지 않는다 — 그 사이 화면이
+/// 대체 문구를 지어내면 서버와 다른 기준으로 말하게 된다(#2271).
 class _AiComment extends ConsumerWidget {
   const _AiComment({required this.client, required this.period});
 
@@ -783,21 +786,39 @@ class _AiComment extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String message =
+    final ClientDietAnalysis analysis =
         ref
             .watch(
               clientDietAdviceProvider((clientId: client.id, period: period)),
             )
             .valueOrNull ??
-        '';
-    // 카드 모양과 기간별 제목은 운동과 공유한다 — 같은 성격의 말이 두 화면에서
-    // 다른 모양으로 읽히지 않도록(#1025).
-    return ClientAiAnalysisCard(
-      cardKey: const ValueKey<String>('diet-ai-analysis'),
-      period: period,
-      message: message,
+        ClientDietAnalysis.empty;
+    if (period != ClientPeriod.today) {
+      return ClientDietAnalysisCard(analysis: analysis);
+    }
+    final List<ClientDietEntry> meals =
+        ref.watch(clientDietProvider(client.id)).valueOrNull ??
+        const <ClientDietEntry>[];
+    return ClientDietAnalysisCard(
+      analysis: analysis,
+      recommendation: ClientDietRecommendationSection(
+        clientId: client.id,
+        nextSlot: _nextSlot(meals),
+      ),
     );
   }
+}
+
+/// 오늘 아직 기록하지 않은 첫 끼니(아침·점심·저녁). 다 기록했으면 null.
+String? _nextSlot(List<ClientDietEntry> meals) {
+  final Set<int> logged = <int>{
+    for (final ClientDietEntry m in meals) _mealRank(m.meal),
+  };
+  const List<String> slots = <String>['breakfast', 'lunch', 'dinner'];
+  for (int i = 0; i < slots.length; i++) {
+    if (!logged.contains(i)) return slots[i];
+  }
+  return null;
 }
 
 /// `그릭 요거트 150g, 견과류 30g` — 음식 이름 옆에 내용량(보조색). 음식별

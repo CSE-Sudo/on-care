@@ -245,6 +245,18 @@ class DietAdviceResponse(BaseModel):
     action_params: dict[str, int | str] = Field(default_factory=dict)
     #: 다음 할 일의 출처 — `plan`(4주 추천 메뉴 리스트)·`rules`·`llm`. 문장이 없으면 null.
     action_source: str | None = None
+    #: 트레이너 웹 `식단 분석` 의 서술형 문장들(#2379). 앱이 키·값으로 자기 언어의
+    #: 문장을 그린다. 회원 경로는 비어 있다.
+    sentences: list[DietAdviceSentence] = Field(default_factory=list)
+
+
+class DietAdviceSentence(BaseModel):
+    """트레이너 웹 `식단 분석` 한 문장 — 로케일과 무관한 키와 값. (#2379)"""
+    key: str
+    params: dict[str, int | str] = Field(default_factory=dict)
+
+
+DietAdviceResponse.model_rebuild()
 
 
 class DietDayTotalsOut(BaseModel):
