@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -238,7 +239,7 @@ class ReportWorkbench extends StatelessWidget {
             label: '${l.reportsSortLabel}: ${_sortLabel(l, sort)}',
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
-            trailingIcon: Icons.arrow_drop_down_rounded,
+            trailingIcon: AppIcons.expandMore,
             onPressed: toggle,
           ),
         ),
@@ -248,7 +249,7 @@ class ReportWorkbench extends StatelessWidget {
         ? AppEmptyState(
             key: const ValueKey<String>('reports-queue-empty'),
             title: l.reportsQueueAllSent,
-            icon: Icons.check_circle_rounded,
+            icon: AppIcons.checkCircle,
             placement: AppStatePlacement.card,
           )
         : null;
@@ -743,7 +744,7 @@ class _QueueRow extends StatelessWidget {
           ),
           child: AppTag(
             label: signal.detailLabel(l),
-            icon: Icons.error_outline_rounded,
+            icon: AppIcons.error,
             tone: signal.kind.tone,
           ),
         ),

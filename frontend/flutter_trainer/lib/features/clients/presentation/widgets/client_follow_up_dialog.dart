@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -207,7 +208,7 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
                 key: const ValueKey<String>('client-follow-up-due'),
                 onPressed: _busy ? null : _pickDate,
                 variant: AppButtonVariant.secondary,
-                leadingIcon: Icons.event_rounded,
+                leadingIcon: AppIcons.calendar,
                 label: '${l.followUpDue} ${ymd(_dueDate)}',
               ),
             ],
@@ -218,7 +219,7 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
             child: AppButton(
               key: const ValueKey<String>('client-follow-up-add'),
               onPressed: _busy ? null : _add,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               label: l.followUpAdd,
             ),
           ),

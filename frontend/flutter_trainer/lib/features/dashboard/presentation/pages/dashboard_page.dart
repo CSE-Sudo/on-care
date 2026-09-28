@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
@@ -160,7 +161,7 @@ class _TaskProgressCard extends ConsumerWidget {
               Expanded(
                 child: AppSectionHeader(
                   title: l.dashTaskProgressTitle,
-                  icon: Icons.stacked_bar_chart_rounded,
+                  icon: AppIcons.progress,
                 ),
               ),
               Expanded(
@@ -187,7 +188,7 @@ class _TaskProgressCard extends ConsumerWidget {
               const SizedBox(width: OnCareSpacing.s12),
               AppIconButton(
                 key: const ValueKey<String>('task-progress-prev-week'),
-                icon: Icons.chevron_left_rounded,
+                icon: AppIcons.chevronLeft,
                 tooltip: l.a11yPrevWeek,
                 // 배경 상자 없이 화살표만 — 제목 줄에서 화살표만 무거워
                 // 보였다(#2202). 넘어갈 수 없는 쪽은 비활성 회색이 된다.
@@ -201,7 +202,7 @@ class _TaskProgressCard extends ConsumerWidget {
               const SizedBox(width: OnCareSpacing.s4),
               AppIconButton(
                 key: const ValueKey<String>('task-progress-next-week'),
-                icon: Icons.chevron_right_rounded,
+                icon: AppIcons.chevronRight,
                 tooltip: l.a11yNextWeek,
                 color: brand.primary,
                 onPressed: offset >= 0
@@ -257,7 +258,7 @@ class _KpiRow extends StatelessWidget {
         label: l.dashMyClients,
         value: '${summary.activeClients}',
         unit: l.dashUnitPeople,
-        icon: Icons.groups_rounded,
+        icon: AppIcons.clients,
         caption: summary.totalClients > summary.activeClients
             ? l.dashDormantClients(summary.totalClients - summary.activeClients)
             : l.dashAllActive,
@@ -267,7 +268,7 @@ class _KpiRow extends StatelessWidget {
         label: l.dashMessages,
         value: '${summary.unreadTotal}',
         unit: l.dashUnitCount,
-        icon: Icons.mark_chat_unread_rounded,
+        icon: AppIcons.unreadMessages,
         caption: summary.unreadTotal > 0
             ? l.dashWaitingClients(summary.unreadClients)
             : l.dashAllReplied,
@@ -277,7 +278,7 @@ class _KpiRow extends StatelessWidget {
         label: l.dashAttentionClients,
         value: '${summary.healthAttentionCount}',
         unit: l.dashUnitPeople,
-        icon: Icons.report_gmailerrorred_rounded,
+        icon: AppIcons.attention,
         // 0명이면 초록(정상), 1명 이상이면 빨강 — 숫자와 아이콘을 칠한다.
         toneColor: summary.healthAttentionCount == 0
             ? OnCareColors.success
@@ -291,7 +292,7 @@ class _KpiRow extends StatelessWidget {
         label: l.dashChurnRisk,
         value: '${churnRisk.length}',
         unit: l.dashUnitPeople,
-        icon: Icons.person_off_rounded,
+        icon: AppIcons.personOff,
         // 주의 회원과 같은 규칙·같은 빨강 — 톤이 다르면 서로 다른 심각도로 읽힌다.
         toneColor: churnRisk.isEmpty
             ? OnCareColors.success

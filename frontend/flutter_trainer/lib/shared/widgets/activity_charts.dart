@@ -31,6 +31,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
@@ -73,13 +74,13 @@ String kindValueText(AppLocalizations l, ExerciseKind kind, num value) =>
 /// 고정해 두어야 링끼리 견줄 수 있다 — 어디까지 왔는지는 원호 끝의 그림자가
 /// 짚는다.
 IconData ringStartIcon(ExerciseKind kind) => switch (kind) {
-  ExerciseKind.cardio => Icons.directions_run_rounded,
-  ExerciseKind.strength => Icons.fitness_center_rounded,
-  ExerciseKind.stretching => Icons.self_improvement_rounded,
+  ExerciseKind.cardio => AppIcons.running,
+  ExerciseKind.strength => AppIcons.strength,
+  ExerciseKind.stretching => AppIcons.flexibility,
 };
 
 /// 소모 칼로리 도넛의 12시 기호.
-const IconData kBurnStartIcon = Icons.local_fire_department_rounded;
+const IconData kBurnStartIcon = AppIcons.calories;
 
 /// 세 기간 카드의 **공통 높이**. 토글을 눌러도 카드가 커졌다 작아졌다 하지
 /// 않도록 셋을 같은 높이로 둔다. 회원 앱과 같은 값이다.
@@ -333,8 +334,8 @@ class ActivityStreakLine extends StatelessWidget {
           children: <Widget>[
             // 불꽃은 소모 칼로리 도넛이 쓴다 — 연속은 '기세' 쪽 기호로 갈라
             // 둔다. 한 화면에서 같은 그림이 두 가지를 뜻하면 안 된다.
-            const Icon(
-              Icons.bolt_rounded,
+            const AppIcon(
+              AppIcons.streak,
               size: OnCareSize.iconSmall,
               color: OnCareColors.cautionFill,
             ),
@@ -1319,6 +1320,10 @@ void _paintCapChevron(
 }
 
 /// 링 12시에 흰 기호를 얹는다. 링 두께 안에 들어가도록 두께에 맞춰 줄인다.
+///
+/// 캔버스에 직접 찍는 글자라 테마를 타지 않는다 — 아이콘 묶음의 채움·굵기를
+/// [AppIcon.glyphPainter] 로 실어 준다. 싣지 않으면 같은 아이콘이 화면 다른
+/// 곳에서는 채워지고 링 위에서만 빈 외곽선으로 나온다(회원 앱 #1866, #2466).
 void _paintStartIcon(
   Canvas canvas,
   Offset center,
@@ -1328,18 +1333,12 @@ void _paintStartIcon(
 ) {
   final double glyph = stroke * 0.78;
   if (glyph < 6) return;
-  final TextPainter tp = TextPainter(
-    text: TextSpan(
-      text: String.fromCharCode(icon.codePoint),
-      style: TextStyle(
-        fontSize: glyph,
-        fontFamily: icon.fontFamily,
-        package: icon.fontPackage,
-        color: OnCareColors.textOnFill,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
+  final TextPainter tp = AppIcon.glyphPainter(
+    AppIcons.oncare,
+    icon,
+    size: glyph,
+    color: OnCareColors.textOnFill,
+  );
   final Offset at = center + const Offset(0, -1) * radius;
   tp.paint(canvas, Offset(at.dx - tp.width / 2, at.dy - tp.height / 2));
 }

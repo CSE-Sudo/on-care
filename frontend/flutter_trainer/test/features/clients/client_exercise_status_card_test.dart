@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -72,7 +73,7 @@ class _HostState extends State<_Host> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: ClientPeriodSection(
-          icon: Icons.monitor_heart_outlined,
+          icon: AppIcons.exercise,
           title: '운동 현황',
           period: _period,
           onChanged: (ClientPeriod p) => setState(() => _period = p),
@@ -454,7 +455,7 @@ void main() {
       expect(find.textContaining('100%'), findsNothing);
       expect(find.textContaining('1/1'), findsNothing);
       expect(toggle, findsOneWidget);
-      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.expandMore), findsOneWidget);
       // 접힌 상태에서는 접을 것이 없다 — 버튼도 없다.
       expect(collapse, findsNothing);
     });
@@ -472,7 +473,7 @@ void main() {
       // 두 건뿐이라 더 펼칠 것이 없다 — `더보기` 는 사라지고 `접기` 만 남는다.
       expect(toggle, findsNothing);
       expect(collapse, findsOneWidget);
-      expect(find.byIcon(Icons.expand_less_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.expandLess), findsOneWidget);
 
       await tester.tap(collapse);
       await tester.pumpAndSettle();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
@@ -17,7 +18,7 @@ const double clientPickerColumnWidth =
     (OnCareSpacing.s48 + OnCareSpacing.s48 + OnCareSpacing.s32);
 
 /// 회원 목록 카드 제목 옆 아이콘 — 두 탭이 같은 아이콘을 쓴다.
-const IconData clientPickerHeaderIcon = Icons.people_rounded;
+const IconData clientPickerHeaderIcon = AppIcons.clients;
 
 /// 회원 목록에 한 번에 보이는 행 수. 넘치면 목록 안에서 스크롤한다.
 const int clientPickerVisibleRows = 5;

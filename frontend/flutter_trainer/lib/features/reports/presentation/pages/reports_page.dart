@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -570,7 +571,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       children: <Widget>[
         AppSectionHeader(
           title: l.reportsWeekly,
-          icon: Icons.description_rounded,
+          icon: AppIcons.document,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         child,
@@ -697,7 +698,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           if (clients.isEmpty) {
             return AppEmptyState(
               title: l.reportsNoClients,
-              icon: Icons.insights_rounded,
+              icon: AppIcons.reports,
             );
           }
           // 이번 주 큐를 세우려면 회원별 리포트가 필요하다. 한 명이 실패해도
@@ -853,7 +854,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   final Widget skip = AppButton(
                     key: const ValueKey<String>('report-skip-to-write'),
                     label: l.reportsSkipToWrite,
-                    leadingIcon: Icons.edit_note_rounded,
+                    leadingIcon: AppIcons.write,
                     variant: AppButtonVariant.text,
                     size: OnCareButtonSize.small,
                     onPressed: () {
@@ -890,7 +891,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         key: const ValueKey<String>('reports-back-to-list'),
                         label: l.reportsBackToWorkbench,
                         variant: AppButtonVariant.text,
-                        leadingIcon: Icons.chevron_left_rounded,
+                        leadingIcon: AppIcons.back,
                         onPressed: () => context.go(_locationFor(null)),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
@@ -1108,7 +1109,7 @@ class _StepFooter extends StatelessWidget {
             key: const ValueKey<String>('report-step-prev'),
             label: l.reportsStepPrev,
             variant: AppButtonVariant.text,
-            leadingIcon: Icons.chevron_left_rounded,
+            leadingIcon: AppIcons.chevronLeft,
             onPressed: onPrev,
           ),
         const Spacer(),
@@ -1129,7 +1130,7 @@ class _StepFooter extends StatelessWidget {
           AppButton(
             key: const ValueKey<String>('report-step-next'),
             label: l.reportsStepNext,
-            trailingIcon: Icons.chevron_right_rounded,
+            trailingIcon: AppIcons.chevronRight,
             onPressed: onNext,
           ),
       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -75,8 +76,8 @@ class _ChurnRiskTile extends StatelessWidget {
               ? healthFocusGoalLabel(l, client.goal)
               : null,
           leading: ClientAvatar(name: client.name),
-          trailing: const Icon(
-            Icons.chevron_right_rounded,
+          trailing: const AppIcon(
+            AppIcons.chevronRight,
             size: OnCareSize.iconMedium,
             color: OnCareColors.textDisabled,
           ),
@@ -105,7 +106,7 @@ class _ChurnRiskTile extends StatelessWidget {
                   ),
                   child: AppTag(
                     label: signal.detailLabel(l),
-                    icon: Icons.error_outline_rounded,
+                    icon: AppIcons.error,
                     tone: signal.kind.tone,
                   ),
                 ),

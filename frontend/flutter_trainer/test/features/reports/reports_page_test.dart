@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -229,11 +230,11 @@ void main() {
   /// 공용 `AppPeriodNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
   final Finder prevWeek = find.descendant(
     of: find.byType(ReportWeekNav),
-    matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+    matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
   );
   final Finder nextWeek = find.descendant(
     of: find.byType(ReportWeekNav),
-    matching: find.widgetWithIcon(IconButton, Icons.chevron_right_rounded),
+    matching: find.widgetWithIcon(IconButton, AppIcons.chevronRight),
   );
 
   /// 리포트 탭을 연다.

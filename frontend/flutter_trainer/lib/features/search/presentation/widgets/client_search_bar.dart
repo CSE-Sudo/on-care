@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -275,7 +276,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
               key: clientSearchIconKey,
               onPressed: _openDialog,
               tooltip: l.searchClients,
-              icon: Icons.search_rounded,
+              icon: AppIcons.search,
               color: OnCareColors.textSecondary,
             ),
           );
@@ -333,7 +334,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
           controller: _controller,
           focusNode: _focus,
           hint: hint,
-          prefixIcon: Icons.search_rounded,
+          prefixIcon: AppIcons.search,
           textInputAction: TextInputAction.search,
           suffix: _hasQuery
               ? AppIconButton(
@@ -345,7 +346,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
                     _onQueryChanged('');
                   },
                   tooltip: l.searchClear,
-                  icon: Icons.close_rounded,
+                  icon: AppIcons.close,
                   color: OnCareColors.textTertiary,
                 )
               : null,
@@ -596,8 +597,8 @@ class _ResultRowState extends State<_ResultRow> {
                 onPressed: () =>
                     setState(() => _showDestinations = !_showDestinations),
                 icon: _showDestinations
-                    ? Icons.expand_less_rounded
-                    : Icons.more_horiz_rounded,
+                    ? AppIcons.expandLess
+                    : AppIcons.more,
                 color: OnCareColors.textSecondary,
               ),
               const SizedBox(width: OnCareSpacing.s4),
@@ -640,27 +641,27 @@ class _ResultRowState extends State<_ResultRow> {
     final (label, icon, keyName) = switch (destination) {
       _SearchDestination.clients => (
         l.navClients,
-        Icons.people_outline_rounded,
+        AppIcons.clients,
         'clients',
       ),
       _SearchDestination.schedule => (
         l.navSchedule,
-        Icons.calendar_today_rounded,
+        AppIcons.calendar,
         'schedule',
       ),
       _SearchDestination.messages => (
         l.navMessages,
-        Icons.chat_bubble_outline_rounded,
+        AppIcons.chat,
         'messages',
       ),
       _SearchDestination.coaching => (
         l.navCoaching,
-        Icons.auto_awesome_rounded,
+        AppIcons.coaching,
         'coaching',
       ),
       _SearchDestination.reports => (
         l.navReports,
-        Icons.assessment_rounded,
+        AppIcons.reports,
         'reports',
       ),
     };
@@ -698,8 +699,8 @@ class _Footer extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
-            Icons.subdirectory_arrow_left_rounded,
+          const AppIcon(
+            AppIcons.enter,
             size: OnCareSize.iconSmall,
             color: OnCareColors.textTertiary,
           ),
@@ -794,7 +795,7 @@ class _ClientSearchDialogState extends ConsumerState<_ClientSearchDialog> {
               controller: _controller,
               autofocus: true,
               hint: l.searchClientsHint,
-              prefixIcon: Icons.search_rounded,
+              prefixIcon: AppIcons.search,
               textInputAction: TextInputAction.search,
               onChanged: _onQueryChanged,
               onSubmitted: (_) => _submit(facts),

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 번호가 붙은 단계 표시 — `① → ② → ③`.
@@ -151,8 +152,8 @@ class ProgressStepper extends StatelessWidget {
             // 건너뛴 칸은 번호 대신 가로줄을 둔다 — 밟지 않았을 뿐 자리는
             // 그대로라는 표시다(#2223).
             child: isSkipped
-                ? const Icon(
-                    Icons.remove_rounded,
+                ? const AppIcon(
+                    AppIcons.remove,
                     size: OnCareSize.iconSmall,
                     color: OnCareColors.textTertiary,
                   )

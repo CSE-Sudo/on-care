@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
@@ -380,7 +381,7 @@ void main() {
         find
             .descendant(
               of: toggle(title),
-              matching: find.byIcon(Icons.chevron_right_rounded),
+              matching: find.byIcon(AppIcons.chevronRight),
             )
             .hitTestable(),
         findsNothing,
@@ -390,7 +391,7 @@ void main() {
     // 빈 칸은 눌러도 펼쳐지지 않는다.
     await tester.tap(toggle('운동'));
     await settle(tester);
-    expect(find.byIcon(Icons.expand_less_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.expandLess), findsNothing);
 
     // 상담 두 건을 모두 체크하면 그 칸은 "없음"이 아니라 "완료"다.
     expect(labelIn('상담', '+2'), findsOneWidget);

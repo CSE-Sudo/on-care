@@ -63,7 +63,7 @@ class ClientPeriodSection extends StatelessWidget {
                     // 아이콘·간격·글자는 `AppSectionHeader` 와 같은 규격이다.
                     // 그 위젯은 제목을 `Expanded` 로 늘려 토글 자리를 밀어내므로
                     // 같은 값으로 이 자리에서 조립한다.
-                    Icon(
+                    AppIcon(
                       icon,
                       size: OnCareSize.iconMedium,
                       color: tokens.brand.primary,

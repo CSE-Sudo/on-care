@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -96,7 +97,7 @@ class ConsultationsPage extends ConsumerWidget {
                     : l.consultBackToSchedule,
                 variant: AppButtonVariant.text,
                 size: OnCareButtonSize.small,
-                leadingIcon: Icons.chevron_left_rounded,
+                leadingIcon: AppIcons.back,
                 onPressed: () => context.go(
                   fromDashboard ? AppRoutes.dashboard : AppRoutes.schedule,
                 ),
@@ -196,7 +197,7 @@ class _Inbox extends ConsumerWidget {
                           key: const ValueKey<String>('consultation-load-more'),
                           label: l.consultLoadMore,
                           variant: AppButtonVariant.secondary,
-                          leadingIcon: Icons.history_rounded,
+                          leadingIcon: AppIcons.history,
                           onPressed: inbox.loadingMore
                               ? null
                               : () => ref

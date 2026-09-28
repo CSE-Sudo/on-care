@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
@@ -347,8 +348,8 @@ class SessionCard extends ConsumerWidget {
                   ? l.schedSendProgramWithRoutines(programDateLabel)
                   : l.schedSentProgramTo(programDateLabel),
               leadingIcon: s.programSent
-                  ? Icons.check_circle_outline_rounded
-                  : Icons.send_rounded,
+                  ? AppIcons.checkCircle
+                  : AppIcons.send,
               variant: AppButtonVariant.secondary,
               fullWidth: true,
               // 무엇을 보내는지가 이 버튼의 전부다 — 좁은 카드에서 말줄임으로

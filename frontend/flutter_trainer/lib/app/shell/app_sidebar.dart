@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
@@ -221,8 +222,8 @@ class _Brand extends StatelessWidget {
           fit: BoxFit.cover,
           // The logo is a bundled asset; if it ever fails to decode, fall
           // back to a glyph rather than blowing a red box into the shell.
-          errorBuilder: (context, error, stack) => Icon(
-            Icons.favorite_rounded,
+          errorBuilder: (context, error, stack) => AppIcon(
+            AppIcons.favorite,
             size: OnCareSize.iconLarge,
             color: tokens.brand.primary,
           ),
@@ -316,7 +317,7 @@ class _NavTile extends StatelessWidget {
         inMutuallyExclusiveGroup: true,
         child: AppSidebarItem(
           key: ValueKey<String>('sidebar-${destination.route}'),
-          icon: selected ? destination.activeIcon : destination.icon,
+          icon: destination.icon,
           label: label,
           selected: selected,
           collapsed: !expanded,
@@ -399,8 +400,8 @@ class _ProfileFooter extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.settings_rounded,
+                      const AppIcon(
+                        AppIcons.settings,
                         size: OnCareSize.iconSmall,
                         color: OnCareColors.textTertiary,
                       ),

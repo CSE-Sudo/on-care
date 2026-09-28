@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -39,8 +40,8 @@ void main() {
     await openSchedule(tester);
 
     for (final icon in <IconData>[
-      Icons.chevron_left_rounded,
-      Icons.chevron_right_rounded,
+      AppIcons.chevronLeft,
+      AppIcons.chevronRight,
     ]) {
       expect(
         tester.widget<AppIconButton>(arrow(icon)).variant,
@@ -51,8 +52,8 @@ void main() {
 
     // 두 버튼의 크기가 같다 — 한쪽만 커 보이면 두 방향의 무게가 달라 보인다.
     expect(
-      tester.getSize(arrow(Icons.chevron_left_rounded)),
-      tester.getSize(arrow(Icons.chevron_right_rounded)),
+      tester.getSize(arrow(AppIcons.chevronLeft)),
+      tester.getSize(arrow(AppIcons.chevronRight)),
     );
   });
 
@@ -60,11 +61,11 @@ void main() {
     await openSchedule(tester);
     expect(find.text('김민수'), findsWidgets); // 오늘이 보이는 주
 
-    await tester.tap(arrow(Icons.chevron_right_rounded));
+    await tester.tap(arrow(AppIcons.chevronRight));
     await settle(tester);
     expect(find.text('김민수'), findsNothing, reason: '다음 주에는 시드가 없다');
 
-    await tester.tap(arrow(Icons.chevron_left_rounded));
+    await tester.tap(arrow(AppIcons.chevronLeft));
     await settle(tester);
     expect(find.text('김민수'), findsWidgets);
   });
@@ -73,8 +74,8 @@ void main() {
     await openSchedule(tester);
     // 오늘을 보고 있으면 `오늘` 은 뜨지 않는다.
     expect(find.text('오늘'), findsNothing);
-    final Rect left = tester.getRect(arrow(Icons.chevron_left_rounded));
-    final Rect right = tester.getRect(arrow(Icons.chevron_right_rounded));
+    final Rect left = tester.getRect(arrow(AppIcons.chevronLeft));
+    final Rect right = tester.getRect(arrow(AppIcons.chevronRight));
     final Finder dateLabel = find.descendant(
       of: find.byType(ScheduleDateNavBar),
       matching: find.textContaining('월'),
@@ -95,8 +96,8 @@ void main() {
 
     // 버튼이 생겼는데도 화살표와 날짜가 그대로다 — 같은 버튼을 누르려고 매번
     // 다른 자리를 겨누게 만들지 않는다.
-    expect(tester.getRect(arrow(Icons.chevron_left_rounded)), left);
-    expect(tester.getRect(arrow(Icons.chevron_right_rounded)), right);
+    expect(tester.getRect(arrow(AppIcons.chevronLeft)), left);
+    expect(tester.getRect(arrow(AppIcons.chevronRight)), right);
     expect(tester.getRect(dateLabel), date);
 
     // 그리고 그 자리는 두 화살표 사이의 **한가운데**다. `오늘` 자리를 날짜
@@ -104,8 +105,8 @@ void main() {
     expect(
       tester.getRect(dateLabel).center.dx,
       closeTo(
-        (tester.getRect(arrow(Icons.chevron_left_rounded)).center.dx +
-                tester.getRect(arrow(Icons.chevron_right_rounded)).center.dx) /
+        (tester.getRect(arrow(AppIcons.chevronLeft)).center.dx +
+                tester.getRect(arrow(AppIcons.chevronRight)).center.dx) /
             2,
         1,
       ),
@@ -117,8 +118,8 @@ void main() {
     await openSchedule(tester);
     expect(find.text('오늘'), findsNothing);
 
-    final Rect left = tester.getRect(arrow(Icons.chevron_left_rounded));
-    final Rect right = tester.getRect(arrow(Icons.chevron_right_rounded));
+    final Rect left = tester.getRect(arrow(AppIcons.chevronLeft));
+    final Rect right = tester.getRect(arrow(AppIcons.chevronRight));
     final Rect date = tester.getRect(
       find.descendant(
         of: find.byType(ScheduleDateNavBar),
@@ -134,8 +135,8 @@ void main() {
 
     await openSchedule(tester, size: const Size(360, 720));
 
-    expect(arrow(Icons.chevron_left_rounded), findsOneWidget);
-    expect(arrow(Icons.chevron_right_rounded), findsOneWidget);
+    expect(arrow(AppIcons.chevronLeft), findsOneWidget);
+    expect(arrow(AppIcons.chevronRight), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

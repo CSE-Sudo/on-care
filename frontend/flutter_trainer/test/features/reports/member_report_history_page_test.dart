@@ -14,6 +14,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/member_report_history_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
@@ -38,7 +39,7 @@ Finder _key(String key) => find.byKey(ValueKey<String>(key));
 void main() {
   final Finder prevWeek = find.descendant(
     of: find.byType(ReportWeekNav),
-    matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+    matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
   );
   final Finder historyTitle = _key('reports-history-title');
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -465,7 +466,7 @@ class _CategorySectionState extends State<_CategorySection> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(label, style: _countStyle(tokens).copyWith(color: color)),
-        Icon(
+        AppIcon(
           icon,
           size: OnCareSize.iconMedium,
           color: OnCareColors.textDisabled,
@@ -531,7 +532,7 @@ class _CategorySectionState extends State<_CategorySection> {
                           child: _status(
                             l.dashTaskCategoryDone,
                             OnCareColors.success,
-                            Icons.chevron_right_rounded,
+                            AppIcons.chevronRight,
                           ),
                         ),
                         Text(
@@ -551,8 +552,8 @@ class _CategorySectionState extends State<_CategorySection> {
                           ? OnCareColors.success
                           : OnCareColors.textSecondary,
                       _expanded
-                          ? Icons.expand_less_rounded
-                          : Icons.chevron_right_rounded,
+                          ? AppIcons.expandLess
+                          : AppIcons.chevronRight,
                     ),
                 ],
               ),
@@ -679,7 +680,7 @@ class _MissionRow extends StatelessWidget {
                   key: ValueKey<String>(
                     'dashboard-mission-dismiss-${mission.key}',
                   ),
-                  icon: Icons.delete_outline_rounded,
+                  icon: AppIcons.delete,
                   tooltip: l.actionDelete,
                   onPressed: onDismiss,
                   color: OnCareColors.textTertiary,
