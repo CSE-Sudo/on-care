@@ -900,73 +900,41 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 손으로 쓴 트레이너 메모(`source=trainer`)는 여기 넣지 않는다 — 이 칸은
   /// AI 가 대화에서 집어낸 것만 모으는 자리다.
   ///
-  /// 모양은 [AppBanner] 의 `danger` 톤(8% 채움·40% 테두리·반경 12·안쪽 12)과
-  /// 같다. 다만 고정 높이 안에서 메모 목록을 스크롤해야 해(#1655) 제목·본문
-  /// 두 칸뿐인 [AppBanner] 를 그대로 쓰지 못한다.
+  /// 모양은 채팅 감지 경고와 같은 [AppBanner] `danger`·[AppBannerDensity.compact]
+  /// 다. 고정 높이 안에서 메모 목록을 스크롤한다(#1655, `expandChild`).
   Widget _chatInsightMemoPanel({required double height}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final AsyncValue<List<TrainerMemo>> memos = ref.watch(
       trainerMemosProvider(widget.client.id),
     );
-    return Container(
+    return SizedBox(
       key: const ValueKey<String>('ai-chat-insight-memos'),
       height: height,
-      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-      decoration: BoxDecoration(
-        color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.subtle),
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(
-          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
+      child: AppBanner(
+        tone: AppBannerTone.danger,
+        density: AppBannerDensity.compact,
+        icon: Icons.warning_amber_rounded,
+        title: l.aiInsightMemoTitle,
+        expandChild: true,
+        // 메모를 못 읽어도 이 칸만 조용히 비운다 — 생성 버튼까지 막으면
+        // 참고 자료 하나 때문에 프로그램을 못 만든다 (#1655).
+        child: memos.when(
+          loading: () => const AppLoading(placement: AppStatePlacement.card),
+          error: (Object _, StackTrace _) =>
+              _insightMemoNote(l.aiInsightMemoFailed),
+          data: (List<TrainerMemo> list) {
+            final List<TrainerMemo> recent = _recentChatInsights(list);
+            if (recent.isEmpty) {
+              return _insightMemoNote(l.aiInsightMemoEmpty);
+            }
+            return ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: recent.length,
+              itemBuilder: (BuildContext context, int index) =>
+                  _insightMemoLine(recent[index]),
+            );
+          },
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(
-                Icons.warning_amber_rounded,
-                size: OnCareSize.iconSmall,
-                color: OnCareColors.danger,
-              ),
-              const SizedBox(width: OnCareSpacing.s4),
-              Expanded(
-                child: Text(
-                  l.aiInsightMemoTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _text(
-                    OnCareTypography.strong(OnCareTypography.caption),
-                    OnCareColors.danger,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          // 메모를 못 읽어도 이 칸만 조용히 비운다 — 생성 버튼까지 막으면
-          // 참고 자료 하나 때문에 프로그램을 못 만든다 (#1655).
-          Expanded(
-            child: memos.when(
-              loading: () =>
-                  const AppLoading(placement: AppStatePlacement.card),
-              error: (Object _, StackTrace _) =>
-                  _insightMemoNote(l.aiInsightMemoFailed),
-              data: (List<TrainerMemo> list) {
-                final List<TrainerMemo> recent = _recentChatInsights(list);
-                if (recent.isEmpty) {
-                  return _insightMemoNote(l.aiInsightMemoEmpty);
-                }
-                return ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: recent.length,
-                  itemBuilder: (BuildContext context, int index) =>
-                      _insightMemoLine(recent[index]),
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -2359,40 +2327,22 @@ class _RecommendationStatusBanner extends StatelessWidget {
         ),
       ),
     };
-    return Container(
+    // AI 가 이번 후보를 무엇에 기대 만들었는지 알리는 안내다 — 회색 상자로
+    // 두면 입력 칸처럼 읽혔다(#2468).
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(OnCareSpacing.s8),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
-        borderRadius: OnCareRadius.smAll,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: tokens
-                .text(OnCareTypography.label)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          const SizedBox(height: OnCareSpacing.s2),
-          Text(
-            body,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          if (analysis.frequentExercises.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s4),
-            Text(
-              '${l.aiFrequentExercisesLabel}: '
-              '${analysis.frequentExercises.join(', ')}',
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.caption))
-                  .copyWith(color: OnCareColors.textPrimary),
-            ),
-          ],
-        ],
+      child: AppBanner(
+        title: title,
+        message: body,
+        child: analysis.frequentExercises.isEmpty
+            ? null
+            : Text(
+                '${l.aiFrequentExercisesLabel}: '
+                '${analysis.frequentExercises.join(', ')}',
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.caption))
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
       ),
     );
   }

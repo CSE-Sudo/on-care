@@ -4,7 +4,6 @@ import 'package:oncare_trainer/features/reports/data/repositories/report_reposit
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 요약 카드 — 트레이너가 매주 같은 문장을 처음부터 쓰지 않게 한다.
@@ -18,7 +17,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 문장을 어디까지 믿을지 알 수 있다.
 ///
 /// 화면의 AI 카드는 이것 하나다 — 대시보드 `활동 피드백` 카드와 같은 옅은 남색
-/// 그라디언트 카드에 AI 아이콘 제목을 단다.
+/// 카드형 배너([AppBannerPlacement.card])에 AI 아이콘 제목을 단다.
 class ReportAiCard extends ConsumerWidget {
   const ReportAiCard({
     super.key,
@@ -70,37 +69,19 @@ class ReportAiCard extends ConsumerWidget {
         onUseAsDraft: () => onUseAsDraft(value.asDraft),
       ),
     );
-    // 대시보드 `활동 피드백` 카드와 같은 옅은 남색 카드다. 흰 일반 카드 사이에서
-    // AI 가 만든 초안이라는 것이 드러난다.
-    return SoftNavyCard(
+    // 대시보드 `활동 피드백` 카드와 같은 옅은 남색 카드형 배너다. 흰 일반 카드
+    // 사이에서 AI 가 만든 초안이라는 것이 드러난다.
+    return AppBanner(
       key: const ValueKey<String>('reports-ai-card'),
-      // 버튼 잉크가 그라디언트 위에 그려지도록 투명 Material 을 둔다.
-      child: Material(
-        type: MaterialType.transparency,
-        child: _cardColumn(l, summary, content),
-      ),
-    );
-  }
-
-  Widget _cardColumn(
-    AppLocalizations l,
-    AsyncValue<ReportSummary> summary,
-    Widget content,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
-      children: <Widget>[
-        AppSectionHeader(
-          title: l.reportsAiTitle,
-          titleMeta: l.reportsAiSubtitle,
-          trailing: (summary.valueOrNull?.isGenerated ?? false)
-              ? AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand)
-              : null,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        if (fill) Expanded(child: content) else content,
-      ],
+      placement: AppBannerPlacement.card,
+      icon: Icons.auto_awesome_rounded,
+      title: l.reportsAiTitle,
+      titleMeta: l.reportsAiSubtitle,
+      trailing: (summary.valueOrNull?.isGenerated ?? false)
+          ? AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand)
+          : null,
+      expandChild: fill,
+      child: content,
     );
   }
 }

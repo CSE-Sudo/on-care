@@ -12,9 +12,11 @@ import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         AppBackButton,
+        AppBanner,
+        AppBannerDensity,
+        AppBannerTone,
         AppCard,
         AppTag,
-        OnCareAlpha,
         OnCareColors,
         OnCareLayout,
         OnCareSize,
@@ -636,20 +638,17 @@ void main() {
       await settle(tester);
 
       expect(find.text('메모 추가됨'), findsOneWidget);
-      // 감지 카드는 흰 바탕에 옅은 빨간 테두리다. 옮겨 적은 뒤에도 빨간색은
-      // 그대로다 — 무슨 일이 있었는지(부정적 피드백)는 바뀌지 않았다. 처리
-      // 여부는 알약의 문구와 눌리지 않는 상태가 말한다.
-      final banner = tester.widget<Container>(
+      // 감지 카드는 AI 루틴 감지 메모 칸과 같은 위험 톤 compact 배너다(#2468).
+      // 옮겨 적은 뒤에도 빨간색은 그대로다 — 무슨 일이 있었는지(부정적
+      // 피드백)는 바뀌지 않았다. 처리 여부는 알약의 문구와 눌리지 않는 상태가
+      // 말한다.
+      final banner = tester.widget<AppBanner>(
         find.byKey(
           const ValueKey<String>('chat-insight-banner-seed-chat-1-16'),
         ),
       );
-      final decoration = banner.decoration! as BoxDecoration;
-      expect(decoration.color, OnCareColors.surfaceCard);
-      expect(
-        (decoration.border! as Border).top.color,
-        OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
-      );
+      expect(banner.tone, AppBannerTone.danger);
+      expect(banner.density, AppBannerDensity.compact);
       expect(
         tester.widget<Text>(find.text('메모 추가됨')).style?.color,
         OnCareColors.danger,

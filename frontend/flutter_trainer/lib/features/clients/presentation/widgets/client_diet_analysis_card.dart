@@ -32,52 +32,18 @@ class ClientDietAnalysisCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final String text = clientDietAnalysisText(l, analysis);
     // 빈 문장으로 카드를 세우지 않는다 — 제목만 있으면 분석이 사라진 것인지 아직
     // 안 온 것인지 알 수 없다.
     if (text.isEmpty) return const SizedBox.shrink();
-    return Container(
+    // 대시보드 활동 피드백·리포트 요약과 같은 카드형 배너다(#2468).
+    return AppBanner(
       key: const ValueKey<String>('diet-analysis'),
-      padding: const EdgeInsets.all(OnCareSpacing.cardPadding),
-      decoration: BoxDecoration(
-        color: tokens.brand.surface,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: tokens.brand.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          AppIcon(
-            Icons.insights_rounded,
-            size: OnCareSize.iconMedium,
-            color: tokens.brand.primary,
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text(
-                  l.clientDietAnalysisTitle,
-                  style: tokens
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
-                const SizedBox(height: OnCareSpacing.s4),
-                Text(
-                  text,
-                  key: const ValueKey<String>('diet-analysis-text'),
-                  style: tokens
-                      .text(OnCareTypography.body)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-                ?recommendation,
-              ],
-            ),
-          ),
-        ],
-      ),
+      placement: AppBannerPlacement.card,
+      icon: Icons.insights_rounded,
+      title: l.clientDietAnalysisTitle,
+      message: text,
+      child: recommendation,
     );
   }
 }
@@ -233,9 +199,10 @@ class _ClientDietRecommendationSectionState
       );
     }
     if (body == null) return const SizedBox.shrink();
+    // 배너가 본문과 이 구획 사이에 8 을 두어, 분석 문단과 합쳐 16 이 된다.
     return Padding(
       key: const ValueKey<String>('diet-recommendation'),
-      padding: const EdgeInsets.only(top: OnCareSpacing.s16),
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
       child: body,
     );
   }

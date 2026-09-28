@@ -497,90 +497,53 @@ class _ChatInsightBanner extends StatelessWidget {
         ? l.chatInsightDiscomfortDescription
         : l.chatInsightNegativeDescription;
 
-    return Container(
-      key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
+    // AI 루틴의 감지 메모 칸과 같은 감지 경고 모양이다(#2468) — 같은 신호가
+    // 두 화면에서 같은 것으로 읽힌다.
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s12,
-        vertical: OnCareSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(
-          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
-        ),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(
-            Icons.warning_amber_rounded,
-            size: OnCareSize.iconMedium,
-            color: OnCareColors.danger,
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(color: OnCareColors.danger),
-                ),
-                const SizedBox(height: OnCareSpacing.s2),
-                Text(
-                  description,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          // 알약은 저장 뒤에도 빨간색이다. 초록으로 뒤집으면 빨간 카드
-          // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
-          // 감지 내용보다 눈에 먼저 들어온다.
-          Material(
-            color: OnCareColors.onWhite(
-              OnCareColors.danger,
-              OnCareAlpha.subtle,
-            ),
+      child: AppBanner(
+        key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
+        tone: AppBannerTone.danger,
+        density: AppBannerDensity.compact,
+        icon: Icons.warning_amber_rounded,
+        title: title,
+        message: description,
+        // 알약은 저장 뒤에도 빨간색이다. 초록으로 뒤집으면 빨간 카드
+        // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
+        // 감지 내용보다 눈에 먼저 들어온다. 배너 채움(8%) 위에서 알약이
+        // 보이도록 한 단계 진하게(16%) 칠한다.
+        trailing: Material(
+          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.medium),
+          borderRadius: OnCareRadius.pillAll,
+          child: InkWell(
+            key: ValueKey<String>('chat-insight-add-${insight.id}'),
+            onTap: saved ? null : onAddMemo,
             borderRadius: OnCareRadius.pillAll,
-            child: InkWell(
-              key: ValueKey<String>('chat-insight-add-${insight.id}'),
-              onTap: saved ? null : onAddMemo,
-              borderRadius: OnCareRadius.pillAll,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s8,
-                  vertical: OnCareSpacing.s4,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(
-                      saved ? Icons.check_rounded : Icons.add_rounded,
-                      size: OnCareSize.iconSmall,
-                      color: OnCareColors.danger,
-                    ),
-                    const SizedBox(width: OnCareSpacing.s4),
-                    Text(
-                      saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
-                      style: tokens
-                          .text(
-                            OnCareTypography.strong(OnCareTypography.caption),
-                          )
-                          .copyWith(color: OnCareColors.danger),
-                    ),
-                  ],
-                ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s8,
+                vertical: OnCareSpacing.s4,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    saved ? Icons.check_rounded : Icons.add_rounded,
+                    size: OnCareSize.iconSmall,
+                    color: OnCareColors.danger,
+                  ),
+                  const SizedBox(width: OnCareSpacing.s4),
+                  Text(
+                    saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.danger),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

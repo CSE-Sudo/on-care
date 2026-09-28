@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/domain/activity_feedback.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// "활동 피드백" — 트레이너 활동 피드백 3가지(이행률·이탈 위험 감지, 7일
@@ -27,44 +26,33 @@ class AiSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     // 대상이 없는 신호는 아예 그리지 않는다 — "0명" 문장은 안내가 아니다.
     final active = activityFeedback.where((i) => i.count > 0).toList();
-    // 흰 카드들 사이에서 안내 카드로 구분되도록 옅은 남색 바탕(규격 전환 전
-    // 모양 복원) — 리포트 탭 요약 카드와 같은 SoftNavyCard 를 쓴다.
-    return SoftNavyCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const OniAvatar(size: OnCareSize.avatarMedium),
-              const SizedBox(width: OnCareSpacing.s8),
-              Expanded(child: AppSectionHeader(title: l.dashAiSummaryTitle)),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          if (active.isEmpty)
-            Text(
-              l.dashAiNoClients,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            )
-          else
-            for (var i = 0; i < active.length; i++) ...<Widget>[
-              if (i > 0) ...<Widget>[
-                // 기본 구분선(`AppDivider`, lineSubtle)은 옅은 남색 바탕과 밝기가
-                // 거의 같아 보이지 않았다 — 셸 머리·사이드바 경계와 같은 회색
-                // 선(lineStrong)으로 항목을 나눈다(#2202).
-                const SizedBox(height: OnCareSpacing.s16),
-                const AppDivider(color: OnCareColors.lineStrong),
-                const SizedBox(height: OnCareSpacing.s16),
+    // 흰 카드들 사이에서 안내 카드로 구분되도록 옅은 남색 카드형 배너 — 리포트
+    // 탭 요약 카드·회원 식단 분석과 같은 모양이다(#2468).
+    return AppBanner(
+      placement: AppBannerPlacement.card,
+      icon: Icons.tips_and_updates_rounded,
+      title: l.dashAiSummaryTitle,
+      message: active.isEmpty ? l.dashAiNoClients : null,
+      child: active.isEmpty
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                for (var i = 0; i < active.length; i++) ...<Widget>[
+                  if (i > 0) ...<Widget>[
+                    // 기본 구분선(`AppDivider`, lineSubtle)은 옅은 남색 바탕과
+                    // 밝기가 거의 같아 보이지 않았다 — 셸 머리·사이드바 경계와
+                    // 같은 회색 선(lineStrong)으로 항목을 나눈다(#2202).
+                    const SizedBox(height: OnCareSpacing.s16),
+                    const AppDivider(color: OnCareColors.lineStrong),
+                    const SizedBox(height: OnCareSpacing.s16),
+                  ],
+                  _ActivityFeedbackDetail(item: active[i]),
+                ],
               ],
-              _ActivityFeedbackDetail(item: active[i]),
-            ],
-        ],
-      ),
+            ),
     );
   }
 }
