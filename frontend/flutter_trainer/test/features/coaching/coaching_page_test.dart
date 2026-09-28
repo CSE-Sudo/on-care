@@ -2515,7 +2515,8 @@ void main() {
 
       // 보내기 전에 기간을 보여 주며 한 번 묻는다.
       expect(find.textContaining('회원 앱에 매일'), findsWidgets);
-      await tester.tap(find.text('회원에게 보내기').last);
+      // 확인창 제목이 `회원에게 보내기` 라 확정 버튼은 동사만 쓴다(#2479).
+      await tester.tap(find.text('보내기').last);
       // 드리프트 `.watch()` 가 살아 있어 `pumpAndSettle` 은 멈추지 않는다 —
       // 이 파일의 다른 전송 테스트와 같이 프레임 수를 정해 돌린다.
       await tester.pump();
@@ -2570,7 +2571,7 @@ void main() {
       await _ensureCentered(tester, send);
       await tester.tap(send);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('회원에게 보내기').last);
+      await tester.tap(find.text('보내기').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(routines.programs, hasLength(1));

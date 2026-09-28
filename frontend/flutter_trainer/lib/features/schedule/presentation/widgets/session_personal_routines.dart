@@ -250,7 +250,7 @@ class _SendPersonalRoutinesDialogState
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
         confirmKey: const ValueKey<String>('session-routines-send-confirm'),
-        confirmLabel: widget.editOnly ? l.actionSave : l.schedRoutinesSend,
+        confirmLabel: widget.editOnly ? l.actionSave : l.actionSend,
         onConfirm: _canSave ? () => Navigator.of(context).pop(_draft) : null,
       ),
       child: Column(

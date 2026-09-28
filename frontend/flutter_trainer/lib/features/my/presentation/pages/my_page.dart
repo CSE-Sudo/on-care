@@ -388,7 +388,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       title: l.myClientRemoveTitle(client.name),
       message: l.myClientRemoveBody,
       cancelLabel: l.actionCancel,
-      confirmLabel: l.myClientRemove,
+      confirmLabel: l.actionDelete,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
