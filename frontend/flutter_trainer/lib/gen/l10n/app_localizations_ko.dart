@@ -2612,6 +2612,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSentHistory => '전송 이력';
 
   @override
+  String get coachLastDelivery => '직전 전송';
+
+  @override
+  String get coachDeliveryPtWithRoutine => 'PT · 개인운동';
+
+  @override
+  String get coachDeliveryRoutineOnly => '개인운동만';
+
+  @override
+  String get coachDeliveryCancelledRoutineOnly => 'PT 취소 · 개인운동만';
+
+  @override
+  String coachDeliveryOn(String date) {
+    return '$date 보냄';
+  }
+
+  @override
+  String coachUnsentRoutines(int count) {
+    return '아직 보내지 않은 개인운동 $count개';
+  }
+
+  @override
+  String get coachUnsentRoutinesBody =>
+      'PT 가 끝났는데 아직 회원에게 가지 않았어요. 스케줄에서 그 일정을 열어 보낼 수 있어요.';
+
+  @override
+  String get coachSendUnsentRoutines => '스케줄에서 보내기';
+
+  @override
+  String get coachDeliveryProgramSection => '프로그램';
+
+  @override
+  String get coachDeliveryRoutineSection => '개인운동';
+
+  @override
+  String get coachDeliveryNothing => '보낸 것 없음';
+
+  @override
   String get coachHistoryFailed => '이력을 불러오지 못했어요';
 
   @override
@@ -3852,9 +3890,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String programEditorDefaultName(String goal) {
     return '$goal 프로그램';
   }
-
-  @override
-  String get programEditorDefaultSession => '세션 A';
 
   @override
   String get programEditorSaveUnsupported => '프로그램 이름을 입력해 주세요';

@@ -306,6 +306,22 @@ class DioScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/trainer/clients/${Uri.encodeComponent(clientId)}/routines/unsent',
+    );
+    return <UnsentRoutine>[
+      for (final row in res.data ?? const <dynamic>[])
+        if (row is Map<String, dynamic> && row['schedule_id'] is String)
+          UnsentRoutine(
+            exercise: scheduledRoutineFromJson(row),
+            scheduleId: row['schedule_id'] as String,
+            scheduleDate: (row['schedule_date'] as String?) ?? '',
+          ),
+    ];
+  }
+
+  @override
   Future<void> updateScheduledRoutines(
     String id,
     List<RoutineExercise> items,
@@ -324,7 +340,9 @@ class DioScheduleRepository implements ScheduleRepository {
     List<RoutineExercise>? items,
   }) async {
     await _mutate(
-      () => _dio.post<Map<String, dynamic>>(
+      // 서버는 보낸 개인운동 목록을 배열로 돌려준다. `Map` 으로 받으면 형이
+      // 어긋나 던지고, 전송은 성공했는데 화면 갱신이 통째로 사라진다(#2225).
+      () => _dio.post<List<dynamic>>(
         '/trainer/schedule/${Uri.encodeComponent(id)}/routines/send',
         data: <String, Object?>{
           if (items != null) 'personal_routines': personalRoutinesToJson(items),

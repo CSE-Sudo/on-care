@@ -86,13 +86,17 @@ List<DateTime> dietRangeDates(DietDateRange range) {
 /// 하루 뷰(`오늘`)는 그대로 [dietTodayProvider]·[dietByDateProvider] 다 — 끼니
 /// 목록과 사진이 필요하고, 이 응답에는 없다. 끼니를 더하거나 지울 때 비워야 할
 /// 캐시가 그만큼 늘었다(`diet_flows.dart`).
+///
+/// 응답은 **요청한 범위의 날짜로 다시 채운다**(#2462). 서버는 오늘 이후를
+/// 잘라 주는데, `이번 주` 는 아직 오지 않은 요일까지 빈 칸으로 그린다.
 final dietPeriodProvider = FutureProvider.family<DietPeriod, DietDateRange>((
   ref,
   DietDateRange range,
-) {
-  return ref
+) async {
+  final DietPeriod period = await ref
       .watch(dietRepositoryProvider)
       .fetchPeriod(from: range.from, to: range.to);
+  return period.filledTo(dietRangeDates(range));
 }, name: 'dietPeriod');
 
 /// 기간에 맞는 식단 조언 — GET /diet/advice. (#1017)

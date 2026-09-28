@@ -213,14 +213,15 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: AppButton(
-              key: const ValueKey<String>('client-follow-up-add'),
-              onPressed: _busy ? null : _add,
-              leadingIcon: Icons.add_rounded,
-              label: l.followUpAdd,
-            ),
+          AppActionRow(
+            actions: <Widget>[
+              AppButton(
+                key: const ValueKey<String>('client-follow-up-add'),
+                onPressed: _busy ? null : _add,
+                leadingIcon: Icons.add_rounded,
+                label: l.followUpAdd,
+              ),
+            ],
           ),
           const SizedBox(height: OnCareSpacing.s16),
           // 목록은 창 본문과 함께 스크롤된다 — 낮은 창에서도 창이 화면 밖으로

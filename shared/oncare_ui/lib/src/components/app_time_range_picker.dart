@@ -229,7 +229,7 @@ class _AppTimeRangePickerDialogState extends State<AppTimeRangePickerDialog> {
 
     return AppDialog(
       title: labels.title,
-      // 두 버튼 규칙 — 취소 왼쪽, 확인 오른쪽, 폭 반반.
+      // 두 버튼 규칙 — 취소 왼쪽, 확인 오른쪽. 모바일은 폭 반반, 웹은 오른쪽 정렬.
       footer: AppButtonPair(
         key: _key('actions'),
         cancelLabel: labels.cancel,
