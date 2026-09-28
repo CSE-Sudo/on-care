@@ -621,10 +621,10 @@ class _MyPageState extends ConsumerState<MyPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _MenuGroupLabel(label: l.myTabProfile),
+          AppOverline(l.myTabProfile),
           item(_MySection.profile, AppIcons.person),
           item(_MySection.clients, AppIcons.clients),
-          _MenuGroupLabel(label: l.myTabSettings),
+          AppOverline(l.myTabSettings),
           item(_MySection.notifications, AppIcons.notifications),
           item(_MySection.language, AppIcons.language),
           item(_MySection.account, AppIcons.lock),
@@ -650,8 +650,10 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
   }
 
-  /// 오른쪽(좁으면 메뉴 대신) 판. 돌아갈 곳이 있으면 맨 위에 경로를 둔다 —
-  /// `← 프로필 › 프로필 수정`.
+  /// 오른쪽(좁으면 메뉴 대신) 판. 돌아갈 곳이 있으면 맨 위에 뒤로가기를 둔다.
+  ///
+  /// 지금 화면 이름은 바로 위 페이지 제목이 말한다 — 예전 경로 표시
+  /// `‹ 프로필 › 프로필 수정` 의 뒷부분은 제목을 한 번 더 적은 것이라 뺐다(#2469).
   Widget _detail(_MySection section, {required bool wide}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final _MySection? back =
@@ -660,12 +662,15 @@ class _MyPageState extends ConsumerState<MyPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (back != null) ...<Widget>[
-          _Breadcrumb(
-            parent: _title(l, back),
-            current: _title(l, section),
-            onBack: () => _go(back),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppBackLink(
+              key: const ValueKey<String>('my-back'),
+              label: _title(l, back),
+              onPressed: () => _go(back),
+            ),
           ),
-          const SizedBox(height: OnCareSpacing.s12),
+          const SizedBox(height: OnCareSpacing.s8),
         ],
         ...switch (section) {
           _MySection.edit => _editCards(),
@@ -718,7 +723,10 @@ class _MyPageState extends ConsumerState<MyPage> {
       _SettingsCard(
         title: l.myGym,
         body: _gym.name.trim().isEmpty
-            ? _EmptyLine(l.myGymEmpty)
+            ? AppEmptyState(
+                title: l.myGymEmpty,
+                placement: AppStatePlacement.inline,
+              )
             : _InfoGrid(
                 fields: <_Info>[
                   _Info(l.myGymName, _gym.name),
@@ -1329,84 +1337,6 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   }
 }
 
-/// 메뉴 묶음 제목 — 앱 사이드바의 `운영`·`코칭` 과 같은 글씨다.
-class _MenuGroupLabel extends StatelessWidget {
-  const _MenuGroupLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        OnCareSpacing.s12,
-        OnCareSpacing.s12,
-        OnCareSpacing.s12,
-        OnCareSpacing.s4,
-      ),
-      child: Text(
-        label,
-        style: context.oncare
-            .text(OnCareTypography.strong(OnCareTypography.caption))
-            .copyWith(color: OnCareColors.textTertiary),
-      ),
-    );
-  }
-}
-
-/// 판 맨 위의 경로 — 뒤로 가기 + `상위 › 지금`. 상위 이름을 눌러도 돌아간다.
-class _Breadcrumb extends StatelessWidget {
-  const _Breadcrumb({
-    required this.parent,
-    required this.current,
-    required this.onBack,
-  });
-
-  final String parent;
-  final String current;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      children: <Widget>[
-        AppBackButton(onPressed: onBack),
-        const SizedBox(width: OnCareSpacing.s4),
-        InkWell(
-          onTap: onBack,
-          borderRadius: OnCareRadius.pillAll,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
-            child: Text(
-              parent,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          ),
-        ),
-        const AppIcon(
-          AppIcons.chevronRight,
-          size: OnCareSize.iconSmall,
-          color: OnCareColors.textTertiary,
-        ),
-        const SizedBox(width: OnCareSpacing.s4),
-        Flexible(
-          child: Text(
-            current,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// 설정 카드 — 제목·설명 머리, 구분선, 그 아래 본문([body]) 또는 줄들([rows]),
 /// 필요하면 맨 아래 안내([footer]). 내 정보·설정의 모든 판이 이 한 모양이다.
 ///
@@ -1480,23 +1410,6 @@ class _SettingsCard extends StatelessWidget {
   }
 }
 
-/// 비어 있음을 알리는 한 줄.
-class _EmptyLine extends StatelessWidget {
-  const _EmptyLine(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: context.oncare
-          .text(OnCareTypography.bodySmall)
-          .copyWith(color: OnCareColors.textTertiary),
-    );
-  }
-}
-
 /// 라벨·값 한 칸. 값이 비면 [empty](없으면 `–`)를 흐리게 보인다.
 class _Info {
   const _Info(this.label, this.value, {this.empty});
@@ -1533,15 +1446,9 @@ class _InfoGrid extends StatelessWidget {
           runSpacing: OnCareSpacing.s16,
           children: <Widget>[
             for (final _Info info in fields)
-              SizedBox(
-                width: cell,
-                child: _InfoCell(info: info),
-              ),
+              SizedBox(width: cell, child: _infoCell(info)),
             if (wide != null)
-              SizedBox(
-                width: constraints.maxWidth,
-                child: _InfoCell(info: wide),
-              ),
+              SizedBox(width: constraints.maxWidth, child: _infoCell(wide)),
           ],
         );
       },
@@ -1549,38 +1456,13 @@ class _InfoGrid extends StatelessWidget {
   }
 }
 
-class _InfoCell extends StatelessWidget {
-  const _InfoCell({required this.info});
-
-  final _Info info;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    final bool blank = info.value.trim().isEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          info.label,
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-        const SizedBox(height: OnCareSpacing.s2),
-        Text(
-          blank ? (info.empty ?? '–') : info.value,
-          style: tokens
-              .text(OnCareTypography.body)
-              .copyWith(
-                color: blank
-                    ? OnCareColors.textTertiary
-                    : OnCareColors.textPrimary,
-              ),
-        ),
-      ],
-    );
-  }
+Widget _infoCell(_Info info) {
+  final bool blank = info.value.trim().isEmpty;
+  return AppKeyValueRow.stacked(
+    label: info.label,
+    value: blank ? (info.empty ?? '–') : info.value,
+    valueColor: blank ? OnCareColors.textTertiary : null,
+  );
 }
 
 /// 프로필의 첫 카드 — 누구인지와 고치는 곳. 수정 버튼은 레퍼런스처럼 카드
@@ -1864,7 +1746,12 @@ class _CertsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (certs.isEmpty) return _EmptyLine(l.myCertsEmpty);
+    if (certs.isEmpty) {
+      return AppEmptyState(
+        title: l.myCertsEmpty,
+        placement: AppStatePlacement.inline,
+      );
+    }
     return Wrap(
       spacing: OnCareSpacing.s8,
       runSpacing: OnCareSpacing.s8,
@@ -2238,7 +2125,6 @@ class _GymNameField extends StatefulWidget {
 
 class _GymNameFieldState extends State<_GymNameField> {
   final OverlayPortalController _dropdown = OverlayPortalController();
-  final LayerLink _link = LayerLink();
   final ScrollController _scroll = ScrollController();
   final FocusNode _focus = FocusNode();
 
@@ -2353,42 +2239,38 @@ class _GymNameFieldState extends State<_GymNameField> {
   Widget _field(AppLocalizations l) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return CompositedTransformTarget(
-          link: _link,
-          child: OverlayPortal(
-            controller: _dropdown,
-            overlayChildBuilder: (context) => _overlay(constraints.maxWidth),
-            child: TapRegion(
-              groupId: this,
-              onTapOutside: (_) => _dropdown.hide(),
-              child: CallbackShortcuts(
-                bindings: <ShortcutActivator, VoidCallback>{
-                  const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-                      _move(1),
-                  const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-                      _move(-1),
-                  const SingleActivator(LogicalKeyboardKey.escape):
-                      _dropdown.hide,
+        return AppPopover(
+          controller: _dropdown,
+          panelKey: const ValueKey<String>('gym-suggestions'),
+          width: constraints.maxWidth,
+          maxHeight: _maxHeight,
+          onTapOutside: _dropdown.hide,
+          panel: (_) => _suggestions(),
+          anchor: CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                  _move(1),
+              const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                  _move(-1),
+              const SingleActivator(LogicalKeyboardKey.escape): _dropdown.hide,
+            },
+            // 칸을 다시 누르면 남아 있는 글자로 목록을 다시 연다.
+            child: Listener(
+              onPointerDown: (_) {
+                if (_shouldShow) _dropdown.show();
+              },
+              child: AppTextField(
+                key: const ValueKey<String>('gym-name'),
+                label: l.myGymName,
+                hint: l.myGymNameHint,
+                controller: widget.controller,
+                focusNode: _focus,
+                errorText: widget.errorText,
+                onChanged: (String value) {
+                  widget.onChanged?.call(value);
+                  _refresh();
                 },
-                // 칸을 다시 누르면 남아 있는 글자로 목록을 다시 연다.
-                child: Listener(
-                  onPointerDown: (_) {
-                    if (_shouldShow) _dropdown.show();
-                  },
-                  child: AppTextField(
-                    key: const ValueKey<String>('gym-name'),
-                    label: l.myGymName,
-                    hint: l.myGymNameHint,
-                    controller: widget.controller,
-                    focusNode: _focus,
-                    errorText: widget.errorText,
-                    onChanged: (String value) {
-                      widget.onChanged?.call(value);
-                      _refresh();
-                    },
-                    onSubmitted: (_) => _submit(),
-                  ),
-                ),
+                onSubmitted: (_) => _submit(),
               ),
             ),
           ),
@@ -2397,88 +2279,58 @@ class _GymNameFieldState extends State<_GymNameField> {
     );
   }
 
-  Widget _overlay(double width) {
+  /// 맞는 헬스장 목록. 가리킨 줄의 채움은 상자가 둥근 모서리로 자른다.
+  Widget _suggestions() {
     final List<TrainerGymChoice> matches = _matches;
     final OnCareTokens tokens = context.oncare;
-    return CompositedTransformFollower(
-      link: _link,
-      targetAnchor: Alignment.bottomLeft,
-      offset: const Offset(0, OnCareSpacing.s4),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: TapRegion(
-          groupId: this,
-          child: Container(
-            key: const ValueKey<String>('gym-suggestions'),
-            width: width,
-            constraints: const BoxConstraints(maxHeight: _maxHeight),
-            decoration: const BoxDecoration(
-              color: OnCareColors.surfaceCard,
-              borderRadius: OnCareRadius.mdAll,
-              border: Border.fromBorderSide(
-                BorderSide(color: OnCareColors.lineStrong),
+    return ListView.builder(
+      controller: _scroll,
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      itemExtent: _rowHeight,
+      itemCount: matches.length,
+      itemBuilder: (BuildContext context, int i) {
+        final TrainerGymChoice choice = matches[i];
+        return MouseRegion(
+          onEnter: (_) => setState(() => _highlight = i),
+          child: InkWell(
+            key: ValueKey<String>('gym-suggestion-${choice.id}'),
+            onTap: () => _pick(choice),
+            child: Container(
+              color: i == _highlight
+                  ? tokens.brand.surface
+                  : Colors.transparent,
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
               ),
-              boxShadow: OnCareShadows.overlay,
-            ),
-            // 가리킨 줄의 채움이 둥근 모서리 밖으로 나가지 않게 자른다.
-            clipBehavior: Clip.antiAlias,
-            child: Material(
-              type: MaterialType.transparency,
-              child: ListView.builder(
-                controller: _scroll,
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemExtent: _rowHeight,
-                itemCount: matches.length,
-                itemBuilder: (BuildContext context, int i) {
-                  final TrainerGymChoice choice = matches[i];
-                  return MouseRegion(
-                    onEnter: (_) => setState(() => _highlight = i),
-                    child: InkWell(
-                      key: ValueKey<String>('gym-suggestion-${choice.id}'),
-                      onTap: () => _pick(choice),
-                      child: Container(
-                        color: i == _highlight
-                            ? tokens.brand.surface
-                            : Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: OnCareSpacing.s16,
-                        ),
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              choice.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(OnCareTypography.body)
-                                  .copyWith(color: OnCareColors.textPrimary),
-                            ),
-                            if (choice.address.isNotEmpty)
-                              Text(
-                                choice.address,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(OnCareTypography.caption)
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                          ],
-                        ),
-                      ),
+              alignment: AlignmentDirectional.centerStart,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    choice.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.body)
+                        .copyWith(color: OnCareColors.textPrimary),
+                  ),
+                  if (choice.address.isNotEmpty)
+                    Text(
+                      choice.address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textSecondary),
                     ),
-                  );
-                },
+                ],
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

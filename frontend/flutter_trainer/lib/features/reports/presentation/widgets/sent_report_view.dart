@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -60,12 +59,10 @@ class SentReportView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppBackLink(
               key: const ValueKey<String>('reports-sent-back'),
               label: backLabel ?? l.reportsBackToWorkbench,
-              variant: AppButtonVariant.text,
-              leadingIcon: AppIcons.back,
               onPressed: onBack,
             ),
           ),

@@ -54,6 +54,17 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 
 `OnCareTokenCatalog` 위젯으로 현재 앱의 토큰을 한 화면에서 볼 수 있습니다.
 
+## 작은 부품(#2469)
+
+| 부품 | 규칙 |
+|---|---|
+| `AppBackLink` | 탭 안 하위 화면의 뒤로가기 — 작은 글자 버튼 + 꺾쇠, 본문 맨 위(또는 머리 줄 맨 앞), 뒤 간격 8. 분할 화면 패널 머리의 아이콘 뒤로는 `AppBackButton` |
+| `AppStatePlacement.inline` | 목록·칸이 비었다는 한두 줄 — 아이콘·최소 높이 없이 왼쪽 정렬, 제목 `bodySmall` + 안내 `caption`, 흐린 글자 |
+| `AppPopover` / `AppPopoverSurface` | 앵커 아래 4, 왼쪽 끝 맞춤. 흰색·반경 12·진한 테두리·떠 있는 그림자. 앵커와 상자를 한 탭 영역으로 묶어 바깥 누름만 닫는다 |
+| `AppKeyValueRow` | 라벨 폭 80(`OnCareLayout.keyValueLabelWidth`), 라벨 `bodySmall` 흐린 글자 + 값 `bodySmall` 600. `.stacked` 는 라벨(`caption`) 아래 값(`body`) |
+| `AppOverline` | 메뉴 묶음 이름 — `caption` 600·흐린 글자 |
+| `AppCard.compactPadding` | 목록에 줄지어 선 줄 카드의 안쪽 — 가로 16·세로 12 |
+
 ## 확정 버튼 문구
 
 확정 버튼의 문구는 가까운 제목이 대상을 말해 주느냐로 정합니다(#2479). 지금은 트레이너 웹에 적용돼 있고, 회원 앱은 필요할 때 같은 규칙으로 맞춥니다.

@@ -25,6 +25,7 @@ export 'src/components/app_meal_photo.dart';
 export 'src/components/app_media.dart';
 export 'src/components/app_menu.dart';
 export 'src/components/app_pickers.dart';
+export 'src/components/app_popover.dart';
 export 'src/components/app_selection.dart';
 export 'src/components/app_social_login.dart';
 export 'src/components/app_spotlight.dart';
