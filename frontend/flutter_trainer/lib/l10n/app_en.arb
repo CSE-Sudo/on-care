@@ -534,6 +534,7 @@
   "coachTemplateSave": "Save",
   "coachTemplateNameRequired": "Enter a template name",
   "coachTemplateExerciseRequired": "Add at least one exercise",
+  "coachTemplateExerciseNameRequired": "Enter the exercise name",
   "coachTemplateSaveFailed": "Couldn't save the template. Please try again",
   "coachTemplateDeleteFailed": "Couldn't delete the template. Please try again",
   "coachTemplateDeleteConfirm": "Delete the {name} template?",

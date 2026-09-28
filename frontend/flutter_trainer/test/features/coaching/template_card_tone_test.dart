@@ -61,4 +61,19 @@ void main() {
 
     expect(node.hasFocus, isTrue);
   });
+
+  // 기본 템플릿은 저장된 행이 아니라 읽을 때 만들어지는 값이라 지울 것이
+  // 없고, 자기 템플릿을 하나라도 저장하면 저절로 사라진다. 그런데 비활성
+  // `삭제` 는 위험 항목이라 **비활성인데도 빨간 글씨 그대로**여서, 눌러 보고
+  // 아무 일도 없는 것을 겪게 된다. 할 수 없는 일은 내밀지 않는다. (#2220)
+  testWidgets('기본 템플릿 메뉴에는 삭제가 없다', (tester) async {
+    await _openTemplateCard(tester);
+
+    final String id = MockTrainerProgramTemplateRepository.starters.first.id;
+    await tester.tap(find.byKey(ValueKey<String>('template-menu-$id')).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('템플릿 편집'), findsOneWidget);
+    expect(find.text('삭제'), findsNothing);
+  });
 }

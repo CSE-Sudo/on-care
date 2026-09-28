@@ -1531,12 +1531,21 @@ class _TemplateMenu extends StatelessWidget {
           icon: Icons.edit_rounded,
           onSelected: onEdit,
         ),
-        AppMenuItem(
-          label: l.coachTemplateDelete,
-          icon: Icons.delete_outline_rounded,
-          destructive: true,
-          onSelected: onDelete,
-        ),
+        // 지울 수 없으면 내린다(#2220). 회색으로 남겨 "못 하는 동작" 을
+        // 알리려 했지만, `AppMenu` 는 위험 항목 글자색을 모든 상태에 같은
+        // 빨강으로 줘 **비활성이 비활성으로 보이지 않는다** — 멀쩡한 빨간
+        // `삭제` 를 눌러 보고 아무 일도 없는 것을 겪게 된다.
+        //
+        // 기본 템플릿은 저장된 행이 아니라 읽을 때 만들어지는 값이라 지울
+        // 것이 없고, 자기 템플릿을 하나라도 저장하면 저절로 사라진다. 할 수
+        // 없는 일을 굳이 내밀 이유가 없다.
+        if (onDelete case final VoidCallback delete)
+          AppMenuItem(
+            label: l.coachTemplateDelete,
+            icon: Icons.delete_outline_rounded,
+            destructive: true,
+            onSelected: delete,
+          ),
       ],
       triggerBuilder: (context, toggle) => AppIconButton(
         key: ValueKey<String>('template-menu-${template.id}'),

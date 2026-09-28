@@ -812,6 +812,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateExerciseRequired => '운동을 하나 이상 넣어 주세요';
 
   @override
+  String get coachTemplateExerciseNameRequired => '운동 이름을 적어 주세요';
+
+  @override
   String get coachTemplateSaveFailed => '템플릿을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
