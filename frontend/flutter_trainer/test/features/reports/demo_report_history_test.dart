@@ -4,7 +4,7 @@
 /// 미전송으로 섰다. 이 파일이 지키는 것:
 ///  * 오래된 회원은 이번 주 포함 열네 주(지난 주만 열세 주) 이력이 있다.
 ///  * 신규·적응 중 회원은 붙은 주보다 앞선 이력이 없다.
-///  * 피드백 글은 회원 목표를 말한다 — 한국어·영어 데모 둘 다.
+///  * 지난 주 기록도 본문을 비워 둔다 — 화면이 그 주 수치로 초안을 만든다(#2423).
 ///  * 같은 회원·같은 주·같은 오늘이면 언제 만들어도 같은 이력이다.
 ///  * 보낸 시각은 그 주 주말부터 다음 주 초 사이이고, 오늘을 넘지 않는다.
 ///  * 데모 저장소가 지난 주 이력을 돌려주고, 실행 중에 보낸 것이 이긴다.
@@ -33,76 +33,31 @@ final DateTime _today = DateTime(2026, 8, 20, 13);
 final DateTime _thisMonday = DateTime(2026, 8, 17);
 final DateTime _lastMonday = DateTime(2026, 8, 10);
 
-/// 데모 로스터의 목표(한국어 시드 그대로).
-const Map<String, String> _goals = <String, String>{
-  'seed-client-1': '체중 감량 · 혈압 관리',
-  'seed-client-2': '체중 감량 · 체력 강화',
-  'seed-client-3': '근력 향상',
-  'seed-client-4': '체력 강화 · 재활',
-  'seed-client-5': '체력 강화',
-  'seed-client-6': '체중 감량',
-  'seed-client-7': '자세 교정',
-  'seed-client-8': '혈압 관리',
-  'seed-client-9': '체력 강화 · 운동 습관',
-  'seed-client-10': '재활',
-  'seed-client-11': '식습관 개선 · 운동 습관',
-  'seed-client-12': '체력 강화',
-  'seed-client-13': '근력 향상 · 식습관 개선',
-  'seed-client-14': '식습관 개선',
-  'seed-client-15': '운동 습관',
-};
+/// 데모 로스터.
+final List<String> _ids = <String>[
+  for (int i = 1; i <= 15; i++) 'seed-client-$i',
+];
 
 /// 신규·적응 중 회원.
 const Set<String> _newcomers = <String>{'seed-client-7', 'seed-client-15'};
 
-/// 목표마다 글에 반드시 나오는 말 — 한국어·영어.
-const Map<DemoReportGoal, List<String>> _goalWords =
-    <DemoReportGoal, List<String>>{
-      DemoReportGoal.weightLoss: <String>['감량', 'weight'],
-      DemoReportGoal.strength: <String>['근력', 'strength'],
-      DemoReportGoal.bloodPressure: <String>['혈압', 'blood'],
-      DemoReportGoal.rehab: <String>['재활', 'rehab'],
-      DemoReportGoal.posture: <String>['자세', 'posture'],
-      DemoReportGoal.eatingHabits: <String>['식습관', 'eating'],
-      DemoReportGoal.exerciseHabit: <String>['운동 습관', 'exercise habit'],
-      DemoReportGoal.fitness: <String>['체력', 'fitness'],
-    };
-
-bool _mentions(String message, DemoReportGoal goal) {
-  final String lower = message.toLowerCase();
-  return _goalWords[goal]!.any(lower.contains);
-}
-
-List<DemoReportWeek> _history(
-  String id, {
-  DateTime? today,
-  DemoLanguage language = DemoLanguage.ko,
-}) => demoReportHistoryFor(
-  clientId: id,
-  goal: _goals[id]!,
-  language: language,
-  today: today ?? _today,
-);
+List<DemoReportWeek> _history(String id, {DateTime? today}) =>
+    demoReportHistoryFor(clientId: id, today: today ?? _today);
 
 List<DemoReportMember> get _roster => <DemoReportMember>[
-  for (final MapEntry<String, String> e in _goals.entries)
-    (id: e.key, goal: e.value),
+  for (final String id in _ids) (id: id),
 ];
 
-LocalReportRepository _local(
-  AppDatabase db, {
-  DemoLanguage language = DemoLanguage.ko,
-}) => LocalReportRepository(
+LocalReportRepository _local(AppDatabase db) => LocalReportRepository(
   DriftScheduleRepository(db),
   DriftChatRepository(db),
   db,
-  language: language,
 );
 
 void main() {
   group('demoReportHistoryFor — 주 수와 가입 시점', () {
     test('오래된 회원은 이번 주 포함 열네 주, 지난 주만 열세 주 이상이다', () {
-      for (final String id in _goals.keys) {
+      for (final String id in _ids) {
         if (_newcomers.contains(id)) continue;
         final List<DemoReportWeek> weeks = _history(id);
         expect(weeks, hasLength(demoReportHistoryWeeks), reason: id);
@@ -166,16 +121,12 @@ void main() {
 
     test('데모 로스터가 아닌 회원은 이력이 없다', () {
       expect(
-        demoReportHistoryFor(
-          clientId: 'user-7d4e9a2c5f18',
-          goal: '체중 감량',
-          today: _today,
-        ),
+        demoReportHistoryFor(clientId: 'user-7d4e9a2c5f18', today: _today),
         isEmpty,
       );
       expect(
         demoSentReportsForWeek(
-          roster: <DemoReportMember>[(id: 'c1', goal: '체력 강화')],
+          roster: <DemoReportMember>[(id: 'c1')],
           weekStart: _lastMonday,
           today: _today,
         ),
@@ -186,7 +137,7 @@ void main() {
 
   group('demoReportHistoryFor — 이번 주', () {
     test('이번 주 줄은 작업대 데모 명단과 같다', () {
-      for (final String id in _goals.keys) {
+      for (final String id in _ids) {
         final DemoReportWeek current = _history(id).first;
         final bool listed = demoSentReports.any((d) => d.clientId == id);
         expect(current.sent, listed, reason: id);
@@ -242,7 +193,7 @@ void main() {
 
   group('demoReportHistoryFor — 전송 시각·열람', () {
     test('지난 주 리포트는 그 주 토요일부터 다음 주 화요일 사이에 나갔다', () {
-      for (final String id in _goals.keys) {
+      for (final String id in _ids) {
         for (final DemoReportWeek w in _history(id).skip(1)) {
           final ReportSendRecord? r = w.record;
           if (r == null) continue;
@@ -266,7 +217,7 @@ void main() {
 
     test('월요일 아침에 열어도 지난 주 기록이 아직 오지 않은 시각에 서지 않는다', () {
       final DateTime mondayMorning = DateTime(2026, 8, 17, 7);
-      for (final String id in _goals.keys) {
+      for (final String id in _ids) {
         for (final DemoReportWeek w in _history(
           id,
           today: mondayMorning,
@@ -280,7 +231,7 @@ void main() {
 
     test('일부 주는 미전송·안 읽음으로 남는다', () {
       final List<DemoReportWeek> past = <DemoReportWeek>[
-        for (final String id in _goals.keys) ..._history(id).skip(1),
+        for (final String id in _ids) ..._history(id).skip(1),
       ];
       expect(past.where((w) => !w.sent), isNotEmpty);
       expect(past.where((w) => w.sent && !w.record!.read), isNotEmpty);
@@ -318,7 +269,7 @@ void main() {
 
   group('demoReportHistoryFor — 결정성', () {
     test('같은 입력이면 같은 이력이다', () {
-      for (final String id in _goals.keys) {
+      for (final String id in _ids) {
         final List<DemoReportWeek> a = _history(id);
         final List<DemoReportWeek> b = _history(id);
         expect(a.length, b.length);
@@ -343,14 +294,6 @@ void main() {
       }
     });
 
-    test('주마다 글이 달라진다 — 한 회원이 같은 글만 받지 않는다', () {
-      final Set<String> messages = <String>{
-        for (final DemoReportWeek w in _history('seed-client-1').skip(1))
-          if (w.sent) w.record!.message,
-      };
-      expect(messages.length, greaterThan(1));
-    });
-
     test('회원별 보낸 시각이 한 시각으로 몰리지 않는다', () {
       final Set<DateTime> times = <DateTime>{
         for (final ReportSendRecord r in demoSentReportsForWeek(
@@ -364,101 +307,36 @@ void main() {
     });
   });
 
-  group('demoReportGoalsOf · demoReportMessage — 목표별 문구', () {
-    test('목표 문구를 적힌 순서대로 읽는다 — 한국어·영어', () {
-      expect(demoReportGoalsOf('체중 감량 · 혈압 관리'), <DemoReportGoal>[
-        DemoReportGoal.weightLoss,
-        DemoReportGoal.bloodPressure,
-      ]);
-      expect(demoReportGoalsOf('체력 강화 · 운동 습관'), <DemoReportGoal>[
-        DemoReportGoal.fitness,
-        DemoReportGoal.exerciseHabit,
-      ]);
-      expect(demoReportGoalsOf('Strength · Eating habits'), <DemoReportGoal>[
-        DemoReportGoal.strength,
-        DemoReportGoal.eatingHabits,
-      ]);
-      expect(demoReportGoalsOf('Posture correction'), <DemoReportGoal>[
-        DemoReportGoal.posture,
-      ]);
-      expect(demoReportGoalsOf('Fitness · Rehab'), <DemoReportGoal>[
-        DemoReportGoal.fitness,
-        DemoReportGoal.rehab,
-      ]);
-      expect(demoReportGoalsOf(''), isEmpty);
-    });
-
-    test('어느 주의 글이든 회원의 목표를 모두 말한다', () {
-      for (final String id in _goals.keys) {
-        final List<DemoReportGoal> goals = demoReportGoalsOf(_goals[id]!);
-        expect(goals, isNotEmpty, reason: '${_goals[id]} 를 못 읽었다');
+  group('지난 주 본문 — 그 주 수치로 만든 초안 (#2423)', () {
+    test('모든 회원의 모든 지난 주 기록은 본문을 비워 둔다', () {
+      // 목표에 맞춘 고정 문장을 깔아 두면, 칼로리를 매일 넘긴 주에도 "잘하고
+      // 계세요" 가 남는다. 비워 두면 화면이 그 주 수치로 초안을 만든다.
+      int sent = 0;
+      for (final String id in _ids) {
         for (final DemoReportWeek w in _history(id).skip(1)) {
           if (!w.sent) continue;
-          for (final DemoReportGoal g in goals) {
-            expect(
-              _mentions(w.record!.message, g),
-              isTrue,
-              reason: '$id ${w.weekStart}: ${w.record!.message}',
-            );
-          }
+          sent++;
+          expect(w.record!.message, isEmpty, reason: '$id ${w.weekStart}');
         }
       }
+      expect(sent, greaterThan(_ids.length), reason: '지난 주 기록이 있어야 한다');
     });
 
-    test('목표마다 모든 변형이 그 목표를 말한다 — 한국어·영어', () {
-      for (final DemoReportGoal g in DemoReportGoal.values) {
-        for (final DemoLanguage language in DemoLanguage.values) {
-          for (int variant = 0; variant < 60; variant++) {
-            final String goal = switch ((g, language)) {
-              (DemoReportGoal.weightLoss, DemoLanguage.ko) => '체중 감량',
-              (DemoReportGoal.weightLoss, DemoLanguage.en) => 'Weight loss',
-              (DemoReportGoal.strength, DemoLanguage.ko) => '근력 향상',
-              (DemoReportGoal.strength, DemoLanguage.en) => 'Strength',
-              (DemoReportGoal.bloodPressure, DemoLanguage.ko) => '혈압 관리',
-              (DemoReportGoal.bloodPressure, DemoLanguage.en) =>
-                'Blood pressure',
-              (DemoReportGoal.rehab, DemoLanguage.ko) => '재활',
-              (DemoReportGoal.rehab, DemoLanguage.en) => 'Rehab',
-              (DemoReportGoal.posture, DemoLanguage.ko) => '자세 교정',
-              (DemoReportGoal.posture, DemoLanguage.en) => 'Posture correction',
-              (DemoReportGoal.eatingHabits, DemoLanguage.ko) => '식습관 개선',
-              (DemoReportGoal.eatingHabits, DemoLanguage.en) => 'Eating habits',
-              (DemoReportGoal.exerciseHabit, DemoLanguage.ko) => '운동 습관',
-              (DemoReportGoal.exerciseHabit, DemoLanguage.en) =>
-                'Exercise habit',
-              (DemoReportGoal.fitness, DemoLanguage.ko) => '체력 강화',
-              (DemoReportGoal.fitness, DemoLanguage.en) => 'Fitness',
-            };
-            final String message = demoReportMessage(
-              goal: goal,
-              language: language,
-              variant: variant,
-            );
-            expect(_mentions(message, g), isTrue, reason: message);
-          }
-        }
+    test('작업대가 읽는 지난 주 기록도 본문이 비어 있다', () {
+      final List<ReportSendRecord> records = demoSentReportsForWeek(
+        roster: _roster,
+        weekStart: _lastMonday,
+        today: _today,
+      );
+      expect(records, isNotEmpty);
+      expect(records.where((r) => r.message.isNotEmpty), isEmpty);
+    });
+
+    test('이번 주 기록과 같은 규칙이다', () {
+      for (final String id in _ids) {
+        final DemoReportWeek current = _history(id).first;
+        if (current.sent) expect(current.record!.message, isEmpty);
       }
-    });
-
-    test('영어 데모는 영어 글을, 한국어 데모는 한국어 글을 싣는다', () {
-      final RegExp hangul = RegExp('[가-힣]');
-      final String en = demoReportMessage(
-        goal: 'Weight loss · Blood pressure',
-        language: DemoLanguage.en,
-      );
-      final String ko = demoReportMessage(
-        goal: '체중 감량 · 혈압 관리',
-        language: DemoLanguage.ko,
-      );
-      expect(hangul.hasMatch(en), isFalse, reason: en);
-      expect(hangul.hasMatch(ko), isTrue, reason: ko);
-    });
-
-    test('모르는 목표에도 빈 글을 보내지 않는다', () {
-      expect(
-        demoReportMessage(goal: '마라톤 완주', language: DemoLanguage.ko),
-        isNotEmpty,
-      );
     });
   });
 
@@ -490,11 +368,8 @@ void main() {
       );
       for (final ReportSendRecord r in records) {
         expect(r.weekStart, _lastMonday);
-        // 로스터의 목표로 쓴 글이다 — 빈 본문이 아니다.
-        expect(r.message, isNotEmpty);
-        for (final DemoReportGoal g in demoReportGoalsOf(_goals[r.clientId]!)) {
-          expect(_mentions(r.message, g), isTrue, reason: r.message);
-        }
+        // 본문은 비어 있다 — 화면이 그 주 수치로 초안을 만든다(#2423).
+        expect(r.message, isEmpty);
       }
     });
 
@@ -532,19 +407,15 @@ void main() {
       expect(mine.single.sentAt, _today);
     });
 
-    test('영어 데모는 영어 로스터 목표로 영어 글을 싣는다', () async {
+    test('영어 데모도 본문을 비워 두어 화면 언어로 초안이 선다', () async {
       await seedIfEmpty(db, clock: _today, language: DemoLanguage.en);
 
       final List<ReportSendRecord> records = await _local(
         db,
-        language: DemoLanguage.en,
       ).sentReports(weekStart: _lastMonday);
 
       expect(records, isNotEmpty);
-      final RegExp hangul = RegExp('[가-힣]');
-      for (final ReportSendRecord r in records) {
-        expect(hangul.hasMatch(r.message), isFalse, reason: r.message);
-      }
+      expect(records.where((r) => r.message.isNotEmpty), isEmpty);
     });
 
     test('같은 DB 로 다시 물어도(새로고침) 같은 이력이다', () async {

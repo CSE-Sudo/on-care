@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 from datetime import date as _date
 from datetime import datetime, timezone
 from pathlib import PurePath
@@ -29,6 +30,7 @@ from app.core.rate_limit import limiter, rate_limit
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models.models import (
+    AccountDeletionReason,
     ChatMessage,
     ExerciseSession,
     HealthProfile,
@@ -59,6 +61,7 @@ from app.schemas.consultation_api import (
     ConsultationStatusFilter,
     TrainerConsultationOut,
 )
+from app.schemas.user import AccountDeleteRequest
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
     ClientCoachRequest, ClientDietEntryOut,
@@ -292,16 +295,44 @@ def trainer_change_password(
     return {"status": "changed"}
 
 
+#: 트레이너 탈퇴 화면이 보여 주는 사유(#2264). 회원 사유(`DELETION_REASONS`)와 같은
+#: 표에 남기되 `trainer_` 를 붙여 섞이지 않게 한다 — 표에는 누가 썼는지 없으니
+#: 코드만으로 회원·트레이너를 가를 수 있어야 한다. 모르는 값은 버린다.
+TRAINER_DELETION_REASONS: frozenset[str] = frozenset(
+    {
+        "rarely_used",
+        "hard_to_use",
+        "missing_feature",
+        "leaving_work",
+        "found_alternative",
+        "other",
+    }
+)
+
+
 @router.delete("/trainer/me")
 def trainer_delete_me(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """트레이너 탈퇴. 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다. (#505)
 
     회원 탈퇴(`DELETE /users/me`)와 대칭이다. 담당 회원이 남아 있어도 막지 않는다 —
     막으면 담당이 있는 트레이너는 계정을 영영 지울 수 없다.
+
+    고른 사유가 있으면 회원 탈퇴와 같은 표에 계정과 잇지 않고 남긴다(#2264).
+    사유는 없어도 된다 — 탈퇴를 막는 조건이 아니라 물어보는 자리다.
     """
+    for reason in sorted(
+        set(payload.reasons if payload else []) & TRAINER_DELETION_REASONS
+    ):
+        db.add(
+            AccountDeletionReason(
+                id=f"del-{uuid.uuid4().hex[:12]}",
+                reason=f"trainer_{reason}",
+            )
+        )
     trainer_service.delete_trainer_account(db, trainer)
     return {"status": "deleted"}
 

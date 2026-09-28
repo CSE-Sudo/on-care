@@ -52,11 +52,10 @@ const int summaryMaxActions = 2;
 
 /// 하루 목표의 기본값 — 회원이 적어 둔 목표가 있으면 그쪽이 먼저다(#1430).
 const int summaryCalorieTargetKcal = calorieTargetKcal;
-const double summarySugarTargetG = 50;
+const double summarySugarTargetG = sugarLimitG;
 
-/// 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
-/// 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 백엔드와 같은 값이다.
-const double summaryCalorieTolerance = 0.15;
+/// 칼로리 허용 폭 — [WeeklyReport.isGoodWeek] 와 같은 값을 쓴다(#2422).
+const double summaryCalorieTolerance = calorieTolerance;
 
 /// 당류를 이 날 수보다 많이 넘겼으면 주의로 본다 — 나트륨과 같은 규칙.
 const int summarySugarOverDays = 2;
