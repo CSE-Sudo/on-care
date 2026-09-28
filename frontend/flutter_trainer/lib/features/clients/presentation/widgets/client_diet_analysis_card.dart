@@ -341,27 +341,14 @@ class _Question extends StatelessWidget {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        _Menu(
-          slot: candidate.slot,
-          name: candidate.name,
-          keyword: candidate.keyword,
-          candidate: candidate,
-        ),
-        if (failed) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
-          Text(
-            l.clientDietRecConfirmFailed,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.danger),
+        _WithActions(
+          content: _Menu(
+            slot: candidate.slot,
+            name: candidate.name,
+            keyword: candidate.keyword,
+            candidate: candidate,
           ),
-        ],
-        const SizedBox(height: OnCareSpacing.s12),
-        Wrap(
-          alignment: WrapAlignment.end,
-          spacing: OnCareSpacing.s8,
-          runSpacing: OnCareSpacing.s8,
-          children: <Widget>[
+          actions: <Widget>[
             AppButton(
               key: const ValueKey<String>('diet-recommendation-no'),
               label: l.clientDietRecNo,
@@ -378,6 +365,15 @@ class _Question extends StatelessWidget {
             ),
           ],
         ),
+        if (failed) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            l.clientDietRecConfirmFailed,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.danger),
+          ),
+        ],
       ],
     );
   }
@@ -397,32 +393,69 @@ class _Exhausted extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(l.clientDietRecExhausted(count), style: _line(context)),
-        const SizedBox(height: OnCareSpacing.s12),
-        Wrap(
-          alignment: WrapAlignment.end,
-          spacing: OnCareSpacing.s8,
-          runSpacing: OnCareSpacing.s8,
-          children: <Widget>[
-            AppButton(
-              key: const ValueKey<String>('diet-recommendation-restart'),
-              label: l.clientDietRecRestart,
-              onPressed: onRestart,
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-            ),
-            AppButton(
-              key: const ValueKey<String>('diet-recommendation-more'),
-              label: l.clientDietRecMore,
-              onPressed: onMore,
-              size: OnCareButtonSize.small,
-            ),
-          ],
+    return _WithActions(
+      content: Text(l.clientDietRecExhausted(count), style: _line(context)),
+      actions: <Widget>[
+        AppButton(
+          key: const ValueKey<String>('diet-recommendation-restart'),
+          label: l.clientDietRecRestart,
+          onPressed: onRestart,
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
+        ),
+        AppButton(
+          key: const ValueKey<String>('diet-recommendation-more'),
+          label: l.clientDietRecMore,
+          onPressed: onMore,
+          size: OnCareButtonSize.small,
         ),
       ],
+    );
+  }
+}
+
+/// 내용 오른쪽 끝에 버튼을 한 줄로 — 좁으면 버튼을 아래 줄 오른쪽으로 내린다.
+///
+/// 버튼만 따로 한 줄을 차지하면 카드가 그만큼 길어지고, 무엇에 대한 `예`·`아니오`
+/// 인지가 한 줄 떨어져 읽힌다.
+class _WithActions extends StatelessWidget {
+  const _WithActions({required this.content, required this.actions});
+
+  final Widget content;
+  final List<Widget> actions;
+
+  /// 이보다 좁으면 버튼을 아래 줄로 — 메뉴 이름·키워드가 버튼에 밀려 여러 줄로
+  /// 쪼개지지 않을 폭이다.
+  static const double _oneLineMinWidth = 480;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget buttons = Wrap(
+      alignment: WrapAlignment.end,
+      spacing: OnCareSpacing.s8,
+      runSpacing: OnCareSpacing.s8,
+      children: actions,
+    );
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) {
+        if (c.maxWidth < _oneLineMinWidth) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              content,
+              const SizedBox(height: OnCareSpacing.s12),
+              buttons,
+            ],
+          );
+        }
+        return Row(
+          children: <Widget>[
+            Expanded(child: content),
+            const SizedBox(width: OnCareSpacing.s12),
+            buttons,
+          ],
+        );
+      },
     );
   }
 }
