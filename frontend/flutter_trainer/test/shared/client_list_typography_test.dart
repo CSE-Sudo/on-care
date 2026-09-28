@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -67,12 +68,12 @@ void main() {
     tester.element(find.byKey(ValueKey<String>(rowKey))),
   ).extension<OnCareTokens>()!;
 
-  /// [rowKey] 행 안 [AppAvatar] 의 지름.
+  /// [rowKey] 행 안 [ClientAvatar] 의 지름.
   double appAvatarSizeIn(WidgetTester tester, String rowKey) {
     final Finder row = find.byKey(ValueKey<String>(rowKey));
     return tester
-        .widget<AppAvatar>(
-          find.descendant(of: row, matching: find.byType(AppAvatar)),
+        .widget<ClientAvatar>(
+          find.descendant(of: row, matching: find.byType(ClientAvatar)),
         )
         .size
         .dimension;
@@ -83,7 +84,7 @@ void main() {
     final Finder row = find.byKey(ValueKey<String>(rowKey));
     final Finder avatar = find.descendant(
       of: row,
-      matching: find.byType(AppAvatar),
+      matching: find.byType(ClientAvatar),
     );
     final Finder surface = find
         .descendant(of: row, matching: find.byType(Material))
@@ -152,9 +153,9 @@ void main() {
     expect(find.descendant(of: row, matching: find.text(goal)), findsOneWidget);
     final Finder avatar = find.descendant(
       of: row,
-      matching: find.byType(AppAvatar),
+      matching: find.byType(ClientAvatar),
     );
-    expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.medium);
+    expect(tester.widget<ClientAvatar>(avatar).size, AppAvatarSize.medium);
     expectAvatarCentered(tester, 'report-client-type-a');
   });
 

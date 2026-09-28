@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/reports/domain/member_report_history.dar
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/pages/reports_page.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_send_preview.dart';
@@ -26,6 +27,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
+import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
@@ -1626,21 +1628,69 @@ void main() {
     expect(pageWidth(), before);
   });
 
-  testWidgets('직접 작성하기 바로가기는 입력창이 있는 ② 로 간다 (#2402)', (tester) async {
-    await openReports(tester);
+  group('편집기 머리 (#2449)', () {
+    Finder historyButton() =>
+        find.byKey(const ValueKey<String>('reports-editor-history'));
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('report-skip-to-write')),
-    );
-    await settle(tester);
+    testWidgets('초안 없이 직접 쓰기 버튼이 없다', (tester) async {
+      await openReports(tester);
 
-    expect(preview, findsNothing);
-    expect(feedbackField, findsOneWidget);
-    expect(tester.widget<TextField>(feedbackField).controller!.text, isEmpty);
-    // 빈 글로는 ③ 에서도 보낼 수 없다.
-    await step(tester, 'next');
-    expect(preview, findsOneWidget);
-    expect(sendEnabled(tester), isFalse);
+      expect(
+        find.byKey(const ValueKey<String>('report-skip-to-write')),
+        findsNothing,
+      );
+      expect(find.text('초안 없이 직접 쓰기'), findsNothing);
+    });
+
+    testWidgets('지난 리포트는 예약 슬롯과 같은 네이비 외곽선 버튼이다', (tester) async {
+      await openReports(tester);
+
+      final AppButton button = tester.widget<AppButton>(historyButton());
+      expect(button.variant, AppButtonVariant.strongOutline);
+      expect(button.leadingIcon, isNotNull);
+      expect(button.label, '지난 리포트');
+    });
+
+    testWidgets('지난 리포트는 머리 줄 맨 오른쪽에 선다', (tester) async {
+      await openReports(tester);
+
+      final Rect history = tester.getRect(historyButton());
+      final Rect back = tester.getRect(
+        find.byKey(const ValueKey<String>('reports-back-to-list')),
+      );
+      expect(history.left, greaterThan(back.right));
+      // 같은 줄이다.
+      expect((history.center.dy - back.center.dy).abs(), lessThan(8));
+      // 편집기 오른쪽 끝에 붙는다 — 단계 표시줄의 마지막 원보다 오른쪽.
+      final Rect lastStep = tester.getRect(
+        find.byKey(const ValueKey<String>('report-stage-2')),
+      );
+      expect(history.right, greaterThan(lastStep.right));
+    });
+
+    testWidgets('단계 원 사이가 공용 기본 간격의 두 배다', (tester) async {
+      await openReports(tester);
+
+      final double centers =
+          tester
+              .getCenter(find.byKey(const ValueKey<String>('report-stage-1')))
+              .dx -
+          tester
+              .getCenter(find.byKey(const ValueKey<String>('report-stage-0')))
+              .dx;
+      expect(
+        centers - OnCareSize.avatarMedium,
+        closeTo(ProgressStepper.defaultGap * 2, 0.01),
+      );
+      expect(reportStepperGap, ProgressStepper.defaultGap * 2);
+    });
+
+    testWidgets('좁은 창에서도 머리 줄이 넘치지 않는다', (tester) async {
+      await openReports(tester, size: const Size(700, 1000));
+
+      expect(tester.takeException(), isNull);
+      expect(historyButton(), findsOneWidget);
+    });
   });
 
   testWidgets('③ 의 전송 버튼은 글이 있을 때만 켜진다 — 미리보기 상태와 무관하다 (#2402)', (
