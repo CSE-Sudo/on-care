@@ -490,6 +490,31 @@ void main() {
       );
     });
 
+    testWidgets('#2373 회원 현황 아래에 규칙으로 정한 권장 방향 한 줄이 선다', (tester) async {
+      await pumpFlow(tester);
+      await tester.pumpAndSettle();
+
+      // 테스트 회원: 완료율 80%, 식단 초과 없음 → 유지.
+      final Finder row = find.byKey(
+        const ValueKey<String>('ai-analysis-direction'),
+      );
+      expect(
+        find.descendant(of: row, matching: find.text('권장 방향')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: row, matching: find.text('현재 강도 유지')),
+        findsOneWidget,
+      );
+
+      // 다섯째 줄이 붙어도 왼쪽 사실 칸은 오른쪽 고정 높이 칸 안에 들어온다
+      // — 넘치면 카드가 자라 생성 버튼이 밀린다(#1655).
+      final Rect memos = tester.getRect(
+        find.byKey(const ValueKey<String>('ai-chat-insight-memos')),
+      );
+      expect(tester.getRect(row).bottom, lessThanOrEqualTo(memos.bottom));
+    });
+
     testWidgets('PT + 개인운동은 조건 설정 → 프로그램 선택 → 프로그램 검토 → 개인운동 '
         '네 단계다 (#2223)', (tester) async {
       await pumpFlow(tester);

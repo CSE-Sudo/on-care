@@ -2852,6 +2852,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSugarAlsoOver => ' · sugar also over';
 
   @override
+  String get aiDirectionLabel => 'Direction';
+
+  @override
+  String get aiDirectionLower => 'Lower intensity — recent completion is low';
+
+  @override
+  String get aiDirectionCardio => 'More cardio — sodium is often over target';
+
+  @override
+  String get aiDirectionLowerAndCardio => 'Lower intensity · more cardio';
+
+  @override
+  String get aiDirectionKeep => 'Keep current intensity';
+
+  @override
+  String get aiDirectionNoData => 'Not enough records yet';
+
+  @override
   String get aiBasisRuleBased => ' · rule-based';
 
   @override
