@@ -50,7 +50,7 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {}
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {}
 }
 
 Future<_FakeAccountRepository> _openDialog(
@@ -61,7 +61,8 @@ Future<_FakeAccountRepository> _openDialog(
   await pumpTrainerApp(
     tester,
     token: 'demo-token',
-    at: AppRoutes.mySection('settings'),
+    // 비밀번호 변경은 설정 › 계정에 있다(#2264).
+    at: AppRoutes.mySection('account'),
     extraOverrides: <Override>[
       trainerAccountRepositoryProvider.overrideWithValue(repo),
     ],
