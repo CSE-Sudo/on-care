@@ -2894,12 +2894,6 @@ abstract class AppLocalizations {
   /// **'Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.'**
   String reportBodySodiumOk(String avg, String target);
 
-  /// No description provided for @reportBodyCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day.'**
-  String reportBodyCalories(String avg);
-
   /// No description provided for @reportBodyPraise.
   ///
   /// In en, this message translates to:
@@ -2909,7 +2903,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyEncourage.
   ///
   /// In en, this message translates to:
-  /// **'Let\'s focus on just that one thing next week. I\'ll adjust your program and send it over.'**
+  /// **'Take those one at a time and you\'ll see it come together. I\'ll adjust your program and send it over.'**
   String get reportBodyEncourage;
 
   /// No description provided for @reportBodyNoRecords.
@@ -2917,6 +2911,167 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'There\'s nothing logged for this week, so nothing to sum up. Let\'s plan next week\'s start together.'**
   String get reportBodyNoRecords;
+
+  /// No description provided for @reportBodySessionsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You made all {booked} of your booked PT sessions.'**
+  String reportBodySessionsAll(int booked);
+
+  /// No description provided for @reportBodySessionsSome.
+  ///
+  /// In en, this message translates to:
+  /// **'You made {done} of your {booked} booked PT sessions.'**
+  String reportBodySessionsSome(int booked, int done);
+
+  /// No description provided for @reportBodySessionsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'There were no PT sessions this week.'**
+  String get reportBodySessionsNone;
+
+  /// No description provided for @reportBodyExerciseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished {done} of the {total} assigned exercises.'**
+  String reportBodyExerciseCount(int total, int done);
+
+  /// No description provided for @reportBodyMealDaysAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You logged your meals on all {total} days.'**
+  String reportBodyMealDaysAll(int total);
+
+  /// No description provided for @reportBodyMealDays.
+  ///
+  /// In en, this message translates to:
+  /// **'You logged your meals on {days} of {total} days.'**
+  String reportBodyMealDays(int total, int days);
+
+  /// No description provided for @reportBodyCaloriesOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.'**
+  String reportBodyCaloriesOver(
+    String avg,
+    String target,
+    String pct,
+    int days,
+  );
+
+  /// No description provided for @reportBodyCaloriesUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.'**
+  String reportBodyCaloriesUnder(String avg, String target, String pct);
+
+  /// No description provided for @reportBodyCaloriesNearOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.'**
+  String reportBodyCaloriesNearOver(String avg, String target, int days);
+
+  /// No description provided for @reportBodyCaloriesOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — right around your {target}kcal target.'**
+  String reportBodyCaloriesOk(String avg, String target);
+
+  /// No description provided for @reportBodySugarOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.'**
+  String reportBodySugarOver(String avg, String target, int days);
+
+  /// No description provided for @reportBodySugarOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar averaged {avg}g a day, inside the {target}g limit.'**
+  String reportBodySugarOk(String avg, String target);
+
+  /// No description provided for @reportBodyMemberPain.
+  ///
+  /// In en, this message translates to:
+  /// **'You mentioned pain in your {area}. Let me know how it feels before the next session — I\'ll ease off that area.'**
+  String reportBodyMemberPain(String area);
+
+  /// No description provided for @reportBodyMemberTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'You said the workouts felt too hard, so I\'ll drop next week\'s intensity a notch.'**
+  String get reportBodyMemberTooHard;
+
+  /// No description provided for @reportBodyMemberTooEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'You said the workouts felt easy, so I\'ll raise next week\'s intensity a notch.'**
+  String get reportBodyMemberTooEasy;
+
+  /// No description provided for @reportBodyMemberNoted.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for the weekly check-in — I read it.'**
+  String get reportBodyMemberNoted;
+
+  /// No description provided for @reportBodyNextWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Here\'s the plan for next week.'**
+  String get reportBodyNextWeek;
+
+  /// No description provided for @reportTipCaloriesOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut dinner carbs to about two-thirds and switch snacks to protein.'**
+  String get reportTipCaloriesOver;
+
+  /// No description provided for @reportTipCaloriesUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t skip meals, and add one protein snack on workout days.'**
+  String get reportTipCaloriesUnder;
+
+  /// No description provided for @reportTipSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep sweet drinks and desserts to once a day.'**
+  String get reportTipSugar;
+
+  /// No description provided for @reportTipSodium.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep takeout and processed foods to twice a week.'**
+  String get reportTipSodium;
+
+  /// No description provided for @reportTipWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Aim to get three workouts in first, even if each is only 20 minutes.'**
+  String get reportTipWorkout;
+
+  /// No description provided for @reportTipMeals.
+  ///
+  /// In en, this message translates to:
+  /// **'Log every meal, even with just a photo, so I can give you sharper feedback.'**
+  String get reportTipMeals;
+
+  /// No description provided for @reportTipSessionsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s book next week\'s PT sessions together now.'**
+  String get reportTipSessionsNone;
+
+  /// No description provided for @reportTipSessionsMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll set up make-up slots next week for the sessions we missed.'**
+  String get reportTipSessionsMissed;
+
+  /// No description provided for @reportTipKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the current routine as it is, and I\'ll raise the intensity step by step.'**
+  String get reportTipKeep;
 
   /// No description provided for @schedTitle.
   ///
@@ -4658,12 +4813,6 @@ abstract class AppLocalizations {
   /// **'Back to suggestions'**
   String get coachBackToList;
 
-  /// No description provided for @coachReviewed.
-  ///
-  /// In en, this message translates to:
-  /// **'AI-generated, reviewed by you'**
-  String get coachReviewed;
-
   /// No description provided for @coachTrainerAdded.
   ///
   /// In en, this message translates to:
@@ -4907,7 +5056,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAnalysedData.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed the workout goal, recent activity, and today\'s nutrition'**
+  /// **'Member status'**
   String get aiAnalysedData;
 
   /// No description provided for @aiGoal.
@@ -4964,6 +5113,42 @@ abstract class AppLocalizations {
   /// **' · sugar also over'**
   String get aiSugarAlsoOver;
 
+  /// No description provided for @aiDirectionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Direction'**
+  String get aiDirectionLabel;
+
+  /// No description provided for @aiDirectionLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower intensity — recent completion is low'**
+  String get aiDirectionLower;
+
+  /// No description provided for @aiDirectionCardio.
+  ///
+  /// In en, this message translates to:
+  /// **'More cardio — sodium is often over target'**
+  String get aiDirectionCardio;
+
+  /// No description provided for @aiDirectionLowerAndCardio.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower intensity · more cardio'**
+  String get aiDirectionLowerAndCardio;
+
+  /// No description provided for @aiDirectionKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep current intensity'**
+  String get aiDirectionKeep;
+
+  /// No description provided for @aiDirectionNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough records yet'**
+  String get aiDirectionNoData;
+
   /// No description provided for @aiBasisRuleBased.
   ///
   /// In en, this message translates to:
@@ -5015,7 +5200,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiReviewedSuggestion.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed · AI suggestion ({option})'**
+  /// **'Confirmed plan · {option}'**
   String aiReviewedSuggestion(String option);
 
   /// No description provided for @aiEditsApplied.
@@ -5075,7 +5260,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiStepDone.
   ///
   /// In en, this message translates to:
-  /// **'Final review'**
+  /// **'Program review'**
   String get aiStepDone;
 
   /// No description provided for @aiSkipPtProgram.
@@ -5351,7 +5536,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiInsightMemoTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI insights (last 7 days)'**
+  /// **'Needs attention (last 7 days)'**
   String get aiInsightMemoTitle;
 
   /// No description provided for @aiInsightMemoEmpty.
@@ -7305,12 +7490,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Distance m'**
   String get programEditorDistance;
-
-  /// No description provided for @programEditorExerciseMemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Memo'**
-  String get programEditorExerciseMemo;
 
   /// No description provided for @reportsComparisonTitle.
   ///

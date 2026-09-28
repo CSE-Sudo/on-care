@@ -151,10 +151,67 @@ class WeeklyReport {
   /// Whether the week is worth celebrating — drives the headline's tone.
   /// An unknown figure is not a good one: praise has to be earned by
   /// data we actually have.
+  ///
+  /// 식단은 나트륨만 보지 않는다 — 칼로리가 매일 목표를 넘은 주에 "정말
+  /// 잘하셨어요" 로 끝나던 초안이 그렇게 생겼다(#2422). 기록이 없는 지표는
+  /// 판정에서 빠진다: 모르는 값으로 칭찬을 막지도, 허락하지도 않는다.
   bool get isGoodWeek =>
       (completionAvg ?? 0) >= goodCompletionThreshold &&
-      (sodiumOverDays ?? 99) <= 2;
+      (sodiumOverDays ?? 99) <= 2 &&
+      !caloriesOffTarget &&
+      !sugarOverLimit;
+
+  /// 칼로리 판정에 쓰는 하루 목표 — 회원 목표가 없으면 공통 기본값.
+  int get calorieGoal => calorieTarget ?? calorieTargetKcal;
+
+  /// 기록된 날의 하루 평균 칼로리. 기록이 없으면 null.
+  double? get calorieMean => recordedMean(caloriesWeek);
+
+  /// 목표를 넘긴 날 수.
+  int get calorieOverDays => caloriesWeek.where((k) => k > calorieGoal).length;
+
+  /// 평균이 목표에서 벗어난 비율(+ 초과, - 부족). 기록이 없으면 null.
+  double? get calorieGap {
+    final mean = calorieMean;
+    if (mean == null || calorieGoal <= 0) return null;
+    return (mean - calorieGoal) / calorieGoal;
+  }
+
+  /// 칼로리가 목표를 벗어난 주인가. 평균이 허용 폭을 넘었거나, 평균은
+  /// 맞아도 주의 절반을 넘는 날이 목표를 넘겼으면 그렇다 — 며칠 폭식하고
+  /// 며칠 굶은 주가 평균만으로 `잘 맞춘 주` 가 되면 안 된다.
+  bool get caloriesOffTarget {
+    final gap = calorieGap;
+    if (gap == null) return false;
+    return gap.abs() > calorieTolerance || calorieOverDays > weekdayCount ~/ 2;
+  }
+
+  /// 당류 판정에 쓰는 하루 기준.
+  double get sugarLimit => sugarTarget ?? sugarLimitG;
+
+  /// 기록된 날의 하루 평균 당류. 기록이 없으면 null.
+  double? get sugarMean => recordedMean(sugarWeek);
+
+  /// 당류 기준을 넘긴 날 수.
+  int get sugarOverDays => sugarWeek.where((g) => g > sugarLimit).length;
+
+  /// 당류가 기준을 넘은 주인가 — 나트륨과 같은 규칙이다.
+  bool get sugarOverLimit {
+    final mean = sugarMean;
+    if (mean == null) return false;
+    return sugarOverDays > 2 || mean > sugarLimit;
+  }
+
+  /// 끼니를 하나라도 적은 날 수.
+  int get mealLoggedDays => mealCounts.where((n) => n > 0).length;
 }
+
+/// 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
+/// 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 백엔드와 같은 값이다.
+const double calorieTolerance = 0.15;
+
+/// 당류 하루 기준(g) — 회원 목표가 없을 때 쓴다.
+const double sugarLimitG = 50;
 
 /// Builds [client]'s report for the week starting [weekStart].
 ///
@@ -317,8 +374,50 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
     l.reportBodyGreeting(report.client.name, report.rangeLabel(l)),
   ];
 
+  final workout = _workoutSentences(l, report);
+  final diet = _dietSentences(l, report);
+  if (workout.isEmpty && diet.isEmpty) {
+    // 인사말만 남았으면 가리킬 '이 부분'이 없다. 기록이 없는 주에 격려부터
+    // 하면 회원이 무엇을 하라는 말인지 알 수 없다.
+    paragraphs.add(l.reportBodyNoRecords);
+    return paragraphs.join('\n\n');
+  }
+  if (workout.isNotEmpty) paragraphs.add(workout.join(' '));
+  if (diet.isNotEmpty) paragraphs.add(diet.join(' '));
+
+  final member = _memberFeedbackSentence(l, report.memberFeedback);
+  if (member != null) paragraphs.add(member);
+
+  // 다음 주 할 일은 그 주에 걸린 항목에서만 나온다. 판정과 제안이 같은 값을
+  // 보므로, 칼로리를 넘긴 주에 "지금 루틴 그대로" 가 나가지 않는다(#2422).
+  paragraphs.add(
+    <String>[l.reportBodyNextWeek, ..._nextWeekTips(l, report)].join(' '),
+  );
+  paragraphs.add(
+    report.isGoodWeek ? l.reportBodyPraise : l.reportBodyEncourage,
+  );
+  return paragraphs.join('\n\n');
+}
+
+/// 운동 문단 — PT 세션, 이행률, 개인 운동 개수, 빈 요일, 건너뛴 운동.
+List<String> _workoutSentences(AppLocalizations l, WeeklyReport report) {
   final workout = <String>[];
   final completion = report.completionAvg;
+  final hasWorkoutData = completion != null || _exerciseTotal(report) > 0;
+  // PT 는 운동 기록이 있는 주에만 말한다. 아무것도 남지 않은 주에 "PT 0회"
+  // 한 줄만 보내면 그 주를 정리한 글이 아니라 출석부가 된다.
+  if (hasWorkoutData || report.sessionsBooked > 0) {
+    workout.add(
+      report.sessionsBooked == 0
+          ? l.reportBodySessionsNone
+          : report.sessionsDone >= report.sessionsBooked
+          ? l.reportBodySessionsAll(report.sessionsBooked)
+          : l.reportBodySessionsSome(
+              report.sessionsBooked,
+              report.sessionsDone,
+            ),
+    );
+  }
   if (completion != null) {
     // 좋음·보통·낮음 세 구간 — 75% 에게 "잘 따라오셨어요" 도, "많이
     // 바쁘셨나 봐요" 도 맞지 않는다(#2345).
@@ -329,6 +428,11 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
           ? l.reportBodyCompletionSteady(completion)
           : l.reportBodyCompletionLow(completion),
     );
+  }
+  final total = _exerciseTotal(report);
+  if (total > 0) {
+    final done = report.days.fold<int>(0, (sum, d) => sum + d.done);
+    workout.add(l.reportBodyExerciseCount(total, done.clamp(0, total)));
   }
   // 요일을 짚어 준다. `이행률 62%` 만으로는 회원이 무엇을 바꿔야 할지 알 수
   // 없지만, `화·목에 기록이 없었다` 는 그 자리에서 답이 나온다 — 그 이틀의
@@ -345,15 +449,43 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
   if (skipped.isNotEmpty) {
     workout.add(l.reportBodySkipped(_topicParticle(l, skipped.join(', '))));
   }
-  if (workout.isNotEmpty) paragraphs.add(workout.join(' '));
+  // PT 한 줄만 남았으면 운동 문단이라 할 것이 없다.
+  return hasWorkoutData ? workout : const <String>[];
+}
 
+int _exerciseTotal(WeeklyReport report) =>
+    report.days.fold<int>(0, (sum, d) => sum + d.total);
+
+/// 식단 문단 — 기록 일수, 칼로리·나트륨·당류를 각자의 목표와 견준다.
+List<String> _dietSentences(AppLocalizations l, WeeklyReport report) {
   final diet = <String>[];
-  final sodium = report.sodiumAvg;
-  if (sodium != null) {
-    final over = report.sodiumOverDays ?? 0;
+  final meals = _mealSentence(l, report);
+  if (meals != null) diet.add(meals);
+
+  final calorieMean = report.calorieMean;
+  final gap = report.calorieGap;
+  if (calorieMean != null && gap != null) {
     // 회원이 그대로 받는 문장이라 수치를 화면과 같은 서식으로 적는다 —
     // `1916mg` 은 그래프의 `1,916mg` 과 다른 값처럼 읽힌다. 목표도 문장에
     // 박아 두지 않는다: 기준이 바뀌면 문장만 옛말을 하게 된다(#1177).
+    final avg = formatNumber(calorieMean.round());
+    final target = formatNumber(report.calorieGoal);
+    final pct = '${(gap.abs() * 100).round()}';
+    final overDays = report.calorieOverDays;
+    diet.add(
+      gap > calorieTolerance
+          ? l.reportBodyCaloriesOver(avg, target, pct, overDays)
+          : gap < -calorieTolerance
+          ? l.reportBodyCaloriesUnder(avg, target, pct)
+          : overDays > 0
+          ? l.reportBodyCaloriesNearOver(avg, target, overDays)
+          : l.reportBodyCaloriesOk(avg, target),
+    );
+  }
+
+  final sodium = report.sodiumAvg;
+  if (sodium != null) {
+    final over = report.sodiumOverDays ?? 0;
     final String avg = formatNumber(sodium);
     final String target = formatNumber(sodiumTargetMg);
     diet.add(
@@ -362,21 +494,86 @@ String reportMessage(AppLocalizations l, WeeklyReport report) {
           : l.reportBodySodiumOk(avg, target),
     );
   }
-  final recorded = report.caloriesWeek.where((v) => v > 0).toList();
-  if (recorded.isNotEmpty) {
-    final mean = recorded.fold<double>(0, (a, b) => a + b) / recorded.length;
-    diet.add(l.reportBodyCalories(formatNumber(mean.round())));
-  }
-  if (diet.isNotEmpty) paragraphs.add(diet.join(' '));
 
-  paragraphs.add(
-    // 인사말만 남았으면 가리킬 '이 부분'이 없다. 기록이 없는 주에 격려부터
-    // 하면 회원이 무엇을 하라는 말인지 알 수 없다.
-    paragraphs.length == 1
-        ? l.reportBodyNoRecords
-        : (report.isGoodWeek ? l.reportBodyPraise : l.reportBodyEncourage),
-  );
-  return paragraphs.join('\n\n');
+  final sugarMean = report.sugarMean;
+  if (sugarMean != null) {
+    final avg = formatNumber(sugarMean.round());
+    final target = formatNumber(report.sugarLimit.round());
+    diet.add(
+      report.sugarOverDays > 0
+          ? l.reportBodySugarOver(avg, target, report.sugarOverDays)
+          : l.reportBodySugarOk(avg, target),
+    );
+  }
+  return diet;
+}
+
+/// 끼니를 적은 날 수. 이번 주라면 아직 오지 않은 날은 세지 않는다.
+///
+/// 하루도 적지 않은 주는 말하지 않는다 — 다른 기록도 없는 주라면 그 주는
+/// `기록 없음` 한 줄로 끝나야 하고, 운동 기록만 있는 주라면 다음 주 할 일이
+/// 끼니 기록을 권한다.
+String? _mealSentence(AppLocalizations l, WeeklyReport report) {
+  final total = _mealDaysDue(report);
+  final days = report.mealLoggedDays;
+  if (total == null || days == 0) return null;
+  return days >= total
+      ? l.reportBodyMealDaysAll(total)
+      : l.reportBodyMealDays(total, days);
+}
+
+/// 끼니를 적었어야 할 날 수. 끼니 수를 모르는 자료면 null.
+int? _mealDaysDue(WeeklyReport report) {
+  if (report.mealCounts.length != weekdayCount) return null;
+  // 끼니 수가 비어 있는데 칼로리가 있으면 끼니 수를 모르는 자료다 — `0일
+  // 기록` 이라고 하면 적어 둔 식단을 없던 일로 만든다.
+  if (report.mealLoggedDays == 0 && report.calorieMean != null) return null;
+  final total = report.isCurrentWeek ? elapsedWeekdays(nowKst()) : weekdayCount;
+  return total > 0 ? total : null;
+}
+
+/// 회원이 남긴 답에 대한 한 문장. 답이 없으면 null.
+String? _memberFeedbackSentence(
+  AppLocalizations l,
+  MemberWeeklyFeedback? feedback,
+) {
+  if (feedback == null) return null;
+  if (feedback.hasPain) {
+    return l.reportBodyMemberPain(withParticle(l, feedback.painArea, '이', '가'));
+  }
+  return switch (feedback.intensity) {
+    WeekIntensity.tooHard => l.reportBodyMemberTooHard,
+    WeekIntensity.tooEasy => l.reportBodyMemberTooEasy,
+    _ => l.reportBodyMemberNoted,
+  };
+}
+
+/// 다음 주에 할 일. 걸린 항목이 없을 때만 `지금 루틴 유지` 를 권한다.
+List<String> _nextWeekTips(AppLocalizations l, WeeklyReport report) {
+  final tips = <String>[];
+  final gap = report.calorieGap;
+  if (gap != null && report.caloriesOffTarget) {
+    tips.add(gap < 0 ? l.reportTipCaloriesUnder : l.reportTipCaloriesOver);
+  }
+  if (report.sugarOverLimit) tips.add(l.reportTipSugar);
+  if ((report.sodiumOverDays ?? 0) > 2) tips.add(l.reportTipSodium);
+  final completion = report.completionAvg;
+  if ((completion != null && completion < goodCompletionThreshold) ||
+      silentWeekdayNames(l, report).isNotEmpty) {
+    tips.add(l.reportTipWorkout);
+  }
+  final due = _mealDaysDue(report);
+  if (due != null && report.mealLoggedDays < due) tips.add(l.reportTipMeals);
+  if (report.sessionsBooked == 0) {
+    tips.add(l.reportTipSessionsNone);
+  } else if (!report.isCurrentWeek &&
+      report.sessionsDone < report.sessionsBooked) {
+    tips.add(l.reportTipSessionsMissed);
+  }
+  if (tips.isEmpty || (tips.length == 1 && report.sessionsBooked == 0)) {
+    tips.add(l.reportTipKeep);
+  }
+  return tips;
 }
 
 /// 그 주에 기록이 하나도 없던 요일 이름.
