@@ -66,7 +66,7 @@ from app.schemas.consultation_api import (
 from app.schemas.user import AccountDeleteRequest
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
-    ClientCoachRequest, ClientDietEntryOut,
+    ClientCoachRequest, ClientDietEntryOut, DeliveryOut,
     MemberHealthProfileOut, MemberHealthProfileUpdate,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
@@ -982,6 +982,43 @@ def trainer_mark_chat_read(
 
 
 # ---- 루틴 배정 (트레이너/AI → 회원) ----
+
+@router.get(
+    "/trainer/clients/{member_id}/deliveries/latest",
+    response_model=DeliveryOut | None,
+)
+def trainer_latest_delivery(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> DeliveryOut | None:
+    """이 회원에게 가장 최근에 보낸 것 한 묶음. (#2225)
+
+    전송 이력이 PT 프로그램과 개인운동을 따로 나열하면, PT 완료 때 함께 보낸
+    개인운동이 어느 PT 와 짝인지 알 수 없다(#2224). 보낸 적이 없으면 `null`.
+    """
+    _require_client(db, trainer.id, member_id)
+    return trainer_service.latest_delivery(db, trainer.id, member_id)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/routines/unsent",
+    response_model=list[RoutineOut],
+)
+def trainer_unsent_personal_routines(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """PT 에 붙여만 두고 아직 보내지 않은 개인운동. (#2225)
+
+    지금은 그 사실이 스케줄 탭의 그 일정을 열어야만 보인다. 각 줄의
+    `schedule_id` 로 어느 PT 의 것인지 알 수 있고, 보내는 것은 그 일정의
+    `POST /trainer/schedule/{id}/routines/send` 가 맡는다(#2224).
+    """
+    _require_client(db, trainer.id, member_id)
+    return trainer_service.unsent_personal_routines(db, trainer.id, member_id)
+
 
 @router.get("/trainer/clients/{member_id}/routines", response_model=list[RoutineOut])
 def trainer_client_routines(

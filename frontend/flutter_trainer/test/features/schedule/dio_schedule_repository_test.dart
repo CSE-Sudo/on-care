@@ -484,4 +484,16 @@ void main() {
     expect(slots.first.clientName, isEmpty);
     expect(slots.last.id, 's2');
   });
+
+  // 서버는 보낸 개인운동을 배열로 돌려준다. 받는 형을 `Map` 으로 적어 두면
+  // 200 을 받고도 형이 어긋나 던지고, 부른 쪽은 전송이 실패한 줄 안다 —
+  // 실제로는 갔는데 화면만 그대로 남는다. (#2225)
+  test('개인운동 전송은 배열 응답을 받고도 던지지 않는다', () async {
+    const String path = '/trainer/schedule/s1/routines/send';
+    when(
+      () => dio.post<List<dynamic>>(path, data: any(named: 'data')),
+    ).thenAnswer((_) async => _okList(<dynamic>[], path));
+
+    await expectLater(repo.sendScheduledRoutines('s1'), completes);
+  });
 }
