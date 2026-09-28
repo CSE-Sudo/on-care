@@ -2,7 +2,7 @@
 ///
 /// 회원 앱은 음식명 옆 내용량(#1964), `총 칼로리`(#1848), 시각 없는 아침→야식
 /// 순서(#1989)로 바뀌었다. 트레이너 카드는 상세 화면이 따로 없어 합계까지 든다
-/// — `총 칼로리` 옆 탄단지 비중과 막대, 오른쪽 당류·나트륨. 끼니가 회원 하루
+/// — 탄단지 비중·당류·나트륨 네 칸 오른쪽 끝에 `총 … kcal`. 끼니가 회원 하루
 /// 목표의 절반을 넘기면 그 영양을 가장 많이 보탠 음식을 짚는다.
 library;
 
@@ -190,15 +190,98 @@ void main() {
       find.descendant(of: card, matching: find.text('김', findRichText: true)),
       findsOneWidget,
     );
-    // 음식 kcal 은 오른쪽 끝, 합계는 `총 칼로리` 줄.
+    // 음식 kcal 은 오른쪽 끝, 합계는 네 칸 오른쪽 끝에 `총` 을 붙여 선다 —
+    // `총 칼로리` 라벨 줄은 따로 두지 않는다.
     expect(
       find.descendant(of: card, matching: find.text('310 kcal')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: card, matching: find.text('330 kcal')),
+      find.descendant(of: card, matching: find.text('총 330 kcal')),
       findsOneWidget,
     );
+    expect(
+      find.descendant(of: card, matching: find.text('총 칼로리')),
+      findsNothing,
+    );
+  });
+
+  group('끼니 합계 자리', () {
+    Finder total(String id) =>
+        find.byKey(ValueKey<String>('client-diet-total-$id'));
+    Finder sodium(String id) =>
+        find.byKey(ValueKey<String>('client-diet-sodium-$id'));
+
+    testWidgets('폭이 넉넉하면 네 칸 옆, 나트륨 값 줄에 선다', (tester) async {
+      await _open(
+        tester,
+        meals: <ClientDietEntry>[_meal('wide', '아침')],
+        size: const Size(1600, 2400),
+      );
+
+      expect(
+        (tester.getCenter(total('wide')).dy -
+                tester.getCenter(sodium('wide')).dy)
+            .abs(),
+        lessThan(4),
+      );
+      expect(
+        tester.getTopLeft(total('wide')).dx,
+        greaterThan(tester.getTopRight(sodium('wide')).dx),
+      );
+      // 옆자리를 내줘도 당류는 탄수화물 g 값 옆 한 줄에 남는다.
+      expect(
+        (tester
+                    .getCenter(
+                      find.byKey(
+                        const ValueKey<String>('client-diet-sugar-wide'),
+                      ),
+                    )
+                    .dy -
+                tester.getCenter(sodium('wide')).dy)
+            .abs(),
+        lessThan(4),
+      );
+    });
+
+    testWidgets('옆에 두면 당류가 밀리는 폭에서는 네 칸 위 한 줄로 오른다', (tester) async {
+      await _open(
+        tester,
+        // 시드 강서연 점심(짬뽕)과 같은 값 — `95.1g 당류 8.6g` 은 합계에
+        // 옆자리를 내주면 탄수화물 칸에 한 줄로 들지 않는다.
+        meals: const <ClientDietEntry>[
+          ClientDietEntry(
+            id: 'split',
+            meal: '점심',
+            items: '짬뽕',
+            calories: 707,
+            sodiumMg: 300,
+            carbsG: 95.1,
+            proteinG: 35.4,
+            fatG: 12.7,
+            sugarG: 8.6,
+            // 사진 칸만큼 줄 폭이 좁아진다 — 오늘 탭의 실제 카드 폭.
+            photoAsset: 'assets/images/diet-vegetable-bibimbap.jpg',
+            foods: <ClientDietFood>[ClientDietFood(name: '짬뽕', calories: 707)],
+          ),
+        ],
+        size: const Size(1100, 2400),
+      );
+
+      expect(
+        tester.getBottomLeft(total('split')).dy,
+        lessThanOrEqualTo(
+          tester
+              .getTopLeft(
+                find.byKey(
+                  const ValueKey<String>('client-diet-nutrients-split'),
+                ),
+              )
+              .dy,
+        ),
+      );
+      expect(find.text('총 칼로리'), findsNothing);
+    });
   });
 
   testWidgets('끼니는 아침·점심·저녁·간식·야식 순이다 — 저장 순서가 아니다', (tester) async {
@@ -416,7 +499,10 @@ void main() {
 
     // 한 음식이 두 영양을 모두 보탰다 — 배지 둘이 한 줄에 선다.
     expect(_flags(_mealCard('narrow')), findsNWidgets(2));
-    expect(find.text('총 칼로리'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('client-diet-total-narrow')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

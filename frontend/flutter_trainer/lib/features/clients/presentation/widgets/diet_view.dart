@@ -225,15 +225,15 @@ MealLimits mealLimitsOf(MemberHealthProfile? profile) => (
 /// 끼니 한 장. (#1166, #2333)
 ///
 /// 회원 앱 끼니 **상세**와 같은 말로 읽힌다 — 음식마다 `이름 내용량 …… kcal`,
-/// 구분선 아래 `총 칼로리`. 트레이너는 상세 화면이 따로 없어 카드 한 장이
-/// 상세 몫까지 든다.
+/// 구분선 아래 합계. 트레이너는 상세 화면이 따로 없어 카드 한 장이 상세 몫까지
+/// 든다.
 ///
 ///  * 머리: 끼니 배지. 먹은 시각은 회원 앱처럼 내렸다(회원 앱 #1989) — 값은
 ///    그대로 저장돼 있다.
 ///  * 음식: 이름 옆에 **내용량**(보조색), 오른쪽 끝에 그 음식의 kcal.
-///  * 합계: `총 칼로리 …… 247 kcal` — 총 kcal 은 음식 kcal 과 같은 세로선이라
-///    "더하면 이 값" 으로 읽힌다. 그 아래 `탄수화물(당류) / 단백질 / 지방 |
-///    나트륨` 네 칸([_MealTotals]).
+///  * 합계: `탄수화물(당류) / 단백질 / 지방 | 나트륨` 네 칸 오른쪽 끝에
+///    `총 247 kcal`([_MealTotals], 좁으면 네 칸 위 한 줄). 총 kcal 은 음식
+///    kcal 과 같은 세로선이라 "더하면 이 값" 으로 읽힌다.
 ///  * 과다: 끼니가 [MealLimits] 를 넘으면 합계 값이 빨강이 되고, 그 영양을 가장
 ///    많이 보탠 음식 옆에 빨간 배지가 선다. 평소에는 아무것도 서지 않는다 —
 ///    끼니가 괜찮은지는 합계가, 괜찮지 않으면 무엇을 바꿀지는 배지가 말한다.
@@ -447,13 +447,18 @@ class _FoodLine extends StatelessWidget {
   }
 }
 
-/// 끼니 합계 — `총 칼로리 …… 247 kcal`, 그 아래 네 칸. (#2333)
+/// 끼니 합계 — 네 칸, 그 오른쪽 끝에 `총 247 kcal`. (#2333)
 ///
 /// ```
-/// 총 칼로리                                        247 kcal
-/// 탄수화물 17%       단백질 27%      지방 56%      │ 나트륨
-/// 10.4g 당류 6.8g    16g             14.8g         │ 359mg
+/// 탄수화물 17%     단백질 27%    지방 56%    │ 나트륨
+/// 10.4g 당류 6.8g  16g           14.8g       │ 359mg     총 247 kcal
 /// ```
+///
+/// 예전에는 `총 칼로리 …… 247 kcal` 이 네 칸 위에 한 줄을 따로 차지했다.
+/// `총` 을 값에 붙이면 라벨 줄 없이도 끼니 합계로 읽힌다 — 펼친 날의
+/// `하루 합계` 줄([_DayRow])이 이미 같은 말로 적는다. 옆자리를 내주면 당류가
+/// 아래 줄로 밀리는 폭(분할 패널의 좁은 쪽)이나 큰 글씨에서는 예전처럼 네 칸
+/// 위 한 줄로 올라간다.
 ///
 /// 칸은 **고정**이다 — 트레이너는 하루 끼니를 위아래로 훑으며 견주므로, 같은
 /// 영양소가 카드마다 같은 세로선에 서야 "점심만 탄수화물이 95g" 이 바로 보인다.
@@ -538,164 +543,77 @@ class _MealTotals extends StatelessWidget {
       softWrap: false,
       style: sugarOver ? head.copyWith(color: OnCareColors.danger) : head,
     );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            // 라벨은 제 폭만 — 늘어나는 칸으로 두면 남는 폭을 총 kcal 과 반씩
-            // 나눠 가져 총 kcal 이 가운데로 왔다.
-            Text(
-              l.clientDietTotalCalories,
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-            const SizedBox(width: OnCareSpacing.s12),
-            // 총 kcal 은 오른쪽 끝 — 음식 kcal 과 같은 세로선이다.
-            Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '${formatNumber(entry.calories)} ${l.unitKcal}',
-                  key: ValueKey<String>('client-diet-total-${entry.id}'),
-                  style: OnCareTypography.numeric(
-                    tokens
-                        .text(OnCareTypography.strong(OnCareTypography.body))
-                        .copyWith(color: brand.primary),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        // 당류는 폭이 넉넉하면 탄수화물 g 값 **오른쪽**에, 칸이 좁아 그 한 줄이
-        // 줄어들 만큼이면 **아래 줄**로 내린다. 한 줄에 두면 네 칸의 키가 같아
-        // 카드가 짧아지지만, 좁은 폭(분할 패널의 좁은 쪽)에서는 두 값이 함께
-        // 읽을 수 없을 만큼 작게 줄었다.
-        //
-        // 칸 폭은 여기서 잰다 — 칸 안에 LayoutBuilder 를 두면 세로선 높이를
-        // 맞추는 IntrinsicHeight 가 고유 크기를 물을 수 없다.
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints c) {
-            final bool sugarInline = _fitsInline(
-              context,
-              columnWidth: _macroColumnWidth(c.maxWidth),
-              value: '${_grams(entry.carbsG)}g',
-              valueStyle: value(),
-              sugar: '${l.metricSugar} ${_grams(entry.sugarG)}g',
-              sugarStyle: head,
-            );
-            return IntrinsicHeight(
-              child: Row(
-                key: ValueKey<String>('client-diet-nutrients-${entry.id}'),
-                // stretch — 세로선이 칸 높이만큼 선다. 칸 안의 글자는 위에 붙는다.
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  if (tellsMacros)
-                    for (final p in parts) ...<Widget>[
-                      // 좁은 폭에서 칸 머리끼리 붙지 않게 사이를 둔다.
-                      if (p.key != 'carbs')
-                        const SizedBox(width: OnCareSpacing.s8),
-                      Expanded(
-                        key: ValueKey<String>(
-                          'client-diet-col-${p.key}-${entry.id}',
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            fit(
-                              Text(
-                                basis > 0
-                                    ? l.clientDietMacroShare(
-                                        p.label,
-                                        (p.kcal / basis * 100).round(),
-                                      )
-                                    : p.label,
-                                maxLines: 1,
-                                softWrap: false,
-                                style: head,
-                              ),
-                            ),
-                            const SizedBox(height: OnCareSpacing.s2),
-                            fit(
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: <Widget>[
-                                  Text(
-                                    '${_grams(p.grams)}g',
-                                    maxLines: 1,
-                                    softWrap: false,
-                                    style: value(),
-                                  ),
-                                  if (p.key == 'carbs' &&
-                                      sugarInline) ...<Widget>[
-                                    const SizedBox(width: OnCareSpacing.s8),
-                                    sugar,
-                                  ],
-                                ],
-                              ),
-                            ),
-                            if (p.key == 'carbs' && !sugarInline)
-                              Padding(
-                                // 탄수화물의 일부 — 살짝 들여 적는다.
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: OnCareSpacing.s4,
-                                ),
-                                child: fit(sugar),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ]
-                  else
-                    // 탄단지가 비어 있는 옛 기록 — 세 칸 자리에 한 말로.
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          fit(
-                            Text(
-                              l.clientDietMacrosMissing,
-                              key: ValueKey<String>(
-                                'client-diet-macros-${entry.id}',
-                              ),
-                              maxLines: 1,
-                              softWrap: false,
-                              style: head.copyWith(
-                                color: OnCareColors.textTertiary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: OnCareSpacing.s2),
-                          sugar,
-                        ],
-                      ),
-                    ),
-                  // 탄단지 묶음과 나트륨을 가르는 세로선 — 회색. 선 토큰
-                  // (`lineSubtle`·`lineStrong`)은 파란 기가 도는 옅은 색이라 흰 카드
-                  // 위에서 두 묶음을 가르지 못했다. 보조 글자와 같은 회색을 쓴다.
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s12,
-                    ),
-                    child: SizedBox(
-                      width: OnCareSize.hairline,
-                      child: ColoredBox(color: OnCareColors.textDisabled),
-                    ),
-                  ),
+    final String totalText = l.clientDietTotalCalories(
+      formatNumber(entry.calories),
+    );
+    final TextStyle totalStyle = OnCareTypography.numeric(
+      tokens
+          .text(OnCareTypography.strong(OnCareTypography.body))
+          .copyWith(color: brand.primary),
+    );
+    final Widget total = Text(
+      totalText,
+      key: ValueKey<String>('client-diet-total-${entry.id}'),
+      maxLines: 1,
+      softWrap: false,
+      style: totalStyle,
+    );
+    // 당류는 폭이 넉넉하면 탄수화물 g 값 **오른쪽**에, 칸이 좁아 그 한 줄이
+    // 줄어들 만큼이면 **아래 줄**로 내린다. 한 줄에 두면 네 칸의 키가 같아
+    // 카드가 짧아지지만, 좁은 폭(분할 패널의 좁은 쪽)에서는 두 값이 함께
+    // 읽을 수 없을 만큼 작게 줄었다.
+    //
+    // 칸 폭은 여기서 잰다 — 칸 안에 LayoutBuilder 를 두면 세로선 높이를
+    // 맞추는 IntrinsicHeight 가 고유 크기를 물을 수 없다.
+    //
+    // 총 kcal 은 오른쪽 끝 — 음식 kcal 과 같은 세로선이다. `총` 이 붙어 라벨
+    // 줄 없이도 끼니 합계로 읽힌다(펼친 날의 `하루 합계` 줄과 같은 말). 네 칸
+    // **옆**, 값 줄 높이에 세워 한 줄을 아낀다. 다만 옆자리를 내주느라 당류가
+    // 아래 줄로 밀리면 아낀 줄을 도로 쓰는 셈이라, 그때는 예전처럼 네 칸 **위**
+    // 한 줄로 올린다. 합계가 칸 하나 폭(줄의 1/4)을 넘는 좁은 폭·큰 글씨도
+    // 위로 올린다 — 옆에 두면 네 칸이 읽을 수 없을 만큼 줄어든다.
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) {
+        bool sugarFits(double rowWidth) => _fitsInline(
+          context,
+          columnWidth: _macroColumnWidth(rowWidth),
+          value: '${_grams(entry.carbsG)}g',
+          valueStyle: value(),
+          sugar: '${l.metricSugar} ${_grams(entry.sugarG)}g',
+          sugarStyle: head,
+        );
+        final double totalWidth =
+            _textWidth(context, totalText, totalStyle) + OnCareSpacing.s12;
+        final bool sugarFitsFull = sugarFits(c.maxWidth);
+        final bool sugarFitsBeside = sugarFits(c.maxWidth - totalWidth);
+        final bool beside =
+            totalWidth <= c.maxWidth / 4 && (sugarFitsBeside || !sugarFitsFull);
+        final bool sugarInline = beside ? sugarFitsBeside : sugarFitsFull;
+        final Widget row = IntrinsicHeight(
+          child: Row(
+            key: ValueKey<String>('client-diet-nutrients-${entry.id}'),
+            // stretch — 세로선이 칸 높이만큼 선다. 칸 안의 글자는 위에 붙는다.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (tellsMacros)
+                for (final p in parts) ...<Widget>[
+                  // 좁은 폭에서 칸 머리끼리 붙지 않게 사이를 둔다.
+                  if (p.key != 'carbs') const SizedBox(width: OnCareSpacing.s8),
                   Expanded(
-                    key: ValueKey<String>('client-diet-col-sodium-${entry.id}'),
+                    key: ValueKey<String>(
+                      'client-diet-col-${p.key}-${entry.id}',
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         fit(
                           Text(
-                            l.metricSodium,
+                            basis > 0
+                                ? l.clientDietMacroShare(
+                                    p.label,
+                                    (p.kcal / basis * 100).round(),
+                                  )
+                                : p.label,
                             maxLines: 1,
                             softWrap: false,
                             style: head,
@@ -703,25 +621,125 @@ class _MealTotals extends StatelessWidget {
                         ),
                         const SizedBox(height: OnCareSpacing.s2),
                         fit(
-                          Text(
-                            '${formatNumber(entry.sodiumMg)}mg',
-                            key: ValueKey<String>(
-                              'client-diet-sodium-${entry.id}',
-                            ),
-                            maxLines: 1,
-                            softWrap: false,
-                            style: value(over: sodiumOver),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: <Widget>[
+                              Text(
+                                '${_grams(p.grams)}g',
+                                maxLines: 1,
+                                softWrap: false,
+                                style: value(),
+                              ),
+                              if (p.key == 'carbs' && sugarInline) ...<Widget>[
+                                const SizedBox(width: OnCareSpacing.s8),
+                                sugar,
+                              ],
+                            ],
                           ),
                         ),
+                        if (p.key == 'carbs' && !sugarInline)
+                          Padding(
+                            // 탄수화물의 일부 — 살짝 들여 적는다.
+                            padding: const EdgeInsetsDirectional.only(
+                              start: OnCareSpacing.s4,
+                            ),
+                            child: fit(sugar),
+                          ),
                       ],
                     ),
                   ),
-                ],
+                ]
+              else
+                // 탄단지가 비어 있는 옛 기록 — 세 칸 자리에 한 말로.
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      fit(
+                        Text(
+                          l.clientDietMacrosMissing,
+                          key: ValueKey<String>(
+                            'client-diet-macros-${entry.id}',
+                          ),
+                          maxLines: 1,
+                          softWrap: false,
+                          style: head.copyWith(
+                            color: OnCareColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: OnCareSpacing.s2),
+                      sugar,
+                    ],
+                  ),
+                ),
+              // 탄단지 묶음과 나트륨을 가르는 세로선 — 회색. 선 토큰
+              // (`lineSubtle`·`lineStrong`)은 파란 기가 도는 옅은 색이라 흰 카드
+              // 위에서 두 묶음을 가르지 못했다. 보조 글자와 같은 회색을 쓴다.
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
+                child: SizedBox(
+                  width: OnCareSize.hairline,
+                  child: ColoredBox(color: OnCareColors.textDisabled),
+                ),
               ),
-            );
-          },
-        ),
-      ],
+              Expanded(
+                key: ValueKey<String>('client-diet-col-sodium-${entry.id}'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    fit(
+                      Text(
+                        l.metricSodium,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: head,
+                      ),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s2),
+                    fit(
+                      Text(
+                        '${formatNumber(entry.sodiumMg)}mg',
+                        key: ValueKey<String>('client-diet-sodium-${entry.id}'),
+                        maxLines: 1,
+                        softWrap: false,
+                        style: value(over: sodiumOver),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (beside) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    // 칸 머리 한 줄 자리를 비워 둔다 — 합계가 값 줄
+                    // (`359mg`)과 같은 높이에 선다.
+                    Text(' ', maxLines: 1, style: head),
+                    const SizedBox(height: OnCareSpacing.s2),
+                    total,
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+        if (beside) return row;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Align(
+              alignment: Alignment.centerRight,
+              child: FittedBox(fit: BoxFit.scaleDown, child: total),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            row,
+          ],
+        );
+      },
     );
   }
 }
@@ -744,24 +762,23 @@ bool _fitsInline(
   required TextStyle valueStyle,
   required String sugar,
   required TextStyle sugarStyle,
-}) {
-  final TextScaler scaler = MediaQuery.textScalerOf(context);
-  double widthOf(String text, TextStyle style) {
-    final TextPainter painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: Directionality.of(context),
-      textScaler: scaler,
-      maxLines: 1,
-    )..layout();
-    final double w = painter.width;
-    painter.dispose();
-    return w;
-  }
+}) =>
+    _textWidth(context, value, valueStyle) +
+        OnCareSpacing.s8 +
+        _textWidth(context, sugar, sugarStyle) <=
+    columnWidth;
 
-  return widthOf(value, valueStyle) +
-          OnCareSpacing.s8 +
-          widthOf(sugar, sugarStyle) <=
-      columnWidth;
+/// [text] 를 [style] 로 한 줄에 적은 폭 — 글자 크기 설정까지 반영한다.
+double _textWidth(BuildContext context, String text, TextStyle style) {
+  final TextPainter painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final double w = painter.width;
+  painter.dispose();
+  return w;
 }
 
 String _grams(double value) => value == value.roundToDouble()
@@ -887,7 +904,7 @@ class _DayRow extends StatelessWidget {
     // 한 끼인지 하루인지 갈리지 않는다(#2421).
     final Widget kcal = Text(
       totalStyle
-          ? l.clientDietDayTotalCalories(formatNumber(calories))
+          ? l.clientDietTotalCalories(formatNumber(calories))
           : '${formatNumber(calories)} ${l.unitKcal}',
       maxLines: 1,
       softWrap: false,
