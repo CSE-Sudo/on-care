@@ -4,7 +4,7 @@
 /// 중 보낸 것을 얹어 돌려준다. 이 파일이 지키는 것:
 ///  * 데모 회원은 이력의 **보낸 주**만, 최신 주부터 선다(안 보낸 주는 빠진다 —
 ///    서버와 같은 모양).
-///  * 피드백 문구는 로스터에 심긴 회원 목표를 따른다.
+///  * 데모 기록은 본문이 비어 있어, 첫 줄은 화면이 그 주 수치로 채운다(#2423).
 ///  * 쪽 단위로 나뉘고, `before` 로 다음 쪽을 읽는다.
 ///  * 실행 중에 보낸 리포트가 그 주 데모 기록을 이긴다.
 ///  * 데모 로스터가 아닌 회원은 실행 중 보낸 것만 선다.
@@ -15,7 +15,6 @@ import 'dart:typed_data';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -26,14 +25,10 @@ import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
 import '../../helpers/fixed_clock.dart';
 
-LocalReportRepository _local(
-  AppDatabase db, {
-  DemoLanguage language = DemoLanguage.ko,
-}) => LocalReportRepository(
+LocalReportRepository _local(AppDatabase db) => LocalReportRepository(
   DriftScheduleRepository(db),
   DriftChatRepository(db),
   db,
-  language: language,
 );
 
 final Uint8List _pdf = Uint8List.fromList(<int>[0x25, 0x50, 0x44, 0x46]);
@@ -52,13 +47,6 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<String> goalOf(String id) async {
-    final TrainerClientRow row = await (db.select(
-      db.trainerClients,
-    )..where((t) => t.id.equals(id))).getSingle();
-    return row.goal;
-  }
-
   Future<List<MemberReportHistoryItem>> readAll(String id) async {
     final List<MemberReportHistoryItem> all = <MemberReportHistoryItem>[];
     DateTime? before;
@@ -76,7 +64,6 @@ void main() {
     const String id = 'seed-client-9'; // 트레이너도 자주 건너뛰는 회원
     final List<DemoReportWeek> demo = demoReportHistoryFor(
       clientId: id,
-      goal: await goalOf(id),
       today: kMidWeekKst,
     );
     final List<MemberReportHistoryItem> all = await readAll(id);
@@ -92,7 +79,6 @@ void main() {
   test('줄의 시각·열람·첫 줄이 데모 기록과 같다', () async {
     final List<DemoReportWeek> demo = demoReportHistoryFor(
       clientId: _steady,
-      goal: await goalOf(_steady),
       today: kMidWeekKst,
     );
     final List<MemberReportHistoryItem> all = await readAll(_steady);
@@ -106,38 +92,19 @@ void main() {
     }
   });
 
-  test('지난 주 첫 줄은 회원 목표에 맞춘 그 주 데모 글이다', () async {
-    final String goal = await goalOf(_steady);
-    // 로스터 목표가 알아듣는 목표여야 글이 목표를 따라간다.
-    expect(demoReportGoalsOf(goal), isNotEmpty);
-    final DateTime lastMonday = DateTime(2026, 8, 10);
-    final String message = demoSentReportsForWeek(
-      roster: <DemoReportMember>[(id: _steady, goal: goal)],
-      weekStart: lastMonday,
-      today: kMidWeekKst,
-    ).single.message;
-
-    final MemberReportHistoryItem lastWeek = (await readAll(
-      _steady,
-    )).firstWhere((i) => i.weekStart == lastMonday);
-    expect(lastWeek.feedbackPreview, reportFeedbackPreview(message));
-    expect(lastWeek.feedbackPreview, isNotEmpty);
+  test('지난 주 데모 기록도 본문이 비어 첫 줄을 화면에 맡긴다 (#2423)', () async {
+    // 목표별 고정 문장을 첫 줄로 두면 그 주 수치와 어긋난 글이 목록에 선다.
+    final List<MemberReportHistoryItem> all = await readAll(_steady);
+    expect(all.length, greaterThan(1));
+    for (final MemberReportHistoryItem item in all) {
+      expect(item.feedbackPreview, isEmpty, reason: '${item.weekStart}');
+    }
   });
 
   test('이번 주 데모 기록은 본문이 비어 첫 줄도 비어 있다', () async {
     final MemberReportHistoryItem thisWeek = (await readAll(_steady)).first;
     expect(thisWeek.weekStart, weekStartOf(kMidWeekKst));
     expect(thisWeek.feedbackPreview, isEmpty);
-  });
-
-  test('영어 데모는 영어 첫 줄이다', () async {
-    final MemberReportHistoryPage page = await _local(
-      db,
-      language: DemoLanguage.en,
-    ).memberReportHistory(clientId: _steady);
-    final MemberReportHistoryItem lastWeek = page.items[1];
-    expect(lastWeek.feedbackPreview, isNotEmpty);
-    expect(RegExp('[가-힣]').hasMatch(lastWeek.feedbackPreview), isFalse);
   });
 
   test('한 쪽은 기본 쪽 크기이고 다음 쪽 커서는 그 쪽 마지막 주다', () async {

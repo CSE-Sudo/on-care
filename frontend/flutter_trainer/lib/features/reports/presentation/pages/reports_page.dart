@@ -610,6 +610,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         key: ValueKey<String>('reports-history-sent-${ymd(week)}'),
         report: report,
         record: record,
+        // 편집기 ① 과 같은 칼로리 `평소` 를 견준다(#2425).
+        calorieBaseline: ref.watch(
+          calorieBaselineProvider((client: client, weekStart: week)),
+        ),
         backLabel: l.reportsHistoryBack,
         onBack: () => setState(() => _historyWeek = null),
         onRewrite: () {
@@ -778,6 +782,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               return SentReportView(
                 report: sentReport,
                 record: record,
+                calorieBaseline: ref.watch(
+                  calorieBaselineProvider((
+                    client: sentReport.client,
+                    weekStart: sentReport.weekStart,
+                  )),
+                ),
                 onBack: () => setState(() => _sentViewFor = null),
                 onHistory: () => _openHistory(sentFor),
                 onRewrite: () {
