@@ -92,6 +92,13 @@ const int kDietRecPageSize = 3;
 /// `예` 로 확정하면 회원 앱 홈 `추천 식단` 첫 장이 된다. 확정한 뒤에는 추천 중인
 /// 메뉴와 `바꾸기`, 회원이 그 메뉴를 먹었으면 그 사실과 `다음 추천 보기` 를 보인다.
 /// 채울 점이 없으면(후보 없음) 아무것도 그리지 않는다 — 분석만 남는다.
+///
+/// **트레이너가 메뉴를 직접 적는 칸은 두지 않는다.** PT 트레이너의 일은 운동 지도가
+/// 중심이고, 끼니마다 무엇을 먹으라고 정해 주는 식단 추천은 거의 하지 않는다. 그래서
+/// 메뉴를 짓는 일은 회원의 4주 기록을 읽은 AI 가 맡고, 트레이너는 그 후보를 보고
+/// 회원에게 권할지만 `예`/`아니오` 로 정한다 — 식단 코칭이 트레이너의 짐이 되지
+/// 않으면서, 회원에게는 트레이너가 확인한 추천으로 닿는다. 서버도 지금 후보 리스트에
+/// 없는 메뉴는 확정하지 않는다(`diet_trainer_pick.confirm`).
 class ClientDietRecommendationSection extends ConsumerStatefulWidget {
   const ClientDietRecommendationSection({
     super.key,
