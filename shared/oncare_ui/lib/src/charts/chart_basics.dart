@@ -256,3 +256,32 @@ class AppChartSwatch extends StatelessWidget {
     ),
   );
 }
+
+/// 범례 한 칸 — 견본 8 + 간격 4 + 이름(`caption` 600·보조 글자색)(#2469).
+class AppChartLegendItem extends StatelessWidget {
+  const AppChartLegendItem({
+    super.key,
+    required this.color,
+    required this.label,
+  });
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        AppChartSwatch(color: color),
+        const SizedBox(width: OnCareSpacing.s4),
+        Text(
+          label,
+          style: chartAxisLabelStyle(
+            context,
+          ).copyWith(color: OnCareColors.textSecondary),
+        ),
+      ],
+    );
+  }
+}

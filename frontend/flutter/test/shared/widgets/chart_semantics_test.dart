@@ -6,8 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/chart_semantics.dart';
+import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// [body] 를 두 로케일로 각각 그려 보고, 그 안에서 만든 라벨을 돌려준다.
 Future<Map<String, String>> _perLocale(
@@ -39,10 +40,10 @@ void main() {
     final Map<String, String> labels = await _perLocale(
       tester,
       (AppLocalizations l) => chartSemanticsLabel(
-        l,
+        l.chartA11y,
         title: '주간 소모 칼로리',
         points: chartSeriesPoints(
-          l,
+          l.chartA11y,
           values: const <double>[300, 0, 520],
           dayLabels: const <String>['월', '화', '수'],
           format: (double v) => '${v.round()}kcal',
@@ -64,10 +65,10 @@ void main() {
     final Map<String, String> labels = await _perLocale(
       tester,
       (AppLocalizations l) => chartSemanticsLabel(
-        l,
+        l.chartA11y,
         title: '나트륨',
         points: chartSeriesPoints(
-          l,
+          l.chartA11y,
           values: const <double>[1800, 1900, 2100],
           dayLabels: const <String>['월', '화', '수'],
           format: (double v) => '${v.round()}mg',
@@ -87,10 +88,10 @@ void main() {
     final Map<String, String> labels = await _perLocale(
       tester,
       (AppLocalizations l) => chartSemanticsLabel(
-        l,
+        l.chartA11y,
         title: '당류',
         points: chartSeriesPoints(
-          l,
+          l.chartA11y,
           values: const <double>[0, 0, 0],
           dayLabels: const <String>['월', '화', '수'],
           format: (double v) => '${v.round()}g',

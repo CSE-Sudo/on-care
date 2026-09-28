@@ -14,10 +14,9 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 패키지에 대응이 없는 차트 예외(#1704): 주간 꺾은선과 음성 안내 문자열.
-import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
+import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart'
     show MetricTrendChart;
-import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 고객의 기간 영양 추이 — 회원 앱 식단 탭 기간 뷰와 **같은 것**을 트레이너에게.
@@ -402,10 +401,10 @@ class _Body extends StatelessWidget {
                         // 카드 머리의 지표 이름으로 시작한다 — 음성 안내에서도
                         // 이 그래프가 무엇의 것인지가 먼저 들린다(#972).
                         semanticsLabel: chartSemanticsLabel(
-                          l,
+                          l.chartA11y,
                           title: label,
                           points: chartSeriesPoints(
-                            l,
+                            l.chartA11y,
                             values: values,
                             dayLabels: days,
                             format: (double v) => '${format(v)} $unit',
@@ -726,7 +725,11 @@ class _PeriodBars extends StatelessWidget {
     return Semantics(
       container: true,
       label: empty
-          ? chartSemanticsLabel(l, title: label, points: const <String>[])
+          ? chartSemanticsLabel(
+              l.chartA11y,
+              title: label,
+              points: const <String>[],
+            )
           : null,
       child: ExcludeSemantics(
         excluding: empty,

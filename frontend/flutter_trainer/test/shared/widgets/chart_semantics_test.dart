@@ -10,7 +10,7 @@ import 'package:oncare_trainer/app/app_theme.dart';
 
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
+import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -65,10 +65,10 @@ void main() {
     final labels = await _perLocale(
       tester,
       (l) => chartSemanticsLabel(
-        l,
+        l.chartA11y,
         title: '나트륨 추이',
         points: chartSeriesPoints(
-          l,
+          l.chartA11y,
           values: const <double>[1800, 0, 2100],
           dayLabels: const <String>['월', '화', '수'],
           format: (v) => '${v.round()}mg',
@@ -88,7 +88,11 @@ void main() {
   testWidgets('기록이 없으면 두 로케일 모두 비어 있다고 말한다', (tester) async {
     final labels = await _perLocale(
       tester,
-      (l) => chartSemanticsLabel(l, title: '당류', points: const <String>[]),
+      (l) => chartSemanticsLabel(
+        l.chartA11y,
+        title: '당류',
+        points: const <String>[],
+      ),
     );
 
     expect(labels['ko'], '당류. 기록이 없어요');

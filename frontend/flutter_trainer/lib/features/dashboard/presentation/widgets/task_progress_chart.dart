@@ -114,38 +114,6 @@ class TaskProgressChart extends StatelessWidget {
   }
 }
 
-/// A colour-dot + label legend entry — used both by the chart's own header
-/// (previously) and now by [_TaskProgressCard]'s section header, next to
-/// the card title.
-class TaskProgressLegend extends StatelessWidget {
-  /// Creates one legend entry.
-  const TaskProgressLegend({
-    super.key,
-    required this.color,
-    required this.label,
-  });
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        AppChartSwatch(color: color),
-        const SizedBox(width: OnCareSpacing.s4),
-        Text(
-          label,
-          style: chartAxisLabelStyle(
-            context,
-          ).copyWith(color: OnCareColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
 class _StackedBar extends StatelessWidget {
   const _StackedBar({
     required this.index,
