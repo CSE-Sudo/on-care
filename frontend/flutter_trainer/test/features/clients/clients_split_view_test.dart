@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_deta
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -278,10 +279,10 @@ void main() {
     expect(find.textContaining('활성'), findsNothing);
 
     // 아바타의 초록 점(online)이 사라졌다.
-    for (final avatar in tester.widgetList<AppAvatar>(
+    for (final avatar in tester.widgetList<ClientAvatar>(
       find.descendant(
         of: find.byType(ClientCard),
-        matching: find.byType(AppAvatar),
+        matching: find.byType(ClientAvatar),
       ),
     )) {
       expect(avatar.online, isNull);

@@ -8,10 +8,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
-import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -205,7 +202,7 @@ void main() {
       seedClock: seedClock,
     );
 
-    testWidgets('서버 조언이 없으면 AI 분석 카드를 세우지 않는다 (#2271)', (tester) async {
+    testWidgets('서버 분석이 없으면 식단 분석 카드를 세우지 않는다 (#2271)', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
@@ -217,14 +214,10 @@ void main() {
         ],
       );
 
-      // 예전에는 이 사이 화면이 나트륨 목표만 보고 `나트륨이 목표치를 …
-      // 초과했어요` / `균형이 잘 맞아요` 를 지어냈다. 운동 탭처럼 자리를 비운다.
-      expect(
-        find.byKey(const ValueKey<String>('diet-ai-analysis')),
-        findsNothing,
-      );
-      expect(find.textContaining('나트륨이 목표치를'), findsNothing);
-      expect(find.textContaining('균형이 잘 맞아요'), findsNothing);
+      // 예전에는 이 사이 화면이 나트륨 목표만 보고 대체 문구를 지어냈다. 운동 탭처럼
+      // 자리를 비운다 — 추천도 분석을 이유로 묻는 것이라 함께 비운다.
+      expect(find.byKey(const ValueKey<String>('diet-analysis')), findsNothing);
+      expect(find.text('식단 분석'), findsNothing);
     });
 
     testWidgets('a failed diet retries in place on a narrow viewport', (
@@ -377,14 +370,17 @@ void main() {
         scrollable: detailScrollable('seed-client-1'),
       );
       expect(find.text('간식'), findsOneWidget);
-      // Over-target AI comment (4657 − 2000 = 2657mg) — last list item,
-      // built lazily, so scroll it into view first.
+      // 식단 분석은 넘친 영양과 그 원인 음식을 짚는다(#2379) — 점심 짬뽕
+      // 4,286mg 이 오늘 4,657mg 의 대부분이다. 목록이 게으르게 만들어지므로 끌어온다.
+      const String cause =
+          '점심에 먹은 짬뽕(4,286mg) 때문에 오늘 나트륨이 4,657mg까지 올라 '
+          '목표 2,000mg의 2.3배가 됐어요.';
       await tester.scrollUntilVisible(
-        find.textContaining('나트륨이 목표치를 2657mg 초과했어요'),
+        find.textContaining(cause),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.textContaining('나트륨이 목표치를 2657mg 초과했어요'), findsOneWidget);
+      expect(find.textContaining(cause), findsOneWidget);
     });
 
     testWidgets('목표를 넘긴 날은 링을 채우되 100%라고 적지 않는다 (#820)', (tester) async {
@@ -413,7 +409,8 @@ void main() {
       );
       expect(find.text('아직 기록된 식단이 없어요'), findsNothing);
       expect(find.text('거름'), findsNothing);
-      expect(find.text('아침'), findsNothing);
+      // 끼니 카드로 본다 — 식단 분석의 추천 메뉴에도 끼니 배지(`아침`)가 설 수 있다.
+      expect(mealCardFinder('아침'), findsNothing);
       // 음식은 한 줄에 하나, 이름 옆에 먹은 양, 오른쪽 끝에 그 음식의 kcal.
       // 데모 회원도 양을 들고 있다(#2368).
       expect(find.text('치킨  400g', findRichText: true), findsOneWidget);
@@ -458,26 +455,21 @@ void main() {
         scrollable: detailScrollable('seed-client-7'),
       );
       expect(find.text('아직 기록된 식단이 없어요'), findsOneWidget);
-      expect(find.textContaining('균형이 잘 맞아요'), findsNothing);
-      expect(find.textContaining('나트륨이 목표치를'), findsNothing);
+      expect(find.byKey(const ValueKey<String>('diet-analysis')), findsNothing);
       // The trend card is skipped too — there is no series to draw.
       expect(find.text('최근 7일 나트륨 추이'), findsNothing);
     });
 
-    testWidgets('AI 코멘트가 기간을 따라 바뀐다 (#1017)', (tester) async {
+    testWidgets('식단 분석이 기간을 따라 바뀐다 (#1017, #2379)', (tester) async {
       // 오늘 하루만 보고 쓴 문장을 이번 주 그래프 아래 그대로 두면, 화면과
       // 조언이 서로 다른 기간을 말한다.
       //
       // 평일(목요일)로 고정한다. 주말에 돌리면 이번 주 문장이 `넘은 날 수` 가
       // 아니라 `주말에 나트륨이 올라요` 분기로 먼저 빠져, 코드를 건드리지 않아도
       // 토·일에만 깨졌다(#2090 에서 토요일에 드러났다).
-      final container = await openDiet(
-        tester,
-        '김민수',
-        seedClock: DateTime(2026, 8, 13, 10),
-      );
+      await openDiet(tester, '김민수', seedClock: DateTime(2026, 8, 13, 10));
       await tester.scrollUntilVisible(
-        find.textContaining('나트륨이 목표치를'),
+        find.textContaining('때문에 오늘 나트륨이'),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
@@ -485,62 +477,53 @@ void main() {
       await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
 
-      // 이번 주 며칠이 넘었는지는 실행한 요일마다 달라진다 — 시드가 오늘까지만
-      // 채우기 때문이다(#826 과 같은 종류). 고정된 "2일" 을 기대하면 코드를
-      // 건드리지 않아도 요일에 따라 깨진다. `sodiumOverDays` 는 위젯이 읽는
-      // 것과 같은 이번 주 계열에서 나온 값이라, 실행한 날과 무관하게 맞는
-      // 문장을 고를 수 있다.
-      final minsu = container
-          .read(clientsProvider)
-          .value!
-          .firstWhere((c) => c.id == 'seed-client-1');
-      final over = minsu.sodiumOverDays;
-      final expectedText = over >= 3
-          ? '이번 주 $over일이나 나트륨을 넘겼어요'
-          : over > 0
-          ? '이번 주 $over일만 권장량을 넘었어요'
-          : '나트륨을 권장량 안에서 지켰어요';
-
-      // 오늘 문장은 사라지고, 그 자리에 이번 주를 읽은 문장이 온다.
-      expect(find.textContaining('나트륨이 목표치를'), findsNothing);
-      expect(find.textContaining(expectedText), findsOneWidget);
-    });
-
-    testWidgets('AI 카드 제목이 기간을 말한다 (#1025)', (tester) async {
-      // `오늘` 과 `이번 주` 가 같은 제목이면, 카드가 무엇을 두고 한 말인지
-      // 문장을 다 읽어야만 알 수 있다.
-      //
-      // `전체` 는 여기서 확인하지 않는다 — 날짜별 기록이 열두 주치라 조언
-      // 카드까지 끌어내리는 사이 기간 토글이 화면 밖으로 나가, 검증이 아니라
-      // 스크롤을 시험하게 된다. 세 기간의 제목은 아래 `titleOf` 로 함께 본다.
-      await openDiet(tester, '김민수');
+      // 오늘 문장은 사라지고, 그 자리에 이번 주를 읽은 문장이 온다 — 회원 앱과 같은
+      // 이번 주 판정에 가장 큰 끼니를 붙인다. 목요일이라 지난주 회고가 아니다.
+      expect(find.textContaining('때문에 오늘 나트륨이'), findsNothing);
       await tester.scrollUntilVisible(
-        find.text('AI 분석'),
+        find.textContaining('이번 주 기록한'),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.text('AI 분석'), findsOneWidget);
+      expect(find.textContaining('이번 주 기록한'), findsOneWidget);
+      // 이번 주·전체에는 추천을 묻지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('diet-recommendation')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('세 기간 모두 제목은 식단 분석이고 AI 라고 부르지 않는다 (#2379)', (tester) async {
+      // 문장은 서버 규칙이 만든다(AI 호출 없음). 무엇을 두고 한 말인지는 제목이
+      // 아니라 문장이 밝힌다("이번 주 …", "최근 4주 동안 …").
+      await openDiet(tester, '김민수');
+      await tester.scrollUntilVisible(
+        find.text('식단 분석'),
+        150,
+        scrollable: detailScrollable('seed-client-1'),
+      );
+      expect(find.text('식단 분석'), findsOneWidget);
+      expect(find.textContaining('AI 분석'), findsNothing);
+      // 분석은 끼니 카드 위에 선다.
       expect(
         tester
-            .getTopLeft(find.byKey(const ValueKey<String>('diet-ai-analysis')))
+            .getTopLeft(find.byKey(const ValueKey<String>('diet-analysis')))
             .dy,
         lessThan(tester.getTopLeft(mealCardFinder('아침')).dy),
       );
 
       await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
-      // 기간을 바꾸면 그래프 카드 아래에 날짜별 기록이 붙어 AI 카드가 화면
-      // 밖으로 내려간다 — 목록이 게으르게 만들어지므로 다시 끌어올린다.
       await tester.scrollUntilVisible(
-        find.text('AI 기간 분석'),
+        find.text('식단 분석'),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.text('AI 기간 분석'), findsOneWidget);
-      expect(find.text('AI 분석'), findsNothing);
+      expect(find.text('식단 분석'), findsOneWidget);
+      expect(find.textContaining('AI 기간 분석'), findsNothing);
       expect(
         tester
-            .getTopLeft(find.byKey(const ValueKey<String>('diet-ai-analysis')))
+            .getTopLeft(find.byKey(const ValueKey<String>('diet-analysis')))
             .dy,
         lessThan(
           tester
@@ -550,30 +533,6 @@ void main() {
               .dy,
         ),
       );
-    });
-
-    testWidgets('세 기간의 AI 카드 제목이 서로 다르다 (#1025)', (tester) async {
-      late AppLocalizations l;
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('ko'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Builder(
-            builder: (BuildContext context) {
-              l = AppLocalizations.of(context);
-              return const SizedBox.shrink();
-            },
-          ),
-        ),
-      );
-
-      final List<String> titles = <String>[
-        for (final ClientPeriod p in ClientPeriod.values)
-          ClientAiAnalysisCard.titleOf(l, p),
-      ];
-      expect(titles, <String>['AI 분석', 'AI 기간 분석', 'AI 전체 분석']);
-      expect(titles.toSet(), hasLength(3));
     });
 
     testWidgets('날짜 줄을 누르면 그날 기록이 펼쳐진다 (#1025)', (tester) async {
@@ -656,7 +615,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('이지수 (sodium under target) shows the balanced AI comment', (
+    testWidgets('이지수 (sodium under target) gets the balanced analysis', (
       tester,
     ) async {
       await openDiet(tester, '이지수');
@@ -674,11 +633,11 @@ void main() {
       // Under target in the diet summary.
       expect(find.text('mg 초과'), findsNothing);
       await tester.scrollUntilVisible(
-        find.textContaining('오늘 식단은 균형이 잘 맞아요'),
+        find.textContaining('목표 안에서 고르게 드셨어요'),
         150,
         scrollable: detailScrollable('seed-client-2'),
       );
-      expect(find.textContaining('오늘 식단은 균형이 잘 맞아요'), findsOneWidget);
+      expect(find.textContaining('목표 안에서 고르게 드셨어요'), findsOneWidget);
     });
   });
 }

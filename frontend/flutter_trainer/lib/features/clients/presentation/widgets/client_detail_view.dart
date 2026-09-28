@@ -18,6 +18,7 @@ import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목표 글이 배지 줄과 나눠 쓰는 폭 중 목표 몫의 상한.
@@ -470,7 +471,7 @@ class _Header extends StatelessWidget {
               onPressed: onBack,
             ),
           ),
-          AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
           const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(
