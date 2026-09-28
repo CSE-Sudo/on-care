@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_
     show trainerAuthRepositoryProvider;
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
@@ -273,11 +274,25 @@ class _FixedClientRepository implements ClientRepository {
   );
 
   @override
-  Future<String> fetchDietAdvice(
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
     required Locale locale,
-  }) async => '';
+  }) async => ClientDietAnalysis.empty;
+
+  @override
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  }) async => const ClientDietRecommendations();
+
+  @override
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
+    required Locale locale,
+  }) async => const ClientDietRecommendations();
 
   @override
   Future<List<ClientDietEntry>> fetchDietOn(

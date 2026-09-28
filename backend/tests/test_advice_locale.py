@@ -557,6 +557,17 @@ def jisu_over_sodium_today(db_session):
         db_session.commit()
 
 
+def _without_foods(body: dict) -> str:
+    """영어 문장에서 음식 이름을 뺀다 — 음식 이름은 회원이 기록한 말 그대로라
+    번역하지 않는다(#2379)."""
+    message = body["message"]
+    for sentence in body.get("sentences") or []:
+        for key, value in sentence["params"].items():
+            if key.startswith("food") and isinstance(value, str) and not key.startswith("food_value"):
+                message = message.replace(value, "")
+    return message
+
+
 @pytest.mark.parametrize("period", ["today", "week", "all"])
 @pytest.mark.parametrize("kind", ["diet-advice", "exercise-advice"])
 def test_trainer_advice_is_english_when_asked(client, kind, period):
@@ -567,7 +578,7 @@ def test_trainer_advice_is_english_when_asked(client, kind, period):
     default = client.get(url, headers=_auth(token))
     for response in (en, ko, default):
         assert response.status_code == 200, response.text
-    assert _no_hangul(en.json()["message"]) or kind == "exercise-advice", en.json()
+    assert _no_hangul(_without_foods(en.json())) or kind == "exercise-advice", en.json()
     assert en.json()["message"] != ko.json()["message"]
     # 헤더가 없으면 지금까지처럼 한국어다.
     assert default.json()["message"] == ko.json()["message"]
@@ -586,8 +597,11 @@ def test_trainer_diet_advice_today_english_names_the_sodium(client, jisu_over_so
         "/v1/trainer/clients/user-jisu/diet-advice?period=today",
         headers=_auth(token, "en-US,en;q=0.9,ko;q=0.5"),
     ).json()
-    assert body["message"].startswith("Sodium is at ")
-    assert "over the limit" in body["message"]
+    # 트레이너 `식단 분석`(#2379) — 넘친 영양과 그 원인(음식 또는 끼니)을 짚는다.
+    assert "pushed today's sodium to" in body["message"]
+    assert body["sentences"][0]["key"] in ("tr_today_over", "tr_today_over_meal")
+    assert body["sentences"][0]["params"]["nutrient"] == "sodium"
+    assert _no_hangul(_without_foods(body))
     assert _no_hangul(body["message"])
 
 
