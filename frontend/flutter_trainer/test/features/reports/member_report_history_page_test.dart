@@ -34,6 +34,9 @@ const String _newcomer = 'seed-client-7';
 const String _thisWeek = '2026-08-17';
 const String _lastWeek = '2026-08-10';
 
+/// 데모 리포트 이력의 가장 오래된 주 — 이번 주에서 13주 전.
+const String _oldestWeek = '2026-05-18';
+
 Finder _key(String key) => find.byKey(ValueKey<String>(key));
 
 void main() {
@@ -170,6 +173,53 @@ void main() {
     expect(find.byType(SentReportView), findsNothing);
   });
 
+  // 지난 리포트의 ① 칼로리 줄은 그 주 앞 4주와 견준다(#2453). `이번 주 평균` 만
+  // 남으면 트레이너가 그 수가 이 회원에게 많은지 알 길이 없다.
+  final Finder baselineLine = find.textContaining(
+    '지난 4주 평균',
+    findRichText: true,
+  );
+  // 증감은 같은 줄의 기준 뒤에 붙는다 — 다른 카드의 ▲/▼ 와 섞이지 않게
+  // 한 줄 안에서 찾는다.
+  final Finder deltaMark = find.textContaining(
+    RegExp('지난 4주 평균 [0-9,]+kcal +[▲▼][0-9,]+kcal'),
+    findRichText: true,
+  );
+
+  testWidgets('지난 리포트 보기의 칼로리 줄에 지난 4주 평균과 증감이 선다 (#2453)', (tester) async {
+    await open(tester);
+    await tapAndSettle(tester, _key('reports-history-$_steady'));
+    await tapAndSettle(tester, _key('reports-history-view-$_lastWeek'));
+    await waitFor(tester, baselineLine);
+
+    expect(find.byType(SentReportView), findsOneWidget);
+    expect(baselineLine, findsOneWidget);
+    expect(deltaMark, findsOneWidget);
+  });
+
+  testWidgets('지난 리포트의 가장 오래된 주에도 지난 4주 평균이 선다 (#2453)', (tester) async {
+    await open(tester);
+    await tapAndSettle(tester, _key('reports-history-$_steady'));
+    await tapAndSettle(tester, _key('reports-history-more'));
+    await tapAndSettle(tester, _key('reports-history-view-$_oldestWeek'));
+    await waitFor(tester, baselineLine);
+
+    expect(_key('reports-history-sent-$_oldestWeek'), findsOneWidget);
+    expect(baselineLine, findsOneWidget);
+    expect(deltaMark, findsOneWidget);
+  });
+
+  testWidgets('작업대를 가장 오래된 주로 옮겨 연 편집기에도 지난 4주 평균이 선다 (#2453)', (tester) async {
+    await open(
+      tester,
+      at: AppRoutes.reportFor(_steady, weekStart: DateTime.parse(_oldestWeek)),
+    );
+    await waitFor(tester, baselineLine);
+
+    expect(baselineLine, findsOneWidget);
+    expect(deltaMark, findsOneWidget);
+  });
+
   testWidgets('회원 목록으로 돌아가면 작업대다', (tester) async {
     await open(tester);
     await tapAndSettle(tester, _key('reports-history-$_steady'));
@@ -281,7 +331,11 @@ void main() {
   testWidgets('가장 좁은 지원 폭·영어·큰 글자에서도 버튼이 넘치지 않는다', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    await open(tester, locale: const Locale('en'), size: const Size(1024, 2400));
+    await open(
+      tester,
+      locale: const Locale('en'),
+      size: const Size(1024, 2400),
+    );
 
     // 작업대에서 연 보낸 리포트 — 제목 줄에 지난 리포트·다시 쓰기 두 버튼.
     await tapAndSettle(tester, _key('reports-view-$_steady'));

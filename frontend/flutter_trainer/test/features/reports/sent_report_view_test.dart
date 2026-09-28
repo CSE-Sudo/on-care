@@ -119,6 +119,7 @@ Future<({int back, int rewrite})> _pump(
   WidgetTester tester, {
   WeeklyReport? report,
   ReportSendRecord? record,
+  double? calorieBaseline,
   String locale = 'ko',
   Size size = const Size(900, 1600),
 }) async {
@@ -135,6 +136,7 @@ Future<({int back, int rewrite})> _pump(
         child: SentReportView(
           report: report ?? _report(),
           record: record ?? _record(),
+          calorieBaseline: calorieBaseline,
           onBack: () => back++,
           onRewrite: () => rewrite++,
         ),
@@ -273,6 +275,43 @@ void main() {
     );
     // 예전의 따로 그린 `그때 보낸 수치` 카드는 없다.
     expect(find.text('그때 보낸 수치'), findsNothing);
+  });
+
+  // 지난 리포트의 칼로리 줄 — 그 주 앞 4주와 견준다(#2453). 이번 주 평균은
+  // 기록한 날 1,850·2,100·1,990·2,400·1,700·1,880 의 평균 1,987kcal 이다.
+  Finder richText(Pattern pattern) =>
+      find.textContaining(pattern, findRichText: true);
+
+  testWidgets('기준이 있으면 칼로리 줄에 지난 4주 평균과 늘어난 양이 선다 (#2453)', (tester) async {
+    await _pump(tester, calorieBaseline: 1800);
+
+    expect(richText('이번 주 평균 1,987kcal'), findsOneWidget);
+    expect(richText('지난 4주 평균 1,800kcal'), findsOneWidget);
+    expect(richText('▲187kcal'), findsOneWidget);
+  });
+
+  testWidgets('평소보다 적게 먹은 주는 ▼ 로 줄어든 양을 적는다 (#2453)', (tester) async {
+    await _pump(tester, calorieBaseline: 2200);
+
+    expect(richText('지난 4주 평균 2,200kcal'), findsOneWidget);
+    expect(richText('▼213kcal'), findsOneWidget);
+    expect(richText('▲'), findsNothing);
+  });
+
+  testWidgets('앞선 주에 기록이 없으면 이번 주 평균만 적는다 (#2453)', (tester) async {
+    await _pump(tester);
+
+    expect(richText('이번 주 평균 1,987kcal'), findsOneWidget);
+    expect(richText('지난 4주 평균'), findsNothing);
+    expect(richText(RegExp('[▲▼]')), findsNothing);
+  });
+
+  testWidgets('영어 화면에서도 지난 4주 평균이 번역되어 선다 (#2453)', (tester) async {
+    await _pump(tester, calorieBaseline: 1800, locale: 'en');
+
+    expect(richText('지난 4주 평균'), findsNothing);
+    expect(richText('Past 4 weeks 1,800 kcal/day'), findsOneWidget);
+    expect(richText('▲187kcal'), findsOneWidget);
   });
 
   testWidgets('편집기 ② 작성의 피드백 카드에 보낸 글이 선다', (tester) async {

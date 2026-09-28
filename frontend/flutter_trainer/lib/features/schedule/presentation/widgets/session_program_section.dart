@@ -4,6 +4,29 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+/// 프로그램 한 줄의 양 — 근력은 세트·횟수(또는 초)·중량, 그 밖은 분. (#1276)
+///
+/// 일정 상세와 전송 이력이 **같은 문구**를 쓴다(#2225) — 같은 운동을 자리마다
+/// 다르게 적으면 트레이너는 그것이 같은 것인지부터 따져야 한다.
+String programItemAmount(AppLocalizations l, ProgramItem item) {
+  final List<String> parts = <String>[
+    if (item.type == '근력') ...<String>[
+      if (item.sets != null) l.progSetsValue(item.sets!),
+      // 버티는 운동은 초로 읽는다 — 회와 배타다(#1969).
+      if (item.holdSeconds != null && item.holdSeconds! > 0)
+        l.progHoldValue(item.holdSeconds!)
+      else if (item.reps != null && item.reps! > 0)
+        l.progRepsValue(item.reps!),
+      // 맨몸 운동은 `0kg` 이다 — 중량 칸은 비울 수 없고(최솟값 0) 근력을
+      // 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
+      // 전에 저장된 행뿐이라, 그때만 자리를 비운다.
+      if (item.weight != null) '${_trimZero(item.weight!)}${l.routineUnitKg}',
+    ] else if (item.duration != null)
+      l.minutesShort(item.duration!),
+  ];
+  return parts.join(' · ');
+}
+
 /// 프로그램 한 줄 — 운동 이름과, 유형에 맞는 값.
 ///
 /// 근력은 세트·중량으로, 나머지는 시간으로 읽는다 (#1276) — 유형마다 재는 단위가
@@ -18,22 +41,7 @@ class SessionProgramRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final List<String> parts = <String>[
-      if (item.type == '근력') ...<String>[
-        if (item.sets != null) l.progSetsValue(item.sets!),
-        // 버티는 운동은 초로 읽는다 — 회와 배타다(#1969).
-        if (item.holdSeconds != null && item.holdSeconds! > 0)
-          l.progHoldValue(item.holdSeconds!)
-        else if (item.reps != null && item.reps! > 0)
-          l.progRepsValue(item.reps!),
-        // 맨몸 운동은 `0kg` 이다 — 중량 칸은 비울 수 없고(최솟값 0) 근력을
-        // 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
-        // 전에 저장된 행뿐이라, 그때만 자리를 비운다.
-        if (item.weight != null) '${_trimZero(item.weight!)}${l.routineUnitKg}',
-      ] else if (item.duration != null)
-        l.minutesShort(item.duration!),
-    ];
-    final String detail = parts.join(' · ');
+    final String detail = programItemAmount(l, item);
     // 운동마다 구획이 이어져 깔리므로 기본 채움보다 한 단계 옅게 둔다 —
     // 기본 채움으로는 목록 전체가 무겁게 읽혔다(#2177).
     return AppTile(

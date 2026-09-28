@@ -393,9 +393,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
           ],
           if (request.isPending) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s16),
-            Row(
-              children: <Widget>[
-                const Spacer(),
+            AppActionRow(
+              actions: <Widget>[
                 // 거절은 사유를 받는 확인창을 연다. 빨간 글자만 있던 때에는 옆
                 // `승인` 과 모양이 달라, 흰 카드 위 네이비 외곽선으로 짝을
                 // 맞춘다(#2184). 위험 색은 확인창의 확정 버튼이 맡는다.
@@ -406,7 +405,6 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   size: OnCareButtonSize.small,
                   onPressed: _busy ? null : _reject,
                 ),
-                const SizedBox(width: OnCareSpacing.buttonGap),
                 AppButton(
                   key: ValueKey<String>('consultation-accept-${request.id}'),
                   label: l.consultApprove,

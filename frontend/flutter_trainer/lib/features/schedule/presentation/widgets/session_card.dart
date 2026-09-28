@@ -323,6 +323,7 @@ class SessionCard extends ConsumerWidget {
               (s.isDone || s.isCancelled || s.isNoShow)) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
             AppButtonPair(
+              size: OnCareButtonSize.small,
               cancelKey: const ValueKey<String>('session-routines-skip'),
               cancelLabel: l.schedRoutinesSkip,
               onCancel: onSkipRoutines,
@@ -335,30 +336,33 @@ class SessionCard extends ConsumerWidget {
             const SizedBox(height: OnCareSpacing.s12),
             // 이미 보냈으면 같은 자리에서 그 사실을 말하고 누를 수 없다 —
             // 다시 누를 수 있게 두면 트레이너가 두 번 보냈는지 알 수 없다.
-            AppButton(
-              key: const ValueKey<String>('schedule-send-program'),
-              // 개인운동이 함께 실린다(#2224) — 버튼이 그 사실을 말한다.
-              //
-              // 누구에게 가는지는 바로 위 카드 머리글이 이미 말하므로 버튼에는
-              // 이름을 넣지 않는다 — 버튼은 높이가 묶여 있어 한 줄뿐이라,
-              // 이름까지 넣으면 정작 무엇을 보내는지가 잘린다.
-              label: s.programSent
-                  ? l.schedSentTo(s.clientName)
-                  : hasUnsentRoutines
-                  ? l.schedSendProgramWithRoutines(programDateLabel)
-                  : l.schedSentProgramTo(programDateLabel),
-              leadingIcon: s.programSent
-                  ? AppIcons.checkCircle
-                  : AppIcons.send,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              // 무엇을 보내는지가 이 버튼의 전부다 — 좁은 카드에서 말줄임으로
-              // 끝나면 `개인운동도 함께 간다` 는 사실이 통째로 잘린다(#2224).
-              shrinkLabel: true,
-              loading: sendingProgram,
-              onPressed: (s.programSent || sendingProgram)
-                  ? null
-                  : onSendProgram,
+            AppActionRow(
+              actions: <Widget>[
+                AppButton(
+                  key: const ValueKey<String>('schedule-send-program'),
+                  // 개인운동이 함께 실린다(#2224) — 버튼이 그 사실을 말한다.
+                  //
+                  // 누구에게 가는지는 바로 위 카드 머리글이 이미 말하므로 버튼에는
+                  // 이름을 넣지 않는다 — 버튼은 높이가 묶여 있어 한 줄뿐이라,
+                  // 이름까지 넣으면 정작 무엇을 보내는지가 잘린다.
+                  label: s.programSent
+                      ? l.schedSentTo(s.clientName)
+                      : hasUnsentRoutines
+                      ? l.schedSendProgramWithRoutines(programDateLabel)
+                      : l.schedSentProgramTo(programDateLabel),
+                  leadingIcon: s.programSent
+                      ? AppIcons.checkCircle
+                      : AppIcons.send,
+                  variant: AppButtonVariant.secondary,
+                  // 무엇을 보내는지가 이 버튼의 전부다 — 좁은 카드에서 말줄임으로
+                  // 끝나면 `개인운동도 함께 간다` 는 사실이 통째로 잘린다(#2224).
+                  shrinkLabel: true,
+                  loading: sendingProgram,
+                  onPressed: (s.programSent || sendingProgram)
+                      ? null
+                      : onSendProgram,
+                ),
+              ],
             ),
           ],
         ],

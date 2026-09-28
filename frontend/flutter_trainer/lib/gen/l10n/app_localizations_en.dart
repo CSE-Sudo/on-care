@@ -834,6 +834,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseRequired => 'Add at least one exercise';
 
   @override
+  String get coachTemplateExerciseNameRequired => 'Enter the exercise name';
+
+  @override
   String get coachTemplateSaveFailed =>
       'Couldn\'t save the template. Please try again';
 
@@ -2752,6 +2755,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSentHistory => 'Sent history';
 
   @override
+  String get coachLastDelivery => 'Last send';
+
+  @override
+  String get coachDeliveryPtWithRoutine => 'PT · personal';
+
+  @override
+  String get coachDeliveryRoutineOnly => 'Personal only';
+
+  @override
+  String get coachDeliveryCancelledRoutineOnly =>
+      'PT cancelled · personal only';
+
+  @override
+  String coachDeliveryOn(String date) {
+    return 'Sent $date';
+  }
+
+  @override
+  String coachUnsentRoutines(int count) {
+    return '$count personal exercise(s) not sent yet';
+  }
+
+  @override
+  String get coachUnsentRoutinesBody =>
+      'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.';
+
+  @override
+  String get coachSendUnsentRoutines => 'Open in schedule';
+
+  @override
+  String get coachDeliveryProgramSection => 'Program';
+
+  @override
+  String get coachDeliveryRoutineSection => 'Personal workout';
+
+  @override
+  String get coachDeliveryNothing => 'Nothing sent';
+
+  @override
   String get coachHistoryFailed => 'Couldn\'t load history';
 
   @override
@@ -4044,9 +4086,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String programEditorDefaultName(String goal) {
     return '$goal program';
   }
-
-  @override
-  String get programEditorDefaultSession => 'Session A';
 
   @override
   String get programEditorSaveUnsupported => 'Give the program a name first.';

@@ -1092,15 +1092,16 @@ class _MyPageState extends ConsumerState<MyPage> {
           footer: l.myWithdrawReasonHint,
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: AppButton(
-            key: const ValueKey<String>('withdraw-next'),
-            label: l.myWithdrawNext,
-            // 아무것도 고르지 않아도 넘어간다 — 사유는 묻는 것이지 받아 내는
-            // 것이 아니다.
-            onPressed: () => setState(() => _withdrawKeepStep = true),
-          ),
+        AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: const ValueKey<String>('withdraw-next'),
+              label: l.myWithdrawNext,
+              // 아무것도 고르지 않아도 넘어간다 — 사유는 묻는 것이지 받아 내는
+              // 것이 아니다.
+              onPressed: () => setState(() => _withdrawKeepStep = true),
+            ),
+          ],
         ),
       ];
     }
@@ -1133,9 +1134,8 @@ class _MyPageState extends ConsumerState<MyPage> {
         ),
       ),
       const SizedBox(height: OnCareSpacing.cardGap),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
+      AppActionRow(
+        actions: <Widget>[
           // 위험 동작은 빨간 글자 버튼으로 두고, 확정은 확인창에서 한다(#1690).
           AppButton(
             key: const ValueKey<String>('withdraw-continue'),
@@ -1147,7 +1147,6 @@ class _MyPageState extends ConsumerState<MyPage> {
                 ? _deleteAccount
                 : null,
           ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
           AppButton(
             key: const ValueKey<String>('withdraw-stay'),
             label: l.myWithdrawStay,

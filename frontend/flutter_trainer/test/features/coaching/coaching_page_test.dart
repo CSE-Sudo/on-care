@@ -30,6 +30,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
@@ -42,7 +43,6 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatarSize,
@@ -55,6 +55,7 @@ import 'package:oncare_ui/oncare_ui.dart'
         OnCareMotion;
 
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/progress_bar_finder.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/record_span.dart';
 
@@ -335,6 +336,10 @@ class _FixedClientRepository implements ClientRepository {
 /// 저장소의 한 명령으로 나가므로(#1580), 여기로 배정이 오면 잘못이다.
 /// `개인운동만` 전송이 실제로 부른 배정 본문을 붙잡는다. (#2223)
 class _CapturingProgramRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   final List<Map<String, Object?>> programs = <Map<String, Object?>>[];
 
   @override
@@ -371,6 +376,10 @@ class _CapturingProgramRepository implements TrainerRoutineRepository {
 }
 
 class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
+  // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async => null;
+
   @override
   Future<void> updateRoutine(
     String memberId,
@@ -960,13 +969,7 @@ void main() {
         expect(programCard, findsOneWidget);
         // 이행률 막대·퍼센트는 이 목록에서 뺐다(#1029) — 이 목록은 회원을
         // 고르는 자리다.
-        expect(
-          find.descendant(
-            of: programCard,
-            matching: find.byType(InlineBarValue),
-          ),
-          findsNothing,
-        );
+        expect(findProgressBars(of: programCard), findsNothing);
         final avatar = tester.widget<ClientAvatar>(
           find.descendant(of: programCard, matching: find.byType(ClientAvatar)),
         );
@@ -1049,21 +1052,30 @@ void main() {
           find.descendant(of: overview, matching: find.text('전송 이력')),
           findsOneWidget,
         );
-        expect(find.text('개인'), findsWidgets);
         expect(find.text('숙제'), findsNothing);
-        final personalBadge = find
-            .byKey(const ValueKey<String>('send-history-type-개인'))
-            .first;
-        final ptBadge = find
-            .byKey(const ValueKey<String>('send-history-type-PT'))
-            .first;
-        expect(personalBadge, findsOneWidget);
-        expect(ptBadge, findsOneWidget);
-        expect(tester.getSize(personalBadge), tester.getSize(ptBadge));
-        // 전송 이력 줄과 `최근 루틴` 요약 **두 곳**에 같은 문구가 선다. 픽스처
-        // 이름에서 세트·중량을 뺀 뒤로(#1902) 둘의 첫 이름이 `벤치프레스` 로
-        // 같아졌기 때문이고, 둘 다 맞는 표기다. 하나라도 사라지면 여기서 걸린다.
-        expect(find.text('벤치프레스 외 3개'), findsNWidgets(2));
+        // 전송 이력은 **직전 한 번만** 보여 주고, 그 한 번을 프로그램과
+        // 개인운동으로 갈라 적는다(#2225). 여러 번을 나열하면 트레이너가 찾는
+        // 것 — 방금 무엇이 나갔나 — 이 목록에 묻힌다.
+        expect(
+          find.descendant(
+            of: overview,
+            matching: find.byKey(
+              const ValueKey<String>('coach-delivery-section-프로그램'),
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: overview,
+            matching: find.byKey(
+              const ValueKey<String>('coach-delivery-section-개인운동'),
+            ),
+          ),
+          findsOneWidget,
+        );
+        // 줄 단위 이력이 사라져 `최근 루틴` 요약 한 곳에만 남는다.
+        expect(find.text('벤치프레스 외 3개'), findsOneWidget);
         expect(find.text('1:1 PT · 운동 4개'), findsNothing);
         expect(
           tester.getBottomRight(fat).dy,

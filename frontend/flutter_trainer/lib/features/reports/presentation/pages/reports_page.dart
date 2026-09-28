@@ -172,28 +172,26 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 보낸다 — 미리보기와 회원이 받는 파일이 서로 다를 수 없다.
   Future<Uint8List>? _preview;
 
-  /// [_preview] 의 재료(`회원|주|언어|문구`). ② 에서 글을 고치고 돌아오면
-  /// 문구가 달라져 새로 만든다.
+  /// [_preview] 의 재료(`회원|주|언어|리포트 내용|문구`). ② 에서 글을 고치고
+  /// 돌아오면 문구가 달라져 새로 만든다.
+  ///
+  /// 리포트는 객체가 아니라 내용으로 가른다(#2484). 스트림이 내용이 같은
+  /// 리포트를 새 객체로 다시 보낼 때마다 PDF 를 처음부터 다시 만들면, 무거운
+  /// 생성이 겹쳐 ③ 이 멈춘다. 수치가 실제로 바뀌면 열쇠가 달라져 새로 만든다.
   String? _previewKey;
-
-  /// [_preview] 를 만든 리포트. 수치가 다시 읽히면 새 객체가 와 새로 만든다.
-  WeeklyReport? _previewReport;
 
   static String _previewKeyOf(
     AppLocalizations l,
     WeeklyReport report,
     String message,
-  ) => '${_feedbackKey(report)}|${l.localeName}|$message';
+  ) => '${_feedbackKey(report)}|${l.localeName}|${report.contentKey}|$message';
 
   /// [report] 를 [message] 로 만든 미리보기가 지금 있는가.
   bool _previewMatches(
     AppLocalizations l,
     WeeklyReport report,
     String message,
-  ) =>
-      _preview != null &&
-      _previewKey == _previewKeyOf(l, report, message) &&
-      identical(_previewReport, report);
+  ) => _preview != null && _previewKey == _previewKeyOf(l, report, message);
 
   /// ③ 에 띄울 PDF. 재료가 같으면 있던 것을 쓰고, 다르면 전송과 같은
   /// [_generateReportPdf] 로 새로 만든다. build 안에서 부른다.
@@ -204,7 +202,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   ) {
     if (_previewMatches(l, report, message)) return _preview!;
     _previewKey = _previewKeyOf(l, report, message);
-    _previewReport = report;
     return _preview = _generateReportPdf(l, report, message);
   }
 
@@ -212,7 +209,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   void _dropPreview() {
     _preview = null;
     _previewKey = null;
-    _previewReport = null;
   }
 
   /// 입력창의 출발점 — 저장해 둔 초안이 있으면 그것, 없으면 수치에서 만든
@@ -546,7 +542,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       setState(() {
         _preview = fresh;
         _previewKey = _previewKeyOf(l, report, message);
-        _previewReport = report;
       });
     }
     return fresh;
@@ -1096,17 +1091,19 @@ class _StepFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool last = stage == 2;
-    return Row(
-      children: <Widget>[
-        if (onPrev != null)
-          AppButton(
-            key: const ValueKey<String>('report-step-prev'),
-            label: l.reportsStepPrev,
-            variant: AppButtonVariant.text,
-            leadingIcon: AppIcons.chevronLeft,
-            onPressed: onPrev,
-          ),
-        const Spacer(),
+    // 단계 흐름이라 `이전` 은 왼쪽 끝에 떼어 둔다 — 오른쪽 `다음` 과 한 쌍의
+    // 선택이 아니라 되돌아가기다(#2465).
+    return AppActionRow(
+      leading: onPrev == null
+          ? null
+          : AppButton(
+              key: const ValueKey<String>('report-step-prev'),
+              label: l.reportsStepPrev,
+              variant: AppButtonVariant.text,
+              leadingIcon: AppIcons.chevronLeft,
+              onPressed: onPrev,
+            ),
+      actions: <Widget>[
         if (last) ...<Widget>[
           // 인쇄는 전송 왼쪽이다(#2451). 보내기 전에 종이로 한 번 더 보는
           // 자리라 보조 버튼으로 둔다.
@@ -1130,7 +1127,6 @@ class _StepFooter extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(width: OnCareSpacing.s8),
           // 빈 피드백으로 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
           Tooltip(
             message: canSend ? '' : l.reportsSendNeedsFeedback,

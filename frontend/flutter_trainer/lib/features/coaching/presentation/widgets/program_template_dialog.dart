@@ -47,7 +47,19 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       _ExerciseDraft.empty(),
   ];
 
-  String? _error;
+  /// 이름 칸에 붙는 오류. 이름의 잘못만 온다. (#2220)
+  String? _nameError;
+
+  /// 운동 목록 쪽에 서는 오류 — 보낼 운동이 하나도 없을 때.
+  String? _exerciseError;
+
+  /// 창 아래에 서는 오류 — 저장이 서버에서 막혔을 때.
+  String? _saveError;
+
+  /// 이름이 빈 운동 줄을 그 줄에서 짚어 줄 것인가. 저장을 눌러 본 뒤에만
+  /// 켠다 — 창을 열자마자 빈 줄을 빨갛게 칠하면 아직 적지도 않았는데
+  /// 틀렸다고 말하는 꼴이다.
+  bool _markEmptyExercises = false;
   bool _saving = false;
 
   @override
@@ -65,23 +77,28 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
     final AppLocalizations l = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
     final name = _name.text.trim();
-    if (name.isEmpty) {
-      setState(() => _error = l.coachTemplateNameRequired);
-      return;
-    }
+    // 오류는 저마다 제 자리에서 말한다(#2220). 셋을 한 문구에 몰아 이름 칸에
+    // 붙이면, 이름을 제대로 적어 둔 트레이너가 빨개진 이름 칸을 들여다보며
+    // 무엇이 틀렸는지 찾게 된다.
+    setState(() {
+      _nameError = name.isEmpty ? l.coachTemplateNameRequired : null;
+      _saveError = null;
+    });
     final exercises = <TemplateExercise>[
       for (final draft in _exercises)
         if (draft.toExercise() case final TemplateExercise exercise) exercise,
     ];
-    if (exercises.isEmpty) {
-      setState(() => _error = l.coachTemplateExerciseRequired);
-      return;
-    }
-
     setState(() {
-      _saving = true;
-      _error = null;
+      _exerciseError = exercises.isEmpty
+          ? l.coachTemplateExerciseRequired
+          : null;
+      // 어느 줄이 모자란지 그 줄에서 말한다 — 목록 전체에 한 번만 말하면
+      // 세 줄 중 어디를 고쳐야 하는지 알 수 없다.
+      _markEmptyExercises = exercises.length != _exercises.length;
     });
+    if (_nameError != null || _exerciseError != null) return;
+
+    setState(() => _saving = true);
     try {
       final repository = ref.read(trainerProgramTemplateRepositoryProvider);
       final existing = widget.template;
@@ -105,8 +122,9 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       navigator.pop();
     } on AppError catch (error) {
       if (!mounted) return;
+      // 저장이 막힌 것은 어느 한 칸의 잘못이 아니다. 창 아래에 세운다.
       setState(
-        () => _error = serverDetailOr(
+        () => _saveError = serverDetailOr(
           l,
           error.message,
           l.coachTemplateSaveFailed,
@@ -129,6 +147,17 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       size: AppDialogSize.medium,
       // 하단 [취소, 저장] 으로만 닫는다 — 예전 창에도 닫기 X 는 없었다.
       showClose: false,
+      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
+      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
+      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
+      trailing: AppButton(
+        label: l.coachTemplateAddExercise,
+        onPressed: () =>
+            setState(() => _exercises.add(_ExerciseDraft.empty())),
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        leadingIcon: AppIcons.add,
+      ),
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : () => Navigator.of(context).pop(),
@@ -144,7 +173,7 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
             key: const ValueKey<String>('template-name'),
             controller: _name,
             label: l.coachTemplateNameLabel,
-            errorText: _error,
+            errorText: _nameError,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
@@ -157,6 +186,12 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
             _ExerciseRow(
               key: ValueKey<int>(_exercises[index].key),
               draft: _exercises[index],
+              // 이름이 비어 한 건으로 세지 못한 줄만 짚는다.
+              nameError:
+                  _markEmptyExercises &&
+                      _exercises[index].name.text.trim().isEmpty
+                  ? l.coachTemplateExerciseNameRequired
+                  : null,
               onChanged: () => setState(() {}),
               onRemove: _exercises.length == 1
                   ? null
@@ -164,17 +199,27 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
                       _exercises.removeAt(index).dispose();
                     }),
             ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
-              label: l.coachTemplateAddExercise,
-              onPressed: () =>
-                  setState(() => _exercises.add(_ExerciseDraft.empty())),
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              leadingIcon: AppIcons.add,
+          // 운동 목록 바로 아래 — 이 오류가 가리키는 것은 목록이다(#2220).
+          // `운동 추가` 는 창 제목 오른쪽으로 옮겨 갔으므로(#2465) 그 자리를
+          // 기준으로 삼지 않는다.
+          if (_exerciseError case final String message)
+            Text(
+              message,
+              key: const ValueKey<String>('template-exercise-error'),
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.danger),
             ),
-          ),
+          if (_saveError case final String message) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Text(
+              message,
+              key: const ValueKey<String>('template-save-error'),
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.danger),
+            ),
+          ],
         ],
       ),
     );
@@ -290,12 +335,17 @@ class _ExerciseRow extends StatelessWidget {
   const _ExerciseRow({
     required this.draft,
     required this.onChanged,
+    this.nameError,
     this.onRemove,
     super.key,
   });
 
   final _ExerciseDraft draft;
   final VoidCallback onChanged;
+
+  /// 이름 칸에 붙는 오류. 저장을 눌렀는데 이 줄의 이름이 비어 있을 때만
+  /// 온다(#2220) — 어느 줄이 모자란지 그 줄에서 말한다.
+  final String? nameError;
   final VoidCallback? onRemove;
 
   @override
@@ -315,6 +365,7 @@ class _ExerciseRow extends StatelessWidget {
                   controller: draft.name,
                   label: l.coachTemplateExerciseName,
                   hint: l.aiExerciseNameExample,
+                  errorText: nameError,
                 ),
               ),
               AppIconButton(

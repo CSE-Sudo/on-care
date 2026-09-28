@@ -134,10 +134,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   /// 입력 폼 크기(560)의 가운데 모달로 [child] 를 연다(#1250, #1706).
   ///
-  /// 일정·프로그램·메모 편집과 예약 슬롯은 모두 같은 틀이다. 최대 높이(화면의
-  /// 85%)까지는 내용만큼만 커지고, 넘치면 그 안에서만 스크롤한다 — 틀은
-  /// [AppDialog] 가 정한다. 내용 위젯은 제목을 그리지 않으므로 [title] 은
-  /// 틀의 헤더에 한 번만 선다.
+  /// 예약 슬롯이 이 틀을 쓴다. 최대 높이(화면의 85%)까지는 내용만큼만 커지고,
+  /// 넘치면 그 안에서만 스크롤한다 — 틀은 [AppDialog] 가 정한다. 내용 위젯은
+  /// 제목을 그리지 않으므로 [title] 은 틀의 헤더에 한 번만 선다.
+  ///
+  /// 일정·프로그램·메모 편집은 같은 크기의 [AppDialog] 를 폼 위젯이 직접
+  /// 짓는다 — 저장 버튼을 창 아래에 고정하려면 저장 중 상태를 쥔 쪽이 틀을
+  /// 그려야 한다(#2465).
   Future<void> _openFormDialog(
     String title,
     Widget Function(BuildContext) builder,
@@ -158,9 +161,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     required bool noteOnly,
   }) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _openFormDialog(
-      noteOnly ? l.schedEditNote : l.progEditTitle,
-      (dialogContext) => SessionProgramEditor(
+    return showAppDialog<void>(
+      context: context,
+      builder: (dialogContext) => SessionProgramEditor(
+        title: noteOnly ? l.schedEditNote : l.progEditTitle,
         key: ValueKey<String>(
           noteOnly
               ? 'note-editor-${session.id}'
@@ -180,10 +184,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     final clients = ref.read(clientsProvider).valueOrNull ?? const [];
     if (existing == null && clients.isEmpty) return Future<void>.value();
     final AppLocalizations l = AppLocalizations.of(context);
-    return _openFormDialog(
-      existing == null ? l.schedAddTitle : l.schedEditTitle,
-      (dialogContext) {
+    return showAppDialog<void>(
+      context: context,
+      builder: (dialogContext) {
         return SessionSheet(
+          title: existing == null ? l.schedAddTitle : l.schedEditTitle,
           key: ValueKey<String>(
             existing == null
                 ? 'new-session-editor'
