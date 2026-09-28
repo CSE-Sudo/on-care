@@ -11,17 +11,23 @@ abstract final class ChatPreviewCode {
   /// 마지막 메시지가 글 없는 이모티콘이다.
   static const String emote = '@emote';
 
+  /// 마지막 메시지가 글 없는 사진이다. 실서버 로스터가 `사진` 으로 주는 자리를
+  /// 데모에서도 같게 그린다. (#2493)
+  static const String photo = '@photo';
+
   /// 마지막 메시지를 방금 보냈다.
   static const String justNow = '@just_now';
 
   /// [value] 가 문구가 아니라 코드인가. 검색처럼 글 자체를 쓰는 자리가
   /// 코드를 회원의 말로 착각하지 않게 한다.
-  static bool isCode(String value) => value == emote || value == justNow;
+  static bool isCode(String value) =>
+      value == emote || value == photo || value == justNow;
 }
 
 /// 목록에 보일 마지막 메시지. 대화가 없으면(빈 값) "아직 대화가 없어요" 다.
 String chatPreviewMessage(AppLocalizations l, String lastMessage) {
   if (lastMessage == ChatPreviewCode.emote) return l.messagesPreviewEmote;
+  if (lastMessage == ChatPreviewCode.photo) return l.messagesPreviewPhoto;
   if (lastMessage.trim().isEmpty) return l.messagesNoPreview;
   return lastMessage;
 }
