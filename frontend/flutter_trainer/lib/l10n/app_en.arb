@@ -1846,6 +1846,12 @@
     }
   },
   "aiSugarAlsoOver": " · sugar also over",
+  "aiDirectionLabel": "Direction",
+  "aiDirectionLower": "Lower intensity — recent completion is low",
+  "aiDirectionCardio": "More cardio — sodium is often over target",
+  "aiDirectionLowerAndCardio": "Lower intensity · more cardio",
+  "aiDirectionKeep": "Keep current intensity",
+  "aiDirectionNoData": "Not enough records yet",
   "aiBasisRuleBased": " · rule-based",
   "aiChatEvidenceTitle": "Recent conversation used",
   "aiEditOption": "Edit {option}",
