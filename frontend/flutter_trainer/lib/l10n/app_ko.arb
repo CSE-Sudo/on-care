@@ -2146,6 +2146,7 @@
   "reportsSortPriority": "우선 확인 순",
   "reportsSortName": "이름 오름차순",
   "reportsSortNameDescending": "이름 내림차순",
+  "reportsSentSortUnread": "안 읽은 회원 먼저",
   "reportsSendProgress": "{done} / {total} 전송",
   "@reportsSendProgress": {
     "placeholders": {
@@ -2217,7 +2218,6 @@
   },
   "reportsSentRead": "읽음",
   "reportsSentUnread": "안 읽음",
-  "reportsSentUnreadHint": "안 읽은 회원은 다음 주 우선 확인으로 올라와요.",
   "reportsBackToWorkbench": "이번 주 리포트",
   "reportsSentHeadline": "{name}님에게 보낸 리포트",
   "@reportsSentHeadline": {

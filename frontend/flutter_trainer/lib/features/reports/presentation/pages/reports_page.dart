@@ -102,6 +102,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// 작업대의 정렬. 기본은 손이 필요한 회원부터다(#2232).
   ReportQueueSort _sort = ReportQueueSort.priority;
+  ReportSentSort _sentSort = ReportSentSort.unreadFirst;
 
   /// 편집기에서 지금 서 있는 단계.
   int _stage = 0;
@@ -811,6 +812,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               historyFailed: history.hasError && !history.isLoading,
               weekNav: weekNav,
               onSortChanged: (value) => setState(() => _sort = value),
+              sentSort: _sentSort,
+              onSentSortChanged: (value) => setState(() => _sentSort = value),
               onOpen: (entry) => _selectClient(entry.client.id),
               onOpenSent: (entry) =>
                   setState(() => _sentViewFor = entry.client.id),

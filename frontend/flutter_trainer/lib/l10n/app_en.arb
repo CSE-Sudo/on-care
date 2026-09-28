@@ -3266,6 +3266,7 @@
   "reportsSortPriority": "Needs attention",
   "reportsSortName": "Name A–Z",
   "reportsSortNameDescending": "Name Z–A",
+  "reportsSentSortUnread": "Unread first",
   "reportsSendProgress": "{done} / {total} sent",
   "@reportsSendProgress": {
     "placeholders": {
@@ -3336,7 +3337,6 @@
   },
   "reportsSentRead": "Read",
   "reportsSentUnread": "Unread",
-  "reportsSentUnreadHint": "Members who haven't opened theirs move to the top next week.",
   "reportsBackToWorkbench": "This week's reports",
   "reportsSentHeadline": "Report sent to {name}",
   "@reportsSentHeadline": {

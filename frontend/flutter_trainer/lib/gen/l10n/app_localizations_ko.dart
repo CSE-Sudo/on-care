@@ -4533,6 +4533,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSortNameDescending => '이름 내림차순';
 
   @override
+  String get reportsSentSortUnread => '안 읽은 회원 먼저';
+
+  @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total 전송';
   }
@@ -4599,9 +4602,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsSentUnread => '안 읽음';
-
-  @override
-  String get reportsSentUnreadHint => '안 읽은 회원은 다음 주 우선 확인으로 올라와요.';
 
   @override
   String get reportsBackToWorkbench => '이번 주 리포트';
