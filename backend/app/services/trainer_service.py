@@ -5356,6 +5356,10 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
         link.active = False
         # 담당 해제 = 데이터 공유 동의 철회(#1631).
         data_consent_service.revoke(link)
+        # 그 트레이너가 확정해 둔 식단 추천도 내린다 — 트레이너가 해제할 때
+        # (`remove_client`)와 같다. 남겨 두면 같은 트레이너와 다시 연결될 때 끊기
+        # 전의 추천이 회원 홈에 되살아난다(#2442).
+        diet_trainer_pick.clear(db, member_id, link.trainer_id)
     if links:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
         # 끊은 트레이너의 메시지로 만든 식단 AI 조언·추천 메뉴를 내려놓는다(#1631).
