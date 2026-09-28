@@ -171,7 +171,7 @@ Future<void> _driveToApplyReady(WidgetTester tester) async {
   await tester.ensureVisible(
     find.byKey(const ValueKey<String>('apply-routine-to-template')),
   );
-  // 최종 검토 다음은 개인운동 단계다(#2223). 반영은 거기서 일어나므로, 최소
+  // 프로그램 검토 다음은 개인운동 단계다(#2223). 반영은 거기서 일어나므로, 최소
   // 한 개를 직접 넣어 `프로그램에 반영` 을 누를 수 있는 자리까지 간다 — AI
   // 제안이 있든 없든 같은 자리에 선다.
   await tester.tap(
@@ -398,7 +398,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // #1655 — 분석 박스는 왼쪽에 사실, 오른쪽에 최근 7일 AI 감지 메모를 둔다.
+    // #1655 — 분석 박스는 왼쪽에 사실, 오른쪽에 최근 7일 확인 필요를 둔다.
     TrainerMemo memo(
       String id,
       String body,
@@ -499,13 +499,38 @@ void main() {
       );
     });
 
-    testWidgets('PT + 개인운동은 조건 설정 → 프로그램 선택 → 최종 검토 → 개인운동 '
+    testWidgets('#2373 회원 현황 아래에 규칙으로 정한 권장 방향 한 줄이 선다', (tester) async {
+      await pumpFlow(tester);
+      await tester.pumpAndSettle();
+
+      // 테스트 회원: 완료율 80%, 식단 초과 없음 → 유지.
+      final Finder row = find.byKey(
+        const ValueKey<String>('ai-analysis-direction'),
+      );
+      expect(
+        find.descendant(of: row, matching: find.text('권장 방향')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: row, matching: find.text('현재 강도 유지')),
+        findsOneWidget,
+      );
+
+      // 다섯째 줄이 붙어도 왼쪽 사실 칸은 오른쪽 고정 높이 칸 안에 들어온다
+      // — 넘치면 카드가 자라 생성 버튼이 밀린다(#1655).
+      final Rect memos = tester.getRect(
+        find.byKey(const ValueKey<String>('ai-chat-insight-memos')),
+      );
+      expect(tester.getRect(row).bottom, lessThanOrEqualTo(memos.bottom));
+    });
+
+    testWidgets('PT + 개인운동은 조건 설정 → 프로그램 선택 → 프로그램 검토 → 개인운동 '
         '네 단계다 (#2223)', (tester) async {
       await pumpFlow(tester);
 
       expect(find.text('조건 설정'), findsOneWidget);
       expect(find.text('프로그램 선택'), findsOneWidget);
-      expect(find.text('최종 검토'), findsOneWidget);
+      expect(find.text('프로그램 검토'), findsOneWidget);
       // 개인운동은 PT 구성을 고르는 일과 엮이지 않는 **마지막** 단계다.
       expect(find.text('개인운동'), findsOneWidget);
       expect(
@@ -559,7 +584,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 흐름이 짧아진 것처럼 보이지 않게 네 칸을 그대로 둔다.
-      for (final label in <String>['조건 설정', '프로그램 선택', '최종 검토', '개인운동']) {
+      for (final label in <String>['조건 설정', '프로그램 선택', '프로그램 검토', '개인운동']) {
         expect(find.text(label), findsOneWidget);
       }
       expect(
@@ -1205,9 +1230,17 @@ void main() {
 
       // 조건 설정 단계에는 자연어 요청 칸이 있고(#1028), 예시 문구는 입력 전
       // 참고용이라 흐린 placeholder 로 남는다.
-      expect(find.text('운동 목표와 최근 활동, 오늘의 식단 정보를 확인했어요'), findsOneWidget);
-      // 분석 제목과 생성 버튼의 AI 아이콘은 유지하되 요청 제목 아이콘만 뺀다.
-      expect(find.byIcon(Icons.auto_awesome_rounded), findsNWidgets(2));
+      expect(find.text('회원 현황'), findsOneWidget);
+      // 회원 현황은 규칙으로 계산한 값이라 AI 아이콘을 달지 않는다(#2372).
+      // AI 아이콘은 실제로 AI 를 부르는 생성 버튼에만 남는다.
+      expect(find.byIcon(Icons.auto_awesome_rounded), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('ai-analysis-card')),
+          matching: find.byIcon(Icons.fact_check_rounded),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('요청 내용'), findsOneWidget);
       final promptBlurb = tester.widget<Text>(
         find.textContaining('요청은 회원 데이터와 함께 AI에 전달돼요'),
@@ -1402,7 +1435,7 @@ void main() {
         find.byKey(const ValueKey<String>('complete-routine-review')),
       );
       await tester.pumpAndSettle();
-      // 최종 검토에 들어온 것만으로는 아직 아무 데도 반영되지 않는다 (#1028
+      // 프로그램 검토에 들어온 것만으로는 아직 아무 데도 반영되지 않는다 (#1028
       // 후속) — `템플릿에 반영`을 눌러야 [onReviewCompleted] 가 호출된다.
       expect(reviewed, isNull);
       expect(
@@ -1425,7 +1458,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 최종 검토 다음은 개인운동 단계다(#2223) — 여기서도 아직 반영되지
+      // 프로그램 검토 다음은 개인운동 단계다(#2223) — 여기서도 아직 반영되지
       // 않는다. 위저드를 빠져나가는 출구는 그 단계의 `프로그램에 반영` 이다.
       expect(reviewed, isNull);
       expect(
@@ -1450,7 +1483,7 @@ void main() {
   );
 
   testWidgets('템플릿에 반영은 회원에게 보내는 API를 호출하지 않는다 (#1028 후속)', (tester) async {
-    // AI 3단계 최종 검토는 더 이상 여기서 곧바로 전송하지 않는다 — `템플릿에
+    // AI 3단계 프로그램 검토는 더 이상 여기서 곧바로 전송하지 않는다 — `템플릿에
     // 반영`은 [onReviewCompleted] 로 편집기에 넘길 뿐이다. 실수로라도 회원
     // 전송 API 가 호출되면 곧바로 던지도록 만들어 회귀를 잡는다.
     tester.view.physicalSize = const Size(1000, 2400);

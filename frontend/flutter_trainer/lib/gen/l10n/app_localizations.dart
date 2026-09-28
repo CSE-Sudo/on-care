@@ -2360,90 +2360,6 @@ abstract class AppLocalizations {
   /// **'{amount} remaining to the goal'**
   String dietAmountRemaining(String amount);
 
-  /// No description provided for @aiAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'AI analysis'**
-  String get aiAnalysis;
-
-  /// No description provided for @aiPeriodAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'AI period analysis'**
-  String get aiPeriodAnalysis;
-
-  /// No description provided for @aiAllAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'AI all-time analysis'**
-  String get aiAllAnalysis;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium is {over}mg over the target. Adding cardio to today\'s program would help.'**
-  String clientDietAdviceTodayOver(int over);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s meals are well balanced. Keep the current program.'**
-  String get clientDietAdviceTodayBalanced;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'No meals logged this week yet. Even one meal shows the trend.'**
-  String get clientDietAdviceWeekEmpty;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Once you log more, we\'ll show how your sodium and calories are trending.'**
-  String get clientDietAdviceAllEmpty;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium went over on {days} days this week. With soups, eat the solids and leave the broth.'**
-  String clientDietAdviceWeekManyOver(int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.'**
-  String get clientDietAdviceWeekWeekend;
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Only {days, plural, =1{1 day} other{{days} days}} went over the sodium limit this week. The other days were well balanced.'**
-  String clientDietAdviceWeekSomeOver(int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'You kept sodium within the limit on {days, plural, =1{the 1 day you logged} other{all {days} days}} this week!'**
-  String clientDietAdviceWeekAllUnder(int days);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.'**
-  String clientDietAdviceAllWeekend(int weeks);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'{percent}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.'**
-  String clientDietAdviceAllRatio(int weeks, int percent);
-
-  /// 트레이너웹 데모 회원 상세 기간 조언(서버 조언 규칙을 흉내 낸다).
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{Your 1 logged day} other{Most of your {days} logged days}} in the last {weeks} weeks stayed within the sodium limit. Nice trend.'**
-  String clientDietAdviceAllMostlyUnder(int weeks, int days);
-
   /// No description provided for @consultStatusRejected.
   ///
   /// In en, this message translates to:
@@ -2894,12 +2810,6 @@ abstract class AppLocalizations {
   /// **'Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.'**
   String reportBodySodiumOk(String avg, String target);
 
-  /// No description provided for @reportBodyCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day.'**
-  String reportBodyCalories(String avg);
-
   /// No description provided for @reportBodyPraise.
   ///
   /// In en, this message translates to:
@@ -2909,7 +2819,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyEncourage.
   ///
   /// In en, this message translates to:
-  /// **'Let\'s focus on just that one thing next week. I\'ll adjust your program and send it over.'**
+  /// **'Take those one at a time and you\'ll see it come together. I\'ll adjust your program and send it over.'**
   String get reportBodyEncourage;
 
   /// No description provided for @reportBodyNoRecords.
@@ -2917,6 +2827,167 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'There\'s nothing logged for this week, so nothing to sum up. Let\'s plan next week\'s start together.'**
   String get reportBodyNoRecords;
+
+  /// No description provided for @reportBodySessionsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You made all {booked} of your booked PT sessions.'**
+  String reportBodySessionsAll(int booked);
+
+  /// No description provided for @reportBodySessionsSome.
+  ///
+  /// In en, this message translates to:
+  /// **'You made {done} of your {booked} booked PT sessions.'**
+  String reportBodySessionsSome(int booked, int done);
+
+  /// No description provided for @reportBodySessionsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'There were no PT sessions this week.'**
+  String get reportBodySessionsNone;
+
+  /// No description provided for @reportBodyExerciseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished {done} of the {total} assigned exercises.'**
+  String reportBodyExerciseCount(int total, int done);
+
+  /// No description provided for @reportBodyMealDaysAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You logged your meals on all {total} days.'**
+  String reportBodyMealDaysAll(int total);
+
+  /// No description provided for @reportBodyMealDays.
+  ///
+  /// In en, this message translates to:
+  /// **'You logged your meals on {days} of {total} days.'**
+  String reportBodyMealDays(int total, int days);
+
+  /// No description provided for @reportBodyCaloriesOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.'**
+  String reportBodyCaloriesOver(
+    String avg,
+    String target,
+    String pct,
+    int days,
+  );
+
+  /// No description provided for @reportBodyCaloriesUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.'**
+  String reportBodyCaloriesUnder(String avg, String target, String pct);
+
+  /// No description provided for @reportBodyCaloriesNearOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.'**
+  String reportBodyCaloriesNearOver(String avg, String target, int days);
+
+  /// No description provided for @reportBodyCaloriesOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories averaged {avg}kcal a day — right around your {target}kcal target.'**
+  String reportBodyCaloriesOk(String avg, String target);
+
+  /// No description provided for @reportBodySugarOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.'**
+  String reportBodySugarOver(String avg, String target, int days);
+
+  /// No description provided for @reportBodySugarOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar averaged {avg}g a day, inside the {target}g limit.'**
+  String reportBodySugarOk(String avg, String target);
+
+  /// No description provided for @reportBodyMemberPain.
+  ///
+  /// In en, this message translates to:
+  /// **'You mentioned pain in your {area}. Let me know how it feels before the next session — I\'ll ease off that area.'**
+  String reportBodyMemberPain(String area);
+
+  /// No description provided for @reportBodyMemberTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'You said the workouts felt too hard, so I\'ll drop next week\'s intensity a notch.'**
+  String get reportBodyMemberTooHard;
+
+  /// No description provided for @reportBodyMemberTooEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'You said the workouts felt easy, so I\'ll raise next week\'s intensity a notch.'**
+  String get reportBodyMemberTooEasy;
+
+  /// No description provided for @reportBodyMemberNoted.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for the weekly check-in — I read it.'**
+  String get reportBodyMemberNoted;
+
+  /// No description provided for @reportBodyNextWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Here\'s the plan for next week.'**
+  String get reportBodyNextWeek;
+
+  /// No description provided for @reportTipCaloriesOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut dinner carbs to about two-thirds and switch snacks to protein.'**
+  String get reportTipCaloriesOver;
+
+  /// No description provided for @reportTipCaloriesUnder.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t skip meals, and add one protein snack on workout days.'**
+  String get reportTipCaloriesUnder;
+
+  /// No description provided for @reportTipSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep sweet drinks and desserts to once a day.'**
+  String get reportTipSugar;
+
+  /// No description provided for @reportTipSodium.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep takeout and processed foods to twice a week.'**
+  String get reportTipSodium;
+
+  /// No description provided for @reportTipWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Aim to get three workouts in first, even if each is only 20 minutes.'**
+  String get reportTipWorkout;
+
+  /// No description provided for @reportTipMeals.
+  ///
+  /// In en, this message translates to:
+  /// **'Log every meal, even with just a photo, so I can give you sharper feedback.'**
+  String get reportTipMeals;
+
+  /// No description provided for @reportTipSessionsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s book next week\'s PT sessions together now.'**
+  String get reportTipSessionsNone;
+
+  /// No description provided for @reportTipSessionsMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll set up make-up slots next week for the sessions we missed.'**
+  String get reportTipSessionsMissed;
+
+  /// No description provided for @reportTipKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the current routine as it is, and I\'ll raise the intensity step by step.'**
+  String get reportTipKeep;
 
   /// No description provided for @schedTitle.
   ///
@@ -3752,12 +3823,6 @@ abstract class AppLocalizations {
   /// **'Certifications'**
   String get myCertifications;
 
-  /// No description provided for @myMonthStats.
-  ///
-  /// In en, this message translates to:
-  /// **'This month'**
-  String get myMonthStats;
-
   /// No description provided for @myGym.
   ///
   /// In en, this message translates to:
@@ -3776,17 +3841,17 @@ abstract class AppLocalizations {
   /// **'New message alerts'**
   String get myNotifNewMessage;
 
+  /// No description provided for @myNotifNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon — always on for now'**
+  String get myNotifNotReady;
+
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
-  /// **'A sidebar badge appears when a member messages you'**
+  /// **'Get an inbox alert and a sidebar count when a member messages you'**
   String get myNotifNewMessageHint;
-
-  /// No description provided for @myLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Language'**
-  String get myLanguage;
 
   /// No description provided for @myLanguageApp.
   ///
@@ -3797,7 +3862,7 @@ abstract class AppLocalizations {
   /// No description provided for @myLanguageHint.
   ///
   /// In en, this message translates to:
-  /// **'Choose the language this browser shows the console in'**
+  /// **'Your choice is saved in this browser only. Other devices follow their own browser setting.'**
   String get myLanguageHint;
 
   /// No description provided for @myLanguageSystem.
@@ -3893,8 +3958,14 @@ abstract class AppLocalizations {
   /// No description provided for @myAppVersion.
   ///
   /// In en, this message translates to:
-  /// **'On-Care Trainer · Version 0.1.0'**
-  String get myAppVersion;
+  /// **'On-Care Trainer · Version {version}'**
+  String myAppVersion(String version);
+
+  /// No description provided for @myAppName.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care Trainer'**
+  String get myAppName;
 
   /// No description provided for @myLegalTermsTitle.
   ///
@@ -3902,23 +3973,11 @@ abstract class AppLocalizations {
   /// **'Terms of Service'**
   String get myLegalTermsTitle;
 
-  /// No description provided for @myLegalTermsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The terms your trainer account runs under'**
-  String get myLegalTermsHint;
-
   /// No description provided for @myLegalPrivacyTitle.
   ///
   /// In en, this message translates to:
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
-
-  /// No description provided for @myLegalPrivacyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'How member records and sent reports are handled'**
-  String get myLegalPrivacyHint;
 
   /// No description provided for @myLegalEffectiveDate.
   ///
@@ -3956,12 +4015,6 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get myVersion;
 
-  /// No description provided for @myContact.
-  ///
-  /// In en, this message translates to:
-  /// **'Contact'**
-  String get myContact;
-
   /// No description provided for @myPasswordChanged.
   ///
   /// In en, this message translates to:
@@ -3973,6 +4026,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{years, plural, =1{1 year} other{{years} years}} of experience'**
   String myCareerYears(int years);
+
+  /// Career value under the 경력 label — the label already says it is career, so only the years.
+  ///
+  /// In en, this message translates to:
+  /// **'{years, plural, =1{1 year} other{{years} years}}'**
+  String myCareerYearsValue(int years);
 
   /// No description provided for @myFieldName.
   ///
@@ -4070,6 +4129,12 @@ abstract class AppLocalizations {
   /// **'No members assigned'**
   String get myClientManagementEmpty;
 
+  /// No description provided for @myBasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic info'**
+  String get myBasicInfo;
+
   /// No description provided for @myStatSessionsDone.
   ///
   /// In en, this message translates to:
@@ -4100,23 +4165,53 @@ abstract class AppLocalizations {
   /// **'Hours'**
   String get myGymHours;
 
-  /// No description provided for @myGymOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open now'**
-  String get myGymOpen;
-
   /// No description provided for @myGymListFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load the gym list.'**
   String get myGymListFailed;
 
-  /// No description provided for @myNoGym.
+  /// No description provided for @myGymNoMatch.
   ///
   /// In en, this message translates to:
-  /// **'No gym'**
-  String get myNoGym;
+  /// **'This gym isn\'t listed. Please add its address and hours yourself.'**
+  String get myGymNoMatch;
+
+  /// No description provided for @myGymLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered gym'**
+  String get myGymLinked;
+
+  /// No description provided for @myGymUnlink.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get myGymUnlink;
+
+  /// No description provided for @myGymNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to find a registered gym'**
+  String get myGymNameHint;
+
+  /// No description provided for @myGymRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your gym'**
+  String get myGymRequired;
+
+  /// No description provided for @myGymEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.'**
+  String get myGymEditHint;
+
+  /// No description provided for @myGymListLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading gyms…'**
+  String get myGymListLoading;
 
   /// No description provided for @mySignOut.
   ///
@@ -4177,6 +4272,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save your settings. Please try again in a moment'**
   String get mySettingsSaveFailed;
+
+  /// No description provided for @myProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How members see you, and this month\'s activity'**
+  String get myProfileSubtitle;
+
+  /// No description provided for @myClientsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy up your member connections'**
+  String get myClientsSubtitle;
+
+  /// No description provided for @myLanguageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the console language'**
+  String get myLanguageSubtitle;
+
+  /// No description provided for @myAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your sign-in account and password'**
+  String get myAccountSubtitle;
+
+  /// No description provided for @mySupportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question or read our policies'**
+  String get mySupportSubtitle;
+
+  /// No description provided for @myWithdrawSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check once before you leave'**
+  String get myWithdrawSubtitle;
+
+  /// No description provided for @myPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile & settings'**
+  String get myPageTitle;
+
+  /// No description provided for @myProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get myProfileTitle;
+
+  /// No description provided for @myEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get myEmail;
+
+  /// No description provided for @myBasicInfoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Members see this on your trainer profile'**
+  String get myBasicInfoHint;
+
+  /// No description provided for @myNotificationsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which alerts you get'**
+  String get myNotificationsHint;
+
+  /// No description provided for @myAccountInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get myAccountInfo;
+
+  /// No description provided for @myAccountInfoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To change your name or email, contact support.'**
+  String get myAccountInfoHint;
+
+  /// No description provided for @mySecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get mySecurity;
+
+  /// No description provided for @myDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop editing?'**
+  String get myDiscardTitle;
+
+  /// No description provided for @myDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes won\'t be saved.'**
+  String get myDiscardBody;
+
+  /// No description provided for @myKeepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get myKeepEditing;
+
+  /// No description provided for @myDiscardAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get myDiscardAction;
+
+  /// No description provided for @mySignOutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out of this browser?'**
+  String get mySignOutConfirm;
+
+  /// No description provided for @myThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get myThisMonth;
+
+  /// No description provided for @myIntroEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No introduction yet. Add one in Edit profile — members see it.'**
+  String get myIntroEmpty;
+
+  /// No description provided for @myCertsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No certifications yet'**
+  String get myCertsEmpty;
+
+  /// No description provided for @myGymEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gym yet. Add yours in Edit profile.'**
+  String get myGymEmpty;
+
+  /// No description provided for @myEditVisibleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.'**
+  String get myEditVisibleBody;
+
+  /// No description provided for @myClientManagementNoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing only hides members here'**
+  String get myClientManagementNoteTitle;
+
+  /// No description provided for @myClientManagementNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.'**
+  String get myClientManagementNote;
+
+  /// No description provided for @myNotifConsultation.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation requests'**
+  String get myNotifConsultation;
+
+  /// No description provided for @myNotifConsultationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a member requests a consultation or answers your invite'**
+  String get myNotifConsultationHint;
+
+  /// No description provided for @myNotifReservation.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookings'**
+  String get myNotifReservation;
+
+  /// No description provided for @myNotifReservationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a member books or changes a session'**
+  String get myNotifReservationHint;
+
+  /// No description provided for @myNotifMemberUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Member updates'**
+  String get myNotifMemberUpdates;
+
+  /// No description provided for @myNotifMemberUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a member changes goals or name, or disconnects'**
+  String get myNotifMemberUpdatesHint;
 
   /// Display label for the '걷기' routine type. The stored/wire value stays Korean — see kRoutineTypes.
   ///
@@ -4441,12 +4728,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to suggestions'**
   String get coachBackToList;
-
-  /// No description provided for @coachReviewed.
-  ///
-  /// In en, this message translates to:
-  /// **'AI-generated, reviewed by you'**
-  String get coachReviewed;
 
   /// No description provided for @coachTrainerAdded.
   ///
@@ -4757,7 +5038,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAnalysedData.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed the workout goal, recent activity, and today\'s nutrition'**
+  /// **'Member status'**
   String get aiAnalysedData;
 
   /// No description provided for @aiGoal.
@@ -4814,6 +5095,42 @@ abstract class AppLocalizations {
   /// **' · sugar also over'**
   String get aiSugarAlsoOver;
 
+  /// No description provided for @aiDirectionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Direction'**
+  String get aiDirectionLabel;
+
+  /// No description provided for @aiDirectionLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower intensity — recent completion is low'**
+  String get aiDirectionLower;
+
+  /// No description provided for @aiDirectionCardio.
+  ///
+  /// In en, this message translates to:
+  /// **'More cardio — sodium is often over target'**
+  String get aiDirectionCardio;
+
+  /// No description provided for @aiDirectionLowerAndCardio.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower intensity · more cardio'**
+  String get aiDirectionLowerAndCardio;
+
+  /// No description provided for @aiDirectionKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep current intensity'**
+  String get aiDirectionKeep;
+
+  /// No description provided for @aiDirectionNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough records yet'**
+  String get aiDirectionNoData;
+
   /// No description provided for @aiBasisRuleBased.
   ///
   /// In en, this message translates to:
@@ -4865,7 +5182,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiReviewedSuggestion.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed · AI suggestion ({option})'**
+  /// **'Confirmed plan · {option}'**
   String aiReviewedSuggestion(String option);
 
   /// No description provided for @aiEditsApplied.
@@ -4925,7 +5242,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiStepDone.
   ///
   /// In en, this message translates to:
-  /// **'Final review'**
+  /// **'Program review'**
   String get aiStepDone;
 
   /// No description provided for @aiSkipPtProgram.
@@ -5201,7 +5518,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiInsightMemoTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI insights (last 7 days)'**
+  /// **'Needs attention (last 7 days)'**
   String get aiInsightMemoTitle;
 
   /// No description provided for @aiInsightMemoEmpty.
@@ -5762,12 +6079,6 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get myDeleteAction;
 
-  /// No description provided for @myDeleteHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Your member links and bookings go with it'**
-  String get myDeleteHint;
-
   /// No description provided for @myDeleteDemo.
   ///
   /// In en, this message translates to:
@@ -5797,6 +6108,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type your name ({name}) to continue'**
   String myDeleteConfirmPrompt(String name);
+
+  /// No description provided for @myWithdrawReasonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave?'**
+  String get myWithdrawReasonTitle;
+
+  /// No description provided for @myWithdrawReasonQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What didn\'t work for you?'**
+  String get myWithdrawReasonQuestion;
+
+  /// No description provided for @myWithdrawReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick as many as you like, or skip.'**
+  String get myWithdrawReasonHint;
+
+  /// No description provided for @myWithdrawReasonRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'I rarely use it'**
+  String get myWithdrawReasonRarelyUsed;
+
+  /// No description provided for @myWithdrawReasonHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s hard to use'**
+  String get myWithdrawReasonHardToUse;
+
+  /// No description provided for @myWithdrawReasonMissingFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'It lacks features I need for members'**
+  String get myWithdrawReasonMissingFeature;
+
+  /// No description provided for @myWithdrawReasonLeavingWork.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m taking a break from training'**
+  String get myWithdrawReasonLeavingWork;
+
+  /// No description provided for @myWithdrawReasonAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'I use another tool'**
+  String get myWithdrawReasonAlternative;
+
+  /// No description provided for @myWithdrawReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get myWithdrawReasonOther;
+
+  /// No description provided for @myWithdrawKeepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Before you go'**
+  String get myWithdrawKeepTitle;
+
+  /// No description provided for @myWithdrawKeepRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on alerts so you don\'t miss member messages and bookings. Change them in Settings › Notifications.'**
+  String get myWithdrawKeepRarelyUsed;
+
+  /// No description provided for @myWithdrawKeepHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what felt awkward via 1:1 inquiry and we\'ll work on it.'**
+  String get myWithdrawKeepHardToUse;
+
+  /// No description provided for @myWithdrawKeepMissingFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us which feature you need via 1:1 inquiry — we\'ll consider it next.'**
+  String get myWithdrawKeepMissingFeature;
+
+  /// No description provided for @myWithdrawKeepLeavingWork.
+  ///
+  /// In en, this message translates to:
+  /// **'If it\'s just a break, you can keep your account. Leaving disconnects all your members.'**
+  String get myWithdrawKeepLeavingWork;
+
+  /// No description provided for @myWithdrawKeepAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving removes member records, programs and reports from your console for good.'**
+  String get myWithdrawKeepAlternative;
+
+  /// No description provided for @myWithdrawKeepOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Your feedback via 1:1 inquiry would help us a lot.'**
+  String get myWithdrawKeepOther;
+
+  /// No description provided for @myWithdrawKeepDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
+  String get myWithdrawKeepDefault;
+
+  /// No description provided for @myWithdrawNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get myWithdrawNext;
+
+  /// No description provided for @myWithdrawStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using'**
+  String get myWithdrawStay;
+
+  /// No description provided for @myWithdrawContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue leaving'**
+  String get myWithdrawContinue;
 
   /// No description provided for @routineAlreadyGone.
   ///
@@ -7042,12 +7473,6 @@ abstract class AppLocalizations {
   /// **'Distance m'**
   String get programEditorDistance;
 
-  /// No description provided for @programEditorExerciseMemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Memo'**
-  String get programEditorExerciseMemo;
-
   /// No description provided for @reportsComparisonTitle.
   ///
   /// In en, this message translates to:
@@ -7894,18 +8319,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
   String get reportsSendHistoryFailed;
 
-  /// No description provided for @reportsSentBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Message sent'**
-  String get reportsSentBody;
-
-  /// No description provided for @reportsSentFigures.
-  ///
-  /// In en, this message translates to:
-  /// **'Figures sent'**
-  String get reportsSentFigures;
-
   /// No description provided for @reportsStepReview.
   ///
   /// In en, this message translates to:
@@ -8564,6 +8977,301 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'weekly_report'**
   String get reportsPdfFileSuffix;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Diet analysis'**
+  String get clientDietAnalysisTitle;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged today yet.'**
+  String get clientDietAnalysisTodayEmpty;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{food} at {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} ({foodValue}) pushed today\'s {nutrient, select, sodium{sodium} sugar{sugar} other{calories}} to {value}, {ratio}x the {target} goal.'**
+  String clientDietAnalysisTodayOver(
+    String slot,
+    String food,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}} ({foodValue}) pushed today\'s {nutrient, select, sodium{sodium} sugar{sugar} other{calories}} to {value}, {ratio}x the {target} goal.'**
+  String clientDietAnalysisTodayOverMeal(
+    String slot,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein is at {value}, {gap} short of the goal.'**
+  String clientDietAnalysisTodayProteinShort(String value, String gap);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein is at {value}, {gap} short of the goal, and the 4-week average of {avg} a day stays low.'**
+  String clientDietAnalysisTodayProteinChronic(
+    String value,
+    String gap,
+    String avg,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} logged yet.'**
+  String clientDietAnalysisTodayMissing(String slot);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{kcal} today, evenly within the goals.'**
+  String clientDietAnalysisTodayGood(String kcal);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged this week yet.'**
+  String get clientDietAnalysisWeekEmpty;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped breakfast on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  String clientDietAnalysisWeekSkipBreakfast(
+    String scope,
+    int logged,
+    int days,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped breakfast on {days} of {logged} logged days {scope, select, last{last week} other{this week}}, snacking instead on {snackDays}.'**
+  String clientDietAnalysisWeekSkipBreakfastSnack(
+    String scope,
+    int logged,
+    int days,
+    int snackDays,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{nutrient, select, sodium{Sodium} sugar{Sugar} other{Calories}} went over the goal on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  String clientDietAnalysisWeekOver(
+    String scope,
+    int logged,
+    int days,
+    String nutrient,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'The biggest was {food} at {weekday, select, 0{Monday} 1{Tuesday} 2{Wednesday} 3{Thursday} 4{Friday} 5{Saturday} other{Sunday}} {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} ({foodValue}).'**
+  String clientDietAnalysisWeekCause(
+    String weekday,
+    String slot,
+    String food,
+    String foodValue,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein fell below 80% of the goal on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  String clientDietAnalysisWeekProteinShort(String scope, int logged, int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'All {days} logged days {scope, select, last{last week} other{this week}} stayed within the goals.'**
+  String clientDietAnalysisWeekGood(String scope, int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Only {days} days logged in the last 4 weeks. The trend shows after 7.'**
+  String clientDietAnalysisAllFew(int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'In the last 4 weeks, {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} sodium went over half the goal {days} times.'**
+  String clientDietAnalysisAllSlotSodium(String slot, int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs made up {pct}% of calories in the last 4 weeks.'**
+  String clientDietAnalysisAllCarbHeavy(int pct);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Protein made up only {pct}% of calories in the last 4 weeks.'**
+  String clientDietAnalysisAllProteinLight(int pct);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.'**
+  String clientDietAnalysisAllProteinTrendUp(int before, int after);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.'**
+  String clientDietAnalysisAllProteinTrendDown(int before, int after);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{food} was the most common {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} in the last 4 weeks ({count} times).'**
+  String clientDietAnalysisAllFrequent(String slot, String food, int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{food1} and {food2} make up much of the last 4 weeks\' log.'**
+  String clientDietAnalysisAllRepeated(String food1, String food2);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days logged in the last 4 weeks, with an even trend.'**
+  String clientDietAnalysisAllGood(int days);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly {food1} ({count1} times).'**
+  String clientDietAnalysisFoodsOne(String food1, int count1);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly {food1} ({count1} times) and {food2} ({count2} times).'**
+  String clientDietAnalysisFoodsTwo(
+    String food1,
+    int count1,
+    String food2,
+    int count2,
+  );
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend this {slot, select, breakfast{for breakfast} lunch{for lunch} dinner{for dinner} lateNight{as a late-night snack} other{as a snack}} to the member?'**
+  String clientDietRecQuestion(String slot);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend this for the next meal to the member?'**
+  String get clientDietRecQuestionNext;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'AI pick {index} / {total}'**
+  String clientDietRecCounter(int index, int total);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get clientDietRecNo;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, recommend'**
+  String get clientDietRecYes;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'You passed on all {count} AI picks.'**
+  String clientDietRecExhausted(int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get clientDietRecRestart;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'See other menus'**
+  String get clientDietRecMore;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'You recommended this on {date}. It\'s on the member\'s home as a trainer pick.'**
+  String clientDietRecActive(String date);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get clientDietRecChange;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'The member had the recommended {name} for {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} on {date}.'**
+  String clientDietRecResolved(String name, String date, String slot);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'The member had the recommended {name} on {date}.'**
+  String clientDietRecResolvedNoSlot(String name, String date);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'See next pick'**
+  String get clientDietRecNext;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the pick. Please try again.'**
+  String get clientDietRecConfirmFailed;
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{kcal}kcal · protein {protein}g · sodium {sodium}mg'**
+  String clientDietRecNutrition(String kcal, String protein, String sodium);
+
+  /// 트레이너웹 AI 식단 추천의 끼니 배지 (#2379).
+  ///
+  /// In en, this message translates to:
+  /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}}'**
+  String clientDietRecSlot(String slot);
 }
 
 class _AppLocalizationsDelegate

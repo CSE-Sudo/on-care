@@ -14,6 +14,8 @@ import 'dart:convert';
 
 import 'package:demo_fixture/src/fixture_json.g.dart';
 
+export 'package:demo_fixture/src/menu_plan.dart';
+
 /// 김민수의 담당 트레이너 — 데모 트레이너 계정의 이름. (#2062)
 ///
 /// 회원 앱의 목 코치·목 헬스장·데모 알림 문구와 트레이너 웹의 데모 프로필이 모두

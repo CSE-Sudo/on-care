@@ -1,12 +1,25 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/features/reports/data/repositories/report_trend_repository.dart';
+import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_exercise_trend.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_review_cards.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_grid.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_generator.dart';
+import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
+import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 
 import '../../helpers/client_factory.dart';
 
@@ -55,8 +68,258 @@ List<String> _content(AppLocalizations l, {String feedback = '한글 피드백'}
   );
 }
 
+/// 카드가 읽는 운동 추세. 앱 컨테이너에서 읽히는 값이 PDF 카드에도 실리는지
+/// 보려고 이번 주 한 칸을 채운다.
+ProviderContainer _container() {
+  final ProviderContainer c = ProviderContainer(
+    overrides: <Override>[
+      reportTrendProvider.overrideWith(
+        (ref, key) async => ReportTrend(
+          weeks: <ReportTrendWeek>[
+            ReportTrendWeek(
+              weekStart: key.weekStart,
+              cardioMinutes: 90,
+              strengthSets: 12,
+              stretchingMinutes: 30,
+              cardioCalories: 520,
+              strengthCalories: 310,
+              stretchingCalories: 80,
+            ),
+          ],
+          goals: const ExerciseBurnGoals(),
+        ),
+      ),
+    ],
+  );
+  addTearDown(c.dispose);
+  return c;
+}
+
+/// 굽는 대신 받은 위젯을 모아 두고, 정해 둔 크기의 단색 그림을 돌려준다.
+class _SpyCapture {
+  _SpyCapture({this.height = 400, this.failAt});
+
+  /// 돌려줄 그림의 픽셀 높이.
+  final int height;
+
+  /// 이 차례(0부터)에서 굽기에 실패한다.
+  final int? failAt;
+
+  final List<Widget> shots = <Widget>[];
+  final List<double> widths = <double>[];
+
+  Future<CapturedWidget> call(
+    Widget child, {
+    required double width,
+    required double pixelRatio,
+  }) async {
+    if (failAt == shots.length) throw StateError('capture failed');
+    shots.add(child);
+    widths.add(width);
+    final int w = (width * pixelRatio).round();
+    return CapturedWidget(
+      rgba: Uint8List(w * height * 4)..fillRange(0, w * height * 4, 0xff),
+      width: w,
+      height: height,
+    );
+  }
+}
+
+int _pageCount(Uint8List bytes) => RegExp(
+  r'/Type\s*/Page\b',
+).allMatches(latin1.decode(bytes, allowInvalid: true)).length;
+
+int _imageCount(Uint8List bytes) => RegExp(
+  r'/Subtype\s*/Image\b',
+).allMatches(latin1.decode(bytes, allowInvalid: true)).length;
+
+/// 글자 문서(물러설 자리)의 쪽 그림이 실렸는가.
+bool _hasTextPageRaster(Uint8List bytes) => RegExp(
+  r'/Width\s+1240\b',
+).hasMatch(latin1.decode(bytes, allowInvalid: true));
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('① 확인·② 작성 카드 문서 (#2424)', () {
+    testWidgets('편집기의 카드 위젯을 그대로 구워 담는다 — 머리·① 셋·② 피드백 차례', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      final report = _report();
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: report, feedback: '이번 주 잘했어요'),
+      );
+
+      expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+      // 첫 쪽 머리, 이어지는 쪽 머리, ① 카드 셋, ② 피드백 카드.
+      expect(spy.shots, hasLength(6));
+      // 카드는 편집기 본문 폭에서 굽는다 — 좁으면 추세 세 칸이 세로로 쌓인다.
+      expect(spy.widths.toSet(), hasLength(1));
+
+      // 구운 위젯을 실제 트리에 올려 무엇이 그려졌는지 본다. 테마·로케일·
+      // provider 를 스스로 두르고 있어 그대로 올릴 수 있다.
+      Future<void> show(int i) async {
+        await tester.pumpWidget(SingleChildScrollView(child: spy.shots[i]));
+        await tester.pump();
+      }
+
+      await show(0);
+      expect(find.byType(ReportPdfHeader), findsOneWidget);
+      expect(find.text(_ko.reportsPdfDocTitle), findsOneWidget);
+      expect(find.text(_ko.reportsPdfClient('김회원')), findsOneWidget);
+
+      await show(2);
+      expect(find.byType(MemberFeedbackCard), findsOneWidget);
+      expect(find.byType(ReportWeekGrid), findsNothing);
+
+      await show(3);
+      expect(find.byType(ReportWeekGrid), findsOneWidget);
+      expect(find.byType(ReportMacroBars), findsOneWidget);
+      expect(find.text(_ko.reportsCardWeekTitle), findsOneWidget);
+
+      await show(4);
+      expect(find.byType(ReportExerciseTrend), findsOneWidget);
+      // 앱 컨테이너의 추세가 실려 도넛이 선다 — `불러올 수 없음` 이 아니다.
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-empty')),
+        findsNothing,
+      );
+
+      await show(5);
+      expect(find.byType(ReportFeedbackCard), findsOneWidget);
+      expect(find.text('이번 주 잘했어요'), findsOneWidget);
+      // 회원에게 가는 문서에 입력창은 없다.
+      expect(find.byType(TextField), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('카드 차례는 편집기 ① 확인과 같다', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      final List<List<ReportReviewSection>> sections =
+          <List<ReportReviewSection>>[
+            for (final Widget shot in spy.shots.sublist(2, 5))
+              _reviewOf(shot).sections,
+          ];
+      expect(sections, <List<ReportReviewSection>>[
+        <ReportReviewSection>[ReportReviewSection.member],
+        <ReportReviewSection>[ReportReviewSection.week],
+        <ReportReviewSection>[ReportReviewSection.trend],
+      ]);
+    });
+
+    testWidgets('짧은 리포트는 한 쪽에 담기고 카드마다 그림 하나다', (tester) async {
+      final _SpyCapture spy = _SpyCapture(height: 200);
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(_pageCount(bytes!), 1);
+      // 머리 + ① 셋 + ② 하나. 이어지는 쪽 머리는 쓰이지 않아 실리지 않는다.
+      expect(_imageCount(bytes), 5);
+    });
+
+    testWidgets('쪽을 넘기는 카드는 다음 쪽으로 통째로 넘어간다', (tester) async {
+      // 한 장이 쪽 높이의 절반을 조금 넘는다 — 두 장이 한 쪽에 서지 못한다.
+      final _SpyCapture spy = _SpyCapture(height: 1100);
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      expect(_pageCount(bytes!), greaterThan(1));
+    });
+
+    testWidgets('한 쪽보다 긴 카드는 여러 쪽에 나눠 담는다', (tester) async {
+      final _SpyCapture spy = _SpyCapture(height: 9000);
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: 'x'),
+      );
+
+      // 카드 넷이 각각 여러 쪽에 걸친다.
+      expect(_pageCount(bytes!), greaterThan(8));
+    });
+
+    testWidgets('카드를 굽지 못하면 글자만 담은 문서로 물러선다', (tester) async {
+      final _SpyCapture spy = _SpyCapture(failAt: 3);
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _ko, report: _report(), feedback: '한글 피드백'),
+      );
+
+      expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+      // 글자 문서는 쪽 전체를 한 장으로 구운 1240px 폭 그림이다.
+      expect(_hasTextPageRaster(bytes), isTrue);
+    });
+
+    testWidgets('앱 컨테이너가 없어도 카드 문서를 만든다 — 추세는 빈 상태로 선다', (tester) async {
+      // 추세를 읽을 길이 없으면 편집기가 읽지 못했을 때처럼 `불러올 수 없음`
+      // 카드가 서고, 문서는 글자 문서로 물러서지 않는다.
+      final bytes = await tester.runAsync(
+        () => const ReportPdfGenerator().generate(
+          l: _ko,
+          report: _report(),
+          feedback: 'x',
+        ),
+      );
+
+      expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+      expect(_hasTextPageRaster(bytes), isFalse);
+    });
+
+    testWidgets('영어 로케일이면 카드도 영어로 굽는다', (tester) async {
+      final _SpyCapture spy = _SpyCapture();
+      await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+          capture: spy.call,
+        ).generate(l: _en, report: _report(), feedback: 'Nice week'),
+      );
+
+      await tester.pumpWidget(SingleChildScrollView(child: spy.shots[0]));
+      expect(find.text(_en.reportsPdfDocTitle), findsOneWidget);
+      await tester.pumpWidget(SingleChildScrollView(child: spy.shots[5]));
+      expect(find.text(_en.reportsFeedbackTitle), findsOneWidget);
+    });
+
+    testWidgets('실제 렌더러로 카드를 구워 그림이 담긴 PDF 를 만든다', (tester) async {
+      final bytes = await tester.runAsync(
+        () => ReportPdfGenerator(
+          container: _container(),
+        ).generate(l: _ko, report: _report(), feedback: '이번 주 잘했어요'),
+      );
+
+      expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
+      // 글자 문서로 물러서지 않았다 — 카드마다 그림이 따로 실린다.
+      expect(_hasTextPageRaster(bytes), isFalse);
+      expect(_imageCount(bytes), greaterThanOrEqualTo(5));
+    });
+
+    test('provider 는 앱 컨테이너를 생성기에 넘긴다', () {
+      final ProviderContainer c = ProviderContainer();
+      addTearDown(c.dispose);
+
+      expect(c.read(reportPdfGeneratorProvider).container, same(c));
+    });
+  });
 
   test('한국어 로케일에서는 기존 문구 그대로 나온다', () {
     final content = _content(_ko);
@@ -184,4 +447,27 @@ void main() {
 
     expect(ascii.decode(bytes!.sublist(0, 5)), '%PDF-');
   });
+}
+
+/// 구운 위젯 틀 안의 ① 확인 카드 묶음.
+ReportReviewCards _reviewOf(Widget shot) {
+  ReportReviewCards? found;
+  void visit(Widget w) {
+    if (w is ReportReviewCards) {
+      found = w;
+      return;
+    }
+    final Widget? child = switch (w) {
+      final SingleChildRenderObjectWidget r => r.child,
+      final ProxyWidget p => p.child,
+      final Localizations loc => loc.child,
+      final Theme t => t.child,
+      final Material m => m.child,
+      _ => null,
+    };
+    if (child != null) visit(child);
+  }
+
+  visit(shot);
+  return found!;
 }

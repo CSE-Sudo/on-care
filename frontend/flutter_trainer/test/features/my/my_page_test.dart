@@ -1,5 +1,6 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,27 +81,28 @@ void main() {
 
       expect(find.text(kDemoTrainerName), findsWidgets);
       expect(find.text('trainer@oncare.com'), findsOneWidget);
-      expect(find.text('퍼스널 트레이너'), findsOneWidget);
-      expect(find.text('경력 7년'), findsOneWidget);
+      expect(find.text('퍼스널 트레이너 · 경력 7년'), findsOneWidget);
+      // 기본 정보의 '경력' 칸에는 연수만 — 라벨과 같은 말을 되풀이하지 않는다.
+      expect(find.text('7년'), findsOneWidget);
       expect(find.text('생활스포츠지도사 2급'), findsOneWidget);
 
       await tester.scrollUntilVisible(find.text('담당 회원'), 150);
-      expect(find.text('15'), findsOneWidget); // live client count
+      expect(find.text('15 명'), findsOneWidget); // live client count
       expect(find.text('완료 세션'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('온케어짐 신촌점'), 150);
-      expect(find.text('영업 중'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('온케어짐 신촌점').last, 150);
+      // 운영 시간으로 정한 값이 아니라 늘 붙던 '영업 중' 은 없앴다(#2264).
+      expect(find.text('영업 중'), findsNothing);
 
       // 역할 전환은 계정 분리 정책상 존재하지 않는다.
       expect(find.textContaining('역할 전환'), findsNothing);
     });
 
     testWidgets('회원 삭제 전 이름과 데이터 보존 범위를 확인한다', (tester) async {
-      await openTab(tester);
+      // 회원 관리는 메뉴의 `내 정보` 묶음에 있다(#2264).
+      await openSettings(tester);
 
-      final management = find.text('회원 관리');
-      await tester.scrollUntilVisible(management, 200);
-      await tester.tap(management);
+      await tester.tap(find.text('회원 관리'));
       await tester.pumpAndSettle();
       expect(currentLocation(tester), AppRoutes.mySection('clients'));
 
@@ -117,11 +119,10 @@ void main() {
     });
 
     testWidgets('담당 종료한 회원은 관리 화면에서 완전히 사라진다', (tester) async {
-      await openTab(tester);
+      // 회원 관리는 메뉴의 `내 정보` 묶음에 있다(#2264).
+      await openSettings(tester);
 
-      final management = find.text('회원 관리');
-      await tester.scrollUntilVisible(management, 200);
-      await tester.tap(management);
+      await tester.tap(find.text('회원 관리'));
       await tester.pumpAndSettle();
 
       final before = find.byTooltip('회원 삭제').evaluate().length;
@@ -155,6 +156,15 @@ void main() {
       await tester.ensureVisible(find.text('로그아웃'));
       await tester.pump();
       await tester.tap(find.text('로그아웃'));
+      await settle(tester);
+
+      // 회원 앱처럼 한 번 묻는다 — 취소하면 그대로 남는다.
+      expect(find.text('이 브라우저에서 로그아웃할까요?'), findsOneWidget);
+      await tester.tap(
+        find
+            .descendant(of: find.byType(AppDialog), matching: find.text('로그아웃'))
+            .last,
+      );
       await settle(tester);
 
       // 로그인 화면으로 돌아왔다 — 표식은 가입 링크(데모 진입은 감춤, #1526).
@@ -351,33 +361,159 @@ void main() {
       }
     });
 
-    testWidgets('gym selection rebuilds the manual gym fields', (tester) async {
+    Future<void> openEdit(WidgetTester tester) async {
       await openTab(tester);
       await tester.tap(find.text('프로필 수정'));
+      // 헬스장 목록은 수정 화면이 열려야 읽는다 — 목록이 올 때까지 기다린다.
+      await settle(tester);
+    }
+
+    Future<void> unlinkGym(WidgetTester tester) async {
+      final Finder unlink = find.byKey(const ValueKey<String>('gym-unlink'));
+      await tester.ensureVisible(unlink);
       await tester.pump();
-      await tester.ensureVisible(
-        find.byType(DropdownButtonFormField<String>).last,
+      await tester.tap(unlink);
+      await tester.pump();
+    }
+
+    TextField gymField(WidgetTester tester, String text) =>
+        tester.widget<TextField>(
+          find.byWidgetPredicate(
+            (w) => w is TextField && w.controller?.text == text,
+          ),
+        );
+
+    testWidgets('이름이 같은 등록 헬스장으로 열고, 풀고 검색해 고르면 정보가 채워진다 (#2264)', (
+      tester,
+    ) async {
+      await openEdit(tester);
+
+      // 데모 프로필은 글자만 있지만 이름이 목록과 같아 등록된 헬스장으로 연다.
+      expect(find.text('등록된 헬스장'), findsOneWidget);
+      expect(gymField(tester, '온케어짐 신촌점').enabled, isFalse);
+
+      await unlinkGym(tester);
+      expect(find.text('등록된 헬스장'), findsNothing);
+      // 연결을 풀면 칸을 모두 비운다 — 앞 헬스장의 주소가 섞이지 않게.
+      expect(find.text('서울 서대문구'), findsNothing);
+      expect(find.text('06:00 – 23:00'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '강남',
+      );
+      await tester.pump();
+      final Finder suggestion = find.byKey(
+        const ValueKey<String>('gym-suggestion-gym-2'),
+      );
+      expect(suggestion, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestion-gym-1')),
+        findsNothing,
+      );
+
+      await tester.ensureVisible(suggestion);
+      await tester.pump();
+      await tester.tap(suggestion);
+      await tester.pump();
+      expect(find.text('등록된 헬스장'), findsOneWidget);
+      expect(gymField(tester, '서울 강남구').enabled, isFalse);
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('목록은 칸 아래에 떠서 다른 칸을 밀지 않고, 키보드로 고른다', (tester) async {
+      await openEdit(tester);
+      await unlinkGym(tester);
+      final Finder address = find.byKey(const ValueKey<String>('gym-address'));
+      final double before = tester.getTopLeft(address).dy;
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '온케어',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsOneWidget,
+      );
+      expect(tester.getTopLeft(address).dy, before);
+
+      // 두 번째 줄(강남점)로 내려 Enter.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
+      );
+      expect(find.text('등록된 헬스장'), findsOneWidget);
+      expect(gymField(tester, '온케어짐 강남점').enabled, isFalse);
+    });
+
+    testWidgets('이름을 다 쓰고 다음 칸으로 가면 목록이 닫힌다', (tester) async {
+      await openEdit(tester);
+      await unlinkGym(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '온케어',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsOneWidget,
+      );
+
+      // 주소 칸으로 포커스를 옮긴다(Tab 과 같은 효과).
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-address')),
+        '서울',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('목록에 없는 곳은 직접 적어 저장한다', (tester) async {
+      await openEdit(tester);
+      await unlinkGym(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '동네 PT 스튜디오',
+      );
+      await tester.pump();
+      // 맞는 등록 헬스장이 없다고 칸 아래 한 줄로 말한다 — 떠 있는 창은 없어
+      // 주소 칸을 가리지 않는다. 주소·운영 시간은 비어 있다.
+      expect(
+        find.byKey(const ValueKey<String>('gym-suggestions')),
+        findsNothing,
+      );
+      expect(find.text('목록에 없는 헬스장이에요. 주소와 운영 시간을 직접 적어 주세요.'), findsOneWidget);
+      expect(find.text('서울 서대문구 신촌로 120'), findsNothing);
+
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('동네 PT 스튜디오'), findsWidgets);
+    });
+
+    testWidgets('소속 헬스장은 필수다 — 비우면 저장하지 않고 칸 아래에 알린다', (tester) async {
+      await openEdit(tester);
+      await unlinkGym(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-name')),
+        '',
       );
       await tester.pump();
 
-      Finder gymNameField() => find.byWidgetPredicate(
-        (widget) =>
-            widget is TextField && widget.controller?.text == '온케어짐 신촌점',
-      );
-
-      expect(tester.widget<TextField>(gymNameField()).enabled, isTrue);
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>).last,
-      );
-      dropdown.onChanged!('gym-1');
-      await tester.pump();
-      expect(tester.widget<TextField>(gymNameField()).enabled, isFalse);
-
-      await tester.tap(find.byType(DropdownButtonFormField<String>).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('소속 없음').last);
-      await tester.pumpAndSettle();
-      expect(tester.widget<TextField>(gymNameField()).enabled, isTrue);
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('edit'));
+      expect(find.text('소속 헬스장을 입력해 주세요'), findsOneWidget);
     });
 
     testWidgets('gym-only failure reports that profile fields were saved', (
@@ -394,20 +530,15 @@ void main() {
       );
 
       await tester.tap(find.text('프로필 수정'));
-      await tester.pump();
+      await settle(tester);
       await tester.enterText(
         find.byKey(const ValueKey<String>('profile-phone')),
         '010-9999-0000',
       );
-      await tester.ensureVisible(
-        find.byType(DropdownButtonFormField<String>).last,
-      );
-      await tester.pump();
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>).last,
-      );
-      dropdown.onChanged!('gym-1');
-      await tester.pump();
+      // 헬스장 목록이 오면 같은 이름의 등록 헬스장으로 연결된다 — 저장하면
+      // 소속 설정(setGym)이 실패한다.
+      await settle(tester);
+      expect(find.text('등록된 헬스장'), findsOneWidget);
 
       await tester.tap(find.text('저장'));
       await settle(tester);

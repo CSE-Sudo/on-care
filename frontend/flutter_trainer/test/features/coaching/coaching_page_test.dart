@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_
     show trainerAuthRepositoryProvider;
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
@@ -274,11 +275,25 @@ class _FixedClientRepository implements ClientRepository {
   );
 
   @override
-  Future<String> fetchDietAdvice(
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
     required Locale locale,
-  }) async => '';
+  }) async => ClientDietAnalysis.empty;
+
+  @override
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  }) async => const ClientDietRecommendations();
+
+  @override
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
+    required Locale locale,
+  }) async => const ClientDietRecommendations();
 
   @override
   Future<List<ClientDietEntry>> fetchDietOn(
@@ -554,7 +569,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.tap(apply);
   await tester.pumpAndSettle();
 
-  // 최종 검토 다음은 개인운동 단계다(#2223) — 거기서 `프로그램에 반영` 을
+  // 프로그램 검토 다음은 개인운동 단계다(#2223) — 거기서 `프로그램에 반영` 을
   // 눌러야 PT 구성과 개인운동이 함께 편집기로 간다.
   await _completePersonalStep(tester, scrollable);
 }
@@ -945,7 +960,8 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(find.text('AI 생성 후 트레이너 검토 완료'), findsWidgets);
+        // 편집기 운동에 시스템 문구를 메모로 붙이지 않는다(#2371).
+        expect(find.text('AI 생성 후 트레이너 검토 완료'), findsNothing);
         final programCard = find.byKey(
           const ValueKey<String>('program-client-seed-client-1'),
         );
@@ -1499,7 +1515,7 @@ void main() {
 
         // 클릭해야 나타나던 배너는 없다 — 흐름 자체가 항상 프로그램 정보
         // 박스 위에 있다.
-        expect(find.text('운동 목표와 최근 활동, 오늘의 식단 정보를 확인했어요'), findsOneWidget);
+        expect(find.text('회원 현황'), findsOneWidget);
         expect(find.byType(AiRoutineOptionsFlow), findsOneWidget);
         // The persistent shell proves this lives inline in the tab, not a
         // dialog/page. Asserted on the sidebar's profile footer rather than
@@ -1581,7 +1597,7 @@ void main() {
       );
       await expectBlankManualEditor();
 
-      // 3단계: 최종 검토.
+      // 3단계: 프로그램 검토.
       await returnToAi();
       await _ensureCentered(
         tester,
@@ -1651,7 +1667,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 최종 검토 다음은 개인운동 단계다(#2223) — 거기서 반영해야 편집기로
+      // 프로그램 검토 다음은 개인운동 단계다(#2223) — 거기서 반영해야 편집기로
       // 넘어간다.
       await _completePersonalStep(tester, find.byType(Scrollable).first);
 
@@ -1667,7 +1683,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('AI 생성 후 트레이너 검토 완료'), findsWidgets);
+      expect(find.text('AI 생성 후 트레이너 검토 완료'), findsNothing);
     });
 
     testWidgets(

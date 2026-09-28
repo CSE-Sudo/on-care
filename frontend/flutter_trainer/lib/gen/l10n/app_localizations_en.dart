@@ -1273,84 +1273,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiAnalysis => 'AI analysis';
-
-  @override
-  String get aiPeriodAnalysis => 'AI period analysis';
-
-  @override
-  String get aiAllAnalysis => 'AI all-time analysis';
-
-  @override
-  String clientDietAdviceTodayOver(int over) {
-    return 'Sodium is ${over}mg over the target. Adding cardio to today\'s program would help.';
-  }
-
-  @override
-  String get clientDietAdviceTodayBalanced =>
-      'Today\'s meals are well balanced. Keep the current program.';
-
-  @override
-  String get clientDietAdviceWeekEmpty =>
-      'No meals logged this week yet. Even one meal shows the trend.';
-
-  @override
-  String get clientDietAdviceAllEmpty =>
-      'Once you log more, we\'ll show how your sodium and calories are trending.';
-
-  @override
-  String clientDietAdviceWeekManyOver(int days) {
-    return 'Sodium went over on $days days this week. With soups, eat the solids and leave the broth.';
-  }
-
-  @override
-  String get clientDietAdviceWeekWeekend =>
-      'Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.';
-
-  @override
-  String clientDietAdviceWeekSomeOver(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    return 'Only $_temp0 went over the sodium limit this week. The other days were well balanced.';
-  }
-
-  @override
-  String clientDietAdviceWeekAllUnder(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'all $days days',
-      one: 'the 1 day you logged',
-    );
-    return 'You kept sodium within the limit on $_temp0 this week!';
-  }
-
-  @override
-  String clientDietAdviceAllWeekend(int weeks) {
-    return 'Over the last $weeks weeks, sodium rises every weekend. Make one weekend meal lighter.';
-  }
-
-  @override
-  String clientDietAdviceAllRatio(int weeks, int percent) {
-    return '$percent% of days in the last $weeks weeks went over the sodium limit. Start by leaving the broth.';
-  }
-
-  @override
-  String clientDietAdviceAllMostlyUnder(int weeks, int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'Most of your $days logged days',
-      one: 'Your 1 logged day',
-    );
-    return '$_temp0 in the last $weeks weeks stayed within the sodium limit. Nice trend.';
-  }
-
-  @override
   String get consultStatusRejected => 'Declined';
 
   @override
@@ -1666,21 +1588,134 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportBodyCalories(String avg) {
-    return 'Calories averaged ${avg}kcal a day.';
-  }
-
-  @override
   String get reportBodyPraise =>
       'Great work — let\'s keep this pace next week!';
 
   @override
   String get reportBodyEncourage =>
-      'Let\'s focus on just that one thing next week. I\'ll adjust your program and send it over.';
+      'Take those one at a time and you\'ll see it come together. I\'ll adjust your program and send it over.';
 
   @override
   String get reportBodyNoRecords =>
       'There\'s nothing logged for this week, so nothing to sum up. Let\'s plan next week\'s start together.';
+
+  @override
+  String reportBodySessionsAll(int booked) {
+    return 'You made all $booked of your booked PT sessions.';
+  }
+
+  @override
+  String reportBodySessionsSome(int booked, int done) {
+    return 'You made $done of your $booked booked PT sessions.';
+  }
+
+  @override
+  String get reportBodySessionsNone => 'There were no PT sessions this week.';
+
+  @override
+  String reportBodyExerciseCount(int total, int done) {
+    return 'You finished $done of the $total assigned exercises.';
+  }
+
+  @override
+  String reportBodyMealDaysAll(int total) {
+    return 'You logged your meals on all $total days.';
+  }
+
+  @override
+  String reportBodyMealDays(int total, int days) {
+    return 'You logged your meals on $days of $total days.';
+  }
+
+  @override
+  String reportBodyCaloriesOver(
+    String avg,
+    String target,
+    String pct,
+    int days,
+  ) {
+    return 'Calories averaged ${avg}kcal a day — $pct% above your ${target}kcal target, and over it on $days days.';
+  }
+
+  @override
+  String reportBodyCaloriesUnder(String avg, String target, String pct) {
+    return 'Calories averaged ${avg}kcal a day — $pct% below your ${target}kcal target. Eating too little tends to cost muscle first.';
+  }
+
+  @override
+  String reportBodyCaloriesNearOver(String avg, String target, int days) {
+    return 'Calories averaged ${avg}kcal a day, close to your ${target}kcal target, but went over it on $days days.';
+  }
+
+  @override
+  String reportBodyCaloriesOk(String avg, String target) {
+    return 'Calories averaged ${avg}kcal a day — right around your ${target}kcal target.';
+  }
+
+  @override
+  String reportBodySugarOver(String avg, String target, int days) {
+    return 'Sugar averaged ${avg}g a day and went over the ${target}g limit on $days days.';
+  }
+
+  @override
+  String reportBodySugarOk(String avg, String target) {
+    return 'Sugar averaged ${avg}g a day, inside the ${target}g limit.';
+  }
+
+  @override
+  String reportBodyMemberPain(String area) {
+    return 'You mentioned pain in your $area. Let me know how it feels before the next session — I\'ll ease off that area.';
+  }
+
+  @override
+  String get reportBodyMemberTooHard =>
+      'You said the workouts felt too hard, so I\'ll drop next week\'s intensity a notch.';
+
+  @override
+  String get reportBodyMemberTooEasy =>
+      'You said the workouts felt easy, so I\'ll raise next week\'s intensity a notch.';
+
+  @override
+  String get reportBodyMemberNoted =>
+      'Thanks for the weekly check-in — I read it.';
+
+  @override
+  String get reportBodyNextWeek => 'Here\'s the plan for next week.';
+
+  @override
+  String get reportTipCaloriesOver =>
+      'Cut dinner carbs to about two-thirds and switch snacks to protein.';
+
+  @override
+  String get reportTipCaloriesUnder =>
+      'Don\'t skip meals, and add one protein snack on workout days.';
+
+  @override
+  String get reportTipSugar => 'Keep sweet drinks and desserts to once a day.';
+
+  @override
+  String get reportTipSodium =>
+      'Keep takeout and processed foods to twice a week.';
+
+  @override
+  String get reportTipWorkout =>
+      'Aim to get three workouts in first, even if each is only 20 minutes.';
+
+  @override
+  String get reportTipMeals =>
+      'Log every meal, even with just a photo, so I can give you sharper feedback.';
+
+  @override
+  String get reportTipSessionsNone =>
+      'Let\'s book next week\'s PT sessions together now.';
+
+  @override
+  String get reportTipSessionsMissed =>
+      'I\'ll set up make-up slots next week for the sessions we missed.';
+
+  @override
+  String get reportTipKeep =>
+      'Keep the current routine as it is, and I\'ll raise the intensity step by step.';
 
   @override
   String get schedTitle => 'Schedule';
@@ -2162,9 +2197,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertifications => 'Certifications';
 
   @override
-  String get myMonthStats => 'This month';
-
-  @override
   String get myGym => 'My gym';
 
   @override
@@ -2174,18 +2206,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifNewMessage => 'New message alerts';
 
   @override
-  String get myNotifNewMessageHint =>
-      'A sidebar badge appears when a member messages you';
+  String get myNotifNotReady => 'Coming soon — always on for now';
 
   @override
-  String get myLanguage => 'Language';
+  String get myNotifNewMessageHint =>
+      'Get an inbox alert and a sidebar count when a member messages you';
 
   @override
   String get myLanguageApp => 'Display language';
 
   @override
   String get myLanguageHint =>
-      'Choose the language this browser shows the console in';
+      'Your choice is saved in this browser only. Other devices follow their own browser setting.';
 
   @override
   String get myLanguageSystem => 'Match browser';
@@ -2237,20 +2269,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'FAQ, inquiries, policies and account clean-up in one place';
 
   @override
-  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
+  String myAppVersion(String version) {
+    return 'On-Care Trainer · Version $version';
+  }
+
+  @override
+  String get myAppName => 'On-Care Trainer';
 
   @override
   String get myLegalTermsTitle => 'Terms of Service';
 
   @override
-  String get myLegalTermsHint => 'The terms your trainer account runs under';
-
-  @override
   String get myLegalPrivacyTitle => 'Privacy Policy';
-
-  @override
-  String get myLegalPrivacyHint =>
-      'How member records and sent reports are handled';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -2273,9 +2303,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myVersion => 'Version';
 
   @override
-  String get myContact => 'Contact';
-
-  @override
   String get myPasswordChanged => 'Password changed';
 
   @override
@@ -2287,6 +2314,17 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 year',
     );
     return '$_temp0 of experience';
+  }
+
+  @override
+  String myCareerYearsValue(int years) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '1 year',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -2342,6 +2380,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientManagementEmpty => 'No members assigned';
 
   @override
+  String get myBasicInfo => 'Basic info';
+
+  @override
   String get myStatSessionsDone => 'Sessions done';
 
   @override
@@ -2357,13 +2398,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymHours => 'Hours';
 
   @override
-  String get myGymOpen => 'Open now';
-
-  @override
   String get myGymListFailed => 'Couldn\'t load the gym list.';
 
   @override
-  String get myNoGym => 'No gym';
+  String get myGymNoMatch =>
+      'This gym isn\'t listed. Please add its address and hours yourself.';
+
+  @override
+  String get myGymLinked => 'Registered gym';
+
+  @override
+  String get myGymUnlink => 'Unlink';
+
+  @override
+  String get myGymNameHint => 'Type to find a registered gym';
+
+  @override
+  String get myGymRequired => 'Enter your gym';
+
+  @override
+  String get myGymEditHint =>
+      'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.';
+
+  @override
+  String get myGymListLoading => 'Loading gyms…';
 
   @override
   String get mySignOut => 'Sign out';
@@ -2398,6 +2456,110 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mySettingsSaveFailed =>
       'Couldn\'t save your settings. Please try again in a moment';
+
+  @override
+  String get myProfileSubtitle =>
+      'How members see you, and this month\'s activity';
+
+  @override
+  String get myClientsSubtitle => 'Tidy up your member connections';
+
+  @override
+  String get myLanguageSubtitle => 'Choose the console language';
+
+  @override
+  String get myAccountSubtitle => 'Manage your sign-in account and password';
+
+  @override
+  String get mySupportSubtitle => 'Ask a question or read our policies';
+
+  @override
+  String get myWithdrawSubtitle => 'Please check once before you leave';
+
+  @override
+  String get myPageTitle => 'Profile & settings';
+
+  @override
+  String get myProfileTitle => 'Profile';
+
+  @override
+  String get myEmail => 'Email';
+
+  @override
+  String get myBasicInfoHint => 'Members see this on your trainer profile';
+
+  @override
+  String get myNotificationsHint => 'Choose which alerts you get';
+
+  @override
+  String get myAccountInfo => 'Account';
+
+  @override
+  String get myAccountInfoHint =>
+      'To change your name or email, contact support.';
+
+  @override
+  String get mySecurity => 'Security';
+
+  @override
+  String get myDiscardTitle => 'Stop editing?';
+
+  @override
+  String get myDiscardBody => 'Your changes won\'t be saved.';
+
+  @override
+  String get myKeepEditing => 'Keep editing';
+
+  @override
+  String get myDiscardAction => 'Leave';
+
+  @override
+  String get mySignOutConfirm => 'Log out of this browser?';
+
+  @override
+  String get myThisMonth => 'This month';
+
+  @override
+  String get myIntroEmpty =>
+      'No introduction yet. Add one in Edit profile — members see it.';
+
+  @override
+  String get myCertsEmpty => 'No certifications yet';
+
+  @override
+  String get myGymEmpty => 'No gym yet. Add yours in Edit profile.';
+
+  @override
+  String get myEditVisibleBody =>
+      'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
+
+  @override
+  String get myClientManagementNoteTitle => 'Removing only hides members here';
+
+  @override
+  String get myClientManagementNote =>
+      'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.';
+
+  @override
+  String get myNotifConsultation => 'Consultation requests';
+
+  @override
+  String get myNotifConsultationHint =>
+      'When a member requests a consultation or answers your invite';
+
+  @override
+  String get myNotifReservation => 'Bookings';
+
+  @override
+  String get myNotifReservationHint =>
+      'When a member books or changes a session';
+
+  @override
+  String get myNotifMemberUpdates => 'Member updates';
+
+  @override
+  String get myNotifMemberUpdatesHint =>
+      'When a member changes goals or name, or disconnects';
 
   @override
   String get routineTypeWalking => 'Walking';
@@ -2542,9 +2704,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachBackToList => 'Back to suggestions';
-
-  @override
-  String get coachReviewed => 'AI-generated, reviewed by you';
 
   @override
   String get coachTrainerAdded => 'Added by trainer';
@@ -2735,8 +2894,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiAnalysedData =>
-      'Reviewed the workout goal, recent activity, and today\'s nutrition';
+  String get aiAnalysedData => 'Member status';
 
   @override
   String get aiGoal => 'Goal';
@@ -2768,6 +2926,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSugarAlsoOver => ' · sugar also over';
 
   @override
+  String get aiDirectionLabel => 'Direction';
+
+  @override
+  String get aiDirectionLower => 'Lower intensity — recent completion is low';
+
+  @override
+  String get aiDirectionCardio => 'More cardio — sodium is often over target';
+
+  @override
+  String get aiDirectionLowerAndCardio => 'Lower intensity · more cardio';
+
+  @override
+  String get aiDirectionKeep => 'Keep current intensity';
+
+  @override
+  String get aiDirectionNoData => 'Not enough records yet';
+
+  @override
   String get aiBasisRuleBased => ' · rule-based';
 
   @override
@@ -2796,7 +2972,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiReviewedSuggestion(String option) {
-    return 'Reviewed · AI suggestion ($option)';
+    return 'Confirmed plan · $option';
   }
 
   @override
@@ -2832,7 +3008,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepReview => 'Program selection';
 
   @override
-  String get aiStepDone => 'Final review';
+  String get aiStepDone => 'Program review';
 
   @override
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
@@ -3002,7 +3178,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiInsightMemoTitle => 'AI insights (last 7 days)';
+  String get aiInsightMemoTitle => 'Needs attention (last 7 days)';
 
   @override
   String get aiInsightMemoEmpty => 'No insights detected in the last 7 days';
@@ -3340,9 +3516,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDeleteAction => 'Delete';
 
   @override
-  String get myDeleteHint => 'Your member links and bookings go with it';
-
-  @override
   String get myDeleteDemo => 'Demo mode has no account to delete';
 
   @override
@@ -3360,6 +3533,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String myDeleteConfirmPrompt(String name) {
     return 'Type your name ($name) to continue';
   }
+
+  @override
+  String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What didn\'t work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'Pick as many as you like, or skip.';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I rarely use it';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It\'s hard to use';
+
+  @override
+  String get myWithdrawReasonMissingFeature =>
+      'It lacks features I need for members';
+
+  @override
+  String get myWithdrawReasonLeavingWork => 'I\'m taking a break from training';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I use another tool';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'Turn on alerts so you don\'t miss member messages and bookings. Change them in Settings › Notifications.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what felt awkward via 1:1 inquiry and we\'ll work on it.';
+
+  @override
+  String get myWithdrawKeepMissingFeature =>
+      'Tell us which feature you need via 1:1 inquiry — we\'ll consider it next.';
+
+  @override
+  String get myWithdrawKeepLeavingWork =>
+      'If it\'s just a break, you can keep your account. Leaving disconnects all your members.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Leaving removes member records, programs and reports from your console for good.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Your feedback via 1:1 inquiry would help us a lot.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawStay => 'Keep using';
+
+  @override
+  String get myWithdrawContinue => 'Continue leaving';
 
   @override
   String get routineAlreadyGone => 'That program is already gone';
@@ -4099,9 +4340,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorDistance => 'Distance m';
 
   @override
-  String get programEditorExerciseMemo => 'Memo';
-
-  @override
   String reportsComparisonTitle(String week) {
     return '$week vs last week';
   }
@@ -4635,12 +4873,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.';
 
   @override
-  String get reportsSentBody => 'Message sent';
-
-  @override
-  String get reportsSentFigures => 'Figures sent';
-
-  @override
   String get reportsStepReview => 'Review';
 
   @override
@@ -5076,4 +5308,348 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsPdfFileSuffix => 'weekly_report';
+
+  @override
+  String get clientDietAnalysisTitle => 'Diet analysis';
+
+  @override
+  String get clientDietAnalysisTodayEmpty => 'No meals logged today yet.';
+
+  @override
+  String clientDietAnalysisTodayOver(
+    String slot,
+    String food,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': 'sodium',
+      'sugar': 'sugar',
+      'other': 'calories',
+    });
+    return '$food at $_temp0 ($foodValue) pushed today\'s $_temp1 to $value, ${ratio}x the $target goal.';
+  }
+
+  @override
+  String clientDietAnalysisTodayOverMeal(
+    String slot,
+    String foodValue,
+    String nutrient,
+    String value,
+    String target,
+    String ratio,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'Breakfast',
+      'lunch': 'Lunch',
+      'dinner': 'Dinner',
+      'lateNight': 'Late-night snack',
+      'other': 'Snack',
+    });
+    String _temp1 = intl.Intl.selectLogic(nutrient, {
+      'sodium': 'sodium',
+      'sugar': 'sugar',
+      'other': 'calories',
+    });
+    return '$_temp0 ($foodValue) pushed today\'s $_temp1 to $value, ${ratio}x the $target goal.';
+  }
+
+  @override
+  String clientDietAnalysisTodayProteinShort(String value, String gap) {
+    return 'Protein is at $value, $gap short of the goal.';
+  }
+
+  @override
+  String clientDietAnalysisTodayProteinChronic(
+    String value,
+    String gap,
+    String avg,
+  ) {
+    return 'Protein is at $value, $gap short of the goal, and the 4-week average of $avg a day stays low.';
+  }
+
+  @override
+  String clientDietAnalysisTodayMissing(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'No $_temp0 logged yet.';
+  }
+
+  @override
+  String clientDietAnalysisTodayGood(String kcal) {
+    return '$kcal today, evenly within the goals.';
+  }
+
+  @override
+  String get clientDietAnalysisWeekEmpty => 'No meals logged this week yet.';
+
+  @override
+  String clientDietAnalysisWeekSkipBreakfast(
+    String scope,
+    int logged,
+    int days,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'Skipped breakfast on $days of $logged logged days $_temp0.';
+  }
+
+  @override
+  String clientDietAnalysisWeekSkipBreakfastSnack(
+    String scope,
+    int logged,
+    int days,
+    int snackDays,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'Skipped breakfast on $days of $logged logged days $_temp0, snacking instead on $snackDays.';
+  }
+
+  @override
+  String clientDietAnalysisWeekOver(
+    String scope,
+    int logged,
+    int days,
+    String nutrient,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(nutrient, {
+      'sodium': 'Sodium',
+      'sugar': 'Sugar',
+      'other': 'Calories',
+    });
+    String _temp1 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return '$_temp0 went over the goal on $days of $logged logged days $_temp1.';
+  }
+
+  @override
+  String clientDietAnalysisWeekCause(
+    String weekday,
+    String slot,
+    String food,
+    String foodValue,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(weekday, {
+      '0': 'Monday',
+      '1': 'Tuesday',
+      '2': 'Wednesday',
+      '3': 'Thursday',
+      '4': 'Friday',
+      '5': 'Saturday',
+      'other': 'Sunday',
+    });
+    String _temp1 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'The biggest was $food at $_temp0 $_temp1 ($foodValue).';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinShort(
+    String scope,
+    int logged,
+    int days,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'Protein fell below 80% of the goal on $days of $logged logged days $_temp0.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGood(String scope, int days) {
+    String _temp0 = intl.Intl.selectLogic(scope, {
+      'last': 'last week',
+      'other': 'this week',
+    });
+    return 'All $days logged days $_temp0 stayed within the goals.';
+  }
+
+  @override
+  String clientDietAnalysisAllFew(int days) {
+    return 'Only $days days logged in the last 4 weeks. The trend shows after 7.';
+  }
+
+  @override
+  String clientDietAnalysisAllSlotSodium(String slot, int days) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'In the last 4 weeks, $_temp0 sodium went over half the goal $days times.';
+  }
+
+  @override
+  String clientDietAnalysisAllCarbHeavy(int pct) {
+    return 'Carbs made up $pct% of calories in the last 4 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinLight(int pct) {
+    return 'Protein made up only $pct% of calories in the last 4 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinTrendUp(int before, int after) {
+    return 'Days meeting the protein goal rose from $before to $after over the last 2 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllProteinTrendDown(int before, int after) {
+    return 'Days meeting the protein goal fell from $before to $after over the last 2 weeks.';
+  }
+
+  @override
+  String clientDietAnalysisAllFrequent(String slot, String food, int count) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return '$food was the most common $_temp0 in the last 4 weeks ($count times).';
+  }
+
+  @override
+  String clientDietAnalysisAllRepeated(String food1, String food2) {
+    return '$food1 and $food2 make up much of the last 4 weeks\' log.';
+  }
+
+  @override
+  String clientDietAnalysisAllGood(int days) {
+    return '$days days logged in the last 4 weeks, with an even trend.';
+  }
+
+  @override
+  String clientDietAnalysisFoodsOne(String food1, int count1) {
+    return 'Mostly $food1 ($count1 times).';
+  }
+
+  @override
+  String clientDietAnalysisFoodsTwo(
+    String food1,
+    int count1,
+    String food2,
+    int count2,
+  ) {
+    return 'Mostly $food1 ($count1 times) and $food2 ($count2 times).';
+  }
+
+  @override
+  String clientDietRecQuestion(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'for breakfast',
+      'lunch': 'for lunch',
+      'dinner': 'for dinner',
+      'lateNight': 'as a late-night snack',
+      'other': 'as a snack',
+    });
+    return 'Recommend this $_temp0 to the member?';
+  }
+
+  @override
+  String get clientDietRecQuestionNext =>
+      'Recommend this for the next meal to the member?';
+
+  @override
+  String clientDietRecCounter(int index, int total) {
+    return 'AI pick $index / $total';
+  }
+
+  @override
+  String get clientDietRecNo => 'No';
+
+  @override
+  String get clientDietRecYes => 'Yes, recommend';
+
+  @override
+  String clientDietRecExhausted(int count) {
+    return 'You passed on all $count AI picks.';
+  }
+
+  @override
+  String get clientDietRecRestart => 'Start over';
+
+  @override
+  String get clientDietRecMore => 'See other menus';
+
+  @override
+  String clientDietRecActive(String date) {
+    return 'You recommended this on $date. It\'s on the member\'s home as a trainer pick.';
+  }
+
+  @override
+  String get clientDietRecChange => 'Change';
+
+  @override
+  String clientDietRecResolved(String name, String date, String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'breakfast',
+      'lunch': 'lunch',
+      'dinner': 'dinner',
+      'lateNight': 'late-night snack',
+      'other': 'snack',
+    });
+    return 'The member had the recommended $name for $_temp0 on $date.';
+  }
+
+  @override
+  String clientDietRecResolvedNoSlot(String name, String date) {
+    return 'The member had the recommended $name on $date.';
+  }
+
+  @override
+  String get clientDietRecNext => 'See next pick';
+
+  @override
+  String get clientDietRecConfirmFailed =>
+      'Couldn\'t save the pick. Please try again.';
+
+  @override
+  String clientDietRecNutrition(String kcal, String protein, String sodium) {
+    return '${kcal}kcal · protein ${protein}g · sodium ${sodium}mg';
+  }
+
+  @override
+  String clientDietRecSlot(String slot) {
+    String _temp0 = intl.Intl.selectLogic(slot, {
+      'breakfast': 'Breakfast',
+      'lunch': 'Lunch',
+      'dinner': 'Dinner',
+      'lateNight': 'Late-night snack',
+      'other': 'Snack',
+    });
+    return '$_temp0';
+  }
 }

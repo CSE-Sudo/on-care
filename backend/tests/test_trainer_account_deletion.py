@@ -250,3 +250,45 @@ def test_a_member_cannot_delete_a_trainer_account(client):
     assert (
         client.delete("/v1/trainer/me", headers=_h(member_token)).status_code == 403
     )
+
+
+def test_trainer_deletion_keeps_chosen_reasons_apart_from_members(
+    client, db_session, invite_code, make_trainer
+):
+    """트레이너가 고른 탈퇴 사유는 `trainer_` 를 붙여 남고, 모르는 값은 버린다(#2264).
+
+    회원 사유와 같은 표라 코드만으로 누가 떠났는지 갈라야 한다. 계정과는
+    잇지 않는다 — 계정은 이 요청으로 사라진다.
+    """
+    from app.models import models
+
+    token, _ = make_trainer(invite_code)
+    marker = datetime.now(timezone.utc) - timedelta(seconds=1)
+
+    deleted = client.request(
+        "DELETE",
+        "/v1/trainer/me",
+        headers=_h(token),
+        json={"reasons": ["leaving_work", "missing_feature", "not-a-reason"]},
+    )
+    assert deleted.status_code == 200, deleted.text
+
+    db_session.expire_all()
+    stored = set(
+        db_session.scalars(
+            select(models.AccountDeletionReason.reason).where(
+                models.AccountDeletionReason.created_at >= marker,
+                models.AccountDeletionReason.reason.like("trainer_%"),
+            )
+        ).all()
+    )
+    assert {"trainer_leaving_work", "trainer_missing_feature"} <= stored
+    assert "trainer_not-a-reason" not in stored
+
+
+def test_trainer_deletion_without_reasons_still_works(
+    client, invite_code, make_trainer
+):
+    """사유는 탈퇴를 막는 조건이 아니다 — 본문 없이도 지워진다(#2264)."""
+    token, _ = make_trainer(invite_code)
+    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200

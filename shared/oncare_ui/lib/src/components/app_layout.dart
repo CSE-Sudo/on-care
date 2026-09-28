@@ -382,6 +382,27 @@ class AppWebPage extends StatelessWidget {
   /// 자식은 받은 폭을 보고 스스로 아이콘으로 접을 수 있다.
   final Widget? headerCenter;
 
+  /// 머리 높이 — 88 이 기본이고, 글자 배율이 커져 제목·부제가 그 안에 들지
+  /// 않을 때만 늘어난다(#2431).
+  ///
+  /// 88 로 못 박아 두면 배율 2.0 에서 제목·부제가 98 이 되어 아래로 넘쳤다.
+  /// 글씨를 줄여 넣지 않는다 — 큰 글씨를 고른 사람에게 제목만 다시 작아진다.
+  /// 늘어날 때도 위아래 [OnCareSpacing.s8] 씩은 남긴다. 줄 높이는 스타일에
+  /// `height` 가 있으므로 글꼴과 상관없이 `글자 크기 × height` 다.
+  double _headerHeight(BuildContext context) {
+    final TextScaler scaler = MediaQuery.textScalerOf(context);
+    final OnCareTokens tokens = context.oncare;
+    double line(TextStyle style) =>
+        scaler.scale(style.fontSize!) * (style.height ?? 1);
+    final double block =
+        line(tokens.text(OnCareTypography.titleLarge)) +
+        (subtitle == null ? 0 : line(tokens.text(OnCareTypography.bodySmall)));
+    final double needed = block + OnCareSpacing.s8 * 2;
+    return needed > OnCareLayout.webHeaderHeight
+        ? needed
+        : OnCareLayout.webHeaderHeight;
+  }
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -470,7 +491,7 @@ class AppWebPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               SizedBox(
-                height: OnCareLayout.webHeaderHeight,
+                height: _headerHeight(context),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: side),
                   child: header,

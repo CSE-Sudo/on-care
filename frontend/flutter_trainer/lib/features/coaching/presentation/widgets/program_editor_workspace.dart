@@ -332,7 +332,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           minutes: exercise.minutes > 0 ? exercise.minutes : 30,
           sets: exercise.sets > 0 ? exercise.sets : 3,
           reps: exercise.reps > 0 ? exercise.reps : 10,
-          weight: exercise.weight > 0 ? exercise.weight : 20,
+          // 중량은 채우지 않는다 — 맨몸이 기본이고 `0kg` 은 트레이너가 적은
+          // 값이다(#1310). 세트·횟수와 달리 기본값을 둘 근거가 없다(#2265).
+          weight: exercise.weight,
           // `source` 는 그대로 서버 계약값(`trainer`)으로 남긴다 — 출처
           // 배지만 이 값을 우선해서 `<템플릿명> 템플릿 추가` 를 보여 준다.
           templateName: template.name,
@@ -891,7 +893,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           id: 'exercise-${_nextId++}',
           name: item.name,
           minutes: item.minutes > 0 ? item.minutes : 30,
-          memo: item.reason,
+          // AI 추천 사유(`reason`)는 운동 메모로 옮기지 않는다 — 트레이너가
+          // 쓴 적 없는 글이 메모로 전송·저장되던 자리다(#2371).
           type: type,
           source: 'ai',
           // 2단계에서 직접 채운 세트·횟수·중량이 있으면 그대로 옮긴다 —
@@ -900,7 +903,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // 물어야 한다 (#1310).
           sets: item.sets > 0 ? item.sets : 3,
           reps: item.reps > 0 ? item.reps : 10,
-          weight: item.weight > 0 ? item.weight : 20,
+          // 중량은 채우지 않는다 — AI 가 분으로만 준 근력에 20kg 를 지어내면
+          // 맨몸 운동이 회원에게 `20kg` 지시로 간다(#2265).
+          weight: item.weight,
         ),
       );
     }
@@ -1556,15 +1561,10 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                       widget.onChanged(exercise.copyWith(intensity: value)),
                 ),
                 const SizedBox(height: OnCareSpacing.s8),
+                // 운동별 메모 칸은 두지 않는다(#2371) — 회원 앱이 그리지 않아
+                // 적어도 회원에게 닿지 않았고, 채워지는 것은 시스템 문구뿐이었다.
+                // 회원에게 할 말은 `일정 추가` 에서 받는다(#2374).
                 RoutineCaloriesLine(estimate: exercise.calories),
-                const SizedBox(height: OnCareSpacing.s4),
-                _DraftField(
-                  fieldId: '${exercise.id}-memo',
-                  label: l.programEditorExerciseMemo,
-                  value: exercise.memo,
-                  onChanged: (value) =>
-                      widget.onChanged(exercise.copyWith(memo: value)),
-                ),
               ],
             ),
           ],
@@ -1696,17 +1696,6 @@ class _ExerciseSummary extends StatelessWidget {
             style: context.oncare
                 .text(OnCareTypography.caption)
                 .copyWith(color: OnCareColors.textSecondary),
-          ),
-        ],
-        if (exercise.memo.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            exercise.memo,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.oncare
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
           ),
         ],
       ],

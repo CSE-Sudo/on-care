@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
@@ -22,6 +23,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fixed_clock.dart';
@@ -89,6 +91,14 @@ Future<ProviderContainer> pumpTrainerApp(
         : <String, String>{'access_token': token, 'refresh_token': '$token-r'},
   );
   SharedPreferences.setMockInitialValues(<String, Object>{});
+  // 고객 지원 아래 버전 줄이 읽는 빌드 정보(#2264). 테스트에는 플랫폼이 없다.
+  PackageInfo.setMockInitialValues(
+    appName: 'oncare_trainer',
+    packageName: 'oncare_trainer',
+    version: '0.1.0',
+    buildNumber: '1',
+    buildSignature: '',
+  );
   final prefs = await SharedPreferences.getInstance();
   // 테스트의 '브라우저 언어' 도 [locale] 로 맞춘다. 화면(`MaterialApp`)만 그
   // 언어이고 브라우저가 테스트 기본값(en-US)으로 남으면, 브라우저 언어를 읽는
@@ -271,9 +281,23 @@ class _StillClientRepository implements ClientRepository {
   }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
-  Future<String> fetchDietAdvice(
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
+    required Locale locale,
+  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+
+  @override
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+
+  @override
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
     required Locale locale,
   }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 

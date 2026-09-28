@@ -187,4 +187,47 @@ void main() {
       expect(controller.lastError, isTrue);
     });
   });
+
+  group('종류별 알림 (#2264)', () {
+    test('서버가 모르는 종류는 null — 켬으로 채우지 않는다', () {
+      final TrainerSettings settings = trainerSettingsFromJson(
+        <String, dynamic>{'notify_new_message': false},
+      );
+      expect(settings.newMessageAlerts, isFalse);
+      expect(settings.consultationAlerts, isNull);
+      expect(settings.reservationAlerts, isNull);
+      expect(settings.memberUpdateAlerts, isNull);
+    });
+
+    test('서버가 아는 종류는 그대로 읽고, 모르는 종류는 보내지 않는다', () {
+      final TrainerSettings settings = trainerSettingsFromJson(
+        <String, dynamic>{
+          'notify_new_message': true,
+          'notify_consultation': false,
+        },
+      );
+      expect(settings.consultationAlerts, isFalse);
+      expect(trainerSettingsToJson(settings), <String, Object?>{
+        'notify_new_message': true,
+        'notify_consultation': false,
+      });
+    });
+
+    test('데모 저장소는 네 가지를 모두 기기에 둔다', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final repo = LocalTrainerSettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
+      await repo.save(
+        const TrainerSettings(
+          reservationAlerts: false,
+          memberUpdateAlerts: false,
+        ),
+      );
+      final TrainerSettings loaded = await repo.load();
+      expect(loaded.consultationAlerts, isTrue);
+      expect(loaded.reservationAlerts, isFalse);
+      expect(loaded.memberUpdateAlerts, isFalse);
+    });
+  });
 }

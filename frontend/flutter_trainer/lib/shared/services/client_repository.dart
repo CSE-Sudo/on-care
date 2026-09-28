@@ -19,6 +19,8 @@ import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
         clientExerciseItems,
         clientSignalsFromJson;
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/diet_analysis_rules.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
@@ -26,7 +28,6 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -108,15 +109,34 @@ abstract interface class ClientRepository {
   /// 회원 앱 식단 탭의 기간 뷰와 같은 것을 트레이너에게도 준다. 두 구현 모두
   /// **주 단위 이력**에서 만든다 — 데모는 drift 의 일별 지표에서, 실서버는
   /// 리포트 응답(`calories_week` · `sodium_week` · `sugar_week`)에서.
-  /// 기간에 맞는 식단 조언. 회원 앱과 **같은 문장**이다 — 같은 회원의 같은
-  /// 기간을 두 화면이 다르게 말하면 상담에서 둘이 다른 이야기를 들고 앉는다.
-  /// (#1017)
+  /// 기간에 맞는 `식단 분석` — 원인까지 짚는 서술형 규칙 문장. (#2379)
   ///
-  /// 문장은 [locale] 의 언어다(#2299) — 실서버는 이 언어를 `Accept-Language` 로
-  /// 보내고, 데모는 같은 규칙의 문장을 이 언어의 번역으로 만든다.
-  Future<String> fetchDietAdvice(
+  /// 회원 앱 조언과 **같은 기간·같은 판정**이다(이번 주는 월·화 지난주 회고,
+  /// 전체는 최근 4주). 같은 회원의 같은 기간을 두 화면이 다른 기준으로 말하면
+  /// 상담에서 둘이 다른 이야기를 들고 앉는다. 문장은 키·값으로 오고 화면이 ARB 로
+  /// 그린다. 실서버는 [locale] 을 `Accept-Language` 로 보낸다(#2299) — 문장 키는
+  /// 언어와 무관하다.
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
+    required Locale locale,
+  });
+
+  /// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378, #2379)
+  ///
+  /// 후보는 회원의 4주 추천 메뉴 리스트에서 급한 태그를 채우는 메뉴부터다. 조회로
+  /// AI 를 새로 부르지 않는다.
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  });
+
+  /// 후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. 다시
+  /// 부르면 바꾸기다. 돌려주는 것은 확정 뒤의 상태다.
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
     required Locale locale,
   });
 
@@ -706,98 +726,319 @@ class DriftClientRepository implements ClientRepository {
   }
 
   @override
-  Future<String> fetchDietAdvice(
+  Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
     ClientPeriod period, {
     required Locale locale,
   }) async {
-    // 문장은 화면 언어의 번역으로 만든다(#2299). 한국어 번역은 예전 문장 그대로다.
-    final AppLocalizations l = lookupAppLocalizations(locale);
-    // 데모는 서버 규칙(`diet_service.period_coach_message`)을 로컬 데이터로
-    // 흉내 낸다. 고정 문장을 돌려주면 어느 고객을 열어도 같은 말을 해서,
-    // 기간을 바꿨을 때 조언이 따라 바뀌는지도 볼 수 없다. (#1017)
-    if (period == ClientPeriod.today) {
-      // 오늘 것만 합친다. 이 표는 이제 지난 날의 끼니도 담으므로(#1025),
-      // 거르지 않으면 여러 달치 나트륨을 오늘 하루로 말하게 된다.
-      final entries =
-          await (_db.select(_db.clientDietEntries)
-                ..where((t) => t.clientId.equals(clientId))
-                ..where((t) => t.date.equals(ymd(nowKst()))))
-              .get();
-      final int sodium = entries.fold<int>(
-        0,
-        (int sum, ClientDietEntryRow row) => sum + row.sodiumMg,
-      );
-      return sodium > sodiumTargetMg
-          ? l.clientDietAdviceTodayOver(sodium - sodiumTargetMg)
-          : l.clientDietAdviceTodayBalanced;
-    }
-
-    // 조언이 읽는 기간은 그래프와 다르다(#2079) — 그래프는 모든 기록을
-    // 그리지만 조언은 최근 [kAdvicePeriodDays] 일이다. 서버
-    // (`period_window.ALL_PERIOD_DAYS`)와 같은 창이다.
-    final DateTime today = todayKst();
-    final ClientDietPeriod window = await fetchDietPeriod(
-      clientId,
-      period == ClientPeriod.week
-          ? clientRangeNow(period)
-          : (
-              from: DateTime(
-                today.year,
-                today.month,
-                today.day - kAdvicePeriodDays + 1,
-              ),
-              to: today,
-            ),
+    // 데모는 서버 규칙(`diet_trainer_analysis`)을 옮긴 [todaySentences]·
+    // [weekSentences]·[allSentences] 로 로컬 기록을 읽는다(#2379). 고정 문장을
+    // 돌려주면 어느 고객을 열어도 같은 말을 해서 기간을 바꿔도 분석이 따라 바뀌는지
+    // 볼 수 없다. 문장 키는 언어와 무관하다 — 화면이 ARB 로 그린다.
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DietRuleTargets targets = _dietTargets(
+      await fetchHealthProfile(clientId),
     );
-    final List<ClientDietDay> logged = window.days
-        .where((ClientDietDay day) => day.calories > 0)
-        .toList();
-    if (logged.isEmpty) {
-      return period == ClientPeriod.week
-          ? l.clientDietAdviceWeekEmpty
-          : l.clientDietAdviceAllEmpty;
+    switch (period) {
+      case ClientPeriod.today:
+        final List<DietRuleEntry> entries = await _dietRuleEntries(
+          clientId,
+          ymd(today),
+          ymd(today),
+        );
+        final int protein = pyRound(
+          entries.fold<num>(0, (num a, DietRuleEntry e) => a + e.proteinG),
+        );
+        int? avg;
+        if (targets.proteinG - protein >= 10) {
+          avg = _avgProtein(
+            await _dietRuleEntries(
+              clientId,
+              daysBefore(today, allWindowDays - 1),
+              ymd(today),
+            ),
+          );
+        }
+        return ClientDietAnalysis(
+          todaySentences(entries, targets, now, avgProteinG: avg),
+        );
+      case ClientPeriod.week:
+        final DateTime twoWeeks = DateTime(
+          today.year,
+          today.month,
+          today.day - (today.weekday - 1) - 7,
+        );
+        return ClientDietAnalysis(
+          weekSentences(
+            await _dietRuleEntries(clientId, ymd(twoWeeks), ymd(today)),
+            targets,
+            now,
+          ).sentences,
+        );
+      case ClientPeriod.month:
+        return ClientDietAnalysis(
+          allSentences(
+            await _dietRuleEntries(
+              clientId,
+              daysBefore(today, allWindowDays - 1),
+              ymd(today),
+            ),
+            targets,
+            today,
+          ).sentences,
+        );
     }
-    final int over = logged
-        .where((ClientDietDay day) => day.sodiumMg > sodiumTargetMg)
-        .length;
-    final bool weekendHeavy = _weekendRuns(logged);
-    if (period == ClientPeriod.week) {
-      if (over >= 3) return l.clientDietAdviceWeekManyOver(over);
-      if (weekendHeavy) return l.clientDietAdviceWeekWeekend;
-      if (over > 0) return l.clientDietAdviceWeekSomeOver(over);
-      return l.clientDietAdviceWeekAllUnder(logged.length);
-    }
-    // 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
-    // 이 조언은 최근 12주만 읽는다 — "기록을 통틀어" 라고 말하면 그래프가
-    // 보여 주는 앞 기록까지 본 것처럼 읽힌다. 서버
-    // (`diet_service.period_coach_message`)와 같은 문구다.
-    const int adviceWeeks = kAdvicePeriodDays ~/ 7;
-    if (weekendHeavy) return l.clientDietAdviceAllWeekend(adviceWeeks);
-    if (over * 10 >= logged.length * 4) {
-      return l.clientDietAdviceAllRatio(
-        adviceWeeks,
-        (over * 100 / logged.length).round(),
-      );
-    }
-    return l.clientDietAdviceAllMostlyUnder(adviceWeeks, logged.length);
   }
 
-  /// 주말(토·일) 평균이 평일보다 뚜렷하게 높은지 — 서버와 같은 1.3배 기준.
-  bool _weekendRuns(List<ClientDietDay> days) {
-    final List<int> weekend = <int>[
-      for (final ClientDietDay day in days)
-        if (day.date.weekday >= DateTime.saturday) day.sodiumMg,
-    ];
-    final List<int> weekday = <int>[
-      for (final ClientDietDay day in days)
-        if (day.date.weekday < DateTime.saturday) day.sodiumMg,
-    ];
-    if (weekend.isEmpty || weekday.isEmpty) return false;
-    double mean(List<int> xs) =>
-        xs.fold<int>(0, (int a, int b) => a + b) / xs.length;
-    return mean(weekend) > mean(weekday) * 1.3;
+  /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
+  /// 순서(목표 → 체중 × 1.2g)다. 둘 다 없으면 데모 회원의 목표 [_demoProteinG] 다.
+  DietRuleTargets _dietTargets(MemberHealthProfile p) => (
+    calories: p.dailyCalories ?? 2000,
+    proteinG:
+        p.dailyProteinG ??
+        (p.weightKg != null && p.weightKg! > 0
+            ? pyRound(p.weightKg! * 1.2)
+            : _demoProteinG),
+    sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
+    sugarG: p.dailySugarG ?? sugarTargetG,
+  );
+
+  /// 기록이 있는 날의 하루 평균 단백질 — 서버 `digest` 와 같다. 기록이 없으면 null.
+  int? _avgProtein(List<DietRuleEntry> entries) {
+    final Map<String, num> perDay = <String, num>{};
+    for (final DietRuleEntry e in entries) {
+      perDay[e.date] = (perDay[e.date] ?? 0) + e.proteinG;
+    }
+    if (perDay.isEmpty) return null;
+    return pyRound(
+      perDay.values.fold<num>(0, (num a, num b) => a + b) / perDay.length,
+    );
   }
+
+  /// [from]…[to] 의 끼니를 규칙이 읽는 모양으로.
+  Future<List<DietRuleEntry>> _dietRuleEntries(
+    String clientId,
+    String from,
+    String to,
+  ) async {
+    final List<ClientDietEntryRow> rows =
+        await (_db.select(_db.clientDietEntries)
+              ..where((t) => t.clientId.equals(clientId))
+              ..where((t) => t.date.isBiggerOrEqualValue(from))
+              ..where((t) => t.date.isSmallerOrEqualValue(to))
+              ..orderBy(<OrderingTerm Function($ClientDietEntriesTable)>[
+                (t) => OrderingTerm(expression: t.date),
+                (t) => OrderingTerm(expression: t.sortOrder),
+              ]))
+            .get();
+    return <DietRuleEntry>[
+      for (final ClientDietEntryRow row in rows)
+        _dietRuleEntry(row.date, _toDietEntry(row)),
+    ];
+  }
+
+  DietRuleEntry _dietRuleEntry(String date, ClientDietEntry e) => DietRuleEntry(
+    date: date,
+    slot: switch (e.meal) {
+      '아침' => 'breakfast',
+      '점심' => 'lunch',
+      '저녁' => 'dinner',
+      '야식' => 'lateNight',
+      _ => 'snack',
+    },
+    foods: <DietRuleFood>[
+      for (final ClientDietFood f in e.foods)
+        DietRuleFood(
+          f.name,
+          calories: f.calories,
+          sodiumMg: f.sodiumMg,
+          sugarG: f.sugarG,
+        ),
+    ],
+    calories: e.calories,
+    proteinG: e.proteinG,
+    sodiumMg: e.sodiumMg,
+    sugarG: e.sugarG,
+    carbsG: e.carbsG,
+    fatG: e.fatG,
+  );
+
+  /// 데모 회원의 하루 단백질 목표. 같은 화면의 영양 요약 카드(`proteinTargetG`)·
+  /// 회원 앱 목 프로필·백엔드 시드(`daily_protein_g: 100`)와 같다 — 서버 기본값(60g)을
+  /// 쓰면 요약 카드는 `/ 100g` 인데 분석은 목표를 채웠다고 말한다.
+  static const int _demoProteinG = 100;
+
+  static String _demoPickKey(String clientId) => 'demo_diet_pick:$clientId';
+
+  @override
+  Future<ClientDietRecommendations> fetchDietRecommendations(
+    String clientId, {
+    required Locale locale,
+  }) async {
+    // 데모 후보는 공유 픽스처의 4주 추천 메뉴 리스트([kDemoMenuPlan])다 — 회원 앱
+    // 데모가 다음 식사를 고르는 같은 리스트라, 두 앱이 같은 회원에게 같은 메뉴를
+    // 말한다. 순서·해소는 서버(`diet_trainer_pick`)와 같은 규칙이다.
+    final DateTime today = todayKst();
+    final List<DietRuleEntry> recent = await _dietRuleEntries(
+      clientId,
+      daysBefore(today, allWindowDays - 1),
+      ymd(today),
+    );
+    final DietRuleTargets targets = _dietTargets(
+      await fetchHealthProfile(clientId),
+    );
+    final List<String> needs = _needsOf(recent, targets);
+    final ClientDietPick? pick = await _demoPick(clientId, recent);
+    final List<DemoPlanMenu> plan =
+        kDemoMenuPlan[locale.languageCode] ?? kDemoMenuPlan['ko']!;
+    final Set<String> days = <String>{
+      for (final DietRuleEntry e in recent) e.date,
+    };
+    if (needs.isEmpty) {
+      return ClientDietRecommendations(basisDays: days.length, pick: pick);
+    }
+    const List<String> tags = <String>[
+      'protein_high',
+      'sodium_low',
+      'fiber_high',
+      'calorie_low',
+      'sugar_low',
+      'calorie_high',
+    ];
+    final List<String> tagOrder = <String>[
+      ...needs,
+      for (final String t in tags)
+        if (!needs.contains(t)) t,
+    ];
+    const List<String> slots = <String>[
+      'breakfast',
+      'lunch',
+      'dinner',
+      'snack',
+    ];
+    final List<DemoPlanMenu> menus = <DemoPlanMenu>[
+      for (final DemoPlanMenu m in plan)
+        if (pick == null || _norm(m.name) != _norm(pick.name)) m,
+    ];
+    final List<int> order = List<int>.generate(menus.length, (int i) => i)
+      ..sort((int a, int b) {
+        int rank(DemoPlanMenu m) =>
+            tagOrder.indexOf(m.tag) * 10 + slots.indexOf(m.slot);
+        final int byRank = rank(menus[a]).compareTo(rank(menus[b]));
+        return byRank != 0 ? byRank : a.compareTo(b);
+      });
+    return ClientDietRecommendations(
+      needs: needs,
+      basisDays: days.length,
+      pick: pick,
+      candidates: <ClientDietCandidate>[
+        for (final int i in order)
+          ClientDietCandidate(
+            slot: menus[i].slot,
+            name: menus[i].name,
+            tag: menus[i].tag,
+            keyword: menus[i].keyword,
+            urgent: needs.contains(menus[i].tag),
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<ClientDietRecommendations> confirmDietRecommendation(
+    String clientId, {
+    required String slot,
+    required String name,
+    required Locale locale,
+  }) async {
+    final List<DemoPlanMenu> plan =
+        kDemoMenuPlan[locale.languageCode] ?? kDemoMenuPlan['ko']!;
+    final DemoPlanMenu? menu = plan
+        .where(
+          (DemoPlanMenu m) => m.slot == slot && _norm(m.name) == _norm(name),
+        )
+        .firstOrNull;
+    if (menu == null) {
+      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴입니다.');
+    }
+    await _db.putValue(
+      _demoPickKey(clientId),
+      jsonEncode(<String, Object?>{
+        'slot': menu.slot,
+        'name': menu.name,
+        'tag': menu.tag,
+        'keyword': menu.keyword,
+        'confirmed_at': nowKst().toIso8601String(),
+      }),
+    );
+    return fetchDietRecommendations(clientId, locale: locale);
+  }
+
+  /// 데모 트레이너가 확정해 둔 추천. 확정한 날부터 그 메뉴를 기록했으면 해소다 —
+  /// 데모 기록에는 시각이 없어 날로 본다.
+  Future<ClientDietPick?> _demoPick(
+    String clientId,
+    List<DietRuleEntry> recent,
+  ) async {
+    final String? raw = await _db.readValue(_demoPickKey(clientId));
+    if (raw == null) return null;
+    final Map<String, Object?> saved = jsonDecode(raw) as Map<String, Object?>;
+    final DateTime confirmedAt = DateTime.parse(
+      saved['confirmed_at']! as String,
+    );
+    final String name = saved['name']! as String;
+    final String since = ymd(confirmedAt);
+    final DietRuleEntry? eaten = recent
+        .where(
+          (DietRuleEntry e) =>
+              e.date.compareTo(since) >= 0 &&
+              e.foodNames.any((String f) => _norm(f).contains(_norm(name))),
+        )
+        .firstOrNull;
+    return ClientDietPick(
+      slot: saved['slot']! as String,
+      name: name,
+      tag: saved['tag']! as String,
+      keyword: (saved['keyword'] as String?) ?? '',
+      resolved: eaten != null,
+      confirmedAt: confirmedAt,
+      resolvedAt: eaten == null ? null : DateTime.parse(eaten.date),
+    );
+  }
+
+  /// 급한 태그 — 서버 `diet_menu_plan.needs_of` 와 같다(최근 4주 하루 평균 기준).
+  List<String> _needsOf(List<DietRuleEntry> entries, DietRuleTargets t) {
+    final Map<String, List<num>> perDay = <String, List<num>>{};
+    for (final DietRuleEntry e in entries) {
+      final List<num> d = perDay.putIfAbsent(e.date, () => <num>[0, 0, 0, 0]);
+      d[0] += e.calories;
+      d[1] += e.proteinG;
+      d[2] += e.sodiumMg;
+      d[3] += e.sugarG;
+    }
+    if (perDay.isEmpty) return const <String>[];
+    int avg(int i) => pyRound(
+      perDay.values.fold<num>(0, (num a, List<num> d) => a + d[i]) /
+          perDay.length,
+    );
+    final int calories = avg(0),
+        protein = avg(1),
+        sodium = avg(2),
+        sugar = avg(3);
+    return <String>[
+      if (sodium >= t.sodiumMg * 0.9) 'sodium_low',
+      if (protein <= t.proteinG * 0.8) 'protein_high',
+      if (calories >= t.calories * 1.1)
+        'calorie_low'
+      else if (calories <= t.calories * 0.7)
+        'calorie_high',
+      if (sugar >= t.sugarG * 0.9) 'sugar_low',
+    ];
+  }
+
+  static String _norm(String name) =>
+      name.replaceAll(RegExp(r'\s+'), '').toLowerCase();
 
   @override
   Future<ClientRecordSpan> fetchRecordSpan(String clientId) async {
@@ -1173,9 +1414,12 @@ final clientDietProvider = StreamProvider.autoDispose
       return ref.watch(clientRepositoryProvider).watchDiet(clientId);
     });
 
-/// 기간별 식단 조언. 회원 앱 `dietAdviceProvider` 와 같은 서버 문장이다. (#1017)
+/// 기간별 `식단 분석` 문장. (#1017, #2379)
 final clientDietAdviceProvider = FutureProvider.autoDispose
-    .family<String, ({String clientId, ClientPeriod period})>((ref, key) async {
+    .family<ClientDietAnalysis, ({String clientId, ClientPeriod period})>((
+      ref,
+      key,
+    ) async {
       keepAliveForAccount(ref);
       // 화면 언어가 바뀌면 다시 읽는다 — 조언 문장이 그 언어로 온다(#2299).
       final Locale locale = ref.watch(trainerResolvedLocaleProvider);
@@ -1183,6 +1427,36 @@ final clientDietAdviceProvider = FutureProvider.autoDispose
           .watch(clientRepositoryProvider)
           .fetchDietAdvice(key.clientId, key.period, locale: locale);
     });
+
+/// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2379)
+///
+/// 확정하면 [ClientDietRecommendationsController.confirm] 이 이 값을 새 상태로 바꾼다.
+final clientDietRecommendationsProvider = FutureProvider.autoDispose
+    .family<ClientDietRecommendations, String>((ref, clientId) async {
+      keepAliveForAccount(ref);
+      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
+      return ref
+          .watch(clientRepositoryProvider)
+          .fetchDietRecommendations(clientId, locale: locale);
+    });
+
+/// 추천 확정 — 저장한 뒤 후보·상태를 다시 읽는다. 실패는 호출한 쪽으로 던진다.
+Future<void> confirmClientDietRecommendation(
+  WidgetRef ref,
+  String clientId,
+  ClientDietCandidate candidate,
+) async {
+  final Locale locale = ref.read(trainerResolvedLocaleProvider);
+  await ref
+      .read(clientRepositoryProvider)
+      .confirmDietRecommendation(
+        clientId,
+        slot: candidate.slot,
+        name: candidate.name,
+        locale: locale,
+      );
+  ref.invalidate(clientDietRecommendationsProvider(clientId));
+}
 
 /// 한 고객이 [date] 에 먹은 끼니. 기간 뷰에서 펼친 날에만 읽는다(#1025).
 ///

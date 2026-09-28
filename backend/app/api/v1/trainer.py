@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 from datetime import date as _date
 from datetime import datetime, timezone
 from pathlib import PurePath
@@ -22,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.api.v1 import chat_attachments
+from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
@@ -29,6 +31,7 @@ from app.core.rate_limit import limiter, rate_limit
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models.models import (
+    AccountDeletionReason,
     ChatMessage,
     ExerciseSession,
     HealthProfile,
@@ -39,6 +42,7 @@ from app.models.models import (
 )
 from app.schemas.diet_api import (
     DietAdviceResponse,
+    DietAdviceSentence,
     DietPeriodResponse,
     RecordSpanResponse,
     TrainerDietCandidate,
@@ -59,6 +63,7 @@ from app.schemas.consultation_api import (
     ConsultationStatusFilter,
     TrainerConsultationOut,
 )
+from app.schemas.user import AccountDeleteRequest
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
     ClientCoachRequest, ClientDietEntryOut, DeliveryOut,
@@ -100,6 +105,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     diet_service,
+    diet_trainer_analysis,
     diet_trainer_pick,
     emote_service,
     exercise_service,
@@ -292,16 +298,44 @@ def trainer_change_password(
     return {"status": "changed"}
 
 
+#: 트레이너 탈퇴 화면이 보여 주는 사유(#2264). 회원 사유(`DELETION_REASONS`)와 같은
+#: 표에 남기되 `trainer_` 를 붙여 섞이지 않게 한다 — 표에는 누가 썼는지 없으니
+#: 코드만으로 회원·트레이너를 가를 수 있어야 한다. 모르는 값은 버린다.
+TRAINER_DELETION_REASONS: frozenset[str] = frozenset(
+    {
+        "rarely_used",
+        "hard_to_use",
+        "missing_feature",
+        "leaving_work",
+        "found_alternative",
+        "other",
+    }
+)
+
+
 @router.delete("/trainer/me")
 def trainer_delete_me(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """트레이너 탈퇴. 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다. (#505)
 
     회원 탈퇴(`DELETE /users/me`)와 대칭이다. 담당 회원이 남아 있어도 막지 않는다 —
     막으면 담당이 있는 트레이너는 계정을 영영 지울 수 없다.
+
+    고른 사유가 있으면 회원 탈퇴와 같은 표에 계정과 잇지 않고 남긴다(#2264).
+    사유는 없어도 된다 — 탈퇴를 막는 조건이 아니라 물어보는 자리다.
     """
+    for reason in sorted(
+        set(payload.reasons if payload else []) & TRAINER_DELETION_REASONS
+    ):
+        db.add(
+            AccountDeletionReason(
+                id=f"del-{uuid.uuid4().hex[:12]}",
+                reason=f"trainer_{reason}",
+            )
+        )
     trainer_service.delete_trainer_account(db, trainer)
     return {"status": "deleted"}
 
@@ -668,25 +702,30 @@ def trainer_client_diet_advice(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    locale: RequestLocale,
     period: Annotated[
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 회원 앱 기간 토글과 같은 이름"),
     ] = "today",
 ) -> DietAdviceResponse:
-    """담당 고객의 기간별 식단 조언. 회원 앱과 **같은 문장**이다. (#1017)
+    """담당 고객의 기간별 `식단 분석` — 원인까지 짚는 서술형 규칙 문장. (#2379)
 
-    같은 회원의 같은 기간을 두 화면이 다르게 말하면, 상담에서 둘이 서로 다른
-    이야기를 들고 앉게 된다.
+    회원 앱 조언과 **같은 기간·같은 판정**이다(이번 주는 월·화 지난주 회고 포함,
+    전체는 최근 4주). 같은 회원의 같은 기간을 두 화면이 다른 기준으로 말하면 상담에서
+    둘이 서로 다른 이야기를 들고 앉게 된다. AI 는 부르지 않는다 — 회원 앱 조언의 AI
+    문장은 회원에게 하는 말이다. 문장은 `sentences` 의 키·값으로 트레이너 웹이 그린다.
     """
     _require_client(db, trainer.id, member_id)
-    start, end = diet_service.period_bounds(period)
-    days = diet_service.daily_totals(db, member_id, start, end)
+    result = diet_trainer_analysis.analysis(db, member_id, period, now=clock.now())
     return DietAdviceResponse(
-        period=period,
-        from_date=start,
-        to_date=end,
-        days_logged=len(days),
-        message=diet_service.period_coach_message(days, period),
+        period=result.period,
+        from_date=result.from_date,
+        to_date=result.to_date,
+        days_logged=result.days_logged,
+        message=result.message_in(locale),
+        sentences=[
+            DietAdviceSentence(key=s.key, params=s.params) for s in result.sentences
+        ],
     )
 
 
