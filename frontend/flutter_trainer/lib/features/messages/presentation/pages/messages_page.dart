@@ -12,6 +12,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show ClientIdentity, clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -304,7 +305,7 @@ class _ConversationTile extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: <Widget>[
-          AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
           const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: LayoutBuilder(
@@ -413,7 +414,7 @@ class _ThreadPanel extends StatelessWidget {
                   AppBackButton(onPressed: onBack),
                   const SizedBox(width: OnCareSpacing.s4),
                 ],
-                AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+                ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
                 const SizedBox(width: OnCareSpacing.s12),
                 Expanded(child: _Identity(client: client)),
                 // 식단·운동은 고객 탭이 훨씬 자세히 보여 준다. 이 화면은

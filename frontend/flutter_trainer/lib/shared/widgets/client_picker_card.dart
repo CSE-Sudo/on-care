@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -239,7 +240,7 @@ class ClientPickerCard extends StatelessWidget {
             padding: const EdgeInsets.all(OnCareSpacing.s8),
             child: Row(
               children: <Widget>[
-                AppAvatar(name: client.name),
+                ClientAvatar(name: client.name),
                 const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: Column(

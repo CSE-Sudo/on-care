@@ -4687,6 +4687,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSortNameDescending => 'Name Z–A';
 
   @override
+  String get reportsSentSortUnread => 'Unread first';
+
+  @override
   String reportsSendProgress(int done, int total) {
     return '$done / $total sent';
   }
@@ -4753,10 +4756,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSentUnread => 'Unread';
-
-  @override
-  String get reportsSentUnreadHint =>
-      'Members who haven\'t opened theirs move to the top next week.';
 
   @override
   String get reportsBackToWorkbench => 'This week\'s reports';
@@ -4976,6 +4975,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsMemberFeedbackPainNone => 'None';
+
+  @override
+  String get reportsMemberFeedbackUnanswered => 'No answer';
+
+  @override
+  String get reportsMemberFeedbackNoteLabel => 'Note';
+
+  @override
+  String get reportsMemberFeedbackNoteNone => 'No note';
 
   @override
   String reportsMemberFeedbackPainOn(String area, String date) {

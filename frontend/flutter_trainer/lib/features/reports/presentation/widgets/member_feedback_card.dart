@@ -25,26 +25,74 @@ class MemberFeedbackCard extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final MemberWeeklyFeedback? given = feedback;
-    if (given == null) {
-      return AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            ReportCardHeader(number: 1, title: l.reportsMemberFeedbackTitle),
-            const SizedBox(height: OnCareSpacing.s12),
-            AppEmptyState(
-              key: const ValueKey<String>('report-feedback-empty'),
-              title: l.reportsMemberFeedbackNone,
-              // 빈 자리가 무엇을 뜻하는지 말해 준다 — 기능이 고장 난 것이 아니라
-              // 회원이 아직 답하지 않은 것이다.
-              message: l.reportsMemberFeedbackNoneHint,
-              icon: Icons.chat_bubble_outline_rounded,
-              placement: AppStatePlacement.card,
-            ),
-          ],
+    // 안 낸 주에도 칸은 그대로 선다(#2450). 칸이 사라지면 답한 주와 안 한 주의
+    // 카드 모양이 달라 나란히 비교가 안 되고, 무엇을 안 물어본 것인지 무엇에
+    // 안 답한 것인지 구분되지 않는다.
+    final String unanswered = l.reportsMemberFeedbackUnanswered;
+    final Widget answers = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _Answer(
+          keyName: 'report-feedback-condition',
+          label: l.reportsMemberFeedbackConditionLabel,
+          value: given == null
+              ? null
+              : '${conditionEmoji(given.condition)} ${conditionLabel(l, given.condition)}',
+          unanswered: unanswered,
+          alarming: given?.condition.needsAttention ?? false,
         ),
-      );
-    }
+        const SizedBox(height: OnCareSpacing.s8),
+        _Answer(
+          keyName: 'report-feedback-intensity',
+          label: l.reportsMemberFeedbackIntensityLabel,
+          value: given == null ? null : intensityLabel(l, given.intensity),
+          unanswered: unanswered,
+          alarming: given?.intensity.needsAttention ?? false,
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        _Answer(
+          keyName: 'report-feedback-pain',
+          label: l.reportsMemberFeedbackPainLabel,
+          // 통증은 `없음` 도 답이다. 비워 두면 안 물어본 것처럼 보인다.
+          value: given == null ? null : _painValue(l, given),
+          unanswered: unanswered,
+          alarming: given?.hasPain ?? false,
+        ),
+      ],
+    );
+    final String noteText = given?.note ?? '';
+    final Widget note = AppTile(
+      key: const ValueKey<String>('report-feedback-note-tile'),
+      tone: AppTileTone.neutral,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            l.reportsMemberFeedbackNoteLabel,
+            key: const ValueKey<String>('report-feedback-note-label'),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          if (noteText.isNotEmpty)
+            Text(
+              noteText,
+              key: const ValueKey<String>('report-feedback-note'),
+              style: tokens.text(OnCareTypography.bodySmall),
+            )
+          else
+            Text(
+              given == null ? unanswered : l.reportsMemberFeedbackNoteNone,
+              key: const ValueKey<String>('report-feedback-note-empty'),
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+        ],
+      ),
+    );
 
     return AppCard(
       child: Column(
@@ -55,65 +103,36 @@ class MemberFeedbackCard extends StatelessWidget {
             title: l.reportsMemberFeedbackTitle,
             // 언제 낸 답인지를 제목 줄에 적는다 — 주가 끝난 뒤에 받는 답이라,
             // 날짜가 없으면 이번 주 도중에 쓴 말처럼 읽힌다.
-            subtitle: l.reportsMemberFeedbackMeta(
-              l.dateMonthDay(given.submittedOn.month, given.submittedOn.day),
-            ),
-            trailing: given.needsAttention
+            subtitle: given == null
+                ? l.reportsMemberFeedbackNone
+                : l.reportsMemberFeedbackMeta(
+                    l.dateMonthDay(
+                      given.submittedOn.month,
+                      given.submittedOn.day,
+                    ),
+                  ),
+            trailing: (given?.needsAttention ?? false)
                 ? AppTag(
                     label: l.reportsMemberFeedbackAttention,
                     tone: AppTagTone.danger,
                   )
                 : null,
           ),
+          if (given == null) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            // 빈 칸이 무엇을 뜻하는지 말해 준다 — 기능이 고장 난 것이 아니라
+            // 회원이 아직 답하지 않은 것이다.
+            Text(
+              l.reportsMemberFeedbackNoneHint,
+              key: const ValueKey<String>('report-feedback-empty'),
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final Widget answers = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _Answer(
-                    keyName: 'report-feedback-condition',
-                    label: l.reportsMemberFeedbackConditionLabel,
-                    value:
-                        '${conditionEmoji(given.condition)} ${conditionLabel(l, given.condition)}',
-                    alarming: given.condition.needsAttention,
-                  ),
-                  const SizedBox(height: OnCareSpacing.s8),
-                  _Answer(
-                    keyName: 'report-feedback-intensity',
-                    label: l.reportsMemberFeedbackIntensityLabel,
-                    value: intensityLabel(l, given.intensity),
-                    alarming: given.intensity.needsAttention,
-                  ),
-                  const SizedBox(height: OnCareSpacing.s8),
-                  _Answer(
-                    keyName: 'report-feedback-pain',
-                    label: l.reportsMemberFeedbackPainLabel,
-                    // 통증은 `없음` 도 답이다. 비워 두면 안 물어본 것처럼 보인다.
-                    value: given.hasPain
-                        ? (given.painOn == null
-                              ? given.painArea
-                              : l.reportsMemberFeedbackPainOn(
-                                  given.painArea,
-                                  l.dateMonthDay(
-                                    given.painOn!.month,
-                                    given.painOn!.day,
-                                  ),
-                                ))
-                        : l.reportsMemberFeedbackPainNone,
-                    alarming: given.hasPain,
-                  ),
-                ],
-              );
-              if (given.note.isEmpty) return answers;
-              final Widget note = AppTile(
-                tone: AppTileTone.neutral,
-                child: Text(
-                  given.note,
-                  key: const ValueKey<String>('report-feedback-note'),
-                  style: tokens.text(OnCareTypography.bodySmall),
-                ),
-              );
               // 넓은 화면에서는 세 답과 회원이 쓴 말을 **나란히** 둔다. 위아래로
               // 쌓으면 짧은 답 세 줄 옆이 통째로 비고, 정작 가장 긴 글인 회원의
               // 말은 그 아래로 밀린다.
@@ -143,6 +162,17 @@ class MemberFeedbackCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 통증 답 — 부위와 (있으면) 날짜, 없으면 `없음`.
+String _painValue(AppLocalizations l, MemberWeeklyFeedback given) {
+  if (!given.hasPain) return l.reportsMemberFeedbackPainNone;
+  final DateTime? on = given.painOn;
+  if (on == null) return given.painArea;
+  return l.reportsMemberFeedbackPainOn(
+    given.painArea,
+    l.dateMonthDay(on.month, on.day),
+  );
 }
 
 /// 세 답 칸의 폭 — 가장 긴 답(`오른 무릎 (9월 17일)`)이 한 줄에 서는 폭.
@@ -185,12 +215,16 @@ class _Answer extends StatelessWidget {
     required this.keyName,
     required this.label,
     required this.value,
+    required this.unanswered,
     required this.alarming,
   });
 
   final String keyName;
   final String label;
-  final String value;
+
+  /// 회원의 답. 안 낸 주에는 null — [unanswered] 를 흐리게 적는다.
+  final String? value;
+  final String unanswered;
   final bool alarming;
 
   /// 문항 이름이 차지하는 폭. 세 줄의 답이 같은 자리에서 시작해야 눈이
@@ -214,16 +248,23 @@ class _Answer extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                .copyWith(
-                  color: alarming
-                      ? OnCareColors.danger
-                      : OnCareColors.textPrimary,
+          child: value == null
+              ? Text(
+                  unanswered,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textTertiary),
+                )
+              : Text(
+                  value!,
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                      .copyWith(
+                        color: alarming
+                            ? OnCareColors.danger
+                            : OnCareColors.textPrimary,
+                      ),
                 ),
-          ),
         ),
       ],
     );
