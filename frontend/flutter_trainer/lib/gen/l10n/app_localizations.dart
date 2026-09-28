@@ -4658,12 +4658,6 @@ abstract class AppLocalizations {
   /// **'Back to suggestions'**
   String get coachBackToList;
 
-  /// No description provided for @coachReviewed.
-  ///
-  /// In en, this message translates to:
-  /// **'AI-generated, reviewed by you'**
-  String get coachReviewed;
-
   /// No description provided for @coachTrainerAdded.
   ///
   /// In en, this message translates to:
@@ -7305,12 +7299,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Distance m'**
   String get programEditorDistance;
-
-  /// No description provided for @programEditorExerciseMemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Memo'**
-  String get programEditorExerciseMemo;
 
   /// No description provided for @reportsComparisonTitle.
   ///

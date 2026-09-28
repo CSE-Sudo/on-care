@@ -936,7 +936,8 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(find.text('AI 생성 후 트레이너 검토 완료'), findsWidgets);
+        // 편집기 운동에 시스템 문구를 메모로 붙이지 않는다(#2371).
+        expect(find.text('AI 생성 후 트레이너 검토 완료'), findsNothing);
         final programCard = find.byKey(
           const ValueKey<String>('program-client-seed-client-1'),
         );
@@ -1649,7 +1650,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('AI 생성 후 트레이너 검토 완료'), findsWidgets);
+      expect(find.text('AI 생성 후 트레이너 검토 완료'), findsNothing);
     });
 
     testWidgets(

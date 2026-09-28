@@ -2671,9 +2671,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachBackToList => 'Back to suggestions';
 
   @override
-  String get coachReviewed => 'AI-generated, reviewed by you';
-
-  @override
   String get coachTrainerAdded => 'Added by trainer';
 
   @override
@@ -4249,9 +4246,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorDistance => 'Distance m';
-
-  @override
-  String get programEditorExerciseMemo => 'Memo';
 
   @override
   String reportsComparisonTitle(String week) {
