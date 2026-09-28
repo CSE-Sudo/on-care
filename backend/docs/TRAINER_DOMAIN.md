@@ -176,7 +176,7 @@
 | GET | `/trainer/clients/{member_id}/diet-recommendations` | 회원에게 추천할 AI 식단 후보(4주 추천 메뉴 리스트에서 급한 태그 순)와 지금 확정한 추천·해소 여부 (#2378) |
 | PUT | `/trainer/clients/{member_id}/diet-recommendations` | 후보 하나를 확정·바꾸기 — 회원 앱 홈 `추천 식단` 첫 장의 `트레이너 추천` 이 된다. 리스트에 없는 메뉴는 422 (#2378) |
 | GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
-| DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
+| DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505). 본문 `reasons`(선택, #2264) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
 | POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건) |
 | POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223) |
@@ -619,3 +619,9 @@ chain이다. `0020`의 `down_revision`은 `0019_trainer_noti_settings`다.
 | 회원↔헬스장 링크(`member_gyms`) | 그대로 — 트레이너와 별개다(#444) |
 
 알림은 담당 회원과 **예약만 있는 회원** 모두에게 간다(문구는 다르다).
+
+**탈퇴 사유(#2264).** 본문 `{"reasons": [...]}` 로 트레이너 탈퇴 화면에서 고른 사유를
+보낼 수 있다(없어도 된다). 받는 값은 `rarely_used`·`hard_to_use`·`missing_feature`·
+`leaving_work`·`found_alternative`·`other` 이고, 모르는 값은 버린다. 회원 사유와 같은
+`account_deletion_reasons` 표에 **계정과 잇지 않고** `trainer_` 를 붙여 남긴다 —
+표에 누가 썼는지가 없으니 코드만으로 회원·트레이너를 가른다.

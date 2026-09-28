@@ -849,20 +849,25 @@ class _DayRow extends StatelessWidget {
   /// 머리 칸 — 끼니 알약이나 `하루 합계`.
   final Widget label;
 
-  /// 첫 줄 글 — 음식 이름과 양. 합계 줄은 비운다.
+  /// 첫 줄 글 — 음식 이름과 양. 합계 줄은 비우고, 그 자리에 [details] 가
+  /// 올라와 한 줄로 선다.
   final InlineSpan? title;
   final int calories;
   final Widget details;
 
-  /// 하루 합계 줄인가 — kcal 을 메인 색으로 세운다.
+  /// 하루 합계 줄인가 — kcal 을 `총` 을 붙여 메인 색으로 세운다.
   final bool totalStyle;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    // 합계 줄은 `총` 을 붙인다 — 끼니 kcal 과 같은 열에 서서, 숫자만으로는
+    // 한 끼인지 하루인지 갈리지 않는다(#2421).
     final Widget kcal = Text(
-      '${formatNumber(calories)} ${l.unitKcal}',
+      totalStyle
+          ? l.clientDietDayTotalCalories(formatNumber(calories))
+          : '${formatNumber(calories)} ${l.unitKcal}',
       maxLines: 1,
       softWrap: false,
       style: OnCareTypography.numeric(
@@ -875,16 +880,33 @@ class _DayRow extends StatelessWidget {
             ),
       ),
     );
+    final Widget head = SizedBox(
+      width: _dayRowLabelWidth,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FittedBox(fit: BoxFit.scaleDown, child: label),
+      ),
+    );
+    final InlineSpan? title = this.title;
+    // 합계 줄은 첫 줄에 음식 이름이 없다 — 비워 두고 영양을 둘째 줄로 내리면
+    // 한 줄이 통째로 빈다. 이름 자리에 영양 한 줄을 바로 올린다(#2421).
+    if (title == null) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: <Widget>[
+          head,
+          const SizedBox(width: OnCareSpacing.s12),
+          Expanded(child: details),
+          const SizedBox(width: OnCareSpacing.s12),
+          kcal,
+        ],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        SizedBox(
-          width: _dayRowLabelWidth,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FittedBox(fit: BoxFit.scaleDown, child: label),
-          ),
-        ),
+        head,
         const SizedBox(width: OnCareSpacing.s12),
         Expanded(
           child: Column(
@@ -894,18 +916,14 @@ class _DayRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Expanded(
-                    child: title == null
-                        ? const SizedBox.shrink()
-                        : Text.rich(
-                            title!,
-                            style: tokens
-                                .text(
-                                  OnCareTypography.strong(
-                                    OnCareTypography.bodySmall,
-                                  ),
-                                )
-                                .copyWith(color: OnCareColors.textPrimary),
-                          ),
+                    child: Text.rich(
+                      title,
+                      style: tokens
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                          )
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
                   ),
                   const SizedBox(width: OnCareSpacing.s12),
                   kcal,

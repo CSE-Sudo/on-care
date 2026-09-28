@@ -137,7 +137,7 @@ void main() {
       await tester.tap(apply);
       await settle(tester);
 
-      // 최종 검토 다음은 개인운동 단계다(#2223) — 반영은 거기서 일어난다.
+      // 프로그램 검토 다음은 개인운동 단계다(#2223) — 반영은 거기서 일어난다.
       final addPersonal = find.byKey(
         const ValueKey<String>('show-add-personal-exercise-form'),
       );

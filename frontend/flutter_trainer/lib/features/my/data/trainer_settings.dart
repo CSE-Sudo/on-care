@@ -3,17 +3,46 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings_repository.dart';
 
 /// The trainer's notification preferences.
+///
+/// 종류마다 알림함에 넣을지를 정한다(#2264). 새 메시지만 서버가 처음부터 알고
+/// 있고(`notify_new_message`), 상담 요청·예약·담당 회원 소식은 서버에 칸이
+/// 생기기 전이다 — 그 셋은 서버 응답에 값이 없으면 `null` 이고, 화면은 그
+/// 스위치를 막는다. 서버에 `notify_consultation`·`notify_reservation`·
+/// `notify_member_updates` 가 생기면 앱 수정 없이 바로 켜고 끌 수 있다.
 class TrainerSettings {
   /// Creates a settings snapshot.
-  const TrainerSettings({this.newMessageAlerts = true});
+  const TrainerSettings({
+    this.newMessageAlerts = true,
+    this.consultationAlerts = true,
+    this.reservationAlerts = true,
+    this.memberUpdateAlerts = true,
+  });
 
   /// Notify when a client sends a message.
   final bool newMessageAlerts;
 
+  /// 상담 요청이 오거나 회원이 거둘 때. `null` 이면 서버가 아직 모르는 설정.
+  final bool? consultationAlerts;
+
+  /// 회원이 예약을 잡거나 바꾸거나 취소할 때. `null` 이면 서버가 아직 모름.
+  final bool? reservationAlerts;
+
+  /// 담당 회원의 목표·이름 변경, 연결 종료, 담당 요청 수락·거절. `null` 이면
+  /// 서버가 아직 모름.
+  final bool? memberUpdateAlerts;
+
   /// Returns a copy with the given fields replaced.
-  TrainerSettings copyWith({bool? newMessageAlerts}) {
+  TrainerSettings copyWith({
+    bool? newMessageAlerts,
+    bool? consultationAlerts,
+    bool? reservationAlerts,
+    bool? memberUpdateAlerts,
+  }) {
     return TrainerSettings(
       newMessageAlerts: newMessageAlerts ?? this.newMessageAlerts,
+      consultationAlerts: consultationAlerts ?? this.consultationAlerts,
+      reservationAlerts: reservationAlerts ?? this.reservationAlerts,
+      memberUpdateAlerts: memberUpdateAlerts ?? this.memberUpdateAlerts,
     );
   }
 }
@@ -48,6 +77,18 @@ class TrainerSettingsController extends StateNotifier<TrainerSettings> {
   /// Toggles new-message notifications.
   Future<void> setNewMessageAlerts(bool value) =>
       _apply(state.copyWith(newMessageAlerts: value));
+
+  /// 상담 요청 알림을 켜고 끈다.
+  Future<void> setConsultationAlerts(bool value) =>
+      _apply(state.copyWith(consultationAlerts: value));
+
+  /// 예약 알림을 켜고 끈다.
+  Future<void> setReservationAlerts(bool value) =>
+      _apply(state.copyWith(reservationAlerts: value));
+
+  /// 담당 회원 소식 알림을 켜고 끈다.
+  Future<void> setMemberUpdateAlerts(bool value) =>
+      _apply(state.copyWith(memberUpdateAlerts: value));
 
   Future<void> _apply(TrainerSettings next) async {
     final previous = state;

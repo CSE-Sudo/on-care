@@ -545,7 +545,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.tap(apply);
   await tester.pumpAndSettle();
 
-  // 최종 검토 다음은 개인운동 단계다(#2223) — 거기서 `프로그램에 반영` 을
+  // 프로그램 검토 다음은 개인운동 단계다(#2223) — 거기서 `프로그램에 반영` 을
   // 눌러야 PT 구성과 개인운동이 함께 편집기로 간다.
   await _completePersonalStep(tester, scrollable);
 }
@@ -1481,7 +1481,7 @@ void main() {
 
         // 클릭해야 나타나던 배너는 없다 — 흐름 자체가 항상 프로그램 정보
         // 박스 위에 있다.
-        expect(find.text('운동 목표와 최근 활동, 오늘의 식단 정보를 확인했어요'), findsOneWidget);
+        expect(find.text('회원 현황'), findsOneWidget);
         expect(find.byType(AiRoutineOptionsFlow), findsOneWidget);
         // The persistent shell proves this lives inline in the tab, not a
         // dialog/page. Asserted on the sidebar's profile footer rather than
@@ -1563,7 +1563,7 @@ void main() {
       );
       await expectBlankManualEditor();
 
-      // 3단계: 최종 검토.
+      // 3단계: 프로그램 검토.
       await returnToAi();
       await _ensureCentered(
         tester,
@@ -1633,7 +1633,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 최종 검토 다음은 개인운동 단계다(#2223) — 거기서 반영해야 편집기로
+      // 프로그램 검토 다음은 개인운동 단계다(#2223) — 거기서 반영해야 편집기로
       // 넘어간다.
       await _completePersonalStep(tester, find.byType(Scrollable).first);
 
