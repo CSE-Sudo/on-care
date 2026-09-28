@@ -24,7 +24,6 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이번에 짜는 프로그램이 어떤 것인가. (#2223)
@@ -667,18 +666,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ],
       KeyedSubtree(
         key: _topKey,
-        child: ProgressStepper(
+        child: AppStepIndicator.numbered(
           keyPrefix: 'routine-stage',
           semanticsLabel: l.aiStepperLabel,
-          stage: _stage,
-          maxReachedStage: _maxReachedStage,
+          current: _stage,
+          maxReached: _maxReachedStage,
           labels: _stepLabels(l),
           skipped: <int>{
             for (int i = 0; i < _steps.length; i++)
               if (_skipped.contains(_steps[i])) i,
           },
           skippedLabel: l.aiStepSkipped,
-          onStageTap: _goToStage,
+          onStepTap: _goToStage,
         ),
       ),
       const SizedBox(height: OnCareSpacing.s16),

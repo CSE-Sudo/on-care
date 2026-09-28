@@ -26,11 +26,10 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 편집기 단계 원 사이 간격 — 공용 기본의 두 배(#2449).
-const double reportStepperGap = ProgressStepper.defaultGap * 2;
+const double reportStepperGap = AppStepIndicator.numberedGap * 2;
 
 /// 리포트 — the week, from two angles.
 ///
@@ -918,7 +917,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               // 원 사이를 기본의 두 배로 벌린다(#2449) — 편집기 폭에서 세 단계가
               // 한데 붙어 보였다. 표시줄은 스스로 가운데에 서고, 모자란 폭에서는
               // 스스로 좁힌다.
-              ProgressStepper(
+              AppStepIndicator.numbered(
                 keyPrefix: 'report-stage',
                 labels: <String>[
                   l.reportsStepReview,
@@ -926,9 +925,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   l.reportsStepSend,
                 ],
                 semanticsLabel: l.reportsStepperLabel,
-                stage: _stage,
-                maxReachedStage: _maxStage,
-                onStageTap: (value) => setState(() => _stage = value),
+                current: _stage,
+                maxReached: _maxStage,
+                onStepTap: (value) => setState(() => _stage = value),
                 gap: reportStepperGap,
               ),
               const SizedBox(height: OnCareSpacing.s16),
