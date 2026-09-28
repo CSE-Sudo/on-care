@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_feedback_card.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_review_cards.dart';
+import 'package:oncare_trainer/features/reports/services/report_pdf_image.dart';
 import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -52,12 +53,21 @@ class ReportPdfGenerator {
   const ReportPdfGenerator({
     this.container,
     this.capture = captureReportWidget,
+    this.encodeImage = platformReportJpegEncoder,
+    this.yieldFrame = yieldToFrame,
   });
 
   final ProviderContainer? container;
 
   /// 위젯을 그림으로 굽는 방법. 테스트가 갈아 끼운다.
   final ReportWidgetCapture capture;
+
+  /// 구운 그림을 JPEG 로 바꾸는 방법(#2484). 웹은 브라우저가 네이티브로
+  /// 인코딩하고, 네이티브는 날 RGB 로 싣는다. 테스트가 갈아 끼운다.
+  final ReportJpegEncoder encodeImage;
+
+  /// 카드 사이·긴 변환 사이에 이벤트 루프에 양보하는 방법(#2484).
+  final ReportFrameYield yieldFrame;
 
   static const int _pageWidth = 1240;
   static const int _pageHeight = 1754;
@@ -68,8 +78,10 @@ class ReportPdfGenerator {
   /// ([OnCareLayout.splitBreakpoint]).
   static const double _cardWidth = 960;
 
-  /// 굽는 배율. A4 한 쪽 폭에 담았을 때 인쇄해도 글자가 뭉개지지 않을 만큼.
-  static const double _pixelRatio = 2;
+  /// 굽는 배율. A4 한 쪽 폭에 담았을 때 인쇄해도 글자가 뭉개지지 않을 만큼
+  /// (190dpi 남짓). 2 로 굽던 때는 굽고 읽고 압축할 픽셀이 두 배 가까이라,
+  /// 웹에서 ③ 미리보기를 만드는 동안 화면이 멈췄다(#2484).
+  static const double _pixelRatio = 1.5;
 
   /// 쪽 여백(pt). 카드 그림에는 그림자가 잘리지 않을 만큼 둘레가 이미 있다.
   static const double _pageMarginPt = 20;
@@ -107,11 +119,18 @@ class ReportPdfGenerator {
         <ProviderSubscription<Object?>>[];
     try {
       final double? baseline = await _prepare(scope, report, keep);
-      Future<CapturedWidget> shoot(Widget card) => capture(
-        _frame(scope, l, card),
-        width: _cardWidth + _cardInset.horizontal,
-        pixelRatio: _pixelRatio,
-      );
+      // 카드 한 장을 구울 때마다 양보한다 — 웹에서는 굽기가 UI 스레드에서
+      // 돌아, 몰아서 구우면 그동안 로딩 표시가 멈춘다(#2484).
+      Future<CapturedWidget> shoot(Widget card) async {
+        final CapturedWidget shot = await capture(
+          _frame(scope, l, card),
+          width: _cardWidth + _cardInset.horizontal,
+          pixelRatio: _pixelRatio,
+        );
+        await yieldFrame();
+        return shot;
+      }
+
       final CapturedWidget header = await shoot(
         ReportPdfHeader(report: report),
       );
@@ -134,7 +153,11 @@ class ReportPdfGenerator {
           ReportFeedbackCard(child: ReportFeedbackText(text: feedback)),
         ),
       ];
-      return _paginate(header: header, continued: continued, cards: cards);
+      return await _paginate(
+        header: header,
+        continued: continued,
+        cards: cards,
+      );
     } finally {
       for (final ProviderSubscription<Object?> sub in keep) {
         sub.close();
@@ -237,38 +260,20 @@ class ReportPdfGenerator {
     required CapturedWidget header,
     required CapturedWidget continued,
     required List<CapturedWidget> cards,
-  }) {
+  }) async {
     const PdfPageFormat format = PdfPageFormat.a4;
     final double contentWidth = format.width - _pageMarginPt * 2;
     final double contentHeight = format.height - _pageMarginPt * 2;
     final pw.Document document = pw.Document();
-    // 그림마다 한 번만 문서에 싣는다 — 긴 카드를 여러 쪽에 나눠 얹어도 같은
-    // 그림을 가리킨다. 카드는 바탕까지 칠해 구운 불투명한 그림이라 투명도
-    // 가면(SMask)을 따로 싣지 않는다 — 실으면 그림마다 한 장씩 더 붙는다.
-    final Map<CapturedWidget, pw.ImageProvider> images =
-        <CapturedWidget, pw.ImageProvider>{};
-    pw.ImageProvider imageOf(CapturedWidget c) => images.putIfAbsent(
-      c,
-      () => pw.ImageProxy(
-        PdfImage(
-          document.document,
-          image: _rgb(c.rgba),
-          width: c.width,
-          height: c.height,
-          alpha: false,
-        ),
-      ),
-    );
 
-    final List<List<pw.Widget>> pages = <List<pw.Widget>>[<pw.Widget>[]];
+    // 먼저 자리만 잡고, 쓰인 그림만 나중에 싣는다 — 싣기는 비동기다(#2484).
+    final List<List<_Placement>> pages = <List<_Placement>>[<_Placement>[]];
     double used = 0;
 
     void place(CapturedWidget image, {int from = 0, int? to}) {
       final int end = to ?? image.height;
       final double scale = contentWidth / image.width;
-      pages.last.add(
-        _slice(imageOf(image), image.height, from, end, contentWidth, scale),
-      );
+      pages.last.add(_Placement(image, from, end));
       used += (end - from) * scale;
     }
 
@@ -280,7 +285,7 @@ class ReportPdfGenerator {
     final double pageStart = withContinued ? continuedHeight : 0;
 
     void newPage() {
-      pages.add(<pw.Widget>[]);
+      pages.add(<_Placement>[]);
       used = 0;
       if (withContinued) place(continued);
     }
@@ -318,10 +323,37 @@ class ReportPdfGenerator {
       }
     }
 
+    // 그림마다 한 번만 문서에 싣는다 — 긴 카드를 여러 쪽에 나눠 얹어도 같은
+    // 그림을 가리킨다.
+    final Map<CapturedWidget, pw.ImageProvider> images =
+        <CapturedWidget, pw.ImageProvider>{};
+    for (final List<_Placement> page in pages) {
+      for (final _Placement p in page) {
+        if (images.containsKey(p.image)) continue;
+        images[p.image] = await embedReportImage(
+          document.document,
+          p.image,
+          encode: encodeImage,
+          yieldFrame: yieldFrame,
+        );
+      }
+    }
+
     final PdfColor background = PdfColor.fromInt(
       OnCareColors.surfacePage.toARGB32(),
     );
-    for (final List<pw.Widget> children in pages) {
+    for (final List<_Placement> page in pages) {
+      final List<pw.Widget> children = <pw.Widget>[
+        for (final _Placement p in page)
+          _slice(
+            images[p.image]!,
+            p.image.height,
+            p.from,
+            p.to,
+            contentWidth,
+            contentWidth / p.image.width,
+          ),
+      ];
       document.addPage(
         pw.Page(
           pageTheme: pw.PageTheme(
@@ -340,19 +372,8 @@ class ReportPdfGenerator {
         ),
       );
     }
-    return document.save();
-  }
-
-  /// `RGBA` 에서 투명도를 뺀 `RGB`.
-  static Uint8List _rgb(Uint8List rgba) {
-    final int pixels = rgba.length ~/ 4;
-    final Uint8List out = Uint8List(pixels * 3);
-    for (int i = 0; i < pixels; i++) {
-      out[i * 3] = rgba[i * 4];
-      out[i * 3 + 1] = rgba[i * 4 + 1];
-      out[i * 3 + 2] = rgba[i * 4 + 2];
-    }
-    return out;
+    // 쪽을 넘길 때마다 양보한다 — 날 RGB 로 실은 그림의 압축이 여기서 돈다.
+    return document.save(enableEventLoopBalancing: true);
   }
 
   /// 조각으로 담을 가장 작은 높이(px). 쪽 끝에 이보다 적게 남으면 다음 쪽에서
@@ -753,6 +774,15 @@ class ReportPdfHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 쪽 하나에 얹을 그림 한 조각 — [image] 의 [from]..[to] 줄.
+class _Placement {
+  const _Placement(this.image, this.from, this.to);
+
+  final CapturedWidget image;
+  final int from;
+  final int to;
 }
 
 class _PdfBlock {
