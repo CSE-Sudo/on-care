@@ -1369,62 +1369,65 @@ class _TemplateCard extends ConsumerWidget {
             for (final template in templates)
               SizedBox(
                 width: width,
-                child: AppTile(
-                  key: ValueKey<String>('template-card-${template.id}'),
-                  // 중립 회색이다. 옅은 네이비로 두면 화면의 다른 네이비
-                  // 강조와 섞여 **이미 고른 템플릿처럼** 보인다 — 고르기
-                  // 전인데 고른 것으로 읽힌다(#2220).
-                  tone: AppTileTone.neutral,
-                  onTap: () => onApply(template),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              template.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(
-                                    OnCareTypography.strong(
-                                      OnCareTypography.bodySmall,
-                                    ),
-                                  )
-                                  .copyWith(color: OnCareColors.textPrimary),
+                child: _PointerUnfocus(
+                  child: AppTile(
+                    key: ValueKey<String>('template-card-${template.id}'),
+                    // 중립 회색이다. 옅은 네이비로 두면 화면의 다른 네이비
+                    // 강조와 섞여 **이미 고른 템플릿처럼** 보인다 — 고르기
+                    // 전인데 고른 것으로 읽힌다(#2220).
+                    tone: AppTileTone.neutral,
+                    onTap: () => onApply(template),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                template.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: tokens
+                                    .text(
+                                      OnCareTypography.strong(
+                                        OnCareTypography.bodySmall,
+                                      ),
+                                    )
+                                    .copyWith(color: OnCareColors.textPrimary),
+                              ),
                             ),
-                          ),
-                          if (canEdit)
-                            _TemplateMenu(
-                              template: template,
-                              onEdit: () => _edit(context, template: template),
-                              onDelete: template.isStarter
-                                  ? null
-                                  : () => _delete(context, ref, template),
-                            )
-                          else
-                            Icon(
-                              Icons.add_circle_outline_rounded,
-                              size: OnCareSize.iconMedium,
-                              color: tokens.brand.primary,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        l.coachTemplateSummaryWithGoal(
-                          template.goal,
-                          template.exercises.length,
-                          template.totalMinutes,
+                            if (canEdit)
+                              _TemplateMenu(
+                                template: template,
+                                onEdit: () =>
+                                    _edit(context, template: template),
+                                onDelete: template.isStarter
+                                    ? null
+                                    : () => _delete(context, ref, template),
+                              )
+                            else
+                              Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: OnCareSize.iconMedium,
+                                color: tokens.brand.primary,
+                              ),
+                          ],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textTertiary),
-                      ),
-                    ],
+                        const SizedBox(height: OnCareSpacing.s4),
+                        Text(
+                          l.coachTemplateSummaryWithGoal(
+                            template.goal,
+                            template.exercises.length,
+                            template.totalMinutes,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: tokens
+                              .text(OnCareTypography.caption)
+                              .copyWith(color: OnCareColors.textTertiary),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1452,6 +1455,51 @@ class _TemplateCard extends ConsumerWidget {
               child: body,
             )
           : body,
+    );
+  }
+}
+
+/// 마우스로 누른 뒤 남는 포커스 강조를 거둔다. (#2220)
+///
+/// Flutter 웹에서 누를 수 있는 구획은 클릭으로 포커스를 받고, 포커스 강조는
+/// **누른 뒤에도 계속 칠해진다.** 옅은 네이비일 때는 묻혔지만 회색 바탕에서는
+/// 또렷해, 방금 누른 템플릿이 **골라 둔 것처럼** 남는다 — 이 이슈가 없애려던
+/// 바로 그 오해다.
+///
+/// 포커스 자체를 막지는 않는다. Tab 으로 옮겨온 포커스는 키보드로 쓰는
+/// 사람에게 "지금 여기" 를 알리는 유일한 길잡이라 그대로 둬야 한다. 그래서
+/// **포인터로 누른 경우에만** 거둔다.
+class _PointerUnfocus extends StatefulWidget {
+  const _PointerUnfocus({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_PointerUnfocus> createState() => _PointerUnfocusState();
+}
+
+class _PointerUnfocusState extends State<_PointerUnfocus> {
+  /// 직전 눌림이 포인터에서 왔는가. 키보드로 누른 것과 가르는 값이다.
+  bool _fromPointer = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _fromPointer = true,
+      // 눌렀다가 손가락을 끌어내 취소하면 눌림이 없던 일이 된다. 표시를
+      // 남겨 두면 그다음 **키보드** 누름에서 한 번 잘못 거둔다.
+      onPointerCancel: (_) => _fromPointer = false,
+      child: Focus(
+        onFocusChange: (bool hasFocus) {
+          if (!hasFocus || !_fromPointer) return;
+          _fromPointer = false;
+          // 이 자리에서 곧장 거두면 포커스를 옮기는 도중이라 다시 돌아온다.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) FocusScope.of(context).unfocus();
+          });
+        },
+        child: widget.child,
+      ),
     );
   }
 }
