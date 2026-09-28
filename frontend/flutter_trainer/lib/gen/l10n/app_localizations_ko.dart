@@ -3692,6 +3692,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messagesPreviewEmote => '이모티콘을 보냈어요';
 
   @override
+  String get messagesPreviewPhoto => '사진';
+
+  @override
   String get messagesTimeJustNow => '방금';
 
   @override

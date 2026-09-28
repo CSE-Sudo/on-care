@@ -2555,6 +2555,7 @@
   "messagesBackToList": "Conversation list",
   "messagesNoPreview": "No messages yet",
   "messagesPreviewEmote": "Sent an emote",
+  "messagesPreviewPhoto": "Photo",
   "messagesTimeJustNow": "Just now",
   "messagesClientDetail": "Member details",
   "messagesSelectPrompt": "Select a member from the list to start a conversation.",
