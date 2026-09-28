@@ -178,8 +178,10 @@ void main() {
     '지난 4주 평균',
     findRichText: true,
   );
+  // 증감은 같은 줄의 기준 뒤에 붙는다 — 다른 카드의 ▲/▼ 와 섞이지 않게
+  // 한 줄 안에서 찾는다.
   final Finder deltaMark = find.textContaining(
-    RegExp('[▲▼]'),
+    RegExp('지난 4주 평균 [0-9,]+kcal +[▲▼][0-9,]+kcal'),
     findRichText: true,
   );
 
