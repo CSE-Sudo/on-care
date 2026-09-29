@@ -79,7 +79,8 @@ class _ConsultationHistoryPageState
                   title: l.exConsultHistoryCancelTitle,
                   message: l.exConsultHistoryCancelBody,
                   cancelLabel: l.exCancelKeep,
-                  confirmLabel: l.actionCancel,
+                  // `예약 취소` 와 같이 무엇을 취소하는지 붙인다(#2554).
+                  confirmLabel: l.exConsultHistoryCancelAction,
                   destructive: true,
                 );
                 if (confirmed) {

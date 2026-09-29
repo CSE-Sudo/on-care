@@ -2426,6 +2426,12 @@ abstract class AppLocalizations {
   /// **'Use a shield'**
   String get myGraphProtectAction;
 
+  /// Confirm button of the use-a-shield dialog. The dialog title already names the shield (#2554).
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get myGraphProtectConfirmAction;
+
   /// No description provided for @myGraphProtectConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -6737,6 +6743,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel this consultation request?'**
   String get exConsultHistoryCancelTitle;
+
+  /// Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554).
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel request'**
+  String get exConsultHistoryCancelAction;
 
   /// No description provided for @exConsultHistoryCancelBody.
   ///
