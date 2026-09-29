@@ -487,17 +487,38 @@ class _Header extends StatelessWidget {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    // 이름만 — 성별·나이는 목록 카드가 말한다(#1024). 긴 이름은
-                    // 말줄임해 버튼 자리를 뺏지 않는다.
+                    // `이름  성별 · 나이` — 다른 탭의 회원 행과 같다. 좁은 화면
+                    // 에서는 목록이 가려져 여기가 아니면 성별·나이를 볼 곳이
+                    // 없다. 바닥선을 맞추고, 긴 이름은 말줄임해 버튼 자리를
+                    // 뺏지 않는다.
                     Flexible(
-                      child: Text(
-                        client.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: clientNameStyle(
-                          context,
-                          ClientRowDensity.header,
-                        ),
+                      child: Row(
+                        key: const ValueKey<String>('client-detail-name-row'),
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: <Widget>[
+                          Flexible(
+                            child: Text(
+                              client.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: clientNameStyle(
+                                context,
+                                ClientRowDensity.header,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: OnCareSpacing.s4),
+                          Text(
+                            clientDemographicsLabel(context, client),
+                            key: const ValueKey<String>(
+                              'client-detail-demographics',
+                            ),
+                            maxLines: 1,
+                            style: clientDemographicsStyle(context),
+                          ),
+                        ],
                       ),
                     ),
                     // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
