@@ -1,6 +1,7 @@
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
@@ -38,7 +39,16 @@ Map<String, Object?> programExerciseToJson(
   'date': exercise.date == null ? null : ymd(exercise.date!),
   // 근력은 세트·횟수·중량으로만 재고 시간을 싣지 않는다 — 두 편집기와 회원
   // 기록이 같은 규칙을 쓴다 (#1276, #1310).
-  'duration': exercise.isStrength ? null : exercise.minutes.clamp(0, 600),
+  // 초가 기준이고 분은 거기서 반올림한 값이다(#2221) — 분은 예전 서버와 분을
+  // 더하는 집계를 위해 함께 싣는다.
+  'duration': exercise.isStrength
+      ? null
+      : minutesFromSeconds(
+          exercise.durationSeconds.clamp(0, kMaxExerciseSeconds),
+        ),
+  'duration_seconds': exercise.isStrength
+      ? null
+      : exercise.durationSeconds.clamp(0, kMaxExerciseSeconds),
   'sets': exercise.isStrength ? exercise.sets.clamp(0, 99) : null,
   // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 비운다(#1969).
   'reps': exercise.isStrength && !exercise.isHold
@@ -65,7 +75,10 @@ ProgramExerciseDraft programExerciseFromJson(Map<String, Object?> json) =>
       name: json['name'] as String? ?? '',
       type: json['type'] as String? ?? '근력',
       date: DateTime.tryParse(json['date'] as String? ?? ''),
-      minutes: looseInt(json['duration']) ?? 30,
+      // 초 키가 없던 예전 초안은 분 × 60 으로 열린다(#2221).
+      durationSeconds:
+          looseInt(json['duration_seconds']) ??
+          (looseInt(json['duration']) ?? 30) * 60,
       sets: looseInt(json['sets']) ?? 3,
       reps: looseInt(json['reps']) ?? 10,
       holdSeconds: looseInt(json['hold_seconds']) ?? 60,
@@ -154,6 +167,8 @@ RoutineExercise scheduledRoutineFromJson(Map<String, dynamic> json) {
     name: (json['name'] as String?) ?? '',
     minutes: (json['minutes'] as num?)?.toInt() ?? 0,
     type: normaliseRoutineType((json['type'] as String?) ?? ''),
+    // 초 칸이 생기기 전의 배정·근력은 비어 온다 — 그때는 분으로 읽는다(#2221).
+    durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
     sets: (json['sets'] as num?)?.toInt() ?? 0,
     reps: (json['reps'] as num?)?.toInt() ?? 0,
     holdSeconds: holdSeconds,
@@ -171,7 +186,10 @@ List<Map<String, Object?>> personalRoutinesToJson(
     for (final e in routines)
       <String, Object?>{
         'name': _cap(e.name, _kNameMax),
-        'minutes': e.type == '근력' ? 0 : e.minutes,
+        // 초가 기준이고 분은 거기서 반올림한 값이다(#2221). 분은 예전 서버와
+        // 분을 더하는 집계를 위해 함께 싣는다.
+        'minutes': e.type == '근력' ? 0 : minutesFromSeconds(e.seconds),
+        if (e.type != '근력') 'duration_seconds': e.seconds,
         'type': e.type,
         if (e.type == '근력' && e.sets > 0) 'sets': e.sets,
         if (e.type == '근력' && !e.isHold && e.reps > 0) 'reps': e.reps,
@@ -229,6 +247,7 @@ Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
     'name': item['name'],
     'type': item['type'],
     'duration': strength ? 0 : item['minutes'],
+    'duration_seconds': strength ? null : item['duration_seconds'],
     'sets': item['sets'] ?? 0,
     'reps': item['reps'] ?? 0,
     'hold_seconds': item['hold_seconds'] ?? 0,

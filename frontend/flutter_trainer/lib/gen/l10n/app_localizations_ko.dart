@@ -1182,6 +1182,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String hoursShort(int hours) {
+    return '$hours시간';
+  }
+
+  @override
+  String secondsShort(int seconds) {
+    return '$seconds초';
+  }
+
+  @override
   String get ptProgramHistory => 'PT 프로그램 이력';
 
   @override
@@ -2513,6 +2523,9 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get routineCaloriesRoughEstimate =>
       '운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록됩니다';
+
+  @override
+  String get routineUnitHours => '시간';
 
   @override
   String get routineUnitMinutes => '분';

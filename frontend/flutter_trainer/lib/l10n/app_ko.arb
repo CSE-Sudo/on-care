@@ -486,6 +486,8 @@
   "routinesLoadFailed": "프로그램을 불러오지 못했어요",
   "routinesEmpty": "아직 이 회원에게 배정된 프로그램이 없어요",
   "minutesShort": "{minutes}분",
+  "hoursShort": "{hours}시간",
+  "secondsShort": "{seconds}초",
   "ptProgramHistory": "PT 프로그램 이력",
   "scheduleLoadFailed": "일정을 불러오지 못했어요",
   "ptSessionsEmpty": "등록된 PT 세션이 없어요",
@@ -1161,6 +1163,7 @@
   "@routineCaloriesRoughEstimate": {
     "description": "트레이너 폼은 수행할 회원의 체중을 모르므로 늘 어림값이다 (#1312)"
   },
+  "routineUnitHours": "시간",
   "routineUnitMinutes": "분",
   "routineUnitSets": "세트",
   "routineUnitReps": "회",

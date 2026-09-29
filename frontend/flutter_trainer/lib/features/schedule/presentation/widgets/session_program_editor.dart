@@ -299,12 +299,11 @@ class _ProgramDraftFields extends StatelessWidget {
               ],
             )
           else
-            RoutineMinutesField(
+            RoutineDurationField(
               keyPrefix: 'program-duration-$index',
-              minutes: draft.minutes,
-              compact: true,
+              seconds: draft.durationSeconds,
               onChanged: (int value) {
-                draft.minutes = value;
+                draft.durationSeconds = value;
                 onChanged();
               },
             ),

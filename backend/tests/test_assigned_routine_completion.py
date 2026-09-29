@@ -388,3 +388,56 @@ def test_the_trainers_sets_and_weight_reach_the_members_record(client, db_sessio
         if stored is not None:
             db_session.delete(stored)
         db_session.commit()
+
+
+def test_completion_keeps_the_seconds_the_member_sends(client, db_session):
+    """초로 완료한 시간은 회원 기록에 초까지 남는다. (#2221)
+
+    트레이너가 `45초` 로 정한 개인운동을 회원이 완료하면 `1분` 이 아니라 적힌
+    대로 남아야 한다. 분도 함께 받는다 — 옛 앱과 분을 더하는 집계가 읽는다.
+    초를 적지 않은 배정은 분 × 60 으로 읽힌다.
+    """
+    from app.models.models import ExerciseSession, TrainerRoutine
+
+    trainer_token = _login(client, "trainer@oncare.com")
+    created = client.post(
+        f"/v1/trainer/clients/{MEMBER_ID}/routines",
+        headers=_headers(trainer_token),
+        json={"name": f"초 완료 {uuid4().hex[:6]}", "minutes": 1, "type": "유산소"},
+    )
+    assert created.status_code == 201, created.text
+    routine = created.json()
+    assert routine["duration_seconds"] == 60
+
+    try:
+        member_headers = _headers(_login(client, "jisu@oncare.com"))
+        completed = client.post(
+            f"/v1/me/coach/routines/{routine['id']}/complete",
+            headers=member_headers,
+            json={"minutes": 1, "duration_seconds": 45, "intensity": "moderate"},
+        )
+        assert completed.status_code == 200, completed.text
+
+        week = client.get(
+            "/v1/exercise/weeks/current", headers=member_headers
+        ).json()
+        session = next(
+            row for row in week["sessions"]
+            if row["assigned_routine_id"] == routine["id"]
+        )
+        assert (session["duration_seconds"], session["minutes"]) == (45, 1)
+
+        mine = client.get("/v1/me/coach/routines", headers=member_headers).json()
+        listed = next(row for row in mine if row["id"] == routine["id"])
+        assert listed["completed_duration_seconds"] == 45
+    finally:
+        db_session.rollback()
+        stale = db_session.query(ExerciseSession).filter_by(
+            assigned_routine_id=routine["id"]
+        ).one_or_none()
+        if stale is not None:
+            db_session.delete(stale)
+        stored = db_session.get(TrainerRoutine, routine["id"])
+        if stored is not None:
+            db_session.delete(stored)
+        db_session.commit()
