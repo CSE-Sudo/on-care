@@ -128,9 +128,6 @@ class AppIcons {
   /// 끊긴 링크 — 없는 주소 화면.
   static const IconData disconnect = Symbols.link_off_rounded;
 
-  /// 가입 초대 코드 — 회원앱 쿠폰과 같은 표 한 장.
-  static const IconData inviteCode = Symbols.confirmation_number_rounded;
-
   // --- 알림·소통 ---
   /// 채팅·메시지 — 회원앱 chat 과 같은 채운 말풍선. 사이드바 `메시지`·빠른 이동·
   /// 빈 대화·문의 채팅이 모두 이 모양이다.

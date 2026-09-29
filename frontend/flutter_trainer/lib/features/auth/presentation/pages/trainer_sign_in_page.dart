@@ -162,7 +162,7 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     // 가입 경로는 이제 실 API 모드에서도 열린다 — `/auth/trainer/register` 가
-    // 헬스장 초대 코드로 트레이너 계정을 만든다(#475). 전에는 회원용
+    // 트레이너 계정을 만든다(#475). 전에는 회원용
     // `/auth/register` 로 나가 role='member' 계정이 생겼고, 그 계정은
     // `/trainer/me` 에서 403 이라 가입해도 아무것도 할 수 없었다.
     const signUpEnabled = true;

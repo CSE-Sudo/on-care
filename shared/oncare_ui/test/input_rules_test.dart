@@ -370,8 +370,8 @@ void main() {
           AppInputRules.serverPasswordError(
             body(<Map<String, Object?>>[
               <String, Object?>{
-                'type': 'string_too_short',
-                'loc': <Object?>['body', 'invite_code'],
+                'type': 'value_error',
+                'loc': <Object?>['body', 'email'],
               },
               <String, Object?>{
                 'type': 'password_weak',

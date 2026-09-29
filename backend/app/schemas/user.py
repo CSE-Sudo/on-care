@@ -184,22 +184,12 @@ class UserRegister(BaseModel):
 
 
 class TrainerRegister(UserRegister):
-    """트레이너 가입 — 회원 가입에 헬스장 초대 코드를 더한다. (#475)
+    """트레이너 가입 — 회원 가입과 같은 필드를 받는다. (#475, #1627)
 
-    코드가 소속 헬스장을 결정한다. 소속 없는 트레이너는 상담 대상이 될 수 없어
-    (#443·#451) 가입 직후 아무것도 못 하는 상태가 되므로, 소속을 가입 시점에
-    확정한다.
+    예전에는 헬스장 초대 코드를 더 받았지만 발급 경로가 없어 걷어 냈다(#1627).
+    소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` 으로 고른다. 스키마를 따로 두는
+    이유는 엔드포인트가 달라서다 — 트레이너만의 필드가 다시 생기면 여기에 더한다.
     """
-
-    invite_code: str = Field(min_length=1, max_length=32)
-
-    @field_validator("invite_code", mode="before")
-    @classmethod
-    def _normalize_code(cls, value: Any) -> Any:
-        # 사람이 옮겨 적는 값이다. 공백과 대소문자 차이를 코드 오류로 만들지 않는다.
-        if isinstance(value, str):
-            return value.strip().upper()
-        return value
 
 
 # ---- 프로필 / 온보딩 / 건강 목표 ----
