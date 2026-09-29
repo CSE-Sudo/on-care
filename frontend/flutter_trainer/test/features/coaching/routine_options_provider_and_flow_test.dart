@@ -912,6 +912,67 @@ void main() {
       expect(personal![0].reason, '숨이 차면 속도를 낮추세요');
     });
 
+    testWidgets('접힌 줄에서 효과를 바로 고치고, 비운 줄은 자동 문구에 맡긴다 '
+        '(#2570)', (tester) async {
+      List<RoutineExercise>? personal;
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '코어 스트레칭',
+            minutes: 10,
+            type: '스트레칭',
+            reason: '허리를 편하게',
+          ),
+        ],
+        onReviewCompleted: (exercises, items, kind) => personal = items,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 회원 첫 목표(혈압 관리)의 문구가 placeholder 로 미리 보인다.
+      Finder effectField(int index) =>
+          find.byKey(ValueKey<String>('personal-routine-effect-$index'));
+      expect(
+        find.descendant(of: effectField(0), matching: find.text('혈압 관리에 도움')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: effectField(1), matching: find.text('혈압·심박 안정')),
+        findsOneWidget,
+      );
+
+      // 연필을 누르지 않고 접힌 줄에서 바로 친다.
+      await tester.enterText(
+        find.descendant(
+          of: effectField(1),
+          matching: find.byType(EditableText),
+        ),
+        '허리 부담 완화',
+      );
+      await tester.pumpAndSettle();
+
+      final apply = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      expect(personal!.map((e) => e.effect), <String>['', '허리 부담 완화']);
+      // 효과만 고친 것은 운동을 고친 것이 아니다 — 출처는 AI 그대로다.
+      expect(personal![1].source, 'ai');
+    });
+
     testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {
       await pumpFlow(
         tester,

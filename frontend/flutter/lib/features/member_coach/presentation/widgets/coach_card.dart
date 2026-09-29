@@ -610,6 +610,16 @@ class _RecommendedExerciseRowState
                             )
                             .copyWith(color: titleColor),
                       ),
+                      // 이 운동이 무엇에 좋은지 한 줄(#2570). 운동 구성이
+                      // 있어도 먼저 선다 — 구성은 "무엇을", 이 줄은 "왜" 다.
+                      if (routine.effect.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s2),
+                        Text(
+                          routine.effect,
+                          key: ValueKey<String>('routine-effect-${routine.id}'),
+                          style: detailStyle,
+                        ),
+                      ],
                       // 운동 구성이 오면 그것을 보여 준다 — 이름만 이어 붙인
                       // reason 보다 정확하다(세트·횟수·중량까지 온다, #709).
                       if (routine.exercises.isNotEmpty)
@@ -621,7 +631,10 @@ class _RecommendedExerciseRowState
                             style: detailStyle,
                           ),
                         ]
-                      else if (routine.reason.isNotEmpty) ...<Widget>[
+                      // 효과 줄이 없던 옛 배정만 reason 으로 떨어진다. 효과가
+                      // 있으면 reason(AI 자동 추천의 긴 안내 등)은 싣지 않는다.
+                      else if (routine.effect.isEmpty &&
+                          routine.reason.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(routine.reason, style: detailStyle),
                       ],

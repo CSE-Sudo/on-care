@@ -2506,6 +2506,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldExerciseNameHintOther => '예) 재활 운동, 스포츠 활동';
 
   @override
+  String get routineFieldEffect => '회원에게 보일 효과';
+
+  @override
+  String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
+
+  @override
   String get routineFieldSets => '세트 수';
 
   @override

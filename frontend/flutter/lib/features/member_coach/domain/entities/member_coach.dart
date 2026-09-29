@@ -41,6 +41,7 @@ class CoachRoutine {
     required this.type,
     required this.reason,
     required this.source,
+    this.effect = '',
     this.durationSeconds,
     this.intensity = 'moderate',
     this.completed = false,
@@ -64,6 +65,14 @@ class CoachRoutine {
   final int minutes;
   final String type;
   final String reason;
+
+  /// 이 운동이 회원에게 주는 효과 한 줄 — 카드에서 이름 바로 아래 선다(#2570).
+  ///
+  /// 트레이너가 적거나, 비워 두면 서버가 운동 유형 × 건강 목표 문구표로
+  /// 채운다. [reason] 과 다른 칸이다 — reason 은 AI 가 고른 이유(트레이너
+  /// 판단 재료)거나 옛 배정의 운동 이름 나열이다. 이 키를 모르는 옛 응답은
+  /// 비어 있고, 그때는 카드가 예전처럼 [reason] 으로 떨어진다.
+  final String effect;
 
   /// 유산소·스트레칭·기타 루틴의 운동 시간(초). (#2221)
   ///
@@ -140,6 +149,7 @@ class CoachRoutine {
     type: type,
     reason: reason,
     source: source,
+    effect: effect,
     // 배정된 초는 트레이너가 정한 값이라 완료 표시에 흔들리지 않는다(#2221).
     durationSeconds: durationSeconds,
     completed: completed ?? this.completed,

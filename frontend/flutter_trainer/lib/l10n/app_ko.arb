@@ -1151,6 +1151,8 @@
   "routineFieldExerciseNameHintStrength": "예) 스쿼트, 벤치프레스",
   "routineFieldExerciseNameHintFlexibility": "예) 전신 스트레칭, 요가",
   "routineFieldExerciseNameHintOther": "예) 재활 운동, 스포츠 활동",
+  "routineFieldEffect": "회원에게 보일 효과",
+  "routineFieldEffectHint": "예) 오른쪽 어깨 보호",
   "routineFieldSets": "세트 수",
   "routineFieldReps": "횟수",
   "routineFieldHold": "버티는 시간",

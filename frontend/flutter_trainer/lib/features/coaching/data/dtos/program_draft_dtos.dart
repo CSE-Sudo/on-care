@@ -3,6 +3,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
 
@@ -155,7 +156,8 @@ Map<String, Object?> programAssignToJson(
 ///
 /// **AI 추천 사유(`reason`)는 싣지 않는다.** 그 글은 트레이너가 이 제안을
 /// 그대로 둘지 판단하는 재료이지 회원이 읽을 문구가 아니다 — 회원 화면에는
-/// 운동 이름·유형·양만 선다.
+/// 운동 이름·유형·양만 선다. 회원이 읽을 한 줄은 따로 `effect` 로 싣는다
+/// (#2570) — 트레이너가 적은 것만 싣고, 비면 서버가 문구표로 채운다.
 /// `RoutineOut` JSON → 붙어 있는 개인운동 한 줄. (#2224)
 ///
 /// 일정 상세와 완료 확인창이 "무엇이 함께 가는지" 를 보여 주는 데 쓴다.
@@ -176,6 +178,7 @@ RoutineExercise scheduledRoutineFromJson(Map<String, dynamic> json) {
     weight: (json['weight'] as num?)?.toDouble() ?? 0,
     reason: (json['reason'] as String?) ?? '',
     source: (json['source'] as String?) ?? 'trainer',
+    effect: (json['effect'] as String?) ?? '',
   );
 }
 
@@ -199,6 +202,8 @@ List<Map<String, Object?>> personalRoutinesToJson(
         'source': kProgramExerciseSources.contains(e.source)
             ? e.source
             : 'trainer',
+        if (e.effect.trim().isNotEmpty)
+          'effect': _cap(e.effect.trim(), kRoutineEffectMaxLength),
       },
   ];
 }
@@ -253,5 +258,6 @@ Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
     'hold_seconds': item['hold_seconds'] ?? 0,
     'weight': item['weight'] ?? 0,
     'source': item['source'],
+    'effect': ?item['effect'],
   };
 }
