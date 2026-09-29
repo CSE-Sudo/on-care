@@ -172,6 +172,9 @@ class SessionEditMenu extends StatelessWidget {
 
     return AppMenu(
       items: edits,
+      // 연필은 카드 오른쪽 위 끝에 선다. 왼쪽에서 펼치면 메뉴가 화면 밖으로
+      // 넘쳐 화면 가장자리에 붙는다 — 연필 아래에서 안쪽으로 펼친다.
+      alignEnd: true,
       triggerBuilder: (context, toggle) => AppIconButton(
         key: const ValueKey<String>('session-edit-menu'),
         icon: AppIcons.edit,
