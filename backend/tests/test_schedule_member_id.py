@@ -14,7 +14,7 @@ _MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "versions"
-    / "0103_backfill_schedule_member_id.py"
+    / "0104_backfill_schedule_member_id.py"
 )
 
 
