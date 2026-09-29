@@ -395,7 +395,7 @@ abstract class AppLocalizations {
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
-  /// **'The trainer-only app for managing your members'**
+  /// **'See your members\' meals and workouts in one place — and coach them'**
   String get authTagline;
 
   /// No description provided for @authEmailHint.
