@@ -68,7 +68,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v36'), _todayString());
+      expect(await db.readValue('trainer_seeded_v37'), _todayString());
     });
 
     test(
@@ -475,13 +475,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v36', '2020-01-01');
+      await db.putValue('trainer_seeded_v37', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v36'), _todayString());
+      expect(await db.readValue('trainer_seeded_v37'), _todayString());
     });
 
     test(
@@ -673,7 +673,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v36'), today);
+        expect(await db.readValue('trainer_seeded_v37'), today);
       },
     );
 
@@ -782,7 +782,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v36', '2020-01-01');
+      await db.putValue('trainer_seeded_v37', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();
@@ -798,6 +798,67 @@ void main() {
       final thread = chat.where((m) => m.clientId == 'seed-client-1').toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       expect(thread.last.id, 'chat-runtime-1');
+    });
+  });
+
+  group('회원 주간 피드백 시드', () {
+    Future<List<ClientWeeklyFeedbackRow>> seeded() async {
+      await seedIfEmpty(db);
+      return db.select(db.clientWeeklyFeedbacks).get();
+    }
+
+    test('대부분의 회원이 대부분의 주에 한 줄 메모를 남긴다', () async {
+      final rows = await seeded();
+      final clients = await db.select(db.trainerClients).get();
+      final int slots = clients.length * demoReportHistoryWeeks;
+
+      final withNote = rows.where((r) => r.note.trim().isNotEmpty).length;
+      expect(withNote * 2, greaterThan(slots), reason: '메모가 칸의 절반을 넘어야 한다');
+
+      final answered = rows.map((r) => r.clientId).toSet();
+      expect(answered.length, clients.length - 1, reason: '신규 임도현만 답이 없다');
+      expect(answered, isNot(contains('seed-client-7')));
+    });
+
+    test('빈 칸의 두 모양 — 미응답 주와 메모 없는 답 — 도 남아 있다', () async {
+      final rows = await seeded();
+      expect(rows.where((r) => r.note.trim().isEmpty), isNotEmpty);
+
+      final kim = rows
+          .where((r) => r.clientId == 'seed-client-1')
+          .map((r) => r.weekStart)
+          .toSet();
+      expect(kim.length, lessThan(demoReportHistoryWeeks));
+    });
+
+    test('모든 답은 리포트 이력이 닿는 주의 월요일에 있다', () async {
+      final rows = await seeded();
+      final DateTime monday = weekStartOf(nowKst());
+      final DateTime oldest = monday.subtract(
+        const Duration(days: 7 * (demoReportHistoryWeeks - 1)),
+      );
+      final keys = <String>{};
+      for (final r in rows) {
+        final DateTime week = DateTime.parse(r.weekStart);
+        expect(week.weekday, DateTime.monday, reason: r.weekStart);
+        expect(week.isBefore(oldest), isFalse, reason: r.weekStart);
+        expect(week.isAfter(monday), isFalse, reason: r.weekStart);
+        expect(keys.add('${r.clientId}/${r.weekStart}'), isTrue);
+      }
+    });
+
+    test('통증 날짜는 그 주 안에 있고, 통증이 없으면 비어 있다', () async {
+      final rows = await seeded();
+      for (final r in rows) {
+        if (r.painArea.isEmpty) {
+          expect(r.painOn, isEmpty, reason: '${r.clientId}/${r.weekStart}');
+          continue;
+        }
+        final int offset = DateTime.parse(
+          r.painOn,
+        ).difference(DateTime.parse(r.weekStart)).inDays;
+        expect(offset, inInclusiveRange(0, 6), reason: r.painOn);
+      }
     });
   });
 }
