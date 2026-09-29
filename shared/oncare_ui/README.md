@@ -1,6 +1,6 @@
 # oncare_ui
 
-On-Care 두 앱(회원앱 `frontend/flutter`, 트레이너웹 `frontend/flutter_trainer`)이 함께 쓰는 **UI 규격의 단일 원본**입니다. 전체 규격과 진행 계획은 이슈 #1690 을 기준으로 합니다.
+On-Care 두 앱(회원앱 `frontend/flutter`, 트레이너웹 `frontend/flutter_trainer`)이 함께 쓰는 **UI 규격의 단일 원본**입니다. 현행 규격은 이 README 가 기준입니다. 이슈 #1690 은 처음 합의와 진행 기록이고, 그 뒤 바뀐 항목은 #1690 코멘트와 여기 표에 적혀 있습니다.
 
 ## 원칙
 
