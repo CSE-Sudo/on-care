@@ -20,6 +20,7 @@ from app.services.trainer_service import (
     _program_item_label,
     _program_items,
     _program_seconds_and_type,
+    _session_seconds,
     _session_summary,
 )
 
@@ -76,6 +77,8 @@ def test_summary_adds_seconds_before_folding_into_minutes():
         [_draft(id=f"e{i}", duration_seconds=45) for i in range(3)]
     )
     assert (minutes, type_) == (2, "유산소")
+    # 배정 행에 남기는 초는 접기 전 값이다(#2521).
+    assert _session_seconds([_draft(id=f"e{i}", duration_seconds=45) for i in range(3)]) == 135
 
     seconds, _ = _program_seconds_and_type(
         [ProgramItem(name="걷기", type="유산소", duration_seconds=45)] * 3
