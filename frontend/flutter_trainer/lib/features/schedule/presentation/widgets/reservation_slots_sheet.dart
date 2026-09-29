@@ -28,7 +28,18 @@ class ReservationSlotsSheet extends ConsumerStatefulWidget {
 }
 
 class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
-  late DateTime _date = widget.selectedDay;
+  /// 열기 폼의 날짜 — 스케줄에서 보고 있던 날에서 시작한다. 다만 지난 날을
+  /// 보다가 열었으면 오늘에서 시작한다. 날짜 선택창은 오늘 이전을 막는데
+  /// 처음 값만 지난 날로 채워지면, 고를 수 없는 날이 칸에 적힌 채로 열리고
+  /// `열기` 를 눌러야 비로소 지난 시간이라고 막힌다.
+  late DateTime _date = _openingDay(widget.selectedDay);
+
+  static DateTime _openingDay(DateTime selected) {
+    final DateTime today = todayKst();
+    final DateTime day = DateTime(selected.year, selected.month, selected.day);
+    return day.isBefore(today) ? today : day;
+  }
+
   TimeOfDay _time = const TimeOfDay(hour: 10, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 11, minute: 0);
   bool _saving = false;
