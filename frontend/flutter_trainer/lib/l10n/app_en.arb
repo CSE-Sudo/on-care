@@ -2402,6 +2402,7 @@
   "workoutPendingTitle": "Daily personal exercises",
   "workoutRoutineDoneToday": "Done today",
   "workoutUndatedTitle": "Records without a date",
+  "workoutMemberLogTitle": "Logged by member",
   "workoutPendingCancel": "Cancel assignment",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
   "routineUpdated": "Program updated",
