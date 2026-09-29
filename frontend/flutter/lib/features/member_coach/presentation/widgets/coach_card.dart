@@ -272,7 +272,6 @@ class AiCoachingCard extends ConsumerWidget {
               ),
             _RecommendedExerciseRow(
               routine: routine,
-              sourceLabel: routineSourceLabel(l, routine, coach),
               // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
               // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
               cancellable: unassigned && !readOnly,
@@ -329,36 +328,15 @@ class _RoutineCheckbox extends StatelessWidget {
   }
 }
 
-/// 회원이 읽을 수 있는 추천 출처 문구.
-///
-/// 내부 `source` 값을 그대로 보여 주지 않는다. 회원이 알아야 할 것은 "누가
-/// 확인했는가" 다 — 트레이너가 본 추천과 AI 가 혼자 낸 추천은 무게가 다르다.
-///
-/// 담당 트레이너가 있으면 AI 추천은 승인된 것만 내려온다(#790). 그래서 여기
-/// 도착한 AI 추천에 `트레이너 확인` 을 붙이는 것이 사실이다.
-String routineSourceLabel(
-  AppLocalizations l,
-  CoachRoutine routine,
-  MemberCoach? coach,
-) {
-  if (routine.isTrainerRecommended) return l.coachRoutineByTrainer;
-  if (coach != null) return l.coachRoutineAiChecked(coach.name);
-  return l.coachRoutineAiAuto;
-}
-
 class _RecommendedExerciseRow extends ConsumerStatefulWidget {
   const _RecommendedExerciseRow({
     required this.routine,
-    required this.sourceLabel,
     required this.cancellable,
     this.readOnly = false,
   });
 
   /// 지난 날짜의 줄 — 했는지만 보이고 체크할 수 없다. (#2161)
   final bool readOnly;
-
-  /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김태오 확인` 처럼.
-  final String sourceLabel;
 
   final CoachRoutine routine;
 
@@ -625,26 +603,10 @@ class _RecommendedExerciseRowState
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(routine.reason, style: detailStyle),
                       ],
-                      // 누가 이 운동을 정했는지. 트레이너가 본 추천과 AI 가 혼자
-                      // 낸 추천은 회원에게 무게가 다르다(#782).
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        widget.sourceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(
-                              // 누가 정한 운동인지는 보조 설명이 아니다 — 회색이면
-                              // 옆의 부연과 무게가 같다(#1457). 완료한 줄에서는
-                              // 본문이 흐려지므로 같은 파랑을 한 단계 옅게 둔다.
-                              color: routine.completed
-                                  ? tokens.brand.border
-                                  : tokens.brand.primary,
-                            ),
-                      ),
+                      // 줄마다 출처(`트레이너 직접 추천` 등)를 붙이지 않는다
+                      // (#2566). 담당이 있으면 내려오는 운동은 모두 트레이너가
+                      // 확인한 것이고(#790), 없으면 카드 제목이 이미 AI 추천이라고
+                      // 말한다(#2015).
                     ],
                   ),
                 ),

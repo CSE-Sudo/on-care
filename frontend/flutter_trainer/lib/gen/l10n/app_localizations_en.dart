@@ -2016,10 +2016,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedNoteHint =>
-      'Anything to prepare, or feedback for this member';
+      'Feedback for the member. Keep member notes in the client memo';
 
   @override
-  String get schedNoteVisibleToMember => 'The member can see this';
+  String get schedNoteVisibleToMember =>
+      'Shown to the member as feedback once the PT is done';
 
   @override
   String get schedConsultNote => 'Consultation memo';
@@ -2033,6 +2034,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get schedConsultNoteHint =>
       'What you talked about in the consultation';
+
+  @override
+  String get schedConsultNotePrivate =>
+      'Only you can see this memo. It\'s hidden from the member.';
 
   @override
   String get schedAddAction => 'Add';
@@ -2056,7 +2061,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progAddExercise => 'Add exercise';
 
   @override
-  String get progNoteHint => 'Feedback for the member on this session';
+  String get progNoteHint =>
+      'Feedback for the member. Keep member notes in the client memo';
 
   @override
   String get progSaving => 'Saving...';

@@ -172,9 +172,9 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
       // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
       // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
       //
-      // PT 에 적는 글은 회원에게 가는 트레이너 피드백, 상담에 적는 글은
-      // 트레이너만 보는 메모다(#2574). 피드백 칸에는 회원에게 보인다는
-      // 사실을 한 줄로 붙인다.
+      // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백, 상담에
+      // 적는 글은 트레이너만 보는 상담 메모다(#2515, #2574). 누가 읽게
+      // 되는지를 입력칸 아래 한 줄로 붙인다.
       if (widget.noteOnly)
         if (widget.session.type == SessionType.consultation)
           AppTextField(
@@ -182,6 +182,7 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
             controller: _note,
             label: l.schedConsultNote,
             hint: l.schedConsultNoteHint,
+            helper: l.schedConsultNotePrivate,
             minLines: 2,
             maxLines: 4,
           )

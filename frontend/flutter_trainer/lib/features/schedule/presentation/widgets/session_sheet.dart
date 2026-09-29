@@ -556,14 +556,15 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ],
         if (widget.existing == null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
-          // PT 는 회원에게 가는 트레이너 피드백, 상담은 트레이너만 보는
-          // 메모다(#2574).
+          // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백이고,
+          // 상담에 적는 글은 트레이너만 보는 상담 메모다(#2515, #2574).
           if (_type == SessionType.consultation)
             AppTextField(
               key: const ValueKey<String>('schedule-trainer-note'),
               controller: _note,
               label: l.schedConsultNote,
               hint: l.schedConsultNoteHint,
+              helper: l.schedConsultNotePrivate,
               minLines: 2,
               maxLines: 4,
             )

@@ -2793,23 +2793,6 @@
   "@coachRoutineTitle": {
     "description": "Section title in the coaching card."
   },
-  "coachRoutineByTrainer": "Recommended by your trainer",
-  "@coachRoutineByTrainer": {
-    "description": "Origin of a routine."
-  },
-  "coachRoutineAiChecked": "AI suggestion · reviewed by {name}",
-  "@coachRoutineAiChecked": {
-    "description": "Origin of a routine an AI proposed and the trainer approved.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "coachRoutineAiAuto": "AI suggestion",
-  "@coachRoutineAiAuto": {
-    "description": "Origin of a routine proposed automatically."
-  },
   "coachRoutineLogged": "Added to your workout log",
   "@coachRoutineLogged": {
     "description": "Shown after a routine is marked done."

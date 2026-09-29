@@ -3514,13 +3514,13 @@ abstract class AppLocalizations {
   /// No description provided for @schedNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Anything to prepare, or feedback for this member'**
+  /// **'Feedback for the member. Keep member notes in the client memo'**
   String get schedNoteHint;
 
   /// No description provided for @schedNoteVisibleToMember.
   ///
   /// In en, this message translates to:
-  /// **'The member can see this'**
+  /// **'Shown to the member as feedback once the PT is done'**
   String get schedNoteVisibleToMember;
 
   /// No description provided for @schedConsultNote.
@@ -3546,6 +3546,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What you talked about in the consultation'**
   String get schedConsultNoteHint;
+
+  /// No description provided for @schedConsultNotePrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this memo. It\'s hidden from the member.'**
+  String get schedConsultNotePrivate;
 
   /// No description provided for @schedAddAction.
   ///
@@ -3592,7 +3598,7 @@ abstract class AppLocalizations {
   /// No description provided for @progNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Feedback for the member on this session'**
+  /// **'Feedback for the member. Keep member notes in the client memo'**
   String get progNoteHint;
 
   /// No description provided for @progSaving.

@@ -3606,17 +3606,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'What you did that day. Past days can\'t be checked.';
 
   @override
-  String get coachRoutineByTrainer => 'Recommended by your trainer';
-
-  @override
-  String coachRoutineAiChecked(String name) {
-    return 'AI suggestion · reviewed by $name';
-  }
-
-  @override
-  String get coachRoutineAiAuto => 'AI suggestion';
-
-  @override
   String get coachRoutineLogged => 'Added to your workout log';
 
   @override
