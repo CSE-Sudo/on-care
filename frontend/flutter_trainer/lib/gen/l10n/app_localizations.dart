@@ -4102,31 +4102,31 @@ abstract class AppLocalizations {
   /// No description provided for @myClientRemove.
   ///
   /// In en, this message translates to:
-  /// **'Remove member'**
+  /// **'Disconnect'**
   String get myClientRemove;
 
   /// No description provided for @myClientRemoveTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove {name}?'**
+  /// **'Disconnect from {name}?'**
   String myClientRemoveTitle(String name);
 
   /// No description provided for @myClientRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.'**
+  /// **'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
   String get myClientRemoveBody;
 
   /// No description provided for @myClientRemoveSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Member removed'**
+  /// **'Disconnected from the member'**
   String get myClientRemoveSuccess;
 
   /// No description provided for @myClientRemoveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t remove the member. Please try again'**
+  /// **'Couldn\'t disconnect. Please try again'**
   String get myClientRemoveFailed;
 
   /// No description provided for @myClientManagementEmpty.
@@ -4134,6 +4134,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No members assigned'**
   String get myClientManagementEmpty;
+
+  /// No description provided for @myClientManagementSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search members by name'**
+  String get myClientManagementSearchHint;
 
   /// No description provided for @myBasicInfo.
   ///
@@ -4171,53 +4177,83 @@ abstract class AppLocalizations {
   /// **'Hours'**
   String get myGymHours;
 
-  /// No description provided for @myGymListFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the gym list.'**
-  String get myGymListFailed;
-
-  /// No description provided for @myGymNoMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'This gym isn\'t listed. Please add its address and hours yourself.'**
-  String get myGymNoMatch;
-
-  /// No description provided for @myGymLinked.
-  ///
-  /// In en, this message translates to:
-  /// **'Registered gym'**
-  String get myGymLinked;
-
-  /// No description provided for @myGymUnlink.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlink'**
-  String get myGymUnlink;
-
-  /// No description provided for @myGymNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Type to find a registered gym'**
-  String get myGymNameHint;
-
   /// No description provided for @myGymRequired.
   ///
   /// In en, this message translates to:
-  /// **'Enter your gym'**
+  /// **'Pick your gym from the search results'**
   String get myGymRequired;
+
+  /// No description provided for @myGymSearchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your gym'**
+  String get myGymSearchLabel;
+
+  /// No description provided for @myGymSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym name or address'**
+  String get myGymSearchHint;
+
+  /// No description provided for @myGymSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get myGymSearching;
+
+  /// No description provided for @myGymSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gyms found. Try a different name or add the neighborhood.'**
+  String get myGymSearchEmpty;
+
+  /// No description provided for @myGymSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search gyms. Please try again in a moment.'**
+  String get myGymSearchFailed;
+
+  /// No description provided for @myGymCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current gym'**
+  String get myGymCurrent;
+
+  /// No description provided for @myGymPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving will switch you to this gym'**
+  String get myGymPicked;
+
+  /// No description provided for @myGymNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None yet'**
+  String get myGymNone;
+
+  /// No description provided for @myGymHiddenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Members can\'t find you yet'**
+  String get myGymHiddenTitle;
+
+  /// No description provided for @myGymHiddenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your gym to appear in the member app\'s gym finder and consultation requests.'**
+  String get myGymHiddenBody;
+
+  /// No description provided for @myGymHiddenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Set gym'**
+  String get myGymHiddenAction;
 
   /// No description provided for @myGymEditHint.
   ///
   /// In en, this message translates to:
-  /// **'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.'**
+  /// **'Search by name and pick your gym. Members find you through this gym.'**
   String get myGymEditHint;
-
-  /// No description provided for @myGymListLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading gyms…'**
-  String get myGymListLoading;
 
   /// No description provided for @mySignOut.
   ///
@@ -4414,7 +4450,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No gym yet. Add yours in Edit profile.'**
+  /// **'No gym yet. Set yours in Edit profile.'**
   String get myGymEmpty;
 
   /// No description provided for @myEditVisibleBody.
@@ -4426,7 +4462,7 @@ abstract class AppLocalizations {
   /// No description provided for @myClientManagementNoteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Removing only hides members here'**
+  /// **'Disconnecting keeps member records'**
   String get myClientManagementNoteTitle;
 
   /// No description provided for @myClientManagementNote.
@@ -6264,6 +6300,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Records without a date'**
   String get workoutUndatedTitle;
+
+  /// No description provided for @workoutMemberLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged by member'**
+  String get workoutMemberLogTitle;
 
   /// No description provided for @workoutPendingCancel.
   ///

@@ -695,7 +695,7 @@ class _RecommendedExerciseRowState
                           icon: AppIcons.delete,
                           tooltip: l.coachRoutineCancel,
                           size: AppIconButtonSize.small,
-                          color: OnCareColors.danger,
+                          color: OnCareColors.textTertiary,
                           onPressed: _saving ? null : _cancel,
                         ),
                     ],

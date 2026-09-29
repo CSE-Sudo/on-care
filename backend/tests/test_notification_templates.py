@@ -227,12 +227,21 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "박코치 트레이너의 메시지",
         "",
     ),
+    # 시간은 시·분·초로 적는다 — 예전 `150분` 은 `2시간 30분` 이다(#2546).
+    # `seconds` 가 없는 인자는 분 × 60 으로 읽는다.
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "하체 프로그램", "sessions": 3, "minutes": 150, "multi": True},
         "",
         "새 운동 루틴이 배정되었어요",
-        "하체 프로그램 · 세션 3개 · 150분",
+        "하체 프로그램 · 세션 3개 · 2시간 30분",
+    ),
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "코어", "sessions": 3, "seconds": 135, "minutes": 2, "multi": True},
+        "",
+        "새 운동 루틴이 배정되었어요",
+        "코어 · 세션 3개 · 2분 15초",
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,
@@ -462,6 +471,7 @@ def test_every_template_has_a_korean_regression_case():
 # 수행 이력이 같은 배정을 다르게 말한다.
 AMOUNTS = [
     ("유산소", 30, None, None, None, None),
+    ("유산소", 90, None, None, None, None),
     ("cardio", 45, 3, 10, None, None),
     ("근력", 15, 3, 12, None, 40.0),
     ("strength", 15, 3, 12, None, 0.0),
@@ -501,6 +511,7 @@ def test_routine_amount_matches_the_trainer_service_rule(type_, minutes, sets, r
         ("strength", 15, 3, 12, None, 0.0, "3 sets · 12 reps"),
         ("근력", 10, 4, 8, None, 22.5, "4 sets · 8 reps · 22.5 kg"),
         ("근력", 20, None, 10, None, 30.0, "20 min"),
+        ("유산소", 90, None, None, None, None, "1 hr 30 min"),
     ],
 )
 def test_routine_amount_in_english(type_, minutes, sets, reps, hold, weight, expected):
@@ -512,6 +523,28 @@ def test_routine_amount_in_english(type_, minutes, sets, reps, hold, weight, exp
         "New workout routine assigned",
         f"Squat · {expected}",
     )
+
+
+@pytest.mark.parametrize(
+    ("seconds", "minutes", "ko", "en"),
+    [
+        (45, 1, "45초", "45 sec"),
+        (5415, 90, "1시간 30분 15초", "1 hr 30 min 15 sec"),
+        (1800, 30, "30분", "30 min"),
+    ],
+)
+def test_routine_amount_reads_seconds(seconds, minutes, ko, en):
+    """초로 적은 배정은 초까지 적는다 — `45초` 가 `1분` 이 되지 않는다. (#2546)"""
+    args = _routine_notification_args(
+        "버피", "유산소", minutes=minutes, duration_seconds=seconds,
+        sets=None, reps=None, weight=None,
+    )
+    assert _ko(nt.MEMBER_ROUTINE_ASSIGNED, args)[1] == f"버피 · {ko}"
+    assert _ko(nt.MEMBER_ROUTINE_ASSIGNED, args)[1] == "버피 · " + _amount_label(
+        "유산소", minutes=minutes, duration_seconds=seconds,
+        sets=None, reps=None, weight=None,
+    )
+    assert _en(nt.MEMBER_ROUTINE_ASSIGNED, args)[1] == f"버피 · {en}"
 
 
 # --------------------------------------------------------------------------
@@ -638,7 +671,12 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "Leg day", "sessions": 3, "minutes": 150, "multi": True},
-        ("New workout routine assigned", "Leg day · 3 sessions · 150 min"),
+        ("New workout routine assigned", "Leg day · 3 sessions · 2 hr 30 min"),
+    ),
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "Core", "sessions": 3, "seconds": 135, "minutes": 2, "multi": True},
+        ("New workout routine assigned", "Core · 3 sessions · 2 min 15 sec"),
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,

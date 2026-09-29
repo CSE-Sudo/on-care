@@ -71,6 +71,9 @@ dependencies:
   # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
   oncare_ui:
     path: ../../shared/oncare_ui
+  # 소속 헬스장 찾기 지도(#2543). 회원 앱 헬스장 찾기와 같은 위젯이다.
+  oncare_kakao_map:
+    path: ../../shared/oncare_kakao_map
   # 트레이너웹 아이콘도 회원앱과 같은 Material Symbols Rounded 한 세트에서만
   # 고른다(#2466). 목록은 lib/app/app_icons.dart 한 곳이다. 가변 글꼴 축(채움·
   # 굵기)을 쓰므로 회원앱과 같은 버전으로 묶는다.

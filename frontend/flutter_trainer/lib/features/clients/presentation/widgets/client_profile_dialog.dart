@@ -1181,7 +1181,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   key: ValueKey<String>('client-memo-delete-${memo.id}'),
                   icon: AppIcons.delete,
                   tooltip: l.actionDelete,
-                  color: OnCareColors.danger,
+                  color: OnCareColors.textTertiary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => _delete(memo),

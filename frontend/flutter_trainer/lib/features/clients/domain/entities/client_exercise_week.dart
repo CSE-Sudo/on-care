@@ -140,6 +140,13 @@ class ClientExerciseWeek {
                 ? (row['duration_seconds'] as num?)?.toInt()
                 : null,
             weight: single ? (row['weight'] as num?)?.toDouble() : null,
+            // 이력이 있는 날에 직접 기록만 골라 붙이는 근거다(#2534). 필드가
+            // 없던 응답은 서버 기본값과 같은 `member` 로 읽는다.
+            source: (row['source'] as String?) ?? 'member',
+            assignedRoutineId: switch (row['assigned_routine_id']) {
+              final String value when value.isNotEmpty => value,
+              _ => null,
+            },
           ),
         );
       }
