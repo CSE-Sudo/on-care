@@ -123,6 +123,80 @@ void main() {
     expect(find.textContaining(l.exSetsCount(4)), findsNothing);
   });
 
+  group('초로 배정된 시간 (#2221)', () {
+    // 서버의 `minutes` 는 `duration_seconds` 에서 반올림한 값이라(45초 → 1분)
+    // 분으로만 적으면 트레이너가 정한 시간이 달라진다.
+    testWidgets('45초 배정은 1분이 아니라 45초로 읽힌다', (WidgetTester tester) async {
+      await _pump(tester, <CoachRoutine>[
+        const CoachRoutine(
+          id: 'r-45s',
+          name: '버피',
+          minutes: 1,
+          durationSeconds: 45,
+          type: '유산소',
+          reason: '',
+          source: 'trainer',
+        ),
+      ]);
+
+      expect(find.text('유산소 · 45초'), findsOneWidget);
+      expect(find.text('유산소 · 1분'), findsNothing);
+    });
+
+    testWidgets('5400초는 1시간 30분으로 읽힌다', (WidgetTester tester) async {
+      await _pump(tester, <CoachRoutine>[
+        const CoachRoutine(
+          id: 'r-90m',
+          name: '실내 자전거',
+          minutes: 90,
+          durationSeconds: 5400,
+          type: '유산소',
+          reason: '',
+          source: 'trainer',
+        ),
+      ]);
+
+      expect(find.text('유산소 · 1시간 30분'), findsOneWidget);
+    });
+
+    testWidgets('분으로만 남은 완료 기록은 배정의 초보다 앞선다', (WidgetTester tester) async {
+      await _pump(tester, <CoachRoutine>[
+        const CoachRoutine(
+          id: 'r-done-minutes',
+          name: '버피',
+          minutes: 1,
+          durationSeconds: 45,
+          type: '유산소',
+          reason: '',
+          source: 'trainer',
+          completed: true,
+          completedMinutes: 2,
+        ),
+      ]);
+
+      expect(find.text('유산소 · 2분'), findsOneWidget);
+    });
+
+    testWidgets('초로 남은 완료 기록은 초로 읽힌다', (WidgetTester tester) async {
+      await _pump(tester, <CoachRoutine>[
+        const CoachRoutine(
+          id: 'r-done-seconds',
+          name: '버피',
+          minutes: 1,
+          durationSeconds: 45,
+          type: '유산소',
+          reason: '',
+          source: 'trainer',
+          completed: true,
+          completedMinutes: 1,
+          completedDurationSeconds: 50,
+        ),
+      ]);
+
+      expect(find.text('유산소 · 50초'), findsOneWidget);
+    });
+  });
+
   test('서버 응답의 sets·reps·weight 를 읽는다', () {
     final CoachRoutine routine = coachRoutineFromJson(<String, Object?>{
       'id': 'r-1',

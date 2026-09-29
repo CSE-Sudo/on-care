@@ -60,6 +60,42 @@ const Trainer _assignedTrainer = Trainer(
   role: '퍼스널 트레이너',
 );
 
+/// 45초로 배정된 루틴 하나를 내주고, 완료 요청에 실린 값을 남긴다. (#2221)
+class _SecondsRoutineRepository extends MockMemberCoachRepository {
+  static const CoachRoutine routine = CoachRoutine(
+    id: 'seconds-routine',
+    name: '버피',
+    minutes: 1,
+    durationSeconds: 45,
+    type: '유산소',
+    reason: '',
+    source: 'trainer',
+  );
+
+  int? sentMinutes;
+  int? sentDurationSeconds;
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutines() async => <CoachRoutine>[routine];
+
+  @override
+  Future<CoachRoutine> completeRoutine(
+    String routineId, {
+    required int minutes,
+    int? durationSeconds,
+    String intensity = 'moderate',
+  }) async {
+    sentMinutes = minutes;
+    sentDurationSeconds = durationSeconds;
+    return routine.copyWith(
+      completed: true,
+      completedMinutes: minutes,
+      completedDurationSeconds: durationSeconds,
+      completedIntensity: intensity,
+    );
+  }
+}
+
 class _ReadFailingMemberCoachRepository extends MockMemberCoachRepository {
   @override
   Future<void> markRead() async {
@@ -581,6 +617,38 @@ void main() {
     expect(completed.completedIntensity, 'high');
     // 기록에 남는 시간은 배정된 값 그대로다 (#1360).
     expect(completed.completedMinutes, 15);
+  });
+
+  testWidgets('초로 배정된 루틴은 완료할 때 초도 함께 보낸다 (#2221)', (
+    WidgetTester tester,
+  ) async {
+    final _SecondsRoutineRepository repository = _SecondsRoutineRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          memberCoachRepositoryProvider.overrideWithValue(repository),
+          myTrainerProvider.overrideWith((ref) async => _assignedTrainer),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: AiCoachingCard()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('completeRoutine-seconds-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirmRoutineCompletion')));
+    await tester.pumpAndSettle();
+
+    // 분은 옛 서버·집계를 위해 그대로 가고, 초가 함께 실린다 — `45초` 가
+    // `1분` 기록이 되지 않는다.
+    expect(repository.sentMinutes, 1);
+    expect(repository.sentDurationSeconds, 45);
   });
 
   testWidgets('완료한 루틴에 트레이너 피드백을 표시한다', (WidgetTester tester) async {

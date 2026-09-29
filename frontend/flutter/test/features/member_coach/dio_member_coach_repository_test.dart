@@ -108,6 +108,55 @@ void main() {
     },
   );
 
+  test(
+    'completeRoutine sends duration_seconds for a seconds routine (#2221)',
+    () async {
+      // 45초 배정을 분으로만 보내면 `1분` 기록이 된다 — 초도 함께 싣는다.
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/me/coach/routines/r45/complete',
+          data: <String, Object?>{
+            'minutes': 1,
+            'duration_seconds': 45,
+            'intensity': 'light',
+          },
+        ),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'id': 'r45',
+          'name': '버피',
+          'minutes': 1,
+          'duration_seconds': 45,
+          'type': '유산소',
+          'reason': '',
+          'source': 'trainer',
+          'completed': true,
+          'completed_minutes': 1,
+          'completed_duration_seconds': 45,
+        }, '/me/coach/routines/r45/complete'),
+      );
+
+      final CoachRoutine completed = await repo.completeRoutine(
+        'r45',
+        minutes: 1,
+        durationSeconds: 45,
+        intensity: 'light',
+      );
+
+      expect(completed.completedDurationSeconds, 45);
+      verify(
+        () => dio.post<Map<String, Object?>>(
+          '/me/coach/routines/r45/complete',
+          data: <String, Object?>{
+            'minutes': 1,
+            'duration_seconds': 45,
+            'intensity': 'light',
+          },
+        ),
+      ).called(1);
+    },
+  );
+
   test('fetchChat parses and sorts the thread oldest first', () async {
     when(() => dio.get<List<dynamic>>('/me/coach/chat')).thenAnswer(
       (_) async => Response<List<dynamic>>(

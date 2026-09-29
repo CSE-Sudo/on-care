@@ -959,9 +959,16 @@ class _CompletedPtSessionCard extends StatelessWidget {
   String _programLabel(CoachProgramItem item, AppLocalizations l) {
     // 서버 계약상 근력이 아닌 항목은 세트 대신 duration(분)을 갖는다. 이 값을
     // 버리면 러닝머신·스트레칭이 이름만 남아, 데모와 같은 회귀가 실 API에서도
-    // 생긴다(#2126).
-    if (item.duration > 0) {
-      return '${item.name} · ${l.exDurationMinutes(item.duration)}';
+    // 생긴다(#2126). 초(`duration_seconds`)가 있으면 그것으로 읽는다 — 트레이너가
+    // 적은 `45초` 를 반올림한 `1분` 으로 보이지 않게 한다(#2221).
+    final int? seconds = item.durationSeconds;
+    if ((seconds ?? 0) > 0 || item.duration > 0) {
+      final String time = exerciseDurationLabel(
+        l,
+        minutes: item.duration,
+        durationSeconds: seconds,
+      );
+      return '${item.name} · $time';
     }
     // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
     // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.

@@ -1,5 +1,5 @@
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
-    show exerciseWeightLabel;
+    show exerciseDurationLabel, exerciseWeightLabel;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
@@ -30,11 +30,21 @@ String _detail(AppLocalizations l, CoachRoutineExercise exercise) {
   final int? reps = exercise.reps;
   final double? weight = exercise.weight;
   final int? duration = exercise.duration;
+  // 초가 있으면 초로 읽는다 — `45초` 를 반올림한 `1분` 으로 적지 않는다(#2221).
+  // 초를 모르는 옛 응답은 분에서 되짚는다.
+  final int? seconds =
+      exercise.durationSeconds ??
+      (duration != null && duration > 0 ? duration * 60 : null);
   final int? rest = exercise.rest;
   return <String>[
     if (sets != null && sets > 0) l.exSetsCount(sets),
     if (reps != null && reps > 0) l.exRepsCount(reps),
-    if (duration != null && duration > 0) l.exDurationMinutes(duration),
+    if (seconds != null && seconds > 0)
+      exerciseDurationLabel(
+        l,
+        minutes: duration ?? 0,
+        durationSeconds: seconds,
+      ),
     if (weight != null && weight > 0) exerciseWeightLabel(l, weight),
     if (rest != null && rest > 0) l.exRestSeconds(rest),
   ].join(' · ');
