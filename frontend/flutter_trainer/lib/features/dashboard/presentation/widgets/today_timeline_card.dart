@@ -179,8 +179,12 @@ class _NextUpBanner extends StatelessWidget {
           const SizedBox(width: OnCareSpacing.s8),
           AppButton(
             key: const ValueKey<String>('dashboard-next-session-cta'),
-            label: isConsultation || clientId == null
+            // 상담은 트레이너만 보는 메모, 로스터에 없는 회원의 PT 는 회원에게
+            // 가는 피드백을 남기러 간다(#2574).
+            label: isConsultation
                 ? l.dashLeaveMemo
+                : clientId == null
+                ? l.dashLeaveFeedback
                 : l.dashPreparePt,
             onPressed: () => context.go(
               isConsultation || clientId == null

@@ -25,6 +25,10 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     type: _str(json['type']),
     reason: _str(json['reason']),
     source: _str(json['source']),
+    // 효과 한 줄(#2570). 이 키를 모르는 옛 응답은 빈 값이다.
+    effect: _str(json['effect']),
+    // 개인운동만 전송은 카드 안 소제목을 달지 않는다(#2581).
+    deliveryKind: _str(json['delivery_kind']),
     // 운동 시간(초)(#2221). 근력과, 이 키를 모르는 옛 응답은 null 이라 화면이
     // [CoachRoutine.minutes] 로 떨어진다.
     durationSeconds: _positiveIntOrNull(json['duration_seconds']),

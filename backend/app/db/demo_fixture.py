@@ -142,6 +142,9 @@ class FixtureRoutine:
     reason: str
     #: `ai` | `trainer`.
     source: str
+    #: 회원 카드에서 이름 아래 서는 효과 한 줄(#2570). 적지 않은 픽스처는
+    #: 비어 있고, 그때 서버는 문구표로 채운다.
+    effect: str = ""
     #: 근력 배정의 세트 수·한 세트당 횟수·중량(kg). 다른 유형은 None 이다(#1276)
     #: — 유형마다 재는 단위가 다르다. 맨몸 운동은 중량만 비어 있다.
     sets: int | None = None
@@ -245,6 +248,7 @@ class DemoFixture:
                 type=item["type"],
                 reason=item["reason"],
                 source=item["source"],
+                effect=item.get("effect", ""),
                 sets=item.get("sets"),
                 reps=item.get("reps"),
                 hold_seconds=item.get("holdSeconds"),

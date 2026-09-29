@@ -785,7 +785,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashActivityDietFeedbackDesc.
   ///
   /// In en, this message translates to:
-  /// **'{names} are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.'**
+  /// **'{names} are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave diet feedback so they know it was seen.'**
   String dashActivityDietFeedbackDesc(String names);
 
   /// No description provided for @dashActivityMoreClients.
@@ -878,6 +878,12 @@ abstract class AppLocalizations {
   /// **'Leave a memo'**
   String get dashLeaveMemo;
 
+  /// No description provided for @dashLeaveFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave feedback'**
+  String get dashLeaveFeedback;
+
   /// No description provided for @dashSessionSent.
   ///
   /// In en, this message translates to:
@@ -911,7 +917,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashSessionNoteNotWritten.
   ///
   /// In en, this message translates to:
-  /// **'Not written'**
+  /// **'No memo'**
   String get dashSessionNoteNotWritten;
 
   /// No description provided for @weekdayMon.
@@ -1925,7 +1931,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatInsightMemoSaved.
   ///
   /// In en, this message translates to:
-  /// **'The AI insight was added to the trainer memo.'**
+  /// **'The AI insight was added to your memos.'**
   String get chatInsightMemoSaved;
 
   /// No description provided for @chatInsightMemoSaveFailed.
@@ -2932,7 +2938,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyMemberNoted.
   ///
   /// In en, this message translates to:
-  /// **'Thanks for the weekly check-in — I read it.'**
+  /// **'Thanks for your weekly feedback — I read it.'**
   String get reportBodyMemberNoted;
 
   /// No description provided for @reportBodyNextWeek.
@@ -3478,44 +3484,74 @@ abstract class AppLocalizations {
   /// No description provided for @schedNote.
   ///
   /// In en, this message translates to:
-  /// **'Trainer\'s note'**
+  /// **'Trainer feedback'**
   String get schedNote;
 
   /// No description provided for @schedEditNote.
   ///
   /// In en, this message translates to:
-  /// **'Edit note'**
+  /// **'Edit feedback'**
   String get schedEditNote;
 
   /// No description provided for @schedAddNote.
   ///
   /// In en, this message translates to:
-  /// **'Add note'**
+  /// **'Add feedback'**
   String get schedAddNote;
 
   /// No description provided for @schedNoNote.
   ///
   /// In en, this message translates to:
-  /// **'No note yet'**
+  /// **'No memo yet'**
   String get schedNoNote;
 
   /// No description provided for @schedNoteOnlyHint.
   ///
   /// In en, this message translates to:
-  /// **'A consultation is recorded as a note, not a program.'**
+  /// **'A consultation is recorded as a memo, not a program.'**
   String get schedNoteOnlyHint;
 
   /// No description provided for @schedNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Shown to the member as feedback once the PT is done. Keep member notes in the client memo'**
+  /// **'Feedback for the member. Keep member notes in the client memo'**
   String get schedNoteHint;
+
+  /// No description provided for @schedNoteVisibleToMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown to the member as feedback once the PT is done'**
+  String get schedNoteVisibleToMember;
+
+  /// No description provided for @schedConsultNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation memo'**
+  String get schedConsultNote;
+
+  /// No description provided for @schedEditConsultNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit memo'**
+  String get schedEditConsultNote;
+
+  /// No description provided for @schedAddConsultNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add memo'**
+  String get schedAddConsultNote;
 
   /// No description provided for @schedConsultNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Consultation notes aren\'t shown to the member'**
+  /// **'What you talked about in the consultation'**
   String get schedConsultNoteHint;
+
+  /// No description provided for @schedConsultNotePrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this memo. It\'s hidden from the member.'**
+  String get schedConsultNotePrivate;
 
   /// No description provided for @schedAddAction.
   ///
@@ -3562,7 +3598,7 @@ abstract class AppLocalizations {
   /// No description provided for @progNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Shown to the member as feedback once the PT is done. Keep member notes in the client memo'**
+  /// **'Feedback for the member. Keep member notes in the client memo'**
   String get progNoteHint;
 
   /// No description provided for @progSaving.
@@ -4621,6 +4657,18 @@ abstract class AppLocalizations {
   /// **'e.g. Rehab exercise, Sports activity'**
   String get routineFieldExerciseNameHintOther;
 
+  /// Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570).
+  ///
+  /// In en, this message translates to:
+  /// **'Benefit shown to member'**
+  String get routineFieldEffect;
+
+  /// No description provided for @routineFieldEffectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Protect right shoulder'**
+  String get routineFieldEffectHint;
+
   /// No description provided for @routineFieldSets.
   ///
   /// In en, this message translates to:
@@ -5230,7 +5278,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiNoteForClient.
   ///
   /// In en, this message translates to:
-  /// **'A note to send with it'**
+  /// **'Feedback to send with it'**
   String get aiNoteForClient;
 
   /// No description provided for @aiReviewedSuggestion.
@@ -5304,12 +5352,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip PT — personal exercise only'**
   String get aiSkipPtProgram;
-
-  /// No description provided for @aiPersonalRationaleLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Why AI picked this'**
-  String get aiPersonalRationaleLabel;
 
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
   ///
@@ -5539,6 +5581,12 @@ abstract class AppLocalizations {
   /// **'This week\'s personal exercise'**
   String get aiRoutineOnlyProgramName;
 
+  /// Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581).
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get aiRoutineOnlyDeliveryName;
+
   /// No description provided for @progPersonalRoutinesWhen.
   ///
   /// In en, this message translates to:
@@ -5611,12 +5659,6 @@ abstract class AppLocalizations {
   /// **'Recent activity'**
   String get aiRecentRoutine;
 
-  /// No description provided for @aiTrainerNoteEditable.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer\'s note · editable'**
-  String get aiTrainerNoteEditable;
-
   /// No description provided for @aiNotePlaceholderHint.
   ///
   /// In en, this message translates to:
@@ -5668,7 +5710,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPromptBlurb.
   ///
   /// In en, this message translates to:
-  /// **'Your request goes to the AI with the member\'s data (up to 500 characters). Write the member note in the next step.'**
+  /// **'Your request goes to the AI with the member\'s data (up to 500 characters). Write the trainer feedback in the next step.'**
   String get aiPromptBlurb;
 
   /// No description provided for @aiGenerateGoalBased.
@@ -6949,6 +6991,12 @@ abstract class AppLocalizations {
   /// **'Note what you want to remember about this member'**
   String get clientTrainerMemoHint;
 
+  /// No description provided for @clientTrainerMemoPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this memo. It\'s hidden from the member.'**
+  String get clientTrainerMemoPrivate;
+
   /// No description provided for @clientTrainerMemoAdd.
   ///
   /// In en, this message translates to:
@@ -7364,12 +7412,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Period (optional)'**
   String get programEditorPeriod;
-
-  /// No description provided for @programEditorMemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Program memo (optional)'**
-  String get programEditorMemo;
 
   /// No description provided for @programEditorAiHint.
   ///
@@ -8634,13 +8676,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMemberFeedbackNoteLabel.
   ///
   /// In en, this message translates to:
-  /// **'Note'**
+  /// **'One-line feedback'**
   String get reportsMemberFeedbackNoteLabel;
 
   /// No description provided for @reportsMemberFeedbackNoteNone.
   ///
   /// In en, this message translates to:
-  /// **'No note'**
+  /// **'No one-line feedback'**
   String get reportsMemberFeedbackNoteNone;
 
   /// No description provided for @reportsMemberFeedbackPainOn.

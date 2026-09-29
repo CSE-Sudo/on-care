@@ -92,13 +92,18 @@ class MockTrainerRoutineSuggestionRepository
   /// 예전에는 `어깨 관절 보호 스트레칭`·`저강도 걷기` 였는데, 그 둘은 배정
   /// 목록에도 있는 운동이라 같은 화면에서 "아직 안 보낸 후보" 와 "이미 보낸
   /// 것" 으로 두 번 나왔다. 같은 운동이 두 상태를 동시에 가질 수는 없다.
+  ///
+  /// 사유는 트레이너가 읽는 판단 재료다 — 이 회원의 어떤 기록 때문에 올라왔나를
+  /// 기록 숫자로 말한다(#2579). 서버 `routine_suggestion_service` 와 같은 말투다.
   static const List<RoutineSuggestion> _seed = <RoutineSuggestion>[
     RoutineSuggestion(
       id: 'demo-suggestion-interval',
       name: '가벼운 인터벌 러닝',
       minutes: 30,
       type: '유산소',
-      reason: '빠르게 걷다 천천히 걷기를 번갈아 하는 회복 목적 유산소예요. 숨이 차면 속도를 낮추세요.',
+      reason:
+          '혈압 관리가 목표인데 최근 2주 운동 240분 중 190분(79%)이 근력이에요. '
+          '강도를 오르내리는 유산소로 균형을 맞추기 좋아요.',
       evidence: <String>[
         RoutineEvidence.bloodPressureGoal,
         RoutineEvidence.strengthHeavy,
@@ -109,7 +114,7 @@ class MockTrainerRoutineSuggestionRepository
       name: '흉추 회전 스트레칭',
       minutes: 10,
       type: '스트레칭',
-      reason: '등 위쪽을 돌려 어깨 부담을 줄이는 스트레칭이에요. 통증이 있으면 멈추세요.',
+      reason: '2일 전 PT 가 있었어요. 다음 수업 전까지 등 위쪽을 풀어 어깨 부담을 덜어 두기 좋아요.',
       evidence: <String>[RoutineEvidence.recentPtFeedback],
     ),
     // 근력 후보를 하나 둔다 — 세트·횟수·중량을 묻는 자리가 데모에서도 보여야
@@ -122,7 +127,7 @@ class MockTrainerRoutineSuggestionRepository
       sets: 3,
       reps: 15,
       weight: 0,
-      reason: '누워서 엉덩이를 들어 올리는 하체 근력 운동이에요. 허리가 아프면 범위를 줄이세요.',
+      reason: '최근 2주 근력 190분이 대부분 기구 운동이에요. 하체는 맨몸으로 가볍게만 이어 가기 좋아요.',
       evidence: <String>[RoutineEvidence.strengthHeavy],
     ),
   ];
@@ -135,8 +140,8 @@ class MockTrainerRoutineSuggestionRepository
       minutes: 30,
       type: '유산소',
       reason:
-          'Recovery cardio that alternates brisk and easy walking. '
-          'Slow down if you get out of breath.',
+          'Blood pressure is a goal, but 190 of 240 min (79%) in the last '
+          '2 weeks was strength. Cardio that varies intensity rebalances it.',
       evidence: <String>[
         RoutineEvidence.bloodPressureGoal,
         RoutineEvidence.strengthHeavy,
@@ -148,8 +153,8 @@ class MockTrainerRoutineSuggestionRepository
       minutes: 10,
       type: '스트레칭',
       reason:
-          'A stretch that rotates the upper back to ease shoulder strain. '
-          'Stop if you feel any pain.',
+          'There was a PT session 2 days ago. Loosening the upper back '
+          'eases the shoulders before the next session.',
       evidence: <String>[RoutineEvidence.recentPtFeedback],
     ),
     RoutineSuggestion(
@@ -161,8 +166,8 @@ class MockTrainerRoutineSuggestionRepository
       reps: 15,
       weight: 0,
       reason:
-          'A lower-body strength move lifting your hips while lying down. '
-          'Shorten the range if your lower back hurts.',
+          'Most of the 190 min of strength in the last 2 weeks was on '
+          'machines. Keep the lower body light with a bodyweight move.',
       evidence: <String>[RoutineEvidence.strengthHeavy],
     ),
   ];

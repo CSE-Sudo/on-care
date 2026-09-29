@@ -156,7 +156,11 @@ class SessionEditMenu extends StatelessWidget {
         AppMenuItem(
           key: const ValueKey<String>('session-edit-note-chip'),
           icon: hasNote ? AppIcons.note : AppIcons.note,
-          label: hasNote ? l.schedEditNote : l.schedAddNote,
+          // PT 에 적는 글은 회원에게 가는 트레이너 피드백이고, 상담에 적는
+          // 글은 트레이너만 보는 메모다 — 이름을 나눠 부른다(#2574).
+          label: hasProgram
+              ? (hasNote ? l.schedEditNote : l.schedAddNote)
+              : (hasNote ? l.schedEditConsultNote : l.schedAddConsultNote),
           onSelected: onEditNote,
         ),
       // 되돌릴 수 없는 동작이라 마지막 자리에 빨간 글씨로 둔다. 누르면

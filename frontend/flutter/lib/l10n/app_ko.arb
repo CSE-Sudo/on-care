@@ -752,7 +752,7 @@
   "myWeeklyReportDone": "지난주 리포트를 만들었어요",
   "myBenefitsWeeklyReports": "주간 리포트",
   "myWeeklyReportCardTitle": "포인트로 받은 리포트",
-  "coachReportPdfSelfMadeNote": "담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.",
+  "coachReportPdfSelfMadeNote": "담당 트레이너 없이 포인트로 받은 리포트라 트레이너 피드백이 없어요.",
   "coachReportPdfSectionInsights": "참고 기록",
   "coachReportPdfNoInsights": "이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.",
   "coachReportPdfInsightSummary": "{label} {count}회",
@@ -1290,8 +1290,8 @@
   "coachReportPdfAttendance": "{booked}회 중 {done}회",
   "coachReportPdfNoData": "기록 없음",
   "coachReportPdfDay": "{weekday}요일 — 운동 {exercise}, 섭취 {intake}",
-  "coachReportPdfSectionTrainerNote": "트레이너 메시지",
-  "coachReportPdfNoTrainerNote": "함께 온 메시지가 없어요.",
+  "coachReportPdfSectionTrainerNote": "트레이너 피드백",
+  "coachReportPdfNoTrainerNote": "함께 온 피드백이 없어요.",
   "coachReportPdfSectionChange": "지난주 대비",
   "coachReportPdfSectionMacros": "평균 탄단지",
   "coachReportPdfLabelLoggedDays": "식단 기록한 날",
@@ -1999,7 +1999,7 @@
   "weeklyFeedbackPainHint": "예: 오른 무릎",
   "weeklyFeedbackPainDateLabel": "아팠던 날",
   "weeklyFeedbackPainDatePick": "날짜 고르기",
-  "weeklyFeedbackNoteQuestion": "트레이너에게 한 줄 (선택)",
+  "weeklyFeedbackNoteQuestion": "트레이너에게 한 줄 피드백 (선택)",
   "weeklyFeedbackNoteHint": "그 주에 있었던 일을 적어 주세요",
   "weeklyFeedbackSend": "보내기",
   "weeklyFeedbackResend": "다시 보내기",
@@ -2055,7 +2055,7 @@
       }
     }
   },
-  "myWeeklyFeedbackNoteLabel": "남긴 말",
+  "myWeeklyFeedbackNoteLabel": "한 줄 피드백",
   "myWeeklyFeedbackSentAt": "{month}월 {day}일 보냄",
   "@myWeeklyFeedbackSentAt": {
     "placeholders": {
