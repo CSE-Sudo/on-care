@@ -3546,7 +3546,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => '완료 기록';
+  String get coachRoutineSubmit => '완료';
 
   @override
   String get coachChatWithTrainer => '트레이너와 채팅';

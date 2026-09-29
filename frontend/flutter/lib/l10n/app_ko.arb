@@ -1776,7 +1776,7 @@
   "coachRoutineIntensity": "수행 강도",
   "coachRoutinePlannedIntensity": "권장 {level}",
   "coachRoutineDoneIntensity": "수행 {level}",
-  "coachRoutineSubmit": "완료 기록",
+  "coachRoutineSubmit": "완료",
   "coachChatWithTrainer": "트레이너와 채팅",
   "coachTrainerLoading": "담당 트레이너를 불러오는 중이에요",
   "coachTrainerNone": "담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요",

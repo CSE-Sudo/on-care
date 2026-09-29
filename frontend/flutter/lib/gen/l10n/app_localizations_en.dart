@@ -3687,7 +3687,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => 'Save';
+  String get coachRoutineSubmit => 'Done';
 
   @override
   String get coachChatWithTrainer => 'Chat with trainer';

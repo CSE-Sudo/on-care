@@ -2895,7 +2895,7 @@
       }
     }
   },
-  "coachRoutineSubmit": "Save",
+  "coachRoutineSubmit": "Done",
   "@coachRoutineSubmit": {
     "description": "Submit button of the completion dialog."
   },
