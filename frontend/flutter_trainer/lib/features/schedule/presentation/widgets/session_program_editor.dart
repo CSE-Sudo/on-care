@@ -119,18 +119,6 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
     return AppDialog(
       title: widget.title,
       size: AppDialogSize.medium,
-      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
-      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
-      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
-      trailing: widget.noteOnly
-          ? null
-          : AppButton(
-              label: l.progAddExercise,
-              leadingIcon: AppIcons.add,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              onPressed: _saving ? null : _addItem,
-            ),
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : widget.onCancel,
@@ -163,6 +151,20 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
           ),
           const SizedBox(height: OnCareSpacing.s8),
         ],
+        // 목록을 늘리는 `+ 운동 추가` 는 목록 끝 가운데 글자 버튼이다 — 새 줄이
+        // 생기는 바로 그 자리라, 누른 뒤 스크롤해 내려가 찾지 않아도 된다. 창
+        // 제목 오른쪽에 두었더니 새 줄은 목록 맨 아래에 생겨, 목록이 길면 누른
+        // 결과가 보이지 않았다(#2476).
+        Align(
+          child: AppButton(
+            key: const ValueKey<String>('session-program-add-exercise'),
+            label: l.progAddExercise,
+            leadingIcon: AppIcons.add,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            onPressed: _saving ? null : _addItem,
+          ),
+        ),
       ],
       // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
       // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어

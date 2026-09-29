@@ -247,21 +247,6 @@ class _SendPersonalRoutinesDialogState
           ? l.schedEditRoutinesTitle
           : l.schedRoutinesSendTitle,
       showClose: false,
-      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
-      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
-      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
-      // 덜어내기만 되고 더하기가 없으면, 운동 하나를 보태려고 프로그램
-      // 만들기까지 돌아가야 한다 — 고치는 자리가 반쪽이 된다(#2224).
-      trailing: _draft.length < kProgramMaxSessions
-          ? AppButton(
-              key: const ValueKey<String>('session-routine-add'),
-              label: l.progAddExercise,
-              leadingIcon: AppIcons.add,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              onPressed: _add,
-            )
-          : null,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
@@ -290,6 +275,25 @@ class _SendPersonalRoutinesDialogState
               controller: _names[index],
               onChanged: (value) => setState(() => _draft[index] = value),
               onRemove: _draft.length > 1 ? () => _removeAt(index) : null,
+            ),
+          ],
+          // 목록을 늘리는 `+ 운동 추가` 는 목록 끝 가운데 글자 버튼이다 — 새 줄이
+          // 생기는 바로 그 자리라, 누른 뒤 스크롤해 내려가 찾지 않아도 된다. 창
+          // 제목 오른쪽에 두었더니 새 줄은 목록 맨 아래에 생겨, 목록이 길면 누른
+          // 결과가 보이지 않았다(#2476).
+          // 덜어내기만 되고 더하기가 없으면, 운동 하나를 보태려고 프로그램
+          // 만들기까지 돌아가야 한다 — 고치는 자리가 반쪽이 된다(#2224).
+          if (_draft.length < kProgramMaxSessions) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Align(
+              child: AppButton(
+                key: const ValueKey<String>('session-routine-add'),
+                label: l.progAddExercise,
+                leadingIcon: AppIcons.add,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+                onPressed: _add,
+              ),
             ),
           ],
         ],
