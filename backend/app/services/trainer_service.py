@@ -2329,16 +2329,25 @@ def _session_summary(
     시간은 초로 더한 뒤 한 번만 분으로 접는다(#2221) — 45초짜리 셋을 각각 1분으로
     올려 더하면 2분 15초가 3분이 된다.
     """
-    seconds = 0
     counts: dict[str, int] = {}
     has_ai = False
     for exercise in exercises:
-        seconds += _exercise_seconds(exercise.type, exercise.duration_seconds, exercise.sets)
         counts[exercise.type] = counts.get(exercise.type, 0) + 1
         if exercise.source == "ai":
             has_ai = True
     type_ = max(counts, key=lambda t: counts[t]) if counts else "근력"
-    return _minutes_of(seconds), type_, ("ai" if has_ai else "trainer")
+    return _minutes_of(_session_seconds(exercises)), type_, ("ai" if has_ai else "trainer")
+
+
+def _session_seconds(exercises: Sequence[ProgramDraftExercise]) -> int:
+    """세션 하나의 운동 시간(초) — 각 운동의 초를 더한 값이다. (#2221)
+
+    배정 행의 `duration_seconds` 로도 남긴다(#2521). 분만 남기던 동안에는 읽는
+    쪽이 분 × 60 으로 되짚어, 45초짜리 운동 하나인 세션이 60초로 읽혔다.
+    """
+    return sum(
+        _exercise_seconds(e.type, e.duration_seconds, e.sets) for e in exercises
+    )
 
 
 def _exercise_seconds(type_: str, duration_seconds: int | None, sets: int | None) -> int:
@@ -2516,6 +2525,9 @@ def _add_program_routines(
             member_id=member_id,
             name=(session.name or name) if multi else name,
             minutes=minutes,
+            # 분은 초에서 한 번 접은 값이다 — 초를 함께 남겨야 45초가 60초로
+            # 되짚히지 않는다(#2521). 0 이면(근력만·시간 없음) 비운다.
+            duration_seconds=_session_seconds(session.exercises) or None,
             type=type_,
             reason=", ".join(e.name for e in session.exercises)[:200],
             source=source,
@@ -2557,11 +2569,7 @@ def _add_program_routines(
         template_args=_program_notification_args(
             name,
             sessions=len(created),
-            seconds=sum(
-                _exercise_seconds(e.type, e.duration_seconds, e.sets)
-                for session in sessions
-                for e in session.exercises
-            ),
+            seconds=sum(_session_seconds(session.exercises) for session in sessions),
             multi=multi,
         ),
     )
@@ -2577,7 +2585,7 @@ def _program_row_seconds(row: TrainerRoutine) -> int:
     exercises = draft_exercises(row.exercises_json)
     if not exercises:
         return row.minutes * 60
-    return sum(_exercise_seconds(e.type, e.duration_seconds, e.sets) for e in exercises)
+    return _session_seconds(exercises)
 
 
 def _program_notification_args(

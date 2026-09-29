@@ -195,6 +195,52 @@ def test_a_template_saved_with_legacy_text_reads_as_numbers(client, db_session):
     assert (item["sets"], item["reps"], item["weight"]) == (3, 10, 20.0)
 
 
+def test_a_template_keeps_exercise_seconds(client, db_session):
+    """편집기에서 시·분·초로 적은 운동이 템플릿에서도 초로 남는다. (#2521)"""
+    _, token = _trainer(client, db_session)
+
+    response = client.post(
+        "/v1/trainer/program-templates",
+        json={
+            "name": "초 블록",
+            "exercises": [
+                {"name": "버피", "type": "유산소", "duration_seconds": 45},
+                {"name": "걷기", "type": "유산소", "duration_seconds": 5415},
+            ],
+        },
+        headers=_auth(token),
+    )
+    assert response.status_code == 201, response.text
+
+    listed = client.get("/v1/trainer/program-templates", headers=_auth(token))
+    items = listed.json()[0]["exercises"]
+    assert [(i["duration_seconds"], i["minutes"]) for i in items] == [
+        (45, 1),
+        (5415, 90),
+    ]
+
+
+def test_a_minutes_only_template_reads_as_seconds(client, db_session):
+    """초 칸이 생기기 전에 저장된 템플릿은 분 × 60 으로 읽힌다. (#2521)"""
+    trainer, token = _trainer(client, db_session)
+    db_session.add(
+        TrainerProgramTemplate(
+            id=f"tpl-{uuid4().hex[:8]}",
+            trainer_id=trainer.id,
+            name="옛 블록",
+            goal="",
+            exercises_json='[{"name": "걷기", "minutes": 20, "type": "유산소"}]',
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/v1/trainer/program-templates", headers=_auth(token))
+
+    assert response.status_code == 200, response.text
+    item = response.json()[0]["exercises"][0]
+    assert (item["duration_seconds"], item["minutes"]) == (1200, 20)
+
+
 def test_editing_replaces_the_exercise_list_wholesale(client, db_session):
     _, token = _trainer(client, db_session)
     created = _create(client, token)
