@@ -56,6 +56,10 @@ def test_reserve_flushes_schedule_before_reservation() -> None:
     assert first_add < flush < second_add < commit
     assert result.schedule_id.startswith("sched-")
     assert slot.remaining == 0
+    # note 는 트레이너 피드백 자리다 — 예약 표식을 넣지 않는다(#2575).
+    schedule = db.add.call_args_list[0].args[0]
+    assert isinstance(schedule, TrainerSchedule)
+    assert schedule.note == ""
 
 
 def test_reserved_schedule_is_blocked_from_regular_update_and_delete() -> None:
@@ -218,6 +222,8 @@ def test_reservation_persists_and_appears_in_trainer_schedule(
     assert schedule.client_name == "이지수"
     assert schedule.type == "1:1 PT"
     assert schedule.duration_minutes == 60
+    # 피드백 없이 완료하면 이 값이 그대로 회원 앱에 피드백으로 나간다(#2575).
+    assert schedule.note == ""
 
     timeline = client.get(
         "/v1/trainer/schedule",
@@ -374,7 +380,7 @@ def test_member_account_deletion_restores_slot_and_removes_schedule(
         type="1:1 PT",
         duration_minutes=60,
         status="예정",
-        note="회원 직접 예약",
+        note="",
         program_json="[]",
         sort_order=0,
     )

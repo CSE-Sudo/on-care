@@ -3508,8 +3508,14 @@ abstract class AppLocalizations {
   /// No description provided for @schedNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Anything to prepare, or notes about this member'**
+  /// **'Shown to the member as feedback once the PT is done. Keep member notes in the client memo'**
   String get schedNoteHint;
+
+  /// No description provided for @schedConsultNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation notes aren\'t shown to the member'**
+  String get schedConsultNoteHint;
 
   /// No description provided for @schedAddAction.
   ///
@@ -3556,7 +3562,7 @@ abstract class AppLocalizations {
   /// No description provided for @progNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Notes to follow while running this program'**
+  /// **'Shown to the member as feedback once the PT is done. Keep member notes in the client memo'**
   String get progNoteHint;
 
   /// No description provided for @progSaving.

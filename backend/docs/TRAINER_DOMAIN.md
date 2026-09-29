@@ -554,13 +554,14 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 - 담당 코치는 **active 링크**만 인정(`get_member_trainer_id` → `active.is_(True)`).
   휴면 링크만 있으면 코치 조회/발신 불가(404/빈 목록).
 - `/me/coach/sessions`는 시간이 지나며 누적되는 PT 세션을 **최근 100건**으로 상한.
+- `/me/coach/sessions`의 `note`는 **완료된 PT** 것만 싣는다(#2515). PT 일정의 `note`는 회원에게 보내는 트레이너 피드백이고, 상담 일정의 `note`는 트레이너만 보는 상담 기록(메모)이다. 예정·취소·노쇼 PT 와 상담 일정의 `note`는 빈 문자열로 나간다. 트레이너 응답(`/trainer/schedule`)은 그대로 전부 준다.
 
 ### 추천 개인운동의 효과 한 줄 (#2570)
 
 회원 앱 추천 개인운동 카드는 운동 이름 바로 아래에 `RoutineOut.effect` 를 한 줄로 보인다.
 트레이너가 운동마다 효과를 적지 않아도 되게 **자동으로 채우고, 고치고 싶을 때만 고친다.**
 
-- **저장은 트레이너가 적은 것만.** `trainer_routines.effect`(String(40), `0102_routine_effect`)는
+- **저장은 트레이너가 적은 것만.** `trainer_routines.effect`(String(40), `0103_routine_effect`)는
   트레이너 웹이 보낸 글자다 — `PersonalRoutineItem.effect`(PT 에 붙인 개인운동·일정 개인운동 수정),
   `ProgramDraftExercise.effect`(`개인운동만`: 세션마다 운동이 하나라 그 운동의 효과가 배정의 효과).
 - **비어 있으면 응답 때 채운다.** 운동 유형 × 회원 **첫** 건강 목표(`health_profiles.conditions`)
