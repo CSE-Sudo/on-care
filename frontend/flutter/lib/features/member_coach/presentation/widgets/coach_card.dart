@@ -604,7 +604,12 @@ class _RecommendedExerciseRowState
                       ],
                       // 운동 구성이 오면 그것을 보여 준다 — 이름만 이어 붙인
                       // reason 보다 정확하다(세트·횟수·중량까지 온다, #709).
-                      if (routine.exercises.isNotEmpty)
+                      // 운동 하나짜리(`개인운동만` 등)는 첫 줄의 이름과 오른쪽
+                      // `유형 · 양` 이 이미 같은 것을 말하므로 적지 않는다(#2581)
+                      // — 양은 그 운동의 값으로 오른쪽에 올린다
+                      // ([_routineAmountLabel]).
+                      if (routine.exercises.isNotEmpty &&
+                          !_singleExerciseRepeatsTitle(routine))
                         for (final CoachRoutineExercise exercise
                             in routine.exercises) ...<Widget>[
                           const SizedBox(height: OnCareSpacing.s2),
@@ -615,7 +620,10 @@ class _RecommendedExerciseRowState
                         ]
                       // 효과 줄이 없던 옛 배정만 reason 으로 떨어진다. 효과가
                       // 있으면 reason(AI 자동 추천의 긴 안내 등)은 싣지 않는다.
-                      else if (routine.effect.isEmpty &&
+                      // 운동 구성이 있는 배정의 reason 은 이름 나열이라, 구성
+                      // 줄을 건너뛴 경우에도 대신 적지 않는다(#2581).
+                      else if (routine.exercises.isEmpty &&
+                          routine.effect.isEmpty &&
                           routine.reason.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(routine.reason, style: detailStyle),
@@ -914,16 +922,44 @@ class _ChatButton extends StatelessWidget {
 /// 시간은 초가 있으면 초로 읽는다(#2221) — `45초` · `1시간 30분`. 완료 기록이
 /// 분으로만 남았다면 배정의 초가 아니라 그 분을 쓴다: 회원이 실제로 한 값이
 /// 배정 값보다 앞선다.
-String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) =>
-    exerciseAmountLabelOf(
-      l,
-      type: exerciseTypeFromLabel(routine.type),
-      minutes: routine.completedMinutes ?? routine.minutes,
-      durationSeconds:
-          routine.completedDurationSeconds ??
-          (routine.completedMinutes == null ? routine.durationSeconds : null),
-      sets: routine.sets,
-      reps: routine.reps,
-      weight: routine.weight,
-      setsFromMinutesWhenUnknown: false,
-    );
+///
+/// 운동 하나짜리 세션은 서버가 행에 세트·횟수·중량을 남기지 않고 분만 둔다
+/// (`_session_summary`). 그 세션의 구성 줄을 적지 않으므로(#2581), 양은 그
+/// 운동의 값에서 읽는다 — 그러지 않으면 `3세트 · 15회` 가 `12분` 으로 보인다.
+String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) {
+  final CoachRoutineExercise? only = routine.exercises.length == 1
+      ? routine.exercises.single
+      : null;
+  final int? onlySeconds =
+      only?.durationSeconds ??
+      (only?.duration != null && only!.duration! > 0
+          ? only.duration! * 60
+          : null);
+  return exerciseAmountLabelOf(
+    l,
+    type: exerciseTypeFromLabel(routine.type),
+    minutes: routine.completedMinutes ?? routine.minutes,
+    durationSeconds:
+        routine.completedDurationSeconds ??
+        (routine.completedMinutes == null
+            ? routine.durationSeconds ?? onlySeconds
+            : null),
+    sets: routine.sets ?? only?.sets,
+    reps: routine.reps ?? only?.reps,
+    weight: routine.weight ?? only?.weight,
+    setsFromMinutesWhenUnknown: false,
+  );
+}
+
+/// 운동 하나짜리 세션인데 그 운동 이름이 줄 제목과 같은가. (#2581)
+///
+/// 그러면 구성 줄(`힙 브리지 · 3세트 · 15회`)은 첫 줄의 이름과 오른쪽 양을
+/// 되풀이할 뿐이다. 이름이 다르면(`세션 A` 안의 `스쿼트`) 무엇을 하는지는
+/// 구성 줄만 말하므로 남긴다.
+bool _singleExerciseRepeatsTitle(CoachRoutine routine) {
+  if (routine.exercises.length != 1) return false;
+  final String title = routine.isProgramSession
+      ? routine.sessionName
+      : routine.name;
+  return routine.exercises.single.name.trim() == title.trim();
+}
