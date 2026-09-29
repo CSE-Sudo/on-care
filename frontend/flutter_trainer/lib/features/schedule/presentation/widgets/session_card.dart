@@ -403,7 +403,7 @@ class _DetachedAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: OnCareColors.surfaceInput,
       ),
-      child: Icon(
+      child: AppIcon(
         AppIcons.person,
         size: d * 0.6,
         color: OnCareColors.textTertiary,
