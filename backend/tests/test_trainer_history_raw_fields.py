@@ -576,8 +576,7 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
     assert entry["kind"] == "pt_session"
     assert entry["exercises"] == [
         "스쿼트 3세트 12회 40kg",
-        # 맨몸(0kg)은 이력 한 줄에 중량을 적지 않는다 (#2533)
-        "플랭크 3세트 60초",
+        "플랭크 3세트 60초 0kg",
         "사이클 20분",
     ]
     assert entry["date"] == clock.today().isoformat()
@@ -591,5 +590,6 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
         {"name": "플랭크", "type": "strength", "sets": 3, "hold_seconds": 60},
         {"name": "사이클", "minutes": 20},
     ]
-    # 줄에는 적지 않아도 맨몸 운동의 0kg 은 값으로 남는다(0 과 '적지 않음'은 다르다)
+    # 맨몸 운동의 0kg 도 값으로 남는다(0 과 '적지 않음'은 다르다) — 화면은
+    # 0 을 적지 않지만 저장 문장에는 남아야 값이 되짚힌다(#2533)
     assert entry["exercise_items"][1]["weight"] == 0.0
