@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 
@@ -162,7 +163,13 @@ class SlotErrorCodes {
 }
 
 class MockReservationSlotRepository implements ReservationSlotRepository {
-  final List<ReservationSlot> _slots = <ReservationSlot>[];
+  /// [seed] 는 처음부터 열려 있는 자리다. 기본은 빈 목록 — 앱의 목업 모드만
+  /// 데모 자리([demoReservationSlots])를 넣어 만든다.
+  MockReservationSlotRepository({
+    Iterable<ReservationSlot> seed = const <ReservationSlot>[],
+  }) : _slots = <ReservationSlot>[...seed];
+
+  final List<ReservationSlot> _slots;
 
   final StreamController<void> _revisions = StreamController<void>.broadcast();
 
@@ -270,7 +277,7 @@ final reservationSlotRepositoryProvider = Provider<ReservationSlotRepository>((
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final ReservationSlotRepository repository =
       ref.watch(appConfigProvider).useMockApi
-      ? MockReservationSlotRepository()
+      ? MockReservationSlotRepository(seed: demoReservationSlots())
       : DioReservationSlotRepository(ref.watch(dioProvider));
   ref.onDispose(repository.dispose);
   return repository;
