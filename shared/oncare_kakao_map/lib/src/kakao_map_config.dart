@@ -19,9 +19,14 @@ class KakaoMapMarker {
     required this.lat,
     required this.lng,
     required this.title,
+    this.id,
   });
 
   final double lat;
   final double lng;
   final String title;
+
+  /// 핀을 눌렀을 때 누가 눌렸는지 알려 줄 값(`KakaoMapView.onMarkerTap`).
+  /// 누를 일이 없는 지도는 비워 둔다.
+  final String? id;
 }

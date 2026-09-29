@@ -14,12 +14,12 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/domain/repositories/place_repository.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 
 /// 카카오가 아무 결과도 주지 않아도 제휴 목록만으로 화면이 선다(#329).
 class _EmptyPlaceRepository implements PlaceRepository {

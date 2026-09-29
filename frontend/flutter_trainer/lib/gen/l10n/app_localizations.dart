@@ -4171,53 +4171,83 @@ abstract class AppLocalizations {
   /// **'Hours'**
   String get myGymHours;
 
-  /// No description provided for @myGymListFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the gym list.'**
-  String get myGymListFailed;
-
-  /// No description provided for @myGymNoMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'This gym isn\'t listed. Please add its address and hours yourself.'**
-  String get myGymNoMatch;
-
-  /// No description provided for @myGymLinked.
-  ///
-  /// In en, this message translates to:
-  /// **'Registered gym'**
-  String get myGymLinked;
-
-  /// No description provided for @myGymUnlink.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlink'**
-  String get myGymUnlink;
-
-  /// No description provided for @myGymNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Type to find a registered gym'**
-  String get myGymNameHint;
-
   /// No description provided for @myGymRequired.
   ///
   /// In en, this message translates to:
-  /// **'Enter your gym'**
+  /// **'Pick your gym from the search results'**
   String get myGymRequired;
+
+  /// No description provided for @myGymSearchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your gym'**
+  String get myGymSearchLabel;
+
+  /// No description provided for @myGymSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym name or address'**
+  String get myGymSearchHint;
+
+  /// No description provided for @myGymSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get myGymSearching;
+
+  /// No description provided for @myGymSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gyms found. Try a different name or add the neighborhood.'**
+  String get myGymSearchEmpty;
+
+  /// No description provided for @myGymSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search gyms. Please try again in a moment.'**
+  String get myGymSearchFailed;
+
+  /// No description provided for @myGymCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current gym'**
+  String get myGymCurrent;
+
+  /// No description provided for @myGymPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving will switch you to this gym'**
+  String get myGymPicked;
+
+  /// No description provided for @myGymNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None yet'**
+  String get myGymNone;
+
+  /// No description provided for @myGymHiddenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Members can\'t find you yet'**
+  String get myGymHiddenTitle;
+
+  /// No description provided for @myGymHiddenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your gym to appear in the member app\'s gym finder and consultation requests.'**
+  String get myGymHiddenBody;
+
+  /// No description provided for @myGymHiddenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Set gym'**
+  String get myGymHiddenAction;
 
   /// No description provided for @myGymEditHint.
   ///
   /// In en, this message translates to:
-  /// **'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.'**
+  /// **'Search by name and pick your gym. Members find you through this gym.'**
   String get myGymEditHint;
-
-  /// No description provided for @myGymListLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading gyms…'**
-  String get myGymListLoading;
 
   /// No description provided for @mySignOut.
   ///
@@ -4414,7 +4444,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No gym yet. Add yours in Edit profile.'**
+  /// **'No gym yet. Set yours in Edit profile.'**
   String get myGymEmpty;
 
   /// No description provided for @myEditVisibleBody.

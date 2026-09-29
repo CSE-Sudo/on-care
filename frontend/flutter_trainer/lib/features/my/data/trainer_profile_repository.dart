@@ -13,6 +13,9 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 ///
 /// Dio's base URL already contains `/v1`, so the request path stays
 /// `/trainer/me` rather than duplicating the API prefix.
+///
+/// 헬스장 이름·주소는 여기서 보내지 않는다(#2543) — 서버가 소속에서만 파생하고,
+/// 보내면 409 다. 소속은 [TrainerProfileRepository.selectGym] 으로 정한다.
 class TrainerProfileUpdate {
   const TrainerProfileUpdate({
     required this.phone,
@@ -20,10 +23,6 @@ class TrainerProfileUpdate {
     required this.careerYears,
     required this.intro,
     required this.certifications,
-    this.gymName,
-    this.gymAddress,
-    this.gymHours,
-    this.gymPhone,
   });
 
   final String phone;
@@ -31,10 +30,6 @@ class TrainerProfileUpdate {
   final int careerYears;
   final String intro;
   final List<String> certifications;
-  final String? gymName;
-  final String? gymAddress;
-  final String? gymHours;
-  final String? gymPhone;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'phone': phone,
@@ -42,39 +37,62 @@ class TrainerProfileUpdate {
     'career_years': careerYears,
     'intro': intro,
     'certifications': certifications,
-    if (gymName != null) 'gym_name': gymName,
-    if (gymAddress != null) 'gym_address': gymAddress,
-    if (gymHours != null) 'gym_hours': gymHours,
-    if (gymPhone != null) 'gym_phone': gymPhone,
   };
 }
 
-class TrainerGymChoice {
-  const TrainerGymChoice({
+/// 소속으로 고를 수 있는 헬스장 — `GET /trainer/gyms/search` 한 줄(#2543).
+///
+/// [registered] 면 이미 서버 목록에 있는 곳, 아니면 카카오에서 찾은 곳이다.
+/// 고르는 경로가 둘로 갈리므로([TrainerProfileRepository.selectGym]) 화면은
+/// 이 값을 몰라도 된다.
+class TrainerGymCandidate {
+  const TrainerGymCandidate({
     required this.id,
     required this.name,
     required this.address,
-    this.hours = '',
+    required this.registered,
+    this.lat,
+    this.lng,
     this.phone = '',
+    this.distanceMeters,
   });
+
+  factory TrainerGymCandidate.fromJson(Map<String, Object?> json) =>
+      TrainerGymCandidate(
+        id: json['id']! as String,
+        name: json['name'] as String? ?? '',
+        address: json['address'] as String? ?? '',
+        registered: json['registered'] == true,
+        lat: (json['lat'] as num?)?.toDouble(),
+        lng: (json['lng'] as num?)?.toDouble(),
+        phone: json['phone'] as String? ?? '',
+        distanceMeters: (json['distance_meters'] as num?)?.toInt(),
+      );
 
   final String id;
   final String name;
   final String address;
-  final String hours;
+  final bool registered;
+  final double? lat;
+  final double? lng;
   final String phone;
+  final int? distanceMeters;
+
+  /// 지도에 핀을 찍을 수 있는가.
+  bool get hasLocation => lat != null && lng != null;
 }
 
 abstract class TrainerProfileRepository {
   Future<TrainerProfile> fetch();
 
-  Future<List<TrainerGymChoice>> listGyms();
+  /// 헬스장 이름·주소로 찾는다. 등록된 곳이 먼저, 카카오 결과가 뒤에 온다.
+  Future<List<TrainerGymCandidate>> searchGyms(String query);
 
   Future<TrainerProfile> update(TrainerProfileUpdate update);
 
-  Future<TrainerProfile> setGym(String gymId);
-
-  Future<TrainerProfile> clearGym();
+  /// [gym] 을 소속으로 정한다. 처음 고른 카카오 헬스장은 서버가 이때 목록에
+  /// 넣는다.
+  Future<TrainerProfile> selectGym(TrainerGymCandidate gym);
 }
 
 class DioTrainerProfileRepository implements TrainerProfileRepository {
@@ -87,19 +105,16 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
       _profileCall(() => _dio.get<Map<String, Object?>>('/trainer/me'));
 
   @override
-  Future<List<TrainerGymChoice>> listGyms() async {
+  Future<List<TrainerGymCandidate>> searchGyms(String query) async {
     try {
-      final response = await _dio.get<List<Object?>>('/gyms');
-      return <TrainerGymChoice>[
+      final response = await _dio.get<List<Object?>>(
+        '/trainer/gyms/search',
+        queryParameters: <String, Object?>{'query': query},
+      );
+      return <TrainerGymCandidate>[
         for (final row in response.data ?? const <Object?>[])
           if (row is Map<String, Object?> && row['id'] is String)
-            TrainerGymChoice(
-              id: row['id']! as String,
-              name: row['name'] as String? ?? '',
-              address: row['address'] as String? ?? '',
-              hours: row['weekday_hours'] as String? ?? '',
-              phone: row['phone'] as String? ?? '',
-            ),
+            TrainerGymCandidate.fromJson(row),
       ];
     } on DioException catch (error) {
       throw _mapDio(error);
@@ -112,16 +127,18 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
   );
 
   @override
-  Future<TrainerProfile> setGym(String gymId) => _profileCall(
-    () => _dio.put<Map<String, Object?>>(
-      '/trainer/me/gym',
-      data: <String, Object?>{'gym_id': gymId},
-    ),
+  Future<TrainerProfile> selectGym(TrainerGymCandidate gym) => _profileCall(
+    () => gym.registered
+        ? _dio.put<Map<String, Object?>>(
+            '/trainer/me/gym',
+            data: <String, Object?>{'gym_id': gym.id},
+          )
+        // 이름은 서버가 카카오를 다시 찾을 검색어다 — 저장값은 서버가 고른다.
+        : _dio.put<Map<String, Object?>>(
+            '/trainer/me/gym/kakao',
+            data: <String, Object?>{'kakao_place_id': gym.id, 'name': gym.name},
+          ),
   );
-
-  @override
-  Future<TrainerProfile> clearGym() =>
-      _profileCall(() => _dio.delete<Map<String, Object?>>('/trainer/me/gym'));
 
   Future<TrainerProfile> _profileCall(
     Future<Response<Map<String, Object?>>> Function() call,
@@ -144,7 +161,7 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
     if (code == 400 || code == 422) {
       return ValidationError(message: detail ?? '입력값을 확인해 주세요.');
     }
-    if (code == 409) {
+    if (code == 409 || code == 503) {
       return ServerError(
         statusCode: code,
         message: detail ?? '현재 소속 상태와 충돌합니다.',
@@ -173,26 +190,59 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
   final DemoLanguage language;
   TrainerProfile _profile;
 
+  /// 데모 검색 결과. 앞 둘은 등록된 헬스장, 뒤는 카카오에서 찾은 곳이다 —
+  /// 데모에서도 두 경로가 모두 보이게 한다. 좌표는 지도 핀용이다.
+  List<TrainerGymCandidate> get _gyms => <TrainerGymCandidate>[
+    TrainerGymCandidate(
+      id: kDemoTrainerGymId,
+      name: seedTrainerProfileFor(language).gym.name,
+      address: seedTrainerProfileFor(language).gym.address,
+      registered: true,
+      lat: 37.5579,
+      lng: 126.9368,
+      phone: '02-1234-5678',
+    ),
+    TrainerGymCandidate(
+      id: 'gym-2',
+      name: language.isEnglish ? 'OnCare Gym Gangnam' : '온케어짐 강남점',
+      address: language.isEnglish
+          ? '396 Gangnam-daero, Gangnam-gu, Seoul'
+          : '서울 강남구 강남대로 396',
+      registered: true,
+      lat: 37.4979,
+      lng: 127.0276,
+      phone: '02-9876-5432',
+    ),
+    TrainerGymCandidate(
+      id: '1558845892',
+      name: language.isEnglish ? 'HighFit' : '하이핏',
+      address: language.isEnglish
+          ? '19 Yonsei-ro 4-gil, Seodaemun-gu, Seoul'
+          : '서울 서대문구 연세로4길 19',
+      registered: false,
+      lat: 37.5574,
+      lng: 126.9378,
+      phone: '02-362-7822',
+    ),
+  ];
+
   @override
   Future<TrainerProfile> fetch() async => _profile;
 
   @override
-  Future<List<TrainerGymChoice>> listGyms() async => <TrainerGymChoice>[
-    TrainerGymChoice(
-      id: 'gym-1',
-      name: language.isEnglish ? 'OnCare Gym Sinchon' : '온케어짐 신촌점',
-      address: language.isEnglish ? 'Seodaemun-gu, Seoul' : '서울 서대문구',
-      hours: '06:00 – 23:00',
-      phone: '02-1234-5678',
-    ),
-    TrainerGymChoice(
-      id: 'gym-2',
-      name: language.isEnglish ? 'OnCare Gym Gangnam' : '온케어짐 강남점',
-      address: language.isEnglish ? 'Gangnam-gu, Seoul' : '서울 강남구',
-      hours: '06:00 – 24:00',
-      phone: '02-9876-5432',
-    ),
-  ];
+  Future<List<TrainerGymCandidate>> searchGyms(String query) async {
+    final String q = query.trim().toLowerCase();
+    if (q.isEmpty) return const <TrainerGymCandidate>[];
+    return <TrainerGymCandidate>[
+      for (final TrainerGymCandidate gym in _gyms)
+        if (gym.name.toLowerCase().contains(q) ||
+            gym.address.toLowerCase().contains(q) ||
+            // 데모에서 무엇을 쳐도 결과가 보이게 '헬스'·'gym' 은 모두 맞춘다.
+            q.contains('헬스') ||
+            q.contains('gym'))
+          gym,
+    ];
+  }
 
   @override
   Future<TrainerProfile> update(TrainerProfileUpdate update) async {
@@ -203,46 +253,21 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
       careerYears: update.careerYears,
       intro: update.intro,
       certifications: List<String>.unmodifiable(update.certifications),
-      gym: update.gymName == null
-          ? _profile.gym
-          : TrainerGym(
-              name: update.gymName!,
-              address: update.gymAddress ?? '',
-              hours: update.gymHours ?? '',
-              phone: update.gymPhone ?? '',
-            ),
     );
     return _profile;
   }
 
   @override
-  Future<TrainerProfile> setGym(String gymId) async {
-    TrainerGymChoice? choice;
-    for (final item in await listGyms()) {
-      if (item.id == gymId) {
-        choice = item;
-        break;
-      }
-    }
-    if (choice == null) {
-      throw const NotFoundError(message: '헬스장을 찾을 수 없습니다.');
-    }
+  Future<TrainerProfile> selectGym(TrainerGymCandidate gym) async {
     _profile = _profile.copyWith(
       gym: TrainerGym(
-        id: gymId,
-        name: choice.name,
-        address: choice.address,
-        hours: choice.hours,
-        phone: choice.phone,
+        id: gym.id,
+        name: gym.name,
+        address: gym.address,
+        // 카카오는 영업시간을 주지 않는다 — 서버와 같게 빈 값이다.
+        hours: gym.id == kDemoTrainerGymId ? _profile.gym.hours : '',
+        phone: gym.phone,
       ),
-    );
-    return _profile;
-  }
-
-  @override
-  Future<TrainerProfile> clearGym() async {
-    _profile = _profile.copyWith(
-      gym: const TrainerGym(name: '', address: '', hours: '', phone: ''),
     );
     return _profile;
   }
@@ -260,8 +285,3 @@ final trainerProfileRepositoryProvider = Provider<TrainerProfileRepository>((
   }
   return DioTrainerProfileRepository(ref.watch(dioProvider));
 }, name: 'trainerProfileRepository');
-
-final trainerGymChoicesProvider =
-    FutureProvider.autoDispose<List<TrainerGymChoice>>((ref) {
-      return ref.watch(trainerProfileRepositoryProvider).listGyms();
-    }, name: 'trainerGymChoices');

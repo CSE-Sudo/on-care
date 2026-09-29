@@ -1,12 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_config.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_platform_stub.dart'
-    if (dart.library.js_interop) 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_platform_web.dart'
+import 'package:oncare_kakao_map/src/kakao_map_config.dart';
+import 'package:oncare_kakao_map/src/kakao_map_platform_stub.dart'
+    if (dart.library.js_interop) 'package:oncare_kakao_map/src/kakao_map_platform_web.dart'
     as platform;
-
-export 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_config.dart'
-    show KakaoMapMarker, isKakaoMapConfigured;
 
 /// 카카오맵 위젯. 키가 없거나(빌드에 `KAKAO_JS_KEY` 미주입) web 이 아니거나
 /// SDK 로드가 실패하면 [fallback] 을 그대로 그린다 — 데모가 절대 비지 않게 하기
@@ -19,6 +16,8 @@ class KakaoMapView extends StatelessWidget {
     required this.markers,
     required this.fallback,
     this.level = 5,
+    this.onMarkerTap,
+    this.onUnavailable,
   });
 
   final double centerLat;
@@ -31,6 +30,14 @@ class KakaoMapView extends StatelessWidget {
   /// 카카오 확대 레벨 — 값이 작을수록 확대. 1~14.
   final int level;
 
+  /// 핀을 눌렀을 때. `KakaoMapMarker.id` 가 있는 핀만 알린다.
+  final ValueChanged<KakaoMapMarker>? onMarkerTap;
+
+  /// SDK 를 불러오지 못해 [fallback] 으로 떨어졌을 때(도메인 미등록·키 오류·
+  /// 네트워크 차단). 지도 자리를 접고 싶은 화면이 쓴다 — 키가 없는 빌드는
+  /// [isKakaoMapConfigured] 로 미리 알 수 있어 여기로 오지 않는다.
+  final VoidCallback? onUnavailable;
+
   @override
   Widget build(BuildContext context) =>
       platform.buildKakaoMap(
@@ -39,6 +46,8 @@ class KakaoMapView extends StatelessWidget {
         markers: markers,
         level: level,
         fallback: fallback,
+        onMarkerTap: onMarkerTap,
+        onUnavailable: onUnavailable,
       ) ??
       fallback;
 }

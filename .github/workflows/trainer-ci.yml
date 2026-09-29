@@ -11,6 +11,8 @@ on:
       - "shared/demo_fixture/**"
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
       - "shared/oncare_ui/**"
+      # 두 앱이 함께 쓰는 카카오맵 위젯(#2543).
+      - "shared/oncare_kakao_map/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -20,6 +22,8 @@ on:
       - "shared/demo_fixture/**"
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
       - "shared/oncare_ui/**"
+      # 두 앱이 함께 쓰는 카카오맵 위젯(#2543).
+      - "shared/oncare_kakao_map/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
