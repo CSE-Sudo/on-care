@@ -9,9 +9,11 @@ import 'package:oncare/features/benefits/presentation/controllers/activity_calen
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
+import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -190,6 +192,18 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   );
   final FocusNode _nameFocus = FocusNode();
   bool _saving = false;
+
+  /// `운동 하나 더` 로 모아 둔, 아직 저장하지 않은 운동. (#2544)
+  ///
+  /// 하루치 운동 여러 개를 시트 한 번에 적는다. 예전에는 저장할 때마다 시트가
+  /// 닫혀, 서너 가지를 했으면 시트를 서너 번 다시 열고 날짜를 다시 골라야
+  /// 했다. 날짜는 모아 둔 운동 전부에 공통이라 저장하는 순간의 [_date] 로
+  /// 맞춘다. 수정 시트에는 쓰지 않는다.
+  final List<ExerciseSessionDraft> _queue = <ExerciseSessionDraft>[];
+
+  /// 모아 둔 목록의 자리. 담은 뒤 폼이 비워지면 그 목록이 보이게 올린다 —
+  /// 긴 시트의 아래쪽에서 누르면 무엇이 담겼는지 화면 밖에서 일어난다.
+  final GlobalKey _queueKey = GlobalKey();
 
   /// 지금 화면이 보여 줄 소모 칼로리. **이름이 차기 전에는 null 이다.**
   ///
@@ -393,15 +407,38 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     if (picked != null && mounted) setState(() => _date = _dateOnly(picked));
   }
 
-  Future<void> _save() async {
+  /// 이름 칸이 찼는가. 모아 둔 운동이 있을 때 저장이 폼의 운동도 함께 실을지
+  /// 가른다 — 비어 있으면 모아 둔 것만 저장한다.
+  bool get _formHasName => _name.text.trim().isNotEmpty;
+
+  /// 모아 둔 운동을 날려도 되는지 묻고 시트를 닫는다. 모아 둔 것이 없으면
+  /// 묻지 않는다 — 폼 하나를 적다 닫는 것은 지금까지처럼 바로 닫힌다.
+  Future<void> _requestClose() async {
     if (_saving) return;
-    final AppLocalizations l = AppLocalizations.of(context);
     final NavigatorState navigator = Navigator.of(context);
+    if (_queue.isNotEmpty) {
+      final AppLocalizations l = AppLocalizations.of(context);
+      final bool discard = await showAppConfirmDialog(
+        context: context,
+        title: l.exQueueDiscardTitle,
+        message: l.exQueueDiscardBody(_queue.length),
+        confirmLabel: l.exQueueDiscard,
+        cancelLabel: l.actionCancel,
+        destructive: true,
+      );
+      if (!discard || !mounted) return;
+    }
+    navigator.pop();
+  }
+
+  /// 폼의 운동 한 건. 이름이나 시간이 비었으면 그렇다고 알리고 null 이다.
+  ExerciseSessionDraft? _draftFromForm() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     final String name = _name.text.trim();
     if (name.isEmpty) {
       toast.show(l.exEnterName, type: AppToastType.error);
-      return;
+      return null;
     }
     // 0초는 저장하지 않는다 — 지금까지 최소 1분이 하던 일이다(#2071).
     final int minutes = _effectiveMinutes;
@@ -410,92 +447,182 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
         _isStrength ? l.exEnterSets : l.exEnterDuration,
         type: AppToastType.error,
       );
-      return;
+      return null;
     }
     // 근력이 아니면 세트·횟수·중량을 싣지 않는다 — 유산소를 세트로 세는
     // 화면은 없고, 유형을 바꾼 수정에서는 null 이 옛 값을 지운다.
-    final int? sets = _isStrength ? _sets.round() : null;
     // 한 세트는 회로든 초로든 **한 번만** 잰다(#1969). 고르지 않은 쪽은
     // null 로 실어 보내야, 회↔초를 되돌린 수정에서 옛 값이 남지 않는다.
-    final bool holding = _isStrength && _isHold;
-    final int? reps = _isStrength && !_isHold ? _reps.round() : null;
-    final int? holdSeconds = holding ? _holdSeconds.round() : null;
-    final double? weight = _isStrength ? _weight : null;
     // 초는 시간으로 재는 유형에만 싣는다. 근력의 분은 세트에서 환산한 값이라
     // 회원이 적은 시간이 아니다 — 초를 함께 보내면 서버가 그 초로 분을 다시
     // 계산해, 세트에서 나온 분을 덮는다. (#2071)
-    final int? durationSeconds = _isStrength ? null : _duration.inSeconds;
     final ExerciseType type = _typeFromIndex(_type);
-    final ExerciseSession? editing = widget.session;
-    if (editing != null && editing.id == null) {
+    return ExerciseSessionDraft(
+      type: type,
+      name: name,
+      minutes: minutes,
+      // 화면이 보여 준 값을 그대로 싣는다 — 서버는 이 값을 쓰지 않고 같은
+      // 계산을 다시 하지만(#1312), 서버가 없는 경로(목업 저장소)는 이 값을
+      // 기록에 남긴다. 미리보기가 아직 안 돌아왔으면 앱이 아는 유형 평균이다.
+      calories: _estimate?.calories ?? _estimateCalories(type, minutes, _level),
+      // Intensity is persisted now, so always recompute calories from the
+      // (restored or edited) level — no more preserving stale values.
+      intensity: ExerciseIntensity.values[_level],
+      date: _date,
+      sets: _isStrength ? _sets.round() : null,
+      reps: _isStrength && !_isHold ? _reps.round() : null,
+      holdSeconds: _isStrength && _isHold ? _holdSeconds.round() : null,
+      durationSeconds: _isStrength ? null : _duration.inSeconds,
+      weight: _isStrength ? _weight : null,
+    );
+  }
+
+  /// 폼의 운동을 목록에 담고 폼을 비운다. (#2544)
+  ///
+  /// 날짜·유형·강도와 근력의 세트·횟수·중량은 그대로 둔다 — 이어서 적는 운동은
+  /// 같은 날, 비슷한 운동인 경우가 많다. 이름과 시간은 비운다: 남겨 두면 같은
+  /// 운동을 한 번 더 담기 쉽다.
+  void _addAnother() {
+    if (_saving) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    if (_queue.length >= kMaxExerciseSessionsPerSave) {
+      AppToastHost.of(context).show(
+        l.exQueueFull(kMaxExerciseSessionsPerSave),
+        type: AppToastType.error,
+      );
+      return;
+    }
+    final ExerciseSessionDraft? draft = _draftFromForm();
+    if (draft == null) return;
+    _estimateDebounce?.cancel();
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _queue.add(draft);
+      _name.clear();
+      _duration = Duration.zero;
+      _estimate = null;
+      _estimating = false;
+      _requestedKey = null;
+      _isHold = false;
+      _holdChosenByUser = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final BuildContext? target = _queueKey.currentContext;
+      if (target == null || !target.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          target,
+          duration: OnCareMotion.normal,
+          curve: Curves.easeOut,
+        ),
+      );
+    });
+  }
+
+  /// 저장 버튼의 문구. 한 건이면 `저장`, 여럿이면 몇 개를 저장하는지 말한다.
+  String _saveLabel(AppLocalizations l) {
+    final int count = _queue.length + (_formHasName ? 1 : 0);
+    return count > 1 ? l.exSaveCount(count) : l.exSave;
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    if (widget.isEdit) return _saveEdit();
+    final AppLocalizations l = AppLocalizations.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    final AppToastHost toast = AppToastHost.of(context);
+    // 모아 둔 운동이 있으면 폼은 이름이 찼을 때만 함께 싣는다 — 마지막 운동을
+    // `운동 하나 더` 로 담은 뒤 곧바로 저장하는 흐름이 막히지 않는다. 모아 둔
+    // 것이 없으면 지금까지처럼 폼의 한 건이 저장 대상이다.
+    final List<ExerciseSessionDraft> drafts = <ExerciseSessionDraft>[
+      ..._queue,
+    ];
+    if (_queue.isEmpty || _formHasName) {
+      final ExerciseSessionDraft? draft = _draftFromForm();
+      if (draft == null) return;
+      drafts.add(draft);
+    }
+    if (drafts.length > kMaxExerciseSessionsPerSave) {
+      toast.show(
+        l.exQueueFull(kMaxExerciseSessionsPerSave),
+        type: AppToastType.error,
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      // 한 요청으로 보낸다 — 서버가 전부 저장하거나 하나도 저장하지 않는다.
+      // 날짜는 모아 둔 것까지 지금 고른 날로 맞춘다.
+      final ExerciseSessionsAdded added = await ref
+          .read(exerciseRepositoryProvider)
+          .addSessions(<ExerciseSessionDraft>[
+            for (final ExerciseSessionDraft d in drafts) d.withDate(_date),
+          ]);
+      // Sheet dismissed mid-save → don't pop the page below.
+      if (!mounted) return;
+      _refreshAfterSave();
+      refreshPointsBalance(ref);
+      navigator.pop(true);
+      toast.show(
+        drafts.length > 1 ? l.exLoggedCount(drafts.length) : l.exLogged,
+        type: AppToastType.success,
+        // 받은 포인트가 있으면 ★ +20P 가 반짝인다. 한도를 넘었으면 저장 알림만.
+        rewardLabel: pointsRewardLabel(l, added.points),
+      );
+    } catch (_) {
+      // 모아 둔 목록은 그대로 남는다 — 저장은 전부 안 됐으니 다시 누르면 된다.
+      if (mounted) setState(() => _saving = false);
+      toast.show(l.exSaveFailed, type: AppToastType.error);
+    }
+  }
+
+  /// 저장 뒤에 다시 읽을 것들. 주간 데이터 무효화로 통계·차트·목록이 반영된다.
+  void _refreshAfterSave() {
+    ref.invalidate(exerciseWeekProvider);
+    // 보호권으로 이어 붙인 날에 기록했으면 서버가 그 보호권을 되돌렸다 —
+    // 내 혜택의 보유 수를 다시 읽는다(#1788). 그날 달력 칸도 달라졌다(#2075).
+    ref
+      ..invalidate(myStreakShieldsProvider)
+      ..invalidate(activityCalendarProvider);
+  }
+
+  Future<void> _saveEdit() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    final AppToastHost toast = AppToastHost.of(context);
+    final ExerciseSession editing = widget.session!;
+    final ExerciseSessionDraft? draft = _draftFromForm();
+    if (draft == null) return;
+    if (editing.id == null) {
       // No id → PUT impossible; don't silently create a duplicate session.
       toast.show(l.exCannotEdit, type: AppToastType.error);
       return;
     }
-    // Intensity is persisted now, so always recompute calories from the
-    // (restored or edited) level — no more preserving stale values.
-    final ExerciseIntensity intensity = ExerciseIntensity.values[_level];
-    // 화면이 보여 준 값을 그대로 싣는다 — 서버는 이 값을 쓰지 않고 같은 계산을
-    // 다시 하지만(#1312), 서버가 없는 경로(목업 저장소)는 이 값을 기록에 남긴다.
-    // 미리보기가 아직 안 돌아왔으면 앱이 아는 유형 평균으로 채운다.
-    final int calories =
-        _estimate?.calories ?? _estimateCalories(type, minutes, _level);
 
     setState(() => _saving = true);
     try {
-      // 새로 추가한 기록 — 포인트 적립 결과를 들고 온다(#1786). 수정은 적립이 없다.
-      ExerciseSession? added;
-      // 서버(mock 모드는 drift)에 저장 → 주간 데이터 무효화로 통계·차트·목록 반영.
-      if (editing != null) {
-        await ref
-            .read(exerciseRepositoryProvider)
-            .updateSession(
-              id: editing.id!,
-              type: type,
-              name: name,
-              minutes: minutes,
-              calories: calories,
-              intensity: intensity,
-              date: _date,
-              sets: sets,
-              reps: reps,
-              holdSeconds: holdSeconds,
-              durationSeconds: durationSeconds,
-              weight: weight,
-            );
-      } else {
-        added = await ref
-            .read(exerciseRepositoryProvider)
-            .addSession(
-              type: type,
-              name: name,
-              minutes: minutes,
-              calories: calories,
-              intensity: intensity,
-              date: _date,
-              sets: sets,
-              reps: reps,
-              holdSeconds: holdSeconds,
-              durationSeconds: durationSeconds,
-              weight: weight,
-            );
-      }
+      await ref
+          .read(exerciseRepositoryProvider)
+          .updateSession(
+            id: editing.id!,
+            type: draft.type,
+            name: draft.name,
+            minutes: draft.minutes,
+            calories: draft.calories,
+            intensity: draft.intensity,
+            date: draft.date,
+            sets: draft.sets,
+            reps: draft.reps,
+            holdSeconds: draft.holdSeconds,
+            durationSeconds: draft.durationSeconds,
+            weight: draft.weight,
+          );
       // Sheet dismissed mid-save → don't pop the page below.
       if (!mounted) return;
-      ref.invalidate(exerciseWeekProvider);
-      // 보호권으로 이어 붙인 날에 기록했으면 서버가 그 보호권을 되돌렸다 —
-      // 내 혜택의 보유 수를 다시 읽는다(#1788). 그날 달력 칸도 달라졌다(#2075).
-      ref
-        ..invalidate(myStreakShieldsProvider)
-        ..invalidate(activityCalendarProvider);
-      if (added != null) refreshPointsBalance(ref);
+      _refreshAfterSave();
       navigator.pop(true);
-      toast.show(
-        widget.isEdit ? l.exUpdated : l.exLogged,
-        type: AppToastType.success,
-        // 받은 포인트가 있으면 ★ +20P 가 반짝인다. 한도를 넘었으면 저장 알림만.
-        rewardLabel: pointsRewardLabel(l, added?.pointsAward),
-      );
+      toast.show(l.exUpdated, type: AppToastType.success);
     } catch (_) {
       if (mounted) setState(() => _saving = false);
       toast.show(l.exSaveFailed, type: AppToastType.error);
@@ -517,9 +644,11 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       footer: AppButtonPair(
         cancelKey: const Key('exerciseCancelButton'),
         cancelLabel: l.actionCancel,
-        onCancel: _saving ? null : () => Navigator.of(context).pop(),
+        // 모아 둔 운동이 있으면 버릴지 먼저 묻는다(#2544).
+        onCancel: _saving ? null : _requestClose,
         confirmKey: const Key('exerciseSaveButton'),
-        confirmLabel: l.exSave,
+        // 여럿을 저장하면 몇 개인지 말한다 — `3개 저장`.
+        confirmLabel: _saveLabel(l),
         onConfirm: _saving ? null : _save,
       ),
       child: GestureDetector(
@@ -539,6 +668,32 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               date: _date,
               onTap: _pickDate,
             ),
+            // `운동 하나 더` 로 모아 둔 운동. 날짜 바로 아래에 둔다 — 날짜는
+            // 이 목록 전부에 걸리는 값이고, 그 아래 폼은 다음 한 건이다.
+            if (_queue.isNotEmpty) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s20),
+              Column(
+                key: _queueKey,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _Label(l.exQueueTitle(_queue.length)),
+                  const SizedBox(height: OnCareSpacing.s8),
+                  for (int i = 0; i < _queue.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: i == 0 ? 0 : OnCareSpacing.s8,
+                      ),
+                      child: _QueuedExerciseTile(
+                        key: ValueKey<String>('exerciseQueueItem-$i'),
+                        draft: _queue[i],
+                        onRemove: _saving
+                            ? null
+                            : () => setState(() => _queue.removeAt(i)),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: OnCareSpacing.s20),
             _Label(l.exExerciseType),
             const SizedBox(height: OnCareSpacing.s8),
@@ -573,7 +728,12 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               // 글자마다 부르지 않는다 — 이름 해석이 외부 호출을 탈 수 있어,
               // 조작이 멎은 뒤 한 번이면 된다(#1312). 비우면 그 자리에서
               // 숫자를 지운다.
-              onChanged: (String _) => _scheduleEstimate(),
+              onChanged: (String _) {
+                // 모아 둔 운동이 있으면 저장 버튼의 개수가 이름 칸을 따라간다
+                // — 이름이 차면 폼의 운동도 함께 저장된다.
+                if (_queue.isNotEmpty) setState(() {});
+                _scheduleEstimate();
+              },
               onSubmitted: (String _) => _scheduleEstimate(immediate: true),
             ),
             const SizedBox(height: OnCareSpacing.s20),
@@ -692,6 +852,22 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               estimate: _estimate,
               loading: _estimating,
             ),
+            // 하루치 운동을 시트 한 번에 적는다(#2544). 폼의 운동을 위 목록에
+            // 담고 폼을 비운다. 폼을 다 적은 자리에서 누르도록 폼 맨 아래에
+            // 한 줄을 채워 두고, 파란 글씨 버튼으로 둔다 — 채움 버튼이면 바로
+            // 아래 `저장` 과 무게가 겹친다. 수정 시트는 한 건만 고치므로 두지
+            // 않는다.
+            if (!widget.isEdit) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              AppButton(
+                key: const Key('exerciseAddAnotherButton'),
+                label: l.exAddExercise,
+                onPressed: _saving ? null : _addAnother,
+                variant: AppButtonVariant.text,
+                leadingIcon: AppIcons.add,
+                fullWidth: true,
+              ),
+            ],
             // 지우기는 고치는 화면 맨 아래에서만 한다 — 목록 줄의 휴지통은
             // 없앴다. 새로 적는 시트에는(수정이 아니면) 지울 기록 자체가
             // 없으니 두지 않는다.
@@ -710,8 +886,93 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
         ),
       ),
     );
-    // Block back/drag dismiss while the save request is in flight.
-    return PopScope(canPop: !_saving, child: sheet);
+    // Block back/drag dismiss while the save request is in flight. 모아 둔
+    // 운동이 있으면 뒤로 가기도 버릴지 먼저 묻는다(#2544).
+    return PopScope(
+      canPop: !_saving && _queue.isEmpty,
+      onPopInvokedWithResult: (bool didPop, Object? _) {
+        if (!didPop && !_saving) unawaited(_requestClose());
+      },
+      child: sheet,
+    );
+  }
+}
+
+/// `추가할 운동` 목록의 한 줄 — 이름과 유형·운동량·강도·칼로리, 그리고 빼기.
+/// (#2544)
+///
+/// 저장된 기록 줄(`직접 기록한 운동`)과 같은 흰 카드·같은 표기 함수를 쓴다.
+/// 저장하기 전에 본 줄과 저장한 뒤 목록에 선 줄이 같은 모양으로 읽혀야 한다.
+class _QueuedExerciseTile extends StatelessWidget {
+  const _QueuedExerciseTile({
+    super.key,
+    required this.draft,
+    required this.onRemove,
+  });
+
+  final ExerciseSessionDraft draft;
+
+  /// 목록에서 뺀다. 저장 중에는 null 이다.
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final ExerciseSession preview = draft.toPreview();
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(
+        OnCareSpacing.s16,
+        OnCareSpacing.s12,
+        OnCareSpacing.s4,
+        OnCareSpacing.s12,
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  draft.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+                const SizedBox(height: OnCareSpacing.s4),
+                Wrap(
+                  spacing: OnCareSpacing.s4,
+                  runSpacing: OnCareSpacing.s4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    AppTag(label: exerciseTypeLabel(l, draft.type)),
+                    AppTag(label: exerciseAmountLabel(l, preview)),
+                    AppTag(label: exerciseIntensityLabel(l, draft.intensity)),
+                    Text(
+                      l.unitKcalValue(draft.calories),
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          AppIconButton(
+            key: const Key('exerciseQueueRemoveButton'),
+            // 식단 직접 추가의 음식 줄 빼기와 같은 휴지통이다.
+            icon: AppIcons.delete,
+            tooltip: l.exQueueRemove,
+            size: AppIconButtonSize.small,
+            color: OnCareColors.textTertiary,
+            onPressed: onRemove,
+          ),
+        ],
+      ),
+    );
   }
 }
 

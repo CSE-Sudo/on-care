@@ -531,6 +531,49 @@
   "exCannotEdit": "This record can't be edited",
   "exUpdated": "Exercise record updated",
   "exLogged": "Exercise logged",
+  "exQueueTitle": "To add {count}",
+  "@exQueueTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueRemove": "Remove from list",
+  "exQueueFull": "You can add up to {count} at a time",
+  "@exQueueFull": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exSaveCount": "Save {count}",
+  "@exSaveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exLoggedCount": "{count} exercises logged",
+  "@exLoggedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscardTitle": "Discard exercises to add?",
+  "exQueueDiscardBody": "{count} unsaved exercises will be lost.",
+  "@exQueueDiscardBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscard": "Discard",
   "exOwnRecords": "Workouts you logged",
   "exOwnRecordsEmpty": "No workouts logged yet",
   "exOwnRecordSource": "Self-logged",
