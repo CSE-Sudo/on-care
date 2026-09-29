@@ -19,6 +19,7 @@ Widget? buildKakaoMap({
   required int level,
   required Widget fallback,
   ValueChanged<KakaoMapMarker>? onMarkerTap,
+  VoidCallback? onUnavailable,
 }) {
   if (!isKakaoMapConfigured) return null;
   return _KakaoMapView(
@@ -28,6 +29,7 @@ Widget? buildKakaoMap({
     level: level,
     fallback: fallback,
     onMarkerTap: onMarkerTap,
+    onUnavailable: onUnavailable,
   );
 }
 
@@ -103,6 +105,7 @@ class _KakaoMapView extends StatefulWidget {
     required this.level,
     required this.fallback,
     this.onMarkerTap,
+    this.onUnavailable,
   });
 
   final double centerLat;
@@ -111,6 +114,7 @@ class _KakaoMapView extends StatefulWidget {
   final int level;
   final Widget fallback;
   final ValueChanged<KakaoMapMarker>? onMarkerTap;
+  final VoidCallback? onUnavailable;
 
   @override
   State<_KakaoMapView> createState() => _KakaoMapViewState();
@@ -158,7 +162,9 @@ class _KakaoMapViewState extends State<_KakaoMapView> {
       if (!mounted) return;
       _createMap();
     } on Object catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (!mounted) return;
+      setState(() => _error = e);
+      widget.onUnavailable?.call();
     }
   }
 

@@ -1954,6 +1954,10 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   bool _searched = false;
   List<TrainerGymCandidate> _results = const <TrainerGymCandidate>[];
 
+  /// 지도 SDK 를 불러오지 못했다(도메인 미등록·네트워크 차단). 빈 지도 자리를
+  /// 남기지 않고 목록만 보인다.
+  bool _mapUnavailable = false;
+
   /// 지도 중심 — 헬스장을 고르기 전에는 첫 결과, 기본은 서울시청.
   static const double _defaultLat = 37.5665;
   static const double _defaultLng = 126.9780;
@@ -2083,7 +2087,9 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
                 .text(OnCareTypography.caption)
                 .copyWith(color: OnCareColors.textSecondary),
           ),
-        if (isKakaoMapConfigured && markers.isNotEmpty) ...<Widget>[
+        if (isKakaoMapConfigured &&
+            !_mapUnavailable &&
+            markers.isNotEmpty) ...<Widget>[
           ClipRRect(
             borderRadius: OnCareRadius.mdAll,
             child: SizedBox(
@@ -2095,6 +2101,9 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
                 level: 4,
                 markers: markers,
                 onMarkerTap: _pickById,
+                onUnavailable: () {
+                  if (mounted) setState(() => _mapUnavailable = true);
+                },
                 fallback: const SizedBox.shrink(),
               ),
             ),

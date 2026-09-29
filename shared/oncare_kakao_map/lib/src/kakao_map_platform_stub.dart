@@ -14,4 +14,5 @@ Widget? buildKakaoMap({
   required int level,
   required Widget fallback,
   ValueChanged<KakaoMapMarker>? onMarkerTap,
+  VoidCallback? onUnavailable,
 }) => null;

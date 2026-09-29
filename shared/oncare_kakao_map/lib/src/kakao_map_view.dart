@@ -17,6 +17,7 @@ class KakaoMapView extends StatelessWidget {
     required this.fallback,
     this.level = 5,
     this.onMarkerTap,
+    this.onUnavailable,
   });
 
   final double centerLat;
@@ -32,6 +33,11 @@ class KakaoMapView extends StatelessWidget {
   /// 핀을 눌렀을 때. `KakaoMapMarker.id` 가 있는 핀만 알린다.
   final ValueChanged<KakaoMapMarker>? onMarkerTap;
 
+  /// SDK 를 불러오지 못해 [fallback] 으로 떨어졌을 때(도메인 미등록·키 오류·
+  /// 네트워크 차단). 지도 자리를 접고 싶은 화면이 쓴다 — 키가 없는 빌드는
+  /// [isKakaoMapConfigured] 로 미리 알 수 있어 여기로 오지 않는다.
+  final VoidCallback? onUnavailable;
+
   @override
   Widget build(BuildContext context) =>
       platform.buildKakaoMap(
@@ -41,6 +47,7 @@ class KakaoMapView extends StatelessWidget {
         level: level,
         fallback: fallback,
         onMarkerTap: onMarkerTap,
+        onUnavailable: onUnavailable,
       ) ??
       fallback;
 }
