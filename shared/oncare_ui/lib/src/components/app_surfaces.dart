@@ -599,9 +599,36 @@ class _Dot extends StatelessWidget {
 /// 안내 배너 톤.
 enum AppBannerTone { info, success, caution, danger }
 
-/// 안내 배너 — 반경 12, 아이콘 20 + `titleSmall` 제목 + `bodySmall` 본문 + 선택 동작.
+/// [AppBanner] 의 밀도.
+enum AppBannerDensity {
+  /// 아이콘 20 + `titleSmall` 제목 + `bodySmall` 본문, 안쪽 12. 본문은 아이콘
+  /// 오른쪽 칸에 들여 선다.
+  regular,
+
+  /// 아이콘 16 + 톤색 굵은 `bodySmall` 한 줄 제목 + `caption` 본문, 안쪽 세로
+  /// 8·가로 12. 제목 줄 아래 본문은 폭을 다 쓴다. 대화 흐름이나 카드 안 좁은 칸에
+  /// 서는 감지 경고처럼 무게를 낮춰야 하는 안내에 쓴다.
+  compact,
+}
+
+/// [AppBanner] 가 서는 자리.
+enum AppBannerPlacement {
+  /// 카드·창 안 — 반경 12, 그림자 없음.
+  inline,
+
+  /// 페이지에 카드처럼 홀로 서는 안내(대시보드 활동 피드백·리포트 요약·식단
+  /// 분석) — 카드와 같은 반경 20·카드 그림자·안쪽 16. 머리는 카드 제목
+  /// ([AppSectionHeader])과 같고, 본문은 그 아래 폭을 다 쓴다. `info` 톤
+  /// 전용이다.
+  card,
+}
+
+/// 안내 배너 — 톤색 옅은 채움 + 톤색 테두리, 아이콘 + 제목 + 본문 + 선택
+/// 동작·자유 내용.
 ///
-/// 채팅의 시스템 안내·리포트 등록(#1577), 경고 배너, AI 안내·메모 박스가 모두 쓴다.
+/// 채팅의 시스템 안내·리포트 등록(#1577), 경고 배너, AI 안내·메모 박스가 모두
+/// 쓴다. 같은 종류의 안내는 같은 모양이다 — 페이지에 홀로 서는 AI·요약 안내는
+/// [AppBannerPlacement.card], 감지 경고는 [AppBannerDensity.compact] (#2468).
 class AppBanner extends StatelessWidget {
   const AppBanner({
     super.key,
@@ -611,7 +638,18 @@ class AppBanner extends StatelessWidget {
     this.tone = AppBannerTone.info,
     this.actionLabel,
     this.onAction,
-  });
+    this.titleMeta,
+    this.trailing,
+    this.child,
+    this.expandChild = false,
+    this.density = AppBannerDensity.regular,
+    this.placement = AppBannerPlacement.inline,
+  }) : assert(
+         placement == AppBannerPlacement.inline ||
+             (tone == AppBannerTone.info &&
+                 density == AppBannerDensity.regular),
+         '카드 자리 배너는 info 톤·기본 밀도만 쓴다',
+       );
 
   final String title;
   final String? message;
@@ -619,6 +657,22 @@ class AppBanner extends StatelessWidget {
   final AppBannerTone tone;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// 제목 옆 같은 줄 곁말([AppSectionHeader.titleMeta] 와 같은 모양).
+  final String? titleMeta;
+
+  /// 제목 줄 오른쪽 끝 — 생성 배지·"메모 추가" 알약처럼 짧은 것.
+  final Widget? trailing;
+
+  /// 본문([message]) 아래 자유 내용 — 목록·추천 메뉴·버튼 묶음.
+  final Widget? child;
+
+  /// 배너가 부모에게서 높이를 받을 때(고정 높이 칸), [child] 가 남는 높이를
+  /// 모두 갖는다. 목록을 배너 안에서 스크롤할 때 켠다.
+  final bool expandChild;
+
+  final AppBannerDensity density;
+  final AppBannerPlacement placement;
 
   @override
   Widget build(BuildContext context) {
@@ -644,51 +698,216 @@ class AppBanner extends StatelessWidget {
           AppBannerTone.caution => icons.caution,
           AppBannerTone.danger => icons.error,
         };
-    return Container(
-      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: border),
-      ),
-      child: Row(
+    final bool card = placement == AppBannerPlacement.card;
+    final bool compact = density == AppBannerDensity.compact;
+    final BorderRadius radius = card ? OnCareRadius.xlAll : OnCareRadius.mdAll;
+    final EdgeInsetsGeometry padding = card
+        ? const EdgeInsets.all(OnCareSpacing.cardPadding)
+        : compact
+        ? const EdgeInsets.symmetric(
+            horizontal: OnCareSpacing.tilePadding,
+            vertical: OnCareSpacing.s8,
+          )
+        : const EdgeInsets.all(OnCareSpacing.tilePadding);
+    final MainAxisSize columnSize = expandChild
+        ? MainAxisSize.max
+        : MainAxisSize.min;
+
+    final String? message = this.message;
+    final Widget? messageText = message == null
+        ? null
+        : Text(
+            message,
+            style: tokens
+                .text(
+                  compact
+                      ? OnCareTypography.caption
+                      : OnCareTypography.bodySmall,
+                )
+                .copyWith(color: OnCareColors.textSecondary),
+          );
+    final String? actionLabel = this.actionLabel;
+    final Widget? action = actionLabel == null
+        ? null
+        : Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppButton(
+              label: actionLabel,
+              onPressed: onAction,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+            ),
+          );
+    final Widget? child = this.child;
+    final Widget? extra = child == null
+        ? null
+        : expandChild
+        ? Expanded(child: child)
+        : child;
+    // 제목 줄 아래 — 본문·자유 내용·동작 순.
+    List<Widget> below(double firstGap) => <Widget>[
+      if (messageText != null) ...<Widget>[
+        SizedBox(height: firstGap),
+        messageText,
+      ],
+      if (extra != null) ...<Widget>[
+        SizedBox(height: messageText == null ? firstGap : OnCareSpacing.s8),
+        extra,
+      ],
+      if (action != null) ...<Widget>[
+        const SizedBox(height: OnCareSpacing.s8),
+        action,
+      ],
+    ];
+    final Widget? trailing = this.trailing;
+    List<Widget> end() => <Widget>[
+      if (trailing != null) ...<Widget>[
+        const SizedBox(width: OnCareSpacing.s8),
+        trailing,
+      ],
+    ];
+
+    final Widget content;
+    if (card) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: columnSize,
+        children: <Widget>[
+          AppSectionHeader(
+            title: title,
+            icon: resolvedIcon,
+            titleMeta: titleMeta,
+            trailing: trailing,
+          ),
+          ...below(OnCareSpacing.s12),
+        ],
+      );
+    } else if (compact) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: columnSize,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              AppIcon(resolvedIcon, size: OnCareSize.iconSmall, color: accent),
+              const SizedBox(width: OnCareSpacing.s4),
+              Expanded(
+                // compact 는 고정 높이 칸에도 서므로 제목을 한 줄로 둔다.
+                child: _BannerTitle(
+                  title: title,
+                  meta: titleMeta,
+                  oneLine: true,
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                      .copyWith(color: accent),
+                ),
+              ),
+              ...end(),
+            ],
+          ),
+          ...below(OnCareSpacing.s2),
+        ],
+      );
+    } else {
+      content = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           AppIcon(resolvedIcon, size: OnCareSize.iconMedium, color: accent),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: columnSize,
               children: <Widget>[
-                Text(
-                  title,
-                  style: tokens
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _BannerTitle(
+                        title: title,
+                        meta: titleMeta,
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                    ),
+                    ...end(),
+                  ],
                 ),
-                if (message != null) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s2),
-                  Text(
-                    message!,
-                    style: tokens
-                        .text(OnCareTypography.bodySmall)
-                        .copyWith(color: OnCareColors.textSecondary),
-                  ),
-                ],
-                if (actionLabel != null) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s8),
-                  AppButton(
-                    label: actionLabel!,
-                    onPressed: onAction,
-                    variant: AppButtonVariant.secondary,
-                    size: OnCareButtonSize.small,
-                  ),
-                ],
+                ...below(OnCareSpacing.s2),
               ],
             ),
           ),
         ],
+      );
+    }
+
+    // 안쪽 투명 Material 은 버튼 잉크가 채움 위에 그려지게 한다. Container 라
+    // 테두리 두께만큼 안쪽 여백이 붙는다(예전 모양 그대로).
+    return Container(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: radius,
+        border: Border.all(color: border),
+        boxShadow: card ? OnCareShadows.card : null,
       ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(padding: padding, child: content),
+      ),
+    );
+  }
+}
+
+/// 배너 제목 — 곁말이 있으면 한 줄(곁말이 먼저 말줄임), 없으면 줄바꿈한다.
+class _BannerTitle extends StatelessWidget {
+  const _BannerTitle({
+    required this.title,
+    required this.style,
+    this.meta,
+    this.oneLine = false,
+  });
+
+  final String title;
+  final String? meta;
+  final TextStyle style;
+
+  /// 곁말이 없어도 한 줄로 두고 말줄임한다.
+  final bool oneLine;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? meta = this.meta;
+    if (meta == null) {
+      return Text(
+        title,
+        maxLines: oneLine ? 1 : null,
+        overflow: oneLine ? TextOverflow.ellipsis : null,
+        style: style,
+      );
+    }
+    return Row(
+      children: <Widget>[
+        Flexible(
+          flex: 2,
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+        const SizedBox(width: OnCareSpacing.s8),
+        Flexible(
+          child: Text(
+            '· $meta',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ),
+      ],
     );
   }
 }
