@@ -2258,6 +2258,18 @@ abstract class AppLocalizations {
   /// **'{minutes} min'**
   String minutesShort(int minutes);
 
+  /// Hours part of an exercise duration, e.g. `1 hr 30 min` (#2221).
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hr'**
+  String hoursShort(int hours);
+
+  /// Seconds part of an exercise duration, e.g. `45 sec` (#2221).
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String secondsShort(int seconds);
+
   /// No description provided for @ptProgramHistory.
   ///
   /// In en, this message translates to:
@@ -4638,6 +4650,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A rough average for this exercise type · the saved record will also use the member\'s weight'**
   String get routineCaloriesRoughEstimate;
+
+  /// No description provided for @routineUnitHours.
+  ///
+  /// In en, this message translates to:
+  /// **'hr'**
+  String get routineUnitHours;
 
   /// No description provided for @routineUnitMinutes.
   ///

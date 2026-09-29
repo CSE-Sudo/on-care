@@ -86,6 +86,138 @@ void main() {
     });
 
     expect(session.program.single.duration, 10);
+    // `duration_seconds` 를 모르는 옛 응답은 분에서 되짚는다(#2221).
+    expect(session.program.single.durationSeconds, 600);
+  });
+
+  group('duration_seconds (#2221)', () {
+    test('coachSessionFromJson reads program seconds', () {
+      final CoachSession session = coachSessionFromJson(<String, Object?>{
+        'id': 'session-2',
+        'date': '2026-09-28',
+        'time': '18:00',
+        'type': '1:1 PT',
+        'duration_minutes': 50,
+        'status': '완료',
+        'note': '',
+        'program': <Object?>[
+          <String, Object?>{
+            'name': '플랭크',
+            'sets': null,
+            'reps': null,
+            'weight': null,
+            // 서버가 초에서 반올림한 분 — 0 초과면 최소 1.
+            'duration': 1,
+            'duration_seconds': 45,
+          },
+          <String, Object?>{
+            'name': '스쿼트',
+            'sets': 4,
+            'reps': 12,
+            'weight': 40,
+            'duration': null,
+            'duration_seconds': null,
+          },
+        ],
+      });
+
+      expect(session.program.first.duration, 1);
+      expect(session.program.first.durationSeconds, 45);
+      // 근력은 세트로 잰다 — 초가 없다.
+      expect(session.program.last.durationSeconds, isNull);
+    });
+
+    test(
+      'coachRoutineFromJson reads routine, completion and exercise seconds',
+      () {
+        final CoachRoutine r = coachRoutineFromJson(<String, Object?>{
+          'id': 'r-seconds',
+          'name': '유산소 세션',
+          'minutes': 90,
+          'duration_seconds': 5400,
+          'type': '유산소',
+          'reason': '',
+          'source': 'trainer',
+          'completed': true,
+          'completed_minutes': 1,
+          'completed_duration_seconds': 45,
+          'exercises': <Object?>[
+            <String, Object?>{
+              'name': '버피',
+              'duration': 1,
+              'duration_seconds': 45,
+              'memo': '',
+            },
+            <String, Object?>{
+              'name': '레그프레스',
+              'sets': 4,
+              'reps': 12,
+              'weight': 60,
+              'duration': null,
+              'duration_seconds': null,
+              'memo': '',
+            },
+          ],
+        });
+
+        expect(r.minutes, 90);
+        expect(r.durationSeconds, 5400);
+        expect(r.completedMinutes, 1);
+        expect(r.completedDurationSeconds, 45);
+        expect(r.exercises.first.duration, 1);
+        expect(r.exercises.first.durationSeconds, 45);
+        expect(r.exercises.last.durationSeconds, isNull);
+      },
+    );
+
+    test('legacy minute-only JSON still reads (duration × 60)', () {
+      final CoachRoutine r = coachRoutineFromJson(<String, Object?>{
+        'id': 'r-legacy',
+        'name': '실내 자전거',
+        'minutes': 20,
+        'type': '유산소',
+        'reason': '',
+        'source': 'trainer',
+        'completed': true,
+        'completed_minutes': 25,
+        'exercises': <Object?>[
+          <String, Object?>{'name': '실내 자전거', 'duration': 20, 'memo': ''},
+        ],
+      });
+
+      expect(r.minutes, 20);
+      // 루틴 단위의 초는 비워 둔다 — 화면이 [minutes] 로 떨어진다.
+      expect(r.durationSeconds, isNull);
+      expect(r.completedMinutes, 25);
+      expect(r.completedDurationSeconds, isNull);
+      expect(r.exercises.single.duration, 20);
+      expect(r.exercises.single.durationSeconds, 1200);
+    });
+
+    test('copyWith keeps the assigned seconds and adds completion seconds', () {
+      const CoachRoutine routine = CoachRoutine(
+        id: 'r-45s',
+        name: '버피',
+        minutes: 1,
+        durationSeconds: 45,
+        type: '유산소',
+        reason: '',
+        source: 'trainer',
+      );
+
+      final CoachRoutine done = routine.copyWith(
+        completed: true,
+        completedMinutes: 1,
+        completedDurationSeconds: 45,
+      );
+      expect(done.durationSeconds, 45);
+      expect(done.completedDurationSeconds, 45);
+      // 완료와 상관없는 복사에도 초가 따라간다.
+      expect(
+        done.copyWith(trainerFeedback: '좋아요').completedDurationSeconds,
+        45,
+      );
+    });
   });
 
   group('coachMessageFromJson (member viewpoint)', () {

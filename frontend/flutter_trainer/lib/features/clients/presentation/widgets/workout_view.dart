@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -476,7 +477,7 @@ class _PendingRoutines extends ConsumerWidget {
 /// 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 규칙이 서기 전에 저장된
 /// 행뿐이라, 그때만 자리를 비운다.
 String _pendingRoutineAmountLabel(AppLocalizations l, AssignedRoutine routine) {
-  if (routine.type != '근력') return l.minutesShort(routine.minutes);
+  if (routine.type != '근력') return formatExerciseDuration(l, routine.seconds);
   final List<String> parts = <String>[
     if (routine.sets != null) l.progSetsValue(routine.sets!),
     // 버티는 운동은 회가 아니라 초로 읽는다 — 둘은 배타다(#1969).
@@ -655,8 +656,9 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
 /// 단위는 로케일을 타는 문구라 여기서 붙인다. 예전에는 이 수가 이름 문자열
 /// 안에 있어서(`레그프레스 70kg · 4세트`), 값을 필드로 옮기면 화면에서 사라졌다.
 ///
-/// 근력은 세트·횟수·중량으로, 나머지는 분으로 읽는다 — 회원 앱과 같은 규칙이다
-/// (#1262). 적히지 않은 칸은 건너뛴다.
+/// 근력은 세트·횟수·중량으로, 나머지는 시간으로 읽는다 — 회원 앱과 같은 규칙이다
+/// (#1262). 시간은 회원이 적은 만큼 초까지 보인다(`45초`·`1시간 5분 30초`).
+/// 적히지 않은 칸은 건너뛴다.
 String clientExerciseLine(AppLocalizations l, ClientExerciseItem item) {
   final int? sets = item.sets;
   final int? reps = item.reps;
@@ -673,7 +675,10 @@ String clientExerciseLine(AppLocalizations l, ClientExerciseItem item) {
       l.progRepsValue(reps),
     if (weight != null && weight > 0)
       '${_trimZeroKg(weight)}${l.routineUnitKg}',
-    if (sets == null && item.minutes > 0) l.minutesShort(item.minutes),
+    // 회원이 초까지 적은 기록은 초까지 읽는다 — 분으로 접으면 `45초` 가
+    // `1분` 이 된다(#2071).
+    if (sets == null && item.seconds > 0)
+      formatExerciseDuration(l, item.seconds),
     // 강도는 계약값(`moderate`)으로 온다 — 예전 서버 문장은 그 코드를 그대로
     // 적어 한국어 화면에도 `moderate` 가 나왔다(#2300).
     ?_intensityLabel(l, item.intensity),

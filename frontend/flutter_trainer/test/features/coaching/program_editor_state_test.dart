@@ -103,7 +103,7 @@ void main() {
       id: 'e2',
       name: '러닝머신',
       type: '유산소',
-      minutes: 40,
+      durationSeconds: 40 * 60,
     );
 
     // 세트당 벽시계 3분 — 회원 앱·서버와 같은 값이다.

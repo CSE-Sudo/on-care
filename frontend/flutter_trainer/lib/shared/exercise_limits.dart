@@ -22,3 +22,9 @@ const double kMaxExerciseWeightKg = 1000;
 /// 플랭크·행잉처럼 버티는 운동은 한 세트를 회가 아니라 초로 잰다. 한 세트가
 /// 한 시간을 넘으면 그것은 홀드가 아니라 다른 운동이다.
 const int kMaxExerciseHoldSeconds = 3600;
+
+/// 유산소·스트레칭·기타 한 항목의 운동 시간 상한(초). 열 시간이다. (#2221)
+///
+/// 서버 `MAX_EXERCISE_SECONDS`(= 600분)와 같다. 트레이너가 시·분·초로 적기
+/// 전에는 분 칸의 상한 600 이 곳곳에 숫자로 적혀 있었다.
+const int kMaxExerciseSeconds = 600 * 60;

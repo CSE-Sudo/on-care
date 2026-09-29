@@ -1,4 +1,5 @@
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 
 /// Maps the FastAPI `ScheduleSessionOut` JSON onto [ScheduleSession].
@@ -86,7 +87,12 @@ Map<String, Object?> programItemToJson(ProgramItem raw) {
     'name': item.name,
     'type': item.type,
     'date': item.date == null ? null : ymd(item.date!),
-    'duration': item.duration,
+    // 초가 기준이고 분은 거기서 반올림한 값이다 — 서버와 같은 규칙(#2221).
+    // 분은 예전 서버·집계를 위해 함께 싣는다.
+    'duration': item.seconds == null
+        ? null
+        : minutesFromSeconds(item.seconds!),
+    'duration_seconds': item.seconds,
     'sets': item.sets,
     'reps': item.reps,
     'hold_seconds': item.holdSeconds,
@@ -120,6 +126,9 @@ ProgramItem programItemFromJson(Map<String, Object?> entry) => ProgramItem(
       : '근력',
   date: DateTime.tryParse(_str(entry['date'])),
   duration: looseInt(entry['duration']),
+  // 초 키가 없던 예전 일정은 비어 있고 [ProgramItem.seconds] 가 분 × 60 으로
+  // 읽는다(#2221).
+  durationSeconds: looseInt(entry['duration_seconds']),
   sets: looseInt(entry['sets']),
   reps: looseInt(entry['reps']),
   holdSeconds: looseInt(entry['hold_seconds']),
