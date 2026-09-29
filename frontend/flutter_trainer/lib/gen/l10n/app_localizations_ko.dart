@@ -165,7 +165,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get authTagline => '회원 관리를 위한 트레이너 전용 앱';
+  String get authTagline => '회원의 식단·운동 기록을 한눈에 보고 코칭하는 트레이너 전용 공간';
 
   @override
   String get authEmailHint => '이메일';
