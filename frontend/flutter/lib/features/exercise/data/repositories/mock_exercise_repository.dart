@@ -8,6 +8,7 @@ import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -377,52 +378,64 @@ class MockExerciseRepository implements ExerciseRepository {
   );
 
   @override
-  Future<ExerciseSession> addSession({
-    required ExerciseType type,
-    required int minutes,
-    required int calories,
-    required DateTime date,
-    String name = '',
-    ExerciseIntensity intensity = ExerciseIntensity.moderate,
-    int? sets,
-    int? reps,
-    int? holdSeconds,
-    int? durationSeconds,
-    double? weight,
-  }) async {
+  Future<ExerciseSessionsAdded> addSessions(
+    List<ExerciseSessionDraft> drafts,
+  ) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
+    final List<ExerciseSession> added = <ExerciseSession>[
+      for (final ExerciseSessionDraft d in drafts) _addOne(d),
+    ];
+    // 적립은 기록마다 하고(하루 한도도 기록마다 센다) 응답에는 합계 한 벌을
+    // 싣는다 — 실서버와 같은 모양이다(#2544).
+    final List<PointsAward> awards = <PointsAward>[
+      for (final ExerciseSession s in added)
+        if (s.pointsAward case final PointsAward a) a,
+    ];
+    return ExerciseSessionsAdded(
+      sessions: added,
+      points: awards.isEmpty
+          ? null
+          : PointsAward(
+              awarded: awards.fold(0, (int sum, PointsAward a) => sum + a.awarded),
+              balance: awards.last.balance,
+            ),
+    );
+  }
+
+  ExerciseSession _addOne(ExerciseSessionDraft d) {
     final String id = 'mock-ex-${++_seq}';
     // 운동 직접 추가 +20P, 하루 3회 — 실서버와 같은 규칙이다(#1786).
     final PointsAward? award = _points?.award(PointsRule.exerciseManual, id);
+    final ExerciseType type = d.type;
     final session = ExerciseSession(
       id: id,
-      dayLabel: _dayLabels[date.weekday - 1],
+      dayLabel: _dayLabels[d.date.weekday - 1],
       type: type,
-      minutes: minutes,
-      calories: calories,
-      intensity: intensity,
-      dateLabel: _dateLabel(_ymd(date)),
-      sets: _strengthOnly(type, sets),
+      minutes: d.minutes,
+      calories: d.calories,
+      intensity: d.intensity,
+      dateLabel: _dateLabel(_ymd(d.date)),
+      sets: _strengthOnly(type, d.sets),
       // 한 세트를 회로든 초로든 한 번만 잰다 — 초가 오면 횟수를 비운다(#1969).
-      reps: holdSeconds == null ? _strengthOnly(type, reps) : null,
-      holdSeconds: _strengthOnly(type, holdSeconds),
-      durationSeconds: durationSeconds,
-      name: name,
-      weight: _strengthOnly(type, weight),
-      date: date,
+      reps: d.holdSeconds == null ? _strengthOnly(type, d.reps) : null,
+      holdSeconds: _strengthOnly(type, d.holdSeconds),
+      durationSeconds: d.durationSeconds,
+      name: d.name,
+      weight: _strengthOnly(type, d.weight),
+      date: d.date,
       pointsAward: award,
     );
     _sessions.add(session);
-    _totalCalories += calories;
+    _totalCalories += d.calories;
     // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
-    _shields?.refundFor(date);
+    _shields?.refundFor(d.date);
     return session;
   }
 
   /// 배정 루틴을 수행한 기록. 서버의 `complete_assigned_routine` 대역이라,
   /// 회원이 손으로 적은 기록과 **출처가 다르다**(`assigned_routine`).
   ///
-  /// [addSession] 으로 남기면 회원 수기 기록이 되어 `직접 추가한 운동` 목록에
+  /// [addSessions] 로 남기면 회원 수기 기록이 되어 `직접 추가한 운동` 목록에
   /// 서고 연필·삭제까지 붙는다 — 실서버에서는 409 로 막히는 동작이다.
   /// 되돌리기는 [removeAssignedRoutineSession] 이 맡는다.
   Future<ExerciseSession> addAssignedRoutineSession({

@@ -2,7 +2,7 @@
 운동 라우터 — 프론트 계약 정렬.
 
   GET  /exercise/weeks/current   -> 이번 주 운동 집계(요일별/타입별 + streak + 코칭)
-  POST /exercise/sessions        -> 운동 기록 추가 (집계에 반영)
+  POST /exercise/sessions        -> 운동 기록 1~N개 추가 (집계에 반영, #2544)
   POST /exercise/calories        -> 운동 이름·시간·강도로 소모 칼로리 미리보기
 """
 from __future__ import annotations
@@ -21,8 +21,8 @@ from app.db.session import get_db
 from app.models.models import ExerciseSession, HealthProfile
 from app.schemas.exercise_api import (
     ExerciseAdviceResponse, ExerciseCalorieRequest, ExerciseCalorieResponse,
-    ExercisePeriodResponse, ExerciseSessionCreate, ExerciseSessionCreatedOut,
-    ExerciseSessionOut, ExerciseWeekResponse,
+    ExercisePeriodResponse, ExerciseSessionCreate, ExerciseSessionOut,
+    ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseWeekResponse,
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
@@ -280,24 +280,81 @@ def preview_calories(
 
 
 @router.post(
-    "/exercise/sessions", response_model=ExerciseSessionCreatedOut, status_code=201
+    "/exercise/sessions", response_model=ExerciseSessionsCreatedOut, status_code=201
 )
-def add_session(
-    payload: ExerciseSessionCreate,
+def add_sessions(
+    payload: ExerciseSessionsCreate,
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
-) -> ExerciseSessionCreatedOut:
-    # type·intensity·date·minutes·calories 는 모두 ExerciseSessionCreate 의
-    # 타입·Field 제약에서 422 로 걸린다 — minutes 의 상한도 그 안에 있다(#1903).
-    # 예전에는 이 주석이 말하는 것과 달리 minutes 만 상한이 없어, 앱을 거치지
-    # 않은 호출이 넣은 값이 주간 집계로 그대로 번졌다.
+) -> ExerciseSessionsCreatedOut:
+    """운동 기록 1~N개를 **한 트랜잭션으로** 추가한다. (#2544)
+
+    회원이 하루치 운동 여러 개를 한 번에 저장한다. 전부 저장되거나 하나도
+    저장되지 않는다 — 몇 개만 남은 채 실패하면 다시 시도한 회원이 중복 기록을
+    만든다. 항목 검증은 모두 `ExerciseSessionCreate` 의 제약에서 422 로 걸리므로
+    (#1903), 라우터에 닿은 요청은 행을 만드는 일만 남는다.
+    """
+    rows: list[ExerciseSession] = []
+    awarded = 0
+    balance = 0
+    for item in payload.sessions:
+        rows.append(row := _new_member_session(db, current_user.id, item))
+        db.add(row)
+        # 회원이 직접 추가한 운동은 포인트를 받는다(#1786). 기록과 같은 트랜잭션이라
+        # 기록만 남고 적립이 빠지거나 그 반대가 되지 않는다. 적립이 행을 참조하므로
+        # 먼저 flush 한다. 하루 한도는 항목마다 센다 — 다섯 개를 한 번에 저장해도
+        # 한도(3회)만큼만 받는다.
+        db.flush()
+        points = points_service.award(
+            db, current_user.id, points_service.EXERCISE_MANUAL, row.id
+        )
+        awarded += points.awarded
+        balance = points.balance
+        # 보호권으로 이어 붙인 날에 운동 기록이 생기면 그 보호권을 되돌린다(#1788).
+        streak_shield_service.refund_for_record(
+            db, current_user.id, exercise_activity.activity_date_of(row)
+        )
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+
+    # 응답도 프론트 표시 형식(date_label/time_label/items)을 채워 반환한다.
+    # `build_current_week` 는 요일 순으로 다시 늘어놓으므로 항목마다 따로 만들어
+    # 요청 순서를 지킨다.
+    out = ExerciseSessionsCreatedOut(
+        sessions=[
+            ExerciseSessionOut(**build_current_week([row])["sessions"][0])
+            for row in rows
+        ],
+        points=PointsOut(awarded=awarded, balance=balance),
+    )
+    # 적재할 값은 먼저 떼어 둔다(#586). 적재가 실패하면 personal_ingest 가 세션을
+    # 롤백하는데, 그때 행이 만료되면 다음 항목을 읽다가 적재 실패가 기록 저장
+    # 실패로 번진다. 커밋은 이미 끝났다.
+    ingests = [
+        dict(
+            date=_session_date(row), exercise_type=row.type, minutes=row.minutes,
+            calories=row.calories, intensity=row.intensity, source_ref=row.id,
+            duration_seconds=row.duration_seconds,
+        )
+        for row in rows
+    ]
+    for one in ingests:
+        personal_ingest.record_exercise(db, current_user.id, **one)
+    return out
+
+
+def _new_member_session(
+    db: Session, user_id: str, payload: ExerciseSessionCreate
+) -> ExerciseSession:
+    """회원이 직접 적은 운동 한 건의 행. 저장·적립은 부르는 쪽이 한다."""
     week_start, day_label, completed_at = _placement(payload.date)
     normalized = exercise_types.normalize(payload.type)
-    estimated = _calories_for(db, current_user.id, payload, normalized)
+    estimated = _calories_for(db, user_id, payload, normalized)
     reps, hold_seconds = _reps_and_hold(normalized, payload)
-    row = ExerciseSession(
+    return ExerciseSession(
         id=f"ex-{uuid.uuid4().hex[:12]}",
-        user_id=current_user.id,
+        user_id=user_id,
         week_start=week_start,
         day_label=day_label,
         type=normalized,
@@ -315,32 +372,6 @@ def add_session(
         # 날짜를 본다. (#1264)
         completed_at=completed_at,
     )
-    db.add(row)
-    # 회원이 직접 추가한 운동은 포인트를 받는다(#1786). 기록과 같은 트랜잭션이라
-    # 기록만 남고 적립이 빠지거나 그 반대가 되지 않는다. 적립이 행을 참조하므로
-    # 먼저 flush 한다.
-    db.flush()
-    points = points_service.award(
-        db, current_user.id, points_service.EXERCISE_MANUAL, row.id
-    )
-    # 보호권으로 이어 붙인 날에 운동 기록이 생기면 그 보호권을 되돌린다(#1788).
-    streak_shield_service.refund_for_record(
-        db, current_user.id, exercise_activity.activity_date_of(row)
-    )
-    db.commit()
-    db.refresh(row)
-
-    # 단건 응답도 프론트 표시 형식(date_label/time_label/items)을 채워 반환
-    one = build_current_week([row])["sessions"][0]
-    out = ExerciseSessionCreatedOut(**one, points=PointsOut.of(points))
-    # 응답을 다 만든 뒤 적재한다(#586). 실패하면 personal_ingest 가 세션을 롤백하는데,
-    # 그때 row 가 만료되면 적재 실패가 기록 저장 실패로 번진다. 커밋은 이미 끝났다.
-    personal_ingest.record_exercise(
-        db, current_user.id, date=_session_date(row), exercise_type=row.type,
-        minutes=row.minutes, calories=row.calories, intensity=row.intensity,
-        source_ref=row.id, duration_seconds=row.duration_seconds,
-    )
-    return out
 
 
 @router.put("/exercise/sessions/{session_id}", response_model=ExerciseSessionOut)

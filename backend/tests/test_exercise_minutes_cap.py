@@ -19,6 +19,7 @@ from uuid import uuid4
 import pytest
 
 from app.schemas.exercise_limits import MAX_EXERCISE_MINUTES
+from tests.exercise_helpers import post_exercise
 
 #: 상한을 넘는 값. 예전에는 이 값이 그대로 저장돼 주간 합계로 번졌다.
 OVER_CAP = MAX_EXERCISE_MINUTES + 1
@@ -49,7 +50,7 @@ def test_add_session_rejects_minutes_over_cap(client):
     """상한을 넘는 기록은 422 다 — 저장되지 않는다."""
     h = _member_h(client)
 
-    res = client.post("/v1/exercise/sessions", json=_session_body(OVER_CAP), headers=h)
+    res = post_exercise(client, json=_session_body(OVER_CAP), headers=h)
 
     assert res.status_code == 422, res.text
 
@@ -58,8 +59,8 @@ def test_add_session_accepts_minutes_at_cap(client):
     """경계값은 그대로 받는다 — 상한을 거는 것이지 좁히는 것이 아니다."""
     h = _member_h(client)
 
-    res = client.post(
-        "/v1/exercise/sessions",
+    res = post_exercise(
+        client,
         json=_session_body(MAX_EXERCISE_MINUTES),
         headers=h,
     )
@@ -76,7 +77,7 @@ def test_rejected_minutes_never_reach_the_weekly_totals(client):
     되살아난다.
     """
     h = _member_h(client)
-    client.post("/v1/exercise/sessions", json=_session_body(OVER_CAP), headers=h)
+    post_exercise(client, json=_session_body(OVER_CAP), headers=h)
 
     week = client.get("/v1/exercise/weeks/current", headers=h).json()
 
@@ -87,8 +88,8 @@ def test_rejected_minutes_never_reach_the_weekly_totals(client):
 def test_update_session_rejects_minutes_over_cap(client):
     """수정도 같은 스키마(`ExerciseSessionCreate`)를 쓴다 — 뒷문으로 들어오지 못한다."""
     h = _member_h(client)
-    created = client.post(
-        "/v1/exercise/sessions", json=_session_body(30), headers=h
+    created = post_exercise(
+        client, json=_session_body(30), headers=h
     ).json()
 
     res = client.put(
@@ -121,7 +122,7 @@ def test_calorie_preview_and_session_share_one_cap(client, field):
     }
 
     preview = client.post("/v1/exercise/calories", json=body, headers=h)
-    saved = client.post("/v1/exercise/sessions", json=body, headers=h)
+    saved = post_exercise(client, json=body, headers=h)
 
     assert preview.status_code == 200, preview.text
     assert saved.status_code == 201, saved.text

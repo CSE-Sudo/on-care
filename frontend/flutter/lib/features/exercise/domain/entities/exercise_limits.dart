@@ -40,3 +40,9 @@ const double kExerciseWeightStepKg = 0.5;
 /// 저장되는 값이 어긋난다.
 double snapExerciseWeight(double kg) =>
     (kg / kExerciseWeightStepKg).round() * kExerciseWeightStepKg;
+
+/// 한 번에 추가할 수 있는 운동 기록 수. (#2544)
+///
+/// 추가 시트의 `추가할 운동` 목록이 이 수에서 더 쌓이지 않는다. 서버도 같은
+/// 수를 넘는 요청을 422 로 거절한다.
+const int kMaxExerciseSessionsPerSave = 20;

@@ -30,6 +30,7 @@ from app.models.models import (
     User,
 )
 from app.services.exercise_service import _longest_streak, build_current_week
+from tests.exercise_helpers import post_exercise
 
 #: 고정한 오늘(목)과 다음 주 월요일.
 THURSDAY = datetime(2026, 9, 17, 10, 0, tzinfo=clock.SEOUL)
@@ -109,8 +110,8 @@ def _shields(client, headers) -> dict:
 
 
 def _add_exercise(client, headers, day: str, minutes: int = 30) -> None:
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",

@@ -169,7 +169,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authTagline => 'The trainer-only app for managing your members';
+  String get authTagline =>
+      'See your members\' meals and workouts in one place — and coach them';
 
   @override
   String get authEmailHint => 'Email';
@@ -2897,7 +2898,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiGenerateCandidates => 'Generate candidates';
 
   @override
-  String get aiReviewDone => 'Reviewed';
+  String get aiReviewDone => 'Finish review';
 
   @override
   String aiRoutineFor(String name) {
@@ -3006,11 +3007,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use the button below to jump into their chat and explain it.';
 
   @override
-  String get aiApplyToTemplate => 'Apply to template';
+  String get aiApplyToTemplate => 'Apply to program';
 
   @override
   String get aiAppliedToTemplate =>
-      'The AI suggestion was applied to the program template.';
+      'The AI suggestion was applied to the program.';
 
   @override
   String get aiStepConditions => 'Set up';
@@ -3103,7 +3104,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepPersonal => 'Personal exercise';
 
   @override
-  String get aiGoToPersonalStep => 'Next · plan personal exercise';
+  String get aiStepPrev => 'Back';
+
+  @override
+  String get aiStepNext => 'Next';
 
   @override
   String get aiPersonalStepTitle => 'Personal exercise between PT';

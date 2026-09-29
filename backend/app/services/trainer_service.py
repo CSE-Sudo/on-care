@@ -2410,6 +2410,15 @@ def assign_program(
     # 단일 배정과 같은 이유로 알림보다 먼저 flush 한다 — 동시 요청이 유니크
     # 제약에 걸리면 진 쪽이 알림까지 쌓지 않아야 한다.
     try:
+        # `개인운동만` 도 새로 보내는 개인운동이다 — PT 와 함께 보낼 때처럼
+        # 이전 개인운동을 먼저 내린다(#2514). 내리지 않으면 지난 주 것과 이번
+        # 주 것이 함께 걸려 회원이 두 벌을 받는다. 같은 트랜잭션이라 배정이
+        # 실패하면 내린 것도 되돌아간다. 재시도는 위에서 이미 돌려보냈으므로
+        # 방금 보낸 한 주를 내리는 일은 없다.
+        if delivery_kind is not None:
+            _retire_personal_routines(
+                db, trainer_id, member_id, today=clock.today()
+            )
         created = _add_program_routines(
             db, trainer_id, member_id,
             name=name, sessions=sessions, client_request_id=client_request_id,

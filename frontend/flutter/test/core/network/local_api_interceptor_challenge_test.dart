@@ -16,6 +16,7 @@ import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_challenge_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
+import '../../helpers/exercise_session_post.dart';
 
 /// 2026-09-14(월)부터 [offset] 일 뒤의 시각.
 DateTime _day(int offset, [int hour = 10, int minute = 0]) =>
@@ -250,9 +251,9 @@ void main() {
     challenge.recordedDays = null;
     expect((await join()).statusCode, 201);
     for (final String date in <String>['2026-09-14', '2026-09-14', '2026-09-15']) {
-      final Response<Object?> r = await dio.post<Object?>(
-        '/exercise/sessions',
-        data: <String, Object?>{
+      final Response<Object?> r = await postExerciseSession(
+        dio,
+        <String, Object?>{
           'type': 'cardio',
           'name': '걷기',
           'minutes': 20,

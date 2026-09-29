@@ -13,6 +13,7 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -70,28 +71,35 @@ class _AwardingRepository implements ExerciseRepository {
   );
 
   @override
-  Future<ExerciseSession> addSession({
-    required ExerciseType type,
-    required int minutes,
-    required int calories,
-    required DateTime date,
-    String name = '',
-    ExerciseIntensity intensity = ExerciseIntensity.moderate,
-    int? sets,
-    int? reps,
-    int? holdSeconds,
-    int? durationSeconds,
-    double? weight,
-  }) async => ExerciseSession(
-    id: 'added',
-    dayLabel: _dayLabels[date.weekday - 1],
-    type: type,
-    minutes: minutes,
-    calories: calories,
-    name: name,
-    date: date,
-    pointsAward: award,
-  );
+  Future<ExerciseSessionsAdded> addSessions(
+    List<ExerciseSessionDraft> drafts,
+  ) async {
+    final List<ExerciseSession> sessions = <ExerciseSession>[
+      for (final ExerciseSessionDraft d in drafts) await _addOne(d),
+    ];
+    return ExerciseSessionsAdded(
+      sessions: sessions,
+      points: sessions.last.pointsAward,
+    );
+  }
+
+  Future<ExerciseSession> _addOne(ExerciseSessionDraft d) async {
+    final ExerciseType type = d.type;
+    final int minutes = d.minutes;
+    final int calories = d.calories;
+    final DateTime date = d.date;
+    final String name = d.name;
+    return ExerciseSession(
+      id: 'added',
+      dayLabel: _dayLabels[date.weekday - 1],
+      type: type,
+      minutes: minutes,
+      calories: calories,
+      name: name,
+      date: date,
+      pointsAward: award,
+    );
+  }
 
   @override
   Future<void> deleteSession(String id) async => deleted++;

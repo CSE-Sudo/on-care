@@ -900,10 +900,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exLogged => '운동이 기록됐어요';
 
   @override
+  String exQueueTitle(int count) {
+    return '추가할 운동 $count';
+  }
+
+  @override
+  String get exQueueRemove => '목록에서 빼기';
+
+  @override
+  String exQueueFull(int count) {
+    return '한 번에 $count개까지 추가할 수 있어요';
+  }
+
+  @override
+  String exSaveCount(int count) {
+    return '$count개 저장';
+  }
+
+  @override
+  String exLoggedCount(int count) {
+    return '운동 $count개가 기록됐어요';
+  }
+
+  @override
+  String get exQueueDiscardTitle => '추가할 운동을 버릴까요?';
+
+  @override
+  String exQueueDiscardBody(int count) {
+    return '아직 저장하지 않은 운동 $count개가 사라져요.';
+  }
+
+  @override
+  String get exQueueDiscard => '버리기';
+
+  @override
   String get exOwnRecords => '직접 기록한 운동';
 
   @override
-  String get exOwnRecordsEmpty => '직접 추가한 운동이 없어요';
+  String get exOwnRecordsEmpty => '직접 추가할 운동이 없어요';
 
   @override
   String get exOwnRecordSource => '직접 기록';
@@ -3512,7 +3546,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => '완료 기록';
+  String get coachRoutineSubmit => '완료';
 
   @override
   String get coachChatWithTrainer => '트레이너와 채팅';

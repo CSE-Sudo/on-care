@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -80,19 +81,9 @@ class _CatalogRepository implements ExerciseRepository {
   Future<void> deleteSession(String id) async {}
 
   @override
-  Future<ExerciseSession> addSession({
-    required ExerciseType type,
-    required int minutes,
-    required int calories,
-    required DateTime date,
-    String name = '',
-    ExerciseIntensity intensity = ExerciseIntensity.moderate,
-    int? sets,
-    int? reps,
-    int? holdSeconds,
-    int? durationSeconds,
-    double? weight,
-  }) async => throw UnimplementedError();
+  Future<ExerciseSessionsAdded> addSessions(
+    List<ExerciseSessionDraft> drafts,
+  ) async => throw UnimplementedError();
 
   @override
   Future<ExerciseSession> updateSession({

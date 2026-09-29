@@ -20,6 +20,7 @@ from sqlalchemy import select
 from app.core import clock
 from app.models.models import DietEntry, HealthProfile
 from app.services import graph_color_service
+from tests.exercise_helpers import post_exercise
 
 THURSDAY = datetime(2026, 9, 17, 10, 0, tzinfo=clock.SEOUL)
 TODAY = "2026-09-17"
@@ -69,8 +70,8 @@ def _day(body: dict, date: str) -> dict:
 
 
 def _add_exercise(client, headers, day: str, minutes: int = 30) -> None:
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",
