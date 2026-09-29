@@ -105,6 +105,23 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 보낸 구성을 그대로** 펼쳐, 보냈다는 표시도 없이 다시 반영할 수 있다.
   int _wizardRevision = 0;
 
+  /// 위저드의 단계 진행 줄. 위저드는 편집기 열의 스크롤 안에 있어서, 진행
+  /// 줄을 여기로 넘겨받아 그 스크롤 **바로 아래**에 둔다(#2476).
+  final ValueNotifier<Widget?> _wizardNav = ValueNotifier<Widget?>(null);
+
+  /// [_wizardNav] 를 마지막으로 넘긴 위저드 화면.
+  Object? _wizardNavOwner;
+
+  /// 위저드가 진행 줄을 넘기거나(`nav`) 사라지며 거둔다(`null`). 회원을 바꾸면
+  /// 새 위저드가 먼저 제 줄을 넘기고 옛 위저드가 뒤이어 거두므로, 거두는 것은
+  /// 지금 줄을 넘긴 그 화면일 때만 받는다.
+  void _onWizardNav(Object owner, Widget? nav) {
+    if (!mounted) return;
+    if (nav == null && !identical(owner, _wizardNavOwner)) return;
+    _wizardNavOwner = nav == null ? null : owner;
+    _wizardNav.value = nav;
+  }
+
   /// `일정 추가` 가 방금 성공했다 — 성공 토스트가 떠 있는 동안 같은 구성을
   /// 다시 보내지 못하게 잠그고, 잠시 뒤 편집기를 새로 세운다.
   bool _sent = false;
@@ -141,6 +158,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void dispose() {
     _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
+    _wizardNav.dispose();
     super.dispose();
   }
 
@@ -651,16 +669,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                         OnCareLayout.splitGap +
                         OnCareLayout.dialogSmall;
                 if (!wide) {
-                  return ListView(
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      // Single column: context, then the editor, then the
-                      // library. The editor is the task — pushing it below
-                      // the templates would bury it.
-                      ..._contextChildren(l, clients, selected),
-                      const SizedBox(height: OnCareSpacing.s16),
-                      ..._editorChildren(selected),
-                      const SizedBox(height: OnCareSpacing.s16),
-                      ..._libraryChildren(selected),
+                      Expanded(
+                        child: ListView(
+                          children: <Widget>[
+                            // Single column: context, then the editor, then
+                            // the library. The editor is the task — pushing it
+                            // below the templates would bury it.
+                            ..._contextChildren(l, clients, selected),
+                            const SizedBox(height: OnCareSpacing.s16),
+                            ..._editorChildren(selected),
+                            const SizedBox(height: OnCareSpacing.s16),
+                            ..._libraryChildren(selected),
+                          ],
+                        ),
+                      ),
+                      _wizardNavBar(),
                     ],
                   );
                 }
@@ -743,36 +769,51 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           ),
                           const SizedBox(width: OnCareLayout.splitGap),
                           Expanded(
-                            child: SingleChildScrollView(
-                              key: const ValueKey<String>(
-                                'coaching-program-page-scroll',
-                              ),
-                              child: Column(
-                                key: const ValueKey<String>(
-                                  'coaching-wide-main-column',
-                                ),
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: <Widget>[
-                                  // 오른쪽 열을 세울 만큼 넓지 않은 창에서는
-                                  // 식단·운동이 가운데 열 **맨 위**에 온다 —
-                                  // 넓은 화면의 오른쪽 열 맨 위와 같은
-                                  // 자리다(#1027).
-                                  if (!fullWidth) ...<Widget>[
-                                    _ClientDataSwitcher(
-                                      key: const ValueKey<String>(
-                                        'coaching-wide-client-overview',
-                                      ),
-                                      client: selected,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                // 내용이 짧으면 진행 줄이 내용 바로 아래에
+                                // 붙고, 열보다 길면 열 바닥에 머문다(#2476).
+                                Flexible(
+                                  child: SingleChildScrollView(
+                                    key: const ValueKey<String>(
+                                      'coaching-program-page-scroll',
                                     ),
-                                    const SizedBox(height: OnCareSpacing.s16),
-                                  ],
-                                  ..._editorChildren(selected),
-                                  if (!fullWidth) ...<Widget>[
-                                    const SizedBox(height: OnCareSpacing.s16),
-                                    _SendHistoryCard(client: selected),
-                                  ],
-                                ],
-                              ),
+                                    child: Column(
+                                      key: const ValueKey<String>(
+                                        'coaching-wide-main-column',
+                                      ),
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: <Widget>[
+                                        // 오른쪽 열을 세울 만큼 넓지 않은
+                                        // 창에서는 식단·운동이 가운데 열
+                                        // **맨 위**에 온다 — 넓은 화면의
+                                        // 오른쪽 열 맨 위와 같은 자리다(#1027).
+                                        if (!fullWidth) ...<Widget>[
+                                          _ClientDataSwitcher(
+                                            key: const ValueKey<String>(
+                                              'coaching-wide-client-overview',
+                                            ),
+                                            client: selected,
+                                          ),
+                                          const SizedBox(
+                                            height: OnCareSpacing.s16,
+                                          ),
+                                        ],
+                                        ..._editorChildren(selected),
+                                        if (!fullWidth) ...<Widget>[
+                                          const SizedBox(
+                                            height: OnCareSpacing.s16,
+                                          ),
+                                          _SendHistoryCard(client: selected),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                _wizardNavBar(),
+                              ],
                             ),
                           ),
                           if (fullWidth) ...<Widget>[
@@ -811,6 +852,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           },
         ),
       ),
+    );
+  }
+
+  /// 위저드 단계 진행 줄(`이전` · 다음 단계). 편집기 열 스크롤 바로 아래에
+  /// 둔다 — 내용이 짧으면 내용 바로 다음 줄에, 열보다 길면 열 바닥에 머물러
+  /// 카드를 채우는 동안에도 어디서 넘어가는지 보인다(#2476). 위저드를 닫으면
+  /// 걷는다.
+  Widget _wizardNavBar() {
+    if (!_aiWizardVisible) return const SizedBox.shrink();
+    return ValueListenableBuilder<Widget?>(
+      valueListenable: _wizardNav,
+      builder: (context, nav, _) => nav == null
+          ? const SizedBox.shrink()
+          : Padding(
+              // 위저드 카드 사이와 같은 간격이다.
+              padding: const EdgeInsets.only(top: OnCareSpacing.s16),
+              child: nav,
+            ),
     );
   }
 
@@ -921,6 +980,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 ),
                 client: client,
                 embedded: true,
+                onStepNav: _onWizardNav,
                 recommendedExercises: items
                     .map(
                       (item) => RoutineExercise(
@@ -984,7 +1044,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 ),
               )
             else
-              const SizedBox(height: OnCareSpacing.s16),
+              // 위저드가 떠 있을 때 이 아래(편집기)는 숨어 있다 — 여기 간격을
+              // 두면 위저드 진행 줄과 내용 사이만 벌어진다(#2476). 자리는
+              // 지킨다: 빠지면 아래 편집기의 자리가 밀려 State 가 새로 선다.
+              const SizedBox.shrink(),
             Offstage(
               offstage:
                   _aiWizardVisible || _routineOnlyClients.contains(client.id),

@@ -992,7 +992,7 @@ void main() {
     });
 
     testWidgets('자연어 요청은 trainer_note 로 그대로 나가고, 직접 작성 경로는 '
-        '`운동 직접 추가하기` 로 불린다', (tester) async {
+        '목록 제목 오른쪽 `운동 추가` 로 불린다', (tester) async {
       final repo = await pumpFlow(tester);
 
       const prompt = '하체 부담 적고 유산소 비중 높은 40분 프로그램 만들어줘';
@@ -1006,7 +1006,14 @@ void main() {
       // 지어낸 새 필드가 아니라 백엔드가 실제로 읽는 자유 텍스트로 나간다.
       expect(repo.lastTrainerNote, prompt);
 
-      expect(find.text('운동 직접 추가하기'), findsOneWidget);
+      // 목록을 늘리는 버튼은 편집기의 `+ 운동 추가` 와 같은 문구다(#2476).
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('show-add-exercise-form')),
+          matching: find.text('운동 추가'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('운동 직접 등록'), findsNothing);
     });
 
