@@ -276,4 +276,118 @@ void main() {
       );
     });
   });
+
+  group('AppBanner (#2468)', () {
+    testWidgets('trailing 은 제목 줄 오른쪽, child 는 본문 아래에 선다', (tester) async {
+      await _pump(
+        tester,
+        const AppBanner(
+          title: '감지',
+          message: '본문',
+          trailing: Text('메모 추가'),
+          child: Text('목록'),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getCenter(find.text('메모 추가')).dy,
+        closeTo(tester.getCenter(find.text('감지')).dy, 1),
+      );
+      expect(
+        tester.getTopLeft(find.text('목록')).dy,
+        greaterThan(tester.getBottomLeft(find.text('본문')).dy - 1),
+      );
+    });
+
+    testWidgets('기본 배너는 예전처럼 테두리 두께만큼 안쪽 여백이 붙는다', (tester) async {
+      await _pump(tester, const AppBanner(title: '안내'));
+      final Rect banner = tester.getRect(find.byType(AppBanner));
+      final Rect title = tester.getRect(find.text('안내'));
+      // 테두리 1 + 안쪽 12 + 아이콘 20 + 간격 8.
+      expect(
+        title.left - banner.left,
+        OnCareSize.hairline +
+            OnCareSpacing.tilePadding +
+            OnCareSize.iconMedium +
+            OnCareSpacing.s8,
+      );
+    });
+
+    testWidgets('카드 자리 배너는 반경 20·카드 그림자이고 본문이 폭을 다 쓴다', (tester) async {
+      await _pump(
+        tester,
+        const AppBanner(
+          title: '활동 피드백',
+          message: '본문',
+          placement: AppBannerPlacement.card,
+        ),
+      );
+      final BoxDecoration decoration =
+          tester
+                  .widget<Container>(
+                    find
+                        .descendant(
+                          of: find.byType(AppBanner),
+                          matching: find.byType(Container),
+                        )
+                        .first,
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(decoration.borderRadius, OnCareRadius.xlAll);
+      expect(decoration.boxShadow, OnCareShadows.card);
+      // 머리는 카드 제목과 같고, 본문은 아이콘 밑에서 시작한다.
+      expect(find.byType(AppSectionHeader), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('본문')).dx,
+        tester.getTopLeft(find.byType(AppSectionHeader)).dx,
+      );
+    });
+
+    testWidgets('compact 는 톤색 제목·작은 아이콘이다', (tester) async {
+      await _pump(
+        tester,
+        const AppBanner(
+          title: '감지',
+          message: '본문',
+          tone: AppBannerTone.danger,
+          density: AppBannerDensity.compact,
+        ),
+      );
+      expect(
+        tester.widget<Text>(find.text('감지')).style?.color,
+        OnCareColors.danger,
+      );
+      expect(tester.widget<Icon>(find.byType(Icon)).size, OnCareSize.iconSmall);
+    });
+
+    testWidgets('expandChild 는 고정 높이에서 child 가 남는 높이를 채운다', (tester) async {
+      await _pump(
+        tester,
+        const SizedBox(
+          height: 120,
+          child: AppBanner(
+            title: '감지',
+            density: AppBannerDensity.compact,
+            tone: AppBannerTone.danger,
+            expandChild: true,
+            child: ColoredBox(
+              key: ValueKey<String>('fill'),
+              color: OnCareColors.surfaceInput,
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final Rect banner = tester.getRect(find.byType(AppBanner));
+      final Rect fill = tester.getRect(
+        find.byKey(const ValueKey<String>('fill')),
+      );
+      expect(banner.height, 120);
+      expect(
+        fill.bottom,
+        banner.bottom - OnCareSpacing.s8 - OnCareSize.hairline,
+      );
+    });
+  });
 }

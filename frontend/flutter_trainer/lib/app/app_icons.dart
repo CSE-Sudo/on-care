@@ -179,6 +179,10 @@ class AppIcons {
   /// 식단 분석 카드.
   static const IconData insights = Symbols.insights_rounded;
 
+  /// 대시보드 활동 피드백 — 규칙으로 고른 코칭 제안이라 [ai] 반짝이를 달지
+  /// 않는다(#2468).
+  static const IconData activityFeedback = Symbols.tips_and_updates_rounded;
+
   /// 할 일 진행률.
   static const IconData progress = Symbols.stacked_bar_chart_rounded;
 
