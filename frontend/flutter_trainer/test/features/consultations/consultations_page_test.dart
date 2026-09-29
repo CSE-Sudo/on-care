@@ -118,7 +118,7 @@ class _FakeConsultationRepository implements ConsultationRepository {
         .map((r) => r.id == id ? _request(id: id, status: 'accepted') : r)
         .toList();
     return ConsultationAcceptResult(
-      clientConnected: true,
+      clientConnected: false,
       scheduleCreated: hasSlot,
       scheduleId: hasSlot ? 'sched-test' : null,
     );

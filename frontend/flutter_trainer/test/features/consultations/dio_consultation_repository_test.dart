@@ -176,7 +176,8 @@ void main() {
         ),
       ).thenAnswer(
         (_) async => _ok<Map<String, Object?>>(<String, Object?>{
-          'client_connected': true,
+          // 수락은 담당 연결이 아니다(#2584).
+          'client_connected': false,
           'schedule_created': true,
           'schedule_id': 'sched-1',
         }, '/trainer/consultations/consult-1/accept'),
@@ -201,7 +202,7 @@ void main() {
       ]) {
         expect(data.containsKey(key), isFalse, reason: key);
       }
-      expect(result.clientConnected, isTrue);
+      expect(result.clientConnected, isFalse);
       expect(result.scheduleCreated, isTrue);
       expect(result.scheduleId, 'sched-1');
     });
@@ -425,7 +426,8 @@ void main() {
       );
     });
 
-    test('the demo source books the slot the member picked (#1873)', () async {
+    test('the demo source books a consultation on the slot the member picked '
+        '(#1873, #2584)', () async {
       final scheduleRepository = _MockScheduleRepository();
       when(
         () => scheduleRepository.addSession(
@@ -448,8 +450,10 @@ void main() {
       final result = await repo.accept(request.id);
 
       expect(result.scheduleCreated, isTrue);
-      // 자리가 정한 시각·길이 그대로, 종류는 `1:1 PT` 다 — 코드 상수 30분이나
-      // `상담` 종류를 지어내지 않는다.
+      // 수락은 담당 연결이 아니다 — 서버와 같은 답이다(#2584).
+      expect(result.clientConnected, isFalse);
+      // 자리가 정한 시각·길이 그대로 **상담** 일정이 잡힌다. 메모 칸은 트레이너만
+      // 보는 상담 메모 자리라 회원 문의 글을 넣지 않는다(#2584).
       final DateTime start = request.slotStartsAt!;
       verify(
         () => scheduleRepository.addSession(
@@ -457,11 +461,20 @@ void main() {
           clientName: request.memberName,
           clientId: request.memberId,
           time: '19:00',
-          type: SessionType.personalTraining,
+          type: SessionType.consultation,
           durationMinutes: request.slotDurationMinutes!,
-          note: request.message ?? '',
+          note: '',
         ),
       ).called(1);
+      // 문의 글은 `상담 요청 내용` 으로 따로 붙는다.
+      final consultation =
+          demoScheduleConsultations[demoConsultationKey(
+            clientId: request.memberId,
+            date: ymd(start),
+            time: '19:00',
+          )];
+      expect(consultation?.id, request.id);
+      expect(consultation?.message, request.message);
     });
   });
 }

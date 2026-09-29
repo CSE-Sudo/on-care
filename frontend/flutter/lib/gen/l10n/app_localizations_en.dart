@@ -2726,15 +2726,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      'Once this trainer accepts your request, they\'ll be able to see your diet log, exercise log, and body info and health goals.';
+      'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.';
 
   @override
   String get exConsultDataSharingAgree =>
-      'I have read this and agree to share my meal and workout records and body information with this trainer';
+      'I have read this and agree to send my request details to this trainer';
 
   @override
   String get exConsultDataSharingRequired =>
-      'Please agree to sharing before requesting a consultation';
+      'Please agree to sending your request details before requesting a consultation';
 
   @override
   String get coachInviteConsentTitle => 'Before you connect';
@@ -2944,7 +2944,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultAcceptedGuide =>
-      'You\'re connected with your trainer. You can start chatting now.';
+      'Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.';
 
   @override
   String get exMyReservations => 'My bookings';
@@ -3120,7 +3120,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncConsent =>
-      'The trainer who enters this code becomes your coach and can see your meals, workouts, and health records.';
+      'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.';
+
+  @override
+  String get trainerSyncAgree => 'Agree and get a code';
 
   @override
   String get trainerSyncHint => 'Read these six digits out to your trainer.';

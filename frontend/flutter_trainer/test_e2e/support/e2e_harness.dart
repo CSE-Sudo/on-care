@@ -191,6 +191,20 @@ class E2eApi {
     ];
   }
 
+  /// [date] 하루의 트레이너 일정. 연결 전 회원의 상담 일정은 `member_id` 로
+  /// 물을 수 없어(담당이 아니면 404) 날짜로 찾는다(#2584).
+  Future<List<Map<String, dynamic>>> scheduleOn(String date) async {
+    final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
+      '/trainer/schedule',
+      queryParameters: <String, String>{'from': date, 'to': date},
+      options: _auth,
+    );
+    return <Map<String, dynamic>>[
+      for (final Object? row in res.data ?? const <Object?>[])
+        row! as Map<String, dynamic>,
+    ];
+  }
+
   Future<List<Map<String, dynamic>>> trainerSlots() async {
     final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
       '/trainer/reservation-slots',

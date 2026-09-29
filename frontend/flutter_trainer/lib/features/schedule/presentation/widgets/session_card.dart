@@ -4,6 +4,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_consultation_box.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_ended_box.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_manage_row.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_note_box.dart';
@@ -260,6 +261,12 @@ class SessionCard extends ConsumerWidget {
           // PT 에서 할 것과 회원이 혼자 할 것을 한 카드에서 갈라 보여 준다
           // (#2224) — 완료하면 이 개인운동이 함께 나간다.
           if (!noteOnly && personalRoutines != null) personalRoutines!,
+          // 상담 요청으로 생긴 상담이면 회원이 보낸 목표·문의를 메모 위에 둔다
+          // — 메모는 트레이너가 적는 자리라 회원 글과 섞이지 않는다(#2584).
+          if (noteOnly && s.consultation != null) ...<Widget>[
+            SessionConsultationBox(consultation: s.consultation!),
+            const SizedBox(height: OnCareSpacing.s12),
+          ],
           if (s.note.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
             SessionNoteBox(note: s.note),

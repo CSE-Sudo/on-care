@@ -9,9 +9,9 @@
 ///  4. `trainer-reject`  — 다른 요청을 사유와 함께 거절한다.
 ///  5. (회원) `member-after-reject`
 ///
-/// 승인은 상담 상태와 담당 연결, 그리고 회원이 고른 자리의 일정을 함께 남긴다
-/// (#1873). 승인할 때 시각을 따로 받지 않는다 — 시각은 트레이너가 연 자리가 이미
-/// 정해 두었다.
+/// 승인은 상담 상태와 회원이 고른 자리의 **상담 일정**을 남긴다(#1873). 담당
+/// 연결은 만들지 않는다 — 등록은 상담 뒤 6자리 코드로 한다(#2584). 승인할 때
+/// 시각을 따로 받지 않는다 — 시각은 트레이너가 연 자리가 이미 정해 두었다.
 library;
 
 import 'package:flutter/material.dart';
@@ -108,7 +108,8 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
 
-        // 상태와 담당 연결이 함께 남았는가. 하나라도 빠지면 부분 성공이다.
+        // 상태가 남고, 담당 연결은 생기지 않는다 — 수락은 상담 일정 확정이다
+        // (#2584). 등록은 회원 단계에서 6자리 코드로 한다.
         final Map<String, dynamic> after = await _waitForStatus(
           api,
           consultationId,
@@ -117,20 +118,19 @@ void main() {
         expect(after['status'], 'accepted');
         expect(
           await api.isClientOf(memberId),
-          isTrue,
-          reason: '승인했는데 담당 연결이 생기지 않았습니다.',
+          isFalse,
+          reason: '수락만으로 담당 연결이 생겼습니다.',
         );
 
-        // 승인은 회원이 고른 자리에 일정까지 만든다(#1873). 담당만 생기고
-        // 일정이 없으면 트레이너가 스케줄 탭에서 다시 잡아야 하는 예전 상태로
-        // 돌아간 것이다.
-        final List<Map<String, dynamic>> sessions = await api.scheduleFor(
-          memberId,
+        // 승인은 회원이 고른 자리에 상담 일정을 만든다(#1873). 연결 전이라
+        // `member_id` 로는 물을 수 없어 그날 일정에서 이 요청의 것을 찾는다.
+        final List<Map<String, dynamic>> sessions = await api.scheduleOn(
+          row['preferred_date'] as String,
         );
         final Map<String, dynamic> session = sessions.firstWhere(
           (Map<String, dynamic> s) =>
-              s['date'] == row['preferred_date'] &&
-              s['time'] == consultStartTime,
+              (s['consultation'] as Map<String, dynamic>?)?['id'] ==
+              consultationId,
           orElse: () => <String, dynamic>{},
         );
         expect(
@@ -139,10 +139,18 @@ void main() {
           reason:
               '승인이 ${row['preferred_date']} $consultStartTime 상담 일정을 만들지 않았습니다.',
         );
-        // 종류와 길이는 자리의 것이다 — 코드 상수(상담 30분)로 만들면 트레이너가
-        // 연 자리와 달력이 어긋난다.
-        expect(session['type'], '1:1 PT');
+        expect(session['time'], consultStartTime);
+        // 잡히는 것은 상담이다(#2584). 길이는 자리의 것이다 — 코드 상수로
+        // 만들면 트레이너가 연 자리와 달력이 어긋난다. 메모 칸은 트레이너만
+        // 보는 상담 메모 자리라 회원 문의 글이 들어가지 않고, 문의 글은
+        // `상담 요청 내용` 으로 따로 온다.
+        expect(session['type'], '상담');
         expect(session['duration_minutes'], row['slot_duration_minutes']);
+        expect(session['note'], '');
+        expect(
+          (session['consultation'] as Map<String, dynamic>)['message'],
+          row['message'],
+        );
         // 정리 단계가 지울 수 있게 남긴다 — 회원 계정을 지워도
         // `trainer_schedule.member_id` 는 SET NULL 이라 일정은 그대로 남는다.
         E2eState.merge(<String, Object?>{'sessionId': session['id']});

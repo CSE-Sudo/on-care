@@ -104,13 +104,25 @@ void main() {
     expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
-  testWidgets('누르면 6자리 코드와 공유 범위 안내가 뜬다', (tester) async {
+  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (
+    tester,
+  ) async {
     await pumpMyTab(tester);
 
     await tester.tap(find.text('트레이너와 데이터 동기화'));
     await tester.pumpAndSettle();
 
+    // 여는 것만으로는 발급하지 않는다 — 무엇에 동의하는지 읽기 전에 동의가
+    // 끝나면 안 된다. 서버는 발급 시각을 동의 시각으로 적는다.
+    expect(sync.issued, 0);
+    expect(find.textContaining('식단 기록·운동 기록·신체 정보와 건강 목표'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('sync-digit-0')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey<String>('trainer-sync-agree')));
+    await tester.pumpAndSettle();
+
     expect(sync.issued, 1);
+    expect(find.byKey(const ValueKey<String>('trainer-sync-agree')), findsNothing);
     // 한 자리씩 상자에 담긴다 — 마주 앉아 불러 주는 값이라 글자가 갈려야 한다.
     final String shown = <String>[
       for (int i = 0; i < 6; i++)
@@ -142,13 +154,27 @@ void main() {
       expect(box.color, OnCareColors.surfaceCard);
       expect((box.border! as Border).top.color, OnCareColors.lineStrong);
     }
-    // 코드보다 먼저 무엇이 공유되는지 말해야 한다 — 이 시트를 여는 것이 동의다.
-    expect(find.textContaining('식단·운동·건강 기록이 공유돼요'), findsOneWidget);
+    // 코드와 함께 공유 범위가 남아 있다 — 무엇에 동의했는지 계속 보인다.
+    expect(find.textContaining('식단 기록·운동 기록·신체 정보와 건강 목표'), findsOneWidget);
+  });
+
+  testWidgets('동의하지 않고 닫으면 발급도 취소도 없다 (#2584)', (tester) async {
+    await pumpMyTab(tester);
+    await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(const Offset(195, 40));
+    await tester.pumpAndSettle();
+
+    expect(sync.issued, 0);
+    expect(sync.revoked, 0);
   });
 
   testWidgets('시트를 닫으면 코드를 버린다', (tester) async {
     await pumpMyTab(tester);
     await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('trainer-sync-agree')));
     await tester.pumpAndSettle();
 
     // 배경을 눌러 닫는다.
