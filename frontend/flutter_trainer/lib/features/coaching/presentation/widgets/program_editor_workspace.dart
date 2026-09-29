@@ -274,9 +274,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           ? l.progSaving
           : l.programEditorSaveTemplate,
       onPressed: canSave && !widget.saving ? _handleSaveTemplate : null,
-      icon: _templateSaved
-          ? AppIcons.templateSaved
-          : AppIcons.saveTemplate,
+      icon: _templateSaved ? AppIcons.templateSaved : AppIcons.saveTemplate,
       color: _templateSaved
           ? context.oncare.brand.primary
           : OnCareColors.textTertiary,
@@ -1094,24 +1092,6 @@ class _SessionEditorState extends State<_SessionEditor> {
               ),
               const SizedBox(width: OnCareSpacing.s4),
               Expanded(child: _buildSessionName()),
-              // 목록을 늘리는 `+ 운동 추가` 는 목록 제목 오른쪽 글자 버튼이다 — 회원 앱
-              // 음식 수정의 `먹은 음식 [+ 음식 추가]`, 편집기의 `운동 구성 [+ 세션 추가]`
-              // 와 같은 자리·모양이다. 목록 끝에 두면 목록이 길수록 멀어진다(#2465).
-              if (!_editingName && !widget.addingExercise)
-                Tooltip(
-                  message: widget.canAddExercise
-                      ? ''
-                      : l.programEditorExerciseLimitReached(
-                          kProgramMaxExercises,
-                        ),
-                  child: AppButton(
-                    label: l.programEditorAddExercise,
-                    variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
-                    leadingIcon: AppIcons.add,
-                    onPressed: widget.canAddExercise ? widget.onStartAdd : null,
-                  ),
-                ),
               if (_editingName)
                 AppIconButton(
                   tooltip: l.actionClose,
@@ -1207,6 +1187,28 @@ class _SessionEditorState extends State<_SessionEditor> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
+          // 목록을 늘리는 `+ 운동 추가` 는 목록 끝 가운데 글자 버튼이다 — 누르면
+          // 그 자리에 입력 줄이 열리고, 넣은 운동도 그 자리에 붙는다. 제목 줄에
+          // 두었더니 누르는 순간 버튼이 숨고 입력 줄은 목록 맨 아래에 열려,
+          // 운동이 많은 세션에서는 버튼이 사라진 것처럼 보였다(#2476).
+          if (!widget.addingExercise)
+            Align(
+              child: Tooltip(
+                message: widget.canAddExercise
+                    ? ''
+                    : l.programEditorExerciseLimitReached(kProgramMaxExercises),
+                child: AppButton(
+                  key: ValueKey<String>(
+                    'session-add-exercise-${widget.session.id}',
+                  ),
+                  label: l.programEditorAddExercise,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  leadingIcon: AppIcons.add,
+                  onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+                ),
+              ),
+            ),
           if (widget.addingExercise)
             // 새로 추가 중인 한 줄도 이미 있는 운동 카드와 같은 틀(흰 외곽선
             // 구획)을 쓴다 — 그래야 목록에 자연스럽게 이어 붙는 한 줄로

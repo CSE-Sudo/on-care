@@ -395,7 +395,7 @@ abstract class AppLocalizations {
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
-  /// **'The trainer-only app for managing your members'**
+  /// **'See your members\' meals and workouts in one place — and coach them'**
   String get authTagline;
 
   /// No description provided for @authEmailHint.
@@ -5038,7 +5038,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiReviewDone.
   ///
   /// In en, this message translates to:
-  /// **'Reviewed'**
+  /// **'Finish review'**
   String get aiReviewDone;
 
   /// No description provided for @aiRoutineFor.
@@ -5230,13 +5230,13 @@ abstract class AppLocalizations {
   /// No description provided for @aiApplyToTemplate.
   ///
   /// In en, this message translates to:
-  /// **'Apply to template'**
+  /// **'Apply to program'**
   String get aiApplyToTemplate;
 
   /// No description provided for @aiAppliedToTemplate.
   ///
   /// In en, this message translates to:
-  /// **'The AI suggestion was applied to the program template.'**
+  /// **'The AI suggestion was applied to the program.'**
   String get aiAppliedToTemplate;
 
   /// No description provided for @aiStepConditions.
@@ -5389,11 +5389,17 @@ abstract class AppLocalizations {
   /// **'Personal exercise'**
   String get aiStepPersonal;
 
-  /// No description provided for @aiGoToPersonalStep.
+  /// No description provided for @aiStepPrev.
   ///
   /// In en, this message translates to:
-  /// **'Next · plan personal exercise'**
-  String get aiGoToPersonalStep;
+  /// **'Back'**
+  String get aiStepPrev;
+
+  /// No description provided for @aiStepNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get aiStepNext;
 
   /// No description provided for @aiPersonalStepTitle.
   ///

@@ -73,6 +73,7 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.recommendedReason = '',
     this.onReviewCompleted,
     this.onManualCreate,
+    this.onStepNav,
     super.key,
   });
 
@@ -94,6 +95,14 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   /// AI 단계를 종료하고 빈 프로그램 편집기로 전환한다.
   final VoidCallback? onManualCreate;
 
+  /// [embedded] 일 때 단계 진행 줄(`이전` · 다음 단계 버튼)을 바깥에 넘긴다.
+  ///
+  /// 이 화면을 담은 바깥 열이 자기 스크롤 **아래**에 그려 고정한다 — 리포트
+  /// 편집기 단계 하단과 같은 자리다(#2476). [owner] 는 넘긴 화면이고, 화면이
+  /// 사라질 때 `nav: null` 로 한 번 더 불러 거두게 한다. 비우면 진행 줄은
+  /// 내용 끝에 붙는다.
+  final void Function(Object owner, Widget? nav)? onStepNav;
+
   @override
   ConsumerState<AiRoutineOptionsFlow> createState() =>
       _AiRoutineOptionsFlowState();
@@ -112,6 +121,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 이 화면의 맨 위(진행 단계 표시줄) 를 가리킨다 — [_scrollToTop] 이 이
   /// 위젯을 뷰포트 위쪽으로 끌어올릴 때 기준으로 쓴다.
   final GlobalKey _topKey = GlobalKey();
+
+  /// 마지막으로 [AiRoutineOptionsFlow.onStepNav] 에 넘긴 진행 줄.
+  Widget? _publishedNav;
 
   /// `RoutineOptionsRequest.trainer_note` 의 서버 상한(#1028). 여기서 막으면
   /// 긴 요청이 422 왕복 없이 그 자리에서 잘린다.
@@ -229,6 +241,15 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   @override
   void dispose() {
+    // 회원을 바꾸거나 위저드를 새로 열면 이 화면이 사라진다. 바깥에 남긴 진행
+    // 줄은 사라진 화면을 부르므로 거두게 한다 — 새 화면이 이미 제 줄을
+    // 넘겼는지는 [owner] 로 바깥이 가린다.
+    final onStepNav = widget.onStepNav;
+    if (onStepNav != null && _publishedNav != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => onStepNav(this, null),
+      );
+    }
     _prompt.dispose();
     _trainerMemo.dispose();
     _newExerciseName.dispose();
@@ -693,28 +714,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _promptField(),
           const SizedBox(height: OnCareSpacing.s16),
           _directionControls(),
-          const SizedBox(height: OnCareSpacing.s16),
-          _primaryButton(
-            key: const ValueKey<String>('generate-routine-options'),
-            label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
-            icon: AppIcons.ai,
-            busy: _generating,
-            onTap: _next,
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 이번 주는 PT 가 없는 회원 — PT 프로그램 짜기를 통째로 건너뛰고
-          // 개인운동만 짜서 바로 보낸다(#2223). 후보 생성을 거치지 않으므로
-          // 기다릴 일도, 쓰지 않을 후보를 만들 일도 없다.
-          Align(
-            child: AppButton(
-              key: const ValueKey<String>('skip-pt-program'),
-              label: l.aiSkipPtProgram,
-              onPressed: _generating ? null : _skipPtProgram,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              leadingIcon: AppIcons.personalRoutine,
-            ),
-          ),
         ],
         _Step.program => <Widget>[
           _generatedOptions(),
@@ -722,42 +721,38 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _routineEditor(),
           const SizedBox(height: OnCareSpacing.s16),
           _trainerMemoField(),
-          const SizedBox(height: OnCareSpacing.sectionGap),
-          _primaryButton(
-            key: const ValueKey<String>('complete-routine-review'),
-            label: l.aiReviewDone,
-            icon: AppIcons.review,
-            onTap: _next,
-          ),
         ],
-        _Step.personal => <Widget>[
-          _personalRoutineEditor(),
-          const SizedBox(height: OnCareSpacing.sectionGap),
-          // 두 모드 모두 여기서 편집기 화면으로 넘어간다 — 보내는 것은 거기서
-          // 한다. PT 가 있든 없든 끝내는 과정이 같아야 한다(#2223).
-          _primaryButton(
-            key: const ValueKey<String>('complete-personal-routines'),
-            label: l.aiApplyToTemplate,
-            icon: AppIcons.applyToTemplate,
-            onTap: _next,
-          ),
-        ],
-        _Step.review => <Widget>[
-          _reviewedRoutineList(),
-          const SizedBox(height: OnCareSpacing.s16),
-          _reviewActions(),
-        ],
+        _Step.personal => <Widget>[_personalRoutineEditor()],
+        _Step.review => <Widget>[_reviewedRoutineList()],
       },
-      const SizedBox(height: OnCareSpacing.s32),
     ];
+    final Widget nav = _stepNav();
 
     if (widget.embedded) {
+      final onStepNav = widget.onStepNav;
+      if (onStepNav != null) {
+        // 진행 줄은 바깥 열의 스크롤 아래에 고정된다 — 이 화면은 그 스크롤
+        // 안에 있어 제 손으로 스크롤 밖에 그릴 수 없다. 빌드가 끝난 뒤에
+        // 넘긴다: 빌드 도중에 알리면 바깥이 같은 프레임에 다시 그려진다.
+        _publishedNav = nav;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && identical(_publishedNav, nav)) onStepNav(this, nav);
+        });
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: content,
+        children: <Widget>[
+          ...content,
+          if (onStepNav == null) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.sectionGap),
+            nav,
+            const SizedBox(height: OnCareSpacing.s32),
+          ],
+        ],
       );
     }
 
+    final double pad = context.oncare.density.pagePadding;
     return Scaffold(
       backgroundColor: OnCareColors.surfacePage,
       appBar: AppTopBar(
@@ -766,12 +761,99 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         showBack: Navigator.canPop(context),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.all(context.oncare.density.pagePadding),
-          children: content,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(
+              child: ListView(padding: EdgeInsets.all(pad), children: content),
+            ),
+            Padding(padding: EdgeInsets.fromLTRB(pad, 0, pad, pad), child: nav),
+          ],
         ),
       ),
     );
+  }
+
+  /// 단계 진행 줄 — `이전` 은 왼쪽 끝, 이 단계를 끝내는 주 버튼은 오른쪽 끝.
+  /// (#2476)
+  ///
+  /// 카드 여러 장을 채운 뒤 넘어가는 단계라, 버튼이 내용 끝에만 붙어 있으면
+  /// 스크롤을 다 내려야 보인다. 리포트 편집기 단계 하단처럼 열 스크롤 바로
+  /// 아래에 둔다 — 내용이 짧으면 내용 바로 다음 줄에, 길면 열 바닥에
+  /// 머문다([AiRoutineOptionsFlow.onStepNav]).
+  ///
+  /// 조건 설정에는 되돌아갈 칸이 없다. 그 자리 대신 주 버튼 왼쪽에 `PT 없이
+  /// 개인운동만 짜기` 를 보조 버튼으로 둔다 — `이전` 처럼 되돌아가는 것이 아니라
+  /// 후보 생성과 나란히 **앞으로** 가는 다른 갈래다(#2223: 이번 주는 PT 가 없는
+  /// 회원 — 후보 생성을 거치지 않고 개인운동만 짜서 보낸다).
+  Widget _stepNav() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final int? prev = _previousStage();
+    final Widget primary = switch (_currentStep) {
+      _Step.conditions => AppButton(
+        key: const ValueKey<String>('generate-routine-options'),
+        label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
+        onPressed: _next,
+        leadingIcon: AppIcons.ai,
+        // 처리 중이면 스피너를 두고 탭을 막는다([_generate] 도 중복 호출을 막는다).
+        loading: _generating,
+      ),
+      // 이 단계는 후보를 고르고 고치는 자리다 — 검토는 다음 칸이 한다.
+      _Step.program => AppButton(
+        key: const ValueKey<String>('complete-routine-review'),
+        label: l.aiStepNext,
+        onPressed: _next,
+        trailingIcon: AppIcons.chevronRight,
+      ),
+      // 검토를 끝내고 개인운동 단계로 간다. **아직 아무것도 반영하지 않는다** —
+      // 위저드를 빠져나가는 출구는 개인운동 단계의 `프로그램에 반영` 하나뿐이고,
+      // 그때 PT 구성과 개인운동이 함께 편집기로 간다(#2223).
+      _Step.review => AppButton(
+        key: const ValueKey<String>('apply-routine-to-template'),
+        label: l.aiReviewDone,
+        onPressed: _next,
+        leadingIcon: AppIcons.review,
+      ),
+      // 두 모드 모두 여기서 편집기 화면으로 넘어간다 — 보내는 것은 거기서
+      // 한다. PT 가 있든 없든 끝내는 과정이 같아야 한다(#2223).
+      _Step.personal => AppButton(
+        key: const ValueKey<String>('complete-personal-routines'),
+        label: l.aiApplyToTemplate,
+        onPressed: _next,
+        leadingIcon: AppIcons.applyToTemplate,
+      ),
+    };
+    return AppActionRow(
+      leading: prev == null
+          ? null
+          : AppButton(
+              key: const ValueKey<String>('routine-step-prev'),
+              label: l.aiStepPrev,
+              variant: AppButtonVariant.text,
+              leadingIcon: AppIcons.chevronLeft,
+              onPressed: () => _goToStage(prev),
+            ),
+      actions: <Widget>[
+        if (_currentStep == _Step.conditions)
+          AppButton(
+            key: const ValueKey<String>('skip-pt-program'),
+            label: l.aiSkipPtProgram,
+            onPressed: _generating ? null : _skipPtProgram,
+            variant: AppButtonVariant.secondary,
+            leadingIcon: AppIcons.personalRoutine,
+          ),
+        primary,
+      ],
+    );
+  }
+
+  /// `이전` 이 갈 칸 — 건너뛴 칸은 지나친다. 첫 칸이면 없다.
+  int? _previousStage() {
+    var prev = _stage - 1;
+    while (prev >= 0 && _skipped.contains(_steps[prev])) {
+      prev -= 1;
+    }
+    return prev < 0 ? null : prev;
   }
 
   /// 분석 박스 오른쪽 칸(최근 감지 메모)의 **고정 높이**(#1655).
@@ -1328,15 +1410,31 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         if (_showAddExercise)
           _addExerciseForm()
         else
-          AppButton(
+          _addExerciseButton(
             key: const ValueKey<String>('show-add-exercise-form'),
-            label: l.aiAddExerciseManually,
             onPressed: () => setState(() => _showAddExercise = true),
-            variant: AppButtonVariant.secondary,
-            leadingIcon: AppIcons.add,
-            fullWidth: true,
           ),
       ],
+    );
+  }
+
+  /// 목록 끝 가운데의 `+ 운동 추가`. (#2476)
+  ///
+  /// 줄을 하나 더 붙이는 자리라 목록 바로 아래에 둔다 — 넣은 줄이 그 자리에
+  /// 생긴다. 모양은 편집기의 `+ 세션 추가`·`+ 운동 추가` 와 같은 작은 글자
+  /// 버튼이다. 열 폭을 채우는 보조 버튼이면 아래 진행 줄의 주 버튼과 무게가
+  /// 겨루고, 오른쪽 끝이면 그 주 버튼과 한 줄기로 읽힌다.
+  Widget _addExerciseButton({required Key key, VoidCallback? onPressed}) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Align(
+      child: AppButton(
+        key: key,
+        label: l.programEditorAddExercise,
+        onPressed: onPressed,
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        leadingIcon: AppIcons.add,
+      ),
     );
   }
 
@@ -1709,18 +1807,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         if (_showAddExercise)
           _addExerciseForm()
         else
-          AppButton(
+          _addExerciseButton(
             key: const ValueKey<String>('show-add-personal-exercise-form'),
-            label: l.aiAddExerciseManually,
             // 운동 하나가 배정 한 건이 되므로 서버의 세션 상한을 넘길 수
             // 없다. 넘기기 전에 여기서 막는다 — 다 적은 뒤 422 로 되돌려
-            //받는 것보다 낫다.
+            // 받는 것보다 낫다.
             onPressed: _personal.length >= _maxPersonalRoutines
                 ? null
                 : () => setState(() => _showAddExercise = true),
-            variant: AppButtonVariant.secondary,
-            leadingIcon: AppIcons.add,
-            fullWidth: true,
           ),
         if (_personal.length >= _maxPersonalRoutines) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
@@ -1976,7 +2070,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           subtitle: l.aiEditsApplied,
         ),
         const SizedBox(height: OnCareSpacing.s12),
-        for (final exercise in _edited) ...<Widget>[
+        // 줄 **사이**에만 간격을 둔다 — 끝에 남는 간격은 아래 진행 줄과의
+        // 거리를 다른 단계보다 벌린다(#2476).
+        for (final (int index, RoutineExercise exercise)
+            in _edited.indexed) ...<Widget>[
+          if (index > 0) const SizedBox(height: OnCareSpacing.s8),
           AppCard(
             child: Row(
               children: <Widget>[
@@ -2010,8 +2108,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ],
             ),
           ),
-          const SizedBox(height: OnCareSpacing.s8),
         ],
+        if (memo.isNotEmpty) const SizedBox(height: OnCareSpacing.s8),
         if (memo.isNotEmpty)
           AppCard(
             child: Row(
@@ -2050,23 +2148,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ),
           ),
       ],
-    );
-  }
-
-  /// PT 모드 프로그램 검토의 유일한 동작 — 개인운동 단계로 넘어간다. (#2223)
-  ///
-  /// **여기서는 아직 아무것도 반영하지 않는다.** 위저드를 빠져나가는 출구는
-  /// 다음 단계(개인운동)의 `프로그램에 반영` 하나뿐이고, 그때 PT 구성과
-  /// 개인운동이 **함께** 편집기로 간다. 전송은 그 뒤 편집기의 `일정 추가` 다.
-  Widget _reviewActions() {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppButton(
-      key: const ValueKey<String>('apply-routine-to-template'),
-      label: l.aiGoToPersonalStep,
-      onPressed: _next,
-      size: OnCareButtonSize.large,
-      leadingIcon: AppIcons.personalRoutine,
-      fullWidth: true,
     );
   }
 
@@ -2114,25 +2195,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _primaryButton({
-    required Key key,
-    required String label,
-    required IconData icon,
-    required VoidCallback? onTap,
-    bool busy = false,
-  }) {
-    return AppButton(
-      key: key,
-      label: label,
-      onPressed: onTap,
-      size: OnCareButtonSize.large,
-      leadingIcon: icon,
-      // 처리 중이면 스피너를 두고 탭을 막는다([_generate] 도 중복 호출을 막는다).
-      loading: busy,
-      fullWidth: true,
     );
   }
 }

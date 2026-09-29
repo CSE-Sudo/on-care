@@ -653,6 +653,18 @@ Future<void> _openManualProgram(WidgetTester tester) async {
   expect(find.byType(ProgramEditorWorkspace), findsOneWidget);
 }
 
+/// 이미 빌드돼 있지만 뷰포트 밖에 있는 [key] 위젯을 뷰포트 가운데로 데려온다.
+///
+/// 위저드 진행 줄은 목록 스크롤 밖에 있다(#2476) — 마지막 `프로그램에 반영`
+/// 을 눌러도 목록은 제자리라, 위저드가 접히면 편집기가 뷰포트 **위로** 밀려나
+/// 있을 수 있다. 아래로만 훑는 `scrollUntilVisible` 은 그 자리를 찾지 못한다.
+Future<void> _revealBuilt(WidgetTester tester, String key) async {
+  final built = find.byKey(ValueKey<String>(key), skipOffstage: false);
+  if (built.evaluate().isEmpty) return;
+  await Scrollable.ensureVisible(tester.element(built), alignment: 0.5);
+  await tester.pump();
+}
+
 /// 편집기 하단의 `보내기` 버튼을 찾아 화면에 보이게 한다.
 ///
 /// 비활성 상태면(운동이 없으면) 먼저 AI 추천을 반영해 채운다 — 편집기가
@@ -664,6 +676,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
   if (send.evaluate().isEmpty) {
     await _applyRecommendedRoutine(tester);
   }
+  await _revealBuilt(tester, 'program-editor-send');
   await tester.scrollUntilVisible(
     send,
     150,
@@ -686,6 +699,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
     // 따로 있어야 실제로 트리에서 빠진다. `pumpAndSettle` 로 마저 재운다.
     await tester.pump(const Duration(seconds: 4, milliseconds: 100));
     await tester.pumpAndSettle();
+    await _revealBuilt(tester, 'program-editor-send');
     await tester.scrollUntilVisible(
       send,
       150,

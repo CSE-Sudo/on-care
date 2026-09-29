@@ -120,7 +120,7 @@
       }
     }
   },
-  "authTagline": "The trainer-only app for managing your members",
+  "authTagline": "See your members' meals and workouts in one place — and coach them",
   "authEmailHint": "Email",
   "authPasswordHint": "Password",
   "authSignInAction": "Sign in",
@@ -1906,7 +1906,7 @@
   },
   "aiAnalysing": "AI is analysing…",
   "aiGenerateCandidates": "Generate candidates",
-  "aiReviewDone": "Reviewed",
+  "aiReviewDone": "Finish review",
   "aiRoutineFor": "AI suggestion · {name}",
   "@aiRoutineFor": {
     "placeholders": {
@@ -1973,8 +1973,8 @@
   "aiSending": "Sending…",
   "aiSendToClient": "Send to member",
   "aiGoToChatHint": "Use the button below to jump into their chat and explain it.",
-  "aiApplyToTemplate": "Apply to template",
-  "aiAppliedToTemplate": "The AI suggestion was applied to the program template.",
+  "aiApplyToTemplate": "Apply to program",
+  "aiAppliedToTemplate": "The AI suggestion was applied to the program.",
   "aiStepConditions": "Set up",
   "aiStepReview": "Program selection",
   "aiStepDone": "Program review",
@@ -2036,7 +2036,8 @@
   "aiPersonalDismissFailed": "Could not complete that. Please try again shortly.",
   "aiStepSkipped": "Skipped",
   "aiStepPersonal": "Personal exercise",
-  "aiGoToPersonalStep": "Next · plan personal exercise",
+  "aiStepPrev": "Back",
+  "aiStepNext": "Next",
   "aiPersonalStepTitle": "Personal exercise between PT",
   "aiPersonalStepTitleRoutineOnly": "This week's personal exercise",
   "aiPersonalStepBlurb": "Attached to this PT and sent to the member when you complete it. Pick at least one.",
