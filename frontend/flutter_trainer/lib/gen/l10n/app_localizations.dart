@@ -395,7 +395,7 @@ abstract class AppLocalizations {
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
-  /// **'The trainer-only app for managing your members'**
+  /// **'See your members\' meals and workouts in one place — and coach them'**
   String get authTagline;
 
   /// No description provided for @authEmailHint.
@@ -475,18 +475,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm password'**
   String get authPasswordConfirm;
-
-  /// No description provided for @authInviteCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Gym invite code'**
-  String get authInviteCode;
-
-  /// No description provided for @authInviteCodeHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the code issued by the gym you work at.'**
-  String get authInviteCodeHelp;
 
   /// No description provided for @authLegalNotice.
   ///
@@ -589,12 +577,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passwords don\'t match'**
   String get authErrPasswordMismatch;
-
-  /// No description provided for @authErrInviteCodeRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the invite code you received from your gym'**
-  String get authErrInviteCodeRequired;
 
   /// No description provided for @authErrSignUpFailed.
   ///
@@ -1718,23 +1700,17 @@ abstract class AppLocalizations {
   /// **'No carbs/protein/fat recorded'**
   String get clientDietMacrosMissing;
 
-  /// No description provided for @clientDietTotalCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Total calories'**
-  String get clientDietTotalCalories;
-
   /// No description provided for @clientDietDayTotal.
   ///
   /// In en, this message translates to:
   /// **'Day total'**
   String get clientDietDayTotal;
 
-  /// 트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
+  /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
   /// In en, this message translates to:
   /// **'Total {calories} kcal'**
-  String clientDietDayTotalCalories(String calories);
+  String clientDietTotalCalories(String calories);
 
   /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
   ///
@@ -2263,6 +2239,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes} min'**
   String minutesShort(int minutes);
+
+  /// Hours part of an exercise duration, e.g. `1 hr 30 min` (#2221).
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hr'**
+  String hoursShort(int hours);
+
+  /// Seconds part of an exercise duration, e.g. `45 sec` (#2221).
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String secondsShort(int seconds);
 
   /// No description provided for @ptProgramHistory.
   ///
@@ -4645,6 +4633,12 @@ abstract class AppLocalizations {
   /// **'A rough average for this exercise type · the saved record will also use the member\'s weight'**
   String get routineCaloriesRoughEstimate;
 
+  /// No description provided for @routineUnitHours.
+  ///
+  /// In en, this message translates to:
+  /// **'hr'**
+  String get routineUnitHours;
+
   /// No description provided for @routineUnitMinutes.
   ///
   /// In en, this message translates to:
@@ -5755,12 +5749,6 @@ abstract class AppLocalizations {
   /// **'That email is already registered.'**
   String get authErrEmailTaken;
 
-  /// No description provided for @authErrInviteCodeInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'That invite code isn\'t valid. Please check with your gym.'**
-  String get authErrInviteCodeInvalid;
-
   /// No description provided for @authErrSessionExpired.
   ///
   /// In en, this message translates to:
@@ -6708,6 +6696,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent an emote'**
   String get messagesPreviewEmote;
+
+  /// No description provided for @messagesPreviewPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get messagesPreviewPhoto;
 
   /// No description provided for @messagesTimeJustNow.
   ///
@@ -8042,18 +8036,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Template menu'**
   String get coachTemplateMenu;
-
-  /// No description provided for @aiStrengthSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {reps} reps · {weight}kg'**
-  String aiStrengthSummary(int sets, int reps, String weight);
-
-  /// No description provided for @aiHoldSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {seconds} sec · {weight}kg'**
-  String aiHoldSummary(int sets, int seconds, String weight);
 
   /// No description provided for @routineFormDecrease.
   ///

@@ -169,7 +169,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authTagline => 'The trainer-only app for managing your members';
+  String get authTagline =>
+      'See your members\' meals and workouts in one place — and coach them';
 
   @override
   String get authEmailHint => 'Email';
@@ -211,13 +212,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPasswordConfirm => 'Confirm password';
-
-  @override
-  String get authInviteCode => 'Gym invite code';
-
-  @override
-  String get authInviteCodeHelp =>
-      'Enter the code issued by the gym you work at.';
 
   @override
   String get authLegalNotice => 'By signing up you agree to';
@@ -274,10 +268,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrPasswordMismatch => 'Passwords don\'t match';
-
-  @override
-  String get authErrInviteCodeRequired =>
-      'Enter the invite code you received from your gym';
 
   @override
   String get authErrSignUpFailed =>
@@ -906,13 +896,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
 
   @override
-  String get clientDietTotalCalories => 'Total calories';
-
-  @override
   String get clientDietDayTotal => 'Day total';
 
   @override
-  String clientDietDayTotalCalories(String calories) {
+  String clientDietTotalCalories(String calories) {
     return 'Total $calories kcal';
   }
 
@@ -1216,6 +1203,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String minutesShort(int minutes) {
     return '$minutes min';
+  }
+
+  @override
+  String hoursShort(int hours) {
+    return '$hours hr';
+  }
+
+  @override
+  String secondsShort(int seconds) {
+    return '$seconds sec';
   }
 
   @override
@@ -2656,6 +2653,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A rough average for this exercise type · the saved record will also use the member\'s weight';
 
   @override
+  String get routineUnitHours => 'hr';
+
+  @override
   String get routineUnitMinutes => 'min';
 
   @override
@@ -3311,10 +3311,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmailTaken => 'That email is already registered.';
 
   @override
-  String get authErrInviteCodeInvalid =>
-      'That invite code isn\'t valid. Please check with your gym.';
-
-  @override
   String get authErrSessionExpired =>
       'Your session expired. Please sign in again.';
 
@@ -3876,6 +3872,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messagesPreviewEmote => 'Sent an emote';
+
+  @override
+  String get messagesPreviewPhoto => 'Photo';
 
   @override
   String get messagesTimeJustNow => 'Just now';
@@ -4694,16 +4693,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachTemplateMenu => 'Template menu';
-
-  @override
-  String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets sets · $reps reps · ${weight}kg';
-  }
-
-  @override
-  String aiHoldSummary(int sets, int seconds, String weight) {
-    return '$sets sets · $seconds sec · ${weight}kg';
-  }
 
   @override
   String get routineFormDecrease => 'Decrease';

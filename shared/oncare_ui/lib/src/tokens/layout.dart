@@ -42,6 +42,10 @@ class OnCareLayout {
   /// 헤더 가운데 검색이 인라인으로 남는 최소 폭.
   static const double headerCenterMinWidth = 400;
 
+  /// 라벨·값 행([AppKeyValueRow])의 라벨 칸 폭 — `문의 내용`·`받는 사람`
+  /// 같은 네 글자 라벨이 한 줄에 들어간다(#2469).
+  static const double keyValueLabelWidth = 80;
+
   // --- 창(확정) ---
   /// 웹 다이얼로그 폭 — 확인 / 입력 폼 / 상세·미리보기.
   static const double dialogSmall = 400;

@@ -85,9 +85,6 @@ class _SessionPersonalRoutinesState
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     if (_routines.isEmpty) return const SizedBox.shrink();
@@ -110,12 +107,8 @@ class _SessionPersonalRoutinesState
         for (final SessionRoutine row in _routines)
           Padding(
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-            child: Container(
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: const BoxDecoration(
-                color: OnCareColors.surfaceInput,
-                borderRadius: OnCareRadius.mdAll,
-              ),
+            child: AppTile(
+              tone: AppTileTone.neutral,
               child: Row(
                 children: <Widget>[
                   const AppIcon(
@@ -259,9 +252,7 @@ class _SendPersonalRoutinesDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            widget.editOnly
-                ? l.schedEditRoutinesBody
-                : l.schedRoutinesSendBody,
+            widget.editOnly ? l.schedEditRoutinesBody : l.schedRoutinesSendBody,
             style: context.oncare
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),
@@ -349,16 +340,15 @@ class _RoutineRow extends StatelessWidget {
           onChanged: (name) => onChanged(exercise.copyWith(name: name)),
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        // 근력은 세트·횟수로 재므로 분 칸을 쓰지 않는다(#1310) — 여기서는
+        // 근력은 세트·횟수로 재므로 시간 칸을 쓰지 않는다(#1310) — 여기서는
         // 구성을 덜어내거나 이름·유형을 바꾸는 정도만 하고, 세트까지 다시
         // 짜려면 프로그램 만들기로 간다.
         if (exercise.type != '근력')
-          RoutineMinutesField(
-            keyPrefix: 'session-routine-minutes-$index',
-            minutes: exercise.minutes > 0 ? exercise.minutes : 30,
-            compact: true,
-            onChanged: (minutes) =>
-                onChanged(exercise.copyWith(minutes: minutes)),
+          RoutineDurationField(
+            keyPrefix: 'session-routine-duration-$index',
+            seconds: exercise.seconds > 0 ? exercise.seconds : 30 * 60,
+            onChanged: (seconds) =>
+                onChanged(exercise.copyWith(durationSeconds: seconds)),
           ),
       ],
     );

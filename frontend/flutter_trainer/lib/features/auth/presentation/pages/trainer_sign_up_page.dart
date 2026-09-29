@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
@@ -13,17 +12,14 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 가입 화면에서 검사하는 칸. 이름도 꼭 받는다(#1784).
-enum _Field { name, email, password, passwordConfirm, inviteCode }
+enum _Field { name, email, password, passwordConfirm }
 
 /// 트레이너 회원가입 화면 — 공용 [AppAuthLayout]. 이름/이메일/
-/// 비밀번호와 **헬스장 초대 코드**로 계정을 만들고, 성공 시 자동 로그인해 고객
-/// 탭으로 진입한다 (라우터 가드가 인증 상태를 감지).
+/// 비밀번호로 계정을 만들고, 성공 시 자동 로그인해 고객 탭으로 진입한다
+/// (라우터 가드가 인증 상태를 감지).
 ///
-/// 초대 코드가 소속 헬스장을 결정한다(#475). 소속 없는 트레이너는 상담 대상이
-/// 될 수 없어(#443·#451) 가입 직후 아무것도 못 하는 계정이 된다.
-///
-/// **데모에서는 코드 입력을 아예 그리지 않는다.** 검증할 백엔드가 없어 무엇을
-/// 넣든 통과하는 죽은 입력이 되고, 무엇보다 데모 화면이 지금과 달라진다.
+/// 소속 헬스장은 여기서 받지 않는다 — 가입 뒤 헬스장을 찾아 고른다(#1627).
+/// 예전의 헬스장 초대 코드 칸은 발급 경로가 없어 걷어 냈다.
 class TrainerSignUpPage extends ConsumerStatefulWidget {
   /// Creates the trainer sign-up screen.
   const TrainerSignUpPage({super.key});
@@ -37,7 +33,6 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final TextEditingController _passwordConfirm = TextEditingController();
-  final TextEditingController _inviteCode = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
 
@@ -51,7 +46,6 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     _email.dispose();
     _password.dispose();
     _passwordConfirm.dispose();
-    _inviteCode.dispose();
     super.dispose();
   }
 
@@ -69,10 +63,6 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
         l,
         AppInputRules.passwordConfirm(_password.text, _passwordConfirm.text),
       ),
-      // 초대 코드는 형식이 정해져 있지 않다 — 비었는지만 보고, 유효한지는 서버가
-      // 가린다(#475).
-      _Field.inviteCode =>
-        _inviteCode.text.trim().isEmpty ? l.authErrInviteCodeRequired : null,
     };
   }
 
@@ -92,16 +82,13 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
 
   Future<void> _register() async {
     if (_loading) return;
-    // 데모에는 코드를 검증할 백엔드가 없어 입력 자체를 그리지 않는다.
-    final requiresInviteCode = !ref.read(appConfigProvider).useMockApi;
     // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다. 서버가
-    // 돌려준 실패(이메일 중복·초대 코드 무효 등)만 아래에서 토스트로 알린다.
+    // 돌려준 실패(이메일 중복 등)만 아래에서 토스트로 알린다.
     final bool valid = _errors.validate(<_Field>[
       _Field.name,
       _Field.email,
       _Field.password,
       _Field.passwordConfirm,
-      if (requiresInviteCode) _Field.inviteCode,
     ]);
     if (!valid) {
       setState(() {});
@@ -110,17 +97,11 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     final name = _name.text.trim();
     final email = _email.text.trim();
     final password = _password.text;
-    final inviteCode = _inviteCode.text.trim();
     setState(() => _loading = true);
     try {
       await ref
           .read(sessionControllerProvider.notifier)
-          .register(
-            email: email,
-            password: password,
-            name: name,
-            inviteCode: inviteCode,
-          );
+          .register(email: email, password: password, name: name);
       // 계정이 만들어진 뒤에만 새 비밀번호를 브라우저에 저장하게 한다(#2295).
       // 가입이 끝나면 인증 게이트가 곧 이 화면을 걷어 내므로 `mounted` 를
       // 보기 전에 알린다 — 실패한 경로는 여기를 지나지 않는다.
@@ -152,8 +133,6 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     final TextStyle mutedStyle = tokens
         .text(OnCareTypography.bodySmall)
         .copyWith(color: OnCareColors.textSecondary);
-    // 데모 가입 화면은 지금과 동일해야 한다 — 코드 입력을 그리지 않는다.
-    final showInviteCode = !ref.watch(appConfigProvider).useMockApi;
     return AppAuthLayout(
       leading: AppBackButton(onPressed: _backToSignIn),
       title: l.authSignUpAction,
@@ -227,31 +206,12 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
               prefixIcon: AppIcon.setOf(context).lock,
               size: AppFieldSize.large,
               obscureText: _obscure,
-              // 데모에서는 이 필드가 마지막이라 제출 액션이 여기 붙는다.
-              textInputAction: showInviteCode
-                  ? TextInputAction.next
-                  : TextInputAction.done,
+              // 마지막 칸이라 제출 액션이 여기 붙는다.
+              textInputAction: TextInputAction.done,
               autofillHints: const <String>[AutofillHints.newPassword],
               onChanged: _onEdited,
-              onSubmitted: showInviteCode ? null : (_) => _register(),
+              onSubmitted: (_) => _register(),
             ),
-            if (showInviteCode) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s12),
-              // 안내는 칸의 도움말로 둔다 — 코드를 비우고 제출하면 같은 자리를
-              // 오류 문구가 대신해, 안내와 오류가 두 줄로 겹쳐 뜨지 않는다(#1784).
-              AppTextField(
-                key: const ValueKey<String>('trainer-signup-invite-code'),
-                controller: _inviteCode,
-                hint: l.authInviteCode,
-                helper: l.authInviteCodeHelp,
-                errorText: _errors.of(_Field.inviteCode),
-                prefixIcon: AppIcons.inviteCode,
-                size: AppFieldSize.large,
-                textInputAction: TextInputAction.done,
-                onChanged: _onEdited,
-                onSubmitted: (_) => _register(),
-              ),
-            ],
             const SizedBox(height: OnCareSpacing.s24),
             AppButton(
               key: const ValueKey<String>('trainer-signup-submit'),

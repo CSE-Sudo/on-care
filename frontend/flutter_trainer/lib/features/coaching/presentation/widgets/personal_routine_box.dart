@@ -6,6 +6,8 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램 만들기에서 정한 개인운동을, 보내기 직전에 편집기 화면에서 보여
@@ -167,12 +169,12 @@ class PersonalRoutineBox extends StatelessWidget {
   /// 근력은 세트·횟수·중량으로, 그 외 유형은 시간으로 잰다. (#1310, #1969)
 }
 
-/// 개인운동 한 줄의 양 — 근력은 세트·횟수·중량, 그 밖은 분. (#2223)
+/// 개인운동 한 줄의 양 — 근력은 세트·횟수·중량, 그 밖은 시간. (#2223)
 String personalRoutineAmount(AppLocalizations l, RoutineExercise e) =>
     routineAmount(
       l,
       type: e.type,
-      minutes: e.minutes,
+      seconds: e.seconds,
       sets: e.sets,
       reps: e.reps,
       holdSeconds: e.holdSeconds,
@@ -189,20 +191,21 @@ String personalRoutineAmount(AppLocalizations l, RoutineExercise e) =>
 String routineAmount(
   AppLocalizations l, {
   required String type,
-  required int minutes,
+  required int seconds,
   required int sets,
   required int reps,
   required int holdSeconds,
   required double weight,
   required bool isHold,
 }) {
-  if (type != '근력') return l.minutesShort(minutes);
-  final String kg = weight == weight.roundToDouble()
-      ? '${weight.round()}'
-      : '$weight';
-  return isHold
-      ? l.aiHoldSummary(sets, holdSeconds, kg)
-      : l.aiStrengthSummary(sets, reps, kg);
+  // 시·분·초로 적은 그대로 — `45초` · `1시간 30분`(#2221).
+  if (type != '근력') return formatExerciseDuration(l, seconds);
+  return <String>[
+    l.progSetsValue(sets),
+    if (isHold) l.progHoldValue(holdSeconds) else l.progRepsValue(reps),
+    // 맨몸 운동(0kg)은 중량을 적지 않는다(#2533).
+    ?strengthWeightLabel(l, weight),
+  ].join(' · ');
 }
 
 /// 개인운동 한 줄 — `걷기 · 유산소 · 30분`. (#2224)
@@ -219,4 +222,4 @@ String personalRoutineLabel(AppLocalizations l, RoutineExercise e) =>
 /// 한다 — 이름만 적으면 몇 세트 몇 회로 보냈는지 다시 일정을 열어야 안다.
 String assignedRoutineLabel(AppLocalizations l, AssignedRoutine r) =>
     '${r.name} · ${routineTypeLabel(l, r.type)} · '
-    '${routineAmount(l, type: r.type, minutes: r.minutes, sets: r.sets ?? 0, reps: r.reps ?? 0, holdSeconds: r.holdSeconds ?? 0, weight: r.weight ?? 0, isHold: (r.holdSeconds ?? 0) > 0)}';
+    '${routineAmount(l, type: r.type, seconds: r.seconds, sets: r.sets ?? 0, reps: r.reps ?? 0, holdSeconds: r.holdSeconds ?? 0, weight: r.weight ?? 0, isHold: (r.holdSeconds ?? 0) > 0)}';

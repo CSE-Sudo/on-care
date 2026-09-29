@@ -363,17 +363,20 @@ class MockGymRepository implements GymRepository {
       // 슬롯은 늘 한 사람 몫이다(#1012) — 정원은 언제나 1. 종류(1:1 PT/상담)
       // 는 트레이너가 열 때 고른다(#1083). 상담 자리도 여기 섞어 둬야 회원
       // 헬스장 탭의 "희망 시간대" 목록에서 상담도 고를 수 있는지 볼 수 있다.
+      // 김트레이너는 트레이너 웹 데모 트레이너와 같은 사람이라, 자리도
+      // 트레이너 웹 목업(`flutter_trainer/.../demo_reservation_slots.dart`)과
+      // 같게 둔다. 그쪽 데모 일정(09:00~21:30)을 피해 이른 아침·늦은 저녁이다.
       TrainerSlot(
         id: 'slot-kim-today',
         trainerId: 'trainer-kim',
-        startsAt: _at(today, 0, 19, 0),
+        startsAt: _at(today, 0, 20, 0),
         booked: false,
         sessionType: '1:1 PT',
       ),
       TrainerSlot(
         id: 'slot-kim-1',
         trainerId: 'trainer-kim',
-        startsAt: _at(today, 1, 7, 30),
+        startsAt: _at(today, 1, 7, 0),
         booked: false,
         sessionType: '1:1 PT',
       ),
@@ -381,14 +384,28 @@ class MockGymRepository implements GymRepository {
         id: 'slot-kim-2',
         trainerId: 'trainer-kim',
         // 마감된 자리도 남겨 두어야 "그날은 꽉 찼다"가 읽힌다.
-        startsAt: _at(today, 1, 20, 0),
+        startsAt: _at(today, 1, 22, 0),
         booked: true,
         sessionType: '1:1 PT',
       ),
       TrainerSlot(
         id: 'slot-kim-3',
         trainerId: 'trainer-kim',
-        startsAt: _at(today, 2, 18, 0),
+        startsAt: _at(today, 2, 7, 30),
+        booked: false,
+        sessionType: '상담',
+      ),
+      TrainerSlot(
+        id: 'slot-kim-4',
+        trainerId: 'trainer-kim',
+        startsAt: _at(today, 4, 6, 30),
+        booked: false,
+        sessionType: '1:1 PT',
+      ),
+      TrainerSlot(
+        id: 'slot-kim-5',
+        trainerId: 'trainer-kim',
+        startsAt: _at(today, 6, 21, 30),
         booked: false,
         sessionType: '상담',
       ),

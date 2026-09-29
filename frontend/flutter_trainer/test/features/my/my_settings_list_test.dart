@@ -102,7 +102,7 @@ void main() {
           findsNothing,
         );
 
-        await tester.tap(find.byTooltip('뒤로'));
+        await tester.tap(find.byKey(const ValueKey<String>('my-back')));
         await settle(tester);
         expect(currentLocation(tester), AppRoutes.mySection('settings'));
       });
@@ -235,7 +235,7 @@ void main() {
 
       final Finder phone = find.byKey(const ValueKey<String>('profile-phone'));
       await tester.enterText(phone, '010-9999-8888');
-      await tester.tap(find.byTooltip('뒤로'));
+      await tester.tap(find.byKey(const ValueKey<String>('my-back')));
       await settle(tester);
 
       // 계속 수정하면 그대로 남는다.
@@ -245,7 +245,7 @@ void main() {
       expect(currentLocation(tester), AppRoutes.mySection('edit'));
       expect(find.text('010-9999-8888'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('뒤로'));
+      await tester.tap(find.byKey(const ValueKey<String>('my-back')));
       await settle(tester);
       await tester.tap(find.text(_ko.myDiscardAction));
       await settle(tester);
@@ -263,7 +263,7 @@ void main() {
         at: AppRoutes.mySection('edit'),
       );
 
-      await tester.tap(find.byTooltip('뒤로'));
+      await tester.tap(find.byKey(const ValueKey<String>('my-back')));
       await settle(tester);
       expect(find.text(_ko.myDiscardTitle), findsNothing);
       expect(currentLocation(tester), AppRoutes.mySection('profile'));
@@ -313,7 +313,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(_ko.mySupportFaq), findsOneWidget);
-      expect(find.byTooltip('뒤로'), findsNothing);
+      expect(find.byKey(const ValueKey<String>('my-back')), findsNothing);
     });
 
     testWidgets('내 정보와 설정이 한 메뉴에 있고, 프로필은 메뉴 옆에 열린다', (tester) async {

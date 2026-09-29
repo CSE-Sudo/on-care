@@ -25,7 +25,6 @@ final Map<AuthFailure, String Function(AppLocalizations)> _expected =
     <AuthFailure, String Function(AppLocalizations)>{
       AuthFailure.invalidCredentials: (l) => l.authErrInvalidCredentials,
       AuthFailure.emailTaken: (l) => l.authErrEmailTaken,
-      AuthFailure.inviteCodeInvalid: (l) => l.authErrInviteCodeInvalid,
       AuthFailure.passwordWeak: (l) => l.authErrPasswordWeak,
       AuthFailure.passwordTooLong: (l) => l.authErrPasswordTooLong,
       AuthFailure.sessionExpired: (l) => l.authErrSessionExpired,

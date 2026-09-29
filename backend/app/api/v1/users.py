@@ -429,28 +429,18 @@ def register_trainer(
     payload: TrainerRegister,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMe:
-    """헬스장 초대 코드로 트레이너 계정을 만든다. (#475)
+    """트레이너 계정을 만든다. (#475)
 
     `/auth/register` 와 나누는 이유: 그쪽은 `role='member'` 를 만든다. 한 엔드포인트에
-    역할 분기를 넣으면 코드 없이 트레이너를 만들 수 있는 경로가 생기기 쉽다.
+    역할 분기를 넣으면 요청 필드 하나로 역할이 바뀌는 경로가 생기기 쉽다.
 
-    코드가 소속 헬스장을 결정한다 — 소속 없는 트레이너는 상담 대상이 될 수 없어
-    (#443·#451) 가입 직후 아무것도 못 하는 상태가 된다.
+    소속 헬스장은 여기서 정하지 않는다 — 가입 뒤 `PUT /trainer/me/gym` 으로 고른다
+    (#1627). 소속이 없는 동안에는 상담 대상이 아니다(#443·#451).
 
-    회원 가입과 같은 rate limit 버킷을 쓴다. 코드를 무작위로 넣어 보는 시도도
-    가입 시도이므로 같은 한도가 맞다.
+    회원 가입과 같은 rate limit 버킷을 쓴다.
     """
     try:
         trainer = trainer_signup_service.register_trainer(db, payload)
-    except trainer_signup_service.InviteCodeInvalid as exc:
-        audit(
-            db,
-            event="auth.trainer_register",
-            ip=client_ip(request),
-            success=False,
-            detail=payload.email,
-        )
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except trainer_signup_service.TrainerEmailTaken as exc:
         audit(
             db,

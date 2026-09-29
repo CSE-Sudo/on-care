@@ -853,7 +853,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('3세트 · 10회 · 0kg'), findsOneWidget);
+      expect(find.text('3세트 · 10회'), findsOneWidget);
       expect(find.textContaining('0세트'), findsNothing);
     });
 
@@ -1349,14 +1349,21 @@ void main() {
         find.byKey(const ValueKey<String>('routine-category-name-gap-0')),
       );
       expect(categoryNameGap.height, OnCareSpacing.s12);
-      // 시간 칸은 스테퍼가 아니라 라벨 없는 compact 입력이다(#1489) — 값
-      // 오른쪽의 단위(suffix)로 무엇을 재는 칸인지 구분한다.
+      // 시간은 시·분·초 세 칸이다(#2221) — 값 오른쪽의 단위(suffix)로 무엇을
+      // 재는 칸인지 구분한다.
       expect(
         _unitOf(
           tester,
-          find.byKey(const ValueKey<String>('routine-minutes-0-field')),
+          find.byKey(const ValueKey<String>('routine-duration-0-minutes')),
         ),
         '분',
+      );
+      expect(
+        _unitOf(
+          tester,
+          find.byKey(const ValueKey<String>('routine-duration-0-seconds')),
+        ),
+        '초',
       );
 
       final showAddExerciseForm = find.byKey(
@@ -1371,7 +1378,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('new-exercise-minutes')),
+        find.byKey(const ValueKey<String>('new-exercise-duration')),
         findsNothing,
       );
       // 근력이 아닌 유형으로 바꾸면 시간 슬라이더로 바뀐다.
@@ -1382,7 +1389,7 @@ void main() {
       expect(
         _unitOf(
           tester,
-          find.byKey(const ValueKey<String>('routine-minutes-field')),
+          find.byKey(const ValueKey<String>('new-exercise-duration-minutes')),
         ),
         '분',
       );
@@ -1407,7 +1414,7 @@ void main() {
         '인터벌 걷기',
       );
       final minutesField = find.byKey(
-        const ValueKey<String>('routine-minutes-0-field'),
+        const ValueKey<String>('routine-duration-0-minutes'),
       );
       await tester.enterText(minutesField, '20');
       await tester.pump();

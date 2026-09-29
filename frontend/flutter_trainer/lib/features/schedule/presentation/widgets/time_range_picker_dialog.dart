@@ -383,15 +383,11 @@ class _TimeValueBox extends StatelessWidget {
           focusNode.requestFocus();
           onTap();
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: OnCareSpacing.s12,
-            vertical: OnCareSpacing.s8,
-          ),
-          decoration: BoxDecoration(
-            color: active ? tokens.brand.surface : OnCareColors.surfaceInput,
-            borderRadius: OnCareRadius.mdAll,
-          ),
+        // 탭은 바깥 GestureDetector 가 받는다 — 구획에는 onTap 을 주지 않아
+        // 잉크 없이 입력 칸처럼 선다.
+        child: AppTile(
+          tone: active ? AppTileTone.brand : AppTileTone.neutral,
+          dense: true,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[

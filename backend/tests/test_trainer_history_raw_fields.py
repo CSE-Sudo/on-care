@@ -330,6 +330,17 @@ def test_assigned_history_without_name_gets_kind_code(fixed_today):
     )
 
 
+def test_assigned_history_sentence_stays_in_minutes(fixed_today):
+    """초는 값으로만 싣는다 — 문장에 `45초` 를 적으면 버틴 초로 되읽힌다(#2221)."""
+    out = _assigned_history_out(
+        _assigned_row(assigned_routine_name="줄넘기", type="유산소", sets=None,
+                      reps=None, weight=None, minutes=1, duration_seconds=45)
+    )
+    assert out.exercises == ["줄넘기 · 1분 · moderate"]
+    assert out.exercise_items[0].duration_seconds == 45
+    assert out.exercise_items[0].minutes == 1
+
+
 def test_assigned_history_date_matches_label_day(fixed_today):
     """`date` 와 `date_label` 은 같은 날을 말한다 — 논리 운동일(#1264)."""
     out = _assigned_history_out(
@@ -373,6 +384,19 @@ def test_assigned_history_date_matches_label_day(fixed_today):
         (
             dict(type="스트레칭", sets=None, reps=None, weight=None, minutes=15),
             _item(name="하체 루틴", type="stretching", minutes=15, intensity="moderate"),
+        ),
+        # 초를 남긴 유산소 수행은 초도 싣는다 — 분은 반올림한 값(#2221)
+        (
+            dict(type="유산소", sets=None, reps=None, weight=None, minutes=1,
+                 duration_seconds=45),
+            _item(name="하체 루틴", type="cardio", minutes=1, duration_seconds=45,
+                  intensity="moderate"),
+        ),
+        # 근력은 세트로 재므로 초를 싣지 않는다
+        (
+            dict(duration_seconds=1800),
+            _item(name="하체 루틴", type="strength", sets=3, reps=12, weight=40.0,
+                  intensity="moderate"),
         ),
         # 강도가 비어 있으면 없음
         (
@@ -590,5 +614,6 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
         {"name": "플랭크", "type": "strength", "sets": 3, "hold_seconds": 60},
         {"name": "사이클", "minutes": 20},
     ]
-    # 맨몸 운동의 0kg 도 값으로 남는다(0 과 '적지 않음'은 다르다)
+    # 맨몸 운동의 0kg 도 값으로 남는다(0 과 '적지 않음'은 다르다) — 화면은
+    # 0 을 적지 않지만 저장 문장에는 남아야 값이 되짚힌다(#2533)
     assert entry["exercise_items"][1]["weight"] == 0.0

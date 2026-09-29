@@ -55,12 +55,20 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,
+    int? durationSeconds,
     String intensity = 'moderate',
   }) async {
     try {
       final Response<Map<String, Object?>> response = await _dio.post(
         '/me/coach/routines/$routineId/complete',
-        data: <String, Object?>{'minutes': minutes, 'intensity': intensity},
+        data: <String, Object?>{
+          'minutes': minutes,
+          // 서버는 0 이하를 거절한다(422) — 초가 없거나 0 이면 키를 싣지 않고
+          // 분만 보낸다(#2221).
+          if (durationSeconds != null && durationSeconds > 0)
+            'duration_seconds': durationSeconds,
+          'intensity': intensity,
+        },
       );
       final Map<String, Object?>? data = response.data;
       if (data == null) {

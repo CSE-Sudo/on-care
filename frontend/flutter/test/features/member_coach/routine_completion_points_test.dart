@@ -108,6 +108,22 @@ void main() {
       expect(listed.completed, isTrue);
       expect(listed.pointsAward, isNull);
     });
+
+    test('초로 완료하면 완료 기록과 운동 기록이 초를 든다 (#2221)', () async {
+      final CoachRoutine trainer = (await routinesFrom('trainer')).first;
+
+      final CoachRoutine done = await coach.completeRoutine(
+        trainer.id,
+        minutes: 1,
+        durationSeconds: 45,
+      );
+      expect(done.completedMinutes, 1);
+      expect(done.completedDurationSeconds, 45);
+
+      final ExerciseSession logged = (await exercise.fetchThisWeek()).sessions
+          .firstWhere((ExerciseSession s) => s.assignedRoutineId == trainer.id);
+      expect(logged.durationSeconds, 45);
+    });
   });
 
   group('데모 운동 직접 추가', () {

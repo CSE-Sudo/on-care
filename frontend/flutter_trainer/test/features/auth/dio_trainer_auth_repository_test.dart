@@ -197,12 +197,7 @@ void main() {
       ).thenThrow(_httpError(409, path));
 
       await expectLater(
-        repo.register(
-          email: 'e@x.com',
-          password: 'pw',
-          name: '김',
-          inviteCode: 'ONCARE1',
-        ),
+        repo.register(email: 'e@x.com', password: 'pw', name: '김'),
         throwsA(
           isA<AuthException>().having(
             (e) => e.failure,
@@ -213,37 +208,7 @@ void main() {
       );
     });
 
-    test('maps 422 to an invite-code message', () async {
-      // 없는·만료된·이미 쓰인 코드를 서버가 구분하지 않는다. 트레이너가 할 일은
-      // 어느 경우든 헬스장에 코드를 다시 받는 것이라 결론이 같다.
-      when(
-        () => dio.post<Map<String, Object?>>(
-          path,
-          data: any(named: 'data'),
-          options: any(named: 'options'),
-        ),
-      ).thenThrow(_httpError(422, path));
-
-      await expectLater(
-        repo.register(
-          email: 'e@x.com',
-          password: 'pw',
-          name: '김',
-          inviteCode: 'NOPE',
-        ),
-        throwsA(
-          isA<AuthException>().having(
-            (e) => e.failure,
-            'failure',
-            AuthFailure.inviteCodeInvalid,
-          ),
-        ),
-      );
-    });
-
-    // 서버 비밀번호 기준(#1555)에 걸린 422 는 초대 코드 탓이 아니다. 전에는
-    // 모든 422 를 코드 오류로 읽어, 비밀번호만 고치면 되는 트레이너가 헬스장에
-    // 코드를 다시 받으러 갔다.
+    // 서버 비밀번호 기준(#1555)에 걸린 422 는 그 이유를 그대로 알린다.
     Map<String, Object?> detail(List<Map<String, Object?>> items) =>
         <String, Object?>{'detail': items};
 
@@ -257,12 +222,7 @@ void main() {
       ).thenThrow(_httpError(422, path, body: body));
 
       await expectLater(
-        repo.register(
-          email: 'e@x.com',
-          password: 'pw',
-          name: '김',
-          inviteCode: 'ONCARE1',
-        ),
+        repo.register(email: 'e@x.com', password: 'pw', name: '김'),
         throwsA(
           isA<AuthException>().having((e) => e.failure, 'failure', failure),
         ),
@@ -305,14 +265,13 @@ void main() {
       );
     });
 
-    test('a password problem wins when the code is also wrong', () {
-      // 스키마 오류는 한 번에 모두 온다. 비밀번호를 먼저 알려야 코드를
-      // 다시 받아 온 뒤에 또 막히지 않는다.
+    test('a password problem wins when another field is also wrong', () {
+      // 스키마 오류는 한 번에 모두 온다. 비밀번호 오류를 골라 알린다.
       return expectFailure(
         detail(<Map<String, Object?>>[
           <String, Object?>{
-            'type': 'string_too_short',
-            'loc': <Object?>['body', 'invite_code'],
+            'type': 'value_error',
+            'loc': <Object?>['body', 'email'],
           },
           <String, Object?>{
             'type': 'password_weak',
@@ -323,19 +282,21 @@ void main() {
       );
     });
 
-    test('a 422 without a password code is still the invite code', () {
+    test('a 422 without a password code is an unknown failure', () {
+      // 초대 코드(#1627)가 사라져, 비밀번호가 아닌 422 는 화면이 미리 거르는
+      // 형식 오류뿐이다.
       return expectFailure(
         detail(<Map<String, Object?>>[
           <String, Object?>{
             'type': 'value_error',
-            'loc': <Object?>['body', 'invite_code'],
+            'loc': <Object?>['body', 'email'],
           },
         ]),
-        AuthFailure.inviteCodeInvalid,
+        AuthFailure.unknown,
       );
     });
 
-    test('sends the invite code to the trainer signup path', () async {
+    test('does not send an invite code to the trainer signup path', () async {
       when(
         () => dio.post<Map<String, Object?>>(
           path,
@@ -346,12 +307,7 @@ void main() {
 
       // 409 로 끝나지만, 여기서 확인하려는 것은 나간 payload 다.
       await expectLater(
-        repo.register(
-          email: 'e@x.com',
-          password: 'pw',
-          name: '김',
-          inviteCode: 'ONCARE1',
-        ),
+        repo.register(email: 'e@x.com', password: 'pw', name: '김'),
         throwsA(isA<AuthException>()),
       );
 
@@ -364,7 +320,8 @@ void main() {
                 ),
               ).captured.first
               as Map<String, Object?>;
-      expect(data['invite_code'], 'ONCARE1');
+      expect(data.containsKey('invite_code'), isFalse);
+      expect(data['name'], '김');
     });
   });
 

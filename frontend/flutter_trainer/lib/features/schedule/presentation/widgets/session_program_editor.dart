@@ -201,13 +201,8 @@ class _ProgramDraftFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: OnCareColors.lineStrong),
-      ),
+    return AppTile(
+      tone: AppTileTone.outline,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -306,12 +301,11 @@ class _ProgramDraftFields extends StatelessWidget {
               ],
             )
           else
-            RoutineMinutesField(
+            RoutineDurationField(
               keyPrefix: 'program-duration-$index',
-              minutes: draft.minutes,
-              compact: true,
+              seconds: draft.durationSeconds,
               onChanged: (int value) {
-                draft.minutes = value;
+                draft.durationSeconds = value;
                 onChanged();
               },
             ),

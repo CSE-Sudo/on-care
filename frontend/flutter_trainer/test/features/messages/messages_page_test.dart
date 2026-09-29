@@ -13,9 +13,11 @@ import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         AppBackButton,
+        AppBanner,
+        AppBannerDensity,
+        AppBannerTone,
         AppCard,
         AppTag,
-        OnCareAlpha,
         OnCareColors,
         OnCareLayout,
         OnCareSize,
@@ -618,6 +620,29 @@ void main() {
     );
   });
 
+  testWidgets('분할 보기에서도 `<` 가 있고, 누르면 필터를 지킨 채 대화를 닫는다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(tester, token: 'demo-trainer-token-existing');
+      await goTo(
+        tester,
+        AppRoutes.messagesFor('seed-client-1', filter: 'unread'),
+      );
+
+      final back = find.byKey(const ValueKey<String>('messages-thread-back'));
+      expect(back, findsOneWidget);
+      await tester.tap(back);
+      await settle(tester);
+
+      final uri = GoRouter.of(
+        tester.element(find.byType(Navigator).first),
+      ).routerDelegate.currentConfiguration.uri;
+      expect(uri.queryParameters['client'], isNull);
+      expect(uri.queryParameters['f'], 'unread');
+      expect(back, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('detected discomfort can be persisted as a trainer memo', (
     tester,
   ) async {
@@ -637,20 +662,17 @@ void main() {
       await settle(tester);
 
       expect(find.text('메모 추가됨'), findsOneWidget);
-      // 감지 카드는 흰 바탕에 옅은 빨간 테두리다. 옮겨 적은 뒤에도 빨간색은
-      // 그대로다 — 무슨 일이 있었는지(부정적 피드백)는 바뀌지 않았다. 처리
-      // 여부는 알약의 문구와 눌리지 않는 상태가 말한다.
-      final banner = tester.widget<Container>(
+      // 감지 카드는 AI 루틴 감지 메모 칸과 같은 위험 톤 compact 배너다(#2468).
+      // 옮겨 적은 뒤에도 빨간색은 그대로다 — 무슨 일이 있었는지(부정적
+      // 피드백)는 바뀌지 않았다. 처리 여부는 알약의 문구와 눌리지 않는 상태가
+      // 말한다.
+      final banner = tester.widget<AppBanner>(
         find.byKey(
           const ValueKey<String>('chat-insight-banner-seed-chat-1-16'),
         ),
       );
-      final decoration = banner.decoration! as BoxDecoration;
-      expect(decoration.color, OnCareColors.surfaceCard);
-      expect(
-        (decoration.border! as Border).top.color,
-        OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
-      );
+      expect(banner.tone, AppBannerTone.danger);
+      expect(banner.density, AppBannerDensity.compact);
       expect(
         tester.widget<Text>(find.text('메모 추가됨')).style?.color,
         OnCareColors.danger,

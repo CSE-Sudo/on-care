@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
@@ -57,27 +59,116 @@ class DriftChatRepository implements ChatRepository {
         (t) => OrderingTerm(expression: t.createdAt),
       ]);
     return query.watch().asyncMap((rows) async {
-      final markers = await _reportWeekStarts(rows.map((r) => r.id));
-      return rows.map((row) => _toEntity(row, markers[row.id])).toList();
+      final ids = rows.map((r) => r.id).toList();
+      final weeks = await _markers(_reportKeyPrefix, ids);
+      final images = await _markers(_imageKeyPrefix, ids);
+      return rows
+          .map(
+            (row) => _toEntity(
+              row,
+              weeks[row.id],
+              _imageAttachment(row.id, images[row.id]),
+            ),
+          )
+          .toList();
     });
   }
 
-  /// 이 배치의 메시지 중 리포트 전송 안내인 것의 그 주(YYYY-MM-DD).
+  /// 이 배치의 메시지 중 [prefix] 표시가 붙은 것의 값.
   ///
   /// 별도 컬럼 없이 [AppKeyValues] 행 하나로 표시한다(#1378) — 안읽음 마킹과
   /// 같은 방식(위 [watchUnreadCounts] 주석). 스키마 마이그레이션이 없다.
-  Future<Map<String, String>> _reportWeekStarts(
-    Iterable<String> messageIds,
+  /// 리포트 전송 안내는 그 주(YYYY-MM-DD)를, 사진은 파일 이름과 바이트를 담는다.
+  Future<Map<String, String>> _markers(
+    String prefix,
+    List<String> messageIds,
   ) async {
-    final keys = <String>[for (final id in messageIds) '$_reportKeyPrefix$id'];
+    final keys = <String>[for (final id in messageIds) '$prefix$id'];
     if (keys.isEmpty) return const <String, String>{};
     final rows = await (_db.select(
       _db.appKeyValues,
     )..where((t) => t.key.isIn(keys))).get();
     return <String, String>{
-      for (final row in rows)
-        row.key.substring(_reportKeyPrefix.length): row.value,
+      for (final row in rows) row.key.substring(prefix.length): row.value,
     };
+  }
+
+  /// 데모 대화에 붙은 사진 표시를 첨부로 푼다. (#2493)
+  ///
+  /// 한 번 푼 것은 메시지 id 로 들고 있는다. 스레드는 메시지가 오갈 때마다 다시
+  /// 흘러오는데, 그때마다 새 바이트 배열을 만들면 화면이 같은 사진을 매번 새로
+  /// 디코딩해 깜빡인다.
+  ChatAttachment? _imageAttachment(String messageId, String? stored) {
+    if (stored == null) return null;
+    final cached = _demoImages[messageId];
+    if (cached != null) return cached;
+    final Uint8List bytes;
+    final String fileName;
+    try {
+      final decoded = jsonDecode(stored) as Map<String, Object?>;
+      fileName = decoded['name'] as String? ?? 'photo.jpg';
+      bytes = base64Decode(decoded['data'] as String? ?? '');
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
+    final fileId = 'demo-photo-$messageId';
+    return _demoImages[messageId] = ChatAttachment(
+      kind: ChatAttachmentKind.image,
+      fileName: fileName,
+      fileId: fileId,
+      fileSize: bytes.length,
+      downloadPath: '/chat/attachments/$fileId',
+      localBytes: bytes,
+    );
+  }
+
+  /// 데모 트레이너가 고른 사진 한 장을 대화에 붙인다. (#2493)
+  ///
+  /// 데모에는 받아 줄 서버가 없어, 바이트를 로컬 DB 에 표시 행으로 함께 둔다 —
+  /// 메모리에만 두면 새로고침한 뒤 말풍선만 남고 사진은 "불러오지 못했어요" 가
+  /// 된다. [message] 는 비어도 된다(실서버 `/chat/image` 와 같다).
+  Future<void> sendTrainerImage({
+    required String clientId,
+    required Uint8List bytes,
+    required String fileName,
+    String message = '',
+  }) async {
+    final caption = message.trim();
+    final now = nowKst();
+    final id = 'chat-$clientId-${now.microsecondsSinceEpoch}';
+    // 한 트랜잭션으로 묶는다 — 스레드는 커밋 뒤에 다시 흘러오므로, 사진 없는
+    // 빈 말풍선이 한 번 스치지 않는다.
+    await _db.transaction(() async {
+      await _db.putValue(
+        '$_imageKeyPrefix$id',
+        jsonEncode(<String, String>{
+          'name': fileName,
+          'data': base64Encode(bytes),
+        }),
+      );
+      await _db
+          .into(_db.clientChatMessages)
+          .insert(
+            ClientChatMessagesCompanion.insert(
+              id: id,
+              clientId: clientId,
+              sender: 'trainer',
+              body: caption,
+              timeLabel: _timeLabel(now),
+              createdAt: now,
+            ),
+          );
+      await (_db.update(
+        _db.trainerClients,
+      )..where((t) => t.id.equals(clientId))).write(
+        TrainerClientsCompanion(
+          lastMessage: Value(caption.isEmpty ? ChatPreviewCode.photo : caption),
+          lastTime: const Value(ChatPreviewCode.justNow),
+        ),
+      );
+    });
   }
 
   /// Appends a trainer message and refreshes the client's list-card
@@ -195,14 +286,24 @@ class DriftChatRepository implements ChatRepository {
 
   static const String _readKeyPrefix = 'chat_read_';
   static const String _reportKeyPrefix = 'report_msg_';
+  static const String _imageKeyPrefix = 'chat_image_';
 
-  ClientChatMessage _toEntity(ClientChatMessageRow row, String? weekStart) {
+  /// 풀어 둔 데모 사진. 메시지 id 가 키다([_imageAttachment]).
+  static final Map<String, ChatAttachment> _demoImages =
+      <String, ChatAttachment>{};
+
+  ClientChatMessage _toEntity(
+    ClientChatMessageRow row,
+    String? weekStart,
+    ChatAttachment? attachment,
+  ) {
     return ClientChatMessage(
       id: row.id,
       sender: row.sender == 'trainer' ? ChatSender.trainer : ChatSender.client,
       body: row.body,
       timeLabel: row.timeLabel,
       createdAt: row.createdAt,
+      attachment: attachment,
       reportWeekStart: weekStart == null ? null : DateTime.tryParse(weekStart),
       emoteId: row.emoteId,
     );

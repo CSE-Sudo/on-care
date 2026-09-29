@@ -166,7 +166,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
   /// 안에서 즉시 오가는 것이라서다 — 확인 단계를 넣으면 말 한마디 붙이는 것보다
   /// 사진 한 장 보내는 쪽이 번거로워진다. 잘못 보낸 사진은 대화에서 바로 보인다.
   ///
-  /// 데모에는 사진을 받을 백엔드가 없어 진입점 자체를 그리지 않는다.
+  /// 데모에서는 서버 대신 로컬 대화에 바이트째 붙는다 — 회원앱 데모에서 사진을
+  /// 보낼 수 있는데 트레이너만 못 보내면, 두 앱을 나란히 볼 때 한쪽만 되는
+  /// 기능으로 읽힌다. (#2493)
   Future<void> _sendImage() async {
     if (_sending) return;
     final AppLocalizations l = AppLocalizations.of(context);
@@ -462,10 +464,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
           controller: _input,
           sending: _sending,
           onSend: _send,
-          // 데모에는 사진을 받을 백엔드가 없다 — 진입점을 그리지 않는다. (#921)
-          onAttachImage: ref.watch(appConfigProvider).useMockApi
-              ? null
-              : _sendImage,
+          onAttachImage: _sendImage,
           onEmote: _sendEmote,
         ),
       ],
@@ -506,90 +505,53 @@ class _ChatInsightBanner extends StatelessWidget {
         ? l.chatInsightDiscomfortDescription
         : l.chatInsightNegativeDescription;
 
-    return Container(
-      key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
+    // AI 루틴의 감지 메모 칸과 같은 감지 경고 모양이다(#2468) — 같은 신호가
+    // 두 화면에서 같은 것으로 읽힌다.
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s12,
-        vertical: OnCareSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(
-          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
-        ),
-      ),
-      child: Row(
-        children: <Widget>[
-          const AppIcon(
-            AppIcons.warning,
-            size: OnCareSize.iconMedium,
-            color: OnCareColors.danger,
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(color: OnCareColors.danger),
-                ),
-                const SizedBox(height: OnCareSpacing.s2),
-                Text(
-                  description,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          // 알약은 저장 뒤에도 빨간색이다. 초록으로 뒤집으면 빨간 카드
-          // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
-          // 감지 내용보다 눈에 먼저 들어온다.
-          Material(
-            color: OnCareColors.onWhite(
-              OnCareColors.danger,
-              OnCareAlpha.subtle,
-            ),
+      child: AppBanner(
+        key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
+        tone: AppBannerTone.danger,
+        density: AppBannerDensity.compact,
+        icon: AppIcons.warning,
+        title: title,
+        message: description,
+        // 알약은 저장 뒤에도 빨간색이다. 초록으로 뒤집으면 빨간 카드
+        // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
+        // 감지 내용보다 눈에 먼저 들어온다. 배너 채움(8%) 위에서 알약이
+        // 보이도록 한 단계 진하게(16%) 칠한다.
+        trailing: Material(
+          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.medium),
+          borderRadius: OnCareRadius.pillAll,
+          child: InkWell(
+            key: ValueKey<String>('chat-insight-add-${insight.id}'),
+            onTap: saved ? null : onAddMemo,
             borderRadius: OnCareRadius.pillAll,
-            child: InkWell(
-              key: ValueKey<String>('chat-insight-add-${insight.id}'),
-              onTap: saved ? null : onAddMemo,
-              borderRadius: OnCareRadius.pillAll,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s8,
-                  vertical: OnCareSpacing.s4,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    AppIcon(
-                      saved ? AppIcons.check : AppIcons.add,
-                      size: OnCareSize.iconSmall,
-                      color: OnCareColors.danger,
-                    ),
-                    const SizedBox(width: OnCareSpacing.s4),
-                    Text(
-                      saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
-                      style: tokens
-                          .text(
-                            OnCareTypography.strong(OnCareTypography.caption),
-                          )
-                          .copyWith(color: OnCareColors.danger),
-                    ),
-                  ],
-                ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s8,
+                vertical: OnCareSpacing.s4,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  AppIcon(
+                    saved ? AppIcons.check : AppIcons.add,
+                    size: OnCareSize.iconSmall,
+                    color: OnCareColors.danger,
+                  ),
+                  const SizedBox(width: OnCareSpacing.s4),
+                  Text(
+                    saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.danger),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -905,8 +867,9 @@ class _InputBar extends StatelessWidget {
 
   final Future<void> Function() onSend;
 
-  /// 사진 첨부. 데모처럼 받을 백엔드가 없는 빌드에서는 null 이라 버튼 자체가
-  /// 그려지지 않는다 — 눌러도 아무 데도 닿지 않는 버튼을 두지 않는다. (#921)
+  /// 사진 첨부. null 이면 버튼 자체가 그려지지 않는다 — 눌러도 아무 데도 닿지
+  /// 않는 버튼을 두지 않는다. (#921) 데모도 로컬 대화로 받으므로 지금은 늘
+  /// 값이 있다(#2493).
   final Future<void> Function()? onAttachImage;
 
   /// 이모티콘 창 열기(#2020). 트레이너는 이용권 없이 보낸다.

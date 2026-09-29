@@ -22,7 +22,7 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
-import 'package:oncare/shared/widgets/chart_semantics.dart';
+import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
@@ -300,10 +300,10 @@ class _DietNutritionCard extends ConsumerWidget {
                         // 화면 위 제목과 같은 문구로 시작한다 — 음성 안내에서도
                         // 이 그래프가 어느 지표의 것인지가 먼저 들린다.
                         semanticsLabel: chartSemanticsLabel(
-                          l,
+                          l.chartA11y,
                           title: chartTitle,
                           points: chartSeriesPoints(
-                            l,
+                            l.chartA11y,
                             values: cfg.cur,
                             dayLabels: days,
                             format: (double v) => '${nf.format(v)}${cfg.unit}',

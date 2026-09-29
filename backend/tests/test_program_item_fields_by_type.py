@@ -93,13 +93,13 @@ def test_amount_label_reads_strength_in_sets_reps_weight():
     """배정 알림·배정 수행 이력이 근력을 분으로 적던 자리. (#1276)
 
     유형 어휘가 둘이다 — 트레이너 배정은 한글, 회원 기록은 영문 코드. 둘 다
-    같은 줄로 읽혀야 한다. 맨몸의 `0kg` 은 적은 값이라 그대로 적는다.
+    같은 줄로 읽혀야 한다. 맨몸(0kg)은 중량을 적지 않는다(#2533).
     """
     assert _amount_label("근력", minutes=15, sets=3, reps=12, weight=40.0) == (
         "3세트 · 12회 · 40kg"
     )
     assert _amount_label("strength", minutes=12, sets=3, reps=15, weight=0) == (
-        "3세트 · 15회 · 0kg"
+        "3세트 · 15회"
     )
     assert _amount_label(
         "cardio", minutes=30, sets=None, reps=None, weight=None,

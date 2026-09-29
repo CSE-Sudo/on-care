@@ -165,7 +165,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get authTagline => '회원 관리를 위한 트레이너 전용 앱';
+  String get authTagline => '회원의 식단·운동 기록을 한눈에 보고 코칭하는 트레이너 전용 공간';
 
   @override
   String get authEmailHint => '이메일';
@@ -205,12 +205,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authPasswordConfirm => '비밀번호 확인';
-
-  @override
-  String get authInviteCode => '헬스장 초대 코드';
-
-  @override
-  String get authInviteCodeHelp => '소속 헬스장에서 발급받은 코드를 입력해 주세요.';
 
   @override
   String get authLegalNotice => '가입하면 아래 문서에 동의하는 것으로 봅니다';
@@ -262,9 +256,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrPasswordMismatch => '비밀번호가 일치하지 않아요';
-
-  @override
-  String get authErrInviteCodeRequired => '헬스장에서 받은 초대 코드를 입력해 주세요';
 
   @override
   String get authErrSignUpFailed => '가입에 실패했어요. 잠시 후 다시 시도해 주세요.';
@@ -880,13 +871,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietMacrosMissing => '탄·단·지 기록 없음';
 
   @override
-  String get clientDietTotalCalories => '총 칼로리';
-
-  @override
   String get clientDietDayTotal => '하루 합계';
 
   @override
-  String clientDietDayTotalCalories(String calories) {
+  String clientDietTotalCalories(String calories) {
     return '총 $calories kcal';
   }
 
@@ -1182,6 +1170,16 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String minutesShort(int minutes) {
     return '$minutes분';
+  }
+
+  @override
+  String hoursShort(int hours) {
+    return '$hours시간';
+  }
+
+  @override
+  String secondsShort(int seconds) {
+    return '$seconds초';
   }
 
   @override
@@ -2518,6 +2516,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록됩니다';
 
   @override
+  String get routineUnitHours => '시간';
+
+  @override
   String get routineUnitMinutes => '분';
 
   @override
@@ -3151,9 +3152,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmailTaken => '이미 가입된 이메일입니다.';
 
   @override
-  String get authErrInviteCodeInvalid => '사용할 수 없는 초대 코드예요. 헬스장에 확인해 주세요.';
-
-  @override
   String get authErrSessionExpired => '세션이 만료됐어요. 다시 로그인해 주세요.';
 
   @override
@@ -3693,6 +3691,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messagesPreviewEmote => '이모티콘을 보냈어요';
+
+  @override
+  String get messagesPreviewPhoto => '사진';
 
   @override
   String get messagesTimeJustNow => '방금';
@@ -4483,16 +4484,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachTemplateMenu => '템플릿 메뉴';
-
-  @override
-  String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets세트 · $reps회 · ${weight}kg';
-  }
-
-  @override
-  String aiHoldSummary(int sets, int seconds, String weight) {
-    return '$sets세트 · $seconds초 · ${weight}kg';
-  }
 
   @override
   String get routineFormDecrease => '줄이기';

@@ -210,9 +210,8 @@ def test_register_accepts_reserved_test_domain(client, _cleanup):
 
 
 def test_trainer_register_rejects_malformed_email(client, _cleanup):
-    """트레이너 가입도 같은 기준이다 — 초대 코드를 보기 전에 형식에서 막힌다."""
+    """트레이너 가입도 같은 기준이다."""
     r = client.post(
-        "/v1/auth/trainer/register",
-        json=_payload(email="trainer@oncare", invite_code="WHATEVER"),
+        "/v1/auth/trainer/register", json=_payload(email="trainer@oncare")
     )
     assert r.status_code == 422, r.text

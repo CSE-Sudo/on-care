@@ -52,6 +52,7 @@ import 'package:oncare_ui/oncare_ui.dart'
         AppAvatarSize,
         AppButton,
         AppIconButton,
+        AppRingGauge,
         AppSegmentedToggle,
         AppSegmentedToggleStyle,
         OnCareLayout,
@@ -465,7 +466,6 @@ class _FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
-    required String inviteCode,
   }) async => _tokens;
 
   @override
@@ -1721,9 +1721,7 @@ void main() {
           const Key('client-nutrition-calorie-progress'),
         );
         double calorieProgress() =>
-            (tester.widget<CustomPaint>(progressFinder).painter!
-                    as ProgramCalorieRingPainter)
-                .progress;
+            tester.widget<AppRingGauge>(progressFinder).value;
         final initialProgress = calorieProgress();
 
         await tester.tap(find.text('이지수'));

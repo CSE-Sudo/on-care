@@ -107,6 +107,51 @@ class RoutineMinutesField extends StatelessWidget {
   }
 }
 
+/// 운동 시간 — 시·분·초 세 칸. 치거나, 칸을 누르면 그 칸 아래 목록에서
+/// 고른다. (#2221)
+///
+/// [RoutineMinutesField] 는 분 한 칸이라 45초짜리 운동을 적을 수 없었고, 한
+/// 시간이 넘으면 90분처럼 환산해야 했다. 회원 앱은 같은 값을 휠로 적지만
+/// (`AppDurationWheel`), 웹에서 마우스로 휠을 굴리면 한 칸에 1씩 움직여 45초를
+/// 맞추려면 45번을 굴려야 한다.
+///
+/// 값은 초 하나다. 상한은 서버·회원 앱과 같은 열 시간이다.
+class RoutineDurationField extends StatelessWidget {
+  const RoutineDurationField({
+    required this.seconds,
+    required this.onChanged,
+    this.label,
+    this.keyPrefix,
+    super.key,
+  });
+
+  final int seconds;
+  final ValueChanged<int> onChanged;
+
+  /// 세 칸 위 이름. 비우면 `운동 시간` 이다.
+  final String? label;
+
+  /// 칸 키의 앞머리 — `<keyPrefix>-hours` · `-minutes` · `-seconds`.
+  final String? keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppDurationField(
+      duration: Duration(seconds: seconds),
+      onChanged: (Duration value) => onChanged(value.inSeconds),
+      label: label ?? l.routineFieldMinutes,
+      labels: AppDurationWheelLabels(
+        hours: l.routineUnitHours,
+        minutes: l.routineUnitMinutes,
+        seconds: l.routineUnitSeconds,
+      ),
+      maxSeconds: kMaxExerciseSeconds,
+      keyPrefix: keyPrefix ?? 'routine-duration',
+    );
+  }
+}
+
 /// 근력의 세트 수 한 칸.
 class RoutineSetsField extends StatelessWidget {
   const RoutineSetsField({

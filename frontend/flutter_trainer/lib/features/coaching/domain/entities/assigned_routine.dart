@@ -15,6 +15,7 @@ class AssignedRoutine {
     this.sets,
     this.reps,
     this.holdSeconds,
+    this.durationSeconds,
     this.weight,
     this.scheduleId,
     this.deliveryKind,
@@ -48,6 +49,13 @@ class AssignedRoutine {
   /// 버티는 루틴이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
   /// 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
   final int? holdSeconds;
+
+  /// 유산소·스트레칭·기타의 운동 시간(초)(#2221). [minutes] 는 여기서 반올림한
+  /// 값이다. 초를 싣지 않던 예전 서버의 응답은 비어 있다 — [seconds] 로 읽는다.
+  final int? durationSeconds;
+
+  /// 이 배정의 운동 시간(초). 초가 없으면 분 × 60 이다.
+  int get seconds => durationSeconds ?? minutes * 60;
   final double? weight;
 
   /// Why this routine — surfaced to the member.

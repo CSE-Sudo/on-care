@@ -9,6 +9,17 @@ String ymd(DateTime d) =>
     '${d.month.toString().padLeft(2, '0')}-'
     '${d.day.toString().padLeft(2, '0')}';
 
+/// 기간의 끝 날짜 표기 — 시작과 같은 해면 연도를 빼고 `MM-DD` 로 적는다.
+///
+/// 반복 일정의 `시작 - 종료일` 칸은 시간 칸과 한 줄을 반씩 나눠 쓴다. 두 날짜를
+/// 모두 `YYYY-MM-DD` 로 적으면 그 폭에 들어가지 않아 종료일이 말줄임으로 잘렸다.
+/// 해가 같으면 연도는 시작 날짜에서 이미 읽힌다. 해를 넘기는 기간은 연도를
+/// 남긴다 — 그때 빼면 끝이 어느 해인지 헷갈린다.
+String ymdRangeEnd(DateTime start, DateTime end) => start.year == end.year
+    ? '${end.month.toString().padLeft(2, '0')}-'
+          '${end.day.toString().padLeft(2, '0')}'
+    : ymd(end);
+
 /// Weekday names indexed by `DateTime.weekday - 1` (월 … 일), in the
 /// current locale.
 List<String> weekdayNames(AppLocalizations l) => <String>[

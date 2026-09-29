@@ -433,6 +433,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,
+    int? durationSeconds,
     String intensity = 'moderate',
   }) async {
     final CoachRoutine routine = _todayRoutine(routineId);
@@ -449,10 +450,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         pointsAward: points.awardedFor(PointsRule.routineComplete, source),
       );
     }
+    // 초는 0 보다 클 때만 남긴다 — 실서버처럼(#2221).
+    final int? seconds = durationSeconds != null && durationSeconds > 0
+        ? durationSeconds
+        : null;
     final CoachRoutine completed = routine.copyWith(
       completed: true,
       completedAt: nowKst(),
       completedMinutes: minutes,
+      completedDurationSeconds: seconds,
       completedIntensity: intensity,
     );
     (_doneByDay[day] ??= <String, CoachRoutine>{})[routineId] = completed;
@@ -460,6 +466,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       completed,
       slot: slot,
       minutes: minutes,
+      durationSeconds: seconds,
       intensity: intensity,
     );
     final PointsAward? award = _awardCompletion(slot);
@@ -511,6 +518,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required String slot,
     required int minutes,
     required String intensity,
+    int? durationSeconds,
   }) async {
     final MockExerciseRepository? exercise = _exercise;
     if (exercise == null) return;
@@ -525,6 +533,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       name: routine.name,
       routineId: routine.id,
       minutes: minutes,
+      durationSeconds: durationSeconds,
       calories: estimateExerciseCalories(type, minutes, intensity: level),
       date: nowKst(),
       intensity: level,

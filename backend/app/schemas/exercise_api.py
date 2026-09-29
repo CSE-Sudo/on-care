@@ -280,6 +280,9 @@ class AssignedRoutineCompleteRequest(BaseModel):
     weight: float | None = Field(None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     #: 버티는 루틴이면 실제로 버틴 시간(초). `reps` 와 한 자리를 나눠 쓴다. (#1969)
     hold_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS)
+    #: 수행한 시간을 초로(#2221). 트레이너가 `45초` 로 배정한 운동을 `1분` 으로
+    #: 적지 않게 한다 — `minutes` 는 여전히 받는다(옛 앱·집계).
+    duration_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_SECONDS)
     intensity: ExerciseIntensityIn = "moderate"
     #: 개인 운동 피드백은 없앴다(#1825). 옛 앱이 보내도 422 가 나지 않게 받기만 하고
     #: 저장하지 않는다.

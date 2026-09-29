@@ -41,7 +41,6 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
-    required String inviteCode,
   }) async {
     try {
       // 회원용 `/auth/register` 가 아니다 — 그쪽은 role='member' 를 만들어,
@@ -52,7 +51,6 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
           'email': email,
           'password': password,
           'name': name,
-          'invite_code': inviteCode,
         },
       );
     } on DioException catch (e) {
@@ -60,14 +58,10 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
         throw const AuthException(AuthFailure.emailTaken);
       }
       if (e.response?.statusCode == 422) {
-        // 비밀번호가 서버 기준(#1555)에 걸렸으면 코드 탓을 하지 않는다 —
-        // 전에는 422 를 모두 초대 코드 오류로 읽어, 비밀번호만 고치면 되는
-        // 트레이너가 헬스장에 코드를 다시 받으러 갔다.
+        // 비밀번호가 서버 기준(#1555)에 걸렸으면 그 이유를 알린다. 나머지 422
+        // (형식 오류 등)는 화면이 미리 거르는 값이라 알 수 없는 오류로 둔다.
         final AuthFailure? password = _passwordFailure(e.response?.data);
         if (password != null) throw AuthException(password);
-        // 서버는 없는·만료된·이미 쓰인 코드를 구분하지 않는다. 어느 경우든
-        // 트레이너가 할 일은 헬스장에 코드를 다시 받는 것이라 결론이 같다.
-        throw const AuthException(AuthFailure.inviteCodeInvalid);
       }
       throw _asAuth(e);
     }

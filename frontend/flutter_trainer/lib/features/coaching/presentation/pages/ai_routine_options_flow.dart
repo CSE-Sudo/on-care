@@ -20,10 +20,12 @@ import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -130,9 +132,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   int _minutes = 30;
   String _intensity = 'moderate';
   String _newExerciseType = '근력';
-  int _newExerciseMinutes = 30;
+  int _newExerciseSeconds = 30 * 60;
   // 근력만 세트·횟수·중량을 받는다(#1029, #1310) — 그 외 유형은
-  // [_newExerciseMinutes] 를 그대로 쓴다.
+  // [_newExerciseSeconds] 를 그대로 쓴다.
   int _newExerciseSets = 3;
   int _newExerciseReps = 10;
   int _newExerciseHoldSeconds = 60;
@@ -376,8 +378,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _activeList.add(
         RoutineExercise(
           name: name,
-          minutes: _newExerciseMinutes,
+          minutes: minutesFromSeconds(_newExerciseSeconds),
           type: _newExerciseType,
+          // 시·분·초로 적은 시간을 그대로 싣는다(#2221).
+          durationSeconds: isStrength ? null : _newExerciseSeconds,
           sets: isStrength ? _newExerciseSets : 0,
           // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 0 이다.
           // (#1969)
@@ -393,7 +397,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 보낸다(#2223).
       _newExerciseName.clear();
       _newExerciseType = '근력';
-      _newExerciseMinutes = 30;
+      _newExerciseSeconds = 30 * 60;
       _newExerciseSets = 3;
       _newExerciseReps = 10;
       _newExerciseHoldSeconds = 60;
@@ -982,73 +986,41 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 손으로 쓴 트레이너 메모(`source=trainer`)는 여기 넣지 않는다 — 이 칸은
   /// AI 가 대화에서 집어낸 것만 모으는 자리다.
   ///
-  /// 모양은 [AppBanner] 의 `danger` 톤(8% 채움·40% 테두리·반경 12·안쪽 12)과
-  /// 같다. 다만 고정 높이 안에서 메모 목록을 스크롤해야 해(#1655) 제목·본문
-  /// 두 칸뿐인 [AppBanner] 를 그대로 쓰지 못한다.
+  /// 모양은 채팅 감지 경고와 같은 [AppBanner] `danger`·[AppBannerDensity.compact]
+  /// 다. 고정 높이 안에서 메모 목록을 스크롤한다(#1655, `expandChild`).
   Widget _chatInsightMemoPanel({required double height}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final AsyncValue<List<TrainerMemo>> memos = ref.watch(
       trainerMemosProvider(widget.client.id),
     );
-    return Container(
+    return SizedBox(
       key: const ValueKey<String>('ai-chat-insight-memos'),
       height: height,
-      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-      decoration: BoxDecoration(
-        color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.subtle),
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(
-          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
+      child: AppBanner(
+        tone: AppBannerTone.danger,
+        density: AppBannerDensity.compact,
+        icon: AppIcons.warning,
+        title: l.aiInsightMemoTitle,
+        expandChild: true,
+        // 메모를 못 읽어도 이 칸만 조용히 비운다 — 생성 버튼까지 막으면
+        // 참고 자료 하나 때문에 프로그램을 못 만든다 (#1655).
+        child: memos.when(
+          loading: () => const AppLoading(placement: AppStatePlacement.card),
+          error: (Object _, StackTrace _) =>
+              _insightMemoNote(l.aiInsightMemoFailed),
+          data: (List<TrainerMemo> list) {
+            final List<TrainerMemo> recent = _recentChatInsights(list);
+            if (recent.isEmpty) {
+              return _insightMemoNote(l.aiInsightMemoEmpty);
+            }
+            return ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: recent.length,
+              itemBuilder: (BuildContext context, int index) =>
+                  _insightMemoLine(recent[index]),
+            );
+          },
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const AppIcon(
-                AppIcons.warning,
-                size: OnCareSize.iconSmall,
-                color: OnCareColors.danger,
-              ),
-              const SizedBox(width: OnCareSpacing.s4),
-              Expanded(
-                child: Text(
-                  l.aiInsightMemoTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _text(
-                    OnCareTypography.strong(OnCareTypography.caption),
-                    OnCareColors.danger,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          // 메모를 못 읽어도 이 칸만 조용히 비운다 — 생성 버튼까지 막으면
-          // 참고 자료 하나 때문에 프로그램을 못 만든다 (#1655).
-          Expanded(
-            child: memos.when(
-              loading: () =>
-                  const AppLoading(placement: AppStatePlacement.card),
-              error: (Object _, StackTrace _) =>
-                  _insightMemoNote(l.aiInsightMemoFailed),
-              data: (List<TrainerMemo> list) {
-                final List<TrainerMemo> recent = _recentChatInsights(list);
-                if (recent.isEmpty) {
-                  return _insightMemoNote(l.aiInsightMemoEmpty);
-                }
-                return ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: recent.length,
-                  itemBuilder: (BuildContext context, int index) =>
-                      _insightMemoLine(recent[index]),
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1643,14 +1615,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ],
             )
           else
-            RoutineMinutesField(
-              key: ValueKey<String>('routine-minutes-$index'),
-              keyPrefix: 'routine-minutes-$index',
-              minutes: exercise.minutes,
-              compact: true,
-              onChanged: (minutes) => setState(() {
+            RoutineDurationField(
+              key: ValueKey<String>('routine-duration-$index'),
+              keyPrefix: 'routine-duration-$index',
+              seconds: exercise.seconds,
+              onChanged: (seconds) => setState(() {
                 list[index] = _asTrainerEdit(
-                  list[index].copyWith(minutes: minutes),
+                  list[index].copyWith(durationSeconds: seconds),
                 );
               }),
             ),
@@ -1910,7 +1881,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                       TextSpan(
                         text: exercise.type == '근력'
                             ? _strengthSummary(l, exercise)
-                            : l.minutesShort(exercise.minutes),
+                            : formatExerciseDuration(l, exercise.seconds),
                         style: metaStyle,
                       ),
                     ],
@@ -2036,12 +2007,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ],
             )
           else
-            RoutineMinutesField(
-              key: const ValueKey<String>('new-exercise-minutes'),
-              minutes: _newExerciseMinutes,
-              compact: true,
-              onChanged: (minutes) => setState(() {
-                _newExerciseMinutes = minutes;
+            RoutineDurationField(
+              key: const ValueKey<String>('new-exercise-duration'),
+              keyPrefix: 'new-exercise-duration',
+              seconds: _newExerciseSeconds,
+              onChanged: (seconds) => setState(() {
+                _newExerciseSeconds = seconds;
               }),
             ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -2128,7 +2099,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   // 어긋나지 않는다.
                   exercise.type == '근력'
                       ? _strengthSummary(l, exercise)
-                      : l.minutesShort(exercise.minutes),
+                      : formatExerciseDuration(l, exercise.seconds),
                   style: _text(
                     OnCareTypography.strong(OnCareTypography.bodySmall),
                     brand,
@@ -2248,21 +2219,21 @@ RoutineExercise _withStrengthDefaults(RoutineExercise exercise) {
   );
 }
 
-/// 근력 한 줄의 요약 문구 — 세트 × 횟수 · 중량. (#1310)
+/// 근력 한 줄의 요약 문구 — 세트 · 횟수 · 중량. (#1310)
 ///
-/// 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 트레이너가 적은
-/// 값이다.
+/// 맨몸 운동(0kg)은 중량을 적지 않는다 — `3세트 · 15회`. (#2533)
 ///
-/// 버티는 운동은 횟수 자리에 초가 선다 — `3세트 · 60초 · 0kg`. 한 세트를 두
+/// 버티는 운동은 횟수 자리에 초가 선다 — `3세트 · 60초`. 한 세트를 두
 /// 단위로 적지 않으므로 둘이 한 줄에 함께 서지 않는다. (#1969)
-String _strengthSummary(AppLocalizations l, RoutineExercise exercise) {
-  final double w = exercise.weight;
-  final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
-  if (exercise.isHold) {
-    return l.aiHoldSummary(exercise.sets, exercise.holdSeconds, weight);
-  }
-  return l.aiStrengthSummary(exercise.sets, exercise.reps, weight);
-}
+String _strengthSummary(AppLocalizations l, RoutineExercise exercise) =>
+    <String>[
+      l.progSetsValue(exercise.sets),
+      if (exercise.isHold)
+        l.progHoldValue(exercise.holdSeconds)
+      else
+        l.progRepsValue(exercise.reps),
+      ?strengthWeightLabel(l, exercise.weight),
+    ].join(' · ');
 
 /// 후보 편집기의 운동 이름 칸.
 ///
@@ -2364,34 +2335,33 @@ class _ChatEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    return Container(
+    // 근거 인용이라 안내 배너가 아니라 회색 카드 안 구획이다(#2468).
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(OnCareSpacing.s8),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
-        borderRadius: OnCareRadius.smAll,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            l.aiChatEvidenceTitle,
-            style: tokens
-                .text(OnCareTypography.label)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          for (final String line in lines)
-            Padding(
-              padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-              child: Text(
-                line,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
-              ),
+      child: AppTile(
+        tone: AppTileTone.neutral,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              l.aiChatEvidenceTitle,
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
-        ],
+            const SizedBox(height: OnCareSpacing.s4),
+            for (final String line in lines)
+              Padding(
+                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+                child: Text(
+                  line,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2427,40 +2397,22 @@ class _RecommendationStatusBanner extends StatelessWidget {
         ),
       ),
     };
-    return Container(
+    // AI 가 이번 후보를 무엇에 기대 만들었는지 알리는 안내다 — 회색 상자로
+    // 두면 입력 칸처럼 읽혔다(#2468).
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(OnCareSpacing.s8),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
-        borderRadius: OnCareRadius.smAll,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            title,
-            style: tokens
-                .text(OnCareTypography.label)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          const SizedBox(height: OnCareSpacing.s2),
-          Text(
-            body,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          if (analysis.frequentExercises.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s4),
-            Text(
-              '${l.aiFrequentExercisesLabel}: '
-              '${analysis.frequentExercises.join(', ')}',
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.caption))
-                  .copyWith(color: OnCareColors.textPrimary),
-            ),
-          ],
-        ],
+      child: AppBanner(
+        title: title,
+        message: body,
+        child: analysis.frequentExercises.isEmpty
+            ? null
+            : Text(
+                '${l.aiFrequentExercisesLabel}: '
+                '${analysis.frequentExercises.join(', ')}',
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.caption))
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
       ),
     );
   }

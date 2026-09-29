@@ -113,7 +113,7 @@ class _KindCard extends StatelessWidget {
   static const double _size = 76;
 
   /// 고리 두께.
-  static const double _stroke = 9;
+  static const double _stroke = 12;
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +123,16 @@ class _KindCard extends StatelessWidget {
     final double? ratio = trend.ratioOf(kind, week);
     final int? percent = ratio == null ? null : (ratio * 100).round();
 
-    return AppTile(
+    // 흰 바탕 + 회색 테두리 — 회색 채움은 입력 칸이 놓인 구획의 신호라,
+    // 읽기만 하는 이 칸에는 맞지 않는다.
+    return Container(
       key: ValueKey<String>('report-trend-${kind.name}'),
-      tone: AppTileTone.neutral,
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineStrong),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -141,14 +148,13 @@ class _KindCard extends StatelessWidget {
               SizedBox(
                 width: _size,
                 height: _size,
-                child: CustomPaint(
-                  painter: _DonutPainter(
-                    // 한 바퀴를 넘긴 주는 회원 탭 운동 도넛처럼 두 바퀴째를
-                    // 이어 그린다 — 끝 아래 그림자가 어디서 멈췄는지 짚는다.
-                    ratio: ratio ?? 0,
-                    color: kindColor(kind),
-                    stroke: _stroke,
-                  ),
+                // 한 바퀴를 넘긴 주는 회원 탭 운동 도넛처럼 두 바퀴째를 이어
+                // 그린다 — 같은 공용 게이지라 끝 그림자·`>` 까지 같다.
+                child: AppRingGauge(
+                  value: ratio ?? 0,
+                  color: kindColor(kind),
+                  stroke: _stroke,
+                  style: AppRingGaugeStyle.lap,
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -271,37 +277,6 @@ class _RunLine extends StatelessWidget {
           ),
     );
   }
-}
-
-/// 트랙 위에 원호 하나. 그림자는 다른 도넛들과 같은 두 겹이다.
-class _DonutPainter extends CustomPainter {
-  const _DonutPainter({
-    required this.ratio,
-    required this.color,
-    required this.stroke,
-  });
-
-  final double ratio;
-  final Color color;
-  final double stroke;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 회원 탭 → 운동 탭의 도넛과 **같은 붓**으로 그린다 — 끝(캡) 아래의
-    // 그림자와 `>` 까지 같아야 두 화면의 고리가 같은 것으로 읽힌다.
-    paintRing(
-      canvas,
-      size.center(Offset.zero),
-      (size.shortestSide - stroke) / 2,
-      stroke,
-      ratio,
-      color,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_DonutPainter old) =>
-      old.ratio != ratio || old.color != color || old.stroke != stroke;
 }
 
 /// 도넛 아래 합계 줄 — 이번 주 달성률 · 여덟 주 평균 · 내림세.

@@ -24,12 +24,14 @@ class AppIcons {
   /// 모두 이 모양이다. 예전에는 같은 숫자가 화면마다 다른 사람 그림이었다.
   static const IconData clients = Symbols.group_rounded;
 
-  /// 코칭 — 회원 상세의 `프로그램` 버튼과 같은 운동 계획서(#2330). 반짝이(✦)는
-  /// [ai] 표시라 메뉴가 AI 기능처럼 읽힌다. 검색 빠른 이동도 이 모양이다.
-  static const IconData coaching = Symbols.assignment_rounded;
+  /// 코칭(프로그램) — 덤벨(#2523). 사이드바·회원 상세의 `프로그램` 버튼·검색
+  /// 빠른 이동이 모두 이 그림이다. 반짝이(✦)는 [ai] 표시라 메뉴가 AI 기능처럼
+  /// 읽혀 쓰지 않고(#2330), 바벨은 [exercise](운동)라 같은 그림이 두 뜻이 된다.
+  static const IconData coaching = Symbols.exercise_rounded;
 
-  /// 리포트 — 회원 상세의 `리포트` 버튼·검색 빠른 이동과 같은 그림(#2330).
-  static const IconData reports = Symbols.analytics_rounded;
+  /// 리포트 — 막대 차트(#2523). 회원 상세의 `리포트` 버튼·검색 빠른 이동과 같은
+  /// 그림이다. 할 일 진행률은 [progress](쌓인 막대)로 다른 그림이다.
+  static const IconData reports = Symbols.bar_chart_rounded;
 
   /// 상담 요청함.
   static const IconData consultation = Symbols.mark_email_unread_rounded;
@@ -126,9 +128,6 @@ class AppIcons {
   /// 끊긴 링크 — 없는 주소 화면.
   static const IconData disconnect = Symbols.link_off_rounded;
 
-  /// 가입 초대 코드 — 회원앱 쿠폰과 같은 표 한 장.
-  static const IconData inviteCode = Symbols.confirmation_number_rounded;
-
   // --- 알림·소통 ---
   /// 채팅·메시지 — 회원앱 chat 과 같은 채운 말풍선. 사이드바 `메시지`·빠른 이동·
   /// 빈 대화·문의 채팅이 모두 이 모양이다.
@@ -178,6 +177,10 @@ class AppIcons {
   // --- 분석 ---
   /// 식단 분석 카드.
   static const IconData insights = Symbols.insights_rounded;
+
+  /// 대시보드 활동 피드백 — 규칙으로 고른 코칭 제안이라 [ai] 반짝이를 달지
+  /// 않는다(#2468).
+  static const IconData activityFeedback = Symbols.tips_and_updates_rounded;
 
   /// 할 일 진행률.
   static const IconData progress = Symbols.stacked_bar_chart_rounded;

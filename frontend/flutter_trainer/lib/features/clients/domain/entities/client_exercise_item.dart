@@ -15,6 +15,7 @@ class ClientExerciseItem {
     this.sets,
     this.reps,
     this.holdSeconds,
+    this.durationSeconds,
     this.weight,
     this.intensity,
     this.done = true,
@@ -90,6 +91,7 @@ class ClientExerciseItem {
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),
         holdSeconds: (json['hold_seconds'] as num?)?.toInt(),
+        durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
         weight: (json['weight'] as num?)?.toDouble(),
         intensity: switch (json['intensity']) {
           final String value when value.isNotEmpty => value,
@@ -113,6 +115,14 @@ class ClientExerciseItem {
   /// 플랭크를 `3회` 로 적으면 45초를 "3회" 라고 말하게 된다(#1969).
   final int? holdSeconds;
 
+  /// 유산소·스트레칭·기타에 쓴 시간(초). 회원 앱이 시·분·초로 적는다(#2071) —
+  /// [minutes] 는 여기서 반올림한 값이라 `45초` 가 `1분` 으로 보였다. 초를
+  /// 싣지 않는 옛 기록·응답은 비어 있다 — [seconds] 로 읽는다.
+  final int? durationSeconds;
+
+  /// 이 운동에 쓴 시간(초). 초가 없으면 분 × 60 이다.
+  int get seconds => durationSeconds ?? minutes * 60;
+
   final double? weight;
 
   /// `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 있다(#2300).
@@ -124,7 +134,7 @@ class ClientExerciseItem {
 
   /// 이름 말고 적힌 값이 하나라도 있는가.
   bool get hasAmount =>
-      sets != null || reps != null || holdSeconds != null || minutes > 0;
+      sets != null || reps != null || holdSeconds != null || seconds > 0;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'name': name,
@@ -133,6 +143,7 @@ class ClientExerciseItem {
     if (sets != null) 'sets': sets,
     if (reps != null) 'reps': reps,
     if (holdSeconds != null) 'hold_seconds': holdSeconds,
+    if (durationSeconds != null) 'duration_seconds': durationSeconds,
     if (weight != null) 'weight': weight,
     if (intensity != null) 'intensity': intensity,
     if (!done) 'done': done,

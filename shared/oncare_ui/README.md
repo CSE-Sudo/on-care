@@ -45,6 +45,8 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 모서리 | 4 · 8 · 12(조작 요소) · 16 · 20(카드·창) · 알약 |
 | 세그먼트 토글 | 트랙·선택 칸 알약, 라벨 14(700), 높이는 글자 맞춤(칩 높이 아님), 트랙·비선택 글자색은 브랜드별(#1777). `thumb` 모양은 옅은 브랜드 띠 44 + 흰 엄지·브랜드 그림자(트레이너웹 식단/운동 전환) |
 | 카드 제목 | `AppSectionHeader` 한 모양 — `titleSmall` 검정 + 앞 아이콘 20(브랜드색) 또는 번호 원 22(순서대로 읽는 카드). 같은 줄 곁말 `titleMeta`(caption, 먼저 말줄임)·제목 옆 배지 `titleBadge`, 아래 줄 설명 `subtitle`(caption), 줄 끝 `trailing`(폭이 모자라면 `trailingFit`: 제 폭 / 반씩 나눠 줄어듦 / 다음 줄). 화면에서 `Row(Expanded(AppSectionHeader), …)` 로 감싸지 않는다 (#2468) |
+| 안내 배너 | `AppBanner` 한 컴포넌트 — 톤(info·success·caution·danger)별 옅은 채움 + 톤 테두리. 카드·창 안은 반경 12(`inline`), 페이지에 홀로 서는 AI·요약 안내(활동 피드백·리포트 요약·식단 분석)는 카드와 같은 반경 20·그림자·안쪽 16에 카드 제목 머리(`AppBannerPlacement.card`). 감지 경고는 아이콘 16·톤색 제목·caption 본문의 `AppBannerDensity.compact`. 제목 줄 끝 `trailing`, 본문 아래 자유 내용 `child`(고정 높이면 `expandChild`) (#2468) |
+| 카드 안 구획 | `AppTile` — 반경 12·안쪽 12(`dense` 는 세로 8). 채움은 옅은 브랜드(`brand`·`brandSoft`), 회색(`neutral`, 입력 칸·다음 일정·근거 인용), 흰 바탕 + `lineStrong` 테두리(`outline`, 초안 폼·편집 행·예약 슬롯), 없음(`none`). 카드 안 박스에 `BoxDecoration` 을 직접 쓰지 않는다 (#2468) |
 | 간격 | 4의 배수(2는 선·점 사이만) |
 | 아이콘 | 16 / 20 / 24 (빈 화면 40). 두 앱 모두 Material Symbols Rounded(채움, 굵기 400), 앱마다 `lib/app/app_icons.dart` 목록. 선택 상태는 색·배경으로 구분 |
 | 창 폭 | 웹 400 / 560 / 800, 모바일 확인창 400 · 시트 최대 높이 90% |
@@ -53,6 +55,17 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 상태 | 완료 `#34C759` · 주의 `#E8760A`/`#FF953C` · 위험 `#F04438` |
 
 `OnCareTokenCatalog` 위젯으로 현재 앱의 토큰을 한 화면에서 볼 수 있습니다.
+
+## 작은 부품(#2469)
+
+| 부품 | 규칙 |
+|---|---|
+| `AppBackLink` | 탭 안 하위 화면의 뒤로가기 — 작은 글자 버튼 + 꺾쇠, 본문 맨 위(또는 머리 줄 맨 앞), 뒤 간격 8. 분할 화면 패널 머리의 아이콘 뒤로는 `AppBackButton` |
+| `AppStatePlacement.inline` | 목록·칸이 비었다는 한두 줄 — 아이콘·최소 높이 없이 왼쪽 정렬, 제목 `bodySmall` + 안내 `caption`, 흐린 글자 |
+| `AppPopover` / `AppPopoverSurface` | 앵커 아래 4, 왼쪽 끝 맞춤. 흰색·반경 12·진한 테두리·떠 있는 그림자. 앵커와 상자를 한 탭 영역으로 묶어 바깥 누름만 닫는다 |
+| `AppKeyValueRow` | 라벨 폭 80(`OnCareLayout.keyValueLabelWidth`), 라벨 `bodySmall` 흐린 글자 + 값 `bodySmall` 600. `.stacked` 는 라벨(`caption`) 아래 값(`body`) |
+| `AppOverline` | 메뉴 묶음 이름 — `caption` 600·흐린 글자 |
+| `AppCard.compactPadding` | 목록에 줄지어 선 줄 카드의 안쪽 — 가로 16·세로 12 |
 
 ## 확정 버튼 문구
 
@@ -66,6 +79,15 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 - 같은 동작은 한 낱말로 씁니다. 목록에 더하기는 `추가`, 회원에게 보내기는 `보내기` 입니다. `등록` 은 서버에 올리는 뜻(`회원 등록`)으로만 쓰고, `전송` 은 버튼에 쓰지 않습니다(`전송됨` 같은 상태 문구는 그대로).
 - 동사만으로 뜻이 모자라면 붙입니다. 옆의 `취소` 와 헷갈리는 `완료 취소`, 바뀐 뒤의 상태가 곧 결과인 `예정으로 바꾸기` 가 그렇습니다.
 - 같은 문구 키를 창 하단과 본문이 함께 쓰면, 창 하단은 공용 동사 키(`actionSave` · `actionAdd` · `actionSend` · `actionDelete` · `actionReset`)로 바꿔 씁니다.
+
+## 차트 부품(#2469)
+
+| 부품 | 규칙 |
+|---|---|
+| `AppRingGauge` | 링 하나 — 받은 칸을 채우는 원, 12시에서 시계 방향, 가운데 `child`. `plain` 은 회색 트랙에 한 바퀴까지(식단 칼로리 달성률), `lap` 은 값 색을 옅게 깐 트랙에 목표를 넘기면 한 바퀴를 넘어 이어 돌고 끝에 그림자·흰 `>`, 12시 흰 기호(운동 소모·목표 링). 여러 겹 링은 지름을 줄여 겹쳐 쌓는다 |
+| `AppChartLegendItem` | 범례 한 칸 — 견본 8 + 간격 4 + `caption` 600·보조 글자색 |
+| `periodRangeText`·`PeriodRangeLabel` | 기간 카드가 보는 기간 한 줄 — 1년 미만은 `9. 14. ~ 9. 20.`, 넘으면 연도까지 |
+| `chartSemanticsLabel`·`chartSeriesPoints` | 그래프 음성 안내 조립 규칙. 문구는 앱 l10n 에서 `AppChartA11yLabels` 로 넘긴다(두 앱 `l.chartA11y`) |
 
 ## 글자 배율
 

@@ -341,3 +341,54 @@ def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
         assert len(rows) == 2
     finally:
         _cleanup_routines(db_session)
+
+
+def test_personal_routine_time_is_kept_in_seconds(client, db_session):
+    """개인운동 시간도 시·분·초로 적은 그대로 초가 남는다. (#2221)
+
+    분은 거기서 반올림한 값이다 — 분을 더하는 집계·알림은 그대로 읽는다.
+    초를 적지 않은 예전 배정은 분 × 60 으로 읽히고, 근력은 세트로 재므로 없다.
+    """
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=72)).isoformat()
+    _cleanup(db_session, day)
+    try:
+        body = _body(day)
+        body["personal_routines"][0] = {
+            "name": f"{_NAME_PREFIX} 걷기",
+            "duration_seconds": 45,
+            "type": "유산소",
+        }
+        r = client.post(_PROGRAM_SCHEDULE_URL, json=body, headers=_h(token))
+        assert r.status_code == 201, r.text
+        walk, plank = r.json()["personal_routines"]
+        assert (walk["duration_seconds"], walk["minutes"]) == (45, 1)
+        assert plank["duration_seconds"] is None
+        session_id = r.json()["session"]["id"]
+
+        # 고칠 때도 초로 받는다 — 1시간 30분 15초.
+        edited = client.put(
+            f"/v1/trainer/schedule/{session_id}/routines",
+            json={
+                "personal_routines": [
+                    {
+                        "name": f"{_NAME_PREFIX} 걷기",
+                        "duration_seconds": 5415,
+                        "type": "유산소",
+                    },
+                    {
+                        "name": f"{_NAME_PREFIX} 사이클",
+                        "minutes": 20,
+                        "type": "유산소",
+                    },
+                ]
+            },
+            headers=_h(token),
+        )
+        assert edited.status_code == 200, edited.text
+        walk, cycle = edited.json()
+        assert (walk["duration_seconds"], walk["minutes"]) == (5415, 90)
+        # 분만 보낸 운동(옛 클라이언트)은 분 × 60 으로 읽힌다.
+        assert (cycle["duration_seconds"], cycle["minutes"]) == (1200, 20)
+    finally:
+        _cleanup(db_session, day)

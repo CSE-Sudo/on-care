@@ -102,6 +102,7 @@ AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
     sets: (json['sets'] as num?)?.toInt(),
     reps: (json['reps'] as num?)?.toInt(),
     holdSeconds: (json['hold_seconds'] as num?)?.toInt(),
+    durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
     weight: (json['weight'] as num?)?.toDouble(),
     scheduleId: json['schedule_id'] as String?,
     deliveryKind: json['delivery_kind'] as String?,
