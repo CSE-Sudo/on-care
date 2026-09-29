@@ -529,7 +529,6 @@
   "coachTemplateNameLabel": "Template name",
   "coachTemplateGoalLabel": "Goal (e.g. blood pressure · beginner)",
   "coachTemplateExerciseName": "Exercise",
-  "coachTemplateExerciseMinutes": "min",
   "coachTemplateAddExercise": "Add exercise",
   "coachTemplateSave": "Save",
   "coachTemplateNameRequired": "Enter a template name",
@@ -2071,7 +2070,7 @@
     }
   },
   "aiStepperLabel": "Custom suggestion progress",
-  "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {minutes} min",
+  "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {duration}",
   "@coachTemplateSummaryWithGoal": {
     "placeholders": {
       "goal": {
@@ -2080,8 +2079,8 @@
       "count": {
         "type": "int"
       },
-      "minutes": {
-        "type": "int"
+      "duration": {
+        "type": "String"
       }
     }
   },
