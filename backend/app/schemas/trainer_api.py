@@ -20,6 +20,7 @@ from pydantic import (
 from app.core import clock
 from app.schemas.exercise_limits import (
     MAX_EXERCISE_HOLD_SECONDS,
+    MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SECONDS,
     MAX_EXERCISE_SETS,
@@ -2114,7 +2115,18 @@ class ProgramTemplateExercise(BaseModel):
     """
 
     name: str = Field(min_length=1, max_length=100)
-    minutes: int = Field(ge=1, le=300)
+    #: 운동 시간(분). `duration_seconds` 가 있으면 거기서 반올림한 값이다 —
+    #: 분만 보내는 예전 클라이언트를 위해 받기는 계속 받는다. (#2521)
+    minutes: int = Field(default=0, ge=0, le=MAX_EXERCISE_MINUTES)
+    #: 같은 운동 시간을 초로(#2521). 트레이너가 시·분·초로 적은 그대로다 —
+    #: 프로그램 운동(`ProgramDraftExercise`)과 같은 규칙이다. 비어 오면(이 칸이
+    #: 생기기 전에 저장된 템플릿) `minutes` × 60 으로 채운다.
+    #:
+    #: 상한은 편집기의 운동 시간과 같은 열 시간이다. 예전 상한(300분)은 편집기
+    #: (600분)보다 짧아, 다섯 시간이 넘는 운동은 템플릿으로 저장할 때 422 였다.
+    duration_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType = "근력"
     sets: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_SETS)
     reps: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_REPS)
@@ -2124,6 +2136,23 @@ class ProgramTemplateExercise(BaseModel):
         default=0, ge=0, le=MAX_EXERCISE_HOLD_SECONDS
     )
     weight: LooseFloatZero = Field(default=0, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
+
+    @model_validator(mode="after")
+    def _sync_duration_units(self) -> ProgramTemplateExercise:
+        """분과 초를 맞춘다 — 초가 있으면 초가 기준이고 분은 반올림(최소
+        1분)이다. `_sync_duration_units` 와 같은 규칙이다. (#2521)
+
+        분만 있던 동안에는 편집기에서 `버피 45초` 를 템플릿으로 저장하면
+        `1분` 으로, `1시간 30분 15초` 는 `90분` 으로 남아 다시 적용할 때 초가
+        사라졌다.
+        """
+        if self.duration_seconds is not None:
+            self.minutes = max(1, round(self.duration_seconds / 60))
+        elif self.minutes >= 1:
+            self.duration_seconds = self.minutes * 60
+        else:
+            raise ValueError("minutes 또는 duration_seconds 중 하나는 있어야 합니다.")
+        return self
 
     @model_validator(mode="after")
     def _drop_fields_not_in_type(self) -> ProgramTemplateExercise:

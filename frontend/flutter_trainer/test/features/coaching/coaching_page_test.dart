@@ -2809,6 +2809,10 @@ void main() {
           (item) => item.type == '유산소',
         );
         expect(cardio.duration, 30);
+        // 초를 함께 싣는다(#2521) — 분만 실으면 일정의 운동이 분 × 60 으로
+        // 되짚혀 편집기의 45초가 `1분` 이 된다.
+        expect(cardio.durationSeconds, 1800);
+        expect(strength.durationSeconds, isNull);
         expect(cardio.sets, isNull);
         expect(cardio.reps, isNull);
         // `_CapturingScheduleRepository.registerProgram` 은 늘 `true`(기존

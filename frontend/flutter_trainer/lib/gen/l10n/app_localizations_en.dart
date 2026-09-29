@@ -818,9 +818,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseName => 'Exercise';
 
   @override
-  String get coachTemplateExerciseMinutes => 'min';
-
-  @override
   String get coachTemplateAddExercise => 'Add exercise';
 
   @override
@@ -3205,8 +3202,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
-  String coachTemplateSummaryWithGoal(String goal, int count, int minutes) {
-    return '$goal · $count exercises · $minutes min';
+  String coachTemplateSummaryWithGoal(String goal, int count, String duration) {
+    return '$goal · $count exercises · $duration';
   }
 
   @override

@@ -123,12 +123,64 @@ void main() {
         'updated_at': '2026-08-19T09:00:00Z',
       });
 
-      expect(template.exercises.single.minutes, 30);
-      expect(template.totalMinutes, 30);
+      // 초 칸이 생기기 전의 서버·템플릿은 분 × 60 으로 읽는다. (#2521)
+      expect(template.exercises.single.durationSeconds, 1800);
+      expect(template.totalSeconds, 1800);
+    });
+
+    test('초가 오면 초 그대로 읽고, 저장할 때도 초를 싣는다 (#2521)', () {
+      final exercise = TemplateExercise.fromJson(<String, Object?>{
+        'name': '버피',
+        'minutes': 1,
+        'duration_seconds': 45,
+        'type': '유산소',
+      });
+
+      expect(exercise.durationSeconds, 45);
+      expect(exercise.minutes, 1);
+      expect(exercise.toJson()['duration_seconds'], 45);
+      expect(exercise.toJson()['minutes'], 1);
     });
   });
 
   group('다이얼로그', () {
+    testWidgets('초가 든 템플릿을 열었다가 저장해도 초가 그대로다 (#2521)', (tester) async {
+      final repository = _FakeTemplateRepository();
+      await _pumpDialog(
+        tester,
+        repository,
+        template: const ProgramTemplate(
+          id: 'starter:1',
+          name: '초 블록',
+          goal: '',
+          exercises: <TemplateExercise>[
+            TemplateExercise(name: '버피', durationSeconds: 45, type: '유산소'),
+            TemplateExercise(name: '걷기', durationSeconds: 5415, type: '유산소'),
+          ],
+        ),
+      );
+
+      // 분 한 칸이 아니라 시·분·초 세 칸으로 연다.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'template-duration-',
+              ),
+        ),
+        findsWidgets,
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('template-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        repository.created.single.exercises.map((e) => e.durationSeconds),
+        <int>[45, 5415],
+      );
+    });
+
     testWidgets('시작 구성을 고치면 새 템플릿으로 저장된다', (tester) async {
       final repository = _FakeTemplateRepository();
       await _pumpDialog(tester, repository, template: _starter);
