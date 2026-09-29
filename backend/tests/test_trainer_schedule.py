@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.core import clock
 from app.models.models import TrainerClient, TrainerRoutine, TrainerSchedule
 from app.schemas.trainer_api import ProgramScheduleRequest
+from tests.exercise_helpers import post_exercise
 
 
 def _tok(client) -> str:
@@ -1088,8 +1089,8 @@ def test_member_cannot_edit_or_delete_derived_log(client, make_pt_session):
 def test_member_own_log_still_editable(client):
     """회원이 직접 남긴 기록은 그대로 수정·삭제된다(가드가 과잉 적용되지 않는다)."""
     mh = _member_h(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 20, "calories": 180, "day_label": "월"},
         headers=mh,
     ).json()["id"]

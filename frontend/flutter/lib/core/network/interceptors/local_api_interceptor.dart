@@ -29,6 +29,7 @@ import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
+import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
@@ -38,6 +39,8 @@ import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
+    show kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
@@ -1927,9 +1930,6 @@ class LocalApiInterceptor extends Interceptor {
     _ => const <String>[],
   };
 
-  /// POST /exercise/sessions — persist a workout into drift so the next
-  /// GET /exercise/weeks/current includes it (stats + chart + list). The
-  /// `ex-` id prefix (not `seed-`) means seedIfEmpty never wipes it.
   /// 근력에서만 의미 있는 값(세트·중량). 다른 유형에서 온 값은 버린다 — 서버
   /// (`_strength_only`)와 같은 규칙이라야 데모와 실 API 가 같은 기록을 남긴다.
   /// (#1262, #1276)
@@ -2108,20 +2108,62 @@ class LocalApiInterceptor extends Interceptor {
     return <String, Object?>{};
   }
 
+  /// POST /exercise/sessions — 운동 기록 1~N개를 한 번에 저장한다. (#2544)
+  ///
+  /// 실 서버처럼 **전부 되거나 전부 안 된다** — 항목을 모두 먼저 검사하고,
+  /// 하나라도 잘못되면 아무것도 넣지 않는다. 적립은 기록마다 하고(하루 한도도
+  /// 기록마다 센다) 응답에는 합계 한 벌을 싣는다.
   Future<Response<Object?>> _exerciseAddSession(RequestOptions options) async {
-    final Map<String, Object?> payload = _payloadOf(options.data);
+    final Object? raw = _payloadOf(options.data)['sessions'];
+    if (raw is! List ||
+        raw.isEmpty ||
+        raw.length > kMaxExerciseSessionsPerSave) {
+      return _unprocessable(
+        options,
+        'sessions must hold 1..$kMaxExerciseSessionsPerSave items',
+      );
+    }
+    final List<Map<String, Object?>> items = <Map<String, Object?>>[
+      for (final Object? item in raw)
+        if (item is Map) item.cast<String, Object?>(),
+    ];
+    if (items.length != raw.length || items.any((i) => _minutesOf(i) <= 0)) {
+      return _unprocessable(options, 'minutes must be > 0');
+    }
+    final String batch = '${DateTime.now().microsecondsSinceEpoch}';
+    final List<Map<String, Object?>> sessions = <Map<String, Object?>>[];
+    int awarded = 0;
+    int balance = 0;
+    for (int i = 0; i < items.length; i++) {
+      final ({Map<String, Object?> session, PointsAward points}) saved =
+          await _insertExerciseSession(items[i], id: 'ex-$batch-$i');
+      sessions.add(saved.session);
+      awarded += saved.points.awarded;
+      balance = saved.points.balance;
+    }
+    return _ok(options, <String, Object?>{
+      'sessions': sessions,
+      'points': PointsAward(awarded: awarded, balance: balance).toJson(),
+    });
+  }
 
-    final type = (payload['type'] as String?) ?? 'cardio';
-    // 초가 오면 그쪽이 맞고 분은 여기서 파생된다 — 실 서버
-    // (`ExerciseSessionCreate._minutes_from_seconds`)와 같은 규칙이라야, 같은
-    // 기록이 데모와 실서버에서 다른 길이로 읽히지 않는다. (#2071)
-    final durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
-    final minutes = durationSeconds != null
+  /// 기록 한 건의 분. 초가 오면 그쪽이 맞고 분은 여기서 파생된다 — 실 서버
+  /// (`ExerciseSessionCreate._minutes_from_seconds`)와 같은 규칙이라야, 같은
+  /// 기록이 데모와 실서버에서 다른 길이로 읽히지 않는다. (#2071)
+  int _minutesOf(Map<String, Object?> payload) {
+    final int? durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
+    return durationSeconds != null
         ? _minutesFromSeconds(durationSeconds)
         : ((payload['minutes'] as num?)?.toInt() ?? 0);
-    if (minutes <= 0) {
-      return _badRequest(options, 'minutes must be > 0');
-    }
+  }
+
+  /// 검사를 마친 기록 한 건을 drift 에 넣고 응답 한 칸과 적립을 돌려준다.
+  /// `ex-` 접두(`seed-` 가 아닌)라 seedIfEmpty 가 지우지 않는다.
+  Future<({Map<String, Object?> session, PointsAward points})>
+  _insertExerciseSession(Map<String, Object?> payload, {required String id}) async {
+    final type = (payload['type'] as String?) ?? 'cardio';
+    final durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
+    final minutes = _minutesOf(payload);
     final intensity = (payload['intensity'] as String?) ?? 'moderate';
     final name = ((payload['name'] as String?) ?? '').trim();
     // 실 서버와 같이 여기서 다시 계산한다 — 앱이 보낸 값은 쓰지 않는다(#1312).
@@ -2143,7 +2185,6 @@ class LocalApiInterceptor extends Interceptor {
     final weight = _strengthOnly(type, (payload['weight'] as num?)?.toDouble());
     final (String weekStart, String dayLabel) = _placement(payload['date']);
 
-    final id = 'ex-${DateTime.now().microsecondsSinceEpoch}';
     await _db
         .into(_db.exerciseSessions)
         .insert(
@@ -2166,8 +2207,8 @@ class LocalApiInterceptor extends Interceptor {
     // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
 
-    return _ok(options, <String, Object?>{
-      ..._sessionJson(
+    return (
+      session: _sessionJson(
         id: id,
         weekStart: weekStart,
         dayLabel: dayLabel,
@@ -2185,8 +2226,8 @@ class LocalApiInterceptor extends Interceptor {
       ),
       // 운동 직접 추가 +20P, 하루 3회(#1786). 생성 응답에만 싣는다 — 수정 응답은
       // 같은 모양을 쓰지만 적립이 없다.
-      'points': _points.award(PointsRule.exerciseManual, id).toJson(),
-    });
+      points: _points.award(PointsRule.exerciseManual, id),
+    );
   }
 
   /// 단건 응답 한 벌. 생성과 수정이 같은 모양을 내야 앱이 두 경로에서 같은

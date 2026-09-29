@@ -931,6 +931,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exLogged => 'Exercise logged';
 
   @override
+  String exQueueTitle(int count) {
+    return 'To add $count';
+  }
+
+  @override
+  String get exQueueRemove => 'Remove from list';
+
+  @override
+  String exQueueFull(int count) {
+    return 'You can add up to $count at a time';
+  }
+
+  @override
+  String exSaveCount(int count) {
+    return 'Save $count';
+  }
+
+  @override
+  String exLoggedCount(int count) {
+    return '$count exercises logged';
+  }
+
+  @override
+  String get exQueueDiscardTitle => 'Discard exercises to add?';
+
+  @override
+  String exQueueDiscardBody(int count) {
+    return '$count unsaved exercises will be lost.';
+  }
+
+  @override
+  String get exQueueDiscard => 'Discard';
+
+  @override
   String get exOwnRecords => 'Workouts you logged';
 
   @override
@@ -3653,7 +3687,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => 'Save';
+  String get coachRoutineSubmit => 'Done';
 
   @override
   String get coachChatWithTrainer => 'Chat with trainer';

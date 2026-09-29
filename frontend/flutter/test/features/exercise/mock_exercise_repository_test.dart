@@ -4,6 +4,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 
 /// 기대값은 여기에 적지 않고 **원본 픽스처 파일**에서 뽑는다. 숫자를 적어 두면
@@ -159,12 +160,14 @@ void main() {
       final DateTime monday = _friday.subtract(
         Duration(days: _friday.weekday - 1),
       );
-      final ExerciseSession added = await r.addSession(
-        type: ExerciseType.cardio,
-        minutes: 30,
-        calories: 200,
-        date: monday.add(Duration(days: restDay)),
-      );
+      final ExerciseSession added = (await r.addSessions(<ExerciseSessionDraft>[
+        ExerciseSessionDraft(
+          type: ExerciseType.cardio,
+          minutes: 30,
+          calories: 200,
+          date: monday.add(Duration(days: restDay)),
+        ),
+      ])).sessions.single;
 
       final ExerciseWeek after = await r.fetchThisWeek();
       expect(after.sessions.length, before.sessions.length + 1);
@@ -188,12 +191,14 @@ void main() {
         Duration(days: _friday.weekday - 1),
       );
       final int day = (await r.fetchThisWeek()).dailyMinutes.indexOf(0);
-      final ExerciseSession target = await r.addSession(
-        type: ExerciseType.cardio,
-        minutes: 30,
-        calories: 200,
-        date: monday.add(Duration(days: day)),
-      );
+      final ExerciseSession target = (await r.addSessions(<ExerciseSessionDraft>[
+        ExerciseSessionDraft(
+          type: ExerciseType.cardio,
+          minutes: 30,
+          calories: 200,
+          date: monday.add(Duration(days: day)),
+        ),
+      ])).sessions.single;
       final ExerciseWeek before = await r.fetchThisWeek();
 
       await r.deleteSession(target.id!);
@@ -231,12 +236,14 @@ void main() {
         Duration(days: _friday.weekday - 1),
       );
       final int day = (await r.fetchThisWeek()).dailyMinutes.indexOf(0);
-      final ExerciseSession target = await r.addSession(
-        type: ExerciseType.strength,
-        minutes: 20,
-        calories: 120,
-        date: monday.add(Duration(days: day)),
-      );
+      final ExerciseSession target = (await r.addSessions(<ExerciseSessionDraft>[
+        ExerciseSessionDraft(
+          type: ExerciseType.strength,
+          minutes: 20,
+          calories: 120,
+          date: monday.add(Duration(days: day)),
+        ),
+      ])).sessions.single;
       final ExerciseWeek before = await r.fetchThisWeek();
 
       await r.updateSession(
@@ -402,13 +409,15 @@ void main() {
     test('직접 적은 기록이 그날 조언에 바로 반영된다', () async {
       final MockExerciseRepository r = _repo();
       final String before = (await r.fetchAdvice('today')).message;
-      await r.addSession(
-        type: ExerciseType.cardio,
-        minutes: 25,
-        calories: 220,
-        date: _friday,
-        name: '저녁 걷기',
-      );
+      await r.addSessions(<ExerciseSessionDraft>[
+        ExerciseSessionDraft(
+          type: ExerciseType.cardio,
+          minutes: 25,
+          calories: 220,
+          date: _friday,
+          name: '저녁 걷기',
+        ),
+      ]);
       expect((await r.fetchAdvice('today')).message, isNot(before));
     });
   });
