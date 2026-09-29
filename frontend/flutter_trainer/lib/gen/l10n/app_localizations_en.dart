@@ -2389,6 +2389,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientManagementEmpty => 'No members assigned';
 
   @override
+  String get myClientManagementSearchHint => 'Search members by name or goal';
+
+  @override
   String get myBasicInfo => 'Basic info';
 
   @override
