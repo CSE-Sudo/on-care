@@ -2959,7 +2959,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authRestoreSignIn => 'Go to sign in';
 
   @override
-  String get authTagline => 'Diet & exercise management app';
+  String get authTagline =>
+      'Log your meals and workouts — and get coaching back';
 
   @override
   String get authEmailHint => 'Email';

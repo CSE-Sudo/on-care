@@ -2158,7 +2158,7 @@
   "authRestoreFailed": "We could not restore your session — the connection looks unstable.",
   "authRestoreRetry": "Try again",
   "authRestoreSignIn": "Go to sign in",
-  "authTagline": "Diet & exercise management app",
+  "authTagline": "Log your meals and workouts — and get coaching back",
   "authEmailHint": "Email",
   "authPasswordHint": "Password",
   "authSignInAction": "Sign in",
