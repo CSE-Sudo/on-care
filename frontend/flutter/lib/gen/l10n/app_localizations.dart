@@ -1580,6 +1580,18 @@ abstract class AppLocalizations {
   /// **'Hold time'**
   String get exExerciseHold;
 
+  /// No description provided for @exExerciseStrengthAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets · Reps · Weight'**
+  String get exExerciseStrengthAmount;
+
+  /// No description provided for @exExerciseStrengthAmountHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets · Hold · Weight'**
+  String get exExerciseStrengthAmountHold;
+
   /// No description provided for @exExerciseMeasure.
   ///
   /// In en, this message translates to:
@@ -6695,18 +6707,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!'**
   String get exDemoPtFeedback;
-
-  /// No description provided for @exStepperDecrease.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrease'**
-  String get exStepperDecrease;
-
-  /// No description provided for @exStepperIncrease.
-  ///
-  /// In en, this message translates to:
-  /// **'Increase'**
-  String get exStepperIncrease;
 
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///

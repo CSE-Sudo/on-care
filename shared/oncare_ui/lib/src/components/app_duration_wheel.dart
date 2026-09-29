@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare_ui/src/theme/oncare_tokens.dart';
-import 'package:oncare_ui/src/tokens/colors.dart';
-import 'package:oncare_ui/src/tokens/radius.dart';
-import 'package:oncare_ui/src/tokens/typography.dart';
+import 'package:oncare_ui/src/components/wheel_column.dart';
 
 /// 시·분·초 휠에 붙는 글자.
 ///
@@ -178,119 +175,30 @@ class _AppDurationWheelState extends State<AppDurationWheel> {
 
   @override
   Widget build(BuildContext context) {
-    final double height = widget.itemExtent * widget.visibleItems;
-    return SizedBox(
-      height: height,
-      child: Stack(
-        children: <Widget>[
-          // 고른 값이 서는 자리. 세 칸을 가로지르는 띠 하나라, 어느 칸을
-          // 굴려도 읽는 높이가 같다.
-          Positioned.fill(
-            child: Center(
-              child: Container(
-                height: widget.itemExtent,
-                decoration: const BoxDecoration(
-                  color: OnCareColors.surfaceInput,
-                  borderRadius: OnCareRadius.mdAll,
-                ),
-              ),
-            ),
-          ),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _Wheel(
-                  controller: _hours,
-                  count: _maxHour + 1,
-                  unit: widget.labels.hours,
-                  itemExtent: widget.itemExtent,
-                  onChanged: _emit,
-                ),
-              ),
-              Expanded(
-                child: _Wheel(
-                  controller: _minutes,
-                  count: _minuteCount,
-                  unit: widget.labels.minutes,
-                  itemExtent: widget.itemExtent,
-                  onChanged: _emit,
-                ),
-              ),
-              Expanded(
-                child: _Wheel(
-                  controller: _seconds,
-                  count: _secondCount,
-                  unit: widget.labels.seconds,
-                  itemExtent: widget.itemExtent,
-                  onChanged: _emit,
-                ),
-              ),
-            ],
-          ),
-        ],
+    Widget column(
+      FixedExtentScrollController controller,
+      int count,
+      String unit,
+    ) => Expanded(
+      child: WheelColumn(
+        controller: controller,
+        count: count,
+        labelAt: (int index) => '$index',
+        unit: unit,
+        itemExtent: widget.itemExtent,
+        onSelectedItemChanged: (int _) => _emit(),
       ),
     );
-  }
-}
-
-/// 한 칸 — `0..count-1` 을 굴린다.
-class _Wheel extends StatelessWidget {
-  const _Wheel({
-    required this.controller,
-    required this.count,
-    required this.unit,
-    required this.itemExtent,
-    required this.onChanged,
-  });
-
-  final FixedExtentScrollController controller;
-  final int count;
-  final String unit;
-  final double itemExtent;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Semantics(
-      label: unit,
-      container: true,
-      child: ListWheelScrollView.useDelegate(
-        controller: controller,
-        itemExtent: itemExtent,
-        // 칸에 맞춰 세운다. 이것이 없으면 기본 물리(iOS 는 bouncing)가 먹어
-        // 칸과 칸 **사이**에 멎는다 — 띠 안에 아무 값도 들어오지 않는다.
-        // 감아 돌지는 않는다(`FixedExtentScrollPhysics` 의 기본): 10시간
-        // 다음이 0시간이 되면 굴리다 지나친 값을 되짚기 어렵다.
-        physics: const FixedExtentScrollPhysics(),
-        // 굴릴 때마다가 아니라 칸에 선 뒤에 부른다.
-        onSelectedItemChanged: (int _) => onChanged(),
-        // 위아래로 멀어질수록 눕는다 — 지금 고른 값이 어느 칸인지가 이
-        // 기울기로 읽힌다. 기본보다 좁게 감아 세 칸만 보이는 높이에서도
-        // 가운데 칸이 평평하게 선다.
-        diameterRatio: 1.4,
-        childDelegate: ListWheelChildBuilderDelegate(
-          childCount: count,
-          builder: (BuildContext context, int index) => Center(
-            child: Text.rich(
-              TextSpan(
-                children: <InlineSpan>[
-                  TextSpan(
-                    text: '$index',
-                    style: OnCareTypography.numeric(
-                      tokens.text(OnCareTypography.titleMedium),
-                    ).copyWith(color: OnCareColors.textPrimary),
-                  ),
-                  TextSpan(
-                    text: ' $unit',
-                    style: tokens
-                        .text(OnCareTypography.bodySmall)
-                        .copyWith(color: OnCareColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return SizedBox(
+      height: widget.itemExtent * widget.visibleItems,
+      child: WheelBand(
+        itemExtent: widget.itemExtent,
+        child: Row(
+          children: <Widget>[
+            column(_hours, _maxHour + 1, widget.labels.hours),
+            column(_minutes, _minuteCount, widget.labels.minutes),
+            column(_seconds, _secondCount, widget.labels.seconds),
+          ],
         ),
       ),
     );

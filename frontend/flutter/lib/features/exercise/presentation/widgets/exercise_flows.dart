@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -178,7 +177,9 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   // 회원이 직접 회↔초를 고른 뒤에는 이름 해석이 그 선택을 덮지 않는다 —
   // 종목표는 **기본값**일 뿐이고, 고르는 것은 적는 사람이다.
   bool _holdChosenByUser = false;
-  late double _weight = widget.session?.weight ?? 20;
+  // 휠은 0.5kg 칸에만 선다(#2545). 그 칸에 맞지 않는 옛 기록(62.3kg)은 여는
+  // 순간 가장 가까운 칸으로 맞춘다 — 휠에 보이는 값과 저장되는 값이 같아야 한다.
+  late double _weight = snapExerciseWeight(widget.session?.weight ?? 20);
   // 기본값은 오늘. 지난 기록을 고치면 그 기록의 날짜로 열린다 — 오늘로
   // 되돌리면 기록을 고치기만 해도 이번 주로 옮겨 간다.
   late DateTime _date = _dateOnly(
@@ -581,25 +582,13 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
             // 화면 여러 곳(홈 운동 카드·운동 현황 링·주간 목표)이 근력을
             // 세트로 읽는데 기록만 분이면, 회원이 적지 않은 수가 화면에 뜬다.
             if (_isStrength) ...<Widget>[
-              _Label(l.exExerciseSets),
-              const SizedBox(height: OnCareSpacing.s8),
-              _NumberStepper(
-                key: const Key('exerciseSetsStepper'),
-                value: _sets,
-                min: 1,
-                max: kMaxExerciseSets.toDouble(),
-                suffix: l.exUnitSets,
-                onChanged: (double v) {
-                  setState(() => _sets = v);
-                  _scheduleEstimate();
-                },
-              ),
-              const SizedBox(height: OnCareSpacing.s20),
               // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다 — 칸을
               // 하나 더 두지 않고 **바꿔 가며** 쓴다(#1969). 플랭크를 `3회` 로
               // 적으면 45초를 "3회" 라고 말하는 뜻이 틀린 기록이 남는다.
               _MeasureToggle(
-                label: _isHold ? l.exExerciseHold : l.exExerciseReps,
+                label: _isHold
+                    ? l.exExerciseStrengthAmountHold
+                    : l.exExerciseStrengthAmount,
                 repsLabel: l.exUnitReps,
                 secondsLabel: l.exUnitSeconds,
                 semanticsLabel: l.exExerciseMeasure,
@@ -610,37 +599,51 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 }),
               ),
               const SizedBox(height: OnCareSpacing.s8),
-              if (_isHold)
-                _NumberStepper(
-                  key: const Key('exerciseHoldStepper'),
-                  value: _holdSeconds,
-                  min: 1,
-                  max: kMaxExerciseHoldSeconds.toDouble(),
-                  suffix: l.exUnitSeconds,
-                  onChanged: (double v) => setState(() => _holdSeconds = v),
-                )
-              else
-                _NumberStepper(
-                  key: const Key('exerciseRepsStepper'),
-                  value: _reps,
-                  min: 1,
-                  max: kMaxExerciseReps.toDouble(),
-                  suffix: l.exUnitReps,
-                  onChanged: (double v) => setState(() => _reps = v),
-                ),
-              const SizedBox(height: OnCareSpacing.s20),
-              _Label(l.exExerciseWeight),
-              const SizedBox(height: OnCareSpacing.s8),
-              _NumberStepper(
-                key: const Key('exerciseWeightStepper'),
-                value: _weight,
-                min: 0,
-                max: kMaxExerciseWeightKg,
-                // 원판은 0.5kg 단위로 붙는다 — 버튼 한 번에 1kg 이 실용적인
-                // 걸음이고, 소수 자리는 직접 적어 채운다.
-                decimals: 1,
-                suffix: l.exUnitKg,
-                onChanged: (double v) => setState(() => _weight = v),
+              // 유산소의 시간 휠과 같은 띠·같은 높이의 한 줄이다(#2545) —
+              // 유형을 바꿔도 시트의 모양이 그대로다.
+              AppNumberWheel(
+                key: const Key('exerciseStrengthWheel'),
+                columns: <AppNumberWheelColumn>[
+                  AppNumberWheelColumn(
+                    key: const Key('exerciseSetsWheel'),
+                    value: _sets,
+                    min: 1,
+                    max: kMaxExerciseSets.toDouble(),
+                    unit: l.exUnitSets,
+                    onChanged: (double v) {
+                      setState(() => _sets = v);
+                      _scheduleEstimate();
+                    },
+                  ),
+                  if (_isHold)
+                    AppNumberWheelColumn(
+                      key: const Key('exerciseHoldWheel'),
+                      value: _holdSeconds,
+                      min: 1,
+                      max: kMaxExerciseHoldSeconds.toDouble(),
+                      unit: l.exUnitSeconds,
+                      onChanged: (double v) => setState(() => _holdSeconds = v),
+                    )
+                  else
+                    AppNumberWheelColumn(
+                      key: const Key('exerciseRepsWheel'),
+                      value: _reps,
+                      min: 1,
+                      max: kMaxExerciseReps.toDouble(),
+                      unit: l.exUnitReps,
+                      onChanged: (double v) => setState(() => _reps = v),
+                    ),
+                  AppNumberWheelColumn(
+                    key: const Key('exerciseWeightWheel'),
+                    value: _weight,
+                    min: 0,
+                    max: kMaxExerciseWeightKg,
+                    // 원판은 0.5kg 단위로 붙는다.
+                    step: kExerciseWeightStepKg,
+                    unit: l.exUnitKg,
+                    onChanged: (double v) => setState(() => _weight = v),
+                  ),
+                ],
               ),
             ] else ...<Widget>[
               _Label(l.exExerciseDuration),
@@ -709,166 +712,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     );
     // Block back/drag dismiss while the save request is in flight.
     return PopScope(canPop: !_saving, child: sheet);
-  }
-}
-
-/// 숫자 한 칸 — 직접 입력하는 텍스트 필드와 양옆의 −/+ 버튼. (#1276)
-///
-/// 회원이 아는 값(45분·12세트·62.5kg)을 그대로 적고, 한 칸씩 고칠 때만 버튼을
-/// 쓴다. 공용 스테퍼는 정수만 다루고 직접 입력이 없어, 소수 중량과 타이핑을
-/// 받는 이 폼은 공용 입력창·아이콘 버튼으로 같은 규격의 칸을 짠다.
-///
-/// [decimals] 가 0 보다 크면 소수 입력을 허용하고 그 자리까지 반올림한다.
-class _NumberStepper extends StatefulWidget {
-  const _NumberStepper({
-    required this.value,
-    required this.onChanged,
-    required this.min,
-    required this.max,
-    this.decimals = 0,
-    this.suffix,
-    super.key,
-  });
-
-  final double value;
-  final ValueChanged<double> onChanged;
-  final double min;
-  final double max;
-
-  /// 소수점 자릿수. 0 이면 정수로 읽고 쓴다.
-  final int decimals;
-
-  /// 필드 오른쪽에 붙는 단위 문구("분", "세트", "kg").
-  final String? suffix;
-
-  @override
-  State<_NumberStepper> createState() => _NumberStepperState();
-}
-
-class _NumberStepperState extends State<_NumberStepper> {
-  late final TextEditingController _controller = TextEditingController(
-    text: _format(widget.value),
-  );
-  final FocusNode _focus = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    // 포커스를 잃을 때 비워 둔 칸이나 범위 밖 값을 되돌린다. 타이핑 도중에
-    // 고치면 "1" 을 지나 "12" 로 가는 길이 막힌다.
-    _focus.addListener(() {
-      if (!_focus.hasFocus) _commit(_controller.text);
-    });
-  }
-
-  @override
-  void didUpdateWidget(_NumberStepper old) {
-    super.didUpdateWidget(old);
-    // 밖에서 값이 바뀐 경우(유형 전환 등)만 필드를 다시 그린다 — 편집 중인
-    // 문자열을 덮어쓰면 커서가 튄다.
-    if (widget.value != old.value && !_focus.hasFocus) {
-      _controller.text = _format(widget.value);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
-
-  String _format(double v) => widget.decimals == 0
-      ? v.round().toString()
-      : v.toStringAsFixed(widget.decimals);
-
-  double _clamp(double v) => v.clamp(widget.min, widget.max);
-
-  double _round(double v) => widget.decimals == 0
-      ? v.roundToDouble()
-      : double.parse(v.toStringAsFixed(widget.decimals));
-
-  /// 적히는 대로 값을 올린다. **필드의 글자는 건드리지 않는다** — 정리는
-  /// 포커스를 잃을 때 [_commit] 이 한다.
-  void _typed(String raw) {
-    final double? parsed = double.tryParse(raw.trim());
-    if (parsed != null) widget.onChanged(_round(_clamp(parsed)));
-  }
-
-  /// 비워 둔 칸이나 범위 밖 값을 되돌리고 글자를 다시 그린다.
-  void _commit(String raw) {
-    if (!mounted) return;
-    final double next = _round(
-      _clamp(double.tryParse(raw.trim()) ?? widget.value),
-    );
-    _controller.text = _format(next);
-    widget.onChanged(next);
-  }
-
-  void _bump(double delta) {
-    _focus.unfocus();
-    _commit(
-      ((double.tryParse(_controller.text.trim()) ?? widget.value) + delta)
-          .toString(),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final String? suffix = widget.suffix;
-    return Row(
-      children: <Widget>[
-        AppIconButton(
-          key: const Key('numberStepperDecrement'),
-          icon: AppIcons.remove,
-          tooltip: l.exStepperDecrease,
-          color: tokens.brand.primary,
-          onPressed: widget.value > widget.min ? () => _bump(-1) : null,
-        ),
-        const SizedBox(width: OnCareSpacing.s12),
-        Expanded(
-          child: AppTextField(
-            key: const Key('numberStepperField'),
-            controller: _controller,
-            focusNode: _focus,
-            keyboardType: TextInputType.numberWithOptions(
-              decimal: widget.decimals > 0,
-            ),
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.allow(
-                widget.decimals > 0 ? RegExp(r'[0-9.]') : RegExp(r'[0-9]'),
-              ),
-            ],
-            onChanged: _typed,
-            onSubmitted: _commit,
-            suffix: suffix == null
-                ? null
-                : Padding(
-                    padding: const EdgeInsets.only(right: OnCareSpacing.s12),
-                    child: Center(
-                      widthFactor: 1,
-                      child: Text(
-                        suffix,
-                        style: tokens
-                            .text(OnCareTypography.label)
-                            .copyWith(color: OnCareColors.textSecondary),
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-        const SizedBox(width: OnCareSpacing.s12),
-        AppIconButton(
-          key: const Key('numberStepperIncrement'),
-          icon: AppIcons.add,
-          tooltip: l.exStepperIncrease,
-          color: tokens.brand.primary,
-          onPressed: widget.value < widget.max ? () => _bump(1) : null,
-        ),
-      ],
-    );
   }
 }
 
