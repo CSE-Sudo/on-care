@@ -57,6 +57,7 @@ from app.schemas.trainer_api import (
     TrainerProgramDraftOut, TrainerProgramDraftSummary, WeeklyReportDayOut,
     WeeklyReportOut,
 )
+from app.data import routine_effects
 from app.services import health_focus
 from app.services import (
     auto_routine_service,
@@ -1621,6 +1622,38 @@ def _routine_seconds(rt: TrainerRoutine) -> int | None:
     return seconds if seconds is not None else rt.minutes * 60
 
 
+def _member_goals(db: Session, member_id: str) -> str:
+    """회원 건강 목표(쉼표로 이은 저장값). 프로필이 없으면 빈 값."""
+    return (
+        db.scalar(
+            select(HealthProfile.conditions).where(
+                HealthProfile.user_id == member_id
+            )
+        )
+        or ""
+    )
+
+
+def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
+    """배정 한 건의 효과 한 줄 — 적힌 값, 없으면 문구표. (#2570)
+
+    저장은 트레이너가 적은 것만 한다. 자동 문구를 저장해 두지 않고 응답 때
+    채우는 이유는 두 가지다: 배정 길이 여럿(단일 배정·AI 제안·자동 추천·
+    프로그램·일정 개인운동)이라 한 곳에서 채워야 빠짐이 없고, 회원이 목표를
+    바꾸면 문구도 따라가야 한다.
+
+    운동 여럿으로 짠 세션은 한 유형의 효과로 말할 수 없어 비운다.
+    """
+    written = (getattr(rt, "effect", "") or "").strip()
+    if written:
+        return written
+    if len(draft_exercises(rt.exercises_json)) > 1:
+        return ""
+    return routine_effects.auto_routine_effect(
+        rt.type, _member_goals(db, rt.member_id)
+    )
+
+
 def _routine_out(
     db: Session,
     rt: TrainerRoutine,
@@ -1667,6 +1700,7 @@ def _routine_out(
         calories=estimated.calories,
         calorie_source=estimated.source,
         reason=rt.reason, source=rt.source,
+        effect=_routine_effect(db, rt),
         program_name=rt.program_name,
         session_name=rt.session_name,
         session_order=rt.session_order,
@@ -2530,6 +2564,13 @@ def _add_program_routines(
             duration_seconds=_session_seconds(session.exercises) or None,
             type=type_,
             reason=", ".join(e.name for e in session.exercises)[:200],
+            # `개인운동만` 은 세션마다 운동이 하나다 — 그 운동에 적힌 효과가
+            # 이 배정의 효과다(#2570). 비면 응답 때 문구표로 채운다.
+            effect=(
+                session.exercises[0].effect.strip()
+                if len(session.exercises) == 1
+                else ""
+            ),
             source=source,
             program_name=name if multi else "",
             session_name=session.name if multi else "",
@@ -4227,6 +4268,7 @@ def _add_scheduled_routines(
                 else None
             ),
             reason=item.reason,
+            effect=item.effect.strip(),
             source=item.source,
             status=ROUTINE_SCHEDULED,
             schedule_id=schedule_id,
@@ -4681,6 +4723,8 @@ def _rewrite_scheduled_routines(
         row.reps = item.reps
         row.hold_seconds = item.hold_seconds
         row.weight = item.weight
+        # 효과만 고친 것은 운동을 바꾼 것이 아니라 출처를 건드리지 않는다(#2570).
+        row.effect = item.effect.strip()
         row.source = "trainer" if touched else item.source
         row.sort_order = base.sort_order + index
     for row in rows[len(items):]:

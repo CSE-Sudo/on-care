@@ -312,6 +312,16 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     }
   }
 
+  /// 이 일정 회원의 건강 목표 — 개인운동 효과 칸의 자동 문구를 정한다(#2570).
+  /// 로스터에 없으면 빈 값이고, 그때는 유형별 기본 문구가 간다.
+  String _clientGoal(ScheduleSession session) {
+    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
+    for (final client in clients) {
+      if (client.id == session.clientId) return client.goal;
+    }
+    return '';
+  }
+
   /// 취소·노쇼로 끝난 PT 의 개인운동을 고쳐서 보낸다. (#2224)
   ///
   /// PT 가 열리지 않아 "그 PT 다음에 할 것" 이라는 전제가 깨졌으므로, 보내기
@@ -324,7 +334,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (rows.isEmpty) return;
     final edited = await showAppDialog<List<RoutineExercise>>(
       context: context,
-      builder: (_) => SendPersonalRoutinesDialog(routines: rows),
+      builder: (_) => SendPersonalRoutinesDialog(
+        routines: rows,
+        goal: _clientGoal(session),
+      ),
     );
     if (edited == null || !mounted) return;
     try {
@@ -360,8 +373,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (rows.isEmpty) return;
     final edited = await showAppDialog<List<RoutineExercise>>(
       context: context,
-      builder: (_) =>
-          SendPersonalRoutinesDialog(routines: rows, editOnly: true),
+      builder: (_) => SendPersonalRoutinesDialog(
+        routines: rows,
+        editOnly: true,
+        goal: _clientGoal(session),
+      ),
     );
     if (edited == null || !mounted) return;
     try {
