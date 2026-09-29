@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 헬스장 찾기 지도의 높이. 실지도와 폴백 그래픽이 같은 자리를 차지해야

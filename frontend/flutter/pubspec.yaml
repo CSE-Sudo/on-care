@@ -43,6 +43,9 @@ dependencies:
   # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
   oncare_ui:
     path: ../../shared/oncare_ui
+  # 카카오맵 위젯(#329). 트레이너 웹 소속 헬스장 찾기도 같은 지도를 쓴다(#2543).
+  oncare_kakao_map:
+    path: ../../shared/oncare_kakao_map
 
   # --- Local persistence ---
   drift: ^2.20.3

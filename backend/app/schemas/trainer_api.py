@@ -20,6 +20,7 @@ from pydantic import (
 from app.core import clock
 from app.schemas.exercise_limits import (
     MAX_EXERCISE_HOLD_SECONDS,
+    MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SECONDS,
     MAX_EXERCISE_SETS,
@@ -1557,6 +1558,11 @@ class TrainerMeUpdate(PartialUpdate):
     career_years: int | None = Field(default=None, ge=0, le=80)
     intro: str | None = Field(default=None, max_length=1000)
     certifications: list[str] | None = Field(default=None, max_length=30)
+    #: 헬스장 문자열 네 칸은 **더 이상 직접 저장하지 않는다**(#2543). 보내면 409.
+    #: 소속(`gym_id`)에서만 파생된다 — 직접 적은 이름은 `gym_id` 가 비어 회원에게
+    #: 노출되지 않는데도 화면에는 소속이 있어 보였다. 필드를 지우지 않고 남겨 두는
+    #: 이유: 지우면 pydantic 이 모르는 키를 조용히 버려 옛 클라이언트가 200 을 받고
+    #: 저장된 줄 안다.
     gym_name: str | None = Field(default=None, max_length=100)
     gym_address: str | None = Field(default=None, max_length=300)
     gym_hours: str | None = Field(default=None, max_length=50)
@@ -1603,6 +1609,35 @@ class TrainerGymAffiliation(BaseModel):
     같은 요청으로 섞인다.
     """
     gym_id: str = Field(min_length=1, max_length=64)
+
+
+class TrainerGymCandidate(BaseModel):
+    """GET /trainer/gyms/search 한 줄 — 소속으로 고를 수 있는 헬스장. (#2543)
+
+    `registered` 면 이미 `places` 에 있는 헬스장이라 `PUT /trainer/me/gym` 으로 바로
+    고른다. 아니면 카카오에서 찾은 곳이라 `PUT /trainer/me/gym/kakao` 로 고르고,
+    서버가 그때 `places` 에 넣는다. 좌표는 지도 핀용이고, 거리는 검색에 좌표를
+    줬을 때만 채운다.
+    """
+    id: str
+    name: str
+    address: str
+    lat: float | None = None
+    lng: float | None = None
+    phone: str = ""
+    distance_meters: int | None = None
+    registered: bool
+
+
+class TrainerKakaoGymSelect(BaseModel):
+    """PUT /trainer/me/gym/kakao — 카카오 검색 결과로 소속 설정. (#2543)
+
+    이름·주소를 받지 않는 이유: 클라이언트가 보낸 값을 그대로 `places` 에 넣으면
+    아무 이름의 헬스장이나 만들 수 있다. 서버가 `name` 으로 카카오를 다시 검색해
+    `kakao_place_id` 가 같은 결과를 찾고, 그 결과의 값만 쓴다. `name` 은 그 검색어다.
+    """
+    kakao_place_id: str = Field(min_length=1, max_length=30, pattern=r"^\d+$")
+    name: str = Field(min_length=1, max_length=200)
 
 
 # ---- 트레이너용 AI 코칭 (회원 데이터 기반) ----
@@ -2080,7 +2115,18 @@ class ProgramTemplateExercise(BaseModel):
     """
 
     name: str = Field(min_length=1, max_length=100)
-    minutes: int = Field(ge=1, le=300)
+    #: 운동 시간(분). `duration_seconds` 가 있으면 거기서 반올림한 값이다 —
+    #: 분만 보내는 예전 클라이언트를 위해 받기는 계속 받는다. (#2521)
+    minutes: int = Field(default=0, ge=0, le=MAX_EXERCISE_MINUTES)
+    #: 같은 운동 시간을 초로(#2521). 트레이너가 시·분·초로 적은 그대로다 —
+    #: 프로그램 운동(`ProgramDraftExercise`)과 같은 규칙이다. 비어 오면(이 칸이
+    #: 생기기 전에 저장된 템플릿) `minutes` × 60 으로 채운다.
+    #:
+    #: 상한은 편집기의 운동 시간과 같은 열 시간이다. 예전 상한(300분)은 편집기
+    #: (600분)보다 짧아, 다섯 시간이 넘는 운동은 템플릿으로 저장할 때 422 였다.
+    duration_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType = "근력"
     sets: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_SETS)
     reps: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_REPS)
@@ -2090,6 +2136,23 @@ class ProgramTemplateExercise(BaseModel):
         default=0, ge=0, le=MAX_EXERCISE_HOLD_SECONDS
     )
     weight: LooseFloatZero = Field(default=0, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
+
+    @model_validator(mode="after")
+    def _sync_duration_units(self) -> ProgramTemplateExercise:
+        """분과 초를 맞춘다 — 초가 있으면 초가 기준이고 분은 반올림(최소
+        1분)이다. `_sync_duration_units` 와 같은 규칙이다. (#2521)
+
+        분만 있던 동안에는 편집기에서 `버피 45초` 를 템플릿으로 저장하면
+        `1분` 으로, `1시간 30분 15초` 는 `90분` 으로 남아 다시 적용할 때 초가
+        사라졌다.
+        """
+        if self.duration_seconds is not None:
+            self.minutes = max(1, round(self.duration_seconds / 60))
+        elif self.minutes >= 1:
+            self.duration_seconds = self.minutes * 60
+        else:
+            raise ValueError("minutes 또는 duration_seconds 중 하나는 있어야 합니다.")
+        return self
 
     @model_validator(mode="after")
     def _drop_fields_not_in_type(self) -> ProgramTemplateExercise:

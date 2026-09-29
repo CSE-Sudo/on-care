@@ -147,3 +147,71 @@ async def search_nearby(
             _cache.clear()  # 단순 상한 — 무한 증식 방지
         _cache[key] = (now + _CACHE_TTL_SECONDS, result)
     return result
+
+
+# ---- 트레이너 소속 헬스장 검색 (#2543) ----
+
+#: 헬스장으로 받는 카카오 카테고리. `category_name` 은 "스포츠,레저 > 스포츠시설 >
+#: 헬스클럽" 꼴이다. 헬스클럽만 받으면 PT 를 하는 필라테스·크로스핏 스튜디오가
+#: 빠지므로 한 단계 위인 `스포츠시설` 로 거른다 — 음식점·병원이 소속으로 잡히는
+#: 것만 막으면 된다.
+_GYM_CATEGORY_MARK = "스포츠시설"
+
+
+def is_gym_doc(doc: dict) -> bool:
+    return _GYM_CATEGORY_MARK in (doc.get("category_name") or "")
+
+
+def docs_to_gyms(docs: list[dict]) -> list[dict]:
+    """카카오 documents → 헬스장 후보(dict). 헬스장이 아니거나 좌표·id 가 없으면 버린다.
+
+    `PlaceOut` 이 아니라 dict 인 이유: 전화번호를 함께 싣고, 거리는 좌표를 줄 때만
+    의미가 있어 None 이 될 수 있다.
+    """
+    out: list[dict] = []
+    for d in docs:
+        place_id = str(d.get("id") or "")
+        if not place_id or not is_gym_doc(d):
+            continue
+        try:
+            lat = float(d["y"])
+            lng = float(d["x"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        try:
+            distance = int(d["distance"]) if d.get("distance") else None
+        except (TypeError, ValueError):
+            distance = None
+        out.append({
+            "id": place_id,
+            "name": d.get("place_name", ""),
+            "address": d.get("road_address_name") or d.get("address_name") or "",
+            "lat": lat,
+            "lng": lng,
+            "phone": d.get("phone") or "",
+            "distance_meters": distance,
+        })
+    return out
+
+
+async def search_gyms(
+    query: str,
+    lat: float | None,
+    lng: float | None,
+    api_key: str,
+    timeout: float = 3.0,
+) -> list[dict]:
+    """헬스장 이름으로 카카오 키워드 검색. 실패하면 예외(호출부가 폴백).
+
+    `/places/nearby` 와 달리 반경으로 자르지 않는다 — 트레이너는 자기 헬스장
+    이름을 알고 찾으므로, 좌표는 정렬·거리 표시에만 쓴다. 사람이 고를 목록이라
+    캐시하지 않는다(같은 검색어가 반복될 일이 드물다).
+    """
+    params: dict[str, str | int] = {"query": query, "size": 15}
+    if lat is not None and lng is not None:
+        params.update({"x": str(lng), "y": str(lat)})
+    headers = {"Authorization": f"KakaoAK {api_key}"}
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        resp = await client.get(_KAKAO_KEYWORD_URL, params=params, headers=headers)
+    resp.raise_for_status()
+    return docs_to_gyms(resp.json().get("documents", []))

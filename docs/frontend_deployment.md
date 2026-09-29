@@ -126,7 +126,7 @@ flutter build web --release --base-href "/frontend/"
 --dart-define=API_BASE_URL=https://<App Runner 도메인>/v1
 ```
 
-트레이너 웹 빌드 스텝에는 dart-define 이 하나도 없으므로, 거기에도 위 두 값을 새로 줘야 합니다.
+트레이너 웹 빌드 스텝에는 `KAKAO_JS_KEY` 만 있으므로(소속 헬스장 찾기 지도, #2543), 거기에도 위 두 값을 새로 줘야 합니다. 트레이너 웹 지도가 뜨려면 카카오 콘솔의 JavaScript SDK 도메인에 트레이너 웹 주소도 등록돼 있어야 합니다.
 
 실기기에 설치한 APK 는 **다시 빌드해야 합니다.** `String.fromEnvironment` 는 컴파일 타임 상수라서 dart-define 값이 APK 안에 박히고, 이미 설치된 앱의 서버 주소는 나중에 바꿀 수 없습니다. 절차는 [`local_fullstack.md`](local_fullstack.md) 의 안드로이드 실기기 절에 있습니다.
 

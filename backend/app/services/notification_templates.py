@@ -30,6 +30,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from app.core.locale import Locale, current_locale
+from app.services.exercise_duration import format_duration, seconds_or_minutes
 
 Args = Mapping[str, Any]
 #: (제목, 본문). 본문이 ``None`` 이면 저장된 본문을 그대로 쓴다.
@@ -148,15 +149,23 @@ def _plural(n: int, one: str, many: str) -> str:
     return f"{n} {one if n == 1 else many}"
 
 
+def _seconds(args: Args) -> int:
+    """인자의 운동 시간(초). `seconds` 가 없는 옛 알림은 분 × 60 으로 읽는다. (#2546)"""
+    seconds = args.get("seconds")
+    return seconds_or_minutes(
+        None if seconds is None else int(seconds), int(args.get("minutes") or 0)
+    )
+
+
 def _amount(args: Args, locale: Locale) -> str:
     """배정 한 건의 양. 한국어는 `trainer_service._amount_label` 과 같은 문장이다."""
-    minutes = int(args.get("minutes") or 0)
     sets = args.get("sets")
     reps = args.get("reps")
     hold = args.get("hold_seconds")
     weight = args.get("weight")
     if not args.get("strength") or sets is None:
-        return f"{minutes}분" if locale == "ko" else f"{minutes} min"
+        # 시간은 초까지 적는다 — `45초`·`1 hr 30 min`. (#2546)
+        return format_duration(_seconds(args), locale)
     if locale == "ko":
         parts = [f"{sets}세트"]
         if hold:
@@ -323,17 +332,18 @@ def _member_routine_assigned(args: Args, locale: Locale) -> Rendered:
 def _member_routine_program(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "name")
     sessions = int(args.get("sessions") or 0)
-    minutes = int(args.get("minutes") or 0)
+    # 합계는 서버가 초로 더해 둔 값이다 — 여기서 한 번만 접는다. (#2546)
+    duration = format_duration(_seconds(args), locale)
     multi = bool(args.get("multi"))
     if locale == "ko":
         body = (
-            f"{name} · 세션 {sessions}개 · {minutes}분" if multi else f"{name} · {minutes}분"
+            f"{name} · 세션 {sessions}개 · {duration}" if multi else f"{name} · {duration}"
         )
         return "새 운동 루틴이 배정되었어요", body
     body = (
-        f"{name} · {_plural(sessions, 'session', 'sessions')} · {minutes} min"
+        f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
         if multi
-        else f"{name} · {minutes} min"
+        else f"{name} · {duration}"
     )
     return "New workout routine assigned", body
 
