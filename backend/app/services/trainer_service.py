@@ -79,6 +79,7 @@ from app.services import (
 )
 from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
+from app.services.exercise_duration import format_duration, seconds_or_minutes
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
 # '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
@@ -209,6 +210,10 @@ def parse_history_exercise(raw: object) -> RoutineHistoryExerciseOut:
     세션·시드). 이미 쌓인 행을 고치는 대신 읽을 때 값으로 되돌린다 — 단위가
     이름 **끝에** 이어 붙은 모양만 값으로 읽고, 그 밖의 줄은 적힌 그대로 이름으로
     둔다(`플랭크 ✗ (피로)` → 이름 `플랭크 (피로)`, 한 적 없음).
+
+    완료한 PT 세션은 이제 값을 객체로 저장한다([_program_history_entry], #2546) —
+    문장의 `초` 는 버티는 운동의 초로 되읽혀, 운동 시간 `45초` 를 문장으로는 남길
+    수 없었다. 문장은 그 뒤로도 옛 행에서만 읽는다.
     """
     if isinstance(raw, dict):
         return _history_exercise_from_dict(raw)
@@ -260,10 +265,24 @@ def _history_exercise_from_dict(raw: dict) -> RoutineHistoryExerciseOut:
         sets=_num("sets", int),
         reps=_num("reps", int),
         hold_seconds=_num("hold_seconds", int),
+        # 초로 적은 운동 시간(#2546). 없으면 앱이 `minutes` 로 읽는다.
+        duration_seconds=_num("duration_seconds", int),
         weight=_num("weight", float),
         intensity=intensity if isinstance(intensity, str) and intensity else None,
         done=raw.get("done") is not False,
     )
+
+
+def history_exercise_line(raw: object) -> str:
+    """저장된 이력 한 줄 → `exercises` 에 싣는 문장.
+
+    옛 행은 문장 그대로다. 값으로 저장한 행(#2546)은 저장할 때 만든 문장
+    (`label`)을 쓰고, 그것도 없으면 이름만 둔다.
+    """
+    if isinstance(raw, dict):
+        label = raw.get("label")
+        return label if isinstance(label, str) and label else str(raw.get("name") or "")
+    return str(raw or "")
 
 
 def relative_time_label(ts: datetime) -> str:
@@ -728,7 +747,7 @@ def build_client_history(
             date_label=history_date_label(r.date),
             label=r.kind_label,
             completion_rate=r.completion_rate,
-            exercises=exercises,
+            exercises=[history_exercise_line(e) for e in exercises],
             date=_iso_day_or_none(r.date),
             kind=history_kind_code(r.kind_label),
             exercise_items=[parse_history_exercise(e) for e in exercises],
@@ -1871,6 +1890,7 @@ def approve_routine_suggestion(
         template=notification_templates.MEMBER_ROUTINE_ASSIGNED,
         template_args=_routine_notification_args(
             row.name, row.type, minutes=row.minutes,
+            duration_seconds=row.duration_seconds,
             sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
             weight=row.weight,
         ),
@@ -2151,8 +2171,9 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
             f"{row.assigned_routine_name or row.type} · "
             + _amount_label(
                 row.type, minutes=row.minutes,
+                duration_seconds=row.duration_seconds,
                 sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
-            weight=row.weight,
+                weight=row.weight,
             )
             + f" · {row.intensity}"
         ],
@@ -2175,8 +2196,8 @@ def _assigned_exercise_item(row: ExerciseSession) -> RoutineHistoryExerciseOut:
     버틴 초)·중량, 나머지와 세트가 없던 옛 근력 배정은 분.
 
     시간으로 재는 수행은 회원이 남긴 초(`duration_seconds`)도 싣는다(#2221) —
-    분만 보내면 `45초` 수행이 트레이너 이력에 `1분` 으로 보인다. 문장은 분
-    그대로다: `parse_history_exercise` 가 `초` 를 버틴 초로 되읽는다.
+    분만 보내면 `45초` 수행이 트레이너 이력에 `1분` 으로 보인다. 문장도 초까지
+    적는다(#2546) — 이 문장은 되읽지 않고 이 값이 함께 간다.
     """
     type_code = exercise_types.normalize(row.type)
     strength = type_code == exercise_types.STRENGTH and row.sets is not None
@@ -2518,21 +2539,53 @@ def _add_program_routines(
     if not notify:
         return created
 
-    total_minutes = sum(rt.minutes for rt in created)
     notification_service.queue(
         db,
         member_id=member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
         template=notification_templates.MEMBER_ROUTINE_PROGRAM,
-        template_args={
-            "name": name,
-            "sessions": len(created),
-            "minutes": total_minutes,
-            "multi": multi,
-        },
+        template_args=_program_notification_args(
+            name,
+            sessions=len(created),
+            seconds=sum(
+                _exercise_seconds(e.type, e.duration_seconds, e.sets)
+                for session in sessions
+                for e in session.exercises
+            ),
+            multi=multi,
+        ),
     )
     return created
+
+
+def _program_row_seconds(row: TrainerRoutine) -> int:
+    """프로그램 세션 한 줄의 시간(초). 운동 구성에서 초로 다시 더한다. (#2546)
+
+    `minutes` 는 세션마다 이미 분으로 접은 값이라 더하면 반올림이 쌓인다. 운동
+    구성을 읽을 수 없는 줄만 그 분으로 읽는다.
+    """
+    exercises = draft_exercises(row.exercises_json)
+    if not exercises:
+        return row.minutes * 60
+    return sum(_exercise_seconds(e.type, e.duration_seconds, e.sets) for e in exercises)
+
+
+def _program_notification_args(
+    name: str, *, sessions: int, seconds: int, multi: bool
+) -> dict[str, Any]:
+    """프로그램 배정 알림의 틀 인자. 합계 시간은 초로 더한 값이다. (#2546)
+
+    세션마다 분으로 접은 뒤 더하면 45초 세션 셋이 `3분` 이 된다(실제 2분 15초).
+    `minutes` 는 틀을 모르는 쪽을 위해 같은 합을 한 번만 접어 둔 값이다.
+    """
+    return {
+        "name": name,
+        "sessions": sessions,
+        "seconds": seconds,
+        "minutes": _minutes_of(seconds),
+        "multi": multi,
+    }
 
 
 # ---- 회원별 트레이너 메모 (#706) ----
@@ -3209,18 +3262,50 @@ def _program_item_label(item: ProgramItem) -> str:
             parts.append(f"{item.hold_seconds}초")
         elif item.reps:
             parts.append(f"{item.reps}회")
-        # 맨몸 운동은 `0kg` 으로 **저장**한다 — 이 문장이 이력 행에 남고, 값은
+        # 맨몸 운동은 `0kg` 으로 적는다 — 옛 이력 행은 이 문장만 남아 있어, 값은
         # 읽을 때 `parse_history_exercise` 가 이 문장에서 되짚는다. `0kg` 을
         # 빼면 맨몸의 0 이 "적지 않음"(None)으로 바뀐다. 화면은 0 을 적지 않는다
         # (#2533). 값이 아예 없는 것은 규칙 이전의 옛 행뿐이다.
         if item.weight is not None:
             parts.append(f"{item.weight:g}kg")
     else:
-        # 초로 적은 시간도 분으로 적는다(#2221) — 이 줄을 되읽는
-        # `parse_history_exercise` 는 `초` 를 버티는 운동의 초로 읽어, `걷기 45초`
-        # 를 근력으로 바꿔 버린다. 초까지의 값은 회원 기록(`duration_seconds`)에 남는다.
-        parts = [f"{item.duration}분"] if item.duration else []
+        # 초까지 적는다 — `걷기 45초`·`사이클 1시간 30분`(#2546). 이 문장은
+        # 되읽지 않는다: 값은 [_program_history_entry] 가 함께 남긴다.
+        seconds = item.duration_seconds or 0
+        parts = [format_duration(seconds)] if seconds else []
     return " ".join([item.name, *parts])
+
+
+def _program_history_entry(item: ProgramItem) -> dict[str, Any]:
+    """완료한 PT 의 운동 한 종목 → `RoutineHistory.exercises_json` 한 항목. (#2546)
+
+    예전에는 문장([_program_item_label])만 남기고 읽을 때 값으로 되짚었는데, 그
+    문장의 `초` 는 버티는 운동의 초로 읽혀 운동 시간 `45초` 를 적을 수 없었다 —
+    그래서 분으로 반올림해 적었고 초는 영영 사라졌다. 이제 값을 그대로 남기고
+    문장은 `label` 로 곁들인다. 비어 있는 칸은 적지 않는다.
+    """
+    strength = item.type == "근력"
+    entry: dict[str, Any] = {
+        "name": item.name,
+        "type": item.type,
+        "label": _program_item_label(item),
+    }
+    if strength:
+        values = {
+            "sets": item.sets,
+            # 버티는 운동이면 횟수는 읽지 않는다 — 문장과 같다(#1969).
+            "reps": None if item.hold_seconds else item.reps,
+            "hold_seconds": item.hold_seconds,
+            # 맨몸의 0 도 값이다 — 비워 두면 '적지 않음'이 된다(#2533).
+            "weight": item.weight,
+        }
+    else:
+        values = {
+            "minutes": item.duration,
+            "duration_seconds": item.duration_seconds,
+        }
+    entry.update({k: v for k, v in values.items() if v is not None})
+    return entry
 
 
 def _amount_label(
@@ -3231,6 +3316,7 @@ def _amount_label(
     reps: int | None,
     weight: float | None,
     hold_seconds: int | None = None,
+    duration_seconds: int | None = None,
 ) -> str:
     """운동 한 줄이 말하는 **양**. 근력은 세트·횟수·중량, 나머지는 시간이다.
 
@@ -3245,9 +3331,12 @@ def _amount_label(
     유형은 두 어휘로 들어온다 — 트레이너 배정은 한글(`근력`), 회원 기록은 영문
     코드(`strength`)다. 한쪽만 보면 다른 쪽이 조용히 분으로 떨어지므로 정규화해서
     비교한다.
+
+    시간은 초가 있으면 초까지 적는다 — `45초`·`1시간 30분`(#2546). 초 칸이
+    생기기 전의 배정은 분 × 60 으로 읽어 예전과 같은 `N분` 이다.
     """
     if exercise_types.normalize(type_) != exercise_types.STRENGTH or sets is None:
-        return f"{minutes}분"
+        return format_duration(seconds_or_minutes(duration_seconds, minutes))
     parts = [f"{sets}세트"]
     # 버티는 운동은 초로 읽는다 — `플랭크 · 3세트 · 60초`. (#1969)
     if hold_seconds:
@@ -3269,6 +3358,7 @@ def _routine_notification_args(
     reps: int | None,
     weight: float | None,
     hold_seconds: int | None = None,
+    duration_seconds: int | None = None,
 ) -> dict[str, Any]:
     """루틴 배정 알림의 틀 인자(#2302). 양은 [_amount_label] 과 같은 규칙으로 읽는다.
 
@@ -3280,6 +3370,8 @@ def _routine_notification_args(
         "name": name,
         "strength": exercise_types.normalize(type_) == exercise_types.STRENGTH,
         "minutes": minutes,
+        # 초까지의 시간(#2546). `minutes` 는 틀을 모르는 쪽을 위해 둔다.
+        "seconds": seconds_or_minutes(duration_seconds, minutes),
         "sets": sets,
         "reps": reps,
         "hold_seconds": hold_seconds,
@@ -4377,14 +4469,21 @@ def _raise_scheduled_program(
         row.status = ROUTINE_APPROVED
         row.active_from = today_iso
     db.flush()
-    total_minutes = sum(row.minutes for row in rows)
+    # 바로 배정([assign_program])과 같은 틀이다 — 문장이 코드에 박혀 있으면
+    # 영어 화면에서도 한국어로 보인다(#2546). 여러 세션이면 프로그램 이름으로 부른다.
+    program_name = rows[0].program_name
     notification_service.queue(
         db,
         member_id=session.member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=f"{rows[0].name} · {total_minutes}분",
+        template=notification_templates.MEMBER_ROUTINE_PROGRAM,
+        template_args=_program_notification_args(
+            program_name or rows[0].name,
+            sessions=len(rows),
+            seconds=sum(_program_row_seconds(row) for row in rows),
+            multi=bool(program_name),
+        ),
     )
     return True
 
@@ -5335,7 +5434,7 @@ def complete_session(
     exercise_log: ExerciseSession | None = None
     if s.member_id:
         program = _program_items(s.program_json)
-        exercises = [_program_item_label(p) for p in program]
+        exercises = [_program_history_entry(p) for p in program]
         db.add(RoutineHistory(
             id=f"sched-hist-{s.id}",
             member_id=s.member_id,

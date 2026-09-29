@@ -338,7 +338,7 @@ def add_session(
     personal_ingest.record_exercise(
         db, current_user.id, date=_session_date(row), exercise_type=row.type,
         minutes=row.minutes, calories=row.calories, intensity=row.intensity,
-        source_ref=row.id,
+        source_ref=row.id, duration_seconds=row.duration_seconds,
     )
     return out
 

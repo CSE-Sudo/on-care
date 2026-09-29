@@ -17,7 +17,7 @@ import pytest
 from app.core import clock
 from app.core import locale as locale_module
 from app.models.models import ExerciseSession
-from app.schemas.trainer_api import RoutineHistoryExerciseOut, RoutineHistoryOut
+from app.schemas.trainer_api import ProgramItem, RoutineHistoryExerciseOut, RoutineHistoryOut
 from app.services import trainer_service
 from app.services.trainer_service import (
     ASSIGNED_HISTORY_FALLBACK_LABEL,
@@ -25,7 +25,9 @@ from app.services.trainer_service import (
     _assigned_exercise_item,
     _assigned_history_out,
     _iso_day_or_none,
+    _program_history_entry,
     history_date_label,
+    history_exercise_line,
     history_kind_code,
     parse_history_exercise,
     relative_day_label,
@@ -256,6 +258,40 @@ def test_parse_history_exercise_accepts_structured_items():
     )
 
 
+@pytest.mark.parametrize(
+    ("item", "line", "expected"),
+    [
+        (
+            ProgramItem(name="버피", type="유산소", duration_seconds=45),
+            "버피 45초",
+            _item(name="버피", type="cardio", minutes=1, duration_seconds=45),
+        ),
+        (
+            ProgramItem(name="사이클", type="유산소", duration_seconds=5415),
+            "사이클 1시간 30분 15초",
+            _item(name="사이클", type="cardio", minutes=90, duration_seconds=5415),
+        ),
+        (
+            ProgramItem(name="플랭크", type="근력", sets=3, hold_seconds=60, weight=0),
+            "플랭크 3세트 60초 0kg",
+            _item(name="플랭크", type="strength", sets=3, hold_seconds=60, weight=0.0),
+        ),
+    ],
+)
+def test_pt_history_entry_keeps_seconds(item, line, expected):
+    """완료한 PT 는 값을 객체로 남긴다 — 운동 시간 `45초` 가 버틴 초로 읽히지 않는다. (#2546)"""
+    entry = _program_history_entry(item)
+    assert history_exercise_line(entry) == line
+    assert parse_history_exercise(entry).model_dump() == expected
+
+
+def test_history_line_keeps_old_sentences():
+    """문장으로 저장된 옛 행은 문장 그대로 싣는다(회귀). (#2546)"""
+    assert history_exercise_line("사이클 20분") == "사이클 20분"
+    assert history_exercise_line("플랭크 ✗ (피로)") == "플랭크 ✗ (피로)"
+    assert history_exercise_line({"name": "스쿼트"}) == "스쿼트"
+
+
 def test_parse_history_exercise_drops_broken_structured_values():
     parsed = parse_history_exercise(
         {"name": None, "sets": "3", "reps": True, "minutes": "20", "type": ""}
@@ -330,15 +366,20 @@ def test_assigned_history_without_name_gets_kind_code(fixed_today):
     )
 
 
-def test_assigned_history_sentence_stays_in_minutes(fixed_today):
-    """초는 값으로만 싣는다 — 문장에 `45초` 를 적으면 버틴 초로 되읽힌다(#2221)."""
+@pytest.mark.parametrize(
+    ("minutes", "seconds", "amount"),
+    [(1, 45, "45초"), (90, 5415, "1시간 30분 15초"), (25, None, "25분")],
+)
+def test_assigned_history_sentence_keeps_seconds(fixed_today, minutes, seconds, amount):
+    """문장도 초까지 적는다 — `45초` 가 `1분` 으로 읽히지 않는다(#2546)."""
     out = _assigned_history_out(
         _assigned_row(assigned_routine_name="줄넘기", type="유산소", sets=None,
-                      reps=None, weight=None, minutes=1, duration_seconds=45)
+                      reps=None, weight=None, minutes=minutes,
+                      duration_seconds=seconds)
     )
-    assert out.exercises == ["줄넘기 · 1분 · moderate"]
-    assert out.exercise_items[0].duration_seconds == 45
-    assert out.exercise_items[0].minutes == 1
+    assert out.exercises == [f"줄넘기 · {amount} · moderate"]
+    assert out.exercise_items[0].duration_seconds == seconds
+    assert out.exercise_items[0].minutes == minutes
 
 
 def test_assigned_history_date_matches_label_day(fixed_today):
@@ -583,6 +624,7 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
             {"name": "스쿼트", "type": "근력", "sets": 3, "reps": 12, "weight": 40.0},
             {"name": "플랭크", "type": "근력", "sets": 3, "hold_seconds": 60, "weight": 0},
             {"name": "사이클", "type": "유산소", "duration": 20},
+            {"name": "버피", "type": "유산소", "duration_seconds": 45},
         ],
     )
     done = client.post(
@@ -602,6 +644,7 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
         "스쿼트 3세트 12회 40kg",
         "플랭크 3세트 60초 0kg",
         "사이클 20분",
+        "버피 45초",
     ]
     assert entry["date"] == clock.today().isoformat()
     assert entry["date_label"].endswith(" (Today)")
@@ -612,7 +655,9 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
     assert items == [
         {"name": "스쿼트", "type": "strength", "sets": 3, "reps": 12, "weight": 40.0},
         {"name": "플랭크", "type": "strength", "sets": 3, "hold_seconds": 60},
-        {"name": "사이클", "minutes": 20},
+        # 운동 시간은 초까지 값으로 남는다(#2546)
+        {"name": "사이클", "type": "cardio", "minutes": 20, "duration_seconds": 1200},
+        {"name": "버피", "type": "cardio", "minutes": 1, "duration_seconds": 45},
     ]
     # 맨몸 운동의 0kg 도 값으로 남는다(0 과 '적지 않음'은 다르다) — 화면은
     # 0 을 적지 않지만 저장 문장에는 남아야 값이 되짚힌다(#2533)
