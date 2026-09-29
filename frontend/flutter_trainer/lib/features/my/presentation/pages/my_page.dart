@@ -13,6 +13,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
@@ -384,7 +385,8 @@ class _MyPageState extends ConsumerState<MyPage> {
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: l.myClientRemoveTitle(client.name),
-      message: l.myClientRemoveBody,
+      // 긴 본문이라 낱말 중간(`회원 계` / `정과`)에서 끊기지 않게 한다.
+      message: keepWords(l.myClientRemoveBody),
       cancelLabel: l.actionCancel,
       confirmLabel: l.myClientRemove,
       destructive: true,

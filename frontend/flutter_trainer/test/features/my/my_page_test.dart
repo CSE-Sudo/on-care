@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
@@ -111,8 +112,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('회원과 연결을 해제할까요?'), findsOneWidget);
-      expect(find.textContaining('스케줄, 프로그램·루틴, 리포트, 메시지, 메모'), findsOneWidget);
-      expect(find.textContaining('회원 계정과 회원 앱의 기록은 그대로 남아요'), findsOneWidget);
+      expect(
+        find.textContaining(keepWords('스케줄, 프로그램·루틴, 리포트, 메시지, 메모')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(keepWords('회원 계정과 회원 앱의 기록은 그대로 남아요')),
+        findsOneWidget,
+      );
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
       expect(find.textContaining('회원과 연결을 해제할까요?'), findsNothing);
