@@ -1030,6 +1030,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           maxLength: _maxLength,
           enabled: !_busy,
           hint: l.clientTrainerMemoHint,
+          // 회원 상세 메모는 트레이너만 본다 — 회원에게 가는 피드백과
+          // 헷갈리지 않게 적는 자리에서 밝힌다(#2574).
+          helper: l.clientTrainerMemoPrivate,
         ),
         // 글자 수는 입력 상자 **바로 아래 오른쪽**에 붙인다(#1448). `추가` 와
         // 한 줄에 나눠 두면 왼쪽 끝의 보조 정보가 입력 상자와 따로 놀았다.

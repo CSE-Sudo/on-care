@@ -11,8 +11,8 @@
 
 downgrade 는 되돌리지 않는다 — 채운 행과 원래 id 가 있던 행을 가를 수 없다.
 
-Revision ID: 0103_backfill_schedule_member_id
-Revises: 0102_clear_reservation_note
+Revision ID: 0104_backfill_schedule_member_id
+Revises: 0103_routine_effect
 Create Date: 2026-09-30
 """
 from __future__ import annotations
@@ -21,8 +21,8 @@ from collections.abc import Sequence
 
 from alembic import op
 
-revision: str = "0103_backfill_schedule_member_id"
-down_revision: str | Sequence[str] | None = "0102_clear_reservation_note"
+revision: str = "0104_backfill_schedule_member_id"
+down_revision: str | Sequence[str] | None = "0103_routine_effect"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

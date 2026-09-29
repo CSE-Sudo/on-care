@@ -265,6 +265,24 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "새 운동 루틴이 배정되었어요",
         "하체 프로그램 · 50분",
     ),
+    # `개인운동만` 을 여럿 보내면 이름·세션 대신 개인운동 수로 말한다(#2581).
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "개인운동", "sessions": 2, "seconds": 2520, "multi": True,
+         "routine_only": True},
+        "",
+        "새 운동 루틴이 배정되었어요",
+        "개인운동 2개 · 42분",
+    ),
+    # 하나만 보내면 이름이 곧 그 운동이다.
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "걷기", "sessions": 1, "seconds": 1800, "multi": False,
+         "routine_only": True},
+        "",
+        "새 운동 루틴이 배정되었어요",
+        "걷기 · 30분",
+    ),
     (
         nt.MEMBER_TRAINER_CONNECTED,
         {"trainer_name": "박코치"},
@@ -720,6 +738,12 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "Leg day", "sessions": 1, "minutes": 50, "multi": False},
         ("New workout routine assigned", "Leg day · 50 min"),
+    ),
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "Personal exercise", "sessions": 2, "seconds": 2520,
+         "multi": True, "routine_only": True},
+        ("New workout routine assigned", "2 personal exercises · 42 min"),
     ),
     (
         nt.MEMBER_TRAINER_CONNECTED,

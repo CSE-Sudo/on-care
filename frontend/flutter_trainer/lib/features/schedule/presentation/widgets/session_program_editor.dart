@@ -15,7 +15,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 운동 행을 [ProgramDraft] 로 들고 있다가 저장할 때 한 번에 반영한다.
 ///
 /// 틀(테두리·반경·안쪽 여백)과 제목은 이 위젯을 감싸는 `AppDialog` 가 그린다 —
-/// 제목은 `noteOnly ? schedEditNote : progEditTitle` 이다. 여기서는 내용과
+/// 제목은 `progEditTitle`, 또는 `noteOnly` 면 일정 종류에 따라
+/// `schedEditNote`(PT)·`schedEditConsultNote`(상담)이다. 여기서는 내용과
 /// 하단 [취소]·[저장] 두 버튼만 세운다.
 class SessionProgramEditor extends ConsumerStatefulWidget {
   const SessionProgramEditor({
@@ -170,19 +171,31 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
       // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
       // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
       // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
+      //
+      // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백, 상담에
+      // 적는 글은 트레이너만 보는 상담 메모다(#2515, #2574). 누가 읽게
+      // 되는지를 입력칸 아래 한 줄로 붙인다.
       if (widget.noteOnly)
-        AppTextField(
-          key: const ValueKey<String>('program-trainer-note'),
-          controller: _note,
-          label: l.schedNote,
-          // PT 메모는 완료 뒤 회원 앱에 피드백으로 보이고, 상담 기록은
-          // 트레이너만 본다(#2515).
-          hint: widget.session.type == SessionType.consultation
-              ? l.schedConsultNoteHint
-              : l.progNoteHint,
-          minLines: 2,
-          maxLines: 4,
-        ),
+        if (widget.session.type == SessionType.consultation)
+          AppTextField(
+            key: const ValueKey<String>('program-trainer-note'),
+            controller: _note,
+            label: l.schedConsultNote,
+            hint: l.schedConsultNoteHint,
+            helper: l.schedConsultNotePrivate,
+            minLines: 2,
+            maxLines: 4,
+          )
+        else
+          AppTextField(
+            key: const ValueKey<String>('program-trainer-note'),
+            controller: _note,
+            label: l.schedNote,
+            hint: l.progNoteHint,
+            helper: l.schedNoteVisibleToMember,
+            minLines: 2,
+            maxLines: 4,
+          ),
     ];
   }
 }

@@ -308,7 +308,7 @@ class SessionCard extends ConsumerWidget {
             const SizedBox.shrink()
           else if (s.note.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
-            SessionNoteBox(note: s.note),
+            SessionNoteBox(note: s.note, consultation: noteOnly),
             const SizedBox(height: OnCareSpacing.s12),
           ] else if (noteOnly) ...<Widget>[
             SessionNoNoteBox(onAdd: onEditNote),

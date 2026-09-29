@@ -3,21 +3,29 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 완료된 세션에 남긴 트레이너 메모 상자.
+/// 세션에 남긴 글 상자.
 ///
-/// 아이콘 + 제목(`트레이너 메모`) + 본문(메모) 구조라 [AppBanner] 로 그린다.
+/// 아이콘 + 제목 + 본문 구조라 [AppBanner] 로 그린다. 제목은 PT 면 회원에게
+/// 가는 `트레이너 피드백`, 상담이면 트레이너만 보는 `상담 메모` 다(#2574).
 /// 메모지 표시다 — 주의가 아니므로 경고 톤으로 올리지 않는다(#690).
 class SessionNoteBox extends StatelessWidget {
-  const SessionNoteBox({super.key, required this.note});
+  const SessionNoteBox({
+    super.key,
+    required this.note,
+    this.consultation = false,
+  });
 
   final String note;
+
+  /// 상담 일정의 글인가 — 제목을 `상담 메모` 로 부른다.
+  final bool consultation;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppBanner(
       icon: AppIcons.note,
-      title: l.schedNote,
+      title: consultation ? l.schedConsultNote : l.schedNote,
       message: note,
     );
   }
@@ -74,7 +82,7 @@ class SessionNoNoteBox extends StatelessWidget {
           AppIconButton(
             key: const ValueKey<String>('session-edit-note-chip'),
             icon: AppIcons.note,
-            tooltip: l.schedAddNote,
+            tooltip: l.schedAddConsultNote,
             variant: AppIconButtonVariant.tonal,
             onPressed: onAdd,
           ),

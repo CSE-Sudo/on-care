@@ -308,7 +308,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 지문 방식이다.
     final payload = routineOnlyAssignToJson(
       routines,
-      programName: l.aiRoutineOnlyProgramName,
+      // 저장 이름에는 기간을 넣지 않는다(#2581) — 보낸 날부터 7일이라 `이번 주`
+      // 가 달력의 이번 주와 맞지 않는다. 회원 앱은 이 이름을 카드에 적지 않는다.
+      programName: l.aiRoutineOnlyDeliveryName,
       startDate: ymd(start),
       activeDays: PersonalRoutineBox.activeDays,
     );
