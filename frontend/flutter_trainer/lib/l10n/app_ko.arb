@@ -303,7 +303,6 @@
   "coachTemplateNameLabel": "템플릿 이름",
   "coachTemplateGoalLabel": "목표 (예: 혈압 관리 · 초급)",
   "coachTemplateExerciseName": "운동 이름",
-  "coachTemplateExerciseMinutes": "분",
   "coachTemplateAddExercise": "운동 추가",
   "coachTemplateSave": "저장",
   "coachTemplateNameRequired": "템플릿 이름을 입력해 주세요",
@@ -1378,7 +1377,7 @@
     }
   },
   "aiStepperLabel": "맞춤 추천안 생성 진행 단계",
-  "coachTemplateSummaryWithGoal": "{goal} · {count}개 · {minutes}분",
+  "coachTemplateSummaryWithGoal": "{goal} · {count}개 · {duration}",
   "aiInsightMemoTitle": "최근 7일 확인 필요",
   "aiInsightMemoEmpty": "최근 7일간 감지된 메모가 없어요",
   "aiInsightMemoFailed": "감지 메모를 불러오지 못했어요",

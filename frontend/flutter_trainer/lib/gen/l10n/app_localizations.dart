@@ -1574,12 +1574,6 @@ abstract class AppLocalizations {
   /// **'Exercise'**
   String get coachTemplateExerciseName;
 
-  /// No description provided for @coachTemplateExerciseMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'min'**
-  String get coachTemplateExerciseMinutes;
-
   /// No description provided for @coachTemplateAddExercise.
   ///
   /// In en, this message translates to:
@@ -5548,8 +5542,8 @@ abstract class AppLocalizations {
   /// No description provided for @coachTemplateSummaryWithGoal.
   ///
   /// In en, this message translates to:
-  /// **'{goal} · {count} exercises · {minutes} min'**
-  String coachTemplateSummaryWithGoal(String goal, int count, int minutes);
+  /// **'{goal} · {count} exercises · {duration}'**
+  String coachTemplateSummaryWithGoal(String goal, int count, String duration);
 
   /// No description provided for @aiInsightMemoTitle.
   ///

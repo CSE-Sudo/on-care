@@ -1,21 +1,32 @@
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
+
 /// One exercise inside a [ProgramTemplate].
 class TemplateExercise {
   /// Creates a template exercise.
+  ///
+  /// 시간은 [durationSeconds] 로 준다. 분만 아는 자리(시작 구성)는 [minutes]
+  /// 를 주면 × 60 으로 채운다.
   const TemplateExercise({
     required this.name,
-    required this.minutes,
     required this.type,
+    int minutes = 0,
+    int? durationSeconds,
     this.sets = 0,
     this.reps = 0,
     this.holdSeconds = 0,
     this.weight = 0,
-  });
+  }) : durationSeconds = durationSeconds ?? minutes * 60;
 
   /// Exercise name.
   final String name;
 
-  /// Duration in minutes.
-  final int minutes;
+  /// 운동 시간(초). 편집기에서 시·분·초로 적은 그대로다 — 분으로만 담던
+  /// 동안에는 `버피 45초` 가 템플릿에 `1분` 으로 남았다. (#2521)
+  final int durationSeconds;
+
+  /// [durationSeconds] 를 분으로 접은 값 — 0 이 아니면 최소 1분. 분만 받는
+  /// 예전 서버를 위해 함께 싣는다.
+  int get minutes => minutesFromSeconds(durationSeconds);
 
   /// 서버 `RoutineType` 계약값(유산소·근력·스트레칭·기타). 화면 문구는
   /// `routineTypeLabel` 이 붙인다 — 번역하면 서버가 422 를 돌려준다.
@@ -23,7 +34,7 @@ class TemplateExercise {
 
   /// 근력 운동에서만 쓴다(#1029, #1276, #1310) — `ProgramItem`/
   /// `ProgramExerciseDraft` 와 같은 계약(세트 수·한 세트당 횟수·중량 kg).
-  /// 비근력 운동은 0 이고 [minutes] 만 쓴다.
+  /// 비근력 운동은 0 이고 [durationSeconds] 만 쓴다.
   final int sets;
   final int reps;
 
@@ -38,7 +49,9 @@ class TemplateExercise {
   factory TemplateExercise.fromJson(Map<String, Object?> json) =>
       TemplateExercise(
         name: json['name'] as String? ?? '',
+        // 초가 없으면(칸이 생기기 전의 서버) 분 × 60 으로 읽는다.
         minutes: (json['minutes'] as num?)?.toInt() ?? 0,
+        durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
         type: json['type'] as String? ?? '근력',
         sets: (json['sets'] as num?)?.toInt() ?? 0,
         reps: (json['reps'] as num?)?.toInt() ?? 0,
@@ -50,6 +63,7 @@ class TemplateExercise {
   Map<String, Object?> toJson() => <String, Object?>{
     'name': name,
     'minutes': minutes,
+    'duration_seconds': durationSeconds,
     'type': type,
     'sets': sets,
     'reps': reps,
@@ -92,8 +106,9 @@ class ProgramTemplate {
   /// 저장된다.
   bool get isStarter => id.startsWith('starter:');
 
-  /// Total duration.
-  int get totalMinutes => exercises.fold<int>(0, (sum, e) => sum + e.minutes);
+  /// 운동 시간 합(초). 목록 요약이 `45초`·`1시간 30분` 으로 읽는다. (#2521)
+  int get totalSeconds =>
+      exercises.fold<int>(0, (sum, e) => sum + e.durationSeconds);
 
   /// `TrainerProgramTemplateOut` 한 건.
   factory ProgramTemplate.fromJson(Map<String, Object?> json) =>

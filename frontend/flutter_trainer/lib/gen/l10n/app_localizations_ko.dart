@@ -806,9 +806,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateExerciseName => '운동 이름';
 
   @override
-  String get coachTemplateExerciseMinutes => '분';
-
-  @override
   String get coachTemplateAddExercise => '운동 추가';
 
   @override
@@ -3040,8 +3037,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepperLabel => '맞춤 추천안 생성 진행 단계';
 
   @override
-  String coachTemplateSummaryWithGoal(String goal, int count, int minutes) {
-    return '$goal · $count개 · $minutes분';
+  String coachTemplateSummaryWithGoal(String goal, int count, String duration) {
+    return '$goal · $count개 · $duration';
   }
 
   @override

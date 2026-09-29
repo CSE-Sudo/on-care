@@ -309,6 +309,45 @@ void main() {
       expect(exercises.map((e) => e.name), <String>['맨몸 스쿼트', '덤벨 런지']);
       expect(exercises.map((e) => e.weight), <double>[0, 8]);
     });
+
+    testWidgets('템플릿의 초·버티는 초·횟수가 그대로 열린다 (#2521)', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1400, 1000);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const template = ProgramTemplate(
+        id: 't1',
+        name: '초 블록',
+        goal: '',
+        exercises: <TemplateExercise>[
+          TemplateExercise(name: '버피', durationSeconds: 45, type: '유산소'),
+          TemplateExercise(
+            name: '플랭크',
+            minutes: 5,
+            type: '근력',
+            sets: 3,
+            holdSeconds: 45,
+          ),
+          TemplateExercise(
+            name: '스쿼트',
+            minutes: 10,
+            type: '근력',
+            sets: 4,
+            reps: 12,
+          ),
+        ],
+      );
+      await tester.pumpWidget(withTemplate(null, 0));
+      await tester.pump();
+      await tester.pumpWidget(withTemplate(template, 1));
+      await tester.pumpAndSettle();
+
+      await sendFirst(tester);
+      final exercises = sent!.sessions.first.exercises;
+      expect(exercises[0].durationSeconds, 45);
+      expect((exercises[1].isHold, exercises[1].holdSeconds), (true, 45));
+      expect((exercises[2].isHold, exercises[2].reps), (false, 12));
+    });
   });
 
   testWidgets('AI 추천 사유는 운동 메모가 되지 않고, 메모 칸도 없다 (#2371)', (tester) async {

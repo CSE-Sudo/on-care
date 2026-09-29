@@ -38,6 +38,7 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_section.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
@@ -202,15 +203,26 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           if (exercise.name.trim().isNotEmpty)
             TemplateExercise(
               name: exercise.name.trim(),
-              // 근력은 세트에서 환산한 분을 담는다 — 템플릿의 총 시간이
-              // 유형과 무관하게 한 축으로 읽혀야 한다 (#1276).
-              minutes: exercise.effectiveMinutes,
+              // 시·분·초로 적은 초를 그대로 담는다(#2521) — 분으로 접으면
+              // `버피 45초` 가 `1분` 으로 남는다. 근력은 세트에서 환산한
+              // 시간을 담는다 — 템플릿의 총 시간이 유형과 무관하게 한 축으로
+              // 읽혀야 한다 (#1276).
+              durationSeconds: exercise.isStrength
+                  ? exercise.effectiveMinutes * 60
+                  : exercise.durationSeconds,
               type: kRoutineTypes.contains(exercise.type)
                   ? exercise.type
                   : kRoutineTypes.first,
-              // 근력이면 편집기에서 정한 세트·중량을 그대로 템플릿에 담는다
-              // — 비워 두면 다시 열었을 때 기본값으로 되돌아간 것처럼 보인다.
+              // 근력이면 편집기에서 정한 세트·횟수·중량을 그대로 템플릿에
+              // 담는다 — 비워 두면 다시 열었을 때 기본값으로 되돌아간 것처럼
+              // 보인다. 한 세트는 회로든 초로든 한 번만 잰다(#1969) — 횟수와
+              // 버티는 초 중 고른 쪽만 싣는다. 예전에는 횟수·초를 싣지 않아
+              // `12회` 가 `10회` 로, 버티는 운동이 회로 돌아왔다. (#2521)
               sets: exercise.isStrength ? exercise.sets : 0,
+              reps: exercise.isStrength && !exercise.isHold ? exercise.reps : 0,
+              holdSeconds: exercise.isStrength && exercise.isHold
+                  ? exercise.holdSeconds
+                  : 0,
               weight: exercise.isStrength ? exercise.weight : 0,
             ),
     ];
@@ -1398,7 +1410,7 @@ class _TemplateCard extends ConsumerWidget {
                           l.coachTemplateSummaryWithGoal(
                             template.goal,
                             template.exercises.length,
-                            template.totalMinutes,
+                            formatExerciseDuration(l, template.totalSeconds),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,

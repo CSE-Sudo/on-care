@@ -229,13 +229,13 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
 /// 편집 중인 운동 한 줄. 컨트롤러를 들고 있어 다이얼로그가 닫힐 때 정리한다.
 ///
 /// `sets`/`reps`/`weight` 는 근력일 때만 쓴다(#1029, #1310) — 그 외 유형은
-/// [minutes] 만 쓴다. 유형을 근력으로 바꾼 뒤 시간 칸은 화면에서 숨지만 값은
-/// 그대로 남아 있다(기본 10분) — 백엔드 계약
-/// (`ProgramTemplateExercise.minutes`)이 여전히 1 이상을 요구하기 때문이다.
+/// [durationSeconds] 만 쓴다. 유형을 근력으로 바꾼 뒤 시간 칸은 화면에서 숨지만
+/// 값은 그대로 남아 있다(기본 10분) — 백엔드 계약
+/// (`ProgramTemplateExercise`)이 여전히 시간을 요구하기 때문이다.
 class _ExerciseDraft {
   _ExerciseDraft({
     required this.name,
-    required this.minutes,
+    required this.durationSeconds,
     required this.sets,
     required this.reps,
     required this.holdSeconds,
@@ -246,7 +246,7 @@ class _ExerciseDraft {
 
   factory _ExerciseDraft.empty() => _ExerciseDraft(
     name: TextEditingController(),
-    minutes: TextEditingController(text: '10'),
+    durationSeconds: 10 * 60,
     sets: TextEditingController(text: '3'),
     reps: TextEditingController(text: '10'),
     holdSeconds: TextEditingController(text: '60'),
@@ -258,7 +258,9 @@ class _ExerciseDraft {
 
   factory _ExerciseDraft.from(TemplateExercise exercise) => _ExerciseDraft(
     name: TextEditingController(text: exercise.name),
-    minutes: TextEditingController(text: '${exercise.minutes}'),
+    // 저장된 초 그대로 연다(#2521) — 분 칸 하나이던 동안에는 `버피 45초`
+    // 템플릿이 `1` 로 열리고, 그대로 저장하면 60초가 됐다.
+    durationSeconds: exercise.durationSeconds,
     sets: TextEditingController(
       text: exercise.sets > 0 ? '${exercise.sets}' : '3',
     ),
@@ -283,7 +285,10 @@ class _ExerciseDraft {
 
   final int key;
   final TextEditingController name;
-  final TextEditingController minutes;
+
+  /// 운동 시간(초). 편집기와 같은 시·분·초 세 칸으로 적는다. (#2521)
+  int durationSeconds;
+
   final TextEditingController sets;
   final TextEditingController reps;
 
@@ -302,12 +307,11 @@ class _ExerciseDraft {
   /// 저장을 눌러도 그 줄만 조용히 빠진다.
   TemplateExercise? toExercise() {
     final label = name.text.trim();
-    final duration = int.tryParse(minutes.text.trim()) ?? 0;
-    if (label.isEmpty || duration <= 0) return null;
+    if (label.isEmpty || durationSeconds <= 0) return null;
     final isStrength = type == '근력';
     return TemplateExercise(
       name: label,
-      minutes: duration,
+      durationSeconds: durationSeconds,
       type: type,
       // 비근력은 저장하지 않는다 — 화면에서 숨긴 값이 조용히 실리면
       // 안 쓰는 필드가 남아 있는 것처럼 보인다.
@@ -323,7 +327,6 @@ class _ExerciseDraft {
 
   void dispose() {
     name.dispose();
-    minutes.dispose();
     sets.dispose();
     reps.dispose();
     holdSeconds.dispose();
@@ -394,10 +397,10 @@ class _ExerciseRow extends StatelessWidget {
           // 근력은 세트·횟수·중량으로, 그 외 유형은 시간으로 잰다
           // (#1029, #1310). 숫자 칸은 이름 아래 제 줄에 둔다 — 한 줄에 넷을
           // 밀어 넣으면 라벨이 잘려 무슨 칸인지 읽히지 않는다.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              if (isStrength) ...<Widget>[
+          if (isStrength)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
                 Expanded(
                   child: AppTextField(
                     controller: draft.sets,
@@ -436,19 +439,19 @@ class _ExerciseRow extends StatelessWidget {
                     ],
                   ),
                 ),
-              ] else
-                Expanded(
-                  child: AppTextField(
-                    controller: draft.minutes,
-                    label: l.coachTemplateExerciseMinutes,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                  ),
-                ),
-            ],
-          ),
+              ],
+            )
+          else
+            // 편집기와 같은 시·분·초 세 칸(#2521). 분 한 칸이던 동안에는 초가
+            // 든 템플릿을 열었다가 저장만 해도 분으로 반올림됐다.
+            RoutineDurationField(
+              seconds: draft.durationSeconds,
+              keyPrefix: 'template-duration-${draft.key}',
+              onChanged: (int seconds) {
+                draft.durationSeconds = seconds;
+                onChanged();
+              },
+            ),
           const SizedBox(height: OnCareSpacing.s4),
           RoutineCategoryChips(
             value: draft.type,

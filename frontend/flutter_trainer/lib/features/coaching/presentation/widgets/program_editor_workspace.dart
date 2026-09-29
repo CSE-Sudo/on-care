@@ -338,9 +338,17 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           id: 'exercise-${_nextId++}',
           name: exercise.name,
           type: exercise.type,
-          durationSeconds: (exercise.minutes > 0 ? exercise.minutes : 30) * 60,
+          // 템플릿에 담긴 초 그대로 연다(#2521) — 분에서 되짚으면 45초가
+          // 60초로 열린다.
+          durationSeconds: exercise.durationSeconds > 0
+              ? exercise.durationSeconds
+              : 30 * 60,
           sets: exercise.sets > 0 ? exercise.sets : 3,
           reps: exercise.reps > 0 ? exercise.reps : 10,
+          // 버티는 운동이면 초 칸으로 연다(#1969). 예전에는 이 값을 넘기지
+          // 않아 템플릿의 `플랭크 45초` 가 횟수 칸으로 열렸다. (#2521)
+          holdSeconds: exercise.holdSeconds > 0 ? exercise.holdSeconds : 60,
+          isHold: exercise.holdSeconds > 0,
           // 중량은 채우지 않는다 — 맨몸이 기본이고 `0kg` 은 트레이너가 적은
           // 값이다(#1310). 세트·횟수와 달리 기본값을 둘 근거가 없다(#2265).
           weight: exercise.weight,
