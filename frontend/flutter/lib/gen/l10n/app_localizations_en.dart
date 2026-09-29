@@ -834,6 +834,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exExerciseHold => 'Hold time';
 
   @override
+  String get exExerciseStrengthAmount => 'Sets · Reps · Weight';
+
+  @override
+  String get exExerciseStrengthAmountHold => 'Sets · Hold · Weight';
+
+  @override
   String get exExerciseMeasure => 'Measured in';
 
   @override
@@ -3867,12 +3873,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exDemoPtFeedback =>
       'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
-
-  @override
-  String get exStepperDecrease => 'Decrease';
-
-  @override
-  String get exStepperIncrease => 'Increase';
 
   @override
   String pointsRewardBadge(int points) {

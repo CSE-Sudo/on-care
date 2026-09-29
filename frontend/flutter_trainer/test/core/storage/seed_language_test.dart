@@ -314,9 +314,13 @@ void main() {
       final AppDatabase db = await _seeded(DemoLanguage.en);
       addTearDown(db.close);
 
-      final feedback = await (db.select(
-        db.clientWeeklyFeedbacks,
-      )..where((t) => t.clientId.equals('seed-client-8'))).getSingle();
+      // 가장 최근 주의 답 — 오세라는 이번 주에 허리 통증을 적었다.
+      final feedback =
+          await (db.select(db.clientWeeklyFeedbacks)
+                ..where((t) => t.clientId.equals('seed-client-8'))
+                ..orderBy([(t) => OrderingTerm.desc(t.weekStart)])
+                ..limit(1))
+              .getSingle();
       expect(feedback.painArea, 'Lower back');
     });
 

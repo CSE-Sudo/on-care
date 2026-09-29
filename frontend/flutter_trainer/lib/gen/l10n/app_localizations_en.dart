@@ -214,13 +214,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authPasswordConfirm => 'Confirm password';
 
   @override
-  String get authInviteCode => 'Gym invite code';
-
-  @override
-  String get authInviteCodeHelp =>
-      'Enter the code issued by the gym you work at.';
-
-  @override
   String get authLegalNotice => 'By signing up you agree to';
 
   @override
@@ -275,10 +268,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrPasswordMismatch => 'Passwords don\'t match';
-
-  @override
-  String get authErrInviteCodeRequired =>
-      'Enter the invite code you received from your gym';
 
   @override
   String get authErrSignUpFailed =>
@@ -3319,10 +3308,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmailTaken => 'That email is already registered.';
 
   @override
-  String get authErrInviteCodeInvalid =>
-      'That invite code isn\'t valid. Please check with your gym.';
-
-  @override
   String get authErrSessionExpired =>
       'Your session expired. Please sign in again.';
 
@@ -4705,16 +4690,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachTemplateMenu => 'Template menu';
-
-  @override
-  String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets sets · $reps reps · ${weight}kg';
-  }
-
-  @override
-  String aiHoldSummary(int sets, int seconds, String weight) {
-    return '$sets sets · $seconds sec · ${weight}kg';
-  }
 
   @override
   String get routineFormDecrease => 'Decrease';

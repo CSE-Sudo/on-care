@@ -484,6 +484,8 @@
   "exExerciseNameHintOther": "e.g. Rehab exercise, Sports activity",
   "exExerciseReps": "Reps",
   "exExerciseHold": "Hold time",
+  "exExerciseStrengthAmount": "Sets · Reps · Weight",
+  "exExerciseStrengthAmountHold": "Sets · Hold · Weight",
   "exExerciseMeasure": "Measured in",
   "exExerciseWeight": "Weight",
   "exUnitMinutes": "min",
@@ -3130,8 +3132,6 @@
     }
   },
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
-  "exStepperDecrease": "Decrease",
-  "exStepperIncrease": "Increase",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",

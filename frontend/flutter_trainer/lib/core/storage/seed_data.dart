@@ -20,10 +20,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v36']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v37']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v37` 은 회원 주간 피드백을 리포트 이력의 주마다 거의 모든 회원에게
+/// 심었다. 올리지 않으면 오늘 이미 시드된 브라우저의 리포트 `한 줄 메모` 가
+/// 대부분의 회원·주에서 비어 있다.
 ///
 /// `_v36` 은 김민수를 뺀 고객의 일별 기록을 리포트 이력 전체와 그 앞 4주까지
 /// 늘렸다(#2453). 올리지 않으면 오늘 이미 시드된 브라우저의 오래된 지난
@@ -153,7 +157,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v36') == today &&
+  if (await db.readValue('trainer_seeded_v37') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -634,7 +638,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v36', today);
+    await db.putValue('trainer_seeded_v37', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -2088,11 +2092,16 @@ const List<_Slot> _schedule = <_Slot>[
 
 // ---- 리포트 ②·③ 데모 자료 (#2232) ----
 
-/// 회원이 낸 주간 피드백 — 지난 주와 그 앞 주.
+/// 회원이 낸 주간 피드백 — 리포트 이력이 닿는 주마다.
 ///
-/// 리포트 ② 칸이 읽는다. **전원이 답하지는 않는다**: 답이 없는 주에 그 칸이
-/// 어떻게 보이는지가 이 기능에서 가장 자주 만나는 화면이라, 데모가 그걸
-/// 숨기면 안 된다. 김민수(1)는 시연 대상이라 두 주 모두 답이 있다.
+/// 리포트 ② 칸이 읽는다. 대부분의 회원이 대부분의 주에 답하고, 한 줄 메모는
+/// 그 회원의 이야기(`seed_clients.dart` 머리말)와 그 주의 계수(`_calorieFactors`
+/// 등 — 2·9주 전은 회식, 3·10주 전은 나트륨이 잡힌 주)에 맞춰 적는다.
+///
+/// 그래도 **전원이 매주 답하지는 않는다**: 답이 없는 주(`아직 받지 못함`)와
+/// 답은 냈지만 메모가 빈 주(`남긴 말 없음`)가 어떻게 보이는지도 데모에서 볼
+/// 수 있어야 한다. 신규 회원 임도현(7)은 아직 한 번도 답하지 않았고, 휴면인
+/// 문가영(12)은 3주 전부터 답이 끊겼다.
 Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
   int clientId,
   DateTime now,
@@ -2142,10 +2151,10 @@ class _Feedback {
   final String note;
 }
 
-/// 회원 번호 → 낸 답. 없는 회원은 아직 답하지 않은 사람이다.
+/// 회원 번호 → 낸 답. 없는 회원·없는 주는 아직 답하지 않은 것이다.
 const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
-  // 김민수 — 시연 대상. 수치는 나쁜데 이유가 `게으름` 이 아니라는 것이
-  // 이 두 줄에서만 나온다.
+  // 김민수 — 시연 대상. 수치는 나쁜데 이유가 `게으름` 이 아니라는 것이 답에서 나온다. 주마다
+  // 픽스처의 이야기(회식·국물·야근)를 따른다.
   1: <_Feedback>[
     _Feedback(
       weeksAgo: 0,
@@ -2161,8 +2170,71 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       intensity: 'right',
       note: '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
     ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'right',
+      note: '회식이 세 번이나 있어서 술이랑 안주를 많이 먹었어요. 운동은 그래도 빠지지 않았어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'good',
+      intensity: 'right',
+      note: '국물 절반 남기기 해 봤는데 생각보다 어렵지 않았어요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'ok',
+      intensity: 'right',
+      note: '구내식당 메뉴가 거의 국이라 나트륨 조절이 힘들었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'tired',
+      intensity: 'hard',
+      note: '야근 때문에 저녁을 늦게 먹어서 기록을 몇 번 빼먹었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'ok',
+      intensity: 'hard',
+      note: '기록하는 게 아직 익숙하지 않아서 빠진 날이 있어요.',
+    ),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'ok',
+      intensity: 'right',
+      note: '화·목은 여전히 바빴지만 나머지 날은 계획대로 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '이번 주는 몸이 가벼웠어요. 걷기 시간을 조금 늘려도 될 것 같아요.',
+    ),
+    _Feedback(weeksAgo: 9, condition: 'tired', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'good',
+      intensity: 'right',
+      note: '아침에 혈압을 재 보니 전보다 조금 내려갔어요.',
+    ),
+    _Feedback(
+      weeksAgo: 11,
+      condition: 'ok',
+      intensity: 'hard',
+      painArea: '오른쪽 무릎',
+      painDay: 3,
+      note: '스쿼트 뒤로 계단 내려갈 때 무릎이 살짝 시큰했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'tired',
+      intensity: 'too_hard',
+      note: '야근이 이어져서 운동 강도가 버거웠어요.',
+    ),
   ],
-  // 이서준 — 잘 따라오는 쪽. 같은 문항이 좋은 주에 어떻게 보이는지.
+  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 런닝 숨참·플랭크 피로가 차츰 풀린다.
   2: <_Feedback>[
     _Feedback(
       weeksAgo: 0,
@@ -2170,8 +2242,77 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       intensity: 'right',
       note: '스쿼트 무게 올린 게 오히려 재밌었어요.',
     ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'good',
+      intensity: 'right',
+      note: '주말엔 기록을 또 잊었어요. 평일은 인터벌 다 채웠어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'ok',
+      intensity: 'right',
+      note: '친구 결혼식이랑 모임이 겹쳐서 단 걸 많이 먹었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'great',
+      intensity: 'right',
+      note: '런닝할 때 숨찬 게 확실히 줄었어요!',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'good',
+      intensity: 'hard',
+      note: '플랭크 마지막 세트가 아직 힘들어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'good',
+      intensity: 'right',
+      note: '데드리프트 자세 교정 받은 뒤로 허리가 편해졌어요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'ok',
+      intensity: 'hard',
+      note: '인터벌을 처음 해 봤는데 숨이 너무 찼어요.',
+    ),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'good',
+      intensity: 'right',
+      note: '주말에 등산 다녀왔는데 기록은 못 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '스쿼트 무게를 좀 더 올려도 될 것 같아요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'ok',
+      intensity: 'right',
+      note: '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 11,
+      condition: 'good',
+      intensity: 'right',
+      note: '저녁을 샐러드로 바꾸니까 생각보다 배가 덜 고파요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'ok',
+      intensity: 'hard',
+      painArea: '왼쪽 발목',
+      painDay: 4,
+      note: '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
+    ),
   ],
-  // 박성호 — 휴면. 몸이 아니라 일정이 막고 있다는 답이다.
+  // 박성호 — 휴면. 몸이 아니라 일정(출장·회사 일)이 막고 있고, 나올 때는 벤치 중량에 욕심이
+  // 있다.
   3: <_Feedback>[
     _Feedback(
       weeksAgo: 0,
@@ -2179,8 +2320,272 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       intensity: 'too_easy',
       note: '출장이 겹쳐서 헬스장에 못 갔습니다. 다음 주부터 다시 갈게요.',
     ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'tired',
+      intensity: 'too_easy',
+      note: '회사 일 때문에 벤치만 하고 나온 날이 많았어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'right',
+      note: '거래처 접대가 많아서 술자리가 이어졌어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'ok',
+      intensity: 'right',
+      note: '점심에 짜장면 대신 백반 먹으려고 노력했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'good',
+      intensity: 'hard',
+      note: '벤치 65kg 성공했어요! 가슴이 제대로 타는 느낌이었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'good',
+      intensity: 'right',
+      note: '데드리프트 자세가 이제 좀 잡히는 것 같아요.',
+    ),
+    _Feedback(weeksAgo: 7, condition: 'ok', intensity: 'too_easy'),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'tired',
+      intensity: 'right',
+      note: '출장 가서 호텔 헬스장에서 가볍게만 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'good',
+      intensity: 'hard',
+      note: '벤치 62.5kg으로 5개 채웠어요.',
+    ),
+    _Feedback(
+      weeksAgo: 11,
+      condition: 'good',
+      intensity: 'right',
+      note: '다시 운동 시작하니 좋네요. 꾸준히 해 볼게요.',
+    ),
   ],
-  // 오세라 — 악화. 통증이 있는 주는 강도부터 내려야 한다.
+  // 정하윤 — V자 회복. 아이가 아파 2주 가까이 끊겼다가 돌아왔다. 산후 코어 재활이라 골반 쪽
+  // 불편이 가끔 있다.
+  4: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'good',
+      intensity: 'right',
+      note: '컨디션이 돌아온 게 느껴져요. 이번 주는 다 채워 볼게요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'tired',
+      intensity: 'right',
+      note: '아이가 아파서 중간에 한참 쉬었어요. 주말부터 다시 걸었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'too_easy',
+      note: '아이가 입원해서 운동을 거의 못 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'good',
+      intensity: 'right',
+      note: '골반 안정화 운동이 익숙해졌어요. 허리 뻐근함이 줄었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'ok',
+      intensity: 'hard',
+      painArea: '골반',
+      painDay: 2,
+      note: '골반 안정화 하고 나서 왼쪽 골반이 좀 당겼어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'good',
+      intensity: 'right',
+      note: '밴드 로우를 하니까 어깨가 펴지는 느낌이에요.',
+    ),
+    _Feedback(weeksAgo: 6, condition: 'ok', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'good',
+      intensity: 'right',
+      note: '걷기 25분이 이제 가뿐해요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'tired',
+      intensity: 'right',
+      note: '아이 재우고 나면 운동할 힘이 없어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'good',
+      intensity: 'right',
+      note: '배에 힘이 조금씩 들어가는 게 느껴져요.',
+    ),
+    _Feedback(
+      weeksAgo: 11,
+      condition: 'ok',
+      intensity: 'hard',
+      note: '코어 운동이 아직 버거워요.',
+    ),
+  ],
+  // 최우진 — 대조군. 늘 100% 로 완주하고 강도를 더 달라고 한다. 지구력 훈련자라
+  // 종아리·무릎 바깥쪽 뭉침만 가끔 있다.
+  5: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'great',
+      intensity: 'right',
+      note: '페이스가 안정적이에요. LSD 거리를 조금 늘려도 될 것 같아요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'great',
+      intensity: 'too_easy',
+      note: '인터벌도 이제 할 만해요. 강도를 올려 주세요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'good',
+      intensity: 'hard',
+      note: '인터벌 끝나고 다리가 후들거렸지만 다 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'great',
+      intensity: 'right',
+      note: '10km 기록을 1분 줄였어요!',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'good',
+      intensity: 'right',
+      note: '간식으로 스포츠음료를 좀 많이 마셨어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'tired',
+      intensity: 'hard',
+      painArea: '왼쪽 종아리',
+      painDay: 5,
+      note: '토요일 LSD 뒤로 종아리가 뭉쳤어요. 스트레칭은 매일 했어요.',
+    ),
+    _Feedback(weeksAgo: 6, condition: 'great', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'great',
+      intensity: 'right',
+      note: '하프 마라톤 준비 페이스를 잘 맞추고 있어요.',
+    ),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '힙 힌지 드릴 무게를 조금 올리고 싶어요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'good',
+      intensity: 'right',
+      note: '회식이 있었지만 운동은 다 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'great',
+      intensity: 'right',
+      note: '러닝 후 회복이 빨라졌어요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'good',
+      intensity: 'hard',
+      painArea: '오른쪽 무릎 바깥쪽',
+      painDay: 6,
+      note: '장거리 달리고 나서 무릎 바깥쪽이 살짝 당겼어요.',
+    ),
+    _Feedback(weeksAgo: 13, condition: 'good', intensity: 'right'),
+  ],
+  // 강서연 — 주말 붕괴형. 평일 루틴은 지키는데 주말 약속(마라탕·치킨·맥주)에서 무너지고,
+  // 단백질을 챙기려 애쓴다.
+  6: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'ok',
+      intensity: 'right',
+      note: '평일 루틴은 이번 주도 잘 지키고 있어요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'ok',
+      intensity: 'right',
+      note: '평일은 다 했는데 주말에 친구들이랑 마라탕이랑 치킨을 먹었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'right',
+      note: '주말 내내 약속이라 맥주를 꽤 마셨어요. 월요일에 몸이 무거웠어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'good',
+      intensity: 'right',
+      note: '주말 15분 프로그램 해 봤어요. 짧으니까 할 만했어요!',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'ok',
+      intensity: 'too_easy',
+      note: '평일 서킷은 이제 쉬워요. 주말은 또 못 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'good',
+      intensity: 'right',
+      note: '단백질 챙기려고 점심에 닭가슴살을 추가했어요.',
+    ),
+    _Feedback(weeksAgo: 6, condition: 'ok', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'tired',
+      intensity: 'right',
+      note: '주말에 여행을 다녀와서 기록을 못 남겼어요.',
+    ),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'good',
+      intensity: 'right',
+      note: '체중이 0.8kg 빠졌어요!',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'tired',
+      intensity: 'right',
+      note: '회식이랑 생일 모임이 겹쳐서 식단이 무너졌어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'good',
+      intensity: 'right',
+      note: '주말 걷기 30분은 채웠어요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'ok',
+      intensity: 'right',
+      note: '평일엔 잘 되는데 주말만 되면 무너져요.',
+    ),
+  ],
+  // 오세라 — 급성 악화. 몇 주 전까지는 혈압이 잡혀 가다가 회사 일·회식·편의점 끼니가 겹치며
+  // 무너지고, 허리 통증이 붙는다. 통증이 있는 주는 강도부터 내려야 한다.
   8: <_Feedback>[
     _Feedback(
       weeksAgo: 0,
@@ -2190,8 +2595,438 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       painDay: 1,
       note: '데드리프트 하고 나서 허리가 계속 뻐근합니다.',
     ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'tired',
+      intensity: 'hard',
+      painArea: '허리',
+      painDay: 3,
+      note: '허리가 뻐근해서 걷기만 10분 했어요. 회사 일도 몰렸어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'right',
+      note: '회식에서 족발이랑 소주를 먹었더니 다음 날 혈압이 높게 나왔어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'tired',
+      intensity: 'right',
+      note: '야근 때문에 편의점으로 때운 날이 많았어요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'ok',
+      intensity: 'right',
+      note: '걷기는 했는데 호흡 이완은 자꾸 잊어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'ok',
+      intensity: 'right',
+      note: '국물을 줄이려고 했는데 점심이 부대찌개였어요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'good',
+      intensity: 'right',
+      note: '혈압이 조금 내려갔어요. 걷기 습관이 붙는 것 같아요.',
+    ),
+    _Feedback(weeksAgo: 7, condition: 'good', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '의자 스쿼트는 이제 쉬워요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'ok',
+      intensity: 'right',
+      note: '회식 자리가 있었지만 소주는 한 잔만 마셨어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'good',
+      intensity: 'right',
+      note: '저녁에 가볍게 걸으니 잠이 잘 와요.',
+    ),
+    _Feedback(
+      weeksAgo: 11,
+      condition: 'good',
+      intensity: 'right',
+      note: '혈압 수치가 목표 안에 들어왔어요!',
+    ),
   ],
-  // 배준혁 — 답장 대기 중이지만 피드백은 냈다. 채팅을 안 읽는 것과
-  // 답을 안 내는 것이 서로 다른 일이라는 것을 보여 준다.
-  9: <_Feedback>[_Feedback(weeksAgo: 0, condition: 'good', intensity: 'hard')],
+  // 배준혁 — 야근형. 채팅 답장은 늦어도 피드백은 낸다. 야근·마감에 막혀 짧은 프로그램도
+  // 버겁고, 오래 앉아 있어 목·어깨가 굳는다.
+  9: <_Feedback>[
+    _Feedback(weeksAgo: 0, condition: 'good', intensity: 'hard'),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'tired',
+      intensity: 'hard',
+      note: '야근이 계속돼서 자기 전에 스트레칭만 겨우 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'right',
+      note: '회식이 많아서 수업도 한 번 빠졌어요. 죄송해요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'bad',
+      intensity: 'hard',
+      note: '프로젝트 마감 주라 거의 못 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'tired',
+      intensity: 'hard',
+      note: '퇴근하고 걷기 15분도 버거워요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'ok',
+      intensity: 'right',
+      note: '5분짜리 플랭크 버전은 할 만했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'tired',
+      intensity: 'hard',
+      painArea: '목·어깨',
+      painDay: 2,
+      note: '하루 종일 앉아 있어서 목이랑 어깨가 뻣뻣해요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'tired',
+      intensity: 'right',
+      note: '야식으로 크림빵을 자꾸 먹게 돼요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'ok',
+      intensity: 'right',
+      note: '아침에 커피만 마시는 습관을 고쳐 보려고요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'ok',
+      intensity: 'hard',
+      note: '저녁엔 자꾸 야근이 잡혀서 수업 시간을 옮기고 싶어요.',
+    ),
+  ],
+  // 신유나 — 회복 중. 무릎 재활이라 오래전일수록 통증이 잦고, 최근 주로 올수록 통증 없이
+  // 끝낸다.
+  10: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'great',
+      intensity: 'right',
+      note: '무릎 통증 없이 다 했어요! 러닝머신 걷기도 해 보고 싶어요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'good',
+      intensity: 'right',
+      note: '마지막 가동범위 운동은 시간이 부족했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'good',
+      intensity: 'right',
+      note: '모임이 있었는데 국물은 덜 먹으려고 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'good',
+      intensity: 'hard',
+      note: '레그 익스텐션을 20kg으로 올리니 조금 힘들었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'ok',
+      intensity: 'hard',
+      painArea: '오른쪽 무릎',
+      painDay: 1,
+      note: '자전거 타고 나서 무릎 안쪽이 살짝 시큰했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'ok',
+      intensity: 'right',
+      note: '비빔밥에 고추장을 절반만 넣었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'tired',
+      intensity: 'hard',
+      painArea: '오른쪽 무릎',
+      painDay: 3,
+      note: '계단 오르내릴 때 아직 통증이 있어요.',
+    ),
+    _Feedback(weeksAgo: 7, condition: 'ok', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'tired',
+      intensity: 'too_hard',
+      painArea: '오른쪽 무릎',
+      painDay: 2,
+      note: '무릎이 부어서 이틀 쉬었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'bad',
+      intensity: 'too_hard',
+      painArea: '오른쪽 무릎',
+      note: '수술 후 첫 운동이라 많이 무서웠어요.',
+    ),
+  ],
+  // 한지호 — 정체기. 매주 비슷하게 해내지만 변화가 없어 지루해하고, 백반·찌개 나트륨이 늘
+  // 걸린다.
+  11: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'ok',
+      intensity: 'right',
+      note: '이번 주도 평소만큼은 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'ok',
+      intensity: 'right',
+      note: '체중이 몇 주째 그대로라 조금 답답해요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'ok',
+      intensity: 'right',
+      note: '회식이 있는 주라 저녁은 거의 못 지켰어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'ok',
+      intensity: 'too_easy',
+      note: '경사 걷기가 이제 너무 익숙해요.',
+    ),
+    _Feedback(weeksAgo: 4, condition: 'ok', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'ok',
+      intensity: 'right',
+      note: '스트레칭은 매번 빼먹게 돼요.',
+    ),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'good',
+      intensity: 'right',
+      note: '풀업 어시스트를 처음 해 봤는데 재밌었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'ok',
+      intensity: 'right',
+      note: '백반집 반찬이 짜서 나트륨이 늘 걸려요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'ok',
+      intensity: 'too_easy',
+      note: '운동이 좀 지루해졌어요. 새로운 걸 해 보고 싶어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'ok',
+      intensity: 'right',
+      note: '아침 시리얼을 그릭요거트로 바꿔 볼까 해요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'good',
+      intensity: 'right',
+      note: '처음보다 계단 오를 때 숨이 덜 차요.',
+    ),
+    _Feedback(weeksAgo: 13, condition: 'good', intensity: 'right'),
+  ],
+  // 문가영 — 휴면. 3주 전 `당분간 쉬겠다` 는 말을 끝으로 답이 끊겼다. 그 전에도 일이 많아
+  // 기록이 드문드문했다.
+  12: <_Feedback>[
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'tired',
+      intensity: 'right',
+      note: '일이 많아서 당분간 쉬려고요. 정리되면 다시 연락드릴게요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'tired',
+      intensity: 'hard',
+      note: '요즘 일이 많아서 사흘밖에 기록을 못 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'ok',
+      intensity: 'right',
+      note: '저녁 기록을 자꾸 까먹어요.',
+    ),
+    _Feedback(weeksAgo: 7, condition: 'ok', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 8,
+      condition: 'good',
+      intensity: 'right',
+      note: '체력이 조금 붙은 것 같아요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'ok',
+      intensity: 'hard',
+      note: '회식 다음 날 운동이 너무 힘들었어요.',
+    ),
+  ],
+  // 류태경 — 극단 변동·벌크업. 하는 날은 확실히 하고 못 가는 날은 아예 못 간다. 중량 욕심은
+  // 크고 단백질은 늘 모자라다.
+  13: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'good',
+      intensity: 'right',
+      note: '격일로라도 꾸준히 해 볼게요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'ok',
+      intensity: 'too_easy',
+      note: '가는 날은 확실히 하는데 못 가는 날이 절반이에요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'tired',
+      intensity: 'hard',
+      note: '회식 다음 날은 아예 못 갔어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'good',
+      intensity: 'right',
+      note: '닭가슴살로 단백질을 채우려고 했는데 쉽지 않네요.',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '벤치 무게를 더 올리고 싶어요.',
+    ),
+    _Feedback(weeksAgo: 5, condition: 'ok', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 6,
+      condition: 'great',
+      intensity: 'hard',
+      note: '스쿼트 100kg 찍었어요!',
+    ),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'tired',
+      intensity: 'right',
+      note: '야간 근무 주라 들쭉날쭉했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'ok',
+      intensity: 'hard',
+      painArea: '왼쪽 손목',
+      painDay: 2,
+      note: '벤치 하다 손목이 꺾여서 좀 아팠어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'good',
+      intensity: 'right',
+      note: '단백질 쉐이크를 하루 두 번 먹고 있어요.',
+    ),
+    _Feedback(
+      weeksAgo: 12,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '운동은 재밌는데 먹는 양이 모자란 것 같아요.',
+    ),
+  ],
+  // 백서진 — 운동은 흠잡을 데가 없고 나트륨만 높다. 답도 늘 운동은 괜찮고 짜게 먹는다는
+  // 이야기다.
+  14: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'good',
+      intensity: 'right',
+      note: '운동은 빠짐없이 하는데 식단은 아직 짜게 먹는 편이에요.',
+    ),
+    _Feedback(
+      weeksAgo: 1,
+      condition: 'good',
+      intensity: 'right',
+      note: '라면을 끊진 못했어요. 운동은 다 했어요.',
+    ),
+    _Feedback(
+      weeksAgo: 2,
+      condition: 'good',
+      intensity: 'right',
+      note: '회식이 있어서 찌개를 많이 먹었어요.',
+    ),
+    _Feedback(
+      weeksAgo: 3,
+      condition: 'great',
+      intensity: 'right',
+      note: '국물을 안 먹었더니 붓기가 덜해요!',
+    ),
+    _Feedback(
+      weeksAgo: 4,
+      condition: 'good',
+      intensity: 'too_easy',
+      note: '운동은 이제 쉬워요. 강도를 좀 올려 주세요.',
+    ),
+    _Feedback(
+      weeksAgo: 5,
+      condition: 'good',
+      intensity: 'right',
+      note: '배달 음식을 줄이는 중이에요.',
+    ),
+    _Feedback(weeksAgo: 6, condition: 'good', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 7,
+      condition: 'good',
+      intensity: 'right',
+      note: '김치를 너무 좋아해서 줄이기가 어렵네요.',
+    ),
+    _Feedback(
+      weeksAgo: 9,
+      condition: 'ok',
+      intensity: 'right',
+      note: '외식이 잦은 주였어요.',
+    ),
+    _Feedback(
+      weeksAgo: 10,
+      condition: 'great',
+      intensity: 'right',
+      note: '간장을 저염으로 바꿨어요.',
+    ),
+    _Feedback(weeksAgo: 11, condition: 'good', intensity: 'right'),
+    _Feedback(
+      weeksAgo: 13,
+      condition: 'good',
+      intensity: 'right',
+      note: '매일 운동하는 습관은 잡힌 것 같아요.',
+    ),
+  ],
+  // 노은채 — 이번 주에 막 시작했다. 답도 이번 주 하나뿐이다.
+  15: <_Feedback>[
+    _Feedback(
+      weeksAgo: 0,
+      condition: 'good',
+      intensity: 'right',
+      note: '첫 주라 긴장했는데 재밌었어요. 주 3회를 목표로 해 볼게요.',
+    ),
+  ],
 };

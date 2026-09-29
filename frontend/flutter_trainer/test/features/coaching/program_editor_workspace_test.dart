@@ -600,7 +600,7 @@ void main() {
           _ko,
           nonStrength.copyWith(type: '근력', sets: 1, reps: 12, weight: 0),
         ),
-        <String>['1세트', '12회', '0kg'],
+        <String>['1세트', '12회'],
       );
       expect(programExerciseMetrics(_ko, nonStrength), <String>['20분']);
     });

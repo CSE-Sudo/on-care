@@ -3209,9 +3209,10 @@ def _program_item_label(item: ProgramItem) -> str:
             parts.append(f"{item.hold_seconds}초")
         elif item.reps:
             parts.append(f"{item.reps}회")
-        # 맨몸 운동은 `0kg` 이다 — 두 앱의 중량 칸은 비울 수 없어(최솟값 0)
-        # 근력이면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
-        # 전에 저장된 행뿐이라, 그때만 자리를 비운다.
+        # 맨몸 운동은 `0kg` 으로 **저장**한다 — 이 문장이 이력 행에 남고, 값은
+        # 읽을 때 `parse_history_exercise` 가 이 문장에서 되짚는다. `0kg` 을
+        # 빼면 맨몸의 0 이 "적지 않음"(None)으로 바뀐다. 화면은 0 을 적지 않는다
+        # (#2533). 값이 아예 없는 것은 규칙 이전의 옛 행뿐이다.
         if item.weight is not None:
             parts.append(f"{item.weight:g}kg")
     else:
@@ -3253,8 +3254,8 @@ def _amount_label(
         parts.append(f"{hold_seconds}초")
     elif reps:
         parts.append(f"{reps}회")
-    # 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 적은 값이다.
-    if weight is not None:
+    # 맨몸 운동(0)은 중량을 적지 않는다 — `_program_item_label` 과 같다. (#2533)
+    if weight:
         parts.append(f"{weight:g}kg")
     return " · ".join(parts)
 

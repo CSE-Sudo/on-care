@@ -25,6 +25,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -2156,21 +2157,21 @@ RoutineExercise _withStrengthDefaults(RoutineExercise exercise) {
   );
 }
 
-/// 근력 한 줄의 요약 문구 — 세트 × 횟수 · 중량. (#1310)
+/// 근력 한 줄의 요약 문구 — 세트 · 횟수 · 중량. (#1310)
 ///
-/// 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 트레이너가 적은
-/// 값이다.
+/// 맨몸 운동(0kg)은 중량을 적지 않는다 — `3세트 · 15회`. (#2533)
 ///
-/// 버티는 운동은 횟수 자리에 초가 선다 — `3세트 · 60초 · 0kg`. 한 세트를 두
+/// 버티는 운동은 횟수 자리에 초가 선다 — `3세트 · 60초`. 한 세트를 두
 /// 단위로 적지 않으므로 둘이 한 줄에 함께 서지 않는다. (#1969)
-String _strengthSummary(AppLocalizations l, RoutineExercise exercise) {
-  final double w = exercise.weight;
-  final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
-  if (exercise.isHold) {
-    return l.aiHoldSummary(exercise.sets, exercise.holdSeconds, weight);
-  }
-  return l.aiStrengthSummary(exercise.sets, exercise.reps, weight);
-}
+String _strengthSummary(AppLocalizations l, RoutineExercise exercise) =>
+    <String>[
+      l.progSetsValue(exercise.sets),
+      if (exercise.isHold)
+        l.progHoldValue(exercise.holdSeconds)
+      else
+        l.progRepsValue(exercise.reps),
+      ?strengthWeightLabel(l, exercise.weight),
+    ].join(' · ');
 
 /// 후보 편집기의 운동 이름 칸.
 ///

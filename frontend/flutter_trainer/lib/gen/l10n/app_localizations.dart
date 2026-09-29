@@ -476,18 +476,6 @@ abstract class AppLocalizations {
   /// **'Confirm password'**
   String get authPasswordConfirm;
 
-  /// No description provided for @authInviteCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Gym invite code'**
-  String get authInviteCode;
-
-  /// No description provided for @authInviteCodeHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the code issued by the gym you work at.'**
-  String get authInviteCodeHelp;
-
   /// No description provided for @authLegalNotice.
   ///
   /// In en, this message translates to:
@@ -589,12 +577,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passwords don\'t match'**
   String get authErrPasswordMismatch;
-
-  /// No description provided for @authErrInviteCodeRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the invite code you received from your gym'**
-  String get authErrInviteCodeRequired;
 
   /// No description provided for @authErrSignUpFailed.
   ///
@@ -5761,12 +5743,6 @@ abstract class AppLocalizations {
   /// **'That email is already registered.'**
   String get authErrEmailTaken;
 
-  /// No description provided for @authErrInviteCodeInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'That invite code isn\'t valid. Please check with your gym.'**
-  String get authErrInviteCodeInvalid;
-
   /// No description provided for @authErrSessionExpired.
   ///
   /// In en, this message translates to:
@@ -8054,18 +8030,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Template menu'**
   String get coachTemplateMenu;
-
-  /// No description provided for @aiStrengthSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {reps} reps · {weight}kg'**
-  String aiStrengthSummary(int sets, int reps, String weight);
-
-  /// No description provided for @aiHoldSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {seconds} sec · {weight}kg'**
-  String aiHoldSummary(int sets, int seconds, String weight);
 
   /// No description provided for @routineFormDecrease.
   ///
