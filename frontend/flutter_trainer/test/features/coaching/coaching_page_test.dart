@@ -466,7 +466,6 @@ class _FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
-    required String inviteCode,
   }) async => _tokens;
 
   @override
