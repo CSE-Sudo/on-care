@@ -476,6 +476,219 @@ const Map<String, String> _seedEnglish = <String, String>{
   '허리': 'Lower back',
   '데드리프트 하고 나서 허리가 계속 뻐근합니다.':
       'My lower back has been stiff ever since deadlifts.',
+  '오른쪽 무릎': 'Right knee',
+  '왼쪽 발목': 'Left ankle',
+  '골반': 'Pelvis',
+  '왼쪽 종아리': 'Left calf',
+  '목·어깨': 'Neck and shoulders',
+  '왼쪽 손목': 'Left wrist',
+  '오른쪽 무릎 바깥쪽': 'Outside of the right knee',
+  '회식이 세 번이나 있어서 술이랑 안주를 많이 먹었어요. 운동은 그래도 빠지지 않았어요.':
+      'Three team dinners this week, so plenty of drinks and bar food. I still made every workout.',
+  '국물 절반 남기기 해 봤는데 생각보다 어렵지 않았어요.':
+      'I tried leaving half the soup, and it was easier than I expected.',
+  '구내식당 메뉴가 거의 국이라 나트륨 조절이 힘들었어요.':
+      'The cafeteria served soup almost every day, so sodium was hard to control.',
+  '야근 때문에 저녁을 늦게 먹어서 기록을 몇 번 빼먹었어요.':
+      'Late nights meant late dinners, and I skipped logging a few of them.',
+  '기록하는 게 아직 익숙하지 않아서 빠진 날이 있어요.':
+      'Logging still feels new, so I missed a day or two.',
+  '화·목은 여전히 바빴지만 나머지 날은 계획대로 했어요.':
+      'Tuesdays and Thursdays were still busy, but I stuck to the plan on the other days.',
+  '이번 주는 몸이 가벼웠어요. 걷기 시간을 조금 늘려도 될 것 같아요.':
+      'I felt light this week. I think I can walk a little longer.',
+  '아침에 혈압을 재 보니 전보다 조금 내려갔어요.':
+      'My morning blood pressure reading came down a little.',
+  '스쿼트 뒤로 계단 내려갈 때 무릎이 살짝 시큰했어요.':
+      'After squats my knee twinged a bit going down stairs.',
+  '야근이 이어져서 운동 강도가 버거웠어요.':
+      'Back-to-back late nights made the workouts feel too heavy.',
+  '주말엔 기록을 또 잊었어요. 평일은 인터벌 다 채웠어요.':
+      'I forgot to log over the weekend again, but I finished every interval session on weekdays.',
+  '친구 결혼식이랑 모임이 겹쳐서 단 걸 많이 먹었어요.':
+      "A friend's wedding and a get-together landed in the same week, so I ate a lot of sweets.",
+  '런닝할 때 숨찬 게 확실히 줄었어요!': "I'm definitely less out of breath when I run!",
+  '플랭크 마지막 세트가 아직 힘들어요.': 'The last plank set is still tough.',
+  '데드리프트 자세 교정 받은 뒤로 허리가 편해졌어요.':
+      'My back feels better since you fixed my deadlift form.',
+  '인터벌을 처음 해 봤는데 숨이 너무 찼어요.':
+      'First time doing intervals, and I was completely out of breath.',
+  '주말에 등산 다녀왔는데 기록은 못 했어요.': "I went hiking on the weekend but didn't log it.",
+  '스쿼트 무게를 좀 더 올려도 될 것 같아요.': 'I think I can go a bit heavier on squats.',
+  '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.':
+      'Two team dinners, but I still ran the next day.',
+  '저녁을 샐러드로 바꾸니까 생각보다 배가 덜 고파요.':
+      "Switching dinner to salad, I'm less hungry than I expected.",
+  '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.':
+      "I rolled my ankle slightly while running. It's fine now.",
+  '회사 일 때문에 벤치만 하고 나온 날이 많았어요.':
+      'Work kept pulling me away, so most days I only did bench and left.',
+  '거래처 접대가 많아서 술자리가 이어졌어요.':
+      'Lots of client dinners, one drinking night after another.',
+  '점심에 짜장면 대신 백반 먹으려고 노력했어요.':
+      'I tried to pick a set meal over jajangmyeon at lunch.',
+  '벤치 65kg 성공했어요! 가슴이 제대로 타는 느낌이었어요.':
+      'Hit 65kg on bench! My chest was really burning.',
+  '데드리프트 자세가 이제 좀 잡히는 것 같아요.':
+      'I think my deadlift form is finally coming together.',
+  '출장 가서 호텔 헬스장에서 가볍게만 했어요.':
+      'On a business trip, so just a light session in the hotel gym.',
+  '벤치 62.5kg으로 5개 채웠어요.': 'Got 5 reps at 62.5kg on bench.',
+  '다시 운동 시작하니 좋네요. 꾸준히 해 볼게요.':
+      "It feels good to be training again. I'll keep it up.",
+  '컨디션이 돌아온 게 느껴져요. 이번 주는 다 채워 볼게요.':
+      "I can feel my energy coming back. I'll aim to finish everything this week.",
+  '아이가 아파서 중간에 한참 쉬었어요. 주말부터 다시 걸었어요.':
+      'My child was sick, so I took a long break mid-week. I started walking again on the weekend.',
+  '아이가 입원해서 운동을 거의 못 했어요.':
+      'My child was in the hospital, so I barely worked out.',
+  '골반 안정화 운동이 익숙해졌어요. 허리 뻐근함이 줄었어요.':
+      'The pelvic stability work feels natural now, and my back is less stiff.',
+  '골반 안정화 하고 나서 왼쪽 골반이 좀 당겼어요.':
+      'My left hip felt tight after the pelvic stability work.',
+  '밴드 로우를 하니까 어깨가 펴지는 느낌이에요.': 'Band rows make my shoulders feel more open.',
+  '걷기 25분이 이제 가뿐해요.': 'A 25-minute walk feels easy now.',
+  '아이 재우고 나면 운동할 힘이 없어요.':
+      'After putting my kid to bed I have no energy left to train.',
+  '배에 힘이 조금씩 들어가는 게 느껴져요.': 'I can feel my core slowly getting stronger.',
+  '코어 운동이 아직 버거워요.': 'Core work is still hard for me.',
+  '페이스가 안정적이에요. LSD 거리를 조금 늘려도 될 것 같아요.':
+      'My pace is steady. I think I can stretch my long runs a bit.',
+  '인터벌도 이제 할 만해요. 강도를 올려 주세요.':
+      'Intervals feel manageable now. Please turn up the intensity.',
+  '인터벌 끝나고 다리가 후들거렸지만 다 했어요.':
+      'My legs were shaking after intervals, but I finished them all.',
+  '10km 기록을 1분 줄였어요!': 'I cut a minute off my 10K time!',
+  '간식으로 스포츠음료를 좀 많이 마셨어요.': 'I drank a bit too much sports drink as a snack.',
+  '토요일 LSD 뒤로 종아리가 뭉쳤어요. 스트레칭은 매일 했어요.':
+      'My calf tightened up after the Saturday long run. I stretched every day.',
+  '하프 마라톤 준비 페이스를 잘 맞추고 있어요.': "I'm hitting my half-marathon training paces.",
+  '힙 힌지 드릴 무게를 조금 올리고 싶어요.':
+      "I'd like to add a little weight to the hip hinge drill.",
+  '회식이 있었지만 운동은 다 했어요.': 'There was a team dinner, but I did every workout.',
+  '러닝 후 회복이 빨라졌어요.': 'I recover faster after runs now.',
+  '장거리 달리고 나서 무릎 바깥쪽이 살짝 당겼어요.':
+      'The outside of my knee felt a little tight after the long run.',
+  '평일 루틴은 이번 주도 잘 지키고 있어요.':
+      "I'm sticking to my weekday routine again this week.",
+  '평일은 다 했는데 주말에 친구들이랑 마라탕이랑 치킨을 먹었어요.':
+      'I did everything on weekdays, then had malatang and fried chicken with friends on the weekend.',
+  '주말 내내 약속이라 맥주를 꽤 마셨어요. 월요일에 몸이 무거웠어요.':
+      'Plans all weekend meant quite a bit of beer. I felt heavy on Monday.',
+  '주말 15분 프로그램 해 봤어요. 짧으니까 할 만했어요!':
+      'I tried the 15-minute weekend program. Short enough to actually do!',
+  '평일 서킷은 이제 쉬워요. 주말은 또 못 했어요.':
+      'The weekday circuit is easy now. I missed the weekend again.',
+  '단백질 챙기려고 점심에 닭가슴살을 추가했어요.':
+      'I added chicken breast at lunch to get more protein.',
+  '주말에 여행을 다녀와서 기록을 못 남겼어요.':
+      "I was traveling over the weekend and didn't log anything.",
+  '체중이 0.8kg 빠졌어요!': 'I lost 0.8kg!',
+  '회식이랑 생일 모임이 겹쳐서 식단이 무너졌어요.':
+      'A team dinner and a birthday party in one week wrecked my diet.',
+  '주말 걷기 30분은 채웠어요.': 'I got my 30-minute weekend walk in.',
+  '평일엔 잘 되는데 주말만 되면 무너져요.':
+      'Weekdays go fine, but weekends fall apart every time.',
+  '허리가 뻐근해서 걷기만 10분 했어요. 회사 일도 몰렸어요.':
+      'My lower back was stiff, so I only walked for 10 minutes. Work piled up too.',
+  '회식에서 족발이랑 소주를 먹었더니 다음 날 혈압이 높게 나왔어요.':
+      'Jokbal and soju at a team dinner, and my blood pressure was high the next day.',
+  '야근 때문에 편의점으로 때운 날이 많았어요.':
+      'Late nights meant a lot of convenience-store meals.',
+  '걷기는 했는데 호흡 이완은 자꾸 잊어요.':
+      'I did my walks but keep forgetting the breathing exercises.',
+  '국물을 줄이려고 했는데 점심이 부대찌개였어요.':
+      'I tried to cut back on soup, but lunch was budae-jjigae.',
+  '혈압이 조금 내려갔어요. 걷기 습관이 붙는 것 같아요.':
+      'My blood pressure dropped a little. Walking is becoming a habit.',
+  '의자 스쿼트는 이제 쉬워요.': 'Chair squats are easy now.',
+  '회식 자리가 있었지만 소주는 한 잔만 마셨어요.':
+      'There was a team dinner, but I only had one glass of soju.',
+  '저녁에 가볍게 걸으니 잠이 잘 와요.': 'An easy evening walk helps me sleep.',
+  '혈압 수치가 목표 안에 들어왔어요!': 'My blood pressure is within the target!',
+  '야근이 계속돼서 자기 전에 스트레칭만 겨우 했어요.':
+      'Late nights kept going, so I barely managed stretching before bed.',
+  '회식이 많아서 수업도 한 번 빠졌어요. 죄송해요.':
+      'Too many team dinners, and I even missed a session. Sorry.',
+  '프로젝트 마감 주라 거의 못 했어요.': 'Project deadline week, so I hardly trained.',
+  '퇴근하고 걷기 15분도 버거워요.': 'Even a 15-minute walk after work feels like a lot.',
+  '5분짜리 플랭크 버전은 할 만했어요.': 'The 5-minute plank version was doable.',
+  '하루 종일 앉아 있어서 목이랑 어깨가 뻣뻣해요.':
+      'Sitting all day has left my neck and shoulders stiff.',
+  '야식으로 크림빵을 자꾸 먹게 돼요.':
+      'I keep reaching for cream buns as a late-night snack.',
+  '아침에 커피만 마시는 습관을 고쳐 보려고요.':
+      "I'm trying to stop having just coffee for breakfast.",
+  '저녁엔 자꾸 야근이 잡혀서 수업 시간을 옮기고 싶어요.':
+      'Evening overtime keeps coming up, so I would like to move my session time.',
+  '무릎 통증 없이 다 했어요! 러닝머신 걷기도 해 보고 싶어요.':
+      "Finished everything with no knee pain! I'd like to try treadmill walking too.",
+  '마지막 가동범위 운동은 시간이 부족했어요.':
+      'I ran out of time for the last range-of-motion drill.',
+  '모임이 있었는데 국물은 덜 먹으려고 했어요.':
+      'I had a get-together but tried to go easy on the soup.',
+  '레그 익스텐션을 20kg으로 올리니 조금 힘들었어요.':
+      'Moving leg extensions up to 20kg was a bit tough.',
+  '자전거 타고 나서 무릎 안쪽이 살짝 시큰했어요.':
+      'The inside of my knee twinged a little after cycling.',
+  '비빔밥에 고추장을 절반만 넣었어요.': 'I used only half the gochujang in my bibimbap.',
+  '계단 오르내릴 때 아직 통증이 있어요.': 'Stairs still hurt going up and down.',
+  '무릎이 부어서 이틀 쉬었어요.': 'My knee swelled up, so I rested for two days.',
+  '수술 후 첫 운동이라 많이 무서웠어요.':
+      'First workouts since surgery, and I was really scared.',
+  '이번 주도 평소만큼은 했어요.': 'I did about as much as usual this week.',
+  '체중이 몇 주째 그대로라 조금 답답해요.':
+      "My weight hasn't moved in weeks, which is a little frustrating.",
+  '회식이 있는 주라 저녁은 거의 못 지켰어요.':
+      'Team dinner week, so I barely kept to my dinner plan.',
+  '경사 걷기가 이제 너무 익숙해요.': 'Incline walking feels too familiar now.',
+  '스트레칭은 매번 빼먹게 돼요.': 'I keep skipping the stretching.',
+  '풀업 어시스트를 처음 해 봤는데 재밌었어요.':
+      'Tried assisted pull-ups for the first time, and they were fun.',
+  '백반집 반찬이 짜서 나트륨이 늘 걸려요.':
+      'Side dishes at the set-meal place are salty, so sodium always trips me up.',
+  '운동이 좀 지루해졌어요. 새로운 걸 해 보고 싶어요.':
+      "Training's gotten a bit boring. I'd like to try something new.",
+  '아침 시리얼을 그릭요거트로 바꿔 볼까 해요.':
+      "I'm thinking of swapping my breakfast cereal for Greek yogurt.",
+  '처음보다 계단 오를 때 숨이 덜 차요.': "I'm less winded on stairs than when I started.",
+  '일이 많아서 당분간 쉬려고요. 정리되면 다시 연락드릴게요.':
+      "Work is overwhelming, so I'm taking a break. I'll reach out once things settle.",
+  '요즘 일이 많아서 사흘밖에 기록을 못 했어요.':
+      'Work has been busy, so I only logged three days.',
+  '저녁 기록을 자꾸 까먹어요.': 'I keep forgetting to log dinner.',
+  '체력이 조금 붙은 것 같아요.': "I think my stamina's improving a bit.",
+  '회식 다음 날 운동이 너무 힘들었어요.':
+      'Training the day after a team dinner was really hard.',
+  '격일로라도 꾸준히 해 볼게요.':
+      "I'll try to stay consistent, even if it's every other day.",
+  '가는 날은 확실히 하는데 못 가는 날이 절반이에요.':
+      'When I go, I go all out, but I miss about half the days.',
+  '회식 다음 날은 아예 못 갔어요.':
+      "I didn't make it at all the day after the team dinner.",
+  '닭가슴살로 단백질을 채우려고 했는데 쉽지 않네요.':
+      "I'm trying to hit protein with chicken breast, but it's not easy.",
+  '벤치 무게를 더 올리고 싶어요.': 'I want to go heavier on bench.',
+  '스쿼트 100kg 찍었어요!': 'Hit 100kg on squats!',
+  '야간 근무 주라 들쭉날쭉했어요.': 'Night-shift week, so it was all over the place.',
+  '벤치 하다 손목이 꺾여서 좀 아팠어요.': 'My wrist bent back during bench and hurt a bit.',
+  '단백질 쉐이크를 하루 두 번 먹고 있어요.': "I'm having a protein shake twice a day.",
+  '운동은 재밌는데 먹는 양이 모자란 것 같아요.':
+      "Training is fun, but I don't think I'm eating enough.",
+  '운동은 빠짐없이 하는데 식단은 아직 짜게 먹는 편이에요.':
+      "I haven't missed a workout, but I still eat pretty salty.",
+  '라면을 끊진 못했어요. 운동은 다 했어요.': "Couldn't quit ramyeon, but I did every workout.",
+  '회식이 있어서 찌개를 많이 먹었어요.': 'Had a team dinner and ate a lot of stew.',
+  '국물을 안 먹었더니 붓기가 덜해요!': 'Skipping the soup broth, I feel less puffy!',
+  '운동은 이제 쉬워요. 강도를 좀 올려 주세요.':
+      'Workouts are easy now. Please bump up the intensity.',
+  '배달 음식을 줄이는 중이에요.': "I'm cutting back on delivery food.",
+  '김치를 너무 좋아해서 줄이기가 어렵네요.': 'I love kimchi too much to cut back easily.',
+  '외식이 잦은 주였어요.': 'I ate out a lot this week.',
+  '간장을 저염으로 바꿨어요.': 'I switched to low-sodium soy sauce.',
+  '매일 운동하는 습관은 잡힌 것 같아요.': 'I think the daily workout habit has stuck.',
+  '첫 주라 긴장했는데 재밌었어요. 주 3회를 목표로 해 볼게요.':
+      "I was nervous for the first week, but it was fun. I'll aim for three times a week.",
   '그릭 요거트': 'Greek yogurt',
   '견과류': 'Mixed nuts',
   '스크램블 에그': 'Scrambled eggs',
