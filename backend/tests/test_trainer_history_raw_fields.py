@@ -657,8 +657,10 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
         {"name": "플랭크", "type": "strength", "sets": 3, "hold_seconds": 60},
         # 운동 시간은 초까지 값으로 남는다(#2546)
         {"name": "사이클", "type": "cardio", "minutes": 20, "duration_seconds": 1200},
-        {"name": "버피", "type": "cardio", "minutes": 1, "duration_seconds": 45},
+        # `minutes: 1` 은 위 거르기에서 `True` 와 같다고 빠진다 — 아래에서 따로 본다
+        {"name": "버피", "type": "cardio", "duration_seconds": 45},
     ]
+    assert entry["exercise_items"][3]["minutes"] == 1
     # 맨몸 운동의 0kg 도 값으로 남는다(0 과 '적지 않음'은 다르다) — 화면은
     # 0 을 적지 않지만 저장 문장에는 남아야 값이 되짚힌다(#2533)
     assert entry["exercise_items"][1]["weight"] == 0.0
