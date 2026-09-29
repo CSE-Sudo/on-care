@@ -529,7 +529,6 @@
   "coachTemplateNameLabel": "Template name",
   "coachTemplateGoalLabel": "Goal (e.g. blood pressure · beginner)",
   "coachTemplateExerciseName": "Exercise",
-  "coachTemplateExerciseMinutes": "min",
   "coachTemplateAddExercise": "Add exercise",
   "coachTemplateSave": "Save",
   "coachTemplateNameRequired": "Enter a template name",
@@ -1632,8 +1631,8 @@
   "myAdd": "Add",
   "myStatClients": "Members",
   "myClientManagement": "Member management",
-  "myClientRemove": "Remove member",
-  "myClientRemoveTitle": "Remove {name}?",
+  "myClientRemove": "Disconnect",
+  "myClientRemoveTitle": "Disconnect from {name}?",
   "@myClientRemoveTitle": {
     "placeholders": {
       "name": {
@@ -1641,24 +1640,30 @@
       }
     }
   },
-  "myClientRemoveBody": "This member's schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.",
-  "myClientRemoveSuccess": "Member removed",
-  "myClientRemoveFailed": "Couldn't remove the member. Please try again",
+  "myClientRemoveBody": "After you disconnect, this member's schedules, programs and routines, reports, messages, and notes won't show in the trainer app. Their account and member app records stay as they are.",
+  "myClientRemoveSuccess": "Disconnected from the member",
+  "myClientRemoveFailed": "Couldn't disconnect. Please try again",
   "myClientManagementEmpty": "No members assigned",
+  "myClientManagementSearchHint": "Search members by name",
   "myBasicInfo": "Basic info",
   "myStatSessionsDone": "Sessions done",
   "myStatRoutinesSent": "Programs sent",
   "myGymName": "Gym name",
   "myGymAddress": "Address",
   "myGymHours": "Hours",
-  "myGymListFailed": "Couldn't load the gym list.",
-  "myGymNoMatch": "This gym isn't listed. Please add its address and hours yourself.",
-  "myGymLinked": "Registered gym",
-  "myGymUnlink": "Unlink",
-  "myGymNameHint": "Type to find a registered gym",
-  "myGymRequired": "Enter your gym",
-  "myGymEditHint": "Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.",
-  "myGymListLoading": "Loading gyms…",
+  "myGymRequired": "Pick your gym from the search results",
+  "myGymSearchLabel": "Find your gym",
+  "myGymSearchHint": "Gym name or address",
+  "myGymSearching": "Searching…",
+  "myGymSearchEmpty": "No gyms found. Try a different name or add the neighborhood.",
+  "myGymSearchFailed": "Couldn't search gyms. Please try again in a moment.",
+  "myGymCurrent": "Current gym",
+  "myGymPicked": "Saving will switch you to this gym",
+  "myGymNone": "None yet",
+  "myGymHiddenTitle": "Members can't find you yet",
+  "myGymHiddenBody": "Set your gym to appear in the member app's gym finder and consultation requests.",
+  "myGymHiddenAction": "Set gym",
+  "myGymEditHint": "Search by name and pick your gym. Members find you through this gym.",
   "mySignOut": "Sign out",
   "myPwCurrentRequired": "Enter your current password",
   "myPwMismatch": "The new passwords don't match",
@@ -1698,9 +1703,9 @@
   "myThisMonth": "This month",
   "myIntroEmpty": "No introduction yet. Add one in Edit profile — members see it.",
   "myCertsEmpty": "No certifications yet",
-  "myGymEmpty": "No gym yet. Add yours in Edit profile.",
+  "myGymEmpty": "No gym yet. Set yours in Edit profile.",
   "myEditVisibleBody": "Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.",
-  "myClientManagementNoteTitle": "Removing only hides members here",
+  "myClientManagementNoteTitle": "Disconnecting keeps member records",
   "myClientManagementNote": "Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
   "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
@@ -2071,7 +2076,7 @@
     }
   },
   "aiStepperLabel": "Custom suggestion progress",
-  "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {minutes} min",
+  "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {duration}",
   "@coachTemplateSummaryWithGoal": {
     "placeholders": {
       "goal": {
@@ -2080,8 +2085,8 @@
       "count": {
         "type": "int"
       },
-      "minutes": {
-        "type": "int"
+      "duration": {
+        "type": "String"
       }
     }
   },
@@ -2397,6 +2402,7 @@
   "workoutPendingTitle": "Daily personal exercises",
   "workoutRoutineDoneToday": "Done today",
   "workoutUndatedTitle": "Records without a date",
+  "workoutMemberLogTitle": "Logged by member",
   "workoutPendingCancel": "Cancel assignment",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
   "routineUpdated": "Program updated",

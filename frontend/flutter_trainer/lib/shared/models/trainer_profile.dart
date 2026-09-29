@@ -101,6 +101,10 @@ class TrainerProfile {
   }
 }
 
+/// 데모 트레이너의 소속 헬스장 id — 백엔드 시드의 온케어짐 신촌점과 같은 값이다.
+/// 데모 프로필이 소속을 가져야 '회원에게 보이지 않는다' 안내가 뜨지 않는다(#2543).
+const String kDemoTrainerGymId = 'gym-oncare-sinchon';
+
 /// The single fixed trainer profile attached on a successful (mock)
 /// login. Sourced from the On-Care Figma trainer mock (TrainerMyTab).
 const TrainerProfile seedTrainerProfile = TrainerProfile(
@@ -116,6 +120,7 @@ const TrainerProfile seedTrainerProfile = TrainerProfile(
       'AI 추천 프로그램을 활용해 안전한 강도부터 시작합니다.',
   certifications: <String>['생활스포츠지도사 2급', '퍼스널트레이닝 CPT', '스포츠 영양사'],
   gym: TrainerGym(
+    id: kDemoTrainerGymId,
     name: '온케어짐 신촌점',
     address: '서울 서대문구 신촌로 120',
     hours: '06:00 – 23:00',
@@ -141,6 +146,7 @@ const TrainerProfile seedTrainerProfileEn = TrainerProfile(
     'Sports Nutritionist',
   ],
   gym: TrainerGym(
+    id: kDemoTrainerGymId,
     name: 'OnCare Gym Sinchon',
     address: '120 Sinchon-ro, Seodaemun-gu, Seoul',
     hours: '06:00 – 23:00',

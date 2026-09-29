@@ -29,7 +29,8 @@ import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_pag
 /// - signed-out (or still restoring) → forced onto the sign-in screen,
 ///   **carrying where they were headed** (`?from=`);
 /// - in the app (demo or authenticated) → kept off sign-in, and sent to
-///   the parked destination if there is one, else the 대시보드.
+///   the parked destination if there is one, else the 대시보드 — a fresh
+///   sign-up goes to profile edit instead, to pick a gym (#2543).
 ///
 /// The parking is what makes a refresh survive: boot starts at the
 /// browser URL with the session still [SessionStatus.unknown], so the
@@ -51,7 +52,13 @@ String? sessionRedirect(SessionStatus status, String location) {
     case SessionStatus.demo:
     case SessionStatus.authenticated:
       if (onAuthRoute) {
-        return AppRoutes.resumeTarget(location) ?? AppRoutes.dashboard;
+        return AppRoutes.resumeTarget(location) ??
+            // 막 가입한 트레이너는 소속 헬스장이 없다 — 소속이 없으면 회원이
+            // 찾을 수 없으므로 헬스장 찾기가 있는 프로필 수정으로 보낸다(#2543).
+            // 가입 화면 자체에서는 찾을 수 없다: 검색이 트레이너 토큰을 요구한다.
+            (path == AppRoutes.signUp
+                ? AppRoutes.mySection('edit')
+                : AppRoutes.dashboard);
       }
       // The platform boot location on a non-web launch is `/`, which
       // matches no route; send it home rather than to an error screen.

@@ -15,9 +15,9 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
+import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 enum _GymSort { recommended, distance, rating }

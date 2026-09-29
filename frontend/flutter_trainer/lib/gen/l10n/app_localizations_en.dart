@@ -818,9 +818,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseName => 'Exercise';
 
   @override
-  String get coachTemplateExerciseMinutes => 'min';
-
-  @override
   String get coachTemplateAddExercise => 'Add exercise';
 
   @override
@@ -2367,26 +2364,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientManagement => 'Member management';
 
   @override
-  String get myClientRemove => 'Remove member';
+  String get myClientRemove => 'Disconnect';
 
   @override
   String myClientRemoveTitle(String name) {
-    return 'Remove $name?';
+    return 'Disconnect from $name?';
   }
 
   @override
   String get myClientRemoveBody =>
-      'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.';
+      'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.';
 
   @override
-  String get myClientRemoveSuccess => 'Member removed';
+  String get myClientRemoveSuccess => 'Disconnected from the member';
 
   @override
-  String get myClientRemoveFailed =>
-      'Couldn\'t remove the member. Please try again';
+  String get myClientRemoveFailed => 'Couldn\'t disconnect. Please try again';
 
   @override
   String get myClientManagementEmpty => 'No members assigned';
+
+  @override
+  String get myClientManagementSearchHint => 'Search members by name';
 
   @override
   String get myBasicInfo => 'Basic info';
@@ -2407,30 +2406,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymHours => 'Hours';
 
   @override
-  String get myGymListFailed => 'Couldn\'t load the gym list.';
+  String get myGymRequired => 'Pick your gym from the search results';
 
   @override
-  String get myGymNoMatch =>
-      'This gym isn\'t listed. Please add its address and hours yourself.';
+  String get myGymSearchLabel => 'Find your gym';
 
   @override
-  String get myGymLinked => 'Registered gym';
+  String get myGymSearchHint => 'Gym name or address';
 
   @override
-  String get myGymUnlink => 'Unlink';
+  String get myGymSearching => 'Searching…';
 
   @override
-  String get myGymNameHint => 'Type to find a registered gym';
+  String get myGymSearchEmpty =>
+      'No gyms found. Try a different name or add the neighborhood.';
 
   @override
-  String get myGymRequired => 'Enter your gym';
+  String get myGymSearchFailed =>
+      'Couldn\'t search gyms. Please try again in a moment.';
+
+  @override
+  String get myGymCurrent => 'Current gym';
+
+  @override
+  String get myGymPicked => 'Saving will switch you to this gym';
+
+  @override
+  String get myGymNone => 'None yet';
+
+  @override
+  String get myGymHiddenTitle => 'Members can\'t find you yet';
+
+  @override
+  String get myGymHiddenBody =>
+      'Set your gym to appear in the member app\'s gym finder and consultation requests.';
+
+  @override
+  String get myGymHiddenAction => 'Set gym';
 
   @override
   String get myGymEditHint =>
-      'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.';
-
-  @override
-  String get myGymListLoading => 'Loading gyms…';
+      'Search by name and pick your gym. Members find you through this gym.';
 
   @override
   String get mySignOut => 'Sign out';
@@ -2536,14 +2552,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertsEmpty => 'No certifications yet';
 
   @override
-  String get myGymEmpty => 'No gym yet. Add yours in Edit profile.';
+  String get myGymEmpty => 'No gym yet. Set yours in Edit profile.';
 
   @override
   String get myEditVisibleBody =>
       'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
 
   @override
-  String get myClientManagementNoteTitle => 'Removing only hides members here';
+  String get myClientManagementNoteTitle =>
+      'Disconnecting keeps member records';
 
   @override
   String get myClientManagementNote =>
@@ -3188,8 +3205,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
-  String coachTemplateSummaryWithGoal(String goal, int count, int minutes) {
-    return '$goal · $count exercises · $minutes min';
+  String coachTemplateSummaryWithGoal(String goal, int count, String duration) {
+    return '$goal · $count exercises · $duration';
   }
 
   @override
@@ -3624,6 +3641,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutUndatedTitle => 'Records without a date';
+
+  @override
+  String get workoutMemberLogTitle => 'Logged by member';
 
   @override
   String get workoutPendingCancel => 'Cancel assignment';
