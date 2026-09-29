@@ -148,7 +148,11 @@ void main() {
       await tester.enterText(find.byKey(clientManagementSearchFieldKey), '이지수');
       await tester.pumpAndSettle();
       expect(managedRows(), findsOneWidget);
-      expect(find.text('이지수'), findsOneWidget);
+      // 입력칸에도 같은 글자가 있으니 목록 카드 안에서만 본다.
+      expect(
+        find.descendant(of: managedRows(), matching: find.text('이지수')),
+        findsOneWidget,
+      );
       expect(find.text('김민수'), findsNothing);
 
       // 목표로는 찾지 않는다 — 정하윤의 목표는 `체력 강화 · 재활` 이다.
