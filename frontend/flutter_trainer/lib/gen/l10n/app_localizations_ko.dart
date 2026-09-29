@@ -369,7 +369,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names 회원이 칼로리 목표를 벗어났거나 단백질이 부족한데 최근 7일간 피드백을 받지 못했어요. 식단 코멘트를 남겨 확인했다는 걸 알려 주세요.';
+    return '$names 회원이 칼로리 목표를 벗어났거나 단백질이 부족한데 최근 7일간 피드백을 받지 못했어요. 식단 피드백을 남겨 확인했다는 걸 알려 주세요.';
   }
 
   @override
@@ -427,6 +427,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dashLeaveMemo => '메모 남기기';
+
+  @override
+  String get dashLeaveFeedback => '피드백 남기기';
 
   @override
   String get dashSessionSent => '전송됨';
@@ -998,7 +1001,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatInsightMemoSummaryNegative => '운동 부담 감지';
 
   @override
-  String get chatInsightMemoSaved => 'AI 감지 내용을 트레이너 메모에 추가했어요.';
+  String get chatInsightMemoSaved => 'AI 감지 내용을 메모에 추가했어요.';
 
   @override
   String get chatInsightMemoSaveFailed => '메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요';
@@ -1614,7 +1617,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '운동이 쉬웠다고 남겨 주셔서, 다음 주에는 강도를 한 단계 올려 볼게요.';
 
   @override
-  String get reportBodyMemberNoted => '남겨 주신 이번 주 소감도 잘 읽었어요.';
+  String get reportBodyMemberNoted => '보내 주신 이번 주 피드백도 잘 읽었어요.';
 
   @override
   String get reportBodyNextWeek => '다음 주에는 이렇게 해 봐요.';
@@ -1911,13 +1914,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '회원이 고른 시간에 이미 다른 일정이 있어 승인하지 않았어요. 겹치는 일정을 옮긴 뒤 다시 승인해 주세요.';
 
   @override
-  String get schedNote => '트레이너 메모';
+  String get schedNote => '트레이너 피드백';
 
   @override
-  String get schedEditNote => '메모 수정';
+  String get schedEditNote => '피드백 수정';
 
   @override
-  String get schedAddNote => '메모 추가';
+  String get schedAddNote => '피드백 추가';
 
   @override
   String get schedNoNote => '아직 남긴 메모가 없어요';
@@ -1926,11 +1929,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedNoteOnlyHint => '상담은 프로그램 대신 메모로 남깁니다.';
 
   @override
-  String get schedNoteHint =>
-      'PT를 마치면 회원 앱에 피드백으로 보여요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
+  String get schedNoteHint => '회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
 
   @override
-  String get schedConsultNoteHint => '상담 기록은 회원에게 보이지 않아요';
+  String get schedNoteVisibleToMember => 'PT를 마치면 회원 앱에 피드백으로 보여요';
+
+  @override
+  String get schedConsultNote => '상담 메모';
+
+  @override
+  String get schedEditConsultNote => '메모 수정';
+
+  @override
+  String get schedAddConsultNote => '메모 추가';
+
+  @override
+  String get schedConsultNoteHint => '상담에서 나눈 이야기를 적어 두세요';
+
+  @override
+  String get schedConsultNotePrivate => '나만 보는 메모예요. 회원에게는 보이지 않아요.';
 
   @override
   String get schedAddAction => '추가';
@@ -1954,8 +1971,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progAddExercise => '운동 추가';
 
   @override
-  String get progNoteHint =>
-      'PT를 마치면 회원 앱에 피드백으로 보여요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
+  String get progNoteHint => '회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
 
   @override
   String get progSaving => '저장 중...';
@@ -2511,6 +2527,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldExerciseNameHintOther => '예) 재활 운동, 스포츠 활동';
 
   @override
+  String get routineFieldEffect => '회원에게 보일 효과';
+
+  @override
+  String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
+
+  @override
   String get routineFieldSets => '세트 수';
 
   @override
@@ -2854,7 +2876,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRegister => '추가';
 
   @override
-  String get aiNoteForClient => '회원에게 함께 전달할 내용';
+  String get aiNoteForClient => '회원에게 전할 피드백';
 
   @override
   String aiReviewedSuggestion(String option) {
@@ -2895,9 +2917,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
-
-  @override
-  String get aiPersonalRationaleLabel => 'AI 추천 사유';
 
   @override
   String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
@@ -3031,6 +3050,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRoutineOnlyProgramName => '이번 주 개인운동';
 
   @override
+  String get aiRoutineOnlyDeliveryName => '개인운동';
+
+  @override
   String get progPersonalRoutinesWhen => '이 PT를 완료할 때 회원에게 함께 가요.';
 
   @override
@@ -3079,11 +3101,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRecentRoutine => '최근 운동';
 
   @override
-  String get aiTrainerNoteEditable => '트레이너 메모 · 수정 가능';
-
-  @override
   String get aiNotePlaceholderHint =>
-      '회색 제안 문구는 입력 전 참고용이며, 직접 입력한 메모만 저장·전송돼요.';
+      '회색 제안 문구는 입력 전 참고용이며, 직접 입력한 피드백만 저장·전송돼요.';
 
   @override
   String get aiGenerateConditions => '생성 조건';
@@ -3108,7 +3127,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPromptBlurb =>
-      '요청은 회원 데이터와 함께 AI에 전달돼요(최대 500자). 회원용 메모는 다음 단계에서 작성해요.';
+      '요청은 회원 데이터와 함께 AI에 전달돼요(최대 500자). 트레이너 피드백은 다음 단계에서 작성해요.';
 
   @override
   String get aiSourcesTitle => 'AI가 참고할 자료';
@@ -3862,6 +3881,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientTrainerMemoHint => '이 회원에 대해 기억할 내용을 적어 주세요';
 
   @override
+  String get clientTrainerMemoPrivate => '나만 보는 메모예요. 회원에게는 보이지 않아요.';
+
+  @override
   String get clientTrainerMemoAdd => '메모 추가';
 
   @override
@@ -4103,9 +4125,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get programEditorPeriod => '기간 (선택)';
-
-  @override
-  String get programEditorMemo => '프로그램 메모 (선택)';
 
   @override
   String get programEditorAiHint => 'AI 코칭 보조 제안을 첫 세션에 로컬 초안으로 반영할 수 있어요.';
@@ -4859,10 +4878,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsMemberFeedbackUnanswered => '미응답';
 
   @override
-  String get reportsMemberFeedbackNoteLabel => '한 줄 메모';
+  String get reportsMemberFeedbackNoteLabel => '한 줄 피드백';
 
   @override
-  String get reportsMemberFeedbackNoteNone => '남긴 말 없음';
+  String get reportsMemberFeedbackNoteNone => '한 줄 피드백 없음';
 
   @override
   String reportsMemberFeedbackPainOn(String area, String date) {

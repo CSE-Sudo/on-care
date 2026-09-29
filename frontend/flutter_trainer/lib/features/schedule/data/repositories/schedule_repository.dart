@@ -76,6 +76,9 @@ abstract interface class ScheduleRepository {
   /// normally move. It's accepted here so an already-완료 session can be
   /// rescheduled forward via [reopenSession] without a second, parallel
   /// update path for every other field.
+  ///
+  /// [clientId] 가 null 이면 담당 회원을 **그대로 둔다** — 서버의 부분 수정과
+  /// 같은 뜻이다. 회원을 바꿀 때만 넘긴다(#2586).
   Future<void> updateSession(
     String id, {
     String? date,
@@ -565,7 +568,9 @@ class DriftScheduleRepository implements ScheduleRepository {
     )..where((t) => t.id.equals(id))).write(
       TrainerScheduleEntriesCompanion(
         date: date == null ? const Value.absent() : Value(date),
-        clientId: Value(clientId),
+        // null 은 '그대로' 다 — 덮어쓰면 회원을 고르지 않은 수정이 담당 회원을
+        // 지운다(#2586).
+        clientId: clientId == null ? const Value.absent() : Value(clientId),
         clientName: Value(clientName),
         time: Value(time),
         type: Value(type),

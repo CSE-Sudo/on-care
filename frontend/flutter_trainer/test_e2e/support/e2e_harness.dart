@@ -177,8 +177,8 @@ class E2eApi {
 
   /// 이 회원 몫으로 잡힌 일정. 승인이 만드는 **일정**을 본다.
   ///
-  /// 서버에 `member_id` 로 물어야 한다 — 일정 응답에는 그 필드가 **없어서**
-  /// 전체 목록을 받아 걸러 내면 아무것도 못 찾는다.
+  /// 서버에 `member_id` 로 묻는다 — 기간 없이 그 회원의 일정 전부를 받는
+  /// 경로다. 응답에도 `member_id` 가 실린다(#2586).
   Future<List<Map<String, dynamic>>> scheduleFor(String memberId) async {
     final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
       '/trainer/schedule',

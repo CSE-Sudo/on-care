@@ -564,6 +564,9 @@ class ProgramDraftExercise(BaseModel):
     intensity: RoutineIntensity = "moderate"
     memo: str = Field(default="", max_length=300)
     source: ProgramExerciseSource = "trainer"
+    #: 회원에게 보일 효과 한 줄(#2570). `개인운동만` 은 세션마다 운동이 하나라
+    #: 이 값이 그 배정의 효과가 된다. 비면 서버가 문구표로 채운다.
+    effect: str = Field(default="", max_length=40)
 
     _drop_mismatched_fields = model_validator(mode="after")(
         _drop_fields_not_in_type
@@ -609,6 +612,10 @@ class RoutineOut(BaseModel):
     duration_seconds: int | None = None
     weight: float | None = None
     reason: str
+    #: 회원에게 보일 효과 한 줄(#2570). 트레이너가 적은 값, 없으면 운동 유형 ×
+    #: 회원 건강 목표 문구표의 값이다. 운동 여럿으로 짠 PT 세션처럼 한 줄로
+    #: 말할 수 없는 배정은 비어 있다.
+    effect: str = ""
     source: RoutineSource
     #: 여러 세션을 묶는 프로그램 이름. 단일 배정은 빈 문자열.
     program_name: str = ""
@@ -890,6 +897,9 @@ class PersonalRoutineItem(BaseModel):
     )
     weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
+    #: 회원에게 보일 효과 한 줄(#2570). 트레이너가 적은 것만 오고, 비면 서버가
+    #: 운동 유형 × 회원 건강 목표 문구표로 채운다.
+    effect: str = Field(default="", max_length=40)
     source: RoutineSource = "trainer"
 
     @model_validator(mode="after")
@@ -1329,6 +1339,9 @@ class ScheduleSessionOut(BaseModel):
     date: str
     time: str
     client_name: str
+    #: 담당 회원 id. 가망 고객(이름만 있는 상담)·공백 슬롯은 null 이다. 웹이
+    #: 회원별로 일정을 묶으려면(이탈 위험·활동 피드백) 이 값이 있어야 한다(#2586).
+    member_id: str | None = None
     type: str
     duration_minutes: int
     status: str          # 예정|완료|취소|노쇼|공백

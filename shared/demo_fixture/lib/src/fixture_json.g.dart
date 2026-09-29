@@ -9257,6 +9257,7 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 30,
       "type": "유산소",
       "reason": "혈압 안정에 효과적",
+      "effect": "체지방 감량에 도움",
       "source": "ai",
       "intensity": "light"
     },
@@ -9266,6 +9267,7 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 15,
       "type": "스트레칭",
       "reason": "혈액순환 개선",
+      "effect": "유연성·부상 예방",
       "source": "trainer",
       "intensity": "light"
     },
@@ -9275,6 +9277,7 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 10,
       "type": "근력",
       "reason": "기초대사량 향상",
+      "effect": "근육량 유지·증가",
       "source": "ai",
       "sets": 3,
       "reps": 15,
@@ -9287,6 +9290,7 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 8,
       "type": "스트레칭",
       "reason": "PT 피드백 반영 · 오른쪽 어깨 보호",
+      "effect": "오른쪽 어깨 보호",
       "source": "trainer",
       "intensity": "light"
     }
