@@ -390,4 +390,47 @@ void main() {
       );
     });
   });
+
+  testWidgets('outline 구획은 흰 채움 + lineStrong 테두리, dense 는 세로 8 (#2468)', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      const Column(
+        children: <Widget>[
+          AppTile(
+            key: ValueKey<String>('tile-outline'),
+            tone: AppTileTone.outline,
+            child: SizedBox(height: 20),
+          ),
+          AppTile(
+            key: ValueKey<String>('tile-dense'),
+            dense: true,
+            child: SizedBox(height: 20),
+          ),
+        ],
+      ),
+    );
+    final Material outline = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('tile-outline')),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(outline.color, OnCareColors.surfaceCard);
+    expect(
+      (outline.shape! as RoundedRectangleBorder).side.color,
+      OnCareColors.lineStrong,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey<String>('tile-outline'))).height,
+      20 + OnCareSpacing.tilePadding * 2,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey<String>('tile-dense'))).height,
+      20 + OnCareSpacing.s8 * 2,
+    );
+  });
 }
