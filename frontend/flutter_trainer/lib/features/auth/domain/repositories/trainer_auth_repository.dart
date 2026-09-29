@@ -10,7 +10,6 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 enum AuthFailure {
   invalidCredentials,
   emailTaken,
-  inviteCodeInvalid,
 
   /// 서버가 가입 비밀번호를 기준 미달로 거절했다(#1555).
   passwordWeak,
@@ -67,17 +66,14 @@ abstract class TrainerAuthRepository {
 
   /// Creates a new trainer account (POST /v1/auth/trainer/register) and
   /// returns tokens. Throws [AuthException] (409 duplicate email, 422
-  /// unusable invite code).
+  /// password rejected by the server policy).
   ///
-  /// [inviteCode] is the gym's invite code and is **required**: it decides
-  /// which gym the new trainer belongs to. A trainer with no gym cannot be
-  /// a consultation target, so signing up without one would land the
-  /// account in a state where nothing works. (#475)
+  /// 소속 헬스장은 가입 때 정하지 않는다 — 가입 뒤 헬스장을 찾아 고른다
+  /// (#1627). 예전에는 헬스장 초대 코드가 소속을 정했지만 발급 경로가 없었다.
   Future<TrainerAuthTokens> register({
     required String email,
     required String password,
     required String name,
-    required String inviteCode,
   });
 
   /// Exchanges a provider (kakao/google) [token] for tokens
@@ -131,7 +127,6 @@ String authFailureText(AppLocalizations l, AuthException e) {
   return switch (e.failure) {
     AuthFailure.invalidCredentials => l.authErrInvalidCredentials,
     AuthFailure.emailTaken => l.authErrEmailTaken,
-    AuthFailure.inviteCodeInvalid => l.authErrInviteCodeInvalid,
     AuthFailure.passwordWeak => l.authErrPasswordWeak,
     AuthFailure.passwordTooLong => l.authErrPasswordTooLong,
     AuthFailure.sessionExpired => l.authErrSessionExpired,

@@ -1,9 +1,9 @@
-/// 주 이동 화살표. (#1009)
+/// 주 이동 화살표. (#1009, #2536)
 ///
-/// 배경 없는 회색 아이콘이던 때에는 어디까지가 눌리는 범위인지 형태로 알 수
-/// 없었고, 주변 글씨와 같은 계열이라 "누르는 것" 으로 읽히지도 않았다. 색을
-/// 아이콘이 아니라 **버튼 영역**(tonal 아이콘 버튼)에 준다는 것이 여기서 재는
-/// 계약이다(#1706 에서 `AppPeriodNav` 로 옮김).
+/// 대시보드 할 일 진행률의 주 이동과 같은 **배경 없는 브랜드색** 화살표다.
+/// 두 화살표 사이는 고정 폭이고 `오늘` 은 그 안쪽 고정 자리에 앉는다 —
+/// 날짜 길이나 `오늘` 표시 여부와 무관하게 화살표가 움직이지 않는다는 것이
+/// 여기서 재는 계약이다(`WeekRangeNav`).
 library;
 
 import 'package:flutter/material.dart';
@@ -36,18 +36,20 @@ void main() {
     matching: find.widgetWithIcon(AppIconButton, icon),
   );
 
-  testWidgets('화살표가 색이 있는 버튼 타깃으로 그려진다', (tester) async {
+  testWidgets('화살표가 배경 없는 브랜드색 아이콘으로 그려진다 (#2536)', (tester) async {
     await openSchedule(tester);
 
     for (final icon in <IconData>[
       AppIcons.chevronLeft,
       AppIcons.chevronRight,
     ]) {
+      final AppIconButton button = tester.widget<AppIconButton>(arrow(icon));
       expect(
-        tester.widget<AppIconButton>(arrow(icon)).variant,
-        AppIconButtonVariant.tonal,
-        reason: '색은 아이콘이 아니라 버튼 영역(옅은 브랜드 채움)에 있다',
+        button.variant,
+        AppIconButtonVariant.plain,
+        reason: '대시보드 주 이동처럼 배경 상자 없이 화살표만',
       );
+      expect(button.color, OnCareBrand.trainer.primary);
     }
 
     // 두 버튼의 크기가 같다 — 한쪽만 커 보이면 두 방향의 무게가 달라 보인다.
@@ -112,6 +114,21 @@ void main() {
       ),
       reason: '날짜는 화살표 사이 한가운데에 선다',
     );
+  });
+
+  testWidgets('주를 넘겨 날짜 길이가 바뀌어도 화살표가 자리를 지킨다 (#2536)', (tester) async {
+    await openSchedule(tester);
+    final Rect left = tester.getRect(arrow(AppIcons.chevronLeft));
+    final Rect right = tester.getRect(arrow(AppIcons.chevronRight));
+
+    // 여섯 주를 넘기는 동안 날짜 문구의 길이가 여러 번 바뀐다
+    // (`9월 1일 – 9월 7일` ↔ `9월 28일 – 10월 4일`). 넘기면 `오늘` 도 나타난다.
+    for (var i = 0; i < 6; i++) {
+      await tester.tap(arrow(AppIcons.chevronRight));
+      await settle(tester);
+      expect(tester.getRect(arrow(AppIcons.chevronLeft)), left);
+      expect(tester.getRect(arrow(AppIcons.chevronRight)), right);
+    }
   });
 
   testWidgets('`오늘` 이 없을 때도 날짜가 화살표 사이 한가운데다 (#1009)', (tester) async {

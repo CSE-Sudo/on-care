@@ -1158,7 +1158,7 @@ ClientExerciseItem programHistoryItem(ProgramItem raw) {
     // 버티는 운동은 회가 아니라 초로 읽는다. 둘은 배타다.
     holdSeconds: holds ? holdSeconds : null,
     reps: !holds && reps != null && reps > 0 ? reps : null,
-    // 맨몸 운동은 `0kg` 이다 — 적지 않은 값과 0 은 다른 뜻이다.
+    // 값은 그대로 남긴다 — 맨몸(0)의 중량을 적지 않는 것은 화면의 일이다(#2533).
     weight: item.weight,
   );
 }

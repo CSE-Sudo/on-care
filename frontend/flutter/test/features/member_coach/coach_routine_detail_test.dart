@@ -51,7 +51,56 @@ void main() {
       duration: 20,
     );
     expect(coachRoutineExerciseLabel(ko, cardio), '트레드밀 · 20분');
-    expect(coachRoutineExerciseLabel(en, cardio), '트레드밀 · 20 min');
+    // 회원이 직접 적은 기록과 같은 표기(`exerciseDurationLabel`)다(#2221).
+    expect(coachRoutineExerciseLabel(en, cardio), '트레드밀 · 20min');
+  });
+
+  test('초가 있으면 초로 읽는다 — 45초가 1분이 되지 않는다 (#2221)', () {
+    // 서버의 `duration` 은 초에서 반올림한 분이다(45초 → 1분).
+    expect(
+      coachRoutineExerciseLabel(
+        ko,
+        const CoachRoutineExercise(
+          name: '플랭크',
+          duration: 1,
+          durationSeconds: 45,
+        ),
+      ),
+      '플랭크 · 45초',
+    );
+    expect(
+      coachRoutineExerciseLabel(
+        ko,
+        const CoachRoutineExercise(
+          name: '실내 자전거',
+          duration: 90,
+          durationSeconds: 5400,
+        ),
+      ),
+      '실내 자전거 · 1시간 30분',
+    );
+  });
+
+  test('서버가 보낸 duration_seconds 가 줄에 실린다 (#2221)', () {
+    final CoachRoutine routine = coachRoutineFromJson(<String, Object?>{
+      'id': 'r-seconds',
+      'name': '유산소',
+      'minutes': 1,
+      'duration_seconds': 45,
+      'type': '유산소',
+      'reason': '',
+      'source': 'trainer',
+      'exercises': <Object?>[
+        <String, Object?>{
+          'name': '버피',
+          'duration': 1,
+          'duration_seconds': 45,
+          'memo': '',
+        },
+      ],
+    });
+
+    expect(coachRoutineExerciseLabel(ko, routine.exercises.single), '버피 · 45초');
   });
 
   test('값이 하나도 없으면 이름만 남는다', () {

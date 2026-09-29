@@ -145,6 +145,7 @@ def complete_my_routine(
             member.id,
             routine_id,
             minutes=payload.minutes,
+            duration_seconds=payload.duration_seconds,
             sets=payload.sets,
             reps=payload.reps,
             weight=payload.weight,

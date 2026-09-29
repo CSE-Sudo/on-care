@@ -476,18 +476,6 @@ abstract class AppLocalizations {
   /// **'Confirm password'**
   String get authPasswordConfirm;
 
-  /// No description provided for @authInviteCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Gym invite code'**
-  String get authInviteCode;
-
-  /// No description provided for @authInviteCodeHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the code issued by the gym you work at.'**
-  String get authInviteCodeHelp;
-
   /// No description provided for @authLegalNotice.
   ///
   /// In en, this message translates to:
@@ -589,12 +577,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passwords don\'t match'**
   String get authErrPasswordMismatch;
-
-  /// No description provided for @authErrInviteCodeRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the invite code you received from your gym'**
-  String get authErrInviteCodeRequired;
 
   /// No description provided for @authErrSignUpFailed.
   ///
@@ -2257,6 +2239,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes} min'**
   String minutesShort(int minutes);
+
+  /// Hours part of an exercise duration, e.g. `1 hr 30 min` (#2221).
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hr'**
+  String hoursShort(int hours);
+
+  /// Seconds part of an exercise duration, e.g. `45 sec` (#2221).
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String secondsShort(int seconds);
 
   /// No description provided for @ptProgramHistory.
   ///
@@ -4639,6 +4633,12 @@ abstract class AppLocalizations {
   /// **'A rough average for this exercise type · the saved record will also use the member\'s weight'**
   String get routineCaloriesRoughEstimate;
 
+  /// No description provided for @routineUnitHours.
+  ///
+  /// In en, this message translates to:
+  /// **'hr'**
+  String get routineUnitHours;
+
   /// No description provided for @routineUnitMinutes.
   ///
   /// In en, this message translates to:
@@ -5742,12 +5742,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That email is already registered.'**
   String get authErrEmailTaken;
-
-  /// No description provided for @authErrInviteCodeInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'That invite code isn\'t valid. Please check with your gym.'**
-  String get authErrInviteCodeInvalid;
 
   /// No description provided for @authErrSessionExpired.
   ///
@@ -8036,18 +8030,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Template menu'**
   String get coachTemplateMenu;
-
-  /// No description provided for @aiStrengthSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {reps} reps · {weight}kg'**
-  String aiStrengthSummary(int sets, int reps, String weight);
-
-  /// No description provided for @aiHoldSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {seconds} sec · {weight}kg'**
-  String aiHoldSummary(int sets, int seconds, String weight);
 
   /// No description provided for @routineFormDecrease.
   ///

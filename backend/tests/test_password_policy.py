@@ -213,7 +213,7 @@ def _register(password: str) -> dict:
 def test_all_three_schemas_reject_the_same_values(password, code):
     cases = [
         lambda: UserRegister(**_register(password)),
-        lambda: TrainerRegister(**_register(password), invite_code="GYM1"),
+        lambda: TrainerRegister(**_register(password)),
         lambda: TrainerPasswordChange(
             current_password="old-pw-1", new_password=password
         ),
@@ -232,7 +232,7 @@ def test_all_three_schemas_reject_the_same_values(password, code):
 def test_all_three_schemas_accept_the_same_values(password):
     assert UserRegister(**_register(password)).password == password
     assert (
-        TrainerRegister(**_register(password), invite_code="GYM1").password
+        TrainerRegister(**_register(password)).password
         == password
     )
     assert (
@@ -272,7 +272,7 @@ def test_message_carries_the_limits():
 
 @pytest.fixture
 def _cleanup(db_session):
-    from app.models.models import HealthProfile, TrainerInviteCode, TrainerProfile, User
+    from app.models.models import HealthProfile, TrainerProfile, User
 
     yield
     db_session.rollback()
@@ -283,9 +283,6 @@ def _cleanup(db_session):
         .all()
     ]
     if user_ids:
-        db_session.query(TrainerInviteCode).filter(
-            TrainerInviteCode.used_by.in_(user_ids)
-        ).delete(synchronize_session=False)
         db_session.query(HealthProfile).filter(
             HealthProfile.user_id.in_(user_ids)
         ).delete(synchronize_session=False)
@@ -295,9 +292,6 @@ def _cleanup(db_session):
         db_session.query(User).filter(User.id.in_(user_ids)).delete(
             synchronize_session=False
         )
-    db_session.query(TrainerInviteCode).filter(
-        TrainerInviteCode.code.like("PWPOLICY%")
-    ).delete(synchronize_session=False)
     db_session.commit()
 
 
@@ -317,15 +311,6 @@ def _login(client, email: str, password: str):
 
 def _detail_types(response) -> list[str]:
     return [item["type"] for item in response.json()["detail"]]
-
-
-def _invite_code(db_session) -> str:
-    from app.models.models import TrainerInviteCode
-
-    code = f"PWPOLICY{uuid4().hex[:8].upper()}"
-    db_session.add(TrainerInviteCode(code=code, gym_id="gym-healthmate"))
-    db_session.commit()
-    return code
 
 
 def _weak_account(db_session, *, role: str, password: str) -> str:
@@ -435,16 +420,14 @@ def test_member_register_missing_password_is_still_422(client, _cleanup):
     ],
 )
 def test_trainer_register_rejects_with_a_code(
-    client, db_session, _cleanup, password, code
+    client, _cleanup, password, code
 ):
-    invite = _invite_code(db_session)
     r = client.post(
         "/v1/auth/trainer/register",
         json={
             "email": _email(),
             "password": password,
             "name": "정책 트레이너",
-            "invite_code": invite,
         },
     )
     assert r.status_code == 422, r.text
@@ -452,11 +435,8 @@ def test_trainer_register_rejects_with_a_code(
     assert r.json()["detail"][0]["loc"] == ["body", "password"]
 
 
-def test_trainer_register_does_not_spend_the_code_on_a_weak_password(
-    client, db_session, _cleanup
-):
-    """비밀번호에서 막히면 초대 코드는 그대로다 — 고쳐서 다시 가입할 수 있다."""
-    invite = _invite_code(db_session)
+def test_trainer_register_can_retry_after_a_weak_password(client, _cleanup):
+    """비밀번호에서 막히면 계정이 남지 않는다 — 고쳐서 같은 이메일로 다시 가입할 수 있다."""
     email = _email()
     weak = client.post(
         "/v1/auth/trainer/register",
@@ -464,7 +444,6 @@ def test_trainer_register_does_not_spend_the_code_on_a_weak_password(
             "email": email,
             "password": "12345678",
             "name": "정책 트레이너",
-            "invite_code": invite,
         },
     )
     assert weak.status_code == 422, weak.text
@@ -475,31 +454,11 @@ def test_trainer_register_does_not_spend_the_code_on_a_weak_password(
             "email": email,
             "password": GOOD,
             "name": "정책 트레이너",
-            "invite_code": invite,
         },
     )
     assert ok.status_code == 201, ok.text
     token = _login(client, email, GOOD).json()["access_token"]
     assert client.get("/v1/trainer/me", headers=_auth(token)).status_code == 200
-
-
-def test_trainer_register_reports_both_password_and_code_problems(
-    client, _cleanup
-):
-    """스키마 오류는 한 번에 모두 돌아온다 — 앱이 비밀번호 오류를 골라 읽을 수 있다."""
-    r = client.post(
-        "/v1/auth/trainer/register",
-        json={
-            "email": _email(),
-            "password": "short",
-            "name": "정책 트레이너",
-            "invite_code": "",
-        },
-    )
-    assert r.status_code == 422, r.text
-    by_field = {item["loc"][-1]: item["type"] for item in r.json()["detail"]}
-    assert by_field["password"] == CODE_WEAK
-    assert "invite_code" in by_field
 
 
 # -- 기존 계정 로그인 --

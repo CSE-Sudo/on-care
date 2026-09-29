@@ -213,13 +213,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authPasswordConfirm => 'Confirm password';
 
   @override
-  String get authInviteCode => 'Gym invite code';
-
-  @override
-  String get authInviteCodeHelp =>
-      'Enter the code issued by the gym you work at.';
-
-  @override
   String get authLegalNotice => 'By signing up you agree to';
 
   @override
@@ -274,10 +267,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrPasswordMismatch => 'Passwords don\'t match';
-
-  @override
-  String get authErrInviteCodeRequired =>
-      'Enter the invite code you received from your gym';
 
   @override
   String get authErrSignUpFailed =>
@@ -1213,6 +1202,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String minutesShort(int minutes) {
     return '$minutes min';
+  }
+
+  @override
+  String hoursShort(int hours) {
+    return '$hours hr';
+  }
+
+  @override
+  String secondsShort(int seconds) {
+    return '$seconds sec';
   }
 
   @override
@@ -2653,6 +2652,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A rough average for this exercise type · the saved record will also use the member\'s weight';
 
   @override
+  String get routineUnitHours => 'hr';
+
+  @override
   String get routineUnitMinutes => 'min';
 
   @override
@@ -3303,10 +3305,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrEmailTaken => 'That email is already registered.';
-
-  @override
-  String get authErrInviteCodeInvalid =>
-      'That invite code isn\'t valid. Please check with your gym.';
 
   @override
   String get authErrSessionExpired =>
@@ -4691,16 +4689,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachTemplateMenu => 'Template menu';
-
-  @override
-  String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets sets · $reps reps · ${weight}kg';
-  }
-
-  @override
-  String aiHoldSummary(int sets, int seconds, String weight) {
-    return '$sets sets · $seconds sec · ${weight}kg';
-  }
 
   @override
   String get routineFormDecrease => 'Decrease';

@@ -163,7 +163,8 @@ def _amount(args: Args, locale: Locale) -> str:
             parts.append(f"{hold}초")
         elif reps:
             parts.append(f"{reps}회")
-        if weight is not None:
+        # 맨몸 운동(0)은 중량을 적지 않는다 — 두 언어가 같다. (#2533)
+        if weight is not None and float(weight) > 0:
             parts.append(f"{float(weight):g}kg")
         return " · ".join(parts)
     parts = [_plural(int(sets), "set", "sets")]
@@ -171,7 +172,7 @@ def _amount(args: Args, locale: Locale) -> str:
         parts.append(f"{hold} sec")
     elif reps:
         parts.append(_plural(int(reps), "rep", "reps"))
-    if weight is not None:
+    if weight is not None and float(weight) > 0:
         parts.append(f"{float(weight):g} kg")
     return " · ".join(parts)
 

@@ -94,6 +94,7 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,
+    int? durationSeconds,
     String intensity = 'moderate',
   }) async => throw UnsupportedError('not used');
 
@@ -343,6 +344,69 @@ void main() {
     expect(find.text('마무리 러닝머신 · 10분'), findsOneWidget);
     expect(find.text('김트레이너 · 오늘의 피드백'), findsOneWidget);
     expect(find.text('오른쪽 어깨 가동 범위를 확인해 주세요.'), findsOneWidget);
+  });
+
+  testWidgets('완료한 PT 의 운동 시간은 초까지 적힌 만큼 읽힌다 (#2221)', (
+    WidgetTester tester,
+  ) async {
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt-seconds',
+            date: nowKst(),
+            time: '18:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              // 서버의 분은 초에서 반올림한 값이다(45초 → 1분). 분으로 적으면
+              // 트레이너가 정한 45초가 1분으로 읽힌다.
+              CoachProgramItem(
+                name: '플랭크',
+                sets: 0,
+                reps: 0,
+                weight: 0,
+                duration: 1,
+                durationSeconds: 45,
+              ),
+              CoachProgramItem(
+                name: '실내 자전거',
+                sets: 0,
+                reps: 0,
+                weight: 0,
+                duration: 90,
+                durationSeconds: 5400,
+              ),
+            ],
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-1',
+          name: '김트레이너',
+          specialty: '근력 운동',
+          career: '5년',
+          intro: '',
+          gymName: '온케어짐',
+          goal: '근력 향상',
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+
+    expect(find.text('플랭크 · 45초'), findsOneWidget);
+    expect(find.text('플랭크 · 1분'), findsNothing);
+    expect(find.text('실내 자전거 · 1시간 30분'), findsOneWidget);
   });
 
   testWidgets('데모의 오늘 완료한 PT는 종목별 분·세트·횟수·중량을 표시한다 (#2126)', (

@@ -58,7 +58,6 @@ class _AuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
-    required String inviteCode,
   }) {
     registerCalls++;
     return _answer();
@@ -93,7 +92,7 @@ class _AuthRepository implements TrainerAuthRepository {
       );
 }
 
-/// 실 API 모드 — 가입 화면에 초대 코드 칸이 그려지는 쪽.
+/// 실 API 모드.
 const AppConfig _realConfig = AppConfig(
   environment: Environment.dev,
   apiBaseUrl: 'http://localhost/v1',
@@ -334,7 +333,6 @@ void main() {
     const String email = 'trainer-signup-email';
     const String password = 'trainer-signup-password';
     const String confirm = 'trainer-signup-password-confirm';
-    const String code = 'trainer-signup-invite-code';
     const String submit = 'trainer-signup-submit';
 
     Future<_AuthRepository> pumpSignUp(
@@ -361,12 +359,11 @@ void main() {
       return repo;
     }
 
-    Future<void> fill(WidgetTester tester, {bool withCode = true}) async {
+    Future<void> fill(WidgetTester tester) async {
       await _type(tester, name, '김신규');
       await _type(tester, email, 'new@oncare.com');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, 'signup-pw-1234');
-      if (withCode) await _type(tester, code, 'ONCARE1');
     }
 
     testWidgets('칸마다 name·username/email·newPassword 힌트다', (tester) async {
@@ -391,12 +388,6 @@ void main() {
       );
     });
 
-    testWidgets('초대 코드 칸에는 채울 값이 없어 힌트를 달지 않는다', (tester) async {
-      await pumpSignUp(tester);
-
-      expect(_field(tester, code).autofillHints, isEmpty);
-    });
-
     testWidgets('모든 칸이 같은 AutofillGroup 하나에 묶여 있다', (tester) async {
       await pumpSignUp(tester);
 
@@ -408,7 +399,7 @@ void main() {
         findsOneWidget,
       );
       final Widget group = tester.widget(_groupAround(name));
-      for (final String key in <String>[email, password, confirm, code]) {
+      for (final String key in <String>[email, password, confirm]) {
         expect(tester.widget(_groupAround(key)), same(group), reason: key);
       }
       expect(
@@ -417,10 +408,9 @@ void main() {
       );
     });
 
-    testWidgets('데모 가입 화면도 초대 코드 없이 같은 힌트·묶음이다', (tester) async {
+    testWidgets('데모 가입 화면도 같은 힌트·묶음이다', (tester) async {
       await pumpSignUp(tester, demo: true);
 
-      expect(_input(code), findsNothing);
       expect(_groupAround(confirm), findsOneWidget);
       expect(_field(tester, confirm).autofillHints, <String>[
         AutofillHints.newPassword,
@@ -441,7 +431,7 @@ void main() {
 
     testWidgets('데모 가입에 성공해도 한 번 저장을 알린다', (tester) async {
       final _AuthRepository repo = await pumpSignUp(tester, demo: true);
-      await fill(tester, withCode: false);
+      await fill(tester);
 
       await _tapKey(tester, submit);
 
@@ -451,7 +441,6 @@ void main() {
 
     for (final AuthFailure failure in <AuthFailure>[
       AuthFailure.emailTaken,
-      AuthFailure.inviteCodeInvalid,
       AuthFailure.network,
     ]) {
       testWidgets('서버가 가입을 거절하면($failure) 저장하지 않는다', (tester) async {
@@ -512,7 +501,7 @@ void main() {
       expect(_field(tester, password).autofillHints, <String>[
         AutofillHints.newPassword,
       ]);
-      expect(_groupAround(code), findsOneWidget);
+      expect(_groupAround(confirm), findsOneWidget);
     });
   });
 }

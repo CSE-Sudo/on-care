@@ -93,15 +93,15 @@ void main() {
           ),
         );
 
-    testWidgets('맨몸 근력은 중량을 0kg 으로 적는다', (tester) async {
-      // 중량 칸은 비울 수 없다(최솟값 0) — 근력을 고르면 언제나 값을 하나
-      // 든다. 그래서 0 은 적지 않은 값이 아니라 트레이너가 적은 맨몸이다.
+    testWidgets('맨몸 근력(0kg)은 중량을 적지 않는다 (#2533)', (tester) async {
+      // 중량 칸은 비울 수 없다(최솟값 0) — 맨몸이면 늘 0 이 드는데, `0kg` 은
+      // 화면에서 잡음이다. 값은 그대로 두고 표시만 뺀다.
       await pumpRow(
         tester,
         const ProgramItem(name: '플랭크', sets: 3, reps: 3, weight: 0),
       );
 
-      expect(find.text('3세트 · 3회 · 0kg'), findsOneWidget);
+      expect(find.text('3세트 · 3회'), findsOneWidget);
     });
 
     testWidgets('중량이 아예 없는 옛 행은 그 자리를 비운다', (tester) async {

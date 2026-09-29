@@ -498,7 +498,7 @@ def test_routine_amount_matches_the_trainer_service_rule(type_, minutes, sets, r
         ("근력", 15, 3, 12, None, 40.0, "3 sets · 12 reps · 40 kg"),
         ("근력", 15, 1, 1, None, None, "1 set · 1 rep"),
         ("근력", 10, 3, None, 60, None, "3 sets · 60 sec"),
-        ("strength", 15, 3, 12, None, 0.0, "3 sets · 12 reps · 0 kg"),
+        ("strength", 15, 3, 12, None, 0.0, "3 sets · 12 reps"),
         ("근력", 10, 4, 8, None, 22.5, "4 sets · 8 reps · 22.5 kg"),
         ("근력", 20, None, 10, None, 30.0, "20 min"),
     ],

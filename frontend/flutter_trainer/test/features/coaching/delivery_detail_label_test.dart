@@ -38,7 +38,7 @@ void main() {
         weight: 0,
       );
 
-      expect(programItemAmount(l, item), '3세트 · 45초 · 0kg');
+      expect(programItemAmount(l, item), '3세트 · 45초');
     });
 
     test('근력이 아니면 시간으로 적는다', () {
@@ -63,6 +63,22 @@ void main() {
       );
 
       expect(assignedRoutineLabel(l, routine), '덤벨컬 · 근력 · 3세트 · 12회 · 8kg');
+    });
+
+    test('맨몸 근력(0kg)은 중량을 적지 않는다 (#2533)', () {
+      const routine = AssignedRoutine(
+        id: 'r3',
+        name: '코어 강화',
+        minutes: 10,
+        type: '근력',
+        reason: '',
+        source: 'trainer',
+        sets: 3,
+        reps: 15,
+        weight: 0,
+      );
+
+      expect(assignedRoutineLabel(l, routine), '코어 강화 · 근력 · 3세트 · 15회');
     });
 
     test('근력이 아니면 시간으로 적는다', () {

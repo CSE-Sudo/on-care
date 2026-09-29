@@ -816,6 +816,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exExerciseHold => '버티는 시간';
 
   @override
+  String get exExerciseStrengthAmount => '세트 · 횟수 · 중량';
+
+  @override
+  String get exExerciseStrengthAmountHold => '세트 · 버티는 시간 · 중량';
+
+  @override
   String get exExerciseMeasure => '재는 방법';
 
   @override
@@ -3719,12 +3725,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get exDemoPtFeedback =>
       '숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!';
-
-  @override
-  String get exStepperDecrease => '줄이기';
-
-  @override
-  String get exStepperIncrease => '늘리기';
 
   @override
   String pointsRewardBadge(int points) {

@@ -31,3 +31,12 @@ const int kMaxExerciseHoldSeconds = 3600;
 /// 기록 한 건이 이보다 길 수는 없다고 본다 — 하루치가 아니라 **한 운동**이
 /// 차지한 시간이기 때문이다. 시·분·초 휠이 고를 수 있는 끝도 이 값이다.
 const int kMaxExerciseMinutes = 600;
+
+/// 중량 휠 한 칸의 간격(kg). 원판이 0.5kg 단위로 붙는다. (#2545)
+const double kExerciseWeightStepKg = 0.5;
+
+/// [kg] 을 가장 가까운 [kExerciseWeightStepKg] 칸으로 맞춘다. 휠은 그 칸에만
+/// 서므로, 칸 사이의 옛 기록(62.3kg)을 그대로 두면 휠에 보이는 값(62.5)과
+/// 저장되는 값이 어긋난다.
+double snapExerciseWeight(double kg) =>
+    (kg / kExerciseWeightStepKg).round() * kExerciseWeightStepKg;

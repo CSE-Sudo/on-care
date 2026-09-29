@@ -25,6 +25,9 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     type: _str(json['type']),
     reason: _str(json['reason']),
     source: _str(json['source']),
+    // 운동 시간(초)(#2221). 근력과, 이 키를 모르는 옛 응답은 null 이라 화면이
+    // [CoachRoutine.minutes] 로 떨어진다.
+    durationSeconds: _positiveIntOrNull(json['duration_seconds']),
     // 권장 강도(#2160). 이 키가 없던 옛 응답은 서버 기본값과 같은 `moderate`.
     intensity: json['intensity'] is String
         ? json['intensity']! as String
@@ -34,6 +37,10 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     completedMinutes: json['completed_minutes'] is num
         ? (json['completed_minutes']! as num).toInt()
         : null,
+    // 초로 남긴 완료 기록만 온다(#2221). 없으면 [completedMinutes] 가 그 값이다.
+    completedDurationSeconds: _positiveIntOrNull(
+      json['completed_duration_seconds'],
+    ),
     completedIntensity: json['completed_intensity'] as String?,
     trainerFeedback: _str(json['trainer_feedback']),
     programName: _str(json['program_name']),
@@ -70,18 +77,36 @@ List<CoachRoutineExercise> _coachRoutineExercises(Object? raw) {
   if (raw is! List) return const <CoachRoutineExercise>[];
   return <CoachRoutineExercise>[
     for (final entry in raw)
-      if (entry is Map<String, Object?>)
-        CoachRoutineExercise(
-          name: _str(entry['name']),
-          sets: _intOrNull(entry['sets']),
-          reps: _intOrNull(entry['reps']),
-          weight: _doubleOrNull(entry['weight']),
-          duration: _intOrNull(entry['duration']),
-          rest: _intOrNull(entry['rest']),
-          memo: _str(entry['memo']),
-        ),
+      if (entry is Map<String, Object?>) _coachRoutineExercise(entry),
   ];
 }
+
+CoachRoutineExercise _coachRoutineExercise(Map<String, Object?> entry) {
+  final int? duration = _intOrNull(entry['duration']);
+  return CoachRoutineExercise(
+    name: _str(entry['name']),
+    sets: _intOrNull(entry['sets']),
+    reps: _intOrNull(entry['reps']),
+    weight: _doubleOrNull(entry['weight']),
+    duration: duration,
+    durationSeconds: _durationSeconds(entry['duration_seconds'], duration),
+    rest: _intOrNull(entry['rest']),
+    memo: _str(entry['memo']),
+  );
+}
+
+/// 프로그램 운동 한 항목의 시간(초). (#2221)
+///
+/// 서버는 근력이 아닌 항목에 언제나 `duration_seconds` 를 채워 보낸다. 이 키를
+/// 모르는 옛 응답은 분([minutes])에서 되짚는다 — 그때는 애초에 분으로만 적힌
+/// 값이라 초 칸이 붙지 않는다. 둘 다 없으면 null 이다.
+int? _durationSeconds(Object? seconds, int? minutes) =>
+    _positiveIntOrNull(seconds) ??
+    (minutes != null && minutes > 0 ? minutes * 60 : null);
+
+/// 0 보다 큰 정수만. 0·음수·수가 아닌 값은 적지 않은 것으로 읽는다.
+int? _positiveIntOrNull(Object? v) =>
+    v is num && v.toInt() > 0 ? v.toInt() : null;
 
 /// `/me/coach/sessions` element (ScheduleSessionOut) → [CoachSession].
 ///
@@ -105,6 +130,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
                 if (item is! Map<String, Object?>) {
                   throw const FormatException('Invalid coach program item.');
                 }
+                final int duration = _looseInt(item['duration']);
                 return CoachProgramItem(
                   name: _str(item['name']),
                   // 예전 행에는 `"12회"`·`"80kg"` 같은 문자열이 남아 있다 —
@@ -112,7 +138,11 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
                   sets: _looseInt(item['sets']),
                   reps: _looseInt(item['reps']),
                   weight: _looseDouble(item['weight']),
-                  duration: _looseInt(item['duration']),
+                  duration: duration,
+                  durationSeconds: _durationSeconds(
+                    item['duration_seconds'],
+                    duration,
+                  ),
                 );
               })
               .toList(growable: false)

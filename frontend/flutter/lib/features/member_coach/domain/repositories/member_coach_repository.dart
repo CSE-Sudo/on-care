@@ -31,9 +31,14 @@ abstract interface class MemberCoachRepository {
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day);
 
   /// 오늘의 운동 기록으로 완료한다 — 배정 하나당 하루 한 번. (#2161)
+  ///
+  /// [durationSeconds] 는 같은 시간을 초로 적은 값이다(#2221). 초로 배정된
+  /// 운동(`45초`)을 [minutes] 로만 보내면 `1분` 기록이 된다. 근력처럼 초가 없는
+  /// 배정은 null 로 두고 [minutes] 만 보낸다.
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,
+    int? durationSeconds,
     String intensity = 'moderate',
   });
 
