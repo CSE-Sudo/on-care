@@ -16,7 +16,7 @@ class ProgramDraft {
     required String name,
     required this.type,
     required this.date,
-    required this.minutes,
+    required this.durationSeconds,
     required this.sets,
     required this.reps,
     required this.holdSeconds,
@@ -29,7 +29,8 @@ class ProgramDraft {
     name: item.name,
     type: normaliseRoutineType(item.type),
     date: item.date ?? _today(),
-    minutes: item.duration ?? 30,
+    // 초가 없는 예전 행은 분 × 60 으로 열린다(#2221).
+    durationSeconds: item.seconds ?? 30 * 60,
     sets: item.sets ?? 3,
     reps: item.reps ?? 10,
     holdSeconds: item.holdSeconds ?? 60,
@@ -49,7 +50,7 @@ class ProgramDraft {
     name: '',
     type: '근력',
     date: date ?? _today(),
-    minutes: 30,
+    durationSeconds: 30 * 60,
     sets: 3,
     reps: 10,
     holdSeconds: 60,
@@ -73,8 +74,11 @@ class ProgramDraft {
   /// 이 운동을 하는 날.
   DateTime date;
 
-  /// 유산소·스트레칭·기타의 운동 시간(분). 근력은 세트로 재므로 쓰지 않는다.
-  int minutes;
+  /// 유산소·스트레칭·기타의 운동 시간(초). 근력은 세트로 재므로 쓰지 않는다.
+  ///
+  /// 시·분·초로 적는다(#2221) — 분만 받던 동안에는 45초짜리 운동을 적을 수
+  /// 없었고, 한 시간이 넘으면 90분처럼 환산해야 했다.
+  int durationSeconds;
 
   /// 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서는 쓰지 않는다.
   ///
@@ -120,7 +124,8 @@ class ProgramDraft {
 
   /// 저장·칼로리 계산이 쓰는 분. 근력이면 세트에서 환산한 값이다 — 서버는
   /// 여전히 분을 요구하고 주간 운동 시간도 분으로 센다.
-  int get effectiveMinutes => isStrength ? minutesFromSets(sets) : minutes;
+  int get effectiveMinutes =>
+      isStrength ? minutesFromSets(sets) : minutesFromSeconds(durationSeconds);
 
   /// 예상 소모 칼로리. 운동 이름이 비어 있으면 null 이다 — 이름 없이 확정된
   /// 숫자를 띄우지 않는다(#1312).
@@ -137,7 +142,8 @@ class ProgramDraft {
     name: name.text.trim(),
     type: type,
     date: date,
-    duration: isStrength ? null : minutes,
+    duration: isStrength ? null : minutesFromSeconds(durationSeconds),
+    durationSeconds: isStrength ? null : durationSeconds,
     sets: isStrength ? sets : null,
     // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 비운다(#1969).
     reps: isStrength && !isHold ? reps : null,

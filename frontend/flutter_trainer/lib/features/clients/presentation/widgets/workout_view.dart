@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -475,7 +476,7 @@ class _PendingRoutines extends ConsumerWidget {
 /// 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 규칙이 서기 전에 저장된
 /// 행뿐이라, 그때만 자리를 비운다.
 String _pendingRoutineAmountLabel(AppLocalizations l, AssignedRoutine routine) {
-  if (routine.type != '근력') return l.minutesShort(routine.minutes);
+  if (routine.type != '근력') return formatExerciseDuration(l, routine.seconds);
   final List<String> parts = <String>[
     if (routine.sets != null) l.progSetsValue(routine.sets!),
     // 버티는 운동은 회가 아니라 초로 읽는다 — 둘은 배타다(#1969).

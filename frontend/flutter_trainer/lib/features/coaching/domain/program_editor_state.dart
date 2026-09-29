@@ -136,7 +136,7 @@ class ProgramExerciseDraft {
     required this.name,
     this.type = '근력',
     this.date,
-    this.minutes = 30,
+    this.durationSeconds = 30 * 60,
     this.sets = 3,
     this.reps = 10,
     this.holdSeconds = 60,
@@ -155,8 +155,15 @@ class ProgramExerciseDraft {
   /// 이 운동을 하는 날. 아직 정하지 않았으면 null.
   final DateTime? date;
 
-  /// 유산소·스트레칭·기타의 운동 시간(분). 근력은 세트로 재므로 쓰지 않는다.
-  final int minutes;
+  /// 유산소·스트레칭·기타의 운동 시간(초). 근력은 세트로 재므로 쓰지 않는다.
+  ///
+  /// 시·분·초로 적는다(#2221) — 분만 받던 동안에는 45초짜리 운동을 적을 수
+  /// 없었고, 한 시간이 넘으면 90분처럼 환산해야 했다.
+  final int durationSeconds;
+
+  /// [durationSeconds] 를 분으로 접은 값 — 0 이 아니면 최소 1분. 분을 요구하는
+  /// 자리(템플릿·칼로리 추정)만 쓴다.
+  int get minutes => minutesFromSeconds(durationSeconds);
 
   /// 근력의 세트 수·한 세트당 횟수·중량(kg). 시간과 따로 들고 있어야 유형을
   /// 오갈 때 각자의 값이 남는다 — 하나로 쓰면 30분이 30세트가 되어 돌아온다.
@@ -211,7 +218,7 @@ class ProgramExerciseDraft {
     String? name,
     String? type,
     DateTime? date,
-    int? minutes,
+    int? durationSeconds,
     int? sets,
     int? reps,
     int? holdSeconds,
@@ -226,7 +233,7 @@ class ProgramExerciseDraft {
     name: name ?? this.name,
     type: type ?? this.type,
     date: date ?? this.date,
-    minutes: minutes ?? this.minutes,
+    durationSeconds: durationSeconds ?? this.durationSeconds,
     sets: sets ?? this.sets,
     reps: reps ?? this.reps,
     holdSeconds: holdSeconds ?? this.holdSeconds,

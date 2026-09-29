@@ -14,6 +14,7 @@ class ProgramItem {
     this.type = '근력',
     this.date,
     this.duration,
+    this.durationSeconds,
     this.sets,
     this.reps,
     this.holdSeconds,
@@ -35,6 +36,14 @@ class ProgramItem {
   /// 유산소·스트레칭·기타의 운동 시간(분). 근력은 세트로 재므로 null 이다.
   /// PT 완료 자동 기록은 이 값이 없으면 세션 슬롯 전체 길이로 되돌아간다(#1233).
   final int? duration;
+
+  /// 같은 운동 시간을 초로(#2221). 트레이너가 시·분·초로 적은 그대로다.
+  /// 이 칸이 생기기 전의 행은 비어 있다 — 읽을 때는 [seconds] 를 쓴다.
+  final int? durationSeconds;
+
+  /// 이 운동의 시간(초). 초가 없는 예전 행은 분 × 60 이다. 근력은 null.
+  int? get seconds =>
+      durationSeconds ?? (duration == null ? null : duration! * 60);
 
   /// 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형은 null 이다.
   final int? sets;
@@ -66,6 +75,7 @@ class ProgramItem {
     type: type,
     date: date,
     duration: type == '근력' ? null : duration,
+    durationSeconds: type == '근력' ? null : durationSeconds,
     sets: type == '근력' ? sets : null,
     // 한 세트는 회로든 초로든 한 번만 잰다 — 초가 있으면 횟수를 버린다(#1969).
     reps: type == '근력' && holdSeconds == null ? reps : null,

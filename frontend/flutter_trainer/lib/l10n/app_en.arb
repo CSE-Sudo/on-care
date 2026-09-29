@@ -761,6 +761,24 @@
       }
     }
   },
+  "hoursShort": "{hours} hr",
+  "@hoursShort": {
+    "description": "Hours part of an exercise duration, e.g. `1 hr 30 min` (#2221).",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "secondsShort": "{seconds} sec",
+  "@secondsShort": {
+    "description": "Seconds part of an exercise duration, e.g. `45 sec` (#2221).",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "ptProgramHistory": "PT program history",
   "scheduleLoadFailed": "Couldn't load the schedule",
   "ptSessionsEmpty": "No PT sessions yet",
@@ -1719,6 +1737,7 @@
   "routineFieldCalories": "Estimated calories",
   "routineCaloriesNeedName": "Enter an exercise name",
   "routineCaloriesRoughEstimate": "A rough average for this exercise type · the saved record will also use the member's weight",
+  "routineUnitHours": "hr",
   "routineUnitMinutes": "min",
   "routineUnitSets": "sets",
   "routineUnitReps": "reps",
