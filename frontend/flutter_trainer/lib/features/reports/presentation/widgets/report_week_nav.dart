@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/week_range_nav.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 리포트의 주 이동 — `‹  9월 28일 – 10월 4일  ›  [오늘]`.
+/// 리포트의 주 이동 — `‹  9월 28일 – 10월 4일  [오늘]  ›`.
 ///
-/// 날짜·화살표가 **먼저**고 `오늘` 이 그 뒤다. 읽는 순서가 그렇다 — 지금 어느
-/// 주를 보고 있는지를 알아야 돌아갈지 말지를 정한다. 버튼을 앞에 두었을 때는
-/// 날짜보다 먼저 눈에 걸려, 바뀐 것이 없는 화면에서도 무언가 누를 것이 있는
-/// 줄로 읽혔다(#2232).
+/// 스케줄 탭과 같은 [WeekRangeNav] 다 — `오늘` 은 두 화살표 **안쪽**, 날짜
+/// 오른쪽의 고정 자리에 앉는다. 날짜 길이나 버튼 표시 여부와 무관하게
+/// 화살표가 움직이지 않는다(#2536).
 ///
 /// 버튼은 스케줄 탭의 `오늘` 과 같은 부품이다 — 같은 뜻의 조작이 탭마다 다른
 /// 모양이면 익힌 것이 소용없다. 칠하지 않는 네이비 외곽선이라 회색 페이지
@@ -39,27 +39,21 @@ class ReportWeekNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        AppPeriodNav(
-          label: rangeLabel,
-          previousTooltip: l.a11yPrevWeek,
-          nextTooltip: l.a11yNextWeek,
-          onPrevious: onPrev,
-          onNext: onNext,
-        ),
-        if (onThisWeek != null) ...<Widget>[
-          const SizedBox(width: OnCareSpacing.s12),
-          AppButton(
-            key: const ValueKey<String>('reports-go-this-week'),
-            label: l.labelToday,
-            variant: AppButtonVariant.strongOutline,
-            leadingIcon: AppIcons.calendar,
-            onPressed: onThisWeek,
-          ),
-        ],
-      ],
+    return WeekRangeNav(
+      label: rangeLabel,
+      previousTooltip: l.a11yPrevWeek,
+      nextTooltip: l.a11yNextWeek,
+      onPrevious: onPrev,
+      onNext: onNext,
+      today: onThisWeek == null
+          ? null
+          : AppButton(
+              key: const ValueKey<String>('reports-go-this-week'),
+              label: l.labelToday,
+              variant: AppButtonVariant.strongOutline,
+              leadingIcon: AppIcons.calendar,
+              onPressed: onThisWeek,
+            ),
     );
   }
 }
