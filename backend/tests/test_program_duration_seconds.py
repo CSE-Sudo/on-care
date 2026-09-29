@@ -10,7 +10,12 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.trainer_api import ProgramDraftExercise, ProgramItem
+from app.schemas.exercise_limits import MAX_EXERCISE_SECONDS
+from app.schemas.trainer_api import (
+    ProgramDraftExercise,
+    ProgramItem,
+    ProgramTemplateExercise,
+)
 from app.services.trainer_service import (
     _program_item_label,
     _program_items,
@@ -94,3 +99,59 @@ def test_history_label_stays_in_minutes():
     """이력 한 줄은 분으로 적는다 — `초` 는 버티는 운동의 초로 되읽힌다."""
     item = ProgramItem(name="걷기", type="유산소", duration_seconds=45)
     assert _program_item_label(item) == "걷기 1분"
+
+
+# ---------------------------------------------------------------------------
+# 프로그램 템플릿 (#2521) — 템플릿으로 저장한 운동도 초를 그대로 남긴다.
+# ---------------------------------------------------------------------------
+
+
+def _template(**over) -> ProgramTemplateExercise:
+    return ProgramTemplateExercise(**{"name": "버피", "type": "유산소", **over})
+
+
+def test_a_template_takes_as_long_as_the_editor():
+    """편집기가 받는 열 시간짜리 운동도 템플릿으로 저장된다."""
+    longest = _template(duration_seconds=MAX_EXERCISE_SECONDS)
+    assert longest.minutes == MAX_EXERCISE_SECONDS // 60
+
+
+def test_a_template_keeps_seconds_and_rounds_minutes():
+    """`버피 45초` 가 `1분` 으로, `1시간 30분 15초` 가 `90분` 으로 접히지 않는다."""
+    short = _template(duration_seconds=45)
+    assert (short.duration_seconds, short.minutes) == (45, 1)
+
+    long = _template(duration_seconds=5415)
+    assert (long.duration_seconds, long.minutes) == (5415, 90)
+
+
+def test_a_minutes_only_template_reads_as_seconds():
+    """초가 생기기 전에 저장된 템플릿·분만 보내는 클라이언트는 분 × 60 이다."""
+    legacy = _template(minutes=20)
+    assert (legacy.duration_seconds, legacy.minutes) == (1200, 20)
+
+
+def test_seconds_win_over_minutes_in_a_template():
+    both = _template(minutes=30, duration_seconds=45)
+    assert (both.duration_seconds, both.minutes) == (45, 1)
+
+
+def test_a_template_seconds_round_trip_through_json():
+    """`exercises_json` 에 저장했다가 다시 읽어도 초가 같다."""
+    dumped = json.loads(json.dumps(_template(duration_seconds=45).model_dump()))
+    again = ProgramTemplateExercise.model_validate(dumped)
+    assert (again.duration_seconds, again.minutes) == (45, 1)
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {},
+        {"minutes": 0},
+        {"duration_seconds": 0},
+        {"duration_seconds": MAX_EXERCISE_SECONDS + 1},
+    ],
+)
+def test_a_template_exercise_needs_a_duration_in_range(over):
+    with pytest.raises(ValidationError):
+        _template(**over)
