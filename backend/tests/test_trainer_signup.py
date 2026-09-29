@@ -1,28 +1,24 @@
-"""트레이너 가입 — 헬스장 초대 코드. (#475)
+"""트레이너 가입. (#475, #1627)
 
 트레이너 계정을 만들 방법이 시드 스크립트뿐이었다. 가입한 계정이 실제로
-트레이너로 동작하는지(= `/trainer/me` 가 200 을 주고 소속이 붙는지)를 확인한다 —
+트레이너로 동작하는지(= `/trainer/me` 가 200 을 주는지)를 확인한다 —
 `users.role` 만 보면 "가입은 됐는데 아무것도 못 하는" 상태를 놓친다.
+
+소속 헬스장은 가입 때 정하지 않는다(#1627). 가입 직후에는 소속이 비어 있고,
+`PUT /trainer/me/gym` 으로 고른다.
 
 DB 가 필요하므로 로컬에서는 skip 되고 CI(Postgres) 에서 실행된다.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
 
-from app.models.models import (
-    Place,
-    TrainerInviteCode,
-    TrainerProfile,
-    User,
-)
+from app.models.models import Place, TrainerProfile, User
 
 EMAIL_PREFIX = "signup-test-"
 PLACE_PREFIX = "signup-place-"
-CODE_PREFIX = "SIGNUPTEST"
 PASSWORD = "signup-pw-1234"
 
 
@@ -36,9 +32,6 @@ def _cleanup(db_session):
         .filter(User.email.like(f"{EMAIL_PREFIX}%"))
         .all()
     ]
-    db_session.query(TrainerInviteCode).filter(
-        TrainerInviteCode.code.like(f"{CODE_PREFIX}%")
-    ).delete(synchronize_session=False)
     if user_ids:
         db_session.query(TrainerProfile).filter(
             TrainerProfile.trainer_id.in_(user_ids)
@@ -68,30 +61,11 @@ def _gym(db_session) -> Place:
     return place
 
 
-def _code(
-    db_session,
-    *,
-    gym: Place | None = None,
-    used_by: str | None = None,
-    expires_at: datetime | None = None,
-) -> TrainerInviteCode:
-    code = TrainerInviteCode(
-        code=f"{CODE_PREFIX}{uuid4().hex[:8].upper()}",
-        gym_id=(gym or _gym(db_session)).id,
-        used_by=used_by,
-        expires_at=expires_at,
-    )
-    db_session.add(code)
-    db_session.commit()
-    return code
-
-
-def _payload(code: str, *, email: str | None = None) -> dict:
+def _payload(*, email: str | None = None) -> dict:
     return {
         "email": email or f"{EMAIL_PREFIX}{uuid4().hex[:10]}@oncare.com",
         "password": PASSWORD,
         "name": "신규 트레이너",
-        "invite_code": code,
     }
 
 
@@ -103,11 +77,9 @@ def _login(client, email: str) -> str:
     return response.json()["access_token"]
 
 
-def test_invite_code_creates_a_working_trainer(client, db_session):
-    """가입한 계정이 실제로 트레이너로 동작하고 소속이 붙는다."""
-    gym = _gym(db_session)
-    code = _code(db_session, gym=gym)
-    payload = _payload(code.code)
+def test_signup_creates_a_working_trainer_without_a_gym(client):
+    """가입한 계정이 실제로 트레이너로 동작하고, 소속은 비어 있다."""
+    payload = _payload()
 
     response = client.post("/v1/auth/trainer/register", json=payload)
 
@@ -117,86 +89,44 @@ def test_invite_code_creates_a_working_trainer(client, db_session):
     # role 만 보지 않는다 — 트레이너 앱이 처음 부르는 엔드포인트로 확인한다.
     me = client.get("/v1/trainer/me", headers=_auth(_login(client, payload["email"])))
     assert me.status_code == 200, me.text
-    assert me.json()["gym"]["id"] == gym.id
+    assert me.json()["gym"]["id"] is None
 
 
-def test_the_code_is_spent_after_use(client, db_session):
-    """코드는 1회용이다 — 두 번째 가입은 거절된다."""
-    code = _code(db_session)
+def test_a_signed_up_trainer_can_pick_a_gym(client, db_session):
+    """가입 뒤 소속을 고르는 길이 이어져 있다 — 초대 코드가 하던 일을 대신한다."""
+    gym = _gym(db_session)
+    payload = _payload()
+    client.post("/v1/auth/trainer/register", json=payload)
+    token = _login(client, payload["email"])
 
-    first = client.post("/v1/auth/trainer/register", json=_payload(code.code))
-    second = client.post("/v1/auth/trainer/register", json=_payload(code.code))
-
-    assert first.status_code == 201, first.text
-    assert second.status_code == 422, second.text
-
-    db_session.expire_all()
-    spent = db_session.get(TrainerInviteCode, code.code)
-    assert spent.used_by == first.json()["id"]
-    assert spent.used_at is not None
-
-
-def test_unknown_code_is_rejected(client):
-    response = client.post(
-        "/v1/auth/trainer/register", json=_payload(f"{CODE_PREFIX}NOPE")
-    )
-    assert response.status_code == 422, response.text
-
-
-def test_expired_code_is_rejected(client, db_session):
-    code = _code(
-        db_session,
-        expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+    picked = client.put(
+        "/v1/trainer/me/gym", headers=_auth(token), json={"gym_id": gym.id}
     )
 
-    response = client.post("/v1/auth/trainer/register", json=_payload(code.code))
+    assert picked.status_code == 200, picked.text
+    assert picked.json()["gym"]["id"] == gym.id
 
-    assert response.status_code == 422, response.text
 
-
-def test_code_is_matched_case_insensitively(client, db_session):
-    """사람이 옮겨 적는 값이다 — 소문자·공백을 코드 오류로 만들지 않는다."""
-    code = _code(db_session)
-    payload = _payload(f"  {code.code.lower()}  ")
+def test_signup_ignores_a_leftover_invite_code(client):
+    """예전 앱이 초대 코드를 실어 보내도 가입을 막지 않는다."""
+    payload = {**_payload(), "invite_code": "OLDAPP1"}
 
     response = client.post("/v1/auth/trainer/register", json=payload)
 
     assert response.status_code == 201, response.text
 
 
-def test_duplicate_email_conflicts_and_keeps_the_code_usable(
-    client, db_session
-):
-    """이메일이 겹쳐 실패하면 코드는 소진되지 않아야 한다.
-
-    코드만 날아가면 트레이너는 오타 한 번에 헬스장에 코드를 다시 요청해야 한다.
-    """
-    code = _code(db_session)
+def test_duplicate_email_conflicts(client):
     taken = f"{EMAIL_PREFIX}{uuid4().hex[:10]}@oncare.com"
     client.post("/v1/auth/register", json={
         "email": taken, "password": PASSWORD, "name": "회원",
     })
 
     response = client.post(
-        "/v1/auth/trainer/register", json=_payload(code.code, email=taken)
+        "/v1/auth/trainer/register", json=_payload(email=taken)
     )
 
     assert response.status_code == 409, response.text
-    db_session.expire_all()
-    assert db_session.get(TrainerInviteCode, code.code).used_by is None
-
-
-def test_failed_signup_leaves_no_half_built_account(client, db_session):
-    """실패한 가입은 계정도 프로필도 남기지 않는다."""
-    email = f"{EMAIL_PREFIX}{uuid4().hex[:10]}@oncare.com"
-
-    response = client.post(
-        "/v1/auth/trainer/register",
-        json=_payload(f"{CODE_PREFIX}MISSING", email=email),
-    )
-
-    assert response.status_code == 422, response.text
-    assert db_session.query(User).filter(User.email == email).count() == 0
 
 
 def test_member_register_still_creates_a_member(client):
@@ -212,17 +142,3 @@ def test_member_register_still_creates_a_member(client):
 
     # 회원 계정은 트레이너 엔드포인트에서 403 이어야 한다.
     assert me.status_code == 403, me.text
-
-
-def test_signup_requires_an_invite_code(client):
-    """코드 없이 트레이너로 가입할 수 있는 경로가 없어야 한다."""
-    response = client.post(
-        "/v1/auth/trainer/register",
-        json={
-            "email": f"{EMAIL_PREFIX}{uuid4().hex[:10]}@oncare.com",
-            "password": PASSWORD,
-            "name": "코드 없음",
-        },
-    )
-
-    assert response.status_code == 422, response.text

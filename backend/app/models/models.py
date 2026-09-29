@@ -1322,47 +1322,6 @@ class TrainerProfile(Base):
     )
 
 
-class TrainerInviteCode(Base):
-    """헬스장이 발급하는 트레이너 가입 초대 코드. (#475)
-
-    트레이너 계정은 시드 스크립트로만 만들 수 있었다 — `/auth/register` 는 회원
-    전용이라 트레이너 앱에서 가입해도 member 계정이 생겨 `/trainer/me` 가 403 을
-    돌려줬다. 그래서 트레이너 앱의 가입 진입점이 데모에서만 열려 있었다.
-
-    코드가 **소속을 결정한다**는 점이 핵심이다. 상담 대상 트레이너에게는 소속
-    헬스장이 요구되므로(#443·#451), 소속을 가입 시점에 확정하면 "가입은 됐는데
-    아무것도 못 하는" 상태가 생기지 않는다. 아무나 트레이너로 가입해 회원 상담을
-    받는 것도 구조로 막힌다.
-
-    한 번 쓰면 끝이다(`used_by`). 여러 명을 받으려면 헬스장이 코드를 여러 개
-    발급한다 — 사용 횟수를 세는 것보다 "누가 이 코드를 썼는지"가 남는 편이
-    나중에 추적할 수 있다.
-    """
-
-    __tablename__ = "trainer_invite_codes"
-
-    #: 사람이 옮겨 적는 값이라 코드 자체가 PK 다. 대문자·숫자만 쓰고 대소문자
-    #: 구분 없이 조회한다(입력 실수를 코드 오류로 만들지 않는다).
-    code: Mapped[str] = mapped_column(String(32), primary_key=True)
-    gym_id: Mapped[str] = mapped_column(
-        ForeignKey("places.id", ondelete="CASCADE"), index=True
-    )
-    #: 만료 시각. NULL 이면 만료 없음.
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    #: 이 코드로 가입한 트레이너. NULL 이면 아직 쓰이지 않았다.
-    used_by: Mapped[str | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    )
-    used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-
-
 class TrainerClient(Base):
     """트레이너↔회원 담당 링크. 트레이너의 '고객 목록'은 이 링크로 정의된다.
 
