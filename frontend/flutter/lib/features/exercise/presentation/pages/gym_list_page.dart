@@ -588,99 +588,106 @@ class _GymListCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: _gymIconBox,
-                height: _gymIconBox,
-                alignment: Alignment.center,
-                child: AppIcon(
-                  AppIcons.gym,
-                  size: OnCareSize.iconMedium,
-                  color: tokens.brand.primary,
+          // 끝 화살표는 글줄 높이의 가운데에 선다 — MY 목록 행, 아래 트레이너
+          // 줄과 같은 자리다(#2598). 높이를 글줄에 맞춰 두어야 가운데를 잴 수
+          // 있다. 앞 헬스장 아이콘은 이름 줄 옆 위쪽에 그대로 둔다.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  width: _gymIconBox,
+                  height: _gymIconBox,
+                  alignment: Alignment.center,
+                  child: AppIcon(
+                    AppIcons.gym,
+                    size: OnCareSize.iconMedium,
+                    color: tokens.brand.primary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: OnCareSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      gym.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tokens
-                          .text(OnCareTypography.titleSmall)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    Row(
-                      children: <Widget>[
-                        if (ref.watch(gymShowDistanceProvider)) ...<Widget>[
-                          Flexible(
-                            child: Text(
-                              '${gym.distanceKm.toStringAsFixed(1)}km',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: OnCareTypography.numeric(meta),
+                const SizedBox(width: OnCareSpacing.s12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        gym.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Row(
+                        children: <Widget>[
+                          if (ref.watch(gymShowDistanceProvider)) ...<Widget>[
+                            Flexible(
+                              child: Text(
+                                '${gym.distanceKm.toStringAsFixed(1)}km',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: OnCareTypography.numeric(meta),
+                              ),
+                            ),
+                            const SizedBox(width: OnCareSpacing.s8),
+                          ],
+                          const AppIcon(
+                            AppIcons.star,
+                            size: OnCareSize.iconSmall,
+                            color: OnCareColors.cautionFill,
+                          ),
+                          const SizedBox(width: OnCareSpacing.s2),
+                          Text(
+                            gym.rating.toStringAsFixed(1),
+                            maxLines: 1,
+                            style: OnCareTypography.numeric(
+                              tokens
+                                  .text(
+                                    OnCareTypography.strong(
+                                      OnCareTypography.bodySmall,
+                                    ),
+                                  )
+                                  .copyWith(color: OnCareColors.textPrimary),
                             ),
                           ),
-                          const SizedBox(width: OnCareSpacing.s8),
-                        ],
-                        const AppIcon(
-                          AppIcons.star,
-                          size: OnCareSize.iconSmall,
-                          color: OnCareColors.cautionFill,
-                        ),
-                        const SizedBox(width: OnCareSpacing.s2),
-                        Text(
-                          gym.rating.toStringAsFixed(1),
-                          maxLines: 1,
-                          style: OnCareTypography.numeric(
-                            tokens
-                                .text(
-                                  OnCareTypography.strong(
-                                    OnCareTypography.bodySmall,
-                                  ),
-                                )
-                                .copyWith(color: OnCareColors.textPrimary),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    Text(
-                      gym.weekdayHours == null
-                          ? gym.address
-                          : '${gym.address} · ${l.exGymWeekdayHours(gym.weekdayHours!)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: meta,
-                    ),
-                    if (gym.tags.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: OnCareSpacing.s8),
-                      Wrap(
-                        spacing: OnCareSpacing.s4,
-                        runSpacing: OnCareSpacing.s4,
-                        children: <Widget>[
-                          for (final String tag in gym.tags.take(2))
-                            AppTag(label: tag, tone: AppTagTone.brand),
                         ],
                       ),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        gym.weekdayHours == null
+                            ? gym.address
+                            : '${gym.address} · ${l.exGymWeekdayHours(gym.weekdayHours!)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: meta,
+                      ),
+                      if (gym.tags.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s8),
+                        Wrap(
+                          spacing: OnCareSpacing.s4,
+                          runSpacing: OnCareSpacing.s4,
+                          children: <Widget>[
+                            for (final String tag in gym.tags.take(2))
+                              AppTag(label: tag, tone: AppTagTone.brand),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              if (onTap != null) ...<Widget>[
-                const SizedBox(width: OnCareSpacing.s8),
-                const AppIcon(
-                  AppIcons.chevronRight,
-                  size: OnCareSize.iconMedium,
-                  color: OnCareColors.textTertiary,
-                ),
+                if (onTap != null) ...<Widget>[
+                  const SizedBox(width: OnCareSpacing.s8),
+                  const Center(
+                    child: AppIcon(
+                      AppIcons.chevronRight,
+                      size: OnCareSize.iconMedium,
+                      color: OnCareColors.textTertiary,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           // 소속 트레이너는 카드 **폭 전체**를 쓴다 — 이름·직함과 추천
           // 이유가 좁은 칸에서 두 번 접히지 않게.
@@ -693,6 +700,11 @@ class _GymListCard extends ConsumerWidget {
               bordered: true,
               // 트레이너 상세·채팅과 같은 성씨 프로필로 선다 (#2154).
               showAvatar: true,
+              avatarSize: AppAvatarSize.medium,
+              // 이름·배지가 위 헬스장 이름·태그와 같은 세로선에서 시작한다
+              // (#2599) — 테두리 상자가 이미 민 만큼을 앞 칸에서 뺀다.
+              leadingWidth: _gymIconBox - GymTrainerLine.borderedInset,
+              leadingGap: OnCareSpacing.s12,
               // 트레이너 줄은 **트레이너 상세**로 간다(#2038). 예전에는 읽기만
               // 하는 줄이라 탭이 바깥 카드로 흘러 헬스장 상세가 열렸다 — 누른
               // 것과 다른 곳에 도착했다. 내 헬스장 카드의 같은 줄은 이미
