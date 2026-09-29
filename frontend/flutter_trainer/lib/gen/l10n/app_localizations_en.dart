@@ -1150,6 +1150,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultMessage => 'Message';
 
   @override
+  String get schedConsultRequest => 'Consultation request';
+
+  @override
   String get consultReject => 'Decline';
 
   @override

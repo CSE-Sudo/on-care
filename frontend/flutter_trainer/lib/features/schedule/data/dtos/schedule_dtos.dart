@@ -25,7 +25,20 @@ ScheduleSession scheduleSessionFromJson(Map<String, dynamic> json) {
     cancellationSource: _str(json['cancellation_source']),
     cancellationReason: _str(json['cancellation_reason']),
     noShowAt: _time(json['no_show_at']),
+    consultation: _consultationFromJson(json['consultation']),
     memberDetached: json['member_detached'] == true,
+  );
+}
+
+/// 일정의 `상담 요청 내용`(#2584). 없거나 모양이 다르면 null — 카드가 그
+/// 블록만 빼고 그린다.
+ScheduleConsultation? _consultationFromJson(Object? raw) {
+  if (raw is! Map<String, dynamic>) return null;
+  final String message = _str(raw['message']).trim();
+  return ScheduleConsultation(
+    id: _str(raw['id']),
+    goalCode: _str(raw['exercise_goal']),
+    message: message.isEmpty ? null : message,
   );
 }
 

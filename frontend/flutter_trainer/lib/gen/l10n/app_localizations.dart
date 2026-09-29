@@ -2138,6 +2138,12 @@ abstract class AppLocalizations {
   /// **'Message'**
   String get consultMessage;
 
+  /// No description provided for @schedConsultRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request'**
+  String get schedConsultRequest;
+
   /// No description provided for @consultReject.
   ///
   /// In en, this message translates to:

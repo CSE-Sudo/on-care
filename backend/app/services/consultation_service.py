@@ -99,15 +99,6 @@ class ConsultationNotCancellable(Exception):
     """회원이 취소하려는 요청이 더 이상 대기 중이 아님 — 409."""
 
 
-class MemberAlreadyCoached(Exception):
-    """회원에게 이미 다른 트레이너의 활성 담당이 있음 — 409.
-
-    `uq_trainer_client_active_member` partial unique index 가 DB 차원에서 막지만,
-    그때는 IntegrityError 라 트레이너에게 보여 줄 말이 없다. 먼저 확인해서 이유를
-    돌려준다.
-    """
-
-
 class ConsultationSlotGone(Exception):
     """승인하려는데 회원이 고른 자리가 사라졌음 — 409. (#1873)
 
@@ -135,6 +126,11 @@ CONSULT_EXPIRE_BEFORE_START_HOURS = 2
 #: 만료는 17:30 이라, 신청 1분 뒤에 만료된다. 둘의 차이가 트레이너가 보장받는 최소
 #: 확인 시간이다(4h - 2h = 2시간).
 CONSULT_SLOT_MIN_LEAD_HOURS = 4
+
+#: 수락이 만드는 일정의 종류. 상담 신청은 `1:1 PT` 자리를 함께 쓰지만
+#: (`reservation_service.CONSULTATION_SESSION_TYPE`, #1849) 잡히는 것은 상담이다.
+#: (#2584)
+CONSULTATION_SCHEDULE_TYPE = "상담"
 
 
 def _aware(value: datetime) -> datetime:
@@ -437,10 +433,11 @@ def create_consultation(
     db: Session, member_id: str, payload: ConsultationCreate
 ) -> ConsultationOut:
     if not payload.data_sharing_consent:
-        # 동의 없이 신청을 받아 두면, 트레이너가 수락하는 순간 회원이 동의한 적
-        # 없는 기록이 넘어간다. (#1022)
+        # 상담 신청은 이름·운동 목표·문의 내용을 그 트레이너에게 전달한다. 이 전달에
+        # 동의받는다(#1022). 식단·운동 기록 공유 동의는 여기서 받지 않는다 — 수락은
+        # 담당 연결이 아니고, 연결은 6자리 코드를 받을 때 따로 동의한다(#2584).
         raise InvalidConsultationRequest(
-            "식단·운동 기록 공유에 동의해야 상담을 신청할 수 있습니다."
+            "상담 신청 정보 전달에 동의해야 상담을 신청할 수 있습니다."
         )
 
     _validate_target(db, payload)
@@ -902,10 +899,13 @@ def _notify(
 def link_member_gym(db: Session, member_id: str, gym_id: str | None) -> None:
     """담당이 생긴 회원을 트레이너의 헬스장에 연결한다(커밋 없음).
 
+    상담 수락은 담당 연결이 아니므로 부르지 않는다(#2584) — 등록하지 않은 회원의
+    '내 헬스장' 이 상담 한 번으로 바뀌면 안 된다.
+
     이미 다른 헬스장에 연결돼 있으면 **건드리지 않는다** — 회원이 직접 고른 '내
     헬스장'을 승인이 말없이 옮기면 MY 탭이 이유 없이 바뀐다.
 
-    담당이 생기는 경로가 둘이라(상담 수락, 트레이너의 담당 요청 수락 #919) 공개
+    담당이 생기는 경로가 둘이라(6자리 연결 코드 #1634, 트레이너의 담당 요청 수락 #919) 공개
     함수다. 규칙을 복사하면 한쪽만 고쳐지는 날이 온다.
     """
     if gym_id is None:
@@ -917,16 +917,48 @@ def link_member_gym(db: Session, member_id: str, gym_id: str | None) -> None:
     db.add(MemberGym(member_id=member_id, gym_id=gym_id))
 
 
-def _fill_member_focus_from_consultation(
-    db: Session, member_id: str, exercise_goal: str | None
+def carry_consultation_into_link(
+    db: Session, trainer_id: str, member_id: str
 ) -> None:
-    """상담에서 고른 운동 목표를 회원 건강 목표로 옮긴다(커밋 없음). (#1818)
+    """코드 연결로 담당이 생길 때 최근 상담의 운동 목표를 잇는다(커밋 없음). (#1818, #2584)
 
-    트레이너 화면의 회원 목표는 회원 건강 목표를 읽는다. 상담으로 처음 연결된
-    회원이 아직 목표를 고르지 않았으면, 방금 상담에 적은 목표가 가장 가까운 값이다.
-    이미 고른 목표가 있으면 건드리지 않는다.
+    상담 수락은 담당 연결이 아니므로 목표 채우기가 연결 시점으로 옮겨 왔다.
+    이 트레이너에게 **수락된 가장 최근 상담**의 운동 목표를 쓴다.
+
+    - 회원 건강 목표(마이페이지): 트레이너 화면의 회원 목표가 읽는 값이다. 회원이
+      이미 골랐으면 그대로 둔다 — 본인이 고른 값이 우선이고, 상담 목표는 빈칸을
+      채우는 가장 가까운 값일 뿐이다.
+    - 담당 링크의 목표 문구: 비어 있을 때만 채운다.
+
+    수락된 상담이 없으면(상담 없이 코드로 바로 연결) 아무것도 하지 않는다.
     """
-    focus = health_focus.EXERCISE_GOAL_FOCUS.get(exercise_goal or "")
+    goal = db.scalar(
+        select(ConsultationRequest.exercise_goal)
+        .where(
+            ConsultationRequest.member_id == member_id,
+            ConsultationRequest.trainer_id == trainer_id,
+            ConsultationRequest.status == "accepted",
+        )
+        .order_by(
+            ConsultationRequest.decided_at.desc().nulls_last(),
+            ConsultationRequest.created_at.desc(),
+        )
+        .limit(1)
+    )
+    if goal is None:
+        return
+    # 방금 `attach_member_to_trainer` 가 넣은 링크를 찾아야 한다 — 세션이 자동
+    # flush 를 하지 않으므로 먼저 내보낸다.
+    db.flush()
+    link = db.scalar(
+        select(TrainerClient).where(
+            TrainerClient.trainer_id == trainer_id,
+            TrainerClient.member_id == member_id,
+        )
+    )
+    if link is not None and not link.goal:
+        link.goal = _GOAL_LABELS.get(goal, "")
+    focus = health_focus.EXERCISE_GOAL_FOCUS.get(goal)
     if focus is None:
         return
     profile = db.scalar(select(HealthProfile).where(HealthProfile.user_id == member_id))
@@ -949,7 +981,7 @@ def attach_member_to_trainer(
     과거에 담당했다가 휴면으로 내려간 링크가 있으면 **되살린다** — 새 행을 넣으면
     (trainer, member) 유일 제약에 걸리고, 지난 루틴·채팅 이력도 갈라진다.
 
-    담당이 생기는 경로가 둘이라(상담 수락, 트레이너의 담당 요청 수락 #919) 공개
+    담당이 생기는 경로가 둘이라(6자리 연결 코드 #1634, 트레이너의 담당 요청 수락 #919) 공개
     함수다. 되살리기 규칙을 양쪽이 각자 들고 있으면 한쪽만 고쳐진다.
 
     되살릴 때 동의는 **이번 연결의 것만** 적는다(#1631). 해제할 때 동의를
@@ -989,21 +1021,24 @@ def attach_member_to_trainer(
 def accept(
     db: Session, trainer_id: str, consultation_id: str, note: str | None = None
 ) -> ConsultationAcceptOut:
-    """상담을 승인하고 담당 링크를 만든다. 회원이 고른 자리가 첫 일정이 된다.
+    """상담을 수락하고 회원이 고른 자리에 **상담 일정**을 잡는다. (#2584)
 
-    `pending` 에서만 진행한다. 회원에게 이미 다른 트레이너의 활성 담당이 있으면
-    [MemberAlreadyCoached] — 회원당 활성 담당은 1명이라는 불변식
-    (`uq_trainer_client_active_member`)을 IntegrityError 로 만나기 전에 막는다.
+    수락은 상담 일정 확정이지 담당 연결(등록)이 아니다. 담당 링크·헬스장 연결·
+    건강 목표 채우기는 하지 않는다 — 상담에서 등록하기로 하면 현장에서 회원이 띄운
+    6자리 코드로 연결한다(`trainer_client_invite_service.redeem_pairing_code`).
+    수락만으로 담당이 되면 등록하지 않은 사람의 식단·기록까지 트레이너에게 열린다.
 
-    **승인은 시각을 정하지 않는다.** 날짜·시각·종류·소요 시간은 회원이 신청할 때
-    고른 자리가 이미 들고 있다(#1873).
+    같은 이유로 다른 트레이너의 담당 회원이어도 막지 않는다. 회원은 담당 여부와
+    관계없이 상담을 신청할 수 있고, 담당을 옮기는 결정은 코드 연결이 막거나 받는다.
 
-    그래도 겹침은 본다(#2284). 자리를 연 뒤 신청이 기다리는 동안 트레이너가 그
-    시간에 다른 일정을 직접 잡을 수 있다 — 그대로 승인하면 이중 예약이 된다.
-    겹치면 [trainer_service.ScheduleOverlap] 으로 멈추고 아무것도 바꾸지 않는다.
+    `pending` 에서만 진행한다. **수락은 시각을 정하지 않는다** — 날짜·시각·소요
+    시간은 회원이 신청할 때 고른 자리가 이미 들고 있다(#1873). 그래도 겹침은
+    본다(#2284). 자리를 연 뒤 신청이 기다리는 동안 트레이너가 그 시간에 다른
+    일정을 직접 잡을 수 있다 — 겹치면 [trainer_service.ScheduleOverlap] 으로 멈추고
+    아무것도 바꾸지 않는다.
 
-    상태 전이·링크 생성·헬스장 연결·알림을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면
-    승인 표시만 남고 담당은 안 생긴 반쪽 상태가 생긴다.
+    상태 전이·일정 생성·알림을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면 요청은
+    인박스에서 사라졌는데 약속된 일정은 없는 상태가 나온다.
     """
     row = _require_inbox_row(db, trainer_id, consultation_id, lock=True)
     if row.status != "pending":
@@ -1019,79 +1054,50 @@ def accept(
         else None
     )
     if slot is None:
-        # 자리를 지운 뒤에 승인을 누른 경우다. 잡아 줄 시각이 없으므로 승인하지
+        # 자리를 지운 뒤에 수락을 누른 경우다. 잡아 줄 시각이 없으므로 수락하지
         # 않는다 — 여기서 임의의 시각을 지어내면 회원이 모르는 일정에 묶인다.
         raise ConsultationSlotGone(
             "회원이 고른 시간이 사라졌습니다. 요청을 거절하고 다시 받아 주세요."
         )
 
     local = _aware(slot.starts_at).astimezone(SEOUL)
-    # 담당 연결·상태 전이보다 먼저 본다 — 겹쳐서 멈출 때 반쪽 상태가 남지 않는다.
+    # 상태 전이보다 먼저 본다 — 겹쳐서 멈출 때 반쪽 상태가 남지 않는다.
     trainer_service.ensure_no_overlap(
         db,
         trainer_id,
         date=local.date().isoformat(),
         time=local.strftime("%H:%M"),
         duration_minutes=slot.duration_minutes,
-        message="회원이 고른 시간에 이미 다른 일정이 있습니다. 일정을 옮긴 뒤 승인해 주세요.",
+        message="회원이 고른 시간에 이미 다른 일정이 있습니다. 일정을 옮긴 뒤 수락해 주세요.",
     )
-
-    existing = db.scalar(
-        select(TrainerClient).where(
-            TrainerClient.member_id == row.member_id,
-            TrainerClient.active.is_(True),
-        )
-    )
-    if existing is not None and existing.trainer_id != trainer_id:
-        raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원입니다.")
-
-    if (
-        existing is not None
-        and data_consent_service.blocks_access(existing)
-        and row.data_consent_at is not None
-    ):
-        # 동의 없이 살아 있는 링크에 회원이 상담으로 새로 동의했다. (#1631)
-        data_consent_service.grant(existing, row.data_consent_at)
-
-    if existing is None:
-        attach_member_to_trainer(
-            db,
-            trainer_id,
-            row.member_id,
-            goal=_GOAL_LABELS.get(row.exercise_goal, ""),
-            # 회원은 신청할 때 동의했고 연결은 지금 만들어진다 — 그 시각을
-            # 옮겨 적는다. (#1022)
-            consented_at=row.data_consent_at,
-        )
-        _fill_member_focus_from_consultation(db, row.member_id, row.exercise_goal)
-    # 링크 생성 여부와는 별개 조건이다 — 이미 이 트레이너의 담당인 회원이 상담을
-    # 새로 넣고 승인받는 경우에도 헬스장 연결은 이뤄져야 한다(리뷰).
-    # 이미 연결된 회원에게는 no-op 이라 중복 호출이 무해하다.
-    link_member_gym(db, row.member_id, trainer_gym_id(db, trainer_id))
 
     row.status = "accepted"
     row.decided_by = trainer_id
     row.decided_at = _now()
     row.decision_note = note
 
-    # 자리가 정해 둔 시각 그대로 첫 일정을 만든다. 결정과 같은 트랜잭션에 둔다 —
-    # 요청이 인박스에서 사라졌는데 약속된 일정은 없는 상태가 나오면 안 된다.
+    # 자리가 정해 둔 시각 그대로 상담 일정을 만든다. 결정과 같은 트랜잭션에 둔다.
     schedule_id = f"sched-{uuid.uuid4().hex[:12]}"
     db.add(
         TrainerSchedule(
             id=schedule_id,
             trainer_id=trainer_id,
             member_id=row.member_id,
+            # 담당 연결 전에도 이 일정이 스케줄에 보이는 근거이고, 카드가 `상담 요청
+            # 내용` 을 읽는 길이다(#2584).
+            consultation_id=row.id,
             date=local.date().isoformat(),
             time=local.strftime("%H:%M"),
             client_name=db.scalar(select(User.name).where(User.id == row.member_id))
             or "신규 회원",
-            # 자리의 종류를 그대로 물려받는다 — 회원에게 열리는 자리는 `1:1 PT`
-            # 뿐이다(#1849). 코드 상수 30분은 더 쓰지 않는다.
-            type=slot.session_type,
+            # 자리는 `1:1 PT` 자리를 함께 쓰지만(#1849) 잡히는 것은 상담이다 — 자리
+            # 종류를 물려받으면 상담이 PT 로 완료돼 회원 운동 기록이 생긴다.
+            type=CONSULTATION_SCHEDULE_TYPE,
             duration_minutes=slot.duration_minutes,
             status="예정",
-            note=row.message or "",
+            # `note` 는 트레이너만 보는 상담 메모 자리다(#2574). 회원 문의 글은 상담
+            # 요청에 남고 카드가 따로 읽는다.
+            note="",
             program_json="[]",
             sort_order=0,
         )
@@ -1101,8 +1107,7 @@ def accept(
     _notify(
         db,
         user_id=row.member_id,
-        # 확정된 일시를 본문에 싣는다 — 예전에는 "담당으로 연결되었어요" 뿐이라
-        # 회원이 자기가 언제 잡혔는지 알 길이 없었다. (#1873)
+        # 확정된 일시를 본문에 싣는다 — 회원이 자기가 언제 잡혔는지 알아야 한다(#1873).
         template=notification_templates.MEMBER_CONSULT_APPROVED,
         template_args={
             "trainer_name": trainer_name or "",
@@ -1115,8 +1120,8 @@ def accept(
     consultation = _to_trainer_out(db, [row])[0]
     return ConsultationAcceptOut(
         **consultation.model_dump(),
-        client_connected=True,
-        schedule_created=schedule_id is not None,
+        client_connected=False,
+        schedule_created=True,
         schedule_id=schedule_id,
     )
 

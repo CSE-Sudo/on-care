@@ -695,7 +695,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
-- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
+- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
@@ -773,9 +773,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
     재신청 쿨다운은 두지 않습니다.
 - `exercise_goal` 입력은 회원앱 온보딩·MY 의 **건강 목표 여덟 종과 1:1** 입니다 —
   `weight_loss`·`strength`·`fitness`·`posture`·`rehab`·`eating`·`exercise_habit`·`blood_pressure`,
-  그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담이 수락되면
-  여덟 목표는 회원 건강 목표(`HealthProfile.conditions`)로 그대로 이어집니다
-  (`health_focus.EXERCISE_GOAL_FOCUS`). `other` 는 무엇을 원하는지 알려주는 바가 없어
+  그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담 뒤 회원이 그
+  트레이너와 6자리 코드로 연결되면 여덟 목표는 회원 건강 목표(`HealthProfile.conditions`)가
+  비어 있을 때 그대로 이어집니다(`health_focus.EXERCISE_GOAL_FOCUS`, #2584). `other` 는 무엇을 원하는지 알려주는 바가 없어
   잇지 않습니다. (#1992)
   없앤 `health`(건강 관리)는 **입력에서 받지 않습니다**(422) — 여덟 목표 중 하나로 옮길
   수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유입니다. 이미 저장된
@@ -814,7 +814,18 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
   씁니다.
 - 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
-  일시**를 그리는 값입니다. 승인 알림 본문에도 확정 일시가 들어갑니다.
+  일시**를 그리는 값입니다. 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
+  `/me/coach/sessions` 가 빈 목록이라, 수락된 상담은 내 상담 요청에서 확인합니다(#2584).
+- **상담 일정과 트레이너 스케줄** (#2584) — `GET /trainer/schedule` 은 담당이 끊긴 회원의 일정을
+  `해제 회원` 으로 가리지만(#2589), 상담 요청으로 생긴 `상담` 일정(`consultation_id` 있음)은
+  연결 여부와 관계없이 이름 그대로 보입니다(`member_detached=false`). 담당 해제 때 남은 일정을
+  거둘 때도 이 상담은 거두지 않습니다. 이 일정은 연결 전에도 메모 수정·
+  완료·재개가 됩니다(상담은 완료해도 운동 기록을 만들지 않습니다). 응답의 `consultation` 에
+  `{ id, exercise_goal, health_purpose_type, health_purpose_detail, message }` 가 실려 카드가
+  `상담 요청 내용` 을 읽기 전용으로 그립니다 — 회원 응답(`/me/coach/sessions`)에서는 늘 `null`
+  입니다. 코드로 연결되면 같은 일정이 담당 회원 일정으로 그대로 이어집니다. 예전 수락이
+  만든 일정은 `0105_schedule_consultation_link` 가 요청과 시각이 같은 것만 잇고, 완료되지 않은
+  것의 종류를 `상담` 으로, 문의 글과 똑같은 메모를 빈 값으로 바꿉니다.
 - `preferred_date`·`preferred_time_slot` 은 **응답에 남습니다.** 새 요청에서는 고른 자리의
   시각 사본이고, 자리 선택 이전 요청에는 회원이 적어 보낸 희망 시각이 그대로 있습니다.
   과거 `flexible`·`morning`/`afternoon`/`evening` 값도 저장된 그대로 내려갑니다.
@@ -826,9 +837,18 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `status=pending` 은 처리하는 만큼 줄지만 `status=all` 은 그 트레이너에게 들어온 요청
   전체입니다. 미처리 배지(`/trainer/consultations/pending-count`)는 **쪽 나눔과 무관하게**
   전체를 셉니다. 상태 필터에 `expired` 가 있습니다(#1873).
-- **승인은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
-  하나뿐이고, 날짜·시각·종류·소요 시간은 회원이 고른 자리가 정합니다. 회원이 고른
-  자리가 사라진 뒤 승인하면 **409** 입니다.
+- **수락은 상담 일정 확정이지 담당 연결이 아닙니다** (#2584). 수락하면 회원이 고른 자리에
+  `type="상담"`·`note=""`·`consultation_id`(그 요청) 인 일정이 하나 생기고, 담당 링크·헬스장
+  연결(`MemberGym`)·회원 건강 목표는 바뀌지 않습니다. 응답의 `client_connected` 는 늘
+  `false` 입니다. 등록은 상담 뒤 회원이 띄운 6자리 코드로 합니다(`POST /trainer/pairing-code`).
+  다른 트레이너의 담당 회원이어도 수락은 막지 않습니다 — 담당을 옮길지는 코드 연결이 정합니다
+  (다른 트레이너가 담당 중이면 코드 연결이 409).
+- 상담 신청의 `data_sharing_consent` 는 **상담 신청 정보(이름·운동 목표·문의 내용)를 그
+  트레이너에게 전달하는 동의**입니다. 담당 링크로 옮겨 적지 않습니다 — 식단·운동 기록 공유
+  동의는 연결 코드를 받을 때 받습니다(`POST /users/me/pairing-code`, 발급 시각이 동의 시각).
+- **수락은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
+  하나뿐이고, 날짜·시각·소요 시간은 회원이 고른 자리가 정합니다(종류는 늘 `상담`). 회원이
+  고른 자리가 사라진 뒤 수락하면 **409** 입니다.
 - 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡았으면 승인은 **409**
   `detail = { code: "schedule_overlap", message, conflicts[] }` 이고 아무것도 바뀌지 않습니다
   (요청은 대기로 남습니다). 일정을 옮긴 뒤 다시 승인합니다. (#2284)
@@ -1022,8 +1042,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | `DELETE /me/coach`, `DELETE /me/coach/trainer`(회원 해제), `DELETE /trainer/clients/{member_id}`(트레이너 해제) | `data_consent_at` 을 비우고 `data_consent_revoked_at` 에 그 시각. 두 번 해제해도 처음 시각이 남는다 |
 | `DELETE /users/me`, `DELETE /trainer/me`(탈퇴) | 링크 행이 계정과 함께 `CASCADE` 로 지워진다 — 남는 동의가 없다 |
 | 다른 트레이너로 옮김 | 옛 링크는 해제 때 철회, 새 링크에는 새 연결의 동의만 |
-| 끊긴 링크 되살리기(상담 수락·`/me/coach/invites/{id}/accept`·`/trainer/pairing-code`) | 그 연결의 새 동의만 적는다. 옛 동의는 되살아나지 않는다. `data_consent_revoked_at` 은 이력으로 남긴다 |
-| `PUT /trainer/clients/{member_id}/registration`(트레이너 혼자 재등록) | 동의가 철회된 링크면 **409** — 회원이 동의하는 경로(담당 요청·상담·연결 코드)로 다시 연결한다. 철회 기록이 없는 옛 해제 링크는 예전처럼 204 |
+| 끊긴 링크 되살리기(`/me/coach/invites/{id}/accept`·`/trainer/pairing-code`) | 그 연결의 새 동의만 적는다. 옛 동의는 되살아나지 않는다. `data_consent_revoked_at` 은 이력으로 남긴다 |
+| `PUT /trainer/clients/{member_id}/registration`(트레이너 혼자 재등록) | 동의가 철회된 링크면 **409** — 회원이 동의하는 경로(담당 요청·연결 코드)로 다시 연결한다. 철회 기록이 없는 옛 해제 링크는 예전처럼 204 |
 
 - **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
   `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.

@@ -315,23 +315,23 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         nt.MEMBER_CONSULT_APPROVED,
         {"trainer_name": "박코치", "starts_at": STARTS.isoformat(), "note": None},
         "",
-        "상담 요청이 승인되었어요",
-        f"박코치 트레이너가 담당으로 연결되었어요. 첫 상담은 {STARTS:%m월 %d일 %H:%M} 입니다.",
+        "상담 요청이 수락되었어요",
+        f"박코치 트레이너와의 상담이 확정됐어요. 상담 일시는 {STARTS:%m월 %d일 %H:%M} 입니다.",
     ),
     (
         nt.MEMBER_CONSULT_APPROVED,
         {"trainer_name": "", "starts_at": STARTS.isoformat(), "note": "편한 복장으로 오세요."},
         "",
-        "상담 요청이 승인되었어요",
-        f"트레이너 트레이너가 담당으로 연결되었어요. 첫 상담은 {STARTS:%m월 %d일 %H:%M} 입니다."
+        "상담 요청이 수락되었어요",
+        f"트레이너 트레이너와의 상담이 확정됐어요. 상담 일시는 {STARTS:%m월 %d일 %H:%M} 입니다."
         " 편한 복장으로 오세요.",
     ),
     (
         nt.MEMBER_CONSULT_APPROVED,
         {"trainer_name": "박코치", "starts_at": STARTS.isoformat(), "note": ""},
         "",
-        "상담 요청이 승인되었어요",
-        f"박코치 트레이너가 담당으로 연결되었어요. 첫 상담은 {STARTS:%m월 %d일 %H:%M} 입니다. ",
+        "상담 요청이 수락되었어요",
+        f"박코치 트레이너와의 상담이 확정됐어요. 상담 일시는 {STARTS:%m월 %d일 %H:%M} 입니다. ",
     ),
     (
         nt.MEMBER_CONSULT_REJECTED,
@@ -770,17 +770,17 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.MEMBER_CONSULT_APPROVED,
         {"trainer_name": "Coach Park", "starts_at": STARTS.isoformat(), "note": None},
         (
-            "Consultation request approved",
-            "You're now connected with Coach Park. Your first consultation is on 10/01 09:05.",
+            "Consultation request accepted",
+            "Your consultation with Coach Park is confirmed for 10/01 09:05.",
         ),
     ),
     (
         nt.MEMBER_CONSULT_APPROVED,
         {"trainer_name": "", "starts_at": STARTS.isoformat(), "note": "See you soon!"},
         (
-            "Consultation request approved",
-            "You're now connected with your trainer. Your first consultation is on"
-            " 10/01 09:05. See you soon!",
+            "Consultation request accepted",
+            "Your consultation with your trainer is confirmed for 10/01 09:05."
+            " See you soon!",
         ),
     ),
     (

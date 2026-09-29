@@ -1208,9 +1208,9 @@ class ConsultationRequest(Base):
     #: 이전 요청에는 회원이 직접 적어 보낸 희망 시각이 그대로 남아 있다.
     preferred_date: Mapped[str] = mapped_column(String(10))
     preferred_time_slot: Mapped[str] = mapped_column(String(20))
-    #: 회원이 데이터 공유에 동의한 시각. 트레이너가 수락해 담당이 생기면 이
-    #: 값이 담당 링크로 옮겨 간다 — 회원은 신청할 때 동의하고, 연결은 나중에
-    #: 트레이너가 만든다. (#1022)
+    #: 회원이 상담 신청 정보(이름·운동 목표·문의 내용)를 이 트레이너에게 전달하는
+    #: 데 동의한 시각. 담당 링크로 옮겨 가지 않는다 — 수락은 담당 연결이 아니고,
+    #: 식단·운동 기록 공유 동의는 6자리 연결 코드를 받을 때 따로 받는다. (#1022, #2584)
     data_consent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -2051,6 +2051,19 @@ class TrainerSchedule(Base):
     )
     member_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    #: 이 일정을 만든 상담 요청(#2584). 상담 수락은 담당 연결을 만들지 않으므로,
+    #: 아직 연결 전인 회원의 상담 일정도 트레이너 스케줄에 보이게 하는 근거이고
+    #: 일정 카드가 `상담 요청 내용` 을 읽는 길이다. 직접 잡은 일정은 NULL 이다.
+    consultation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("consultation_requests.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    #: 일정 응답이 `상담 요청 내용` 을 싣는다. 주 캘린더가 한 번에 여러 일정을
+    #: 읽으므로 `selectin` 으로 한 번에 모아 읽는다 — 일정마다 조회하면 N+1 이다.
+    consultation: Mapped["ConsultationRequest | None"] = relationship(
+        lazy="selectin"
     )
     date: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
     time: Mapped[str] = mapped_column(String(10), default="")  # "10:00"

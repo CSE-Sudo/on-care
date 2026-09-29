@@ -62,7 +62,9 @@ class ConsultationCreate(BaseModel):
     #: 회원이 적은 종료 시각이 쓰이지 않고 승인이 늘 시작+30분으로 일정을 만들었다.
     slot_id: str = Field(min_length=1, max_length=64)
     message: str | None = Field(default=None, max_length=2000)
-    #: 식단·운동·신체 정보를 트레이너에게 보여 주는 데 동의했는가. (#1022)
+    #: 상담 신청 정보(이름·운동 목표·문의 내용)를 이 트레이너에게 전달하는 데
+    #: 동의했는가. (#1022) 식단·운동 기록 공유 동의가 아니다 — 그것은 6자리 연결
+    #: 코드를 받을 때 따로 받는다(#2584).
     #:
     #: 기본값을 두지 않는다 — 빠뜨리면 422 다. 동의는 "안 보냈으니 승낙"이 될 수
     #: 없고, 화면이 체크를 지우고 보내도 서버가 통과시키면 안 된다.
@@ -195,6 +197,8 @@ class TrainerConsultationOut(ConsultationOut):
 class ConsultationAcceptOut(TrainerConsultationOut):
     """승인으로 실제 만들어진 결과를 화면이 판별할 수 있게 한다."""
 
-    client_connected: bool = True
+    #: 수락으로 담당 연결이 생겼는가. 이제 늘 `false` 다 — 수락은 상담 일정 확정이고
+    #: 연결은 6자리 코드로 한다(#2584). 옛 화면이 읽는 필드라 남긴다.
+    client_connected: bool = False
     schedule_created: bool
     schedule_id: str | None = None

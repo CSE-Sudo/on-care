@@ -1120,6 +1120,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultMessage => '문의 내용';
 
   @override
+  String get schedConsultRequest => '상담 요청 내용';
+
+  @override
   String get consultReject => '거절';
 
   @override

@@ -27,7 +27,7 @@ from app.core import clock
 from app.core.locale import Locale, current_locale, localized
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
-    ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
+    ChatMessage, ConsultationRequest, DietEntry, ExerciseSession, GymProfile, HealthProfile,
     MemberWeeklyFeedback, Notification,
     TrainerReportGoal, Place, RoutineHistory,
     TrainerClient, TrainerClientMemo, TrainerProfile, TrainerProgramDraft,
@@ -51,7 +51,7 @@ from app.schemas.trainer_api import (
     RoutineHistoryExerciseOut,
     RoutineHistoryKind,
     RoutineHistoryOut,
-    RoutineOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
+    RoutineOut, ScheduleConsultationOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
     TrainerFollowUpTaskOut,
     TrainerGymOut, TrainerMe, TrainerMemoOut, TrainerNotificationSettings,
     TrainerProgramDraftOut, TrainerProgramDraftSummary, WeeklyReportDayOut,
@@ -1187,9 +1187,16 @@ def _ensure_session_member_linked(
     해제된 회원의 일정은 스케줄에 익명 기록으로만 남으므로(#2589) 남의 회원과
     같은 404 로 옮긴다. 회원이 없는 일정(상담·공백)은 지나간다.
 
+    상담 요청으로 생긴 일정도 지나간다(#2584) — 수락은 담당 연결을 만들지 않아,
+    연결 전 회원과의 상담을 완료하거나 상담 메모를 적을 수 있어야 한다. 상담은
+    완료해도 운동 기록을 만들지 않고(`_SESSION_EXERCISE_TYPE`), 메모는 트레이너만
+    본다. 스케줄의 익명 처리(`_schedule_outs`)와 같은 경계다(`_is_consultation_booking`).
+
     취소·삭제는 이 확인을 하지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는
     해제 뒤에도 회원이 알아야 하는 정리다.
     """
+    if _is_consultation_booking(s):
+        return
     if s.member_id and not has_active_client_link(db, trainer_id, s.member_id):
         raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
 
@@ -1228,7 +1235,8 @@ def sessions_cancelled_on_detach(
         except ValueError:
             return False
 
-    return [s for s in rows if not_started(s)]
+    # 회원이 직접 신청한 상담은 담당과 별개다(#2584) — 해제해도 거두지 않는다.
+    return [s for s in rows if not_started(s) and not _is_consultation_booking(s)]
 
 
 def _cancel_sessions_on_detach(
@@ -3593,7 +3601,33 @@ def _schedule_out(
         cancellation_source=s.cancellation_source,
         cancellation_reason=s.cancellation_reason,
         no_show_at=s.no_show_at,
+        consultation=_schedule_consultation_out(s.consultation),
     )
+
+
+def _schedule_consultation_out(
+    c: ConsultationRequest | None,
+) -> ScheduleConsultationOut | None:
+    if c is None:
+        return None
+    return ScheduleConsultationOut(
+        id=c.id,
+        exercise_goal=c.exercise_goal,
+        health_purpose_type=c.health_purpose_type,
+        health_purpose_detail=c.health_purpose_detail,
+        message=c.message,
+    )
+
+
+def _is_consultation_booking(s: TrainerSchedule) -> bool:
+    """상담 요청을 수락해 생긴 상담 일정인가. (#2584)
+
+    수락은 담당 연결이 아니라, 이 일정의 회원은 아직 연결 전일 수 있다. 회원이
+    이 트레이너에게 직접 보낸 요청이라 인박스와 같은 범위로 연결 여부와 관계없이
+    이름·요청 내용이 보이고, 메모 수정·완료가 된다 — 해제 회원 익명 처리(#2589)와
+    해제 때 남은 일정 취소에서 빠진다.
+    """
+    return s.consultation_id is not None and s.type == "상담"
 
 
 def _linked_member_ids(
@@ -3626,7 +3660,12 @@ def _schedule_outs(
         db, trainer_id, {s.member_id for s in rows if s.member_id}
     )
     return [
-        _schedule_out(s, detached=bool(s.member_id) and s.member_id not in linked)
+        _schedule_out(
+            s,
+            detached=bool(s.member_id)
+            and s.member_id not in linked
+            and not _is_consultation_booking(s),
+        )
         for s in rows
     ]
 
@@ -6173,6 +6212,8 @@ def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
     out = _schedule_out(s)
     if s.status != SCHEDULE_DONE or s.type == "상담":
         out.note = ""
+    # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
+    out.consultation = None
     return out
 
 

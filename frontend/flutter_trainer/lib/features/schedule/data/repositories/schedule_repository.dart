@@ -1114,6 +1114,13 @@ class DriftScheduleRepository implements ScheduleRepository {
         .map(programItemFromJson)
         .toList();
     return ScheduleSession(
+      consultation: row.type == SessionType.consultation
+          ? demoScheduleConsultations[demoConsultationKey(
+              clientId: row.clientId,
+              date: row.date,
+              time: row.time,
+            )]
+          : null,
       id: row.id,
       date: row.date,
       time: row.time,
@@ -1132,6 +1139,21 @@ class DriftScheduleRepository implements ScheduleRepository {
     );
   }
 }
+
+/// 데모에서 수락한 상담 일정의 `상담 요청 내용`(#2584).
+///
+/// 서버는 일정에 상담 요청을 잇는 칸(`consultation_id`)을 두지만, 데모 저장소
+/// (drift)는 그 칸 없이 일정만 저장한다. 데모 인박스가 메모리에 있으므로 요청
+/// 내용도 메모리에 두고, 같은 회원·날짜·시각의 상담 일정에 붙여 읽는다.
+final Map<String, ScheduleConsultation> demoScheduleConsultations =
+    <String, ScheduleConsultation>{};
+
+/// [demoScheduleConsultations] 의 키.
+String demoConsultationKey({
+  required String? clientId,
+  required String date,
+  required String time,
+}) => '${clientId ?? ''}|$date|$time';
 
 /// 완료한 PT 의 프로그램 한 항목 → 이력의 운동 한 종목. (#2300)
 ///

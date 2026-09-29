@@ -29,6 +29,7 @@ from app.models.models import (
     Place,
     TrainerClient,
     TrainerProfile,
+    TrainerSchedule,
     User,
 )
 
@@ -157,7 +158,7 @@ def _request_consultation(client, token: str, trainer_id: str) -> str:
 def test_a_signed_up_trainer_can_receive_and_accept_a_consultation(
     client, db_session
 ):
-    """가입 → 상담 요청 → 인박스 → 승인 → 로스터.
+    """가입 → 상담 요청 → 인박스 → 수락 → 상담 일정.
 
     여기서 확인하는 것은 각 단계의 동작이 아니라 **가입 뒤 고른 소속이 상담
     대상 조건과 실제로 이어지는가**다. 상담은 헬스장 소속 트레이너에게만 걸 수
@@ -184,9 +185,18 @@ def test_a_signed_up_trainer_can_receive_and_accept_a_consultation(
     assert accepted.status_code == 200, accepted.text
     assert accepted.json()["decided_by"] == trainer_id
 
+    # 수락은 담당 연결이 아니라 상담 일정 확정이다(#2584) — 로스터에는 없고,
+    # 상담 일정이 그 트레이너의 스케줄에 잡힌다.
     roster = client.get("/v1/trainer/clients", headers=_auth(trainer_token))
     assert roster.status_code == 200, roster.text
-    assert member_id in {c["id"] for c in roster.json()}
+    assert member_id not in {c["id"] for c in roster.json()}
+    schedule_id = accepted.json()["schedule_id"]
+    day = db_session.get(TrainerSchedule, schedule_id).date
+    schedule = client.get(
+        f"/v1/trainer/schedule?from={day}&to={day}", headers=_auth(trainer_token)
+    )
+    assert schedule.status_code == 200, schedule.text
+    assert schedule_id in {s["id"] for s in schedule.json()}
 
 
 def test_a_signed_up_trainer_sees_only_their_own_requests(client, db_session):

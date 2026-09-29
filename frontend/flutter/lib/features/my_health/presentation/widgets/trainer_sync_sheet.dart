@@ -8,9 +8,13 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// 트레이너에게 불러 줄 6자리 동기화 코드를 띄우는 시트. (#1634)
 ///
-/// **이 화면을 여는 것이 데이터 공유 동의다.** 코드를 입력한 트레이너는 그
-/// 자리에서 담당이 되어 회원의 식단·운동·건강 기록을 읽는다. 그래서 코드보다
-/// 먼저 무엇이 공유되는지 말하고, 회원이 닫으면 코드를 즉시 버린다.
+/// **코드를 받는 것이 데이터 공유 동의다.** 코드를 입력한 트레이너는 그
+/// 자리에서 담당이 되어 회원의 식단·운동·건강 기록을 읽는다. 상담 수락은 담당
+/// 연결이 아니어서(#2584) 이 코드가 등록의 유일한 문이고, 식단·기록 공유에
+/// 동의받는 자리도 여기다. 그래서 시트는 **공유 범위 → `동의하고 코드 받기` →
+/// 코드** 순서로 연다 — 여는 것만으로 코드를 발급하면 무엇에 동의하는지 읽기
+/// 전에 동의가 끝난다. 서버는 발급 시각을 동의 시각으로 적는다. 회원이 닫으면
+/// 코드를 즉시 버린다.
 ///
 /// 코드를 크게 띄우고 자리마다 나누는 것은 마주 앉아 불러 주거나 받아 적는
 /// 값이기 때문이다. 남은 시간을 함께 보여 주지 않으면, 트레이너가 늦게
@@ -33,6 +37,9 @@ class _TrainerSyncSheet extends ConsumerStatefulWidget {
 }
 
 class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
+  /// 공유 범위를 읽고 `동의하고 코드 받기` 를 눌렀는가. 누르기 전에는 코드를
+  /// 발급하지 않는다(#2584).
+  bool _agreed = false;
   String? _code;
   int _remaining = 0;
   bool _failed = false;
@@ -45,6 +52,10 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   void initState() {
     super.initState();
     _repository = ref.read(trainerSyncRepositoryProvider);
+  }
+
+  void _agree() {
+    setState(() => _agreed = true);
     _issue();
   }
 
@@ -53,8 +64,8 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
     _ticker?.cancel();
     // 화면을 닫으면 코드를 버린다. 발급이 동의였으니 취소도 즉시 반영돼야
     // 한다. 시트는 이미 사라지는 중이라 결과를 기다리지 않고, 실패해도
-    // 서버가 만료로 정리한다.
-    unawaited(_revokeQuietly());
+    // 서버가 만료로 정리한다. 동의하지 않고 닫았으면 버릴 코드가 없다.
+    if (_agreed) unawaited(_revokeQuietly());
     super.dispose();
   }
 
@@ -115,11 +126,17 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // 코드보다 먼저 무엇이 공유되는지 말한다 — 이 시트를 여는 것이
+            // 코드보다 먼저 무엇이 공유되는지 말한다 — 코드를 받는 것이
             // 동의라, 동의하는 내용이 코드 아래에 있으면 안 된다.
             Text(l.trainerSyncConsent, style: secondary),
             const SizedBox(height: OnCareSpacing.s24),
-            if (_failed)
+            if (!_agreed)
+              AppButton(
+                key: const ValueKey<String>('trainer-sync-agree'),
+                label: l.trainerSyncAgree,
+                onPressed: _agree,
+              )
+            else if (_failed)
               _Message(text: l.trainerSyncFailed, onRetry: _issue)
             else if (_code == null)
               const AppLoading(placement: AppStatePlacement.card)
@@ -135,8 +152,10 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
                   style: secondary,
                 ),
             ],
-            const SizedBox(height: OnCareSpacing.s24),
-            Text(l.trainerSyncHint, style: secondary),
+            if (_agreed) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s24),
+              Text(l.trainerSyncHint, style: secondary),
+            ],
           ],
         ),
       ),

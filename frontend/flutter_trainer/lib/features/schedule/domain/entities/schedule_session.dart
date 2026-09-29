@@ -86,6 +86,28 @@ class ProgramItem {
   );
 }
 
+/// 상담 일정을 만든 상담 요청의 내용 — 카드의 `상담 요청 내용`. (#2584)
+///
+/// 회원이 신청할 때 적은 것이라 읽기 전용이다. 예전에는 수락이 문의 글을 일정
+/// 메모에 넣어, 트레이너 메모 자리에 회원 글이 섞였다. 코드는 상담 인박스와 같은
+/// 값이라 같은 이름표(`exerciseGoalLabels`)로 읽는다.
+class ScheduleConsultation {
+  const ScheduleConsultation({
+    required this.id,
+    required this.goalCode,
+    this.message,
+  });
+
+  /// 상담 요청 id.
+  final String id;
+
+  /// 운동 목표 코드('weight_loss' …).
+  final String goalCode;
+
+  /// 회원이 남긴 문의 글. 적지 않았으면 null.
+  final String? message;
+}
+
 /// One slot on the trainer's daily timeline (스케줄 탭). Decoded from
 /// the drift `TrainerScheduleEntries` row (`programJson` → [program]).
 class ScheduleSession {
@@ -106,8 +128,13 @@ class ScheduleSession {
     this.cancellationSource = '',
     this.cancellationReason = '',
     this.noShowAt,
+    this.consultation,
     this.memberDetached = false,
   });
+
+  /// 상담 요청으로 생긴 상담 일정이면 그 요청의 내용(#2584). 직접 잡은 일정은
+  /// null 이다.
+  final ScheduleConsultation? consultation;
 
   /// Row id.
   final String id;

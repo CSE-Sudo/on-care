@@ -737,6 +737,7 @@
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
+  "schedConsultRequest": "Consultation request",
   "consultReject": "Decline",
   "consultApprove": "Approve",
   "consultRejectTitle": "Decline request",

@@ -102,13 +102,13 @@ class _ConsultationRequestPageState
   bool _otherGoalDetailMissing(ExerciseGoal? goal) =>
       goal == ExerciseGoal.other && _messageController.text.trim().isEmpty;
 
-  /// 데이터 공유에 동의했는가. 신청은 회원이 하고 연결은 나중에 트레이너가
-  /// 수락하며 만들어진다 — 회원이 그 자리에 없으므로 동의는 여기서 받는다.
-  /// (#1022)
+  /// 상담 신청 정보(이름·운동 목표·문의 내용) 전달에 동의했는가(#1022).
+  /// 보내는 순간 트레이너에게 가는 것이라 여기서 받는다. 식단·기록 공유 동의는
+  /// 상담 뒤 연결 코드를 받을 때 따로 받는다(#2584).
   bool _dataSharingConsent = false;
 
   /// 이 트레이너가 이미 내 담당인가(#2585). 담당 연결은 데이터 공유 동의를
-  /// 받고 만들어지므로(상담 수락·연결 코드·담당 요청 수락) 다시 묻지 않고,
+  /// 받고 만들어지므로(연결 코드·담당 요청 수락) 다시 묻지 않고,
   /// 운동 목표는 MY 건강 목표로 미리 채운다. 새로 적는 것은 시간·문의 내용뿐이다.
   bool _isMyTrainer(Trainer trainer) =>
       ref.watch(myTrainerProvider).valueOrNull?.id == trainer.id;
@@ -660,14 +660,12 @@ class _TargetCard extends StatelessWidget {
   }
 }
 
-/// 이 요청이 수락되면 트레이너가 조회할 수 있게 되는 정보 범위 안내(#935).
+/// 이 요청으로 트레이너에게 전달되는 정보 범위 안내(#935, #2584).
 ///
-/// 상담 요청 → 승인으로 `TrainerClient` 링크가 생기면(#467) 트레이너 웹은 담당
-/// 회원의 식단·운동 기록과 신체 정보·목표를 그 즉시 조회할 수 있다(#316, #646,
-/// #914). 지금까지는 이 화면 어디에도 그 사실이 적혀 있지 않아, 회원이 무엇에
-/// 동의하는지 모른 채 요청을 보냈다. 문구는 실제 조회 범위와 일치시킨다 —
-/// 여기 없는 항목(예: 혈압·혈당)은 애초에 수집하지 않으므로 트레이너도 볼 수
-/// 없다.
+/// 상담 수락은 담당 연결이 아니다(#2584) — 트레이너는 이름·운동 목표·문의
+/// 내용만 받고, 식단·운동 기록과 신체 정보는 상담 뒤 회원이 연결 코드로
+/// 등록할 때 따로 동의해야 열린다. 전달되는 것에 대해서만 동의를 받고, 기록
+/// 공유는 코드 단계로 미룬다는 사실을 함께 말한다.
 class _DataSharingNotice extends StatelessWidget {
   const _DataSharingNotice({
     required this.consented,
@@ -718,8 +716,8 @@ class _DataSharingNotice extends StatelessWidget {
               ),
             ],
           ),
-          // 안내로 지나가지 않고 **동의를 받는다** — 수락되는 순간 넘어가는
-          // 것은 회원의 건강 기록이다. (#1022)
+          // 안내로 지나가지 않고 **동의를 받는다** — 보내는 순간 이름·목표·
+          // 문의 내용이 트레이너에게 간다. (#1022, #2584)
           const SizedBox(height: OnCareSpacing.s4),
           InkWell(
             key: const Key('consultDataSharingConsent'),

@@ -1171,7 +1171,7 @@ class _OverlapConsultationRepository implements ConsultationRepository {
     }
     accepted.add(id);
     return const ConsultationAcceptResult(
-      clientConnected: true,
+      clientConnected: false,
       scheduleCreated: true,
     );
   }
