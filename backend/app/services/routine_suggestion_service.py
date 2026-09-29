@@ -276,6 +276,9 @@ def _collect_signals(
             TrainerSchedule.member_id == member_id,
             TrainerSchedule.status == "완료",
             TrainerSchedule.date >= since.isoformat(),
+            # 상담은 PT 가 아니다 — 상담 일정의 글은 상담 메모라 PT 피드백으로
+            # 세지 않고, 상담을 마친 것을 "방금 PT 를 마쳤다" 로 읽지도 않는다(#2587).
+            TrainerSchedule.type != "상담",
         )
     ).all()
 
