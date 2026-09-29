@@ -154,15 +154,26 @@
   `gym_hours`·`gym_phone`은 소속 `Place`/`GymProfile`에서 파생된 사본이다. 소속을
   설정·변경하면 서버가 덮어쓰고, 해제하면 비운다. 그 동안 `PUT /trainer/me`로
   문자열만 따로 바꾸는 요청은 **409**다 — 소속과 화면이 어긋나기 때문이다.
-  `gym_id`가 없는(레거시·해제 상태) 프로필에서는 예전처럼 직접 입력한다.
+  `gym_id`가 없는 프로필도 마찬가지로 **409**다(#2543). 예전에는 직접 입력을
+  허용했지만, 직접 적은 이름은 `gym_id`가 비어 회원에게 노출되지 않는데도 트레이너
+  화면에는 소속이 있어 보였다.
+- **헬스장 찾기**(#2543): 트레이너는 `GET /trainer/gyms/search`로 헬스장을 찾아
+  고른다. 이미 `places`에 있는 헬스장(`registered=true`)은 `PUT /trainer/me/gym`,
+  카카오에서 찾은 새 헬스장은 `PUT /trainer/me/gym/kakao`로 고르며, 서버가 카카오를
+  다시 검색해 확인한 뒤 `places`(`category='fitness'`)·`gym_profiles`(`is_partner=false`)에
+  넣는다. `places.id`는 카카오 장소 id를 그대로 쓴다 — 시드의 카카오 발견 헬스장과
+  같은 규칙이라 같은 헬스장은 한 행으로 모인다. 규칙: **목록에 들어가는 헬스장 =
+  카카오에 있는 실제 헬스장(`스포츠시설` 카테고리)**.
 
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/trainer/me` | 내 트레이너 프로필 |
-| PUT | `/trainer/me` | 프로필 부분 수정(보낸 필드만; 이름/이메일은 계정 소관) |
+| PUT | `/trainer/me` | 프로필 부분 수정(보낸 필드만; 이름/이메일은 계정 소관, `gym_*` 는 409) |
 | PUT | `/trainer/me/gym` | 소속 헬스장 설정·변경(fitness `Place`만; 없으면 404) |
+| GET | `/trainer/gyms/search?query=&lat=&lng=` | 소속으로 고를 헬스장 검색 — 등록된 헬스장 먼저, 카카오 결과 뒤(#2543) |
+| PUT | `/trainer/me/gym/kakao` | 카카오 검색 결과로 소속 설정 `{kakao_place_id, name}` — 카카오로 재확인, 아니면 404, 카카오 불가 503(#2543) |
 | DELETE | `/trainer/me/gym` | 소속 해제(원래 없어도 200) |
 | POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |
