@@ -4,6 +4,9 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+/// 목표·문의 줄의 이름표 칸 폭 — 두 줄의 값이 같은 선에서 시작한다.
+const double _labelWidth = 64;
+
 /// 상담 일정의 `상담 요청 내용` — 회원이 신청할 때 적은 운동 목표·문의 글. (#2584)
 ///
 /// 읽기 전용이다. 트레이너가 적는 자리는 아래 상담 메모이고, 이 상자는 회원이
@@ -32,7 +35,10 @@ class SessionConsultationBox extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(width: 64, child: Text(label, style: labelStyle)),
+          SizedBox(
+            width: _labelWidth,
+            child: Text(label, style: labelStyle),
+          ),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(child: Text(value, style: valueStyle)),
         ],
