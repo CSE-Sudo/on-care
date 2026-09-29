@@ -598,6 +598,10 @@ class RoutineOut(BaseModel):
     #: 버티는 루틴이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
     #: 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
     hold_seconds: int | None = None
+    #: 유산소·스트레칭·기타의 운동 시간(초)(#2221). `minutes` 는 여기서 반올림한
+    #: 값이다. 초를 적지 않은 예전 배정은 `minutes` × 60 으로 채워 오고, 근력은
+    #: 세트로 재므로 비어 있다.
+    duration_seconds: int | None = None
     weight: float | None = None
     reason: str
     source: RoutineSource
@@ -615,6 +619,8 @@ class RoutineOut(BaseModel):
     completed: bool = False
     completed_at: _datetime | None = None
     completed_minutes: int | None = None
+    #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
+    completed_duration_seconds: int | None = None
     completed_intensity: str | None = None
     member_note: str = ""
     trainer_feedback: str = ""
@@ -865,6 +871,11 @@ class PersonalRoutineItem(BaseModel):
 
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(default=0, ge=0, le=600)
+    #: 같은 운동 시간을 초로(#2221). 보내면 이 값이 기준이고 `minutes` 는
+    #: 거기서 반올림한다 — 프로그램 운동(`ProgramDraftExercise`)과 같은 규칙이다.
+    duration_seconds: int | None = Field(
+        default=None, ge=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType
     intensity: RoutineIntensity = "moderate"
     sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
@@ -875,6 +886,16 @@ class PersonalRoutineItem(BaseModel):
     weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     source: RoutineSource = "trainer"
+
+    @model_validator(mode="after")
+    def _minutes_from_seconds(self) -> "PersonalRoutineItem":
+        """초가 오면 분을 거기서 반올림한다. 근력은 세트로 재므로 초를 비운다."""
+        if self.type == "근력":
+            self.duration_seconds = None
+        elif self.duration_seconds is not None:
+            seconds = self.duration_seconds
+            self.minutes = max(1, round(seconds / 60)) if seconds > 0 else 0
+        return self
 
 
 #: 한 PT 일정에 붙일 수 있는 개인운동 수의 상한. 프로그램 세션 상한과 같은

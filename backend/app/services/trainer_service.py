@@ -1590,6 +1590,18 @@ def delete_own_routine(db: Session, member_id: str, routine_id: str) -> None:
     db.commit()
 
 
+def _routine_seconds(rt: TrainerRoutine) -> int | None:
+    """배정 한 건의 운동 시간(초). 근력은 세트로 재므로 없다. (#2221)
+
+    초를 적지 않은 예전 배정은 분 × 60 으로 채운다 — 읽는 쪽이 두 단위를 오가지
+    않고 초 하나만 믿으면 되게 한다(프로그램 운동의 `duration_seconds` 와 같다).
+    """
+    if rt.type == "근력":
+        return None
+    seconds = getattr(rt, "duration_seconds", None)
+    return seconds if seconds is not None else rt.minutes * 60
+
+
 def _routine_out(
     db: Session,
     rt: TrainerRoutine,
@@ -1629,6 +1641,7 @@ def _routine_out(
         sets=getattr(rt, "sets", None),
         reps=getattr(rt, "reps", None),
         hold_seconds=getattr(rt, "hold_seconds", None),
+        duration_seconds=_routine_seconds(rt),
         weight=getattr(rt, "weight", None),
         # 예상 소모 칼로리 — 트레이너가 고른 강도로 계산한다. 회원이 수행을
         # 마치면 그때의 강도로 다시 계산한 값이 운동 기록에 남는다. (#996)
@@ -1645,6 +1658,9 @@ def _routine_out(
         completed=completion is not None,
         completed_at=completion.completed_at if completion is not None else None,
         completed_minutes=completion.minutes if completion is not None else None,
+        completed_duration_seconds=(
+            completion.duration_seconds if completion is not None else None
+        ),
         completed_intensity=completion.intensity if completion is not None else None,
         # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양은 옛 앱을 위해 남긴다.
         member_note="",
@@ -1889,6 +1905,7 @@ def complete_assigned_routine(
     hold_seconds: int | None = None,
     weight: float | None = None,
     intensity: str,
+    duration_seconds: int | None = None,
 ) -> RoutineCompleteOut:
     """배정 하나를 **오늘의** 회원 운동 기록 한 건으로 완료한다.
 
@@ -1953,6 +1970,10 @@ def complete_assigned_routine(
         # 배정 이름이 곧 이 운동의 이름이다 — 회원이 따로 적지 않는다.
         name=routine.name,
         minutes=minutes,
+        # 초로 적어 온 시간은 초까지 남긴다(#2221) — 근력은 세트로 읽는다.
+        duration_seconds=(
+            duration_seconds if exercise_type != exercise_types.STRENGTH else None
+        ),
         # 세트·횟수·중량은 근력에서만 남긴다. 수기 기록과 같은 규칙이라야
         # 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
         sets=sets if exercise_type == exercise_types.STRENGTH else None,
@@ -4072,6 +4093,7 @@ def _add_scheduled_routines(
             member_id=member_id,
             name=item.name,
             minutes=item.minutes,
+            duration_seconds=item.duration_seconds,
             type=item.type,
             exercise_date=exercise_date,
             intensity=item.intensity,
@@ -4522,6 +4544,7 @@ def _rewrite_scheduled_routines(
         touched = (
             row.name != item.name
             or row.minutes != item.minutes
+            or row.duration_seconds != item.duration_seconds
             or row.type != item.type
             or row.sets != item.sets
             or row.reps != item.reps
@@ -4530,6 +4553,7 @@ def _rewrite_scheduled_routines(
         )
         row.name = item.name
         row.minutes = item.minutes
+        row.duration_seconds = item.duration_seconds
         row.type = item.type
         row.sets = item.sets
         row.reps = item.reps
