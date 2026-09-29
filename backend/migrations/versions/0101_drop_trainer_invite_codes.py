@@ -7,8 +7,8 @@
 
 downgrade 는 빈 테이블만 되살린다 — 지운 코드 행은 돌아오지 않는다.
 
-Revision ID: 0100_drop_trainer_invite_codes
-Revises: 0099_diet_trainer_picks
+Revision ID: 0101_drop_trainer_invite_codes
+Revises: 0100_routine_duration_seconds
 Create Date: 2026-09-29
 """
 from __future__ import annotations
@@ -18,8 +18,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0100_drop_trainer_invite_codes"
-down_revision: str | Sequence[str] | None = "0099_diet_trainer_picks"
+revision: str = "0101_drop_trainer_invite_codes"
+down_revision: str | Sequence[str] | None = "0100_routine_duration_seconds"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
