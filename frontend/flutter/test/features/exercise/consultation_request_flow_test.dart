@@ -157,9 +157,9 @@ Future<void> _pickSlot(WidgetTester tester) async {
 
 /// MY 건강 목표만 들고 있는 프로필. (#2585)
 class _StubProfile extends ProfileController {
-  _StubProfile(this.conditions);
+  _StubProfile(this._conditions);
 
-  final String conditions;
+  final String _conditions;
 
   @override
   Future<UserProfile> build() async => UserProfile(
@@ -167,7 +167,7 @@ class _StubProfile extends ProfileController {
     onboarded: true,
     name: '이회원',
     email: 'member@oncare.com',
-    conditions: conditions,
+    conditions: _conditions,
   );
 }
 
