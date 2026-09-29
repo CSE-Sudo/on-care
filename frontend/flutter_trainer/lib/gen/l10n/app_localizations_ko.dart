@@ -4495,16 +4495,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateMenu => '템플릿 메뉴';
 
   @override
-  String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets세트 · $reps회 · ${weight}kg';
-  }
-
-  @override
-  String aiHoldSummary(int sets, int seconds, String weight) {
-    return '$sets세트 · $seconds초 · ${weight}kg';
-  }
-
-  @override
   String get routineFormDecrease => '줄이기';
 
   @override

@@ -3169,34 +3169,6 @@
     }
   },
   "coachTemplateMenu": "Template menu",
-  "aiStrengthSummary": "{sets} sets · {reps} reps · {weight}kg",
-  "aiHoldSummary": "{sets} sets · {seconds} sec · {weight}kg",
-  "@aiHoldSummary": {
-    "placeholders": {
-      "sets": {
-        "type": "int"
-      },
-      "seconds": {
-        "type": "int"
-      },
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
-  "@aiStrengthSummary": {
-    "placeholders": {
-      "sets": {
-        "type": "int"
-      },
-      "reps": {
-        "type": "int"
-      },
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "routineFormDecrease": "Decrease",
   "routineFormIncrease": "Increase",
   "reportsWorkbenchTitle": "This week's reports",

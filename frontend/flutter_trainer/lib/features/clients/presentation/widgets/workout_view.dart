@@ -17,6 +17,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 운동 — 기록 확인 중심 화면. 얼마나 했나(운동 현황) → 무엇을 했나(운동
@@ -473,9 +474,7 @@ class _PendingRoutines extends ConsumerWidget {
 /// 규칙이다 — 다만 이 목록은 [RoutineSuggestion] 이 아니라 이미 배정된
 /// [AssignedRoutine] 을 다룬다.
 ///
-/// 맨몸 운동의 중량은 `0kg` 이다 — 중량 칸은 비울 수 없고(최솟값 0) 근력을
-/// 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 규칙이 서기 전에 저장된
-/// 행뿐이라, 그때만 자리를 비운다.
+/// 맨몸 운동(0kg)과 중량이 없는 옛 행은 중량 자리를 비운다(#2533).
 String _pendingRoutineAmountLabel(AppLocalizations l, AssignedRoutine routine) {
   if (routine.type != '근력') return formatExerciseDuration(l, routine.seconds);
   final List<String> parts = <String>[
@@ -485,15 +484,10 @@ String _pendingRoutineAmountLabel(AppLocalizations l, AssignedRoutine routine) {
       l.progHoldValue(routine.holdSeconds!)
     else if (routine.reps != null)
       l.progRepsValue(routine.reps!),
-    if (routine.weight != null)
-      '${_trimZero(routine.weight!)}${l.routineUnitKg}',
+    ?strengthWeightLabel(l, routine.weight),
   ];
   return parts.isEmpty ? l.minutesShort(routine.minutes) : parts.join(' · ');
 }
-
-/// 20.0 → `20`, 62.5 → `62.5`.
-String _trimZero(double value) =>
-    value == value.roundToDouble() ? '${value.round()}' : '$value';
 
 /// 물릴 수 있는 개인 운동 한 줄 — 이름·시간과 취소.
 class _PendingRoutineRow extends ConsumerStatefulWidget {
@@ -673,8 +667,7 @@ String clientExerciseLine(AppLocalizations l, ClientExerciseItem item) {
       l.progHoldValue(holdSeconds)
     else if (reps != null && reps > 0)
       l.progRepsValue(reps),
-    if (weight != null && weight > 0)
-      '${_trimZeroKg(weight)}${l.routineUnitKg}',
+    ?strengthWeightLabel(l, weight),
     // 회원이 초까지 적은 기록은 초까지 읽는다 — 분으로 접으면 `45초` 가
     // `1분` 이 된다(#2071).
     if (sets == null && item.seconds > 0)
@@ -694,8 +687,3 @@ String? _intensityLabel(AppLocalizations l, String? intensity) =>
       'high' => l.intensityHigh,
       _ => null,
     };
-
-/// 20.0 → `20`, 62.5 → `62.5`. 정수 무게에 소수점이 붙으면 원판 단위가 아닌
-/// 값을 적은 것처럼 읽힌다.
-String _trimZeroKg(double value) =>
-    value == value.roundToDouble() ? '${value.round()}' : '$value';
