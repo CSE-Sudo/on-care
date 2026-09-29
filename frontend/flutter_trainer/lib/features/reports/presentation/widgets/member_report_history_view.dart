@@ -140,12 +140,10 @@ class MemberReportHistoryView extends ConsumerWidget {
           // 보낸 리포트 화면의 돌아가기와 같은 자리·같은 모양이다 — 리포트
           // 탭 안에서 한 단계 들어간 화면은 모두 왼쪽 위에서 나온다.
           Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppBackLink(
               key: const ValueKey<String>('reports-history-back'),
               label: l.reportsBackToList,
-              variant: AppButtonVariant.text,
-              leadingIcon: AppIcons.back,
               onPressed: onBack,
             ),
           ),
@@ -179,12 +177,6 @@ String reportWeekRangeLabel(AppLocalizations l, DateTime weekStart) {
     l.dateMonthDay(weekEnd.month, weekEnd.day),
   );
 }
-
-/// 줄 카드의 안쪽 여백 — 작업대 줄과 같은 값이다.
-const EdgeInsets _rowPadding = EdgeInsets.symmetric(
-  horizontal: OnCareSpacing.s16,
-  vertical: OnCareSpacing.s12,
-);
 
 /// 줄의 첫 줄 — 주 범위, 이번 주면 `· 이번 주`.
 class _WeekHeading extends StatelessWidget {
@@ -220,7 +212,7 @@ class _UnsentRow extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppCard(
       key: const ValueKey<String>('reports-history-unsent'),
-      padding: _rowPadding,
+      padding: AppCard.compactPadding,
       child: Row(
         children: <Widget>[
           Expanded(
@@ -285,7 +277,7 @@ class _HistoryRow extends ConsumerWidget {
         .copyWith(color: OnCareColors.textTertiary);
     return AppCard(
       key: ValueKey<String>('reports-history-week-$key'),
-      padding: _rowPadding,
+      padding: AppCard.compactPadding,
       child: Row(
         children: <Widget>[
           Expanded(

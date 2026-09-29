@@ -9,7 +9,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   test('한 바퀴 안쪽은 비율 그대로', () {

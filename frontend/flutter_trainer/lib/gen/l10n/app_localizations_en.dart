@@ -906,13 +906,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
 
   @override
-  String get clientDietTotalCalories => 'Total calories';
-
-  @override
   String get clientDietDayTotal => 'Day total';
 
   @override
-  String clientDietDayTotalCalories(String calories) {
+  String clientDietTotalCalories(String calories) {
     return 'Total $calories kcal';
   }
 
@@ -3873,6 +3870,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messagesPreviewEmote => 'Sent an emote';
+
+  @override
+  String get messagesPreviewPhoto => 'Photo';
 
   @override
   String get messagesTimeJustNow => 'Just now';

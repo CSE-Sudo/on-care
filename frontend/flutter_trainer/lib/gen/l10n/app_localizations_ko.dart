@@ -880,13 +880,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietMacrosMissing => '탄·단·지 기록 없음';
 
   @override
-  String get clientDietTotalCalories => '총 칼로리';
-
-  @override
   String get clientDietDayTotal => '하루 합계';
 
   @override
-  String clientDietDayTotalCalories(String calories) {
+  String clientDietTotalCalories(String calories) {
     return '총 $calories kcal';
   }
 
@@ -3690,6 +3687,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messagesPreviewEmote => '이모티콘을 보냈어요';
+
+  @override
+  String get messagesPreviewPhoto => '사진';
 
   @override
   String get messagesTimeJustNow => '방금';

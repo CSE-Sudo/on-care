@@ -7,6 +7,7 @@ import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
 import 'package:oncare_ui/src/tokens/icons.dart';
+import 'package:oncare_ui/src/tokens/layout.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
@@ -25,6 +26,12 @@ class AppCard extends StatelessWidget {
     this.backgroundColor,
     this.padding = const EdgeInsets.all(OnCareSpacing.cardPadding),
   });
+
+  /// 목록에 줄지어 선 줄 카드의 안쪽 — 가로 16·세로 12(#2397, #2469).
+  static const EdgeInsets compactPadding = EdgeInsets.symmetric(
+    horizontal: OnCareSpacing.s16,
+    vertical: OnCareSpacing.s12,
+  );
 
   final Widget child;
   final VoidCallback? onTap;
@@ -1001,6 +1008,10 @@ enum AppStatePlacement {
 
   /// 카드 안 — 최소 높이 120.
   card,
+
+  /// 글 흐름 안 한두 줄 — 아이콘·최소 높이 없이 왼쪽 정렬, 제목 `bodySmall`
+  /// + 안내 `caption`, 흐린 글자색(#2469). 목록·칸이 비었다는 짧은 말에 쓴다.
+  inline,
 }
 
 const double _cardStateMinHeight = 120;
@@ -1033,6 +1044,7 @@ class AppEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    if (placement == AppStatePlacement.inline) return _inline(tokens);
     final Widget body = Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -1071,6 +1083,39 @@ class AppEmptyState extends StatelessWidget {
       ],
     );
     return _StateFrame(placement: placement, child: body);
+  }
+
+  Widget _inline(OnCareTokens tokens) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          title,
+          style: tokens
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+        if (message != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s2),
+          Text(
+            message!,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ],
+        if (actionLabel != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          AppButton(
+            label: actionLabel!,
+            onPressed: onAction,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -1149,6 +1194,7 @@ class _StateFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (placement) {
+      AppStatePlacement.inline => child,
       AppStatePlacement.page => Center(
         child: Padding(
           padding: const EdgeInsets.all(OnCareSpacing.s24),
@@ -1165,5 +1211,132 @@ class _StateFrame extends StatelessWidget {
         ),
       ),
     };
+  }
+}
+
+/// 라벨·값 한 줄 — 왼쪽 고정 폭 라벨(`bodySmall`·흐린 글자) + 값(`bodySmall`
+/// 600·본문 글자)(#2469).
+///
+/// 상담 요청·리포트 전송 미리보기·회원 피드백처럼 "무엇 : 얼마" 를 여러 줄
+/// 늘어놓는 자리에 쓴다. 줄 사이 간격은 부르는 쪽이 둔다.
+/// [AppKeyValueRow.stacked] 는 라벨 아래에 값을 두는 세로 칸이다.
+class AppKeyValueRow extends StatelessWidget {
+  const AppKeyValueRow({
+    super.key,
+    required this.label,
+    required this.value,
+    this.valueKey,
+    this.strongValue = true,
+    this.valueColor,
+    this.labelWidth = OnCareLayout.keyValueLabelWidth,
+  }) : _stacked = false;
+
+  /// 세로 칸 — 라벨(`caption`) 아래 값(`body`).
+  const AppKeyValueRow.stacked({
+    super.key,
+    required this.label,
+    required this.value,
+    this.valueKey,
+    this.valueColor,
+  }) : _stacked = true,
+       strongValue = false,
+       labelWidth = OnCareLayout.keyValueLabelWidth;
+
+  final String label;
+  final String value;
+
+  /// 값 글자의 Key — 테스트가 값을 찾을 때.
+  final Key? valueKey;
+
+  /// 값을 600 으로 — 긴 글(문의 내용 등)은 끈다.
+  final bool strongValue;
+
+  /// 값 글자색. 없으면 본문 글자색이다. 비었음·경고를 말할 때만 준다.
+  final Color? valueColor;
+  final double labelWidth;
+  final bool _stacked;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    if (_stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            label,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+          const SizedBox(height: OnCareSpacing.s2),
+          Text(
+            value,
+            key: valueKey,
+            style: tokens
+                .text(OnCareTypography.body)
+                .copyWith(color: valueColor ?? OnCareColors.textPrimary),
+          ),
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: labelWidth,
+          child: Text(
+            label,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            key: valueKey,
+            style: tokens
+                .text(
+                  strongValue
+                      ? OnCareTypography.strong(OnCareTypography.bodySmall)
+                      : OnCareTypography.bodySmall,
+                )
+                .copyWith(color: valueColor ?? OnCareColors.textPrimary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 작은 머리글 — 메뉴 묶음 이름(`운영`·`코칭`, `내 정보`·`설정`) 같은 한 줄
+/// `caption` 600·흐린 글자(#2469).
+class AppOverline extends StatelessWidget {
+  const AppOverline(this.label, {super.key, this.padding = menuPadding});
+
+  final String label;
+  final EdgeInsetsGeometry padding;
+
+  /// 사이드바·메뉴 목록 안 — 항목 안쪽 여백(12)에 맞추고 아래는 붙인다.
+  static const EdgeInsets menuPadding = EdgeInsets.fromLTRB(
+    OnCareSpacing.s12,
+    OnCareSpacing.s12,
+    OnCareSpacing.s12,
+    OnCareSpacing.s4,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      child: Text(
+        label,
+        style: context.oncare
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: OnCareColors.textTertiary),
+      ),
+    );
   }
 }
