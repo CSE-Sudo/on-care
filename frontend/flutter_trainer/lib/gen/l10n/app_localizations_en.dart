@@ -2013,7 +2013,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'A consultation is recorded as a note, not a program.';
 
   @override
-  String get schedNoteHint => 'Anything to prepare, or notes about this member';
+  String get schedNoteHint =>
+      'Shown to the member as feedback once the PT is done. Keep member notes in the client memo';
+
+  @override
+  String get schedConsultNoteHint =>
+      'Consultation notes aren\'t shown to the member';
 
   @override
   String get schedAddAction => 'Add';
@@ -2037,7 +2042,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progAddExercise => 'Add exercise';
 
   @override
-  String get progNoteHint => 'Notes to follow while running this program';
+  String get progNoteHint =>
+      'Shown to the member as feedback once the PT is done. Keep member notes in the client memo';
 
   @override
   String get progSaving => 'Saving...';
