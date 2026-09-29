@@ -232,7 +232,9 @@ def test_member_and_trainer_read_the_pt_week_the_same(client, pt_session):
     쓰기 경로가 날짜를 어긋나게 저장해도 두 응답이 나란히 틀려 통과한다.
     """
     last_week_day = clock.today() - timedelta(days=7)
-    session_id = pt_session(last_week_day, time="18:30", duration_minutes=40)
+    # 시드 주간 PT(`_WEEKLY_PT`)는 저녁 19시 이후를 비워 둔다. 18:30 으로 잡으면
+    # 요일에 따라 시드의 18:00 수업과 겹쳐 409 로 떨어졌다.
+    session_id = pt_session(last_week_day, time="20:00", duration_minutes=40)
     client.post(
         f"/v1/trainer/schedule/{session_id}/complete",
         json={},
