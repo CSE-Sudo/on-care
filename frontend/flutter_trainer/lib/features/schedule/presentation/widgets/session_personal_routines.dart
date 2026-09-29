@@ -85,9 +85,6 @@ class _SessionPersonalRoutinesState
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     if (_routines.isEmpty) return const SizedBox.shrink();
@@ -110,12 +107,8 @@ class _SessionPersonalRoutinesState
         for (final SessionRoutine row in _routines)
           Padding(
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-            child: Container(
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: const BoxDecoration(
-                color: OnCareColors.surfaceInput,
-                borderRadius: OnCareRadius.mdAll,
-              ),
+            child: AppTile(
+              tone: AppTileTone.neutral,
               child: Row(
                 children: <Widget>[
                   const AppIcon(
@@ -274,9 +267,7 @@ class _SendPersonalRoutinesDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            widget.editOnly
-                ? l.schedEditRoutinesBody
-                : l.schedRoutinesSendBody,
+            widget.editOnly ? l.schedEditRoutinesBody : l.schedRoutinesSendBody,
             style: context.oncare
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),

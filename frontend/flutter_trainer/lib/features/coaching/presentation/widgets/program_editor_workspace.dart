@@ -1193,16 +1193,11 @@ class _SessionEditorState extends State<_SessionEditor> {
             const SizedBox(height: OnCareSpacing.s8),
           ],
           if (widget.addingExercise)
-            // 새로 추가 중인 한 줄도 이미 있는 운동 카드와 같은 틀(카드 배경·
-            // 테두리·반경)을 쓴다 — 그래야 목록에 자연스럽게 이어 붙는 한 줄로
+            // 새로 추가 중인 한 줄도 이미 있는 운동 카드와 같은 틀(흰 외곽선
+            // 구획)을 쓴다 — 그래야 목록에 자연스럽게 이어 붙는 한 줄로
             // 보이고, 입력 글자 크기도 [_DraftField] 와 맞춘다.
-            Container(
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: BoxDecoration(
-                color: OnCareColors.surfaceCard,
-                borderRadius: OnCareRadius.mdAll,
-                border: Border.all(color: OnCareColors.lineStrong),
-              ),
+            AppTile(
+              tone: AppTileTone.outline,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -1411,16 +1406,9 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final exercise = widget.exercise;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s12,
-        vertical: OnCareSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: OnCareColors.lineStrong),
-      ),
+    return AppTile(
+      tone: AppTileTone.outline,
+      dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[

@@ -98,20 +98,32 @@ enum AppTileTone {
 
   /// 채우지 않는다. 읽기만 하는 줄은 굳이 바탕을 깔 이유가 없다.
   none,
+
+  /// 흰 채움 + 1px 테두리([OnCareColors.lineStrong]). 카드 안에서 입력 칸을
+  /// 여럿 묶은 초안 폼·편집 행처럼, 카드와 같은 흰 바탕 위에서 테두리로
+  /// 경계를 긋는 구획이다(#2468).
+  outline,
 }
 
 /// 카드 안 구획 — 반경 12·안쪽 12. 채움은 [tone] 을 따른다.
+///
+/// 카드 안 박스는 `BoxDecoration` 을 직접 쓰지 않고 이것으로 그린다(#2468).
 class AppTile extends StatelessWidget {
   const AppTile({
     super.key,
     required this.child,
     this.onTap,
     this.tone = AppTileTone.brand,
+    this.dense = false,
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final AppTileTone tone;
+
+  /// 안쪽 세로 여백을 8 로 줄인다(가로는 12 그대로). 목록 행·값 칸처럼 낮게
+  /// 서야 하는 구획에 쓴다.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -121,13 +133,24 @@ class AppTile extends StatelessWidget {
         AppTileTone.brandSoft => context.oncare.brand.surfaceSoft,
         AppTileTone.neutral => OnCareColors.surfaceInput,
         AppTileTone.none => Colors.transparent,
+        AppTileTone.outline => OnCareColors.surfaceCard,
       },
-      borderRadius: OnCareRadius.mdAll,
+      shape: RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: tone == AppTileTone.outline
+            ? const BorderSide(color: OnCareColors.lineStrong)
+            : BorderSide.none,
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+          padding: dense
+              ? const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.tilePadding,
+                  vertical: OnCareSpacing.s8,
+                )
+              : const EdgeInsets.all(OnCareSpacing.tilePadding),
           child: child,
         ),
       ),
