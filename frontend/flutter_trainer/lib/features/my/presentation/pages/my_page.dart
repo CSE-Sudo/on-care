@@ -1909,11 +1909,12 @@ class _ClientManagementCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // 삭제가 무엇을 지우고 어떻게 되돌리는지 먼저 말한다 — 확인창에서
-            // 처음 알면 이미 누른 뒤다.
+            // 연결 해제가 무엇을 남기고 어떻게 되돌리는지 먼저 말한다 — 확인창에서
+            // 처음 알면 이미 누른 뒤다. 좁은 화면에서 `등` / `록에서` 처럼
+            // 낱말 중간에서 끊기지 않게 한다.
             AppBanner(
               title: l.myClientManagementNoteTitle,
-              message: l.myClientManagementNote,
+              message: keepWords(l.myClientManagementNote),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),
             for (final client in items) ...<Widget>[
