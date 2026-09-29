@@ -1280,6 +1280,9 @@ class ScheduleSessionOut(BaseModel):
     date: str
     time: str
     client_name: str
+    #: 담당 회원 id. 가망 고객(이름만 있는 상담)·공백 슬롯은 null 이다. 웹이
+    #: 회원별로 일정을 묶으려면(이탈 위험·활동 피드백) 이 값이 있어야 한다(#2586).
+    member_id: str | None = None
     type: str
     duration_minutes: int
     status: str          # 예정|완료|취소|노쇼|공백

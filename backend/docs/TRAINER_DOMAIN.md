@@ -220,7 +220,7 @@
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
 | GET | `/trainer/chat/unread` | 회원별 미확인 수 |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
-| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터 |
+| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586) |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |
 | POST | `/trainer/schedule` | 예약 생성(예정, `client_request_id?`) |
 | PUT | `/trainer/schedule/{id}` | 예약 수정 |

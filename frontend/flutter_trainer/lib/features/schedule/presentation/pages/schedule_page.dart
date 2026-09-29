@@ -194,7 +194,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 ? 'new-session-editor'
                 : 'schedule-editor-${existing.id}',
           ),
-          clientNames: clients.map((c) => c.name).toList(),
+          clients: <ScheduleClientKey>[
+            for (final c in clients) (id: c.id, name: c.name),
+          ],
           date: existing?.date ?? _selectedYmd,
           existing: existing,
           inline: true,

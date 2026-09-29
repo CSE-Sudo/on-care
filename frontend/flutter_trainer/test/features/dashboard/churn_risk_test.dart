@@ -5,6 +5,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/churn_risk_dialog.dart';
+import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -118,6 +119,33 @@ void main() {
         ], now: _now),
         isFalse,
       );
+    });
+  });
+
+  group('groupSessionsByClient', () {
+    // 서버 일정 응답에 member_id 가 없던 동안 모든 행이 clientId null 로 버려져
+    // `최근 7일 트레이너 피드백 없음` 이 늘 참이었다(#2586).
+    test('서버 응답의 member_id 로 묶어 피드백을 읽는다', () {
+      Map<String, dynamic> row(String id, String? memberId) =>
+          <String, dynamic>{
+            'id': id,
+            'date': '2026-09-22',
+            'time': '09:00',
+            'client_name': '테스트회원',
+            'member_id': memberId,
+            'type': '1:1 PT',
+            'duration_minutes': 50,
+            'status': ScheduleStatus.done,
+            'note': '스쿼트 자세 좋아짐',
+            'program': <Object>[],
+          };
+      final grouped = groupSessionsByClient(<ScheduleSession>[
+        scheduleSessionFromJson(row('s1', 'c1')),
+        // 이름만 있는 가망 고객 일정은 어느 회원에게도 붙지 않는다.
+        scheduleSessionFromJson(row('s2', null)),
+      ]);
+      expect(grouped.keys, <String>['c1']);
+      expect(hasRecentTrainerFeedback(grouped['c1']!, now: _now), isTrue);
     });
   });
 
