@@ -641,8 +641,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
       await tester.pumpAndSettle();
 
-      // 제안이 목록의 출발점이다 — 줄마다 이름과, 트레이너가 판단에 쓰는
-      // 추천 사유·근거가 선다.
+      // 제안이 목록의 출발점이다 — 줄마다 이름과, 그 바로 아래 트레이너가
+      // 판단에 쓰는 사유 문장이 선다(#2579).
       // 접힌 줄은 이름·유형·양을 한 줄(`Text.rich`)에 둔다.
       expect(
         find.textContaining('가벼운 인터벌 러닝', findRichText: true),
@@ -651,9 +651,27 @@ void main() {
       expect(find.textContaining('힙 브리지', findRichText: true), findsOneWidget);
       expect(find.text('AI 제안 2'), findsOneWidget);
       expect(find.text('숨이 차면 속도를 낮추세요'), findsOneWidget);
-      expect(find.text('혈압 관리 목표'), findsOneWidget);
-      expect(find.text('최근 근력운동 비중 높음'), findsOneWidget);
-      expect(find.text('AI 추천 사유'), findsNWidgets(2));
+      // 라벨과 근거 태그는 두지 않는다 — 사유 문장이 기록 숫자로 말하고,
+      // `AI 제안 N` 이 AI 가 낸 줄임을 말한다(#2579).
+      expect(find.text('혈압 관리 목표'), findsNothing);
+      expect(find.text('최근 근력운동 비중 높음'), findsNothing);
+      expect(find.text('AI 추천 사유'), findsNothing);
+      // 사유는 이름 바로 아래, 효과 칸 위다.
+      final double nameY = tester
+          .getTopLeft(find.textContaining('가벼운 인터벌 러닝', findRichText: true))
+          .dy;
+      final double reasonY = tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('personal-rationale-0')),
+          )
+          .dy;
+      final double effectY = tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('personal-routine-effect-0')),
+          )
+          .dy;
+      expect(reasonY, greaterThan(nameY));
+      expect(effectY, greaterThan(reasonY));
       // 제안이 채워졌으므로 빈 상태 문구는 없다.
       expect(
         find.byKey(const ValueKey<String>('personal-routine-empty')),
@@ -661,7 +679,7 @@ void main() {
       );
     });
 
-    testWidgets('근거 코드는 영어 화면에서 영어 칩으로 그린다 (#2301)', (tester) async {
+    testWidgets('근거 코드는 화면에 그리지 않는다 — 사유 문장이 말한다 (#2579)', (tester) async {
       await pumpFlow(
         tester,
         locale: const Locale('en'),
@@ -671,13 +689,11 @@ void main() {
             name: 'Light interval run',
             minutes: 30,
             type: '유산소',
-            reason: 'Slow down if you get breathless',
+            reason: 'None of the 240 min in the last 2 weeks was cardio.',
             evidence: <String>[
               RoutineEvidence.recentPtFeedback,
-              RoutineEvidence.strengthHeavy,
-              RoutineEvidence.bloodPressureGoal,
               RoutineEvidence.lowCardio,
-              RoutineEvidence.recentRecord,
+              'future_code',
             ],
           ),
         ],
@@ -686,41 +702,17 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
       await tester.pumpAndSettle();
 
+      expect(
+        find.text('None of the 240 min in the last 2 weeks was cardio.'),
+        findsOneWidget,
+      );
       for (final String label in <String>[
         'Recent PT feedback',
-        'Mostly strength lately',
-        'Blood pressure goal',
         'Little cardio lately',
-        'Recent workout log',
+        'future_code',
       ]) {
-        expect(find.text(label), findsOneWidget, reason: label);
+        expect(find.text(label), findsNothing, reason: label);
       }
-      // 코드 자체나 한국어 문장은 화면에 새지 않는다.
-      expect(find.textContaining('_'), findsNothing);
-      expect(find.text('혈압 관리 목표'), findsNothing);
-    });
-
-    testWidgets('모르는 근거 값(예전 문장·새 코드)은 버리지 않고 그대로 보인다 '
-        '(#2301)', (tester) async {
-      await pumpFlow(
-        tester,
-        suggestions: const <RoutineSuggestion>[
-          RoutineSuggestion(
-            id: 'sug-1',
-            name: '가벼운 인터벌 러닝',
-            minutes: 30,
-            type: '유산소',
-            reason: '숨이 차면 속도를 낮추세요',
-            evidence: <String>['future_code', RoutineEvidence.lowCardio],
-          ),
-        ],
-      );
-
-      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('future_code'), findsOneWidget);
-      expect(find.text('최근 유산소 비중 낮음'), findsOneWidget);
     });
 
     testWidgets('영어 화면의 후보 카드는 강도 계약값을 영어로 그린다 (#2301)', (tester) async {
@@ -908,8 +900,69 @@ void main() {
       expect(personal![0].source, 'trainer');
       // 손대지 않은 줄은 그대로 AI 다.
       expect(personal![1].source, 'ai');
-      // `AI 추천 사유` 는 트레이너만 보는 칸이라 고친 뒤에도 남는다.
+      // AI 가 고른 이유는 트레이너만 보는 글이라 고친 뒤에도 남는다.
       expect(personal![0].reason, '숨이 차면 속도를 낮추세요');
+    });
+
+    testWidgets('접힌 줄에서 효과를 바로 고치고, 비운 줄은 자동 문구에 맡긴다 '
+        '(#2570)', (tester) async {
+      List<RoutineExercise>? personal;
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '코어 스트레칭',
+            minutes: 10,
+            type: '스트레칭',
+            reason: '허리를 편하게',
+          ),
+        ],
+        onReviewCompleted: (exercises, items, kind) => personal = items,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 회원 첫 목표(혈압 관리)의 문구가 placeholder 로 미리 보인다.
+      Finder effectField(int index) =>
+          find.byKey(ValueKey<String>('personal-routine-effect-$index'));
+      expect(
+        find.descendant(of: effectField(0), matching: find.text('혈압 관리에 도움')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: effectField(1), matching: find.text('혈압·심박 안정')),
+        findsOneWidget,
+      );
+
+      // 연필을 누르지 않고 접힌 줄에서 바로 친다.
+      await tester.enterText(
+        find.descendant(
+          of: effectField(1),
+          matching: find.byType(EditableText),
+        ),
+        '허리 부담 완화',
+      );
+      await tester.pumpAndSettle();
+
+      final apply = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      expect(personal!.map((e) => e.effect), <String>['', '허리 부담 완화']);
+      // 효과만 고친 것은 운동을 고친 것이 아니다 — 출처는 AI 그대로다.
+      expect(personal![1].source, 'ai');
     });
 
     testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {

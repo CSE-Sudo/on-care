@@ -1741,6 +1741,11 @@
   "routineFieldExerciseNameHintStrength": "e.g. Squat, Bench press",
   "routineFieldExerciseNameHintFlexibility": "e.g. Full-body stretch, Yoga",
   "routineFieldExerciseNameHintOther": "e.g. Rehab exercise, Sports activity",
+  "routineFieldEffect": "Benefit shown to member",
+  "@routineFieldEffect": {
+    "description": "Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570)."
+  },
+  "routineFieldEffectHint": "e.g. Protect right shoulder",
   "routineFieldSets": "Sets",
   "routineFieldReps": "Reps",
   "routineFieldHold": "Hold time",
@@ -1992,7 +1997,6 @@
   "aiStepReview": "Program selection",
   "aiStepDone": "Program review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
-  "aiPersonalRationaleLabel": "Why AI picked this",
   "routineEvidenceRecentPtFeedback": "Recent PT feedback",
   "@routineEvidenceRecentPtFeedback": {
     "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."

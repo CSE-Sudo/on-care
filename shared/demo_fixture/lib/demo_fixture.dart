@@ -268,6 +268,7 @@ class FixtureRoutine {
     required this.type,
     required this.reason,
     required this.source,
+    this.effect = '',
     this.sets,
     this.reps,
     this.holdSeconds,
@@ -282,6 +283,7 @@ class FixtureRoutine {
     type: json['type']! as String,
     reason: json['reason']! as String,
     source: json['source']! as String,
+    effect: json['effect'] as String? ?? '',
     sets: (json['sets'] as num?)?.toInt(),
     reps: (json['reps'] as num?)?.toInt(),
     holdSeconds: (json['holdSeconds'] as num?)?.toInt(),
@@ -300,6 +302,10 @@ class FixtureRoutine {
   final String type;
 
   final String reason;
+
+  /// 회원 카드에서 이름 아래 서는 효과 한 줄(#2570). 적지 않은 픽스처는
+  /// 비어 있다.
+  final String effect;
 
   /// `ai` | `trainer` — 누가 정했는지. 회원 화면이 줄마다 출처를 적는다.
   final String source;

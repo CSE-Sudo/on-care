@@ -2527,6 +2527,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldExerciseNameHintOther => '예) 재활 운동, 스포츠 활동';
 
   @override
+  String get routineFieldEffect => '회원에게 보일 효과';
+
+  @override
+  String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
+
+  @override
   String get routineFieldSets => '세트 수';
 
   @override
@@ -2911,9 +2917,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
-
-  @override
-  String get aiPersonalRationaleLabel => 'AI 추천 사유';
 
   @override
   String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';

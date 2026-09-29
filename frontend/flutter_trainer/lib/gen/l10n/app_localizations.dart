@@ -4657,6 +4657,18 @@ abstract class AppLocalizations {
   /// **'e.g. Rehab exercise, Sports activity'**
   String get routineFieldExerciseNameHintOther;
 
+  /// Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570).
+  ///
+  /// In en, this message translates to:
+  /// **'Benefit shown to member'**
+  String get routineFieldEffect;
+
+  /// No description provided for @routineFieldEffectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Protect right shoulder'**
+  String get routineFieldEffectHint;
+
   /// No description provided for @routineFieldSets.
   ///
   /// In en, this message translates to:
@@ -5340,12 +5352,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip PT — personal exercise only'**
   String get aiSkipPtProgram;
-
-  /// No description provided for @aiPersonalRationaleLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Why AI picked this'**
-  String get aiPersonalRationaleLabel;
 
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
   ///

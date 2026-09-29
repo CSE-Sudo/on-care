@@ -75,6 +75,8 @@ def _exercise(name: str, **overrides) -> dict:
         "intensity": "moderate",
         "memo": "",
         "source": "trainer",
+        # 회원에게 보일 효과 한 줄(#2570). 비어 있으면 서버가 문구표로 채운다.
+        "effect": "",
     }
     base.update(overrides)
     return base

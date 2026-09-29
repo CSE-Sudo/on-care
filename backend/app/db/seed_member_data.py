@@ -894,6 +894,9 @@ def _seed_routines(db: Session, member_id: str) -> None:
                 minutes=routine.minutes,
                 type=routine.type,
                 reason=routine.reason,
+                # 효과 한 줄도 픽스처가 소유한다(#2570). 비면 응답 때 문구표로
+                # 채운다 — 목업과 같은 줄이 실연동에서도 선다.
+                effect=routine.effect,
                 source=routine.source,
                 # 근력에만 싣는다 — 배정 API(`assign_routine`)와 같은 규칙이라,
                 # 시드로 들어온 배정과 트레이너가 보낸 배정이 화면에서 같은
@@ -915,6 +918,7 @@ def _seed_routines(db: Session, member_id: str) -> None:
         row.minutes = routine.minutes
         row.type = routine.type
         row.reason = routine.reason
+        row.effect = routine.effect
         row.source = routine.source
         row.sets = _strength_only(routine.type, routine.sets)
         row.reps = _strength_only(routine.type, routine.reps)

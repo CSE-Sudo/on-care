@@ -2670,6 +2670,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'e.g. Rehab exercise, Sports activity';
 
   @override
+  String get routineFieldEffect => 'Benefit shown to member';
+
+  @override
+  String get routineFieldEffectHint => 'e.g. Protect right shoulder';
+
+  @override
   String get routineFieldSets => 'Sets';
 
   @override
@@ -3066,9 +3072,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
-
-  @override
-  String get aiPersonalRationaleLabel => 'Why AI picked this';
 
   @override
   String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
