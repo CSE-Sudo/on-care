@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
@@ -116,10 +117,8 @@ class AppSidebar extends ConsumerWidget {
                 children: <Widget>[
                   for (var i = 0; i < navDestinations.length; i++) ...<Widget>[
                     if (expanded && (i == 0 || i == 4))
-                      _NavGroupLabel(
-                        label: i == 0
-                            ? l.navOperationsGroup
-                            : l.navCoachingGroup,
+                      AppOverline(
+                        i == 0 ? l.navOperationsGroup : l.navCoachingGroup,
                       ),
                     _NavTile(
                       destination: navDestinations[i],
@@ -173,30 +172,6 @@ class AppSidebar extends ConsumerWidget {
   }
 }
 
-class _NavGroupLabel extends StatelessWidget {
-  const _NavGroupLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        OnCareSpacing.s12,
-        OnCareSpacing.s12,
-        OnCareSpacing.s12,
-        OnCareSpacing.s4,
-      ),
-      child: Text(
-        label,
-        style: context.oncare
-            .text(OnCareTypography.strong(OnCareTypography.caption))
-            .copyWith(color: OnCareColors.textTertiary),
-      ),
-    );
-  }
-}
-
 /// Logo + wordmark. The 트레이너 word keeps the brand primary so the two
 /// On-Care clients read as one service with distinct audiences.
 class _Brand extends StatelessWidget {
@@ -221,8 +196,8 @@ class _Brand extends StatelessWidget {
           fit: BoxFit.cover,
           // The logo is a bundled asset; if it ever fails to decode, fall
           // back to a glyph rather than blowing a red box into the shell.
-          errorBuilder: (context, error, stack) => Icon(
-            Icons.favorite_rounded,
+          errorBuilder: (context, error, stack) => AppIcon(
+            AppIcons.favorite,
             size: OnCareSize.iconLarge,
             color: tokens.brand.primary,
           ),
@@ -316,7 +291,7 @@ class _NavTile extends StatelessWidget {
         inMutuallyExclusiveGroup: true,
         child: AppSidebarItem(
           key: ValueKey<String>('sidebar-${destination.route}'),
-          icon: selected ? destination.activeIcon : destination.icon,
+          icon: destination.icon,
           label: label,
           selected: selected,
           collapsed: !expanded,
@@ -399,8 +374,8 @@ class _ProfileFooter extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.settings_rounded,
+                      const AppIcon(
+                        AppIcons.settings,
                         size: OnCareSize.iconSmall,
                         color: OnCareColors.textTertiary,
                       ),

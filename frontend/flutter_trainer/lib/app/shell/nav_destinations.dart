@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
@@ -33,7 +34,6 @@ class NavDestination {
   const NavDestination({
     required this.label,
     required this.icon,
-    required this.activeIcon,
     required this.route,
     this.badge = NavBadge.none,
   });
@@ -43,12 +43,11 @@ class NavDestination {
   /// `navLabel(l, destination.label)` 로 그릴 때 비로소 문구가 정해진다. (#501)
   final NavLabel label;
 
-  /// Icon in the unselected state. `_rounded` 계열만 쓰고, 채움/윤곽 짝이 있는
-  /// 아이콘은 선택 상태에만 채움 아이콘을 쓴다(#1703).
+  /// 켜짐·꺼짐 모두 이 아이콘 하나다(#2466). 회원앱 하단 탭처럼 아이콘은 늘
+  /// 채움이고, 선택은 `AppSidebarItem` 의 옅은 브랜드 채움·왼쪽 막대·색으로만
+  /// 보인다. 예전(#1703)에는 윤곽/채움 짝이 있는 셋만 선택 때 채움으로 바뀌어
+  /// 나머지와 규칙이 갈렸다.
   final IconData icon;
-
-  /// Icon in the selected state.
-  final IconData activeIcon;
 
   /// Branch root location.
   final String route;
@@ -89,27 +88,23 @@ String navLabel(AppLocalizations l, NavLabel label) => switch (label) {
 const List<NavDestination> navDestinations = <NavDestination>[
   NavDestination(
     label: NavLabel.dashboard,
-    icon: Icons.space_dashboard_rounded,
-    activeIcon: Icons.space_dashboard_rounded,
+    icon: AppIcons.dashboard,
     route: AppRoutes.dashboard,
   ),
   NavDestination(
     label: NavLabel.clients,
-    icon: Icons.people_outline_rounded,
-    activeIcon: Icons.people_rounded,
+    icon: AppIcons.clients,
     route: AppRoutes.clients,
   ),
   NavDestination(
     label: NavLabel.messages,
-    icon: Icons.chat_bubble_outline_rounded,
-    activeIcon: Icons.chat_bubble_rounded,
+    icon: AppIcons.chat,
     route: AppRoutes.messages,
     badge: NavBadge.unreadMessages,
   ),
   NavDestination(
     label: NavLabel.schedule,
-    icon: Icons.calendar_today_rounded,
-    activeIcon: Icons.calendar_today_rounded,
+    icon: AppIcons.calendar,
     route: AppRoutes.schedule,
     badge: NavBadge.todayPendingSessions,
   ),
@@ -117,16 +112,14 @@ const List<NavDestination> navDestinations = <NavDestination>[
     label: NavLabel.coaching,
     // 회원 상세의 '프로그램' 버튼과 같은 운동 계획서다(#2330). 예전 반짝이(✦)는
     // AI 추천 표시와 같은 모양이라, 사이드바 메뉴가 AI 기능처럼 읽혔다.
-    icon: Icons.assignment_rounded,
-    activeIcon: Icons.assignment_rounded,
+    icon: AppIcons.coaching,
     route: AppRoutes.coaching,
   ),
   NavDestination(
     label: NavLabel.reports,
     // 고객 상세의 '리포트' 버튼과 같은 그림이다(#2330) — 같은 화면으로 가는 두
     // 자리가 서로 다른 그림이면 같은 곳인 줄 모른다.
-    icon: Icons.analytics_rounded,
-    activeIcon: Icons.analytics_rounded,
+    icon: AppIcons.reports,
     route: AppRoutes.reports,
   ),
 ];
@@ -140,8 +133,7 @@ const List<NavDestination> navDestinations = <NavDestination>[
 /// render it with an explicit branch index and leaves the demo untouched.
 const NavDestination consultationsDestination = NavDestination(
   label: NavLabel.consultations,
-  icon: Icons.mark_email_unread_rounded,
-  activeIcon: Icons.mark_email_unread_rounded,
+  icon: AppIcons.consultation,
   route: AppRoutes.consultations,
   badge: NavBadge.pendingConsultations,
 );
@@ -150,8 +142,7 @@ const NavDestination consultationsDestination = NavDestination(
 /// 둔다. 실 API 빌드에서만 보이고, 브랜치 인덱스를 사이드바가 직접 넘긴다. (#503)
 const NavDestination notificationsDestination = NavDestination(
   label: NavLabel.notifications,
-  icon: Icons.notifications_none_rounded,
-  activeIcon: Icons.notifications_rounded,
+  icon: AppIcons.notifications,
   route: AppRoutes.notifications,
   badge: NavBadge.unreadNotifications,
 );

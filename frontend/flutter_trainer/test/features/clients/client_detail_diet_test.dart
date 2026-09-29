@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -273,7 +273,7 @@ void main() {
         find.byKey(const Key('client-nutrition-calorie-progress')),
         findsOneWidget,
       );
-      final calorieProgress = tester.widget<NutritionCalorieRing>(
+      final calorieProgress = tester.widget<AppRingGauge>(
         find.byKey(const Key('client-nutrition-calorie-progress')),
       );
       // 목표 안쪽은 **메인 색**이다 (#1166) — 회원 앱이 자기 메인 색을 쓰는
@@ -333,8 +333,7 @@ void main() {
       // 합계가 사라져도 통과한다 — 아침 카드 범위로 좁힌다.
       Finder inBreakfast(Finder f) =>
           find.descendant(of: mealCardFinder('아침'), matching: f);
-      expect(inBreakfast(find.text('총 칼로리')), findsOneWidget);
-      expect(inBreakfast(find.text('247 kcal')), findsOneWidget);
+      expect(inBreakfast(find.text('총 247 kcal')), findsOneWidget);
       // 막대 아래 네 칸 — 탄수화물(당류) / 단백질 / 지방 | 나트륨. 칸 머리의
       // 비중은 칼로리로 잰다(탄·단 4kcal, 지 9kcal → 41.6 · 64 · 133.2 kcal).
       String column(String key) => tester
@@ -387,7 +386,7 @@ void main() {
       // 강서연은 2,260 / 2,000 kcal 로 목표를 넘겼다.
       await openDiet(tester, '강서연');
 
-      final ring = tester.widget<NutritionCalorieRing>(
+      final ring = tester.widget<AppRingGauge>(
         find.byKey(const Key('client-nutrition-calorie-progress')),
       );
       // 링은 한 바퀴에서 멈춘다 — 넘긴 양은 링이 그릴 수 없다.
@@ -554,7 +553,7 @@ void main() {
       expect(find.text('탄단지'), findsNothing);
       final Finder openable = find.descendant(
         of: records,
-        matching: find.byIcon(Icons.expand_more_rounded),
+        matching: find.byIcon(AppIcons.expandMore),
       );
       expect(openable, findsWidgets);
       await tester.ensureVisible(openable.first);
@@ -603,7 +602,7 @@ void main() {
       );
       final Finder openable = find.descendant(
         of: records,
-        matching: find.byIcon(Icons.expand_more_rounded),
+        matching: find.byIcon(AppIcons.expandMore),
       );
       await tester.ensureVisible(openable.first);
       await tester.pumpAndSettle();

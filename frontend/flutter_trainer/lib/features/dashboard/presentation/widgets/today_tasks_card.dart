@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -389,22 +390,20 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(child: AppSectionHeader(title: l.dashTodayTasks)),
-              Text(
-                allKeys.isEmpty || allDone
-                    ? l.dashTasksReviewed
-                    : l.dashTasksNeedReview(remaining),
-                style: tokens
-                    .text(OnCareTypography.label)
-                    .copyWith(
-                      color: allKeys.isEmpty || allDone
-                          ? OnCareColors.success
-                          : tokens.brand.primary,
-                    ),
-              ),
-            ],
+          AppSectionHeader(
+            title: l.dashTodayTasks,
+            trailing: Text(
+              allKeys.isEmpty || allDone
+                  ? l.dashTasksReviewed
+                  : l.dashTasksNeedReview(remaining),
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(
+                    color: allKeys.isEmpty || allDone
+                        ? OnCareColors.success
+                        : tokens.brand.primary,
+                  ),
+            ),
           ),
           const SizedBox(height: OnCareSpacing.s12),
           // 카테고리 다섯은 항목이 없어도 항상 그 자리에 있다 — "오늘 할 일이
@@ -465,7 +464,7 @@ class _CategorySectionState extends State<_CategorySection> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(label, style: _countStyle(tokens).copyWith(color: color)),
-        Icon(
+        AppIcon(
           icon,
           size: OnCareSize.iconMedium,
           color: OnCareColors.textDisabled,
@@ -531,7 +530,7 @@ class _CategorySectionState extends State<_CategorySection> {
                           child: _status(
                             l.dashTaskCategoryDone,
                             OnCareColors.success,
-                            Icons.chevron_right_rounded,
+                            AppIcons.chevronRight,
                           ),
                         ),
                         Text(
@@ -551,8 +550,8 @@ class _CategorySectionState extends State<_CategorySection> {
                           ? OnCareColors.success
                           : OnCareColors.textSecondary,
                       _expanded
-                          ? Icons.expand_less_rounded
-                          : Icons.chevron_right_rounded,
+                          ? AppIcons.expandLess
+                          : AppIcons.chevronRight,
                     ),
                 ],
               ),
@@ -679,7 +678,7 @@ class _MissionRow extends StatelessWidget {
                   key: ValueKey<String>(
                     'dashboard-mission-dismiss-${mission.key}',
                   ),
-                  icon: Icons.delete_outline_rounded,
+                  icon: AppIcons.delete,
                   tooltip: l.actionDelete,
                   onPressed: onDismiss,
                   color: OnCareColors.textTertiary,

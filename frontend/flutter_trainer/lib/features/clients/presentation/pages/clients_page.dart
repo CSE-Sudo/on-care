@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/client_filter.dart';
@@ -136,7 +137,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
             if (canConnect)
               AppButton(
                 label: l.clientsNew,
-                leadingIcon: Icons.person_add_rounded,
+                leadingIcon: AppIcons.addClient,
                 onPressed: () => _openConnectDialog(context),
               ),
           ],
@@ -186,7 +187,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                       detail: selected == null
                           ? AppEmptyState(
                               title: l.clientsPickHint,
-                              icon: Icons.person_search_rounded,
+                              icon: AppIcons.selectClient,
                             )
                           : ClientDetailView(
                               clientId: selected,
@@ -387,7 +388,7 @@ class _MemberManagementToolbar extends StatelessWidget {
             label: '${l.clientsSortLabel}: ${_sortLabel(l, sort)}',
             variant: AppButtonVariant.secondary,
             size: OnCareButtonSize.small,
-            trailingIcon: Icons.arrow_drop_down_rounded,
+            trailingIcon: AppIcons.expandMore,
             onPressed: toggle,
           ),
         ),
@@ -403,7 +404,7 @@ class _MemberManagementToolbar extends StatelessWidget {
               label: preset.label(l),
               variant: AppButtonVariant.text,
               size: OnCareButtonSize.small,
-              trailingIcon: Icons.close_rounded,
+              trailingIcon: AppIcons.close,
               onPressed: onClearPreset,
             ),
           ),
@@ -452,7 +453,6 @@ class _FilterMenuButton extends StatefulWidget {
 
 class _FilterMenuButtonState extends State<_FilterMenuButton> {
   final OverlayPortalController _panel = OverlayPortalController();
-  final LayerLink _link = LayerLink();
 
   void _toggle() => setState(_panel.toggle);
 
@@ -464,114 +464,75 @@ class _FilterMenuButtonState extends State<_FilterMenuButton> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final filters = widget.filters;
-    return CompositedTransformTarget(
-      link: _link,
-      child: OverlayPortal(
-        controller: _panel,
-        overlayChildBuilder: (context) => CompositedTransformFollower(
-          link: _link,
-          targetAnchor: Alignment.bottomLeft,
-          offset: const Offset(0, OnCareSpacing.s4),
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: TapRegion(
-              groupId: this,
-              onTapOutside: (_) => _close(),
-              child: _FilterPanel(
-                filters: filters,
-                labelFor: widget.labelFor,
-                onChanged: widget.onChanged,
-              ),
-            ),
-          ),
-        ),
-        child: TapRegion(
-          groupId: this,
-          child: AppButton(
-            key: const ValueKey<String>('clients-filter-button'),
-            label: filters.isEmpty
-                ? l.clientsFilterLabel
-                : '${l.clientsFilterLabel} ${filters.length}',
-            variant: AppButtonVariant.secondary,
-            size: OnCareButtonSize.small,
-            trailingIcon: _panel.isShowing
-                ? Icons.arrow_drop_up_rounded
-                : Icons.arrow_drop_down_rounded,
-            onPressed: _toggle,
-          ),
-        ),
+    return AppPopover(
+      controller: _panel,
+      width: _filterPanelWidth,
+      padding: const EdgeInsets.all(OnCareSpacing.s16),
+      onTapOutside: _close,
+      panel: (BuildContext context) => _panelBody(context),
+      anchor: AppButton(
+        key: const ValueKey<String>('clients-filter-button'),
+        label: filters.isEmpty
+            ? l.clientsFilterLabel
+            : '${l.clientsFilterLabel} ${filters.length}',
+        variant: AppButtonVariant.secondary,
+        size: OnCareButtonSize.small,
+        trailingIcon: _panel.isShowing
+            ? AppIcons.expandLess
+            : AppIcons.expandMore,
+        onPressed: _toggle,
       ),
     );
   }
-}
 
-class _FilterPanel extends StatelessWidget {
-  const _FilterPanel({
-    required this.filters,
-    required this.labelFor,
-    required this.onChanged,
-  });
-
-  final Set<RosterManagementFilter> filters;
-  final String Function(RosterManagementFilter value) labelFor;
-  final ValueChanged<Set<RosterManagementFilter>> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
+  /// 팝오버 안 — 제목·모두 해제, 그 아래 관리 필터 칩.
+  Widget _panelBody(BuildContext context) {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    return Container(
-      width: _filterPanelWidth,
-      padding: const EdgeInsets.all(OnCareSpacing.s16),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: OnCareColors.lineStrong),
-        boxShadow: OnCareShadows.overlay,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  l.clientsFilterLabel,
-                  style: tokens
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
+    final filters = widget.filters;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                l.clientsFilterLabel,
+                style: tokens
+                    .text(OnCareTypography.titleSmall)
+                    .copyWith(color: OnCareColors.textPrimary),
               ),
-              if (filters.isNotEmpty)
-                AppButton(
-                  label: l.clientsFiltersClearAll,
-                  variant: AppButtonVariant.text,
-                  size: OnCareButtonSize.small,
-                  onPressed: () => onChanged(const <RosterManagementFilter>{}),
-                ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          Wrap(
-            spacing: OnCareSpacing.s8,
-            runSpacing: OnCareSpacing.s8,
-            children: <Widget>[
-              for (final value in RosterManagementFilter.values)
-                AppChoiceChip(
-                  key: ValueKey<String>('management-filter-${value.name}'),
-                  label: labelFor(value),
-                  selected: filters.contains(value),
-                  onSelected: (_) {
-                    final next = Set<RosterManagementFilter>.of(filters);
-                    if (!next.remove(value)) next.add(value);
-                    onChanged(next);
-                  },
-                ),
-            ],
-          ),
-        ],
-      ),
+            ),
+            if (filters.isNotEmpty)
+              AppButton(
+                label: l.clientsFiltersClearAll,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+                onPressed: () =>
+                    widget.onChanged(const <RosterManagementFilter>{}),
+              ),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        Wrap(
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
+          children: <Widget>[
+            for (final value in RosterManagementFilter.values)
+              AppChoiceChip(
+                key: ValueKey<String>('management-filter-${value.name}'),
+                label: widget.labelFor(value),
+                selected: filters.contains(value),
+                onSelected: (_) {
+                  final next = Set<RosterManagementFilter>.of(filters);
+                  if (!next.remove(value)) next.add(value);
+                  widget.onChanged(next);
+                },
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -668,7 +629,7 @@ class _RosterList extends StatelessWidget {
             title: filter == ClientFilter.all
                 ? l.clientsEmpty
                 : l.clientsEmptyForFilter(filter.label(l)),
-            icon: Icons.people_rounded,
+            icon: AppIcons.clients,
             placement: AppStatePlacement.card,
           )
         else

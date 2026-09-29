@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -27,7 +28,18 @@ class ReservationSlotsSheet extends ConsumerStatefulWidget {
 }
 
 class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
-  late DateTime _date = widget.selectedDay;
+  /// 열기 폼의 날짜 — 스케줄에서 보고 있던 날에서 시작한다. 다만 지난 날을
+  /// 보다가 열었으면 오늘에서 시작한다. 날짜 선택창은 오늘 이전을 막는데
+  /// 처음 값만 지난 날로 채워지면, 고를 수 없는 날이 칸에 적힌 채로 열리고
+  /// `열기` 를 눌러야 비로소 지난 시간이라고 막힌다.
+  late DateTime _date = _openingDay(widget.selectedDay);
+
+  static DateTime _openingDay(DateTime selected) {
+    final DateTime today = todayKst();
+    final DateTime day = DateTime(selected.year, selected.month, selected.day);
+    return day.isBefore(today) ? today : day;
+  }
+
   TimeOfDay _time = const TimeOfDay(hour: 10, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 11, minute: 0);
   bool _saving = false;
@@ -192,7 +204,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
           InputDecorator(
             decoration: InputDecoration(
               enabled: onTap != null,
-              prefixIcon: Icon(
+              prefixIcon: AppIcon(
                 icon,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
@@ -200,8 +212,8 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               prefixIconConstraints: const BoxConstraints(
                 minWidth: OnCareSpacing.s32,
               ),
-              suffixIcon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
+              suffixIcon: const AppIcon(
+                AppIcons.expandMore,
                 size: OnCareSize.iconMedium,
               ),
             ),
@@ -256,7 +268,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 triggerBuilder: (context, toggle) => _fieldColumn(
                   key: const ValueKey<String>('slot-session-type'),
                   label: l.schedFieldType,
-                  icon: Icons.badge_rounded,
+                  icon: AppIcons.badge,
                   value: sessionTypeLabel(l, _type),
                   onTap: _saving ? null : toggle,
                 ),
@@ -267,7 +279,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               child: _fieldColumn(
                 key: const ValueKey<String>('slot-date'),
                 label: l.schedFieldDate,
-                icon: Icons.calendar_today_rounded,
+                icon: AppIcons.calendar,
                 value: l.dateMonthDay(_date.month, _date.day),
                 onTap: _saving ? null : _pickDate,
               ),
@@ -282,7 +294,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               child: _fieldColumn(
                 key: const ValueKey<String>('slot-time-range'),
                 label: l.schedFieldTime,
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.clock,
                 value: '${_hhmm(_time)} – ${_hhmm(_endTime)}',
                 onTap: _saving ? null : _pickRange,
               ),
@@ -291,7 +303,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             AppButton(
               key: const ValueKey<String>('slot-create'),
               label: l.slotOpenAction,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               onPressed: _saving ? null : _create,
             ),
           ],
@@ -308,7 +320,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
           error: (_, _) => Center(
             child: AppButton(
               label: l.slotReload,
-              leadingIcon: Icons.refresh_rounded,
+              leadingIcon: AppIcons.refresh,
               variant: AppButtonVariant.secondary,
               onPressed: () => ref.invalidate(reservationSlotsProvider),
             ),
@@ -321,7 +333,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             if (allSlots.isEmpty) {
               return AppEmptyState(
                 title: l.slotEmpty,
-                icon: Icons.event_available_rounded,
+                icon: AppIcons.eventAvailable,
                 placement: AppStatePlacement.card,
               );
             }
@@ -375,68 +387,63 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     ReservationSlot slot,
   ) {
     // 닫혔거나 이미 예약된 자리는 "골라 쓸 수 없는 자리"라 같은 회색으로
-    // 눌러 둔다 — 비어 있는 자리(흰 카드)와 구분된다.
+    // 눌러 둔다 — 비어 있는 자리(흰 외곽선 구획)와 구분된다(#2468).
     final taken = slot.isClosed || slot.booked;
     final TimeOfDay start = TimeOfDay.fromDateTime(slot.startsAt);
     final TimeOfDay end = TimeOfDay.fromDateTime(
       slot.startsAt.add(Duration(minutes: slot.durationMinutes)),
     );
-    return Container(
+    return ConstrainedBox(
       key: ValueKey<String>('slot-row-${slot.id}'),
       constraints: BoxConstraints(minHeight: tokens.density.listRowMin),
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.tilePadding,
-        vertical: OnCareSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: taken ? OnCareColors.surfaceInput : OnCareColors.surfaceCard,
-        border: Border.all(color: OnCareColors.lineStrong),
-        borderRadius: OnCareRadius.mdAll,
-      ),
-      child: Row(
-        children: <Widget>[
-          // 종류 → 시간 순서다 — 새 일정 모달과 위 열기 폼(종류 → 날짜 →
-          // 시간)이 같은 순서로 읽힌다.
-          AppTag(
-            label: sessionTypeLabel(l, slot.sessionType),
-            tone: AppTagTone.brand,
-          ),
-          const SizedBox(width: OnCareSpacing.s12),
-          Expanded(
-            child: Text(
-              '${_hhmm(start)} – ${_hhmm(end)}',
-              style: OnCareTypography.numeric(
-                tokens.text(OnCareTypography.strong(OnCareTypography.body)),
-              ).copyWith(color: OnCareColors.textPrimary),
+      child: AppTile(
+        tone: taken ? AppTileTone.neutral : AppTileTone.outline,
+        dense: true,
+        child: Row(
+          children: <Widget>[
+            // 종류 → 시간 순서다 — 새 일정 모달과 위 열기 폼(종류 → 날짜 →
+            // 시간)이 같은 순서로 읽힌다.
+            AppTag(
+              label: sessionTypeLabel(l, slot.sessionType),
+              tone: AppTagTone.brand,
             ),
-          ),
-          if (slot.isClosed)
-            Text(
-              l.slotClosedSummary,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textTertiary),
-            )
-          else if (slot.booked)
-            // 예약자 이름을 보여 준다(#1394) — 예전 수정·닫기 아이콘
-            // 자리다. 이름이 아직 없으면(오래된 데이터 등) 상태 문구로
-            // 대신한다.
-            Text(
-              slot.bookedByName ?? l.slotBookedSummary,
-              style: tokens
-                  .text(OnCareTypography.strong(OnCareTypography.body))
-                  .copyWith(color: OnCareColors.textPrimary),
-            )
-          else
-            // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
-            // 삭제다(#1394).
-            AppIconButton(
-              icon: Icons.delete_outline_rounded,
-              tooltip: l.slotCloseAction,
-              color: OnCareColors.danger,
-              onPressed: _saving ? null : () => _close(slot),
+            const SizedBox(width: OnCareSpacing.s12),
+            Expanded(
+              child: Text(
+                '${_hhmm(start)} – ${_hhmm(end)}',
+                style: OnCareTypography.numeric(
+                  tokens.text(OnCareTypography.strong(OnCareTypography.body)),
+                ).copyWith(color: OnCareColors.textPrimary),
+              ),
             ),
-        ],
+            if (slot.isClosed)
+              Text(
+                l.slotClosedSummary,
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textTertiary),
+              )
+            else if (slot.booked)
+              // 예약자 이름을 보여 준다(#1394) — 예전 수정·닫기 아이콘
+              // 자리다. 이름이 아직 없으면(오래된 데이터 등) 상태 문구로
+              // 대신한다.
+              Text(
+                slot.bookedByName ?? l.slotBookedSummary,
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.body))
+                    .copyWith(color: OnCareColors.textPrimary),
+              )
+            else
+              // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
+              // 삭제다(#1394).
+              AppIconButton(
+                icon: AppIcons.delete,
+                tooltip: l.slotCloseAction,
+                color: OnCareColors.danger,
+                onPressed: _saving ? null : () => _close(slot),
+              ),
+          ],
+        ),
       ),
     );
   }

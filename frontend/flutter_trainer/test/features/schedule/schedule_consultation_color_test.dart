@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -155,7 +156,7 @@ void main() {
         matching: find.byType(AppIconButton),
       ),
     );
-    expect(button.icon, Icons.mark_email_unread_rounded);
+    expect(button.icon, AppIcons.consultation);
     expect(button.variant, AppIconButtonVariant.tonal);
   });
 }

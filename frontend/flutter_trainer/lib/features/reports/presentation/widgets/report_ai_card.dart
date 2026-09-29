@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 요약 카드 — 트레이너가 매주 같은 문장을 처음부터 쓰지 않게 한다.
@@ -19,7 +18,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 문장을 어디까지 믿을지 알 수 있다.
 ///
 /// 화면의 AI 카드는 이것 하나다 — 대시보드 `활동 피드백` 카드와 같은 옅은 남색
-/// 그라디언트 카드에 AI 아이콘 제목을 단다.
+/// 카드형 배너([AppBannerPlacement.card])에 AI 아이콘 제목을 단다.
 class ReportAiCard extends ConsumerWidget {
   const ReportAiCard({
     super.key,
@@ -71,44 +70,19 @@ class ReportAiCard extends ConsumerWidget {
         onUseAsDraft: () => onUseAsDraft(value.asDraft),
       ),
     );
-    // 대시보드 `활동 피드백` 카드와 같은 옅은 남색 카드다. 흰 일반 카드 사이에서
-    // AI 가 만든 초안이라는 것이 드러난다.
-    return SoftNavyCard(
+    // 대시보드 `활동 피드백` 카드와 같은 옅은 남색 카드형 배너다. 흰 일반 카드
+    // 사이에서 AI 가 만든 초안이라는 것이 드러난다.
+    return AppBanner(
       key: const ValueKey<String>('reports-ai-card'),
-      // 버튼 잉크가 그라디언트 위에 그려지도록 투명 Material 을 둔다.
-      child: Material(
-        type: MaterialType.transparency,
-        child: _cardColumn(l, summary, content),
-      ),
-    );
-  }
-
-  Widget _cardColumn(
-    AppLocalizations l,
-    AsyncValue<ReportSummary> summary,
-    Widget content,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: ReportCardHeader(
-                title: l.reportsAiTitle,
-                subtitle: l.reportsAiSubtitle,
-              ),
-            ),
-            if (summary.valueOrNull?.isGenerated ?? false) ...<Widget>[
-              const SizedBox(width: OnCareSpacing.s8),
-              AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand),
-            ],
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        if (fill) Expanded(child: content) else content,
-      ],
+      placement: AppBannerPlacement.card,
+      icon: AppIcons.ai,
+      title: l.reportsAiTitle,
+      titleMeta: l.reportsAiSubtitle,
+      trailing: (summary.valueOrNull?.isGenerated ?? false)
+          ? AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand)
+          : null,
+      expandChild: fill,
+      child: content,
     );
   }
 }
@@ -172,8 +146,8 @@ class _SummaryBody extends StatelessWidget {
               key: ValueKey<String>('reports-summary-action-$i'),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(
-                  Icons.check_circle_outline_rounded,
+                AppIcon(
+                  AppIcons.checkCircle,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
                 ),
@@ -205,14 +179,14 @@ class _SummaryBody extends StatelessWidget {
         children: <Widget>[
           AppButton(
             label: l.reportsAiUseAsDraft,
-            leadingIcon: Icons.edit_note_rounded,
+            leadingIcon: AppIcons.write,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
             onPressed: onUseAsDraft,
           ),
           AppButton(
             label: l.reportsAiRegenerate,
-            leadingIcon: Icons.refresh_rounded,
+            leadingIcon: AppIcons.refresh,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
             onPressed: onRegenerate,

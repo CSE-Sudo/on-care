@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -16,7 +17,6 @@ import 'package:oncare_trainer/shared/services/member_health_profile_provider.da
 // 대응이 없어 앱 위젯을 그대로 쓴다. BurnBarChart 가 받는 선택 상태도 그 앱
 // 쪽 [PeriodChartSelection] 이라 이것만 가져온다.
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데이터를 받는 동안 비워 두는 높이 — 받은 뒤의 그래프 자리와 크게 어긋나지
@@ -226,14 +226,14 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
           ),
           error: (_, _) => AppEmptyState(
             title: l.workoutLoadFailed,
-            icon: Icons.cloud_off_rounded,
+            icon: AppIcons.offline,
             placement: AppStatePlacement.card,
           ),
           data: (List<RoutineHistoryEntry> entries) {
             if (entries.isEmpty) {
               return AppEmptyState(
                 title: l.workoutEmpty,
-                icon: Icons.fitness_center_rounded,
+                icon: AppIcons.exercise,
                 placement: AppStatePlacement.card,
               );
             }
@@ -291,8 +291,8 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
                           ? l.workoutRecordsShowLess
                           : l.workoutRecordsShowMore,
                       trailingIcon: _expanded
-                          ? Icons.expand_less_rounded
-                          : Icons.expand_more_rounded,
+                          ? AppIcons.expandLess
+                          : AppIcons.expandMore,
                       variant: AppButtonVariant.text,
                       size: OnCareButtonSize.small,
                       onPressed: _toggle,
@@ -369,8 +369,8 @@ class _ExerciseLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Icon(
-          skipped ? Icons.close_rounded : Icons.check_rounded,
+        AppIcon(
+          skipped ? AppIcons.close : AppIcons.check,
           size: OnCareSize.iconSmall,
           color: skipped ? OnCareColors.textDisabled : OnCareColors.success,
         ),
@@ -445,7 +445,7 @@ class _Today extends ConsumerWidget {
       return _ChartSlot(
         child: AppEmptyState(
           title: l.clientTrendTodayEmpty,
-          icon: Icons.fitness_center_rounded,
+          icon: AppIcons.exercise,
         ),
       );
     }

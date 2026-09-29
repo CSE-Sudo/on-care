@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -16,8 +17,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Width cap that keeps the full search scope readable without letting the
@@ -126,7 +126,6 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focus = FocusNode();
   final OverlayPortalController _dropdown = OverlayPortalController();
-  final LayerLink _link = LayerLink();
 
   /// Matches for the current query, recomputed on each keystroke rather
   /// than on every rebuild — the roster is a live stream, and a header
@@ -275,7 +274,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
               key: clientSearchIconKey,
               onPressed: _openDialog,
               tooltip: l.searchClients,
-              icon: Icons.search_rounded,
+              icon: AppIcons.search,
               color: OnCareColors.textSecondary,
             ),
           );
@@ -285,17 +284,13 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
         return Center(
           child: SizedBox(
             width: width,
-            child: CompositedTransformTarget(
-              link: _link,
-              child: OverlayPortal(
-                controller: _dropdown,
-                overlayChildBuilder: (context) => _overlay(width, facts),
-                child: TapRegion(
-                  groupId: this,
-                  onTapOutside: (_) => _close(),
-                  child: _field(l, facts, width),
-                ),
-              ),
+            child: AppPopover(
+              controller: _dropdown,
+              panelKey: clientSearchResultsKey,
+              width: width,
+              onTapOutside: _close,
+              panel: (context) => _resultsPanel(facts),
+              anchor: _field(l, facts, width),
             ),
           ),
         );
@@ -333,7 +328,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
           controller: _controller,
           focusNode: _focus,
           hint: hint,
-          prefixIcon: Icons.search_rounded,
+          prefixIcon: AppIcons.search,
           textInputAction: TextInputAction.search,
           suffix: _hasQuery
               ? AppIconButton(
@@ -345,7 +340,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
                     _onQueryChanged('');
                   },
                   tooltip: l.searchClear,
-                  icon: Icons.close_rounded,
+                  icon: AppIcons.close,
                   color: OnCareColors.textTertiary,
                 )
               : null,
@@ -356,30 +351,18 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
     );
   }
 
-  Widget _overlay(double width, ClientSearchFacts facts) {
-    return CompositedTransformFollower(
-      link: _link,
-      targetAnchor: Alignment.bottomLeft,
-      offset: const Offset(0, OnCareSpacing.s4),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: TapRegion(
-          groupId: this,
-          child: _ResultsCard(
-            width: width,
-            query: _query,
-            results: _results,
-            facts: facts,
-            highlighted: _highlight,
-            footer: clientSearchFooter(
-              AppLocalizations.of(context),
-              GoRouterState.of(context).uri,
-            ),
-            onPick: (client) => _pick(client, facts),
-            onOpenDestination: _openDestination,
-          ),
-        ),
+  Widget _resultsPanel(ClientSearchFacts facts) {
+    return _ResultsCard(
+      query: _query,
+      results: _results,
+      facts: facts,
+      highlighted: _highlight,
+      footer: clientSearchFooter(
+        AppLocalizations.of(context),
+        GoRouterState.of(context).uri,
       ),
+      onPick: (client) => _pick(client, facts),
+      onOpenDestination: _openDestination,
     );
   }
 }
@@ -387,10 +370,10 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
 /// The dropdown (and the dialog's body): matches, or why there are none,
 /// plus the footer that explains the consistent default destination.
 ///
-/// 메뉴 규격(#1693) — 흰 바탕·반경 12·진한 선 테두리·떠 있는 요소 그림자.
+/// 상자는 공용 팝오버 상자([AppPopoverSurface])가 그린다 — 드롭다운은
+/// [AppPopover] 가, 다이얼로그는 직접 감싼다(#2469).
 class _ResultsCard extends StatelessWidget {
   const _ResultsCard({
-    required this.width,
     required this.query,
     required this.results,
     required this.facts,
@@ -401,8 +384,6 @@ class _ResultsCard extends StatelessWidget {
     this.inOverlay = true,
   });
 
-  /// null 이면 부모 폭을 따른다(다이얼로그 본문).
-  final double? width;
   final String query;
   final List<TrainerClient> results;
   final ClientSearchFacts facts;
@@ -437,45 +418,29 @@ class _ResultsCard extends StatelessWidget {
         ),
       ),
     );
-    return Container(
-      key: clientSearchResultsKey,
-      width: width,
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.fromBorderSide(
-          BorderSide(color: OnCareColors.lineStrong),
-        ),
-        boxShadow: OnCareShadows.overlay,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            if (results.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s12,
-                  vertical: OnCareSpacing.s16,
-                ),
-                child: Text(
-                  l.searchNoResults(query.trim()),
-                  style: context.oncare
-                      .text(OnCareTypography.bodySmall)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-              )
-            else if (inOverlay)
-              Flexible(child: list)
-            else
-              list,
-            _Footer(text: footer),
-          ],
-        ),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (results.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: OnCareSpacing.s12,
+              vertical: OnCareSpacing.s16,
+            ),
+            child: Text(
+              l.searchNoResults(query.trim()),
+              style: context.oncare
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          )
+        else if (inOverlay)
+          Flexible(child: list)
+        else
+          list,
+        _Footer(text: footer),
+      ],
     );
   }
 }
@@ -525,67 +490,11 @@ class _ResultRowState extends State<_ResultRow> {
                       top: OnCareSpacing.s12,
                       bottom: OnCareSpacing.s12,
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        ClientAvatar(
-                          name: widget.client.avatar,
-                          size: AppAvatarSize.large,
-                        ),
-                        const SizedBox(width: OnCareSpacing.s12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Row(
-                                children: <Widget>[
-                                  Flexible(
-                                    child: Text(
-                                      widget.client.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: tokens
-                                          .text(
-                                            OnCareTypography.strong(
-                                              OnCareTypography.bodyLarge,
-                                            ),
-                                          )
-                                          .copyWith(
-                                            color: OnCareColors.textPrimary,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: OnCareSpacing.s4),
-                                  Flexible(
-                                    child: Text(
-                                      clientDemographicsLabel(
-                                        context,
-                                        widget.client,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: tokens
-                                          .text(OnCareTypography.caption)
-                                          .copyWith(
-                                            color: OnCareColors.textTertiary,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                widget.detail,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(OnCareTypography.bodySmall)
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    // 요약은 두 줄까지 — 무엇이 걸려 이 회원이 나왔는지다.
+                    child: ClientRow(
+                      client: widget.client,
+                      detail: widget.detail,
+                      detailMaxLines: 2,
                     ),
                   ),
                 ),
@@ -596,8 +505,8 @@ class _ResultRowState extends State<_ResultRow> {
                 onPressed: () =>
                     setState(() => _showDestinations = !_showDestinations),
                 icon: _showDestinations
-                    ? Icons.expand_less_rounded
-                    : Icons.more_horiz_rounded,
+                    ? AppIcons.expandLess
+                    : AppIcons.more,
                 color: OnCareColors.textSecondary,
               ),
               const SizedBox(width: OnCareSpacing.s4),
@@ -640,27 +549,27 @@ class _ResultRowState extends State<_ResultRow> {
     final (label, icon, keyName) = switch (destination) {
       _SearchDestination.clients => (
         l.navClients,
-        Icons.people_outline_rounded,
+        AppIcons.clients,
         'clients',
       ),
       _SearchDestination.schedule => (
         l.navSchedule,
-        Icons.calendar_today_rounded,
+        AppIcons.calendar,
         'schedule',
       ),
       _SearchDestination.messages => (
         l.navMessages,
-        Icons.chat_bubble_outline_rounded,
+        AppIcons.chat,
         'messages',
       ),
       _SearchDestination.coaching => (
         l.navCoaching,
-        Icons.auto_awesome_rounded,
+        AppIcons.coaching,
         'coaching',
       ),
       _SearchDestination.reports => (
         l.navReports,
-        Icons.assessment_rounded,
+        AppIcons.reports,
         'reports',
       ),
     };
@@ -698,8 +607,8 @@ class _Footer extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
-            Icons.subdirectory_arrow_left_rounded,
+          const AppIcon(
+            AppIcons.enter,
             size: OnCareSize.iconSmall,
             color: OnCareColors.textTertiary,
           ),
@@ -794,7 +703,7 @@ class _ClientSearchDialogState extends ConsumerState<_ClientSearchDialog> {
               controller: _controller,
               autofocus: true,
               hint: l.searchClientsHint,
-              prefixIcon: Icons.search_rounded,
+              prefixIcon: AppIcons.search,
               textInputAction: TextInputAction.search,
               onChanged: _onQueryChanged,
               onSubmitted: (_) => _submit(facts),
@@ -802,16 +711,18 @@ class _ClientSearchDialogState extends ConsumerState<_ClientSearchDialog> {
           ),
           if (_query.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
-            _ResultsCard(
-              width: null,
-              inOverlay: false,
-              query: _query,
-              results: _results,
-              facts: facts,
-              highlighted: _highlight,
-              footer: clientSearchFooter(l, widget.location),
-              onPick: (client) => _pop(client, facts),
-              onOpenDestination: (client, route) => _popRoute(client, route),
+            AppPopoverSurface(
+              key: clientSearchResultsKey,
+              child: _ResultsCard(
+                inOverlay: false,
+                query: _query,
+                results: _results,
+                facts: facts,
+                highlighted: _highlight,
+                footer: clientSearchFooter(l, widget.location),
+                onPick: (client) => _pop(client, facts),
+                onOpenDestination: (client, route) => _popRoute(client, route),
+              ),
             ),
           ],
         ],

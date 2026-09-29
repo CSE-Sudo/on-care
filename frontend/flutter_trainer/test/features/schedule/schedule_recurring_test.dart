@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
@@ -180,7 +181,7 @@ void main() {
         at: AppRoutes.schedule,
       );
 
-      await tester.tap(find.byIcon(Icons.add_rounded).first);
+      await tester.tap(find.byIcon(AppIcons.add).first);
       await settle(tester);
 
       // 기본은 반복 없음 — 지금까지의 동작 그대로다.
@@ -216,6 +217,33 @@ void main() {
         int.parse(shown.group(1)!),
         last.difference(first).inDays ~/ 7 + 1,
       );
+
+      // `시작 - 종료일` 칸은 반 칸 폭이라 두 날짜를 모두 연도까지 적으면
+      // 종료일이 잘린다. 시작은 연도까지, 종료일은 같은 해면 연도 없이 적는다.
+      final String field = tester
+          .widget<Text>(
+            find
+                .descendant(
+                  of: find.byKey(const ValueKey<String>('session-date-field')),
+                  matching: find.byType(Text),
+                )
+                .last,
+          )
+          .data!;
+      final RegExpMatch? range = RegExp(
+        r'^(\d{4})-\d{2}-\d{2}–((\d{4})-)?\d{2}-\d{2}$',
+      ).firstMatch(field);
+      expect(range, isNotNull, reason: '날짜 칸 문구: $field');
+      // 종료일의 연도는 해를 넘길 때만 남는다 — 시작과 같은 연도가 두 번
+      // 적히면 안 된다. (미리보기의 마지막 회차는 종료일과 다를 수 있어
+      // 여기서는 기준으로 쓰지 않는다.)
+      if (range!.group(3) != null) {
+        expect(
+          range.group(3),
+          isNot(range.group(1)),
+          reason: '같은 해인데 연도가 남음: $field',
+        );
+      }
 
       // 다시 끄면 미리보기도 사라진다 — `매주` 는 토글이라 한 번 더 누르면
       // `반복 없음`(지금까지의 동작)으로 돌아간다.

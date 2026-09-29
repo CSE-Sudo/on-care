@@ -705,10 +705,20 @@ def test_schedule_range_rejects_reversed_and_malformed_bounds(client):
     assert r.status_code == 422
 
 
+def _registered_member(client, token: str) -> dict:
+    """로스터에서 담당 중인 첫 회원. (#2471)
+
+    로스터는 담당이 끝난 회원도 `registered=false` 로 돌려주고, 그 회원의 일정
+    API 는 404 다. 다른 테스트가 남긴 회원이 맨 앞에 와도 흔들리지 않게 고른다.
+    """
+    roster = client.get("/v1/trainer/clients", headers=_sched_auth(token)).json()
+    return next(c for c in roster if c["registered"])
+
+
 def test_schedule_member_filter_returns_only_that_clients_sessions(client):
     token = _sched_token(client)
-    roster = client.get("/v1/trainer/clients", headers=_sched_auth(token)).json()
-    member_id = roster[0]["id"]
+    member = _registered_member(client, token)
+    member_id = member["id"]
 
     r = client.get(
         "/v1/trainer/schedule",
@@ -727,14 +737,14 @@ def test_schedule_member_only_returns_every_session_no_date_bound(client):
     루틴 이력은 그걸 '기록 없음' 으로 읽는다.
     """
     token = _sched_token(client)
-    roster = client.get("/v1/trainer/clients", headers=_sched_auth(token)).json()
-    member_id = roster[0]["id"]
+    member = _registered_member(client, token)
+    member_id = member["id"]
 
     # 아주 오래된 세션 하나 — 어떤 '최근 N일' 구간에도 걸리지 않는다.
     created = client.post(
         "/v1/trainer/schedule",
         json={
-            "date": "2020-01-02", "time": "07:00", "client_name": roster[0]["name"],
+            "date": "2020-01-02", "time": "07:00", "client_name": member["name"],
             "member_id": member_id, "type": "1:1 PT", "duration_minutes": 30,
         },
         headers=_sched_auth(token),

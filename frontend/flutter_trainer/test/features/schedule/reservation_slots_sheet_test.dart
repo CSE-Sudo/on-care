@@ -5,6 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -12,6 +14,8 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -149,6 +153,83 @@ void main() {
       }
     });
 
+    testWidgets('지난 날을 보다가 열면 열기 폼이 오늘에서 시작한다', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            reservationSlotRepositoryProvider.overrideWithValue(
+              _ExternalSlotRepository(const <ReservationSlot>[]),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: ReservationSlotsSheet(
+                  selectedDay: todayKst().subtract(const Duration(days: 7)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      final DateTime today = todayKst();
+      final DateTime past = today.subtract(const Duration(days: 7));
+      final Finder date = find.byKey(const ValueKey<String>('slot-date'));
+      expect(
+        find.descendant(
+          of: date,
+          matching: find.text('${today.month}월 ${today.day}일'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: date,
+          matching: find.text('${past.month}월 ${past.day}일'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('앞날을 보다가 열면 그 날에서 시작한다', (tester) async {
+      final DateTime ahead = todayKst().add(const Duration(days: 3));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            reservationSlotRepositoryProvider.overrideWithValue(
+              _ExternalSlotRepository(const <ReservationSlot>[]),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: ReservationSlotsSheet(selectedDay: ahead),
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('slot-date')),
+          matching: find.text('${ahead.month}월 ${ahead.day}일'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('날짜 버튼을 누르면 과거로는 못 가는 날짜 선택창이 뜬다 (#1090)', (tester) async {
       await openSheet(tester);
 
@@ -257,7 +338,7 @@ void main() {
       // 스케줄 화면에도 삭제 아이콘이 있으므로 그 줄 안에서만 찾는다.
       final Finder deleteInRow = find.descendant(
         of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
-        matching: find.byIcon(Icons.delete_outline_rounded),
+        matching: find.byIcon(AppIcons.delete),
       );
       expect(deleteInRow, findsOneWidget);
       expect(find.text('김하늘'), findsNothing);

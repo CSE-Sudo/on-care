@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -271,13 +272,13 @@ class _ScheduleTimePickerDialogState extends State<_ScheduleTimePickerDialog> {
                 if (!_range || _step > 0) ...<Widget>[
                   AppIconButton(
                     key: ValueKey<String>(keys.back),
-                    icon: Icons.chevron_left_rounded,
+                    icon: AppIcons.chevronLeft,
                     tooltip: l.schedTimePickerPrevStep,
                     onPressed: _step > 0 ? () => setState(() => _step--) : null,
                   ),
                   AppIconButton(
                     key: ValueKey<String>(keys.next),
-                    icon: Icons.chevron_right_rounded,
+                    icon: AppIcons.chevronRight,
                     tooltip: l.schedTimePickerNextStep,
                     onPressed: _step < _lastStep
                         ? () => setState(() => _step++)
@@ -382,15 +383,11 @@ class _TimeValueBox extends StatelessWidget {
           focusNode.requestFocus();
           onTap();
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: OnCareSpacing.s12,
-            vertical: OnCareSpacing.s8,
-          ),
-          decoration: BoxDecoration(
-            color: active ? tokens.brand.surface : OnCareColors.surfaceInput,
-            borderRadius: OnCareRadius.mdAll,
-          ),
+        // 탭은 바깥 GestureDetector 가 받는다 — 구획에는 onTap 을 주지 않아
+        // 잉크 없이 입력 칸처럼 선다.
+        child: AppTile(
+          tone: active ? AppTileTone.brand : AppTileTone.neutral,
+          dense: true,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[

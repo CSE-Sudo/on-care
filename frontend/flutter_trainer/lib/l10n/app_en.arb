@@ -87,6 +87,9 @@
   "actionRetry": "Retry",
   "actionChange": "Change",
   "actionBack": "Back",
+  "actionAdd": "Add",
+  "actionSend": "Send",
+  "actionReset": "Reset",
   "notFoundTitle": "Page not found",
   "@notFoundTitle": {
     "description": "Heading of the 404 page shown for a URL that matches no screen."
@@ -534,6 +537,7 @@
   "coachTemplateSave": "Save",
   "coachTemplateNameRequired": "Enter a template name",
   "coachTemplateExerciseRequired": "Add at least one exercise",
+  "coachTemplateExerciseNameRequired": "Enter the exercise name",
   "coachTemplateSaveFailed": "Couldn't save the template. Please try again",
   "coachTemplateDeleteFailed": "Couldn't delete the template. Please try again",
   "coachTemplateDeleteConfirm": "Delete the {name} template?",
@@ -559,11 +563,10 @@
   "metricSodium": "Sodium",
   "metricSugar": "Sugar",
   "clientDietMacrosMissing": "No carbs/protein/fat recorded",
-  "clientDietTotalCalories": "Total calories",
   "clientDietDayTotal": "Day total",
-  "clientDietDayTotalCalories": "Total {calories} kcal",
-  "@clientDietDayTotalCalories": {
-    "description": "트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
+  "clientDietTotalCalories": "Total {calories} kcal",
+  "@clientDietTotalCalories": {
+    "description": "트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
     "placeholders": {
       "calories": {
         "type": "String"
@@ -1479,8 +1482,8 @@
   "progAddExercise": "Add exercise",
   "progNoteHint": "Notes to follow while running this program",
   "progSaving": "Saving...",
-  "progSaveAction": "Save program",
-  "progSaveNoteAction": "Save note",
+  "progSaveAction": "Save",
+  "progSaveNoteAction": "Save",
   "progExerciseName": "Exercise",
   "progDeleteExercise": "Remove exercise",
   "progSets": "Sets",
@@ -2570,6 +2573,7 @@
   "messagesBackToList": "Conversation list",
   "messagesNoPreview": "No messages yet",
   "messagesPreviewEmote": "Sent an emote",
+  "messagesPreviewPhoto": "Photo",
   "messagesTimeJustNow": "Just now",
   "messagesClientDetail": "Member details",
   "messagesSelectPrompt": "Select a member from the list to start a conversation.",
@@ -2859,7 +2863,7 @@
   "reportsFeedbackDraftNote": "A draft filled in from this week's figures. Check it over before sending.",
   "reportsFeedbackUndo": "Undo",
   "reportsFeedbackRedo": "Redo",
-  "reportsFeedbackSave": "Save feedback",
+  "reportsFeedbackSave": "Save",
   "reportsFeedbackSaving": "Saving…",
   "reportsFeedbackSaved": "Saved the feedback draft.",
   "reportsFeedbackSaveFailed": "Couldn't save the draft. Please try again.",
@@ -4154,6 +4158,163 @@
     "description": "트레이너웹 AI 식단 추천의 끼니 배지 (#2379).",
     "placeholders": {
       "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSheetInfoMember": "Member",
+  "@reportsSheetInfoMember": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetInfoPeriod": "Period",
+  "@reportsSheetInfoPeriod": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetInfoMealDays": "Meal logs",
+  "@reportsSheetInfoMealDays": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDaysOf": "{days}/{due} days",
+  "@reportsSheetDaysOf": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSheetDietTitle": "Diet analysis",
+  "@reportsSheetDietTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDietHint": "Daily average vs. goal",
+  "@reportsSheetDietHint": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetExerciseTitle": "Exercise analysis",
+  "@reportsSheetExerciseTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetExerciseHint": "This week vs. goal",
+  "@reportsSheetExerciseHint": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyTitle": "Daily log",
+  "@reportsSheetDailyTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyCompletion": "Done",
+  "@reportsSheetDailyCompletion": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyCalories": "Calories",
+  "@reportsSheetDailyCalories": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyMeals": "Meals",
+  "@reportsSheetDailyMeals": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetDailyWorkouts": "Workouts",
+  "@reportsSheetDailyWorkouts": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetTrendTitle": "Trends",
+  "@reportsSheetTrendTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetTrendWeekly": "Weekly exercise achievement (8 weeks)",
+  "@reportsSheetTrendWeekly": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetTrendDaily": "Daily calories · goal line",
+  "@reportsSheetTrendDaily": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetBandUnder": "Low",
+  "@reportsSheetBandUnder": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetBandNormal": "On target",
+  "@reportsSheetBandNormal": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetBandOver": "High",
+  "@reportsSheetBandOver": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetGoal": "Goal {value}",
+  "@reportsSheetGoal": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsSheetAttendance": "PT attendance",
+  "@reportsSheetAttendance": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreTitle": "Weekly care score",
+  "@reportsSheetScoreTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreUnit": "/100",
+  "@reportsSheetScoreUnit": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreFormula": "Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.",
+  "@reportsSheetScoreFormula": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetScoreNone": "No records to score yet",
+  "@reportsSheetScoreNone": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetEvalTitle": "Evaluation",
+  "@reportsSheetEvalTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageTitle": "vs. 4-week average",
+  "@reportsSheetAverageTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageNow": "This week",
+  "@reportsSheetAverageNow": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageBase": "4-wk avg",
+  "@reportsSheetAverageBase": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetAverageChange": "Change",
+  "@reportsSheetAverageChange": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetMealDaysLabel": "Meal log days",
+  "@reportsSheetMealDaysLabel": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetFootnote": "Ranges compare this week with the member's goals. Items without records show as Not measured.",
+  "@reportsSheetFootnote": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetCalorieDays": "On-target calorie days",
+  "@reportsSheetCalorieDays": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
+  "reportsSheetPeriodValue": "{start} – {end}",
+  "@reportsSheetPeriodValue": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
         "type": "String"
       }
     }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
@@ -750,7 +751,7 @@ void main() {
       final Rect icon = tester.getRect(
         find.descendant(
           of: entry,
-          matching: find.byIcon(Icons.mark_email_unread_rounded),
+          matching: find.byIcon(AppIcons.consultation),
         ),
       );
       final Rect label = tester.getRect(
@@ -1250,10 +1251,11 @@ void main() {
       expect(
         find.descendant(
           of: noteChip,
-          matching: find.byIcon(Icons.edit_note_rounded),
+          matching: find.byIcon(AppIcons.note),
         ),
         findsOneWidget,
-        reason: '아이콘도 함께 갈린다 — 글씨와 함께 무엇을 하는지 말한다',
+        // 메모 아이콘은 하나다(#2466) — 수정·추가는 글씨가 가른다.
+        reason: '메모가 있어도 없어도 같은 메모 아이콘이다',
       );
       await closeEditMenu(tester);
 
@@ -1264,7 +1266,7 @@ void main() {
       expect(
         find.descendant(
           of: noteChip,
-          matching: find.byIcon(Icons.note_add_rounded),
+          matching: find.byIcon(AppIcons.note),
         ),
         findsOneWidget,
       );
@@ -1542,8 +1544,8 @@ void main() {
         seedClock: kMidWeekKst,
       );
 
-      expect(find.byIcon(Icons.chevron_left_rounded), findsWidgets);
-      expect(find.byIcon(Icons.chevron_right_rounded), findsWidgets);
+      expect(find.byIcon(AppIcons.chevronLeft), findsWidgets);
+      expect(find.byIcon(AppIcons.chevronRight), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
@@ -1553,14 +1555,14 @@ void main() {
       expect(find.text('오늘'), findsNothing);
 
       // 다음 주에는 시드가 없다 — 시간표가 통째로 비고 `오늘` 이 나타난다.
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded).first);
+      await tester.tap(find.byIcon(AppIcons.chevronRight).first);
       await settle(tester);
       expect(find.text('김민수'), findsNothing);
       expect(find.text('이번 주에는 일정이 없어요.'), findsOneWidget);
       expect(find.text('오늘'), findsOneWidget);
 
       // 되돌아오면 오늘이 다시 선택된 주다.
-      await tester.tap(find.byIcon(Icons.chevron_left_rounded).first);
+      await tester.tap(find.byIcon(AppIcons.chevronLeft).first);
       await settle(tester);
       expect(find.text('김민수'), findsWidgets);
       expect(find.text('오늘'), findsNothing);

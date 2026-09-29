@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -26,11 +27,10 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/progress_stepper.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 편집기 단계 원 사이 간격 — 공용 기본의 두 배(#2449).
-const double reportStepperGap = ProgressStepper.defaultGap * 2;
+const double reportStepperGap = AppStepIndicator.numberedGap * 2;
 
 /// 리포트 — the week, from two angles.
 ///
@@ -171,28 +171,26 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 보낸다 — 미리보기와 회원이 받는 파일이 서로 다를 수 없다.
   Future<Uint8List>? _preview;
 
-  /// [_preview] 의 재료(`회원|주|언어|문구`). ② 에서 글을 고치고 돌아오면
-  /// 문구가 달라져 새로 만든다.
+  /// [_preview] 의 재료(`회원|주|언어|리포트 내용|문구`). ② 에서 글을 고치고
+  /// 돌아오면 문구가 달라져 새로 만든다.
+  ///
+  /// 리포트는 객체가 아니라 내용으로 가른다(#2484). 스트림이 내용이 같은
+  /// 리포트를 새 객체로 다시 보낼 때마다 PDF 를 처음부터 다시 만들면, 무거운
+  /// 생성이 겹쳐 ③ 이 멈춘다. 수치가 실제로 바뀌면 열쇠가 달라져 새로 만든다.
   String? _previewKey;
-
-  /// [_preview] 를 만든 리포트. 수치가 다시 읽히면 새 객체가 와 새로 만든다.
-  WeeklyReport? _previewReport;
 
   static String _previewKeyOf(
     AppLocalizations l,
     WeeklyReport report,
     String message,
-  ) => '${_feedbackKey(report)}|${l.localeName}|$message';
+  ) => '${_feedbackKey(report)}|${l.localeName}|${report.contentKey}|$message';
 
   /// [report] 를 [message] 로 만든 미리보기가 지금 있는가.
   bool _previewMatches(
     AppLocalizations l,
     WeeklyReport report,
     String message,
-  ) =>
-      _preview != null &&
-      _previewKey == _previewKeyOf(l, report, message) &&
-      identical(_previewReport, report);
+  ) => _preview != null && _previewKey == _previewKeyOf(l, report, message);
 
   /// ③ 에 띄울 PDF. 재료가 같으면 있던 것을 쓰고, 다르면 전송과 같은
   /// [_generateReportPdf] 로 새로 만든다. build 안에서 부른다.
@@ -203,7 +201,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   ) {
     if (_previewMatches(l, report, message)) return _preview!;
     _previewKey = _previewKeyOf(l, report, message);
-    _previewReport = report;
     return _preview = _generateReportPdf(l, report, message);
   }
 
@@ -211,7 +208,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   void _dropPreview() {
     _preview = null;
     _previewKey = null;
-    _previewReport = null;
   }
 
   /// 입력창의 출발점 — 저장해 둔 초안이 있으면 그것, 없으면 수치에서 만든
@@ -545,7 +541,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       setState(() {
         _preview = fresh;
         _previewKey = _previewKeyOf(l, report, message);
-        _previewReport = report;
       });
     }
     return fresh;
@@ -600,7 +595,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       children: <Widget>[
         AppSectionHeader(
           title: l.reportsWeekly,
-          icon: Icons.description_rounded,
+          icon: AppIcons.document,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         child,
@@ -727,7 +722,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           if (clients.isEmpty) {
             return AppEmptyState(
               title: l.reportsNoClients,
-              icon: Icons.insights_rounded,
+              icon: AppIcons.reports,
             );
           }
           // 이번 주 큐를 세우려면 회원별 리포트가 필요하다. 한 명이 실패해도
@@ -883,11 +878,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               // 않는다.
               Row(
                 children: <Widget>[
-                  AppButton(
+                  AppBackLink(
                     key: const ValueKey<String>('reports-back-to-list'),
                     label: l.reportsBackToWorkbench,
-                    variant: AppButtonVariant.text,
-                    leadingIcon: Icons.chevron_left_rounded,
                     onPressed: () => context.go(_locationFor(null)),
                   ),
                   const SizedBox(width: OnCareSpacing.s8),
@@ -911,7 +904,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     key: const ValueKey<String>('reports-editor-history'),
                     label: l.reportsHistoryButton,
                     variant: AppButtonVariant.strongOutline,
-                    leadingIcon: Icons.history_rounded,
+                    leadingIcon: AppIcons.history,
                     onPressed: () => _openHistory(selected.id),
                   ),
                 ],
@@ -923,7 +916,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               // 원 사이를 기본의 두 배로 벌린다(#2449) — 편집기 폭에서 세 단계가
               // 한데 붙어 보였다. 표시줄은 스스로 가운데에 서고, 모자란 폭에서는
               // 스스로 좁힌다.
-              ProgressStepper(
+              AppStepIndicator.numbered(
                 keyPrefix: 'report-stage',
                 labels: <String>[
                   l.reportsStepReview,
@@ -931,9 +924,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   l.reportsStepSend,
                 ],
                 semanticsLabel: l.reportsStepperLabel,
-                stage: _stage,
-                maxReachedStage: _maxStage,
-                onStageTap: (value) => setState(() => _stage = value),
+                current: _stage,
+                maxReached: _maxStage,
+                onStepTap: (value) => setState(() => _stage = value),
                 gap: reportStepperGap,
               ),
               const SizedBox(height: OnCareSpacing.s16),
@@ -1104,7 +1097,7 @@ class _StepFooter extends StatelessWidget {
               key: const ValueKey<String>('report-step-prev'),
               label: l.reportsStepPrev,
               variant: AppButtonVariant.text,
-              leadingIcon: Icons.chevron_left_rounded,
+              leadingIcon: AppIcons.chevronLeft,
               onPressed: onPrev,
             ),
       actions: <Widget>[
@@ -1122,7 +1115,7 @@ class _StepFooter extends StatelessWidget {
                   key: const ValueKey<String>('report-step-print'),
                   label: l.reportsStepPrint,
                   variant: AppButtonVariant.secondary,
-                  leadingIcon: Icons.print_rounded,
+                  leadingIcon: AppIcons.print,
                   loading: printing,
                   onPressed: bytes == null || !ready || printing || sending
                       ? null
@@ -1147,7 +1140,7 @@ class _StepFooter extends StatelessWidget {
           AppButton(
             key: const ValueKey<String>('report-step-next'),
             label: l.reportsStepNext,
-            trailingIcon: Icons.chevron_right_rounded,
+            trailingIcon: AppIcons.chevronRight,
             onPressed: onNext,
           ),
       ],

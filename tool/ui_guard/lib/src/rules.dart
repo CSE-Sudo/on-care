@@ -64,10 +64,13 @@ const materialWidgetPrefix = 'DropdownButton';
 
 /// 앱마다 아이콘을 어떻게 검사하는지(#1803).
 enum IconPolicy {
-  /// 트레이너웹 — `_rounded` 가 아닌 `Icons.*` 만 잡는다([Rule.nonRoundedIcon]).
+  /// 아이콘 목록이 없는 앱 — `_rounded` 가 아닌 `Icons.*` 만 잡는다
+  /// ([Rule.nonRoundedIcon]). 트레이너웹이 목록을 두면서(#2466) 지금은 쓰는 앱이
+  /// 없다.
   rounded,
 
-  /// 회원앱 화면 — 아이콘은 목록(`AppIcons`)에서만 고르고 [AppIcon] 으로 그린다.
+  /// 앱 화면(회원앱 #1803·트레이너웹 #2466) — 아이콘은 목록(`AppIcons`)에서만
+  /// 고르고 [AppIcon] 으로 그린다.
   /// `Icons.*`·`Symbols.*`([Rule.iconOutsideRegistry])와 `Icon(`([Rule.rawIcon])을
   /// 잡는다.
   registry,

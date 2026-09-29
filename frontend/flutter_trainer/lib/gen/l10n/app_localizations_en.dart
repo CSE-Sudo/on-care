@@ -136,6 +136,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionBack => 'Back';
 
   @override
+  String get actionAdd => 'Add';
+
+  @override
+  String get actionSend => 'Send';
+
+  @override
+  String get actionReset => 'Reset';
+
+  @override
   String get notFoundTitle => 'Page not found';
 
   @override
@@ -834,6 +843,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseRequired => 'Add at least one exercise';
 
   @override
+  String get coachTemplateExerciseNameRequired => 'Enter the exercise name';
+
+  @override
   String get coachTemplateSaveFailed =>
       'Couldn\'t save the template. Please try again';
 
@@ -894,13 +906,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
 
   @override
-  String get clientDietTotalCalories => 'Total calories';
-
-  @override
   String get clientDietDayTotal => 'Day total';
 
   @override
-  String clientDietDayTotalCalories(String calories) {
+  String clientDietTotalCalories(String calories) {
     return 'Total $calories kcal';
   }
 
@@ -2047,10 +2056,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progSaving => 'Saving...';
 
   @override
-  String get progSaveAction => 'Save program';
+  String get progSaveAction => 'Save';
 
   @override
-  String get progSaveNoteAction => 'Save note';
+  String get progSaveNoteAction => 'Save';
 
   @override
   String get progExerciseName => 'Exercise';
@@ -3876,6 +3885,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messagesPreviewEmote => 'Sent an emote';
 
   @override
+  String get messagesPreviewPhoto => 'Photo';
+
+  @override
   String get messagesTimeJustNow => 'Just now';
 
   @override
@@ -4390,7 +4402,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsFeedbackRedo => 'Redo';
 
   @override
-  String get reportsFeedbackSave => 'Save feedback';
+  String get reportsFeedbackSave => 'Save';
 
   @override
   String get reportsFeedbackSaving => 'Saving…';
@@ -5677,5 +5689,115 @@ class AppLocalizationsEn extends AppLocalizations {
       'other': 'Snack',
     });
     return '$_temp0';
+  }
+
+  @override
+  String get reportsSheetInfoMember => 'Member';
+
+  @override
+  String get reportsSheetInfoPeriod => 'Period';
+
+  @override
+  String get reportsSheetInfoMealDays => 'Meal logs';
+
+  @override
+  String reportsSheetDaysOf(String days, String due) {
+    return '$days/$due days';
+  }
+
+  @override
+  String get reportsSheetDietTitle => 'Diet analysis';
+
+  @override
+  String get reportsSheetDietHint => 'Daily average vs. goal';
+
+  @override
+  String get reportsSheetExerciseTitle => 'Exercise analysis';
+
+  @override
+  String get reportsSheetExerciseHint => 'This week vs. goal';
+
+  @override
+  String get reportsSheetDailyTitle => 'Daily log';
+
+  @override
+  String get reportsSheetDailyCompletion => 'Done';
+
+  @override
+  String get reportsSheetDailyCalories => 'Calories';
+
+  @override
+  String get reportsSheetDailyMeals => 'Meals';
+
+  @override
+  String get reportsSheetDailyWorkouts => 'Workouts';
+
+  @override
+  String get reportsSheetTrendTitle => 'Trends';
+
+  @override
+  String get reportsSheetTrendWeekly => 'Weekly exercise achievement (8 weeks)';
+
+  @override
+  String get reportsSheetTrendDaily => 'Daily calories · goal line';
+
+  @override
+  String get reportsSheetBandUnder => 'Low';
+
+  @override
+  String get reportsSheetBandNormal => 'On target';
+
+  @override
+  String get reportsSheetBandOver => 'High';
+
+  @override
+  String reportsSheetGoal(String value) {
+    return 'Goal $value';
+  }
+
+  @override
+  String get reportsSheetAttendance => 'PT attendance';
+
+  @override
+  String get reportsSheetScoreTitle => 'Weekly care score';
+
+  @override
+  String get reportsSheetScoreUnit => '/100';
+
+  @override
+  String get reportsSheetScoreFormula =>
+      'Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.';
+
+  @override
+  String get reportsSheetScoreNone => 'No records to score yet';
+
+  @override
+  String get reportsSheetEvalTitle => 'Evaluation';
+
+  @override
+  String get reportsSheetAverageTitle => 'vs. 4-week average';
+
+  @override
+  String get reportsSheetAverageNow => 'This week';
+
+  @override
+  String get reportsSheetAverageBase => '4-wk avg';
+
+  @override
+  String get reportsSheetAverageChange => 'Change';
+
+  @override
+  String get reportsSheetMealDaysLabel => 'Meal log days';
+
+  @override
+  String get reportsSheetFootnote =>
+      'Ranges compare this week with the member\'s goals. Items without records show as Not measured.';
+
+  @override
+  String get reportsSheetCalorieDays => 'On-target calorie days';
+
+  @override
+  String reportsSheetPeriodValue(String start, String end) {
+    return '$start – $end';
   }
 }

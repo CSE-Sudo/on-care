@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
@@ -604,7 +605,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           const SizedBox(height: OnCareSpacing.s8),
           InputDecorator(
             decoration: InputDecoration(
-              suffixIcon: Icon(icon, size: OnCareSize.iconSmall),
+              suffixIcon: AppIcon(icon, size: OnCareSize.iconSmall),
             ),
             child: Text(
               value,
@@ -626,7 +627,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       key: const ValueKey<String>('session-time-range-field'),
       label: l.schedFieldTime,
       value: l.schedTimeRange(_time, _endTime),
-      icon: Icons.schedule_rounded,
+      icon: AppIcons.clock,
       onTap: _pickTimeRange,
     );
   }
@@ -641,14 +642,15 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       label: repeating ? l.schedFieldDateRange : l.schedFieldDate,
       // 프로그램 등록 날짜 칩(`program-register-date`)과 같이 연도까지
       // 보이는 `ymd` 표기로 맞춘다 — 월·일만 있으면 해가 바뀌는 반복에서
-      // 헷갈린다.
+      // 헷갈린다. 다만 종료일은 시작과 같은 해면 연도를 뺀다 — 반 칸 폭에
+      // 두 날짜를 모두 연도까지 적으면 종료일이 잘린다.
       value: repeating
           ? l.schedTimeRange(
               ymd(_date),
-              _repeatUntil == null ? '-' : ymd(_repeatUntil!),
+              _repeatUntil == null ? '-' : ymdRangeEnd(_date, _repeatUntil!),
             )
           : ymd(_date),
-      icon: Icons.calendar_today_rounded,
+      icon: AppIcons.calendar,
       onTap: _pickDate,
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
@@ -206,7 +207,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               _programName.text = _draft.name;
               _editingProgramInfo = true;
             }),
-            icon: Icons.edit_rounded,
+            icon: AppIcons.edit,
             color: OnCareColors.textTertiary,
           ),
         ],
@@ -273,8 +274,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           : l.programEditorSaveTemplate,
       onPressed: canSave && !widget.saving ? _handleSaveTemplate : null,
       icon: _templateSaved
-          ? Icons.bookmark_rounded
-          : Icons.bookmark_border_rounded,
+          ? AppIcons.templateSaved
+          : AppIcons.saveTemplate,
       color: _templateSaved
           ? context.oncare.brand.primary
           : OnCareColors.textTertiary,
@@ -488,36 +489,27 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // 프로그램`) 그대로 저장되는 유일한 경로가 되면 안 된다. 편집
           // UI는 이제 카드 제목 자리에서 바로 뜬다(`_programNameTitle`,
           // 깃허브 이슈/PR 제목 수정과 같은 자리 전환 방식).
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  l.programEditorExerciseConfig,
-                  style: context.oncare
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
+          AppSectionHeader(
+            title: l.programEditorExerciseConfig,
+            // 박스형 버튼이던 `세션 추가`를 작은 텍스트 액션으로 줄였다 —
+            // 시각 형태만 낮은 우선순위다. 누르면 이제 빈 세션이 바로
+            // 붙지 않고 유형 네 가지가 펼쳐진다(#2222).
+            trailing: Tooltip(
+              key: _addSessionKey,
+              message: _draft.canAddSession
+                  ? ''
+                  : l.programEditorSessionLimitReached(kProgramMaxSessions),
+              child: AppButton(
+                key: const ValueKey<String>('program-editor-add-session'),
+                onPressed: _draft.canAddSession
+                    ? () => unawaited(_pickSessionType())
+                    : null,
+                leadingIcon: AppIcons.add,
+                label: l.programEditorAddSession,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
               ),
-              // 박스형 버튼이던 `세션 추가`를 작은 텍스트 액션으로 줄였다 —
-              // 시각 형태만 낮은 우선순위다. 누르면 이제 빈 세션이 바로
-              // 붙지 않고 유형 네 가지가 펼쳐진다(#2222).
-              Tooltip(
-                key: _addSessionKey,
-                message: _draft.canAddSession
-                    ? ''
-                    : l.programEditorSessionLimitReached(kProgramMaxSessions),
-                child: AppButton(
-                  key: const ValueKey<String>('program-editor-add-session'),
-                  onPressed: _draft.canAddSession
-                      ? () => unawaited(_pickSessionType())
-                      : null,
-                  leadingIcon: Icons.add_rounded,
-                  label: l.programEditorAddSession,
-                  variant: AppButtonVariant.text,
-                  size: OnCareButtonSize.small,
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           for (
@@ -601,13 +593,13 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
             children: <Widget>[
               _RegisterFieldBox(
                 key: const ValueKey<String>('program-register-date'),
-                icon: Icons.calendar_today_rounded,
+                icon: AppIcons.calendar,
                 value: ymd(widget.registerDate),
                 onTap: () => unawaited(_pickRegisterDate(context)),
               ),
               _RegisterFieldBox(
                 key: const ValueKey<String>('program-register-time'),
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.clock,
                 value:
                     '${widget.registerStartTime.format(context)} – '
                     '${widget.registerEndTime.format(context)}',
@@ -1081,8 +1073,8 @@ class _SessionEditorState extends State<_SessionEditor> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(
-                Icons.drag_indicator_rounded,
+              AppIcon(
+                AppIcons.dragHandle,
                 size: OnCareSize.iconMedium,
                 color: context.oncare.brand.primary,
               ),
@@ -1102,7 +1094,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                     label: l.programEditorAddExercise,
                     variant: AppButtonVariant.text,
                     size: OnCareButtonSize.small,
-                    leadingIcon: Icons.add_rounded,
+                    leadingIcon: AppIcons.add,
                     onPressed: widget.canAddExercise ? widget.onStartAdd : null,
                   ),
                 ),
@@ -1110,7 +1102,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                 AppIconButton(
                   tooltip: l.actionClose,
                   onPressed: () => setState(() => _editingName = false),
-                  icon: Icons.check_rounded,
+                  icon: AppIcons.check,
                   color: context.oncare.brand.primary,
                 )
               else ...<Widget>[
@@ -1122,45 +1114,50 @@ class _SessionEditorState extends State<_SessionEditor> {
                   onPressed: widget.session.exercises.isEmpty
                       ? null
                       : () => unawaited(_confirmReset()),
-                  icon: Icons.refresh_rounded,
+                  icon: AppIcons.refresh,
                   color: OnCareColors.textTertiary,
                 ),
                 AppMenu(
                   items: <AppMenuItem>[
                     AppMenuItem(
-                      icon: Icons.edit_rounded,
+                      icon: AppIcons.edit,
                       label: l.actionEdit,
                       onSelected: () => _handleSessionAction('edit'),
                     ),
-                    AppMenuItem(
-                      icon: Icons.keyboard_arrow_up_rounded,
-                      label: l.programEditorSessionUp,
-                      onSelected: widget.canMoveUp
-                          ? () => _handleSessionAction('up')
-                          : null,
-                    ),
-                    AppMenuItem(
-                      icon: Icons.keyboard_arrow_down_rounded,
-                      label: l.programEditorSessionDown,
-                      onSelected: widget.canMoveDown
-                          ? () => _handleSessionAction('down')
-                          : null,
-                    ),
-                    AppMenuItem(
-                      icon: Icons.delete_outline_rounded,
-                      label: l.actionDelete,
-                      destructive: true,
-                      onSelected: widget.canDelete
-                          ? () => _handleSessionAction('delete')
-                          : null,
-                    ),
+                    // 세션이 하나뿐이면 옮길 데도, 지울 것도 없다. 셋을
+                    // 비활성으로 남겨 두면 메뉴가 **할 수 없는 일 셋**으로
+                    // 채워지고, 그중 `삭제` 는 위험 항목이라 비활성인데도
+                    // 빨간 글씨 그대로다 — 눌러 보고 아무 일도 없는 것을
+                    // 겪게 된다. (#2220)
+                    if (widget.canDelete) ...<AppMenuItem>[
+                      AppMenuItem(
+                        icon: AppIcons.moveUp,
+                        label: l.programEditorSessionUp,
+                        onSelected: widget.canMoveUp
+                            ? () => _handleSessionAction('up')
+                            : null,
+                      ),
+                      AppMenuItem(
+                        icon: AppIcons.moveDown,
+                        label: l.programEditorSessionDown,
+                        onSelected: widget.canMoveDown
+                            ? () => _handleSessionAction('down')
+                            : null,
+                      ),
+                      AppMenuItem(
+                        icon: AppIcons.delete,
+                        label: l.actionDelete,
+                        destructive: true,
+                        onSelected: () => _handleSessionAction('delete'),
+                      ),
+                    ],
                   ],
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>(
                       'session-actions-${widget.session.id}',
                     ),
                     tooltip: l.actionEdit,
-                    icon: Icons.more_horiz_rounded,
+                    icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
                   ),
@@ -1171,12 +1168,9 @@ class _SessionEditorState extends State<_SessionEditor> {
           if (widget.session.exercises.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-              child: Text(
-                l.programEditorSessionEmpty,
-                textAlign: TextAlign.center,
-                style: context.oncare
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
+              child: AppEmptyState(
+                title: l.programEditorSessionEmpty,
+                placement: AppStatePlacement.inline,
               ),
             ),
           for (
@@ -1200,16 +1194,11 @@ class _SessionEditorState extends State<_SessionEditor> {
             const SizedBox(height: OnCareSpacing.s8),
           ],
           if (widget.addingExercise)
-            // 새로 추가 중인 한 줄도 이미 있는 운동 카드와 같은 틀(카드 배경·
-            // 테두리·반경)을 쓴다 — 그래야 목록에 자연스럽게 이어 붙는 한 줄로
+            // 새로 추가 중인 한 줄도 이미 있는 운동 카드와 같은 틀(흰 외곽선
+            // 구획)을 쓴다 — 그래야 목록에 자연스럽게 이어 붙는 한 줄로
             // 보이고, 입력 글자 크기도 [_DraftField] 와 맞춘다.
-            Container(
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: BoxDecoration(
-                color: OnCareColors.surfaceCard,
-                borderRadius: OnCareRadius.mdAll,
-                border: Border.all(color: OnCareColors.lineStrong),
-              ),
+            AppTile(
+              tone: AppTileTone.outline,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -1366,7 +1355,7 @@ class _SessionEditorState extends State<_SessionEditor> {
           cancelLabel: l.actionCancel,
           onCancel: () => Navigator.of(dialogContext).pop(false),
           confirmKey: const ValueKey<String>('session-reset-submit'),
-          confirmLabel: l.programEditorSessionReset,
+          confirmLabel: l.actionReset,
           destructive: true,
           onConfirm: () => Navigator.of(dialogContext).pop(true),
         ),
@@ -1417,23 +1406,16 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final exercise = widget.exercise;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s12,
-        vertical: OnCareSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        borderRadius: OnCareRadius.mdAll,
-        border: Border.all(color: OnCareColors.lineStrong),
-      ),
+    return AppTile(
+      tone: AppTileTone.outline,
+      dense: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.drag_indicator_rounded,
+              const AppIcon(
+                AppIcons.dragHandle,
                 size: OnCareSize.iconSmall,
                 color: OnCareColors.textTertiary,
               ),
@@ -1457,26 +1439,26 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   key: ValueKey<String>('exercise-edit-${exercise.id}'),
                   tooltip: l.actionClose,
                   onPressed: () => setState(() => _editing = false),
-                  icon: Icons.check_rounded,
+                  icon: AppIcons.check,
                   color: context.oncare.brand.primary,
                 )
               else
                 AppMenu(
                   items: <AppMenuItem>[
                     AppMenuItem(
-                      icon: Icons.edit_rounded,
+                      icon: AppIcons.edit,
                       label: l.actionEdit,
                       onSelected: () => _handleExerciseAction('edit'),
                     ),
                     AppMenuItem(
-                      icon: Icons.keyboard_arrow_up_rounded,
+                      icon: AppIcons.moveUp,
                       label: l.programEditorExerciseUp,
                       onSelected: widget.canMoveUp
                           ? () => _handleExerciseAction('up')
                           : null,
                     ),
                     AppMenuItem(
-                      icon: Icons.keyboard_arrow_down_rounded,
+                      icon: AppIcons.moveDown,
                       label: l.programEditorExerciseDown,
                       onSelected: widget.canMoveDown
                           ? () => _handleExerciseAction('down')
@@ -1484,12 +1466,12 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                     ),
                     if (widget.onMoveToSession != null)
                       AppMenuItem(
-                        icon: Icons.drive_file_move_rounded,
+                        icon: AppIcons.moveToSession,
                         label: l.programEditorExerciseMoveSession,
                         onSelected: () => _handleExerciseAction('move'),
                       ),
                     AppMenuItem(
-                      icon: Icons.delete_outline_rounded,
+                      icon: AppIcons.delete,
                       label: l.actionDelete,
                       destructive: true,
                       onSelected: () => _handleExerciseAction('delete'),
@@ -1498,7 +1480,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>('exercise-edit-${exercise.id}'),
                     tooltip: l.actionEdit,
-                    icon: Icons.more_horiz_rounded,
+                    icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
                   ),
@@ -1659,7 +1641,7 @@ class _RegisterFieldBox extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
@@ -1672,8 +1654,8 @@ class _RegisterFieldBox extends StatelessWidget {
                       .copyWith(color: OnCareColors.textPrimary),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                const AppIcon(
+                  AppIcons.expandMore,
                   size: OnCareSize.iconMedium,
                   color: OnCareColors.textTertiary,
                 ),

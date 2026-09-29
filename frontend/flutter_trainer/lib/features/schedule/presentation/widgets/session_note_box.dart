@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -15,7 +16,7 @@ class SessionNoteBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppBanner(
-      icon: Icons.sticky_note_2_rounded,
+      icon: AppIcons.note,
       title: l.schedNote,
       message: note,
     );
@@ -72,7 +73,7 @@ class SessionNoNoteBox extends StatelessWidget {
           // 찾는 방식(`noteActionLabel`)을 그대로 쓸 수 있다.
           AppIconButton(
             key: const ValueKey<String>('session-edit-note-chip'),
-            icon: Icons.note_add_rounded,
+            icon: AppIcons.note,
             tooltip: l.schedAddNote,
             variant: AppIconButtonVariant.tonal,
             onPressed: onAdd,

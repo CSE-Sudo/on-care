@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
-import 'package:oncare_trainer/features/reports/presentation/widgets/report_card_header.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -32,7 +31,7 @@ class MemberFeedbackCard extends StatelessWidget {
     final Widget answers = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _Answer(
+        _answer(
           keyName: 'report-feedback-condition',
           label: l.reportsMemberFeedbackConditionLabel,
           value: given == null
@@ -42,7 +41,7 @@ class MemberFeedbackCard extends StatelessWidget {
           alarming: given?.condition.needsAttention ?? false,
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        _Answer(
+        _answer(
           keyName: 'report-feedback-intensity',
           label: l.reportsMemberFeedbackIntensityLabel,
           value: given == null ? null : intensityLabel(l, given.intensity),
@@ -50,7 +49,7 @@ class MemberFeedbackCard extends StatelessWidget {
           alarming: given?.intensity.needsAttention ?? false,
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        _Answer(
+        _answer(
           keyName: 'report-feedback-pain',
           label: l.reportsMemberFeedbackPainLabel,
           // 통증은 `없음` 도 답이다. 비워 두면 안 물어본 것처럼 보인다.
@@ -98,12 +97,12 @@ class MemberFeedbackCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          ReportCardHeader(
+          AppSectionHeader(
             number: 1,
             title: l.reportsMemberFeedbackTitle,
             // 언제 낸 답인지를 제목 줄에 적는다 — 주가 끝난 뒤에 받는 답이라,
             // 날짜가 없으면 이번 주 도중에 쓴 말처럼 읽힌다.
-            subtitle: given == null
+            titleMeta: given == null
                 ? l.reportsMemberFeedbackNone
                 : l.reportsMemberFeedbackMeta(
                     l.dateMonthDay(
@@ -209,64 +208,22 @@ String intensityLabel(AppLocalizations l, WeekIntensity intensity) =>
       WeekIntensity.tooHard => l.reportsMemberFeedbackIntensityTooHard,
     };
 
-/// `문항 — 답` 한 줄.
-class _Answer extends StatelessWidget {
-  const _Answer({
-    required this.keyName,
-    required this.label,
-    required this.value,
-    required this.unanswered,
-    required this.alarming,
-  });
-
-  final String keyName;
-  final String label;
-
-  /// 회원의 답. 안 낸 주에는 null — [unanswered] 를 흐리게 적는다.
-  final String? value;
-  final String unanswered;
-  final bool alarming;
-
-  /// 문항 이름이 차지하는 폭. 세 줄의 답이 같은 자리에서 시작해야 눈이
-  /// 세로로 훑을 수 있다.
-  static const double _labelWidth = 72;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      key: ValueKey<String>(keyName),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(
-          width: _labelWidth,
-          child: Text(
-            label,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-        ),
-        Expanded(
-          child: value == null
-              ? Text(
-                  unanswered,
-                  style: tokens
-                      .text(OnCareTypography.bodySmall)
-                      .copyWith(color: OnCareColors.textTertiary),
-                )
-              : Text(
-                  value!,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(
-                        color: alarming
-                            ? OnCareColors.danger
-                            : OnCareColors.textPrimary,
-                      ),
-                ),
-        ),
-      ],
-    );
-  }
-}
+/// `문항 — 답` 한 줄. 안 낸 주에는 [unanswered] 를 흐리게, 살펴볼 답은
+/// 위험 색으로 적는다.
+Widget _answer({
+  required String keyName,
+  required String label,
+  required String? value,
+  required String unanswered,
+  required bool alarming,
+}) => AppKeyValueRow(
+  key: ValueKey<String>(keyName),
+  label: label,
+  value: value ?? unanswered,
+  strongValue: value != null,
+  valueColor: value == null
+      ? OnCareColors.textTertiary
+      : alarming
+      ? OnCareColors.danger
+      : null,
+);

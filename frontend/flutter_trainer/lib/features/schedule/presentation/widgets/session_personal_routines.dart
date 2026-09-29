@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
@@ -84,9 +85,6 @@ class _SessionPersonalRoutinesState
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     if (_routines.isEmpty) return const SizedBox.shrink();
@@ -109,16 +107,12 @@ class _SessionPersonalRoutinesState
         for (final SessionRoutine row in _routines)
           Padding(
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-            child: Container(
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: const BoxDecoration(
-                color: OnCareColors.surfaceInput,
-                borderRadius: OnCareRadius.mdAll,
-              ),
+            child: AppTile(
+              tone: AppTileTone.neutral,
               child: Row(
                 children: <Widget>[
-                  const Icon(
-                    Icons.directions_run_rounded,
+                  const AppIcon(
+                    AppIcons.personalRoutine,
                     size: OnCareSize.iconSmall,
                     color: OnCareColors.textTertiary,
                   ),
@@ -255,7 +249,7 @@ class _SendPersonalRoutinesDialogState
           ? AppButton(
               key: const ValueKey<String>('session-routine-add'),
               label: l.progAddExercise,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
               variant: AppButtonVariant.text,
               size: OnCareButtonSize.small,
               onPressed: _add,
@@ -265,7 +259,7 @@ class _SendPersonalRoutinesDialogState
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
         confirmKey: const ValueKey<String>('session-routines-send-confirm'),
-        confirmLabel: widget.editOnly ? l.actionSave : l.schedRoutinesSend,
+        confirmLabel: widget.editOnly ? l.actionSave : l.actionSend,
         onConfirm: _canSave ? () => Navigator.of(context).pop(_draft) : null,
       ),
       child: Column(
@@ -273,9 +267,7 @@ class _SendPersonalRoutinesDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            widget.editOnly
-                ? l.schedEditRoutinesBody
-                : l.schedRoutinesSendBody,
+            widget.editOnly ? l.schedEditRoutinesBody : l.schedRoutinesSendBody,
             style: context.oncare
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),
@@ -330,7 +322,7 @@ class _RoutineRow extends StatelessWidget {
             if (onRemove != null)
               AppIconButton(
                 key: ValueKey<String>('session-routine-remove-$index'),
-                icon: Icons.close_rounded,
+                icon: AppIcons.close,
                 tooltip: AppLocalizations.of(context).actionDelete,
                 color: OnCareColors.textTertiary,
                 onPressed: onRemove,

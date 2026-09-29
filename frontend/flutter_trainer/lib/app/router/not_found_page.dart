@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
@@ -43,7 +44,7 @@ class NotFoundPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool inApp = isInApp(ref.watch(sessionControllerProvider).status);
-    const IconData icon = Icons.link_off_rounded;
+    const IconData icon = AppIcons.disconnect;
 
     if (!inApp) {
       return AppAuthLayout(

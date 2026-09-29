@@ -4,10 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_parser/http_parser.dart';
 
+import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
+import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
 class TrainerChatPdfRepository {
   const TrainerChatPdfRepository(this._dio);
@@ -34,8 +37,43 @@ final trainerChatPdfRepositoryProvider = Provider<TrainerChatPdfRepository>((
 ///
 /// 리포트 PDF 와 자리를 나눈 이유는 만들어지는 방식이 다르기 때문이다 — 리포트는
 /// 앱이 그려 낸 산출물이고, 사진은 트레이너가 고른 파일이다.
-class TrainerChatImageRepository {
-  TrainerChatImageRepository(this._dio);
+///
+/// 구현은 둘이다([trainerChatImageRepositoryProvider] 가 고른다):
+///  * [DioTrainerChatImageRepository] — 실서버 `/chat/image`;
+///  * [DemoTrainerChatImageRepository] — 데모. 로컬 대화에 바이트째 붙는다(#2493).
+abstract interface class TrainerChatImageRepository {
+  /// 사진 한 장을 담당 회원에게 보낸다. [message] 는 비어도 된다 — 사진만
+  /// 보내는 것이 자연스러운 경우가 있다.
+  Future<void> send({
+    required String clientId,
+    required Uint8List bytes,
+    required String fileName,
+    String message = '',
+  });
+}
+
+/// 데모의 사진 전송. 서버 대신 드리프트 대화에 붙인다. (#2493)
+class DemoTrainerChatImageRepository implements TrainerChatImageRepository {
+  const DemoTrainerChatImageRepository(this._chat);
+
+  final DriftChatRepository _chat;
+
+  @override
+  Future<void> send({
+    required String clientId,
+    required Uint8List bytes,
+    required String fileName,
+    String message = '',
+  }) => _chat.sendTrainerImage(
+    clientId: clientId,
+    bytes: bytes,
+    fileName: fileName,
+    message: message,
+  );
+}
+
+class DioTrainerChatImageRepository implements TrainerChatImageRepository {
+  DioTrainerChatImageRepository(this._dio);
 
   final Dio _dio;
 
@@ -43,8 +81,7 @@ class TrainerChatImageRepository {
   /// 가지 않게, 파일과 회원 조합마다 한 번만 만들고 재사용한다.
   final Map<String, String> _requestIds = <String, String>{};
 
-  /// 사진 한 장을 담당 회원에게 보낸다. [message] 는 비어도 된다 — 사진만
-  /// 보내는 것이 자연스러운 경우가 있다.
+  @override
   Future<void> send({
     required String clientId,
     required Uint8List bytes,
@@ -87,6 +124,11 @@ class TrainerChatImageRepository {
 final trainerChatImageRepositoryProvider = Provider<TrainerChatImageRepository>(
   (ref) {
     ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
-    return TrainerChatImageRepository(ref.watch(dioProvider));
+    if (ref.watch(appConfigProvider).useMockApi) {
+      return DemoTrainerChatImageRepository(
+        DriftChatRepository(ref.watch(appDatabaseProvider)),
+      );
+    }
+    return DioTrainerChatImageRepository(ref.watch(dioProvider));
   },
 );

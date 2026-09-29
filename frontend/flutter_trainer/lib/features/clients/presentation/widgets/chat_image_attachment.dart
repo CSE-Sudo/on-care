@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -46,6 +47,9 @@ final chatImageProvider = FutureProvider.autoDispose.family<Uint8List?, String>(
 /// 그래서 PDF 처럼 카드로 두지 않고 말풍선 안에 그린다 — 카드로 두면 자세를
 /// 확인할 때마다 파일을 열어야 하고, 그건 채팅에 사진을 붙이는 이유 자체를
 /// 없앤다.
+///
+/// 바이트([ChatAttachment.localBytes])가 있으면 받아 오지 않고 그대로 그린다 —
+/// 데모에서 보낸 사진이다. (#2493)
 class ChatImageAttachment extends ConsumerWidget {
   const ChatImageAttachment({super.key, required this.attachment});
 
@@ -58,7 +62,7 @@ class ChatImageAttachment extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bytes = ref.watch(chatImageProvider(attachment.downloadPath));
+    final Uint8List? local = attachment.localBytes;
 
     return AppImageFrame(
       child: ConstrainedBox(
@@ -66,26 +70,34 @@ class ChatImageAttachment extends ConsumerWidget {
           maxWidth: maxEdge,
           maxHeight: maxEdge,
         ),
-        child: bytes.when(
-          loading: () => const SizedBox(
-            width: maxEdge,
-            height: _loadingHeight,
-            child: Center(child: AppLoading.inline()),
-          ),
-          error: (_, _) => _Unavailable(label: l.chatImageUnavailable),
-          data: (data) => data == null
-              ? _Unavailable(label: l.chatImageUnavailable)
-              : Image.memory(
-                  data,
-                  key: ValueKey<String>('chat-image-${attachment.fileId}'),
-                  fit: BoxFit.contain,
-                  // 바이트는 받았지만 그릴 수 없는 경우(잘린 파일 등)도 대화가
-                  // 깨지지 않아야 한다.
-                  errorBuilder: (_, _, _) =>
-                      _Unavailable(label: l.chatImageUnavailable),
-                ),
-        ),
+        child: local != null
+            ? _image(local, l)
+            : ref
+                  .watch(chatImageProvider(attachment.downloadPath))
+                  .when(
+                    loading: () => const SizedBox(
+                      width: maxEdge,
+                      height: _loadingHeight,
+                      child: Center(child: AppLoading.inline()),
+                    ),
+                    error: (_, _) =>
+                        _Unavailable(label: l.chatImageUnavailable),
+                    data: (data) => data == null
+                        ? _Unavailable(label: l.chatImageUnavailable)
+                        : _image(data, l),
+                  ),
       ),
+    );
+  }
+
+  Widget _image(Uint8List data, AppLocalizations l) {
+    return Image.memory(
+      data,
+      key: ValueKey<String>('chat-image-${attachment.fileId}'),
+      fit: BoxFit.contain,
+      // 바이트는 받았지만 그릴 수 없는 경우(잘린 파일 등)도 대화가
+      // 깨지지 않아야 한다.
+      errorBuilder: (_, _, _) => _Unavailable(label: l.chatImageUnavailable),
     );
   }
 }
@@ -107,8 +119,8 @@ class _Unavailable extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          const Icon(
-            Icons.image_not_supported_rounded,
+          const AppIcon(
+            AppIcons.imageUnavailable,
             size: OnCareSize.iconSmall,
             color: OnCareColors.textTertiary,
           ),

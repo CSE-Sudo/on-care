@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -519,7 +520,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     return AppButton(
       label: l.labelToday,
       variant: AppButtonVariant.strongOutline,
-      leadingIcon: Icons.today_rounded,
+      leadingIcon: AppIcons.calendar,
       onPressed: () => _selectDay(today),
     );
   }
@@ -549,7 +550,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           label: l.schedSlots,
           // `오늘` 과 같은 네이비 외곽선이다 — 둘 다 페이지 배경 위에 선다(#2180).
           variant: AppButtonVariant.strongOutline,
-          leadingIcon: Icons.event_available_rounded,
+          leadingIcon: AppIcons.eventAvailable,
           onPressed: () => _openReservationSlotsSheet(),
         ),
         // 상담 확인은 맨 오른쪽이다(#882, #1009). 예약 슬롯 왼쪽에 있을 때는
@@ -594,7 +595,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         // 자리로 이어지지 않았다(#882 와 같은 이유).
         newSession: AppButton(
           label: l.schedNewSession,
-          leadingIcon: Icons.add_rounded,
+          leadingIcon: AppIcons.add,
           onPressed: () => _openScheduleDialog(),
         ),
       ),
@@ -610,7 +611,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           // 빈 화면 틀에 오류 아이콘을 얹는다.
           AsyncError() => AppEmptyState(
             title: l.schedLoadFailed,
-            icon: Icons.cloud_off_rounded,
+            icon: AppIcons.offline,
           ),
           AsyncValue(hasValue: false) => const AppLoading(),
           _ => null,
@@ -777,7 +778,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (session == null) {
       return AppEmptyState(
         title: l.schedEmptyDay,
-        icon: Icons.event_busy_rounded,
+        icon: AppIcons.eventBusy,
       );
     }
 

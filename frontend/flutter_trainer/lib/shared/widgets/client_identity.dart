@@ -1,166 +1,199 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 // 문구·조회 함수는 `shared/utils` 로 옮겼다(#1703). 기존 사용처를 위해 다시 내보낸다.
 export 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 
-/// 프로그램·리포트 탭 왼쪽 고객 목록의 **이름 타이포**. (#1423)
+/// 트레이너 웹 회원 행의 밀도(#2467).
 ///
-/// 두 탭은 같은 구조(왼쪽 고객 목록 → 오른쪽 작업 영역)에 카드 제목과 아이콘
-/// 까지 같은데, 이름 글씨만 프로그램 13.5·리포트 15 로 갈려 있었다. 탭을
-/// 오갈 때마다 같은 목록이 다른 밀도로 보였다. 기준을 여기 한 벌만 두어
-/// 한쪽만 다시 달라지지 않게 한다.
-///
-/// 고른 고객은 굵기로만 도드라진다 — 글씨 크기가 함께 바뀌면 고를 때마다
-/// 행 높이가 흔들린다.
-TextStyle clientListNameStyle({required bool selected}) =>
-    (selected
-            ? OnCareTypography.strong(OnCareTypography.bodySmall)
-            : OnCareTypography.bodySmall)
-        .copyWith(color: OnCareColors.textPrimary);
+/// 회원 행은 탭마다 따로 그려져, 같은 회원의 이름이 화면마다 14·15·16 에
+/// 굵기까지 갈려 있었다. 밀도 세 가지만 두고 아바타 크기·간격·글씨를 여기서
+/// 정한다 — 같은 밀도의 행은 어느 탭에서나 같은 글씨다.
+enum ClientRowDensity {
+  /// 회원 목록·메시지 목록·검색 결과 — 회원을 훑고 고르는 넓은 목록.
+  list(AppAvatarSize.large, OnCareSpacing.s12),
 
-/// 고객 목록 이름 글씨 크기. 프로그램 탭 열은 세 열 중 가장 좁아 15 는 긴
-/// 이름에서 잘리기 쉬웠고, 13.5 는 리포트 탭에서 목표 줄과 위계가 붙었다.
-const double clientListNameFontSize = 14;
+  /// 회원 고르기·리포트 작업대·스케줄 세션 카드 — 좁은 열의 촘촘한 목록.
+  compact(AppAvatarSize.medium, OnCareSpacing.s8),
 
-/// 고객 목록 아바타 지름. (#1423)
-///
-/// 이름 글씨는 14 로 맞췄지만 아바타는 프로그램 탭 32·리포트 탭 38 로
-/// 남아 있었다 — 탭을 오갈 때 같은 목록의 원 크기가 달라 보였다. 프로그램
-/// 탭 열이 세 열 중 가장 좁아, 이름 크기를 고를 때와 같은 이유로 더 작은
-/// 쪽에 맞춘다.
-const double clientListAvatarSize = 32;
+  /// 메시지 대화 머리·회원 상세 머리 — 지금 보고 있는 한 사람.
+  header(AppAvatarSize.large, OnCareSpacing.s12);
 
-/// 프로그램·리포트 탭 고객 목록의 기본 행 높이와 노출 행 수. (#1423)
-const double clientListBaseRowHeight = 64;
-const int clientListVisibleRows = 5;
+  const ClientRowDensity(this.avatarSize, this.avatarGap);
 
-/// 접근성 글자 배율을 반영한 공용 고객 목록 행 높이.
-double clientListRowHeight(BuildContext context) {
-  final double scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-  final double extraScale = (scale - 1).clamp(0.0, 2.0);
-  return clientListBaseRowHeight + 56 * extraScale;
+  /// 행 왼쪽 [ClientAvatar] 의 지름 단계.
+  final AppAvatarSize avatarSize;
+
+  /// 아바타와 이름 묶음 사이 간격.
+  final double avatarGap;
+
+  TextStyle _nameRole() => switch (this) {
+    ClientRowDensity.list => OnCareTypography.strong(
+      OnCareTypography.bodyLarge,
+    ),
+    ClientRowDensity.compact => OnCareTypography.strong(
+      OnCareTypography.bodySmall,
+    ),
+    ClientRowDensity.header => OnCareTypography.titleSmall,
+  };
 }
 
-/// 이름 아래 목표 한 줄의 글씨 크기. 이름보다 한 단계 작다 — 두 탭이 같은
-/// 위계를 쓰도록 [ClientGoalLabel] 의 기본값 대신 이 값을 함께 준다.
-const double clientListGoalFontSize = 11;
+/// [density] 행의 이름 글씨. 배치가 달라 [ClientIdentityBlock] 을 쓰지 못하는
+/// 자리(회원 상세 머리·이탈 위험 창 등)도 이 값을 쓴다.
+TextStyle clientNameStyle(BuildContext context, ClientRowDensity density) =>
+    context.oncare
+        .text(density._nameRole())
+        .copyWith(color: OnCareColors.textPrimary);
 
-/// 고객 목록 행에 붙는 목표 한 줄. (#898)
+/// 이름 옆 `성별 · 나이` 글씨 — 밀도와 상관없이 이름보다 작고 흐리다.
+TextStyle clientDemographicsStyle(BuildContext context) => context.oncare
+    .text(OnCareTypography.caption)
+    .copyWith(color: OnCareColors.textTertiary);
+
+/// [density] 행 둘째 줄(목표·요약·전송일) 글씨. 넓은 목록만 한 단계 크다.
+TextStyle clientDetailStyle(BuildContext context, ClientRowDensity density) =>
+    density == ClientRowDensity.list
+    ? context.oncare
+          .text(OnCareTypography.bodySmall)
+          .copyWith(color: OnCareColors.textSecondary)
+    : context.oncare
+          .text(OnCareTypography.caption)
+          .copyWith(color: OnCareColors.textTertiary);
+
+/// 회원 행의 이름 묶음 — 첫 줄 `이름  성별 · 나이`, 둘째 줄 목표. (#2467)
 ///
-/// 트레이너가 고객을 고르는 기준은 이름이 아니라 **무엇을 목표로 하는
-/// 사람인가**다. 이름이 비슷한 고객이 섞여 있을 때 특히 그렇다. 전에는
-/// `고객 관리` 탭 카드에만 있어서, 메시지·스케줄·프로그램·리포트에서
-/// 목표를 보려면 탭을 나갔다 와야 했다.
+/// 둘째 줄은 기본이 회원 건강 목표이고 늘 [healthFocusGoalLabel] 을 거친다 —
+/// 저장 값은 한국어라, 그대로 적으면 영어 화면에서 이 자리만 한국어로 남았다.
+/// 목표 대신 전송일·검색 요약처럼 그 자리의 말을 [detail] 로 줄 수 있고,
+/// [showDetail] 을 끄면 첫 줄만 그린다(메시지 목록은 그 자리에 미리보기를 둔다).
+/// 둘째 줄 글이 비면 빈 줄로 행 높이를 먹지 않는다(#898).
 ///
-/// 목표가 비면 아무것도 그리지 않는다 — 빈 [Text] 는 행 높이만 먹는다.
-/// 이름보다 한 단계 작고 흐리게, 한 줄 말줄임으로 기존 정보 위계를
-/// 흔들지 않는다.
-class ClientGoalLabel extends StatelessWidget {
-  /// Creates the goal line for [client].
-  const ClientGoalLabel({
+/// 이름과 `성별 · 나이` 는 글자 바닥선을 맞춘다 — 크기가 다른 두 글이 가운데
+/// 정렬이면 작은 글이 떠 보인다. 모든 글은 한 줄 말줄임이다.
+class ClientIdentityBlock extends StatelessWidget {
+  const ClientIdentityBlock({
     super.key,
     required this.client,
-    this.fontSize,
-    this.color = OnCareColors.textTertiary,
+    this.density = ClientRowDensity.list,
+    this.detail,
+    this.detailMaxLines = 1,
+    this.showDetail = true,
+    this.stacked = false,
   });
 
   final TrainerClient client;
+  final ClientRowDensity density;
 
-  /// 부르는 쪽 행의 이름 글씨보다 한 단계 작게 준다. null 이면 `caption` 크기다.
-  final double? fontSize;
-  final Color color;
+  /// 목표 대신 둘째 줄에 적을 글. null 이면 목표다.
+  final String? detail;
+  final int detailMaxLines;
+  final bool showDetail;
+
+  /// `성별 · 나이` 를 이름 옆이 아니라 아래에 쌓는다 — 프로그램 탭 좁은 화면의
+  /// 가로로 늘어선 회원 줄처럼 칸 폭이 좁은 자리.
+  final bool stacked;
 
   @override
   Widget build(BuildContext context) {
-    if (client.goal.trim().isEmpty) return const SizedBox.shrink();
-    final TextStyle role = context.oncare.text(OnCareTypography.caption);
-    return Text(
-      client.goal,
+    final Widget name = Text(
+      client.name,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: role.copyWith(color: color, fontSize: fontSize ?? role.fontSize),
+      style: clientNameStyle(context, density),
+    );
+    final Widget demographics = Text(
+      clientDemographicsLabel(context, client),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: clientDemographicsStyle(context),
+    );
+    final String second = !showDetail
+        ? ''
+        : detail ??
+              healthFocusGoalLabel(AppLocalizations.of(context), client.goal);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (stacked) ...<Widget>[name, demographics] else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: <Widget>[
+              Flexible(child: name),
+              const SizedBox(width: OnCareSpacing.s4),
+              Flexible(child: demographics),
+            ],
+          ),
+        if (second.trim().isNotEmpty)
+          Text(
+            second,
+            maxLines: detailMaxLines,
+            overflow: TextOverflow.ellipsis,
+            style: clientDetailStyle(context, density),
+          ),
+      ],
     );
   }
 }
 
-/// The shared client-name treatment used across trainer tabs.
-class ClientIdentity extends StatelessWidget {
-  const ClientIdentity({
+/// 트레이너 웹의 회원 행 — 아바타 + [ClientIdentityBlock]. (#2467)
+///
+/// 아바타 크기와 간격은 [density] 가 정한다. [trailing] 은 이름 묶음 오른쪽
+/// (세션 종류 알약·읽음 배지처럼 이 행에 딸린 값)이다. 행을 감싸는 카드·
+/// 눌림·선택 표시는 부르는 쪽이 정한다 — 목록마다 담는 그릇이 다르다.
+class ClientRow extends StatelessWidget {
+  const ClientRow({
     super.key,
     required this.client,
-    this.nameStyle,
-    this.demographicsStyle,
-    this.maxLines = 1,
+    this.density = ClientRowDensity.list,
+    this.detail,
+    this.detailMaxLines = 1,
+    this.showDetail = true,
     this.stacked = false,
-    this.textAlign,
+    this.trailing,
   });
 
   final TrainerClient client;
-  final TextStyle? nameStyle;
-  final TextStyle? demographicsStyle;
-  final int maxLines;
+  final ClientRowDensity density;
+
+  /// [ClientIdentityBlock.detail] 과 같다.
+  final String? detail;
+  final int detailMaxLines;
+  final bool showDetail;
+
+  /// [ClientIdentityBlock.stacked] 와 같다.
   final bool stacked;
-  final TextAlign? textAlign;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    final resolvedNameStyle =
-        nameStyle ??
-        tokens
-            .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-            .copyWith(color: OnCareColors.textPrimary);
-    // 성별·나이는 이름보다 작고 흐린 `caption` 강조다. 이름 스타일의 서체 등은
-    // 물려받되 크기·굵기는 역할이 정한다.
-    final resolvedDemographicsStyle =
-        demographicsStyle ??
-        resolvedNameStyle
-            .merge(
-              tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
-            )
-            .copyWith(color: OnCareColors.textTertiary);
-    final name = Text(
-      client.name,
-      maxLines: maxLines,
-      overflow: TextOverflow.ellipsis,
-      textAlign: textAlign,
-      style: resolvedNameStyle,
-    );
-    final demographics = Text(
-      clientDemographicsLabel(context, client),
-      maxLines: maxLines,
-      overflow: TextOverflow.ellipsis,
-      textAlign: textAlign,
-      style: resolvedDemographicsStyle,
-    );
-
-    if (stacked) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: textAlign == TextAlign.center
-            ? CrossAxisAlignment.center
-            : CrossAxisAlignment.start,
-        children: <Widget>[
-          name,
-          const SizedBox(height: OnCareSpacing.s2),
-          demographics,
-        ],
-      );
-    }
-
+    final Widget? trailing = this.trailing;
     return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: textAlign == TextAlign.center
-          ? MainAxisAlignment.center
-          : MainAxisAlignment.start,
       children: <Widget>[
-        Flexible(child: name),
-        const SizedBox(width: OnCareSpacing.s4),
-        Flexible(child: demographics),
+        ClientAvatar(name: client.avatar, size: density.avatarSize),
+        SizedBox(width: density.avatarGap),
+        Expanded(
+          child: ClientIdentityBlock(
+            client: client,
+            density: density,
+            detail: detail,
+            detailMaxLines: detailMaxLines,
+            showDetail: showDetail,
+            stacked: stacked,
+          ),
+        ),
+        if (trailing != null) ...<Widget>[
+          const SizedBox(width: OnCareSpacing.s8),
+          trailing,
+        ],
       ],
     );
   }

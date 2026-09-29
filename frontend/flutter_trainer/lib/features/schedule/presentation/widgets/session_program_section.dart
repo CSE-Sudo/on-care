@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
@@ -114,29 +115,15 @@ class SessionNoPlanBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return AppTile(
       key: const ValueKey<String>('session-no-plan'),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  l.progEmpty,
-                  style: tokens
-                      .text(OnCareTypography.label)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-                const SizedBox(height: OnCareSpacing.s2),
-                Text(
-                  l.progEmptyHint,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ],
+            child: AppEmptyState(
+              title: l.progEmpty,
+              message: l.progEmptyHint,
+              placement: AppStatePlacement.inline,
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
@@ -145,7 +132,7 @@ class SessionNoPlanBox extends StatelessWidget {
           // 탭으로 나간다.
           AppIconButton(
             key: const ValueKey<String>('session-add-program-chip'),
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
             tooltip: l.progAddTitle,
             variant: AppIconButtonVariant.tonal,
             onPressed: onGoToProgram,

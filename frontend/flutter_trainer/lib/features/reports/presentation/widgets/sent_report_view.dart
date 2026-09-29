@@ -54,65 +54,49 @@ class SentReportView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppBackLink(
               key: const ValueKey<String>('reports-sent-back'),
               label: backLabel ?? l.reportsBackToWorkbench,
-              variant: AppButtonVariant.text,
-              leadingIcon: Icons.chevron_left_rounded,
               onPressed: onBack,
             ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           AppCard(
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        l.reportsSentHeadline(record.clientName(report)),
-                        style: tokens.text(OnCareTypography.titleSmall),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        l.reportsSentAt(
-                          dateLabel(l, record.sentAt),
-                          _hhmm(record.sentAt),
-                        ),
-                        style: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textTertiary),
-                      ),
-                    ],
-                  ),
-                ),
-                if (onHistory case final VoidCallback openHistory) ...<Widget>[
+            child: AppSectionHeader(
+              title: l.reportsSentHeadline(record.clientName(report)),
+              subtitle: l.reportsSentAt(
+                dateLabel(l, record.sentAt),
+                _hhmm(record.sentAt),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (onHistory
+                      case final VoidCallback openHistory) ...<Widget>[
+                    AppButton(
+                      key: const ValueKey<String>('reports-sent-history'),
+                      label: l.reportsHistoryButton,
+                      variant: AppButtonVariant.text,
+                      size: OnCareButtonSize.small,
+                      onPressed: openHistory,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                  ],
                   AppButton(
-                    key: const ValueKey<String>('reports-sent-history'),
-                    label: l.reportsHistoryButton,
-                    variant: AppButtonVariant.text,
+                    key: const ValueKey<String>('reports-sent-rewrite'),
+                    label: l.reportsSentRewrite,
+                    variant: AppButtonVariant.secondary,
                     size: OnCareButtonSize.small,
-                    onPressed: openHistory,
+                    onPressed: onRewrite,
                   ),
-                  const SizedBox(width: OnCareSpacing.s4),
                 ],
-                AppButton(
-                  key: const ValueKey<String>('reports-sent-rewrite'),
-                  label: l.reportsSentRewrite,
-                  variant: AppButtonVariant.secondary,
-                  size: OnCareButtonSize.small,
-                  onPressed: onRewrite,
-                ),
-              ],
+              ),
             ),
           ),
           const SizedBox(height: OnCareSpacing.s16),

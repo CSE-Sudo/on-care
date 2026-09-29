@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
@@ -357,7 +358,7 @@ void main() {
       expect(
         find.descendant(
           of: date,
-          matching: find.byIcon(Icons.calendar_today_rounded),
+          matching: find.byIcon(AppIcons.calendar),
         ),
         findsOneWidget,
       );
@@ -710,6 +711,24 @@ void main() {
 
       expect(find.text('스쿼트'), findsOneWidget);
     });
+
+    // 세션이 하나뿐이면 옮길 데도, 지울 것도 없다. 셋을 비활성으로 남겨
+    // 두면 메뉴가 **할 수 없는 일 셋**으로 채워지고, 그중 `삭제` 는 위험
+    // 항목이라 비활성인데도 빨간 글씨 그대로다 — 눌러 보고 아무 일도 없는
+    // 것을 겪게 된다. (#2220)
+    testWidgets('세션이 하나뿐이면 이동·삭제 항목이 서지 않는다', (tester) async {
+      await pumpEditor(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-actions-session-1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('수정'), findsOneWidget);
+      expect(find.text('세션 위로 이동'), findsNothing);
+      expect(find.text('세션 아래로 이동'), findsNothing);
+      expect(find.text('삭제'), findsNothing);
+    });
   });
 
   group('운동 추가', () {
@@ -870,7 +889,7 @@ void main() {
 
       // 근력 세트·횟수·중량은 compact 입력이라 −/+ 스테퍼 버튼이 없다 —
       // 키보드로 직접 값을 바꾼다.
-      expect(find.byIcon(Icons.remove), findsNothing);
+      expect(find.byIcon(AppIcons.remove), findsNothing);
 
       final setsField = find.byKey(
         const ValueKey<String>('custom-exercise-sets-field'),
@@ -982,7 +1001,7 @@ void main() {
 
       await openAddForm(tester);
 
-      expect(find.byIcon(Icons.search), findsNothing);
+      expect(find.byIcon(AppIcons.search), findsNothing);
       expect(find.text('운동 이름 검색 또는 직접 입력'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('custom-exercise-date')),

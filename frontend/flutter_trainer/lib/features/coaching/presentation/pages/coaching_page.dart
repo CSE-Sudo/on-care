@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -42,7 +43,6 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 예외 둘: 탭 이동 시 스크롤 초기화(UI 위젯 아님), 그리고 요일별 막대그래프
 // — 패키지에 대응 차트가 없고 리포트 탭·테스트가 같은 위젯 타입을 쓴다.
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_trainer/shared/widgets/page_scroll_reset.dart';
@@ -267,7 +267,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         ymd(start),
         ymd(start.add(const Duration(days: PersonalRoutineBox.activeDays - 1))),
       ),
-      confirmLabel: l.aiRoutineOnlySend,
+      confirmLabel: l.actionSend,
       cancelLabel: l.actionCancel,
     );
     if (!confirmed || !mounted || !_isStillSelected(client.id)) return;
@@ -630,7 +630,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             if (clients.isEmpty) {
               return AppEmptyState(
                 title: l.coachNoClients,
-                icon: Icons.people_outline_rounded,
+                icon: AppIcons.clients,
               );
             }
             final selected = clients.firstWhere(
@@ -838,10 +838,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 width: OnCareLayout.sidebarWidth,
                 // 이름 아래에 성별·나이를 쌓는다 — 이름이 같은 회원을
                 // 가려내는 정보다.
-                child: AppListRow(
-                  title: c.name,
-                  subtitle: _clientDemographics(l, c),
-                  leading: ClientAvatar(name: c.name),
+                child: ClientPickerCard(
+                  client: c,
+                  stacked: true,
                   selected: c.id == client.id,
                   onTap: () => _selectClient(c.id),
                 ),
@@ -967,8 +966,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
                 child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: AppButton(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AppBackLink(
                     key: const ValueKey<String>('return-to-ai-flow'),
                     label: l.aiReturnToWizard,
                     // 위저드로 되돌아가면 거기서 다시 반영할 때까지 개인운동을
@@ -978,9 +977,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                       _aiWizardVisible = true;
                       _personalRoutines.remove(client.id);
                     }),
-                    variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
-                    leadingIcon: Icons.chevron_left_rounded,
                   ),
                 ),
               )
@@ -1060,16 +1056,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 }
 
-/// 이름이 같은 회원을 가려내는 `성별 · 나이`.
-String _clientDemographics(AppLocalizations l, TrainerClient client) {
-  final gender = switch (client.rosterGender) {
-    'female' => l.memberHealthGenderFemale,
-    'male' => l.memberHealthGenderMale,
-    _ => l.memberHealthGenderOther,
-  };
-  return l.coachClientDemographics(gender, client.rosterAge);
-}
-
 /// 카드 제목 줄 + 본문. [expand] 면 카드가 부모가 준 높이를 그대로 받고
 /// 본문이 남는 높이를 모두 갖는다.
 class _SectionCard extends StatelessWidget {
@@ -1094,14 +1080,7 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AppSectionHeader(title: title, icon: icon),
-              ),
-              ?trailing,
-            ],
-          ),
+          AppSectionHeader(title: title, icon: icon, trailing: trailing),
           const SizedBox(height: OnCareSpacing.s12),
           if (expand) Expanded(child: child) else child,
         ],
@@ -1126,7 +1105,7 @@ class _WeekCompletionBars extends StatelessWidget {
     final week = client.weekCompletion;
     return _SectionCard(
       title: l.reportsCompletionByDay,
-      icon: Icons.calendar_view_week_rounded,
+      icon: AppIcons.calendar,
       child: week.length != weekdayCount
           ? AppEmptyState(
               title: l.reportsNoWorkoutsThisWeek,
@@ -1201,12 +1180,12 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
                   AppSegment<_ClientDataView>(
                     value: _ClientDataView.diet,
                     label: l.clientTabDiet,
-                    icon: Icons.restaurant_rounded,
+                    icon: AppIcons.diet,
                   ),
                   AppSegment<_ClientDataView>(
                     value: _ClientDataView.workout,
                     label: l.clientTabWorkout,
-                    icon: Icons.fitness_center_rounded,
+                    icon: AppIcons.exercise,
                   ),
                 ],
               ),
@@ -1349,7 +1328,7 @@ class _TemplateCard extends ConsumerWidget {
       );
       return _SectionCard(
         title: l.coachTemplates,
-        icon: Icons.dashboard_customize_rounded,
+        icon: AppIcons.template,
         // 정상 경로와 같은 규칙이다 — `fixedBox`(넓은 사이드바)일 때는 오류
         // 상태도 부모가 준 고정 높이 안에서만 그린다(코드리뷰).
         expand: fixedBox,
@@ -1370,57 +1349,65 @@ class _TemplateCard extends ConsumerWidget {
             for (final template in templates)
               SizedBox(
                 width: width,
-                child: AppTile(
-                  onTap: () => onApply(template),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              template.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(
-                                    OnCareTypography.strong(
-                                      OnCareTypography.bodySmall,
-                                    ),
-                                  )
-                                  .copyWith(color: OnCareColors.textPrimary),
+                child: _PointerUnfocus(
+                  child: AppTile(
+                    key: ValueKey<String>('template-card-${template.id}'),
+                    // 중립 회색이다. 옅은 네이비로 두면 화면의 다른 네이비
+                    // 강조와 섞여 **이미 고른 템플릿처럼** 보인다 — 고르기
+                    // 전인데 고른 것으로 읽힌다(#2220).
+                    tone: AppTileTone.neutral,
+                    onTap: () => onApply(template),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                template.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: tokens
+                                    .text(
+                                      OnCareTypography.strong(
+                                        OnCareTypography.bodySmall,
+                                      ),
+                                    )
+                                    .copyWith(color: OnCareColors.textPrimary),
+                              ),
                             ),
-                          ),
-                          if (canEdit)
-                            _TemplateMenu(
-                              template: template,
-                              onEdit: () => _edit(context, template: template),
-                              onDelete: template.isStarter
-                                  ? null
-                                  : () => _delete(context, ref, template),
-                            )
-                          else
-                            Icon(
-                              Icons.add_circle_outline_rounded,
-                              size: OnCareSize.iconMedium,
-                              color: tokens.brand.primary,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        l.coachTemplateSummaryWithGoal(
-                          template.goal,
-                          template.exercises.length,
-                          template.totalMinutes,
+                            if (canEdit)
+                              _TemplateMenu(
+                                template: template,
+                                onEdit: () =>
+                                    _edit(context, template: template),
+                                onDelete: template.isStarter
+                                    ? null
+                                    : () => _delete(context, ref, template),
+                              )
+                            else
+                              AppIcon(
+                                AppIcons.addCircle,
+                                size: OnCareSize.iconMedium,
+                                color: tokens.brand.primary,
+                              ),
+                          ],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textTertiary),
-                      ),
-                    ],
+                        const SizedBox(height: OnCareSpacing.s4),
+                        Text(
+                          l.coachTemplateSummaryWithGoal(
+                            template.goal,
+                            template.exercises.length,
+                            template.totalMinutes,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: tokens
+                              .text(OnCareTypography.caption)
+                              .copyWith(color: OnCareColors.textTertiary),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1430,14 +1417,14 @@ class _TemplateCard extends ConsumerWidget {
     );
     return _SectionCard(
       title: l.coachTemplates,
-      icon: Icons.dashboard_customize_rounded,
+      icon: AppIcons.template,
       expand: fixedBox,
       // 아이콘만 쓴다(#1028) — 좁은 사이드바에서 영어·큰 글자 배율이면
       // "새 템플릿" 글자가 제목과 함께 넘친다.
       trailing: canEdit
           ? AppIconButton(
               key: const ValueKey<String>('template-new'),
-              icon: Icons.add_rounded,
+              icon: AppIcons.add,
               tooltip: l.coachTemplateNew,
               onPressed: () => _edit(context),
             )
@@ -1448,6 +1435,51 @@ class _TemplateCard extends ConsumerWidget {
               child: body,
             )
           : body,
+    );
+  }
+}
+
+/// 마우스로 누른 뒤 남는 포커스 강조를 거둔다. (#2220)
+///
+/// Flutter 웹에서 누를 수 있는 구획은 클릭으로 포커스를 받고, 포커스 강조는
+/// **누른 뒤에도 계속 칠해진다.** 옅은 네이비일 때는 묻혔지만 회색 바탕에서는
+/// 또렷해, 방금 누른 템플릿이 **골라 둔 것처럼** 남는다 — 이 이슈가 없애려던
+/// 바로 그 오해다.
+///
+/// 포커스 자체를 막지는 않는다. Tab 으로 옮겨온 포커스는 키보드로 쓰는
+/// 사람에게 "지금 여기" 를 알리는 유일한 길잡이라 그대로 둬야 한다. 그래서
+/// **포인터로 누른 경우에만** 거둔다.
+class _PointerUnfocus extends StatefulWidget {
+  const _PointerUnfocus({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_PointerUnfocus> createState() => _PointerUnfocusState();
+}
+
+class _PointerUnfocusState extends State<_PointerUnfocus> {
+  /// 직전 눌림이 포인터에서 왔는가. 키보드로 누른 것과 가르는 값이다.
+  bool _fromPointer = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _fromPointer = true,
+      // 눌렀다가 손가락을 끌어내 취소하면 눌림이 없던 일이 된다. 표시를
+      // 남겨 두면 그다음 **키보드** 누름에서 한 번 잘못 거둔다.
+      onPointerCancel: (_) => _fromPointer = false,
+      child: Focus(
+        onFocusChange: (bool hasFocus) {
+          if (!hasFocus || !_fromPointer) return;
+          _fromPointer = false;
+          // 이 자리에서 곧장 거두면 포커스를 옮기는 도중이라 다시 돌아온다.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) FocusScope.of(context).unfocus();
+          });
+        },
+        child: widget.child,
+      ),
     );
   }
 }
@@ -1476,19 +1508,28 @@ class _TemplateMenu extends StatelessWidget {
       items: <AppMenuItem>[
         AppMenuItem(
           label: l.coachTemplateEdit,
-          icon: Icons.edit_rounded,
+          icon: AppIcons.edit,
           onSelected: onEdit,
         ),
-        AppMenuItem(
-          label: l.coachTemplateDelete,
-          icon: Icons.delete_outline_rounded,
-          destructive: true,
-          onSelected: onDelete,
-        ),
+        // 지울 수 없으면 내린다(#2220). 회색으로 남겨 "못 하는 동작" 을
+        // 알리려 했지만, `AppMenu` 는 위험 항목 글자색을 모든 상태에 같은
+        // 빨강으로 줘 **비활성이 비활성으로 보이지 않는다** — 멀쩡한 빨간
+        // `삭제` 를 눌러 보고 아무 일도 없는 것을 겪게 된다.
+        //
+        // 기본 템플릿은 저장된 행이 아니라 읽을 때 만들어지는 값이라 지울
+        // 것이 없고, 자기 템플릿을 하나라도 저장하면 저절로 사라진다. 할 수
+        // 없는 일을 굳이 내밀 이유가 없다.
+        if (onDelete case final VoidCallback delete)
+          AppMenuItem(
+            label: l.coachTemplateDelete,
+            icon: AppIcons.delete,
+            destructive: true,
+            onSelected: delete,
+          ),
       ],
       triggerBuilder: (context, toggle) => AppIconButton(
         key: ValueKey<String>('template-menu-${template.id}'),
-        icon: Icons.more_vert_rounded,
+        icon: AppIcons.more,
         tooltip: l.coachTemplateMenu,
         color: OnCareColors.textTertiary,
         onPressed: toggle,
@@ -1514,7 +1555,7 @@ class _SendHistoryCard extends ConsumerWidget {
     final latest = ref.watch(_latestDeliveryProvider(client.id));
     return _SectionCard(
       title: l.coachSentHistory,
-      icon: Icons.history_rounded,
+      icon: AppIcons.history,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -1534,7 +1575,7 @@ class _SendHistoryCard extends ConsumerWidget {
             data: (delivery) => delivery == null
                 ? AppEmptyState(
                     title: l.coachHistoryEmpty,
-                    icon: Icons.outbox_rounded,
+                    icon: AppIcons.sent,
                     placement: AppStatePlacement.card,
                   )
                 : _LastDeliveryBox(delivery: delivery),
@@ -1621,7 +1662,7 @@ class _UnsentRoutinesNotice extends ConsumerWidget {
             AppButton(
               key: const ValueKey<String>('coach-open-unsent-schedule'),
               label: l.coachSendUnsentRoutines,
-              leadingIcon: Icons.event_rounded,
+              leadingIcon: AppIcons.calendar,
               variant: AppButtonVariant.secondary,
               size: OnCareButtonSize.small,
               shrinkLabel: true,

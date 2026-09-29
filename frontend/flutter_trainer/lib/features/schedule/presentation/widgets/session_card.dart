@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
@@ -10,10 +11,8 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/session_pr
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart'
-    show clientDemographicsLabel, findClientIdentity;
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 상세 패널의 세션 한 건 — 시간·상태·누구인가와 그날 할 일.
@@ -110,9 +109,6 @@ class SessionCard extends ConsumerWidget {
       clientId: session.clientId,
       clientName: session.clientName,
     );
-    final TextStyle nameStyle = tokens
-        .text(OnCareTypography.strong(OnCareTypography.body))
-        .copyWith(color: OnCareColors.textPrimary);
     final SessionManageRow manage = SessionManageRow(
       onComplete: onComplete,
       onCancel: onCancel,
@@ -196,8 +192,12 @@ class SessionCard extends ConsumerWidget {
             // 프로필(아바타)과 이름을 세로 가운데로 맞춘다 — `Row` 의 기본값이
             // 가운데라 값을 명시하지 않는다.
             children: <Widget>[
-              ClientAvatar(name: s.clientName),
-              const SizedBox(width: OnCareSpacing.s12),
+              // 회원 고르기·리포트 작업대와 같은 촘촘한 회원 행이다(#2467).
+              ClientAvatar(
+                name: s.clientName,
+                size: ClientRowDensity.compact.avatarSize,
+              ),
+              SizedBox(width: ClientRowDensity.compact.avatarGap),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,49 +211,18 @@ class SessionCard extends ConsumerWidget {
                         s.clientName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: nameStyle,
-                      )
-                    else ...<Widget>[
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              client.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: nameStyle,
-                            ),
-                          ),
-                          const SizedBox(width: OnCareSpacing.s4),
-                          Flexible(
-                            child: Text(
-                              clientDemographicsLabel(context, client),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(OnCareTypography.caption)
-                                  .copyWith(color: OnCareColors.textTertiary),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // 오늘 만날 회원이 무엇을 목표로 하는 사람인지는
-                      // 세션 종류만큼 자리에서 필요하다(#898). 목표가 비면
-                      // 빈 줄로 행 높이를 먹지 않는다.
-                      if (client.goal.trim().isNotEmpty)
-                        Text(
-                          healthFocusGoalLabel(
-                            AppLocalizations.of(context),
-                            client.goal,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: tokens
-                              .text(OnCareTypography.caption)
-                              .copyWith(color: OnCareColors.textTertiary),
+                        style: clientNameStyle(
+                          context,
+                          ClientRowDensity.compact,
                         ),
-                    ],
+                      )
+                    else
+                      // 오늘 만날 회원이 무엇을 목표로 하는 사람인지는
+                      // 세션 종류만큼 자리에서 필요하다(#898).
+                      ClientIdentityBlock(
+                        client: client,
+                        density: ClientRowDensity.compact,
+                      ),
                   ],
                 ),
               ),
@@ -350,8 +319,8 @@ class SessionCard extends ConsumerWidget {
                       ? l.schedSendProgramWithRoutines(programDateLabel)
                       : l.schedSentProgramTo(programDateLabel),
                   leadingIcon: s.programSent
-                      ? Icons.check_circle_outline_rounded
-                      : Icons.send_rounded,
+                      ? AppIcons.checkCircle
+                      : AppIcons.send,
                   variant: AppButtonVariant.secondary,
                   // 무엇을 보내는지가 이 버튼의 전부다 — 좁은 카드에서 말줄임으로
                   // 끝나면 `개인운동도 함께 간다` 는 사실이 통째로 잘린다(#2224).

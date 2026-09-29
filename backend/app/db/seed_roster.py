@@ -103,10 +103,23 @@ _METRICS: dict[str, dict] = {
     },
 }
 
+#: 데모 리포트 이력이 거슬러 올라가는 주 수(이번 주 포함). 트레이너 웹의
+#: `demoReportHistoryWeeks` 와 같은 값이다.
+DEMO_REPORT_HISTORY_WEEKS = 14
+
+#: 지난 리포트의 칼로리 줄이 평소로 삼는 앞선 주 수. 트레이너 웹의
+#: `kCalorieBaselineWeeks` 와 같은 값이다.
+CALORIE_BASELINE_WEEKS = 4
+
 #: 시드가 채우는 과거 주 수(이번 주 포함). 리포트가 '최근 4주' 카드를 그리고
-#: 과거 주로 이동할 수 있어, 이번 주만 채우면 한 주만 뒤로 가도 화면이 빈다.
-#: 12주면 8주 전까지 뒤로 가도 4주 카드가 꽉 찬다(#752).
-_HISTORY_WEEKS = 12
+#: 과거 주로 이동할 수 있어, 이번 주만 채우면 한 주만 뒤로 가도 화면이 빈다(#752).
+#:
+#: 리포트 이력의 가장 오래된 주도 그 앞 4주가 있어야 `지난 4주 평균` 과 증감이
+#: 선다(#2453). 12주에 멈춰 있을 때는 오래된 지난 리포트가 `이번 주 평균` 만
+#: 보여 줬다. 그래서 이력 주 수에 기준 주 수를 더한다. `seed_member_data` 도
+#: 이 값을 그대로 쓴다.
+HISTORY_WEEKS = DEMO_REPORT_HISTORY_WEEKS + CALORIE_BASELINE_WEEKS
+_HISTORY_WEEKS = HISTORY_WEEKS
 
 #: 과거 주에 곱하는 계수 — **지표마다 따로** 둔다. 난수를 쓰면 재시딩마다
 #: 이력이 바뀌어 어제 본 화면과 달라지므로 고정된 수를 돌려 쓴다.
@@ -165,7 +178,7 @@ def _sodium_offsets(values: list[int], anchor: str) -> list[tuple[int, int]]:
 def _seed_sodium_days(db: Session, member_id: str, spec: dict) -> None:
     today = clock.today()
     offsets = _sodium_offsets(spec["sodium"], spec.get("anchor", "recent"))
-    # 이미 있는 날짜를 **한 번에** 읽는다 — 날마다 조회하면 12주 × 15명에서
+    # 이미 있는 날짜를 **한 번에** 읽는다 — 날마다 조회하면 여러 주 × 15명에서
     # 시딩이 눈에 띄게 느려진다.
     existing = _existing_diet_ids(db, member_id)
     for week in range(_HISTORY_WEEKS):

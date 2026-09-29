@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/app_router.dart';
 import 'package:oncare_trainer/app/router/not_found_page.dart';
@@ -275,7 +276,7 @@ void main() {
         find.byKey(const ValueKey<String>('compact-brand-home')),
         findsOneWidget,
       );
-      await tester.tap(find.byIcon(Icons.menu_rounded));
+      await tester.tap(find.byIcon(AppIcons.menu));
       await settle(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('sidebar-${AppRoutes.clients}')),
@@ -294,7 +295,7 @@ void main() {
       // 드로어 닫기를 내비게이터 pop 에서 closeDrawer 로 바꾼 회귀 확인.
       await pumpTrainerApp(tester, token: _token, at: AppRoutes.dashboard);
 
-      await tester.tap(find.byIcon(Icons.menu_rounded));
+      await tester.tap(find.byIcon(AppIcons.menu));
       await settle(tester);
       expect(_drawerOpen(tester), isTrue);
       await tester.tap(

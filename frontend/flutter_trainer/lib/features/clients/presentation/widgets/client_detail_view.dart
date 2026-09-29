@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/one_line_overflow.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
@@ -19,6 +19,8 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목표 글이 배지 줄과 나눠 쓰는 폭 중 목표 몫의 상한.
@@ -231,7 +233,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
             showBack: widget.showBack,
             child: AppEmptyState(
               title: l.clientNotFound,
-              icon: Icons.person_search_rounded,
+              icon: AppIcons.selectClient,
               placement: AppStatePlacement.card,
             ),
           );
@@ -304,12 +306,12 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
           AppSegment<String>(
             value: 'diet',
             label: l.clientTabDiet,
-            icon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
           ),
           AppSegment<String>(
             value: 'workout',
             label: l.clientTabWorkout,
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
           ),
         ],
       );
@@ -446,7 +448,6 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: OnCareSpacing.s16,
@@ -460,7 +461,9 @@ class _Header extends StatelessWidget {
         // 주의사항 줄이 사라졌는지를 테스트가 재려면 프로필 줄의 끝을 지목할 수
         // 있어야 한다(#926).
         key: const ValueKey<String>('client-detail-identity'),
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // `<`·아바타·나가는 버튼이 이름·목표 두 줄의 세로 가운데에 선다 —
+        // 메시지 탭 대화 머리와 같은 정렬이다. 윗줄에 붙이면 아래 목표 줄
+        // 옆이 비어 머리가 위로 쏠려 보였다.
         children: <Widget>[
           // 닫기(X) 대신 늘 `<` 다(#2330) — 분할 보기에서도 같은 자리·같은
           // 모양이라, 화면 폭이 바뀌어도 나가는 길이 한 곳이다.
@@ -471,113 +474,67 @@ class _Header extends StatelessWidget {
               onPressed: onBack,
             ),
           ),
-          ClientAvatar(name: client.avatar, size: AppAvatarSize.large),
-          const SizedBox(width: OnCareSpacing.s12),
+          // 이름 줄에 휴면·동작이, 목표 줄에 신호 배지가 붙어 [ClientRow] 대신
+          // 같은 머리 밀도의 아바타·글씨를 직접 쓴다(#2467).
+          ClientAvatar(
+            name: client.avatar,
+            size: ClientRowDensity.header.avatarSize,
+          ),
+          SizedBox(width: ClientRowDensity.header.avatarGap),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    // 이름·휴면·신체·목표·메모는 왼쪽 묶음이 남는 폭을 다 쓴다 —
-                    // 이름이 짧아도 나가는 묶음은 오른쪽 끝에 붙는다.
-                    Expanded(
-                      child: Row(
-                        children: <Widget>[
-                          // 이름만 — 성별·나이는 목록 카드가 말한다(#1024). 긴
-                          // 이름은 말줄임해 버튼 자리를 뺏지 않는다.
-                          Flexible(
-                            child: Text(
-                              client.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(OnCareTypography.titleSmall)
-                                  .copyWith(color: OnCareColors.textPrimary),
-                            ),
-                          ),
-                          // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
-                          // 말하고, 누르면 활성으로 돌린다.
-                          if (!client.active) ...<Widget>[
-                            const SizedBox(width: OnCareSpacing.s8),
-                            Tooltip(
-                              message: l.clientDormantActivate,
-                              child: Material(
-                                type: MaterialType.transparency,
-                                child: InkWell(
-                                  key: const ValueKey<String>(
-                                    'client-status-toggle',
-                                  ),
-                                  onTap: onActivate,
-                                  borderRadius: OnCareRadius.pillAll,
-                                  child: AppTag(
-                                    label: l.clientDormant,
-                                    icon: Icons.bedtime_rounded,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(width: OnCareSpacing.s4),
-                          // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
-                          _HeaderAction(
-                            key: const ValueKey<String>(
-                              'client-detail-open-health',
-                            ),
-                            icon: Icons.flag_rounded,
-                            label: l.clientProfileSectionTitle,
-                            onPressed: onOpenHealth,
-                            quiet: true,
-                          ),
-                          _HeaderAction(
-                            key: const ValueKey<String>(
-                              'client-detail-open-memo',
-                            ),
-                            icon: Icons.sticky_note_2_rounded,
-                            label: l.clientTrainerMemo,
-                            onPressed: onOpenMemo,
-                            quiet: true,
-                          ),
-                        ],
+                    // 이름만 — 성별·나이는 목록 카드가 말한다(#1024). 긴 이름은
+                    // 말줄임해 버튼 자리를 뺏지 않는다.
+                    Flexible(
+                      child: Text(
+                        client.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: clientNameStyle(
+                          context,
+                          ClientRowDensity.header,
+                        ),
                       ),
                     ),
-                    // 다른 화면으로 넘어가는 동작 — 파랑, 오른쪽 끝. 예전에는
-                    // 식단·운동을 다 읽고도 메시지 탭·프로그램 탭으로 건너가 같은
-                    // 사람을 목록에서 다시 찾아야 했다(#823).
-                    Row(
-                      key: const ValueKey<String>(
-                        'client-detail-quick-actions',
+                    // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
+                    // 말하고, 누르면 활성으로 돌린다.
+                    if (!client.active) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s8),
+                      Tooltip(
+                        message: l.clientDormantActivate,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: InkWell(
+                            key: const ValueKey<String>('client-status-toggle'),
+                            onTap: onActivate,
+                            borderRadius: OnCareRadius.pillAll,
+                            child: AppTag(
+                              label: l.clientDormant,
+                              icon: AppIcons.dormant,
+                            ),
+                          ),
+                        ),
                       ),
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        _HeaderAction(
-                          key: const ValueKey<String>(
-                            'client-detail-open-messages',
-                          ),
-                          icon: Icons.chat_bubble_outline_rounded,
-                          label: l.clientQuickMessages,
-                          onPressed: () =>
-                              context.go(AppRoutes.messagesFor(client.id)),
-                        ),
-                        _HeaderAction(
-                          key: const ValueKey<String>(
-                            'client-detail-open-program',
-                          ),
-                          icon: Icons.assignment_rounded,
-                          label: l.clientQuickProgram,
-                          onPressed: () =>
-                              context.go(AppRoutes.coachingFor(client.id)),
-                        ),
-                        _HeaderAction(
-                          key: const ValueKey<String>(
-                            'client-detail-open-report',
-                          ),
-                          icon: Icons.analytics_rounded,
-                          label: l.clientQuickReport,
-                          onPressed: () =>
-                              context.go(AppRoutes.reportFor(client.id)),
-                        ),
-                      ],
+                    ],
+                    const SizedBox(width: OnCareSpacing.s4),
+                    // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
+                    _HeaderAction(
+                      key: const ValueKey<String>('client-detail-open-health'),
+                      icon: AppIcons.goal,
+                      label: l.clientProfileSectionTitle,
+                      onPressed: onOpenHealth,
+                      quiet: true,
+                    ),
+                    _HeaderAction(
+                      key: const ValueKey<String>('client-detail-open-memo'),
+                      icon: AppIcons.note,
+                      label: l.clientTrainerMemo,
+                      onPressed: onOpenMemo,
+                      quiet: true,
                     ),
                   ],
                 ),
@@ -596,16 +553,18 @@ class _Header extends StatelessWidget {
                           key: const ValueKey<String>('client-detail-goal'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: tokens
-                              .text(OnCareTypography.caption)
-                              .copyWith(color: OnCareColors.textTertiary),
+                          style: clientDetailStyle(
+                            context,
+                            ClientRowDensity.header,
+                          ),
                         ),
                       ),
                       if (signals.isNotEmpty) ...<Widget>[
                         const SizedBox(width: OnCareSpacing.s8),
                         Expanded(
-                          child: _SignalLine(
+                          child: ClientSignalBadges(
                             signals: signals,
+                            keyPrefix: 'client-detail',
                             onOpen: onOpenSignal,
                           ),
                         ),
@@ -616,91 +575,35 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 목표 옆 신호 배지 줄(#2330).
-///
-/// 급한 순으로 한 줄에 들어가는 만큼 세우고, 넘치는 것은 `+N` 으로 묶는다.
-/// `+N` 을 누르면 이 자리에서 전부 펼치고(줄바꿈), `접기` 로 다시 한 줄이 된다.
-/// 문구는 근거 수치까지(`칼로리 22% 과다`) — 이 회원을 열어 무엇을 얼마나
-/// 손볼지 정하는 자리다.
-class _SignalLine extends StatefulWidget {
-  const _SignalLine({required this.signals, required this.onOpen});
-
-  final List<ClientSignal> signals;
-  final ValueChanged<ClientSignal> onOpen;
-
-  @override
-  State<_SignalLine> createState() => _SignalLineState();
-}
-
-class _SignalLineState extends State<_SignalLine> {
-  bool _expanded = false;
-
-  Widget _tappable({
-    required Key key,
-    required VoidCallback onTap,
-    required Widget child,
-  }) => Material(
-    type: MaterialType.transparency,
-    child: InkWell(
-      key: key,
-      onTap: onTap,
-      borderRadius: OnCareRadius.pillAll,
-      child: child,
-    ),
-  );
-
-  // 펼친 `Wrap` 에서 배지 하나가 줄 폭보다 길면(좁은 패널 · 큰 글씨) 줄여서
-  // 들인다(#2337). 말줄임하지 않는다 — `칼로리 22% 과…` 처럼 잘린 문구·숫자는
-  // 다른 값으로 읽힌다. 접힌 줄은 폭 제약 없이 재므로 여기서 달라지지 않는다.
-  List<Widget> _badges(AppLocalizations l) => <Widget>[
-    for (final ClientSignal signal in widget.signals)
-      _tappable(
-        key: ValueKey<String>('client-detail-alert-${signal.kind.wire}'),
-        onTap: () => widget.onOpen(signal),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: AppTag(
-            label: signal.detailLabel(l),
-            icon: Icons.error_outline_rounded,
-            tone: signal.kind.tone,
-          ),
-        ),
-      ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    if (_expanded) {
-      return Wrap(
-        key: const ValueKey<String>('client-detail-signals'),
-        spacing: OnCareSpacing.s8,
-        runSpacing: OnCareSpacing.s4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          ..._badges(l),
-          _tappable(
-            key: const ValueKey<String>('client-detail-signals-less'),
-            onTap: () => setState(() => _expanded = false),
-            child: AppTag(label: l.clientSignalLess),
+          const SizedBox(width: OnCareSpacing.s8),
+          // 다른 화면으로 넘어가는 동작 — 파랑, 오른쪽 끝. 예전에는 식단·운동을
+          // 다 읽고도 메시지 탭·프로그램 탭으로 건너가 같은 사람을 목록에서
+          // 다시 찾아야 했다(#823).
+          Row(
+            key: const ValueKey<String>('client-detail-quick-actions'),
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _HeaderAction(
+                key: const ValueKey<String>('client-detail-open-messages'),
+                icon: AppIcons.chat,
+                label: l.clientQuickMessages,
+                onPressed: () => context.go(AppRoutes.messagesFor(client.id)),
+              ),
+              _HeaderAction(
+                key: const ValueKey<String>('client-detail-open-program'),
+                icon: AppIcons.coaching,
+                label: l.clientQuickProgram,
+                onPressed: () => context.go(AppRoutes.coachingFor(client.id)),
+              ),
+              _HeaderAction(
+                key: const ValueKey<String>('client-detail-open-report'),
+                icon: AppIcons.reports,
+                label: l.clientQuickReport,
+                onPressed: () => context.go(AppRoutes.reportFor(client.id)),
+              ),
+            ],
           ),
         ],
-      );
-    }
-    return OneLineOverflow(
-      key: const ValueKey<String>('client-detail-signals'),
-      spacing: OnCareSpacing.s8,
-      items: _badges(l),
-      moreBuilder: (int hidden) => _tappable(
-        key: ValueKey<String>('client-detail-signals-more-$hidden'),
-        onTap: () => setState(() => _expanded = true),
-        child: AppTag(label: l.clientSignalMore(hidden)),
       ),
     );
   }

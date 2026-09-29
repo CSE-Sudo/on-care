@@ -11,7 +11,6 @@ import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/record_span.dart';
@@ -262,10 +261,7 @@ void main() {
 
     testWidgets('전체 — 막대 툴팁에 유산소가 없다', (tester) async {
       await _pump(tester, ClientPeriod.month, _overrides(data: _otherOnly));
-      final String tip = tester
-          .widget<Tooltip>(find.byKey(const Key('client-exercise-bar-0')))
-          .richMessage!
-          .toPlainText();
+      final String tip = _barTip(tester, 'client-exercise-bar-0');
       expect(tip, contains('기타'));
       expect(tip, isNot(contains('유산소')));
     });
@@ -411,3 +407,14 @@ void main() {
     expect(isAtRingMultiple(double.nan), isFalse);
   });
 }
+
+/// 막대 툴팁 문구 — 상자는 [AppChartTooltip] 위젯이라, 같은 문구를 싣는
+/// 바깥 시맨틱 라벨로 읽는다(#2469).
+String _barTip(WidgetTester tester, String key) => tester
+    .widget<Semantics>(
+      find
+          .ancestor(of: find.byKey(Key(key)), matching: find.byType(Semantics))
+          .first,
+    )
+    .properties
+    .label!;

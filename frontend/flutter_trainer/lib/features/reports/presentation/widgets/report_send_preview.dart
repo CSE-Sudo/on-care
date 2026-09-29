@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -150,7 +151,7 @@ class _ReportSendPreviewState extends ConsumerState<ReportSendPreview> {
             children: <Widget>[
               AppIconButton(
                 key: const ValueKey<String>('report-send-preview-prev'),
-                icon: Icons.chevron_left_rounded,
+                icon: AppIcons.chevronLeft,
                 tooltip: l.reportsPreviewPrevPage,
                 size: AppIconButtonSize.small,
                 onPressed: page == 0
@@ -166,7 +167,7 @@ class _ReportSendPreviewState extends ConsumerState<ReportSendPreview> {
               ),
               AppIconButton(
                 key: const ValueKey<String>('report-send-preview-next'),
-                icon: Icons.chevron_right_rounded,
+                icon: AppIcons.chevronRight,
                 tooltip: l.reportsPreviewNextPage,
                 size: AppIconButtonSize.small,
                 onPressed: page >= pages.length - 1
@@ -176,14 +177,14 @@ class _ReportSendPreviewState extends ConsumerState<ReportSendPreview> {
               const Spacer(),
               AppIconButton(
                 key: const ValueKey<String>('report-send-preview-zoom-out'),
-                icon: Icons.zoom_out_rounded,
+                icon: AppIcons.zoomOut,
                 tooltip: l.reportsPreviewZoomOut,
                 size: AppIconButtonSize.small,
                 onPressed: _zoom == 0 ? null : () => setState(() => _zoom--),
               ),
               AppIconButton(
                 key: const ValueKey<String>('report-send-preview-zoom-in'),
-                icon: Icons.zoom_in_rounded,
+                icon: AppIcons.zoomIn,
                 tooltip: l.reportsPreviewZoomIn,
                 size: AppIconButtonSize.small,
                 onPressed: _zoom >= _zoomSteps.length - 1
@@ -257,17 +258,17 @@ class _RecipientCard extends StatelessWidget {
         children: <Widget>[
           AppSectionHeader(
             title: l.reportsPreviewTitle,
-            icon: Icons.picture_as_pdf_rounded,
+            icon: AppIcons.file,
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          _Field(
-            fieldKey: 'report-send-preview-recipient',
+          AppKeyValueRow(
+            valueKey: const ValueKey<String>('report-send-preview-recipient'),
             label: l.reportsPreviewRecipient,
             value: report.client.name,
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          _Field(
-            fieldKey: 'report-send-preview-week',
+          AppKeyValueRow(
+            valueKey: const ValueKey<String>('report-send-preview-week'),
             label: l.reportsPreviewWeek,
             value: report.rangeLabel(l),
           ),
@@ -276,53 +277,10 @@ class _RecipientCard extends StatelessWidget {
             key: const ValueKey<String>('report-send-preview-delivery'),
             title: l.reportsPreviewDelivery(report.client.name),
             message: l.reportsPreviewEditHint,
-            icon: Icons.chat_rounded,
+            icon: AppIcons.chat,
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Field extends StatelessWidget {
-  const _Field({
-    required this.fieldKey,
-    required this.label,
-    required this.value,
-  });
-
-  final String fieldKey;
-  final String label;
-  final String value;
-
-  /// 이름 칸 폭 — 두 줄의 값이 같은 세로선에서 시작하게 한다.
-  static const double _labelWidth = 72;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(
-          width: _labelWidth,
-          child: Text(
-            label,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            key: ValueKey<String>(fieldKey),
-            style: tokens.text(
-              OnCareTypography.strong(OnCareTypography.bodySmall),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
