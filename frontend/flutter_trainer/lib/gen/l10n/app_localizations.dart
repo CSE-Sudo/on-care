@@ -5317,12 +5317,6 @@ abstract class AppLocalizations {
   /// **'Skip PT — personal exercise only'**
   String get aiSkipPtProgram;
 
-  /// No description provided for @aiPersonalRationaleLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Why AI picked this'**
-  String get aiPersonalRationaleLabel;
-
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
   ///
   /// In en, this message translates to:

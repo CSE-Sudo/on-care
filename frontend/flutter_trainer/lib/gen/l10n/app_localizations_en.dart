@@ -3055,9 +3055,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
 
   @override
-  String get aiPersonalRationaleLabel => 'Why AI picked this';
-
-  @override
   String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
 
   @override

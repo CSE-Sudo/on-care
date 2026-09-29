@@ -1699,7 +1699,14 @@ def _routine_out(
         # 마치면 그때의 강도로 다시 계산한 값이 운동 기록에 남는다. (#996)
         calories=estimated.calories,
         calorie_source=estimated.source,
-        reason=rt.reason, source=rt.source,
+        # AI 제안(근거가 있는 행)의 사유는 트레이너가 읽는 판단 재료라 회원
+        # 응답에 싣지 않는다(#2579). 회원 카드에는 효과 한 줄이 선다.
+        reason=(
+            rt.reason
+            if include_evidence or not suggestion_evidence(rt.evidence_json)
+            else ""
+        ),
+        source=rt.source,
         effect=_routine_effect(db, rt),
         program_name=rt.program_name,
         session_name=rt.session_name,

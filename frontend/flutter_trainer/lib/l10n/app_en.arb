@@ -1991,7 +1991,6 @@
   "aiStepReview": "Program selection",
   "aiStepDone": "Program review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
-  "aiPersonalRationaleLabel": "Why AI picked this",
   "routineEvidenceRecentPtFeedback": "Recent PT feedback",
   "@routineEvidenceRecentPtFeedback": {
     "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
