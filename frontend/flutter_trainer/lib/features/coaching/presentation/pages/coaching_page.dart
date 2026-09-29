@@ -566,6 +566,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             // 순간 사라져, 같은 프로그램이 코칭 탭과 스케줄 탭에서 다르게
             // 읽혔다.
             duration: exercise.isStrength ? null : exercise.minutes,
+            // 초가 기준이다(#2521) — 분만 실으면 일정의 운동 목록이 분 × 60
+            // 으로 되짚혀, 편집기의 45초가 스케줄·회원 앱에서 `1분` 이 된다.
+            durationSeconds: exercise.isStrength
+                ? null
+                : exercise.durationSeconds,
             sets: exercise.isStrength ? exercise.sets : null,
             // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은
             // 비운다(#1969).
@@ -938,6 +943,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                       (item) => RoutineExercise(
                         name: item.name,
                         minutes: item.minutes,
+                        durationSeconds: item.durationSeconds,
                         type: _typeEdits[item.id] ?? item.type,
                       ),
                     )
@@ -960,6 +966,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           id: 'generated-${client.id}-$index',
                           name: exercises[index].name,
                           minutes: exercises[index].minutes,
+                          // 위저드에서 시·분·초로 고친 초를 함께 넘긴다(#2521).
+                          durationSeconds: exercises[index].durationSeconds,
                           type: exercises[index].type,
                           reason: '',
                           sets: exercises[index].sets,

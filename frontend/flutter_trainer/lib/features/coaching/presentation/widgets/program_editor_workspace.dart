@@ -903,7 +903,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
         ProgramExerciseDraft(
           id: 'exercise-${_nextId++}',
           name: item.name,
-          durationSeconds: (item.minutes > 0 ? item.minutes : 30) * 60,
+          // 위저드에서 고친 초가 있으면 그 값으로 연다(#2521).
+          durationSeconds: item.seconds > 0 ? item.seconds : 30 * 60,
           // AI 추천 사유(`reason`)는 운동 메모로 옮기지 않는다 — 트레이너가
           // 쓴 적 없는 글이 메모로 전송·저장되던 자리다(#2371).
           type: type,
@@ -914,6 +915,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // 물어야 한다 (#1310).
           sets: item.sets > 0 ? item.sets : 3,
           reps: item.reps > 0 ? item.reps : 10,
+          // 버티는 운동이면 초 칸으로 연다(#1969) — 넘기지 않던 동안에는
+          // 위저드의 `플랭크 45초` 가 편집기에서 횟수 칸으로 열렸다. (#2521)
+          holdSeconds: item.holdSeconds > 0 ? item.holdSeconds : 60,
+          isHold: item.holdSeconds > 0,
           // 중량은 채우지 않는다 — AI 가 분으로만 준 근력에 20kg 를 지어내면
           // 맨몸 운동이 회원에게 `20kg` 지시로 간다(#2265).
           weight: item.weight,

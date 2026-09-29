@@ -350,6 +350,48 @@ void main() {
     });
   });
 
+  testWidgets('위저드에서 고친 초·버티는 초가 편집기에 그대로 열린다 (#2521)', (
+    tester,
+  ) async {
+    await pumpEditor(tester);
+    await tester.pumpWidget(
+      buildApp(const <AiRoutineItem>[
+        AiRoutineItem(
+          id: 'burpee',
+          name: '버피',
+          minutes: 1,
+          durationSeconds: 45,
+          type: '유산소',
+          reason: '',
+        ),
+        AiRoutineItem(
+          id: 'plank',
+          name: '플랭크',
+          minutes: 9,
+          type: '근력',
+          reason: '',
+          sets: 3,
+          holdSeconds: 45,
+        ),
+      ]),
+    );
+    await tester.pump();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('program-editor-send')),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('program-editor-send')));
+    await tester.pump();
+
+    final exercises = <ProgramExerciseDraft>[
+      for (final session in sent!.sessions) ...session.exercises,
+    ];
+    final burpee = exercises.singleWhere((e) => e.name == '버피');
+    final plank = exercises.singleWhere((e) => e.name == '플랭크');
+    expect(burpee.durationSeconds, 45);
+    expect((plank.isHold, plank.holdSeconds), (true, 45));
+  });
+
   testWidgets('AI 추천 사유는 운동 메모가 되지 않고, 메모 칸도 없다 (#2371)', (tester) async {
     await pumpEditor(tester);
     await mergeSuggestions(tester);
