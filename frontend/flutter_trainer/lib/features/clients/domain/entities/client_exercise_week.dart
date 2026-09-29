@@ -136,6 +136,9 @@ class ClientExerciseWeek {
             sets: single ? (row['sets'] as num?)?.toInt() : null,
             reps: single ? (row['reps'] as num?)?.toInt() : null,
             holdSeconds: single ? (row['hold_seconds'] as num?)?.toInt() : null,
+            durationSeconds: single
+                ? (row['duration_seconds'] as num?)?.toInt()
+                : null,
             weight: single ? (row['weight'] as num?)?.toDouble() : null,
           ),
         );

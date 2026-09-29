@@ -21,6 +21,7 @@ from app.core import clock
 from app.schemas.exercise_limits import (
     MAX_EXERCISE_HOLD_SECONDS,
     MAX_EXERCISE_REPS,
+    MAX_EXERCISE_SECONDS,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
 )
@@ -304,6 +305,10 @@ class RoutineHistoryExerciseOut(BaseModel):
     sets: int | None = None
     reps: int | None = None
     hold_seconds: int | None = None
+    #: 유산소·스트레칭·기타에 쓴 시간(초). `minutes` 는 여기서 반올림한 값이다.
+    #: 초를 적은 배정 수행만 채운다 — 비어 있으면 앱은 `minutes` 로 읽는다.
+    #: (#2221)
+    duration_seconds: int | None = None
     weight: float | None = None
     #: `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 채운다.
     intensity: str | None = None
@@ -486,6 +491,7 @@ def _drop_fields_not_in_type(model: _ProgramLike) -> _ProgramLike:
     """
     if model.type == "근력":
         model.duration = None
+        model.duration_seconds = None
         # 한 세트는 회로든 초로든 한 번만 잰다(#1969). 버티는 운동이면 초가
         # 맞고 횟수를 비운다 — 둘이 함께 남으면 `플랭크 3세트 · 10회 · 60초`
         # 처럼 한 줄이 두 단위로 자기를 말한다.
@@ -496,6 +502,27 @@ def _drop_fields_not_in_type(model: _ProgramLike) -> _ProgramLike:
         model.reps = None
         model.hold_seconds = None
         model.weight = None
+    return model
+
+
+def _sync_duration_units(model: _ProgramLike) -> _ProgramLike:
+    """운동 시간의 두 단위 — 분(`duration`)과 초(`duration_seconds`)를 맞춘다. (#2221)
+
+    트레이너 웹은 시·분·초 세 칸으로 적어 초를 보낸다. 분만 있던 동안에는
+    45초짜리 운동을 적을 수 없었고, 한 시간이 넘으면 90분처럼 환산해야 했다.
+
+    초가 있으면 **초가 기준**이고 분은 거기서 반올림한 값이다(0 이 아니면
+    최소 1분) — 회원 운동 기록(`ExerciseSessionCreate`)과 같은 규칙이다. 분을
+    더하는 집계·알림·예전 클라이언트는 분을 그대로 읽는다.
+
+    초가 없으면(이 칸이 생기기 전의 행·분만 보내는 클라이언트) 분 × 60 으로
+    채운다. 그래서 읽는 쪽은 언제나 초를 믿으면 된다.
+    """
+    if model.duration_seconds is not None:
+        seconds = model.duration_seconds
+        model.duration = max(1, round(seconds / 60)) if seconds > 0 else 0
+    elif model.duration is not None:
+        model.duration_seconds = model.duration * 60
     return model
 
 
@@ -517,7 +544,11 @@ class ProgramDraftExercise(BaseModel):
     #: 이 운동을 하는 날. 아직 일정에 걸지 않은 초안은 비어 있다.
     date: _date | None = None
     #: 유산소·스트레칭·기타의 운동 시간(분). 근력은 세트로 재므로 비어 있다.
+    #: `duration_seconds` 가 있으면 거기서 반올림한 값이다(#2221).
     duration: LooseInt = Field(default=None, ge=0, le=600)
+    #: 같은 운동 시간을 초로(#2221). 트레이너가 시·분·초로 적은 그대로다 —
+    #: 비어 오면 `duration` × 60 으로 채운다([_sync_duration_units]).
+    duration_seconds: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SECONDS)
     #: 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서는 비어 있다.
     sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
     reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
@@ -536,6 +567,8 @@ class ProgramDraftExercise(BaseModel):
     _drop_mismatched_fields = model_validator(mode="after")(
         _drop_fields_not_in_type
     )
+    # 유형에 맞지 않는 칸을 비운 **뒤에** 맞춘다 — 근력의 시간은 둘 다 빈다.
+    _sync_duration = model_validator(mode="after")(_sync_duration_units)
 
 
 
@@ -569,6 +602,10 @@ class RoutineOut(BaseModel):
     #: 버티는 루틴이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
     #: 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
     hold_seconds: int | None = None
+    #: 유산소·스트레칭·기타의 운동 시간(초)(#2221). `minutes` 는 여기서 반올림한
+    #: 값이다. 초를 적지 않은 예전 배정은 `minutes` × 60 으로 채워 오고, 근력은
+    #: 세트로 재므로 비어 있다.
+    duration_seconds: int | None = None
     weight: float | None = None
     reason: str
     source: RoutineSource
@@ -586,6 +623,8 @@ class RoutineOut(BaseModel):
     completed: bool = False
     completed_at: _datetime | None = None
     completed_minutes: int | None = None
+    #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
+    completed_duration_seconds: int | None = None
     completed_intensity: str | None = None
     member_note: str = ""
     trainer_feedback: str = ""
@@ -836,6 +875,11 @@ class PersonalRoutineItem(BaseModel):
 
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(default=0, ge=0, le=600)
+    #: 같은 운동 시간을 초로(#2221). 보내면 이 값이 기준이고 `minutes` 는
+    #: 거기서 반올림한다 — 프로그램 운동(`ProgramDraftExercise`)과 같은 규칙이다.
+    duration_seconds: int | None = Field(
+        default=None, ge=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType
     intensity: RoutineIntensity = "moderate"
     sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
@@ -846,6 +890,16 @@ class PersonalRoutineItem(BaseModel):
     weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     source: RoutineSource = "trainer"
+
+    @model_validator(mode="after")
+    def _minutes_from_seconds(self) -> "PersonalRoutineItem":
+        """초가 오면 분을 거기서 반올림한다. 근력은 세트로 재므로 초를 비운다."""
+        if self.type == "근력":
+            self.duration_seconds = None
+        elif self.duration_seconds is not None:
+            seconds = self.duration_seconds
+            self.minutes = max(1, round(seconds / 60)) if seconds > 0 else 0
+        return self
 
 
 #: 한 PT 일정에 붙일 수 있는 개인운동 수의 상한. 프로그램 세션 상한과 같은
@@ -1190,6 +1244,8 @@ class ProgramItem(BaseModel):
     type: RoutineType = "근력"
     date: _date | None = None
     duration: LooseInt = Field(default=None, ge=0, le=600)
+    #: 같은 운동 시간을 초로 — [ProgramDraftExercise.duration_seconds] 와 같다(#2221).
+    duration_seconds: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SECONDS)
     sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
     #: 근력의 한 세트당 횟수. 세트·중량과 한 벌이다(#1310) — 셋이 다 있어야
     #: 트레이너가 짠 근력 한 줄이 회원 화면에서 그대로 재현된다.
@@ -1208,6 +1264,8 @@ class ProgramItem(BaseModel):
     _drop_mismatched_fields = model_validator(mode="after")(
         _drop_fields_not_in_type
     )
+    # 유형에 맞지 않는 칸을 비운 **뒤에** 맞춘다 — 근력의 시간은 둘 다 빈다.
+    _sync_duration = model_validator(mode="after")(_sync_duration_units)
 
 
 #: 취소 주체. 트레이너 사정의 취소를 회원의 미이행으로 읽지 않으려면 남아 있어야

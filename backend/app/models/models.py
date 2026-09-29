@@ -1587,6 +1587,10 @@ class TrainerRoutine(Base):
     #: 버티는 운동이면 이 값이 있고 `reps` 가 비며, 아니면 반대다(#1969).
     #: 트레이너가 "플랭크 60초 3세트" 를 배정할 수 있는 유일한 칸이다.
     hold_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    #: 유산소·스트레칭·기타의 운동 시간을 초로(#2221). 트레이너가 시·분·초로
+    #: 적은 그대로이고, `minutes` 는 거기서 반올림한 값이다(0 이 아니면 최소
+    #: 1분). 이 칸이 생기기 전의 배정과 근력은 비어 있다 — 읽을 때 분 × 60 이다.
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reason: Mapped[str] = mapped_column(String(200), default="")
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |

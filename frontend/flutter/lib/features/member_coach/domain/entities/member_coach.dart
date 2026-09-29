@@ -41,10 +41,12 @@ class CoachRoutine {
     required this.type,
     required this.reason,
     required this.source,
+    this.durationSeconds,
     this.intensity = 'moderate',
     this.completed = false,
     this.completedAt,
     this.completedMinutes,
+    this.completedDurationSeconds,
     this.completedIntensity,
     this.trainerFeedback = '',
     this.programName = '',
@@ -63,6 +65,14 @@ class CoachRoutine {
   final String type;
   final String reason;
 
+  /// 유산소·스트레칭·기타 루틴의 운동 시간(초). (#2221)
+  ///
+  /// 트레이너가 `45초` 로 배정한 운동이 [minutes] 만으로는 `1분` 으로 읽힌다 —
+  /// [minutes] 는 서버가 이 값에서 반올림한 수라 초가 사라진다. 근력은 세트로
+  /// 재므로 null 이고, 이 필드를 모르는 옛 응답도 null 이라 화면은 [minutes] 로
+  /// 떨어진다.
+  final int? durationSeconds;
+
   /// 방금 완료해 받은 포인트(#1786). 완료 응답에만 있고, 목록의 루틴은 null 이다.
   /// AI 추천·트레이너 배정 모두 같은 규칙이고 하루 한도를 넘으면 0 이다.
   final PointsAward? pointsAward;
@@ -79,6 +89,10 @@ class CoachRoutine {
   final bool completed;
   final DateTime? completedAt;
   final int? completedMinutes;
+
+  /// 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 null 이다(#2221) —
+  /// 그때는 [completedMinutes] 가 그 기록의 값이다.
+  final int? completedDurationSeconds;
   final String? completedIntensity;
   final String trainerFeedback;
 
@@ -115,6 +129,7 @@ class CoachRoutine {
     bool? completed,
     DateTime? completedAt,
     int? completedMinutes,
+    int? completedDurationSeconds,
     String? completedIntensity,
     String? trainerFeedback,
     PointsAward? pointsAward,
@@ -125,9 +140,13 @@ class CoachRoutine {
     type: type,
     reason: reason,
     source: source,
+    // 배정된 초는 트레이너가 정한 값이라 완료 표시에 흔들리지 않는다(#2221).
+    durationSeconds: durationSeconds,
     completed: completed ?? this.completed,
     completedAt: completedAt ?? this.completedAt,
     completedMinutes: completedMinutes ?? this.completedMinutes,
+    completedDurationSeconds:
+        completedDurationSeconds ?? this.completedDurationSeconds,
     completedIntensity: completedIntensity ?? this.completedIntensity,
     trainerFeedback: trainerFeedback ?? this.trainerFeedback,
     // 완료만 표시해도 프로그램·세션·운동 구성은 그대로 남아야 한다 — 빠뜨리면
@@ -215,6 +234,7 @@ class CoachProgramItem {
     required this.reps,
     required this.weight,
     this.duration = 0,
+    this.durationSeconds,
   });
 
   final String name;
@@ -229,7 +249,14 @@ class CoachProgramItem {
 
   /// 유산소·스트레칭·기타 항목의 운동 시간(분). 서버는 근력 항목에서는 이 값을
   /// 비우고 세트·횟수·중량을 사용한다.
+  ///
+  /// [durationSeconds] 에서 반올림한 값이라(0 초과면 최소 1) 초가 사라진다 —
+  /// 화면은 [durationSeconds] 를 읽는다. 옛 호환을 위해 남겨 둔다(#2221).
   final int duration;
+
+  /// 같은 운동 시간을 초로(#2221). 트레이너가 `45초` 로 적은 운동이 [duration]
+  /// 으로는 `1분` 이 된다. 근력 항목과, 시간을 적지 않은 항목은 null 이다.
+  final int? durationSeconds;
 }
 
 /// Chat message viewpoint for the member: their own message vs the coach's.
@@ -335,6 +362,7 @@ class CoachRoutineExercise {
     this.reps,
     this.weight,
     this.duration,
+    this.durationSeconds,
     this.rest,
     this.memo = '',
   });
@@ -346,8 +374,12 @@ class CoachRoutineExercise {
   final int? reps;
   final double? weight;
 
-  /// 유산소·스트레칭의 운동 시간(분).
+  /// 유산소·스트레칭의 운동 시간(분). [durationSeconds] 에서 반올림한 값이다.
   final int? duration;
+
+  /// 같은 운동 시간을 초로(#2221). 트레이너가 `45초` 로 적은 운동이 [duration]
+  /// 으로는 `1분` 이 된다 — 화면은 이 값을 읽는다. 근력은 null 이다.
+  final int? durationSeconds;
 
   /// 세트 사이 휴식(초). 지금 서버 계약에는 없고, 이 값을 싣던 옛 응답에서만 온다.
   final int? rest;

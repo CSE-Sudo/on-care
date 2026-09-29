@@ -4,6 +4,8 @@
 /// assign API.
 library;
 
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
+
 /// The member-state summary the generation was grounded on (step 1).
 class MemberAnalysis {
   const MemberAnalysis({
@@ -84,6 +86,7 @@ class RoutineExercise {
     required this.name,
     required this.minutes,
     required this.type,
+    this.durationSeconds,
     this.sets = 0,
     this.reps = 0,
     this.holdSeconds = 0,
@@ -96,6 +99,14 @@ class RoutineExercise {
   final String name;
   final int minutes;
   final String type;
+
+  /// 같은 운동 시간을 초로(#2221). 트레이너가 시·분·초로 적었을 때만 있다 —
+  /// 서버가 주는 A/B 후보와 예전 값은 분뿐이라 비어 있다. 읽을 때는
+  /// [seconds] 를 쓴다. [minutes] 는 이 값에서 반올림해 함께 맞춘다(합계용).
+  final int? durationSeconds;
+
+  /// 이 운동의 시간(초). 초로 적지 않았으면 분 × 60 이다.
+  int get seconds => durationSeconds ?? minutes * 60;
 
   /// AI 가 이 운동을 고른 이유. **트레이너만 보는 글이다** — 회원에게는
   /// 보내지 않고, 이 제안을 그대로 둘지 판단하는 재료로만 쓴다(#2223).
@@ -128,6 +139,7 @@ class RoutineExercise {
     String? name,
     int? minutes,
     String? type,
+    int? durationSeconds,
     int? sets,
     int? reps,
     int? holdSeconds,
@@ -137,8 +149,15 @@ class RoutineExercise {
     String? source,
   }) => RoutineExercise(
     name: name ?? this.name,
-    minutes: minutes ?? this.minutes,
+    // 초를 바꾸면 분도 그 값에서 다시 접는다 — 두 값이 어긋나면 합계(분)와
+    // 보이는 시간(초)이 다른 운동을 말한다.
+    minutes: durationSeconds != null
+        ? minutesFromSeconds(durationSeconds)
+        : minutes ?? this.minutes,
     type: type ?? this.type,
+    // 분만 새로 적으면 그 분이 기준이 된다 — 예전 초가 남아 덮지 않게 비운다.
+    durationSeconds:
+        durationSeconds ?? (minutes != null ? null : this.durationSeconds),
     sets: sets ?? this.sets,
     reps: reps ?? this.reps,
     holdSeconds: holdSeconds ?? this.holdSeconds,
