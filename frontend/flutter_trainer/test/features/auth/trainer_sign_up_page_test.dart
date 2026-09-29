@@ -15,7 +15,6 @@ import '../../helpers/pump_app.dart';
 class _RecordingAuthRepository implements TrainerAuthRepository {
   String? email;
   String? name;
-  String? inviteCode;
   int registerCalls = 0;
 
   /// 가입이 거절될 때 던질 실패. 비밀번호 기준(#1555) 거절을 흉내 낸다.
@@ -37,12 +36,10 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
-    required String inviteCode,
   }) async {
     registerCalls++;
     this.email = email;
     this.name = name;
-    this.inviteCode = inviteCode;
     if (error != null) throw error!;
     return _tokens;
   }
@@ -73,7 +70,7 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
       );
 }
 
-/// 실 API 모드 설정 — 초대 코드 입력이 그려지는 쪽.
+/// 실 API 모드 설정.
 const AppConfig _realConfig = AppConfig(
   environment: Environment.dev,
   apiBaseUrl: 'http://localhost/v1',
@@ -113,9 +110,6 @@ const ValueKey<String> _passwordKey = ValueKey<String>(
 const ValueKey<String> _confirmKey = ValueKey<String>(
   'trainer-signup-password-confirm',
 );
-const ValueKey<String> _codeKey = ValueKey<String>(
-  'trainer-signup-invite-code',
-);
 
 Future<void> _fill(
   WidgetTester tester, {
@@ -123,7 +117,6 @@ Future<void> _fill(
   String email = 'new@oncare.com',
   String password = 'signup-pw-1234',
   String confirm = 'signup-pw-1234',
-  String? code,
 }) async {
   await tester.enterText(find.widgetWithText(TextField, '이름'), name);
   await tester.enterText(find.widgetWithText(TextField, '이메일'), email);
@@ -133,9 +126,6 @@ Future<void> _fill(
     password,
   );
   await tester.enterText(find.widgetWithText(TextField, '비밀번호 확인'), confirm);
-  if (code != null) {
-    await tester.enterText(find.widgetWithText(TextField, '헬스장 초대 코드'), code);
-  }
   await tester.pump();
 }
 
@@ -149,9 +139,6 @@ Future<void> _type(
     text,
   );
   await tester.pump();
-  // 도움말이 있는 칸(초대 코드)은 오류 문구가 도움말로 서서히 바뀐다
-  // (Material 167ms). 전환이 끝나야 사라진 문구가 트리에서도 빠진다.
-  await tester.pump(const Duration(milliseconds: 200));
 }
 
 /// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
@@ -170,55 +157,31 @@ Finder _errorUnder(ValueKey<String> key, String message) =>
     find.descendant(of: find.byKey(key), matching: find.text(message));
 
 void main() {
-  testWidgets('가입 화면에 초대 코드 입력이 있다', (WidgetTester tester) async {
+  testWidgets('가입 화면에 초대 코드 입력이 없다', (WidgetTester tester) async {
+    // 소속 헬스장은 가입 뒤 헬스장을 찾아 고른다(#1627).
     await _pumpSignUp(tester);
 
-    expect(find.widgetWithText(TextField, '헬스장 초대 코드'), findsOneWidget);
-    expect(find.text('소속 헬스장에서 발급받은 코드를 입력해 주세요.'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '헬스장 초대 코드'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('trainer-signup-invite-code')),
+      findsNothing,
+    );
   });
 
-  testWidgets('초대 코드를 그대로 실어 보낸다', (WidgetTester tester) async {
-    final repo = await _pumpSignUp(tester);
-    await _fill(tester, code: 'ONCARE1');
-
-    await _submit(tester);
-
-    expect(repo.registerCalls, 1);
-    expect(repo.inviteCode, 'ONCARE1');
-    expect(repo.email, 'new@oncare.com');
-  });
-
-  testWidgets('코드 앞뒤 공백은 정리해서 보낸다', (WidgetTester tester) async {
-    final repo = await _pumpSignUp(tester);
-    await _fill(tester, code: '  ONCARE1  ');
-
-    await _submit(tester);
-
-    expect(repo.inviteCode, 'ONCARE1');
-  });
-
-  testWidgets('코드 없이는 가입 요청을 보내지 않는다', (WidgetTester tester) async {
-    // 코드가 소속을 결정하므로, 없으면 서버에 물어볼 것도 없다.
+  testWidgets('이름·이메일·비밀번호만으로 가입을 보낸다', (WidgetTester tester) async {
     final repo = await _pumpSignUp(tester);
     await _fill(tester);
 
     await _submit(tester);
 
-    expect(repo.registerCalls, 0);
-    // 코드 칸 아래에서 안내 대신 오류 문구가 뜬다(#1784).
-    expect(_errorUnder(_codeKey, '헬스장에서 받은 초대 코드를 입력해 주세요'), findsOneWidget);
-    expect(find.text('소속 헬스장에서 발급받은 코드를 입력해 주세요.'), findsNothing);
-
-    // 코드를 넣으면 오류가 사라지고 안내가 돌아온다.
-    await _type(tester, _codeKey, 'ONCARE1');
-    await tester.pump();
-    expect(find.text('헬스장에서 받은 초대 코드를 입력해 주세요'), findsNothing);
-    expect(find.text('소속 헬스장에서 발급받은 코드를 입력해 주세요.'), findsOneWidget);
+    expect(repo.registerCalls, 1);
+    expect(repo.email, 'new@oncare.com');
+    expect(repo.name, '김신규');
   });
 
-  testWidgets('비밀번호가 다르면 코드가 있어도 보내지 않는다', (WidgetTester tester) async {
+  testWidgets('비밀번호가 다르면 보내지 않는다', (WidgetTester tester) async {
     final repo = await _pumpSignUp(tester);
-    await _fill(tester, confirm: 'different-pw1', code: 'ONCARE1');
+    await _fill(tester, confirm: 'different-pw1');
 
     await _submit(tester);
 
@@ -240,7 +203,6 @@ void main() {
     expect(_errorUnder(_nameKey, '이름을 입력해 주세요'), findsOneWidget);
     expect(_errorUnder(_emailKey, '이메일을 입력해 주세요'), findsOneWidget);
     expect(_errorUnder(_passwordKey, '비밀번호를 입력해 주세요'), findsOneWidget);
-    expect(_errorUnder(_codeKey, '헬스장에서 받은 초대 코드를 입력해 주세요'), findsOneWidget);
     // 둘 다 비어 있으면 서로 같다 — 확인 칸은 조용하다.
     expect(find.text('비밀번호가 일치하지 않아요'), findsNothing);
     // 예전 토스트 문구는 더 이상 뜨지 않는다.
@@ -253,7 +215,7 @@ void main() {
   ) async {
     final repo = await _pumpSignUp(tester);
     // 이름 말고는 모두 맞게 채운다.
-    await _fill(tester, name: '   ', code: 'ONCARE1');
+    await _fill(tester, name: '   ');
     expect(find.text('이름을 입력해 주세요'), findsNothing);
 
     await _submit(tester);
@@ -276,13 +238,7 @@ void main() {
     final repo = await _pumpSignUp(tester);
 
     for (final String weak in <String>['abc123', 'abcdefgh', '12345678']) {
-      await _fill(
-        tester,
-        email: 'new@oncare',
-        password: weak,
-        confirm: weak,
-        code: 'ONCARE1',
-      );
+      await _fill(tester, email: 'new@oncare', password: weak, confirm: weak);
       await _submit(tester);
 
       expect(_errorUnder(_emailKey, '이메일 형식이 올바르지 않아요'), findsOneWidget);
@@ -299,7 +255,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final repo = await _pumpSignUp(tester);
-    await _fill(tester, password: 'abcdefgh', confirm: 'abcdefgh', code: 'C1');
+    await _fill(tester, password: 'abcdefgh', confirm: 'abcdefgh');
 
     await _submit(tester);
     expect(find.text('영문과 숫자를 포함해 8자 이상 입력해 주세요'), findsOneWidget);
@@ -331,7 +287,7 @@ void main() {
     final repo = await _pumpSignUp(tester);
     final String tooLong = '${'a1' * 32}x';
 
-    await _fill(tester, password: tooLong, confirm: tooLong, code: 'ONCARE1');
+    await _fill(tester, password: tooLong, confirm: tooLong);
     await _submit(tester);
 
     expect(
@@ -351,7 +307,7 @@ void main() {
     final repo = await _pumpSignUp(tester);
     final String hangul = '${'가' * 22}abc1234';
 
-    await _fill(tester, password: hangul, confirm: hangul, code: 'ONCARE1');
+    await _fill(tester, password: hangul, confirm: hangul);
     await _submit(tester);
 
     expect(
@@ -365,32 +321,22 @@ void main() {
     AuthFailure.passwordWeak: '영문과 숫자를 포함해 8자 이상 입력해 주세요',
     AuthFailure.passwordTooLong: '비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)',
   }.entries) {
-    testWidgets('서버가 비밀번호를 거절하면(${c.key.name}) 코드가 아니라 비밀번호 문구다', (
+    testWidgets('서버가 비밀번호를 거절하면(${c.key.name}) 비밀번호 문구다', (
       WidgetTester tester,
     ) async {
       final repo = await _pumpSignUp(tester, error: AuthException(c.key));
 
-      await _fill(tester, code: 'ONCARE1');
+      await _fill(tester);
       await _submit(tester);
 
       expect(repo.registerCalls, 1);
       expect(find.text(c.value), findsOneWidget);
-      expect(find.text('사용할 수 없는 초대 코드예요. 헬스장에 확인해 주세요.'), findsNothing);
     });
   }
 
   // --- 데모 불변 -----------------------------------------------------------
 
-  testWidgets('데모 가입 화면에는 코드 입력이 없다', (WidgetTester tester) async {
-    // 데모에는 코드를 검증할 백엔드가 없다. 무엇을 넣어도 통과하는 죽은 입력을
-    // 두느니 그리지 않는다 — 데모 화면이 지금 그대로여야 한다.
-    await _pumpSignUp(tester, demo: true);
-
-    expect(find.widgetWithText(TextField, '헬스장 초대 코드'), findsNothing);
-    expect(find.text('소속 헬스장에서 발급받은 코드를 입력해 주세요.'), findsNothing);
-  });
-
-  testWidgets('데모에서는 코드 없이도 가입이 진행된다', (WidgetTester tester) async {
+  testWidgets('데모에서도 같은 칸으로 가입이 진행된다', (WidgetTester tester) async {
     final repo = await _pumpSignUp(tester, demo: true);
     await _fill(tester);
 
@@ -398,6 +344,5 @@ void main() {
     await settle(tester);
 
     expect(repo.registerCalls, 1);
-    expect(repo.inviteCode, '');
   });
 }

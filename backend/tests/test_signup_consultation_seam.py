@@ -28,14 +28,12 @@ from app.models.models import (
     Notification,
     Place,
     TrainerClient,
-    TrainerInviteCode,
     TrainerProfile,
     User,
 )
 
 EMAIL_PREFIX = "seam-test-"
 PLACE_PREFIX = "seam-place-"
-CODE_PREFIX = "SEAMTEST"
 PASSWORD = "seam-pw-1234"
 
 
@@ -49,9 +47,6 @@ def _cleanup(db_session):
         .filter(User.email.like(f"{EMAIL_PREFIX}%"))
         .all()
     ]
-    db_session.query(TrainerInviteCode).filter(
-        TrainerInviteCode.code.like(f"{CODE_PREFIX}%")
-    ).delete(synchronize_session=False)
     if user_ids:
         db_session.query(ConsultationRequest).filter(
             (ConsultationRequest.member_id.in_(user_ids))
@@ -104,19 +99,11 @@ def _gym(db_session) -> Place:
     return place
 
 
-def _invite_code(db_session, gym: Place) -> str:
-    code = TrainerInviteCode(
-        code=f"{CODE_PREFIX}{uuid4().hex[:8].upper()}", gym_id=gym.id
-    )
-    db_session.add(code)
-    db_session.commit()
-    return code.code
+def _sign_up_trainer(client, gym: Place) -> tuple[str, str]:
+    """가입 엔드포인트로 트레이너를 만들고 소속을 고른다. (id, token)
 
-
-def _sign_up_trainer(client, code: str) -> tuple[str, str]:
-    """가입 엔드포인트로 트레이너를 만든다. (id, token)
-
-    DB 직접 삽입이 아니라 이 경로를 쓰는 것이 이 테스트의 핵심이다.
+    DB 직접 삽입이 아니라 이 경로를 쓰는 것이 이 테스트의 핵심이다. 소속은 가입
+    뒤 `PUT /trainer/me/gym` 으로 고른다(#1627).
     """
     email = f"{EMAIL_PREFIX}trainer-{uuid4().hex[:10]}@oncare.com"
     response = client.post(
@@ -125,11 +112,15 @@ def _sign_up_trainer(client, code: str) -> tuple[str, str]:
             "email": email,
             "password": PASSWORD,
             "name": "가입 트레이너",
-            "invite_code": code,
         },
     )
     assert response.status_code == 201, response.text
-    return response.json()["id"], _login(client, email)
+    token = _login(client, email)
+    picked = client.put(
+        "/v1/trainer/me/gym", headers=_auth(token), json={"gym_id": gym.id}
+    )
+    assert picked.status_code == 200, picked.text
+    return response.json()["id"], token
 
 
 def _member(client) -> tuple[str, str]:
@@ -168,15 +159,14 @@ def test_a_signed_up_trainer_can_receive_and_accept_a_consultation(
 ):
     """가입 → 상담 요청 → 인박스 → 승인 → 로스터.
 
-    여기서 확인하는 것은 각 단계의 동작이 아니라 **초대 코드가 채운 소속이 상담
+    여기서 확인하는 것은 각 단계의 동작이 아니라 **가입 뒤 고른 소속이 상담
     대상 조건과 실제로 이어지는가**다. 상담은 헬스장 소속 트레이너에게만 걸 수
     있어(`_validate_target`), 그 연결이 끊기면 새로 가입한 트레이너는 회원이 고를
     수 없는 사람이 되고 양쪽 단위 테스트는 모두 통과한다.
     """
     gym = _gym(db_session)
-    code = _invite_code(db_session, gym)
 
-    trainer_id, trainer_token = _sign_up_trainer(client, code)
+    trainer_id, trainer_token = _sign_up_trainer(client, gym)
     member_id, member_token = _member(client)
     consultation_id = _request_consultation(client, member_token, trainer_id)
 
@@ -206,8 +196,8 @@ def test_a_signed_up_trainer_sees_only_their_own_requests(client, db_session):
     같은 헬스장 동료에게 간 요청까지 보이면 안 된다.
     """
     gym = _gym(db_session)
-    _, trainer_token = _sign_up_trainer(client, _invite_code(db_session, gym))
-    other_trainer_id, _ = _sign_up_trainer(client, _invite_code(db_session, gym))
+    _, trainer_token = _sign_up_trainer(client, gym)
+    other_trainer_id, _ = _sign_up_trainer(client, gym)
     _, member_token = _member(client)
 
     foreign_id = _request_consultation(client, member_token, other_trainer_id)

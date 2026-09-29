@@ -1551,7 +1551,7 @@ class TrainerMeUpdate(PartialUpdate):
     #: 이 번호를 회원 화면에 보일 때 그 자리에서 정리부터 해야 한다.
     #:
     #: 빈 문자열은 그대로 둔다. 트레이너 가입은 전화번호를 받지 않으므로
-    #: (`TrainerRegister` 는 초대 코드만 더한다) 처음부터 없는 값이고, 회원 쪽의
+    #: (트레이너 웹 가입 화면에 전화번호 칸이 없다) 처음부터 없는 값이고, 회원 쪽의
     #: "있던 번호는 못 지운다"(#1883)는 여기 해당하지 않는다.
     phone: str | None = Field(default=None, max_length=20)
     specialty: str | None = Field(default=None, max_length=50)

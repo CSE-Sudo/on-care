@@ -11,12 +11,8 @@ import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_re
 void main() {
   const MockTrainerAuthRepository repo = MockTrainerAuthRepository();
 
-  Future<void> register(String password) => repo.register(
-    email: 'new@oncare.com',
-    password: password,
-    name: '김신규',
-    inviteCode: '',
-  );
+  Future<void> register(String password) =>
+      repo.register(email: 'new@oncare.com', password: password, name: '김신규');
 
   Matcher failsWith(AuthFailure failure) => throwsA(
     isA<AuthException>().having((e) => e.failure, 'failure', failure),
@@ -60,7 +56,6 @@ void main() {
         email: 'new@oncare.com',
         password: ok,
         name: '김신규',
-        inviteCode: '',
       );
       expect(tokens.access, isNotEmpty);
     });
