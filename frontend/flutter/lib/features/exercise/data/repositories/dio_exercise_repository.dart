@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 
@@ -92,36 +93,31 @@ class DioExerciseRepository implements ExerciseRepository {
   }
 
   @override
-  Future<ExerciseSession> addSession({
-    required ExerciseType type,
-    required int minutes,
-    required int calories,
-    required DateTime date,
-    String name = '',
-    ExerciseIntensity intensity = ExerciseIntensity.moderate,
-    int? sets,
-    int? reps,
-    int? holdSeconds,
-    int? durationSeconds,
-    double? weight,
-  }) async {
+  Future<ExerciseSessionsAdded> addSessions(
+    List<ExerciseSessionDraft> drafts,
+  ) async {
     final res = await _dio.post<Map<String, Object?>>(
       '/exercise/sessions',
-      data: _sessionBody(
-        type: type,
-        minutes: minutes,
-        calories: calories,
-        date: date,
-        name: name,
-        intensity: intensity,
-        sets: sets,
-        reps: reps,
-        holdSeconds: holdSeconds,
-        durationSeconds: durationSeconds,
-        weight: weight,
-      ),
+      data: <String, Object?>{
+        'sessions': <Map<String, Object?>>[
+          for (final ExerciseSessionDraft d in drafts)
+            _sessionBody(
+              type: d.type,
+              minutes: d.minutes,
+              calories: d.calories,
+              date: d.date,
+              name: d.name,
+              intensity: d.intensity,
+              sets: d.sets,
+              reps: d.reps,
+              holdSeconds: d.holdSeconds,
+              durationSeconds: d.durationSeconds,
+              weight: d.weight,
+            ),
+        ],
+      },
     );
-    return ExerciseSession.fromJson(res.data!);
+    return ExerciseSessionsAdded.fromJson(res.data!);
   }
 
   /// 생성·수정이 같은 몸통을 쓴다 — 한쪽에만 필드를 더하면 수정한 기록에서

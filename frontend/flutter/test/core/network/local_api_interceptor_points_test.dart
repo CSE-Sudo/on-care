@@ -11,6 +11,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import '../../helpers/exercise_session_post.dart';
 
 void main() {
   late AppDatabase db;
@@ -46,16 +47,15 @@ void main() {
   }
 
   Future<Map<String, Object?>> addExercise() async {
-    final Response<Map<String, Object?>> res = await dio
-        .post<Map<String, Object?>>(
-          '/exercise/sessions',
-          data: <String, Object?>{
-            'type': 'cardio',
-            'name': '걷기',
-            'minutes': 20,
-            'calories': 0,
-          },
-        );
+    final Response<Map<String, Object?>> res = await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'cardio',
+        'name': '걷기',
+        'minutes': 20,
+        'calories': 0,
+      },
+    );
     return res.data!;
   }
 
@@ -87,6 +87,23 @@ void main() {
     ];
 
     expect(awarded, <int>[20, 20, 20, 0]);
+    expect(await balance(), 1240 + 60);
+  });
+
+  test('여러 개를 한 번에 추가해도 한도만큼만 받고 합계로 온다 (#2544)', () async {
+    final Response<Map<String, Object?>> res = await dio
+        .post<Map<String, Object?>>(
+          '/exercise/sessions',
+          data: <String, Object?>{
+            'sessions': <Map<String, Object?>>[
+              for (int i = 0; i < 5; i++)
+                <String, Object?>{'type': 'cardio', 'name': '걷기', 'minutes': 10},
+            ],
+          },
+        );
+
+    expect(points(res.data!)['awarded'], 60);
+    expect(points(res.data!)['balance'], 1240 + 60);
     expect(await balance(), 1240 + 60);
   });
 

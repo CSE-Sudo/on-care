@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from app.core import clock
 from app.services.exercise_service import WEEKDAY_LABELS
+from tests.exercise_helpers import post_exercise
 
 
 def _day(label: str) -> str:
@@ -24,8 +25,8 @@ def _login(client) -> dict:
 
 def test_add_session_reflected_in_week(client):
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "other", "minutes": 30, "calories": 120, "date": _day("월")},
         headers=h,
     )
@@ -40,22 +41,22 @@ def test_add_session_reflected_in_week(client):
 
 def test_add_session_rejects_unknown_type(client):
     h = _login(client)
-    r = client.post("/v1/exercise/sessions", json={"type": "flying", "minutes": 10}, headers=h)
+    r = post_exercise(client, json={"type": "flying", "minutes": 10}, headers=h)
     # type 은 스키마의 Literal 이라 라우터에 닿기 전에 422 로 걸린다 (#1276)
     assert r.status_code == 422
 
 
 def test_add_session_rejects_nonpositive_minutes(client):
     h = _login(client)
-    r = client.post("/v1/exercise/sessions", json={"type": "cardio", "minutes": 0}, headers=h)
+    r = post_exercise(client, json={"type": "cardio", "minutes": 0}, headers=h)
     # minutes 는 스키마 제약(Field(gt=0)) 이라 FastAPI 가 422(Unprocessable) 로 거부
     assert r.status_code == 422
 
 
 def test_delete_session_removes_from_week(client):
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 40, "calories": 200, "date": _day("화")},
         headers=h,
     ).json()["id"]
@@ -76,8 +77,8 @@ def test_delete_session_404_when_missing(client):
 
 def test_update_session_changes_week(client):
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "calories": 150, "date": _day("월")},
         headers=h,
     ).json()["id"]
@@ -107,8 +108,8 @@ def test_update_session_404_when_missing(client):
 
 def test_intensity_persists_and_is_returned(client):
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "calories": 300, "intensity": "high", "date": _day("월")},
         headers=h,
     )
@@ -121,8 +122,8 @@ def test_intensity_persists_and_is_returned(client):
 
 def test_intensity_defaults_to_moderate_when_omitted(client):
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "date": _day("월")},
         headers=h,
     )
@@ -132,8 +133,8 @@ def test_intensity_defaults_to_moderate_when_omitted(client):
 
 def test_add_session_rejects_unknown_intensity(client):
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 10, "intensity": "extreme"},
         headers=h,
     )
@@ -143,8 +144,8 @@ def test_add_session_rejects_unknown_intensity(client):
 
 def test_update_session_changes_intensity(client):
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "intensity": "light", "date": _day("월")},
         headers=h,
     ).json()["id"]
@@ -160,8 +161,8 @@ def test_update_session_changes_intensity(client):
 
 def test_update_session_rejects_bad_type(client):
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "date": _day("월")},
         headers=h,
     ).json()["id"]
@@ -184,8 +185,8 @@ def test_week_start_query_returns_that_week(client):
     from app.services.exercise_service import monday_of_this_week_str
 
     h = _login(client)
-    client.post(
-        "/v1/exercise/sessions",
+    post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "calories": 200, "date": _day("월")},
         headers=h,
     )
@@ -218,8 +219,8 @@ def test_week_start_accepts_any_day_of_that_week(client):
     from app.services.exercise_service import monday_of_this_week_str
 
     h = _login(client)
-    client.post(
-        "/v1/exercise/sessions",
+    post_exercise(
+        client,
         json={"type": "cardio", "minutes": 25, "calories": 150, "date": _day("월")},
         headers=h,
     )
@@ -269,8 +270,8 @@ def test_week_start_rejects_empty_string(client):
 def test_strength_sets_persist_and_are_counted(client):
     """회원이 적은 세트가 기록에도 주간 집계에도 그대로 남는다."""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "strength", "minutes": 36, "sets": 12,
             "calories": 216, "date": _day("월"),
@@ -287,8 +288,8 @@ def test_strength_sets_persist_and_are_counted(client):
 def test_strength_reps_persist_with_sets_and_weight(client):
     """세트·횟수·중량이 한 벌로 남는다 — 셋 중 하나만 빠져도 기록이 재현되지 않는다. (#1310)"""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "strength", "minutes": 36, "sets": 12, "reps": 10,
             "weight": 62.5, "calories": 216, "date": _day("월"),
@@ -307,8 +308,8 @@ def test_strength_reps_persist_with_sets_and_weight(client):
 def test_reps_ignored_for_non_strength_types(client):
     """유산소를 횟수로 세는 화면은 없다 — 세트와 같은 규칙이다. (#1310)"""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio", "minutes": 30, "reps": 10,
             "calories": 180, "date": _day("목"),
@@ -322,8 +323,8 @@ def test_reps_ignored_for_non_strength_types(client):
 def test_update_to_another_type_clears_reps(client):
     """근력이던 기록을 유산소로 고치면 횟수도 함께 지워진다. (#1310)"""
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={
             "type": "strength", "minutes": 36, "sets": 12, "reps": 10,
             "calories": 216, "date": _day("금"),
@@ -346,8 +347,8 @@ def test_update_to_another_type_clears_reps(client):
 def test_strength_sets_derived_from_minutes_when_absent(client):
     """세트를 안 보낸 근력 기록은 분에서 환산해 센다 — 옛 기록도 같은 길이다."""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "strength", "minutes": 30, "calories": 180, "date": _day("화")},
         headers=h,
     )
@@ -361,8 +362,8 @@ def test_strength_sets_derived_from_minutes_when_absent(client):
 def test_sets_ignored_for_non_strength_types(client):
     """유산소를 세트로 세는 화면은 없다 — 값이 와도 기록에 남기지 않는다."""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "cardio", "minutes": 30, "sets": 12, "date": _day("수")},
         headers=h,
     )
@@ -375,8 +376,8 @@ def test_sets_ignored_for_non_strength_types(client):
 
 def test_update_session_changes_sets(client):
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={
             "type": "strength", "minutes": 36, "sets": 12,
             "calories": 216, "date": _day("목"),
@@ -402,8 +403,8 @@ def test_update_session_changes_sets(client):
 def test_update_to_another_type_clears_sets(client):
     """근력이던 기록을 유산소로 고치면 세트는 남지 않는다."""
     h = _login(client)
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={
             "type": "strength", "minutes": 36, "sets": 12,
             "calories": 216, "date": _day("금"),
@@ -422,8 +423,8 @@ def test_update_to_another_type_clears_sets(client):
 
 def test_add_session_rejects_nonpositive_sets(client):
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "strength", "minutes": 30, "sets": 0},
         headers=h,
     )
@@ -433,8 +434,8 @@ def test_add_session_rejects_nonpositive_sets(client):
 def test_name_and_weight_round_trip(client):
     """운동 이름과 중량이 저장·조회를 지나 그대로 돌아온다. (#1276)"""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "strength", "name": "데드리프트", "minutes": 36,
             "sets": 12, "weight": 62.5, "calories": 216, "date": _day("수"),
@@ -457,8 +458,8 @@ def test_name_and_weight_round_trip(client):
 def test_weight_is_dropped_for_non_strength_types(client):
     """중량은 근력에만 남는다 — 세트와 같은 규칙이다. (#1276)"""
     h = _login(client)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio", "name": "러닝머신", "minutes": 30,
             "weight": 60, "calories": 270, "date": _day("목"),
@@ -479,8 +480,8 @@ def test_a_past_date_lands_in_that_week_not_this_one(client):
 
     h = _login(client)
     last_week = clock.today() - timedelta(days=7)
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio", "name": "산책", "minutes": 40,
             "calories": 360, "date": last_week.isoformat(),
@@ -509,8 +510,8 @@ def test_editing_without_a_date_keeps_the_record_where_it_was(client):
 
     h = _login(client)
     last_week = (clock.today() - timedelta(days=7)).isoformat()
-    sid = client.post(
-        "/v1/exercise/sessions",
+    sid = post_exercise(
+        client,
         json={
             "type": "cardio", "name": "산책", "minutes": 40,
             "calories": 360, "date": last_week,
@@ -544,8 +545,8 @@ def test_exercise_advice_changes_with_the_period(client):
     # 서로 다른 재료를 보는지 확인할 수 있는 가장 단순한 모양이다.
     for back in range(today.weekday() + 1):
         day = monday + timedelta(days=back)
-        created = client.post(
-            "/v1/exercise/sessions",
+        created = post_exercise(
+            client,
             json={
                 "type": "cardio",
                 "minutes": 30,

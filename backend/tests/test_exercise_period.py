@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from app.core import clock
 from app.models.models import HealthProfile
+from tests.exercise_helpers import post_exercise
 
 THURSDAY = datetime(2026, 9, 17, 10, 0, tzinfo=clock.SEOUL)
 THIS_MONDAY = "2026-09-14"
@@ -48,8 +49,8 @@ def _new_member(client, db_session) -> tuple[str, dict[str, str]]:
 
 
 def _add_exercise(client, headers, day: str, minutes: int = 30) -> None:
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",

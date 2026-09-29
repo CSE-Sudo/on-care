@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import delete, select
+from tests.exercise_helpers import post_exercise
 
 _JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
 
@@ -46,8 +47,8 @@ def _analyze(client, headers, key: str | None = None) -> dict:
 
 
 def _add_exercise(client, headers) -> dict:
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={"type": "cardio", "name": "걷기", "minutes": 20, "calories": 0},
         headers=headers,
     )

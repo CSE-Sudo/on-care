@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from app.core import clock
 from app.models.models import DietEntry, HealthProfile
+from tests.exercise_helpers import post_exercise
 
 THURSDAY = datetime(2026, 9, 17, 10, 0, tzinfo=clock.SEOUL)
 TODAY = "2026-09-17"
@@ -161,8 +162,8 @@ def test_record_span_reports_first_diet_and_exercise_days(client, db_session):
     """`전체` 가 어디서부터 그릴지 — 식단과 운동이 각자 제 첫 기록일을 가진다."""
     member_id, headers = _new_member(client, db_session)
     _add_diet(db_session, member_id, "2026-09-02")
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",
