@@ -433,6 +433,7 @@ class MockExerciseRepository implements ExerciseRepository {
     required String routineId,
     required String name,
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
+    int? durationSeconds,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final session = ExerciseSession(
@@ -440,6 +441,8 @@ class MockExerciseRepository implements ExerciseRepository {
       dayLabel: _dayLabels[date.weekday - 1],
       type: type,
       minutes: minutes,
+      // 초로 완료한 배정은 기록도 초를 든다 — 실서버와 같다(#2221).
+      durationSeconds: durationSeconds,
       calories: calories,
       intensity: intensity,
       dateLabel: _dateLabel(_ymd(date)),

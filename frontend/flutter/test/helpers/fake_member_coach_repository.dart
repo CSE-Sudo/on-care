@@ -110,6 +110,7 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,
+    int? durationSeconds,
     String intensity = 'moderate',
   }) => throw UnimplementedError();
 

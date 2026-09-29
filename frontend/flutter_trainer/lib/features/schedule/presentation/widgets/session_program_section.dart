@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 프로그램 한 줄의 양 — 근력은 세트·횟수(또는 초)·중량, 그 밖은 분. (#1276)
+/// 프로그램 한 줄의 양 — 근력은 세트·횟수(또는 초)·중량, 그 밖은 시간. (#1276)
 ///
 /// 일정 상세와 전송 이력이 **같은 문구**를 쓴다(#2225) — 같은 운동을 자리마다
 /// 다르게 적으면 트레이너는 그것이 같은 것인지부터 따져야 한다.
@@ -20,8 +21,9 @@ String programItemAmount(AppLocalizations l, ProgramItem item) {
         l.progRepsValue(item.reps!),
       // 맨몸 운동(0kg)과 중량이 없는 옛 행은 중량 자리를 비운다(#2533).
       ?strengthWeightLabel(l, item.weight),
-    ] else if (item.duration != null)
-      l.minutesShort(item.duration!),
+    ] else if (item.seconds != null)
+      // 시·분·초로 적은 그대로 — `45초` · `1시간 30분`(#2221).
+      formatExerciseDuration(l, item.seconds!),
   ];
   return parts.join(' · ');
 }

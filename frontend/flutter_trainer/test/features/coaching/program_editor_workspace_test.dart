@@ -561,7 +561,7 @@ void main() {
       id: 'e1',
       name: '가벼운 걷기',
       type: '유산소',
-      minutes: 20,
+      durationSeconds: 20 * 60,
     );
 
     test('근력이 아니면 세트·중량이 값이 있어도 요약에 뜨지 않는다', () {
@@ -628,6 +628,29 @@ void main() {
           reason: type,
         );
       }
+    });
+
+    // 분 한 칸이던 동안에는 45초를 적을 수 없었고 1시간 반은 `90분` 이었다
+    // (#2221). 0 인 칸은 빼 딱 떨어지는 값은 예전과 같은 모양이다.
+    test('시간은 초까지 적은 대로 — 0 인 칸은 뺀다', () {
+      expect(
+        programExerciseMetrics(_ko, nonStrength.copyWith(durationSeconds: 45)),
+        <String>['45초'],
+      );
+      expect(
+        programExerciseMetrics(
+          _ko,
+          nonStrength.copyWith(durationSeconds: 5400),
+        ),
+        <String>['1시간 30분'],
+      );
+      expect(
+        programExerciseMetrics(
+          _en,
+          nonStrength.copyWith(durationSeconds: 5415),
+        ),
+        <String>['1 hr 30 min 15 sec'],
+      );
     });
 
     test('횟수가 0이면 횟수 칸을 빼는 것은 두 언어가 같다', () {
@@ -765,7 +788,7 @@ void main() {
       await typeName(tester, '레그컬');
       // 기본 유형이 근력이라 세트·중량 칸이 곧장 보인다 — 시간 칸은 없다.
       expect(
-        find.byKey(const ValueKey<String>('custom-exercise-duration-field')),
+        find.byKey(const ValueKey<String>('custom-exercise-duration-minutes')),
         findsNothing,
       );
       await tester.enterText(
@@ -824,11 +847,23 @@ void main() {
         find.byKey(const ValueKey<String>('custom-exercise-sets-field')),
         findsNothing,
       );
+      // 시·분·초 세 칸으로 적는다(#2221) — 분 한 칸일 때는 45초를 적을 수
+      // 없었고 1시간 반은 `90분` 으로 환산해야 했다.
       await tester.enterText(
-        find.byKey(const ValueKey<String>('custom-exercise-duration-field')),
-        '90',
+        find.byKey(const ValueKey<String>('custom-exercise-duration-hours')),
+        '1',
       );
-      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('custom-exercise-duration-minutes')),
+        '30',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('custom-exercise-duration-seconds')),
+        '45',
+      );
+      // 칸을 벗어나면 칸 아래 목록이 닫힌다 — 열려 있으면 아래 버튼을 가린다.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
       await confirmAdd(tester);
 
       await tester.ensureVisible(
@@ -841,7 +876,8 @@ void main() {
 
       final added = sent!.sessions.single.exercises.single;
       expect(added.name, '조깅');
-      expect(added.minutes, 90);
+      expect(added.durationSeconds, 5445);
+      expect(added.minutes, 91);
       // 근력이 아니므로 세트·중량은 기본값 그대로다.
       expect(added.sets, 3);
       expect(added.weight, 20);
@@ -885,7 +921,7 @@ void main() {
       await tester.pump();
 
       final durationField = find.byKey(
-        const ValueKey<String>('exercise-2-duration-field'),
+        const ValueKey<String>('exercise-2-duration-minutes'),
       );
       // AI 제안이 들고 온 20분이 그대로 열린다.
       expect(
@@ -902,7 +938,8 @@ void main() {
       );
 
       await tester.enterText(durationField, '80');
-      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
 
       await tester.ensureVisible(
         find.byKey(const ValueKey<String>('program-editor-send')),
@@ -915,7 +952,7 @@ void main() {
       final squat = sent!.sessions.single.exercises.firstWhere(
         (exercise) => exercise.name == '스쿼트',
       );
-      expect(squat.minutes, 80);
+      expect(squat.durationSeconds, 80 * 60);
     });
 
     testWidgets('이름이 비면 추가되지 않는다', (tester) async {

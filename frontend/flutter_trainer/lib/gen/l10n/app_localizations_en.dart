@@ -1216,6 +1216,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String hoursShort(int hours) {
+    return '$hours hr';
+  }
+
+  @override
+  String secondsShort(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
   String get ptProgramHistory => 'PT program history';
 
   @override
@@ -2651,6 +2661,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get routineCaloriesRoughEstimate =>
       'A rough average for this exercise type · the saved record will also use the member\'s weight';
+
+  @override
+  String get routineUnitHours => 'hr';
 
   @override
   String get routineUnitMinutes => 'min';

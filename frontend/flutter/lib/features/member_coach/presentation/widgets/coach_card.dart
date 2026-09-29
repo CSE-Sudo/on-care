@@ -488,6 +488,9 @@ class _RecommendedExerciseRowState
             // 비어 있는 배정만 1분으로 받는다 — 0분짜리 기록은 주간 집계에서
             // 한 적 없는 운동과 구분되지 않는다.
             minutes: routine.minutes > 0 ? routine.minutes : 1,
+            // 초로 배정된 시간은 초로도 보낸다(#2221) — `45초` 가 `1분` 기록이
+            // 되지 않게. 근력·옛 응답은 초가 없어 분만 간다.
+            durationSeconds: routine.durationSeconds,
             intensity: input.intensity,
           );
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
@@ -928,11 +931,18 @@ class _ChatButton extends StatelessWidget {
 ///
 /// 세트를 들지 않은 루틴은 분으로 둔다. 기록은 분에서 세트를 되짚지만(#1262)
 /// 배정은 적힌 수가 곧 값이라, 없는 세트를 지어내 적지 않는다.
+///
+/// 시간은 초가 있으면 초로 읽는다(#2221) — `45초` · `1시간 30분`. 완료 기록이
+/// 분으로만 남았다면 배정의 초가 아니라 그 분을 쓴다: 회원이 실제로 한 값이
+/// 배정 값보다 앞선다.
 String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) =>
     exerciseAmountLabelOf(
       l,
       type: exerciseTypeFromLabel(routine.type),
       minutes: routine.completedMinutes ?? routine.minutes,
+      durationSeconds:
+          routine.completedDurationSeconds ??
+          (routine.completedMinutes == null ? routine.durationSeconds : null),
       sets: routine.sets,
       reps: routine.reps,
       weight: routine.weight,

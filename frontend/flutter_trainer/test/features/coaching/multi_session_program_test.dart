@@ -18,7 +18,7 @@ ProgramExerciseDraft _exercise(
   name: name,
   sets: sets,
   weight: 60,
-  minutes: duration,
+  durationSeconds: duration * 60,
   type: type,
   source: source,
 );

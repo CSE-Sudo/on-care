@@ -20,6 +20,7 @@ import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -119,9 +120,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   int _minutes = 30;
   String _intensity = 'moderate';
   String _newExerciseType = '근력';
-  int _newExerciseMinutes = 30;
+  int _newExerciseSeconds = 30 * 60;
   // 근력만 세트·횟수·중량을 받는다(#1029, #1310) — 그 외 유형은
-  // [_newExerciseMinutes] 를 그대로 쓴다.
+  // [_newExerciseSeconds] 를 그대로 쓴다.
   int _newExerciseSets = 3;
   int _newExerciseReps = 10;
   int _newExerciseHoldSeconds = 60;
@@ -356,8 +357,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _activeList.add(
         RoutineExercise(
           name: name,
-          minutes: _newExerciseMinutes,
+          minutes: minutesFromSeconds(_newExerciseSeconds),
           type: _newExerciseType,
+          // 시·분·초로 적은 시간을 그대로 싣는다(#2221).
+          durationSeconds: isStrength ? null : _newExerciseSeconds,
           sets: isStrength ? _newExerciseSets : 0,
           // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 0 이다.
           // (#1969)
@@ -373,7 +376,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 보낸다(#2223).
       _newExerciseName.clear();
       _newExerciseType = '근력';
-      _newExerciseMinutes = 30;
+      _newExerciseSeconds = 30 * 60;
       _newExerciseSets = 3;
       _newExerciseReps = 10;
       _newExerciseHoldSeconds = 60;
@@ -1514,14 +1517,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ],
             )
           else
-            RoutineMinutesField(
-              key: ValueKey<String>('routine-minutes-$index'),
-              keyPrefix: 'routine-minutes-$index',
-              minutes: exercise.minutes,
-              compact: true,
-              onChanged: (minutes) => setState(() {
+            RoutineDurationField(
+              key: ValueKey<String>('routine-duration-$index'),
+              keyPrefix: 'routine-duration-$index',
+              seconds: exercise.seconds,
+              onChanged: (seconds) => setState(() {
                 list[index] = _asTrainerEdit(
-                  list[index].copyWith(minutes: minutes),
+                  list[index].copyWith(durationSeconds: seconds),
                 );
               }),
             ),
@@ -1785,7 +1787,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                       TextSpan(
                         text: exercise.type == '근력'
                             ? _strengthSummary(l, exercise)
-                            : l.minutesShort(exercise.minutes),
+                            : formatExerciseDuration(l, exercise.seconds),
                         style: metaStyle,
                       ),
                     ],
@@ -1911,12 +1913,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ],
             )
           else
-            RoutineMinutesField(
-              key: const ValueKey<String>('new-exercise-minutes'),
-              minutes: _newExerciseMinutes,
-              compact: true,
-              onChanged: (minutes) => setState(() {
-                _newExerciseMinutes = minutes;
+            RoutineDurationField(
+              key: const ValueKey<String>('new-exercise-duration'),
+              keyPrefix: 'new-exercise-duration',
+              seconds: _newExerciseSeconds,
+              onChanged: (seconds) => setState(() {
+                _newExerciseSeconds = seconds;
               }),
             ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -1999,7 +2001,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   // 어긋나지 않는다.
                   exercise.type == '근력'
                       ? _strengthSummary(l, exercise)
-                      : l.minutesShort(exercise.minutes),
+                      : formatExerciseDuration(l, exercise.seconds),
                   style: _text(
                     OnCareTypography.strong(OnCareTypography.bodySmall),
                     brand,

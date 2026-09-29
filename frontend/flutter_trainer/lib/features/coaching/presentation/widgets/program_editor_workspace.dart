@@ -12,6 +12,7 @@ import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -124,7 +125,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   int _newExerciseSets = 3;
   int _newExerciseReps = 10;
   double _newExerciseWeight = 20;
-  int _newExerciseMinutes = 30;
+  int _newExerciseSeconds = 30 * 60;
   String _newExerciseIntensity = 'moderate';
   var _nextId = 2;
 
@@ -337,7 +338,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           id: 'exercise-${_nextId++}',
           name: exercise.name,
           type: exercise.type,
-          minutes: exercise.minutes > 0 ? exercise.minutes : 30,
+          durationSeconds: (exercise.minutes > 0 ? exercise.minutes : 30) * 60,
           sets: exercise.sets > 0 ? exercise.sets : 3,
           reps: exercise.reps > 0 ? exercise.reps : 10,
           // 중량은 채우지 않는다 — 맨몸이 기본이고 `0kg` 은 트레이너가 적은
@@ -530,7 +531,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               exerciseSets: _newExerciseSets,
               exerciseReps: _newExerciseReps,
               exerciseWeight: _newExerciseWeight,
-              exerciseMinutes: _newExerciseMinutes,
+              exerciseSeconds: _newExerciseSeconds,
               exerciseIntensity: _newExerciseIntensity,
               onNameChanged: (value) => _replaceSession(
                 index,
@@ -557,8 +558,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                   setState(() => _newExerciseReps = value),
               onExerciseWeightChanged: (value) =>
                   setState(() => _newExerciseWeight = value),
-              onExerciseMinutesChanged: (value) =>
-                  setState(() => _newExerciseMinutes = value),
+              onExerciseSecondsChanged: (value) =>
+                  setState(() => _newExerciseSeconds = value),
               onExerciseIntensityChanged: (value) =>
                   setState(() => _newExerciseIntensity = value),
               onConfirmAdd: () => _addExercise(index),
@@ -822,7 +823,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
             sets: _newExerciseSets,
             reps: _newExerciseReps,
             weight: _newExerciseWeight,
-            minutes: _newExerciseMinutes,
+            durationSeconds: _newExerciseSeconds,
             intensity: _newExerciseIntensity,
           ),
         ],
@@ -839,7 +840,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
       _newExerciseSets = 3;
       _newExerciseReps = 10;
       _newExerciseWeight = 20;
-      _newExerciseMinutes = 30;
+      _newExerciseSeconds = 30 * 60;
       _newExerciseIntensity = 'moderate';
     });
   }
@@ -894,7 +895,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
         ProgramExerciseDraft(
           id: 'exercise-${_nextId++}',
           name: item.name,
-          minutes: item.minutes > 0 ? item.minutes : 30,
+          durationSeconds: (item.minutes > 0 ? item.minutes : 30) * 60,
           // AI 추천 사유(`reason`)는 운동 메모로 옮기지 않는다 — 트레이너가
           // 쓴 적 없는 글이 메모로 전송·저장되던 자리다(#2371).
           type: type,
@@ -987,7 +988,7 @@ class _SessionEditor extends StatefulWidget {
     required this.exerciseSets,
     required this.exerciseReps,
     required this.exerciseWeight,
-    required this.exerciseMinutes,
+    required this.exerciseSeconds,
     required this.exerciseIntensity,
     required this.onNameChanged,
     required this.onMoveUp,
@@ -1000,7 +1001,7 @@ class _SessionEditor extends StatefulWidget {
     required this.onExerciseSetsChanged,
     required this.onExerciseRepsChanged,
     required this.onExerciseWeightChanged,
-    required this.onExerciseMinutesChanged,
+    required this.onExerciseSecondsChanged,
     required this.onExerciseIntensityChanged,
     required this.onConfirmAdd,
     required this.onExerciseChanged,
@@ -1022,7 +1023,7 @@ class _SessionEditor extends StatefulWidget {
   final int exerciseSets;
   final int exerciseReps;
   final double exerciseWeight;
-  final int exerciseMinutes;
+  final int exerciseSeconds;
   final String exerciseIntensity;
   final ValueChanged<String> onNameChanged;
   final VoidCallback onMoveUp;
@@ -1037,7 +1038,7 @@ class _SessionEditor extends StatefulWidget {
   final ValueChanged<int> onExerciseSetsChanged;
   final ValueChanged<int> onExerciseRepsChanged;
   final ValueChanged<double> onExerciseWeightChanged;
-  final ValueChanged<int> onExerciseMinutesChanged;
+  final ValueChanged<int> onExerciseSecondsChanged;
   final ValueChanged<String> onExerciseIntensityChanged;
   final VoidCallback onConfirmAdd;
   final void Function(int, ProgramExerciseDraft) onExerciseChanged;
@@ -1257,11 +1258,10 @@ class _SessionEditorState extends State<_SessionEditor> {
                       ],
                     )
                   else
-                    RoutineMinutesField(
+                    RoutineDurationField(
                       keyPrefix: 'custom-exercise-duration',
-                      minutes: widget.exerciseMinutes,
-                      compact: true,
-                      onChanged: widget.onExerciseMinutesChanged,
+                      seconds: widget.exerciseSeconds,
+                      onChanged: widget.onExerciseSecondsChanged,
                     ),
                   const SizedBox(height: OnCareSpacing.s8),
                   RoutineIntensityChips(
@@ -1281,7 +1281,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                             type: widget.exerciseType,
                             minutes: widget.exerciseType == '근력'
                                 ? minutesFromSets(widget.exerciseSets)
-                                : widget.exerciseMinutes,
+                                : minutesFromSeconds(widget.exerciseSeconds),
                             intensity: widget.exerciseIntensity,
                           ),
                         ),
@@ -1550,12 +1550,12 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                     ],
                   )
                 else
-                  RoutineMinutesField(
+                  RoutineDurationField(
                     keyPrefix: '${exercise.id}-duration',
-                    minutes: exercise.minutes,
-                    compact: true,
-                    onChanged: (value) =>
-                        widget.onChanged(exercise.copyWith(minutes: value)),
+                    seconds: exercise.durationSeconds,
+                    onChanged: (value) => widget.onChanged(
+                      exercise.copyWith(durationSeconds: value),
+                    ),
                   ),
                 const SizedBox(height: OnCareSpacing.s8),
                 RoutineIntensityChips(
@@ -1726,7 +1726,7 @@ List<String> programExerciseMetrics(
     final String? weight = strengthWeightLabel(l, exercise.weight);
     if (weight != null) metrics.add(weight);
   } else {
-    metrics.add(l.minutesShort(exercise.minutes));
+    metrics.add(formatExerciseDuration(l, exercise.durationSeconds));
   }
   return metrics;
 }
