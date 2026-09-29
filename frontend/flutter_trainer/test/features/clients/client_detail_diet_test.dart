@@ -333,8 +333,7 @@ void main() {
       // 합계가 사라져도 통과한다 — 아침 카드 범위로 좁힌다.
       Finder inBreakfast(Finder f) =>
           find.descendant(of: mealCardFinder('아침'), matching: f);
-      expect(inBreakfast(find.text('총 칼로리')), findsOneWidget);
-      expect(inBreakfast(find.text('247 kcal')), findsOneWidget);
+      expect(inBreakfast(find.text('총 247 kcal')), findsOneWidget);
       // 막대 아래 네 칸 — 탄수화물(당류) / 단백질 / 지방 | 나트륨. 칸 머리의
       // 비중은 칼로리로 잰다(탄·단 4kcal, 지 9kcal → 41.6 · 64 · 133.2 kcal).
       String column(String key) => tester

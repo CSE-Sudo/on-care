@@ -906,13 +906,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietMacrosMissing => 'No carbs/protein/fat recorded';
 
   @override
-  String get clientDietTotalCalories => 'Total calories';
-
-  @override
   String get clientDietDayTotal => 'Day total';
 
   @override
-  String clientDietDayTotalCalories(String calories) {
+  String clientDietTotalCalories(String calories) {
     return 'Total $calories kcal';
   }
 

@@ -334,11 +334,10 @@
   "metricSodium": "나트륨",
   "metricSugar": "당류",
   "clientDietMacrosMissing": "탄·단·지 기록 없음",
-  "clientDietTotalCalories": "총 칼로리",
   "clientDietDayTotal": "하루 합계",
-  "clientDietDayTotalCalories": "총 {calories} kcal",
-  "@clientDietDayTotalCalories": {
-    "description": "트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
+  "clientDietTotalCalories": "총 {calories} kcal",
+  "@clientDietTotalCalories": {
+    "description": "트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
     "placeholders": {
       "calories": {
         "type": "String"
