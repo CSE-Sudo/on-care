@@ -2737,6 +2737,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please agree to sharing before requesting a consultation';
 
   @override
+  String get exConsultDataSharingLinked =>
+      'This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.';
+
+  @override
+  String get exConsultGoalPrefilled =>
+      'We filled this in from your health goals in MY. Feel free to change it for this consultation.';
+
+  @override
   String get coachInviteConsentTitle => 'Before you connect';
 
   @override

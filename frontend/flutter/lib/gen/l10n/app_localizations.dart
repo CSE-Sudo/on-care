@@ -4735,6 +4735,18 @@ abstract class AppLocalizations {
   /// **'Please agree to sharing before requesting a consultation'**
   String get exConsultDataSharingRequired;
 
+  /// No description provided for @exConsultDataSharingLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.'**
+  String get exConsultDataSharingLinked;
+
+  /// No description provided for @exConsultGoalPrefilled.
+  ///
+  /// In en, this message translates to:
+  /// **'We filled this in from your health goals in MY. Feel free to change it for this consultation.'**
+  String get exConsultGoalPrefilled;
+
   /// No description provided for @coachInviteConsentTitle.
   ///
   /// In en, this message translates to:
