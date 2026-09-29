@@ -242,8 +242,8 @@ void main() {
     );
 
     testWidgets('제목이 AI 가 낸 것임을 말한다', (WidgetTester tester) async {
-      // 트레이너 배정과 생김새가 같아서, 제목이 말하지 않으면 누가 정한
-      // 운동인지 각 줄의 출처를 읽어야 안다.
+      // 트레이너 배정과 생김새가 같고 줄마다의 출처도 없으므로(#2566),
+      // 누가 정한 운동인지는 제목이 말한다.
       await pumpRecommendationCards(tester, <CoachRoutine>[
         aiRoutine,
       ], coach: null);
@@ -252,8 +252,6 @@ void main() {
       );
       expect(find.text(l.coachRoutineAiTitle), findsOneWidget);
       expect(find.text(l.coachRoutineTitle), findsNothing);
-      // 줄마다의 출처도 AI 라고 말한다.
-      expect(find.text(l.coachRoutineAiAuto), findsOneWidget);
     });
 
     testWidgets('감지 기록을 여는 버튼이 있다', (WidgetTester tester) async {
@@ -408,7 +406,7 @@ void main() {
     );
   });
 
-  testWidgets('담당 트레이너가 있으면 AI 추천에 확인한 사람을 밝힌다 (#782)', (
+  testWidgets('담당 트레이너가 있으면 줄마다 출처를 붙이지 않는다 (#2566)', (
     WidgetTester tester,
   ) async {
     await pumpRecommendationCards(tester, const <CoachRoutine>[
@@ -416,13 +414,16 @@ void main() {
       _aiRoutine,
     ]);
 
-    // 담당 트레이너가 있으면 AI 추천은 승인된 것만 내려온다(#790).
-    expect(find.text('AI 추천 · 김트레이너 확인'), findsOneWidget);
-    expect(find.text('트레이너 직접 추천'), findsOneWidget);
-    expect(find.text('AI 자동 추천'), findsNothing);
+    // 담당 트레이너가 있으면 AI 추천은 승인된 것만 내려온다(#790) — 모두
+    // 트레이너가 확인한 운동이라 줄마다 누가 정했는지 말하지 않는다.
+    expect(find.text(_trainerRoutine.name), findsOneWidget);
+    expect(find.text(_aiRoutine.name), findsOneWidget);
+    expect(find.textContaining('직접 추천'), findsNothing);
+    expect(find.textContaining('확인'), findsNothing);
+    expect(find.textContaining('자동 추천'), findsNothing);
   });
 
-  testWidgets('담당 트레이너가 없으면 AI 자동 추천으로 표시한다 (#782)', (
+  testWidgets('담당 트레이너가 없어도 줄마다 출처를 붙이지 않는다 (#2566)', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -447,7 +448,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('AI 자동 추천'), findsOneWidget);
+    // AI 추천이라는 것은 카드 제목이 말한다(#2015).
+    expect(find.text('AI 추천 개인운동'), findsOneWidget);
+    expect(find.text(_aiRoutine.name), findsOneWidget);
+    expect(find.textContaining('자동 추천'), findsNothing);
     expect(find.textContaining('확인'), findsNothing);
   });
 

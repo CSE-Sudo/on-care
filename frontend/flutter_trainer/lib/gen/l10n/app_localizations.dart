@@ -6313,6 +6313,12 @@ abstract class AppLocalizations {
   /// **'Records without a date'**
   String get workoutUndatedTitle;
 
+  /// No description provided for @workoutMemberLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged by member'**
+  String get workoutMemberLogTitle;
+
   /// No description provided for @workoutPendingCancel.
   ///
   /// In en, this message translates to:

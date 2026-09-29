@@ -439,7 +439,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               AppIconButton(
                 icon: AppIcons.delete,
                 tooltip: l.slotCloseAction,
-                color: OnCareColors.danger,
+                color: OnCareColors.textTertiary,
                 onPressed: _saving ? null : () => _close(slot),
               ),
           ],

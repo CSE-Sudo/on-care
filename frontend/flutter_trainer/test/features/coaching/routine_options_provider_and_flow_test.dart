@@ -903,7 +903,7 @@ void main() {
       await tester.tap(apply);
       await tester.pumpAndSettle();
 
-      // 회원 앱은 이 값으로 `트레이너 직접 추천` 과 `AI 추천` 을 가른다(#782).
+      // 트레이너 웹의 `AI`/`트레이너` 태그가 이 값으로 갈린다(#2223).
       expect(personal, isNotNull);
       expect(personal![0].source, 'trainer');
       // 손대지 않은 줄은 그대로 AI 다.

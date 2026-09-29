@@ -3476,6 +3476,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
 
   @override
+  String get workoutMemberLogTitle => '직접 기록';
+
+  @override
   String get workoutPendingCancel => '배정 취소';
 
   @override
