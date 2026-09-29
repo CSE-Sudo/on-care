@@ -853,7 +853,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('3세트 · 10회 · 0kg'), findsOneWidget);
+      expect(find.text('3세트 · 10회'), findsOneWidget);
       expect(find.textContaining('0세트'), findsNothing);
     });
 

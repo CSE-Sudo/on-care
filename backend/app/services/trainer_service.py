@@ -3165,10 +3165,10 @@ def _program_item_label(item: ProgramItem) -> str:
             parts.append(f"{item.hold_seconds}초")
         elif item.reps:
             parts.append(f"{item.reps}회")
-        # 맨몸 운동은 `0kg` 이다 — 두 앱의 중량 칸은 비울 수 없어(최솟값 0)
-        # 근력이면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
-        # 전에 저장된 행뿐이라, 그때만 자리를 비운다.
-        if item.weight is not None:
+        # 맨몸 운동(0)은 중량을 적지 않는다 — 두 앱의 중량 칸은 비울 수 없어
+        # (최솟값 0) 맨몸이면 늘 0 이 드는데, `0kg` 은 읽는 쪽에 잡음이다.
+        # 값이 없는 옛 행도 같은 모양이다. (#2533)
+        if item.weight:
             parts.append(f"{item.weight:g}kg")
     else:
         parts = [f"{item.duration}분"] if item.duration else []
@@ -3206,8 +3206,8 @@ def _amount_label(
         parts.append(f"{hold_seconds}초")
     elif reps:
         parts.append(f"{reps}회")
-    # 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 적은 값이다.
-    if weight is not None:
+    # 맨몸 운동(0)은 중량을 적지 않는다 — `_program_item_label` 과 같다. (#2533)
+    if weight:
         parts.append(f"{weight:g}kg")
     return " · ".join(parts)
 

@@ -69,7 +69,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   'AI 개인운동': 'AI personal exercise',
   '인터벌 런닝 25분 ✓': 'Interval running · 25 min ✓',
   '스쿼트 3세트 · 12회 · 40kg ✓': 'Squat · 3 sets · 12 reps · 40kg ✓',
-  '플랭크 3세트 · 3회 · 0kg ✓': 'Plank · 3 sets · 3 reps · 0kg ✓',
+  '플랭크 3세트 · 3회 ✓': 'Plank · 3 sets · 3 reps ✓',
   '런닝이 힘들었는데 다 했어요! 숨이 많이 찼어요':
       'The run was tough but I finished it all! I was really out of breath',
   '심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정.':
@@ -77,7 +77,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   'PT 세션 · 트레이너 지도': 'PT session · Trainer-led',
   '데드리프트 3세트 · 8회 · 55kg': 'Deadlift · 3 sets · 8 reps · 55kg',
   '런지 3세트 · 12회 · 10kg': 'Lunge · 3 sets · 12 reps · 10kg',
-  '코어 서킷 2세트 · 12회 · 0kg': 'Core circuit · 2 sets · 12 reps · 0kg',
+  '코어 서킷 2세트 · 12회': 'Core circuit · 2 sets · 12 reps',
   '데드리프트 자세 교정 도움 많이 됐어요!': 'The deadlift form fixes really helped!',
   '런닝 25분 ✓': 'Running · 25 min ✓',
   '스쿼트 ✓': 'Squat ✓',
@@ -106,7 +106,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '벤치프레스 4세트 · 8회 · 65kg': 'Bench press · 4 sets · 8 reps · 65kg',
   '인클라인 덤벨 3세트 · 10회 · 26kg':
       'Incline dumbbell press · 3 sets · 10 reps · 26kg',
-  '트라이셉스 딥 3세트 · 12회 · 0kg': 'Triceps dip · 3 sets · 12 reps · 0kg',
+  '트라이셉스 딥 3세트 · 12회': 'Triceps dip · 3 sets · 12 reps',
   '가슴이 많이 타는 느낌이었어요. 좋았어요!': 'My chest was really burning. Loved it!',
   '벤치 중량 62.5kg → 65kg 도전 가능. 다음 PT 때 시도 예정.':
       'Ready to move bench from 62.5kg to 65kg. Will try at the next PT.',
@@ -137,7 +137,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '상체 자세 교정': 'Upper-body posture',
   '걷기 25분 ✓': 'Walking · 25 min ✓',
   '골반 안정화 15분 ✓': 'Pelvic stability · 15 min ✓',
-  '밴드 로우 3세트 · 15회 · 0kg ✓': 'Band row · 3 sets · 15 reps · 0kg ✓',
+  '밴드 로우 3세트 · 15회 ✓': 'Band row · 3 sets · 15 reps ✓',
   '컨디션 돌아온 게 느껴져요. 다 했습니다!':
       'I can feel my energy coming back. Finished everything!',
   '2주 공백 후 복귀 성공. 다음 주부터 강도 10% 상향.':
@@ -173,13 +173,13 @@ const Map<String, String> _seedEnglish = <String, String>{
   '종아리 스트레칭': 'Calf stretch',
   '부상 예방': 'Injury prevention',
   'LSD 러닝 45분 ✓': 'LSD run · 45 min ✓',
-  '힙 힌지 3세트 · 12회 · 0kg ✓': 'Hip hinge · 3 sets · 12 reps · 0kg ✓',
+  '힙 힌지 3세트 · 12회 ✓': 'Hip hinge · 3 sets · 12 reps ✓',
   '스트레칭 10분 ✓': 'Stretching · 10 min ✓',
   '페이스 안정적이었어요': 'My pace was steady',
   '7일 연속 100%. 과훈련 신호 없는지 다음 주 확인.':
       '100% for 7 days straight. Check for signs of overtraining next week.',
   '인터벌 러닝 30분 ✓': 'Interval running · 30 min ✓',
-  '코어 서킷 3세트 · 12회 · 0kg ✓': 'Core circuit · 3 sets · 12 reps · 0kg ✓',
+  '코어 서킷 3세트 · 12회 ✓': 'Core circuit · 3 sets · 12 reps ✓',
   '스트레칭 ✓': 'Stretching ✓',
   '인터벌 끝나고 다리가 후들거렸어요 😅': 'My legs were shaking after the intervals 😅',
   '우진님, 이번 주 7일 전부 100% 나왔어요. 무리는 없으세요?':
@@ -204,7 +204,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '주말은 약속이 계속 있었어요 😅': 'I had plans all weekend 😅',
   '평일 100% / 주말 0% 패턴 5주째. 주말용 15분 프로그램으로 분리 검토.':
       'Weekdays 100% / weekends 0% for 5 weeks. Consider a separate 15-minute weekend program.',
-  '전신 서킷 4세트 · 12회 · 0kg ✓': 'Full-body circuit · 4 sets · 12 reps · 0kg ✓',
+  '전신 서킷 4세트 · 12회 ✓': 'Full-body circuit · 4 sets · 12 reps ✓',
   '걷기 30분 ✓': 'Walking · 30 min ✓',
   '평일엔 프로그램대로 잘 되고 있어요': 'Weekdays are going to plan',
   '서연님, 평일은 완벽한데 주말에 나트륨이 3100까지 올라갔어요':
@@ -373,7 +373,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '습관 형성 우선': 'Build the habit first',
   '부담 없는 시작': 'An easy start',
   '운동 후 회복': 'Post-workout recovery',
-  '맨몸 스쿼트 3세트 · 15회 · 0kg ✓': 'Bodyweight squat · 3 sets · 15 reps · 0kg ✓',
+  '맨몸 스쿼트 3세트 · 15회 ✓': 'Bodyweight squat · 3 sets · 15 reps ✓',
   '첫 운동 했어요! 생각보다 할 만했어요': 'Did my first workout! It was easier than I thought',
   '첫 기록. 다음 주까지 주 3회 유지가 목표.':
       'First log. Goal is 3 times a week through next week.',
@@ -386,23 +386,23 @@ const Map<String, String> _seedEnglish = <String, String>{
   '스쿼트 4세트 · 10회 · 50kg': 'Squat · 4 sets · 10 reps · 50kg',
   '레그컬 3세트 · 12회 · 35kg': 'Leg curl · 3 sets · 12 reps · 35kg',
   '벤치프레스 4세트 · 8회 · 50kg': 'Bench press · 4 sets · 8 reps · 50kg',
-  '푸시업 3세트 · 15회 · 0kg': 'Push-up · 3 sets · 15 reps · 0kg',
+  '푸시업 3세트 · 15회': 'Push-up · 3 sets · 15 reps',
   '덤벨 플라이 3세트 · 12회 · 10kg': 'Dumbbell fly · 3 sets · 12 reps · 10kg',
   '데드리프트 4세트 · 8회 · 60kg': 'Deadlift · 4 sets · 8 reps · 60kg',
   '바벨 로우 3세트 · 10회 · 40kg': 'Barbell row · 3 sets · 10 reps · 40kg',
-  '풀업 3세트 · 8회 · 0kg': 'Pull-up · 3 sets · 8 reps · 0kg',
+  '풀업 3세트 · 8회': 'Pull-up · 3 sets · 8 reps',
   '숄더 프레스 4세트 · 10회 · 20kg': 'Shoulder press · 4 sets · 10 reps · 20kg',
   '사이드 레터럴 3세트 · 15회 · 6kg': 'Lateral raise · 3 sets · 15 reps · 6kg',
   '페이스 풀 3세트 · 15회 · 15kg': 'Face pull · 3 sets · 15 reps · 15kg',
   '런닝 30분': 'Running · 30 min',
   '사이클 20분': 'Cycling · 20 min',
-  '코어 서킷 3세트 · 12회 · 0kg': 'Core circuit · 3 sets · 12 reps · 0kg',
+  '코어 서킷 3세트 · 12회': 'Core circuit · 3 sets · 12 reps',
   '레그프레스 4세트 · 12회 · 70kg': 'Leg press · 4 sets · 12 reps · 70kg',
   '힙 쓰러스트 3세트 · 12회 · 40kg': 'Hip thrust · 3 sets · 12 reps · 40kg',
-  '카프 레이즈 3세트 · 20회 · 0kg': 'Calf raise · 3 sets · 20 reps · 0kg',
-  '플랭크 3세트 · 3회 · 0kg': 'Plank · 3 sets · 3 reps · 0kg',
-  '버피 3세트 · 12회 · 0kg': 'Burpee · 3 sets · 12 reps · 0kg',
-  '마운틴 클라이머 3세트 · 20회 · 0kg': 'Mountain climber · 3 sets · 20 reps · 0kg',
+  '카프 레이즈 3세트 · 20회': 'Calf raise · 3 sets · 20 reps',
+  '플랭크 3세트 · 3회': 'Plank · 3 sets · 3 reps',
+  '버피 3세트 · 12회': 'Burpee · 3 sets · 12 reps',
+  '마운틴 클라이머 3세트 · 20회': 'Mountain climber · 3 sets · 20 reps',
   '출근 전 수업. 상체 위주로 짧게 끊어 간다.':
       'Session before work. Keep it short and upper-body focused.',
   '랫풀다운': 'Lat pulldown',

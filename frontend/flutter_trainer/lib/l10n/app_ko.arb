@@ -2104,34 +2104,6 @@
     }
   },
   "coachTemplateMenu": "템플릿 메뉴",
-  "aiStrengthSummary": "{sets}세트 · {reps}회 · {weight}kg",
-  "aiHoldSummary": "{sets}세트 · {seconds}초 · {weight}kg",
-  "@aiHoldSummary": {
-    "placeholders": {
-      "sets": {
-        "type": "int"
-      },
-      "seconds": {
-        "type": "int"
-      },
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
-  "@aiStrengthSummary": {
-    "placeholders": {
-      "sets": {
-        "type": "int"
-      },
-      "reps": {
-        "type": "int"
-      },
-      "weight": {
-        "type": "String"
-      }
-    }
-  },
   "routineFormDecrease": "줄이기",
   "routineFormIncrease": "늘리기",
   "reportsWorkbenchTitle": "이번 주 리포트",

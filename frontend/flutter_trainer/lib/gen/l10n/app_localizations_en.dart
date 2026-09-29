@@ -4693,16 +4693,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateMenu => 'Template menu';
 
   @override
-  String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets sets · $reps reps · ${weight}kg';
-  }
-
-  @override
-  String aiHoldSummary(int sets, int seconds, String weight) {
-    return '$sets sets · $seconds sec · ${weight}kg';
-  }
-
-  @override
   String get routineFormDecrease => 'Decrease';
 
   @override

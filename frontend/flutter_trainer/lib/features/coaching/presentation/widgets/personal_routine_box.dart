@@ -6,6 +6,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램 만들기에서 정한 개인운동을, 보내기 직전에 편집기 화면에서 보여
@@ -195,12 +196,12 @@ String routineAmount(
   required bool isHold,
 }) {
   if (type != '근력') return l.minutesShort(minutes);
-  final String kg = weight == weight.roundToDouble()
-      ? '${weight.round()}'
-      : '$weight';
-  return isHold
-      ? l.aiHoldSummary(sets, holdSeconds, kg)
-      : l.aiStrengthSummary(sets, reps, kg);
+  return <String>[
+    l.progSetsValue(sets),
+    if (isHold) l.progHoldValue(holdSeconds) else l.progRepsValue(reps),
+    // 맨몸 운동(0kg)은 중량을 적지 않는다(#2533).
+    ?strengthWeightLabel(l, weight),
+  ].join(' · ');
 }
 
 /// 개인운동 한 줄 — `걷기 · 유산소 · 30분`. (#2224)
