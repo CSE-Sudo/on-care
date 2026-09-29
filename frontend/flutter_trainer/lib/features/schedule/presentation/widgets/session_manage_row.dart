@@ -87,6 +87,7 @@ class SessionEditMenu extends StatelessWidget {
     this.showEditProgram = true,
     this.onEditRoutines,
     required this.onDelete,
+    this.deleteOnly = false,
   });
   final VoidCallback onEditSchedule;
   final VoidCallback onEditProgram;
@@ -123,19 +124,24 @@ class SessionEditMenu extends StatelessWidget {
 
   final VoidCallback onDelete;
 
+  /// 삭제만 세운다 — 담당이 끊긴 회원의 일정(#2589). 수정·프로그램·메모는
+  /// 서버가 막으므로(404) 메뉴에도 두지 않고, 자기 일정을 정리하는 삭제만 남긴다.
+  final bool deleteOnly;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     // 항목 키는 버튼 줄이던 때의 키를 그대로 잇는다 — 그 동작을 찾던 테스트가
     // 메뉴를 연 뒤 같은 키로 찾는다(#2178).
     final edits = <AppMenuItem>[
-      AppMenuItem(
-        key: const ValueKey<String>('session-edit-schedule-chip'),
-        icon: AppIcons.editSchedule,
-        label: l.schedEditTitle,
-        onSelected: onEditSchedule,
-      ),
-      if (hasProgram && showEditProgram)
+      if (!deleteOnly)
+        AppMenuItem(
+          key: const ValueKey<String>('session-edit-schedule-chip'),
+          icon: AppIcons.editSchedule,
+          label: l.schedEditTitle,
+          onSelected: onEditSchedule,
+        ),
+      if (!deleteOnly && hasProgram && showEditProgram)
         AppMenuItem(
           key: const ValueKey<String>('session-edit-program-chip'),
           icon: AppIcons.exercise,
@@ -145,14 +151,14 @@ class SessionEditMenu extends StatelessWidget {
       // 이 PT 에 붙은 개인운동을 바로 고친다(#2224). **아직 보내지 않았을
       // 때만** 선다 — 보낸 뒤에 바뀌면 회원이 어제 본 목록과 오늘 본 목록이
       // 말없이 달라진다. 서버도 `scheduled` 만 고친다.
-      if (onEditRoutines != null)
+      if (!deleteOnly && onEditRoutines != null)
         AppMenuItem(
           key: const ValueKey<String>('session-edit-routines-chip'),
           icon: AppIcons.personalRoutine,
           label: l.schedEditRoutines,
           onSelected: onEditRoutines,
         ),
-      if (showEditNote)
+      if (!deleteOnly && showEditNote)
         AppMenuItem(
           key: const ValueKey<String>('session-edit-note-chip'),
           icon: hasNote ? AppIcons.note : AppIcons.note,

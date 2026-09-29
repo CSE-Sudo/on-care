@@ -3049,6 +3049,18 @@ abstract class AppLocalizations {
   /// **'PT program'**
   String get schedGroupProgram;
 
+  /// 담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)
+  ///
+  /// In en, this message translates to:
+  /// **'Former client'**
+  String get schedDetachedMember;
+
+  /// No description provided for @schedDetachedMemberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching has ended, so client details are hidden'**
+  String get schedDetachedMemberHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:

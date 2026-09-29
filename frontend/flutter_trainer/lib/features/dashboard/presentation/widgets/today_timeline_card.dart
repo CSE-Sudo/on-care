@@ -66,7 +66,10 @@ class TodayTimelineCard extends ConsumerWidget {
                   placement: AppStatePlacement.card,
                 );
               }
-              final next = booked.where((s) => s.isUpcoming).toList();
+              // 담당이 끊긴 회원의 일정은 준비할 수업이 아니다(#2589).
+              final next = booked
+                  .where((s) => s.isUpcoming && !s.memberDetached)
+                  .toList();
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -86,14 +89,19 @@ class TodayTimelineCard extends ConsumerWidget {
                     _Row(
                       key: ValueKey<String>('dashboard-schedule-${session.id}'),
                       session: session,
-                      client: findClientIdentity(
-                        clients,
-                        clientId: session.clientId,
-                        clientName: session.clientName,
-                      ),
+                      client: session.memberDetached
+                          ? null
+                          : findClientIdentity(
+                              clients,
+                              clientId: session.clientId,
+                              clientName: session.clientName,
+                            ),
                       // 로스터에 없는 고객(상담으로 잡힌 가망 고객)도 이름만
-                      // 부른다 — 스케줄 탭과 같은 표기다(#1012).
-                      fallbackName: session.clientName,
+                      // 부른다 — 스케줄 탭과 같은 표기다(#1012). 담당이 끊긴
+                      // 회원은 화면 언어의 `해제 회원` 이다(#2589).
+                      fallbackName: session.memberDetached
+                          ? l.schedDetachedMember
+                          : session.clientName,
                       onTap: () => context.go(
                         AppRoutes.scheduleAt(
                           date: session.date,

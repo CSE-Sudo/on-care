@@ -839,6 +839,8 @@
   },
   "schedCompleteFailed": "완료 처리에 실패했어요. 다시 시도해 주세요",
   "schedGroupProgram": "PT 프로그램",
+  "schedDetachedMember": "해제 회원",
+  "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",

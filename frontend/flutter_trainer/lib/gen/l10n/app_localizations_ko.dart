@@ -1679,6 +1679,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedGroupProgram => 'PT 프로그램';
 
   @override
+  String get schedDetachedMember => '해제 회원';
+
+  @override
+  String get schedDetachedMemberHint => '담당이 끝난 회원이라 회원 정보는 볼 수 없어요';
+
+  @override
   String get schedGroupPersonal => '개인운동';
 
   @override

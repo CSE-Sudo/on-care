@@ -1757,6 +1757,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedGroupProgram => 'PT program';
 
   @override
+  String get schedDetachedMember => 'Former client';
+
+  @override
+  String get schedDetachedMemberHint =>
+      'Coaching has ended, so client details are hidden';
+
+  @override
   String get schedGroupPersonal => 'Personal exercise';
 
   @override
