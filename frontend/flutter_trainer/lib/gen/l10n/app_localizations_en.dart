@@ -3643,6 +3643,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutUndatedTitle => 'Records without a date';
 
   @override
+  String get workoutMemberLogTitle => 'Logged by member';
+
+  @override
   String get workoutPendingCancel => 'Cancel assignment';
 
   @override
