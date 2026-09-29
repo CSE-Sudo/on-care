@@ -40,6 +40,37 @@ void main() {
     expect(after.first.date, DateTime.parse('2026-08-24'));
   });
 
+  test('개인운동만 을 다시 보내면 이전에 보낸 것만 내려간다 (#2514)', () async {
+    final repo = MockTrainerRoutineRepository();
+    const memberId = 'seed-client-1';
+    final seeded = await repo.watchAssignedRoutines(memberId).first;
+
+    Map<String, Object?> send(String name) => <String, Object?>{
+      'name': '개인운동',
+      'delivery_kind': 'routine_only',
+      'active_days': 7,
+      'sessions': <Object?>[
+        <String, Object?>{
+          'id': 's1',
+          'name': '',
+          'exercises': <Object?>[
+            <String, Object?>{'id': 'e1', 'name': name, 'duration': 20},
+          ],
+        },
+      ],
+    };
+
+    await repo.assignProgram(memberId, send('지난주 걷기'));
+    await repo.assignProgram(memberId, send('이번 주 걷기'));
+
+    final after = await repo.watchAssignedRoutines(memberId).first;
+    final List<String> names = <String>[for (final r in after) r.name];
+    expect(names.first, '이번 주 걷기');
+    expect(names, isNot(contains('지난주 걷기')));
+    // 씨앗 배정은 기한 없는 배정이라 그대로 남는다.
+    expect(after.length, seeded.length + 1);
+  });
+
   test('운동이 없으면 목록을 건드리지 않는다', () async {
     final repo = MockTrainerRoutineRepository();
     const memberId = 'seed-client-1';
