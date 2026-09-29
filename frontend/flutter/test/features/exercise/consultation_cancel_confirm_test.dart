@@ -103,7 +103,7 @@ void main() {
     );
     // 확정은 같은 파괴적 토큰의 채움, 유지는 중립 버튼이다.
     expect(
-      tester.widget<AppButton>(dialogButton('취소')).variant,
+      tester.widget<AppButton>(dialogButton('요청 취소')).variant,
       AppButtonVariant.destructive,
     );
     expect(
@@ -127,7 +127,7 @@ void main() {
 
     // 요청 하나를 취소해 `지난 요청` 쪽으로 옮긴다.
     await openConfirm(tester);
-    await tester.tap(dialogButton('취소'));
+    await tester.tap(dialogButton('요청 취소'));
     await tester.pumpAndSettle();
 
     expect(controller.state.single.status, isNot(ConsultationStatus.pending));
@@ -139,7 +139,7 @@ void main() {
     await pumpHistory(tester);
     await openConfirm(tester);
 
-    await tester.tap(dialogButton('취소'));
+    await tester.tap(dialogButton('요청 취소'));
     await tester.pumpAndSettle();
 
     expect(controller.state.single.status, isNot(ConsultationStatus.pending));

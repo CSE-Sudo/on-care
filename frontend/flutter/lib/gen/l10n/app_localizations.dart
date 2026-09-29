@@ -6696,6 +6696,12 @@ abstract class AppLocalizations {
   /// **'Cancel this consultation request?'**
   String get exConsultHistoryCancelTitle;
 
+  /// Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554).
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel request'**
+  String get exConsultHistoryCancelAction;
+
   /// No description provided for @exConsultHistoryCancelBody.
   ///
   /// In en, this message translates to:

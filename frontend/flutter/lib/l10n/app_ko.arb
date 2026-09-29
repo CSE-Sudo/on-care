@@ -582,10 +582,10 @@
       }
     }
   },
-  "myGraphProtectAction": "보호권 쓰기",
-  "myGraphProtectConfirmAction": "쓰기",
-  "myGraphProtectConfirmTitle": "보호권을 쓸까요?",
-  "myGraphProtectConfirmMessage": "{date}을 기록 연속에 이어 붙여요. 보호권 한 개를 씁니다(남은 보호권 {held}개).",
+  "myGraphProtectAction": "보호권 사용",
+  "myGraphProtectConfirmAction": "사용",
+  "myGraphProtectConfirmTitle": "보호권을 사용할까요?",
+  "myGraphProtectConfirmMessage": "{date}을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 {held}개).",
   "@myGraphProtectConfirmMessage": {
     "placeholders": {
       "date": {
@@ -597,7 +597,7 @@
     }
   },
   "myGraphProtectDone": "연속을 이어 붙였어요",
-  "myGraphProtectFailed": "보호권을 쓰지 못했어요",
+  "myGraphProtectFailed": "보호권을 사용하지 못했어요",
   "myGraphProtectBuyConfirmTitle": "보호권을 구매할까요?",
   "myGraphProtectBuyConfirmMessage": "지금 가진 보호권이 없어요. {cost}로 보호권을 구매하고 {date}을 바로 기록 연속에 이어 붙여요.",
   "@myGraphProtectBuyConfirmMessage": {
@@ -610,8 +610,8 @@
       }
     }
   },
-  "myGraphProtectBuyAction": "구매하고 쓰기",
-  "myGraphProtectBoughtNotUsed": "보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.",
+  "myGraphProtectBuyAction": "구매하고 사용",
+  "myGraphProtectBoughtNotUsed": "보호권은 구매했지만 사용하지 못했어요. 내 혜택에 보관돼요.",
   "myGraphColorTitle": "그래프 색",
   "myGraphColorPickTitle": "열 색 고르기",
   "myGraphColorLocked": "{cost}로 열기",
@@ -1828,6 +1828,7 @@
   "a11yPrevWeek": "지난 주",
   "a11yNextWeek": "다음 주",
   "exConsultHistoryCancelTitle": "상담 요청을 취소할까요?",
+  "exConsultHistoryCancelAction": "요청 취소",
   "exConsultHistoryCancelBody": "취소한 요청은 다시 되돌릴 수 없어요.",
   "exDemoPtSessionCount": "{trainerName} 트레이너와 12회차",
   "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",

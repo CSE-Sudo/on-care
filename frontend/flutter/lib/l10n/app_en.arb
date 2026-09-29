@@ -3126,6 +3126,10 @@
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
+  "exConsultHistoryCancelAction": "Cancel request",
+  "@exConsultHistoryCancelAction": {
+    "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
+  },
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
   "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
   "@exDemoPtSessionCount": {
