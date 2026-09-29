@@ -113,7 +113,7 @@ class _KindCard extends StatelessWidget {
   static const double _size = 76;
 
   /// 고리 두께.
-  static const double _stroke = 9;
+  static const double _stroke = 12;
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +123,16 @@ class _KindCard extends StatelessWidget {
     final double? ratio = trend.ratioOf(kind, week);
     final int? percent = ratio == null ? null : (ratio * 100).round();
 
-    return AppTile(
+    // 흰 바탕 + 회색 테두리 — 회색 채움은 입력 칸이 놓인 구획의 신호라,
+    // 읽기만 하는 이 칸에는 맞지 않는다.
+    return Container(
       key: ValueKey<String>('report-trend-${kind.name}'),
-      tone: AppTileTone.neutral,
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineStrong),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
