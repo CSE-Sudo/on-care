@@ -818,9 +818,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseName => 'Exercise';
 
   @override
-  String get coachTemplateExerciseMinutes => 'min';
-
-  @override
   String get coachTemplateAddExercise => 'Add exercise';
 
   @override
@@ -2406,30 +2403,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymHours => 'Hours';
 
   @override
-  String get myGymListFailed => 'Couldn\'t load the gym list.';
+  String get myGymRequired => 'Pick your gym from the search results';
 
   @override
-  String get myGymNoMatch =>
-      'This gym isn\'t listed. Please add its address and hours yourself.';
+  String get myGymSearchLabel => 'Find your gym';
 
   @override
-  String get myGymLinked => 'Registered gym';
+  String get myGymSearchHint => 'Gym name or address';
 
   @override
-  String get myGymUnlink => 'Unlink';
+  String get myGymSearching => 'Searching…';
 
   @override
-  String get myGymNameHint => 'Type to find a registered gym';
+  String get myGymSearchEmpty =>
+      'No gyms found. Try a different name or add the neighborhood.';
 
   @override
-  String get myGymRequired => 'Enter your gym';
+  String get myGymSearchFailed =>
+      'Couldn\'t search gyms. Please try again in a moment.';
+
+  @override
+  String get myGymCurrent => 'Current gym';
+
+  @override
+  String get myGymPicked => 'Saving will switch you to this gym';
+
+  @override
+  String get myGymNone => 'None yet';
+
+  @override
+  String get myGymHiddenTitle => 'Members can\'t find you yet';
+
+  @override
+  String get myGymHiddenBody =>
+      'Set your gym to appear in the member app\'s gym finder and consultation requests.';
+
+  @override
+  String get myGymHiddenAction => 'Set gym';
 
   @override
   String get myGymEditHint =>
-      'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.';
-
-  @override
-  String get myGymListLoading => 'Loading gyms…';
+      'Search by name and pick your gym. Members find you through this gym.';
 
   @override
   String get mySignOut => 'Sign out';
@@ -2535,7 +2549,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertsEmpty => 'No certifications yet';
 
   @override
-  String get myGymEmpty => 'No gym yet. Add yours in Edit profile.';
+  String get myGymEmpty => 'No gym yet. Set yours in Edit profile.';
 
   @override
   String get myEditVisibleBody =>
@@ -3188,8 +3202,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
-  String coachTemplateSummaryWithGoal(String goal, int count, int minutes) {
-    return '$goal · $count exercises · $minutes min';
+  String coachTemplateSummaryWithGoal(String goal, int count, String duration) {
+    return '$goal · $count exercises · $duration';
   }
 
   @override

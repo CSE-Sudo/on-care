@@ -335,6 +335,7 @@ def add_sessions(
         dict(
             date=_session_date(row), exercise_type=row.type, minutes=row.minutes,
             calories=row.calories, intensity=row.intensity, source_ref=row.id,
+            duration_seconds=row.duration_seconds,
         )
         for row in rows
     ]

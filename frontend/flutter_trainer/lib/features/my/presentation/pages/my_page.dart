@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
@@ -115,21 +118,15 @@ class _MyPageState extends ConsumerState<MyPage> {
   final TextEditingController _newCert = TextEditingController();
   late List<String> _draftCerts;
 
-  /// 연결된 등록 헬스장 id — 비어 있으면 직접 입력이다.
-  late String _draftGymId;
-
-  /// 수정 화면을 열 때의 [_draftGymId]. 이름이 목록과 같아 자동으로 연결했으면
-  /// 그 id 다 — 사람이 바꾼 게 아니므로 떠날 때 묻지 않는다.
-  String _baselineGymId = '';
-
-  /// 이번 수정에서 헬스장을 손댔는가. 손댄 뒤에는 자동 연결을 하지 않는다.
-  bool _gymTouched = false;
+  /// 이번 수정에서 고른 헬스장 — 저장을 눌러야 소속이 바뀐다. null 이면
+  /// 소속을 그대로 둔다.
+  TrainerGymCandidate? _draftGym;
 
   /// 탈퇴 — 고른 사유와 두 번째 칸('탈퇴하기 전에')에 있는지.
   final Set<_WithdrawReason> _withdrawReasons = <_WithdrawReason>{};
   bool _withdrawKeepStep = false;
 
-  /// 헬스장 이름 안내를 띄울지 — 저장을 눌러 한 번 막힌 뒤부터(전화번호와 같다).
+  /// 소속 헬스장 안내를 띄울지 — 저장을 눌러 한 번 막힌 뒤부터(전화번호와 같다).
   bool _showGymError = false;
 
   @override
@@ -142,7 +139,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
-    _draftGymId = (_gym.id ?? '');
     // 주소로 프로필 수정에 바로 들어와도(새로고침·뒤로) 빈 폼이 아니다.
     if (_section == _MySection.edit) _loadDrafts();
   }
@@ -199,9 +195,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   void _loadDrafts() {
     _showPhoneError = false;
     _draftCerts = List<String>.of(_certs);
-    _draftGymId = (_gym.id ?? '');
-    _baselineGymId = _draftGymId;
-    _gymTouched = false;
+    _draftGym = null;
     _showGymError = false;
     _newCert.clear();
     _field('name', _profile.name).text = _profile.name;
@@ -210,38 +204,12 @@ class _MyPageState extends ConsumerState<MyPage> {
     _field('specialty', _profile.specialty).text = _profile.specialty;
     _field('career', _careerText(_profile)).text = _careerText(_profile);
     _field('intro', _profile.intro).text = _profile.intro;
-    _field('gymName', _gym.name).text = _gym.name;
-    _field('gymAddress', _gym.address).text = _gym.address;
-    _field('gymHours', _gym.hours).text = _gym.hours;
-    _field('gymPhone', _gym.phone).text = _gym.phone;
-    _autoLinkGym(ref.read(trainerGymChoicesProvider).valueOrNull);
   }
 
-  /// 옛 방식 글자만 있어도 이름이 등록 헬스장과 똑같으면 그 헬스장으로 연다 —
-  /// 이름이 같은데 `직접 입력` 으로 보이면 목록에 없는 곳처럼 읽힌다.
-  void _autoLinkGym(List<TrainerGymChoice>? items) {
-    if (items == null || _gymTouched || _draftGymId.isNotEmpty) return;
-    final String name = _fields['gymName']?.text.trim() ?? '';
-    if (name.isEmpty) return;
-    for (final TrainerGymChoice choice in items) {
-      if (choice.name.trim() == name) {
-        _fillGym(choice);
-        _baselineGymId = choice.id;
-        return;
-      }
-    }
-  }
-
-  void _fillGym(TrainerGymChoice choice) {
-    _draftGymId = choice.id;
-    _field('gymName', choice.name).text = choice.name;
-    _field('gymAddress', choice.address).text = choice.address;
-    _field('gymHours', choice.hours).text = choice.hours;
-    _field('gymPhone', choice.phone).text = choice.phone;
-  }
-
+  /// 소속이 없고 새로 고르지도 않았으면 저장하지 않는다 — 소속이 없으면 회원이
+  /// 트레이너를 찾을 수 없다(#443·#451).
   String? _gymError(AppLocalizations l) =>
-      (_fields['gymName']?.text.trim() ?? '').isEmpty ? l.myGymRequired : null;
+      _gym.id == null && _draftGym == null ? l.myGymRequired : null;
 
   Future<void> _save() async {
     if (_saving) return;
@@ -262,8 +230,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       setState(() => _showPhoneError = true);
       return;
     }
-    // 소속 헬스장은 필수다 — 소규모·개인 스튜디오라도 수업하는 곳이 있다.
-    // 목록에 없으면 직접 적으면 된다.
+    // 소속 헬스장은 필수다 — 소규모·개인 스튜디오라도 수업하는 곳이 있고,
+    // 검색은 카카오에 있는 곳을 모두 찾는다(#2543).
     if (_gymError(AppLocalizations.of(context)) != null) {
       setState(() => _showGymError = true);
       return;
@@ -273,14 +241,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     final repository = ref.read(trainerProfileRepositoryProvider);
     var profileSaved = false;
     try {
-      final String linked = _draftGymId;
-      final String currentGymId = _gym.id ?? '';
-      final bool manual = linked.isEmpty;
-      // 직접 입력으로 옮기려면 소속부터 푼다 — 소속이 있으면 서버가 헬스장
-      // 글자 수정을 막는다(409, #452).
-      if (manual && currentGymId.isNotEmpty) await repository.clearGym();
-      // 헬스장 글자는 직접 입력일 때만 보낸다. 등록된 헬스장이면 서버가 채운다.
-      String? gymText(String key) => manual ? _fields[key]!.text.trim() : null;
+      final TrainerGymCandidate? picked = _draftGym;
       var saved = await repository.update(
         TrainerProfileUpdate(
           phone: _fields['phone']!.text.trim(),
@@ -288,15 +249,12 @@ class _MyPageState extends ConsumerState<MyPage> {
           careerYears: careerYears,
           intro: _fields['intro']!.text.trim(),
           certifications: List<String>.of(_draftCerts),
-          gymName: gymText('gymName'),
-          gymAddress: gymText('gymAddress'),
-          gymHours: gymText('gymHours'),
-          gymPhone: gymText('gymPhone'),
         ),
       );
       profileSaved = true;
-      if (!manual && linked != currentGymId) {
-        saved = await repository.setGym(linked);
+      // 헬스장 이름·주소는 서버가 소속에서 채운다 — 여기서는 소속만 바꾼다.
+      if (picked != null && picked.id != _gym.id) {
+        saved = await repository.selectGym(picked);
       }
       if (!mounted) return;
       _applySavedProfile(saved);
@@ -346,7 +304,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       _gym = saved.gym;
       _certs = List<String>.of(saved.certifications);
       _draftCerts = List<String>.of(_certs);
-      _draftGymId = (saved.gym.id ?? '');
+      _draftGym = null;
       _saving = false;
       _newCert.clear();
     });
@@ -359,7 +317,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       _gym = restored.gym;
       _certs = List<String>.of(restored.certifications);
       _draftCerts = List<String>.of(_certs);
-      _draftGymId = (restored.gym.id ?? '');
+      _draftGym = null;
     });
   }
 
@@ -487,12 +445,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         text('intro') != _profile.intro ||
         _newCert.text.trim().isNotEmpty ||
         !listEquals(_draftCerts, _certs) ||
-        _draftGymId != _baselineGymId ||
-        (_draftGymId.isEmpty &&
-            (text('gymName') != _gym.name ||
-                text('gymAddress') != _gym.address ||
-                text('gymHours') != _gym.hours ||
-                text('gymPhone') != _gym.phone));
+        (_draftGym != null && _draftGym!.id != _gym.id);
   }
 
   String _title(AppLocalizations l, _MySection section) => switch (section) {
@@ -528,13 +481,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final _MySection section = _section;
     _syncLeaveGuard();
-    if (section == _MySection.edit) {
-      // 헬스장 목록이 수정 화면을 연 뒤에 도착해도 같은 이름이면 연결한다.
-      ref.listen(trainerGymChoicesProvider, (_, next) {
-        final List<TrainerGymChoice>? items = next.valueOrNull;
-        if (items != null) setState(() => _autoLinkGym(items));
-      });
-    }
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         // 페이지 좌우 여백을 뺀 본문 폭으로 판단한다 — 회원·메시지 탭의 분할
@@ -690,6 +636,21 @@ class _MyPageState extends ConsumerState<MyPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final String intro = _profile.intro.trim();
     return <Widget>[
+      // 소속이 없으면 회원 앱 헬스장 찾기·상담 신청에 나오지 않는다(#443·#451).
+      // 예전에 이름만 직접 적어 둔 트레이너도 여기 걸린다 — 화면에는 소속이
+      // 있어 보여 알 길이 없었다(#2543).
+      if (_gym.id == null) ...<Widget>[
+        AppBanner(
+          key: const ValueKey<String>('my-gym-hidden'),
+          title: l.myGymHiddenTitle,
+          message: l.myGymHiddenBody,
+          icon: AppIcons.warning,
+          tone: AppBannerTone.caution,
+          actionLabel: l.myGymHiddenAction,
+          onAction: () => _go(_MySection.edit),
+        ),
+        const SizedBox(height: OnCareSpacing.cardGap),
+      ],
       _IdentityCard(profile: _profile, onEdit: () => _go(_MySection.edit)),
       const SizedBox(height: OnCareSpacing.cardGap),
       const _MonthStats(),
@@ -773,34 +734,11 @@ class _MyPageState extends ConsumerState<MyPage> {
       _SettingsCard(
         title: l.myGym,
         description: l.myGymEditHint,
-        body: _GymEditor(
-          gym: _gym,
-          field: _field,
-          choices: ref.watch(trainerGymChoicesProvider),
-          linkedGymId: _draftGymId,
-          onLink: (choice) => setState(() {
-            _gymTouched = true;
-            _fillGym(choice);
-          }),
-          // 연결을 풀면 칸을 모두 비운다 — 다른 헬스장을 찾거나 새로 적는
-          // 자리라, 앞 헬스장의 주소·운영 시간이 남으면 섞여 저장된다.
-          onUnlink: () => setState(() {
-            _gymTouched = true;
-            _draftGymId = '';
-            for (final String key in <String>[
-              'gymName',
-              'gymAddress',
-              'gymHours',
-              'gymPhone',
-            ]) {
-              _fields[key]?.clear();
-            }
-          }),
-          nameError: _showGymError ? _gymError(l) : null,
-          onNameChanged: (_) {
-            _gymTouched = true;
-            if (_showGymError) setState(() {});
-          },
+        body: _GymPicker(
+          current: _gym,
+          picked: _draftGym,
+          errorText: _showGymError ? _gymError(l) : null,
+          onPick: (gym) => setState(() => _draftGym = gym),
         ),
       ),
     ];
@@ -1868,9 +1806,7 @@ class _SupportRow extends StatelessWidget {
       trailing: onTap == null
           ? null
           : AppIcon(
-              external
-                  ? AppIcons.external
-                  : AppIcons.chevronRight,
+              external ? AppIcons.external : AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),
@@ -1895,10 +1831,8 @@ class _ClientManagementCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return clients.when(
       loading: () => const AppLoading(),
-      error: (_, _) => AppEmptyState(
-        title: l.clientsLoadFailed,
-        icon: AppIcons.offline,
-      ),
+      error: (_, _) =>
+          AppEmptyState(title: l.clientsLoadFailed, icon: AppIcons.offline),
       data: (items) {
         if (items.isEmpty) {
           return AppEmptyState(
@@ -1976,358 +1910,262 @@ class _ManagedClientRow extends StatelessWidget {
   }
 }
 
-/// 소속 헬스장 고치기 — 이름을 치면 맞는 등록 헬스장이 아래에 뜬다(#2264).
+/// 소속 헬스장 고르기 — 이름으로 찾아 목록이나 지도 핀에서 고른다(#2543).
 ///
-/// 고르면 주소·운영 시간·연락처가 채워지고 칸이 잠긴다(서버가 관리하는 값).
-/// 고르지 않고 계속 쓰면 직접 입력으로 저장된다. 소속은 필수다 — PT 트레이너는
-/// 어딘가에서 수업한다. 드롭다운은 헬스장이 늘면 찾을 수 없어 쓰지 않는다.
-class _GymEditor extends StatelessWidget {
-  const _GymEditor({
-    required this.gym,
-    required this.field,
-    required this.choices,
-    required this.linkedGymId,
-    required this.onLink,
-    required this.onUnlink,
-    this.nameError,
-    this.onNameChanged,
-  });
-
-  final TrainerGym gym;
-  final TextEditingController Function(String, String) field;
-  final AsyncValue<List<TrainerGymChoice>> choices;
-
-  /// 연결된 등록 헬스장 id. 비어 있으면 직접 입력이다.
-  final String linkedGymId;
-  final ValueChanged<TrainerGymChoice> onLink;
-  final VoidCallback onUnlink;
-
-  /// 이름 칸 아래 안내(필수). 저장을 눌러 한 번 막히기 전에는 null 이다.
-  final String? nameError;
-  final ValueChanged<String>? onNameChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final bool linked = linkedGymId.isNotEmpty;
-    final TextEditingController name = field('gymName', gym.name);
-    final List<TrainerGymChoice> items =
-        choices.valueOrNull ?? const <TrainerGymChoice>[];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        if (linked) ...<Widget>[
-          Row(
-            children: <Widget>[
-              AppTag(
-                label: l.myGymLinked,
-                icon: AppIcons.verified,
-                tone: AppTagTone.brand,
-              ),
-              const Spacer(),
-              AppButton(
-                key: const ValueKey<String>('gym-unlink'),
-                label: l.myGymUnlink,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-                onPressed: onUnlink,
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
-        if (linked)
-          _EditField(
-            label: l.myGymName,
-            controller: name,
-            inputKey: const ValueKey<String>('gym-name'),
-            enabled: false,
-          )
-        else ...<Widget>[
-          _GymNameField(
-            controller: name,
-            choices: items,
-            listReady: choices.hasValue,
-            onPick: onLink,
-            errorText: nameError,
-            onChanged: onNameChanged,
-          ),
-          // 목록을 읽는 중이거나 못 읽었으면 그렇다고 말한다 — 그 사이에도
-          // 직접 적을 수 있다.
-          if (choices.isLoading || choices.hasError)
-            Padding(
-              padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-              child: Text(
-                choices.hasError ? l.myGymListFailed : l.myGymListLoading,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(
-                      color: choices.hasError
-                          ? OnCareColors.danger
-                          : OnCareColors.textTertiary,
-                    ),
-              ),
-            ),
-        ],
-        _EditField(
-          label: l.myGymAddress,
-          controller: field('gymAddress', gym.address),
-          inputKey: const ValueKey<String>('gym-address'),
-          enabled: !linked,
-        ),
-        _EditField(
-          label: l.myGymHours,
-          controller: field('gymHours', gym.hours),
-          enabled: !linked,
-        ),
-        _EditField(
-          label: l.myFieldPhone,
-          controller: field('gymPhone', gym.phone),
-          enabled: !linked,
-        ),
-      ],
-    );
-  }
-}
-
-/// 헬스장 이름 칸 + 맞는 등록 헬스장 목록(칸 아래에 떠 있는 드롭다운).
+/// 직접 적는 칸은 없다. 직접 적은 이름은 서버 목록(`places`)에 없어 회원에게
+/// 노출되지 않는데도 화면에는 소속이 있는 것처럼 보였다. 검색 결과는 서버가
+/// 등록된 헬스장과 카카오 장소를 합쳐 준다 — 여기서는 어느 쪽인지 가리지 않는다.
 ///
-/// 상단 회원 검색과 같은 방식이다(#1693 메뉴 규격) — 칸과 같은 폭으로 칸
-/// 바로 아래에 떠서 다른 칸을 밀지 않는다. 맞는 곳은 모두 싣고, 네 줄쯤 보이는
-/// 높이에서 멈춰 나머지는 스크롤한다. ↑/↓ 로 옮기고 Enter 로 고르며, 고르거나
-/// 바깥을 누르거나 Esc 를 누르면 닫힌다.
-class _GymNameField extends StatefulWidget {
-  const _GymNameField({
-    required this.controller,
-    required this.choices,
+/// 고른 헬스장은 저장을 눌러야 바뀐다(다른 프로필 칸과 같다). 지도는 카카오
+/// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다.
+class _GymPicker extends ConsumerStatefulWidget {
+  const _GymPicker({
+    required this.current,
+    required this.picked,
     required this.onPick,
-    this.listReady = true,
     this.errorText,
-    this.onChanged,
   });
 
-  final TextEditingController controller;
-  final List<TrainerGymChoice> choices;
+  /// 저장된 소속. 소속이 없으면 `id` 가 null 이다.
+  final TrainerGym current;
 
-  /// 목록을 다 읽었는가. 읽기 전에는 '없어요' 를 말하지 않는다.
-  final bool listReady;
-  final ValueChanged<TrainerGymChoice> onPick;
+  /// 이번 수정에서 고른 헬스장. 아직 고르지 않았으면 null.
+  final TrainerGymCandidate? picked;
+  final ValueChanged<TrainerGymCandidate> onPick;
+
+  /// 저장을 눌렀는데 소속이 없을 때의 안내.
   final String? errorText;
-  final ValueChanged<String>? onChanged;
 
   @override
-  State<_GymNameField> createState() => _GymNameFieldState();
+  ConsumerState<_GymPicker> createState() => _GymPickerState();
 }
 
-class _GymNameFieldState extends State<_GymNameField> {
-  final OverlayPortalController _dropdown = OverlayPortalController();
-  final ScrollController _scroll = ScrollController();
-  final FocusNode _focus = FocusNode();
+class _GymPickerState extends ConsumerState<_GymPicker> {
+  final TextEditingController _query = TextEditingController();
+  Timer? _debounce;
 
-  @override
-  void initState() {
-    super.initState();
-    // 이름을 다 쓰고 다음 칸으로 가면(Tab·다른 칸 누르기) 바로 닫는다.
-    _focus.addListener(() {
-      if (!_focus.hasFocus) _dropdown.hide();
-    });
-  }
+  /// 마지막으로 보낸 검색 번호 — 늦게 도착한 옛 응답이 새 결과를 덮지 않게.
+  int _seq = 0;
+  bool _loading = false;
+  bool _failed = false;
 
-  /// 키보드가 가리키는 줄(↑/↓ 로 옮기고 Enter 로 고른다).
-  int _highlight = 0;
+  /// 검색을 한 번이라도 했는가. 하기 전에는 '없어요' 를 말하지 않는다.
+  bool _searched = false;
+  List<TrainerGymCandidate> _results = const <TrainerGymCandidate>[];
 
-  /// 한 줄 높이와 한 번에 보이는 높이(네 줄 남짓).
-  static const double _rowHeight = 56;
-  static const double _maxHeight = _rowHeight * 4 + _rowHeight / 2;
+  /// 지도 SDK 를 불러오지 못했다(도메인 미등록·네트워크 차단). 빈 지도 자리를
+  /// 남기지 않고 목록만 보인다.
+  bool _mapUnavailable = false;
+
+  /// 지도 중심 — 헬스장을 고르기 전에는 첫 결과, 기본은 서울시청.
+  static const double _defaultLat = 37.5665;
+  static const double _defaultLng = 126.9780;
+  static const double _mapHeight = 240;
 
   @override
   void dispose() {
-    _scroll.dispose();
-    _focus.dispose();
+    _debounce?.cancel();
+    _query.dispose();
     super.dispose();
   }
 
-  List<TrainerGymChoice> get _matches {
-    final String query = widget.controller.text.trim().toLowerCase();
-    if (query.isEmpty) return const <TrainerGymChoice>[];
-    return <TrainerGymChoice>[
-      for (final TrainerGymChoice choice in widget.choices)
-        if (choice.name.toLowerCase().contains(query) ||
-            choice.address.toLowerCase().contains(query))
-          choice,
-    ];
+  /// 치는 동안에는 잠깐 기다렸다 찾는다 — 글자마다 카카오를 부르지 않게.
+  void _onChanged(String _) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), _search);
   }
 
-  /// 목록을 띄울지 — 맞는 곳이 있을 때만. 맞는 곳이 없다는 말은 떠 있는 창이
-  /// 아니라 칸 아래 한 줄로 한다: 창은 아래 주소 칸을 덮어, 주소를 적으려고
-  /// 누르면 창 안을 누른 셈이 되어 닫히지 않았다.
-  bool get _shouldShow => _matches.isNotEmpty;
-
-  /// 목록을 다 읽었는데 적은 이름에 맞는 등록 헬스장이 없다.
-  bool get _noMatch =>
-      widget.listReady &&
-      widget.controller.text.trim().isNotEmpty &&
-      _matches.isEmpty;
-
-  void _refresh() {
-    setState(() => _highlight = 0);
-    if (_shouldShow) {
-      _dropdown.show();
-    } else {
-      _dropdown.hide();
+  Future<void> _search() async {
+    _debounce?.cancel();
+    final String query = _query.text.trim();
+    final int seq = ++_seq;
+    if (query.isEmpty) {
+      setState(() {
+        _results = const <TrainerGymCandidate>[];
+        _searched = false;
+        _failed = false;
+        _loading = false;
+      });
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+    try {
+      final List<TrainerGymCandidate> found = await ref
+          .read(trainerProfileRepositoryProvider)
+          .searchGyms(query);
+      if (!mounted || seq != _seq) return;
+      setState(() {
+        _results = found;
+        _searched = true;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted || seq != _seq) return;
+      setState(() {
+        _failed = true;
+        _searched = true;
+        _loading = false;
+      });
     }
   }
 
-  void _move(int delta) {
-    final int count = _matches.length;
-    if (count == 0) return;
-    setState(() => _highlight = (_highlight + delta).clamp(0, count - 1));
-    // 가리키는 줄이 보이게 스크롤을 따라 옮긴다.
-    final double top = _highlight * _rowHeight;
-    final double bottom = top + _rowHeight;
-    if (_scroll.hasClients) {
-      final double offset = _scroll.offset;
-      if (top < offset) {
-        _scroll.jumpTo(top);
-      } else if (bottom > offset + _maxHeight) {
-        _scroll.jumpTo(bottom - _maxHeight);
+  TrainerGymCandidate? get _focus {
+    final TrainerGymCandidate? picked = widget.picked;
+    if (picked != null && picked.hasLocation) return picked;
+    for (final TrainerGymCandidate gym in _results) {
+      if (gym.hasLocation) return gym;
+    }
+    return null;
+  }
+
+  void _pickById(KakaoMapMarker marker) {
+    for (final TrainerGymCandidate gym in _results) {
+      if (gym.id == marker.id) {
+        widget.onPick(gym);
+        return;
       }
     }
   }
 
-  void _pick(TrainerGymChoice choice) {
-    _dropdown.hide();
-    widget.onPick(choice);
-  }
-
-  void _submit() {
-    final List<TrainerGymChoice> matches = _matches;
-    if (_dropdown.isShowing && matches.isNotEmpty) {
-      _pick(matches[_highlight.clamp(0, matches.length - 1)]);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 목록에 없다는 안내는 입력 칸의 도움말 자리가 아니라 칸 밖에 둔다 —
-    // 도움말은 칸 안쪽 여백만큼 들어가, 라벨과 다른 선에서 시작했다.
-    final Widget? noMatch = _noMatch
-        ? Padding(
-            padding: const EdgeInsets.only(top: OnCareSpacing.s4),
-            child: Text(
-              l.myGymNoMatch,
-              style: context.oncare
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          )
-        : null;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[_field(l), ?noMatch],
-      ),
-    );
-  }
-
-  Widget _field(AppLocalizations l) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return AppPopover(
-          controller: _dropdown,
-          panelKey: const ValueKey<String>('gym-suggestions'),
-          width: constraints.maxWidth,
-          maxHeight: _maxHeight,
-          onTapOutside: _dropdown.hide,
-          panel: (_) => _suggestions(),
-          anchor: CallbackShortcuts(
-            bindings: <ShortcutActivator, VoidCallback>{
-              const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-                  _move(1),
-              const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-                  _move(-1),
-              const SingleActivator(LogicalKeyboardKey.escape): _dropdown.hide,
-            },
-            // 칸을 다시 누르면 남아 있는 글자로 목록을 다시 연다.
-            child: Listener(
-              onPointerDown: (_) {
-                if (_shouldShow) _dropdown.show();
-              },
-              child: AppTextField(
-                key: const ValueKey<String>('gym-name'),
-                label: l.myGymName,
-                hint: l.myGymNameHint,
-                controller: widget.controller,
-                focusNode: _focus,
-                errorText: widget.errorText,
-                onChanged: (String value) {
-                  widget.onChanged?.call(value);
-                  _refresh();
-                },
-                onSubmitted: (_) => _submit(),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// 맞는 헬스장 목록. 가리킨 줄의 채움은 상자가 둥근 모서리로 자른다.
-  Widget _suggestions() {
-    final List<TrainerGymChoice> matches = _matches;
     final OnCareTokens tokens = context.oncare;
-    return ListView.builder(
-      controller: _scroll,
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      itemExtent: _rowHeight,
-      itemCount: matches.length,
-      itemBuilder: (BuildContext context, int i) {
-        final TrainerGymChoice choice = matches[i];
-        return MouseRegion(
-          onEnter: (_) => setState(() => _highlight = i),
-          child: InkWell(
-            key: ValueKey<String>('gym-suggestion-${choice.id}'),
-            onTap: () => _pick(choice),
-            child: Container(
-              color: i == _highlight
-                  ? tokens.brand.surface
-                  : Colors.transparent,
-              padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSpacing.s16,
-              ),
-              alignment: AlignmentDirectional.centerStart,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    choice.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(OnCareTypography.body)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                  if (choice.address.isNotEmpty)
-                    Text(
-                      choice.address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tokens
-                          .text(OnCareTypography.caption)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                ],
+    final TrainerGymCandidate? picked = widget.picked;
+    final String? pickedId = picked?.id ?? widget.current.id;
+    final List<KakaoMapMarker> markers = <KakaoMapMarker>[
+      for (final TrainerGymCandidate gym in _results)
+        if (gym.hasLocation)
+          KakaoMapMarker(
+            lat: gym.lat!,
+            lng: gym.lng!,
+            title: gym.name,
+            id: gym.id,
+          ),
+    ];
+    final TrainerGymCandidate? focus = _focus;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _selection(l, tokens),
+        const SizedBox(height: OnCareSpacing.s16),
+        AppTextField(
+          key: const ValueKey<String>('gym-search'),
+          label: l.myGymSearchLabel,
+          hint: l.myGymSearchHint,
+          prefixIcon: AppIcons.search,
+          controller: _query,
+          errorText: widget.errorText,
+          textInputAction: TextInputAction.search,
+          onChanged: _onChanged,
+          onSubmitted: (_) => _search(),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        if (_loading)
+          Text(
+            l.myGymSearching,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          )
+        else if (_failed)
+          Text(
+            l.myGymSearchFailed,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.danger),
+          )
+        else if (_searched && _results.isEmpty)
+          Text(
+            l.myGymSearchEmpty,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        if (isKakaoMapConfigured &&
+            !_mapUnavailable &&
+            markers.isNotEmpty) ...<Widget>[
+          ClipRRect(
+            borderRadius: OnCareRadius.mdAll,
+            child: SizedBox(
+              key: const ValueKey<String>('gym-map'),
+              height: _mapHeight,
+              child: KakaoMapView(
+                centerLat: focus?.lat ?? _defaultLat,
+                centerLng: focus?.lng ?? _defaultLng,
+                level: 4,
+                markers: markers,
+                onMarkerTap: _pickById,
+                onUnavailable: () {
+                  if (mounted) setState(() => _mapUnavailable = true);
+                },
+                fallback: const SizedBox.shrink(),
               ),
             ),
           ),
-        );
-      },
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
+        for (final TrainerGymCandidate gym in _results)
+          Padding(
+            padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+            child: AppListRow(
+              key: ValueKey<String>('gym-result-${gym.id}'),
+              title: gym.name,
+              subtitle: gym.address.isEmpty ? null : gym.address,
+              selected: gym.id == pickedId,
+              trailing: gym.id == pickedId
+                  ? AppIcon(AppIcons.check, color: tokens.brand.primary)
+                  : null,
+              onTap: () => widget.onPick(gym),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 지금 소속(또는 저장하면 바뀔 헬스장) 한 줄.
+  Widget _selection(AppLocalizations l, OnCareTokens tokens) {
+    final TrainerGymCandidate? picked = widget.picked;
+    final String name = picked?.name ?? widget.current.name.trim();
+    final String address = picked?.address ?? widget.current.address;
+    final bool none = name.isEmpty;
+    return Column(
+      key: const ValueKey<String>('gym-selection'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          picked == null ? l.myGymCurrent : l.myGymPicked,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(
+                color: picked == null
+                    ? OnCareColors.textTertiary
+                    : tokens.brand.primary,
+              ),
+        ),
+        const SizedBox(height: OnCareSpacing.s4),
+        Text(
+          none ? l.myGymNone : name,
+          style: tokens
+              .text(OnCareTypography.bodyLarge)
+              .copyWith(
+                color: none
+                    ? OnCareColors.textTertiary
+                    : OnCareColors.textPrimary,
+              ),
+        ),
+        if (!none && address.isNotEmpty)
+          Text(
+            address,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+      ],
     );
   }
 }

@@ -1948,9 +1948,11 @@ class RoutineHistory(Base):
         String(50), default=""
     )  # 'PT 세션 · 트레이너 지도'
     completion_rate: Mapped[int] = mapped_column(Integer, default=0)  # 0..100
-    exercises_json: Mapped[str] = mapped_column(
-        Text, default="[]"
-    )  # ["레그프레스 3세트", ...]
+    #: 운동 목록. 옛 행·시드는 문장(`["레그프레스 3세트", ...]`)이고, 완료한 PT 는
+    #: 값을 담은 객체(`{name, type, label, sets, …, duration_seconds}`)다 — 문장의
+    #: `초` 는 버티는 운동의 초로 되읽혀 운동 시간의 초를 남길 수 없었다(#2546).
+    #: 두 모양 모두 `trainer_service.parse_history_exercise` 가 읽는다.
+    exercises_json: Mapped[str] = mapped_column(Text, default="[]")
     client_feedback: Mapped[str] = mapped_column(Text, default="")
     trainer_note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(

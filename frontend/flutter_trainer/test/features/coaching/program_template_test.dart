@@ -34,13 +34,13 @@ void main() {
       expect(ids.length, starterTemplates.length);
     });
 
-    test('totalMinutes sums the block', () {
+    test('totalSeconds sums the block', () {
       final template = starterTemplates.first;
       expect(
-        template.totalMinutes,
+        template.totalSeconds,
         template.exercises.fold<int>(
           0,
-          (int sum, TemplateExercise e) => sum + e.minutes,
+          (int sum, TemplateExercise e) => sum + e.durationSeconds,
         ),
       );
     });

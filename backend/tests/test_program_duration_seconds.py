@@ -10,11 +10,23 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.trainer_api import ProgramDraftExercise, ProgramItem
+from app.models.models import TrainerRoutine
+from app.schemas.exercise_limits import MAX_EXERCISE_SECONDS
+from app.schemas.trainer_api import (
+    ProgramDraftExercise,
+    ProgramItem,
+    ProgramTemplateExercise,
+)
+from app.services import notification_templates as nt
+from app.services.coach.personal_ingest import exercise_text
+from app.services.exercise_duration import format_duration
 from app.services.trainer_service import (
     _program_item_label,
     _program_items,
+    _program_notification_args,
+    _program_row_seconds,
     _program_seconds_and_type,
+    _session_seconds,
     _session_summary,
 )
 
@@ -71,6 +83,8 @@ def test_summary_adds_seconds_before_folding_into_minutes():
         [_draft(id=f"e{i}", duration_seconds=45) for i in range(3)]
     )
     assert (minutes, type_) == (2, "유산소")
+    # 배정 행에 남기는 초는 접기 전 값이다(#2521).
+    assert _session_seconds([_draft(id=f"e{i}", duration_seconds=45) for i in range(3)]) == 135
 
     seconds, _ = _program_seconds_and_type(
         [ProgramItem(name="걷기", type="유산소", duration_seconds=45)] * 3
@@ -90,7 +104,130 @@ def test_summary_of_minutes_only_programs_is_unchanged():
     assert minutes == 34
 
 
-def test_history_label_stays_in_minutes():
-    """이력 한 줄은 분으로 적는다 — `초` 는 버티는 운동의 초로 되읽힌다."""
+def test_history_label_keeps_seconds():
+    """이력 한 줄은 초까지 적는다 — 값은 객체로 함께 남아 문장을 되읽지 않는다. (#2546)"""
     item = ProgramItem(name="걷기", type="유산소", duration_seconds=45)
-    assert _program_item_label(item) == "걷기 1분"
+    assert _program_item_label(item) == "걷기 45초"
+    long = ProgramItem(name="사이클", type="유산소", duration_seconds=5415)
+    assert _program_item_label(long) == "사이클 1시간 30분 15초"
+    assert _program_item_label(ProgramItem(name="런지", type="유산소", duration=20)) == (
+        "런지 20분"
+    )
+
+
+@pytest.mark.parametrize(
+    ("seconds", "ko", "en"),
+    [
+        (45, "45초", "45 sec"),
+        (60, "1분", "1 min"),
+        (1800, "30분", "30 min"),
+        (3600, "1시간", "1 hr"),
+        (5415, "1시간 30분 15초", "1 hr 30 min 15 sec"),
+        (3605, "1시간 5초", "1 hr 5 sec"),
+        (0, "0분", "0 min"),
+        (-5, "0분", "0 min"),
+    ],
+)
+def test_format_duration_drops_zero_units(seconds, ko, en):
+    """0 인 단위는 뺀다 — 회원 앱 `formatDurationParts` 와 같은 규칙. (#2546)"""
+    assert format_duration(seconds) == ko
+    assert format_duration(seconds, "en") == en
+
+
+def _routine(exercises: list[dict], minutes: int) -> TrainerRoutine:
+    return TrainerRoutine(
+        name="코어", minutes=minutes, exercises_json=json.dumps(exercises, ensure_ascii=False)
+    )
+
+
+def test_program_notification_adds_seconds_before_folding():
+    """45초 세션 셋은 `2분 15초` 다 — 세션마다 1분으로 올려 `3분` 이 되지 않는다. (#2546)"""
+    rows = [
+        _routine([{"id": "e1", "name": "버피", "type": "유산소", "duration_seconds": 45}], 1)
+        for _ in range(3)
+    ]
+    args = _program_notification_args(
+        "코어", sessions=3, seconds=sum(_program_row_seconds(r) for r in rows), multi=True
+    )
+    assert (args["seconds"], args["minutes"]) == (135, 2)
+    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "ko") == (
+        "새 운동 루틴이 배정되었어요", "코어 · 세션 3개 · 2분 15초",
+    )
+    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "en") == (
+        "New workout routine assigned", "코어 · 3 sessions · 2 min 15 sec",
+    )
+
+
+def test_program_row_without_exercises_reads_its_minutes():
+    """운동 구성을 읽을 수 없는 줄은 저장된 분으로 읽는다."""
+    assert _program_row_seconds(_routine([], 30)) == 1800
+    strength = _routine([{"id": "e1", "name": "스쿼트", "type": "근력", "sets": 3}], 9)
+    assert _program_row_seconds(strength) == 9 * 60
+
+
+@pytest.mark.parametrize(
+    ("seconds", "expected"), [(45, "유산소 45초"), (None, "유산소 1분"), (5415, "유산소 1시간 30분 15초")]
+)
+def test_coach_exercise_text_keeps_seconds(seconds, expected):
+    """AI 코치가 읽는 기록 글도 초까지 적는다 — 초가 없는 옛 행은 분이다. (#2546)"""
+    text = exercise_text(
+        date="2026-09-29", exercise_type="cardio", minutes=1 if seconds != 5415 else 90,
+        calories=10, intensity="moderate", duration_seconds=seconds,
+    )
+    assert f" {expected}, " in text
+
+
+# ---------------------------------------------------------------------------
+# 프로그램 템플릿 (#2521) — 템플릿으로 저장한 운동도 초를 그대로 남긴다.
+# ---------------------------------------------------------------------------
+
+
+def _template(**over) -> ProgramTemplateExercise:
+    return ProgramTemplateExercise(**{"name": "버피", "type": "유산소", **over})
+
+
+def test_a_template_takes_as_long_as_the_editor():
+    """편집기가 받는 열 시간짜리 운동도 템플릿으로 저장된다."""
+    longest = _template(duration_seconds=MAX_EXERCISE_SECONDS)
+    assert longest.minutes == MAX_EXERCISE_SECONDS // 60
+
+
+def test_a_template_keeps_seconds_and_rounds_minutes():
+    """`버피 45초` 가 `1분` 으로, `1시간 30분 15초` 가 `90분` 으로 접히지 않는다."""
+    short = _template(duration_seconds=45)
+    assert (short.duration_seconds, short.minutes) == (45, 1)
+
+    long = _template(duration_seconds=5415)
+    assert (long.duration_seconds, long.minutes) == (5415, 90)
+
+
+def test_a_minutes_only_template_reads_as_seconds():
+    """초가 생기기 전에 저장된 템플릿·분만 보내는 클라이언트는 분 × 60 이다."""
+    legacy = _template(minutes=20)
+    assert (legacy.duration_seconds, legacy.minutes) == (1200, 20)
+
+
+def test_seconds_win_over_minutes_in_a_template():
+    both = _template(minutes=30, duration_seconds=45)
+    assert (both.duration_seconds, both.minutes) == (45, 1)
+
+
+def test_a_template_seconds_round_trip_through_json():
+    """`exercises_json` 에 저장했다가 다시 읽어도 초가 같다."""
+    dumped = json.loads(json.dumps(_template(duration_seconds=45).model_dump()))
+    again = ProgramTemplateExercise.model_validate(dumped)
+    assert (again.duration_seconds, again.minutes) == (45, 1)
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {},
+        {"minutes": 0},
+        {"duration_seconds": 0},
+        {"duration_seconds": MAX_EXERCISE_SECONDS + 1},
+    ],
+)
+def test_a_template_exercise_needs_a_duration_in_range(over):
+    with pytest.raises(ValidationError):
+        _template(**over)
