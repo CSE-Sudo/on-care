@@ -93,6 +93,21 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "담당 연결 해제",
         "이름 없는 회원이 담당 연결을 끊었어요.",
     ),
+    # 해제가 함께 취소한 남은 일정 수(#2589). 0 이면 예전 문장 그대로다.
+    (
+        nt.TRAINER_MEMBER_DISCONNECTED,
+        {"member_name": "지수", "cancelled_sessions": 3},
+        "",
+        "담당 연결 해제",
+        "지수 회원이 담당 연결을 끊었어요. 남은 일정 3건은 취소됐어요.",
+    ),
+    (
+        nt.TRAINER_MEMBER_DISCONNECTED,
+        {"member_name": "지수", "cancelled_sessions": 0},
+        "",
+        "담당 연결 해제",
+        "지수 회원이 담당 연결을 끊었어요.",
+    ),
     (
         nt.TRAINER_CONSULT_REQUESTED,
         {"member_name": "지수", "preferred_date": "2026-10-01"},
@@ -342,6 +357,21 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "예약한 수업이 취소되었어요",
         "박코치 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
     ),
+    # 트레이너가 담당을 해제했다(#2589). 남은 일정이 없으면 일정 언급 없이 끝난다.
+    (
+        nt.MEMBER_TRAINER_DISCONNECTED,
+        {"trainer_name": "박코치", "cancelled_sessions": 2},
+        "",
+        "담당 트레이너 연결 해제",
+        "박코치 트레이너와 담당 연결이 끊어졌어요. 남은 PT 일정 2건도 취소됐어요.",
+    ),
+    (
+        nt.MEMBER_TRAINER_DISCONNECTED,
+        {"trainer_name": "", "cancelled_sessions": 0},
+        "",
+        "담당 트레이너 연결 해제",
+        "담당 트레이너와 담당 연결이 끊어졌어요.",
+    ),
     # 일정 — `trainer_service` 의 일정 등록·변경·취소·반복 등록.
     (
         nt.MEMBER_SCHEDULE_ADDED,
@@ -583,6 +613,14 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         ("Client disconnected", "Alex ended their connection with you."),
     ),
     (
+        nt.TRAINER_MEMBER_DISCONNECTED,
+        {"member_name": "Alex", "cancelled_sessions": 1},
+        (
+            "Client disconnected",
+            "Alex ended their connection with you. 1 remaining session was cancelled.",
+        ),
+    ),
+    (
         nt.TRAINER_CONSULT_REQUESTED,
         {"member_name": "Alex", "preferred_date": "2026-10-01"},
         ("New consultation request", "Alex · 2026-10-01"),
@@ -754,6 +792,20 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
             "Your booked session was cancelled",
             "Coach Park left the service, so your booking was cancelled.",
         ),
+    ),
+    (
+        nt.MEMBER_TRAINER_DISCONNECTED,
+        {"trainer_name": "Coach Park", "cancelled_sessions": 2},
+        (
+            "Trainer connection ended",
+            "Your connection with Coach Park has ended."
+            " 2 remaining PT sessions were cancelled too.",
+        ),
+    ),
+    (
+        nt.MEMBER_TRAINER_DISCONNECTED,
+        {"trainer_name": ""},
+        ("Trainer connection ended", "Your connection with your trainer has ended."),
     ),
     (
         nt.MEMBER_SCHEDULE_ADDED,

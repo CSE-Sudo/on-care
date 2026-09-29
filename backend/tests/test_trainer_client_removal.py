@@ -128,7 +128,11 @@ def test_trainer_removes_assignment_but_keeps_member(client, db_session):
             params={"date": "2026-08-27"},
             headers=_headers(token),
         ).json()
-        assert not any(row["id"] == expected_preserved[0][1] for row in schedule)
+        # 트레이너가 참여한 일정은 스케줄에 남되 회원은 가린다(#2589).
+        kept = next(row for row in schedule if row["id"] == expected_preserved[0][1])
+        assert kept["member_detached"] is True
+        assert kept["client_name"] == "해제 회원"
+        assert kept["member_id"] is None
         repeated = client.delete(
             f"/v1/trainer/clients/{member_id}", headers=_headers(token)
         )
