@@ -1199,7 +1199,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myPointsExchangeConfirmAction => '교환하기';
+  String get myPointsExchangeConfirmAction => '교환';
 
   @override
   String get myPointsExchangeDone => '교환했어요';
@@ -1314,21 +1314,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myGraphProtectAction => '보호권 쓰기';
+  String get myGraphProtectAction => '보호권 사용';
 
   @override
-  String get myGraphProtectConfirmTitle => '보호권을 쓸까요?';
+  String get myGraphProtectConfirmAction => '사용';
+
+  @override
+  String get myGraphProtectConfirmTitle => '보호권을 사용할까요?';
 
   @override
   String myGraphProtectConfirmMessage(String date, int held) {
-    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 씁니다(남은 보호권 $held개).';
+    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
   }
 
   @override
   String get myGraphProtectDone => '연속을 이어 붙였어요';
 
   @override
-  String get myGraphProtectFailed => '보호권을 쓰지 못했어요';
+  String get myGraphProtectFailed => '보호권을 사용하지 못했어요';
 
   @override
   String get myGraphProtectBuyConfirmTitle => '보호권을 구매할까요?';
@@ -1339,10 +1342,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myGraphProtectBuyAction => '구매하고 쓰기';
+  String get myGraphProtectBuyAction => '구매하고 사용';
 
   @override
-  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.';
+  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 사용하지 못했어요. 내 혜택에 보관돼요.';
 
   @override
   String get myGraphColorTitle => '그래프 색';
@@ -1618,7 +1621,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get challengeJoinConfirmAction => '참가하기';
+  String get challengeJoinConfirmAction => '참가';
 
   @override
   String get challengeJoinDone => '챌린지에 참가했어요';
@@ -1854,7 +1857,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSheetTitle => '이모티콘';
 
   @override
-  String get emoteBuyTitle => '이모티콘 사기';
+  String get emoteBuyTitle => '이모티콘 구매';
 
   @override
   String emoteBuyConfirm(int cost, int days) {
@@ -1862,7 +1865,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get emoteBuyAction => '사기';
+  String get emoteBuyAction => '구매';
 
   @override
   String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';
@@ -3747,6 +3750,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelTitle => '상담 요청을 취소할까요?';
+
+  @override
+  String get exConsultHistoryCancelAction => '요청 취소';
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
