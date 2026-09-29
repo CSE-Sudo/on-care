@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
+import 'package:oncare_trainer/features/my/presentation/pages/my_page.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -119,6 +120,62 @@ void main() {
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
       expect(find.textContaining('회원과 연결을 해제할까요?'), findsNothing);
+    });
+
+    // ---- 회원 관리 검색 (#2564) ----
+
+    Finder managedRows() => find.byWidgetPredicate(
+      (Widget w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith('managed-client-'),
+    );
+
+    Future<void> openClientManagement(WidgetTester tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('clients'),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('회원 관리 검색은 이름으로만 목록을 거르고 지우면 전체로 돌아간다', (
+      tester,
+    ) async {
+      await openClientManagement(tester);
+      final int all = managedRows().evaluate().length;
+      expect(all, greaterThan(1));
+      // 입력 전에는 지우기 버튼이 없다.
+      expect(find.byTooltip('검색어 지우기'), findsNothing);
+
+      await tester.enterText(find.byKey(clientManagementSearchFieldKey), '이지수');
+      await tester.pumpAndSettle();
+      expect(managedRows(), findsOneWidget);
+      // 입력칸에도 같은 글자가 있으니 목록 카드 안에서만 본다.
+      expect(
+        find.descendant(of: managedRows(), matching: find.text('이지수')),
+        findsOneWidget,
+      );
+      expect(find.text('김민수'), findsNothing);
+
+      // 목표로는 찾지 않는다 — 정하윤의 목표는 `체력 강화 · 재활` 이다.
+      await tester.enterText(find.byKey(clientManagementSearchFieldKey), '재활');
+      await tester.pumpAndSettle();
+      expect(managedRows(), findsNothing);
+
+      await tester.tap(find.byTooltip('검색어 지우기'));
+      await tester.pumpAndSettle();
+      expect(managedRows(), findsNWidgets(all));
+      expect(find.byTooltip('검색어 지우기'), findsNothing);
+    });
+
+    testWidgets('회원 관리 검색 결과가 없으면 그렇다고 말한다', (tester) async {
+      await openClientManagement(tester);
+
+      await tester.enterText(find.byKey(clientManagementSearchFieldKey), 'zzz');
+      await tester.pumpAndSettle();
+      expect(managedRows(), findsNothing);
+      expect(find.text('“zzz”와 일치하는 회원이 없어요'), findsOneWidget);
     });
 
     testWidgets('담당 종료한 회원은 관리 화면에서 완전히 사라진다', (tester) async {

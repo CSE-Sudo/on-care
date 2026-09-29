@@ -1071,6 +1071,7 @@
   "myClientRemoveSuccess": "회원과 연결을 해제했어요",
   "myClientRemoveFailed": "연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요",
   "myClientManagementEmpty": "담당 회원이 없어요",
+  "myClientManagementSearchHint": "이름으로 회원 검색",
   "myBasicInfo": "기본 정보",
   "myStatSessionsDone": "완료 세션",
   "myStatRoutinesSent": "프로그램 전송",

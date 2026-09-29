@@ -2262,6 +2262,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myClientManagementEmpty => '담당 회원이 없어요';
 
   @override
+  String get myClientManagementSearchHint => '이름으로 회원 검색';
+
+  @override
   String get myBasicInfo => '기본 정보';
 
   @override

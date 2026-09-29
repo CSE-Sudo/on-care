@@ -1644,6 +1644,7 @@
   "myClientRemoveSuccess": "Disconnected from the member",
   "myClientRemoveFailed": "Couldn't disconnect. Please try again",
   "myClientManagementEmpty": "No members assigned",
+  "myClientManagementSearchHint": "Search members by name",
   "myBasicInfo": "Basic info",
   "myStatSessionsDone": "Sessions done",
   "myStatRoutinesSent": "Programs sent",

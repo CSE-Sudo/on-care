@@ -1815,7 +1815,29 @@ class _SupportRow extends StatelessWidget {
   }
 }
 
-class _ClientManagementCard extends StatelessWidget {
+/// 회원 관리 검색창의 입력 키 — 테스트가 이 화면의 입력칸을 짚는다.
+const Key clientManagementSearchFieldKey = ValueKey<String>(
+  'client-management-search',
+);
+
+/// 회원 관리 목록에서 [query] 가 이름에 들어간 회원만 남긴다(#2564).
+///
+/// 탭 머리의 회원 검색(`searchClients`)은 고르면 상세로 가는 **선택기**라
+/// 순위를 매기고 몇 명만 보인다. 여기는 목록을 좁히는 **거르개**라 원래
+/// 순서를 그대로 두고 맞는 회원을 모두 남긴다. 빈 검색어는 전체다.
+List<TrainerClient> filterManagedClients(
+  List<TrainerClient> clients,
+  String query,
+) {
+  final String normalized = query.trim().toLowerCase();
+  if (normalized.isEmpty) return clients;
+  return <TrainerClient>[
+    for (final TrainerClient client in clients)
+      if (client.name.toLowerCase().contains(normalized)) client,
+  ];
+}
+
+class _ClientManagementCard extends StatefulWidget {
   const _ClientManagementCard({
     required this.clients,
     required this.removing,
@@ -1827,9 +1849,45 @@ class _ClientManagementCard extends StatelessWidget {
   final ValueChanged<TrainerClient> onRemove;
 
   @override
+  State<_ClientManagementCard> createState() => _ClientManagementCardState();
+}
+
+class _ClientManagementCardState extends State<_ClientManagementCard> {
+  final TextEditingController _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// 탭 머리 회원 검색(`ClientSearchBar`)의 입력창과 같은 모양이다 — 돋보기,
+  /// 입력이 있을 때만 지우기 X.
+  Widget _searchField(AppLocalizations l) => AppTextField(
+    key: clientManagementSearchFieldKey,
+    controller: _search,
+    hint: l.myClientManagementSearchHint,
+    prefixIcon: AppIcons.search,
+    textInputAction: TextInputAction.search,
+    suffix: _query.isEmpty
+        ? null
+        : AppIconButton(
+            onPressed: () {
+              _search.clear();
+              setState(() => _query = '');
+            },
+            tooltip: l.searchClear,
+            icon: AppIcons.close,
+            color: OnCareColors.textTertiary,
+          ),
+    onChanged: (String value) => setState(() => _query = value),
+  );
+
+  @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return clients.when(
+    return widget.clients.when(
       loading: () => const AppLoading(),
       error: (_, _) =>
           AppEmptyState(title: l.clientsLoadFailed, icon: AppIcons.offline),
@@ -1840,6 +1898,7 @@ class _ClientManagementCard extends StatelessWidget {
             icon: AppIcons.clients,
           );
         }
+        final List<TrainerClient> shown = filterManagedClients(items, _query);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -1851,11 +1910,18 @@ class _ClientManagementCard extends StatelessWidget {
               message: keepWords(l.myClientManagementNote),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),
-            for (final client in items) ...<Widget>[
+            _searchField(l),
+            const SizedBox(height: OnCareSpacing.cardGap),
+            if (shown.isEmpty)
+              AppEmptyState(
+                title: l.searchNoResults(_query.trim()),
+                icon: AppIcons.search,
+              ),
+            for (final client in shown) ...<Widget>[
               _ManagedClientRow(
                 client: client,
-                busy: removing.contains(client.id),
-                onRemove: () => onRemove(client),
+                busy: widget.removing.contains(client.id),
+                onRemove: () => widget.onRemove(client),
               ),
               const SizedBox(height: OnCareSpacing.cardGap),
             ],
