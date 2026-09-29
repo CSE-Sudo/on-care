@@ -588,8 +588,14 @@ def test_code_pairing_after_accept_continues_the_consultation(client, db_session
     assert row["consultation"] is None
 
 
-def test_unlinked_members_consultation_stays_but_pt_is_hidden(client, db_session):
-    """해제된 담당의 PT 일정은 숨기고(#2281) 상담 일정은 계속 보인다(#2584)."""
+def test_unlinked_members_consultation_stays_named_but_pt_is_anonymous(
+    client, db_session
+):
+    """해제된 담당의 PT 일정은 익명이고(#2589) 상담 일정은 이름 그대로 남는다(#2584).
+
+    회원이 직접 신청한 상담은 담당과 별개라, 해제 때 남은 일정을 거둘 때도
+    취소하지 않는다.
+    """
     trainer, trainer_token = _trainer(client, db_session)
     member_id, member_token = _member(client)
     consultation_id = _request_consultation(
@@ -617,9 +623,15 @@ def test_unlinked_members_consultation_stays_but_pt_is_hidden(client, db_session
 
     assert client.delete("/v1/me/coach", headers=_auth(member_token)).status_code == 204
 
-    ids = {r["id"] for r in _schedule_on(client, trainer_token, day)}
-    assert consult_id in ids
-    assert pt.json()["id"] not in ids
+    rows = {r["id"]: r for r in _schedule_on(client, trainer_token, day)}
+    consult = rows[consult_id]
+    assert consult["member_detached"] is False
+    assert consult["client_name"] == "상담 회원"
+    assert consult["status"] == "예정"
+    assert consult["consultation"]["id"] == consultation_id
+    pt_row = rows[pt.json()["id"]]
+    assert pt_row["member_detached"] is True
+    assert pt_row["client_name"] == "해제 회원"
 
 
 def test_accept_ignores_a_schedule_the_client_tries_to_dictate(client, db_session):

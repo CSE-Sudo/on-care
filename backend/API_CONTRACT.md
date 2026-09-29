@@ -816,9 +816,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
   일시**를 그리는 값입니다. 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
   `/me/coach/sessions` 가 빈 목록이라, 수락된 상담은 내 상담 요청에서 확인합니다(#2584).
-- **상담 일정과 트레이너 스케줄** (#2584) — `GET /trainer/schedule`·`/trainer/schedule/booked-dates`
-  는 회원이 붙은 일정을 활성 담당일 때만 보여 주지만(#2281), 상담 요청으로 생긴 `상담` 일정
-  (`consultation_id` 있음)은 연결 여부와 관계없이 보입니다. 이 일정은 연결 전에도 메모 수정·
+- **상담 일정과 트레이너 스케줄** (#2584) — `GET /trainer/schedule` 은 담당이 끊긴 회원의 일정을
+  `해제 회원` 으로 가리지만(#2589), 상담 요청으로 생긴 `상담` 일정(`consultation_id` 있음)은
+  연결 여부와 관계없이 이름 그대로 보입니다(`member_detached=false`). 담당 해제 때 남은 일정을
+  거둘 때도 이 상담은 거두지 않습니다. 이 일정은 연결 전에도 메모 수정·
   완료·재개가 됩니다(상담은 완료해도 운동 기록을 만들지 않습니다). 응답의 `consultation` 에
   `{ id, exercise_goal, health_purpose_type, health_purpose_detail, message }` 가 실려 카드가
   `상담 요청 내용` 을 읽기 전용으로 그립니다 — 회원 응답(`/me/coach/sessions`)에서는 늘 `null`
@@ -1051,6 +1052,17 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
   회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
   그 시각이 새 동의가 되어 다시 열린다.
+- **해제·철회 회원의 일정은 트레이너 스케줄에 익명으로 남는다 (#2589).** `GET /trainer/schedule`(일·구간)·
+  `GET /trainer/schedule/booked-dates`·겹침 거절(409 `conflicts`)은 그 일정을 빼지 않고 `member_detached: true`,
+  `client_name: "해제 회원"`, `member_id: null` 로 싣는다. `note`·`program`·`cancellation_reason` 은 비우고
+  `program_sent` 는 `false` 다. 날짜·시각·종류·길이·상태·취소/노쇼 시각·취소 주체는 남는다. `member_id` 필터
+  조회는 지금처럼 404 다. 이 일정의 수정·완료·재개·전송은 위와 같은 404, 삭제·취소는 열린다.
+- **해제하면 아직 시작하지 않은 `예정` 일정은 취소된다 (#2589).** 세 해제 경로 모두 그 트레이너·회원 쌍의 시작
+  전 일정을 `취소`(주체: 트레이너 해제 `trainer`, 회원 해제 `member`, 사유 `담당 해제`)로 바꾸고, 예약으로 생긴
+  일정은 예약을 거두고 좌석을 돌려준다. 시작 시각이 지난 `예정` 은 그대로 둔다. 일정마다 취소 알림을 보내지 않고
+  해제 알림 한 건이 취소 수를 전한다 — 트레이너 해제는 회원에게 틀 `member_trainer_disconnected`(인자
+  `trainer_name`·`cancelled_sessions`), 회원 해제는 트레이너의 `trainer_member_disconnected` 에
+  `cancelled_sessions` 가 붙는다. 취소 수가 0 이면 일정 문장 없이 연결이 끊어졌다는 문장만 보낸다.
 - 동의 기능(#1022) 이전에 만들어져 **동의도 철회도 없는** 링크는 막지 않는다.
 - **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남는다.
   철회는 **앞으로의 열람**만 막는다. 회원의 `/me/coach/chat`·`/me/coach/sessions`·`/me/coach/routines` 는

@@ -129,6 +129,7 @@ class ScheduleSession {
     this.cancellationReason = '',
     this.noShowAt,
     this.consultation,
+    this.memberDetached = false,
   });
 
   /// 상담 요청으로 생긴 상담 일정이면 그 요청의 내용(#2584). 직접 잡은 일정은
@@ -181,6 +182,11 @@ class ScheduleSession {
   final String cancellationReason;
 
   final DateTime? noShowAt;
+
+  /// 담당이 끊긴(해제·동의 철회) 회원의 일정인가(#2589). 참이면 서버가 이름을
+  /// `해제 회원` 으로, 회원 id·글·프로그램을 비워 보낸다 — 트레이너가 참여한
+  /// 수업 기록으로만 남고 회원 상세·코칭으로 이어지지 않는다.
+  final bool memberDetached;
 
   /// Trainer's note for the session (may be empty).
   final String note;

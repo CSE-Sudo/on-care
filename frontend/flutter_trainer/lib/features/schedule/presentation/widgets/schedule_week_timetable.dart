@@ -141,13 +141,16 @@ class ScheduleWeekTimetable extends ConsumerWidget {
         ref.watch(clientsProvider).valueOrNull ?? const <TrainerClient>[];
     final names = <String, String>{
       for (final s in sessions)
-        s.id:
-            _rosterClient(
-              roster,
-              clientId: s.clientId,
-              clientName: s.clientName,
-            )?.name ??
-            s.clientName,
+        // 담당이 끊긴 회원은 로스터에서 찾지 않고 화면 언어의 `해제 회원` 이다
+        // (#2589) — 서버 이름은 한국어 한 벌이다.
+        s.id: s.memberDetached
+            ? l.schedDetachedMember
+            : _rosterClient(
+                    roster,
+                    clientId: s.clientId,
+                    clientName: s.clientName,
+                  )?.name ??
+                  s.clientName,
     };
     final window = visibleWindow(sessions);
     final byDate = <String, List<ScheduleSession>>{};

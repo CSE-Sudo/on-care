@@ -1115,6 +1115,31 @@ RoutineOptionGenerator = Literal["ai", "rule"]
 RoutineIntensityLabel = Literal["낮음", "보통", "높음"]
 
 
+#: AI 추천이 읽을 수 있는 트레이너 쪽 자료(#2587).
+#:
+#: * pt_feedback — 완료한 PT 일정의 글(트레이너 피드백)
+#: * consult_memo — 상담 일정의 글(상담 메모, 트레이너만 본다)
+#: * trainer_memo — 회원 상세에서 트레이너가 직접 쓴 메모(`source='trainer'`)
+#: * chat_insight — 채팅 감지에서 남긴 메모(`source='chat_insight'`)
+#: * weekly_feedback — 회원이 남긴 주간 피드백
+RoutineContextSource = Literal[
+    "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback"
+]
+
+#: 트레이너가 고르지 않았을 때의 기본값. 상담 메모만 뺀다 — 등록 상담처럼
+#: 운동 구성과 무관하거나 민감한 내용이 섞이는 자리라, 넣을지는 트레이너가 켠다.
+ROUTINE_DEFAULT_SOURCES: tuple[RoutineContextSource, ...] = (
+    "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
+)
+
+#: 자료별 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 — 이유는
+#: [ROUTINE_CHAT_MAX_MESSAGES] 와 같다(서비스만 올리면 폴백 밖에서 500).
+ROUTINE_PT_FEEDBACK_MAX = 5
+ROUTINE_CONSULT_MEMO_MAX = 3
+ROUTINE_TRAINER_MEMO_MAX = 5
+ROUTINE_WEEKLY_FEEDBACK_MAX = 2
+
+
 class RoutineOptionsRequest(BaseModel):
     """회원 데이터 기반 맞춤 루틴 후보 생성 조건.
 
@@ -1126,6 +1151,11 @@ class RoutineOptionsRequest(BaseModel):
     available_minutes: int | None = Field(default=None, ge=10, le=180)
     intensity_preference: RoutineIntensityPreference | None = None
     trainer_note: str = Field(default="", max_length=500)
+    #: AI 가 참고할 자료(#2587). 트레이너가 위저드에서 고른 것만 프롬프트와 규칙
+    #: 폴백에 들어간다. 보내지 않으면(`None`) [ROUTINE_DEFAULT_SOURCES] 를 쓴다 —
+    #: 이 필드 이전의 클라이언트도 같은 기본값으로 동작한다. 빈 목록은 "아무 자료도
+    #: 넣지 않음" 이라는 명시적 선택이라 기본값으로 바꾸지 않는다.
+    sources: list[RoutineContextSource] | None = Field(default=None, max_length=5)
 
 
 #: 분석에 싣는 최근 대화 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 —
@@ -1178,9 +1208,28 @@ class RoutineOptionAnalysisOut(BaseModel):
     #: 회원 발화 원문이 아니라 트레이너가 **메모로 남기기로 한** 감지 요약이다 —
     #: 대화(`recent_messages`)가 14일 창의 원문을 그대로 싣는 것과 달리, 이쪽은
     #: 트레이너가 한 번 걸러 둔 자료라 더 무겁게 볼 수 있다. 손으로 쓴 메모
-    #: (`source='trainer'`)는 넣지 않는다.
+    #: (`source='trainer'`)는 [trainer_memos] 에 따로 싣는다.
     insight_memos: list[str] = Field(
         default_factory=list, max_length=ROUTINE_INSIGHT_MEMO_MAX
+    )
+    #: 이번 생성에 실제로 넣은 자료(#2587). 트레이너가 고른 값, 고르지 않았으면
+    #: 기본값이다. 끈 자료의 목록은 늘 비어 있다.
+    sources: list[RoutineContextSource] = Field(default_factory=list)
+    #: 최근 14일 완료한 PT 일정의 글(트레이너 피드백), 최신 먼저. `"09.01 …"`.
+    pt_feedbacks: list[str] = Field(
+        default_factory=list, max_length=ROUTINE_PT_FEEDBACK_MAX
+    )
+    #: 최근 30일 상담 일정의 글(상담 메모), 최신 먼저. 기본으로는 꺼져 있다.
+    consult_memos: list[str] = Field(
+        default_factory=list, max_length=ROUTINE_CONSULT_MEMO_MAX
+    )
+    #: 최근 14일 트레이너가 회원 상세에서 직접 쓴 메모, 최신 먼저(#2519).
+    trainer_memos: list[str] = Field(
+        default_factory=list, max_length=ROUTINE_TRAINER_MEMO_MAX
+    )
+    #: 이번 주와 지난주의 회원 주간 피드백, 최신 주 먼저. 담당이 시작된 주부터다.
+    weekly_feedback: list[str] = Field(
+        default_factory=list, max_length=ROUTINE_WEEKLY_FEEDBACK_MAX
     )
     #: 이 분석이 어느 추천 단계에 해당하는지(#776). 프론트가 화면 문구를
     #: 정하는 유일한 기준이다 — 프론트가 자체 기준으로 다시 판단하지 않는다.
@@ -1324,6 +1373,10 @@ class ScheduleSessionOut(BaseModel):
     #: 상담 요청으로 생긴 일정이면 그 요청의 내용(#2584). 트레이너 응답에만 싣고
     #: 회원 응답에서는 비운다 — 회원은 자기 요청을 `내 상담 요청` 에서 본다.
     consultation: ScheduleConsultationOut | None = None
+    #: 담당이 끊긴(해제·동의 철회) 회원의 일정인가(#2589). 참이면 트레이너가 참여한
+    #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
+    #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
+    member_detached: bool = False
 
 
 class DeliveryOut(BaseModel):

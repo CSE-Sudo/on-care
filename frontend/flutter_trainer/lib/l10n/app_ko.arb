@@ -841,6 +841,8 @@
   },
   "schedCompleteFailed": "완료 처리에 실패했어요. 다시 시도해 주세요",
   "schedGroupProgram": "PT 프로그램",
+  "schedDetachedMember": "해제 회원",
+  "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",
@@ -1417,6 +1419,25 @@
   "aiPromptLabel": "요청 내용",
   "aiPromptHint": "예: 하체 부담 적고 유산소 비중 높은 40분 프로그램 만들어줘",
   "aiPromptBlurb": "요청은 회원 데이터와 함께 AI에 전달돼요(최대 500자). 트레이너 피드백은 다음 단계에서 작성해요.",
+  "aiSourcesTitle": "AI가 참고할 자료",
+  "aiSourcesBlurb": "고른 자료만 회원 데이터와 함께 AI에 전달돼요. 선택은 다음에도 그대로 남아요.",
+  "aiSourcePtFeedback": "최근 PT 피드백",
+  "aiSourceConsultMemo": "상담 메모",
+  "aiSourceTrainerMemo": "회원 메모(직접 작성)",
+  "aiSourceChatInsight": "채팅 감지 메모",
+  "aiSourceWeeklyFeedback": "회원 주간 피드백",
+  "aiSourceRangeDays": "최근 {days}일 · 최대 {count}건",
+  "@aiSourceRangeDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiSourceRangeWeeks": "이번 주 · 지난주",
   "aiGenerateGoalBased": "목표 기반 추천안 생성",
   "aiStatusTemplateTitle": "목표 기반 기본 추천",
   "aiStatusTemplateBody": "아직 개인화하기엔 운동 기록이 부족해 목표를 기준으로 추천했어요.",

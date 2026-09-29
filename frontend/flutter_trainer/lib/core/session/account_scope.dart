@@ -36,6 +36,17 @@ final accountSignedOutProvider = StateProvider<bool>(
   name: 'accountSignedOut',
 );
 
+/// 지금 로그인한 트레이너의 이메일. 데모·로그아웃이면 `null` 이다. (#2587)
+///
+/// 브라우저에 계정별로 남기는 화면 설정(AI 추천이 참고할 자료 등)의 키로 쓴다.
+/// [accountScopeProvider] 와 함께 `SessionController` 가 채운다 — 화면이 세션
+/// 컨트롤러를 직접 읽으면 그 순간 세션 복구가 돌아, 저장소만 쓰는 테스트가
+/// 보안 저장소까지 끌고 온다.
+final accountEmailProvider = StateProvider<String?>(
+  (ref) => null,
+  name: 'accountEmail',
+);
+
 /// 계정 세션 동안만 값을 들고 있게 한다. (#2285)
 ///
 /// 계정 범위의 비동기 값(회원 목록·알림·템플릿·리포트 등)은 `autoDispose` 로

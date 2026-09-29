@@ -3061,6 +3061,18 @@ abstract class AppLocalizations {
   /// **'PT program'**
   String get schedGroupProgram;
 
+  /// 담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)
+  ///
+  /// In en, this message translates to:
+  /// **'Former client'**
+  String get schedDetachedMember;
+
+  /// No description provided for @schedDetachedMemberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching has ended, so client details are hidden'**
+  String get schedDetachedMemberHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:
@@ -5718,6 +5730,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your request goes to the AI with the member\'s data (up to 500 characters). Write the trainer feedback in the next step.'**
   String get aiPromptBlurb;
+
+  /// No description provided for @aiSourcesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources for the AI'**
+  String get aiSourcesTitle;
+
+  /// No description provided for @aiSourcesBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the checked sources are sent to the AI with the member\'s data. Your choice is kept for next time.'**
+  String get aiSourcesBlurb;
+
+  /// No description provided for @aiSourcePtFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent PT feedback'**
+  String get aiSourcePtFeedback;
+
+  /// No description provided for @aiSourceConsultMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation memos'**
+  String get aiSourceConsultMemo;
+
+  /// No description provided for @aiSourceTrainerMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Member memos (written by you)'**
+  String get aiSourceTrainerMemo;
+
+  /// No description provided for @aiSourceChatInsight.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat-detected memos'**
+  String get aiSourceChatInsight;
+
+  /// No description provided for @aiSourceWeeklyFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Member weekly feedback'**
+  String get aiSourceWeeklyFeedback;
+
+  /// No description provided for @aiSourceRangeDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {days} days · up to {count}'**
+  String aiSourceRangeDays(int days, int count);
+
+  /// No description provided for @aiSourceRangeWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'This week · last week'**
+  String get aiSourceRangeWeeks;
 
   /// No description provided for @aiGenerateGoalBased.
   ///
