@@ -456,7 +456,7 @@ void main() {
     expect(find.text('4/2000'), findsOneWidget);
   });
 
-  testWidgets('메모 수정·삭제는 작은 아이콘이고 삭제만 붉다 (#1448)', (tester) async {
+  testWidgets('메모 수정·삭제는 작은 회색 아이콘이다 (#1448, #2571)', (tester) async {
     final repository = _FakeMemoRepository();
     await repository.create('m1', body: '무릎이 아파요');
     await _pumpDialog(tester, repository);
@@ -470,7 +470,9 @@ void main() {
 
     expect(edit.tooltip, isNotEmpty);
     expect(remove.tooltip, isNotEmpty);
-    expect(remove.color, OnCareColors.danger);
+    // 줄마다 빨간 휴지통이 서 있으면 메모보다 지우기가 먼저 눈에 든다.
+    // 붉은 것은 확인창의 확정 버튼이다(아래 테스트).
+    expect(remove.color, OnCareColors.textTertiary);
     expect(edit.color, isNot(OnCareColors.danger));
     // 배경 없는 아이콘 버튼이다 — 글자 버튼일 때는 본문만큼 눈에 들어왔다.
     expect(edit.variant, AppIconButtonVariant.plain);
