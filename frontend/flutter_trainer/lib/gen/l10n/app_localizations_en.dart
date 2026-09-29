@@ -383,7 +383,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
+    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave diet feedback so they know it was seen.';
   }
 
   @override
@@ -443,6 +443,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashLeaveMemo => 'Leave a memo';
 
   @override
+  String get dashLeaveFeedback => 'Leave feedback';
+
+  @override
   String get dashSessionSent => 'Sent';
 
   @override
@@ -458,7 +461,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashSessionPreparedNo => 'Not prepared';
 
   @override
-  String get dashSessionNoteNotWritten => 'Not written';
+  String get dashSessionNoteNotWritten => 'No memo';
 
   @override
   String get weekdayMon => 'Mon';
@@ -1024,8 +1027,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatInsightMemoSummaryNegative => 'Workout strain detected';
 
   @override
-  String get chatInsightMemoSaved =>
-      'The AI insight was added to the trainer memo.';
+  String get chatInsightMemoSaved => 'The AI insight was added to your memos.';
 
   @override
   String get chatInsightMemoSaveFailed =>
@@ -1683,7 +1685,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportBodyMemberNoted =>
-      'Thanks for the weekly check-in — I read it.';
+      'Thanks for your weekly feedback — I read it.';
 
   @override
   String get reportBodyNextWeek => 'Here\'s the plan for next week.';
@@ -1997,28 +1999,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
 
   @override
-  String get schedNote => 'Trainer\'s note';
+  String get schedNote => 'Trainer feedback';
 
   @override
-  String get schedEditNote => 'Edit note';
+  String get schedEditNote => 'Edit feedback';
 
   @override
-  String get schedAddNote => 'Add note';
+  String get schedAddNote => 'Add feedback';
 
   @override
-  String get schedNoNote => 'No note yet';
+  String get schedNoNote => 'No memo yet';
 
   @override
   String get schedNoteOnlyHint =>
-      'A consultation is recorded as a note, not a program.';
+      'A consultation is recorded as a memo, not a program.';
 
   @override
   String get schedNoteHint =>
-      'Shown to the member as feedback once the PT is done. Keep member notes in the client memo';
+      'Feedback for the member. Keep member notes in the client memo';
+
+  @override
+  String get schedNoteVisibleToMember =>
+      'Shown to the member as feedback once the PT is done';
+
+  @override
+  String get schedConsultNote => 'Consultation memo';
+
+  @override
+  String get schedEditConsultNote => 'Edit memo';
+
+  @override
+  String get schedAddConsultNote => 'Add memo';
 
   @override
   String get schedConsultNoteHint =>
-      'Consultation notes aren\'t shown to the member';
+      'What you talked about in the consultation';
+
+  @override
+  String get schedConsultNotePrivate =>
+      'Only you can see this memo. It\'s hidden from the member.';
 
   @override
   String get schedAddAction => 'Add';
@@ -2043,7 +2062,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progNoteHint =>
-      'Shown to the member as feedback once the PT is done. Keep member notes in the client memo';
+      'Feedback for the member. Keep member notes in the client memo';
 
   @override
   String get progSaving => 'Saving...';
@@ -3009,7 +3028,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRegister => 'Add';
 
   @override
-  String get aiNoteForClient => 'A note to send with it';
+  String get aiNoteForClient => 'Feedback to send with it';
 
   @override
   String aiReviewedSuggestion(String option) {
@@ -3239,9 +3258,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRecentRoutine => 'Recent activity';
 
   @override
-  String get aiTrainerNoteEditable => 'Trainer\'s note · editable';
-
-  @override
   String get aiNotePlaceholderHint =>
       'The grey suggestion is only a prompt — only what you type is saved and sent.';
 
@@ -3270,7 +3286,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPromptBlurb =>
-      'Your request goes to the AI with the member\'s data (up to 500 characters). Write the member note in the next step.';
+      'Your request goes to the AI with the member\'s data (up to 500 characters). Write the trainer feedback in the next step.';
 
   @override
   String get aiGenerateGoalBased => 'Generate goal-based suggestion';
@@ -4023,6 +4039,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Note what you want to remember about this member';
 
   @override
+  String get clientTrainerMemoPrivate =>
+      'Only you can see this memo. It\'s hidden from the member.';
+
+  @override
   String get clientTrainerMemoAdd => 'Add memo';
 
   @override
@@ -4281,9 +4301,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorPeriod => 'Period (optional)';
-
-  @override
-  String get programEditorMemo => 'Program memo (optional)';
 
   @override
   String get programEditorAiHint =>
@@ -5057,10 +5074,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackUnanswered => 'No answer';
 
   @override
-  String get reportsMemberFeedbackNoteLabel => 'Note';
+  String get reportsMemberFeedbackNoteLabel => 'One-line feedback';
 
   @override
-  String get reportsMemberFeedbackNoteNone => 'No note';
+  String get reportsMemberFeedbackNoteNone => 'No one-line feedback';
 
   @override
   String reportsMemberFeedbackPainOn(String area, String date) {

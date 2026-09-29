@@ -333,7 +333,7 @@ void main() {
         trainerNote: '이번 주는 나트륨을 조금만 줄여 봐요.',
       );
 
-      expect(lines, contains('트레이너 메시지'));
+      expect(lines, contains('트레이너 피드백'));
       expect(lines, contains('이번 주는 나트륨을 조금만 줄여 봐요.'));
     });
 
@@ -344,7 +344,7 @@ void main() {
         report: _report(days: _week()),
       );
 
-      expect(lines, contains('함께 온 메시지가 없어요.'));
+      expect(lines, contains('함께 온 피드백이 없어요.'));
     });
 
     testWidgets('잡힌 일정을 못 받아도 진행한 PT 는 기록에서 센다', (WidgetTester tester) async {
