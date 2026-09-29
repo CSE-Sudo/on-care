@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 
 from app.models.models import CoachDocument
 from app.services.coach import rag
+from tests.exercise_helpers import post_exercise
 
 
 def _member_token(client) -> str:
@@ -69,8 +70,8 @@ def test_purge_is_scoped_to_the_owner(client, db_session):
 
 def test_editing_a_session_replaces_the_evidence(client, db_session):
     token = _member_token(client)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         headers=_headers(token),
         json={"type": "walking", "minutes": 25, "calories": 90, "intensity": "light"},
     )
@@ -95,8 +96,8 @@ def test_editing_a_session_replaces_the_evidence(client, db_session):
 def test_deleting_a_session_forgets_its_evidence(client, db_session):
     """지운 기록으로 코치가 계속 조언하면 지운 것이 되살아나는 셈이다."""
     token = _member_token(client)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         headers=_headers(token),
         json={"type": "yoga", "minutes": 20, "calories": 60, "intensity": "light"},
     )
@@ -114,8 +115,8 @@ def test_deleting_a_session_forgets_its_evidence(client, db_session):
 
 def test_repeated_edits_do_not_pile_up_documents(client, db_session):
     token = _member_token(client)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         headers=_headers(token),
         json={"type": "cardio", "minutes": 10, "calories": 50, "intensity": "light"},
     )
@@ -323,8 +324,8 @@ def test_a_late_arriving_refresh_still_writes_the_current_row(client, db_session
     from app.services.coach import personal_ingest
 
     token = _member_token(client)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         headers=_headers(token),
         json={"type": "walking", "minutes": 30, "calories": 100, "intensity": "light"},
     )
@@ -357,8 +358,8 @@ def test_refreshing_a_deleted_record_clears_its_evidence(client, db_session):
     from app.services.coach import personal_ingest
 
     token = _member_token(client)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         headers=_headers(token),
         json={"type": "yoga", "minutes": 20, "calories": 60, "intensity": "moderate"},
     )
@@ -449,8 +450,8 @@ def test_the_older_refresh_finishing_last_still_leaves_the_latest_value(
     from app.services.coach import personal_ingest
 
     token = _member_token(client)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         headers=_headers(token),
         json={"type": "walking", "minutes": 30, "calories": 100, "intensity": "light"},
     )

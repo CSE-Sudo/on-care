@@ -22,6 +22,7 @@ from app.models.models import (
     WeeklyChallenge,
 )
 from app.services import exercise_activity
+from tests.exercise_helpers import post_exercise
 
 #: 기준 주 — 2026-09-14(월) ~ 2026-09-20(일).
 MON = date(2026, 9, 14)
@@ -331,8 +332,8 @@ def test_progress_counts_days_with_a_record(client, db_session, at):
     assert state["challenge"]["achieved"] is False
 
     # 앱 경로로 오늘 기록을 더하면 목표를 채운다. 보상은 주가 끝나야 받는다.
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",
