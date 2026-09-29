@@ -1,9 +1,8 @@
-/// 개인운동 완료창의 강도 UI와 추천 출처 색. (#1457)
+/// 개인운동 완료창의 강도 UI. (#1457)
 ///
 /// 같은 3단계 강도를 운동 직접 추가 화면은 분리된 칩으로, 완료창은 하나로
-/// 이어진 `SegmentedButton` 으로 그려 같은 값이 화면마다 다르게 보였다. 추천
-/// 출처(`AI 추천 · 김트레이너 확인`)는 누가 정한 운동인지 말하는 정보인데
-/// 회색이라 부연처럼 읽혔다.
+/// 이어진 `SegmentedButton` 으로 그려 같은 값이 화면마다 다르게 보였다.
+/// (추천 출처 줄은 #2566 에서 없앴다.)
 library;
 
 import 'package:flutter/material.dart';
@@ -122,30 +121,6 @@ void main() {
           )
           .selected,
       isFalse,
-    );
-  });
-
-  testWidgets('추천 출처는 브랜드 파랑으로 적는다', (WidgetTester tester) async {
-    await _pumpCoachingCard(tester);
-
-    final Iterable<Text> sources = tester
-        .widgetList<Text>(find.byType(Text))
-        .where((Text t) => (t.data ?? '').contains('추천'));
-    expect(sources, isNotEmpty);
-    expect(
-      sources.any(
-        (Text t) =>
-            t.style?.color == OnCareBrand.member.primary ||
-            t.style?.color == OnCareBrand.member.primary.withValues(alpha: 0.55),
-      ),
-      isTrue,
-      reason: '출처가 회색이면 옆의 부연과 무게가 같다',
-    );
-    // 색만으로 말하지 않는다 — 문구는 그대로다.
-    expect(
-      sources.any((Text t) => (t.data ?? '').contains('확인')) ||
-          sources.any((Text t) => (t.data ?? '').contains('트레이너')),
-      isTrue,
     );
   });
 }

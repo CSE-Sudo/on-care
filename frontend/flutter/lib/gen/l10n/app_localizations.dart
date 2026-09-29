@@ -6240,24 +6240,6 @@ abstract class AppLocalizations {
   /// **'What you did that day. Past days can\'t be checked.'**
   String get coachRoutinePastReadOnly;
 
-  /// Origin of a routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended by your trainer'**
-  String get coachRoutineByTrainer;
-
-  /// Origin of a routine an AI proposed and the trainer approved.
-  ///
-  /// In en, this message translates to:
-  /// **'AI suggestion · reviewed by {name}'**
-  String coachRoutineAiChecked(String name);
-
-  /// Origin of a routine proposed automatically.
-  ///
-  /// In en, this message translates to:
-  /// **'AI suggestion'**
-  String get coachRoutineAiAuto;
-
   /// Shown after a routine is marked done.
   ///
   /// In en, this message translates to:
