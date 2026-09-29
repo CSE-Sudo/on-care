@@ -2173,6 +2173,10 @@ def _assigned_exercise_item(row: ExerciseSession) -> RoutineHistoryExerciseOut:
 
     `exercises` 문장과 같은 규칙이다([_amount_label]) — 근력은 세트·횟수(또는
     버틴 초)·중량, 나머지와 세트가 없던 옛 근력 배정은 분.
+
+    시간으로 재는 수행은 회원이 남긴 초(`duration_seconds`)도 싣는다(#2221) —
+    분만 보내면 `45초` 수행이 트레이너 이력에 `1분` 으로 보인다. 문장은 분
+    그대로다: `parse_history_exercise` 가 `초` 를 버틴 초로 되읽는다.
     """
     type_code = exercise_types.normalize(row.type)
     strength = type_code == exercise_types.STRENGTH and row.sets is not None
@@ -2183,6 +2187,7 @@ def _assigned_exercise_item(row: ExerciseSession) -> RoutineHistoryExerciseOut:
         sets=row.sets if strength else None,
         reps=row.reps if strength and not row.hold_seconds else None,
         hold_seconds=row.hold_seconds if strength and row.hold_seconds else None,
+        duration_seconds=None if strength else row.duration_seconds,
         weight=row.weight if strength else None,
         intensity=row.intensity or None,
     )

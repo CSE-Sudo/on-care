@@ -305,6 +305,10 @@ class RoutineHistoryExerciseOut(BaseModel):
     sets: int | None = None
     reps: int | None = None
     hold_seconds: int | None = None
+    #: 유산소·스트레칭·기타에 쓴 시간(초). `minutes` 는 여기서 반올림한 값이다.
+    #: 초를 적은 배정 수행만 채운다 — 비어 있으면 앱은 `minutes` 로 읽는다.
+    #: (#2221)
+    duration_seconds: int | None = None
     weight: float | None = None
     #: `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 채운다.
     intensity: str | None = None
