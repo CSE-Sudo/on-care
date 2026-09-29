@@ -335,16 +335,26 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
     # 합계는 서버가 초로 더해 둔 값이다 — 여기서 한 번만 접는다. (#2546)
     duration = format_duration(_seconds(args), locale)
     multi = bool(args.get("multi"))
+    # `개인운동만` 을 여럿 보내면 운동 하나가 세션 하나다(#2581). 프로그램 이름
+    # (예전 `이번 주 개인운동`)과 `세션 N개` 는 개인운동 묶음에 맞지 않는다.
+    routine_only = bool(args.get("routine_only")) and multi
     if locale == "ko":
-        body = (
-            f"{name} · 세션 {sessions}개 · {duration}" if multi else f"{name} · {duration}"
-        )
+        if routine_only:
+            body = f"개인운동 {sessions}개 · {duration}"
+        elif multi:
+            body = f"{name} · 세션 {sessions}개 · {duration}"
+        else:
+            body = f"{name} · {duration}"
         return "새 운동 루틴이 배정되었어요", body
-    body = (
-        f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
-        if multi
-        else f"{name} · {duration}"
-    )
+    if routine_only:
+        body = (
+            f"{_plural(sessions, 'personal exercise', 'personal exercises')}"
+            f" · {duration}"
+        )
+    elif multi:
+        body = f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
+    else:
+        body = f"{name} · {duration}"
     return "New workout routine assigned", body
 
 

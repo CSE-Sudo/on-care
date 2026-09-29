@@ -1592,6 +1592,13 @@ class TrainerRoutine(Base):
     #: 1분). 이 칸이 생기기 전의 배정과 근력은 비어 있다 — 읽을 때 분 × 60 이다.
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reason: Mapped[str] = mapped_column(String(200), default="")
+    #: 회원에게 보일 효과 한 줄 — **트레이너가 적은 것만** 담는다(#2570).
+    #: 비어 있으면 응답을 만들 때 운동 유형 × 회원 건강 목표 문구표
+    #: (`app/data/routine_effects.py`)로 채운다. `reason`(AI 추천 사유·운동
+    #: 이름 나열)과 뜻을 섞지 않으려고 칸을 나눴다.
+    effect: Mapped[str] = mapped_column(
+        String(40), default="", server_default=""
+    )
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |
     #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함).

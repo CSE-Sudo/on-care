@@ -106,6 +106,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         type: r.type,
         reason: r.reason,
         source: r.source,
+        // 효과 한 줄도 픽스처가 정한다 — 실서버 시드와 같은 값이다(#2570).
+        effect: r.effect,
         // 권장 강도도 픽스처가 정한다 — 실서버와 같은 값이어야 모드를 바꿔도
         // 같은 안내가 뜬다(#2160).
         intensity: r.intensity,
@@ -128,6 +130,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       type: '유산소',
       reason: '회복 목적의 가벼운 유산소예요. 대화할 수 있는 속도로 걸어 보세요.',
       source: 'ai',
+      // 서버는 회원 목표로 문구표를 푼다(#2570). 목업의 담당 없는 회원은 목표를
+      // 따로 들지 않아 유형 기본 문구를 둔다.
+      effect: '체력 향상·만성질환 예방',
       intensity: 'light',
     ),
     CoachRoutine(
@@ -137,6 +142,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       type: '스트레칭',
       reason: '굳은 근육을 풀어 다음 운동을 준비해요. 통증이 있으면 멈추세요.',
       source: 'ai',
+      effect: '유연성·부상 예방',
       intensity: 'light',
     ),
   ];

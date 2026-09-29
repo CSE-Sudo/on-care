@@ -2657,7 +2657,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfSelfMadeNote.
   ///
   /// In en, this message translates to:
-  /// **'Made with points, without a trainer — so there\'s no trainer message.'**
+  /// **'Made with points, without a trainer — so there\'s no trainer feedback.'**
   String get coachReportPdfSelfMadeNote;
 
   /// No description provided for @coachReportPdfSectionInsights.
@@ -4187,13 +4187,13 @@ abstract class AppLocalizations {
   /// Section heading for the message the trainer sent with the report.
   ///
   /// In en, this message translates to:
-  /// **'From your trainer'**
+  /// **'Trainer feedback'**
   String get coachReportPdfSectionTrainerNote;
 
   /// Shown under the trainer-message heading when the report arrived without a note.
   ///
   /// In en, this message translates to:
-  /// **'No message came with this report.'**
+  /// **'No feedback came with this report.'**
   String get coachReportPdfNoTrainerNote;
 
   /// Section heading comparing this week with the previous one.
@@ -4734,6 +4734,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please agree to sending your request details before requesting a consultation'**
   String get exConsultDataSharingRequired;
+
+  /// No description provided for @exConsultDataSharingLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.'**
+  String get exConsultDataSharingLinked;
+
+  /// No description provided for @exConsultGoalPrefilled.
+  ///
+  /// In en, this message translates to:
+  /// **'We filled this in from your health goals in MY. Feel free to change it for this consultation.'**
+  String get exConsultGoalPrefilled;
 
   /// No description provided for @coachInviteConsentTitle.
   ///
@@ -7460,7 +7472,7 @@ abstract class AppLocalizations {
   /// No description provided for @weeklyFeedbackNoteQuestion.
   ///
   /// In en, this message translates to:
-  /// **'A line for your trainer (optional)'**
+  /// **'One-line feedback for your trainer (optional)'**
   String get weeklyFeedbackNoteQuestion;
 
   /// No description provided for @weeklyFeedbackNoteHint.
@@ -7658,7 +7670,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWeeklyFeedbackNoteLabel.
   ///
   /// In en, this message translates to:
-  /// **'Your note'**
+  /// **'One-line feedback'**
   String get myWeeklyFeedbackNoteLabel;
 
   /// No description provided for @myWeeklyFeedbackSentAt.

@@ -862,7 +862,7 @@ void main() {
         await openSession(tester, '김민수');
         expect(find.text('벤치프레스'), findsOneWidget);
         expect(find.text('플랭크 60초'), findsOneWidget);
-        expect(find.text('트레이너 메모'), findsOneWidget);
+        expect(find.text('트레이너 피드백'), findsOneWidget);
         expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
 
         // 예전에는 이 자리가 눌리지 않는 안내였다("전송 API가 아직 없어…").
@@ -976,7 +976,7 @@ void main() {
         find.byKey(const ValueKey<String>('session-edit-note-chip')),
         findsOneWidget,
       );
-      expect(noteActionLabel(tester), '메모 추가');
+      expect(noteActionLabel(tester), '피드백 추가');
       await closeEditMenu(tester);
 
       await tester.tap(
@@ -1040,6 +1040,56 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('새 일정은 고른 회원의 id 를 함께 저장한다 (#2586)', (tester) async {
+      final container = await openSchedule(tester);
+
+      await tester.tap(find.text('새 일정'));
+      await settle(tester);
+      await enterTimeRange(tester, start: '10:15', end: '11:15');
+      await tester.tap(find.text('추가'));
+      await settle(tester);
+
+      final AppDatabase db = container.read(appDatabaseProvider);
+      final (row, client) = (await tester.runAsync(() async {
+        final row = await (db.select(
+          db.trainerScheduleEntries,
+        )..where((t) => t.time.equals('10:15'))).getSingle();
+        final client = await (db.select(
+          db.trainerClients,
+        )..where((t) => t.id.equals(row.clientId ?? ''))).getSingleOrNull();
+        return (row, client);
+      }))!;
+      // 이름만 남으면 이탈 위험·회원별 일정이 이 일정을 못 찾는다.
+      expect(row.clientId, isNotNull);
+      expect(client?.name, row.clientName);
+    });
+
+    testWidgets('회원을 바꾸지 않은 일정 수정은 회원 id 를 지우지 않는다 (#2586)', (tester) async {
+      final container = await openSchedule(tester);
+      final AppDatabase db = container.read(appDatabaseProvider);
+      Future<String?> clientIdOf() async => (await tester.runAsync(
+        () => (db.select(
+          db.trainerScheduleEntries,
+        )..where((t) => t.id.equals('seed-schedule-3'))).getSingle(),
+      ))!.clientId;
+      final before = await clientIdOf();
+      expect(before, isNotNull, reason: '시드의 박성호 일정은 회원 id 가 있어야 한다');
+
+      await openSession(tester, '박성호');
+      await openEditMenu(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
+      );
+      await settle(tester);
+      await enterTimeRange(tester, start: '16:30', end: '17:00');
+      await tester.ensureVisible(find.text('저장'));
+      await tester.pump();
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+
+      expect(await clientIdOf(), before);
     });
 
     testWidgets('종료 시간을 직접 옮기면 소요 시간이 바뀐다 (#1090)', (tester) async {
@@ -1195,8 +1245,8 @@ void main() {
       await openSession(tester, '박성호');
 
       await openEditMenu(tester);
-      // 메모가 없는 세션이라 이 자리는 아직 `메모 추가` 다(#1011).
-      expect(noteActionLabel(tester), '메모 추가');
+      // 메모가 없는 세션이라 이 자리는 아직 `피드백 추가` 다(#1011).
+      expect(noteActionLabel(tester), '피드백 추가');
       await tester.tap(
         find.byKey(const ValueKey<String>('session-edit-note-chip')),
       );
@@ -1229,15 +1279,15 @@ void main() {
       // 저장이 프로그램을 지우지 않는다 — 편집기가 보여 주지 않은 값이다.
       expect(find.text('벤치프레스'), findsOneWidget);
 
-      // 메모를 남긴 뒤에는 같은 자리가 `메모 수정` 으로 이름을 바꾼다.
+      // 메모를 남긴 뒤에는 같은 자리가 `피드백 수정` 으로 이름을 바꾼다.
       await openEditMenu(tester);
-      expect(noteActionLabel(tester), '메모 수정');
+      expect(noteActionLabel(tester), '피드백 수정');
     });
 
     // 자리는 하나지만 하는 일이 둘이다 — 처음 적는 것과 고치는 것. 아무것도
     // 적지 않았는데 `메모 수정` 이라고 부르면, 어딘가에 이미 메모가 있는데 못
     // 찾고 있는 것처럼 읽힌다(#1011).
-    testWidgets('메모가 있으면 `메모 수정`, 없으면 `메모 추가` (#1011)', (tester) async {
+    testWidgets('PT 에 글이 있으면 `피드백 수정`, 없으면 `피드백 추가` (#1011, #2574)', (tester) async {
       await openSchedule(tester);
 
       final Finder noteChip = find.byKey(
@@ -1247,7 +1297,7 @@ void main() {
       // 시드의 김민수 세션에는 메모가 있다.
       await openSession(tester, '김민수');
       await openEditMenu(tester);
-      expect(noteActionLabel(tester), '메모 수정');
+      expect(noteActionLabel(tester), '피드백 수정');
       expect(
         find.descendant(
           of: noteChip,
@@ -1262,7 +1312,7 @@ void main() {
       // 박성호 세션에는 없다.
       await openSession(tester, '박성호');
       await openEditMenu(tester);
-      expect(noteActionLabel(tester), '메모 추가');
+      expect(noteActionLabel(tester), '피드백 추가');
       expect(
         find.descendant(
           of: noteChip,
