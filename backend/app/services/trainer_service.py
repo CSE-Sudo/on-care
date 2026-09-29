@@ -3477,7 +3477,7 @@ def _program_seconds_and_type(
 def _schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
     return ScheduleSessionOut(
         id=s.id, date=s.date, time=s.time, client_name=s.client_name,
-        type=s.type, duration_minutes=s.duration_minutes, status=s.status,
+        member_id=s.member_id, type=s.type, duration_minutes=s.duration_minutes, status=s.status,
         note=s.note, program=_program_items(s.program_json),
         program_sent=s.program_sent_at is not None,
         cancelled_at=s.cancelled_at,

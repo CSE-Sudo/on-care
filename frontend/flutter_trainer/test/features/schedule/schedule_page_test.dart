@@ -1042,6 +1042,56 @@ void main() {
       );
     });
 
+    testWidgets('새 일정은 고른 회원의 id 를 함께 저장한다 (#2586)', (tester) async {
+      final container = await openSchedule(tester);
+
+      await tester.tap(find.text('새 일정'));
+      await settle(tester);
+      await enterTimeRange(tester, start: '10:15', end: '11:15');
+      await tester.tap(find.text('추가'));
+      await settle(tester);
+
+      final AppDatabase db = container.read(appDatabaseProvider);
+      final (row, client) = (await tester.runAsync(() async {
+        final row = await (db.select(
+          db.trainerScheduleEntries,
+        )..where((t) => t.time.equals('10:15'))).getSingle();
+        final client = await (db.select(
+          db.trainerClients,
+        )..where((t) => t.id.equals(row.clientId ?? ''))).getSingleOrNull();
+        return (row, client);
+      }))!;
+      // 이름만 남으면 이탈 위험·회원별 일정이 이 일정을 못 찾는다.
+      expect(row.clientId, isNotNull);
+      expect(client?.name, row.clientName);
+    });
+
+    testWidgets('회원을 바꾸지 않은 일정 수정은 회원 id 를 지우지 않는다 (#2586)', (tester) async {
+      final container = await openSchedule(tester);
+      final AppDatabase db = container.read(appDatabaseProvider);
+      Future<String?> clientIdOf() async => (await tester.runAsync(
+        () => (db.select(
+          db.trainerScheduleEntries,
+        )..where((t) => t.id.equals('seed-schedule-3'))).getSingle(),
+      ))!.clientId;
+      final before = await clientIdOf();
+      expect(before, isNotNull, reason: '시드의 박성호 일정은 회원 id 가 있어야 한다');
+
+      await openSession(tester, '박성호');
+      await openEditMenu(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
+      );
+      await settle(tester);
+      await enterTimeRange(tester, start: '16:30', end: '17:00');
+      await tester.ensureVisible(find.text('저장'));
+      await tester.pump();
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+
+      expect(await clientIdOf(), before);
+    });
+
     testWidgets('종료 시간을 직접 옮기면 소요 시간이 바뀐다 (#1090)', (tester) async {
       await openSchedule(tester);
 
