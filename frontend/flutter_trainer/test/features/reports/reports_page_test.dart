@@ -228,7 +228,7 @@ void main() {
   );
 
   /// 리포트 카드 제목 줄의 주 이동 화살표. 헤더가 아니라 카드 안에 있다(#1177).
-  /// 공용 `AppPeriodNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
+  /// `WeekRangeNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
   final Finder prevWeek = find.descendant(
     of: find.byType(ReportWeekNav),
     matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
