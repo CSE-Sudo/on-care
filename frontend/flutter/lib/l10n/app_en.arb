@@ -890,6 +890,10 @@
     }
   },
   "myGraphProtectAction": "Use a shield",
+  "myGraphProtectConfirmAction": "Use",
+  "@myGraphProtectConfirmAction": {
+    "description": "Confirm button of the use-a-shield dialog. The dialog title already names the shield (#2554)."
+  },
   "myGraphProtectConfirmTitle": "Use a streak shield?",
   "myGraphProtectConfirmMessage": "This keeps {date} in your record streak and spends one shield ({held} left).",
   "@myGraphProtectConfirmMessage": {
@@ -3165,6 +3169,10 @@
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
+  "exConsultHistoryCancelAction": "Cancel request",
+  "@exConsultHistoryCancelAction": {
+    "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
+  },
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
   "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
   "@exDemoPtSessionCount": {
