@@ -331,7 +331,7 @@ void main() {
       for (final String key in rows) {
         expect(_answer(tester, key).text, 'No answer');
       }
-      expect(find.text('Note'), findsOneWidget);
+      expect(find.text('One-line feedback'), findsOneWidget);
     });
 
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {
