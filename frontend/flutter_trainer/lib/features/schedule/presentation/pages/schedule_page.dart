@@ -827,7 +827,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           onGoToProgram: () => _openProgram(session),
           onEditNote: () => _openProgramEditor(session, noteOnly: true),
           onDelete: () => _confirmDelete(session),
-          onComplete: (session.isUpcoming && !isFuture)
+          // 담당이 끊긴 회원의 일정은 완료할 수 없다 — 회원 운동 기록에 적히는
+          // 일이라 서버가 막는다(#2281, #2589).
+          onComplete:
+              (session.isUpcoming && !isFuture && !session.memberDetached)
               ? () => _confirmComplete(session)
               : null,
           // 취소는 앞으로의 약속에도 열려 있다 — 거두는 것이 취소다. 노쇼는
@@ -841,16 +844,19 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           onSendProgram: () => _sendProgram(session),
           // PT 에서 할 것과 회원이 혼자 할 것을 한 카드에서 갈라 보여 준다
           // (#2224). 마무리된 PT 라면 여기서 보낼지도 정한다.
-          personalRoutines: SessionPersonalRoutines(
-            key: ValueKey<String>(
-              'personal-routines-${session.id}'
-              '-${_routinesRevision[session.id] ?? 0}',
-            ),
-            sessionId: session.id,
-            finished: !session.isUpcoming,
-            onChanged: (rows) =>
-                setState(() => _unsentRoutines[session.id] = rows),
-          ),
+          // 해제 회원의 일정은 개인운동을 읽지 않는다 — 회원 코칭 기록이다(#2589).
+          personalRoutines: session.memberDetached
+              ? null
+              : SessionPersonalRoutines(
+                  key: ValueKey<String>(
+                    'personal-routines-${session.id}'
+                    '-${_routinesRevision[session.id] ?? 0}',
+                  ),
+                  sessionId: session.id,
+                  finished: !session.isUpcoming,
+                  onChanged: (rows) =>
+                      setState(() => _unsentRoutines[session.id] = rows),
+                ),
           hasUnsentRoutines:
               (_unsentRoutines[session.id] ?? const <RoutineExercise>[])
                   .isNotEmpty,

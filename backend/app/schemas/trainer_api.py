@@ -1355,6 +1355,10 @@ class ScheduleSessionOut(BaseModel):
     cancellation_source: CancellationSource = ""
     cancellation_reason: str = ""
     no_show_at: _datetime | None = None
+    #: 담당이 끊긴(해제·동의 철회) 회원의 일정인가(#2589). 참이면 트레이너가 참여한
+    #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
+    #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
+    member_detached: bool = False
 
 
 class DeliveryOut(BaseModel):

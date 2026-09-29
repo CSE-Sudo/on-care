@@ -25,6 +25,7 @@ ScheduleSession scheduleSessionFromJson(Map<String, dynamic> json) {
     cancellationSource: _str(json['cancellation_source']),
     cancellationReason: _str(json['cancellation_reason']),
     noShowAt: _time(json['no_show_at']),
+    memberDetached: json['member_detached'] == true,
   );
 }
 

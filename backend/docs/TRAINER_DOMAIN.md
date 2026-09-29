@@ -104,7 +104,9 @@
 | `/trainer/clients/{id}/…` 회원 단위 읽기·쓰기 전부(식단·사진·건강 정보·기록·조언·채팅·사진/PDF 전송·루틴·제안·프로그램·메모·할 일 등록·루틴 후보·AI 코치·리포트) | 404 |
 | 회원을 붙이는 일정(`POST /trainer/schedule`·반복·`program-schedule`, `member_id` 로 옮기는 `PUT`, `member_id` 필터 조회) | 404 — 알림도 나가지 않는다 |
 | 경로에 회원 id 가 없는 쓰기: 제안 승인·완료한 일정의 프로그램 전송 | 404 (`trainer_service.has_active_client_link`) |
-| 해제 전에 잡아 둔 일정을 id 로 여는 쓰기: 개인운동 전송(`/routines/send`)·완료(`/complete`)·수정(`PUT`)·되돌리기(`/reopen`) | 404 — 회원 운동 기록도 알림도 남지 않는다(`_ensure_session_member_linked`). 취소·삭제는 약속이 없어졌다는 통보라 그대로 열린다 |
+| 해제 전에 잡아 둔 일정을 id 로 여는 쓰기: 개인운동 전송(`/routines/send`)·완료(`/complete`)·수정(`PUT`)·되돌리기(`/reopen`) | 404 — 회원 운동 기록도 알림도 남지 않는다(`_ensure_session_member_linked`). 취소·삭제는 약속이 없어졌다는 통보·트레이너 자기 일정 정리라 그대로 열린다 |
+| 트레이너 스케줄(일·구간 조회·예약 날짜 점·겹침 거절 응답) | 빼지 않고 **익명**으로 싣는다(#2589) — `member_detached`, 이름 `해제 회원`, `member_id`·글·프로그램·취소 사유는 비운다 |
+| 해제 시점에 아직 시작하지 않은 `예정` 일정 | `취소`(사유 `담당 해제`)로 바꾸고 예약 좌석을 돌려준다(#2589). 알림은 해제 알림 한 건이 취소 수를 함께 전한다 |
 | 해제 자체(`DELETE`)·재등록(`/registration`)·활성/휴면 전환(`/status`) | 링크를 직접 읽는다 — 다시 해제 404, 재등록 204(동의가 철회된 링크는 409, 아래 #1631), 상태 전환 409(기존 그대로) |
 | 로스터 | 미등록(`registered=false`)으로 남는다 |
 | 내가 남긴 할 일의 조회·수정·완료, 제안 치우기 | 그대로 — `trainer_id` 만 본다 |
@@ -235,7 +237,7 @@
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
 | GET | `/trainer/chat/unread` | 회원별 미확인 수 |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
-| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586) |
+| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589) |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |
 | POST | `/trainer/schedule` | 예약 생성(예정, `client_request_id?`) |
 | PUT | `/trainer/schedule/{id}` | 예약 수정 |

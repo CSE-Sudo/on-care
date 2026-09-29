@@ -1329,6 +1329,11 @@
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
   "schedGroupProgram": "PT program",
+  "schedDetachedMember": "Former client",
+  "@schedDetachedMember": {
+    "description": "담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)"
+  },
+  "schedDetachedMemberHint": "Coaching has ended, so client details are hidden",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",
