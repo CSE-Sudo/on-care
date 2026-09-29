@@ -6009,7 +6009,21 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .order_by(TrainerSchedule.date.desc(), TrainerSchedule.time.desc())
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
-    return [_schedule_out(s) for s in rows]
+    return [_member_schedule_out(s) for s in rows]
+
+
+def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
+    """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
+
+    `note` 한 칸이 PT 일정에서는 회원에게 보내는 트레이너 피드백이고, 상담 일정에서는
+    트레이너만 보는 상담 기록(메모)이다. 트레이너 응답(`_schedule_out`)을 그대로 쓰면
+    예정 PT 에 미리 적어 둔 글과 상담 기록까지 회원에게 간다. 회원 앱도 완료 PT 에서만
+    그리므로, 그 밖의 `note` 는 여기서 비운다.
+    """
+    out = _schedule_out(s)
+    if s.status != SCHEDULE_DONE or s.type == "상담":
+        out.note = ""
+    return out
 
 
 def member_unread_count(db: Session, trainer_id: str, member_id: str) -> int:

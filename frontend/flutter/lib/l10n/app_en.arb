@@ -1019,7 +1019,7 @@
   "myWeeklyReportDone": "Last week's report is ready",
   "myBenefitsWeeklyReports": "Weekly reports",
   "myWeeklyReportCardTitle": "Report from points",
-  "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer message.",
+  "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer feedback.",
   "coachReportPdfSectionInsights": "Reference notes",
   "coachReportPdfNoInsights": "No pain or negative feedback this week.",
   "coachReportPdfInsightSummary": "{label} ×{count}",
@@ -1692,11 +1692,11 @@
       }
     }
   },
-  "coachReportPdfSectionTrainerNote": "From your trainer",
+  "coachReportPdfSectionTrainerNote": "Trainer feedback",
   "@coachReportPdfSectionTrainerNote": {
     "description": "Section heading for the message the trainer sent with the report."
   },
-  "coachReportPdfNoTrainerNote": "No message came with this report.",
+  "coachReportPdfNoTrainerNote": "No feedback came with this report.",
   "@coachReportPdfNoTrainerNote": {
     "description": "Shown under the trainer-message heading when the report arrived without a note."
   },
@@ -4059,7 +4059,7 @@
   "weeklyFeedbackPainHint": "e.g. right knee",
   "weeklyFeedbackPainDateLabel": "When it hurt",
   "weeklyFeedbackPainDatePick": "Pick a date",
-  "weeklyFeedbackNoteQuestion": "A line for your trainer (optional)",
+  "weeklyFeedbackNoteQuestion": "One-line feedback for your trainer (optional)",
   "weeklyFeedbackNoteHint": "Anything that shaped your week",
   "weeklyFeedbackSend": "Send",
   "weeklyFeedbackResend": "Send again",
@@ -4115,7 +4115,7 @@
       }
     }
   },
-  "myWeeklyFeedbackNoteLabel": "Your note",
+  "myWeeklyFeedbackNoteLabel": "One-line feedback",
   "myWeeklyFeedbackSentAt": "Sent {month}/{day}",
   "@myWeeklyFeedbackSentAt": {
     "placeholders": {

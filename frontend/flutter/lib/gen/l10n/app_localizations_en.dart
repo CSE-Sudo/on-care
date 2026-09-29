@@ -1504,7 +1504,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachReportPdfSelfMadeNote =>
-      'Made with points, without a trainer — so there\'s no trainer message.';
+      'Made with points, without a trainer — so there\'s no trainer feedback.';
 
   @override
   String get coachReportPdfSectionInsights => 'Reference notes';
@@ -2396,10 +2396,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachReportPdfSectionTrainerNote => 'From your trainer';
+  String get coachReportPdfSectionTrainerNote => 'Trainer feedback';
 
   @override
-  String get coachReportPdfNoTrainerNote => 'No message came with this report.';
+  String get coachReportPdfNoTrainerNote =>
+      'No feedback came with this report.';
 
   @override
   String get coachReportPdfSectionChange => 'Change from last week';
@@ -4665,7 +4666,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyFeedbackPainDatePick => 'Pick a date';
 
   @override
-  String get weeklyFeedbackNoteQuestion => 'A line for your trainer (optional)';
+  String get weeklyFeedbackNoteQuestion =>
+      'One-line feedback for your trainer (optional)';
 
   @override
   String get weeklyFeedbackNoteHint => 'Anything that shaped your week';
@@ -4773,7 +4775,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myWeeklyFeedbackNoteLabel => 'Your note';
+  String get myWeeklyFeedbackNoteLabel => 'One-line feedback';
 
   @override
   String myWeeklyFeedbackSentAt(int month, int day) {

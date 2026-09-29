@@ -218,8 +218,8 @@ class E2eApi {
     fail('슬롯 $id 를 서버에서 찾지 못했습니다.');
   }
 
-  /// 그 날짜의 트레이너 일정. 예약이 만든 일정은 `note` 가 '회원 앱 예약' 이다
-  /// (`reservation_service.reserve`).
+  /// 그 날짜의 트레이너 일정. 예약이 만든 일정도 `note` 는 비어 있다 — `note` 는
+  /// 트레이너 피드백 자리라 예약 표식을 넣지 않는다(#2575).
   Future<List<Map<String, dynamic>>> sessionsOn(DateTime day) async {
     final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
       '/trainer/schedule',
@@ -234,6 +234,7 @@ class E2eApi {
 
   /// 그 시각에 회원 앱 예약으로 생긴 일정들.
   ///
+  /// 일정 응답에는 예약에서 왔다는 표식이 없어 시각·회원 이름으로만 거른다.
   /// 날짜·시각·회원 이름만으로는 **이번 실행의 것을 특정할 수 없다.** 슬롯 시각이
   /// 매 실행 같은 10:00 이라, 앞선 실행이 남긴 일정도 똑같이 걸린다. 그래서 호출부는
   /// 예약 전후의 id 차집합으로 이번 것을 고른다([E2eState] 의 `sessionIdsBefore`).
@@ -250,9 +251,7 @@ class E2eApi {
         '${local.minute.toString().padLeft(2, '0')}';
     return <Map<String, dynamic>>[
       for (final Map<String, dynamic> session in await sessionsOn(local))
-        if (session['time'] == hhmm &&
-            session['note'] == '회원 앱 예약' &&
-            session['client_name'] == memberName)
+        if (session['time'] == hhmm && session['client_name'] == memberName)
           session,
     ];
   }
