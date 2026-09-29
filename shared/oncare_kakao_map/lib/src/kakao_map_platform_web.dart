@@ -4,7 +4,7 @@ import 'dart:js_interop_unsafe';
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_config.dart';
+import 'package:oncare_kakao_map/src/kakao_map_config.dart';
 import 'package:web/web.dart' as web;
 
 /// 카카오맵 JS SDK 를 `HtmlElementView` 로 얹는다.
@@ -18,6 +18,7 @@ Widget? buildKakaoMap({
   required List<KakaoMapMarker> markers,
   required int level,
   required Widget fallback,
+  ValueChanged<KakaoMapMarker>? onMarkerTap,
 }) {
   if (!isKakaoMapConfigured) return null;
   return _KakaoMapView(
@@ -26,6 +27,7 @@ Widget? buildKakaoMap({
     markers: markers,
     level: level,
     fallback: fallback,
+    onMarkerTap: onMarkerTap,
   );
 }
 
@@ -100,6 +102,7 @@ class _KakaoMapView extends StatefulWidget {
     required this.markers,
     required this.level,
     required this.fallback,
+    this.onMarkerTap,
   });
 
   final double centerLat;
@@ -107,6 +110,7 @@ class _KakaoMapView extends StatefulWidget {
   final List<KakaoMapMarker> markers;
   final int level;
   final Widget fallback;
+  final ValueChanged<KakaoMapMarker>? onMarkerTap;
 
   @override
   State<_KakaoMapView> createState() => _KakaoMapViewState();
@@ -253,8 +257,23 @@ class _KakaoMapViewState extends State<_KakaoMapView> {
           ..setProperty('title'.toJS, m.title.toJS),
       );
       marker.callMethod('setMap'.toJS, map);
+      if (m.id != null) _listenTap(marker, m);
       _markers.add(marker);
     }
+  }
+
+  /// 핀 누르기를 알린다. 콜백은 누른 순간의 위젯에서 읽는다 — 지도를 만든 뒤
+  /// 부모가 콜백을 바꿔도 옛 것을 부르지 않게.
+  void _listenTap(JSObject marker, KakaoMapMarker m) {
+    final JSObject? event = _prop(_maps, 'event');
+    if (event == null) return;
+    event.callMethodVarArgs('addListener'.toJS, <JSAny?>[
+      marker,
+      'click'.toJS,
+      (() {
+        if (mounted) widget.onMarkerTap?.call(m);
+      }).toJS,
+    ]);
   }
 
   @override
@@ -278,7 +297,8 @@ class _KakaoMapViewState extends State<_KakaoMapView> {
     for (int i = 0; i < a.length; i++) {
       if (a[i].lat != b[i].lat ||
           a[i].lng != b[i].lng ||
-          a[i].title != b[i].title) {
+          a[i].title != b[i].title ||
+          a[i].id != b[i].id) {
         return false;
       }
     }

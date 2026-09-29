@@ -21,10 +21,10 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 const Gym _gym = Gym(
