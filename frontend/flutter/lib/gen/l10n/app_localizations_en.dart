@@ -1321,6 +1321,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGraphProtectAction => 'Use a shield';
 
   @override
+  String get myGraphProtectConfirmAction => 'Use';
+
+  @override
   String get myGraphProtectConfirmTitle => 'Use a streak shield?';
 
   @override

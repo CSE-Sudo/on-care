@@ -1165,7 +1165,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myPointsExchangeConfirmAction => '교환하기';
+  String get myPointsExchangeConfirmAction => '교환';
 
   @override
   String get myPointsExchangeDone => '교환했어요';
@@ -1281,6 +1281,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myGraphProtectAction => '보호권 쓰기';
+
+  @override
+  String get myGraphProtectConfirmAction => '쓰기';
 
   @override
   String get myGraphProtectConfirmTitle => '보호권을 쓸까요?';
@@ -1584,7 +1587,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get challengeJoinConfirmAction => '참가하기';
+  String get challengeJoinConfirmAction => '참가';
 
   @override
   String get challengeJoinDone => '챌린지에 참가했어요';
@@ -1820,7 +1823,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSheetTitle => '이모티콘';
 
   @override
-  String get emoteBuyTitle => '이모티콘 사기';
+  String get emoteBuyTitle => '이모티콘 구매';
 
   @override
   String emoteBuyConfirm(int cost, int days) {
@@ -1828,7 +1831,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get emoteBuyAction => '사기';
+  String get emoteBuyAction => '구매';
 
   @override
   String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';

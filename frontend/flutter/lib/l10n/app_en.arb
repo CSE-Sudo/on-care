@@ -847,6 +847,10 @@
     }
   },
   "myGraphProtectAction": "Use a shield",
+  "myGraphProtectConfirmAction": "Use",
+  "@myGraphProtectConfirmAction": {
+    "description": "Confirm button of the use-a-shield dialog. The dialog title already names the shield (#2554)."
+  },
   "myGraphProtectConfirmTitle": "Use a streak shield?",
   "myGraphProtectConfirmMessage": "This keeps {date} in your record streak and spends one shield ({held} left).",
   "@myGraphProtectConfirmMessage": {
