@@ -1328,6 +1328,52 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('식단을 고르면 식단 분석·추천 카드가 전송 이력 바로 위에 선다', (
+      tester,
+    ) async {
+      // 트레이너는 회원 상세보다 이 탭에 오래 머문다 — 추천에 여기서도 답한다.
+      await openTab(tester);
+      await tester.pumpAndSettle();
+
+      final analysis = find.byKey(const ValueKey<String>('diet-analysis'));
+      expect(analysis, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('diet-recommendation')),
+        findsOneWidget,
+      );
+      final rail = find.byKey(
+        const ValueKey<String>('coaching-client-rail-scroll'),
+      );
+      expect(find.descendant(of: rail, matching: analysis), findsOneWidget);
+      expect(
+        tester.getBottomLeft(analysis).dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.descendant(of: rail, matching: find.text('전송 이력')),
+              )
+              .dy,
+        ),
+      );
+      expect(
+        tester.getTopLeft(analysis).dy,
+        greaterThan(
+          tester.getBottomLeft(find.byType(ProgramNutritionSummaryCard)).dy,
+        ),
+      );
+
+      // 운동을 고르면 식단 분석은 걷힌다.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('program-client-data-tabs')),
+          matching: find.text('운동'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(analysis, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('회원 목록 행에 상대시간이 남아 있지 않다 (#1027)', (tester) async {
       await openTab(tester);
       await tester.pumpAndSettle();
