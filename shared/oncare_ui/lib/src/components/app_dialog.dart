@@ -52,8 +52,9 @@ class AppDialog extends StatelessWidget {
   /// 본문 안쪽. 미리보기처럼 가장자리까지 채울 때만 바꾼다.
   final EdgeInsetsGeometry? bodyPadding;
 
-  /// 제목 오른쪽에 두는 위젯 — 창 안 목록을 늘리는 `+ 추가` 같은 보조 동작
-  /// 자리다(#2465). 회원 앱 [AppSheet.trailing] 과 같은 자리·쓰임이다.
+  /// 제목 오른쪽에 두는 보조 동작 자리(#2465). 회원 앱 [AppSheet.trailing] 과
+  /// 같은 자리다. 웹에서 창 안 목록을 늘리는 `+ 추가` 는 여기가 아니라 새 줄이
+  /// 생기는 목록 끝 가운데에 둔다(#2476).
   final Widget? trailing;
 
   @override

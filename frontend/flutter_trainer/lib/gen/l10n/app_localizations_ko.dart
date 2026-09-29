@@ -2859,10 +2859,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiGoToChatHint => '아래 버튼에서 회원 채팅으로 이동해 바로 안내할 수 있어요.';
 
   @override
-  String get aiApplyToTemplate => '템플릿에 반영';
+  String get aiApplyToTemplate => '프로그램에 반영';
 
   @override
-  String get aiAppliedToTemplate => 'AI 추천안이 프로그램 템플릿에 반영됐어요.';
+  String get aiAppliedToTemplate => 'AI 추천안이 프로그램에 반영됐어요.';
 
   @override
   String get aiStepConditions => '조건 설정';
@@ -2952,7 +2952,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepPersonal => '개인운동';
 
   @override
-  String get aiGoToPersonalStep => '다음 · 개인운동 짜기';
+  String get aiStepPrev => '이전';
+
+  @override
+  String get aiStepNext => '다음';
 
   @override
   String get aiPersonalStepTitle => 'PT 사이에 할 개인운동';
