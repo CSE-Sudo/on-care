@@ -142,4 +142,49 @@ void main() {
       containsAll(<String>['체지방 감량에 도움', '오른쪽 어깨 보호']),
     );
   });
+
+  group('개인운동만 전송의 소제목 (#2581)', () {
+    CoachRoutine session(String id, String name, String kind) => CoachRoutine(
+      id: id,
+      name: name,
+      minutes: 20,
+      type: '유산소',
+      reason: '',
+      source: 'trainer',
+      programName: '이번 주 개인운동',
+      sessionName: name,
+      sessionOrder: id == 'a' ? 0 : 1,
+      deliveryKind: kind,
+    );
+
+    testWidgets('개인운동만 으로 여럿 보내도 카드 안 소제목이 없다', (WidgetTester tester) async {
+      await _pump(tester, <CoachRoutine>[
+        session('a', '저강도 걷기', 'routine_only'),
+        session('b', '힙 브리지', 'routine_only'),
+      ]);
+      expect(find.text('이번 주 개인운동'), findsNothing);
+      expect(find.text('저강도 걷기'), findsOneWidget);
+    });
+
+    testWidgets('다른 여러 세션 프로그램은 지금처럼 이름을 얹는다', (WidgetTester tester) async {
+      await _pump(tester, <CoachRoutine>[
+        session('a', '세션 A', ''),
+        session('b', '세션 B', ''),
+      ]);
+      expect(find.text('이번 주 개인운동'), findsOneWidget);
+    });
+
+    test('응답의 delivery_kind 를 읽는다', () {
+      final CoachRoutine r = coachRoutineFromJson(<String, Object?>{
+        'id': 'r',
+        'name': '걷기',
+        'type': '유산소',
+        'reason': '',
+        'source': 'trainer',
+        'delivery_kind': 'routine_only',
+      });
+      expect(r.isRoutineOnly, isTrue);
+      expect(r.copyWith(completed: true).isRoutineOnly, isTrue);
+    });
+  });
 }

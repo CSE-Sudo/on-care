@@ -2619,6 +2619,7 @@ def _add_program_routines(
             sessions=len(created),
             seconds=sum(_session_seconds(session.exercises) for session in sessions),
             multi=multi,
+            routine_only=delivery_kind == DELIVERY_ROUTINE_ONLY,
         ),
     )
     return created
@@ -2637,12 +2638,20 @@ def _program_row_seconds(row: TrainerRoutine) -> int:
 
 
 def _program_notification_args(
-    name: str, *, sessions: int, seconds: int, multi: bool
+    name: str,
+    *,
+    sessions: int,
+    seconds: int,
+    multi: bool,
+    routine_only: bool = False,
 ) -> dict[str, Any]:
     """프로그램 배정 알림의 틀 인자. 합계 시간은 초로 더한 값이다. (#2546)
 
     세션마다 분으로 접은 뒤 더하면 45초 세션 셋이 `3분` 이 된다(실제 2분 15초).
     `minutes` 는 틀을 모르는 쪽을 위해 같은 합을 한 번만 접어 둔 값이다.
+
+    [routine_only] 는 `개인운동만` 전송이다(#2581) — 프로그램 이름과 `세션 N개`
+    대신 `개인운동 N개` 로 말한다.
     """
     return {
         "name": name,
@@ -2650,6 +2659,7 @@ def _program_notification_args(
         "seconds": seconds,
         "minutes": _minutes_of(seconds),
         "multi": multi,
+        "routine_only": routine_only,
     }
 
 

@@ -1369,6 +1369,7 @@
   "aiRoutineOnlySent": "개인운동을 회원에게 보냈어요.",
   "aiRoutineOnlySendFailed": "개인운동을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.",
   "aiRoutineOnlyProgramName": "이번 주 개인운동",
+  "aiRoutineOnlyDeliveryName": "개인운동",
   "progPersonalRoutinesWhen": "이 PT를 완료할 때 회원에게 함께 가요.",
   "programRoutineOnlyConfirmBody": "{client}님에게 개인운동을 보내요. {start}부터 {end}까지 회원 앱에 매일 떠요.",
   "@programRoutineOnlyConfirmBody": {

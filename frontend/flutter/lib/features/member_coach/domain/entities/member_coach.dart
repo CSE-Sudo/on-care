@@ -42,6 +42,7 @@ class CoachRoutine {
     required this.reason,
     required this.source,
     this.effect = '',
+    this.deliveryKind = '',
     this.durationSeconds,
     this.intensity = 'moderate',
     this.completed = false,
@@ -73,6 +74,14 @@ class CoachRoutine {
   /// 판단 재료)거나 옛 배정의 운동 이름 나열이다. 이 키를 모르는 옛 응답은
   /// 비어 있고, 그때는 카드가 예전처럼 [reason] 으로 떨어진다.
   final String effect;
+
+  /// 어떻게 보낸 배정인가 — `routine_only`(개인운동만)·`pt_with_routine` 등
+  /// 서버 `delivery_kind`. 옛 응답·단일 배정은 빈 값이다. (#2581)
+  final String deliveryKind;
+
+  /// `개인운동만` 으로 보낸 줄인가. 서버에는 운동 하나가 세션 하나인
+  /// 프로그램으로 저장되지만, 회원에게는 `추천 개인운동` 목록의 낱개 줄이다.
+  bool get isRoutineOnly => deliveryKind == 'routine_only';
 
   /// 유산소·스트레칭·기타 루틴의 운동 시간(초). (#2221)
   ///
@@ -150,6 +159,7 @@ class CoachRoutine {
     reason: reason,
     source: source,
     effect: effect,
+    deliveryKind: deliveryKind,
     // 배정된 초는 트레이너가 정한 값이라 완료 표시에 흔들리지 않는다(#2221).
     durationSeconds: durationSeconds,
     completed: completed ?? this.completed,

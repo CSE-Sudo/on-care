@@ -244,7 +244,11 @@ class AiCoachingCard extends ConsumerWidget {
             // 여러 세션짜리 프로그램은 첫 세션 위에 프로그램 이름을 한 번
             // 얹는다 — 세션 카드가 어디에 묶이는지 보이지 않으면 그냥 낱개
             // 루틴 여러 개로 읽힌다(#709).
+            // `개인운동만` 은 소제목을 달지 않는다(#2581) — 카드 제목 `추천
+            // 개인운동` 이 곧 그 묶음이고, 저장 이름(예전 `이번 주 개인운동`)은
+            // 보낸 날부터 7일이라 달력의 이번 주와도 맞지 않았다.
             if (routine.programName.isNotEmpty &&
+                !routine.isRoutineOnly &&
                 (index == 0 ||
                     routines[index - 1].programName != routine.programName))
               Padding(
