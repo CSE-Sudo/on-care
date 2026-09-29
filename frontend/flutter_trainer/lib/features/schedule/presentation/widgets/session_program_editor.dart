@@ -5,6 +5,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/models/program_draft.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -174,7 +175,11 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
           key: const ValueKey<String>('program-trainer-note'),
           controller: _note,
           label: l.schedNote,
-          hint: l.progNoteHint,
+          // PT 메모는 완료 뒤 회원 앱에 피드백으로 보이고, 상담 기록은
+          // 트레이너만 본다(#2515).
+          hint: widget.session.type == SessionType.consultation
+              ? l.schedConsultNoteHint
+              : l.progNoteHint,
           minLines: 2,
           maxLines: 4,
         ),

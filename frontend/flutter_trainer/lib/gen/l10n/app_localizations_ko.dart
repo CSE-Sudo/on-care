@@ -1926,7 +1926,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedNoteOnlyHint => '상담은 프로그램 대신 메모로 남깁니다.';
 
   @override
-  String get schedNoteHint => '수업 준비사항이나 회원 특이사항을 입력하세요';
+  String get schedNoteHint =>
+      'PT를 마치면 회원 앱에 피드백으로 보여요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
+
+  @override
+  String get schedConsultNoteHint => '상담 기록은 회원에게 보이지 않아요';
 
   @override
   String get schedAddAction => '추가';
@@ -1950,7 +1954,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progAddExercise => '운동 추가';
 
   @override
-  String get progNoteHint => '프로그램 진행 시 참고할 내용을 입력하세요';
+  String get progNoteHint =>
+      'PT를 마치면 회원 앱에 피드백으로 보여요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
 
   @override
   String get progSaving => '저장 중...';

@@ -560,7 +560,11 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
             key: const ValueKey<String>('schedule-trainer-note'),
             controller: _note,
             label: l.schedNote,
-            hint: l.schedNoteHint,
+            // PT 메모는 완료 뒤 회원 앱에 피드백으로 보이고, 상담 기록은
+            // 트레이너만 본다(#2515).
+            hint: _type == SessionType.consultation
+                ? l.schedConsultNoteHint
+                : l.schedNoteHint,
             minLines: 2,
             maxLines: 4,
           ),
