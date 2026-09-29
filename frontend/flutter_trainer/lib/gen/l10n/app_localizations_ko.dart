@@ -2898,9 +2898,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
 
   @override
-  String get aiPersonalRationaleLabel => 'AI 추천 사유';
-
-  @override
   String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
 
   @override
