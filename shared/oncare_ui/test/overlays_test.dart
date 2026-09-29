@@ -220,4 +220,85 @@ void main() {
     expect(item, findsOneWidget);
     expect(tester.widget(item), isA<MenuItemButton>());
   });
+
+  group('끝 맞춤 메뉴 (alignEnd)', () {
+    Future<void> pumpMenu(WidgetTester tester, {required bool alignEnd}) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: OnCareTheme.light(
+            brand: OnCareBrand.trainer,
+            density: OnCareDensity.web,
+          ),
+          home: Scaffold(
+            // 카드 오른쪽 위 버튼처럼 화면 끝에서 조금 안쪽에 선 트리거.
+            body: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 40, right: 60),
+                child: AppMenu(
+                  alignEnd: alignEnd,
+                  items: <AppMenuItem>[
+                    AppMenuItem(
+                      key: const ValueKey<String>('menu-long'),
+                      label: '개인운동 수정하기 항목',
+                      onSelected: () {},
+                    ),
+                  ],
+                  triggerBuilder: (context, toggle) => TextButton(
+                    key: const ValueKey<String>('menu-trigger'),
+                    onPressed: toggle,
+                    child: const Text('열기'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('열기'));
+      await tester.pumpAndSettle();
+    }
+
+    // 메뉴 틀(`_MenuPanel`)은 비공개라, 틀 안을 가로로 채우는 항목 칸으로 잰다.
+    Rect menuRect(WidgetTester tester) =>
+        tester.getRect(find.byKey(const ValueKey<String>('menu-long')));
+
+    testWidgets('끝에 선 트리거의 메뉴가 화면 가장자리에 붙지 않는다', (tester) async {
+      await pumpMenu(tester, alignEnd: true);
+      final Rect trigger = tester.getRect(
+        find.byKey(const ValueKey<String>('menu-trigger')),
+      );
+      final Rect menu = menuRect(tester);
+      // 메뉴 끝이 트리거 끝과 같은 선에 서고, 화면 끝과는 트리거의 여백만큼
+      // 떨어진다.
+      expect(menu.right, moreOrLessEquals(trigger.right, epsilon: 1));
+      expect(800 - menu.right, greaterThanOrEqualTo(60 - 1));
+      expect(menu.top, greaterThanOrEqualTo(trigger.bottom - 1));
+    });
+
+    testWidgets('끝 맞춤이어도 항목·트리거의 글 방향은 그대로다', (tester) async {
+      await pumpMenu(tester, alignEnd: true);
+      final BuildContext item = tester.element(
+        find.byKey(const ValueKey<String>('menu-long')),
+      );
+      final BuildContext trigger = tester.element(
+        find.byKey(const ValueKey<String>('menu-trigger')),
+      );
+      expect(Directionality.of(item), TextDirection.ltr);
+      expect(Directionality.of(trigger), TextDirection.ltr);
+    });
+
+    testWidgets('기본값은 예전처럼 트리거 시작에서 펼친다', (tester) async {
+      await pumpMenu(tester, alignEnd: false);
+      final Rect trigger = tester.getRect(
+        find.byKey(const ValueKey<String>('menu-trigger')),
+      );
+      final Rect menu = menuRect(tester);
+      // 넘치는 메뉴라 화면 끝으로 밀린다 — 끝 맞춤과 다른 자리여야 한다.
+      expect(menu.right, isNot(moreOrLessEquals(trigger.right, epsilon: 1)));
+    });
+  });
 }

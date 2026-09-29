@@ -164,4 +164,38 @@ void main() {
       parkBefore.map((TrainerSlot s) => s.booked),
     );
   });
+
+  test('김트레이너는 트레이너 웹 데모와 같은 자리를 한 주에 걸쳐 연다', () async {
+    final DateTime today = nowKst();
+    final DateTime tomorrow = DateTime(today.year, today.month, today.day + 1);
+    final List<TrainerSlot> kim = await MockGymRepository().fetchSlots(
+      'trainer-kim',
+    );
+    // 내일 이후 자리는 실행 시각과 상관없이 늘 남는다.
+    final List<TrainerSlot> ahead = kim
+        .where((TrainerSlot s) => !s.startsAt.isBefore(tomorrow))
+        .toList();
+
+    expect(ahead, hasLength(5));
+    expect(
+      ahead
+          .map(
+            (TrainerSlot s) =>
+                DateTime(s.startsAt.year, s.startsAt.month, s.startsAt.day),
+          )
+          .toSet()
+          .length,
+      greaterThan(3),
+    );
+    expect(ahead.where((TrainerSlot s) => s.booked), hasLength(1));
+    expect(ahead.map((TrainerSlot s) => s.sessionType).toSet(), <String>{
+      '1:1 PT',
+      '상담',
+    });
+    // 트레이너 웹 데모 일정(09:00~21:30)을 피한 이른 아침·늦은 저녁이다.
+    for (final TrainerSlot s in ahead) {
+      final int minute = s.startsAt.hour * 60 + s.startsAt.minute;
+      expect(minute + 60 <= 9 * 60 || minute >= 21 * 60 + 30, isTrue);
+    }
+  });
 }
