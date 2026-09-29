@@ -3,6 +3,8 @@
 /// 근력은 세트·횟수·중량으로, 나머지는 시간으로 묻는다. 화면 여러 곳(홈 운동 카드·
 /// 운동 현황 링·주간 목표)이 근력을 이미 세트로 읽는데 시트만 분으로 물어,
 /// 회원이 적지 않은 수(분 ÷ 3)가 화면에 떴다.
+///
+/// 세트·횟수·중량은 유산소의 시간 휠과 같은 모양의 휠 한 줄로 받는다(#2545).
 library;
 
 import 'package:flutter/gestures.dart' show kTouchSlop;
@@ -257,19 +259,30 @@ Future<void> _typeName(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
 }
 
-/// [key] 스테퍼가 지금 들고 있는 숫자.
-String _stepperValue(WidgetTester tester, Key key) => tester
-    .widget<TextField>(
-      find.descendant(
-        of: find.descendant(
-          of: find.byKey(key),
-          matching: find.byKey(const Key('numberStepperField')),
-        ),
-        matching: find.byType(TextField),
-      ),
-    )
-    .controller!
-    .text;
+/// [key] 휠 칸이 지금 가리키는 값. 칸 번호를 [min]·[step] 으로 값으로 읽는다.
+double _wheelValue(
+  WidgetTester tester,
+  Key key, {
+  double min = 1,
+  double step = 1,
+}) {
+  final ListWheelScrollView wheel = tester.widget<ListWheelScrollView>(
+    find.descendant(
+      of: find.byKey(key),
+      matching: find.byType(ListWheelScrollView),
+    ),
+  );
+  return min +
+      (wheel.controller! as FixedExtentScrollController).selectedItem * step;
+}
+
+/// 중량 칸이 지금 가리키는 kg — 0 에서 0.5kg 걸음이다.
+double _weightValue(WidgetTester tester) => _wheelValue(
+  tester,
+  const Key('exerciseWeightWheel'),
+  min: 0,
+  step: kExerciseWeightStepKg,
+);
 
 /// 시·분·초 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다(양수가 아래로).
 ///
@@ -305,21 +318,23 @@ void main() {
 
     // 기본값은 유산소 — 시·분·초 휠로 묻는다(#2071).
     expect(find.text('운동 시간'), findsOneWidget);
-    expect(find.text('세트 수'), findsNothing);
+    expect(find.text('세트 · 횟수 · 중량'), findsNothing);
     expect(find.byKey(const Key('exerciseDurationWheel')), findsOneWidget);
 
     await tester.tap(find.text('근력'));
     await tester.pumpAndSettle();
 
-    expect(find.text('세트 수'), findsOneWidget);
-    expect(find.text('횟수'), findsOneWidget);
-    expect(find.text('중량'), findsOneWidget);
+    // 시간 휠과 같은 자리에 세 칸 휠 한 줄이 선다(#2545).
+    expect(find.text('세트 · 횟수 · 중량'), findsOneWidget);
     expect(find.text('운동 시간'), findsNothing);
-    expect(find.byKey(const Key('exerciseSetsStepper')), findsOneWidget);
-    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseStrengthWheel')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseSetsWheel')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseRepsWheel')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseWeightWheel')), findsOneWidget);
     expect(find.byKey(const Key('exerciseDurationWheel')), findsNothing);
-    expect(_stepperValue(tester, const Key('exerciseSetsStepper')), '12');
-    expect(_stepperValue(tester, const Key('exerciseRepsStepper')), '10');
+    expect(_wheelValue(tester, const Key('exerciseSetsWheel')), 12);
+    expect(_wheelValue(tester, const Key('exerciseRepsWheel')), 10);
+    expect(_weightValue(tester), 20);
   });
 
   testWidgets('근력 기록은 세트·횟수·중량을 실어 저장한다', (WidgetTester tester) async {
@@ -349,17 +364,17 @@ void main() {
     await tester.tap(find.text('근력'));
     await tester.pumpAndSettle();
     // 이름을 적기 전에는 회로 묻는다 — 대부분의 근력이 그렇다.
-    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
-    expect(find.byKey(const Key('exerciseHoldStepper')), findsNothing);
+    expect(find.byKey(const Key('exerciseRepsWheel')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseHoldWheel')), findsNothing);
 
     await _typeName(tester, '플랭크');
 
     // 종목표가 버티는 운동이라고 하면 같은 자리를 초가 대신한다 — 칸이
     // 늘어나지 않는다.
-    expect(find.byKey(const Key('exerciseHoldStepper')), findsOneWidget);
-    expect(find.byKey(const Key('exerciseRepsStepper')), findsNothing);
-    expect(find.text('버티는 시간'), findsOneWidget);
-    expect(find.text('횟수'), findsNothing);
+    expect(find.byKey(const Key('exerciseHoldWheel')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseRepsWheel')), findsNothing);
+    expect(find.text('세트 · 버티는 시간 · 중량'), findsOneWidget);
+    expect(find.text('세트 · 횟수 · 중량'), findsNothing);
   });
 
   testWidgets('버티는 운동은 초를 싣고 횟수를 비운다 (#1969)', (WidgetTester tester) async {
@@ -387,16 +402,16 @@ void main() {
     await tester.tap(find.text('근력'));
     await tester.pumpAndSettle();
     await _typeName(tester, '플랭크');
-    expect(find.byKey(const Key('exerciseHoldStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseHoldWheel')), findsOneWidget);
 
     // 종목표는 기본값일 뿐이다 — 고르는 것은 적는 사람이다.
     await tester.tap(find.byKey(const Key('exerciseMeasureReps')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseRepsWheel')), findsOneWidget);
 
     // 고른 뒤에는 이름을 다시 적어도 덮지 않는다.
     await _typeName(tester, '사이드 플랭크');
-    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseRepsWheel')), findsOneWidget);
 
     await _save(tester);
     expect(repo.reps, 10);
@@ -422,10 +437,10 @@ void main() {
       ),
     );
 
-    expect(find.byKey(const Key('exerciseHoldStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseHoldWheel')), findsOneWidget);
     expect(
-      _stepperValue(tester, const Key('exerciseHoldStepper')),
-      '45',
+      _wheelValue(tester, const Key('exerciseHoldWheel')),
+      45,
       reason: '적어 둔 초가 그대로 열려야 한다',
     );
   });
@@ -497,9 +512,7 @@ void main() {
     expect(repo.minutes, 1);
   });
 
-  testWidgets('시 칸을 굴리면 한 시간이 넘는 운동도 적는다 (#2071)', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('시 칸을 굴리면 한 시간이 넘는 운동도 적는다 (#2071)', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
 
@@ -528,9 +541,7 @@ void main() {
     expect(repo.name, isNull, reason: '저장 요청 자체가 나가지 않아야 한다');
   });
 
-  testWidgets('수정 시트는 저장된 초로 휠이 맞춰져 열린다 (#2071)', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('수정 시트는 저장된 초로 휠이 맞춰져 열린다 (#2071)', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(
       tester,
@@ -565,26 +576,10 @@ void main() {
     await tester.pumpAndSettle();
     await _typeName(tester, '레그프레스');
 
-    for (final (Key key, num value) in <(Key, num)>[
-      (const Key('exerciseSetsStepper'), kMaxExerciseSets),
-      (const Key('exerciseRepsStepper'), kMaxExerciseReps),
-      (const Key('exerciseWeightStepper'), kMaxExerciseWeightKg),
-    ]) {
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(key),
-          matching: find.byKey(const Key('numberStepperField')),
-        ),
-        '${value.toInt()}',
-      );
-      await tester.pumpAndSettle();
-      // 상한 안의 값이므로 잘리지 않는다 — 예전에는 40·500 으로 깎였다.
-      expect(
-        _stepperValue(tester, key),
-        '${value.toInt()}',
-        reason: '$key 가 상한 안의 값을 깎았다',
-      );
-    }
+    // 끝을 넘겨 굴려도 상한 칸에 선다 — 예전에는 40·500 에서 막혔다.
+    await _rollWheel(tester, 0, kMaxExerciseSets + 10);
+    await _rollWheel(tester, 1, kMaxExerciseReps + 10);
+    await _rollWheel(tester, 2, (kMaxExerciseWeightKg * 2).toInt() + 10);
 
     await _save(tester);
 
@@ -593,23 +588,45 @@ void main() {
     expect(repo.weight, kMaxExerciseWeightKg);
   });
 
-  testWidgets('중량은 소수점 한 자리까지 받는다', (WidgetTester tester) async {
+  testWidgets('중량은 0.5kg 걸음으로 굴린다 (#2545)', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
 
     await tester.tap(find.text('근력'));
     await tester.pumpAndSettle();
     await _typeName(tester, '데드리프트');
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const Key('exerciseWeightStepper')),
-        matching: find.byKey(const Key('numberStepperField')),
-      ),
-      '62.5',
-    );
-    await tester.pumpAndSettle();
+    // 20kg 에서 세 칸 — 원판 한 쌍(0.5kg)씩이다.
+    await _rollWheel(tester, 2, 3);
     await _save(tester);
 
+    expect(repo.weight, 21.5);
+  });
+
+  testWidgets('0.5kg 칸에 맞지 않는 옛 중량은 가장 가까운 칸으로 열린다 (#2545)', (
+    WidgetTester tester,
+  ) async {
+    // 예전 스테퍼는 62.3 처럼 소수 한 자리를 받았다. 휠은 그 사이에 설 수
+    // 없으니, 보이는 값과 저장되는 값이 같도록 여는 순간 맞춘다.
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(
+      tester,
+      repo,
+      session: ExerciseSession(
+        id: 'ex-odd',
+        dayLabel: '월',
+        type: ExerciseType.strength,
+        minutes: 9,
+        calories: 54,
+        sets: 3,
+        reps: 5,
+        weight: 62.3,
+        name: '데드리프트',
+        date: DateTime(2026, 8, 17),
+      ),
+    );
+
+    expect(_weightValue(tester), 62.5);
+    await _save(tester);
     expect(repo.weight, 62.5);
   });
 
@@ -632,10 +649,10 @@ void main() {
       ),
     );
 
-    expect(find.text('세트 수'), findsOneWidget);
-    expect(_stepperValue(tester, const Key('exerciseSetsStepper')), '15');
-    expect(_stepperValue(tester, const Key('exerciseRepsStepper')), '8');
-    expect(_stepperValue(tester, const Key('exerciseWeightStepper')), '40.5');
+    expect(find.text('세트 · 횟수 · 중량'), findsOneWidget);
+    expect(_wheelValue(tester, const Key('exerciseSetsWheel')), 15);
+    expect(_wheelValue(tester, const Key('exerciseRepsWheel')), 8);
+    expect(_weightValue(tester), 40.5);
 
     await _save(tester);
 
@@ -663,7 +680,7 @@ void main() {
     );
 
     // 30분 ÷ 3분
-    expect(_stepperValue(tester, const Key('exerciseSetsStepper')), '10');
+    expect(_wheelValue(tester, const Key('exerciseSetsWheel')), 10);
   });
 
   testWidgets('근력이던 기록을 유산소로 고치면 세트·횟수·중량이 지워진다', (WidgetTester tester) async {

@@ -317,6 +317,8 @@
   "exExerciseNameHintOther": "예) 재활 운동, 스포츠 활동",
   "exExerciseReps": "횟수",
   "exExerciseHold": "버티는 시간",
+  "exExerciseStrengthAmount": "세트 · 횟수 · 중량",
+  "exExerciseStrengthAmountHold": "세트 · 버티는 시간 · 중량",
   "exExerciseMeasure": "재는 방법",
   "exExerciseWeight": "중량",
   "exUnitMinutes": "분",
@@ -1828,8 +1830,6 @@
   "exConsultHistoryCancelBody": "취소한 요청은 다시 되돌릴 수 없어요.",
   "exDemoPtSessionCount": "{trainerName} 트레이너와 12회차",
   "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
-  "exStepperDecrease": "줄이기",
-  "exStepperIncrease": "늘리기",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "placeholders": {
