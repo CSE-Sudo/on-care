@@ -2650,6 +2650,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultDataSharingRequired => '공유에 동의해야 상담을 신청할 수 있어요';
 
   @override
+  String get exConsultDataSharingLinked =>
+      '담당 트레이너라 식단·운동 기록과 신체 정보를 이미 공유하고 있어요. 다시 동의하지 않아도 돼요.';
+
+  @override
+  String get exConsultGoalPrefilled => 'MY 건강 목표를 채워 두었어요. 이번 상담에 맞게 바꿔도 돼요.';
+
+  @override
   String get coachInviteConsentTitle => '담당 연결 전에 확인해 주세요';
 
   @override

@@ -2065,6 +2065,8 @@
   "exConsultDataSharingNotice": "Once this trainer accepts your request, they'll be able to see your diet log, exercise log, and body info and health goals.",
   "exConsultDataSharingAgree": "I have read this and agree to share my meal and workout records and body information with this trainer",
   "exConsultDataSharingRequired": "Please agree to sharing before requesting a consultation",
+  "exConsultDataSharingLinked": "This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.",
+  "exConsultGoalPrefilled": "We filled this in from your health goals in MY. Feel free to change it for this consultation.",
   "coachInviteConsentTitle": "Before you connect",
   "coachInviteConsentBody": "Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.",
   "@coachInviteConsentBody": {

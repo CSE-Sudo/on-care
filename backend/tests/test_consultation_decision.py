@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import pytest
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.clock import SEOUL
@@ -692,6 +693,47 @@ def test_accept_links_the_gym_for_an_existing_client(client, db_session):
 
     assert accepted.status_code == 200, accepted.text
     assert db_session.get(MemberGym, member_id).gym_id == gym.id
+
+
+def test_linked_member_consultation_leaves_the_link_as_is(client, db_session):
+    """담당 트레이너에게 낸 상담을 수락해도 연결 상태는 바뀌지 않는다. (#2585)
+
+    회원 앱은 담당 트레이너에게도 상담을 요청할 수 있고, 이미 동의한 연결이라
+    동의를 다시 묻지 않고 보낸다. 수락이 링크를 새로 만들거나, 링크의 동의 시각을
+    이번 신청 시각으로 덮으면 연결이 한 번 더 맺어진 것처럼 남는다.
+    """
+    trainer, trainer_token = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    first = _request_consultation(client, member_token, trainer_id=trainer.id)
+    client.post(
+        f"/v1/trainer/consultations/{first}/accept",
+        headers=_auth(trainer_token),
+        json={},
+    )
+    link = db_session.scalar(
+        select(TrainerClient).where(TrainerClient.member_id == member_id)
+    )
+    link_id, consented_at, goal = link.id, link.data_consent_at, link.goal
+
+    # 첫 상담이 잡은 시간과 겹치지 않는 자리를 고른다 — 겹치면 승인이 409(#2284).
+    second = _request_consultation(
+        client, member_token, trainer_id=trainer.id, hours_ahead=72
+    )
+    accepted = client.post(
+        f"/v1/trainer/consultations/{second}/accept",
+        headers=_auth(trainer_token),
+        json={},
+    )
+
+    assert accepted.status_code == 200, accepted.text
+    db_session.expire_all()
+    links = db_session.scalars(
+        select(TrainerClient).where(TrainerClient.member_id == member_id)
+    ).all()
+    assert [row.id for row in links] == [link_id]
+    assert links[0].active is True
+    assert links[0].data_consent_at == consented_at
+    assert links[0].goal == goal
 
 
 def test_accept_foreign_request_is_not_found(client, db_session):
