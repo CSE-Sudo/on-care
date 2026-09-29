@@ -169,7 +169,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authTagline => 'The trainer-only app for managing your members';
+  String get authTagline =>
+      'See your members\' meals and workouts in one place — and coach them';
 
   @override
   String get authEmailHint => 'Email';
