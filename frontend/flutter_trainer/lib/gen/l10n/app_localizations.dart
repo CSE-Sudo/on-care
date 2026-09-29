@@ -4102,31 +4102,31 @@ abstract class AppLocalizations {
   /// No description provided for @myClientRemove.
   ///
   /// In en, this message translates to:
-  /// **'Remove member'**
+  /// **'Disconnect'**
   String get myClientRemove;
 
   /// No description provided for @myClientRemoveTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove {name}?'**
+  /// **'Disconnect from {name}?'**
   String myClientRemoveTitle(String name);
 
   /// No description provided for @myClientRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.'**
+  /// **'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
   String get myClientRemoveBody;
 
   /// No description provided for @myClientRemoveSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Member removed'**
+  /// **'Disconnected from the member'**
   String get myClientRemoveSuccess;
 
   /// No description provided for @myClientRemoveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t remove the member. Please try again'**
+  /// **'Couldn\'t disconnect. Please try again'**
   String get myClientRemoveFailed;
 
   /// No description provided for @myClientManagementEmpty.
@@ -4456,7 +4456,7 @@ abstract class AppLocalizations {
   /// No description provided for @myClientManagementNoteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Removing only hides members here'**
+  /// **'Disconnecting keeps member records'**
   String get myClientManagementNoteTitle;
 
   /// No description provided for @myClientManagementNote.

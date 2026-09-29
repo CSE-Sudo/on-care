@@ -2241,22 +2241,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myClientManagement => '회원 관리';
 
   @override
-  String get myClientRemove => '회원 삭제';
+  String get myClientRemove => '연결 해제';
 
   @override
   String myClientRemoveTitle(String name) {
-    return '$name 회원을 삭제할까요?';
+    return '$name 회원과 연결을 해제할까요?';
   }
 
   @override
   String get myClientRemoveBody =>
-      '이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모 등이 트레이너 화면에서 모두 사라져요. 회원 앱의 기존 데이터는 삭제되지 않아요.';
+      '연결을 해제하면 이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.';
 
   @override
-  String get myClientRemoveSuccess => '회원을 삭제했어요';
+  String get myClientRemoveSuccess => '회원과 연결을 해제했어요';
 
   @override
-  String get myClientRemoveFailed => '회원을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get myClientRemoveFailed => '연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get myClientManagementEmpty => '담당 회원이 없어요';
@@ -2424,7 +2424,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.';
 
   @override
-  String get myClientManagementNoteTitle => '삭제하면 트레이너 화면에서만 사라져요';
+  String get myClientManagementNoteTitle => '연결을 해제해도 회원 기록은 남아요';
 
   @override
   String get myClientManagementNote =>

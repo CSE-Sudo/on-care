@@ -16,6 +16,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
@@ -104,9 +105,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   _MySection get _section => _MySection.parse(widget.tab);
 
   bool _saving = false;
-  bool _saveFlash = false;
   final Set<String> _removingClients = <String>{};
-  Timer? _flashTimer;
 
   // The "saved" profile (in-memory mock; starts from the seed/session).
   late TrainerProfile _profile;
@@ -164,7 +163,6 @@ class _MyPageState extends ConsumerState<MyPage> {
   @override
   void dispose() {
     if (_leaveGuarded) setLeaveGuard(null);
-    _flashTimer?.cancel();
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -277,10 +275,13 @@ class _MyPageState extends ConsumerState<MyPage> {
       return;
     }
 
-    _flashTimer?.cancel();
-    _flashTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _saveFlash = false);
-    });
+    // 저장 완료는 다른 저장(비밀번호·프로그램·리포트 피드백)과 같은 공용
+    // 토스트로 알린다.
+    showAppToast(
+      context,
+      AppLocalizations.of(context).mySaved,
+      type: AppToastType.success,
+    );
     context.go(AppRoutes.mySection(_MySection.profile.name));
   }
 
@@ -305,7 +306,6 @@ class _MyPageState extends ConsumerState<MyPage> {
       _draftCerts = List<String>.of(_certs);
       _draftGym = null;
       _saving = false;
-      _saveFlash = true;
       _newCert.clear();
     });
   }
@@ -343,9 +343,10 @@ class _MyPageState extends ConsumerState<MyPage> {
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: l.myClientRemoveTitle(client.name),
-      message: l.myClientRemoveBody,
+      // 긴 본문이라 낱말 중간(`회원 계` / `정과`)에서 끊기지 않게 한다.
+      message: keepWords(l.myClientRemoveBody),
       cancelLabel: l.actionCancel,
-      confirmLabel: l.actionDelete,
+      confirmLabel: l.myClientRemove,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -500,7 +501,6 @@ class _MyPageState extends ConsumerState<MyPage> {
             if (section == _MySection.edit)
               AppButton(
                 label: _saving ? l.mySaving : l.actionSave,
-                leadingIcon: AppIcons.check,
                 loading: _saving,
                 onPressed: _save,
               ),
@@ -636,10 +636,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final String intro = _profile.intro.trim();
     return <Widget>[
-      if (_saveFlash) ...<Widget>[
-        AppBanner(title: l.mySaved, tone: AppBannerTone.success),
-        const SizedBox(height: OnCareSpacing.cardGap),
-      ],
       // 소속이 없으면 회원 앱 헬스장 찾기·상담 신청에 나오지 않는다(#443·#451).
       // 예전에 이름만 직접 적어 둔 트레이너도 여기 걸린다 — 화면에는 소속이
       // 있어 보여 알 길이 없었다(#2543).
@@ -1847,11 +1843,12 @@ class _ClientManagementCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // 삭제가 무엇을 지우고 어떻게 되돌리는지 먼저 말한다 — 확인창에서
-            // 처음 알면 이미 누른 뒤다.
+            // 연결 해제가 무엇을 남기고 어떻게 되돌리는지 먼저 말한다 — 확인창에서
+            // 처음 알면 이미 누른 뒤다. 좁은 화면에서 `등` / `록에서` 처럼
+            // 낱말 중간에서 끊기지 않게 한다.
             AppBanner(
               title: l.myClientManagementNoteTitle,
-              message: l.myClientManagementNote,
+              message: keepWords(l.myClientManagementNote),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),
             for (final client in items) ...<Widget>[
@@ -1892,7 +1889,7 @@ class _ManagedClientRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // 삭제는 카드 안, 이름 줄 오른쪽 아이콘이다 — 카드 밖에 따로 떨어져
+    // 연결 해제는 카드 안, 이름 줄 오른쪽 아이콘이다 — 카드 밖에 따로 떨어져
     // 있으면 어느 회원의 버튼인지 한 번 더 읽어야 했다.
     return ClientCard(
       key: ValueKey<String>('managed-client-${client.id}'),
@@ -1900,11 +1897,13 @@ class _ManagedClientRow extends StatelessWidget {
       onTap: () => context.go(AppRoutes.clientDetail(client.id)),
       action: busy
           ? const AppLoading.inline()
-          // 확인창을 여는 위험 동작이라 빨간 아이콘이다. 툴팁이 접근성 이름이다.
+          // 회원을 지우는 게 아니라 담당 연결만 푸는 것이라 휴지통·빨강 대신
+          // 다른 목록의 빼기 버튼과 같은 회색이다. 위험 표시는 확인창의
+          // 빨간 확인 버튼이 맡는다. 툴팁이 접근성 이름이다.
           : AppIconButton(
-              icon: AppIcons.delete,
+              icon: AppIcons.unlinkClient,
               tooltip: l.myClientRemove,
-              color: OnCareColors.danger,
+              color: OnCareColors.textSecondary,
               onPressed: onRemove,
             ),
     );

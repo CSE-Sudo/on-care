@@ -2364,23 +2364,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientManagement => 'Member management';
 
   @override
-  String get myClientRemove => 'Remove member';
+  String get myClientRemove => 'Disconnect';
 
   @override
   String myClientRemoveTitle(String name) {
-    return 'Remove $name?';
+    return 'Disconnect from $name?';
   }
 
   @override
   String get myClientRemoveBody =>
-      'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.';
+      'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.';
 
   @override
-  String get myClientRemoveSuccess => 'Member removed';
+  String get myClientRemoveSuccess => 'Disconnected from the member';
 
   @override
-  String get myClientRemoveFailed =>
-      'Couldn\'t remove the member. Please try again';
+  String get myClientRemoveFailed => 'Couldn\'t disconnect. Please try again';
 
   @override
   String get myClientManagementEmpty => 'No members assigned';
@@ -2557,7 +2556,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
 
   @override
-  String get myClientManagementNoteTitle => 'Removing only hides members here';
+  String get myClientManagementNoteTitle =>
+      'Disconnecting keeps member records';
 
   @override
   String get myClientManagementNote =>
