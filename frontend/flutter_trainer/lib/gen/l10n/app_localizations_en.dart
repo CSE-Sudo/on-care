@@ -2651,6 +2651,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'e.g. Rehab exercise, Sports activity';
 
   @override
+  String get routineFieldEffect => 'Benefit shown to member';
+
+  @override
+  String get routineFieldEffectHint => 'e.g. Protect right shoulder';
+
+  @override
   String get routineFieldSets => 'Sets';
 
   @override

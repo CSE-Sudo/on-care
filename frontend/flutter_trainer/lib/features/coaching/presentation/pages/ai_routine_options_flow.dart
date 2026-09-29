@@ -18,6 +18,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_options
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
@@ -1625,6 +1626,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 );
               }),
             ),
+          if (_currentStep == _Step.personal) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            _personalEffectField(index),
+          ],
           // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
           // 판단하면서 읽는 글이다. 트레이너만 보는 것이라 편집 칸이 아니다.
           if (_currentStep == _Step.personal)
@@ -1909,9 +1914,26 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ],
             ],
           ),
+          const SizedBox(height: OnCareSpacing.s8),
+          _personalEffectField(index),
           _aiRationale(index),
         ],
       ),
+    );
+  }
+
+  /// 회원에게 보일 효과 한 줄(#2570). 접힌 줄에서도 바로 고친다 — 자동
+  /// 문구가 placeholder 로 보여 무엇이 갈지 알 수 있고, 바꾸고 싶을 때만
+  /// 친다. 효과만 바꾼 것은 운동을 고친 것이 아니라 출처는 그대로 둔다.
+  Widget _personalEffectField(int index) {
+    final RoutineExercise exercise = _personal[index];
+    return RoutineEffectField(
+      keyPrefix: 'personal-routine-effect-$index',
+      value: exercise.effect,
+      autoEffect: autoRoutineEffect(exercise.type, widget.client.goal),
+      onChanged: (String effect) => setState(() {
+        _personal[index] = _personal[index].copyWith(effect: effect);
+      }),
     );
   }
 

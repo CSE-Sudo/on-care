@@ -94,6 +94,7 @@ class RoutineExercise {
     this.weight = 0,
     this.reason = '',
     this.source = 'trainer',
+    this.effect = '',
   });
 
   final String name;
@@ -117,6 +118,12 @@ class RoutineExercise {
   /// 이 항목이 어디서 왔나 — 'ai' 는 AI 제안을 그대로 둔 것, 'trainer' 는
   /// 트레이너가 직접 넣은 것. 개인운동을 보낼 때 출처로 나간다. (#2223)
   final String source;
+
+  /// 회원에게 보일 효과 한 줄 — **트레이너가 직접 적은 것만** 담는다(#2570).
+  /// 비어 있으면 서버가 유형 × 회원 목표 문구표로 채운다
+  /// ([autoRoutineEffect] 와 같은 표). 입력 칸은 그 자동 문구를 placeholder
+  /// 로 미리 보여 준다. [reason](AI 가 고른 이유, 트레이너만 봄)과 다른 칸이다.
+  final String effect;
 
   /// 근력 운동에서만 쓴다(#1029, #1310) — 세트 수·한 세트당 횟수·중량(kg).
   /// 서버가 주는 A/B 후보는 아직 이 값을 모르니 0 으로 시작하고, 트레이너가
@@ -147,6 +154,7 @@ class RoutineExercise {
     double? weight,
     String? reason,
     String? source,
+    String? effect,
   }) => RoutineExercise(
     name: name ?? this.name,
     // 초를 바꾸면 분도 그 값에서 다시 접는다 — 두 값이 어긋나면 합계(분)와
@@ -165,6 +173,7 @@ class RoutineExercise {
     weight: weight ?? this.weight,
     reason: reason ?? this.reason,
     source: source ?? this.source,
+    effect: effect ?? this.effect,
   );
 }
 

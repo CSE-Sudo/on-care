@@ -67,20 +67,25 @@ HISTORY_WEEKS = 35
 # 화면에서 읽을 수가 없다. 맨몸 운동의 중량은 `0` 이다 — 두 앱의 중량 칸은 비울
 # 수 없어(최솟값 0) 근력이면 언제나 값을 하나 든다. 같은 운동(`코어 강화 10분`)의
 # 기록이 `RECENT`·`WEEKS` 에도 3세트 · 15회로 있어 두 자리가 같은 수를 말한다.
+#
+# `effect` 는 회원 카드에서 이름 아래 서는 효과 한 줄이다(#2570). 김민수의 첫
+# 목표(체중 감량)로 문구표(`shared/routine_effects`)가 채울 값이고, 어깨
+# 스트레칭만 트레이너가 고친 예로 둔다. `reason` 은 AI 추천 사유 자리라 그대로다.
 ROUTINES: list[dict] = [
     {"id": "seed-routine-user-7d4e9a2c5f18-0", "name": "저강도 유산소 (걷기)",
      "minutes": 30, "type": "유산소", "reason": "혈압 안정에 효과적",
-     "source": "ai", "intensity": "light"},
+     "effect": "체지방 감량에 도움", "source": "ai", "intensity": "light"},
     {"id": "seed-routine-user-7d4e9a2c5f18-1", "name": "하체 스트레칭",
      "minutes": 15, "type": "스트레칭", "reason": "혈액순환 개선",
-     "source": "trainer", "intensity": "light"},
+     "effect": "유연성·부상 예방", "source": "trainer", "intensity": "light"},
     {"id": "seed-routine-user-7d4e9a2c5f18-2", "name": "코어 강화",
      "minutes": 10, "type": "근력", "reason": "기초대사량 향상",
-     "source": "ai", "sets": 3, "reps": 15, "weight": 0,
+     "effect": "근육량 유지·증가", "source": "ai", "sets": 3, "reps": 15, "weight": 0,
      "intensity": "moderate"},
     {"id": "seed-routine-user-7d4e9a2c5f18-3", "name": "어깨 관절 보호 스트레칭",
      "minutes": 8, "type": "스트레칭",
-     "reason": "PT 피드백 반영 · 오른쪽 어깨 보호", "source": "trainer",
+     "reason": "PT 피드백 반영 · 오른쪽 어깨 보호",
+     "effect": "오른쪽 어깨 보호", "source": "trainer",
      "intensity": "light"},
 ]
 
