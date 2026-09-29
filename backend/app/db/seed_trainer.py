@@ -117,6 +117,74 @@ _MEMBER_GENDERS: dict[str, str] = {
     "user-eunchae": "female",       # 노은채
 }
 
+#: 담당 회원의 키·몸무게와 식단·운동 목표(#2597). 트레이너 웹 신체·목표 창이
+#: 읽는 값이다.
+#:
+#: 트레이너 웹 데모 시드(`frontend/flutter_trainer/lib/core/storage/
+#: seed_health_profiles.dart`)와 **같은 값**이다 — 데모와 실서버가 같은 회원을
+#: 다른 몸으로 그리지 않게 두 곳을 함께 고친다. 값은 회원마다 건강 목표에 맞춰
+#: 골랐고, 칼로리는 탄·단·지 배분과 어긋나지 않게 두었다. 범위는
+#: `schemas.health_goal_ranges` 안이다.
+#:
+#: 차례: 키, 몸무게, 칼로리, 탄수화물, 당류, 단백질, 지방, 나트륨, 하루 소모,
+#: 주간 유산소(분), 주간 근력(세트), 주간 유연성(분).
+_BodyGoals = tuple[float, float, int, int, int, int, int, int, int, int, int, int]
+_MEMBER_BODY_GOALS: dict[str, _BodyGoals] = {
+    # 김민수 — 식단 목표는 회원 앱 프로필 목업과 같다(`seed_member_data._HEALTH_PROFILE`).
+    "user-7d4e9a2c5f18": (175, 82, 2000, 275, 50, 100, 55, 2000, 350, 180, 18, 60),
+    "user-jisu": (163, 62, 1600, 200, 40, 95, 45, 2000, 300, 150, 18, 60),
+    "user-sungho": (178, 76, 2600, 320, 50, 150, 75, 2300, 300, 60, 36, 40),
+    "user-hayun": (160, 54, 1800, 240, 45, 85, 55, 2000, 220, 120, 12, 90),
+    "user-woojin": (180, 74, 2500, 330, 50, 120, 70, 2300, 400, 180, 24, 60),
+    "user-kangseoyeon": (165, 68, 1500, 180, 35, 95, 42, 2000, 350, 180, 15, 60),
+    "user-dohyun": (172, 70, 2300, 300, 50, 110, 65, 2300, 250, 90, 18, 120),
+    # 오세라 — 혈압 관리라 나트륨을 낮게 잡는다.
+    "user-sera": (158, 60, 1700, 230, 40, 80, 50, 1500, 250, 150, 12, 60),
+    "user-junhyuk": (176, 78, 2400, 320, 50, 120, 68, 2300, 350, 150, 21, 60),
+    # 신유나 — 재활이라 운동량을 낮추고 유연성을 늘린다.
+    "user-yuna": (162, 52, 1800, 240, 45, 85, 55, 2000, 180, 90, 9, 120),
+    "user-jiho": (174, 80, 2200, 280, 40, 110, 60, 2000, 300, 150, 15, 60),
+    "user-gayoung": (167, 58, 1900, 250, 45, 90, 55, 2000, 280, 150, 15, 60),
+    "user-taekyung": (168, 60, 2000, 240, 40, 120, 60, 2000, 250, 60, 30, 40),
+    "user-seojin": (170, 72, 2200, 290, 40, 100, 62, 2000, 250, 120, 15, 60),
+    "user-eunchae": (161, 55, 1800, 240, 45, 80, 52, 2000, 220, 150, 12, 60),
+}
+
+#: [_MEMBER_BODY_GOALS] 의 칸을 묶음으로 나눈 것 — 묶음 단위로 채운다.
+_BODY_GOAL_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("height_cm", "weight_kg"),
+    (
+        "daily_calories", "daily_carbs_g", "daily_sugar_g",
+        "daily_protein_g", "daily_fat_g", "daily_sodium_mg",
+    ),
+    (
+        "daily_burn_kcal", "weekly_cardio_minutes",
+        "weekly_strength_sets", "weekly_flexibility_minutes",
+    ),
+)
+
+
+def _fill_body_goals(profile: models.HealthProfile, values: _BodyGoals) -> bool:
+    """[_MEMBER_BODY_GOALS] 한 줄을 프로필에 채운다. 바뀐 것이 있으면 True.
+
+    **묶음(신체·식단·운동)의 칸이 모두 비어 있을 때만** 그 묶음을 채운다. 한 칸
+    이라도 값이 있으면 누군가 그 묶음을 손본 것이다 — 칸마다 채우면 트레이너가
+    일부러 비운 목표(회원 앱 기본값을 쓰겠다는 뜻)가 재기동마다 되살아나고,
+    고친 칸과 시드 칸이 섞인 목표가 된다. 김민수는 식단 목표가 이미 있어 신체·
+    운동 묶음만 채워진다.
+    """
+    fields = [name for group in _BODY_GOAL_GROUPS for name in group]
+    by_name = dict(zip(fields, values, strict=True))
+    changed = False
+    for group in _BODY_GOAL_GROUPS:
+        if any(getattr(profile, name) is not None for name in group):
+            continue
+        for name in group:
+            setattr(profile, name, by_name[name])
+        changed = True
+    return changed
+
+
 _CERTIFICATIONS = ["생활스포츠지도사 2급", "퍼스널트레이닝 CPT", "스포츠 영양사"]
 
 
@@ -257,8 +325,9 @@ def seed_member_genders() -> None:
 
 
 def _seed_member_genders(db: Session) -> None:
-    """[seed_member_genders] 본문 — 성별과 건강 목표(#1818). 이미 값이 있으면 건드리지 않는다 — 트레이너나
-    회원이 입력한 값이 시드로 덮이면, 화면에서 고친 것이 재기동마다 되돌아온다."""
+    """[seed_member_genders] 본문 — 성별과 건강 목표(#1818), 키·몸무게와 식단·운동
+    목표(#2597). 이미 값이 있으면 건드리지 않는다 — 트레이너나 회원이 입력한 값이
+    시드로 덮이면, 화면에서 고친 것이 재기동마다 되돌아온다."""
     changed = False
     focus_by_member = {user_id: focus for user_id, _e, _n, focus, _a, _d, _o in _MEMBERS}
     for user_id, gender in _MEMBER_GENDERS.items():
@@ -269,10 +338,17 @@ def _seed_member_genders(db: Session) -> None:
             select(models.HealthProfile).where(models.HealthProfile.user_id == user_id)
         )
         focus = focus_by_member.get(user_id, "")
+        body_goals = _MEMBER_BODY_GOALS.get(user_id)
         if profile is None:
-            db.add(models.HealthProfile(user_id=user_id, gender=gender, conditions=focus))
+            profile = models.HealthProfile(user_id=user_id, gender=gender, conditions=focus)
+            if body_goals is not None:
+                _fill_body_goals(profile, body_goals)
+            db.add(profile)
             changed = True
             continue
+        # 키·몸무게·목표도 같은 규칙이다 — 비어 있는 묶음만 채운다(#2597).
+        if body_goals is not None and _fill_body_goals(profile, body_goals):
+            changed = True
         if not profile.gender:
             profile.gender = gender
             changed = True
