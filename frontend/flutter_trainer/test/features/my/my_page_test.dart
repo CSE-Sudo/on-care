@@ -136,7 +136,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('회원 관리 검색은 이름·목표로 목록을 거르고 지우면 전체로 돌아간다', (
+    testWidgets('회원 관리 검색은 이름으로만 목록을 거르고 지우면 전체로 돌아간다', (
       tester,
     ) async {
       await openClientManagement(tester);
@@ -151,11 +151,10 @@ void main() {
       expect(find.text('이지수'), findsOneWidget);
       expect(find.text('김민수'), findsNothing);
 
-      // 목표로도 찾는다 — 정하윤의 목표는 `체력 강화 · 재활` 이다.
+      // 목표로는 찾지 않는다 — 정하윤의 목표는 `체력 강화 · 재활` 이다.
       await tester.enterText(find.byKey(clientManagementSearchFieldKey), '재활');
       await tester.pumpAndSettle();
-      expect(find.text('정하윤'), findsOneWidget);
-      expect(managedRows().evaluate().length, lessThan(all));
+      expect(managedRows(), findsNothing);
 
       await tester.tap(find.byTooltip('검색어 지우기'));
       await tester.pumpAndSettle();

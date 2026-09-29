@@ -1890,7 +1890,7 @@ const Key clientManagementSearchFieldKey = ValueKey<String>(
   'client-management-search',
 );
 
-/// 회원 관리 목록에서 [query] 가 이름·목표에 들어간 회원만 남긴다(#2564).
+/// 회원 관리 목록에서 [query] 가 이름에 들어간 회원만 남긴다(#2564).
 ///
 /// 탭 머리의 회원 검색(`searchClients`)은 고르면 상세로 가는 **선택기**라
 /// 순위를 매기고 몇 명만 보인다. 여기는 목록을 좁히는 **거르개**라 원래
@@ -1903,9 +1903,7 @@ List<TrainerClient> filterManagedClients(
   if (normalized.isEmpty) return clients;
   return <TrainerClient>[
     for (final TrainerClient client in clients)
-      if (client.name.toLowerCase().contains(normalized) ||
-          client.goal.toLowerCase().contains(normalized))
-        client,
+      if (client.name.toLowerCase().contains(normalized)) client,
   ];
 }
 

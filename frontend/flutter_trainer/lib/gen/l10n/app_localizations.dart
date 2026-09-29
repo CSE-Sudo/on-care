@@ -4144,7 +4144,7 @@ abstract class AppLocalizations {
   /// No description provided for @myClientManagementSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search members by name or goal'**
+  /// **'Search members by name'**
   String get myClientManagementSearchHint;
 
   /// No description provided for @myBasicInfo.

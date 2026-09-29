@@ -1645,7 +1645,7 @@
   "myClientRemoveSuccess": "Member removed",
   "myClientRemoveFailed": "Couldn't remove the member. Please try again",
   "myClientManagementEmpty": "No members assigned",
-  "myClientManagementSearchHint": "Search members by name or goal",
+  "myClientManagementSearchHint": "Search members by name",
   "myBasicInfo": "Basic info",
   "myStatSessionsDone": "Sessions done",
   "myStatRoutinesSent": "Programs sent",
