@@ -4,6 +4,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
@@ -20,11 +21,15 @@ abstract interface class TrainerRoutineOptionsRepository {
   /// hasn't touched those fields (#776) — the server then derives them from
   /// the member's recent history, or a fixed default when history is thin.
   /// A non-null value always wins over whatever the server would suggest.
+  ///
+  /// [sources] 는 AI 가 참고할 자료다(#2587). `null` 이면 보내지 않아 서버
+  /// 기본값을 쓰고, 빈 집합은 "아무 자료도 넣지 않음" 으로 그대로 보낸다.
   Future<RoutineOptions> generate(
     String memberId, {
     required int? availableMinutes,
     required String? intensityPreference,
     required String trainerNote,
+    Set<RoutineContextSource>? sources,
   });
 }
 
@@ -56,6 +61,7 @@ class MockTrainerRoutineOptionsRepository
     required int? availableMinutes,
     required String? intensityPreference,
     required String trainerNote,
+    Set<RoutineContextSource>? sources,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final bool en = languageCode() == 'en';

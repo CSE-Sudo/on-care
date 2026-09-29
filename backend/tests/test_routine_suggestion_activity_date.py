@@ -154,3 +154,47 @@ def test_broken_week_start_falls_back_to_completed_at(db_session, member):
     )
 
     assert _signals(db_session, member).has_records is True
+
+
+def test_consult_note_is_not_counted_as_pt_feedback(db_session, member):
+    """상담 일정의 글은 상담 메모다 — PT 피드백으로 세지 않는다(#2587)."""
+    from app.models.models import TrainerSchedule
+
+    day = (clock.today() - timedelta(days=1)).isoformat()
+    db_session.add(
+        TrainerSchedule(
+            id=f"sch-consult-{member}",
+            trainer_id=TRAINER,
+            member_id=member,
+            date=day,
+            type="상담",
+            status="완료",
+            note="등록 상담 — 결혼식 전 감량 희망",
+        )
+    )
+    db_session.commit()
+    try:
+        signals = _signals(db_session, member)
+        assert signals.trainer_feedback is False
+        assert signals.pt_just_finished is False
+
+        db_session.add(
+            TrainerSchedule(
+                id=f"sch-pt-{member}",
+                trainer_id=TRAINER,
+                member_id=member,
+                date=day,
+                type="1:1 PT",
+                status="완료",
+                note="스쿼트 자세 좋아졌어요",
+            )
+        )
+        db_session.commit()
+        signals = _signals(db_session, member)
+        assert signals.trainer_feedback is True
+        assert signals.pt_just_finished is True
+    finally:
+        db_session.execute(
+            delete(TrainerSchedule).where(TrainerSchedule.member_id == member)
+        )
+        db_session.commit()

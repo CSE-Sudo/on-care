@@ -23,13 +23,16 @@ from app.core import clock, metrics
 from app.db.seed_trainer import TRAINER_ID
 from app.db.session import SessionLocal
 from app.models.models import (
+    MemberWeeklyFeedback,
     RoutineHistory,
     TrainerClient,
     TrainerClientMemo,
     TrainerRoutine,
+    TrainerSchedule,
     User,
 )
 from app.services import trainer_routine_options_service
+from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET
 
 #: 계약을 만족하는 LLM 응답. 여러 테스트가 같은 페이로드를 쓴다.
@@ -210,6 +213,12 @@ def _cleanup_member(member_id: str) -> None:
     try:
         db.query(TrainerClientMemo).filter(
             TrainerClientMemo.member_id == member_id
+        ).delete()
+        db.query(TrainerSchedule).filter(
+            TrainerSchedule.member_id == member_id
+        ).delete()
+        db.query(MemberWeeklyFeedback).filter(
+            MemberWeeklyFeedback.user_id == member_id
         ).delete()
         db.query(RoutineHistory).filter(
             RoutineHistory.member_id == member_id
@@ -1090,3 +1099,360 @@ def test_first_client_skips_an_ended_member_at_the_front(client, db_session):
         db_session.rollback()
         db_session.execute(delete(User).where(User.id == member_id))
         db_session.commit()
+
+
+# ---- AI 가 참고할 자료 (#2587, #2519) ----
+
+
+def _seed_schedule(
+    member_id: str,
+    *,
+    suffix: str,
+    note: str,
+    days_ago: int,
+    type_: str = "1:1 PT",
+    status: str = "완료",
+    trainer_id: str = TRAINER_ID,
+) -> None:
+    db = SessionLocal()
+    try:
+        db.add(
+            TrainerSchedule(
+                id=f"sch-{member_id}-{suffix}",
+                trainer_id=trainer_id,
+                member_id=member_id,
+                date=(clock.today() - timedelta(days=days_ago)).isoformat(),
+                time="10:00",
+                type=type_,
+                status=status,
+                note=note,
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def _seed_weekly_feedback(
+    member_id: str,
+    *,
+    weeks_ago: int,
+    note: str = "",
+    intensity: str = "right",
+    pain_area: str = "",
+) -> None:
+    today = clock.today()
+    monday = today - timedelta(days=today.weekday()) - timedelta(weeks=weeks_ago)
+    db = SessionLocal()
+    try:
+        db.add(
+            MemberWeeklyFeedback(
+                id=f"mwf-{member_id}-{weeks_ago}",
+                user_id=member_id,
+                week_start=monday.isoformat(),
+                condition="tired",
+                intensity=intensity,
+                pain_area=pain_area,
+                note=note,
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def _analysis_for(member_id: str, **request: object) -> RoutineOptionAnalysisOut:
+    db = SessionLocal()
+    try:
+        return trainer_routine_options_service.build_member_analysis(
+            db, TRAINER_ID, member_id, RoutineOptionsRequest(**request),
+        )
+    finally:
+        db.close()
+
+
+def _other_trainer() -> str:
+    """다른 트레이너 한 명. 그의 글이 섞이지 않는지 보려고 쓴다."""
+    trainer_id = f"trainer-other-{uuid4().hex[:8]}"
+    db = SessionLocal()
+    try:
+        db.add(
+            User(
+                id=trainer_id,
+                email=f"{trainer_id}@oncare.com",
+                name="다른 트레이너",
+                hashed_password="",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+    return trainer_id
+
+
+def _drop_user(user_id: str) -> None:
+    db = SessionLocal()
+    try:
+        db.query(TrainerClientMemo).filter(
+            TrainerClientMemo.trainer_id == user_id
+        ).delete()
+        db.query(TrainerSchedule).filter(
+            TrainerSchedule.trainer_id == user_id
+        ).delete()
+        db.query(User).filter(User.id == user_id).delete()
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_default_sources_leave_consult_memos_out(client):
+    """고르지 않으면 상담 메모만 빼고 넣는다 — 범위도 자료마다 지킨다."""
+    member_id = _register_and_link_member(client)
+    try:
+        _seed_schedule(member_id, suffix="pt1", note="스쿼트 자세 좋아짐", days_ago=1)
+        # 창 밖(14일 전), 예정 일정, 상담 일정은 PT 피드백이 아니다.
+        _seed_schedule(member_id, suffix="pt-old", note="오래된 피드백", days_ago=14)
+        _seed_schedule(
+            member_id, suffix="pt-plan", note="다음엔 하체", days_ago=0, status="예정"
+        )
+        _seed_schedule(
+            member_id, suffix="consult", note="등록 상담 내용", days_ago=2, type_="상담"
+        )
+        _seed_memo(
+            member_id, suffix="manual", body="무릎 부담 낮게", days_ago=3, source="trainer"
+        )
+        _seed_memo(
+            member_id, suffix="manual-old", body="예전 메모", days_ago=14, source="trainer"
+        )
+        _seed_memo(member_id, suffix="insight", body="허리 불편 감지", days_ago=0)
+        _seed_weekly_feedback(
+            member_id, weeks_ago=0, note="이번 주 너무 바빴어요", intensity="too_hard"
+        )
+
+        analysis = _analysis_for(member_id)
+
+        today = clock.today()
+        assert analysis.sources == [
+            "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
+        ]
+        assert analysis.pt_feedbacks == [
+            f"{today - timedelta(days=1):%m.%d} 스쿼트 자세 좋아짐"
+        ]
+        assert analysis.consult_memos == []
+        assert analysis.trainer_memos == [
+            f"{today - timedelta(days=3):%m.%d} 무릎 부담 낮게"
+        ]
+        assert analysis.insight_memos == [f"{today:%m.%d} 허리 불편 감지"]
+        assert len(analysis.weekly_feedback) == 1
+        line = analysis.weekly_feedback[0]
+        assert "강도 너무 힘듦" in line
+        assert "한 줄 피드백: 이번 주 너무 바빴어요" in line
+    finally:
+        _cleanup_member(member_id)
+
+
+def test_consult_memos_come_in_only_when_chosen_within_thirty_days(client):
+    member_id = _register_and_link_member(client)
+    try:
+        _seed_schedule(
+            member_id, suffix="c29", note="결혼식 전 감량", days_ago=29, type_="상담"
+        )
+        _seed_schedule(
+            member_id, suffix="c30", note="너무 오래된 상담", days_ago=30, type_="상담"
+        )
+
+        analysis = _analysis_for(member_id, sources=["consult_memo"])
+
+        assert analysis.sources == ["consult_memo"]
+        assert analysis.consult_memos == [
+            f"{clock.today() - timedelta(days=29):%m.%d} 결혼식 전 감량"
+        ]
+        # 상담 글은 PT 피드백 칸으로 새지 않는다.
+        assert analysis.pt_feedbacks == []
+    finally:
+        _cleanup_member(member_id)
+
+
+def test_turned_off_sources_reach_neither_prompt_nor_fallback(client, monkeypatch):
+    """끈 자료는 프롬프트에도, 규칙 폴백의 주의사항에도 쓰이지 않는다."""
+    member_id = _register_and_link_member(client)
+    prompts: list[str] = []
+
+    class _CapturingLlm(_FakeLlm):
+        def generate(self, system_prompt, user_prompt, **kwargs):
+            prompts.append(user_prompt)
+            return super().generate(system_prompt, user_prompt, **kwargs)
+
+    monkeypatch.setattr(
+        trainer_routine_options_service,
+        "get_coach_llm",
+        lambda: _CapturingLlm('{"plan_a": {"key": "A"}}'),
+    )
+    try:
+        _seed_memo(
+            member_id, suffix="manual", body="무릎 통증 있음", days_ago=1, source="trainer"
+        )
+        _seed_memo(member_id, suffix="insight", body="무릎 불편 감지", days_ago=1)
+        _seed_schedule(member_id, suffix="pt", note="무릎 아파함", days_ago=1)
+        _seed_weekly_feedback(member_id, weeks_ago=0, pain_area="무릎")
+
+        token = _trainer_token(client)
+        response = client.post(
+            f"/v1/trainer/clients/{member_id}/routine-options",
+            headers=_headers(token),
+            json={
+                "available_minutes": 40,
+                "intensity_preference": "high",
+                "sources": [],
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["generated_by"] == "rule"
+        analysis = body["analysis"]
+        assert analysis["sources"] == []
+        for key in (
+            "pt_feedbacks", "consult_memos", "trainer_memos",
+            "insight_memos", "weekly_feedback",
+        ):
+            assert analysis[key] == [], key
+        assert prompts and all("무릎" not in prompt for prompt in prompts)
+        # 폴백도 무릎을 모른다 — 끈 자료로 피한 흔적이 근거에 남지 않는다.
+        assert "무릎" not in body["plan_b"]["rationale"]
+    finally:
+        _cleanup_member(member_id)
+
+
+def test_rule_fallback_avoids_the_part_named_by_a_chosen_trainer_memo():
+    """켠 직접 작성 메모의 부위는 LLM 이 죽어도 피한다(#2519)."""
+    analysis = _analysis().model_copy(
+        update={
+            "conditions": "",
+            "note": "",
+            "trainer_memos": ["09.01 무릎 통증 있음"],
+        }
+    )
+
+    options = trainer_routine_options_service.build_rule_options(
+        analysis,
+        RoutineOptionsRequest(available_minutes=40, intensity_preference="high"),
+    )
+
+    names = [
+        exercise.name
+        for plan in (options.plan_a, options.plan_b)
+        for exercise in plan.exercises
+    ]
+    assert not any("스쿼트" in name for name in names)
+    assert "무릎" in options.plan_b.rationale
+
+
+def test_other_trainers_writing_never_mixes_in(client):
+    """다른 트레이너의 메모·일정 글은 어떤 자료를 켜도 들어오지 않는다."""
+    member_id = _register_and_link_member(client)
+    other = _other_trainer()
+    try:
+        _seed_memo(
+            member_id, suffix="mine", body="내 메모", days_ago=1, source="trainer"
+        )
+        db = SessionLocal()
+        try:
+            db.add(
+                TrainerClientMemo(
+                    id=f"memo-{member_id}-other",
+                    trainer_id=other,
+                    member_id=member_id,
+                    body="남의 메모",
+                    source="trainer",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+        _seed_schedule(
+            member_id, suffix="other-pt", note="남의 피드백", days_ago=1, trainer_id=other
+        )
+        _seed_schedule(
+            member_id,
+            suffix="other-consult",
+            note="남의 상담",
+            days_ago=1,
+            type_="상담",
+            trainer_id=other,
+        )
+
+        analysis = _analysis_for(
+            member_id,
+            sources=[
+                "pt_feedback", "consult_memo", "trainer_memo",
+                "chat_insight", "weekly_feedback",
+            ],
+        )
+
+        assert analysis.trainer_memos == [
+            f"{clock.today() - timedelta(days=1):%m.%d} 내 메모"
+        ]
+        assert analysis.pt_feedbacks == []
+        assert analysis.consult_memos == []
+    finally:
+        _cleanup_member(member_id)
+        _drop_user(other)
+
+
+def test_weekly_feedback_starts_from_the_week_the_link_began(client):
+    """담당이 이번 주에 시작됐으면 지난주 피드백(이전 트레이너 시절)은 뺀다."""
+    member_id = _register_and_link_member(client)
+    try:
+        db = SessionLocal()
+        try:
+            link = db.query(TrainerClient).filter(
+                TrainerClient.member_id == member_id
+            ).one()
+            link.data_consent_at = clock.now()
+            db.commit()
+        finally:
+            db.close()
+        _seed_weekly_feedback(member_id, weeks_ago=0, note="이번 주")
+        _seed_weekly_feedback(member_id, weeks_ago=1, note="지난주")
+
+        analysis = _analysis_for(member_id, sources=["weekly_feedback"])
+
+        assert len(analysis.weekly_feedback) == 1
+        assert "이번 주" in analysis.weekly_feedback[0]
+    finally:
+        _cleanup_member(member_id)
+
+
+def test_ended_link_reads_no_sources_at_all(client):
+    """담당이 해제된 회원은 어떤 자료도 읽기 전에 막힌다."""
+    member_id = _register_and_link_member(client)
+    try:
+        _seed_memo(
+            member_id, suffix="manual", body="무릎 통증", days_ago=1, source="trainer"
+        )
+        db = SessionLocal()
+        try:
+            db.query(TrainerClient).filter(
+                TrainerClient.member_id == member_id
+            ).update({"active": False})
+            db.commit()
+        finally:
+            db.close()
+
+        with pytest.raises(ValueError):
+            _analysis_for(member_id, sources=["trainer_memo"])
+    finally:
+        _cleanup_member(member_id)
+
+
+def test_prompt_guards_the_new_sources():
+    """새 자료마다 신뢰 경계가 프롬프트에 붙는다(#2587)."""
+    prompt = trainer_routine_options_service._SYSTEM_PROMPT
+
+    for key in (
+        "pt_feedbacks", "consult_memos", "trainer_memos", "weekly_feedback", "sources",
+    ):
+        assert key in prompt, key
+    assert prompt_safety.TRAINER_RECORD_GUARD in prompt
+    assert prompt_safety.MEMBER_FEEDBACK_GUARD in prompt
