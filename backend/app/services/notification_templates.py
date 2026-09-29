@@ -392,17 +392,19 @@ def _member_consult_approved(args: Args, locale: Locale) -> Rendered:
     # 트레이너가 적은 한마디는 번역하지 않고 뒤에 그대로 붙인다. 빈 한마디도
     # 예전처럼 한 칸 띄워 붙인다 — `None` 만 "적지 않음" 이다.
     note = args.get("note")
+    # 수락은 상담 일정 확정이지 담당 연결이 아니다(#2584) — 연결은 상담 뒤
+    # 6자리 코드로 한다. 예전 문구("담당으로 연결되었어요")는 등록까지 끝난 것처럼 읽혔다.
     if locale == "ko":
         body = (
-            f"{name or '트레이너'} 트레이너가 담당으로 연결되었어요. "
-            f"첫 상담은 {when} 입니다."
+            f"{name or '트레이너'} 트레이너와의 상담이 확정됐어요. "
+            f"상담 일시는 {when} 입니다."
         )
     else:
         body = (
-            f"You're now connected with {name or 'your trainer'}. "
-            f"Your first consultation is on {when}."
+            f"Your consultation with {name or 'your trainer'} is confirmed "
+            f"for {when}."
         )
-    title = "상담 요청이 승인되었어요" if locale == "ko" else "Consultation request approved"
+    title = "상담 요청이 수락되었어요" if locale == "ko" else "Consultation request accepted"
     return title, body if note is None else f"{body} {note}"
 
 

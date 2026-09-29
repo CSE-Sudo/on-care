@@ -1274,6 +1274,21 @@ class ProgramItem(BaseModel):
 CancellationSource = Literal["", "member", "trainer", "other"]
 
 
+class ScheduleConsultationOut(BaseModel):
+    """상담 일정을 만든 상담 요청의 내용 — 트레이너 웹 카드의 `상담 요청 내용`. (#2584)
+
+    회원이 신청 때 적은 것이라 읽기 전용이다. 예전에는 수락이 문의 글을 일정
+    `note` 에 넣어, 트레이너 메모 자리에 회원 글이 섞였다. 값은 상담 인박스
+    (`TrainerConsultationOut`)와 같은 코드로 내려 화면이 같은 이름표를 쓴다.
+    """
+
+    id: str
+    exercise_goal: str
+    health_purpose_type: str
+    health_purpose_detail: str | None = None
+    message: str | None = None
+
+
 class ScheduleSessionOut(BaseModel):
     """스케줄 슬롯 — 프론트 ScheduleSession 계약 정렬."""
     id: str
@@ -1293,6 +1308,9 @@ class ScheduleSessionOut(BaseModel):
     cancellation_source: CancellationSource = ""
     cancellation_reason: str = ""
     no_show_at: _datetime | None = None
+    #: 상담 요청으로 생긴 일정이면 그 요청의 내용(#2584). 트레이너 응답에만 싣고
+    #: 회원 응답에서는 비운다 — 회원은 자기 요청을 `내 상담 요청` 에서 본다.
+    consultation: ScheduleConsultationOut | None = None
 
 
 class DeliveryOut(BaseModel):

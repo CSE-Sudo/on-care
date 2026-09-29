@@ -170,8 +170,8 @@ def redeem_pairing_code(
     담당은 안 생긴 상태가 되어, 회원은 코드를 다시 받아야 하는데 트레이너
     화면에는 성공한 것처럼 보인다. 실패하면 통째로 되돌려 코드가 살아남는다.
 
-    수락 뒷정리(휴면 링크 되살리기·헬스장 연결·회원당 활성 담당 1명)는 상담
-    수락·담당 요청 수락과 같은 규칙을 쓴다 — `consultation_service` 의 판단을
+    연결 뒷정리(휴면 링크 되살리기·헬스장 연결·회원당 활성 담당 1명)는 담당
+    요청 수락과 같은 규칙을 쓴다 — `consultation_service` 의 판단을
     그대로 가져온다. 규칙을 복사하면 한쪽만 고쳐지는 날이 온다.
 
     이력을 위해 **수락된 담당 요청 행을 함께 남긴다.** 어느 경로로 담당이
@@ -216,6 +216,9 @@ def redeem_pairing_code(
         consultation_service.attach_member_to_trainer(
             db, trainer_id, member.id, consented_at=used.consented_at
         )
+        # 상담 뒤 현장에서 코드로 등록하는 것이 기본 흐름이다 — 상담에서 적은 운동
+        # 목표를 이 연결로 잇는다. 상담 수락은 연결을 만들지 않는다(#2584).
+        consultation_service.carry_consultation_into_link(db, trainer_id, member.id)
         consultation_service.link_member_gym(
             db, member.id, consultation_service.trainer_gym_id(db, trainer_id)
         )
