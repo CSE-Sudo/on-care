@@ -835,27 +835,21 @@ def test_linked_member_consultation_leaves_the_link_as_is(client, db_session):
 
     회원 앱은 담당 트레이너에게도 상담을 요청할 수 있고, 이미 동의한 연결이라
     동의를 다시 묻지 않고 보낸다. 수락이 링크를 새로 만들거나, 링크의 동의 시각을
-    이번 신청 시각으로 덮으면 연결이 한 번 더 맺어진 것처럼 남는다.
+    이번 신청 시각으로 덮으면 연결이 한 번 더 맺어진 것처럼 남는다. 연결은 코드로
+    만든다 — 상담 수락은 연결을 만들지 않는다(#2584).
     """
     trainer, trainer_token = _trainer(client, db_session)
     member_id, member_token = _member(client)
-    first = _request_consultation(client, member_token, trainer_id=trainer.id)
-    client.post(
-        f"/v1/trainer/consultations/{first}/accept",
-        headers=_auth(trainer_token),
-        json={},
-    )
+    _pair_by_code(client, member_token, trainer_token)
+    db_session.expire_all()
     link = db_session.scalar(
         select(TrainerClient).where(TrainerClient.member_id == member_id)
     )
     link_id, consented_at, goal = link.id, link.data_consent_at, link.goal
 
-    # 첫 상담이 잡은 시간과 겹치지 않는 자리를 고른다 — 겹치면 승인이 409(#2284).
-    second = _request_consultation(
-        client, member_token, trainer_id=trainer.id, hours_ahead=72
-    )
+    request = _request_consultation(client, member_token, trainer_id=trainer.id)
     accepted = client.post(
-        f"/v1/trainer/consultations/{second}/accept",
+        f"/v1/trainer/consultations/{request}/accept",
         headers=_auth(trainer_token),
         json={},
     )

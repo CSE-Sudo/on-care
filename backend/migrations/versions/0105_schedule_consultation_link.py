@@ -18,8 +18,8 @@
 일정·담당 연결은 지우지 않는다. downgrade 는 컬럼만 되돌린다 — 바꾼 종류·메모는
 원래 값을 가를 수 없어 되돌리지 않는다.
 
-Revision ID: 0103_schedule_consultation_link
-Revises: 0102_clear_reservation_note
+Revision ID: 0105_schedule_consultation_link
+Revises: 0104_backfill_schedule_member_id
 Create Date: 2026-09-30
 """
 from __future__ import annotations
@@ -29,8 +29,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0103_schedule_consultation_link"
-down_revision: str | Sequence[str] | None = "0102_clear_reservation_note"
+revision: str = "0105_schedule_consultation_link"
+down_revision: str | Sequence[str] | None = "0104_backfill_schedule_member_id"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

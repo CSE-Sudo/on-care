@@ -102,13 +102,13 @@ class _ConsultationRequestPageState
   bool _otherGoalDetailMissing(ExerciseGoal? goal) =>
       goal == ExerciseGoal.other && _messageController.text.trim().isEmpty;
 
-  /// 데이터 공유에 동의했는가. 신청은 회원이 하고 연결은 나중에 트레이너가
-  /// 수락하며 만들어진다 — 회원이 그 자리에 없으므로 동의는 여기서 받는다.
-  /// (#1022)
+  /// 상담 신청 정보(이름·운동 목표·문의 내용) 전달에 동의했는가(#1022).
+  /// 보내는 순간 트레이너에게 가는 것이라 여기서 받는다. 식단·기록 공유 동의는
+  /// 상담 뒤 연결 코드를 받을 때 따로 받는다(#2584).
   bool _dataSharingConsent = false;
 
   /// 이 트레이너가 이미 내 담당인가(#2585). 담당 연결은 데이터 공유 동의를
-  /// 받고 만들어지므로(상담 수락·연결 코드·담당 요청 수락) 다시 묻지 않고,
+  /// 받고 만들어지므로(연결 코드·담당 요청 수락) 다시 묻지 않고,
   /// 운동 목표는 MY 건강 목표로 미리 채운다. 새로 적는 것은 시간·문의 내용뿐이다.
   bool _isMyTrainer(Trainer trainer) =>
       ref.watch(myTrainerProvider).valueOrNull?.id == trainer.id;

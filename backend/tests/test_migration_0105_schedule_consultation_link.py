@@ -1,4 +1,4 @@
-"""0103 마이그레이션 — 예전 수락이 만든 일정을 상담 요청에 잇고 종류·메모를 맞춘다. (#2584)"""
+"""0105 마이그레이션 — 예전 수락이 만든 일정을 상담 요청에 잇고 종류·메모를 맞춘다. (#2584)"""
 from __future__ import annotations
 
 import importlib.util
@@ -15,12 +15,12 @@ _MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "versions"
-    / "0103_schedule_consultation_link.py"
+    / "0105_schedule_consultation_link.py"
 )
 
 
 def _load_migration():
-    spec = importlib.util.spec_from_file_location("m0103", _MIGRATION)
+    spec = importlib.util.spec_from_file_location("m0105", _MIGRATION)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -68,25 +68,25 @@ def test_backfill_links_accepted_consultations_and_cleans_their_schedules(
     suffix = uuid4().hex[:8]
     day = (datetime.now(timezone.utc) + timedelta(days=400)).date().isoformat()
     past = (datetime.now(timezone.utc) - timedelta(days=400)).date().isoformat()
-    accepted = _request(f"consult-m0103-a-{suffix}", day, "07:10", "accepted")
-    done_request = _request(f"consult-m0103-d-{suffix}", past, "07:10", "accepted")
-    edited_request = _request(f"consult-m0103-e-{suffix}", day, "08:10", "accepted")
-    rejected = _request(f"consult-m0103-r-{suffix}", day, "09:10", "rejected")
+    accepted = _request(f"consult-m0105-a-{suffix}", day, "07:10", "accepted")
+    done_request = _request(f"consult-m0105-d-{suffix}", past, "07:10", "accepted")
+    edited_request = _request(f"consult-m0105-e-{suffix}", day, "08:10", "accepted")
+    rejected = _request(f"consult-m0105-r-{suffix}", day, "09:10", "rejected")
     # 예정 상담: 잇고, 종류를 상담으로, 문의 글이던 메모를 비운다.
     upcoming = _schedule(
-        f"sched-m0103-up-{suffix}", day, "07:10", status="예정", note="무릎이 아파요"
+        f"sched-m0105-up-{suffix}", day, "07:10", status="예정", note="무릎이 아파요"
     )
     # 완료된 PT: 이어도 종류는 두고(운동 기록이 파생돼 있다) 문의 글만 비운다.
     done = _schedule(
-        f"sched-m0103-done-{suffix}", past, "07:10", status="완료", note="무릎이 아파요"
+        f"sched-m0105-done-{suffix}", past, "07:10", status="완료", note="무릎이 아파요"
     )
     # 트레이너가 고쳐 쓴 메모는 남긴다.
     edited = _schedule(
-        f"sched-m0103-ed-{suffix}", day, "08:10", status="예정", note="트레이너 메모"
+        f"sched-m0105-ed-{suffix}", day, "08:10", status="예정", note="트레이너 메모"
     )
     # 거절된 요청과 같은 시각의 일정은 잇지 않는다.
     unrelated = _schedule(
-        f"sched-m0103-un-{suffix}", day, "09:10", status="예정", note="무릎이 아파요"
+        f"sched-m0105-un-{suffix}", day, "09:10", status="예정", note="무릎이 아파요"
     )
     requests = [accepted, done_request, edited_request, rejected]
     schedules = [upcoming, done, edited, unrelated]

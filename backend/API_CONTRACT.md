@@ -823,7 +823,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `{ id, exercise_goal, health_purpose_type, health_purpose_detail, message }` 가 실려 카드가
   `상담 요청 내용` 을 읽기 전용으로 그립니다 — 회원 응답(`/me/coach/sessions`)에서는 늘 `null`
   입니다. 코드로 연결되면 같은 일정이 담당 회원 일정으로 그대로 이어집니다. 예전 수락이
-  만든 일정은 `0103_schedule_consultation_link` 가 요청과 시각이 같은 것만 잇고, 완료되지 않은
+  만든 일정은 `0105_schedule_consultation_link` 가 요청과 시각이 같은 것만 잇고, 완료되지 않은
   것의 종류를 `상담` 으로, 문의 글과 똑같은 메모를 빈 값으로 바꿉니다.
 - `preferred_date`·`preferred_time_slot` 은 **응답에 남습니다.** 새 요청에서는 고른 자리의
   시각 사본이고, 자리 선택 이전 요청에는 회원이 적어 보낸 희망 시각이 그대로 있습니다.
