@@ -3299,6 +3299,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your request goes to the AI with the member\'s data (up to 500 characters). Write the trainer feedback in the next step.';
 
   @override
+  String get aiSourcesTitle => 'Sources for the AI';
+
+  @override
+  String get aiSourcesBlurb =>
+      'Only the checked sources are sent to the AI with the member\'s data. Your choice is kept for next time.';
+
+  @override
+  String get aiSourcePtFeedback => 'Recent PT feedback';
+
+  @override
+  String get aiSourceConsultMemo => 'Consultation memos';
+
+  @override
+  String get aiSourceTrainerMemo => 'Member memos (written by you)';
+
+  @override
+  String get aiSourceChatInsight => 'Chat-detected memos';
+
+  @override
+  String get aiSourceWeeklyFeedback => 'Member weekly feedback';
+
+  @override
+  String aiSourceRangeDays(int days, int count) {
+    return 'Last $days days · up to $count';
+  }
+
+  @override
+  String get aiSourceRangeWeeks => 'This week · last week';
+
+  @override
   String get aiGenerateGoalBased => 'Generate goal-based suggestion';
 
   @override

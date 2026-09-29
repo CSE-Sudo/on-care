@@ -3136,6 +3136,35 @@ class AppLocalizationsKo extends AppLocalizations {
       '요청은 회원 데이터와 함께 AI에 전달돼요(최대 500자). 트레이너 피드백은 다음 단계에서 작성해요.';
 
   @override
+  String get aiSourcesTitle => 'AI가 참고할 자료';
+
+  @override
+  String get aiSourcesBlurb => '고른 자료만 회원 데이터와 함께 AI에 전달돼요. 선택은 다음에도 그대로 남아요.';
+
+  @override
+  String get aiSourcePtFeedback => '최근 PT 피드백';
+
+  @override
+  String get aiSourceConsultMemo => '상담 메모';
+
+  @override
+  String get aiSourceTrainerMemo => '회원 메모(직접 작성)';
+
+  @override
+  String get aiSourceChatInsight => '채팅 감지 메모';
+
+  @override
+  String get aiSourceWeeklyFeedback => '회원 주간 피드백';
+
+  @override
+  String aiSourceRangeDays(int days, int count) {
+    return '최근 $days일 · 최대 $count건';
+  }
+
+  @override
+  String get aiSourceRangeWeeks => '이번 주 · 지난주';
+
+  @override
   String get aiGenerateGoalBased => '목표 기반 추천안 생성';
 
   @override

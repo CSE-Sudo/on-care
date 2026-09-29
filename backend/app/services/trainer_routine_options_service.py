@@ -28,20 +28,28 @@ from app.models.models import (
     ChatMessage,
     DietEntry,
     HealthProfile,
+    MemberWeeklyFeedback,
     RoutineHistory,
     TrainerClient,
     TrainerClientMemo,
     TrainerRoutine,
+    TrainerSchedule,
 )
 from app.schemas.trainer_api import (
     ROUTINE_CHAT_MAX_MESSAGES,
+    ROUTINE_CONSULT_MEMO_MAX,
+    ROUTINE_DEFAULT_SOURCES,
     ROUTINE_INSIGHT_MEMO_DAYS,
     ROUTINE_INSIGHT_MEMO_MAX,
+    ROUTINE_PT_FEEDBACK_MAX,
+    ROUTINE_TRAINER_MEMO_MAX,
+    ROUTINE_WEEKLY_FEEDBACK_MAX,
     RecommendationStatus,
     RoutineIntensityPreference,
     RoutineOptionAnalysisOut,
     RoutineOptionPlanOut,
     RoutineOptionsOut,
+    RoutineContextSource,
     RoutineOptionsRequest,
 )
 from app.services import exercise_types, routine_ai
@@ -146,6 +154,28 @@ CHAT_MAX_CHARS = 200
 INSIGHT_MEMO_LOOKBACK_DAYS = ROUTINE_INSIGHT_MEMO_DAYS
 INSIGHT_MEMO_MAX = ROUTINE_INSIGHT_MEMO_MAX
 
+#: 트레이너가 고를 수 있는 나머지 자료의 창(일, KST 달력일, 오늘 포함)(#2587).
+#: 건수 상한은 스키마가 단일 출처다.
+#:
+#: 상담 메모만 30일이다. 상담은 PT 보다 드물어 등록 상담이 2~4주 전인 경우가
+#: 흔하고, 14일로 좁히면 대부분 비어 켜도 들어가는 것이 없다.
+PT_FEEDBACK_LOOKBACK_DAYS = 14
+CONSULT_MEMO_LOOKBACK_DAYS = 30
+TRAINER_MEMO_LOOKBACK_DAYS = 14
+
+#: 상담 일정의 종류값. 같은 `trainer_schedule.note` 라도 상담이면 메모, 나머지는
+#: PT 피드백이다(#2574 용어 규칙).
+CONSULT_SCHEDULE_TYPE = "상담"
+
+#: 주간 피드백 선택지 → 프롬프트에 쓰는 말. 저장값(영문 코드)을 그대로 넘기면
+#: 모델이 `too_hard` 를 과부하 신호로 읽을지 장담할 수 없다.
+_WEEKLY_CONDITION_LABELS = {
+    "great": "아주 좋음", "good": "좋음", "ok": "보통", "tired": "피곤", "bad": "나쁨",
+}
+_WEEKLY_INTENSITY_LABELS = {
+    "too_easy": "너무 쉬움", "right": "적당함", "hard": "힘듦", "too_hard": "너무 힘듦",
+}
+
 # JSON 예시의 중괄호가 본문에 그대로 들어가므로 f-string 을 쓰지 않고 이어 붙인다.
 _SYSTEM_PROMPT = (
     """\
@@ -157,7 +187,13 @@ _SYSTEM_PROMPT = (
 1. member_analysis.conditions (질환·통증·부상 등 운동 시 주의사항)
 2. member_analysis.note (트레이너가 직접 적은 메모)
 3. member_analysis.insight_memos (트레이너가 채팅 감지에서 남긴 최근 7일 메모)
-4. member_analysis.recent_messages 의 통증·컨디션 언급
+4. member_analysis.trainer_memos·pt_feedbacks·consult_memos (트레이너가 예전에 남긴 메모와 PT 피드백)
+5. member_analysis.weekly_feedback (회원이 남긴 주간 피드백의 컨디션·강도·통증)
+6. member_analysis.recent_messages 의 통증·컨디션 언급
+member_analysis.sources 는 트레이너가 이번 생성에 넣기로 고른 자료입니다. 목록이
+비어 있으면 고르지 않았거나 기록이 없는 것이니 내용을 추정하지 마세요.
+weekly_feedback 의 강도가 "너무 힘듦" 이거나 컨디션이 "피곤"·"나쁨" 이면 운동량을
+올리지 마세요.
 conditions 나 note 에 특정 부위의 통증·부상·질환이 적혀 있으면 그 부위에 부담이
 가는 동작을 빼고 저충격 대안으로 바꾸세요. 판단이 어려운 상태(가슴 통증, 호흡
 곤란, 최근 수술 등)면 강도를 올리지 말고 rationale 에 전문가 확인이 필요하다고
@@ -188,6 +224,10 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
     + prompt_safety.UNTRUSTED_QUOTE_GUARD
     + "\n"
     + prompt_safety.TRAINER_NOTE_GUARD
+    + "\n"
+    + prompt_safety.TRAINER_RECORD_GUARD
+    + "\n"
+    + prompt_safety.MEMBER_FEEDBACK_GUARD
     + """
 
 반드시 설명이나 마크다운 없이 아래 JSON 객체만 반환하세요.
@@ -429,6 +469,10 @@ def build_member_analysis(
         db, trainer_id, member_id, today_date, latest_approved
     )
 
+    # 트레이너가 고른 자료만 읽는다(#2587). 끈 자료는 조회 자체를 하지 않는다 —
+    # 읽어 두고 프롬프트에서만 빼면, 폴백이나 응답 분석으로 새어 나갈 길이 남는다.
+    sources = _resolve_sources(request)
+
     return RoutineOptionAnalysisOut(
         # 코칭 목표는 회원이 고른 건강 목표다(#1818).
         goal=health_focus.focus_label(profile.conditions if profile is not None else None),
@@ -449,8 +493,35 @@ def build_member_analysis(
         latest_routine=latest.name if latest is not None else "-",
         note=request.trainer_note.strip(),
         recent_messages=_recent_chat_lines(db, trainer_id, member_id, today_date),
-        insight_memos=_recent_insight_memos(
-            db, trainer_id, member_id, today_date
+        insight_memos=(
+            _recent_insight_memos(db, trainer_id, member_id, today_date)
+            if "chat_insight" in sources
+            else []
+        ),
+        sources=sources,
+        pt_feedbacks=(
+            _recent_schedule_notes(
+                db, trainer_id, member_id, today_date, consult=False
+            )
+            if "pt_feedback" in sources
+            else []
+        ),
+        consult_memos=(
+            _recent_schedule_notes(
+                db, trainer_id, member_id, today_date, consult=True
+            )
+            if "consult_memo" in sources
+            else []
+        ),
+        trainer_memos=(
+            _recent_trainer_memos(db, trainer_id, member_id, today_date)
+            if "trainer_memo" in sources
+            else []
+        ),
+        weekly_feedback=(
+            _recent_weekly_feedback(db, link, today_date)
+            if "weekly_feedback" in sources
+            else []
         ),
         recommendation_status=history.status,
         history_session_count=history.session_count,
@@ -512,15 +583,50 @@ def _recent_insight_memos(
     없는 메모가 생성에만 반영되면 트레이너는 왜 그렇게 나왔는지 알 수 없고,
     반대면 보여 준 근거가 무시된다.
 
-    손으로 쓴 메모(`source='trainer'`)는 뺀다. 그쪽은 수업 시간 조정처럼 운동
-    구성과 무관한 기록이 섞이는 자리이고, 자동으로 프로그램에 반영하겠다고
-    약속한 적도 없다.
+    손으로 쓴 메모(`source='trainer'`)는 [_recent_trainer_memos] 가 따로 읽는다 —
+    트레이너가 둘을 따로 켜고 끈다(#2587).
+    """
+    return _recent_memos(
+        db, trainer_id, member_id, today_date,
+        source="chat_insight",
+        lookback_days=INSIGHT_MEMO_LOOKBACK_DAYS,
+        limit=INSIGHT_MEMO_MAX,
+    )
+
+
+def _recent_trainer_memos(
+    db: Session, trainer_id: str, member_id: str, today_date: date,
+) -> list[str]:
+    """최근 14일(KST) 트레이너가 회원 상세에서 직접 쓴 메모(#2519, #2587).
+
+    수업 시간 조정처럼 운동과 무관한 기록도 섞이는 자리라, 프롬프트는 이 목록을
+    지시가 아니라 참고 기록으로 받는다(`prompt_safety.TRAINER_RECORD_GUARD`).
+    """
+    return _recent_memos(
+        db, trainer_id, member_id, today_date,
+        source="trainer",
+        lookback_days=TRAINER_MEMO_LOOKBACK_DAYS,
+        limit=ROUTINE_TRAINER_MEMO_MAX,
+    )
+
+
+def _recent_memos(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    today_date: date,
+    *,
+    source: str,
+    lookback_days: int,
+    limit: int,
+) -> list[str]:
+    """본인이 남긴 회원 메모 중 [source] 의 최근 것을 `"MM.dd 본문"` 줄로(최신 먼저).
 
     `created_at` 은 timestamptz 라 KST 자정을 실제 시각으로 환산해 비교한다 —
     [_recent_chat_lines] 와 같은 이유다.
     """
     since = datetime.combine(
-        today_date - timedelta(days=INSIGHT_MEMO_LOOKBACK_DAYS - 1),
+        today_date - timedelta(days=lookback_days - 1),
         time_of_day.min,
         tzinfo=clock.SEOUL,
     )
@@ -529,24 +635,165 @@ def _recent_insight_memos(
         .where(
             TrainerClientMemo.trainer_id == trainer_id,
             TrainerClientMemo.member_id == member_id,
-            TrainerClientMemo.source == "chat_insight",
+            TrainerClientMemo.source == source,
             TrainerClientMemo.created_at >= since,
         )
         # 목록 계약(`build_memos`)과 같은 정렬이라 화면과 순서가 어긋나지 않는다.
         .order_by(TrainerClientMemo.created_at.desc(), TrainerClientMemo.id.desc())
-        .limit(INSIGHT_MEMO_MAX)
+        .limit(limit)
     ).all()
 
     lines: list[str] = []
     for created_at, body in rows:
-        text = (body or "").strip()
+        text = _clip(body)
         if not text:
             continue
-        if len(text) > CHAT_MAX_CHARS:
-            text = text[:CHAT_MAX_CHARS] + "…"
         local = created_at.astimezone(clock.SEOUL)
         lines.append(f"{local:%m.%d} {text}")
     return lines
+
+
+def _recent_schedule_notes(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    today_date: date,
+    *,
+    consult: bool,
+) -> list[str]:
+    """일정의 글을 `"MM.dd 본문"` 줄로(최신 먼저)(#2587).
+
+    같은 `trainer_schedule.note` 라도 상담 일정이면 상담 메모, 나머지는 PT
+    피드백이다. 둘을 섞으면 끈 상담 메모가 PT 피드백으로 들어간다.
+
+    * PT 피드백 — 최근 14일, **완료한** 일정만. 예정 일정의 글은 아직 준비 중인
+      말이라 지난 수업의 피드백이 아니다.
+    * 상담 메모 — 최근 30일, 상태를 가리지 않는다. 상담 전에 적어 둔 준비
+      메모도 트레이너가 넣기로 고른 자료다.
+
+    둘 다 오늘 이후 날짜는 뺀다. 날짜 컬럼이 `YYYY-MM-DD` 문자열이라 사전순
+    비교가 곧 날짜 비교다.
+    """
+    lookback = CONSULT_MEMO_LOOKBACK_DAYS if consult else PT_FEEDBACK_LOOKBACK_DAYS
+    since = today_date - timedelta(days=lookback - 1)
+    query = select(TrainerSchedule.date, TrainerSchedule.note).where(
+        TrainerSchedule.trainer_id == trainer_id,
+        TrainerSchedule.member_id == member_id,
+        TrainerSchedule.date >= since.isoformat(),
+        TrainerSchedule.date <= today_date.isoformat(),
+        TrainerSchedule.note != "",
+    )
+    if consult:
+        query = query.where(TrainerSchedule.type == CONSULT_SCHEDULE_TYPE)
+        limit = ROUTINE_CONSULT_MEMO_MAX
+    else:
+        query = query.where(
+            TrainerSchedule.type != CONSULT_SCHEDULE_TYPE,
+            TrainerSchedule.status == "완료",
+        )
+        limit = ROUTINE_PT_FEEDBACK_MAX
+    rows = db.execute(
+        query.order_by(
+            TrainerSchedule.date.desc(),
+            TrainerSchedule.time.desc(),
+            TrainerSchedule.id.desc(),
+        ).limit(limit)
+    ).all()
+
+    lines: list[str] = []
+    for day, note in rows:
+        text = _clip(note)
+        if not text:
+            continue
+        lines.append(f"{day[5:7]}.{day[8:10]} {text}")
+    return lines
+
+
+def _recent_weekly_feedback(
+    db: Session, link: TrainerClient, today_date: date,
+) -> list[str]:
+    """이번 주와 지난주의 회원 주간 피드백 한 줄씩(최신 주 먼저)(#2587).
+
+    주간 피드백은 트레이너가 아니라 회원의 행이다. 그래서 담당이 바뀐 회원은
+    이전 트레이너에게 쓴 피드백이 남아 있을 수 있다 — 이 링크의 동의 시각
+    (`data_consent_at`, 담당이 시작될 때 적힌다)이 든 주부터만 읽는다. 동의
+    시각이 없는 옛 링크는 가를 기준이 없어 두 주를 그대로 읽는다.
+    """
+    this_week = today_date - timedelta(days=today_date.weekday())
+    weeks = [this_week, this_week - timedelta(days=7)]
+    if link.data_consent_at is not None:
+        started = link.data_consent_at.astimezone(clock.SEOUL).date()
+        first_week = started - timedelta(days=started.weekday())
+        weeks = [week for week in weeks if week >= first_week]
+    if not weeks:
+        return []
+    rows = db.scalars(
+        select(MemberWeeklyFeedback)
+        .where(
+            MemberWeeklyFeedback.user_id == link.member_id,
+            MemberWeeklyFeedback.week_start.in_([w.isoformat() for w in weeks]),
+        )
+        .order_by(MemberWeeklyFeedback.week_start.desc())
+        .limit(ROUTINE_WEEKLY_FEEDBACK_MAX)
+    ).all()
+
+    lines: list[str] = []
+    for row in rows:
+        parts = [
+            f"{row.week_start[5:7]}.{row.week_start[8:10]} 주",
+            "컨디션 " + _WEEKLY_CONDITION_LABELS.get(row.condition, row.condition),
+            "강도 " + _WEEKLY_INTENSITY_LABELS.get(row.intensity, row.intensity),
+        ]
+        if row.pain_area:
+            pain = f"통증 {_clip(row.pain_area)}"
+            if row.pain_on:
+                pain += f"({row.pain_on[5:7]}.{row.pain_on[8:10]})"
+            parts.append(pain)
+        note = _clip(row.note)
+        if note:
+            parts.append(f"한 줄 피드백: {note}")
+        lines.append(" · ".join(parts))
+    return lines
+
+
+def _clip(text: str | None) -> str:
+    """사람이 쓴 글 한 건을 앞뒤 공백 없이, [CHAT_MAX_CHARS] 에서 자른다.
+
+    한 건이 프롬프트를 독차지하지 않게 하는 상한이다. 자료마다 같은 값을 쓴다.
+    """
+    value = (text or "").strip()
+    if len(value) > CHAT_MAX_CHARS:
+        return value[:CHAT_MAX_CHARS] + "…"
+    return value
+
+
+def _resolve_sources(request: RoutineOptionsRequest) -> list[RoutineContextSource]:
+    """이번 생성에 넣을 자료. 보내지 않았으면 기본값, 보냈으면 그 값 그대로다.
+
+    순서는 스키마의 기본값 순서가 아니라 고정된 표 순서로 맞추고 중복은
+    지운다 — 같은 선택이 늘 같은 분석을 내야 응답을 비교할 수 있다.
+    """
+    chosen = (
+        ROUTINE_DEFAULT_SOURCES if request.sources is None else request.sources
+    )
+    order: tuple[RoutineContextSource, ...] = (
+        "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback",
+    )
+    return [source for source in order if source in chosen]
+
+
+def _fallback_signals(analysis: RoutineOptionAnalysisOut) -> list[str]:
+    """규칙 폴백이 주의사항으로 읽을 트레이너 쪽 글(#1655, #2587).
+
+    분석에는 트레이너가 고른 자료만 들어 있으므로, 끈 자료는 여기에도 없다.
+    """
+    return [
+        *analysis.insight_memos,
+        *analysis.trainer_memos,
+        *analysis.pt_feedbacks,
+        *analysis.consult_memos,
+        *analysis.weekly_feedback,
+    ]
 
 
 def build_rule_options(
@@ -574,7 +821,9 @@ def build_rule_options(
         recent_messages=analysis.recent_messages,
         # 트레이너가 감지에서 남긴 메모도 같은 주의사항으로 읽는다(#1655) —
         # LLM 이 죽은 주라고 해서 "무릎 불편 감지" 를 못 본 척할 수는 없다.
-        insight_memos=analysis.insight_memos,
+        # 트레이너가 켠 나머지 자료(직접 쓴 메모·PT 피드백·주간 피드백의 통증)도
+        # 같은 자리로 읽는다(#2587). 끈 자료는 분석에 없으니 여기에도 없다.
+        insight_memos=_fallback_signals(analysis),
         locale=locale,
     )
     return RoutineOptionsOut(

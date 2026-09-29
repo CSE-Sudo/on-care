@@ -5,6 +5,8 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -14,6 +16,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
@@ -23,6 +26,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _mockConfig = AppConfig(
   environment: Environment.dev,
@@ -1595,6 +1599,118 @@ void main() {
     expect(repository.attempts, isEmpty);
     expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
   });
+
+  group('#2587 AI가 참고할 자료', () {
+    Future<(_CapturingOptionsRepository, SharedPreferences)> pumpWithPrefs(
+      WidgetTester tester, {
+      Map<String, Object> stored = const <String, Object>{},
+      String? account,
+    }) async {
+      tester.view.physicalSize = const Size(1000, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues(stored);
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      final repo = _CapturingOptionsRepository(_personalizedOptions());
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            appConfigProvider.overrideWithValue(_mockConfig),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            accountEmailProvider.overrideWith((Ref ref) => account),
+            trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
+            clientHistoryProvider(_client.id).overrideWith(
+              (Ref ref) => Stream.value(const <RoutineHistoryEntry>[]),
+            ),
+            trainerMemoRepositoryProvider.overrideWithValue(
+              const _StaticMemoRepository(<TrainerMemo>[]),
+            ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ko'),
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const AiRoutineOptionsFlow(client: _client),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (repo, prefs);
+    }
+
+    Future<void> generateNow(WidgetTester tester) async {
+      await tester.tap(
+        find.byKey(const ValueKey<String>('generate-routine-options')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('처음에는 상담 메모만 꺼진 채 보내진다', (tester) async {
+      final (repo, _) = await pumpWithPrefs(tester);
+
+      expect(find.text('AI가 참고할 자료'), findsOneWidget);
+      await generateNow(tester);
+
+      expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.ptFeedback,
+        RoutineContextSource.trainerMemo,
+        RoutineContextSource.chatInsight,
+        RoutineContextSource.weeklyFeedback,
+      });
+    });
+
+    testWidgets('고른 선택이 요청에 실리고 계정별로 기억된다', (tester) async {
+      final (repo, prefs) = await pumpWithPrefs(
+        tester,
+        account: 'trainer@oncare.com',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('ai-source-consult_memo')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('ai-source-weekly_feedback')),
+      );
+      await tester.pump();
+      await generateNow(tester);
+
+      expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.ptFeedback,
+        RoutineContextSource.consultMemo,
+        RoutineContextSource.trainerMemo,
+        RoutineContextSource.chatInsight,
+      });
+      expect(
+        prefs.getStringList('ai_routine_sources.trainer@oncare.com'),
+        <String>['pt_feedback', 'consult_memo', 'trainer_memo', 'chat_insight'],
+      );
+    });
+
+    testWidgets('저장된 선택으로 시작하고, 모두 끈 선택도 빈 목록으로 보낸다', (tester) async {
+      final (repo, _) = await pumpWithPrefs(
+        tester,
+        account: 'trainer@oncare.com',
+        stored: <String, Object>{
+          'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+          // 다른 계정의 선택은 섞이지 않는다.
+          'ai_routine_sources.other@oncare.com': <String>['consult_memo'],
+        },
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('ai-source-chat_insight')),
+      );
+      await tester.pump();
+      await generateNow(tester);
+
+      expect(repo.lastSources, isEmpty);
+    });
+  });
 }
 
 /// Records what conditions the flow actually sent, and returns a fixed
@@ -1636,6 +1752,7 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
   int? lastAvailableMinutes;
   String? lastIntensityPreference;
   String? lastTrainerNote;
+  Set<RoutineContextSource>? lastSources;
 
   /// 후보 생성을 몇 번 불렀나 — 건너뛰기가 생성을 부르지 않는지 본다(#2223).
   int calls = 0;
@@ -1646,11 +1763,13 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
     required int? availableMinutes,
     required String? intensityPreference,
     required String trainerNote,
+    Set<RoutineContextSource>? sources,
   }) async {
     calls++;
     lastAvailableMinutes = availableMinutes;
     lastIntensityPreference = intensityPreference;
     lastTrainerNote = trainerNote;
+    lastSources = sources;
     return _response;
   }
 }
@@ -1755,6 +1874,7 @@ class _ThrowingOptionsRepository implements TrainerRoutineOptionsRepository {
     required int? availableMinutes,
     required String? intensityPreference,
     required String trainerNote,
+    Set<RoutineContextSource>? sources,
   }) async {
     throw error;
   }

@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 
 class _MockDio extends Mock implements Dio {}
 
@@ -48,6 +49,56 @@ void main() {
   setUp(() {
     dio = _MockDio();
     repo = DioTrainerRoutineOptionsRepository(dio);
+  });
+
+  test('고른 자료는 표 순서의 sources 로, 모두 끈 선택은 빈 목록으로 보낸다(#2587)', () async {
+    when(
+      () => dio.post<Map<String, Object?>>(
+        '/trainer/clients/m1/routine-options',
+        data: any(named: 'data'),
+        options: any(named: 'options'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<Map<String, Object?>>(
+        requestOptions: RequestOptions(
+          path: '/trainer/clients/m1/routine-options',
+        ),
+        statusCode: 200,
+        data: _optionsBody(),
+      ),
+    );
+
+    for (final (Set<RoutineContextSource> chosen, List<String> wire)
+        in <(Set<RoutineContextSource>, List<String>)>[
+          (
+            <RoutineContextSource>{
+              RoutineContextSource.weeklyFeedback,
+              RoutineContextSource.consultMemo,
+            },
+            <String>['consult_memo', 'weekly_feedback'],
+          ),
+          (<RoutineContextSource>{}, <String>[]),
+        ]) {
+      await repo.generate(
+        'm1',
+        availableMinutes: null,
+        intensityPreference: null,
+        trainerNote: '',
+        sources: chosen,
+      );
+      verify(
+        () => dio.post<Map<String, Object?>>(
+          '/trainer/clients/m1/routine-options',
+          data: <String, Object?>{
+            'available_minutes': null,
+            'intensity_preference': null,
+            'trainer_note': '',
+            'sources': wire,
+          },
+          options: any(named: 'options'),
+        ),
+      ).called(1);
+    }
   });
 
   test('generate POSTs the steering inputs and parses A/B', () async {
