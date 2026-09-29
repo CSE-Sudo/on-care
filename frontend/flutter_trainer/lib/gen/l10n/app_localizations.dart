@@ -1718,23 +1718,17 @@ abstract class AppLocalizations {
   /// **'No carbs/protein/fat recorded'**
   String get clientDietMacrosMissing;
 
-  /// No description provided for @clientDietTotalCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Total calories'**
-  String get clientDietTotalCalories;
-
   /// No description provided for @clientDietDayTotal.
   ///
   /// In en, this message translates to:
   /// **'Day total'**
   String get clientDietDayTotal;
 
-  /// 트레이너 웹 식단 기록 펼친 날 하루 합계 줄 오른쪽 끝 — 끼니 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
+  /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
   /// In en, this message translates to:
   /// **'Total {calories} kcal'**
-  String clientDietDayTotalCalories(String calories);
+  String clientDietTotalCalories(String calories);
 
   /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
   ///
@@ -6702,6 +6696,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent an emote'**
   String get messagesPreviewEmote;
+
+  /// No description provided for @messagesPreviewPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get messagesPreviewPhoto;
 
   /// No description provided for @messagesTimeJustNow.
   ///

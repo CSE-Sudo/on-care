@@ -74,7 +74,7 @@ void main() {
       at: AppRoutes.mySection('support'),
     );
 
-    await tester.tap(find.byTooltip('뒤로'));
+    await tester.tap(find.byKey(const ValueKey<String>('my-back')));
     await settle(tester);
 
     expect(currentLocation(tester), AppRoutes.mySection('settings'));

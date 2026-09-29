@@ -11,7 +11,6 @@ import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/record_span.dart';

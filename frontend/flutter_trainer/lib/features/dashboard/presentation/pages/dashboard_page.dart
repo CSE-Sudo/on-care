@@ -169,12 +169,12 @@ class _TaskProgressCard extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        TaskProgressLegend(
+                        AppChartLegendItem(
                           color: brand.primary,
                           label: l.dashTaskProgressToday,
                         ),
                         const SizedBox(width: OnCareSpacing.s8),
-                        TaskProgressLegend(
+                        AppChartLegendItem(
                           // 막대의 지난 할 일 칸과 같은 색이다(#2214).
                           color: OnCareColors.chartGoalLine,
                           label: l.dashTaskProgressCarriedOver,

@@ -55,6 +55,17 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 
 `OnCareTokenCatalog` 위젯으로 현재 앱의 토큰을 한 화면에서 볼 수 있습니다.
 
+## 작은 부품(#2469)
+
+| 부품 | 규칙 |
+|---|---|
+| `AppBackLink` | 탭 안 하위 화면의 뒤로가기 — 작은 글자 버튼 + 꺾쇠, 본문 맨 위(또는 머리 줄 맨 앞), 뒤 간격 8. 분할 화면 패널 머리의 아이콘 뒤로는 `AppBackButton` |
+| `AppStatePlacement.inline` | 목록·칸이 비었다는 한두 줄 — 아이콘·최소 높이 없이 왼쪽 정렬, 제목 `bodySmall` + 안내 `caption`, 흐린 글자 |
+| `AppPopover` / `AppPopoverSurface` | 앵커 아래 4, 왼쪽 끝 맞춤. 흰색·반경 12·진한 테두리·떠 있는 그림자. 앵커와 상자를 한 탭 영역으로 묶어 바깥 누름만 닫는다 |
+| `AppKeyValueRow` | 라벨 폭 80(`OnCareLayout.keyValueLabelWidth`), 라벨 `bodySmall` 흐린 글자 + 값 `bodySmall` 600. `.stacked` 는 라벨(`caption`) 아래 값(`body`) |
+| `AppOverline` | 메뉴 묶음 이름 — `caption` 600·흐린 글자 |
+| `AppCard.compactPadding` | 목록에 줄지어 선 줄 카드의 안쪽 — 가로 16·세로 12 |
+
 ## 확정 버튼 문구
 
 확정 버튼의 문구는 가까운 제목이 대상을 말해 주느냐로 정합니다(#2479). 지금은 트레이너 웹에 적용돼 있고, 회원 앱은 필요할 때 같은 규칙으로 맞춥니다.
@@ -67,6 +78,15 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 - 같은 동작은 한 낱말로 씁니다. 목록에 더하기는 `추가`, 회원에게 보내기는 `보내기` 입니다. `등록` 은 서버에 올리는 뜻(`회원 등록`)으로만 쓰고, `전송` 은 버튼에 쓰지 않습니다(`전송됨` 같은 상태 문구는 그대로).
 - 동사만으로 뜻이 모자라면 붙입니다. 옆의 `취소` 와 헷갈리는 `완료 취소`, 바뀐 뒤의 상태가 곧 결과인 `예정으로 바꾸기` 가 그렇습니다.
 - 같은 문구 키를 창 하단과 본문이 함께 쓰면, 창 하단은 공용 동사 키(`actionSave` · `actionAdd` · `actionSend` · `actionDelete` · `actionReset`)로 바꿔 씁니다.
+
+## 차트 부품(#2469)
+
+| 부품 | 규칙 |
+|---|---|
+| `AppRingGauge` | 링 하나 — 받은 칸을 채우는 원, 12시에서 시계 방향, 가운데 `child`. `plain` 은 회색 트랙에 한 바퀴까지(식단 칼로리 달성률), `lap` 은 값 색을 옅게 깐 트랙에 목표를 넘기면 한 바퀴를 넘어 이어 돌고 끝에 그림자·흰 `>`, 12시 흰 기호(운동 소모·목표 링). 여러 겹 링은 지름을 줄여 겹쳐 쌓는다 |
+| `AppChartLegendItem` | 범례 한 칸 — 견본 8 + 간격 4 + `caption` 600·보조 글자색 |
+| `periodRangeText`·`PeriodRangeLabel` | 기간 카드가 보는 기간 한 줄 — 1년 미만은 `9. 14. ~ 9. 20.`, 넘으면 연도까지 |
+| `chartSemanticsLabel`·`chartSeriesPoints` | 그래프 음성 안내 조립 규칙. 문구는 앱 l10n 에서 `AppChartA11yLabels` 로 넘긴다(두 앱 `l.chartA11y`) |
 
 ## 글자 배율
 

@@ -9,9 +9,8 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/chart_semantics.dart';
+import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
-import 'package:oncare/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 영양 요약 카드의 기준 높이. 오늘·이번 주·전체 세 화면이 함께 쓴다 — 기간
@@ -547,10 +546,10 @@ class _WeekTrend extends StatelessWidget {
         replayKey: metricLabel,
         // 카드 머리의 `하루 평균 · 탄수화물` 과 같은 지표 이름으로 시작한다.
         semanticsLabel: chartSemanticsLabel(
-          l,
+          l.chartA11y,
           title: metricLabel,
           points: chartSeriesPoints(
-            l,
+            l.chartA11y,
             values: values,
             dayLabels: days,
             format: (double v) => '${format(v)} $unit',
@@ -828,7 +827,11 @@ class _PeriodBars extends StatelessWidget {
     return Semantics(
       container: true,
       label: empty
-          ? chartSemanticsLabel(l, title: metricLabel, points: const <String>[])
+          ? chartSemanticsLabel(
+              l.chartA11y,
+              title: metricLabel,
+              points: const <String>[],
+            )
           : null,
       child: ExcludeSemantics(
         excluding: empty,
