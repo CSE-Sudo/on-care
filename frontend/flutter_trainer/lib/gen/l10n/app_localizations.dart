@@ -5581,6 +5581,12 @@ abstract class AppLocalizations {
   /// **'This week\'s personal exercise'**
   String get aiRoutineOnlyProgramName;
 
+  /// Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581).
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get aiRoutineOnlyDeliveryName;
+
   /// No description provided for @progPersonalRoutinesWhen.
   ///
   /// In en, this message translates to:

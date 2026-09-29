@@ -3050,6 +3050,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRoutineOnlyProgramName => '이번 주 개인운동';
 
   @override
+  String get aiRoutineOnlyDeliveryName => '개인운동';
+
+  @override
   String get progPersonalRoutinesWhen => '이 PT를 완료할 때 회원에게 함께 가요.';
 
   @override

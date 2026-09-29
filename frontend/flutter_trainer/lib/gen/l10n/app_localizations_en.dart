@@ -3209,6 +3209,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRoutineOnlyProgramName => 'This week\'s personal exercise';
 
   @override
+  String get aiRoutineOnlyDeliveryName => 'Personal exercise';
+
+  @override
   String get progPersonalRoutinesWhen =>
       'Goes to the member when you complete this PT.';
 

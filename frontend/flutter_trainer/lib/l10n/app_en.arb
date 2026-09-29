@@ -2074,6 +2074,10 @@
   "aiRoutineOnlySent": "Personal exercise sent to the member.",
   "aiRoutineOnlySendFailed": "Could not send the personal exercise. Please try again shortly.",
   "aiRoutineOnlyProgramName": "This week's personal exercise",
+  "aiRoutineOnlyDeliveryName": "Personal exercise",
+  "@aiRoutineOnlyDeliveryName": {
+    "description": "Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581)."
+  },
   "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
   "programRoutineOnlyConfirmBody": "Sends personal exercise to {client}. Appears daily from {start} to {end}.",
   "@programRoutineOnlyConfirmBody": {
