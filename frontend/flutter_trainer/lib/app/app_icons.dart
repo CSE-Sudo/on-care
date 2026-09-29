@@ -103,6 +103,9 @@ class AppIcons {
   /// 회원이 연결을 끊고 나감.
   static const IconData memberLeft = Symbols.person_remove_rounded;
 
+  /// 트레이너가 회원과 담당 연결을 해제 — 회원이 끊는 [memberLeft] 와 같은 모양이다.
+  static const IconData unlinkClient = memberLeft;
+
   /// 초대 수락.
   static const IconData inviteAccepted = Symbols.how_to_reg_rounded;
   static const IconData addClient = Symbols.person_add_rounded;

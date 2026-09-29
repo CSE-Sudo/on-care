@@ -93,7 +93,8 @@ from app.schemas.trainer_api import (
     FollowUpScope,
     TrainerFollowUpTaskCreateRequest, TrainerFollowUpTaskOut,
     TrainerFollowUpTaskUpdateRequest,
-    TrainerGymAffiliation, TrainerMe, TrainerMeUpdate,
+    TrainerGymAffiliation, TrainerGymCandidate, TrainerKakaoGymSelect,
+    TrainerMe, TrainerMeUpdate,
     TrainerMemoCreateRequest, TrainerMemoOut, TrainerMemoUpdateRequest,
     TrainerProgramDraftCreate, TrainerProgramDraftOut,
     TrainerProgramDraftSummary, TrainerProgramDraftUpdate,
@@ -121,6 +122,7 @@ from app.services import (
     trainer_report_summary_service,
     report_pdf_storage,
     trainer_routine_options_service,
+    trainer_gym_search,
     trainer_service,
     trainer_task_progress_service,
 )
@@ -239,12 +241,13 @@ def trainer_update_me(
         raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
     try:
         return trainer_service.update_trainer_profile(db, trainer, profile, fields)
-    except trainer_service.GymTextLockedByAffiliation as e:
-        # 값이 틀린 게 아니라 소속이 설정된 상태와 충돌하는 것이라 422 가 아니라 409.
+    except trainer_service.GymTextNotEditable as e:
+        # 값이 틀린 게 아니라 헬스장 정보가 소속에서만 파생되는 것과 충돌하는 것이라
+        # 422 가 아니라 409.
         raise HTTPException(
             status_code=409,
-            detail="소속 헬스장이 설정돼 있어 헬스장 정보를 직접 수정할 수 없습니다. "
-                   "PUT /trainer/me/gym 으로 소속을 바꾸세요.",
+            detail="헬스장 정보는 직접 수정할 수 없습니다. "
+                   "헬스장을 검색해 소속을 설정하세요.",
         ) from e
 
 
@@ -262,6 +265,52 @@ def trainer_set_gym(
     """
     profile = _require_profile(db, trainer.id)
     me = trainer_service.set_trainer_gym(db, trainer, profile, payload.gym_id)
+    if me is None:
+        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
+    return me
+
+
+@router.get("/trainer/gyms/search", response_model=list[TrainerGymCandidate])
+async def trainer_search_gyms(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    query: str = Query(min_length=1, max_length=100, description="헬스장 이름·주소"),
+    lat: float | None = Query(None, ge=-90, le=90, description="거리순 정렬용 위도"),
+    lng: float | None = Query(None, ge=-180, le=180),
+) -> list[TrainerGymCandidate]:
+    """소속으로 고를 헬스장 검색. (#2543)
+
+    등록된 헬스장을 먼저, 카카오에서 찾은 헬스장을 뒤에 싣는다. 카카오 키가 없거나
+    호출이 실패하면 등록된 헬스장만 나온다.
+    """
+    if (lat is None) != (lng is None):
+        raise HTTPException(status_code=422, detail="lat 과 lng 는 함께 보내야 합니다.")
+    q = query.strip()
+    if not q:
+        raise HTTPException(status_code=422, detail="검색어를 입력하세요.")
+    return await trainer_gym_search.search(db, q, lat, lng)
+
+
+@router.put("/trainer/me/gym/kakao", response_model=TrainerMe)
+async def trainer_set_kakao_gym(
+    payload: TrainerKakaoGymSelect,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerMe:
+    """카카오 검색 결과로 소속 설정. 처음 고른 헬스장은 이때 `places` 에 들어간다. (#2543)
+
+    서버가 카카오를 다시 검색해 확인하므로, 헬스장이 아니거나 찾을 수 없으면 404,
+    카카오를 쓸 수 없으면 503 이다.
+    """
+    profile = _require_profile(db, trainer.id)
+    try:
+        me = await trainer_gym_search.select_kakao_gym(
+            db, trainer, profile, payload.kakao_place_id, payload.name.strip()
+        )
+    except trainer_gym_search.GymLookupUnavailable as e:
+        raise HTTPException(
+            status_code=503, detail="지금은 헬스장을 확인할 수 없습니다. 잠시 뒤 다시 시도하세요."
+        ) from e
     if me is None:
         raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
     return me

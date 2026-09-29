@@ -2241,25 +2241,28 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myClientManagement => '회원 관리';
 
   @override
-  String get myClientRemove => '회원 삭제';
+  String get myClientRemove => '연결 해제';
 
   @override
   String myClientRemoveTitle(String name) {
-    return '$name 회원을 삭제할까요?';
+    return '$name 회원과 연결을 해제할까요?';
   }
 
   @override
   String get myClientRemoveBody =>
-      '이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모 등이 트레이너 화면에서 모두 사라져요. 회원 앱의 기존 데이터는 삭제되지 않아요.';
+      '연결을 해제하면 이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.';
 
   @override
-  String get myClientRemoveSuccess => '회원을 삭제했어요';
+  String get myClientRemoveSuccess => '회원과 연결을 해제했어요';
 
   @override
-  String get myClientRemoveFailed => '회원을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get myClientRemoveFailed => '연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get myClientManagementEmpty => '담당 회원이 없어요';
+
+  @override
+  String get myClientManagementSearchHint => '이름으로 회원 검색';
 
   @override
   String get myBasicInfo => '기본 정보';
@@ -2280,28 +2283,43 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymHours => '운영 시간';
 
   @override
-  String get myGymListFailed => '헬스장 목록을 불러오지 못했습니다.';
+  String get myGymRequired => '검색 결과에서 소속 헬스장을 골라 주세요';
 
   @override
-  String get myGymNoMatch => '목록에 없는 헬스장이에요. 주소와 운영 시간을 직접 적어 주세요.';
+  String get myGymSearchLabel => '헬스장 찾기';
 
   @override
-  String get myGymLinked => '등록된 헬스장';
+  String get myGymSearchHint => '헬스장 이름이나 주소';
 
   @override
-  String get myGymUnlink => '연결 해제';
+  String get myGymSearching => '찾는 중이에요';
 
   @override
-  String get myGymNameHint => '이름을 치면 등록된 헬스장을 찾아요';
+  String get myGymSearchEmpty => '찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.';
 
   @override
-  String get myGymRequired => '소속 헬스장을 입력해 주세요';
+  String get myGymSearchFailed => '헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
   @override
-  String get myGymEditHint => '등록된 헬스장을 고르면 주소·운영 시간이 채워져요. 목록에 없으면 직접 적어 주세요.';
+  String get myGymCurrent => '현재 소속';
 
   @override
-  String get myGymListLoading => '헬스장 목록을 불러오는 중이에요';
+  String get myGymPicked => '저장하면 이 헬스장으로 바뀌어요';
+
+  @override
+  String get myGymNone => '아직 없어요';
+
+  @override
+  String get myGymHiddenTitle => '회원에게 아직 보이지 않아요';
+
+  @override
+  String get myGymHiddenBody => '소속 헬스장을 설정해야 회원 앱의 헬스장 찾기와 상담 신청에 나와요.';
+
+  @override
+  String get myGymHiddenAction => '헬스장 설정';
+
+  @override
+  String get myGymEditHint => '이름으로 찾아 소속 헬스장을 골라 주세요. 회원은 이 헬스장으로 트레이너님을 찾아요.';
 
   @override
   String get mySignOut => '로그아웃';
@@ -2402,14 +2420,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCertsEmpty => '등록한 자격증이 없어요';
 
   @override
-  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 등록해 주세요.';
+  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 설정해 주세요.';
 
   @override
   String get myEditVisibleBody =>
       '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.';
 
   @override
-  String get myClientManagementNoteTitle => '삭제하면 트레이너 화면에서만 사라져요';
+  String get myClientManagementNoteTitle => '연결을 해제해도 회원 기록은 남아요';
 
   @override
   String get myClientManagementNote =>
@@ -3440,6 +3458,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
+
+  @override
+  String get workoutMemberLogTitle => '직접 기록';
 
   @override
   String get workoutPendingCancel => '배정 취소';

@@ -6039,13 +6039,18 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
     )
 
 
-#: `TrainerMeUpdate` 가 받는 호환용 헬스장 문자열. 소속(`gym_id`)이 설정돼 있으면
-#: 이 값들은 Place/GymProfile 에서 파생되므로 직접 수정할 수 없다(#452).
+#: `TrainerMeUpdate` 가 받는 호환용 헬스장 문자열. 소속(`gym_id`)에서만 파생되므로
+#: 직접 수정할 수 없다(#452, #2543).
 GYM_TEXT_FIELDS = ("gym_name", "gym_address", "gym_hours", "gym_phone")
 
 
-class GymTextLockedByAffiliation(Exception):
-    """소속이 설정된 프로필에서 호환 문자열만 따로 바꾸려 한 경우. (#452)"""
+class GymTextNotEditable(Exception):
+    """호환 문자열을 직접 바꾸려 한 경우. (#452, #2543)
+
+    예전에는 소속이 없는 프로필에 한해 직접 적게 해 줬다. 그렇게 적은 이름은
+    `gym_id` 가 비어 회원에게 노출되지 않는데도 트레이너 화면에는 소속이 있는
+    것처럼 보였다. 이제 소속은 헬스장 검색(`/trainer/gyms/search`)으로만 정한다.
+    """
 
 
 def update_trainer_profile(
@@ -6053,17 +6058,17 @@ def update_trainer_profile(
 ) -> TrainerMe:
     """보낸 필드만 반영한다. 자격증은 통째로 교체(부분 병합은 순서가 모호하다).
 
-    `gym_id` 가 있으면 호환 문자열은 소속에서 파생된 값이라 여기서 못 고친다 —
-    문자열만 바꾸면 소속과 화면이 어긋난다. `GymTextLockedByAffiliation` 을 올리고
-    라우터가 409 로 돌려준다. 소속이 없는(레거시·해제) 프로필은 예전처럼 직접 적는다.
+    헬스장 문자열이 하나라도 오면 `GymTextNotEditable` 을 올리고 라우터가 409 로
+    돌려준다 — 함께 온 다른 필드도 반영하지 않는다(일부만 저장되면 클라이언트가
+    무엇이 저장됐는지 모른다).
     """
-    if profile.gym_id is not None and any(f in fields for f in GYM_TEXT_FIELDS):
-        raise GymTextLockedByAffiliation
+    if any(f in fields for f in GYM_TEXT_FIELDS):
+        raise GymTextNotEditable
 
     if "certifications" in fields:
         certs = [c.strip() for c in (fields["certifications"] or []) if c.strip()]
         profile.certifications_json = json.dumps(certs, ensure_ascii=False)
-    for column in ("phone", "specialty", "career_years", "intro", *GYM_TEXT_FIELDS):
+    for column in ("phone", "specialty", "career_years", "intro"):
         if column in fields:
             setattr(profile, column, fields[column])
     db.commit()

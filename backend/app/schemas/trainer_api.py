@@ -1602,6 +1602,11 @@ class TrainerMeUpdate(PartialUpdate):
     career_years: int | None = Field(default=None, ge=0, le=80)
     intro: str | None = Field(default=None, max_length=1000)
     certifications: list[str] | None = Field(default=None, max_length=30)
+    #: 헬스장 문자열 네 칸은 **더 이상 직접 저장하지 않는다**(#2543). 보내면 409.
+    #: 소속(`gym_id`)에서만 파생된다 — 직접 적은 이름은 `gym_id` 가 비어 회원에게
+    #: 노출되지 않는데도 화면에는 소속이 있어 보였다. 필드를 지우지 않고 남겨 두는
+    #: 이유: 지우면 pydantic 이 모르는 키를 조용히 버려 옛 클라이언트가 200 을 받고
+    #: 저장된 줄 안다.
     gym_name: str | None = Field(default=None, max_length=100)
     gym_address: str | None = Field(default=None, max_length=300)
     gym_hours: str | None = Field(default=None, max_length=50)
@@ -1648,6 +1653,35 @@ class TrainerGymAffiliation(BaseModel):
     같은 요청으로 섞인다.
     """
     gym_id: str = Field(min_length=1, max_length=64)
+
+
+class TrainerGymCandidate(BaseModel):
+    """GET /trainer/gyms/search 한 줄 — 소속으로 고를 수 있는 헬스장. (#2543)
+
+    `registered` 면 이미 `places` 에 있는 헬스장이라 `PUT /trainer/me/gym` 으로 바로
+    고른다. 아니면 카카오에서 찾은 곳이라 `PUT /trainer/me/gym/kakao` 로 고르고,
+    서버가 그때 `places` 에 넣는다. 좌표는 지도 핀용이고, 거리는 검색에 좌표를
+    줬을 때만 채운다.
+    """
+    id: str
+    name: str
+    address: str
+    lat: float | None = None
+    lng: float | None = None
+    phone: str = ""
+    distance_meters: int | None = None
+    registered: bool
+
+
+class TrainerKakaoGymSelect(BaseModel):
+    """PUT /trainer/me/gym/kakao — 카카오 검색 결과로 소속 설정. (#2543)
+
+    이름·주소를 받지 않는 이유: 클라이언트가 보낸 값을 그대로 `places` 에 넣으면
+    아무 이름의 헬스장이나 만들 수 있다. 서버가 `name` 으로 카카오를 다시 검색해
+    `kakao_place_id` 가 같은 결과를 찾고, 그 결과의 값만 쓴다. `name` 은 그 검색어다.
+    """
+    kakao_place_id: str = Field(min_length=1, max_length=30, pattern=r"^\d+$")
+    name: str = Field(min_length=1, max_length=200)
 
 
 # ---- 트레이너용 AI 코칭 (회원 데이터 기반) ----

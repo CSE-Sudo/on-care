@@ -107,7 +107,8 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
       // 보기 전에 알린다 — 실패한 경로는 여기를 지나지 않는다.
       TextInput.finishAutofillContext();
       if (!mounted) return;
-      context.go(AppRoutes.dashboard);
+      // 소속 헬스장부터 고르게 한다 — 인증 게이트와 같은 목적지다(#2543).
+      context.go(AppRoutes.mySection('edit'));
     } on AuthException catch (e) {
       // 가입 화면은 요청 중에도 뒤로 가기가 열려 있다 — 떠난 뒤 실패가 돌아오면
       // 해제된 context 로 로케일을 조회하게 된다.
