@@ -1,4 +1,4 @@
-/// 기록 그래프에서 보호권 없이 `보호권 쓰기` — 구매를 묻고, 사면 그날에 바로 쓴다.
+/// 기록 그래프에서 보호권 없이 `보호권 사용` — 구매를 묻고, 사면 그날에 바로 쓴다.
 library;
 
 import 'package:flutter/material.dart';
@@ -95,7 +95,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(AppButtonPair),
-        matching: find.text('구매하고 쓰기'),
+        matching: find.text('구매하고 사용'),
       ),
     );
     await tester.pumpAndSettle();

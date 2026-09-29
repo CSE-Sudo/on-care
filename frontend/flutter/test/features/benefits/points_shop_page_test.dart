@@ -2,7 +2,7 @@
 ///
 /// 예전 세 카드(결제 차감 할인·예측 리포트·레시피)는 사라지고 헬스장이 주는
 /// PT 재등록 3만원 할인·개인 락커 1개월 무료가 선다. 교환은 `교환` →
-/// `취소 / 교환하기` 확인창 → 포인트 차감 순서다.
+/// `취소 / 교환` 확인창 → 포인트 차감 순서다.
 library;
 
 import 'package:flutter/material.dart';
@@ -135,7 +135,7 @@ void main() {
     expect(buttonOf(tester, 'pt_renewal').onPressed, isNotNull);
   });
 
-  testWidgets('교환 → 파란 2열 확인창 → 교환하기로 포인트를 쓴다', (tester) async {
+  testWidgets('교환 → 파란 2열 확인창 → 교환으로 포인트를 쓴다', (tester) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository();
     await pumpShop(tester, repo);
 
@@ -148,11 +148,13 @@ void main() {
       find.byType(AppButtonPair),
     );
     expect(pair.cancelLabel, '취소');
-    expect(pair.confirmLabel, '교환하기');
+    expect(pair.confirmLabel, '교환');
     // 일반 확정은 파란(브랜드) 채움이다.
     expect(pair.destructive, isFalse);
 
-    await tester.tap(find.text('교환하기'));
+    await tester.tap(
+      find.descendant(of: find.byType(AppDialog), matching: find.text('교환')),
+    );
     await tester.pumpAndSettle();
 
     expect(repo.exchanged, <String>['locker_month']);
@@ -185,7 +187,9 @@ void main() {
 
     await tester.tap(exchangeButton('locker_month'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('교환하기'));
+    await tester.tap(
+      find.descendant(of: find.byType(AppDialog), matching: find.text('교환')),
+    );
     await tester.pumpAndSettle();
 
     expect(repo.exchanged, <String>['locker_month']);
