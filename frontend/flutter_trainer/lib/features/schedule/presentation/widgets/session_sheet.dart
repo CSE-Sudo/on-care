@@ -556,14 +556,27 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ],
         if (widget.existing == null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('schedule-trainer-note'),
-            controller: _note,
-            label: l.schedNote,
-            hint: l.schedNoteHint,
-            minLines: 2,
-            maxLines: 4,
-          ),
+          // PT 는 회원에게 가는 트레이너 피드백, 상담은 트레이너만 보는
+          // 메모다(#2574).
+          if (_type == SessionType.consultation)
+            AppTextField(
+              key: const ValueKey<String>('schedule-trainer-note'),
+              controller: _note,
+              label: l.schedConsultNote,
+              hint: l.schedConsultNoteHint,
+              minLines: 2,
+              maxLines: 4,
+            )
+          else
+            AppTextField(
+              key: const ValueKey<String>('schedule-trainer-note'),
+              controller: _note,
+              label: l.schedNote,
+              hint: l.schedNoteHint,
+              helper: l.schedNoteVisibleToMember,
+              minLines: 2,
+              maxLines: 4,
+            ),
         ],
         if (_overlaps != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),

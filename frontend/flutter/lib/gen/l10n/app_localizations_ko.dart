@@ -1453,7 +1453,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachReportPdfSelfMadeNote =>
-      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
+      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 피드백이 없어요.';
 
   @override
   String get coachReportPdfSectionInsights => '참고 기록';
@@ -2321,10 +2321,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachReportPdfSectionTrainerNote => '트레이너 메시지';
+  String get coachReportPdfSectionTrainerNote => '트레이너 피드백';
 
   @override
-  String get coachReportPdfNoTrainerNote => '함께 온 메시지가 없어요.';
+  String get coachReportPdfNoTrainerNote => '함께 온 피드백이 없어요.';
 
   @override
   String get coachReportPdfSectionChange => '지난주 대비';
@@ -4478,7 +4478,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get weeklyFeedbackPainDatePick => '날짜 고르기';
 
   @override
-  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 (선택)';
+  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 피드백 (선택)';
 
   @override
   String get weeklyFeedbackNoteHint => '그 주에 있었던 일을 적어 주세요';
@@ -4581,7 +4581,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myWeeklyFeedbackNoteLabel => '남긴 말';
+  String get myWeeklyFeedbackNoteLabel => '한 줄 피드백';
 
   @override
   String myWeeklyFeedbackSentAt(int month, int day) {

@@ -493,7 +493,7 @@ void main() {
       // 모은다.
       expect(find.text('마지막 세트가 힘들었어요'), findsNothing);
       expect(find.text('자세가 안정적이었어요'), findsNothing);
-      expect(find.text('트레이너 메모'), findsNothing);
+      expect(find.text('트레이너 피드백'), findsNothing);
       expect(find.textContaining('회원 피드백'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('routine-feedback-assigned-ex-r1')),
@@ -600,7 +600,7 @@ void main() {
       // 오늘 기록은 펼쳐져 운동 줄이 보인다. 시드의 트레이너 메모·회원
       // 피드백과 완료 배지는 그리지 않는다(#2329).
       expect(_exerciseLines, findsWidgets);
-      expect(find.text('트레이너 메모'), findsNothing);
+      expect(find.text('트레이너 피드백'), findsNothing);
       expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsNothing);
       expect(find.textContaining('회원 피드백'), findsNothing);
       expect(find.byIcon(Symbols.emoji_events_rounded), findsNothing);

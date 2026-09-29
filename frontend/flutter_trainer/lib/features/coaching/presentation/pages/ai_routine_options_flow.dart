@@ -2042,6 +2042,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             controller: _trainerMemo,
             label: l.aiNoteForClient,
             hint: _analysisSuggestion(l),
+            helper: l.schedNoteVisibleToMember,
             minLines: 2,
             maxLines: 4,
           ),
