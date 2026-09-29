@@ -165,30 +165,72 @@ _ALL_SIGNALS = suggestions._Signals(
     low_cardio=True,
     blood_pressure=True,
     has_records=True,
+    total_minutes=240,
+    strength_minutes=190,
+    days_since_pt=2,
 )
-_RECORDS_ONLY = suggestions._Signals(has_records=True)
+_RECORDS_ONLY = suggestions._Signals(has_records=True, total_minutes=60)
 
 
 def test_korean_candidates_keep_their_exact_wording():
-    """한국어 출력은 바이트 단위로 그대로다."""
+    """한국어 사유는 트레이너가 읽는 문장이다 — 회원 기록 숫자로 말한다(#2579)."""
     recovery, walking = suggestions._candidates_for(_ALL_SIGNALS, "ko")
     (light,) = suggestions._candidates_for(_RECORDS_ONLY, "ko")
 
     assert recovery.name == "하체·전신 회복 스트레칭"
     assert recovery.reason == (
-        "최근 수업과 근력 운동 뒤 회복을 돕는 가벼운 스트레칭이에요. "
-        "통증이 느껴지면 멈추세요."
+        "최근 2주 운동 240분 중 190분(79%)이 근력이에요. "
+        "2일 전 PT 가 있었어요. "
+        "다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요."
     )
     assert walking.name == "저강도 걷기"
     assert walking.reason == (
-        "대화할 수 있는 속도로 걷는 회복 목적 유산소예요. "
-        "숨이 차면 속도를 낮추세요."
+        "혈압 관리가 목표인데 최근 2주 유산소 기록이 없어요. "
+        "대화할 수 있는 속도의 걷기부터 시작하기 좋아요."
     )
     assert light.name == "목·어깨 스트레칭"
     assert light.reason == (
-        "다음 수업을 준비하는 가벼운 스트레칭이에요. "
-        "가동 범위 안에서만 움직이세요."
+        "최근 2주 기록에 치우침이나 건강 신호가 없어요. "
+        "다음 수업 준비용으로 가장 가벼운 스트레칭만 두었어요."
     )
+
+
+@pytest.mark.parametrize(
+    ("signals", "expected"),
+    [
+        # PT 만 있고 편중이 없으면 며칠 전인지만 말한다.
+        (
+            suggestions._Signals(pt_just_finished=True, days_since_pt=0),
+            "오늘 PT 가 있었어요. 다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
+        ),
+        # 근력 편중만 있으면 비율만 말한다.
+        (
+            suggestions._Signals(
+                strength_heavy=True, total_minutes=100, strength_minutes=60
+            ),
+            "최근 2주 운동 100분 중 60분(60%)이 근력이에요. "
+            "다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
+        ),
+    ],
+)
+def test_recovery_reason_says_only_the_signals_it_has(signals, expected):
+    (recovery,) = suggestions._candidates_for(signals, "ko")
+    assert recovery.reason == expected
+
+
+@pytest.mark.parametrize(
+    ("signals", "head"),
+    [
+        (suggestions._Signals(blood_pressure=True), "혈압 관리가 목표예요."),
+        (
+            suggestions._Signals(low_cardio=True, total_minutes=90),
+            "최근 2주 운동 90분 중 유산소가 없어요.",
+        ),
+    ],
+)
+def test_walk_reason_names_the_signal(signals, head):
+    (walking,) = suggestions._candidates_for(signals, "ko")
+    assert walking.reason.startswith(head)
 
 
 def test_default_locale_is_korean():
@@ -386,10 +428,8 @@ def test_legacy_sentence_evidence_is_served_as_codes(client, fresh):
         db.close()
 
 
-def test_member_receives_the_reason_in_the_language_it_was_approved_in(
-    client, fresh
-):
-    """사유는 트레이너 명의의 안내문이다 — 회원 화면 언어로 다시 쓰지 않는다."""
+def test_member_does_not_receive_the_suggestion_reason(client, fresh):
+    """AI 제안 사유는 트레이너가 읽는 판단 재료다 — 회원 응답에서 비운다(#2579)."""
     prepared = _review_list(client, fresh, MEMBER, EN)[0]
     approved = client.post(
         f"/v1/trainer/routine-suggestions/{prepared['id']}/approve",
@@ -404,7 +444,8 @@ def test_member_receives_the_reason_in_the_language_it_was_approved_in(
         assert mine.status_code == 200, mine.text
         delivered = [r for r in mine.json() if r["id"] == prepared["id"]]
         assert delivered
-        assert delivered[0]["reason"] == prepared["reason"]
+        assert prepared["reason"]
+        assert delivered[0]["reason"] == ""
         assert delivered[0]["name"] == prepared["name"]
         # 근거는 여전히 회원에게 가지 않는다.
         assert delivered[0]["evidence"] == []

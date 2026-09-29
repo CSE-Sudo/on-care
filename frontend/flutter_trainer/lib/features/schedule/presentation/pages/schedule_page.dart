@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/consultations/data/repositories/consulta
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/cancel_session_dialog.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/consultation_inbox_action.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
@@ -164,7 +165,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     return showAppDialog<void>(
       context: context,
       builder: (dialogContext) => SessionProgramEditor(
-        title: noteOnly ? l.schedEditNote : l.progEditTitle,
+        title: !noteOnly
+            ? l.progEditTitle
+            : session.type == SessionType.consultation
+            ? l.schedEditConsultNote
+            : l.schedEditNote,
         key: ValueKey<String>(
           noteOnly
               ? 'note-editor-${session.id}'
