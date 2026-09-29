@@ -1528,6 +1528,31 @@ def _end_routine(db: Session, routine: TrainerRoutine) -> None:
     routine.ended_on = max(clock.today_iso(), routine.active_from)
 
 
+def _apply_routine_duration(
+    row: TrainerRoutine,
+    *,
+    minutes: int | None,
+    duration_seconds: int | None,
+) -> None:
+    """고친 운동 시간을 배정 행에 반영한다 — 분과 초를 한 값으로 맞춘다. (#2547)
+
+    초를 보내면 초가 기준이고 분은 거기서 접는다. 분만 보내면 예전 초를 지운다 —
+    [_routine_seconds] 가 초를 먼저 읽으므로, 남겨 두면 `45초` 배정의 분을 5로
+    고쳐도 계속 `45초` 로 읽혔다. 초가 비면 분 × 60 으로 읽힌다.
+
+    둘 다 없으면 시간은 그대로다. 유형은 **고친 뒤의** 값으로 본다 — 근력은
+    세트로 재므로 초를 두지 않는다.
+    """
+    if duration_seconds is not None:
+        row.duration_seconds = duration_seconds
+        row.minutes = _minutes_of(duration_seconds)
+    elif minutes is not None:
+        row.minutes = minutes
+        row.duration_seconds = None
+    if row.type == "근력":
+        row.duration_seconds = None
+
+
 def update_routine(
     db: Session, trainer_id: str, member_id: str, routine_id: str,
     fields: dict,
@@ -1542,9 +1567,14 @@ def update_routine(
     수정하다 순서가 밀리면 회원이 보는 목록이 이유 없이 흔들린다.
     """
     routine = _owned_routine(db, trainer_id, member_id, routine_id)
-    for field in ("name", "minutes", "type", "reason"):
+    for field in ("name", "type", "reason"):
         if field in fields:
             setattr(routine, field, fields[field])
+    _apply_routine_duration(
+        routine,
+        minutes=fields.get("minutes"),
+        duration_seconds=fields.get("duration_seconds"),
+    )
     db.commit()
     db.refresh(routine)
     completion = db.scalar(
@@ -1713,6 +1743,7 @@ def create_routine_suggestion(
     minutes: int,
     type_: str,
     reason: str,
+    duration_seconds: int | None = None,
     sets: int | None = None,
     reps: int | None = None,
     hold_seconds: int | None = None,
@@ -1745,6 +1776,8 @@ def create_routine_suggestion(
         member_id=member_id,
         name=name,
         minutes=minutes,
+        # 시·분·초로 적은 시간(#2547). 근력은 세트로 잰다.
+        duration_seconds=duration_seconds if type_ != "근력" else None,
         type=type_,
         # 세트·횟수·중량은 근력에만 남긴다 — 배정([assign_routine])과 같은
         # 규칙이다. 승인하면 이 행이 그대로 배정이 되므로 여기서 규칙이 갈리면
@@ -1831,6 +1864,7 @@ def approve_routine_suggestion(
     *,
     name: str | None = None,
     minutes: int | None = None,
+    duration_seconds: int | None = None,
     type_: str | None = None,
     sets: int | None = None,
     reps: int | None = None,
@@ -1849,12 +1883,13 @@ def approve_routine_suggestion(
         raise RoutineNotFound("담당 고객을 찾을 수 없습니다.")
     if name is not None:
         row.name = name
-    if minutes is not None:
-        row.minutes = minutes
     if type_ is not None:
         row.type = type_
     if reason is not None:
         row.reason = reason
+    # 분·초는 루틴 수정과 같은 규칙으로 맞춘다 — 유형을 먼저 반영해야 근력으로
+    # 바꿔 승인할 때 초가 남지 않는다. (#2547)
+    _apply_routine_duration(row, minutes=minutes, duration_seconds=duration_seconds)
     if sets is not None:
         row.sets = sets
     if reps is not None:
@@ -2230,6 +2265,7 @@ def assign_routine(
     db: Session, trainer_id: str, member_id: str,
     name: str, minutes: int, type_: str, reason: str, source: str,
     client_request_id: str | None = None,
+    duration_seconds: int | None = None,
     exercise_date: date | None = None,
     intensity: str = "moderate",
     sets: int | None = None,
@@ -2262,6 +2298,8 @@ def assign_routine(
         member_id=member_id,
         name=name,
         minutes=minutes,
+        # 시·분·초로 적은 시간(#2547). 근력은 세트로 잰다.
+        duration_seconds=duration_seconds if type_ != "근력" else None,
         type=type_,
         exercise_date=exercise_date.isoformat() if exercise_date else None,
         intensity=intensity,
@@ -2306,6 +2344,7 @@ def assign_routine(
         template_args=_routine_notification_args(
             name, type_, minutes=minutes, sets=sets, reps=reps,
             hold_seconds=hold_seconds, weight=weight,
+            duration_seconds=rt.duration_seconds,
         ),
     )
     db.commit()

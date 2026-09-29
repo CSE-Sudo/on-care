@@ -663,6 +663,12 @@ class RoutineAssignRequest(BaseModel):
     """
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(default=0, ge=0, le=600)   # 0..600분(현실적 상한)
+    #: 같은 운동 시간을 초로(#2547). 보내면 이 값이 기준이고 `minutes` 는
+    #: 거기서 반올림한다 — 개인운동(`PersonalRoutineItem`)과 같은 규칙이다. 분만
+    #: 보내는 예전 클라이언트는 그대로 받는다.
+    duration_seconds: int | None = Field(
+        default=None, ge=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType
     #: 언제 하라고 보내는 배정인가. 회원 앱 운동 추가와 같은 칸이다. (#1276)
     exercise_date: _date | None = None
@@ -683,6 +689,16 @@ class RoutineAssignRequest(BaseModel):
     #: 중복 배정이 막힌다. 없으면 기존처럼 매 요청이 새 배정이다(#581).
     client_request_id: str | None = Field(default=None, max_length=64)
 
+    @model_validator(mode="after")
+    def _minutes_from_seconds(self) -> "RoutineAssignRequest":
+        """초가 오면 분을 거기서 반올림한다. 근력은 세트로 재므로 초를 비운다. (#2547)"""
+        if self.type == "근력":
+            self.duration_seconds = None
+        elif self.duration_seconds is not None:
+            seconds = self.duration_seconds
+            self.minutes = max(1, round(seconds / 60)) if seconds > 0 else 0
+        return self
+
 
 class RoutineSuggestionCreateRequest(BaseModel):
     """AI 개인운동 후보 등록. 검토 대기 상태로만 만들어진다.
@@ -691,7 +707,13 @@ class RoutineSuggestionCreateRequest(BaseModel):
     """
 
     name: str = Field(min_length=1, max_length=100)
-    minutes: int = Field(ge=0, le=600)
+    minutes: int = Field(default=0, ge=0, le=600)
+    #: 같은 운동 시간을 초로(#2547). 보내면 이 값이 기준이고 `minutes` 는
+    #: 거기서 반올림한다 — 개인운동(`PersonalRoutineItem`)과 같은 규칙이다. 분만
+    #: 보내는 예전 클라이언트는 그대로 받는다.
+    duration_seconds: int | None = Field(
+        default=None, ge=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType
     #: 근력이면 세트 수·한 세트당 횟수·중량(kg). 배정(`RoutineAssignRequest`)과
     #: 같은 계약이다 — 승인하는 순간 이 행이 그대로 배정이 되므로, 여기서 받지
@@ -716,6 +738,16 @@ class RoutineSuggestionCreateRequest(BaseModel):
     #: 재전송 중복 생성 방지용 멱등키. 배정(`AssignRoutineRequest`)과 같은 규약이다.
     client_request_id: str | None = Field(default=None, max_length=64)
 
+    @model_validator(mode="after")
+    def _minutes_from_seconds(self) -> "RoutineSuggestionCreateRequest":
+        """초가 오면 분을 거기서 반올림한다. 근력은 세트로 재므로 초를 비운다. (#2547)"""
+        if self.type == "근력":
+            self.duration_seconds = None
+        elif self.duration_seconds is not None:
+            seconds = self.duration_seconds
+            self.minutes = max(1, round(seconds / 60)) if seconds > 0 else 0
+        return self
+
 
 class RoutineSuggestionApproveRequest(PartialUpdate):
     """제안 승인. 필드를 주면 그것으로 고쳐서 승인한다(수정 후 추천).
@@ -726,6 +758,12 @@ class RoutineSuggestionApproveRequest(PartialUpdate):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     minutes: int | None = Field(default=None, ge=0, le=600)
+    #: 같은 운동 시간을 초로(#2547). 보내면 이 값이 기준이고 분은 서버가 초에서
+    #: 다시 접는다. 분만 보내면 예전 초를 지운다 — 남겨 두면 초를 먼저 읽는
+    #: 화면들이 고치기 전 시간을 계속 보여 준다.
+    duration_seconds: int | None = Field(
+        default=None, ge=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType | None = None
     #: 근력이면 세트 수·한 세트당 횟수·중량(kg). 트레이너가 승인 직전에 고치는
     #: 자리라, 유형을 근력으로 바꾸며 이 셋을 함께 채우는 것이 이 화면의 흔한
@@ -754,6 +792,12 @@ class RoutineUpdateRequest(PartialUpdate):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     minutes: int | None = Field(default=None, ge=0, le=600)
+    #: 같은 운동 시간을 초로(#2547). 보내면 이 값이 기준이고 분은 서버가 초에서
+    #: 다시 접는다. 분만 보내면 예전 초를 지운다 — 남겨 두면 초를 먼저 읽는
+    #: 화면들이 고치기 전 시간을 계속 보여 준다.
+    duration_seconds: int | None = Field(
+        default=None, ge=0, le=MAX_EXERCISE_SECONDS
+    )
     type: RoutineType | None = None
     reason: str | None = Field(default=None, max_length=200)
 

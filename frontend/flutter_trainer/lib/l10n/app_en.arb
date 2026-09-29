@@ -1827,17 +1827,6 @@
   "coachHistoryEmpty": "You haven't sent any programs yet",
   "coachHomework": "Personal",
   "coachPersonalTraining": "PT",
-  "coachRoutineSummary": "{name} · {minutes} min",
-  "@coachRoutineSummary": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
   "coachTrainer": "Trainer",
   "coachSessionProgramSummary": "{name} + {count} more",
   "@coachSessionProgramSummary": {
@@ -1878,17 +1867,6 @@
     "placeholders": {
       "name": {
         "type": "String"
-      }
-    }
-  },
-  "aiExerciseWithMinutes": "{name} · {minutes} min",
-  "@aiExerciseWithMinutes": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "minutes": {
-        "type": "int"
       }
     }
   },

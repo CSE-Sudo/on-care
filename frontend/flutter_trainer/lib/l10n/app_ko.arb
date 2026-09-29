@@ -1229,7 +1229,6 @@
   "coachHistoryEmpty": "아직 보낸 프로그램이 없어요",
   "coachHomework": "개인",
   "coachPersonalTraining": "PT",
-  "coachRoutineSummary": "{name} · {minutes}분",
   "coachTrainer": "트레이너",
   "coachSessionProgramSummary": "{name} 외 {count}개",
   "@coachSessionProgramSummary": {
@@ -1259,7 +1258,6 @@
   "aiExerciseNameRequired": "운동 이름을 입력해 주세요",
   "aiKeepOneExercise": "운동을 하나 이상 남겨 주세요",
   "aiRoutineSent": "{name}님에게 프로그램을 전송했어요",
-  "aiExerciseWithMinutes": "{name} {minutes}분",
   "aiCustomRoutineNamed": "AI 맞춤 추천안 ({option})",
   "aiCustomRoutineName": "AI 맞춤 추천안",
   "aiAnalysing": "AI가 분석 중…",

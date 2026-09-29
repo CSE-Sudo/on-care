@@ -4903,12 +4903,6 @@ abstract class AppLocalizations {
   /// **'PT'**
   String get coachPersonalTraining;
 
-  /// No description provided for @coachRoutineSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} · {minutes} min'**
-  String coachRoutineSummary(String name, int minutes);
-
   /// No description provided for @coachTrainer.
   ///
   /// In en, this message translates to:
@@ -5004,12 +4998,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Program sent to {name}'**
   String aiRoutineSent(String name);
-
-  /// No description provided for @aiExerciseWithMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} · {minutes} min'**
-  String aiExerciseWithMinutes(String name, int minutes);
 
   /// No description provided for @aiCustomRoutineNamed.
   ///

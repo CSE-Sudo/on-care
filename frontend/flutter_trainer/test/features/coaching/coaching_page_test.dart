@@ -367,6 +367,7 @@ class _CapturingProgramRepository implements TrainerRoutineRepository {
     String routineId, {
     String? name,
     int? minutes,
+    int? durationSeconds,
     String? type,
     String? reason,
   }) async {}
@@ -390,6 +391,7 @@ class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
     String routineId, {
     String? name,
     int? minutes,
+    int? durationSeconds,
     String? type,
     String? reason,
   }) async {}

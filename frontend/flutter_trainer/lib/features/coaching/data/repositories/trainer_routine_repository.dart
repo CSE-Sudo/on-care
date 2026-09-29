@@ -54,11 +54,15 @@ abstract interface class TrainerRoutineRepository {
   ///
   /// 없는 루틴·남의 배정은 [StateError] — 배정 실패와 같은 규칙으로, 목과
   /// 실서버가 같은 예외를 낸다.
+  ///
+  /// [durationSeconds] 를 주면 서버가 분을 초에서 다시 접는다. [minutes] 만
+  /// 주면 예전 초는 지워진다(#2547).
   Future<void> updateRoutine(
     String memberId,
     String routineId, {
     String? name,
     int? minutes,
+    int? durationSeconds,
     String? type,
     String? reason,
   });
@@ -267,6 +271,7 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     String routineId, {
     String? name,
     int? minutes,
+    int? durationSeconds,
     String? type,
     String? reason,
   }) async => throw StateError('routine not found: $routineId');

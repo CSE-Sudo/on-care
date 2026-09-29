@@ -129,6 +129,11 @@ Map<String, Object?> assignRoutineToJson(
         ? _truncate(fallbackName, 100)
         : _truncate(r.name.trim(), 100),
     'minutes': r.minutes.clamp(0, 600),
+    // 시·분·초로 적은 시간(#2547). 서버는 초가 있으면 초를 기준으로 분을
+    // 다시 접는다. 근력은 세트로 재므로 싣지 않는다.
+    'duration_seconds': strength
+        ? null
+        : r.durationSeconds?.clamp(0, kMaxExerciseSeconds),
     'type': type,
     'exercise_date': r.date == null ? null : _ymd(r.date!),
     'intensity': normaliseRoutineIntensity(r.intensity),

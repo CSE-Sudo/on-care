@@ -285,9 +285,12 @@ bool _decodedProgramIsEmpty(String programJson) {
 }
 
 /// 두 개인운동이 트레이너가 손대지 않은 같은 줄인가 — 출처는 보지 않는다.
+///
+/// 시간은 초로 비교한다(#2547) — 분은 초에서 반올림한 값이라, `45초` 를
+/// `50초` 로 고쳐도 둘 다 1분이어서 손대지 않은 줄로 읽혔다.
 bool _sameRoutine(RoutineExercise a, RoutineExercise b) =>
     a.name == b.name &&
-    a.minutes == b.minutes &&
+    a.seconds == b.seconds &&
     a.type == b.type &&
     a.sets == b.sets &&
     a.reps == b.reps &&
