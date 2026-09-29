@@ -385,7 +385,17 @@ class _DayDetail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
+      clientExercisesOnProvider((clientId: clientId, date: date)),
+    );
     if (entries.isNotEmpty) {
+      // 이력이 있는 날에도 회원이 **직접 적은** 운동은 따로 보여 준다(#2534).
+      // 위 알약의 시간·칼로리에는 이미 더해져 있는데 이름이 빠지면, 트레이너는
+      // 시간만 늘고 무엇을 했는지 모르는 날을 보게 된다.
+      final List<ClientExerciseItem> own = _memberLogs(
+        async.valueOrNull ?? const <ClientExerciseItem>[],
+      );
       return Padding(
         padding: const EdgeInsets.only(top: OnCareSpacing.s12),
         child: Column(
@@ -395,14 +405,32 @@ class _DayDetail extends ConsumerWidget {
               _HistoryCard(entry: entry),
               const SizedBox(height: OnCareSpacing.s8),
             ],
+            if (own.isNotEmpty) ...<Widget>[
+              // 이력 카드와 같은 모양의 카드 한 장으로 묶는다 — 태그가 이
+              // 묶음이 무엇인지 말해, 이력 카드의 줄과 섞여 읽히지 않는다.
+              AppCard(
+                key: ValueKey<String>('workout-member-log-${ymd(date)}'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    AppTag(label: l.workoutMemberLogTitle),
+                    const SizedBox(height: OnCareSpacing.s8),
+                    for (final (int i, ClientExerciseItem item) in own.indexed)
+                      _ExerciseLine(
+                        key: ValueKey<String>(
+                          'workout-member-log-line-${ymd(date)}-$i',
+                        ),
+                        line: clientExerciseLine(l, item),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s8),
+            ],
           ],
         ),
       );
     }
-    final AppLocalizations l = AppLocalizations.of(context);
-    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
-      clientExercisesOnProvider((clientId: clientId, date: date)),
-    );
     return async.maybeWhen(
       data: (List<ClientExerciseItem> items) {
         // 분 수는 있는데 이름이 없는 날이 있다 — 합계만 들어온 기록이다.
@@ -426,6 +454,23 @@ class _DayDetail extends ConsumerWidget {
       },
       orElse: () => const SizedBox.shrink(),
     );
+  }
+
+  /// 그날 운동 행 중 이력 카드가 말하지 않는 것 — 회원이 직접 적은 기록. (#2534)
+  ///
+  /// PT 완료·배정 운동 완료로 생긴 행은 출처로 거른다([ClientExerciseItem.isMemberLog]).
+  /// 이름으로도 한 번 더 거른다: 시드의 `AI 개인운동` 이력처럼 같은 운동이 이력
+  /// 카드와 `member` 행에 함께 적힌 날이 있다. 같은 이름을 두 번 보여 주느니 이력
+  /// 카드 한 번으로 둔다.
+  List<ClientExerciseItem> _memberLogs(List<ClientExerciseItem> items) {
+    final Set<String> inHistory = <String>{
+      for (final RoutineHistoryEntry entry in entries)
+        for (final ClientExerciseItem item in entry.exercises) item.name.trim(),
+    };
+    return <ClientExerciseItem>[
+      for (final ClientExerciseItem item in items)
+        if (item.isMemberLog && !inHistory.contains(item.name.trim())) item,
+    ];
   }
 }
 

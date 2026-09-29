@@ -19,6 +19,8 @@ class ClientExerciseItem {
     this.weight,
     this.intensity,
     this.done = true,
+    this.source = '',
+    this.assignedRoutineId,
   });
 
   /// 이름만 아는 옛 기록. 값이 이름 문자열에 섞여 있던 시절의 자료와, 이름만
@@ -98,6 +100,11 @@ class ClientExerciseItem {
           _ => null,
         },
         done: json['done'] as bool? ?? true,
+        source: (json['source'] as String?) ?? '',
+        assignedRoutineId: switch (json['assigned_routine_id']) {
+          final String value when value.isNotEmpty => value,
+          _ => null,
+        },
       );
 
   final String name;
@@ -132,6 +139,21 @@ class ClientExerciseItem {
   /// 이력에는 남는다.
   final bool done;
 
+  /// 기록 출처 — `member` | `trainer_pt` | `assigned_routine`. 운동 행 응답만
+  /// 싣는다. 비어 있으면 모른다(이력 줄·데모·옛 응답).
+  final String source;
+
+  /// 배정 운동을 완료해 생긴 행이면 그 배정 id. 서버 옛 시드는 출처를
+  /// `member` 로 둔 채 이 값만 채운다.
+  final String? assignedRoutineId;
+
+  /// 회원이 앱에서 **직접 적은** 기록인가. (#2534)
+  ///
+  /// PT 완료·배정 운동 완료로 생긴 행은 이력 카드가 이미 말한다 — 그 행까지
+  /// 직접 기록으로 붙이면 같은 운동이 두 번 나온다. 출처를 모르는 행도 여기
+  /// 들지 않는다: 직접 적었다고 확인되지 않은 것을 그렇게 부르지 않는다.
+  bool get isMemberLog => source == 'member' && assignedRoutineId == null;
+
   /// 이름 말고 적힌 값이 하나라도 있는가.
   bool get hasAmount =>
       sets != null || reps != null || holdSeconds != null || seconds > 0;
@@ -147,6 +169,8 @@ class ClientExerciseItem {
     if (weight != null) 'weight': weight,
     if (intensity != null) 'intensity': intensity,
     if (!done) 'done': done,
+    if (source.isNotEmpty) 'source': source,
+    if (assignedRoutineId != null) 'assigned_routine_id': assignedRoutineId,
   };
 }
 
