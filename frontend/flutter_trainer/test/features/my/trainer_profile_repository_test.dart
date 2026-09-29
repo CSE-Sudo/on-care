@@ -79,7 +79,7 @@ void main() {
     );
 
     test(
-      'setGym uses the affiliation endpoint and maps its response',
+      'registered gym is selected through the affiliation endpoint',
       () async {
         when(
           () => dio.put<Map<String, Object?>>(
@@ -88,7 +88,14 @@ void main() {
           ),
         ).thenAnswer((_) async => _profileResponse(gymId: 'gym-2'));
 
-        final result = await repository.setGym('gym-2');
+        final result = await repository.selectGym(
+          const TrainerGymCandidate(
+            id: 'gym-2',
+            name: '온케어짐 강남점',
+            address: '서울',
+            registered: true,
+          ),
+        );
 
         expect(result.gym.id, 'gym-2');
         verify(
@@ -100,41 +107,122 @@ void main() {
       },
     );
 
-    test('listGyms maps selectable affiliation options', () async {
-      when(() => dio.get<List<Object?>>('/gyms')).thenAnswer(
+    test('Kakao gym is selected with its place id and name', () async {
+      when(
+        () => dio.put<Map<String, Object?>>(
+          '/trainer/me/gym/kakao',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) async => _profileResponse(gymId: '1558845892'));
+
+      final result = await repository.selectGym(
+        const TrainerGymCandidate(
+          id: '1558845892',
+          name: '하이핏',
+          address: '서울 서대문구 연세로4길 19',
+          registered: false,
+        ),
+      );
+
+      expect(result.gym.id, '1558845892');
+      // 주소는 보내지 않는다 — 서버가 카카오 값으로 저장한다.
+      verify(
+        () => dio.put<Map<String, Object?>>(
+          '/trainer/me/gym/kakao',
+          data: <String, Object?>{
+            'kakao_place_id': '1558845892',
+            'name': '하이핏',
+          },
+        ),
+      ).called(1);
+      verifyNever(
+        () => dio.put<Map<String, Object?>>(
+          '/trainer/me/gym',
+          data: any(named: 'data'),
+        ),
+      );
+    });
+
+    test('searchGyms sends the query and maps candidates', () async {
+      when(
+        () => dio.get<List<Object?>>(
+          '/trainer/gyms/search',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
         (_) async => Response<List<Object?>>(
-          requestOptions: RequestOptions(path: '/gyms'),
+          requestOptions: RequestOptions(path: '/trainer/gyms/search'),
           statusCode: 200,
           data: <Object?>[
             <String, Object?>{
               'id': 'gym-1',
               'name': '온케어짐',
               'address': '서울',
-              'weekday_hours': '06:00 – 23:00',
+              'lat': 37.55,
+              'lng': 126.93,
               'phone': '02-1234-5678',
+              'distance_meters': null,
+              'registered': true,
+            },
+            <String, Object?>{
+              'id': '1558845892',
+              'name': '하이핏',
+              'address': '서울 서대문구',
+              'lat': 37,
+              'lng': 127,
+              'phone': '',
+              'distance_meters': 320,
+              'registered': false,
             },
           ],
         ),
       );
 
-      final gyms = await repository.listGyms();
-
-      expect(gyms.single.id, 'gym-1');
-      expect(gyms.single.name, '온케어짐');
-      expect(gyms.single.hours, '06:00 – 23:00');
-      expect(gyms.single.phone, '02-1234-5678');
-    });
-
-    test('clearGym calls DELETE and returns the server view', () async {
-      when(
-        () => dio.delete<Map<String, Object?>>('/trainer/me/gym'),
-      ).thenAnswer((_) async => _profileResponse(gymId: ''));
-
-      await repository.clearGym();
+      final gyms = await repository.searchGyms('헬스');
 
       verify(
-        () => dio.delete<Map<String, Object?>>('/trainer/me/gym'),
+        () => dio.get<List<Object?>>(
+          '/trainer/gyms/search',
+          queryParameters: <String, Object?>{'query': '헬스'},
+        ),
       ).called(1);
+      expect(gyms.map((g) => g.id), <String>['gym-1', '1558845892']);
+      expect(gyms.first.registered, isTrue);
+      expect(gyms.first.hasLocation, isTrue);
+      expect(gyms.first.distanceMeters, isNull);
+      expect(gyms.last.registered, isFalse);
+      // 정수로 온 좌표도 실수로 읽는다.
+      expect(gyms.last.lat, 37.0);
+      expect(gyms.last.distanceMeters, 320);
+    });
+
+    test('update never sends gym text fields', () async {
+      when(
+        () => dio.put<Map<String, Object?>>(
+          '/trainer/me',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) async => _profileResponse());
+
+      await repository.update(
+        const TrainerProfileUpdate(
+          phone: '',
+          specialty: '',
+          careerYears: 0,
+          intro: '',
+          certifications: <String>[],
+        ),
+      );
+
+      final body =
+          verify(
+                () => dio.put<Map<String, Object?>>(
+                  '/trainer/me',
+                  data: captureAny(named: 'data'),
+                ),
+              ).captured.single
+              as Map<String, Object?>;
+      expect(body.keys.where((k) => k.startsWith('gym_')), isEmpty);
     });
 
     test('409 preserves the backend conflict detail', () async {
@@ -229,15 +317,12 @@ void main() {
         certifications: <String>['CPT'],
       ),
     );
-    await repository.setGym('gym-2');
+    await repository.selectGym((await repository.searchGyms('강남')).single);
 
     final restored = await repository.fetch();
     expect(restored.phone, '010-7777-8888');
     expect(restored.careerYears, 9);
     expect(restored.gym.id, 'gym-2');
-    expect(restored.gym.hours, '06:00 – 24:00');
-
-    await repository.clearGym();
-    expect((await repository.fetch()).gym.id, isNull);
+    expect(restored.gym.name, '온케어짐 강남점');
   });
 }

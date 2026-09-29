@@ -891,6 +891,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  oncare_kakao_map:
+    dependency: "direct main"
+    description:
+      path: "../../shared/oncare_kakao_map"
+      relative: true
+    source: path
+    version: "0.1.0"
   oncare_ui:
     dependency: "direct main"
     description:

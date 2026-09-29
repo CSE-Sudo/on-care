@@ -257,19 +257,23 @@ def test_other_profile_fields_are_still_editable_while_affiliated(client, traine
     assert r.json()["phone"] == "010-1111-2222"
 
 
-def test_gym_texts_stay_editable_without_an_affiliation(client, trainer):
-    """소속이 없는(레거시·해제) 프로필은 예전처럼 직접 적는다 — 기존 경로 유지."""
+def test_gym_texts_are_not_editable_without_an_affiliation(client, trainer):
+    """소속이 없어도 직접 못 적는다(#2543).
+
+    직접 적은 이름은 `gym_id` 가 비어 회원에게 노출되지 않는데 트레이너 화면에는
+    소속이 있어 보였다. 소속은 헬스장 검색으로만 정한다.
+    """
     token, _trainer_id = trainer
     r = client.put(
         "/v1/trainer/me",
-        json={"gym_name": "직접 적은 헬스장", "gym_phone": "02-0000-0000"},
+        json={"gym_name": "직접 적은 헬스장", "phone": "010-1111-2222"},
         headers=_auth(token),
     )
-    assert r.status_code == 200, r.text
-    gym = r.json()["gym"]
-    assert gym["id"] is None
-    assert gym["name"] == "직접 적은 헬스장"
-    assert gym["phone"] == "02-0000-0000"
+    assert r.status_code == 409, r.text
+    body = client.get("/v1/trainer/me", headers=_auth(token)).json()
+    assert body["gym"]["name"] == ""
+    # 함께 온 다른 필드도 반영하지 않는다.
+    assert body["phone"] != "010-1111-2222"
 
 
 # ---- 회원 쪽에서 본 결과 ----

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_config.dart';
+import 'package:oncare_kakao_map/src/kakao_map_config.dart';
 
 /// 비-web 타깃(안드로이드·iOS·테스트)에서는 지도를 만들지 않는다.
 ///
@@ -13,4 +13,6 @@ Widget? buildKakaoMap({
   required List<KakaoMapMarker> markers,
   required int level,
   required Widget fallback,
+  ValueChanged<KakaoMapMarker>? onMarkerTap,
+  VoidCallback? onUnavailable,
 }) => null;

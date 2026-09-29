@@ -46,6 +46,13 @@ void main() {
       );
     });
 
+    test('a fresh sign-up lands on profile edit to pick a gym (#2543)', () {
+      expect(
+        sessionRedirect(SessionStatus.authenticated, AppRoutes.signUp),
+        AppRoutes.mySection('edit'),
+      );
+    });
+
     test('in-app users stay put on app routes', () {
       expect(
         sessionRedirect(SessionStatus.authenticated, AppRoutes.my),
