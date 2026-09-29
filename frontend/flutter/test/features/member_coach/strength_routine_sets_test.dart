@@ -30,7 +30,7 @@ const MemberCoach _coach = MemberCoach(
   goal: '',
 );
 
-/// 데모 픽스처의 `코어 강화` 와 같은 값이다 — 근력 10분, 3세트 · 15회 · 0kg.
+/// 데모 픽스처의 `코어 강화` 와 같은 값이다 — 근력 10분, 3세트 · 15회 · 맨몸(0kg).
 const CoachRoutine _strength = CoachRoutine(
   id: 'r-strength',
   name: '코어 강화',
@@ -93,13 +93,13 @@ void main() {
   testWidgets('근력 루틴은 세트·횟수·중량으로 읽힌다', (WidgetTester tester) async {
     final AppLocalizations l = await _pump(tester, <CoachRoutine>[_strength]);
 
-    // 운동 현황 링·주간 목표가 세는 것과 같은 수다.
+    // 운동 현황 링·주간 목표가 세는 것과 같은 수다. 맨몸(0kg)은 중량을
+    // 적지 않는다(#2533).
     expect(
-      find.text(
-        '근력 · ${l.exSetsCount(3)} · ${l.exRepsCount(15)} · 0${l.exUnitKg}',
-      ),
+      find.text('근력 · ${l.exSetsCount(3)} · ${l.exRepsCount(15)}'),
       findsOneWidget,
     );
+    expect(find.textContaining('0${l.exUnitKg}'), findsNothing);
     // 분으로 적던 예전 표기는 남지 않는다.
     expect(find.text('근력 · ${l.unitMinutesValue(10)}'), findsNothing);
   });

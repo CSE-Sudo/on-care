@@ -8031,18 +8031,6 @@ abstract class AppLocalizations {
   /// **'Template menu'**
   String get coachTemplateMenu;
 
-  /// No description provided for @aiStrengthSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {reps} reps · {weight}kg'**
-  String aiStrengthSummary(int sets, int reps, String weight);
-
-  /// No description provided for @aiHoldSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{sets} sets · {seconds} sec · {weight}kg'**
-  String aiHoldSummary(int sets, int seconds, String weight);
-
   /// No description provided for @routineFormDecrease.
   ///
   /// In en, this message translates to:

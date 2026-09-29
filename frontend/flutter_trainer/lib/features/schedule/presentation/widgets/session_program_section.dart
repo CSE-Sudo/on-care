@@ -3,6 +3,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램 한 줄의 양 — 근력은 세트·횟수(또는 초)·중량, 그 밖은 시간. (#1276)
@@ -18,10 +19,8 @@ String programItemAmount(AppLocalizations l, ProgramItem item) {
         l.progHoldValue(item.holdSeconds!)
       else if (item.reps != null && item.reps! > 0)
         l.progRepsValue(item.reps!),
-      // 맨몸 운동은 `0kg` 이다 — 중량 칸은 비울 수 없고(최솟값 0) 근력을
-      // 고르면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
-      // 전에 저장된 행뿐이라, 그때만 자리를 비운다.
-      if (item.weight != null) '${_trimZero(item.weight!)}${l.routineUnitKg}',
+      // 맨몸 운동(0kg)과 중량이 없는 옛 행은 중량 자리를 비운다(#2533).
+      ?strengthWeightLabel(l, item.weight),
     ] else if (item.seconds != null)
       // 시·분·초로 적은 그대로 — `45초` · `1시간 30분`(#2221).
       formatExerciseDuration(l, item.seconds!),
@@ -94,9 +93,6 @@ class SessionProgramRow extends StatelessWidget {
     );
   }
 }
-
-/// 40.0 → "40", 40.5 → "40.5". 소수점 뒤 0 은 적지 않는다.
-String _trimZero(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
 
 /// Shown inside an expanded 예정 session that has no program yet.
 ///

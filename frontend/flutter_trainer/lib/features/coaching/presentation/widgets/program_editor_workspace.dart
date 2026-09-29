@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_fo
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
+import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Rich local draft editor matching the Figma program workspace.
@@ -1721,10 +1722,9 @@ List<String> programExerciseMetrics(
     if (exercise.reps > 0) {
       metrics.add(l.progRepsValue(exercise.reps));
     }
-    // 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 트레이너가 적은
-    // 값이다.
-    final double w = exercise.weight;
-    metrics.add('${w == w.roundToDouble() ? w.round() : w}kg');
+    // 맨몸 운동(0kg)은 중량을 적지 않는다(#2533).
+    final String? weight = strengthWeightLabel(l, exercise.weight);
+    if (weight != null) metrics.add(weight);
   } else {
     metrics.add(formatExerciseDuration(l, exercise.durationSeconds));
   }
