@@ -8,6 +8,7 @@ from __future__ import annotations
 import pytest
 
 from app.services.coach import personal_ingest
+from tests.exercise_helpers import post_exercise
 
 
 @pytest.fixture
@@ -103,8 +104,8 @@ def _member_token(client) -> str:
 def test_logging_a_session_ingests_it(client, _captured):
     token = _member_token(client)
 
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         headers={"Authorization": f"Bearer {token}"},
         json={"type": "walking", "minutes": 25, "calories": 90, "intensity": "light"},
     )
@@ -124,8 +125,8 @@ def test_ingest_failure_never_breaks_the_session_save(client, monkeypatch):
     monkeypatch.setattr(personal_ingest, "ingest_personal_text", _boom)
     token = _member_token(client)
 
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         headers={"Authorization": f"Bearer {token}"},
         json={"type": "yoga", "minutes": 20, "calories": 60, "intensity": "moderate"},
     )
@@ -149,8 +150,8 @@ def test_ingest_is_off_when_rag_auto_ingest_is_disabled(client, monkeypatch):
     )
     token = _member_token(client)
 
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         headers={"Authorization": f"Bearer {token}"},
         json={"type": "cardio", "minutes": 15, "calories": 100, "intensity": "high"},
     )

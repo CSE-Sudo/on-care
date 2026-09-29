@@ -177,8 +177,8 @@
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247) |
-| POST | `/exercise/sessions` | 입력 `{ type, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, day_label? }` → 생성된 `sessions[]` 항목 + `points` |
-| PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목(`points` 없음) |
+| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
+| PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0), intensity }` → `{ calories, source, matched_name, isometric }` |
 
@@ -209,7 +209,7 @@
 | `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
 | `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
 
-생성 응답의 `points`: `{ awarded(int), balance(int) }` — 이번에 받은 포인트와 그 뒤의 잔액.
+생성 응답의 `points`: `{ awarded(int), balance(int) }` — 이번에 받은 포인트와 그 뒤의 잔액. 운동 여러 개를 한 번에 추가하면(`POST /exercise/sessions`) 한도는 항목마다 세고 `awarded` 는 그 합계다 — 다섯 개를 한 번에 저장해도 60P 다. (#2544)
 
 - **하루**는 KST 달력 날짜다. 한도를 넘으면 기록은 저장되고 `awarded: 0` 이다.
 - **같은 기록은 한 번만** 받는다(`(user_id, kind, source_type, source_id)` 유니크). 멱등키 재시도·완료

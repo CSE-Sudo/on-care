@@ -816,6 +816,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exExerciseHold => '버티는 시간';
 
   @override
+  String get exExerciseStrengthAmount => '세트 · 횟수 · 중량';
+
+  @override
+  String get exExerciseStrengthAmountHold => '세트 · 버티는 시간 · 중량';
+
+  @override
   String get exExerciseMeasure => '재는 방법';
 
   @override
@@ -894,10 +900,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exLogged => '운동이 기록됐어요';
 
   @override
+  String exQueueTitle(int count) {
+    return '추가할 운동 $count';
+  }
+
+  @override
+  String get exQueueRemove => '목록에서 빼기';
+
+  @override
+  String exQueueFull(int count) {
+    return '한 번에 $count개까지 추가할 수 있어요';
+  }
+
+  @override
+  String exSaveCount(int count) {
+    return '$count개 저장';
+  }
+
+  @override
+  String exLoggedCount(int count) {
+    return '운동 $count개가 기록됐어요';
+  }
+
+  @override
+  String get exQueueDiscardTitle => '추가할 운동을 버릴까요?';
+
+  @override
+  String exQueueDiscardBody(int count) {
+    return '아직 저장하지 않은 운동 $count개가 사라져요.';
+  }
+
+  @override
+  String get exQueueDiscard => '버리기';
+
+  @override
   String get exOwnRecords => '직접 기록한 운동';
 
   @override
-  String get exOwnRecordsEmpty => '직접 추가한 운동이 없어요';
+  String get exOwnRecordsEmpty => '직접 추가할 운동이 없어요';
 
   @override
   String get exOwnRecordSource => '직접 기록';
@@ -1159,7 +1199,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myPointsExchangeConfirmAction => '교환하기';
+  String get myPointsExchangeConfirmAction => '교환';
 
   @override
   String get myPointsExchangeDone => '교환했어요';
@@ -1274,21 +1314,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myGraphProtectAction => '보호권 쓰기';
+  String get myGraphProtectAction => '보호권 사용';
 
   @override
-  String get myGraphProtectConfirmTitle => '보호권을 쓸까요?';
+  String get myGraphProtectConfirmAction => '사용';
+
+  @override
+  String get myGraphProtectConfirmTitle => '보호권을 사용할까요?';
 
   @override
   String myGraphProtectConfirmMessage(String date, int held) {
-    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 씁니다(남은 보호권 $held개).';
+    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
   }
 
   @override
   String get myGraphProtectDone => '연속을 이어 붙였어요';
 
   @override
-  String get myGraphProtectFailed => '보호권을 쓰지 못했어요';
+  String get myGraphProtectFailed => '보호권을 사용하지 못했어요';
 
   @override
   String get myGraphProtectBuyConfirmTitle => '보호권을 구매할까요?';
@@ -1299,10 +1342,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myGraphProtectBuyAction => '구매하고 쓰기';
+  String get myGraphProtectBuyAction => '구매하고 사용';
 
   @override
-  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.';
+  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 사용하지 못했어요. 내 혜택에 보관돼요.';
 
   @override
   String get myGraphColorTitle => '그래프 색';
@@ -1578,7 +1621,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get challengeJoinConfirmAction => '참가하기';
+  String get challengeJoinConfirmAction => '참가';
 
   @override
   String get challengeJoinDone => '챌린지에 참가했어요';
@@ -1814,7 +1857,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSheetTitle => '이모티콘';
 
   @override
-  String get emoteBuyTitle => '이모티콘 사기';
+  String get emoteBuyTitle => '이모티콘 구매';
 
   @override
   String emoteBuyConfirm(int cost, int days) {
@@ -1822,7 +1865,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get emoteBuyAction => '사기';
+  String get emoteBuyAction => '구매';
 
   @override
   String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';
@@ -3506,7 +3549,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => '완료 기록';
+  String get coachRoutineSubmit => '완료';
 
   @override
   String get coachChatWithTrainer => '트레이너와 채팅';
@@ -3709,6 +3752,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultHistoryCancelTitle => '상담 요청을 취소할까요?';
 
   @override
+  String get exConsultHistoryCancelAction => '요청 취소';
+
+  @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
 
   @override
@@ -3719,12 +3765,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get exDemoPtFeedback =>
       '숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!';
-
-  @override
-  String get exStepperDecrease => '줄이기';
-
-  @override
-  String get exStepperIncrease => '늘리기';
 
   @override
   String pointsRewardBadge(int points) {

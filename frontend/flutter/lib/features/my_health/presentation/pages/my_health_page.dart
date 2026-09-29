@@ -830,7 +830,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         // 지금 쓰는 한 장을 뺀 나머지. 확인창에서 보는 숫자가 누른 뒤의 보유 수다.
         held > 0 ? held - 1 : 0,
       ),
-      confirmLabel: l.myGraphProtectAction,
+      confirmLabel: l.myGraphProtectConfirmAction,
       cancelLabel: l.myCancel,
     );
     if (!ok || !mounted || _usingShield) return;

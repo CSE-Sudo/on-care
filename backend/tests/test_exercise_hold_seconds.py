@@ -18,6 +18,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from app.core import clock
+from tests.exercise_helpers import post_exercise
 
 
 def _today() -> str:
@@ -53,8 +54,8 @@ def _plank(**overrides) -> dict:
 def test_a_hold_is_stored_in_seconds_and_clears_reps(client):
     """45초 홀드는 45초로 남는다 — `reps: 3` 으로 접히지 않는다."""
     headers = _login(client)
-    created = client.post(
-        "/v1/exercise/sessions", json=_plank(reps=3), headers=headers
+    created = post_exercise(
+        client, json=_plank(reps=3), headers=headers
     )
     assert created.status_code == 201, created.text
     row = created.json()
@@ -68,8 +69,8 @@ def test_a_hold_is_stored_in_seconds_and_clears_reps(client):
 def test_reps_still_work_for_ordinary_strength(client):
     """회로 재는 근력은 그대로다 — 홀드 칸이 생겼다고 달라지지 않는다."""
     headers = _login(client)
-    row = client.post(
-        "/v1/exercise/sessions",
+    row = post_exercise(
+        client,
         json=_plank(name="스쿼트", reps=12, hold_seconds=None),
         headers=headers,
     ).json()
@@ -84,8 +85,8 @@ def test_switching_back_to_reps_clears_the_hold(client):
     되고, 그것이 이 칸을 만든 이유다.
     """
     headers = _login(client)
-    created = client.post(
-        "/v1/exercise/sessions", json=_plank(), headers=headers
+    created = post_exercise(
+        client, json=_plank(), headers=headers
     ).json()
     updated = client.put(
         f"/v1/exercise/sessions/{created['id']}",
@@ -100,8 +101,8 @@ def test_switching_back_to_reps_clears_the_hold(client):
 def test_a_hold_is_not_kept_on_a_non_strength_record(client):
     """유산소가 홀드를 들고 있지 않는다 — 세트·횟수·중량과 같은 규칙이다."""
     headers = _login(client)
-    row = client.post(
-        "/v1/exercise/sessions",
+    row = post_exercise(
+        client,
         json=_plank(type="cardio", name="걷기", sets=None, minutes=30),
         headers=headers,
     ).json()
@@ -115,7 +116,7 @@ def test_a_hold_counts_as_sets_not_as_a_new_axis(client):
     축을 그대로 두기로 했으므로, `플랭크 3세트` 는 예전처럼 3세트다.
     """
     headers = _login(client)
-    client.post("/v1/exercise/sessions", json=_plank(), headers=headers)
+    post_exercise(client, json=_plank(), headers=headers)
     week = client.get("/v1/exercise/weeks/current", headers=headers).json()
     assert week["strength_sets"][clock.today().weekday()] >= 3
 
@@ -161,8 +162,8 @@ def test_seconds_fill_in_the_minutes_a_record_is_aggregated_by(client):
     운동이 반올림으로 0분이 되어 거절되지도 않는다.
     """
     headers = _login(client)
-    row = client.post(
-        "/v1/exercise/sessions",
+    row = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",
@@ -180,8 +181,8 @@ def test_seconds_fill_in_the_minutes_a_record_is_aggregated_by(client):
 def test_minutes_or_seconds_but_not_neither(client):
     """둘 다 없으면 422 다 — 길이를 모르는 기록은 집계할 수 없다."""
     headers = _login(client)
-    rejected = client.post(
-        "/v1/exercise/sessions",
+    rejected = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",
@@ -196,8 +197,8 @@ def test_minutes_or_seconds_but_not_neither(client):
 def test_seconds_win_over_minutes_when_both_are_sent(client):
     """두 값이 어긋나면 초가 맞다 — 분은 서버가 다시 계산한다."""
     headers = _login(client)
-    row = client.post(
-        "/v1/exercise/sessions",
+    row = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "걷기",

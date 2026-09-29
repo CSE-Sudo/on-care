@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
+import '../../helpers/exercise_session_post.dart';
 
 String _currentMonday() {
   final now = nowKst();
@@ -148,9 +149,9 @@ void main() {
   });
 
   test('POST /exercise/sessions persists and shows up in weeks/current', () async {
-    final add = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{
+    final add = await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'cardio',
         'minutes': 40,
         'calories': 300,
@@ -173,9 +174,9 @@ void main() {
   });
 
   test('POST/PUT /exercise/sessions round-trips intensity', () async {
-    final add = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{
+    final add = await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'strength',
         'minutes': 40,
         'calories': 300,
@@ -208,20 +209,96 @@ void main() {
   });
 
   test('POST /exercise/sessions defaults intensity to moderate', () async {
-    final add = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{'type': 'cardio', 'minutes': 20, 'date': _day('목')},
+    final add = await postExerciseSession(
+      dio,
+      <String, Object?>{'type': 'cardio', 'minutes': 20, 'date': _day('목')},
     );
     expect(add.data!['intensity'], 'moderate');
   });
 
   test('POST /exercise/sessions rejects non-positive minutes', () async {
-    final res = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{'type': 'cardio', 'minutes': 0},
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{'type': 'cardio', 'minutes': 0},
       options: Options(validateStatus: (int? s) => true),
     );
-    expect(res.statusCode, 400);
+    // 실 서버처럼 항목 검증 실패는 422 다(#2544).
+    expect(res.statusCode, 422);
+  });
+
+  test('POST /exercise/sessions 는 여러 건을 요청 순서대로 저장한다 (#2544)', () async {
+    final Response<Map<String, Object?>> res = await dio
+        .post<Map<String, Object?>>(
+          '/exercise/sessions',
+          data: <String, Object?>{
+            'sessions': <Map<String, Object?>>[
+              <String, Object?>{
+                'type': 'cardio',
+                'name': '러닝머신',
+                'duration_seconds': 1800,
+                'date': _day('화'),
+              },
+              <String, Object?>{
+                'type': 'strength',
+                'name': '스쿼트',
+                'minutes': 12,
+                'sets': 3,
+                'reps': 10,
+                'date': _day('화'),
+              },
+            ],
+          },
+        );
+    final List<Object?> sessions = res.data!['sessions']! as List<Object?>;
+    expect(
+      sessions.map((Object? s) => (s! as Map<String, Object?>)['name']),
+      <String>['러닝머신', '스쿼트'],
+    );
+    final Set<Object?> ids = sessions
+        .map((Object? s) => (s! as Map<String, Object?>)['id'])
+        .toSet();
+    expect(ids, hasLength(2));
+
+    final week = await dio.get<Map<String, Object?>>('/exercise/weeks/current');
+    final List<Object?> saved = week.data!['sessions']! as List<Object?>;
+    expect(
+      saved.map((Object? s) => (s! as Map<String, Object?>)['id']),
+      containsAll(ids),
+    );
+  });
+
+  test('항목 하나가 잘못되면 아무것도 저장하지 않는다 (#2544)', () async {
+    final before = await dio.get<Map<String, Object?>>(
+      '/exercise/weeks/current',
+    );
+    final int count = (before.data!['sessions']! as List<Object?>).length;
+    final res = await dio.post<Map<String, Object?>>(
+      '/exercise/sessions',
+      data: <String, Object?>{
+        'sessions': <Map<String, Object?>>[
+          <String, Object?>{'type': 'cardio', 'minutes': 20, 'date': _day('수')},
+          <String, Object?>{'type': 'cardio', 'minutes': 0, 'date': _day('수')},
+        ],
+      },
+      options: Options(validateStatus: (int? s) => true),
+    );
+    expect(res.statusCode, 422);
+    final after = await dio.get<Map<String, Object?>>('/exercise/weeks/current');
+    expect((after.data!['sessions']! as List<Object?>).length, count);
+  });
+
+  test('빈 목록과 단건 몸통은 거절한다 (#2544)', () async {
+    for (final Map<String, Object?> body in <Map<String, Object?>>[
+      <String, Object?>{'sessions': <Object?>[]},
+      <String, Object?>{'type': 'cardio', 'minutes': 20},
+    ]) {
+      final res = await dio.post<Map<String, Object?>>(
+        '/exercise/sessions',
+        data: body,
+        options: Options(validateStatus: (int? s) => true),
+      );
+      expect(res.statusCode, 422);
+    }
   });
 
   test('week_start 로 지난 주를 조회한다 (#671)', () async {
@@ -358,9 +435,9 @@ void main() {
   // --- 근력 세트 (#1262) ------------------------------------------------
 
   test('POST /exercise/sessions 는 근력 세트를 그대로 저장한다', () async {
-    final res = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'strength',
         'minutes': 36,
         'sets': 12,
@@ -380,9 +457,9 @@ void main() {
   });
 
   test('세트를 안 보낸 근력 기록은 분에서 환산해 센다', () async {
-    final res = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'strength',
         'minutes': 30,
         'calories': 180,
@@ -399,9 +476,9 @@ void main() {
   });
 
   test('근력이 아닌 기록에는 세트를 남기지 않는다', () async {
-    final res = await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'cardio',
         'minutes': 30,
         'sets': 12,
@@ -413,9 +490,9 @@ void main() {
   });
 
   test('PUT 으로 유형을 바꾸면 세트가 지워진다', () async {
-    final id = (await dio.post<Map<String, Object?>>(
-      '/exercise/sessions',
-      data: <String, Object?>{
+    final id = (await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'strength',
         'minutes': 36,
         'sets': 12,

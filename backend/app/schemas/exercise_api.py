@@ -10,6 +10,7 @@ from app.schemas.exercise_limits import (
     MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SECONDS,
+    MAX_EXERCISE_SESSIONS_PER_REQUEST,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
 )
@@ -67,13 +68,17 @@ class ExerciseSessionOut(BaseModel):
     completed_at: datetime | None = None
 
 
-class ExerciseSessionCreatedOut(ExerciseSessionOut):
-    """POST /exercise/sessions 응답 — 저장된 기록에 이번 포인트 적립을 더한다. (#1786)
+class ExerciseSessionsCreatedOut(BaseModel):
+    """POST /exercise/sessions 응답 — 저장된 기록들과 이번 포인트 적립. (#1786, #2544)
 
-    주간 목록(`sessions[]`)·수정 응답에는 붙지 않는다. 적립은 새로 추가한 순간의
-    일이라, 기록마다 달고 다니면 목록의 모든 항목에 `null` 이 실린다.
+    적립은 기록마다가 아니라 **합계** 한 벌이다. 회원에게는 한 번 저장한 일이라
+    알림도 한 번이고, 주간 목록(`sessions[]`)·수정 응답의 항목에는 적립이 붙지
+    않는다 — 기록마다 달고 다니면 목록의 모든 항목에 `null` 이 실린다.
+
+    `sessions` 는 요청과 같은 순서다.
     """
 
+    sessions: list[ExerciseSessionOut]
     points: PointsOut
 
 
@@ -235,6 +240,22 @@ class ExerciseSessionCreate(BaseModel):
         elif self.minutes is None:
             raise ValueError("minutes 또는 duration_seconds 중 하나는 있어야 합니다.")
         return self
+
+
+class ExerciseSessionsCreate(BaseModel):
+    """POST /exercise/sessions 입력 — 추가할 운동 기록 1~N개. (#2544)
+
+    회원은 하루치 운동 여러 개를 한 번에 적는다. 한 건씩 보내면 몇 개만 저장된
+    채 실패할 수 있고, 다시 보내면 이미 저장된 것이 한 번 더 남는다 — 그래서
+    **목록 하나를 한 트랜잭션으로** 받는다. 한 건이어도 같은 모양이다. 추가 경로를
+    두 벌 두면 검증·적립이 두 곳에서 갈라진다.
+
+    항목 하나라도 잘못되면 전체가 422 다.
+    """
+
+    sessions: list[ExerciseSessionCreate] = Field(
+        min_length=1, max_length=MAX_EXERCISE_SESSIONS_PER_REQUEST
+    )
 
 
 class ExerciseCalorieRequest(BaseModel):

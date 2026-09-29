@@ -834,6 +834,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exExerciseHold => 'Hold time';
 
   @override
+  String get exExerciseStrengthAmount => 'Sets · Reps · Weight';
+
+  @override
+  String get exExerciseStrengthAmountHold => 'Sets · Hold · Weight';
+
+  @override
   String get exExerciseMeasure => 'Measured in';
 
   @override
@@ -923,6 +929,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exLogged => 'Exercise logged';
+
+  @override
+  String exQueueTitle(int count) {
+    return 'To add $count';
+  }
+
+  @override
+  String get exQueueRemove => 'Remove from list';
+
+  @override
+  String exQueueFull(int count) {
+    return 'You can add up to $count at a time';
+  }
+
+  @override
+  String exSaveCount(int count) {
+    return 'Save $count';
+  }
+
+  @override
+  String exLoggedCount(int count) {
+    return '$count exercises logged';
+  }
+
+  @override
+  String get exQueueDiscardTitle => 'Discard exercises to add?';
+
+  @override
+  String exQueueDiscardBody(int count) {
+    return '$count unsaved exercises will be lost.';
+  }
+
+  @override
+  String get exQueueDiscard => 'Discard';
 
   @override
   String get exOwnRecords => 'Workouts you logged';
@@ -1313,6 +1353,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGraphProtectAction => 'Use a shield';
+
+  @override
+  String get myGraphProtectConfirmAction => 'Use';
 
   @override
   String get myGraphProtectConfirmTitle => 'Use a streak shield?';
@@ -3647,7 +3690,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => 'Save';
+  String get coachRoutineSubmit => 'Done';
 
   @override
   String get coachChatWithTrainer => 'Chat with trainer';
@@ -3856,6 +3899,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConsultHistoryCancelTitle => 'Cancel this consultation request?';
 
   @override
+  String get exConsultHistoryCancelAction => 'Cancel request';
+
+  @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
 
@@ -3867,12 +3913,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exDemoPtFeedback =>
       'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
-
-  @override
-  String get exStepperDecrease => 'Decrease';
-
-  @override
-  String get exStepperIncrease => 'Increase';
 
   @override
   String pointsRewardBadge(int points) {

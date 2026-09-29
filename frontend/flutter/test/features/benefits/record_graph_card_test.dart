@@ -276,7 +276,7 @@ void main() {
     expect(_dayLine(tester), '8월 19일 · 기록 없음');
   });
 
-  testWidgets('창 안의 빈 칸을 누르면 그 줄에 보호권 쓰기가 붙는다', (tester) async {
+  testWidgets('창 안의 빈 칸을 누르면 그 줄에 보호권 사용이 붙는다', (tester) async {
     DateTime? asked;
     final DateTime empty = DateTime(2026, 8, 5);
     await pump(
@@ -300,7 +300,7 @@ void main() {
     expect(asked, empty);
   });
 
-  testWidgets('기록이 있는 날과 창 밖의 날에는 보호권 쓰기가 없다', (tester) async {
+  testWidgets('기록이 있는 날과 창 밖의 날에는 보호권 사용이 없다', (tester) async {
     await pump(
       tester,
       _graph(
@@ -321,7 +321,7 @@ void main() {
     expect(find.byKey(const Key('recordGraphProtect')), findsNothing);
   });
 
-  testWidgets('창이 없으면 어느 칸도 보호권 쓰기가 없다', (tester) async {
+  testWidgets('창이 없으면 어느 칸도 보호권 사용이 없다', (tester) async {
     await pump(tester, _graph(), onProtect: (_) {});
 
     await _tapCell(tester, _yesterday);
@@ -329,7 +329,7 @@ void main() {
     expect(find.byKey(const Key('recordGraphProtect')), findsNothing);
   });
 
-  testWidgets('보호권이 없어도 창 안의 빈 칸에는 보호권 쓰기가 붙는다', (tester) async {
+  testWidgets('보호권이 없어도 창 안의 빈 칸에는 보호권 사용이 붙는다', (tester) async {
     DateTime? asked;
     final DateTime empty = DateTime(2026, 8, 5);
     await pump(

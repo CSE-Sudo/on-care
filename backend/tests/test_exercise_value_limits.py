@@ -28,6 +28,7 @@ from app.schemas.exercise_limits import (
     MAX_EXERCISE_WEIGHT_KG,
 )
 from app.schemas.trainer_api import ProgramDraftExercise, ProgramItem
+from tests.exercise_helpers import post_exercise
 
 #: 세트·횟수·중량을 함께 받는 스키마들. 회원이 적는 쪽과 트레이너가 적는 쪽이
 #: 섞여 있어야 이 시험이 뜻을 가진다.
@@ -91,8 +92,8 @@ def test_member_can_log_what_a_trainer_can_assign(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # 트레이너 스키마가 받아 주는 최댓값 그대로.
-    res = client.post(
-        "/v1/exercise/sessions",
+    res = post_exercise(
+        client,
         json={
             "type": "strength",
             "name": "레그프레스",

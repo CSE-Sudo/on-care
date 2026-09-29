@@ -317,6 +317,8 @@
   "exExerciseNameHintOther": "예) 재활 운동, 스포츠 활동",
   "exExerciseReps": "횟수",
   "exExerciseHold": "버티는 시간",
+  "exExerciseStrengthAmount": "세트 · 횟수 · 중량",
+  "exExerciseStrengthAmountHold": "세트 · 버티는 시간 · 중량",
   "exExerciseMeasure": "재는 방법",
   "exExerciseWeight": "중량",
   "exUnitMinutes": "분",
@@ -355,8 +357,51 @@
   "exCannotEdit": "이 기록은 수정할 수 없어요",
   "exUpdated": "운동 기록이 수정됐어요",
   "exLogged": "운동이 기록됐어요",
+  "exQueueTitle": "추가할 운동 {count}",
+  "@exQueueTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueRemove": "목록에서 빼기",
+  "exQueueFull": "한 번에 {count}개까지 추가할 수 있어요",
+  "@exQueueFull": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exSaveCount": "{count}개 저장",
+  "@exSaveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exLoggedCount": "운동 {count}개가 기록됐어요",
+  "@exLoggedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscardTitle": "추가할 운동을 버릴까요?",
+  "exQueueDiscardBody": "아직 저장하지 않은 운동 {count}개가 사라져요.",
+  "@exQueueDiscardBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscard": "버리기",
   "exOwnRecords": "직접 기록한 운동",
-  "exOwnRecordsEmpty": "직접 추가한 운동이 없어요",
+  "exOwnRecordsEmpty": "직접 추가할 운동이 없어요",
   "exOwnRecordSource": "직접 기록",
   "exCompletedPtDayTitle": "완료한 PT",
   "exCompletedRoutineDayTitle": "완료한 개인운동",
@@ -467,7 +512,7 @@
       }
     }
   },
-  "myPointsExchangeConfirmAction": "교환하기",
+  "myPointsExchangeConfirmAction": "교환",
   "myPointsExchangeDone": "교환했어요",
   "myPointsExchangeFailed": "교환하지 못했어요. 다시 시도해 주세요.",
   "myPointsShortfall": "{points} 부족해요",
@@ -580,9 +625,10 @@
       }
     }
   },
-  "myGraphProtectAction": "보호권 쓰기",
-  "myGraphProtectConfirmTitle": "보호권을 쓸까요?",
-  "myGraphProtectConfirmMessage": "{date}을 기록 연속에 이어 붙여요. 보호권 한 개를 씁니다(남은 보호권 {held}개).",
+  "myGraphProtectAction": "보호권 사용",
+  "myGraphProtectConfirmAction": "사용",
+  "myGraphProtectConfirmTitle": "보호권을 사용할까요?",
+  "myGraphProtectConfirmMessage": "{date}을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 {held}개).",
   "@myGraphProtectConfirmMessage": {
     "placeholders": {
       "date": {
@@ -594,7 +640,7 @@
     }
   },
   "myGraphProtectDone": "연속을 이어 붙였어요",
-  "myGraphProtectFailed": "보호권을 쓰지 못했어요",
+  "myGraphProtectFailed": "보호권을 사용하지 못했어요",
   "myGraphProtectBuyConfirmTitle": "보호권을 구매할까요?",
   "myGraphProtectBuyConfirmMessage": "지금 가진 보호권이 없어요. {cost}로 보호권을 구매하고 {date}을 바로 기록 연속에 이어 붙여요.",
   "@myGraphProtectBuyConfirmMessage": {
@@ -607,8 +653,8 @@
       }
     }
   },
-  "myGraphProtectBuyAction": "구매하고 쓰기",
-  "myGraphProtectBoughtNotUsed": "보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.",
+  "myGraphProtectBuyAction": "구매하고 사용",
+  "myGraphProtectBoughtNotUsed": "보호권은 구매했지만 사용하지 못했어요. 내 혜택에 보관돼요.",
   "myGraphColorTitle": "그래프 색",
   "myGraphColorPickTitle": "열 색 고르기",
   "myGraphColorLocked": "{cost}로 열기",
@@ -841,7 +887,7 @@
       }
     }
   },
-  "challengeJoinConfirmAction": "참가하기",
+  "challengeJoinConfirmAction": "참가",
   "challengeJoinDone": "챌린지에 참가했어요",
   "challengeJoinFailed": "참가하지 못했어요. 다시 시도해 주세요.",
   "challengeJoinClosed": "다음 주 월요일에 다시 참가할 수 있어요",
@@ -1040,9 +1086,9 @@
   "myLogout": "로그아웃",
   "myLogoutConfirm": "로그아웃 하시겠어요?",
   "emoteSheetTitle": "이모티콘",
-  "emoteBuyTitle": "이모티콘 사기",
+  "emoteBuyTitle": "이모티콘 구매",
   "emoteBuyConfirm": "{cost}P로 {days}일 동안 쓸까요?\n산 때부터 기간이 흘러가요.",
-  "emoteBuyAction": "사기",
+  "emoteBuyAction": "구매",
   "emoteBought": "이제 이 이모티콘을 보낼 수 있어요",
   "emoteBuyFailed": "이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.",
   "emoteShortfall": "포인트가 부족해요",
@@ -1731,7 +1777,7 @@
   "coachRoutineIntensity": "수행 강도",
   "coachRoutinePlannedIntensity": "권장 {level}",
   "coachRoutineDoneIntensity": "수행 {level}",
-  "coachRoutineSubmit": "완료 기록",
+  "coachRoutineSubmit": "완료",
   "coachChatWithTrainer": "트레이너와 채팅",
   "coachTrainerLoading": "담당 트레이너를 불러오는 중이에요",
   "coachTrainerNone": "담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요",
@@ -1825,11 +1871,10 @@
   "a11yPrevWeek": "지난 주",
   "a11yNextWeek": "다음 주",
   "exConsultHistoryCancelTitle": "상담 요청을 취소할까요?",
+  "exConsultHistoryCancelAction": "요청 취소",
   "exConsultHistoryCancelBody": "취소한 요청은 다시 되돌릴 수 없어요.",
   "exDemoPtSessionCount": "{trainerName} 트레이너와 12회차",
   "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
-  "exStepperDecrease": "줄이기",
-  "exStepperIncrease": "늘리기",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "placeholders": {
