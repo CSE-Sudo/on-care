@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -103,9 +101,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   _MySection get _section => _MySection.parse(widget.tab);
 
   bool _saving = false;
-  bool _saveFlash = false;
   final Set<String> _removingClients = <String>{};
-  Timer? _flashTimer;
 
   // The "saved" profile (in-memory mock; starts from the seed/session).
   late TrainerProfile _profile;
@@ -170,7 +166,6 @@ class _MyPageState extends ConsumerState<MyPage> {
   @override
   void dispose() {
     if (_leaveGuarded) setLeaveGuard(null);
-    _flashTimer?.cancel();
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -321,10 +316,13 @@ class _MyPageState extends ConsumerState<MyPage> {
       return;
     }
 
-    _flashTimer?.cancel();
-    _flashTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _saveFlash = false);
-    });
+    // 저장 완료는 다른 저장(비밀번호·프로그램·리포트 피드백)과 같은 공용
+    // 토스트로 알린다.
+    showAppToast(
+      context,
+      AppLocalizations.of(context).mySaved,
+      type: AppToastType.success,
+    );
     context.go(AppRoutes.mySection(_MySection.profile.name));
   }
 
@@ -349,7 +347,6 @@ class _MyPageState extends ConsumerState<MyPage> {
       _draftCerts = List<String>.of(_certs);
       _draftGymId = (saved.gym.id ?? '');
       _saving = false;
-      _saveFlash = true;
       _newCert.clear();
     });
   }
@@ -389,7 +386,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       title: l.myClientRemoveTitle(client.name),
       message: l.myClientRemoveBody,
       cancelLabel: l.actionCancel,
-      confirmLabel: l.actionDelete,
+      confirmLabel: l.myClientRemove,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -556,7 +553,6 @@ class _MyPageState extends ConsumerState<MyPage> {
             if (section == _MySection.edit)
               AppButton(
                 label: _saving ? l.mySaving : l.actionSave,
-                leadingIcon: AppIcons.check,
                 loading: _saving,
                 onPressed: _save,
               ),
@@ -692,10 +688,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final String intro = _profile.intro.trim();
     return <Widget>[
-      if (_saveFlash) ...<Widget>[
-        AppBanner(title: l.mySaved, tone: AppBannerTone.success),
-        const SizedBox(height: OnCareSpacing.cardGap),
-      ],
       _IdentityCard(profile: _profile, onEdit: () => _go(_MySection.edit)),
       const SizedBox(height: OnCareSpacing.cardGap),
       const _MonthStats(),
@@ -1960,7 +1952,7 @@ class _ManagedClientRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // 삭제는 카드 안, 이름 줄 오른쪽 아이콘이다 — 카드 밖에 따로 떨어져
+    // 연결 해제는 카드 안, 이름 줄 오른쪽 아이콘이다 — 카드 밖에 따로 떨어져
     // 있으면 어느 회원의 버튼인지 한 번 더 읽어야 했다.
     return ClientCard(
       key: ValueKey<String>('managed-client-${client.id}'),
@@ -1968,11 +1960,13 @@ class _ManagedClientRow extends StatelessWidget {
       onTap: () => context.go(AppRoutes.clientDetail(client.id)),
       action: busy
           ? const AppLoading.inline()
-          // 확인창을 여는 위험 동작이라 빨간 아이콘이다. 툴팁이 접근성 이름이다.
+          // 회원을 지우는 게 아니라 담당 연결만 푸는 것이라 휴지통·빨강 대신
+          // 다른 목록의 빼기 버튼과 같은 회색이다. 위험 표시는 확인창의
+          // 빨간 확인 버튼이 맡는다. 툴팁이 접근성 이름이다.
           : AppIconButton(
-              icon: AppIcons.delete,
+              icon: AppIcons.unlinkClient,
               tooltip: l.myClientRemove,
-              color: OnCareColors.danger,
+              color: OnCareColors.textSecondary,
               onPressed: onRemove,
             ),
     );

@@ -1632,8 +1632,8 @@
   "myAdd": "Add",
   "myStatClients": "Members",
   "myClientManagement": "Member management",
-  "myClientRemove": "Remove member",
-  "myClientRemoveTitle": "Remove {name}?",
+  "myClientRemove": "Disconnect",
+  "myClientRemoveTitle": "Disconnect from {name}?",
   "@myClientRemoveTitle": {
     "placeholders": {
       "name": {
@@ -1641,9 +1641,9 @@
       }
     }
   },
-  "myClientRemoveBody": "This member's schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.",
-  "myClientRemoveSuccess": "Member removed",
-  "myClientRemoveFailed": "Couldn't remove the member. Please try again",
+  "myClientRemoveBody": "After you disconnect, this member's schedules, programs and routines, reports, messages, and notes won't show in the trainer app. Their account and member app records stay as they are.",
+  "myClientRemoveSuccess": "Disconnected from the member",
+  "myClientRemoveFailed": "Couldn't disconnect. Please try again",
   "myClientManagementEmpty": "No members assigned",
   "myBasicInfo": "Basic info",
   "myStatSessionsDone": "Sessions done",
@@ -1700,7 +1700,7 @@
   "myCertsEmpty": "No certifications yet",
   "myGymEmpty": "No gym yet. Add yours in Edit profile.",
   "myEditVisibleBody": "Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.",
-  "myClientManagementNoteTitle": "Removing only hides members here",
+  "myClientManagementNoteTitle": "Disconnecting keeps member records",
   "myClientManagementNote": "Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
   "myNotifConsultationHint": "When a member requests a consultation or answers your invite",

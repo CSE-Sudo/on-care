@@ -98,7 +98,7 @@ void main() {
       expect(find.textContaining('역할 전환'), findsNothing);
     });
 
-    testWidgets('회원 삭제 전 이름과 데이터 보존 범위를 확인한다', (tester) async {
+    testWidgets('연결 해제 전 이름과 데이터 보존 범위를 확인한다', (tester) async {
       // 회원 관리는 메뉴의 `내 정보` 묶음에 있다(#2264).
       await openSettings(tester);
 
@@ -106,16 +106,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(currentLocation(tester), AppRoutes.mySection('clients'));
 
-      final remove = find.byTooltip('회원 삭제').first;
+      final remove = find.byTooltip('연결 해제').first;
       await tester.tap(remove);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('회원을 삭제할까요?'), findsOneWidget);
+      expect(find.textContaining('회원과 연결을 해제할까요?'), findsOneWidget);
       expect(find.textContaining('스케줄, 프로그램·루틴, 리포트, 메시지, 메모'), findsOneWidget);
-      expect(find.textContaining('회원 앱의 기존 데이터는 삭제되지 않아요'), findsOneWidget);
+      expect(find.textContaining('회원 계정과 회원 앱의 기록은 그대로 남아요'), findsOneWidget);
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('회원을 삭제할까요?'), findsNothing);
+      expect(find.textContaining('회원과 연결을 해제할까요?'), findsNothing);
     });
 
     testWidgets('담당 종료한 회원은 관리 화면에서 완전히 사라진다', (tester) async {
@@ -125,22 +125,22 @@ void main() {
       await tester.tap(find.text('회원 관리'));
       await tester.pumpAndSettle();
 
-      final before = find.byTooltip('회원 삭제').evaluate().length;
+      final before = find.byTooltip('연결 해제').evaluate().length;
       expect(before, greaterThan(0));
       expect(find.text('김민수'), findsWidgets);
 
-      await tester.tap(find.byTooltip('회원 삭제').first);
+      await tester.tap(find.byTooltip('연결 해제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(of: find.byType(AppDialog), matching: find.text('삭제')),
+        find.descendant(of: find.byType(AppDialog), matching: find.text('연결 해제')),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('회원을 삭제했어요'), findsOneWidget);
+      expect(find.text('회원과 연결을 해제했어요'), findsOneWidget);
       // 미등록 상태로 목록에 남지 않는다 — 다시 잡으려면 회원 탭의
       // "신규 회원 등록"에서 회원 ID로 새로 찾아야 한다. 여기에는 그
       // 지름길(다시 등록 버튼, 미등록 표시)이 아예 없다.
-      expect(find.byTooltip('회원 삭제'), findsNWidgets(before - 1));
+      expect(find.byTooltip('연결 해제'), findsNWidgets(before - 1));
       expect(find.textContaining('미등록'), findsNothing);
       expect(find.byTooltip('다시 등록'), findsNothing);
       expect(find.text('김민수'), findsNothing);
@@ -195,8 +195,9 @@ void main() {
         '010-9999-0000',
       );
 
-      // Flash expires (no pending timers at test end).
-      await tester.pump(const Duration(seconds: 3));
+      // 저장 완료는 공용 토스트다 — 시간이 지나면 사라진다.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
       expect(find.text('변경사항이 저장됐어요'), findsNothing);
     });
 
