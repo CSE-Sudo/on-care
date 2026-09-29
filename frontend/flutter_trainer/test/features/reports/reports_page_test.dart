@@ -228,7 +228,7 @@ void main() {
   );
 
   /// 리포트 카드 제목 줄의 주 이동 화살표. 헤더가 아니라 카드 안에 있다(#1177).
-  /// 공용 `AppPeriodNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
+  /// `WeekRangeNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
   final Finder prevWeek = find.descendant(
     of: find.byType(ReportWeekNav),
     matching: find.widgetWithIcon(IconButton, AppIcons.chevronLeft),
@@ -552,8 +552,12 @@ void main() {
     );
   });
 
-  testWidgets('`오늘` 은 날짜·화살표 뒤에 선다 (#2232)', (WidgetTester tester) async {
+  testWidgets('`오늘` 은 날짜 뒤, 두 화살표 안쪽에 선다 (#2232, #2536)', (
+    WidgetTester tester,
+  ) async {
     await openReports(tester, workbench: true);
+    final Rect prevBefore = tester.getRect(prevWeek);
+    final Rect nextBefore = tester.getRect(nextWeek);
 
     await tester.tap(prevWeek);
     await settle(tester);
@@ -562,11 +566,23 @@ void main() {
       const ValueKey<String>('reports-go-this-week'),
     );
     expect(currentWeek, findsOneWidget);
+    final Finder dateLabel = find.descendant(
+      of: find.byType(ReportWeekNav),
+      matching: find.textContaining('월'),
+    );
     // 읽는 순서대로 — 어느 주인지를 먼저 읽고, 돌아갈지는 그 다음이다.
     expect(
       tester.getTopLeft(currentWeek).dx,
-      greaterThanOrEqualTo(tester.getTopRight(nextWeek).dx),
+      greaterThanOrEqualTo(tester.getTopRight(dateLabel).dx),
     );
+    // 버튼은 두 화살표 사이의 고정 자리에 앉는다 — 나타나도 화살표가
+    // 움직이지 않는다(#2536).
+    expect(
+      tester.getTopRight(currentWeek).dx,
+      lessThanOrEqualTo(tester.getTopLeft(nextWeek).dx),
+    );
+    expect(tester.getRect(prevWeek), prevBefore);
+    expect(tester.getRect(nextWeek), nextBefore);
     expect(tester.takeException(), isNull);
   });
 
