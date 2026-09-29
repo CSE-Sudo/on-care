@@ -1,6 +1,6 @@
 /// 포인트 사용처의 주간 운동 챌린지 카드 — 참가 확인창과 진행·막힌 이유. (#1789)
 ///
-/// 참가는 `참가` → 파란 2열 확인창(`취소 / 참가하기`)에서 건 포인트·목표·보상을
+/// 참가는 `참가` → 파란 2열 확인창(`취소 / 참가`)에서 건 포인트·목표·보상을
 /// 밝힌 뒤 건다. 참가했으면 버튼 대신 이번 주 진행(예: 2 / 3회)이 선다.
 library;
 
@@ -80,7 +80,7 @@ void main() {
     );
   });
 
-  testWidgets('참가 → 파란 2열 확인창 → 참가하기로 포인트를 건다', (tester) async {
+  testWidgets('참가 → 파란 2열 확인창 → 참가로 포인트를 건다', (tester) async {
     final FakeChallengeRepository repo = FakeChallengeRepository(
       weekly: weeklyWith(goal: 4),
     );
@@ -102,11 +102,13 @@ void main() {
       find.byType(AppButtonPair),
     );
     expect(pair.cancelLabel, '취소');
-    expect(pair.confirmLabel, '참가하기');
+    expect(pair.confirmLabel, '참가');
     // 일반 확정은 파란(브랜드) 채움이다.
     expect(pair.destructive, isFalse);
 
-    await tester.tap(find.text('참가하기'));
+    await tester.tap(
+      find.descendant(of: find.byType(AppDialog), matching: find.text('참가')),
+    );
     await tester.pumpAndSettle();
 
     expect(repo.joins, 1);
@@ -139,7 +141,9 @@ void main() {
 
     await tester.tap(joinButton);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('참가하기'));
+    await tester.tap(
+      find.descendant(of: find.byType(AppDialog), matching: find.text('참가')),
+    );
     await tester.pumpAndSettle();
 
     expect(repo.joins, 1);

@@ -1355,6 +1355,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGraphProtectAction => 'Use a shield';
 
   @override
+  String get myGraphProtectConfirmAction => 'Use';
+
+  @override
   String get myGraphProtectConfirmTitle => 'Use a streak shield?';
 
   @override
@@ -3894,6 +3897,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelTitle => 'Cancel this consultation request?';
+
+  @override
+  String get exConsultHistoryCancelAction => 'Cancel request';
 
   @override
   String get exConsultHistoryCancelBody =>
