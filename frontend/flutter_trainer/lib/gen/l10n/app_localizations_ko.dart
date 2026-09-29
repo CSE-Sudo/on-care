@@ -2283,28 +2283,43 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymHours => '운영 시간';
 
   @override
-  String get myGymListFailed => '헬스장 목록을 불러오지 못했습니다.';
+  String get myGymRequired => '검색 결과에서 소속 헬스장을 골라 주세요';
 
   @override
-  String get myGymNoMatch => '목록에 없는 헬스장이에요. 주소와 운영 시간을 직접 적어 주세요.';
+  String get myGymSearchLabel => '헬스장 찾기';
 
   @override
-  String get myGymLinked => '등록된 헬스장';
+  String get myGymSearchHint => '헬스장 이름이나 주소';
 
   @override
-  String get myGymUnlink => '연결 해제';
+  String get myGymSearching => '찾는 중이에요';
 
   @override
-  String get myGymNameHint => '이름을 치면 등록된 헬스장을 찾아요';
+  String get myGymSearchEmpty => '찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.';
 
   @override
-  String get myGymRequired => '소속 헬스장을 입력해 주세요';
+  String get myGymSearchFailed => '헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
   @override
-  String get myGymEditHint => '등록된 헬스장을 고르면 주소·운영 시간이 채워져요. 목록에 없으면 직접 적어 주세요.';
+  String get myGymCurrent => '현재 소속';
 
   @override
-  String get myGymListLoading => '헬스장 목록을 불러오는 중이에요';
+  String get myGymPicked => '저장하면 이 헬스장으로 바뀌어요';
+
+  @override
+  String get myGymNone => '아직 없어요';
+
+  @override
+  String get myGymHiddenTitle => '회원에게 아직 보이지 않아요';
+
+  @override
+  String get myGymHiddenBody => '소속 헬스장을 설정해야 회원 앱의 헬스장 찾기와 상담 신청에 나와요.';
+
+  @override
+  String get myGymHiddenAction => '헬스장 설정';
+
+  @override
+  String get myGymEditHint => '이름으로 찾아 소속 헬스장을 골라 주세요. 회원은 이 헬스장으로 트레이너님을 찾아요.';
 
   @override
   String get mySignOut => '로그아웃';
@@ -2405,7 +2420,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCertsEmpty => '등록한 자격증이 없어요';
 
   @override
-  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 등록해 주세요.';
+  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 설정해 주세요.';
 
   @override
   String get myEditVisibleBody =>
