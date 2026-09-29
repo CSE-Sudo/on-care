@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_options_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 
 /// Generates A/B routine options from the member's real data via the
@@ -30,6 +31,7 @@ class DioTrainerRoutineOptionsRepository
     required int? availableMinutes,
     required String? intensityPreference,
     required String trainerNote,
+    Set<RoutineContextSource>? sources,
   }) async {
     final encodedId = Uri.encodeComponent(memberId);
     try {
@@ -39,6 +41,13 @@ class DioTrainerRoutineOptionsRepository
           'available_minutes': availableMinutes,
           'intensity_preference': intensityPreference,
           'trainer_note': trainerNote,
+          // 보내지 않으면 서버 기본값이다 — 빈 목록과 구분해야 한다(#2587).
+          if (sources != null)
+            'sources': <String>[
+              for (final RoutineContextSource source
+                  in RoutineContextSource.values)
+                if (sources.contains(source)) source.wire,
+            ],
         },
         options: Options(receiveTimeout: _generateTimeout),
       );

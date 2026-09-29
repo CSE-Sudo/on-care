@@ -2117,6 +2117,25 @@
   "aiPromptLabel": "Your request",
   "aiPromptHint": "e.g. Build a 40-minute program that goes easy on the legs and leans on cardio",
   "aiPromptBlurb": "Your request goes to the AI with the member's data (up to 500 characters). Write the member note in the next step.",
+  "aiSourcesTitle": "Sources for the AI",
+  "aiSourcesBlurb": "Only the checked sources are sent to the AI with the member's data. Your choice is kept for next time.",
+  "aiSourcePtFeedback": "Recent PT feedback",
+  "aiSourceConsultMemo": "Consultation memos",
+  "aiSourceTrainerMemo": "Member memos (written by you)",
+  "aiSourceChatInsight": "Chat-detected memos",
+  "aiSourceWeeklyFeedback": "Member weekly feedback",
+  "aiSourceRangeDays": "Last {days} days · up to {count}",
+  "@aiSourceRangeDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiSourceRangeWeeks": "This week · last week",
   "aiGenerateGoalBased": "Generate goal-based suggestion",
   "aiStatusTemplateTitle": "Goal-based starter suggestion",
   "aiStatusTemplateBody": "Not enough workout history yet to personalize — this starts from a goal-based default.",

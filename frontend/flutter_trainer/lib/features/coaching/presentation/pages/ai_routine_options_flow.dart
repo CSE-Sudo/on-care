@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -14,6 +15,8 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/routine_context_source_store.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
@@ -128,6 +131,38 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// `RoutineOptionsRequest.trainer_note` 의 서버 상한(#1028). 여기서 막으면
   /// 긴 요청이 422 왕복 없이 그 자리에서 잘린다.
   static const int _promptMaxLength = 500;
+
+  /// AI 가 참고할 자료(#2587). 트레이너가 고른 적이 없으면 기본값이고, 고른
+  /// 값은 브라우저에 계정별로 남아 다음에 위저드를 열 때 그대로 돌아온다.
+  Set<RoutineContextSource> _sources = RoutineContextSource.defaults;
+
+  @override
+  void initState() {
+    super.initState();
+    final RoutineContextSourceStore? store = _sourceStore();
+    if (store != null) _sources = store.read(_sourceAccount());
+  }
+
+  /// 선택을 남길 저장소. 브라우저 저장소를 못 읽는 자리(저장소를 붙이지 않은
+  /// 위젯 테스트 등)에서는 `null` 이다 — 기억만 못 할 뿐 선택과 생성은 된다.
+  RoutineContextSourceStore? _sourceStore() {
+    try {
+      return ref.read(routineContextSourceStoreProvider);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// 저장 키의 계정. 데모에는 계정이 없어 `demo` 로 모은다.
+  String _sourceAccount() => ref.read(accountEmailProvider) ?? 'demo';
+
+  void _toggleSource(RoutineContextSource source, bool on) {
+    final Set<RoutineContextSource> next = <RoutineContextSource>{..._sources};
+    on ? next.add(source) : next.remove(source);
+    setState(() => _sources = next);
+    // 저장이 실패해도 이번 생성에는 화면의 선택이 그대로 쓰인다.
+    unawaited(_sourceStore()?.write(_sourceAccount(), next));
+  }
 
   int _minutes = 30;
   String _intensity = 'moderate';
@@ -316,6 +351,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             // 자연어 요청은 백엔드가 실제로 읽는 유일한 자유 텍스트 필드로
             // 나간다 — 새 필드를 지어내지 않는다(#1028).
             trainerNote: _prompt.text.trim(),
+            // 고른 자료만 AI 와 규칙 폴백에 들어간다(#2587). 모두 끈 선택도
+            // 빈 목록으로 보낸다 — 서버 기본값으로 되돌리지 않는다.
+            sources: _sources,
           );
       if (!mounted) return;
       final analysis = options.analysis;
@@ -710,6 +748,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ...switch (_currentStep) {
         _Step.conditions => <Widget>[
           _assistantAnalysis(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _sourcesCard(),
           const SizedBox(height: OnCareSpacing.s16),
           _promptField(),
           const SizedBox(height: OnCareSpacing.s16),
@@ -1108,6 +1148,136 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           : l.aiRecentRoutineMore(done.first, done.length - 1);
     }
     return l.aiNoRecentRoutine;
+  }
+
+  /// 조건 설정 단계의 `AI가 참고할 자료` 체크 목록 (#2587).
+  ///
+  /// 트레이너만 보는 글(상담 메모 등)을 AI 에 넣을지는 트레이너가 고른다.
+  /// 줄마다 서버가 실제로 읽는 범위를 적는다 — 켜 두면 무엇이 들어가는지
+  /// 트레이너가 짐작하지 않아도 되게.
+  ///
+  /// 넓으면 세 칸, 좁으면 두 칸·한 칸으로 줄을 바꾼다.
+  Widget _sourcesCard() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppCard(
+      key: const ValueKey<String>('ai-sources-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppSectionHeader(
+            title: l.aiSourcesTitle,
+            subtitle: l.aiSourcesBlurb,
+            subtitleMaxLines: 2,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final int columns = constraints.maxWidth >= 720
+                  ? 3
+                  : constraints.maxWidth >= 440
+                  ? 2
+                  : 1;
+              const double gap = OnCareSpacing.s8;
+              final double width =
+                  (constraints.maxWidth - gap * (columns - 1)) / columns;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: <Widget>[
+                  for (final RoutineContextSource source
+                      in RoutineContextSource.values)
+                    SizedBox(width: width, child: _sourceTile(l, source)),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceTile(AppLocalizations l, RoutineContextSource source) {
+    final bool on = _sources.contains(source);
+    // 선택 칩(`AppChoiceChip`)과 같은 선택 색 — 켜진 자료가 한눈에 갈린다.
+    final OnCareTokens tokens = context.oncare;
+    final (String label, String range) = switch (source) {
+      RoutineContextSource.ptFeedback => (
+        l.aiSourcePtFeedback,
+        l.aiSourceRangeDays(14, 5),
+      ),
+      RoutineContextSource.consultMemo => (
+        l.aiSourceConsultMemo,
+        l.aiSourceRangeDays(30, 3),
+      ),
+      RoutineContextSource.trainerMemo => (
+        l.aiSourceTrainerMemo,
+        l.aiSourceRangeDays(14, 5),
+      ),
+      RoutineContextSource.chatInsight => (
+        l.aiSourceChatInsight,
+        l.aiSourceRangeDays(7, 10),
+      ),
+      RoutineContextSource.weeklyFeedback => (
+        l.aiSourceWeeklyFeedback,
+        l.aiSourceRangeWeeks,
+      ),
+    };
+    return Material(
+      color: on ? tokens.brand.surface : OnCareColors.surfaceCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: BorderSide(
+          color: on ? tokens.brand.border : OnCareColors.lineSubtle,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: ValueKey<String>('ai-source-${source.wire}'),
+        onTap: () => _toggleSource(source, !on),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: OnCareSpacing.s4,
+            vertical: OnCareSpacing.s4,
+          ),
+          child: Row(
+            children: <Widget>[
+              Checkbox(
+                value: on,
+                onChanged: (bool? value) =>
+                    _toggleSource(source, value ?? false),
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _text(
+                        OnCareTypography.bodySmall,
+                        OnCareColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      range,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _text(
+                        OnCareTypography.caption,
+                        OnCareColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// 조건 설정 단계의 자연어 요청 칸 (#1028).
