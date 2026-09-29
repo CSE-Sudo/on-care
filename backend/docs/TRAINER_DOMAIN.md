@@ -559,7 +559,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 회원 앱 추천 개인운동 카드는 운동 이름 바로 아래에 `RoutineOut.effect` 를 한 줄로 보인다.
 트레이너가 운동마다 효과를 적지 않아도 되게 **자동으로 채우고, 고치고 싶을 때만 고친다.**
 
-- **저장은 트레이너가 적은 것만.** `trainer_routines.effect`(String(40), `0102_routine_effect`)는
+- **저장은 트레이너가 적은 것만.** `trainer_routines.effect`(String(40), `0103_routine_effect`)는
   트레이너 웹이 보낸 글자다 — `PersonalRoutineItem.effect`(PT 에 붙인 개인운동·일정 개인운동 수정),
   `ProgramDraftExercise.effect`(`개인운동만`: 세션마다 운동이 하나라 그 운동의 효과가 배정의 효과).
 - **비어 있으면 응답 때 채운다.** 운동 유형 × 회원 **첫** 건강 목표(`health_profiles.conditions`)

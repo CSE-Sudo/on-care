@@ -6,8 +6,8 @@ AI 추천 사유(트레이너 판단 재료)·운동 이름 나열·트레이너
 회원 건강 목표 문구표로 채운다. 이 칸이 생기기 전의 배정은 비어 있고, 그때
 회원 앱은 예전처럼 `reason` 으로 떨어진다.
 
-Revision ID: 0102_routine_effect
-Revises: 0101_drop_trainer_invite_codes
+Revision ID: 0103_routine_effect
+Revises: 0102_clear_reservation_note
 """
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0102_routine_effect"
-down_revision: str | Sequence[str] | None = "0101_drop_trainer_invite_codes"
+revision: str = "0103_routine_effect"
+down_revision: str | Sequence[str] | None = "0102_clear_reservation_note"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
