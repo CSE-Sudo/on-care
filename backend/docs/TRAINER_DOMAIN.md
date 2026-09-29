@@ -552,6 +552,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 - 담당 코치는 **active 링크**만 인정(`get_member_trainer_id` → `active.is_(True)`).
   휴면 링크만 있으면 코치 조회/발신 불가(404/빈 목록).
 - `/me/coach/sessions`는 시간이 지나며 누적되는 PT 세션을 **최근 100건**으로 상한.
+- `/me/coach/sessions`의 `note`는 **완료된 PT** 것만 싣는다(#2515). PT 일정의 `note`는 회원에게 보내는 트레이너 피드백이고, 상담 일정의 `note`는 트레이너만 보는 상담 기록(메모)이다. 예정·취소·노쇼 PT 와 상담 일정의 `note`는 빈 문자열로 나간다. 트레이너 응답(`/trainer/schedule`)은 그대로 전부 준다.
 
 ### 추천 개인운동의 효과 한 줄 (#2570)
 
