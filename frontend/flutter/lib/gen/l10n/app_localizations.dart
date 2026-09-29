@@ -1736,6 +1736,54 @@ abstract class AppLocalizations {
   /// **'Exercise logged'**
   String get exLogged;
 
+  /// No description provided for @exQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To add {count}'**
+  String exQueueTitle(int count);
+
+  /// No description provided for @exQueueRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from list'**
+  String get exQueueRemove;
+
+  /// No description provided for @exQueueFull.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to {count} at a time'**
+  String exQueueFull(int count);
+
+  /// No description provided for @exSaveCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Save {count}'**
+  String exSaveCount(int count);
+
+  /// No description provided for @exLoggedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} exercises logged'**
+  String exLoggedCount(int count);
+
+  /// No description provided for @exQueueDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard exercises to add?'**
+  String get exQueueDiscardTitle;
+
+  /// No description provided for @exQueueDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unsaved exercises will be lost.'**
+  String exQueueDiscardBody(int count);
+
+  /// No description provided for @exQueueDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get exQueueDiscard;
+
   /// No description provided for @exOwnRecords.
   ///
   /// In en, this message translates to:
@@ -6339,7 +6387,7 @@ abstract class AppLocalizations {
   /// Submit button of the completion dialog.
   ///
   /// In en, this message translates to:
-  /// **'Save'**
+  /// **'Done'**
   String get coachRoutineSubmit;
 
   /// Opens the chat with the assigned trainer.

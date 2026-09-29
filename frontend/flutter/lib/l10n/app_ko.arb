@@ -357,8 +357,51 @@
   "exCannotEdit": "이 기록은 수정할 수 없어요",
   "exUpdated": "운동 기록이 수정됐어요",
   "exLogged": "운동이 기록됐어요",
+  "exQueueTitle": "추가할 운동 {count}",
+  "@exQueueTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueRemove": "목록에서 빼기",
+  "exQueueFull": "한 번에 {count}개까지 추가할 수 있어요",
+  "@exQueueFull": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exSaveCount": "{count}개 저장",
+  "@exSaveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exLoggedCount": "운동 {count}개가 기록됐어요",
+  "@exLoggedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscardTitle": "추가할 운동을 버릴까요?",
+  "exQueueDiscardBody": "아직 저장하지 않은 운동 {count}개가 사라져요.",
+  "@exQueueDiscardBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscard": "버리기",
   "exOwnRecords": "직접 기록한 운동",
-  "exOwnRecordsEmpty": "직접 추가한 운동이 없어요",
+  "exOwnRecordsEmpty": "직접 추가할 운동이 없어요",
   "exOwnRecordSource": "직접 기록",
   "exCompletedPtDayTitle": "완료한 PT",
   "exCompletedRoutineDayTitle": "완료한 개인운동",
@@ -1734,7 +1777,7 @@
   "coachRoutineIntensity": "수행 강도",
   "coachRoutinePlannedIntensity": "권장 {level}",
   "coachRoutineDoneIntensity": "수행 {level}",
-  "coachRoutineSubmit": "완료 기록",
+  "coachRoutineSubmit": "완료",
   "coachChatWithTrainer": "트레이너와 채팅",
   "coachTrainerLoading": "담당 트레이너를 불러오는 중이에요",
   "coachTrainerNone": "담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요",

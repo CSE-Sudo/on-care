@@ -19,6 +19,7 @@ from app.core import clock
 from app.services import exercise_types
 from app.services.exercise_catalog import energy, matcher
 from app.services.exercise_service import WEEKDAY_LABELS
+from tests.exercise_helpers import post_exercise
 
 
 def _day(label: str) -> str:
@@ -207,8 +208,8 @@ def test_saved_calories_come_from_the_server_not_the_client(client):
         headers=h,
     ).json()
 
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "러닝머신",
@@ -234,8 +235,8 @@ def test_saved_calories_come_from_the_server_not_the_client(client):
 def test_save_succeeds_without_weight_or_matching_name(client):
     """외부 의존도 체중도 없는 환경에서 저장이 막히면 안 된다."""
     h = _login(client)  # 온보딩을 하지 않아 체중이 없다
-    r = client.post(
-        "/v1/exercise/sessions",
+    r = post_exercise(
+        client,
         json={
             "type": "strength",
             "name": "오늘 하체 몰아치기",
@@ -254,8 +255,8 @@ def test_save_succeeds_without_weight_or_matching_name(client):
 def test_edit_recomputes_calories(client):
     """시간을 고치면 칼로리도 따라 고쳐진다 — 앱이 다시 계산해 보내지 않아도."""
     h = _with_weight(client, _login(client), 70.0)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         json={
             "type": "cardio",
             "name": "러닝머신",

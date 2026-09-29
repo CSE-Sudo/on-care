@@ -91,6 +91,9 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
   /// 기억한다.
   final Map<String, SentDelivery> _lastDelivery = <String, SentDelivery>{};
 
+  /// 회원별로 마지막에 `개인운동만` 으로 보낸 줄 id — 다음에 보낼 때 내린다.
+  final Map<String, Set<String>> _personalIds = <String, Set<String>>{};
+
   final Map<String, StreamController<List<AssignedRoutine>>> _controllers =
       <String, StreamController<List<AssignedRoutine>>>{};
 
@@ -184,11 +187,22 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
               ),
     ];
     if (added.isEmpty) return;
+    // `개인운동만` 을 새로 보내면 이전에 보낸 개인운동은 내려간다(#2514) —
+    // 서버와 같은 규칙이다. 씨앗 배정은 서버 시드처럼 기한 없는 배정이라
+    // 그대로 둔다.
+    final Set<String> previous = _personalIds[memberId] ?? const <String>{};
+    final bool personal = payload['delivery_kind'] != null;
     // 새로 보낸 것이 맨 앞이다 — 목록은 최신순이다.
     _byMember[memberId] = <AssignedRoutine>[
       ...added,
-      ..._listFor(memberId),
+      for (final AssignedRoutine r in _listFor(memberId))
+        if (!personal || !previous.contains(r.id)) r,
     ];
+    if (personal) {
+      _personalIds[memberId] = <String>{
+        for (final AssignedRoutine r in added) r.id,
+      };
+    }
     // 직전 전송으로 기억한다(#2225). 데모에는 PT 일정이 붙지 않는 `개인운동만`
     // 경로뿐이라 종류도 그것이다.
     _lastDelivery[memberId] = SentDelivery(
