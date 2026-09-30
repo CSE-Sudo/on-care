@@ -2808,8 +2808,88 @@ def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
         source=memo.source,
         insight_id=memo.insight_id,
         insight_kind=memo.insight_kind,
+        ref_kind=memo.ref_kind or None,
+        ref_id=memo.ref_id,
+        ref_date=memo.ref_date,
+        ref_name=memo.ref_name or "",
         created_at=memo.created_at,
         updated_at=memo.updated_at,
+    )
+
+
+@dataclass(frozen=True)
+class _MemoRef:
+    """운동 기록 메모가 가리키는 기록 — 서버가 그 기록에서 읽어 채운 값."""
+
+    kind: str
+    ref_id: str | None
+    day: str | None
+    name: str = ""
+
+
+def _resolve_exercise_memo_ref(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    *,
+    ref_id: str | None,
+    ref_date: date | None,
+) -> _MemoRef:
+    """운동 탭 기록 카드가 가리키는 기록을 찾아 출처 표시 값을 채운다. (#2332)
+
+    앱이 보낸 이름·날짜는 믿지 않는다 — 그 기록이 트레이너 화면에 보이는 것
+    ([build_client_history] 와 같은 범위: 자율 운동 + 내가 지도한 PT + 내가 배정한
+    수행)일 때만 잇고, 이름과 날짜는 기록에서 읽는다. 없거나 남의 기록이면
+    [RoutineNotFound] 다(있는지 없는지를 가르지 않는다).
+    """
+    if ref_date is not None:
+        # 회원 직접 기록 카드는 하루치 묶음이다. 오지 않은 날의 기록은 없다.
+        if ref_date > _today():
+            raise RoutineNotFound("운동 기록을 찾을 수 없습니다.")
+        return _MemoRef(kind="member_log", ref_id=None, day=ref_date.isoformat())
+
+    history = db.scalar(
+        select(RoutineHistory).where(
+            RoutineHistory.id == ref_id,
+            RoutineHistory.member_id == member_id,
+            or_(
+                RoutineHistory.trainer_id.is_(None),
+                RoutineHistory.trainer_id == trainer_id,
+            ),
+        )
+    )
+    if history is not None:
+        code = history_kind_code(history.kind_label)
+        return _MemoRef(
+            kind="pt_session" if code == "pt_session" else "personal",
+            ref_id=history.id,
+            day=_iso_day_or_none(history.date),
+            # 고정 이름(`AI 개인운동` 등)은 앱이 번역하므로 저장하지 않는다.
+            name="" if code else (history.kind_label or "").strip()[:100],
+        )
+
+    session = db.scalar(
+        select(ExerciseSession).where(
+            ExerciseSession.id == ref_id,
+            ExerciseSession.user_id == member_id,
+            ExerciseSession.source == "assigned_routine",
+            ExerciseSession.assigned_trainer_id == trainer_id,
+        )
+    )
+    if session is None:
+        raise RoutineNotFound("운동 기록을 찾을 수 없습니다.")
+    # 날짜는 이력 목록과 같은 규칙이다([_assigned_history_out], #1264) — 둘이
+    # 갈리면 같은 기록이 카드와 메모 태그에서 다른 날로 보인다.
+    completed_at = session.completed_at or session.created_at
+    day = (
+        exercise_activity.activity_date_of(session)
+        or clock.to_seoul(completed_at).date()
+    ).isoformat()
+    return _MemoRef(
+        kind="personal",
+        ref_id=session.id,
+        day=day,
+        name=(session.assigned_routine_name or "").strip()[:100],
     )
 
 
@@ -2854,17 +2934,28 @@ def create_memo(
     db: Session, trainer_id: str, member_id: str,
     body: str, source: str = "trainer",
     insight_id: str | None = None, insight_kind: str = "",
+    ref_id: str | None = None, ref_date: date | None = None,
 ) -> TrainerMemoOut:
     """회원 메모를 남긴다.
 
     [insight_id] 가 오면 그 인사이트에 대해 멱등하다 — 채팅에서 같은 신호를 다시
     저장해도 새 메모를 만들지 않고 먼저 저장된 메모를 그대로 돌려준다. 로컬
     저장 시절 `insightId` 로 중복을 막던 의미를 서버에서 그대로 유지한다.
+
+    운동 기록 메모(`exercise_memo`)는 [ref_id]·[ref_date] 로 가리킨 기록을 찾아
+    출처 표시 값을 채운다. 한 기록에 메모를 여러 개 남길 수 있다 — 직접 쓴
+    메모와 같은 규칙이다.
     """
     if insight_id:
         existing = find_memo_by_insight(db, trainer_id, member_id, insight_id)
         if existing is not None:
             return _memo_out(existing)
+
+    ref: _MemoRef | None = None
+    if source == "exercise_memo":
+        ref = _resolve_exercise_memo_ref(
+            db, trainer_id, member_id, ref_id=ref_id, ref_date=ref_date
+        )
 
     now = datetime.now(timezone.utc)
     memo = TrainerClientMemo(
@@ -2875,6 +2966,10 @@ def create_memo(
         source=source,
         insight_id=insight_id,
         insight_kind=insight_kind,
+        ref_kind=ref.kind if ref else "",
+        ref_id=ref.ref_id if ref else None,
+        ref_date=ref.day if ref else None,
+        ref_name=ref.name if ref else "",
         created_at=now,
         updated_at=now,
     )

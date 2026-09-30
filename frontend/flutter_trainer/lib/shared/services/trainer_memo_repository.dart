@@ -32,12 +32,17 @@ abstract interface class TrainerMemoRepository {
   /// Passing [insightId] makes the write idempotent for that chat insight —
   /// saving the same signal again returns the memo that is already stored
   /// instead of adding a duplicate.
+  ///
+  /// [ref] points an [TrainerMemoSource.exerciseMemo] at the workout record
+  /// it was left from (#2332). The server reads the record itself and keeps
+  /// only the id or day from it; the demo stores [ref] as given.
   Future<TrainerMemo> create(
     String clientId, {
     required String body,
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   });
 
   /// Rewrites a memo's body. Its source is never rewritten.
@@ -103,6 +108,7 @@ class LocalTrainerMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) async {
     final memos = _read(clientId);
     if (insightId != null) {
@@ -116,6 +122,7 @@ class LocalTrainerMemoRepository implements TrainerMemoRepository {
       source: source,
       insightId: insightId,
       insightKind: insightKind,
+      ref: ref,
       createdAt: now,
       updatedAt: now,
     );

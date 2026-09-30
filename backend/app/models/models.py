@@ -1486,9 +1486,13 @@ class MemberPairingCode(Base):
 class TrainerClientMemo(Base):
     """트레이너가 담당 회원에 대해 남긴 메모. 회원에게는 보이지 않는다.
 
-    출처가 둘이다 — 트레이너가 회원 상세에서 직접 쓴 메모(source='trainer')와,
-    채팅에서 감지한 신호를 저장한 메모(source='chat_insight'). 둘을 한 테이블에
-    두는 이유는 회원 상세가 **하나의 목록**으로 보여 주기 때문이다.
+    출처가 셋이다 — 트레이너가 회원 상세에서 직접 쓴 메모(source='trainer'),
+    채팅에서 감지한 신호를 저장한 메모(source='chat_insight'), 운동 탭 기록
+    카드에서 남긴 메모(source='exercise_memo', #2332). 한 테이블에 두는 이유는
+    회원 상세가 **하나의 목록**으로 보여 주기 때문이다.
+
+    운동 기록 메모는 어느 기록에서 남겼는지(`ref_*`)를 함께 저장한다. 값은 서버가
+    그 기록에서 채운다 — 기록이 나중에 지워져도 메모의 출처 표시는 남는다.
 
     `insight_id` 는 채팅 인사이트의 식별자다. 같은 인사이트를 여러 번 저장해도
     메모가 늘지 않도록 (trainer, member, insight_id) 를 유일로 둔다 — 직접 쓴
@@ -1510,11 +1514,21 @@ class TrainerClientMemo(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     body: Mapped[str] = mapped_column(Text, default="")
-    #: 'trainer' | 'chat_insight'
+    #: 'trainer' | 'chat_insight' | 'exercise_memo'
     source: Mapped[str] = mapped_column(String(16), default="trainer")
     insight_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: 채팅 인사이트 종류(discomfort|negativeFeedback). 직접 쓴 메모는 빈 문자열.
     insight_kind: Mapped[str] = mapped_column(String(32), default="")
+    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log).
+    #: 다른 출처는 빈 문자열.
+    ref_kind: Mapped[str] = mapped_column(String(16), default="", server_default="")
+    #: 가리키는 이력 id(`routine_history.id` 또는 배정 수행 `exercise_sessions.id`).
+    #: 회원 직접 기록은 하루치 묶음이라 id 가 없다.
+    ref_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: 그 기록이 붙는 날(KST, YYYY-MM-DD).
+    ref_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    #: 트레이너가 지은 루틴 이름. 서버가 붙인 고정 이름은 비운다(앱이 번역한다).
+    ref_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1528,11 +1542,11 @@ class TrainerClientMemo(Base):
         UniqueConstraint(
             "trainer_id", "member_id", "insight_id", name="uq_trainer_client_memo_insight"
         ),
-        # 응답 스키마(TrainerMemoOut.source)가 두 값만 받으므로, 다른 값이 한 행이라도
+        # 응답 스키마(TrainerMemoOut.source)가 정해진 값만 받으므로, 다른 값이 한 행이라도
         # 들어가면 그 회원의 메모 **목록 전체**가 검증 실패로 500 이 된다. 입력은
         # 이미 Literal 로 막지만 DB 에서도 못 박는다.
         CheckConstraint(
-            "source IN ('trainer', 'chat_insight')",
+            "source IN ('trainer', 'chat_insight', 'exercise_memo')",
             name="ck_trainer_client_memo_source",
         ),
         Index("ix_trainer_client_memos_pair", "trainer_id", "member_id"),

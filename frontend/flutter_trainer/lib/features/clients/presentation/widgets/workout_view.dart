@@ -7,9 +7,11 @@ import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -103,9 +105,27 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
 /// 걷어냈다(#2329). 몇 개를 했는지는 줄마다 붙은 체크와 취소선이 이미 말하고,
 /// 피드백은 기록 카드가 아니라 채팅·메모에서 모은다.
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.entry});
+  const _HistoryCard({required this.clientId, required this.entry});
 
+  final String clientId;
   final RoutineHistoryEntry entry;
+
+  /// 이 카드가 가리키는 기록 — 메모 작성 창과 데모 저장소가 출처 태그를 그린다.
+  /// 서버는 id 만 받아 이름·날짜를 기록에서 다시 읽는다(#2332).
+  TrainerMemoRef get _memoRef {
+    final DateTime? day = entry.date ?? entry.completedAt;
+    // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
+    final String? code = routineKindCode(entry.label, kind: entry.kind);
+    return TrainerMemoRef(
+      kind: code == 'pt_session'
+          ? TrainerMemoRefKind.ptSession
+          : TrainerMemoRefKind.personal,
+      id: entry.id,
+      day: day == null ? null : ymd(day),
+      // 고정 이름(`AI 개인운동` 등)은 코드가 있어 화면이 번역한다.
+      name: code == null ? entry.label : '',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,11 +134,17 @@ class _HistoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // 날짜는 적지 않는다 — 이 판을 펼친 줄이 바로 위에서 이미 그 날을
-          // 말하고 있다(#1025).
-          AppTag(
-            label: routineKindLabel(l, entry.label, kind: entry.kind),
-            tone: AppTagTone.brand,
+          _CardHead(
+            // 날짜는 적지 않는다 — 이 판을 펼친 줄이 바로 위에서 이미 그 날을
+            // 말하고 있다(#1025).
+            tag: AppTag(
+              label: routineKindLabel(l, entry.label, kind: entry.kind),
+              tone: AppTagTone.brand,
+            ),
+            // id 를 잃은 옛 기록은 가리킬 수 없어 메모 자리를 두지 않는다.
+            memo: entry.id.isEmpty
+                ? null
+                : ExerciseMemoButton(clientId: clientId, memoRef: _memoRef),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           for (final (int i, ClientExerciseItem item)
@@ -130,6 +156,32 @@ class _HistoryCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// 운동 기록 카드의 머리 줄 — 왼쪽에 종류 태그, 오른쪽 끝에 메모 자리(#2332).
+///
+/// 메모 버튼이 태그보다 커서 줄이 높아지지 않게 가운데로 맞춘다. 메모 자리가
+/// 없으면 태그만 남아 예전 모양 그대로다.
+class _CardHead extends StatelessWidget {
+  const _CardHead({required this.tag, this.memo});
+
+  final Widget tag;
+  final Widget? memo;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget? memo = this.memo;
+    if (memo == null) return tag;
+    // `Flexible` 과 `Spacer` 를 함께 두면 남는 폭을 반씩 나눠 가져 메모 자리가
+    // 카드 가운데쯤에 멈춘다 — 양 끝으로 벌린다.
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        Flexible(child: tag),
+        memo,
+      ],
     );
   }
 }
@@ -277,7 +329,7 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
           AppSectionHeader(title: l.workoutUndatedTitle),
           const SizedBox(height: OnCareSpacing.s8),
           for (final RoutineHistoryEntry entry in undated) ...<Widget>[
-            _HistoryCard(entry: entry),
+            _HistoryCard(clientId: widget.clientId, entry: entry),
             const SizedBox(height: OnCareSpacing.s8),
           ],
         ],
@@ -402,7 +454,7 @@ class _DayDetail extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             for (final RoutineHistoryEntry entry in entries) ...<Widget>[
-              _HistoryCard(entry: entry),
+              _HistoryCard(clientId: clientId, entry: entry),
               const SizedBox(height: OnCareSpacing.s8),
             ],
             if (own.isNotEmpty) ...<Widget>[
@@ -413,7 +465,16 @@ class _DayDetail extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    AppTag(label: l.workoutMemberLogTitle),
+                    _CardHead(
+                      tag: AppTag(label: l.workoutMemberLogTitle),
+                      memo: ExerciseMemoButton(
+                        clientId: clientId,
+                        memoRef: TrainerMemoRef(
+                          kind: TrainerMemoRefKind.memberLog,
+                          day: ymd(date),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: OnCareSpacing.s8),
                     for (final (int i, ClientExerciseItem item) in own.indexed)
                       _ExerciseLine(
@@ -441,6 +502,20 @@ class _DayDetail extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              // 이력 카드가 없는 날도 회원이 직접 적은 운동에는 메모를 남길 수
+              // 있어야 한다(#2332). 출처를 모르는 행만 있는 날은 `회원 기록` 이라
+              // 부를 수 없어 두지 않는다.
+              if (items.any((ClientExerciseItem item) => item.isMemberLog))
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ExerciseMemoButton(
+                    clientId: clientId,
+                    memoRef: TrainerMemoRef(
+                      kind: TrainerMemoRefKind.memberLog,
+                      day: ymd(date),
+                    ),
+                  ),
+                ),
               for (final (int i, ClientExerciseItem item) in items.indexed)
                 _ExerciseLine(
                   key: ValueKey<String>(

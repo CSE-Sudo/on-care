@@ -42,6 +42,7 @@ class DioTrainerMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) async {
     try {
       final response = await _dio.post<Map<String, Object?>>(
@@ -53,6 +54,12 @@ class DioTrainerMemoRepository implements TrainerMemoRepository {
           // same chat insight returns the stored memo instead of adding one.
           'insight_id': ?insightId,
           if (insightKind.isNotEmpty) 'insight_kind': insightKind,
+          // 기록은 id(이력 카드)나 날(회원 직접 기록 카드) 하나로만 가리킨다 —
+          // 이름·날짜는 서버가 그 기록에서 읽는다(#2332).
+          if (ref != null && ref.id != null)
+            'ref_id': ref.id
+          else if (ref != null)
+            'ref_date': ?ref.day,
         },
       );
       return TrainerMemo.fromJson(response.data!);

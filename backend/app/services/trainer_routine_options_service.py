@@ -588,7 +588,7 @@ def _recent_insight_memos(
     """
     return _recent_memos(
         db, trainer_id, member_id, today_date,
-        source="chat_insight",
+        sources=("chat_insight",),
         lookback_days=INSIGHT_MEMO_LOOKBACK_DAYS,
         limit=INSIGHT_MEMO_MAX,
     )
@@ -597,14 +597,18 @@ def _recent_insight_memos(
 def _recent_trainer_memos(
     db: Session, trainer_id: str, member_id: str, today_date: date,
 ) -> list[str]:
-    """최근 14일(KST) 트레이너가 회원 상세에서 직접 쓴 메모(#2519, #2587).
+    """최근 14일(KST) 트레이너가 손으로 쓴 메모(#2519, #2587).
+
+    회원 상세에서 쓴 메모와 운동 탭 기록 카드에서 남긴 메모(`exercise_memo`,
+    #2332)가 함께 든다 — 둘 다 트레이너가 직접 적은 기록이고, 화면의 선택지도
+    `직접 쓴 메모` 하나다.
 
     수업 시간 조정처럼 운동과 무관한 기록도 섞이는 자리라, 프롬프트는 이 목록을
     지시가 아니라 참고 기록으로 받는다(`prompt_safety.TRAINER_RECORD_GUARD`).
     """
     return _recent_memos(
         db, trainer_id, member_id, today_date,
-        source="trainer",
+        sources=("trainer", "exercise_memo"),
         lookback_days=TRAINER_MEMO_LOOKBACK_DAYS,
         limit=ROUTINE_TRAINER_MEMO_MAX,
     )
@@ -616,11 +620,11 @@ def _recent_memos(
     member_id: str,
     today_date: date,
     *,
-    source: str,
+    sources: tuple[str, ...],
     lookback_days: int,
     limit: int,
 ) -> list[str]:
-    """본인이 남긴 회원 메모 중 [source] 의 최근 것을 `"MM.dd 본문"` 줄로(최신 먼저).
+    """본인이 남긴 회원 메모 중 [sources] 의 최근 것을 `"MM.dd 본문"` 줄로(최신 먼저).
 
     `created_at` 은 timestamptz 라 KST 자정을 실제 시각으로 환산해 비교한다 —
     [_recent_chat_lines] 와 같은 이유다.
@@ -635,7 +639,7 @@ def _recent_memos(
         .where(
             TrainerClientMemo.trainer_id == trainer_id,
             TrainerClientMemo.member_id == member_id,
-            TrainerClientMemo.source == source,
+            TrainerClientMemo.source.in_(sources),
             TrainerClientMemo.created_at >= since,
         )
         # 목록 계약(`build_memos`)과 같은 정렬이라 화면과 순서가 어긋나지 않는다.

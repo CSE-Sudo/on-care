@@ -331,3 +331,183 @@ def test_member_cannot_reach_trainer_memos(client):
         f"/v1/trainer/clients/{MEMBER_ID}/memos", headers=_headers(token)
     )
     assert denied.status_code == 403
+
+
+# ---- 운동 기록 메모 (#2332) ----
+
+
+def _exercise_rows(db_session):
+    """트레이너 화면에 보이는 PT 이력·배정 수행과, 보이지 않는 남의 PT 이력을 만든다."""
+    from app.models.models import ExerciseSession, RoutineHistory
+    from app.services.exercise_service import WEEKDAY_LABELS, monday_of_this_week_str
+    from app.services.trainer_service import PT_HISTORY_KIND_LABEL
+
+    suffix = uuid4().hex[:8]
+    mine = RoutineHistory(
+        id=f"test-hist-{suffix}",
+        member_id=MEMBER_ID,
+        trainer_id="trainer-demo",
+        date="2026-09-23",
+        kind_label=PT_HISTORY_KIND_LABEL,
+        completion_rate=100,
+        exercises_json="[]",
+    )
+    theirs = RoutineHistory(
+        id=f"test-hist-other-{suffix}",
+        member_id=MEMBER_ID,
+        trainer_id=None,
+        date="2026-09-22",
+        kind_label="AI 개인운동",
+        completion_rate=100,
+        exercises_json="[]",
+    )
+    assigned = ExerciseSession(
+        id=f"test-assigned-{suffix}",
+        user_id=MEMBER_ID,
+        week_start=monday_of_this_week_str(),
+        day_label=WEEKDAY_LABELS[0],
+        type="strength",
+        minutes=10,
+        calories=50,
+        intensity="moderate",
+        source="assigned_routine",
+        assigned_trainer_id="trainer-demo",
+        assigned_routine_name="코어 강화",
+    )
+    rows = [mine, theirs, assigned]
+    db_session.add_all(rows)
+    db_session.commit()
+    return rows
+
+
+def test_exercise_memo_fills_its_source_from_the_record(
+    client, db_session, trainer_token, cleanup_memos
+):
+    """기록 카드에서 남긴 메모는 서버가 그 기록에서 갈래·날짜·이름을 채운다."""
+    pt, personal, assigned = _exercise_rows(db_session)
+    try:
+        pt_memo = _create_memo(
+            client, trainer_token,
+            body="스쿼트 무릎 안쪽 모임", source="exercise_memo", ref_id=pt.id,
+        )
+        cleanup_memos.append(pt_memo["id"])
+        assert pt_memo["source"] == "exercise_memo"
+        assert pt_memo["ref_kind"] == "pt_session"
+        assert pt_memo["ref_id"] == pt.id
+        assert pt_memo["ref_date"] == "2026-09-23"
+        # 고정 이름은 앱이 번역하므로 저장하지 않는다.
+        assert pt_memo["ref_name"] == ""
+
+        personal_memo = _create_memo(
+            client, trainer_token,
+            body="AI 개인운동 강도 적당", source="exercise_memo", ref_id=personal.id,
+        )
+        cleanup_memos.append(personal_memo["id"])
+        assert personal_memo["ref_kind"] == "personal"
+        assert personal_memo["ref_name"] == ""
+
+        assigned_memo = _create_memo(
+            client, trainer_token,
+            body="플랭크 자세 무너짐", source="exercise_memo", ref_id=assigned.id,
+        )
+        cleanup_memos.append(assigned_memo["id"])
+        assert assigned_memo["ref_kind"] == "personal"
+        assert assigned_memo["ref_name"] == "코어 강화"
+        assert assigned_memo["ref_date"]
+
+        member_log_memo = _create_memo(
+            client, trainer_token,
+            body="혼자 걷기 꾸준함", source="exercise_memo", ref_date="2026-09-21",
+        )
+        cleanup_memos.append(member_log_memo["id"])
+        assert member_log_memo["ref_kind"] == "member_log"
+        assert member_log_memo["ref_id"] is None
+        assert member_log_memo["ref_date"] == "2026-09-21"
+
+        # 직접 쓴 메모와 한 목록에 섞여 나온다.
+        listed = client.get(
+            f"/v1/trainer/clients/{MEMBER_ID}/memos", headers=_headers(trainer_token)
+        ).json()
+        ids = {item["id"] for item in listed}
+        assert {pt_memo["id"], assigned_memo["id"], member_log_memo["id"]} <= ids
+    finally:
+        for row in (pt, personal, assigned):
+            db_session.delete(row)
+        db_session.commit()
+
+
+def test_exercise_memo_rejects_records_the_trainer_cannot_see(
+    client, db_session, trainer_token
+):
+    """남이 지도한 PT·없는 기록·오지 않은 날은 404 — 있는지 없는지를 가르지 않는다."""
+    from app.models.models import RoutineHistory, User
+
+    other_trainer_id = f"trainer-{uuid4().hex[:10]}"
+    other = User(
+        id=other_trainer_id,
+        email=f"{other_trainer_id}@oncare.com",
+        name="다른 트레이너",
+        hashed_password="unused",
+        role="trainer",
+    )
+    db_session.add(other)
+    db_session.commit()
+    foreign = RoutineHistory(
+        id=f"test-hist-foreign-{uuid4().hex[:8]}",
+        member_id=MEMBER_ID,
+        trainer_id=other_trainer_id,
+        date="2026-09-20",
+        kind_label="PT 세션 · 트레이너 지도",
+        completion_rate=100,
+        exercises_json="[]",
+    )
+    db_session.add(foreign)
+    db_session.commit()
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    try:
+        for ref in (
+            {"ref_id": foreign.id},
+            {"ref_id": f"missing-{uuid4().hex[:8]}"},
+            {"ref_date": "2999-01-01"},
+        ):
+            response = client.post(
+                url,
+                headers=_headers(trainer_token),
+                json={"body": "안 돼야 한다", "source": "exercise_memo", **ref},
+            )
+            assert response.status_code == 404, (ref, response.text)
+    finally:
+        db_session.delete(foreign)
+        db_session.delete(other)
+        db_session.commit()
+
+
+def test_exercise_memo_needs_exactly_one_record_link(client, trainer_token):
+    """운동 기록 메모는 기록 하나를 가리켜야 하고, 다른 출처는 기록을 가리킬 수 없다."""
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    for payload in (
+        {"source": "exercise_memo"},
+        {"source": "exercise_memo", "ref_id": "x", "ref_date": "2026-09-21"},
+        {"source": "trainer", "ref_id": "x"},
+        {"source": "chat_insight", "insight_id": "i-1", "ref_date": "2026-09-21"},
+        {"source": "exercise_memo", "ref_date": "2026-09-21", "insight_id": "i-2"},
+    ):
+        response = client.post(
+            url, headers=_headers(trainer_token), json={"body": "메모", **payload}
+        )
+        assert response.status_code == 422, (payload, response.text)
+
+
+def test_memo_body_is_capped_at_500_chars(client, trainer_token, cleanup_memos):
+    """메모는 기억해 둘 한두 줄이다 — 500자까지 받고 넘으면 422(#2516, #2618)."""
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    ok = _create_memo(client, trainer_token, body="가" * 500)
+    cleanup_memos.append(ok["id"])
+    too_long = client.post(
+        url, headers=_headers(trainer_token), json={"body": "가" * 501}
+    )
+    assert too_long.status_code == 422, too_long.text
+    edited = client.put(
+        f"{url}/{ok['id']}", headers=_headers(trainer_token), json={"body": "나" * 501}
+    )
+    assert edited.status_code == 422, edited.text

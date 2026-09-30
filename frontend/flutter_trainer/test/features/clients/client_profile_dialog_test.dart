@@ -41,6 +41,7 @@ class _FakeMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) async {
     if (failWrites) throw const NetworkError();
     final list = _byClient.putIfAbsent(clientId, () => <TrainerMemo>[]);
@@ -425,41 +426,41 @@ void main() {
     expect(find.text('아직 저장하지 않은 글'), findsOneWidget);
   });
 
-  testWidgets('글자 수는 입력 상자 바로 아래 오른쪽에 붙는다 (#1448)', (tester) async {
+  testWidgets('글자 수는 공개 범위 안내와 한 줄, `메모 추가` 는 그 아래다 (#2516)', (tester) async {
     final repository = _FakeMemoRepository();
     await _pumpDialog(tester, repository);
 
     final Finder input = find.byKey(
       const ValueKey<String>('client-memo-input'),
     );
+    final Finder private = find.byKey(
+      const ValueKey<String>('client-memo-private'),
+    );
     final Finder counter = find.byKey(
       const ValueKey<String>('client-memo-counter'),
     );
+    final Finder add = find.byKey(const ValueKey<String>('client-memo-add'));
     expect(counter, findsOneWidget);
-    // 입력 상자 아래, 그리고 상자 오른쪽 끝에 맞춘다.
+    // 안내와 같은 줄, 입력칸 오른쪽 끝에 맞춘다.
     expect(
       tester.getTopLeft(counter).dy,
-      greaterThanOrEqualTo(tester.getBottomLeft(input).dy - 24),
+      moreOrLessEquals(tester.getTopLeft(private).dy, epsilon: 1),
     );
     expect(
       tester.getBottomRight(counter).dx,
       moreOrLessEquals(tester.getBottomRight(input).dx, epsilon: 1),
     );
-    // `추가` 버튼보다 위에 있다 — 한 줄에 나눠 놓지 않는다.
+    // `추가` 는 그 줄 아래다.
     expect(
-      tester.getTopLeft(counter).dy,
-      lessThan(
-        tester
-            .getTopLeft(find.byKey(const ValueKey<String>('client-memo-add')))
-            .dy,
-      ),
+      tester.getTopLeft(add).dy,
+      greaterThan(tester.getBottomLeft(counter).dy),
     );
 
     // 입력하면 그 자리에서 갱신된다.
-    expect(find.text('0/2000'), findsOneWidget);
+    expect(find.text('0/500'), findsOneWidget);
     await tester.enterText(input, '무릎통증');
     await tester.pump();
-    expect(find.text('4/2000'), findsOneWidget);
+    expect(find.text('4/500'), findsOneWidget);
   });
 
   testWidgets('메모 수정·삭제는 작은 회색 아이콘이다 (#1448, #2571)', (tester) async {

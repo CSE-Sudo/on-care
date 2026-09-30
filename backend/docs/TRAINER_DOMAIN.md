@@ -42,7 +42,7 @@
 | `trainer_profiles` | 트레이너 프로필(전문분야·경력·소속 짐) |
 | `trainer_clients` | 트레이너↔회원 담당 링크(로스터의 정의) |
 | `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴. PT 일정에 붙인 개인운동은 `schedule_id`·`status='scheduled'`·`delivery_kind` 를 갖는다(`0092_routine_schedule_link`, #2223) |
-| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트, `0036_trainer_memos`) |
+| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트 + 운동 기록 카드, `0036_trainer_memos`·`0106_trainer_memo_exercise_ref`) |
 | `trainer_follow_up_tasks` | 트레이너가 회원별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
 | `trainer_program_drafts` | 트레이너가 저장해 둔 프로그램 초안(세션 배열, 회원과 묶이지 않음, `0038`+`0039`) |
 | `routine_history` | 회원 운동 완료 기록(회원 앱·PT 세션 공용 원본) |
@@ -59,7 +59,7 @@
 |---|---|---|
 | 트레이너 피드백 | 회원 | PT 일정의 글(`trainer_schedule.note`, 회원 앱 `오늘의 피드백`), 리포트 피드백(`trainer_report_feedback`), 위저드·일정 추가에서 회원에게 전할 말 |
 | 회원 피드백 | 트레이너 | 회원 주간 피드백과 그 안의 `한 줄 피드백`(`member_weekly_feedback`) |
-| 메모 | 트레이너만 | 회원 상세 메모(`trainer_client_memos`), 상담 일정의 글(`상담 메모`) |
+| 메모 | 트레이너만 | 회원 상세 메모(`trainer_client_memos` — 직접 작성·채팅 감지·운동 기록 카드), 상담 일정의 글(`상담 메모`) |
 
 같은 `trainer_schedule.note` 라도 PT 일정이면 피드백, 상담 일정이면 메모로 부른다.
 회원 앱 응답은 완료된 PT 의 글만 싣고 상담 일정의 글은 싣지 않는다(#2515, 6절 `/me/coach/sessions`).
@@ -238,7 +238,7 @@
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
-| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지) |
+| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지, `source=exercise_memo` 는 `ref_id`(이력 카드) 또는 `ref_date`(회원 직접 기록 카드)로 기록을 가리키고 서버가 `ref_kind`·`ref_date`·`ref_name` 을 채운다 — 트레이너 화면에 보이지 않는 기록이면 404) |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 본문 수정 |
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
