@@ -195,6 +195,7 @@ void main() {
 
   testWidgets('새로 추가한 음식은 0 에서 4·4·9 로 채워진다', (WidgetTester tester) async {
     await _openEdit(tester, <FoodItem>[_pork]);
+    await tester.ensureVisible(find.text('음식 추가'));
     await tester.tap(find.text('음식 추가'));
     await tester.pumpAndSettle();
 
