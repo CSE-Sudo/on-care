@@ -15,6 +15,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/utils/next_pt.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_tab.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
@@ -1205,35 +1206,24 @@ class _NextPtBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime now = nowKst();
-    final DateTime today = DateTime(now.year, now.month, now.day);
 
     // 다음 PT 는 두 곳에서 온다 (#1137).
     //  * 트레이너가 잡아 준 일정(`coachSessionsProvider`)
     //  * 회원이 헬스장 탭에서 직접 잡은 예약(`myReservationsProvider`)
     // 예약해 놓고도 `아직 없어요` 가 떠 있으면, 방금 한 일이 어디에도 남지
-    // 않은 것처럼 보인다. 둘을 합쳐 **가장 이른 하나**를 적는다.
-    final List<DateTime> upcoming = <DateTime>[
-      for (final CoachSession s
-          in ref.watch(coachSessionsProvider).valueOrNull ??
-              const <CoachSession>[])
-        if (s.isUpcoming && s.date != null)
-          if (!DateTime(
-            s.date!.year,
-            s.date!.month,
-            s.date!.day,
-          ).isBefore(today))
-            _sessionAt(s),
-      for (final MyReservation r
-          in ref.watch(myReservationsProvider).valueOrNull ??
-              const <MyReservation>[])
-        // 취소할 수 있는 예약 = 아직 오지 않은 자리. 서버 판단을 그대로 쓴다.
-        if (r.cancellable) r.startsAt,
-    ]..sort();
+    // 않은 것처럼 보인다. 둘을 합쳐 **지금 이후 가장 이른 하나**를 적는다 —
+    // 오늘 이미 지난 시각의 일정은 빠진다(#2636). 규칙은 [nextPtAt] 에 있다.
+    final DateTime? next = nextPtAt(
+      sessions:
+          ref.watch(coachSessionsProvider).valueOrNull ??
+          const <CoachSession>[],
+      reservations:
+          ref.watch(myReservationsProvider).valueOrNull ??
+          const <MyReservation>[],
+      now: nowKst(),
+    );
 
-    final String when = upcoming.isEmpty
-        ? ''
-        : _formatNextPt(context, upcoming.first);
+    final String when = next == null ? '' : _formatNextPt(context, next);
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: _fitTag(
@@ -1244,16 +1234,6 @@ class _NextPtBadge extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  /// `HH:MM` 문자열을 날짜에 붙여 하나의 시각으로. 시간이 비었거나 형식이
-  /// 다르면 그날 자정으로 둔다 — 정렬에서 빠지지 않게.
-  static DateTime _sessionAt(CoachSession s) {
-    final DateTime d = s.date!;
-    final List<String> parts = s.time.split(':');
-    final int hour = parts.isEmpty ? 0 : int.tryParse(parts.first) ?? 0;
-    final int minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
-    return DateTime(d.year, d.month, d.day, hour, minute);
   }
 
   static String _formatNextPt(BuildContext context, DateTime at) {
