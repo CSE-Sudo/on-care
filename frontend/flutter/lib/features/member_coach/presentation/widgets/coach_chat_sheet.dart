@@ -773,8 +773,8 @@ class PdfPreviewPage extends StatelessWidget {
 /// 리포트 등록 안내 — 대화 가운데 안내 배너와 `PDF 미리보기`. (#1600, #1577)
 ///
 /// 누르면 트레이너가 보낸 파일을 연다. 열 파일이 없으면(데모, 그리고 본문만
-/// 보낸 리포트) 같은 주를 회원 기록으로 정리한 문서를 만들어 같은 미리보기로
-/// 연다 — 리포트 화면이 보여 주는 통계를 회원도 그 자리에서 볼 수 있어야 한다.
+/// 보낸 리포트) 트레이너 웹과 같은 결과지를 세워 같은 미리보기로 연다(#2652) —
+/// 트레이너가 보는 한 장을 회원도 그 자리에서 볼 수 있어야 한다.
 class _ReportNotice extends ConsumerStatefulWidget {
   const _ReportNotice({
     required this.message,
