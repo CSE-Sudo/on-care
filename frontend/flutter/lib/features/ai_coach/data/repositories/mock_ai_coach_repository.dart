@@ -70,6 +70,7 @@ class MockAiCoachRepository implements AiCoachRepository {
   @override
   Future<AiCoachState> fetchState() async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
+    // 실서버(`build_feedback`)와 같은 식단·운동 두 건이다(#2706).
     return const AiCoachState(
       greeting: '안녕하세요, 오늘 컨디션은 어떠세요?',
       suggestions: <AiSuggestion>[
@@ -82,11 +83,6 @@ class MockAiCoachRepository implements AiCoachRepository {
           tag: AiSuggestionTag.exercise,
           title: '저녁 산책 15분',
           body: '저녁 시간대 가벼운 유산소는 수면의 질도 함께 끌어올립니다.',
-        ),
-        AiSuggestion(
-          tag: AiSuggestionTag.hydration,
-          title: '수분 보충',
-          body: '오늘 평소보다 활동량이 많았어요. 물 한 컵 더 마셔봐요.',
         ),
       ],
     );
