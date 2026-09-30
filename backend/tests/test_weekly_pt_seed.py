@@ -213,3 +213,54 @@ def test_weekly_pt_seed_reattaches_rows_orphaned_by_account_recreation(client, d
         restored = db_session.get(TrainerSchedule, row_id)
         restored.member_id = owner
         db_session.commit()
+
+
+def test_schedule_seed_reattaches_todays_timeline_orphaned_by_account_recreation(
+    client, db_session
+):
+    """오늘 타임라인 행도 계정 재생성 뒤 주인을 되찾는다 — 주간 PT 가 한 번 더 깔리지 않는다.
+
+    예전에는 되붙이는 처리가 주간 PT 행에만 있어, 타임라인 행의 주인이 빈 채로 주간 PT
+    시드가 돌면 "이번 주 수업 없음" 으로 보고 지난 요일에 PT 를 또 깔았다(#2695).
+    주인 여부를 확인하므로 요일과 상관없이 돈다.
+    """
+    from app.db.seed_member_data import (
+        _SCHEDULE,
+        _seed_schedule,
+        _seed_weekly_pt,
+        _valid_member_ids,
+    )
+    from app.models.models import TrainerSchedule
+
+    today = clock.today_iso()
+    valid = _valid_member_ids(db_session)
+    owners = {
+        f"seed-schedule-{today}-{i}": mid
+        for i, (_t, _n, mid, *_rest) in enumerate(_SCHEDULE)
+        if mid and mid in valid
+    }
+    rows = [db_session.get(TrainerSchedule, rid) for rid in owners]
+    assert rows and all(r is not None for r in rows)
+    for row in rows:
+        row.member_id = None
+    db_session.commit()
+    try:
+        _seed_schedule(db_session, valid)
+        _seed_weekly_pt(db_session, valid)
+        db_session.expire_all()
+
+        for rid, mid in owners.items():
+            assert db_session.get(TrainerSchedule, rid).member_id == mid, rid
+        start = _monday(0)
+        for mid in set(owners.values()):
+            extra = [
+                r.id
+                for r in _seed_rows(db_session, mid, start, start + timedelta(days=6))
+                if r.id.startswith("seed-pt-")
+            ]
+            assert extra == [], f"{mid} 에게 이번 주 PT 가 한 번 더 깔렸다"
+    finally:
+        db_session.expire_all()
+        for rid, mid in owners.items():
+            db_session.get(TrainerSchedule, rid).member_id = mid
+        db_session.commit()
