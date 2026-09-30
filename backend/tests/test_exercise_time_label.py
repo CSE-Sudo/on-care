@@ -140,3 +140,67 @@ def test_week_reads_the_pt_time_from_its_class(client, db_session):
         if schedule is not None:
             db_session.delete(schedule)
         db_session.commit()
+
+
+def test_unlinked_pt_reads_the_same_day_class(client, db_session):
+    """수업과 id 로 이어지지 않은 PT(픽스처 시드 기록)는 같은 날 완료 수업의 시각이다.
+    (#2694)
+
+    같은 날을 봐야 해서 오늘에 둔다. 시드 트레이너의 오늘 일정과 겹치지 않는 이른
+    시각을 쓰고, 끝나면 만든 행을 지운다 — 남기면 오늘 수업을 만드는 다른 시험이
+    겹침(409)으로 떨어진다.
+    """
+    from app.db.seed_trainer import TRAINER_ID
+    from app.models.models import ExerciseSession, TrainerSchedule
+
+    member_id, headers = _new_member(client)
+    today = clock.today()
+    monday = today - timedelta(days=today.weekday())
+    schedule_id = f"tl-{uuid4().hex[:8]}"
+    session_id = f"seed-fix-ex-{member_id}-{today.isoformat()}-0"
+    db_session.add(
+        TrainerSchedule(
+            id=schedule_id,
+            trainer_id=TRAINER_ID,
+            member_id=member_id,
+            date=today.isoformat(),
+            time="05:00",
+            client_name="u",
+            type="1:1 PT",
+            duration_minutes=50,
+            status="완료",
+            note="",
+            program_json="[]",
+            sort_order=0,
+        )
+    )
+    db_session.add(
+        ExerciseSession(
+            id=session_id,
+            user_id=member_id,
+            week_start=monday.isoformat(),
+            day_label=WEEKDAY_LABELS[today.weekday()],
+            type="strength",
+            name="벤치프레스",
+            minutes=12,
+            calories=72,
+            source="trainer_pt",
+        )
+    )
+    db_session.commit()
+
+    try:
+        r = client.get("/v1/exercise/weeks/current", headers=headers)
+        assert r.status_code == 200, r.text
+        (session,) = r.json()["sessions"]
+        assert session["time_label"] == "05:00"
+    finally:
+        db_session.expire_all()
+        for model, row_id in (
+            (ExerciseSession, session_id),
+            (TrainerSchedule, schedule_id),
+        ):
+            row = db_session.get(model, row_id)
+            if row is not None:
+                db_session.delete(row)
+        db_session.commit()
