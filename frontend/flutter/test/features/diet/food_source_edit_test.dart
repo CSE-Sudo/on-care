@@ -206,6 +206,7 @@ void main() {
 
   testWidgets('새로 추가한 음식은 member 다', (WidgetTester tester) async {
     final FakeDietRepository repo = await _openEdit(tester);
+    await tester.ensureVisible(find.text('음식 추가'));
     await tester.tap(find.text('음식 추가'));
     await tester.pumpAndSettle();
 

@@ -328,6 +328,7 @@ void main() {
     ) async {
       await _openEdit(tester, FakeDietRepository());
       await tester.enterText(_field('diet-food-amount-2'), '150');
+      await tester.ensureVisible(find.text('음식 추가'));
       await tester.tap(find.text('음식 추가'));
       await tester.pumpAndSettle();
       await tester.enterText(_field('diet-food-name-3'), '요거트');
