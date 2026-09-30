@@ -85,7 +85,10 @@ demoSentReports = <({String clientId, int daysAgo, int hour, bool read})>[
 ///
 ///  * 임도현 — 이번 주에 붙은 신규. 기록도 대화도 아직 없다.
 ///  * 노은채 — 지난 주에 붙어 첫 운동을 막 마쳤다(`첫 기록`).
+///  * 김민수 — 11주 전에 첫 PT 를 받았고 오늘이 12회차다. 그의 수업 날은 공유
+///    픽스처가 정한다(`weeklyPt`, #2694).
 const Map<String, int> demoMemberJoinedWeeksAgo = <String, int>{
+  'seed-client-1': 11,
   'seed-client-7': 0,
   'seed-client-15': 1,
 };
