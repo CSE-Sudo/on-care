@@ -72,18 +72,19 @@ class AppRoutes {
   static bool isLegalPath(String path) =>
       path == legal || path.startsWith('$legal/');
 
-  /// 스케줄 하위의 상담 요청 인박스. (#467, #1228)
-  static const String consultationsSegment = 'consultations';
-  static const String consultations = '$schedule/$consultationsSegment';
+  /// 스케줄을 열면서 그 위에 상담 요청함 **창**을 띄우라는 쿼리. (#2717)
+  static const String inboxParam = 'inbox';
 
-  /// 이전 독립 탭 주소. 기존 링크는 새 스케줄 하위 주소로 리다이렉트한다.
+  /// 상담 요청함 — 스케줄 위에 뜨는 창이다. 페이지가 따로 없다(#2717).
+  ///
+  /// 알림처럼 상담함으로 보내야 하는 길은 이 주소로 스케줄에 가고, 스케줄이
+  /// 창을 연 뒤 쿼리를 지운다 — 스케줄·대시보드 버튼이 여는 창과 같은 창이다.
+  static const String consultations = '$schedule?$inboxParam=1';
+
+  /// 예전 상담함 주소들 — 독립 탭(`/consultations`)과 스케줄 하위 페이지
+  /// (`/schedule/consultations`). 남은 링크는 [consultations] 로 보낸다.
   static const String legacyConsultations = '/consultations';
-
-  /// 대시보드에서 열었음을 남겨 돌아가기 동선을 복원한다.
-  static String consultationsFromDashboard() => Uri(
-    path: consultations,
-    queryParameters: const <String, String>{'from': 'dashboard'},
-  ).toString();
+  static const String legacyScheduleConsultations = '$schedule/consultations';
 
   /// 알림함 — 놓친 변화를 나중에 확인하는 자리. (#503)
   ///

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/dtos/trainer_me_dto.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
@@ -182,13 +185,82 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
 }
 
 /// Stateful mock with the same mutation contract as the real repository.
+///
+/// [db] 가 있으면 고친 프로필·소속 헬스장을 키-값 저장소에 적어 두고 다시
+/// 읽는다(#2669) — 예전에는 메모리뿐이라 새로고침하면 시드 프로필로 돌아갔다.
+/// 없으면(단위 테스트) 메모리에만 둔다.
 class MockTrainerProfileRepository implements TrainerProfileRepository {
   /// [language] 데모의 프로필로 시작한다 (#2304).
-  MockTrainerProfileRepository({this.language = DemoLanguage.ko})
+  MockTrainerProfileRepository({this.language = DemoLanguage.ko, this.db})
     : _profile = seedTrainerProfileFor(language);
 
   final DemoLanguage language;
+
+  /// 고친 값을 적어 두는 데모 저장소.
+  final AppDatabase? db;
   TrainerProfile _profile;
+  bool _restored = false;
+
+  /// 고친 값을 적어 두는 키. 시드 프로필 위에 얹을 칸만 담는다.
+  static const String storageKey = 'demo_trainer_profile';
+
+  Future<TrainerProfile> _current() async {
+    if (_restored) return _profile;
+    _restored = true;
+    final String? saved = await db?.readValue(storageKey);
+    if (saved == null) return _profile;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return _profile;
+    }
+    if (decoded is! Map<String, Object?>) return _profile;
+    String? text(Map<String, Object?> json, String key) =>
+        json[key] is String ? json[key]! as String : null;
+    final Object? gym = decoded['gym'];
+    _profile = _profile.copyWith(
+      phone: text(decoded, 'phone'),
+      specialty: text(decoded, 'specialty'),
+      careerYears: (decoded['career_years'] as num?)?.toInt(),
+      intro: text(decoded, 'intro'),
+      certifications: decoded['certifications'] is List
+          ? List<String>.unmodifiable(
+              (decoded['certifications']! as List<Object?>).whereType<String>(),
+            )
+          : null,
+      gym: gym is Map<String, Object?>
+          ? TrainerGym(
+              id: text(gym, 'id'),
+              name: text(gym, 'name') ?? '',
+              address: text(gym, 'address') ?? '',
+              hours: text(gym, 'hours') ?? '',
+              phone: text(gym, 'phone') ?? '',
+            )
+          : null,
+    );
+    return _profile;
+  }
+
+  Future<void> _persist() async {
+    await db?.putValue(
+      storageKey,
+      jsonEncode(<String, Object?>{
+        'phone': _profile.phone,
+        'specialty': _profile.specialty,
+        'career_years': _profile.careerYears,
+        'intro': _profile.intro,
+        'certifications': _profile.certifications,
+        'gym': <String, Object?>{
+          'id': _profile.gym.id,
+          'name': _profile.gym.name,
+          'address': _profile.gym.address,
+          'hours': _profile.gym.hours,
+          'phone': _profile.gym.phone,
+        },
+      }),
+    );
+  }
 
   /// 데모 검색 결과. 앞 둘은 등록된 헬스장, 뒤는 카카오에서 찾은 곳이다 —
   /// 데모에서도 두 경로가 모두 보이게 한다. 좌표는 지도 핀용이다.
@@ -227,7 +299,7 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
   ];
 
   @override
-  Future<TrainerProfile> fetch() async => _profile;
+  Future<TrainerProfile> fetch() => _current();
 
   @override
   Future<List<TrainerGymCandidate>> searchGyms(String query) async {
@@ -246,6 +318,7 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
 
   @override
   Future<TrainerProfile> update(TrainerProfileUpdate update) async {
+    await _current();
     _profile = _profile.copyWith(
       phone: update.phone,
       specialty: update.specialty,
@@ -254,11 +327,13 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
       intro: update.intro,
       certifications: List<String>.unmodifiable(update.certifications),
     );
+    await _persist();
     return _profile;
   }
 
   @override
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym) async {
+    await _current();
     _profile = _profile.copyWith(
       gym: TrainerGym(
         id: gym.id,
@@ -269,6 +344,7 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
         phone: gym.phone,
       ),
     );
+    await _persist();
     return _profile;
   }
 }
@@ -281,6 +357,7 @@ final trainerProfileRepositoryProvider = Provider<TrainerProfileRepository>((
   if (config.useMockApi) {
     return MockTrainerProfileRepository(
       language: ref.watch(demoLanguageProvider),
+      db: ref.watch(appDatabaseProvider),
     );
   }
   return DioTrainerProfileRepository(ref.watch(dioProvider));

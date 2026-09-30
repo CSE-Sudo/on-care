@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/app/locale_text_refresh.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
@@ -14,6 +15,8 @@ class OncareApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final locale = ref.watch(localeProvider);
+    // 언어가 바뀌면 서버가 만든 문장을 새 언어로 다시 읽는다(#2719).
+    ref.watch(localeTextRefreshProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,

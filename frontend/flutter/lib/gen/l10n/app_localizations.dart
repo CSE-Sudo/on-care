@@ -1817,7 +1817,7 @@ abstract class AppLocalizations {
   /// No description provided for @exOwnRecordsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No workouts logged yet'**
+  /// **'No workouts logged'**
   String get exOwnRecordsEmpty;
 
   /// No description provided for @exOwnRecordSource.

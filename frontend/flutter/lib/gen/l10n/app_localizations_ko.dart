@@ -949,7 +949,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOwnRecords => '직접 기록한 운동';
 
   @override
-  String get exOwnRecordsEmpty => '직접 추가할 운동이 없어요';
+  String get exOwnRecordsEmpty => '직접 기록한 운동이 없어요';
 
   @override
   String get exOwnRecordSource => '직접 기록';

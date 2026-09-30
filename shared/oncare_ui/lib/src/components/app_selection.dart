@@ -414,10 +414,16 @@ class AppTag extends StatelessWidget {
 }
 
 /// 카운트 배지 — 빨간 원, 최소 20, 99 를 넘으면 "99+".
+///
+/// [color] 를 주면 그 색 원이다. 트레이너 웹 메시지 목록의 안읽음 수는
+/// 사이드바 숫자와 같은 브랜드 남색을 쓴다(#2669).
 class AppCountBadge extends StatelessWidget {
-  const AppCountBadge({super.key, required this.count});
+  const AppCountBadge({super.key, required this.count, this.color});
 
   final int count;
+
+  /// 원 색. 비우면 [OnCareColors.danger] 다.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -433,8 +439,8 @@ class AppCountBadge extends StatelessWidget {
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: OnCareColors.danger,
+      decoration: BoxDecoration(
+        color: color ?? OnCareColors.danger,
         borderRadius: OnCareRadius.pillAll,
       ),
       child: Text(

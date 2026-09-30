@@ -11,6 +11,9 @@ AI 코치 서비스.
 현재(STEP 6)는 RAG 전이라, 사용자의 실제 식단·운동 데이터를 읽어
 '규칙 기반'으로 제안을 생성한다. 구조(도메인 분리)는 STEP 7과 동일하게 유지하므로
 나중에 내부 구현만 LLM 호출로 바꾸면 된다.
+
+인사말과 규칙 문구는 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 헤더가
+없으면 지금까지처럼 한국어다.
 """
 from __future__ import annotations
 
@@ -20,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.locale import localized
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import diet_service
@@ -108,14 +112,24 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
 
     if not rows:
         return CoachSuggestion(
-            tag="diet", title="오늘 식단을 기록해 보세요",
-            body="사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
+            tag="diet",
+            title=localized("오늘 식단을 기록해 보세요", "Log today's meals"),
+            body=localized(
+                "사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
+                "One photo is all it takes to analyze calories and sodium. "
+                "Shall we start with your first meal?",
+            ),
         )
     if total_na > diet_service.SODIUM_LIMIT_MG:
         return CoachSuggestion(
-            tag="diet", title="나트륨 섭취가 많아요",
-            body=f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
-                 "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
+            tag="diet",
+            title=localized("나트륨 섭취가 많아요", "High sodium today"),
+            body=localized(
+                f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
+                "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
+                f"Today's sodium is about {total_na}mg, over the recommended amount. "
+                "At dinner, leave the broth and add more vegetables to balance it out.",
+            ),
         )
     return None
 
@@ -136,13 +150,23 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
     # 둔다 — 초과일이 기준을 채우면 기록일수는 이미 그만큼 채워진 것이다.
     if week.days_over_sodium >= _SODIUM_PATTERN_MIN_DAYS:
         return CoachSuggestion(
-            tag="diet", title="이번 주 나트륨이 계속 높았어요",
-            body=f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
-                 "나트륨이 권장량을 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
+            tag="diet",
+            title=localized("이번 주 나트륨이 계속 높았어요", "Sodium ran high this week"),
+            body=localized(
+                f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
+                "나트륨이 권장량을 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
+                f"Sodium went over the recommended amount on {week.days_over_sodium} "
+                f"of the {week.days_logged} days you logged this week. "
+                "Try to have more low-sodium days like today.",
+            ),
         )
     return CoachSuggestion(
-        tag="diet", title="식단 균형이 좋아요",
-        body="오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
+        tag="diet",
+        title=localized("식단 균형이 좋아요", "Nicely balanced meals"),
+        body=localized(
+            "오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
+            "Your sodium intake is steady today. Keep it up!",
+        ),
     )
 
 
@@ -172,17 +196,32 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
 
     if total_min == 0:
         return CoachSuggestion(
-            tag="exercise", title="이번 주 운동을 시작해 보세요",
-            body="가벼운 30분 걷기부터 시작하면 혈압·혈당 관리에 도움이 돼요.",
+            tag="exercise",
+            title=localized("이번 주 운동을 시작해 보세요", "Start this week's workouts"),
+            body=localized(
+                "가벼운 30분 걷기부터 시작하면 혈압·혈당 관리에 도움이 돼요.",
+                "Start with a light 30-minute walk. "
+                "It helps with blood pressure and blood sugar.",
+            ),
         )
     if total_min < 150:
         return CoachSuggestion(
-            tag="exercise", title="조금만 더 움직여봐요",
-            body=f"이번 주 {total_min}분 운동했어요. 주 150분을 목표로 가볍게 더해봐요.",
+            tag="exercise",
+            title=localized("조금만 더 움직여봐요", "Let's move a little more"),
+            body=localized(
+                f"이번 주 {total_min}분 운동했어요. 주 150분을 목표로 가볍게 더해봐요.",
+                f"You've exercised {total_min} minutes this week. "
+                "Aim for 150 minutes a week and add a little more.",
+            ),
         )
     return CoachSuggestion(
-        tag="exercise", title="운동량이 충분해요",
-        body=f"이번 주 {total_min}분! 권장 운동량을 잘 채우고 있어요. 멋져요!",
+        tag="exercise",
+        title=localized("운동량이 충분해요", "Great activity level"),
+        body=localized(
+            f"이번 주 {total_min}분! 권장 운동량을 잘 채우고 있어요. 멋져요!",
+            f"{total_min} minutes this week! "
+            "You're meeting the recommended amount. Nice work!",
+        ),
     )
 
 
@@ -195,11 +234,20 @@ def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback
     """
     hour = clock.now().hour
     if hour < 11:
-        greeting = f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요."
+        greeting = localized(
+            f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요.",
+            f"Good morning, {user_name}! Let's start the day healthy.",
+        )
     elif hour < 18:
-        greeting = f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?"
+        greeting = localized(
+            f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?",
+            f"Hi {user_name}, how's your day going?",
+        )
     else:
-        greeting = f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요."
+        greeting = localized(
+            f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요.",
+            f"How was your day, {user_name}? Let's wrap it up healthy.",
+        )
 
     # 지연 import (순환 참조 방지: domain_coaches 가 coach_service 를 import)
     from app.services.coach.domain_coaches import diet_coach, exercise_coach

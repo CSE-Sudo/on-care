@@ -371,7 +371,12 @@ class _ConversationTile extends StatelessWidget {
                 const SizedBox(height: OnCareSpacing.s4),
                 KeyedSubtree(
                   key: ValueKey<String>('messages-unread-${client.id}'),
-                  child: AppCountBadge(count: unread),
+                  // 사이드바 `메시지` 숫자와 같은 남색이다 — 규격 전환(#1730)
+                  // 전에도 남색이었고, 빨강은 경고 신호에 남겨 둔다(#2669).
+                  child: AppCountBadge(
+                    count: unread,
+                    color: tokens.brand.primary,
+                  ),
                 ),
               ],
             ],

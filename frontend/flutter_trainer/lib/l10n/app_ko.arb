@@ -416,8 +416,6 @@
   "coachSheetAsk": "물어보기",
   "coachSheetAskAgain": "다시 묻기",
   "consultTitle": "상담 요청",
-  "consultBackToSchedule": "스케줄로 돌아가기",
-  "consultBackToDashboard": "대시보드로 돌아가기",
   "consultPendingCount": "대기 중 {count}건",
   "consultNoPending": "대기 중인 요청이 없어요",
   "consultFilterAll": "전체",
