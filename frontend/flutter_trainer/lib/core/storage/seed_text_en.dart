@@ -735,6 +735,27 @@ const Map<String, String> _seedEnglish = <String, String>{
   '혈액순환 개선': 'Improves circulation',
   '기초대사량 향상': 'Boosts basal metabolism',
   'PT 피드백 반영 · 오른쪽 어깨 보호': 'Based on PT feedback · Protects the right shoulder',
+  // 시드 상담 일정의 상담 요청 문의 글과 지난 주 취소 사유 (#2669).
+  '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.':
+      'I eat out for dinner a lot. Could we talk about how to keep up my meal log?',
+  '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.':
+      "I'd like to ask whether my sessions could move to the morning.",
+  '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.':
+      'I hurt my knee a while ago. Can I start without overdoing it?',
+  '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?':
+      'I can only work out on weekends. Can I still keep it consistent?',
+  '체중 감량을 목표로 PT 를 알아보고 있어요. 퇴근 후 시간대가 좋아요.':
+      "I'm looking into PT to lose weight. After-work hours suit me best.",
+  '정형외과 재진 소견서도 보내드려요. 걷기는 괜찮대요':
+      "Here's my orthopedic follow-up note too. They said walking is fine",
+  '회식이 잦아서 야식을 어떻게 줄일지 상담받고 싶어요.':
+      'I have team dinners often. Could we talk about cutting down late-night snacks?',
+  '혈압이 다시 올라서 운동 강도를 같이 봐 주셨으면 해요.':
+      'My blood pressure is up again. Could we go over my workout intensity together?',
+  '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.':
+      "I'd like to reset my knee rehab goals. I have my doctor's notes too.",
+  '감기 기운이 있어 이번 수업은 쉬고 싶다고 연락함':
+      'Messaged ahead: feeling a cold coming on, wants to skip this session',
   // 지난 PT 메모·지난 상담(#2667).
   '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.':
       'Finished 6 interval sets. Breathing spiked in the last two, so rest went up to 90 seconds.',

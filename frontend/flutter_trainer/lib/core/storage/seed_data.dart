@@ -12,8 +12,19 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
+import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart'
+    show
+        demoConsultationKey,
+        demoScheduleConsultations,
+        loadDemoScheduleConsultations,
+        writeDemoScheduleConsultations;
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart'
+    show ScheduleConsultation;
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/shared/models/client_chat_message.dart'
+    show ChatAttachmentKind;
 import 'package:oncare_trainer/shared/models/client_signal.dart';
+import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
 
 // The roster itself is bulky enough to drown the seeding logic, so it
 // lives next door. `part` keeps the `_Client` family private to this
@@ -23,10 +34,16 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v41']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v45']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v45` 는 시드 상담 일정 5건에 상담 요청을 잇고, 3주 전 PT 에 취소·노쇼를
+/// 한 건씩 두고, 강서연·신유나 대화에 회원이 보낸 사진·PDF 를 붙였다(#2669).
+/// 올리지 않으면 오늘 이미 시드된 브라우저의 일정 카드에 `상담 요청 내용` 이
+/// 비고, 대화에 첨부가 없다. (`_v42`~`_v44` 는 병렬 작업 #2694·#2668·#2704·
+/// #2705 몫이라 건너뛴다.)
 ///
 /// `_v41` 은 데모 알림함의 과거 알림을 심었다(#2628). 올리지 않으면 오늘 이미
 /// 시드된 브라우저의 알림함이 자정까지 비어 있다.
@@ -171,8 +188,10 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v41') == today &&
+  if (await db.readValue('trainer_seeded_v45') == today &&
       seededLanguage == language.name) {
+    // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
+    await loadDemoScheduleConsultations(db);
     return;
   }
 
@@ -277,6 +296,11 @@ Future<void> seedIfEmpty(
     await (db.delete(
       db.clientChatMessages,
     )..where((t) => t.id.like('seed-%'))).go();
+    // 시드 메시지에 붙였던 첨부 표시도 함께 치운다 — 메시지 순서가 바뀌면 같은
+    // id 의 다른 메시지에 옛 사진이 붙는다(#2669).
+    await (db.delete(
+      db.appKeyValues,
+    )..where((t) => t.key.like('${demoChatFileKeyPrefix}seed-%'))).go();
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.like('seed-%'))).go();
@@ -479,6 +503,19 @@ Future<void> seedIfEmpty(
       // 화면이 파일명을 보고 리포트인지 짐작하지 않게 하기 위해서다. 실행 중에
       // 보내는 리포트도 같은 키에 같은 값을 쓴다.
       for (var i = 0; i < client.chat.length; i++) {
+        final _ChatFile? file = client.chat[i].file;
+        if (file == null) continue;
+        await db.putValue(
+          '${demoChatFileKeyPrefix}seed-chat-${client.id}-$i',
+          encodeDemoChatFile(
+            kind: file.kind,
+            name: file.name,
+            asset: file.asset,
+            lines: file.lines,
+          ),
+        );
+      }
+      for (var i = 0; i < client.chat.length; i++) {
         if (!client.chat[i].report) continue;
         final DateTime at = chatCreatedAt(client, i, lastDayIndex);
         await db.putValue(
@@ -604,6 +641,44 @@ Future<void> seedIfEmpty(
       return t(_pastPtNotes[back - 1][clientName] ?? '');
     }
 
+    // 지난 회원 PT 한 건. 대부분 완료지만 몇 건은 취소·노쇼로 남는다
+    // ([_pastMiss]) — 취소는 수업 전날 저녁에 회원이 알렸고, 노쇼는 수업이
+    // 끝날 시각에 남긴다. 실서버가 남기는 기록과 같은 모양이다(#2669).
+    TrainerScheduleEntriesCompanion pastSession(int back, int k) {
+      final String name = recurring[k].slot.clientName;
+      final int minutes = recurring[k].slot.durationMinutes;
+      final DateTime day = dayOfWeek(recurring[k].weekday, weeksAgo: back);
+      final ({String status, String source, String reason})? miss = _pastMiss(
+        name,
+        back,
+      );
+      return TrainerScheduleEntriesCompanion.insert(
+        id: 'seed-schedule-p$back-$k',
+        date: ymd(day),
+        time: recurring[k].time,
+        clientId: Value(seedClientIdByName[name]),
+        clientName: Value(name),
+        type: const Value(SessionType.personalTraining),
+        durationMinutes: Value(minutes),
+        status: miss?.status ?? ScheduleStatus.done,
+        cancelledAt: Value(
+          miss?.status == ScheduleStatus.cancelled
+              ? DateTime(day.year, day.month, day.day - 1, 20)
+              : null,
+        ),
+        cancellationSource: Value(miss?.source ?? ''),
+        cancellationReason: Value(t(miss?.reason ?? '')),
+        noShowAt: Value(
+          miss?.status == ScheduleStatus.noShow
+              ? _at(day, recurring[k].time).add(Duration(minutes: minutes))
+              : null,
+        ),
+        note: Value(pastPtNote(back, name)),
+        programJson: const Value('[]'),
+        sortOrder: Value(recurring[k].order),
+      );
+    }
+
     await db.batch((Batch b) {
       b.insertAll(db.trainerScheduleEntries, <TrainerScheduleEntriesCompanion>[
         for (var i = 0; i < _schedule.length; i++)
@@ -650,28 +725,14 @@ Future<void> seedIfEmpty(
                         .slot
                         .clientName]] ??
                     demoReportHistoryWeeks))
-              TrainerScheduleEntriesCompanion.insert(
-                id: 'seed-schedule-p$back-$k',
-                date: ymd(dayOfWeek(recurring[k].weekday, weeksAgo: back)),
-                time: recurring[k].time,
-                clientId: Value(
-                  seedClientIdByName[recurring[k].slot.clientName],
-                ),
-                clientName: Value(recurring[k].slot.clientName),
-                type: const Value(SessionType.personalTraining),
-                durationMinutes: Value(recurring[k].slot.durationMinutes),
-                status: ScheduleStatus.done,
-                note: Value(pastPtNote(back, recurring[k].slot.clientName)),
-                programJson: const Value('[]'),
-                sortOrder: Value(recurring[k].order),
-              ),
+              pastSession(back, k),
         // 지난 상담(#2667). 이번 주 상담만 있으면 AI 근거의 `상담 메모`(최근
         // 30일)가 요일에 따라 비었다.
         for (var i = 0; i < _pastConsults.length; i++)
           TrainerScheduleEntriesCompanion.insert(
             id: 'seed-schedule-c$i',
             date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
-            time: '11:00',
+            time: _pastConsultTime,
             clientId: Value(seedClientIdByName[_pastConsults[i].clientName]),
             clientName: Value(_pastConsults[i].clientName),
             type: const Value(SessionType.consultation),
@@ -684,6 +745,64 @@ Future<void> seedIfEmpty(
       ]);
     });
 
+    // 시드 상담 일정마다 회원이 보낸 상담 요청을 잇는다(#2669). 실서버의 상담
+    // 일정은 수락한 요청에서 생기므로 `상담 요청 내용` 이 늘 붙어 있다. 실행 중에
+    // 수락해 생긴 연결은 그대로 두고, 지난 시드의 연결만 새로 갈아 끼운다.
+    await loadDemoScheduleConsultations(db);
+    demoScheduleConsultations.removeWhere(
+      (_, ScheduleConsultation c) => c.id.startsWith(_seedConsultPrefix),
+    );
+    for (var i = 0; i < _schedule.length; i++) {
+      final ({String goal, String message})? request =
+          _seedConsultRequests[_schedule[i].clientName];
+      if (_schedule[i].type != SessionType.consultation || request == null) {
+        continue;
+      }
+      demoScheduleConsultations[demoConsultationKey(
+            clientId: seedClientIdByName[_schedule[i].clientName],
+            date: today,
+            time: _schedule[i].time,
+          )] =
+          ScheduleConsultation(
+            id: '$_seedConsultPrefix$i',
+            goalCode: request.goal,
+            message: t(request.message),
+          );
+    }
+    for (final p in placed) {
+      final _WeekSlot slot = _weekSchedule[p.index];
+      final ({String goal, String message})? request =
+          _seedConsultRequests[slot.clientName];
+      if (slot.type != SessionType.consultation || request == null) continue;
+      demoScheduleConsultations[demoConsultationKey(
+            clientId: seedClientIdByName[slot.clientName],
+            date: ymd(dayOfWeek(p.weekday)),
+            time: p.time,
+          )] =
+          ScheduleConsultation(
+            id: '${_seedConsultPrefix}w${p.index}',
+            goalCode: request.goal,
+            message: t(request.message),
+          );
+    }
+    // 지난 상담(#2667)도 요청에서 생긴 상담이다 — 같은 규칙으로 잇는다.
+    for (var i = 0; i < _pastConsults.length; i++) {
+      final ({String goal, String message})? request =
+          _seedConsultRequests[_pastConsults[i].clientName];
+      if (request == null) continue;
+      demoScheduleConsultations[demoConsultationKey(
+            clientId: seedClientIdByName[_pastConsults[i].clientName],
+            date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
+            time: _pastConsultTime,
+          )] =
+          ScheduleConsultation(
+            id: '${_seedConsultPrefix}c$i',
+            goalCode: request.goal,
+            message: t(request.message),
+          );
+    }
+    await writeDemoScheduleConsultations(db);
+
     // 신체·목표는 저장된 값이 없는 회원에게만 넣는다 — 트레이너가 고친 값은
     // 날이 바뀌어도 남는다(#2597).
     await seedDemoHealthProfiles(db);
@@ -692,7 +811,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v41', today);
+    await db.putValue('trainer_seeded_v45', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -953,10 +1072,15 @@ class _Chat {
     this.timeLabel, {
     this.dayIndex = 0,
     this.report = false,
+    this.file,
   });
   final String sender; // trainer|client
   final String text;
   final String timeLabel;
+
+  /// 회원이 이 메시지에 붙여 보낸 사진·PDF(#2669). 시딩이 메시지 id 에 표시
+  /// ([demoChatFileKeyPrefix])를 남기고, 대화를 읽을 때 바이트를 만든다.
+  final _ChatFile? file;
 
   /// 주간 리포트 등록 안내인가. (#1421)
   ///
@@ -972,6 +1096,22 @@ class _Chat {
   /// 라벨만 '화/수' 로 갈라 놓고 `createdAt` 은 전부 몇 분 안에 몰려 있어서,
   /// 날짜로 묶으려는 쪽(대화 중간의 AI 분석 안내)에서 하루로 보였다.
   final int dayIndex;
+}
+
+/// 시드 메시지에 붙는 첨부 한 건(#2669) — [encodeDemoChatFile] 의 인자다.
+class _ChatFile {
+  const _ChatFile.image(this.name, String this.asset)
+    : kind = ChatAttachmentKind.image,
+      lines = const <String>[];
+
+  const _ChatFile.pdf(this.name, this.lines)
+    : kind = ChatAttachmentKind.pdf,
+      asset = null;
+
+  final ChatAttachmentKind kind;
+  final String name;
+  final String? asset;
+  final List<String> lines;
 }
 
 /// 데모가 들고 있는 주 수(이번 주 포함). '최근 4주' 카드는 보고 있는 주에서
@@ -1861,6 +2001,9 @@ const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
 ];
 
 /// 지난 상담(#2667). AI 루틴 추천의 근거 `상담 메모`(최근 30일)가 읽는 글이다.
+/// 지난 상담([_pastConsults])의 시각.
+const String _pastConsultTime = '11:00';
+
 const List<({int daysAgo, String clientName, String note})> _pastConsults =
     <({int daysAgo, String clientName, String note})>[
       (
@@ -1953,6 +2096,84 @@ class _WeekSlot {
   final int durationMinutes;
   final String note;
   final List<Map<String, Object?>> program;
+}
+
+/// 시드 상담 일정에 붙는 상담 요청 id 의 앞머리(#2669).
+const String _seedConsultPrefix = 'seed-consultation-';
+
+/// 시드 상담 일정마다 회원이 보낸 상담 요청 — 상담받는 사람 이름으로 찾는다
+/// (#2669). 목표 코드는 서버 enum 이라 옮기지 않고, 문의 글만 시드 언어로
+/// 옮긴다. 일정 메모(트레이너가 적은 것)와 같은 이야기를 회원 쪽 말로 한다.
+const Map<String, ({String goal, String message})> _seedConsultRequests =
+    <String, ({String goal, String message})>{
+      '정하윤': (
+        goal: 'eating',
+        message: '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.',
+      ),
+      '문가영': (goal: 'fitness', message: '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.'),
+      '조은비': (
+        goal: 'rehab',
+        message: '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.',
+      ),
+      '서지훈': (
+        goal: 'exercise_habit',
+        message: '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?',
+      ),
+      // 지난 상담(#2667)의 요청 — 상담 메모와 같은 이야기를 회원 쪽 말로 한다.
+      '한지호': (
+        goal: 'eating',
+        message: '회식이 잦아서 야식을 어떻게 줄일지 상담받고 싶어요.',
+      ),
+      '오세라': (
+        goal: 'blood_pressure',
+        message: '혈압이 다시 올라서 운동 강도를 같이 봐 주셨으면 해요.',
+      ),
+      '신유나': (
+        goal: 'rehab',
+        message: '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.',
+      ),
+      '윤가온': (
+        goal: 'weight_loss',
+        message: '체중 감량을 목표로 PT 를 알아보고 있어요. 퇴근 후 시간대가 좋아요.',
+      ),
+    };
+
+/// 지난 PT 가운데 끝내 하지 못한 수업(#2669) — 취소·노쇼 기록이 일정에도
+/// 리포트에도 있어야 실서버 화면과 같다. 배준혁은 야근형·노쇼 회원이고,
+/// 강서연은 전날 저녁에 몸이 안 좋다고 알려 왔다. 3주 전에 둔다 — 지난 두
+/// 주의 첫 수업에는 진행한 수업의 메모([_pastPtNotes])가 달려 있어, 그 주를
+/// 노쇼·취소로 바꾸면 메모와 어긋난다. 그 회원의 그 주 수업이 없으면(요일이
+/// 오늘과 겹쳐 빠진 주) 아무것도 바뀌지 않는다.
+({String status, String source, String reason})? _pastMiss(
+  String clientName,
+  int weeksAgo,
+) => switch ((clientName, weeksAgo)) {
+  ('배준혁', seedPastMissWeeksAgo) => (
+    status: ScheduleStatus.noShow,
+    source: '',
+    reason: '',
+  ),
+  ('강서연', seedPastMissWeeksAgo) => (
+    status: ScheduleStatus.cancelled,
+    source: CancellationSource.member,
+    reason: '감기 기운이 있어 이번 수업은 쉬고 싶다고 연락함',
+  ),
+  _ => null,
+};
+
+/// [_pastMiss] 가 놓이는 주 — 몇 주 전인가. 테스트도 이 값으로 그 주를 찾는다.
+const int seedPastMissWeeksAgo = 3;
+
+/// [day] 의 [time](`HH:MM`) 벽시계 시각.
+DateTime _at(DateTime day, String time) {
+  final List<String> hm = time.split(':');
+  return DateTime(
+    day.year,
+    day.month,
+    day.day,
+    int.parse(hm[0]),
+    int.parse(hm[1]),
+  );
 }
 
 /// 트레이너의 한 주 — 10~22시 사이 짝수 정시는 1:1 PT, 그 사이 홀수

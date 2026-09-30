@@ -98,12 +98,17 @@ void main() {
           inInclusiveRange(1, 2),
           reason: '${client.id} · $back주 전',
         );
+        // 3주 전의 배준혁(9) 노쇼·강서연(6) 회원 취소 한 건씩은 진행되지
+        // 않은 수업이다(#2669). 나머지 지난 주 수업은 모두 끝난 수업이다.
+        final bool missedOne =
+            back == seedPastMissWeeksAgo &&
+            (client.id == 'seed-client-9' || client.id == 'seed-client-6');
         expect(
           report.sessionsDone,
-          report.sessionsBooked,
+          report.sessionsBooked - (missedOne ? 1 : 0),
           reason: '지난 주 수업은 끝난 수업이다 — ${client.id} · $back주 전',
         );
-        expect(report.attendanceRate, 100);
+        if (!missedOne) expect(report.attendanceRate, 100);
       }
     }
   });

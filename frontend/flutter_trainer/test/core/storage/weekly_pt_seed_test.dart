@@ -152,10 +152,25 @@ void main() {
     });
   }
 
-  test('지난 주 수업은 전부 완료이고, 이번 주는 요일에 따라 완료·예정으로 갈린다', () async {
+  test('지난 주 수업은 완료이되 3주 전에 노쇼·취소가 한 건씩 있고, 이번 주는 '
+      '요일에 따라 완료·예정으로 갈린다', () async {
     final DateTime thursday = _dayOfWeek(4);
     final List<TrainerScheduleRow> rows = await seededRows(thursday);
     final String monday = ymd(_monday);
+    final String missFrom = ymd(
+      DateTime(
+        _monday.year,
+        _monday.month,
+        _monday.day - 7 * seedPastMissWeeksAgo,
+      ),
+    );
+    final String missTo = ymd(
+      DateTime(
+        _monday.year,
+        _monday.month,
+        _monday.day - 7 * seedPastMissWeeksAgo + 6,
+      ),
+    );
 
     // 지난 상담(`seed-schedule-c`, #2667)은 되풀이한 수업이 아니다.
     final List<TrainerScheduleRow> past = rows
@@ -166,12 +181,32 @@ void main() {
         )
         .toList();
     expect(past, isNotEmpty);
+    // 끝내 하지 못한 수업은 3주 전의 배준혁 노쇼·강서연 회원 취소뿐이다(#2669).
+    final List<TrainerScheduleRow> missed = past
+        .where((r) => r.status != ScheduleStatus.done)
+        .toList();
+    expect(
+      <(String, String)>{for (final r in missed) (r.clientName, r.status)},
+      <(String, String)>{
+        ('배준혁', ScheduleStatus.noShow),
+        ('강서연', ScheduleStatus.cancelled),
+      },
+    );
+    for (final TrainerScheduleRow r in missed) {
+      expect(r.date.compareTo(missFrom) >= 0, isTrue, reason: r.date);
+      expect(r.date.compareTo(missTo) <= 0, isTrue, reason: r.date);
+    }
+    final TrainerScheduleRow cancelled = missed.firstWhere(
+      (r) => r.status == ScheduleStatus.cancelled,
+    );
+    expect(cancelled.cancellationSource, CancellationSource.member);
+    expect(cancelled.cancellationReason, isNotEmpty);
+    expect(cancelled.cancelledAt, isNotNull);
+    expect(
+      missed.firstWhere((r) => r.status == ScheduleStatus.noShow).noShowAt,
+      isNotNull,
+    );
     for (final TrainerScheduleRow r in past) {
-      expect(
-        r.status,
-        ScheduleStatus.done,
-        reason: '${r.date} ${r.clientName}',
-      );
       expect(r.type, SessionType.personalTraining);
       expect(r.clientId, isNotNull, reason: '지난 주에는 회원 PT 만 되풀이한다');
     }

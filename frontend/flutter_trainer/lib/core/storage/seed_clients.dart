@@ -638,7 +638,16 @@ const List<_Client> _clients = <_Client>[
     ],
     chat: <_Chat>[
       _Chat('trainer', '서연님, 평일은 완벽한데 주말에 나트륨이 3100까지 올라갔어요', '16:40'),
-      _Chat('client', '주말엔 약속이 많아서요 😅 마라탕이 문제였나봐요', '16:45'),
+      _Chat(
+        'client',
+        '주말엔 약속이 많아서요 😅 마라탕이 문제였나봐요',
+        '16:45',
+        // 회원이 그날 먹은 것을 사진으로 보냈다(#2669).
+        file: _ChatFile.image(
+          'malatang.jpg',
+          'assets/images/lunch-malatang.jpg',
+        ),
+      ),
       _Chat(
         'trainer',
         '주말만 따로 15분짜리 가벼운 프로그램으로 잡아드릴게요. 안 하는 것보다 훨씬 나아요 🙂',
@@ -921,6 +930,20 @@ const List<_Client> _clients = <_Client>[
     chat: <_Chat>[
       _Chat('trainer', '유나님, 나트륨 추이가 2800에서 1700까지 내려왔어요 👏', '13:15'),
       _Chat('client', '이번 주는 다 지켰어요 :)', '13:22'),
+      // 재진 소견서를 PDF 로 보냈다(#2669). 트레이너의 다음 말이 그 내용을
+      // 받아 걷기를 얹는다.
+      _Chat(
+        'client',
+        '정형외과 재진 소견서도 보내드려요. 걷기는 괜찮대요',
+        '13:23',
+        file: _ChatFile.pdf('knee-follow-up.pdf', <String>[
+          'Orthopedic Follow-up Note',
+          'Region: Right knee',
+          'Findings: Swelling resolved. Range of motion within normal limits.',
+          'Recommendation: Resume low-impact walking.',
+          'Avoid deep squats for two more weeks.',
+        ]),
+      ),
       _Chat('trainer', '무릎 상태 괜찮으면 다음 주에 걷기 조금 얹어볼게요', '13:25'),
     ],
   ),
