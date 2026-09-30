@@ -2909,7 +2909,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authRestoreSignIn => '로그인 화면으로';
 
   @override
-  String get authTagline => '식단·운동 관리 앱';
+  String get authTagline => '기록하면 코칭이 돌아오는 식단·운동 관리';
 
   @override
   String get authEmailHint => '이메일';

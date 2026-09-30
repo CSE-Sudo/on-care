@@ -5212,7 +5212,7 @@ abstract class AppLocalizations {
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
-  /// **'Diet & exercise management app'**
+  /// **'Log your meals and workouts — and get coaching back'**
   String get authTagline;
 
   /// No description provided for @authEmailHint.
