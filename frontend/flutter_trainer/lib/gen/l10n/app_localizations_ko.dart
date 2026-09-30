@@ -3126,7 +3126,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get progPersonalRoutinesTitle => '이 PT 에 붙일 개인운동';
+  String get progPersonalRoutinesTitle => '이 PT에 붙일 개인운동';
 
   @override
   String progPersonalRoutinesCount(int count) {
