@@ -390,7 +390,8 @@ def test_schedule_update_member_id_empty_unassigns(client, db_session):
     c = client.post(
         "/v1/trainer/schedule",
         json={
-            "date": _today(), "time": "17:30", "client_name": "이지수",
+            # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
+            "date": _today(), "time": "19:10", "client_name": "이지수",
             "member_id": "user-jisu", "type": "1:1 PT", "duration_minutes": 40,
         },
         headers=_h(token),
@@ -425,7 +426,8 @@ def test_schedule_update_rejects_null_for_non_nullable_fields(
     token = _tok(client)
     # 파라미터마다 세션이 하나씩 생긴다 — 지우지 않으면 실행 한 번에 여섯 건이
     # 그대로 남아 이 파일에서 가장 크게 누적된다(#558).
-    sid = make_pt_session(token, time="17:40", duration_minutes=40)
+    # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
+    sid = make_pt_session(token, time="19:10", duration_minutes=40)
 
     r = client.put(
         f"/v1/trainer/schedule/{sid}",
@@ -486,7 +488,8 @@ def test_complete_session_logs_history_and_is_idempotent(
     # 오늘 예정 세션 생성(user-jisu 매칭). 픽스처가 테스트 끝에 지워 이력이 쌓이지 않는다.
     sid = make_pt_session(
         token,
-        time="18:30",
+        # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
+        time="19:10",
         duration_minutes=40,
         program=[
             {"name": "레그프레스", "type": "근력", "sets": 3, "weight": 80.0},

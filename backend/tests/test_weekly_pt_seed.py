@@ -66,21 +66,25 @@ def test_weekly_pt_slots_never_overlap_the_timeline_or_each_other():
         return int(h) * 60 + int(m)
 
     timeline = [
-        (minutes(t), minutes(t) + dur)
-        for t, _name, _mid, _typ, dur, _status, _note, _program in _SCHEDULE
+        (mid, minutes(t), minutes(t) + dur)
+        for t, _name, mid, _typ, dur, _status, _note, _program in _SCHEDULE
         if dur > 0
     ]
     for weekday in range(7):
         day = sorted(
-            (minutes(at), minutes(at) + dur)
-            for slots in _WEEKLY_PT.values()
+            (minutes(at), minutes(at) + dur, member_id)
+            for member_id, slots in _WEEKLY_PT.items()
             for wd, at, dur in slots
             if wd == weekday
         )
-        for (_s1, e1), (s2, _e2) in zip(day, day[1:]):
+        for (_s1, e1, _m1), (s2, _e2, _m2) in zip(day, day[1:]):
             assert e1 <= s2, f"{weekday}요일 수업이 겹친다"
-        for start, end in day:
-            for t_start, t_end in timeline:
+        for start, end, member_id in day:
+            for owner, t_start, t_end in timeline:
+                # 같은 회원의 타임라인 수업이 든 주는 주간 시드가 건너뛴다 —
+                # 김민수의 18:00 은 오늘 PT 와 같은 그의 정해진 시각이다(#2567).
+                if owner == member_id:
+                    continue
                 assert end <= t_start or t_end <= start, (
                     f"{weekday}요일 {start}분 수업이 타임라인과 겹친다"
                 )

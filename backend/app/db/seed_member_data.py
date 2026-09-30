@@ -123,7 +123,7 @@ _SODIUM_WEEK: dict[str, list[int]] = {
 }
 
 # 최근 운동 세션(최신순): (완료율, 종류라벨, 운동목록, 회원피드백, 트레이너메모).
-# 오늘/이틀전/나흘전 날짜로 시드. PT 세션은 trainer_id 를 붙인다.
+# 첫 세션 날([_HISTORY_START_DAYS])부터 이틀 간격으로 시드. PT 세션은 trainer_id 를 붙인다.
 _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
     "user-jisu": [
         (100, "AI 개인운동",
@@ -147,6 +147,19 @@ _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
         (0, "AI 개인운동", ["벤치프레스 ✗", "데드리프트 ✗", "유산소 ✗"],
          "못 갔어요 😓", ""),
     ],
+}
+
+
+#: 회원별 가장 최근 세션이 며칠 전인가. 트레이너 웹 데모(`seed_clients.dart` 의
+#: `history.daysAgo`)와 같은 날이다.
+#:
+#: 예전에는 둘 다 오늘부터 깔아, 오늘 타임라인(`_SCHEDULE`)과 같은 날 서로 다른
+#: 운동을 말했다 — 이지수는 12:00 에 데드리프트 PT 를 마쳤는데 오늘 이력은 AI
+#: 개인운동 런닝이었고, 박성호는 15:00 PT 가 아직 예정인데 오늘 PT 이력이 이미
+#: 완료로 서 있었다(#2567).
+_HISTORY_START_DAYS: dict[str, int] = {
+    "user-jisu": 1,
+    "user-sungho": 5,
 }
 
 
@@ -298,11 +311,16 @@ _HEALTH_PROFILE: dict[str, dict] = {
 # 트레이너 오늘 타임라인 (time, client, member_id, type, duration, status, note, program).
 # member_id 는 유효 회원일 때만 연결(아니면 표시용 이름만). 프론트 TRAINER_SCHEDULE 정렬.
 _SCHEDULE: list[tuple[str, str, str | None, str, int, str, str, list[dict]]] = [
-    ("10:00", "김민수", "user-7d4e9a2c5f18", "1:1 PT", 60, "완료", "무릎 컨디션 양호. 레그프레스 중량 소폭 증가 가능.", [
-        {"name": "레그프레스", "type": "근력", "sets": 3, "reps": 12, "weight": 80},
-        {"name": "레그컬", "type": "근력", "sets": 3, "reps": 12, "weight": 40},
-        {"name": "카프레이즈", "type": "근력", "sets": 3, "reps": 20, "weight": 0},
-        {"name": "하체 스트레칭", "type": "스트레칭", "duration": 10},
+    # 김민수 오늘 PT 는 **공유 픽스처의 오늘 PT** 다 — 시각·종목·세트·횟수·중량을
+    # 픽스처(`demo_fixture_data.json` 의 오늘)와 트레이너 웹 데모(`seed_data.dart`
+    # `_schedule` 첫 슬롯, #757)에 맞춘다. 예전에는 `10:00 · 레그프레스 …` 를 따로
+    # 지어내, 같은 날 일정 프로그램과 운동 기록 PT 카드가 다른 운동을 말했다(#2567).
+    # 자리(0번)는 그대로 둔다 — 화면은 시각으로 정렬한다.
+    ("18:00", "김민수", "user-7d4e9a2c5f18", "1:1 PT", 50, "완료", "무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.", [
+        {"name": "벤치프레스", "type": "근력", "sets": 4, "reps": 10, "weight": 40},
+        {"name": "덤벨 숄더프레스", "type": "근력", "sets": 4, "reps": 12, "weight": 10},
+        {"name": "랫풀다운", "type": "근력", "sets": 4, "reps": 12, "weight": 45},
+        {"name": "플랭크", "type": "근력", "sets": 3, "hold_seconds": 60, "weight": 0},
     ]),
     ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 세션 60kg 도전.", [
         {"name": "데드리프트", "type": "근력", "sets": 4, "reps": 8, "weight": 55},
@@ -595,22 +613,25 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
 #: 리포트의 PT 횟수는 스케줄 행을 그대로 세므로(`build_weekly_report`) 여기서
 #: 심는 행이 곧 리포트 숫자다.
 #:
-#: 시각은 오늘 타임라인(`_SCHEDULE`)이 쓰는 10:00·12:00·15:00·17:00 칸과
+#: 시각은 오늘 타임라인(`_SCHEDULE`)이 쓰는 12:00·15:00·17:00·18:00 칸과
 #: 저녁 19시 이후를 피한다 — 오래 켜 둔 서버는 지난 날마다 타임라인이 깔려 있고,
 #: 저녁 칸은 트레이너가 직접 잡는 수업이 몰리는 자리다. 같은 요일 안에서도 서로
-#: 겹치지 않는다(테스트가 지킨다).
+#: 겹치지 않는다(테스트가 지킨다). 김민수만 타임라인과 같은 18:00 이다 — 오늘
+#: PT 와 같은 그의 정해진 시각이고, 타임라인 수업이 든 주는 이 시드가 건너뛰어
+#: 둘이 한 주에 함께 서지 않는다. 18:00 을 쓰던 다른 회원은 타임라인이 비운
+#: 10:00 칸으로 옮겼다(#2567).
 _WEEKLY_PT: dict[str, list[tuple[int, str, int]]] = {
     "user-7d4e9a2c5f18": [(3, "18:00", 50)],  # 김민수
-    "user-jisu": [(1, "13:00", 50), (4, "18:00", 60)],  # 이지수 — 주 2회
+    "user-jisu": [(1, "13:00", 50), (4, "10:00", 60)],  # 이지수 — 주 2회
     "user-sungho": [(2, "16:00", 45), (5, "13:00", 60)],  # 박성호 — 주 2회
     "user-hayun": [(5, "09:00", 45)],  # 정하윤
     "user-woojin": [(0, "09:00", 30), (4, "16:00", 30)],  # 최우진 — 주 2회
     "user-kangseoyeon": [(3, "09:00", 60)],  # 강서연
-    "user-dohyun": [(0, "18:00", 60), (6, "16:00", 50)],  # 임도현 — 주 2회
+    "user-dohyun": [(0, "10:00", 60), (6, "16:00", 50)],  # 임도현 — 주 2회
     "user-sera": [(1, "16:00", 50)],  # 오세라
-    "user-junhyuk": [(2, "18:00", 60)],  # 배준혁
+    "user-junhyuk": [(2, "10:00", 60)],  # 배준혁
     "user-yuna": [(1, "09:00", 45)],  # 신유나
-    "user-jiho": [(1, "18:00", 60)],  # 한지호
+    "user-jiho": [(1, "10:00", 60)],  # 한지호
     "user-gayoung": [(6, "13:00", 60)],  # 문가영
     "user-taekyung": [(3, "16:00", 45)],  # 류태경
     "user-seojin": [(2, "13:00", 30)],  # 백서진
@@ -1232,7 +1253,8 @@ def _seed_history(db: Session, member_id: str) -> None:
         return
 
     today = clock.today()
-    # 오늘/이틀전/나흘전을 한 주기로 두고 과거 주까지 되풀이한다. 리포트가
+    start = _HISTORY_START_DAYS.get(member_id, 0)
+    # 첫 세션 날부터 이틀 간격을 한 주기로 두고 과거 주까지 되풀이한다. 리포트가
     # 과거 주로 이동할 수 있어, 이번 주만 채우면 이행률이 곧 비어 버린다(#752).
     #
     # 멱등성은 행 id(회원+날짜)로 지킨다. 예전처럼 "오늘 기록이 있으면 통째로
@@ -1248,7 +1270,7 @@ def _seed_history(db: Session, member_id: str) -> None:
     for week in range(_HISTORY_WEEKS):
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
         for idx, (rate, kind, exercises, feedback, note) in enumerate(sessions):
-            d = (today - timedelta(days=idx * 2 + week * 7)).isoformat()
+            d = (today - timedelta(days=start + idx * 2 + week * 7)).isoformat()
             hid = f"seed-hist-{member_id}-{d}"
             if hid in existing:
                 continue

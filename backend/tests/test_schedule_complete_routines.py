@@ -246,7 +246,8 @@ def test_a_new_send_retires_the_previous_personal_routines(client, db_session):
         client.post(
             f"/v1/trainer/schedule/{first}/program/send", json={}, headers=_h(token)
         )
-        second = _attach(client, token, day, time="18:00")
+        # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
+        second = _attach(client, token, day, time="19:10")
         _complete(client, token, second)
         client.post(
             f"/v1/trainer/schedule/{second}/program/send", json={}, headers=_h(token)
