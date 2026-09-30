@@ -93,6 +93,45 @@ String mergeHealthFocus(String original, Set<String> focus) => <String>[
   ..._tokens(original).where((String t) => !kHealthFocusOptions.contains(t)),
 ].where((String part) => part.isNotEmpty).join(', ');
 
+/// 목표를 뺀 글 — 건강상태·주의사항. 트레이너 웹 `healthFocusNotes` 와 같다.
+String healthFocusNotes(String raw) => _tokens(
+  raw,
+).where((String t) => !kHealthFocusOptions.contains(t)).join(', ');
+
+/// 편집을 시작한 값([base])에서 [focus]·[notes] 로 무엇을 바꿨는가(#2655).
+({bool focus, bool notes}) conditionsEdits({
+  required String base,
+  required Set<String> focus,
+  required String notes,
+}) {
+  final Set<String> baseFocus = parseHealthFocus(base);
+  return (
+    focus: baseFocus.length != focus.length || !baseFocus.containsAll(focus),
+    notes: healthFocusNotes(base) != healthFocusNotes(notes),
+  );
+}
+
+/// 바꾼 쪽만 서버의 최신 값([latest]) 위에 얹는다(#2655).
+///
+/// `conditions` 는 목표 칩과 건강상태·주의사항이 한 칸이다. 목표만 바꿨는데
+/// 편집을 시작한 값으로 칸 전체를 보내면, 그 사이 트레이너가 고친 글이 덮인다.
+String rebaseConditions({
+  required String base,
+  required String latest,
+  required Set<String> focus,
+  required String notes,
+}) {
+  final ({bool focus, bool notes}) edits = conditionsEdits(
+    base: base,
+    focus: focus,
+    notes: notes,
+  );
+  return mergeHealthFocus(
+    edits.notes ? notes : healthFocusNotes(latest),
+    edits.focus ? focus : parseHealthFocus(latest),
+  );
+}
+
 /// 서버 `normalize_conditions` 와 같은 정리. 목표는 목록 순서로 앞에, 그 밖의
 /// 글은 적힌 순서대로 뒤에 둔다. 로컬 목 모드가 서버처럼 저장하는 데 쓴다.
 String normalizeHealthFocusText(String raw) =>
