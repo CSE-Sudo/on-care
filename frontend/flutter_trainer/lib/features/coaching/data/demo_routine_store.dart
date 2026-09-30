@@ -287,52 +287,21 @@ class SessionRoutineState {
   );
 }
 
-/// 시드한 회원 AI 운동 중 근력의 세트·횟수(또는 버티는 초)·중량. (#2668)
-///
-/// `ClientAiRoutines` 표에는 이 칸이 없어, 근력을 배정·PT 개인운동으로 쓰면
-/// `스쿼트 · 근력 · 0세트 · 0회` 로 그려졌다. 값은 그 회원의 운동 이력에 적힌
-/// 것을 쓰고(예: 이지수 스쿼트 3세트·12회·40kg), 이력에 없는 운동은 그 회원의
-/// 사정(재활·혈압 관리·휴면 복귀)에 맞춰 가볍게 정했다. 키는 시드 행 id 다 —
-/// 영어로 심어도 id 는 같다.
-const Map<String, ({int sets, int reps, int hold, double weight})>
-_seedStrengthAmounts =
-    <String, ({int sets, int reps, int hold, double weight})>{
-      'seed-airoutine-2-1': (sets: 3, reps: 12, hold: 0, weight: 40),
-      'seed-airoutine-2-2': (sets: 3, reps: 0, hold: 30, weight: 0),
-      'seed-airoutine-3-0': (sets: 4, reps: 8, hold: 0, weight: 65),
-      'seed-airoutine-3-1': (sets: 3, reps: 8, hold: 0, weight: 70),
-      'seed-airoutine-4-2': (sets: 3, reps: 15, hold: 0, weight: 0),
-      'seed-airoutine-5-1': (sets: 3, reps: 12, hold: 0, weight: 0),
-      'seed-airoutine-6-1': (sets: 4, reps: 12, hold: 0, weight: 0),
-      'seed-airoutine-7-1': (sets: 3, reps: 15, hold: 0, weight: 0),
-      'seed-airoutine-8-2': (sets: 2, reps: 10, hold: 0, weight: 0),
-      'seed-airoutine-9-2': (sets: 3, reps: 0, hold: 20, weight: 0),
-      'seed-airoutine-10-1': (sets: 3, reps: 12, hold: 0, weight: 20),
-      'seed-airoutine-11-1': (sets: 3, reps: 8, hold: 0, weight: 0),
-      'seed-airoutine-12-2': (sets: 3, reps: 12, hold: 0, weight: 0),
-      'seed-airoutine-13-0': (sets: 5, reps: 8, hold: 0, weight: 80),
-      'seed-airoutine-13-1': (sets: 5, reps: 8, hold: 0, weight: 60),
-      'seed-airoutine-14-1': (sets: 3, reps: 12, hold: 0, weight: 0),
-      'seed-airoutine-15-1': (sets: 3, reps: 15, hold: 0, weight: 0),
-    };
-
-/// 시드 AI 운동 한 행 → 개인운동 한 줄. 근력이면 [_seedStrengthAmounts] 의
-/// 양을 싣는다.
-RoutineExercise seedAiRoutineExercise(ClientAiRoutineRow row) {
-  final amount = row.type == '근력' ? _seedStrengthAmounts[row.id] : null;
-  return RoutineExercise(
-    name: row.name,
-    minutes: row.minutes,
-    type: row.type,
-    reason: row.reason,
-    source: 'ai',
-    sets: amount?.sets ?? 0,
-    reps: amount?.reps ?? 0,
-    holdSeconds: amount?.hold ?? 0,
-    isHold: (amount?.hold ?? 0) > 0,
-    weight: amount?.weight ?? 0,
-  );
-}
+/// 시드 AI 운동 한 행 → 개인운동 한 줄. 근력이면 표의 세트·횟수·중량을
+/// 싣는다(#2705) — 없으면 `0세트 · 0회` 로 그려진다.
+RoutineExercise seedAiRoutineExercise(ClientAiRoutineRow row) =>
+    RoutineExercise(
+      name: row.name,
+      minutes: row.minutes,
+      type: row.type,
+      reason: row.reason,
+      source: 'ai',
+      sets: row.sets,
+      reps: row.reps,
+      holdSeconds: row.holdSeconds,
+      isHold: row.holdSeconds > 0,
+      weight: row.weight,
+    );
 
 /// 공유 픽스처가 배정을 정하는 회원 — 김민수. (#1170)
 const String demoFixtureMemberId = 'seed-client-1';
