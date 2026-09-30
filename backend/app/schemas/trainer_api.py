@@ -43,6 +43,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
 from app.services.password_policy import check_new_password
 from app.services import contact_format
@@ -256,7 +257,15 @@ class MemberHealthProfileUpdate(PartialUpdate):
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: str | None) -> str | None:
-        return health_focus.normalize_conditions(value)
+        normalized = health_focus.normalize_conditions(value)
+        # 트레이너가 적은 건강상태·주의사항은 기록 한 건 상한까지다(#2618).
+        # 회원 경로(`HealthGoalsUpdate`)는 이 글을 고칠 칸이 없어 싣고만 오므로
+        # 검사하지 않는다 — 긴 글이 남은 회원이 목표 칩을 못 바꾸게 된다(#2619).
+        if health_focus.notes_length(normalized) > TEXT_ENTRY_MAX:
+            raise ValueError(
+                f"건강상태·주의사항은 {TEXT_ENTRY_MAX}자까지 적을 수 있습니다."
+            )
+        return normalized
 
 class ClientDietEntryOut(BaseModel):
     """고객 식단 서브탭 한 끼 — 프론트 ClientDietEntry 계약 정렬."""
@@ -385,7 +394,7 @@ class ChatSendRequest(BaseModel):
     # 상한만 둔다(빈/공백은 라우터에서 trim 후 400). 과도한 길이는 여기서 422.
     #
     # 이모티콘만 보낼 때는 본문이 비어 있다 — 그때는 [emote_id] 가 대신 채운다.
-    text: str = Field(default="", max_length=2000)
+    text: str = Field(default="", max_length=TEXT_LONG_MAX)
     #: 이모티콘 id(#2020). 회원은 이용권이 있어야 보낼 수 있고, 트레이너는 그냥
     #: 보낸다. 모르는 id 는 400 이다.
     emote_id: str | None = Field(default=None, min_length=1, max_length=40)
@@ -887,7 +896,7 @@ class TrainerProgramDraftCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     goal: str = Field(default="", max_length=200)
     period: str = Field(default="", max_length=100)
-    memo: str = Field(default="", max_length=2000)
+    memo: str = Field(default="", max_length=TEXT_ENTRY_MAX)
     #: 운동이 하나도 없는 초안도 저장할 수 있다 — 이름과 목표만 잡아 둔 상태가
     #: 초안으로서 의미가 있고, 그 상태를 저장하지 못하면 기능이 반쪽이 된다.
     sessions: list[ProgramDraftSession] = Field(
@@ -907,7 +916,7 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     goal: str | None = Field(default=None, max_length=200)
     period: str | None = Field(default=None, max_length=100)
-    memo: str | None = Field(default=None, max_length=2000)
+    memo: str | None = Field(default=None, max_length=TEXT_ENTRY_MAX)
     sessions: list[ProgramDraftSession] | None = Field(
         default=None, max_length=_PROGRAM_MAX_SESSIONS
     )
@@ -1485,7 +1494,7 @@ class ScheduleCreateRequest(BaseModel):
     member_id: str | None = Field(default=None, max_length=64)
     type: str = Field(default="", max_length=30)
     duration_minutes: int = Field(default=0, ge=0, le=600)
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
     program: list[ProgramItem] = Field(
         default_factory=list, max_length=_PROGRAM_MAX_TOTAL_EXERCISES
     )
@@ -1511,7 +1520,7 @@ class ScheduleRecurringRequest(BaseModel):
     member_id: str | None = Field(default=None, max_length=64)
     type: str = Field(default="", max_length=30)
     duration_minutes: int = Field(default=0, ge=0, le=600)
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
     #: 반복할 요일(ISO: 월=1 … 일=7).
     weekdays: list[int] = Field(min_length=1, max_length=7)
     #: 반복 횟수로 끝내기.
@@ -1620,7 +1629,7 @@ class ScheduleUpdateRequest(PartialUpdate):
     member_id: str | None = Field(default=None, max_length=64)
     type: str | None = Field(default=None, max_length=30)
     duration_minutes: int | None = Field(default=None, ge=0, le=600)
-    note: str | None = Field(default=None, max_length=500)
+    note: str | None = Field(default=None, max_length=TEXT_ENTRY_MAX)
     program: list[ProgramItem] | None = Field(default=None, max_length=30)
 
     @field_validator("date")
@@ -1639,7 +1648,7 @@ class ScheduleUpdateRequest(PartialUpdate):
 
 
 class ScheduleCompleteRequest(BaseModel):
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
 
 
 class ScheduleReopenRequest(BaseModel):
@@ -1709,7 +1718,7 @@ class TrainerMeUpdate(PartialUpdate):
     phone: str | None = Field(default=None, max_length=20)
     specialty: str | None = Field(default=None, max_length=50)
     career_years: int | None = Field(default=None, ge=0, le=80)
-    intro: str | None = Field(default=None, max_length=1000)
+    intro: str | None = Field(default=None, max_length=TEXT_ENTRY_MAX)
     certifications: list[str] | None = Field(default=None, max_length=30)
     #: 헬스장 문자열 네 칸은 **더 이상 직접 저장하지 않는다**(#2543). 보내면 409.
     #: 소속(`gym_id`)에서만 파생된다 — 직접 적은 이름은 `gym_id` 가 비어 회원에게
@@ -1890,7 +1899,7 @@ class ReportSummaryOut(BaseModel):
 class ReportSendRequest(BaseModel):
     """리포트 전송 — 본문을 직접 주면 그것을, 없으면 서버 생성본을 보낸다."""
     week_start: str | None = Field(default=None, description="YYYY-MM-DD (기본: 이번 주)")
-    message: str | None = Field(default=None, max_length=2000)
+    message: str | None = Field(default=None, max_length=TEXT_LONG_MAX)
 
 
 class ReportFeedbackOut(BaseModel):
@@ -1909,11 +1918,11 @@ class ReportFeedbackOut(BaseModel):
 class ReportFeedbackSaveRequest(BaseModel):
     """피드백 초안 저장. 보낸 본문으로 그 주의 초안을 통째로 바꾼다.
 
-    `max_length` 는 전송 본문(`ReportSendRequest.message`)과 같은 2000 자다 —
+    `max_length` 는 전송 본문(`ReportSendRequest.message`)과 같은 긴 글 상한이다 —
     저장은 됐는데 보낼 수 없는 길이가 생기면 안 된다.
     """
     week_start: str | None = Field(default=None, description="YYYY-MM-DD (기본: 이번 주)")
-    body: str = Field(default="", max_length=2000)
+    body: str = Field(default="", max_length=TEXT_LONG_MAX)
 
 
 class MemberWeeklyFeedbackOut(BaseModel):
@@ -1946,7 +1955,7 @@ class MemberWeeklyFeedbackSaveRequest(BaseModel):
     pain_area: str = Field(default="", max_length=40)
     pain_on: str = Field(default="", description="YYYY-MM-DD")
     #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_LINE_MAX)
 
 
 class ReportGoalsOut(BaseModel):
@@ -2203,7 +2212,7 @@ class PairedMemberOut(BaseModel):
 class TrainerClientInviteCreate(BaseModel):
     member_id: str = Field(min_length=1, max_length=64)
     #: 회원에게 함께 보이는 한마디. 비워도 된다.
-    message: str | None = Field(default=None, max_length=500)
+    message: str | None = Field(default=None, max_length=TEXT_LINE_MAX)
 
 
 class TrainerClientInviteOut(BaseModel):

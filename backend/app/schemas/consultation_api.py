@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.text_limits import TEXT_LINE_MAX, TEXT_LONG_MAX
+
 #: 요청이 지정할 수 있는 대상. 트레이너 한 사람뿐이다 — 헬스장 전체로 보내는
 #: 갈래는 폐지됐고, 그때 만들어진 이력도 남아 있지 않다.
 ConsultationCreateTargetType = Literal["trainer"]
@@ -54,14 +56,16 @@ class ConsultationCreate(BaseModel):
     trainer_id: str = Field(max_length=64)
     exercise_goal: ExerciseGoal
     health_purpose_type: HealthPurposeType
-    health_purpose_detail: str | None = Field(default=None, max_length=500)
+    #: 회원 앱은 목표가 `기타` 일 때 문의 글(`message`)을 그대로 여기에도 싣는다 —
+    #: 상한이 다르면 짧은 쪽에서 422 가 난다(#2618).
+    health_purpose_detail: str | None = Field(default=None, max_length=TEXT_LONG_MAX)
     #: 회원이 고른 트레이너의 빈 자리. 희망 시각을 적어 보내던
     #: `preferred_date`+`preferred_time_slot` 을 대신한다. (#1873)
     #:
     #: 자리가 길이까지 들고 있어 상담 시간을 아무도 다시 정하지 않는다 — 예전에는
     #: 회원이 적은 종료 시각이 쓰이지 않고 승인이 늘 시작+30분으로 일정을 만들었다.
     slot_id: str = Field(min_length=1, max_length=64)
-    message: str | None = Field(default=None, max_length=2000)
+    message: str | None = Field(default=None, max_length=TEXT_LONG_MAX)
     #: 상담 신청 정보(이름·운동 목표·문의 내용)를 이 트레이너에게 전달하는 데
     #: 동의했는가. (#1022) 식단·운동 기록 공유 동의가 아니다 — 그것은 6자리 연결
     #: 코드를 받을 때 따로 받는다(#2584).
@@ -114,7 +118,7 @@ ConsultationStatusFilter = Literal[
 class ConsultationDecision(BaseModel):
     """승인·거절 본문. 거절 사유는 회원 알림 본문에 그대로 실린다."""
 
-    note: str | None = Field(default=None, max_length=500)
+    note: str | None = Field(default=None, max_length=TEXT_LINE_MAX)
 
     @field_validator("note", mode="before")
     @classmethod

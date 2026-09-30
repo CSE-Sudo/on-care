@@ -1586,6 +1586,8 @@ class _ProfileFields extends StatelessWidget {
           label: l.myFieldIntro,
           controller: field('intro', profile.intro),
           maxLines: 4,
+          maxLength: AppTextLimits.entry,
+          inputKey: const ValueKey<String>('profile-intro'),
         ),
       ],
     );
@@ -1636,11 +1638,15 @@ class _EditField extends StatelessWidget {
     this.inputFormatters,
     this.errorText,
     this.onChanged,
+    this.maxLength,
   });
 
   final String label;
   final TextEditingController controller;
   final int maxLines;
+
+  /// 서버 상한이 있는 칸만 준다. 주면 칸 아래에 글자 수를 붙인다(#2618).
+  final int? maxLength;
   final bool enabled;
   final Key? inputKey;
   final TextInputType? keyboardType;
@@ -1660,6 +1666,8 @@ class _EditField extends StatelessWidget {
         controller: controller,
         enabled: enabled,
         maxLines: maxLines,
+        maxLength: maxLength,
+        showCounter: maxLength != null,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         errorText: errorText,

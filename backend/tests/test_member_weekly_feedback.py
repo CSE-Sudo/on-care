@@ -318,7 +318,7 @@ def test_note_longer_than_the_limit_is_refused(client):
             "week_start": "2026-03-02",
             "condition": "ok",
             "intensity": "right",
-            "note": "가" * 501,
+            "note": "가" * 201,
         },
         headers=_h(t),
     )

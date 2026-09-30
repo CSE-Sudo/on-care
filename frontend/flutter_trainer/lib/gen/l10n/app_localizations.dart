@@ -1775,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatTooLong.
   ///
   /// In en, this message translates to:
-  /// **'Message is too long (2000 characters max)'**
+  /// **'Message is too long (1000 characters max)'**
   String get chatTooLong;
 
   /// No description provided for @chatSendFailed.

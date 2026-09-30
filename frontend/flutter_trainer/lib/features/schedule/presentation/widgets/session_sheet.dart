@@ -616,6 +616,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
               helper: l.schedConsultNotePrivate,
               minLines: 2,
               maxLines: 4,
+              maxLength: AppTextLimits.entry,
+              showCounter: true,
             )
           else
             AppTextField(
@@ -626,6 +628,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
               helper: l.schedNoteVisibleToMember,
               minLines: 2,
               maxLines: 4,
+              maxLength: AppTextLimits.entry,
+              showCounter: true,
             ),
         ],
         if (_overlaps != null) ...<Widget>[

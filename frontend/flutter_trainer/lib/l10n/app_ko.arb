@@ -367,7 +367,7 @@
     }
   },
   "clientStatusChangeFailed": "상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요",
-  "chatTooLong": "메시지가 너무 길어요 (최대 2000자)",
+  "chatTooLong": "메시지가 너무 길어요 (최대 1000자)",
   "chatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
   "chatLoadFailed": "대화를 불러오지 못했어요",
   "chatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",

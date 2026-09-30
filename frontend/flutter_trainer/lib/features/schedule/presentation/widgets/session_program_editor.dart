@@ -185,6 +185,8 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
             helper: l.schedConsultNotePrivate,
             minLines: 2,
             maxLines: 4,
+            maxLength: AppTextLimits.entry,
+            showCounter: true,
           )
         else
           AppTextField(
@@ -195,6 +197,8 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
             helper: l.schedNoteVisibleToMember,
             minLines: 2,
             maxLines: 4,
+            maxLength: AppTextLimits.entry,
+            showCounter: true,
           ),
     ];
   }

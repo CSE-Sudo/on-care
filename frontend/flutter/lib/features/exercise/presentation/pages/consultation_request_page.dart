@@ -441,6 +441,8 @@ class _ConsultationRequestPageState
               onChanged: (_) => setState(() {}),
               minLines: 4,
               maxLines: 7,
+              maxLength: AppTextLimits.long,
+              showCounter: true,
               hint: l.exConsultMessageHint,
               errorText: _attempted && _otherGoalDetailMissing(goal)
                   ? l.exOtherGoalDetailRequired

@@ -62,6 +62,7 @@ class AppTextField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.maxLength,
+    this.showCounter = false,
     this.keyboardType,
     this.textInputAction,
     this.inputFormatters,
@@ -95,6 +96,14 @@ class AppTextField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final int? maxLength;
+
+  /// [maxLength] 의 `현재/최대` 글자 수를 칸 아래 오른쪽에 보인다(#2618).
+  ///
+  /// 기본은 감춘다. 서버 상한이 있는 여러 줄 칸만 켜서, 넘치게 써서 저장할 때
+  /// 거절당하기 전에 남은 양을 보게 한다. [helper] 가 있으면 도움말은 왼쪽,
+  /// 글자 수는 오른쪽 **같은 줄**이다. 상한에 닿았거나 이미 넘긴 글(상한을
+  /// 줄이기 전에 저장된 글)이면 위험 색으로 알린다.
+  final bool showCounter;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final List<TextInputFormatter>? inputFormatters;
@@ -132,6 +141,7 @@ class AppTextField extends StatelessWidget {
         onSubmitted: onSubmitted,
         textAlign: textAlign,
         autofillHints: autofillHints,
+        buildCounter: showCounter ? _counter : null,
         // 비활성 칸은 회색 채움(테마)에 흐린 글자 — 고칠 수 있는 값처럼
         // 읽히지 않는다(#1776).
         style: tokens
@@ -145,7 +155,7 @@ class AppTextField extends StatelessWidget {
           hintText: hint,
           helperText: helper,
           errorText: errorText,
-          counterText: maxLength == null ? null : '',
+          counterText: maxLength == null || showCounter ? null : '',
           // 여러 줄로 글을 쓰는 칸은 트레이너웹에서만 회색 채움으로 되돌린다
           // (#1836). 흰 카드·창 위의 흰 칸은 본문과 구분이 약해 글을 쓰는
           // 영역으로 읽히지 않았다 — 특히 초안이 미리 채워진 리포트 피드백
@@ -165,6 +175,26 @@ class AppTextField extends StatelessWidget {
           suffixIcon: suffix,
         ),
       ),
+    );
+  }
+
+  static Widget? _counter(
+    BuildContext context, {
+    required int currentLength,
+    required bool isFocused,
+    required int? maxLength,
+  }) {
+    if (maxLength == null) return null;
+    return Text(
+      '$currentLength/$maxLength',
+      style:
+          OnCareTypography.numeric(
+            context.oncare.text(OnCareTypography.caption),
+          ).copyWith(
+            color: currentLength >= maxLength
+                ? OnCareColors.danger
+                : OnCareColors.textTertiary,
+          ),
     );
   }
 }

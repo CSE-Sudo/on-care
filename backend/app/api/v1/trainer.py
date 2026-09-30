@@ -40,6 +40,7 @@ from app.models.models import (
     TrainerProfile,
     User,
 )
+from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.diet_api import (
     DietAdviceResponse,
     DietAdviceSentence,
@@ -2615,7 +2616,7 @@ async def trainer_send_chat_image(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(...),
-    message: str = Form("", max_length=2000),
+    message: str = Form("", max_length=TEXT_LONG_MAX),
     client_request_id: str | None = Form(None, min_length=1, max_length=64),
 ) -> ChatMessageOut:
     """담당 고객에게 사진을 보낸다. (#921)

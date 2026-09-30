@@ -596,7 +596,7 @@
     }
   },
   "clientStatusChangeFailed": "Couldn't change the status. Please try again.",
-  "chatTooLong": "Message is too long (2000 characters max)",
+  "chatTooLong": "Message is too long (1000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
   "chatReportRegistered": "Weekly report added",
