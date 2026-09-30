@@ -315,6 +315,9 @@ class DemoFixture:
                     sets=item.get("sets"),
                     reps=item.get("reps"),
                     hold_seconds=item.get("holdSeconds"),
+                    # 예전에는 중량을 읽지 않아, 픽스처가 적어 둔 kg 이 세션 행과
+                    # 이력 줄에서 모두 빠졌다(#2567).
+                    weight=item.get("weight"),
                 )
                 for item in entry["exercises"]
             ),
