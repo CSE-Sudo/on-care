@@ -68,7 +68,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v37'), _todayString());
+      expect(await db.readValue('trainer_seeded_v38'), _todayString());
     });
 
     test(
@@ -475,13 +475,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v37', '2020-01-01');
+      await db.putValue('trainer_seeded_v38', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v37'), _todayString());
+      expect(await db.readValue('trainer_seeded_v38'), _todayString());
     });
 
     test(
@@ -673,7 +673,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v37'), today);
+        expect(await db.readValue('trainer_seeded_v38'), today);
       },
     );
 
@@ -782,7 +782,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v37', '2020-01-01');
+      await db.putValue('trainer_seeded_v38', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();
@@ -859,6 +859,55 @@ void main() {
         ).difference(DateTime.parse(r.weekStart)).inDays;
         expect(offset, inInclusiveRange(0, 6), reason: r.painOn);
       }
+    });
+  });
+
+  group('회원 신체·목표 시드 (#2597)', () {
+    test('담당 회원 15명 모두 키·몸무게·식단·운동 목표가 채워진다', () async {
+      await seedIfEmpty(db);
+      final DriftClientRepository repository = DriftClientRepository(db);
+
+      final clients = await db.select(db.trainerClients).get();
+      expect(clients.length, 15);
+      for (final c in clients) {
+        final p = await repository.fetchHealthProfile(c.id);
+        for (final (String name, num? value) in <(String, num?)>[
+          ('height', p.heightCm),
+          ('weight', p.weightKg),
+          ('calories', p.dailyCalories),
+          ('sodium', p.dailySodiumMg),
+          ('sugar', p.dailySugarG),
+          ('carbs', p.dailyCarbsG),
+          ('protein', p.dailyProteinG),
+          ('fat', p.dailyFatG),
+          ('burn', p.dailyBurnKcal),
+          ('cardio', p.weeklyCardioMinutes),
+          ('strength', p.weeklyStrengthSets),
+          ('flexibility', p.weeklyFlexibilityMinutes),
+        ]) {
+          expect(value, isNotNull, reason: '${c.name}: $name');
+        }
+        // 성별·건강 목표는 시드가 아니라 로스터에서 온다(#960, #1818).
+        expect(p.gender, isNotEmpty, reason: c.name);
+      }
+    });
+
+    test('트레이너가 고친 값은 날이 바뀌어 다시 시드해도 남는다', () async {
+      await seedIfEmpty(db);
+      final DriftClientRepository repository = DriftClientRepository(db);
+      await repository.updateHealthProfile('seed-client-2', <String, Object?>{
+        'weight_kg': 60.5,
+        'daily_calories': 1700,
+      });
+
+      await db.putValue('trainer_seeded_v38', '2020-01-01');
+      await seedIfEmpty(db);
+
+      final p = await repository.fetchHealthProfile('seed-client-2');
+      expect(p.weightKg, 60.5);
+      expect(p.dailyCalories, 1700);
+      // 고치지 않은 칸은 시드 값 그대로다.
+      expect(p.heightCm, 163);
     });
   });
 }
