@@ -70,6 +70,7 @@ class CoachingPage extends ConsumerStatefulWidget {
     this.clientId,
     this.attachSessionId,
     this.attachDate,
+    this.attachRequest,
   });
 
   /// Client to preselect, from the `client` query parameter.
@@ -81,6 +82,9 @@ class CoachingPage extends ConsumerStatefulWidget {
   /// 붙일 개인운동 단계로 열린다([AppRoutes.coachingAttach]).
   final String? attachSessionId;
   final String? attachDate;
+
+  /// 붙이기를 누른 한 번(`r`) — 같은 PT 를 다시 눌러도 흐름이 새로 열린다.
+  final String? attachRequest;
 
   @override
   ConsumerState<CoachingPage> createState() => _CoachingPageState();
@@ -118,9 +122,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 붙이는 중이다.
   bool _attaching = false;
 
-  /// 붙였거나 그만둔 스케줄 PT. 탭을 옮겨 다녀도 코칭 탭 주소에는 `attach`
-  /// 가 남아 있어, 돌아올 때마다 같은 흐름이 다시 열리지 않게 한다.
-  final Set<String> _closedAttachSessions = <String>{};
+  /// 붙였거나 그만둔 붙이기 요청(`r`). 탭을 옮겨 다녀도 코칭 탭 주소에는 그
+  /// 요청이 남아 있어, 돌아올 때마다 같은 흐름이 다시 열리지 않게 한다. 같은
+  /// PT 라도 스케줄에서 다시 누르면 새 요청이라 다시 열린다.
+  final Set<String> _closedAttachRequests = <String>{};
 
   /// `개인운동만` 이 회원 목록에 걸리기 시작할 날. 기본은 오늘이다.
   final Map<String, DateTime> _routineOnlyStart = <String, DateTime>{};
@@ -213,6 +218,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
     if (widget.attachSessionId != oldWidget.attachSessionId ||
         widget.attachDate != oldWidget.attachDate ||
+        widget.attachRequest != oldWidget.attachRequest ||
         widget.clientId != oldWidget.clientId) {
       setState(() {
         _attach = _attachFromRoute();
@@ -228,7 +234,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     final String? sessionId = widget.attachSessionId;
     final String? date = widget.attachDate;
     if (clientId == null || sessionId == null || date == null) return null;
-    if (_closedAttachSessions.contains(sessionId)) return null;
+    if (_closedAttachRequests.contains(widget.attachRequest ?? sessionId)) {
+      return null;
+    }
     return (clientId: clientId, sessionId: sessionId, date: date);
   }
 
@@ -1157,7 +1165,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     setState(() {
       _attaching = false;
       _attach = null;
-      _closedAttachSessions.add(sessionId);
+      _closedAttachRequests.add(widget.attachRequest ?? sessionId);
     });
     showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
     // 붙이기만 한다 — 회원에게 보내는 것은 스케줄에서 트레이너가 누른다.
@@ -1171,7 +1179,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     final String? sessionId = attach.sessionId;
     setState(() {
       _attach = null;
-      if (sessionId != null) _closedAttachSessions.add(sessionId);
+      if (sessionId != null) {
+        _closedAttachRequests.add(widget.attachRequest ?? sessionId);
+      }
     });
     if (sessionId != null) {
       context.go(AppRoutes.scheduleAt(date: attach.date, sessionId: sessionId));

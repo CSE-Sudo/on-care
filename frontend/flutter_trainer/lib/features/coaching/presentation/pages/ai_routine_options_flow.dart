@@ -173,6 +173,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _stage = _steps.indexOf(_Step.personal);
       _maxReachedStage = _stage;
       _seedPersonalFromSuggestions();
+      // 좁은 화면에서는 이 흐름이 회원 데이터 카드 아래에 선다 — 열리자마자
+      // 보이게 끌어올린다.
+      _scrollToTop();
     }
   }
 
@@ -749,34 +752,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final content = <Widget>[
-      // 붙이기 흐름에는 단계 표시줄 대신 **어느 PT 에 붙이는지**를 둔다(#2280)
-      // — 밟는 칸이 하나뿐이라 넷을 늘어놓으면 셋이 늘 비어 있다.
-      if (widget._attachMode) ...<Widget>[
-        AppTile(
-          key: const ValueKey<String>('routine-attach-target'),
-          tone: AppTileTone.neutral,
-          child: Row(
-            children: <Widget>[
-              const AppIcon(
-                AppIcons.calendar,
-                size: OnCareSize.iconSmall,
-                color: OnCareColors.textSecondary,
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              Expanded(
-                child: Text(
-                  widget.attachTarget!,
-                  style: _text(
-                    OnCareTypography.bodySmall,
-                    OnCareColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: OnCareSpacing.s16),
-      ] else if (widget.onManualCreate != null) ...<Widget>[
+      if (!widget._attachMode && widget.onManualCreate != null) ...<Widget>[
         Align(
           alignment: Alignment.centerRight,
           child: AppButton(
@@ -790,10 +766,35 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         ),
         const SizedBox(height: OnCareSpacing.s8),
       ],
+      // 붙이기 흐름에는 단계 표시줄 대신 **어느 PT 에 붙이는지**를 둔다(#2280)
+      // — 밟는 칸이 하나뿐이라 넷을 늘어놓으면 셋이 늘 비어 있다. 같은 자리라
+      // 열릴 때 이 줄까지 스크롤된다([_scrollToTop]).
       KeyedSubtree(
         key: _topKey,
         child: widget._attachMode
-            ? const SizedBox.shrink()
+            ? AppTile(
+                key: const ValueKey<String>('routine-attach-target'),
+                tone: AppTileTone.neutral,
+                child: Row(
+                  children: <Widget>[
+                    const AppIcon(
+                      AppIcons.calendar,
+                      size: OnCareSize.iconSmall,
+                      color: OnCareColors.textSecondary,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s8),
+                    Expanded(
+                      child: Text(
+                        widget.attachTarget!,
+                        style: _text(
+                          OnCareTypography.bodySmall,
+                          OnCareColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
             : AppStepIndicator.numbered(
                 keyPrefix: 'routine-stage',
                 semanticsLabel: l.aiStepperLabel,
@@ -808,7 +809,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 onStepTap: _goToStage,
               ),
       ),
-      if (!widget._attachMode) const SizedBox(height: OnCareSpacing.s16),
+      const SizedBox(height: OnCareSpacing.s16),
       ...switch (_currentStep) {
         _Step.conditions => <Widget>[
           _assistantAnalysis(),

@@ -118,6 +118,8 @@ void main() {
       expect(location.queryParameters['client'], isNotEmpty);
       expect(location.queryParameters['attach'], isNotEmpty);
       expect(location.queryParameters['d'], isNotEmpty);
+      // 누를 때마다 새 요청이다 — 같은 PT 를 다시 눌러도 흐름이 다시 열린다.
+      expect(location.queryParameters['r'], isNotEmpty);
     }
 
     testWidgets('개인운동 없음 박스의 추가 버튼이 코칭 탭의 개인운동 단계로 보낸다', (tester) async {

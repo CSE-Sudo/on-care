@@ -543,7 +543,12 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       return;
     }
     context.go(
-      AppRoutes.coachingAttach(clientId, sessionId: s.id, date: s.date),
+      AppRoutes.coachingAttach(
+        clientId,
+        sessionId: s.id,
+        date: s.date,
+        requestId: newClientRequestId(),
+      ),
     );
   }
 

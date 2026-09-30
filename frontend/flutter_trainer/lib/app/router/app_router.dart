@@ -202,6 +202,7 @@ GoRouter buildAppRouter({
                   clientId: state.uri.queryParameters['client'],
                   attachSessionId: state.uri.queryParameters['attach'],
                   attachDate: state.uri.queryParameters['d'],
+                  attachRequest: state.uri.queryParameters['r'],
                 ),
               ),
             ],
