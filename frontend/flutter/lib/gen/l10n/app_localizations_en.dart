@@ -968,7 +968,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecords => 'Workouts you logged';
 
   @override
-  String get exOwnRecordsEmpty => 'No workouts logged yet';
+  String get exOwnRecordsEmpty => 'No workouts logged';
 
   @override
   String get exOwnRecordSource => 'Self-logged';

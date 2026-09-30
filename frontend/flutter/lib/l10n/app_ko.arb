@@ -401,7 +401,7 @@
   },
   "exQueueDiscard": "버리기",
   "exOwnRecords": "직접 기록한 운동",
-  "exOwnRecordsEmpty": "직접 추가할 운동이 없어요",
+  "exOwnRecordsEmpty": "직접 기록한 운동이 없어요",
   "exOwnRecordSource": "직접 기록",
   "exCompletedPtDayTitle": "완료한 PT",
   "exCompletedRoutineDayTitle": "완료한 개인운동",
