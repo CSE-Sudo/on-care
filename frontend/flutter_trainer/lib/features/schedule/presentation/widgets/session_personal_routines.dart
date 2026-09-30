@@ -9,8 +9,32 @@ import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 개인운동이 없을 때 처음 붙일 수 있는 PT 인가. (#2280)
+///
+/// `직접 만들기`·저장한 프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않아
+/// 개인운동 없이 스케줄에 선다. 일정 상세가 그 PT 를 구제하는 자리다. 서버
+/// (`_ensure_routine_attachable`)와 같은 규칙이다 — 붙인 개인운동은 PT 프로그램
+/// 전송에 실려 나가므로, 그 전송을 아직 기다리는 PT 에만 붙인다.
+///
+/// * 상담·담당 해제 회원의 일정은 아니다.
+/// * PT 프로그램이 있어야 한다 — 없으면 나중에 프로그램 만들기로 실을 때
+///   붙은 줄을 갈아 끼워, 여기서 붙인 것이 사라진다.
+/// * 이미 보낸 PT 는 아니다 — 보낸 뒤에 붙으면 회원이 본 목록이 말없이
+///   달라진다.
+/// * 취소·노쇼는 아니다 — 열리지 않은 PT 다음에 할 운동을 새로 짜는 자리가
+///   아니다.
+bool acceptsFirstPersonalRoutines(ScheduleSession s) =>
+    s.type != SessionType.consultation &&
+    !s.memberDetached &&
+    s.program.isNotEmpty &&
+    !s.programSent &&
+    !s.isCancelled &&
+    !s.isNoShow;
 
 /// 일정 상세 카드의 `개인운동` 갈래. (#2224)
 ///
@@ -31,12 +55,20 @@ class SessionPersonalRoutines extends ConsumerStatefulWidget {
     required this.sessionId,
     required this.finished,
     this.onChanged,
+    this.showEmpty = false,
     super.key,
   });
 
   /// 목록이 바뀔 때마다 부른다 — 카드 아래 전송 버튼이 무엇을 보낼지
-  /// 이 값으로 정한다(#2224).
-  final ValueChanged<List<RoutineExercise>>? onChanged;
+  /// 이 값으로 정한다(#2224). 읽지 못했으면 null 이다 — 없는지 모르는 것을
+  /// 없다고 말하지 않는다(#2280).
+  final ValueChanged<List<RoutineExercise>?>? onChanged;
+
+  /// 하나도 없을 때 `개인운동 없음` 을 세우는가. (#2280)
+  ///
+  /// 처음 붙일 수 있는 PT([acceptsFirstPersonalRoutines])에서만 참이다 —
+  /// 붙일 수 없는 자리에서 없다고 말하면 트레이너가 할 수 있는 일이 없다.
+  final bool showEmpty;
 
   final String sessionId;
 
@@ -51,6 +83,10 @@ class SessionPersonalRoutines extends ConsumerStatefulWidget {
 class _SessionPersonalRoutinesState
     extends ConsumerState<SessionPersonalRoutines> {
   List<SessionRoutine> _routines = const <SessionRoutine>[];
+
+  /// 서버에서 읽어 왔는가 — 읽기 전·실패한 뒤에는 `개인운동 없음` 을 세우지
+  /// 않는다(#2280).
+  bool _loaded = false;
 
   /// 아직 보내지 않은 것만 — 전송 버튼이 실을 것이다.
   List<RoutineExercise> get _unsent => <RoutineExercise>[
@@ -76,19 +112,29 @@ class _SessionPersonalRoutinesState
           .read(scheduleRepositoryProvider)
           .fetchScheduledRoutines(widget.sessionId);
       if (!mounted) return;
-      setState(() => _routines = rows);
+      setState(() {
+        _routines = rows;
+        _loaded = true;
+      });
       widget.onChanged?.call(_unsent);
     } catch (_) {
       // 읽지 못하면 조용히 숨긴다 — 없는 것을 있다고 말하지 않는다.
       if (!mounted) return;
-      setState(() => _routines = const <SessionRoutine>[]);
-      widget.onChanged?.call(const <RoutineExercise>[]);
+      setState(() {
+        _routines = const <SessionRoutine>[];
+        _loaded = false;
+      });
+      widget.onChanged?.call(null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_routines.isEmpty) return const SizedBox.shrink();
+    if (_routines.isEmpty) {
+      return _loaded && widget.showEmpty
+          ? const _NoPersonalRoutines()
+          : const SizedBox.shrink();
+    }
     final l = AppLocalizations.of(context);
     final tokens = context.oncare;
     return Column(
@@ -164,11 +210,123 @@ class _SessionPersonalRoutinesState
   }
 }
 
+/// 개인운동이 하나도 없는 PT 의 `개인운동` 갈래. (#2280)
+///
+/// 갈래를 통째로 비우면 트레이너는 이 PT 에 개인운동이 빠졌다는 것을 보내는
+/// 순간에야 안다. 보내기 전에 눈에 띄도록 갈래 자리에 빈 상태를 세운다.
+/// 붙이는 동작은 연필 메뉴의 `개인운동 추가` 한 자리다 — 여기에 버튼을 또
+/// 두면 같은 동작이 두 자리에서 보인다.
+class _NoPersonalRoutines extends StatelessWidget {
+  const _NoPersonalRoutines();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    return Column(
+      key: const ValueKey<String>('session-no-personal-routines'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          l.schedGroupPersonal,
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        AppTile(
+          tone: AppTileTone.neutral,
+          child: Row(
+            children: <Widget>[
+              const AppIcon(
+                AppIcons.personalRoutine,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.textTertiary,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  l.schedNoRoutines,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Text(
+          l.schedNoRoutinesHint,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+      ],
+    );
+  }
+}
+
+/// 개인운동 없이 넘어가려 할 때 트레이너의 답. (#2280)
+enum NoPersonalRoutineChoice {
+  /// 그 자리에서 개인운동을 붙이고 이어서 간다.
+  add,
+
+  /// 개인운동 없이 그대로 간다.
+  skip,
+}
+
+/// 개인운동이 없는 PT 를 넘기기 직전에 한 번 붙잡는다. (#2280)
+///
+/// `PT 마다 개인운동 최소 한 개`(#2223)를 **막지 않는다** — 부상 회복 중인
+/// 회원·마지막 PT 처럼 개인운동을 줄 수 없는 날이 있고, 막으면 형식적인
+/// 개인운동으로 채우게 된다. 대신 무심코 PT 만 넘기지 않도록 강조 버튼을
+/// `개인운동 추가` 로 두고, 없이 가려면 한 번 더 고르게 한다.
+///
+/// 창을 닫으면 null — 아무것도 하지 않는다.
+Future<NoPersonalRoutineChoice?> showNoPersonalRoutineDialog(
+  BuildContext context, {
+  required String title,
+  required String body,
+  required String skipLabel,
+}) {
+  final l = AppLocalizations.of(context);
+  return showAppDialog<NoPersonalRoutineChoice>(
+    context: context,
+    builder: (dialogContext) => AppDialog(
+      key: const ValueKey<String>('no-personal-routine-dialog'),
+      title: title,
+      showClose: false,
+      footer: AppButtonPair(
+        cancelKey: const ValueKey<String>('no-personal-routine-skip'),
+        cancelLabel: skipLabel,
+        onCancel: () =>
+            Navigator.of(dialogContext).pop(NoPersonalRoutineChoice.skip),
+        confirmKey: const ValueKey<String>('no-personal-routine-add'),
+        confirmLabel: l.schedAddRoutines,
+        onConfirm: () =>
+            Navigator.of(dialogContext).pop(NoPersonalRoutineChoice.add),
+      ),
+      child: Text(
+        body,
+        style: context.oncare
+            .text(OnCareTypography.bodySmall)
+            .copyWith(color: OnCareColors.textSecondary),
+      ),
+    ),
+  );
+}
+
 /// 보내기 전에 구성을 고치는 창. (#2224)
 ///
 /// 개인운동은 "이 PT 다음에 할 것" 으로 짜였다. PT 가 열리지 않았으면 전제가
 /// 깨지므로 그대로 보내기 어렵다. 취소된 PT 에는 프로그램 만들기로 다시 붙일
 /// 수 없어(`예정` 세션만 찾는다) 고치는 자리가 여기뿐이다.
+///
+/// 빈 목록으로 열면 **처음 붙이는** 창이 된다(#2280) — 빈 줄 하나로 시작한다.
+/// 코칭 탭 편집기 아래 개인운동 박스도 이 창을 쓴다: 개인운동을 고치는 창이
+/// 스케줄과 코칭에서 같아야 트레이너가 헷갈리지 않는다.
 class SendPersonalRoutinesDialog extends StatefulWidget {
   const SendPersonalRoutinesDialog({
     required this.routines,
@@ -203,10 +361,35 @@ class _SendPersonalRoutinesDialogState
       r.effect == autoRoutineEffect(r.type, widget.goal)
           ? r.copyWith(effect: '')
           : r,
+    if (_adding) _blankRoutine,
   ];
   late final List<TextEditingController> _names = <TextEditingController>[
     for (final RoutineExercise r in widget.routines)
       TextEditingController(text: r.name),
+    if (_adding) TextEditingController(),
+  ];
+
+  static const RoutineExercise _blankRoutine = RoutineExercise(
+    name: '',
+    minutes: 30,
+    type: '유산소',
+  );
+
+  /// 처음 붙이는 창인가 — 붙은 것이 하나도 없이 열렸다(#2280).
+  bool get _adding => widget.routines.isEmpty;
+
+  /// 저장할 목록 — 손댄 줄은 트레이너 것이 된다(#2223).
+  ///
+  /// 서버도 같은 규칙으로 출처를 고치지만, 코칭 탭은 이 목록을 그대로 들고
+  /// 있다가 `일정 추가` 로 보낸다. 여기서 맞춰 두어야 편집기 박스의 태그가
+  /// 사실과 같다.
+  List<RoutineExercise> get _result => <RoutineExercise>[
+    for (var i = 0; i < _draft.length; i++)
+      if (i < widget.routines.length &&
+          samePersonalRoutine(widget.routines[i], _draft[i]))
+        _draft[i]
+      else
+        _draft[i].copyWith(source: 'trainer'),
   ];
 
   @override
@@ -230,7 +413,7 @@ class _SendPersonalRoutinesDialogState
   /// 있는 동안에는 저장을 막는다([_canSave]).
   void _add() {
     setState(() {
-      _draft.add(const RoutineExercise(name: '', minutes: 30, type: '유산소'));
+      _draft.add(_blankRoutine);
       _names.add(TextEditingController());
     });
   }
@@ -247,23 +430,29 @@ class _SendPersonalRoutinesDialogState
     final l = AppLocalizations.of(context);
     return AppDialog(
       key: const ValueKey<String>('session-routines-send-dialog'),
-      title: widget.editOnly
-          ? l.schedEditRoutinesTitle
-          : l.schedRoutinesSendTitle,
+      title: !widget.editOnly
+          ? l.schedRoutinesSendTitle
+          : _adding
+          ? l.schedAddRoutinesTitle
+          : l.schedEditRoutinesTitle,
       showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
         confirmKey: const ValueKey<String>('session-routines-send-confirm'),
         confirmLabel: widget.editOnly ? l.actionSave : l.actionSend,
-        onConfirm: _canSave ? () => Navigator.of(context).pop(_draft) : null,
+        onConfirm: _canSave ? () => Navigator.of(context).pop(_result) : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            widget.editOnly ? l.schedEditRoutinesBody : l.schedRoutinesSendBody,
+            !widget.editOnly
+                ? l.schedRoutinesSendBody
+                : _adding
+                ? l.schedAddRoutinesBody
+                : l.schedEditRoutinesBody,
             style: context.oncare
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),

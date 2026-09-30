@@ -1827,6 +1827,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t update the personal exercise. Please try again.';
 
   @override
+  String get schedAddRoutines => 'Add personal exercise';
+
+  @override
+  String get schedAddRoutinesTitle => 'Add personal exercise';
+
+  @override
+  String get schedAddRoutinesBody =>
+      'This PT has no personal exercise yet. Once added, it goes to the member together with the PT program.';
+
+  @override
+  String get schedRoutinesAdded => 'Personal exercise added.';
+
+  @override
+  String get schedNoRoutines => 'No personal exercise';
+
+  @override
+  String get schedNoRoutinesHint =>
+      'Add it from the pencil menu and it goes to the member with the PT program.';
+
+  @override
+  String get schedNoRoutinesSendTitle => 'Send without personal exercise?';
+
+  @override
+  String get schedNoRoutinesSendBody =>
+      'This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.';
+
+  @override
+  String get schedNoRoutinesSendSkip => 'Send without it';
+
+  @override
   String schedTimeRange(String start, String end) {
     return '$start–$end';
   }
@@ -3214,6 +3244,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get progPersonalRoutinesWhen =>
       'Goes to the member when you complete this PT.';
+
+  @override
+  String get progNoRoutinesRegisterTitle =>
+      'Add to schedule without personal exercise?';
+
+  @override
+  String get progNoRoutinesRegisterBody =>
+      'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.';
+
+  @override
+  String get progNoRoutinesRegisterSkip => 'Add without it';
+
+  @override
+  String get progPersonalRoutinesEmpty =>
+      'No personal exercise yet. Add at least one for each PT.';
 
   @override
   String programRoutineOnlyConfirmBody(

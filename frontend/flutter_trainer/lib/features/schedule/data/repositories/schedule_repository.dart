@@ -164,10 +164,7 @@ abstract interface class ScheduleRepository {
   ///
   /// [items] 를 주면 그 내용으로 고쳐서 보낸다 — 취소된 PT 에는 프로그램
   /// 만들기로 다시 붙일 수 없어 고치는 자리가 여기뿐이다.
-  Future<void> sendScheduledRoutines(
-    String id, {
-    List<RoutineExercise>? items,
-  });
+  Future<void> sendScheduledRoutines(String id, {List<RoutineExercise>? items});
 
   /// 마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
   Future<void> dismissScheduledRoutines(String id);
@@ -291,7 +288,7 @@ bool _decodedProgramIsEmpty(String programJson) {
 ///
 /// 시간은 초로 비교한다(#2547) — 분은 초에서 반올림한 값이라, `45초` 를
 /// `50초` 로 고쳐도 둘 다 1분이어서 손대지 않은 줄로 읽혔다.
-bool _sameRoutine(RoutineExercise a, RoutineExercise b) =>
+bool samePersonalRoutine(RoutineExercise a, RoutineExercise b) =>
     a.name == b.name &&
     a.seconds == b.seconds &&
     a.type == b.type &&
@@ -837,10 +834,11 @@ class DriftScheduleRepository implements ScheduleRepository {
   Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
     final rows =
         await (_db.select(_db.trainerScheduleEntries)..where(
-          (t) =>
-              t.clientId.equals(clientId) &
-              t.status.equals(ScheduleStatus.upcoming).not(),
-        )).get();
+              (t) =>
+                  t.clientId.equals(clientId) &
+                  t.status.equals(ScheduleStatus.upcoming).not(),
+            ))
+            .get();
     final out = <UnsentRoutine>[];
     for (final row in rows) {
       for (final r in await fetchScheduledRoutines(row.id)) {
@@ -867,7 +865,7 @@ class DriftScheduleRepository implements ScheduleRepository {
     final before = _editedRoutines[id] ?? _demoPersonalRoutines;
     _editedRoutines[id] = List<RoutineExercise>.unmodifiable(<RoutineExercise>[
       for (var i = 0; i < items.length; i++)
-        if (i < before.length && _sameRoutine(before[i], items[i]))
+        if (i < before.length && samePersonalRoutine(before[i], items[i]))
           items[i]
         else
           items[i].copyWith(source: 'trainer'),

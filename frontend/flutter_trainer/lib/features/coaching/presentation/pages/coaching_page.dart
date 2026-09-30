@@ -37,6 +37,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount, weekdayLabels;
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_personal_routines.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_section.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -373,6 +374,26 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     final l = AppLocalizations.of(context);
+    // 개인운동 없이 일정에 올리려 하면 한 번 붙잡는다(#2280). `직접 만들기`·
+    // 저장한 프로그램 적용은 위저드의 개인운동 단계를 지나지 않는다. 막지는
+    // 않는다 — 개인운동을 줄 수 없는 날도 있고, 스케줄의 일정 상세에서
+    // 나중에 붙일 수도 있다.
+    if ((_personalRoutines[client.id] ?? const <RoutineExercise>[]).isEmpty) {
+      final choice = await showNoPersonalRoutineDialog(
+        context,
+        title: l.progNoRoutinesRegisterTitle,
+        body: l.progNoRoutinesRegisterBody,
+        skipLabel: l.progNoRoutinesRegisterSkip,
+      );
+      if (choice == null || !mounted || !_isStillSelected(client.id)) return;
+      // 붙이려다 창을 닫았으면 일정에 올리지 않는다 — 붙이려던 PT 가 개인운동
+      // 없이 올라가면 안 된다.
+      if (choice == NoPersonalRoutineChoice.add &&
+          !await _editPersonalRoutines(client)) {
+        return;
+      }
+      if (!mounted || !_isStillSelected(client.id)) return;
+    }
     final List<ScheduleSession> candidates;
     try {
       candidates = await _attachCandidates(client);
@@ -960,6 +981,28 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _personalRoutines.remove(_clientId);
   });
 
+  /// 편집기 아래 개인운동 박스의 `개인운동 추가`·`개인운동 수정`. (#2280)
+  ///
+  /// `직접 만들기`·저장한 프로그램 적용은 위저드를 지나지 않아 개인운동을 붙일
+  /// 자리가 없었다. 일정 상세의 `개인운동 수정` 과 **같은 창**을 쓴다 —
+  /// 개인운동을 고치는 창이 자리마다 다르면 트레이너가 헷갈린다. 저장했으면
+  /// 참을 준다.
+  Future<bool> _editPersonalRoutines(TrainerClient client) async {
+    final edited = await showAppDialog<List<RoutineExercise>>(
+      context: context,
+      builder: (_) => SendPersonalRoutinesDialog(
+        routines: _personalRoutines[client.id] ?? const <RoutineExercise>[],
+        editOnly: true,
+        goal: client.goal,
+      ),
+    );
+    if (edited == null || !mounted || !_isStillSelected(client.id)) {
+      return false;
+    }
+    setState(() => _personalRoutines[client.id] = edited);
+    return true;
+  }
+
   void _startManualProgram(String clientId) => setState(() {
     _generatedRecommendations.remove(clientId);
     // 빈 편집기로 새로 시작한다 — 앞서 위저드에서 정한 개인운동도 함께 버린다.
@@ -1102,15 +1145,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   // 아래에 붙인다. 바깥 목록에 끼워 넣으면 개인운동이 생기는
                   // 순간 편집기의 자리가 흔들려 그 State 가 새로 만들어지고,
                   // 위저드가 반영한 구성이 사라진다.
-                  if ((_personalRoutines[client.id]?.isNotEmpty ??
-                      false)) ...<Widget>[
+                  //
+                  // 비어 있어도 선다(#2280) — `직접 만들기`·저장한 프로그램
+                  // 적용에서 개인운동을 붙일 자리가 여기다. 보낸 뒤 비워진
+                  // 목록에는 붙일 것이 없으니 세우지 않는다.
+                  if ((_personalRoutines[client.id]?.isNotEmpty ?? false) ||
+                      !_sent) ...<Widget>[
                     const SizedBox(height: OnCareSpacing.s16),
                     PersonalRoutineBox(
                       key: ValueKey<String>(
                         'personal-routine-with-pt-${client.id}',
                       ),
-                      routines: _personalRoutines[client.id]!,
+                      routines:
+                          _personalRoutines[client.id] ??
+                          const <RoutineExercise>[],
                       routineOnly: false,
+                      onEdit: _sent || _sendingClientIds.contains(client.id)
+                          ? null
+                          : () => unawaited(_editPersonalRoutines(client)),
                     ),
                   ],
                 ],

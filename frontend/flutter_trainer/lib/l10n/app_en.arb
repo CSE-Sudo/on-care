@@ -1353,6 +1353,15 @@
   "schedRoutinesSkipped": "Marked as not sent.",
   "schedRoutinesUpdated": "Personal exercise updated.",
   "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
+  "schedAddRoutines": "Add personal exercise",
+  "schedAddRoutinesTitle": "Add personal exercise",
+  "schedAddRoutinesBody": "This PT has no personal exercise yet. Once added, it goes to the member together with the PT program.",
+  "schedRoutinesAdded": "Personal exercise added.",
+  "schedNoRoutines": "No personal exercise",
+  "schedNoRoutinesHint": "Add it from the pencil menu and it goes to the member with the PT program.",
+  "schedNoRoutinesSendTitle": "Send without personal exercise?",
+  "schedNoRoutinesSendBody": "This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.",
+  "schedNoRoutinesSendSkip": "Send without it",
   "schedTimeRange": "{start}–{end}",
   "@schedTimeRange": {
     "placeholders": {
@@ -2063,6 +2072,10 @@
     "description": "Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581)."
   },
   "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
+  "progNoRoutinesRegisterTitle": "Add to schedule without personal exercise?",
+  "progNoRoutinesRegisterBody": "Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.",
+  "progNoRoutinesRegisterSkip": "Add without it",
+  "progPersonalRoutinesEmpty": "No personal exercise yet. Add at least one for each PT.",
   "programRoutineOnlyConfirmBody": "Sends personal exercise to {client}. Appears daily from {start} to {end}.",
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }

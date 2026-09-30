@@ -1746,6 +1746,35 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedRoutinesUpdateFailed => '개인운동을 고치지 못했어요. 다시 시도해 주세요.';
 
   @override
+  String get schedAddRoutines => '개인운동 추가';
+
+  @override
+  String get schedAddRoutinesTitle => '개인운동 추가';
+
+  @override
+  String get schedAddRoutinesBody =>
+      '이 PT 에는 아직 개인운동이 없어요. 붙여 두면 PT 프로그램을 보낼 때 회원에게 함께 가요.';
+
+  @override
+  String get schedRoutinesAdded => '개인운동을 붙였어요.';
+
+  @override
+  String get schedNoRoutines => '개인운동 없음';
+
+  @override
+  String get schedNoRoutinesHint => '연필 메뉴의 개인운동 추가로 붙이면 PT 프로그램과 함께 회원에게 가요.';
+
+  @override
+  String get schedNoRoutinesSendTitle => '개인운동 없이 보낼까요?';
+
+  @override
+  String get schedNoRoutinesSendBody =>
+      '이 PT 에는 개인운동이 없어요. 보낸 뒤에는 이 PT 에 개인운동을 붙일 수 없어요.';
+
+  @override
+  String get schedNoRoutinesSendSkip => '개인운동 없이 전송';
+
+  @override
   String schedTimeRange(String start, String end) {
     return '$start–$end';
   }
@@ -3053,6 +3082,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get progPersonalRoutinesWhen => '이 PT를 완료할 때 회원에게 함께 가요.';
+
+  @override
+  String get progNoRoutinesRegisterTitle => '개인운동 없이 일정을 추가할까요?';
+
+  @override
+  String get progNoRoutinesRegisterBody =>
+      'PT 마다 개인운동을 최소 한 개 붙여 주세요. 지금 붙이지 않으면 PT 프로그램을 보내기 전에 스케줄의 일정 상세에서 붙일 수 있어요.';
+
+  @override
+  String get progNoRoutinesRegisterSkip => '개인운동 없이 추가';
+
+  @override
+  String get progPersonalRoutinesEmpty => '아직 개인운동이 없어요. PT 마다 최소 한 개를 붙여 주세요.';
 
   @override
   String programRoutineOnlyConfirmBody(

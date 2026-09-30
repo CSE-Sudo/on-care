@@ -3175,6 +3175,60 @@ abstract class AppLocalizations {
   /// **'Couldn\'t update the personal exercise. Please try again.'**
   String get schedRoutinesUpdateFailed;
 
+  /// No description provided for @schedAddRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Add personal exercise'**
+  String get schedAddRoutines;
+
+  /// No description provided for @schedAddRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add personal exercise'**
+  String get schedAddRoutinesTitle;
+
+  /// No description provided for @schedAddRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT has no personal exercise yet. Once added, it goes to the member together with the PT program.'**
+  String get schedAddRoutinesBody;
+
+  /// No description provided for @schedRoutinesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise added.'**
+  String get schedRoutinesAdded;
+
+  /// No description provided for @schedNoRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise'**
+  String get schedNoRoutines;
+
+  /// No description provided for @schedNoRoutinesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add it from the pencil menu and it goes to the member with the PT program.'**
+  String get schedNoRoutinesHint;
+
+  /// No description provided for @schedNoRoutinesSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without personal exercise?'**
+  String get schedNoRoutinesSendTitle;
+
+  /// No description provided for @schedNoRoutinesSendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.'**
+  String get schedNoRoutinesSendBody;
+
+  /// No description provided for @schedNoRoutinesSendSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without it'**
+  String get schedNoRoutinesSendSkip;
+
   /// No description provided for @schedTimeRange.
   ///
   /// In en, this message translates to:
@@ -5598,6 +5652,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Goes to the member when you complete this PT.'**
   String get progPersonalRoutinesWhen;
+
+  /// No description provided for @progNoRoutinesRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to schedule without personal exercise?'**
+  String get progNoRoutinesRegisterTitle;
+
+  /// No description provided for @progNoRoutinesRegisterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.'**
+  String get progNoRoutinesRegisterBody;
+
+  /// No description provided for @progNoRoutinesRegisterSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add without it'**
+  String get progNoRoutinesRegisterSkip;
+
+  /// No description provided for @progPersonalRoutinesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise yet. Add at least one for each PT.'**
+  String get progPersonalRoutinesEmpty;
 
   /// No description provided for @programRoutineOnlyConfirmBody.
   ///

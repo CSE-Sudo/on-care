@@ -13,9 +13,14 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 프로그램 만들기에서 정한 개인운동을, 보내기 직전에 편집기 화면에서 보여
 /// 주는 박스. (#2223)
 ///
-/// **읽기 전용이다.** 고치는 자리는 위저드의 개인운동 단계 한 곳뿐이다 — 같은
-/// 목록을 두 화면에서 따로 고치면 어느 쪽이 맞는지 알 수 없게 된다. 여기서는
-/// 무엇이 함께 가는지 확인하고, `개인운동만` 이면 언제부터 걸지만 고른다.
+/// `개인운동만` 에서는 **읽기 전용이다** — 고치는 자리는 위저드의 개인운동
+/// 단계다. 여기서는 무엇이 함께 가는지 확인하고 언제부터 걸지만 고른다.
+///
+/// PT 모드에서는 [onEdit] 로 여기서도 붙이고 고친다(#2280). `직접 만들기`·저장한
+/// 프로그램 적용은 위저드를 지나지 않아, 이 박스가 없으면 개인운동을 붙일 자리
+/// 자체가 없다. 위저드로 되돌아가면 여기 목록은 비워지므로(#2223) 두 화면의
+/// 목록이 어긋나지 않는다. 그래서 PT 모드에서는 비어 있어도 선다 — 비었다는
+/// 사실을 보내기 전에 보여 준다.
 ///
 /// 두 흐름이 같은 자리에서 끝나도록 PT 모드에서는 프로그램 박스 아래에, PT 가
 /// 없는 주에는 프로그램 박스 자리에 홀로 선다.
@@ -28,8 +33,14 @@ class PersonalRoutineBox extends StatelessWidget {
     this.onSend,
     this.sending = false,
     this.sent = false,
+    this.onEdit,
     super.key,
   });
+
+  /// PT 모드의 `개인운동 추가`·`개인운동 수정`. (#2280)
+  ///
+  /// null 이면 버튼이 서지 않는다 — `개인운동만` 과 이미 보낸 뒤가 그렇다.
+  final VoidCallback? onEdit;
 
   /// 함께 보낼 개인운동. 위저드에서 확정한 그대로다.
   final List<RoutineExercise> routines;
@@ -73,12 +84,21 @@ class PersonalRoutineBox extends StatelessWidget {
                 ? l.aiRoutineOnlyProgramName
                 : l.progPersonalRoutinesTitle,
             icon: AppIcons.personalRoutine,
-            trailing: AppTag(
-              label: l.aiPersonalStepBadge(routines.length),
-              tone: AppTagTone.brand,
-            ),
+            // 비어 있으면 `0개` 로 세지 않는다 — 아래 안내가 이미 말한다.
+            trailing: routines.isEmpty
+                ? null
+                : AppTag(
+                    label: l.aiPersonalStepBadge(routines.length),
+                    tone: AppTagTone.brand,
+                  ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
+          if (routines.isEmpty)
+            Text(
+              l.progPersonalRoutinesEmpty,
+              key: const ValueKey<String>('personal-routine-box-empty'),
+              style: line,
+            ),
           for (final RoutineExercise routine in routines)
             Padding(
               padding: const EdgeInsets.only(top: OnCareSpacing.s2),
@@ -101,6 +121,27 @@ class PersonalRoutineBox extends StatelessWidget {
                   .text(OnCareTypography.caption)
                   .copyWith(color: OnCareColors.textTertiary),
             ),
+            if (onEdit != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s12),
+              AppActionRow(
+                actions: <Widget>[
+                  AppButton(
+                    key: const ValueKey<String>('personal-routine-edit'),
+                    // 붙은 것이 없는데 `수정` 이라고 부르면 어딘가에 이미
+                    // 있는 것처럼 읽힌다 — 일정 상세의 연필 메뉴와 같은 이름.
+                    label: routines.isEmpty
+                        ? l.schedAddRoutines
+                        : l.schedEditRoutines,
+                    leadingIcon: routines.isEmpty
+                        ? AppIcons.add
+                        : AppIcons.edit,
+                    variant: AppButtonVariant.secondary,
+                    size: OnCareButtonSize.small,
+                    onPressed: onEdit,
+                  ),
+                ],
+              ),
+            ],
           ] else ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
             const AppDivider(),

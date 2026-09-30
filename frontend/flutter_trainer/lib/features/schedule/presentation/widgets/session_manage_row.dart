@@ -86,6 +86,7 @@ class SessionEditMenu extends StatelessWidget {
     this.showEditNote = true,
     this.showEditProgram = true,
     this.onEditRoutines,
+    this.onAddRoutines,
     required this.onDelete,
     this.deleteOnly = false,
   });
@@ -95,6 +96,13 @@ class SessionEditMenu extends StatelessWidget {
   /// `개인운동 수정` — 아직 보내지 않은 개인운동이 붙어 있을 때만 준다.
   /// (#2224)
   final VoidCallback? onEditRoutines;
+
+  /// `개인운동 추가` — 개인운동이 하나도 없고 아직 붙일 수 있는 PT 에만 준다.
+  /// (#2280)
+  ///
+  /// `개인운동 수정` 과 같은 자리를 나눠 쓴다: 붙은 것이 없는데 `수정` 이라고
+  /// 부르면 어딘가에 이미 있는 것처럼 읽힌다. 둘이 함께 오지 않는다.
+  final VoidCallback? onAddRoutines;
 
   /// 운동 목록 없이 메모만 여는 자리. 세션 종류와 상관없이 있다(#1011).
   final VoidCallback onEditNote;
@@ -157,6 +165,15 @@ class SessionEditMenu extends StatelessWidget {
           icon: AppIcons.personalRoutine,
           label: l.schedEditRoutines,
           onSelected: onEditRoutines,
+        )
+      // 개인운동 단계를 지나지 않은 PT(`직접 만들기`·저장한 프로그램 적용)에
+      // 처음 붙이는 자리다(#2280). 이미 보낸 PT 에는 서지 않는다.
+      else if (!deleteOnly && onAddRoutines != null)
+        AppMenuItem(
+          key: const ValueKey<String>('session-add-routines-chip'),
+          icon: AppIcons.personalRoutine,
+          label: l.schedAddRoutines,
+          onSelected: onAddRoutines,
         ),
       if (!deleteOnly && showEditNote)
         AppMenuItem(
