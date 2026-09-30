@@ -259,6 +259,8 @@ class DemoFixture:
         )
         self._recent: list[dict] = payload["recent"]
         self._weeks: list[dict] = payload["weeks"]
+        #: 매주 PT(#2694) — `sessions[].weeksAgo` 주 전의 오늘과 같은 요일에 선다.
+        self._weekly_pt: dict | None = payload.get("weeklyPt")
 
     def days_for(self, today: date) -> list[FixtureDay]:
         """[today] 기준으로 날짜가 붙은 하루들을 오래된 → 오늘 순으로 돌려준다.
@@ -268,7 +270,7 @@ class DemoFixture:
         막대로 그리고 주 평균도 실제보다 높아진다(#752).
         """
         this_monday = today - timedelta(days=today.weekday())
-        by_date: dict[date, FixtureDay] = {}
+        by_date: dict[date, dict] = {}
 
         for week in self._weeks:
             week_monday = this_monday - timedelta(days=7 * week["weeksAgo"])
@@ -276,13 +278,34 @@ class DemoFixture:
                 day = week_monday + timedelta(days=entry["weekday"])
                 if day > today:
                     continue
-                by_date[day] = self._day_from(entry, day)
+                by_date[day] = entry
+
+        # 매주 PT — 지난 주들의 **오늘과 같은 요일**이 PT 날이다(#2694). 데모의
+        # 오늘은 늘 PT 받은 날이라, 요일을 못 박으면 그 요일이 아닌 날에는 이번 주에
+        # PT 가 두 번 선다. 끼니와 그날 한마디는 격자의 것을 그대로 두고 운동만
+        # 수업으로 바뀐다. 격자가 비워 둔 날은 그 주 수업을 건너뛴다(보호권 시연).
+        # 회원 앱의 `DemoFixture.daysFor` 와 같은 규칙이다.
+        weekly = self._weekly_pt
+        if weekly is not None:
+            for session in weekly["sessions"]:
+                day = today - timedelta(days=7 * session["weeksAgo"])
+                grid = by_date.get(day)
+                if grid is None or (not grid["exercises"] and not grid["meals"]):
+                    continue
+                by_date[day] = {
+                    **grid,
+                    "label": weekly["label"],
+                    "pt": True,
+                    "clientFeedback": session["clientFeedback"],
+                    "trainerNote": session["trainerNote"],
+                    "exercises": session["exercises"],
+                }
 
         for entry in self._recent:
             day = today - timedelta(days=entry["offset"])
-            by_date[day] = self._day_from(entry, day)
+            by_date[day] = entry
 
-        return [by_date[key] for key in sorted(by_date)]
+        return [self._day_from(by_date[key], key) for key in sorted(by_date)]
 
     def _day_from(self, entry: dict, day: date) -> FixtureDay:
         return FixtureDay(
@@ -298,6 +321,9 @@ class DemoFixture:
                     sets=item.get("sets"),
                     reps=item.get("reps"),
                     hold_seconds=item.get("holdSeconds"),
+                    # 중량도 옮긴다 — 빠지면 실서버 시드의 근력 기록이 무게 없이
+                    # 남아 회원 앱 데모(`40kg`)와 다르게 적힌다. (#2694)
+                    weight=item.get("weight"),
                 )
                 for item in entry["exercises"]
             ),

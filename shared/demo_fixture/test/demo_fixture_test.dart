@@ -139,6 +139,35 @@ void main() {
     }
   });
 
+  test('PT 는 지난 11주의 오늘과 같은 요일이고, 한 주에 한 번이다 (#2694)', () {
+    // 데모의 오늘은 늘 PT 받은 날(12회차)이다. 요일을 못 박으면 그 요일이 아닌
+    // 날에는 이번 주에 PT 가 두 번 서고, 트레이너 리포트와 주간 횟수가 갈린다.
+    for (final DateTime now in <DateTime>[
+      DateTime(2026, 8, 10), // 월
+      DateTime(2026, 8, 13), // 목
+      DateTime(2026, 8, 16), // 일
+      DateTime(2026, 12, 31), // 연말
+      DateTime(2028, 2, 29), // 윤년
+    ]) {
+      final DateTime today = DateTime(now.year, now.month, now.day);
+      final List<FixtureDay> pt = fixture
+          .daysFor(now)
+          .where((FixtureDay d) => d.isPt)
+          .toList();
+      final Set<String> weeks = <String>{};
+      for (final FixtureDay day in pt) {
+        final DateTime date = DateTime.parse(day.date);
+        expect(date.weekday, today.weekday, reason: '$now · ${day.date}');
+        final int weeksAgo = today.difference(date).inDays ~/ 7;
+        expect(weeksAgo, lessThanOrEqualTo(11), reason: '$now · ${day.date}');
+        expect(weeks.add(day.weekStart), isTrue, reason: '${day.weekStart} 두 번');
+      }
+      expect(pt.last.date, _ymd(today), reason: '오늘은 PT 날이다');
+      // 격자가 비워 둔 날(보호권 시연)과 겹치는 주만 건너뛴다.
+      expect(pt.length, inInclusiveRange(11, 12), reason: '$now');
+    }
+  });
+
   test('과거에도 PT 사례가 흩어져 있다 (#1265)', () {
     // 데모는 오늘 하루만 보는 것이 아니다. 지난주·전체로 넘겼을 때 PT 를 받은
     // 날과 그때 무엇을 몇 세트 했는지가 없으면 과거가 통째로 비어 보인다.
@@ -262,3 +291,8 @@ void main() {
     }
   });
 }
+
+String _ymd(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-'
+    '${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
