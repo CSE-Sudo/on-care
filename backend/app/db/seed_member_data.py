@@ -559,15 +559,26 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
     # 오늘 타임라인이 이미 있으면 스킵(날짜 넘어가면 새로 시드). 타임라인 행만
     # 본다 — 주간 PT 시드(`_seed_weekly_pt`)가 앞선 날에 오늘 날짜로 넣어 둔
     # 수업이 있어도 오늘 타임라인은 깔려야 한다(#2452).
-    if db.scalar(
-        select(models.TrainerSchedule.id)
-        .where(
+    existing = db.scalars(
+        select(models.TrainerSchedule).where(
             models.TrainerSchedule.trainer_id == TRAINER_ID,
             models.TrainerSchedule.date == today,
             models.TrainerSchedule.id.like(f"seed-schedule-{today}-%"),
         )
-        .limit(1)
-    ) is not None:
+    ).all()
+    if existing:
+        # 회원 계정이 지워졌다 다시 만들어지면 FK(`SET NULL`)가 이 행들의 주인만
+        # 비워 둔다. 되붙이지 않으면 뒤따르는 주간 PT 시드가 이번 주에 그 회원의
+        # 수업이 없다고 보고 한 번 더 깐다(#2695) — 주간 PT 행과 같은 처리다.
+        by_id = {row.id: row for row in existing}
+        reattached = False
+        for i, (_time, _cname, mid, *_rest) in enumerate(_SCHEDULE):
+            row = by_id.get(f"seed-schedule-{today}-{i}")
+            if row is not None and row.member_id is None and mid and mid in valid:
+                row.member_id = mid
+                reattached = True
+        if reattached:
+            _safe_commit(db)
         return
     for i, (time, cname, mid, typ, dur, status, note, program) in enumerate(_SCHEDULE):
         member_id = mid if (mid and mid in valid) else None
