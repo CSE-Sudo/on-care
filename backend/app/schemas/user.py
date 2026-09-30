@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.health_goal_ranges import (
     ConditionsText,
+    check_conditions_notes,
     DailyBurnKcal,
     DailyCalories,
     DailyCarbsG,
@@ -265,8 +266,11 @@ class HealthGoalsUpdate(BaseModel):
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: Optional[str]) -> Optional[str]:
-        """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814)."""
-        return normalize_conditions(value)
+        """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814).
+
+        건강상태·주의사항은 트레이너 경로와 같은 상한이다(#2619).
+        """
+        return check_conditions_notes(normalize_conditions(value))
 
 
 class OnboardingRequest(BaseModel):
@@ -305,8 +309,11 @@ class OnboardingRequest(BaseModel):
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: Optional[str]) -> Optional[str]:
-        """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814)."""
-        return normalize_conditions(value)
+        """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814).
+
+        건강상태·주의사항은 트레이너 경로와 같은 상한이다(#2619).
+        """
+        return check_conditions_notes(normalize_conditions(value))
 
     # 프로필 수정(`ProfileUpdate`)과 같은 함수를 부른다(#1887). 같은 두 칸을
     # 고치는 두 경로가 다른 기준을 쓰면, 한쪽으로 들어온 값이 다른 쪽에서

@@ -66,6 +66,22 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     '지수 changed their health goals: none',
   ),
   (
+    'trainer_health_notes',
+    <String, Object?>{'member_name': '지수', 'with_focus': false},
+    '회원 주의사항 변경',
+    '지수 회원이 건강상태·주의사항을 바꿨어요',
+    'Member health notes changed',
+    '지수 updated their health notes',
+  ),
+  (
+    'trainer_health_notes',
+    <String, Object?>{'member_name': '지수', 'with_focus': true},
+    '회원 주의사항 변경',
+    '지수 회원이 건강 목표와 건강상태·주의사항을 바꿨어요',
+    'Member health notes changed',
+    '지수 updated their health goals and health notes',
+  ),
+  (
     'trainer_health_goal',
     <String, Object?>{
       'member_name': 'Alex',
@@ -197,6 +213,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
 /// 확인하고, 여기서는 각 코드가 실제로 조립되는지 확인한다.
 const Set<String> _trainerTemplates = <String>{
   'trainer_health_goal',
+  'trainer_health_notes',
   'trainer_member_renamed',
   'trainer_member_withdrawn',
   'trainer_member_disconnected',

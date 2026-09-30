@@ -161,6 +161,35 @@ void main() {
     expect(_field('goalCaloriesField'), findsOneWidget);
   });
 
+  testWidgets('건강상태·주의사항은 따로 적고, 목표 칩 뒤에 이어 저장된다 (#2619)', (tester) async {
+    await _open(tester);
+    // 적은 적이 없으면 비어 있다고만 보인다.
+    expect(
+      tester.widget<Text>(find.byKey(const Key('goalConditionsValue'))).data,
+      '—',
+    );
+
+    await _beginEdit(tester);
+    await tester.enterText(
+      _field('goalConditionsField'),
+      '왼쪽 무릎 연골 수술 이력이 있어요',
+    );
+    await tester.pump();
+    expect(find.text('19/500'), findsOneWidget);
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<Text>(find.byKey(const Key('goalConditionsValue'))).data,
+      '왼쪽 무릎 연골 수술 이력이 있어요',
+    );
+    // 고른 목표는 그대로 남는다.
+    expect(
+      find.byKey(const ValueKey<String>('goal-focus-tag-체중 감량')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('취소하면 고치던 값이 저장된 목표로 되돌아간다', (tester) async {
     await _open(tester);
     await _beginEdit(tester);
