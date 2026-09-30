@@ -65,14 +65,16 @@ final RegExp _englishAgo = RegExp(r'^(\d+) (min|hours?|days?) ago$');
 /// 서버·로컬 인터셉터가 만든 상대 시각 → 로케일 문장.
 ///
 /// 한국어 모양(`방금`·`방금 전`·`N분 전`·`N시간 전`·`어제`·`N일 전`)과 서버가
-/// 영어 요청에 주는 모양(`just now`·`N min ago`·`N hours ago`·`N days ago`)만
+/// 영어 요청에 주는 모양(`just now`·`N min ago`·`N hours ago`·`yesterday`·
+/// `N days ago`)만
 /// 옮기고, 모르는 모양은 받은 그대로 둔다 — 틀리게 옮기느니 원문이 낫다.
 String localizeTimeAgo(AppLocalizations l, String raw) {
   final String text = raw.trim();
   if (text == '방금' || text == '방금 전' || text == 'just now') {
     return l.alertTimeJustNow;
   }
-  if (text == '어제') return l.alertTimeYesterday;
+  // `yesterday` 는 서버가 데모 계정 알림에 주는 영어다(#2691).
+  if (text == '어제' || text == 'yesterday') return l.alertTimeYesterday;
   final RegExpMatch? korean = _koreanAgo.firstMatch(text);
   if (korean != null) {
     final int n = int.parse(korean.group(1)!);

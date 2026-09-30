@@ -89,6 +89,12 @@ void main() {
       expect(alertTimeAgo(ko, serverAlert), '3분 전');
     });
 
+    // 서버가 데모 계정 알림에 주는 영어 "어제"(#2691).
+    test('서버의 영어 yesterday 도 옮긴다', () {
+      expect(localizeTimeAgo(en, 'yesterday'), 'Yesterday');
+      expect(localizeTimeAgo(ko, 'yesterday'), '어제');
+    });
+
     test('모르는 모양은 받은 그대로 둔다', () {
       expect(localizeTimeAgo(en, '2026-09-15'), '2026-09-15');
       expect(localizeTimeAgo(en, ''), '');
