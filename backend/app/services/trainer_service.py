@@ -5054,9 +5054,9 @@ def _ensure_routine_attachable(
     if not _program_items(s.program_json):
         raise ScheduleError("PT 프로그램이 없는 일정입니다.")
     if s.program_sent_at is not None:
-        raise ScheduleError("이미 보낸 PT 에는 개인운동을 붙일 수 없습니다.")
+        raise ScheduleError("이미 보낸 PT에는 개인운동을 붙일 수 없습니다.")
     if s.status in {SCHEDULE_CANCELLED, SCHEDULE_NO_SHOW}:
-        raise ScheduleError("취소된 PT 에는 개인운동을 붙일 수 없습니다.")
+        raise ScheduleError("취소된 PT에는 개인운동을 붙일 수 없습니다.")
 
 
 def dismiss_scheduled_routines(

@@ -724,19 +724,25 @@ Future<void> _sendProgram(WidgetTester tester) async {
   final send = await _ensureSendButtonReady(tester);
   await tester.tap(send);
   await tester.pumpAndSettle();
-  // `직접 만들기` 로 짠 편집기에는 개인운동이 없어 한 번 붙잡힌다(#2280) — 이
-  // 헬퍼는 전송 흐름을 보려는 것이라 개인운동 없이 넘어간다.
-  final skip = find.byKey(const ValueKey<String>('no-personal-routine-skip'));
-  if (skip.evaluate().isNotEmpty) {
-    await tester.tap(skip);
-    await tester.pumpAndSettle();
-  }
   // 텍스트가 아니라 키로 찾는다 — 확인 다이얼로그의 submit 버튼도 편집기의
   // `일정 추가` 버튼과 같은 라벨(`programEditorAddSchedule`)을 쓰므로,
   // 텍스트 찾기는 라벨이 한 곳 더 생기면 `findsOneWidget` 위반으로 깨진다.
   await tester.tap(
     find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
   );
+  // `직접 만들기` 로 짠 편집기에는 개인운동이 없어, 어느 PT 에 올릴지 정한 뒤
+  // 한 번 붙잡힌다(#2280) — 이 헬퍼는 전송 흐름을 보려는 것이라 개인운동 없이
+  // 넘어간다. 창이 없으면 전송이 이미 돌고 있으므로 더 기다리지 않는다.
+  await tester.pump();
+  final dialog = find.byKey(
+    const ValueKey<String>('no-personal-routine-dialog'),
+  );
+  if (dialog.evaluate().isNotEmpty) {
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+    );
+  }
 }
 
 /// `showAppDatePicker`(입력칸 + 달력 세로형 선택창, #1778) 에서 [date] 를
@@ -3207,6 +3213,15 @@ void main() {
       await openManualEditor(tester);
 
       await tapEditorSend(tester);
+      // 어느 PT 에 올릴지 먼저 정하고, 그다음에 묻는다.
+      expect(
+        find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
         findsOneWidget,
@@ -3236,16 +3251,59 @@ void main() {
 
       await tapEditorSend(tester);
       await tester.tap(
-        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
       );
       await settle(tester);
 
       expect(scheduleRepo.registerCalls, 1);
       expect(scheduleRepo.personalRoutineCalls.single, isEmpty);
+    });
+
+    testWidgets('개인운동이 이미 붙은 PT 의 프로그램만 다시 올리면 개인운동 없이라고 묻지 않는다', (
+      tester,
+    ) async {
+      // 등록 칸(오늘 10:00)과 겹치는, 개인운동이 붙어 있는 예정 PT.
+      const ScheduleSession booked = ScheduleSession(
+        id: 'booked-pt',
+        date: '2026-08-20',
+        time: '10:00',
+        clientId: 'seed-client-1',
+        clientName: '김민수',
+        type: '1:1 PT',
+        durationMinutes: 50,
+        status: ScheduleStatus.upcoming,
+        note: '',
+        program: <ProgramItem>[ProgramItem(name: '스쿼트')],
+      );
+      final scheduleRepo = await openCoaching(
+        tester,
+        candidates: const <ScheduleSession>[booked],
+        attached: const <RoutineExercise>[
+          RoutineExercise(name: '먼저 붙인 걷기', minutes: 20, type: '유산소'),
+        ],
+      );
+      await openManualEditor(tester);
+
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-confirm-attach')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await settle(tester);
+
+      // 서버가 붙어 있던 개인운동을 그대로 두므로 "없이" 가 아니다.
+      expect(
+        find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
+        findsNothing,
+      );
+      expect(scheduleRepo.registerCalls, 1);
     });
 
     /// 스케줄에서 온 PT — 아직 보내지 않은 예정 PT 다.
@@ -3464,6 +3522,15 @@ class _AttachScheduleRepository extends DriftScheduleRepository {
   @override
   Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client) =>
       Stream<List<ScheduleSession>>.value(candidates);
+
+  @override
+  Future<List<ScheduleSession>> fetchClientSessionsOn(
+    ScheduleClientKey client,
+    String date,
+  ) async => <ScheduleSession>[
+    for (final ScheduleSession s in candidates)
+      if (s.date == date) s,
+  ];
 
   int registerCalls = 0;
   int sends = 0;

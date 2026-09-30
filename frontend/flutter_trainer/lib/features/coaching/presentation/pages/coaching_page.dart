@@ -476,25 +476,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     final l = AppLocalizations.of(context);
-    // 개인운동 없이 일정에 올리려 하면 한 번 붙잡는다(#2280). `직접 만들기`·
-    // 저장한 프로그램 적용은 위저드의 개인운동 단계를 지나지 않는다. 막지는
-    // 않는다 — 개인운동을 줄 수 없는 날도 있고, 스케줄의 일정 상세에서
-    // 나중에 붙일 수도 있다.
-    if ((_personalRoutines[client.id] ?? const <RoutineExercise>[]).isEmpty) {
-      final choice = await showNoPersonalRoutineDialog(
-        context,
-        title: l.progNoRoutinesRegisterTitle,
-        body: l.progNoRoutinesRegisterBody,
-        skipLabel: l.progNoRoutinesRegisterSkip,
-      );
-      if (choice == null || !mounted || !_isStillSelected(client.id)) return;
-      // 붙이러 가면 일정에 올리지 않는다 — 개인운동 단계(AI 제안)에서 짜고
-      // 편집기로 돌아와 다시 `일정 추가` 를 누른다.
-      if (choice == NoPersonalRoutineChoice.add) {
-        _startDraftAttach(client);
-        return;
-      }
-    }
     final List<ScheduleSession> candidates;
     try {
       candidates = await _attachCandidates(client);
@@ -526,14 +507,41 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (confirmation == null || !mounted || !_isStillSelected(client.id)) {
       return;
     }
-    // 이미 있는 PT 에 붙이는데 그 PT 에 개인운동이 붙어 있으면, 새로 짠 것으로
-    // 바꾸는지 한 번 묻는다(#2280) — 서버는 붙어 있던 것을 새것으로 갈아
-    // 끼운다. 새로 짠 개인운동이 없으면 서버가 붙어 있던 것을 그대로 두므로
-    // 묻지 않는다.
     final String? targetId = confirmation.sessionId;
-    if (targetId != null &&
-        personalRoutines.isNotEmpty &&
-        !await _confirmReplaceIfAttached(targetId)) {
+    if (personalRoutines.isEmpty) {
+      // 개인운동 없이 일정에 올리려 하면 한 번 붙잡는다(#2280). `직접 만들기`·
+      // 저장한 프로그램 적용은 위저드의 개인운동 단계를 지나지 않는다. 막지는
+      // 않는다 — 개인운동을 줄 수 없는 날도 있고, 스케줄의 일정 상세에서
+      // 나중에 붙일 수도 있다.
+      //
+      // 어느 PT 에 올릴지 정한 **뒤에** 묻는다 — 개인운동이 이미 붙은 PT 의
+      // 프로그램만 다시 올리면 서버가 붙어 있던 것을 그대로 두므로 "개인운동
+      // 없이" 가 아니다. 붙어 있는지 읽지 못했으면 묻는 쪽으로 둔다.
+      final List<RoutineExercise>? attached = targetId == null
+          ? null
+          : await _unsentRoutinesOn(targetId);
+      if (!mounted || !_isStillSelected(client.id)) return;
+      if (attached == null || attached.isEmpty) {
+        final choice = await showNoPersonalRoutineDialog(
+          context,
+          title: l.progNoRoutinesRegisterTitle,
+          body: l.progNoRoutinesRegisterBody,
+          skipLabel: l.progNoRoutinesRegisterSkip,
+        );
+        if (choice == null || !mounted || !_isStillSelected(client.id)) {
+          return;
+        }
+        // 붙이러 가면 일정에 올리지 않는다 — 개인운동 단계(AI 제안)에서 짜고
+        // 편집기로 돌아와 다시 `일정 추가` 를 누른다.
+        if (choice == NoPersonalRoutineChoice.add) {
+          _startDraftAttach(client);
+          return;
+        }
+      }
+    } else if (targetId != null && !await _confirmReplaceIfAttached(targetId)) {
+      // 이미 있는 PT 에 붙이는데 그 PT 에 개인운동이 붙어 있으면, 새로 짠
+      // 것으로 바꾸는지 한 번 묻는다(#2280) — 서버는 붙어 있던 것을 새것으로
+      // 갈아 끼운다.
       return;
     }
     if (!mounted || !_isStillSelected(client.id)) return;
@@ -1234,15 +1242,16 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     return null;
   }
 
-  /// 시작일에 PT 가 없을 때 알려 줄 가장 가까운 아직 보내지 않은 PT — 오늘
-  /// 이후 첫 PT. (#2280)
+  /// 시작일에 PT 가 없을 때 알려 줄 아직 보내지 않은 PT. (#2280)
+  ///
+  /// 지나간 PT 가 먼저다 — 완료했지만 아직 보내지 않은 PT 는 곧 스케줄에서
+  /// 보낼 것이라, 거기 붙이지 않고 바로 보내면 그 PT 를 보낼 때 개인운동이
+  /// 없다고 한 번 더 붙잡힌다. 그다음이 오늘 이후 첫 PT 다. 후보는 날짜·시각
+  /// 순이라 첫 줄이 곧 그 PT 다.
   ScheduleSession? _nearestRoutineOnlyPt(String clientId) {
-    final String today = ymd(_todayKst());
-    for (final ScheduleSession s
-        in _routineOnlyCandidates[clientId] ?? const <ScheduleSession>[]) {
-      if (s.date.compareTo(today) >= 0) return s;
-    }
-    return null;
+    final List<ScheduleSession> candidates =
+        _routineOnlyCandidates[clientId] ?? const <ScheduleSession>[];
+    return candidates.isEmpty ? null : candidates.first;
   }
 
   /// [sessionId] PT 에 아직 보내지 않은 개인운동이 붙어 있으면 새로 짠 것으로
@@ -1252,26 +1261,16 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 둔 개인운동이 말없이 사라질 수 있다.
   Future<bool> _confirmReplaceIfAttached(String sessionId) async {
     final l = AppLocalizations.of(context);
-    final List<RoutineExercise> attached;
-    try {
-      attached = <RoutineExercise>[
-        for (final SessionRoutine r
-            in await ref
-                .read(scheduleRepositoryProvider)
-                .fetchScheduledRoutines(sessionId))
-          if (!r.sent) r.exercise,
-      ];
-    } catch (_) {
-      if (mounted) {
-        showAppToast(
-          context,
-          l.schedRoutinesUpdateFailed,
-          type: AppToastType.error,
-        );
-      }
+    final List<RoutineExercise>? attached = await _unsentRoutinesOn(sessionId);
+    if (!mounted) return false;
+    if (attached == null) {
+      showAppToast(
+        context,
+        l.schedRoutinesUpdateFailed,
+        type: AppToastType.error,
+      );
       return false;
     }
-    if (!mounted) return false;
     if (attached.isEmpty) return true;
     return showAppConfirmDialog(
       context: context,
@@ -1282,6 +1281,22 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       ),
       confirmLabel: l.aiReplaceRoutinesConfirm,
     );
+  }
+
+  /// [sessionId] PT 에 붙어 있는 아직 보내지 않은 개인운동. 읽지 못했으면
+  /// null 이다. (#2280)
+  Future<List<RoutineExercise>?> _unsentRoutinesOn(String sessionId) async {
+    try {
+      return <RoutineExercise>[
+        for (final SessionRoutine r
+            in await ref
+                .read(scheduleRepositoryProvider)
+                .fetchScheduledRoutines(sessionId))
+          if (!r.sent) r.exercise,
+      ];
+    } catch (_) {
+      return null;
+    }
   }
 
   void _startManualProgram(String clientId) => setState(() {

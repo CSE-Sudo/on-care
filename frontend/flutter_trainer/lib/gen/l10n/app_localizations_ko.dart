@@ -1759,7 +1759,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedNoRoutinesSendBody =>
-      '이 PT 에는 개인운동이 없어요. 보낸 뒤에는 이 PT 에 개인운동을 붙일 수 없어요.';
+      '이 PT에는 개인운동이 없어요. 보낸 뒤에는 이 PT에 개인운동을 붙일 수 없어요.';
 
   @override
   String get schedNoRoutinesSendSkip => '개인운동 없이 보내기';
@@ -3026,7 +3026,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      '회원이 혼자 할 운동이에요. 시작일에 PT 가 있으면 그 PT 에 붙고, 없으면 바로 한 주 동안 보내요. 최소 한 개를 정해 주세요.';
+      '회원이 혼자 할 운동이에요. 시작일에 PT가 있으면 그 PT에 붙고, 없으면 바로 한 주 동안 보내요. 최소 한 개를 정해 주세요.';
 
   @override
   String get aiPersonalStepEmpty => '아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.';
@@ -3078,16 +3078,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get progNoRoutinesRegisterBody =>
-      'PT 마다 개인운동을 최소 한 개 붙여 주세요. 지금 붙이지 않으면 PT 프로그램을 보내기 전에 스케줄의 일정 상세에서 붙일 수 있어요.';
+      'PT마다 개인운동을 최소 한 개 붙여 주세요. 지금 붙이지 않으면 PT 프로그램을 보내기 전에 스케줄의 일정 상세에서 붙일 수 있어요.';
 
   @override
   String get progNoRoutinesRegisterSkip => '개인운동 없이 추가';
 
   @override
-  String get progPersonalRoutinesEmpty => '아직 개인운동이 없어요. PT 마다 최소 한 개를 붙여 주세요.';
+  String get progPersonalRoutinesEmpty => '아직 개인운동이 없어요. PT마다 최소 한 개를 붙여 주세요.';
 
   @override
-  String get aiAttachTargetPt => '지금 짜는 PT 에 붙일 개인운동이에요.';
+  String get aiAttachTargetPt => '지금 짜는 PT에 붙일 개인운동이에요.';
 
   @override
   String get aiAttachRoutines => 'PT에 반영';
@@ -3097,12 +3097,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiRoutineTargetPt(String date, String time) {
-    return '$date $time PT 에 붙이기';
+    return '$date $time PT에 붙이기';
   }
 
   @override
   String aiRoutineOnlyAttachHint(String date, String time) {
-    return '$date $time PT 에 붙어요. 회원에게는 스케줄에서 이 PT 를 보낼 때 함께 가요.';
+    return '$date $time PT에 붙어요. 회원에게는 스케줄에서 이 PT를 보낼 때 함께 가요.';
   }
 
   @override
@@ -3110,7 +3110,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiReplaceRoutinesBody(int count, String names) {
-    return '이 PT 에 개인운동 $count개($names)가 붙어 있어요. 새로 짠 것으로 교체할까요?';
+    return '이 PT에 개인운동 $count개($names)가 붙어 있어요. 새로 짠 것으로 교체할까요?';
   }
 
   @override
