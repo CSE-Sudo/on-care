@@ -102,7 +102,7 @@ void main() {
           );
         }
       }
-      // 이지수 스쿼트는 운동 기록의 값과 같다.
+      // 값은 시드 표에서 온다(#2705) — 이지수 스쿼트는 운동 기록의 값과 같다.
       final squat = (await repo.watchAssignedRoutines('seed-client-2').first)
           .firstWhere((r) => r.name == '스쿼트');
       expect((squat.sets, squat.reps, squat.weight), (3, 12, 40.0));

@@ -24,7 +24,7 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v43']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v44']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
@@ -172,7 +172,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v43') == today &&
+  if (await db.readValue('trainer_seeded_v44') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -429,6 +429,11 @@ Future<void> seedIfEmpty(
               type: aiRoutine[i].type,
               reason: t(aiRoutine[i].reason),
               sortOrder: Value(i),
+              // 근력의 양(#2705). 다른 유형은 0 이다.
+              sets: Value(aiRoutine[i].sets),
+              reps: Value(aiRoutine[i].reps),
+              holdSeconds: Value(aiRoutine[i].holdSeconds),
+              weight: Value(aiRoutine[i].weight),
             ),
         ]);
 
@@ -696,7 +701,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v43', today);
+    await db.putValue('trainer_seeded_v44', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -906,11 +911,26 @@ class _Food {
 }
 
 class _Routine {
-  const _Routine(this.name, this.minutes, this.type, this.reason);
+  const _Routine(
+    this.name,
+    this.minutes,
+    this.type,
+    this.reason, {
+    this.sets = 0,
+    this.reps = 0,
+    this.holdSeconds = 0,
+    this.weight = 0,
+  });
   final String name;
   final int minutes;
   final String type;
   final String reason;
+
+  /// 근력의 세트·횟수(또는 버티는 초)·중량(kg). 다른 유형은 0 이다. (#2705)
+  final int sets;
+  final int reps;
+  final int holdSeconds;
+  final double weight;
 }
 
 /// 김민수의 개인 운동 — **공유 픽스처**가 정한다. (#1170)
@@ -920,7 +940,15 @@ class _Routine {
 /// 같은 회원의 같은 날에 서로 다른 운동을 말했다.
 List<_Routine> _fixtureRoutines(DemoFixture fixture) => <_Routine>[
   for (final FixtureRoutine r in fixture.routines)
-    _Routine(r.name, r.minutes, r.type, r.reason),
+    _Routine(
+      r.name,
+      r.minutes,
+      r.type,
+      r.reason,
+      sets: r.sets ?? 0,
+      reps: r.reps ?? 0,
+      weight: r.weight ?? 0,
+    ),
 ];
 
 class _History {
@@ -1865,24 +1893,12 @@ const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
 ];
 
 /// 지난 상담(#2667). AI 루틴 추천의 근거 `상담 메모`(최근 30일)가 읽는 글이다.
-const List<({int daysAgo, String clientName, String note})> _pastConsults =
-    <({int daysAgo, String clientName, String note})>[
-      (
-        daysAgo: 11,
-        clientName: '한지호',
-        note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.',
-      ),
-      (
-        daysAgo: 18,
-        clientName: '오세라',
-        note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.',
-      ),
-      (
-        daysAgo: 25,
-        clientName: '신유나',
-        note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.',
-      ),
-    ];
+const List<({int daysAgo, String clientName, String note})>
+_pastConsults = <({int daysAgo, String clientName, String note})>[
+  (daysAgo: 11, clientName: '한지호', note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.'),
+  (daysAgo: 18, clientName: '오세라', note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.'),
+  (daysAgo: 25, clientName: '신유나', note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.'),
+];
 
 class _Slot {
   const _Slot({
