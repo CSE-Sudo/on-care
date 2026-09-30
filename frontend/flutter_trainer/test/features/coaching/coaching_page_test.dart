@@ -587,7 +587,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
 Future<void> _completePersonalStep(
   WidgetTester tester,
   Finder scrollable, {
-  // 붙이기 흐름(#2280)은 `프로그램에 반영` 대신 `PT 에 반영` 으로 끝난다.
+  // 붙이기 흐름(#2280)은 `프로그램에 반영` 대신 `PT에 반영` 으로 끝난다.
   String doneKey = 'complete-personal-routines',
 }) async {
   // 제안이 늦게 도착할 수 있다 — 한 번 더 정착시킨 뒤 비어 있는지 본다.
@@ -3295,7 +3295,7 @@ void main() {
 
       await _completePersonalStep(tester, find.byType(Scrollable).first);
       // 어디로 보낼지 고르지 않는다 — 시작일이 그 PT 날로 잡혀 있고, 그날
-      // PT 가 있으니 확정이 `PT 에 반영` 이다.
+      // PT 가 있으니 확정이 `PT에 반영` 이다.
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('personal-routine-start-date')),
@@ -3310,7 +3310,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('personal-routine-send')),
-          matching: find.text('PT 에 반영'),
+          matching: find.text('PT에 반영'),
         ),
         findsOneWidget,
       );
@@ -3402,7 +3402,7 @@ void main() {
       );
 
       // 가장 가까운 아직 보내지 않은 PT 를 알려 준다 — 누르면 시작일이 그
-      // 날로 바뀌고 확정이 `PT 에 반영` 이 된다.
+      // 날로 바뀌고 확정이 `PT에 반영` 이 된다.
       final nearest = find.byKey(
         const ValueKey<String>('personal-routine-nearest-pt'),
       );
@@ -3412,7 +3412,7 @@ void main() {
       await tester.tap(nearest);
       await tester.pumpAndSettle();
       expect(
-        find.descendant(of: send, matching: find.text('PT 에 반영')),
+        find.descendant(of: send, matching: find.text('PT에 반영')),
         findsOneWidget,
       );
       expect(

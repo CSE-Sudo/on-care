@@ -3090,7 +3090,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAttachTargetPt => '지금 짜는 PT 에 붙일 개인운동이에요.';
 
   @override
-  String get aiAttachRoutines => 'PT 에 반영';
+  String get aiAttachRoutines => 'PT에 반영';
 
   @override
   String get aiAttachedLabel => '반영했어요';

@@ -1390,7 +1390,7 @@
   "progNoRoutinesRegisterSkip": "개인운동 없이 추가",
   "progPersonalRoutinesEmpty": "아직 개인운동이 없어요. PT 마다 최소 한 개를 붙여 주세요.",
   "aiAttachTargetPt": "지금 짜는 PT 에 붙일 개인운동이에요.",
-  "aiAttachRoutines": "PT 에 반영",
+  "aiAttachRoutines": "PT에 반영",
   "aiAttachedLabel": "반영했어요",
   "aiRoutineTargetPt": "{date} {time} PT 에 붙이기",
   "@aiRoutineTargetPt": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},

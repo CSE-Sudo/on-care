@@ -493,7 +493,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       );
       if (choice == null || !mounted) return;
       // 붙이러 가면 보내지 않는다 — 붙인 뒤 돌아와 트레이너가 다시 보낸다.
-      // 코칭 탭에서 `PT 에 반영` 을 누른 것이 회원 전송까지 되면, 누른
+      // 코칭 탭에서 `PT에 반영` 을 누른 것이 회원 전송까지 되면, 누른
       // 버튼과 일어난 일이 달라진다.
       if (choice == NoPersonalRoutineChoice.add) {
         _goAddRoutines(s);
