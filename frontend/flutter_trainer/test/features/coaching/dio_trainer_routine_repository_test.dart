@@ -64,6 +64,8 @@ void main() {
           data: <String, Object?>{
             'name': 'AI 맞춤 루틴',
             'minutes': 600,
+            // 근력은 세트로 재므로 초를 싣지 않는다(#2547).
+            'duration_seconds': null,
             'type': '근력',
             // 날짜·강도·세트·중량도 함께 나간다 — 회원 앱의 운동 추가와 같은
             // 칸이다 (#1276, #1310). 세트·횟수·중량은 안 정했으면 비어 있다.
@@ -104,6 +106,34 @@ void main() {
       throwsA(isA<AppError>()),
     );
   });
+
+  test(
+    'updateRoutine sends duration_seconds only when given (#2547)',
+    () async {
+      const path = '/trainer/clients/m1/routines/r1';
+      when(
+        () => dio.put<Map<String, Object?>>(path, data: any(named: 'data')),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(const <String, Object?>{}, path),
+      );
+
+      await repo.updateRoutine('m1', 'r1', durationSeconds: 45);
+      await repo.updateRoutine('m1', 'r1', minutes: 5);
+
+      verify(
+        () => dio.put<Map<String, Object?>>(
+          path,
+          data: <String, Object?>{'duration_seconds': 45},
+        ),
+      ).called(1);
+      verify(
+        () => dio.put<Map<String, Object?>>(
+          path,
+          data: <String, Object?>{'minutes': 5},
+        ),
+      ).called(1);
+    },
+  );
 
   test('watchAssignedRoutines parses the list', () async {
     when(

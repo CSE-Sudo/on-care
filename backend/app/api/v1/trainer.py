@@ -1094,6 +1094,7 @@ def trainer_assign_routine(
     return trainer_service.assign_routine(
         db, trainer.id, member_id,
         name=payload.name.strip(), minutes=payload.minutes,
+        duration_seconds=payload.duration_seconds,
         type_=payload.type, reason=payload.reason, source=payload.source,
         client_request_id=payload.client_request_id,
         exercise_date=payload.exercise_date,
@@ -1149,6 +1150,7 @@ def trainer_create_routine_suggestion(
         member_id,
         name=payload.name.strip(),
         minutes=payload.minutes,
+        duration_seconds=payload.duration_seconds,
         type_=payload.type,
         sets=payload.sets,
         reps=payload.reps,
@@ -1181,6 +1183,7 @@ def trainer_approve_routine_suggestion(
             suggestion_id,
             name=name.strip() if name is not None else None,
             minutes=fields.get("minutes"),
+            duration_seconds=fields.get("duration_seconds"),
             type_=fields.get("type"),
             sets=fields.get("sets"),
             reps=fields.get("reps"),
@@ -1262,7 +1265,7 @@ def trainer_update_routine(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> RoutineOut:
-    """배정한 루틴 수정(부분). 이름·시간·종류·사유만 바뀐다. (#504)
+    """배정한 루틴 수정(부분). 이름·시간(분 또는 초)·종류·사유만 바뀐다. (#504, #2547)
 
     남의 배정과 없는 루틴은 똑같이 404 다 — 존재 여부를 드러내지 않는다.
     """

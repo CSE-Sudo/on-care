@@ -1743,7 +1743,8 @@ class TrainerProgramTemplate(Base):
     존재 이유인데 모두가 같은 셋을 봤고, 내용도 한국어로 고정돼 영어 화면에
     그대로 남았다.
 
-    `exercises_json` 은 `[{name, minutes, type}]` 을 순서 그대로 담는다. 배열
+    `exercises_json` 은 `[{name, minutes, duration_seconds, type, sets, reps,
+    hold_seconds, weight}]`(`ProgramTemplateExercise`)을 순서 그대로 담는다. 배열
     순서가 곧 표시 순서다 — 별도 정렬 컬럼은 배열과 어긋날 여지만 만든다
     (`trainer_program_drafts.sessions_json` 과 같은 규약).
     """

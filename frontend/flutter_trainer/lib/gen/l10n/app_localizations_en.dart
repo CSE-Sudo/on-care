@@ -2873,11 +2873,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachPersonalTraining => 'PT';
 
   @override
-  String coachRoutineSummary(String name, int minutes) {
-    return '$name · $minutes min';
-  }
-
-  @override
   String get coachTrainer => 'Trainer';
 
   @override
@@ -2934,11 +2929,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String aiRoutineSent(String name) {
     return 'Program sent to $name';
-  }
-
-  @override
-  String aiExerciseWithMinutes(String name, int minutes) {
-    return '$name · $minutes min';
   }
 
   @override

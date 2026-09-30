@@ -68,6 +68,30 @@ void main() {
       );
     });
 
+    test('carries seconds for timed routines, never for 근력 (#2547)', () {
+      const timed = AssignedRoutine(
+        id: '',
+        name: '버피',
+        minutes: 1,
+        type: '유산소',
+        reason: '',
+        source: 'trainer',
+        durationSeconds: 45,
+      );
+      const strength = AssignedRoutine(
+        id: '',
+        name: '스쿼트',
+        minutes: 1,
+        type: '근력',
+        reason: '',
+        source: 'trainer',
+        durationSeconds: 45,
+      );
+      expect(assignRoutineToJson(timed)['duration_seconds'], 45);
+      expect(assignRoutineToJson(strength)['duration_seconds'], isNull);
+      expect(assignRoutineToJson(_routine())['duration_seconds'], isNull);
+    });
+
     test('normalises source (trainer preserved, else ai)', () {
       expect(
         assignRoutineToJson(_routine(source: 'trainer'))['source'],

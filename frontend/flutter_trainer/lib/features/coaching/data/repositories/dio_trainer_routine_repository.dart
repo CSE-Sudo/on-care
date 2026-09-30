@@ -72,6 +72,7 @@ class DioTrainerRoutineRepository implements TrainerRoutineRepository {
     String routineId, {
     String? name,
     int? minutes,
+    int? durationSeconds,
     String? type,
     String? reason,
   }) async {
@@ -79,6 +80,7 @@ class DioTrainerRoutineRepository implements TrainerRoutineRepository {
     final body = <String, Object?>{
       if (name case final String value) 'name': value,
       if (minutes case final int value) 'minutes': value,
+      if (durationSeconds case final int value) 'duration_seconds': value,
       if (type case final String value) 'type': value,
       if (reason case final String value) 'reason': value,
     };

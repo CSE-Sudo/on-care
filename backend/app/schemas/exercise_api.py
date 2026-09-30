@@ -270,8 +270,23 @@ class ExerciseCalorieRequest(BaseModel):
     #: 운동 이름. 비어 있으면 400 이다 — 이름 없이 확정된 숫자를 내주지 않는 것이
     #: 이 계산의 요점이라, 빈 이름으로 부르는 것은 호출하는 쪽의 실수다.
     name: str = Field(..., max_length=100)
-    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
+    #: 운동 시간(분). [duration_seconds] 를 보내면 생략할 수 있다 — 저장 입력
+    #: (`ExerciseSessionCreate`)과 같은 규칙이다.
+    minutes: int | None = Field(None, gt=0, le=MAX_EXERCISE_MINUTES)
+    #: 같은 운동 시간을 초로(#2547). 보내면 분은 초에서 반올림한다 — 저장할 때와
+    #: 같은 분으로 계산해야 미리보기와 저장된 칼로리가 갈리지 않는다. 이 칸이
+    #: 없던 동안에는 45초짜리 운동을 1분으로 보내야 했다.
+    duration_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_SECONDS)
     intensity: ExerciseIntensityIn = "moderate"
+
+    @model_validator(mode="after")
+    def _minutes_from_seconds(self) -> ExerciseCalorieRequest:
+        """초가 있으면 분을 거기서 접는다. `ExerciseSessionCreate` 와 같다. (#2547)"""
+        if self.duration_seconds is not None:
+            self.minutes = max(1, round(self.duration_seconds / 60))
+        elif self.minutes is None:
+            raise ValueError("minutes 또는 duration_seconds 중 하나는 있어야 합니다.")
+        return self
 
 
 class ExerciseCalorieResponse(BaseModel):

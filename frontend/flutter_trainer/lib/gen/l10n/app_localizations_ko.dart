@@ -2726,11 +2726,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachPersonalTraining => 'PT';
 
   @override
-  String coachRoutineSummary(String name, int minutes) {
-    return '$name · $minutes분';
-  }
-
-  @override
   String get coachTrainer => '트레이너';
 
   @override
@@ -2782,11 +2777,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String aiRoutineSent(String name) {
     return '$name님에게 프로그램을 전송했어요';
-  }
-
-  @override
-  String aiExerciseWithMinutes(String name, int minutes) {
-    return '$name $minutes분';
   }
 
   @override
