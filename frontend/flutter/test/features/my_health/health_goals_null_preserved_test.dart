@@ -172,12 +172,9 @@ void main() {
 
     await _save(tester);
 
-    expect(repository.called, isTrue);
-    // 빈 칸은 '건드리지 않음'이 아니라 '값 없음'으로 나간다 — 그래야 회원이
-    // 지운 목표가 되살아나지 않는다.
-    expect(repository.lastCarbs, isNotNull);
-    expect(repository.lastCarbs!.value, isNull);
-    expect(repository.lastProtein!.value, 120);
+    // 바꾼 칸이 없으면 요청을 보내지 않는다(#2655) — 권장값으로 채워 둔 칸이
+    // 목표로 굳을 길도, 그 사이 트레이너가 바꾼 값을 덮을 길도 없다.
+    expect(repository.called, isFalse);
 
     final UserProfile saved = await repository.fetchProfile();
     expect(saved.dailyCarbsG, isNull, reason: '기본값이 목표로 굳었다');

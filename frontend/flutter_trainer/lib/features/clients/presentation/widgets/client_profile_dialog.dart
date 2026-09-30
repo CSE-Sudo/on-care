@@ -160,6 +160,14 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   /// 연필을 눌러 칸이 열린 상태인가(#2596).
   bool _editing = false;
 
+  /// 편집이 기대는 서버 값 — 창을 열 때 읽고, 연필을 누를 때 다시 읽는다.
+  /// 저장은 이 값과 달라진 칸만 보낸다(#2655). 회원도 같은 칸을 고치므로,
+  /// 손대지 않은 칸까지 보내면 그 사이 회원이 바꾼 값이 조용히 되돌아간다.
+  MemberHealthProfile? _base;
+
+  /// 연필을 누른 뒤 서버 값을 다시 읽는 중인가.
+  bool _opening = false;
+
   /// 편집을 연 순간의 값 — `취소` 가 이 값으로 되돌린다.
   _HealthDraft? _draft;
 
@@ -193,6 +201,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   void _initialize(MemberHealthProfile profile) {
     if (_initialized) return;
     _initialized = true;
+    _base = profile;
     _gender = profile.gender.isEmpty ? widget.fallbackGender : profile.gender;
     _height.text = _displayNumber(profile.heightCm);
     _weight.text = _displayNumber(profile.weightKg);
@@ -210,18 +219,113 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     _goalFlexibility.text = profile.weeklyFlexibilityMinutes?.toString() ?? '';
   }
 
-  /// 칸을 연다 — 지금 값을 떠 두어 `취소` 가 되돌릴 수 있게 한다.
-  void _startEditing() => setState(() {
-    _draft = _HealthDraft(
-      gender: _gender,
-      focus: Set<String>.of(_focus),
-      texts: <String>[
-        for (final TextEditingController c in _controllers) c.text,
-      ],
+  /// 칸을 연다 — 서버의 지금 값으로 칸을 다시 채우고(#2655), 그 값을 떠 두어
+  /// `취소` 가 되돌릴 수 있게 한다. 다시 읽지 못하면 창을 연 값으로 연다.
+  Future<void> _startEditing() async {
+    if (_opening) return;
+    setState(() => _opening = true);
+    try {
+      final MemberHealthProfile fresh = await ref
+          .read(clientRepositoryProvider)
+          .fetchHealthProfile(widget.clientId);
+      _initialized = false;
+      _initialize(fresh);
+    } catch (_) {
+      // 들고 있던 값으로 연다 — 저장은 여전히 바꾼 칸만 보낸다.
+    }
+    if (!mounted) return;
+    setState(() {
+      _opening = false;
+      _draft = _HealthDraft(
+        gender: _gender,
+        focus: Set<String>.of(_focus),
+        texts: <String>[
+          for (final TextEditingController c in _controllers) c.text,
+        ],
+      );
+      _editing = true;
+      _saved = false;
+    });
+  }
+
+  /// 저장할 칸 — 편집이 기댄 서버 값([_base])과 달라진 칸만(#2655).
+  ///
+  /// 빈 칸은 `null` 로 나가 값 해제가 된다. 해제도 바꾼 칸이다.
+  Future<Map<String, Object?>> _changedValues() async {
+    final MemberHealthProfile? base = _base;
+    final Map<String, Object?> all = <String, Object?>{
+      'gender': _gender,
+      'height_cm': _number(_height.text, integer: false),
+      'weight_kg': _number(_weight.text, integer: false),
+      'daily_calories': _number(_goalCalories.text, integer: true),
+      'daily_sodium_mg': _number(_goalSodium.text, integer: true),
+      'daily_sugar_g': _number(_goalSugar.text, integer: true),
+      'daily_carbs_g': _number(_goalCarbs.text, integer: true),
+      'daily_protein_g': _number(_goalProtein.text, integer: true),
+      'daily_fat_g': _number(_goalFat.text, integer: true),
+      'daily_burn_kcal': _number(_goalBurn.text, integer: true),
+      'weekly_cardio_minutes': _number(_goalCardio.text, integer: true),
+      'weekly_strength_sets': _number(_goalStrength.text, integer: true),
+      'weekly_flexibility_minutes': _number(
+        _goalFlexibility.text,
+        integer: true,
+      ),
+    };
+    if (base == null) {
+      return <String, Object?>{
+        ...all,
+        'conditions': mergeHealthFocus(_conditions.text, _focus),
+      };
+    }
+    final Map<String, Object?> before = <String, Object?>{
+      'gender': base.gender,
+      'height_cm': base.heightCm,
+      'weight_kg': base.weightKg,
+      'daily_calories': base.dailyCalories,
+      'daily_sodium_mg': base.dailySodiumMg,
+      'daily_sugar_g': base.dailySugarG,
+      'daily_carbs_g': base.dailyCarbsG,
+      'daily_protein_g': base.dailyProteinG,
+      'daily_fat_g': base.dailyFatG,
+      'daily_burn_kcal': base.dailyBurnKcal,
+      'weekly_cardio_minutes': base.weeklyCardioMinutes,
+      'weekly_strength_sets': base.weeklyStrengthSets,
+      'weekly_flexibility_minutes': base.weeklyFlexibilityMinutes,
+    };
+    bool same(Object? a, Object? b) =>
+        a is num && b is num ? a.toDouble() == b.toDouble() : a == b;
+    final Map<String, Object?> changed = <String, Object?>{
+      for (final MapEntry<String, Object?> e in all.entries)
+        if (!same(e.value, before[e.key])) e.key: e.value,
+    };
+    // 목표 칩과 건강상태·주의사항은 한 칸이다 — 바꾼 쪽만 저장 직전의 서버 값
+    // 위에 얹는다. 글만 고쳤는데 칸 전체를 보내면 그 사이 회원이 바꾼 목표가
+    // 덮인다.
+    final ({bool focus, bool notes}) edits = conditionsEdits(
+      base: base.conditions,
+      focus: _focus,
+      notes: _conditions.text,
     );
-    _editing = true;
-    _saved = false;
-  });
+    if (edits.focus || edits.notes) {
+      String latest = base.conditions;
+      try {
+        latest =
+            (await ref
+                    .read(clientRepositoryProvider)
+                    .fetchHealthProfile(widget.clientId))
+                .conditions;
+      } catch (_) {
+        // 읽지 못하면 창을 연 값 위에 얹는다.
+      }
+      changed['conditions'] = rebaseConditions(
+        base: base.conditions,
+        latest: latest,
+        focus: _focus,
+        notes: _conditions.text,
+      );
+    }
+    return changed;
+  }
 
   /// 고친 값을 버리고 보기 상태로 돌아간다.
   void _cancelEditing() => setState(() {
@@ -426,29 +530,22 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       _saved = false;
     });
     try {
-      await ref.read(clientRepositoryProvider).updateHealthProfile(
-        widget.clientId,
-        <String, Object?>{
-          'gender': _gender,
-          'height_cm': _number(_height.text, integer: false),
-          'weight_kg': _number(_weight.text, integer: false),
-          // 목표가 앞, 주의사항 글이 뒤인 한 칸이다 — 회원앱 저장과 같은 모양.
-          'conditions': mergeHealthFocus(_conditions.text, _focus),
-          'daily_calories': _number(_goalCalories.text, integer: true),
-          'daily_sodium_mg': _number(_goalSodium.text, integer: true),
-          'daily_sugar_g': _number(_goalSugar.text, integer: true),
-          'daily_carbs_g': _number(_goalCarbs.text, integer: true),
-          'daily_protein_g': _number(_goalProtein.text, integer: true),
-          'daily_fat_g': _number(_goalFat.text, integer: true),
-          'daily_burn_kcal': _number(_goalBurn.text, integer: true),
-          'weekly_cardio_minutes': _number(_goalCardio.text, integer: true),
-          'weekly_strength_sets': _number(_goalStrength.text, integer: true),
-          'weekly_flexibility_minutes': _number(
-            _goalFlexibility.text,
-            integer: true,
-          ),
-        },
-      );
+      final Map<String, Object?> changed = await _changedValues();
+      if (changed.isEmpty) {
+        // 바꾼 것이 없으면 보내지 않는다 — 창의 값이 곧 저장된 값이다.
+        if (!mounted) return;
+        setState(() {
+          _saving = false;
+          _saved = true;
+          _editing = false;
+          _draft = null;
+        });
+        return;
+      }
+      final MemberHealthProfile saved = await ref
+          .read(clientRepositoryProvider)
+          .updateHealthProfile(widget.clientId, changed);
+      _base = saved;
       // 저장한 값이 이 화면에도 바로 남는다 — 다음에 창을 열 때 서버에서 다시
       // 읽는다(#1449).
       ref.invalidate(clientsProvider);

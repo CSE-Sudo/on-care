@@ -95,6 +95,16 @@ Future<(AppLocalizations, _ScriptedAccountRepository)> _openProfile(
   );
 }
 
+/// 이름만 고친다 — 바꾼 칸이 있어야 저장이 나간다(#2655). 거절 처리를 보는
+/// 테스트가 요청 없이 끝나지 않게 한다.
+Future<void> _editName(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const ValueKey<String>('my-profile-name')),
+    '이름고침',
+  );
+  await tester.pump();
+}
+
 Future<void> _save(WidgetTester tester, AppLocalizations l) async {
   await tester.ensureVisible(find.text(l.mySave));
   await tester.tap(find.text(l.mySave));
@@ -226,6 +236,7 @@ void main() {
       ProfileUpdateRejection.phoneRequired,
     );
 
+    await _editName(tester);
     await _save(tester, l);
 
     expect(_fieldError(tester, _phone), l.myProfilePhoneRequired);
@@ -242,6 +253,7 @@ void main() {
         await _openProfile(tester);
     repo.failNext = const ProfileUpdateRejected(ProfileUpdateRejection.invalid);
 
+    await _editName(tester);
     await _save(tester, l);
 
     expect(find.text(l.myProfileInvalid), findsOneWidget);
@@ -255,6 +267,7 @@ void main() {
         await _openProfile(tester);
     repo.failNext = StateError('네트워크 없음');
 
+    await _editName(tester);
     await _save(tester, l);
 
     expect(find.text(l.mySaveFailed), findsOneWidget);
