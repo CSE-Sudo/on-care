@@ -9,6 +9,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
+import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
@@ -291,6 +292,14 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _check,
   );
 
+  /// 서버가 "이미 사용 중" 이라고 거절한 이메일(소문자). 칸이 이 값인 동안 칸
+  /// 아래에 그 이유를 보인다 — 고치면 사라지고, 되돌리면 다시 뜬다(#2639).
+  String? _takenEmail;
+
+  /// 서버가 연락처 비움을 거절했는가. 화면이 들고 있던 프로필이 서버보다 낡아
+  /// 칸 검사가 비움을 허용했을 때 이 경로로 온다(#2639).
+  bool _phoneRequiredByServer = false;
+
   @override
   void initState() {
     super.initState();
@@ -310,6 +319,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _genderChosen = _base.gender.isNotEmpty;
     _gender = _genderChosen ? _base.gender : 'male';
     _errors = AppFieldErrors<_ProfileField>(_check);
+    _takenEmail = null;
+    _phoneRequiredByServer = false;
     setState(() => _editing = true);
   }
 
@@ -365,7 +376,26 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   /// 이전 가입자는 연락처를 넣을 자리가 없었다. 그 사람들에게까지 요구하면
   /// 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다. 서버도 같은
   /// 판정이다(#1883).
-  String? _check(_ProfileField field) => switch (field) {
+  ///
+  /// 칸 규칙을 통과한 값이어도 서버가 거절한 값이면 그 이유를 말한다(#2639).
+  String? _check(_ProfileField field) {
+    final String? rule = _ruleError(field);
+    if (rule != null) return rule;
+    final AppLocalizations l = AppLocalizations.of(context);
+    return switch (field) {
+      _ProfileField.email
+          when _takenEmail != null &&
+              _email.text.trim().toLowerCase() == _takenEmail =>
+        l.myProfileEmailTaken,
+      _ProfileField.phone
+          when _phoneRequiredByServer && _phone.text.trim().isEmpty =>
+        l.myProfilePhoneRequired,
+      _ => null,
+    };
+  }
+
+  /// 칸 자체의 형식 규칙 — 가입 화면과 같은 규칙·문구다.
+  String? _ruleError(_ProfileField field) => switch (field) {
     // 키·몸무게는 서버와 같은 범위로 본다. 여기서 보지 않으면 `70kg` 같은
     // 붙여넣기가 숫자로 읽히지 않은 채 "저장되었어요" 로 넘어간다(#1941).
     _ProfileField.height => _measureError(AppGoalRanges.heightCm, _height.text),
@@ -495,10 +525,39 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         _editing = false;
       });
       toast.show(l.myProfileSaved, type: AppToastType.success);
+    } on ProfileUpdateRejected catch (e) {
+      // 다시 눌러도 같은 값이면 또 막힌다 — "잠시 후 다시" 대신 무엇을 고칠지
+      // 말한다. 편집 상태는 그대로 두어 바로 고칠 수 있게 한다(#2639).
+      if (!mounted) return;
+      final String message = _showRejection(e.reason, l);
+      toast.show(message, type: AppToastType.error);
     } catch (_) {
       if (mounted) setState(() => _saving = false);
       toast.show(l.mySaveFailed, type: AppToastType.error);
     }
+  }
+
+  /// 거절 사유를 해당 칸 아래에 걸고, 토스트로 띄울 문구를 돌려준다.
+  ///
+  /// 칸 아래에도 거는 이유: 토스트는 사라지지만 칸 아래 문구는 고칠 때까지
+  /// 남아, 어느 칸을 고쳐야 하는지 계속 보인다.
+  String _showRejection(ProfileUpdateRejection reason, AppLocalizations l) {
+    switch (reason) {
+      case ProfileUpdateRejection.emailTaken:
+        _takenEmail = _email.text.trim().toLowerCase();
+        _errors.validate(const <_ProfileField>[_ProfileField.email]);
+      case ProfileUpdateRejection.phoneRequired:
+        _phoneRequiredByServer = true;
+        _errors.validate(const <_ProfileField>[_ProfileField.phone]);
+      case ProfileUpdateRejection.invalid:
+        break;
+    }
+    setState(() => _saving = false);
+    return switch (reason) {
+      ProfileUpdateRejection.emailTaken => l.myProfileEmailTaken,
+      ProfileUpdateRejection.phoneRequired => l.myProfilePhoneRequired,
+      ProfileUpdateRejection.invalid => l.myProfileInvalid,
+    };
   }
 
   @override

@@ -205,6 +205,23 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                     ),
                   );
                 }
+                // 첫 조회가 끝나기 전에는 "알림이 없습니다" 를 그리지 않는다(#2638) —
+                // 아직 받는 중인 것을 없다고 말하면, 곧 목록이 튀어나오며 화면이
+                // 깜빡이고 느린 망에서는 몇 초씩 틀린 말을 한다.
+                if (state.awaitingFirstLoad) {
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s48,
+                      side,
+                      0,
+                    ),
+                    child: const AppLoading(
+                      key: Key('notificationFirstLoading'),
+                      placement: AppStatePlacement.card,
+                    ),
+                  );
+                }
                 if (state.items.isEmpty) {
                   return Padding(
                     padding: EdgeInsets.fromLTRB(
