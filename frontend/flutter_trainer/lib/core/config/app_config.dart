@@ -6,9 +6,10 @@ enum Environment { dev, staging, prod }
 /// App-wide configuration resolved from `--dart-define`s at build time.
 ///
 /// Mirrors the user app (`frontend/flutter`) so both On-Care apps share
-/// the same networking contract. The trainer web build (GitHub Pages)
-/// passes `API_BASE_URL` + `USE_MOCK_API=false` to hit the real backend;
-/// local/demo builds fall back to the mock repositories.
+/// the same networking contract. The GitHub Pages demo builds with the
+/// default `USE_MOCK_API=true` and reads the browser-local drift seed; a
+/// build that should hit the real backend passes `API_BASE_URL` +
+/// `USE_MOCK_API=false`.
 class AppConfig {
   const AppConfig({
     required this.environment,

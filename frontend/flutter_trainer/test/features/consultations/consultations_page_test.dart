@@ -146,6 +146,16 @@ Future<ProviderContainer> _pumpInbox(
   ],
 );
 
+/// 상담함 창 안에서만 찾는다 — 창은 스케줄 위에 뜨므로(#2717) 같은 이름이
+/// 뒤의 시간표에도 있다.
+Finder _inInbox(Finder finder) => find.descendant(
+  of: find.byKey(const ValueKey<String>('consultations-dialog')),
+  matching: finder,
+);
+
+/// 상담함 창의 스크롤 영역.
+Finder get _inboxScrollable => _inInbox(find.byType(Scrollable)).first;
+
 void main() {
   testWidgets('renders a pending request with its decision actions', (
     tester,
@@ -156,8 +166,8 @@ void main() {
     );
 
     expect(find.text('상담 요청'), findsWidgets);
-    expect(find.text('김민수'), findsOneWidget);
-    expect(find.text('체중 감량'), findsOneWidget);
+    expect(_inInbox(find.text('김민수')), findsOneWidget);
+    expect(_inInbox(find.text('체중 감량')), findsOneWidget);
     // 건강관리 목적은 회원이 따로 고르지 않는 파생값이라 카드에 보이지
     // 않는다 — 운동 목표 하나로 충분하다.
     expect(find.text('건강관리 목적'), findsNothing);
@@ -181,32 +191,33 @@ void main() {
     expect(find.text('헬스장 문의'), findsNothing);
   });
 
-  testWidgets('offers a route back to the schedule', (tester) async {
+  testWidgets('상담함 주소는 스케줄 위에 창을 열고 주소에서 쿼리를 지운다 (#2717)', (tester) async {
     await _pumpInbox(tester, _FakeConsultationRepository());
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('consultations-back-to-schedule')),
+    // 페이지가 아니라 스케줄·대시보드 버튼이 여는 것과 같은 창이다.
+    expect(
+      find.byKey(const ValueKey<String>('consultations-dialog')),
+      findsOneWidget,
     );
-    await settle(tester);
-
+    expect(find.text('스케줄로 돌아가기'), findsNothing);
+    // 창을 닫은 뒤 새로고침해도 다시 뜨지 않게 쿼리를 지운다.
     expect(currentLocation(tester), AppRoutes.schedule);
   });
 
-  testWidgets('dashboard entry returns to the dashboard', (tester) async {
-    await _pumpInbox(
-      tester,
-      _FakeConsultationRepository(),
-      at: AppRoutes.consultationsFromDashboard(),
-    );
+  for (final String legacy in <String>[
+    AppRoutes.legacyConsultations,
+    AppRoutes.legacyScheduleConsultations,
+  ]) {
+    testWidgets('옛 상담함 주소($legacy)도 같은 창을 연다 (#2717)', (tester) async {
+      await _pumpInbox(tester, _FakeConsultationRepository(), at: legacy);
 
-    expect(find.text('대시보드로 돌아가기'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('consultations-back-to-schedule')),
-    );
-    await settle(tester);
-
-    expect(currentLocation(tester), AppRoutes.dashboard);
-  });
+      expect(
+        find.byKey(const ValueKey<String>('consultations-dialog')),
+        findsOneWidget,
+      );
+      expect(currentLocation(tester), AppRoutes.schedule);
+    });
+  }
 
   testWidgets('consultations remain inside the schedule workspace', (
     tester,
@@ -232,8 +243,11 @@ void main() {
     // 수락하면 이 자리가 그대로 첫 일정이 된다 — 트레이너는 무엇을 수락하는지
     // 여기서 본다. 길이는 자리가 들고 있다(코드 상수 30분을 더하지 않는다).
     expect(find.text(_ko.consultChosenSlot), findsOneWidget);
-    expect(find.textContaining('19:00–19:30'), findsOneWidget);
-    expect(find.textContaining(_ko.consultSlotDuration(30)), findsOneWidget);
+    expect(_inInbox(find.textContaining('19:00–19:30')), findsOneWidget);
+    expect(
+      _inInbox(find.textContaining(_ko.consultSlotDuration(30))),
+      findsOneWidget,
+    );
   });
 
   testWidgets('승인은 시각을 묻지 않고 고른 자리로 일정을 만든다 (#1873)', (tester) async {
@@ -268,7 +282,7 @@ void main() {
 
   for (final entry in <(String, String)>[
     ('스케줄', AppRoutes.consultations),
-    ('대시보드', AppRoutes.consultationsFromDashboard()),
+    ('옛 주소', AppRoutes.legacyScheduleConsultations),
   ]) {
     testWidgets('${entry.$1} 상담 거절은 위험 색상과 일정 충돌 예시를 쓴다', (tester) async {
       await _pumpInbox(
@@ -350,10 +364,7 @@ void main() {
     await withWideSurface(tester, () async {
       await pumpTrainerApp(tester, token: 'demo-token');
 
-      expect(
-        find.text(navLabel(_ko, consultationsDestination.label)),
-        findsNothing,
-      );
+      expect(find.text(navLabel(_ko, NavLabel.consultations)), findsNothing);
       for (final destination in navDestinations) {
         expect(find.text(navLabel(_ko, destination.label)), findsWidgets);
       }
@@ -387,13 +398,17 @@ void main() {
     final Finder more = find.byKey(
       const ValueKey<String>('consultation-load-more'),
     );
-    await tester.scrollUntilVisible(more, 400);
+    await tester.scrollUntilVisible(more, 400, scrollable: _inboxScrollable);
     await tester.tap(more);
     await tester.pumpAndSettle();
 
     // 커서는 받은 쪽의 **가장 오래된** 요청이다 — 최신순 목록의 마지막 줄.
     expect(repo.cursors.single.$2, 'consult-new-0');
-    await tester.scrollUntilVisible(find.text('지난 요청'), 400);
+    await tester.scrollUntilVisible(
+      find.text('지난 요청'),
+      400,
+      scrollable: _inboxScrollable,
+    );
     expect(find.text('지난 요청'), findsOneWidget);
     // 다 받았으면 버튼은 사라진다 — 남아 있으면 눌러도 아무 일이 없다.
     expect(more, findsNothing);
@@ -413,10 +428,7 @@ void main() {
         ],
       );
 
-      expect(
-        find.text(navLabel(_ko, consultationsDestination.label)),
-        findsNothing,
-      );
+      expect(find.text(navLabel(_ko, NavLabel.consultations)), findsNothing);
     });
   });
 }

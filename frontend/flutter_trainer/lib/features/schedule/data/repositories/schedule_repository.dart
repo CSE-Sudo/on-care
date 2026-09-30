@@ -167,10 +167,7 @@ abstract interface class ScheduleRepository {
   ///
   /// [items] 를 주면 그 내용으로 고쳐서 보낸다 — 취소된 PT 에는 프로그램
   /// 만들기로 다시 붙일 수 없어 고치는 자리가 여기뿐이다.
-  Future<void> sendScheduledRoutines(
-    String id, {
-    List<RoutineExercise>? items,
-  });
+  Future<void> sendScheduledRoutines(String id, {List<RoutineExercise>? items});
 
   /// 마무리된 PT 의 개인운동을 보내지 않기로 정리한다. (#2224)
   Future<void> dismissScheduledRoutines(String id);
@@ -928,10 +925,11 @@ class DriftScheduleRepository implements ScheduleRepository {
   Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
     final rows =
         await (_db.select(_db.trainerScheduleEntries)..where(
-          (t) =>
-              t.clientId.equals(clientId) &
-              t.status.equals(ScheduleStatus.upcoming).not(),
-        )).get();
+              (t) =>
+                  t.clientId.equals(clientId) &
+                  t.status.equals(ScheduleStatus.upcoming).not(),
+            ))
+            .get();
     final out = <UnsentRoutine>[];
     for (final row in rows) {
       for (final r in await fetchScheduledRoutines(row.id)) {
@@ -1273,11 +1271,14 @@ class DriftScheduleRepository implements ScheduleRepository {
   }
 }
 
-/// 데모에서 수락한 상담 일정의 `상담 요청 내용`(#2584).
+/// 데모 상담 일정의 `상담 요청 내용`(#2584).
 ///
 /// 서버는 일정에 상담 요청을 잇는 칸(`consultation_id`)을 두지만, 데모 저장소
-/// (drift)는 그 칸 없이 일정만 저장한다. 데모 인박스가 메모리에 있으므로 요청
-/// 내용도 메모리에 두고, 같은 회원·날짜·시각의 상담 일정에 붙여 읽는다.
+/// (drift)는 그 칸 없이 일정만 저장한다. 그래서 같은 회원·날짜·시각의 상담
+/// 일정에 붙여 읽는다. 일정 행을 읽는 자리([DriftScheduleRepository])가 동기라
+/// 이 표를 메모리에 두되, 새로고침해도 남도록 키-값 저장소
+/// ([demoScheduleConsultationsKey])에 함께 적는다(#2669) — 앱이 뜰 때
+/// [loadDemoScheduleConsultations] 가 다시 읽어 온다.
 final Map<String, ScheduleConsultation> demoScheduleConsultations =
     <String, ScheduleConsultation>{};
 
@@ -1287,6 +1288,62 @@ String demoConsultationKey({
   required String date,
   required String time,
 }) => '${clientId ?? ''}|$date|$time';
+
+/// [demoScheduleConsultations] 를 적어 두는 키-값 저장소의 키.
+const String demoScheduleConsultationsKey = 'demo_schedule_consultations';
+
+/// 저장해 둔 상담 연결을 [demoScheduleConsultations] 로 읽어 온다. 깨진 값은
+/// 버린다 — 상담 내용 한 블록 때문에 일정 화면이 멈추면 안 된다.
+Future<void> loadDemoScheduleConsultations(AppDatabase db) async {
+  demoScheduleConsultations.clear();
+  final String? saved = await db.readValue(demoScheduleConsultationsKey);
+  if (saved == null) return;
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(saved);
+  } on FormatException {
+    return;
+  }
+  if (decoded is! Map<String, Object?>) return;
+  for (final MapEntry<String, Object?> e in decoded.entries) {
+    final Object? v = e.value;
+    if (v is! Map<String, Object?>) continue;
+    final Object? id = v['id'];
+    final Object? goal = v['goal_code'];
+    if (id is! String || goal is! String) continue;
+    final Object? message = v['message'];
+    demoScheduleConsultations[e.key] = ScheduleConsultation(
+      id: id,
+      goalCode: goal,
+      message: message is String ? message : null,
+    );
+  }
+}
+
+/// 상담 연결 하나를 메모리와 저장소에 함께 적는다. [db] 가 없으면(테스트의
+/// 메모리 저장소) 메모리에만 둔다.
+Future<void> saveDemoScheduleConsultation(
+  AppDatabase? db,
+  String key,
+  ScheduleConsultation consultation,
+) async {
+  demoScheduleConsultations[key] = consultation;
+  if (db != null) await writeDemoScheduleConsultations(db);
+}
+
+/// [demoScheduleConsultations] 전체를 저장소에 적는다.
+Future<void> writeDemoScheduleConsultations(AppDatabase db) => db.putValue(
+  demoScheduleConsultationsKey,
+  jsonEncode(<String, Object?>{
+    for (final MapEntry<String, ScheduleConsultation> e
+        in demoScheduleConsultations.entries)
+      e.key: <String, Object?>{
+        'id': e.value.id,
+        'goal_code': e.value.goalCode,
+        'message': e.value.message,
+      },
+  }),
+);
 
 /// 완료한 PT 의 프로그램 한 항목 → 이력의 운동 한 종목. (#2300)
 ///

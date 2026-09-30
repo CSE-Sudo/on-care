@@ -76,7 +76,7 @@ void main() {
     expect(demo.any((w) => !w.sent), isTrue);
   });
 
-  test('줄의 시각·열람·첫 줄이 데모 기록과 같다', () async {
+  test('줄의 시각·열람이 데모 기록과 같고, PDF 로 나간 것으로 선다 (#2669)', () async {
     final List<DemoReportWeek> demo = demoReportHistoryFor(
       clientId: _steady,
       today: kMidWeekKst,
@@ -85,26 +85,32 @@ void main() {
     for (int i = 0; i < demo.length; i++) {
       expect(all[i].sentAt, demo[i].record!.sentAt);
       expect(all[i].read, demo[i].record!.read);
-      expect(
-        all[i].feedbackPreview,
-        reportFeedbackPreview(demo[i].record!.message),
-      );
+      // 공유 메뉴의 기본 전송이 PDF 라, 데모의 보낸 리포트는 PDF 표시를 단다.
+      expect(all[i].hasPdf, isTrue);
     }
   });
 
-  test('지난 주 데모 기록도 본문이 비어 첫 줄을 화면에 맡긴다 (#2423)', () async {
-    // 목표별 고정 문장을 첫 줄로 두면 그 주 수치와 어긋난 글이 목록에 선다.
+  test('데모 기록은 본문을 저장하지 않고, 목록은 그 주 초안의 인사말 줄을 첫 줄로 '
+      '싣는다 (#2423, #2669)', () async {
+    // 목표별 고정 문장을 두지 않는다 — 첫 줄은 그 주 수치로 만든 초안에서 온다.
+    for (final DemoReportWeek w in demoReportHistoryFor(
+      clientId: _steady,
+      today: kMidWeekKst,
+    )) {
+      expect(w.record!.message, isEmpty, reason: '${w.weekStart}');
+    }
     final List<MemberReportHistoryItem> all = await readAll(_steady);
     expect(all.length, greaterThan(1));
     for (final MemberReportHistoryItem item in all) {
-      expect(item.feedbackPreview, isEmpty, reason: '${item.weekStart}');
+      expect(item.feedbackPreview, isNotEmpty, reason: '${item.weekStart}');
+      expect(item.feedbackPreview, contains('님,'), reason: '${item.weekStart}');
     }
   });
 
-  test('이번 주 데모 기록은 본문이 비어 첫 줄도 비어 있다', () async {
+  test('이번 주 데모 기록도 첫 줄이 그 주 초안에서 온다', () async {
     final MemberReportHistoryItem thisWeek = (await readAll(_steady)).first;
     expect(thisWeek.weekStart, weekStartOf(kMidWeekKst));
-    expect(thisWeek.feedbackPreview, isEmpty);
+    expect(thisWeek.feedbackPreview, isNotEmpty);
   });
 
   test('한 쪽은 기본 쪽 크기이고 다음 쪽 커서는 그 쪽 마지막 주다', () async {

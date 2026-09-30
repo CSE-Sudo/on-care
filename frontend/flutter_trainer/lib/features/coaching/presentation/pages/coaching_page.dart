@@ -1412,8 +1412,8 @@ class _TemplateCard extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final tokens = context.oncare;
     final templatesAsync = ref.watch(programTemplatesProvider);
-    // 데모는 읽기 전용이다 — 저장할 백엔드가 없어, 만든 것이 새로고침 한 번에
-    // 사라지면 만들 수 있다고 말한 화면이 거짓이 된다. (#920)
+    // 편집할 수 없는 빌드면 만들기·고치기를 내밀지 않는다(#920). 데모도
+    // 저장한 템플릿을 로컬 저장소에 남겨 편집할 수 있다(#1028, #2669).
     final canEdit = ref.watch(programTemplateEditingEnabledProvider);
     final templates = templatesAsync.valueOrNull ?? const <ProgramTemplate>[];
     if (templatesAsync.hasError && templates.isEmpty) {

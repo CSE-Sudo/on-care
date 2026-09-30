@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -51,59 +49,24 @@ String _slotLabel(AppLocalizations l, ConsultationRequest request) {
 /// name, and a member who asked the gym. The second kind is badged, since
 /// any trainer at that gym can pick it up and the first to accept wins.
 ///
-/// The demo build never reaches this page: its repository reports no inbox
-/// and the sidebar row is not rendered (see [consultationInboxEnabledProvider]).
+/// 상담함은 **창**으로만 뜬다 — 스케줄·대시보드 버튼과 알림이 모두
+/// [showConsultationsDialog] 로 연다(#2717). 예전 페이지 모드와 그 `돌아가기`
+/// 링크는 들어온 길마다 모양이 달라 없앴다. 데모도 시드 요청으로 같은 창을
+/// 보여 준다([DemoConsultationRepository], #2669).
 class ConsultationsPage extends ConsumerWidget {
-  /// Creates the inbox page.
-  const ConsultationsPage({super.key, this.returnTo, this.modal = false});
-
-  /// Entry surface (`dashboard` or null/default schedule).
-  final String? returnTo;
-
-  /// Whether the inbox is being shown over its entry surface.
-  ///
-  /// 모달이면 페이지 틀 없이 [AppDialog] 안에 **목록만** 넣는다 — 창의
-  /// 제목·닫기 X 가 페이지 헤더를 대신한다.
-  final bool modal;
+  /// Creates the inbox dialog body.
+  const ConsultationsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-
-    if (modal) {
-      return KeyedSubtree(
-        key: const ValueKey<String>('consultations-dialog'),
-        child: AppDialog(
-          title: l.consultTitle,
-          size: AppDialogSize.large,
-          child: const _Inbox(),
-        ),
-      );
-    }
-
-    final fromDashboard = returnTo == 'dashboard';
-    return AppWebPage(
-      title: l.consultTitle,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: AppBackLink(
-                key: const ValueKey<String>('consultations-back-to-schedule'),
-                label: fromDashboard
-                    ? l.consultBackToDashboard
-                    : l.consultBackToSchedule,
-                onPressed: () => context.go(
-                  fromDashboard ? AppRoutes.dashboard : AppRoutes.schedule,
-                ),
-              ),
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            const _Inbox(),
-          ],
-        ),
+    // 창의 제목·닫기 X 가 페이지 헤더를 대신한다 — 안에는 **목록만** 둔다.
+    return KeyedSubtree(
+      key: const ValueKey<String>('consultations-dialog'),
+      child: AppDialog(
+        title: l.consultTitle,
+        size: AppDialogSize.large,
+        child: const _Inbox(),
       ),
     );
   }
@@ -113,7 +76,7 @@ class ConsultationsPage extends ConsumerWidget {
 Future<void> showConsultationsDialog(BuildContext context) =>
     showAppDialog<void>(
       context: context,
-      builder: (_) => const ConsultationsPage(modal: true),
+      builder: (_) => const ConsultationsPage(),
     );
 
 /// 필터 칩 + 요청 목록. 페이지와 모달이 같은 것을 쓴다.

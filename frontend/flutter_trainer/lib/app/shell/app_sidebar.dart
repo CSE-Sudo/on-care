@@ -79,10 +79,9 @@ class AppSidebar extends ConsumerWidget {
         .watch(todayPendingSessionCountProvider)
         .valueOrNull;
     final profile = ref.watch(sessionControllerProvider).profile;
-    // 상담 요청 only exists against the real API — the demo has no member
-    // backend to receive requests from, so the row is not built at all
-    // there and the demo sidebar stays exactly as it was. (#467)
-    // 알림은 사이드바가 아니라 화면 머리의 알림 종이다(#2628).
+    // 상담 요청은 사이드바 행이 아니라 스케줄·대시보드에서 창으로 열고, 데모도
+    // 시드 요청으로 같은 창을 보여 준다(#2669). 알림은 사이드바가 아니라 화면
+    // 머리의 알림 종이다(#2628).
 
     return Container(
       width: expanded

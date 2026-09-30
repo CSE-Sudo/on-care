@@ -55,6 +55,9 @@ void main() {
     final rows = await db.select(db.trainerScheduleEntries).get();
     for (final row in rows) {
       if (row.date == ymd(thursday)) continue; // 오늘 몫은 목록이 정한 상태다.
+      // 지난 주들의 수업은 `weekly_pt_seed_test` 가 본다 — 거기에는 취소·노쇼가
+      // 한 건씩 섞여 있다(#2669).
+      if (row.date.compareTo(ymd(_monday)) < 0) continue;
       final bool past = row.date.compareTo(ymd(thursday)) < 0;
       expect(
         row.status,
