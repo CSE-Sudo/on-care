@@ -604,7 +604,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 | GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
 | POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota }` |
 
-tag: diet|exercise|hydration|...
+tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 **하루 대화 한도(#2145).** AI 챗봇(담당 트레이너가 없는 회원)은 KST 하루 **무료 10회**다. 다 쓰면 **한 번에 50P** 로 하루 **10회**까지
 더 보낸다(세 값은 서버 설정 `coach_chat_free_per_day`·`coach_chat_paid_cost`·`coach_chat_paid_per_day`).
