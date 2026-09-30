@@ -442,6 +442,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 것과 같아야 한다(#2223). 두 번째 전송은 `_sent` 가 막는다.
     if (!mounted) return;
     ref.invalidate(assignedRoutinesProvider(sentFor));
+    // 전송 이력 카드는 직전 전송을 따로 읽는다 — 다시 읽게 하지 않으면 탭을
+    // 옮겨 다녀와야 방금 보낸 것이 보인다(#2280).
+    ref.invalidate(_latestDeliveryProvider(sentFor));
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingRoutineOnly.remove(sentFor);
@@ -587,6 +590,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // fetch 라 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가
     // 스스로 다시 읽는다.
     ref.invalidate(assignedRoutinesProvider(sentFor));
+    // 전송 이력 카드와 그 위 `아직 보내지 않은 개인운동` 안내도 따로 읽는다 —
+    // 일정에 올린 PT 에 붙은 개인운동이 안내에 바로 서야 한다(#2280).
+    ref.invalidate(_latestDeliveryProvider(sentFor));
+    ref.invalidate(_unsentRoutinesProvider(sentFor));
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingClientIds.remove(sentFor);
@@ -1159,6 +1166,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!mounted) return;
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
+    // 전송 이력 위 `아직 보내지 않은 개인운동` 안내가 방금 붙인 것을 바로
+    // 보이게 한다.
+    ref.invalidate(_unsentRoutinesProvider(sentFor));
     final back = _returnToSchedule;
     final String? backDate =
         back != null && back.clientId == sentFor && back.sessionId == sessionId
