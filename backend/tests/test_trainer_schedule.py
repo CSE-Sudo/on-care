@@ -630,10 +630,12 @@ def test_schedule_range_returns_every_day_in_one_request(client):
     """주 캘린더가 7일치를 한 번에 읽는다 — 하루짜리 요청 7번이 아니라."""
     token = _sched_token(client)
     made = []
+    # 시드가 쓰지 않는 이른 시각이다 — 지난 날에는 회원 주간 PT(09:00·10:00·
+    # 13:00·16:00)가 깔려 있어, 그 칸에 두면 겹침(409)으로 떨어진다(#2694).
     for day in ("2026-09-07", "2026-09-09", "2026-09-13"):
         r = client.post(
             "/v1/trainer/schedule",
-            json={"date": day, "time": "10:00", "client_name": "범위테스트",
+            json={"date": day, "time": "07:00", "client_name": "범위테스트",
                   "type": "1:1 PT", "duration_minutes": 60},
             headers=_sched_auth(token),
         )
@@ -658,7 +660,7 @@ def test_schedule_range_excludes_days_outside_the_window(client):
     token = _sched_token(client)
     r = client.post(
         "/v1/trainer/schedule",
-        json={"date": "2026-09-20", "time": "10:00", "client_name": "창밖",
+        json={"date": "2026-09-20", "time": "07:00", "client_name": "창밖",
               "type": "1:1 PT", "duration_minutes": 60},
         headers=_sched_auth(token),
     )
