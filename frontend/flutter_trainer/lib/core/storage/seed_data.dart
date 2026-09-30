@@ -23,10 +23,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v41']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v42']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v42` 는 김민수의 지난 PT 를 공유 픽스처의 PT 날(지난 11주, 오늘과 같은 요일)에
+/// 맞췄다(#2694). 올리지 않으면 오늘 이미 시드된 브라우저가 매주 되풀이한 옛 수업을
+/// 그대로 들고 있어 회원 앱과 PT 날이 갈린다.
 ///
 /// `_v41` 은 데모 알림함의 과거 알림을 심었다(#2628). 올리지 않으면 오늘 이미
 /// 시드된 브라우저의 알림함이 자정까지 비어 있다.
@@ -171,7 +175,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v41') == today &&
+  if (await db.readValue('trainer_seeded_v42') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -574,10 +578,15 @@ Future<void> seedIfEmpty(
     // 코칭 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다. 메모는 최근 두 주의
     // 회원별 첫 수업에만 둔다([_pastPtNotes], #2667) — 같은 메모가 열세 주
     // 반복되면 그 수업에 남긴 기록처럼 읽히지 않는다.
+    //
+    // 김민수는 되풀이하지 않는다 — 그의 지난 PT 는 공유 픽스처가 PT 날로 적은
+    // 날에만 선다(아래 `seed-schedule-f…`, #2694). 오늘 수업을 앞 주로 되풀이하면
+    // 회원 앱이 모르는 수업이 리포트에 선다.
     final List<({int weekday, String time, _SeedSession slot, int order})>
     recurring = <({int weekday, String time, _SeedSession slot, int order})>[
       for (var i = 0; i < _schedule.length; i++)
         if (_schedule[i].type == SessionType.personalTraining &&
+            _schedule[i].clientName != demo.memberName &&
             seedClientIdByName.containsKey(_schedule[i].clientName))
           (
             weekday: now.weekday,
@@ -595,6 +604,11 @@ Future<void> seedIfEmpty(
             order: _schedule.length + p.index,
           ),
     ];
+
+    // 오늘 김민수의 수업 — 지난 PT 도 같은 시각·길이다(#2694).
+    final _Slot fixturePt = _schedule.firstWhere(
+      (_Slot s) => s.clientName == demo.memberName,
+    );
 
     // 지난 두 주 회원별 **첫** 수업 — PT 메모([_pastPtNotes])를 다는 자리.
     final Set<String> notedPt = <String>{};
@@ -665,6 +679,25 @@ Future<void> seedIfEmpty(
                 programJson: const Value('[]'),
                 sortOrder: Value(recurring[k].order),
               ),
+        // 김민수의 지난 PT — 공유 픽스처가 PT 날로 적은 날마다 오늘 수업과 같은
+        // 시각·길이의 끝난 수업이다(#2694). 회원 앱은 그날을 `18:00 수업 완료`
+        // 로 그리고, 실서버 시드도 같은 날에 같은 수업을 깐다. 메모는 픽스처가
+        // 그 수업에 적은 것이고, 프로그램은 다른 지난 수업처럼 비운다.
+        for (final FixtureDay day in fixtureClient.days)
+          if (day.isPt && day.date != today)
+            TrainerScheduleEntriesCompanion.insert(
+              id: 'seed-schedule-f${day.date}',
+              date: day.date,
+              time: fixturePt.time,
+              clientId: Value(seedClientIdByName[demo.memberName]),
+              clientName: Value(demo.memberName),
+              type: const Value(SessionType.personalTraining),
+              durationMinutes: Value(fixturePt.durationMinutes),
+              status: ScheduleStatus.done,
+              note: Value(t(day.trainerNote)),
+              programJson: const Value('[]'),
+              sortOrder: const Value(0),
+            ),
         // 지난 상담(#2667). 이번 주 상담만 있으면 AI 근거의 `상담 메모`(최근
         // 30일)가 요일에 따라 비었다.
         for (var i = 0; i < _pastConsults.length; i++)
@@ -692,7 +725,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v41', today);
+    await db.putValue('trainer_seeded_v42', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
