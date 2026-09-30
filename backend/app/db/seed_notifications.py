@@ -19,6 +19,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from app.core.clock import SEOUL
+from app.core.locale import Locale
 from app.db.seed_trainer import TRAINER_NAME
 from app.models import models
 from app.services import notification_service
@@ -164,3 +166,60 @@ def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None =
         )
     db.commit()
     return len(DEMO_NOTIFICATIONS)
+
+
+#: 데모 알림 id → 정해 둔 경과 시간(#2691).
+DEMO_AGO_BY_ID: dict[str, timedelta] = {n.id: n.ago for n in DEMO_NOTIFICATIONS}
+
+
+def demo_time_ago(ago: timedelta, locale: Locale) -> str:
+    """데모 알림의 상대 시각 — 회원 앱 데모와 같은 문구다(#2691).
+
+    회원 앱 데모는 하루 지난 알림을 "어제" 로 보인다. 서버의 일반 문구
+    (`notification_service.time_ago`)는 "1일 전" 이라, 데모 계정만 데모 문구를 따른다.
+    """
+    ko = locale == "ko"
+    sec = ago.total_seconds()
+    if sec < 60:
+        return "방금" if ko else "just now"
+    if sec < 3600:
+        n = int(sec // 60)
+        return f"{n}분 전" if ko else f"{n} min ago"
+    if sec < 86400:
+        n = int(sec // 3600)
+        return f"{n}시간 전" if ko else f"{n} {'hour' if n == 1 else 'hours'} ago"
+    n = int(sec // 86400)
+    if n == 1:
+        return "어제" if ko else "yesterday"
+    return f"{n}일 전" if ko else f"{n} days ago"
+
+
+def slide_demo_notifications(
+    db: Session, user_id: str, *, now: datetime | None = None
+) -> bool:
+    """[user_id] 의 데모 알림을 오늘로 옮긴다. 옮겼으면 True. (#2691)
+
+    시드는 한 번만 들어가 날이 지나면 "N일 전" 이 되고, 트레이너 활동이 만든 새
+    알림보다 아래로 밀린다. 회원 앱 데모가 날마다 시드를 오늘로 옮기는 것처럼, 가장
+    최근 데모 알림이 오늘(서울)이 아니면 모두 `now - ago` 로 옮긴다. 읽음은 회원이
+    한 일이라 건드리지 않는다.
+    """
+    rows = db.scalars(
+        select(models.Notification).where(
+            models.Notification.user_id == user_id,
+            models.Notification.id.in_(DEMO_AGO_BY_ID),
+        )
+    ).all()
+    newest = next((r for r in rows if r.id == DEMO_NOTIFICATIONS[0].id), None)
+    if newest is None:
+        return False
+    now = now or datetime.now(timezone.utc)
+    created = newest.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    if created.astimezone(SEOUL).date() == now.astimezone(SEOUL).date():
+        return False
+    for row in rows:
+        row.created_at = now - DEMO_AGO_BY_ID[row.id]
+    db.commit()
+    return True

@@ -1,14 +1,16 @@
-"""실서버 데모 계정 알림이 회원 앱 데모와 같게 보이는지. (#2690) DB 필요.
+"""실서버 데모 계정 알림이 회원 앱 데모와 같게 보이는지. (#2690·#2691) DB 필요.
 
-회원 앱 데모 알림함이 기준이다 — 알림별 목적지(나트륨 → 식단 등)를 실서버 데모
-계정도 따른다.
+회원 앱 데모 알림함이 기준이다 — 알림별 목적지(나트륨 → 식단 등)와 언제 열어도
+같은 시각("10분 전 … 어제")을 실서버 데모 계정도 따른다.
 """
 from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import update
 
 from app.db.init_db import DEMO_USER_ID
-from app.db.seed_notifications import DEMO_NOTIFICATIONS, seed_demo_notifications
+from app.db.seed_notifications import DEMO_AGO_BY_ID, DEMO_NOTIFICATIONS, seed_demo_notifications
 from app.models.models import Notification
 
 DEMO_IDS = [n.id for n in DEMO_NOTIFICATIONS]
@@ -51,6 +53,43 @@ def test_demo_alerts_open_the_same_screens_as_the_app_demo(client, db_session):
         "dashboard",  # 식단 연속 기록
         None,  # 점검 공지
     ]
+
+
+def test_demo_alerts_keep_their_times_and_move_to_today(client, db_session):
+    # 사흘이 지난 것처럼 밀어 둔다.
+    db_session.execute(
+        update(Notification)
+        .where(Notification.id.in_(DEMO_IDS))
+        .values(created_at=Notification.created_at - timedelta(days=3))
+    )
+    db_session.commit()
+
+    inbox = _inbox(client)
+    assert [inbox[n]["time_ago"] for n in DEMO_IDS] == [
+        "10분 전",
+        "20분 전",
+        "30분 전",
+        "45분 전",
+        "1시간 전",
+        "2시간 전",
+        "3시간 전",
+        "어제",
+        "어제",
+    ]
+    en = _inbox(client, {"Accept-Language": "en"})
+    assert en["noti-demo-1"]["time_ago"] == "10 min ago"
+    assert en["noti-demo-8"]["time_ago"] == "yesterday"
+
+    # 목록을 읽을 때 오늘로 옮겨졌다 — 새로 생긴 알림과의 순서도 맞는다.
+    db_session.expire_all()
+    now = datetime.now(timezone.utc)
+    for nid in DEMO_IDS:
+        row = db_session.get(Notification, nid)
+        created = row.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        drift = (now - created) - DEMO_AGO_BY_ID[nid]
+        assert abs(drift) < timedelta(minutes=5), nid
 
 
 def test_seed_backfills_targets_for_rows_seeded_before_the_column(db_session):

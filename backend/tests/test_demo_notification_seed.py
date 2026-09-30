@@ -8,6 +8,7 @@ from app.db.demo_fixture import load_fixture
 from app.db.seed_notifications import (
     DEMO_NOTIFICATIONS,
     LEGACY_DEMO_NOTIFICATION_IDS,
+    demo_time_ago,
 )
 from app.services import notification_service
 
@@ -63,6 +64,24 @@ def test_alert_specific_target_keeps_the_category_label_when_it_matches():
     assert _action_for("reminder", "en", "diet").label == "View meals"
     assert _action_for("system", "ko", None) is None
 
+
+def test_demo_alerts_show_the_same_times_as_the_app_demo():
+    # 회원 앱 데모와 같은 문구 — 하루 지난 알림은 "어제" 다(#2691).
+    assert [demo_time_ago(n.ago, "ko") for n in DEMO_NOTIFICATIONS] == [
+        "10분 전",
+        "20분 전",
+        "30분 전",
+        "45분 전",
+        "1시간 전",
+        "2시간 전",
+        "3시간 전",
+        "어제",
+        "어제",
+    ]
+    assert demo_time_ago(timedelta(minutes=10), "en") == "10 min ago"
+    assert demo_time_ago(timedelta(hours=1), "en") == "1 hour ago"
+    assert demo_time_ago(timedelta(hours=26), "en") == "yesterday"
+    assert demo_time_ago(timedelta(days=3), "ko") == "3일 전"
 
 
 def test_report_and_feedback_use_different_categories():
