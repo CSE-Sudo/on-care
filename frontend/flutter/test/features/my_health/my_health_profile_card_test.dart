@@ -91,9 +91,11 @@ void main() {
     expect(find.byIcon(AppIcons.sync), findsNothing);
     expect(find.text('6자리 코드로 담당 트레이너와 연결해요'), findsOneWidget);
     // 아이콘 칸이 빠졌으니 제목이 프로필 아바타와 같은 왼쪽 선에서 시작한다.
+    // 아래 헬스장 카드의 담당 트레이너도 성씨 프로필이라(#2599) 맨 위
+    // 프로필 카드의 것을 짚는다.
     expect(
       tester.getTopLeft(find.text('트레이너와 데이터 동기화')).dx,
-      tester.getTopLeft(find.byType(AppAvatar)).dx,
+      tester.getTopLeft(find.byType(AppAvatar).first).dx,
     );
     // 행에 남는 아이콘은 오른쪽 화살표 하나뿐이다.
     final Finder row = find
