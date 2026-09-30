@@ -26,6 +26,9 @@ const AppConfig _mock = AppConfig(
 );
 
 /// `GET /me/records/span` 에 지금 계정의 첫 기록일로 답하는 가짜 서버.
+///
+/// 리셋은 같은 Dio 를 쓰는 다른 provider 도 다시 만들므로, [calls] 는 기록
+/// 시작일 요청만 센다.
 class _SpanBackend {
   String dietFirst = '2026-03-02';
   String exerciseFirst = '2026-03-09';
@@ -36,7 +39,7 @@ class _SpanBackend {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
-          calls++;
+          if (options.path.contains('records/span')) calls++;
           handler.resolve(
             Response<Map<String, Object?>>(
               requestOptions: options,
