@@ -157,8 +157,13 @@ void main() {
     final List<TrainerScheduleRow> rows = await seededRows(thursday);
     final String monday = ymd(_monday);
 
+    // 지난 상담(`seed-schedule-c`, #2667)은 되풀이한 수업이 아니다.
     final List<TrainerScheduleRow> past = rows
-        .where((r) => r.date.compareTo(monday) < 0)
+        .where(
+          (r) =>
+              r.date.compareTo(monday) < 0 &&
+              !r.id.startsWith('seed-schedule-c'),
+        )
         .toList();
     expect(past, isNotEmpty);
     for (final TrainerScheduleRow r in past) {
@@ -218,7 +223,11 @@ void main() {
     expect(
       rows
           .where((r) => r.date.compareTo(from) < 0)
-          .every((r) => r.id.startsWith('seed-schedule-p')),
+          .every(
+            (r) =>
+                r.id.startsWith('seed-schedule-p') ||
+                r.id.startsWith('seed-schedule-c'),
+          ),
       isTrue,
     );
   });

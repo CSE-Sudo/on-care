@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/seed_menu_plans.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
@@ -570,7 +571,11 @@ class DriftClientRepository implements ClientRepository {
   /// 예전에는 이행률에서 분을 되만들고 요일로 유형을 나눴다. 같은 회원인데
   /// 회원 앱은 픽스처를, 트레이너 화면은 재구성한 값을 보여, 근력 세트도 소모
   /// 칼로리도 두 화면이 다른 수를 말했다. (#1077)
-  ClientExerciseWeek? _fixtureWeek(String clientId, DateTime monday) {
+  ClientExerciseWeek? _fixtureWeek(
+    String clientId,
+    DateTime monday,
+    _ExerciseGoals goals,
+  ) {
     if (clientId != _fixture.trainerClientId) return null;
     final DateTime today = nowKst();
     final String mondayYmd = ymd(monday);
@@ -628,7 +633,9 @@ class DriftClientRepository implements ClientRepository {
       stretchingCalories: stretchingCal,
       otherCalories: otherCal,
       strengthSets: sets,
-      weeklyGoalCalories: kWeeklyBurnKcal.round(),
+      weeklyGoalMinutes: goals.minutes,
+      weeklyGoalCalories: goals.calories,
+      streakDays: _longestStreak(minutes),
       totalMinutes: minutes.fold(0, (int a, int b) => a + b),
       totalCalories: calories.fold(0, (int a, int b) => a + b),
     );
@@ -657,34 +664,178 @@ class DriftClientRepository implements ClientRepository {
     DateTime? weekStart,
   }) async {
     final monday = clientMondayOf(weekStart ?? nowKst());
-    final ClientExerciseWeek? fromFixture = _fixtureWeek(clientId, monday);
+    final _ExerciseGoals goals = await _exerciseGoals(clientId);
+    final ClientExerciseWeek? fromFixture = _fixtureWeek(
+      clientId,
+      monday,
+      goals,
+    );
     if (fromFixture != null) return fromFixture;
     final completion = await _weekCompletion(clientId, monday);
-    final minutes = completion
-        .map(_minutesFromCompletion)
-        .toList(growable: false);
-    final calories = minutes.map((value) => value * 6).toList(growable: false);
-    final splits = <List<int>>[
-      for (var d = 0; d < minutes.length; d++) _typeSplit(minutes[d], d),
-    ];
+    final List<List<ClientExerciseItem>> done = await _weekExercises(
+      clientId,
+      monday,
+    );
+    final List<int> minutes = List<int>.filled(7, 0);
+    final List<int> calories = List<int>.filled(7, 0);
+    final List<int> cardio = List<int>.filled(7, 0);
+    final List<int> strength = List<int>.filled(7, 0);
+    final List<int> stretching = List<int>.filled(7, 0);
+    final List<int> sets = List<int>.filled(7, 0);
+    final List<int> cardioCal = List<int>.filled(7, 0);
+    final List<int> strengthCal = List<int>.filled(7, 0);
+    final List<int> stretchingCal = List<int>.filled(7, 0);
+    for (var d = 0; d < 7; d++) {
+      // 그날 한 운동에서 유형별로 센다(#2667) — 실서버가 세션에서 세는 것과
+      // 같다. 값이 실리지 않은 옛 기록뿐인 날만 이행률에서 환산한다.
+      for (final ClientExerciseItem item in done[d]) {
+        final (int m, _DemoKind kind) = _demoMinutes(item);
+        if (m <= 0) continue;
+        final int kcal = m * kind.kcalPerMinute;
+        switch (kind) {
+          case _DemoKind.strength:
+            strength[d] += m;
+            strengthCal[d] += kcal;
+            sets[d] += item.sets ?? setsFromStrengthMinutes(m);
+          case _DemoKind.stretching:
+            stretching[d] += m;
+            stretchingCal[d] += kcal;
+          case _DemoKind.cardio:
+            cardio[d] += m;
+            cardioCal[d] += kcal;
+        }
+        minutes[d] += m;
+        calories[d] += kcal;
+      }
+      if (minutes[d] > 0) continue;
+      final int fallback = _minutesFromCompletion(
+        d < completion.length ? completion[d] : 0,
+      );
+      if (fallback == 0) continue;
+      final List<int> split = _typeSplit(fallback, d);
+      minutes[d] = fallback;
+      cardio[d] = split[0];
+      strength[d] = split[1];
+      stretching[d] = split[2];
+      // 데모의 옛 환산은 분에 일정 배수를 곱한다 — 유형별 몫도 분 비중과 같다.
+      cardioCal[d] = split[0] * 6;
+      strengthCal[d] = split[1] * 6;
+      stretchingCal[d] = split[2] * 6;
+      calories[d] = fallback * 6;
+      sets[d] = setsFromStrengthMinutes(split[1]);
+    }
     return ClientExerciseWeek(
       dayLabels: const ['월', '화', '수', '목', '금', '토', '일'],
       dailyMinutes: minutes,
       dailyCalories: calories,
-      cardioMinutes: <int>[for (final s in splits) s[0]],
-      strengthMinutes: <int>[for (final s in splits) s[1]],
-      stretchingMinutes: <int>[for (final s in splits) s[2]],
-      // 데모의 칼로리는 분에 일정 배수를 곱한 값이라(위 `* 6`), 유형별 몫도 분
-      // 비중과 같다. 실서버는 유형마다 분당 소모가 달라 `sessions` 에서 따로
-      // 세지만(#1289), 여기서는 그 환산이 곧 같은 결과다.
-      cardioCalories: <int>[for (final s in splits) s[0] * 6],
-      strengthCalories: <int>[for (final s in splits) s[1] * 6],
-      stretchingCalories: <int>[for (final s in splits) s[2] * 6],
+      cardioMinutes: cardio,
+      strengthMinutes: strength,
+      stretchingMinutes: stretching,
+      cardioCalories: cardioCal,
+      strengthCalories: strengthCal,
+      stretchingCalories: stretchingCal,
+      strengthSets: sets,
       totalMinutes: minutes.fold(0, (sum, value) => sum + value),
       totalCalories: calories.fold(0, (sum, value) => sum + value),
-      weeklyGoalCalories: kWeeklyBurnKcal.round(),
+      weeklyGoalMinutes: goals.minutes,
+      weeklyGoalCalories: goals.calories,
+      streakDays: _longestStreak(minutes),
     );
   }
+
+  /// 회원의 주간 운동 목표 — 서버 `exercise_service.weekly_goals` 와 같은
+  /// 순서다(#2667). 운동 시간은 저장된 목표, 없으면 150분. 소모 칼로리는 저장된
+  /// 주간 목표, 없으면 회원 앱·운동 현황 도넛과 같은 **하루 목표 × 7** 이다.
+  ///
+  /// 예전에는 운동 시간 목표를 싣지 않아(0) 목표선이 없었고, 칼로리 목표는 회원이
+  /// 정한 하루 소모 목표 대신 공통 상수였다.
+  Future<_ExerciseGoals> _exerciseGoals(String clientId) async {
+    final String? raw = await _db.readValue('member_health_profile:$clientId');
+    final Map<String, Object?> saved = raw == null
+        ? const <String, Object?>{}
+        : jsonDecode(raw) as Map<String, Object?>;
+    final int? minutes = (saved['weekly_exercise_minutes_goal'] as num?)
+        ?.toInt();
+    final int? weeklyBurn = (saved['weekly_burn_goal'] as num?)?.toInt();
+    final num? dailyBurn = saved['daily_burn_kcal'] as num?;
+    return (
+      minutes: minutes != null && minutes > 0 ? minutes : 150,
+      calories: weeklyBurn != null && weeklyBurn > 0
+          ? weeklyBurn
+          : ((dailyBurn ?? kDailyBurnKcal) * 7).round(),
+    );
+  }
+
+  /// '연속 N일' — 운동한 요일 중 가장 긴 연속 구간. 서버
+  /// `exercise_service._longest_streak` 와 같은 정의로, 분이 있는 날만 센다.
+  static int _longestStreak(List<int> dailyMinutes) {
+    var best = 0;
+    var run = 0;
+    for (final int m in dailyMinutes) {
+      run = m > 0 ? run + 1 : 0;
+      if (run > best) best = run;
+    }
+    return best;
+  }
+
+  /// [monday] 주의 요일별(월→일) 한 운동. 하루 지표에 함께 담긴 목록이다 —
+  /// 날짜별 기록(`fetchExercisesOn`)이 읽는 것과 같은 자료다.
+  Future<List<List<ClientExerciseItem>>> _weekExercises(
+    String clientId,
+    DateTime monday,
+  ) async {
+    final List<List<ClientExerciseItem>> week = <List<ClientExerciseItem>>[
+      for (var d = 0; d < 7; d++) <ClientExerciseItem>[],
+    ];
+    final sunday = DateTime(monday.year, monday.month, monday.day + 6);
+    final rows =
+        await (_db.select(_db.clientDailyMetrics)..where(
+              (t) =>
+                  t.clientId.equals(clientId) &
+                  t.date.isBiggerOrEqualValue(ymd(monday)) &
+                  t.date.isSmallerOrEqualValue(ymd(sunday)),
+            ))
+            .get();
+    for (final ClientDailyMetricRow row in rows) {
+      final int d = DateTime.parse(row.date).difference(monday).inDays;
+      if (d < 0 || d > 6) continue;
+      final Object? decoded = jsonDecode(row.exercisesJson);
+      if (decoded is! List<Object?>) continue;
+      for (final Object? item in decoded) {
+        if (item is Map<String, Object?>) {
+          week[d].add(ClientExerciseItem.fromJson(item));
+        } else if (item is String) {
+          week[d].add(ClientExerciseItem.fromLegacyLine(item));
+        }
+      }
+    }
+    return week;
+  }
+
+  /// 운동 한 줄의 분과 유형. 근력은 세트에서, 버티는 운동도 세트에서 센다.
+  /// 유형이 적히지 않은 옛 문장은 이름으로 스트레칭을 가르고, 분만 있으면
+  /// 유산소로 본다.
+  static (int, _DemoKind) _demoMinutes(ClientExerciseItem item) {
+    final _DemoKind kind = switch (item.type) {
+      'strength' => _DemoKind.strength,
+      'flexibility' || 'stretching' || 'yoga' => _DemoKind.stretching,
+      'cardio' || 'walking' => _DemoKind.cardio,
+      _ when item.sets != null => _DemoKind.strength,
+      _ when _stretchName.hasMatch(item.name) => _DemoKind.stretching,
+      _ => _DemoKind.cardio,
+    };
+    final int minutes = item.minutes > 0
+        ? item.minutes
+        : (item.sets != null
+              ? (item.sets! * kStrengthMinutesPerSet).round()
+              : 0);
+    return (minutes, kind);
+  }
+
+  static final RegExp _stretchName = RegExp(
+    '스트레칭|요가|가동|이완|stretch|yoga|mobility',
+    caseSensitive: false,
+  );
 
   /// [monday] 주의 요일별 이행률(월→일, 길이 7).
   ///
@@ -876,9 +1027,10 @@ class DriftClientRepository implements ClientRepository {
     String clientId, {
     required Locale locale,
   }) async {
-    // 데모 후보는 공유 픽스처의 4주 추천 메뉴 리스트([kDemoMenuPlan])다 — 회원 앱
-    // 데모가 다음 식사를 고르는 같은 리스트라, 두 앱이 같은 회원에게 같은 메뉴를
-    // 말한다. 순서·해소는 서버(`diet_trainer_pick`)와 같은 규칙이다.
+    // 데모 후보는 회원별 4주 추천 메뉴 리스트([demoMenuPlanFor])다(#2667) — 실서버가
+    // 회원마다 리스트를 따로 두는 것과 같다. 김민수는 회원 앱 데모가 다음 식사를
+    // 고르는 공유 리스트([kDemoMenuPlan]) 그대로라, 두 앱이 같은 메뉴를 말한다.
+    // 순서·해소는 서버(`diet_trainer_pick`)와 같은 규칙이다.
     final DateTime today = todayKst();
     final List<DietRuleEntry> recent = await _dietRuleEntries(
       clientId,
@@ -890,8 +1042,10 @@ class DriftClientRepository implements ClientRepository {
     );
     final List<String> needs = _needsOf(recent, targets);
     final ClientDietPick? pick = await _demoPick(clientId, recent);
-    final List<DemoPlanMenu> plan =
-        kDemoMenuPlan[locale.languageCode] ?? kDemoMenuPlan['ko']!;
+    final List<DemoPlanMenu> plan = demoMenuPlanFor(
+      clientId,
+      locale.languageCode,
+    );
     final Set<String> days = <String>{
       for (final DietRuleEntry e in recent) e.date,
     };
@@ -952,8 +1106,10 @@ class DriftClientRepository implements ClientRepository {
     required String name,
     required Locale locale,
   }) async {
-    final List<DemoPlanMenu> plan =
-        kDemoMenuPlan[locale.languageCode] ?? kDemoMenuPlan['ko']!;
+    final List<DemoPlanMenu> plan = demoMenuPlanFor(
+      clientId,
+      locale.languageCode,
+    );
     final DemoPlanMenu? menu = plan
         .where(
           (DemoPlanMenu m) => m.slot == slot && _norm(m.name) == _norm(name),
@@ -1627,3 +1783,19 @@ final clientExercisePeriodProvider = FutureProvider.autoDispose
         ],
       );
     });
+
+/// 데모 회원의 주간 운동 목표 — 운동 시간(분)·소모 칼로리. (#2667)
+typedef _ExerciseGoals = ({int minutes, int calories});
+
+/// 데모 운동 현황이 세는 유형과 분당 소모 칼로리(#2667). 실서버는 운동마다
+/// 소모량을 기록하지만 데모 루틴에는 없어, 유형별 대략값으로 센다 — 유형마다
+/// 분당 소모가 달라야 칼로리 비중이 분 비중과 갈린다(#1289).
+enum _DemoKind {
+  cardio(7),
+  strength(6),
+  stretching(3);
+
+  const _DemoKind(this.kcalPerMinute);
+
+  final int kcalPerMinute;
+}

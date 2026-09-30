@@ -1292,3 +1292,31 @@ const List<_Client> _clients = <_Client>[
     ],
   ),
 ];
+
+/// 회원이 자기 프로필에 적은 성별·나이(#2667). 로스터의 `gender`·`age` 칸에
+/// 그대로 들어간다.
+///
+/// 예전에는 이 칸이 비어 있어 id 해시로 만든 폴백(`rosterGenderFor`·
+/// `rosterAgeFor`)이 보였다 — 재활 중인 40대가 20대로, 이름과 다른 성별로
+/// 읽히기도 했다. 성별은 백엔드 시드(`seed_trainer._MEMBER_GENDERS`)와 같다.
+/// 나이는 회원의 이야기(재활·혈압 관리·첫 운동 …)에 맞춰 골랐다.
+///
+/// 김민수는 여기 없다 — 그는 회원 앱 데모 계정과 같은 사람이라 공유 픽스처가
+/// 정하는 값을 두 앱이 함께 쓴다.
+const Map<int, ({String gender, int age})> _clientDemographics =
+    <int, ({String gender, int age})>{
+      2: (gender: 'female', age: 29),
+      3: (gender: 'male', age: 34),
+      4: (gender: 'female', age: 27),
+      5: (gender: 'male', age: 31),
+      6: (gender: 'female', age: 33),
+      7: (gender: 'male', age: 38),
+      8: (gender: 'female', age: 46),
+      9: (gender: 'male', age: 36),
+      10: (gender: 'female', age: 41),
+      11: (gender: 'male', age: 44),
+      12: (gender: 'female', age: 25),
+      13: (gender: 'female', age: 28),
+      14: (gender: 'male', age: 39),
+      15: (gender: 'female', age: 23),
+    };
