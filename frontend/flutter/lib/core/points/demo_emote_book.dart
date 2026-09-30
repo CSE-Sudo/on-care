@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -6,7 +7,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모의 채팅 이모티콘 — 하나씩 사서 7일 동안 쓴다. 서버 `emote_service` 의
 /// 대역이다. (#2153)
-class DemoEmoteBook {
+class DemoEmoteBook implements DemoPersistable {
   DemoEmoteBook({required DemoPointsLedger ledger, DateTime Function()? now})
     : _ledger = ledger,
       _now = now ?? nowKst;
@@ -15,6 +16,9 @@ class DemoEmoteBook {
   final DateTime Function() _now;
   final Map<String, DateTime> _expiresAt = <String, DateTime>{};
   int _sequence = 0;
+
+  @override
+  void Function()? onChanged;
 
   static const int cost = 50;
   static const int days = 7;
@@ -78,12 +82,39 @@ class DemoEmoteBook {
       });
     }
     _expiresAt[emoteId] = _now().add(const Duration(days: days));
+    onChanged?.call();
     return DemoCouponResult(200, stateJson());
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'expires_at': <String, Object?>{
+      for (final MapEntry<String, DateTime> e in _expiresAt.entries)
+        e.key: e.value.toIso8601String(),
+    },
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    final Object? saved = json['expires_at'];
+    _expiresAt
+      ..clear()
+      ..addAll(<String, DateTime>{
+        if (saved is Map<Object?, Object?>)
+          for (final MapEntry<Object?, Object?> e in saved.entries)
+            if (e.key case final String id when AppEmotes.has(id))
+              id: demoParseTime(e.value),
+      });
   }
 }
 
 /// 목업 경로가 함께 쓰는 이모티콘 원장 하나.
-final demoEmoteBookProvider = Provider<DemoEmoteBook>(
-  (ref) => DemoEmoteBook(ledger: ref.watch(demoPointsLedgerProvider)),
-  name: 'demoEmoteBook',
-);
+final demoEmoteBookProvider = Provider<DemoEmoteBook>((ref) {
+  final DemoEmoteBook book = DemoEmoteBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('emotes', book);
+  return book;
+}, name: 'demoEmoteBook');
