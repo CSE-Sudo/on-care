@@ -221,7 +221,7 @@ class _TaskProgressCard extends ConsumerWidget {
               for (final d in dates)
                 history == null
                     ? null
-                    : history.read(ymd(d)) ?? demoHistory.snapshotFor(d),
+                    : history.read(ymd(d)) ?? demoHistory?.snapshotFor(d),
             ],
             dates: dates,
             labels: weekdayLabels(l),
