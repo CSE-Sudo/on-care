@@ -1,3 +1,9 @@
+import 'package:oncare_report/oncare_report.dart'
+    show
+        ReportSheetTrend,
+        ReportSheetTrendWeek,
+        reportTrendRate,
+        reportTrendRatio;
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 
@@ -9,7 +15,7 @@ import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 const int kReportTrendWeeks = 8;
 
 /// 한 주의 유형별 실적.
-class ReportTrendWeek {
+class ReportTrendWeek implements ReportSheetTrendWeek {
   /// Creates a week.
   const ReportTrendWeek({
     required this.weekStart,
@@ -22,6 +28,7 @@ class ReportTrendWeek {
   });
 
   /// 그 주의 월요일.
+  @override
   final DateTime weekStart;
 
   final int cardioMinutes;
@@ -33,6 +40,7 @@ class ReportTrendWeek {
   final int stretchingCalories;
 
   /// 그 유형의 단위로 잰 실적(유산소·스트레칭은 분, 근력은 세트).
+  @override
   num valueOf(ExerciseKind kind) => switch (kind) {
     ExerciseKind.cardio => cardioMinutes,
     ExerciseKind.strength => strengthSets,
@@ -48,42 +56,41 @@ class ReportTrendWeek {
 
   /// 그 주에 아무 기록도 없었는가. 빈 주는 추세 계산에서 빠진다 — 아직 오지
   /// 않은 주(리포트를 주 중에 여는 경우)까지 `감소` 로 세면 매주 내리막이다.
+  @override
   bool get isEmpty =>
       cardioMinutes == 0 && strengthSets == 0 && stretchingMinutes == 0;
 }
 
 /// 여덟 주치 실적. 오래된 주 → 최근 주 순서이고, 마지막이 리포트가 보는 주다.
-class ReportTrend {
+class ReportTrend implements ReportSheetTrend {
   /// Creates a trend.
   const ReportTrend({required this.weeks, required this.goals});
 
+  @override
   final List<ReportTrendWeek> weeks;
 
   /// 회원이 MY 에서 정한 주간 목표. 유형마다 단위가 다르다.
   final ExerciseBurnGoals goals;
 
+  @override
+  double goalOf(ExerciseKind kind) => goals.weeklyGoalOf(kind).toDouble();
+
   /// 리포트가 보는 주. 목록이 비면 null 이다.
   ReportTrendWeek? get current => weeks.isEmpty ? null : weeks.last;
 
   /// 그 유형의 목표 대비 비율(0 이상). 목표가 0 이면 견줄 기준이 없어 null.
-  double? ratioOf(ExerciseKind kind, ReportTrendWeek week) {
-    final double goal = goals.weeklyGoalOf(kind).toDouble();
-    if (goal <= 0) return null;
-    return week.valueOf(kind) / goal;
-  }
+  ///
+  /// 결과지(`oncare_report`)와 같은 함수로 센다(#2652).
+  double? ratioOf(ExerciseKind kind, ReportTrendWeek week) =>
+      reportTrendRatio(goalOf(kind), week.valueOf(kind));
 
   /// 한 주의 **달성률** — 세 유형의 목표 대비 비율을 평균한 값(0~1 로 자른다).
   ///
   /// 셋을 더할 수 없으니(분·세트·분) 각자의 목표에 대한 비율로 바꿔 평균한다.
   /// 한 유형만 두 배를 해도 전체가 잘된 주로 읽히지 않게 위를 1 에서 자른다.
-  double? rateOf(ReportTrendWeek week) {
-    final List<double> ratios = <double>[
-      for (final ExerciseKind kind in ExerciseKind.values)
-        if (ratioOf(kind, week) case final double r) r.clamp(0.0, 1.0),
-    ];
-    if (ratios.isEmpty) return null;
-    return ratios.reduce((double a, double b) => a + b) / ratios.length;
-  }
+  double? rateOf(ReportTrendWeek week) => reportTrendRate(<double?>[
+    for (final ExerciseKind kind in ExerciseKind.values) ratioOf(kind, week),
+  ]);
 
   /// 기록이 있는 주들의 달성률 평균. 하나도 없으면 null.
   double? get averageRate {

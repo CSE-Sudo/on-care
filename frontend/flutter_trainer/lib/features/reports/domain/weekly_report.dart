@@ -1,3 +1,11 @@
+import 'package:oncare_report/oncare_report.dart'
+    show
+        ReportSheetAnswers,
+        ReportSheetDay,
+        ReportSheetWeek,
+        calorieTolerance,
+        recordedMean,
+        sugarLimitG;
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
@@ -10,6 +18,8 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
+export 'package:oncare_report/oncare_report.dart'
+    show calorieTolerance, recordedMean, sugarLimitG;
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
     show hasFinalConsonant;
 
@@ -29,7 +39,10 @@ DateTime weekStartOf(DateTime day) {
 /// This is the retention loop of an O2O coaching product: the member
 /// stays because they can see they improved. Everything here is derived
 /// from data the two apps already share — no new tracking.
-class WeeklyReport {
+///
+/// 결과지(`oncare_report`)가 이 타입을 그대로 받는다 — 회원 앱이 여는 리포트와
+/// 같은 위젯·같은 계산이다(#2652).
+class WeeklyReport implements ReportSheetWeek {
   /// Creates a report.
   const WeeklyReport({
     required this.client,
@@ -62,70 +75,91 @@ class WeeklyReport {
   final TrainerClient client;
 
   /// Monday of the reported week.
+  @override
   final DateTime weekStart;
 
   /// PT sessions booked in the week.
+  @override
   final int sessionsBooked;
 
   /// Of those, how many were completed.
+  @override
   final int sessionsDone;
 
   /// Mean routine completion (%) across recorded days; null when the
   /// client logged nothing.
+  @override
   final int? completionAvg;
 
   /// Days over the sodium target; null when unknown for this week.
   final int? sodiumOverDays;
 
   /// Mean daily sodium (mg); null when there's no history.
+  @override
   final int? sodiumAvg;
 
   /// Whether [weekStart] is the week we're currently in. Charts no longer
   /// depend on this — the report carries its own week — but the headline
   /// still says "이번 주" or "선택 주".
+  @override
   final bool isCurrentWeek;
 
   /// 그 주(월→일)의 요일별 값. **로스터의 같은 이름 필드를 쓰지 않는다** —
   /// 그건 이번 주 것이라, 과거 주를 열면 지난 주 날짜 아래 이번 주 수치가
   /// 실린다. 트레이너는 그 리포트를 회원에게 그대로 보낼 수 있다(#752).
+  @override
   final List<int> weekCompletion;
 
   /// 그 주의 일별 나트륨(mg).
+  @override
   final List<int> sodiumWeek;
 
   /// 그 주의 일별 칼로리(kcal).
+  @override
   final List<int> caloriesWeek;
 
   /// 그 주의 일별 당류(g). 소수를 유지한다.
+  @override
   final List<double> sugarWeek;
 
   /// 그 주의 일별 탄수화물·단백질·지방(g).
   ///
   /// 칼로리 총량만으로는 같은 2,000kcal 이 밥에서 왔는지 기름에서 왔는지
   /// 알 수 없다 — 비교 그래프가 칼로리를 이 셋으로 쌓아 그린다(#1177).
+  @override
   final List<double> carbsWeek;
+  @override
   final List<double> proteinWeek;
+  @override
   final List<double> fatWeek;
 
   /// 그 회원이 적어 둔 하루 목표. 없으면 null 이고, 판정 쪽이 공통 상수로
   /// 되돌아간다(#1430) — 같은 1,900kcal 이 어떤 회원에게는 부족이고 어떤
   /// 회원에게는 초과다. null 과 상수를 구분해 둬야 근거 문장이 어느 기준을
   /// 썼는지 말할 수 있다.
+  @override
   final int? calorieTarget;
+  @override
   final int? sodiumTarget;
+  @override
   final double? sugarTarget;
+  @override
   final double? carbsTarget;
+  @override
   final double? proteinTarget;
+  @override
   final double? fatTarget;
 
   /// 요일별 상세(월→일). 이행률과 그날 배정된 운동을 함께 담는다 — 67% 가
   /// 어디서 나온 값인지 화면에서 보이게 하는 자료다(#754).
+  @override
   final List<ReportDay> days;
 
   /// 그 주의 요일별 **끼니 기록 횟수**. (#2232)
   ///
   /// 칼로리 계열로는 이걸 대신할 수 없다. 0kcal 인 날은 "안 먹었다"가 아니라
   /// "안 적었다"이고, 리포트 ① 격자가 짚으려는 것이 정확히 그 날들이다.
+  @override
   final List<int> mealCounts;
 
   /// 회원이 그 주에 남긴 세 문항. 아직 안 냈으면 null. (#2232)
@@ -133,6 +167,12 @@ class WeeklyReport {
   /// 수치만 보면 같은 한 주가 `게으름` 으로도 `과부하·일정 문제` 로도 읽힌다.
   /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
   final MemberWeeklyFeedback? memberFeedback;
+
+  @override
+  String get memberName => client.name;
+
+  @override
+  ReportSheetAnswers? get answers => memberFeedback;
 
   /// Sunday of the reported week.
   DateTime get weekEnd => weekStart.add(const Duration(days: 6));
@@ -252,13 +292,6 @@ class WeeklyReport {
   int get mealLoggedDays => mealCounts.where((n) => n > 0).length;
 }
 
-/// 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
-/// 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 백엔드와 같은 값이다.
-const double calorieTolerance = 0.15;
-
-/// 당류 하루 기준(g) — 회원 목표가 없을 때 쓴다.
-const double sugarLimitG = 50;
-
 /// Builds [client]'s report for the week starting [weekStart].
 ///
 /// [sessions] should be that client's sessions; entries outside the week
@@ -312,7 +345,7 @@ WeeklyReport buildWeeklyReport({
 }
 
 /// 리포트의 하루 — 이행률과 그날 배정된 운동.
-class ReportDay {
+class ReportDay implements ReportSheetDay {
   /// Creates a day.
   const ReportDay({
     required this.completion,
@@ -321,10 +354,12 @@ class ReportDay {
   });
 
   /// 그날 이행률(%). 0 은 기록이 없다는 뜻이다.
+  @override
   final int completion;
 
   /// 배정된 운동 이름. 끝의 '✗' 는 건너뛴 운동을 뜻하는 저장 규칙이다 —
   /// 운동 기록 탭과 같은 규칙을 쓴다.
+  @override
   final List<String> exercises;
 
   /// 그날 **배정된** 개인 운동 수. 모르면 null 이고, 그때는 [exercises] 의
@@ -333,6 +368,7 @@ class ReportDay {
   /// 데모의 [exercises] 는 실제로 한 운동만 담아서(#1288) 하나도 안 한 날이
   /// 빈 목록으로 남는다 — 그 길이를 분모로 쓰면 `0 / 0` 이 되어, 리포트 ①
   /// 격자가 짚으려는 바로 그 날이 아무 일도 없던 날처럼 보인다.
+  @override
   final int? assigned;
 
   /// 건너뛰지 않은 운동 수.
@@ -392,16 +428,6 @@ class WeekSeries {
   /// 일별 끼니 기록 횟수. 칼로리가 답하지 못하는 값이다(#2232) — 0kcal 인
   /// 날은 안 먹은 날이 아니라 안 적은 날이다.
   final List<int> mealCounts;
-}
-
-/// 기록된 날(0 초과)만의 평균. 하나도 없으면 null — 0 으로 보고하면
-/// "아무것도 안 했다"는 거짓말이 된다.
-double? recordedMean(List<num> series) {
-  final recorded = series.where((v) => v > 0).toList(growable: false);
-  if (recorded.isEmpty) return null;
-  // fold<double> 로 더한다 — `List<int>` 를 `List<num>` 으로 받으면 reduce 의
-  // 결합 함수가 런타임 타입(int)과 맞지 않아 던진다.
-  return recorded.fold<double>(0, (sum, v) => sum + v) / recorded.length;
 }
 
 /// 나트륨 목표를 넘긴 날 수.
