@@ -791,6 +791,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   // ---- Dashboard ----
 
   Future<Response<Object?>> _dashboardSummary(RequestOptions options) async {
+    // 서버가 만드는 문장은 요청 언어(`Accept-Language`)로 낸다(#2721).
+    final Object? lang = options.headers['Accept-Language'];
+    final bool english = lang is String && lang.toLowerCase().startsWith('en');
+    String say(String ko, String en) => english ? en : ko;
     final today = _todayDateString();
     final profile = await _mergedProfile();
     final int calorieGoal =
@@ -948,17 +952,33 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
       'ai_advice_key': hasSeededAdvice ? kDailyCombinedAdviceKey : null,
       // 시드 조언이 없을 때(시드 없는 테스트 DB 등)만 나트륨 급원 기반 경고를
-      // 동적으로 만든다. 서버가 만드는 문장과 같은 성격이라 번역본이 없다.
+      // 동적으로 만든다. 서버처럼 요청 언어로 만든다(#2721).
       'sodium_warning': hasSeededAdvice
           ? null
           : totalSodium > sodiumGoal
           ? sodiumSourceNames.isNotEmpty
-                ? '$sodiumSourceNames 섭취로 나트륨이 높아요.'
-                : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.'
+                ? say(
+                    '$sodiumSourceNames 섭취로 나트륨이 높아요.',
+                    'High sodium from '
+                        '${sodiumSourceNames.replaceAll('·', ', ')}.',
+                  )
+                : say(
+                    '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.',
+                    "Today's sodium is ${totalSodium}mg, "
+                        'over the recommended ${sodiumGoal}mg.',
+                  )
           : null,
       'exercise_feedback': exerciseMinutes >= 60
-          ? '이번 주 운동 목표를 달성했어요! 마무리 스트레칭도 잊지 마세요.'
-          : '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요!',
+          ? say(
+              '이번 주 운동 목표를 달성했어요! 마무리 스트레칭도 잊지 마세요.',
+              "You've hit this week's workout goal! "
+                  "Don't forget a cool-down stretch.",
+            )
+          : say(
+              '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요!',
+              "You're 80% of the way to this week's workout goal! "
+                  'Add a light walk today to reach 100%.',
+            ),
     });
   }
 
