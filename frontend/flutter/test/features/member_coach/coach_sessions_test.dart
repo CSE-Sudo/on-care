@@ -142,7 +142,8 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      expect(await container.read(coachSessionsProvider.future), isEmpty);
+      // 데모 일정은 목 저장소가 시드로 준다(#2659) — 서버로 나가지 않는다.
+      expect(await container.read(coachSessionsProvider.future), isNotEmpty);
       verifyNever(() => dio.get<List<dynamic>>(any()));
     });
 
