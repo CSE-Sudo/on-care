@@ -40,6 +40,14 @@ const Trainer _trainer = Trainer(
   role: '전담 트레이너',
 );
 
+/// 다른 헬스장의 담당 트레이너(#2611). 이 트레이너가 담당이면 [_trainer] 에게는
+/// 상담을 낼 수 없다.
+const Trainer _otherCoach = Trainer(
+  id: 'trainer-other-coach',
+  gymId: 'gym-other',
+  name: '박담당',
+);
+
 /// 트레이너가 열어 둔 빈 자리 둘. 폼은 시작까지 4시간 이상 남은 자리만 받으므로
 /// 모레 저녁으로 둔다(#1873). 길이가 서로 달라야 화면이 자리의 길이를 그대로
 /// 쓰는지(코드 상수가 아니라) 보인다.
@@ -236,6 +244,7 @@ void main() {
     String location, {
     bool hasMyGym = true,
     bool isMyTrainer = false,
+    bool linkedElsewhere = false,
     String healthFocus = '',
     List<TrainerSlot>? slots,
     ConsultationRepository? repository,
@@ -253,7 +262,8 @@ void main() {
         // 담당 여부는 헬스장 연결과 따로 둔다 — 담당 트레이너에게 내는 상담은
         // 동의를 다시 묻지 않고 목표를 미리 채운다(#2585).
         myTrainerProvider.overrideWith(
-          (ref) async => isMyTrainer ? _trainer : null,
+          (ref) async =>
+              isMyTrainer ? _trainer : (linkedElsewhere ? _otherCoach : null),
         ),
         profileProvider.overrideWith(() => _StubProfile(healthFocus)),
         trainerProvider(_trainer.id).overrideWith((ref) async => _trainer),
@@ -585,6 +595,11 @@ void main() {
           const ConsultationRateLimited(retryAfter: Duration(hours: 5)),
           (AppLocalizations l) => l.exConsultRateLimitedHours(5),
         ),
+        (
+          '다른 담당 트레이너',
+          const ConsultationLinkedToOtherTrainer(),
+          (AppLocalizations l) => l.exConsultLinkedToOtherTrainer,
+        ),
       ]) {
     testWidgets('$name에 걸리면 안내하고 대기 중으로 표시하지 않는다 (#1628)', (
       WidgetTester tester,
@@ -722,6 +737,44 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.sent!.exerciseGoal, ExerciseGoal.weightLoss);
+  });
+
+  testWidgets('담당이 따로 있으면 다른 트레이너 상세의 상담 버튼을 막는다 (#2611)', (
+    WidgetTester tester,
+  ) async {
+    await pumpRoute(
+      tester,
+      AppRoutes.trainerDetailPath(_trainer.id),
+      linkedElsewhere: true,
+    );
+    final AppLocalizations l = _localizations(tester);
+
+    final Finder start = find.byKey(const Key('consult-start'));
+    await _scrollTo(tester, start, 250);
+    expect(tester.widget<AppButton>(start).onPressed, isNull);
+    expect(find.text(l.exConsultLinkedToOtherTrainer), findsOneWidget);
+    // 담당이 아니므로 이 화면에는 연결 해제 버튼이 없다 — 담당 상세로 보낸다.
+    expect(find.byKey(const Key('connection-disconnect-button')), findsNothing);
+    final Finder goToCoach = find.byKey(const Key('consult-go-to-my-trainer'));
+    await _scrollTo(tester, goToCoach, 250);
+    expect(goToCoach, findsOneWidget);
+  });
+
+  testWidgets('담당이 따로 있으면 다른 헬스장 상담 버튼도 막는다 (#2611)', (
+    WidgetTester tester,
+  ) async {
+    await pumpRoute(
+      tester,
+      AppRoutes.gymDetailPath(_gym.id),
+      hasMyGym: false,
+      linkedElsewhere: true,
+    );
+    final AppLocalizations l = _localizations(tester);
+
+    final Finder start = find.byKey(const Key('gym-consult-start'));
+    await _scrollTo(tester, start, 250);
+    expect(tester.widget<AppButton>(start).onPressed, isNull);
+    expect(find.text(l.exConsultLinkedToOtherTrainer), findsOneWidget);
   });
 
   testWidgets('담당이 아니면 목표를 채우지 않고 동의를 받는다 (#2585)', (

@@ -2627,6 +2627,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultPendingCta => '상담 요청 대기 중';
 
   @override
+  String get exConsultLinkedToOtherTrainer =>
+      '담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 요청하려면 담당 연결을 먼저 해제해 주세요.';
+
+  @override
+  String get exConsultGoToMyTrainer => '담당 트레이너 보기';
+
+  @override
   String get exViewConsultationRequest => '상담 요청 확인';
 
   @override

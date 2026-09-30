@@ -2058,6 +2058,8 @@
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
   "exTrainerConsultRequest": "Request a Trainer Consultation",
   "exConsultPendingCta": "Consultation Request Pending",
+  "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
+  "exConsultGoToMyTrainer": "View my trainer",
   "exViewConsultationRequest": "View consultation request",
   "exConsultTarget": "Consultation Target",
   "exTrainerConsultType": "Trainer Consultation",

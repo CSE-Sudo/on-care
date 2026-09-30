@@ -221,6 +221,18 @@ class _ConsultationRequestPageState
         type: AppToastType.error,
       );
       return;
+    } on ConsultationLinkedToOtherTrainer {
+      // 담당 트레이너가 따로 있다(#2611). 상세 화면이 버튼을 막지만, 다른 기기에서
+      // 연결됐을 수 있어 서버 판정을 최종으로 삼는다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ref.invalidate(myTrainerProvider);
+      showAppToast(
+        context,
+        AppLocalizations.of(context).exConsultLinkedToOtherTrainer,
+        type: AppToastType.error,
+      );
+      return;
     } on ConsultationRateLimited catch (e) {
       // 24시간 신청 한도(#1628). 언제 다시 낼 수 있는지 함께 알린다.
       if (!mounted) return;
