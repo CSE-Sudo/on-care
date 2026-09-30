@@ -2076,7 +2076,7 @@
   "aiAttachTargetSession": "Personal exercise for the {date} {time} PT.",
   "@aiAttachTargetSession": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
   "aiAttachTargetPt": "Personal exercise for the PT you are putting together.",
-  "aiAttachRoutines": "Attach to this PT",
+  "aiAttachRoutines": "Apply to PT",
   "aiReplaceRoutinesTitle": "Personal exercise already attached",
   "aiReplaceRoutinesBody": "This PT already has {count} personal exercise(s) ({names}). Replace them with the new ones?",
   "@aiReplaceRoutinesBody": {"placeholders": {"count": {"type": "int"}, "names": {"type": "String"}}},

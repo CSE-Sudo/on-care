@@ -893,25 +893,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 회원 — 후보 생성을 거치지 않고 개인운동만 짜서 보낸다).
   Widget _stepNav() {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 붙이기 흐름은 칸이 하나다 — 되돌아갈 칸 대신 그만두기, 편집기로 가는
-    // `프로그램에 반영` 대신 그 PT 에 붙이기를 둔다(#2280).
+    // 붙이기 흐름은 칸이 하나다 — 되돌아갈 칸이 없으니 `이전` 자리(왼쪽 끝)를
+    // 쓰지 않고, 창 하단처럼 [취소][확정] 을 오른쪽에 붙여 둔다(#2280). 확정은
+    // 위저드 마지막 칸의 `프로그램에 반영` 과 같은 말로 `PT 에 반영` 이다.
     if (widget._attachMode) {
-      return AppActionRow(
-        leading: AppButton(
-          key: const ValueKey<String>('routine-attach-cancel'),
-          label: l.actionCancel,
-          variant: AppButtonVariant.text,
-          onPressed: widget.attaching ? null : widget.onAttachCancel,
-        ),
-        actions: <Widget>[
-          AppButton(
-            key: const ValueKey<String>('routine-attach-confirm'),
-            label: l.aiAttachRoutines,
-            onPressed: _next,
-            leadingIcon: AppIcons.personalRoutine,
-            loading: widget.attaching,
-          ),
-        ],
+      return AppButtonPair(
+        cancelKey: const ValueKey<String>('routine-attach-cancel'),
+        cancelLabel: l.actionCancel,
+        onCancel: widget.attaching ? null : widget.onAttachCancel,
+        confirmKey: const ValueKey<String>('routine-attach-confirm'),
+        confirmLabel: l.aiAttachRoutines,
+        onConfirm: _next,
+        confirmLoading: widget.attaching,
       );
     }
     final int? prev = _previousStage();

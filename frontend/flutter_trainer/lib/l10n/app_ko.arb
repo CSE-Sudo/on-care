@@ -866,7 +866,7 @@
   "schedNoRoutines": "개인운동 없음",
   "schedNoRoutinesSendTitle": "개인운동 없이 보낼까요?",
   "schedNoRoutinesSendBody": "이 PT 에는 개인운동이 없어요. 보낸 뒤에는 이 PT 에 개인운동을 붙일 수 없어요.",
-  "schedNoRoutinesSendSkip": "개인운동 없이 전송",
+  "schedNoRoutinesSendSkip": "개인운동 없이 보내기",
   "schedTimeRange": "{start}–{end}",
   "schedBlockTime": "{range} ({duration})",
   "schedEmptyWeek": "이번 주에는 일정이 없어요.",
@@ -1392,11 +1392,11 @@
   "aiAttachTargetSession": "{date} {time} PT 에 붙일 개인운동이에요.",
   "@aiAttachTargetSession": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
   "aiAttachTargetPt": "지금 짜는 PT 에 붙일 개인운동이에요.",
-  "aiAttachRoutines": "이 PT 에 붙이기",
+  "aiAttachRoutines": "PT 에 반영",
   "aiReplaceRoutinesTitle": "이미 개인운동이 있어요",
-  "aiReplaceRoutinesBody": "이 PT 에 개인운동 {count}개({names})가 붙어 있어요. 새로 짠 것으로 바꿀까요?",
+  "aiReplaceRoutinesBody": "이 PT 에 개인운동 {count}개({names})가 붙어 있어요. 새로 짠 것으로 교체할까요?",
   "@aiReplaceRoutinesBody": {"placeholders": {"count": {"type": "int"}, "names": {"type": "String"}}},
-  "aiReplaceRoutinesConfirm": "바꾸기",
+  "aiReplaceRoutinesConfirm": "교체",
   "programRoutineOnlyConfirmBody": "{client}님에게 개인운동을 보내요. {start}부터 {end}까지 회원 앱에 매일 떠요.",
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }

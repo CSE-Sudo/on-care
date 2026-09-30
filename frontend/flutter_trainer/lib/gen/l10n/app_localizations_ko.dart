@@ -1762,7 +1762,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 PT 에는 개인운동이 없어요. 보낸 뒤에는 이 PT 에 개인운동을 붙일 수 없어요.';
 
   @override
-  String get schedNoRoutinesSendSkip => '개인운동 없이 전송';
+  String get schedNoRoutinesSendSkip => '개인운동 없이 보내기';
 
   @override
   String schedTimeRange(String start, String end) {
@@ -3095,18 +3095,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAttachTargetPt => '지금 짜는 PT 에 붙일 개인운동이에요.';
 
   @override
-  String get aiAttachRoutines => '이 PT 에 붙이기';
+  String get aiAttachRoutines => 'PT 에 반영';
 
   @override
   String get aiReplaceRoutinesTitle => '이미 개인운동이 있어요';
 
   @override
   String aiReplaceRoutinesBody(int count, String names) {
-    return '이 PT 에 개인운동 $count개($names)가 붙어 있어요. 새로 짠 것으로 바꿀까요?';
+    return '이 PT 에 개인운동 $count개($names)가 붙어 있어요. 새로 짠 것으로 교체할까요?';
   }
 
   @override
-  String get aiReplaceRoutinesConfirm => '바꾸기';
+  String get aiReplaceRoutinesConfirm => '교체';
 
   @override
   String programRoutineOnlyConfirmBody(

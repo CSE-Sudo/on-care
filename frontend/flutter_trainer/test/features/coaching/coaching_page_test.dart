@@ -585,7 +585,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
 Future<void> _completePersonalStep(
   WidgetTester tester,
   Finder scrollable, {
-  // 붙이기 흐름(#2280)은 `프로그램에 반영` 대신 `이 PT 에 붙이기` 로 끝난다.
+  // 붙이기 흐름(#2280)은 `프로그램에 반영` 대신 `PT 에 반영` 으로 끝난다.
   String doneKey = 'complete-personal-routines',
 }) async {
   // 제안이 늦게 도착할 수 있다 — 한 번 더 정착시킨 뒤 비어 있는지 본다.
@@ -3299,7 +3299,7 @@ void main() {
       // 묻는 동안에는 바꾸지 않는다.
       expect(scheduleRepo.updatedFor, isEmpty);
 
-      await tester.tap(find.text('바꾸기'));
+      await tester.tap(find.text('교체'));
       await settle(tester);
       expect(scheduleRepo.updatedFor, <String>['attach-target']);
     });

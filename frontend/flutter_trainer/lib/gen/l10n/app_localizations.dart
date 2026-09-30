@@ -5674,7 +5674,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAttachRoutines.
   ///
   /// In en, this message translates to:
-  /// **'Attach to this PT'**
+  /// **'Apply to PT'**
   String get aiAttachRoutines;
 
   /// No description provided for @aiReplaceRoutinesTitle.

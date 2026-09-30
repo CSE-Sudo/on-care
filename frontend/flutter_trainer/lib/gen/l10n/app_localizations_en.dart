@@ -3259,7 +3259,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Personal exercise for the PT you are putting together.';
 
   @override
-  String get aiAttachRoutines => 'Attach to this PT';
+  String get aiAttachRoutines => 'Apply to PT';
 
   @override
   String get aiReplaceRoutinesTitle => 'Personal exercise already attached';
