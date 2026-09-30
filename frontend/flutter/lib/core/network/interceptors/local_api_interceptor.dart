@@ -2641,7 +2641,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     // 실 서버는 그만한 시간이 걸리므로 데모도 같은 리듬으로 답한다.
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
-    final (String reply, List<String> sources) = _mockCoachReply(message);
+    // 답은 요청 언어로 낸다 — 실서버가 `Accept-Language` 로 고르는 것과 같다(#2712).
+    final Object? lang = options.headers['Accept-Language'];
+    final (String reply, List<String> sources) = _mockCoachReply(
+      message,
+      english: lang is String && lang.toLowerCase().startsWith('en'),
+    );
     final ({int spent, int? balance}) charge =
         replayed ?? _aiChatQuota.record(clientRequestId: requestId);
     // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
@@ -3033,92 +3038,191 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return _ok(options, <String, Object?>{'status': 'dismissed'});
   }
 
-  (String, List<String>) _mockCoachReply(String message) {
-    bool has(List<String> keys) => keys.any(message.contains);
+  (String, List<String>) _mockCoachReply(
+    String message, {
+    bool english = false,
+  }) {
+    // 영어 질문도 같은 갈래로 알아듣고, 답은 요청 언어로 낸다(#2712) — 실서버가
+    // `Accept-Language` 로 답하는 언어를 고르는 것과 같다. 영어 키워드는 소문자다.
+    final String lower = message.toLowerCase();
+    bool has(List<String> keys) =>
+        keys.any((String k) => message.contains(k) || lower.contains(k));
+    String say(String ko, String en) => english ? en : ko;
 
     // 아픈 곳 이야기가 먼저다. 영양 갈래를 앞에 두면 "허리가 당겨요" 가 `당` 에
     // 걸려 디저트 이야기를 답한다 — 화면에는 `허리 통증 감지` 표시가 붙은 채로
     // 엉뚱한 답이 달렸다(#1918).
     if (detectChatInsight(message)?.kind == ChatInsightKind.discomfort) {
       return (
-        '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
-            '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+        say(
+          '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
+              '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+          "Sorry to hear something's bothering you. Today, skip moves that load that area "
+              'and switch to walking or light stretching. If the pain lasts more than three days '
+              "or it swells, it's best to see a doctor.",
+        ),
         <String>[_srcPaSafety],
       );
     }
-    if (has(<String>['나트륨', '짜', '소금', '국물'])) {
+    if (has(<String>['나트륨', '짜', '소금', '국물', 'sodium', 'salt', 'broth'])) {
       return (
-        '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
-            '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
+        say(
+          '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
+              '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
+          'To cut sodium, leave the broth and eat the solids, and season with pepper, '
+              'garlic or lemon instead of salt. Aim for 2,000mg or less a day. 🌿',
+        ),
         <String>[_srcSodium],
       );
     }
     // `당` 한 글자는 쓰지 않는다 — `당기다`·`당근`·`담당` 까지 걸린다.
-    if (has(<String>['혈당', '설탕', '단 것', '단맛', '디저트'])) {
+    if (has(<String>[
+      '혈당',
+      '설탕',
+      '단 것',
+      '단맛',
+      '디저트',
+      'sugar',
+      'sweet',
+      'dessert',
+    ])) {
       return (
-        '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
-            '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
+        say(
+          '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
+              '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
+          'Cut back on simple sugars like sweetened drinks and desserts, and add more '
+              'fiber-rich whole grains and vegetables. Just switching drinks to water or '
+              'unsweetened tea lowers your daily sugar quite a bit. 🍵',
+        ),
         <String>[_srcCarb],
       );
     }
-    if (has(<String>['운동', '걷', '헬스', '유산소', '근력'])) {
+    if (has(<String>[
+      '운동',
+      '걷',
+      '헬스',
+      '유산소',
+      '근력',
+      'exercise',
+      'workout',
+      'walk',
+      'cardio',
+      'strength',
+    ])) {
       return (
-        '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
-            '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
+        say(
+          '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
+              '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
+          'Try 30 minutes of moderate cardio such as brisk walking, five days a week. '
+              'That fills your 150-minute weekly goal. Add light strength training twice '
+              'a week for a good balance. 🚶',
+        ),
         <String>[_srcPaAdult],
       );
     }
     // 저녁 메뉴 추천은 빠른 질문 버튼의 첫 줄이다 — 일반론 대신 오늘 기록(점심
     // 짬뽕)과 이어지는 한 끼를 답해야 "맞춤"으로 읽힌다(#1180).
-    if (has(<String>['저녁']) && has(<String>['메뉴', '먹', '추천'])) {
+    if (has(<String>['저녁', 'dinner']) &&
+        has(<String>['메뉴', '먹', '추천', 'menu', 'eat', 'recommend'])) {
       return (
-        '오늘 점심에 드신 짬뽕으로 나트륨과 당류가 많았어요. 저녁은 싱겁고 단백질과 채소가 '
-            '풍부한 메뉴를 추천해요.\n'
-            '🍽️ 추천 메뉴: 닭가슴살 채소구이 + 현미밥\n\n'
-            '• 닭가슴살로 운동 후 단백질을 보충하고\n'
-            '• 다양한 채소로 식이섬유와 영양소를 챙겨주세요.\n'
-            '• 현미밥은 적당량 곁들여 균형 잡힌 한 끼로 드시면 좋아요.\n\n'
-            '오늘은 국물이나 양념이 많은 음식은 피하고, 물도 충분히 섭취해 주세요.',
+        say(
+          '오늘 점심에 드신 짬뽕으로 나트륨과 당류가 많았어요. 저녁은 싱겁고 단백질과 채소가 '
+              '풍부한 메뉴를 추천해요.\n'
+              '🍽️ 추천 메뉴: 닭가슴살 채소구이 + 현미밥\n\n'
+              '• 닭가슴살로 운동 후 단백질을 보충하고\n'
+              '• 다양한 채소로 식이섬유와 영양소를 챙겨주세요.\n'
+              '• 현미밥은 적당량 곁들여 균형 잡힌 한 끼로 드시면 좋아요.\n\n'
+              '오늘은 국물이나 양념이 많은 음식은 피하고, 물도 충분히 섭취해 주세요.',
+          'The jjamppong you had for lunch was high in sodium and sugar. For dinner, '
+              "I'd suggest something lightly seasoned with plenty of protein and vegetables.\n"
+              '🍽️ Suggested menu: grilled chicken breast with vegetables + brown rice\n\n'
+              '• Chicken breast tops up protein after your workout.\n'
+              '• A mix of vegetables adds fiber and nutrients.\n'
+              '• Add a moderate portion of brown rice for a balanced meal.\n\n'
+              'Skip soupy or heavily seasoned dishes today, and drink plenty of water.',
+        ),
         <String>[_srcSodium, _srcCarb],
       );
     }
-    if (has(<String>['단백질'])) {
+    if (has(<String>['단백질', 'protein'])) {
       return (
-        '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
-            '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+        say(
+          '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
+              '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+          "While you're doing strength training, aim for 1.2–1.6g per kg of body weight. "
+              'Your goal is 100g a day, so a palm-sized protein dish at each meal will get '
+              'you there.',
+        ),
         <String>[_srcProtein],
       );
     }
-    if (has(<String>['뭐 먹', '식단', '점심', '저녁', '아침', '메뉴'])) {
+    if (has(<String>[
+      '뭐 먹',
+      '식단',
+      '점심',
+      '저녁',
+      '아침',
+      '메뉴',
+      'what should i eat',
+      'meal',
+      'lunch',
+      'dinner',
+      'breakfast',
+      'menu',
+    ])) {
       return (
-        '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
-            '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
+        say(
+          '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
+              '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
+          'Build your plate around vegetables, whole grains and lean protein. Keep soups '
+              'lightly seasoned and choose grilled or steamed over fried. If your sodium has '
+              'been high lately, a light salad or grilled fish helps balance it. 🥗',
+        ),
         <String>[_srcSodium],
       );
     }
-    if (has(<String>['물', '수분'])) {
+    if (has(<String>['물', '수분', 'water', 'hydrat'])) {
       return (
-        '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
+        say(
+          '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
+          'Spread 6–8 glasses of water across the day. Try swapping caffeinated and '
+              'sweetened drinks for water. 💧',
+        ),
         <String>[_srcWater],
       );
     }
-    if (has(<String>['체중', '살', '다이어트', '몸무게'])) {
+    if (has(<String>['체중', '살', '다이어트', '몸무게', 'weight'])) {
       return (
-        '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 한 주에 체중의 0.5~1% 정도가 '
-            '무리 없는 속도예요. 함께 천천히 가봐요! 💪',
+        say(
+          '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 한 주에 체중의 0.5~1% 정도가 '
+              '무리 없는 속도예요. 함께 천천히 가봐요! 💪',
+          'Losing weight gradually with both diet and exercise is safer than dropping it '
+              'fast. About 0.5–1% of your body weight a week is a comfortable pace. '
+              "Let's take it steady together! 💪",
+        ),
         <String>['체중 관리'],
       );
     }
-    if (has(<String>['기록', '어떻게', '사용', '방법'])) {
+    if (has(<String>['기록', '어떻게', '사용', '방법', 'log', 'record', 'how do i'])) {
       return (
-        '식단은 사진 한 장이면 AI가 칼로리와 영양소를 계산해 기록해요. 운동은 가운데 + 버튼으로 바로 '
-            '추가할 수 있고요. 기록이 쌓이면 제가 그걸 보고 더 구체적으로 도와드릴 수 있어요. 📷',
+        say(
+          '식단은 사진 한 장이면 AI가 칼로리와 영양소를 계산해 기록해요. 운동은 가운데 + 버튼으로 바로 '
+              '추가할 수 있고요. 기록이 쌓이면 제가 그걸 보고 더 구체적으로 도와드릴 수 있어요. 📷',
+          'For meals, one photo is enough: AI works out the calories and nutrients and logs '
+              'them. You can add workouts right away with the + button in the middle. Once '
+              'your records build up, I can help more specifically. 📷',
+        ),
         <String>[],
       );
     }
     return (
-      '좋은 질문이에요! 식단·운동·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
-          '맞춤으로 도와드릴게요. 예를 들어 "나트륨 줄이는 법"이나 "오늘 뭐 먹을까?"처럼요. 😊',
+      say(
+        '좋은 질문이에요! 식단·운동·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
+            '맞춤으로 도와드릴게요. 예를 들어 "나트륨 줄이는 법"이나 "오늘 뭐 먹을까?"처럼요. 😊',
+        'Good question! Ask Oni something more specific about diet, exercise or hydration '
+            'and I\'ll tailor the help. For example, "how to cut sodium" or "what should I '
+            'eat today?" 😊',
+      ),
       <String>[],
     );
   }
