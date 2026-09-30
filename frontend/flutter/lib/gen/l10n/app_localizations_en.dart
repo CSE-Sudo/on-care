@@ -16,6 +16,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'On-Care';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoHome => 'Go home';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get navDashboard => 'Home';
 
   @override
