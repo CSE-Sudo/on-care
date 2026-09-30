@@ -3070,8 +3070,60 @@ class LocalApiInterceptor extends Interceptor {
     return _ok(options, await _mergedProfile());
   }
 
+  /// 데모 세계에서 **다른 계정이 이미 쓰는** 이메일(#2639).
+  ///
+  /// 회원 앱 데모는 김민수 한 명으로 돌지만, 같은 세계의 트레이너와 다른 담당
+  /// 회원은 백엔드 시드(`backend/app/db/seed_trainer.py` 의 `TRAINER_EMAIL`·
+  /// `_MEMBERS`)에 계정으로 있다. 그 주소로 바꾸면 실서버처럼 409 로 거절한다 —
+  /// 목업에서만 되는 저장이 있으면 실서버에서 처음 거절을 보게 된다.
+  static const Set<String> _demoTakenEmails = <String>{
+    'trainer@oncare.com',
+    'jisu@oncare.com',
+    'sungho@oncare.com',
+    'hayun@oncare.demo',
+    'woojin@oncare.demo',
+    'kangseoyeon@oncare.demo',
+    'dohyun@oncare.demo',
+    'sera@oncare.demo',
+    'junhyuk@oncare.demo',
+    'yuna@oncare.demo',
+    'jiho@oncare.demo',
+    'gayoung@oncare.demo',
+    'taekyung@oncare.demo',
+    'seojin@oncare.demo',
+    'eunchae@oncare.demo',
+  };
+
+  /// PUT /users/me — 서버(`update_me`)와 같은 두 거절을 먼저 본다(#2639).
+  ///
+  ///  * 다른 계정이 쓰는 이메일 → 409. 자기 이메일 그대로면 통과한다.
+  ///  * 있던 연락처를 비움 → 422. 서버처럼 `detail` 을 문장으로 준다.
+  ///
+  /// 거절하면 아무것도 저장하지 않는다.
   Future<Response<Object?>> _usersMeUpdate(RequestOptions options) async {
     final body = _jsonBody(options);
+    final Map<String, Object?> current = await _mergedProfile();
+    final String? email = (body['email'] as String?)?.trim().toLowerCase();
+    final String currentEmail = ((current['email'] as String?) ?? '')
+        .trim()
+        .toLowerCase();
+    if (email != null &&
+        email != currentEmail &&
+        _demoTakenEmails.contains(email)) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 409,
+        data: <String, Object?>{'detail': '이미 사용 중인 이메일입니다.'},
+      );
+    }
+    final String currentPhone = ((current['phone'] as String?) ?? '').trim();
+    if (body['phone'] == '' && currentPhone.isNotEmpty) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{'detail': '전화번호는 비울 수 없습니다.'},
+      );
+    }
     final patch = <String, Object?>{};
     for (final String k in <String>[
       'name',

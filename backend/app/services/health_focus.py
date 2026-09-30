@@ -71,6 +71,25 @@ def normalize_conditions(raw: str | None) -> str | None:
     return ", ".join(focus + others)
 
 
+def notes_in(raw: str | None) -> list[str]:
+    """`conditions` 에서 건강 목표를 뺀 글(건강상태·주의사항) 조각. (#2618, #2619)
+
+    회원과 담당 트레이너가 같은 글을 함께 고친다.
+    """
+    tokens = (normalize_conditions(raw) or "").split(",")
+    return [t.strip() for t in tokens if t.strip() and t.strip() not in FOCUS_OPTIONS]
+
+
+def notes_length(raw: str | None) -> int:
+    """건강상태·주의사항의 글자 수. (#2618)
+
+    글 조각은 쉼표 하나로만 이어 센다. 저장 형태(`, `)로 세면 쉼표 뒤 공백 없이
+    적은 글이 입력칸의 글자 수보다 길게 세여, 앱이 받아 준 글을 서버가 거절한다.
+    조각을 다듬고 겹친 것을 합치기만 하므로 입력보다 길어지지 않는다.
+    """
+    return len(",".join(notes_in(raw)))
+
+
 def focus_in(raw: str | None) -> list[str]:
     """`conditions` 에 들어 있는 건강 목표만 [FOCUS_OPTIONS] 순서로."""
     tokens = {t.strip() for t in (normalize_conditions(raw) or "").split(",")}

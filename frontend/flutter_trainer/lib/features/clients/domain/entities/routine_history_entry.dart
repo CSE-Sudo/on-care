@@ -114,7 +114,7 @@ const Map<String, String> _kindByStoredLabel = <String, String>{
 /// 언어의 문구를 고른다 — 저장된 문자열을 고치는 마이그레이션 없이 옛 행과 데모
 /// DB 까지 같은 이름으로 보인다. 트레이너가 지은 이름은 그대로 둔다.
 String routineKindLabel(AppLocalizations l, String raw, {String? kind}) {
-  final String? code = kind ?? _kindByStoredLabel[raw.trim()];
+  final String? code = routineKindCode(raw, kind: kind);
   return switch (code) {
     'pt_session' => l.workoutKindPtSession,
     'ai_personal' => l.workoutKindAiPersonal,
@@ -123,6 +123,12 @@ String routineKindLabel(AppLocalizations l, String raw, {String? kind}) {
     _ => raw,
   };
 }
+
+/// 이력의 종류 코드(`pt_session`·`ai_personal`·`assigned_routine`). 서버가 준
+/// [kind] 가 없으면(데모·옛 서버) 저장된 고정 이름으로 찾는다 — [routineKindLabel]
+/// 과 같은 규칙이다. 트레이너가 지은 이름이면 null.
+String? routineKindCode(String raw, {String? kind}) =>
+    kind ?? _kindByStoredLabel[raw.trim()];
 
 /// 기록 카드의 날짜 문구 — `9/27 (오늘)` / `9/27 (Today)`. (#2300)
 ///

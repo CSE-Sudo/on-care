@@ -418,7 +418,7 @@ def test_an_overlong_message_is_refused(client, db_session):
     member_id, member_token = _member(client)
     _trainer(client, db_session, member_id)
 
-    response = _send(client, member_token, message="가" * 2001)
+    response = _send(client, member_token, message="가" * 1001)
 
     assert response.status_code == 422
 

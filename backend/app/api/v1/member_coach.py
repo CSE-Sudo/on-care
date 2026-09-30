@@ -21,6 +21,7 @@ from app.api.v1 import chat_attachments
 from app.core import clock
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
+from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
     MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
@@ -286,7 +287,7 @@ async def send_image_to_coach(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(...),
-    message: str = Form("", max_length=2000),
+    message: str = Form("", max_length=TEXT_LONG_MAX),
     client_request_id: str | None = Form(None, min_length=1, max_length=64),
 ) -> ChatMessageOut:
     """회원이 담당 트레이너에게 사진을 보낸다. (#1665)

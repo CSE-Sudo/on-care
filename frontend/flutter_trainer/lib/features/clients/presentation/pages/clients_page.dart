@@ -31,7 +31,13 @@ const double _filterPanelWidth = 360;
 class ClientsPage extends ConsumerStatefulWidget {
   /// Creates the roster page. [selectedId]/[section] come from the path,
   /// [filter] from the `f` query parameter.
-  const ClientsPage({super.key, this.selectedId, this.section, this.filter});
+  const ClientsPage({
+    super.key,
+    this.selectedId,
+    this.section,
+    this.filter,
+    this.openHealthNotes = false,
+  });
 
   /// Client whose detail is open, or null for the plain list.
   final String? selectedId;
@@ -41,6 +47,9 @@ class ClientsPage extends ConsumerStatefulWidget {
 
   /// Roster filter from the URL.
   final String? filter;
+
+  /// 주의사항 알림에서 왔다 — 상세가 신체·목표 창의 `건강 목표` 탭을 연다(#2619).
+  final bool openHealthNotes;
 
   @override
   ConsumerState<ClientsPage> createState() => _ClientsPageState();
@@ -193,6 +202,16 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                               clientId: selected,
                               section: widget.section,
                               showBack: !wide,
+                              openHealthNotes: widget.openHealthNotes,
+                              // 한 번 열었으면 주소에서 지운다 — 새로 고칠 때마다
+                              // 창이 다시 뜨지 않게.
+                              onHealthNotesOpened: () => context.replace(
+                                AppRoutes.clientDetail(
+                                  selected,
+                                  section: widget.section,
+                                  filter: widget.filter,
+                                ),
+                              ),
                               onSectionChange: (next) => context.go(
                                 AppRoutes.clientDetail(
                                   selected,

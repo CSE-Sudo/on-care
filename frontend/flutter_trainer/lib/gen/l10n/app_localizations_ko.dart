@@ -913,7 +913,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientStatusChangeFailed => '상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';
+  String get chatTooLong => '메시지가 너무 길어요 (최대 1000자)';
 
   @override
   String get chatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
@@ -3391,6 +3391,19 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get notifTplHealthNotesTitle => '회원 주의사항 변경';
+
+  @override
+  String notifTplHealthNotesBody(String name) {
+    return '$name 회원이 건강상태·주의사항을 바꿨어요';
+  }
+
+  @override
+  String notifTplHealthNotesWithGoalsBody(String name) {
+    return '$name 회원이 건강 목표와 건강상태·주의사항을 바꿨어요';
+  }
+
+  @override
   String get notifTplNoGoals => '목표 없음';
 
   @override
@@ -3967,6 +3980,52 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientTrainerMemoDeleteBody => '지운 메모는 되돌릴 수 없어요.';
+
+  @override
+  String get clientExerciseMemoAdd => '메모 남기기';
+
+  @override
+  String clientExerciseMemoCount(int count) {
+    return '메모 $count개';
+  }
+
+  @override
+  String get clientExerciseMemoHint => '이 운동 기록에서 기억할 내용을 적어 주세요';
+
+  @override
+  String get clientExerciseMemoSaved => '메모에 남겼어요.';
+
+  @override
+  String get clientMemoTagManual => '직접 작성';
+
+  @override
+  String clientMemoTagPtSession(String date) {
+    return 'PT 세션 · $date';
+  }
+
+  @override
+  String clientMemoTagPersonal(String date) {
+    return '개인 운동 · $date';
+  }
+
+  @override
+  String clientMemoTagPersonalNamed(String date, String name) {
+    return '개인 운동 · $date $name';
+  }
+
+  @override
+  String clientMemoTagMemberLog(String date) {
+    return '회원 기록 · $date';
+  }
+
+  @override
+  String get clientMemoEdited => '수정됨';
+
+  @override
+  String get clientMemoSearchHint => '메모 검색 (본문·태그)';
+
+  @override
+  String get clientMemoSearchEmpty => '찾는 메모가 없어요.';
 
   @override
   String get followUp => '후속 관리';

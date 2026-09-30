@@ -142,19 +142,34 @@ class AppRoutes {
   /// it is what made the 대시보드 '주의 고객' 카드 → 목록 → 고객 순서에서
   /// 필터가 사라지게 했다: 상세는 별개 라우트라 쿼리를 물려주지 않으면 그
   /// 자리에서 전체 로스터로 돌아간다(#816).
-  static String clientDetail(String id, {String? section, String? filter}) {
+  ///
+  /// [openHealthNotes] 는 들어가자마자 신체·목표 창의 `건강 목표` 탭을 연다 —
+  /// 주의사항 알림에서 온 길이다(#2619).
+  static String clientDetail(
+    String id, {
+    String? section,
+    String? filter,
+    bool openHealthNotes = false,
+  }) {
     final safeSection = clientSections.contains(section)
         ? section!
         : defaultClientSection;
     final path = '$clients/${Uri.encodeComponent(id)}/$safeSection';
     // 빈 맵을 넘기면 `?` 만 붙은 주소가 나온다 — 필터가 없을 때는 쿼리 자체를
     // 만들지 않는다.
-    if (filter == null) return path;
+    if (filter == null && !openHealthNotes) return path;
     return Uri(
       path: path,
-      queryParameters: <String, String>{'f': filter},
+      queryParameters: <String, String>{
+        'f': ?filter,
+        if (openHealthNotes) clientOpenParam: clientOpenHealthNotes,
+      },
     ).toString();
   }
+
+  /// [clientDetail] 이 창을 열라고 알리는 쿼리 이름과 값.
+  static const String clientOpenParam = 'open';
+  static const String clientOpenHealthNotes = 'health-notes';
 
   /// Builds the 고객 list filtered to a preset. Used by the dashboard
   /// KPI cards (`unread` = 답장 필요, `attention` = 주의 고객).

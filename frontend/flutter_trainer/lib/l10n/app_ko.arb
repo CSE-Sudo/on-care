@@ -367,7 +367,7 @@
     }
   },
   "clientStatusChangeFailed": "상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요",
-  "chatTooLong": "메시지가 너무 길어요 (최대 2000자)",
+  "chatTooLong": "메시지가 너무 길어요 (최대 1000자)",
   "chatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
   "chatLoadFailed": "대화를 불러오지 못했어요",
   "chatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
@@ -1508,6 +1508,9 @@
   "notifNoEarlier": "더 지난 알림이 없어요",
   "notifTplHealthGoalTitle": "회원 건강 목표 변경",
   "notifTplHealthGoalBody": "{name} 회원이 건강 목표를 바꿨어요: {goals}",
+  "notifTplHealthNotesTitle": "회원 주의사항 변경",
+  "notifTplHealthNotesBody": "{name} 회원이 건강상태·주의사항을 바꿨어요",
+  "notifTplHealthNotesWithGoalsBody": "{name} 회원이 건강 목표와 건강상태·주의사항을 바꿨어요",
   "notifTplNoGoals": "목표 없음",
   "notifTplMemberRenamedTitle": "회원 이름 변경",
   "notifTplMemberRenamedBody": "{oldName} 회원이 이름을 바꿨어요: {newName}",
@@ -1677,6 +1680,56 @@
   "clientTrainerMemoDeleteFailed": "메모를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요",
   "clientTrainerMemoDeleteTitle": "메모를 삭제할까요?",
   "clientTrainerMemoDeleteBody": "지운 메모는 되돌릴 수 없어요.",
+  "clientExerciseMemoAdd": "메모 남기기",
+  "clientExerciseMemoCount": "메모 {count}개",
+  "@clientExerciseMemoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseMemoHint": "이 운동 기록에서 기억할 내용을 적어 주세요",
+  "clientExerciseMemoSaved": "메모에 남겼어요.",
+  "clientMemoTagManual": "직접 작성",
+  "clientMemoTagPtSession": "PT 세션 · {date}",
+  "@clientMemoTagPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagPersonal": "개인 운동 · {date}",
+  "@clientMemoTagPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagPersonalNamed": "개인 운동 · {date} {name}",
+  "@clientMemoTagPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagMemberLog": "회원 기록 · {date}",
+  "@clientMemoTagMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoEdited": "수정됨",
+  "clientMemoSearchHint": "메모 검색 (본문·태그)",
+  "clientMemoSearchEmpty": "찾는 메모가 없어요.",
   "followUp": "후속 관리",
   "followUpTitle": "{name}님 후속 관리",
   "@followUpTitle": {

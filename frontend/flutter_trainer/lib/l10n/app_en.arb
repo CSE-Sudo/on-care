@@ -596,7 +596,7 @@
     }
   },
   "clientStatusChangeFailed": "Couldn't change the status. Please try again.",
-  "chatTooLong": "Message is too long (2000 characters max)",
+  "chatTooLong": "Message is too long (1000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
   "chatReportRegistered": "Weekly report added",
@@ -2287,6 +2287,23 @@
       }
     }
   },
+  "notifTplHealthNotesTitle": "Member health notes changed",
+  "notifTplHealthNotesBody": "{name} updated their health notes",
+  "@notifTplHealthNotesBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplHealthNotesWithGoalsBody": "{name} updated their health goals and health notes",
+  "@notifTplHealthNotesWithGoalsBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifTplNoGoals": "none",
   "@notifTplNoGoals": {
     "description": "Shown in place of the goal list when the member cleared every health goal."
@@ -2658,6 +2675,56 @@
   "clientTrainerMemoDeleteFailed": "Couldn't delete the memo. Please try again.",
   "clientTrainerMemoDeleteTitle": "Delete this memo?",
   "clientTrainerMemoDeleteBody": "A deleted memo can't be restored.",
+  "clientExerciseMemoAdd": "Leave a memo",
+  "clientExerciseMemoCount": "{count, plural, =1{1 memo} other{{count} memos}}",
+  "@clientExerciseMemoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseMemoHint": "Note what to remember from this workout",
+  "clientExerciseMemoSaved": "Saved to memos.",
+  "clientMemoTagManual": "Written by you",
+  "clientMemoTagPtSession": "PT session · {date}",
+  "@clientMemoTagPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagPersonal": "Personal workout · {date}",
+  "@clientMemoTagPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagPersonalNamed": "Personal workout · {date} {name}",
+  "@clientMemoTagPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagMemberLog": "Member's log · {date}",
+  "@clientMemoTagMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoEdited": "Edited",
+  "clientMemoSearchHint": "Search memos (text or tag)",
+  "clientMemoSearchEmpty": "No memos match your search.",
   "followUp": "Follow-ups",
   "followUpTitle": "Follow-ups on {name}",
   "@followUpTitle": {

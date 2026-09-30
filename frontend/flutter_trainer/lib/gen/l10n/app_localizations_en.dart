@@ -939,7 +939,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t change the status. Please try again.';
 
   @override
-  String get chatTooLong => 'Message is too long (2000 characters max)';
+  String get chatTooLong => 'Message is too long (1000 characters max)';
 
   @override
   String get chatSendFailed => 'Couldn\'t send the message. Please try again';
@@ -3567,6 +3567,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifTplHealthNotesTitle => 'Member health notes changed';
+
+  @override
+  String notifTplHealthNotesBody(String name) {
+    return '$name updated their health notes';
+  }
+
+  @override
+  String notifTplHealthNotesWithGoalsBody(String name) {
+    return '$name updated their health goals and health notes';
+  }
+
+  @override
   String get notifTplNoGoals => 'none';
 
   @override
@@ -4167,6 +4180,59 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get clientTrainerMemoDeleteBody =>
       'A deleted memo can\'t be restored.';
+
+  @override
+  String get clientExerciseMemoAdd => 'Leave a memo';
+
+  @override
+  String clientExerciseMemoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count memos',
+      one: '1 memo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get clientExerciseMemoHint =>
+      'Note what to remember from this workout';
+
+  @override
+  String get clientExerciseMemoSaved => 'Saved to memos.';
+
+  @override
+  String get clientMemoTagManual => 'Written by you';
+
+  @override
+  String clientMemoTagPtSession(String date) {
+    return 'PT session · $date';
+  }
+
+  @override
+  String clientMemoTagPersonal(String date) {
+    return 'Personal workout · $date';
+  }
+
+  @override
+  String clientMemoTagPersonalNamed(String date, String name) {
+    return 'Personal workout · $date $name';
+  }
+
+  @override
+  String clientMemoTagMemberLog(String date) {
+    return 'Member\'s log · $date';
+  }
+
+  @override
+  String get clientMemoEdited => 'Edited';
+
+  @override
+  String get clientMemoSearchHint => 'Search memos (text or tag)';
+
+  @override
+  String get clientMemoSearchEmpty => 'No memos match your search.';
 
   @override
   String get followUp => 'Follow-ups';

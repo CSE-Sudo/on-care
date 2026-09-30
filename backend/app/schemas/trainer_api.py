@@ -28,6 +28,7 @@ from app.schemas.exercise_limits import (
 )
 from app.schemas.health_goal_ranges import (
     ConditionsText,
+    check_conditions_notes,
     DailyBurnKcal,
     DailyCalories,
     DailyCarbsG,
@@ -43,6 +44,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
 from app.services.password_policy import check_new_password
 from app.services import contact_format
@@ -256,7 +258,8 @@ class MemberHealthProfileUpdate(PartialUpdate):
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: str | None) -> str | None:
-        return health_focus.normalize_conditions(value)
+        # 건강상태·주의사항은 기록 한 건 상한까지다 — 회원 경로와 같다(#2618).
+        return check_conditions_notes(health_focus.normalize_conditions(value))
 
 class ClientDietEntryOut(BaseModel):
     """고객 식단 서브탭 한 끼 — 프론트 ClientDietEntry 계약 정렬."""
@@ -331,6 +334,9 @@ class RoutineHistoryOut(BaseModel):
     kind: RoutineHistoryKind | None = None
     #: `exercises` 와 같은 순서·같은 개수의 값 목록(#2300).
     exercise_items: list[RoutineHistoryExerciseOut] = Field(default_factory=list)
+    #: 두 칸 모두 트레이너 웹 화면이 읽지 않는다(#2334). 개인운동 이력은 늘 빈
+    #: 문자열이고(#1825, #2517), PT 세션 이력의 `trainer_note` 는 PT 완료 때
+    #: 복사한 일정의 글이다 — 정리는 일정 글 결정(#2515)과 함께 본다.
     client_feedback: str
     trainer_note: str
     assigned_routine_id: str | None = None
@@ -385,7 +391,7 @@ class ChatSendRequest(BaseModel):
     # 상한만 둔다(빈/공백은 라우터에서 trim 후 400). 과도한 길이는 여기서 422.
     #
     # 이모티콘만 보낼 때는 본문이 비어 있다 — 그때는 [emote_id] 가 대신 채운다.
-    text: str = Field(default="", max_length=2000)
+    text: str = Field(default="", max_length=TEXT_LONG_MAX)
     #: 이모티콘 id(#2020). 회원은 이용권이 있어야 보낼 수 있고, 트레이너는 그냥
     #: 보낸다. 모르는 id 는 400 이다.
     emote_id: str | None = Field(default=None, min_length=1, max_length=40)
@@ -634,6 +640,8 @@ class RoutineOut(BaseModel):
     #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
     completed_duration_seconds: int | None = None
     completed_intensity: str | None = None
+    #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
+    #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
@@ -809,10 +817,6 @@ class RoutineUpdateRequest(PartialUpdate):
     reason: str | None = Field(default=None, max_length=200)
 
 
-class RoutineFeedbackRequest(BaseModel):
-    feedback: str = Field(min_length=1, max_length=2000)
-
-
 # ---- 프로그램 초안 (#708) ----
 
 #: 세션 하나가 담는 운동 수 상한. 화면이 한 세션에 넣을 수 있는 현실적인 개수를
@@ -887,7 +891,7 @@ class TrainerProgramDraftCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     goal: str = Field(default="", max_length=200)
     period: str = Field(default="", max_length=100)
-    memo: str = Field(default="", max_length=2000)
+    memo: str = Field(default="", max_length=TEXT_ENTRY_MAX)
     #: 운동이 하나도 없는 초안도 저장할 수 있다 — 이름과 목표만 잡아 둔 상태가
     #: 초안으로서 의미가 있고, 그 상태를 저장하지 못하면 기능이 반쪽이 된다.
     sessions: list[ProgramDraftSession] = Field(
@@ -907,7 +911,7 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     goal: str | None = Field(default=None, max_length=200)
     period: str | None = Field(default=None, max_length=100)
-    memo: str | None = Field(default=None, max_length=2000)
+    memo: str | None = Field(default=None, max_length=TEXT_ENTRY_MAX)
     sessions: list[ProgramDraftSession] | None = Field(
         default=None, max_length=_PROGRAM_MAX_SESSIONS
     )
@@ -1028,8 +1032,13 @@ class ProgramAssignRequest(BaseModel):
 
 
 #: 메모 출처. 'trainer' 는 회원 상세에서 직접 쓴 메모, 'chat_insight' 는 채팅에서
-#: 감지한 신호를 저장한 메모다. 회원 상세는 두 종류를 한 목록으로 보여 준다.
-TrainerMemoSource = Literal["trainer", "chat_insight"]
+#: 감지한 신호를 저장한 메모, 'exercise_memo' 는 운동 탭 기록 카드에서 남긴
+#: 메모다(#2332). 회원 상세는 세 종류를 한 목록으로 보여 준다.
+TrainerMemoSource = Literal["trainer", "chat_insight", "exercise_memo"]
+
+#: 운동 기록 메모가 가리키는 기록의 갈래. 앱이 출처 태그(`PT 세션 · 9/23`,
+#: `개인 운동 · 9/23 코어 강화`, `회원 기록 · 9/23`)를 그리는 데 쓴다.
+TrainerMemoRefKind = Literal["pt_session", "personal", "member_log"]
 
 
 class TrainerMemoOut(BaseModel):
@@ -1041,6 +1050,12 @@ class TrainerMemoOut(BaseModel):
     insight_id: str | None = None
     #: 인사이트 종류(discomfort|negativeFeedback). 직접 쓴 메모는 빈 문자열.
     insight_kind: str = ""
+    #: 운동 기록 메모만 값을 갖는다 — 어느 기록에서 남겼는가(#2332).
+    ref_kind: TrainerMemoRefKind | None = None
+    ref_id: str | None = None
+    ref_date: str | None = None
+    #: 트레이너가 지은 루틴 이름. 고정 이름(PT 세션 등)은 비어 있다.
+    ref_name: str = ""
     created_at: _datetime
     updated_at: _datetime
 
@@ -1052,23 +1067,37 @@ class TrainerMemoCreateRequest(BaseModel):
     저장해도 메모가 늘지 않고 먼저 저장된 메모가 그대로 돌아온다. 직접 쓴 메모는
     이 값을 보내지 않으므로 같은 내용을 여러 번 남길 수 있다(그것이 기능이다).
     """
-    body: str = Field(min_length=1, max_length=2000)
+    #: 메모는 기억해 둘 한두 줄이다 — 프로그램 AI 요청(`trainer_note`)과 같은 500자(#2516).
+    body: str = Field(min_length=1, max_length=500)
     source: TrainerMemoSource = "trainer"
     insight_id: str | None = Field(default=None, max_length=64)
     insight_kind: str = Field(default="", max_length=32)
+    #: 운동 기록 메모가 가리키는 이력 id(운동 탭 기록 카드의 id).
+    ref_id: str | None = Field(default=None, max_length=64)
+    #: 회원 직접 기록 카드는 하루치 묶음이라 id 대신 그 날(YYYY-MM-DD)을 보낸다.
+    ref_date: _date | None = None
 
     @model_validator(mode="after")
     def _reject_mismatched_source(self) -> TrainerMemoCreateRequest:
-        """출처와 중복 방지 키가 짝을 이루는지 본다.
+        """출처와 중복 방지 키·기록 연결이 짝을 이루는지 본다.
 
         어긋난 두 조합이 조용히 통과하면 각각 다른 방식으로 망가진다 —
         키 없는 인사이트 메모는 반복 저장 때마다 늘어나고, 직접 쓴 메모가
         `insight_id` 를 가지면 그 인사이트의 유니크 키를 대신 차지한다.
+        운동 기록 메모는 가리키는 기록이 꼭 하나여야 출처 태그를 그릴 수 있다.
         """
         if self.source == "chat_insight" and not self.insight_id:
             raise ValueError("chat_insight 메모에는 insight_id가 필요합니다.")
-        if self.source == "trainer" and self.insight_id:
-            raise ValueError("trainer 메모에는 insight_id를 보낼 수 없습니다.")
+        if self.source != "chat_insight" and self.insight_id:
+            raise ValueError(f"{self.source} 메모에는 insight_id를 보낼 수 없습니다.")
+        has_ref = self.ref_id is not None or self.ref_date is not None
+        if self.source == "exercise_memo":
+            if (self.ref_id is None) == (self.ref_date is None):
+                raise ValueError(
+                    "exercise_memo 메모에는 ref_id 와 ref_date 중 하나만 보내야 합니다."
+                )
+        elif has_ref:
+            raise ValueError(f"{self.source} 메모에는 기록 연결을 보낼 수 없습니다.")
         return self
 
 
@@ -1080,7 +1109,7 @@ class TrainerMemoUpdateRequest(PartialUpdate):
     바꿀 수 있으면 중복 방지 키가 무너진다.
     """
 
-    body: str | None = Field(default=None, min_length=1, max_length=2000)
+    body: str | None = Field(default=None, min_length=1, max_length=500)
 
 
 #: 후속 관리 할 일이 가리키는 업무 갈래. 할 일에서 어느 화면으로 갈지를 고르는
@@ -1460,7 +1489,7 @@ class ScheduleCreateRequest(BaseModel):
     member_id: str | None = Field(default=None, max_length=64)
     type: str = Field(default="", max_length=30)
     duration_minutes: int = Field(default=0, ge=0, le=600)
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
     program: list[ProgramItem] = Field(
         default_factory=list, max_length=_PROGRAM_MAX_TOTAL_EXERCISES
     )
@@ -1486,7 +1515,7 @@ class ScheduleRecurringRequest(BaseModel):
     member_id: str | None = Field(default=None, max_length=64)
     type: str = Field(default="", max_length=30)
     duration_minutes: int = Field(default=0, ge=0, le=600)
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
     #: 반복할 요일(ISO: 월=1 … 일=7).
     weekdays: list[int] = Field(min_length=1, max_length=7)
     #: 반복 횟수로 끝내기.
@@ -1595,7 +1624,7 @@ class ScheduleUpdateRequest(PartialUpdate):
     member_id: str | None = Field(default=None, max_length=64)
     type: str | None = Field(default=None, max_length=30)
     duration_minutes: int | None = Field(default=None, ge=0, le=600)
-    note: str | None = Field(default=None, max_length=500)
+    note: str | None = Field(default=None, max_length=TEXT_ENTRY_MAX)
     program: list[ProgramItem] | None = Field(default=None, max_length=30)
 
     @field_validator("date")
@@ -1614,7 +1643,7 @@ class ScheduleUpdateRequest(PartialUpdate):
 
 
 class ScheduleCompleteRequest(BaseModel):
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
 
 
 class ScheduleReopenRequest(BaseModel):
@@ -1684,7 +1713,7 @@ class TrainerMeUpdate(PartialUpdate):
     phone: str | None = Field(default=None, max_length=20)
     specialty: str | None = Field(default=None, max_length=50)
     career_years: int | None = Field(default=None, ge=0, le=80)
-    intro: str | None = Field(default=None, max_length=1000)
+    intro: str | None = Field(default=None, max_length=TEXT_ENTRY_MAX)
     certifications: list[str] | None = Field(default=None, max_length=30)
     #: 헬스장 문자열 네 칸은 **더 이상 직접 저장하지 않는다**(#2543). 보내면 409.
     #: 소속(`gym_id`)에서만 파생된다 — 직접 적은 이름은 `gym_id` 가 비어 회원에게
@@ -1865,7 +1894,7 @@ class ReportSummaryOut(BaseModel):
 class ReportSendRequest(BaseModel):
     """리포트 전송 — 본문을 직접 주면 그것을, 없으면 서버 생성본을 보낸다."""
     week_start: str | None = Field(default=None, description="YYYY-MM-DD (기본: 이번 주)")
-    message: str | None = Field(default=None, max_length=2000)
+    message: str | None = Field(default=None, max_length=TEXT_LONG_MAX)
 
 
 class ReportFeedbackOut(BaseModel):
@@ -1884,11 +1913,11 @@ class ReportFeedbackOut(BaseModel):
 class ReportFeedbackSaveRequest(BaseModel):
     """피드백 초안 저장. 보낸 본문으로 그 주의 초안을 통째로 바꾼다.
 
-    `max_length` 는 전송 본문(`ReportSendRequest.message`)과 같은 2000 자다 —
+    `max_length` 는 전송 본문(`ReportSendRequest.message`)과 같은 긴 글 상한이다 —
     저장은 됐는데 보낼 수 없는 길이가 생기면 안 된다.
     """
     week_start: str | None = Field(default=None, description="YYYY-MM-DD (기본: 이번 주)")
-    body: str = Field(default="", max_length=2000)
+    body: str = Field(default="", max_length=TEXT_LONG_MAX)
 
 
 class MemberWeeklyFeedbackOut(BaseModel):
@@ -1921,7 +1950,7 @@ class MemberWeeklyFeedbackSaveRequest(BaseModel):
     pain_area: str = Field(default="", max_length=40)
     pain_on: str = Field(default="", description="YYYY-MM-DD")
     #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
-    note: str = Field(default="", max_length=500)
+    note: str = Field(default="", max_length=TEXT_LINE_MAX)
 
 
 class ReportGoalsOut(BaseModel):
@@ -2178,7 +2207,7 @@ class PairedMemberOut(BaseModel):
 class TrainerClientInviteCreate(BaseModel):
     member_id: str = Field(min_length=1, max_length=64)
     #: 회원에게 함께 보이는 한마디. 비워도 된다.
-    message: str | None = Field(default=None, max_length=500)
+    message: str | None = Field(default=None, max_length=TEXT_LINE_MAX)
 
 
 class TrainerClientInviteOut(BaseModel):

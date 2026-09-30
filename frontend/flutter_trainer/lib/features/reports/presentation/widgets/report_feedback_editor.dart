@@ -80,35 +80,23 @@ class _ReportFeedbackEditorState extends State<ReportFeedbackEditor> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        AppTextField(
-          controller: _controller,
-          undoController: widget.undoController,
-          hint: l.reportsFeedbackHint,
-          minLines: 4,
-          // 내용에 맞춰 자란다. 초안이 문단 글이 되면서 7줄에서 잘려, 트레이너가
-          // 보낼 글을 스크롤해야만 다 읽을 수 있었다 — 손보기 전에 전체를 읽는
-          // 것이 이 입력창의 용도다(#755).
-          maxLines: null,
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        // 이 글은 회원에게 그대로 나간다. 무엇이 이미 채워져 있는지와 보내기
-        // 전에 할 일을 그 자리에서 말해 준다 — 'AI' 라고 하지 않는 이유는
-        // 이 초안이 수치에서 조립한 템플릿이지 생성된 문장이 아니어서다.
-        // 본문과 같은 톤이면 초안의 일부처럼 읽힌다 — 안내는 한 단계 연하게.
-        Text(
-          l.reportsFeedbackDraftNote,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-      ],
+    // 이 글은 회원에게 그대로 나간다. 무엇이 이미 채워져 있는지와 보내기
+    // 전에 할 일을 그 자리에서 말해 준다 — 'AI' 라고 하지 않는 이유는
+    // 이 초안이 수치에서 조립한 템플릿이지 생성된 문장이 아니어서다.
+    // 본문과 같은 톤이면 초안의 일부처럼 읽힌다 — 안내는 한 단계 연하게
+    // 도움말 자리에 두고, 글자 수는 그 줄 오른쪽에 선다(#2618).
+    return AppTextField(
+      controller: _controller,
+      undoController: widget.undoController,
+      hint: l.reportsFeedbackHint,
+      helper: l.reportsFeedbackDraftNote,
+      minLines: 4,
+      // 내용에 맞춰 자란다. 초안이 문단 글이 되면서 7줄에서 잘려, 트레이너가
+      // 보낼 글을 스크롤해야만 다 읽을 수 있었다 — 손보기 전에 전체를 읽는
+      // 것이 이 입력창의 용도다(#755).
+      maxLines: null,
+      maxLength: AppTextLimits.long,
+      showCounter: true,
     );
   }
 }

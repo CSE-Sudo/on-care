@@ -157,6 +157,10 @@ GoRouter buildAppRouter({
                         selectedId: state.pathParameters['id'],
                         section: state.pathParameters['section'],
                         filter: state.uri.queryParameters['f'],
+                        openHealthNotes:
+                            state.uri.queryParameters[AppRoutes
+                                .clientOpenParam] ==
+                            AppRoutes.clientOpenHealthNotes,
                       ),
                     ),
                   ),

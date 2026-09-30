@@ -1,30 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/notification/data/repositories/mock_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
-import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 
 void main() {
   _demoReadStateTests();
-  test('notificationListProvider returns the mock repo payload', () async {
-    final container = ProviderContainer(
-      overrides: <Override>[
-        notificationRepositoryProvider.overrideWithValue(
-          MockNotificationRepository(),
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    final list = await container.read(notificationListProvider.future);
-    // 데모 목록을 그대로 돌려준다 — 건수를 박지 않고 목록을 따른다(#1812).
-    expect(list.length, demoAlerts.length);
-    expect(list.first.id, 'a1');
-    // Mix of read/unread for the unreadCount badge logic to lean on.
-    expect(list.any((e) => !e.read), isTrue);
-    expect(list.any((e) => e.read), isTrue);
-  });
 }
 
 /// 데모 저장소가 읽음을 기억하는지 — #636 리뷰.

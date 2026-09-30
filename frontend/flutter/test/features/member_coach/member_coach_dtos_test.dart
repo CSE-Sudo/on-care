@@ -33,7 +33,8 @@ void main() {
       'completed_at': '2026-08-13T10:00:00Z',
       'completed_minutes': 25,
       'completed_intensity': 'high',
-      // 개인 운동 피드백은 없앴다(#1825) — 옛 서버가 보내도 읽지 않는다.
+      // 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다 — 옛
+      // 서버가 보내도 읽지 않는다.
       'member_note': '힘들었어요',
       'trainer_feedback': '잘했어요',
     });
@@ -46,7 +47,6 @@ void main() {
     // 권장 강도와 회원이 고른 강도는 서로 다른 칸이다(#2160) — 하나로 뭉치면
     // 권장대로 했는지 알 수 없다.
     expect(r.intensity, 'light');
-    expect(r.trainerFeedback, '잘했어요');
   });
 
   test(
@@ -214,7 +214,7 @@ void main() {
       expect(done.completedDurationSeconds, 45);
       // 완료와 상관없는 복사에도 초가 따라간다.
       expect(
-        done.copyWith(trainerFeedback: '좋아요').completedDurationSeconds,
+        done.copyWith(completedIntensity: 'high').completedDurationSeconds,
         45,
       );
     });

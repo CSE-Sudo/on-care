@@ -1775,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatTooLong.
   ///
   /// In en, this message translates to:
-  /// **'Message is too long (2000 characters max)'**
+  /// **'Message is too long (1000 characters max)'**
   String get chatTooLong;
 
   /// No description provided for @chatSendFailed.
@@ -6187,6 +6187,24 @@ abstract class AppLocalizations {
   /// **'{name} changed their health goals: {goals}'**
   String notifTplHealthGoalBody(String name, String goals);
 
+  /// No description provided for @notifTplHealthNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member health notes changed'**
+  String get notifTplHealthNotesTitle;
+
+  /// No description provided for @notifTplHealthNotesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their health notes'**
+  String notifTplHealthNotesBody(String name);
+
+  /// No description provided for @notifTplHealthNotesWithGoalsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their health goals and health notes'**
+  String notifTplHealthNotesWithGoalsBody(String name);
+
   /// Shown in place of the goal list when the member cleared every health goal.
   ///
   /// In en, this message translates to:
@@ -7212,6 +7230,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A deleted memo can\'t be restored.'**
   String get clientTrainerMemoDeleteBody;
+
+  /// No description provided for @clientExerciseMemoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave a memo'**
+  String get clientExerciseMemoAdd;
+
+  /// No description provided for @clientExerciseMemoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 memo} other{{count} memos}}'**
+  String clientExerciseMemoCount(int count);
+
+  /// No description provided for @clientExerciseMemoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note what to remember from this workout'**
+  String get clientExerciseMemoHint;
+
+  /// No description provided for @clientExerciseMemoSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to memos.'**
+  String get clientExerciseMemoSaved;
+
+  /// No description provided for @clientMemoTagManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Written by you'**
+  String get clientMemoTagManual;
+
+  /// No description provided for @clientMemoTagPtSession.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · {date}'**
+  String clientMemoTagPtSession(String date);
+
+  /// No description provided for @clientMemoTagPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal workout · {date}'**
+  String clientMemoTagPersonal(String date);
+
+  /// No description provided for @clientMemoTagPersonalNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal workout · {date} {name}'**
+  String clientMemoTagPersonalNamed(String date, String name);
+
+  /// No description provided for @clientMemoTagMemberLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Member\'s log · {date}'**
+  String clientMemoTagMemberLog(String date);
+
+  /// No description provided for @clientMemoEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get clientMemoEdited;
+
+  /// No description provided for @clientMemoSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search memos (text or tag)'**
+  String get clientMemoSearchHint;
+
+  /// No description provided for @clientMemoSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No memos match your search.'**
+  String get clientMemoSearchEmpty;
 
   /// No description provided for @followUp.
   ///

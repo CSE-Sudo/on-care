@@ -42,7 +42,7 @@
 | `trainer_profiles` | 트레이너 프로필(전문분야·경력·소속 짐) |
 | `trainer_clients` | 트레이너↔회원 담당 링크(로스터의 정의) |
 | `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴. PT 일정에 붙인 개인운동은 `schedule_id`·`status='scheduled'`·`delivery_kind` 를 갖는다(`0092_routine_schedule_link`, #2223) |
-| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트, `0036_trainer_memos`) |
+| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트 + 운동 기록 카드, `0036_trainer_memos`·`0106_trainer_memo_exercise_ref`) |
 | `trainer_follow_up_tasks` | 트레이너가 회원별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
 | `trainer_program_drafts` | 트레이너가 저장해 둔 프로그램 초안(세션 배열, 회원과 묶이지 않음, `0038`+`0039`) |
 | `routine_history` | 회원 운동 완료 기록(회원 앱·PT 세션 공용 원본) |
@@ -59,9 +59,15 @@
 |---|---|---|
 | 트레이너 피드백 | 회원 | PT 일정의 글(`trainer_schedule.note`, 회원 앱 `오늘의 피드백`), 리포트 피드백(`trainer_report_feedback`), 위저드·일정 추가에서 회원에게 전할 말 |
 | 회원 피드백 | 트레이너 | 회원 주간 피드백과 그 안의 `한 줄 피드백`(`member_weekly_feedback`) |
-| 메모 | 트레이너만 | 회원 상세 메모(`trainer_client_memos`), 상담 일정의 글(`상담 메모`) |
+| 메모 | 트레이너만 | 회원 상세 메모(`trainer_client_memos` — 직접 작성·채팅 감지·운동 기록 카드), 상담 일정의 글(`상담 메모`) |
 
 같은 `trainer_schedule.note` 라도 PT 일정이면 피드백, 상담 일정이면 메모로 부른다.
+
+개인운동 **한 건마다** 남기는 피드백은 양쪽 모두 없다 — 회원 쪽은 #1825, 트레이너 쪽은 #2517 에서
+없앴고 저장 칸(`exercise_sessions.trainer_feedback`)도 지웠다(`0107_drop_routine_feedback`).
+개인운동에 대해 서로 할 말은 채팅으로 하고(회원의 불편은 채팅 감지로 모인다), 트레이너만 기억해 둘
+것은 운동 기록 메모(#2332)로 남긴다. 응답의 `trainer_feedback`·`member_note` 칸은 옛 앱을 위해
+빈 문자열로 남긴다.
 회원 앱 응답은 완료된 PT 의 글만 싣고 상담 일정의 글은 싣지 않는다(#2515, 6절 `/me/coach/sessions`).
 
 ### 담당 링크 제약 (`trainer_clients`)
@@ -239,7 +245,7 @@
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
-| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지) |
+| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지, `source=exercise_memo` 는 `ref_id`(이력 카드) 또는 `ref_date`(회원 직접 기록 카드)로 기록을 가리키고 서버가 `ref_kind`·`ref_date`·`ref_name` 을 채운다 — 트레이너 화면에 보이지 않는 기록이면 404) |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 본문 수정 |
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
@@ -340,6 +346,12 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 `conditions`(1000자)의 길이 상한도 같은 자리에 있다. 컬럼이 `Text` 라 500 은
 아니었지만, 회원 경로에만 상한이 없어 20만자가 200 으로 저장됐다. 자유 서술
 회원 목표(`goals`)는 건강 목표 칩으로 대체되어 컬럼째 없앴다(#2358).
+그 안에서 목표 칩을 뺀 글(건강상태·주의사항)은 500자로 한 번 더 막는다(#2618).
+회원도 온보딩·MY 에서 같은 글을 적으므로 세 경로 모두 같은 검사
+(`check_conditions_notes`)를 쓴다(#2619). 회원이 이 글을 고치면 담당 트레이너에게
+`trainer_health_notes` 알림이 가고, 트레이너 웹은 누르면 신체·목표 창의 `건강 목표`
+탭을 바로 연다. `바꾼 사람` 기록(`focus_changed_*`)은 목표 칩만의 것이라 남기지
+않는다.
 
 두 앱 화면은 `oncare_ui` 의 `AppGoalRanges` 로 **같은 숫자**를 미리 보여 준다.
 값을 바꿀 때는 서버 모듈과 그 파일을 함께 고친다 — 한쪽만 고치면 화면은
@@ -549,7 +561,8 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 요청의 `Accept-Language`(#2297)로 언어를 고른다. 헤더가 없거나 `ko` 면 지금까지와 같은 한국어다.
 
 - **개인운동 후보의 근거(`RoutineOut.evidence`)는 코드다** — `recent_pt_feedback`,
-  `strength_heavy`, `blood_pressure_goal`, `low_cardio`, `recent_record`. 트레이너 웹이 화면
+  `strength_heavy`, `blood_pressure_goal`, `low_cardio`, `recent_record`. `recent_pt_feedback` 은
+  최근 완료한 PT 일정에 글이 있을 때만 붙는다(개인 운동 피드백은 #2517 에서 뺐다). 트레이너 웹이 화면
   언어로 바꿔 보여 주고, 모르는 값은 원문 그대로 보인다. 코드 도입 전에 문장으로 저장된 행은
   읽을 때 코드로 돌려준다(`routine_suggestion_service.LEGACY_EVIDENCE_LABELS`).
 - **후보 이름·`reason`, AI A/B(`/routine-options`)의 이름·사유·근거 문장, 시작 템플릿

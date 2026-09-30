@@ -67,6 +67,13 @@ class NotificationsPage extends ConsumerWidget {
     // 요청은 사라졌지만 남은 요청을 이어 볼 자리다(#1632). 떠난 회원 상세는
     // 열 수 없어 회원으로 가지 않는다.
     TrainerNotificationKind.consultationWithdrawn => AppRoutes.consultations,
+    // 주의사항 알림은 글이 있는 신체·목표 창의 `건강 목표` 탭까지 연다(#2619).
+    TrainerNotificationKind.healthGoal
+        when notification.template == 'trainer_health_notes' =>
+      switch (notification.subjectId) {
+        final String id => AppRoutes.clientDetail(id, openHealthNotes: true),
+        null => AppRoutes.clients,
+      },
     TrainerNotificationKind.healthGoal ||
     TrainerNotificationKind.memberName => switch (notification.subjectId) {
       final String id => AppRoutes.clientDetail(id),
