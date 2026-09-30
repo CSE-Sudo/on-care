@@ -499,6 +499,10 @@ class AppListRow extends StatelessWidget {
 
   final VoidCallback? onTap;
   final bool selected;
+
+  /// 아직 읽지 않았다 — 제목을 한 단계 굵게 한다. 빨간 점은 뺐다(#2628): 읽지
+  /// 않은 행은 부르는 쪽이 옅은 채움으로도 가르고, 읽으면 채움이 사라져
+  /// 점까지 세 겹으로 알릴 까닭이 없었다.
   final bool unread;
 
   @override
@@ -586,10 +590,6 @@ class AppListRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (unread) ...<Widget>[
-                  const SizedBox(width: OnCareSpacing.s8),
-                  const _Dot(),
-                ],
                 if (trailing != null) ...<Widget>[
                   const SizedBox(width: OnCareSpacing.s8),
                   trailing!,
@@ -598,22 +598,6 @@ class AppListRow extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: OnCareSize.dot,
-      height: OnCareSize.dot,
-      decoration: const BoxDecoration(
-        color: OnCareColors.danger,
-        shape: BoxShape.circle,
       ),
     );
   }

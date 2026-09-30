@@ -239,7 +239,8 @@ GoRouter buildAppRouter({
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutes.notifications,
-                builder: (context, state) => const NotificationsPage(),
+                builder: (context, state) =>
+                    NotificationsPage(from: state.uri.queryParameters['from']),
               ),
             ],
           ),

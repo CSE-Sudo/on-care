@@ -27,17 +27,16 @@ void main() {
     );
   }
 
-  testWidgets('넓은 화면에서 시간표와 상세 패널이 같은 줄에서 시작한다', (tester) async {
+  testWidgets('넓은 화면에서 상세 일정 제목이 시간표와 같은 높이에서 시작한다', (tester) async {
     await openSchedule(tester, const Size(1440, 1200));
 
     final Rect grid = tester.getRect(find.byType(ScheduleWeekTimetable));
+    final Rect title = tester.getRect(find.text('상세 일정'));
     final Rect panel = tester.getRect(find.byKey(const Key('week-detail')));
 
-    expect(
-      panel.top,
-      closeTo(grid.top, 1.0),
-      reason: '두 열의 몸이 같은 높이에서 시작해야 한다',
-    );
+    // 날짜 행 오른쪽 칸에 예약 슬롯·상담 요청이 서고, 제목은 그 아래 시간표
+    // 머리와 같은 높이로 내려왔다(#2628).
+    expect(title.top, closeTo(grid.top, 1.0));
     expect(
       panel.bottom,
       closeTo(grid.bottom, 1.0),
@@ -45,18 +44,20 @@ void main() {
     );
   });
 
-  testWidgets('패널 머리글이 날짜 행과 한 줄에 선다', (tester) async {
+  testWidgets('예약 슬롯이 날짜 행과 한 줄에 선다 (#2628)', (tester) async {
     await openSchedule(tester, const Size(1440, 1200));
 
-    final Rect title = tester.getRect(find.text('상세 일정'));
+    final Rect slots = tester.getRect(
+      find.byKey(const ValueKey<String>('schedule-open-slots')),
+    );
     final Rect dateRow = tester.getRect(
       find.byIcon(AppIcons.chevronLeft).first,
     );
+    final Rect title = tester.getRect(find.text('상세 일정'));
 
-    // 같은 `Row` 에 있으므로 세로로 겹친다 — 어느 한쪽 높이를 상수로 베끼면
-    // 그 값이 바뀌는 순간 조용히 어긋난다.
-    expect(title.bottom, greaterThan(dateRow.top));
-    expect(title.top, lessThan(dateRow.bottom));
+    expect(slots.bottom, greaterThan(dateRow.top));
+    expect(slots.top, lessThan(dateRow.bottom));
+    expect(title.top, greaterThan(slots.bottom));
   });
 
   testWidgets('패널 제목이 페이지 제목과 다른 말을 쓴다', (tester) async {

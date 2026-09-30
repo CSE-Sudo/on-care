@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_health_profiles.dart';
+import 'package:oncare_trainer/core/storage/seed_notifications.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
@@ -22,15 +23,18 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v40']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v41']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
 ///
+/// `_v41` 은 데모 알림함의 과거 알림을 심었다(#2628). 올리지 않으면 오늘 이미
+/// 시드된 브라우저의 알림함이 자정까지 비어 있다.
+///
 /// `_v40` 은 김민수를 뺀 회원의 지난 4주 끼니·성별·나이·지난 PT 메모·지난
 /// 상담을 심고, 날짜별 운동을 값까지 실린 객체로 바꿨다(#2667). 올리지 않으면
 /// 오늘 이미 시드된 브라우저에서 지난 날짜를 열어도 끼니 카드가 없다. (`_v39`
-/// 는 알림함 시드(#2628)가 먼저 잡아 두어 건너뛴다.)
+/// 는 건너뛰었다.)
 ///
 /// `_v38` 은 담당 회원 15명의 키·몸무게와 식단·운동 목표를 심었다(#2597).
 /// 올리지 않으면 오늘 이미 시드된 브라우저의 신체·목표 창이 자정까지 빈칸이다.
@@ -167,7 +171,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v40') == today &&
+  if (await db.readValue('trainer_seeded_v41') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -684,8 +688,11 @@ Future<void> seedIfEmpty(
     // 날이 바뀌어도 남는다(#2597).
     await seedDemoHealthProfiles(db);
 
+    // 알림함의 과거 알림(#2628). 읽음 기록이 남도록 이미 있으면 두지 않는다.
+    await seedDemoNotifications(db, now: now);
+
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v40', today);
+    await db.putValue('trainer_seeded_v41', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
