@@ -435,7 +435,7 @@ void main() {
       // 오른쪽 정렬이 아니다 — 배지는 이름·목표 묶음 바로 뒤에서 시작하고,
       // 남는 자리는 `회원 상세` 앞에 둔다.
       final Rect demographics = tester.getRect(
-        find.descendant(of: identity, matching: find.textContaining('22세')),
+        find.descendant(of: identity, matching: find.textContaining('46세')),
       );
       final double whoRight = demographics.right > goal.right
           ? demographics.right
