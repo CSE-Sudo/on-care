@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/storage/seed_health_profiles.dart';
 import 'package:oncare_trainer/core/storage/seed_notifications.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
@@ -23,7 +24,7 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v41']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v43']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
@@ -171,7 +172,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v41') == today &&
+  if (await db.readValue('trainer_seeded_v43') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -280,6 +281,9 @@ Future<void> seedIfEmpty(
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.like('seed-%'))).go();
+    // 데모 배정·전달·제안 검토·PT 개인운동 상태(#2668)도 새 시드와 함께
+    // 처음으로 돌아간다 — 지운 일정·AI 운동을 가리키는 값이 남지 않게 한다.
+    await DemoRoutineStore.clear(db);
     // 날짜별 이력은 id 가 없다(고객+날짜가 키다) — 고객 id 로 지운다.
     await (db.delete(
       db.clientDailyMetrics,
@@ -692,7 +696,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v41', today);
+    await db.putValue('trainer_seeded_v43', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }

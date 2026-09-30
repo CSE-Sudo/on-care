@@ -1,11 +1,19 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/shared/models/trainer_client.dart'
+    show sodiumTargetMg;
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Generates A/B routine options for a member (the AI generation step). The
@@ -33,9 +41,22 @@ abstract interface class TrainerRoutineOptionsRepository {
   });
 }
 
-/// Deterministic demo generator mirroring the backend rule-based output, so
-/// the 3-step flow works with no backend. Uses a fixed member snapshot
-/// (over-target sodium, mid adherence) that tells the demo story.
+/// Deterministic demo generator mirroring the backend output, so the 3-step
+/// flow works with no backend.
+///
+/// [db] 를 주면(데모 앱) 스냅샷을 **그 회원의 시드 지표**에서 만든다(#2668) —
+/// 목표·오늘 나트륨·기록한 날의 운동 완료율·최근 배정. 예전에는 모든 회원이
+/// 같은 스냅샷(나트륨 2100·완료율 55)이었다.
+///
+/// 생성 방식은 지금 데모 화면 그대로 **규칙형**(`rule`)이다 — 화면의 `규칙
+/// 기반 생성` 꼬리표가 남는다. 규칙형은 대화·트레이너 자료를 쓰지 않으므로
+/// (서버 `routine_ai.rule_based_plans` 와 같다) 고른 자료([RoutineContextSource])
+/// 는 근거 문장에 넣지 않는다. 그 회원의 최근 대화 줄은 만들어 두지만, 화면은
+/// AI 생성일 때만 `참고한 최근 대화` 를 그리므로 보이지 않는다. 데모에서도
+/// 보일지는 따로 정한다.
+///
+/// [db] 가 없거나 모르는 회원이면(단위 테스트) 고정 스냅샷이다. 추천 상태는
+/// 어느 쪽이든 템플릿으로 둔다 — 데모의 템플릿 배너 표시는 따로 정한다.
 ///
 /// 실서버처럼 **생성을 요청하는 순간의 화면 언어**로 이름·사유·근거 문장을
 /// 만든다(#2301). 문장은 서버 규칙형(`routine_ai.rule_based_plans`)의 영어판과
@@ -43,10 +64,16 @@ abstract interface class TrainerRoutineOptionsRepository {
 class MockTrainerRoutineOptionsRepository
     implements TrainerRoutineOptionsRepository {
   /// [languageCode] 를 생략하면 한국어다.
-  const MockTrainerRoutineOptionsRepository({this.languageCode = _korean});
+  const MockTrainerRoutineOptionsRepository({
+    this.languageCode = _korean,
+    this.db,
+  });
 
   /// 생성을 요청하는 순간의 화면 언어 코드(`ko`·`en`).
   final String Function() languageCode;
+
+  /// 데모 DB. 있으면 회원별 스냅샷을 만든다.
+  final AppDatabase? db;
 
   static String _korean() => 'ko';
 
@@ -54,6 +81,11 @@ class MockTrainerRoutineOptionsRepository
   /// blank (`trainer_routine_options_service.DEFAULT_AVAILABLE_MINUTES`).
   static const int _defaultMinutes = 30;
   static const String _defaultIntensity = 'moderate';
+
+  /// 서버가 AI 생성에 싣는 최근 대화 수·한 줄 길이
+  /// (`ROUTINE_CHAT_MAX_MESSAGES`·`CHAT_MAX_CHARS`).
+  static const int _chatMaxMessages = 10;
+  static const int _chatMaxChars = 200;
 
   @override
   Future<RoutineOptions> generate(
@@ -65,19 +97,30 @@ class MockTrainerRoutineOptionsRepository
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final bool en = languageCode() == 'en';
-    const sodium = 2100;
-    const completion = 55;
+    String t(String ko, String english) => en ? english : ko;
+    final _Snapshot? member = await _memberSnapshot(memberId, en: en);
+    final int sodium = member?.sodium ?? 2100;
+    final int completion = member?.completion ?? 55;
     // 회원 목표는 회원이 고른 목표 이름이라 서버도 옮기지 않는다 — 데모도 같다.
-    const goal = '혈압 관리 · 체중 감량';
+    final String goal = member?.goal ?? '혈압 관리 · 체중 감량';
+    final bool sodiumOver = member?.sodiumOver ?? true;
+    // 서버 규칙형과 같다 — 목표를 넘을 때만 꼬리표를 단다.
+    final String sodiumLabel = sodiumOver
+        ? t(' (목표 초과)', ' (over target)')
+        : '';
     final note = trainerNote.trim();
     final noteSuffix = note.isEmpty
         ? ''
         : en
         ? ' Trainer note applied: $note.'
         : ' 트레이너 메모 반영: $note.';
-    String t(String ko, String english) => en ? english : ko;
     final minutes = availableMinutes ?? _defaultMinutes;
     final intensityPref = intensityPreference ?? _defaultIntensity;
+    // 서버 규칙형과 같은 갈림 — 나트륨이 목표를 넘거나 완료율이 50% 미만이면
+    // A안의 부담을 더 낮추고 스트레칭 비중을 키운다. B안 문장은 완료율 60%
+    // 이상이면 "상향 여력" 을 말한다(`routine_ai.rule_based_plans`).
+    final bool easeA = sodiumOver || completion < 50;
+    final bool roomToStepUp = completion >= 60;
 
     // 하한은 슬라이더의 실제 최소값(5분)과 맞춘다 — 10으로 두면 5분 요청에서
     // `clamp(10, 5)`가 하한>상한이 되어 데모 생성이 그대로 예외로 죽는다.
@@ -104,39 +147,40 @@ class MockTrainerRoutineOptionsRepository
       analysis: MemberAnalysis(
         goal: goal,
         sodiumTodayMg: sodium,
-        sodiumOverTarget: true,
+        sodiumOverTarget: sodiumOver,
         avgCompletionRate: completion,
-        latestRoutine: t('저강도 유산소 (걷기)', 'Low-intensity cardio (walk)'),
+        latestRoutine:
+            member?.latestRoutine ??
+            t('저강도 유산소 (걷기)', 'Low-intensity cardio (walk)'),
         note: note,
-        // 데모 회원은 실제 축적 이력이 없다 — #776 의 "데이터 부족" 상태를
-        // 그대로 보여 준다(개인화한 것처럼 보이지 않아야 한다는 요구와도 맞다).
+        recentMessages: member?.recentMessages ?? const <String>[],
+        // 추천 상태는 템플릿 그대로다 — #776 의 "데이터 부족" 상태이고, 데모의
+        // 템플릿 배너 표시는 따로 정한다.
       ),
       planA: RoutinePlan(
         key: 'A',
         label: t('회복·지속 중심', 'Recovery & consistency'),
         totalMinutes: totalA,
         intensity: '낮음',
-        exercises: <RoutineExercise>[
-          RoutineExercise(
-            name: t('저강도 걷기', 'Low-intensity walk'),
-            minutes: (totalA * 0.6).round().clamp(1, totalA),
-            type: '유산소',
-          ),
-          RoutineExercise(
-            name: t('코어 스트레칭', 'Core stretch'),
-            minutes: (totalA - (totalA * 0.6).round()).clamp(1, totalA),
-            type: '스트레칭',
-          ),
-        ],
+        exercises: _compose(totalA, <(String, String, int)>[
+          if (easeA) ...<(String, String, int)>[
+            (t('저강도 걷기', 'Low-intensity walk'), '유산소', 2),
+            (t('코어 스트레칭', 'Core stretch'), '스트레칭', 2),
+            (t('목·어깨 스트레칭', 'Neck & shoulder stretch'), '스트레칭', 1),
+          ] else ...<(String, String, int)>[
+            (t('저강도 걷기', 'Low-intensity walk'), '유산소', 3),
+            (t('코어 스트레칭', 'Core stretch'), '스트레칭', 2),
+          ],
+        ]),
         reason: t(
           '짧고 지속하기 쉬운 회복 중심 프로그램',
           'A short, easy-to-sustain recovery program',
         ),
         rationale: en
-            ? 'Sodium today ${sodium}mg (over target), recent workout '
+            ? 'Sodium today ${sodium}mg$sodiumLabel, recent workout '
                   'completion $completion% → focusing on consistency with '
                   'low-strain cardio and stretching.$noteSuffix'
-            : '오늘 나트륨 ${sodium}mg (목표 초과), 최근 운동 완료율 $completion% → '
+            : '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '
                   '부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.$noteSuffix',
       ),
       planB: RoutinePlan(
@@ -167,14 +211,126 @@ class MockTrainerRoutineOptionsRepository
         ),
         rationale: en
             ? "Based on the goal '$goal' and a $completion% completion rate, "
-                  'gradually adding strength and cardio to raise the '
-                  'workload.$noteSuffix'
-            : "목표 '$goal' 기준, 완료율 $completion%로 점진적으로 근력·유산소를 더해 "
-                  '운동량을 높임.$noteSuffix',
+                  '${roomToStepUp ? 'there is room to step up — adding' : 'gradually adding'} '
+                  'strength and cardio to raise the workload.$noteSuffix'
+            : "목표 '$goal' 기준, 완료율 $completion%로 "
+                  '${roomToStepUp ? '상향 여력이 있어' : '점진적으로'} '
+                  '근력·유산소를 더해 운동량을 높임.$noteSuffix',
       ),
+      // 지금 데모 화면 그대로 규칙형이다 — `규칙 기반 생성` 꼬리표가 남는다.
       generatedBy: 'rule',
     );
   }
+
+  /// [total] 분을 (이름, 유형, 가중치) 대로 나눈다 — 서버 `routine_ai._compose`
+  /// 와 같은 규칙이다. 각 운동은 1분 이상이고, 반올림 오차는 마지막 운동이
+  /// 떠안아 합이 [total] 과 같다.
+  static List<RoutineExercise> _compose(
+    int total,
+    List<(String, String, int)> parts,
+  ) {
+    final int sum = total < parts.length ? parts.length : total;
+    final int weights = parts.fold<int>(0, (int a, (String, String, int) p) {
+      return a + p.$3;
+    });
+    int used = 0;
+    return <RoutineExercise>[
+      for (var i = 0; i < parts.length; i++)
+        RoutineExercise(
+          name: parts[i].$1,
+          type: parts[i].$2,
+          minutes: () {
+            if (i == parts.length - 1) {
+              final int rest = sum - used;
+              return rest < 1 ? 1 : rest;
+            }
+            final int m = (sum * parts[i].$3 / weights).round();
+            final int share = m < 1 ? 1 : m;
+            used += share;
+            return share;
+          }(),
+        ),
+    ];
+  }
+
+  /// 이 회원의 시드 지표로 만든 스냅샷. DB 가 없거나 모르는 회원이면 `null`.
+  Future<_Snapshot?> _memberSnapshot(
+    String memberId, {
+    required bool en,
+  }) async {
+    final AppDatabase? db = this.db;
+    if (db == null) return null;
+    final client = await (db.select(
+      db.trainerClients,
+    )..where((t) => t.id.equals(memberId))).getSingleOrNull();
+    if (client == null) return null;
+
+    // 이행률은 기록한 날만 평균낸다(`recordedCompletionMean`) — 0 은 기록 없음.
+    final List<int> week = <int>[
+      for (final Object? v in jsonDecode(client.weekCompletionJson) as List)
+        if (v is num && v > 0) v.toInt(),
+    ];
+    final int completion = week.isEmpty
+        ? 0
+        : (week.reduce((int a, int b) => a + b) / week.length).round();
+
+    final List<AssignedRoutine> assigned = await DemoRoutineStore(
+      db,
+    ).assigned(memberId);
+
+    // 서버와 같다 — 최신 N건을 고른 뒤 시간순으로 되돌리고 발화자를 붙인다.
+    // 시드 대화는 옛 기준점 위에 심어 `createdAt` 으로 기간을 가를 수 없어
+    // 건수로만 자른다.
+    final chat =
+        await (db.select(db.clientChatMessages)
+              ..where((t) => t.clientId.equals(memberId))
+              ..orderBy(<OrderingTerm Function($ClientChatMessagesTable)>[
+                (t) => OrderingTerm.desc(t.createdAt),
+              ])
+              ..limit(_chatMaxMessages))
+            .get();
+    final String trainerLabel = en ? 'Trainer' : '트레이너';
+    final String memberLabel = en ? 'Member' : '회원';
+    String speaker(String sender) =>
+        sender == 'trainer' ? trainerLabel : memberLabel;
+    final List<String> lines = <String>[
+      for (final row in chat.reversed)
+        if (row.body.trim().isNotEmpty)
+          '${speaker(row.sender)}: ${_clip(row.body.trim())}',
+    ];
+
+    return _Snapshot(
+      goal: client.goal,
+      sodium: client.sodiumMg,
+      sodiumOver: client.sodiumMg > sodiumTargetMg,
+      completion: completion,
+      latestRoutine: assigned.isEmpty ? '-' : assigned.first.name,
+      recentMessages: lines,
+    );
+  }
+
+  static String _clip(String text) => text.length > _chatMaxChars
+      ? '${text.substring(0, _chatMaxChars)}…'
+      : text;
+}
+
+/// 회원 한 명의 생성 근거 스냅샷.
+class _Snapshot {
+  const _Snapshot({
+    required this.goal,
+    required this.sodium,
+    required this.sodiumOver,
+    required this.completion,
+    required this.latestRoutine,
+    required this.recentMessages,
+  });
+
+  final String goal;
+  final int sodium;
+  final bool sodiumOver;
+  final int completion;
+  final String latestRoutine;
+  final List<String> recentMessages;
 }
 
 /// Selects the real Dio-backed generator, or the demo generator for
@@ -186,6 +342,7 @@ final trainerRoutineOptionsRepositoryProvider =
         return MockTrainerRoutineOptionsRepository(
           languageCode: () =>
               ref.read(trainerResolvedLocaleProvider).languageCode,
+          db: ref.watch(appDatabaseProvider),
         );
       }
       return DioTrainerRoutineOptionsRepository(ref.watch(dioProvider));
