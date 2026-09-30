@@ -14,7 +14,14 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 로 생성해 백엔드(`/notifications`)에서 최신 알림을 불러온다.
   NotificationController(this._repo, {List<AlertItem>? seed, this.onChanged})
     : _seeded = seed != null,
-      super(NotificationState(items: seed ?? const <AlertItem>[])) {
+      // 시드는 곧 받은 목록이다. 실모드는 첫 조회가 성공할 때 받은 것이 된다 —
+      // 그 전에는 화면이 빈 상태 대신 로딩 표시를 그린다(#2638).
+      super(
+        NotificationState(
+          items: seed ?? const <AlertItem>[],
+          loaded: seed != null,
+        ),
+      ) {
     if (seed == null) {
       _load();
     }
@@ -49,6 +56,7 @@ class NotificationController extends StateNotifier<NotificationState> {
       // 그 사이 지워진 알림이 목록에 남는다.
       state = NotificationState(
         items: items,
+        loaded: true,
         hasMore: items.length >= notificationPageSize,
       );
       onChanged?.call();
@@ -180,13 +188,3 @@ final notificationUnreadProvider = StreamProvider<int>((ref) {
     interval: const Duration(seconds: 15),
   );
 }, name: 'notificationUnread');
-
-/// 가벼운 소비처용 **최신 한 쪽**(리포 직접). 컨트롤러와 별개로 유지한다.
-///
-/// 전체가 아니라 한 쪽인 이유: 서버가 더 이상 전부 주지 않는다(#965). 여기서 세어
-/// 미읽음 수를 만들면 안 된다 — 그 값은 [notificationUnreadProvider] 가 서버에서
-/// 받아 온다.
-final notificationListProvider = FutureProvider.autoDispose<List<AlertItem>>(
-  (ref) => ref.watch(notificationRepositoryProvider).fetchPage(),
-  name: 'notificationList',
-);

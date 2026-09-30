@@ -1,12 +1,21 @@
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
+import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 
 /// Not wired by default (the app uses [DioAccountRepository] → the drift-backed
 /// LocalApiInterceptor). Kept for unit tests / offline overrides.
 class MockAccountRepository implements AccountRepository {
-  MockAccountRepository({UserProfile profile = _demo}) : _profile = profile;
+  MockAccountRepository({
+    UserProfile profile = _demo,
+    Set<String> takenEmails = const <String>{},
+  }) : _profile = profile,
+       _takenEmails = takenEmails;
+
+  /// 다른 계정이 이미 쓰는 이메일. 여기 있는 주소로 바꾸면 실서버처럼 이메일
+  /// 중복으로 거절한다(#2639). 기본은 비어 있다.
+  final Set<String> _takenEmails;
 
   static const UserProfile _demo = UserProfile(
     id: 'user-7d4e9a2c5f18',
@@ -96,6 +105,16 @@ class MockAccountRepository implements AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
   }) async {
+    // 실서버(`PUT /users/me`)와 같은 판정 — 자기 이메일 그대로면 통과한다.
+    final String? nextEmail = email?.trim().toLowerCase();
+    if (nextEmail != null &&
+        nextEmail != _profile.email.trim().toLowerCase() &&
+        _takenEmails.any((String e) => e.trim().toLowerCase() == nextEmail)) {
+      throw const ProfileUpdateRejected(ProfileUpdateRejection.emailTaken);
+    }
+    if (phone != null && phone.trim().isEmpty && _profile.phone.isNotEmpty) {
+      throw const ProfileUpdateRejected(ProfileUpdateRejection.phoneRequired);
+    }
     _profile = _replaceProfile(
       name: name,
       email: email,

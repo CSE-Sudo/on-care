@@ -120,14 +120,20 @@ class _TwoWeekRepository extends _FixedWeekRepository {
   }) : super(thisWeek);
 
   final double pastWeekMinutes;
-  final bool failPastWeek;
+
+  /// 지난 주 조회를 실패시킬지. 다시 시도 테스트가 도중에 끈다(#2635).
+  bool failPastWeek;
 
   /// 지난 주를 실제로 받아 갔는지. 이번 주 값이 재활용되면 false 로 남는다.
   bool fetchedPastWeek = false;
 
+  /// 지난 주를 몇 번 요청했는지 — 다시 시도가 실제로 다시 묻는지 본다.
+  int pastWeekCalls = 0;
+
   @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async {
     fetchedPastWeek = true;
+    pastWeekCalls++;
     if (failPastWeek) throw StateError('past week lookup failed');
     return _week(pastWeekMinutes);
   }
@@ -277,7 +283,25 @@ void main() {
     expect(find.text(l.otherDateEmpty(l.pageExerciseTitle)), findsNothing);
   });
 
-  testWidgets('지난 주 조회가 실패하면 빈 문구로 내려앉는다', (WidgetTester tester) async {
+  /// 지난 주로 한 주 넘긴 뒤 오늘 -7일을 고른다.
+  Future<void> openLastWeekDay(WidgetTester tester) async {
+    await tester.tap(find.byIcon(AppIcons.chevronLeft).first);
+    await tester.pumpAndSettle();
+    final DateTime now = nowKst();
+    final DateTime target = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 7));
+    await tester.tap(find.text('${target.day}').first);
+    await tester.pumpAndSettle();
+  }
+
+  // 받지 못한 것을 "기록이 없어요" 로 말하면, 운동한 날도 안 한 날처럼 보여
+  // 회원이 같은 운동을 다시 적는다(#2635). 이번 주 오류와 같은 모양이다.
+  testWidgets('지난 주 조회가 실패하면 빈 문구 대신 오류와 다시 시도를 보여 준다', (
+    WidgetTester tester,
+  ) async {
     useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
@@ -295,17 +319,57 @@ void main() {
       tester.element(find.byType(ExercisePage)),
     );
 
-    await tester.tap(find.byIcon(AppIcons.chevronLeft).first);
-    await tester.pumpAndSettle();
-    final DateTime now = nowKst();
-    final DateTime target = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(const Duration(days: 7));
-    await tester.tap(find.text('${target.day}').first);
+    await openLastWeekDay(tester);
+
+    expect(find.text(l.otherDateEmpty(l.pageExerciseTitle)), findsNothing);
+    final Finder error = find.byKey(const Key('exercisePastWeekError'));
+    expect(error, findsOneWidget);
+    expect(
+      find.descendant(of: error, matching: find.text(l.exLoadError)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: error, matching: find.text(l.actionRetry)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('다시 시도하면 그 주를 다시 받아 그날 기록을 그린다', (
+    WidgetTester tester,
+  ) async {
+    useFixedKstDate();
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final _TwoWeekRepository repo = _TwoWeekRepository(
+      thisWeek: 40,
+      pastWeekMinutes: 12,
+      failPastWeek: true,
+    );
+    await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    expect(find.text(l.otherDateEmpty(l.pageExerciseTitle)), findsOneWidget);
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(ExercisePage)),
+    );
+
+    await openLastWeekDay(tester);
+    final int callsBefore = repo.pastWeekCalls;
+    expect(find.byKey(const Key('exercisePastWeekError')), findsOneWidget);
+
+    // 네트워크가 돌아왔다.
+    repo.failPastWeek = false;
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('exercisePastWeekError')),
+        matching: find.text(l.actionRetry),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repo.pastWeekCalls, greaterThan(callsBefore));
+    expect(find.byKey(const Key('exercisePastWeekError')), findsNothing);
+    expect(find.text('12${l.unitMinutes}'), findsWidgets);
   });
 }

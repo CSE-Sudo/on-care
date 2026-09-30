@@ -114,6 +114,9 @@ class _MainShellState extends ConsumerState<MainShell>
         break;
       case 2:
         ref.invalidate(exerciseWeekProvider);
+        // AI 맞춤 조언도 다시 받는다 — 식단 탭과 같다(#2078, #2631). 다른 탭의
+        // `+` 로 운동을 적고 돌아와도 조언이 새 기록을 말한다.
+        ref.invalidate(exerciseAdviceProvider);
         ref.invalidate(coachRoutinesProvider);
         // 지난 날짜 목록도 — 탭을 떠난 사이 날이 바뀌면 오늘 체크가 어제 것이
         // 된다(#2161).

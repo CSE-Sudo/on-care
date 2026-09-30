@@ -162,6 +162,46 @@ class MockExerciseRepository implements ExerciseRepository {
 
   final List<ExerciseSession> _sessions = <ExerciseSession>[];
 
+  /// 앱에서 **지난 주 날짜로** 적은 기록 — 몇 주 전인지(1 이상)를 키로 주별로
+  /// 보관한다. (#2637)
+  ///
+  /// 예전에는 날짜와 상관없이 [_sessions](이번 주)에 넣어, 지난 주 목요일로 적은
+  /// 30분이 이번 주 목요일 막대에 쌓이고 정작 지난 주에는 없었다. 실서버
+  /// (`exercise.py` 의 `_placement`)와 로컬 목업 API 는 날짜로 주를 정해 넣는다.
+  ///
+  /// 픽스처 기록은 PT·배정 루틴이라 고치거나 지울 수 없으므로(#499, #638) 여기에는
+  /// 앱에서 적은 기록만 들어간다. 지난 주를 읽을 때 픽스처 뒤에 이어 붙인다.
+  final Map<int, List<ExerciseSession>> _pastAdded =
+      <int, List<ExerciseSession>>{};
+
+  /// [weeksAgo] 주 전의 기록 전부 — 이번 주면 CRUD 가 반영된 [_sessions], 지난
+  /// 주면 픽스처와 그 주에 적은 기록을 합친 것이다.
+  List<ExerciseSession> _sessionsOfWeek(int weeksAgo) => weeksAgo <= 0
+      ? _sessions
+      : <ExerciseSession>[
+          ..._sessionsForWeek(weeksAgo),
+          ...?_pastAdded[weeksAgo],
+        ];
+
+  /// [date] 가 든 주의 기록을 담는 목록. 이번 주(또는 그 뒤)는 [_sessions] 다.
+  List<ExerciseSession> _storeFor(DateTime date) {
+    final int weeksAgo = _weeksAgo(_mondayOf(date));
+    if (weeksAgo <= 0) return _sessions;
+    return _pastAdded.putIfAbsent(weeksAgo, () => <ExerciseSession>[]);
+  }
+
+  /// id 로 기록을 찾는다 — 이번 주부터, 그다음 지난 주 보관함들.
+  ({List<ExerciseSession> store, int index})? _locate(String id) {
+    for (final List<ExerciseSession> store in <List<ExerciseSession>>[
+      _sessions,
+      ..._pastAdded.values,
+    ]) {
+      final int index = store.indexWhere((ExerciseSession s) => s.id == id);
+      if (index >= 0) return (store: store, index: index);
+    }
+    return null;
+  }
+
   int _seq = 0;
 
   // 주간 소모 칼로리 헤드라인 — 시드 세션 합에서 시작해 CRUD 델타로 유지.
@@ -254,7 +294,7 @@ class MockExerciseRepository implements ExerciseRepository {
   /// 않은 날은 다른 말이라, 0 으로 채우면 조언의 "며칠 움직였다" 가 어긋난다.
   ///
   /// 이번 주는 [_sessions](CRUD 가 반영된 살아 있는 주)에서, 지난 주들은
-  /// 픽스처에서 읽는다 — 주간 요약이 읽는 것과 같은 출처다.
+  /// 픽스처와 그 주에 적은 기록에서 읽는다 — 주간 요약이 읽는 것과 같은 출처다.
   List<ExerciseDayTotals> _dayTotals(String period) {
     final int weeksBack = switch (period) {
       kPeriodAll => kAllPeriodWeeks - 1,
@@ -267,9 +307,7 @@ class MockExerciseRepository implements ExerciseRepository {
 
     for (int weeksAgo = weeksBack; weeksAgo >= 0; weeksAgo--) {
       final DateTime monday = _addDays(thisMonday, -7 * weeksAgo);
-      final List<ExerciseSession> sessions = weeksAgo == 0
-          ? _sessions
-          : _sessionsForWeek(weeksAgo);
+      final List<ExerciseSession> sessions = _sessionsOfWeek(weeksAgo);
       for (final ExerciseSession s in sessions) {
         final int index = _dayLabels.indexOf(s.dayLabel);
         if (index < 0) continue;
@@ -309,14 +347,13 @@ class MockExerciseRepository implements ExerciseRepository {
   /// [monday] 주에 운동 기록이 있는 날들(#1789). 주간 챌린지 목업이 진행을 센다.
   ///
   /// 목업 API 가 응답을 만드는 중에 부르므로 기다림 없이 바로 답한다. 이번 주는
-  /// 추가·삭제가 반영된 기록, 지난 주는 픽스처, 아직 오지 않은 주는 비어 있다.
+  /// 추가·삭제가 반영된 기록, 지난 주는 픽스처와 그 주에 적은 기록, 아직 오지
+  /// 않은 주는 비어 있다.
   Set<DateTime> recordedDaysOfWeek(DateTime monday) {
     final DateTime start = _dateOnly(monday);
     if (start.isAfter(_addDays(_today, -_todayIdx))) return <DateTime>{};
     final int weeksAgo = _weeksAgo(start);
-    final List<ExerciseSession> sessions = weeksAgo <= 0
-        ? _sessions
-        : _sessionsForWeek(weeksAgo);
+    final List<ExerciseSession> sessions = _sessionsOfWeek(weeksAgo);
     return <DateTime>{
       for (final ExerciseSession s in sessions)
         if (s.date != null)
@@ -337,9 +374,9 @@ class MockExerciseRepository implements ExerciseRepository {
   /// 끼리의 비교다. 픽스처가 덮는 주(`historyWeeks`)를 넘어가면 빈 주다 —
   /// 없는 기록을 지어내면 트레이너웹과 다시 갈린다.
   ///
-  /// 인메모리 CRUD 는 이번 주에만 적용된다.
+  /// 앱에서 그 주 날짜로 적은 기록도 함께 담는다(#2637).
   ExerciseWeek _pastWeek(int weeksAgo) => _weekFrom(
-    _sessionsForWeek(weeksAgo),
+    _sessionsOfWeek(weeksAgo),
     aiCoachMessage: '지난 기록이에요. 이번 주와 견줘 보면 흐름이 보여요.',
   );
 
@@ -425,8 +462,8 @@ class MockExerciseRepository implements ExerciseRepository {
       date: d.date,
       pointsAward: award,
     );
-    _sessions.add(session);
-    _totalCalories += d.calories;
+    // 그 날짜의 주에 넣는다 — 지난 주로 적은 기록이 이번 주에 쌓이지 않게(#2637).
+    _placeNew(session, d.date);
     // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
     _shields?.refundFor(d.date);
     return session;
@@ -465,8 +502,7 @@ class MockExerciseRepository implements ExerciseRepository {
       assignedRoutineId: routineId,
       assignedRoutineName: name,
     );
-    _sessions.add(session);
-    _totalCalories += calories;
+    _placeNew(session, date);
     // 루틴 완료 기록도 같다 — 보호한 날이면 보호권을 되돌린다(#1788).
     _shields?.refundFor(date);
     return session;
@@ -477,13 +513,26 @@ class MockExerciseRepository implements ExerciseRepository {
   /// [deleteSession] 과 달리 파생 기록만 지운다.
   Future<void> removeAssignedRoutineSession(String id) async {
     await Future<void>.delayed(const Duration(milliseconds: 100));
-    final int idx = _sessions.indexWhere(
-      (ExerciseSession s) =>
-          s.id == id && s.source == ExerciseSource.assignedRoutine,
-    );
-    if (idx < 0) return;
-    _totalCalories = _nonNeg(_totalCalories - _sessions[idx].calories);
-    _sessions.removeAt(idx);
+    final ({List<ExerciseSession> store, int index})? at = _locate(id);
+    if (at == null) return;
+    if (at.store[at.index].source != ExerciseSource.assignedRoutine) return;
+    _removeAt(at);
+  }
+
+  /// 새 기록을 [date] 의 주에 넣는다. 이번 주 총 칼로리 헤드라인은 이번 주에
+  /// 들어온 기록만 더한다.
+  void _placeNew(ExerciseSession session, DateTime date) {
+    final List<ExerciseSession> store = _storeFor(date);
+    store.add(session);
+    if (identical(store, _sessions)) _totalCalories += session.calories;
+  }
+
+  /// 찾은 자리의 기록을 뺀다. 이번 주에서 빠지면 헤드라인도 줄인다.
+  void _removeAt(({List<ExerciseSession> store, int index}) at) {
+    final ExerciseSession removed = at.store.removeAt(at.index);
+    if (identical(at.store, _sessions)) {
+      _totalCalories = _nonNeg(_totalCalories - removed.calories);
+    }
   }
 
   /// 근력에서만 의미 있는 값(세트·횟수·중량). 다른 유형에서 온 값은 버린다 —
@@ -495,11 +544,11 @@ class MockExerciseRepository implements ExerciseRepository {
   @override
   Future<void> deleteSession(String id) async {
     await Future<void>.delayed(const Duration(milliseconds: 100));
-    final int idx = _sessions.indexWhere((ExerciseSession s) => s.id == id);
-    if (idx < 0) return;
-    if (!_sessions[idx].isEditable) return;
-    _totalCalories = _nonNeg(_totalCalories - _sessions[idx].calories);
-    _sessions.removeAt(idx);
+    // 지난 주 날짜로 적은 기록도 지울 수 있다(#2637).
+    final ({List<ExerciseSession> store, int index})? at = _locate(id);
+    if (at == null) return;
+    if (!at.store[at.index].isEditable) return;
+    _removeAt(at);
     // 이 기록으로 받은 포인트를 회수한다(#1786).
     _points?.revoke(PointsRule.exerciseManual.sourceType, id);
   }
@@ -520,8 +569,8 @@ class MockExerciseRepository implements ExerciseRepository {
     double? weight,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
-    final int idx = _sessions.indexWhere((ExerciseSession s) => s.id == id);
-    final ExerciseSession? old = idx >= 0 ? _sessions[idx] : null;
+    final ({List<ExerciseSession> store, int index})? at = _locate(id);
+    final ExerciseSession? old = at == null ? null : at.store[at.index];
     // 코칭에서 파생된 기록(PT·배정 루틴)은 회원이 고치지 못한다 — 서버가 409
     // 로 막는 자리다. 여기서 덮어쓰면 그 기록이 회원 수기 기록으로 바뀌어
     // 헬스장에서 한 PT 가 `직접 추가한 운동` 으로 옮겨 앉는다.
@@ -546,9 +595,20 @@ class MockExerciseRepository implements ExerciseRepository {
       weight: _strengthOnly(type, weight),
       date: date,
     );
-    if (idx >= 0 && old != null) {
-      _totalCalories = _nonNeg(_totalCalories - old.calories + calories);
-      _sessions[idx] = updated;
+    if (at != null) {
+      final List<ExerciseSession> target = _storeFor(date);
+      if (identical(target, at.store)) {
+        // 같은 주 안의 수정은 제자리에서 바꾼다 — 목록 순서가 흔들리지 않게.
+        if (identical(target, _sessions)) {
+          _totalCalories = _nonNeg(_totalCalories - old!.calories + calories);
+        }
+        at.store[at.index] = updated;
+      } else {
+        // 다른 주로 옮겼으면 옛 주에서 빼고 새 주에 넣는다(#2637) — 날짜 라벨만
+        // 바뀌고 옛 주 그래프에 남으면 두 주가 모두 틀린다.
+        _removeAt(at);
+        _placeNew(updated, date);
+      }
       // 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
       _shields?.refundFor(date);
     }

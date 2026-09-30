@@ -1514,6 +1514,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsHistoryMore => '더 보기';
 
   @override
+  String get myPointsHistoryMoreFailed => '더 불러오지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get myPointsReasonDiet => '식단 기록';
 
   @override
@@ -2019,6 +2022,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mySaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get myProfileEmailTaken => '이미 사용 중인 이메일이에요';
+
+  @override
+  String get myProfilePhoneRequired => '등록된 전화번호는 비울 수 없어요';
+
+  @override
+  String get myProfileInvalid => '입력한 내용을 다시 확인해 주세요';
 
   @override
   String get myFieldName => '이름';
