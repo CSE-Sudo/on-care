@@ -782,12 +782,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => 'No workout program was recorded.';
+  String exPtSessionNumber(int count) {
+    return 'Session $count';
+  }
 
   @override
-  String exCompletedPtFeedback(String coachName) {
-    return '$coachName · Today\'s feedback';
-  }
+  String get exCompletedPtNoProgram => 'No workout program was recorded.';
 
   @override
   String get exAddExercise => 'Add Exercise';
@@ -3856,9 +3856,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Maintenance is scheduled for tomorrow, 02:00–03:00.';
 
   @override
-  String get exPtLogTitle => 'Today\'s completed PT';
-
-  @override
   String get exPtFeedbackTitle => 'Today\'s feedback';
 
   @override
@@ -3925,11 +3922,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
-
-  @override
-  String exDemoPtSessionCount(String trainerName) {
-    return 'Session 12 with Trainer $trainerName';
-  }
 
   @override
   String get exDemoPtFeedback =>

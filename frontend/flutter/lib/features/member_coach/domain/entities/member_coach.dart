@@ -195,6 +195,7 @@ class CoachSession {
     required this.status,
     this.note = '',
     this.program = const <CoachProgramItem>[],
+    this.sessionNumber,
   });
 
   /// Server id.
@@ -224,6 +225,10 @@ class CoachSession {
 
   /// The workout program attached by the trainer.
   final List<CoachProgramItem> program;
+
+  /// 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터). 서버가 완료 PT 에만
+  /// 싣는다 — 예정·취소·상담과 옛 서버 응답은 null 이다. (#2697)
+  final int? sessionNumber;
 
   /// Whether this session is still ahead.
   ///

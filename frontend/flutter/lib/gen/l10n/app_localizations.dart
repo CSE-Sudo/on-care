@@ -1484,17 +1484,17 @@ abstract class AppLocalizations {
   /// **'{time} completed'**
   String exCompletedPtTime(String time);
 
+  /// PT card chip — which session with the assigned trainer this was (#2666).
+  ///
+  /// In en, this message translates to:
+  /// **'Session {count}'**
+  String exPtSessionNumber(int count);
+
   /// No description provided for @exCompletedPtNoProgram.
   ///
   /// In en, this message translates to:
   /// **'No workout program was recorded.'**
   String get exCompletedPtNoProgram;
-
-  /// No description provided for @exCompletedPtFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'{coachName} · Today\'s feedback'**
-  String exCompletedPtFeedback(String coachName);
 
   /// No description provided for @exAddExercise.
   ///
@@ -6678,12 +6678,6 @@ abstract class AppLocalizations {
   /// **'Maintenance is scheduled for tomorrow, 02:00–03:00.'**
   String get demoAlertMaintenanceBody;
 
-  /// Title of the completed PT session card.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s completed PT'**
-  String get exPtLogTitle;
-
   /// Label above the trainer's feedback.
   ///
   /// In en, this message translates to:
@@ -6797,12 +6791,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A cancelled request can\'t be restored.'**
   String get exConsultHistoryCancelBody;
-
-  /// No description provided for @exDemoPtSessionCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Session 12 with Trainer {trainerName}'**
-  String exDemoPtSessionCount(String trainerName);
 
   /// No description provided for @exDemoPtFeedback.
   ///
