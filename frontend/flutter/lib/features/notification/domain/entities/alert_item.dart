@@ -154,6 +154,7 @@ class NotificationState {
   const NotificationState({
     required this.items,
     this.loading = false,
+    this.loaded = false,
     this.failedToLoad = false,
     this.hasMore = false,
     this.loadingMore = false,
@@ -161,8 +162,22 @@ class NotificationState {
 
   final List<AlertItem> items;
 
-  /// 첫 조회가 진행 중인가. 새로고침 중에는 기존 목록을 그대로 보여 준다.
+  /// 조회가 진행 중인가. 첫 조회와 새로고침 모두 참이 된다 — 새로고침 중에는
+  /// 기존 목록을 그대로 보여 준다.
   final bool loading;
+
+  /// 목록을 한 번이라도 받았는가(#2638). 목/데모 시드로 시작하면 처음부터 참이다.
+  ///
+  /// [loading] 만으로는 "아직 받는 중" 과 "받아 봤더니 없음" 을 가를 수 없다 —
+  /// 둘 다 목록이 비어 있다. 받은 적이 없는 채로 비어 있으면 화면은 빈 상태 대신
+  /// 로딩 표시를 그린다.
+  final bool loaded;
+
+  /// 첫 조회가 아직 끝나지 않아 **보여 줄 목록이 없는** 상태인가(#2638).
+  ///
+  /// 이미 받은 뒤의 새로고침은 여기에 들지 않는다. 빈 목록을 당길 때마다 로딩
+  /// 표시로 바뀌면 화면이 흔들린다.
+  bool get awaitingFirstLoad => loading && !loaded && items.isEmpty;
 
   /// 마지막 조회가 실패했는가. 화면이 재시도를 제안하는 근거다.
   final bool failedToLoad;
@@ -182,12 +197,14 @@ class NotificationState {
   NotificationState copyWith({
     List<AlertItem>? items,
     bool? loading,
+    bool? loaded,
     bool? failedToLoad,
     bool? hasMore,
     bool? loadingMore,
   }) => NotificationState(
     items: items ?? this.items,
     loading: loading ?? this.loading,
+    loaded: loaded ?? this.loaded,
     failedToLoad: failedToLoad ?? this.failedToLoad,
     hasMore: hasMore ?? this.hasMore,
     loadingMore: loadingMore ?? this.loadingMore,

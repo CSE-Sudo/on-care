@@ -29,6 +29,11 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
   bool _loading = true;
   bool _failed = false;
 
+  /// 이어 받기(`더 보기`)가 실패했는가(#2641). 첫 쪽 실패와 달리 받아 둔 내역이
+  /// 있어 카드 오류 상태를 그릴 자리가 없다 — 그래서 토스트로 알리고 버튼을
+  /// `다시 시도` 로 바꾼다.
+  bool _moreFailed = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +45,7 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
     setState(() {
       _loading = true;
       _failed = false;
+      _moreFailed = false;
     });
     try {
       final page = await ref
@@ -58,7 +64,16 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
       setState(() {
         _loading = false;
         _failed = true;
+        // 받아 둔 내역과 커서(`_nextBefore`)는 그대로 둔다 — 다시 누르면 같은
+        // 자리부터 이어 받는다.
+        _moreFailed = more;
       });
+      if (more) {
+        AppToastHost.of(context).show(
+          AppLocalizations.of(context).myPointsHistoryMoreFailed,
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -143,9 +158,10 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
       ],
       if (_nextBefore != null) ...<Widget>[
         const SizedBox(height: OnCareSpacing.s16),
+        // 이어 받기가 실패했으면 같은 자리·같은 모양으로 `다시 시도` 를 둔다(#2641).
         AppButton(
           key: const Key('pointsHistoryMore'),
-          label: l.myPointsHistoryMore,
+          label: _moreFailed ? l.actionRetry : l.myPointsHistoryMore,
           variant: AppButtonVariant.secondary,
           fullWidth: true,
           loading: _loading,

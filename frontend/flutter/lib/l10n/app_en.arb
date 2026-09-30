@@ -579,14 +579,6 @@
   "exOwnRecordSource": "Self-logged",
   "exCompletedPtDayTitle": "Completed PT",
   "exCompletedRoutineDayTitle": "Completed solo workout",
-  "exPtDayFeedback": "{coachName} · Feedback",
-  "@exPtDayFeedback": {
-    "placeholders": {
-      "coachName": {
-        "type": "String"
-      }
-    }
-  },
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
@@ -1069,6 +1061,7 @@
   "myPointsHistoryEmptyMessage": "Log meals and workouts to earn points.",
   "myPointsHistoryLoadFailed": "Couldn't load your points history",
   "myPointsHistoryMore": "Load more",
+  "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
   "myPointsReasonDiet": "Meal log",
   "myPointsReasonExercise": "Workout log",
   "myPointsReasonRoutine": "Recommended or assigned workout done",
@@ -1466,6 +1459,9 @@
   "mySave": "Save",
   "myProfileSaved": "Profile saved",
   "mySaveFailed": "Couldn't save. Please try again in a moment",
+  "myProfileEmailTaken": "That email is already in use",
+  "myProfilePhoneRequired": "Your phone number can't be left empty",
+  "myProfileInvalid": "Please check what you entered",
   "myFieldName": "Name",
   "myFieldEmail": "Email",
   "myFieldPhone": "Phone",
@@ -2851,15 +2847,6 @@
   "coachRoutineCancelFailed": "Couldn't delete the workout",
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
-  },
-  "coachRoutineTrainerFeedback": "Trainer feedback: {feedback}",
-  "@coachRoutineTrainerFeedback": {
-    "description": "The trainer's feedback on a completed routine.",
-    "placeholders": {
-      "feedback": {
-        "type": "String"
-      }
-    }
   },
   "coachRoutineCompleteTitle": "Mark personal exercise done",
   "@coachRoutineCompleteTitle": {

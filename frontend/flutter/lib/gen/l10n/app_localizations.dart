@@ -1814,12 +1814,6 @@ abstract class AppLocalizations {
   /// **'Completed solo workout'**
   String get exCompletedRoutineDayTitle;
 
-  /// No description provided for @exPtDayFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'{coachName} · Feedback'**
-  String exPtDayFeedback(String coachName);
-
   /// No description provided for @exDeleteExercise.
   ///
   /// In en, this message translates to:
@@ -2768,6 +2762,12 @@ abstract class AppLocalizations {
   /// **'Load more'**
   String get myPointsHistoryMore;
 
+  /// No description provided for @myPointsHistoryMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load more. Please try again'**
+  String get myPointsHistoryMoreFailed;
+
   /// No description provided for @myPointsReasonDiet.
   ///
   /// In en, this message translates to:
@@ -3655,6 +3655,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save. Please try again in a moment'**
   String get mySaveFailed;
+
+  /// No description provided for @myProfileEmailTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That email is already in use'**
+  String get myProfileEmailTaken;
+
+  /// No description provided for @myProfilePhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone number can\'t be left empty'**
+  String get myProfilePhoneRequired;
+
+  /// No description provided for @myProfileInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check what you entered'**
+  String get myProfileInvalid;
 
   /// No description provided for @myFieldName.
   ///
@@ -6365,12 +6383,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t delete the workout'**
   String get coachRoutineCancelFailed;
-
-  /// The trainer's feedback on a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback: {feedback}'**
-  String coachRoutineTrainerFeedback(String feedback);
 
   /// Title of the completion dialog.
   ///
