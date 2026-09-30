@@ -151,12 +151,21 @@ def test_dismissed_candidates_are_not_prepared_again(client, fresh):
 
 
 def test_prepared_candidates_stay_in_the_recovery_range(client, fresh):
-    """기록만 보고 고강도 운동을 새로 처방하지 않는다."""
+    """기록만 보고 고강도 운동을 새로 처방하지 않는다.
+
+    근력은 맨몸(0kg) 한 건만 들어간다(#2703) — 무게는 트레이너가 회원에 맞춰
+    올린다.
+    """
     rows = _review_list(client, fresh)
 
     assert rows
+    strength = [row for row in rows if row["type"] == "근력"]
+    assert len(strength) <= 1
+    for row in strength:
+        assert row["sets"] and (row["reps"] or row["hold_seconds"])
+        assert not row["weight"]
     for row in rows:
-        assert row["type"] in {"스트레칭", "유산소"}
+        assert row["type"] in {"스트레칭", "유산소", "근력"}
         # PT 사이를 메우는 짧은 단위다 — 프로그램이 아니다.
         assert 0 < row["minutes"] <= 30
 
@@ -245,9 +254,9 @@ def test_recent_pt_with_feedback_is_marked_as_such():
     assert suggestions.EV_RECENT_PT in candidates[0].evidence
 
 
-def test_at_most_two_candidates_are_prepared():
+def test_at_most_the_cap_is_prepared():
     """모든 신호가 켜져도 개인운동은 할 일 목록이 되지 않는다."""
-    candidates = suggestions._candidates_for(
+    candidates = suggestions._suggestions_for(
         suggestions._Signals(
             pt_just_finished=True,
             trainer_feedback=True,
@@ -269,3 +278,45 @@ def test_records_without_a_clear_signal_get_the_lightest_option():
     assert len(candidates) == 1
     assert candidates[0].type == "스트레칭"
     assert candidates[0].minutes <= 10
+
+
+def test_a_strength_candidate_with_sets_comes_last():
+    """회복·유산소 뒤에 세트·횟수·중량이 있는 근력 후보 하나 (#2703).
+
+    트레이너 웹 데모처럼 세 건이고, 개인운동 단계의 근력 칸이 채워져 보인다.
+    """
+    candidates = suggestions._suggestions_for(
+        suggestions._Signals(
+            pt_just_finished=True,
+            trainer_feedback=True,
+            strength_heavy=True,
+            low_cardio=True,
+            has_records=True,
+            total_minutes=240,
+            strength_minutes=190,
+        )
+    )
+
+    assert len(candidates) == suggestions.MAX_NEW_SUGGESTIONS == 3
+    strength = candidates[-1]
+    assert strength.type == "근력"
+    assert strength.name == "힙 브리지"
+    assert (strength.sets, strength.reps, strength.weight) == (3, 15, 0.0)
+    assert suggestions.EV_STRENGTH_HEAVY in strength.evidence
+    assert [c for c in candidates if c.type == "근력"] == [strength]
+
+
+def test_blood_pressure_members_get_a_breath_friendly_strength_move():
+    (*_, strength) = suggestions._suggestions_for(
+        suggestions._Signals(blood_pressure=True, has_records=True)
+    )
+    assert strength.name == "벽 푸시업"
+    assert strength.evidence == (suggestions.EV_BLOOD_PRESSURE,)
+
+
+def test_no_signal_means_no_strength_candidate_either():
+    assert suggestions._suggestions_for(suggestions._Signals()) == []
+
+
+def test_the_backlog_stops_after_two_days_of_suggestions():
+    assert suggestions.MAX_PENDING_BACKLOG == 2 * suggestions.MAX_NEW_SUGGESTIONS
