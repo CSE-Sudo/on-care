@@ -220,23 +220,54 @@ class _ProfileForm extends ConsumerStatefulWidget {
 }
 
 class _ProfileFormState extends ConsumerState<_ProfileForm> {
+  /// 편집이 기대는 프로필 — 보기 상태에서는 화면이 받은 값을 따라가고, 연필을
+  /// 누르면 서버에서 새로 읽은 값으로 굳힌다. 저장은 이 값과 달라진 칸만
+  /// 보낸다(#2655). 담당 트레이너도 같은 칸을 고치므로, 손대지 않은 칸까지
+  /// 들고 있던 값으로 보내면 그 사이 트레이너가 바꾼 값이 조용히 되돌아간다.
+  late UserProfile _base = widget.initial;
+
+  @override
+  void didUpdateWidget(covariant _ProfileForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing) _base = widget.initial;
+  }
+
+  /// 화면에 들어오면 한 번 서버에서 다시 읽는다 — 들고 있던 프로필은 앱을
+  /// 다시 열거나 이 화면에 들어올 때 새로 읽히지 않는다(#2655).
+  void _refreshOnOpen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(profileProvider.notifier)
+          .refreshFromServer()
+          .then((_) {}, onError: (Object _) {});
+    });
+  }
+
+  /// 편집을 열기 직전의 최신 프로필. 읽지 못하면 들고 있던 값이다.
+  Future<UserProfile> _latest() async {
+    try {
+      return await ref.read(profileProvider.notifier).refreshFromServer();
+    } catch (_) {
+      return _base;
+    }
+  }
+
   late final TextEditingController _name = TextEditingController(
-    text: widget.initial.name,
+    text: _base.name,
   );
   late final TextEditingController _email = TextEditingController(
-    text: widget.initial.email,
+    text: _base.email,
   );
   late final TextEditingController _phone = TextEditingController(
-    text: widget.initial.phone,
+    text: _base.phone,
   );
   late final TextEditingController _birth = TextEditingController(
-    text: widget.initial.birthDate,
+    text: _base.birthDate,
   );
   // 성별은 비워 두지 않는다 (#1140) — 고르지 않은 채로 두면 이 회원이 무엇을
   // 골랐는지와 아직 안 골랐는지가 화면에서 같아 보인다.
-  late String _gender = widget.initial.gender.isEmpty
-      ? 'male'
-      : widget.initial.gender;
+  late String _gender = _base.gender.isEmpty ? 'male' : _base.gender;
 
   /// 이 회원이 성별을 고른 적이 있는가 — 화면에 보이는 값과 별개다.
   ///
@@ -244,12 +275,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   /// 건너뛴 회원에게는 화면을 채우려고 세운 기본값이라, 전화번호 한 줄만 고쳐
   /// 저장해도 고른 적 없는 `male` 이 서버에 굳었다(#1941). 회원이 칩을 누른
   /// 뒤부터만 성별을 함께 보낸다.
-  late bool _genderChosen = widget.initial.gender.isNotEmpty;
+  late bool _genderChosen = _base.gender.isNotEmpty;
   late final TextEditingController _height = TextEditingController(
-    text: widget.initial.heightCm?.toString() ?? '',
+    text: _base.heightCm?.toString() ?? '',
   );
   late final TextEditingController _weight = TextEditingController(
-    text: widget.initial.weightKg?.toString() ?? '',
+    text: _base.weightKg?.toString() ?? '',
   );
   bool _saving = false;
   bool _editing = false;
@@ -260,15 +291,24 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _check,
   );
 
-  void _beginEdit() {
-    _name.text = widget.initial.name;
-    _email.text = widget.initial.email;
-    _phone.text = widget.initial.phone;
-    _birth.text = widget.initial.birthDate;
-    _height.text = widget.initial.heightCm?.toString() ?? '';
-    _weight.text = widget.initial.weightKg?.toString() ?? '';
-    _genderChosen = widget.initial.gender.isNotEmpty;
-    _gender = _genderChosen ? widget.initial.gender : 'male';
+  @override
+  void initState() {
+    super.initState();
+    _refreshOnOpen();
+  }
+
+  /// 연필을 눌렀다 — 서버의 지금 값으로 칸을 채우고 연다(#2655).
+  Future<void> _beginEdit() async {
+    _base = await _latest();
+    if (!mounted) return;
+    _name.text = _base.name;
+    _email.text = _base.email;
+    _phone.text = _base.phone;
+    _birth.text = _base.birthDate;
+    _height.text = _base.heightCm?.toString() ?? '';
+    _weight.text = _base.weightKg?.toString() ?? '';
+    _genderChosen = _base.gender.isNotEmpty;
+    _gender = _genderChosen ? _base.gender : 'male';
     _errors = AppFieldErrors<_ProfileField>(_check);
     setState(() => _editing = true);
   }
@@ -334,7 +374,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       _ProfileField.name => AppInputRules.name(_name.text),
       _ProfileField.email => AppInputRules.email(_email.text),
       _ProfileField.phone =>
-        _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
+        _phone.text.trim().isEmpty && _base.phone.trim().isEmpty
             ? null
             : AppInputRules.phone(_phone.text),
       // 생년월일은 비어 있어도 된다 — 넣을 자리가 없던 시절에 가입한 회원과
@@ -381,23 +421,65 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       return;
     }
     final AppToastHost toast = AppToastHost.of(context);
+    // 바꾼 칸만 보낸다(#2655). 키·몸무게·성별은 담당 트레이너도 고치는
+    // 칸이라, 이름만 고친 저장이 그 사이 트레이너가 바꾼 값을 덮지 않게 한다.
+    String? changed(String now, String before) => now == before ? null : now;
+    MeasureUpdate? changedMeasure(TextEditingController c, double? before) {
+      final MeasureUpdate next = _measureUpdate(c);
+      return next.value?.toDouble() == before ? null : next;
+    }
+
+    final String? name = changed(_name.text.trim(), _base.name.trim());
+    final String? email = changed(_email.text.trim(), _base.email.trim());
+    final String? phone = changed(_phone.text.trim(), _base.phone.trim());
+    final String? birthDate = changed(
+      _birth.text.trim(),
+      _base.birthDate.trim(),
+    );
+    // 고른 적이 없으면 보내지 않는다 — 화면을 채우려고 세운 기본값을
+    // 회원의 선택으로 굳히지 않는다(#1941).
+    final String? gender = _genderChosen && _gender != _base.gender
+        ? _gender
+        : null;
+    // 비운 칸은 `값 지움`으로 보낸다. 예전에는 null 을 넘겨 저장소가
+    // 키를 통째로 빼는 바람에, 서버가 "손대지 않음"으로 읽어 지운
+    // 값이 되살아났다(#1941).
+    final MeasureUpdate? heightCm = changedMeasure(
+      _height,
+      _base.heightCm?.toDouble(),
+    );
+    final MeasureUpdate? weightKg = changedMeasure(
+      _weight,
+      _base.weightKg?.toDouble(),
+    );
+    if (<Object?>[
+      name,
+      email,
+      phone,
+      birthDate,
+      gender,
+      heightCm,
+      weightKg,
+    ].every((Object? v) => v == null)) {
+      // 바꾼 것이 없으면 보내지 않는다 — 보낼 것도 덮을 것도 없다. 화면의
+      // 값이 곧 저장된 값이므로 저장한 것과 같게 알린다.
+      FocusScope.of(context).unfocus();
+      setState(() => _editing = false);
+      toast.show(l.myProfileSaved, type: AppToastType.success);
+      return;
+    }
     setState(() => _saving = true);
     try {
-      await ref
+      _base = await ref
           .read(accountRepositoryProvider)
           .updateProfile(
-            name: _name.text.trim(),
-            email: _email.text.trim(),
-            phone: _phone.text.trim(),
-            birthDate: _birth.text.trim(),
-            // 고른 적이 없으면 보내지 않는다 — 화면을 채우려고 세운 기본값을
-            // 회원의 선택으로 굳히지 않는다(#1941).
-            gender: _genderChosen ? _gender : null,
-            // 비운 칸은 `값 지움`으로 보낸다. 예전에는 null 을 넘겨 저장소가
-            // 키를 통째로 빼는 바람에, 서버가 "손대지 않음"으로 읽어 지운
-            // 값이 되살아났다(#1941).
-            heightCm: _measureUpdate(_height),
-            weightKg: _measureUpdate(_weight),
+            name: name,
+            email: email,
+            phone: phone,
+            birthDate: birthDate,
+            gender: gender,
+            heightCm: heightCm,
+            weightKg: weightKg,
             // 자유 입력 운동 목표는 `건강 목표` 화면으로 옮겼다(#1471) —
             // 여기서 보내지 않으므로 그 화면에서 정한 값이 덮이지 않는다.
           );
@@ -436,10 +518,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       footer,
       <Widget>[
         Center(
-          child: AppAvatar(
-            name: widget.initial.name.trim(),
-            size: AppAvatarSize.xLarge,
-          ),
+          child: AppAvatar(name: _base.name.trim(), size: AppAvatarSize.xLarge),
         ),
         const SizedBox(height: OnCareSpacing.s16),
         Theme(
@@ -452,7 +531,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             child: _card(<Widget>[
               _profileField(
                 l.myFieldName,
-                widget.initial.name,
+                _base.name,
                 AppTextField(
                   key: const ValueKey<String>('my-profile-name'),
                   controller: _name,
@@ -463,7 +542,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldEmail,
-                widget.initial.email,
+                _base.email,
                 AppTextField(
                   key: const ValueKey<String>('my-profile-email'),
                   controller: _email,
@@ -475,7 +554,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldPhone,
-                widget.initial.phone,
+                _base.phone,
                 AppTextField(
                   key: const ValueKey<String>('my-profile-phone'),
                   controller: _phone,
@@ -491,7 +570,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldBirth,
-                widget.initial.birthDate,
+                _base.birthDate,
                 AppTextField(
                   key: const ValueKey<String>('my-profile-birth'),
                   controller: _birth,
@@ -503,7 +582,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldGender,
-                switch (widget.initial.gender) {
+                switch (_base.gender) {
                   'male' => l.onboardGenderMale,
                   'female' => l.onboardGenderFemale,
                   'other' => l.onboardGenderOther,
@@ -534,7 +613,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldHeight,
-                widget.initial.heightCm?.toString() ?? '',
+                _base.heightCm?.toString() ?? '',
                 AppTextField(
                   key: const ValueKey<String>('my-profile-height'),
                   controller: _height,
@@ -549,7 +628,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldWeight,
-                widget.initial.weightKg?.toString() ?? '',
+                _base.weightKg?.toString() ?? '',
                 AppTextField(
                   key: const ValueKey<String>('my-profile-weight'),
                   controller: _weight,
@@ -615,6 +694,39 @@ class _GoalsForm extends ConsumerStatefulWidget {
 }
 
 class _GoalsFormState extends ConsumerState<_GoalsForm> {
+  /// 편집이 기대는 프로필 — 보기 상태에서는 화면이 받은 값을 따라가고, 연필을
+  /// 누르면 서버에서 새로 읽은 값으로 굳힌다. 저장은 이 값과 달라진 칸만
+  /// 보낸다(#2655). 담당 트레이너도 같은 칸을 고치므로, 손대지 않은 칸까지
+  /// 들고 있던 값으로 보내면 그 사이 트레이너가 바꾼 값이 조용히 되돌아간다.
+  late UserProfile _base = widget.initial;
+
+  @override
+  void didUpdateWidget(covariant _GoalsForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing) _base = widget.initial;
+  }
+
+  /// 화면에 들어오면 한 번 서버에서 다시 읽는다 — 들고 있던 프로필은 앱을
+  /// 다시 열거나 이 화면에 들어올 때 새로 읽히지 않는다(#2655).
+  void _refreshOnOpen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(profileProvider.notifier)
+          .refreshFromServer()
+          .then((_) {}, onError: (Object _) {});
+    });
+  }
+
+  /// 편집을 열기 직전의 최신 프로필. 읽지 못하면 들고 있던 값이다.
+  Future<UserProfile> _latest() async {
+    try {
+      return await ref.read(profileProvider.notifier).refreshFromServer();
+    } catch (_) {
+      return _base;
+    }
+  }
+
   final TextEditingController _kcal = TextEditingController();
   final TextEditingController _sodium = TextEditingController();
   final TextEditingController _sugar = TextEditingController();
@@ -636,7 +748,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
 
   /// 주로 관리하고 싶은 항목. 진단·치료 중인 질환을 단정하는 값이 아니라
   /// **어디에 초점을 둘지**다(#1471). 온보딩이 저장한 값을 그대로 이어받는다.
-  late Set<String> _focus = parseHealthFocus(widget.initial.conditions);
+  late Set<String> _focus = parseHealthFocus(_base.conditions);
 
   // 목표 칸을 가리키는 이름. 어느 칸이 '아직 회원이 세운 적 없는 칸' 인지
   // 기억하는 열쇠다.
@@ -660,16 +772,16 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   late Set<String> _prefilled = _prefilledKeys();
 
   Set<String> _prefilledKeys() => <String>{
-    if (widget.initial.dailyCalories == null) _kKcal,
-    if (widget.initial.dailySodiumMg == null) _kSodium,
-    if (widget.initial.dailySugarG == null) _kSugar,
-    if (widget.initial.dailyCarbsG == null) _kCarbs,
-    if (widget.initial.dailyProteinG == null) _kProtein,
-    if (widget.initial.dailyFatG == null) _kFat,
-    if (widget.initial.dailyBurnKcal == null) _kBurn,
-    if (widget.initial.weeklyCardioMinutes == null) _kCardio,
-    if (widget.initial.weeklyStrengthSets == null) _kStrength,
-    if (widget.initial.weeklyFlexibilityMinutes == null) _kFlexibility,
+    if (_base.dailyCalories == null) _kKcal,
+    if (_base.dailySodiumMg == null) _kSodium,
+    if (_base.dailySugarG == null) _kSugar,
+    if (_base.dailyCarbsG == null) _kCarbs,
+    if (_base.dailyProteinG == null) _kProtein,
+    if (_base.dailyFatG == null) _kFat,
+    if (_base.dailyBurnKcal == null) _kBurn,
+    if (_base.weeklyCardioMinutes == null) _kCardio,
+    if (_base.weeklyStrengthSets == null) _kStrength,
+    if (_base.weeklyFlexibilityMinutes == null) _kFlexibility,
   };
 
   /// 칸마다 서버가 받는 범위(#1888). 서버 `health_goal_ranges` 와 같은 값을
@@ -729,6 +841,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   void initState() {
     super.initState();
     _fillControllers();
+    _refreshOnOpen();
   }
 
   /// 칸에 저장된 목표를 담고, **없으면 권장 기본값을 채운다.**
@@ -751,9 +864,13 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   ///
   /// 되감는 이유는 취소한 뒤 다시 들어왔을 때다. 화면을 떠나지 않으므로
   /// 컨트롤러에는 지난번에 고치다 만 값이 남아 있다 — 내 프로필과 같다.
-  void _beginEdit() {
+  Future<void> _beginEdit() async {
+    // 서버의 지금 값에서 연다(#2655) — 트레이너가 방금 바꾼 목표가 옛 값으로
+    // 칸에 차면, 회원은 모르고 그 값을 다시 저장한다.
+    _base = await _latest();
+    if (!mounted) return;
     _fillControllers();
-    _focus = parseHealthFocus(widget.initial.conditions);
+    _focus = parseHealthFocus(_base.conditions);
     _prefilled = _prefilledKeys();
     _errors = AppFieldErrors<String>(_rangeError);
     setState(() {
@@ -835,16 +952,16 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
 
   /// 서버에 저장돼 있는 목표. `null` 이면 세운 적 없는 칸이다.
   int? _savedValue(String key) => switch (key) {
-    _kKcal => widget.initial.dailyCalories,
-    _kSodium => widget.initial.dailySodiumMg,
-    _kSugar => widget.initial.dailySugarG,
-    _kCarbs => widget.initial.dailyCarbsG,
-    _kProtein => widget.initial.dailyProteinG,
-    _kFat => widget.initial.dailyFatG,
-    _kBurn => widget.initial.dailyBurnKcal,
-    _kCardio => widget.initial.weeklyCardioMinutes,
-    _kStrength => widget.initial.weeklyStrengthSets,
-    _kFlexibility => widget.initial.weeklyFlexibilityMinutes,
+    _kKcal => _base.dailyCalories,
+    _kSodium => _base.dailySodiumMg,
+    _kSugar => _base.dailySugarG,
+    _kCarbs => _base.dailyCarbsG,
+    _kProtein => _base.dailyProteinG,
+    _kFat => _base.dailyFatG,
+    _kBurn => _base.dailyBurnKcal,
+    _kCardio => _base.weeklyCardioMinutes,
+    _kStrength => _base.weeklyStrengthSets,
+    _kFlexibility => _base.weeklyFlexibilityMinutes,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
@@ -885,7 +1002,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     kcal,
     basis: RecommendationBasis.personalized,
     focus: _focus,
-    weightKg: widget.initial.weightKg,
+    weightKg: _base.weightKg,
   );
 
   /// 지금 칼로리 칸의 값. 숫자가 아니거나 0 이하면 null.
@@ -1010,30 +1127,60 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     }
     FocusScope.of(context).unfocus();
     final AppToastHost toast = AppToastHost.of(context);
+    // 바꾼 칸만 보낸다(#2655). 목표는 담당 트레이너도 고치는 값이라, 나트륨만
+    // 고친 저장이 그 사이 트레이너가 바꾼 칼로리를 편집을 연 값으로 되돌리면
+    // 안 된다. 빈 칸은 `GoalUpdate(null)` 로 나가 목표 해제가 된다 — 회원이
+    // 지운 목표는 지워져야 하므로 해제도 바꾼 칸이다.
+    GoalUpdate? changed(String key) {
+      final int? next = _valueToSave(key, _controllerFor(key));
+      return next == _savedValue(key) ? null : GoalUpdate(next);
+    }
+
+    final bool focusEdited = conditionsEdits(
+      base: _base.conditions,
+      focus: _focus,
+      notes: _base.conditions,
+    ).focus;
+    final Map<String, GoalUpdate?> goals = <String, GoalUpdate?>{
+      for (final String key in _ranges.keys) key: changed(key),
+    };
+    if (!focusEdited && goals.values.every((GoalUpdate? g) => g == null)) {
+      // 바꾼 것이 없으면 보내지 않는다. 화면의 값이 곧 저장된 값이므로
+      // 저장한 것과 같게 알린다.
+      setState(() => _editing = false);
+      toast.show(l.myGoalsSaved, type: AppToastType.success);
+      return;
+    }
     setState(() => _saving = true);
     try {
+      // 목표 칩은 `conditions` 한 칸에 건강상태·주의사항 글과 함께 있다. 칩을
+      // 바꿨으면 저장 직전의 서버 값 위에 칩만 얹는다 — 그 사이 트레이너가
+      // 고친 글이 편집을 연 값으로 덮이지 않게(#2655).
+      final String? conditions = focusEdited
+          ? rebaseConditions(
+              base: _base.conditions,
+              latest: (await _latest()).conditions,
+              focus: _focus,
+              notes: _base.conditions,
+            )
+          : null;
       final UserProfile updatedProfile = await ref
           .read(accountRepositoryProvider)
-          // 이 화면이 들고 있는 열 칸을 다 보낸다. 빈 칸은
-          // `GoalUpdate(null)` 로 나가 서버에서 목표 해제가 된다 — 회원이 지운
-          // 목표는 지워져야 한다.
           .updateHealthGoals(
-            // 목표가 아닌 글(트레이너가 적은 주의사항)은 지우지 않는다(#1814).
-            conditions: mergeHealthFocus(widget.initial.conditions, _focus),
-            dailyCalories: GoalUpdate(_valueToSave(_kKcal, _kcal)),
-            dailySodiumMg: GoalUpdate(_valueToSave(_kSodium, _sodium)),
-            dailySugarG: GoalUpdate(_valueToSave(_kSugar, _sugar)),
-            dailyCarbsG: GoalUpdate(_valueToSave(_kCarbs, _carbs)),
-            dailyProteinG: GoalUpdate(_valueToSave(_kProtein, _protein)),
-            dailyFatG: GoalUpdate(_valueToSave(_kFat, _fat)),
-            dailyBurnKcal: GoalUpdate(_valueToSave(_kBurn, _burn)),
-            weeklyCardioMinutes: GoalUpdate(_valueToSave(_kCardio, _cardio)),
-            weeklyStrengthSets: GoalUpdate(_valueToSave(_kStrength, _strength)),
-            weeklyFlexibilityMinutes: GoalUpdate(
-              _valueToSave(_kFlexibility, _flexibility),
-            ),
+            conditions: conditions,
+            dailyCalories: goals[_kKcal],
+            dailySodiumMg: goals[_kSodium],
+            dailySugarG: goals[_kSugar],
+            dailyCarbsG: goals[_kCarbs],
+            dailyProteinG: goals[_kProtein],
+            dailyFatG: goals[_kFat],
+            dailyBurnKcal: goals[_kBurn],
+            weeklyCardioMinutes: goals[_kCardio],
+            weeklyStrengthSets: goals[_kStrength],
+            weeklyFlexibilityMinutes: goals[_kFlexibility],
           );
       if (!mounted) return;
+      _base = updatedProfile;
       ref.read(profileProvider.notifier).applyUpdatedProfile(updatedProfile);
       ref.invalidate(dashboardSummaryProvider);
       // 저장해도 화면을 닫지 않고 보기 모드로 돌아온다 — 내 프로필과 같다
@@ -1064,7 +1211,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     final RecommendedGoals exercise = _exerciseSuggestion;
     // 보기 모드가 읽는 초점도 저장된 값이다 — 고치다 취소한 선택이 남아
     // 있을 수 있는 `_focus` 가 아니라 프로필에서 다시 센다.
-    final Set<String> savedFocus = parseHealthFocus(widget.initial.conditions);
+    final Set<String> savedFocus = parseHealthFocus(_base.conditions);
     final Widget? footer = _editing
         ? _saveRow(
             context: context,
@@ -1141,7 +1288,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           // 남긴다(#1832).
           if (focusLastChangedLabel(
                 l,
-                widget.initial,
+                _base,
                 locale: Localizations.localeOf(context).toString(),
               )
               case final String changed) ...<Widget>[
