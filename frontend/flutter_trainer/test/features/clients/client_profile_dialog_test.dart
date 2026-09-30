@@ -426,7 +426,7 @@ void main() {
     expect(find.text('아직 저장하지 않은 글'), findsOneWidget);
   });
 
-  testWidgets('글자 수는 입력 상자 바로 아래 오른쪽에 붙는다 (#1448)', (tester) async {
+  testWidgets('글자 수는 `메모 추가` 와 한 줄, 버튼 바로 왼쪽에 붙는다 (#2516)', (tester) async {
     final repository = _FakeMemoRepository();
     await _pumpDialog(tester, repository);
 
@@ -436,24 +436,21 @@ void main() {
     final Finder counter = find.byKey(
       const ValueKey<String>('client-memo-counter'),
     );
+    final Finder add = find.byKey(const ValueKey<String>('client-memo-add'));
     expect(counter, findsOneWidget);
-    // 입력 상자 아래, 그리고 상자 오른쪽 끝에 맞춘다.
+    // 입력 상자보다 아래, `추가` 와 같은 줄이다.
     expect(
       tester.getTopLeft(counter).dy,
-      greaterThanOrEqualTo(tester.getBottomLeft(input).dy - 24),
+      greaterThan(tester.getTopLeft(input).dy),
     );
+    expect(
+      tester.getCenter(counter).dy,
+      moreOrLessEquals(tester.getCenter(add).dy, epsilon: 1),
+    );
+    // 버튼 왼쪽에 붙는다.
     expect(
       tester.getBottomRight(counter).dx,
-      moreOrLessEquals(tester.getBottomRight(input).dx, epsilon: 1),
-    );
-    // `추가` 버튼보다 위에 있다 — 한 줄에 나눠 놓지 않는다.
-    expect(
-      tester.getTopLeft(counter).dy,
-      lessThan(
-        tester
-            .getTopLeft(find.byKey(const ValueKey<String>('client-memo-add')))
-            .dy,
-      ),
+      lessThan(tester.getTopLeft(add).dx),
     );
 
     // 입력하면 그 자리에서 갱신된다.

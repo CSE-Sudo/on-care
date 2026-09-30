@@ -4151,6 +4151,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientMemoEdited => 'Edited';
 
   @override
+  String get clientMemoSearchHint => 'Search memos (text or tag)';
+
+  @override
+  String get clientMemoSearchEmpty => 'No memos match your search.';
+
+  @override
   String get followUp => 'Follow-ups';
 
   @override

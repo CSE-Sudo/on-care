@@ -1101,10 +1101,14 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
   String? _editingId;
   final TextEditingController _edit = TextEditingController();
 
+  /// 메모 검색어. 목록을 화면에서만 거른다 — 서버에 다시 묻지 않는다.
+  final TextEditingController _query = TextEditingController();
+
   @override
   void dispose() {
     _draft.dispose();
     _edit.dispose();
+    _query.dispose();
     super.dispose();
   }
 
@@ -1191,8 +1195,8 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 기본 카운터는 버튼과 다른 줄에 떨어져 그려진다 — 아래에서 직접
-        // 그리므로 입력창은 카운터를 감춘다.
+        // 기본 카운터는 입력칸 아래에 따로 떨어져 그려진다 — 아래 `메모 추가`
+        // 줄에서 직접 그리므로 입력칸은 카운터를 감춘다.
         AppTextField(
           key: const ValueKey<String>('client-memo-input'),
           controller: _draft,
@@ -1204,27 +1208,23 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           // 헷갈리지 않게 적는 자리에서 밝힌다(#2574).
           helper: l.clientTrainerMemoPrivate,
         ),
-        // 글자 수는 입력 상자 **바로 아래 오른쪽**에 붙인다(#1448). `추가` 와
-        // 한 줄에 나눠 두면 왼쪽 끝의 보조 정보가 입력 상자와 따로 놀았다.
-        const SizedBox(height: OnCareSpacing.s4),
-        Align(
-          alignment: Alignment.centerRight,
-          child: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _draft,
-            builder: (context, value, _) => Text(
-              key: const ValueKey<String>('client-memo-counter'),
-              '${value.text.characters.length}/$_maxLength',
-              style: OnCareTypography.numeric(
-                tokens.text(OnCareTypography.caption),
-              ).copyWith(color: OnCareColors.textTertiary),
-            ),
-          ),
-        ),
-        // 입력 상자와 바로 붙어 있으면 `추가` 가 상자의 일부처럼 보인다 —
-        // 다른 카드 사이 간격과 같은 여백을 준다.
         const SizedBox(height: OnCareSpacing.s8),
-        AppActionRow(
-          actions: <Widget>[
+        // 글자 수와 `메모 추가` 를 한 줄에 둔다 — 둘 다 방금 쓴 글에 대한
+        // 것이라 오른쪽 끝에 붙여 읽힌다. 줄이 둘로 나뉘면 입력칸 아래가 길어진다.
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _draft,
+              builder: (context, value, _) => Text(
+                key: const ValueKey<String>('client-memo-counter'),
+                '${value.text.characters.length}/$_maxLength',
+                style: OnCareTypography.numeric(
+                  tokens.text(OnCareTypography.caption),
+                ).copyWith(color: OnCareColors.textTertiary),
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s12),
             AppButton(
               key: const ValueKey<String>('client-memo-add'),
               onPressed: _busy ? null : _add,
@@ -1233,7 +1233,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             ),
           ],
         ),
-        const SizedBox(height: OnCareSpacing.s8),
+        const SizedBox(height: OnCareSpacing.s16),
         memos.when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
           error: (error, _) => AppErrorState(
@@ -1250,59 +1250,145 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             onRetry: () =>
                 ref.invalidate(trainerMemosProvider(widget.clientId)),
           ),
-          data: (list) => list.isEmpty
-              ? AppEmptyState(
-                  placement: AppStatePlacement.card,
-                  title: l.clientTrainerMemoEmpty,
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    for (final memo in list) ...<Widget>[
-                      _memoTile(l, memo),
-                      const SizedBox(height: OnCareSpacing.s8),
-                    ],
-                  ],
+          data: (list) {
+            if (list.isEmpty) {
+              return AppEmptyState(
+                placement: AppStatePlacement.card,
+                title: l.clientTrainerMemoEmpty,
+              );
+            }
+            final shown = _matching(l, list);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // 메모가 쌓이면 스크롤로 찾기 어렵다 — 본문과 출처 태그로
+                // 거른다(`무릎`, `PT 세션`, `9/23` 등).
+                AppSearchField(
+                  key: const ValueKey<String>('client-memo-search'),
+                  controller: _query,
+                  hint: l.clientMemoSearchHint,
+                  clearTooltip: l.searchClear,
+                  onChanged: (_) => setState(() {}),
                 ),
+                const SizedBox(height: OnCareSpacing.s8),
+                if (shown.isEmpty)
+                  AppEmptyState(
+                    key: const ValueKey<String>('client-memo-search-empty'),
+                    placement: AppStatePlacement.card,
+                    title: l.clientMemoSearchEmpty,
+                  )
+                else
+                  for (final memo in shown) ...<Widget>[
+                    _memoTile(l, memo),
+                    const SizedBox(height: OnCareSpacing.s8),
+                  ],
+              ],
+            );
+          },
         ),
       ],
     );
   }
+
+  /// 검색어가 본문이나 출처 태그에 든 메모만. 대소문자와 앞뒤 공백은 가리지 않는다.
+  List<TrainerMemo> _matching(AppLocalizations l, List<TrainerMemo> list) {
+    final query = _query.text.trim().toLowerCase();
+    if (query.isEmpty) return list;
+    return <TrainerMemo>[
+      for (final memo in list)
+        if (memo.body.toLowerCase().contains(query) ||
+            _sourceLabel(l, memo).toLowerCase().contains(query))
+          memo,
+    ];
+  }
+
+  /// 메모의 출처 태그 문구 — 태그와 검색이 같은 말을 쓴다.
+  static String _sourceLabel(AppLocalizations l, TrainerMemo memo) =>
+      switch (memo.source) {
+        TrainerMemoSource.chatInsight => _insightReasonLabel(
+          l,
+          memo.insightKind,
+        ),
+        TrainerMemoSource.exerciseMemo when memo.ref != null =>
+          exerciseMemoTagLabel(l, memo.ref!),
+        _ => l.clientMemoTagManual,
+      };
 
   Widget _memoTile(AppLocalizations l, TrainerMemo memo) {
     final tokens = context.oncare;
     final editing = _editingId == memo.id;
     return AppTile(
       key: ValueKey<String>('client-memo-${memo.id}'),
+      // 흰 바탕에 테두리 — 입력칸(회색 채움)과 구분되고, 파란 채움이 모든
+      // 메모를 강조처럼 보이게 하던 것을 걷는다.
+      tone: AppTileTone.outline,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // 메모마다 어디서 왔는지 태그를 단다(#2516) — 직접 쓴 것·채팅에서
-          // 감지한 것·운동 기록에서 남긴 것(#2332)이 한 목록에 섞인다.
-          Padding(
-            padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
-            child: switch (memo.source) {
-              // 이 메모가 나온 채팅 인사이트 카드와 PT 관리 신호(`통증·불편`)가
-              // 같은 사실을 빨강으로 말한다. 여기만 주황이면 트레이너가 두
-              // 세기를 따로 외워야 한다(#690, #2360).
-              TrainerMemoSource.chatInsight => AppTag(
-                key: ValueKey<String>('client-memo-insight-${memo.id}'),
-                label: _insightReasonLabel(l, memo.insightKind),
-                tone: AppTagTone.danger,
-                icon: AppIcons.warning,
+          // 머리 줄: 왼쪽에 출처 태그(#2516), 오른쪽 위에 수정·삭제.
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: switch (memo.source) {
+                    // 이 메모가 나온 채팅 인사이트 카드와 PT 관리 신호(`통증·불편`)가
+                    // 같은 사실을 빨강으로 말한다. 여기만 주황이면 트레이너가 두
+                    // 세기를 따로 외워야 한다(#690, #2360).
+                    TrainerMemoSource.chatInsight => AppTag(
+                      key: ValueKey<String>('client-memo-insight-${memo.id}'),
+                      label: _sourceLabel(l, memo),
+                      tone: AppTagTone.danger,
+                      icon: AppIcons.warning,
+                    ),
+                    TrainerMemoSource.exerciseMemo when memo.ref != null =>
+                      AppTag(
+                        key: ValueKey<String>(
+                          'client-memo-exercise-${memo.id}',
+                        ),
+                        label: _sourceLabel(l, memo),
+                        tone: AppTagTone.brand,
+                        icon: AppIcons.exercise,
+                      ),
+                    _ => AppTag(
+                      key: ValueKey<String>('client-memo-manual-${memo.id}'),
+                      label: _sourceLabel(l, memo),
+                    ),
+                  },
+                ),
               ),
-              TrainerMemoSource.exerciseMemo when memo.ref != null => AppTag(
-                key: ValueKey<String>('client-memo-exercise-${memo.id}'),
-                label: exerciseMemoTagLabel(l, memo.ref!),
-                tone: AppTagTone.brand,
-                icon: AppIcons.exercise,
-              ),
-              _ => AppTag(
-                key: ValueKey<String>('client-memo-manual-${memo.id}'),
-                label: l.clientMemoTagManual,
-              ),
-            },
+              if (!editing) ...<Widget>[
+                // 메모 본문보다 덜 도드라져야 한다 — 아이콘으로 줄인다(#1448).
+                // 편집 중에는 다른 메모의 `수정` 을 잠근다. 편집 상태와
+                // 입력 컨트롤러가 하나씩뿐이라, 열려 있는 편집을 두고 다른
+                // 메모를 열면 쓰던 글이 확인도 없이 사라진다.
+                AppIconButton(
+                  key: ValueKey<String>('client-memo-edit-open-${memo.id}'),
+                  icon: AppIcons.edit,
+                  tooltip: l.actionEdit,
+                  size: AppIconButtonSize.small,
+                  color: OnCareColors.textSecondary,
+                  onPressed: _busy || _editingId != null
+                      ? null
+                      : () => setState(() {
+                          _editingId = memo.id;
+                          _edit.text = memo.body;
+                        }),
+                ),
+                AppIconButton(
+                  key: ValueKey<String>('client-memo-delete-${memo.id}'),
+                  icon: AppIcons.delete,
+                  tooltip: l.actionDelete,
+                  size: AppIconButtonSize.small,
+                  color: OnCareColors.textTertiary,
+                  onPressed: _busy || _editingId != null
+                      ? null
+                      : () => _delete(memo),
+                ),
+              ],
+            ],
           ),
+          const SizedBox(height: OnCareSpacing.s4),
           if (editing)
             AppTextField(
               key: ValueKey<String>('client-memo-edit-${memo.id}'),
@@ -1349,33 +1435,6 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   variant: AppButtonVariant.text,
                   size: OnCareButtonSize.small,
                   label: l.actionSave,
-                ),
-              ] else ...<Widget>[
-                // 메모 본문보다 덜 도드라져야 한다 — 글자 버튼 둘이 본문만큼
-                // 눈에 들어왔다. 아이콘으로 줄이고 삭제만 붉게 둔다(#1448).
-                // 편집 중에는 다른 메모의 `수정` 을 잠근다. 편집 상태와
-                // 입력 컨트롤러가 하나씩뿐이라, 열려 있는 편집을 두고 다른
-                // 메모를 열면 쓰던 글이 확인도 없이 사라진다.
-                AppIconButton(
-                  key: ValueKey<String>('client-memo-edit-open-${memo.id}'),
-                  icon: AppIcons.edit,
-                  tooltip: l.actionEdit,
-                  color: OnCareColors.textSecondary,
-                  onPressed: _busy || _editingId != null
-                      ? null
-                      : () => setState(() {
-                          _editingId = memo.id;
-                          _edit.text = memo.body;
-                        }),
-                ),
-                AppIconButton(
-                  key: ValueKey<String>('client-memo-delete-${memo.id}'),
-                  icon: AppIcons.delete,
-                  tooltip: l.actionDelete,
-                  color: OnCareColors.textTertiary,
-                  onPressed: _busy || _editingId != null
-                      ? null
-                      : () => _delete(memo),
                 ),
               ],
             ],

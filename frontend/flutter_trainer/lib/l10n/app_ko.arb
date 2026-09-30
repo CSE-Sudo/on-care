@@ -1704,6 +1704,8 @@
     }
   },
   "clientMemoEdited": "수정됨",
+  "clientMemoSearchHint": "메모 검색 (본문·태그)",
+  "clientMemoSearchEmpty": "찾는 메모가 없어요.",
   "followUp": "후속 관리",
   "followUpTitle": "{name}님 후속 관리",
   "@followUpTitle": {

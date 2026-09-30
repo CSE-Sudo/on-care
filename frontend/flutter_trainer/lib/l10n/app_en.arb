@@ -2685,6 +2685,8 @@
     }
   },
   "clientMemoEdited": "Edited",
+  "clientMemoSearchHint": "Search memos (text or tag)",
+  "clientMemoSearchEmpty": "No memos match your search.",
   "followUp": "Follow-ups",
   "followUpTitle": "Follow-ups on {name}",
   "@followUpTitle": {

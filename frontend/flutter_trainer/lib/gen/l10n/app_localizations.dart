@@ -7165,6 +7165,18 @@ abstract class AppLocalizations {
   /// **'Edited'**
   String get clientMemoEdited;
 
+  /// No description provided for @clientMemoSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search memos (text or tag)'**
+  String get clientMemoSearchHint;
+
+  /// No description provided for @clientMemoSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No memos match your search.'**
+  String get clientMemoSearchEmpty;
+
   /// No description provided for @followUp.
   ///
   /// In en, this message translates to:

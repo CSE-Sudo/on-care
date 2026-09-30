@@ -3947,6 +3947,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientMemoEdited => '수정됨';
 
   @override
+  String get clientMemoSearchHint => '메모 검색 (본문·태그)';
+
+  @override
+  String get clientMemoSearchEmpty => '찾는 메모가 없어요.';
+
+  @override
   String get followUp => '후속 관리';
 
   @override
