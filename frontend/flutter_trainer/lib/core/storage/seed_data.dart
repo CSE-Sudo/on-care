@@ -457,6 +457,11 @@ Future<void> seedIfEmpty(
               type: aiRoutine[i].type,
               reason: t(aiRoutine[i].reason),
               sortOrder: Value(i),
+              // 근력의 양(#2705). 다른 유형은 0 이다.
+              sets: Value(aiRoutine[i].sets),
+              reps: Value(aiRoutine[i].reps),
+              holdSeconds: Value(aiRoutine[i].holdSeconds),
+              weight: Value(aiRoutine[i].weight),
             ),
         ]);
 
@@ -1058,11 +1063,26 @@ class _Food {
 }
 
 class _Routine {
-  const _Routine(this.name, this.minutes, this.type, this.reason);
+  const _Routine(
+    this.name,
+    this.minutes,
+    this.type,
+    this.reason, {
+    this.sets = 0,
+    this.reps = 0,
+    this.holdSeconds = 0,
+    this.weight = 0,
+  });
   final String name;
   final int minutes;
   final String type;
   final String reason;
+
+  /// 근력의 세트·횟수(또는 버티는 초)·중량(kg). 다른 유형은 0 이다. (#2705)
+  final int sets;
+  final int reps;
+  final int holdSeconds;
+  final double weight;
 }
 
 /// 김민수의 개인 운동 — **공유 픽스처**가 정한다. (#1170)
@@ -1072,7 +1092,15 @@ class _Routine {
 /// 같은 회원의 같은 날에 서로 다른 운동을 말했다.
 List<_Routine> _fixtureRoutines(DemoFixture fixture) => <_Routine>[
   for (final FixtureRoutine r in fixture.routines)
-    _Routine(r.name, r.minutes, r.type, r.reason),
+    _Routine(
+      r.name,
+      r.minutes,
+      r.type,
+      r.reason,
+      sets: r.sets ?? 0,
+      reps: r.reps ?? 0,
+      weight: r.weight ?? 0,
+    ),
 ];
 
 class _History {

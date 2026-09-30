@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_suggestions.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
@@ -102,7 +103,7 @@ void main() {
           );
         }
       }
-      // 이지수 스쿼트는 운동 기록의 값과 같다.
+      // 값은 시드 표에서 온다(#2705) — 이지수 스쿼트는 운동 기록의 값과 같다.
       final squat = (await repo.watchAssignedRoutines('seed-client-2').first)
           .firstWhere((r) => r.name == '스쿼트');
       expect((squat.sets, squat.reps, squat.weight), (3, 12, 40.0));
@@ -412,6 +413,12 @@ void main() {
       for (var n = 2; n <= 15; n++) {
         final String id = 'seed-client-$n';
         final RoutineOptions o = await generate(id);
+        // 반복 운동형이거나 통증 부위 때문에 구성이 바뀐 회원은 따로 본다
+        // (`demo_routine_rules_test.dart`, #2704).
+        if (o.planA.label != '회복·지속 중심' ||
+            cautionsIn(o.analysis.goal, o.analysis.recentMessages).isNotEmpty) {
+          continue;
+        }
         final bool ease =
             o.analysis.sodiumOverTarget || o.analysis.avgCompletionRate < 50;
         // 나트륨 초과·완료율 50% 미만이면 목·어깨 스트레칭이 더해진다.

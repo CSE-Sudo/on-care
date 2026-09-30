@@ -7,6 +7,8 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -55,6 +57,12 @@ abstract interface class TrainerRoutineOptionsRepository {
 /// AI 생성일 때만 `참고한 최근 대화` 를 그리므로 보이지 않는다. 데모에서도
 /// 보일지는 따로 정한다.
 ///
+/// 서버 규칙형의 두 안전장치도 따른다(#2704, `demo_routine_rules.dart`).
+/// 건강 주의사항·최근 대화에 통증 부위가 보이면 그 부위에 부담이 큰 동작을
+/// 저충격 대안으로 바꾸고 근거 문장에 주의 문구를 붙인다. 최근 6주 기록에
+/// 두 번 이상 반복된 운동이 있으면 그 운동으로 A/B 를 짠다(`기존 패턴 유지형`
+/// · `점진적 강화형`, #776).
+///
 /// [db] 가 없거나 모르는 회원이면(단위 테스트) 고정 스냅샷이다. 추천 상태는
 /// 어느 쪽이든 템플릿으로 둔다 — 데모의 템플릿 배너 표시는 따로 정한다.
 ///
@@ -87,6 +95,16 @@ class MockTrainerRoutineOptionsRepository
   static const int _chatMaxMessages = 10;
   static const int _chatMaxChars = 200;
 
+  /// 반복 운동을 찾는 기간(일). 서버 `HISTORY_LOOKBACK_DAYS` 와 같다.
+  static const int _historyLookbackDays = 42;
+
+  /// 강도 선호 → 표시 강도. 서버 `_B_LABEL` 과 같다.
+  static const Map<String, String> _intensityLabels = <String, String>{
+    'low': '낮음',
+    'moderate': '보통',
+    'high': '높음',
+  };
+
   @override
   Future<RoutineOptions> generate(
     String memberId, {
@@ -116,6 +134,27 @@ class MockTrainerRoutineOptionsRepository
         : ' 트레이너 메모 반영: $note.';
     final minutes = availableMinutes ?? _defaultMinutes;
     final intensityPref = intensityPreference ?? _defaultIntensity;
+    // 서버 규칙형의 안전장치(#1440) — 건강 주의사항과 최근 대화를 같은 글로
+    // 읽어, 조심할 부위와 강도를 올리지 말아야 할 상태를 가린다.
+    final List<String> messages = member?.recentMessages ?? const <String>[];
+    final String conditions = member?.conditions ?? '';
+    final List<String> cautions = cautionsIn(conditions, messages);
+    final bool escalate = needsProfessionalCheck(conditions, messages);
+    final String safety = cautionSuffix(cautions, escalate, en: en);
+    final List<String> frequent = member?.frequent ?? const <String>[];
+    if (member != null && frequent.isNotEmpty) {
+      return _patternOptions(
+        member,
+        frequent: frequent,
+        minutes: minutes,
+        intensityPref: intensityPref,
+        cautions: cautions,
+        escalate: escalate,
+        note: note,
+        suffix: noteSuffix + safety,
+        en: en,
+      );
+    }
     // 서버 규칙형과 같은 갈림 — 나트륨이 목표를 넘거나 완료율이 50% 미만이면
     // A안의 부담을 더 낮추고 스트레칭 비중을 키운다. B안 문장은 완료율 60%
     // 이상이면 "상향 여력" 을 말한다(`routine_ai.rule_based_plans`).
@@ -142,6 +181,19 @@ class MockTrainerRoutineOptionsRepository
       totalB - intervalMinutes - 1,
     );
     final plankMinutes = totalB - intervalMinutes - squatMinutes;
+    // B안에서 조심할 부위에 부담이 큰 동작을 뺀 구성. 바뀌지 않으면 null —
+    // 그때는 위의 지금 데모 배분을 그대로 쓴다.
+    final List<(String, String, int)> planBLibrary = <(String, String, int)>[
+      (libCardioHard.$1, libCardioHard.$2, 3),
+      (libStrength.$1, libStrength.$2, 2),
+      (libStrength2.$1, libStrength2.$2, 1),
+    ];
+    final List<(String, String, int)> planBSafe = safeParts(
+      planBLibrary,
+      cautions,
+    );
+    final List<(String, String, int)>? planBParts =
+        identical(planBSafe, planBLibrary) ? null : planBSafe;
 
     return RoutineOptions(
       analysis: MemberAnalysis(
@@ -162,16 +214,20 @@ class MockTrainerRoutineOptionsRepository
         label: t('회복·지속 중심', 'Recovery & consistency'),
         totalMinutes: totalA,
         intensity: '낮음',
-        exercises: _compose(totalA, <(String, String, int)>[
-          if (easeA) ...<(String, String, int)>[
-            (t('저강도 걷기', 'Low-intensity walk'), '유산소', 2),
-            (t('코어 스트레칭', 'Core stretch'), '스트레칭', 2),
-            (t('목·어깨 스트레칭', 'Neck & shoulder stretch'), '스트레칭', 1),
-          ] else ...<(String, String, int)>[
-            (t('저강도 걷기', 'Low-intensity walk'), '유산소', 3),
-            (t('코어 스트레칭', 'Core stretch'), '스트레칭', 2),
-          ],
-        ]),
+        exercises: _compose(
+          totalA,
+          safeParts(<(String, String, int)>[
+            if (easeA) ...<(String, String, int)>[
+              (libCardioEasy.$1, libCardioEasy.$2, 2),
+              (libStretch.$1, libStretch.$2, 2),
+              (libStretch2.$1, libStretch2.$2, 1),
+            ] else ...<(String, String, int)>[
+              (libCardioEasy.$1, libCardioEasy.$2, 3),
+              (libStretch.$1, libStretch.$2, 2),
+            ],
+          ], cautions),
+          en: en,
+        ),
         reason: t(
           '짧고 지속하기 쉬운 회복 중심 프로그램',
           'A short, easy-to-sustain recovery program',
@@ -179,32 +235,40 @@ class MockTrainerRoutineOptionsRepository
         rationale: en
             ? 'Sodium today ${sodium}mg$sodiumLabel, recent workout '
                   'completion $completion% → focusing on consistency with '
-                  'low-strain cardio and stretching.$noteSuffix'
+                  'low-strain cardio and stretching.$noteSuffix$safety'
             : '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '
-                  '부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.$noteSuffix',
+                  '부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.$noteSuffix$safety',
       ),
       planB: RoutinePlan(
         key: 'B',
         label: t('강도·운동량 중심', 'Intensity & volume'),
         totalMinutes: totalB,
-        intensity: intensityPref == 'low' ? '보통' : '높음',
-        exercises: <RoutineExercise>[
-          RoutineExercise(
-            name: t('인터벌 러닝', 'Interval running'),
-            minutes: intervalMinutes,
-            type: '유산소',
-          ),
-          RoutineExercise(
-            name: t('스쿼트', 'Squat'),
-            minutes: squatMinutes,
-            type: '근력',
-          ),
-          RoutineExercise(
-            name: t('플랭크', 'Plank'),
-            minutes: plankMinutes,
-            type: '근력',
-          ),
-        ],
+        // 판단이 어려운 상태에서는 강도를 올리지 않는다(서버와 같다).
+        intensity: escalate
+            ? '보통'
+            : intensityPref == 'low'
+            ? '보통'
+            : '높음',
+        exercises: planBParts == null
+            ? <RoutineExercise>[
+                RoutineExercise(
+                  name: t('인터벌 러닝', 'Interval running'),
+                  minutes: intervalMinutes,
+                  type: '유산소',
+                ),
+                RoutineExercise(
+                  name: t('스쿼트', 'Squat'),
+                  minutes: squatMinutes,
+                  type: '근력',
+                ),
+                RoutineExercise(
+                  name: t('플랭크', 'Plank'),
+                  minutes: plankMinutes,
+                  type: '근력',
+                ),
+              ]
+            // 주의 부위 때문에 구성이 바뀌면 서버와 같은 배분으로 나눈다.
+            : _compose(totalB, planBParts, en: en),
         reason: t(
           '운동량과 강도를 높인 프로그램',
           'A program with more volume and intensity',
@@ -212,10 +276,10 @@ class MockTrainerRoutineOptionsRepository
         rationale: en
             ? "Based on the goal '$goal' and a $completion% completion rate, "
                   '${roomToStepUp ? 'there is room to step up — adding' : 'gradually adding'} '
-                  'strength and cardio to raise the workload.$noteSuffix'
+                  'strength and cardio to raise the workload.$noteSuffix$safety'
             : "목표 '$goal' 기준, 완료율 $completion%로 "
                   '${roomToStepUp ? '상향 여력이 있어' : '점진적으로'} '
-                  '근력·유산소를 더해 운동량을 높임.$noteSuffix',
+                  '근력·유산소를 더해 운동량을 높임.$noteSuffix$safety',
       ),
       // 지금 데모 화면 그대로 규칙형이다 — `규칙 기반 생성` 꼬리표가 남는다.
       generatedBy: 'rule',
@@ -227,8 +291,9 @@ class MockTrainerRoutineOptionsRepository
   /// 떠안아 합이 [total] 과 같다.
   static List<RoutineExercise> _compose(
     int total,
-    List<(String, String, int)> parts,
-  ) {
+    List<(String, String, int)> parts, {
+    required bool en,
+  }) {
     final int sum = total < parts.length ? parts.length : total;
     final int weights = parts.fold<int>(0, (int a, (String, String, int) p) {
       return a + p.$3;
@@ -237,7 +302,7 @@ class MockTrainerRoutineOptionsRepository
     return <RoutineExercise>[
       for (var i = 0; i < parts.length; i++)
         RoutineExercise(
-          name: parts[i].$1,
+          name: libraryExerciseName(parts[i].$1, en: en),
           type: parts[i].$2,
           minutes: () {
             if (i == parts.length - 1) {
@@ -252,6 +317,106 @@ class MockTrainerRoutineOptionsRepository
         ),
     ];
   }
+
+  /// 반복 운동이 확인된 회원의 A/B — 서버 `_pattern_based_plans` 와 같다(#776).
+  ///
+  /// A안은 반복해 온 운동을 그대로(요청 시간의 ~75%), B안은 그 운동에 라이브러리
+  /// 운동 하나를 더해 요청 시간 전부를 쓴다. 지금 아픈 부위에 부담이 되는
+  /// 운동은 반복해 왔어도 다시 내밀지 않는다.
+  RoutineOptions _patternOptions(
+    _Snapshot member, {
+    required List<String> frequent,
+    required int minutes,
+    required String intensityPref,
+    required List<String> cautions,
+    required bool escalate,
+    required String note,
+    required String suffix,
+    required bool en,
+  }) {
+    String t(String ko, String english) => en ? english : ko;
+    List<String> core = <String>[
+      for (final String name in frequent)
+        if (!avoidsFor(name, cautions)) name,
+    ].take(3).toList();
+    if (core.isEmpty) core = frequent.take(1).toList();
+    final List<(String, String, int)> coreParts = safeParts(
+      <(String, String, int)>[
+        for (final String name in core) (name, guessExerciseType(name), 2),
+      ],
+      cautions,
+    );
+    final String coreLabel = core.join(', ');
+    final int scaled = (minutes * 0.75).round();
+    final int totalA =
+        (scaled < coreParts.length ? coreParts.length : scaled) > minutes
+        ? minutes
+        : (scaled < coreParts.length ? coreParts.length : scaled);
+    final (String, String) extra =
+        <(String, String)>[
+          libStrength,
+          libCardioHard,
+          libStrength2,
+          libStretch,
+          libCardioEasy,
+        ].firstWhere(
+          ((String, String) e) =>
+              !core.contains(e.$1) && !avoidsFor(e.$1, cautions),
+          orElse: () => libStretch,
+        );
+    return RoutineOptions(
+      analysis: _analysis(member, note: note),
+      planA: RoutinePlan(
+        key: 'A',
+        label: t('기존 패턴 유지형', 'Keep current pattern'),
+        totalMinutes: totalA,
+        intensity: _intensityLabels[intensityPref] ?? '보통',
+        exercises: _compose(totalA, coreParts, en: en),
+        reason: t(
+          '최근 자주 수행한 운동을 그대로 유지',
+          'Keeps the exercises done most often recently',
+        ),
+        rationale: en
+            ? 'Keeps the exercises repeated in recent records ($coreLabel) '
+                  'and fills in only what is missing.$suffix'
+            : '최근 기록에서 반복 확인된 운동($coreLabel)을 유지하고 '
+                  '부족한 부분만 보완.$suffix',
+      ),
+      planB: RoutinePlan(
+        key: 'B',
+        label: t('점진적 강화형', 'Gradual progression'),
+        totalMinutes: minutes,
+        intensity: escalate ? '보통' : _intensityLabels[intensityPref] ?? '높음',
+        exercises: _compose(minutes, <(String, String, int)>[
+          ...coreParts,
+          (extra.$1, extra.$2, 1),
+        ], en: en),
+        reason: t(
+          '기존 핵심 운동을 유지하며 운동량을 소폭 확대',
+          'Keeps the core exercises and slightly raises the workload',
+        ),
+        rationale: en
+            ? 'Keeps the core exercises ($coreLabel) and adds '
+                  "'${libraryExerciseName(extra.$1, en: true)}' to gradually "
+                  'raise the workload.$suffix'
+            : "기존 핵심 운동($coreLabel)은 유지하고 '${extra.$1}'을(를) 더해 "
+                  '운동량을 점진적으로 늘림.$suffix',
+      ),
+      generatedBy: 'rule',
+    );
+  }
+
+  /// 스냅샷 → 분석 칸. 반복 운동형과 규칙형이 같은 분석을 쓴다.
+  static MemberAnalysis _analysis(_Snapshot member, {required String note}) =>
+      MemberAnalysis(
+        goal: member.goal,
+        sodiumTodayMg: member.sodium,
+        sodiumOverTarget: member.sodiumOver,
+        avgCompletionRate: member.completion,
+        latestRoutine: member.latestRoutine,
+        note: note,
+        recentMessages: member.recentMessages,
+      );
 
   /// 이 회원의 시드 지표로 만든 스냅샷. DB 가 없거나 모르는 회원이면 `null`.
   Future<_Snapshot?> _memberSnapshot(
@@ -299,6 +464,35 @@ class MockTrainerRoutineOptionsRepository
           '${speaker(row.sender)}: ${_clip(row.body.trim())}',
     ];
 
+    // 건강 주의사항 — 데모 신체·목표 창이 저장한 값, 없으면 회원 목표.
+    final String? savedProfile = await db.readValue(
+      'member_health_profile:$memberId',
+    );
+    final Object? profile = savedProfile == null
+        ? null
+        : jsonDecode(savedProfile);
+    final String conditions =
+        (profile is Map ? profile['conditions'] as String? : null) ??
+        client.goal;
+
+    // 최근 6주 운동 기록에서 두 번 이상 반복된 운동(서버와 같은 기간·규칙).
+    final DateTime since = nowKst().subtract(
+      const Duration(days: _historyLookbackDays - 1),
+    );
+    final history =
+        await (db.select(db.clientRoutineHistory)..where(
+              (t) =>
+                  t.clientId.equals(memberId) &
+                  t.completedAt.isBiggerOrEqualValue(
+                    DateTime(since.year, since.month, since.day),
+                  ),
+            ))
+            .get();
+    final List<String> frequent = frequentExercises(<List<Object?>>[
+      for (final row in history)
+        if (jsonDecode(row.exercisesJson) case final List<Object?> items) items,
+    ]);
+
     return _Snapshot(
       goal: client.goal,
       sodium: client.sodiumMg,
@@ -306,6 +500,8 @@ class MockTrainerRoutineOptionsRepository
       completion: completion,
       latestRoutine: assigned.isEmpty ? '-' : assigned.first.name,
       recentMessages: lines,
+      conditions: conditions,
+      frequent: frequent,
     );
   }
 
@@ -323,6 +519,8 @@ class _Snapshot {
     required this.completion,
     required this.latestRoutine,
     required this.recentMessages,
+    required this.conditions,
+    required this.frequent,
   });
 
   final String goal;
@@ -331,6 +529,12 @@ class _Snapshot {
   final int completion;
   final String latestRoutine;
   final List<String> recentMessages;
+
+  /// 건강 주의사항으로 읽을 글(#1440).
+  final String conditions;
+
+  /// 최근 기록에서 반복된 운동(#776). 비어 있으면 규칙형이다.
+  final List<String> frequent;
 }
 
 /// Selects the real Dio-backed generator, or the demo generator for
