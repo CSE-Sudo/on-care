@@ -1519,6 +1519,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsHistoryMore => '더 보기';
 
   @override
+  String get myPointsHistoryMoreFailed => '더 불러오지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get myPointsReasonDiet => '식단 기록';
 
   @override

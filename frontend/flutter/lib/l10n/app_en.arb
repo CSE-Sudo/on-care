@@ -1069,6 +1069,7 @@
   "myPointsHistoryEmptyMessage": "Log meals and workouts to earn points.",
   "myPointsHistoryLoadFailed": "Couldn't load your points history",
   "myPointsHistoryMore": "Load more",
+  "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
   "myPointsReasonDiet": "Meal log",
   "myPointsReasonExercise": "Workout log",
   "myPointsReasonRoutine": "Recommended or assigned workout done",

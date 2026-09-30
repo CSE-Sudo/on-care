@@ -1573,6 +1573,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsHistoryMore => 'Load more';
 
   @override
+  String get myPointsHistoryMoreFailed =>
+      'Couldn\'t load more. Please try again';
+
+  @override
   String get myPointsReasonDiet => 'Meal log';
 
   @override

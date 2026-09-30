@@ -2768,6 +2768,12 @@ abstract class AppLocalizations {
   /// **'Load more'**
   String get myPointsHistoryMore;
 
+  /// No description provided for @myPointsHistoryMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load more. Please try again'**
+  String get myPointsHistoryMoreFailed;
+
   /// No description provided for @myPointsReasonDiet.
   ///
   /// In en, this message translates to:
