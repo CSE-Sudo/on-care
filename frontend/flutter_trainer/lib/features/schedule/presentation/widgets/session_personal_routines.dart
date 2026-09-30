@@ -274,13 +274,12 @@ class _NoPersonalRoutines extends StatelessWidget {
               ),
               if (onAdd != null) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s8),
-                // `프로그램 없음` 박스의 코칭 탭 바로가기와 같은 모양이다 —
-                // 둘 다 이 카드 밖(코칭 탭)으로 나간다.
+                // 코칭 탭으로 나가는 바로가기. 공용 아이콘 버튼의 기본(배경
+                // 없음)을 쓴다 — 회색 박스 안에서 채움이 겹쳐 보이지 않게.
                 AppIconButton(
                   key: const ValueKey<String>('session-add-routines'),
                   icon: AppIcons.add,
                   tooltip: l.schedAddRoutines,
-                  variant: AppIconButtonVariant.tonal,
                   onPressed: onAdd,
                 ),
               ],
