@@ -115,10 +115,9 @@ void main() {
     // 보호권은 **기록이 빈 날**에만 쓰고, 쓸 수 있는 창은 어제부터 30일이다.
     // 픽스처가 그 창을 꽉 채워 버리면 시연에서 버튼이 아예 뜨지 않는다 — 예전에
     // 가장 가까운 빈 날이 6주 전이라 그랬다.
+    // 일곱 요일 모두 — 빈 날이 매주 PT 날(오늘과 같은 요일)에 덮이면 안 된다(#2694).
     for (final DateTime now in <DateTime>[
-      DateTime(2026, 8, 10), // 월
-      DateTime(2026, 8, 13), // 목
-      DateTime(2026, 8, 16), // 일
+      for (int d = 10; d <= 16; d++) DateTime(2026, 8, d),
     ]) {
       final DateTime today = DateTime(now.year, now.month, now.day);
       final DateTime windowStart = DateTime(
@@ -143,9 +142,7 @@ void main() {
     // 데모의 오늘은 늘 PT 받은 날(12회차)이다. 요일을 못 박으면 그 요일이 아닌
     // 날에는 이번 주에 PT 가 두 번 서고, 트레이너 리포트와 주간 횟수가 갈린다.
     for (final DateTime now in <DateTime>[
-      DateTime(2026, 8, 10), // 월
-      DateTime(2026, 8, 13), // 목
-      DateTime(2026, 8, 16), // 일
+      for (int d = 10; d <= 16; d++) DateTime(2026, 8, d), // 월~일
       DateTime(2026, 12, 31), // 연말
       DateTime(2028, 2, 29), // 윤년
     ]) {
@@ -163,8 +160,8 @@ void main() {
         expect(weeks.add(day.weekStart), isTrue, reason: '${day.weekStart} 두 번');
       }
       expect(pt.last.date, _ymd(today), reason: '오늘은 PT 날이다');
-      // 격자가 비워 둔 날(보호권 시연)과 겹치는 주만 건너뛴다.
-      expect(pt.length, inInclusiveRange(11, 12), reason: '$now');
+      // 어느 요일이든 오늘이 12회차다 — 데모 문구(`12회차 PT를 마쳤어요`)와 같다.
+      expect(pt.length, 12, reason: '$now');
     }
   });
 

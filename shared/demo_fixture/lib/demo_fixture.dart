@@ -442,8 +442,9 @@ class DemoFixture {
     // 매주 PT — 지난 주들의 **오늘과 같은 요일**이 PT 날이다(#2694). 데모의
     // 오늘은 늘 PT 받은 날이라, 요일을 못 박으면 그 요일이 아닌 날에는 이번 주에
     // PT 가 두 번 선다. 끼니와 그날 한마디는 격자의 것을 그대로 두고 운동만
-    // 수업으로 바뀐다. 격자가 비워 둔 날(기록이 아예 없는 날)은 그 주 수업을
-    // 건너뛴다 — 비워 둔 이유(보호권 시연)가 사라지지 않게.
+    // 수업으로 바뀐다. 회원이 그날 식단을 적지 않았어도 트레이너와 한 수업은
+    // 남는다 — 보호권 시연용 빈 날은 요일이 아닌 일수(`recent` offset 20)라
+    // PT 날과 겹치지 않는다.
     final Map<String, Object?>? weeklyPt = _weeklyPt;
     if (weeklyPt != null) {
       for (final Object? raw in weeklyPt['sessions']! as List<Object?>) {
@@ -453,8 +454,12 @@ class DemoFixture {
           -7 * (session['weeksAgo']! as num).toInt(),
         );
         final String key = _ymd(date);
-        final Map<String, Object?>? grid = byDate[key]?.entry;
-        if (grid == null || _isBlank(grid)) continue;
+        final Map<String, Object?> grid =
+            byDate[key]?.entry ??
+            const <String, Object?>{
+              'exercises': <Object?>[],
+              'meals': <Object?>[],
+            };
         byDate[key] = (
           entry: <String, Object?>{
             ...grid,
@@ -481,10 +486,6 @@ class DemoFixture {
     ];
   }
 
-  /// 기록이 아예 없는 날 — 운동도 끼니도 없다.
-  static bool _isBlank(Map<String, Object?> day) =>
-      (day['exercises']! as List<Object?>).isEmpty &&
-      (day['meals']! as List<Object?>).isEmpty;
 
   FixtureDay _dayFrom(Map<String, Object?> day, DateTime date) {
     final DateTime monday = _addDays(date, -(date.weekday - 1));

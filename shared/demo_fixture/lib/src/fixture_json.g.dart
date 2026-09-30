@@ -8,7 +8,7 @@
 const String kimMinsuFixtureJson = r'''
 {
   "version": 1,
-  "readme": "김민수 데모 데이터의 단일 원본. 사용자앱·트레이너웹·백엔드가 이 파일만 읽는다. 날짜는 상대값이다 — weeks[].weeksAgo 는 이번 주 월요일에서 몇 주 거슬러 올라가는지, days[].weekday 는 월(0)~일(6). recent[].offset 은 오늘로부터의 일수이고 주 격자 위를 덮는다. 이행률은 exercises[].done 개수에서 계산한다 — 퍼센트를 따로 적지 않는다. 3주 전 수요일은 일부러 비워 둔다 — 기록 연속이 끊긴 자리가 보이고, 최근 30일 안이라 연속 기록 보호권(#1788)을 그 칸에 써 볼 수 있다. 매주 PT 는 weeklyPt 가 정한다 — sessions[].weeksAgo 주 전의 오늘과 같은 요일이 PT 날이고(오늘이 늘 PT 날이라 요일을 못 박지 않는다), 끼니는 그날 격자의 것을 그대로 쓴다. 격자가 비워 둔 날은 그 주 수업을 건너뛴다.",
+  "readme": "김민수 데모 데이터의 단일 원본. 사용자앱·트레이너웹·백엔드가 이 파일만 읽는다. 날짜는 상대값이다 — weeks[].weeksAgo 는 이번 주 월요일에서 몇 주 거슬러 올라가는지, days[].weekday 는 월(0)~일(6). recent[].offset 은 오늘로부터의 일수이고 주 격자 위를 덮는다. 이행률은 exercises[].done 개수에서 계산한다 — 퍼센트를 따로 적지 않는다. 20일 전(recent offset 20)은 일부러 비워 둔다 — 기록 연속이 끊긴 자리가 보이고, 최근 30일 안이라 연속 기록 보호권(#1788)을 그 칸에 써 볼 수 있다. 요일이 아니라 일수로 두는 이유는 매주 PT 날(오늘과 같은 요일)과 겹치지 않게 하려는 것이다 — 20 은 7 의 배수가 아니다. 매주 PT 는 weeklyPt 가 정한다 — sessions[].weeksAgo 주 전의 오늘과 같은 요일이 PT 날이고(오늘이 늘 PT 날이라 요일을 못 박지 않는다), 끼니는 그날 격자의 것을 그대로 쓴다. 격자가 비워 둔 날은 그 주 수업을 건너뛴다.",
   "member": {
     "name": "김민수",
     "userAppSeedId": "user-7d4e9a2c5f18",
@@ -532,6 +532,16 @@ const String kimMinsuFixtureJson = r'''
           "aiComment": "연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요."
         }
       ]
+    },
+    {
+      "offset": 20,
+      "label": "",
+      "pt": false,
+      "clientFeedback": "",
+      "trainerNote": "",
+      "dayMessage": "",
+      "exercises": [],
+      "meals": []
     }
   ],
   "weeks": [
@@ -1377,7 +1387,17 @@ const String kimMinsuFixtureJson = r'''
         {
           "weekday": 2,
           "exercises": [],
-          "meals": []
+          "meals": [
+            {
+              "meal": "breakfast-egg-strawberry"
+            },
+            {
+              "meal": "lunch-chicken-salad"
+            },
+            {
+              "meal": "dinner-salmon-brown-rice"
+            }
+          ]
         },
         {
           "weekday": 3,

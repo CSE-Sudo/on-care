@@ -283,15 +283,14 @@ class DemoFixture:
         # 매주 PT — 지난 주들의 **오늘과 같은 요일**이 PT 날이다(#2694). 데모의
         # 오늘은 늘 PT 받은 날이라, 요일을 못 박으면 그 요일이 아닌 날에는 이번 주에
         # PT 가 두 번 선다. 끼니와 그날 한마디는 격자의 것을 그대로 두고 운동만
-        # 수업으로 바뀐다. 격자가 비워 둔 날은 그 주 수업을 건너뛴다(보호권 시연).
+        # 수업으로 바뀐다. 회원이 그날 식단을 적지 않았어도 수업은 남는다 — 보호권
+        # 시연용 빈 날은 일수(recent offset 20)라 PT 날과 겹치지 않는다.
         # 회원 앱의 `DemoFixture.daysFor` 와 같은 규칙이다.
         weekly = self._weekly_pt
         if weekly is not None:
             for session in weekly["sessions"]:
                 day = today - timedelta(days=7 * session["weeksAgo"])
-                grid = by_date.get(day)
-                if grid is None or (not grid["exercises"] and not grid["meals"]):
-                    continue
+                grid = by_date.get(day) or {"exercises": [], "meals": []}
                 by_date[day] = {
                     **grid,
                     "label": weekly["label"],
