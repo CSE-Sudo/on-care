@@ -7,6 +7,9 @@
 /// 이제 사진을 왼쪽에 크게 두고, 그 오른쪽 위층에 `끼니 배지 ⋯ >`, 가운데 층에
 /// `메뉴명 ⋯ 총 칼로리` 를 둔다. 칼로리는 메뉴명 블록의 세로 가운데, 화살표와
 /// 같은 오른쪽 세로선에 선다 — 목록을 훑을 때 칼로리가 한 선에 모인다.
+///
+/// 화살표는 그 뒤 끼니 배지 줄에서 칼로리 배지 바로 오른쪽으로 내려갔다
+/// (#2609) — `메뉴명 ⋯ 총 칼로리 >`.
 library;
 
 import 'package:flutter/material.dart';
@@ -222,19 +225,13 @@ void main() {
       expect(photo, const Size(88, 88));
     });
 
-    testWidgets('화살표는 끼니 배지 줄 오른쪽 끝, 칼로리는 그 바로 아래 같은 세로선이다', (
+    testWidgets('화살표는 칼로리 배지 바로 오른쪽, 같은 세로 중심이다 (#2609)', (
       WidgetTester tester,
     ) async {
       await _pump(tester, FakeDietRepository());
-      final AppLocalizations l = AppLocalizations.of(
-        tester.element(find.byType(DietRecordPage)),
-      );
 
       final Rect arrow = tester.getRect(
         _inCard('mock-breakfast', find.byIcon(AppIcons.chevronRight)),
-      );
-      final Rect badge = tester.getRect(
-        _inCard('mock-breakfast', find.text(l.dietMealBreakfast)),
       );
       // 글자가 아니라 배지 테두리로 잰다 — 글자는 배지 안쪽 여백만큼 들어가 있다.
       final Rect kcalTag = tester.getRect(
@@ -247,10 +244,16 @@ void main() {
         ),
       );
 
-      expect(arrow.center.dy, moreOrLessEquals(badge.center.dy, epsilon: 4));
-      // 두 오른쪽 끝이 한 세로선에 선다 — 목록을 훑을 때 칼로리가 한 선에 모인다.
-      expect(kcalTag.right, moreOrLessEquals(arrow.right, epsilon: 0.5));
-      expect(kcalTag.top, greaterThanOrEqualTo(arrow.bottom));
+      expect(
+        arrow.center.dy,
+        moreOrLessEquals(kcalTag.center.dy, epsilon: 0.5),
+      );
+      expect(
+        arrow.left - kcalTag.right,
+        moreOrLessEquals(OnCareSpacing.s4, epsilon: 0.5),
+      );
+      // 크기는 MY 목록 행과 같은 20 이다.
+      expect(arrow.width, OnCareSize.iconMedium);
     });
   });
 
