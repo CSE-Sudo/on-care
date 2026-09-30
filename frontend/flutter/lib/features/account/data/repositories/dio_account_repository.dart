@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
+import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 
@@ -76,20 +77,43 @@ class DioAccountRepository implements AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
   }) async {
-    final res = await _dio.put<Map<String, Object?>>(
-      '/users/me',
-      data: <String, Object?>{
-        'name': ?name,
-        'email': ?email,
-        'phone': ?phone,
-        'birth_date': ?birthDate,
-        'gender': ?gender,
-        // 키를 **넣되 값이 null** 이면 서버가 값을 지운다. `?value` 로 통째로
-        // 빼면 지움이 '손대지 않음'이 되어 비운 값이 되살아난다(#1941).
-        if (heightCm != null) 'height_cm': heightCm.value,
-        if (weightKg != null) 'weight_kg': weightKg.value,
-      },
-    );
+    final Response<Map<String, Object?>> res;
+    try {
+      res = await _dio.put<Map<String, Object?>>(
+        '/users/me',
+        data: <String, Object?>{
+          'name': ?name,
+          'email': ?email,
+          'phone': ?phone,
+          'birth_date': ?birthDate,
+          'gender': ?gender,
+          // 키를 **넣되 값이 null** 이면 서버가 값을 지운다. `?value` 로 통째로
+          // 빼면 지움이 '손대지 않음'이 되어 비운 값이 되살아난다(#1941).
+          if (heightCm != null) 'height_cm': heightCm.value,
+          if (weightKg != null) 'weight_kg': weightKg.value,
+        },
+      );
+    } on DioException catch (e) {
+      // 실서버: 이메일 중복(409)·연락처 비움(422)은 이유를 실어 올린다(#2639).
+      final ProfileUpdateRejected? rejected =
+          ProfileUpdateRejected.fromResponse(
+            e.response?.statusCode,
+            e.response?.data,
+          );
+      if (rejected != null) throw rejected;
+      rethrow;
+    }
+    // 데모 인터셉터가 만든 오류 응답은 예외가 되지 않고 여기로 온다. 상태 코드를
+    // 보지 않으면 오류 본문을 프로필로 읽어 "저장되었어요" 로 넘어간다(#2639).
+    final int status = res.statusCode ?? 200;
+    if (status >= 400) {
+      throw ProfileUpdateRejected.fromResponse(status, res.data) ??
+          DioException.badResponse(
+            statusCode: status,
+            requestOptions: res.requestOptions,
+            response: res,
+          );
+    }
     return UserProfile.fromJson(res.data!);
   }
 
