@@ -3026,7 +3026,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      '회원이 혼자 할 운동이에요. 아직 보내지 않은 PT 에 붙이거나 PT 없이 한 주 동안 보낼 수 있어요. 최소 한 개를 정해 주세요.';
+      '회원이 혼자 할 운동이에요. 시작일에 PT 가 있으면 그 PT 에 붙고, 없으면 바로 한 주 동안 보내요. 최소 한 개를 정해 주세요.';
 
   @override
   String get aiPersonalStepEmpty => '아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.';

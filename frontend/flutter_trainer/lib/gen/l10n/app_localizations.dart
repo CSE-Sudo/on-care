@@ -5548,7 +5548,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPersonalStepBlurbRoutineOnly.
   ///
   /// In en, this message translates to:
-  /// **'What the member does on their own. Attach it to a PT not yet sent, or send it without a PT for a week. Pick at least one.'**
+  /// **'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.'**
   String get aiPersonalStepBlurbRoutineOnly;
 
   /// No description provided for @aiPersonalStepEmpty.
