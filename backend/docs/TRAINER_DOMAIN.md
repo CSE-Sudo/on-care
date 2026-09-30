@@ -64,7 +64,7 @@
 같은 `trainer_schedule.note` 라도 PT 일정이면 피드백, 상담 일정이면 메모로 부른다.
 
 개인운동 **한 건마다** 남기는 피드백은 양쪽 모두 없다 — 회원 쪽은 #1825, 트레이너 쪽은 #2517 에서
-없앴고 저장 칸(`exercise_sessions.trainer_feedback`)도 지웠다(`0107_drop_exercise_trainer_feedback`).
+없앴고 저장 칸(`exercise_sessions.trainer_feedback`)도 지웠다(`0107_drop_routine_feedback`).
 개인운동에 대해 서로 할 말은 채팅으로 하고(회원의 불편은 채팅 감지로 모인다), 트레이너만 기억해 둘
 것은 운동 기록 메모(#2332)로 남긴다. 응답의 `trainer_feedback`·`member_note` 칸은 옛 앱을 위해
 빈 문자열로 남긴다.

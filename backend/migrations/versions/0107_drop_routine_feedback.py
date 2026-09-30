@@ -9,7 +9,7 @@
 
 downgrade 는 빈 칸만 되돌린다 — 지운 글은 돌아오지 않는다.
 
-Revision ID: 0107_drop_exercise_trainer_feedback
+Revision ID: 0107_drop_routine_feedback
 Revises: 0106_trainer_memo_exercise_ref
 Create Date: 2026-09-30
 """
@@ -20,7 +20,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0107_drop_exercise_trainer_feedback"
+revision: str = "0107_drop_routine_feedback"
 down_revision: str | Sequence[str] | None = "0106_trainer_memo_exercise_ref"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
