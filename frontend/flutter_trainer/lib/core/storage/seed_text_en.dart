@@ -718,6 +718,30 @@ const Map<String, String> _seedEnglish = <String, String>{
   '데드리프트 힙힌지 안정적. 중량 55kg 유지 후 다음 달 60kg.':
       'Deadlift hip hinge is stable. Hold 55kg, then 60kg next month.',
   '허리 스트레칭': 'Lower-back stretch',
+  // 매주 PT 로 늘어난 김민수의 수업 메모·소감(#2694).
+  '상체 근력 기초 확인. 벤치프레스 30kg 로 시작해 자세 우선.':
+      'Checked baseline upper-body strength. Start bench press at 30kg, form first.',
+  '하체가 후들거렸지만 끝까지 했어요.':
+      'My legs were shaking, but I finished it.',
+  '하체 기본 패턴 확인. 레그프레스 60kg 부터 시작.':
+      'Checked basic lower-body patterns. Start leg press at 60kg.',
+  '데드리프트 자세가 아직 어려워요.': 'Deadlift form is still hard for me.',
+  '힙힌지 패턴 연습 위주. 데드리프트 50kg 로 자세부터.':
+      'Focused on the hip-hinge pattern. Deadlift at 50kg, form first.',
+  '벤치프레스 자세가 조금 익숙해졌어요.':
+      'Bench press form feels a bit more familiar.',
+  '벤치프레스 35kg 4×10 안정. 다음 세션도 같은 무게로 반복.':
+      'Bench press 35kg 4×10 is stable. Repeat the same weight next session.',
+  '레그프레스 무게를 올렸는데 버틸 만했어요.':
+      'I raised the leg press weight and it was manageable.',
+  '하체 근력 향상. 레그프레스 65kg 로 올림.':
+      'Lower-body strength is improving. Leg press raised to 65kg.',
+  '어깨 불편감이 많이 줄었어요.': 'My shoulder discomfort has eased a lot.',
+  '어깨 가동범위 개선. 숄더프레스 10kg 유지하고 밴드 보강 계속.':
+      'Shoulder range of motion improved. Keep shoulder press at 10kg and continue band work.',
+  '다음 주엔 40kg 에 도전해 볼게요.': "I'll try 40kg next week.",
+  '벤치프레스 37.5kg 4×10 성공. 다음 세션 40kg.':
+      'Bench press 37.5kg 4×10 done. 40kg next session.',
   '자전거 라이딩': 'Bike ride',
   '어깨가 아직 조금 불편해서 무게를 낮췄어요.':
       'My shoulder is still a little uncomfortable, so I went lighter.',

@@ -8,6 +8,7 @@
 /// 고정해 본다.
 library;
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -63,7 +64,9 @@ void main() {
     test('$label 시연: 회원마다 붙은 뒤의 모든 주에 수업이 1~2회다', () async {
       final List<TrainerScheduleRow> rows = await seededRows(_dayOfWeek(today));
 
-      for (int id = 1; id <= 15; id++) {
+      // 김민수(1)는 아래 `픽스처 PT 날` 시험이 본다 — 그의 수업 날은 픽스처가
+      // 정해 비워 둔 날이 겹친 주에는 수업이 없다(#2694).
+      for (int id = 2; id <= 15; id++) {
         final String clientId = 'seed-client-$id';
         final int joined =
             demoMemberJoinedWeeksAgo[clientId] ?? demoReportHistoryWeeks;
@@ -93,6 +96,33 @@ void main() {
           }
         }
       }
+    });
+
+    test('$label 시연: 김민수의 수업 날은 공유 픽스처의 PT 날 그대로다 (#2694)', () async {
+      final DateTime now = _dayOfWeek(today);
+      final List<TrainerScheduleRow> rows = await seededRows(now);
+      final List<String> seeded =
+          rows
+              .where(
+                (r) =>
+                    r.clientId == 'seed-client-1' &&
+                    r.status != ScheduleStatus.gap,
+              )
+              .map((r) => r.date)
+              .toList()
+            ..sort();
+      final List<String> fixture = <String>[
+        for (final FixtureDay d in DemoFixture.load().daysFor(now))
+          if (d.isPt) d.date,
+      ];
+      expect(seeded, fixture);
+      expect(
+        rows
+            .where((r) => r.clientId == 'seed-client-1')
+            .map((r) => r.time)
+            .toSet(),
+        <String>{'18:00'},
+      );
     });
 
     test('$label 시연: 한 주에 PT 를 1회 넘게 받는 회원은 몇 명뿐이다', () async {
@@ -261,6 +291,7 @@ void main() {
           .every(
             (r) =>
                 r.id.startsWith('seed-schedule-p') ||
+                r.id.startsWith('seed-schedule-f') ||
                 r.id.startsWith('seed-schedule-c'),
           ),
       isTrue,
