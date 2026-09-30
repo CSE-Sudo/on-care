@@ -2119,7 +2119,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   key: ValueKey<String>('personal-routine-edit-$index'),
                   icon: AppIcons.edit,
                   tooltip: l.actionEdit,
-                  color: context.oncare.brand.primary,
+                  // 옆 삭제와 같은 회색이다 — 편집기 운동 줄의 연필도 회색이라
+                  // 이 카드에서만 파랗게 튀지 않게 한다.
+                  color: OnCareColors.textSecondary,
                   onPressed: () => setState(() => _editingPersonal = index),
                 ),
                 AppIconButton(
