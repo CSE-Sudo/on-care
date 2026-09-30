@@ -3,12 +3,14 @@
 // 한국어 문구는 바뀌지 않았음을 함께 고정한다 — 영어를 더하면서 기존 화면이
 // 달라지면 안 된다.
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
@@ -460,6 +462,7 @@ void main() {
       final ProviderContainer c = ProviderContainer(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(config),
+          appDatabaseProvider.overrideWithValue(_memoryDb()),
           sharedPreferencesProvider.overrideWithValue(prefs),
           if (dio != null) dioProvider.overrideWithValue(dio),
         ],
@@ -550,4 +553,11 @@ void main() {
       );
     });
   });
+}
+
+/// 데모 저장소가 바꾼 값을 적는 메모리 DB(#2669). 테스트가 끝나면 닫는다.
+AppDatabase _memoryDb() {
+  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+  addTearDown(db.close);
+  return db;
 }
