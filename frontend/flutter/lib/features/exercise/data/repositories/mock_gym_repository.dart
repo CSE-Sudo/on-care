@@ -339,6 +339,45 @@ class MockGymRepository implements GymRepository {
     _myTrainerId = null;
   }
 
+  /// 담당 트레이너를 다시 잇는다 — 데모에서 담당 요청을 수락했을 때다(#2659).
+  ///
+  /// 트레이너는 한 헬스장 소속이라 헬스장 연결도 그 트레이너의 헬스장으로 맞춘다.
+  /// 헬스장까지 끊은 뒤 수락해도 담당만 있고 헬스장은 없는 화면이 나오지 않는다.
+  void linkTrainer(String trainerId) {
+    final Trainer? trainer = trainerById(trainerId);
+    if (trainer == null) {
+      throw StateError('trainer not found: $trainerId');
+    }
+    _myTrainerId = trainer.id;
+    _myGymId = trainer.gymId;
+  }
+
+  /// 트레이너 한 사람 — 기다리지 않는다. 상담 신청(#2659)처럼 접수 한 번 안에서
+  /// 이름을 채우는 자리가 쓴다. [fetchTrainer] 의 지연을 타면 위젯 테스트의 가짜
+  /// 시간대에서 접수가 끝나지 않는다.
+  Trainer? trainerById(String trainerId) =>
+      _trainers.where((Trainer trainer) => trainer.id == trainerId).firstOrNull;
+
+  /// 헬스장 이름. 목록에 없는 헬스장(카카오 발견 헬스장)이면 null.
+  String? gymNameOf(String gymId) =>
+      _gyms.where((Gym gym) => gym.id == gymId).firstOrNull?.name;
+
+  /// 자리 한 칸. 없으면 null.
+  TrainerSlot? slotById(String slotId) =>
+      _slots.where((TrainerSlot slot) => slot.id == slotId).firstOrNull;
+
+  /// 상담 신청이 자리를 잡거나 놓는다(#2659).
+  ///
+  /// 실서버는 신청을 받으면 고른 자리를 잠그고, 취소·거절되면 푼다. 데모도 같은
+  /// 자리를 헬스장 탭과 상담 폼이 함께 보므로, 신청한 자리가 헬스장 탭에서 계속
+  /// `예약 가능` 으로 남으면 두 화면이 어긋난다. 예약([reserve])과 달리 내 예약
+  /// 목록에는 넣지 않는다 — 트레이너가 수락하기 전까지는 예약이 아니다.
+  void setSlotBooked(String slotId, {required bool booked}) {
+    final int i = _slots.indexWhere((TrainerSlot slot) => slot.id == slotId);
+    if (i < 0) return;
+    _slots[i] = _slots[i].copyWith(booked: booked);
+  }
+
   // ── 예약 슬롯 ──────────────────────────────────────────────────────────
   //
   // 슬롯은 트레이너마다 다르다. 시각은 저장소를 만든 시점의 "오늘"을 기준으로

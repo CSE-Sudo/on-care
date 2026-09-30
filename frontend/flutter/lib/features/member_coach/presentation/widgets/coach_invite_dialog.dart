@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -164,7 +165,11 @@ class _CoachInviteDialogState extends ConsumerState<CoachInviteDialog> {
       container
         ..invalidate(memberCoachProvider)
         ..invalidate(coachRoutinesProvider)
-        ..invalidate(coachSessionsProvider);
+        ..invalidate(coachSessionsProvider)
+        // 헬스장 탭·MY 의 연결 카드도 그 관계를 보여 준다. 다시 읽지 않으면
+        // 수락한 뒤에도 `연결된 트레이너 없음` 으로 남는다(#2659).
+        ..invalidate(myTrainerProvider)
+        ..invalidate(myGymProvider);
     }
     toast.show(
       accept
