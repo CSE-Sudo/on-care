@@ -150,7 +150,9 @@ void main() {
       history: trainer.history,
       today: today,
     );
-    expect(a.score, b.score);
+    // SheetScore 는 값 비교(==)를 두지 않는다 — 점수와 항목별 점수를 따로 본다.
+    expect(a.score.value, b.score.value);
+    expect(a.score.parts, b.score.parts);
     expect(a.mealDays, b.mealDays);
     expect(a.mealDaysDue, b.mealDaysDue);
     expect(a.weeklyRates, b.weeklyRates);
