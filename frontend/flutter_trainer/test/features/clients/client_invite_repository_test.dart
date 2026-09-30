@@ -209,7 +209,7 @@ void main() {
       expect(repo.connectsImmediately, isTrue);
     });
 
-    test('real-API mode resolves the Dio source but hides the entry', () {
+    test('real-API mode resolves the Dio source and shows the entry', () {
       final container = ProviderContainer(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_realConfig),
@@ -218,7 +218,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      expect(container.read(clientInvitesEnabledProvider), isFalse);
+      // 백엔드에 코드 확인·연결과 보낸 요청 목록이 있다 — 실서버 트레이너도
+      // 데모와 같은 신규 회원 등록 입구를 본다(#2670).
+      expect(container.read(clientInvitesEnabledProvider), isTrue);
       final repo = container.read(clientInviteRepositoryProvider);
       expect(repo, isA<DioClientInviteRepository>());
       // 실 API 는 회원의 수락을 기다리는 요청만 보낸다 — 즉시 연결하지 않는다.
