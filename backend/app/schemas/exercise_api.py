@@ -308,7 +308,11 @@ class ExerciseCalorieResponse(BaseModel):
 
 
 class AssignedRoutineCompleteRequest(BaseModel):
-    """회원이 배정 루틴을 실제 수행한 결과."""
+    """회원이 배정 루틴을 실제 수행한 결과.
+
+    개인 운동 회원 피드백(`member_note`)은 없앴다(#1825, #2624). 옛 앱이 보내도
+    모르는 칸이라 무시되고 422 가 나지 않는다.
+    """
 
     minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
@@ -322,6 +326,3 @@ class AssignedRoutineCompleteRequest(BaseModel):
     #: 적지 않게 한다 — `minutes` 는 여전히 받는다(옛 앱·집계).
     duration_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_SECONDS)
     intensity: ExerciseIntensityIn = "moderate"
-    #: 개인 운동 피드백은 없앴다(#1825). 옛 앱이 보내도 422 가 나지 않게 받기만 하고
-    #: 저장하지 않는다.
-    member_note: str = Field(default="", max_length=1000)

@@ -88,7 +88,8 @@ def test_completion_and_history_share_one_record(client, assigned_routine):
     )
     assert retried.status_code == 200, retried.text
     assert retried.json()["completed_at"] == completion_time
-    # 개인 운동 피드백은 받기만 하고 저장·노출하지 않는다(#1825).
+    # 개인 운동 회원 피드백은 없앴다(#1825, #2624) — 옛 앱이 보내도 무시하고
+    # 응답 칸은 빈 문자열로 남는다.
     assert retried.json()["member_note"] == ""
 
     week = client.get("/v1/exercise/weeks/current", headers=member_headers).json()
@@ -158,7 +159,7 @@ def test_snapshot_survives_routine_deletion(client, assigned_routine):
     completed = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 30, "member_note": "완료"},
+        json={"minutes": 30},
     )
     assert completed.status_code == 200, completed.text
 
@@ -235,7 +236,7 @@ def test_member_can_undo_a_completion(client, assigned_routine):
     completed = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 25, "intensity": "moderate", "member_note": ""},
+        json={"minutes": 25, "intensity": "moderate"},
     )
     assert completed.status_code == 200, completed.text
     assert (
@@ -275,7 +276,7 @@ def test_member_can_undo_a_completion(client, assigned_routine):
     redone = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 12, "intensity": "light", "member_note": "다시"},
+        json={"minutes": 12, "intensity": "light"},
     )
     assert redone.status_code == 200, redone.text
     assert redone.json()["completed_minutes"] == 12
@@ -318,7 +319,7 @@ def test_the_trainers_sets_and_weight_reach_the_members_record(client, db_sessio
             f"/v1/me/coach/routines/{routine['id']}/complete",
             headers=member_headers,
             # 회원은 세트·중량을 적지 않았다.
-            json={"minutes": 36, "intensity": "high", "member_note": ""},
+            json={"minutes": 36, "intensity": "high"},
         )
         assert completed.status_code == 200, completed.text
 
