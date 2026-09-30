@@ -21,6 +21,7 @@ class GymTrainerLine extends StatelessWidget {
     this.bordered = false,
     this.matchGymRow = false,
     this.showAvatar = false,
+    this.avatarSize = AppAvatarSize.small,
     this.onDetail,
     this.leadingWidth = OnCareSize.avatarSmall,
     this.leadingGap = OnCareSpacing.s8,
@@ -34,10 +35,18 @@ class GymTrainerLine extends StatelessWidget {
 
   /// 앞 칸에 사람 아이콘 대신 **성씨 프로필**([AppAvatar])을 세울지 (#2154).
   ///
-  /// 헬스장 찾기 목록에서 켠다 — 트레이너를 고르는 자리라, 눌러 들어간 트레이너
-  /// 상세·채팅과 같은 얼굴로 서야 같은 사람으로 읽힌다. 내 헬스장 카드·MY 는
-  /// 위 헬스장 줄의 아이콘과 한 격자에 서므로 아이콘을 그대로 둔다.
+  /// 트레이너를 보여 주는 줄은 모두 켠다 — 눌러 들어간 트레이너 상세·채팅과
+  /// 같은 얼굴로 서야 같은 사람으로 읽힌다. 내 헬스장 카드·MY 도 켠다(#2599):
+  /// 프로필은 앞 칸 가운데에 서므로 위 헬스장 아이콘과 같은 세로 중심을 지킨다.
   final bool showAvatar;
+
+  /// [showAvatar] 일 때 프로필 크기. 근거 배지까지 두 줄로 서는 헬스장 찾기
+  /// 줄은 한 단계 키워(32) 글줄 두 줄과 무게를 맞춘다(#2599).
+  final AppAvatarSize avatarSize;
+
+  /// 테두리를 두른 줄([bordered])의 안쪽 여백 + 테두리 두께. 같은 카드 위
+  /// 헬스장 줄과 격자를 맞출 때 앞 칸 폭에서 이만큼 뺀다 (#2599).
+  static const double borderedInset = OnCareSpacing.s8 + OnCareSize.hairline;
 
   /// 줄을 회색 실선으로 두를지. 한 헬스장의 트레이너가 **잇달아 설 때**(헬스장
   /// 찾기 카드) 켠다 — 바탕이 카드와 같은 흰색이라 테두리가 없으면 어디까지가
@@ -62,8 +71,9 @@ class GymTrainerLine extends StatelessWidget {
   /// 같은 카드 위 **헬스장 줄과 한 격자에 서야 할 때** 그 줄의 값을 넘긴다
   /// (#2038). 내 헬스장 카드는 헬스장 아이콘 칸(40)과 간격(12)을 넘겨, 사람
   /// 아이콘이 덤벨 아이콘과 같은 세로 중심에, 이름이 헬스장 이름과 같은
-  /// 세로선에 선다. 테두리를 두른 찾기 목록 줄은 제 상자 안의 격자라 기본값을
-  /// 쓴다. 추천 이유 배지도 이 두 값만큼 들어가 이름과 맞는다.
+  /// 세로선에 선다. 테두리를 두른 찾기 목록 줄도 헬스장 이름과 같은 세로선에서
+  /// 이름이 시작하도록 [borderedInset] 을 뺀 폭을 넘긴다(#2599). 추천 이유
+  /// 배지도 이 두 값만큼 들어가 이름과 맞는다.
   final double leadingWidth;
   final double leadingGap;
 
@@ -113,88 +123,83 @@ class GymTrainerLine extends StatelessWidget {
         border: bordered ? Border.all(color: OnCareColors.lineSubtle) : null,
         borderRadius: OnCareRadius.mdAll,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: matchGymRow ? OnCareSpacing.s48 : 0,
+      // 앞 칸(프로필)과 끝 화살표는 **줄 전체 높이의 가운데**에 선다 — 이름
+      // 아래 근거 배지가 붙어 줄이 높아져도 그렇다. MY 목록 행과 같은
+      // 자리다(#2599). 예전에는 이름 줄에만 맞춰 서서 배지가 있는 상자에서
+      // 프로필·화살표가 위로 붙어 보였다.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: matchGymRow ? OnCareSpacing.s48 : 0,
+        ),
+        child: Row(
+          children: <Widget>[
+            // 연결 카드에서는 헬스장 아이콘과 같은 정사각형 칸을 쓴다.
+            Container(
+              width: leadingWidth,
+              height: matchGymRow ? leadingWidth : avatarSize.dimension,
+              alignment: Alignment.center,
+              child: showAvatar
+                  ? AppAvatar(name: trainer.name, size: avatarSize)
+                  : AppIcon(
+                      AppIcons.person,
+                      size: matchGymRow
+                          ? OnCareSize.iconMedium
+                          : OnCareSize.iconSmall,
+                      color: tokens.brand.primary,
+                    ),
             ),
-            child: Row(
-              children: <Widget>[
-                // 연결 카드에서는 헬스장 아이콘과 같은 정사각형 칸을 쓴다.
-                Container(
-                  width: leadingWidth,
-                  height: matchGymRow ? leadingWidth : OnCareSize.avatarSmall,
-                  alignment: Alignment.center,
-                  child: showAvatar
-                      ? AppAvatar(name: trainer.name, size: AppAvatarSize.small)
-                      : AppIcon(
-                          AppIcons.person,
-                          size: matchGymRow
-                              ? OnCareSize.iconMedium
-                              : OnCareSize.iconSmall,
-                          color: tokens.brand.primary,
-                        ),
-                ),
-                SizedBox(width: leadingGap),
-                // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은 한
-                // 줄에 읽혀야 하고, 두 줄은 `제목 + 설명` 처럼 기능을 풀어 쓰는
-                // 줄의 몫이다. 예전에는 오른쪽에 `연결됨` 배지와 `상세보기` 버튼이
-                // 함께 서서 직함이 `퍼스널 트…` 로 잘려 쌓았는데(#1187), 배지는
-                // 카드 머리로 올라가고 버튼은 화살표로 바뀌어(#1881) 그 까닭이
-                // 없어졌다.
-                Expanded(
-                  child: Row(
+            SizedBox(width: leadingGap),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은
+                  // 한 줄에 읽혀야 하고, 두 줄은 `제목 + 설명` 처럼 기능을 풀어
+                  // 쓰는 줄의 몫이다. 예전에는 오른쪽에 `연결됨` 배지와
+                  // `상세보기` 버튼이 함께 서서 직함이 `퍼스널 트…` 로 잘려
+                  // 쌓았는데(#1187), 배지는 카드 머리로 올라가고 버튼은 화살표로
+                  // 바뀌어(#1881) 그 까닭이 없어졌다.
+                  Row(
                     children: <Widget>[
                       Flexible(child: _name(context)),
                       const SizedBox(width: OnCareSpacing.s8),
                       Flexible(child: _role(context, l)),
                     ],
                   ),
-                ),
-                // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
-                // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이
-                // **민 아이콘**이다 (#1881): 아이콘 버튼은 44 칸 안에 24 글리프를
-                // 가운데 두므로, 그것만 버튼으로 두면 화살표가 헬스장 줄 화살표
-                // 보다 10 만큼 안으로 들어가 두 줄이 어긋난다. 누르는 자리는
-                // 줄 전체가 받는다.
-                if (onDetail != null) ...<Widget>[
-                  const SizedBox(width: OnCareSpacing.s8),
-                  Container(
-                    key: const Key('gymTrainerDetailButton'),
-                    alignment: Alignment.centerRight,
-                    child: const AppIcon(
-                      AppIcons.chevronRight,
-                      size: OnCareSize.iconLarge,
-                      color: OnCareColors.textTertiary,
+                  // 고를 근거는 한 사람에게 하나뿐인 경우가 드물다 — 있는 만큼
+                  // 배지를 나란히 세운다(#1881). 좁은 폭에서는 Wrap 이 다음
+                  // 줄로 흘려, 줄이 카드 밖으로 밀려 나가지 않는다. 배지는
+                  // 이름과 같은 칸에 있어 **이름과 같은 세로선**에서 시작한다.
+                  if (showReason && reasons.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: OnCareSpacing.s8),
+                    TrainerReasonBadges(
+                      reasons: reasons,
+                      keyPrefix: 'gym-trainer',
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-          // 고를 근거는 한 사람에게 하나뿐인 경우가 드물다 — 있는 만큼 배지를
-          // 나란히 세운다(#1881). 좁은 폭에서는 Wrap 이 다음 줄로 흘려, 줄이
-          // 카드 밖으로 밀려 나가지 않는다.
-          if (showReason && reasons.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            // 배지는 **이름과 같은 세로선**에서 시작한다 — 앞 아이콘 칸과
-            // 그 뒤 간격만큼 민다. 같은 카드 위 헬스장 블록이 태그를 아이콘
-            // 오른쪽 글자 칸에 두는 것과 같은 정렬이다. 들이지 않으면 배지가
-            // 아이콘보다도 왼쪽에서 시작해, 누구의 근거인지 흐려진다.
-            Padding(
-              key: const Key('gym-trainer-reasons-indent'),
-              padding: EdgeInsetsDirectional.only(
-                start: leadingWidth + leadingGap,
-              ),
-              child: TrainerReasonBadges(
-                reasons: reasons,
-                keyPrefix: 'gym-trainer',
               ),
             ),
+            // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
+            // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이
+            // **민 아이콘**이다 (#1881): 아이콘 버튼은 44 칸 안에 글리프를
+            // 가운데 두므로, 그것만 버튼으로 두면 화살표가 헬스장 줄 화살표
+            // 보다 안으로 들어가 두 줄이 어긋난다. 누르는 자리는 줄 전체가
+            // 받는다. 크기는 MY 목록 행과 같은 20 이다(#2598).
+            if (onDetail != null) ...<Widget>[
+              const SizedBox(width: OnCareSpacing.s8),
+              Container(
+                key: const Key('gymTrainerDetailButton'),
+                alignment: Alignment.centerRight,
+                child: const AppIcon(
+                  AppIcons.chevronRight,
+                  size: OnCareSize.iconMedium,
+                  color: OnCareColors.textTertiary,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
     if (onDetail == null) return line;

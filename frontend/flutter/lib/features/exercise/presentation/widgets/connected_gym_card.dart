@@ -105,9 +105,10 @@ class ConnectedGymCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: OnCareSpacing.s8),
+                          // MY 목록 행과 같은 20 화살표다(#2598).
                           const AppIcon(
                             AppIcons.chevronRight,
-                            size: OnCareSize.iconLarge,
+                            size: OnCareSize.iconMedium,
                             color: OnCareColors.textTertiary,
                           ),
                         ],
@@ -127,6 +128,8 @@ class ConnectedGymCard extends StatelessWidget {
                 trainer: trainer!,
                 showReason: false,
                 matchGymRow: true,
+                // 헬스장 찾기·트레이너 상세와 같은 성씨 프로필이다(#2599).
+                showAvatar: true,
                 onDetail: onTrainerDetail,
                 // 위 헬스장 줄과 한 격자다 — 아이콘은 같은 세로 중심, 이름은
                 // 같은 세로선에서 시작한다(#2038).
