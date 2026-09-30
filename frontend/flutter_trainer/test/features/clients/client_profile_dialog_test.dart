@@ -41,6 +41,7 @@ class _FakeMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) async {
     if (failWrites) throw const NetworkError();
     final list = _byClient.putIfAbsent(clientId, () => <TrainerMemo>[]);

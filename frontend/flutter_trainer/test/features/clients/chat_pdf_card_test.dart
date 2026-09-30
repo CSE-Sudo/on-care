@@ -56,6 +56,7 @@ class _NoMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) => throw UnimplementedError();
 
   @override

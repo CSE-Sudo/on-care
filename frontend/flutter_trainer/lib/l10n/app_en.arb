@@ -2637,6 +2637,54 @@
   "clientTrainerMemoDeleteFailed": "Couldn't delete the memo. Please try again.",
   "clientTrainerMemoDeleteTitle": "Delete this memo?",
   "clientTrainerMemoDeleteBody": "A deleted memo can't be restored.",
+  "clientExerciseMemoAdd": "Leave a memo",
+  "clientExerciseMemoCount": "{count, plural, =1{1 memo} other{{count} memos}}",
+  "@clientExerciseMemoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientExerciseMemoHint": "Note what to remember from this workout",
+  "clientExerciseMemoSaved": "Saved to memos.",
+  "clientMemoTagManual": "Written by you",
+  "clientMemoTagPtSession": "PT session · {date}",
+  "@clientMemoTagPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagPersonal": "Personal workout · {date}",
+  "@clientMemoTagPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagPersonalNamed": "Personal workout · {date} {name}",
+  "@clientMemoTagPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagMemberLog": "Member's log · {date}",
+  "@clientMemoTagMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoEdited": "Edited",
   "followUp": "Follow-ups",
   "followUpTitle": "Follow-ups on {name}",
   "@followUpTitle": {

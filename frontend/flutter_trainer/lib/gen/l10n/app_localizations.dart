@@ -7105,6 +7105,66 @@ abstract class AppLocalizations {
   /// **'A deleted memo can\'t be restored.'**
   String get clientTrainerMemoDeleteBody;
 
+  /// No description provided for @clientExerciseMemoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave a memo'**
+  String get clientExerciseMemoAdd;
+
+  /// No description provided for @clientExerciseMemoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 memo} other{{count} memos}}'**
+  String clientExerciseMemoCount(int count);
+
+  /// No description provided for @clientExerciseMemoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note what to remember from this workout'**
+  String get clientExerciseMemoHint;
+
+  /// No description provided for @clientExerciseMemoSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to memos.'**
+  String get clientExerciseMemoSaved;
+
+  /// No description provided for @clientMemoTagManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Written by you'**
+  String get clientMemoTagManual;
+
+  /// No description provided for @clientMemoTagPtSession.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · {date}'**
+  String clientMemoTagPtSession(String date);
+
+  /// No description provided for @clientMemoTagPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal workout · {date}'**
+  String clientMemoTagPersonal(String date);
+
+  /// No description provided for @clientMemoTagPersonalNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal workout · {date} {name}'**
+  String clientMemoTagPersonalNamed(String date, String name);
+
+  /// No description provided for @clientMemoTagMemberLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Member\'s log · {date}'**
+  String clientMemoTagMemberLog(String date);
+
+  /// No description provided for @clientMemoEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get clientMemoEdited;
+
   /// No description provided for @followUp.
   ///
   /// In en, this message translates to:

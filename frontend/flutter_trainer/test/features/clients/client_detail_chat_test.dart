@@ -94,6 +94,7 @@ class _NoMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) async => throw UnsupportedError('not used');
   @override
   Future<TrainerMemo> update(String clientId, String memoId, String body) =>

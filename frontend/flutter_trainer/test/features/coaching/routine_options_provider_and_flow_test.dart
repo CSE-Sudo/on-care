@@ -1957,6 +1957,7 @@ class _StaticMemoRepository implements TrainerMemoRepository {
     TrainerMemoSource source = TrainerMemoSource.trainer,
     String? insightId,
     String insightKind = '',
+    TrainerMemoRef? ref,
   }) async => throw UnsupportedError('not used');
 
   @override

@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
@@ -1276,19 +1277,32 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          if (memo.source == TrainerMemoSource.chatInsight)
-            Padding(
-              padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+          // 메모마다 어디서 왔는지 태그를 단다(#2516) — 직접 쓴 것·채팅에서
+          // 감지한 것·운동 기록에서 남긴 것(#2332)이 한 목록에 섞인다.
+          Padding(
+            padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+            child: switch (memo.source) {
               // 이 메모가 나온 채팅 인사이트 카드와 PT 관리 신호(`통증·불편`)가
               // 같은 사실을 빨강으로 말한다. 여기만 주황이면 트레이너가 두
               // 세기를 따로 외워야 한다(#690, #2360).
-              child: AppTag(
+              TrainerMemoSource.chatInsight => AppTag(
                 key: ValueKey<String>('client-memo-insight-${memo.id}'),
                 label: _insightReasonLabel(l, memo.insightKind),
                 tone: AppTagTone.danger,
                 icon: AppIcons.warning,
               ),
-            ),
+              TrainerMemoSource.exerciseMemo when memo.ref != null => AppTag(
+                key: ValueKey<String>('client-memo-exercise-${memo.id}'),
+                label: exerciseMemoTagLabel(l, memo.ref!),
+                tone: AppTagTone.brand,
+                icon: AppIcons.exercise,
+              ),
+              _ => AppTag(
+                key: ValueKey<String>('client-memo-manual-${memo.id}'),
+                label: l.clientMemoTagManual,
+              ),
+            },
+          ),
           if (editing)
             AppTextField(
               key: ValueKey<String>('client-memo-edit-${memo.id}'),
@@ -1308,8 +1322,13 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           Row(
             children: <Widget>[
               Expanded(
+                // 언제 남겼는지를 적는다(#2516). 예전에는 수정 시각만 보여
+                // 처음 남긴 날도, 고친 적이 있는지도 알 수 없었다.
                 child: Text(
-                  _dayLabel(memo.updatedAt),
+                  key: ValueKey<String>('client-memo-time-${memo.id}'),
+                  memo.isEdited
+                      ? '${_dayLabel(memo.createdAt)} · ${l.clientMemoEdited}'
+                      : _dayLabel(memo.createdAt),
                   style: OnCareTypography.numeric(
                     tokens.text(OnCareTypography.caption),
                   ).copyWith(color: OnCareColors.textTertiary),
