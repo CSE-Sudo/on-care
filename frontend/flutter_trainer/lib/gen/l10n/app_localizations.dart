@@ -5548,7 +5548,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPersonalStepBlurbRoutineOnly.
   ///
   /// In en, this message translates to:
-  /// **'What the member does on their own. If the chosen day has a PT it attaches to that PT; choosing today sends it now for a week. Pick at least one.'**
+  /// **'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.'**
   String get aiPersonalStepBlurbRoutineOnly;
 
   /// No description provided for @aiPersonalStepEmpty.
@@ -5578,7 +5578,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiRoutineOnlyStartDate.
   ///
   /// In en, this message translates to:
-  /// **'Date'**
+  /// **'Start date'**
   String get aiRoutineOnlyStartDate;
 
   /// No description provided for @aiRoutineOnlyWeekRange.

@@ -38,17 +38,8 @@ class PersonalRoutineBox extends StatelessWidget {
     this.target,
     this.nearestPt,
     this.targetReady = true,
-    this.ptDates = const <String>{},
     super.key,
   });
-
-  /// 날짜 칸에서 고를 수 있는 PT 날(`yyyy-MM-dd`) — 아직 보내지 않은 PT 가 있는
-  /// 날. 이 날들과 오늘만 고른다. (#2280)
-  ///
-  /// `개인운동만` 은 고른 날과 상관없이 **보낸 날부터** 한 주 동안 걸린다. PT
-  /// 없는 앞날을 고르게 두면 그날부터 걸리는 것처럼 보이지만 실제로는 오늘부터
-  /// 뜬다 — 그런 날은 처음부터 고르지 못하게 한다.
-  final Set<String> ptDates;
 
   /// `개인운동만` 의 시작일에 있는 아직 보내지 않은 PT. (#2280)
   ///
@@ -269,26 +260,13 @@ class PersonalRoutineBox extends StatelessWidget {
   }
 
   Future<void> _pickStartDate(BuildContext context, DateTime start) async {
-    final DateTime today = todayKst();
-    final String todayKey = ymd(today);
-    // 오늘, 아니면 아직 보내지 않은 PT 가 있는 날만 고른다([ptDates]). 지난
-    // 날은 PT 가 남아 있을 때만 — 스케줄에서 완료했지만 아직 보내지 않은 PT.
-    bool selectable(DateTime day) {
-      final String key = ymd(day);
-      return key == todayKey || ptDates.contains(key);
-    }
-
-    DateTime first = today;
-    for (final String key in ptDates) {
-      final DateTime? day = DateTime.tryParse(key);
-      if (day != null && day.isBefore(first)) first = day;
-    }
+    final DateTime floor = todayKst();
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectable(start) ? start : today,
-      firstDate: first,
-      lastDate: today.add(const Duration(days: 365)),
-      selectableDayPredicate: selectable,
+      initialDate: start.isBefore(floor) ? floor : start,
+      // 지난 날로는 걸지 않는다 — 이미 지난 날의 운동을 새로 시킬 일은 없다.
+      firstDate: floor,
+      lastDate: floor.add(const Duration(days: 365)),
     );
     if (picked == null) return;
     onStartDateChanged?.call(picked);
