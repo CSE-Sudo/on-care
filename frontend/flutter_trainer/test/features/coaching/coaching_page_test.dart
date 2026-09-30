@@ -2579,6 +2579,14 @@ void main() {
         seedClock: kMidWeekKst,
         extraOverrides: <Override>[
           trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          // 붙일 PT 가 없는 주다 — 데모 씨앗에는 오늘 아직 보내지 않은 PT 가
+          // 있어, 그대로 두면 시작일(오늘)의 PT 에 붙는다(#2280).
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
         ],
       );
 
@@ -2651,6 +2659,14 @@ void main() {
         seedClock: kMidWeekKst,
         extraOverrides: <Override>[
           trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          // 붙일 PT 가 없는 주다 — 데모 씨앗에는 오늘 아직 보내지 않은 PT 가
+          // 있어, 그대로 두면 시작일(오늘)의 PT 에 붙는다(#2280).
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
         ],
       );
 
