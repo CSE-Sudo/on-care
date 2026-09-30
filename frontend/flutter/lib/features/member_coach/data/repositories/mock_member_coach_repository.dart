@@ -562,10 +562,13 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   @override
   Future<void> deleteRoutine(String routineId) async {
-    // 데모에는 담당 트레이너가 있다 — 실서버라면 403 이다. 목업에서까지 막으면
-    // 데모에서 이 동작을 보여 줄 수 없으므로 목록에서만 내린다. 화면은 담당이
-    // 없을 때만 이 버튼을 그린다. (#1020)
-    //
+    // 담당 트레이너가 있으면 실서버처럼 막는다(403) — 배정을 물리는 것은
+    // 트레이너의 일이다. 화면도 담당이 없을 때만 이 버튼을 그린다. (#1020, #2666)
+    if (_hasCoach()) {
+      throw const UnauthorizedError(
+        message: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다.',
+      );
+    }
     // 실서버처럼 행은 남기고 오늘부터 목록에서 뺀다 — 지난 날짜에 걸려 있던
     // 목록은 그대로다(#2161).
     _todayRoutine(routineId);

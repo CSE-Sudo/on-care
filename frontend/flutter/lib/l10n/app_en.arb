@@ -454,15 +454,16 @@
       }
     }
   },
-  "exCompletedPtNoProgram": "No workout program was recorded.",
-  "exCompletedPtFeedback": "{coachName} · Today's feedback",
-  "@exCompletedPtFeedback": {
+  "exPtSessionNumber": "Session {count}",
+  "@exPtSessionNumber": {
+    "description": "PT card chip — which session with the assigned trainer this was (#2666).",
     "placeholders": {
-      "coachName": {
-        "type": "String"
+      "count": {
+        "type": "int"
       }
     }
   },
+  "exCompletedPtNoProgram": "No workout program was recorded.",
   "exAddExercise": "Add Exercise",
   "exDurationMinutes": "{minutes} min",
   "@exDurationMinutes": {
@@ -3075,10 +3076,6 @@
   "@demoAlertMaintenanceBody": {
     "description": "Body of a demo notification shown in tour mode."
   },
-  "exPtLogTitle": "Today's completed PT",
-  "@exPtLogTitle": {
-    "description": "Title of the completed PT session card."
-  },
   "exPtFeedbackTitle": "Today's feedback",
   "exNextPtSchedule": "Next PT · {when}",
   "@exNextPtSchedule": {
@@ -3152,14 +3149,6 @@
     "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
   },
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
-  "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
-  "@exDemoPtSessionCount": {
-    "placeholders": {
-      "trainerName": {
-        "type": "String"
-      }
-    }
-  },
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
