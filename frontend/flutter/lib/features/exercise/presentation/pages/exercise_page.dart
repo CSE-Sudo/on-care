@@ -510,11 +510,29 @@ class _ExerciseSelectedDay extends ConsumerWidget {
         .watch(exercisePastWeekProvider(weekStart))
         .when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
-          error: (Object e, StackTrace _) => _dayEmpty(context),
+          // 받지 못한 것을 "기록이 없어요" 로 말하지 않는다(#2635) — 이번 주
+          // 오류와 같은 모양으로, 그 주를 다시 받을 자리를 준다.
+          error: (Object e, StackTrace _) =>
+              _pastWeekError(context, ref, weekStart),
           data: (ExerciseWeek week) =>
               _ExerciseDayDetail(week: week, date: date),
         );
   }
+}
+
+/// 지난 주를 받지 못했을 때. 이번 주 오류와 같은 문구·버튼이다. (#2635)
+Widget _pastWeekError(BuildContext context, WidgetRef ref, DateTime weekStart) {
+  final AppLocalizations l = AppLocalizations.of(context);
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
+    child: AppErrorState(
+      key: const Key('exercisePastWeekError'),
+      title: l.exLoadError,
+      retryLabel: l.actionRetry,
+      onRetry: () => ref.invalidate(exercisePastWeekProvider(weekStart)),
+      placement: AppStatePlacement.card,
+    ),
+  );
 }
 
 /// 정말로 기록이 없는 날 — 식단 탭과 같은 문구를 공유하고 섹션 이름만 바꿔 낀다.
