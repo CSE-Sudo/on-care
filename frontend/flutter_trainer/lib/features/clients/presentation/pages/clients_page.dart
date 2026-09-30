@@ -143,14 +143,6 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
           subtitle: activeFilter != ClientFilter.all || view.filters.isNotEmpty
               ? l.clientsMemberCountFiltered(list.length, all.length)
               : l.clientsMemberCount(all.length),
-          actions: <Widget>[
-            if (canConnect)
-              AppButton(
-                label: l.clientsNew,
-                leadingIcon: AppIcons.addClient,
-                onPressed: () => _openConnectDialog(context),
-              ),
-          ],
           body: LayoutBuilder(
             builder: (context, constraints) {
               // [AppSplitView] 과 같은 폭·같은 기준으로 잰다 — 좁은 폭에서
@@ -160,17 +152,34 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   if (wide || selected == null) ...<Widget>[
-                    _MemberManagementToolbar(
-                      managementFilters: view.filters,
-                      sort: view.sort,
-                      preset: activeFilter,
-                      onClearPreset: _clearFilters,
-                      onFiltersChanged: (value) =>
-                          ref.read(rosterViewProvider.notifier).state = view
-                              .copyWith(filters: value),
-                      onSortChanged: (value) =>
-                          ref.read(rosterViewProvider.notifier).state = view
-                              .copyWith(sort: value),
+                    // `신규 회원 등록` 은 필터 줄 오른쪽 끝이다 — 화면 머리 오른쪽
+                    // 끝은 모든 탭이 알림 종 하나만 두는 자리다(#2628).
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _MemberManagementToolbar(
+                            managementFilters: view.filters,
+                            sort: view.sort,
+                            preset: activeFilter,
+                            onClearPreset: _clearFilters,
+                            onFiltersChanged: (value) =>
+                                ref.read(rosterViewProvider.notifier).state =
+                                    view.copyWith(filters: value),
+                            onSortChanged: (value) =>
+                                ref.read(rosterViewProvider.notifier).state =
+                                    view.copyWith(sort: value),
+                          ),
+                        ),
+                        if (canConnect) ...<Widget>[
+                          const SizedBox(width: OnCareSpacing.s8),
+                          AppButton(
+                            key: const ValueKey<String>('clients-new'),
+                            label: l.clientsNew,
+                            leadingIcon: AppIcons.addClient,
+                            onPressed: () => _openConnectDialog(context),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
                   ],
@@ -593,16 +602,10 @@ class _RefreshOnBranchResumeState extends State<_RefreshOnBranchResume> {
 /// Shared page chrome so the loading/error/data states keep the same
 /// header instead of the title flickering in after the stream resolves.
 class _Frame extends StatelessWidget {
-  const _Frame({
-    required this.subtitle,
-    required this.body,
-    this.actions = const <Widget>[],
-  });
+  const _Frame({required this.subtitle, required this.body});
 
   final String? subtitle;
   final Widget body;
-
-  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -612,7 +615,6 @@ class _Frame extends StatelessWidget {
       subtitle: subtitle,
       // 고객 검색은 헤더 가운데 자리다 — 탭을 옮겨도 같은 가로 위치에 선다.
       headerCenter: const ClientSearchBar(),
-      actions: actions,
       body: body,
     );
   }
