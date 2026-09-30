@@ -301,7 +301,12 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: SizedBox.shrink()),
+          // 같은 테마를 둔다 — 테마 없는 앱에서 돌아오면 테마 전환 애니메이션
+          // 중간 프레임에 앱 토큰이 없어 화면이 그려지지 않는다.
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const SizedBox.shrink(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
