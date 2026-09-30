@@ -390,7 +390,7 @@ def test_message_length_is_limited(client, db_session):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
     payload = _payload(db_session, trainer_id=trainer.id)
-    payload["message"] = "a" * 2001
+    payload["message"] = "a" * 1001
 
     response = client.post(
         "/v1/consultations", headers=_auth(token), json=payload

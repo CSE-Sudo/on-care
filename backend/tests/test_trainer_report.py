@@ -344,11 +344,11 @@ def test_feedback_draft_of_someone_elses_client_is_404(client):
 
 
 def test_feedback_draft_rejects_a_body_longer_than_a_report_message(client):
-    """저장은 됐는데 보낼 수 없는 길이가 생기면 안 된다 — 전송과 같은 2000자."""
+    """저장은 됐는데 보낼 수 없는 길이가 생기면 안 된다 — 전송과 같은 1000자."""
     token = _trainer_token(client)
     r = client.put(
         "/v1/trainer/clients/user-jisu/report/feedback",
-        json={"week_start": "2026-08-05", "body": "가" * 2001},
+        json={"week_start": "2026-08-05", "body": "가" * 1001},
         headers=_auth(token),
     )
     assert r.status_code == 422

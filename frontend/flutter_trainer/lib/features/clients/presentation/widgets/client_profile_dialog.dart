@@ -816,11 +816,15 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               ),
             ],
             const SizedBox(height: OnCareSpacing.s8),
+            // 목표 칩은 세지 않는다 — 서버도 칩을 뺀 글만 센다(#2618).
             if (_editing)
               AppTextField(
+                key: const ValueKey<String>('client-conditions-input'),
                 controller: _conditions,
                 label: l.memberHealthConditions,
                 maxLines: 2,
+                maxLength: AppTextLimits.entry,
+                showCounter: true,
               )
             else ...<Widget>[
               Text(

@@ -939,7 +939,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t change the status. Please try again.';
 
   @override
-  String get chatTooLong => 'Message is too long (2000 characters max)';
+  String get chatTooLong => 'Message is too long (1000 characters max)';
 
   @override
   String get chatSendFailed => 'Couldn\'t send the message. Please try again';

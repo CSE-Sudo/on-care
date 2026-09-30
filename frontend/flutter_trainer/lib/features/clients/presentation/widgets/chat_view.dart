@@ -55,10 +55,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
-  /// Mirrors the backend's `ChatSendRequest.text` cap (`max_length=2000`)
+  /// Mirrors the backend's `ChatSendRequest.text` cap (`TEXT_LONG_MAX`)
   /// so an over-long message is rejected here, with a clear message,
   /// instead of round-tripping to the server for a 422 (review).
-  static const int _maxMessageLength = 2000;
+  static const int _maxMessageLength = AppTextLimits.long;
 
   /// A send is in flight — blocks re-entry (button mash / IME send)
   /// from inserting the same message twice.
@@ -894,6 +894,7 @@ class _InputBar extends StatelessWidget {
         key: const ValueKey<String>('client-chat-input'),
         controller: controller,
         hint: l.chatInputHint,
+        maxLength: _ChatViewState._maxMessageLength,
         sendTooltip: l.a11ySendMessage,
         onSend: onSend,
         attachTooltip: l.chatAttachImage,

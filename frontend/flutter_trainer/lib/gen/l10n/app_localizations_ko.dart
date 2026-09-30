@@ -913,7 +913,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientStatusChangeFailed => '상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';
+  String get chatTooLong => '메시지가 너무 길어요 (최대 1000자)';
 
   @override
   String get chatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';

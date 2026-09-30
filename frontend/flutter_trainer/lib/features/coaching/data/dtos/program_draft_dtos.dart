@@ -6,6 +6,7 @@ import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dar
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Wire values the backend accepts for an exercise's origin.
 const List<String> kProgramExerciseSources = <String>['ai', 'trainer'];
@@ -127,7 +128,7 @@ Map<String, Object?> programDraftToJson(ProgramEditorState draft) =>
       'name': _cap(draft.name, _kNameMax),
       'goal': _cap(draft.goal, 200),
       'period': _cap(draft.period, _kNameMax),
-      'memo': _cap(draft.memo, 2000),
+      'memo': _cap(draft.memo, AppTextLimits.entry),
       'sessions': <Map<String, Object?>>[
         for (final session in draft.sessions) programSessionToJson(session),
       ],

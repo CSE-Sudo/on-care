@@ -942,7 +942,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   말은 마지막 것 하나다 — 고쳐 보낸 답이 먼저 보낸 답 옆에 서면 트레이너는 둘 중 무엇을
   믿을지 알 수 없다.
 - `condition` 은 `great|good|ok|tired|bad`, `intensity` 는 `too_easy|right|hard|too_hard`.
-  둘 다 DB `CheckConstraint` 와 같은 목록이고, 벗어나면 **422**. `note` 는 500자,
+  둘 다 DB `CheckConstraint` 와 같은 목록이고, 벗어나면 **422**. `note` 는 200자,
   `pain_area` 는 40자까지. **아픈 곳을 비운 채 `pain_on` 만 보내면 날짜도 함께 버린다** —
   화면이 "(빈칸) 이 아팠다" 를 그리지 않게 한다.
 - 쓰기는 담당 트레이너가 있어야 한다(없으면 404). 받는 사람이 없는 피드백은 아무 데도 닿지
@@ -1020,7 +1020,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | `POST` | `/me/coach/chat/image` | 회원 → 담당 트레이너 (#1665) |
 | `GET` | `/chat/attachments/{file_id}` | 그 스레드의 두 사람 — 내려받기 |
 
-- 요청은 `multipart/form-data` 다: `image`(파일, 필수)·`message`(글, 선택, 2000자)·`client_request_id`
+- 요청은 `multipart/form-data` 다: `image`(파일, 필수)·`message`(글, 선택, 1000자)·`client_request_id`
   (선택, 1~64자). 응답은 `201` 에 `ChatMessageOut` 이고 `attachment` 가
   `{ type: "image", file_name, file_id, file_size, download_path }` 다. 사진만 보내도 된다(`body` 는 빈 글).
 - **형식은 바이트로 판정한다** — JPG·PNG·WebP 만 받고 나머지는 **415**. 확장자와 `Content-Type` 은

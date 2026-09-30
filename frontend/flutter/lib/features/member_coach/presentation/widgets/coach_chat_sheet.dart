@@ -464,6 +464,8 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
               child: AppChatInputBar(
                 controller: _input,
                 hint: l.coachChatInputHint,
+                // 서버 `ChatSendRequest.text` 와 같은 긴 글 상한(#2618).
+                maxLength: AppTextLimits.long,
                 sendTooltip: l.a11ySendMessage,
                 emoteTooltip: l.a11yOpenEmotes,
                 onEmote: _pickEmote,
