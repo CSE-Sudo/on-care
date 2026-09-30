@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/storage/seed_health_profiles.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
@@ -20,10 +21,13 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v37']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v38']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v38` 은 담당 회원 15명의 키·몸무게와 식단·운동 목표를 심었다(#2597).
+/// 올리지 않으면 오늘 이미 시드된 브라우저의 신체·목표 창이 자정까지 빈칸이다.
 ///
 /// `_v37` 은 회원 주간 피드백을 리포트 이력의 주마다 거의 모든 회원에게
 /// 심었다. 올리지 않으면 오늘 이미 시드된 브라우저의 리포트 `한 줄 메모` 가
@@ -157,7 +161,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v37') == today &&
+  if (await db.readValue('trainer_seeded_v38') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -637,8 +641,12 @@ Future<void> seedIfEmpty(
       ]);
     });
 
+    // 신체·목표는 저장된 값이 없는 회원에게만 넣는다 — 트레이너가 고친 값은
+    // 날이 바뀌어도 남는다(#2597).
+    await seedDemoHealthProfiles(db);
+
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v37', today);
+    await db.putValue('trainer_seeded_v38', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }

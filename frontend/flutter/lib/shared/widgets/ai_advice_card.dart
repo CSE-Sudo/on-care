@@ -13,11 +13,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 문구가 비면 아무것도 그리지 않는다 — 빈 카드는 자리만 차지하고 아무것도
 /// 알려 주지 않는다.
 class AiAdviceCard extends StatelessWidget {
-  const AiAdviceCard({
-    super.key,
-    required this.title,
-    required this.message,
-  });
+  const AiAdviceCard({super.key, required this.title, required this.message});
 
   /// 카드 머리 — `AI 맞춤 조언` 처럼 무슨 말인지 알려 주는 한 줄.
   final String title;
@@ -64,6 +60,32 @@ class AiAdviceShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final Widget row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const OniAvatar(),
+        const SizedBox(width: OnCareSpacing.s12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                title,
+                style: tokens
+                    .text(OnCareTypography.titleSmall)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              child,
+            ],
+          ),
+        ),
+        if (trailing != null) ...<Widget>[
+          const SizedBox(width: OnCareSpacing.s8),
+          Center(child: trailing),
+        ],
+      ],
+    );
     return Material(
       color: tokens.brand.surface,
       shape: RoundedRectangleBorder(
@@ -75,32 +97,10 @@ class AiAdviceShell extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const OniAvatar(),
-              const SizedBox(width: OnCareSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: tokens
-                          .text(OnCareTypography.titleSmall)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    child,
-                  ],
-                ),
-              ),
-              if (trailing != null) ...<Widget>[
-                const SizedBox(width: OnCareSpacing.s8),
-                trailing!,
-              ],
-            ],
-          ),
+          // 이동 표시는 카드 높이의 가운데에 선다 — MY 목록 행의 화살표와 같은
+          // 자리다(#2598). 줄 높이를 글줄에 맞춰야 가운데를 잴 수 있어, 표시가
+          // 있을 때만 높이를 잰다(없는 카드의 본문은 재지 않는다).
+          child: trailing == null ? row : IntrinsicHeight(child: row),
         ),
       ),
     );
