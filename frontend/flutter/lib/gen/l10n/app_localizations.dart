@@ -1793,7 +1793,7 @@ abstract class AppLocalizations {
   /// No description provided for @exOwnRecordsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No workouts logged yet'**
+  /// **'No workouts logged'**
   String get exOwnRecordsEmpty;
 
   /// No description provided for @exOwnRecordSource.
@@ -6791,12 +6791,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A cancelled request can\'t be restored.'**
   String get exConsultHistoryCancelBody;
-
-  /// No description provided for @exDemoPtFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!'**
-  String get exDemoPtFeedback;
 
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///

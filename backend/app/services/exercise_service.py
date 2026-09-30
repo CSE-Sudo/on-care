@@ -215,26 +215,66 @@ PT_EXERCISE_ID_PREFIX = "sched-ex-"
 
 
 def pt_session_times(db: Session, rows: Sequence) -> dict[str, str]:
-    """PT 기록 id → 그 수업의 시각(`HH:MM`). (#2692)
+    """PT 기록 id → 그 수업의 시각(`HH:MM`). (#2692, #2694)
 
     시각 태그는 "○○ 수업 완료" 로 읽힌다. PT 는 트레이너가 완료해 보낸 수업이라
     그 일정의 시각이 곧 답이다 — 운동 유형으로 지어내면 19:00 수업이 18:00 으로
-    적힌다. 수업을 찾지 못한 기록은 담지 않는다.
+    적힌다.
+
+    완료 처리로 생긴 기록은 id 가 그 수업을 가리킨다(`sched-ex-{수업 id}`). 픽스처
+    회원의 시드 기록처럼 수업과 id 로 이어지지 않은 PT 는 **같은 날 그 회원의 완료
+    수업** 시각을 쓴다. 둘 다 없으면 담지 않는다 — 태그를 비워 둔다.
     """
+    pt_rows = [
+        r for r in rows
+        if (getattr(r, "source", "member") or "member") == "trainer_pt"
+    ]
+    if not pt_rows:
+        return {}
     by_schedule = {
         r.id[len(PT_EXERCISE_ID_PREFIX):]: r.id
-        for r in rows
-        if (getattr(r, "source", "member") or "member") == "trainer_pt"
-        and r.id.startswith(PT_EXERCISE_ID_PREFIX)
+        for r in pt_rows
+        if r.id.startswith(PT_EXERCISE_ID_PREFIX)
     }
-    if not by_schedule:
-        return {}
-    found = db.execute(
-        select(TrainerSchedule.id, TrainerSchedule.time).where(
-            TrainerSchedule.id.in_(list(by_schedule))
-        )
-    ).all()
-    return {by_schedule[sid]: t for sid, t in found if t}
+    times: dict[str, str] = {}
+    if by_schedule:
+        for sid, at in db.execute(
+            select(TrainerSchedule.id, TrainerSchedule.time).where(
+                TrainerSchedule.id.in_(list(by_schedule))
+            )
+        ).all():
+            if at:
+                times[by_schedule[sid]] = at
+
+    rest: dict[tuple[str, str], list[str]] = {}
+    for r in pt_rows:
+        if r.id in times:
+            continue
+        day = session_date_of(r)
+        if day is None:
+            continue
+        rest.setdefault((r.user_id, day.isoformat()), []).append(r.id)
+    if rest:
+        found = db.execute(
+            select(
+                TrainerSchedule.member_id, TrainerSchedule.date, TrainerSchedule.time
+            ).where(
+                TrainerSchedule.member_id.in_({m for m, _d in rest}),
+                TrainerSchedule.date.in_({d for _m, d in rest}),
+                TrainerSchedule.status == "완료",
+            )
+        ).all()
+        # 하루에 두 번 받았으면 앞선 수업이다 — 그날의 첫 PT 카드가 서는 자리다.
+        earliest: dict[tuple[str, str], str] = {}
+        for member_id, day, at in found:
+            key = (member_id, day)
+            if at and (key not in earliest or at < earliest[key]):
+                earliest[key] = at
+        for key, ids in rest.items():
+            if key in earliest:
+                for row_id in ids:
+                    times[row_id] = earliest[key]
+    return times
 
 
 def _time_label_of(r, pt_times: dict[str, str] | None) -> str | None:

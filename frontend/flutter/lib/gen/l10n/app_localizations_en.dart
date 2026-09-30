@@ -968,7 +968,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecords => 'Workouts you logged';
 
   @override
-  String get exOwnRecordsEmpty => 'No workouts logged yet';
+  String get exOwnRecordsEmpty => 'No workouts logged';
 
   @override
   String get exOwnRecordSource => 'Self-logged';
@@ -3922,10 +3922,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
-
-  @override
-  String get exDemoPtFeedback =>
-      'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
 
   @override
   String pointsRewardBadge(int points) {
