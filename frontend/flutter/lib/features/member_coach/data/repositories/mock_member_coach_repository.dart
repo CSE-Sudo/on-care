@@ -7,9 +7,9 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/core/utils/wire_date.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
@@ -37,7 +37,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// [points] 를 주면 루틴 완료(AI 추천·트레이너 배정)가 포인트를 받고 되돌리면
   /// 회수된다(#1786).
   MockMemberCoachRepository({
-    MockExerciseRepository? exercise,
+    RoutineSessionLog? exercise,
     DemoPointsLedger? points,
     DemoCoachLinkCheck? linked,
     DemoCoachRelink? relink,
@@ -46,7 +46,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
        _linked = linked,
        _relink = relink;
 
-  final MockExerciseRepository? _exercise;
+  final RoutineSessionLog? _exercise;
   final DemoPointsLedger? _points;
 
   /// 담당 트레이너 연결 여부를 묻는 곳. 주지 않으면 늘 연결된 것으로 본다
@@ -538,7 +538,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required String intensity,
     int? durationSeconds,
   }) async {
-    final MockExerciseRepository? exercise = _exercise;
+    final RoutineSessionLog? exercise = _exercise;
     if (exercise == null) return;
     final ExerciseType type = exerciseTypeFromLabel(routine.type);
     final ExerciseIntensity level = exerciseIntensityFromLabel(intensity);
