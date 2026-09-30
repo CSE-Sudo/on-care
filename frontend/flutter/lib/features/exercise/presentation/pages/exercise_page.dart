@@ -1046,17 +1046,23 @@ class _PtSessionCard extends StatelessWidget {
           // (오늘 완료한 PT 12회차)를 한 줄로 말한다. 곁말(`titleMeta`)은 앞에
           // ` · ` 를 붙여 `PT · 12회차` 로 끊어 읽히므로 같은 모양의 글자만 둔다.
           // 서버가 주지 않으면 비운다. (#2666)
+          //
+          // 배지는 제목 줄에서 제 폭을 고집하므로 `Flexible` 로 감싸 말줄임한다 —
+          // 영어(`Session 12`)·글자 배율 2.0·폭 320 에서 제목 줄이 넘쳤다(#766).
           AppSectionHeader(
             title: l.exCompletedPtTitle,
             icon: AppIcons.exercise,
             titleBadge: number == null
                 ? null
-                : Text(
-                    l.exPtSessionNumber(number),
-                    maxLines: 1,
-                    style: tokens
-                        .text(OnCareTypography.caption)
-                        .copyWith(color: OnCareColors.textTertiary),
+                : Flexible(
+                    child: Text(
+                      l.exPtSessionNumber(number),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textTertiary),
+                    ),
                   ),
           ),
           const SizedBox(height: OnCareSpacing.s12),
