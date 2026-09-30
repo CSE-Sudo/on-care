@@ -4,8 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_report/oncare_report.dart' show reportSheetOnePage;
-import 'package:oncare_trainer/app/app_theme.dart';
+import 'package:oncare_report/oncare_report.dart'
+    show reportSheetFrame, reportSheetOnePage;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -16,7 +16,6 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_resu
 import 'package:oncare_trainer/features/reports/services/report_pdf_image.dart';
 import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -201,24 +200,19 @@ class ReportPdfGenerator {
     );
   }
 
-  /// 화면 밖 트리가 앱 안에서처럼 그려지도록 테마·로케일·provider 를 두른다.
+  /// 화면 밖 트리가 앱 안에서처럼 그려지도록 provider 를 두르고, 테마·로케일은
+  /// 회원 앱과 같은 틀(`reportSheetFrame`)에 맡긴다 — 두 앱이 같은 한 장을
+  /// 굽는다(#2652).
   static Widget _frame(
     ProviderContainer scope,
     AppLocalizations l,
     Widget sheet,
   ) => UncontrolledProviderScope(
     container: scope,
-    child: Localizations(
+    child: reportSheetFrame(
       locale: Locale(l.localeName),
       delegates: AppLocalizations.localizationsDelegates,
-      child: MediaQuery(
-        // 문서는 사용자의 글자 배율과 상관없이 같은 크기로 나가야 한다.
-        data: const MediaQueryData(textScaler: TextScaler.noScaling),
-        child: Theme(
-          data: AppTheme.light(),
-          child: Material(color: OnCareColors.surfaceCard, child: sheet),
-        ),
-      ),
+      sheet: sheet,
     ),
   );
 

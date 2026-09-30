@@ -12,6 +12,7 @@ export 'src/report_pdf_image.dart';
 export 'src/report_sheet.dart';
 export 'src/report_sheet_data.dart';
 export 'src/report_sheet_document.dart';
+export 'src/report_sheet_frame.dart';
 export 'src/report_sheet_json.dart';
 export 'src/report_sheet_l10n.dart';
 export 'src/report_sheet_pdf.dart';
