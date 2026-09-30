@@ -1,6 +1,8 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 
@@ -46,17 +48,19 @@ void main() {
     expect(reads.sublist(firstRead).every((bool r) => r), isTrue);
   });
 
-  // 목적지는 서버의 갈래별 표(`_ACTION_BY_CATEGORY`)를 그대로 따른다 — 실서버
-  // 데모 계정의 알림함과 같은 곳으로 이어진다(#2660).
-  test('예시 알림은 서버와 같은 갈래와 목적지로 이어진다', () {
+  // 갈래(아이콘)와 목적지는 예전 데모 목록 그대로다 — 데모 화면이 기준이다(#2660).
+  // 목적지는 서버 갈래별 표와 다를 수 있다(서버를 맞추는 일은 #2690).
+  test('예시 알림은 예전 데모와 같은 갈래와 목적지로 이어진다', () {
     final expected = <String, (AlertCategory, AlertTarget)>{
+      '나트륨 섭취 주의': (AlertCategory.reminder, AlertTarget.diet),
+      '저녁 식단을 기록해 주세요': (AlertCategory.reminder, AlertTarget.diet),
       '새 운동 루틴이 도착했어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
       '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
+      'PT 수업 완료': (AlertCategory.achievement, AlertTarget.exercise),
       '트레이너 피드백 도착': (AlertCategory.coachChat, AlertTarget.coachChat),
-      '저녁 식단을 기록해 주세요': (AlertCategory.reminder, AlertTarget.dashboard),
+      '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.exercise),
       '식단 기록을 꾸준히 이어가고 있어요': (AlertCategory.achievement, AlertTarget.dashboard),
-      '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.dashboard),
     };
     expected.forEach((String title, (AlertCategory, AlertTarget) want) {
       final AlertItem a = byTitle(title);
@@ -71,6 +75,39 @@ void main() {
       demoAlerts.where((AlertItem a) => a.action == null).map((a) => a.title),
       <String>['서비스 점검 안내'],
     );
+  });
+
+  // 언제 열어도 같은 시각으로 보인다 — 같은 날 안에서 흐르지 않는다(#2660).
+  test('시각은 예전 데모 목록과 같다', () {
+    expect(demoAlerts.map((AlertItem a) => a.timeAgo), <String>[
+      '10분 전',
+      '20분 전',
+      '30분 전',
+      '45분 전',
+      '1시간 전',
+      '2시간 전',
+      '3시간 전',
+      '어제',
+      '어제',
+    ]);
+  });
+
+  // 인터셉터가 쓰는 표(시각·읽음)와 시드가 넣는 행이 갈라지면 순서와 시각이, 또는
+  // 로그인 뒤 읽음 상태가 서로 다른 말을 한다.
+  test('시드 행의 간격·읽음이 데모 표와 같다', () async {
+    final AppDatabase db = await seededDemoDatabase();
+    addTearDown(db.close);
+    final rows = await db.select(db.notificationItems).get();
+    final byId = <String, NotificationRow>{for (final r in rows) r.id: r};
+
+    expect(byId.keys.toSet(), kDemoAlertKeyBySeedId.keys.toSet());
+    expect(kDemoAlertAgeBySeedId.keys.toSet(), byId.keys.toSet());
+    final DateTime newest = byId['seed-noti-1']!.createdAt;
+    final Duration base = kDemoAlertAgeBySeedId['seed-noti-1']!;
+    kDemoAlertAgeBySeedId.forEach((String id, Duration age) {
+      expect(newest.difference(byId[id]!.createdAt), age - base, reason: id);
+      expect(byId[id]!.read, kDemoAlertReadSeedIds.contains(id), reason: id);
+    });
   });
 
   test('모든 알림이 다음 쪽 커서(created_at)를 갖는다', () {

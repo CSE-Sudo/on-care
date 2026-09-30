@@ -2341,15 +2341,41 @@ class LocalApiInterceptor extends Interceptor {
           'category': r.category,
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
-          'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
-          // 서버처럼 갈래마다 갈 곳을 싣는다(#1789·#2660).
-          'action': ?_demoActionFor(r.category),
+          // 데모 시드 알림은 정해 둔 경과 시간으로 보인다 — 같은 날 안에서 시각이
+          // 흐르지 않는다(#2660). 나머지는 실제 경과다.
+          'time_ago': _timeAgoKorean(
+            kDemoAlertAgeBySeedId[r.id] ?? now.difference(r.createdAt),
+          ),
+          // 데모 시드 알림은 예전 데모 목록의 목적지, 나머지는 서버처럼 갈래별
+          // 목적지를 싣는다(#1789·#2660).
+          'action': ?(_demoSeedAction(r.id) ?? _demoActionFor(r.category)),
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
         },
     ];
     return _ok(options, list);
+  }
+
+  static Map<String, Object?>? _demoSeedAction(String id) {
+    final ({String label, String target})? a = kDemoAlertActionBySeedId[id];
+    if (a == null) return null;
+    return <String, Object?>{'label': a.label, 'target': a.target};
+  }
+
+  /// 데모에 로그인하면 시드 알림을 시드할 때의 읽음 상태로 되돌린다(#2660).
+  ///
+  /// 예전 데모는 로그인·계정 전환마다 알림이 처음 상태였다(#1936). 읽음이 drift 에
+  /// 남게 된 뒤에도 그 모양을 지킨다. 챌린지 결과처럼 데모 중에 생긴 알림은 둔다.
+  /// 앱을 다시 켜기만 한 것(새로고침)은 로그인이 아니라 읽음이 남는다 — 실서버와
+  /// 같고, 날짜가 바뀌면 시드가 다시 깔리며 풀린다.
+  Future<void> _resetDemoNotificationReads() async {
+    await (_db.update(_db.notificationItems)
+          ..where((t) => t.id.isIn(kDemoAlertKeyBySeedId.keys)))
+        .write(const NotificationItemsCompanion(read: Value(false)));
+    await (_db.update(_db.notificationItems)
+          ..where((t) => t.id.isIn(kDemoAlertReadSeedIds)))
+        .write(const NotificationItemsCompanion(read: Value(true)));
   }
 
   /// 헤더 벨 배지가 폴링하는 미읽음 수. 서버와 같은 키(`unread`)로 답한다.
@@ -2945,6 +2971,7 @@ class LocalApiInterceptor extends Interceptor {
     if (username.isEmpty || password.isEmpty) {
       return _badRequest(options, 'username and password are required');
     }
+    await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
       'refresh_token': 'demo-refresh',
@@ -3038,6 +3065,7 @@ class LocalApiInterceptor extends Interceptor {
     if (token.isEmpty) {
       return _badRequest(options, 'token is required');
     }
+    await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-social-${DateTime.now().microsecondsSinceEpoch}',
       'refresh_token': 'demo-refresh',

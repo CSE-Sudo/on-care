@@ -170,8 +170,9 @@ void main() {
             .any((ChatMessage message) => message.content == 'A 사용자 메시지'),
         isFalse,
       );
-      // 알림 읽음은 데모에서도 저장소(drift)에 남는다 — 실서버처럼. 리셋이 확인할
-      // 것은 컨트롤러를 새로 만들어 저장소에서 다시 읽는다는 것이다(#2660).
+      // 알림 읽음은 저장소(drift)에 있다. 데모 로그인 때 시드 알림 읽음을 되돌리는
+      // 것은 인터셉터가 맡는다(#2660) — 리셋이 확인할 것은 컨트롤러를 새로 만들어
+      // 저장소에서 다시 읽는다는 것이다.
       expect(
         identical(
           container.read(notificationControllerProvider.notifier),
