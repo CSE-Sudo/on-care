@@ -552,9 +552,12 @@ void main() {
     expect(find.text('실내 자전거 · 1시간 30분'), findsOneWidget);
   });
 
-  testWidgets('데모의 오늘 완료한 PT는 종목별 분·세트·횟수·중량을 표시한다 (#2126)', (
+  testWidgets('데모의 오늘 완료한 PT는 시드 PT 일정의 종목·세트·횟수·중량과 회차를 표시한다 (#2126, #2694)', (
     WidgetTester tester,
   ) async {
+    // 데모도 실서버와 같은 경로다 — 목업 코치 저장소가 공유 픽스처의 오늘 PT 로
+    // 수업 일정(시각·길이·회차·프로그램·트레이너 메모)을 준다. 강도는 그날 PT
+    // 운동 기록에서 온다(실서버와 같다).
     final String today = const <String>[
       '월',
       '화',
@@ -576,62 +579,38 @@ void main() {
           ExerciseSession(
             dayLabel: today,
             type: ExerciseType.strength,
-            minutes: 20,
-            calories: 120,
-            name: '레그프레스',
-            items: const <String>['레그프레스'],
+            minutes: 12,
+            calories: 72,
+            name: '벤치프레스',
             source: ExerciseSource.trainerPt,
             sets: 4,
-            reps: 12,
-            weight: 70,
-          ),
-          ExerciseSession(
-            dayLabel: today,
-            type: ExerciseType.cardio,
-            minutes: 15,
-            calories: 90,
-            name: '러닝머신',
-            items: const <String>['러닝머신'],
-            source: ExerciseSource.trainerPt,
-          ),
-          ExerciseSession(
-            dayLabel: today,
-            type: ExerciseType.stretching,
-            minutes: 10,
-            calories: 30,
-            name: '하체 스트레칭',
-            items: const <String>['하체 스트레칭'],
-            source: ExerciseSource.trainerPt,
-          ),
-          ExerciseSession(
-            dayLabel: today,
-            type: ExerciseType.other,
-            minutes: 5,
-            calories: 20,
-            name: '밸런스 훈련',
-            items: const <String>['밸런스 훈련'],
-            source: ExerciseSource.trainerPt,
+            reps: 10,
+            weight: 40,
           ),
         ],
-        dailyMinutes: const <double>[50, 0, 0, 0, 0, 0, 0],
+        dailyMinutes: const <double>[40, 0, 0, 0, 0, 0, 0],
         dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
-        totalMinutes: 50,
-        totalCalories: 260,
+        totalMinutes: 40,
+        totalCalories: 240,
         streakDays: 1,
         aiCoachMessage: '',
       ),
     );
 
-    await tester.scrollUntilVisible(find.text('레그프레스 · 4세트 · 12회 · 70kg · 보통'), 400);
+    await tester.scrollUntilVisible(
+      find.text('벤치프레스 · 4세트 · 10회 · 40kg · 보통'),
+      400,
+    );
 
-    expect(find.text('레그프레스 · 4세트 · 12회 · 70kg · 보통'), findsOneWidget);
-    expect(find.text('러닝머신 · 15분 · 보통'), findsOneWidget);
-    expect(find.text('하체 스트레칭 · 10분 · 보통'), findsOneWidget);
-    expect(find.text('밸런스 훈련 · 5분 · 보통'), findsOneWidget);
-    // 데모 칩은 시연용 고정 값이다 — 실서버와 같은 칩 셋(#2666).
+    expect(find.text('벤치프레스 · 4세트 · 10회 · 40kg · 보통'), findsOneWidget);
+    expect(find.text('덤벨 숄더프레스 · 4세트 · 12회 · 10kg · 보통'), findsOneWidget);
+    expect(find.text('랫풀다운 · 4세트 · 12회 · 45kg · 보통'), findsOneWidget);
     expect(find.text('18:00 완료'), findsOneWidget);
+    // 지난 11주 매주 한 번 + 오늘 — 어느 요일이든 12회차다.
     expect(find.text('12회차'), findsOneWidget);
     expect(find.text('50분'), findsOneWidget);
+    // 피드백은 그날 픽스처 트레이너 메모다 — 예전 데모의 고정 문구가 아니다.
+    expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
   });
 
   testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (
