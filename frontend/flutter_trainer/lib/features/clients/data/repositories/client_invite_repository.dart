@@ -65,7 +65,8 @@ abstract interface class ClientInviteRepository {
   Future<PairedMember> redeemPairingCode(String code);
 
   /// 내가 보낸 요청. `status` 는 `pending` 또는 `all`. [connectsImmediately] 가
-  /// `true` 인 소스는 대기할 요청이 없으므로 항상 빈 목록이다.
+  /// `true` 인 소스는 대기할 요청이 없으므로 항상 빈 목록이다 — 그래도 등록
+  /// 창은 두 모드에서 같은 모양으로 이 목록 자리를 그린다(#2670).
   Future<List<ClientInvite>> listSent({String status = 'pending'});
 
   /// 보낸 요청을 거둬들인다. [connectsImmediately] 가 `true` 인 소스에는
@@ -281,10 +282,11 @@ class DioClientInviteRepository implements ClientInviteRepository {
 
   final Dio _dio;
 
+  /// 백엔드에 코드 확인·연결(`/trainer/pairing-code/preview`·
+  /// `/trainer/pairing-code`)과 보낸 요청 목록·취소(`/trainer/client-invites`)가
+  /// 모두 있다 — 데모와 같은 진입점을 연다. (#2670)
   @override
-  // Production request/accept/reject remains a follow-up. For now the
-  // client-registration entry point is exposed only by the demo source.
-  bool get supportsInvites => false;
+  bool get supportsInvites => true;
 
   @override
   bool get connectsImmediately => false;
