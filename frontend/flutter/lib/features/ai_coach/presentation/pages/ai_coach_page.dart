@@ -257,7 +257,16 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               ),
               const SizedBox(height: OnCareSpacing.s20),
               ..._thread(context, chat.messages),
-              if (showQuickReplies) _quickReplySection(),
+              // 이전 대화를 불러오는 동안(#2642) — 빠른 질문은 자리에 두되
+              // 잠가 두고, 그 위에 작은 로딩을 둔다. 대개 순식간이다.
+              if (chat.restoring)
+                const Padding(
+                  key: Key('aiCoachRestoring'),
+                  padding: EdgeInsets.only(bottom: OnCareSpacing.s12),
+                  child: Center(child: AppLoading.inline()),
+                ),
+              if (showQuickReplies)
+                _quickReplySection(enabled: !chat.restoring),
             ],
           ),
         ),
@@ -272,7 +281,12 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           // 서버가 받는 질문 길이(#1549). 넘기면 더 입력되지 않고, 가까워지면
           // 입력줄 위에 글자 수가 보인다.
           maxLength: AiCoachLimits.messageMaxLength,
-          enabled: !chat.sending && chat.quota?.next != AiChatNext.exhausted,
+          // 이전 대화를 불러오는 동안에는 보내지 않는다(#2642) — 복원 전에
+          // 보낸 질문은 이전 대화의 맥락 없이 서버로 간다.
+          enabled:
+              !chat.sending &&
+              !chat.restoring &&
+              chat.quota?.next != AiChatNext.exhausted,
           onSend: () => _send(),
         ),
       ],
@@ -553,7 +567,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     );
   }
 
-  Widget _quickReplySection() {
+  Widget _quickReplySection({required bool enabled}) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +587,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
         for (final String q in _quickReplies(l)) ...<Widget>[
           AppButton(
             label: q,
-            onPressed: () => _send(q),
+            onPressed: enabled ? () => _send(q) : null,
             variant: AppButtonVariant.secondary,
             fullWidth: true,
           ),
