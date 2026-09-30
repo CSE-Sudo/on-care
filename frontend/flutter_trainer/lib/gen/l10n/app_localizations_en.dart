@@ -4104,6 +4104,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'A deleted memo can\'t be restored.';
 
   @override
+  String get clientExerciseMemoAdd => 'Leave a memo';
+
+  @override
+  String clientExerciseMemoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count memos',
+      one: '1 memo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get clientExerciseMemoHint =>
+      'Note what to remember from this workout';
+
+  @override
+  String get clientExerciseMemoSaved => 'Saved to memos.';
+
+  @override
+  String get clientMemoTagManual => 'Written by you';
+
+  @override
+  String clientMemoTagPtSession(String date) {
+    return 'PT session · $date';
+  }
+
+  @override
+  String clientMemoTagPersonal(String date) {
+    return 'Personal workout · $date';
+  }
+
+  @override
+  String clientMemoTagPersonalNamed(String date, String name) {
+    return 'Personal workout · $date $name';
+  }
+
+  @override
+  String clientMemoTagMemberLog(String date) {
+    return 'Member\'s log · $date';
+  }
+
+  @override
+  String get clientMemoEdited => 'Edited';
+
+  @override
+  String get clientMemoSearchHint => 'Search memos (text or tag)';
+
+  @override
+  String get clientMemoSearchEmpty => 'No memos match your search.';
+
+  @override
   String get followUp => 'Follow-ups';
 
   @override

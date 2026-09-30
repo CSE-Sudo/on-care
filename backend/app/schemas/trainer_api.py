@@ -1028,8 +1028,13 @@ class ProgramAssignRequest(BaseModel):
 
 
 #: 메모 출처. 'trainer' 는 회원 상세에서 직접 쓴 메모, 'chat_insight' 는 채팅에서
-#: 감지한 신호를 저장한 메모다. 회원 상세는 두 종류를 한 목록으로 보여 준다.
-TrainerMemoSource = Literal["trainer", "chat_insight"]
+#: 감지한 신호를 저장한 메모, 'exercise_memo' 는 운동 탭 기록 카드에서 남긴
+#: 메모다(#2332). 회원 상세는 세 종류를 한 목록으로 보여 준다.
+TrainerMemoSource = Literal["trainer", "chat_insight", "exercise_memo"]
+
+#: 운동 기록 메모가 가리키는 기록의 갈래. 앱이 출처 태그(`PT 세션 · 9/23`,
+#: `개인 운동 · 9/23 코어 강화`, `회원 기록 · 9/23`)를 그리는 데 쓴다.
+TrainerMemoRefKind = Literal["pt_session", "personal", "member_log"]
 
 
 class TrainerMemoOut(BaseModel):
@@ -1041,6 +1046,12 @@ class TrainerMemoOut(BaseModel):
     insight_id: str | None = None
     #: 인사이트 종류(discomfort|negativeFeedback). 직접 쓴 메모는 빈 문자열.
     insight_kind: str = ""
+    #: 운동 기록 메모만 값을 갖는다 — 어느 기록에서 남겼는가(#2332).
+    ref_kind: TrainerMemoRefKind | None = None
+    ref_id: str | None = None
+    ref_date: str | None = None
+    #: 트레이너가 지은 루틴 이름. 고정 이름(PT 세션 등)은 비어 있다.
+    ref_name: str = ""
     created_at: _datetime
     updated_at: _datetime
 
@@ -1052,23 +1063,37 @@ class TrainerMemoCreateRequest(BaseModel):
     저장해도 메모가 늘지 않고 먼저 저장된 메모가 그대로 돌아온다. 직접 쓴 메모는
     이 값을 보내지 않으므로 같은 내용을 여러 번 남길 수 있다(그것이 기능이다).
     """
-    body: str = Field(min_length=1, max_length=2000)
+    #: 메모는 기억해 둘 한두 줄이다 — 프로그램 AI 요청(`trainer_note`)과 같은 500자(#2516).
+    body: str = Field(min_length=1, max_length=500)
     source: TrainerMemoSource = "trainer"
     insight_id: str | None = Field(default=None, max_length=64)
     insight_kind: str = Field(default="", max_length=32)
+    #: 운동 기록 메모가 가리키는 이력 id(운동 탭 기록 카드의 id).
+    ref_id: str | None = Field(default=None, max_length=64)
+    #: 회원 직접 기록 카드는 하루치 묶음이라 id 대신 그 날(YYYY-MM-DD)을 보낸다.
+    ref_date: _date | None = None
 
     @model_validator(mode="after")
     def _reject_mismatched_source(self) -> TrainerMemoCreateRequest:
-        """출처와 중복 방지 키가 짝을 이루는지 본다.
+        """출처와 중복 방지 키·기록 연결이 짝을 이루는지 본다.
 
         어긋난 두 조합이 조용히 통과하면 각각 다른 방식으로 망가진다 —
         키 없는 인사이트 메모는 반복 저장 때마다 늘어나고, 직접 쓴 메모가
         `insight_id` 를 가지면 그 인사이트의 유니크 키를 대신 차지한다.
+        운동 기록 메모는 가리키는 기록이 꼭 하나여야 출처 태그를 그릴 수 있다.
         """
         if self.source == "chat_insight" and not self.insight_id:
             raise ValueError("chat_insight 메모에는 insight_id가 필요합니다.")
-        if self.source == "trainer" and self.insight_id:
-            raise ValueError("trainer 메모에는 insight_id를 보낼 수 없습니다.")
+        if self.source != "chat_insight" and self.insight_id:
+            raise ValueError(f"{self.source} 메모에는 insight_id를 보낼 수 없습니다.")
+        has_ref = self.ref_id is not None or self.ref_date is not None
+        if self.source == "exercise_memo":
+            if (self.ref_id is None) == (self.ref_date is None):
+                raise ValueError(
+                    "exercise_memo 메모에는 ref_id 와 ref_date 중 하나만 보내야 합니다."
+                )
+        elif has_ref:
+            raise ValueError(f"{self.source} 메모에는 기록 연결을 보낼 수 없습니다.")
         return self
 
 
@@ -1080,7 +1105,7 @@ class TrainerMemoUpdateRequest(PartialUpdate):
     바꿀 수 있으면 중복 방지 키가 무너진다.
     """
 
-    body: str | None = Field(default=None, min_length=1, max_length=2000)
+    body: str | None = Field(default=None, min_length=1, max_length=500)
 
 
 #: 후속 관리 할 일이 가리키는 업무 갈래. 할 일에서 어느 화면으로 갈지를 고르는

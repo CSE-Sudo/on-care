@@ -1334,19 +1334,28 @@ def trainer_create_memo(
 
     `insight_id` 를 보내면 그 채팅 인사이트에 대해 멱등이라 같은 신호를 반복
     저장해도 메모가 늘지 않는다(201 로 기존 메모가 그대로 돌아온다).
+
+    운동 기록 메모(`exercise_memo`, #2332)는 `ref_id`(이력 카드) 또는
+    `ref_date`(회원 직접 기록 카드)로 기록을 가리킨다. 트레이너 화면에 보이지
+    않는 기록이면 404 다.
     """
     _require_client(db, trainer.id, member_id)
     body = payload.body.strip()
     if not body:
         # 공백만 있는 메모를 성공으로 처리하면 목록에 빈 줄이 쌓인다.
         raise HTTPException(status_code=400, detail="메모 내용이 필요합니다.")
-    return trainer_service.create_memo(
-        db, trainer.id, member_id,
-        body=body,
-        source=payload.source,
-        insight_id=payload.insight_id,
-        insight_kind=payload.insight_kind,
-    )
+    try:
+        return trainer_service.create_memo(
+            db, trainer.id, member_id,
+            body=body,
+            source=payload.source,
+            insight_id=payload.insight_id,
+            insight_kind=payload.insight_kind,
+            ref_id=payload.ref_id,
+            ref_date=payload.ref_date,
+        )
+    except trainer_service.RoutineNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put(
