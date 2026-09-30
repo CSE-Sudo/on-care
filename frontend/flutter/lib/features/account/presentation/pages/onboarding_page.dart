@@ -85,6 +85,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   // ── 2단계 ──
   final Set<String> _conditions = <String>{};
 
+  /// 건강상태·주의사항(#2619). 고른 목표 뒤에 같은 `conditions` 칸으로 나간다.
+  final TextEditingController _notes = TextEditingController();
+
   // ── 3·4단계 ── 칸 하나에 컨트롤러 하나.
   late final Map<_GoalField, TextEditingController> _goalControllers =
       <_GoalField, TextEditingController>{
@@ -109,6 +112,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     _pager.dispose();
     _height.dispose();
     _weight.dispose();
+    _notes.dispose();
     for (final TextEditingController c in _goalControllers.values) {
       c.dispose();
     }
@@ -352,6 +356,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   void _skipConditions() {
     setState(() {
       _conditions.clear();
+      _notes.clear();
       // 목표를 비웠으니 그 목표로 조정한 권장값도 기준값으로 돌린다(#1816).
       _fillRecommended();
     });
@@ -379,7 +384,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             gender: _gender,
             heightCm: _num(_height),
             weightKg: _num(_weight),
-            conditions: _conditions.isEmpty ? null : _conditions.join(', '),
+            conditions: _conditionsToSave(),
             dailyCalories: _goalValue(_GoalField.calories),
             dailySodiumMg: _goalValue(_GoalField.sodium),
             dailySugarG: _goalValue(_GoalField.sugar),
@@ -814,8 +819,33 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
         ),
+        // 부상·통증처럼 운동을 짤 때 피해야 할 것(#2619). 담당 트레이너가 아직
+        // 없을 수 있어 설명은 트레이너를 말하지 않는다.
+        _StepSection(
+          card: _OnboardCard(
+            children: <Widget>[
+              AppTextField(
+                key: const Key('onboardConditionsField'),
+                controller: _notes,
+                label: l.healthNotesLabel,
+                hint: l.healthNotesHint,
+                helper: l.healthNotesHelper,
+                minLines: 2,
+                maxLines: 4,
+                maxLength: AppTextLimits.entry,
+                showCounter: true,
+              ),
+            ],
+          ),
+        ),
       ],
     );
+  }
+
+  /// 고른 목표와 적은 주의사항을 한 칸으로. 둘 다 비었으면 보내지 않는다.
+  String? _conditionsToSave() {
+    final String merged = mergeHealthFocus(_notes.text, _conditions);
+    return merged.isEmpty ? null : merged;
   }
 
   // ── 3단계: 식단 목표 ──
@@ -921,9 +951,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         key: Key('${keyName}Field'),
         label: label,
         controller: _ctl(field),
-        errorText: _shownGoal(
-          _goalError(AppLocalizations.of(context), field),
-        ),
+        errorText: _shownGoal(_goalError(AppLocalizations.of(context), field)),
         onChanged: (_) => _onGoalEdited(field),
       );
 }

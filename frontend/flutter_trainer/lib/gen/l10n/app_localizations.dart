@@ -6079,6 +6079,24 @@ abstract class AppLocalizations {
   /// **'{name} changed their health goals: {goals}'**
   String notifTplHealthGoalBody(String name, String goals);
 
+  /// No description provided for @notifTplHealthNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member health notes changed'**
+  String get notifTplHealthNotesTitle;
+
+  /// No description provided for @notifTplHealthNotesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their health notes'**
+  String notifTplHealthNotesBody(String name);
+
+  /// No description provided for @notifTplHealthNotesWithGoalsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their health goals and health notes'**
+  String notifTplHealthNotesWithGoalsBody(String name);
+
   /// Shown in place of the goal list when the member cleared every health goal.
   ///
   /// In en, this message translates to:

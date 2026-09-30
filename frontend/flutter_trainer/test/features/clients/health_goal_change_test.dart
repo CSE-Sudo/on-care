@@ -52,6 +52,32 @@ void main() {
       );
     });
 
+    test('주의사항 알림은 신체·목표 창의 건강 목표 탭까지 연다 (#2619)', () {
+      final TrainerNotification notice = _notice(<String, Object?>{
+        'title': '회원 주의사항 변경',
+        'body': '지수 회원이 건강상태·주의사항을 바꿨어요',
+        'template': 'trainer_health_notes',
+        'args': <String, Object?>{'member_name': '지수', 'with_focus': false},
+        'subject_id': 'user-jisu',
+      });
+      expect(notice.kind, TrainerNotificationKind.healthGoal);
+      final String? target = NotificationsPage.targetOf(notice);
+      expect(target, AppRoutes.clientDetail('user-jisu', openHealthNotes: true));
+      expect(Uri.parse(target!).queryParameters, <String, String>{
+        AppRoutes.clientOpenParam: AppRoutes.clientOpenHealthNotes,
+      });
+      // 목표 칩만 바뀐 알림은 전처럼 상세만 연다.
+      expect(
+        NotificationsPage.targetOf(
+          _notice(<String, Object?>{
+            'template': 'trainer_health_goal',
+            'subject_id': 'user-jisu',
+          }),
+        ),
+        AppRoutes.clientDetail('user-jisu'),
+      );
+    });
+
     test('회원 id 가 빠진 건강 목표 알림은 고객 목록으로 간다', () {
       final TrainerNotification notice = _notice(<String, Object?>{
         'subject_id': null,
