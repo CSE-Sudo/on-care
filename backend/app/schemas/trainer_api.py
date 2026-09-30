@@ -1063,7 +1063,8 @@ class TrainerMemoCreateRequest(BaseModel):
     저장해도 메모가 늘지 않고 먼저 저장된 메모가 그대로 돌아온다. 직접 쓴 메모는
     이 값을 보내지 않으므로 같은 내용을 여러 번 남길 수 있다(그것이 기능이다).
     """
-    body: str = Field(min_length=1, max_length=2000)
+    #: 메모는 기억해 둘 한두 줄이다 — 프로그램 AI 요청(`trainer_note`)과 같은 500자(#2516).
+    body: str = Field(min_length=1, max_length=500)
     source: TrainerMemoSource = "trainer"
     insight_id: str | None = Field(default=None, max_length=64)
     insight_kind: str = Field(default="", max_length=32)
@@ -1104,7 +1105,7 @@ class TrainerMemoUpdateRequest(PartialUpdate):
     바꿀 수 있으면 중복 방지 키가 무너진다.
     """
 
-    body: str | None = Field(default=None, min_length=1, max_length=2000)
+    body: str | None = Field(default=None, min_length=1, max_length=500)
 
 
 #: 후속 관리 할 일이 가리키는 업무 갈래. 할 일에서 어느 화면으로 갈지를 고르는

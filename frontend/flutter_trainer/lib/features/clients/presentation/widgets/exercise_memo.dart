@@ -125,7 +125,7 @@ class _ExerciseMemoDialog extends ConsumerStatefulWidget {
 
 class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
   /// 백엔드 `TrainerMemoCreateRequest.body` 상한과 같은 값.
-  static const int _maxLength = 2000;
+  static const int _maxLength = 500;
 
   final TextEditingController _draft = TextEditingController();
   bool _busy = false;
@@ -206,8 +206,33 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
             enabled: !_busy,
             autofocus: true,
             hint: l.clientExerciseMemoHint,
-            // 회원에게 가는 피드백과 헷갈리지 않게 적는 자리에서 밝힌다(#2574).
-            helper: l.clientTrainerMemoPrivate,
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          // 회원 메모 창과 같은 줄 — 왼쪽에 공개 범위(회원에게 가는 피드백과
+          // 헷갈리지 않게, #2574), 오른쪽 끝에 글자 수.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  l.clientTrainerMemoPrivate,
+                  style: context.oncare
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _draft,
+                builder: (context, value, _) => Text(
+                  key: const ValueKey<String>('exercise-memo-counter'),
+                  '${value.text.characters.length}/$_maxLength',
+                  style: OnCareTypography.numeric(
+                    context.oncare.text(OnCareTypography.caption),
+                  ).copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+            ],
           ),
         ],
       ),

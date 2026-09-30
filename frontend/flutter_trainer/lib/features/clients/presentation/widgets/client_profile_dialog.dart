@@ -1094,7 +1094,7 @@ class _MemoSection extends ConsumerStatefulWidget {
 
 class _MemoSectionState extends ConsumerState<_MemoSection> {
   /// Mirrors the backend's `TrainerMemoCreateRequest.body` cap.
-  static const int _maxLength = 2000;
+  static const int _maxLength = 500;
 
   final TextEditingController _draft = TextEditingController();
   bool _busy = false;
@@ -1204,16 +1204,25 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           maxLength: _maxLength,
           enabled: !_busy,
           hint: l.clientTrainerMemoHint,
-          // 회원 상세 메모는 트레이너만 본다 — 회원에게 가는 피드백과
-          // 헷갈리지 않게 적는 자리에서 밝힌다(#2574).
-          helper: l.clientTrainerMemoPrivate,
         ),
-        const SizedBox(height: OnCareSpacing.s8),
-        // 글자 수와 `메모 추가` 를 한 줄에 둔다 — 둘 다 방금 쓴 글에 대한
-        // 것이라 오른쪽 끝에 붙여 읽힌다. 줄이 둘로 나뉘면 입력칸 아래가 길어진다.
+        const SizedBox(height: OnCareSpacing.s4),
+        // 입력칸 바로 아래 한 줄: 왼쪽에 공개 범위 안내, 오른쪽 끝에 글자 수.
+        // 회원 상세 메모는 트레이너만 본다 — 회원에게 가는 피드백과 헷갈리지
+        // 않게 적는 자리에서 밝힌다(#2574). 둘 다 입력칸에 대한 말이라 한 줄로
+        // 묶고, `메모 추가` 는 그 아래에 둔다.
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            Expanded(
+              child: Text(
+                key: const ValueKey<String>('client-memo-private'),
+                l.clientTrainerMemoPrivate,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
             ValueListenableBuilder<TextEditingValue>(
               valueListenable: _draft,
               builder: (context, value, _) => Text(
@@ -1224,7 +1233,11 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                 ).copyWith(color: OnCareColors.textTertiary),
               ),
             ),
-            const SizedBox(width: OnCareSpacing.s12),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        AppActionRow(
+          actions: <Widget>[
             AppButton(
               key: const ValueKey<String>('client-memo-add'),
               onPressed: _busy ? null : _add,

@@ -496,3 +496,18 @@ def test_exercise_memo_needs_exactly_one_record_link(client, trainer_token):
             url, headers=_headers(trainer_token), json={"body": "메모", **payload}
         )
         assert response.status_code == 422, (payload, response.text)
+
+
+def test_memo_body_is_capped_at_500_chars(client, trainer_token, cleanup_memos):
+    """메모는 기억해 둘 한두 줄이다 — 500자까지 받고 넘으면 422(#2516, #2618)."""
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    ok = _create_memo(client, trainer_token, body="가" * 500)
+    cleanup_memos.append(ok["id"])
+    too_long = client.post(
+        url, headers=_headers(trainer_token), json={"body": "가" * 501}
+    )
+    assert too_long.status_code == 422, too_long.text
+    edited = client.put(
+        f"{url}/{ok['id']}", headers=_headers(trainer_token), json={"body": "나" * 501}
+    )
+    assert edited.status_code == 422, edited.text
