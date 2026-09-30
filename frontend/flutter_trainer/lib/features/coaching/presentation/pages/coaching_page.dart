@@ -104,28 +104,41 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   final Map<String, List<RoutineExercise>> _personalRoutines =
       <String, List<RoutineExercise>>{};
 
-  /// 위저드에서 `PT 없이 개인운동만 짜기` 로 온 회원들. 이 회원의 편집기
+  /// 위저드에서 `개인운동만 짜기` 로 온 회원들. 이 회원의 편집기
   /// 자리에는 프로그램 박스 대신 개인운동 박스만 서고, 보내기도 거기서 한다.
   final Set<String> _routineOnlyClients = <String>{};
 
-  /// 개인운동만 붙이는 흐름. (#2280)
+  /// 편집기에서 짜고 있는 PT 에 붙일 개인운동을 개인운동 단계에서 짜는 회원.
+  /// (#2280)
   ///
-  /// [sessionId] 가 있으면 스케줄의 그 PT 에 붙이고 그 일정으로 돌아간다. 없으면
-  /// 편집기에서 짜고 있는 PT(`직접 만들기`·저장한 프로그램 적용)에 붙인다 —
-  /// 두 길 모두 위저드를 지나지 않아 개인운동 단계가 없었다. 어느 쪽이든
-  /// 위저드의 개인운동 단계(AI 제안)에서 짠다.
-  ({String clientId, String? sessionId, String? date})? _attach;
+  /// `직접 만들기`·저장한 프로그램 적용은 위저드를 지나지 않아 개인운동 단계가
+  /// 없었다. 편집기는 숨겨 두고(상태는 그대로) 위저드의 개인운동 단계(AI
+  /// 제안)만 연다 — 반영하면 편집기로 돌아와 `일정 추가` 가 함께 싣는다.
+  String? _draftAttachFor;
 
-  /// [_attach] 가 가리키는 스케줄 PT 를 한 줄로 적은 값 — 읽기 전이면 null.
-  String? _attachLabel;
+  /// `개인운동만 짜기` 의 보낼 곳 — 회원 → 붙일 PT id. 없으면 PT 없이 한 주
+  /// 동안 보낸다. (#2280)
+  ///
+  /// 개인운동만 따로 짜는 입구는 하나다. 이미 있는 PT 에 붙이든 PT 없는 주에
+  /// 보내든 같은 흐름으로 짜고, 끝에서 어디로 보낼지만 고른다 — 모양이 같은데
+  /// 하는 일이 다른 흐름을 두지 않는다.
+  final Map<String, String> _routineOnlyTarget = <String, String>{};
 
-  /// 붙이는 중이다.
-  bool _attaching = false;
+  /// 붙일 수 있는 PT 후보 — 그 회원의 아직 보내지 않은 PT 전체. (#2280)
+  final Map<String, List<ScheduleSession>> _routineOnlyCandidates =
+      <String, List<ScheduleSession>>{};
 
-  /// 붙였거나 그만둔 붙이기 요청(`r`). 탭을 옮겨 다녀도 코칭 탭 주소에는 그
-  /// 요청이 남아 있어, 돌아올 때마다 같은 흐름이 다시 열리지 않게 한다. 같은
-  /// PT 라도 스케줄에서 다시 누르면 새 요청이라 다시 열린다.
-  final Set<String> _closedAttachRequests = <String>{};
+  /// 스케줄의 `개인운동 추가` 에서 왔다 — 그 PT 에 반영하면 그 일정으로 돌아간다.
+  ({String clientId, String sessionId, String date})? _returnToSchedule;
+
+  /// 다음에 세우는 위저드를 `개인운동만 짜기` 를 고른 채로 연다. 스케줄의
+  /// `개인운동 추가` 에서 왔을 때다. (#2280)
+  bool _wizardStartsRoutineOnly = false;
+
+  /// 이미 받은 붙이기 요청(`r`). 탭을 옮겨 다녀도 코칭 탭 주소에는 그 요청이
+  /// 남아 있어, 돌아올 때마다 위저드가 다시 세워지지 않게 한다. 같은 PT 라도
+  /// 스케줄에서 다시 누르면 새 요청이라 다시 열린다.
+  final Set<String> _consumedAttachRequests = <String>{};
 
   /// `개인운동만` 이 회원 목록에 걸리기 시작할 날. 기본은 오늘이다.
   final Map<String, DateTime> _routineOnlyStart = <String, DateTime>{};
@@ -204,8 +217,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   @override
   void initState() {
     super.initState();
-    _attach = _attachFromRoute();
-    unawaited(_loadAttachLabel());
+    _consumeAttachRoute();
   }
 
   @override
@@ -217,57 +229,40 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _selectClient(widget.clientId!);
     }
     if (widget.attachSessionId != oldWidget.attachSessionId ||
-        widget.attachDate != oldWidget.attachDate ||
         widget.attachRequest != oldWidget.attachRequest ||
         widget.clientId != oldWidget.clientId) {
-      setState(() {
-        _attach = _attachFromRoute();
-        _attachLabel = null;
-      });
-      unawaited(_loadAttachLabel());
+      setState(_consumeAttachRoute);
     }
   }
 
-  /// 주소가 가리키는 붙이기 흐름. 이미 닫은 PT 면 다시 열지 않는다.
-  ({String clientId, String? sessionId, String? date})? _attachFromRoute() {
+  /// 스케줄의 `개인운동 추가` 에서 왔으면 `개인운동만 짜기` 를 고른 위저드를
+  /// 새로 세우고, 보낼 곳을 그 PT 로 골라 둔다. (#2280)
+  ///
+  /// 상태만 바꾼다 — 다시 그리는 것은 부르는 쪽 몫이다(`initState` 에서도
+  /// 부른다).
+  void _consumeAttachRoute() {
     final String? clientId = widget.clientId;
     final String? sessionId = widget.attachSessionId;
     final String? date = widget.attachDate;
-    if (clientId == null || sessionId == null || date == null) return null;
-    if (_closedAttachRequests.contains(widget.attachRequest ?? sessionId)) {
-      return null;
+    if (clientId == null || sessionId == null || date == null) return;
+    if (!_consumedAttachRequests.add(widget.attachRequest ?? sessionId)) {
+      return;
     }
-    return (clientId: clientId, sessionId: sessionId, date: date);
-  }
-
-  /// 붙일 스케줄 PT 를 `9월 30일 10:00–11:00` 처럼 적는다. 읽지 못하면 PT 라고만
-  /// 적는다 — 붙이는 데에는 id 만 있으면 된다.
-  Future<void> _loadAttachLabel() async {
-    final attach = _attach;
-    final String? sessionId = attach?.sessionId;
-    final String? date = attach?.date;
-    if (sessionId == null || date == null) return;
-    try {
-      final sessions = await ref
-          .read(scheduleRepositoryProvider)
-          .watchDate(date)
-          .first;
-      if (!mounted || _attach?.sessionId != sessionId) return;
-      final l = AppLocalizations.of(context);
-      for (final ScheduleSession session in sessions) {
-        if (session.id != sessionId) continue;
-        final DateTime? day = DateTime.tryParse(session.date);
-        setState(
-          () => _attachLabel = l.aiAttachTargetSession(
-            day == null ? session.date : l.dateMonthDay(day.month, day.day),
-            timeRangeLabel(l, session),
-          ),
-        );
-        return;
-      }
-    } catch (_) {
-      // 적지 못해도 붙이기는 된다.
-    }
+    _routineOnlyTarget[clientId] = sessionId;
+    _returnToSchedule = (clientId: clientId, sessionId: sessionId, date: date);
+    _wizardStartsRoutineOnly = true;
+    _personalRoutines.remove(clientId);
+    _routineOnlyClients.remove(clientId);
+    _draftAttachFor = null;
+    _sent = false;
+    _aiWizardVisible = true;
+    _wizardRevision++;
+    // 이번에 세우는 위저드 하나만 그렇게 연다 — 위저드는 이 값을 처음 설 때만
+    // 읽는다. 남겨 두면 트레이너가 조건 설정으로 되돌아가 PT 프로그램을 보낸
+    // 뒤 새로 서는 위저드까지 `개인운동만` 으로 열린다.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _wizardStartsRoutineOnly = false,
+    );
   }
 
   void _selectClient(String id) {
@@ -286,7 +281,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _aiWizardVisible = true;
       _wizardRevision = 0;
       // 다른 회원으로 옮기면 붙이던 흐름은 거둔다 — 그 PT 는 앞 회원의 것이다.
-      _attach = null;
+      _draftAttachFor = null;
+      _wizardStartsRoutineOnly = false;
       // NOTE: _sendingClientIds is intentionally NOT cleared — writes for
       // other clients keep being tracked while the selection changes.
     });
@@ -381,9 +377,17 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 붙일 PT 일정이 없으므로 배정만 한다 — 자리와 모양은 PT 모드의 `일정 추가`
   /// 와 같고, 이름만 `회원에게 보내기` 다. 운동 하나가 배정 한 건이 되고, 고른
   /// 시작일부터 한 주 동안 회원 목록에 걸린다.
+  ///
+  /// 보낼 곳으로 PT 를 골랐으면 보내지 않고 그 PT 에 붙인다(#2280,
+  /// [_attachRoutineOnlyToPt]).
   Future<void> _sendRoutineOnly(TrainerClient client) async {
     final routines = _personalRoutines[client.id] ?? const <RoutineExercise>[];
     if (_sent || _sendingRoutineOnly.contains(client.id) || routines.isEmpty) {
+      return;
+    }
+    final String? target = _routineOnlyTarget[client.id];
+    if (target != null) {
+      await _attachRoutineOnlyToPt(client, target, routines);
       return;
     }
     final AppLocalizations l = AppLocalizations.of(context);
@@ -1009,7 +1013,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 걷는다.
   Widget _wizardNavBar() {
     // 붙이기 흐름의 위저드는 제 진행 줄을 내용 끝에 붙인다(#2280).
-    if (!_aiWizardVisible || _attach != null) return const SizedBox.shrink();
+    if (!_aiWizardVisible || _draftAttachFor != null) {
+      return const SizedBox.shrink();
+    }
     return ValueListenableBuilder<Widget?>(
       valueListenable: _wizardNav,
       builder: (context, nav, _) => nav == null
@@ -1115,34 +1121,27 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// `직접 만들기`·저장한 프로그램 적용은 위저드를 지나지 않아 개인운동 단계가
   /// 없었다. 편집기는 그대로 두고(숨겨 두고) 개인운동 단계만 연다 — AI 제안을
   /// 받아 짜야 한다. 프로그램도 AI 로 짜고, 고치는 것만 부분 창에서 한다.
-  void _startDraftAttach(TrainerClient client) => setState(
-    () => _attach = (clientId: client.id, sessionId: null, date: null),
-  );
+  void _startDraftAttach(TrainerClient client) =>
+      setState(() => _draftAttachFor = client.id);
 
-  /// 개인운동 단계에서 정한 것을 붙인다. (#2280)
-  Future<void> _completeAttach(
+  /// `개인운동만 짜기` 에서 짠 개인운동을 보낼 곳으로 고른 PT 에 붙인다.
+  /// (#2280)
+  ///
+  /// 회원에게 보내지 않는다 — 그 PT 의 프로그램을 보낼 때 함께 간다. 그 PT 에
+  /// 개인운동이 이미 있으면 교체하는지 한 번 묻는다. 스케줄에서 왔으면 붙인 뒤
+  /// 그 일정으로 돌아간다.
+  Future<void> _attachRoutineOnlyToPt(
     TrainerClient client,
-    ({String clientId, String? sessionId, String? date}) attach,
+    String sessionId,
     List<RoutineExercise> routines,
   ) async {
-    final String? sessionId = attach.sessionId;
     final l = AppLocalizations.of(context);
-    if (sessionId == null) {
-      // 편집기의 PT — `일정 추가` 가 함께 싣는다.
-      setState(() {
-        _personalRoutines[client.id] = routines;
-        _attach = null;
-      });
-      showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
-      return;
-    }
-    if (_attaching) return;
-    setState(() => _attaching = true);
-    // 그사이 다른 자리에서 붙었을 수 있다 — 바꾸는지 한 번 묻는다.
+    final sentFor = client.id;
+    setState(() => _sendingRoutineOnly.add(sentFor));
     final bool proceed = await _confirmReplaceIfAttached(sessionId);
     if (!mounted) return;
     if (!proceed) {
-      setState(() => _attaching = false);
+      setState(() => _sendingRoutineOnly.remove(sentFor));
       return;
     }
     try {
@@ -1151,7 +1150,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           .updateScheduledRoutines(sessionId, routines);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _attaching = false);
+      setState(() => _sendingRoutineOnly.remove(sentFor));
       showAppToast(
         context,
         l.schedRoutinesUpdateFailed,
@@ -1162,30 +1161,50 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!mounted) return;
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
+    final back = _returnToSchedule;
+    final bool goBack =
+        back != null && back.clientId == sentFor && back.sessionId == sessionId;
+    final stillSelected = _isStillSelected(sentFor);
+    // `개인운동만` 을 보낸 뒤와 같이 박스를 그대로 두고 두 번째 반영만 막는다.
     setState(() {
-      _attaching = false;
-      _attach = null;
-      _closedAttachRequests.add(widget.attachRequest ?? sessionId);
-    });
-    showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
-    // 붙이기만 한다 — 회원에게 보내는 것은 스케줄에서 트레이너가 누른다.
-    context.go(AppRoutes.scheduleAt(date: attach.date, sessionId: sessionId));
-  }
-
-  /// 붙이기를 그만둔다. 스케줄에서 왔으면 그 일정으로 돌아간다.
-  void _cancelAttach(
-    ({String clientId, String? sessionId, String? date}) attach,
-  ) {
-    final String? sessionId = attach.sessionId;
-    setState(() {
-      _attach = null;
-      if (sessionId != null) {
-        _closedAttachRequests.add(widget.attachRequest ?? sessionId);
+      _sendingRoutineOnly.remove(sentFor);
+      if (goBack) _returnToSchedule = null;
+      if (stillSelected) {
+        _sent = true;
+        _wizardRevision++;
       }
     });
-    if (sessionId != null) {
-      context.go(AppRoutes.scheduleAt(date: attach.date, sessionId: sessionId));
+    showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
+    if (goBack) {
+      context.go(AppRoutes.scheduleAt(date: back!.date, sessionId: sessionId));
     }
+  }
+
+  /// 붙일 수 있는 PT 후보를 읽는다 — 그 회원의 아직 보내지 않은 PT 전체.
+  /// (#2280)
+  ///
+  /// 일정 상세가 처음 붙이게 하는 PT 와 같은 규칙이다
+  /// ([acceptsFirstPersonalRoutines]). 개인운동이 이미 붙은 PT 도 후보다 —
+  /// 고르면 교체할지 묻는다. 날짜·시각 순으로 늘어놓는다.
+  Future<void> _loadRoutineOnlyCandidates(TrainerClient client) async {
+    List<ScheduleSession> sessions;
+    try {
+      sessions = await ref.read(scheduleRepositoryProvider).watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
+    } catch (_) {
+      sessions = const <ScheduleSession>[];
+    }
+    if (!mounted) return;
+    final candidates = sessions.where(acceptsFirstPersonalRoutines).toList()
+      ..sort((a, b) => '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}'));
+    setState(() {
+      _routineOnlyCandidates[client.id] = candidates;
+      final String? target = _routineOnlyTarget[client.id];
+      if (target != null && !candidates.any((s) => s.id == target)) {
+        _routineOnlyTarget.remove(client.id);
+      }
+    });
   }
 
   /// [sessionId] PT 에 아직 보내지 않은 개인운동이 붙어 있으면 새로 짠 것으로
@@ -1282,12 +1301,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 recommendedReason: items.isEmpty
                     ? ''
                     : items.map((item) => item.reason).join(' · '),
+                // 스케줄의 `개인운동 추가` 에서 왔으면 `개인운동만 짜기` 를
+                // 고른 채로 연다(#2280).
+                startRoutineOnly: _wizardStartsRoutineOnly,
                 onReviewCompleted: (exercises, personalRoutines, kind) {
+                  final bool routineOnly = kind == ProgramKind.routineOnly;
+                  if (routineOnly) {
+                    unawaited(_loadRoutineOnlyCandidates(client));
+                  }
                   setState(() {
                     _personalRoutines[client.id] = personalRoutines;
-                    if (kind == ProgramKind.routineOnly) {
+                    if (routineOnly) {
                       _routineOnlyClients.add(client.id);
                       _routineOnlyStart[client.id] ??= _todayKst();
+                      // 보낼 곳은 PT 없이가 기본이다. 스케줄에서 온 PT 만 골라
+                      // 둔 채로 둔다.
+                      if (_returnToSchedule?.clientId != client.id) {
+                        _routineOnlyTarget.remove(client.id);
+                      }
                     } else {
                       _routineOnlyClients.remove(client.id);
                     }
@@ -1414,17 +1445,31 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 onSend: () => unawaited(_sendRoutineOnly(client)),
                 sending: _sendingRoutineOnly.contains(client.id),
                 sent: _sent,
+                // 보낼 곳 — 아직 보내지 않은 PT 에 붙이거나 PT 없이 보낸다(#2280).
+                targets:
+                    _routineOnlyCandidates[client.id] ??
+                    const <ScheduleSession>[],
+                target: _routineOnlyTarget[client.id],
+                onTargetChanged: _sent
+                    ? null
+                    : (String? id) => setState(() {
+                        if (id == null) {
+                          _routineOnlyTarget.remove(client.id);
+                        } else {
+                          _routineOnlyTarget[client.id] = id;
+                        }
+                      }),
               ),
             ),
           ],
         ),
       ),
     ];
-    final attach = _attach;
-    final bool attaching = attach != null && attach.clientId == client.id;
-    // 개인운동만 붙이는 흐름(#2280)이면 위저드·편집기는 숨겨 두고(상태는
-    // 그대로) 개인운동 단계만 세운다. 늘 같은 자리에 두어, 흐름을 여닫아도
-    // 편집기의 State 가 새로 서지 않게 한다 — 짜던 PT 구성이 사라진다.
+    final bool attaching = _draftAttachFor == client.id;
+    // 편집기의 PT 에 붙일 개인운동을 짜는 동안(#2280)은 위저드·편집기를
+    // 숨겨 두고(상태는 그대로) 개인운동 단계만 세운다. 늘 같은 자리에 두어,
+    // 흐름을 여닫아도 편집기의 State 가 새로 서지 않게 한다 — 짜던 PT 구성이
+    // 사라진다.
     return <Widget>[
       Offstage(
         offstage: attaching,
@@ -1433,20 +1478,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           children: children,
         ),
       ),
-      if (attach != null && attaching)
+      if (attaching)
         AiRoutineOptionsFlow(
-          key: ValueKey<String>(
-            'routine-attach-${client.id}-${attach.sessionId ?? 'draft'}',
-          ),
+          key: ValueKey<String>('routine-attach-${client.id}'),
           client: client,
           embedded: true,
-          attachTarget: attach.sessionId == null
-              ? l.aiAttachTargetPt
-              : (_attachLabel ?? l.aiAttachTargetPt),
-          attaching: _attaching,
-          onAttach: (routines) =>
-              unawaited(_completeAttach(client, attach, routines)),
-          onAttachCancel: () => _cancelAttach(attach),
+          attachTarget: l.aiAttachTargetPt,
+          onAttach: (routines) {
+            setState(() {
+              _personalRoutines[client.id] = routines;
+              _draftAttachFor = null;
+            });
+            showAppToast(
+              context,
+              l.schedRoutinesAdded,
+              type: AppToastType.success,
+            );
+          },
+          onAttachCancel: () => setState(() => _draftAttachFor = null),
         ),
     ];
   }

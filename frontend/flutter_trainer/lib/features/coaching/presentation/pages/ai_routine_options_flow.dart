@@ -34,7 +34,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이번에 짜는 프로그램이 어떤 것인가. (#2223)
 ///
-/// **트레이너가 고르는 값이 아니다** — 조건 설정에서 `PT 없이 개인운동만 짜기`
+/// **트레이너가 고르는 값이 아니다** — 조건 설정에서 `개인운동만 짜기`
 /// 로 PT 프로그램 짜기를 건너뛰면 [routineOnly] 가 된다. 시작할 때 종류부터
 /// 묻지 않는 것은, 대부분의 주가 PT 가 있는 주라 그 물음이 늘 같은 답을 받는
 /// 절차가 되기 때문이다. 건너뛴 결과가 단계 수(4 / 3)를 정한다.
@@ -80,7 +80,7 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.attachTarget,
     this.onAttach,
     this.onAttachCancel,
-    this.attaching = false,
+    this.startRoutineOnly = false,
     super.key,
   });
 
@@ -110,25 +110,27 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   /// 내용 끝에 붙는다.
   final void Function(Object owner, Widget? nav)? onStepNav;
 
-  /// 이미 있는 PT 에 **개인운동만 붙이는** 흐름이면 그 PT 를 한 줄로 적은 값.
-  /// (#2280)
+  /// 편집기에서 짜고 있는 PT 에 **개인운동만 붙이는** 흐름이면 그 PT 를 한 줄로
+  /// 적은 값. (#2280)
   ///
   /// `직접 만들기`·저장한 프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지
-  /// 않는다. 그 PT 에 개인운동을 처음 붙일 때 이 값을 주면 위저드가 개인운동
-  /// 단계 하나로 열린다 — PT 구성은 이미 있으니 조건 설정·프로그램 선택·검토를
-  /// 지날 까닭이 없다. AI 제안은 여느 때처럼 채워진다: 개인운동을 빈 줄에서
-  /// 짜게 두면 그 제안을 못 본다.
+  /// 않는다. 이 값을 주면 위저드가 개인운동 단계로 열린다 — PT 구성은 이미
+  /// 편집기에 있으니 프로그램 선택·검토는 건너뛴다. AI 제안은 여느 때처럼
+  /// 채워진다: 개인운동을 빈 줄에서 짜게 두면 그 제안을 못 본다.
   final String? attachTarget;
 
-  /// [attachTarget] 흐름의 출구 — 정한 개인운동을 넘긴다. 붙이는 것은 받는
-  /// 쪽이 한다.
+  /// [attachTarget] 흐름의 출구 — 정한 개인운동을 넘긴다.
   final ValueChanged<List<RoutineExercise>>? onAttach;
 
   /// [attachTarget] 흐름을 그만둔다.
   final VoidCallback? onAttachCancel;
 
-  /// [onAttach] 로 넘긴 것을 붙이고 있다 — 버튼에 스피너가 돈다.
-  final bool attaching;
+  /// `개인운동만 짜기` 를 고른 채로 연다. (#2280)
+  ///
+  /// 스케줄의 `개인운동 추가` 에서 왔다 — 그 PT 에 붙일 개인운동을 짜러 왔으니
+  /// 조건 설정에서 같은 버튼을 한 번 더 누르게 하지 않는다. 보낼 곳(그 PT)은
+  /// 반영한 뒤 편집기 자리의 개인운동 박스에서 고른다.
+  final bool startRoutineOnly;
 
   bool get _attachMode => attachTarget != null;
 
@@ -169,11 +171,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     if (store != null) _sources = store.read(_sourceAccount());
     // 붙이기 흐름은 개인운동 단계에서 바로 시작한다(#2280). 제안이 아직
     // 오지 않았으면 개인운동 칸이 그릴 때 채운다.
-    if (widget._attachMode) {
+    if (widget._attachMode || widget.startRoutineOnly) {
+      if (widget.startRoutineOnly) _kind = ProgramKind.routineOnly;
       _stage = _steps.indexOf(_Step.personal);
       _maxReachedStage = _stage;
       _seedPersonalFromSuggestions();
-      // 좁은 화면에서는 이 흐름이 회원 데이터 카드 아래에 선다 — 열리자마자
+      // 좁은 화면에서는 위저드가 회원 데이터 카드 아래에 선다 — 열리자마자
       // 보이게 끌어올린다.
       _scrollToTop();
     }
@@ -282,7 +285,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 이번 흐름에서 밟지 않는 칸. `개인운동만` 은 고를 PT 프로그램도, 검토할
   /// PT 프로그램도 없으므로 가운데 둘을 지나친다 — 그래서 마지막 칸(개인운동)이
   /// 짜는 자리이자 보내는 자리가 된다.
-  Set<_Step> get _skipped => _kind == ProgramKind.routineOnly
+  ///
+  /// 이미 있는 PT 에 붙이는 흐름(#2280)도 같은 두 칸을 지나친다 — PT 구성은
+  /// 이미 있다. 모양은 `개인운동만` 과 같지만 끝에서 그 PT 에 붙는다.
+  Set<_Step> get _skipped =>
+      _kind == ProgramKind.routineOnly || widget._attachMode
       ? const <_Step>{_Step.program, _Step.review}
       : const <_Step>{};
 
@@ -399,7 +406,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         _edited = options.planA.exercises.map(_withStrengthDefaults).toList();
         _showAddExercise = false;
         // 후보를 만들었다는 것은 곧 **PT 프로그램을 짜겠다**는 뜻이다. 앞서
-        // `PT 없이 개인운동만 짜기` 로 건너뛰었다가 조건 설정으로 되돌아와
+        // `개인운동만 짜기` 로 건너뛰었다가 조건 설정으로 되돌아와
         // 생성한 경우라도 여기서 되돌린다 — 그러지 않으면 `건너뜀` 으로 그린
         // 칸에 선 채 프로그램을 고르게 되고, 마지막 버튼이 `회원에게 보내기`
         // 라 방금 고른 PT 구성이 조용히 버려진다.
@@ -526,9 +533,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 이미 있는 PT 에 붙이는 흐름이면 편집기로 가지 않고 넘긴다(#2280).
         final onAttach = widget.onAttach;
         if (widget._attachMode && onAttach != null) {
-          if (!widget.attaching) {
-            onAttach(List<RoutineExercise>.unmodifiable(_personal));
-          }
+          onAttach(List<RoutineExercise>.unmodifiable(_personal));
           return;
         }
         // 마지막 칸이다. 두 모드 모두 편집기 화면으로 넘어가고, 보내는 것은
@@ -766,50 +771,53 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         ),
         const SizedBox(height: OnCareSpacing.s8),
       ],
-      // 붙이기 흐름에는 단계 표시줄 대신 **어느 PT 에 붙이는지**를 둔다(#2280)
-      // — 밟는 칸이 하나뿐이라 넷을 늘어놓으면 셋이 늘 비어 있다. 같은 자리라
-      // 열릴 때 이 줄까지 스크롤된다([_scrollToTop]).
       KeyedSubtree(
         key: _topKey,
-        child: widget._attachMode
-            ? AppTile(
-                key: const ValueKey<String>('routine-attach-target'),
-                tone: AppTileTone.neutral,
-                child: Row(
-                  children: <Widget>[
-                    const AppIcon(
-                      AppIcons.calendar,
-                      size: OnCareSize.iconSmall,
-                      color: OnCareColors.textSecondary,
-                    ),
-                    const SizedBox(width: OnCareSpacing.s8),
-                    Expanded(
-                      child: Text(
-                        widget.attachTarget!,
-                        style: _text(
-                          OnCareTypography.bodySmall,
-                          OnCareColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : AppStepIndicator.numbered(
-                keyPrefix: 'routine-stage',
-                semanticsLabel: l.aiStepperLabel,
-                current: _stage,
-                maxReached: _maxReachedStage,
-                labels: _stepLabels(l),
-                skipped: <int>{
-                  for (int i = 0; i < _steps.length; i++)
-                    if (_skipped.contains(_steps[i])) i,
-                },
-                skippedLabel: l.aiStepSkipped,
-                onStepTap: _goToStage,
-              ),
+        child: AppStepIndicator.numbered(
+          keyPrefix: 'routine-stage',
+          semanticsLabel: l.aiStepperLabel,
+          current: _stage,
+          maxReached: _maxReachedStage,
+          labels: _stepLabels(l),
+          skipped: <int>{
+            for (int i = 0; i < _steps.length; i++)
+              if (_skipped.contains(_steps[i])) i,
+          },
+          skippedLabel: l.aiStepSkipped,
+          // 붙이기 흐름은 개인운동 칸에서 끝난다 — 조건 설정으로 돌아가도 거기엔
+          // PT 후보 생성뿐이라 할 일이 없다(#2280).
+          onStepTap: widget._attachMode ? (_) {} : _goToStage,
+        ),
       ),
       const SizedBox(height: OnCareSpacing.s16),
+      // 편집기의 PT 에 붙이는 흐름(#2280) — 어느 PT 에 붙는지를 단계 표시줄
+      // 바로 아래에 적는다.
+      if (widget._attachMode) ...<Widget>[
+        AppTile(
+          key: const ValueKey<String>('routine-attach-target'),
+          tone: AppTileTone.neutral,
+          child: Row(
+            children: <Widget>[
+              const AppIcon(
+                AppIcons.calendar,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.textSecondary,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  widget.attachTarget!,
+                  style: _text(
+                    OnCareTypography.bodySmall,
+                    OnCareColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
+      ],
       ...switch (_currentStep) {
         _Step.conditions => <Widget>[
           _assistantAnalysis(),
@@ -893,18 +901,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 회원 — 후보 생성을 거치지 않고 개인운동만 짜서 보낸다).
   Widget _stepNav() {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 붙이기 흐름은 칸이 하나다 — 되돌아갈 칸이 없으니 `이전` 자리(왼쪽 끝)를
-    // 쓰지 않고, 창 하단처럼 [취소][확정] 을 오른쪽에 붙여 둔다(#2280). 확정은
-    // 위저드 마지막 칸의 `프로그램에 반영` 과 같은 말로 `PT 에 반영` 이다.
+    // 편집기의 PT 에 붙이는 흐름은 개인운동 칸에서 시작하고 끝난다 — 되돌아갈
+    // 칸이 없으니 `이전` 자리(왼쪽 끝)를 쓰지 않고, [취소][확정] 을 오른쪽에
+    // 붙여 둔다(#2280). 확정은 위저드 마지막 칸과 같은 `프로그램에 반영` 이다 —
+    // 반영하면 편집기로 돌아간다.
     if (widget._attachMode) {
       return AppButtonPair(
         cancelKey: const ValueKey<String>('routine-attach-cancel'),
         cancelLabel: l.actionCancel,
-        onCancel: widget.attaching ? null : widget.onAttachCancel,
+        onCancel: widget.onAttachCancel,
         confirmKey: const ValueKey<String>('routine-attach-confirm'),
-        confirmLabel: l.aiAttachRoutines,
+        confirmLabel: l.aiApplyToTemplate,
         onConfirm: _next,
-        confirmLoading: widget.attaching,
       );
     }
     final int? prev = _previousStage();

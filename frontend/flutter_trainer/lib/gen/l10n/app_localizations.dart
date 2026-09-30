@@ -5392,7 +5392,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSkipPtProgram.
   ///
   /// In en, this message translates to:
-  /// **'Skip PT — personal exercise only'**
+  /// **'Personal exercise only'**
   String get aiSkipPtProgram;
 
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
@@ -5548,7 +5548,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPersonalStepBlurbRoutineOnly.
   ///
   /// In en, this message translates to:
-  /// **'What the member does on their own this week. Pick at least one.'**
+  /// **'What the member does on their own. Attach it to a PT not yet sent, or send it without a PT for a week. Pick at least one.'**
   String get aiPersonalStepBlurbRoutineOnly;
 
   /// No description provided for @aiPersonalStepEmpty.
@@ -5659,12 +5659,6 @@ abstract class AppLocalizations {
   /// **'No personal exercise yet. Add at least one for each PT.'**
   String get progPersonalRoutinesEmpty;
 
-  /// No description provided for @aiAttachTargetSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal exercise for the {date} {time} PT.'**
-  String aiAttachTargetSession(String date, String time);
-
   /// No description provided for @aiAttachTargetPt.
   ///
   /// In en, this message translates to:
@@ -5676,6 +5670,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apply to PT'**
   String get aiAttachRoutines;
+
+  /// No description provided for @aiAttachedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied'**
+  String get aiAttachedLabel;
+
+  /// No description provided for @aiRoutineTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where to send'**
+  String get aiRoutineTargetTitle;
+
+  /// No description provided for @aiRoutineTargetPt.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach to the {date} {time} PT'**
+  String aiRoutineTargetPt(String date, String time);
+
+  /// No description provided for @aiRoutineTargetNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without a PT'**
+  String get aiRoutineTargetNone;
 
   /// No description provided for @aiReplaceRoutinesTitle.
   ///

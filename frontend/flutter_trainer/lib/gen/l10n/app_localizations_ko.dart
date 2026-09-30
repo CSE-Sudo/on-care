@@ -2934,7 +2934,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepDone => '프로그램 검토';
 
   @override
-  String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
+  String get aiSkipPtProgram => '개인운동만 짜기';
 
   @override
   String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
@@ -3026,7 +3026,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      '이번 한 주 동안 회원이 혼자 할 운동이에요. 최소 한 개를 정해 주세요.';
+      '회원이 혼자 할 운동이에요. 아직 보내지 않은 PT 에 붙이거나 PT 없이 한 주 동안 보낼 수 있어요. 최소 한 개를 정해 주세요.';
 
   @override
   String get aiPersonalStepEmpty => '아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.';
@@ -3087,15 +3087,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progPersonalRoutinesEmpty => '아직 개인운동이 없어요. PT 마다 최소 한 개를 붙여 주세요.';
 
   @override
-  String aiAttachTargetSession(String date, String time) {
-    return '$date $time PT 에 붙일 개인운동이에요.';
-  }
-
-  @override
   String get aiAttachTargetPt => '지금 짜는 PT 에 붙일 개인운동이에요.';
 
   @override
   String get aiAttachRoutines => 'PT 에 반영';
+
+  @override
+  String get aiAttachedLabel => '반영했어요';
+
+  @override
+  String get aiRoutineTargetTitle => '보낼 곳';
+
+  @override
+  String aiRoutineTargetPt(String date, String time) {
+    return '$date $time PT 에 붙이기';
+  }
+
+  @override
+  String get aiRoutineTargetNone => 'PT 없이 보내기';
 
   @override
   String get aiReplaceRoutinesTitle => '이미 개인운동이 있어요';

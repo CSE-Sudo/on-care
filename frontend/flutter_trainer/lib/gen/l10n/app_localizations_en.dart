@@ -3090,7 +3090,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepDone => 'Program review';
 
   @override
-  String get aiSkipPtProgram => 'Skip PT — personal exercise only';
+  String get aiSkipPtProgram => 'Personal exercise only';
 
   @override
   String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
@@ -3185,7 +3185,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      'What the member does on their own this week. Pick at least one.';
+      'What the member does on their own. Attach it to a PT not yet sent, or send it without a PT for a week. Pick at least one.';
 
   @override
   String get aiPersonalStepEmpty => 'No personal exercise yet. Add one below.';
@@ -3250,16 +3250,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'No personal exercise yet. Add at least one for each PT.';
 
   @override
-  String aiAttachTargetSession(String date, String time) {
-    return 'Personal exercise for the $date $time PT.';
-  }
-
-  @override
   String get aiAttachTargetPt =>
       'Personal exercise for the PT you are putting together.';
 
   @override
   String get aiAttachRoutines => 'Apply to PT';
+
+  @override
+  String get aiAttachedLabel => 'Applied';
+
+  @override
+  String get aiRoutineTargetTitle => 'Where to send';
+
+  @override
+  String aiRoutineTargetPt(String date, String time) {
+    return 'Attach to the $date $time PT';
+  }
+
+  @override
+  String get aiRoutineTargetNone => 'Send without a PT';
 
   @override
   String get aiReplaceRoutinesTitle => 'Personal exercise already attached';
