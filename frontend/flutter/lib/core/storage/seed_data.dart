@@ -173,9 +173,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
       ]);
     });
 
-    // ---- Today's schedule (2 events) ----
-    await db.batch((Batch b) {});
-
     // ---- Notifications ----
     await db.batch((Batch b) {
       // 앱 데모 알림(`demoAlerts`)·백엔드 데모 계정 시드와 같은 목록이다(#1812).

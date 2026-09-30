@@ -40,6 +40,7 @@ Future<void> showClientProfileDialog(
   String fallbackGender = '',
   int? ageYears,
   ClientProfileSection section = ClientProfileSection.health,
+  bool openHealthNotes = false,
 }) => showAppDialog<void>(
   context: context,
   builder: (_) => ClientProfileDialog(
@@ -48,6 +49,7 @@ Future<void> showClientProfileDialog(
     fallbackGender: fallbackGender,
     ageYears: ageYears,
     section: section,
+    openHealthNotes: openHealthNotes,
   ),
 );
 
@@ -64,6 +66,7 @@ class ClientProfileDialog extends StatelessWidget {
     this.fallbackGender = '',
     this.ageYears,
     this.section = ClientProfileSection.health,
+    this.openHealthNotes = false,
   });
 
   /// The client whose profile or memos are shown.
@@ -82,6 +85,9 @@ class ClientProfileDialog extends StatelessWidget {
   /// 어느 창인가.
   final ClientProfileSection section;
 
+  /// 신체·목표 창을 건강상태·주의사항이 있는 `건강 목표` 탭으로 연다(#2619).
+  final bool openHealthNotes;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -95,6 +101,7 @@ class ClientProfileDialog extends StatelessWidget {
         clientId: clientId,
         fallbackGender: fallbackGender,
         ageYears: ageYears,
+        openHealthNotes: openHealthNotes,
       ),
       ClientProfileSection.memo => AppDialog(
         key: const ValueKey<String>('client-memo-dialog'),
@@ -118,11 +125,13 @@ class _HealthProfileSection extends ConsumerStatefulWidget {
     required this.clientId,
     this.fallbackGender = '',
     this.ageYears,
+    this.openHealthNotes = false,
   });
 
   final String clientId;
   final String fallbackGender;
   final int? ageYears;
+  final bool openHealthNotes;
 
   @override
   ConsumerState<_HealthProfileSection> createState() =>
@@ -176,7 +185,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   Map<String, String?> _errors = const <String, String?>{};
 
   /// 지금 보이는 묶음(#2330).
-  _HealthTab _tab = _HealthTab.body;
+  late _HealthTab _tab = widget.openHealthNotes
+      ? _HealthTab.focus
+      : _HealthTab.body;
 
   @override
   void initState() {

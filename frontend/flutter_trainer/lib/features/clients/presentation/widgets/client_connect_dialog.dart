@@ -33,8 +33,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 창 아래쪽의 **답을 기다리는 요청**은 옛 담당 요청 경로가 남긴 것이다. 보낸
 /// 요청은 고객 목록에 나타나지 않으므로, 여기가 아니면 트레이너는 자기가
-/// 무엇을 보냈는지 볼 곳이 없다. 데모에는 기다릴 답이 없어 그 목록이 없다
-/// ([connectsImmediately]).
+/// 무엇을 보냈는지 볼 곳이 없다. 데모에는 기다릴 답이 없어 목록이 늘 비지만,
+/// 자리는 똑같이 그린다 — 데모와 실서버가 같은 창을 보여야 데모로 익힌 흐름이
+/// 실서버에서도 통한다(#2670).
 ///
 /// 가운데 뜨는 작은 창이다 — 상담 요청 인박스(`showConsultationsDialog`)와
 /// 같은 자리(다른 작업으로 잠깐 넘어갔다 돌아오는 자리)에서 열리는 창이라
@@ -262,21 +263,19 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
               ],
             ),
           ],
-          if (!connectsImmediately) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s24),
-            Text(l.clientInvitePendingTitle, style: sectionTitle),
-            const SizedBox(height: OnCareSpacing.s8),
-            _PendingInvitesList(busy: _busy, onCancel: _cancel),
-          ],
+          const SizedBox(height: OnCareSpacing.s24),
+          Text(l.clientInvitePendingTitle, style: sectionTitle),
+          const SizedBox(height: OnCareSpacing.s8),
+          _PendingInvitesList(busy: _busy, onCancel: _cancel),
         ],
       ),
     );
   }
 }
 
-/// 답을 기다리는 요청 목록 — 실 API 전용([ClientInviteRepository.connectsImmediately]
-/// 가 `false`)이라 별도 위젯으로 뺀다. 데모는 이 provider 를 구독조차 하지
-/// 않는다.
+/// 답을 기다리는 요청 목록. 두 모드 모두 그리고, 데모([ClientInviteRepository.connectsImmediately]
+/// 가 `true`)는 늘 빈 목록이다. 불러오기·재시도를 창 본문과 떼어 두려고 별도
+/// 위젯으로 뺀다.
 class _PendingInvitesList extends ConsumerWidget {
   const _PendingInvitesList({required this.busy, required this.onCancel});
 

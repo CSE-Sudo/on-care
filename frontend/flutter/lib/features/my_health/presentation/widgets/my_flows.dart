@@ -809,6 +809,10 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   /// **어디에 초점을 둘지**다(#1471). 온보딩이 저장한 값을 그대로 이어받는다.
   late Set<String> _focus = parseHealthFocus(_base.conditions);
 
+  /// 건강상태·주의사항(#2619). 목표 칩과 같은 `conditions` 칸의 나머지 글이고,
+  /// 담당 트레이너도 같은 글을 고친다.
+  final TextEditingController _notes = TextEditingController();
+
   // 목표 칸을 가리키는 이름. 어느 칸이 '아직 회원이 세운 적 없는 칸' 인지
   // 기억하는 열쇠다.
   static const String _kKcal = 'kcal';
@@ -930,6 +934,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     if (!mounted) return;
     _fillControllers();
     _focus = parseHealthFocus(_base.conditions);
+    _notes.text = healthFocusNotes(_base.conditions);
     _prefilled = _prefilledKeys();
     _errors = AppFieldErrors<String>(_rangeError);
     setState(() {
@@ -1166,6 +1171,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       _cardio,
       _strength,
       _flexibility,
+      _notes,
     ]) {
       c.dispose();
     }
@@ -1195,15 +1201,19 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       return next == _savedValue(key) ? null : GoalUpdate(next);
     }
 
-    final bool focusEdited = conditionsEdits(
+    // 목표 칩과 건강상태·주의사항은 `conditions` 한 칸이다(#2619).
+    final ({bool focus, bool notes}) conditionsEdited = conditionsEdits(
       base: _base.conditions,
       focus: _focus,
-      notes: _base.conditions,
-    ).focus;
+      notes: _notes.text,
+    );
+    final bool conditionsChanged =
+        conditionsEdited.focus || conditionsEdited.notes;
     final Map<String, GoalUpdate?> goals = <String, GoalUpdate?>{
       for (final String key in _ranges.keys) key: changed(key),
     };
-    if (!focusEdited && goals.values.every((GoalUpdate? g) => g == null)) {
+    if (!conditionsChanged &&
+        goals.values.every((GoalUpdate? g) => g == null)) {
       // 바꾼 것이 없으면 보내지 않는다. 화면의 값이 곧 저장된 값이므로
       // 저장한 것과 같게 알린다.
       setState(() => _editing = false);
@@ -1212,15 +1222,16 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     }
     setState(() => _saving = true);
     try {
-      // 목표 칩은 `conditions` 한 칸에 건강상태·주의사항 글과 함께 있다. 칩을
-      // 바꿨으면 저장 직전의 서버 값 위에 칩만 얹는다 — 그 사이 트레이너가
-      // 고친 글이 편집을 연 값으로 덮이지 않게(#2655).
-      final String? conditions = focusEdited
+      // 목표 칩과 건강상태·주의사항 중 바꾼 쪽만 저장 직전의 서버 값 위에
+      // 얹는다 — 칩만 고쳤는데 그 사이 트레이너가 고친 글이 편집을 연 값으로
+      // 덮이지 않게(#2655). 트레이너가 적은 글도 이 칸에 보이므로, 회원이
+      // 지우지 않는 한 그대로 남는다(#1814, #2619).
+      final String? conditions = conditionsChanged
           ? rebaseConditions(
               base: _base.conditions,
               latest: (await _latest()).conditions,
               focus: _focus,
-              notes: _base.conditions,
+              notes: _notes.text,
             )
           : null;
       final UserProfile updatedProfile = await ref
@@ -1360,6 +1371,36 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                   .copyWith(color: OnCareColors.textTertiary),
             ),
           ],
+        ]),
+        const SizedBox(height: OnCareSpacing.s20),
+        // 부상·통증처럼 운동을 짤 때 피해야 할 것(#2619). 목표 칩과 같은
+        // `conditions` 칸에 담기지만, 고르는 목표와 적는 주의사항은 다른 이야기라
+        // 구획을 나눈다. 담당 트레이너도 같은 글을 보고 고친다.
+        AppSectionHeader(title: l.healthNotesLabel),
+        const SizedBox(height: OnCareSpacing.s8),
+        _card(<Widget>[
+          if (_editing)
+            AppTextField(
+              key: const Key('goalConditionsField'),
+              controller: _notes,
+              hint: l.healthNotesHint,
+              helper: l.healthNotesHelper,
+              minLines: 2,
+              maxLines: 4,
+              maxLength: AppTextLimits.entry,
+              showCounter: true,
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                healthFocusNotes(_base.conditions).isEmpty
+                    ? '—'
+                    : healthFocusNotes(_base.conditions),
+                key: const Key('goalConditionsValue'),
+                style: context.oncare.text(OnCareTypography.body),
+              ),
+            ),
         ]),
         const SizedBox(height: OnCareSpacing.s20),
         AppSectionHeader(title: l.myGoalsExerciseSection),
