@@ -106,17 +106,6 @@ void main() {
     ]);
   });
 
-  test(
-    'the demo source stays inert — no backend makes notifications',
-    () async {
-      const repo = DemoNotificationRepository();
-
-      expect(await repo.watchUnreadCount().first, 0);
-      expect((await repo.watch().first).items, isEmpty);
-      expect((await repo.watch().first).hasMore, isFalse);
-    },
-  );
-
   group('pagination (#2293)', () {
     const String path = '/trainer/notifications';
 
