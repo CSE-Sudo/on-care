@@ -249,8 +249,9 @@ void main() {
       find.descendant(of: find.byKey(dialog), matching: find.text('신체·목표')),
       findsOneWidget,
     );
+    // 보기 상태로 열린다 — 성별은 글이다(#2596).
     expect(
-      find.byKey(const ValueKey<String>('client-profile-gender')),
+      find.byKey(const ValueKey<String>('client-profile-gender-value')),
       findsOneWidget,
     );
     expect(

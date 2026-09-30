@@ -186,6 +186,12 @@ Future<void> _openTab(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+/// 신체·목표 창의 연필을 눌러 칸을 연다(#2596) — 창은 보기 상태로 열린다.
+Future<void> _startEditing(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey<String>('client-profile-edit')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('a saved memo shows in the list and survives a reopen', (
     tester,
@@ -552,12 +558,18 @@ void main() {
     // 편이 비활성 버튼보다 확실하다.
     final save = find.byKey(const ValueKey<String>('client-profile-save'));
     expect(save, findsNothing);
+    // 읽기 전에는 편집을 열 연필도 없다(#2596).
+    expect(
+      find.byKey(const ValueKey<String>('client-profile-edit')),
+      findsNothing,
+    );
     expect(find.byType(CircularProgressIndicator), findsWidgets);
 
     clients.profile.complete(
       const MemberHealthProfile(memberId: 'm1', memberName: '회원'),
     );
     await tester.pumpAndSettle();
+    await _startEditing(tester);
     expect(tester.widget<AppButton>(save).onPressed, isNotNull);
 
     // 목표 칸은 회원 앱 마이페이지와 같은 필드다(#1449) — 주간 근력 세트에
@@ -604,6 +616,7 @@ void main() {
       ageYears: 35,
       section: ClientProfileSection.health,
     );
+    await _startEditing(tester);
     String textOf(String key) => tester
         .widget<AppTextField>(find.byKey(ValueKey<String>(key)))
         .controller!
@@ -668,6 +681,7 @@ void main() {
       clients: clients,
       section: ClientProfileSection.health,
     );
+    await _startEditing(tester);
     await _openTab(tester, '식단 목표');
     expect(find.text('나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요'), findsOneWidget);
     expect(find.textContaining('권장: 2000kcal'), findsOneWidget);
@@ -690,6 +704,7 @@ void main() {
       clients: clients,
       section: ClientProfileSection.health,
     );
+    await _startEditing(tester);
 
     String? hintOf(String key) =>
         tester.widget<AppTextField>(find.byKey(ValueKey<String>(key))).hint;
@@ -755,6 +770,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _startEditing(tester);
 
     // 서버가 준 목표가 그대로 열린다 — 식단 6, 운동 4. 묶음마다 탭이다(#2330).
     Future<void> openTabFor(String key) => _openTab(
@@ -829,6 +845,9 @@ void main() {
       const MemberHealthProfile(memberId: 'm1', memberName: '오세라'),
     );
     await tester.pumpAndSettle();
+    // 보기 상태도 같은 성별을 말한다(#2596).
+    expect(find.text('여성'), findsOneWidget);
+    await _startEditing(tester);
 
     // 헤더가 '여성'이라고 적어 둔 회원의 대화상자가 빈 칸으로 열리면 화면 두
     // 곳이 서로 다른 말을 한다.
@@ -862,6 +881,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _startEditing(tester);
     await _openTab(tester, '건강 목표');
 
     AppChoiceChip chip(String option) => tester.widget<AppChoiceChip>(
@@ -889,5 +909,101 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(clients.savedProfile?['conditions'], '근력 향상, 혈압 관리, 무릎 통증으로 러닝 자제');
+  });
+
+  testWidgets('창은 보기 상태로 열리고 연필을 눌러야 고칠 수 있다 (#2596)', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final clients = _DelayedClientRepository(db)
+      ..profile.complete(
+        const MemberHealthProfile(
+          memberId: 'm1',
+          memberName: '회원',
+          gender: 'female',
+          heightCm: 162,
+          conditions: '체중 감량, 무릎 주의',
+          dailyCalories: 2100,
+        ),
+      );
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: clients,
+      section: ClientProfileSection.health,
+    );
+    const Key edit = ValueKey<String>('client-profile-edit');
+    const Key save = ValueKey<String>('client-profile-save');
+    const Key cancel = ValueKey<String>('client-profile-cancel');
+
+    // 보기 상태 — 입력 칸도 하단 버튼도 없고, 값은 글자다.
+    expect(find.byKey(edit), findsOneWidget);
+    expect(find.byType(AppTextField), findsNothing);
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    expect(find.byKey(save), findsNothing);
+    expect(find.text('여성'), findsOneWidget);
+    expect(find.text('162'), findsOneWidget);
+    // 비어 있는 몸무게는 편집 칸과 같은 흐린 `미입력` 이다.
+    expect(find.text('미입력'), findsOneWidget);
+
+    // 건강 목표 칩은 고른 것만 표시한 채 잠기고, 주의사항은 글이다.
+    await _openTab(tester, '건강 목표');
+    final AppChoiceChip loss = tester.widget<AppChoiceChip>(
+      find.byKey(const ValueKey<String>('client-focus-체중 감량')),
+    );
+    expect(loss.selected, isTrue);
+    expect(
+      tester
+          .widgetList<AppChoiceChip>(find.byType(AppChoiceChip))
+          .every((AppChoiceChip c) => c.onSelected == null),
+      isTrue,
+    );
+    expect(find.text('무릎 주의'), findsOneWidget);
+
+    // 권장값 채우기는 편집 중에만 있다.
+    await _openTab(tester, '식단 목표');
+    expect(find.text('2100'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('client-goal-apply-diet')),
+      findsNothing,
+    );
+
+    // 연필을 누르면 칸과 `취소`·`저장` 이 열리고 연필은 숨는다.
+    await _startEditing(tester);
+    expect(find.byKey(edit), findsNothing);
+    expect(find.byKey(cancel), findsOneWidget);
+    expect(find.byKey(save), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('client-goal-apply-diet')),
+      findsOneWidget,
+    );
+
+    // `취소` 는 고친 값을 버리고 보기 상태로 돌아간다.
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('client-goal-calories')),
+      '1800',
+    );
+    await tester.tap(find.byKey(cancel));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppTextField), findsNothing);
+    expect(find.text('2100'), findsOneWidget);
+    expect(find.text('1800'), findsNothing);
+    expect(clients.savedProfile, isNull);
+
+    // `저장` 이 끝나면 저장한 값이 보기 상태로 남는다.
+    await _startEditing(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('client-goal-calories')),
+      '1900',
+    );
+    await tester.tap(find.byKey(save));
+    await tester.pumpAndSettle();
+    expect(clients.savedProfile?['daily_calories'], 1900);
+    expect(find.byType(AppTextField), findsNothing);
+    expect(find.text('1900'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('client-profile-saved')),
+      findsOneWidget,
+    );
+    expect(find.byKey(edit), findsOneWidget);
   });
 }
