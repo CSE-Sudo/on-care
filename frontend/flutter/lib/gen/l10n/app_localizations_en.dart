@@ -2095,6 +2095,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySaveFailed => 'Couldn\'t save. Please try again in a moment';
 
   @override
+  String get myProfileEmailTaken => 'That email is already in use';
+
+  @override
+  String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
+
+  @override
+  String get myProfileInvalid => 'Please check what you entered';
+
+  @override
   String get myFieldName => 'Name';
 
   @override

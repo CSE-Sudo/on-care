@@ -2026,6 +2026,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get myProfileEmailTaken => '이미 사용 중인 이메일이에요';
+
+  @override
+  String get myProfilePhoneRequired => '등록된 전화번호는 비울 수 없어요';
+
+  @override
+  String get myProfileInvalid => '입력한 내용을 다시 확인해 주세요';
+
+  @override
   String get myFieldName => '이름';
 
   @override
