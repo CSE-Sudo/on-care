@@ -14,6 +14,13 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+/// 일정에 붙은 개인운동을 다시 읽게 하는 판번호. (#2280)
+///
+/// 개인운동을 처음 붙이는 자리는 코칭 탭이다 — 스케줄 화면은 그동안 떠 있지
+/// 않아 무엇이 바뀌었는지 모른다. 붙인 쪽이 이 값을 올리면 일정 상세의
+/// 개인운동 갈래가 새로 서면서 서버에서 다시 읽는다.
+final scheduledRoutinesRevisionProvider = StateProvider<int>((ref) => 0);
+
 /// 개인운동이 없을 때 처음 붙일 수 있는 PT 인가. (#2280)
 ///
 /// `직접 만들기`·저장한 프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않아
@@ -56,8 +63,16 @@ class SessionPersonalRoutines extends ConsumerStatefulWidget {
     required this.finished,
     this.onChanged,
     this.showEmpty = false,
+    this.onAdd,
     super.key,
   });
+
+  /// `개인운동 없음` 의 추가 버튼 — 코칭 탭의 개인운동 단계로 간다. (#2280)
+  ///
+  /// 스케줄에서 짜지 않는다: 개인운동은 AI 제안을 받아 짜는 것이라, 빈 줄에서
+  /// 시작하는 창을 여기 두면 그 제안을 못 본다. PT 프로그램이 없을 때
+  /// `SessionNoPlanBox` 가 코칭 탭으로 보내는 것과 같다(#1247).
+  final VoidCallback? onAdd;
 
   /// 목록이 바뀔 때마다 부른다 — 카드 아래 전송 버튼이 무엇을 보낼지
   /// 이 값으로 정한다(#2224). 읽지 못했으면 null 이다 — 없는지 모르는 것을
@@ -132,7 +147,7 @@ class _SessionPersonalRoutinesState
   Widget build(BuildContext context) {
     if (_routines.isEmpty) {
       return _loaded && widget.showEmpty
-          ? const _NoPersonalRoutines()
+          ? _NoPersonalRoutines(onAdd: widget.onAdd)
           : const SizedBox.shrink();
     }
     final l = AppLocalizations.of(context);
@@ -214,10 +229,15 @@ class _SessionPersonalRoutinesState
 ///
 /// 갈래를 통째로 비우면 트레이너는 이 PT 에 개인운동이 빠졌다는 것을 보내는
 /// 순간에야 안다. 보내기 전에 눈에 띄도록 갈래 자리에 빈 상태를 세운다.
-/// 붙이는 동작은 연필 메뉴의 `개인운동 추가` 한 자리다 — 여기에 버튼을 또
-/// 두면 같은 동작이 두 자리에서 보인다.
+///
+/// 붙이는 버튼은 **이 박스 안**에 둔다 — 이 카드는 없는 것은 빈 상태 박스
+/// 안에서 추가하고(`SessionNoPlanBox`·`SessionNoNoteBox`), 있는 것은 연필
+/// 메뉴에서 고친다. 연필 메뉴에 두면 문제를 보는 자리와 푸는 자리가 떨어져,
+/// 버튼 위치를 설명하는 문구가 따로 필요했다.
 class _NoPersonalRoutines extends StatelessWidget {
-  const _NoPersonalRoutines();
+  const _NoPersonalRoutines({required this.onAdd});
+
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -252,15 +272,20 @@ class _NoPersonalRoutines extends StatelessWidget {
                       .copyWith(color: OnCareColors.textSecondary),
                 ),
               ),
+              if (onAdd != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                // `프로그램 없음` 박스의 코칭 탭 바로가기와 같은 모양이다 —
+                // 둘 다 이 카드 밖(코칭 탭)으로 나간다.
+                AppIconButton(
+                  key: const ValueKey<String>('session-add-routines'),
+                  icon: AppIcons.add,
+                  tooltip: l.schedAddRoutines,
+                  variant: AppIconButtonVariant.tonal,
+                  onPressed: onAdd,
+                ),
+              ],
             ],
           ),
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        Text(
-          l.schedNoRoutinesHint,
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
         ),
         const SizedBox(height: OnCareSpacing.s12),
       ],
@@ -324,9 +349,10 @@ Future<NoPersonalRoutineChoice?> showNoPersonalRoutineDialog(
 /// 깨지므로 그대로 보내기 어렵다. 취소된 PT 에는 프로그램 만들기로 다시 붙일
 /// 수 없어(`예정` 세션만 찾는다) 고치는 자리가 여기뿐이다.
 ///
-/// 빈 목록으로 열면 **처음 붙이는** 창이 된다(#2280) — 빈 줄 하나로 시작한다.
-/// 코칭 탭 편집기 아래 개인운동 박스도 이 창을 쓴다: 개인운동을 고치는 창이
-/// 스케줄과 코칭에서 같아야 트레이너가 헷갈리지 않는다.
+/// **고치는 창이다** — 처음 짜는 것은 코칭 탭의 개인운동 단계(AI 제안)가
+/// 한다(#2280). 프로그램도 AI 로 한 번 짜고 고치는 것은 부분 창에서 한다.
+/// 코칭 탭 편집기 아래 개인운동 박스의 `개인운동 수정` 도 이 창을 쓴다:
+/// 개인운동을 고치는 창이 스케줄과 코칭에서 같아야 트레이너가 헷갈리지 않는다.
 class SendPersonalRoutinesDialog extends StatefulWidget {
   const SendPersonalRoutinesDialog({
     required this.routines,
@@ -361,12 +387,10 @@ class _SendPersonalRoutinesDialogState
       r.effect == autoRoutineEffect(r.type, widget.goal)
           ? r.copyWith(effect: '')
           : r,
-    if (_adding) _blankRoutine,
   ];
   late final List<TextEditingController> _names = <TextEditingController>[
     for (final RoutineExercise r in widget.routines)
       TextEditingController(text: r.name),
-    if (_adding) TextEditingController(),
   ];
 
   static const RoutineExercise _blankRoutine = RoutineExercise(
@@ -374,9 +398,6 @@ class _SendPersonalRoutinesDialogState
     minutes: 30,
     type: '유산소',
   );
-
-  /// 처음 붙이는 창인가 — 붙은 것이 하나도 없이 열렸다(#2280).
-  bool get _adding => widget.routines.isEmpty;
 
   /// 저장할 목록 — 손댄 줄은 트레이너 것이 된다(#2223).
   ///
@@ -430,11 +451,9 @@ class _SendPersonalRoutinesDialogState
     final l = AppLocalizations.of(context);
     return AppDialog(
       key: const ValueKey<String>('session-routines-send-dialog'),
-      title: !widget.editOnly
-          ? l.schedRoutinesSendTitle
-          : _adding
-          ? l.schedAddRoutinesTitle
-          : l.schedEditRoutinesTitle,
+      title: widget.editOnly
+          ? l.schedEditRoutinesTitle
+          : l.schedRoutinesSendTitle,
       showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
@@ -448,11 +467,7 @@ class _SendPersonalRoutinesDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            !widget.editOnly
-                ? l.schedRoutinesSendBody
-                : _adding
-                ? l.schedAddRoutinesBody
-                : l.schedEditRoutinesBody,
+            widget.editOnly ? l.schedEditRoutinesBody : l.schedRoutinesSendBody,
             style: context.oncare
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),

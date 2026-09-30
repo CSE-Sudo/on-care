@@ -65,10 +65,22 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// client (`?client=<id>`) preselects them.
 class CoachingPage extends ConsumerStatefulWidget {
   /// Creates the AI coaching workspace.
-  const CoachingPage({super.key, this.clientId});
+  const CoachingPage({
+    super.key,
+    this.clientId,
+    this.attachSessionId,
+    this.attachDate,
+  });
 
   /// Client to preselect, from the `client` query parameter.
   final String? clientId;
+
+  /// 개인운동을 붙일 스케줄의 PT(`attach`)와 그 날(`d`). (#2280)
+  ///
+  /// 일정 상세의 `개인운동 없음` 에서 온다 — 둘 다 있으면 위저드가 그 PT 에
+  /// 붙일 개인운동 단계로 열린다([AppRoutes.coachingAttach]).
+  final String? attachSessionId;
+  final String? attachDate;
 
   @override
   ConsumerState<CoachingPage> createState() => _CoachingPageState();
@@ -91,6 +103,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 위저드에서 `PT 없이 개인운동만 짜기` 로 온 회원들. 이 회원의 편집기
   /// 자리에는 프로그램 박스 대신 개인운동 박스만 서고, 보내기도 거기서 한다.
   final Set<String> _routineOnlyClients = <String>{};
+
+  /// 개인운동만 붙이는 흐름. (#2280)
+  ///
+  /// [sessionId] 가 있으면 스케줄의 그 PT 에 붙이고 그 일정으로 돌아간다. 없으면
+  /// 편집기에서 짜고 있는 PT(`직접 만들기`·저장한 프로그램 적용)에 붙인다 —
+  /// 두 길 모두 위저드를 지나지 않아 개인운동 단계가 없었다. 어느 쪽이든
+  /// 위저드의 개인운동 단계(AI 제안)에서 짠다.
+  ({String clientId, String? sessionId, String? date})? _attach;
+
+  /// [_attach] 가 가리키는 스케줄 PT 를 한 줄로 적은 값 — 읽기 전이면 null.
+  String? _attachLabel;
+
+  /// 붙이는 중이다.
+  bool _attaching = false;
+
+  /// 붙였거나 그만둔 스케줄 PT. 탭을 옮겨 다녀도 코칭 탭 주소에는 `attach`
+  /// 가 남아 있어, 돌아올 때마다 같은 흐름이 다시 열리지 않게 한다.
+  final Set<String> _closedAttachSessions = <String>{};
 
   /// `개인운동만` 이 회원 목록에 걸리기 시작할 날. 기본은 오늘이다.
   final Map<String, DateTime> _routineOnlyStart = <String, DateTime>{};
@@ -167,12 +197,68 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _attach = _attachFromRoute();
+    unawaited(_loadAttachLabel());
+  }
+
+  @override
   void didUpdateWidget(CoachingPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Following a second "AI 루틴 만들기" link (from another client's
     // 개요) must switch the workspace, not silently keep the old one.
     if (widget.clientId != null && widget.clientId != oldWidget.clientId) {
       _selectClient(widget.clientId!);
+    }
+    if (widget.attachSessionId != oldWidget.attachSessionId ||
+        widget.attachDate != oldWidget.attachDate ||
+        widget.clientId != oldWidget.clientId) {
+      setState(() {
+        _attach = _attachFromRoute();
+        _attachLabel = null;
+      });
+      unawaited(_loadAttachLabel());
+    }
+  }
+
+  /// 주소가 가리키는 붙이기 흐름. 이미 닫은 PT 면 다시 열지 않는다.
+  ({String clientId, String? sessionId, String? date})? _attachFromRoute() {
+    final String? clientId = widget.clientId;
+    final String? sessionId = widget.attachSessionId;
+    final String? date = widget.attachDate;
+    if (clientId == null || sessionId == null || date == null) return null;
+    if (_closedAttachSessions.contains(sessionId)) return null;
+    return (clientId: clientId, sessionId: sessionId, date: date);
+  }
+
+  /// 붙일 스케줄 PT 를 `9월 30일 10:00–11:00` 처럼 적는다. 읽지 못하면 PT 라고만
+  /// 적는다 — 붙이는 데에는 id 만 있으면 된다.
+  Future<void> _loadAttachLabel() async {
+    final attach = _attach;
+    final String? sessionId = attach?.sessionId;
+    final String? date = attach?.date;
+    if (sessionId == null || date == null) return;
+    try {
+      final sessions = await ref
+          .read(scheduleRepositoryProvider)
+          .watchDate(date)
+          .first;
+      if (!mounted || _attach?.sessionId != sessionId) return;
+      final l = AppLocalizations.of(context);
+      for (final ScheduleSession session in sessions) {
+        if (session.id != sessionId) continue;
+        final DateTime? day = DateTime.tryParse(session.date);
+        setState(
+          () => _attachLabel = l.aiAttachTargetSession(
+            day == null ? session.date : l.dateMonthDay(day.month, day.day),
+            timeRangeLabel(l, session),
+          ),
+        );
+        return;
+      }
+    } catch (_) {
+      // 적지 못해도 붙이기는 된다.
     }
   }
 
@@ -191,6 +277,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _editorRevision = 0;
       _aiWizardVisible = true;
       _wizardRevision = 0;
+      // 다른 회원으로 옮기면 붙이던 흐름은 거둔다 — 그 PT 는 앞 회원의 것이다.
+      _attach = null;
       // NOTE: _sendingClientIds is intentionally NOT cleared — writes for
       // other clients keep being tracked while the selection changes.
     });
@@ -386,13 +474,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         skipLabel: l.progNoRoutinesRegisterSkip,
       );
       if (choice == null || !mounted || !_isStillSelected(client.id)) return;
-      // 붙이려다 창을 닫았으면 일정에 올리지 않는다 — 붙이려던 PT 가 개인운동
-      // 없이 올라가면 안 된다.
-      if (choice == NoPersonalRoutineChoice.add &&
-          !await _editPersonalRoutines(client)) {
+      // 붙이러 가면 일정에 올리지 않는다 — 개인운동 단계(AI 제안)에서 짜고
+      // 편집기로 돌아와 다시 `일정 추가` 를 누른다.
+      if (choice == NoPersonalRoutineChoice.add) {
+        _startDraftAttach(client);
         return;
       }
-      if (!mounted || !_isStillSelected(client.id)) return;
     }
     final List<ScheduleSession> candidates;
     try {
@@ -425,6 +512,17 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (confirmation == null || !mounted || !_isStillSelected(client.id)) {
       return;
     }
+    // 이미 있는 PT 에 붙이는데 그 PT 에 개인운동이 붙어 있으면, 새로 짠 것으로
+    // 바꾸는지 한 번 묻는다(#2280) — 서버는 붙어 있던 것을 새것으로 갈아
+    // 끼운다. 새로 짠 개인운동이 없으면 서버가 붙어 있던 것을 그대로 두므로
+    // 묻지 않는다.
+    final String? targetId = confirmation.sessionId;
+    if (targetId != null &&
+        personalRoutines.isNotEmpty &&
+        !await _confirmReplaceIfAttached(targetId)) {
+      return;
+    }
+    if (!mounted || !_isStillSelected(client.id)) return;
     // 확인창을 띄워 둔 사이에도 자정이 지날 수 있다 — 보내기 직전에 한 번 더.
     if (!_registerDateStillValid()) return;
     final sentFor = client.id;
@@ -902,7 +1000,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 카드를 채우는 동안에도 어디서 넘어가는지 보인다(#2476). 위저드를 닫으면
   /// 걷는다.
   Widget _wizardNavBar() {
-    if (!_aiWizardVisible) return const SizedBox.shrink();
+    // 붙이기 흐름의 위저드는 제 진행 줄을 내용 끝에 붙인다(#2280).
+    if (!_aiWizardVisible || _attach != null) return const SizedBox.shrink();
     return ValueListenableBuilder<Widget?>(
       valueListenable: _wizardNav,
       builder: (context, nav, _) => nav == null
@@ -981,12 +1080,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _personalRoutines.remove(_clientId);
   });
 
-  /// 편집기 아래 개인운동 박스의 `개인운동 추가`·`개인운동 수정`. (#2280)
+  /// 편집기 아래 개인운동 박스의 `개인운동 수정`. (#2280)
   ///
-  /// `직접 만들기`·저장한 프로그램 적용은 위저드를 지나지 않아 개인운동을 붙일
-  /// 자리가 없었다. 일정 상세의 `개인운동 수정` 과 **같은 창**을 쓴다 —
-  /// 개인운동을 고치는 창이 자리마다 다르면 트레이너가 헷갈린다. 저장했으면
-  /// 참을 준다.
+  /// 일정 상세의 `개인운동 수정` 과 **같은 창**을 쓴다 — 개인운동을 고치는 창이
+  /// 자리마다 다르면 트레이너가 헷갈린다. 처음 짜는 것은 이 창이 아니라 개인운동
+  /// 단계([_startDraftAttach])다. 저장했으면 참을 준다.
   Future<bool> _editPersonalRoutines(TrainerClient client) async {
     final edited = await showAppDialog<List<RoutineExercise>>(
       context: context,
@@ -1001,6 +1099,122 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
     setState(() => _personalRoutines[client.id] = edited);
     return true;
+  }
+
+  /// 편집기에서 짜고 있는 PT 에 붙일 개인운동을 위저드의 개인운동 단계에서
+  /// 짠다. (#2280)
+  ///
+  /// `직접 만들기`·저장한 프로그램 적용은 위저드를 지나지 않아 개인운동 단계가
+  /// 없었다. 편집기는 그대로 두고(숨겨 두고) 개인운동 단계만 연다 — AI 제안을
+  /// 받아 짜야 한다. 프로그램도 AI 로 짜고, 고치는 것만 부분 창에서 한다.
+  void _startDraftAttach(TrainerClient client) => setState(
+    () => _attach = (clientId: client.id, sessionId: null, date: null),
+  );
+
+  /// 개인운동 단계에서 정한 것을 붙인다. (#2280)
+  Future<void> _completeAttach(
+    TrainerClient client,
+    ({String clientId, String? sessionId, String? date}) attach,
+    List<RoutineExercise> routines,
+  ) async {
+    final String? sessionId = attach.sessionId;
+    final l = AppLocalizations.of(context);
+    if (sessionId == null) {
+      // 편집기의 PT — `일정 추가` 가 함께 싣는다.
+      setState(() {
+        _personalRoutines[client.id] = routines;
+        _attach = null;
+      });
+      showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
+      return;
+    }
+    if (_attaching) return;
+    setState(() => _attaching = true);
+    // 그사이 다른 자리에서 붙었을 수 있다 — 바꾸는지 한 번 묻는다.
+    final bool proceed = await _confirmReplaceIfAttached(sessionId);
+    if (!mounted) return;
+    if (!proceed) {
+      setState(() => _attaching = false);
+      return;
+    }
+    try {
+      await ref
+          .read(scheduleRepositoryProvider)
+          .updateScheduledRoutines(sessionId, routines);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _attaching = false);
+      showAppToast(
+        context,
+        l.schedRoutinesUpdateFailed,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    if (!mounted) return;
+    // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
+    ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
+    setState(() {
+      _attaching = false;
+      _attach = null;
+      _closedAttachSessions.add(sessionId);
+    });
+    showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
+    // 붙이기만 한다 — 회원에게 보내는 것은 스케줄에서 트레이너가 누른다.
+    context.go(AppRoutes.scheduleAt(date: attach.date, sessionId: sessionId));
+  }
+
+  /// 붙이기를 그만둔다. 스케줄에서 왔으면 그 일정으로 돌아간다.
+  void _cancelAttach(
+    ({String clientId, String? sessionId, String? date}) attach,
+  ) {
+    final String? sessionId = attach.sessionId;
+    setState(() {
+      _attach = null;
+      if (sessionId != null) _closedAttachSessions.add(sessionId);
+    });
+    if (sessionId != null) {
+      context.go(AppRoutes.scheduleAt(date: attach.date, sessionId: sessionId));
+    }
+  }
+
+  /// [sessionId] PT 에 아직 보내지 않은 개인운동이 붙어 있으면 새로 짠 것으로
+  /// 바꾸는지 묻는다. 바꿔도 되면(붙은 것이 없어도) 참이다. (#2280)
+  ///
+  /// 붙어 있는지 읽지 못했으면 거짓이다 — 모르는 채로 바꾸면 스케줄에서 손봐
+  /// 둔 개인운동이 말없이 사라질 수 있다.
+  Future<bool> _confirmReplaceIfAttached(String sessionId) async {
+    final l = AppLocalizations.of(context);
+    final List<RoutineExercise> attached;
+    try {
+      attached = <RoutineExercise>[
+        for (final SessionRoutine r
+            in await ref
+                .read(scheduleRepositoryProvider)
+                .fetchScheduledRoutines(sessionId))
+          if (!r.sent) r.exercise,
+      ];
+    } catch (_) {
+      if (mounted) {
+        showAppToast(
+          context,
+          l.schedRoutinesUpdateFailed,
+          type: AppToastType.error,
+        );
+      }
+      return false;
+    }
+    if (!mounted) return false;
+    if (attached.isEmpty) return true;
+    return showAppConfirmDialog(
+      context: context,
+      title: l.aiReplaceRoutinesTitle,
+      message: l.aiReplaceRoutinesBody(
+        attached.length,
+        attached.map((e) => e.name).join(' · '),
+      ),
+      confirmLabel: l.aiReplaceRoutinesConfirm,
+    );
   }
 
   void _startManualProgram(String clientId) => setState(() {
@@ -1024,7 +1238,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     final routineArgs = (id: client.id, name: client.name);
     final routineAsync = ref.watch(aiRoutineProvider(routineArgs));
 
-    return <Widget>[
+    final List<Widget> children = <Widget>[
       routineAsync.when(
         loading: () => const AppLoading(placement: AppStatePlacement.card),
         error: (e, _) => AppErrorState(
@@ -1160,8 +1374,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           _personalRoutines[client.id] ??
                           const <RoutineExercise>[],
                       routineOnly: false,
+                      // 없으면 개인운동 단계(AI 제안)에서 짜고, 있으면 부분
+                      // 창에서 고친다 — 프로그램과 같다.
                       onEdit: _sent || _sendingClientIds.contains(client.id)
                           ? null
+                          : (_personalRoutines[client.id]?.isEmpty ?? true)
+                          ? () => _startDraftAttach(client)
                           : () => unawaited(_editPersonalRoutines(client)),
                     ),
                   ],
@@ -1191,6 +1409,35 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           ],
         ),
       ),
+    ];
+    final attach = _attach;
+    final bool attaching = attach != null && attach.clientId == client.id;
+    // 개인운동만 붙이는 흐름(#2280)이면 위저드·편집기는 숨겨 두고(상태는
+    // 그대로) 개인운동 단계만 세운다. 늘 같은 자리에 두어, 흐름을 여닫아도
+    // 편집기의 State 가 새로 서지 않게 한다 — 짜던 PT 구성이 사라진다.
+    return <Widget>[
+      Offstage(
+        offstage: attaching,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      ),
+      if (attach != null && attaching)
+        AiRoutineOptionsFlow(
+          key: ValueKey<String>(
+            'routine-attach-${client.id}-${attach.sessionId ?? 'draft'}',
+          ),
+          client: client,
+          embedded: true,
+          attachTarget: attach.sessionId == null
+              ? l.aiAttachTargetPt
+              : (_attachLabel ?? l.aiAttachTargetPt),
+          attaching: _attaching,
+          onAttach: (routines) =>
+              unawaited(_completeAttach(client, attach, routines)),
+          onAttachCancel: () => _cancelAttach(attach),
+        ),
     ];
   }
 }

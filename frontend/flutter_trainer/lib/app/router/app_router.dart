@@ -198,8 +198,11 @@ GoRouter buildAppRouter({
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutes.coaching,
-                builder: (context, state) =>
-                    CoachingPage(clientId: state.uri.queryParameters['client']),
+                builder: (context, state) => CoachingPage(
+                  clientId: state.uri.queryParameters['client'],
+                  attachSessionId: state.uri.queryParameters['attach'],
+                  attachDate: state.uri.queryParameters['d'],
+                ),
               ),
             ],
           ),

@@ -1830,21 +1830,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedAddRoutines => 'Add personal exercise';
 
   @override
-  String get schedAddRoutinesTitle => 'Add personal exercise';
-
-  @override
-  String get schedAddRoutinesBody =>
-      'This PT has no personal exercise yet. Once added, it goes to the member together with the PT program.';
-
-  @override
   String get schedRoutinesAdded => 'Personal exercise added.';
 
   @override
   String get schedNoRoutines => 'No personal exercise';
-
-  @override
-  String get schedNoRoutinesHint =>
-      'Add it from the pencil menu and it goes to the member with the PT program.';
 
   @override
   String get schedNoRoutinesSendTitle => 'Send without personal exercise?';
@@ -3259,6 +3248,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get progPersonalRoutinesEmpty =>
       'No personal exercise yet. Add at least one for each PT.';
+
+  @override
+  String aiAttachTargetSession(String date, String time) {
+    return 'Personal exercise for the $date $time PT.';
+  }
+
+  @override
+  String get aiAttachTargetPt =>
+      'Personal exercise for the PT you are putting together.';
+
+  @override
+  String get aiAttachRoutines => 'Attach to this PT';
+
+  @override
+  String get aiReplaceRoutinesTitle => 'Personal exercise already attached';
+
+  @override
+  String aiReplaceRoutinesBody(int count, String names) {
+    return 'This PT already has $count personal exercise(s) ($names). Replace them with the new ones?';
+  }
+
+  @override
+  String get aiReplaceRoutinesConfirm => 'Replace';
 
   @override
   String programRoutineOnlyConfirmBody(

@@ -1,9 +1,9 @@
 // 개인운동이 없는 PT 를 일정 상세에서 구제한다 (#2280).
 //
 // `직접 만들기`·저장한 프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않아
-// 개인운동 없이 스케줄에 선다. 일정 상세가 `개인운동 없음` 을 보여 주고 연필
-// 메뉴의 `개인운동 추가` 로 처음 붙이게 한다. 보내기 직전에도 한 번 붙잡는다 —
-// 보낸 뒤에는 그 PT 에 개인운동을 붙일 수 없다.
+// 개인운동 없이 스케줄에 선다. 일정 상세가 `개인운동 없음` 을 보여 주고, 그
+// 박스의 추가 버튼이 코칭 탭의 개인운동 단계(AI 제안)로 보낸다 — 스케줄에서
+// 빈 창으로 짜지 않는다. 보내기 직전에도 한 번 붙잡는다.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,20 +16,15 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_w
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
 
-/// 데모 저장소 위에 **비어 있는** 개인운동을 얹는다 — 붙이면 그대로 읽힌다.
+/// 데모 저장소 위에 **비어 있는** 개인운동을 얹는다.
 class _NoRoutineRepository extends DriftScheduleRepository {
   _NoRoutineRepository(super.db);
 
-  List<RoutineExercise> attached = const <RoutineExercise>[];
   final List<String> calls = <String>[];
-  bool _sent = false;
 
   @override
   Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async =>
-      <SessionRoutine>[
-        for (final RoutineExercise e in attached)
-          SessionRoutine(exercise: e, sent: _sent),
-      ];
+      const <SessionRoutine>[];
 
   @override
   Future<void> updateScheduledRoutines(
@@ -37,14 +32,12 @@ class _NoRoutineRepository extends DriftScheduleRepository {
     List<RoutineExercise> items,
   ) async {
     calls.add('update');
-    attached = items;
   }
 
   @override
   Future<void> sendProgram(String id, {String? clientRequestId}) async {
     calls.add('send');
     await super.sendProgram(id, clientRequestId: clientRequestId);
-    _sent = true;
   }
 }
 
@@ -98,29 +91,6 @@ void main() {
       await tester.pump();
     }
 
-    Future<void> openPencil(WidgetTester tester) async {
-      final pencil = find.byKey(const ValueKey<String>('session-edit-menu'));
-      await revealInPanel(tester, pencil);
-      await tester.tap(pencil);
-      await settle(tester);
-    }
-
-    /// 처음 붙이는 창에 운동 이름 하나를 적고 저장한다.
-    Future<void> fillFirstRoutine(WidgetTester tester, String name) async {
-      // 빈 줄 하나로 시작한다 — 붙은 것이 없는데 빈 창을 열면 무엇을 해야
-      // 하는지부터 찾아야 한다.
-      expect(find.text('개인운동 추가'), findsWidgets);
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('session-routine-name-0')),
-        name,
-      );
-      await settle(tester);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('session-routines-send-confirm')),
-      );
-      await settle(tester);
-    }
-
     Future<void> completeSession(WidgetTester tester) async {
       final complete = find.byKey(
         const ValueKey<String>('session-complete-chip'),
@@ -141,7 +111,16 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('개인운동이 없으면 개인운동 없음을 보여 주고 연필 메뉴에서 처음 붙인다', (tester) async {
+    /// 코칭 탭의 **붙이기 흐름**으로 왔는가 — 어느 회원의 어느 PT 인지까지.
+    void expectAttachRoute(WidgetTester tester) {
+      final Uri location = Uri.parse(currentLocation(tester));
+      expect(location.path, AppRoutes.coaching);
+      expect(location.queryParameters['client'], isNotEmpty);
+      expect(location.queryParameters['attach'], isNotEmpty);
+      expect(location.queryParameters['d'], isNotEmpty);
+    }
+
+    testWidgets('개인운동 없음 박스의 추가 버튼이 코칭 탭의 개인운동 단계로 보낸다', (tester) async {
       await openSchedule(tester);
       // 데모 씨앗의 예정 PT — 프로그램은 있지만 개인운동이 없다.
       await openSession(tester, '박성호');
@@ -150,42 +129,29 @@ void main() {
         const ValueKey<String>('session-no-personal-routines'),
       );
       await revealInPanel(tester, empty);
-      expect(empty, findsOneWidget);
       expect(find.text('개인운동 없음'), findsOneWidget);
 
-      await openPencil(tester);
-      // 붙은 것이 없는데 `수정` 이라고 부르지 않는다.
+      // 붙이는 버튼은 연필 메뉴가 아니라 이 박스 안에 있다.
+      final pencil = find.byKey(const ValueKey<String>('session-edit-menu'));
+      await revealInPanel(tester, pencil);
+      await tester.tap(pencil);
+      await settle(tester);
       expect(
         find.byKey(const ValueKey<String>('session-edit-routines-chip')),
         findsNothing,
       );
-      final add = find.byKey(
-        const ValueKey<String>('session-add-routines-chip'),
-      );
-      expect(add, findsOneWidget);
+      // 연필을 다시 눌러 메뉴를 닫는다.
+      await tester.tap(pencil);
+      await settle(tester);
+
+      final add = find.byKey(const ValueKey<String>('session-add-routines'));
+      await revealInPanel(tester, add);
       await tester.tap(add);
       await settle(tester);
 
-      await fillFirstRoutine(tester, '실내 자전거');
-
-      expect(repo.calls, <String>['update']);
-      expect(repo.attached.single.name, '실내 자전거');
-      // 일정 상세에서 적은 것은 트레이너 것이다.
-      expect(repo.attached.single.source, 'trainer');
-
-      // 붙인 뒤에는 갈래가 서고, 같은 자리가 `개인운동 수정` 이 된다.
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-personal-routines')),
-      );
-      expect(empty, findsNothing);
-      expect(find.textContaining('실내 자전거'), findsOneWidget);
-      await openPencil(tester);
-      expect(
-        find.byKey(const ValueKey<String>('session-edit-routines-chip')),
-        findsOneWidget,
-      );
-      expect(add, findsNothing);
+      // 스케줄에서 빈 창을 열지 않는다 — AI 제안이 있는 코칭 탭으로 간다.
+      expectAttachRoute(tester);
+      expect(repo.calls, isEmpty);
     });
 
     testWidgets('개인운동 없이 보내려 하면 한 번 묻고, 없이 전송을 골라야 보낸다', (tester) async {
@@ -214,14 +180,9 @@ void main() {
         find.byKey(const ValueKey<String>('session-no-personal-routines')),
         findsNothing,
       );
-      await openPencil(tester);
-      expect(
-        find.byKey(const ValueKey<String>('session-add-routines-chip')),
-        findsNothing,
-      );
     });
 
-    testWidgets('보내기 직전에 개인운동 추가를 고르면 붙인 뒤 이어서 보낸다', (tester) async {
+    testWidgets('보내기 직전에 개인운동 추가를 고르면 보내지 않고 코칭 탭으로 간다', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
       await completeSession(tester);
@@ -231,27 +192,9 @@ void main() {
         find.byKey(const ValueKey<String>('no-personal-routine-add')),
       );
       await settle(tester);
-      await fillFirstRoutine(tester, '저강도 걷기');
 
-      // 붙이고 나서 보낸다 — 개인운동이 그 전송에 실려 간다.
-      expect(repo.calls, <String>['update', 'send']);
-      expect(repo.attached.single.name, '저강도 걷기');
-    });
-
-    testWidgets('개인운동 추가 창을 닫으면 보내지 않는다', (tester) async {
-      await openSchedule(tester);
-      await openSession(tester, '박성호');
-      await completeSession(tester);
-
-      await tapSendProgram(tester);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('no-personal-routine-add')),
-      );
-      await settle(tester);
-      // 붙이려던 트레이너의 PT 가 개인운동 없이 나가면 안 된다.
-      await tester.tap(find.text('취소').last);
-      await settle(tester);
-
+      // 붙이기만 하러 간다 — 회원 전송은 돌아와서 트레이너가 다시 누른다.
+      expectAttachRoute(tester);
       expect(repo.calls, isEmpty);
     });
   });

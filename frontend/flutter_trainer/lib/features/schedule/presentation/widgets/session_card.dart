@@ -8,7 +8,6 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/session_co
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_ended_box.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_manage_row.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_note_box.dart';
-import 'package:oncare_trainer/features/schedule/presentation/widgets/session_personal_routines.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_section.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -45,8 +44,6 @@ class SessionCard extends ConsumerWidget {
     this.onSendRoutines,
     this.onSkipRoutines,
     this.onEditRoutines,
-    this.routinesEmpty = false,
-    this.onAddRoutines,
   });
 
   /// 이 PT 에 붙은 개인운동 덩어리. (#2224)
@@ -64,15 +61,6 @@ class SessionCard extends ConsumerWidget {
 
   /// 연필 메뉴의 `개인운동 수정` — 아직 보내지 않았을 때만 선다. (#2224)
   final VoidCallback? onEditRoutines;
-
-  /// 개인운동을 읽어 왔고 하나도 없는가. 읽기 전·실패했으면 거짓이다 —
-  /// 없는지 모르는 PT 에 `개인운동 추가` 를 세우지 않는다(#2280).
-  final bool routinesEmpty;
-
-  /// 연필 메뉴의 `개인운동 추가` — 개인운동 단계를 지나지 않은 PT 에 처음
-  /// 붙인다. 처음 붙일 수 있는 PT([acceptsFirstPersonalRoutines])에서만
-  /// 선다. (#2280)
-  final VoidCallback? onAddRoutines;
 
   final ScheduleSession session;
   final VoidCallback onEditSchedule;
@@ -204,11 +192,6 @@ class SessionCard extends ConsumerWidget {
                 // 바뀌면 회원이 어제 본 목록과 오늘 본 목록이 말없이
                 // 달라진다(#2224).
                 onEditRoutines: hasUnsentRoutines ? onEditRoutines : null,
-                // 하나도 없으면 같은 자리가 `개인운동 추가` 가 된다(#2280).
-                onAddRoutines:
-                    (routinesEmpty && acceptsFirstPersonalRoutines(s))
-                    ? onAddRoutines
-                    : null,
                 onDelete: onDelete,
                 // 해제 회원의 일정은 삭제만 — 자기 일정 정리는 트레이너 몫이다.
                 deleteOnly: detached,

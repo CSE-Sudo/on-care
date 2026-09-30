@@ -77,6 +77,10 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.onReviewCompleted,
     this.onManualCreate,
     this.onStepNav,
+    this.attachTarget,
+    this.onAttach,
+    this.onAttachCancel,
+    this.attaching = false,
     super.key,
   });
 
@@ -105,6 +109,28 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   /// 사라질 때 `nav: null` 로 한 번 더 불러 거두게 한다. 비우면 진행 줄은
   /// 내용 끝에 붙는다.
   final void Function(Object owner, Widget? nav)? onStepNav;
+
+  /// 이미 있는 PT 에 **개인운동만 붙이는** 흐름이면 그 PT 를 한 줄로 적은 값.
+  /// (#2280)
+  ///
+  /// `직접 만들기`·저장한 프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지
+  /// 않는다. 그 PT 에 개인운동을 처음 붙일 때 이 값을 주면 위저드가 개인운동
+  /// 단계 하나로 열린다 — PT 구성은 이미 있으니 조건 설정·프로그램 선택·검토를
+  /// 지날 까닭이 없다. AI 제안은 여느 때처럼 채워진다: 개인운동을 빈 줄에서
+  /// 짜게 두면 그 제안을 못 본다.
+  final String? attachTarget;
+
+  /// [attachTarget] 흐름의 출구 — 정한 개인운동을 넘긴다. 붙이는 것은 받는
+  /// 쪽이 한다.
+  final ValueChanged<List<RoutineExercise>>? onAttach;
+
+  /// [attachTarget] 흐름을 그만둔다.
+  final VoidCallback? onAttachCancel;
+
+  /// [onAttach] 로 넘긴 것을 붙이고 있다 — 버튼에 스피너가 돈다.
+  final bool attaching;
+
+  bool get _attachMode => attachTarget != null;
 
   @override
   ConsumerState<AiRoutineOptionsFlow> createState() =>
@@ -141,6 +167,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     super.initState();
     final RoutineContextSourceStore? store = _sourceStore();
     if (store != null) _sources = store.read(_sourceAccount());
+    // 붙이기 흐름은 개인운동 단계에서 바로 시작한다(#2280). 제안이 아직
+    // 오지 않았으면 개인운동 칸이 그릴 때 채운다.
+    if (widget._attachMode) {
+      _stage = _steps.indexOf(_Step.personal);
+      _maxReachedStage = _stage;
+      _seedPersonalFromSuggestions();
+    }
   }
 
   /// 선택을 남길 저장소. 브라우저 저장소를 못 읽는 자리(저장소를 붙이지 않은
@@ -487,6 +520,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           showAppToast(context, l.aiKeepOnePersonalRoutine);
           return;
         }
+        // 이미 있는 PT 에 붙이는 흐름이면 편집기로 가지 않고 넘긴다(#2280).
+        final onAttach = widget.onAttach;
+        if (widget._attachMode && onAttach != null) {
+          if (!widget.attaching) {
+            onAttach(List<RoutineExercise>.unmodifiable(_personal));
+          }
+          return;
+        }
         // 마지막 칸이다. 두 모드 모두 편집기 화면으로 넘어가고, 보내는 것은
         // 거기서 한다.
         _applyToTemplate();
@@ -708,7 +749,34 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final content = <Widget>[
-      if (widget.onManualCreate != null) ...<Widget>[
+      // 붙이기 흐름에는 단계 표시줄 대신 **어느 PT 에 붙이는지**를 둔다(#2280)
+      // — 밟는 칸이 하나뿐이라 넷을 늘어놓으면 셋이 늘 비어 있다.
+      if (widget._attachMode) ...<Widget>[
+        AppTile(
+          key: const ValueKey<String>('routine-attach-target'),
+          tone: AppTileTone.neutral,
+          child: Row(
+            children: <Widget>[
+              const AppIcon(
+                AppIcons.calendar,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.textSecondary,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  widget.attachTarget!,
+                  style: _text(
+                    OnCareTypography.bodySmall,
+                    OnCareColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
+      ] else if (widget.onManualCreate != null) ...<Widget>[
         Align(
           alignment: Alignment.centerRight,
           child: AppButton(
@@ -724,21 +792,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ],
       KeyedSubtree(
         key: _topKey,
-        child: AppStepIndicator.numbered(
-          keyPrefix: 'routine-stage',
-          semanticsLabel: l.aiStepperLabel,
-          current: _stage,
-          maxReached: _maxReachedStage,
-          labels: _stepLabels(l),
-          skipped: <int>{
-            for (int i = 0; i < _steps.length; i++)
-              if (_skipped.contains(_steps[i])) i,
-          },
-          skippedLabel: l.aiStepSkipped,
-          onStepTap: _goToStage,
-        ),
+        child: widget._attachMode
+            ? const SizedBox.shrink()
+            : AppStepIndicator.numbered(
+                keyPrefix: 'routine-stage',
+                semanticsLabel: l.aiStepperLabel,
+                current: _stage,
+                maxReached: _maxReachedStage,
+                labels: _stepLabels(l),
+                skipped: <int>{
+                  for (int i = 0; i < _steps.length; i++)
+                    if (_skipped.contains(_steps[i])) i,
+                },
+                skippedLabel: l.aiStepSkipped,
+                onStepTap: _goToStage,
+              ),
       ),
-      const SizedBox(height: OnCareSpacing.s16),
+      if (!widget._attachMode) const SizedBox(height: OnCareSpacing.s16),
       ...switch (_currentStep) {
         _Step.conditions => <Widget>[
           _assistantAnalysis(),
@@ -822,6 +892,27 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 회원 — 후보 생성을 거치지 않고 개인운동만 짜서 보낸다).
   Widget _stepNav() {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 붙이기 흐름은 칸이 하나다 — 되돌아갈 칸 대신 그만두기, 편집기로 가는
+    // `프로그램에 반영` 대신 그 PT 에 붙이기를 둔다(#2280).
+    if (widget._attachMode) {
+      return AppActionRow(
+        leading: AppButton(
+          key: const ValueKey<String>('routine-attach-cancel'),
+          label: l.actionCancel,
+          variant: AppButtonVariant.text,
+          onPressed: widget.attaching ? null : widget.onAttachCancel,
+        ),
+        actions: <Widget>[
+          AppButton(
+            key: const ValueKey<String>('routine-attach-confirm'),
+            label: l.aiAttachRoutines,
+            onPressed: _next,
+            leadingIcon: AppIcons.personalRoutine,
+            loading: widget.attaching,
+          ),
+        ],
+      );
+    }
     final int? prev = _previousStage();
     final Widget primary = switch (_currentStep) {
       _Step.conditions => AppButton(

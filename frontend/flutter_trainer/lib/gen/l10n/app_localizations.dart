@@ -3181,18 +3181,6 @@ abstract class AppLocalizations {
   /// **'Add personal exercise'**
   String get schedAddRoutines;
 
-  /// No description provided for @schedAddRoutinesTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Add personal exercise'**
-  String get schedAddRoutinesTitle;
-
-  /// No description provided for @schedAddRoutinesBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This PT has no personal exercise yet. Once added, it goes to the member together with the PT program.'**
-  String get schedAddRoutinesBody;
-
   /// No description provided for @schedRoutinesAdded.
   ///
   /// In en, this message translates to:
@@ -3204,12 +3192,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No personal exercise'**
   String get schedNoRoutines;
-
-  /// No description provided for @schedNoRoutinesHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Add it from the pencil menu and it goes to the member with the PT program.'**
-  String get schedNoRoutinesHint;
 
   /// No description provided for @schedNoRoutinesSendTitle.
   ///
@@ -5676,6 +5658,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No personal exercise yet. Add at least one for each PT.'**
   String get progPersonalRoutinesEmpty;
+
+  /// No description provided for @aiAttachTargetSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise for the {date} {time} PT.'**
+  String aiAttachTargetSession(String date, String time);
+
+  /// No description provided for @aiAttachTargetPt.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise for the PT you are putting together.'**
+  String get aiAttachTargetPt;
+
+  /// No description provided for @aiAttachRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach to this PT'**
+  String get aiAttachRoutines;
+
+  /// No description provided for @aiReplaceRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise already attached'**
+  String get aiReplaceRoutinesTitle;
+
+  /// No description provided for @aiReplaceRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT already has {count} personal exercise(s) ({names}). Replace them with the new ones?'**
+  String aiReplaceRoutinesBody(int count, String names);
+
+  /// No description provided for @aiReplaceRoutinesConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get aiReplaceRoutinesConfirm;
 
   /// No description provided for @programRoutineOnlyConfirmBody.
   ///

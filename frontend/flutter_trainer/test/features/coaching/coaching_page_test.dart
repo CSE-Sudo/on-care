@@ -584,8 +584,10 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
 /// 한 줄을 직접 더해 최소 한 개 조건을 채운다. (#2223)
 Future<void> _completePersonalStep(
   WidgetTester tester,
-  Finder scrollable,
-) async {
+  Finder scrollable, {
+  // 붙이기 흐름(#2280)은 `프로그램에 반영` 대신 `이 PT 에 붙이기` 로 끝난다.
+  String doneKey = 'complete-personal-routines',
+}) async {
   // 제안이 늦게 도착할 수 있다 — 한 번 더 정착시킨 뒤 비어 있는지 본다.
   // 줄이 하나라도 있으면 그 줄의 빼기 버튼이 있다 — 빈 상태 문구는 제안이
   // 없을 때와 못 읽었을 때가 달라, 줄 자체로 판단한다.
@@ -624,7 +626,7 @@ Future<void> _completePersonalStep(
     await tester.pumpAndSettle();
   }
 
-  final done = find.byKey(const ValueKey<String>('complete-personal-routines'));
+  final done = find.byKey(ValueKey<String>(doneKey));
   await tester.scrollUntilVisible(
     done,
     150,
@@ -3042,30 +3044,37 @@ void main() {
     );
   });
 
-  group('CoachingPage — 직접 만들기의 개인운동 (#2280)', () {
-    Future<_CapturingScheduleRepository> openManualEditor(
-      WidgetTester tester,
-    ) async {
+  group('CoachingPage — 개인운동 붙이기 (#2280)', () {
+    Future<_AttachScheduleRepository> openCoaching(
+      WidgetTester tester, {
+      String at = AppRoutes.coaching,
+      List<RoutineExercise> attached = const <RoutineExercise>[],
+    }) async {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = const Size(1600, 1200);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      late _CapturingScheduleRepository scheduleRepo;
+      late _AttachScheduleRepository scheduleRepo;
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
-        at: AppRoutes.coaching,
+        at: at,
         seedClock: kMidWeekKst,
         extraOverrides: <Override>[
           scheduleRepositoryProvider.overrideWith(
-            (ref) => scheduleRepo = _CapturingScheduleRepository(
+            (ref) => scheduleRepo = _AttachScheduleRepository(
               ref.watch(appDatabaseProvider),
+              attached: attached,
             ),
           ),
         ],
       );
+      return scheduleRepo;
+    }
+
+    /// `직접 만들기` 편집기에 운동 하나를 넣는다 — 빈 편집기는 보낼 수 없다.
+    Future<void> openManualEditor(WidgetTester tester) async {
       await _openManualProgram(tester);
-      // 보낼 수 있게 운동 하나를 직접 넣는다 — `직접 만들기` 는 빈 편집기다.
       final scrollable = find.byType(Scrollable).first;
       final add = find.text('운동 추가');
       await tester.scrollUntilVisible(add, 150, scrollable: scrollable);
@@ -3082,20 +3091,6 @@ void main() {
           )
           .onSubmitted!('직접 짠 운동');
       await tester.pumpAndSettle();
-      return scheduleRepo;
-    }
-
-    /// 개인운동 창에 이름 하나를 적고 저장한다.
-    Future<void> fillRoutineDialog(WidgetTester tester, String name) async {
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('session-routine-name-0')),
-        name,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('session-routines-send-confirm')),
-      );
-      await tester.pumpAndSettle();
     }
 
     Future<void> tapEditorSend(WidgetTester tester) async {
@@ -3107,16 +3102,34 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('편집기 아래 개인운동 박스가 비어 있어도 서고 거기서 붙인다', (tester) async {
-      final scheduleRepo = await openManualEditor(tester);
+    /// 붙이기 흐름의 개인운동 단계를 끝낸다 — 제안이 없으면 한 줄을 넣는다.
+    Future<void> finishAttachStep(WidgetTester tester) async {
+      expect(
+        find.byKey(const ValueKey<String>('routine-attach-target')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      await _completePersonalStep(
+        tester,
+        find.byType(Scrollable).first,
+        doneKey: 'routine-attach-confirm',
+      );
+    }
+
+    testWidgets('직접 만들기의 빈 개인운동 박스는 AI 개인운동 단계로 짜서 붙인다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
 
       // 위저드를 지나지 않았어도 박스가 선다 — 비었다는 사실을 보내기 전에
       // 보여 준다.
-      final empty = find.byKey(
-        const ValueKey<String>('personal-routine-box-empty'),
-      );
       await _revealBuilt(tester, 'personal-routine-edit');
-      expect(empty, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-empty')),
+        findsOneWidget,
+      );
       final edit = find.byKey(const ValueKey<String>('personal-routine-edit'));
       expect(
         find.descendant(of: edit, matching: find.text('개인운동 추가')),
@@ -3126,10 +3139,18 @@ void main() {
       await tester.pump();
       await tester.tap(edit);
       await tester.pumpAndSettle();
-      await fillRoutineDialog(tester, '저강도 걷기');
 
-      expect(empty, findsNothing);
-      expect(find.textContaining('저강도 걷기'), findsWidgets);
+      // 빈 창이 아니라 개인운동 단계(AI 제안)가 열린다. 편집기는 숨겨 둔다.
+      expect(find.byType(ProgramEditorWorkspace), findsNothing);
+      await finishAttachStep(tester);
+
+      // 편집기로 돌아와 짜던 PT 구성이 그대로 있고, 박스에 개인운동이 섰다.
+      expect(find.byType(ProgramEditorWorkspace), findsOneWidget);
+      expect(find.text('직접 짠 운동'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-empty')),
+        findsNothing,
+      );
       expect(
         find.descendant(of: edit, matching: find.text('개인운동 수정')),
         findsOneWidget,
@@ -3147,14 +3168,14 @@ void main() {
       await settle(tester);
 
       expect(scheduleRepo.registerCalls, 1);
-      expect(
-        scheduleRepo.personalRoutineCalls.single.map((e) => e.name).toList(),
-        <String>['저강도 걷기'],
-      );
+      expect(scheduleRepo.personalRoutineCalls.single, isNotEmpty);
     });
 
-    testWidgets('개인운동 없이 일정을 추가하려 하면 한 번 묻고, 그 자리에서 붙여 이어 간다', (tester) async {
-      final scheduleRepo = await openManualEditor(tester);
+    testWidgets('개인운동 없이 일정을 추가하려 하면 한 번 묻고, 추가를 고르면 개인운동 단계로 간다', (
+      tester,
+    ) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
 
       await tapEditorSend(tester);
       expect(
@@ -3167,23 +3188,22 @@ void main() {
         find.byKey(const ValueKey<String>('no-personal-routine-add')),
       );
       await tester.pumpAndSettle();
-      await fillRoutineDialog(tester, '실내 자전거');
+      // 일정에는 아직 올리지 않았다 — 붙인 뒤 다시 `일정 추가` 를 누른다.
+      expect(scheduleRepo.registerCalls, 0);
+      await finishAttachStep(tester);
 
-      // 붙인 뒤 곧장 일정 확인창으로 이어 간다.
+      await tapEditorSend(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
       );
       await settle(tester);
-
       expect(scheduleRepo.registerCalls, 1);
-      expect(
-        scheduleRepo.personalRoutineCalls.single.map((e) => e.name).toList(),
-        <String>['실내 자전거'],
-      );
+      expect(scheduleRepo.personalRoutineCalls.single, isNotEmpty);
     });
 
     testWidgets('개인운동 없이 추가를 고르면 개인운동 없이 일정에 올린다', (tester) async {
-      final scheduleRepo = await openManualEditor(tester);
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
 
       await tapEditorSend(tester);
       await tester.tap(
@@ -3198,5 +3218,103 @@ void main() {
       expect(scheduleRepo.registerCalls, 1);
       expect(scheduleRepo.personalRoutineCalls.single, isEmpty);
     });
+
+    testWidgets('스케줄에서 오면 그 PT 에 붙이고 그 일정으로 돌아간다', (tester) async {
+      final scheduleRepo = await openCoaching(
+        tester,
+        at: AppRoutes.coachingAttach(
+          'seed-client-1',
+          sessionId: 'attach-target',
+          date: '2026-09-30',
+        ),
+      );
+
+      await finishAttachStep(tester);
+      await settle(tester);
+
+      expect(scheduleRepo.updatedFor, <String>['attach-target']);
+      expect(scheduleRepo.updatedItems.single, isNotEmpty);
+      // 붙이기만 한다 — 회원 전송은 스케줄에서 트레이너가 누른다.
+      expect(scheduleRepo.sends, 0);
+      final Uri location = Uri.parse(currentLocation(tester));
+      expect(location.path, AppRoutes.schedule);
+      expect(location.queryParameters['session'], 'attach-target');
+    });
+
+    testWidgets('붙일 PT 에 개인운동이 이미 있으면 바꿀지 한 번 묻는다', (tester) async {
+      final scheduleRepo = await openCoaching(
+        tester,
+        at: AppRoutes.coachingAttach(
+          'seed-client-1',
+          sessionId: 'attach-target',
+          date: '2026-09-30',
+        ),
+        attached: const <RoutineExercise>[
+          RoutineExercise(name: '먼저 붙인 걷기', minutes: 20, type: '유산소'),
+        ],
+      );
+
+      await finishAttachStep(tester);
+      expect(find.text('이미 개인운동이 있어요'), findsOneWidget);
+      expect(find.textContaining('먼저 붙인 걷기'), findsOneWidget);
+      // 묻는 동안에는 바꾸지 않는다.
+      expect(scheduleRepo.updatedFor, isEmpty);
+
+      await tester.tap(find.text('바꾸기'));
+      await settle(tester);
+      expect(scheduleRepo.updatedFor, <String>['attach-target']);
+    });
   });
+}
+
+/// 코칭 탭의 붙이기(#2280)를 보는 저장소 — 일정 등록과 붙이기를 붙잡는다.
+class _AttachScheduleRepository extends DriftScheduleRepository {
+  _AttachScheduleRepository(super.db, {required this.attached});
+
+  final List<RoutineExercise> attached;
+
+  int registerCalls = 0;
+  int sends = 0;
+  final List<List<RoutineExercise>> personalRoutineCalls =
+      <List<RoutineExercise>>[];
+  final List<String> updatedFor = <String>[];
+  final List<List<RoutineExercise>> updatedItems = <List<RoutineExercise>>[];
+
+  @override
+  Future<bool> registerProgramSchedule({
+    required String date,
+    required String clientId,
+    required String clientName,
+    required String time,
+    required int durationMinutes,
+    required Map<String, Object?> assignment,
+    required List<ProgramItem> program,
+    String? sessionId,
+    List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+  }) async {
+    registerCalls++;
+    personalRoutineCalls.add(personalRoutines);
+    return true;
+  }
+
+  @override
+  Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async =>
+      <SessionRoutine>[
+        for (final RoutineExercise e in attached)
+          SessionRoutine(exercise: e, sent: false),
+      ];
+
+  @override
+  Future<void> updateScheduledRoutines(
+    String id,
+    List<RoutineExercise> items,
+  ) async {
+    updatedFor.add(id);
+    updatedItems.add(items);
+  }
+
+  @override
+  Future<void> sendProgram(String id, {String? clientRequestId}) async {
+    sends++;
+  }
 }

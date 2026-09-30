@@ -1749,20 +1749,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedAddRoutines => '개인운동 추가';
 
   @override
-  String get schedAddRoutinesTitle => '개인운동 추가';
-
-  @override
-  String get schedAddRoutinesBody =>
-      '이 PT 에는 아직 개인운동이 없어요. 붙여 두면 PT 프로그램을 보낼 때 회원에게 함께 가요.';
-
-  @override
   String get schedRoutinesAdded => '개인운동을 붙였어요.';
 
   @override
   String get schedNoRoutines => '개인운동 없음';
-
-  @override
-  String get schedNoRoutinesHint => '연필 메뉴의 개인운동 추가로 붙이면 PT 프로그램과 함께 회원에게 가요.';
 
   @override
   String get schedNoRoutinesSendTitle => '개인운동 없이 보낼까요?';
@@ -3095,6 +3085,28 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get progPersonalRoutinesEmpty => '아직 개인운동이 없어요. PT 마다 최소 한 개를 붙여 주세요.';
+
+  @override
+  String aiAttachTargetSession(String date, String time) {
+    return '$date $time PT 에 붙일 개인운동이에요.';
+  }
+
+  @override
+  String get aiAttachTargetPt => '지금 짜는 PT 에 붙일 개인운동이에요.';
+
+  @override
+  String get aiAttachRoutines => '이 PT 에 붙이기';
+
+  @override
+  String get aiReplaceRoutinesTitle => '이미 개인운동이 있어요';
+
+  @override
+  String aiReplaceRoutinesBody(int count, String names) {
+    return '이 PT 에 개인운동 $count개($names)가 붙어 있어요. 새로 짠 것으로 바꿀까요?';
+  }
+
+  @override
+  String get aiReplaceRoutinesConfirm => '바꾸기';
 
   @override
   String programRoutineOnlyConfirmBody(

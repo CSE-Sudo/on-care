@@ -176,6 +176,24 @@ class AppRoutes {
     queryParameters: <String, String>{'client': clientId},
   ).toString();
 
+  /// [clientId] 회원의 코칭 탭을 **그 PT 에 개인운동 붙이기**로 연다. (#2280)
+  ///
+  /// 일정 상세의 `개인운동 없음` 에서 온다. 개인운동은 AI 제안을 받아 짜는
+  /// 것이라 코칭 탭의 개인운동 단계에서 짜고, 붙이면 [date] 의 그 일정
+  /// ([sessionId])으로 돌아간다.
+  static String coachingAttach(
+    String clientId, {
+    required String sessionId,
+    required String date,
+  }) => Uri(
+    path: coaching,
+    queryParameters: <String, String>{
+      'client': clientId,
+      'attach': sessionId,
+      'd': date,
+    },
+  ).toString();
+
   /// Builds the 리포트 tab focused on [clientId].
   ///
   /// [weekStart] 를 주면 그 주가 선택된 채로 열린다. 채팅의 리포트 카드가
