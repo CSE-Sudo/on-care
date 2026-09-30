@@ -3401,6 +3401,29 @@ void main() {
         findsOneWidget,
       );
 
+      // 날짜는 오늘과 아직 보내지 않은 PT 가 있는 날만 고른다 — PT 없는 앞날에
+      // 바로 보내면 실제로는 오늘부터 뜬다.
+      final date = find.byKey(
+        const ValueKey<String>('personal-routine-start-date'),
+      );
+      expect(
+        find.descendant(of: date, matching: find.text('2026-08-20')),
+        findsOneWidget,
+      );
+      await _revealBuilt(tester, 'personal-routine-start-date');
+      await _ensureCentered(tester, date);
+      await tester.pump();
+      await tester.tap(date);
+      await tester.pumpAndSettle();
+      final picker = tester.widget<DatePickerDialog>(
+        find.byType(DatePickerDialog),
+      );
+      expect(picker.selectableDayPredicate!(DateTime(2026, 8, 20)), isTrue);
+      expect(picker.selectableDayPredicate!(DateTime(2026, 9, 30)), isTrue);
+      expect(picker.selectableDayPredicate!(DateTime(2026, 8, 21)), isFalse);
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
       // 가장 가까운 아직 보내지 않은 PT 를 알려 준다 — 누르면 시작일이 그
       // 날로 바뀌고 확정이 `PT에 반영` 이 된다.
       final nearest = find.byKey(

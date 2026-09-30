@@ -2048,12 +2048,12 @@
   "aiPersonalStepTitle": "Personal exercise between PT",
   "aiPersonalStepTitleRoutineOnly": "This week's personal exercise",
   "aiPersonalStepBlurb": "Attached to this PT and sent to the member when you complete it. Pick at least one.",
-  "aiPersonalStepBlurbRoutineOnly": "What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.",
+  "aiPersonalStepBlurbRoutineOnly": "What the member does on their own. If the chosen day has a PT it attaches to that PT; choosing today sends it now for a week. Pick at least one.",
   "aiPersonalStepEmpty": "No personal exercise yet. Add one below.",
   "aiPersonalStepNext": "Next",
   "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
   "aiRoutineOnlyReviewTitle": "Sending this to the member",
-  "aiRoutineOnlyStartDate": "Start date",
+  "aiRoutineOnlyStartDate": "Date",
   "aiRoutineOnlyWeekRange": "Shown daily {start} – {end}",
   "@aiRoutineOnlyWeekRange": {
     "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }

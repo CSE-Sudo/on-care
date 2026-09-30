@@ -390,7 +390,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime start = _routineOnlyStart[client.id] ?? _todayKst();
+    // PT 없이 보내면 고른 날과 상관없이 보낸 날부터 한 주 동안 걸린다 — 날짜
+    // 칸도 PT 없는 날로는 오늘만 고르게 한다(#2280).
+    final DateTime start = _todayKst();
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: l.aiRoutineOnlySend,
@@ -1207,7 +1209,17 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!mounted) return;
     final candidates = sessions.where(acceptsFirstPersonalRoutines).toList()
       ..sort((a, b) => '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}'));
-    setState(() => _routineOnlyCandidates[client.id] = candidates);
+    setState(() {
+      _routineOnlyCandidates[client.id] = candidates;
+      // 골라 둔 날에 PT 가 없어졌으면(그사이 보냈거나 취소) 오늘로 되돌린다 —
+      // PT 없는 날에 걸 수 있는 것은 오늘 바로 보내기뿐이다.
+      final DateTime? start = _routineOnlyStart[client.id];
+      if (start != null &&
+          ymd(start) != ymd(_todayKst()) &&
+          !candidates.any((s) => s.date == ymd(start))) {
+        _routineOnlyStart[client.id] = _todayKst();
+      }
+    });
   }
 
   /// `개인운동만` 을 붙일 PT — 시작일에 있는 아직 보내지 않은 PT. (#2280)
@@ -1485,6 +1497,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 target: _routineOnlyTargetFor(client.id),
                 nearestPt: _nearestRoutineOnlyPt(client.id),
                 targetReady: _routineOnlyCandidates.containsKey(client.id),
+                // 날짜는 오늘과 아직 보내지 않은 PT 가 있는 날만 고른다.
+                ptDates: <String>{
+                  for (final ScheduleSession s
+                      in _routineOnlyCandidates[client.id] ??
+                          const <ScheduleSession>[])
+                    s.date,
+                },
               ),
             ),
           ],

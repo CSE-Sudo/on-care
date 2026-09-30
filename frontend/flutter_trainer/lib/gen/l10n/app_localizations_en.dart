@@ -3185,7 +3185,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.';
+      'What the member does on their own. If the chosen day has a PT it attaches to that PT; choosing today sends it now for a week. Pick at least one.';
 
   @override
   String get aiPersonalStepEmpty => 'No personal exercise yet. Add one below.';
@@ -3200,7 +3200,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRoutineOnlyReviewTitle => 'Sending this to the member';
 
   @override
-  String get aiRoutineOnlyStartDate => 'Start date';
+  String get aiRoutineOnlyStartDate => 'Date';
 
   @override
   String aiRoutineOnlyWeekRange(String start, String end) {
