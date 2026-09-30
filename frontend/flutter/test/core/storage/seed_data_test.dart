@@ -124,7 +124,7 @@ void main() {
         reason: 'exercise sessions for the current week must be seeded',
       );
 
-      expect(await db.readValue('seeded_v19'), today);
+      expect(await db.readValue('seeded_v20'), today);
     });
 
     test('과거 식단은 날짜마다 값이 달라 추이가 직선이 되지 않는다', () async {
@@ -448,7 +448,7 @@ void main() {
     test('stale flag (different date) re-seeds with today', () async {
       // Pretend the seed last ran a week ago.
       await seedIfEmpty(db, fixture: _fixture);
-      await db.putValue('seeded_v19', '2020-01-01');
+      await db.putValue('seeded_v20', '2020-01-01');
 
       await seedIfEmpty(db, fixture: _fixture);
 
@@ -456,7 +456,7 @@ void main() {
       final diet = await db.select(db.dietEntries).get();
       expect(diet, isNotEmpty);
       expect(diet.where((r) => r.date == today).length, 3);
-      expect(await db.readValue('seeded_v19'), today);
+      expect(await db.readValue('seeded_v20'), today);
     });
 
     test('legacy seeded_v2=true flag is migrated and cleared', () async {
@@ -483,7 +483,7 @@ void main() {
 
       // Legacy flag cleared, current flag set to today.
       expect(await db.readValue('seeded_v2'), isNull);
-      expect(await db.readValue('seeded_v19'), _todayString());
+      expect(await db.readValue('seeded_v20'), _todayString());
 
       // Stale seed-prefixed row was wiped and replaced with today's
       // seed batch.
@@ -513,7 +513,7 @@ void main() {
 
       await seedIfEmpty(db, fixture: _fixture);
       // Force a re-seed by ageing the flag.
-      await db.putValue('seeded_v19', '2020-01-01');
+      await db.putValue('seeded_v20', '2020-01-01');
       await seedIfEmpty(db, fixture: _fixture);
 
       final diet = await db.select(db.dietEntries).get();
