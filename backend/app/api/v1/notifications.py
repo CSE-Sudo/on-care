@@ -71,8 +71,27 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
 }
 
 
-def _action_for(category: str, locale: Locale = "ko") -> NotificationAction | None:
+#: 알림별 목적지(`Notification.action_target`, #2690)의 라벨. 갈래별 표와 목적지가
+#: 같으면 그 라벨을 쓰고, 여기 없는 목적지는 "보기" 다.
+_LABEL_BY_TARGET: dict[str, tuple[str, str]] = {
+    "diet": ("식단 보기", "View meals"),
+    "exercise": ("운동 보기", "View workouts"),
+    "dashboard": ("홈 보기", "View home"),
+    "coach_chat": ("대화 보기", "View chat"),
+}
+
+
+def _action_for(
+    category: str, locale: Locale = "ko", target: str | None = None
+) -> NotificationAction | None:
+    """알림의 행동 유도. [target] 이 있으면 그 목적지, 없으면 갈래별 표다(#2690)."""
     entry = _ACTION_BY_CATEGORY.get(category)
+    if target:
+        if entry is not None and entry[2] == target:
+            ko, en = entry[0], entry[1]
+        else:
+            ko, en = _LABEL_BY_TARGET.get(target, ("보기", "View"))
+        return NotificationAction(label=localized(ko, en, locale), target=target)
     if entry is None:
         return None
     ko, en, target = entry
@@ -93,7 +112,8 @@ def notification_out(row: Notification, locale: Locale) -> NotificationOut:
         id=row.id, title=title, body=body, category=row.category,
         read=row.read, created_at=row.created_at,
         time_ago=_time_ago(row.created_at, locale),
-        action=_action_for(row.category, locale), invite_id=row.invite_id,
+        action=_action_for(row.category, locale, row.action_target),
+        invite_id=row.invite_id,
         template=row.template, args=row.template_args,
     )
 
