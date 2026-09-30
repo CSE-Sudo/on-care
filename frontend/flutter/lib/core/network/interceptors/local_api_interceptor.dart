@@ -154,6 +154,8 @@ class LocalApiInterceptor extends Interceptor {
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
     'GET /notifications': _notifications,
+    'GET /notifications/unread-count': _notificationsUnreadCount,
+    'POST /notifications/read-all': _notificationsReadAll,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
@@ -360,6 +362,11 @@ class LocalApiInterceptor extends Interceptor {
     }
     if (method == 'DELETE' && path.startsWith('/ai-coach/insights/')) {
       return _aiCoachInsightDismiss;
+    }
+    if (method == 'POST' &&
+        path.startsWith('/notifications/') &&
+        path.endsWith('/read')) {
+      return _notificationRead;
     }
     return null;
   }
@@ -2334,15 +2341,73 @@ class LocalApiInterceptor extends Interceptor {
           'category': r.category,
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
-          'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
-          // 내 혜택 알림(챌린지 결과)은 서버처럼 갈 곳을 싣는다(#1789).
-          'action': ?_demoActionFor(r.category),
+          // 데모 시드 알림은 정해 둔 경과 시간으로 보인다 — 같은 날 안에서 시각이
+          // 흐르지 않는다(#2660). 나머지는 실제 경과다.
+          'time_ago': _timeAgoKorean(
+            kDemoAlertAgeBySeedId[r.id] ?? now.difference(r.createdAt),
+          ),
+          // 데모 시드 알림은 예전 데모 목록의 목적지, 나머지는 서버처럼 갈래별
+          // 목적지를 싣는다(#1789·#2660).
+          'action': ?(_demoSeedAction(r.id) ?? _demoActionFor(r.category)),
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
         },
     ];
     return _ok(options, list);
+  }
+
+  static Map<String, Object?>? _demoSeedAction(String id) {
+    final ({String label, String target})? a = kDemoAlertActionBySeedId[id];
+    if (a == null) return null;
+    return <String, Object?>{'label': a.label, 'target': a.target};
+  }
+
+  /// 데모에 로그인하면 시드 알림을 시드할 때의 읽음 상태로 되돌린다(#2660).
+  ///
+  /// 예전 데모는 로그인·계정 전환마다 알림이 처음 상태였다(#1936). 읽음이 drift 에
+  /// 남게 된 뒤에도 그 모양을 지킨다. 챌린지 결과처럼 데모 중에 생긴 알림은 둔다.
+  /// 앱을 다시 켜기만 한 것(새로고침)은 로그인이 아니라 읽음이 남는다 — 실서버와
+  /// 같고, 날짜가 바뀌면 시드가 다시 깔리며 풀린다.
+  Future<void> _resetDemoNotificationReads() async {
+    await (_db.update(_db.notificationItems)
+          ..where((t) => t.id.isIn(kDemoAlertKeyBySeedId.keys)))
+        .write(const NotificationItemsCompanion(read: Value(false)));
+    await (_db.update(_db.notificationItems)
+          ..where((t) => t.id.isIn(kDemoAlertReadSeedIds)))
+        .write(const NotificationItemsCompanion(read: Value(true)));
+  }
+
+  /// 헤더 벨 배지가 폴링하는 미읽음 수. 서버와 같은 키(`unread`)로 답한다.
+  Future<Response<Object?>> _notificationsUnreadCount(
+    RequestOptions options,
+  ) async {
+    final unread = await (_db.select(
+      _db.notificationItems,
+    )..where((t) => t.read.equals(false))).get();
+    return _ok(options, <String, Object?>{'unread': unread.length});
+  }
+
+  /// 알림 한 건 읽음. 없는 id 는 서버처럼 404 다.
+  Future<Response<Object?>> _notificationRead(RequestOptions options) async {
+    final List<String> parts = options.path.split('/');
+    final String id = parts[parts.length - 2];
+    final int n =
+        await (_db.update(_db.notificationItems)..where((t) => t.id.equals(id)))
+            .write(const NotificationItemsCompanion(read: Value(true)));
+    if (n == 0) return _notFound(options, '알림을 찾을 수 없습니다.');
+    return _ok(options, <String, Object?>{'id': id, 'read': true});
+  }
+
+  /// 안 읽은 알림을 모두 읽음. 바꾼 건수를 서버와 같은 키로 준다.
+  Future<Response<Object?>> _notificationsReadAll(
+    RequestOptions options,
+  ) async {
+    final int n =
+        await (_db.update(_db.notificationItems)
+              ..where((t) => t.read.equals(false)))
+            .write(const NotificationItemsCompanion(read: Value(true)));
+    return _ok(options, <String, Object?>{'marked_read': n});
   }
 
   // ---- AI Coach ----
@@ -2906,6 +2971,7 @@ class LocalApiInterceptor extends Interceptor {
     if (username.isEmpty || password.isEmpty) {
       return _badRequest(options, 'username and password are required');
     }
+    await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
       'refresh_token': 'demo-refresh',
@@ -2999,6 +3065,7 @@ class LocalApiInterceptor extends Interceptor {
     if (token.isEmpty) {
       return _badRequest(options, 'token is required');
     }
+    await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-social-${DateTime.now().microsecondsSinceEpoch}',
       'refresh_token': 'demo-refresh',
@@ -3591,7 +3658,9 @@ class LocalApiInterceptor extends Interceptor {
               createdAt: nowKst(),
               title: notice.title,
               body: notice.body,
-              category: 'benefits',
+              // 서버와 같은 갈래다 — 챌린지 아이콘으로 그리고 포인트 사용처로
+              // 간다(`weekly_challenge_service`, #1789·#2660).
+              category: 'points_shop',
             ),
             mode: InsertMode.insertOrIgnore,
           );
@@ -3627,8 +3696,31 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
+  ///
+  /// 데모 시드 알림(리마인더·성취·트레이너 메시지·리포트·루틴)도 서버 표를 그대로
+  /// 따른다. 데모 알림함이 실서버 데모 계정과 같은 곳으로 이어져야 한다(#2660).
   static Map<String, Object?>? _demoActionFor(String category) =>
       switch (category) {
+        'reminder' => const <String, Object?>{
+          'label': '기록하러 가기',
+          'target': 'dashboard',
+        },
+        'achievement' => const <String, Object?>{
+          'label': '대시보드 보기',
+          'target': 'dashboard',
+        },
+        'coach_chat' => const <String, Object?>{
+          'label': '대화 보기',
+          'target': 'coach_chat',
+        },
+        'coach_report' => const <String, Object?>{
+          'label': '리포트 보기',
+          'target': 'coach_chat',
+        },
+        'routine' => const <String, Object?>{
+          'label': '운동 보기',
+          'target': 'exercise',
+        },
         'benefits' => const <String, Object?>{
           'label': '내 혜택 보기',
           'target': 'my_benefits',

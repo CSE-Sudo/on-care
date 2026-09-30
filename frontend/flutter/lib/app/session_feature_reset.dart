@@ -77,15 +77,14 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(activityCalendarProvider);
       // 주간 챌린지(#1789) — 같은 이유로 앞 계정의 참가·진행이 남지 않게 한다.
       ref.invalidate(weeklyChallengeProvider);
-      // 목 저장소는 읽음 처리를 세션 동안 기억한다 — 다시 만들지 않으면 앞
-      // 계정의 읽음 상태로 시작한다(#1936).
+      // 알림은 저장소에서 다시 읽는다 — 앞 계정의 목록·읽음 상태로 시작하지 않게
+      // 한다(#1936). 데모는 로그인할 때 인터셉터가 시드 알림 읽음을 되돌린다(#2660).
       ref.invalidate(notificationRepositoryProvider);
       ref.invalidate(notificationControllerProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이
       // 앱을 다시 켤 때까지 남는다.
       ref.invalidate(notificationSettingsProvider);
-      // 벨의 빨간 점. 목 모드는 한 번 내보내고 끝이라, 되짚지 않으면 앞 계정의
-      // 점이 앱을 다시 켤 때까지 남는다(#1936).
+      // 벨의 빨간 점. 되짚지 않으면 다음 폴링까지 앞 계정의 점이 남는다(#1936).
       ref.invalidate(notificationUnreadProvider);
     };
   });

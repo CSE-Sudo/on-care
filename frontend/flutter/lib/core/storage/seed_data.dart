@@ -26,7 +26,7 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 
 /// Date-aware idempotent seeder. Runs at bootstrap.
 ///
-/// **Flag format (v4+).** `AppKeyValues['seeded_v20']` stores the
+/// **Flag format (v4+).** `AppKeyValues['seeded_v21']` stores the
 /// *date string* the seed last ran with (`YYYY-MM-DD`). Behaviour:
 ///
 /// - `null` (first ever boot, or upgrading from v1/v2) — wipe any
@@ -54,7 +54,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
   final today = _fmtDate(now);
 
-  final seedDate = await db.readValue('seeded_v20');
+  final seedDate = await db.readValue('seeded_v21');
   if (seedDate == today) {
     // Already seeded for today — leave both seed rows and user rows
     // untouched.
@@ -103,11 +103,18 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   // v19: 어제에 수행한 스트레칭이 한 건 생겼다(#1361). 올리지 않으면 오늘 이미
   // 시드된 설치가 예전 하루를 그대로 들고 있어 이번 주 스트레칭 링이 계속 0 이다.
   await db.deleteValue('seeded_v18');
-  // v20: 포인트 내역·쿠폰·챌린지·보호권·이모티콘이 시드된다(#2664). 새 플래그의 첫
-  // 부팅(`seedDate == null`)에만 혜택 장부를 지워 다시 깔게 한다 — 날짜만 바뀐
-  // 부팅에는 회원이 데모에서 쌓은 포인트·쿠폰을 남긴다(실서버처럼).
+  // v20: 포인트 내역·쿠폰·챌린지·보호권·이모티콘이 시드된다(#2664). 혜택 플래그의 첫
+  // 부팅에만 혜택 장부를 지워 다시 깔게 한다 — 날짜만 바뀐 부팅에는 회원이 데모에서
+  // 쌓은 포인트·쿠폰을 남긴다(실서버처럼). v21 로 넘어오는 설치는 이미 v20 을
+  // 거쳤으므로 장부를 지우지 않는다.
+  final String? seededV20 = await db.readValue('seeded_v20');
   await db.deleteValue('seeded_v19');
-  if (seedDate == null) await db.deleteValue(kDemoBenefitsKey);
+  if (seedDate == null && seededV20 == null) {
+    await db.deleteValue(kDemoBenefitsKey);
+  }
+  // v21: 주간 리포트 알림의 갈래가 서버와 같은 `coach_report` 가 됐다(#2660). 올리지
+  // 않으면 오늘 이미 시드된 설치가 리포트 알림을 말풍선 아이콘으로 그린다.
+  await db.deleteValue('seeded_v20');
   // Also clear the curated KV advice so re-seed state is fully reset: this
   // version re-writes it below, but if a later seed drops or renames the key
   // an existing install would otherwise keep the stale text forever.
@@ -175,7 +182,8 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
 
     // ---- Notifications ----
     await db.batch((Batch b) {
-      // 앱 데모 알림(`demoAlerts`)·백엔드 데모 계정 시드와 같은 목록이다(#1812).
+      // 백엔드 데모 계정 시드(`seed_notifications.py`)와 같은 목록·갈래다(#1812).
+      // 데모 알림함은 인터셉터 `GET /notifications` 로 이 행을 읽는다(#2660).
       b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
         NotificationItemsCompanion.insert(
           id: 'seed-noti-1',
@@ -203,7 +211,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
           createdAt: now.subtract(const Duration(minutes: 45)),
           title: '이번 주 리포트가 등록됐어요',
           body: '$kDemoTrainerName 트레이너님이 이번 주 리포트를 등록했어요.',
-          category: 'coach_chat',
+          category: 'coach_report',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
@@ -262,7 +270,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     }),
   );
 
-  await db.putValue('seeded_v20', today);
+  await db.putValue('seeded_v21', today);
 }
 
 String _fmtDate(DateTime d) =>

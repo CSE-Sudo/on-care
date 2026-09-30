@@ -48,28 +48,14 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// 알림의 상대 시각("10분 전" / "10m ago"). (#1812)
 ///
-///  * 데모 알림은 [AlertItem.age] 로 로케일에 맞게 쓴다.
-///  * 서버·로컬 알림은 이미 셈해 온 `time_ago`(한국어, 또는 영어 요청이면 서버가
-///    준 영어)를 로케일 문장으로 옮긴다.
+/// 서버·로컬 인터셉터가 이미 셈해 온 `time_ago`(한국어, 또는 영어 요청이면 서버가
+/// 준 영어)를 로케일 문장으로 옮긴다. 데모 알림도 같은 길이다(#2660).
 ///
 /// 서버 알림을 `created_at` 으로 다시 셈하지 않는 이유: 서버는 오프셋 없는 시각을
 /// UTC 로, 로컬 목 모드는 서울 벽시계로 저장한다. 앱이 둘을 구분할 수 없어
 /// 한쪽이 9시간 어긋난다(#850). 시각은 보낸 쪽이 이미 맞게 셈했다.
-String alertTimeAgo(AppLocalizations l, AlertItem item) {
-  final Duration? age = item.age;
-  if (age != null) return formatAlertAge(l, age);
-  return localizeTimeAgo(l, item.timeAgo);
-}
-
-/// 경과 시간 → 상대 시각. 구간은 로컬 인터셉터가 한국어로 셈하는 규칙과 같다
-/// (1분·1시간·하루·이틀).
-String formatAlertAge(AppLocalizations l, Duration age) {
-  if (age.inMinutes < 1) return l.alertTimeJustNow;
-  if (age.inMinutes < 60) return l.alertTimeMinutesAgo(age.inMinutes);
-  if (age.inHours < 24) return l.alertTimeHoursAgo(age.inHours);
-  if (age.inDays == 1) return l.alertTimeYesterday;
-  return l.alertTimeDaysAgo(age.inDays);
-}
+String alertTimeAgo(AppLocalizations l, AlertItem item) =>
+    localizeTimeAgo(l, item.timeAgo);
 
 final RegExp _koreanAgo = RegExp(r'^(\d+)\s*(분|시간|일)\s*전$');
 
