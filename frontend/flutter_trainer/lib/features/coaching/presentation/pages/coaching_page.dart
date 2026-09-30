@@ -131,9 +131,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 스케줄의 `개인운동 추가` 에서 왔다 — 그 PT 에 반영하면 그 일정으로 돌아간다.
   ({String clientId, String sessionId, String date})? _returnToSchedule;
 
-  /// 다음에 세우는 위저드를 `개인운동만 짜기` 를 고른 채로 연다. 스케줄의
-  /// `개인운동 추가` 에서 왔을 때다. (#2280)
-  bool _wizardStartsRoutineOnly = false;
+  /// `개인운동만 짜기` 를 고른 채로 열 위저드의 판번호([_wizardRevision]).
+  /// 스케줄의 `개인운동 추가` 에서 왔을 때다. (#2280)
+  ///
+  /// 판번호로 가리킨다 — 참·거짓으로 들고 있으면 언제 거둘지가 문제다. 위저드는
+  /// AI 추천을 읽은 뒤에야 서므로 다음 프레임에 거두면 위저드가 서기 전에
+  /// 지워지고, 남겨 두면 PT 프로그램을 보낸 뒤 새로 서는 위저드까지 `개인운동만`
+  /// 으로 열린다. 판번호가 바뀌면 저절로 끝난다.
+  int? _routineOnlyWizardRevision;
 
   /// 이미 받은 붙이기 요청(`r`). 탭을 옮겨 다녀도 코칭 탭 주소에는 그 요청이
   /// 남아 있어, 돌아올 때마다 위저드가 다시 세워지지 않게 한다. 같은 PT 라도
@@ -250,19 +255,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
     _routineOnlyTarget[clientId] = sessionId;
     _returnToSchedule = (clientId: clientId, sessionId: sessionId, date: date);
-    _wizardStartsRoutineOnly = true;
     _personalRoutines.remove(clientId);
     _routineOnlyClients.remove(clientId);
     _draftAttachFor = null;
     _sent = false;
     _aiWizardVisible = true;
     _wizardRevision++;
-    // 이번에 세우는 위저드 하나만 그렇게 연다 — 위저드는 이 값을 처음 설 때만
-    // 읽는다. 남겨 두면 트레이너가 조건 설정으로 되돌아가 PT 프로그램을 보낸
-    // 뒤 새로 서는 위저드까지 `개인운동만` 으로 열린다.
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _wizardStartsRoutineOnly = false,
-    );
+    _routineOnlyWizardRevision = _wizardRevision;
   }
 
   void _selectClient(String id) {
@@ -282,7 +281,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _wizardRevision = 0;
       // 다른 회원으로 옮기면 붙이던 흐름은 거둔다 — 그 PT 는 앞 회원의 것이다.
       _draftAttachFor = null;
-      _wizardStartsRoutineOnly = false;
+      _routineOnlyWizardRevision = null;
       // NOTE: _sendingClientIds is intentionally NOT cleared — writes for
       // other clients keep being tracked while the selection changes.
     });
@@ -1303,7 +1302,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     : items.map((item) => item.reason).join(' · '),
                 // 스케줄의 `개인운동 추가` 에서 왔으면 `개인운동만 짜기` 를
                 // 고른 채로 연다(#2280).
-                startRoutineOnly: _wizardStartsRoutineOnly,
+                startRoutineOnly: _routineOnlyWizardRevision == _wizardRevision,
                 onReviewCompleted: (exercises, personalRoutines, kind) {
                   final bool routineOnly = kind == ProgramKind.routineOnly;
                   if (routineOnly) {
