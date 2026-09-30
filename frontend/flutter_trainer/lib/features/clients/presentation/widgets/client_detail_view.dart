@@ -510,13 +510,17 @@ class _Header extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: OnCareSpacing.s4),
-                          Text(
-                            clientDemographicsLabel(context, client),
-                            key: const ValueKey<String>(
-                              'client-detail-demographics',
+                          // 좁은 폭·큰 글씨에서는 이름과 함께 줄어 말줄임한다.
+                          Flexible(
+                            child: Text(
+                              clientDemographicsLabel(context, client),
+                              key: const ValueKey<String>(
+                                'client-detail-demographics',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: clientDemographicsStyle(context),
                             ),
-                            maxLines: 1,
-                            style: clientDemographicsStyle(context),
                           ),
                         ],
                       ),
