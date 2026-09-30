@@ -29,11 +29,13 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../helpers/fake_diet_repository.dart';
+import '../helpers/fake_notification_repository.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -105,6 +107,10 @@ void main() {
             MockDashboardRepository(diet) as DashboardRepository,
           ),
           memberCoachRepositoryProvider.overrideWithValue(repository),
+          // 알림함은 데모에서도 Dio + drift 를 탄다(#2660) — 식단처럼 가짜로 덮는다.
+          notificationRepositoryProvider.overrideWithValue(
+            FakeNotificationRepository(),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),

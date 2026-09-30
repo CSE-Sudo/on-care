@@ -2,11 +2,22 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
-import 'package:oncare/features/notification/data/repositories/mock_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 
+import '../../helpers/demo_notifications.dart';
+
 /// 데모 알림함 — 트레이너와 이어진 서비스 흐름이 보이는 예시 목록(#1812).
+///
+/// 데모 알림함은 drift 시드를 로컬 인터셉터가 `GET /notifications` 로 내준 것이다
+/// (#2660). 여기서는 앱이 실제로 받는 모양(`DioNotificationRepository` 로 읽은 것)을
+/// 본다.
 void main() {
+  late List<AlertItem> demoAlerts;
+
+  setUpAll(() async {
+    demoAlerts = await fetchDemoAlerts();
+  });
+
   AlertItem byTitle(String title) =>
       demoAlerts.singleWhere((AlertItem a) => a.title == title);
 
@@ -30,20 +41,22 @@ void main() {
 
   test('안 읽은 알림 일곱 건이 위에 모여 있다', () {
     final reads = demoAlerts.map((AlertItem a) => a.read).toList();
-    expect(reads.where((bool r) => !r), hasLength(7));
+    expect(reads.where((bool r) => !r), hasLength(kDemoUnreadNotifications));
     final int firstRead = reads.indexOf(true);
     expect(reads.sublist(firstRead).every((bool r) => r), isTrue);
   });
 
-  test('예시 알림은 승인한 갈래와 목적지로 이어진다', () {
+  // 목적지는 서버의 갈래별 표(`_ACTION_BY_CATEGORY`)를 그대로 따른다 — 실서버
+  // 데모 계정의 알림함과 같은 곳으로 이어진다(#2660).
+  test('예시 알림은 서버와 같은 갈래와 목적지로 이어진다', () {
     final expected = <String, (AlertCategory, AlertTarget)>{
       '새 운동 루틴이 도착했어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
       '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
       '트레이너 피드백 도착': (AlertCategory.coachChat, AlertTarget.coachChat),
-      '저녁 식단을 기록해 주세요': (AlertCategory.reminder, AlertTarget.diet),
+      '저녁 식단을 기록해 주세요': (AlertCategory.reminder, AlertTarget.dashboard),
       '식단 기록을 꾸준히 이어가고 있어요': (AlertCategory.achievement, AlertTarget.dashboard),
-      '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.exercise),
+      '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.dashboard),
     };
     expected.forEach((String title, (AlertCategory, AlertTarget) want) {
       final AlertItem a = byTitle(title);
@@ -60,11 +73,10 @@ void main() {
     );
   });
 
-  test('목업 저장소의 미읽음 수가 데모 목록과 같다', () async {
-    final MockNotificationRepository repo = MockNotificationRepository();
-    expect(await repo.unreadCount(), 7);
-    await repo.markAllRead();
-    expect(await repo.unreadCount(), 0);
+  test('모든 알림이 다음 쪽 커서(created_at)를 갖는다', () {
+    for (final AlertItem a in demoAlerts) {
+      expect(a.createdAt, isNotEmpty, reason: a.id);
+    }
   });
 
   // 알림은 식단·운동·채팅 목업을 따라 적은 문장이다. 픽스처가 바뀌면 조용히
@@ -86,7 +98,7 @@ void main() {
       );
       final AlertItem dinner = byTitle('저녁 식단을 기록해 주세요');
       expect(dinner.read, isFalse);
-      expect(dinner.age, lessThan(const Duration(hours: 1)));
+      expect(dinner.timeAgo, endsWith('분 전'));
     });
 
     test('루틴 알림은 픽스처에 있는 걷기 루틴을 말한다', () {

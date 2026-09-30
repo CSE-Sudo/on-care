@@ -59,7 +59,7 @@ void main() {
     final NotificationRepository before = container.read(
       notificationRepositoryProvider,
     );
-    // 앞 계정이 전부 읽음으로 바꾼다 — 목 저장소는 이것을 세션 동안 기억한다.
+    // 앞 계정이 전부 읽음으로 바꾼다.
     await container.read(notificationControllerProvider.notifier).markAllRead();
 
     container.read(sessionFeatureResetProvider)();
@@ -88,8 +88,8 @@ void main() {
     final int before = container.read(notificationUnreadProvider).valueOrNull ?? 0;
     container.read(sessionFeatureResetProvider)();
 
-    // 값 자체가 아니라 "되짚혔는가" 를 본다 — 목 모드는 한 번 내보내고 끝이라
-    // 되짚지 않으면 앞 계정 값이 그대로 남는다.
+    // 값 자체가 아니라 "되짚혔는가" 를 본다 — 되짚지 않으면 다음 폴링까지 앞
+    // 계정 값이 그대로 남는다.
     expect(container.read(notificationUnreadProvider), isA<AsyncValue<int>>());
     expect(before, isNotNull);
   });

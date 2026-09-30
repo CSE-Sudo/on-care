@@ -15,7 +15,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
-import 'package:oncare/features/notification/data/repositories/mock_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
@@ -190,19 +189,21 @@ void main() {
       );
     });
 
-    test('목/데모 모드는 이어 받지 않는다', () async {
-      final repo = MockNotificationRepository();
+    // 데모도 실서버와 같이 쪽을 나눠 이어 받는다 — 로컬 인터셉터가 커서로 답한다(#2660).
+    test('목/데모 모드도 이어 받는다', () async {
+      final repo = _PagingRepo(notificationPageSize * 2);
       final container = _container(repo, _mockConfig);
       container.read(notificationControllerProvider);
+      await Future<void>.delayed(Duration.zero);
 
       await container
           .read(notificationControllerProvider.notifier)
           .loadMore();
 
-      // 데모는 시드가 진실원본이다 — 없는 서버를 향한 요청이 나가면 안 된다.
+      expect(repo.calls, hasLength(2));
       expect(
         container.read(notificationControllerProvider).items,
-        hasLength(demoAlerts.length),
+        hasLength(notificationPageSize * 2),
       );
     });
   });

@@ -129,4 +129,84 @@ void main() {
     final list = next.data!.cast<Map<String, Object?>>();
     expect(list.map((e) => e['id']), <String>['n-3']);
   });
+
+  // 데모 알림함도 실서버와 같은 경로로 읽음을 남기고 배지를 센다(#2660).
+  group('읽음 처리·미읽음 수', () {
+    Future<int> unread() async {
+      final res = await dio.get<Map<String, Object?>>(
+        '/notifications/unread-count',
+      );
+      return res.data!['unread']! as int;
+    }
+
+    test('미읽음 수를 서버와 같은 키로 준다', () async {
+      expect(await unread(), 2);
+    });
+
+    test('한 건 읽음은 그 알림만 바꾸고 다시 읽어도 남는다', () async {
+      final res = await dio.post<Map<String, Object?>>(
+        '/notifications/n-1/read',
+      );
+      expect(res.data, <String, Object?>{'id': 'n-1', 'read': true});
+      expect(await unread(), 1);
+
+      final list = (await dio.get<List<Object?>>(
+        '/notifications',
+      )).data!.cast<Map<String, Object?>>();
+      final byId = <String, Map<String, Object?>>{
+        for (final e in list) e['id']! as String: e,
+      };
+      expect(byId['n-1']!['read'], isTrue);
+      expect(byId['n-2']!['read'], isFalse);
+    });
+
+    test('없는 알림을 읽으면 서버처럼 404 다', () async {
+      final gone = await dio.post<Object?>(
+        '/notifications/nope/read',
+        options: Options(validateStatus: (int? s) => true),
+      );
+      expect(gone.statusCode, 404);
+      expect(await unread(), 2);
+    });
+
+    test('모두 읽음은 바꾼 건수를 주고 미읽음이 0 이 된다', () async {
+      final res = await dio.post<Map<String, Object?>>(
+        '/notifications/read-all',
+      );
+      expect(res.data, <String, Object?>{'marked_read': 2});
+      expect(await unread(), 0);
+    });
+  });
+
+  // 목적지는 서버 `_ACTION_BY_CATEGORY` 와 같다 — 데모 알림을 눌러도 실서버 데모
+  // 계정과 같은 화면으로 간다(#2660).
+  test('갈래마다 서버와 같은 목적지를 싣는다', () async {
+    final now = nowKst();
+    await db.batch((b) {
+      b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
+        for (final c in <String>['coach_chat', 'coach_report', 'routine'])
+          NotificationItemsCompanion.insert(
+            id: 'c-$c',
+            createdAt: now,
+            title: c,
+            body: c,
+            category: c,
+          ),
+      ]);
+    });
+
+    final list = (await dio.get<List<Object?>>(
+      '/notifications',
+    )).data!.cast<Map<String, Object?>>();
+    String? target(String id) =>
+        (list.firstWhere((e) => e['id'] == id)['action']
+                as Map<String, Object?>?)?['target']
+            as String?;
+    expect(target('n-1'), 'dashboard');
+    expect(target('n-2'), 'dashboard');
+    expect(target('n-3'), isNull);
+    expect(target('c-coach_chat'), 'coach_chat');
+    expect(target('c-coach_report'), 'coach_chat');
+    expect(target('c-routine'), 'exercise');
+  });
 }

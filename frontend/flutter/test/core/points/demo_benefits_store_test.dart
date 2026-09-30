@@ -233,9 +233,16 @@ void main() {
       expect(await db.readValue(kDemoBenefitsKey), isNull);
 
       await db.putValue(kDemoBenefitsKey, '{}');
+      await db.putValue('seeded_v21', '2020-01-01');
+      await seedIfEmpty(db, fixture: fixture);
+      expect(await db.readValue(kDemoBenefitsKey), '{}');
+
+      // v20 을 거친 설치가 v21(#2660)로 넘어올 때도 장부는 남는다.
+      await db.deleteValue('seeded_v21');
       await db.putValue('seeded_v20', '2020-01-01');
       await seedIfEmpty(db, fixture: fixture);
       expect(await db.readValue(kDemoBenefitsKey), '{}');
+      expect(await db.readValue('seeded_v20'), isNull);
     });
   });
 }
