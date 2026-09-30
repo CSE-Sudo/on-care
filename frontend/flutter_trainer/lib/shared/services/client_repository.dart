@@ -1386,51 +1386,59 @@ class DriftClientRepository implements ClientRepository {
     );
   }
 
-  TrainerClient _toEntity(TrainerClientRow row, {bool registered = true}) {
-    final week = (jsonDecode(row.weekCompletionJson) as List<Object?>)
-        .map((e) => e as int)
-        .toList();
-    final sodiumWeek = (jsonDecode(row.sodiumWeekJson) as List<Object?>)
-        // On web, JSON numbers can decode as double — `as int` would
-        // throw, so normalise through num (review PR 247).
-        .map((e) => (e as num).toInt())
-        .toList();
-    final caloriesWeek = (jsonDecode(row.caloriesWeekJson) as List<Object?>)
-        .map((e) => (e as num).toInt())
-        .toList();
-    // 당류는 소수를 유지한다 — 반올림하면 식단 탭 수치와 어긋난다(#746).
-    final sugarWeek = (jsonDecode(row.sugarWeekJson) as List<Object?>)
-        .map((e) => (e as num).toDouble())
-        .toList();
-    return TrainerClient(
-      id: row.id,
-      name: row.name,
-      avatar: row.avatar,
-      goal: row.goal,
-      lastMessage: row.lastMessage,
-      lastTime: row.lastTime,
-      active: row.active,
-      registered: registered,
-      calories: row.caloriesToday,
-      sodiumMg: row.sodiumMg,
-      sugarG: row.sugarG,
-      carbsG: row.carbsG,
-      proteinG: row.proteinG,
-      fatG: row.fatG,
-      lastRoutine: row.lastRoutine,
-      weekCompletion: week,
-      sodiumWeek: sodiumWeek,
-      caloriesWeek: caloriesWeek,
-      sugarWeek: sugarWeek,
-      // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
-      signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
-      // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
-      // 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender/rosterAge)이
-      // 대신 쓰인다.
-      gender: row.gender ?? '',
-      age: row.age,
-    );
-  }
+  TrainerClient _toEntity(TrainerClientRow row, {bool registered = true}) =>
+      trainerClientFromRow(row, registered: registered);
+}
+
+/// 데모 로스터 한 줄을 화면의 회원으로 옮긴다 — 리포트 저장소도 같은 변환을
+/// 쓴다(#2669).
+TrainerClient trainerClientFromRow(
+  TrainerClientRow row, {
+  bool registered = true,
+}) {
+  final week = (jsonDecode(row.weekCompletionJson) as List<Object?>)
+      .map((e) => e as int)
+      .toList();
+  final sodiumWeek = (jsonDecode(row.sodiumWeekJson) as List<Object?>)
+      // On web, JSON numbers can decode as double — `as int` would
+      // throw, so normalise through num (review PR 247).
+      .map((e) => (e as num).toInt())
+      .toList();
+  final caloriesWeek = (jsonDecode(row.caloriesWeekJson) as List<Object?>)
+      .map((e) => (e as num).toInt())
+      .toList();
+  // 당류는 소수를 유지한다 — 반올림하면 식단 탭 수치와 어긋난다(#746).
+  final sugarWeek = (jsonDecode(row.sugarWeekJson) as List<Object?>)
+      .map((e) => (e as num).toDouble())
+      .toList();
+  return TrainerClient(
+    id: row.id,
+    name: row.name,
+    avatar: row.avatar,
+    goal: row.goal,
+    lastMessage: row.lastMessage,
+    lastTime: row.lastTime,
+    active: row.active,
+    registered: registered,
+    calories: row.caloriesToday,
+    sodiumMg: row.sodiumMg,
+    sugarG: row.sugarG,
+    carbsG: row.carbsG,
+    proteinG: row.proteinG,
+    fatG: row.fatG,
+    lastRoutine: row.lastRoutine,
+    weekCompletion: week,
+    sodiumWeek: sodiumWeek,
+    caloriesWeek: caloriesWeek,
+    sugarWeek: sugarWeek,
+    // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
+    signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
+    // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
+    // 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender/rosterAge)이
+    // 대신 쓰인다.
+    gender: row.gender ?? '',
+    age: row.age,
+  );
 }
 
 /// Provides the [ClientRepository]: the real Dio-backed source against the
