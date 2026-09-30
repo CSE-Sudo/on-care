@@ -2589,6 +2589,9 @@
   "@myGoalsFocusChangedByMe": {
     "description": "MY health goals: the goals were last changed by the member (#1832)."
   },
+  "healthNotesLabel": "Health notes & cautions",
+  "healthNotesHint": "e.g. Left knee surgery, herniated disc",
+  "healthNotesHelper": "Used when recommending workouts",
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."

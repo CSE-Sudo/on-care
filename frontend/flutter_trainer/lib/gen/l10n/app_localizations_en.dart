@@ -3502,6 +3502,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifTplHealthNotesTitle => 'Member health notes changed';
+
+  @override
+  String notifTplHealthNotesBody(String name) {
+    return '$name updated their health notes';
+  }
+
+  @override
+  String notifTplHealthNotesWithGoalsBody(String name) {
+    return '$name updated their health goals and health notes';
+  }
+
+  @override
   String get notifTplNoGoals => 'none';
 
   @override
