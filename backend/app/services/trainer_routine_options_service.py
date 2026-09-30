@@ -79,6 +79,11 @@ DEFAULT_INTENSITY: RoutineIntensityPreference = "moderate"
 #: docstring 참고). 숫자가 시작되는 지점 앞까지만 이름으로 본다.
 _TRAILING_COUNT_RE = re.compile(r"\s*\d.*$")
 
+#: 운동 기록 줄 끝의 수행 표시(#2714). 안 한 운동은 반복으로 세지 않는다.
+_SKIPPED_MARK = "✗"
+#: 한 운동 표시·괄호 메모가 시작되는 곳 — 그 앞까지가 이름이다.
+_DONE_OR_NOTE_RE = re.compile(r"[✓(]")
+
 
 @dataclass
 class _HistoryAnalysis:
@@ -289,6 +294,11 @@ def _exercise_name(item: object) -> str:
 
     `RoutineHistory.exercises_json` 은 `"레그프레스 3세트"` 처럼 이름 뒤에 자유
     텍스트가 붙는다. 숫자가 시작되는 지점부터는 이름이 아니라고 본다.
+
+    끝의 수행 표시와 괄호 메모도 뗀다(#2714) — `"걷기 ✓ (10분만)"` 은 `걷기` 다.
+    **안 한 운동(`✗`)은 빈 이름**이라 반복으로 세지 않는다. 떼지 않던 동안에는
+    `"데드리프트 ✗"` 가 그 이름대로 세어져, 하지 않은 운동이 "최근 자주 수행한
+    운동" 으로 A안에 들어갔다.
     """
     if isinstance(item, dict):
         text = str(item.get("name", ""))
@@ -296,6 +306,9 @@ def _exercise_name(item: object) -> str:
         text = item
     else:
         return ""
+    if _SKIPPED_MARK in text:
+        return ""
+    text = _DONE_OR_NOTE_RE.split(text, maxsplit=1)[0]
     return _TRAILING_COUNT_RE.sub("", text).strip()
 
 

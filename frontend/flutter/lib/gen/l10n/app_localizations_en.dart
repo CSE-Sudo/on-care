@@ -3924,10 +3924,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'A cancelled request can\'t be restored.';
 
   @override
-  String get exDemoPtFeedback =>
-      'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
-
-  @override
   String pointsRewardBadge(int points) {
     return '+${points}P';
   }

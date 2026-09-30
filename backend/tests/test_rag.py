@@ -98,5 +98,6 @@ def test_ai_coach_feedback_shape(client):
     assert r.status_code == 200
     body = r.json()
     assert body["greeting"]
-    assert len(body["suggestions"]) >= 2
+    # 데모 코칭 시트와 같은 식단·운동 두 장이다(#2706).
+    assert [s["tag"] for s in body["suggestions"]] == ["diet", "exercise"]
     assert all("tag" in s and "title" in s and "body" in s for s in body["suggestions"])

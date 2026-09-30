@@ -644,27 +644,36 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 같은 요일·같은 시각이다 — 트레이너 웹도 이 회원의 수업을 매주 같은 요일에
   /// 놓는다.
   ///
+  /// 완료 세션에는 회차(`sessionNumber`)를 싣는다 — 이 담당과 받은 완료 PT 를
+  /// 날짜순으로 센 순번이다. 실서버(`session_number`, #2697)와 같은 규칙이라,
+  /// 운동 탭 `오늘 완료한 PT` 카드가 두 모드에서 같은 경로로 `12회차` 를 그린다.
+  /// 예정 수업은 회차가 없다. (#2694)
+  ///
   /// 담당이 끊겼으면 비어 있다. 실서버도 활성 담당의 일정만 준다.
   @override
   Future<List<CoachSession>> fetchSessions() async {
     if (!_hasCoach()) return const <CoachSession>[];
     final DateTime today = todayKst();
-    return List<CoachSession>.unmodifiable(<CoachSession>[
+    final List<FixtureDay> ptDays = <FixtureDay>[
       for (final FixtureDay day in _fixtureDays)
-        if (day.isPt)
-          CoachSession(
-            id: 'seed-pt-${day.date}',
-            date: DateTime.parse(day.date),
-            time: _ptTime,
-            type: _ptType,
-            durationMinutes: _ptMinutes,
-            status: '완료',
-            note: day.trainerNote,
-            program: <CoachProgramItem>[
-              for (final FixtureExercise e in day.exercises)
-                if (e.done) _programItem(e),
-            ],
-          ),
+        if (day.isPt) day,
+    ];
+    return List<CoachSession>.unmodifiable(<CoachSession>[
+      for (final (int index, FixtureDay day) in ptDays.indexed)
+        CoachSession(
+          id: 'seed-pt-${day.date}',
+          date: DateTime.parse(day.date),
+          time: _ptTime,
+          type: _ptType,
+          durationMinutes: _ptMinutes,
+          status: '완료',
+          sessionNumber: index + 1,
+          note: day.trainerNote,
+          program: <CoachProgramItem>[
+            for (final FixtureExercise e in day.exercises)
+              if (e.done) _programItem(e),
+          ],
+        ),
       CoachSession(
         id: 'seed-pt-next',
         date: DateTime(today.year, today.month, today.day + 7),
