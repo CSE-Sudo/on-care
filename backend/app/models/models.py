@@ -923,7 +923,6 @@ class ExerciseSession(Base):
     assigned_routine_name: Mapped[str] = mapped_column(
         String(100), default="", server_default=""
     )
-    member_note: Mapped[str] = mapped_column(Text, default="", server_default="")
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
