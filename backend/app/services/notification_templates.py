@@ -45,6 +45,9 @@ _Renderer = Callable[[Args, Locale], Rendered]
 
 # 트레이너가 받는 알림.
 TRAINER_HEALTH_GOAL = "trainer_health_goal"
+#: 회원이 건강상태·주의사항을 고쳤다(#2619). 글은 싣지 않는다 — 알림 미리보기에
+#: 건강 정보가 드러나지 않게, 트레이너 웹이 누르면 글이 있는 창을 바로 연다.
+TRAINER_HEALTH_NOTES = "trainer_health_notes"
 TRAINER_MEMBER_RENAMED = "trainer_member_renamed"
 TRAINER_MEMBER_WITHDRAWN = "trainer_member_withdrawn"
 TRAINER_MEMBER_DISCONNECTED = "trainer_member_disconnected"
@@ -199,6 +202,17 @@ def _trainer_health_goal(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return "회원 건강 목표 변경", f"{name} 회원이 건강 목표를 바꿨어요: {label}"
     return "Member goals changed", f"{name or 'A member'} changed their health goals: {label}"
+
+
+@_template(TRAINER_HEALTH_NOTES)
+def _trainer_health_notes(args: Args, locale: Locale) -> Rendered:
+    name = _text(args, "member_name")
+    with_focus = bool(args.get("with_focus"))
+    if locale == "ko":
+        what = "건강 목표와 건강상태·주의사항을" if with_focus else "건강상태·주의사항을"
+        return "회원 주의사항 변경", f"{name} 회원이 {what} 바꿨어요"
+    what = "health goals and health notes" if with_focus else "health notes"
+    return "Member health notes changed", f"{name or 'A member'} updated their {what}"
 
 
 @_template(TRAINER_MEMBER_RENAMED)

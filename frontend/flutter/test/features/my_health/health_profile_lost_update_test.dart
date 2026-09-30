@@ -202,4 +202,16 @@ void main() {
     expect(server.sentConditions, '체중 감량, 재활, 허리 디스크');
     expect(server.sentCalories, isNull);
   });
+  testWidgets('주의사항만 고쳐도 트레이너가 바꾼 목표 칩은 남는다 (#2619)', (tester) async {
+    final _Server server = _Server();
+    await _open(tester, server);
+    await tester.tap(find.byKey(const Key('goalsEditButton')));
+    await tester.pumpAndSettle();
+
+    await server.trainerEdits(conditions: '근력 향상, 무릎 통증 주의');
+    await tester.enterText(_field('goalConditionsField'), '무릎 통증 주의, 러닝 자제');
+    await _save(tester);
+
+    expect(server.sentConditions, '근력 향상, 무릎 통증 주의, 러닝 자제');
+  });
 }

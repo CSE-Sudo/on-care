@@ -3329,6 +3329,19 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get notifTplHealthNotesTitle => '회원 주의사항 변경';
+
+  @override
+  String notifTplHealthNotesBody(String name) {
+    return '$name 회원이 건강상태·주의사항을 바꿨어요';
+  }
+
+  @override
+  String notifTplHealthNotesWithGoalsBody(String name) {
+    return '$name 회원이 건강 목표와 건강상태·주의사항을 바꿨어요';
+  }
+
+  @override
   String get notifTplNoGoals => '목표 없음';
 
   @override
