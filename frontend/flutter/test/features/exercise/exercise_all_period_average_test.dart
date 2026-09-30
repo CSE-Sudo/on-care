@@ -18,7 +18,9 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -70,6 +72,9 @@ Future<void> _openAllPeriod(WidgetTester tester) async {
         // 데모 픽스처가 들고 있는 35주를 `전체` 로 본다 — 기록 시작일이 정한다
         // (#2079).
         testRecordSpanOverride(exercise: testFirstExerciseRecordDate()),
+        // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
+        // DB 없이 메모리 목업의 주를 본다.
+        exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
         appConfigProvider.overrideWithValue(_config),
         accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         memberCoachRepositoryProvider.overrideWithValue(

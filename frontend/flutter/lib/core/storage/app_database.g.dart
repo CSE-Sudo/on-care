@@ -1106,6 +1106,28 @@ class $ExerciseSessionsTable extends ExerciseSessions
     requiredDuringInsert: false,
     defaultValue: const Constant('moderate'),
   );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('member'),
+  );
+  static const VerificationMeta _assignedRoutineIdMeta = const VerificationMeta(
+    'assignedRoutineId',
+  );
+  @override
+  late final GeneratedColumn<String> assignedRoutineId =
+      GeneratedColumn<String>(
+        'assigned_routine_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1133,6 +1155,8 @@ class $ExerciseSessionsTable extends ExerciseSessions
     weight,
     calories,
     intensity,
+    source,
+    assignedRoutineId,
     createdAt,
   ];
   @override
@@ -1240,6 +1264,21 @@ class $ExerciseSessionsTable extends ExerciseSessions
         intensity.isAcceptableOrUnknown(data['intensity']!, _intensityMeta),
       );
     }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('assigned_routine_id')) {
+      context.handle(
+        _assignedRoutineIdMeta,
+        assignedRoutineId.isAcceptableOrUnknown(
+          data['assigned_routine_id']!,
+          _assignedRoutineIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1307,6 +1346,14 @@ class $ExerciseSessionsTable extends ExerciseSessions
         DriftSqlType.string,
         data['${effectivePrefix}intensity'],
       )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      assignedRoutineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_routine_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1353,6 +1400,16 @@ class ExerciseSessionRow extends DataClass
   final double? weight;
   final int calories;
   final String intensity;
+
+  /// 이 기록을 누가 만들었나 — `member`|`trainer_pt`|`assigned_routine`. 서버
+  /// `exercise_sessions.source` 와 같은 어휘다. 코칭에서 파생된 기록은 회원이
+  /// 고치거나 지울 수 없다(#499, #638). 이 컬럼이 생기기 전 기록은 `member`
+  /// 다. (#2662)
+  final String source;
+
+  /// 배정 루틴을 완료해 생긴 기록이면 그 루틴 id. 완료를 되돌릴 때 이 기록을
+  /// 찾아 지운다. (#1131, #2662)
+  final String? assignedRoutineId;
   final DateTime createdAt;
   const ExerciseSessionRow({
     required this.id,
@@ -1368,6 +1425,8 @@ class ExerciseSessionRow extends DataClass
     this.weight,
     required this.calories,
     required this.intensity,
+    required this.source,
+    this.assignedRoutineId,
     required this.createdAt,
   });
   @override
@@ -1396,6 +1455,10 @@ class ExerciseSessionRow extends DataClass
     }
     map['calories'] = Variable<int>(calories);
     map['intensity'] = Variable<String>(intensity);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || assignedRoutineId != null) {
+      map['assigned_routine_id'] = Variable<String>(assignedRoutineId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1421,6 +1484,10 @@ class ExerciseSessionRow extends DataClass
           : Value(weight),
       calories: Value(calories),
       intensity: Value(intensity),
+      source: Value(source),
+      assignedRoutineId: assignedRoutineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assignedRoutineId),
       createdAt: Value(createdAt),
     );
   }
@@ -1444,6 +1511,10 @@ class ExerciseSessionRow extends DataClass
       weight: serializer.fromJson<double?>(json['weight']),
       calories: serializer.fromJson<int>(json['calories']),
       intensity: serializer.fromJson<String>(json['intensity']),
+      source: serializer.fromJson<String>(json['source']),
+      assignedRoutineId: serializer.fromJson<String?>(
+        json['assignedRoutineId'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1464,6 +1535,8 @@ class ExerciseSessionRow extends DataClass
       'weight': serializer.toJson<double?>(weight),
       'calories': serializer.toJson<int>(calories),
       'intensity': serializer.toJson<String>(intensity),
+      'source': serializer.toJson<String>(source),
+      'assignedRoutineId': serializer.toJson<String?>(assignedRoutineId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1482,6 +1555,8 @@ class ExerciseSessionRow extends DataClass
     Value<double?> weight = const Value.absent(),
     int? calories,
     String? intensity,
+    String? source,
+    Value<String?> assignedRoutineId = const Value.absent(),
     DateTime? createdAt,
   }) => ExerciseSessionRow(
     id: id ?? this.id,
@@ -1499,6 +1574,10 @@ class ExerciseSessionRow extends DataClass
     weight: weight.present ? weight.value : this.weight,
     calories: calories ?? this.calories,
     intensity: intensity ?? this.intensity,
+    source: source ?? this.source,
+    assignedRoutineId: assignedRoutineId.present
+        ? assignedRoutineId.value
+        : this.assignedRoutineId,
     createdAt: createdAt ?? this.createdAt,
   );
   ExerciseSessionRow copyWithCompanion(ExerciseSessionsCompanion data) {
@@ -1520,6 +1599,10 @@ class ExerciseSessionRow extends DataClass
       weight: data.weight.present ? data.weight.value : this.weight,
       calories: data.calories.present ? data.calories.value : this.calories,
       intensity: data.intensity.present ? data.intensity.value : this.intensity,
+      source: data.source.present ? data.source.value : this.source,
+      assignedRoutineId: data.assignedRoutineId.present
+          ? data.assignedRoutineId.value
+          : this.assignedRoutineId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1540,6 +1623,8 @@ class ExerciseSessionRow extends DataClass
           ..write('weight: $weight, ')
           ..write('calories: $calories, ')
           ..write('intensity: $intensity, ')
+          ..write('source: $source, ')
+          ..write('assignedRoutineId: $assignedRoutineId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1560,6 +1645,8 @@ class ExerciseSessionRow extends DataClass
     weight,
     calories,
     intensity,
+    source,
+    assignedRoutineId,
     createdAt,
   );
   @override
@@ -1579,6 +1666,8 @@ class ExerciseSessionRow extends DataClass
           other.weight == this.weight &&
           other.calories == this.calories &&
           other.intensity == this.intensity &&
+          other.source == this.source &&
+          other.assignedRoutineId == this.assignedRoutineId &&
           other.createdAt == this.createdAt);
 }
 
@@ -1596,6 +1685,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
   final Value<double?> weight;
   final Value<int> calories;
   final Value<String> intensity;
+  final Value<String> source;
+  final Value<String?> assignedRoutineId;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const ExerciseSessionsCompanion({
@@ -1612,6 +1703,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     this.weight = const Value.absent(),
     this.calories = const Value.absent(),
     this.intensity = const Value.absent(),
+    this.source = const Value.absent(),
+    this.assignedRoutineId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1629,6 +1722,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     this.weight = const Value.absent(),
     required int calories,
     this.intensity = const Value.absent(),
+    this.source = const Value.absent(),
+    this.assignedRoutineId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1651,6 +1746,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     Expression<double>? weight,
     Expression<int>? calories,
     Expression<String>? intensity,
+    Expression<String>? source,
+    Expression<String>? assignedRoutineId,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -1668,6 +1765,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
       if (weight != null) 'weight': weight,
       if (calories != null) 'calories': calories,
       if (intensity != null) 'intensity': intensity,
+      if (source != null) 'source': source,
+      if (assignedRoutineId != null) 'assigned_routine_id': assignedRoutineId,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1687,6 +1786,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     Value<double?>? weight,
     Value<int>? calories,
     Value<String>? intensity,
+    Value<String>? source,
+    Value<String?>? assignedRoutineId,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -1704,6 +1805,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
       weight: weight ?? this.weight,
       calories: calories ?? this.calories,
       intensity: intensity ?? this.intensity,
+      source: source ?? this.source,
+      assignedRoutineId: assignedRoutineId ?? this.assignedRoutineId,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1751,6 +1854,12 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     if (intensity.present) {
       map['intensity'] = Variable<String>(intensity.value);
     }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (assignedRoutineId.present) {
+      map['assigned_routine_id'] = Variable<String>(assignedRoutineId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1776,6 +1885,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
           ..write('weight: $weight, ')
           ..write('calories: $calories, ')
           ..write('intensity: $intensity, ')
+          ..write('source: $source, ')
+          ..write('assignedRoutineId: $assignedRoutineId, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2723,6 +2834,8 @@ typedef $$ExerciseSessionsTableCreateCompanionBuilder =
       Value<double?> weight,
       required int calories,
       Value<String> intensity,
+      Value<String> source,
+      Value<String?> assignedRoutineId,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -2741,6 +2854,8 @@ typedef $$ExerciseSessionsTableUpdateCompanionBuilder =
       Value<double?> weight,
       Value<int> calories,
       Value<String> intensity,
+      Value<String> source,
+      Value<String?> assignedRoutineId,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -2816,6 +2931,16 @@ class $$ExerciseSessionsTableFilterComposer
 
   ColumnFilters<String> get intensity => $composableBuilder(
     column: $table.intensity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedRoutineId => $composableBuilder(
+    column: $table.assignedRoutineId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2899,6 +3024,16 @@ class $$ExerciseSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedRoutineId => $composableBuilder(
+    column: $table.assignedRoutineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2957,6 +3092,14 @@ class $$ExerciseSessionsTableAnnotationComposer
   GeneratedColumn<String> get intensity =>
       $composableBuilder(column: $table.intensity, builder: (column) => column);
 
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedRoutineId => $composableBuilder(
+    column: $table.assignedRoutineId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -3011,6 +3154,8 @@ class $$ExerciseSessionsTableTableManager
                 Value<double?> weight = const Value.absent(),
                 Value<int> calories = const Value.absent(),
                 Value<String> intensity = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> assignedRoutineId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExerciseSessionsCompanion(
@@ -3027,6 +3172,8 @@ class $$ExerciseSessionsTableTableManager
                 weight: weight,
                 calories: calories,
                 intensity: intensity,
+                source: source,
+                assignedRoutineId: assignedRoutineId,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -3045,6 +3192,8 @@ class $$ExerciseSessionsTableTableManager
                 Value<double?> weight = const Value.absent(),
                 required int calories,
                 Value<String> intensity = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> assignedRoutineId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExerciseSessionsCompanion.insert(
@@ -3061,6 +3210,8 @@ class $$ExerciseSessionsTableTableManager
                 weight: weight,
                 calories: calories,
                 intensity: intensity,
+                source: source,
+                assignedRoutineId: assignedRoutineId,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

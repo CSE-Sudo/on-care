@@ -907,3 +907,24 @@ def test_saved_templates_are_not_translated(client, lone_trainer):
     ).json()
     assert [r["name"] for r in rows] == ["내 하체 루틴"]
     assert rows[0]["exercises"][0]["name"] == "스쿼트"
+
+
+@pytest.mark.parametrize(
+    "signals",
+    [
+        _ALL_SIGNALS,
+        _RECORDS_ONLY,
+        suggestions._Signals(strength_heavy=True, total_minutes=100, strength_minutes=60),
+    ],
+)
+def test_strength_candidate_is_translated_and_keeps_its_amounts(signals):
+    """근력 후보도 이름·사유만 옮기고 세트·횟수·중량은 같다 (#2703)."""
+    ko = suggestions._suggestions_for(signals, "ko")[-1]
+    en = suggestions._suggestions_for(signals, "en")[-1]
+    assert ko.type == en.type == "근력"
+    assert (ko.sets, ko.reps, ko.weight, ko.evidence) == (
+        en.sets, en.reps, en.weight, en.evidence
+    )
+    assert not _has_hangul(en.name) and not _has_hangul(en.reason)
+    assert len(en.name) <= 100 and len(en.reason) <= 200
+    assert len(ko.reason) <= 200

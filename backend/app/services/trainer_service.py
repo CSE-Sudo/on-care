@@ -5555,7 +5555,7 @@ def _derived_exercise_id(session_id: str) -> str:
     `sched-hist-{id}` 와 같은 이유다. 동시 완료나 재호출에도 같은 id 가 나와
     중복 행이 생기지 않는다.
     """
-    return f"sched-ex-{session_id}"
+    return f"{exercise_service.PT_EXERCISE_ID_PREFIX}{session_id}"
 
 
 def _schedule_day(day: str) -> date:

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -30,6 +31,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
+          // DB 없이 메모리 목업의 주를 본다.
+          exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
           appConfigProvider.overrideWithValue(_config),
           // 데모 연결 상태를 들고 있는 한 인스턴스 — 코치 저장소도 이것을 본다.
           gymRepositoryProvider.overrideWithValue(MockGymRepository()),

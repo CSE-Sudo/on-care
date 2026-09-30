@@ -26,7 +26,7 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 
 /// Date-aware idempotent seeder. Runs at bootstrap.
 ///
-/// **Flag format (v4+).** `AppKeyValues['seeded_v21']` stores the
+/// **Flag format (v4+).** `AppKeyValues['seeded_v22']` stores the
 /// *date string* the seed last ran with (`YYYY-MM-DD`). Behaviour:
 ///
 /// - `null` (first ever boot, or upgrading from v1/v2) — wipe any
@@ -54,7 +54,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
   final today = _fmtDate(now);
 
-  final seedDate = await db.readValue('seeded_v21');
+  final seedDate = await db.readValue('seeded_v22');
   if (seedDate == today) {
     // Already seeded for today — leave both seed rows and user rows
     // untouched.
@@ -105,16 +105,21 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   await db.deleteValue('seeded_v18');
   // v20: 포인트 내역·쿠폰·챌린지·보호권·이모티콘이 시드된다(#2664). 혜택 플래그의 첫
   // 부팅에만 혜택 장부를 지워 다시 깔게 한다 — 날짜만 바뀐 부팅에는 회원이 데모에서
-  // 쌓은 포인트·쿠폰을 남긴다(실서버처럼). v21 로 넘어오는 설치는 이미 v20 을
+  // 쌓은 포인트·쿠폰을 남긴다(실서버처럼). v21·v22 로 넘어오는 설치는 이미 v20 을
   // 거쳤으므로 장부를 지우지 않는다.
   final String? seededV20 = await db.readValue('seeded_v20');
+  final String? seededV21 = await db.readValue('seeded_v21');
   await db.deleteValue('seeded_v19');
-  if (seedDate == null && seededV20 == null) {
+  if (seedDate == null && seededV20 == null && seededV21 == null) {
     await db.deleteValue(kDemoBenefitsKey);
   }
   // v21: 주간 리포트 알림의 갈래가 서버와 같은 `coach_report` 가 됐다(#2660). 올리지
   // 않으면 오늘 이미 시드된 설치가 리포트 알림을 말풍선 아이콘으로 그린다.
   await db.deleteValue('seeded_v20');
+  // v22: 운동 기록이 출처(PT·배정 루틴)와 중량을 든다(#2662). 데모 운동 탭이 이
+  // 표를 읽게 되면서, 올리지 않으면 오늘 이미 시드된 설치의 PT 기록이 회원
+  // 기록으로 읽혀 `직접 기록한 운동` 에 서고 고칠 수 있게 된다.
+  await db.deleteValue('seeded_v21');
   // Also clear the curated KV advice so re-seed state is fully reset: this
   // version re-writes it below, but if a later seed drops or renames the key
   // an existing install would otherwise keep the stale text forever.
@@ -176,6 +181,12 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
               name: Value(e.name),
               sets: Value(e.type == 'strength' ? e.sets : null),
               reps: Value(e.type == 'strength' ? e.reps : null),
+              weight: Value(e.type == 'strength' ? e.weight : null),
+              // 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+              // 지도 세션, 나머지 날은 배정받은 개인운동을 한 기록이다. 비워
+              // 두면 `member` 로 떨어져 PT 가 `직접 기록한 운동` 에 서고 고칠
+              // 수 있게 된다(#499, #638, #2662).
+              source: Value(day.isPt ? 'trainer_pt' : 'assigned_routine'),
             ),
       ]);
     });
@@ -270,7 +281,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     }),
   );
 
-  await db.putValue('seeded_v21', today);
+  await db.putValue('seeded_v22', today);
 }
 
 String _fmtDate(DateTime d) =>
