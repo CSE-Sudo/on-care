@@ -55,6 +55,16 @@ class DuplicatePendingConsultation(Exception):
     pass
 
 
+class LinkedToOtherTrainer(Exception):
+    """담당 트레이너가 있는 회원이 다른 트레이너에게 상담을 내려 함 — 409
+    `linked_to_other_trainer`. (#2611)
+
+    담당에게 내는 재상담은 된다. 다른 트레이너에게는 담당 연결을 해제한 뒤에
+    낸다 — 연결된 채로 열어 두면 앱이 담당 회원을 다른 트레이너·헬스장으로
+    이어 주는 통로가 되고, 지금 담당은 그 사실을 알 수 없다.
+    """
+
+
 class TooManyPendingConsultations(Exception):
     """답을 기다리는 요청이 상한에 닿았음 — 409 `too_many_pending`. (#1628)
 
@@ -441,6 +451,11 @@ def create_consultation(
         )
 
     _validate_target(db, payload)
+    coach_id = trainer_service.get_member_trainer_id(db, member_id)
+    if coach_id is not None and coach_id != payload.trainer_id:
+        raise LinkedToOtherTrainer(
+            "담당 트레이너 연결을 해제한 뒤 다른 트레이너에게 상담을 요청할 수 있습니다."
+        )
     now = _now()
     # 지난 대기 요청을 먼저 정리한다 — 그래야 만료된 요청이 잡고 있던 자리를 이
     # 신청이 고를 수 있고, 아래 대기 중복 검사도 살아 있는 요청만 본다. (#1873)
