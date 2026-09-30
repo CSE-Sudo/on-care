@@ -99,6 +99,13 @@ Future<void> _pump(WidgetTester tester, FakeDietRepository repo) async {
       ),
     ),
   );
+  await _settle(tester);
+}
+
+/// 대역의 하루 조회는 타이머로 늦게 답한다. `pumpAndSettle` 은 예약된 프레임만
+/// 기다리므로, 이레치 조회가 끝날 만큼 시계를 먼저 돌린다.
+Future<void> _settle(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 2));
   await tester.pumpAndSettle();
 }
 
@@ -120,6 +127,7 @@ void main() {
 
     // 대역의 분석 결과는 615kcal(비빔밥+김치)다. 시트가 떠 있는 동안 이미
     // 저장됐으므로 뒤의 합계가 벌써 바뀌어 있다.
+    await _settle(tester);
     expect(_weekTotal(tester), before + 615);
     // 첫 기록일 수 있다 — 시작일도 다시 읽었다.
     expect(_spanCalls, greaterThan(spanBefore));
@@ -147,6 +155,7 @@ void main() {
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
 
+    await _settle(tester);
     expect(find.byKey(const Key('mealCreatePage')), findsNothing);
     expect(_weekTotal(tester), before + 420);
     expect(_spanCalls, greaterThan(spanBefore));
