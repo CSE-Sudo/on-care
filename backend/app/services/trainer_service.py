@@ -2183,8 +2183,6 @@ def complete_assigned_routine(
         assigned_routine_id=routine.id,
         assigned_trainer_id=trainer_id,
         assigned_routine_name=routine.name,
-        # 개인 운동 피드백은 받지 않는다(#1825) — 불편은 채팅에서 감지한다.
-        member_note="",
         completed_at=completed_at,
     )
     db.add(row)

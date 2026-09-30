@@ -383,26 +383,20 @@ const Map<String, String> _seedEnglish = <String, String>{
   '이번 주는 3번만 채워보죠. 무리 안 하는 게 더 중요해요 🙂':
       "Let's aim for just three this week. Not overdoing it matters more 🙂",
   '야식': 'Late-night snack',
-  '스쿼트 4세트 · 10회 · 50kg': 'Squat · 4 sets · 10 reps · 50kg',
-  '레그컬 3세트 · 12회 · 35kg': 'Leg curl · 3 sets · 12 reps · 35kg',
-  '벤치프레스 4세트 · 8회 · 50kg': 'Bench press · 4 sets · 8 reps · 50kg',
-  '푸시업 3세트 · 15회 · 0kg': 'Push-up · 3 sets · 15 reps · 0kg',
-  '덤벨 플라이 3세트 · 12회 · 10kg': 'Dumbbell fly · 3 sets · 12 reps · 10kg',
-  '데드리프트 4세트 · 8회 · 60kg': 'Deadlift · 4 sets · 8 reps · 60kg',
-  '바벨 로우 3세트 · 10회 · 40kg': 'Barbell row · 3 sets · 10 reps · 40kg',
-  '풀업 3세트 · 8회 · 0kg': 'Pull-up · 3 sets · 8 reps · 0kg',
-  '숄더 프레스 4세트 · 10회 · 20kg': 'Shoulder press · 4 sets · 10 reps · 20kg',
-  '사이드 레터럴 3세트 · 15회 · 6kg': 'Lateral raise · 3 sets · 15 reps · 6kg',
-  '페이스 풀 3세트 · 15회 · 15kg': 'Face pull · 3 sets · 15 reps · 15kg',
-  '런닝 30분': 'Running · 30 min',
-  '사이클 20분': 'Cycling · 20 min',
-  '코어 서킷 3세트 · 12회 · 0kg': 'Core circuit · 3 sets · 12 reps · 0kg',
-  '레그프레스 4세트 · 12회 · 70kg': 'Leg press · 4 sets · 12 reps · 70kg',
-  '힙 쓰러스트 3세트 · 12회 · 40kg': 'Hip thrust · 3 sets · 12 reps · 40kg',
-  '카프 레이즈 3세트 · 20회 · 0kg': 'Calf raise · 3 sets · 20 reps · 0kg',
-  '플랭크 3세트 · 3회 · 0kg': 'Plank · 3 sets · 3 reps · 0kg',
-  '버피 3세트 · 12회 · 0kg': 'Burpee · 3 sets · 12 reps · 0kg',
-  '마운틴 클라이머 3세트 · 20회 · 0kg': 'Mountain climber · 3 sets · 20 reps · 0kg',
+  // 날짜별 루틴(`_routinePool`)은 값까지 실린 객체라 이름만 옮긴다(#2667).
+  '푸시업': 'Push-up',
+  '덤벨 플라이': 'Dumbbell fly',
+  '바벨 로우': 'Barbell row',
+  '풀업': 'Pull-up',
+  '숄더 프레스': 'Shoulder press',
+  '사이드 레터럴': 'Lateral raise',
+  '페이스 풀': 'Face pull',
+  '런닝': 'Running',
+  '사이클': 'Cycling',
+  '힙 쓰러스트': 'Hip thrust',
+  '카프 레이즈': 'Calf raise',
+  '버피': 'Burpee',
+  '마운틴 클라이머': 'Mountain climber',
   '출근 전 수업. 상체 위주로 짧게 끊어 간다.':
       'Session before work. Keep it short and upper-body focused.',
   '랫풀다운': 'Lat pulldown',
@@ -741,4 +735,63 @@ const Map<String, String> _seedEnglish = <String, String>{
   '혈액순환 개선': 'Improves circulation',
   '기초대사량 향상': 'Boosts basal metabolism',
   'PT 피드백 반영 · 오른쪽 어깨 보호': 'Based on PT feedback · Protects the right shoulder',
+  // 지난 PT 메모·지난 상담(#2667).
+  '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.':
+      'Finished 6 interval sets. Breathing spiked in the last two, so rest went up to 90 seconds.',
+  '벤치프레스 70kg 4×6 성공. 다음 주 72.5kg 시도.':
+      'Bench press 70kg 4×6 done. Trying 72.5kg next week.',
+  '하프 마라톤 대비 템포런 후 햄스트링 뻣뻣함. 폼롤러 10분 추가.':
+      'Hamstrings tight after a half-marathon tempo run. Added 10 minutes of foam rolling.',
+  '데드리프트 힙힌지 패턴 안정. 허리 통증 없음, 중량 유지.':
+      'Deadlift hip hinge is stable. No back pain; keeping the same weight.',
+  '무릎 굴곡 110°까지 통증 없음. 스텝업 높이 한 단계 올림.':
+      'Knee flexion pain-free up to 110°. Raised the step-up height one level.',
+  '허리 뻐근함 호소해 코어 운동을 버드독 위주로 바꿈. 혈압 측정 후 시작.':
+      'Reported a stiff lower back, so core work switched to bird dogs. Started after a blood pressure check.',
+  '스쿼트 깊이 개선. 회식 다음 날이라 유산소는 20분으로 줄임.':
+      'Squat depth improved. Cut cardio to 20 minutes since it was the day after a work dinner.',
+  '야근 뒤 늦게 도착해 30분만 진행. 상체 위주로 압축.':
+      'Arrived late after overtime, so we did 30 minutes, condensed to upper body.',
+  '전신 서킷 3라운드 무리 없음. 식단 얘기는 다음 상담에서 이어 가기로.':
+      'Three rounds of the full-body circuit, no trouble. Diet talk continues at the next consultation.',
+  '주말 과식 얘기 나눔. 스쿼트 50kg 4×10 안정적.':
+      'Talked about weekend overeating. Squat 50kg 4×10 is steady.',
+  '벌크업 중 벤치프레스 45kg 도달. 단백질 쉐이크 운동 직후로 옮김.':
+      'Reached a 45kg bench press while bulking. Moved the protein shake to right after training.',
+  '재활 밴드 운동 통증 없이 완료. 다음 주 맨몸 런지 추가.':
+      'Rehab band work done pain-free. Adding bodyweight lunges next week.',
+  '3주 만의 수업. 체력 저하가 커서 강도를 70%로 낮춰 진행.':
+      'First session in three weeks. Fitness dropped a lot, so intensity was lowered to 70%.',
+  '첫 수업. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.':
+      'First session. Focused on how to use the equipment; squat form is good.',
+  '사이클 30분 + 하체 근력. 무릎 정렬 좋아짐.':
+      'Cycling 30 minutes + lower-body strength. Knee alignment has improved.',
+  '데드리프트 100kg 3×5. 그립 약해져 스트랩 사용 권유.':
+      'Deadlift 100kg 3×5. Grip is fading, so I suggested straps.',
+  '장거리 러닝 후 회복 주간. 가동성 위주로 가볍게.':
+      'Recovery week after a long run. Kept it light and mobility-focused.',
+  '레그프레스 가동범위 70%까지. 통증 척도 1/10.':
+      'Leg press up to 70% range of motion. Pain 1/10.',
+  '걷기 속도 높임. 운동 후 혈압 정상 범위.':
+      'Increased walking pace. Blood pressure normal after exercise.',
+  '체중 정체 이야기. 저녁 탄수화물 절반 줄이기로 합의.':
+      'Talked about the weight plateau. Agreed to halve dinner carbs.',
+  '당일 취소 후 보강 수업. 컨디션 좋음.':
+      'Make-up session after a same-day cancellation. Feeling good.',
+  '플랭크 90초 달성. 나트륨 높은 점심 메뉴 대안 안내.':
+      'Held a 90-second plank. Suggested lower-sodium lunch options.',
+  '인터벌 후 어지럼 없음. 물 섭취 늘리라고 안내.':
+      'No dizziness after intervals. Advised drinking more water.',
+  '하체 볼륨 늘림. 식사량 늘리는 게 힘들다고 함.':
+      'Increased lower-body volume. Says eating more is hard.',
+  '출산 후 코어 재활 4주차. 복직근 이개 1.5cm.':
+      'Week 4 of postpartum core rehab. Diastasis recti at 1.5cm.',
+  '수업 시간대 바꾸고 싶다고 함. 상담 잡기로.':
+      'Wants to change the session time. Scheduling a consultation.',
+  '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.':
+      'Eating-habit consultation. Work dinners twice a week, so we start by cutting late-night snacks.',
+  '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.':
+      'Blood pressure consultation. Agreed to share home readings before each PT session.',
+  '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.':
+      'Consultation to reset rehab goals. Per the doctor, knee flexion is limited to 120°.',
 };

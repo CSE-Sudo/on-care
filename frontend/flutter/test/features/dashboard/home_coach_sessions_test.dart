@@ -145,7 +145,8 @@ void main() {
     });
 
     testWidgets('데모 홈 일정은 지금과 같다', (WidgetTester tester) async {
-      // override 없이 — 데모는 목 저장소가 빈 목록을 주므로 카드가 그대로다.
+      // override 없이 — 데모 목 저장소의 오늘 PT 는 이미 끝난 수업이고 다음
+      // 예정은 한 주 뒤라(#2659), 오늘의 일정에는 서지 않는다.
       await _pump(tester);
 
       expect(find.text('병원 정기검진'), findsOneWidget);

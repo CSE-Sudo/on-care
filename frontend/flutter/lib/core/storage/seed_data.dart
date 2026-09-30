@@ -4,6 +4,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
 
@@ -25,7 +26,7 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 
 /// Date-aware idempotent seeder. Runs at bootstrap.
 ///
-/// **Flag format (v4+).** `AppKeyValues['seeded_v19']` stores the
+/// **Flag format (v4+).** `AppKeyValues['seeded_v20']` stores the
 /// *date string* the seed last ran with (`YYYY-MM-DD`). Behaviour:
 ///
 /// - `null` (first ever boot, or upgrading from v1/v2) — wipe any
@@ -53,7 +54,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
   final today = _fmtDate(now);
 
-  final seedDate = await db.readValue('seeded_v19');
+  final seedDate = await db.readValue('seeded_v20');
   if (seedDate == today) {
     // Already seeded for today — leave both seed rows and user rows
     // untouched.
@@ -102,6 +103,11 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   // v19: 어제에 수행한 스트레칭이 한 건 생겼다(#1361). 올리지 않으면 오늘 이미
   // 시드된 설치가 예전 하루를 그대로 들고 있어 이번 주 스트레칭 링이 계속 0 이다.
   await db.deleteValue('seeded_v18');
+  // v20: 포인트 내역·쿠폰·챌린지·보호권·이모티콘이 시드된다(#2664). 새 플래그의 첫
+  // 부팅(`seedDate == null`)에만 혜택 장부를 지워 다시 깔게 한다 — 날짜만 바뀐
+  // 부팅에는 회원이 데모에서 쌓은 포인트·쿠폰을 남긴다(실서버처럼).
+  await db.deleteValue('seeded_v19');
+  if (seedDate == null) await db.deleteValue(kDemoBenefitsKey);
   // Also clear the curated KV advice so re-seed state is fully reset: this
   // version re-writes it below, but if a later seed drops or renames the key
   // an existing install would otherwise keep the stale text forever.
@@ -166,9 +172,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
             ),
       ]);
     });
-
-    // ---- Today's schedule (2 events) ----
-    await db.batch((Batch b) {});
 
     // ---- Notifications ----
     await db.batch((Batch b) {
@@ -259,7 +262,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     }),
   );
 
-  await db.putValue('seeded_v19', today);
+  await db.putValue('seeded_v20', today);
 }
 
 String _fmtDate(DateTime d) =>

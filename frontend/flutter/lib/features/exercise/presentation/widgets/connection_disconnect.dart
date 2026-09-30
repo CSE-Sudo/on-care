@@ -45,7 +45,10 @@ Future<bool> confirmDisconnect(
     ..invalidate(coachRoutinesProvider)
     ..invalidate(coachSessionsProvider)
     ..invalidate(coachChatProvider)
-    ..invalidate(coachUnreadProvider);
+    ..invalidate(coachUnreadProvider)
+    // 담당이 없는 회원에게만 담당 요청이 온다. 데모는 요청을 앱을 켤 때 한 번만
+    // 받아서, 다시 읽지 않으면 끊은 뒤 온 요청 창이 뜨지 않는다(#2659).
+    ..invalidate(coachInvitesProvider);
   return true;
 }
 

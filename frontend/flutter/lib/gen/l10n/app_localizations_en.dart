@@ -3484,6 +3484,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalsFocusChangedByMe => 'you';
 
   @override
+  String get healthNotesLabel => 'Health notes & cautions';
+
+  @override
+  String get healthNotesHint => 'e.g. Left knee surgery, herniated disc';
+
+  @override
+  String get healthNotesHelper => 'Used when recommending workouts';
+
+  @override
   String get healthFocusWeightLoss => 'Weight loss';
 
   @override

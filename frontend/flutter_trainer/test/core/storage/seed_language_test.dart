@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/messages/domain/chat_context_insight.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -221,9 +222,13 @@ void main() {
       expect(client.goal, 'Weight loss · Fitness');
       expect(client.lastRoutine, 'Yesterday');
 
-      final meals = await (db.select(
-        db.clientDietEntries,
-      )..where((t) => t.clientId.equals('seed-client-2'))).get();
+      // 지난 끼니도 심으므로(#2667) 오늘 것만 본다.
+      final meals =
+          await (db.select(db.clientDietEntries)
+                ..where((t) => t.clientId.equals('seed-client-2'))
+                ..where((t) => t.date.equals(ymd(_thursday)))
+                ..orderBy([(t) => OrderingTerm(expression: t.sortOrder)]))
+              .get();
       expect(meals.first.meal, 'Breakfast');
       expect(meals.first.items, 'Greek yogurt, Blueberries');
 

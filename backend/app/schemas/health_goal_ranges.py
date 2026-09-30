@@ -28,6 +28,9 @@ from typing import Annotated
 
 from pydantic import Field
 
+from app.schemas.text_limits import TEXT_ENTRY_MAX
+from app.services import health_focus
+
 #: 한 주의 분. 주간 시간 목표의 상한이다.
 MINUTES_PER_WEEK = 7 * 24 * 60
 
@@ -68,7 +71,18 @@ WeeklyBurnGoal = Annotated[int, Field(ge=0, le=100000)]
 # 있었다 — 트레이너는 1000/500자인데 회원 경로에는 상한이 없어
 # `{"goals": 20만자}` 가 200 이었다.
 
-#: 건강 목표(최대 2개)와 트레이너가 적은 건강상태·주의사항이 함께 담긴다.
+#: 건강 목표(최대 2개)와 건강상태·주의사항이 함께 담긴다.
 ConditionsText = Annotated[str, Field(max_length=1000)]
+
+
+def check_conditions_notes(value: str | None) -> str | None:
+    """정리된 `conditions` 의 건강상태·주의사항이 기록 한 건 상한 안인가(#2618).
+
+    목표 칩은 세지 않는다. 회원(온보딩·MY)과 트레이너 경로가 같은 검사를 쓴다 —
+    두 문이 다른 기준을 쓰면 한쪽에서 넣은 글을 다른 쪽에서 고칠 수 없다(#2619).
+    """
+    if health_focus.notes_length(value) > TEXT_ENTRY_MAX:
+        raise ValueError(f"건강상태·주의사항은 {TEXT_ENTRY_MAX}자까지 적을 수 있습니다.")
+    return value
 # 자유 서술 회원 목표(`goals`)의 상한은 걷어냈다 — 목표는 건강 목표 칩으로만
 # 고르고, API 가 더는 그 칸을 받지 않는다(#2358).

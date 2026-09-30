@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 
@@ -11,7 +12,7 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 /// - 연 색은 그 자리에서 지금 색이 된다 — 샀는데 아무 일도 없는 화면이 되지 않게.
 /// - 색을 바꾸는 데에는 포인트가 들지 않고, 기한도 없다.
 /// - 네 색을 모두 열면 사용처 목록에서 항목이 빠진다([allUnlocked]).
-class DemoGraphColorBook {
+class DemoGraphColorBook implements DemoPersistable {
   DemoGraphColorBook({required DemoPointsLedger ledger}) : _ledger = ledger;
 
   /// 포인트 사용처의 항목 id·가격 — 서버와 같은 값이다.
@@ -37,6 +38,9 @@ class DemoGraphColorBook {
   final Map<String, String> _requests = <String, String>{};
   String? _selected;
   int _sequence = 0;
+
+  @override
+  void Function()? onChanged;
 
   /// 지금 기록 그래프를 그리는 색. 고른 색이 없으면 기본 색이다.
   String get current => _selected ?? baseColor;
@@ -81,6 +85,7 @@ class DemoGraphColorBook {
     _bought.add(color);
     _selected = color;
     if (clientRequestId != null) _requests[clientRequestId] = color;
+    onChanged?.call();
     return DemoCouponResult(201, _exchangeJson());
   }
 
@@ -92,7 +97,31 @@ class DemoGraphColorBook {
     }
     // 기본 색으로 되돌리는 것은 고른 색을 푸는 일이다.
     _selected = color == baseColor ? null : color;
+    onChanged?.call();
     return DemoCouponResult(200, statusJson());
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'bought': List<String>.of(_bought),
+    'selected': _selected,
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    _bought
+      ..clear()
+      ..addAll(<String>[
+        for (final Object? c
+            in (json['bought'] as List<Object?>?) ?? const <Object?>[])
+          if (c is String && buyableColors.contains(c)) c,
+      ]);
+    final Object? selected = json['selected'];
+    _selected = selected is String && _bought.contains(selected)
+        ? selected
+        : null;
   }
 
   Map<String, Object?> _exchangeJson() => <String, Object?>{
@@ -110,7 +139,10 @@ class DemoGraphColorBook {
 /// 목업 경로가 함께 쓰는 그래프 색 원장 하나 — 목업 API(사용처 교환·색 고르기)와
 /// 기록 그래프 저장소가 같은 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider]
 /// 에서 빠진다.
-final demoGraphColorBookProvider = Provider<DemoGraphColorBook>(
-  (ref) => DemoGraphColorBook(ledger: ref.watch(demoPointsLedgerProvider)),
-  name: 'demoGrassColorBook',
-);
+final demoGraphColorBookProvider = Provider<DemoGraphColorBook>((ref) {
+  final DemoGraphColorBook book = DemoGraphColorBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('graph_colors', book);
+  return book;
+}, name: 'demoGrassColorBook');

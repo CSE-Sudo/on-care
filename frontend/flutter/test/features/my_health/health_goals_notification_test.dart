@@ -100,6 +100,14 @@ void main() {
 
   testWidgets('저장 실패 알림도 현재 화면에서 토스트로 뜬다', (tester) async {
     await _openHealthGoals(tester, _FailingAccountRepository());
+    // 바꾼 칸이 있어야 요청이 나간다(#2655).
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('goalCaloriesField')),
+        matching: find.byType(TextField),
+      ),
+      '1900',
+    );
 
     await _tapSave(tester);
 

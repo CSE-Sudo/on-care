@@ -2266,6 +2266,23 @@
       }
     }
   },
+  "notifTplHealthNotesTitle": "Member health notes changed",
+  "notifTplHealthNotesBody": "{name} updated their health notes",
+  "@notifTplHealthNotesBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplHealthNotesWithGoalsBody": "{name} updated their health goals and health notes",
+  "@notifTplHealthNotesWithGoalsBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifTplNoGoals": "none",
   "@notifTplNoGoals": {
     "description": "Shown in place of the goal list when the member cleared every health goal."

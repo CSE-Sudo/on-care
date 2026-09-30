@@ -3352,6 +3352,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalsFocusChangedByMe => '나';
 
   @override
+  String get healthNotesLabel => '건강상태·주의사항';
+
+  @override
+  String get healthNotesHint => '예) 왼쪽 무릎 수술 이력, 허리 디스크';
+
+  @override
+  String get healthNotesHelper => '운동을 추천할 때 참고해요';
+
+  @override
   String get healthFocusWeightLoss => '체중 감량';
 
   @override
