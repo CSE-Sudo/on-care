@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -22,7 +23,11 @@ const int kDemoOpeningPoints = 25000;
 ///
 /// 규칙은 서버와 같다: 같은 기록은 한 번만, 한도를 넘으면 0, 기록을 지우면
 /// 회수하되 잔액은 0 아래로 내려가지 않고, 회수된 적립은 그날 한도에서 빠진다.
-class DemoPointsLedger {
+///
+/// 잔액·내역·적립은 [DemoBenefitsStore] 에 실려 새로고침 뒤에도 남는다(#2664).
+/// 사용 기록(반환 근거)은 싣지 않는다 — 돌려줄 수 있는 것은 쿠폰뿐이라 쿠폰 원장이
+/// 되살리며 [restoreSpend] 로 다시 건다.
+class DemoPointsLedger implements DemoPersistable {
   DemoPointsLedger({
     int openingBalance = kDemoOpeningPoints,
     DateTime Function()? now,
@@ -31,6 +36,11 @@ class DemoPointsLedger {
 
   final DateTime Function() _now;
   int _balance;
+
+  @override
+  void Function()? onChanged;
+
+  void _changed() => onChanged?.call();
 
   /// `sourceType/sourceId` → 그 기록이 받은 적립.
   final Map<String, _Earned> _earned = <String, _Earned>{};
@@ -125,6 +135,7 @@ class DemoPointsLedger {
     );
     _balance += rule.points;
     _log('earn', _reasonOf(rule), rule.points);
+    _changed();
     return PointsAward(awarded: rule.points, balance: _balance);
   }
 
@@ -142,6 +153,7 @@ class DemoPointsLedger {
     existing.revoked = true;
     _balance -= taken;
     _log('revoke', _reasonOf(existing.rule), -taken);
+    _changed();
     return taken;
   }
 
@@ -164,7 +176,15 @@ class DemoPointsLedger {
     _spentReason[sourceId] = reason;
     _balance -= cost;
     _log('spend', reason, -cost);
+    _changed();
     return true;
+  }
+
+  /// 되살린 쿠폰의 사용 기록을 다시 건다 — 잔액·내역은 건드리지 않는다(#2664).
+  /// 그 쿠폰이 취소되면 [refund] 가 이 값으로 돌려준다.
+  void restoreSpend(String sourceId, int cost, {required String reason}) {
+    _spent[sourceId] = cost;
+    _spentReason[sourceId] = reason;
   }
 
   /// [sourceId] 로 쓴 포인트를 돌려준다. 돌려준 포인트(0 이상).
@@ -177,6 +197,7 @@ class DemoPointsLedger {
     _refunded.add(sourceId);
     _balance += cost;
     _log('refund', _spentReason[sourceId] ?? 'refund', cost);
+    _changed();
     return cost;
   }
 
@@ -193,7 +214,70 @@ class DemoPointsLedger {
     if (amount <= 0 || !_credited.add(sourceId)) return 0;
     _balance += amount;
     _log('earn', reason, amount);
+    _changed();
     return amount;
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'balance': _balance,
+    'earned': <Map<String, Object?>>[
+      for (final MapEntry<String, _Earned> e in _earned.entries)
+        <String, Object?>{
+          'key': e.key,
+          'rule': e.value.rule.name,
+          'day': e.value.day,
+          'delta': e.value.delta,
+          'revoked': e.value.revoked,
+        },
+    ],
+    'entries': <Map<String, Object?>>[
+      for (final _Entry e in _entries)
+        <String, Object?>{
+          'id': e.id,
+          'kind': e.kind,
+          'reason': e.reason,
+          'delta': e.delta,
+          'day': e.day,
+          'at': e.at.toIso8601String(),
+        },
+    ],
+    'credited': _credited.toList(),
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _balance = (json['balance']! as num).toInt();
+    _earned
+      ..clear()
+      ..addAll(<String, _Earned>{
+        for (final Map<String, Object?> row in demoRows(json['earned']))
+          row['key']! as String: _Earned(
+            rule: PointsRule.values.byName(row['rule']! as String),
+            day: row['day']! as String,
+            delta: (row['delta']! as num).toInt(),
+          )..revoked = row['revoked'] == true,
+      });
+    _entries
+      ..clear()
+      ..addAll(<_Entry>[
+        for (final Map<String, Object?> row in demoRows(json['entries']))
+          _Entry(
+            id: row['id']! as String,
+            kind: row['kind']! as String,
+            reason: row['reason']! as String,
+            delta: (row['delta']! as num).toInt(),
+            day: row['day']! as String,
+            at: demoParseTime(row['at']),
+          ),
+      ]);
+    _credited
+      ..clear()
+      ..addAll(<String>[
+        for (final Object? id
+            in (json['credited'] as List<Object?>?) ?? const <Object?>[])
+          if (id is String) id,
+      ]);
   }
 
   static String _key(String sourceType, String sourceId) =>
@@ -249,7 +333,8 @@ class _Earned {
 /// 계정 전환에 초기화하지 않는다 — 식단 기록을 든 drift DB 도 앱 수명 동안
 /// 남으므로, 원장만 비우면 남은 끼니를 지울 때 회수할 적립이 사라진다. 데모는
 /// 김민수 한 계정뿐이다.
-final demoPointsLedgerProvider = Provider<DemoPointsLedger>(
-  (ref) => DemoPointsLedger(),
-  name: 'demoPointsLedger',
-);
+final demoPointsLedgerProvider = Provider<DemoPointsLedger>((ref) {
+  final DemoPointsLedger ledger = DemoPointsLedger();
+  ref.watch(demoBenefitsStoreProvider).attach('points', ledger);
+  return ledger;
+}, name: 'demoPointsLedger');
