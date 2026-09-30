@@ -84,12 +84,15 @@ def test_week_reads_the_pt_time_from_its_class(client, db_session):
     today = clock.today()
     monday = today - timedelta(days=today.weekday())
     schedule_id = f"tl-{uuid4().hex[:8]}"
+    # 수업은 id 로 이어진다 — 날짜는 오늘일 필요가 없다. 시드 트레이너의 오늘
+    # 일정에 두면 같은 트레이너로 오늘 수업을 만드는 다른 시험이 겹침(409)으로
+    # 떨어진다. 끝나면 만든 행을 지운다.
     db_session.add(
         TrainerSchedule(
             id=schedule_id,
             trainer_id=TRAINER_ID,
             member_id=member_id,
-            date=today.isoformat(),
+            date="2000-01-03",
             time="19:00",
             client_name="u",
             type="1:1 PT",
@@ -101,10 +104,11 @@ def test_week_reads_the_pt_time_from_its_class(client, db_session):
         )
     )
     day_label = WEEKDAY_LABELS[today.weekday()]
-    for row_id, source in (
+    session_ids = (
         (f"{PT_EXERCISE_ID_PREFIX}{schedule_id}", "trainer_pt"),
         (f"tl-routine-{uuid4().hex[:6]}", "assigned_routine"),
-    ):
+    )
+    for row_id, source in session_ids:
         db_session.add(
             ExerciseSession(
                 id=row_id,
@@ -120,8 +124,19 @@ def test_week_reads_the_pt_time_from_its_class(client, db_session):
         )
     db_session.commit()
 
-    r = client.get("/v1/exercise/weeks/current", headers=headers)
-    assert r.status_code == 200, r.text
+    try:
+        r = client.get("/v1/exercise/weeks/current", headers=headers)
+        assert r.status_code == 200, r.text
 
-    labels = {s["source"]: s["time_label"] for s in r.json()["sessions"]}
-    assert labels == {"trainer_pt": "19:00", "assigned_routine": None}
+        labels = {s["source"]: s["time_label"] for s in r.json()["sessions"]}
+        assert labels == {"trainer_pt": "19:00", "assigned_routine": None}
+    finally:
+        db_session.expire_all()
+        for row_id, _source in session_ids:
+            row = db_session.get(ExerciseSession, row_id)
+            if row is not None:
+                db_session.delete(row)
+        schedule = db_session.get(TrainerSchedule, schedule_id)
+        if schedule is not None:
+            db_session.delete(schedule)
+        db_session.commit()
