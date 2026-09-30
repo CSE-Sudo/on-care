@@ -17,6 +17,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_refresh.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -576,15 +577,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
             idempotencyKey: _idempotencyKey,
           );
       if (!mounted) return;
-      // analyze() already persisted the entry → refresh the day's summary/list.
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
+      // analyze() already persisted the entry → refresh every diet cache.
+      refreshDietRecords(ref.invalidate);
       // 저장과 함께 포인트도 적립됐다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
-      ref.invalidate(dietByDateProvider(nowKst()));
       await _holdAnalyzing(elapsed);
       if (!mounted) return;
       setState(() {
@@ -666,12 +662,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     try {
       await _saveFoods(id: r.entryId, mealType: _type, foods: foods);
       if (!mounted) return;
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(nowKst()));
       // 날짜를 옮겨 둔 기록이면 그 날도 비운다.
-      ref.invalidate(dietByDateProvider(_date));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       _finish();
     } on Object catch (_) {
       if (!mounted) return;
@@ -698,11 +690,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       if (!mounted) return;
       // 지운 끼니의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(nowKst()));
-      ref.invalidate(dietByDateProvider(_date));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       final AppToastHost toast = AppToastHost.of(context);
       // 지웠으니 식단 탭으로 옮겨 갈 기록이 없다 — `false` 로 닫는다.
       Navigator.of(context).pop(false);
@@ -749,11 +737,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       });
       // 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면 합계가 두 날에
       // 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(previous));
-      ref.invalidate(dietByDateProvider(chosen));
+      refreshDietRecords(
+        ref.invalidate,
+        dates: <DateTime>[previous, chosen],
+      );
       showAppToast(
         context,
         l.dietRecordDateMoved(_recordDateLabel(context, chosen)),
@@ -2165,12 +2152,8 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
             idempotencyKey: _idempotencyKey,
           );
       if (!mounted) return;
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      ref.invalidate(dietByDateProvider(nowKst()));
-      ref.invalidate(dietByDateProvider(_date));
+      // 지난 날짜로 적었으면 그 날도 비운다.
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       // 포인트는 적립되지 않는다 — 사진 분석 저장만 적립한다(#2151).
       navigator.pop(true);
       if (!toastContext.mounted) return;
@@ -2435,11 +2418,10 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
       });
       // 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면 합계가 두 날에
       // 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(previous));
-      ref.invalidate(dietByDateProvider(chosen));
+      refreshDietRecords(
+        ref.invalidate,
+        dates: <DateTime>[previous, chosen],
+      );
       if (!toastContext.mounted) return;
       // 목록으로 돌아가면 이 카드가 원래 날에서 사라진다 — 어디로 갔는지 말한다.
       showAppToast(
@@ -2495,15 +2477,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
     try {
       await _saveFoods(id: id, mealType: _type, foods: foods);
       if (!mounted) return;
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
-      ref.invalidate(dietByDateProvider(nowKst()));
       // 지난 날의 기록이면 그 날도 비운다 — 오늘만 비우면 그 날 목록이 옛
       // 끼니·칼로리에 머문다.
-      ref.invalidate(dietByDateProvider(_date));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       // 화면을 닫지 않고 보기 모드로 돌아간다. 닫아 버리면 목록으로 나가는데
       // 그 카드는 총 칼로리만 말하므로 방금 고친 값이 어떻게 됐는지 확인할
       // 자리가 없다. 취소가 이 화면에 남는 것과도 짝이 맞는다.
