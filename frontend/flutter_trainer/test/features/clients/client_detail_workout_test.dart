@@ -186,6 +186,7 @@ class _MixedRoutineRepository implements TrainerRoutineRepository {
     String routineId, {
     String? name,
     int? minutes,
+    int? durationSeconds,
     String? type,
     String? reason,
   }) async {}

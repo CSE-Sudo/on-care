@@ -180,7 +180,7 @@
 | POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
-| POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0), intensity }` → `{ calories, source, matched_name, isometric }` |
+| POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0) 또는 duration_seconds(>0), intensity }` → `{ calories, source, matched_name, isometric }` — 초가 오면 분은 `/exercise/sessions` 와 같은 규칙으로 초에서 접는다 (#2547) |
 
 추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
 
