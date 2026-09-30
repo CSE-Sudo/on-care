@@ -7,10 +7,13 @@ import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/logging/logging_provider_observer.dart';
+import 'package:oncare/core/points/demo_benefits_seed.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/seed_data.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Single entry point used by `main.dart`. Initializes binding,
@@ -59,6 +62,15 @@ Future<void> bootstrap() async {
     );
   }
 
+  // 목업 혜택 장부(포인트·쿠폰·챌린지·보호권·이모티콘)는 같은 DB 의 키-값에 실어
+  // 새로고침 뒤에도 남긴다. 저장분이 없으면 시드를 깐다(#2664).
+  final DemoBenefitsStore benefits = config.useMockApi
+      ? await DemoBenefitsStore.open(
+          db,
+          seed: () => buildDemoBenefitsSeed(nowKst()),
+        )
+      : DemoBenefitsStore.memory();
+
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     logger.e(
@@ -86,6 +98,7 @@ Future<void> bootstrap() async {
         appLoggerProvider.overrideWithValue(logger),
         sharedPreferencesProvider.overrideWithValue(prefs),
         appDatabaseProvider.overrideWithValue(db),
+        demoBenefitsStoreProvider.overrideWithValue(benefits),
         sessionFeatureResetOverride(),
       ],
       child: const OncareApp(),

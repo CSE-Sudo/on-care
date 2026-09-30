@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
@@ -21,10 +22,15 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v38']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v40']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v40` 은 김민수를 뺀 회원의 지난 4주 끼니·성별·나이·지난 PT 메모·지난
+/// 상담을 심고, 날짜별 운동을 값까지 실린 객체로 바꿨다(#2667). 올리지 않으면
+/// 오늘 이미 시드된 브라우저에서 지난 날짜를 열어도 끼니 카드가 없다. (`_v39`
+/// 는 알림함 시드(#2628)가 먼저 잡아 두어 건너뛴다.)
 ///
 /// `_v38` 은 담당 회원 15명의 키·몸무게와 식단·운동 목표를 심었다(#2597).
 /// 올리지 않으면 오늘 이미 시드된 브라우저의 신체·목표 창이 자정까지 빈칸이다.
@@ -161,7 +167,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v38') == today &&
+  if (await db.readValue('trainer_seeded_v40') == today &&
       seededLanguage == language.name) {
     return;
   }
@@ -355,10 +361,17 @@ Future<void> seedIfEmpty(
                 ]),
               ),
               sortOrder: Value(client.id),
+              // 회원 프로필의 성별·나이(#2667). 없으면 화면이 폴백을 쓴다.
+              gender: Value(_clientDemographics[client.id]?.gender),
+              age: Value(_clientDemographics[client.id]?.age),
             ),
           );
 
-      final List<_Meal> diet = fromFixture ? fixtureClient.diet : client.diet;
+      // 지난 끼니는 같은 날의 하루 집계에서 나온다(#2667) — 날짜를 펼쳤을 때
+      // 합계와 끼니 카드가 같은 하루를 말한다. 오늘 끼니는 시드 그대로다.
+      final List<_Meal> diet = fromFixture
+          ? fixtureClient.diet
+          : <_Meal>[..._pastDiet(client, now), ...client.diet];
 
       // 스레드의 **마지막** 메시지가 daysAgo 를 앵커링한다 — dayIndex 는
       // 그 스레드 안에서의 상대 순서일 뿐, 몇 번째 실제 날짜인지가 아니다.
@@ -553,9 +566,10 @@ Future<void> seedIfEmpty(
     // 수업 배치가 이미 겹치지 않으므로 지난 주도 겹치지 않는다. 리포트의 PT
     // 횟수는 이 행들에서 나온다(스케줄 탭과 같은 자료). 상담·미등록자·공백은
     // 되풀이하지 않고, 회원이 붙기 전 주에는 넣지 않는다
-    // ([demoMemberJoinedWeeksAgo]). 메모·프로그램은 비운다 — 같은 메모와 운동이
-    // 열세 주 반복되면 그 수업에 남긴 기록처럼 읽히지 않고, 프로그램이 붙은
-    // 수업은 코칭 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다.
+    // ([demoMemberJoinedWeeksAgo]). 프로그램은 비운다 — 프로그램이 붙은 수업은
+    // 코칭 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다. 메모는 최근 두 주의
+    // 회원별 첫 수업에만 둔다([_pastPtNotes], #2667) — 같은 메모가 열세 주
+    // 반복되면 그 수업에 남긴 기록처럼 읽히지 않는다.
     final List<({int weekday, String time, _SeedSession slot, int order})>
     recurring = <({int weekday, String time, _SeedSession slot, int order})>[
       for (var i = 0; i < _schedule.length; i++)
@@ -577,6 +591,14 @@ Future<void> seedIfEmpty(
             order: _schedule.length + p.index,
           ),
     ];
+
+    // 지난 두 주 회원별 **첫** 수업 — PT 메모([_pastPtNotes])를 다는 자리.
+    final Set<String> notedPt = <String>{};
+    String pastPtNote(int back, String clientName) {
+      if (back > _pastPtNotes.length) return '';
+      if (!notedPt.add('$back/$clientName')) return '';
+      return t(_pastPtNotes[back - 1][clientName] ?? '');
+    }
 
     await db.batch((Batch b) {
       b.insertAll(db.trainerScheduleEntries, <TrainerScheduleEntriesCompanion>[
@@ -635,9 +657,26 @@ Future<void> seedIfEmpty(
                 type: const Value(SessionType.personalTraining),
                 durationMinutes: Value(recurring[k].slot.durationMinutes),
                 status: ScheduleStatus.done,
+                note: Value(pastPtNote(back, recurring[k].slot.clientName)),
                 programJson: const Value('[]'),
                 sortOrder: Value(recurring[k].order),
               ),
+        // 지난 상담(#2667). 이번 주 상담만 있으면 AI 근거의 `상담 메모`(최근
+        // 30일)가 요일에 따라 비었다.
+        for (var i = 0; i < _pastConsults.length; i++)
+          TrainerScheduleEntriesCompanion.insert(
+            id: 'seed-schedule-c$i',
+            date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
+            time: '11:00',
+            clientId: Value(seedClientIdByName[_pastConsults[i].clientName]),
+            clientName: Value(_pastConsults[i].clientName),
+            type: const Value(SessionType.consultation),
+            durationMinutes: const Value(45),
+            status: ScheduleStatus.done,
+            note: Value(t(_pastConsults[i].note)),
+            programJson: const Value('[]'),
+            sortOrder: Value(_schedule.length + _weekSchedule.length + i),
+          ),
       ]);
     });
 
@@ -646,7 +685,7 @@ Future<void> seedIfEmpty(
     await seedDemoHealthProfiles(db);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v38', today);
+    await db.putValue('trainer_seeded_v40', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -767,12 +806,12 @@ class _Meal {
     this.proteinG = 0,
     this.fatG = 0,
     this.photoAsset,
+    this.date,
   }) : _items = '',
        _calories = 0,
        _sodiumMg = 0,
        _sugarG = 0,
        _foodsJson = '[]',
-       date = null,
        timeLabel = '';
 
   final String meal;
@@ -1186,11 +1225,49 @@ String mealLabel(String mealType) => switch (mealType) {
   _ => '간식',
 };
 
-Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
-  _Client client,
-  DateTime now,
-  _SeedText t,
-) sync* {
+/// 시드 고객의 하루 합계 한 줄 — 날짜별 지표와 지난 끼니가 함께 읽는다(#2667).
+///
+/// 두 곳이 각자 계산하면 날짜를 펼쳤을 때 위의 합계와 아래 끼니 카드가 서로
+/// 다른 하루를 말한다.
+typedef _SeedDay = ({
+  DateTime date,
+  int day,
+  int calories,
+  int sodiumMg,
+  double sugarG,
+  int completion,
+});
+
+/// 그날 칼로리를 탄단지로 나누는 비율(#944). 실서버는 회원이 적은 끼니에서
+/// 오지만 데모에는 하루 합계뿐이라, **요일로 정해지는 고정 비율**로 나눈다 —
+/// 무작위면 화면을 다시 열 때마다 막대의 층 비율이 달라져 데모를 보는 사람이
+/// 그래프를 믿지 않는다.
+///
+/// 탄·단 4kcal/g, 지 9kcal/g. 셋이 내는 칼로리의 합이 그날 칼로리와 같다.
+({double carbs, double protein, double fat}) _macroShares(int day) {
+  final carbShare = day.isEven ? 0.50 : 0.45;
+  const proteinShare = 0.25;
+  return (
+    carbs: carbShare,
+    protein: proteinShare,
+    fat: 1 - carbShare - proteinShare,
+  );
+}
+
+/// [calories] 중 [share] 만큼을 [perGram] 으로 나눈 g(소수 한 자리).
+double _macroGrams(num calories, double share, double perGram) =>
+    double.parse((calories * share / perGram).toStringAsFixed(1));
+
+/// 그날 적은 끼니 수(#2232). 데모에는 하루 합계만 있어 칼로리에서 되짚는다 —
+/// 한 끼 600kcal 로 나눠 1~4 회로 접으면, 1,870kcal 인 날은 3회, 900kcal 인
+/// 날은 2회가 되어 격자의 두 줄이 서로 어긋나 보이지 않는다. 칼로리가 0 인
+/// 날은 적지 않은 날이다. 지난 끼니(#2667)도 이 수만큼 심는다.
+int _mealCountOf(int calories) =>
+    calories == 0 ? 0 : (calories / 600).round().clamp(1, 4);
+
+/// 고객의 날짜별 하루 합계. 이번 주는 카드에 보이는 값 그대로, 지난 주들은
+/// **같은 요일 자리에** 같은 기록 습관으로 채운다. 기록이 아예 없는 날은 없다.
+Iterable<_SeedDay> _seedDays(_Client client, DateTime now) sync* {
   final today = DateTime(now.year, now.month, now.day);
   final monday = today.subtract(Duration(days: today.weekday - 1));
   final todayIndex = today.weekday - 1;
@@ -1219,49 +1296,203 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
           ? _scaled(completion[day], doneFactor).clamp(0, 100)
           : 0;
       if (cal == 0 && na == 0 && sg == 0 && done == 0) continue;
-      // 그날 칼로리를 탄단지로 나눈다(#944). 실서버는 회원이 적은 끼니에서
-      // 오지만 데모에는 하루 합계뿐이라, **요일로 정해지는 고정 비율**로
-      // 나눈다 — 무작위면 화면을 다시 열 때마다 막대의 층 비율이 달라져
-      // 데모를 보는 사람이 그래프를 믿지 않는다.
-      //
-      // 탄·단 4kcal/g, 지 9kcal/g. 셋이 내는 칼로리의 합이 그날 칼로리와 같다.
-      final carbShare = day.isEven ? 0.50 : 0.45;
-      const proteinShare = 0.25;
-      final fatShare = 1 - carbShare - proteinShare;
-      double g(double share, double perGram) =>
-          double.parse((cal * share / perGram).toStringAsFixed(1));
-      yield ClientDailyMetricsCompanion.insert(
-        clientId: 'seed-client-${client.id}',
-        date: ymd(date),
-        completion: Value(done),
-        calories: Value(cal),
-        sodiumMg: Value(na),
-        sugarG: Value(double.parse((sg).toStringAsFixed(1))),
-        carbsG: Value(g(carbShare, 4)),
-        proteinG: Value(g(proteinShare, 4)),
-        fatG: Value(g(fatShare, 9)),
-        // 끼니 수는 그날 칼로리에서 되짚는다(#2232) — 데모에는 하루 합계만
-        // 있고 끼니 하나하나가 없다. 한 끼 600kcal 로 나눠 1~4 회로 접으면,
-        // 1,870kcal 인 날은 3회, 900kcal 인 날은 2회가 되어 격자의 두 줄이
-        // 서로 어긋나 보이지 않는다. 칼로리가 0 인 날은 적지 않은 날이다.
-        mealCount: Value(cal == 0 ? 0 : (cal / 600).round().clamp(1, 4)),
-        // 배정 수는 그날 루틴의 길이다 — 한 것만 담는 `exercisesJson` 과 달리
-        // 안 한 것까지 센 분모라, 이행률 0 인 날도 `0 / 3회` 로 선다.
-        assignedCount: Value(_routineFor(client.id, day, 100).length),
-        exercisesJson: Value(
-          jsonEncode(
-            date == today
-                ? _exercisesFor(client, done, t, today: true)
-                : _routineFor(
-                    client.id,
-                    day,
-                    done,
-                  ).map(t.call).toList(growable: false),
-          ),
-        ),
+      yield (
+        date: date,
+        day: day,
+        calories: cal,
+        sodiumMg: na,
+        sugarG: double.parse((sg).toStringAsFixed(1)),
+        completion: done,
       );
     }
   }
+}
+
+Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
+  _Client client,
+  DateTime now,
+  _SeedText t,
+) sync* {
+  final today = DateTime(now.year, now.month, now.day);
+  for (final _SeedDay d in _seedDays(client, now)) {
+    final shares = _macroShares(d.day);
+    yield ClientDailyMetricsCompanion.insert(
+      clientId: 'seed-client-${client.id}',
+      date: ymd(d.date),
+      completion: Value(d.completion),
+      calories: Value(d.calories),
+      sodiumMg: Value(d.sodiumMg),
+      sugarG: Value(d.sugarG),
+      carbsG: Value(_macroGrams(d.calories, shares.carbs, 4)),
+      proteinG: Value(_macroGrams(d.calories, shares.protein, 4)),
+      fatG: Value(_macroGrams(d.calories, shares.fat, 9)),
+      mealCount: Value(_mealCountOf(d.calories)),
+      // 배정 수는 그날 루틴의 길이다 — 한 것만 담는 `exercisesJson` 과 달리
+      // 안 한 것까지 센 분모라, 이행률 0 인 날도 `0 / 3회` 로 선다.
+      assignedCount: Value(_routineFor(client.id, d.day, 100).length),
+      exercisesJson: Value(
+        jsonEncode(
+          d.date == today
+              ? _exercisesFor(client, d.completion, t, today: true)
+              : t.exercises(_routineFor(client.id, d.day, d.completion)),
+        ),
+      ),
+    );
+  }
+}
+
+/// 지난 끼니를 심는 날 수(오늘 제외, #2667). 오늘과 합쳐 4주다 — 식단 분석·AI
+/// 식단 추천이 읽는 창(`allWindowDays`)이 28일이라, 그만큼 있어야 근거 일수가
+/// 실서버 회원처럼 찬다.
+const int _pastDietDays = 27;
+
+/// 끼니 수 → 그날 적은 끼니 자리(먹은 순서).
+const List<List<String>> _mealSlots = <List<String>>[
+  <String>['점심'],
+  <String>['점심', '저녁'],
+  <String>['아침', '점심', '저녁'],
+  <String>['아침', '점심', '간식', '저녁'],
+];
+
+/// 로스터에 간식 끼니가 하나뿐이라 따로 둔 간식 몇 가지. 음식 이름은 로스터에
+/// 이미 있는 것만 쓴다 — 영어 시드 표([_seedEnglish])를 그대로 탄다.
+const List<_Meal> _snackTemplates = <_Meal>[
+  _Meal.of('간식', <_Food>[
+    _Food('그릭요거트', 180, 190, 6, amountG: 150),
+    _Food('블루베리', 100, 10, 9, amountG: 150),
+  ]),
+  _Meal.of('간식', <_Food>[
+    _Food('바나나', 100, 10, 5, amountG: 110),
+    _Food('우유', 120, 120, 4, amountG: 200),
+  ]),
+  _Meal.of('간식', <_Food>[
+    _Food('견과', 150, 30, 1, amountG: 25),
+    _Food('아메리카노', 20, 10, 0, amountG: 355),
+  ]),
+  _Meal.of('간식', <_Food>[_Food('두유', 130, 110, 8, amountG: 190)]),
+];
+
+/// 끼니 자리 → 지난 끼니의 본보기. 로스터 고객들의 오늘 끼니를 모은 것이다 —
+/// 새 음식을 지어내지 않고, 음식별 양·영양의 비율도 그 끼니 그대로다.
+final Map<String, List<_Meal>> _mealTemplates = () {
+  final Map<String, List<_Meal>> pool = <String, List<_Meal>>{};
+  for (final _Client client in _clients) {
+    for (final _Meal meal in client.diet) {
+      if (meal.foods.isEmpty) continue;
+      pool.putIfAbsent(meal.meal, () => <_Meal>[]).add(meal);
+    }
+  }
+  pool.putIfAbsent('간식', () => <_Meal>[]).addAll(_snackTemplates);
+  return pool;
+}();
+
+/// 고객의 지난 [_pastDietDays] 일 끼니(#2667).
+///
+/// 예전에는 오늘 끼니만 있어, 지난 날짜를 열면 합계만 있고 끼니 카드가
+/// 없었다. 식단 분석·AI 식단 추천도 근거가 오늘 하루뿐이었다.
+///
+/// 그날 합계([_seedDays])를 끼니로 **나눈다** — 끼니를 따로 지어내면 날짜를
+/// 펼쳤을 때 위의 합계와 아래 카드의 합이 갈린다. 끼니 수는 리포트 격자의
+/// 끼니 수([_mealCountOf])와 같다.
+List<_Meal> _pastDiet(_Client client, DateTime now) {
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime from = DateTime(now.year, now.month, now.day - _pastDietDays);
+  return <_Meal>[
+    for (final _SeedDay d in _seedDays(client, now))
+      if (d.date.isBefore(today) && !d.date.isBefore(from) && d.calories > 0)
+        ..._mealsOf(client.id, d),
+  ];
+}
+
+/// 하루 합계 [d] 를 본보기 끼니에 나눠 담는다.
+///
+/// 본보기는 고객·날짜로 돌려 고른다 — 같은 끼니가 날마다 되풀이되면 복사본처럼
+/// 읽힌다. 음식마다 칼로리는 칼로리 비중대로, 나트륨·당류는 그 영양의 비중대로
+/// 나눠 짠 음식은 여전히 짜다. 반올림에서 남는 몫은 가장 큰 음식이 맡아 합이
+/// 하루 합계와 정확히 같다. 먹은 양은 칼로리와 같은 비율로 늘고 준다.
+List<_Meal> _mealsOf(int clientId, _SeedDay d) {
+  final List<String> slots = _mealSlots[_mealCountOf(d.calories) - 1];
+  final int dayNo = DateTime.utc(
+    d.date.year,
+    d.date.month,
+    d.date.day,
+  ).difference(DateTime.utc(2000)).inDays;
+  final List<_Meal> templates = <_Meal>[
+    for (var k = 0; k < slots.length; k++)
+      _pick(_mealTemplates[slots[k]]!, clientId * 5 + dayNo * 3 + k),
+  ];
+  final List<_Food> foods = <_Food>[
+    for (final _Meal m in templates) ...m.foods,
+  ];
+
+  final List<int> calories = _split(d.calories, <num>[
+    for (final _Food f in foods) f.calories,
+  ]);
+  final List<int> sodium = _split(d.sodiumMg, <num>[
+    for (final _Food f in foods) f.sodiumMg,
+  ]);
+  // 당류는 0.1g 단위로 나눈다.
+  final List<double> sugar = <double>[
+    for (final int v in _split((d.sugarG * 10).round(), <num>[
+      for (final _Food f in foods) f.sugarG,
+    ]))
+      v / 10,
+  ];
+
+  final shares = _macroShares(d.day);
+  final List<_Meal> meals = <_Meal>[];
+  var offset = 0;
+  for (final _Meal template in templates) {
+    final List<_Food> scaled = <_Food>[
+      for (var j = 0; j < template.foods.length; j++)
+        _Food(
+          template.foods[j].name,
+          calories[offset + j],
+          sodium[offset + j],
+          sugar[offset + j],
+          amountG: _scaledAmount(template.foods[j], calories[offset + j]),
+        ),
+    ];
+    offset += template.foods.length;
+    final int mealCalories = scaled.fold(0, (int a, _Food f) => a + f.calories);
+    meals.add(
+      _Meal.of(
+        template.meal,
+        scaled,
+        carbsG: _macroGrams(mealCalories, shares.carbs, 4),
+        proteinG: _macroGrams(mealCalories, shares.protein, 4),
+        fatG: _macroGrams(mealCalories, shares.fat, 9),
+        photoAsset: template.photoAsset,
+        date: ymd(d.date),
+      ),
+    );
+  }
+  return meals;
+}
+
+/// 칼로리가 [calories] 가 되도록 늘리거나 줄인 [food] 의 양(g·ml).
+int _scaledAmount(_Food food, int calories) => food.calories == 0
+    ? food.amountG
+    : math.max(1, (food.amountG * calories / food.calories).round());
+
+/// [items] 에서 [seed] 번째(나머지)를 고른다.
+T _pick<T>(List<T> items, int seed) => items[seed % items.length];
+
+/// [total] 을 [weights] 비중대로 정수로 나눈다. 비중이 모두 0 이면 똑같이
+/// 나눈다. 반올림에서 남는 몫은 가장 큰 칸이 맡아 합이 [total] 과 같다.
+List<int> _split(int total, List<num> weights) {
+  final num sum = weights.fold<num>(0, (num a, num w) => a + w);
+  final List<num> w = sum > 0 ? weights : List<num>.filled(weights.length, 1);
+  final num wSum = sum > 0 ? sum : weights.length;
+  final List<int> out = <int>[
+    for (final num x in w) (total * x / wSum).round(),
+  ];
+  var largest = 0;
+  for (var i = 1; i < out.length; i++) {
+    if (out[i] > out[largest]) largest = i;
+  }
+  out[largest] += total - out.fold(0, (int a, int b) => a + b);
+  return out;
 }
 
 /// 이번 주는 값을 그대로 두고(계수 1) 과거 주만 흔든다.
@@ -1270,42 +1501,73 @@ int _scaled(num value, double factor) => (value * factor).round();
 /// 요일마다 다른 루틴. 한 고객이 한 주 내내 같은 운동만 하면 화면이 복사본
 /// 처럼 읽힌다 — 요일과 고객을 함께 돌려 서로 다른 조합이 나오게 한다.
 ///
-/// 근력 한 줄은 세트·횟수·중량을, 유산소는 시간을 단다(#1276) — 유형마다 재는
+/// 근력은 세트·횟수·중량을, 유산소는 시간을 단다(#1276) — 유형마다 재는
 /// 단위가 다르다. 맨몸 운동은 중량을 비운다: 적지 않은 값을 `0kg` 으로 적으면
-/// 트레이너가 정해 준 무게처럼 읽힌다.
-const List<List<String>> _routinePool = <List<String>>[
-  <String>[
-    '스쿼트 4세트 · 10회 · 50kg',
-    '런지 3세트 · 12회 · 10kg',
-    '레그컬 3세트 · 12회 · 35kg',
-  ],
-  <String>[
-    '벤치프레스 4세트 · 8회 · 50kg',
-    '푸시업 3세트 · 15회 · 0kg',
-    '덤벨 플라이 3세트 · 12회 · 10kg',
-  ],
-  <String>[
-    '데드리프트 4세트 · 8회 · 60kg',
-    '바벨 로우 3세트 · 10회 · 40kg',
-    '풀업 3세트 · 8회 · 0kg',
-  ],
-  <String>[
-    '숄더 프레스 4세트 · 10회 · 20kg',
-    '사이드 레터럴 3세트 · 15회 · 6kg',
-    '페이스 풀 3세트 · 15회 · 15kg',
-  ],
-  <String>['런닝 30분', '사이클 20분', '코어 서킷 3세트 · 12회 · 0kg'],
-  <String>[
-    '레그프레스 4세트 · 12회 · 70kg',
-    '힙 쓰러스트 3세트 · 12회 · 40kg',
-    '카프 레이즈 3세트 · 20회 · 0kg',
-  ],
-  <String>[
-    '플랭크 3세트 · 3회 · 0kg',
-    '버피 3세트 · 12회 · 0kg',
-    '마운틴 클라이머 3세트 · 20회 · 0kg',
-  ],
-];
+/// 트레이너가 정해 준 무게처럼 읽힌다. 버티는 운동은 회가 아니라 초다(#1969).
+///
+/// 문장이 아니라 **값까지 실린 객체**다(#2667) — 김민수의 픽스처와 같은 키라,
+/// 운동 현황이 그날 한 운동에서 유형별 분·칼로리·세트를 센다. 예전에는 이름
+/// 문장만 있어 운동 현황이 이행률에서 분과 유형 비율을 지어냈다. 근력의 분은
+/// 세트 × [kStrengthMinutesPerSet] 이다.
+final List<List<Map<String, Object?>>> _routinePool =
+    <List<Map<String, Object?>>>[
+      <Map<String, Object?>>[
+        _strength('스쿼트', 4, 10, weight: 50),
+        _strength('런지', 3, 12, weight: 10),
+        _strength('레그컬', 3, 12, weight: 35),
+      ],
+      <Map<String, Object?>>[
+        _strength('벤치프레스', 4, 8, weight: 50),
+        _strength('푸시업', 3, 15),
+        _strength('덤벨 플라이', 3, 12, weight: 10),
+      ],
+      <Map<String, Object?>>[
+        _strength('데드리프트', 4, 8, weight: 60),
+        _strength('바벨 로우', 3, 10, weight: 40),
+        _strength('풀업', 3, 8),
+      ],
+      <Map<String, Object?>>[
+        _strength('숄더 프레스', 4, 10, weight: 20),
+        _strength('사이드 레터럴', 3, 15, weight: 6),
+        _strength('페이스 풀', 3, 15, weight: 15),
+      ],
+      <Map<String, Object?>>[
+        <String, Object?>{'name': '런닝', 'type': 'cardio', 'minutes': 30},
+        <String, Object?>{'name': '사이클', 'type': 'cardio', 'minutes': 20},
+        _strength('코어 서킷', 3, 12),
+      ],
+      <Map<String, Object?>>[
+        _strength('레그프레스', 4, 12, weight: 70),
+        _strength('힙 쓰러스트', 3, 12, weight: 40),
+        _strength('카프 레이즈', 3, 20),
+      ],
+      <Map<String, Object?>>[
+        <String, Object?>{
+          'name': '플랭크',
+          'type': 'strength',
+          'minutes': 9,
+          'sets': 3,
+          'hold_seconds': 45,
+        },
+        _strength('버피', 3, 12),
+        _strength('마운틴 클라이머', 3, 20),
+      ],
+    ];
+
+/// 근력 운동 한 줄. 분은 세트 × 3분([kStrengthMinutesPerSet])이다.
+Map<String, Object?> _strength(
+  String name,
+  int sets,
+  int reps, {
+  num? weight,
+}) => <String, Object?>{
+  'name': name,
+  'type': 'strength',
+  'minutes': sets * 3,
+  'sets': sets,
+  'reps': reps,
+  'weight': ?weight,
+};
 
 /// 그날 **실제로 한** 운동 목록. 미수행은 싣지 않는다. (#1288)
 ///
@@ -1355,11 +1617,15 @@ List<String> _doneNames(List<Object> items) {
 }
 
 /// 요일·고객으로 고른 루틴에서 이행률만큼을 **한 것**으로 남긴다.
-List<String> _routineFor(int clientId, int weekday, int completion) {
-  if (completion <= 0) return const <String>[];
-  final names = _routinePool[(clientId + weekday) % _routinePool.length];
-  final done = (names.length * completion / 100).round().clamp(1, names.length);
-  return names.take(done).toList(growable: false);
+List<Map<String, Object?>> _routineFor(
+  int clientId,
+  int weekday,
+  int completion,
+) {
+  if (completion <= 0) return const <Map<String, Object?>>[];
+  final items = _routinePool[(clientId + weekday) % _routinePool.length];
+  final done = (items.length * completion / 100).round().clamp(1, items.length);
+  return items.take(done).toList(growable: false);
 }
 
 /// 아직 오지 않은 요일을 지운다.
@@ -1549,6 +1815,63 @@ int _minutesOfDay(String timeLabel) {
 /// 순서 규칙은 [_lastChat] 이 정한다 — 미리보기·시각과 같은 "마지막" 을 본다.
 bool _threadAnswered(_Client client) =>
     client.chat.isNotEmpty && _lastChat(client.chat).sender == 'trainer';
+
+/// 지난 PT 에 남긴 수업 메모(#2667) — [0] 은 지난주, [1] 은 2주 전. 회원별 그 주
+/// 첫 수업에만 단다. AI 루틴 추천의 근거 `PT 피드백`(최근 14일)이 읽는 글이다.
+///
+/// 김민수는 없다 — 그의 수업 기록은 회원 앱과 함께 쓰는 픽스처가 정한다.
+const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
+  <String, String>{
+    '이지수': '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.',
+    '박성호': '벤치프레스 70kg 4×6 성공. 다음 주 72.5kg 시도.',
+    '최우진': '하프 마라톤 대비 템포런 후 햄스트링 뻣뻣함. 폼롤러 10분 추가.',
+    '임도현': '데드리프트 힙힌지 패턴 안정. 허리 통증 없음, 중량 유지.',
+    '신유나': '무릎 굴곡 110°까지 통증 없음. 스텝업 높이 한 단계 올림.',
+    '오세라': '허리 뻐근함 호소해 코어 운동을 버드독 위주로 바꿈. 혈압 측정 후 시작.',
+    '한지호': '스쿼트 깊이 개선. 회식 다음 날이라 유산소는 20분으로 줄임.',
+    '배준혁': '야근 뒤 늦게 도착해 30분만 진행. 상체 위주로 압축.',
+    '백서진': '전신 서킷 3라운드 무리 없음. 식단 얘기는 다음 상담에서 이어 가기로.',
+    '강서연': '주말 과식 얘기 나눔. 스쿼트 50kg 4×10 안정적.',
+    '류태경': '벌크업 중 벤치프레스 45kg 도달. 단백질 쉐이크 운동 직후로 옮김.',
+    '정하윤': '재활 밴드 운동 통증 없이 완료. 다음 주 맨몸 런지 추가.',
+    '문가영': '3주 만의 수업. 체력 저하가 커서 강도를 70%로 낮춰 진행.',
+    '노은채': '첫 수업. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.',
+  },
+  <String, String>{
+    '이지수': '사이클 30분 + 하체 근력. 무릎 정렬 좋아짐.',
+    '박성호': '데드리프트 100kg 3×5. 그립 약해져 스트랩 사용 권유.',
+    '최우진': '장거리 러닝 후 회복 주간. 가동성 위주로 가볍게.',
+    '신유나': '레그프레스 가동범위 70%까지. 통증 척도 1/10.',
+    '오세라': '걷기 속도 높임. 운동 후 혈압 정상 범위.',
+    '한지호': '체중 정체 이야기. 저녁 탄수화물 절반 줄이기로 합의.',
+    '배준혁': '당일 취소 후 보강 수업. 컨디션 좋음.',
+    '백서진': '플랭크 90초 달성. 나트륨 높은 점심 메뉴 대안 안내.',
+    '강서연': '인터벌 후 어지럼 없음. 물 섭취 늘리라고 안내.',
+    '류태경': '하체 볼륨 늘림. 식사량 늘리는 게 힘들다고 함.',
+    '정하윤': '출산 후 코어 재활 4주차. 복직근 이개 1.5cm.',
+    '문가영': '수업 시간대 바꾸고 싶다고 함. 상담 잡기로.',
+  },
+];
+
+/// 지난 상담(#2667). AI 루틴 추천의 근거 `상담 메모`(최근 30일)가 읽는 글이다.
+const List<({int daysAgo, String clientName, String note})> _pastConsults =
+    <({int daysAgo, String clientName, String note})>[
+      (
+        daysAgo: 11,
+        clientName: '한지호',
+        note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.',
+      ),
+      (
+        daysAgo: 18,
+        clientName: '오세라',
+        note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.',
+      ),
+      (
+        daysAgo: 25,
+        clientName: '신유나',
+        note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.',
+      ),
+    ];
 
 class _Slot {
   const _Slot({

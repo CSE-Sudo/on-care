@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/storage/seed_insight_memos.dart';
+import 'package:oncare_trainer/core/storage/seed_trainer_notes.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -44,6 +45,9 @@ Future<void> bootstrap() async {
         prefs,
         await AppLocalizations.delegate.load(demoLanguage.locale),
       );
+      // 트레이너가 남겨 둔 후속 관리·메모·프로그램 초안(#2667). 감지 메모 뒤에
+      // 심어야 그 목록에 덧붙는다.
+      await seedDemoTrainerNotes(prefs, language: demoLanguage);
     }
   } catch (e) {
     debugPrint('Trainer drift seed failed — booting with no local data: $e');

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:demo_fixture/demo_fixture.dart';
 
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -20,6 +21,11 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 /// 끊긴 화면이 나온다.
 typedef DemoCoachLinkCheck = bool Function();
 
+/// 데모에서 담당 트레이너를 다시 잇는다 — 담당 요청을 수락했을 때다. (#2659)
+///
+/// [DemoCoachLinkCheck] 와 같은 까닭으로 연결 상태는 헬스장 저장소에 둔다.
+typedef DemoCoachRelink = void Function(String trainerId);
+
 /// In-memory demo coach for `USE_MOCK_API=true`. Mirrors the trainer app's
 /// seed identity ([kDemoTrainerName]) so the two demo apps tell one story. Chat is
 /// stateful for the session so a sent message appears in the thread.
@@ -34,9 +40,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     MockExerciseRepository? exercise,
     DemoPointsLedger? points,
     DemoCoachLinkCheck? linked,
+    DemoCoachRelink? relink,
   }) : _exercise = exercise,
        _points = points,
-       _linked = linked;
+       _linked = linked,
+       _relink = relink;
 
   final MockExerciseRepository? _exercise;
   final DemoPointsLedger? _points;
@@ -44,6 +52,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 담당 트레이너 연결 여부를 묻는 곳. 주지 않으면 늘 연결된 것으로 본다
   /// (연결을 끊을 길이 없는 테스트·단독 사용).
   final DemoCoachLinkCheck? _linked;
+
+  /// 담당 요청을 수락했을 때 연결을 다시 잇는 곳. 주지 않으면 수락해도 연결
+  /// 상태는 그대로다(테스트·단독 사용).
+  final DemoCoachRelink? _relink;
 
   /// 담당이 살아 있는가. 끊겼으면 코치도, 배정 운동도, 대화도 내 것이 아니다.
   bool _hasCoach() => _linked?.call() ?? true;
@@ -560,12 +572,78 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     _endedOn[routineId] = _dayKey(todayKst());
   }
 
-  /// 데모에는 트레이너가 잡은 일정이 없다. (#490)
+  /// 트레이너가 잡아 둔 PT 일정 — 지난 완료 세션·오늘·다음 예정. (#2659)
   ///
-  /// 시드로 만들어 넣지 않는 이유: 데모 홈에 없던 카드가 생겨 화면이 지금과
-  /// 달라진다. 실모드에서만 나타나는 것이 맞다.
+  /// #490 에서는 데모 홈에 없던 카드가 생긴다는 이유로 비워 두었다. 그러면 데모의
+  /// `다음 PT` 는 늘 `예정 없음` 이고 주간 리포트의 PT 예약도 늘 0 이라, 데모가
+  /// 실서버 화면을 보여 주지 못한다. 데모는 실서버 화면을 그대로 보여야 한다.
+  ///
+  /// 완료 세션은 **공유 픽스처의 PT 날**에서 만든다 — 그날 운동 기록이 곧 그
+  /// 수업의 프로그램이고, 픽스처의 트레이너 메모가 곧 피드백이다. 일정을 따로
+  /// 지으면 같은 날의 운동 기록과 PT 일정이 서로 다른 수업을 말한다. 시각·길이는
+  /// 트레이너 웹 시드의 오늘 김민수 PT(18:00 · 50분)와 같다. 다음 예정은 한 주 뒤
+  /// 같은 요일·같은 시각이다 — 트레이너 웹도 이 회원의 수업을 매주 같은 요일에
+  /// 놓는다.
+  ///
+  /// 담당이 끊겼으면 비어 있다. 실서버도 활성 담당의 일정만 준다.
   @override
-  Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
+  Future<List<CoachSession>> fetchSessions() async {
+    if (!_hasCoach()) return const <CoachSession>[];
+    final DateTime today = todayKst();
+    return List<CoachSession>.unmodifiable(<CoachSession>[
+      for (final FixtureDay day in _fixtureDays)
+        if (day.isPt)
+          CoachSession(
+            id: 'seed-pt-${day.date}',
+            date: DateTime.parse(day.date),
+            time: _ptTime,
+            type: _ptType,
+            durationMinutes: _ptMinutes,
+            status: '완료',
+            note: day.trainerNote,
+            program: <CoachProgramItem>[
+              for (final FixtureExercise e in day.exercises)
+                if (e.done) _programItem(e),
+            ],
+          ),
+      CoachSession(
+        id: 'seed-pt-next',
+        date: DateTime(today.year, today.month, today.day + 7),
+        time: _ptTime,
+        type: _ptType,
+        durationMinutes: _ptMinutes,
+        status: '예정',
+      ),
+    ]);
+  }
+
+  static const String _ptTime = '18:00';
+  static const String _ptType = '1:1 PT';
+  static const int _ptMinutes = 50;
+
+  /// 픽스처 운동 한 줄 → 수업 프로그램 한 줄. 근력은 세트·횟수·중량, 나머지는
+  /// 운동 시간(분)이다 — 서버 계약과 같다. 버티는 운동(플랭크)은 횟수 대신 버틴
+  /// 시간을 이름에 붙인다. 트레이너 웹 시드의 오늘 수업(`플랭크 60초`)과 같은
+  /// 표기다.
+  static CoachProgramItem _programItem(FixtureExercise e) {
+    if (e.type != 'strength') {
+      return CoachProgramItem(
+        name: e.name,
+        sets: 0,
+        reps: 0,
+        weight: 0,
+        duration: e.minutes,
+        durationSeconds: e.minutes * 60,
+      );
+    }
+    final int? hold = e.holdSeconds;
+    return CoachProgramItem(
+      name: hold == null ? e.name : '${e.name} $hold초',
+      sets: e.sets ?? 0,
+      reps: e.reps ?? 0,
+      weight: e.weight ?? 0,
+    );
+  }
 
   @override
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
@@ -739,17 +817,57 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     return saved;
   }
 
-  /// 데모에는 요청을 보낼 트레이너 백엔드가 없다. 빈 목록이라 카드 자체가
-  /// 그려지지 않고, 데모 화면은 지금 그대로다.
-  @override
-  Future<List<CoachInvite>> fetchInvites() async => const <CoachInvite>[];
+  /// 담당 트레이너가 다시 보낸 연결 요청 — 연결이 끊긴 동안만 한 건 뜬다. (#2659)
+  ///
+  /// 예전에는 늘 빈 목록이라 데모에서는 앱 어디서든 뜨는 담당 요청 창
+  /// (`CoachInvitePrompter`)을 볼 길이 없었다. 연결된 회원에게는 요청이 오지
+  /// 않는다 — 실서버도 담당이 있는 회원에게는 요청을 보낼 수 없다. 끊은 뒤에
+  /// 같은 트레이너가 다시 청하는 모양이라, 수락하면 끊기 전 화면으로 돌아간다.
+  static const CoachInvite _invite = CoachInvite(
+    id: 'demo-invite-1',
+    trainerId: 'trainer-kim',
+    trainerName: kDemoTrainerName,
+    gymName: '온케어짐 신촌점',
+    message: '민수님, 무릎 상태 봐 가며 하던 프로그램 이어서 같이 해요. 연결 요청 드립니다.',
+  );
 
+  /// 답한 요청은 다시 뜨지 않는다 — 실서버에서도 수락·거절한 요청은 목록에서
+  /// 빠진다.
+  bool _inviteAnswered = false;
+
+  @override
+  Future<List<CoachInvite>> fetchInvites() async =>
+      _hasCoach() || _inviteAnswered
+      ? const <CoachInvite>[]
+      : const <CoachInvite>[_invite];
+
+  /// 수락하면 그 트레이너가 다시 담당이 된다. 연결 상태는 헬스장 저장소가
+  /// 들고 있으므로 거기에 잇는다 — 이 저장소가 따로 들면 한쪽만 이어진다(#1865).
   @override
   Future<void> acceptInvite(
     String inviteId, {
     required bool dataSharingConsent,
-  }) async {}
+  }) async {
+    _requirePendingInvite(inviteId);
+    if (!dataSharingConsent) {
+      // 실서버도 동의 없는 수락은 400 이다(#1022).
+      throw const ServerError(statusCode: 400);
+    }
+    _inviteAnswered = true;
+    _relink?.call(_invite.trainerId);
+  }
 
   @override
-  Future<void> rejectInvite(String inviteId) async {}
+  Future<void> rejectInvite(String inviteId) async {
+    _requirePendingInvite(inviteId);
+    _inviteAnswered = true;
+  }
+
+  /// 목록에 없는 요청에 답하면 실서버는 404 다. 요청 창은 [AppError] 를 받아
+  /// 실패 안내를 띄운다 — 다른 예외면 창이 멈춘다.
+  void _requirePendingInvite(String inviteId) {
+    if (inviteId != _invite.id || _inviteAnswered || _hasCoach()) {
+      throw const NotFoundError();
+    }
+  }
 }
