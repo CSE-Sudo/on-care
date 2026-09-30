@@ -88,15 +88,17 @@ const Map<int, Map<String, num>> seedHealthProfiles = <int, Map<String, num>>{
     'weekly_strength_sets': 24,
     'weekly_flexibility_minutes': 60,
   },
-  // 강서연 — 체중 감량.
+  // 강서연 — 체중 감량. 칼로리·당류는 회원 앱 기본값(2,000kcal·50g)이다 —
+  // 데모 장면(2,260kcal 로 목표를 넘긴 날, 저녁 치킨만 당류를 짚는 끼니)이
+  // 그 목표로 짜여 있다.
   6: <String, num>{
     'height_cm': 165,
     'weight_kg': 68,
-    'daily_calories': 1500,
-    'daily_carbs_g': 180,
-    'daily_sugar_g': 35,
-    'daily_protein_g': 95,
-    'daily_fat_g': 42,
+    'daily_calories': 2000,
+    'daily_carbs_g': 250,
+    'daily_sugar_g': 50,
+    'daily_protein_g': 110,
+    'daily_fat_g': 55,
     'daily_sodium_mg': 2000,
     'daily_burn_kcal': 350,
     'weekly_cardio_minutes': 180,

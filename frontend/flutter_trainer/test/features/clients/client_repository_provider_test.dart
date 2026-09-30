@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show Locale;
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show StringExpressionOperators;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -200,6 +201,12 @@ class _ShortSplitRepository extends _StreamingClientRepository {
   );
 }
 
+/// 시드가 넣은 신체·목표를 걷어 낸다(#2597) — 저장한 적 없는 회원을 저장소가
+/// 어떻게 읽는지 보려면 시드 값이 없어야 한다.
+Future<void> _clearSeededHealthProfiles(AppDatabase db) => (db.delete(
+  db.appKeyValues,
+)..where((t) => t.key.like('member_health_profile:%'))).go();
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -246,6 +253,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     await seedIfEmpty(db);
+    await _clearSeededHealthProfiles(db);
     final repository = DriftClientRepository(db);
 
     // 저장한 적이 없으면 비어 있다 — 화면이 회원 앱 기본값을 흐리게 보여 준다.
@@ -301,6 +309,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     await seedIfEmpty(db);
+    await _clearSeededHealthProfiles(db);
     final repository = DriftClientRepository(db);
     final clients = await repository.watchClients().first;
 
