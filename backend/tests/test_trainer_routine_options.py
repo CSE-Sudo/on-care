@@ -841,6 +841,16 @@ def test_exercise_name_strips_the_free_text_set_count():
     assert fn(123) == ""
 
 
+def test_exercise_name_drops_marks_and_skips_undone_exercises():
+    """수행 표시·괄호 메모를 떼고, 안 한 운동은 세지 않는다(#2714)."""
+    fn = trainer_routine_options_service._exercise_name
+    assert fn("스쿼트 3세트 · 12회 · 40kg ✓") == "스쿼트"
+    assert fn("걷기 ✓ (10분만)") == "걷기"
+    assert fn("걷기 ✓") == "걷기"
+    assert fn("데드리프트 ✗") == ""
+    assert fn("플랭크 ✗ (피로)") == ""
+
+
 def test_guess_intensity_maps_exercise_type_to_a_preference():
     fn = trainer_routine_options_service._guess_intensity
     assert fn("근력") == "high"

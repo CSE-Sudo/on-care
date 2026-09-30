@@ -348,6 +348,7 @@ void main() {
         expect(s.date.compareTo(mondayYmd), lessThan(0), reason: s.date);
         expect(
           s.id.startsWith('seed-schedule-p') ||
+              s.id.startsWith('seed-schedule-f') ||
               s.id.startsWith('seed-schedule-c'),
           isTrue,
           reason: '${s.date} ${s.id}',
