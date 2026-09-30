@@ -46,7 +46,6 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
       json['completed_duration_seconds'],
     ),
     completedIntensity: json['completed_intensity'] as String?,
-    trainerFeedback: _str(json['trainer_feedback']),
     programName: _str(json['program_name']),
     sessionName: _str(json['session_name']),
     sessionOrder: json['session_order'] is num

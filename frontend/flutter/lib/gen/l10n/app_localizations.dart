@@ -1814,12 +1814,6 @@ abstract class AppLocalizations {
   /// **'Completed solo workout'**
   String get exCompletedRoutineDayTitle;
 
-  /// No description provided for @exPtDayFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'{coachName} · Feedback'**
-  String exPtDayFeedback(String coachName);
-
   /// No description provided for @exDeleteExercise.
   ///
   /// In en, this message translates to:
@@ -6365,12 +6359,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t delete the workout'**
   String get coachRoutineCancelFailed;
-
-  /// The trainer's feedback on a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback: {feedback}'**
-  String coachRoutineTrainerFeedback(String feedback);
 
   /// Title of the completion dialog.
   ///
