@@ -11,6 +11,7 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
+import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -46,8 +47,7 @@ class TrainerDetailPage extends ConsumerWidget {
           // 헬스장이 아니라 이 트레이너 앞으로 낸 요청만 대기중으로 본다.
           // 헬스장이 아니라 트레이너 단위로 비교한다 — 같은 헬스장에 다른
           // 트레이너가 있어도 내 담당이 아니면 상담을 걸 수 있어야 한다.
-          isMyTrainer:
-              ref.watch(myTrainerProvider).valueOrNull?.id == trainer.id,
+          myTrainerId: ref.watch(myTrainerProvider).valueOrNull?.id,
           hasPending: requests.any(
             (ConsultationRequest request) =>
                 request.trainerId == trainer.id &&
@@ -78,7 +78,7 @@ class _TrainerDetails extends ConsumerWidget {
   const _TrainerDetails({
     required this.trainer,
     required this.gym,
-    required this.isMyTrainer,
+    required this.myTrainerId,
     required this.hasPending,
   });
 
@@ -87,9 +87,17 @@ class _TrainerDetails extends ConsumerWidget {
   /// 소속 헬스장. 아직 못 읽었으면 null 이고 해당 섹션만 빠진다.
   final Gym? gym;
 
-  /// 이미 내 담당 트레이너면 상담 요청 CTA 를 숨긴다.
-  final bool isMyTrainer;
+  /// 내 담당 트레이너 id. 없으면 null.
+  final String? myTrainerId;
   final bool hasPending;
+
+  /// 이미 내 담당 트레이너인가. 담당 연결 해제 버튼을 함께 보이고, 재상담도
+  /// 받는다(#2585).
+  bool get isMyTrainer => myTrainerId == trainer.id;
+
+  /// 담당이 따로 있는가. 그동안 상담은 담당에게만 낸다 — 이 트레이너에게는
+  /// 담당 연결을 해제한 뒤 낸다(#2611).
+  bool get isLinkedElsewhere => myTrainerId != null && !isMyTrainer;
 
   /// 담당 트레이너 연결만 끊는다 — 헬스장은 그대로다. 끊었으면 이 화면을
   /// 닫는다. 지운 대상의 상세에 남아 있으면 방금 무엇을 했는지 화면이 말해
@@ -265,31 +273,38 @@ class _TrainerDetails extends ConsumerWidget {
                 child: _AffiliatedGymRow(gym: gym!),
               ),
             ],
+            // 담당 트레이너에게도 상담을 걸 수 있다 — 재상담·점검 상담이다(#2585).
+            // 담당이 따로 있으면 이 트레이너에게는 걸 수 없다(#2611).
+            // 헬스장 탭의 `빈 예약 시간` 은 1:1 PT 수업 예약이라 상담을 대신하지
+            // 못한다.
+            const SizedBox(height: OnCareSpacing.sectionGap),
+            AppButton(
+              key: const Key('consult-start'),
+              label: hasPending
+                  ? l.exConsultPendingCta
+                  : l.exTrainerConsultRequest,
+              onPressed: hasPending || isLinkedElsewhere
+                  ? null
+                  : () => context.push(
+                      AppRoutes.consultationRequestPath(
+                        gymId: trainer.gymId,
+                        trainerId: trainer.id,
+                      ),
+                    ),
+              size: OnCareButtonSize.large,
+              fullWidth: true,
+            ),
+            // 대기 중인 요청은 담당이 생기기 전에 낸 것이다 — 그때는 대기 표시가
+            // 먼저라 안내를 겹치지 않는다.
+            if (isLinkedElsewhere && !hasPending)
+              ConsultLinkedNotice(myTrainerId: myTrainerId!),
             if (isMyTrainer) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.sectionGap),
-              // 목록 카드에서 삭제를 여기로 옮겼다 (#1057).
+              const SizedBox(height: OnCareSpacing.s12),
+              // 목록 카드에서 삭제를 여기로 옮겼다 (#1057). 위험 동작이라 상담
+              // 요청 아래에 둔다.
               DisconnectButton(
                 label: l.myTrainerDisconnectTooltip,
                 onTap: () => _disconnect(context, ref),
-              ),
-            ],
-            if (!isMyTrainer) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.sectionGap),
-              AppButton(
-                key: const Key('consult-start'),
-                label: hasPending
-                    ? l.exConsultPendingCta
-                    : l.exTrainerConsultRequest,
-                onPressed: hasPending
-                    ? null
-                    : () => context.push(
-                        AppRoutes.consultationRequestPath(
-                          gymId: trainer.gymId,
-                          trainerId: trainer.id,
-                        ),
-                      ),
-                size: OnCareButtonSize.large,
-                fullWidth: true,
               ),
             ],
           ],

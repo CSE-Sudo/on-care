@@ -168,6 +168,18 @@ void main() {
     );
   });
 
+  testWidgets('가입하면 소속 헬스장을 고르는 프로필 수정으로 간다 (#2543)', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSignUp(tester);
+    await _fill(tester);
+
+    await _submit(tester);
+
+    expect(currentLocation(tester), AppRoutes.mySection('edit'));
+    expect(find.byKey(const ValueKey<String>('gym-search')), findsOneWidget);
+  });
+
   testWidgets('이름·이메일·비밀번호만으로 가입을 보낸다', (WidgetTester tester) async {
     final repo = await _pumpSignUp(tester);
     await _fill(tester);

@@ -900,10 +900,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exLogged => '운동이 기록됐어요';
 
   @override
+  String exQueueTitle(int count) {
+    return '추가할 운동 $count';
+  }
+
+  @override
+  String get exQueueRemove => '목록에서 빼기';
+
+  @override
+  String exQueueFull(int count) {
+    return '한 번에 $count개까지 추가할 수 있어요';
+  }
+
+  @override
+  String exSaveCount(int count) {
+    return '$count개 저장';
+  }
+
+  @override
+  String exLoggedCount(int count) {
+    return '운동 $count개가 기록됐어요';
+  }
+
+  @override
+  String get exQueueDiscardTitle => '추가할 운동을 버릴까요?';
+
+  @override
+  String exQueueDiscardBody(int count) {
+    return '아직 저장하지 않은 운동 $count개가 사라져요.';
+  }
+
+  @override
+  String get exQueueDiscard => '버리기';
+
+  @override
   String get exOwnRecords => '직접 기록한 운동';
 
   @override
-  String get exOwnRecordsEmpty => '직접 추가한 운동이 없어요';
+  String get exOwnRecordsEmpty => '직접 추가할 운동이 없어요';
 
   @override
   String get exOwnRecordSource => '직접 기록';
@@ -1165,7 +1199,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myPointsExchangeConfirmAction => '교환하기';
+  String get myPointsExchangeConfirmAction => '교환';
 
   @override
   String get myPointsExchangeDone => '교환했어요';
@@ -1280,21 +1314,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myGraphProtectAction => '보호권 쓰기';
+  String get myGraphProtectAction => '보호권 사용';
 
   @override
-  String get myGraphProtectConfirmTitle => '보호권을 쓸까요?';
+  String get myGraphProtectConfirmAction => '사용';
+
+  @override
+  String get myGraphProtectConfirmTitle => '보호권을 사용할까요?';
 
   @override
   String myGraphProtectConfirmMessage(String date, int held) {
-    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 씁니다(남은 보호권 $held개).';
+    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
   }
 
   @override
   String get myGraphProtectDone => '연속을 이어 붙였어요';
 
   @override
-  String get myGraphProtectFailed => '보호권을 쓰지 못했어요';
+  String get myGraphProtectFailed => '보호권을 사용하지 못했어요';
 
   @override
   String get myGraphProtectBuyConfirmTitle => '보호권을 구매할까요?';
@@ -1305,10 +1342,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myGraphProtectBuyAction => '구매하고 쓰기';
+  String get myGraphProtectBuyAction => '구매하고 사용';
 
   @override
-  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.';
+  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 사용하지 못했어요. 내 혜택에 보관돼요.';
 
   @override
   String get myGraphColorTitle => '그래프 색';
@@ -1416,7 +1453,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachReportPdfSelfMadeNote =>
-      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
+      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 피드백이 없어요.';
 
   @override
   String get coachReportPdfSectionInsights => '참고 기록';
@@ -1584,7 +1621,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get challengeJoinConfirmAction => '참가하기';
+  String get challengeJoinConfirmAction => '참가';
 
   @override
   String get challengeJoinDone => '챌린지에 참가했어요';
@@ -1820,7 +1857,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSheetTitle => '이모티콘';
 
   @override
-  String get emoteBuyTitle => '이모티콘 사기';
+  String get emoteBuyTitle => '이모티콘 구매';
 
   @override
   String emoteBuyConfirm(int cost, int days) {
@@ -1828,7 +1865,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get emoteBuyAction => '사기';
+  String get emoteBuyAction => '구매';
 
   @override
   String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';
@@ -2284,10 +2321,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachReportPdfSectionTrainerNote => '트레이너 메시지';
+  String get coachReportPdfSectionTrainerNote => '트레이너 피드백';
 
   @override
-  String get coachReportPdfNoTrainerNote => '함께 온 메시지가 없어요.';
+  String get coachReportPdfNoTrainerNote => '함께 온 피드백이 없어요.';
 
   @override
   String get coachReportPdfSectionChange => '지난주 대비';
@@ -2590,6 +2627,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultPendingCta => '상담 요청 대기 중';
 
   @override
+  String get exConsultLinkedToOtherTrainer =>
+      '담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 요청하려면 담당 연결을 먼저 해제해 주세요.';
+
+  @override
+  String get exConsultGoToMyTrainer => '담당 트레이너 보기';
+
+  @override
   String get exViewConsultationRequest => '상담 요청 확인';
 
   @override
@@ -2603,14 +2647,21 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      '요청이 수락되면 이 트레이너가 회원님의 식단 기록, 운동 기록, 신체 정보와 건강 목표를 확인할 수 있어요.';
+      '상담 신청 정보(이름·운동 목표·문의 내용)는 이 트레이너에게 전달돼요. 식단·운동 기록은 상담 뒤 연결 코드로 등록할 때 따로 동의를 받아요.';
 
   @override
   String get exConsultDataSharingAgree =>
-      '위 내용을 확인했고, 식단·운동 기록과 신체 정보를 이 트레이너에게 공유하는 데 동의해요';
+      '위 내용을 확인했고, 상담 신청 정보를 이 트레이너에게 전달하는 데 동의해요';
 
   @override
-  String get exConsultDataSharingRequired => '공유에 동의해야 상담을 신청할 수 있어요';
+  String get exConsultDataSharingRequired => '전달에 동의해야 상담을 신청할 수 있어요';
+
+  @override
+  String get exConsultDataSharingLinked =>
+      '담당 트레이너라 식단·운동 기록과 신체 정보를 이미 공유하고 있어요. 다시 동의하지 않아도 돼요.';
+
+  @override
+  String get exConsultGoalPrefilled => 'MY 건강 목표를 채워 두었어요. 이번 상담에 맞게 바꿔도 돼요.';
 
   @override
   String get coachInviteConsentTitle => '담당 연결 전에 확인해 주세요';
@@ -2808,7 +2859,8 @@ class AppLocalizationsKo extends AppLocalizations {
       '사유를 남기지 않았어요. 다른 트레이너에게 상담을 요청해 보세요.';
 
   @override
-  String get exConsultAcceptedGuide => '담당 트레이너와 연결되었어요. 이제 채팅으로 상담할 수 있어요.';
+  String get exConsultAcceptedGuide =>
+      '상담이 확정됐어요. 등록하기로 하면 상담 때 MY 탭의 연결 코드로 트레이너와 연결할 수 있어요.';
 
   @override
   String get exMyReservations => '내 예약';
@@ -2968,7 +3020,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trainerSyncTitle => '트레이너와 데이터 동기화';
 
   @override
-  String get trainerSyncConsent => '이 코드를 입력한 트레이너가 담당이 되고, 식단·운동·건강 기록이 공유돼요.';
+  String get trainerSyncConsent =>
+      '이 코드를 입력한 트레이너가 담당이 되면, 회원님의 식단 기록·운동 기록·신체 정보와 건강 목표를 볼 수 있어요. 연결을 해제하면 열람 권한도 함께 사라져요.';
+
+  @override
+  String get trainerSyncAgree => '동의하고 코드 받기';
 
   @override
   String get trainerSyncHint => '트레이너에게 이 6자리를 불러 주세요.';
@@ -3428,17 +3484,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutinePastReadOnly => '그날 한 운동이에요. 지난 날짜는 체크할 수 없어요.';
 
   @override
-  String get coachRoutineByTrainer => '트레이너 직접 추천';
-
-  @override
-  String coachRoutineAiChecked(String name) {
-    return 'AI 추천 · $name 확인';
-  }
-
-  @override
-  String get coachRoutineAiAuto => 'AI 자동 추천';
-
-  @override
   String get coachRoutineLogged => '운동 기록에 반영했어요';
 
   @override
@@ -3512,7 +3557,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineSubmit => '완료 기록';
+  String get coachRoutineSubmit => '완료';
 
   @override
   String get coachChatWithTrainer => '트레이너와 채팅';
@@ -3713,6 +3758,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelTitle => '상담 요청을 취소할까요?';
+
+  @override
+  String get exConsultHistoryCancelAction => '요청 취소';
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
@@ -4438,7 +4486,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get weeklyFeedbackPainDatePick => '날짜 고르기';
 
   @override
-  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 (선택)';
+  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 피드백 (선택)';
 
   @override
   String get weeklyFeedbackNoteHint => '그 주에 있었던 일을 적어 주세요';
@@ -4541,7 +4589,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myWeeklyFeedbackNoteLabel => '남긴 말';
+  String get myWeeklyFeedbackNoteLabel => '한 줄 피드백';
 
   @override
   String myWeeklyFeedbackSentAt(int month, int day) {

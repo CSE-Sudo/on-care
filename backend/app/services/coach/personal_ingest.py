@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.services import exercise_types
+from app.services.exercise_duration import format_duration, seconds_or_minutes
 from app.services.coach import prompt_safety
 from app.services.coach.rag import (
     ensure_personal_text,
@@ -142,12 +143,17 @@ _EXERCISE_INTENSITY_KR = {"light": "낮음", "moderate": "보통", "high": "높�
 
 def exercise_text(
     *, date: str, exercise_type: str, minutes: int, calories: int,
-    intensity: str,
+    intensity: str, duration_seconds: int | None = None,
 ) -> str:
-    """운동 세션 한 건의 문서 본문. 적재와 갱신이 같은 문구를 쓰게 한 곳에 둔다."""
+    """운동 세션 한 건의 문서 본문. 적재와 갱신이 같은 문구를 쓰게 한 곳에 둔다.
+
+    시간은 초가 있으면 초까지 적는다(#2546) — `45초` 를 `1분` 으로 적으면 코치가
+    한 적 없는 1분을 근거로 답한다.
+    """
+    duration = format_duration(seconds_or_minutes(duration_seconds, minutes))
     return (
         f"{date} 운동 기록: "
-        f"{_EXERCISE_TYPE_KR(exercise_type)} {minutes}분, "
+        f"{_EXERCISE_TYPE_KR(exercise_type)} {duration}, "
         f"{calories}kcal, 강도 {_EXERCISE_INTENSITY_KR.get(intensity, intensity)}."
     )
 
@@ -176,7 +182,7 @@ def diet_text(
 def record_exercise(
     db: Session, user_id: str, *, date: str, exercise_type: str, minutes: int,
     calories: int, intensity: str, source_ref: str | None = None,
-    once: bool = False,
+    once: bool = False, duration_seconds: int | None = None,
 ) -> None:
     """운동 세션 한 건을 개인 문서로 적재한다(#586).
 
@@ -189,7 +195,7 @@ def record_exercise(
     """
     text = exercise_text(
         date=date, exercise_type=exercise_type, minutes=minutes,
-        calories=calories, intensity=intensity,
+        calories=calories, intensity=intensity, duration_seconds=duration_seconds,
     )
     _safe(
         db, user_id, text, domain="exercise", source="exercise",
@@ -253,6 +259,7 @@ def refresh_exercise(db: Session, user_id: str, *, session_id: str) -> None:
         return exercise_text(
             date=exercise_session_date(row), exercise_type=row.type,
             minutes=row.minutes, calories=row.calories, intensity=row.intensity,
+            duration_seconds=row.duration_seconds,
         )
 
     _safe_replace(

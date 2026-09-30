@@ -1366,11 +1366,10 @@ class _MealCard extends StatelessWidget {
                 children: <Widget>[
                   Row(
                     key: const ValueKey<String>('meal-card-header'),
-                    // 화살표는 늘 카드 오른쪽 끝이다(#761).
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
                       // 배지는 왼쪽에 붙이고 남는 폭 안으로 접힌다(#739).
-                      // 화살표만 접지 않는다. 시각은 #1989 에서 빠졌다.
+                      // 시각은 #1989 에서 빠졌다. 화살표는 칼로리 배지 옆으로
+                      // 내려갔다(#2609).
                       Flexible(
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
@@ -1381,24 +1380,11 @@ class _MealCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부 수치는
-                      // 여기가 아니라 들어가서 본다(#1848). 연필은 "이 자리에서
-                      // 고친다"로 읽혀 화살표로 되돌렸다. 아이콘 자체는 탭을
-                      // 먹지 않는다 — 카드 전체가 눌린다.
-                      Tooltip(
-                        message: l.dietEditMeal,
-                        child: AppIcon(
-                          AppIcons.chevronRight,
-                          size: OnCareSize.iconSmall,
-                          color: OnCareColors.textTertiary,
-                          semanticLabel: l.dietEditMeal,
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: OnCareSpacing.s4),
                   // 메뉴명과 칼로리는 한 층이다 — 칼로리는 메뉴명 블록의 세로
-                  // 가운데, 오른쪽 끝에 서서 위의 화살표와 같은 세로선에 놓인다.
+                  // 가운데, 오른쪽 끝에 서고 그 바로 오른쪽에 화살표가 붙는다.
                   // 메뉴명 아래 네 번째 줄로 두면 카드 오른쪽이 비고 수치가 왼쪽
                   // 끝에 묻혀, 목록을 훑을 때 칼로리가 한 선에 모이지 않았다.
                   // 이 층은 배지 아래 남는 자리의 세로 가운데에 선다.
@@ -1471,6 +1457,22 @@ class _MealCard extends StatelessWidget {
                                     '${_formatInt(meal.total)} ${l.unitKcal}',
                                 tone: AppTagTone.brand,
                               ),
+                            ),
+                          ),
+                          // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부
+                          // 수치는 여기가 아니라 들어가서 본다(#1848). 연필은
+                          // "이 자리에서 고친다"로 읽혀 화살표로 되돌렸다.
+                          // 아이콘 자체는 탭을 먹지 않는다 — 카드 전체가
+                          // 눌린다. 칼로리 배지 바로 오른쪽, 카드 세로 가운데에
+                          // 선다 — MY 목록 행과 같은 20 화살표다(#2609).
+                          const SizedBox(width: OnCareSpacing.s4),
+                          Tooltip(
+                            message: l.dietEditMeal,
+                            child: AppIcon(
+                              AppIcons.chevronRight,
+                              size: OnCareSize.iconMedium,
+                              color: OnCareColors.textTertiary,
+                              semanticLabel: l.dietEditMeal,
                             ),
                           ),
                         ],

@@ -1736,6 +1736,54 @@ abstract class AppLocalizations {
   /// **'Exercise logged'**
   String get exLogged;
 
+  /// No description provided for @exQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To add {count}'**
+  String exQueueTitle(int count);
+
+  /// No description provided for @exQueueRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from list'**
+  String get exQueueRemove;
+
+  /// No description provided for @exQueueFull.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to {count} at a time'**
+  String exQueueFull(int count);
+
+  /// No description provided for @exSaveCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Save {count}'**
+  String exSaveCount(int count);
+
+  /// No description provided for @exLoggedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} exercises logged'**
+  String exLoggedCount(int count);
+
+  /// No description provided for @exQueueDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard exercises to add?'**
+  String get exQueueDiscardTitle;
+
+  /// No description provided for @exQueueDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unsaved exercises will be lost.'**
+  String exQueueDiscardBody(int count);
+
+  /// No description provided for @exQueueDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get exQueueDiscard;
+
   /// No description provided for @exOwnRecords.
   ///
   /// In en, this message translates to:
@@ -2378,6 +2426,12 @@ abstract class AppLocalizations {
   /// **'Use a shield'**
   String get myGraphProtectAction;
 
+  /// Confirm button of the use-a-shield dialog. The dialog title already names the shield (#2554).
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get myGraphProtectConfirmAction;
+
   /// No description provided for @myGraphProtectConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -2603,7 +2657,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfSelfMadeNote.
   ///
   /// In en, this message translates to:
-  /// **'Made with points, without a trainer — so there\'s no trainer message.'**
+  /// **'Made with points, without a trainer — so there\'s no trainer feedback.'**
   String get coachReportPdfSelfMadeNote;
 
   /// No description provided for @coachReportPdfSectionInsights.
@@ -4133,13 +4187,13 @@ abstract class AppLocalizations {
   /// Section heading for the message the trainer sent with the report.
   ///
   /// In en, this message translates to:
-  /// **'From your trainer'**
+  /// **'Trainer feedback'**
   String get coachReportPdfSectionTrainerNote;
 
   /// Shown under the trainer-message heading when the report arrived without a note.
   ///
   /// In en, this message translates to:
-  /// **'No message came with this report.'**
+  /// **'No feedback came with this report.'**
   String get coachReportPdfNoTrainerNote;
 
   /// Section heading comparing this week with the previous one.
@@ -4639,6 +4693,18 @@ abstract class AppLocalizations {
   /// **'Consultation Request Pending'**
   String get exConsultPendingCta;
 
+  /// No description provided for @exConsultLinkedToOtherTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.'**
+  String get exConsultLinkedToOtherTrainer;
+
+  /// No description provided for @exConsultGoToMyTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'View my trainer'**
+  String get exConsultGoToMyTrainer;
+
   /// No description provided for @exViewConsultationRequest.
   ///
   /// In en, this message translates to:
@@ -4666,20 +4732,32 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultDataSharingNotice.
   ///
   /// In en, this message translates to:
-  /// **'Once this trainer accepts your request, they\'ll be able to see your diet log, exercise log, and body info and health goals.'**
+  /// **'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
   String get exConsultDataSharingNotice;
 
   /// No description provided for @exConsultDataSharingAgree.
   ///
   /// In en, this message translates to:
-  /// **'I have read this and agree to share my meal and workout records and body information with this trainer'**
+  /// **'I have read this and agree to send my request details to this trainer'**
   String get exConsultDataSharingAgree;
 
   /// No description provided for @exConsultDataSharingRequired.
   ///
   /// In en, this message translates to:
-  /// **'Please agree to sharing before requesting a consultation'**
+  /// **'Please agree to sending your request details before requesting a consultation'**
   String get exConsultDataSharingRequired;
+
+  /// No description provided for @exConsultDataSharingLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.'**
+  String get exConsultDataSharingLinked;
+
+  /// No description provided for @exConsultGoalPrefilled.
+  ///
+  /// In en, this message translates to:
+  /// **'We filled this in from your health goals in MY. Feel free to change it for this consultation.'**
+  String get exConsultGoalPrefilled;
 
   /// No description provided for @coachInviteConsentTitle.
   ///
@@ -5044,7 +5122,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultAcceptedGuide.
   ///
   /// In en, this message translates to:
-  /// **'You\'re connected with your trainer. You can start chatting now.'**
+  /// **'Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.'**
   String get exConsultAcceptedGuide;
 
   /// No description provided for @exMyReservations.
@@ -5356,8 +5434,14 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncConsent.
   ///
   /// In en, this message translates to:
-  /// **'The trainer who enters this code becomes your coach and can see your meals, workouts, and health records.'**
+  /// **'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.'**
   String get trainerSyncConsent;
+
+  /// No description provided for @trainerSyncAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and get a code'**
+  String get trainerSyncAgree;
 
   /// No description provided for @trainerSyncHint.
   ///
@@ -6186,24 +6270,6 @@ abstract class AppLocalizations {
   /// **'What you did that day. Past days can\'t be checked.'**
   String get coachRoutinePastReadOnly;
 
-  /// Origin of a routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended by your trainer'**
-  String get coachRoutineByTrainer;
-
-  /// Origin of a routine an AI proposed and the trainer approved.
-  ///
-  /// In en, this message translates to:
-  /// **'AI suggestion · reviewed by {name}'**
-  String coachRoutineAiChecked(String name);
-
-  /// Origin of a routine proposed automatically.
-  ///
-  /// In en, this message translates to:
-  /// **'AI suggestion'**
-  String get coachRoutineAiAuto;
-
   /// Shown after a routine is marked done.
   ///
   /// In en, this message translates to:
@@ -6333,7 +6399,7 @@ abstract class AppLocalizations {
   /// Submit button of the completion dialog.
   ///
   /// In en, this message translates to:
-  /// **'Save'**
+  /// **'Done'**
   String get coachRoutineSubmit;
 
   /// Opens the chat with the assigned trainer.
@@ -6689,6 +6755,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel this consultation request?'**
   String get exConsultHistoryCancelTitle;
+
+  /// Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554).
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel request'**
+  String get exConsultHistoryCancelAction;
 
   /// No description provided for @exConsultHistoryCancelBody.
   ///
@@ -7412,7 +7484,7 @@ abstract class AppLocalizations {
   /// No description provided for @weeklyFeedbackNoteQuestion.
   ///
   /// In en, this message translates to:
-  /// **'A line for your trainer (optional)'**
+  /// **'One-line feedback for your trainer (optional)'**
   String get weeklyFeedbackNoteQuestion;
 
   /// No description provided for @weeklyFeedbackNoteHint.
@@ -7610,7 +7682,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWeeklyFeedbackNoteLabel.
   ///
   /// In en, this message translates to:
-  /// **'Your note'**
+  /// **'One-line feedback'**
   String get myWeeklyFeedbackNoteLabel;
 
   /// No description provided for @myWeeklyFeedbackSentAt.

@@ -234,7 +234,7 @@
     }
   },
   "dashActivityDietFeedbackTitle": "Diet feedback pending",
-  "dashActivityDietFeedbackDesc": "{names} are off their calorie goal or low on protein but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
+  "dashActivityDietFeedbackDesc": "{names} are off their calorie goal or low on protein but haven't gotten trainer feedback in 7 days. Leave diet feedback so they know it was seen.",
   "@dashActivityDietFeedbackDesc": {
     "placeholders": {
       "names": {
@@ -298,12 +298,13 @@
   },
   "dashPreparePt": "Prepare PT",
   "dashLeaveMemo": "Leave a memo",
+  "dashLeaveFeedback": "Leave feedback",
   "dashSessionSent": "Sent",
   "dashSessionPrepared": "Prepared",
   "dashSessionNoteWritten": "Written",
   "dashSessionSentNo": "Not sent",
   "dashSessionPreparedNo": "Not prepared",
-  "dashSessionNoteNotWritten": "Not written",
+  "dashSessionNoteNotWritten": "No memo",
   "weekdayMon": "Mon",
   "weekdayTue": "Tue",
   "weekdayWed": "Wed",
@@ -529,7 +530,6 @@
   "coachTemplateNameLabel": "Template name",
   "coachTemplateGoalLabel": "Goal (e.g. blood pressure · beginner)",
   "coachTemplateExerciseName": "Exercise",
-  "coachTemplateExerciseMinutes": "min",
   "coachTemplateAddExercise": "Add exercise",
   "coachTemplateSave": "Save",
   "coachTemplateNameRequired": "Enter a template name",
@@ -650,7 +650,7 @@
     }
   },
   "chatInsightMemoSummaryNegative": "Workout strain detected",
-  "chatInsightMemoSaved": "The AI insight was added to the trainer memo.",
+  "chatInsightMemoSaved": "The AI insight was added to your memos.",
   "chatInsightMemoSaveFailed": "Couldn't add the memo. Please try again.",
   "coachSheetTitle": "Coaching for {name}",
   "@coachSheetTitle": {
@@ -737,6 +737,7 @@
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
+  "schedConsultRequest": "Consultation request",
   "consultReject": "Decline",
   "consultApprove": "Approve",
   "consultRejectTitle": "Decline request",
@@ -1289,7 +1290,7 @@
   },
   "reportBodyMemberTooHard": "You said the workouts felt too hard, so I'll drop next week's intensity a notch.",
   "reportBodyMemberTooEasy": "You said the workouts felt easy, so I'll raise next week's intensity a notch.",
-  "reportBodyMemberNoted": "Thanks for the weekly check-in — I read it.",
+  "reportBodyMemberNoted": "Thanks for your weekly feedback — I read it.",
   "reportBodyNextWeek": "Here's the plan for next week.",
   "reportTipCaloriesOver": "Cut dinner carbs to about two-thirds and switch snacks to protein.",
   "reportTipCaloriesUnder": "Don't skip meals, and add one protein snack on workout days.",
@@ -1329,6 +1330,11 @@
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
   "schedGroupProgram": "PT program",
+  "schedDetachedMember": "Former client",
+  "@schedDetachedMember": {
+    "description": "담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)"
+  },
+  "schedDetachedMemberHint": "Coaching has ended, so client details are hidden",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",
@@ -1464,12 +1470,18 @@
   "schedOverlapHint": "Nothing was saved. Change the time or move the overlapping session, then save again.",
   "slotOverlapHint": "The slot wasn't opened. Pick another time or move the overlapping session.",
   "consultOverlapHint": "The member's chosen time is already booked, so the request wasn't approved. Move the overlapping session, then approve again.",
-  "schedNote": "Trainer's note",
-  "schedEditNote": "Edit note",
-  "schedAddNote": "Add note",
-  "schedNoNote": "No note yet",
-  "schedNoteOnlyHint": "A consultation is recorded as a note, not a program.",
-  "schedNoteHint": "Anything to prepare, or notes about this member",
+  "schedNote": "Trainer feedback",
+  "schedEditNote": "Edit feedback",
+  "schedAddNote": "Add feedback",
+  "schedNoNote": "No memo yet",
+  "schedNoteOnlyHint": "A consultation is recorded as a memo, not a program.",
+  "schedNoteHint": "Feedback for the member. Keep member notes in the client memo",
+  "schedNoteVisibleToMember": "Shown to the member as feedback once the PT is done",
+  "schedConsultNote": "Consultation memo",
+  "schedEditConsultNote": "Edit memo",
+  "schedAddConsultNote": "Add memo",
+  "schedConsultNoteHint": "What you talked about in the consultation",
+  "schedConsultNotePrivate": "Only you can see this memo. It's hidden from the member.",
   "schedAddAction": "Add",
   "schedSaveAction": "Save",
   "progInvalid": "Check the exercise name and set count",
@@ -1477,7 +1489,7 @@
   "progEditTitle": "Edit program",
   "progAddTitle": "Add program",
   "progAddExercise": "Add exercise",
-  "progNoteHint": "Notes to follow while running this program",
+  "progNoteHint": "Feedback for the member. Keep member notes in the client memo",
   "progSaving": "Saving...",
   "progSaveAction": "Save",
   "progSaveNoteAction": "Save",
@@ -1632,8 +1644,8 @@
   "myAdd": "Add",
   "myStatClients": "Members",
   "myClientManagement": "Member management",
-  "myClientRemove": "Remove member",
-  "myClientRemoveTitle": "Remove {name}?",
+  "myClientRemove": "Disconnect",
+  "myClientRemoveTitle": "Disconnect from {name}?",
   "@myClientRemoveTitle": {
     "placeholders": {
       "name": {
@@ -1641,24 +1653,30 @@
       }
     }
   },
-  "myClientRemoveBody": "This member's schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.",
-  "myClientRemoveSuccess": "Member removed",
-  "myClientRemoveFailed": "Couldn't remove the member. Please try again",
+  "myClientRemoveBody": "After you disconnect, this member's schedules, programs and routines, reports, messages, and notes won't show in the trainer app. Their account and member app records stay as they are.",
+  "myClientRemoveSuccess": "Disconnected from the member",
+  "myClientRemoveFailed": "Couldn't disconnect. Please try again",
   "myClientManagementEmpty": "No members assigned",
+  "myClientManagementSearchHint": "Search members by name",
   "myBasicInfo": "Basic info",
   "myStatSessionsDone": "Sessions done",
   "myStatRoutinesSent": "Programs sent",
   "myGymName": "Gym name",
   "myGymAddress": "Address",
   "myGymHours": "Hours",
-  "myGymListFailed": "Couldn't load the gym list.",
-  "myGymNoMatch": "This gym isn't listed. Please add its address and hours yourself.",
-  "myGymLinked": "Registered gym",
-  "myGymUnlink": "Unlink",
-  "myGymNameHint": "Type to find a registered gym",
-  "myGymRequired": "Enter your gym",
-  "myGymEditHint": "Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.",
-  "myGymListLoading": "Loading gyms…",
+  "myGymRequired": "Pick your gym from the search results",
+  "myGymSearchLabel": "Find your gym",
+  "myGymSearchHint": "Gym name or address",
+  "myGymSearching": "Searching…",
+  "myGymSearchEmpty": "No gyms found. Try a different name or add the neighborhood.",
+  "myGymSearchFailed": "Couldn't search gyms. Please try again in a moment.",
+  "myGymCurrent": "Current gym",
+  "myGymPicked": "Saving will switch you to this gym",
+  "myGymNone": "None yet",
+  "myGymHiddenTitle": "Members can't find you yet",
+  "myGymHiddenBody": "Set your gym to appear in the member app's gym finder and consultation requests.",
+  "myGymHiddenAction": "Set gym",
+  "myGymEditHint": "Search by name and pick your gym. Members find you through this gym.",
   "mySignOut": "Sign out",
   "myPwCurrentRequired": "Enter your current password",
   "myPwMismatch": "The new passwords don't match",
@@ -1698,9 +1716,9 @@
   "myThisMonth": "This month",
   "myIntroEmpty": "No introduction yet. Add one in Edit profile — members see it.",
   "myCertsEmpty": "No certifications yet",
-  "myGymEmpty": "No gym yet. Add yours in Edit profile.",
+  "myGymEmpty": "No gym yet. Set yours in Edit profile.",
   "myEditVisibleBody": "Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.",
-  "myClientManagementNoteTitle": "Removing only hides members here",
+  "myClientManagementNoteTitle": "Disconnecting keeps member records",
   "myClientManagementNote": "Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
   "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
@@ -1729,6 +1747,11 @@
   "routineFieldExerciseNameHintStrength": "e.g. Squat, Bench press",
   "routineFieldExerciseNameHintFlexibility": "e.g. Full-body stretch, Yoga",
   "routineFieldExerciseNameHintOther": "e.g. Rehab exercise, Sports activity",
+  "routineFieldEffect": "Benefit shown to member",
+  "@routineFieldEffect": {
+    "description": "Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570)."
+  },
+  "routineFieldEffectHint": "e.g. Protect right shoulder",
   "routineFieldSets": "Sets",
   "routineFieldReps": "Reps",
   "routineFieldHold": "Hold time",
@@ -1907,7 +1930,7 @@
   },
   "aiAnalysing": "AI is analysing…",
   "aiGenerateCandidates": "Generate candidates",
-  "aiReviewDone": "Reviewed",
+  "aiReviewDone": "Finish review",
   "aiRoutineFor": "AI suggestion · {name}",
   "@aiRoutineFor": {
     "placeholders": {
@@ -1953,7 +1976,7 @@
   "aiAddExerciseManually": "Add exercise manually",
   "aiExerciseNameExample": "e.g. leg press, 3 sets",
   "aiRegister": "Add",
-  "aiNoteForClient": "A note to send with it",
+  "aiNoteForClient": "Feedback to send with it",
   "aiReviewedSuggestion": "Confirmed plan · {option}",
   "@aiReviewedSuggestion": {
     "placeholders": {
@@ -1974,13 +1997,12 @@
   "aiSending": "Sending…",
   "aiSendToClient": "Send to member",
   "aiGoToChatHint": "Use the button below to jump into their chat and explain it.",
-  "aiApplyToTemplate": "Apply to template",
-  "aiAppliedToTemplate": "The AI suggestion was applied to the program template.",
+  "aiApplyToTemplate": "Apply to program",
+  "aiAppliedToTemplate": "The AI suggestion was applied to the program.",
   "aiStepConditions": "Set up",
   "aiStepReview": "Program selection",
   "aiStepDone": "Program review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
-  "aiPersonalRationaleLabel": "Why AI picked this",
   "routineEvidenceRecentPtFeedback": "Recent PT feedback",
   "@routineEvidenceRecentPtFeedback": {
     "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
@@ -2037,7 +2059,8 @@
   "aiPersonalDismissFailed": "Could not complete that. Please try again shortly.",
   "aiStepSkipped": "Skipped",
   "aiStepPersonal": "Personal exercise",
-  "aiGoToPersonalStep": "Next · plan personal exercise",
+  "aiStepPrev": "Back",
+  "aiStepNext": "Next",
   "aiPersonalStepTitle": "Personal exercise between PT",
   "aiPersonalStepTitleRoutineOnly": "This week's personal exercise",
   "aiPersonalStepBlurb": "Attached to this PT and sent to the member when you complete it. Pick at least one.",
@@ -2057,6 +2080,10 @@
   "aiRoutineOnlySent": "Personal exercise sent to the member.",
   "aiRoutineOnlySendFailed": "Could not send the personal exercise. Please try again shortly.",
   "aiRoutineOnlyProgramName": "This week's personal exercise",
+  "aiRoutineOnlyDeliveryName": "Personal exercise",
+  "@aiRoutineOnlyDeliveryName": {
+    "description": "Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581)."
+  },
   "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
   "programRoutineOnlyConfirmBody": "Sends personal exercise to {client}. Appears daily from {start} to {end}.",
   "@programRoutineOnlyConfirmBody": {
@@ -2070,7 +2097,7 @@
     }
   },
   "aiStepperLabel": "Custom suggestion progress",
-  "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {minutes} min",
+  "coachTemplateSummaryWithGoal": "{goal} · {count} exercises · {duration}",
   "@coachTemplateSummaryWithGoal": {
     "placeholders": {
       "goal": {
@@ -2079,8 +2106,8 @@
       "count": {
         "type": "int"
       },
-      "minutes": {
-        "type": "int"
+      "duration": {
+        "type": "String"
       }
     }
   },
@@ -2100,7 +2127,6 @@
   },
   "aiNoRecentRoutine": "No record",
   "aiRecentRoutine": "Recent activity",
-  "aiTrainerNoteEditable": "Trainer's note · editable",
   "aiNotePlaceholderHint": "The grey suggestion is only a prompt — only what you type is saved and sent.",
   "aiGenerateConditions": "Conditions",
   "aiCompareCandidates": "Compare the candidates",
@@ -2109,7 +2135,26 @@
   "aiPromptTitle": "Tell the AI what program you want",
   "aiPromptLabel": "Your request",
   "aiPromptHint": "e.g. Build a 40-minute program that goes easy on the legs and leans on cardio",
-  "aiPromptBlurb": "Your request goes to the AI with the member's data (up to 500 characters). Write the member note in the next step.",
+  "aiPromptBlurb": "Your request goes to the AI with the member's data (up to 500 characters). Write the trainer feedback in the next step.",
+  "aiSourcesTitle": "Sources for the AI",
+  "aiSourcesBlurb": "Only the checked sources are sent to the AI with the member's data. Your choice is kept for next time.",
+  "aiSourcePtFeedback": "Recent PT feedback",
+  "aiSourceConsultMemo": "Consultation memos",
+  "aiSourceTrainerMemo": "Member memos (written by you)",
+  "aiSourceChatInsight": "Chat-detected memos",
+  "aiSourceWeeklyFeedback": "Member weekly feedback",
+  "aiSourceRangeDays": "Last {days} days · up to {count}",
+  "@aiSourceRangeDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiSourceRangeWeeks": "This week · last week",
   "aiGenerateGoalBased": "Generate goal-based suggestion",
   "aiStatusTemplateTitle": "Goal-based starter suggestion",
   "aiStatusTemplateBody": "Not enough workout history yet to personalize — this starts from a goal-based default.",
@@ -2396,6 +2441,7 @@
   "workoutPendingTitle": "Daily personal exercises",
   "workoutRoutineDoneToday": "Done today",
   "workoutUndatedTitle": "Records without a date",
+  "workoutMemberLogTitle": "Logged by member",
   "workoutPendingCancel": "Cancel assignment",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
   "routineUpdated": "Program updated",
@@ -2604,6 +2650,7 @@
   "clientGoalSuggestionFallback": "Age, height, or weight is missing, so only the health goals adjust the defaults",
   "clientGoalApplySuggestion": "Fill with suggestion",
   "clientTrainerMemoHint": "Note what you want to remember about this member",
+  "clientTrainerMemoPrivate": "Only you can see this memo. It's hidden from the member.",
   "clientTrainerMemoAdd": "Add memo",
   "clientTrainerMemoEmpty": "No memos yet.",
   "clientTrainerMemoFromChat": "From chat",
@@ -2792,7 +2839,6 @@
   "programEditorName": "Program name",
   "programEditorGoal": "Goal (optional)",
   "programEditorPeriod": "Period (optional)",
-  "programEditorMemo": "Program memo (optional)",
   "programEditorAiHint": "Apply AI coaching suggestions to the first session as a local draft.",
   "programEditorApply": "Apply to editor",
   "programEditorExerciseConfig": "Workout structure",
@@ -3435,8 +3481,8 @@
   "reportsMemberFeedbackPainLabel": "Pain",
   "reportsMemberFeedbackPainNone": "None",
   "reportsMemberFeedbackUnanswered": "No answer",
-  "reportsMemberFeedbackNoteLabel": "Note",
-  "reportsMemberFeedbackNoteNone": "No note",
+  "reportsMemberFeedbackNoteLabel": "One-line feedback",
+  "reportsMemberFeedbackNoteNone": "No one-line feedback",
   "reportsMemberFeedbackPainOn": "{area} ({date})",
   "@reportsMemberFeedbackPainOn": {
     "placeholders": {

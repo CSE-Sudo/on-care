@@ -75,6 +75,8 @@ def _exercise(name: str, **overrides) -> dict:
         "intensity": "moderate",
         "memo": "",
         "source": "trainer",
+        # 회원에게 보일 효과 한 줄(#2570). 비어 있으면 서버가 문구표로 채운다.
+        "effect": "",
     }
     base.update(overrides)
     return base
@@ -487,3 +489,36 @@ def test_program_size_limits_are_the_same_for_draft_assign_and_schedule(
         else:
             with pytest.raises(ValidationError):
                 model.model_validate(payload)
+
+
+def test_a_program_session_keeps_its_seconds(
+    client, trainer_token, cleanup_routines
+):
+    """세션 행이 분만 남기면 45초 운동이 60초로 되읽힌다. (#2521)"""
+    routines = client.post(
+        f"/v1/trainer/clients/{MEMBER_ID}/program",
+        headers=_headers(trainer_token),
+        json={
+            "name": f"초 세션 {uuid4().hex[:6]}",
+            "sessions": [
+                {
+                    "id": "session-1",
+                    "name": "세션 A",
+                    "exercises": [
+                        _exercise(
+                            "버피",
+                            type="유산소",
+                            duration_seconds=45,
+                            sets=None,
+                            reps=None,
+                            weight=None,
+                        )
+                    ],
+                }
+            ],
+        },
+    ).json()
+    for routine in routines:
+        cleanup_routines.append(routine["id"])
+
+    assert (routines[0]["duration_seconds"], routines[0]["minutes"]) == (45, 1)

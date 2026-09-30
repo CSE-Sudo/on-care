@@ -1,0 +1,20 @@
+name: oncare_kakao_map
+description: "On-Care 두 앱(회원앱 헬스장 찾기·트레이너웹 소속 헬스장 찾기)이 함께 쓰는 카카오맵 위젯 (#2543)."
+publish_to: 'none'
+version: 0.1.0
+
+# 회원 앱(^3.10.0)과 트레이너 앱(^3.12.0) 양쪽이 쓰므로 더 낮은 쪽에 맞춘다.
+environment:
+  sdk: ^3.10.0
+  flutter: '>=3.35.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 카카오맵 JS SDK 를 `HtmlElementView` 로 얹는다. 두 앱이 이미 쓰는 패키지다.
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

@@ -44,6 +44,10 @@ class DioConsultationRepository implements ConsultationRepository {
             limit: limit is int && limit > 0 ? limit : null,
           );
         }
+        // 담당 트레이너가 따로 있다(#2611). 역시 이 트레이너에게는 신청한 적이 없다.
+        if (detail is Map && detail['code'] == 'linked_to_other_trainer') {
+          throw const ConsultationLinkedToOtherTrainer();
+        }
         // 나머지 409 는 오류가 아니라 "이미 신청함" 상태다 — 화면이 오류 대신
         // 기존 신청을 보여줘야 한다.
         throw const DuplicatePendingConsultation();

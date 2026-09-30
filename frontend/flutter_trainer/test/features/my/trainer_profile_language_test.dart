@@ -144,25 +144,27 @@ void main() {
   });
 
   group('데모 저장소', () {
-    test('프로필 저장소는 데모 언어의 프로필·헬스장 목록을 준다', () async {
+    test('프로필 저장소는 데모 언어의 프로필·헬스장 검색 결과를 준다', () async {
       final en = MockTrainerProfileRepository(language: DemoLanguage.en);
       final profile = await en.fetch();
       expect(profile.specialty, 'Personal trainer');
-      final gyms = await en.listGyms();
-      expect(gyms.map((g) => g.name), <String>[
+      final List<TrainerGymCandidate> gyms = await en.searchGyms('gym');
+      expect(gyms.map((TrainerGymCandidate g) => g.name), <String>[
         'OnCare Gym Sinchon',
         'OnCare Gym Gangnam',
+        'HighFit',
       ]);
-      for (final gym in gyms) {
+      for (final TrainerGymCandidate gym in gyms) {
         expect(gym.address, isNot(matches(_hangul)));
       }
 
       final ko = MockTrainerProfileRepository();
       expect((await ko.fetch()).specialty, '퍼스널 트레이너');
-      expect((await ko.listGyms()).first.name, '온케어짐 신촌점');
+      final List<TrainerGymCandidate> koGyms = await ko.searchGyms('헬스');
+      expect(koGyms.first.name, '온케어짐 신촌점');
       expect(
-        (await ko.listGyms()).map((g) => g.id),
-        gyms.map((g) => g.id),
+        koGyms.map((TrainerGymCandidate g) => g.id),
+        gyms.map((TrainerGymCandidate g) => g.id),
         reason: '헬스장 id 는 언어와 상관없다',
       );
     });

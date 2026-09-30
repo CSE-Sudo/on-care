@@ -14,6 +14,7 @@ import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_streak_shield_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 
@@ -113,33 +114,39 @@ void main() {
     expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
     expect(book.held, 0);
 
-    await exercise.addSession(
-      type: ExerciseType.cardio,
-      minutes: 20,
-      calories: 100,
-      date: _yesterday,
-      name: '걷기',
-    );
+    await exercise.addSessions(<ExerciseSessionDraft>[
+      ExerciseSessionDraft(
+        type: ExerciseType.cardio,
+        minutes: 20,
+        calories: 100,
+        date: _yesterday,
+        name: '걷기',
+      ),
+    ]);
     expect(book.held, 1);
     expect(book.isProtected(_yesterday), isFalse);
     // 한 번 더 기록해도 더 돌려주지 않는다.
-    await exercise.addSession(
-      type: ExerciseType.cardio,
-      minutes: 10,
-      calories: 50,
-      date: _yesterday,
-    );
+    await exercise.addSessions(<ExerciseSessionDraft>[
+      ExerciseSessionDraft(
+        type: ExerciseType.cardio,
+        minutes: 10,
+        calories: 50,
+        date: _yesterday,
+      ),
+    ]);
     expect(book.held, 1);
 
     // 수정으로 그날로 옮긴 경우.
     expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
     expect(book.held, 0);
-    final ExerciseSession monday = await exercise.addSession(
-      type: ExerciseType.cardio,
-      minutes: 15,
-      calories: 60,
-      date: DateTime(2026, 8, 17),
-    );
+    final ExerciseSession monday = (await exercise.addSessions(<ExerciseSessionDraft>[
+      ExerciseSessionDraft(
+        type: ExerciseType.cardio,
+        minutes: 15,
+        calories: 60,
+        date: DateTime(2026, 8, 17),
+      ),
+    ])).sessions.single;
     await exercise.updateSession(
       id: monday.id!,
       type: ExerciseType.cardio,

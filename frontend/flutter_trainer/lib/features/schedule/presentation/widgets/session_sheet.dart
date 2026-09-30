@@ -19,7 +19,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 class SessionSheet extends ConsumerStatefulWidget {
   const SessionSheet({
     required this.title,
-    required this.clientNames,
+    required this.clients,
     required this.date,
     required this.existing,
     this.inline = false,
@@ -31,7 +31,9 @@ class SessionSheet extends ConsumerStatefulWidget {
   /// 창 제목(`schedAddTitle`/`schedEditTitle`).
   final String title;
 
-  final List<String> clientNames;
+  /// 고를 수 있는 등록 회원. 이름만으로는 동명이인을 가를 수 없어 id 를 함께
+  /// 받고, 저장할 때 그 id 를 `member_id` 로 보낸다(#2586).
+  final List<ScheduleClientKey> clients;
 
   /// The browsed calendar day new sessions are booked on (`YYYY-MM-DD`).
   final String date;
@@ -49,6 +51,13 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   static const List<String> _types = SessionType.all;
 
   late String _client;
+
+  /// 고객 드롭다운의 값 — 등록 회원은 그 회원 id, 아직 회원 id 가 없는 지금
+  /// 이름(이름만 가진 옛 회차·가망 고객)은 [_unlinked] 다(#2586).
+  late String _clientValue;
+
+  /// 회원 id 는 비어 있지 않으므로 빈 문자열이 '연결 안 됨' 자리와 섞이지 않는다.
+  static const String _unlinked = '';
   late String _type;
   late DateTime _date;
   late int _hour;
@@ -79,7 +88,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   // otherwise no-op save — e.g. a 상담 booked for a prospect who is not
   // on the roster would be reassigned to the first client, and a 50-minute
   // session would become 60 (review PR 218).
-  late List<String> _clientOptions;
+  late List<ScheduleClientKey> _clientOptions;
   late List<String> _typeOptions;
 
   /// 수정하는 회차의 고객이 트레이너의 등록 고객 목록에 없는가(상담 신청자
@@ -99,11 +108,23 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     final e = widget.existing;
     _note = TextEditingController(text: e?.note ?? '');
 
-    _client = e?.clientName.isNotEmpty ?? false
-        ? e!.clientName
-        : widget.clientNames.first;
-    _clientOptions = _withCurrent(widget.clientNames, _client);
-    _clientLocked = e != null && !widget.clientNames.contains(_client);
+    final roster = widget.clients;
+    if (e != null && e.clientName.isNotEmpty) {
+      _client = e.clientName;
+      final linked = roster.any((c) => c.id == e.clientId);
+      _clientValue = linked ? e.clientId! : _unlinked;
+      _clientOptions = linked
+          ? List<ScheduleClientKey>.of(roster)
+          : <ScheduleClientKey>[(id: _unlinked, name: _client), ...roster];
+    } else {
+      _client = roster.first.name;
+      _clientValue = roster.first.id;
+      _clientOptions = List<ScheduleClientKey>.of(roster);
+    }
+    _clientLocked =
+        e != null &&
+        _clientValue == _unlinked &&
+        !roster.any((c) => c.name == _client);
 
     _type = e != null && e.type.isNotEmpty ? e.type : _types.first;
     _typeOptions = _withCurrent(_types, _type);
@@ -155,6 +176,27 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
 
   int get _startTotalMinutes => _hour * 60 + _minute;
   int get _endTotalMinutes => _endHour * 60 + _endMinute;
+
+  /// 고른 회원의 id. 이름만 가진 지금 값 그대로면 null 이다.
+  String? get _pickedClientId =>
+      _clientValue == _unlinked ? null : _clientValue;
+
+  /// 수정에서 보낼 회원 id — 고른 회원이 바뀌었을 때만 보낸다. 그대로면 서버의
+  /// 값을 건드리지 않는다: 담당이 해제된 회원의 옛 회차를 고치다 404 를 받거나,
+  /// 이름만 가진 회차의 비어 있는 id 를 지우는 일이 없게(#2586).
+  String? _changedClientId(ScheduleSession e) {
+    final id = _pickedClientId;
+    return id == e.clientId ? null : id;
+  }
+
+  void _pickClient(String? value) {
+    if (value == null) return;
+    final picked = _clientOptions.firstWhere((c) => c.id == value);
+    setState(() {
+      _clientValue = picked.id;
+      _client = picked.name;
+    });
+  }
 
   /// 지금 화면이 나타내는 반복 규칙.
   WeeklyRecurrence get _rule =>
@@ -226,6 +268,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           time: _time,
           rule: rule,
           clientName: _client,
+          clientId: _pickedClientId,
           type: _type,
           durationMinutes: duration,
           note: _note.text.trim(),
@@ -235,6 +278,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         await repo.addSession(
           date: ymd(_date),
           clientName: _client,
+          clientId: _pickedClientId,
           time: _time,
           type: _type,
           durationMinutes: duration,
@@ -251,6 +295,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           e.id,
           date: newDate == e.date ? null : newDate,
           clientName: _client,
+          clientId: _changedClientId(e),
           time: _time,
           type: _type,
           durationMinutes: duration,
@@ -310,6 +355,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       e.id,
       date: newDate == e.date ? null : newDate,
       clientName: _client,
+      clientId: _changedClientId(e),
       time: _time,
       type: _type,
       durationMinutes: duration,
@@ -337,6 +383,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       time: _time,
       rule: rule,
       clientName: _client,
+      clientId: _pickedClientId,
       type: _type,
       durationMinutes: duration,
       note: '',
@@ -446,17 +493,19 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
               // 등록된 고객이 아니면(상담 신청자 등) 고를 수 없게 값만
               // 보여준다 — 드롭다운은 실제로 옮길 수 있는 고객 목록만
               // 옵션으로 내놓는다(#1396).
+              // 값은 회원 id 라 동명이인도 서로 다른 자리다(#2586).
               child: AppSelectField<String>(
                 label: l.schedFieldClient,
-                value: _client,
+                value: _clientValue,
                 items: <DropdownMenuItem<String>>[
-                  for (final name
-                      in _clientLocked ? <String>[_client] : _clientOptions)
-                    DropdownMenuItem<String>(value: name, child: Text(name)),
+                  for (final c in _clientOptions)
+                    if (!_clientLocked || c.id == _clientValue)
+                      DropdownMenuItem<String>(
+                        value: c.id,
+                        child: Text(c.name),
+                      ),
                 ],
-                onChanged: _clientLocked
-                    ? null
-                    : (v) => setState(() => _client = v ?? _client),
+                onChanged: _clientLocked ? null : _pickClient,
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
@@ -556,14 +605,28 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ],
         if (widget.existing == null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('schedule-trainer-note'),
-            controller: _note,
-            label: l.schedNote,
-            hint: l.schedNoteHint,
-            minLines: 2,
-            maxLines: 4,
-          ),
+          // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백이고,
+          // 상담에 적는 글은 트레이너만 보는 상담 메모다(#2515, #2574).
+          if (_type == SessionType.consultation)
+            AppTextField(
+              key: const ValueKey<String>('schedule-trainer-note'),
+              controller: _note,
+              label: l.schedConsultNote,
+              hint: l.schedConsultNoteHint,
+              helper: l.schedConsultNotePrivate,
+              minLines: 2,
+              maxLines: 4,
+            )
+          else
+            AppTextField(
+              key: const ValueKey<String>('schedule-trainer-note'),
+              controller: _note,
+              label: l.schedNote,
+              hint: l.schedNoteHint,
+              helper: l.schedNoteVisibleToMember,
+              minLines: 2,
+              maxLines: 4,
+            ),
         ],
         if (_overlaps != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),

@@ -531,6 +531,49 @@
   "exCannotEdit": "This record can't be edited",
   "exUpdated": "Exercise record updated",
   "exLogged": "Exercise logged",
+  "exQueueTitle": "To add {count}",
+  "@exQueueTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueRemove": "Remove from list",
+  "exQueueFull": "You can add up to {count} at a time",
+  "@exQueueFull": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exSaveCount": "Save {count}",
+  "@exSaveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exLoggedCount": "{count} exercises logged",
+  "@exLoggedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscardTitle": "Discard exercises to add?",
+  "exQueueDiscardBody": "{count} unsaved exercises will be lost.",
+  "@exQueueDiscardBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exQueueDiscard": "Discard",
   "exOwnRecords": "Workouts you logged",
   "exOwnRecordsEmpty": "No workouts logged yet",
   "exOwnRecordSource": "Self-logged",
@@ -847,6 +890,10 @@
     }
   },
   "myGraphProtectAction": "Use a shield",
+  "myGraphProtectConfirmAction": "Use",
+  "@myGraphProtectConfirmAction": {
+    "description": "Confirm button of the use-a-shield dialog. The dialog title already names the shield (#2554)."
+  },
   "myGraphProtectConfirmTitle": "Use a streak shield?",
   "myGraphProtectConfirmMessage": "This keeps {date} in your record streak and spends one shield ({held} left).",
   "@myGraphProtectConfirmMessage": {
@@ -972,7 +1019,7 @@
   "myWeeklyReportDone": "Last week's report is ready",
   "myBenefitsWeeklyReports": "Weekly reports",
   "myWeeklyReportCardTitle": "Report from points",
-  "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer message.",
+  "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer feedback.",
   "coachReportPdfSectionInsights": "Reference notes",
   "coachReportPdfNoInsights": "No pain or negative feedback this week.",
   "coachReportPdfInsightSummary": "{label} ×{count}",
@@ -1645,11 +1692,11 @@
       }
     }
   },
-  "coachReportPdfSectionTrainerNote": "From your trainer",
+  "coachReportPdfSectionTrainerNote": "Trainer feedback",
   "@coachReportPdfSectionTrainerNote": {
     "description": "Section heading for the message the trainer sent with the report."
   },
-  "coachReportPdfNoTrainerNote": "No message came with this report.",
+  "coachReportPdfNoTrainerNote": "No feedback came with this report.",
   "@coachReportPdfNoTrainerNote": {
     "description": "Shown under the trainer-message heading when the report arrived without a note."
   },
@@ -2011,13 +2058,17 @@
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
   "exTrainerConsultRequest": "Request a Trainer Consultation",
   "exConsultPendingCta": "Consultation Request Pending",
+  "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
+  "exConsultGoToMyTrainer": "View my trainer",
   "exViewConsultationRequest": "View consultation request",
   "exConsultTarget": "Consultation Target",
   "exTrainerConsultType": "Trainer Consultation",
   "exAssignedTrainer": "Assigned Trainer",
-  "exConsultDataSharingNotice": "Once this trainer accepts your request, they'll be able to see your diet log, exercise log, and body info and health goals.",
-  "exConsultDataSharingAgree": "I have read this and agree to share my meal and workout records and body information with this trainer",
-  "exConsultDataSharingRequired": "Please agree to sharing before requesting a consultation",
+  "exConsultDataSharingNotice": "Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.",
+  "exConsultDataSharingAgree": "I have read this and agree to send my request details to this trainer",
+  "exConsultDataSharingRequired": "Please agree to sending your request details before requesting a consultation",
+  "exConsultDataSharingLinked": "This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.",
+  "exConsultGoalPrefilled": "We filled this in from your health goals in MY. Feel free to change it for this consultation.",
   "coachInviteConsentTitle": "Before you connect",
   "coachInviteConsentBody": "Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.",
   "@coachInviteConsentBody": {
@@ -2123,7 +2174,7 @@
   "exConsultHistoryInProgress": "In Progress",
   "exConsultRejectedReasonLabel": "Reason for decline",
   "exConsultRejectedNoReason": "No reason was given. Try requesting a consultation with another trainer.",
-  "exConsultAcceptedGuide": "You're connected with your trainer. You can start chatting now.",
+  "exConsultAcceptedGuide": "Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.",
   "exMyReservations": "My bookings",
   "exCancelReservation": "Cancel booking",
   "exCancelKeep": "Keep",
@@ -2216,7 +2267,8 @@
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
-  "trainerSyncConsent": "The trainer who enters this code becomes your coach and can see your meals, workouts, and health records.",
+  "trainerSyncConsent": "Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.",
+  "trainerSyncAgree": "Agree and get a code",
   "trainerSyncHint": "Read these six digits out to your trainer.",
   "trainerSyncCountdown": "Expires in {remaining}",
   "@trainerSyncCountdown": {
@@ -2746,23 +2798,6 @@
   "@coachRoutineTitle": {
     "description": "Section title in the coaching card."
   },
-  "coachRoutineByTrainer": "Recommended by your trainer",
-  "@coachRoutineByTrainer": {
-    "description": "Origin of a routine."
-  },
-  "coachRoutineAiChecked": "AI suggestion · reviewed by {name}",
-  "@coachRoutineAiChecked": {
-    "description": "Origin of a routine an AI proposed and the trainer approved.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "coachRoutineAiAuto": "AI suggestion",
-  "@coachRoutineAiAuto": {
-    "description": "Origin of a routine proposed automatically."
-  },
   "coachRoutineLogged": "Added to your workout log",
   "@coachRoutineLogged": {
     "description": "Shown after a routine is marked done."
@@ -2852,7 +2887,7 @@
       }
     }
   },
-  "coachRoutineSubmit": "Save",
+  "coachRoutineSubmit": "Done",
   "@coachRoutineSubmit": {
     "description": "Submit button of the completion dialog."
   },
@@ -3122,6 +3157,10 @@
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
+  "exConsultHistoryCancelAction": "Cancel request",
+  "@exConsultHistoryCancelAction": {
+    "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
+  },
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
   "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
   "@exDemoPtSessionCount": {
@@ -4025,7 +4064,7 @@
   "weeklyFeedbackPainHint": "e.g. right knee",
   "weeklyFeedbackPainDateLabel": "When it hurt",
   "weeklyFeedbackPainDatePick": "Pick a date",
-  "weeklyFeedbackNoteQuestion": "A line for your trainer (optional)",
+  "weeklyFeedbackNoteQuestion": "One-line feedback for your trainer (optional)",
   "weeklyFeedbackNoteHint": "Anything that shaped your week",
   "weeklyFeedbackSend": "Send",
   "weeklyFeedbackResend": "Send again",
@@ -4081,7 +4120,7 @@
       }
     }
   },
-  "myWeeklyFeedbackNoteLabel": "Your note",
+  "myWeeklyFeedbackNoteLabel": "One-line feedback",
   "myWeeklyFeedbackSentAt": "Sent {month}/{day}",
   "@myWeeklyFeedbackSentAt": {
     "placeholders": {

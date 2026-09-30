@@ -76,6 +76,9 @@ abstract interface class ScheduleRepository {
   /// normally move. It's accepted here so an already-완료 session can be
   /// rescheduled forward via [reopenSession] without a second, parallel
   /// update path for every other field.
+  ///
+  /// [clientId] 가 null 이면 담당 회원을 **그대로 둔다** — 서버의 부분 수정과
+  /// 같은 뜻이다. 회원을 바꿀 때만 넘긴다(#2586).
   Future<void> updateSession(
     String id, {
     String? date,
@@ -565,7 +568,9 @@ class DriftScheduleRepository implements ScheduleRepository {
     )..where((t) => t.id.equals(id))).write(
       TrainerScheduleEntriesCompanion(
         date: date == null ? const Value.absent() : Value(date),
-        clientId: Value(clientId),
+        // null 은 '그대로' 다 — 덮어쓰면 회원을 고르지 않은 수정이 담당 회원을
+        // 지운다(#2586).
+        clientId: clientId == null ? const Value.absent() : Value(clientId),
         clientName: Value(clientName),
         time: Value(time),
         type: Value(type),
@@ -1109,6 +1114,13 @@ class DriftScheduleRepository implements ScheduleRepository {
         .map(programItemFromJson)
         .toList();
     return ScheduleSession(
+      consultation: row.type == SessionType.consultation
+          ? demoScheduleConsultations[demoConsultationKey(
+              clientId: row.clientId,
+              date: row.date,
+              time: row.time,
+            )]
+          : null,
       id: row.id,
       date: row.date,
       time: row.time,
@@ -1127,6 +1139,21 @@ class DriftScheduleRepository implements ScheduleRepository {
     );
   }
 }
+
+/// 데모에서 수락한 상담 일정의 `상담 요청 내용`(#2584).
+///
+/// 서버는 일정에 상담 요청을 잇는 칸(`consultation_id`)을 두지만, 데모 저장소
+/// (drift)는 그 칸 없이 일정만 저장한다. 데모 인박스가 메모리에 있으므로 요청
+/// 내용도 메모리에 두고, 같은 회원·날짜·시각의 상담 일정에 붙여 읽는다.
+final Map<String, ScheduleConsultation> demoScheduleConsultations =
+    <String, ScheduleConsultation>{};
+
+/// [demoScheduleConsultations] 의 키.
+String demoConsultationKey({
+  required String? clientId,
+  required String date,
+  required String time,
+}) => '${clientId ?? ''}|$date|$time';
 
 /// 완료한 PT 의 프로그램 한 항목 → 이력의 운동 한 종목. (#2300)
 ///

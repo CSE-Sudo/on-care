@@ -914,7 +914,8 @@ def test_completing_a_session_after_detach_writes_nothing_for_the_member(
     client, db_session, pair
 ):
     """해제 전에 잡은 오늘 PT 를 해제 뒤 완료하면 회원 운동 기록이 생겼다."""
-    session_id = _plain_session(client, pair, day=clock.today_iso(), time="07:10")
+    # 이미 시작한 시각이어야 한다 — 아직 시작 전이면 해제가 취소해 버린다(#2589).
+    session_id = _plain_session(client, pair, day=clock.today_iso(), time="00:00")
     _member_detaches(client, pair)
 
     r = client.post(
@@ -973,8 +974,12 @@ def test_reopening_a_completed_session_after_detach_keeps_the_member_record(
 
 
 def test_cancelling_a_session_after_detach_still_works(client, db_session, pair):
-    """취소는 막지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는 해제 뒤에도 필요하다."""
-    session_id = _plain_session(client, pair, day=_future_day(), time="08:10")
+    """취소는 막지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는 해제 뒤에도 필요하다.
+
+    시작 전 일정은 해제가 이미 취소한다(#2589). 그래서 해제 때 남는 **이미 시작한**
+    예정 일정으로 본다.
+    """
+    session_id = _plain_session(client, pair, day=clock.today_iso(), time="00:00")
     _member_detaches(client, pair)
 
     r = client.post(

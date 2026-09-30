@@ -4,6 +4,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_consultation_box.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_ended_box.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_manage_row.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_note_box.dart';
@@ -100,15 +101,23 @@ class SessionCard extends ConsumerWidget {
     // 자리다. 그래서 프로그램 목록도, "아직 계획된 프로그램이 없어요" 안내도,
     // 회원에게 보내는 버튼도 두지 않는다. 남는 것은 메모뿐이다(#988).
     final noteOnly = s.type == SessionType.consultation;
+    // 담당이 끊긴 회원의 일정(#2589)은 트레이너가 참여한 수업 기록으로만 남는다.
+    // 서버가 회원 정보·글·프로그램을 비워 보내고 쓰기도 막으므로, 카드도
+    // 언제·무슨 수업·어떻게 끝났는지만 보여 준다.
+    final detached = s.memberDetached;
     // `PT 프로그램 전송` 자리가 서는가 — 개인운동은 그 전송에 실려 나가므로
     // 이 값이 개인운동을 어느 자리에서 보낼지까지 가른다(#2224).
     final bool programSendStands =
-        !noteOnly && s.isDone && s.program.isNotEmpty;
-    final client = findClientIdentity(
-      roster,
-      clientId: session.clientId,
-      clientName: session.clientName,
-    );
+        !detached && !noteOnly && s.isDone && s.program.isNotEmpty;
+    // 이름으로 로스터를 찾지 않는다 — `해제 회원` 이라는 이름의 회원이 있으면
+    // 그 사람으로 잘못 이어진다.
+    final client = detached
+        ? null
+        : findClientIdentity(
+            roster,
+            clientId: session.clientId,
+            clientName: session.clientName,
+          );
     final SessionManageRow manage = SessionManageRow(
       onComplete: onComplete,
       onCancel: onCancel,
@@ -184,6 +193,8 @@ class SessionCard extends ConsumerWidget {
                 // 달라진다(#2224).
                 onEditRoutines: hasUnsentRoutines ? onEditRoutines : null,
                 onDelete: onDelete,
+                // 해제 회원의 일정은 삭제만 — 자기 일정 정리는 트레이너 몫이다.
+                deleteOnly: detached,
               ),
             ],
           ),
@@ -193,16 +204,40 @@ class SessionCard extends ConsumerWidget {
             // 가운데라 값을 명시하지 않는다.
             children: <Widget>[
               // 회원 고르기·리포트 작업대와 같은 촘촘한 회원 행이다(#2467).
-              ClientAvatar(
-                name: s.clientName,
-                size: ClientRowDensity.compact.avatarSize,
-              ),
+              // 해제 회원은 이니셜 대신 빈 사람 모양이다 — `해` 한 글자는
+              // 누군가의 이니셜처럼 읽힌다.
+              if (detached)
+                _DetachedAvatar(size: ClientRowDensity.compact.avatarSize)
+              else
+                ClientAvatar(
+                  name: s.clientName,
+                  size: ClientRowDensity.compact.avatarSize,
+                ),
               SizedBox(width: ClientRowDensity.compact.avatarGap),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    if (client == null)
+                    if (detached) ...<Widget>[
+                      Text(
+                        l.schedDetachedMember,
+                        key: const ValueKey<String>('session-detached-member'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: clientNameStyle(
+                          context,
+                          ClientRowDensity.compact,
+                        ).copyWith(color: OnCareColors.textSecondary),
+                      ),
+                      Text(
+                        l.schedDetachedMemberHint,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ] else if (client == null)
                       // 로스터에 없는 고객(상담으로 잡힌 가망 고객)은
                       // 이름만 부른다. 뒤에 `(신규)` 를 달아 두었더니
                       // 네 글자 이름이 그 표에 밀려 잘렸다 — 신규라는
@@ -241,10 +276,17 @@ class SessionCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: OnCareSpacing.s12),
-          const AppDivider(),
-          const SizedBox(height: OnCareSpacing.s12),
-          if (!noteOnly)
+          // 해제 회원의 완료 수업처럼 아래에 올 것이 없으면 구분선도 긋지 않는다
+          // — 선 아래가 빈 채로 끝난다(#2589).
+          if (!detached ||
+              s.isCancelled ||
+              s.isNoShow ||
+              manage.hasActions) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            const AppDivider(),
+            const SizedBox(height: OnCareSpacing.s12),
+          ],
+          if (!noteOnly && !detached)
             if (s.program.isNotEmpty) ...<Widget>[
               _GroupLabel(label: l.schedGroupProgram),
               const SizedBox(height: OnCareSpacing.s8),
@@ -259,10 +301,21 @@ class SessionCard extends ConsumerWidget {
             ],
           // PT 에서 할 것과 회원이 혼자 할 것을 한 카드에서 갈라 보여 준다
           // (#2224) — 완료하면 이 개인운동이 함께 나간다.
-          if (!noteOnly && personalRoutines != null) personalRoutines!,
-          if (s.note.isNotEmpty) ...<Widget>[
+          if (!noteOnly && !detached && personalRoutines != null)
+            personalRoutines!,
+          // 상담 요청으로 생긴 상담이면 회원이 보낸 목표·문의를 메모 위에 둔다
+          // — 메모는 트레이너가 적는 자리라 회원 글과 섞이지 않는다(#2584).
+          if (noteOnly && !detached && s.consultation != null) ...<Widget>[
+            SessionConsultationBox(consultation: s.consultation!),
+            const SizedBox(height: OnCareSpacing.s12),
+          ],
+          if (detached)
+            // 가린 글·프로그램 자리에 빈 안내를 세우지 않는다 — 머리글 아래
+            // 안내 한 줄이 이미 그 까닭을 말한다.
+            const SizedBox.shrink()
+          else if (s.note.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
-            SessionNoteBox(note: s.note),
+            SessionNoteBox(note: s.note, consultation: noteOnly),
             const SizedBox(height: OnCareSpacing.s12),
           ] else if (noteOnly) ...<Widget>[
             SessionNoNoteBox(onAdd: onEditNote),
@@ -286,6 +339,7 @@ class SessionCard extends ConsumerWidget {
           // **끝난 PT 만이다.** 예정인 PT 의 개인운동은 아직 보낼 때가
           // 아니다 — 프로그램을 보낼 때 함께 간다.
           if (!noteOnly &&
+              !detached &&
               hasUnsentRoutines &&
               !programSendStands &&
               (s.isDone || s.isCancelled || s.isNoShow)) ...<Widget>[
@@ -334,6 +388,32 @@ class SessionCard extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// 담당이 끊긴 회원 자리의 아바타 — 이니셜 없는 회색 사람 모양. (#2589)
+class _DetachedAvatar extends StatelessWidget {
+  const _DetachedAvatar({required this.size});
+
+  final AppAvatarSize size;
+
+  @override
+  Widget build(BuildContext context) {
+    final double d = size.dimension;
+    return Container(
+      width: d,
+      height: d,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: OnCareColors.surfaceInput,
+      ),
+      child: AppIcon(
+        AppIcons.person,
+        size: d * 0.6,
+        color: OnCareColors.textTertiary,
       ),
     );
   }

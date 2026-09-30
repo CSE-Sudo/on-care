@@ -8,6 +8,7 @@ class AiRoutineItem {
     required this.minutes,
     required this.type,
     required this.reason,
+    this.durationSeconds,
     this.sets = 0,
     this.reps = 0,
     this.holdSeconds = 0,
@@ -22,6 +23,14 @@ class AiRoutineItem {
 
   /// Suggested duration in minutes.
   final int minutes;
+
+  /// 같은 운동 시간을 초로(#2521). AI 위저드에서 트레이너가 시·분·초로 고친
+  /// 값이다 — 분만 넘기던 동안에는 위저드에서 적은 45초가 편집기에서 `1분` 으로
+  /// 열렸다. AI 가 준 그대로이면 비어 있다 — 읽을 때는 [seconds] 를 쓴다.
+  final int? durationSeconds;
+
+  /// 이 운동의 시간(초). 초로 적지 않았으면 분 × 60 이다.
+  int get seconds => durationSeconds ?? minutes * 60;
 
   /// 유산소 | 근력 | 스트레칭.
   final String type;

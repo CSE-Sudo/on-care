@@ -13,6 +13,7 @@ import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -219,6 +220,85 @@ class _NotedHistoryRepository extends DriftClientRepository {
       Stream<List<RoutineHistoryEntry>>.value(<RoutineHistoryEntry>[entry]);
 }
 
+/// 오늘 PT 이력이 있고, 회원이 따로 러닝·줄넘기를 적은 날. (#2534)
+///
+/// 운동 행에는 이력 카드와 겹치는 것(PT 완료 자동 기록·배정 운동 완료)과, 이력
+/// 줄과 이름이 같은 `member` 행도 섞어 둔다 — 직접 기록 카드에 그것들이
+/// 새어 나오지 않는지 본다.
+class _PtDayWithOwnLogsRepository extends DriftClientRepository {
+  _PtDayWithOwnLogsRepository(super.db);
+
+  @override
+  Stream<List<RoutineHistoryEntry>> watchHistory(String clientId) =>
+      Stream<List<RoutineHistoryEntry>>.value(<RoutineHistoryEntry>[
+        RoutineHistoryEntry(
+          id: 'sched-hist-today',
+          dateLabel: '',
+          completedAt: nowKst(),
+          label: 'PT 세션 · 트레이너 지도',
+          completionRate: 100,
+          exercises: const <ClientExerciseItem>[
+            ClientExerciseItem(
+              name: '데드리프트',
+              type: 'strength',
+              sets: 4,
+              reps: 8,
+            ),
+          ],
+          clientFeedback: '',
+          trainerNote: '',
+        ),
+      ]);
+
+  @override
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  ) async {
+    if (ymd(date) != ymd(todayKst())) return const <ClientExerciseItem>[];
+    return const <ClientExerciseItem>[
+      // PT 완료가 남긴 자동 기록 — 이력 카드가 이미 말한다.
+      ClientExerciseItem(
+        name: '데드리프트',
+        type: 'strength',
+        sets: 4,
+        reps: 8,
+        source: 'trainer_pt',
+      ),
+      // 배정 운동 완료 — 출처를 `member` 로 둔 옛 시드도 배정 id 로 거른다.
+      ClientExerciseItem(
+        name: '코어 운동',
+        minutes: 20,
+        source: 'member',
+        assignedRoutineId: 'r1',
+      ),
+      // 이력 줄과 이름이 같은 행 — 같은 운동을 두 번 보이지 않는다.
+      ClientExerciseItem(
+        name: '데드리프트',
+        type: 'strength',
+        sets: 4,
+        reps: 8,
+        source: 'member',
+      ),
+      // 회원이 앱에서 직접 적은 것.
+      ClientExerciseItem(
+        name: '러닝',
+        type: 'cardio',
+        minutes: 66,
+        durationSeconds: 3930,
+        source: 'member',
+      ),
+      ClientExerciseItem(
+        name: '줄넘기',
+        type: 'cardio',
+        minutes: 1,
+        durationSeconds: 45,
+        source: 'member',
+      ),
+    ];
+  }
+}
+
 /// 운동 한 줄(`_ExerciseLine`)은 화면 비공개 위젯이라 키 접두사로 찾는다.
 final Finder _exerciseLines = find.byWidgetPredicate(
   (Widget w) =>
@@ -276,6 +356,69 @@ void main() {
       ).watchHistory('seed-client-3').first;
       expect(seongho.last.completionRate, 0); // 7/3 · all skipped
       expect(seongho.first.trainerNote, contains('벤치 중량'));
+    });
+  });
+
+  group('운동 행의 출처 (#2534)', () {
+    test('주간 응답의 출처·배정 id 로 직접 기록을 가린다', () {
+      final ClientExerciseWeek week = ClientExerciseWeek.fromJson(
+        <String, Object?>{
+          'day_labels': <String>['월'],
+          'daily_minutes': <int>[90],
+          'daily_calories': <int>[500],
+          'sessions': <Object?>[
+            <String, Object?>{
+              'day_label': '월',
+              'name': '러닝',
+              'type': 'cardio',
+              'minutes': 30,
+              'source': 'member',
+            },
+            <String, Object?>{
+              'day_label': '월',
+              'name': '스쿼트',
+              'type': 'strength',
+              'minutes': 30,
+              'source': 'trainer_pt',
+            },
+            <String, Object?>{
+              'day_label': '월',
+              'name': '코어 운동',
+              'type': 'strength',
+              'minutes': 30,
+              'source': 'member',
+              'assigned_routine_id': 'r1',
+            },
+          ],
+        },
+      );
+      expect(
+        week.itemsByDayLabel['월']!.map((ClientExerciseItem e) => e.isMemberLog),
+        <bool>[true, false, false],
+      );
+    });
+
+    test('출처를 싣지 않던 응답은 서버 기본값인 직접 기록으로 읽는다', () {
+      final ClientExerciseWeek week = ClientExerciseWeek.fromJson(
+        <String, Object?>{
+          'day_labels': <String>['월'],
+          'daily_minutes': <int>[30],
+          'daily_calories': <int>[200],
+          'sessions': <Object?>[
+            <String, Object?>{
+              'day_label': '월',
+              'name': '러닝',
+              'type': 'cardio',
+              'minutes': 30,
+            },
+          ],
+        },
+      );
+      expect(week.itemsByDayLabel['월']!.single.isMemberLog, isTrue);
+    });
+
+    test('출처를 모르는 행(데모·이력 줄)은 직접 기록이 아니다', () {
+      expect(const ClientExerciseItem(name: '러닝').isMemberLog, isFalse);
     });
   });
 
@@ -350,7 +493,7 @@ void main() {
       // 모은다.
       expect(find.text('마지막 세트가 힘들었어요'), findsNothing);
       expect(find.text('자세가 안정적이었어요'), findsNothing);
-      expect(find.text('트레이너 메모'), findsNothing);
+      expect(find.text('트레이너 피드백'), findsNothing);
       expect(find.textContaining('회원 피드백'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('routine-feedback-assigned-ex-r1')),
@@ -457,7 +600,7 @@ void main() {
       // 오늘 기록은 펼쳐져 운동 줄이 보인다. 시드의 트레이너 메모·회원
       // 피드백과 완료 배지는 그리지 않는다(#2329).
       expect(_exerciseLines, findsWidgets);
-      expect(find.text('트레이너 메모'), findsNothing);
+      expect(find.text('트레이너 피드백'), findsNothing);
       expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsNothing);
       expect(find.textContaining('회원 피드백'), findsNothing);
       expect(find.byIcon(Symbols.emoji_events_rounded), findsNothing);
@@ -631,6 +774,63 @@ void main() {
       await tester.tap(find.text(_rowLabel(old30)));
       await settle(tester);
       expect(marker(_DatedHistoryRepository.oldLabel), findsOneWidget);
+    });
+
+    testWidgets('이력이 있는 날에도 회원이 직접 기록한 운동이 보인다 (#2534)', (tester) async {
+      _useTallSurface(tester);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientDetail('seed-client-1', section: 'workout'),
+        extraOverrides: <Override>[
+          clientRepositoryProvider.overrideWith(
+            (ref) =>
+                _PtDayWithOwnLogsRepository(ref.watch(appDatabaseProvider)),
+          ),
+        ],
+      );
+
+      final String today = ymd(todayKst());
+      // 이력 카드는 그대로다.
+      expect(
+        find.byKey(
+          const ValueKey<String>('workout-exercise-line-sched-hist-today-0'),
+        ),
+        findsOneWidget,
+      );
+
+      // 그 아래 `직접 기록` 카드 한 장에 회원이 적은 두 줄만 선다.
+      final Finder card = find.byKey(
+        ValueKey<String>('workout-member-log-$today'),
+      );
+      expect(card, findsOneWidget);
+      expect(
+        find.descendant(of: card, matching: find.text('직접 기록')),
+        findsOneWidget,
+      );
+      Finder ownLine(int i) =>
+          find.byKey(ValueKey<String>('workout-member-log-line-$today-$i'));
+      expect(ownLine(0), findsOneWidget);
+      expect(ownLine(1), findsOneWidget);
+      expect(ownLine(2), findsNothing);
+      expect(
+        find.descendant(of: card, matching: find.text('러닝 · 1시간 5분 30초')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: card, matching: find.text('줄넘기 · 45초')),
+        findsOneWidget,
+      );
+
+      // PT 자동 기록·배정 완료·이력과 같은 이름의 행은 직접 기록에 없다.
+      expect(
+        find.descendant(of: card, matching: find.textContaining('데드리프트')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: card, matching: find.textContaining('코어 운동')),
+        findsNothing,
+      );
     });
 
     testWidgets('기록 카드는 색 띠 없는 흰 판이다 (#1025)', (tester) async {

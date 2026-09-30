@@ -18,6 +18,7 @@ from sqlalchemy import select
 from app.core import clock
 from app.models.models import ExerciseSession
 from app.services import exercise_activity as activity
+from tests.exercise_helpers import post_exercise
 
 
 def _member_h(client) -> dict:
@@ -78,8 +79,8 @@ def test_manual_session_stores_the_day_it_was_done(client, db_session):
     """
     h = _member_h(client)
     yesterday = clock.today() - timedelta(days=1)
-    created = client.post(
-        "/v1/exercise/sessions",
+    created = post_exercise(
+        client,
         json={
             "type": "cardio", "minutes": 30, "calories": 270,
             "date": yesterday.isoformat(),
@@ -96,8 +97,8 @@ def test_moving_a_session_moves_every_date_field(client, db_session):
     h = _member_h(client)
     today = clock.today()
     moved_to = today - timedelta(days=3)
-    session_id = client.post(
-        "/v1/exercise/sessions",
+    session_id = post_exercise(
+        client,
         json={
             "type": "strength", "minutes": 40, "calories": 240,
             "date": today.isoformat(),
@@ -122,8 +123,8 @@ def test_editing_without_a_date_keeps_the_original_day(client, db_session):
     """날짜를 주지 않은 수정은 자리를 옮기지 않는다 — 완료 시각도 그대로다."""
     h = _member_h(client)
     two_days_ago = clock.today() - timedelta(days=2)
-    session_id = client.post(
-        "/v1/exercise/sessions",
+    session_id = post_exercise(
+        client,
         json={
             "type": "cardio", "minutes": 20, "calories": 180,
             "date": two_days_ago.isoformat(),
@@ -271,8 +272,8 @@ def test_legacy_row_without_the_new_fields_still_reads(client, db_session):
     """
     h = _member_h(client)
     day = clock.today() - timedelta(days=4)
-    session_id = client.post(
-        "/v1/exercise/sessions",
+    session_id = post_exercise(
+        client,
         json={
             "type": "other", "minutes": 25, "calories": 125,
             "date": day.isoformat(),

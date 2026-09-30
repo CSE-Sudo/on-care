@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -172,10 +173,14 @@ class SendPersonalRoutinesDialog extends StatefulWidget {
   const SendPersonalRoutinesDialog({
     required this.routines,
     this.editOnly = false,
+    this.goal = '',
     super.key,
   });
 
   final List<RoutineExercise> routines;
+
+  /// 회원 건강 목표(` · ` 로 이은 값) — 효과 칸의 자동 문구를 정한다(#2570).
+  final String goal;
 
   /// 보내지 않고 **고치기만** 하는가 — 일정 상세의 `개인운동 수정` 이 이 길로
   /// 연다(#2224). 아직 보내지 않은 개인운동은 PT 직전까지 손볼 수 있어야
@@ -190,8 +195,14 @@ class SendPersonalRoutinesDialog extends StatefulWidget {
 
 class _SendPersonalRoutinesDialogState
     extends State<SendPersonalRoutinesDialog> {
+  // 서버는 비어 온 효과를 문구표로 채워 저장한다(#2570). 그 값이 지금 자동
+  // 문구와 같으면 트레이너가 적은 것이 아니므로 비워 둔다 — 그래야 유형을
+  // 바꿨을 때 placeholder 가 새 유형을 따라간다.
   late final List<RoutineExercise> _draft = <RoutineExercise>[
-    ...widget.routines,
+    for (final RoutineExercise r in widget.routines)
+      r.effect == autoRoutineEffect(r.type, widget.goal)
+          ? r.copyWith(effect: '')
+          : r,
   ];
   late final List<TextEditingController> _names = <TextEditingController>[
     for (final RoutineExercise r in widget.routines)
@@ -240,21 +251,6 @@ class _SendPersonalRoutinesDialogState
           ? l.schedEditRoutinesTitle
           : l.schedRoutinesSendTitle,
       showClose: false,
-      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
-      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
-      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
-      // 덜어내기만 되고 더하기가 없으면, 운동 하나를 보태려고 프로그램
-      // 만들기까지 돌아가야 한다 — 고치는 자리가 반쪽이 된다(#2224).
-      trailing: _draft.length < kProgramMaxSessions
-          ? AppButton(
-              key: const ValueKey<String>('session-routine-add'),
-              label: l.progAddExercise,
-              leadingIcon: AppIcons.add,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              onPressed: _add,
-            )
-          : null,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
@@ -279,8 +275,28 @@ class _SendPersonalRoutinesDialogState
               index: index,
               exercise: _draft[index],
               controller: _names[index],
+              goal: widget.goal,
               onChanged: (value) => setState(() => _draft[index] = value),
               onRemove: _draft.length > 1 ? () => _removeAt(index) : null,
+            ),
+          ],
+          // 목록을 늘리는 `+ 운동 추가` 는 목록 끝 가운데 글자 버튼이다 — 새 줄이
+          // 생기는 바로 그 자리라, 누른 뒤 스크롤해 내려가 찾지 않아도 된다. 창
+          // 제목 오른쪽에 두었더니 새 줄은 목록 맨 아래에 생겨, 목록이 길면 누른
+          // 결과가 보이지 않았다(#2476).
+          // 덜어내기만 되고 더하기가 없으면, 운동 하나를 보태려고 프로그램
+          // 만들기까지 돌아가야 한다 — 고치는 자리가 반쪽이 된다(#2224).
+          if (_draft.length < kProgramMaxSessions) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Align(
+              child: AppButton(
+                key: const ValueKey<String>('session-routine-add'),
+                label: l.progAddExercise,
+                leadingIcon: AppIcons.add,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+                onPressed: _add,
+              ),
             ),
           ],
         ],
@@ -296,12 +312,14 @@ class _RoutineRow extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     required this.onRemove,
+    this.goal = '',
     super.key,
   });
 
   final int index;
   final RoutineExercise exercise;
   final TextEditingController controller;
+  final String goal;
   final ValueChanged<RoutineExercise> onChanged;
   final VoidCallback? onRemove;
 
@@ -334,6 +352,13 @@ class _RoutineRow extends StatelessWidget {
           keyPrefix: 'session-routine-name-$index',
           controller: controller,
           onChanged: (name) => onChanged(exercise.copyWith(name: name)),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        RoutineEffectField(
+          keyPrefix: 'session-routine-effect-$index',
+          value: exercise.effect,
+          autoEffect: autoRoutineEffect(exercise.type, goal),
+          onChanged: (effect) => onChanged(exercise.copyWith(effect: effect)),
         ),
         const SizedBox(height: OnCareSpacing.s8),
         // 근력은 세트·횟수로 재므로 시간 칸을 쓰지 않는다(#1310) — 여기서는

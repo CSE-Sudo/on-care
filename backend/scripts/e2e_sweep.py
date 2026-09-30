@@ -378,10 +378,14 @@ def scenario_exercise(api: Api, m: str, t: str, out: list[Result]) -> None:
     code, created = api.post(
         "/exercise/sessions",
         token=m,
-        json_body={"type": "cardio", "intensity": "moderate", "minutes": 30, "calories": 210},
+        # 추가는 목록으로 보낸다(#2544) — 한 건도 `sessions` 로 감싼다.
+        json_body={"sessions": [
+            {"type": "cardio", "intensity": "moderate", "minutes": 30, "calories": 210},
+        ]},
     )
     out.append(Result(g, "세션 저장", "PASS" if code in (200, 201) else "FAIL", str(code)))
-    session_id = created.get("id") if isinstance(created, dict) else None
+    saved = created.get("sessions") if isinstance(created, dict) else None
+    session_id = saved[0].get("id") if saved else None
 
     # 응답 전체를 비교하면 '무언가 바뀌었다' 밖에 못 본다. 방금 넣은 30분·210kcal 이
     # 그대로 더해졌는지 집계 필드로 확인해야 실제로 반영된 것이다.

@@ -27,7 +27,7 @@ from app.core import clock
 from app.core.locale import Locale, current_locale, localized
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
-    ChatMessage, DietEntry, ExerciseSession, GymProfile, HealthProfile,
+    ChatMessage, ConsultationRequest, DietEntry, ExerciseSession, GymProfile, HealthProfile,
     MemberWeeklyFeedback, Notification,
     TrainerReportGoal, Place, RoutineHistory,
     TrainerClient, TrainerClientMemo, TrainerProfile, TrainerProgramDraft,
@@ -51,12 +51,13 @@ from app.schemas.trainer_api import (
     RoutineHistoryExerciseOut,
     RoutineHistoryKind,
     RoutineHistoryOut,
-    RoutineOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
+    RoutineOut, ScheduleConsultationOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
     TrainerFollowUpTaskOut,
     TrainerGymOut, TrainerMe, TrainerMemoOut, TrainerNotificationSettings,
     TrainerProgramDraftOut, TrainerProgramDraftSummary, WeeklyReportDayOut,
     WeeklyReportOut,
 )
+from app.data import routine_effects
 from app.services import health_focus
 from app.services import (
     auto_routine_service,
@@ -79,6 +80,7 @@ from app.services import (
 )
 from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
+from app.services.exercise_duration import format_duration, seconds_or_minutes
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
 # '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
@@ -209,6 +211,10 @@ def parse_history_exercise(raw: object) -> RoutineHistoryExerciseOut:
     세션·시드). 이미 쌓인 행을 고치는 대신 읽을 때 값으로 되돌린다 — 단위가
     이름 **끝에** 이어 붙은 모양만 값으로 읽고, 그 밖의 줄은 적힌 그대로 이름으로
     둔다(`플랭크 ✗ (피로)` → 이름 `플랭크 (피로)`, 한 적 없음).
+
+    완료한 PT 세션은 이제 값을 객체로 저장한다([_program_history_entry], #2546) —
+    문장의 `초` 는 버티는 운동의 초로 되읽혀, 운동 시간 `45초` 를 문장으로는 남길
+    수 없었다. 문장은 그 뒤로도 옛 행에서만 읽는다.
     """
     if isinstance(raw, dict):
         return _history_exercise_from_dict(raw)
@@ -260,10 +266,24 @@ def _history_exercise_from_dict(raw: dict) -> RoutineHistoryExerciseOut:
         sets=_num("sets", int),
         reps=_num("reps", int),
         hold_seconds=_num("hold_seconds", int),
+        # 초로 적은 운동 시간(#2546). 없으면 앱이 `minutes` 로 읽는다.
+        duration_seconds=_num("duration_seconds", int),
         weight=_num("weight", float),
         intensity=intensity if isinstance(intensity, str) and intensity else None,
         done=raw.get("done") is not False,
     )
+
+
+def history_exercise_line(raw: object) -> str:
+    """저장된 이력 한 줄 → `exercises` 에 싣는 문장.
+
+    옛 행은 문장 그대로다. 값으로 저장한 행(#2546)은 저장할 때 만든 문장
+    (`label`)을 쓰고, 그것도 없으면 이름만 둔다.
+    """
+    if isinstance(raw, dict):
+        label = raw.get("label")
+        return label if isinstance(label, str) and label else str(raw.get("name") or "")
+    return str(raw or "")
 
 
 def relative_time_label(ts: datetime) -> str:
@@ -728,7 +748,7 @@ def build_client_history(
             date_label=history_date_label(r.date),
             label=r.kind_label,
             completion_rate=r.completion_rate,
-            exercises=exercises,
+            exercises=[history_exercise_line(e) for e in exercises],
             date=_iso_day_or_none(r.date),
             kind=history_kind_code(r.kind_label),
             exercise_items=[parse_history_exercise(e) for e in exercises],
@@ -1164,14 +1184,84 @@ def _ensure_session_member_linked(
 
     일정 id 로 여는 경로는 `_get_owned_session`(내 일정인가)만 보므로, 해제 전에
     잡아 둔 일정으로 해제된 회원의 운동 기록을 쓰거나 알림을 보낼 수 있었다.
-    해제된 회원의 일정은 목록에서도 빠지므로(`list_schedule`) 남의 회원과 같은
-    404 로 옮긴다. 회원이 없는 일정(상담·공백)은 지나간다.
+    해제된 회원의 일정은 스케줄에 익명 기록으로만 남으므로(#2589) 남의 회원과
+    같은 404 로 옮긴다. 회원이 없는 일정(상담·공백)은 지나간다.
+
+    상담 요청으로 생긴 일정도 지나간다(#2584) — 수락은 담당 연결을 만들지 않아,
+    연결 전 회원과의 상담을 완료하거나 상담 메모를 적을 수 있어야 한다. 상담은
+    완료해도 운동 기록을 만들지 않고(`_SESSION_EXERCISE_TYPE`), 메모는 트레이너만
+    본다. 스케줄의 익명 처리(`_schedule_outs`)와 같은 경계다(`_is_consultation_booking`).
 
     취소·삭제는 이 확인을 하지 않는다 — 잡혀 있던 약속이 없어졌다는 통보는
     해제 뒤에도 회원이 알아야 하는 정리다.
     """
+    if _is_consultation_booking(s):
+        return
     if s.member_id and not has_active_client_link(db, trainer_id, s.member_id):
         raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
+
+
+#: 담당 해제로 거둔 일정에 남기는 취소 사유(#2589). 트레이너만 보는 기록이다.
+DETACH_CANCEL_REASON = "담당 해제"
+
+
+def sessions_cancelled_on_detach(
+    db: Session, trainer_id: str, member_id: str
+) -> list[TrainerSchedule]:
+    """담당이 끊기면 취소할 일정 — 이 쌍의 `예정` 중 아직 시작하지 않은 것. (#2589)
+
+    시작 시각이 지난 `예정` 은 남긴다. 실제로 했을 수 있는 수업이라 취소로 덮으면
+    지난 기록이 틀어진다 — 익명 기록으로 스케줄에 남는다.
+    """
+    now = clock.now()
+    today = now.date().isoformat()
+    minute = now.hour * 60 + now.minute
+    rows = db.scalars(
+        select(TrainerSchedule)
+        .where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.status == SCHEDULE_UPCOMING,
+            TrainerSchedule.date >= today,
+        )
+        .order_by(TrainerSchedule.date, TrainerSchedule.time, TrainerSchedule.id)
+    ).all()
+
+    def not_started(s: TrainerSchedule) -> bool:
+        if s.date > today:
+            return True
+        try:
+            return _clock_minutes(s.time) > minute
+        except ValueError:
+            return False
+
+    # 회원이 직접 신청한 상담은 담당과 별개다(#2584) — 해제해도 거두지 않는다.
+    return [s for s in rows if not_started(s) and not _is_consultation_booking(s)]
+
+
+def _cancel_sessions_on_detach(
+    db: Session, trainer_id: str, member_id: str, *, source: str
+) -> int:
+    """담당이 끊긴 쌍의 남은 일정을 취소한다(커밋 없음). 취소한 수. (#2589)
+
+    담당이 끝났으니 남은 PT 는 열리지 않는다. 그대로 두면 트레이너 스케줄에는
+    익명 일정이 자리를 차지하고, 회원 앱에는 끊긴 트레이너와의 수업이 남는다.
+    예약으로 생긴 일정은 [cancel_session] 처럼 예약을 거두고 좌석을 돌려준다.
+    일정별 취소 알림은 보내지 않는다 — 해제 알림 한 건이 대신한다.
+    """
+    rows = sessions_cancelled_on_detach(db, trainer_id, member_id)
+    if not rows:
+        return 0
+    cancelled_at = datetime.now(timezone.utc)
+    for s in rows:
+        s.status = SCHEDULE_CANCELLED
+        s.cancelled_at = cancelled_at
+        s.cancellation_source = source
+        s.cancellation_reason = DETACH_CANCEL_REASON
+    db.flush()
+    for s in rows:
+        _release_cancelled_reservation(db, s, source=source)
+    return len(rows)
 
 
 def remove_client(db: Session, link: TrainerClient) -> None:
@@ -1186,9 +1276,32 @@ def remove_client(db: Session, link: TrainerClient) -> None:
 
     트레이너가 끊어도 담당 해제는 데이터 공유 동의 철회다(#1631) — 동의를 비우고
     철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다.
+
+    아직 시작하지 않은 PT 는 취소하고(#2589), 회원에게는 해제 사실과 취소한
+    일정 수를 알림 한 건으로 알린다 — 일정마다 알리면 반복 PT 수만큼 쏟아진다.
     """
     link.active = False
     data_consent_service.revoke(link)
+    cancelled = _cancel_sessions_on_detach(
+        db, link.trainer_id, link.member_id, source="trainer"
+    )
+    trainer_name = db.scalar(select(User.name).where(User.id == link.trainer_id))
+    notification_service.queue(
+        db,
+        member_id=link.member_id,
+        kind=notification_service.TRAINER_MESSAGE,
+        # 취소된 일정이 있으면 일정으로, 없으면 새 트레이너를 찾는 화면으로.
+        category=(
+            notification_service.MEMBER_SCHEDULE
+            if cancelled
+            else notification_service.MEMBER_CONSULTATION
+        ),
+        template=notification_templates.MEMBER_TRAINER_DISCONNECTED,
+        template_args={
+            "trainer_name": (trainer_name or "").strip(),
+            "cancelled_sessions": cancelled,
+        },
+    )
     points_coupon_service.cancel_renewal_coupons(db, link.member_id)
     # 이 트레이너가 확정해 둔 식단 추천도 내린다(#2378) — 담당이 끝난 트레이너의
     # 추천이 회원 홈에 남으면 안 된다.
@@ -1602,6 +1715,38 @@ def _routine_seconds(rt: TrainerRoutine) -> int | None:
     return seconds if seconds is not None else rt.minutes * 60
 
 
+def _member_goals(db: Session, member_id: str) -> str:
+    """회원 건강 목표(쉼표로 이은 저장값). 프로필이 없으면 빈 값."""
+    return (
+        db.scalar(
+            select(HealthProfile.conditions).where(
+                HealthProfile.user_id == member_id
+            )
+        )
+        or ""
+    )
+
+
+def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
+    """배정 한 건의 효과 한 줄 — 적힌 값, 없으면 문구표. (#2570)
+
+    저장은 트레이너가 적은 것만 한다. 자동 문구를 저장해 두지 않고 응답 때
+    채우는 이유는 두 가지다: 배정 길이 여럿(단일 배정·AI 제안·자동 추천·
+    프로그램·일정 개인운동)이라 한 곳에서 채워야 빠짐이 없고, 회원이 목표를
+    바꾸면 문구도 따라가야 한다.
+
+    운동 여럿으로 짠 세션은 한 유형의 효과로 말할 수 없어 비운다.
+    """
+    written = (getattr(rt, "effect", "") or "").strip()
+    if written:
+        return written
+    if len(draft_exercises(rt.exercises_json)) > 1:
+        return ""
+    return routine_effects.auto_routine_effect(
+        rt.type, _member_goals(db, rt.member_id)
+    )
+
+
 def _routine_out(
     db: Session,
     rt: TrainerRoutine,
@@ -1647,7 +1792,15 @@ def _routine_out(
         # 마치면 그때의 강도로 다시 계산한 값이 운동 기록에 남는다. (#996)
         calories=estimated.calories,
         calorie_source=estimated.source,
-        reason=rt.reason, source=rt.source,
+        # AI 제안(근거가 있는 행)의 사유는 트레이너가 읽는 판단 재료라 회원
+        # 응답에 싣지 않는다(#2579). 회원 카드에는 효과 한 줄이 선다.
+        reason=(
+            rt.reason
+            if include_evidence or not suggestion_evidence(rt.evidence_json)
+            else ""
+        ),
+        source=rt.source,
+        effect=_routine_effect(db, rt),
         program_name=rt.program_name,
         session_name=rt.session_name,
         session_order=rt.session_order,
@@ -1871,6 +2024,7 @@ def approve_routine_suggestion(
         template=notification_templates.MEMBER_ROUTINE_ASSIGNED,
         template_args=_routine_notification_args(
             row.name, row.type, minutes=row.minutes,
+            duration_seconds=row.duration_seconds,
             sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
             weight=row.weight,
         ),
@@ -2151,8 +2305,9 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
             f"{row.assigned_routine_name or row.type} · "
             + _amount_label(
                 row.type, minutes=row.minutes,
+                duration_seconds=row.duration_seconds,
                 sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
-            weight=row.weight,
+                weight=row.weight,
             )
             + f" · {row.intensity}"
         ],
@@ -2175,8 +2330,8 @@ def _assigned_exercise_item(row: ExerciseSession) -> RoutineHistoryExerciseOut:
     버틴 초)·중량, 나머지와 세트가 없던 옛 근력 배정은 분.
 
     시간으로 재는 수행은 회원이 남긴 초(`duration_seconds`)도 싣는다(#2221) —
-    분만 보내면 `45초` 수행이 트레이너 이력에 `1분` 으로 보인다. 문장은 분
-    그대로다: `parse_history_exercise` 가 `초` 를 버틴 초로 되읽는다.
+    분만 보내면 `45초` 수행이 트레이너 이력에 `1분` 으로 보인다. 문장도 초까지
+    적는다(#2546) — 이 문장은 되읽지 않고 이 값이 함께 간다.
     """
     type_code = exercise_types.normalize(row.type)
     strength = type_code == exercise_types.STRENGTH and row.sets is not None
@@ -2308,16 +2463,25 @@ def _session_summary(
     시간은 초로 더한 뒤 한 번만 분으로 접는다(#2221) — 45초짜리 셋을 각각 1분으로
     올려 더하면 2분 15초가 3분이 된다.
     """
-    seconds = 0
     counts: dict[str, int] = {}
     has_ai = False
     for exercise in exercises:
-        seconds += _exercise_seconds(exercise.type, exercise.duration_seconds, exercise.sets)
         counts[exercise.type] = counts.get(exercise.type, 0) + 1
         if exercise.source == "ai":
             has_ai = True
     type_ = max(counts, key=lambda t: counts[t]) if counts else "근력"
-    return _minutes_of(seconds), type_, ("ai" if has_ai else "trainer")
+    return _minutes_of(_session_seconds(exercises)), type_, ("ai" if has_ai else "trainer")
+
+
+def _session_seconds(exercises: Sequence[ProgramDraftExercise]) -> int:
+    """세션 하나의 운동 시간(초) — 각 운동의 초를 더한 값이다. (#2221)
+
+    배정 행의 `duration_seconds` 로도 남긴다(#2521). 분만 남기던 동안에는 읽는
+    쪽이 분 × 60 으로 되짚어, 45초짜리 운동 하나인 세션이 60초로 읽혔다.
+    """
+    return sum(
+        _exercise_seconds(e.type, e.duration_seconds, e.sets) for e in exercises
+    )
 
 
 def _exercise_seconds(type_: str, duration_seconds: int | None, sets: int | None) -> int:
@@ -2389,6 +2553,15 @@ def assign_program(
     # 단일 배정과 같은 이유로 알림보다 먼저 flush 한다 — 동시 요청이 유니크
     # 제약에 걸리면 진 쪽이 알림까지 쌓지 않아야 한다.
     try:
+        # `개인운동만` 도 새로 보내는 개인운동이다 — PT 와 함께 보낼 때처럼
+        # 이전 개인운동을 먼저 내린다(#2514). 내리지 않으면 지난 주 것과 이번
+        # 주 것이 함께 걸려 회원이 두 벌을 받는다. 같은 트랜잭션이라 배정이
+        # 실패하면 내린 것도 되돌아간다. 재시도는 위에서 이미 돌려보냈으므로
+        # 방금 보낸 한 주를 내리는 일은 없다.
+        if delivery_kind is not None:
+            _retire_personal_routines(
+                db, trainer_id, member_id, today=clock.today()
+            )
         created = _add_program_routines(
             db, trainer_id, member_id,
             name=name, sessions=sessions, client_request_id=client_request_id,
@@ -2486,8 +2659,18 @@ def _add_program_routines(
             member_id=member_id,
             name=(session.name or name) if multi else name,
             minutes=minutes,
+            # 분은 초에서 한 번 접은 값이다 — 초를 함께 남겨야 45초가 60초로
+            # 되짚히지 않는다(#2521). 0 이면(근력만·시간 없음) 비운다.
+            duration_seconds=_session_seconds(session.exercises) or None,
             type=type_,
             reason=", ".join(e.name for e in session.exercises)[:200],
+            # `개인운동만` 은 세션마다 운동이 하나다 — 그 운동에 적힌 효과가
+            # 이 배정의 효과다(#2570). 비면 응답 때 문구표로 채운다.
+            effect=(
+                session.exercises[0].effect.strip()
+                if len(session.exercises) == 1
+                else ""
+            ),
             source=source,
             program_name=name if multi else "",
             session_name=session.name if multi else "",
@@ -2518,21 +2701,59 @@ def _add_program_routines(
     if not notify:
         return created
 
-    total_minutes = sum(rt.minutes for rt in created)
     notification_service.queue(
         db,
         member_id=member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
         template=notification_templates.MEMBER_ROUTINE_PROGRAM,
-        template_args={
-            "name": name,
-            "sessions": len(created),
-            "minutes": total_minutes,
-            "multi": multi,
-        },
+        template_args=_program_notification_args(
+            name,
+            sessions=len(created),
+            seconds=sum(_session_seconds(session.exercises) for session in sessions),
+            multi=multi,
+            routine_only=delivery_kind == DELIVERY_ROUTINE_ONLY,
+        ),
     )
     return created
+
+
+def _program_row_seconds(row: TrainerRoutine) -> int:
+    """프로그램 세션 한 줄의 시간(초). 운동 구성에서 초로 다시 더한다. (#2546)
+
+    `minutes` 는 세션마다 이미 분으로 접은 값이라 더하면 반올림이 쌓인다. 운동
+    구성을 읽을 수 없는 줄만 그 분으로 읽는다.
+    """
+    exercises = draft_exercises(row.exercises_json)
+    if not exercises:
+        return row.minutes * 60
+    return _session_seconds(exercises)
+
+
+def _program_notification_args(
+    name: str,
+    *,
+    sessions: int,
+    seconds: int,
+    multi: bool,
+    routine_only: bool = False,
+) -> dict[str, Any]:
+    """프로그램 배정 알림의 틀 인자. 합계 시간은 초로 더한 값이다. (#2546)
+
+    세션마다 분으로 접은 뒤 더하면 45초 세션 셋이 `3분` 이 된다(실제 2분 15초).
+    `minutes` 는 틀을 모르는 쪽을 위해 같은 합을 한 번만 접어 둔 값이다.
+
+    [routine_only] 는 `개인운동만` 전송이다(#2581) — 프로그램 이름과 `세션 N개`
+    대신 `개인운동 N개` 로 말한다.
+    """
+    return {
+        "name": name,
+        "sessions": sessions,
+        "seconds": seconds,
+        "minutes": _minutes_of(seconds),
+        "multi": multi,
+        "routine_only": routine_only,
+    }
 
 
 # ---- 회원별 트레이너 메모 (#706) ----
@@ -3209,18 +3430,50 @@ def _program_item_label(item: ProgramItem) -> str:
             parts.append(f"{item.hold_seconds}초")
         elif item.reps:
             parts.append(f"{item.reps}회")
-        # 맨몸 운동은 `0kg` 으로 **저장**한다 — 이 문장이 이력 행에 남고, 값은
+        # 맨몸 운동은 `0kg` 으로 적는다 — 옛 이력 행은 이 문장만 남아 있어, 값은
         # 읽을 때 `parse_history_exercise` 가 이 문장에서 되짚는다. `0kg` 을
         # 빼면 맨몸의 0 이 "적지 않음"(None)으로 바뀐다. 화면은 0 을 적지 않는다
         # (#2533). 값이 아예 없는 것은 규칙 이전의 옛 행뿐이다.
         if item.weight is not None:
             parts.append(f"{item.weight:g}kg")
     else:
-        # 초로 적은 시간도 분으로 적는다(#2221) — 이 줄을 되읽는
-        # `parse_history_exercise` 는 `초` 를 버티는 운동의 초로 읽어, `걷기 45초`
-        # 를 근력으로 바꿔 버린다. 초까지의 값은 회원 기록(`duration_seconds`)에 남는다.
-        parts = [f"{item.duration}분"] if item.duration else []
+        # 초까지 적는다 — `걷기 45초`·`사이클 1시간 30분`(#2546). 이 문장은
+        # 되읽지 않는다: 값은 [_program_history_entry] 가 함께 남긴다.
+        seconds = item.duration_seconds or 0
+        parts = [format_duration(seconds)] if seconds else []
     return " ".join([item.name, *parts])
+
+
+def _program_history_entry(item: ProgramItem) -> dict[str, Any]:
+    """완료한 PT 의 운동 한 종목 → `RoutineHistory.exercises_json` 한 항목. (#2546)
+
+    예전에는 문장([_program_item_label])만 남기고 읽을 때 값으로 되짚었는데, 그
+    문장의 `초` 는 버티는 운동의 초로 읽혀 운동 시간 `45초` 를 적을 수 없었다 —
+    그래서 분으로 반올림해 적었고 초는 영영 사라졌다. 이제 값을 그대로 남기고
+    문장은 `label` 로 곁들인다. 비어 있는 칸은 적지 않는다.
+    """
+    strength = item.type == "근력"
+    entry: dict[str, Any] = {
+        "name": item.name,
+        "type": item.type,
+        "label": _program_item_label(item),
+    }
+    if strength:
+        values = {
+            "sets": item.sets,
+            # 버티는 운동이면 횟수는 읽지 않는다 — 문장과 같다(#1969).
+            "reps": None if item.hold_seconds else item.reps,
+            "hold_seconds": item.hold_seconds,
+            # 맨몸의 0 도 값이다 — 비워 두면 '적지 않음'이 된다(#2533).
+            "weight": item.weight,
+        }
+    else:
+        values = {
+            "minutes": item.duration,
+            "duration_seconds": item.duration_seconds,
+        }
+    entry.update({k: v for k, v in values.items() if v is not None})
+    return entry
 
 
 def _amount_label(
@@ -3231,6 +3484,7 @@ def _amount_label(
     reps: int | None,
     weight: float | None,
     hold_seconds: int | None = None,
+    duration_seconds: int | None = None,
 ) -> str:
     """운동 한 줄이 말하는 **양**. 근력은 세트·횟수·중량, 나머지는 시간이다.
 
@@ -3245,9 +3499,12 @@ def _amount_label(
     유형은 두 어휘로 들어온다 — 트레이너 배정은 한글(`근력`), 회원 기록은 영문
     코드(`strength`)다. 한쪽만 보면 다른 쪽이 조용히 분으로 떨어지므로 정규화해서
     비교한다.
+
+    시간은 초가 있으면 초까지 적는다 — `45초`·`1시간 30분`(#2546). 초 칸이
+    생기기 전의 배정은 분 × 60 으로 읽어 예전과 같은 `N분` 이다.
     """
     if exercise_types.normalize(type_) != exercise_types.STRENGTH or sets is None:
-        return f"{minutes}분"
+        return format_duration(seconds_or_minutes(duration_seconds, minutes))
     parts = [f"{sets}세트"]
     # 버티는 운동은 초로 읽는다 — `플랭크 · 3세트 · 60초`. (#1969)
     if hold_seconds:
@@ -3269,6 +3526,7 @@ def _routine_notification_args(
     reps: int | None,
     weight: float | None,
     hold_seconds: int | None = None,
+    duration_seconds: int | None = None,
 ) -> dict[str, Any]:
     """루틴 배정 알림의 틀 인자(#2302). 양은 [_amount_label] 과 같은 규칙으로 읽는다.
 
@@ -3280,6 +3538,8 @@ def _routine_notification_args(
         "name": name,
         "strength": exercise_types.normalize(type_) == exercise_types.STRENGTH,
         "minutes": minutes,
+        # 초까지의 시간(#2546). `minutes` 는 틀을 모르는 쪽을 위해 둔다.
+        "seconds": seconds_or_minutes(duration_seconds, minutes),
         "sets": sets,
         "reps": reps,
         "hold_seconds": hold_seconds,
@@ -3307,17 +3567,107 @@ def _program_seconds_and_type(
     return seconds, type_
 
 
-def _schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
+#: 담당이 끊긴 회원의 일정이 스케줄에 쓰는 이름(#2589).
+DETACHED_CLIENT_NAME = "해제 회원"
+
+
+def _schedule_out(
+    s: TrainerSchedule, *, detached: bool = False
+) -> ScheduleSessionOut:
+    """일정 한 행을 응답으로. [detached] 면 회원 식별·기록 값을 가린다. (#2589)
+
+    담당이 끊긴 회원의 일정도 트레이너가 참여한 수업이라 스케줄에 남긴다. 다만
+    회원 상세·식단·기록 차단(#2281)과 같은 경계로, 누구였는지와 그 수업에 적힌
+    글·프로그램·취소 사유는 보여 주지 않는다. 언제·무슨 종류·어떻게 끝났는지만
+    남는다.
+    """
+    if detached:
+        return ScheduleSessionOut(
+            id=s.id, date=s.date, time=s.time,
+            client_name=DETACHED_CLIENT_NAME, member_id=None,
+            type=s.type, duration_minutes=s.duration_minutes, status=s.status,
+            note="", program=[], program_sent=False,
+            cancelled_at=s.cancelled_at,
+            cancellation_source=s.cancellation_source,
+            no_show_at=s.no_show_at,
+            member_detached=True,
+        )
     return ScheduleSessionOut(
         id=s.id, date=s.date, time=s.time, client_name=s.client_name,
-        type=s.type, duration_minutes=s.duration_minutes, status=s.status,
+        member_id=s.member_id, type=s.type, duration_minutes=s.duration_minutes, status=s.status,
         note=s.note, program=_program_items(s.program_json),
         program_sent=s.program_sent_at is not None,
         cancelled_at=s.cancelled_at,
         cancellation_source=s.cancellation_source,
         cancellation_reason=s.cancellation_reason,
         no_show_at=s.no_show_at,
+        consultation=_schedule_consultation_out(s.consultation),
     )
+
+
+def _schedule_consultation_out(
+    c: ConsultationRequest | None,
+) -> ScheduleConsultationOut | None:
+    if c is None:
+        return None
+    return ScheduleConsultationOut(
+        id=c.id,
+        exercise_goal=c.exercise_goal,
+        health_purpose_type=c.health_purpose_type,
+        health_purpose_detail=c.health_purpose_detail,
+        message=c.message,
+    )
+
+
+def _is_consultation_booking(s: TrainerSchedule) -> bool:
+    """상담 요청을 수락해 생긴 상담 일정인가. (#2584)
+
+    수락은 담당 연결이 아니라, 이 일정의 회원은 아직 연결 전일 수 있다. 회원이
+    이 트레이너에게 직접 보낸 요청이라 인박스와 같은 범위로 연결 여부와 관계없이
+    이름·요청 내용이 보이고, 메모 수정·완료가 된다 — 해제 회원 익명 처리(#2589)와
+    해제 때 남은 일정 취소에서 빠진다.
+    """
+    return s.consultation_id is not None and s.type == "상담"
+
+
+def _linked_member_ids(
+    db: Session, trainer_id: str, member_ids: set[str]
+) -> set[str]:
+    """[member_ids] 중 이 트레이너와 담당·동의 경계 안인 회원. (#2589)
+
+    [has_active_client_link] 를 여러 회원에 한 번에 묻는 것이다 — 주간 스케줄이
+    일정마다 따로 물으면 요청 하나에 쿼리가 일정 수만큼 늘어난다.
+    """
+    if not member_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(TrainerClient.member_id).where(
+                TrainerClient.trainer_id == trainer_id,
+                TrainerClient.member_id.in_(sorted(member_ids)),
+                TrainerClient.active.is_(True),
+                data_consent_service.allows_access_clause(),
+            )
+        ).all()
+    )
+
+
+def _schedule_outs(
+    db: Session, trainer_id: str, rows: Sequence[TrainerSchedule]
+) -> list[ScheduleSessionOut]:
+    """일정 행들을 응답으로 — 담당이 끊긴 회원의 일정은 익명으로. (#2589)"""
+    linked = _linked_member_ids(
+        db, trainer_id, {s.member_id for s in rows if s.member_id}
+    )
+    return [
+        _schedule_out(
+            s,
+            detached=bool(s.member_id)
+            and s.member_id not in linked
+            and not _is_consultation_booking(s),
+        )
+        for s in rows
+    ]
 
 
 def build_schedule(db: Session, trainer_id: str, day: str) -> list[ScheduleSessionOut]:
@@ -3361,25 +3711,29 @@ def build_schedule_range(
     문자열 범위 비교로 충분하다.
 
     [member_id] 를 주면 그 고객의 세션만 (공백 슬롯은 자연히 빠진다 —
-    배정된 회원이 없으므로).
+    배정된 회원이 없으므로). 이때는 활성 담당일 때만 준다 — 회원별 조회는 회원
+    상세가 쓰는 길이라 해제 회원에게 열리면 안 된다(#2281).
+
+    전체 스케줄에는 담당이 끊긴 회원의 일정도 남긴다(#2589). 트레이너가 참여한
+    수업이 달력에서 빠지면 지난 근무를 되짚을 수 없고 그 시간이 빈 시간처럼
+    보인다. 회원 식별 정보는 [_schedule_outs] 가 가린다.
     """
     conditions = [
         TrainerSchedule.trainer_id == trainer_id,
         TrainerSchedule.date >= from_day,
         TrainerSchedule.date <= to_day,
-        or_(
-            TrainerSchedule.member_id.is_(None),
-            exists(
-                select(TrainerClient.id).where(
-                    TrainerClient.trainer_id == trainer_id,
-                    TrainerClient.member_id == TrainerSchedule.member_id,
-                    TrainerClient.active.is_(True),
-                )
-            ),
-        ),
     ]
     if member_id is not None:
         conditions.append(TrainerSchedule.member_id == member_id)
+        conditions.append(
+            exists(
+                select(TrainerClient.id).where(
+                    TrainerClient.trainer_id == trainer_id,
+                    TrainerClient.member_id == member_id,
+                    TrainerClient.active.is_(True),
+                )
+            )
+        )
     rows = db.scalars(
         select(TrainerSchedule)
         .where(*conditions)
@@ -3387,7 +3741,7 @@ def build_schedule_range(
             TrainerSchedule.date, TrainerSchedule.time, TrainerSchedule.sort_order
         )
     ).all()
-    return [_schedule_out(s) for s in rows]
+    return _schedule_outs(db, trainer_id, rows)
 
 
 #: booked_dates 조회 하한(일). 주간 스트립 도트용이라 과거 전체가 필요없다 — 시간이 갈수록
@@ -3396,7 +3750,11 @@ _BOOKED_DATES_WINDOW_DAYS = 90
 
 
 def booked_dates(db: Session, trainer_id: str) -> list[str]:
-    """예약이 있는(공백 아닌) 날짜 목록 — 주간 스트립 도트용(최근 90일 이후)."""
+    """예약이 있는(공백 아닌) 날짜 목록 — 주간 스트립 도트용(최근 90일 이후).
+
+    담당이 끊긴 회원의 일정도 센다 — 스케줄이 그 일정을 익명으로 보여 주므로
+    (#2589) 점과 목록이 어긋나면 안 된다.
+    """
     cutoff = (_today() - timedelta(days=_BOOKED_DATES_WINDOW_DAYS)).isoformat()
     rows = db.scalars(
         select(TrainerSchedule.date)
@@ -3404,16 +3762,6 @@ def booked_dates(db: Session, trainer_id: str) -> list[str]:
             TrainerSchedule.trainer_id == trainer_id,
             TrainerSchedule.status != "공백",
             TrainerSchedule.date >= cutoff,
-            or_(
-                TrainerSchedule.member_id.is_(None),
-                exists(
-                    select(TrainerClient.id).where(
-                        TrainerClient.trainer_id == trainer_id,
-                        TrainerClient.member_id == TrainerSchedule.member_id,
-                        TrainerClient.active.is_(True),
-                    )
-                ),
-            ),
         )
         .distinct()
     ).all()
@@ -3752,14 +4100,16 @@ def conflicting_sessions(
     rows = db.scalars(
         query.order_by(TrainerSchedule.date, TrainerSchedule.time, TrainerSchedule.id)
     ).all()
-    out: list[ScheduleSessionOut] = []
+    hits: list[TrainerSchedule] = []
     for row in rows:
         existing = _interval(row.date, row.time, row.duration_minutes)
         if existing is None:
             continue
         if any(start < existing[1] and existing[0] < end for start, end in wanted):
-            out.append(_schedule_out(row))
-    return out
+            hits.append(row)
+    # 겹친 일정은 거절 응답에 실려 나간다 — 담당이 끊긴 회원의 이름이 거기로 새지
+    # 않게 스케줄과 같이 가린다(#2589).
+    return _schedule_outs(db, trainer_id, hits)
 
 
 def ensure_no_overlap(
@@ -4118,6 +4468,7 @@ def _add_scheduled_routines(
                 else None
             ),
             reason=item.reason,
+            effect=item.effect.strip(),
             source=item.source,
             status=ROUTINE_SCHEDULED,
             schedule_id=schedule_id,
@@ -4377,14 +4728,21 @@ def _raise_scheduled_program(
         row.status = ROUTINE_APPROVED
         row.active_from = today_iso
     db.flush()
-    total_minutes = sum(row.minutes for row in rows)
+    # 바로 배정([assign_program])과 같은 틀이다 — 문장이 코드에 박혀 있으면
+    # 영어 화면에서도 한국어로 보인다(#2546). 여러 세션이면 프로그램 이름으로 부른다.
+    program_name = rows[0].program_name
     notification_service.queue(
         db,
         member_id=session.member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="새 운동 루틴이 배정되었어요",
-        body=f"{rows[0].name} · {total_minutes}분",
+        template=notification_templates.MEMBER_ROUTINE_PROGRAM,
+        template_args=_program_notification_args(
+            program_name or rows[0].name,
+            sessions=len(rows),
+            seconds=sum(_program_row_seconds(row) for row in rows),
+            multi=bool(program_name),
+        ),
     )
     return True
 
@@ -4565,6 +4923,8 @@ def _rewrite_scheduled_routines(
         row.reps = item.reps
         row.hold_seconds = item.hold_seconds
         row.weight = item.weight
+        # 효과만 고친 것은 운동을 바꾼 것이 아니라 출처를 건드리지 않는다(#2570).
+        row.effect = item.effect.strip()
         row.source = "trainer" if touched else item.source
         row.sort_order = base.sort_order + index
     for row in rows[len(items):]:
@@ -5335,7 +5695,7 @@ def complete_session(
     exercise_log: ExerciseSession | None = None
     if s.member_id:
         program = _program_items(s.program_json)
-        exercises = [_program_item_label(p) for p in program]
+        exercises = [_program_history_entry(p) for p in program]
         db.add(RoutineHistory(
             id=f"sched-hist-{s.id}",
             member_id=s.member_id,
@@ -5556,6 +5916,12 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
         link.active = False
         # 담당 해제 = 데이터 공유 동의 철회(#1631).
         data_consent_service.revoke(link)
+        # 아직 시작하지 않은 PT 도 함께 거둔다(#2589). 회원이 스스로 끊었으니
+        # 회원에게 따로 알리지 않고, 트레이너에게는 해제 알림이 취소 수를 함께
+        # 전한다(`member_departure.notify_trainer`).
+        _cancel_sessions_on_detach(
+            db, link.trainer_id, link.member_id, source="member"
+        )
         # 그 트레이너가 확정해 둔 식단 추천도 내린다 — 트레이너가 해제할 때
         # (`remove_client`)와 같다. 남겨 두면 같은 트레이너와 다시 연결될 때 끊기
         # 전의 추천이 회원 홈에 되살아난다(#2442).
@@ -5832,7 +6198,23 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .order_by(TrainerSchedule.date.desc(), TrainerSchedule.time.desc())
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
-    return [_schedule_out(s) for s in rows]
+    return [_member_schedule_out(s) for s in rows]
+
+
+def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
+    """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
+
+    `note` 한 칸이 PT 일정에서는 회원에게 보내는 트레이너 피드백이고, 상담 일정에서는
+    트레이너만 보는 상담 기록(메모)이다. 트레이너 응답(`_schedule_out`)을 그대로 쓰면
+    예정 PT 에 미리 적어 둔 글과 상담 기록까지 회원에게 간다. 회원 앱도 완료 PT 에서만
+    그리므로, 그 밖의 `note` 는 여기서 비운다.
+    """
+    out = _schedule_out(s)
+    if s.status != SCHEDULE_DONE or s.type == "상담":
+        out.note = ""
+    # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
+    out.consultation = None
+    return out
 
 
 def member_unread_count(db: Session, trainer_id: str, member_id: str) -> int:
@@ -5884,13 +6266,18 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
     )
 
 
-#: `TrainerMeUpdate` 가 받는 호환용 헬스장 문자열. 소속(`gym_id`)이 설정돼 있으면
-#: 이 값들은 Place/GymProfile 에서 파생되므로 직접 수정할 수 없다(#452).
+#: `TrainerMeUpdate` 가 받는 호환용 헬스장 문자열. 소속(`gym_id`)에서만 파생되므로
+#: 직접 수정할 수 없다(#452, #2543).
 GYM_TEXT_FIELDS = ("gym_name", "gym_address", "gym_hours", "gym_phone")
 
 
-class GymTextLockedByAffiliation(Exception):
-    """소속이 설정된 프로필에서 호환 문자열만 따로 바꾸려 한 경우. (#452)"""
+class GymTextNotEditable(Exception):
+    """호환 문자열을 직접 바꾸려 한 경우. (#452, #2543)
+
+    예전에는 소속이 없는 프로필에 한해 직접 적게 해 줬다. 그렇게 적은 이름은
+    `gym_id` 가 비어 회원에게 노출되지 않는데도 트레이너 화면에는 소속이 있는
+    것처럼 보였다. 이제 소속은 헬스장 검색(`/trainer/gyms/search`)으로만 정한다.
+    """
 
 
 def update_trainer_profile(
@@ -5898,17 +6285,17 @@ def update_trainer_profile(
 ) -> TrainerMe:
     """보낸 필드만 반영한다. 자격증은 통째로 교체(부분 병합은 순서가 모호하다).
 
-    `gym_id` 가 있으면 호환 문자열은 소속에서 파생된 값이라 여기서 못 고친다 —
-    문자열만 바꾸면 소속과 화면이 어긋난다. `GymTextLockedByAffiliation` 을 올리고
-    라우터가 409 로 돌려준다. 소속이 없는(레거시·해제) 프로필은 예전처럼 직접 적는다.
+    헬스장 문자열이 하나라도 오면 `GymTextNotEditable` 을 올리고 라우터가 409 로
+    돌려준다 — 함께 온 다른 필드도 반영하지 않는다(일부만 저장되면 클라이언트가
+    무엇이 저장됐는지 모른다).
     """
-    if profile.gym_id is not None and any(f in fields for f in GYM_TEXT_FIELDS):
-        raise GymTextLockedByAffiliation
+    if any(f in fields for f in GYM_TEXT_FIELDS):
+        raise GymTextNotEditable
 
     if "certifications" in fields:
         certs = [c.strip() for c in (fields["certifications"] or []) if c.strip()]
         profile.certifications_json = json.dumps(certs, ensure_ascii=False)
-    for column in ("phone", "specialty", "career_years", "intro", *GYM_TEXT_FIELDS):
+    for column in ("phone", "specialty", "career_years", "intro"):
         if column in fields:
             setattr(profile, column, fields[column])
     db.commit()

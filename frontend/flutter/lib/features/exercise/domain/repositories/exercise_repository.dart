@@ -1,5 +1,6 @@
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 
 abstract class ExerciseRepository {
@@ -46,37 +47,16 @@ abstract class ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
   });
 
-  /// Persist a new workout session (POST /exercise/sessions) and return
-  /// the created session as the server materialised it.
+  /// POST /exercise/sessions — 운동 기록 [drafts](1~N개)를 **한 번에** 저장한다.
+  /// (#2544)
   ///
-  /// [sets]·[reps]·[holdSeconds]·[weight] 는 근력 기록에만 있는 값이다 —
-  /// 근력은 시간이 아니라 세트·횟수·무게로 읽는 운동이라 회원이 적은 수를
-  /// 그대로 싣는다. 다른 유형은 null 이고, 서버도 근력이 아닌 기록에서는 이
-  /// 값들을 버린다. (#1262, #1276, #1310)
+  /// 서버는 목록 하나를 한 트랜잭션으로 저장한다 — 전부 되거나 전부 안 된다.
+  /// 한 건씩 보내면 몇 개만 저장된 채 실패할 수 있고, 다시 시도한 회원이 이미
+  /// 저장된 것을 한 번 더 남긴다. 한 건도 이 길로 보낸다 — 추가 경로는 한
+  /// 벌이다.
   ///
-  /// [holdSeconds] 는 플랭크처럼 **버티는** 운동이 한 세트를 버틴 시간이고,
-  /// [reps] 와 한 자리를 나눠 쓴다 — 이 값을 실으면 서버가 횟수를 비운다.
-  /// 한 세트를 회로든 초로든 한 번만 잰다(#1969).
-  ///
-  /// [durationSeconds] 는 회원이 시·분·초 휠로 적은 걸린 시간이다(#2071).
-  /// 보내면 서버가 그 초로 `minutes` 를 다시 계산한다 — 분 칸은 주간 집계와
-  /// 트레이너웹이 읽으므로 늘 차 있어야 한다. 근력은 분이 세트에서 나오는
-  /// 값이라 싣지 않는다.
-  ///
-  /// [date] 는 회원이 달력에서 고른 날이다. 생략하면 서버가 오늘로 둔다.
-  Future<ExerciseSession> addSession({
-    required ExerciseType type,
-    required int minutes,
-    required int calories,
-    required DateTime date,
-    String name = '',
-    ExerciseIntensity intensity = ExerciseIntensity.moderate,
-    int? sets,
-    int? reps,
-    int? holdSeconds,
-    int? durationSeconds,
-    double? weight,
-  });
+  /// 돌려주는 기록은 요청과 같은 순서다. 필드의 뜻은 [ExerciseSessionDraft].
+  Future<ExerciseSessionsAdded> addSessions(List<ExerciseSessionDraft> drafts);
 
   /// DELETE /exercise/sessions/{id} — remove a workout session.
   Future<void> deleteSession(String id);

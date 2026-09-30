@@ -5,6 +5,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/models/program_draft.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -14,7 +15,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 운동 행을 [ProgramDraft] 로 들고 있다가 저장할 때 한 번에 반영한다.
 ///
 /// 틀(테두리·반경·안쪽 여백)과 제목은 이 위젯을 감싸는 `AppDialog` 가 그린다 —
-/// 제목은 `noteOnly ? schedEditNote : progEditTitle` 이다. 여기서는 내용과
+/// 제목은 `progEditTitle`, 또는 `noteOnly` 면 일정 종류에 따라
+/// `schedEditNote`(PT)·`schedEditConsultNote`(상담)이다. 여기서는 내용과
 /// 하단 [취소]·[저장] 두 버튼만 세운다.
 class SessionProgramEditor extends ConsumerStatefulWidget {
   const SessionProgramEditor({
@@ -119,18 +121,6 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
     return AppDialog(
       title: widget.title,
       size: AppDialogSize.medium,
-      // 목록을 늘리는 `+ 운동 추가` 는 창 제목 오른쪽에 둔다 — 회원 앱 `식단 추가`
-      // 시트의 `+ 직접 추가` 와 같은 자리다. 목록 끝에 두면 목록이 길수록 멀어지고,
-      // 새 제목 줄을 만들면 창이 그만큼 길어진다(#2465).
-      trailing: widget.noteOnly
-          ? null
-          : AppButton(
-              label: l.progAddExercise,
-              leadingIcon: AppIcons.add,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              onPressed: _saving ? null : _addItem,
-            ),
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : widget.onCancel,
@@ -163,19 +153,49 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
           ),
           const SizedBox(height: OnCareSpacing.s8),
         ],
+        // 목록을 늘리는 `+ 운동 추가` 는 목록 끝 가운데 글자 버튼이다 — 새 줄이
+        // 생기는 바로 그 자리라, 누른 뒤 스크롤해 내려가 찾지 않아도 된다. 창
+        // 제목 오른쪽에 두었더니 새 줄은 목록 맨 아래에 생겨, 목록이 길면 누른
+        // 결과가 보이지 않았다(#2476).
+        Align(
+          child: AppButton(
+            key: const ValueKey<String>('session-program-add-exercise'),
+            label: l.progAddExercise,
+            leadingIcon: AppIcons.add,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            onPressed: _saving ? null : _addItem,
+          ),
+        ),
       ],
       // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
       // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
       // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
+      //
+      // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백, 상담에
+      // 적는 글은 트레이너만 보는 상담 메모다(#2515, #2574). 누가 읽게
+      // 되는지를 입력칸 아래 한 줄로 붙인다.
       if (widget.noteOnly)
-        AppTextField(
-          key: const ValueKey<String>('program-trainer-note'),
-          controller: _note,
-          label: l.schedNote,
-          hint: l.progNoteHint,
-          minLines: 2,
-          maxLines: 4,
-        ),
+        if (widget.session.type == SessionType.consultation)
+          AppTextField(
+            key: const ValueKey<String>('program-trainer-note'),
+            controller: _note,
+            label: l.schedConsultNote,
+            hint: l.schedConsultNoteHint,
+            helper: l.schedConsultNotePrivate,
+            minLines: 2,
+            maxLines: 4,
+          )
+        else
+          AppTextField(
+            key: const ValueKey<String>('program-trainer-note'),
+            controller: _note,
+            label: l.schedNote,
+            hint: l.progNoteHint,
+            helper: l.schedNoteVisibleToMember,
+            minLines: 2,
+            maxLines: 4,
+          ),
     ];
   }
 }

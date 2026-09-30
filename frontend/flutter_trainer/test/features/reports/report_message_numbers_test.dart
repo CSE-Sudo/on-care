@@ -269,7 +269,7 @@ void main() {
     });
 
     test('답이 없으면 그 문단을 만들지 않는다', () {
-      expect(reportMessage(_ko, _week()), isNot(contains('소감')));
+      expect(reportMessage(_ko, _week()), isNot(contains('이번 주 피드백도')));
     });
   });
 

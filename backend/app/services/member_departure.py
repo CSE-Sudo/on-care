@@ -15,7 +15,10 @@ from sqlalchemy.orm import Session
 
 from app.models.models import User
 from app.services import notification_service, notification_templates
-from app.services.trainer_service import get_member_trainer_id
+from app.services.trainer_service import (
+    get_member_trainer_id,
+    sessions_cancelled_on_detach,
+)
 
 Reason = Literal["withdrawn", "disconnected"]
 
@@ -39,11 +42,18 @@ def notify_trainer(db: Session, member: User, *, reason: Reason) -> bool:
     if trainer_id is None:
         return False
     # 이름이 비어 있으면 틀이 대신 적는 말(`이름 없는`)을 고른다.
+    args: dict[str, object] = {"member_name": (member.name or "").strip()}
+    if reason == "disconnected":
+        # 해제가 함께 취소할 남은 일정 수(#2589). 해제 전에 세므로 해제가 실제로
+        # 거두는 목록과 같은 기준(`sessions_cancelled_on_detach`)으로 센다.
+        args["cancelled_sessions"] = len(
+            sessions_cancelled_on_detach(db, trainer_id, member.id)
+        )
     notification_service.queue_for_trainer(
         db,
         trainer_id=trainer_id,
         kind=notification_service.TRAINER_MEMBER_LEFT_KIND,
         template=_TEMPLATES[reason],
-        template_args={"member_name": (member.name or "").strip()},
+        template_args=args,
     )
     return True

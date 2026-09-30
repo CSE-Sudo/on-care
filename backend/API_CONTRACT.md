@@ -177,10 +177,12 @@
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247) |
-| POST | `/exercise/sessions` | 입력 `{ type, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, day_label? }` → 생성된 `sessions[]` 항목 + `points` |
-| PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목(`points` 없음) |
+| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
+| PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0), intensity }` → `{ calories, source, matched_name, isometric }` |
+
+추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
 
 `sessions[]`: `{ id(str), day_label, type(cardio|strength|yoga|walking), minutes, duration_seconds, calories, calorie_source, intensity(light|moderate|high), sets, reps, hold_seconds, weight, source(member|trainer_pt), date_label, time_label, items[str] }`
 `week_start`: 그 주의 월요일. 월요일이 아닌 날짜를 줘도 그 날이 속한 주로 맞춘다. 형식이 깨지면 422. 회원 앱이 지난 날짜를 골랐을 때 그 주를 받는다. (#671)
@@ -209,7 +211,7 @@
 | `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
 | `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
 
-생성 응답의 `points`: `{ awarded(int), balance(int) }` — 이번에 받은 포인트와 그 뒤의 잔액.
+생성 응답의 `points`: `{ awarded(int), balance(int) }` — 이번에 받은 포인트와 그 뒤의 잔액. 운동 여러 개를 한 번에 추가하면(`POST /exercise/sessions`) 한도는 항목마다 세고 `awarded` 는 그 합계다 — 다섯 개를 한 번에 저장해도 60P 다. (#2544)
 
 - **하루**는 KST 달력 날짜다. 한도를 넘으면 기록은 저장되고 `awarded: 0` 이다.
 - **같은 기록은 한 번만** 받는다(`(user_id, kind, source_type, source_id)` 유니크). 멱등키 재시도·완료
@@ -693,7 +695,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
-- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
+- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
@@ -746,6 +748,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/consultations/{consultation_id}` | 내가 보낸 대기 중 상담 요청 취소 |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
 
+- **담당 트레이너가 있는 회원은 담당에게만** 상담을 낼 수 있습니다(#2611). 다른 트레이너에게
+  내면 **409** `detail = { code: "linked_to_other_trainer", message }` 입니다. 트레이너를 바꾸려면
+  `DELETE /me/coach/trainer` 로 담당 연결을 해제한 뒤 신청합니다. 이 판정은 대기 중복·한도보다
+  먼저 합니다.
 - 같은 트레이너에게 **대기 중인 요청은 한 건**입니다(`uq_consultation_requests_pending_trainer`,
   중복은 409). 그래서 목록이 자라는 쪽은 처리된 지난 요청입니다 — 상태 필터가 없어
   그대로 함께 쌓이고, 그 때문에 상한이 필요합니다. (#980)
@@ -771,9 +777,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
     재신청 쿨다운은 두지 않습니다.
 - `exercise_goal` 입력은 회원앱 온보딩·MY 의 **건강 목표 여덟 종과 1:1** 입니다 —
   `weight_loss`·`strength`·`fitness`·`posture`·`rehab`·`eating`·`exercise_habit`·`blood_pressure`,
-  그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담이 수락되면
-  여덟 목표는 회원 건강 목표(`HealthProfile.conditions`)로 그대로 이어집니다
-  (`health_focus.EXERCISE_GOAL_FOCUS`). `other` 는 무엇을 원하는지 알려주는 바가 없어
+  그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담 뒤 회원이 그
+  트레이너와 6자리 코드로 연결되면 여덟 목표는 회원 건강 목표(`HealthProfile.conditions`)가
+  비어 있을 때 그대로 이어집니다(`health_focus.EXERCISE_GOAL_FOCUS`, #2584). `other` 는 무엇을 원하는지 알려주는 바가 없어
   잇지 않습니다. (#1992)
   없앤 `health`(건강 관리)는 **입력에서 받지 않습니다**(422) — 여덟 목표 중 하나로 옮길
   수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유입니다. 이미 저장된
@@ -812,7 +818,18 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
   씁니다.
 - 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
-  일시**를 그리는 값입니다. 승인 알림 본문에도 확정 일시가 들어갑니다.
+  일시**를 그리는 값입니다. 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
+  `/me/coach/sessions` 가 빈 목록이라, 수락된 상담은 내 상담 요청에서 확인합니다(#2584).
+- **상담 일정과 트레이너 스케줄** (#2584) — `GET /trainer/schedule` 은 담당이 끊긴 회원의 일정을
+  `해제 회원` 으로 가리지만(#2589), 상담 요청으로 생긴 `상담` 일정(`consultation_id` 있음)은
+  연결 여부와 관계없이 이름 그대로 보입니다(`member_detached=false`). 담당 해제 때 남은 일정을
+  거둘 때도 이 상담은 거두지 않습니다. 이 일정은 연결 전에도 메모 수정·
+  완료·재개가 됩니다(상담은 완료해도 운동 기록을 만들지 않습니다). 응답의 `consultation` 에
+  `{ id, exercise_goal, health_purpose_type, health_purpose_detail, message }` 가 실려 카드가
+  `상담 요청 내용` 을 읽기 전용으로 그립니다 — 회원 응답(`/me/coach/sessions`)에서는 늘 `null`
+  입니다. 코드로 연결되면 같은 일정이 담당 회원 일정으로 그대로 이어집니다. 예전 수락이
+  만든 일정은 `0105_schedule_consultation_link` 가 요청과 시각이 같은 것만 잇고, 완료되지 않은
+  것의 종류를 `상담` 으로, 문의 글과 똑같은 메모를 빈 값으로 바꿉니다.
 - `preferred_date`·`preferred_time_slot` 은 **응답에 남습니다.** 새 요청에서는 고른 자리의
   시각 사본이고, 자리 선택 이전 요청에는 회원이 적어 보낸 희망 시각이 그대로 있습니다.
   과거 `flexible`·`morning`/`afternoon`/`evening` 값도 저장된 그대로 내려갑니다.
@@ -824,9 +841,18 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `status=pending` 은 처리하는 만큼 줄지만 `status=all` 은 그 트레이너에게 들어온 요청
   전체입니다. 미처리 배지(`/trainer/consultations/pending-count`)는 **쪽 나눔과 무관하게**
   전체를 셉니다. 상태 필터에 `expired` 가 있습니다(#1873).
-- **승인은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
-  하나뿐이고, 날짜·시각·종류·소요 시간은 회원이 고른 자리가 정합니다. 회원이 고른
-  자리가 사라진 뒤 승인하면 **409** 입니다.
+- **수락은 상담 일정 확정이지 담당 연결이 아닙니다** (#2584). 수락하면 회원이 고른 자리에
+  `type="상담"`·`note=""`·`consultation_id`(그 요청) 인 일정이 하나 생기고, 담당 링크·헬스장
+  연결(`MemberGym`)·회원 건강 목표는 바뀌지 않습니다. 응답의 `client_connected` 는 늘
+  `false` 입니다. 등록은 상담 뒤 회원이 띄운 6자리 코드로 합니다(`POST /trainer/pairing-code`).
+  다른 트레이너의 담당 회원이어도 수락은 막지 않습니다 — 담당을 옮길지는 코드 연결이 정합니다
+  (다른 트레이너가 담당 중이면 코드 연결이 409).
+- 상담 신청의 `data_sharing_consent` 는 **상담 신청 정보(이름·운동 목표·문의 내용)를 그
+  트레이너에게 전달하는 동의**입니다. 담당 링크로 옮겨 적지 않습니다 — 식단·운동 기록 공유
+  동의는 연결 코드를 받을 때 받습니다(`POST /users/me/pairing-code`, 발급 시각이 동의 시각).
+- **수락은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
+  하나뿐이고, 날짜·시각·소요 시간은 회원이 고른 자리가 정합니다(종류는 늘 `상담`). 회원이
+  고른 자리가 사라진 뒤 수락하면 **409** 입니다.
 - 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡았으면 승인은 **409**
   `detail = { code: "schedule_overlap", message, conflicts[] }` 이고 아무것도 바뀌지 않습니다
   (요청은 대기로 남습니다). 일정을 옮긴 뒤 다시 승인합니다. (#2284)
@@ -1020,8 +1046,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | `DELETE /me/coach`, `DELETE /me/coach/trainer`(회원 해제), `DELETE /trainer/clients/{member_id}`(트레이너 해제) | `data_consent_at` 을 비우고 `data_consent_revoked_at` 에 그 시각. 두 번 해제해도 처음 시각이 남는다 |
 | `DELETE /users/me`, `DELETE /trainer/me`(탈퇴) | 링크 행이 계정과 함께 `CASCADE` 로 지워진다 — 남는 동의가 없다 |
 | 다른 트레이너로 옮김 | 옛 링크는 해제 때 철회, 새 링크에는 새 연결의 동의만 |
-| 끊긴 링크 되살리기(상담 수락·`/me/coach/invites/{id}/accept`·`/trainer/pairing-code`) | 그 연결의 새 동의만 적는다. 옛 동의는 되살아나지 않는다. `data_consent_revoked_at` 은 이력으로 남긴다 |
-| `PUT /trainer/clients/{member_id}/registration`(트레이너 혼자 재등록) | 동의가 철회된 링크면 **409** — 회원이 동의하는 경로(담당 요청·상담·연결 코드)로 다시 연결한다. 철회 기록이 없는 옛 해제 링크는 예전처럼 204 |
+| 끊긴 링크 되살리기(`/me/coach/invites/{id}/accept`·`/trainer/pairing-code`) | 그 연결의 새 동의만 적는다. 옛 동의는 되살아나지 않는다. `data_consent_revoked_at` 은 이력으로 남긴다 |
+| `PUT /trainer/clients/{member_id}/registration`(트레이너 혼자 재등록) | 동의가 철회된 링크면 **409** — 회원이 동의하는 경로(담당 요청·연결 코드)로 다시 연결한다. 철회 기록이 없는 옛 해제 링크는 예전처럼 204 |
 
 - **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
   `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.
@@ -1030,6 +1056,17 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
   회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
   그 시각이 새 동의가 되어 다시 열린다.
+- **해제·철회 회원의 일정은 트레이너 스케줄에 익명으로 남는다 (#2589).** `GET /trainer/schedule`(일·구간)·
+  `GET /trainer/schedule/booked-dates`·겹침 거절(409 `conflicts`)은 그 일정을 빼지 않고 `member_detached: true`,
+  `client_name: "해제 회원"`, `member_id: null` 로 싣는다. `note`·`program`·`cancellation_reason` 은 비우고
+  `program_sent` 는 `false` 다. 날짜·시각·종류·길이·상태·취소/노쇼 시각·취소 주체는 남는다. `member_id` 필터
+  조회는 지금처럼 404 다. 이 일정의 수정·완료·재개·전송은 위와 같은 404, 삭제·취소는 열린다.
+- **해제하면 아직 시작하지 않은 `예정` 일정은 취소된다 (#2589).** 세 해제 경로 모두 그 트레이너·회원 쌍의 시작
+  전 일정을 `취소`(주체: 트레이너 해제 `trainer`, 회원 해제 `member`, 사유 `담당 해제`)로 바꾸고, 예약으로 생긴
+  일정은 예약을 거두고 좌석을 돌려준다. 시작 시각이 지난 `예정` 은 그대로 둔다. 일정마다 취소 알림을 보내지 않고
+  해제 알림 한 건이 취소 수를 전한다 — 트레이너 해제는 회원에게 틀 `member_trainer_disconnected`(인자
+  `trainer_name`·`cancelled_sessions`), 회원 해제는 트레이너의 `trainer_member_disconnected` 에
+  `cancelled_sessions` 가 붙는다. 취소 수가 0 이면 일정 문장 없이 연결이 끊어졌다는 문장만 보낸다.
 - 동의 기능(#1022) 이전에 만들어져 **동의도 철회도 없는** 링크는 막지 않는다.
 - **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남는다.
   철회는 **앞으로의 열람**만 막는다. 회원의 `/me/coach/chat`·`/me/coach/sessions`·`/me/coach/routines` 는
@@ -1115,11 +1152,9 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 트레이너 가입은 전화번호를 받지 않으므로(트레이너 웹 가입 화면에 전화번호 칸이 없다) 처음부터
 없는 값이다.
 
-같은 요청의 `gym_phone` 에는 **이 기준을 걸지 않는다.** 헬스장 대표번호는 휴대전화 3-4-4 가
-아니다 — 시드에만도 `02-1234-5678`(10자리) · `02-332-1720`(9자리) · `0502-5552-4212`(12자리)가
-섞여 있고, 소속을 설정하면 `Place.phone` 이 이 칸에 그대로 들어온다(`set_trainer_gym`).
-휴대전화 규칙을 걸면 정상 번호가 422 가 되고, 그 뒤로는 프로필 저장 자체가 막힌다. 대표번호
-표기를 통일하려면 지역번호·안심번호까지 읽는 별도 규칙이 필요하다.
+같은 요청의 `gym_phone` 은 이제 직접 받지 않는다(#2543 — 보내면 409). 소속을 설정하면
+`GymProfile.phone` 이 그대로 들어오고, 헬스장 대표번호는 휴대전화 3-4-4 가 아니므로
+(`02-332-1720`·`0502-5552-4212`) 이 기준을 걸지 않는다.
 
 ### 이름·생년월일 형식 (#1887)
 
@@ -1201,8 +1236,30 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 않는다 — 고쳐서 같은 이메일로 다시 가입할 수 있다.
 
 트레이너 가입은 소속 헬스장을 받지 않는다(#1627). 예전의 헬스장 초대 코드(`invite_code`)는
-발급 경로가 없어 걷어 냈고, 소속은 가입 뒤 `PUT /trainer/me/gym` 으로 고른다. 예전 앱이
+발급 경로가 없어 걷어 냈고, 소속은 가입 뒤 헬스장 찾기로 고른다(아래). 예전 앱이
 `invite_code` 를 실어 보내도 무시하고 가입시킨다.
+
+### 트레이너 소속 헬스장 찾기 (#2543)
+
+| Method | Path | Body / Query → Response |
+|---|---|---|
+| GET | `/trainer/gyms/search` | `query`(1~100자, 이름·주소), `lat`·`lng`(선택, 쌍으로) → `[{ id, name, address, lat, lng, phone, distance_meters, registered }]` |
+| PUT | `/trainer/me/gym` | `{ gym_id }` — `registered=true` 인 결과 → `TrainerMe` |
+| PUT | `/trainer/me/gym/kakao` | `{ kakao_place_id(숫자), name }` — `registered=false` 인 결과 → `TrainerMe` |
+
+- 검색은 **이미 `places` 에 있는 fitness 장소를 먼저**(이름·주소 부분 일치, 최대 10), 그 뒤에
+  카카오 키워드 검색 결과를 싣는다. 카카오 결과 중 이미 등록된 곳은 `registered=true` 로 한 번만
+  나온다. 카카오 결과는 `category_name` 에 `스포츠시설` 이 든 곳만 — 필라테스·크로스핏 스튜디오는
+  들어가고 음식점·병원은 빠진다. 카카오 키가 없거나 호출이 실패하면 등록된 결과만 200 으로 준다.
+- `distance_meters` 는 좌표를 보냈을 때만 채운다(카카오 결과만). `lat`·`lng` 는 지도 핀용이다.
+- `PUT /trainer/me/gym/kakao` 는 **클라이언트가 보낸 이름·주소를 저장하지 않는다.** `name` 으로
+  카카오를 다시 검색해 id 가 같은 헬스장을 찾고 그 값으로 `places`·`gym_profiles`
+  (`is_partner=false`, 전화만)를 만든다. 찾지 못하거나 헬스장이 아니면 **404**, 카카오를 쓸 수
+  없으면 **503**. 이미 등록된 id 면 카카오를 부르지 않고 소속만 바꾼다.
+- `places.id` 는 카카오 장소 id 그대로다(시드의 카카오 발견 헬스장과 같은 규칙) — 같은 헬스장을
+  여러 트레이너가 골라도 한 행이다.
+- `PUT /trainer/me` 로 `gym_name`·`gym_address`·`gym_hours`·`gym_phone` 을 보내면 소속 유무와
+  관계없이 **409** 이고, 함께 온 다른 필드도 반영하지 않는다. 헬스장 문자열은 소속에서만 파생된다.
 
 **로그인에는 걸지 않는다.** 이 기준 이전에 만든 계정은 비밀번호가 기준에 못 미쳐도 그대로
 로그인되고, 트레이너는 `POST /trainer/me/password` 로 기준에 맞는 값으로 옮길 수 있다. 로그인에

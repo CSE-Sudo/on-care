@@ -9,8 +9,12 @@ on:
       - "frontend/flutter_trainer/**"
       # 김민수 데모 픽스처는 세 곳이 함께 읽는다 — 이것만 바뀌어도 돌아야 한다(#757).
       - "shared/demo_fixture/**"
+      # 추천 개인운동 효과 문구표 원본 — 서버·트레이너 웹 사본이 같은지 본다(#2570).
+      - "shared/routine_effects/**"
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
       - "shared/oncare_ui/**"
+      # 두 앱이 함께 쓰는 카카오맵 위젯(#2543).
+      - "shared/oncare_kakao_map/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -18,8 +22,12 @@ on:
       - "frontend/flutter_trainer/**"
       # 김민수 데모 픽스처는 세 곳이 함께 읽는다 — 이것만 바뀌어도 돌아야 한다(#757).
       - "shared/demo_fixture/**"
+      # 추천 개인운동 효과 문구표 원본 — 서버·트레이너 웹 사본이 같은지 본다(#2570).
+      - "shared/routine_effects/**"
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
       - "shared/oncare_ui/**"
+      # 두 앱이 함께 쓰는 카카오맵 위젯(#2543).
+      - "shared/oncare_kakao_map/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:

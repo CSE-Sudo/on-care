@@ -244,7 +244,11 @@ class AiCoachingCard extends ConsumerWidget {
             // 여러 세션짜리 프로그램은 첫 세션 위에 프로그램 이름을 한 번
             // 얹는다 — 세션 카드가 어디에 묶이는지 보이지 않으면 그냥 낱개
             // 루틴 여러 개로 읽힌다(#709).
+            // `개인운동만` 은 소제목을 달지 않는다(#2581) — 카드 제목 `추천
+            // 개인운동` 이 곧 그 묶음이고, 저장 이름(예전 `이번 주 개인운동`)은
+            // 보낸 날부터 7일이라 달력의 이번 주와도 맞지 않았다.
             if (routine.programName.isNotEmpty &&
+                !routine.isRoutineOnly &&
                 (index == 0 ||
                     routines[index - 1].programName != routine.programName))
               Padding(
@@ -272,7 +276,6 @@ class AiCoachingCard extends ConsumerWidget {
               ),
             _RecommendedExerciseRow(
               routine: routine,
-              sourceLabel: routineSourceLabel(l, routine, coach),
               // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
               // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
               cancellable: unassigned && !readOnly,
@@ -329,36 +332,15 @@ class _RoutineCheckbox extends StatelessWidget {
   }
 }
 
-/// 회원이 읽을 수 있는 추천 출처 문구.
-///
-/// 내부 `source` 값을 그대로 보여 주지 않는다. 회원이 알아야 할 것은 "누가
-/// 확인했는가" 다 — 트레이너가 본 추천과 AI 가 혼자 낸 추천은 무게가 다르다.
-///
-/// 담당 트레이너가 있으면 AI 추천은 승인된 것만 내려온다(#790). 그래서 여기
-/// 도착한 AI 추천에 `트레이너 확인` 을 붙이는 것이 사실이다.
-String routineSourceLabel(
-  AppLocalizations l,
-  CoachRoutine routine,
-  MemberCoach? coach,
-) {
-  if (routine.isTrainerRecommended) return l.coachRoutineByTrainer;
-  if (coach != null) return l.coachRoutineAiChecked(coach.name);
-  return l.coachRoutineAiAuto;
-}
-
 class _RecommendedExerciseRow extends ConsumerStatefulWidget {
   const _RecommendedExerciseRow({
     required this.routine,
-    required this.sourceLabel,
     required this.cancellable,
     this.readOnly = false,
   });
 
   /// 지난 날짜의 줄 — 했는지만 보이고 체크할 수 없다. (#2161)
   final bool readOnly;
-
-  /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김태오 확인` 처럼.
-  final String sourceLabel;
 
   final CoachRoutine routine;
 
@@ -610,9 +592,24 @@ class _RecommendedExerciseRowState
                             )
                             .copyWith(color: titleColor),
                       ),
+                      // 이 운동이 무엇에 좋은지 한 줄(#2570). 운동 구성이
+                      // 있어도 먼저 선다 — 구성은 "무엇을", 이 줄은 "왜" 다.
+                      if (routine.effect.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s2),
+                        Text(
+                          routine.effect,
+                          key: ValueKey<String>('routine-effect-${routine.id}'),
+                          style: detailStyle,
+                        ),
+                      ],
                       // 운동 구성이 오면 그것을 보여 준다 — 이름만 이어 붙인
                       // reason 보다 정확하다(세트·횟수·중량까지 온다, #709).
-                      if (routine.exercises.isNotEmpty)
+                      // 운동 하나짜리(`개인운동만` 등)는 첫 줄의 이름과 오른쪽
+                      // `유형 · 양` 이 이미 같은 것을 말하므로 적지 않는다(#2581)
+                      // — 양은 그 운동의 값으로 오른쪽에 올린다
+                      // ([_routineAmountLabel]).
+                      if (routine.exercises.isNotEmpty &&
+                          !_singleExerciseRepeatsTitle(routine))
                         for (final CoachRoutineExercise exercise
                             in routine.exercises) ...<Widget>[
                           const SizedBox(height: OnCareSpacing.s2),
@@ -621,30 +618,20 @@ class _RecommendedExerciseRowState
                             style: detailStyle,
                           ),
                         ]
-                      else if (routine.reason.isNotEmpty) ...<Widget>[
+                      // 효과 줄이 없던 옛 배정만 reason 으로 떨어진다. 효과가
+                      // 있으면 reason(AI 자동 추천의 긴 안내 등)은 싣지 않는다.
+                      // 운동 구성이 있는 배정의 reason 은 이름 나열이라, 구성
+                      // 줄을 건너뛴 경우에도 대신 적지 않는다(#2581).
+                      else if (routine.exercises.isEmpty &&
+                          routine.effect.isEmpty &&
+                          routine.reason.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(routine.reason, style: detailStyle),
                       ],
-                      // 누가 이 운동을 정했는지. 트레이너가 본 추천과 AI 가 혼자
-                      // 낸 추천은 회원에게 무게가 다르다(#782).
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        widget.sourceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(
-                              // 누가 정한 운동인지는 보조 설명이 아니다 — 회색이면
-                              // 옆의 부연과 무게가 같다(#1457). 완료한 줄에서는
-                              // 본문이 흐려지므로 같은 파랑을 한 단계 옅게 둔다.
-                              color: routine.completed
-                                  ? tokens.brand.border
-                                  : tokens.brand.primary,
-                            ),
-                      ),
+                      // 줄마다 출처(`트레이너 직접 추천` 등)를 붙이지 않는다
+                      // (#2566). 담당이 있으면 내려오는 운동은 모두 트레이너가
+                      // 확인한 것이고(#790), 없으면 카드 제목이 이미 AI 추천이라고
+                      // 말한다(#2015).
                     ],
                   ),
                 ),
@@ -733,7 +720,7 @@ class _RecommendedExerciseRowState
                           icon: AppIcons.delete,
                           tooltip: l.coachRoutineCancel,
                           size: AppIconButtonSize.small,
-                          color: OnCareColors.danger,
+                          color: OnCareColors.textTertiary,
                           onPressed: _saving ? null : _cancel,
                         ),
                     ],
@@ -935,16 +922,44 @@ class _ChatButton extends StatelessWidget {
 /// 시간은 초가 있으면 초로 읽는다(#2221) — `45초` · `1시간 30분`. 완료 기록이
 /// 분으로만 남았다면 배정의 초가 아니라 그 분을 쓴다: 회원이 실제로 한 값이
 /// 배정 값보다 앞선다.
-String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) =>
-    exerciseAmountLabelOf(
-      l,
-      type: exerciseTypeFromLabel(routine.type),
-      minutes: routine.completedMinutes ?? routine.minutes,
-      durationSeconds:
-          routine.completedDurationSeconds ??
-          (routine.completedMinutes == null ? routine.durationSeconds : null),
-      sets: routine.sets,
-      reps: routine.reps,
-      weight: routine.weight,
-      setsFromMinutesWhenUnknown: false,
-    );
+///
+/// 운동 하나짜리 세션은 서버가 행에 세트·횟수·중량을 남기지 않고 분만 둔다
+/// (`_session_summary`). 그 세션의 구성 줄을 적지 않으므로(#2581), 양은 그
+/// 운동의 값에서 읽는다 — 그러지 않으면 `3세트 · 15회` 가 `12분` 으로 보인다.
+String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) {
+  final CoachRoutineExercise? only = routine.exercises.length == 1
+      ? routine.exercises.single
+      : null;
+  final int? onlySeconds =
+      only?.durationSeconds ??
+      (only?.duration != null && only!.duration! > 0
+          ? only.duration! * 60
+          : null);
+  return exerciseAmountLabelOf(
+    l,
+    type: exerciseTypeFromLabel(routine.type),
+    minutes: routine.completedMinutes ?? routine.minutes,
+    durationSeconds:
+        routine.completedDurationSeconds ??
+        (routine.completedMinutes == null
+            ? routine.durationSeconds ?? onlySeconds
+            : null),
+    sets: routine.sets ?? only?.sets,
+    reps: routine.reps ?? only?.reps,
+    weight: routine.weight ?? only?.weight,
+    setsFromMinutesWhenUnknown: false,
+  );
+}
+
+/// 운동 하나짜리 세션인데 그 운동 이름이 줄 제목과 같은가. (#2581)
+///
+/// 그러면 구성 줄(`힙 브리지 · 3세트 · 15회`)은 첫 줄의 이름과 오른쪽 양을
+/// 되풀이할 뿐이다. 이름이 다르면(`세션 A` 안의 `스쿼트`) 무엇을 하는지는
+/// 구성 줄만 말하므로 남긴다.
+bool _singleExerciseRepeatsTitle(CoachRoutine routine) {
+  if (routine.exercises.length != 1) return false;
+  final String title = routine.isProgramSession
+      ? routine.sessionName
+      : routine.name;
+  return routine.exercises.single.name.trim() == title.trim();
+}

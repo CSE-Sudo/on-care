@@ -15,6 +15,8 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart'
+    show ClientDietAnalysisPanel;
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_repository.dart';
@@ -38,6 +40,7 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_section.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
@@ -105,6 +108,23 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 보낸 구성을 그대로** 펼쳐, 보냈다는 표시도 없이 다시 반영할 수 있다.
   int _wizardRevision = 0;
 
+  /// 위저드의 단계 진행 줄. 위저드는 편집기 열의 스크롤 안에 있어서, 진행
+  /// 줄을 여기로 넘겨받아 그 스크롤 **바로 아래**에 둔다(#2476).
+  final ValueNotifier<Widget?> _wizardNav = ValueNotifier<Widget?>(null);
+
+  /// [_wizardNav] 를 마지막으로 넘긴 위저드 화면.
+  Object? _wizardNavOwner;
+
+  /// 위저드가 진행 줄을 넘기거나(`nav`) 사라지며 거둔다(`null`). 회원을 바꾸면
+  /// 새 위저드가 먼저 제 줄을 넘기고 옛 위저드가 뒤이어 거두므로, 거두는 것은
+  /// 지금 줄을 넘긴 그 화면일 때만 받는다.
+  void _onWizardNav(Object owner, Widget? nav) {
+    if (!mounted) return;
+    if (nav == null && !identical(owner, _wizardNavOwner)) return;
+    _wizardNavOwner = nav == null ? null : owner;
+    _wizardNav.value = nav;
+  }
+
   /// `일정 추가` 가 방금 성공했다 — 성공 토스트가 떠 있는 동안 같은 구성을
   /// 다시 보내지 못하게 잠그고, 잠시 뒤 편집기를 새로 세운다.
   bool _sent = false;
@@ -141,6 +161,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void dispose() {
     _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
+    _wizardNav.dispose();
     super.dispose();
   }
 
@@ -202,15 +223,26 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           if (exercise.name.trim().isNotEmpty)
             TemplateExercise(
               name: exercise.name.trim(),
-              // 근력은 세트에서 환산한 분을 담는다 — 템플릿의 총 시간이
-              // 유형과 무관하게 한 축으로 읽혀야 한다 (#1276).
-              minutes: exercise.effectiveMinutes,
+              // 시·분·초로 적은 초를 그대로 담는다(#2521) — 분으로 접으면
+              // `버피 45초` 가 `1분` 으로 남는다. 근력은 세트에서 환산한
+              // 시간을 담는다 — 템플릿의 총 시간이 유형과 무관하게 한 축으로
+              // 읽혀야 한다 (#1276).
+              durationSeconds: exercise.isStrength
+                  ? exercise.effectiveMinutes * 60
+                  : exercise.durationSeconds,
               type: kRoutineTypes.contains(exercise.type)
                   ? exercise.type
                   : kRoutineTypes.first,
-              // 근력이면 편집기에서 정한 세트·중량을 그대로 템플릿에 담는다
-              // — 비워 두면 다시 열었을 때 기본값으로 되돌아간 것처럼 보인다.
+              // 근력이면 편집기에서 정한 세트·횟수·중량을 그대로 템플릿에
+              // 담는다 — 비워 두면 다시 열었을 때 기본값으로 되돌아간 것처럼
+              // 보인다. 한 세트는 회로든 초로든 한 번만 잰다(#1969) — 횟수와
+              // 버티는 초 중 고른 쪽만 싣는다. 예전에는 횟수·초를 싣지 않아
+              // `12회` 가 `10회` 로, 버티는 운동이 회로 돌아왔다. (#2521)
               sets: exercise.isStrength ? exercise.sets : 0,
+              reps: exercise.isStrength && !exercise.isHold ? exercise.reps : 0,
+              holdSeconds: exercise.isStrength && exercise.isHold
+                  ? exercise.holdSeconds
+                  : 0,
               weight: exercise.isStrength ? exercise.weight : 0,
             ),
     ];
@@ -278,7 +310,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 지문 방식이다.
     final payload = routineOnlyAssignToJson(
       routines,
-      programName: l.aiRoutineOnlyProgramName,
+      // 저장 이름에는 기간을 넣지 않는다(#2581) — 보낸 날부터 7일이라 `이번 주`
+      // 가 달력의 이번 주와 맞지 않는다. 회원 앱은 이 이름을 카드에 적지 않는다.
+      programName: l.aiRoutineOnlyDeliveryName,
       startDate: ymd(start),
       activeDays: PersonalRoutineBox.activeDays,
     );
@@ -554,6 +588,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             // 순간 사라져, 같은 프로그램이 코칭 탭과 스케줄 탭에서 다르게
             // 읽혔다.
             duration: exercise.isStrength ? null : exercise.minutes,
+            // 초가 기준이다(#2521) — 분만 실으면 일정의 운동 목록이 분 × 60
+            // 으로 되짚혀, 편집기의 45초가 스케줄·회원 앱에서 `1분` 이 된다.
+            durationSeconds: exercise.isStrength
+                ? null
+                : exercise.durationSeconds,
             sets: exercise.isStrength ? exercise.sets : null,
             // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은
             // 비운다(#1969).
@@ -651,16 +690,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                         OnCareLayout.splitGap +
                         OnCareLayout.dialogSmall;
                 if (!wide) {
-                  return ListView(
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      // Single column: context, then the editor, then the
-                      // library. The editor is the task — pushing it below
-                      // the templates would bury it.
-                      ..._contextChildren(l, clients, selected),
-                      const SizedBox(height: OnCareSpacing.s16),
-                      ..._editorChildren(selected),
-                      const SizedBox(height: OnCareSpacing.s16),
-                      ..._libraryChildren(selected),
+                      Expanded(
+                        child: ListView(
+                          children: <Widget>[
+                            // Single column: context, then the editor, then
+                            // the library. The editor is the task — pushing it
+                            // below the templates would bury it.
+                            ..._contextChildren(l, clients, selected),
+                            const SizedBox(height: OnCareSpacing.s16),
+                            ..._editorChildren(selected),
+                            const SizedBox(height: OnCareSpacing.s16),
+                            ..._libraryChildren(selected),
+                          ],
+                        ),
+                      ),
+                      _wizardNavBar(),
                     ],
                   );
                 }
@@ -743,36 +790,51 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           ),
                           const SizedBox(width: OnCareLayout.splitGap),
                           Expanded(
-                            child: SingleChildScrollView(
-                              key: const ValueKey<String>(
-                                'coaching-program-page-scroll',
-                              ),
-                              child: Column(
-                                key: const ValueKey<String>(
-                                  'coaching-wide-main-column',
-                                ),
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: <Widget>[
-                                  // 오른쪽 열을 세울 만큼 넓지 않은 창에서는
-                                  // 식단·운동이 가운데 열 **맨 위**에 온다 —
-                                  // 넓은 화면의 오른쪽 열 맨 위와 같은
-                                  // 자리다(#1027).
-                                  if (!fullWidth) ...<Widget>[
-                                    _ClientDataSwitcher(
-                                      key: const ValueKey<String>(
-                                        'coaching-wide-client-overview',
-                                      ),
-                                      client: selected,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                // 내용이 짧으면 진행 줄이 내용 바로 아래에
+                                // 붙고, 열보다 길면 열 바닥에 머문다(#2476).
+                                Flexible(
+                                  child: SingleChildScrollView(
+                                    key: const ValueKey<String>(
+                                      'coaching-program-page-scroll',
                                     ),
-                                    const SizedBox(height: OnCareSpacing.s16),
-                                  ],
-                                  ..._editorChildren(selected),
-                                  if (!fullWidth) ...<Widget>[
-                                    const SizedBox(height: OnCareSpacing.s16),
-                                    _SendHistoryCard(client: selected),
-                                  ],
-                                ],
-                              ),
+                                    child: Column(
+                                      key: const ValueKey<String>(
+                                        'coaching-wide-main-column',
+                                      ),
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: <Widget>[
+                                        // 오른쪽 열을 세울 만큼 넓지 않은
+                                        // 창에서는 식단·운동이 가운데 열
+                                        // **맨 위**에 온다 — 넓은 화면의
+                                        // 오른쪽 열 맨 위와 같은 자리다(#1027).
+                                        if (!fullWidth) ...<Widget>[
+                                          _ClientDataSwitcher(
+                                            key: const ValueKey<String>(
+                                              'coaching-wide-client-overview',
+                                            ),
+                                            client: selected,
+                                          ),
+                                          const SizedBox(
+                                            height: OnCareSpacing.s16,
+                                          ),
+                                        ],
+                                        ..._editorChildren(selected),
+                                        if (!fullWidth) ...<Widget>[
+                                          const SizedBox(
+                                            height: OnCareSpacing.s16,
+                                          ),
+                                          _SendHistoryCard(client: selected),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                _wizardNavBar(),
+                              ],
                             ),
                           ),
                           if (fullWidth) ...<Widget>[
@@ -811,6 +873,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           },
         ),
       ),
+    );
+  }
+
+  /// 위저드 단계 진행 줄(`이전` · 다음 단계). 편집기 열 스크롤 바로 아래에
+  /// 둔다 — 내용이 짧으면 내용 바로 다음 줄에, 열보다 길면 열 바닥에 머물러
+  /// 카드를 채우는 동안에도 어디서 넘어가는지 보인다(#2476). 위저드를 닫으면
+  /// 걷는다.
+  Widget _wizardNavBar() {
+    if (!_aiWizardVisible) return const SizedBox.shrink();
+    return ValueListenableBuilder<Widget?>(
+      valueListenable: _wizardNav,
+      builder: (context, nav, _) => nav == null
+          ? const SizedBox.shrink()
+          : Padding(
+              // 위저드 카드 사이와 같은 간격이다.
+              padding: const EdgeInsets.only(top: OnCareSpacing.s16),
+              child: nav,
+            ),
     );
   }
 
@@ -921,11 +1001,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 ),
                 client: client,
                 embedded: true,
+                onStepNav: _onWizardNav,
                 recommendedExercises: items
                     .map(
                       (item) => RoutineExercise(
                         name: item.name,
                         minutes: item.minutes,
+                        durationSeconds: item.durationSeconds,
                         type: _typeEdits[item.id] ?? item.type,
                       ),
                     )
@@ -948,6 +1030,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           id: 'generated-${client.id}-$index',
                           name: exercises[index].name,
                           minutes: exercises[index].minutes,
+                          // 위저드에서 시·분·초로 고친 초를 함께 넘긴다(#2521).
+                          durationSeconds: exercises[index].durationSeconds,
                           type: exercises[index].type,
                           reason: '',
                           sets: exercises[index].sets,
@@ -981,7 +1065,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 ),
               )
             else
-              const SizedBox(height: OnCareSpacing.s16),
+              // 위저드가 떠 있을 때 이 아래(편집기)는 숨어 있다 — 여기 간격을
+              // 두면 위저드 진행 줄과 내용 사이만 벌어진다(#2476). 자리는
+              // 지킨다: 빠지면 아래 편집기의 자리가 밀려 State 가 새로 선다.
+              const SizedBox.shrink(),
             Offstage(
               offstage:
                   _aiWizardVisible || _routineOnlyClients.contains(client.id),
@@ -1209,7 +1296,7 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
         ),
         const SizedBox(height: OnCareSpacing.s8),
         // 전환에 애니메이션을 두지 않는다(#1027).
-        if (_view == _ClientDataView.diet)
+        if (_view == _ClientDataView.diet) ...<Widget>[
           if (_period == ClientPeriod.today)
             ProgramNutritionSummaryCard(
               key: ValueKey<String>('program-diet-${widget.client.id}'),
@@ -1226,8 +1313,18 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
               key: ValueKey<String>('program-diet-period-${widget.client.id}'),
               clientId: widget.client.id,
               period: _period,
-            )
-        else ...<Widget>[
+            ),
+          // 회원 상세 식단 탭과 같은 `식단 분석` 카드 — 오늘은 추천까지 묻는다.
+          // 트레이너는 회원 상세보다 이 탭에 오래 머물러, 추천을 여기서도
+          // 답할 수 있어야 회원 앱 `추천 식단` 이 비지 않는다. 넓은 화면에서는
+          // 곧 전송 이력 바로 위다.
+          ClientDietAnalysisPanel(
+            key: ValueKey<String>('program-diet-analysis-${widget.client.id}'),
+            client: widget.client,
+            period: _period,
+            topGap: OnCareSpacing.s12,
+          ),
+        ] else ...<Widget>[
           ClientExerciseStatusCard(
             key: ValueKey<String>('program-workout-${widget.client.id}'),
             clientId: widget.client.id,
@@ -1398,7 +1495,7 @@ class _TemplateCard extends ConsumerWidget {
                           l.coachTemplateSummaryWithGoal(
                             template.goal,
                             template.exercises.length,
-                            template.totalMinutes,
+                            formatExerciseDuration(l, template.totalSeconds),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,

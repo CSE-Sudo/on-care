@@ -10,6 +10,7 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -128,13 +129,15 @@ void main() {
 
   group('데모 운동 직접 추가', () {
     test('+20P 를 받고, 지우면 회수한다', () async {
-      final ExerciseSession added = await exercise.addSession(
-        type: ExerciseType.cardio,
-        minutes: 20,
-        calories: 100,
-        date: nowKst(),
-        name: '걷기',
-      );
+      final ExerciseSession added = (await exercise.addSessions(<ExerciseSessionDraft>[
+        ExerciseSessionDraft(
+          type: ExerciseType.cardio,
+          minutes: 20,
+          calories: 100,
+          date: nowKst(),
+          name: '걷기',
+        ),
+      ])).sessions.single;
       expect(added.pointsAward?.awarded, 20);
       expect(ledger.balance, kDemoOpeningPoints + 20);
 
@@ -143,12 +146,14 @@ void main() {
     });
 
     test('원장이 없으면 적립 없이 기록만 남는다', () async {
-      final ExerciseSession added = await MockExerciseRepository().addSession(
-        type: ExerciseType.cardio,
-        minutes: 20,
-        calories: 100,
-        date: nowKst(),
-      );
+      final ExerciseSession added = (await MockExerciseRepository().addSessions(<ExerciseSessionDraft>[
+        ExerciseSessionDraft(
+          type: ExerciseType.cardio,
+          minutes: 20,
+          calories: 100,
+          date: nowKst(),
+        ),
+      ])).sessions.single;
       expect(added.pointsAward, isNull);
     });
   });

@@ -653,6 +653,18 @@ Future<void> _openManualProgram(WidgetTester tester) async {
   expect(find.byType(ProgramEditorWorkspace), findsOneWidget);
 }
 
+/// 이미 빌드돼 있지만 뷰포트 밖에 있는 [key] 위젯을 뷰포트 가운데로 데려온다.
+///
+/// 위저드 진행 줄은 목록 스크롤 밖에 있다(#2476) — 마지막 `프로그램에 반영`
+/// 을 눌러도 목록은 제자리라, 위저드가 접히면 편집기가 뷰포트 **위로** 밀려나
+/// 있을 수 있다. 아래로만 훑는 `scrollUntilVisible` 은 그 자리를 찾지 못한다.
+Future<void> _revealBuilt(WidgetTester tester, String key) async {
+  final built = find.byKey(ValueKey<String>(key), skipOffstage: false);
+  if (built.evaluate().isEmpty) return;
+  await Scrollable.ensureVisible(tester.element(built), alignment: 0.5);
+  await tester.pump();
+}
+
 /// 편집기 하단의 `보내기` 버튼을 찾아 화면에 보이게 한다.
 ///
 /// 비활성 상태면(운동이 없으면) 먼저 AI 추천을 반영해 채운다 — 편집기가
@@ -664,6 +676,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
   if (send.evaluate().isEmpty) {
     await _applyRecommendedRoutine(tester);
   }
+  await _revealBuilt(tester, 'program-editor-send');
   await tester.scrollUntilVisible(
     send,
     150,
@@ -686,6 +699,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
     // 따로 있어야 실제로 트리에서 빠진다. `pumpAndSettle` 로 마저 재운다.
     await tester.pump(const Duration(seconds: 4, milliseconds: 100));
     await tester.pumpAndSettle();
+    await _revealBuilt(tester, 'program-editor-send');
     await tester.scrollUntilVisible(
       send,
       150,
@@ -1311,6 +1325,52 @@ void main() {
         tester.getBottomRight(workout).dy,
         lessThanOrEqualTo(tester.view.physicalSize.height),
       );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('식단을 고르면 식단 분석·추천 카드가 전송 이력 바로 위에 선다', (
+      tester,
+    ) async {
+      // 트레이너는 회원 상세보다 이 탭에 오래 머문다 — 추천에 여기서도 답한다.
+      await openTab(tester);
+      await tester.pumpAndSettle();
+
+      final analysis = find.byKey(const ValueKey<String>('diet-analysis'));
+      expect(analysis, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('diet-recommendation')),
+        findsOneWidget,
+      );
+      final rail = find.byKey(
+        const ValueKey<String>('coaching-client-rail-scroll'),
+      );
+      expect(find.descendant(of: rail, matching: analysis), findsOneWidget);
+      expect(
+        tester.getBottomLeft(analysis).dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.descendant(of: rail, matching: find.text('전송 이력')),
+              )
+              .dy,
+        ),
+      );
+      expect(
+        tester.getTopLeft(analysis).dy,
+        greaterThan(
+          tester.getBottomLeft(find.byType(ProgramNutritionSummaryCard)).dy,
+        ),
+      );
+
+      // 운동을 고르면 식단 분석은 걷힌다.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('program-client-data-tabs')),
+          matching: find.text('운동'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(analysis, findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -2795,6 +2855,10 @@ void main() {
           (item) => item.type == '유산소',
         );
         expect(cardio.duration, 30);
+        // 초를 함께 싣는다(#2521) — 분만 실으면 일정의 운동이 분 × 60 으로
+        // 되짚혀 편집기의 45초가 `1분` 이 된다.
+        expect(cardio.durationSeconds, 1800);
+        expect(strength.durationSeconds, isNull);
         expect(cardio.sets, isNull);
         expect(cardio.reps, isNull);
         // `_CapturingScheduleRepository.registerProgram` 은 늘 `true`(기존

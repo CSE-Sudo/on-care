@@ -78,8 +78,8 @@ void main() {
     const keys = <String, String>{
       'session-edit-schedule-chip': '일정 수정',
       'session-edit-program-chip': '프로그램 수정',
-      // 박성호 세션에는 아직 메모가 없다 — 그래서 `메모 수정` 이 아니다(#1011).
-      'session-edit-note-chip': '메모 추가',
+      // 박성호 세션에는 아직 메모가 없다 — 그래서 `피드백 수정` 이 아니다(#1011).
+      'session-edit-note-chip': '피드백 추가',
       'session-delete-chip': '삭제',
     };
     // 메뉴를 열기 전에는 카드에 서 있지 않다 — 결말을 남기는 두 버튼만 있다.

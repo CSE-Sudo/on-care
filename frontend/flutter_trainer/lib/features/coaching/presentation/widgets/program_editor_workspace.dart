@@ -274,9 +274,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           ? l.progSaving
           : l.programEditorSaveTemplate,
       onPressed: canSave && !widget.saving ? _handleSaveTemplate : null,
-      icon: _templateSaved
-          ? AppIcons.templateSaved
-          : AppIcons.saveTemplate,
+      icon: _templateSaved ? AppIcons.templateSaved : AppIcons.saveTemplate,
       color: _templateSaved
           ? context.oncare.brand.primary
           : OnCareColors.textTertiary,
@@ -338,9 +336,17 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           id: 'exercise-${_nextId++}',
           name: exercise.name,
           type: exercise.type,
-          durationSeconds: (exercise.minutes > 0 ? exercise.minutes : 30) * 60,
+          // 템플릿에 담긴 초 그대로 연다(#2521) — 분에서 되짚으면 45초가
+          // 60초로 열린다.
+          durationSeconds: exercise.durationSeconds > 0
+              ? exercise.durationSeconds
+              : 30 * 60,
           sets: exercise.sets > 0 ? exercise.sets : 3,
           reps: exercise.reps > 0 ? exercise.reps : 10,
+          // 버티는 운동이면 초 칸으로 연다(#1969). 예전에는 이 값을 넘기지
+          // 않아 템플릿의 `플랭크 45초` 가 횟수 칸으로 열렸다. (#2521)
+          holdSeconds: exercise.holdSeconds > 0 ? exercise.holdSeconds : 60,
+          isHold: exercise.holdSeconds > 0,
           // 중량은 채우지 않는다 — 맨몸이 기본이고 `0kg` 은 트레이너가 적은
           // 값이다(#1310). 세트·횟수와 달리 기본값을 둘 근거가 없다(#2265).
           weight: exercise.weight,
@@ -895,7 +901,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
         ProgramExerciseDraft(
           id: 'exercise-${_nextId++}',
           name: item.name,
-          durationSeconds: (item.minutes > 0 ? item.minutes : 30) * 60,
+          // 위저드에서 고친 초가 있으면 그 값으로 연다(#2521).
+          durationSeconds: item.seconds > 0 ? item.seconds : 30 * 60,
           // AI 추천 사유(`reason`)는 운동 메모로 옮기지 않는다 — 트레이너가
           // 쓴 적 없는 글이 메모로 전송·저장되던 자리다(#2371).
           type: type,
@@ -906,6 +913,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // 물어야 한다 (#1310).
           sets: item.sets > 0 ? item.sets : 3,
           reps: item.reps > 0 ? item.reps : 10,
+          // 버티는 운동이면 초 칸으로 연다(#1969) — 넘기지 않던 동안에는
+          // 위저드의 `플랭크 45초` 가 편집기에서 횟수 칸으로 열렸다. (#2521)
+          holdSeconds: item.holdSeconds > 0 ? item.holdSeconds : 60,
+          isHold: item.holdSeconds > 0,
           // 중량은 채우지 않는다 — AI 가 분으로만 준 근력에 20kg 를 지어내면
           // 맨몸 운동이 회원에게 `20kg` 지시로 간다(#2265).
           weight: item.weight,
@@ -1081,24 +1092,6 @@ class _SessionEditorState extends State<_SessionEditor> {
               ),
               const SizedBox(width: OnCareSpacing.s4),
               Expanded(child: _buildSessionName()),
-              // 목록을 늘리는 `+ 운동 추가` 는 목록 제목 오른쪽 글자 버튼이다 — 회원 앱
-              // 음식 수정의 `먹은 음식 [+ 음식 추가]`, 편집기의 `운동 구성 [+ 세션 추가]`
-              // 와 같은 자리·모양이다. 목록 끝에 두면 목록이 길수록 멀어진다(#2465).
-              if (!_editingName && !widget.addingExercise)
-                Tooltip(
-                  message: widget.canAddExercise
-                      ? ''
-                      : l.programEditorExerciseLimitReached(
-                          kProgramMaxExercises,
-                        ),
-                  child: AppButton(
-                    label: l.programEditorAddExercise,
-                    variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
-                    leadingIcon: AppIcons.add,
-                    onPressed: widget.canAddExercise ? widget.onStartAdd : null,
-                  ),
-                ),
               if (_editingName)
                 AppIconButton(
                   tooltip: l.actionClose,
@@ -1194,6 +1187,28 @@ class _SessionEditorState extends State<_SessionEditor> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
+          // 목록을 늘리는 `+ 운동 추가` 는 목록 끝 가운데 글자 버튼이다 — 누르면
+          // 그 자리에 입력 줄이 열리고, 넣은 운동도 그 자리에 붙는다. 제목 줄에
+          // 두었더니 누르는 순간 버튼이 숨고 입력 줄은 목록 맨 아래에 열려,
+          // 운동이 많은 세션에서는 버튼이 사라진 것처럼 보였다(#2476).
+          if (!widget.addingExercise)
+            Align(
+              child: Tooltip(
+                message: widget.canAddExercise
+                    ? ''
+                    : l.programEditorExerciseLimitReached(kProgramMaxExercises),
+                child: AppButton(
+                  key: ValueKey<String>(
+                    'session-add-exercise-${widget.session.id}',
+                  ),
+                  label: l.programEditorAddExercise,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  leadingIcon: AppIcons.add,
+                  onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+                ),
+              ),
+            ),
           if (widget.addingExercise)
             // 새로 추가 중인 한 줄도 이미 있는 운동 카드와 같은 틀(흰 외곽선
             // 구획)을 쓴다 — 그래야 목록에 자연스럽게 이어 붙는 한 줄로

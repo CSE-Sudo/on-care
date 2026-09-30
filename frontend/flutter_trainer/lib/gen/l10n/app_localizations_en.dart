@@ -383,7 +383,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashActivityDietFeedbackDesc(String names) {
-    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave a comment so they know it was seen.';
+    return '$names are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave diet feedback so they know it was seen.';
   }
 
   @override
@@ -443,6 +443,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashLeaveMemo => 'Leave a memo';
 
   @override
+  String get dashLeaveFeedback => 'Leave feedback';
+
+  @override
   String get dashSessionSent => 'Sent';
 
   @override
@@ -458,7 +461,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashSessionPreparedNo => 'Not prepared';
 
   @override
-  String get dashSessionNoteNotWritten => 'Not written';
+  String get dashSessionNoteNotWritten => 'No memo';
 
   @override
   String get weekdayMon => 'Mon';
@@ -818,9 +821,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateExerciseName => 'Exercise';
 
   @override
-  String get coachTemplateExerciseMinutes => 'min';
-
-  @override
   String get coachTemplateAddExercise => 'Add exercise';
 
   @override
@@ -1027,8 +1027,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatInsightMemoSummaryNegative => 'Workout strain detected';
 
   @override
-  String get chatInsightMemoSaved =>
-      'The AI insight was added to the trainer memo.';
+  String get chatInsightMemoSaved => 'The AI insight was added to your memos.';
 
   @override
   String get chatInsightMemoSaveFailed =>
@@ -1149,6 +1148,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get consultMessage => 'Message';
+
+  @override
+  String get schedConsultRequest => 'Consultation request';
 
   @override
   String get consultReject => 'Decline';
@@ -1686,7 +1688,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportBodyMemberNoted =>
-      'Thanks for the weekly check-in — I read it.';
+      'Thanks for your weekly feedback — I read it.';
 
   @override
   String get reportBodyNextWeek => 'Here\'s the plan for next week.';
@@ -1758,6 +1760,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedGroupProgram => 'PT program';
+
+  @override
+  String get schedDetachedMember => 'Former client';
+
+  @override
+  String get schedDetachedMemberHint =>
+      'Coaching has ended, so client details are hidden';
 
   @override
   String get schedGroupPersonal => 'Personal exercise';
@@ -2000,23 +2009,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
 
   @override
-  String get schedNote => 'Trainer\'s note';
+  String get schedNote => 'Trainer feedback';
 
   @override
-  String get schedEditNote => 'Edit note';
+  String get schedEditNote => 'Edit feedback';
 
   @override
-  String get schedAddNote => 'Add note';
+  String get schedAddNote => 'Add feedback';
 
   @override
-  String get schedNoNote => 'No note yet';
+  String get schedNoNote => 'No memo yet';
 
   @override
   String get schedNoteOnlyHint =>
-      'A consultation is recorded as a note, not a program.';
+      'A consultation is recorded as a memo, not a program.';
 
   @override
-  String get schedNoteHint => 'Anything to prepare, or notes about this member';
+  String get schedNoteHint =>
+      'Feedback for the member. Keep member notes in the client memo';
+
+  @override
+  String get schedNoteVisibleToMember =>
+      'Shown to the member as feedback once the PT is done';
+
+  @override
+  String get schedConsultNote => 'Consultation memo';
+
+  @override
+  String get schedEditConsultNote => 'Edit memo';
+
+  @override
+  String get schedAddConsultNote => 'Add memo';
+
+  @override
+  String get schedConsultNoteHint =>
+      'What you talked about in the consultation';
+
+  @override
+  String get schedConsultNotePrivate =>
+      'Only you can see this memo. It\'s hidden from the member.';
 
   @override
   String get schedAddAction => 'Add';
@@ -2040,7 +2071,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progAddExercise => 'Add exercise';
 
   @override
-  String get progNoteHint => 'Notes to follow while running this program';
+  String get progNoteHint =>
+      'Feedback for the member. Keep member notes in the client memo';
 
   @override
   String get progSaving => 'Saving...';
@@ -2367,26 +2399,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientManagement => 'Member management';
 
   @override
-  String get myClientRemove => 'Remove member';
+  String get myClientRemove => 'Disconnect';
 
   @override
   String myClientRemoveTitle(String name) {
-    return 'Remove $name?';
+    return 'Disconnect from $name?';
   }
 
   @override
   String get myClientRemoveBody =>
-      'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.';
+      'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.';
 
   @override
-  String get myClientRemoveSuccess => 'Member removed';
+  String get myClientRemoveSuccess => 'Disconnected from the member';
 
   @override
-  String get myClientRemoveFailed =>
-      'Couldn\'t remove the member. Please try again';
+  String get myClientRemoveFailed => 'Couldn\'t disconnect. Please try again';
 
   @override
   String get myClientManagementEmpty => 'No members assigned';
+
+  @override
+  String get myClientManagementSearchHint => 'Search members by name';
 
   @override
   String get myBasicInfo => 'Basic info';
@@ -2407,30 +2441,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymHours => 'Hours';
 
   @override
-  String get myGymListFailed => 'Couldn\'t load the gym list.';
+  String get myGymRequired => 'Pick your gym from the search results';
 
   @override
-  String get myGymNoMatch =>
-      'This gym isn\'t listed. Please add its address and hours yourself.';
+  String get myGymSearchLabel => 'Find your gym';
 
   @override
-  String get myGymLinked => 'Registered gym';
+  String get myGymSearchHint => 'Gym name or address';
 
   @override
-  String get myGymUnlink => 'Unlink';
+  String get myGymSearching => 'Searching…';
 
   @override
-  String get myGymNameHint => 'Type to find a registered gym';
+  String get myGymSearchEmpty =>
+      'No gyms found. Try a different name or add the neighborhood.';
 
   @override
-  String get myGymRequired => 'Enter your gym';
+  String get myGymSearchFailed =>
+      'Couldn\'t search gyms. Please try again in a moment.';
+
+  @override
+  String get myGymCurrent => 'Current gym';
+
+  @override
+  String get myGymPicked => 'Saving will switch you to this gym';
+
+  @override
+  String get myGymNone => 'None yet';
+
+  @override
+  String get myGymHiddenTitle => 'Members can\'t find you yet';
+
+  @override
+  String get myGymHiddenBody =>
+      'Set your gym to appear in the member app\'s gym finder and consultation requests.';
+
+  @override
+  String get myGymHiddenAction => 'Set gym';
 
   @override
   String get myGymEditHint =>
-      'Pick a registered gym to fill in its address and hours. Not listed? Enter it yourself.';
-
-  @override
-  String get myGymListLoading => 'Loading gyms…';
+      'Search by name and pick your gym. Members find you through this gym.';
 
   @override
   String get mySignOut => 'Sign out';
@@ -2536,14 +2587,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertsEmpty => 'No certifications yet';
 
   @override
-  String get myGymEmpty => 'No gym yet. Add yours in Edit profile.';
+  String get myGymEmpty => 'No gym yet. Set yours in Edit profile.';
 
   @override
   String get myEditVisibleBody =>
       'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
 
   @override
-  String get myClientManagementNoteTitle => 'Removing only hides members here';
+  String get myClientManagementNoteTitle =>
+      'Disconnecting keeps member records';
 
   @override
   String get myClientManagementNote =>
@@ -2626,6 +2678,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get routineFieldExerciseNameHintOther =>
       'e.g. Rehab exercise, Sports activity';
+
+  @override
+  String get routineFieldEffect => 'Benefit shown to member';
+
+  @override
+  String get routineFieldEffectHint => 'e.g. Protect right shoulder';
 
   @override
   String get routineFieldSets => 'Sets';
@@ -2898,7 +2956,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiGenerateCandidates => 'Generate candidates';
 
   @override
-  String get aiReviewDone => 'Reviewed';
+  String get aiReviewDone => 'Finish review';
 
   @override
   String aiRoutineFor(String name) {
@@ -2980,7 +3038,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRegister => 'Add';
 
   @override
-  String get aiNoteForClient => 'A note to send with it';
+  String get aiNoteForClient => 'Feedback to send with it';
 
   @override
   String aiReviewedSuggestion(String option) {
@@ -3007,11 +3065,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use the button below to jump into their chat and explain it.';
 
   @override
-  String get aiApplyToTemplate => 'Apply to template';
+  String get aiApplyToTemplate => 'Apply to program';
 
   @override
   String get aiAppliedToTemplate =>
-      'The AI suggestion was applied to the program template.';
+      'The AI suggestion was applied to the program.';
 
   @override
   String get aiStepConditions => 'Set up';
@@ -3024,9 +3082,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
-
-  @override
-  String get aiPersonalRationaleLabel => 'Why AI picked this';
 
   @override
   String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
@@ -3104,7 +3159,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepPersonal => 'Personal exercise';
 
   @override
-  String get aiGoToPersonalStep => 'Next · plan personal exercise';
+  String get aiStepPrev => 'Back';
+
+  @override
+  String get aiStepNext => 'Next';
 
   @override
   String get aiPersonalStepTitle => 'Personal exercise between PT';
@@ -3161,6 +3219,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRoutineOnlyProgramName => 'This week\'s personal exercise';
 
   @override
+  String get aiRoutineOnlyDeliveryName => 'Personal exercise';
+
+  @override
   String get progPersonalRoutinesWhen =>
       'Goes to the member when you complete this PT.';
 
@@ -3185,8 +3246,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
-  String coachTemplateSummaryWithGoal(String goal, int count, int minutes) {
-    return '$goal · $count exercises · $minutes min';
+  String coachTemplateSummaryWithGoal(String goal, int count, String duration) {
+    return '$goal · $count exercises · $duration';
   }
 
   @override
@@ -3208,9 +3269,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiRecentRoutine => 'Recent activity';
-
-  @override
-  String get aiTrainerNoteEditable => 'Trainer\'s note · editable';
 
   @override
   String get aiNotePlaceholderHint =>
@@ -3241,7 +3299,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPromptBlurb =>
-      'Your request goes to the AI with the member\'s data (up to 500 characters). Write the member note in the next step.';
+      'Your request goes to the AI with the member\'s data (up to 500 characters). Write the trainer feedback in the next step.';
+
+  @override
+  String get aiSourcesTitle => 'Sources for the AI';
+
+  @override
+  String get aiSourcesBlurb =>
+      'Only the checked sources are sent to the AI with the member\'s data. Your choice is kept for next time.';
+
+  @override
+  String get aiSourcePtFeedback => 'Recent PT feedback';
+
+  @override
+  String get aiSourceConsultMemo => 'Consultation memos';
+
+  @override
+  String get aiSourceTrainerMemo => 'Member memos (written by you)';
+
+  @override
+  String get aiSourceChatInsight => 'Chat-detected memos';
+
+  @override
+  String get aiSourceWeeklyFeedback => 'Member weekly feedback';
+
+  @override
+  String aiSourceRangeDays(int days, int count) {
+    return 'Last $days days · up to $count';
+  }
+
+  @override
+  String get aiSourceRangeWeeks => 'This week · last week';
 
   @override
   String get aiGenerateGoalBased => 'Generate goal-based suggestion';
@@ -3623,6 +3711,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutUndatedTitle => 'Records without a date';
 
   @override
+  String get workoutMemberLogTitle => 'Logged by member';
+
+  @override
   String get workoutPendingCancel => 'Cancel assignment';
 
   @override
@@ -3991,6 +4082,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Note what you want to remember about this member';
 
   @override
+  String get clientTrainerMemoPrivate =>
+      'Only you can see this memo. It\'s hidden from the member.';
+
+  @override
   String get clientTrainerMemoAdd => 'Add memo';
 
   @override
@@ -4249,9 +4344,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorPeriod => 'Period (optional)';
-
-  @override
-  String get programEditorMemo => 'Program memo (optional)';
 
   @override
   String get programEditorAiHint =>
@@ -5025,10 +5117,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackUnanswered => 'No answer';
 
   @override
-  String get reportsMemberFeedbackNoteLabel => 'Note';
+  String get reportsMemberFeedbackNoteLabel => 'One-line feedback';
 
   @override
-  String get reportsMemberFeedbackNoteNone => 'No note';
+  String get reportsMemberFeedbackNoteNone => 'No one-line feedback';
 
   @override
   String reportsMemberFeedbackPainOn(String area, String date) {

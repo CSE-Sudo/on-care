@@ -274,6 +274,25 @@ class E2eApi {
   Future<List<Map<String, dynamic>>> trainerConsultations() =>
       _list('/trainer/consultations');
 
+  /// 회원이 6자리 연결 코드를 받는다(회원 토큰). 받는 것이 공유 동의다(#1634).
+  Future<String> issuePairingCode() async {
+    final Response<Map<String, dynamic>> res = await _dio
+        .post<Map<String, dynamic>>('/users/me/pairing-code', options: _auth);
+    expect(res.statusCode, 200, reason: '연결 코드 발급 실패: ${res.data}');
+    return res.data!['code'] as String;
+  }
+
+  /// 트레이너가 회원이 불러 준 코드를 입력한다(트레이너 토큰). 상담 뒤 등록
+  /// 경로다(#2584).
+  Future<void> redeemPairingCode(String code) async {
+    final Response<Object?> res = await _dio.post<Object?>(
+      '/trainer/pairing-code',
+      data: <String, String>{'code': code},
+      options: _auth,
+    );
+    expect(res.statusCode, 200, reason: '연결 코드 입력 실패: ${res.data}');
+  }
+
   /// 회원이 보는 담당 트레이너. 담당이 없으면 404 라 null 을 준다.
   Future<Map<String, dynamic>?> myCoach() async {
     final Response<Map<String, dynamic>> res = await _dio

@@ -21,6 +21,7 @@ import 'package:oncare/features/benefits/data/repositories/dio_benefits_reposito
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_streak_shield_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
+import '../../helpers/exercise_session_post.dart';
 
 const String _monday = '2026-09-14';
 const String _yesterday = '2026-09-16';
@@ -225,16 +226,15 @@ void main() {
   });
 
   Future<String> addExercise(String day) async {
-    final Response<Map<String, Object?>> res = await dio
-        .post<Map<String, Object?>>(
-          '/exercise/sessions',
-          data: <String, Object?>{
-            'type': 'cardio',
-            'name': '걷기',
-            'minutes': 20,
-            'date': day,
-          },
-        );
+    final Response<Map<String, Object?>> res = await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'cardio',
+        'name': '걷기',
+        'minutes': 20,
+        'date': day,
+      },
+    );
     return res.data!['id']! as String;
   }
 

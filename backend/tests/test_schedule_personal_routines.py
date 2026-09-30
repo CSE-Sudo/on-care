@@ -14,7 +14,7 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 
 from app.core import clock
-from app.models.models import TrainerRoutine, TrainerSchedule
+from app.models.models import Notification, TrainerRoutine, TrainerSchedule
 
 MEMBER = "user-jisu"
 TRAINER = "trainer-demo"
@@ -343,6 +343,59 @@ def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
         _cleanup_routines(db_session)
 
 
+def test_routine_only_retires_the_previous_personal_routines(client, db_session):
+    """`개인운동만` 을 다시 보내면 이전 개인운동은 오늘부로 내려간다. (#2514)
+
+    PT 와 함께 보낼 때만 내리던 동안에는 한 주 안에 `개인운동만` 을 보내면
+    지난 것과 새 것이 함께 걸려 회원이 두 벌을 받았다. 기한 없는 배정(프로그램
+    줄)은 개인운동이 아니라 건드리지 않는다.
+    """
+    token = _tok(client)
+    _cleanup_routines(db_session)
+    try:
+        standing = _routine_only_body("req-2514-standing")
+        standing["name"] = f"{_NAME_PREFIX} 기한 없는 배정"
+        del standing["delivery_kind"], standing["active_days"]
+        kept = client.post(_PROGRAM_URL, json=standing, headers=_h(token))
+        assert kept.status_code == 201, kept.text
+
+        old = client.post(
+            _PROGRAM_URL,
+            json=_routine_only_body("req-2514-old"),
+            headers=_h(token),
+        )
+        new_body = _routine_only_body("req-2514-new")
+        new_body["name"] = f"{_NAME_PREFIX} 다음 개인운동"
+        new = client.post(_PROGRAM_URL, json=new_body, headers=_h(token))
+        assert old.status_code == 201, old.text
+        assert new.status_code == 201, new.text
+
+        today = clock.today()
+        db_session.expire_all()
+
+        def ended(rows) -> set:
+            return {
+                db_session.get(TrainerRoutine, row["id"]).ended_on for row in rows
+            }
+
+        # 먼저 보낸 것은 오늘부터 목록에 없고, 방금 보낸 것만 한 주 걸린다.
+        assert ended(old.json()) == {today.isoformat()}
+        assert ended(new.json()) == {(today + timedelta(days=7)).isoformat()}
+        assert ended(kept.json()) == {None}
+
+        listed = {
+            row["id"]
+            for row in client.get(
+                f"/v1/trainer/clients/{MEMBER}/routines", headers=_h(token)
+            ).json()
+        }
+        assert {row["id"] for row in new.json()} <= listed
+        assert {row["id"] for row in kept.json()} <= listed
+        assert not {row["id"] for row in old.json()} & listed
+    finally:
+        _cleanup_routines(db_session)
+
+
 def test_personal_routine_time_is_kept_in_seconds(client, db_session):
     """개인운동 시간도 시·분·초로 적은 그대로 초가 남는다. (#2221)
 
@@ -392,3 +445,37 @@ def test_personal_routine_time_is_kept_in_seconds(client, db_session):
         assert (cycle["duration_seconds"], cycle["minutes"]) == (1200, 20)
     finally:
         _cleanup(db_session, day)
+
+
+def test_routine_only_notification_counts_personal_exercises(client, db_session):
+    """`개인운동만` 알림은 이름·세션 대신 개인운동 수로 말한다. (#2581)
+
+    저장 이름(예전 `이번 주 개인운동`)은 보낸 날부터 7일이라 달력의 이번 주와
+    맞지 않았고, 운동 하나가 세션 하나라 `세션 N개` 도 개인운동 묶음에 어울리지
+    않았다.
+    """
+    token = _tok(client)
+    _cleanup_routines(db_session)
+    try:
+        r = client.post(
+            _PROGRAM_URL,
+            json=_routine_only_body("req-2581-notice"),
+            headers=_h(token),
+        )
+        assert r.status_code == 201, r.text
+        db_session.expire_all()
+        rows = db_session.scalars(
+            select(Notification)
+            .where(
+                Notification.user_id == MEMBER,
+                Notification.template == "member_routine_program",
+            )
+            .order_by(Notification.created_at.desc())
+        ).all()
+        assert rows
+        latest = rows[0]
+        assert latest.template_args["routine_only"] is True
+        assert latest.body.startswith("개인운동 2개 · ")
+        assert "세션" not in latest.body
+    finally:
+        _cleanup_routines(db_session)

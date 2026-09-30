@@ -21,10 +21,10 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
-import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 const Gym _gym = Gym(
@@ -199,7 +199,7 @@ void main() {
     ) async {
       await pumpGymTab(tester);
 
-      // 같은 카드의 두 줄이다 — 사람 아이콘은 덤벨 아이콘과 같은 세로 중심에,
+      // 같은 카드의 두 줄이다 — 성씨 프로필은 덤벨 아이콘과 같은 세로 중심에,
       // 트레이너 이름은 헬스장 이름과 같은 세로선에 선다. 예전에는 아이콘 칸
       // 24 · 간격 8 이라 헬스장 줄(40 · 12)보다 20 만큼 왼쪽에서 시작했다.
       final Finder card = find.byKey(const Key('my-gym-info-card'));
@@ -210,7 +210,7 @@ void main() {
           .dx;
       final double trainerIconX = tester
           .getCenter(
-            find.descendant(of: line, matching: find.byIcon(AppIcons.person)),
+            find.descendant(of: line, matching: find.byType(AppAvatar)),
           )
           .dx;
       expect(trainerIconX, moreOrLessEquals(gymIconX, epsilon: 0.5));
@@ -250,15 +250,25 @@ void main() {
         tester.getSize(line).height,
         tester.getSize(find.byKey(const Key('connectedGymRow'))).height + 8,
       );
-      final Finder person = find.descendant(
+      final Finder avatar = find.descendant(
         of: line,
-        matching: find.byIcon(AppIcons.person),
+        matching: find.byType(AppAvatar),
       );
       final Finder gymIcon = find.descendant(
         of: card,
         matching: find.byIcon(AppIcons.gym),
       );
-      expect(tester.getSize(person), tester.getSize(gymIcon));
+      expect(
+        tester.getCenter(avatar).dy,
+        moreOrLessEquals(tester.getCenter(line).dy, epsilon: 0.5),
+      );
+      expect(
+        tester.getCenter(gymIcon).dy,
+        moreOrLessEquals(
+          tester.getCenter(find.byKey(const Key('connectedGymRow'))).dy,
+          epsilon: 0.5,
+        ),
+      );
       final Finder divider = find.descendant(
         of: card,
         matching: find.byType(AppDivider),
@@ -274,18 +284,20 @@ void main() {
       );
     });
 
-    testWidgets('사람 아이콘을 그대로 둔다 (#2154)', (WidgetTester tester) async {
+    testWidgets('헬스장 찾기와 같은 성씨 프로필로 선다 (#2599)', (WidgetTester tester) async {
       await pumpGymTab(tester);
 
-      // 성씨 프로필은 헬스장 찾기·헬스장 상세에서만 쓴다 — 여기는 위 헬스장
-      // 줄의 덤벨 아이콘과 한 격자에 서는 아이콘 자리다.
+      // 헬스장 찾기·헬스장 상세·트레이너 상세와 같은 얼굴이라, 내 헬스장
+      // 카드에서도 같은 사람으로 읽힌다. 예전에는 사람 아이콘이었다.
       final Finder line = find.byKey(const Key('gym-trainer-line-mine'));
+      final Finder avatar = find.descendant(
+        of: line,
+        matching: find.byType(AppAvatar),
+      );
+      expect(avatar, findsOneWidget);
+      expect(tester.widget<AppAvatar>(avatar).name, _kim.name);
       expect(
         find.descendant(of: line, matching: find.byIcon(AppIcons.person)),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: line, matching: find.byType(AppAvatar)),
         findsNothing,
       );
     });
@@ -369,7 +381,8 @@ void main() {
         );
         expect(avatar, findsOneWidget);
         expect(tester.widget<AppAvatar>(avatar).name, trainer.name);
-        expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.small);
+        // 근거 배지까지 두 줄로 서는 줄이라 한 단계 크다(#2599).
+        expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.medium);
         expect(
           find.descendant(of: avatar, matching: find.text(trainer.name[0])),
           findsOneWidget,
@@ -377,6 +390,50 @@ void main() {
         expect(
           find.descendant(of: line, matching: find.byIcon(AppIcons.person)),
           findsNothing,
+        );
+      }
+    });
+
+    testWidgets('트레이너 줄이 헬스장 이름과 한 세로선, 프로필·화살표는 줄 가운데 (#2599)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      final Finder card = find.byKey(Key('gym-card-${_gym.id}'));
+      final double gymNameX = tester
+          .getTopLeft(find.descendant(of: card, matching: find.text(_gym.name)))
+          .dx;
+      for (final Trainer trainer in <Trainer>[_kim, _park]) {
+        final Finder line = find.byKey(Key('gym-trainer-${trainer.id}'));
+        // 이름은 테두리 상자 안에서도 위 헬스장 이름과 같은 세로선에서 시작한다.
+        expect(
+          tester
+              .getTopLeft(
+                find.descendant(of: line, matching: find.text(trainer.name)),
+              )
+              .dx,
+          moreOrLessEquals(gymNameX, epsilon: 0.5),
+        );
+        // 근거 배지가 붙어 줄이 높아져도 프로필과 화살표는 줄 높이의 가운데다.
+        final double lineCenterY = tester.getCenter(line).dy;
+        expect(
+          tester
+              .getCenter(
+                find.descendant(of: line, matching: find.byType(AppAvatar)),
+              )
+              .dy,
+          moreOrLessEquals(lineCenterY, epsilon: 0.5),
+        );
+        expect(
+          tester
+              .getCenter(
+                find.descendant(
+                  of: line,
+                  matching: find.byIcon(AppIcons.chevronRight),
+                ),
+              )
+              .dy,
+          moreOrLessEquals(lineCenterY, epsilon: 0.5),
         );
       }
     });
