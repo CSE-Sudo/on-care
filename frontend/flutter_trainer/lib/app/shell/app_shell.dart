@@ -6,6 +6,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_sidebar.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
+import 'package:oncare_trainer/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -177,6 +178,13 @@ class AppShellFrame extends StatelessWidget {
       );
     }
 
+    // 알림 종은 모든 화면 머리 오른쪽 끝에 한 번 준다(#2628). 좁은 화면은
+    // 위쪽 막대에 둔다 — 머리에도 두면 종이 둘이 된다.
+    final Widget page = AppWebHeaderTrailing(
+      trailing: const NotificationBell(),
+      child: body,
+    );
+
     return Scaffold(
       backgroundColor: OnCareColors.surfacePage,
       body: Row(
@@ -189,7 +197,7 @@ class AppShellFrame extends StatelessWidget {
             onSelect: onSelect,
             onHome: onHome,
           ),
-          Expanded(child: body),
+          Expanded(child: page),
         ],
       ),
     );
@@ -231,34 +239,39 @@ class _CompactBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
             const SizedBox(width: OnCareSpacing.s4),
-            Flexible(
-              child: InkWell(
-                key: const ValueKey<String>('compact-brand-home'),
-                onTap: onHome,
-                borderRadius: OnCareRadius.mdAll,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: OnCareSpacing.s4,
-                  ),
-                  child: Text.rich(
-                    TextSpan(
-                      children: <InlineSpan>[
-                        const TextSpan(
-                          text: 'On-Care ',
-                          style: TextStyle(color: OnCareColors.textPrimary),
-                        ),
-                        TextSpan(
-                          text: l.appWordmarkTrainer,
-                          style: TextStyle(color: tokens.brand.primary),
-                        ),
-                      ],
+            // 로고가 남는 폭을 다 쓰고 알림 종은 오른쪽 끝에 붙는다(#2628).
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: InkWell(
+                  key: const ValueKey<String>('compact-brand-home'),
+                  onTap: onHome,
+                  borderRadius: OnCareRadius.mdAll,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: OnCareSpacing.s4,
                     ),
-                    maxLines: 1,
-                    style: tokens.text(OnCareTypography.titleMedium),
+                    child: Text.rich(
+                      TextSpan(
+                        children: <InlineSpan>[
+                          const TextSpan(
+                            text: 'On-Care ',
+                            style: TextStyle(color: OnCareColors.textPrimary),
+                          ),
+                          TextSpan(
+                            text: l.appWordmarkTrainer,
+                            style: TextStyle(color: tokens.brand.primary),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      style: tokens.text(OnCareTypography.titleMedium),
+                    ),
                   ),
                 ),
               ),
             ),
+            const NotificationBell(),
           ],
         ),
       ),

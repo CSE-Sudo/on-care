@@ -4,12 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
-import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -84,12 +82,7 @@ class AppSidebar extends ConsumerWidget {
     // 상담 요청 only exists against the real API — the demo has no member
     // backend to receive requests from, so the row is not built at all
     // there and the demo sidebar stays exactly as it was. (#467)
-    // 알림함도 실 API 빌드에서만 — 데모에는 알림을 만드는 회원 백엔드가 없어
-    // 늘 비어 있는 행이 하나 더 생길 뿐이다. (#503)
-    final notificationInbox = ref.watch(notificationInboxEnabledProvider);
-    final unreadNotifications = notificationInbox
-        ? ref.watch(trainerUnreadNotificationsProvider).valueOrNull
-        : null;
+    // 알림은 사이드바가 아니라 화면 머리의 알림 종이다(#2628).
 
     return Container(
       width: expanded
@@ -140,18 +133,6 @@ class AppSidebar extends ConsumerWidget {
                       },
                     ),
                   ],
-                  if (notificationInbox)
-                    _NavTile(
-                      destination: notificationsDestination,
-                      selected:
-                          currentIndex == AppShell.notificationsBranchIndex,
-                      expanded: expanded,
-                      badgeCount: unreadNotifications,
-                      onTap: () {
-                        onSelect(AppShell.notificationsBranchIndex);
-                        onNavigate?.call();
-                      },
-                    ),
                 ],
               ),
             ),

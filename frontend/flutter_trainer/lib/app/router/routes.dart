@@ -87,9 +87,28 @@ class AppRoutes {
 
   /// 알림함 — 놓친 변화를 나중에 확인하는 자리. (#503)
   ///
-  /// 상담 요청과 같은 이유로 nav 행은 실 API 빌드에서만 보인다(데모에는 알림을
-  /// 만드는 회원 백엔드가 없다). 라우트 자체는 항상 등록해 딥링크가 살아 있다.
+  /// 들어오는 길은 화면 머리의 알림 종이다(#2628). 사이드바 탭이 아니다.
   static const String notifications = '/notifications';
+
+  /// 알림 화면 — [from] 은 종을 누른 화면이다. 알림 화면의 뒤로 가기가 그리로
+  /// 돌아간다(#2628). 셸의 갈래를 옮겨 오므로 되돌아갈 이력이 남지 않는다.
+  static String notificationsFrom(String? from) =>
+      from == null || from.isEmpty || from.startsWith(notifications)
+      ? notifications
+      : Uri(
+          path: notifications,
+          queryParameters: <String, String>{'from': from},
+        ).toString();
+
+  /// 알림 화면 뒤로 가기가 갈 곳. 콘솔 안의 주소만 받는다 — 밖으로 나가는
+  /// 주소나 알림 화면 자신이면 대시보드다.
+  static String notificationsBackTarget(String? from) =>
+      from != null &&
+          from.startsWith('/') &&
+          !from.startsWith('//') &&
+          !from.startsWith(notifications)
+      ? from
+      : dashboard;
 
   // --- Client detail ---
 
