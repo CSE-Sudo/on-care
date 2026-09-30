@@ -973,6 +973,10 @@ class Notification(Base):
     # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
     # 스케줄을 그 날짜로 연다. 옛 알림에는 없다.
     target_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 이 알림만의 목적지(`action.target`, #2690). 비어 있으면 갈래별 표
+    # (`notifications._ACTION_BY_CATEGORY`)를 따른다. 같은 리마인더라도 나트륨
+    # 경고는 식단, 운동 목표는 운동으로 가야 할 때 쓴다 — 회원 앱 데모가 그렇다.
+    action_target: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
