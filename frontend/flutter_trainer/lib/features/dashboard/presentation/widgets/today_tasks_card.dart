@@ -110,10 +110,11 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     final DateTime yesterdayDay = nowKst().subtract(const Duration(days: 1));
     final yesterdayDate = ymd(yesterdayDay);
     // 어제 기록이 없으면 데모 이력을 본다 — 그 안의 미완료 키는 데모 전용이라
-    // 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203).
+    // 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203). 실계정은 데모 이력이
+    // 없다(#2671).
     final yesterday =
         history.read(yesterdayDate) ??
-        ref.read(demoTaskHistoryProvider).snapshotFor(yesterdayDay);
+        ref.read(demoTaskHistoryProvider)?.snapshotFor(yesterdayDay);
     _dismissedKeys = snapshot == null
         ? <String>{}
         : Set<String>.of(snapshot.dismissedKeys);
@@ -242,12 +243,13 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           (c.lastRoutine.trim().isEmpty || c.lastRoutine.trim() == '-'),
     );
     final activeClients = clients.where((c) => c.active);
-    // 데모·새 계정의 이월 항목(#1203). 실제 이력이 시작되면 사라진다. 이력을
-    // 읽기 전에는 실제 기록이 있는지 모르므로 띄우지 않는다.
+    // 데모 모드의 이월 항목(#1203). 실제 이력이 시작되면 사라지고, 실계정에는
+    // 아예 없다(#2671). 이력을 읽기 전에는 실제 기록이 있는지 모르므로 띄우지
+    // 않는다.
     final demoCarriedOver = ref.watch(dailyTaskHistoryProvider).hasValue
         ? ref
               .watch(demoTaskHistoryProvider)
-              .snapshotFor(nowKst().subtract(const Duration(days: 1)))
+              ?.snapshotFor(nowKst().subtract(const Duration(days: 1)))
         : null;
     final TrainerClient? demoCarryOverClient = activeClients.isEmpty
         ? null
