@@ -176,7 +176,9 @@ void main() {
     expect(find.text('야근이 많아 화·목을 못 갔어요'), findsOneWidget);
   });
 
-  testWidgets('한 줄을 안 적었으면 메모 칸은 서고 `남긴 말 없음` 이 적힌다 (#2450)', (tester) async {
+  testWidgets('한 줄을 안 적었으면 메모 칸은 서고 `한 줄 피드백 없음` 이 적힌다 (#2450)', (
+    tester,
+  ) async {
     await _pump(tester);
 
     expect(
@@ -193,7 +195,7 @@ void main() {
             find.byKey(const ValueKey<String>('report-feedback-note-empty')),
           )
           .data,
-      '남긴 말 없음',
+      '한 줄 피드백 없음',
     );
   });
 
@@ -206,7 +208,7 @@ void main() {
             find.byKey(const ValueKey<String>('report-feedback-note-label')),
           )
           .data,
-      '한 줄 메모',
+      '한 줄 피드백',
     );
     // 제목이 회원의 말보다 위에 선다.
     expect(
@@ -265,7 +267,7 @@ void main() {
       expect(find.text('컨디션'), findsOneWidget);
       expect(find.text('운동 강도'), findsOneWidget);
       expect(find.text('통증'), findsOneWidget);
-      expect(find.text('한 줄 메모'), findsOneWidget);
+      expect(find.text('한 줄 피드백'), findsOneWidget);
     });
 
     testWidgets('메모 칸도 서고 `미응답` 이 적힌다', (tester) async {
@@ -329,7 +331,7 @@ void main() {
       for (final String key in rows) {
         expect(_answer(tester, key).text, 'No answer');
       }
-      expect(find.text('Note'), findsOneWidget);
+      expect(find.text('One-line feedback'), findsOneWidget);
     });
 
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

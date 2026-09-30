@@ -7,6 +7,8 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/domain/entities/user_profile.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -97,29 +99,44 @@ class _ConsultationRequestPageState
   /// 운동 목표가 "기타"면 문의 내용에 구체적으로 적어야 한다 — 그 내용이
   /// 서버로는 `health_purpose_detail`도 겸해서 나간다(#1112). 목표 선택
   /// 하나로 줄었으니 상세를 받을 자리도 문의 내용 하나여야 한다.
-  bool get _otherGoalDetailMissing =>
-      _exerciseGoal == ExerciseGoal.other &&
-      _messageController.text.trim().isEmpty;
+  bool _otherGoalDetailMissing(ExerciseGoal? goal) =>
+      goal == ExerciseGoal.other && _messageController.text.trim().isEmpty;
 
-  /// 데이터 공유에 동의했는가. 신청은 회원이 하고 연결은 나중에 트레이너가
-  /// 수락하며 만들어진다 — 회원이 그 자리에 없으므로 동의는 여기서 받는다.
-  /// (#1022)
+  /// 상담 신청 정보(이름·운동 목표·문의 내용) 전달에 동의했는가(#1022).
+  /// 보내는 순간 트레이너에게 가는 것이라 여기서 받는다. 식단·기록 공유 동의는
+  /// 상담 뒤 연결 코드를 받을 때 따로 받는다(#2584).
   bool _dataSharingConsent = false;
 
-  bool get _isValid =>
-      _exerciseGoal != null &&
-      !_otherGoalDetailMissing &&
-      _slotId != null &&
-      _dataSharingConsent;
+  /// 이 트레이너가 이미 내 담당인가(#2585). 담당 연결은 데이터 공유 동의를
+  /// 받고 만들어지므로(연결 코드·담당 요청 수락) 다시 묻지 않고,
+  /// 운동 목표는 MY 건강 목표로 미리 채운다. 새로 적는 것은 시간·문의 내용뿐이다.
+  bool _isMyTrainer(Trainer trainer) =>
+      ref.watch(myTrainerProvider).valueOrNull?.id == trainer.id;
+
+  /// 담당 트레이너에게 낼 때 미리 채울 운동 목표 — MY 건강 목표 중 목록 순서로
+  /// 첫 번째다. 폼은 목표를 하나만 받는다. 목표가 없으면 비워 둔다.
+  ExerciseGoal? _savedGoal() {
+    final UserProfile? profile = ref.watch(profileProvider).valueOrNull;
+    if (profile == null) return null;
+    final String? focus = parseHealthFocus(profile.conditions).firstOrNull;
+    return focus == null ? null : kHealthFocusExerciseGoals[focus];
+  }
 
   Future<void> _submit({
     required Gym gym,
     required Trainer trainer,
     required List<TrainerSlot> slots,
+    required ExerciseGoal? goal,
+    required bool consented,
   }) async {
     if (_submitting) return;
     setState(() => _attempted = true);
-    if (!_isValid) return;
+    if (goal == null ||
+        _otherGoalDetailMissing(goal) ||
+        _slotId == null ||
+        !consented) {
+      return;
+    }
 
     final controller = ref.read(consultationRequestControllerProvider.notifier);
     if (controller.hasPending(trainerId: trainer.id)) {
@@ -129,7 +146,7 @@ class _ConsultationRequestPageState
     setState(() => _submitting = true);
     final DateTime now = nowKst();
     final String message = _messageController.text.trim();
-    final ExerciseGoal exerciseGoal = _exerciseGoal!;
+    final ExerciseGoal exerciseGoal = goal;
     final HealthPurposeType healthPurposeType = healthPurposeFromExerciseGoal(
       exerciseGoal,
     );
@@ -169,7 +186,7 @@ class _ConsultationRequestPageState
       healthPurposeDetail: healthPurposeDetail,
       slotId: slot.id,
       message: message.isEmpty ? null : message,
-      dataSharingConsent: _dataSharingConsent,
+      dataSharingConsent: consented,
     );
 
     final ConsultationRequest? saved;
@@ -201,6 +218,18 @@ class _ConsultationRequestPageState
           AppLocalizations.of(context),
           e.limit,
         ),
+        type: AppToastType.error,
+      );
+      return;
+    } on ConsultationLinkedToOtherTrainer {
+      // 담당 트레이너가 따로 있다(#2611). 상세 화면이 버튼을 막지만, 다른 기기에서
+      // 연결됐을 수 있어 서버 판정을 최종으로 삼는다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ref.invalidate(myTrainerProvider);
+      showAppToast(
+        context,
+        AppLocalizations.of(context).exConsultLinkedToOtherTrainer,
         type: AppToastType.error,
       );
       return;
@@ -322,6 +351,12 @@ class _ConsultationRequestPageState
     // 자리가 하나도 없으면 신청할 수 없다 — 앱은 없는 시간을 만들어 내지 않고
     // 헬스장 전화로 내보낸다(#1873).
     final bool canSubmit = !hasPending && slots.isNotEmpty;
+    final bool isMyTrainer = _isMyTrainer(trainer);
+    final ExerciseGoal? savedGoal = isMyTrainer ? _savedGoal() : null;
+    // 회원이 칩을 누르면 그 값이 이긴다. 칩은 눌러서 풀 수 없으므로 미리 채운
+    // 값으로 돌아가는 일은 없다.
+    final ExerciseGoal? goal = _exerciseGoal ?? savedGoal;
+    final bool consented = isMyTrainer || _dataSharingConsent;
 
     return Center(
       child: ConstrainedBox(
@@ -342,26 +377,37 @@ class _ConsultationRequestPageState
           children: <Widget>[
             _TargetCard(gym: gym, trainer: trainer),
             const SizedBox(height: OnCareSpacing.s12),
-            _DataSharingNotice(
-              consented: _dataSharingConsent,
-              onChanged: (bool next) =>
-                  setState(() => _dataSharingConsent = next),
-              showRequired: _attempted && !_dataSharingConsent,
-            ),
+            if (isMyTrainer)
+              const _LinkedSharingNotice()
+            else
+              _DataSharingNotice(
+                consented: _dataSharingConsent,
+                onChanged: (bool next) =>
+                    setState(() => _dataSharingConsent = next),
+                showRequired: _attempted && !_dataSharingConsent,
+              ),
             const SizedBox(height: OnCareSpacing.s20),
             _ChoiceField<ExerciseGoal>(
               chipKeyPrefix: 'consult-goal',
               title: l.exExerciseGoal,
               values: _kGoalChoices,
               labels: goalLabels,
-              selected: _exerciseGoal,
+              selected: goal,
               onSelected: (ExerciseGoal value) =>
                   setState(() => _exerciseGoal = value),
-              errorText: _attempted && _exerciseGoal == null
-                  ? l.exGoalRequired
-                  : null,
+              errorText: _attempted && goal == null ? l.exGoalRequired : null,
             ),
-            if (_exerciseGoal == ExerciseGoal.other) ...<Widget>[
+            if (savedGoal != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.exConsultGoalPrefilled,
+                key: const Key('consult-goal-prefilled'),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ],
+            if (goal == ExerciseGoal.other) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s8),
               Text(
                 l.exOtherGoalHint,
@@ -396,7 +442,7 @@ class _ConsultationRequestPageState
               minLines: 4,
               maxLines: 7,
               hint: l.exConsultMessageHint,
-              errorText: _attempted && _otherGoalDetailMissing
+              errorText: _attempted && _otherGoalDetailMissing(goal)
                   ? l.exOtherGoalDetailRequired
                   : null,
             ),
@@ -413,7 +459,13 @@ class _ConsultationRequestPageState
               // 보내는 중에는 스피너를 띄우고 탭을 막는다(loading).
               onPressed: canSubmit
                   ? () => unawaited(
-                      _submit(gym: gym, trainer: trainer, slots: slots),
+                      _submit(
+                        gym: gym,
+                        trainer: trainer,
+                        slots: slots,
+                        goal: goal,
+                        consented: consented,
+                      ),
                     )
                   : null,
               loading: _submitting,
@@ -620,14 +672,12 @@ class _TargetCard extends StatelessWidget {
   }
 }
 
-/// 이 요청이 수락되면 트레이너가 조회할 수 있게 되는 정보 범위 안내(#935).
+/// 이 요청으로 트레이너에게 전달되는 정보 범위 안내(#935, #2584).
 ///
-/// 상담 요청 → 승인으로 `TrainerClient` 링크가 생기면(#467) 트레이너 웹은 담당
-/// 회원의 식단·운동 기록과 신체 정보·목표를 그 즉시 조회할 수 있다(#316, #646,
-/// #914). 지금까지는 이 화면 어디에도 그 사실이 적혀 있지 않아, 회원이 무엇에
-/// 동의하는지 모른 채 요청을 보냈다. 문구는 실제 조회 범위와 일치시킨다 —
-/// 여기 없는 항목(예: 혈압·혈당)은 애초에 수집하지 않으므로 트레이너도 볼 수
-/// 없다.
+/// 상담 수락은 담당 연결이 아니다(#2584) — 트레이너는 이름·운동 목표·문의
+/// 내용만 받고, 식단·운동 기록과 신체 정보는 상담 뒤 회원이 연결 코드로
+/// 등록할 때 따로 동의해야 열린다. 전달되는 것에 대해서만 동의를 받고, 기록
+/// 공유는 코드 단계로 미룬다는 사실을 함께 말한다.
 class _DataSharingNotice extends StatelessWidget {
   const _DataSharingNotice({
     required this.consented,
@@ -678,8 +728,8 @@ class _DataSharingNotice extends StatelessWidget {
               ),
             ],
           ),
-          // 안내로 지나가지 않고 **동의를 받는다** — 수락되는 순간 넘어가는
-          // 것은 회원의 건강 기록이다. (#1022)
+          // 안내로 지나가지 않고 **동의를 받는다** — 보내는 순간 이름·목표·
+          // 문의 내용이 트레이너에게 간다. (#1022, #2584)
           const SizedBox(height: OnCareSpacing.s4),
           InkWell(
             key: const Key('consultDataSharingConsent'),
@@ -726,6 +776,46 @@ class _DataSharingNotice extends StatelessWidget {
                   .copyWith(color: OnCareColors.danger),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 담당 트레이너에게 내는 상담의 공유 안내(#2585). 담당 연결을 만들 때 이미
+/// 공유 동의를 받았으므로 체크 대신 그 사실만 알린다.
+class _LinkedSharingNotice extends StatelessWidget {
+  const _LinkedSharingNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Container(
+      key: const Key('consult-data-sharing-linked'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(OnCareSpacing.s12),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineSubtle),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const AppIcon(
+            AppIcons.info,
+            size: OnCareSize.iconSmall,
+            color: OnCareColors.textSecondary,
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).exConsultDataSharingLinked,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          ),
         ],
       ),
     );

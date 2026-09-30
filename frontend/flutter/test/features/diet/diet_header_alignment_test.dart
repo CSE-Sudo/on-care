@@ -99,28 +99,35 @@ void main() {
       );
     });
 
-    // 아이콘은 연필에서 `>` 로 되돌아갔다(#1848) — 붙는 자리는 그대로다.
-    testWidgets('끼니 카드 화살표는 카드 오른쪽 끝에 붙는다', (WidgetTester tester) async {
+    // 아이콘은 연필에서 `>` 로 되돌아갔다(#1848). 자리는 끼니 배지 줄에서
+    // 칼로리 배지 옆으로 내려갔다(#2609) — 여전히 카드 오른쪽 끝이다.
+    testWidgets('끼니 카드 화살표는 메뉴명·칼로리 줄 오른쪽 끝에 붙는다', (WidgetTester tester) async {
       await pumpPage(tester);
 
-      final Finder headers = find.byKey(
-        const ValueKey<String>('meal-card-header'),
-      );
-      expect(headers, findsWidgets);
+      final Finder rows = find.byKey(const ValueKey<String>('meal-card-foods'));
+      expect(rows, findsWidgets);
 
-      for (int i = 0; i < headers.evaluate().length; i++) {
-        final Finder header = headers.at(i);
+      for (int i = 0; i < rows.evaluate().length; i++) {
+        final Finder row = rows.at(i);
         final Finder arrow = find.descendant(
-          of: header,
+          of: row,
           matching: find.byIcon(AppIcons.chevronRight),
         );
         expect(arrow, findsOneWidget);
         expect(
           tester.getRect(arrow).right,
-          moreOrLessEquals(tester.getRect(header).right, epsilon: 0.5),
+          moreOrLessEquals(tester.getRect(row).right, epsilon: 0.5),
           reason: '$i 번째 끼니 카드의 화살표가 카드 오른쪽 끝에 붙지 않았다',
         );
       }
+      // 끼니 배지 줄에는 화살표가 없다.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('meal-card-header')),
+          matching: find.byIcon(AppIcons.chevronRight),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('끼니 카드 제목 줄은 합계 칼로리를 되풀이하지 않는다', (WidgetTester tester) async {

@@ -166,6 +166,26 @@ void main() {
       expect(find.byKey(const Key('mealCreatePage')), findsNothing);
       expect(saved, <bool>[false]);
     });
+
+    testWidgets('`+ 음식 추가` 는 마지막 음식 아래에 있고, 누르면 그 아래로 한 줄 늘린다 (#2607)', (
+      WidgetTester tester,
+    ) async {
+      await _openAddSheet(tester, FakeDietRepository());
+      await tester.tap(find.byKey(const Key('dietManualAddButton')));
+      await tester.pumpAndSettle();
+
+      final Finder add = find.byKey(const Key('meal-create-add-food'));
+      double top(Finder f) => tester.getTopLeft(f).dy;
+
+      expect(top(add), greaterThan(top(_field('diet-food-sodium-1'))));
+
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+
+      expect(_field('diet-food-name-2'), findsOneWidget);
+      expect(top(add), greaterThan(top(_field('diet-food-sodium-2'))));
+    });
   });
 
   group('사진 없는 끼니의 이모지 (#2151)', () {

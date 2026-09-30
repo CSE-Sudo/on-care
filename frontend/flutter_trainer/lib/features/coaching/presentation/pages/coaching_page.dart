@@ -15,6 +15,8 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart'
+    show ClientDietAnalysisPanel;
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_repository.dart';
@@ -308,7 +310,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 지문 방식이다.
     final payload = routineOnlyAssignToJson(
       routines,
-      programName: l.aiRoutineOnlyProgramName,
+      // 저장 이름에는 기간을 넣지 않는다(#2581) — 보낸 날부터 7일이라 `이번 주`
+      // 가 달력의 이번 주와 맞지 않는다. 회원 앱은 이 이름을 카드에 적지 않는다.
+      programName: l.aiRoutineOnlyDeliveryName,
       startDate: ymd(start),
       activeDays: PersonalRoutineBox.activeDays,
     );
@@ -1292,7 +1296,7 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
         ),
         const SizedBox(height: OnCareSpacing.s8),
         // 전환에 애니메이션을 두지 않는다(#1027).
-        if (_view == _ClientDataView.diet)
+        if (_view == _ClientDataView.diet) ...<Widget>[
           if (_period == ClientPeriod.today)
             ProgramNutritionSummaryCard(
               key: ValueKey<String>('program-diet-${widget.client.id}'),
@@ -1309,8 +1313,18 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
               key: ValueKey<String>('program-diet-period-${widget.client.id}'),
               clientId: widget.client.id,
               period: _period,
-            )
-        else ...<Widget>[
+            ),
+          // 회원 상세 식단 탭과 같은 `식단 분석` 카드 — 오늘은 추천까지 묻는다.
+          // 트레이너는 회원 상세보다 이 탭에 오래 머물러, 추천을 여기서도
+          // 답할 수 있어야 회원 앱 `추천 식단` 이 비지 않는다. 넓은 화면에서는
+          // 곧 전송 이력 바로 위다.
+          ClientDietAnalysisPanel(
+            key: ValueKey<String>('program-diet-analysis-${widget.client.id}'),
+            client: widget.client,
+            period: _period,
+            topGap: OnCareSpacing.s12,
+          ),
+        ] else ...<Widget>[
           ClientExerciseStatusCard(
             key: ValueKey<String>('program-workout-${widget.client.id}'),
             clientId: widget.client.id,

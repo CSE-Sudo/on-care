@@ -15,6 +15,7 @@ import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dto
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
@@ -26,8 +27,9 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 ///    has no member backend to receive requests from, and its roster is
 ///    seeded, so the inbox is empty and the sidebar row is hidden. The
 ///    demo screens stay exactly as they are.
-///  * [DioConsultationRepository] — the real backend, where accepting is
-///    what creates the trainer↔member link.
+///  * [DioConsultationRepository] — the real backend. Accepting books the
+///    consultation; it does not create the trainer↔member link — that
+///    happens later with the member's 6-digit code (#2584).
 abstract interface class ConsultationRepository {
   /// Whether this build can actually receive and decide requests.
   ///
@@ -63,10 +65,11 @@ abstract interface class ConsultationRepository {
   /// number it was first given until the trainer opens the inbox. (#917)
   Stream<int> watchPendingCount();
 
-  /// Accepts [id], creating the trainer↔member link server-side.
+  /// Accepts [id] — 회원이 고른 자리에 **상담 일정**을 확정한다(#2584).
   ///
-  /// 시각을 받지 않는다 — 회원이 신청할 때 고른 자리가 날짜·시각·길이·종류를
-  /// 모두 들고 있고, 승인은 그 자리를 첫 일정으로 확정할 뿐이다(#1873).
+  /// 담당 연결은 만들지 않는다. 등록은 상담 뒤 회원이 띄운 6자리 코드로 한다.
+  /// 시각을 받지 않는다 — 회원이 신청할 때 고른 자리가 날짜·시각·길이를 모두
+  /// 들고 있고, 승인은 그 자리를 상담 일정으로 확정할 뿐이다(#1873).
   ///
   /// 그 시간에 이미 다른 일정이 있으면 `ScheduleOverlapError` 로 멈추고
   /// 신청은 대기로 남는다(#2284).
@@ -201,21 +204,36 @@ class DemoConsultationRepository implements ConsultationRepository {
     final repositoryFactory = scheduleRepository;
     final bool scheduled = startsAt != null && repositoryFactory != null;
     if (scheduled) {
+      final String date = ymd(startsAt);
+      final String time =
+          '${startsAt.hour.toString().padLeft(2, '0')}:'
+          '${startsAt.minute.toString().padLeft(2, '0')}';
+      // 잡히는 것은 상담이고, 메모 칸은 트레이너만 보는 상담 메모 자리다 —
+      // 회원 문의 글은 `상담 요청 내용` 으로 따로 붙는다(#2584).
       await repositoryFactory().addSession(
-        date: ymd(startsAt),
+        date: date,
         clientName: request.memberName,
         clientId: request.memberId,
-        time:
-            '${startsAt.hour.toString().padLeft(2, '0')}:'
-            '${startsAt.minute.toString().padLeft(2, '0')}',
-        type: SessionType.personalTraining,
+        time: time,
+        type: SessionType.consultation,
         durationMinutes: request.slotDurationMinutes ?? 60,
-        note: request.message ?? '',
+        note: '',
       );
+      demoScheduleConsultations[demoConsultationKey(
+            clientId: request.memberId,
+            date: date,
+            time: time,
+          )] =
+          ScheduleConsultation(
+            id: request.id,
+            goalCode: request.goalCode,
+            message: request.message,
+          );
     }
     _decide(id, 'accepted');
+    // 수락은 담당 연결이 아니다 — 서버와 같은 답을 준다(#2584).
     return ConsultationAcceptResult(
-      clientConnected: true,
+      clientConnected: false,
       scheduleCreated: scheduled,
     );
   }

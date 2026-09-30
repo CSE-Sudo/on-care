@@ -214,8 +214,6 @@ def _decide(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except consultation_service.ConsultationAlreadyDecided as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except consultation_service.MemberAlreadyCoached as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get("/trainer/me", response_model=TrainerMe)
@@ -2901,8 +2899,9 @@ def trainer_accept_consultation(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> ConsultationAcceptOut:
-    """상담을 승인하고 회원을 담당 고객으로 편입한다.
+    """상담을 수락하고 회원이 고른 자리에 상담 일정을 잡는다.
 
+    담당 연결(등록)은 만들지 않는다 — 등록은 상담 뒤 6자리 연결 코드로 한다(#2584).
     시각을 받지 않는다 — 회원이 신청할 때 고른 자리가 날짜·시각·길이를 이미 들고
     있다(#1873).
     """
@@ -2919,7 +2918,6 @@ def trainer_accept_consultation(
         ) from exc
     except (
         consultation_service.ConsultationAlreadyDecided,
-        consultation_service.MemberAlreadyCoached,
         consultation_service.ConsultationSlotGone,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

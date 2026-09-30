@@ -5,19 +5,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
-import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/routine_context_source_store.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
@@ -128,6 +131,38 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// `RoutineOptionsRequest.trainer_note` 의 서버 상한(#1028). 여기서 막으면
   /// 긴 요청이 422 왕복 없이 그 자리에서 잘린다.
   static const int _promptMaxLength = 500;
+
+  /// AI 가 참고할 자료(#2587). 트레이너가 고른 적이 없으면 기본값이고, 고른
+  /// 값은 브라우저에 계정별로 남아 다음에 위저드를 열 때 그대로 돌아온다.
+  Set<RoutineContextSource> _sources = RoutineContextSource.defaults;
+
+  @override
+  void initState() {
+    super.initState();
+    final RoutineContextSourceStore? store = _sourceStore();
+    if (store != null) _sources = store.read(_sourceAccount());
+  }
+
+  /// 선택을 남길 저장소. 브라우저 저장소를 못 읽는 자리(저장소를 붙이지 않은
+  /// 위젯 테스트 등)에서는 `null` 이다 — 기억만 못 할 뿐 선택과 생성은 된다.
+  RoutineContextSourceStore? _sourceStore() {
+    try {
+      return ref.read(routineContextSourceStoreProvider);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// 저장 키의 계정. 데모에는 계정이 없어 `demo` 로 모은다.
+  String _sourceAccount() => ref.read(accountEmailProvider) ?? 'demo';
+
+  void _toggleSource(RoutineContextSource source, bool on) {
+    final Set<RoutineContextSource> next = <RoutineContextSource>{..._sources};
+    on ? next.add(source) : next.remove(source);
+    setState(() => _sources = next);
+    // 저장이 실패해도 이번 생성에는 화면의 선택이 그대로 쓰인다.
+    unawaited(_sourceStore()?.write(_sourceAccount(), next));
+  }
 
   int _minutes = 30;
   String _intensity = 'moderate';
@@ -316,6 +351,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             // 자연어 요청은 백엔드가 실제로 읽는 유일한 자유 텍스트 필드로
             // 나간다 — 새 필드를 지어내지 않는다(#1028).
             trainerNote: _prompt.text.trim(),
+            // 고른 자료만 AI 와 규칙 폴백에 들어간다(#2587). 모두 끈 선택도
+            // 빈 목록으로 보낸다 — 서버 기본값으로 되돌리지 않는다.
+            sources: _sources,
           );
       if (!mounted) return;
       final analysis = options.analysis;
@@ -500,15 +538,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     _personalOrigins
       ..clear()
       ..addAll(<_PersonalOrigin?>[
-        for (final s in suggestions)
-          _PersonalOrigin(id: s.id, evidence: s.evidence),
+        for (final s in suggestions) _PersonalOrigin(id: s.id),
       ]);
   }
-
-  /// 그 줄의 근거 문구들. 직접 넣은 줄은 비어 있다.
-  List<String> _evidenceOf(int index) => index < _personalOrigins.length
-      ? (_personalOrigins[index]?.evidence ?? const <String>[])
-      : const <String>[];
 
   /// 지금 단계의 목록에서 한 줄을 뺀다.
   ///
@@ -710,6 +742,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       ...switch (_currentStep) {
         _Step.conditions => <Widget>[
           _assistantAnalysis(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _sourcesCard(),
           const SizedBox(height: OnCareSpacing.s16),
           _promptField(),
           const SizedBox(height: OnCareSpacing.s16),
@@ -1108,6 +1142,136 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           : l.aiRecentRoutineMore(done.first, done.length - 1);
     }
     return l.aiNoRecentRoutine;
+  }
+
+  /// 조건 설정 단계의 `AI가 참고할 자료` 체크 목록 (#2587).
+  ///
+  /// 트레이너만 보는 글(상담 메모 등)을 AI 에 넣을지는 트레이너가 고른다.
+  /// 줄마다 서버가 실제로 읽는 범위를 적는다 — 켜 두면 무엇이 들어가는지
+  /// 트레이너가 짐작하지 않아도 되게.
+  ///
+  /// 넓으면 세 칸, 좁으면 두 칸·한 칸으로 줄을 바꾼다.
+  Widget _sourcesCard() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppCard(
+      key: const ValueKey<String>('ai-sources-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppSectionHeader(
+            title: l.aiSourcesTitle,
+            subtitle: l.aiSourcesBlurb,
+            subtitleMaxLines: 2,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final int columns = constraints.maxWidth >= 720
+                  ? 3
+                  : constraints.maxWidth >= 440
+                  ? 2
+                  : 1;
+              const double gap = OnCareSpacing.s8;
+              final double width =
+                  (constraints.maxWidth - gap * (columns - 1)) / columns;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: <Widget>[
+                  for (final RoutineContextSource source
+                      in RoutineContextSource.values)
+                    SizedBox(width: width, child: _sourceTile(l, source)),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceTile(AppLocalizations l, RoutineContextSource source) {
+    final bool on = _sources.contains(source);
+    // 선택 칩(`AppChoiceChip`)과 같은 선택 색 — 켜진 자료가 한눈에 갈린다.
+    final OnCareTokens tokens = context.oncare;
+    final (String label, String range) = switch (source) {
+      RoutineContextSource.ptFeedback => (
+        l.aiSourcePtFeedback,
+        l.aiSourceRangeDays(14, 5),
+      ),
+      RoutineContextSource.consultMemo => (
+        l.aiSourceConsultMemo,
+        l.aiSourceRangeDays(30, 3),
+      ),
+      RoutineContextSource.trainerMemo => (
+        l.aiSourceTrainerMemo,
+        l.aiSourceRangeDays(14, 5),
+      ),
+      RoutineContextSource.chatInsight => (
+        l.aiSourceChatInsight,
+        l.aiSourceRangeDays(7, 10),
+      ),
+      RoutineContextSource.weeklyFeedback => (
+        l.aiSourceWeeklyFeedback,
+        l.aiSourceRangeWeeks,
+      ),
+    };
+    return Material(
+      color: on ? tokens.brand.surface : OnCareColors.surfaceCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: BorderSide(
+          color: on ? tokens.brand.border : OnCareColors.lineSubtle,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: ValueKey<String>('ai-source-${source.wire}'),
+        onTap: () => _toggleSource(source, !on),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: OnCareSpacing.s4,
+            vertical: OnCareSpacing.s4,
+          ),
+          child: Row(
+            children: <Widget>[
+              Checkbox(
+                value: on,
+                onChanged: (bool? value) =>
+                    _toggleSource(source, value ?? false),
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _text(
+                        OnCareTypography.bodySmall,
+                        OnCareColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      range,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _text(
+                        OnCareTypography.caption,
+                        OnCareColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// 조건 설정 단계의 자연어 요청 칸 (#1028).
@@ -1521,6 +1685,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               );
             },
           ),
+          // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 이름 바로 아래
+          // 그대로 보인다 — 판단하면서 읽는 글이라 편집 칸이 아니다.
+          if (_currentStep == _Step.personal) _aiRationale(index),
           if (exercise.type == '근력') ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             // 한 세트를 회로 잴지 초로 잴지. 이름 해석이 기본값을 주고,
@@ -1625,68 +1792,31 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 );
               }),
             ),
-          // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
-          // 판단하면서 읽는 글이다. 트레이너만 보는 것이라 편집 칸이 아니다.
-          if (_currentStep == _Step.personal)
-            _aiRationale(index, compact: true),
+          if (_currentStep == _Step.personal) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            _personalEffectField(index),
+          ],
         ],
       ),
     );
   }
 
-  /// AI 가 이 운동을 고른 이유 — **트레이너만 보는 글이다.** (#2223)
+  /// AI 가 이 운동을 고른 이유 — **트레이너만 보는 글이다.** (#2223, #2579)
   ///
-  /// 회원에게는 가지 않는다. 회원 화면에는 운동 이름·유형·양만 서고, 이 글은
-  /// 트레이너가 이 제안을 그대로 둘지 판단하는 재료다 — 근거 태그와 같은 층
-  /// 이다(#790).
-  Widget _aiRationale(int index, {bool compact = false}) {
-    final AppLocalizations l = AppLocalizations.of(context);
+  /// 운동 이름 바로 아래 부제처럼 문장만 둔다. 서버가 회원 기록 숫자(최근 2주
+  /// 운동 시간·근력 비중·PT 뒤 며칠)로 쓴 판단 재료라, 근거 태그를 따로 달면
+  /// 같은 말을 두 번 한다. `AI 추천 사유` 라벨도 두지 않는다 — 단계 머리의
+  /// `AI 제안 N` 이 이 줄들이 AI 가 낸 것임을 말한다. 회원에게는 가지 않는다
+  /// (회원 응답이 비운다, 회원 카드에는 효과 한 줄이 선다).
+  Widget _aiRationale(int index) {
     final RoutineExercise exercise = _personal[index];
-    final List<String> evidence = _evidenceOf(index);
-    if (exercise.reason.isEmpty && evidence.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (exercise.reason.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
-      child: Column(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+      child: Text(
+        exercise.reason,
         key: ValueKey<String>('personal-rationale-$index'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            l.aiPersonalRationaleLabel,
-            style: _text(
-              OnCareTypography.strong(OnCareTypography.caption),
-              OnCareColors.textTertiary,
-            ),
-          ),
-          if (exercise.reason.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s2),
-            Text(
-              exercise.reason,
-              maxLines: compact ? 2 : null,
-              overflow: compact ? TextOverflow.ellipsis : null,
-              style: _text(
-                OnCareTypography.bodySmall,
-                OnCareColors.textSecondary,
-              ),
-            ),
-          ],
-          if (evidence.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            Wrap(
-              spacing: OnCareSpacing.s4,
-              runSpacing: OnCareSpacing.s4,
-              children: <Widget>[
-                // 서버는 근거를 코드로 보낸다 — 화면 언어의 문구로 바꿔 보인다(#2301).
-                for (final String item in evidence)
-                  AppTag(
-                    label: routineEvidenceLabel(l, item),
-                    tone: AppTagTone.brand,
-                  ),
-              ],
-            ),
-          ],
-        ],
+        style: _text(OnCareTypography.bodySmall, OnCareColors.textSecondary),
       ),
     );
   }
@@ -1910,8 +2040,25 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ],
           ),
           _aiRationale(index),
+          const SizedBox(height: OnCareSpacing.s12),
+          _personalEffectField(index),
         ],
       ),
+    );
+  }
+
+  /// 회원에게 보일 효과 한 줄(#2570). 접힌 줄에서도 바로 고친다 — 자동
+  /// 문구가 placeholder 로 보여 무엇이 갈지 알 수 있고, 바꾸고 싶을 때만
+  /// 친다. 효과만 바꾼 것은 운동을 고친 것이 아니라 출처는 그대로 둔다.
+  Widget _personalEffectField(int index) {
+    final RoutineExercise exercise = _personal[index];
+    return RoutineEffectField(
+      keyPrefix: 'personal-routine-effect-$index',
+      value: exercise.effect,
+      autoEffect: autoRoutineEffect(exercise.type, widget.client.goal),
+      onChanged: (String effect) => setState(() {
+        _personal[index] = _personal[index].copyWith(effect: effect);
+      }),
     );
   }
 
@@ -2042,6 +2189,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             controller: _trainerMemo,
             label: l.aiNoteForClient,
             hint: _analysisSuggestion(l),
+            helper: l.schedNoteVisibleToMember,
             minLines: 2,
             maxLines: 4,
           ),
@@ -2309,15 +2457,14 @@ class _RoutineChoice {
 /// 옅은 회색 채움·얇은 테두리·회색 번호다. 첫 단계는 왼쪽 끝, 가운데 단계는
 /// 가운데, 마지막 단계는 오른쪽 끝에 서고 이름도 같은 쪽으로 정렬한다.
 /// 이미 지난 단계(원·이름)를 누르면 그 단계로 간다. 단계마다 Key 를 둔다.
-/// 개인운동 줄이 어디서 왔나 — 그 AI 제안의 id 와 근거. (#2223)
+/// 개인운동 줄이 어디서 왔나 — 그 AI 제안의 id. (#2223)
 ///
-/// id 는 뺄 때 서버에 거절을 알리는 데, 근거는 트레이너가 판단할 때 보여 주는
-/// 데 쓴다. 직접 넣은 줄은 이 값이 없다.
+/// 뺄 때 서버에 거절을 알리는 데 쓴다. 직접 넣은 줄은 이 값이 없다. 근거
+/// 코드는 사유 문장이 기록 숫자로 말하므로 따로 들고 있지 않는다(#2579).
 class _PersonalOrigin {
-  const _PersonalOrigin({required this.id, required this.evidence});
+  const _PersonalOrigin({required this.id});
 
   final String id;
-  final List<String> evidence;
 }
 
 /// The trainer↔member chat lines the generation was grounded on (#580).

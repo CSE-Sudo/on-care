@@ -6,7 +6,8 @@
 ///  1. `member-request`      — 트레이너가 연 자리를 새 회원 둘이 UI 폼으로 골라
 ///                              상담을 신청한다.
 ///  2. (트레이너) `trainer-accept`
-///  3. `member-after-accept` — 승인 결과·담당·일정이 회원에게 돌아온다.
+///  3. `member-after-accept` — 승인 결과가 회원에게 돌아오고, 담당은 아직 없다.
+///                              상담 뒤 6자리 코드로 연결하면 담당·일정이 이어진다.
 ///  4. (트레이너) `trainer-reject`
 ///  5. `member-after-reject` — 거절 사유가 그대로 보이고 다시 신청할 수 있다.
 ///  6. `edge-cases`          — 중복 제출·남의 상담 조회.
@@ -15,12 +16,12 @@
 ///
 /// ## 왜 계정을 새로 만드는가
 ///
-/// 시드 회원 셋은 이미 `trainer-demo` 담당이다. 그 회원으로는 **승인이 담당 연결을
-/// 만든다** 를 검증할 수 없고(이미 연결돼 있다), 한 번 승인해 버리면 다음 실행이 같은
-/// 상태에서 시작하지 못한다. 그래서 실행마다 새로 만들고 끝나면 지운다.
+/// 시드 회원 셋은 이미 `trainer-demo` 담당이다. 그 회원으로는 **수락이 담당 연결을
+/// 만들지 않고, 코드 연결이 만든다**(#2584) 를 검증할 수 없고(이미 연결돼 있다),
+/// 한 번 연결해 버리면 다음 실행이 같은 상태에서 시작하지 못한다. 그래서 실행마다
+/// 새로 만들고 끝나면 지운다.
 ///
-/// 승인 사이클과 거절 사이클이 서로를 막으므로(승인 뒤에는 담당이 생겨 재신청이
-/// 막힌다) 계정을 둘 쓴다.
+/// 승인 사이클과 거절 사이클이 서로를 막으므로 계정을 둘 쓴다.
 library;
 
 import 'package:dio/dio.dart';
@@ -176,20 +177,55 @@ void main() {
         final String email = state.require('acceptEmail');
         final E2eApi api = await E2eApi.login(email);
 
-        // 승인은 상담 상태와 담당 연결을 함께 남긴다. 승인이 만드는 상담
-        // 일정은 트레이너의 달력이라 `trainer-accept` 단계가 확인한다(#1587).
+        // 수락은 상담 일정 확정이다 — 담당 연결은 아직 없다(#2584). 수락이
+        // 만드는 상담 일정은 트레이너의 달력이라 `trainer-accept` 단계가 본다.
         final List<Map<String, dynamic>> rows = await api.myConsultations();
         expect(rows.single['status'], 'accepted');
+        expect(
+          await api.myCoach(),
+          isNull,
+          reason: '수락만으로 담당 트레이너가 생겼습니다.',
+        );
+
+        // 화면에서는 내 상담 요청이 수락과 확정 안내를 보여 준다. 연결 전이라
+        // 상담 내역 진입점은 헬스장 검색 옆 아이콘이다(#1287).
+        await bootSignedOut(tester);
+        await loginAsMember(tester, email: email);
+        await openGymTab(tester);
+        await pumpUntil(
+          tester,
+          find.byKey(const Key('consult-history-shortcut')),
+          step: '상담 내역 진입점',
+        );
+        await tester.tap(find.byKey(const Key('consult-history-shortcut')));
+        await tester.pumpAndSettle();
+        await pumpUntil(
+          tester,
+          find.byKey(const Key('consult-outcome-accepted')),
+          step: '수락 안내',
+        );
+
+        // 상담 뒤 현장에서 등록한다 — 회원이 코드를 띄우고 트레이너가 입력한다.
+        final String code = await api.issuePairingCode();
+        final E2eApi trainerApi = await E2eApi.login(trainerEmail);
+        await trainerApi.redeemPairingCode(code);
         final Map<String, dynamic>? coach = await api.myCoach();
-        expect(coach, isNotNull, reason: '승인했는데 담당 트레이너가 생기지 않았습니다.');
+        expect(coach, isNotNull, reason: '코드로 연결했는데 담당 트레이너가 생기지 않았습니다.');
         expect(coach!['trainer_id'], trainerId);
+        // 수락이 만든 상담 일정이 담당 회원 일정으로 그대로 이어진다(#2584).
+        final List<Map<String, dynamic>> sessions = await trainerApi
+            .trainerScheduleFor(state.require('acceptId'));
+        expect(
+          sessions.where((Map<String, dynamic> s) => s['type'] == '상담'),
+          isNotEmpty,
+          reason: '코드 연결 뒤 상담 일정이 담당 회원 일정으로 이어지지 않았습니다.',
+        );
 
         // 화면에도 돌아오는가. 재로그인 뒤에도 남는가 — 앱이 들고 있던 값이
         // 아니라 서버가 답한 값이어야 한다.
         await bootSignedOut(tester);
         await loginAsMember(tester, email: email);
         await openGymTab(tester);
-        // 승인 결과 요약은 운동 탭 본문에서 제거됐다(#1287). 승인이 만든 실제
         // 연결 상태와 담당 트레이너 진입점으로 화면 반영을 검증한다.
         await pumpUntil(
           tester,

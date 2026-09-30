@@ -7,6 +7,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -114,6 +115,42 @@ void main() {
 
     expect(find.text('운동 현황'), findsOneWidget);
     expect(find.text('오늘 섭취 칼로리'), findsNothing);
+  });
+
+  testWidgets('상세 머리도 이름 옆에 목록과 같은 성별·나이를 적는다', (tester) async {
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+    );
+
+    final BuildContext context = tester.element(
+      find.byKey(const ValueKey<String>('client-detail-identity')),
+    );
+    final TrainerClient client = ProviderScope.containerOf(context)
+        .read(clientsProvider)
+        .requireValue
+        .firstWhere((TrainerClient c) => c.id == 'seed-client-1');
+    final Finder demographics = find.byKey(
+      const ValueKey<String>('client-detail-demographics'),
+    );
+    expect(
+      tester.widget<Text>(demographics).data,
+      clientDemographicsLabel(context, client),
+    );
+    // 이름과 같은 줄, 이름 오른쪽이다.
+    final Finder row = find.byKey(
+      const ValueKey<String>('client-detail-name-row'),
+    );
+    final Finder name = find.descendant(
+      of: row,
+      matching: find.text(client.name),
+    );
+    expect(name, findsOneWidget);
+    expect(
+      tester.getRect(demographics).left,
+      greaterThan(tester.getRect(name).right),
+    );
   });
 
   test('legacy chat section safely resolves to the diet tab', () {
@@ -249,8 +286,9 @@ void main() {
       find.descendant(of: find.byKey(dialog), matching: find.text('신체·목표')),
       findsOneWidget,
     );
+    // 보기 상태로 열린다 — 성별은 글이다(#2596).
     expect(
-      find.byKey(const ValueKey<String>('client-profile-gender')),
+      find.byKey(const ValueKey<String>('client-profile-gender-value')),
       findsOneWidget,
     );
     expect(

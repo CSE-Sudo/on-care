@@ -88,15 +88,12 @@ class ClientProfileDialog extends StatelessWidget {
     // 충분해, 아래에 따로 `닫기` 글자 버튼을 두지 않는다. 본문은 창이 스크롤하므로
     // 메모가 아무리 쌓여도 창이 화면을 넘치지 않는다.
     return switch (section) {
-      ClientProfileSection.health => AppDialog(
-        key: const ValueKey<String>('client-profile-dialog'),
-        title: l.clientProfileSectionTitle,
-        size: AppDialogSize.medium,
-        child: _HealthProfileSection(
-          clientId: clientId,
-          fallbackGender: fallbackGender,
-          ageYears: ageYears,
-        ),
+      // 신체·목표 창은 헤더의 연필이 편집 상태를 알아야 해 창까지 섹션이
+      // 그린다(#2596).
+      ClientProfileSection.health => _HealthProfileSection(
+        clientId: clientId,
+        fallbackGender: fallbackGender,
+        ageYears: ageYears,
       ),
       ClientProfileSection.memo => AppDialog(
         key: const ValueKey<String>('client-memo-dialog'),
@@ -111,6 +108,10 @@ class ClientProfileDialog extends StatelessWidget {
 /// 신체정보 · 목표 폼 — 예전 `MemberHealthProfileDialog` 의 내용을 다이얼로그
 /// 밖으로 꺼낸 것이다. 저장 버튼은 이 섹션 안에 있어 메모 저장과 서로
 /// 간섭하지 않는다.
+///
+/// 창은 보기 상태로 열린다(#2596). 값을 보려고 연 창에서 숫자를 잘못 건드려도
+/// 곧바로 저장할 수 있었다 — 헤더의 연필을 눌러야 칸이 열리고 `취소`·`저장`
+/// 이 나타난다.
 class _HealthProfileSection extends ConsumerStatefulWidget {
   const _HealthProfileSection({
     required this.clientId,
@@ -155,6 +156,12 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   bool _saving = false;
   bool _saved = false;
 
+  /// 연필을 눌러 칸이 열린 상태인가(#2596).
+  bool _editing = false;
+
+  /// 편집을 연 순간의 값 — `취소` 가 이 값으로 되돌린다.
+  _HealthDraft? _draft;
+
   /// 저장을 누른 순간 검사한 칸별 오류. 예전 `Form.validate()` 처럼 저장을
   /// 누를 때만 다시 계산하고, 그 사이에는 마지막 결과를 그대로 보여 준다.
   Map<String, String?> _errors = const <String, String?>{};
@@ -176,21 +183,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
 
   @override
   void dispose() {
-    for (final controller in <TextEditingController>[
-      _height,
-      _weight,
-      _conditions,
-      _goalCalories,
-      _goalSodium,
-      _goalSugar,
-      _goalCarbs,
-      _goalProtein,
-      _goalFat,
-      _goalBurn,
-      _goalCardio,
-      _goalStrength,
-      _goalFlexibility,
-    ]) {
+    for (final controller in _controllers) {
       controller.dispose();
     }
     super.dispose();
@@ -215,6 +208,60 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     _goalStrength.text = profile.weeklyStrengthSets?.toString() ?? '';
     _goalFlexibility.text = profile.weeklyFlexibilityMinutes?.toString() ?? '';
   }
+
+  /// 칸을 연다 — 지금 값을 떠 두어 `취소` 가 되돌릴 수 있게 한다.
+  void _startEditing() => setState(() {
+    _draft = _HealthDraft(
+      gender: _gender,
+      focus: Set<String>.of(_focus),
+      texts: <String>[
+        for (final TextEditingController c in _controllers) c.text,
+      ],
+    );
+    _editing = true;
+    _saved = false;
+  });
+
+  /// 고친 값을 버리고 보기 상태로 돌아간다.
+  void _cancelEditing() => setState(() {
+    final _HealthDraft? draft = _draft;
+    if (draft != null) {
+      _gender = draft.gender;
+      _focus = draft.focus;
+      for (int i = 0; i < _controllers.length; i++) {
+        _controllers[i].text = draft.texts[i];
+      }
+    }
+    _draft = null;
+    _errors = const <String, String?>{};
+    _editing = false;
+  });
+
+  /// 편집을 열고 닫을 때 떠 두는 칸 전부.
+  List<TextEditingController> get _controllers => <TextEditingController>[
+    _height,
+    _weight,
+    _conditions,
+    _goalCalories,
+    _goalSodium,
+    _goalSugar,
+    _goalCarbs,
+    _goalProtein,
+    _goalFat,
+    _goalBurn,
+    _goalCardio,
+    _goalStrength,
+    _goalFlexibility,
+  ];
+
+  /// 보기 상태의 성별 글 — 편집 칸의 선택지와 같은 말이다.
+  static String _genderLabel(AppLocalizations l, String gender) =>
+      switch (gender) {
+        'male' => l.memberHealthGenderMale,
+        'female' => l.memberHealthGenderFemale,
+        'other' => l.memberHealthGenderOther,
+        _ => l.memberHealthGenderUnset,
+      };
 
   String _displayNumber(double? value) => value == null
       ? ''
@@ -408,9 +455,12 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       // 목표가 창을 닫자마자 그래프에 그어진다.
       ref.invalidate(memberHealthProfileProvider(widget.clientId));
       if (!mounted) return;
+      // 저장한 값이 곧 보기 상태의 값이다(#2596).
       setState(() {
         _saving = false;
         _saved = true;
+        _editing = false;
+        _draft = null;
       });
     } on AppError catch (error) {
       if (!mounted) return;
@@ -558,6 +608,28 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     String name,
     String unit,
   ) {
+    if (!_editing) {
+      // 보기 상태는 값만 글자로 둔다. 빈 칸은 편집 칸과 같은 흐린 값 —
+      // 목표는 회원 앱 기본값, 키·몸무게는 `미입력` 이다(#2331).
+      final String text = field.controller.text.trim();
+      return _line(
+        context,
+        name,
+        Text(
+          text.isEmpty ? (field.hint ?? '') : text,
+          textAlign: TextAlign.end,
+          style:
+              OnCareTypography.numeric(
+                context.oncare.text(OnCareTypography.bodySmall),
+              ).copyWith(
+                color: text.isEmpty
+                    ? OnCareColors.textTertiary
+                    : OnCareColors.textPrimary,
+              ),
+        ),
+        unit,
+      );
+    }
     final String? error = _errors[field.id];
     final Widget line = _line(
       context,
@@ -592,6 +664,27 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    // 연필은 메모 창의 수정과 같은 아이콘·말이다. 헤더 오른쪽, 닫기 X 바로
+    // 왼쪽 자리(#2465)에 두고, 편집 중에는 `취소`·`저장` 이 대신한다(#2596).
+    return AppDialog(
+      key: const ValueKey<String>('client-profile-dialog'),
+      title: l.clientProfileSectionTitle,
+      size: AppDialogSize.medium,
+      trailing: _editing || !_profileLoaded
+          ? null
+          : AppIconButton(
+              key: const ValueKey<String>('client-profile-edit'),
+              icon: AppIcons.edit,
+              tooltip: l.actionEdit,
+              color: OnCareColors.textSecondary,
+              onPressed: _startEditing,
+            ),
+      child: _body(context),
+    );
+  }
+
+  Widget _body(BuildContext context) {
     final l = AppLocalizations.of(context);
     final tokens = context.oncare;
     return FutureBuilder<MemberHealthProfile>(
@@ -633,31 +726,52 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             _line(
               context,
               l.memberHealthGender,
-              AppSelectField<String>(
-                key: const ValueKey<String>('client-profile-gender'),
-                value: <String>['', 'male', 'female', 'other'].contains(_gender)
-                    ? _gender
-                    : '',
-                items: <DropdownMenuItem<String>>[
-                  DropdownMenuItem<String>(
-                    value: '',
-                    child: Text(l.memberHealthGenderUnset),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'male',
-                    child: Text(l.memberHealthGenderMale),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'female',
-                    child: Text(l.memberHealthGenderFemale),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'other',
-                    child: Text(l.memberHealthGenderOther),
-                  ),
-                ],
-                onChanged: (value) => _gender = value ?? '',
-              ),
+              !_editing
+                  ? Text(
+                      _genderLabel(l, _gender),
+                      key: const ValueKey<String>(
+                        'client-profile-gender-value',
+                      ),
+                      textAlign: TextAlign.end,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(
+                            color: _gender.isEmpty
+                                ? OnCareColors.textTertiary
+                                : OnCareColors.textPrimary,
+                          ),
+                    )
+                  : AppSelectField<String>(
+                      key: const ValueKey<String>('client-profile-gender'),
+                      value:
+                          <String>[
+                            '',
+                            'male',
+                            'female',
+                            'other',
+                          ].contains(_gender)
+                          ? _gender
+                          : '',
+                      items: <DropdownMenuItem<String>>[
+                        DropdownMenuItem<String>(
+                          value: '',
+                          child: Text(l.memberHealthGenderUnset),
+                        ),
+                        DropdownMenuItem<String>(
+                          value: 'male',
+                          child: Text(l.memberHealthGenderMale),
+                        ),
+                        DropdownMenuItem<String>(
+                          value: 'female',
+                          child: Text(l.memberHealthGenderFemale),
+                        ),
+                        DropdownMenuItem<String>(
+                          value: 'other',
+                          child: Text(l.memberHealthGenderOther),
+                        ),
+                      ],
+                      onChanged: (value) => _gender = value ?? '',
+                    ),
               '',
             ),
             number(0, l.clientBodyHeight, l.clientUnitCm),
@@ -676,7 +790,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                     label: healthFocusLabel(l, option),
                     selected: _focus.contains(option),
                     // 두 개를 고르면 나머지 칩은 잠긴다 — 회원앱과 같다.
-                    onSelected: canPickHealthFocus(_focus, option)
+                    // 보기 상태에서는 고른 칩만 표시한 채 모두 잠근다(#2596).
+                    onSelected: _editing && canPickHealthFocus(_focus, option)
                         ? (_) => setState(() {
                             if (!_focus.remove(option)) _focus.add(option);
                           })
@@ -701,11 +816,34 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               ),
             ],
             const SizedBox(height: OnCareSpacing.s8),
-            AppTextField(
-              controller: _conditions,
-              label: l.memberHealthConditions,
-              maxLines: 2,
-            ),
+            if (_editing)
+              AppTextField(
+                controller: _conditions,
+                label: l.memberHealthConditions,
+                maxLines: 2,
+              )
+            else ...<Widget>[
+              Text(
+                l.memberHealthConditions,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                _conditions.text.trim().isEmpty
+                    ? l.clientHealthUnset
+                    : _conditions.text.trim(),
+                key: const ValueKey<String>('client-conditions-value'),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(
+                      color: _conditions.text.trim().isEmpty
+                          ? OnCareColors.textTertiary
+                          : OnCareColors.textPrimary,
+                    ),
+              ),
+            ],
             // `회원 목표` 글 칸은 없앴다(#2330) — 목표는 위 칩으로 고른다. 글
             // 칸은 칩과 같은 말을 되풀이했고 회원 앱 어디에도 보이지 않았다.
           ],
@@ -724,27 +862,29 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             number(6, l.clientGoalProtein, l.unitGram),
             number(7, l.clientGoalFat, l.unitGram),
             number(3, l.clientGoalSodium, l.unitMg),
-            _suggestionRow(
-              context,
-              buttonKey: const ValueKey<String>('client-goal-apply-diet'),
-              note: l.clientGoalSuggestionDiet(
-                suggestion.dailyCalories,
-                suggestion.dailyCarbsG,
-                suggestion.dailySugarG,
-                suggestion.dailyProteinG,
-                suggestion.dailyFatG,
-                suggestion.dailySodiumMg,
+            // 채우기는 곧 값을 바꾸는 일이라 편집 중에만 보인다(#2596).
+            if (_editing)
+              _suggestionRow(
+                context,
+                buttonKey: const ValueKey<String>('client-goal-apply-diet'),
+                note: l.clientGoalSuggestionDiet(
+                  suggestion.dailyCalories,
+                  suggestion.dailyCarbsG,
+                  suggestion.dailySugarG,
+                  suggestion.dailyProteinG,
+                  suggestion.dailyFatG,
+                  suggestion.dailySodiumMg,
+                ),
+                basis: _basisLabel(l, suggestion),
+                onApply: () => setState(() {
+                  _goalCalories.text = '${suggestion.dailyCalories}';
+                  _goalCarbs.text = '${suggestion.dailyCarbsG}';
+                  _goalSugar.text = '${suggestion.dailySugarG}';
+                  _goalProtein.text = '${suggestion.dailyProteinG}';
+                  _goalFat.text = '${suggestion.dailyFatG}';
+                  _goalSodium.text = '${suggestion.dailySodiumMg}';
+                }),
               ),
-              basis: _basisLabel(l, suggestion),
-              onApply: () => setState(() {
-                _goalCalories.text = '${suggestion.dailyCalories}';
-                _goalCarbs.text = '${suggestion.dailyCarbsG}';
-                _goalSugar.text = '${suggestion.dailySugarG}';
-                _goalProtein.text = '${suggestion.dailyProteinG}';
-                _goalFat.text = '${suggestion.dailyFatG}';
-                _goalSodium.text = '${suggestion.dailySodiumMg}';
-              }),
-            ),
             const SizedBox(height: OnCareSpacing.s8),
             defaultHint,
           ],
@@ -755,24 +895,25 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             number(9, l.clientGoalCardioWeekly, l.routineUnitMinutes),
             number(10, l.clientGoalStrengthWeekly, l.routineUnitSets),
             number(11, l.clientGoalStretchWeekly, l.routineUnitMinutes),
-            _suggestionRow(
-              context,
-              buttonKey: const ValueKey<String>('client-goal-apply-exercise'),
-              note: l.clientGoalSuggestionExercise(
-                suggestion.dailyBurnKcal,
-                suggestion.weeklyCardioMinutes,
-                suggestion.weeklyStrengthSets,
-                suggestion.weeklyFlexibilityMinutes,
+            if (_editing)
+              _suggestionRow(
+                context,
+                buttonKey: const ValueKey<String>('client-goal-apply-exercise'),
+                note: l.clientGoalSuggestionExercise(
+                  suggestion.dailyBurnKcal,
+                  suggestion.weeklyCardioMinutes,
+                  suggestion.weeklyStrengthSets,
+                  suggestion.weeklyFlexibilityMinutes,
+                ),
+                basis: _basisLabel(l, suggestion),
+                onApply: () => setState(() {
+                  _goalBurn.text = '${suggestion.dailyBurnKcal}';
+                  _goalCardio.text = '${suggestion.weeklyCardioMinutes}';
+                  _goalStrength.text = '${suggestion.weeklyStrengthSets}';
+                  _goalFlexibility.text =
+                      '${suggestion.weeklyFlexibilityMinutes}';
+                }),
               ),
-              basis: _basisLabel(l, suggestion),
-              onApply: () => setState(() {
-                _goalBurn.text = '${suggestion.dailyBurnKcal}';
-                _goalCardio.text = '${suggestion.weeklyCardioMinutes}';
-                _goalStrength.text = '${suggestion.weeklyStrengthSets}';
-                _goalFlexibility.text =
-                    '${suggestion.weeklyFlexibilityMinutes}';
-              }),
-            ),
             const SizedBox(height: OnCareSpacing.s8),
             defaultHint,
           ],
@@ -821,26 +962,39 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                 children: tabBody,
               ),
             ),
-            const SizedBox(height: OnCareSpacing.s16),
-            AppActionRow(
-              actions: <Widget>[
-                // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
-                // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
-                if (_saved)
-                  Text(
-                    l.actionSaved,
-                    // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.label))
-                        .copyWith(color: OnCareColors.success),
-                  ),
-                AppButton(
-                  key: const ValueKey<String>('client-profile-save'),
-                  onPressed: _saving || !_profileLoaded ? null : _save,
-                  label: _saving ? l.memberHealthSaving : l.actionSave,
-                ),
-              ],
-            ),
+            // 보기 상태에는 버튼이 없다 — 저장이 끝난 직후에만 완료 표시가
+            // 남는다. 편집 중에는 `취소`·`저장` 이다(#2596).
+            if (_editing || _saved) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s16),
+              AppActionRow(
+                actions: <Widget>[
+                  // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
+                  // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
+                  if (_saved)
+                    Text(
+                      l.actionSaved,
+                      key: const ValueKey<String>('client-profile-saved'),
+                      // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
+                      style: tokens
+                          .text(OnCareTypography.strong(OnCareTypography.label))
+                          .copyWith(color: OnCareColors.success),
+                    ),
+                  if (_editing) ...<Widget>[
+                    AppButton(
+                      key: const ValueKey<String>('client-profile-cancel'),
+                      onPressed: _saving ? null : _cancelEditing,
+                      variant: AppButtonVariant.secondary,
+                      label: l.actionCancel,
+                    ),
+                    AppButton(
+                      key: const ValueKey<String>('client-profile-save'),
+                      onPressed: _saving || !_profileLoaded ? null : _save,
+                      label: _saving ? l.memberHealthSaving : l.actionSave,
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ],
         );
       },
@@ -881,6 +1035,21 @@ enum _HealthTab {
     'client-goal-flexibility' => exercise,
     _ => diet,
   };
+}
+
+/// 편집을 연 순간의 신체·목표 값 — `취소` 가 되돌릴 자리(#2596).
+class _HealthDraft {
+  const _HealthDraft({
+    required this.gender,
+    required this.focus,
+    required this.texts,
+  });
+
+  final String gender;
+  final Set<String> focus;
+
+  /// [_HealthProfileSectionState._controllers] 와 같은 차례의 글.
+  final List<String> texts;
 }
 
 /// 숫자 입력 칸 하나의 검사 규칙.
@@ -1030,6 +1199,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           maxLength: _maxLength,
           enabled: !_busy,
           hint: l.clientTrainerMemoHint,
+          // 회원 상세 메모는 트레이너만 본다 — 회원에게 가는 피드백과
+          // 헷갈리지 않게 적는 자리에서 밝힌다(#2574).
+          helper: l.clientTrainerMemoPrivate,
         ),
         // 글자 수는 입력 상자 **바로 아래 오른쪽**에 붙인다(#1448). `추가` 와
         // 한 줄에 나눠 두면 왼쪽 끝의 보조 정보가 입력 상자와 따로 놀았다.

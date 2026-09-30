@@ -1504,7 +1504,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachReportPdfSelfMadeNote =>
-      'Made with points, without a trainer — so there\'s no trainer message.';
+      'Made with points, without a trainer — so there\'s no trainer feedback.';
 
   @override
   String get coachReportPdfSectionInsights => 'Reference notes';
@@ -2396,10 +2396,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachReportPdfSectionTrainerNote => 'From your trainer';
+  String get coachReportPdfSectionTrainerNote => 'Trainer feedback';
 
   @override
-  String get coachReportPdfNoTrainerNote => 'No message came with this report.';
+  String get coachReportPdfNoTrainerNote =>
+      'No feedback came with this report.';
 
   @override
   String get coachReportPdfSectionChange => 'Change from last week';
@@ -2713,6 +2714,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConsultPendingCta => 'Consultation Request Pending';
 
   @override
+  String get exConsultLinkedToOtherTrainer =>
+      'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.';
+
+  @override
+  String get exConsultGoToMyTrainer => 'View my trainer';
+
+  @override
   String get exViewConsultationRequest => 'View consultation request';
 
   @override
@@ -2726,15 +2734,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      'Once this trainer accepts your request, they\'ll be able to see your diet log, exercise log, and body info and health goals.';
+      'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.';
 
   @override
   String get exConsultDataSharingAgree =>
-      'I have read this and agree to share my meal and workout records and body information with this trainer';
+      'I have read this and agree to send my request details to this trainer';
 
   @override
   String get exConsultDataSharingRequired =>
-      'Please agree to sharing before requesting a consultation';
+      'Please agree to sending your request details before requesting a consultation';
+
+  @override
+  String get exConsultDataSharingLinked =>
+      'This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.';
+
+  @override
+  String get exConsultGoalPrefilled =>
+      'We filled this in from your health goals in MY. Feel free to change it for this consultation.';
 
   @override
   String get coachInviteConsentTitle => 'Before you connect';
@@ -2944,7 +2960,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultAcceptedGuide =>
-      'You\'re connected with your trainer. You can start chatting now.';
+      'Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.';
 
   @override
   String get exMyReservations => 'My bookings';
@@ -2996,7 +3012,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authRestoreSignIn => 'Go to sign in';
 
   @override
-  String get authTagline => 'Diet & exercise management app';
+  String get authTagline =>
+      'Log your meals and workouts — and get coaching back';
 
   @override
   String get authEmailHint => 'Email';
@@ -3120,7 +3137,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncConsent =>
-      'The trainer who enters this code becomes your coach and can see your meals, workouts, and health records.';
+      'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.';
+
+  @override
+  String get trainerSyncAgree => 'Agree and get a code';
 
   @override
   String get trainerSyncHint => 'Read these six digits out to your trainer.';
@@ -4665,7 +4685,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyFeedbackPainDatePick => 'Pick a date';
 
   @override
-  String get weeklyFeedbackNoteQuestion => 'A line for your trainer (optional)';
+  String get weeklyFeedbackNoteQuestion =>
+      'One-line feedback for your trainer (optional)';
 
   @override
   String get weeklyFeedbackNoteHint => 'Anything that shaped your week';
@@ -4773,7 +4794,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myWeeklyFeedbackNoteLabel => 'Your note';
+  String get myWeeklyFeedbackNoteLabel => 'One-line feedback';
 
   @override
   String myWeeklyFeedbackSentAt(int month, int day) {

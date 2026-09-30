@@ -18,7 +18,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// 옮기기 전 화면에 있던 한국어 문구. 값이 바뀌면 시연 화면이 달라진다.
 const Map<String, String> _koBefore = <String, String>{
-  'authTagline': '식단·운동 관리 앱',
+  'authTagline': '기록하면 코칭이 돌아오는 식단·운동 관리',
   'authEmailHint': '이메일',
   'authPasswordHint': '비밀번호',
   'authSignInAction': '로그인',

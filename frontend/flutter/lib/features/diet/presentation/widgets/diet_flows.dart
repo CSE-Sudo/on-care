@@ -310,7 +310,7 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
       title: l.dietAddSheetTitle,
       subtitle: l.dietAddSheetSubtitle,
       // 닫기는 끌어내리기 하나로 둔다 — 비운 X 자리에 사진 없이 적는 문을
-      // 둔다(#2151). 모양은 수정 화면의 `+ 음식 추가` 와 같다.
+      // 둔다(#2151). 파란 글씨 `+` 버튼이다.
       showClose: false,
       trailing: AppButton(
         key: const Key('dietManualAddButton'),
@@ -1219,27 +1219,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       key: const Key('diet-result-foods-editor'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                l.dietEatenFood,
-                style: _text(
-                  context,
-                  OnCareTypography.label,
-                  OnCareColors.textSecondary,
-                ),
-              ),
-            ),
-            AppButton(
-              key: const Key('diet-result-add-food'),
-              label: l.dietAddFood,
-              leadingIcon: AppIcons.add,
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-              onPressed: _addFood,
-            ),
-          ],
+        Text(
+          l.dietEatenFood,
+          style: _text(
+            context,
+            OnCareTypography.label,
+            OnCareColors.textSecondary,
+          ),
         ),
         Text(
           l.dietEditFoodHint,
@@ -1254,7 +1240,35 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           if (i > 0) const SizedBox(height: OnCareSpacing.s8),
           _foodEditor(i),
         ],
+        // 음식 한 건을 다 채운 자리에서 다음 음식을 이어 적도록 목록 맨
+        // 아래에 둔다 — 운동 추가 시트와 같은 모양이다(#2544, #2607).
+        const SizedBox(height: OnCareSpacing.s8),
+        _AddFoodButton(
+          key: const Key('diet-result-add-food'),
+          onPressed: _addFood,
+        ),
       ],
+    );
+  }
+}
+
+/// `먹은 음식` 목록 맨 아래의 `+ 음식 추가`. 음식 한 건의 칸을 다 채운
+/// 자리에서 바로 다음 음식을 적도록 제목 줄이 아니라 목록 아래에 둔다 —
+/// 운동 추가 시트의 `+ 운동 추가` 와 같은 모양이다(#2544, #2607). 직접 추가·
+/// 분석 결과·상세 수정 세 화면이 함께 쓴다.
+class _AddFoodButton extends StatelessWidget {
+  const _AddFoodButton({super.key, required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppButton(
+      label: AppLocalizations.of(context).dietAddFood,
+      leadingIcon: AppIcons.add,
+      variant: AppButtonVariant.text,
+      fullWidth: true,
+      onPressed: onPressed,
     );
   }
 }
@@ -2273,19 +2287,7 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Row(
-                              children: <Widget>[
-                                Expanded(child: _FieldLabel(l.dietEatenFood)),
-                                AppButton(
-                                  key: const Key('meal-create-add-food'),
-                                  label: l.dietAddFood,
-                                  leadingIcon: AppIcons.add,
-                                  variant: AppButtonVariant.text,
-                                  size: OnCareButtonSize.small,
-                                  onPressed: _busy ? null : _addFood,
-                                ),
-                              ],
-                            ),
+                            _FieldLabel(l.dietEatenFood),
                             Text(
                               l.dietManualAddHint,
                               style: _text(
@@ -2299,6 +2301,11 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
                               _foodEditor(i),
                               const SizedBox(height: OnCareSpacing.s8),
                             ],
+                            _AddFoodButton(
+                              key: const Key('meal-create-add-food'),
+                              onPressed: _busy ? null : _addFood,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
                             if (_showEmpty) ...<Widget>[
                               Text(
                                 l.dietManualAddEmpty,
@@ -2736,19 +2743,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Row(
-                              children: <Widget>[
-                                Expanded(child: _FieldLabel(l.dietEatenFood)),
-                                if (_editing)
-                                  AppButton(
-                                    label: l.dietAddFood,
-                                    leadingIcon: AppIcons.add,
-                                    variant: AppButtonVariant.text,
-                                    size: OnCareButtonSize.small,
-                                    onPressed: _addFood,
-                                  ),
-                              ],
-                            ),
+                            _FieldLabel(l.dietEatenFood),
                             if (_editing)
                               Text(
                                 l.dietEditFoodHint,
@@ -2764,6 +2759,10 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
                                 _foodEditor(i)
                               else
                                 _FoodViewRow(index: i + 1, food: _foods[i]),
+                              const SizedBox(height: OnCareSpacing.s8),
+                            ],
+                            if (_editing) ...<Widget>[
+                              _AddFoodButton(onPressed: _addFood),
                               const SizedBox(height: OnCareSpacing.s8),
                             ],
                             const AppDivider(),

@@ -548,7 +548,10 @@ def reserve(
         type=slot.session_type,
         duration_minutes=slot.duration_minutes,
         status="예정",
-        note="회원 앱 예약",
+        # PT 일정의 note 는 트레이너 피드백이다(#2515). 예약에서 왔다는 표식을 넣으면
+        # 피드백 없이 완료했을 때 그 문구가 회원 앱에 피드백으로 나간다. 예약 여부는
+        # TrainerReservation.schedule_id 로 안다. (#2575)
+        note="",
         program_json="[]",
         sort_order=0,
     )

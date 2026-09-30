@@ -1453,7 +1453,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachReportPdfSelfMadeNote =>
-      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
+      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 피드백이 없어요.';
 
   @override
   String get coachReportPdfSectionInsights => '참고 기록';
@@ -2321,10 +2321,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachReportPdfSectionTrainerNote => '트레이너 메시지';
+  String get coachReportPdfSectionTrainerNote => '트레이너 피드백';
 
   @override
-  String get coachReportPdfNoTrainerNote => '함께 온 메시지가 없어요.';
+  String get coachReportPdfNoTrainerNote => '함께 온 피드백이 없어요.';
 
   @override
   String get coachReportPdfSectionChange => '지난주 대비';
@@ -2627,6 +2627,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultPendingCta => '상담 요청 대기 중';
 
   @override
+  String get exConsultLinkedToOtherTrainer =>
+      '담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 요청하려면 담당 연결을 먼저 해제해 주세요.';
+
+  @override
+  String get exConsultGoToMyTrainer => '담당 트레이너 보기';
+
+  @override
   String get exViewConsultationRequest => '상담 요청 확인';
 
   @override
@@ -2640,14 +2647,21 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      '요청이 수락되면 이 트레이너가 회원님의 식단 기록, 운동 기록, 신체 정보와 건강 목표를 확인할 수 있어요.';
+      '상담 신청 정보(이름·운동 목표·문의 내용)는 이 트레이너에게 전달돼요. 식단·운동 기록은 상담 뒤 연결 코드로 등록할 때 따로 동의를 받아요.';
 
   @override
   String get exConsultDataSharingAgree =>
-      '위 내용을 확인했고, 식단·운동 기록과 신체 정보를 이 트레이너에게 공유하는 데 동의해요';
+      '위 내용을 확인했고, 상담 신청 정보를 이 트레이너에게 전달하는 데 동의해요';
 
   @override
-  String get exConsultDataSharingRequired => '공유에 동의해야 상담을 신청할 수 있어요';
+  String get exConsultDataSharingRequired => '전달에 동의해야 상담을 신청할 수 있어요';
+
+  @override
+  String get exConsultDataSharingLinked =>
+      '담당 트레이너라 식단·운동 기록과 신체 정보를 이미 공유하고 있어요. 다시 동의하지 않아도 돼요.';
+
+  @override
+  String get exConsultGoalPrefilled => 'MY 건강 목표를 채워 두었어요. 이번 상담에 맞게 바꿔도 돼요.';
 
   @override
   String get coachInviteConsentTitle => '담당 연결 전에 확인해 주세요';
@@ -2845,7 +2859,8 @@ class AppLocalizationsKo extends AppLocalizations {
       '사유를 남기지 않았어요. 다른 트레이너에게 상담을 요청해 보세요.';
 
   @override
-  String get exConsultAcceptedGuide => '담당 트레이너와 연결되었어요. 이제 채팅으로 상담할 수 있어요.';
+  String get exConsultAcceptedGuide =>
+      '상담이 확정됐어요. 등록하기로 하면 상담 때 MY 탭의 연결 코드로 트레이너와 연결할 수 있어요.';
 
   @override
   String get exMyReservations => '내 예약';
@@ -2894,7 +2909,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authRestoreSignIn => '로그인 화면으로';
 
   @override
-  String get authTagline => '식단·운동 관리 앱';
+  String get authTagline => '기록하면 코칭이 돌아오는 식단·운동 관리';
 
   @override
   String get authEmailHint => '이메일';
@@ -3005,7 +3020,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trainerSyncTitle => '트레이너와 데이터 동기화';
 
   @override
-  String get trainerSyncConsent => '이 코드를 입력한 트레이너가 담당이 되고, 식단·운동·건강 기록이 공유돼요.';
+  String get trainerSyncConsent =>
+      '이 코드를 입력한 트레이너가 담당이 되면, 회원님의 식단 기록·운동 기록·신체 정보와 건강 목표를 볼 수 있어요. 연결을 해제하면 열람 권한도 함께 사라져요.';
+
+  @override
+  String get trainerSyncAgree => '동의하고 코드 받기';
 
   @override
   String get trainerSyncHint => '트레이너에게 이 6자리를 불러 주세요.';
@@ -4467,7 +4486,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get weeklyFeedbackPainDatePick => '날짜 고르기';
 
   @override
-  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 (선택)';
+  String get weeklyFeedbackNoteQuestion => '트레이너에게 한 줄 피드백 (선택)';
 
   @override
   String get weeklyFeedbackNoteHint => '그 주에 있었던 일을 적어 주세요';
@@ -4570,7 +4589,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myWeeklyFeedbackNoteLabel => '남긴 말';
+  String get myWeeklyFeedbackNoteLabel => '한 줄 피드백';
 
   @override
   String myWeeklyFeedbackSentAt(int month, int day) {

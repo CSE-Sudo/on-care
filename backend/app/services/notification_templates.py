@@ -69,6 +69,7 @@ MEMBER_CONSULT_REJECTED = "member_consult_rejected"
 MEMBER_CONSULT_EXPIRED = "member_consult_expired"
 MEMBER_TRAINER_LEFT = "member_trainer_left"
 MEMBER_TRAINER_LEFT_BOOKING = "member_trainer_left_booking"
+MEMBER_TRAINER_DISCONNECTED = "member_trainer_disconnected"
 
 # 일정·포인트 — 트레이너 일정 변경과 회원 혜택으로 회원이 받는 알림.
 MEMBER_SCHEDULE_ADDED = "member_schedule_added"
@@ -216,12 +217,30 @@ def _trainer_member_withdrawn(args: Args, locale: Locale) -> Rendered:
     return "Member account deleted", f"{name or 'A member'} deleted their account."
 
 
+def _cancelled_sessions(args: Args) -> int:
+    """담당 해제로 함께 취소한 일정 수(#2589). 없는 옛 알림은 0 으로 읽는다."""
+    try:
+        return max(int(args.get("cancelled_sessions") or 0), 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 @_template(TRAINER_MEMBER_DISCONNECTED)
 def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name").strip()
+    cancelled = _cancelled_sessions(args)
     if locale == "ko":
-        return "담당 연결 해제", f"{name or '이름 없는'} 회원이 담당 연결을 끊었어요."
-    return "Client disconnected", f"{name or 'A member'} ended their connection with you."
+        body = f"{name or '이름 없는'} 회원이 담당 연결을 끊었어요."
+        if cancelled:
+            body += f" 남은 일정 {cancelled}건은 취소됐어요."
+        return "담당 연결 해제", body
+    body = f"{name or 'A member'} ended their connection with you."
+    if cancelled:
+        body += (
+            f" {_plural(cancelled, 'remaining session was', 'remaining sessions were')}"
+            " cancelled."
+        )
+    return "Client disconnected", body
 
 
 @_template(TRAINER_CONSULT_REQUESTED)
@@ -335,16 +354,26 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
     # 합계는 서버가 초로 더해 둔 값이다 — 여기서 한 번만 접는다. (#2546)
     duration = format_duration(_seconds(args), locale)
     multi = bool(args.get("multi"))
+    # `개인운동만` 을 여럿 보내면 운동 하나가 세션 하나다(#2581). 프로그램 이름
+    # (예전 `이번 주 개인운동`)과 `세션 N개` 는 개인운동 묶음에 맞지 않는다.
+    routine_only = bool(args.get("routine_only")) and multi
     if locale == "ko":
-        body = (
-            f"{name} · 세션 {sessions}개 · {duration}" if multi else f"{name} · {duration}"
-        )
+        if routine_only:
+            body = f"개인운동 {sessions}개 · {duration}"
+        elif multi:
+            body = f"{name} · 세션 {sessions}개 · {duration}"
+        else:
+            body = f"{name} · {duration}"
         return "새 운동 루틴이 배정되었어요", body
-    body = (
-        f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
-        if multi
-        else f"{name} · {duration}"
-    )
+    if routine_only:
+        body = (
+            f"{_plural(sessions, 'personal exercise', 'personal exercises')}"
+            f" · {duration}"
+        )
+    elif multi:
+        body = f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
+    else:
+        body = f"{name} · {duration}"
     return "New workout routine assigned", body
 
 
@@ -392,17 +421,19 @@ def _member_consult_approved(args: Args, locale: Locale) -> Rendered:
     # 트레이너가 적은 한마디는 번역하지 않고 뒤에 그대로 붙인다. 빈 한마디도
     # 예전처럼 한 칸 띄워 붙인다 — `None` 만 "적지 않음" 이다.
     note = args.get("note")
+    # 수락은 상담 일정 확정이지 담당 연결이 아니다(#2584) — 연결은 상담 뒤
+    # 6자리 코드로 한다. 예전 문구("담당으로 연결되었어요")는 등록까지 끝난 것처럼 읽혔다.
     if locale == "ko":
         body = (
-            f"{name or '트레이너'} 트레이너가 담당으로 연결되었어요. "
-            f"첫 상담은 {when} 입니다."
+            f"{name or '트레이너'} 트레이너와의 상담이 확정됐어요. "
+            f"상담 일시는 {when} 입니다."
         )
     else:
         body = (
-            f"You're now connected with {name or 'your trainer'}. "
-            f"Your first consultation is on {when}."
+            f"Your consultation with {name or 'your trainer'} is confirmed "
+            f"for {when}."
         )
-    title = "상담 요청이 승인되었어요" if locale == "ko" else "Consultation request approved"
+    title = "상담 요청이 수락되었어요" if locale == "ko" else "Consultation request accepted"
     return title, body if note is None else f"{body} {note}"
 
 
@@ -446,6 +477,28 @@ def _member_trainer_left(args: Args, locale: Locale) -> Rendered:
         "Your trainer connection ended",
         f"{name or 'Your trainer'} has left the service. Find a new trainer.",
     )
+
+
+@_template(MEMBER_TRAINER_DISCONNECTED)
+def _member_trainer_disconnected(args: Args, locale: Locale) -> Rendered:
+    """트레이너가 담당을 해제했다(#2589). 남은 PT 를 취소했으면 그 수를 함께 전한다.
+
+    일정마다 취소 알림을 보내지 않는다 — 반복 PT 수만큼 쏟아지므로 이 한 건이 대신한다.
+    """
+    name = _text(args, "trainer_name").strip()
+    cancelled = _cancelled_sessions(args)
+    if locale == "ko":
+        body = f"{name or '담당'} 트레이너와 담당 연결이 끊어졌어요."
+        if cancelled:
+            body += f" 남은 PT 일정 {cancelled}건도 취소됐어요."
+        return "담당 트레이너 연결 해제", body
+    body = f"Your connection with {name or 'your trainer'} has ended."
+    if cancelled:
+        body += (
+            f" {_plural(cancelled, 'remaining PT session was', 'remaining PT sessions were')}"
+            " cancelled too."
+        )
+    return "Trainer connection ended", body
 
 
 @_template(MEMBER_TRAINER_LEFT_BOOKING)

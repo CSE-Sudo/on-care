@@ -14,7 +14,7 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 
 from app.core import clock
-from app.models.models import TrainerRoutine, TrainerSchedule
+from app.models.models import Notification, TrainerRoutine, TrainerSchedule
 
 MEMBER = "user-jisu"
 TRAINER = "trainer-demo"
@@ -445,3 +445,37 @@ def test_personal_routine_time_is_kept_in_seconds(client, db_session):
         assert (cycle["duration_seconds"], cycle["minutes"]) == (1200, 20)
     finally:
         _cleanup(db_session, day)
+
+
+def test_routine_only_notification_counts_personal_exercises(client, db_session):
+    """`개인운동만` 알림은 이름·세션 대신 개인운동 수로 말한다. (#2581)
+
+    저장 이름(예전 `이번 주 개인운동`)은 보낸 날부터 7일이라 달력의 이번 주와
+    맞지 않았고, 운동 하나가 세션 하나라 `세션 N개` 도 개인운동 묶음에 어울리지
+    않았다.
+    """
+    token = _tok(client)
+    _cleanup_routines(db_session)
+    try:
+        r = client.post(
+            _PROGRAM_URL,
+            json=_routine_only_body("req-2581-notice"),
+            headers=_h(token),
+        )
+        assert r.status_code == 201, r.text
+        db_session.expire_all()
+        rows = db_session.scalars(
+            select(Notification)
+            .where(
+                Notification.user_id == MEMBER,
+                Notification.template == "member_routine_program",
+            )
+            .order_by(Notification.created_at.desc())
+        ).all()
+        assert rows
+        latest = rows[0]
+        assert latest.template_args["routine_only"] is True
+        assert latest.body.startswith("개인운동 2개 · ")
+        assert "세션" not in latest.body
+    finally:
+        _cleanup_routines(db_session)

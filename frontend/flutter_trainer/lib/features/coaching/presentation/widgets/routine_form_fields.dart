@@ -4,6 +4,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -380,6 +381,74 @@ class RoutineNameField extends StatelessWidget {
       autofocus: autofocus,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
+    );
+  }
+}
+
+/// 회원에게 보일 효과 한 줄 — 자동 문구를 placeholder 로 미리 보인다. (#2570)
+///
+/// 트레이너가 운동마다 효과를 적게 하면 부담이 되므로, 비워 두면 [autoEffect]
+/// (유형 × 회원 목표 문구표)가 그대로 간다. 칸에 회색으로 미리 보이니 무엇이
+/// 갈지 알 수 있고, 바꾸고 싶으면 그 자리에서 바로 친다 — 연필을 한 번 더
+/// 누르지 않는다. 유형을 바꾸면 placeholder 도 따라 바뀐다.
+///
+/// 값은 트레이너가 친 글자뿐이다([value]). 목록에서 줄이 빠지면 같은 자리의
+/// 칸이 다른 운동의 값을 받으므로, 바깥 값이 바뀌면 칸 글자를 맞춘다.
+class RoutineEffectField extends StatefulWidget {
+  const RoutineEffectField({
+    required this.value,
+    required this.autoEffect,
+    required this.onChanged,
+    this.keyPrefix = 'routine-effect',
+    super.key,
+  });
+
+  /// 트레이너가 적은 효과. 비어 있으면 [autoEffect] 가 간다.
+  final String value;
+
+  /// 비워 두면 갈 자동 문구 — placeholder 로 보인다. 기타 유형처럼 비어
+  /// 있으면 예시 문구를 대신 보인다.
+  final String autoEffect;
+
+  final ValueChanged<String> onChanged;
+  final String keyPrefix;
+
+  @override
+  State<RoutineEffectField> createState() => _RoutineEffectFieldState();
+}
+
+class _RoutineEffectFieldState extends State<RoutineEffectField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value,
+  );
+
+  @override
+  void didUpdateWidget(RoutineEffectField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text) _controller.text = widget.value;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppTextField(
+      key: ValueKey<String>(widget.keyPrefix),
+      controller: _controller,
+      label: l.routineFieldEffect,
+      hint: widget.autoEffect.isNotEmpty
+          ? widget.autoEffect
+          : l.routineFieldEffectHint,
+      // 글자 수 표시 없이 막는다 — 회원 카드에서 한 줄로 읽히는 길이다.
+      inputFormatters: <TextInputFormatter>[
+        LengthLimitingTextInputFormatter(kRoutineEffectMaxLength),
+      ],
+      onChanged: widget.onChanged,
     );
   }
 }
