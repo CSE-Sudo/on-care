@@ -106,9 +106,15 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, week_score, week_score_delta, sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable) }` |
+| GET | `/dashboard/summary` | `{ indicators[], macros, diet_entries(int), exercise_minutes, nutrition_week[], sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable), ai_advice_params }` |
 
-`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 음식 이름이 들어간 나트륨 경고처럼 번역할 수 없는 문장에는 키를 주지 않는다.
+`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 값은 `sodium_over` · `sodium_over_sources` · `exercise_on_track` · `exercise_more` · `exercise_start` 중 하나다.
+
+`ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 번역하지 않고 앱 ARB 의 문장 틀에 그대로 끼운다. `sodium_warning` · `exercise_feedback` 문장도 요청 `Accept-Language` 를 따른다.
+
+`nutrition_week[]`: `{ date, label, calories, sodium_mg, sugar_g }` — 이번 주 월~일 7일. 홈 식단 카드는 칼로리를 그린다.
+
+주간 점수(`week_score`, `week_score_delta`), 지난 주 비교선(`nutrition_week_prev`), `exercise_calories` · `exercise_count` · `exercise_burn_goal` 은 홈이 읽지 않아 응답에서 뺐다(#2646).
 
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.

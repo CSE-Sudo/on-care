@@ -35,49 +35,35 @@ class HealthIndicator {
 
 /// One day of the 식단 카드 weekly-trend chart.
 ///
-/// 홈 카드가 그리는 것은 [calories] 하나다(#1879). [sodiumMg] 는 주간 건강
-/// 점수와 코칭 문구가 읽고, [sugarG] 는 응답 계약을 지키느라 남는다.
+/// 홈 카드가 그리는 것은 [calories] 하나다(#1879). 서버 응답에는 그날의
+/// 나트륨·당류도 실려 오지만 앱은 읽지 않는다(#2646).
 ///
 /// 날짜별 탄단지는 싣지 않는다 — 홈 지표 3칸은 오늘 합계
 /// (`DashboardSummary.macros`)를 쓰고 주간 추이는 칼로리로 고정이다(#1889).
 /// 식단 탭 `전체` 그래프가 쌓는 탄단지는 다른 경로(`/diet/days/{date}`)로 온다.
 class NutritionDay {
-  const NutritionDay({
-    required this.label,
-    required this.calories,
-    required this.sodiumMg,
-    required this.sugarG,
-  });
+  const NutritionDay({required this.label, required this.calories});
 
   final String label; // 요일(월/화/…)
   final int calories;
-  final int sodiumMg;
-  final double sugarG;
 
   factory NutritionDay.fromJson(Map<String, Object?> json) => NutritionDay(
     label: (json['label'] as String?) ?? '',
     calories: (json['calories'] as num?)?.toInt() ?? 0,
-    sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
-    sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
   );
 }
 
-/// Snapshot displayed on the home dashboard. Mirrors the data the
-/// React `Dashboard.tsx` mounts in `healthData` /
-/// `quickStats` / weekly score.
+/// Snapshot displayed on the home dashboard — `GET /dashboard/summary`.
+///
+/// 홈이 그리는 값만 든다. 주간 점수·지난 주 비교선·운동 칼로리·횟수·소모 목표는
+/// 화면 어디에서도 읽지 않아 뺐다(#2646).
 class DashboardSummary {
   const DashboardSummary({
     required this.indicators,
     required this.macros,
     required this.dietEntries,
     required this.exerciseMinutes,
-    this.exerciseCalories = 0,
-    this.exerciseCount = 0,
-    this.exerciseBurnGoal = defaultExerciseBurnGoal,
     this.nutritionWeek = const <NutritionDay>[],
-    this.nutritionWeekPrev = const <NutritionDay>[],
-    required this.weekScore,
-    required this.weekScoreDelta,
     required this.sodiumWarning,
     this.exerciseFeedback,
     this.aiAdviceKey,
@@ -96,27 +82,9 @@ class DashboardSummary {
   /// `quickStats` right tile — total exercise minutes for the current week.
   final int exerciseMinutes;
 
-  /// Total calories burned by the exercise sessions included in this summary.
-  final int exerciseCalories;
-
-  /// Number of exercise sessions included in this summary.
-  final int exerciseCount;
-
-  /// 운동 카드 소모 목표(kcal). 개인화 전까지 서버 기본값(500).
-  /// 홈 운동 카드와 운동 탭 '이번 주 운동 요약'이 모두 이 값을 읽는다.
-  final int exerciseBurnGoal;
-
-  /// 서버가 `exercise_burn_goal` 을 내려주지 않을 때 쓰는 기본값(kcal).
-  static const int defaultExerciseBurnGoal = 500;
-
-  /// 식단 카드 주간 추이(최근 7일 일별 영양) + 지난 주 같은 요일(비교선).
-  /// 비어 있으면(데모/목·데이터 없음) 화면은 기존 데모 상수로 폴백한다.
+  /// 식단 카드 주간 추이(이번 주 월~일 일별 칼로리).
+  /// 비어 있으면(데이터 없음) 화면은 기존 데모 상수로 폴백한다.
   final List<NutritionDay> nutritionWeek;
-  final List<NutritionDay> nutritionWeekPrev;
-
-  /// "이번 주 건강 점수" card.
-  final int weekScore;
-  final int weekScoreDelta;
 
   /// Diet-side daily feedback line — currently driven by the sodium
   /// budget, but treated generically as "the diet feedback the AI
@@ -150,18 +118,6 @@ class DashboardSummary {
     ),
   );
 
-  HealthIndicator get sodiumIndicator => indicators.firstWhere(
-    (HealthIndicator indicator) => indicator.unit == 'mg',
-    orElse: () =>
-        const HealthIndicator(label: '나트륨', current: 0, max: 2000, unit: 'mg'),
-  );
-
-  HealthIndicator get sugarIndicator => indicators.firstWhere(
-    (HealthIndicator indicator) => indicator.unit == 'g',
-    orElse: () =>
-        const HealthIndicator(label: '당류', current: 0, max: 50, unit: 'g'),
-  );
-
   bool get isEmpty =>
       dietEntries == 0 &&
       exerciseMinutes == 0 &&
@@ -170,46 +126,34 @@ class DashboardSummary {
       // 비어 있지 않다 — 주간 추이 차트가 표시돼야 한다.
       !nutritionWeek.any((NutritionDay day) => day.calories > 0);
 
-  factory DashboardSummary.fromJson(
-    Map<String, Object?> json,
-  ) => DashboardSummary(
-    indicators: (json['indicators']! as List<Object?>)
-        .cast<Map<String, Object?>>()
-        .map(HealthIndicator.fromJson)
-        .toList(),
-    macros: json['macros'] is Map<Object?, Object?>
-        ? DietMacros.fromJson(
-            (json['macros']! as Map<Object?, Object?>).cast<String, Object?>(),
-          )
-        : const DietMacros.zero(),
-    dietEntries: (json['diet_entries']! as num).toInt(),
-    exerciseMinutes: (json['exercise_minutes']! as num).toInt(),
-    exerciseCalories: (json['exercise_calories'] as num?)?.toInt() ?? 0,
-    exerciseCount: (json['exercise_count'] as num?)?.toInt() ?? 0,
-    exerciseBurnGoal:
-        (json['exercise_burn_goal'] as num?)?.toInt() ??
-        defaultExerciseBurnGoal,
-    nutritionWeek:
-        ((json['nutrition_week'] as List<Object?>?) ?? const <Object?>[])
+  factory DashboardSummary.fromJson(Map<String, Object?> json) =>
+      DashboardSummary(
+        indicators: (json['indicators']! as List<Object?>)
             .cast<Map<String, Object?>>()
-            .map(NutritionDay.fromJson)
+            .map(HealthIndicator.fromJson)
             .toList(),
-    nutritionWeekPrev:
-        ((json['nutrition_week_prev'] as List<Object?>?) ?? const <Object?>[])
-            .cast<Map<String, Object?>>()
-            .map(NutritionDay.fromJson)
-            .toList(),
-    weekScore: (json['week_score']! as num).toInt(),
-    weekScoreDelta: (json['week_score_delta']! as num).toInt(),
-    sodiumWarning: json['sodium_warning'] as String?,
-    exerciseFeedback: json['exercise_feedback'] as String?,
-    aiAdviceKey: json['ai_advice_key'] as String?,
-    aiAdviceParams: <String, Object>{
-      for (final MapEntry<Object?, Object?> e
-          in ((json['ai_advice_params'] as Map<Object?, Object?>?) ??
-                  const <Object?, Object?>{})
-              .entries)
-        if (e.key is String && e.value != null) e.key! as String: e.value!,
-    },
-  );
+        macros: json['macros'] is Map<Object?, Object?>
+            ? DietMacros.fromJson(
+                (json['macros']! as Map<Object?, Object?>)
+                    .cast<String, Object?>(),
+              )
+            : const DietMacros.zero(),
+        dietEntries: (json['diet_entries']! as num).toInt(),
+        exerciseMinutes: (json['exercise_minutes']! as num).toInt(),
+        nutritionWeek:
+            ((json['nutrition_week'] as List<Object?>?) ?? const <Object?>[])
+                .cast<Map<String, Object?>>()
+                .map(NutritionDay.fromJson)
+                .toList(),
+        sodiumWarning: json['sodium_warning'] as String?,
+        exerciseFeedback: json['exercise_feedback'] as String?,
+        aiAdviceKey: json['ai_advice_key'] as String?,
+        aiAdviceParams: <String, Object>{
+          for (final MapEntry<Object?, Object?> e
+              in ((json['ai_advice_params'] as Map<Object?, Object?>?) ??
+                      const <Object?, Object?>{})
+                  .entries)
+            if (e.key is String && e.value != null) e.key! as String: e.value!,
+        },
+      );
 }

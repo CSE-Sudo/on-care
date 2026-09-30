@@ -824,8 +824,8 @@ class LocalApiInterceptor extends Interceptor {
     final String lang = _requestLang(options);
 
     // 데모 시드가 큐레이션 '통합 조언'을 준비해 뒀는지. 있으면 그것을 우선
-    // 노출하고, 없으면(시드 없는 테스트 DB 등) 나트륨 상위 급원 기반 경고를
-    // 동적으로 생성한다.
+    // 노출하고, 없으면(시드 없는 테스트 DB, 회원이 기록을 바꿔 거둔 뒤 —
+    // [_retireCuratedAdvice]) 나트륨 상위 급원 기반 경고를 동적으로 생성한다.
     final seededAdvice = await _db.readValue('dashboard_ai_advice');
     final bool hasSeededAdvice =
         seededAdvice != null && seededAdvice.isNotEmpty;
@@ -836,10 +836,8 @@ class LocalApiInterceptor extends Interceptor {
       _db.exerciseSessions,
     )..where((t) => t.weekStart.equals(weekStart))).get();
     int exerciseMinutes = 0;
-    int exerciseCalories = 0;
     for (final r in exerciseRows) {
       exerciseMinutes += r.minutes;
-      exerciseCalories += r.calories;
     }
 
     // (혈당 row removed from the home summary per the latest design ref —
@@ -870,24 +868,6 @@ class LocalApiInterceptor extends Interceptor {
           ...nutritionByDate[_dateString(monday.add(Duration(days: index)))]!,
         },
     ];
-    final loggedNutritionDays = nutritionWeek
-        .where((day) => (day['calories']! as num) > 0)
-        .toList();
-    final averageSodium = loggedNutritionDays.isEmpty
-        ? totalSodium.toDouble()
-        : loggedNutritionDays.fold<double>(
-                0,
-                (total, day) => total + (day['sodium_mg']! as num).toDouble(),
-              ) /
-              loggedNutritionDays.length;
-    var score = 50;
-    if (averageSodium <= sodiumGoal) score += 20;
-    if (exerciseMinutes >= 150) {
-      score += 30;
-    } else if (exerciseMinutes > 0) {
-      score += 15;
-    }
-
     final String? sodiumWarning = _homeSodiumWarning(
       lang: lang,
       totalSodium: totalSodium,
@@ -931,16 +911,9 @@ class LocalApiInterceptor extends Interceptor {
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
       'diet_entries': dietRows.length,
       'exercise_minutes': exerciseMinutes,
-      'exercise_calories': exerciseCalories,
-      // 운동 횟수 = 운동한 '일수'(활성 일수). 운동 화면의 workoutCount 와 정의를
-      // 맞춰, 하루에 여러 세션을 기록해도 1회로 센다(세션 행 수가 아니라 distinct 요일).
-      'exercise_count': exerciseRows.map((r) => r.dayLabel).toSet().length,
+      // 주간 점수·지난 주 비교선·운동 칼로리·횟수는 서버처럼 싣지 않는다 — 홈이
+      // 읽지 않는다(#2646).
       'nutrition_week': nutritionWeek,
-      'nutrition_week_prev': <Object?>[],
-      'week_score': score,
-      // Delta is a static demo number for now — full week-over-week
-      // diff lands in a later phase.
-      'week_score_delta': 12,
       // 시드가 큐레이션한 통합 조언은 **키로** 내려보낸다 — 문장은 ARB 가
       // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
       //

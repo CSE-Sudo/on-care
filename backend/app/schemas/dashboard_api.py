@@ -31,15 +31,8 @@ class DashboardSummary(BaseModel):
     macros: Macros
     diet_entries: int
     exercise_minutes: int
-    exercise_calories: int
-    exercise_count: int
-    # 운동 소모 목표(kcal) — 홈 운동 카드 진행률용. 개인화 전까지 서버 기본값.
-    exercise_burn_goal: int = 500
-    # 식단 카드 주간 추이(최근 7일 일별 영양) + 지난 주 같은 요일(비교선)
+    # 식단 카드 주간 추이(이번 주 월~일 일별 영양). 홈 카드는 칼로리를 그린다.
     nutrition_week: list[DashboardNutritionDay] = []
-    nutrition_week_prev: list[DashboardNutritionDay] = []
-    week_score: int
-    week_score_delta: int
     sodium_warning: Optional[str]
     exercise_feedback: str
     #: 홈 `오늘의 AI 통합 조언` 이 고른 문장의 **로케일 독립 식별자**. (#1943)

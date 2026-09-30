@@ -3,8 +3,9 @@
 
   GET /dashboard/summary -> 홈 화면용 종합 집계
 
-식단/운동/일정 데이터를 모아 한 번에 반환합니다.
-권장 기준치(나트륨 2000mg, 당류 50g, 칼로리 2000kcal)는 고혈압·당뇨 관점 기본값.
+오늘 식단·이번 주 식단 추이·이번 주 운동을 모아 한 번에 반환합니다.
+세 지표의 목표는 회원 건강 목표(health_profile)이고, 목표를 정하지 않은 회원은
+일일 권장 기준치(칼로리 2000kcal, 나트륨 2000mg, 당류 50g)를 기본값으로 씁니다.
 """
 from __future__ import annotations
 
@@ -41,30 +42,6 @@ _DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]
 
 # 나트륨 경고가 짚는 상위 급원 음식 수.
 _SODIUM_SOURCE_COUNT = 2
-
-
-def _score_for(sodium_ok: bool, exercise_minutes: int) -> int:
-    """식단 균형(나트륨) + 운동량 기반 간이 주간 점수(0~100)."""
-    score = 50
-    if sodium_ok:
-        score += 20
-    if exercise_minutes >= 150:
-        score += 30
-    elif exercise_minutes > 0:
-        score += 15
-    return min(score, 100)
-
-
-def _avg_sodium_of_logged(days: list[DashboardNutritionDay]) -> float | None:
-    """기록된(칼로리>0) 날짜들의 평균 나트륨(mg). 기록이 없으면 None.
-
-    주간 점수를 이번 주·지난 주 모두 "기록된 날짜들의 평균 나트륨"으로 계산해
-    하루치와 주간 평균을 비교하는 왜곡을 막는다.
-    """
-    logged = [d for d in days if d.calories > 0]
-    if not logged:
-        return None
-    return sum(d.sodium_mg for d in logged) / len(logged)
 
 
 def _nutrition_week(
@@ -268,10 +245,9 @@ def dashboard_summary(
     source_names = _rank_sodium_sources(row.foods_json for row in diet_rows)
     sodium_warning = _build_sodium_warning(total_na, source_names, sodium_goal)
 
-    # --- 식단 주간 추이(이번 주 월~일 + 지난 주 월~일 비교선) ---
+    # --- 식단 주간 추이(이번 주 월~일) ---
     this_monday = today_dt - timedelta(days=today_dt.weekday())
     nutrition_week = _nutrition_week(db, uid, this_monday)
-    nutrition_week_prev = _nutrition_week(db, uid, this_monday - timedelta(days=7))
 
     # --- 이번 주 운동 집계 ---
     # 위 식단·주간 추이와 같은 스냅샷에서 뽑는다 — 여기서 시계를 다시 읽으면
@@ -282,29 +258,7 @@ def dashboard_summary(
         .where(ExerciseSession.week_start == week)
     ).all()
     exercise_minutes = sum(r.minutes for r in ex_rows)
-    exercise_calories = sum(r.calories for r in ex_rows)
-    exercise_count = len(ex_rows)
     exercise_feedback, exercise_advice_key = _exercise_feedback(exercise_minutes)
-
-    # --- 주간 점수 + 지난주 대비 변화량(동일 공식으로 실제 차이 집계) ---
-    # 이번 주 점수도 지난주와 같은 방식(기록된 날짜들의 평균 나트륨)으로 계산한다.
-    # 하루치(total_na)를 주간 평균과 비교하면 왜곡되고, 오늘 아직 식사를 기록하지
-    # 않았을 때 total_na==0 이라 주간 식습관과 무관하게 나트륨 조건을 통과하는
-    # 문제가 있었다. 이번 주 기록이 아직 없으면 오늘 하루치로 폴백한다.
-    this_avg_sodium = _avg_sodium_of_logged(nutrition_week)
-    if this_avg_sodium is None:
-        this_avg_sodium = total_na
-    score = _score_for(this_avg_sodium <= sodium_goal, exercise_minutes)
-    last_week = (today_dt - timedelta(days=today_dt.weekday() + 7)).strftime("%Y-%m-%d")
-    last_ex_minutes = sum(
-        r.minutes for r in db.scalars(
-            select(ExerciseSession).where(ExerciseSession.user_id == uid)
-            .where(ExerciseSession.week_start == last_week)
-        ).all()
-    )
-    last_avg_sodium = _avg_sodium_of_logged(nutrition_week_prev) or 0
-    last_week_score = _score_for(last_avg_sodium <= sodium_goal, last_ex_minutes)
-    week_score_delta = score - last_week_score
 
     advice_key = _advice_key(
         sodium_warning=sodium_warning,
@@ -316,12 +270,7 @@ def dashboard_summary(
         macros=macros,
         diet_entries=len(diet_rows),
         exercise_minutes=exercise_minutes,
-        exercise_calories=exercise_calories,
-        exercise_count=exercise_count,
         nutrition_week=nutrition_week,
-        nutrition_week_prev=nutrition_week_prev,
-        week_score=score,
-        week_score_delta=week_score_delta,
         sodium_warning=sodium_warning,
         exercise_feedback=exercise_feedback,
         ai_advice_key=advice_key,

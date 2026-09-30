@@ -39,8 +39,6 @@ DashboardSummary _summary({
   macros: const DietMacros.zero(),
   dietEntries: 0,
   exerciseMinutes: 0,
-  weekScore: 0,
-  weekScoreDelta: 0,
   sodiumWarning: sodiumWarning,
   aiAdviceKey: adviceKey,
   aiAdviceParams: adviceParams,
@@ -188,8 +186,6 @@ void main() {
           'indicators': <Object?>[],
           'diet_entries': 1,
           'exercise_minutes': 0,
-          'week_score': 0,
-          'week_score_delta': 0,
           'sodium_warning': '라면 섭취로 나트륨이 높아요.',
           'ai_advice_key': 'sodium_over_sources',
           'ai_advice_params': <String, Object?>{
@@ -212,8 +208,6 @@ void main() {
             'indicators': <Object?>[],
             'diet_entries': 0,
             'exercise_minutes': 0,
-            'week_score': 0,
-            'week_score_delta': 0,
             'sodium_warning': null,
           });
 

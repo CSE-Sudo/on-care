@@ -46,12 +46,7 @@ class FakeDashboardRepository implements DashboardRepository {
           date.day == now.day;
       final DietDay day = isToday ? today : await _diet.fetchByDate(date);
       nutritionWeek.add(
-        NutritionDay(
-          label: _weekdayLabels[index],
-          calories: day.totalCalories,
-          sodiumMg: day.totalSodiumMg,
-          sugarG: day.totalSugarG,
-        ),
+        NutritionDay(label: _weekdayLabels[index], calories: day.totalCalories),
       );
     }
 
@@ -82,16 +77,12 @@ class FakeDashboardRepository implements DashboardRepository {
       macros: today.macros,
       dietEntries: today.entries.length,
       exerciseMinutes: 45,
-      exerciseCalories: 520,
-      exerciseCount: 4,
       nutritionWeek: nutritionWeek,
-      weekScore: 85,
-      weekScoreDelta: 12,
       // 홈 '오늘의 AI 통합 조언' 자리. 문구가 아니라 키만 싣는다 — 문장은
       // ARB 가 ko·en 양쪽으로 갖고 있고, 화면이 로케일에 맞게 고른다(#435).
       aiAdviceKey: kDailyCombinedAdviceKey,
       sodiumWarning: null,
-      // `exerciseFeedback` 은 서버가 만든 문장이 들어오는 자리라 데모에서는
+      // `exerciseFeedback` 은 서버가 만든 문장이 들어오는 자리라 대역에서는
       // 채우지 않는다(기본값 null). 한국어를 넣어 두면 조언 키가 못 풀렸을 때
       // 영어 로케일로 한국어가 새고, 그때 ARB 기본 문구로 떨어져야 한다(#435).
     );

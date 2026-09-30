@@ -33,10 +33,7 @@ void main() {
     // 혈당 row was dropped from the home summary; expect 3 rows
     // (칼로리 / 나트륨 / 당류).
     expect(summary.indicators.length, 3);
-    expect(summary.weekScore, 85);
     expect(summary.exerciseMinutes, 45);
-    expect(summary.exerciseCalories, 520);
-    expect(summary.exerciseCount, 4);
   });
 
   test('dashboardSummaryProvider propagates repository failures', () async {
@@ -62,8 +59,6 @@ void main() {
         'diet_entries': 0,
         'exercise_minutes': 0,
         'today_schedule': <Object?>[],
-        'week_score': 50,
-        'week_score_delta': 0,
         'sodium_warning': null,
         'exercise_feedback': null,
       };
@@ -85,8 +80,6 @@ void main() {
     );
     expect(parsed.macros.carbsG, 203.6);
     expect(parsed.macros.carbsPct, 44);
-    expect(parsed.exerciseCalories, 0);
-    expect(parsed.exerciseCount, 0);
 
     final legacy = DashboardSummary.fromJson(payload());
     expect(legacy.macros.carbsG, 0);
@@ -94,66 +87,73 @@ void main() {
     expect(legacy.isEmpty, isTrue);
   });
 
-  test(
-    'DashboardSummary parses nutrition_week + burn goal, defaults older',
-    () {
-      final parsed = DashboardSummary.fromJson(<String, Object?>{
-        'indicators': <Object?>[],
-        'diet_entries': 0,
-        'exercise_minutes': 0,
-        'exercise_burn_goal': 700,
-        'nutrition_week': <Object?>[
-          <String, Object?>{
-            'label': '월',
-            'calories': 1650,
-            'sodium_mg': 1600,
-            'sugar_g': 30,
-          },
-          <String, Object?>{
-            'label': '화',
-            'calories': 2100,
-            'sodium_mg': 1900,
-            'sugar_g': 48,
-          },
-        ],
-        'nutrition_week_prev': <Object?>[
-          <String, Object?>{
-            'label': '월',
-            'calories': 1820,
-            'sodium_mg': 1900,
-            'sugar_g': 35,
-          },
-        ],
-        'today_schedule': <Object?>[],
-        'week_score': 70,
-        'week_score_delta': -5,
-        'sodium_warning': null,
-        'exercise_feedback': null,
-      });
-      expect(parsed.exerciseBurnGoal, 700);
-      expect(parsed.nutritionWeek.length, 2);
-      expect(parsed.nutritionWeek.first.label, '월');
-      expect(parsed.nutritionWeek.first.calories, 1650);
-      expect(parsed.nutritionWeek.first.sodiumMg, 1600);
-      expect(parsed.nutritionWeekPrev.length, 1);
-      expect(parsed.weekScoreDelta, -5);
+  test('DashboardSummary parses nutrition_week, defaults older', () {
+    final parsed = DashboardSummary.fromJson(<String, Object?>{
+      'indicators': <Object?>[],
+      'diet_entries': 0,
+      'exercise_minutes': 0,
+      'nutrition_week': <Object?>[
+        <String, Object?>{
+          'label': '월',
+          'calories': 1650,
+          'sodium_mg': 1600,
+          'sugar_g': 30,
+        },
+        <String, Object?>{
+          'label': '화',
+          'calories': 2100,
+          'sodium_mg': 1900,
+          'sugar_g': 48,
+        },
+      ],
+      'sodium_warning': null,
+      'exercise_feedback': null,
+    });
+    expect(parsed.nutritionWeek.length, 2);
+    expect(parsed.nutritionWeek.first.label, '월');
+    expect(parsed.nutritionWeek.first.calories, 1650);
 
-      // 구버전 응답: 새 필드가 없으면 기본값(빈 주간·소모목표 500)으로 폴백.
-      final legacy = DashboardSummary.fromJson(<String, Object?>{
-        'indicators': <Object?>[],
-        'diet_entries': 0,
-        'exercise_minutes': 0,
-        'today_schedule': <Object?>[],
-        'week_score': 50,
-        'week_score_delta': 0,
-        'sodium_warning': null,
-        'exercise_feedback': null,
-      });
-      expect(legacy.exerciseBurnGoal, 500);
-      expect(legacy.nutritionWeek, isEmpty);
-      expect(legacy.nutritionWeekPrev, isEmpty);
-    },
-  );
+    // 구버전 응답: 주간 추이가 없으면 빈 목록으로 폴백.
+    final legacy = DashboardSummary.fromJson(<String, Object?>{
+      'indicators': <Object?>[],
+      'diet_entries': 0,
+      'exercise_minutes': 0,
+      'sodium_warning': null,
+      'exercise_feedback': null,
+    });
+    expect(legacy.nutritionWeek, isEmpty);
+  });
+
+  // 홈이 읽지 않아 뺀 필드(#2646). 예전 서버가 아직 실어 보내도 파싱이 깨지지
+  // 않아야 하고, 새 서버가 싣지 않아도 필수 값 누락으로 실패하지 않아야 한다.
+  test('주간 점수·운동 칼로리 등 뺀 필드가 있든 없든 파싱한다', () {
+    final Map<String, Object?> current = <String, Object?>{
+      'indicators': <Object?>[],
+      'diet_entries': 1,
+      'exercise_minutes': 30,
+      'nutrition_week': <Object?>[],
+      'sodium_warning': null,
+      'exercise_feedback': null,
+    };
+    final Map<String, Object?> older = <String, Object?>{
+      ...current,
+      'week_score': 70,
+      'week_score_delta': -5,
+      'nutrition_week_prev': <Object?>[],
+      'exercise_calories': 300,
+      'exercise_count': 2,
+      'exercise_burn_goal': 500,
+    };
+
+    for (final Map<String, Object?> json in <Map<String, Object?>>[
+      current,
+      older,
+    ]) {
+      final DashboardSummary parsed = DashboardSummary.fromJson(json);
+      expect(parsed.dietEntries, 1);
+      expect(parsed.exerciseMinutes, 30);
+    }
+  });
 
   test('isEmpty stays false when only past weekdays have diet records', () {
     Map<String, Object?> base(List<Object?> week) => <String, Object?>{
@@ -162,8 +162,6 @@ void main() {
       'exercise_minutes': 0,
       'today_schedule': <Object?>[],
       'nutrition_week': week,
-      'week_score': 50,
-      'week_score_delta': 0,
       'sodium_warning': null,
       'exercise_feedback': null,
     };
