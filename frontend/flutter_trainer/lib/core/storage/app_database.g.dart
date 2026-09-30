@@ -2343,6 +2343,48 @@ class $ClientAiRoutinesTable extends ClientAiRoutines
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _setsMeta = const VerificationMeta('sets');
+  @override
+  late final GeneratedColumn<int> sets = GeneratedColumn<int>(
+    'sets',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _repsMeta = const VerificationMeta('reps');
+  @override
+  late final GeneratedColumn<int> reps = GeneratedColumn<int>(
+    'reps',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _holdSecondsMeta = const VerificationMeta(
+    'holdSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> holdSeconds = GeneratedColumn<int>(
+    'hold_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _weightMeta = const VerificationMeta('weight');
+  @override
+  late final GeneratedColumn<double> weight = GeneratedColumn<double>(
+    'weight',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2352,6 +2394,10 @@ class $ClientAiRoutinesTable extends ClientAiRoutines
     type,
     reason,
     sortOrder,
+    sets,
+    reps,
+    holdSeconds,
+    weight,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2416,6 +2462,33 @@ class $ClientAiRoutinesTable extends ClientAiRoutines
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('sets')) {
+      context.handle(
+        _setsMeta,
+        sets.isAcceptableOrUnknown(data['sets']!, _setsMeta),
+      );
+    }
+    if (data.containsKey('reps')) {
+      context.handle(
+        _repsMeta,
+        reps.isAcceptableOrUnknown(data['reps']!, _repsMeta),
+      );
+    }
+    if (data.containsKey('hold_seconds')) {
+      context.handle(
+        _holdSecondsMeta,
+        holdSeconds.isAcceptableOrUnknown(
+          data['hold_seconds']!,
+          _holdSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weight')) {
+      context.handle(
+        _weightMeta,
+        weight.isAcceptableOrUnknown(data['weight']!, _weightMeta),
+      );
+    }
     return context;
   }
 
@@ -2453,6 +2526,22 @@ class $ClientAiRoutinesTable extends ClientAiRoutines
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      sets: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sets'],
+      )!,
+      reps: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reps'],
+      )!,
+      holdSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hold_seconds'],
+      )!,
+      weight: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weight'],
+      )!,
     );
   }
 
@@ -2471,6 +2560,15 @@ class ClientAiRoutineRow extends DataClass
   final String type;
   final String reason;
   final int sortOrder;
+
+  /// 근력의 세트·횟수(또는 버티는 초)·중량(kg). 다른 유형은 0 이다. (#2705)
+  ///
+  /// 이 칸이 없던 동안에는 근력을 배정·PT 개인운동으로 쓰면 `0세트 · 0회` 로
+  /// 그려져, 시드 행 id 별 값 표로 메웠다(#2668).
+  final int sets;
+  final int reps;
+  final int holdSeconds;
+  final double weight;
   const ClientAiRoutineRow({
     required this.id,
     required this.clientId,
@@ -2479,6 +2577,10 @@ class ClientAiRoutineRow extends DataClass
     required this.type,
     required this.reason,
     required this.sortOrder,
+    required this.sets,
+    required this.reps,
+    required this.holdSeconds,
+    required this.weight,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2490,6 +2592,10 @@ class ClientAiRoutineRow extends DataClass
     map['type'] = Variable<String>(type);
     map['reason'] = Variable<String>(reason);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['sets'] = Variable<int>(sets);
+    map['reps'] = Variable<int>(reps);
+    map['hold_seconds'] = Variable<int>(holdSeconds);
+    map['weight'] = Variable<double>(weight);
     return map;
   }
 
@@ -2502,6 +2608,10 @@ class ClientAiRoutineRow extends DataClass
       type: Value(type),
       reason: Value(reason),
       sortOrder: Value(sortOrder),
+      sets: Value(sets),
+      reps: Value(reps),
+      holdSeconds: Value(holdSeconds),
+      weight: Value(weight),
     );
   }
 
@@ -2518,6 +2628,10 @@ class ClientAiRoutineRow extends DataClass
       type: serializer.fromJson<String>(json['type']),
       reason: serializer.fromJson<String>(json['reason']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      sets: serializer.fromJson<int>(json['sets']),
+      reps: serializer.fromJson<int>(json['reps']),
+      holdSeconds: serializer.fromJson<int>(json['holdSeconds']),
+      weight: serializer.fromJson<double>(json['weight']),
     );
   }
   @override
@@ -2531,6 +2645,10 @@ class ClientAiRoutineRow extends DataClass
       'type': serializer.toJson<String>(type),
       'reason': serializer.toJson<String>(reason),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'sets': serializer.toJson<int>(sets),
+      'reps': serializer.toJson<int>(reps),
+      'holdSeconds': serializer.toJson<int>(holdSeconds),
+      'weight': serializer.toJson<double>(weight),
     };
   }
 
@@ -2542,6 +2660,10 @@ class ClientAiRoutineRow extends DataClass
     String? type,
     String? reason,
     int? sortOrder,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
   }) => ClientAiRoutineRow(
     id: id ?? this.id,
     clientId: clientId ?? this.clientId,
@@ -2550,6 +2672,10 @@ class ClientAiRoutineRow extends DataClass
     type: type ?? this.type,
     reason: reason ?? this.reason,
     sortOrder: sortOrder ?? this.sortOrder,
+    sets: sets ?? this.sets,
+    reps: reps ?? this.reps,
+    holdSeconds: holdSeconds ?? this.holdSeconds,
+    weight: weight ?? this.weight,
   );
   ClientAiRoutineRow copyWithCompanion(ClientAiRoutinesCompanion data) {
     return ClientAiRoutineRow(
@@ -2560,6 +2686,12 @@ class ClientAiRoutineRow extends DataClass
       type: data.type.present ? data.type.value : this.type,
       reason: data.reason.present ? data.reason.value : this.reason,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      sets: data.sets.present ? data.sets.value : this.sets,
+      reps: data.reps.present ? data.reps.value : this.reps,
+      holdSeconds: data.holdSeconds.present
+          ? data.holdSeconds.value
+          : this.holdSeconds,
+      weight: data.weight.present ? data.weight.value : this.weight,
     );
   }
 
@@ -2572,14 +2704,29 @@ class ClientAiRoutineRow extends DataClass
           ..write('minutes: $minutes, ')
           ..write('type: $type, ')
           ..write('reason: $reason, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('sets: $sets, ')
+          ..write('reps: $reps, ')
+          ..write('holdSeconds: $holdSeconds, ')
+          ..write('weight: $weight')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, clientId, name, minutes, type, reason, sortOrder);
+  int get hashCode => Object.hash(
+    id,
+    clientId,
+    name,
+    minutes,
+    type,
+    reason,
+    sortOrder,
+    sets,
+    reps,
+    holdSeconds,
+    weight,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2590,7 +2737,11 @@ class ClientAiRoutineRow extends DataClass
           other.minutes == this.minutes &&
           other.type == this.type &&
           other.reason == this.reason &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.sets == this.sets &&
+          other.reps == this.reps &&
+          other.holdSeconds == this.holdSeconds &&
+          other.weight == this.weight);
 }
 
 class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
@@ -2601,6 +2752,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
   final Value<String> type;
   final Value<String> reason;
   final Value<int> sortOrder;
+  final Value<int> sets;
+  final Value<int> reps;
+  final Value<int> holdSeconds;
+  final Value<double> weight;
   final Value<int> rowid;
   const ClientAiRoutinesCompanion({
     this.id = const Value.absent(),
@@ -2610,6 +2765,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
     this.type = const Value.absent(),
     this.reason = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.sets = const Value.absent(),
+    this.reps = const Value.absent(),
+    this.holdSeconds = const Value.absent(),
+    this.weight = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ClientAiRoutinesCompanion.insert({
@@ -2620,6 +2779,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
     required String type,
     required String reason,
     this.sortOrder = const Value.absent(),
+    this.sets = const Value.absent(),
+    this.reps = const Value.absent(),
+    this.holdSeconds = const Value.absent(),
+    this.weight = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        clientId = Value(clientId),
@@ -2635,6 +2798,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
     Expression<String>? type,
     Expression<String>? reason,
     Expression<int>? sortOrder,
+    Expression<int>? sets,
+    Expression<int>? reps,
+    Expression<int>? holdSeconds,
+    Expression<double>? weight,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2645,6 +2812,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
       if (type != null) 'type': type,
       if (reason != null) 'reason': reason,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (sets != null) 'sets': sets,
+      if (reps != null) 'reps': reps,
+      if (holdSeconds != null) 'hold_seconds': holdSeconds,
+      if (weight != null) 'weight': weight,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2657,6 +2828,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
     Value<String>? type,
     Value<String>? reason,
     Value<int>? sortOrder,
+    Value<int>? sets,
+    Value<int>? reps,
+    Value<int>? holdSeconds,
+    Value<double>? weight,
     Value<int>? rowid,
   }) {
     return ClientAiRoutinesCompanion(
@@ -2667,6 +2842,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
       type: type ?? this.type,
       reason: reason ?? this.reason,
       sortOrder: sortOrder ?? this.sortOrder,
+      sets: sets ?? this.sets,
+      reps: reps ?? this.reps,
+      holdSeconds: holdSeconds ?? this.holdSeconds,
+      weight: weight ?? this.weight,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2695,6 +2874,18 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (sets.present) {
+      map['sets'] = Variable<int>(sets.value);
+    }
+    if (reps.present) {
+      map['reps'] = Variable<int>(reps.value);
+    }
+    if (holdSeconds.present) {
+      map['hold_seconds'] = Variable<int>(holdSeconds.value);
+    }
+    if (weight.present) {
+      map['weight'] = Variable<double>(weight.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2711,6 +2902,10 @@ class ClientAiRoutinesCompanion extends UpdateCompanion<ClientAiRoutineRow> {
           ..write('type: $type, ')
           ..write('reason: $reason, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('sets: $sets, ')
+          ..write('reps: $reps, ')
+          ..write('holdSeconds: $holdSeconds, ')
+          ..write('weight: $weight, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7651,6 +7846,10 @@ typedef $$ClientAiRoutinesTableCreateCompanionBuilder =
       required String type,
       required String reason,
       Value<int> sortOrder,
+      Value<int> sets,
+      Value<int> reps,
+      Value<int> holdSeconds,
+      Value<double> weight,
       Value<int> rowid,
     });
 typedef $$ClientAiRoutinesTableUpdateCompanionBuilder =
@@ -7662,6 +7861,10 @@ typedef $$ClientAiRoutinesTableUpdateCompanionBuilder =
       Value<String> type,
       Value<String> reason,
       Value<int> sortOrder,
+      Value<int> sets,
+      Value<int> reps,
+      Value<int> holdSeconds,
+      Value<double> weight,
       Value<int> rowid,
     });
 
@@ -7706,6 +7909,26 @@ class $$ClientAiRoutinesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sets => $composableBuilder(
+    column: $table.sets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reps => $composableBuilder(
+    column: $table.reps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get holdSeconds => $composableBuilder(
+    column: $table.holdSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weight => $composableBuilder(
+    column: $table.weight,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7753,6 +7976,26 @@ class $$ClientAiRoutinesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get sets => $composableBuilder(
+    column: $table.sets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reps => $composableBuilder(
+    column: $table.reps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get holdSeconds => $composableBuilder(
+    column: $table.holdSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weight => $composableBuilder(
+    column: $table.weight,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientAiRoutinesTableAnnotationComposer
@@ -7784,6 +8027,20 @@ class $$ClientAiRoutinesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get sets =>
+      $composableBuilder(column: $table.sets, builder: (column) => column);
+
+  GeneratedColumn<int> get reps =>
+      $composableBuilder(column: $table.reps, builder: (column) => column);
+
+  GeneratedColumn<int> get holdSeconds => $composableBuilder(
+    column: $table.holdSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get weight =>
+      $composableBuilder(column: $table.weight, builder: (column) => column);
 }
 
 class $$ClientAiRoutinesTableTableManager
@@ -7830,6 +8087,10 @@ class $$ClientAiRoutinesTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<String> reason = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> sets = const Value.absent(),
+                Value<int> reps = const Value.absent(),
+                Value<int> holdSeconds = const Value.absent(),
+                Value<double> weight = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientAiRoutinesCompanion(
                 id: id,
@@ -7839,6 +8100,10 @@ class $$ClientAiRoutinesTableTableManager
                 type: type,
                 reason: reason,
                 sortOrder: sortOrder,
+                sets: sets,
+                reps: reps,
+                holdSeconds: holdSeconds,
+                weight: weight,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7850,6 +8115,10 @@ class $$ClientAiRoutinesTableTableManager
                 required String type,
                 required String reason,
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> sets = const Value.absent(),
+                Value<int> reps = const Value.absent(),
+                Value<int> holdSeconds = const Value.absent(),
+                Value<double> weight = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientAiRoutinesCompanion.insert(
                 id: id,
@@ -7859,6 +8128,10 @@ class $$ClientAiRoutinesTableTableManager
                 type: type,
                 reason: reason,
                 sortOrder: sortOrder,
+                sets: sets,
+                reps: reps,
+                holdSeconds: holdSeconds,
+                weight: weight,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
