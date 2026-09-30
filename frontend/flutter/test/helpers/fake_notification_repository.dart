@@ -12,12 +12,18 @@ class FakeNotificationRepository implements NotificationRepository {
 
   List<AlertItem> _items;
 
+  /// 목록을 부른 횟수.
+  int fetchCalls = 0;
+
   @override
   Future<List<AlertItem>> fetchPage({
     int limit = notificationPageSize,
     String? before,
     String? beforeId,
-  }) async => List<AlertItem>.of(_items);
+  }) async {
+    fetchCalls++;
+    return List<AlertItem>.of(_items);
+  }
 
   @override
   Future<void> markRead(String id) async {
