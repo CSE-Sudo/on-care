@@ -1847,9 +1847,8 @@ def _routine_out(
         completed_intensity=completion.intensity if completion is not None else None,
         # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양은 옛 앱을 위해 남긴다.
         member_note="",
-        trainer_feedback=(
-            completion.trainer_feedback if completion is not None else ""
-        ),
+        # 개인 운동 트레이너 피드백도 없앴다(#2517). 응답 모양은 옛 앱을 위해 남긴다.
+        trainer_feedback="",
         schedule_id=getattr(rt, "schedule_id", None),
         pending_send=getattr(rt, "status", "") == ROUTINE_SCHEDULED,
         delivery_kind=getattr(rt, "delivery_kind", None),
@@ -2293,36 +2292,8 @@ def uncomplete_assigned_routine(
     return _routine_out(db, routine, None)
 
 
-def update_assigned_routine_feedback(
-    db: Session,
-    trainer_id: str,
-    member_id: str,
-    history_id: str,
-    feedback: str,
-) -> RoutineHistoryOut:
-    """활성 담당 관계가 확인된 트레이너가 자신이 배정한 기록에 피드백한다.
-
-    API 계층은 현재 활성 담당 관계를 먼저 확인하고, 여기서는 수행 스냅샷의
-    배정 트레이너까지 일치하는지 추가로 검증한다(#638).
-    """
-    row = db.scalar(
-        select(ExerciseSession).where(
-            ExerciseSession.id == history_id,
-            ExerciseSession.user_id == member_id,
-            ExerciseSession.source == "assigned_routine",
-            ExerciseSession.assigned_trainer_id == trainer_id,
-        )
-    )
-    if row is None:
-        raise RoutineNotFound("배정 루틴 수행 기록을 찾을 수 없습니다.")
-    row.trainer_feedback = feedback.strip()
-    db.commit()
-    db.refresh(row)
-    return _assigned_history_out(row)
-
-
 def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
-    """배정 루틴 수행을 조회·수정 응답에서 공유하는 이력 계약으로 변환한다."""
+    """배정 루틴 수행 → 트레이너 이력 계약."""
     completed_at = row.completed_at or row.created_at
     # 라벨의 날짜는 [build_client_history] 와 같은 규칙을 쓴다(#1264). 두 곳이
     # 갈리면 같은 기록이 목록과 상세에서 다른 날로 보인다.
@@ -2350,9 +2321,9 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
         # 이름이 있으면 트레이너가 지은 이름이라 코드가 없다.
         kind=None if row.assigned_routine_name else "assigned_routine",
         exercise_items=[_assigned_exercise_item(row)],
-        # 개인 운동 회원 피드백은 없앴다(#1825). 옛 데이터가 있어도 내려보내지 않는다.
+        # 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 응답 모양만 남긴다.
         client_feedback="",
-        trainer_note=row.trainer_feedback,
+        trainer_note="",
         assigned_routine_id=row.assigned_routine_id,
         completed_at=completed_at,
     )

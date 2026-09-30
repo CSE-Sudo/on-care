@@ -93,7 +93,6 @@ Override sessionFeatureResetOverride() {
       // 계정의 읽음 상태로 시작한다(#1936).
       ref.invalidate(notificationRepositoryProvider);
       ref.invalidate(notificationControllerProvider);
-      ref.invalidate(notificationListProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이
       // 앱을 다시 켤 때까지 남는다.
       ref.invalidate(notificationSettingsProvider);

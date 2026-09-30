@@ -993,11 +993,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exCompletedRoutineDayTitle => 'Completed solo workout';
 
   @override
-  String exPtDayFeedback(String coachName) {
-    return '$coachName · Feedback';
-  }
-
-  @override
   String get exDeleteExercise => 'Delete workout';
 
   @override
@@ -1586,6 +1581,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsHistoryMore => 'Load more';
 
   @override
+  String get myPointsHistoryMoreFailed =>
+      'Couldn\'t load more. Please try again';
+
+  @override
   String get myPointsReasonDiet => 'Meal log';
 
   @override
@@ -2106,6 +2105,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mySaveFailed => 'Couldn\'t save. Please try again in a moment';
+
+  @override
+  String get myProfileEmailTaken => 'That email is already in use';
+
+  @override
+  String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
+
+  @override
+  String get myProfileInvalid => 'Please check what you entered';
 
   @override
   String get myFieldName => 'Name';
@@ -3689,11 +3697,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
-
-  @override
-  String coachRoutineTrainerFeedback(String feedback) {
-    return 'Trainer feedback: $feedback';
-  }
 
   @override
   String get coachRoutineCompleteTitle => 'Mark personal exercise done';
