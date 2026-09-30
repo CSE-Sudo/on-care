@@ -527,6 +527,18 @@ class MockExerciseRepository
     _removeAt(at);
   }
 
+  /// 메모리 대역에는 새로고침이 없다 — 이 인스턴스가 남긴 배정 루틴 기록만 있다.
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async =>
+      <ExerciseSession>[
+        for (final List<ExerciseSession> store in <List<ExerciseSession>>[
+          _sessions,
+          ..._pastAdded.values,
+        ])
+          for (final ExerciseSession s in store)
+            if (s.assignedRoutineId != null && s.date != null) s,
+      ];
+
   /// 새 기록을 [date] 의 주에 넣는다. 이번 주 총 칼로리 헤드라인은 이번 주에
   /// 들어온 기록만 더한다.
   void _placeNew(ExerciseSession session, DateTime date) {

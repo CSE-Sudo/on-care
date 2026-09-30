@@ -346,11 +346,65 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<MemberCoach?> fetchCoach() async => _hasCoach() ? _coach : null;
 
   @override
-  Future<List<CoachRoutine>> fetchRoutines() async =>
-      _routinesOn(todayKst(), today: true);
+  Future<List<CoachRoutine>> fetchRoutines() async {
+    await _restoreCompletions();
+    return _routinesOn(todayKst(), today: true);
+  }
+
+  /// 남아 있는 루틴 수행 기록에서 완료 체크를 되살린다 — 이 저장소가 처음
+  /// 읽힐 때 한 번. (#2662)
+  ///
+  /// 체크는 메모리에 있고 수행 기록은 로컬 목업 API(drift)에 남는다. 새로고침하면
+  /// 체크만 풀려, 운동 현황은 30분을 말하는데 목록은 미완료로 보이고 다시 체크하면
+  /// 같은 기록이 하나 더 생겼다. 실서버는 완료를 저장하므로 새로고침해도 체크가
+  /// 남는다 — 데모도 기록을 근거로 같은 모양을 낸다. 되돌릴 때 지울 기록과
+  /// 회수할 포인트의 근거(기록 id)도 함께 되살린다.
+  Future<void> _restoreCompletions() => _restoring ??= _restore();
+  Future<void>? _restoring;
+
+  Future<void> _restore() async {
+    final RoutineSessionLog? exercise = _exercise;
+    if (exercise == null) return;
+    final List<ExerciseSession> sessions;
+    try {
+      sessions = await exercise.assignedRoutineSessions();
+    } on Object {
+      // 되살리지 못해도 목록은 보여야 한다 — 체크가 풀린 예전 모양으로 둔다.
+      return;
+    }
+    final List<CoachRoutine> all = <CoachRoutine>[
+      ..._routines,
+      ..._autoRoutines,
+    ];
+    for (final ExerciseSession s in sessions) {
+      final String? routineId = s.assignedRoutineId;
+      final DateTime? date = s.date;
+      final String? sessionId = s.id;
+      if (routineId == null || date == null || sessionId == null) continue;
+      final String day = _dayKey(date);
+      final Map<String, CoachRoutine> done = _doneByDay[day] ??=
+          <String, CoachRoutine>{};
+      if (done.containsKey(routineId)) continue;
+      final CoachRoutine? base = all
+          .where((CoachRoutine r) => r.id == routineId)
+          .firstOrNull;
+      if (base == null) continue;
+      done[routineId] = base.copyWith(
+        completed: true,
+        completedMinutes: s.minutes,
+        completedDurationSeconds: s.durationSeconds,
+        completedIntensity: s.intensity.name,
+      );
+      final String slot = '$day|$routineId';
+      _completionSessions[slot] = sessionId;
+      // 완료 적립의 근거는 그 기록 id 다([_awardCompletion]).
+      _completionSources[slot] = sessionId;
+    }
+  }
 
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async {
+    await _restoreCompletions();
     final DateTime today = todayKst();
     final DateTime date = DateTime(day.year, day.month, day.day);
     // 실서버처럼 아직 오지 않은 날은 목록이 없다(422).
@@ -454,6 +508,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     int? durationSeconds,
     String intensity = 'moderate',
   }) async {
+    await _restoreCompletions();
     final CoachRoutine routine = _todayRoutine(routineId);
     final String day = _dayKey(todayKst());
     final String slot = '$day|$routineId';
@@ -504,6 +559,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   @override
   Future<CoachRoutine> uncompleteRoutine(String routineId) async {
+    await _restoreCompletions();
     // 오늘 취소한 배정이라도 오늘 남긴 완료는 되돌릴 수 있다 — 실서버와 같다.
     final String day = _dayKey(todayKst());
     final CoachRoutine? done = _doneByDay[day]?.remove(routineId);

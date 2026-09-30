@@ -279,4 +279,8 @@ class _LazyRoutineSessionLog implements RoutineSessionLog {
   @override
   Future<void> removeAssignedRoutineSession(String id) async =>
       _resolve()?.removeAssignedRoutineSession(id);
+
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async =>
+      await _resolve()?.assignedRoutineSessions() ?? const <ExerciseSession>[];
 }

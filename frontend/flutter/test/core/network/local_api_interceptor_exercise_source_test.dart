@@ -77,6 +77,59 @@ void main() {
     );
   });
 
+  test('수업 시각은 PT 에만 있다 — 개인운동·회원 기록에는 지어내지 않는다', () async {
+    await insertPt();
+    await api.addAssignedRoutineSession(
+      type: ExerciseType.cardio,
+      minutes: 30,
+      calories: 0,
+      date: nowKst(),
+      routineId: 'routine-1',
+      name: '저강도 유산소 (걷기)',
+    );
+    await dio.post<Object?>(
+      '/exercise/sessions',
+      data: <String, Object?>{
+        'sessions': <Map<String, Object?>>[
+          <String, Object?>{
+            'type': 'cardio',
+            'name': '줄넘기',
+            'minutes': 10,
+            'date': _ymd(nowKst()),
+          },
+        ],
+      },
+    );
+
+    final Map<String, Object?> bySource = <String, Object?>{
+      for (final Map<String, Object?> s in await sessions())
+        s['source']! as String: s['time_label'],
+    };
+    expect(bySource, <String, Object?>{
+      'trainer_pt': '18:00',
+      'assigned_routine': null,
+      'member': null,
+    });
+  });
+
+  test('남아 있는 배정 루틴 기록을 되읽는다 — 체크 복원의 재료', () async {
+    await insertPt();
+    final ExerciseSession done = await api.addAssignedRoutineSession(
+      type: ExerciseType.cardio,
+      minutes: 30,
+      calories: 0,
+      date: nowKst(),
+      routineId: 'routine-1',
+      name: '저강도 유산소 (걷기)',
+    );
+
+    final List<ExerciseSession> kept = await api.assignedRoutineSessions();
+    expect(kept.map((ExerciseSession s) => s.id), <String?>[done.id]);
+    expect(kept.single.assignedRoutineId, 'routine-1');
+    expect(kept.single.minutes, 30);
+    expect(kept.single.date, isNotNull);
+  });
+
   test('PT·배정 루틴 기록은 고치거나 지울 수 없다 — 서버와 같은 409', () async {
     await insertPt();
 

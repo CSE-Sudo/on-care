@@ -1962,14 +1962,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return '${date.month}월 ${date.day}일';
   }
 
-  String _defaultTimeLabel(String type) => switch (type) {
-    'cardio' => '07:30',
-    'strength' => '18:00',
-    'yoga' || 'stretching' || 'flexibility' => '20:00',
-    'walking' => '12:00',
-    _ => '15:00',
-  };
-
   List<String> _defaultItems(String type) => switch (type) {
     'cardio' => const <String>['러닝머신 30분'],
     'strength' => const <String>['스쿼트 3세트', '데드리프트 3세트'],
@@ -2361,6 +2353,42 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         .go();
   }
 
+  /// 남아 있는 배정 루틴 수행 기록 — 새로고침한 뒤 목업 코치 저장소가 그날의
+  /// 체크를 되살린다. (#2662)
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async {
+    final rows =
+        await (_db.select(_db.exerciseSessions)..where(
+              (t) =>
+                  t.source.equals('assigned_routine') &
+                  t.assignedRoutineId.isNotNull(),
+            ))
+            .get();
+    return <ExerciseSession>[
+      for (final r in rows)
+        ExerciseSession.fromJson(
+          _sessionJson(
+            id: r.id,
+            weekStart: r.weekStart,
+            dayLabel: r.dayLabel,
+            type: r.type,
+            name: r.name,
+            minutes: r.minutes,
+            sets: r.sets,
+            reps: r.reps,
+            holdSeconds: r.holdSeconds,
+            durationSeconds: r.durationSeconds,
+            weight: r.weight,
+            calories: r.calories,
+            intensity: r.intensity,
+            calorieSource: 'estimate',
+            source: r.source,
+            assignedRoutineId: r.assignedRoutineId,
+          ),
+        ),
+    ];
+  }
+
   /// 단건 응답 한 벌. 생성과 수정이 같은 모양을 내야 앱이 두 경로에서 같은
   /// 기록을 읽는다.
   Map<String, Object?> _sessionJson({
@@ -2396,7 +2424,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'calorie_source': calorieSource,
     'intensity': intensity,
     'date_label': _dateLabelForDayLabel(dayLabel, weekStart),
-    'time_label': _defaultTimeLabel(type),
+    // 시각은 PT 를 받은 날에만 있다 — 데모 픽스처는 PT 를 18:00 수업으로 둔다.
+    // 개인운동·회원 기록은 언제 했는지를 남기지 않으므로 지어내지 않는다.
+    // 유형별 기본 시각을 붙이면 개인운동 카드에 `07:30 수업 완료` 가 선다.
+    // (#1884, #2662)
+    'time_label': source == 'trainer_pt' ? '18:00' : null,
     'items': name.isEmpty ? _defaultItems(type) : <String>[name],
     // 누가 만든 기록인가 — 앱은 이 값으로 `직접 추가한 운동` 과 PT·배정 루틴
     // 기록을 가르고 연필을 붙인다(#499, #638). 배정 이름은 서버처럼 그 운동의

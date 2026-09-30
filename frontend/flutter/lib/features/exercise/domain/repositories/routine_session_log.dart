@@ -23,4 +23,10 @@ abstract interface class RoutineSessionLog {
 
   /// 완료를 되돌릴 때 그 수행 기록을 지운다. 배정 루틴 기록만 지운다.
   Future<void> removeAssignedRoutineSession(String id);
+
+  /// 남아 있는 배정 루틴 수행 기록 전부 — `assigned_routine_id` 와 날짜가 있는
+  /// 것만. 새로고침한 뒤 목업 코치 저장소가 그날의 체크를 되살리는 재료다.
+  /// 기록은 남았는데 체크가 풀려 있으면, 다시 체크할 때 같은 기록이 하나 더
+  /// 생긴다. (#2662)
+  Future<List<ExerciseSession>> assignedRoutineSessions();
 }
