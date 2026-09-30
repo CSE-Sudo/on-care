@@ -774,6 +774,12 @@ void main() {
     final Finder start = find.byKey(const Key('gym-consult-start'));
     await _scrollTo(tester, start, 250);
     expect(tester.widget<AppButton>(start).onPressed, isNull);
+    // 안내는 버튼 아래라 화면 밖이면 아직 그려지지 않는다 — 끝까지 내린다.
+    await _scrollTo(
+      tester,
+      find.byKey(const Key('consult-go-to-my-trainer')),
+      250,
+    );
     expect(find.text(l.exConsultLinkedToOtherTrainer), findsOneWidget);
   });
 
