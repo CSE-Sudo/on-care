@@ -3658,7 +3658,9 @@ class LocalApiInterceptor extends Interceptor {
               createdAt: nowKst(),
               title: notice.title,
               body: notice.body,
-              category: 'benefits',
+              // 서버와 같은 갈래다 — 챌린지 아이콘으로 그리고 포인트 사용처로
+              // 간다(`weekly_challenge_service`, #1789·#2660).
+              category: 'points_shop',
             ),
             mode: InsertMode.insertOrIgnore,
           );
