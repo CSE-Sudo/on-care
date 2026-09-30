@@ -2664,6 +2664,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
   // ---- AI Coach ----
 
+  /// GET /ai-coach/feedback — 실서버(`build_feedback`)와 같은 식단·운동 두 건이다
+  /// (#2706). 데모 코칭 시트는 이 응답 대신 고정 카드 두 장을 그린다.
   Future<Response<Object?>> _aiCoachFeedback(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'greeting': '안녕하세요, 오늘 컨디션은 어떠세요?',
@@ -2677,11 +2679,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           'tag': 'exercise',
           'title': '저녁 산책 15분',
           'body': '저녁 시간대 가벼운 유산소는 수면의 질도 함께 끌어올립니다.',
-        },
-        <String, Object?>{
-          'tag': 'hydration',
-          'title': '수분 보충',
-          'body': '오늘 평소보다 활동량이 많았어요. 물 한 컵 더 마셔봐요.',
         },
       ],
     });
