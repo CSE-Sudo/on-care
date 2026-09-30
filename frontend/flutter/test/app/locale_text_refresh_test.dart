@@ -44,6 +44,8 @@ void main() {
     expect(repo.fetches, 1);
 
     container.read(localeProvider.notifier).state = const Locale('en');
+    // Riverpod 은 바뀐 값을 다음 틱에 몰아서 알린다 — 그 알림이 무효화를 부른다.
+    await container.pump();
     await container.read(aiCoachStateProvider.future);
 
     expect(repo.fetches, 2);
@@ -53,6 +55,7 @@ void main() {
     await container.read(aiCoachStateProvider.future);
 
     container.read(localeProvider.notifier).state = const Locale('ko');
+    await container.pump();
     await container.read(aiCoachStateProvider.future);
 
     expect(repo.fetches, 1);
