@@ -1160,8 +1160,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
     final back = _returnToSchedule;
-    final bool goBack =
-        back != null && back.clientId == sentFor && back.sessionId == sessionId;
+    final String? backDate =
+        back != null && back.clientId == sentFor && back.sessionId == sessionId
+        ? back.date
+        : null;
+    final bool goBack = backDate != null;
     final stillSelected = _isStillSelected(sentFor);
     // `개인운동만` 을 보낸 뒤와 같이 박스를 그대로 두고 두 번째 반영만 막는다.
     setState(() {
@@ -1174,7 +1177,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     });
     showAppToast(context, l.schedRoutinesAdded, type: AppToastType.success);
     if (goBack) {
-      context.go(AppRoutes.scheduleAt(date: back!.date, sessionId: sessionId));
+      context.go(AppRoutes.scheduleAt(date: backDate, sessionId: sessionId));
     }
   }
 
