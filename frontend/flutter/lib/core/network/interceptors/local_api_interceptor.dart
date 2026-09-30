@@ -43,6 +43,8 @@ import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
     show kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
+import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
@@ -71,7 +73,7 @@ const String _srcWater = '$_srcKdri — 수분';
 const String _srcPaAdult = '$_srcPa — 성인(19~64세) 신체활동 지침';
 const String _srcPaSafety = '$_srcPa — 안전하게 신체활동 실천하기';
 
-class LocalApiInterceptor extends Interceptor {
+class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   LocalApiInterceptor(
     this._db,
     this._logger, {
@@ -84,6 +86,17 @@ class LocalApiInterceptor extends Interceptor {
        _couponsArg = coupons,
        _shieldsArg = shields,
        _challengesArg = challenges;
+
+  /// [dio] 에 걸린 로컬 목업 API. 목업 모드가 아니면(또는 테스트가 다른 Dio 를
+  /// 넣었으면) null 이다. 운동·코치 저장소가 이 인터셉터에 데모 연결을 붙인다.
+  static LocalApiInterceptor? of(Dio dio) =>
+      dio.interceptors.whereType<LocalApiInterceptor>().firstOrNull;
+
+  /// 기간의 날마다 걸려 있던 추천 개인운동과 그날 완료(#2161). 목업 코치
+  /// 저장소가 들고 있는 것이라 운동 저장소가 붙이고, 부를 때 빌려 온다 — 운동
+  /// AI 맞춤 조언(#2162)이 추천 운동을 보고 말하는 재료다. 없으면 빈 목록이다.
+  /// (#2662)
+  List<RoutineAdviceDay> Function(DateTime from, DateTime to)? routineDays;
 
   /// 연속 기록 보호권(#1788). 앱에서는 목업 운동 저장소와 같은 인스턴스를 받아
   /// 사용처에서 교환한 보호권이 운동 현황의 연속 일수로 이어진다. 주지 않으면
@@ -384,13 +397,29 @@ class LocalApiInterceptor extends Interceptor {
 
   Future<Response<Object?>> _exerciseDelete(RequestOptions options) async {
     final id = options.path.split('/').last;
-    final n = await (_db.delete(
+    final existing = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    if (existing.source != 'member') return _derivedExercise(options);
+    await (_db.delete(
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
     _points.revoke(PointsRule.exerciseManual.sourceType, id);
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
+
+  /// PT·배정 루틴에서 파생된 기록은 회원이 고치거나 지울 수 없다 — 서버
+  /// (`exercise.py` 의 `_reject_if_derived`)와 같은 409 다. 기록은 분명히 있으므로
+  /// 404 로 없는 척하지 않는다. (#499, #638, #2662)
+  Response<Object?> _derivedExercise(RequestOptions options) =>
+      Response<Object?>(
+        requestOptions: options,
+        statusCode: 409,
+        data: <String, Object?>{
+          'detail': '코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.',
+        },
+      );
 
   Future<Response<Object?>> _exerciseUpdate(RequestOptions options) async {
     final id = options.path.split('/').last;
@@ -398,6 +427,7 @@ class LocalApiInterceptor extends Interceptor {
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    if (existing.source != 'member') return _derivedExercise(options);
     final body = _jsonBody(options);
     final type = (body['type'] as String? ?? existing.type).trim();
     final durationSeconds = body.containsKey('duration_seconds')
@@ -1617,7 +1647,16 @@ class LocalApiInterceptor extends Interceptor {
         ),
     ];
 
-    final ExerciseAdvice advice = exercisePeriodAdviceOf(days, period);
+    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162) — 목업 운동 저장소가
+    // 하던 일을 이 자리로 옮겼다(#2662).
+    final DateTime today = _dateOnly(nowKst());
+    final ExerciseAdvice advice = exercisePeriodAdviceOf(
+      days,
+      period,
+      routineDays:
+          routineDays?.call(routineAdviceFetchStart(period, today), today) ??
+          const <RoutineAdviceDay>[],
+    );
     return _ok(options, <String, Object?>{
       'period': period,
       'from_date': start,
@@ -1825,6 +1864,8 @@ class LocalApiInterceptor extends Interceptor {
                   weightKg > 0
               ? 'db'
               : 'estimate',
+          source: r.source,
+          assignedRoutineId: r.assignedRoutineId,
         ),
       );
     }
@@ -1920,14 +1961,6 @@ class LocalApiInterceptor extends Interceptor {
     if (delta == 1) return '어제';
     return '${date.month}월 ${date.day}일';
   }
-
-  String _defaultTimeLabel(String type) => switch (type) {
-    'cardio' => '07:30',
-    'strength' => '18:00',
-    'yoga' || 'stretching' || 'flexibility' => '20:00',
-    'walking' => '12:00',
-    _ => '15:00',
-  };
 
   List<String> _defaultItems(String type) => switch (type) {
     'cardio' => const <String>['러닝머신 30분'],
@@ -2237,6 +2270,125 @@ class LocalApiInterceptor extends Interceptor {
     );
   }
 
+  /// 배정 루틴을 수행한 기록 — 서버 `complete_assigned_routine` 의 대역이다.
+  /// 목업 코치 저장소가 루틴 완료 때 부른다(#1131). 회원이 적은 기록과 같은 표에
+  /// 남으므로 운동 탭·홈·챌린지가 같은 기록을 보고, 새로고침해도 이어진다(#2662).
+  ///
+  /// 칼로리는 회원 기록과 같은 자리([_demoEstimate])에서 다시 계산한다 — 넘겨받은
+  /// 값은 쓰지 않는다(#1312). 적립은 코치 저장소가 루틴 완료로 따로 한다.
+  @override
+  Future<ExerciseSession> addAssignedRoutineSession({
+    required ExerciseType type,
+    required int minutes,
+    required int calories,
+    required DateTime date,
+    required String routineId,
+    required String name,
+    ExerciseIntensity intensity = ExerciseIntensity.moderate,
+    int? durationSeconds,
+  }) async {
+    final String kind = type.name;
+    // 초로 완료한 배정은 기록도 초를 든다 — 분은 초에서 파생된다(#2221).
+    final int savedMinutes = durationSeconds != null
+        ? _minutesFromSeconds(durationSeconds)
+        : minutes;
+    final estimated = await _demoEstimate(
+      name: name,
+      type: kind,
+      minutes: savedMinutes,
+      intensity: intensity.name,
+    );
+    final (String weekStart, String dayLabel) = _placement(_dateString(date));
+    // `seed-` 가 아닌 접두라 다음 날 시드가 다시 깔려도 지워지지 않는다.
+    final String id =
+        'ex-routine-$routineId-${DateTime.now().microsecondsSinceEpoch}';
+    await _db
+        .into(_db.exerciseSessions)
+        .insert(
+          ExerciseSessionsCompanion.insert(
+            id: id,
+            weekStart: weekStart,
+            dayLabel: dayLabel,
+            type: kind,
+            name: Value(name),
+            minutes: savedMinutes,
+            calories: estimated.calories,
+            intensity: Value(intensity.name),
+            durationSeconds: Value(durationSeconds),
+            source: const Value('assigned_routine'),
+            assignedRoutineId: Value(routineId),
+          ),
+        );
+    // 루틴 완료 기록도 같다 — 보호한 날이면 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
+    return ExerciseSession.fromJson(
+      _sessionJson(
+        id: id,
+        weekStart: weekStart,
+        dayLabel: dayLabel,
+        type: kind,
+        name: name,
+        minutes: savedMinutes,
+        sets: null,
+        reps: null,
+        holdSeconds: null,
+        durationSeconds: durationSeconds,
+        weight: null,
+        calories: estimated.calories,
+        intensity: intensity.name,
+        calorieSource: estimated.source,
+        source: 'assigned_routine',
+        assignedRoutineId: routineId,
+      ),
+    );
+  }
+
+  /// 배정 루틴 완료를 되돌릴 때 그 수행 기록을 지운다 — 서버
+  /// `uncomplete_assigned_routine` 의 대역이다. 회원 수기 기록은 건드리지 않는다.
+  @override
+  Future<void> removeAssignedRoutineSession(String id) async {
+    await (_db.delete(_db.exerciseSessions)..where(
+          (t) => t.id.equals(id) & t.source.equals('assigned_routine'),
+        ))
+        .go();
+  }
+
+  /// 남아 있는 배정 루틴 수행 기록 — 새로고침한 뒤 목업 코치 저장소가 그날의
+  /// 체크를 되살린다. (#2662)
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async {
+    final rows =
+        await (_db.select(_db.exerciseSessions)..where(
+              (t) =>
+                  t.source.equals('assigned_routine') &
+                  t.assignedRoutineId.isNotNull(),
+            ))
+            .get();
+    return <ExerciseSession>[
+      for (final r in rows)
+        ExerciseSession.fromJson(
+          _sessionJson(
+            id: r.id,
+            weekStart: r.weekStart,
+            dayLabel: r.dayLabel,
+            type: r.type,
+            name: r.name,
+            minutes: r.minutes,
+            sets: r.sets,
+            reps: r.reps,
+            holdSeconds: r.holdSeconds,
+            durationSeconds: r.durationSeconds,
+            weight: r.weight,
+            calories: r.calories,
+            intensity: r.intensity,
+            calorieSource: 'estimate',
+            source: r.source,
+            assignedRoutineId: r.assignedRoutineId,
+          ),
+        ),
+    ];
+  }
+
   /// 단건 응답 한 벌. 생성과 수정이 같은 모양을 내야 앱이 두 경로에서 같은
   /// 기록을 읽는다.
   Map<String, Object?> _sessionJson({
@@ -2254,6 +2406,8 @@ class LocalApiInterceptor extends Interceptor {
     required int calories,
     required String intensity,
     required String calorieSource,
+    String source = 'member',
+    String? assignedRoutineId,
   }) => <String, Object?>{
     'id': id,
     'day_label': dayLabel,
@@ -2270,8 +2424,18 @@ class LocalApiInterceptor extends Interceptor {
     'calorie_source': calorieSource,
     'intensity': intensity,
     'date_label': _dateLabelForDayLabel(dayLabel, weekStart),
-    'time_label': _defaultTimeLabel(type),
+    // 시각은 PT 를 받은 날에만 있다 — 데모 픽스처는 PT 를 18:00 수업으로 둔다.
+    // 개인운동·회원 기록은 언제 했는지를 남기지 않으므로 지어내지 않는다.
+    // 유형별 기본 시각을 붙이면 개인운동 카드에 `07:30 수업 완료` 가 선다.
+    // (#1884, #2662)
+    'time_label': source == 'trainer_pt' ? '18:00' : null,
     'items': name.isEmpty ? _defaultItems(type) : <String>[name],
+    // 누가 만든 기록인가 — 앱은 이 값으로 `직접 추가한 운동` 과 PT·배정 루틴
+    // 기록을 가르고 연필을 붙인다(#499, #638). 배정 이름은 서버처럼 그 운동의
+    // 이름이다. (#2662)
+    'source': source,
+    'assigned_routine_id': assignedRoutineId,
+    'assigned_routine_name': assignedRoutineId == null ? '' : name,
   };
 
   /// 초 → 분. 실 서버 `ExerciseSessionCreate._minutes_from_seconds` 와 같은
