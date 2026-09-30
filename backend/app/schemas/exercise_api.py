@@ -55,7 +55,9 @@ class ExerciseSessionOut(BaseModel):
     calorie_source: str = "estimate"
     intensity: str  # light|moderate|high
     date_label: str
-    time_label: str
+    #: PT 수업 시각(`HH:MM`). 개인운동·회원 기록은 언제 했는지를 남기지 않아
+    #: 비어 있다(null) — 유형별 시각을 지어내지 않는다. (#2692)
+    time_label: str | None = None
     items: list[str]
     # 기록 출처: member | trainer_pt | assigned_routine. 앱은 파생 기록을
     # 수기 기록과 구분하고 수정·삭제를 감춘다.

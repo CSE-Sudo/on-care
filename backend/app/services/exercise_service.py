@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import Locale
-from app.models.models import ExerciseSession
+from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
     exercise_activity, exercise_types, period_window, routine_advice,
 )
@@ -209,12 +209,44 @@ def _date_label_for_day(day_label: str) -> str:
     return f"{day_label}요일"
 
 
-def _default_time_label(t: str) -> str:
-    return {
-        exercise_types.CARDIO: "07:30",
-        exercise_types.STRENGTH: "18:00",
-        exercise_types.STRETCHING: "20:00",
-    }.get(exercise_types.normalize(t), "15:00")
+#: PT 완료가 파생시킨 운동 기록 id 의 앞머리 — 뒤는 그 수업(`trainer_schedule`)
+#: 의 id 다. 트레이너 서비스가 이 앞머리로 기록을 만든다(`_derived_exercise_id`).
+PT_EXERCISE_ID_PREFIX = "sched-ex-"
+
+
+def pt_session_times(db: Session, rows: Sequence) -> dict[str, str]:
+    """PT 기록 id → 그 수업의 시각(`HH:MM`). (#2692)
+
+    시각 태그는 "○○ 수업 완료" 로 읽힌다. PT 는 트레이너가 완료해 보낸 수업이라
+    그 일정의 시각이 곧 답이다 — 운동 유형으로 지어내면 19:00 수업이 18:00 으로
+    적힌다. 수업을 찾지 못한 기록은 담지 않는다.
+    """
+    by_schedule = {
+        r.id[len(PT_EXERCISE_ID_PREFIX):]: r.id
+        for r in rows
+        if (getattr(r, "source", "member") or "member") == "trainer_pt"
+        and r.id.startswith(PT_EXERCISE_ID_PREFIX)
+    }
+    if not by_schedule:
+        return {}
+    found = db.execute(
+        select(TrainerSchedule.id, TrainerSchedule.time).where(
+            TrainerSchedule.id.in_(list(by_schedule))
+        )
+    ).all()
+    return {by_schedule[sid]: t for sid, t in found if t}
+
+
+def _time_label_of(r, pt_times: dict[str, str] | None) -> str | None:
+    """세션의 시각 태그 — PT 수업 시각만 있다. (#2692)
+
+    배정 개인운동과 회원 기록은 언제 했는지를 남기지 않으므로 비운다. 예전에는
+    유형별 기본 시각(유산소 07:30 …)을 지어내, 지난 날짜의 `완료한 개인운동`
+    카드에 하지 않은 수업의 `07:30 수업 완료` 가 섰다. 데모(#2662)와 같은 규칙이다.
+    """
+    if (getattr(r, "source", "member") or "member") != "trainer_pt":
+        return None
+    return (pt_times or {}).get(r.id)
 
 
 def _default_items(t: str) -> list[str]:
@@ -341,8 +373,14 @@ def _monday_of(day: date) -> date:
     return day - timedelta(days=day.weekday())
 
 
-def build_current_week(rows: list) -> dict:
-    """ExerciseSession row 리스트 → 프론트 계약 형태의 dict."""
+def build_current_week(
+    rows: list, pt_times: dict[str, str] | None = None
+) -> dict:
+    """ExerciseSession row 리스트 → 프론트 계약 형태의 dict.
+
+    [pt_times] 는 PT 기록 id → 수업 시각이다([pt_session_times]). 없으면 PT
+    기록도 시각 없이 나간다 — 지어내지 않는다. (#2692)
+    """
     per_day = {l: 0 for l in WEEKDAY_LABELS}
     per_day_cal = {l: 0 for l in WEEKDAY_LABELS}
     per_cardio = {l: 0 for l in WEEKDAY_LABELS}
@@ -392,7 +430,7 @@ def build_current_week(rows: list) -> dict:
             "trainer_feedback": "",
             "completed_at": getattr(r, "completed_at", None),
             "date_label": _date_label_for_day(r.day_label),
-            "time_label": _default_time_label(r.type),
+            "time_label": _time_label_of(r, pt_times),
             # 회원이 적은 이름이 있으면 그게 이 기록의 내용이다. 없을 때만
             # 유형별 기본 문구로 채운다 — 이름 칸이 생기기 전 기록들이다. (#1276)
             "items": (
