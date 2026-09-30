@@ -980,11 +980,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exCompletedRoutineDayTitle => 'Completed solo workout';
 
   @override
-  String exPtDayFeedback(String coachName) {
-    return '$coachName · Feedback';
-  }
-
-  @override
   String get exDeleteExercise => 'Delete workout';
 
   @override
@@ -3689,11 +3684,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
-
-  @override
-  String coachRoutineTrainerFeedback(String feedback) {
-    return 'Trainer feedback: $feedback';
-  }
 
   @override
   String get coachRoutineCompleteTitle => 'Mark personal exercise done';

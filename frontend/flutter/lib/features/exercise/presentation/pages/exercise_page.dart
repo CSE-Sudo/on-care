@@ -683,17 +683,18 @@ Widget _fitTag(Widget tag) => FittedBox(
 /// 예전에는 제목 없이 `AppTile` 줄로 흘러나와, 바로 위 `직접 추가한 운동이
 /// 없어요` 에 딸린 것처럼 읽혔다. 같은 기록이 두 화면에서 다른 모양이면 회원은
 /// 다른 것으로 본다 — 오늘과 같은 순서로 적는다: 완료 시각·운동 시간 태그 →
-/// 구분선 → 종목 줄 → 트레이너 피드백.
+/// 구분선 → 종목 줄.
 ///
 /// **출처마다 따로 세운다.** PT 와 배정 개인운동은 한 카드에 몰지 않는다 —
 /// 수업을 하지 않은 날의 개인운동에 `완료한 PT` 라고 적히면, 그 카드에는 수업
-/// 시각도 피드백도 없어 제목만 혼자 PT 라고 우긴다.
+/// 시각이 없어 제목만 혼자 PT 라고 우긴다.
 ///
 /// 없는 값은 비운다. 배정 개인운동은 언제 했는지를 남기지 않으므로 완료 시각
-/// 태그가 서지 않고, 피드백이 없으면 그 자리도 뜨지 않는다.
+/// 태그가 서지 않는다. 기록 한 건마다 달던 트레이너 피드백은 없앴다(#2517) —
+/// 개인운동에 대해 할 말은 채팅으로 오간다.
 ///
 /// 수정·삭제는 열지 않는다. 회원이 고칠 수 있는 기록이 아니다(#499, #638).
-class _DayRecordCard extends ConsumerWidget {
+class _DayRecordCard extends StatelessWidget {
   const _DayRecordCard({
     super.key,
     required this.title,
@@ -735,9 +736,8 @@ class _DayRecordCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     // 시각은 PT 를 받은 날에만 있다 — 배정 개인운동은 언제 했는지를 남기지
     // 않으므로 그 태그를 세우지 않는다. 없는 값을 지어내지 않는다.
     final String time = sessions
@@ -750,10 +750,6 @@ class _DayRecordCard extends ConsumerWidget {
       (int sum, ExerciseSession s) =>
           sum + (s.durationSeconds ?? s.minutes * 60),
     );
-    final String feedback = sessions
-        .map((ExerciseSession s) => s.trainerFeedback)
-        .firstWhere((String f) => f.isNotEmpty, orElse: () => '');
-    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
 
     return AppCard(
       child: Column(
@@ -796,32 +792,6 @@ class _DayRecordCard extends ConsumerWidget {
           // 자전거인지 알 수 없다. (#1021) 유형별 합계는 바로 위 도넛 카드가
           // 이미 말하므로 여기서 되풀이하지 않는다(#682).
           for (final String line in _lines(l)) _ProgramLine(line),
-          if (feedback.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            SizedBox(
-              width: double.infinity,
-              child: AppTile(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      l.exPtDayFeedback(coach?.name ?? l.exAssignedTrainer),
-                      style: tokens
-                          .text(OnCareTypography.label)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    Text(
-                      feedback,
-                      style: tokens
-                          .text(OnCareTypography.bodySmall)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

@@ -729,25 +729,6 @@ class _RecommendedExerciseRowState
               ),
             ],
           ),
-          if (routine.trainerFeedback.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            Container(
-              key: Key('routineFeedback-${routine.id}'),
-              width: double.infinity,
-              margin: const EdgeInsets.only(left: OnCareSpacing.tilePadding),
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: BoxDecoration(
-                color: tokens.brand.surface,
-                borderRadius: OnCareRadius.mdAll,
-              ),
-              child: Text(
-                l.coachRoutineTrainerFeedback(routine.trainerFeedback),
-                style: tokens
-                    .text(OnCareTypography.bodySmall)
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
-            ),
-          ],
         ],
       ),
     );
