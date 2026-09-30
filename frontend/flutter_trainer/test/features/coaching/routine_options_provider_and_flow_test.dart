@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -236,6 +238,20 @@ String? _unitOf(WidgetTester tester, Finder field) {
       .data;
 }
 
+/// 데모 AI 제안 저장소의 메모리판. (#2668)
+///
+/// 앱의 데모 provider 는 검토 상태를 데모 DB 에 남기고 승인한 제안을 배정
+/// 저장소로 넘기는데, 이 위젯 테스트는 DB 를 열지 않는다 — 제안 목록만 필요하다.
+Override _demoSuggestions() => trainerRoutineSuggestionRepositoryProvider
+    .overrideWithValue(MockTrainerRoutineSuggestionRepository());
+
+/// 데모 A/B 생성 저장소의 DB 없는 판(고정 스냅샷). (#2668)
+///
+/// 앱의 데모 provider 는 회원 스냅샷을 데모 DB 에서 읽는다 — 이 위젯 테스트가
+/// 그 DB 를 열면 실제 파일 경로를 찾다 멈춘다.
+Override _demoOptions() => trainerRoutineOptionsRepositoryProvider
+    .overrideWithValue(const MockTrainerRoutineOptionsRepository());
+
 void main() {
   // 이 파일의 흐름 테스트는 `MaterialApp(locale: ko)` 로 띄운다. 데모 저장소는
   // 화면 언어를 위젯 밖([trainerResolvedLocaleProvider] — 브라우저 언어)에서
@@ -250,8 +266,14 @@ void main() {
 
   group('trainerRoutineOptionsRepositoryProvider', () {
     test('mock when USE_MOCK_API=true', () {
+      // 데모 저장소는 데모 DB 를 받는다(#2668) — 실제 DB 를 열지 않게 메모리로.
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
       final c = ProviderContainer(
-        overrides: <Override>[appConfigProvider.overrideWithValue(_mockConfig)],
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_mockConfig),
+          appDatabaseProvider.overrideWithValue(db),
+        ],
       );
       addTearDown(c.dispose);
       expect(
@@ -376,7 +398,9 @@ void main() {
             if (suggestions != null)
               trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
                 _StaticSuggestionRepository(suggestions),
-              ),
+              )
+            else
+              _demoSuggestions(),
           ],
           child: MaterialApp(
             locale: locale,
@@ -1113,6 +1137,7 @@ void main() {
           ProviderScope(
             overrides: <Override>[
               appConfigProvider.overrideWithValue(_mockConfig),
+              _demoSuggestions(),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
             child: MaterialApp(
@@ -1181,6 +1206,7 @@ void main() {
           ProviderScope(
             overrides: <Override>[
               appConfigProvider.overrideWithValue(_mockConfig),
+              _demoSuggestions(),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
             child: MaterialApp(
@@ -1227,6 +1253,7 @@ void main() {
           ProviderScope(
             overrides: <Override>[
               appConfigProvider.overrideWithValue(_mockConfig),
+              _demoSuggestions(),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
             child: MaterialApp(
@@ -1275,7 +1302,9 @@ void main() {
         ProviderScope(
           overrides: <Override>[
             appConfigProvider.overrideWithValue(_mockConfig),
+            _demoSuggestions(),
             trainerRoutineRepositoryProvider.overrideWithValue(assigned),
+            _demoOptions(),
           ],
           child: MaterialApp(
             locale: const Locale('ko'),
@@ -1571,7 +1600,9 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_mockConfig),
+          _demoSuggestions(),
           trainerRoutineRepositoryProvider.overrideWithValue(repository),
+          _demoOptions(),
         ],
         child: MaterialApp(
           locale: const Locale('ko'),
@@ -1620,6 +1651,7 @@ void main() {
         ProviderScope(
           overrides: <Override>[
             appConfigProvider.overrideWithValue(_mockConfig),
+            _demoSuggestions(),
             sharedPreferencesProvider.overrideWithValue(prefs),
             accountEmailProvider.overrideWith((Ref ref) => account),
             trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
@@ -1895,6 +1927,7 @@ Future<void> _pumpFlowWithOptionsError(
     ProviderScope(
       overrides: <Override>[
         appConfigProvider.overrideWithValue(_mockConfig),
+        _demoSuggestions(),
         trainerRoutineOptionsRepositoryProvider.overrideWithValue(
           _ThrowingOptionsRepository(error),
         ),
