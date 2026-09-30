@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,8 @@ import 'package:oncare/app/router/nav_logger_observer.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/network/auth_token.dart';
+import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
@@ -63,6 +67,16 @@ String? sessionRedirect(SessionStatus status, String location) {
           : null;
   }
 }
+
+/// 저장된 세션이 되살아난 전이인가 — 시작 화면(`unknown`)에서 곧장 로그인
+/// 상태로 넘어간 경우다. (#2630)
+///
+/// 로그인은 늘 로그인 화면(`signedOut`)에서 시작하고, 그 경로의 첫 설정 판단은
+/// 로그인 화면이 맡는다. 복구 중(`unknown`)에는 가드가 시작 화면에 붙들어 두어
+/// 로그인 폼이 뜨지 않으므로, 이 전이는 복구에서만 나온다. 데모는 계정이 없어
+/// 첫 설정을 묻지 않는다.
+bool isSessionRestore(SessionStatus? previous, SessionStatus next) =>
+    previous == SessionStatus.unknown && next == SessionStatus.authenticated;
 
 /// Single source of truth for the app's routing tree. The `config`
 /// is read once at build time — dev-only routes (UI catalog) are
@@ -261,15 +275,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // login guard without rebuilding — a rebuild would drop the navigation
   // stack. The status itself is read lazily inside `redirect`.
   final refresh = ValueNotifier<int>(0);
-  ref.listen<SessionState>(
-    sessionControllerProvider,
-    (_, _) => refresh.value++,
-  );
   ref.onDispose(refresh.dispose);
-  return buildAppRouter(
+  final GoRouter router = buildAppRouter(
     config: config,
     observer: observer,
     readStatus: () => ref.read(sessionControllerProvider).status,
     refresh: refresh,
   );
+  ref.listen<SessionState>(sessionControllerProvider, (
+    SessionState? previous,
+    SessionState next,
+  ) {
+    refresh.value++;
+    // 앱을 다시 켜 저장된 세션으로 들어온 회원도 첫 설정이 남았으면 그리로
+    // 보낸다(#2630). 가드가 먼저 홈을 세우고, 프로필을 읽은 뒤 옮긴다 —
+    // 로그인 경로와 같은 순서다.
+    if (!isSessionRestore(previous?.status, next.status)) return;
+    // 판단하는 사이 로그아웃·다른 계정 로그인이 있었다면 옮기지 않는다 —
+    // 되살아난 세션의 토큰을 붙들어 두고 그대로인지 본다.
+    final String? restoredToken = ref.read(authAccessTokenProvider);
+    unawaited(
+      openFirstRunAfterRestore(
+        read: ref.read,
+        go: router.go,
+        stillSameSession: () =>
+            ref.read(sessionControllerProvider).status ==
+                SessionStatus.authenticated &&
+            ref.read(authAccessTokenProvider) == restoredToken,
+      ),
+    );
+  });
+  return router;
 });
