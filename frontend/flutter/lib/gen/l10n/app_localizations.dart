@@ -6013,6 +6013,24 @@ abstract class AppLocalizations {
   /// **'you'**
   String get myGoalsFocusChangedByMe;
 
+  /// No description provided for @healthNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Health notes & cautions'**
+  String get healthNotesLabel;
+
+  /// No description provided for @healthNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Left knee surgery, herniated disc'**
+  String get healthNotesHint;
+
+  /// No description provided for @healthNotesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Used when recommending workouts'**
+  String get healthNotesHelper;
+
   /// Health goal chip in onboarding and MY health goals.
   ///
   /// In en, this message translates to:
