@@ -12,6 +12,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/coach_photo_send_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_scroll.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
@@ -381,6 +382,19 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
+    // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
+    // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
+    ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
+      AsyncValue<List<CoachMessage>>? previous,
+      AsyncValue<List<CoachMessage>> next,
+    ) {
+      final List<CoachMessage>? before = previous?.valueOrNull;
+      final List<CoachMessage>? after = next.valueOrNull;
+      if (before == null || after == null) return;
+      if (hasNewReportNotice(before, after)) {
+        ref.invalidate(sentReportNoticesProvider);
+      }
+    });
     final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,

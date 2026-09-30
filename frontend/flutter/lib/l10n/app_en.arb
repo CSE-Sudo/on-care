@@ -4087,6 +4087,8 @@
   "coachReportsSectionTitle": "Reports received",
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
+  "coachReportsLoadFailed": "Couldn't load your reports",
+  "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportOpen": "Open report",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {

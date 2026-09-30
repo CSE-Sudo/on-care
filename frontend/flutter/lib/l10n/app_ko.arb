@@ -2025,6 +2025,8 @@
   "coachReportsSectionTitle": "받은 리포트",
   "coachReportsEmpty": "아직 받은 리포트가 없어요",
   "coachReportsEmptyHint": "담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요",
+  "coachReportsLoadFailed": "받은 리포트를 불러오지 못했어요",
+  "weeklyFeedbackLoadFailed": "보낸 주간 피드백을 불러오지 못했어요",
   "coachReportOpen": "리포트 열기",
   "coachReportSentOn": "{month}월 {day}일 보냄",
   "@coachReportSentOn": {
