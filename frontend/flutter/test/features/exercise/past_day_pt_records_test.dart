@@ -31,7 +31,7 @@ import '../../helpers/fixed_clock.dart';
 /// 으로 갈라 세운다.
 ///
 /// PT 와 배정 개인운동은 **따로** 센다. 한 카드에 몰면 수업을 하지 않은 날의
-/// 개인운동까지 `완료한 PT` 라고 적히는데, 그 카드에는 수업 시각도 피드백도
+/// 개인운동까지 `완료한 PT` 라고 적히는데, 그 카드에는 수업 시각이
 /// 없어 제목만 혼자 PT 라고 우긴다.
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
@@ -171,7 +171,6 @@ void main() {
     required ExerciseSource source,
     required String name,
     String? timeLabel,
-    String trainerFeedback = '',
     int sets = 4,
     int reps = 10,
     double weight = 40,
@@ -192,7 +191,6 @@ void main() {
     intensity: intensity,
     assignedRoutineName: name,
     timeLabel: timeLabel,
-    trainerFeedback: trainerFeedback,
   );
 
   Future<AppLocalizations> pumpDay(
@@ -219,7 +217,6 @@ void main() {
         source: ExerciseSource.trainerPt,
         name: 'PT 세션',
         timeLabel: '18:00',
-        trainerFeedback: '어깨 힘 빼고 가슴으로 미세요.',
       ),
     ]);
 
@@ -229,7 +226,7 @@ void main() {
     expect(card, findsOneWidget);
 
     Finder inCard(Finder f) => find.descendant(of: card, matching: f);
-    // 제목·완료 시각·운동 시간·구분선·종목 줄·피드백 — 오늘 화면과 같은 순서다.
+    // 제목·완료 시각·운동 시간·구분선·종목 줄 — 오늘 화면과 같은 순서다.
     expect(inCard(find.text(l.exCompletedPtDayTitle)), findsOneWidget);
     expect(inCard(find.text(l.exCompletedPtTime('18:00'))), findsOneWidget);
     expect(inCard(find.text(l.exDurationMinutes(50))), findsOneWidget);
@@ -239,10 +236,9 @@ void main() {
       findsOneWidget,
       reason: '무슨 운동을 했는지가 종목 줄로 남는다',
     );
-    expect(inCard(find.text('어깨 힘 빼고 가슴으로 미세요.')), findsOneWidget);
   });
 
-  testWidgets('시각·피드백이 없는 기록에는 없는 값을 지어내지 않는다', (tester) async {
+  testWidgets('시각이 없는 기록에는 없는 값을 지어내지 않는다', (tester) async {
     useFixedKstDate();
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[

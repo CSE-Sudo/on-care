@@ -386,9 +386,10 @@ def build_current_week(rows: list) -> dict:
             "source": getattr(r, "source", "member") or "member",
             "assigned_routine_id": getattr(r, "assigned_routine_id", None),
             "assigned_routine_name": getattr(r, "assigned_routine_name", "") or "",
-            # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양만 남긴다.
+            # 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다.
+            # 응답 모양만 남긴다.
             "member_note": "",
-            "trainer_feedback": getattr(r, "trainer_feedback", "") or "",
+            "trainer_feedback": "",
             "completed_at": getattr(r, "completed_at", None),
             "date_label": _date_label_for_day(r.day_label),
             "time_label": _default_time_label(r.type),

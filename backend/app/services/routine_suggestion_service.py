@@ -128,7 +128,8 @@ class _Signals:
 
     #: 최근 완료된 PT 가 [RECENT_PT_DAYS] 안에 있다.
     pt_just_finished: bool = False
-    #: 최근 PT 노트나 배정 루틴 피드백이 남아 있다.
+    #: 최근 완료 PT 에 트레이너 피드백(일정의 글)이 남아 있다. 개인 운동
+    #: 피드백은 없앴다(#2517).
     trainer_feedback: bool = False
     #: 최근 운동 시간이 근력에 몰려 있다.
     strength_heavy: bool = False
@@ -312,12 +313,6 @@ def _collect_signals(
         )
     ]
 
-    routine_feedback = any(
-        row.assigned_trainer_id == trainer_id
-        and (row.trainer_feedback or "").strip()
-        for row in recent_sessions
-    )
-
     minutes_by_type: dict[str, int] = {}
     for row in recent_sessions:
         minutes_by_type[row.type] = minutes_by_type.get(row.type, 0) + int(
@@ -346,7 +341,7 @@ def _collect_signals(
 
     return _Signals(
         pt_just_finished=pt_just_finished,
-        trainer_feedback=pt_note or routine_feedback,
+        trainer_feedback=pt_note,
         strength_heavy=(
             total_minutes > 0
             and strength_minutes / total_minutes > STRENGTH_HEAVY_RATIO

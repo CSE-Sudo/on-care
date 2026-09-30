@@ -949,11 +949,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exCompletedRoutineDayTitle => '완료한 개인운동';
 
   @override
-  String exPtDayFeedback(String coachName) {
-    return '$coachName · 피드백';
-  }
-
-  @override
   String get exDeleteExercise => '운동 기록 삭제';
 
   @override
@@ -3534,11 +3529,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachRoutineCancelFailed => '개인 운동을 삭제하지 못했어요';
-
-  @override
-  String coachRoutineTrainerFeedback(String feedback) {
-    return '트레이너 피드백: $feedback';
-  }
 
   @override
   String get coachRoutineCompleteTitle => '개인운동 수행 완료';

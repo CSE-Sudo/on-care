@@ -340,6 +340,9 @@ class RoutineHistoryOut(BaseModel):
     kind: RoutineHistoryKind | None = None
     #: `exercises` 와 같은 순서·같은 개수의 값 목록(#2300).
     exercise_items: list[RoutineHistoryExerciseOut] = Field(default_factory=list)
+    #: 두 칸 모두 트레이너 웹 화면이 읽지 않는다(#2334). 개인운동 이력은 늘 빈
+    #: 문자열이고(#1825, #2517), PT 세션 이력의 `trainer_note` 는 PT 완료 때
+    #: 복사한 일정의 글이다 — 정리는 일정 글 결정(#2515)과 함께 본다.
     client_feedback: str
     trainer_note: str
     assigned_routine_id: str | None = None
@@ -643,6 +646,8 @@ class RoutineOut(BaseModel):
     #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
     completed_duration_seconds: int | None = None
     completed_intensity: str | None = None
+    #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
+    #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
@@ -816,10 +821,6 @@ class RoutineUpdateRequest(PartialUpdate):
     )
     type: RoutineType | None = None
     reason: str | None = Field(default=None, max_length=200)
-
-
-class RoutineFeedbackRequest(BaseModel):
-    feedback: str = Field(min_length=1, max_length=2000)
 
 
 # ---- 프로그램 초안 (#708) ----

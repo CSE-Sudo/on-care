@@ -63,6 +63,8 @@ class ExerciseSessionOut(BaseModel):
     source: str = "member"
     assigned_routine_id: str | None = None
     assigned_routine_name: str = ""
+    #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
+    #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
     trainer_feedback: str = ""
     completed_at: datetime | None = None

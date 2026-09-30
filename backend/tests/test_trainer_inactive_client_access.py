@@ -188,12 +188,6 @@ READ_ENDPOINTS: list[tuple[str, str, dict]] = [
 #: 쓰기·부수 효과 — (id, 메서드, 경로 접미사, json 본문).
 WRITE_ENDPOINTS: list[tuple[str, str, str, dict | None]] = [
     ("health-profile-put", "PUT", "/health-profile", {}),
-    (
-        "routine-feedback",
-        "PUT",
-        "/history/hist-unknown/feedback",
-        {"feedback": "해제 뒤 피드백"},
-    ),
     ("chat-send", "POST", "/chat", {"text": "해제 뒤 메시지"}),
     ("chat-read", "POST", "/chat/read", None),
     ("routine-assign", "POST", "/routines", {"name": "해제 뒤 루틴", "type": "근력"}),
