@@ -5555,7 +5555,7 @@ def _derived_exercise_id(session_id: str) -> str:
     `sched-hist-{id}` 와 같은 이유다. 동시 완료나 재호출에도 같은 id 가 나와
     중복 행이 생기지 않는다.
     """
-    return f"sched-ex-{session_id}"
+    return f"{exercise_service.PT_EXERCISE_ID_PREFIX}{session_id}"
 
 
 def _schedule_day(day: str) -> date:
@@ -6301,10 +6301,36 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .order_by(TrainerSchedule.date.desc(), TrainerSchedule.time.desc())
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
-    return [_member_schedule_out(s) for s in rows]
+    numbers = _done_pt_numbers(db, member_id, trainer_id)
+    return [_member_schedule_out(s, numbers.get(s.id)) for s in rows]
 
 
-def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
+def _done_pt_numbers(db: Session, member_id: str, trainer_id: str) -> dict[str, int]:
+    """이 회원이 이 트레이너와 마친 PT 의 회차 — 세션 id → 1부터의 순번. (#2697)
+
+    목록은 최근 100건만 내리지만 회차는 처음부터 센다. 상담은 수업이 아니라 세지
+    않는다. 같은 날·같은 시각이면 id 로 순서를 고정해 응답마다 번호가 바뀌지 않게 한다.
+    """
+    ids = db.scalars(
+        select(TrainerSchedule.id)
+        .where(
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.status == SCHEDULE_DONE,
+            TrainerSchedule.type != "상담",
+        )
+        .order_by(
+            TrainerSchedule.date.asc(),
+            TrainerSchedule.time.asc(),
+            TrainerSchedule.id.asc(),
+        )
+    ).all()
+    return {sid: i for i, sid in enumerate(ids, start=1)}
+
+
+def _member_schedule_out(
+    s: TrainerSchedule, session_number: int | None = None
+) -> ScheduleSessionOut:
     """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
 
     `note` 한 칸이 PT 일정에서는 회원에게 보내는 트레이너 피드백이고, 상담 일정에서는
@@ -6317,6 +6343,7 @@ def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
         out.note = ""
     # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
     out.consultation = None
+    out.session_number = session_number
     return out
 
 

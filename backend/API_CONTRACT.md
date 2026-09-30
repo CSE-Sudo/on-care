@@ -184,7 +184,8 @@
 
 추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
 
-`sessions[]`: `{ id(str), day_label, type(cardio|strength|yoga|walking), minutes, duration_seconds, calories, calorie_source, intensity(light|moderate|high), sets, reps, hold_seconds, weight, source(member|trainer_pt), date_label, time_label, items[str] }`
+`sessions[]`: `{ id(str), day_label, type(cardio|strength|yoga|walking), minutes, duration_seconds, calories, calorie_source, intensity(light|moderate|high), sets, reps, hold_seconds, weight, source(member|trainer_pt|assigned_routine), date_label, time_label(str?), items[str] }`
+`time_label`: PT(`trainer_pt`) 기록만 그 수업 일정의 시각(`HH:MM`)을 싣는다. 배정 개인운동·회원 기록은 언제 했는지를 남기지 않아 `null` 이고, 수업을 찾지 못한 PT 도 `null` 이다 — 유형별 시각을 지어내지 않는다. 회원 앱은 이 값을 "○○ 수업 완료" 로 그린다. (#2692)
 `week_start`: 그 주의 월요일. 월요일이 아닌 날짜를 줘도 그 날이 속한 주로 맞춘다. 형식이 깨지면 422. 회원 앱이 지난 날짜를 골랐을 때 그 주를 받는다. (#671)
 `intensity`: 생략 시 `moderate`. 수정 시트가 저장된 강도로 복원되고 칼로리 추정 배수(0.85/1.0/1.2)의 근거가 된다.
 `calories`(입력): **서버가 다시 계산하므로 쓰이지 않는다.** 이 필드를 채워 보내는 옛 클라이언트를 422 로 막지 않으려고 받아만 둔다. 앱이 화면에 띄우는 미리보기는 `POST /exercise/calories` 로 같은 계산을 받아 오므로, 저장 뒤 숫자가 달라지지 않는다. (#1312)
@@ -921,6 +922,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 `percent`·`direction` over|under) · `protein_low`(단백질 부족, `percent`) 일곱 가지다. 담당 해제·휴면
 회원은 빈 목록이다. 답장 대기는 여기 없다 — 앱이 `/trainer/chat/unread` 로 실시간으로 센다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
+
+**완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —
+완료(`status="완료"`)한 PT 가 현재 담당 트레이너와의 몇 번째 수업인지(1부터). 날짜·시각 순으로
+처음부터 세므로, 목록이 최근 100건으로 잘려도 번호는 맞다. 상담은 세지 않는다. 예정·취소·노쇼·
+상담 세션과 트레이너 응답(`/trainer/schedule`)은 `null` 이다. 회원 앱 운동 탭 `오늘 완료한 PT`
+카드의 `N회차` 칩이 이 값을 읽는다.
 
 **회원 주간 피드백 (#2232)**: 한 주가 끝난 뒤 회원이 남기는 세 문항이다. 수치만 보면 같은
 한 주가 `게으름` 으로도 `과부하·일정 문제` 로도 읽히는데 그 둘은 다음 주 처방이 정반대라,

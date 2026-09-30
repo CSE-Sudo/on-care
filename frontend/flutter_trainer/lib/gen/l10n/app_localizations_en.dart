@@ -3476,6 +3476,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifTitle => 'Notifications';
 
   @override
+  String get notifSeeAll => 'See all';
+
+  @override
+  String get notifGroupAll => 'All';
+
+  @override
+  String get notifGroupMessages => 'Messages';
+
+  @override
+  String get notifGroupEmpty => 'No notifications of this kind';
+
+  @override
   String get notifReadAll => 'Mark all read';
 
   @override

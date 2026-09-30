@@ -23,6 +23,7 @@ class ScheduleDateNavBar extends StatelessWidget {
     required this.onShift,
     required this.trailing,
     this.newSession,
+    this.actions = const <Widget>[],
   });
 
   /// 보이는 창의 첫날.
@@ -40,6 +41,10 @@ class ScheduleDateNavBar extends StatelessWidget {
   /// 화살표·날짜 묶음과 떨어져 이 행의 맨 오른쪽(일요일 칸 위)에 서는 동작
   /// (`+ 새 일정`). 없으면 그 자리를 비운다.
   final Widget? newSession;
+
+  /// [newSession] 왼쪽에 함께 서는 동작(`예약 슬롯`·`상담 요청`). 화면 머리
+  /// 오른쪽 끝은 모든 탭이 알림 종 하나만 두는 자리라 이 줄로 내렸다(#2628).
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +71,16 @@ class ScheduleDateNavBar extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: group,
     );
-    if (newSession == null) {
+    final Widget? right = newSession == null && actions.isEmpty
+        ? null
+        // 좁은 폭·큰 글자에서는 다음 줄로 내린다 — 한 줄에 우겨넣으면 넘친다.
+        : Wrap(
+            alignment: WrapAlignment.end,
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[...actions, ?newSession],
+          );
+    if (right == null) {
       return Align(alignment: Alignment.centerLeft, child: left);
     }
     return LayoutBuilder(
@@ -80,14 +94,14 @@ class ScheduleDateNavBar extends StatelessWidget {
             children: <Widget>[
               left,
               const SizedBox(height: OnCareSpacing.s8),
-              Align(alignment: Alignment.centerRight, child: newSession),
+              Align(alignment: Alignment.centerRight, child: right),
             ],
           );
         }
         return Row(
           children: <Widget>[
             Expanded(child: left),
-            newSession!,
+            right,
           ],
         );
       },

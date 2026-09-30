@@ -186,39 +186,6 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
     )
 
 
-def _hydration_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """수분 제안 — 오늘 나트륨/시간대 기반 간단 규칙(고정 문구 대체).
-
-    RAG/LLM 전까지 규칙 기반으로 개인화한다: 나트륨이 높으면 배출을 위해 물을
-    더 권하고, 그렇지 않으면 시간대에 맞춰 다르게 안내한다.
-    """
-    today = clock.today_iso()
-    total_na = sum(
-        r.sodium_mg for r in db.scalars(
-            select(DietEntry).where(DietEntry.user_id == user_id)
-            .where(DietEntry.date == today)
-        ).all()
-    )
-    if total_na > diet_service.SODIUM_LIMIT_MG:
-        return CoachSuggestion(
-            tag="hydration", title="물을 더 챙기세요",
-            body=(
-                f"오늘 나트륨이 {total_na}mg으로 높아요. "
-                "물을 충분히 마시면 나트륨 배출에 도움이 됩니다."
-            ),
-        )
-    hour = clock.now().hour
-    if hour < 11:
-        body = "아침 물 한 잔으로 하루를 시작해 보세요. 하루 6~8잔이 목표예요."
-    elif hour < 18:
-        body = "지금까지 물을 얼마나 드셨나요? 틈틈이 마셔 6~8잔을 채워요."
-    else:
-        body = "오늘 물 6~8잔을 채웠는지 확인해요. 자기 전 과한 수분은 피하세요."
-    return CoachSuggestion(
-        tag="hydration", title="수분 섭취 잊지 마세요", body=body,
-    )
-
-
 def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
     """
     도메인별 코치를 각각 호출해 합친다.
@@ -237,9 +204,9 @@ def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback
     # 지연 import (순환 참조 방지: domain_coaches 가 coach_service 를 import)
     from app.services.coach.domain_coaches import diet_coach, exercise_coach
 
+    # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
     suggestions = [
         diet_coach(db, user_id),       # 식단 RAG 코치 (실패 시 규칙 폴백)
         exercise_coach(db, user_id),   # 운동 RAG 코치 (실패 시 규칙 폴백)
-        _hydration_suggestion(db, user_id),  # 나트륨/시간대 기반 수분 제안
     ]
     return AiCoachFeedback(greeting=greeting, suggestions=suggestions)

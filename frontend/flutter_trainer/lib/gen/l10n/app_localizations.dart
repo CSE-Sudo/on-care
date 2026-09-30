@@ -6031,6 +6031,30 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get notifTitle;
 
+  /// No description provided for @notifSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get notifSeeAll;
+
+  /// No description provided for @notifGroupAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notifGroupAll;
+
+  /// No description provided for @notifGroupMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get notifGroupMessages;
+
+  /// No description provided for @notifGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications of this kind'**
+  String get notifGroupEmpty;
+
   /// No description provided for @notifReadAll.
   ///
   /// In en, this message translates to:
