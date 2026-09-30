@@ -598,7 +598,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` |
+| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 | GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
