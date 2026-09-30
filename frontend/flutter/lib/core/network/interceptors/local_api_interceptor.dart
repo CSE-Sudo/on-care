@@ -1250,26 +1250,114 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
   /// GET /diet/recommendations — 홈 "AI 추천 식단".
   ///
-  /// 데모에는 개인화 근거가 없다(로그인하지 않은 둘러보기). 그래서 서버가 고르는
-  /// 대신 앱과 서버가 공유하는 기본 순서를 그대로 돌려주고, `reason_text` 는 비워
-  /// 둔다 — 카드 문구는 앱의 l10n 기본값이 쓰여 로케일을 따라간다.
+  /// 서버(`diet_recommendation_service`)의 규칙 경로와 같다(#2661). 최근 3일 식단
+  /// 기록의 하루 평균에서 신호(나트륨·당류 과다, 열량 과다·부족, 단백질 부족)를
+  /// 뽑고, 신호와 맞는 메뉴를 앞으로 올린다. 데모에는 AI 가 없어 서버가 AI 에
+  /// 실패했을 때의 규칙 순서다. `reason_text` 는 비워 두어 카드 문구는 앱의 l10n
+  /// 기본값이 로케일을 따라간다.
   ///
-  /// `personalized` 를 false 로 주는 것이 핵심이다. 화면이 그 값으로 근거 줄을
-  /// 감추므로, 근거가 없는데 있는 척하지 않게 된다.
+  /// 기록이 없거나 신호가 없으면 서버처럼 `personalized: false` 다 — 화면이 그
+  /// 값으로 근거 줄을 감추므로, 근거가 없는데 있는 척하지 않는다.
   Future<Response<Object?>> _dietRecommendations(RequestOptions options) async {
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final String start = _dateString(
+      DateTime(today.year, today.month, today.day - (_recLookbackDays - 1)),
+    );
+    final rows =
+        await (_db.select(_db.dietEntries)..where(
+              (t) =>
+                  t.date.isBiggerOrEqualValue(start) &
+                  t.date.isSmallerOrEqualValue(_dateString(today)),
+            ))
+            .get();
+
+    // 평균은 '기록이 있는 날' 기준이다 — 서버 `build_context` 와 같다.
+    final Map<String, List<double>> perDay = <String, List<double>>{};
+    for (final DietEntryRow r in rows) {
+      final List<double> day = perDay.putIfAbsent(
+        r.date,
+        () => <double>[0, 0, 0, 0],
+      );
+      day[0] += r.sodiumMg;
+      day[1] += r.sugarG;
+      day[2] += r.totalCalories;
+      day[3] += _foodMacroTotals(
+        jsonDecode(r.foodsJson) as List<Object?>,
+      ).proteinG;
+    }
+    final int n = perDay.length;
+    double avg(int i) => n == 0
+        ? 0
+        : perDay.values.fold<double>(
+                0,
+                (double a, List<double> d) => a + d[i],
+              ) /
+              n;
+    final int avgSodium = avg(0).truncate();
+    final double avgSugar = avg(1);
+    final int avgCalories = avg(2).truncate();
+    final double avgProtein = avg(3);
+
+    final Map<String, Object?> profile = await _mergedProfile();
+    int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
+    final int sodiumLimit = positive(profile['daily_sodium_mg']) ?? 2000;
+    final int sugarLimit = positive(profile['daily_sugar_g']) ?? 50;
+    final int calorieLimit = positive(profile['daily_calories']) ?? 2000;
+    final int proteinGoal = positive(profile['daily_protein_g']) ?? 0;
+
+    final Set<String> signals = <String>{
+      if (n > 0) ...<String>{
+        if (avgSodium >= sodiumLimit * _recHighRatio) 'sodium_high',
+        if (avgSugar >= sugarLimit * _recHighRatio) 'sugar_high',
+        if (avgCalories >= calorieLimit * _recHighRatio)
+          'calorie_high'
+        else if (avgCalories > 0 && avgCalories <= calorieLimit * _recLowRatio)
+          'calorie_low',
+        if (proteinGoal > 0 && avgProtein <= proteinGoal * _recLowRatio)
+          'protein_low',
+      },
+    };
+
+    // 신호와 `good_for` 가 겹치는 만큼 점수를 준다. 동점은 기본 순서를 지킨다
+    // (서버 `_rule_rank`). 신호가 없으면 정확히 기본 순서다.
+    final List<MealRecommendation> base = MealRecommendations.fallback.items;
+    int score(MealRecommendation m) =>
+        (_recGoodFor[m.key] ?? const <String>{}).intersection(signals).length;
+    final List<MealRecommendation> ranked = <MealRecommendation>[...base]
+      ..sort((MealRecommendation a, MealRecommendation b) {
+        final int byScore = score(b).compareTo(score(a));
+        return byScore != 0 ? byScore : base.indexOf(a) - base.indexOf(b);
+      });
+
     return _ok(options, <String, Object?>{
       'items': <Map<String, Object?>>[
-        for (final MealRecommendation item
-            in MealRecommendations.fallback.items)
+        for (final MealRecommendation item in ranked)
           <String, Object?>{'key': item.key, 'reason_key': item.reasonKey},
       ],
-      'personalized': false,
-      'days_with_data': 0,
-      'avg_sodium_mg': 0,
-      'sodium_limit_mg': 0,
+      'personalized': n > 0 && signals.isNotEmpty,
+      'days_with_data': n,
+      'avg_sodium_mg': avgSodium,
+      'sodium_limit_mg': sodiumLimit,
       'trainer_pick': _demoTrainerPick(options),
     });
   }
+
+  /// 추천 신호를 뽑는 기간(일). 서버 `LOOKBACK_DAYS` 와 같다.
+  static const int _recLookbackDays = 3;
+
+  /// 한도의 몇 % 이상이면 과다, 미만이면 부족인지. 서버 `_HIGH_RATIO`·`_LOW_RATIO`.
+  static const double _recHighRatio = 0.9;
+  static const double _recLowRatio = 0.6;
+
+  /// 메뉴 → 도움이 되는 신호. 서버 `meal_catalog.CATALOG` 의 `good_for` 와 같다.
+  static const Map<String, Set<String>> _recGoodFor = <String, Set<String>>{
+    'chicken_salad': <String>{'sodium_high', 'protein_low'},
+    'brown_rice_box': <String>{'sugar_high', 'calorie_low'},
+    'salmon': <String>{'protein_low', 'sodium_high'},
+    'tofu': <String>{'calorie_high'},
+    'namul_bibimbap': <String>{'sugar_high'},
+  };
 
   /// 데모 담당 트레이너가 확정해 둔 식단 추천(#2380). 서버 `trainer_pick` 과 같은
   /// 모양이다. 4주 추천 메뉴 리스트(`kDemoMenuPlan`)의 저녁 고단백 메뉴를 쓴다 —
@@ -2576,6 +2664,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
   // ---- AI Coach ----
 
+  /// GET /ai-coach/feedback — 실서버(`build_feedback`)와 같은 식단·운동 두 건이다
+  /// (#2706). 데모 코칭 시트는 이 응답 대신 고정 카드 두 장을 그린다.
   Future<Response<Object?>> _aiCoachFeedback(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'greeting': '안녕하세요, 오늘 컨디션은 어떠세요?',
@@ -2589,11 +2679,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           'tag': 'exercise',
           'title': '저녁 산책 15분',
           'body': '저녁 시간대 가벼운 유산소는 수면의 질도 함께 끌어올립니다.',
-        },
-        <String, Object?>{
-          'tag': 'hydration',
-          'title': '수분 보충',
-          'body': '오늘 평소보다 활동량이 많았어요. 물 한 컵 더 마셔봐요.',
         },
       ],
     });
@@ -3499,8 +3584,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   Future<Response<Object?>> _usersMeHealth(RequestOptions options) async {
     // 끝난 주의 챌린지를 먼저 판정해 보상이 든 잔액을 싣는다(#1789).
     await _settleChallenges();
+    // 이름·이메일은 `PUT /users/me` 가 저장한 프로필에서 읽는다(#2661) — 서버도
+    // 같은 사용자 행을 읽으므로 내 프로필에서 바꾼 값이 MY 카드에 보인다.
+    final Map<String, Object?> me = await _mergedProfile();
     return _ok(options, <String, Object?>{
-      'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
+      'profile': <String, Object?>{
+        'id': me['id'],
+        'name': me['name'],
+        'email': me['email'],
+      },
       'risk': <String, Object?>{
         'title': '이번 주 관리 포인트',
         'body': '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
@@ -3967,6 +4059,122 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         'lat': 37.5573851891011,
         'lng': 126.937543667755,
       },
+      // 신촌 밖에서 위치를 허용하면 위 네 곳이 반경 밖이라 목록이 비었다(#2661).
+      // 자주 시연하는 권역(강남역·홍대입구역·잠실역)의 카카오 Local `헬스장` 검색
+      // 실응답을 같은 방식으로 옮겼다. 거리는 초기 지도 중심(신촌) 기준이고, 좌표가
+      // 오면 아래에서 다시 잰다. 시연용 보강 값(`kakao_gym_demo_profile.dart`)은
+      // 두지 않아 평점·태그 없이 그린다.
+      // 강남역
+      <String, Object?>{
+        'id': '27280559',
+        'name': '스포애니 강남역1호점',
+        'category': 'fitness',
+        'address': '서울 강남구 강남대로78길 8',
+        'distance_meters': 10678,
+        'lat': 37.4946647,
+        'lng': 127.03008422,
+      },
+      <String, Object?>{
+        'id': '1426076788',
+        'name': '스포애니 역삼역점',
+        'category': 'fitness',
+        'address': '서울 강남구 테헤란로 146',
+        'distance_meters': 10691,
+        'lat': 37.49998997,
+        'lng': 127.03543776,
+      },
+      <String, Object?>{
+        'id': '1710995183',
+        'name': 'F45 역삼',
+        'category': 'fitness',
+        'address': '서울 강남구 테헤란로14길 13',
+        'distance_meters': 10649,
+        'lat': 37.49854351,
+        'lng': 127.03351911,
+      },
+      <String, Object?>{
+        'id': '27440610',
+        'name': '스포애니 강남역2호점',
+        'category': 'fitness',
+        'address': '서울 서초구 서초대로78길 44',
+        'distance_meters': 10631,
+        'lat': 37.49379653,
+        'lng': 127.02846456,
+      },
+      // 홍대입구역
+      <String, Object?>{
+        'id': '355866189',
+        'name': 'F45 합정',
+        'category': 'fitness',
+        'address': '서울 마포구 양화로 85',
+        'distance_meters': 1785,
+        'lat': 37.55228104,
+        'lng': 126.91706103,
+      },
+      <String, Object?>{
+        'id': '1521470440',
+        'name': '에이블짐 홍대입구역점',
+        'category': 'fitness',
+        'address': '서울 마포구 양화로 186',
+        'distance_meters': 981,
+        'lat': 37.55766857,
+        'lng': 126.92589302,
+      },
+      <String, Object?>{
+        'id': '1001520518',
+        'name': '짐박스피트니스 홍대입구점',
+        'category': 'fitness',
+        'address': '서울 마포구 양화로 144',
+        'distance_meters': 1272,
+        'lat': 37.55533994,
+        'lng': 126.92238583,
+      },
+      <String, Object?>{
+        'id': '142489778',
+        'name': '아크로짐 홍대점24시휘트니스',
+        'category': 'fitness',
+        'address': '서울 마포구 월드컵북로 30',
+        'distance_meters': 1544,
+        'lat': 37.55735976,
+        'lng': 126.91937098,
+      },
+      // 잠실역
+      <String, Object?>{
+        'id': '1781300886',
+        'name': 'F45 잠실',
+        'category': 'fitness',
+        'address': '서울 송파구 송파대로 558',
+        'distance_meters': 15064,
+        'lat': 37.51509458,
+        'lng': 127.09971196,
+      },
+      <String, Object?>{
+        'id': '15209409',
+        'name': '스포애니 잠실점',
+        'category': 'fitness',
+        'address': '서울 송파구 삼학사로 99',
+        'distance_meters': 15173,
+        'lat': 37.5060787,
+        'lng': 127.09698899,
+      },
+      <String, Object?>{
+        'id': '1192524319',
+        'name': '에이블짐 잠실역점',
+        'category': 'fitness',
+        'address': '서울 송파구 올림픽로35가길 11',
+        'distance_meters': 15390,
+        'lat': 37.51632971,
+        'lng': 127.10406058,
+      },
+      <String, Object?>{
+        'id': '1645271768',
+        'name': '헬스보이짐 잠실점',
+        'category': 'fitness',
+        'address': '서울 송파구 올림픽로 240',
+        'distance_meters': 15065,
+        'lat': 37.51131078,
+        'lng': 127.0981404,
+      },
     ];
 
     // category 는 언제나 존중한다 — 필터링하지 않으면 헬스장 찾기에 병원·약국이
@@ -4210,6 +4418,27 @@ const List<_DemoFood> _demoFoods = <_DemoFood>[
   _DemoFood('라면', 550, 500, 1800, 5, 70, 10, 16),
   _DemoFood('삼계탕', 1000, 900, 1400, 1, 40, 70, 45),
   _DemoFood('떡볶이', 300, 550, 1600, 20, 100, 10, 12),
+  // 시드가 100g 당 값을 적은 줄 — 1회 섭취량을 곱해 1인분으로 옮겼다(#2661).
+  _DemoFood('순대', 220, 391.6, 1113.2, 2.4, 71, 7, 8.7),
+  _DemoFood('갈비탕', 670, 361.8, 1333.3, 0.7, 2.7, 57, 13.8),
+  _DemoFood('설렁탕', 500, 120, 110, 0, 1.8, 21.3, 2.9),
+  _DemoFood('잔치국수', 700, 308, 1512, 0.3, 56.4, 13.5, 3.4),
+  _DemoFood('물냉면', 700, 462, 2429, 17.6, 91.8, 13.9, 4.4),
+  _DemoFood('삼겹살', 200, 968, 160, 0, 0, 45.6, 82.4),
+  _DemoFood('제육볶음', 250, 487.5, 1252.5, 0.9, 11.8, 30.4, 35.5),
+  _DemoFood('불고기', 200, 372, 936, 6.7, 13.5, 20.7, 26.2),
+  _DemoFood('양념치킨', 200, 552, 806, 12.5, 42.3, 35.5, 26.8),
+  _DemoFood('김치', 40, 15.2, 220.4, 1, 2.6, 0.8, 0.2),
+  _DemoFood('계란후라이', 60, 124.8, 96.6, 0, 3.1, 9.4, 8.3),
+  _DemoFood('계란찜', 200, 178, 658, 0, 8.9, 9.5, 11.5),
+  _DemoFood('샐러드', 150, 43.5, 13.5, 6.6, 10.5, 2, 0.2),
+  _DemoFood('아메리카노', 240, 2.4, 4.8, 0, 0, 0.3, 0),
+  _DemoFood('콜라', 208, 76, 4, 18.1, 18.9, 0, 0),
+  _DemoFood('우유', 206, 138, 82.4, 9.9, 10, 6.4, 7.9),
+  _DemoFood('바나나', 118, 90.9, 0, 17, 23.6, 1.3, 0.2),
+  _DemoFood('오트밀', 234, 166.1, 9.4, 0.6, 28.1, 5.9, 3.6),
+  _DemoFood('그릭 요거트', 100, 97, 35, 4, 4, 9, 5),
+  _DemoFood('닭가슴살', 100, 144, 328, 0, 0, 28, 3.6),
   // 분석 데모가 돌려주는 세 줄 — 그 끼니를 수정하며 이름을 고쳐도 붙게 둔다.
   _DemoFood('요거트 아이스크림', 110, 135, 55, 14.5, 26, 3, 2),
   _DemoFood('과일 토핑', 90, 55, 5, 9, 13, 1, 0.5),
