@@ -47,13 +47,22 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 새로고침해도 그 자리에 남는다.
 class SchedulePage extends ConsumerStatefulWidget {
   /// Creates the schedule tab.
-  const SchedulePage({super.key, this.date, this.sessionId});
+  const SchedulePage({
+    super.key,
+    this.date,
+    this.sessionId,
+    this.openInbox = false,
+  });
 
   /// Browsed day as `YYYY-MM-DD`; invalid or absent means today.
   final String? date;
 
   /// Session selected by a deep link from the dashboard.
   final String? sessionId;
+
+  /// 들어오자마자 상담 요청함 창을 연다 — 알림·옛 주소가 상담함으로 보낼 때
+  /// ([AppRoutes.consultations]). 연 뒤에는 주소에서 쿼리를 지운다(#2717).
+  final bool openInbox;
 
   @override
   ConsumerState<SchedulePage> createState() => _SchedulePageState();
@@ -104,8 +113,27 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.openInbox) _openInboxFromLink();
+  }
+
+  /// 주소가 부른 상담 요청함 창을 연다. 쿼리를 먼저 지워, 창을 닫은 뒤
+  /// 새로고침이나 뒤로 가기로 창이 다시 뜨지 않게 한다.
+  void _openInboxFromLink() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go(
+        AppRoutes.scheduleAt(date: widget.date, sessionId: widget.sessionId),
+      );
+      showConsultationsDialog(context);
+    });
+  }
+
+  @override
   void didUpdateWidget(SchedulePage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.openInbox && !oldWidget.openInbox) _openInboxFromLink();
     // The URL is the source of truth: a link from the dashboard, or
     // back/forward, must move the calendar.
     if (widget.date != oldWidget.date) {

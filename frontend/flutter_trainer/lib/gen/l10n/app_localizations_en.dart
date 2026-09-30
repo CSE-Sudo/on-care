@@ -1059,12 +1059,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultTitle => 'Consultation requests';
 
   @override
-  String get consultBackToSchedule => 'Back to schedule';
-
-  @override
-  String get consultBackToDashboard => 'Back to dashboard';
-
-  @override
   String consultPendingCount(int count) {
     return '$count pending';
   }

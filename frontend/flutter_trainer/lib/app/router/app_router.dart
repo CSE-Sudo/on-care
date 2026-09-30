@@ -11,7 +11,6 @@ import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/coaching_page.dart';
-import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare_trainer/features/messages/presentation/pages/messages_page.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/legal_document_page.dart';
@@ -186,15 +185,9 @@ GoRouter buildAppRouter({
                 builder: (context, state) => SchedulePage(
                   date: state.uri.queryParameters['d'],
                   sessionId: state.uri.queryParameters['session'],
+                  openInbox:
+                      state.uri.queryParameters[AppRoutes.inboxParam] == '1',
                 ),
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: AppRoutes.consultationsSegment,
-                    builder: (context, state) => ConsultationsPage(
-                      returnTo: state.uri.queryParameters['from'],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -248,6 +241,10 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutes.legacyConsultations,
+        redirect: (context, state) => AppRoutes.consultations,
+      ),
+      GoRoute(
+        path: AppRoutes.legacyScheduleConsultations,
         redirect: (context, state) => AppRoutes.consultations,
       ),
       // 셸 밖에 둔다 — 사이드바를 띄우려면 세션이 있어야 하는데, 이 문서는
