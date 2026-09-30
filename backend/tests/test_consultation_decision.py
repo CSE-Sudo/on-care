@@ -734,14 +734,17 @@ def test_accept_is_allowed_for_a_member_coached_elsewhere(client, db_session):
 
     수락은 연결이 아니므로 막을 이유가 없다. 담당을 옮기는 결정은 코드 연결이
     막거나 받는다(회원당 활성 담당 1명).
+
+    연결된 회원은 다른 트레이너에게 새로 신청하지 못하므로(#2611), 신청을 먼저
+    내 두고 그 사이 다른 트레이너와 코드로 연결된 경우를 본다.
     """
     first_trainer, first_token = _trainer(client, db_session)
     second_trainer, second_token = _trainer(client, db_session)
     member_id, member_token = _member(client)
-    _pair_by_code(client, member_token, first_token)
     request = _request_consultation(
         client, member_token, trainer_id=second_trainer.id
     )
+    _pair_by_code(client, member_token, first_token)
 
     body = _accept(client, second_token, request)
 
@@ -875,6 +878,61 @@ def test_linked_member_consultation_leaves_the_link_as_is(client, db_session):
     assert links[0].active is True
     assert links[0].data_consent_at == consented_at
     assert links[0].goal == goal
+
+
+def _consultation_payload(trainer_id: str) -> dict:
+    return {
+        "trainer_id": trainer_id,
+        "exercise_goal": "weight_loss",
+        "health_purpose_type": "general",
+        "health_purpose_detail": None,
+        "slot_id": _open_slot(trainer_id).id,
+        "message": "상담 부탁드립니다.",
+        "data_sharing_consent": True,
+    }
+
+
+def test_linked_member_cannot_request_another_trainer(client, db_session):
+    """담당이 있는 회원은 다른 트레이너에게 상담을 낼 수 없다. (#2611)
+
+    같은 헬스장 동료든 다른 헬스장 트레이너든 같다. 대기 중복 409 와 섞이지 않게
+    `detail.code` 를 싣고, 요청 행을 남기지 않는다.
+    """
+    gym = _gym(db_session)
+    coach, coach_token = _trainer(client, db_session, gym=gym)
+    colleague, _ = _trainer(client, db_session, gym=gym)
+    elsewhere, _ = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    _pair_by_code(client, member_token, coach_token)
+
+    for target in (colleague, elsewhere):
+        payload = _consultation_payload(target.id)
+        response = client.post(
+            "/v1/consultations", headers=_auth(member_token), json=payload
+        )
+
+        assert response.status_code == 409, response.text
+        assert response.json()["detail"]["code"] == "linked_to_other_trainer"
+    db_session.expire_all()
+    assert (
+        db_session.query(ConsultationRequest)
+        .filter(ConsultationRequest.member_id == member_id)
+        .count()
+        == 0
+    )
+
+
+def test_member_can_request_another_trainer_after_disconnecting(client, db_session):
+    """담당 연결을 해제하면 다른 트레이너에게 다시 상담을 낼 수 있다. (#2611)"""
+    _, coach_token = _trainer(client, db_session)
+    other, _ = _trainer(client, db_session)
+    _, member_token = _member(client)
+    _pair_by_code(client, member_token, coach_token)
+
+    disconnected = client.delete("/v1/me/coach/trainer", headers=_auth(member_token))
+    assert disconnected.status_code == 204, disconnected.text
+
+    _request_consultation(client, member_token, trainer_id=other.id)
 
 
 def test_accept_foreign_request_is_not_found(client, db_session):
