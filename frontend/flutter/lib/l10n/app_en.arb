@@ -5,6 +5,19 @@
   "@appTitle": {
     "description": "Application name shown in window/AppBar titles."
   },
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Title of the 404 page shown for an address that matches no screen (#2633)."
+  },
+  "notFoundMessage": "The link may be broken, or the page may no longer exist. Please check the address and try again.",
+  "notFoundGoHome": "Go home",
+  "@notFoundGoHome": {
+    "description": "404 page button for a signed-in (or demo) member; goes to the home dashboard."
+  },
+  "notFoundGoSignIn": "Go to sign in",
+  "@notFoundGoSignIn": {
+    "description": "404 page button when nobody is signed in; goes to the sign-in screen."
+  },
   "navDashboard": "Home",
   "navDiet": "Diet",
   "navExercise": "Exercise",

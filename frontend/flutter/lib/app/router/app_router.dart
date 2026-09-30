@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/nav_logger_observer.dart';
+import 'package:oncare/app/router/not_found_page.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
@@ -99,6 +100,8 @@ GoRouter buildAppRouter({
         ? const <NavigatorObserver>[]
         : <NavigatorObserver>[observer],
     refreshListenable: refresh,
+    // 없는 주소는 go_router 기본 영어 화면 대신 회원 앱 404 로 받는다(#2633).
+    errorBuilder: (context, state) => const NotFoundPage(),
     redirect: readStatus == null
         ? null
         : (context, state) =>

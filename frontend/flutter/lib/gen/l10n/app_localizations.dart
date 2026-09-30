@@ -110,6 +110,30 @@ abstract class AppLocalizations {
   /// **'On-Care'**
   String get appTitle;
 
+  /// Title of the 404 page shown for an address that matches no screen (#2633).
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found'**
+  String get notFoundTitle;
+
+  /// No description provided for @notFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may be broken, or the page may no longer exist. Please check the address and try again.'**
+  String get notFoundMessage;
+
+  /// 404 page button for a signed-in (or demo) member; goes to the home dashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Go home'**
+  String get notFoundGoHome;
+
+  /// 404 page button when nobody is signed in; goes to the sign-in screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get notFoundGoSignIn;
+
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:
