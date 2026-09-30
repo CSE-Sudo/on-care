@@ -937,7 +937,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOwnRecords => '직접 기록한 운동';
 
   @override
-  String get exOwnRecordsEmpty => '직접 추가할 운동이 없어요';
+  String get exOwnRecordsEmpty => '직접 기록한 운동이 없어요';
 
   @override
   String get exOwnRecordSource => '직접 기록';
@@ -3772,10 +3772,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
-
-  @override
-  String get exDemoPtFeedback =>
-      '숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!';
 
   @override
   String pointsRewardBadge(int points) {
