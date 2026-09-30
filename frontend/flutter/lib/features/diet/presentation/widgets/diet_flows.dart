@@ -2528,12 +2528,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
       if (!mounted) return;
       // 지운 끼니의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
-      ref.invalidate(dietByDateProvider(nowKst()));
+      // 끼니가 놓였던 날도 비운다 — 오늘만 비우면 지난 날의 끼니를 지웠을 때
+      // 돌아간 그 날 목록과 영양 요약에 지운 끼니가 남는다(#2626).
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       navigator.pop();
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietDeleted, type: AppToastType.success);
