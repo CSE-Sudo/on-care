@@ -3096,15 +3096,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiAttachedLabel => '반영했어요';
 
   @override
-  String get aiRoutineTargetTitle => '보낼 곳';
-
-  @override
   String aiRoutineTargetPt(String date, String time) {
     return '$date $time PT 에 붙이기';
   }
 
   @override
-  String get aiRoutineTargetNone => 'PT 없이 보내기';
+  String aiRoutineOnlyAttachHint(String date, String time) {
+    return '$date $time PT 에 붙어요. 회원에게는 스케줄에서 이 PT 를 보낼 때 함께 가요.';
+  }
 
   @override
   String get aiReplaceRoutinesTitle => '이미 개인운동이 있어요';

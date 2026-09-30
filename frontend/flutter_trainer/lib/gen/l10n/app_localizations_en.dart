@@ -3260,15 +3260,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiAttachedLabel => 'Applied';
 
   @override
-  String get aiRoutineTargetTitle => 'Where to send';
-
-  @override
   String aiRoutineTargetPt(String date, String time) {
     return 'Attach to the $date $time PT';
   }
 
   @override
-  String get aiRoutineTargetNone => 'Send without a PT';
+  String aiRoutineOnlyAttachHint(String date, String time) {
+    return 'Attaches to the $date $time PT. It reaches the member when you send that PT from Schedule.';
+  }
 
   @override
   String get aiReplaceRoutinesTitle => 'Personal exercise already attached';

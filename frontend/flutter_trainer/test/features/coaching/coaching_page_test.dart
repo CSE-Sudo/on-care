@@ -3293,17 +3293,18 @@ void main() {
       );
 
       await _completePersonalStep(tester, find.byType(Scrollable).first);
-      // 보낼 곳이 그 PT 로 골라져 있고, 확정이 `PT 에 반영` 이다.
-      expect(find.text('보낼 곳'), findsOneWidget);
+      // 어디로 보낼지 고르지 않는다 — 시작일이 그 PT 날로 잡혀 있고, 그날
+      // PT 가 있으니 확정이 `PT 에 반영` 이다.
       expect(
-        tester
-            .widget<AppListRow>(
-              find.byKey(
-                const ValueKey<String>('personal-routine-target-attach-target'),
-              ),
-            )
-            .selected,
-        isTrue,
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('personal-routine-start-date')),
+          matching: find.text('2026-09-30'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-target-when')),
+        findsOneWidget,
       );
       expect(
         find.descendant(
@@ -3373,8 +3374,13 @@ void main() {
       expect(scheduleRepo.updatedFor, <String>['attach-target']);
     });
 
-    testWidgets('코칭 탭에서 개인운동만 짜기를 고르면 보낼 곳은 PT 없이가 기본이다', (tester) async {
-      await openCoaching(tester, candidates: const <ScheduleSession>[targetPt]);
+    testWidgets('시작일에 PT 가 없으면 바로 보내고, 가까운 PT 를 누르면 그 PT 에 반영으로 바뀐다', (
+      tester,
+    ) async {
+      final scheduleRepo = await openCoaching(
+        tester,
+        candidates: const <ScheduleSession>[targetPt],
+      );
       final scrollable = find.byType(Scrollable).first;
       final skip = find.byKey(const ValueKey<String>('skip-pt-program'));
       await tester.scrollUntilVisible(skip, 150, scrollable: scrollable);
@@ -3383,28 +3389,44 @@ void main() {
       await tester.pumpAndSettle();
       await _completePersonalStep(tester, scrollable);
 
-      // 아직 보내지 않은 PT 가 후보로 서지만 골라 두지는 않는다 — 지금처럼
-      // PT 없이 한 주 동안 보내는 것이 기본이다.
+      // 시작일은 오늘이고 오늘은 PT 가 없다 — 지금처럼 바로 보낸다.
+      final send = find.byKey(const ValueKey<String>('personal-routine-send'));
       expect(
-        find.byKey(
-          const ValueKey<String>('personal-routine-target-attach-target'),
-        ),
+        find.descendant(of: send, matching: find.text('회원에게 보내기')),
         findsOneWidget,
       );
       expect(
-        tester
-            .widget<AppListRow>(
-              find.byKey(
-                const ValueKey<String>('personal-routine-target-none'),
-              ),
-            )
-            .selected,
-        isTrue,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('personal-routine-start-date')),
+        find.byKey(const ValueKey<String>('personal-routine-box-weekly')),
         findsOneWidget,
       );
+
+      // 가장 가까운 아직 보내지 않은 PT 를 알려 준다 — 누르면 시작일이 그
+      // 날로 바뀌고 확정이 `PT 에 반영` 이 된다.
+      final nearest = find.byKey(
+        const ValueKey<String>('personal-routine-nearest-pt'),
+      );
+      await _revealBuilt(tester, 'personal-routine-nearest-pt');
+      await _ensureCentered(tester, nearest);
+      await tester.pump();
+      await tester.tap(nearest);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: send, matching: find.text('PT 에 반영')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-target-when')),
+        findsOneWidget,
+      );
+
+      await _revealBuilt(tester, 'personal-routine-send');
+      await _ensureCentered(tester, send);
+      await tester.pump();
+      await tester.tap(send);
+      await settle(tester);
+      // 붙이기만 한다 — 회원 전송은 스케줄에서 한다.
+      expect(scheduleRepo.updatedFor, <String>['attach-target']);
+      expect(scheduleRepo.sends, 0);
     });
   });
 }
@@ -3419,7 +3441,7 @@ class _AttachScheduleRepository extends DriftScheduleRepository {
 
   final List<RoutineExercise> attached;
 
-  /// 그 회원의 일정 — 개인운동만의 보낼 곳 후보가 된다.
+  /// 그 회원의 일정 — 개인운동만을 붙일 PT 후보가 된다.
   final List<ScheduleSession> candidates;
 
   @override

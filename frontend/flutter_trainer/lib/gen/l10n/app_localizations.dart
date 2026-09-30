@@ -5677,23 +5677,17 @@ abstract class AppLocalizations {
   /// **'Applied'**
   String get aiAttachedLabel;
 
-  /// No description provided for @aiRoutineTargetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Where to send'**
-  String get aiRoutineTargetTitle;
-
   /// No description provided for @aiRoutineTargetPt.
   ///
   /// In en, this message translates to:
   /// **'Attach to the {date} {time} PT'**
   String aiRoutineTargetPt(String date, String time);
 
-  /// No description provided for @aiRoutineTargetNone.
+  /// No description provided for @aiRoutineOnlyAttachHint.
   ///
   /// In en, this message translates to:
-  /// **'Send without a PT'**
-  String get aiRoutineTargetNone;
+  /// **'Attaches to the {date} {time} PT. It reaches the member when you send that PT from Schedule.'**
+  String aiRoutineOnlyAttachHint(String date, String time);
 
   /// No description provided for @aiReplaceRoutinesTitle.
   ///

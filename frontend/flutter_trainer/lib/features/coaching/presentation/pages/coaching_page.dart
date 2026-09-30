@@ -116,15 +116,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 제안)만 연다 — 반영하면 편집기로 돌아와 `일정 추가` 가 함께 싣는다.
   String? _draftAttachFor;
 
-  /// `개인운동만 짜기` 의 보낼 곳 — 회원 → 붙일 PT id. 없으면 PT 없이 한 주
-  /// 동안 보낸다. (#2280)
-  ///
-  /// 개인운동만 따로 짜는 입구는 하나다. 이미 있는 PT 에 붙이든 PT 없는 주에
-  /// 보내든 같은 흐름으로 짜고, 끝에서 어디로 보낼지만 고른다 — 모양이 같은데
-  /// 하는 일이 다른 흐름을 두지 않는다.
-  final Map<String, String> _routineOnlyTarget = <String, String>{};
-
   /// 붙일 수 있는 PT 후보 — 그 회원의 아직 보내지 않은 PT 전체. (#2280)
+  ///
+  /// 개인운동만 따로 짜는 입구는 하나다. 트레이너는 어디로 보낼지 고르지 않고
+  /// 시작일만 고른다 — 그날 이 중 PT 가 있으면 그 PT 에 붙이고, 없으면 바로
+  /// 보낸다([_routineOnlyTargetFor]). 아직 읽지 않은 회원은 여기 없다.
   final Map<String, List<ScheduleSession>> _routineOnlyCandidates =
       <String, List<ScheduleSession>>{};
 
@@ -241,7 +237,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 
   /// 스케줄의 `개인운동 추가` 에서 왔으면 `개인운동만 짜기` 를 고른 위저드를
-  /// 새로 세우고, 보낼 곳을 그 PT 로 골라 둔다. (#2280)
+  /// 새로 세우고, 시작일을 그 PT 날로 잡아 둔다. (#2280)
   ///
   /// 상태만 바꾼다 — 다시 그리는 것은 부르는 쪽 몫이다(`initState` 에서도
   /// 부른다).
@@ -253,7 +249,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!_consumedAttachRequests.add(widget.attachRequest ?? sessionId)) {
       return;
     }
-    _routineOnlyTarget[clientId] = sessionId;
+    // 그 PT 날을 시작일로 잡아 둔다 — 그날 PT 가 있으니 그 PT 에 붙는다.
+    final DateTime? day = DateTime.tryParse(date);
+    if (day != null) _routineOnlyStart[clientId] = day;
     _returnToSchedule = (clientId: clientId, sessionId: sessionId, date: date);
     _personalRoutines.remove(clientId);
     _routineOnlyClients.remove(clientId);
@@ -377,16 +375,18 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 와 같고, 이름만 `회원에게 보내기` 다. 운동 하나가 배정 한 건이 되고, 고른
   /// 시작일부터 한 주 동안 회원 목록에 걸린다.
   ///
-  /// 보낼 곳으로 PT 를 골랐으면 보내지 않고 그 PT 에 붙인다(#2280,
-  /// [_attachRoutineOnlyToPt]).
+  /// 시작일에 아직 보내지 않은 PT 가 있으면 보내지 않고 그 PT 에 붙인다(#2280,
+  /// [_attachRoutineOnlyToPt]). 회원에게는 스케줄에서 그 PT 와 함께 간다.
   Future<void> _sendRoutineOnly(TrainerClient client) async {
     final routines = _personalRoutines[client.id] ?? const <RoutineExercise>[];
     if (_sent || _sendingRoutineOnly.contains(client.id) || routines.isEmpty) {
       return;
     }
-    final String? target = _routineOnlyTarget[client.id];
+    // 그날 PT 를 아직 읽지 못했으면 누르지 못한다 — 박스가 버튼을 잠근다.
+    if (!_routineOnlyCandidates.containsKey(client.id)) return;
+    final ScheduleSession? target = _routineOnlyTargetFor(client.id);
     if (target != null) {
-      await _attachRoutineOnlyToPt(client, target, routines);
+      await _attachRoutineOnlyToPt(client, target.id, routines);
       return;
     }
     final AppLocalizations l = AppLocalizations.of(context);
@@ -1123,8 +1123,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void _startDraftAttach(TrainerClient client) =>
       setState(() => _draftAttachFor = client.id);
 
-  /// `개인운동만 짜기` 에서 짠 개인운동을 보낼 곳으로 고른 PT 에 붙인다.
-  /// (#2280)
+  /// `개인운동만 짜기` 에서 짠 개인운동을 시작일의 PT 에 붙인다. (#2280)
   ///
   /// 회원에게 보내지 않는다 — 그 PT 의 프로그램을 보낼 때 함께 간다. 그 PT 에
   /// 개인운동이 이미 있으면 교체하는지 한 번 묻는다. 스케줄에서 왔으면 붙인 뒤
@@ -1192,18 +1191,45 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         (id: client.id, name: client.name),
       ).first;
     } catch (_) {
-      sessions = const <ScheduleSession>[];
+      // 읽지 못한 채로 두면 버튼이 잠긴다 — 빈 목록으로 두면 PT 가 있는 날인데도
+      // 바로 보내 버린다.
+      if (!mounted) return;
+      showAppToast(
+        context,
+        AppLocalizations.of(context).schedLoadFailed,
+        type: AppToastType.error,
+      );
+      return;
     }
     if (!mounted) return;
     final candidates = sessions.where(acceptsFirstPersonalRoutines).toList()
       ..sort((a, b) => '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}'));
-    setState(() {
-      _routineOnlyCandidates[client.id] = candidates;
-      final String? target = _routineOnlyTarget[client.id];
-      if (target != null && !candidates.any((s) => s.id == target)) {
-        _routineOnlyTarget.remove(client.id);
-      }
-    });
+    setState(() => _routineOnlyCandidates[client.id] = candidates);
+  }
+
+  /// `개인운동만` 을 붙일 PT — 시작일에 있는 아직 보내지 않은 PT. (#2280)
+  ///
+  /// 같은 날 둘이면 먼저 시작하는 PT 다. 한 회원이 하루에 PT 를 두 번 받는 일은
+  /// 드물어 고르게 하지 않고, 박스가 어느 PT 인지 시각까지 적는다. null 이면
+  /// 그날 PT 가 없다 — 바로 보낸다.
+  ScheduleSession? _routineOnlyTargetFor(String clientId) {
+    final String day = ymd(_routineOnlyStart[clientId] ?? _todayKst());
+    for (final ScheduleSession s
+        in _routineOnlyCandidates[clientId] ?? const <ScheduleSession>[]) {
+      if (s.date == day) return s;
+    }
+    return null;
+  }
+
+  /// 시작일에 PT 가 없을 때 알려 줄 가장 가까운 아직 보내지 않은 PT — 오늘
+  /// 이후 첫 PT. (#2280)
+  ScheduleSession? _nearestRoutineOnlyPt(String clientId) {
+    final String today = ymd(_todayKst());
+    for (final ScheduleSession s
+        in _routineOnlyCandidates[clientId] ?? const <ScheduleSession>[]) {
+      if (s.date.compareTo(today) >= 0) return s;
+    }
+    return null;
   }
 
   /// [sessionId] PT 에 아직 보내지 않은 개인운동이 붙어 있으면 새로 짠 것으로
@@ -1306,17 +1332,23 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 onReviewCompleted: (exercises, personalRoutines, kind) {
                   final bool routineOnly = kind == ProgramKind.routineOnly;
                   if (routineOnly) {
+                    // 새로 읽는다 — 그사이 스케줄에서 보낸 PT 가 남지 않게.
+                    _routineOnlyCandidates.remove(client.id);
                     unawaited(_loadRoutineOnlyCandidates(client));
                   }
                   setState(() {
                     _personalRoutines[client.id] = personalRoutines;
                     if (routineOnly) {
                       _routineOnlyClients.add(client.id);
-                      _routineOnlyStart[client.id] ??= _todayKst();
-                      // 보낼 곳은 PT 없이가 기본이다. 스케줄에서 온 PT 만 골라
-                      // 둔 채로 둔다.
-                      if (_returnToSchedule?.clientId != client.id) {
-                        _routineOnlyTarget.remove(client.id);
+                      // 스케줄에서 왔으면 그 PT 날이 이미 잡혀 있다 — 지난
+                      // PT 라도 그대로 둔다. 그 밖에 지난 날이 남아 있으면
+                      // 오늘로 되돌린다 — 지난 날로는 걸지 않는다.
+                      final DateTime today = _todayKst();
+                      final DateTime? kept = _routineOnlyStart[client.id];
+                      if (kept == null ||
+                          (kept.isBefore(today) &&
+                              _returnToSchedule?.clientId != client.id)) {
+                        _routineOnlyStart[client.id] = today;
                       }
                     } else {
                       _routineOnlyClients.remove(client.id);
@@ -1439,25 +1471,17 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     _personalRoutines[client.id] ?? const <RoutineExercise>[],
                 routineOnly: true,
                 startDate: _routineOnlyStart[client.id] ?? _todayKst(),
-                onStartDateChanged: (DateTime date) =>
-                    setState(() => _routineOnlyStart[client.id] = date),
+                onStartDateChanged: _sent
+                    ? null
+                    : (DateTime date) =>
+                          setState(() => _routineOnlyStart[client.id] = date),
                 onSend: () => unawaited(_sendRoutineOnly(client)),
                 sending: _sendingRoutineOnly.contains(client.id),
                 sent: _sent,
-                // 보낼 곳 — 아직 보내지 않은 PT 에 붙이거나 PT 없이 보낸다(#2280).
-                targets:
-                    _routineOnlyCandidates[client.id] ??
-                    const <ScheduleSession>[],
-                target: _routineOnlyTarget[client.id],
-                onTargetChanged: _sent
-                    ? null
-                    : (String? id) => setState(() {
-                        if (id == null) {
-                          _routineOnlyTarget.remove(client.id);
-                        } else {
-                          _routineOnlyTarget[client.id] = id;
-                        }
-                      }),
+                // 시작일에 PT 가 있으면 그 PT 에 붙고, 없으면 바로 보낸다(#2280).
+                target: _routineOnlyTargetFor(client.id),
+                nearestPt: _nearestRoutineOnlyPt(client.id),
+                targetReady: _routineOnlyCandidates.containsKey(client.id),
               ),
             ),
           ],

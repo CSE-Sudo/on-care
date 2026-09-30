@@ -128,8 +128,8 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   /// `개인운동만 짜기` 를 고른 채로 연다. (#2280)
   ///
   /// 스케줄의 `개인운동 추가` 에서 왔다 — 그 PT 에 붙일 개인운동을 짜러 왔으니
-  /// 조건 설정에서 같은 버튼을 한 번 더 누르게 하지 않는다. 보낼 곳(그 PT)은
-  /// 반영한 뒤 편집기 자리의 개인운동 박스에서 고른다.
+  /// 조건 설정에서 같은 버튼을 한 번 더 누르게 하지 않는다. 시작일이 그 PT
+  /// 날로 잡혀 있어, 반영한 뒤 개인운동 박스가 그 PT 에 붙인다.
   final bool startRoutineOnly;
 
   bool get _attachMode => attachTarget != null;
