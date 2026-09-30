@@ -248,10 +248,9 @@ void main() {
         arrow.center.dy,
         moreOrLessEquals(kcalTag.center.dy, epsilon: 0.5),
       );
-      expect(
-        arrow.left - kcalTag.right,
-        moreOrLessEquals(OnCareSpacing.s4, epsilon: 0.5),
-      );
+      // 배지와 화살표 칸은 맞붙는다 — 글리프가 제 칸 안에 여백을 갖고 있어
+      // 따로 띄우면 눈에는 크게 벌어져 보였다(#2613).
+      expect(arrow.left - kcalTag.right, moreOrLessEquals(0, epsilon: 0.5));
       // 크기는 MY 목록 행과 같은 20 이다.
       expect(arrow.width, OnCareSize.iconMedium);
     });

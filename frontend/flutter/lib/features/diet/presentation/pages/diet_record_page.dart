@@ -1447,32 +1447,44 @@ class _MealCard extends StatelessWidget {
                           // 폭·큰 글자에서는 말줄임 대신 배지를 줄인다 — 수치가
                           // 잘리면 다른 값으로 읽힌다(#743). 폭의 2/5 까지만 쓰고,
                           // 남는 자리는 `spaceBetween` 이 이름과의 사이로 돌린다.
+                          //
+                          // 칼로리 배지와 화살표는 **한 묶음**이다(#2613). 따로
+                          // 두면 `spaceBetween` 이 남는 폭을 둘 사이에도 나눠
+                          // 넣어 화살표가 배지에서 떨어져 보였다. 둘 사이 간격은
+                          // 두지 않는다 — 화살표 글리프가 제 칸 안에 좌우 여백을
+                          // 이미 갖고 있다.
                           Flexible(
                             flex: 2,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerRight,
-                              child: AppTag(
-                                label:
-                                    '${_formatInt(meal.total)} ${l.unitKcal}',
-                                tone: AppTagTone.brand,
-                              ),
-                            ),
-                          ),
-                          // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부
-                          // 수치는 여기가 아니라 들어가서 본다(#1848). 연필은
-                          // "이 자리에서 고친다"로 읽혀 화살표로 되돌렸다.
-                          // 아이콘 자체는 탭을 먹지 않는다 — 카드 전체가
-                          // 눌린다. 칼로리 배지 바로 오른쪽, 카드 세로 가운데에
-                          // 선다 — MY 목록 행과 같은 20 화살표다(#2609).
-                          const SizedBox(width: OnCareSpacing.s4),
-                          Tooltip(
-                            message: l.dietEditMeal,
-                            child: AppIcon(
-                              AppIcons.chevronRight,
-                              size: OnCareSize.iconMedium,
-                              color: OnCareColors.textTertiary,
-                              semanticLabel: l.dietEditMeal,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: AppTag(
+                                      label:
+                                          '${_formatInt(meal.total)} ${l.unitKcal}',
+                                      tone: AppTagTone.brand,
+                                    ),
+                                  ),
+                                ),
+                                // 카드는 그 끼니의 상세 화면을 여는 자리다 —
+                                // 세부 수치는 여기가 아니라 들어가서 본다
+                                // (#1848). 연필은 "이 자리에서 고친다"로 읽혀
+                                // 화살표로 되돌렸다. 아이콘 자체는 탭을 먹지
+                                // 않는다 — 카드 전체가 눌린다. MY 목록 행과
+                                // 같은 20 화살표다(#2609).
+                                Tooltip(
+                                  message: l.dietEditMeal,
+                                  child: AppIcon(
+                                    AppIcons.chevronRight,
+                                    size: OnCareSize.iconMedium,
+                                    color: OnCareColors.textTertiary,
+                                    semanticLabel: l.dietEditMeal,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
