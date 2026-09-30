@@ -1924,12 +1924,16 @@ def trainer_update_schedule_routines(
 ) -> list[RoutineOut]:
     """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
 
-    일정 상세에서 바로 고친다. 이미 보낸 것은 손댈 수 없다.
+    일정 상세에서 바로 고친다. 이미 보낸 것은 손댈 수 없다. 붙은 것이 없으면
+    처음 붙인다(#2280) — 개인운동 단계를 지나지 않은 PT 를 구제하는 자리다.
     """
     try:
         rows = trainer_service.update_scheduled_routines(
             db, trainer.id, session_id, payload.personal_routines
         )
+    except trainer_service.ClientLinkDetached as exc:
+        # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except trainer_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if rows is None:

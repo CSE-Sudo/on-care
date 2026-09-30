@@ -4983,11 +4983,16 @@ def update_scheduled_routines(
     하나를 빼거나 시간을 줄일 수 있어야 한다 — PT 직전에 회원 상태를 보고
     손보는 일이 흔하다.
 
+    붙은 것이 하나도 없으면 **처음 붙인다**(#2280). `직접 만들기`·저장한
+    프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않아, 일정 상세가 그
+    PT 를 구제하는 자리다.
+
     이미 보낸 것은 손댈 수 없다(`scheduled` 만 고친다). 보낸 뒤에 바뀌면
     회원이 어제 본 목록과 오늘 본 목록이 말없이 달라진다.
 
     - 소유 슬롯 아님 → None(404).
-    - 붙은 것이 없음 / 빈 목록으로 비우려 함 → ScheduleError.
+    - 빈 목록으로 비우려 함 → ScheduleError.
+    - 처음 붙이는데 붙일 수 없는 PT → ScheduleError(`_ensure_routine_attachable`).
     """
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
@@ -5006,10 +5011,49 @@ def update_scheduled_routines(
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     if not rows:
-        raise ScheduleError("고칠 개인운동이 없습니다.")
+        _ensure_routine_attachable(db, trainer_id, s)
+        added = _add_scheduled_routines(
+            db, trainer_id, s.member_id,
+            items=items,
+            schedule_id=s.id,
+            # 프로그램 만들기와 같다 — 개인운동은 그 PT 가 있는 날의 것이다.
+            exercise_date=s.date,
+            client_request_id=None,
+        )
+        # 일정 상세에서 트레이너가 적은 것이다 — `_rewrite_scheduled_routines`
+        # 가 새로 만드는 줄과 같이 서버가 출처를 정한다.
+        for row in added:
+            row.source = "trainer"
+        db.commit()
+        return list_scheduled_routines(db, trainer_id, session_id)
     _rewrite_scheduled_routines(db, rows, items)
     db.commit()
     return list_scheduled_routines(db, trainer_id, session_id)
+
+
+def _ensure_routine_attachable(
+    db: Session, trainer_id: str, s: TrainerSchedule
+) -> None:
+    """개인운동이 없는 PT 에 처음 붙여도 되는가. 아니면 ScheduleError. (#2280)
+
+    붙인 개인운동은 PT 프로그램과 함께 완료 전송으로 나간다. 그래서 그 전송을
+    아직 기다리는 PT 에만 붙인다.
+
+    - 회원이 없는 일정(상담·공백): 받을 사람이 없다.
+    - 프로그램이 없는 일정: 나중에 프로그램 만들기로 PT 를 실으면 그때 붙은
+      줄을 갈아 끼우므로(`_clear_scheduled_routines`) 여기서 붙인 것이 사라진다.
+    - 이미 보낸 PT: 보낸 뒤에 바뀌면 회원이 본 목록이 말없이 달라진다.
+    - 취소·노쇼: 열리지 않은 PT 다음에 할 운동을 새로 짜는 자리가 아니다.
+    """
+    if not s.member_id:
+        raise ScheduleError("회원이 연결되지 않은 일정입니다.")
+    _ensure_session_member_linked(db, trainer_id, s)
+    if not _program_items(s.program_json):
+        raise ScheduleError("PT 프로그램이 없는 일정입니다.")
+    if s.program_sent_at is not None:
+        raise ScheduleError("이미 보낸 PT 에는 개인운동을 붙일 수 없습니다.")
+    if s.status in {SCHEDULE_CANCELLED, SCHEDULE_NO_SHOW}:
+        raise ScheduleError("취소된 PT 에는 개인운동을 붙일 수 없습니다.")
 
 
 def dismiss_scheduled_routines(
