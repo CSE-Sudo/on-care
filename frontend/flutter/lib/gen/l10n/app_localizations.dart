@@ -6792,12 +6792,6 @@ abstract class AppLocalizations {
   /// **'A cancelled request can\'t be restored.'**
   String get exConsultHistoryCancelBody;
 
-  /// No description provided for @exDemoPtFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!'**
-  String get exDemoPtFeedback;
-
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///
   /// In en, this message translates to:

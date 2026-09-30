@@ -60,6 +60,18 @@ CoachSession _session(String id, DateTime date, String time) => CoachSession(
   status: '예정',
 );
 
+/// 오늘 새벽에 끝낸 수업. `다음 PT` 는 `오늘 완료한 PT` 카드 안에 서는데, 그
+/// 카드는 데모도 실서버처럼 오늘 완료 수업이 있을 때만 선다(#2694). 끝난
+/// 수업은 다음 PT 가 아니다.
+final CoachSession _doneToday = CoachSession(
+  id: 'done-today',
+  date: DateTime(2026, 8, 20),
+  time: '06:00',
+  type: '1:1 PT',
+  durationMinutes: 50,
+  status: '완료',
+);
+
 Future<AppLocalizations> _pump(
   WidgetTester tester, {
   required List<CoachSession> sessions,
@@ -88,7 +100,9 @@ Future<AppLocalizations> _pump(
           (ref) async => const <MyReservation>[],
         ),
         memberCoachProvider.overrideWith((ref) async => _coach),
-        coachSessionsProvider.overrideWith((ref) async => sessions),
+        coachSessionsProvider.overrideWith(
+          (ref) async => <CoachSession>[_doneToday, ...sessions],
+        ),
         coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
       child: MaterialApp(

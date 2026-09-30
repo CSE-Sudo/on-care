@@ -1,4 +1,3 @@
-import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,6 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
-import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/diet/presentation/widgets/week_strip_label.dart';
@@ -904,23 +902,10 @@ class _PtLogCard extends ConsumerWidget {
             )
             .toList() ??
         const <ExerciseSession>[];
-    if (ref.watch(appConfigProvider).useMockApi) {
-      // 종목·세트는 픽스처가 정한다 — 카드가 제 목록을 따로 들면 같은 세션을
-      // 운동 현황과 다르게 말한다. 시각·회차·피드백은 시연용 고정 값이고,
-      // 수업 시간은 데모 PT 일정 시드와 같은 50분이다(#2659).
-      return _PtSessionCard(
-        time: '18:00',
-        sessionNumber: 12,
-        minutes: 50,
-        lines: <String>[
-          for (final ExerciseSession session in todayPt)
-            _DayRecordCard._line(l, session),
-        ],
-        coachName: kDemoTrainerName,
-        feedback: l.exDemoPtFeedback,
-      );
-    }
-
+    // 데모도 같은 경로다 — 목업 코치 저장소가 공유 픽스처의 PT 날로 수업
+    // 일정(시각·길이·회차·트레이너 메모·프로그램)을 준다(#2659, #2694). 예전에는
+    // 데모만 시각·회차·피드백을 고정 값으로 그려, 그날 픽스처가 적은 수업과
+    // 카드가 따로 놀았다.
     final DateTime now = nowKst();
     final List<CoachSession> completedToday =
         (ref.watch(coachSessionsProvider).valueOrNull ?? const <CoachSession>[])

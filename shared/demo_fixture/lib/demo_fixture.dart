@@ -340,10 +340,12 @@ class DemoFixture {
     required Map<String, Map<String, Object?>> meals,
     required List<Map<String, Object?>> recent,
     required List<Map<String, Object?>> weeks,
+    Map<String, Object?>? weeklyPt,
   }) : _foods = foods,
        _meals = meals,
        _recent = recent,
-       _weeks = weeks;
+       _weeks = weeks,
+       _weeklyPt = weeklyPt;
 
   /// 앱에 심긴 픽스처. **동기**다.
   ///
@@ -386,6 +388,7 @@ class DemoFixture {
         for (final Object? week in json['weeks']! as List<Object?>)
           week! as Map<String, Object?>,
       ],
+      weeklyPt: json['weeklyPt'] as Map<String, Object?>?,
     );
   }
 
@@ -408,6 +411,9 @@ class DemoFixture {
   final List<Map<String, Object?>> _recent;
   final List<Map<String, Object?>> _weeks;
 
+  /// 매주 PT(#2694) — `sessions[].weeksAgo` 주 전의 오늘과 같은 요일에 선다.
+  final Map<String, Object?>? _weeklyPt;
+
   /// [now] 기준으로 날짜가 붙은 하루들을 오래된 → 오늘 순으로 돌려준다.
   ///
   /// 주 격자가 달력 주를 채우고, 최근 사흘(오늘·어제·그제)이 그 위를 덮는다.
@@ -417,7 +423,8 @@ class DemoFixture {
     final DateTime today = DateTime(now.year, now.month, now.day);
     final DateTime thisMonday = _addDays(today, -(today.weekday - 1));
 
-    final Map<String, FixtureDay> byDate = <String, FixtureDay>{};
+    final Map<String, ({Map<String, Object?> entry, DateTime date})> byDate =
+        <String, ({Map<String, Object?> entry, DateTime date})>{};
     for (final Map<String, Object?> week in _weeks) {
       final int weeksAgo = (week['weeksAgo']! as num).toInt();
       final DateTime weekMonday = _addDays(thisMonday, -7 * weeksAgo);
@@ -428,18 +435,57 @@ class DemoFixture {
           (day['weekday']! as num).toInt(),
         );
         if (date.isAfter(today)) continue;
-        byDate[_ymd(date)] = _dayFrom(day, date);
+        byDate[_ymd(date)] = (entry: day, date: date);
+      }
+    }
+
+    // 매주 PT — 지난 주들의 **오늘과 같은 요일**이 PT 날이다(#2694). 데모의
+    // 오늘은 늘 PT 받은 날이라, 요일을 못 박으면 그 요일이 아닌 날에는 이번 주에
+    // PT 가 두 번 선다. 끼니와 그날 한마디는 격자의 것을 그대로 두고 운동만
+    // 수업으로 바뀐다. 회원이 그날 식단을 적지 않았어도 트레이너와 한 수업은
+    // 남는다 — 보호권 시연용 빈 날은 요일이 아닌 일수(`recent` offset 20)라
+    // PT 날과 겹치지 않는다.
+    final Map<String, Object?>? weeklyPt = _weeklyPt;
+    if (weeklyPt != null) {
+      for (final Object? raw in weeklyPt['sessions']! as List<Object?>) {
+        final Map<String, Object?> session = raw! as Map<String, Object?>;
+        final DateTime date = _addDays(
+          today,
+          -7 * (session['weeksAgo']! as num).toInt(),
+        );
+        final String key = _ymd(date);
+        final Map<String, Object?> grid =
+            byDate[key]?.entry ??
+            const <String, Object?>{
+              'exercises': <Object?>[],
+              'meals': <Object?>[],
+            };
+        byDate[key] = (
+          entry: <String, Object?>{
+            ...grid,
+            'label': weeklyPt['label'],
+            'pt': true,
+            'clientFeedback': session['clientFeedback'],
+            'trainerNote': session['trainerNote'],
+            'exercises': session['exercises'],
+          },
+          date: date,
+        );
       }
     }
 
     for (final Map<String, Object?> day in _recent) {
       final DateTime date = _addDays(today, -(day['offset']! as num).toInt());
-      byDate[_ymd(date)] = _dayFrom(day, date);
+      byDate[_ymd(date)] = (entry: day, date: date);
     }
 
     final List<String> dates = byDate.keys.toList()..sort();
-    return <FixtureDay>[for (final String date in dates) byDate[date]!];
+    return <FixtureDay>[
+      for (final String date in dates)
+        _dayFrom(byDate[date]!.entry, byDate[date]!.date),
+    ];
   }
+
 
   FixtureDay _dayFrom(Map<String, Object?> day, DateTime date) {
     final DateTime monday = _addDays(date, -(date.weekday - 1));
