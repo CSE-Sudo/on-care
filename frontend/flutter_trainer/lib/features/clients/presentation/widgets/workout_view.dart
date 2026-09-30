@@ -114,14 +114,16 @@ class _HistoryCard extends StatelessWidget {
   /// 서버는 id 만 받아 이름·날짜를 기록에서 다시 읽는다(#2332).
   TrainerMemoRef get _memoRef {
     final DateTime? day = entry.date ?? entry.completedAt;
+    // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
+    final String? code = routineKindCode(entry.label, kind: entry.kind);
     return TrainerMemoRef(
-      kind: entry.kind == 'pt_session'
+      kind: code == 'pt_session'
           ? TrainerMemoRefKind.ptSession
           : TrainerMemoRefKind.personal,
       id: entry.id,
       day: day == null ? null : ymd(day),
       // 고정 이름(`AI 개인운동` 등)은 코드가 있어 화면이 번역한다.
-      name: entry.kind == null ? entry.label : '',
+      name: code == null ? entry.label : '',
     );
   }
 
@@ -172,10 +174,12 @@ class _CardHead extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget? memo = this.memo;
     if (memo == null) return tag;
+    // `Flexible` 과 `Spacer` 를 함께 두면 남는 폭을 반씩 나눠 가져 메모 자리가
+    // 카드 가운데쯤에 멈춘다 — 양 끝으로 벌린다.
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
         Flexible(child: tag),
-        const Spacer(),
         memo,
       ],
     );
