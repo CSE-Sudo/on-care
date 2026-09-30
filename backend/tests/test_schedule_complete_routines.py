@@ -381,6 +381,43 @@ def test_reattaching_a_program_replaces_its_personal_routines(
         _cleanup(db_session, day)
 
 
+def test_reattaching_without_personal_routines_keeps_them(client, db_session):
+    """개인운동 없이 다시 붙이면 붙어 있던 개인운동은 그대로 둔다. (#2280)
+
+    `직접 만들기` 로 PT 구성만 다시 짜 붙이는 일이 있다. "개인운동 없이" 를
+    "지워라" 로 읽으면 일정 상세에서 붙여 둔 개인운동이 말없이 사라진다.
+    PT 구성은 새것으로 갈린다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        first = _attach(client, token, day)
+        second = _attach(
+            client,
+            token,
+            day,
+            name=f"{_NAME_PREFIX} PT 다시",
+            personal_routines=[],
+        )
+        assert second == first
+
+        db_session.expire_all()
+        assert [r.name for r in _routines(db_session, first)] == [
+            f"{_NAME_PREFIX} 걷기"
+        ]
+        program_rows = db_session.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.schedule_id == first,
+                TrainerRoutine.delivery_kind.is_(None),
+            )
+        ).all()
+        # 세션이 하나면 루틴 이름이 곧 프로그램 이름이다.
+        assert [r.name for r in program_rows] == [f"{_NAME_PREFIX} PT 다시"]
+    finally:
+        _cleanup(db_session, day)
+
+
 def test_editing_an_ai_routine_makes_it_the_trainers(client, db_session):
     """AI 가 제안한 개인운동도 트레이너가 고치면 트레이너 것이 된다. (#2223, #2224)
 
@@ -532,8 +569,7 @@ def _first_routines(client, token, session_id: str):
                     "name": f"{_NAME_PREFIX} 처음 붙인 걷기",
                     "minutes": 20,
                     "type": "유산소",
-                    # 클라이언트가 무엇을 보내든 일정 상세에서 적은 것은
-                    # 트레이너 것이다.
+                    # 코칭 탭의 AI 제안을 손대지 않고 붙였다.
                     "source": "ai",
                 }
             ]
@@ -543,10 +579,11 @@ def _first_routines(client, token, session_id: str):
 
 
 def test_a_pt_without_routines_gets_its_first_ones(client, db_session):
-    """개인운동이 없는 PT 에 일정 상세에서 처음 붙이고, 전송에 실려 간다. (#2280)
+    """개인운동이 없는 PT 에 처음 붙이고, 전송에 실려 간다. (#2280)
 
-    `직접 만들기` 로 짠 PT 는 개인운동 단계를 지나지 않는다. 예전에는 고칠
-    줄이 없다며 400 을 내 붙일 길이 없었다.
+    `직접 만들기` 로 짠 PT 는 개인운동 단계를 지나지 않는다. 일정 상세에서
+    코칭 탭의 개인운동 단계로 가 짠 것을 붙인다. 예전에는 고칠 줄이 없다며
+    400 을 내 붙일 길이 없었다.
     """
     token = _tok(client)
     day = clock.today().isoformat()
@@ -563,7 +600,8 @@ def test_a_pt_without_routines_gets_its_first_ones(client, db_session):
         rows = _routines(db_session, session_id)
         assert [x.status for x in rows] == ["scheduled"]
         assert rows[0].exercise_date == day
-        assert rows[0].source == "trainer"
+        # 프로그램 만들기와 같이 받은 출처를 그대로 남긴다.
+        assert rows[0].source == "ai"
         assert rows[0].delivery_kind == "pt_with_routine"
 
         # 두 번 눌러도 두 벌이 되지 않는다 — 두 번째는 고치는 길로 간다.

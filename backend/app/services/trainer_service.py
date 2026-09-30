@@ -4438,21 +4438,26 @@ def _scheduled_routines_for_request(
 
 
 def _clear_scheduled_routines(
-    db: Session, trainer_id: str, schedule_id: str
+    db: Session, trainer_id: str, schedule_id: str, *, keep_personal: bool = False
 ) -> None:
     """그 PT 에 붙어 있던 **아직 보내지 않은** 줄을 지운다. (#2224, #2279)
 
     프로그램과 개인운동을 함께 걷는다 — 둘 다 `scheduled` 로 붙어 있다가 전송
     때 함께 나간다. 보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은
     건드리지 않는다: 회원이 이미 받았거나 트레이너가 이미 답한 것이다.
+
+    [keep_personal] 이면 개인운동은 두고 프로그램 줄만 걷는다(#2280) — 개인운동
+    없이 다시 붙인 PT 에서 "없이" 를 "지워라" 로 읽으면, 일정 상세에서 붙여 둔
+    개인운동이 말없이 사라진다.
     """
-    for row in db.scalars(
-        select(TrainerRoutine).where(
-            TrainerRoutine.trainer_id == trainer_id,
-            TrainerRoutine.schedule_id == schedule_id,
-            TrainerRoutine.status == ROUTINE_SCHEDULED,
-        )
-    ).all():
+    query = select(TrainerRoutine).where(
+        TrainerRoutine.trainer_id == trainer_id,
+        TrainerRoutine.schedule_id == schedule_id,
+        TrainerRoutine.status == ROUTINE_SCHEDULED,
+    )
+    if keep_personal:
+        query = query.where(TrainerRoutine.delivery_kind.is_(None))
+    for row in db.scalars(query).all():
         db.delete(row)
     db.flush()
 
@@ -4984,8 +4989,10 @@ def update_scheduled_routines(
     손보는 일이 흔하다.
 
     붙은 것이 하나도 없으면 **처음 붙인다**(#2280). `직접 만들기`·저장한
-    프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않아, 일정 상세가 그
-    PT 를 구제하는 자리다.
+    프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않는다. 일정 상세에서
+    코칭 탭의 개인운동 단계(AI 제안)로 가 짠 것을 여기로 붙인다 — 프로그램
+    만들기(`일정 추가`)와 같이 출처는 받은 그대로 남긴다: AI 제안을 손대지
+    않고 붙였으면 `ai` 다.
 
     이미 보낸 것은 손댈 수 없다(`scheduled` 만 고친다). 보낸 뒤에 바뀌면
     회원이 어제 본 목록과 오늘 본 목록이 말없이 달라진다.
@@ -5012,7 +5019,7 @@ def update_scheduled_routines(
     ).all()
     if not rows:
         _ensure_routine_attachable(db, trainer_id, s)
-        added = _add_scheduled_routines(
+        _add_scheduled_routines(
             db, trainer_id, s.member_id,
             items=items,
             schedule_id=s.id,
@@ -5020,10 +5027,6 @@ def update_scheduled_routines(
             exercise_date=s.date,
             client_request_id=None,
         )
-        # 일정 상세에서 트레이너가 적은 것이다 — `_rewrite_scheduled_routines`
-        # 가 새로 만드는 줄과 같이 서버가 출처를 정한다.
-        for row in added:
-            row.source = "trainer"
         db.commit()
         return list_scheduled_routines(db, trainer_id, session_id)
     _rewrite_scheduled_routines(db, rows, items)
@@ -5251,7 +5254,13 @@ def assign_program_with_schedule(
     # 쌓여, 두 번 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로
     # 아는데 회원은 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이
     # 본 것은 없다.
-    _clear_scheduled_routines(db, trainer_id, session.id)
+    #
+    # 개인운동 없이 붙이면 붙어 있던 개인운동은 그대로 둔다(#2280) — 바꿀 것이
+    # 없으니 지울 까닭도 없다. 새로 짠 개인운동으로 바꾸는 것은 트레이너 웹이
+    # 한 번 묻고 보낸다.
+    _clear_scheduled_routines(
+        db, trainer_id, session.id, keep_personal=not personal_routines
+    )
     # 프로그램은 **회원에게 보내지 않고 이 PT 에 붙여만 둔다**(#2279). 예전에는
     # 여기서 바로 배정해, 등록만 해도 회원 목록에 떴고 PT 를 마치고 보낼 때
     # 한 벌이 더 생겼다 — 회원은 같은 운동을 두 번 해야 하는 것으로 봤다.
