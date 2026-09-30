@@ -122,8 +122,12 @@ void main() {
       verify(() => dio.get<List<dynamic>>('/me/coach/sessions')).called(1);
     });
 
-    test('데모는 담당 일정이 없다 — 홈에 없던 카드가 생기지 않는다', () async {
-      expect(await MockMemberCoachRepository().fetchSessions(), isEmpty);
+    test('데모도 담당 일정을 준다 — 끝난 수업과 다음 예정이 함께 온다 (#2659)', () async {
+      final List<CoachSession> sessions = await MockMemberCoachRepository()
+          .fetchSessions();
+
+      expect(sessions.where((CoachSession s) => s.isDone), isNotEmpty);
+      expect(sessions.where((CoachSession s) => s.isUpcoming), hasLength(1));
     });
   });
 
