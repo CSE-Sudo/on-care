@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
@@ -14,6 +16,7 @@ import 'package:oncare/features/member_coach/data/repositories/dio_emote_reposit
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_emote_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/emote_state.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/emote_repository.dart';
@@ -102,13 +105,27 @@ final coachChatProvider = StreamProvider.autoDispose<List<CoachMessage>>((ref) {
 /// 서버는 한 번에 최신 [chatPageSize] 건만 주고 그 앞은 커서로 준다. 앱은
 /// 커서 없이 부르기만 해서 51번째 이전 메시지는 위로 올려도 나오지 않았다.
 ///
-/// 폴링 쪽(`coachChatProvider`)과 따로 두는 이유는, 15초마다 새로 받는 최신
-/// 쪽이 손으로 받아 둔 옛 쪽을 지우면 안 되기 때문이다. 화면이 둘을 합쳐 그린다.
+/// 폴링 쪽(`coachChatProvider`)과 따로 두는 이유는, 몇 초마다 새로 받는 최신
+/// 쪽이 손으로 받아 둔 옛 쪽을 지우면 안 되기 때문이다. 화면이 둘을
+/// [mergeCoachThread] 로 합쳐 그린다.
+///
+/// **옛 쪽을 한 번 받은 뒤로는 폴링으로 받은 최신 쪽도 여기 모아 둔다**(#2640).
+/// 폴링은 언제나 최신 50건만 주므로, 옛 쪽을 m[k] 앞까지 받아 둔 채 새 메시지가
+/// 오면 최신 쪽이 m[k+1..] 로 밀려 경계의 m[k] 가 어느 쪽에도 없게 된다. 받은
+/// 쪽을 모두 id 로 합쳐 들고 있으면 폴링끼리 서로 겹치는 한 틈이 생기지 않는다.
+/// 폴링 사이에 한 쪽이 넘게 와서 겹침이 끊기면 그 틈을 커서로 다시 받아 메운다.
 class CoachChatHistory extends AutoDisposeNotifier<CoachChatHistoryState> {
   @override
   CoachChatHistoryState build() {
     // 대화 자체가 새로 열리면(담당이 바뀌면) 받아 둔 옛 쪽도 버린다.
     ref.watch(memberCoachRepositoryProvider);
+    ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
+      AsyncValue<List<CoachMessage>>? previous,
+      AsyncValue<List<CoachMessage>> next,
+    ) {
+      final List<CoachMessage>? latest = next.valueOrNull;
+      if (latest != null) absorbLatest(latest);
+    });
     return const CoachChatHistoryState();
   }
 
@@ -121,8 +138,15 @@ class CoachChatHistory extends AutoDisposeNotifier<CoachChatHistoryState> {
       final List<CoachMessage> older = await ref
           .read(memberCoachRepositoryProvider)
           .fetchChat(before: oldest);
+      // 처음 옛 쪽을 받는 때에는 지금 보이는 최신 쪽도 함께 붙잡아 둔다 — 그래야
+      // 다음 폴링이 앞으로 밀려도 경계가 남는다.
+      final List<CoachMessage> latest =
+          ref.read(coachChatProvider).valueOrNull ?? const <CoachMessage>[];
       state = CoachChatHistoryState(
-        messages: <CoachMessage>[...older, ...state.messages],
+        messages: mergeCoachThread(
+          older,
+          mergeCoachThread(state.messages, latest),
+        ),
         // 한 쪽이 다 차지 않았으면 그 앞에는 없다.
         exhausted: older.length < chatPageSize,
       );
@@ -131,7 +155,51 @@ class CoachChatHistory extends AutoDisposeNotifier<CoachChatHistoryState> {
       state = state.copyWith(loading: false);
     }
   }
+
+  /// 폴링이 준 최신 쪽 [latest] 를 받아 둔 것에 합친다. (#2640)
+  ///
+  /// 옛 쪽을 받기 전에는 아무것도 하지 않는다 — 그때는 최신 쪽만으로 온전하다.
+  void absorbLatest(List<CoachMessage> latest) {
+    if (state.messages.isEmpty || latest.isEmpty) return;
+    final Set<String> known = <String>{
+      for (final CoachMessage m in state.messages) m.id,
+    };
+    final bool overlaps = latest.any((CoachMessage m) => known.contains(m.id));
+    state = state.copyWith(messages: mergeCoachThread(state.messages, latest));
+    // 겹치는 것이 하나도 없고 최신 쪽이 꽉 찼다면 그 사이에 받지 못한 것이
+    // 있을 수 있다. 덜 찼다면 최신 쪽이 곧 대화 전체의 끝부분이라 틈이 없다.
+    if (!overlaps && latest.length >= chatPageSize) {
+      unawaited(_fillGap(latest.first, known));
+    }
+  }
+
+  /// [from] 앞을 거슬러 받아, 이미 가진 [known] 에 닿을 때까지 채운다.
+  Future<void> _fillGap(CoachMessage from, Set<String> known) async {
+    CoachMessage cursor = from;
+    for (int i = 0; i < maxGapFillPages; i++) {
+      final List<CoachMessage> page;
+      try {
+        page = await ref
+            .read(memberCoachRepositoryProvider)
+            .fetchChat(before: cursor);
+      } on Object {
+        // 채우지 못했다고 받아 둔 것을 버리지 않는다. 다음 폴링이 다시 본다.
+        return;
+      }
+      if (page.isEmpty) return;
+      state = state.copyWith(messages: mergeCoachThread(state.messages, page));
+      if (page.any((CoachMessage m) => known.contains(m.id)) ||
+          page.length < chatPageSize) {
+        return;
+      }
+      cursor = page.first;
+    }
+  }
 }
+
+/// 틈을 메우러 거슬러 받을 쪽 수의 상한 — 커서가 앞으로 나가지 않는 서버를
+/// 만나도 멈추게 한다.
+const int maxGapFillPages = 20;
 
 /// [CoachChatHistory] 가 들고 있는 것.
 class CoachChatHistoryState {
@@ -141,7 +209,8 @@ class CoachChatHistoryState {
     this.exhausted = false,
   });
 
-  /// 손으로 더 받아 온 옛 메시지(오래된→최신).
+  /// 받아 둔 메시지(오래된→최신). 손으로 더 받아 온 옛 쪽과, 그 뒤로 폴링이
+  /// 준 최신 쪽이 id 로 합쳐져 있다.
   final List<CoachMessage> messages;
 
   /// 지금 한 쪽을 받고 있는가.
@@ -150,8 +219,11 @@ class CoachChatHistoryState {
   /// 더 받을 것이 없다 — 마지막 쪽이 다 차지 않았다.
   final bool exhausted;
 
-  CoachChatHistoryState copyWith({bool? loading}) => CoachChatHistoryState(
-    messages: messages,
+  CoachChatHistoryState copyWith({
+    List<CoachMessage>? messages,
+    bool? loading,
+  }) => CoachChatHistoryState(
+    messages: messages ?? this.messages,
     loading: loading ?? this.loading,
     exhausted: exhausted,
   );

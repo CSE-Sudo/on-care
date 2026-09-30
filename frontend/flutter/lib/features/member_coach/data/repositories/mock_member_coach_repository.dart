@@ -9,6 +9,7 @@ import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
@@ -569,8 +570,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   @override
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      // 서버와 같은 쪽을 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
+      // 쪽(#2640). 전부를 한 번에 주면 쪽 사이의 경계가 데모에서만 없어 보인다.
       _hasCoach()
-      ? List<CoachMessage>.unmodifiable(_chat)
+      ? List<CoachMessage>.unmodifiable(pageCoachChat(_chat, before: before))
       : const <CoachMessage>[];
 
   @override
