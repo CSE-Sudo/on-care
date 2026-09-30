@@ -109,8 +109,9 @@ void main() {
 
     expect(repo.saves, 1);
     expect(repo.lastHeight, const MeasureUpdate.clear());
-    // 손대지 않은 몸무게는 적힌 값 그대로 나간다 — 지움이 아니다.
-    expect(repo.lastWeight?.value, isNotNull);
+    // 손대지 않은 몸무게는 보내지 않는다(#2655) — 지움도 아니고, 그 사이
+    // 트레이너가 바꾼 값을 덮지도 않는다.
+    expect(repo.lastWeight, isNull);
   });
 
   testWidgets('적어 넣은 키는 값으로 나간다', (WidgetTester tester) async {
@@ -158,7 +159,7 @@ void main() {
     final (AppLocalizations l, _RecordingAccountRepository repo) =
         await _openProfile(tester, profile: _profileWith(gender: ''));
 
-    await tester.enterText(find.byKey(_phone), '010-1234-5678');
+    await tester.enterText(find.byKey(_phone), '010-9876-5432');
     await _save(tester, l);
 
     expect(repo.saves, 1);
@@ -177,13 +178,16 @@ void main() {
     expect(repo.lastGender, 'female');
   });
 
-  testWidgets('이미 고른 적 있으면 고치지 않아도 그대로 나간다', (WidgetTester tester) async {
+  testWidgets('고치지 않은 성별은 다시 보내지 않는다 (#2655)', (WidgetTester tester) async {
     final (AppLocalizations l, _RecordingAccountRepository repo) =
         await _openProfile(tester, profile: _profileWith(gender: 'female'));
 
+    await tester.enterText(find.byKey(_phone), '010-9876-5432');
     await _save(tester, l);
 
-    expect(repo.lastGender, 'female');
+    // 담당 트레이너도 성별을 고친다 — 전화번호만 고친 저장이 덮지 않는다.
+    expect(repo.saves, 1);
+    expect(repo.lastGender, isNull);
   });
 }
 
