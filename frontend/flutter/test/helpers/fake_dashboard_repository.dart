@@ -6,16 +6,17 @@ import 'package:oncare/features/dashboard/domain/repositories/dashboard_reposito
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 
-/// 데모 홈 요약. 영양 수치는 **직접 들고 있지 않고** 식단 저장소에서 가져온다.
+/// 테스트용 홈 요약 저장소 — 식단 저장소 대역에서 영양 수치를 가져온다.
 ///
-/// 예전에는 세 지표·매크로·끼니 수를 여기에 따로 적어 뒀는데, 식단 탭이 보는
-/// 값과 어긋나 홈은 나트륨 2,329mg·4끼, 식단은 3,428mg·3끼를 보여줬다. 식단이
-/// 기준이므로 홈이 그쪽을 읽게 한다 — 데모 중 식단을 추가·수정·삭제해도
-/// (`MockDietRepository` 는 세션 동안 상태를 유지한다) 홈이 따라온다.
+/// 예전에는 데모 모드(`useMockApi`)의 실제 구현(`MockDashboardRepository`)이었다.
+/// 지금 데모 홈은 실서버와 같은 `DioDashboardRepository` → `LocalApiInterceptor`
+/// 경로라(#2645) 이 구현은 **테스트 대역으로만** 남는다 — 위젯 테스트가 drift 를
+/// 세우지 않고 홈을 그릴 수 있게 해 준다.
 ///
-/// 운동·일정·주간 점수는 아직 식단과 무관한 데모 값이라 그대로 둔다.
-class MockDashboardRepository implements DashboardRepository {
-  const MockDashboardRepository(this._diet, {this.fetchProfile});
+/// 영양 수치는 `FakeDietRepository` 등 넘겨받은 식단 저장소에서 읽으므로, 테스트
+/// 중 식단을 추가·수정·삭제하면 홈 요약도 따라온다. 운동·조언은 고정값이다.
+class FakeDashboardRepository implements DashboardRepository {
+  const FakeDashboardRepository(this._diet, {this.fetchProfile});
 
   final DietRepository _diet;
   final Future<UserProfile> Function()? fetchProfile;

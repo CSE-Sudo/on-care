@@ -13,7 +13,6 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/ai_advice_text.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -25,6 +24,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 
+import '../../helpers/fake_dashboard_repository.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 final RegExp _hangul = RegExp('[가-힣]');
@@ -46,13 +46,14 @@ DashboardSummary _summary({
   aiAdviceParams: adviceParams,
 );
 
-/// 홈 '오늘의 AI 통합 조언'은 데모 소스가 둘(목 요약, 시드 KV)이라 한쪽만
-/// 고치면 조용히 갈라진다. 게다가 예전에는 양쪽이 한국어 **문장**을 실어
+/// 홈 '오늘의 AI 통합 조언'은 예전에 데모 소스가 둘(목 요약, 시드 KV)이라 한쪽만
+/// 고치면 조용히 갈라졌다. 지금 데모 홈은 시드 KV 를 읽는 로컬 인터셉터 하나다
+/// (#2645). 게다가 예전에는 양쪽이 한국어 **문장**을 실어
 /// 보내, 홈이 그 값을 ARB 보다 우선하는 바람에 영어 로케일에서도 한국어가
 /// 나왔다(#435). 이제 둘 다 키만 싣고 문장은 ARB 가 갖는다.
 void main() {
-  test('데모 mock 요약은 문구가 아니라 키를 싣는다', () async {
-    final DashboardSummary summary = await MockDashboardRepository(
+  test('테스트 대역 요약도 문구가 아니라 키를 싣는다', () async {
+    final DashboardSummary summary = await FakeDashboardRepository(
       FakeDietRepository(),
     ).fetchSummary();
 
@@ -258,6 +259,13 @@ void main() {
         // 들어가므로 플래그를 켜고 편다. (#1526)
         showDemoEntry: true,
       );
+      // 데모 홈은 실서버와 같은 Dio 저장소 → 로컬 인터셉터 경로다(#2645).
+      // 인터셉터가 읽는 DB 를 앱이 켤 때처럼 시드해 둔 인메모리로 준다 — 파일
+      // DB 를 열면 테스트가 기기 저장소에 기댄다.
+      final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      await tester.runAsync(() => seedIfEmpty(db));
+
       // 저장된 세션이 없다고 답해 준다 — 없으면 복구가 끝나지 않아 시작
       // 화면(#1944)에 머문다.
       FlutterSecureStorage.setMockInitialValues(<String, String>{});
@@ -266,6 +274,7 @@ void main() {
           overrides: <Override>[
             appConfigProvider.overrideWithValue(config),
             appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
+            appDatabaseProvider.overrideWithValue(db),
             dietRepositoryProvider.overrideWithValue(
               FakeDietRepository() as DietRepository,
             ),
@@ -275,8 +284,8 @@ void main() {
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
             ),
-            // dashboardRepositoryProvider 는 일부러 덮지 않는다 — 데모에서
-            // 어떤 저장소가 뽑히는지가 이 테스트의 핵심이다.
+            // dashboardRepositoryProvider 는 일부러 덮지 않는다 — 데모 홈이
+            // 실제로 타는 경로(Dio → 로컬 인터셉터)가 이 테스트의 핵심이다.
             localeProvider.overrideWith((ref) => locale),
           ],
           child: const OncareApp(),

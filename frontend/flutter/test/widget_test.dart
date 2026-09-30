@@ -12,7 +12,6 @@ import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -34,6 +33,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import 'helpers/diet_period_tabs.dart';
 import 'helpers/fake_activity_calendar_repository.dart';
+import 'helpers/fake_dashboard_repository.dart';
 import 'helpers/fake_diet_repository.dart';
 
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
@@ -100,7 +100,7 @@ void main() {
           // 9.8); the smoke test only inspects the nav, so the mock is
           // plenty.
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           if (memberCoachRepository != null)
             memberCoachRepositoryProvider.overrideWithValue(

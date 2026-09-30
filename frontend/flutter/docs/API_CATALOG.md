@@ -61,7 +61,7 @@
 
 | Method | Path | Query | 응답 | Flutter 사용처 |
 | --- | --- | --- | --- | --- |
-| GET | `/dashboard/summary` | `?date=YYYY-MM-DD` (선택) | `DashboardSummary` | `MockDashboardRepository.fetchSummary` |
+| GET | `/dashboard/summary` | `?date=YYYY-MM-DD` (선택) | `DashboardSummary` | `DioDashboardRepository.fetchSummary` (데모도 같은 경로, 로컬 인터셉터가 응답) |
 
 `DashboardSummary` payload:
 

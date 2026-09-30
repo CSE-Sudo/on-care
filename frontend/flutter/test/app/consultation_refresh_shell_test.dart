@@ -17,7 +17,6 @@ import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -33,6 +32,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 
 const AppConfig _config = AppConfig(
@@ -91,7 +91,7 @@ void main() {
             MockExerciseRepository() as ExerciseRepository,
           ),
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           consultationRepositoryProvider.overrideWithValue(consultations),
           notificationUnreadProvider.overrideWith((_) => unread.stream),

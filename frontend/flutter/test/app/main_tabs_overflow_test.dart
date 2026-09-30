@@ -20,7 +20,6 @@ import 'package:oncare/app/app.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -30,6 +29,7 @@ import 'package:oncare/features/exercise/domain/repositories/exercise_repository
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 
+import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 
 void main() {
@@ -77,7 +77,7 @@ void main() {
               MockExerciseRepository() as ExerciseRepository,
             ),
             dashboardRepositoryProvider.overrideWithValue(
-              MockDashboardRepository(diet) as DashboardRepository,
+              FakeDashboardRepository(diet) as DashboardRepository,
             ),
             sessionFeatureResetOverride(),
             localeProvider.overrideWith((Ref ref) => locale),

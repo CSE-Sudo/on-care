@@ -292,6 +292,7 @@ class LocalApiInterceptor extends Interceptor {
         );
     // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
     _refundShieldOnDate(_todayDateString());
+    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -367,10 +368,17 @@ class LocalApiInterceptor extends Interceptor {
 
   Future<Response<Object?>> _dietDelete(RequestOptions options) async {
     final id = options.path.split('/').last;
+    // 지우기 전에 날짜를 읽어 둔다 — 그날의 큐레이션 문장을 거둬야 한다.
+    final DietEntryRow? existing = await (_db.select(
+      _db.dietEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     final n = await (_db.delete(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).go();
     if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    await _retireCuratedAdvice(
+      dietDates: <String>[if (existing != null) existing.date],
+    );
     // 이 끼니로 받은 포인트를 회수한다 — 실서버와 같은 규칙이다(#1786).
     _points.revoke(PointsRule.dietEntry.sourceType, id);
     return _ok(options, <String, Object?>{'status': 'deleted'});
@@ -383,6 +391,7 @@ class LocalApiInterceptor extends Interceptor {
     )..where((t) => t.id.equals(id))).go();
     if (n == 0) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
     _points.revoke(PointsRule.exerciseManual.sourceType, id);
+    await _retireCuratedAdvice();
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 
@@ -466,6 +475,7 @@ class LocalApiInterceptor extends Interceptor {
     );
     // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
     return _ok(
       options,
       _sessionJson(
@@ -589,6 +599,7 @@ class LocalApiInterceptor extends Interceptor {
           ),
         );
     _refundShieldOnDate(day);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
     final row = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingle();
@@ -711,6 +722,10 @@ class LocalApiInterceptor extends Interceptor {
     )..where((t) => t.id.equals(id))).getSingle();
     // 옮겨 간 날이 보호한 날이면 보호권을 돌려준다(#1788).
     _refundShieldOnDate(row.date);
+    // 날짜를 옮긴 수정이면 떠난 날과 옮겨 간 날이 모두 바뀌었다.
+    await _retireCuratedAdvice(
+      dietDates: <String>{existing.date, row.date}.toList(),
+    );
     final foods = jsonDecode(row.foodsJson) as List<Object?>;
     final macros = _foodMacroTotals(foods);
     return _ok(options, <String, Object?>{
@@ -1360,6 +1375,38 @@ class LocalApiInterceptor extends Interceptor {
     );
   }
 
+  /// 회원이 식단·운동 기록을 바꿨다 — 시드가 큐레이션해 둔 문장을 거둔다(#2645).
+  ///
+  /// 홈 '오늘의 AI 통합 조언'(`dashboard_ai_advice`)과 식단 탭의 하루 코치
+  /// 문장([kDietDayMessagesKey])은 시드의 기록에 맞춰 쓴 글이다. 기록을 지우거나
+  /// 고친 뒤에도 남아 있으면, 끼니를 다 지운 홈이 여전히 "짬뽕 …" 을 말한다. 기록이
+  /// 바뀐 뒤로는 실 서버처럼 지금 기록으로 만든 조언을 낸다.
+  ///
+  /// 통합 조언은 식단·운동 어느 쪽이 바뀌어도 거두고, 하루 코치 문장은
+  /// [dietDates] 의 날짜만 거둔다. 다음 날 시드가 새로 깔리면 다시 채워진다.
+  Future<void> _retireCuratedAdvice({
+    List<String> dietDates = const <String>[],
+  }) async {
+    await _db.deleteValue('dashboard_ai_advice');
+    if (dietDates.isEmpty) return;
+    final String? raw = await _db.readValue(kDietDayMessagesKey);
+    if (raw == null || raw.isEmpty) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, Object?>) return;
+    final Map<String, Object?> messages = Map<String, Object?>.of(decoded);
+    final int before = messages.length;
+    for (final String date in dietDates) {
+      messages.remove(date);
+    }
+    if (messages.length == before) return;
+    await _db.putValue(kDietDayMessagesKey, jsonEncode(messages));
+  }
+
   /// 시드가 정해 둔 그 날짜의 코치 문구. 없으면 null.
   ///
   /// 시연에 쓰는 사흘은 문장이 정해져 있다(`kDietDayMessagesKey`). 그 날짜에
@@ -1566,6 +1613,7 @@ class LocalApiInterceptor extends Interceptor {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
+    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
 
     return _ok(options, <String, Object?>{
       'entry_id': id,
@@ -2348,6 +2396,7 @@ class LocalApiInterceptor extends Interceptor {
         );
     // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
 
     return (
       session: _sessionJson(
