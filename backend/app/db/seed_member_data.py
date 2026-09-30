@@ -1103,6 +1103,11 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
                 # 남아 최근 활동 판단이 어긋난다.
                 completed_at=exercise_activity.noon(day.day),
                 assigned_routine_id=routine_id,
+                # 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+                # 지도 세션, 나머지 날은 배정받은 개인운동을 한 기록이다. 비워
+                # 두면 `member` 로 떨어져 PT 가 `직접 기록한 운동` 에 서고 고칠
+                # 수 있게 된다. 회원 앱 데모와 같은 규칙이다(#2662, #2693).
+                source="trainer_pt" if day.is_pt else "assigned_routine",
             ))
 
     _safe_commit(db)
