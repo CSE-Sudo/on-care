@@ -72,15 +72,6 @@ void main() {
   });
 
   group('상대 시각', () {
-    test('경과 시간을 구간별로 옮긴다', () {
-      expect(formatAlertAge(en, const Duration(seconds: 30)), 'Just now');
-      expect(formatAlertAge(en, const Duration(minutes: 10)), '10m ago');
-      expect(formatAlertAge(en, const Duration(hours: 3)), '3h ago');
-      expect(formatAlertAge(en, const Duration(hours: 26)), 'Yesterday');
-      expect(formatAlertAge(en, const Duration(days: 2)), '2d ago');
-      expect(formatAlertAge(ko, const Duration(minutes: 45)), '45분 전');
-    });
-
     test('서버·인터셉터의 한국어 time_ago 를 로케일 문장으로 옮긴다', () {
       final Map<String, String> cases = <String, String>{
         '방금': 'Just now',

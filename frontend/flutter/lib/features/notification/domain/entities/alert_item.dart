@@ -95,7 +95,6 @@ class AlertItem {
     this.action,
     this.createdAt = '',
     this.messageKey,
-    this.age,
   });
 
   final String id;
@@ -125,10 +124,6 @@ class AlertItem {
   /// 대신 로케일에 맞는 문장을 쓴다. 서버가 만든 알림은 번역본이 없어 비어 있다. (#1812)
   final String? messageKey;
 
-  /// 데모 알림이 만들어진 지 얼마나 됐는가. 서버 시각([createdAt])이 없는 데모
-  /// 알림도 화면이 로케일에 맞는 상대 시각을 그리게 한다. (#1812)
-  final Duration? age;
-
   AlertItem copyWith({bool? read}) => AlertItem(
     id: id,
     title: title,
@@ -141,7 +136,6 @@ class AlertItem {
     action: action,
     createdAt: createdAt,
     messageKey: messageKey,
-    age: age,
   );
 }
 
