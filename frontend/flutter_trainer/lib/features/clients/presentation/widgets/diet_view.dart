@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_diet_anal
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
+import 'package:oncare_trainer/features/clients/presentation/diet_analysis_text.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_analysis_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
@@ -67,7 +68,7 @@ class _DietViewState extends ConsumerState<DietView> {
             // 그래프를 읽은 흐름에서 곧바로 같은 기간의 해석을 본다. 기록이
             // 열두 주까지 길어져도 분석을 찾으러 끝까지 내려갈 필요가 없다.
             const SizedBox(height: OnCareSpacing.s12),
-            _AiComment(client: client, period: period),
+            ClientDietAnalysisPanel(client: client, period: period),
             // 그래프와 분석 아래 날짜별 기록. 접힌 줄만 늘어놓고 누른 날만
             // 펼치므로 전체(12주)에서도 스크롤이 감당한다. (#1025, #1284)
             const SizedBox(height: OnCareSpacing.s12),
@@ -140,7 +141,7 @@ class _TodayDiet extends ConsumerWidget {
             ),
             const SizedBox(height: OnCareSpacing.s12),
             // Nothing logged yet: say so, and withhold the verdict. The
-            // summary tiles read 0 either way, and `_AiComment` would call
+            // summary tiles read 0 either way, and the analysis would call
             // a blank day "균형이 잘 맞아요" — praise for a member who has
             // not recorded a single meal.
             if (meals.isEmpty)
@@ -150,7 +151,10 @@ class _TodayDiet extends ConsumerWidget {
                 placement: AppStatePlacement.card,
               )
             else ...<Widget>[
-              _AiComment(client: client, period: ClientPeriod.today),
+              ClientDietAnalysisPanel(
+                client: client,
+                period: ClientPeriod.today,
+              ),
               const SizedBox(height: OnCareSpacing.s12),
               for (final meal in sortedByMeal(meals)) ...<Widget>[
                 _MealCard(
@@ -796,11 +800,23 @@ String _grams(double value) => value == value.roundToDouble()
 ///
 /// 서버 문장이 아직 오지 않았거나 실패하면 카드를 세우지 않는다 — 그 사이 화면이
 /// 대체 문구를 지어내면 서버와 다른 기준으로 말하게 된다(#2271).
-class _AiComment extends ConsumerWidget {
-  const _AiComment({required this.client, required this.period});
+///
+/// 프로그램 탭 식단 칸도 같은 카드를 쓴다 — 트레이너가 회원 상세까지 들어오지
+/// 않아도 추천에 `예`/`아니오` 를 답할 수 있다. 오늘 기록이 없으면 회원 상세처럼
+/// 카드를 세우지 않는다: 빈 하루를 두고 한 판정을 읽히지 않는다.
+class ClientDietAnalysisPanel extends ConsumerWidget {
+  const ClientDietAnalysisPanel({
+    super.key,
+    required this.client,
+    required this.period,
+    this.topGap = 0,
+  });
 
   final TrainerClient client;
   final ClientPeriod period;
+
+  /// 카드가 설 때만 위에 두는 간격 — 카드가 없으면 간격도 남기지 않는다.
+  final double topGap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -811,18 +827,30 @@ class _AiComment extends ConsumerWidget {
             )
             .valueOrNull ??
         ClientDietAnalysis.empty;
-    if (period != ClientPeriod.today) {
-      return ClientDietAnalysisCard(analysis: analysis);
+    final AppLocalizations l = AppLocalizations.of(context);
+    if (clientDietAnalysisText(l, analysis).isEmpty) {
+      return const SizedBox.shrink();
     }
-    final List<ClientDietEntry> meals =
-        ref.watch(clientDietProvider(client.id)).valueOrNull ??
-        const <ClientDietEntry>[];
-    return ClientDietAnalysisCard(
-      analysis: analysis,
-      recommendation: ClientDietRecommendationSection(
-        clientId: client.id,
-        nextSlot: _nextSlot(meals),
-      ),
+    final Widget card;
+    if (period != ClientPeriod.today) {
+      card = ClientDietAnalysisCard(analysis: analysis);
+    } else {
+      final List<ClientDietEntry> meals =
+          ref.watch(clientDietProvider(client.id)).valueOrNull ??
+          const <ClientDietEntry>[];
+      if (meals.isEmpty) return const SizedBox.shrink();
+      card = ClientDietAnalysisCard(
+        analysis: analysis,
+        recommendation: ClientDietRecommendationSection(
+          clientId: client.id,
+          nextSlot: _nextSlot(meals),
+        ),
+      );
+    }
+    if (topGap == 0) return card;
+    return Padding(
+      padding: EdgeInsets.only(top: topGap),
+      child: card,
     );
   }
 }
