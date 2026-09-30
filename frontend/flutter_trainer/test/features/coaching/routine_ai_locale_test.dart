@@ -459,10 +459,14 @@ void main() {
     Future<ProviderContainer> container(AppConfig config, {Dio? dio}) async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final SharedPreferences prefs = await SharedPreferences.getInstance();
+      // 데모 제안·후보 생성은 데모 DB 를 읽는다(#2668) — 빈 메모리 DB 면 시드
+      // 회원이 아닌 `m1` 은 기본 후보·고정 스냅샷을 받는다.
+      final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
       final ProviderContainer c = ProviderContainer(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(config),
-          appDatabaseProvider.overrideWithValue(_memoryDb()),
+          appDatabaseProvider.overrideWithValue(db),
           sharedPreferencesProvider.overrideWithValue(prefs),
           if (dio != null) dioProvider.overrideWithValue(dio),
         ],
@@ -553,11 +557,4 @@ void main() {
       );
     });
   });
-}
-
-/// 데모 저장소가 바꾼 값을 적는 메모리 DB(#2669). 테스트가 끝나면 닫는다.
-AppDatabase _memoryDb() {
-  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
-  addTearDown(db.close);
-  return db;
 }

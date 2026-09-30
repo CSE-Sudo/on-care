@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/storage/seed_health_profiles.dart';
 import 'package:oncare_trainer/core/storage/seed_notifications.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart'
@@ -308,6 +309,9 @@ Future<void> seedIfEmpty(
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.like('seed-%'))).go();
+    // 데모 배정·전달·제안 검토·PT 개인운동 상태(#2668)도 새 시드와 함께
+    // 처음으로 돌아간다 — 지운 일정·AI 운동을 가리키는 값이 남지 않게 한다.
+    await DemoRoutineStore.clear(db);
     // 날짜별 이력은 id 가 없다(고객+날짜가 키다) — 고객 id 로 지운다.
     await (db.delete(
       db.clientDailyMetrics,
