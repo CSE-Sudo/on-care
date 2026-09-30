@@ -30,17 +30,21 @@ import '../../helpers/fake_diet_repository.dart';
 final RegExp _hangul = RegExp('[가-힣]');
 
 /// 조언 필드만 다르게 둔 최소 요약.
-DashboardSummary _summary({String? adviceKey, String? sodiumWarning}) =>
-    DashboardSummary(
-      indicators: const <HealthIndicator>[],
-      macros: const DietMacros.zero(),
-      dietEntries: 0,
-      exerciseMinutes: 0,
-      weekScore: 0,
-      weekScoreDelta: 0,
-      sodiumWarning: sodiumWarning,
-      aiAdviceKey: adviceKey,
-    );
+DashboardSummary _summary({
+  String? adviceKey,
+  String? sodiumWarning,
+  Map<String, Object> adviceParams = const <String, Object>{},
+}) => DashboardSummary(
+  indicators: const <HealthIndicator>[],
+  macros: const DietMacros.zero(),
+  dietEntries: 0,
+  exerciseMinutes: 0,
+  weekScore: 0,
+  weekScoreDelta: 0,
+  sodiumWarning: sodiumWarning,
+  aiAdviceKey: adviceKey,
+  aiAdviceParams: adviceParams,
+);
 
 /// 홈 '오늘의 AI 통합 조언'은 데모 소스가 둘(목 요약, 시드 KV)이라 한쪽만
 /// 고치면 조용히 갈라진다. 게다가 예전에는 양쪽이 한국어 **문장**을 실어
@@ -89,6 +93,130 @@ void main() {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
 
       expect(aiAdviceBody(ko, summary), summary.sodiumWarning);
+    });
+
+    // 음식 이름이 든 나트륨 경고(#2644). 예전에는 키 없이 한국어 문장만 와서
+    // 영어 화면이 그 문장을 그대로 그렸다.
+    group('sodium_over_sources', () {
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+      test('두 음식을 언어에 맞게 이어 문장 틀에 끼운다', () {
+        final DashboardSummary summary = _summary(
+          adviceKey: 'sodium_over_sources',
+          adviceParams: const <String, Object>{
+            'foods': <String>['라면', '김밥'],
+          },
+          sodiumWarning: '라면·김밥 섭취로 나트륨이 높아요.',
+        );
+
+        expect(aiAdviceBody(ko, summary), '라면·김밥 섭취로 나트륨이 높아요.');
+        expect(aiAdviceBody(en, summary), 'Sodium is high from 라면 and 김밥.');
+      });
+
+      test('음식이 하나면 잇지 않는다', () {
+        final DashboardSummary summary = _summary(
+          adviceKey: 'sodium_over_sources',
+          adviceParams: const <String, Object>{
+            'foods': <String>['Ramen'],
+          },
+        );
+
+        expect(aiAdviceBody(ko, summary), 'Ramen 섭취로 나트륨이 높아요.');
+        expect(aiAdviceBody(en, summary), 'Sodium is high from Ramen.');
+      });
+
+      test('영어 문장에서 음식 이름을 빼면 한글이 없다', () {
+        final DashboardSummary summary = _summary(
+          adviceKey: 'sodium_over_sources',
+          adviceParams: const <String, Object>{
+            'foods': <String>['김치찌개', '배추김치'],
+          },
+          sodiumWarning: '김치찌개·배추김치 섭취로 나트륨이 높아요.',
+        );
+
+        final String body = aiAdviceBody(en, summary);
+        expect(
+          body.replaceAll('김치찌개', '').replaceAll('배추김치', ''),
+          isNot(matches(_hangul)),
+        );
+        expect(body, isNot(summary.sodiumWarning));
+      });
+
+      test('세 개 이상 와도 앞의 두 개만 쓴다', () {
+        final DashboardSummary summary = _summary(
+          adviceKey: 'sodium_over_sources',
+          adviceParams: const <String, Object>{
+            'foods': <String>['A', 'B', 'C'],
+          },
+        );
+
+        expect(aiAdviceBody(en, summary), 'Sodium is high from A and B.');
+      });
+
+      test('이름이 빈 문자열뿐이면 받은 문장으로 넘긴다', () {
+        final DashboardSummary summary = _summary(
+          adviceKey: 'sodium_over_sources',
+          adviceParams: const <String, Object>{
+            'foods': <String>['  ', ''],
+          },
+          sodiumWarning: 'Sodium is high from your meals.',
+        );
+
+        expect(aiAdviceBody(en, summary), summary.sodiumWarning);
+      });
+
+      test('인자가 없거나 모양이 틀리면 받은 문장, 그것도 없으면 ARB 기본값', () {
+        final DashboardSummary missing = _summary(
+          adviceKey: 'sodium_over_sources',
+          sodiumWarning: 'Sodium is high from 라면.',
+        );
+        final DashboardSummary wrongShape = _summary(
+          adviceKey: 'sodium_over_sources',
+          adviceParams: const <String, Object>{'foods': '라면'},
+        );
+
+        expect(aiAdviceBody(en, missing), missing.sodiumWarning);
+        expect(aiAdviceBody(en, wrongShape), en.homeAiAdviceBody);
+      });
+    });
+
+    test('ai_advice_params 를 응답에서 읽는다', () {
+      final DashboardSummary summary = DashboardSummary.fromJson(
+        <String, Object?>{
+          'indicators': <Object?>[],
+          'diet_entries': 1,
+          'exercise_minutes': 0,
+          'week_score': 0,
+          'week_score_delta': 0,
+          'sodium_warning': '라면 섭취로 나트륨이 높아요.',
+          'ai_advice_key': 'sodium_over_sources',
+          'ai_advice_params': <String, Object?>{
+            'foods': <Object?>['라면'],
+            'ignored': null,
+          },
+        },
+      );
+
+      expect(summary.aiAdviceParams, <String, Object>{
+        'foods': <Object?>['라면'],
+      });
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+      expect(aiAdviceBody(en, summary), 'Sodium is high from 라면.');
+    });
+
+    test('ai_advice_params 가 없는 옛 응답은 빈 값이다', () {
+      final DashboardSummary summary =
+          DashboardSummary.fromJson(<String, Object?>{
+            'indicators': <Object?>[],
+            'diet_entries': 0,
+            'exercise_minutes': 0,
+            'week_score': 0,
+            'week_score_delta': 0,
+            'sodium_warning': null,
+          });
+
+      expect(summary.aiAdviceParams, isEmpty);
     });
 
     test('모르는 키는 서버 문장·ARB 기본값으로 넘긴다', () {

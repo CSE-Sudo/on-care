@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         OrderingMode,
         OrderingTerm,
         Value;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
@@ -800,10 +801,12 @@ class LocalApiInterceptor extends Interceptor {
         final sodiumOrder = b.value.compareTo(a.value);
         return sodiumOrder != 0 ? sodiumOrder : a.key.compareTo(b.key);
       });
-    final sodiumSourceNames = sodiumSources
-        .take(2)
-        .map((source) => source.key)
-        .join('·');
+    // 경고가 짚는 상위 급원 두 개. 서버(`dashboard._SODIUM_SOURCE_COUNT`)와 같다.
+    final List<String> sodiumSourceNames = <String>[
+      for (final MapEntry<String, int> source in sodiumSources.take(2))
+        source.key,
+    ];
+    final String lang = _requestLang(options);
 
     // 데모 시드가 큐레이션 '통합 조언'을 준비해 뒀는지. 있으면 그것을 우선
     // 노출하고, 없으면(시드 없는 테스트 DB 등) 나트륨 상위 급원 기반 경고를
@@ -870,6 +873,22 @@ class LocalApiInterceptor extends Interceptor {
       score += 15;
     }
 
+    final String? sodiumWarning = _homeSodiumWarning(
+      lang: lang,
+      totalSodium: totalSodium,
+      sodiumGoal: sodiumGoal,
+      sourceNames: sodiumSourceNames,
+    );
+    final ({String key, String text}) exerciseFeedback = _homeExerciseFeedback(
+      lang: lang,
+      minutes: exerciseMinutes,
+    );
+    final String adviceKey = hasSeededAdvice
+        ? kDailyCombinedAdviceKey
+        : sodiumWarning != null
+        ? (sodiumSourceNames.isEmpty ? 'sodium_over' : 'sodium_over_sources')
+        : exerciseFeedback.key;
+
     return _ok(options, <String, Object?>{
       'indicators': <Map<String, Object?>>[
         <String, Object?>{
@@ -909,20 +928,78 @@ class LocalApiInterceptor extends Interceptor {
       'week_score_delta': 12,
       // 시드가 큐레이션한 통합 조언은 **키로** 내려보낸다 — 문장은 ARB 가
       // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
-      'ai_advice_key': hasSeededAdvice ? kDailyCombinedAdviceKey : null,
-      // 시드 조언이 없을 때(시드 없는 테스트 DB 등)만 나트륨 급원 기반 경고를
-      // 동적으로 만든다. 서버가 만드는 문장과 같은 성격이라 번역본이 없다.
-      'sodium_warning': hasSeededAdvice
-          ? null
-          : totalSodium > sodiumGoal
-          ? sodiumSourceNames.isNotEmpty
-                ? '$sodiumSourceNames 섭취로 나트륨이 높아요.'
-                : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.'
-          : null,
-      'exercise_feedback': exerciseMinutes >= 60
-          ? '이번 주 운동 목표를 달성했어요! 마무리 스트레칭도 잊지 마세요.'
-          : '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요!',
+      //
+      // 시드 조언이 없으면 서버와 같은 순서로 고른다 — 나트륨 경고가 있으면
+      // 그것, 없으면 이번 주 운동 되먹임이다. 음식 이름이 든 경고도 키와 음식
+      // 이름 인자로 싣는다(#2644).
+      'ai_advice_key': adviceKey,
+      'ai_advice_params': <String, Object?>{
+        if (adviceKey == 'sodium_over_sources') 'foods': sodiumSourceNames,
+      },
+      // 키를 모르는 화면이 읽는 문장. 서버처럼 요청 언어를 따른다.
+      'sodium_warning': hasSeededAdvice ? null : sodiumWarning,
+      'exercise_feedback': exerciseFeedback.text,
     });
+  }
+
+  /// 홈 나트륨 경고 — 서버 `dashboard._build_sodium_warning` 과 같은 문장.
+  /// 목표 안이면 null. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+  static String? _homeSodiumWarning({
+    required String lang,
+    required int totalSodium,
+    required int sodiumGoal,
+    required List<String> sourceNames,
+  }) {
+    if (totalSodium <= sodiumGoal) return null;
+    final bool en = lang == 'en';
+    if (sourceNames.isEmpty) {
+      return en
+          ? 'Sodium is at ${totalSodium}mg today, over your target (${sodiumGoal}mg).'
+          : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.';
+    }
+    return en
+        ? 'Sodium is high from ${sourceNames.join(' and ')}.'
+        : '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
+  }
+
+  /// 이번 주 운동 되먹임 — 서버 `dashboard._exercise_feedback` 과 같은 기준
+  /// (주 150분)·같은 문장·같은 키.
+  static ({String key, String text}) _homeExerciseFeedback({
+    required String lang,
+    required int minutes,
+  }) {
+    final bool en = lang == 'en';
+    if (minutes >= 150) {
+      return (
+        key: 'exercise_on_track',
+        text: en
+            ? 'You worked out $minutes minutes this week. You are on track!'
+            : '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!',
+      );
+    }
+    if (minutes > 0) {
+      return (
+        key: 'exercise_more',
+        text: en
+            ? 'You worked out $minutes minutes this week. A little more to go!'
+            : '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!',
+      );
+    }
+    return (
+      key: 'exercise_start',
+      text: en
+          ? 'Start moving this week — an easy walk is a good beginning.'
+          : '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.',
+    );
+  }
+
+  /// 요청의 화면 언어 — `Accept-Language` 가 영어면 `en`, 아니면 `ko`.
+  /// 서버 `core.locale` 처럼 지원하지 않는 언어는 한국어로 떨어진다.
+  static String _requestLang(RequestOptions options) {
+    final Object? header = options.headers['Accept-Language'];
+    return header is String && header.trim().toLowerCase().startsWith('en')
+        ? 'en'
+        : 'ko';
   }
 
   // ---- Diet ----
@@ -1094,9 +1171,12 @@ class LocalApiInterceptor extends Interceptor {
       'total_sodium_mg': totalSodium,
       'total_sugar_g': totalSugar,
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
-      'ai_coach_message':
-          await _dietDayMessage(date) ??
-          _derivedDietDayMessage(totalSodium: totalSodium, empty: rows.isEmpty),
+      'ai_coach_message': await _dietDayCoachMessage(
+        options,
+        date: date,
+        totalSodium: totalSodium,
+        empty: rows.isEmpty,
+      ),
     });
   }
 
@@ -1239,9 +1319,7 @@ class LocalApiInterceptor extends Interceptor {
   /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
   /// 홈이 담당을 확인해 그리지 않는다.
   Map<String, Object?> _demoTrainerPick(RequestOptions options) {
-    final Object? header = options.headers['Accept-Language'];
-    final String lang =
-        header is String && header.toLowerCase().startsWith('en') ? 'en' : 'ko';
+    final String lang = _requestLang(options);
     final DemoPlanMenu menu = (kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!)
         .firstWhere(
           (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
@@ -1253,6 +1331,33 @@ class LocalApiInterceptor extends Interceptor {
       'keyword': menu.keyword,
       'trainer_name': kDemoTrainerName,
     };
+  }
+
+  /// 하루 식단 코치 문장(`ai_coach_message`). 실 서버 `diet_service.build_day`
+  /// 와 같은 규칙이다(#2644).
+  ///
+  /// - 한국어 화면이면 시드가 정해 둔 그날의 큐레이션 문장을 먼저 쓴다. 픽스처
+  ///   문장이 한국어뿐이라, 영어 화면에서는 건너뛰고 수치 기반 문장을 쓴다.
+  /// - 수치 기반 문장은 지난 날짜면 그날을 되짚고, 나트륨 기준은 회원 목표다.
+  Future<String> _dietDayCoachMessage(
+    RequestOptions options, {
+    required String date,
+    required int totalSodium,
+    required bool empty,
+  }) async {
+    final String lang = _requestLang(options);
+    if (lang == 'ko') {
+      final String? curated = await _dietDayMessage(date);
+      if (curated != null) return curated;
+    }
+    final Map<String, Object?> profile = await _mergedProfile();
+    return derivedDietDayMessage(
+      lang: lang,
+      totalSodium: totalSodium,
+      empty: empty,
+      isPast: date.compareTo(_todayDateString()) < 0,
+      sodiumLimit: (profile['daily_sodium_mg'] as num?)?.toInt(),
+    );
   }
 
   /// 시드가 정해 둔 그 날짜의 코치 문구. 없으면 null.
@@ -1272,16 +1377,50 @@ class LocalApiInterceptor extends Interceptor {
     }
   }
 
-  /// 시드에 문장이 없는 날짜용 — 그날의 수치를 보고 만든 문구.
-  String _derivedDietDayMessage({
+  /// 회원 나트륨 목표가 없을 때의 하루 상한. 서버 `SODIUM_LIMIT_MG` 와 같다.
+  static const int _kDefaultSodiumLimitMg = 2000;
+
+  /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
+  ///
+  /// 실 서버 `diet_service.coach_message` 와 **같은 문장**이다. [isPast] 면
+  /// 그날을 되짚는다 — 지난 날짜를 보면서 "오늘 … 저녁은" 을 읽지 않게(#2644).
+  /// 나트륨 기준은 [sodiumLimit](회원 목표), 없으면 2,000mg 이다.
+  @visibleForTesting
+  static String derivedDietDayMessage({
+    required String lang,
     required int totalSodium,
     required bool empty,
+    bool isPast = false,
+    int? sodiumLimit,
   }) {
-    if (empty) return '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
-    if (totalSodium > 2000) {
-      return '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+    final bool en = lang == 'en';
+    final int limit = sodiumLimit ?? _kDefaultSodiumLimitMg;
+    if (isPast) {
+      if (totalSodium > limit) {
+        return en
+            ? 'Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.'
+            : '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
+      }
+      if (empty) {
+        return en ? 'No meals were logged that day.' : '이날은 식단 기록이 없어요.';
+      }
+      return en
+          ? 'A well-balanced day with sodium within your target.'
+          : '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
     }
-    return '균형 잡힌 하루였어요. 내일도 이대로 가요!';
+    if (totalSodium > limit) {
+      return en
+          ? 'You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!'
+          : '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+    }
+    if (empty) {
+      return en
+          ? 'No meals logged today yet. Want to log your first meal?'
+          : '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
+    }
+    return en
+        ? 'A well-balanced day. Keep it up tomorrow!'
+        : '균형 잡힌 하루였어요. 내일도 이대로 가요!';
   }
 
   /// 음식 목록에서 탄·단·지 한 항목의 합. `diet_entries` 에는 탄단지 칼럼이
@@ -2160,7 +2299,10 @@ class LocalApiInterceptor extends Interceptor {
   /// 검사를 마친 기록 한 건을 drift 에 넣고 응답 한 칸과 적립을 돌려준다.
   /// `ex-` 접두(`seed-` 가 아닌)라 seedIfEmpty 가 지우지 않는다.
   Future<({Map<String, Object?> session, PointsAward points})>
-  _insertExerciseSession(Map<String, Object?> payload, {required String id}) async {
+  _insertExerciseSession(
+    Map<String, Object?> payload, {
+    required String id,
+  }) async {
     final type = (payload['type'] as String?) ?? 'cardio';
     final durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
     final minutes = _minutesOf(payload);

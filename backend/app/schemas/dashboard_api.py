@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.diet_api import Macros
 
@@ -45,9 +45,13 @@ class DashboardSummary(BaseModel):
     #: 홈 `오늘의 AI 통합 조언` 이 고른 문장의 **로케일 독립 식별자**. (#1943)
     #:
     #: 앱은 이 키를 먼저 보고 자기 문장을 그린다. 키가 없으면 위 두 문장을 받은
-    #: 그대로 쓰는데, 그것은 서버가 만든 한국어라 **영어 회원이 한국어 조언을
-    #: 읽었다.** 데모 서버만 이 키를 내려주고 있었다.
+    #: 그대로 쓴다 — 그 두 문장도 요청 언어(`Accept-Language`)를 따르지만, 문장
+    #: 틀은 앱 ARB 가 원본이다.
     #:
-    #: 나트륨 경고에 음식 이름이 들어가는 경우는 키를 주지 않는다 — 그 이름은
-    #: 번역 대상이 아니라 회원이 적은 데이터라, 문장을 통째로 보내는 편이 맞다.
+    #: `sodium_over` · `sodium_over_sources` · `exercise_on_track` ·
+    #: `exercise_more` · `exercise_start` 중 하나다.
     ai_advice_key: Optional[str] = None
+    #: [ai_advice_key] 문장에 끼울 값. `sodium_over_sources` 면 `foods`(나트륨
+    #: 상위 급원 음식 이름, 최대 두 개)가 실린다. 음식 이름은 회원이 적은
+    #: 데이터라 번역하지 않고 문장 틀에 그대로 끼운다.
+    ai_advice_params: dict[str, list[str]] = Field(default_factory=dict)

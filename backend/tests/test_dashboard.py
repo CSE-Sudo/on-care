@@ -280,15 +280,15 @@ def test_dashboard_names_the_advice_it_chose(client, db_session):
         )
         == "sodium_over"
     )
-    # 음식 이름이 든 경고는 키를 주지 않는다 — 그 이름은 번역 대상이 아니라
-    # 회원이 적은 데이터라, 문장을 통째로 보내는 편이 맞다.
+    # 음식 이름이 든 경고도 키를 준다(#2644) — 이름은 인자로 따로 싣고 문장
+    # 틀은 앱 ARB 가 언어별로 갖는다. 키를 비우면 영어 화면이 한국어를 그린다.
     assert (
         _advice_key(
             sodium_warning="라면·김치 섭취로 나트륨이 높아요.",
             sodium_source_names=["라면", "김치"],
             exercise_advice_key="exercise_start",
         )
-        is None
+        == "sodium_over_sources"
     )
     # 경고가 없으면 운동 되먹임이 조언이다.
     for key in ("exercise_on_track", "exercise_more", "exercise_start"):

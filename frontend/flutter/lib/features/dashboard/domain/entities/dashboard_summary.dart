@@ -76,11 +76,12 @@ class DashboardSummary {
     this.exerciseBurnGoal = defaultExerciseBurnGoal,
     this.nutritionWeek = const <NutritionDay>[],
     this.nutritionWeekPrev = const <NutritionDay>[],
-      required this.weekScore,
+    required this.weekScore,
     required this.weekScoreDelta,
     required this.sodiumWarning,
     this.exerciseFeedback,
     this.aiAdviceKey,
+    this.aiAdviceParams = const <String, Object>{},
   });
 
   /// 3-row health summary (칼로리 / 나트륨 / 당류).
@@ -113,7 +114,6 @@ class DashboardSummary {
   final List<NutritionDay> nutritionWeek;
   final List<NutritionDay> nutritionWeekPrev;
 
-
   /// "이번 주 건강 점수" card.
   final int weekScore;
   final int weekScoreDelta;
@@ -134,6 +134,11 @@ class DashboardSummary {
   /// 문자열 필드로 오지만, 데모 문구는 앱이 ARB 에 이미 양쪽 로케일로 갖고
   /// 있는데도 한국어 문자열을 실어 보내 영어 데모에서 한국어가 나왔다(#435).
   final String? aiAdviceKey;
+
+  /// [aiAdviceKey] 문장에 끼울 값. `sodium_over_sources` 면 `foods`(나트륨 상위
+  /// 급원 음식 이름 목록, 최대 두 개)가 들어온다(#2644). 음식 이름은 회원이
+  /// 적은 데이터라 번역하지 않고 ARB 문장 틀에 그대로 끼운다.
+  final Map<String, Object> aiAdviceParams;
 
   HealthIndicator get calorieIndicator => indicators.firstWhere(
     (HealthIndicator indicator) => indicator.unit == 'kcal',
@@ -199,5 +204,12 @@ class DashboardSummary {
     sodiumWarning: json['sodium_warning'] as String?,
     exerciseFeedback: json['exercise_feedback'] as String?,
     aiAdviceKey: json['ai_advice_key'] as String?,
+    aiAdviceParams: <String, Object>{
+      for (final MapEntry<Object?, Object?> e
+          in ((json['ai_advice_params'] as Map<Object?, Object?>?) ??
+                  const <Object?, Object?>{})
+              .entries)
+        if (e.key is String && e.value != null) e.key! as String: e.value!,
+    },
   );
 }
