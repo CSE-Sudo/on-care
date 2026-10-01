@@ -104,6 +104,13 @@
 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽을 글로 채워 둔다.
 그림과 목록은 앱이 들고 있다(공용 패키지 `oncare_ui` 의 에셋).
 
+운동을 보낸 일도 채팅에 남는다(#2672). 트레이너가 회원에게 운동을 보내면(`POST /trainer/clients/{id}/routines`
+단건 배정·AI 제안 승인·`/program` 의 `개인운동만`·PT 프로그램 보내기·취소 뒤 개인운동 보내기) 알림과 함께
+트레이너 발신 메시지가 하나 생기고, `ChatMessageOut.routine_delivery` 에
+`{ kind, program_names, routine_names }` 가 실린다. `kind` 는 `pt_with_routine` · `routine_only` ·
+`cancelled_routine_only` · `routine`(단건) · `program`. 두 앱은 리포트 안내(`report_week_start`)처럼 대화
+가운데 카드로 그리고, 본문은 카드를 못 그리는 자리(마지막 메시지)가 읽을 한 줄이다. 일반 메시지는 `null`.
+
 **기간이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
 새로 보내는 것만 막힌다.
 

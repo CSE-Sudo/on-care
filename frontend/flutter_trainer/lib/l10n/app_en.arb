@@ -636,24 +636,22 @@
   "@chatLoadOlderFailed": {
     "description": "이전 메시지 한 쪽을 받지 못했을 때 같은 자리의 버튼. 누르면 다시 받는다(#2749)."
   },
-  "chatDemoAnalyzed": "AI analysed {name}'s meals and workouts",
-  "@chatDemoAnalyzed": {
+  "chatRoutineDelivered": "Workout sent",
+  "chatRoutineDeliveredPt": "PT program and personal exercises sent",
+  "chatRoutineDeliveredPersonal": "Personal exercises sent",
+  "chatRoutineDeliveredAfterCancel": "Personal exercises sent in place of the cancelled PT",
+  "chatRoutineDeliveredProgram": "Workout program sent",
+  "chatRoutineDeliveredMore": "{names} and {count} more",
+  "@chatRoutineDeliveredMore": {
     "placeholders": {
-      "name": {
+      "names": {
         "type": "String"
+      },
+      "count": {
+        "type": "int"
       }
     }
   },
-  "chatDemoReportSent": "A summary report was sent to you",
-  "chatDemoRoutineSent": "A personalized workout recommendation was sent to {name}",
-  "@chatDemoRoutineSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "chatDemoNotified": "The member app was notified",
   "chatInputHint": "Type a message...",
   "chatInsightDiscomfortTitle": "{part} discomfort detected",
   "@chatInsightDiscomfortTitle": {
@@ -2223,6 +2221,10 @@
   "aiSourceConsultMemo": "Consultation memos",
   "aiSourceTrainerMemo": "Member memos (written by you)",
   "aiSourceChatInsight": "Chat-detected memos",
+  "aiSourceRecentChat": "Recent chat",
+  "@aiSourceRecentChat": {
+    "description": "Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)"
+  },
   "aiSourceWeeklyFeedback": "Member weekly feedback",
   "aiSourceRangeDays": "Last {days} days · up to {count}",
   "@aiSourceRangeDays": {
@@ -2814,6 +2816,96 @@
   "clientMemoEdited": "Edited",
   "clientMemoSearchHint": "Search memos (text or tag)",
   "clientMemoSearchEmpty": "No memos match your search.",
+  "clientMemoCategoryExercise": "Exercise",
+  "clientMemoCategoryDiet": "Diet",
+  "clientMemoCategoryPain": "Pain · injury",
+  "clientMemoCategoryLife": "Life · schedule",
+  "clientMemoRecordLink": "Link a workout (optional)",
+  "clientMemoRecordNone": "No link",
+  "clientMemoRecordEmpty": "No workouts in the last 14 days",
+  "clientMemoRecordDay": "{month}/{day} ({weekday})",
+  "@clientMemoRecordDay": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPtSession": "{date} PT session",
+  "@clientMemoRecordPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonal": "{date} Personal workout",
+  "@clientMemoRecordPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonalNamed": "{date} Personal workout · {name}",
+  "@clientMemoRecordPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordMemberLog": "{date} Member log",
+  "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTabMemo": "Memos",
+  "clientMemoTabFeedback": "Feedback",
+  "clientFeedbackPrivate": "Feedback you and the member exchanged. Tap one to edit it where it was written.",
+  "clientFeedbackToMember": "Trainer → member",
+  "clientFeedbackFromMember": "Member → trainer",
+  "clientFeedbackSourcePt": "PT · {date}",
+  "@clientFeedbackSourcePt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceReport": "Report · week of {date}",
+  "@clientFeedbackSourceReport": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceWeekly": "Weekly check-in · week of {date}",
+  "@clientFeedbackSourceWeekly": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackWeeklyNoNote": "No note",
+  "clientFeedbackEmpty": "No feedback exchanged yet.",
+  "clientFeedbackLoadFailed": "Couldn't load feedback. Try again in a moment",
+  "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
+  "clientFeedbackSearchEmpty": "No feedback matches your search.",
   "followUp": "Follow-ups",
   "followUpTitle": "Follow-ups on {name}",
   "@followUpTitle": {
