@@ -11,7 +11,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 
 /// 기록 그래프 저장소. (#2075, #2076)
 ///
-/// 데모 모드는 목업 운동 저장소·목업 식단과 같은 기록, 같은 보호권·그래프 색 원장을
+/// 데모 모드는 운동·식단 저장소(로컬 목업 API)와 같은 기록, 같은 보호권·그래프 색 원장을
 /// 본다 — 교환한 색이 바로 그래프에 보이고 보호한 날이 칸에 뜬다.
 final activityCalendarRepositoryProvider = Provider<ActivityCalendarRepository>(
   (ref) {
