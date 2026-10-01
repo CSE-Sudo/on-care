@@ -246,6 +246,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 없애려던 바로 그 문제다.
   Future<void> _saveFeedback(WeeklyReport report, String body) async {
     if (_savingFeedback) return;
+    // 지금 편집기의 회원 초안만 저장한다(#2862).
+    if (report.client.id != _clientId) return;
     final AppLocalizations l = AppLocalizations.of(context);
     setState(() => _savingFeedback = true);
     try {
@@ -280,6 +282,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     super.didUpdateWidget(oldWidget);
     if (widget.clientId != oldWidget.clientId) {
       _clientId = widget.clientId;
+      _missingNotified = null;
       // 다른 회원의 리포트는 처음부터 읽는다 — 앞 회원에서 ③까지 갔다고
       // 이 회원의 수치를 건너뛸 이유가 없다.
       _stage = 0;
@@ -384,6 +387,37 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   void _goToCurrentWeek() => _moveToWeek(weekStartOf(nowKst()));
 
+  /// 편집기에 열 회원 — 주소의 `client` 가 [roster] 에 있을 때만이다(#2862).
+  ///
+  /// 명단에 없으면 null 이다. 예전에는 명단의 첫 회원으로 갈음해, 담당 해제된
+  /// 회원의 북마크나 오타 난 주소로 들어오면 다른 회원의 리포트가 그려지고
+  /// 전송까지 그 회원에게 나갔다. 명단을 아직 못 읽었을 때도 null 이라 아무도
+  /// 고르지 않는다 — 기다렸다가 명단이 오면 다시 고른다.
+  TrainerClient? _editorClientIn(List<TrainerClient> roster) {
+    final String? id = _clientId;
+    if (id == null) return null;
+    return roster.where((TrainerClient c) => c.id == id).firstOrNull;
+  }
+
+  /// 안내를 이미 띄운 `client` 값 — 다시 그릴 때마다 토스트가 쌓이지 않게.
+  String? _missingNotified;
+
+  /// 명단에 없는 회원 주소로 들어왔다 — 한 번 알리고 작업대로 되돌린다(#2862).
+  ///
+  /// 주소는 방문 기록을 남기지 않고 바꾼다([Router.neglect]) — 뒤로 가기가 그
+  /// 주소로 돌아가 같은 안내를 다시 띄우면 안 된다. build 안에서 부르므로 실제
+  /// 이동은 다음 프레임에 한다.
+  void _leaveMissingClient(AppLocalizations l) {
+    final String? missing = _clientId;
+    if (missing == null || _missingNotified == missing) return;
+    _missingNotified = missing;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _clientId != missing) return;
+      showAppToast(context, l.clientNotFound);
+      Router.neglect(context, () => context.go(_locationFor(null)));
+    });
+  }
+
   /// 그 주에 저장된 초안. 아직 안 읽혔으면 null 이다 — 전송·PDF 처럼 지금
   /// 당장 값이 필요한 자리에서 쓴다. (#821)
   ReportFeedbackDraft? _savedDraftOf(WeeklyReport report) => ref
@@ -439,6 +473,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _send(WeeklyReport report, String message) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final id = report.client.id;
+    // 주소가 가리키는 회원의 리포트만 보낸다(#2862). 편집기가 다른 회원으로
+    // 바뀐 사이에 눌린 전송이 엉뚱한 채팅방으로 가지 않게 한 번 더 막는다.
+    if (id != _clientId) return;
     // 빈 문구는 보내지 않는다 — 버튼이 잠겨 있지만 다른 길로 들어와도 빈
     // 말풍선이나 서버의 기본 문장이 회원에게 가지 않게 한다(#2771).
     if (message.trim().isEmpty) {
@@ -689,14 +726,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
     final weekSessions = ref.watch(scheduleRangeProvider(range));
     // 초안 구독은 본문(LayoutBuilder)보다 위에서 해야 해 본문이 고른 고객을
-    // 볼 수 없다. 본문과 **같은 규칙**으로 여기서 한 번 더 고른다.
+    // 볼 수 없다. 본문과 **같은 규칙**([_editorClientIn])으로 여기서 한 번 더
+    // 고른다 — 명단에 없는 회원이면 아무도 고르지 않는다(#2862).
     final roster = clientsAsync.valueOrNull ?? const <TrainerClient>[];
-    final TrainerClient? openClient = roster.isEmpty
-        ? null
-        : roster.firstWhere(
-            (c) => c.id == _clientId,
-            orElse: () => roster.first,
-          );
+    final TrainerClient? openClient = _editorClientIn(roster);
     // 저장해 둔 초안이 도착하면 입력창을 그 문구로 다시 만든다. 이미 이 리포트를
     // 고치고 있었다면 건드리지 않는다 — 읽어 온 값이 트레이너가 방금 친 글을
     // 덮으면 안 된다. (#821)
@@ -879,10 +912,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           }
 
           // ── 편집기 ──────────────────────────────────────────────────
-          final selected = clients.firstWhere(
-            (c) => c.id == _clientId,
-            orElse: () => clients.first,
-          );
+          // 명단에 없는 회원이면 첫 회원으로 갈음하지 않는다(#2862) — 그러면
+          // 주소의 회원과 다른 사람의 리포트가 그려지고, 전송하면 그 사람
+          // 채팅방으로 나간다. 안내하고 작업대로 되돌린다.
+          final TrainerClient? selected = _editorClientIn(clients);
+          if (selected == null) {
+            _leaveMissingClient(l);
+            return const AppLoading();
+          }
           final reportKey = ReportKey(client: selected, weekStart: _weekStart);
           final reportAsync = ref.watch(weeklyReportProvider(reportKey));
           // 저장해 둔 초안. 리포트와 따로 읽는다 — 초안은 트레이너가 쓰던
