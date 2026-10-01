@@ -9,7 +9,7 @@
 
 Revision ID: 0129_trainer_memo_category
 Revises: 0128_close_stale_invites
-Create Date: 2026-10-02
+Create Date: 2026-10-01
 """
 from __future__ import annotations
 
