@@ -189,9 +189,16 @@ class _CheckRow extends StatelessWidget {
           children: <Widget>[
             // 무엇에 동의하는지 이름 없이 `checkbox, not checked` 만 들려서는
             // 안 된다 — 라벨을 함께 읽힌다(#1942 와 같은 이유).
+            // 체크 칸을 제 노드로 세운다(container). 그러지 않으면 옆 글자와
+            // 한 노드로 합쳐져 라벨이 두 번 이어 붙은 채 읽힌다. 체크 칸
+            // 안쪽 의미는 이 노드 하나로 대신한다.
             Semantics(
+              container: true,
               checked: value,
+              enabled: enabled,
               label: label,
+              onTap: enabled ? onTap : null,
+              excludeSemantics: true,
               child: Checkbox(
                 value: value,
                 onChanged: enabled ? (_) => onTap() : null,
@@ -207,7 +214,9 @@ class _CheckRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(label, style: labelStyle),
+                    // 이름은 체크 칸 노드 하나로 둔다 — 같은 말이 두 번
+                    // 읽히지 않게.
+                    ExcludeSemantics(child: Text(label, style: labelStyle)),
                     if (detail != null) ...<Widget>[
                       const SizedBox(height: OnCareSpacing.s2),
                       Text(
