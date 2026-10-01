@@ -52,12 +52,32 @@ List<ReservationSlot> demoReservationSlots({DateTime? now}) {
       isClosed: false,
       sessionType: SessionType.consultation,
     ),
+    // 회원이 신청해 대기 중인 상담 자리 둘(#2797) — 상담함의 시드 요청
+    // ([demoPendingRequestSlots])이 고른 자리다. 실서버처럼 신청이 자리를
+    // 잡으므로 예약 슬롯 창에서는 예약된 칸으로 선다(저장소가 신청 상태를 보고
+    // 정한다). 빈 상담 자리(`slot-kim-3`·`slot-kim-5`)는 회원 앱 데모 사용자가
+    // 신청해 볼 수 있게 그대로 둔다.
+    ReservationSlot(
+      id: 'slot-kim-6',
+      startsAt: at(3, 22, 0),
+      booked: false,
+      isClosed: false,
+      sessionType: SessionType.consultation,
+    ),
     ReservationSlot(
       id: 'slot-kim-4',
       startsAt: at(4, 6, 30),
       booked: false,
       isClosed: false,
       sessionType: SessionType.personalTraining,
+    ),
+    // 김민수의 재상담 신청이 잡은 자리(#2797).
+    ReservationSlot(
+      id: 'slot-kim-7',
+      startsAt: at(5, 7, 0),
+      booked: false,
+      isClosed: false,
+      sessionType: SessionType.consultation,
     ),
     ReservationSlot(
       id: 'slot-kim-5',
@@ -68,3 +88,15 @@ List<ReservationSlot> demoReservationSlots({DateTime? now}) {
     ),
   ];
 }
+
+/// 상담함 시드 요청이 고른 자리 — 자리 id → 그 신청과 신청한 회원. (#2797)
+///
+/// 실서버에서 대기 중인 신청은 고른 자리를 잡는다(`remaining = 0`). 데모 예약
+/// 슬롯 저장소는 이 표를 보고, 트레이너가 아직 결정하지 않은 신청의 자리를
+/// 예약된 칸(신청자 이름)으로 그린다. 거절하면 자리가 다시 비고, 수락하면 그
+/// 시각의 상담 일정이 자리를 잡는다.
+const Map<String, ({String requestId, String memberName})>
+demoPendingRequestSlots = <String, ({String requestId, String memberName})>{
+  'slot-kim-6': (requestId: 'demo-consultation-1', memberName: '김하늘'),
+  'slot-kim-7': (requestId: 'demo-consultation-2', memberName: '김민수'),
+};

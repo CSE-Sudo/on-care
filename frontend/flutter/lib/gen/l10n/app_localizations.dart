@@ -224,6 +224,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong'**
   String get errorUnknown;
 
+  /// 403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access to this feature. Please check the required consent or your trainer connection.'**
+  String get errorForbidden;
+
+  /// 429 from the server: too many requests; it will work again shortly (#2859).
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests right now. Please try again in a moment.'**
+  String get errorRateLimited;
+
   /// No description provided for @dashboardMetricCalories.
   ///
   /// In en, this message translates to:
@@ -4980,6 +4992,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The trainer did not respond in time. Try requesting another time.'**
   String get exConsultExpiredBody;
+
+  /// No description provided for @exConsultCancelledByTrainerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer cancelled this consultation. Try requesting another time.'**
+  String get exConsultCancelledByTrainerBody;
 
   /// No description provided for @exExerciseGoal.
   ///

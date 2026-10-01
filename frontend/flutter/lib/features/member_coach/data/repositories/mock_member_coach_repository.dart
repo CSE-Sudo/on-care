@@ -622,8 +622,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     // 담당 트레이너가 있으면 실서버처럼 막는다(403) — 배정을 물리는 것은
     // 트레이너의 일이다. 화면도 담당이 없을 때만 이 버튼을 그린다. (#1020, #2666)
     if (_hasCoach()) {
-      throw const UnauthorizedError(
+      // 로그인은 유효하고 권한이 없는 것이다 — 401 이 아니라 403(#2859).
+      throw const ForbiddenError(
         message: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다.',
+        detail: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다.',
       );
     }
     // 실서버처럼 행은 남기고 오늘부터 목록에서 뺀다 — 지난 날짜에 걸려 있던

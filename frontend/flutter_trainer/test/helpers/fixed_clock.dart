@@ -25,6 +25,14 @@ final DateTime kMidWeekKst = DateTime(2026, 8, 20, 13);
 /// `isFuture`), 그 동작을 재는 테스트는 여기에 맞춰야 한다.
 final DateTime kSaturdayKst = DateTime(2026, 8, 22, 15);
 
+/// 같은 목요일 저녁 — 2026-08-20(목) 21:00.
+///
+/// 시드가 그날 놓는 수업(12:00~19:00)이 **모두 시작한 뒤**다. 완료·노쇼는
+/// 날짜가 아니라 시작 시각이 지나야 열리므로(#2760), 오늘 16:00 박성호 수업을
+/// 완료·노쇼로 처리하는 테스트는 이 시각에 맞춘다. 요일이 같아 시드는
+/// [kMidWeekKst] 와 똑같이 깔린다.
+final DateTime kMidWeekEveningKst = DateTime(2026, 8, 20, 21);
+
 /// [date] 를 지금으로 고정한다. 테스트가 끝나면 실제 시각으로 되돌린다.
 void useFixedKstDate([DateTime? date]) {
   final DateTime fixed = date ?? kMidWeekKst;
