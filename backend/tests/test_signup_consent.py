@@ -430,8 +430,16 @@ def test_trainer_without_consents_reconsents_without_health(client):
     tokens = _login(client, email)
     assert tokens["consent_required"] is True
 
-    me = client.get("/v1/users/me", headers=_auth(tokens["access_token"])).json()
-    assert me["consent_pending"] == sorted(TRAINER_REQUIRED)
+    # `GET /users/me` 는 회원 전용이라 트레이너는 403 이다 — 트레이너 웹은 로그인
+    # 응답의 `consent_required` 로 동의 화면을 띄우고, 남은 항목은 저장 응답으로 안다.
+    # 필수 항목이 빠진 저장의 422 가 트레이너에게 요구하는 항목을 알려 준다.
+    partial = client.post(
+        "/v1/users/me/consents",
+        json={"consents": ["terms"]},
+        headers=_auth(tokens["access_token"]),
+    )
+    assert partial.status_code == 422, partial.text
+    assert partial.json()["detail"]["missing"] == ["age14", "privacy"]
 
     r = client.post(
         "/v1/users/me/consents",
@@ -440,6 +448,7 @@ def test_trainer_without_consents_reconsents_without_health(client):
     )
     assert r.status_code == 200, r.text
     assert r.json()["consent_required"] is False
+    assert r.json()["consent_pending"] == []
 
 
 # ---- 소셜 첫 가입 ----
