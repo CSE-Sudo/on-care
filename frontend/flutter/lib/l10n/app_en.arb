@@ -86,6 +86,7 @@
     }
   },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
+  "homeAiAdviceNoRecord": "Log today's meals and workouts, and we'll put together advice for your day.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
@@ -142,6 +143,7 @@
   },
   "homeRecBasisOverLimit": "over the daily limit",
   "homeRecMealsTitle": "Recommended meals",
+  "homeRecMealsErrorTitle": "Couldn't load meal suggestions",
   "homeViewAll": "View all",
   "@homeScheduleDate": {
     "placeholders": {
@@ -1527,6 +1529,10 @@
   "coachCardExerciseTitle": "3 workouts this week",
   "coachCardExerciseBody": "You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
   "coachCardWaterTag": "Hydration",
+  "coachSheetErrorTitle": "Couldn't load your advice",
+  "coachSheetErrorBody": "Check your connection and try again.",
+  "coachSheetEmptyTitle": "Advice will appear as you log more",
+  "coachSheetEmptyBody": "Try logging today's meals and workouts.",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
   "@coachInviteFrom": {

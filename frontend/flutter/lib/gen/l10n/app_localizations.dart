@@ -296,6 +296,12 @@ abstract class AppLocalizations {
   /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
   String get homeAiAdviceBody;
 
+  /// No description provided for @homeAiAdviceNoRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Log today\'s meals and workouts, and we\'ll put together advice for your day.'**
+  String get homeAiAdviceNoRecord;
+
   /// No description provided for @homeSodiumExceededBadge.
   ///
   /// In en, this message translates to:
@@ -529,6 +535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommended meals'**
   String get homeRecMealsTitle;
+
+  /// No description provided for @homeRecMealsErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load meal suggestions'**
+  String get homeRecMealsErrorTitle;
 
   /// No description provided for @homeViewAll.
   ///
@@ -3889,6 +3901,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hydration'**
   String get coachCardWaterTag;
+
+  /// No description provided for @coachSheetErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your advice'**
+  String get coachSheetErrorTitle;
+
+  /// No description provided for @coachSheetErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get coachSheetErrorBody;
+
+  /// No description provided for @coachSheetEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advice will appear as you log more'**
+  String get coachSheetEmptyTitle;
+
+  /// No description provided for @coachSheetEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try logging today\'s meals and workouts.'**
+  String get coachSheetEmptyBody;
 
   /// No description provided for @coachInviteTitle.
   ///

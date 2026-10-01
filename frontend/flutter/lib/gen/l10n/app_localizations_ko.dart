@@ -117,6 +117,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
   @override
+  String get homeAiAdviceNoRecord => '오늘 식단과 운동을 기록하면 하루를 돌아보는 AI 조언을 드릴게요.';
+
+  @override
   String get homeSodiumExceededBadge => '나트륨 초과';
 
   @override
@@ -236,6 +239,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeRecMealsTitle => '추천 식단';
+
+  @override
+  String get homeRecMealsErrorTitle => '추천 식단을 불러오지 못했어요';
 
   @override
   String get homeViewAll => '전체 보기';
@@ -2147,6 +2153,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachCardWaterTag => '수분';
+
+  @override
+  String get coachSheetErrorTitle => '조언을 불러오지 못했어요';
+
+  @override
+  String get coachSheetErrorBody => '연결 상태를 확인하고 다시 시도해 주세요.';
+
+  @override
+  String get coachSheetEmptyTitle => '기록이 쌓이면 조언을 드릴게요';
+
+  @override
+  String get coachSheetEmptyBody => '오늘 먹은 음식과 운동을 기록해 보세요.';
 
   @override
   String get coachInviteTitle => '담당 요청이 왔어요';
