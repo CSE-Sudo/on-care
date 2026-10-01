@@ -418,11 +418,9 @@ class _MetricStatCard extends StatelessWidget {
 
 /// 이번 주의 시작(월요일). 운동 탭과 같은 기준으로 잘라야 홈이 같은 한 주를
 /// 말한다.
-DateTime _thisMonday() {
-  final DateTime n = nowKst();
-  final DateTime d = DateTime(n.year, n.month, n.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
+///
+/// 달력으로 센다 — 24시간 단위로 빼면 서머타임 시간대에서 하루 어긋난다(#2890).
+DateTime _thisMonday() => mondayOf(todayKst());
 
 /// 홈의 운동 카드 — 제목 줄 아래에 운동 탭 `운동 현황 · 이번 주` 와 **같은
 /// 카드**를 그린다 (#1183).

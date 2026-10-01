@@ -381,7 +381,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     // 종료일까지 만든다.
     final until = _repeatUntil;
     if (until == null) return;
-    final nextStart = _date.add(const Duration(days: 1));
+    // 달력의 다음 날이다 — 24시간을 더하면 서머타임이 끝나는 날 같은 날
+    // 23:00 이 되어 첫 회차와 겹친다는 충돌로 저장이 막혔다(#2890).
+    final nextStart = addCalendarDays(_date, 1);
     if (nextStart.isAfter(until)) return;
     final rule = WeeklyRecurrence(weekdays: _repeatDays, until: until);
     final preview = await repo.previewRecurring(
@@ -500,7 +502,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         context: context,
         initialRange: DateTimeRange(
           start: _date,
-          end: _repeatUntil ?? _date.add(const Duration(days: 56)),
+          end: _repeatUntil ?? addCalendarDays(_date, 56),
         ),
         firstDate: first.subtract(const Duration(days: 365)),
         lastDate: today.add(const Duration(days: 7 * maxSeriesOccurrences)),
@@ -696,7 +698,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
               _repeatDays.add(_date.weekday);
               // 종료일도 바로 채워 미리보기가 곧장 뜨게 한다 — 위 날짜
               // 필드를 눌러 언제든 다시 고를 수 있다.
-              _repeatUntil ??= _date.add(const Duration(days: 56));
+              _repeatUntil ??= addCalendarDays(_date, 56);
             }
           }),
         ),

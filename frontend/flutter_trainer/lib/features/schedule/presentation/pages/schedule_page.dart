@@ -102,9 +102,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// [d] 가 속한 주의 월요일.
-  static DateTime _mondayOf(DateTime d) =>
-      _dateOnly(d).subtract(Duration(days: d.weekday - DateTime.monday));
+  /// [d] 가 속한 주의 월요일. 달력으로 센다 — 24시간 단위로 빼면 서머타임
+  /// 시간대에서 하루 어긋난다(#2890).
+  static DateTime _mondayOf(DateTime d) => mondayOf(d);
 
   /// Parses a `YYYY-MM-DD` route parameter, falling back to today. A
   /// malformed date in the URL should land the trainer on today rather
@@ -161,7 +161,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   /// `-1` = 지난 주, `+1` = 다음 주. 고른 날을 함께 옮긴다.
   void _shiftWeek(int direction) =>
-      _selectDay(_selectedDay.add(Duration(days: 7 * direction)));
+      _selectDay(addCalendarDays(_selectedDay, 7 * direction));
 
   /// 입력 폼 크기(560)의 가운데 모달로 [child] 를 연다(#1250, #1706).
   ///
@@ -698,7 +698,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         ? ref.watch(consultationPendingCountProvider).valueOrNull
         : null;
     final start = _weekStart;
-    final end = start.add(const Duration(days: 6));
+    final end = addCalendarDays(start, 6);
     final range = (from: ymd(start), to: ymd(end));
     final week = ref.watch(scheduleRangeProvider(range));
 

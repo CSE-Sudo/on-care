@@ -140,11 +140,12 @@ class _TaskProgressCard extends ConsumerWidget {
     final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
     final demoHistory = ref.watch(demoTaskHistoryProvider);
     final offset = ref.watch(_taskProgressWeekOffsetProvider);
-    final today = nowKst();
-    final currentMonday = today.subtract(Duration(days: today.weekday - 1));
-    final monday = currentMonday.add(Duration(days: 7 * offset));
+    // 자정으로 자른 오늘에서 달력으로 센다(#2890). 시각이 남은 지금에서 24시간
+    // 단위로 빼면 자정 근처·서머타임 전환 주에 요일 칸이 하루씩 밀렸다.
+    final today = todayKst();
+    final monday = addCalendarDays(mondayOf(today), 7 * offset);
     final dates = <DateTime>[
-      for (var i = 0; i < weekdayCount; i++) monday.add(Duration(days: i)),
+      for (var i = 0; i < weekdayCount; i++) addCalendarDays(monday, i),
     ];
     final OnCareBrand brand = context.oncare.brand;
     return AppCard(
