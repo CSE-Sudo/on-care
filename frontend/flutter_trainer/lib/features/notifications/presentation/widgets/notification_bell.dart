@@ -39,8 +39,7 @@ class _NotificationBellState extends ConsumerState<NotificationBell> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final int unread =
-        ref.watch(trainerUnreadNotificationsProvider).valueOrNull ?? 0;
+    final int unread = ref.watch(trainerUnreadBadgeProvider) ?? 0;
     return AppPopover(
       controller: _panel,
       alignEnd: true,
@@ -117,8 +116,7 @@ class _Panel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final int unread =
-        ref.watch(trainerUnreadNotificationsProvider).valueOrNull ?? 0;
+    final int unread = ref.watch(trainerUnreadBadgeProvider) ?? 0;
     final AsyncValue<TrainerNotificationPage> page = ref.watch(
       trainerNotificationsProvider,
     );
@@ -186,9 +184,11 @@ class _Panel extends ConsumerWidget {
                   itemBuilder: (BuildContext context, int i) =>
                       NotificationTile(
                         notification: items[i],
+                        // 이동·읽음 처리에 쓸 라우터와 container 를 먼저 잡고
+                        // 닫는다 — 닫히면 이 펼침의 context 는 끝난다(#2762).
                         onTap: () {
+                          NotificationsPage.open(context, items[i]);
                           onDone();
-                          NotificationsPage.open(context, ref, items[i]);
                         },
                       ),
                 ),
