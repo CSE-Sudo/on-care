@@ -4609,6 +4609,42 @@ abstract class AppLocalizations {
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
 
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "무릎" or "Knee".
+  ///
+  /// In en, this message translates to:
+  /// **'Knee'**
+  String get aicBodyPartKnee;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "허리" or "Back".
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get aicBodyPartBack;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "발목" or "Ankle".
+  ///
+  /// In en, this message translates to:
+  /// **'Ankle'**
+  String get aicBodyPartAnkle;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "어깨" or "Shoulder".
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder'**
+  String get aicBodyPartShoulder;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "손목" or "Wrist".
+  ///
+  /// In en, this message translates to:
+  /// **'Wrist'**
+  String get aicBodyPartWrist;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "목" or "Neck".
+  ///
+  /// In en, this message translates to:
+  /// **'Neck'**
+  String get aicBodyPartNeck;
+
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
@@ -5370,6 +5406,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social sign-in failed. Please try again in a moment'**
   String get authSocialSignInFailed;
+
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email'**
+  String get authSocialComingSoon;
 
   /// No description provided for @signUpTitle.
   ///
@@ -6353,6 +6395,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This program no longer exists. Please refresh the list'**
   String get coachRoutineGone;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "체력 향상·만성질환 예방".
+  ///
+  /// In en, this message translates to:
+  /// **'Builds fitness and helps prevent chronic disease'**
+  String get routineEffectCardioDefault;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "근력·근지구력 향상".
+  ///
+  /// In en, this message translates to:
+  /// **'Builds strength and muscular endurance'**
+  String get routineEffectStrengthDefault;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "유연성·부상 예방".
+  ///
+  /// In en, this message translates to:
+  /// **'Improves flexibility and helps prevent injury'**
+  String get routineEffectStretchDefault;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "혈압 관리에 도움".
+  ///
+  /// In en, this message translates to:
+  /// **'Helps manage blood pressure'**
+  String get routineEffectBloodPressure;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "체지방 감량에 도움".
+  ///
+  /// In en, this message translates to:
+  /// **'Helps reduce body fat'**
+  String get routineEffectFatLoss;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "심폐 체력 향상".
+  ///
+  /// In en, this message translates to:
+  /// **'Improves cardiorespiratory fitness'**
+  String get routineEffectCardioFitness;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "무리 없는 체력 회복".
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilds fitness without strain'**
+  String get routineEffectGentleRecovery;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "근육량 유지·증가".
+  ///
+  /// In en, this message translates to:
+  /// **'Maintains and builds muscle mass'**
+  String get routineEffectMuscleMass;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "근력 향상".
+  ///
+  /// In en, this message translates to:
+  /// **'Builds strength'**
+  String get routineEffectStrength;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "자세 지지 근육 강화".
+  ///
+  /// In en, this message translates to:
+  /// **'Strengthens posture-supporting muscles'**
+  String get routineEffectPostureMuscles;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "혈압·심박 안정".
+  ///
+  /// In en, this message translates to:
+  /// **'Steadies blood pressure and heart rate'**
+  String get routineEffectHeartRate;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "근육 회복".
+  ///
+  /// In en, this message translates to:
+  /// **'Helps muscles recover'**
+  String get routineEffectMuscleRecovery;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "굳은 근육 이완".
+  ///
+  /// In en, this message translates to:
+  /// **'Loosens tight muscles'**
+  String get routineEffectLoosen;
+
+  /// Routine effect line (#2725). Translation of the shared effect table sentence "관절 가동 범위 회복".
+  ///
+  /// In en, this message translates to:
+  /// **'Restores joint range of motion'**
+  String get routineEffectJointRange;
 
   /// Shown when the network is unavailable.
   ///

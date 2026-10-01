@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/dio_schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 
@@ -496,5 +497,47 @@ void main() {
     ).thenAnswer((_) async => _okList(<dynamic>[], path));
 
     await expectLater(repo.sendScheduledRoutines('s1'), completes);
+  });
+
+  group('이미 있는 PT 에 개인운동 붙이기 (#2747)', () {
+    const String path = '/trainer/schedule/s1/routines';
+
+    Future<Map<String, Object?>> put(List<RoutineExercise> items) async {
+      when(
+        () => dio.put<List<dynamic>>(path, data: any(named: 'data')),
+      ).thenAnswer((_) async => _okList(<dynamic>[], path));
+
+      await repo.updateScheduledRoutines('s1', items);
+
+      return verify(
+            () => dio.put<List<dynamic>>(path, data: captureAny(named: 'data')),
+          ).captured.single
+          as Map<String, Object?>;
+    }
+
+    test('개인운동을 채운 AI 제안 id 를 함께 싣는다', () async {
+      final body = await put(const <RoutineExercise>[
+        RoutineExercise(
+          name: '걷기',
+          minutes: 30,
+          type: '유산소',
+          source: 'ai',
+          suggestionId: 'sug-walk',
+        ),
+        RoutineExercise(name: '계단 오르기', minutes: 15, type: '유산소'),
+      ]);
+
+      expect(body['suggestion_ids'], <String>['sug-walk']);
+      expect(body['personal_routines'], hasLength(2));
+    });
+
+    test('일정 상세에서 고친 줄처럼 제안이 없으면 옛 본문 그대로다', () async {
+      final body = await put(const <RoutineExercise>[
+        RoutineExercise(name: '걷기', minutes: 30, type: '유산소'),
+      ]);
+
+      expect(body.containsKey('suggestion_ids'), isFalse);
+      expect(body['personal_routines'], hasLength(1));
+    });
   });
 }

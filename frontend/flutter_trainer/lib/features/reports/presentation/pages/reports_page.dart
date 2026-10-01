@@ -352,11 +352,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
-  /// 달력 날짜로 한 주씩 옮긴다. `Duration(days: 7)` 을 더하면 서머타임이
-  /// 있는 곳에서 자정이 한 시간 밀려 주가 어긋난다.
-  void _shiftWeek(int direction) => _moveToWeek(
-    DateTime(_weekStart.year, _weekStart.month, _weekStart.day + 7 * direction),
-  );
+  /// 달력 날짜로 한 주씩 옮긴다([shiftWeeks]). `Duration(days: 7)` 을 더하면
+  /// 서머타임이 있는 곳에서 자정이 한 시간 밀려 주가 어긋난다.
+  void _shiftWeek(int direction) =>
+      _moveToWeek(shiftWeeks(_weekStart, direction));
 
   /// 요약을 피드백 입력창으로 옮긴다.
   ///
@@ -415,7 +414,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       previous = await ref.read(
         weeklyReportProvider((
           client: report.client,
-          weekStart: report.weekStart.subtract(const Duration(days: 7)),
+          // 달력 날짜로 한 주 앞 — `Duration` 으로 빼면 서머타임 시작 주
+          // 다음에 2주 전 리포트를 읽는다(#2774).
+          weekStart: shiftWeeks(report.weekStart, -1),
         )).future,
       );
     } catch (_) {

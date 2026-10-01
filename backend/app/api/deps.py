@@ -23,10 +23,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.security import decode_access_token
+from app.core.security import decode_access_claims
 from app.db.init_db import DEMO_USER_ID
 from app.db.session import get_db
 from app.models.models import User
+from app.services import auth_tokens
 
 
 def _extract_bearer(request: Request) -> Optional[str]:
@@ -47,8 +48,11 @@ def get_current_user(
     token = _extract_bearer(request)
     if token:
         try:
-            user_id = decode_access_token(token)
-            user = db.scalar(select(User).where(User.id == user_id))
+            claims = decode_access_claims(token)
+            user = db.scalar(select(User).where(User.id == claims.subject))
+            # 비밀번호 변경 전에 발급된 토큰(#2766)은 무효한 토큰과 같다.
+            if user is not None and not auth_tokens.is_current(user, claims.token_version):
+                raise jwt.InvalidTokenError("지난 세대 토큰")
             if user is not None:
                 if not user.is_active:
                     raise HTTPException(
@@ -93,11 +97,16 @@ def require_auth(
     if not token:
         raise exc
     try:
-        user_id = decode_access_token(token)
+        claims = decode_access_claims(token)
     except jwt.InvalidTokenError:
         raise exc from None
-    user = db.scalar(select(User).where(User.id == user_id))
+    user = db.scalar(select(User).where(User.id == claims.subject))
     if user is None or not user.is_active:
+        raise exc
+    # 비밀번호를 바꾸면 그 전에 다른 기기에 발급된 접근 토큰은 여기서 401 이 된다
+    # (#2766). 클라이언트는 401 을 받아 refresh 를 시도하고, refresh 도 같은 이유로
+    # 거부되어 세션 만료 안내와 함께 로그인 화면으로 간다.
+    if not auth_tokens.is_current(user, claims.token_version):
         raise exc
     return user
 

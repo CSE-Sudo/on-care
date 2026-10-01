@@ -17,6 +17,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/network/auth_token.dart';
+import 'package:oncare_trainer/core/storage/secure_token_store.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
+import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
@@ -29,9 +34,12 @@ final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 변경 호출을 기록하고 [error] 를 던지는 페이크.
 class _FakeAccountRepository implements TrainerAccountRepository {
-  _FakeAccountRepository({this.error});
+  _FakeAccountRepository({this.error, this.reissued});
 
   final Object? error;
+
+  /// 성공 응답에 실릴 새 토큰 한 쌍(#2766).
+  final TrainerAuthTokens? reissued;
   final List<String> newPasswords = <String>[];
 
   @override
@@ -41,12 +49,13 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   bool get supportsDeletion => true;
 
   @override
-  Future<void> changePassword({
+  Future<TrainerAuthTokens?> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
     newPasswords.add(newPassword);
     if (error != null) throw error!;
+    return reissued;
   }
 
   @override
@@ -56,9 +65,11 @@ class _FakeAccountRepository implements TrainerAccountRepository {
 Future<_FakeAccountRepository> _openDialog(
   WidgetTester tester, {
   Object? error,
+  TrainerAuthTokens? reissued,
+  void Function(ProviderContainer container)? onContainer,
 }) async {
-  final repo = _FakeAccountRepository(error: error);
-  await pumpTrainerApp(
+  final repo = _FakeAccountRepository(error: error, reissued: reissued);
+  final ProviderContainer container = await pumpTrainerApp(
     tester,
     token: 'demo-token',
     // 비밀번호 변경은 설정 › 계정에 있다(#2264).
@@ -67,6 +78,7 @@ Future<_FakeAccountRepository> _openDialog(
       trainerAccountRepositoryProvider.overrideWithValue(repo),
     ],
   );
+  onContainer?.call(container);
   final button = find.byKey(const ValueKey<String>('change-password'));
   await tester.ensureVisible(button);
   await settle(tester);
@@ -177,6 +189,145 @@ void main() {
     await _confirm(tester);
 
     expect(_under('password-current', '현재 비밀번호가 일치하지 않습니다.'), findsOneWidget);
+  });
+
+  // 서버는 비밀번호를 바꾸면 그 전 토큰을 모두 무효로 한다 — 이 기기는 응답의
+  // 새 토큰으로 갈아 끼워야 로그아웃되지 않는다(#2766).
+  testWidgets('변경에 성공하면 응답의 새 토큰으로 세션을 갈아 끼운다', (tester) async {
+    late ProviderContainer container;
+    await _openDialog(
+      tester,
+      reissued: const TrainerAuthTokens(
+        access: 'reissued-access',
+        refresh: 'reissued-refresh',
+      ),
+      onContainer: (c) => container = c,
+    );
+
+    await _fill(tester, next: 'abcd1234');
+    await _confirm(tester);
+
+    expect(container.read(authAccessTokenProvider), 'reissued-access');
+    final SecureTokenStore store = container.read(secureTokenStoreProvider);
+    expect(await tester.runAsync(store.readRefreshToken), 'reissued-refresh');
+    expect(
+      container.read(sessionControllerProvider).status,
+      SessionStatus.authenticated,
+    );
+  });
+
+  testWidgets('응답에 토큰이 없으면 지금 토큰을 그대로 둔다', (tester) async {
+    late ProviderContainer container;
+    await _openDialog(tester, onContainer: (c) => container = c);
+    final String? before = container.read(authAccessTokenProvider);
+
+    await _fill(tester, next: 'abcd1234');
+    await _confirm(tester);
+
+    expect(container.read(authAccessTokenProvider), before);
+    expect(
+      container.read(sessionControllerProvider).status,
+      SessionStatus.authenticated,
+    );
+  });
+
+  testWidgets('실패하면 토큰을 바꾸지 않는다', (tester) async {
+    late ProviderContainer container;
+    await _openDialog(
+      tester,
+      error: const ValidationError(message: '현재 비밀번호가 일치하지 않습니다.'),
+      reissued: const TrainerAuthTokens(access: 'never', refresh: 'never'),
+      onContainer: (c) => container = c,
+    );
+    final String? before = container.read(authAccessTokenProvider);
+
+    await _fill(tester, next: 'abcd1234');
+    await _confirm(tester);
+
+    expect(container.read(authAccessTokenProvider), before);
+  });
+
+  group('reissuedTokensFrom (#2766)', () {
+    test('새 쌍을 꺼낸다', () {
+      final TrainerAuthTokens? t = reissuedTokensFrom(<String, dynamic>{
+        'status': 'changed',
+        'access_token': 'acc',
+        'refresh_token': 'ref',
+        'token_type': 'bearer',
+      });
+      expect(t?.access, 'acc');
+      expect(t?.refresh, 'ref');
+    });
+
+    test('갱신 토큰이 없으면 빈 값으로 둔다', () {
+      final TrainerAuthTokens? t = reissuedTokensFrom(<String, dynamic>{
+        'access_token': 'acc',
+      });
+      expect(t?.access, 'acc');
+      expect(t?.refresh, '');
+    });
+
+    test('토큰 세대 이전 응답·빈 응답·형식 오류는 null', () {
+      expect(reissuedTokensFrom(null), isNull);
+      expect(
+        reissuedTokensFrom(<String, dynamic>{'status': 'changed'}),
+        isNull,
+      );
+      expect(reissuedTokensFrom(<String, dynamic>{'access_token': ''}), isNull);
+      expect(reissuedTokensFrom(<String, dynamic>{'access_token': 7}), isNull);
+    });
+  });
+
+  group('DioTrainerAccountRepository — 성공 응답 (#2766)', () {
+    test('응답의 새 토큰을 돌려준다', () async {
+      final dio = _MockDio();
+      when(
+        () => dio.post<Map<String, dynamic>>(
+          '/trainer/me/password',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/trainer/me/password'),
+          statusCode: 200,
+          data: <String, dynamic>{
+            'status': 'changed',
+            'access_token': 'acc',
+            'refresh_token': 'ref',
+            'token_type': 'bearer',
+          },
+        ),
+      );
+
+      final TrainerAuthTokens? t = await DioTrainerAccountRepository(
+        dio,
+      ).changePassword(currentPassword: 'old', newPassword: 'abcd1234');
+
+      expect(t?.access, 'acc');
+      expect(t?.refresh, 'ref');
+    });
+
+    test('토큰이 없는 옛 응답이면 null', () async {
+      final dio = _MockDio();
+      when(
+        () => dio.post<Map<String, dynamic>>(
+          '/trainer/me/password',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/trainer/me/password'),
+          statusCode: 200,
+          data: <String, dynamic>{'status': 'changed'},
+        ),
+      );
+
+      final TrainerAuthTokens? t = await DioTrainerAccountRepository(
+        dio,
+      ).changePassword(currentPassword: 'old', newPassword: 'abcd1234');
+
+      expect(t, isNull);
+    });
   });
 
   group('DioTrainerAccountRepository — 새 비밀번호 422', () {

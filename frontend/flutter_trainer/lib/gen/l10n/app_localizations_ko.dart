@@ -222,6 +222,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.';
+
+  @override
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
@@ -929,6 +932,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatLoadFailed => '대화를 불러오지 못했어요';
+
+  @override
+  String get chatLoadOlder => '이전 메시지 더 보기';
+
+  @override
+  String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
 
   @override
   String chatDemoAnalyzed(String name) {
@@ -2555,6 +2564,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
 
   @override
+  String get routineEffectCardioDefault => '체력 향상·만성질환 예방';
+
+  @override
+  String get routineEffectStrengthDefault => '근력·근지구력 향상';
+
+  @override
+  String get routineEffectStretchDefault => '유연성·부상 예방';
+
+  @override
+  String get routineEffectBloodPressure => '혈압 관리에 도움';
+
+  @override
+  String get routineEffectFatLoss => '체지방 감량에 도움';
+
+  @override
+  String get routineEffectCardioFitness => '심폐 체력 향상';
+
+  @override
+  String get routineEffectGentleRecovery => '무리 없는 체력 회복';
+
+  @override
+  String get routineEffectMuscleMass => '근육량 유지·증가';
+
+  @override
+  String get routineEffectStrength => '근력 향상';
+
+  @override
+  String get routineEffectPostureMuscles => '자세 지지 근육 강화';
+
+  @override
+  String get routineEffectHeartRate => '혈압·심박 안정';
+
+  @override
+  String get routineEffectMuscleRecovery => '근육 회복';
+
+  @override
+  String get routineEffectLoosen => '굳은 근육 이완';
+
+  @override
+  String get routineEffectJointRange => '관절 가동 범위 회복';
+
+  @override
   String get routineFieldSets => '세트 수';
 
   @override
@@ -4179,6 +4230,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorRegisterDatePast => '지난 날짜예요. 오늘 이후 날짜를 골라 주세요';
 
   @override
+  String get programEditorSending => '일정에 추가하는 중이에요';
+
+  @override
+  String get programEditorAlreadySent => '방금 보낸 구성이에요. 새 구성을 반영하면 다시 보낼 수 있어요';
+
+  @override
   String get coachSendNetworkFailed => '네트워크 연결을 확인한 뒤 다시 시도해 주세요';
 
   @override
@@ -4354,6 +4411,76 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get reportsSummaryEmptyClient =>
       '회원을 선택하면 그 주의 리포트 요약과 코칭 제안이 여기에 표시돼요';
+
+  @override
+  String reportsDemoSummarySteadyThisWeek(String name) {
+    return '$name님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠습니다.';
+  }
+
+  @override
+  String reportsDemoSummarySteadyPastWeek(String name) {
+    return '$name님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠습니다.';
+  }
+
+  @override
+  String reportsDemoSummaryCompletionThisWeek(String name) {
+    return '$name님은 이번 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
+  }
+
+  @override
+  String reportsDemoSummaryCompletionPastWeek(String name) {
+    return '$name님은 그 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedThisWeek(String name) {
+    return '$name님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedPastWeek(String name) {
+    return '$name님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumThisWeek(String name) {
+    return '$name님은 이번 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumPastWeek(String name) {
+    return '$name님은 그 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummarySugarThisWeek(String name) {
+    return '$name님은 이번 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummarySugarPastWeek(String name) {
+    return '$name님은 그 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesThisWeek(String name) {
+    return '$name님의 이번 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesPastWeek(String name) {
+    return '$name님의 그 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroThisWeek(String name) {
+    return '$name님은 이번 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroPastWeek(String name) {
+    return '$name님은 그 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.';
+  }
 
   @override
   String get reportsLastWeek => '지난 주';

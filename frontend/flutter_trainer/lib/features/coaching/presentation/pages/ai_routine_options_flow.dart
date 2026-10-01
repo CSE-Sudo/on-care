@@ -572,9 +572,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 도중(`build`)에도 불리므로 여기서 `setState` 를 하면 겹친다.
   void _seedPersonalFromSuggestions() {
     if (_personalSeeded) return;
-    final suggestions = ref
-        .read(routineSuggestionsProvider(widget.client.id))
-        .valueOrNull;
+    final AsyncValue<List<RoutineSuggestion>> async = ref.read(
+      routineSuggestionsProvider(widget.client.id),
+    );
+    // 다시 읽는 중이면 들고 있는 값은 **전송 전의** 목록이다(#2747) — 보낸
+    // 직후 새로 선 위저드가 그 값으로 채우면 방금 보낸 제안이 되살아난다.
+    if (async.isLoading) return;
+    final suggestions = async.valueOrNull;
     // 아직 도착하지 않았다. **채웠다고 표시하지 않는다** — 표시해 버리면
     // 뒤늦게 온 제안이 영영 목록에 들어오지 못하고, 트레이너는 제안이 있는
     // 날에도 빈 목록을 본다.
@@ -693,6 +697,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         weight: s.weight ?? 0,
         reason: s.reason,
         source: 'ai',
+        // 보낼 때 이 제안을 닫는 데 쓴다(#2747).
+        suggestionId: s.id,
       );
 
   void _goToStage(int stage) {
@@ -1945,7 +1951,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
     // 제안이 늦게 도착하면 그때 한 번 채운다 — 트레이너가 이미 손댔으면
     // (_personalSeeded) 그대로 둔다.
-    if (suggestions.hasValue && !_personalSeeded) {
+    if (suggestions.hasValue && !suggestions.isLoading && !_personalSeeded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(_seedPersonalFromSuggestions);
       });
