@@ -199,15 +199,16 @@ void main() {
     });
 
     test('이어 받기는 마지막 예약의 (starts_at, id) 를 UTC 로 넘긴다', () async {
-      // 엔티티는 화면용 로컬 시각을 들고 있다. 그대로 보내면 서버가 UTC 로 읽어
-      // 쪽 경계가 시간대만큼 밀린다.
+      // 엔티티는 화면용 KST 벽시계를 들고 있다(#2876). 그대로 보내면 서버가
+      // UTC 로 읽어 쪽 경계가 9시간 밀린다.
       final adapter = _StubAdapter(<String, Object?>{
         '/reservations/me': _reservationsJson,
       });
 
       await DioGymRepository(_dio(adapter)).fetchMyReservations(
         limit: 10,
-        before: DateTime.utc(2026, 3, 2, 1).toLocal(),
+        // KST 2026-03-02 10:00 = 01:00Z
+        before: DateTime(2026, 3, 2, 10),
         beforeId: 'resv-1',
       );
 

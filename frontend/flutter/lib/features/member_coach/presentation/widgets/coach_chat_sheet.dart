@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
@@ -184,7 +185,9 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   /// 폰 폭보다 길어져 넘치므로, 그때만 줄 폭에 맞춰 통째로 줄인다 — 평소에는
   /// 가용 폭 그대로다. (패키지 구분선이 긴 날짜를 감당하게 되면 걷어낸다.)
   Widget _dateDivider(DateTime date) {
-    final DateTime localDate = date.toLocal();
+    // 서버 시각(UTC 순간)을 KST 날짜로 — 기기 시간대가 달라도 KST 오전 0~9시
+    // 메시지가 전날 구분선 아래로 가지 않는다(#2876).
+    final DateTime localDate = kstDateOf(date);
     final Widget divider = AppChatDateDivider(
       AppLocalizations.of(context).coachChatDateDivider(localDate),
       key: ValueKey<String>(
@@ -204,13 +207,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    final localA = a.toLocal();
-    final localB = b.toLocal();
-    return localA.year == localB.year &&
-        localA.month == localB.month &&
-        localA.day == localB.day;
-  }
+  static bool _sameDay(DateTime a, DateTime b) => isSameKstDay(a, b);
 
   /// 대화를 열거나 메시지가 늘면 맨 아래를 보여 준다.
   ///

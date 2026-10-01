@@ -85,3 +85,35 @@ DateTime toKst(DateTime t) {
     seoul.microsecond,
   );
 }
+
+/// KST 벽시계 값([nowKst]·[toKst] 처럼 필드에 서울 시각을 담은 `DateTime`)을
+/// 서버에 보낼 UTC 순간으로 바꾼다. [toKst] 의 역이다. (#2876)
+///
+/// `wall.toUtc()` 를 쓰면 안 된다 — 그 함수는 필드를 **기기 시간대**의 시각으로
+/// 읽는다. 기기가 UTC 면 KST 07:00 벽시계가 07:00Z(= KST 16:00)로 나간다.
+/// 필드만 꺼내 KST(UTC+9)로 읽는다.
+///
+/// 이미 UTC 순간(`isUtc`, 예: 시간대가 붙은 문자열을 읽은 값)이면 벽시계가
+/// 아니므로 그대로 돌려준다.
+DateTime kstWallToUtc(DateTime wall) {
+  if (wall.isUtc) return wall;
+  return DateTime.utc(
+    wall.year,
+    wall.month,
+    wall.day,
+    wall.hour,
+    wall.minute,
+    wall.second,
+    wall.millisecond,
+    wall.microsecond,
+  ).subtract(kstOffset);
+}
+
+/// [t] 가 KST 로 며칠인지 — 시각은 0시로 자른다. 날짜 구분·같은 날 판정에 쓴다.
+DateTime kstDateOf(DateTime t) {
+  final DateTime k = toKst(t);
+  return DateTime(k.year, k.month, k.day);
+}
+
+/// 두 시각이 KST 로 같은 날인가.
+bool isSameKstDay(DateTime a, DateTime b) => kstDateOf(a) == kstDateOf(b);

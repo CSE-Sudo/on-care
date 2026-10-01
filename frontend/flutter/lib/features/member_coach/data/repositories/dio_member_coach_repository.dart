@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
@@ -119,7 +120,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       query: before == null
           ? null
           : <String, Object?>{
-              'before': before.createdAt.toUtc().toIso8601String(),
+              'before': kstWallToUtc(before.createdAt).toIso8601String(),
               'before_id': before.id,
             },
     );
