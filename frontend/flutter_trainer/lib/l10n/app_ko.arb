@@ -1782,6 +1782,96 @@
   "clientMemoEdited": "수정됨",
   "clientMemoSearchHint": "메모 검색 (본문·태그)",
   "clientMemoSearchEmpty": "찾는 메모가 없어요.",
+  "clientMemoCategoryExercise": "운동",
+  "clientMemoCategoryDiet": "식단",
+  "clientMemoCategoryPain": "통증·부상",
+  "clientMemoCategoryLife": "생활·일정",
+  "clientMemoRecordLink": "운동 기록 연결 (선택)",
+  "clientMemoRecordNone": "연결 안 함",
+  "clientMemoRecordEmpty": "최근 14일 운동 기록이 없어요",
+  "clientMemoRecordDay": "{month}/{day} ({weekday})",
+  "@clientMemoRecordDay": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPtSession": "{date} PT 세션",
+  "@clientMemoRecordPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonal": "{date} 개인 운동",
+  "@clientMemoRecordPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonalNamed": "{date} 개인 운동 · {name}",
+  "@clientMemoRecordPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordMemberLog": "{date} 회원 기록",
+  "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTabMemo": "메모",
+  "clientMemoTabFeedback": "피드백",
+  "clientFeedbackPrivate": "회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.",
+  "clientFeedbackToMember": "트레이너 → 회원",
+  "clientFeedbackFromMember": "회원 → 트레이너",
+  "clientFeedbackSourcePt": "PT · {date}",
+  "@clientFeedbackSourcePt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceReport": "리포트 · {date} 주",
+  "@clientFeedbackSourceReport": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceWeekly": "주간 피드백 · {date} 주",
+  "@clientFeedbackSourceWeekly": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackWeeklyNoNote": "한 줄 피드백 없음",
+  "clientFeedbackEmpty": "아직 주고받은 피드백이 없어요.",
+  "clientFeedbackLoadFailed": "피드백을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
+  "clientFeedbackSearchHint": "피드백 검색 (본문·출처·방향)",
+  "clientFeedbackSearchEmpty": "찾는 피드백이 없어요.",
   "followUp": "후속 관리",
   "followUpTitle": "{name}님 후속 관리",
   "@followUpTitle": {

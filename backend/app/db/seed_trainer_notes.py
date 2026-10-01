@@ -44,15 +44,15 @@ _FOLLOW_UPS: tuple[tuple[str, str, int, str, int, int | None], ...] = (
     ("user-jisu", "인바디 측정 일정 잡기", -3, "schedule", 7, 3),
 )
 
-#: (회원, 며칠 전, 본문, 운동 기록 카드에서 남긴 메모인가). AI 근거 `트레이너 메모`
+#: (회원, 며칠 전, 본문, 운동 기록 카드에서 남긴 메모인가, 분류 #2622). AI 근거 `트레이너 메모`
 #: (최근 14일)가 읽는다.
-_MEMOS: tuple[tuple[str, int, str, bool], ...] = (
-    ("user-sera", 3, "혈압약 복용 시간이 아침 7시로 바뀜. 고강도 인터벌은 당분간 빼기.", False),
-    ("user-yuna", 5, "무릎 굴곡 110°까지 통증 없음. 다음 주부터 스쿼트 깊이를 조금씩 늘리기.", False),
-    ("user-junhyuk", 8, "야근은 주로 화·목. 그날은 15분 홈트로 대신하도록 안내함.", False),
-    ("user-taekyung", 2, "벌크업 중 체중은 주 0.3kg 증가가 목표. 저녁 탄수화물 늘리기로 합의.", False),
-    ("user-jiho", 6, "회식이 있는 주는 점심을 가볍게 — 본인이 먼저 제안함.", False),
-    ("user-kangseoyeon", 1, "주말 러닝은 혼자서도 꾸준히 이어 가는 중.", True),
+_MEMOS: tuple[tuple[str, int, str, bool, str], ...] = (
+    ("user-sera", 3, "혈압약 복용 시간이 아침 7시로 바뀜. 고강도 인터벌은 당분간 빼기.", False, "life"),
+    ("user-yuna", 5, "무릎 굴곡 110°까지 통증 없음. 다음 주부터 스쿼트 깊이를 조금씩 늘리기.", False, "pain"),
+    ("user-junhyuk", 8, "야근은 주로 화·목. 그날은 15분 홈트로 대신하도록 안내함.", False, "life"),
+    ("user-taekyung", 2, "벌크업 중 체중은 주 0.3kg 증가가 목표. 저녁 탄수화물 늘리기로 합의.", False, "diet"),
+    ("user-jiho", 6, "회식이 있는 주는 점심을 가볍게 — 본인이 먼저 제안함.", False, "diet"),
+    ("user-kangseoyeon", 1, "주말 러닝은 혼자서도 꾸준히 이어 가는 중.", True, "exercise"),
 )
 
 
@@ -244,7 +244,7 @@ def seed_memos(db: Session, today: date, valid: set[str]) -> None:
         models.TrainerClientMemo.source.in_(("trainer", "exercise_memo")),
     ):
         return
-    for i, (member, days_ago, body, member_log) in enumerate(_MEMOS):
+    for i, (member, days_ago, body, member_log, category) in enumerate(_MEMOS):
         if member not in valid:
             continue
         day = today - timedelta(days=days_ago)
@@ -257,6 +257,7 @@ def seed_memos(db: Session, today: date, valid: set[str]) -> None:
             source="exercise_memo" if member_log else "trainer",
             ref_kind="member_log" if member_log else "",
             ref_date=day.isoformat() if member_log else None,
+            category=category,
             created_at=at,
             updated_at=at,
         ))
