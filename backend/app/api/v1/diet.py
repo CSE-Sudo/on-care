@@ -25,6 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
+from app.core import rate_limit
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.diet_api import (
@@ -42,8 +43,10 @@ from app.schemas.diet_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
+    chat_image_storage,
     diet_advice_copy,
     diet_all_advice,
+    diet_analysis_quota_service,
     diet_period_advice,
     diet_photo_service,
     diet_recommendation_service,
@@ -63,7 +66,11 @@ from app.services.recognizer.factory import (
 router = APIRouter(tags=["diet"])
 logger = logging.getLogger(__name__)
 
-_ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+#: 사진 분석 분당 한도 초과(#2827). 하루 상한(`daily_limit`)과 달리 잠시 뒤 다시 된다.
+_RATE_LIMITED = {
+    "code": "rate_limited",
+    "message": "사진 분석 요청이 너무 잦아요. 잠시 후 다시 시도해 주세요.",
+}
 
 #: 사진 분석을 쓸 수 없는 설정(운영에서 키 없음)일 때의 503 본문(#2812). 앱은 `code` 로
 #: 일반 실패와 구분해 직접 입력으로 이어 준다.
@@ -258,11 +265,15 @@ async def diet_analyze(
         description="엔진 강제('gemini'|'yolo'). 비교실험용 — 운영에서는 관리자만 적용된다.",
     ),
 ) -> DietAnalyzeResponse:
-    if image.content_type not in _ALLOWED_MIME:
-        raise HTTPException(status_code=415, detail=f"지원하지 않는 형식: {image.content_type}")
     image_bytes = await image.read()
     if not image_bytes:
         raise HTTPException(status_code=400, detail="빈 파일입니다.")
+    # 형식은 바이트로 판정한다 — 요청 헤더의 Content-Type 은 보내는 쪽이 적어 준 값일
+    # 뿐이라, 이미지가 아닌 본문이 그 말만 믿고 외부 모델 호출까지 가면 안 된다(#2827).
+    try:
+        _, media_type = chat_image_storage.sniff(image_bytes)
+    except chat_image_storage.UnsupportedImage as e:
+        raise HTTPException(status_code=415, detail=str(e)) from e
 
     # 멱등키가 있고 이미 저장된 요청이면 인식·저장을 건너뛰고 기존 결과 반환(재시도 중복 방지)
     if idempotency_key:
@@ -290,11 +301,29 @@ async def diet_analyze(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
+    # 호출 한도(#2827). 사진 한 장이 외부 비전 모델 호출 한 번이라 비용이 가장 큰
+    # 축이다. 멱등 재전송은 위에서 모델 없이 돌아갔으므로 여기 오지 않아 세지 않는다.
+    # 분당 한도는 사람 단위(같은 헬스장 Wi-Fi 회원끼리 나눠 쓰지 않게), 하루 상한은
+    # DB 에서 KST 날짜로 센다.
+    settings = get_settings()
+    rate_limit.check_user(
+        "diet-analyze", current_user.id, settings.diet_analyze_per_minute, detail=_RATE_LIMITED
+    )
     try:
-        analysis = await recognizer.recognize(image_bytes, image.content_type)
+        usage_id = diet_analysis_quota_service.reserve(db, current_user.id)
+    except diet_analysis_quota_service.DailyAnalysisLimitReached as e:
+        raise HTTPException(
+            status_code=429, detail={"code": "daily_limit", "message": str(e)}
+        ) from e
+
+    try:
+        analysis = await recognizer.recognize(image_bytes, media_type)
     except NotImplementedError as e:
+        diet_analysis_quota_service.release(db, usage_id)
         raise HTTPException(status_code=501, detail=str(e)) from e
     except Exception as e:  # noqa: BLE001
+        # 공급자 장애로 회원의 하루 몫이 깎이지 않게 돌려준다.
+        diet_analysis_quota_service.release(db, usage_id)
         # 원본 에러(API 키/내부 URL 등)는 서버 로그에만 남기고, 클라이언트엔 일반화된 메시지
         logger.exception("식단 인식 실패 (engine=%s)", engine)
         raise HTTPException(

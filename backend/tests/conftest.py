@@ -46,6 +46,12 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 #: 두 임베더가 `embed_dim` 을 공유해 벡터 차원은 달라지지 않는다.
 os.environ.setdefault("EMBEDDER", "hash")
 
+#: 식단 사진 분석 한도(#2827). 데모 회원 한 사람이 스위트 전체에서 수십 번
+#: 분석하므로 기본값(분당 10·하루 20)이면 뒤쪽 테스트가 429 로 깨진다. 한도 자체는
+#: 그 테스트가 설정을 낮춰 확인한다.
+os.environ.setdefault("DIET_ANALYZE_PER_DAY", "100000")
+os.environ.setdefault("DIET_ANALYZE_PER_MINUTE", "100000")
+
 
 #: 이 DB 를 비워도 되는가.
 #:

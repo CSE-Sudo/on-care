@@ -4,7 +4,7 @@
 분당 시도 횟수를 제한한다. 단일 인스턴스/데모에 충분하며, 다중 인스턴스 운영에서는
 Redis 백엔드로 교체(같은 check() 인터페이스 유지)하면 된다.
 
-키는 `엔드포인트 + IP`(또는 트레이너 id) 조합이라 바깥에서 늘릴 수 있다. 그래서
+키는 `엔드포인트 + IP`(또는 트레이너·회원 id — [check_user]) 조합이라 바깥에서 늘릴 수 있다. 그래서
 윈도우가 지난 키는 들고 있지 않는다 — check() 안에서 비워진 키를 바로 지우고,
 주기적으로 만료 키를 훑어 정리하며, 그래도 남으면 키 총수 상한으로 자른다.
 
@@ -49,8 +49,14 @@ class RateLimiter:
             self._expires_at.clear()
             self._next_sweep = time.monotonic() + self._sweep_interval
 
-    def check(self, key: str, limit: int, window: float) -> None:
-        """key 에 대해 window(초) 동안 limit 회 초과 시 429."""
+    def check(
+        self, key: str, limit: int, window: float, *, detail: object | None = None
+    ) -> None:
+        """key 에 대해 window(초) 동안 limit 회 초과 시 429.
+
+        [detail] 을 주면 429 응답의 `detail` 로 쓴다 — 앱이 다른 429(하루 상한 등)와
+        구분해야 하는 경로는 `{code, message}` 를 넘긴다.
+        """
         now = time.monotonic()
         with self._lock:
             if now >= self._next_sweep:
@@ -69,7 +75,9 @@ class RateLimiter:
             if (len(dq) if dq is not None else 0) >= limit:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+                    detail=detail
+                    if detail is not None
+                    else "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
                     headers={"Retry-After": str(int(window))},
                 )
             if dq is None:
@@ -124,3 +132,17 @@ def rate_limit(bucket: str, per_minute: int | None = None):
         limiter.check(f"{bucket}:{ip}", limit, 60.0)
 
     return _dep
+
+
+def check_user(
+    bucket: str, user_id: str, per_minute: int, *, detail: object | None = None
+) -> None:
+    """사용자 id 버킷으로 분당 한도를 센다. (#2827)
+
+    IP 버킷은 같은 헬스장 Wi-Fi 의 회원들이 한 버킷을 나눠 쓴다 — 한 사람의 폭주가
+    옆 사람의 기록을 막는다. 로그인한 사용자의 비용 가드는 사람 단위로 센다(트레이너
+    AI 코치의 트레이너 id 버킷 #1548 과 같은 방식). `per_minute` 가 0 이하면 끈다.
+    """
+    if not get_settings().rate_limit_enabled or per_minute <= 0:
+        return
+    limiter.check(f"{bucket}:user:{user_id}", per_minute, 60.0, detail=detail)
