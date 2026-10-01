@@ -93,6 +93,7 @@ class _NoMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) => throw UnimplementedError();
 
   @override
@@ -104,8 +105,12 @@ class _NoMemoRepository implements TrainerMemoRepository {
       const <TrainerMemo>[];
 
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnimplementedError();
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnimplementedError();
 }
 
 Future<void> _pumpChat(

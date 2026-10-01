@@ -95,10 +95,15 @@ class _NoMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async => throw UnsupportedError('not used');
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnsupportedError('not used');
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnsupportedError('not used');
   @override
   Future<void> delete(String clientId, String memoId) async {}
 }

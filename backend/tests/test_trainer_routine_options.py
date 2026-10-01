@@ -179,6 +179,7 @@ def _seed_memo(
     body: str,
     days_ago: int,
     source: str = "chat_insight",
+    category: str = "",
 ) -> None:
     """`days_ago` 일 전 KST 정오에 남긴 메모 한 건(#1655)."""
     db = SessionLocal()
@@ -196,6 +197,7 @@ def _seed_memo(
                     else None
                 ),
                 insight_kind="discomfort" if source == "chat_insight" else "",
+                category=category,
                 created_at=datetime.combine(
                     clock.today() - timedelta(days=days_ago),
                     time_of_day(12, 0),
@@ -1466,3 +1468,32 @@ def test_prompt_guards_the_new_sources():
         assert key in prompt, key
     assert prompt_safety.TRAINER_RECORD_GUARD in prompt
     assert prompt_safety.MEMBER_FEEDBACK_GUARD in prompt
+
+
+def test_trainer_memo_lines_carry_their_category(client):
+    """분류가 있는 직접 메모는 `[분류]` 를 앞에 붙여 넘긴다(#2622)."""
+    member_id = _register_and_link_member(client)
+    try:
+        _seed_memo(
+            member_id, suffix="pain", body="허리 디스크 이력", days_ago=1,
+            source="trainer", category="pain",
+        )
+        _seed_memo(
+            member_id, suffix="plain", body="분류 없는 메모", days_ago=2,
+            source="trainer",
+        )
+        _seed_memo(
+            member_id, suffix="ex", body="걷기 꾸준함", days_ago=3,
+            source="exercise_memo", category="exercise",
+        )
+
+        analysis = _analysis_for(member_id, sources=["trainer_memo"])
+
+        today = clock.today()
+        assert analysis.trainer_memos == [
+            f"{today - timedelta(days=1):%m.%d} [통증·부상] 허리 디스크 이력",
+            f"{today - timedelta(days=2):%m.%d} 분류 없는 메모",
+            f"{today - timedelta(days=3):%m.%d} [운동] 걷기 꾸준함",
+        ]
+    finally:
+        _cleanup_member(member_id)

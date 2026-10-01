@@ -1059,6 +1059,11 @@ TrainerMemoSource = Literal["trainer", "chat_insight", "exercise_memo"]
 #: `개인 운동 · 9/23 코어 강화`, `회원 기록 · 9/23`)를 그리는 데 쓴다.
 TrainerMemoRefKind = Literal["pt_session", "personal", "member_log"]
 
+#: 메모 분류(#2622). 트레이너가 직접 쓴 메모에서 고른다 — 운동·식단·통증·부상·
+#: 생활·일정. 빈 문자열은 고르지 않은 것이다(태그는 `직접 작성`). 운동 기록 메모는
+#: 서버가 늘 'exercise' 로 채우고, 채팅 감지 메모는 비어 있다.
+TrainerMemoCategory = Literal["", "exercise", "diet", "pain", "life"]
+
 
 class TrainerMemoOut(BaseModel):
     """회원별 트레이너 메모. (#706)"""
@@ -1075,6 +1080,8 @@ class TrainerMemoOut(BaseModel):
     ref_date: str | None = None
     #: 트레이너가 지은 루틴 이름. 고정 이름(PT 세션 등)은 비어 있다.
     ref_name: str = ""
+    #: 분류(#2622). 고르지 않았으면 빈 문자열.
+    category: TrainerMemoCategory = ""
     created_at: _datetime
     updated_at: _datetime
 
@@ -1095,6 +1102,9 @@ class TrainerMemoCreateRequest(BaseModel):
     ref_id: str | None = Field(default=None, max_length=64)
     #: 회원 직접 기록 카드는 하루치 묶음이라 id 대신 그 날(YYYY-MM-DD)을 보낸다.
     ref_date: _date | None = None
+    #: 분류(#2622). 직접 쓴 메모만 고른다. 운동 기록 메모는 보내지 않아도
+    #: 'exercise' 가 되고, 다른 분류를 보내면 422 다.
+    category: TrainerMemoCategory = ""
 
     @model_validator(mode="after")
     def _reject_mismatched_source(self) -> TrainerMemoCreateRequest:
@@ -1117,18 +1127,64 @@ class TrainerMemoCreateRequest(BaseModel):
                 )
         elif has_ref:
             raise ValueError(f"{self.source} 메모에는 기록 연결을 보낼 수 없습니다.")
+        # 분류는 트레이너가 고르는 값이다 — 채팅 감지 메모는 감지 이유가 태그이고,
+        # 운동 기록 메모는 언제나 운동이다.
+        if self.source == "chat_insight" and self.category:
+            raise ValueError("chat_insight 메모에는 분류를 보낼 수 없습니다.")
+        if self.source == "exercise_memo" and self.category not in ("", "exercise"):
+            raise ValueError("exercise_memo 메모의 분류는 exercise 입니다.")
         return self
 
 
 class TrainerMemoUpdateRequest(PartialUpdate):
-    """메모 부분 수정. 본문만 고칠 수 있다.
+    """메모 부분 수정. 본문과, 직접 쓴 메모의 분류(#2622)를 고칠 수 있다.
 
     `source`·`insight_id` 는 "이 메모가 어디서 왔나"라는 사실이라 고칠 값이 아니다 —
     채팅에서 생긴 메모를 손봤다고 직접 쓴 메모가 되지는 않고, `insight_id` 를
-    바꿀 수 있으면 중복 방지 키가 무너진다.
+    바꿀 수 있으면 중복 방지 키가 무너진다. 운동 기록·채팅 감지 메모의 분류도
+    출처에서 정해지므로 바꿀 수 없다(바꾸려 하면 400).
     """
 
     body: str | None = Field(default=None, min_length=1, max_length=500)
+    #: 빈 문자열은 분류를 지운다(`직접 작성` 으로 돌아간다).
+    category: TrainerMemoCategory | None = None
+
+
+#: 회원 피드백 모아 보기의 출처(#2615). 'pt_session' 은 완료 PT 세션 피드백
+#: (`TrainerSchedule.note`), 'report' 는 보낸 주간 리포트, 'weekly' 는 회원이
+#: 쓴 주간 피드백이다.
+ClientFeedbackKind = Literal["pt_session", "report", "weekly"]
+
+#: 피드백의 방향. 앞의 둘은 트레이너가 회원에게, 'weekly' 는 회원이 트레이너에게.
+ClientFeedbackDirection = Literal["to_member", "from_member"]
+
+
+class ClientFeedbackOut(BaseModel):
+    """회원 한 명과 주고받은 피드백 한 건 — 읽기 전용 모아 보기(#2615).
+
+    고치는 곳은 원래 자리(스케줄 일정·리포트 주·회원 앱) 하나뿐이다. 그래서
+    앱이 그 자리로 가는 데 쓰는 값(`schedule_id`·`week_start`)을 함께 준다.
+    """
+
+    #: 출처 안에서 유일한 값에 출처를 붙였다(`pt_session:<id>` 등).
+    id: str
+    kind: ClientFeedbackKind
+    direction: ClientFeedbackDirection
+    #: 그 피드백이 붙는 날(YYYY-MM-DD). PT 는 수업 날, 리포트·주간 피드백은 그 주 월요일.
+    date: str
+    #: 피드백 글. 주간 피드백은 한 줄 피드백(비어 있을 수 있다 — 칩만 고른 주).
+    body: str = ""
+    #: PT 세션 피드백의 일정 id — 앱이 스케줄의 그 일정으로 간다.
+    schedule_id: str | None = None
+    #: 리포트·주간 피드백의 주(월요일) — 앱이 리포트의 그 주로 간다.
+    week_start: str | None = None
+    #: 리포트를 보낸 시각·주간 피드백을 마지막으로 고친 시각. PT 는 없다.
+    at: _datetime | None = None
+    #: 주간 피드백 칩(회원 앱 값 그대로 — great|good|ok|tired|bad 등). 앱이 번역한다.
+    condition: str = ""
+    intensity: str = ""
+    pain_area: str = ""
+    pain_on: str = ""
 
 
 #: 후속 관리 할 일이 가리키는 업무 갈래. 할 일에서 어느 화면으로 갈지를 고르는

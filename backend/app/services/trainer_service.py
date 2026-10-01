@@ -2948,6 +2948,10 @@ class MemoNotFound(Exception):
     """그 트레이너·회원 쌍에 그 id 의 메모가 없다(라우터가 404 로 변환)."""
 
 
+class MemoCategoryLocked(Exception):
+    """직접 쓴 메모가 아니라 분류를 바꿀 수 없다(라우터가 400 으로 변환). (#2622)"""
+
+
 def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
     return TrainerMemoOut(
         id=memo.id,
@@ -2959,6 +2963,7 @@ def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
         ref_id=memo.ref_id,
         ref_date=memo.ref_date,
         ref_name=memo.ref_name or "",
+        category=memo.category or "",
         created_at=memo.created_at,
         updated_at=memo.updated_at,
     )
@@ -3082,6 +3087,7 @@ def create_memo(
     body: str, source: str = "trainer",
     insight_id: str | None = None, insight_kind: str = "",
     ref_id: str | None = None, ref_date: date | None = None,
+    category: str = "",
 ) -> TrainerMemoOut:
     """회원 메모를 남긴다.
 
@@ -3092,6 +3098,9 @@ def create_memo(
     운동 기록 메모(`exercise_memo`)는 [ref_id]·[ref_date] 로 가리킨 기록을 찾아
     출처 표시 값을 채운다. 한 기록에 메모를 여러 개 남길 수 있다 — 직접 쓴
     메모와 같은 규칙이다.
+
+    분류(#2622)는 직접 쓴 메모가 고른 값을 그대로 두고, 운동 기록 메모는 늘
+    `exercise`, 채팅 감지 메모는 비운다 — 출처가 이미 무엇에 대한 메모인지 말한다.
     """
     if insight_id:
         existing = find_memo_by_insight(db, trainer_id, member_id, insight_id)
@@ -3117,6 +3126,7 @@ def create_memo(
         ref_id=ref.ref_id if ref else None,
         ref_date=ref.day if ref else None,
         ref_name=ref.name if ref else "",
+        category=_memo_category(source, category),
         created_at=now,
         updated_at=now,
     )
@@ -3158,11 +3168,28 @@ def _owned_memo(
     return memo
 
 
+def _memo_category(source: str, category: str) -> str:
+    """저장할 분류 — 출처가 정하는 분류가 있으면 그것을 쓴다. (#2622)"""
+    if source == "exercise_memo":
+        return "exercise"
+    if source == "chat_insight":
+        return ""
+    return category
+
+
 def update_memo(
     db: Session, trainer_id: str, member_id: str, memo_id: str, fields: dict
 ) -> TrainerMemoOut:
-    """메모 본문을 고친다. 출처(`source`/`insight_id`)는 그대로 둔다."""
+    """메모 본문과 분류를 고친다. 출처(`source`/`insight_id`)는 그대로 둔다.
+
+    분류는 직접 쓴 메모만 바꾼다(#2622). 다른 출처는 출처가 분류를 정하므로
+    같은 값을 다시 보내는 것만 받는다 — 수정 창이 지금 값을 싣고 와도 된다.
+    """
     memo = _owned_memo(db, trainer_id, member_id, memo_id)
+    if "category" in fields and fields["category"] != (memo.category or ""):
+        if memo.source != "trainer":
+            raise MemoCategoryLocked("직접 쓴 메모만 분류를 바꿀 수 있습니다.")
+        memo.category = fields["category"]
     if "body" in fields:
         memo.body = fields["body"]
     memo.updated_at = datetime.now(timezone.utc)

@@ -1537,6 +1537,9 @@ class TrainerClientMemo(Base):
     ref_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     #: 트레이너가 지은 루틴 이름. 서버가 붙인 고정 이름은 비운다(앱이 번역한다).
     ref_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    #: 분류(#2622) — exercise|diet|pain|life, 고르지 않으면 빈 문자열.
+    #: 운동 기록 메모는 늘 'exercise' 다(서버가 채운다).
+    category: Mapped[str] = mapped_column(String(16), default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1556,6 +1559,11 @@ class TrainerClientMemo(Base):
         CheckConstraint(
             "source IN ('trainer', 'chat_insight', 'exercise_memo')",
             name="ck_trainer_client_memo_source",
+        ),
+        # 응답 스키마(TrainerMemoOut.category)도 정해진 값만 받는다 — source 와 같은 이유.
+        CheckConstraint(
+            "category IN ('', 'exercise', 'diet', 'pain', 'life')",
+            name="ck_trainer_client_memo_category",
         ),
         Index("ix_trainer_client_memos_pair", "trainer_id", "member_id"),
     )
