@@ -58,6 +58,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) {
     registerCalls++;
     return _answer();
@@ -364,6 +365,8 @@ void main() {
       await _type(tester, email, 'new@oncare.com');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, 'signup-pw-1234');
+      // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).
+      await _tapKey(tester, 'consent-all');
     }
 
     testWidgets('칸마다 name·username/email·newPassword 힌트다', (tester) async {

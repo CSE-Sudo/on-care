@@ -207,10 +207,49 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authPasswordConfirm => '비밀번호 확인';
 
   @override
-  String get authLegalNotice => '가입하면 아래 문서에 동의하는 것으로 봅니다';
+  String get authSignUpAndStart => '가입하고 시작하기';
 
   @override
-  String get authSignUpAndStart => '가입하고 시작하기';
+  String get consentAll => '전체 동의';
+
+  @override
+  String get consentRequiredTag => '[필수]';
+
+  @override
+  String get consentOptionalTag => '[선택]';
+
+  @override
+  String get consentView => '보기';
+
+  @override
+  String get consentTerms => '이용약관 동의';
+
+  @override
+  String get consentPrivacy => '개인정보 수집·이용 동의';
+
+  @override
+  String get consentAge14 => '만 14세 이상이에요';
+
+  @override
+  String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
+
+  @override
+  String get consentMarketing => '마케팅 알림 수신';
+
+  @override
+  String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
+
+  @override
+  String get consentPageTitle => '서비스 이용 동의';
+
+  @override
+  String get consentPageSubtitle => '계속 이용하려면 아래 항목을 확인하고 동의해 주세요.';
+
+  @override
+  String get consentPageAction => '동의하고 계속하기';
+
+  @override
+  String get consentPageFailed => '동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get authHasAccount => '이미 계정이 있으신가요?';

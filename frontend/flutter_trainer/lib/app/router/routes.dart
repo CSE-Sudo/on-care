@@ -17,6 +17,9 @@ class AppRoutes {
   /// Trainer 회원가입 screen (name/email/password).
   static const String signUp = '/auth/sign-up';
 
+  /// 가입 동의(#2819) — 동의가 남은 계정이 로그인하면 다른 화면보다 먼저 온다.
+  static const String consent = '/auth/consent';
+
   // --- Main navigation (StatefulShellRoute branches) ---
 
   /// 대시보드 — the console's home; what needs doing today.
