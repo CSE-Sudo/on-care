@@ -2288,6 +2288,7 @@
   "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
   "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
+  "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",

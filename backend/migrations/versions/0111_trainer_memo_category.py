@@ -7,11 +7,8 @@
 - 운동 기록 메모(`exercise_memo`, #2332)는 늘 `exercise` 다. 이미 있는 행도 채운다
 - 허용값을 체크 제약으로 못 박는다(응답 스키마가 정해진 값만 받는다)
 
-번호를 0110 이 아니라 0111 로 둔 것은 열린 PR(#2785)이 0110 을 쓰고 있어서다.
-그쪽이 먼저 병합되면 `down_revision` 을 그 revision 으로 옮긴다.
-
 Revision ID: 0111_trainer_memo_category
-Revises: 0109_notification_action_target
+Revises: 0110_user_token_version
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -22,7 +19,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0111_trainer_memo_category"
-down_revision: str | Sequence[str] | None = "0109_notification_action_target"
+down_revision: str | Sequence[str] | None = "0110_user_token_version"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

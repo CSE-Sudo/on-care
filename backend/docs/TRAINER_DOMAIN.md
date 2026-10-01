@@ -232,7 +232,7 @@
 | GET | `/trainer/gyms/search?query=&lat=&lng=` | 소속으로 고를 헬스장 검색 — 등록된 헬스장 먼저, 카카오 결과 뒤(#2543) |
 | PUT | `/trainer/me/gym/kakao` | 카카오 검색 결과로 소속 설정 `{kakao_place_id, name}` — 카카오로 재확인, 아니면 404, 카카오 불가 503(#2543) |
 | DELETE | `/trainer/me/gym` | 소속 해제(원래 없어도 200) |
-| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인) |
+| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인). 성공하면 토큰 세대를 올려 다른 기기 토큰을 끊고, 요청 기기용 새 토큰 한 쌍을 돌려준다(#2766) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |
 | PUT | `/trainer/me/settings` | 알림 수신 설정 부분 수정 |
 | GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
@@ -248,11 +248,11 @@
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
 | GET | `/trainer/clients/{member_id}/routines/unsent` | PT 에 붙여만 두고 아직 보내지 않은 개인운동 (#2225) |
 | GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근 전송 한 묶음 — 종류·PT 일정·개인운동 (#2225) |
-| POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건). 시간은 `minutes` 또는 `duration_seconds` — 초가 오면 초가 기준이고 분은 반올림 (#2547) |
-| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 오늘부로 내린다 (#2514) |
-| POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581) |
+| POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건). 시간은 `minutes` 또는 `duration_seconds` — 초가 오면 초가 기준이고 분은 반올림 (#2547). 근력은 `sets`·`reps` 또는 버티기 `hold_seconds` 를 저장한다 — 제안 생성·승인도 같다 (#2753) |
+| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 오늘부로 내린다 (#2514). `suggestion_ids` 로 개인운동을 채운 대기 중 AI 제안 id 를 받으면 배정과 같은 트랜잭션에서 그 제안을 `consumed` 로 닫는다 — 검토 목록·회원 목록 어디에도 다시 뜨지 않고 백로그 한도에서도 빠진다. 이 트레이너·이 회원의 대기 제안이 아닌 id 는 무시한다 (#2747) |
+| POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581). `suggestion_ids` 는 `program` 과 같은 규약으로 같은 트랜잭션에서 대기 제안을 닫는다 — 등록이 실패하면 제안도 대기로 남는다 (#2747) |
 | GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는 개인운동 — 보낸 것까지, 건마다 `pending_send` (#2223, #2224) |
-| PUT | `/trainer/schedule/{session_id}/routines` | 그 PT 에 붙은 개인운동 고치기 — 보내지는 않는다 (#2224). 붙은 것이 없으면 처음 붙인다 — 일정 상세에서 코칭 탭의 개인운동 단계로 가 짠 것. 회원·PT 프로그램이 있고 아직 보내지 않은, 취소·노쇼가 아닌 PT 만이고 출처는 받은 그대로다 (#2280) |
+| PUT | `/trainer/schedule/{session_id}/routines` | 그 PT 에 붙은 개인운동 고치기 — 보내지는 않는다 (#2224). 붙은 것이 없으면 처음 붙인다 — 일정 상세에서 코칭 탭의 개인운동 단계로 가 짠 것. 회원·PT 프로그램이 있고 아직 보내지 않은, 취소·노쇼가 아닌 PT 만이고 출처는 받은 그대로다 (#2280). `suggestion_ids` 를 주면 그 개인운동을 채운 이 회원의 대기 중 AI 제안을 같은 트랜잭션에서 `consumed` 로 닫는다 — 실패하면 대기로 남는다 (#2747) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |

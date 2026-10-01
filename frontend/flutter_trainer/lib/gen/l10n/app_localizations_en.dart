@@ -230,6 +230,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in failed. Please try again in a moment.';
 
   @override
+  String get authSocialComingSoon =>
+      'Social sign-in is coming soon. Please sign in with your email.';
+
+  @override
   String get authErrSignInFailed =>
       'Sign-in failed. Please try again in a moment.';
 
@@ -4541,6 +4545,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'That date has passed. Pick today or a later date';
 
   @override
+  String get programEditorSending => 'Adding to the schedule';
+
+  @override
+  String get programEditorAlreadySent =>
+      'You just sent this setup. Apply a new one to send again';
+
+  @override
   String get coachSendNetworkFailed =>
       'Check your network connection and try again';
 
@@ -4723,6 +4734,76 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reportsSummaryEmptyClient =>
       'Select a member to see their weekly summary and coaching suggestions here';
+
+  @override
+  String reportsDemoSummarySteadyThisWeek(String name) {
+    return '$name kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.';
+  }
+
+  @override
+  String reportsDemoSummarySteadyPastWeek(String name) {
+    return '$name kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.';
+  }
+
+  @override
+  String reportsDemoSummaryCompletionThisWeek(String name) {
+    return '$name\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.';
+  }
+
+  @override
+  String reportsDemoSummaryCompletionPastWeek(String name) {
+    return '$name\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedThisWeek(String name) {
+    return '$name skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedPastWeek(String name) {
+    return '$name skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumThisWeek(String name) {
+    return '$name had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumPastWeek(String name) {
+    return '$name had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.';
+  }
+
+  @override
+  String reportsDemoSummarySugarThisWeek(String name) {
+    return '$name had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.';
+  }
+
+  @override
+  String reportsDemoSummarySugarPastWeek(String name) {
+    return '$name had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesThisWeek(String name) {
+    return '$name\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesPastWeek(String name) {
+    return '$name\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroThisWeek(String name) {
+    return '$name\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroPastWeek(String name) {
+    return '$name\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.';
+  }
 
   @override
   String get reportsLastWeek => 'Last week';

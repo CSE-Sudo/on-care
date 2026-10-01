@@ -969,6 +969,10 @@ class PersonalRoutineItem(BaseModel):
 #: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
+#: 위저드가 개인운동 단계를 채운 AI 제안 id(#2747). 개인운동 한 줄이 제안 하나라
+#: 개인운동 상한과 같다.
+_SuggestionId = Annotated[str, Field(min_length=1, max_length=64)]
+
 
 class ScheduleRoutineUpdateRequest(BaseModel):
     """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
@@ -979,6 +983,11 @@ class ScheduleRoutineUpdateRequest(BaseModel):
 
     personal_routines: list[PersonalRoutineItem] = Field(
         min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+    # 이 개인운동을 채운 대기 중 AI 제안 — 고치기와 같은 트랜잭션에서 닫는다
+    # (#2747). 이미 있는 PT 에 붙이는 길도 프로그램 만들기와 같은 규칙이다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
 
 
@@ -1030,6 +1039,13 @@ class ProgramAssignRequest(BaseModel):
     #: 은 7 을 보내 보낸 날부터 한 주 동안 걸어 두고, 다음 주 분은 트레이너가
     #: 다시 보낸다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
     active_days: int | None = Field(default=None, ge=1, le=31)
+    #: 이 전송에 실린 개인운동을 채운 **대기 중 AI 제안** id(#2747). 배정과 같은
+    #: 트랜잭션에서 그 제안을 닫는다 — 대기로 남으면 다음 위저드가 보낸 제안을
+    #: 다시 채우고, 쌓인 대기가 백로그 한도를 막아 새 제안이 끊긴다. 남의
+    #: 제안·이미 검토한 제안 id 는 조용히 무시한다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 
@@ -1651,6 +1667,11 @@ class ProgramScheduleRequest(BaseModel):
     personal_routines: list[PersonalRoutineItem] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
+    #: [personal_routines] 를 채운 대기 중 AI 제안 id(#2747). 일정 등록과 같은
+    #: 트랜잭션에서 닫는다 — [ProgramAssignRequest.suggestion_ids] 와 같은 규약.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
@@ -1902,6 +1923,12 @@ class WeeklyReportDayOut(BaseModel):
     #: 운동 이름. 끝의 '✓'/'✗' 는 수행 여부를 나타내는 저장 규칙이며 화면은
     #: 그 표시를 읽어 아이콘으로 바꿔 그린다(운동 기록 탭과 같은 규칙).
     exercises: list[str] = Field(default_factory=list)
+    #: 그날 회원 목록에 걸려 있던 추천 개인운동 수 — 개인운동 칸의 분모다(#2772).
+    #: 추천 개인운동은 매일 리셋되는 목록이라 그날 걸려 있던 배정을 센다
+    #: (#2161). 배정이 없던 날과 아직 오지 않은 날은 null 이다 — 0 은 쉬는
+    #: 날과 구분되지 않아 쓰지 않고, null 이면 화면이 실제로 한 운동 수로
+    #: 되돌아간다(#2232, 데모와 같은 규칙).
+    assigned: int | None = None
 
 
 class WeeklyReportOut(BaseModel):
@@ -1927,6 +1954,11 @@ class WeeklyReportOut(BaseModel):
     carbs_week: list[float] = Field(default_factory=list)
     protein_week: list[float] = Field(default_factory=list)
     fat_week: list[float] = Field(default_factory=list)
+    #: 그 주(월→일)의 요일별 끼니 기록 수 — 그날 `DietEntry` 수다(#2772).
+    #: 칼로리가 답하지 못하는 값이다 — 0kcal 인 날은 안 먹은 날이 아니라 안
+    #: 적은 날이다(#2232). 기록 없는 날과 아직 오지 않은 날은 0 이고, 아직
+    #: 오지 않은 날을 `–` 로 그리는 것은 화면 규칙이다.
+    meal_counts: list[int] = Field(default_factory=list)
     #: 그 회원의 하루 목표. 건강 프로필에 적혀 있으면 그 값, 없으면 null 이다
     #: (#1430). 주의사항 판정이 고정 상수보다 이 값을 먼저 쓴다 — 같은 1,900kcal
     #: 이 어떤 회원에게는 부족이고 어떤 회원에게는 초과다. 근거 문장도 어느

@@ -174,21 +174,35 @@ void main() {
             ValueKey<String>('trainer-login-$provider'),
           );
           await tester.ensureVisible(button);
-          await tester.tap(button);
+          await tester.tap(button, warnIfMissed: false);
           await settle(tester);
+          // 실서버 빌드는 버튼이 꺼져 있다 — 어떤 로그인도 부르지 않는다(#2769).
+          // 전에는 고정된 계정으로 `login` 을 불렀다.
           expect(repo.socialCalls, mock ? 1 : 0);
-          expect(repo.loginCalls, mock ? 0 : 1);
+          expect(repo.loginCalls, 0);
           if (mock) {
             expect(repo.socialProvider, provider);
-          } else {
-            expect(repo.email, 'trainer@oncare.com');
-            expect(repo.password, 'oncare123');
+            // 데모는 그대로 — 안내 문구 없이 버튼이 동작한다.
+            expect(
+              find.byKey(const ValueKey<String>('trainer-login-social-soon')),
+              findsNothing,
+            );
           }
           expect(
             container.read(sessionControllerProvider).status,
-            fail ? SessionStatus.signedOut : SessionStatus.authenticated,
+            !mock
+                ? isNot(SessionStatus.authenticated)
+                : fail
+                ? SessionStatus.signedOut
+                : SessionStatus.authenticated,
           );
-          if (fail) {
+          if (!mock) {
+            expect(find.byType(TrainerSignInPage), findsOneWidget);
+            expect(
+              find.byKey(const ValueKey<String>('trainer-login-social-soon')),
+              findsOneWidget,
+            );
+          } else if (fail) {
             expect(find.byType(TrainerSignInPage), findsOneWidget);
             expect(
               find.text(
