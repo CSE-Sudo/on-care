@@ -4179,6 +4179,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorRegisterDatePast => '지난 날짜예요. 오늘 이후 날짜를 골라 주세요';
 
   @override
+  String get programEditorSending => '일정에 추가하는 중이에요';
+
+  @override
+  String get programEditorAlreadySent => '방금 보낸 구성이에요. 새 구성을 반영하면 다시 보낼 수 있어요';
+
+  @override
   String get coachSendNetworkFailed => '네트워크 연결을 확인한 뒤 다시 시도해 주세요';
 
   @override

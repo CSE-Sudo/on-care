@@ -4395,6 +4395,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'That date has passed. Pick today or a later date';
 
   @override
+  String get programEditorSending => 'Adding to the schedule';
+
+  @override
+  String get programEditorAlreadySent =>
+      'You just sent this setup. Apply a new one to send again';
+
+  @override
   String get coachSendNetworkFailed =>
       'Check your network connection and try again';
 
