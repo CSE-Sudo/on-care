@@ -84,8 +84,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
 | `SEED_DEMO_DATA` | `false`(기본값). 운영에서 `true` 면 기동 거부 — 시연은 데모 전용 DB 를 둔 별도 환경에서 |
 | `DEMO_LOGIN_PASSWORD` | 운영에서는 쓰지 않는다(데모 시드를 켠 환경 전용) |
+| `GYM_BENEFITS_ENABLED` | `false`(기본값). 제휴 헬스장이 생기면 `true` — PT 재등록 할인·락커 쿠폰·분석용 식판을 연다(#2822) |
 | `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
-| `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
+| `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. `PLACES_PROVIDER=auto` 기본. 데모 시드가 꺼진 서버는 카카오 0건이면 빈 목록, 실패면 503 이고 시드 장소로 채우지 않는다(#2914) |
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다.
@@ -153,6 +154,27 @@ flutter build web --release \
 
 지우는 대상은 시드 id 목록(`app/db/demo_ids.py`)뿐이고, 카카오에서 찾은 실재 업체 행은 지우지
 않습니다. 데모 사용자의 식단·운동·채팅·알림·포인트는 `users.id` CASCADE 로 함께 지워집니다.
+
+## 헬스장 혜택 쿠폰 정리 (#2822)
+
+PT 재등록 할인·개인 락커·분석용 식판은 헬스장이 현장에서 주는 혜택입니다. 제휴 헬스장이 없는
+동안에는 `GYM_BENEFITS_ENABLED=false`(기본값)로 닫아 둡니다. 닫힌 서버는 사용처 목록에서 두
+항목을 빼고, 교환(404)과 식판 받기(409)를 거부하며, 회원 앱은 식판 카드를 그리지 않습니다.
+
+닫기 전에 이미 발급된 쿠폰은 아래 절차로 취소하고 포인트를 돌려줍니다. 담당·헬스장 해제 때와
+같은 취소 경로라 포인트 내역에 `refund` 로 남고 회원에게 쿠폰 취소 알림이 갑니다. 기한이 지난
+쿠폰은 돌려주지 않고 만료로 내립니다.
+
+1. 서버 설정이 `GYM_BENEFITS_ENABLED=false`·`SEED_DEMO_DATA=false` 인지 확인합니다. 혜택이 열린
+   서버에서는 `--apply` 가 거부됩니다.
+2. 미리보기로 대상 회원 수·항목별 장수·돌려줄 포인트를 확인합니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.cancel_gym_benefit_coupons
+   ```
+3. 건수가 맞으면 `--apply` 를 붙여 취소합니다. 두 번 돌려도 같습니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.cancel_gym_benefit_coupons --apply
+   ```
 
 ## 마이그레이션 head 선형화 (머지 순서 주의)
 

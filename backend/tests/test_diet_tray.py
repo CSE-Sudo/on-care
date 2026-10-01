@@ -291,3 +291,107 @@ def test_unlinking_trainer_cancels_unclaimed_tray(client, db_session, trainer_id
     r = _claim(client, h)
     assert r.status_code == 201, r.text
     assert r.json()["coupon"]["id"] != coupon_id
+
+
+# ---- 헬스장 혜택 기능 플래그 (#2822) ----
+
+
+@pytest.fixture
+def benefits_off(monkeypatch):
+    """제휴 확정 전 실서비스 — 데모 시드와 헬스장 혜택 플래그가 모두 꺼진 서버."""
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "seed_demo_data", False)
+    monkeypatch.setattr(settings, "gym_benefits_enabled", False)
+
+
+def test_state_reports_disabled_and_never_claimable_when_flag_is_off(
+    client, db_session, trainer_id, benefits_off
+):
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 20)
+
+    state = _state(client, h)
+    assert state["enabled"] is False
+    # 조건을 채웠어도 받기 버튼이 열리지 않는다.
+    assert state["status"] == "progress"
+
+
+def test_claim_is_rejected_when_flag_is_off(
+    client, db_session, trainer_id, benefits_off
+):
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 20)
+
+    r = _claim(client, h, request_id="tray-off")
+    assert r.status_code == 409, r.text
+    assert _tray_coupons(db_session, member_id) == []
+
+
+def test_demo_server_tray_is_unchanged(client, db_session, trainer_id):
+    """데모 시드가 켜진 서버(CI 기본)는 지금처럼 받을 수 있다."""
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 20)
+
+    state = _state(client, h)
+    assert state["enabled"] is True
+    assert state["status"] == "claimable"
+
+
+def test_flag_on_opens_tray_on_real_server(
+    client, db_session, trainer_id, benefits_off, monkeypatch
+):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "gym_benefits_enabled", True)
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 20)
+
+    assert _state(client, h)["enabled"] is True
+    assert _claim(client, h, request_id="tray-on").status_code == 201
+
+
+def test_cancel_script_cancels_unclaimed_tray_without_refund(
+    client, db_session, trainer_id, monkeypatch
+):
+    from app.core.config import get_settings
+    from scripts import cancel_gym_benefit_coupons as script
+
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 20)
+    assert _claim(client, h, request_id="tray-before").status_code == 201
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "seed_demo_data", False)
+    monkeypatch.setattr(settings, "gym_benefits_enabled", False)
+    script.apply_plan(db_session, script.CancelPlan(member_ids=[member_id]))
+
+    [coupon] = _tray_coupons(db_session, member_id)
+    assert coupon.status == "cancelled"
+    # 0P 쿠폰이라 돌려줄 포인트가 없다.
+    db_session.expire_all()
+    assert (
+        db_session.scalar(
+            select(func.count())
+            .select_from(PointsLedger)
+            .where(PointsLedger.user_id == member_id)
+        )
+        == 0
+    )
+    assert (
+        db_session.scalar(
+            select(func.count())
+            .select_from(Notification)
+            .where(
+                Notification.user_id == member_id,
+                Notification.title == TRAY_CANCELLED,
+            )
+        )
+        == 1
+    )

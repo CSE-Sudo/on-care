@@ -133,6 +133,9 @@ class Settings(BaseSettings):
     seed_demo_data: bool = False
     # 데모 계정(트레이너/회원 시드) 로그인 비밀번호. 데모 시드를 켠 환경에서만 쓰인다.
     demo_login_password: str = DEFAULT_DEMO_PASSWORD
+    # 헬스장 현장 혜택(PT 재등록 할인·락커 쿠폰·분석용 식판)을 실제로 열지(#2822).
+    # 제휴 헬스장이 없는 동안은 꺼 둔다. 데모 시드가 켜진 서버는 이 값과 상관없이 연다.
+    gym_benefits_enabled: bool = False
     # 관리자 이메일(콤마구분) — 기동 시 해당 사용자를 is_admin=True 로 승격
     admin_emails: str = ""
 

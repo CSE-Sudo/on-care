@@ -234,7 +234,7 @@
 
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
-| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, items[] }` |
+| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, gym_benefits_enabled, items[] }` |
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item, option?, client_request_id? }` → **201** `{ coupon, spent, balance }` |
 | GET | `/me/coupons` | 회원(데모 폴백) | `coupon[]` — 사용 가능 먼저, 그다음 최신순(최대 100) |
 | GET | `/me/points/history?before=` | 회원(데모 폴백) | `{ balance, items[], next_before }` — 포인트 내역(#2146) |
@@ -269,6 +269,12 @@ available, blocked_reason, shortfall, active_option, active_until, remaining_sec
 `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
 보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
+
+**헬스장 혜택 기능 플래그**(#2822): `pt_renewal`·`locker_month`·분석용 식판은 헬스장이 현장에서 주는 혜택이다.
+서버 설정 `GYM_BENEFITS_ENABLED` 가 거짓이고 데모 시드도 꺼진 서버(제휴 확정 전 실서비스)는 `gym_benefits_enabled:
+false` 를 주고 `items[]` 에서 두 항목을 **뺀다**. 이때 두 항목을 교환하면 404, 식판 받기는 409 다. 데모 시드가
+켜진 서버는 플래그와 상관없이 연다. 이미 발급된 쿠폰은 `scripts/cancel_gym_benefit_coupons.py` 로 취소·반환한다
+(알림 까닭 `service`, `backend/docs/DEPLOY.md` 참고).
 
 `active_option`·`active_until`·`remaining_seconds` 는 기간제 항목을 쓰고 있을 때 고른 갈래·끝나는 시각·남은 초다 —
 지금은 `profile_pet` 이 달고 있는 펫과 남은 기간을 싣는다(카드가 `강아지 · 5일 남음` 을 적는다). 아니면 null·null·0.
@@ -315,7 +321,7 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
-| GET | `/me/diet-tray` | 회원(데모 폴백) | `{ status, photo_days, required_days, window_days, window_from, window_to, has_trainer, coupon? }` |
+| GET | `/me/diet-tray` | 회원(데모 폴백) | `{ status, photo_days, required_days, window_days, window_from, window_to, has_trainer, coupon?, enabled }` |
 | POST | `/me/diet-tray/claim` | 회원 | 입력 `{ client_request_id? }` → **201** 같은 모양(받은 뒤) |
 
 식단 사진 분석에 맞춘 **규격 식판**을 사진 기록을 꾸준히 남긴 회원에게 무료로 준다. 포인트 교환이 아니라 달성
@@ -324,6 +330,8 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 - **조건** 최근 `window_days`(28)일(KST, 오늘 포함 — `window_from`~`window_to`) 중 식단 사진을 남긴 날(`photo_days`)이
   `required_days`(20)일 이상이고 활성 담당이 있다. 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 빈 값이 아님)만
   세고, 하루 여러 끼도 하루다. 손으로 적은 끼니와 보호권으로 이은 날은 세지 않는다.
+- **`enabled`** 식판을 줄 수 있는 서버인가(#2822, 위 헬스장 혜택 기능 플래그). 거짓이면 `status` 가 `claimable` 이
+  되지 않고 받기는 409, 회원 앱은 카드를 그리지 않는다. 이미 받은 쿠폰은 `coupon` 에 그대로 온다.
 - **`status`** `progress`(조건을 채우는 중이거나 담당 없음) · `claimable`(지금 받을 수 있음) · `issued`(수령 쿠폰을
   받았고 아직 쓰지 않음) · `received`(식판을 받음). `coupon` 은 `issued`·`received` 일 때의 쿠폰, 그 밖에는 null.
 - **받기** 조건을 서버가 다시 확인하고 `coupon`(item `diet_tray`, `cost` 0, **기한 없음** — `no_expiry: true`)을
