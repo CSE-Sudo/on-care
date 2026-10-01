@@ -163,48 +163,54 @@ void main() {
     expect(calls, 2);
   });
 
-  test('watchDate picks up an external reservation by polling (#2865)', () async {
-    var calls = 0;
-    when(
-      () => dio.get<List<dynamic>>(
-        _schedulePath,
-        queryParameters: any(named: 'queryParameters'),
-      ),
-    ).thenAnswer((_) async {
-      calls += 1;
-      return _okList(<dynamic>[
-        _session(id: 'before'),
-        if (calls > 1) _session(id: 'member-reservation', time: '15:00'),
-      ], _schedulePath);
-    });
-    final pollingRepo = DioScheduleRepository(
-      dio,
-      pollInterval: const Duration(milliseconds: 5),
-    );
-    addTearDown(pollingRepo.dispose);
+  test(
+    'watchDate picks up an external reservation by polling (#2865)',
+    () async {
+      var calls = 0;
+      when(
+        () => dio.get<List<dynamic>>(
+          _schedulePath,
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((_) async {
+        calls += 1;
+        return _okList(<dynamic>[
+          _session(id: 'before'),
+          if (calls > 1) _session(id: 'member-reservation', time: '15:00'),
+        ], _schedulePath);
+      });
+      final pollingRepo = DioScheduleRepository(
+        dio,
+        pollInterval: const Duration(milliseconds: 5),
+      );
+      addTearDown(pollingRepo.dispose);
 
-    final emissions = await pollingRepo
-        .watchDate('2026-08-06')
-        .take(2)
-        .toList()
-        .timeout(const Duration(seconds: 1));
+      final emissions = await pollingRepo
+          .watchDate('2026-08-06')
+          .take(2)
+          .toList()
+          .timeout(const Duration(seconds: 1));
 
-    // 대시보드 오늘 일정은 이 조회를 쓴다 — 회원 앱에서 잡은 오늘 예약이
-    // 트레이너가 아무것도 하지 않아도 나타난다.
-    expect(emissions.last.map((session) => session.id), <String>[
-      'before',
-      'member-reservation',
-    ]);
-    final queries = verify(
-      () => dio.get<List<dynamic>>(
-        _schedulePath,
-        queryParameters: captureAny(named: 'queryParameters'),
-      ),
-    ).captured;
-    expect(queries.toSet(), <Map<String, String>>{
-      <String, String>{'date': '2026-08-06'},
-    });
-  });
+      // 대시보드 오늘 일정은 이 조회를 쓴다 — 회원 앱에서 잡은 오늘 예약이
+      // 트레이너가 아무것도 하지 않아도 나타난다.
+      expect(emissions.last.map((session) => session.id), <String>[
+        'before',
+        'member-reservation',
+      ]);
+      final queries = verify(
+        () => dio.get<List<dynamic>>(
+          _schedulePath,
+          queryParameters: captureAny(named: 'queryParameters'),
+        ),
+      ).captured;
+      // 폴링으로 여러 번 읽어도 묻는 날짜는 구독한 그날 하나다. (Map 은 내용이
+      // 같아도 Set 에서 서로 다른 원소라 날짜 값으로 모아 비교한다.)
+      expect(
+        queries.map((dynamic q) => (q as Map<String, String>)['date']).toSet(),
+        <String>{'2026-08-06'},
+      );
+    },
+  );
 
   test('watchToday re-reads the KST date on every poll (#2865)', () async {
     var now = DateTime(2026, 8, 20, 23, 59, 59);

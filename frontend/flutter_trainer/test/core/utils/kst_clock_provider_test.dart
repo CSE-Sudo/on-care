@@ -46,6 +46,8 @@ void main() {
         now: () => current,
       ).listen(ticks.add);
       addTearDown(sub.cancel);
+      // 첫 값은 구독 직후가 아니라 다음 마이크로태스크에 도착한다.
+      await Future<void>.delayed(Duration.zero);
 
       expect(ticks, hasLength(1));
       current = DateTime(2026, 8, 20, 13, 1);
@@ -60,6 +62,8 @@ void main() {
       final StreamSubscription<DateTime> sub = kstMinuteTicks(
         now: () => current,
       ).listen(ticks.add);
+      await Future<void>.delayed(Duration.zero);
+      expect(ticks, hasLength(1));
       await sub.cancel();
       current = DateTime(2026, 8, 20, 13, 1);
       await Future<void>.delayed(const Duration(milliseconds: 200));
