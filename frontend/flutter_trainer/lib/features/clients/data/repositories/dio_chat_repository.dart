@@ -4,6 +4,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/chat_dtos.dart';
+import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
@@ -40,11 +41,40 @@ class DioChatRepository implements ChatRepository {
         interval: pollInterval,
       );
 
-  Future<List<ClientChatMessage>> _fetchThread(String clientId) async {
+  /// 이전 페이지. (#2749)
+  ///
+  /// 폴링은 커서 없이 최신 쪽만 받으므로(서버 `limit` 기본 50 =
+  /// [chatPageSize]), 51번째 이전 메시지는 이 경로로만 온다. 커서는 시각과 id 를
+  /// 함께 넘긴다 — 같은 초에 들어온 메시지가 둘이면 시각만으로는 경계가 갈리지
+  /// 않는다(서버도 같은 짝으로 본다). 시각은 UTC ISO 로 보내 서버의
+  /// `datetime.fromisoformat` 이 시간대를 잃지 않게 한다.
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async {
+    final List<ClientChatMessage> page = await _fetchThread(
+      clientId,
+      query: <String, Object?>{
+        'limit': chatPageSize,
+        'before': before.createdAt.toUtc().toIso8601String(),
+        'before_id': before.id,
+      },
+    );
+    // 서버는 오래된→최신으로 주지만 순서에 기대지 않는다 — 합칠 때 쓰는 규칙과
+    // 같은 순서로 맞춰 둔다.
+    return List<ClientChatMessage>.of(page)..sort(compareChatMessages);
+  }
+
+  Future<List<ClientChatMessage>> _fetchThread(
+    String clientId, {
+    Map<String, Object?>? query,
+  }) async {
     final encodedId = Uri.encodeComponent(clientId);
     try {
       final res = await _dio.get<List<dynamic>>(
         '/trainer/clients/$encodedId/chat',
+        queryParameters: query,
       );
       final data = res.data ?? const <dynamic>[];
       return data

@@ -425,6 +425,12 @@ class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
 /// failing chat repo must have zero effect on the "전송 완료" claim
 /// (subin21cc review Major#2a).
 class _FakeRealChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _FakeRealChatRepository({this.failSend = false});
 
   final bool failSend;

@@ -931,6 +931,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
+  String get chatLoadOlder => '이전 메시지 더 보기';
+
+  @override
+  String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
+
+  @override
   String chatDemoAnalyzed(String name) {
     return 'AI가 $name님의 식단·운동 데이터를 분석했어요';
   }

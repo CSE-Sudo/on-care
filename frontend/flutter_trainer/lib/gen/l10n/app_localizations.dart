@@ -1808,6 +1808,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the conversation'**
   String get chatLoadFailed;
 
+  /// 회원 메시지 맨 위 — 서버가 주는 최신 50건 앞의 메시지를 한 쪽 더 받는 버튼(#2749). 위로 끝까지 스크롤해도 같은 일이 일어난다.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier messages'**
+  String get chatLoadOlder;
+
+  /// 이전 메시지 한 쪽을 받지 못했을 때 같은 자리의 버튼. 누르면 다시 받는다(#2749).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier messages · Retry'**
+  String get chatLoadOlderFailed;
+
   /// No description provided for @chatDemoAnalyzed.
   ///
   /// In en, this message translates to:
