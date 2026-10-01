@@ -6,7 +6,8 @@
 ///    위에 저장소를 새로 만들어도(=새로고침) 보낸 회원이 남는다.
 ///  * 시드 대화의 리포트 안내는 이력으로 세지 않는다(데모 명단은 따로 있다).
 ///  * [reportSendHistoryProvider] 는 저장소의 기록을 `회원|주` 열쇠로 모은다.
-///  * [mergeSendLogs] 는 서버 기록 위에 방금 보낸 것을 얹되, 더 늦은 것을 남긴다.
+///  * [mergeSendLogs] 는 서버 기록 위에 방금 보낸 것을 얹되, 서버가 같은 횟수를
+///    돌려주면 서버 기록을 남긴다(#2885). 기기 시계로 견주지 않는다.
 library;
 
 import 'dart:typed_data';
@@ -457,7 +458,7 @@ void main() {
       expect(merged.keys.toSet(), <String>{'a|2026-08-17', 'b|2026-08-17'});
     });
 
-    test('방금 다시 보낸 글이 서버의 옛 글보다 앞선다', () {
+    test('방금 다시 보낸 글이 서버의 옛 글보다 앞서고 횟수가 바로 는다 (#2885)', () {
       final Map<String, ReportSendRecord> merged = mergeSendLogs(
         <String, ReportSendRecord>{
           'a|2026-08-17': _record(
@@ -472,6 +473,8 @@ void main() {
             'a',
             message: '새 글',
             sentAt: DateTime(2026, 8, 19, 9),
+            read: false,
+            sendCount: 3,
           ),
         },
       );
@@ -479,16 +482,63 @@ void main() {
       final ReportSendRecord r = merged['a|2026-08-17']!;
       expect(r.message, '새 글');
       expect(r.sentAt, DateTime(2026, 8, 19, 9));
-      // 횟수는 줄지 않는다.
-      expect(r.sendCount, 2);
+      // 서버가 아직 2회라도 방금 보낸 것까지 센 3회가 선다.
+      expect(r.sendCount, 3);
+      expect(r.read, isFalse);
     });
 
-    test('서버 기록이 더 늦으면 서버 것이 남는다', () {
+    test('서버가 같은 횟수를 돌려주면 서버 기록이 남는다 — 읽음도 따른다 (#2885)', () {
+      final ReportSendRecord server = _record(
+        'a',
+        message: '새 글',
+        sentAt: DateTime(2026, 8, 19, 8, 59),
+        sendCount: 3,
+      );
+      final Map<String, ReportSendRecord> merged = mergeSendLogs(
+        <String, ReportSendRecord>{'a|2026-08-17': server},
+        <String, ReportSendRecord>{
+          'a|2026-08-17': _record(
+            'a',
+            message: '새 글',
+            sentAt: DateTime(2026, 8, 19, 9),
+            read: false,
+            sendCount: 3,
+          ),
+        },
+      );
+
+      expect(merged['a|2026-08-17'], same(server));
+      expect(merged['a|2026-08-17']!.read, isTrue);
+    });
+
+    test('기기 시계가 서버보다 빨라도 서버가 따라잡으면 세션 기록을 버린다 (#2885)', () {
+      // 세션 시각이 서버 시각보다 하루 늦다 — 예전 규칙이면 세션이 계속 이겨
+      // 회원이 읽은 뒤에도 안 읽음으로 남았다.
+      final ReportSendRecord server = _record(
+        'a',
+        sentAt: DateTime(2026, 8, 18, 9),
+      );
+      final Map<String, ReportSendRecord> merged = mergeSendLogs(
+        <String, ReportSendRecord>{'a|2026-08-17': server},
+        <String, ReportSendRecord>{
+          'a|2026-08-17': _record(
+            'a',
+            sentAt: DateTime(2026, 8, 19, 9),
+            read: false,
+          ),
+        },
+      );
+
+      expect(merged['a|2026-08-17'], same(server));
+    });
+
+    test('서버 기록이 더 많이 보냈으면 서버 것이 남는다', () {
       final ReportSendRecord server = _record(
         'a',
         message: '다른 탭에서 보낸 글',
         sentAt: DateTime(2026, 8, 19, 20),
         read: false,
+        sendCount: 2,
       );
       final Map<String, ReportSendRecord> merged = mergeSendLogs(
         <String, ReportSendRecord>{'a|2026-08-17': server},
@@ -546,6 +596,45 @@ void main() {
       expect(container.read(reportSendLogProvider).keys, <String>[
         'a|2026-08-17',
       ]);
+    });
+  });
+
+  group('ReportSendLog.record (#2885)', () {
+    ReportSendRecord recorded({int? previousCount}) {
+      final ProviderContainer container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ReportSendLog log = container.read(reportSendLogProvider.notifier);
+      if (previousCount == null) {
+        log.record(
+          clientId: 'a',
+          weekStart: DateTime(2026, 8, 17),
+          message: '글',
+        );
+      } else {
+        log.record(
+          clientId: 'a',
+          weekStart: DateTime(2026, 8, 17),
+          message: '글',
+          previousCount: previousCount,
+        );
+      }
+      return container.read(reportSendLogProvider)['a|2026-08-17']!;
+    }
+
+    test('처음 보내면 1회다', () {
+      expect(recorded().sendCount, 1);
+    });
+
+    test('앞서 보낸 횟수 다음 번호로 적는다', () {
+      expect(recorded(previousCount: 2).sendCount, 3);
+    });
+
+    test('음수 횟수는 0 으로 읽는다', () {
+      expect(recorded(previousCount: -4).sendCount, 1);
+    });
+
+    test('방금 보낸 것은 안 읽음이다', () {
+      expect(recorded().read, isFalse);
     });
   });
 }

@@ -494,13 +494,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // 뒤에도 이 확인이 선다 — 전에는 세션 메모리만 봐서 새로고침하면 같은
     // 리포트가 아무 확인 없이 두 번 나갔다.
     _confirming = true;
-    final bool proceed;
+    final int? previousCount;
     try {
-      proceed = await _confirmResend(l, report);
+      previousCount = await _confirmResend(l, report);
     } finally {
       _confirming = false;
     }
-    if (!proceed || !mounted) return;
+    if (previousCount == null || !mounted) return;
     setState(() => _sending = id);
     try {
       final bytes = await _pdfForSend(l, report, message);
@@ -534,7 +534,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (!mounted) return;
     ref
         .read(reportSendLogProvider.notifier)
-        .record(clientId: id, weekStart: report.weekStart, message: message);
+        .record(
+          clientId: id,
+          weekStart: report.weekStart,
+          message: message,
+          // 이번이 몇 번째인가 — 서버 기록이 돌아오기 전에도 `N회 보냄` 이
+          // 바로 는다(#2885).
+          previousCount: previousCount,
+        );
     // 서버 기록을 다시 읽는다 — 방금 보낸 것이 새로고침 뒤에도 남는 근거다.
     ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
     ref.invalidate(memberReportHistoryProvider(id));
@@ -611,10 +618,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// [report] 의 회원에게 그 주 리포트가 이미 나갔으면 다시 보낼지 묻는다.
   ///
-  /// 보낸 적이 없으면 묻지 않고 true 다. 서버 기록을 읽지 못했으면 아는
+  /// 보내도 되면 지금까지 보낸 횟수를, 트레이너가 물렀으면 null 을 돌려준다.
+  /// 보낸 적이 없으면 묻지 않고 0 이다. 서버 기록을 읽지 못했으면 아는
   /// 만큼(세션 기록·데모 기록)으로 판단한다 — 그때 작업대에는 이력을 읽지
   /// 못했다는 경고가 이미 서 있다.
-  Future<bool> _confirmResend(AppLocalizations l, WeeklyReport report) async {
+  Future<int?> _confirmResend(AppLocalizations l, WeeklyReport report) async {
     final DateTime week = weekStartOf(report.weekStart);
     Map<String, ReportSendRecord> history = const <String, ReportSendRecord>{};
     try {
@@ -622,7 +630,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     } catch (_) {
       // 위 주석대로 아는 만큼으로 판단한다.
     }
-    if (!mounted) return false;
+    if (!mounted) return null;
     final List<TrainerClient> roster =
         ref.read(clientsProvider).valueOrNull ?? const <TrainerClient>[];
     final ReportSendRecord? previous = sendRecordFor(
@@ -634,9 +642,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       report.client.id,
       week,
     );
-    if (previous == null) return true;
+    if (previous == null) return 0;
     final DateTime at = previous.sentAt;
-    return showAppConfirmDialog(
+    final bool proceed = await showAppConfirmDialog(
       context: context,
       title: l.reportsResendTitle,
       message: l.reportsResendBody(
@@ -648,6 +656,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       confirmLabel: l.reportsResendConfirm,
       cancelLabel: l.actionCancel,
     );
+    return proceed ? previous.sendCount : null;
   }
 
   /// 리포트를 읽는 중이거나 못 읽은 주의 카드. 주 이동은 편집기 위쪽 줄에

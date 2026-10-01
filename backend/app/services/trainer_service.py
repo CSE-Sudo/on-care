@@ -430,7 +430,10 @@ def _week_days(
             continue
         # 이름이 빈 기록은 그 컬럼이 생기기 전(#1276)의 것이다. 유형 라벨이라도
         # 적어야 그날 무엇을 했는지가 칸에서 통째로 사라지지 않는다.
-        name = (row.name or "").strip() or exercise_types.normalize_ko(row.type)
+        # 라벨은 요청 언어로 고른다(#2885) — 영어 리포트에 `근력` 이 남지 않게.
+        name = (row.name or "").strip() or exercise_types.normalize_label(
+            row.type, current_locale()
+        )
         by_weekday.setdefault(
             exercise_service.WEEKDAY_LABELS.index(row.day_label), []
         ).append(name)
@@ -6888,7 +6891,6 @@ def build_weekly_report(
     # 기록이 있는 날만 센다 — 아직 오지 않은 요일의 0 까지 나누면 주 초반
     # 평균이 실제보다 낮아진다(로스터의 `sodiumWeekAvg` 와 같은 규칙).
     recorded_sodium = [mg for mg in sodium_week if mg > 0]
-    sodium_over_days = sum(1 for mg in sodium_week if mg > SODIUM_TARGET_MG)
     sodium_avg = (
         round(sum(recorded_sodium) / len(recorded_sodium)) if recorded_sodium else None
     )
@@ -6899,6 +6901,12 @@ def build_weekly_report(
     profile = db.scalars(
         select(HealthProfile).where(HealthProfile.user_id == member_id)
     ).first()
+    # 초과일은 그 회원의 나트륨 목표로 센다(#2885). 같은 응답의 `sodium_target`
+    # 과 AI 요약이 개인 목표를 적는데 초과일만 2,000mg 으로 세면, 1,500mg 목표인
+    # 회원의 1,800mg 날이 목표 안으로, 2,300mg 목표인 회원의 2,100mg 날이 초과로
+    # 읽혔다. 목표가 없으면 공통 기준이다.
+    sodium_limit = sodium_limit_mg(profile.daily_sodium_mg if profile else None)
+    sodium_over_days = sum(1 for mg in sodium_week if mg > sodium_limit)
 
     report = WeeklyReportOut(
         calorie_baseline=_calorie_baseline(db, member_id, monday),
@@ -6929,6 +6937,14 @@ def build_weekly_report(
         message="",
     )
     return report.model_copy(update={"message": report_message(report)})
+
+
+def sodium_limit_mg(target: int | None) -> int:
+    """나트륨 초과를 가르는 하루 기준(mg) — 회원 목표, 없으면 공통 기준. (#2885)
+
+    0 이하는 "목표 없음" 으로 읽는다(앱의 목표 읽기와 같은 규칙).
+    """
+    return target if target is not None and target > 0 else SODIUM_TARGET_MG
 
 
 #: 칼로리 `평소` 가 견주는 직전 주 수. 한 주만 보면 그 주가 아프거나 출장이었을
@@ -7104,18 +7120,20 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         paragraphs.append(" ".join(workout))
 
     diet: list[str] = []
+    # 초과일을 센 기준과 같은 목표를 적는다(#2885).
+    sodium_limit = sodium_limit_mg(report.sodium_target)
     if report.sodium_avg is not None:
         # 평균과 초과일을 한 문장에 뒤섞지 않는다. `평균 1,916mg으로 목표를
         # 3일 넘겼어요` 는 평균이 목표를 넘긴 것처럼 읽힌다. 목표도 문장에
         # 박아 두지 않는다 — 기준이 바뀌면 문장만 옛말을 한다(#1177).
         diet.append(
             f"나트륨은 하루 평균 {report.sodium_avg:,}mg이었고, "
-            f"목표({SODIUM_TARGET_MG:,}mg)를 넘긴 날이 "
+            f"목표({sodium_limit:,}mg)를 넘긴 날이 "
             f"{report.sodium_over_days}일이었어요. 국물을 절반만 남기셔도 "
             "하루 400~500mg은 줄어듭니다."
             if report.sodium_over_days > 0
             else f"나트륨은 하루 평균 {report.sodium_avg:,}mg으로 "
-            f"목표({SODIUM_TARGET_MG:,}mg) 안에서 잘 지키고 계세요."
+            f"목표({sodium_limit:,}mg) 안에서 잘 지키고 계세요."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:
@@ -7184,14 +7202,15 @@ def _report_message_en(report: WeeklyReportOut) -> str:
         paragraphs.append(" ".join(workout))
 
     diet: list[str] = []
+    sodium_limit = sodium_limit_mg(report.sodium_target)
     if report.sodium_avg is not None:
         diet.append(
             f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
-            f"{SODIUM_TARGET_MG:,}mg target on {_plural_days(report.sodium_over_days)}. "
+            f"{sodium_limit:,}mg target on {_plural_days(report.sodium_over_days)}. "
             "Leaving half the broth behind saves 400–500mg a day."
             if report.sodium_over_days > 0
             else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
-            f"inside the {SODIUM_TARGET_MG:,}mg target."
+            f"inside the {sodium_limit:,}mg target."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:
