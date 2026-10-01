@@ -6,7 +6,7 @@
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
-  POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험)
+  POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
   POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
   PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만, 삭제는 적립 회수)
@@ -54,12 +54,23 @@ from app.services import (
 )
 from app.services.coach import personal_ingest
 from app.services.nutrition.enrich import enrich_analysis, lookup_by_name
-from app.services.recognizer.factory import get_recognizer
+from app.services.recognizer.factory import (
+    STUB_ENGINE,
+    RecognizerUnavailable,
+    get_recognizer,
+)
 
 router = APIRouter(tags=["diet"])
 logger = logging.getLogger(__name__)
 
 _ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+
+#: 사진 분석을 쓸 수 없는 설정(운영에서 키 없음)일 때의 503 본문(#2812). 앱은 `code` 로
+#: 일반 실패와 구분해 직접 입력으로 이어 준다.
+_ANALYSIS_UNAVAILABLE = {
+    "code": "analysis_unavailable",
+    "message": "사진 분석을 잠시 쓸 수 없어요. 직접 입력으로 기록할 수 있어요.",
+}
 
 
 @router.get("/diet/days/today", response_model=DietTodayResponse)
@@ -235,7 +246,10 @@ async def diet_analyze(
         max_length=64,  # DietEntry.idempotency_key 컬럼(String(64)) 경계와 일치 — 초과 시 DB 500 방지
         description="재시도 중복 저장 방지 키(선택). 클라 요청당 1회 생성해 재시도 시 재사용.",
     ),
-    engine: str | None = Query(None, description="엔진 강제('gemini'|'yolo'). 비교실험용."),
+    engine: str | None = Query(
+        None,
+        description="엔진 강제('gemini'|'yolo'). 비교실험용 — 운영에서는 관리자만 적용된다.",
+    ),
 ) -> DietAnalyzeResponse:
     if image.content_type not in _ALLOWED_MIME:
         raise HTTPException(status_code=415, detail=f"지원하지 않는 형식: {image.content_type}")
@@ -254,8 +268,18 @@ async def diet_analyze(
                 points=_points_already_awarded(db, current_user.id, existing.id),
             )
 
+    # `engine` 은 비교실험용이다. 운영에서 회원이 `?engine=stub` 으로 고정 식단을
+    # 저장하거나 준비되지 않은 엔진으로 500 을 내지 못하게, 관리자가 아니면 무시하고
+    # 설정된 인식기를 쓴다(#2812).
+    if engine is not None and get_settings().is_prod and not current_user.is_admin:
+        engine = None
     try:
         recognizer = get_recognizer(engine)
+    except RecognizerUnavailable as e:
+        # 운영인데 인식 키가 없다 — 고정 식단으로 저장하는 대신 분석 불가로 답한다.
+        # 끼니·포인트·사진은 남기지 않는다(#2812).
+        logger.error("식단 인식기를 쓸 수 없음: %s", e)
+        raise HTTPException(status_code=503, detail=_ANALYSIS_UNAVAILABLE) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -289,7 +313,11 @@ async def diet_analyze(
             points=_points_already_awarded(db, current_user.id, entry_id),
         )
 
-    points = _award_points(db, current_user.id, entry_id)
+    # 개발용 고정 식단(스텁)은 사진을 보지 않은 결과다 — 포인트를 주지 않는다(#2812).
+    if analysis.engine == STUB_ENGINE:
+        points = PointsOut(awarded=0, balance=points_service.balance(db, current_user.id))
+    else:
+        points = _award_points(db, current_user.id, entry_id)
 
     # 인식이 끝난 사진을 끼니에 붙인다. 실패해도 끼니 기록은 그대로 남는다(#699).
     photo = diet_photo_service.store_for_entry(db, current_user.id, entry_id, image_bytes)

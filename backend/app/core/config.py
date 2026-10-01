@@ -244,7 +244,48 @@ class Settings(BaseSettings):
                     "운영(env=prod)에서는 AUTO_CREATE_TABLES=false 로 두고 Alembic 을 스키마의 "
                     "유일한 소스로 삼아야 합니다."
                 )
+            # 사진 인식·임베딩은 키가 없으면 개발용 대체(고정 식단 스텁·해시 벡터)로
+            # 내려간다. 운영에서 그대로 뜨면 사진과 무관한 음식이 끼니로 저장되고
+            # 포인트까지 나가며, 의미 없는 벡터가 RAG 테이블에 섞인다(#2812).
+            # 조용히 뜨는 대신 기동을 거부해 배포 단계에서 바로 드러나게 한다.
+            problems = self.missing_ai_config()
+            if problems:
+                raise ValueError(
+                    "운영(env=prod)에서는 사진 인식·임베딩 키가 필요합니다: " + "; ".join(problems)
+                )
         return self
+
+    def recognizer_problem(self) -> str | None:
+        """설정된 식단 인식기를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
+        engine = self.recognizer.strip().lower()
+        if engine == "gemini":
+            return None if self.gemini_api_key else "RECOGNIZER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if engine == "claude":
+            if self.litellm_base_url and self.litellm_api_key:
+                return None
+            return "RECOGNIZER=claude 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
+        if engine == "stub":
+            return "RECOGNIZER=stub 은 개발용 고정 식단이라 운영에서 쓸 수 없음"
+        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|claude)"
+
+    def embedder_problem(self) -> str | None:
+        """설정된 임베더를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
+        chosen = self.embedder.strip().lower()
+        if chosen == "gemini":
+            return None if self.gemini_api_key else "EMBEDDER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if chosen == "openai":
+            return None if self.openai_api_key else "EMBEDDER=openai 인데 OPENAI_API_KEY 가 비어 있음"
+        if chosen == "litellm":
+            if self.litellm_base_url and self.litellm_api_key and self.litellm_embed_model:
+                return None
+            return "EMBEDDER=litellm 인데 LITELLM_BASE_URL·LITELLM_API_KEY·LITELLM_EMBED_MODEL 중 빈 값이 있음"
+        if chosen == "hash":
+            return "EMBEDDER=hash 는 개발용 해시 벡터라 운영에서 쓸 수 없음"
+        return f"EMBEDDER={chosen} 는 알 수 없는 임베더"
+
+    def missing_ai_config(self) -> list[str]:
+        """운영 기동을 막는 AI 설정 문제 목록. 비어 있으면 통과."""
+        return [p for p in (self.recognizer_problem(), self.embedder_problem()) if p]
 
 
 @lru_cache

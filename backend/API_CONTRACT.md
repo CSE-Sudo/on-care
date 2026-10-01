@@ -133,6 +133,11 @@
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
 
+**`POST /diet/analyze` 거절 응답.** 앱은 `detail.code` 로 일반 실패와 구분해 안내한다. 아래 거절은 끼니·포인트·사진을 남기지 않는다.
+
+- `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
+- `engine` 쿼리는 비교실험용이다. 운영에서는 관리자만 적용되고 회원이 붙이면 무시한다. 개발용 스텁(`engine: "stub"`) 결과는 끼니로는 남지만 포인트·분석용 식판 조건에 세지 않는다(#2812).
+
 `GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
 
 - `analysis`·`action` 은 한국어 문장이고 굵게 보일 곳(메뉴 이름·수치)을 `**` 로 감싼다. `message` 는 두 문장을 이어 `**` 를 뗀 평문으로, 두 문장을 모르는 옛 앱이 읽는다.

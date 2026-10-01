@@ -133,20 +133,38 @@ def _reset_rate_limiter():
     yield
 
 
+#: 테스트용 인식기 이름. 결과는 개발용 스텁과 같지만 이름이 `stub` 이 아니다.
+TEST_RECOGNIZER = "test-vision"
+
+
 @pytest.fixture(autouse=True)
 def _force_stub_recognizer(monkeypatch):
-    """테스트는 결정론적 오프라인 인식기(stub)를 사용한다.
+    """테스트는 결정론적 오프라인 인식기를 사용한다.
 
     로컬 .env 에 실제 GEMINI_API_KEY 가 있으면 팩토리가 gemini 인식기를 골라,
     가짜 테스트 이미지가 실제 Vision API 로 나가 400(Unable to process image)을
-    유발한다. CI(키 없음→stub)와 동일 경로로 고정해 테스트를 .env 독립적으로 만든다."""
+    유발한다. CI(키 없음)와 동일 경로로 고정해 테스트를 .env 독립적으로 만든다.
+
+    스텁과 같은 식단을 돌려주되 이름은 `test-vision` 이다. 개발용 스텁(`stub`)
+    결과는 포인트·식판 조건에 세지 않으므로(#2812), 이름까지 스텁이면 "실제 인식기로
+    저장한 끼니" 를 전제로 한 적립·식판 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
+    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다."""
     try:
         from app.core.config import get_settings
-        monkeypatch.setattr(get_settings(), "recognizer", "stub")
+        from app.services.recognizer import factory
+        from app.services.recognizer.stub import StubFoodRecognizer
+
+        class _TestVisionRecognizer(StubFoodRecognizer):
+            name = TEST_RECOGNIZER
+
+        factory._registry()
+        monkeypatch.setitem(factory._REGISTRY, TEST_RECOGNIZER, _TestVisionRecognizer)
+        factory._build.cache_clear()
+        monkeypatch.setattr(get_settings(), "recognizer", TEST_RECOGNIZER)
     except Exception:  # noqa: BLE001, S110
         import warnings
         warnings.warn(
-            "recognizer 를 stub 으로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
+            "recognizer 를 테스트 인식기로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
             stacklevel=2,
         )
     yield
