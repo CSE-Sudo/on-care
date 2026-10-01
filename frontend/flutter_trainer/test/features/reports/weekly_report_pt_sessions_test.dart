@@ -16,6 +16,7 @@ import 'package:oncare_trainer/features/reports/data/repositories/report_reposit
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -42,14 +43,22 @@ void main() {
     return DateTime(monday.year, monday.month, monday.day - 7 * back);
   }
 
-  /// 스케줄 탭의 주간 시간표가 읽는 경로 — 그 주 범위에서 이 회원 행만 센다.
+  /// 스케줄 탭의 주간 시간표가 읽는 경로 — 그 주 범위에서 이 회원의 PT 만 센다.
+  /// 상담은 리포트의 PT 횟수가 아니다(#2741).
   Future<List<ScheduleSession>> scheduleWeek(String clientId, int back) async {
     final DateTime start = weekAgo(back);
     final DateTime end = DateTime(start.year, start.month, start.day + 6);
     final List<ScheduleSession> range = await DriftScheduleRepository(
       db,
     ).watchRange(ymd(start), ymd(end)).first;
-    return range.where((s) => s.clientId == clientId && !s.isGap).toList();
+    return range
+        .where(
+          (s) =>
+              s.clientId == clientId &&
+              !s.isGap &&
+              s.type != SessionType.consultation,
+        )
+        .toList();
   }
 
   bool joinedBy(String clientId, int back) =>
@@ -62,9 +71,9 @@ void main() {
   test('buildWeeklyReport — 데모 회원의 이번 주 PT 는 0회가 아니다', () async {
     final DriftScheduleRepository schedule = DriftScheduleRepository(db);
     for (final TrainerClient client in clients) {
-      final List<ScheduleSession> sessions = await schedule
-          .watchClientSessions((id: client.id, name: client.name))
-          .first;
+      final List<ScheduleSession> sessions = await schedule.watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
       final WeeklyReport report = buildWeeklyReport(
         client: client,
         sessions: sessions,
@@ -82,9 +91,9 @@ void main() {
       // 김민수의 수업 날은 공유 픽스처가 정한다 — 비워 둔 날이 겹친 주는 0회다.
       // 그의 수업 날은 주간 PT 시드 시험이 픽스처와 맞춰 본다(#2694).
       if (client.id == 'seed-client-1') continue;
-      final List<ScheduleSession> sessions = await schedule
-          .watchClientSessions((id: client.id, name: client.name))
-          .first;
+      final List<ScheduleSession> sessions = await schedule.watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
       for (int back = 1; back < demoReportHistoryWeeks; back++) {
         final WeeklyReport report = buildWeeklyReport(
           client: client,
@@ -154,18 +163,18 @@ void main() {
       DriftChatRepository(db),
       db,
     );
-    final int before = (await reports
-        .watch(client: client, weekStart: weekAgo(1))
-        .first).sessionsBooked;
+    final int before =
+        (await reports.watch(client: client, weekStart: weekAgo(1)).first)
+            .sessionsBooked;
 
     final List<ScheduleSession> lastWeek = await scheduleWeek(client.id, 1);
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.equals(lastWeek.first.id))).go();
 
-    final int after = (await reports
-        .watch(client: client, weekStart: weekAgo(1))
-        .first).sessionsBooked;
+    final int after =
+        (await reports.watch(client: client, weekStart: weekAgo(1)).first)
+            .sessionsBooked;
     expect(after, before - 1);
   });
 
