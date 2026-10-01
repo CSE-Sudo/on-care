@@ -40,10 +40,14 @@ logger = logging.getLogger(__name__)
 # 숫자가 무엇을 재고 나온 값인가" 가 사라져 회원이 양을 고쳐도 다시 셀 근거가 없다.
 # 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다. 없을 수 있다(양을 못 얻은
 # 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
+#
+# `display_name` 은 영어 화면에서 분석한 음식의 표시 이름이다(#2850). 있을 때만
+# 남긴다 — 한국어 화면·수기 입력 기록에 null 칸을 늘리지 않는다.
 _FOOD_STORAGE_FIELDS = (
-    "name", "amount_g", "calories", "sodium_mg", "sugar_g",
+    "name", "display_name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
+_OPTIONAL_FOOD_FIELDS = frozenset({"display_name"})
 # 하루 나트륨 상한. WHO 권고(2,000mg)를 쓴다 — 2025 한국인 영양소 섭취기준의
 # 성인 만성질환위험감소섭취량 2,300mg 보다 엄격한 쪽이다. 예전에는 이 값이
 # DASH(고혈압 식이) 상한이라는 이름을 달고 있었는데, 지금 타깃은 고혈압
@@ -71,7 +75,11 @@ def store_foods(foods: list[RecognizedFood]) -> list[dict]:
     더하면 고친 뒤에 화면이 달라진다.
     """
     return [
-        {field: getattr(food, field) for field in _FOOD_STORAGE_FIELDS}
+        {
+            field: getattr(food, field)
+            for field in _FOOD_STORAGE_FIELDS
+            if field not in _OPTIONAL_FOOD_FIELDS or getattr(food, field) is not None
+        }
         for food in foods
     ]
 

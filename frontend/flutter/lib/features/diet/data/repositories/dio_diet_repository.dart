@@ -194,6 +194,9 @@ class DioDietRepository implements DietRepository {
     // 음식마다 출처를 되돌려 보낸다(#2105). 빠뜨리면 서버가 빠진 값을
     // 채우므로, 손대지 않은 음식까지 원래 출처를 잃는다.
     'source': food.source.name,
+    // 표시 이름은 회원이 이름을 그대로 둔 음식에만 실린다(#2850). 빼고 보내면
+    // 서버가 지운다 — 바꾼 이름이 회원이 쓴 표시 이름이기 때문이다.
+    'display_name': ?food.displayName,
   };
 
   @override

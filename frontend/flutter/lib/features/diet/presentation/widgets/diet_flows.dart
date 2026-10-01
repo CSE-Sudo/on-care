@@ -41,9 +41,61 @@ class DietFood {
     this.proteinG = 0,
     this.fatG = 0,
     this.source = FoodSource.estimate,
+    this.displayName,
+    this.storedName,
   });
+
+  /// 서버가 준 저장된 음식. 표시 이름이 있으면 그것을 이름으로 보인다(#2850).
+  factory DietFood.fromItem(FoodItem f) => DietFood(
+    f.label,
+    f.calories,
+    amountG: f.amountG,
+    sodiumMg: f.sodiumMg,
+    sugarG: f.sugarG,
+    carbsG: f.carbsG,
+    proteinG: f.proteinG,
+    fatG: f.fatG,
+    source: f.source,
+    displayName: f.displayName,
+    storedName: f.name,
+  );
+
+  /// 사진 분석이 인식한 음식. [DietFood.fromItem] 과 같은 규칙이다.
+  factory DietFood.fromRecognized(RecognizedFood f) => DietFood(
+    f.label,
+    f.calories,
+    amountG: f.amountG,
+    sodiumMg: f.sodiumMg,
+    sugarG: f.sugarG,
+    carbsG: f.carbsG,
+    proteinG: f.proteinG,
+    fatG: f.fatG,
+    source: f.source,
+    displayName: f.displayName,
+    storedName: f.name,
+  );
+
+  /// 화면에 보이고 수정 화면이 고치는 이름.
   final String name;
   final int kcal;
+
+  /// 서버가 준 표시 이름과 저장된 원래 이름(#2850). 영어 화면에서 분석한
+  /// 음식은 [name] 이 영어 표시 이름이고, [storedName] 이 공공 영양 DB 가
+  /// 매칭하는 한국어 이름이다. 저장할 때 [wireName] 이 둘을 되돌린다.
+  final String? displayName;
+  final String? storedName;
+
+  /// 저장할 때 보낼 이름. 표시 이름을 그대로 두었으면 원래 이름과 표시 이름을
+  /// 함께 되돌려 매칭 키가 영어로 덮이지 않게 하고, 회원이 이름을 바꿨으면 그
+  /// 이름이 곧 이름이다 — 표시 이름은 싣지 않는다.
+  ({String name, String? displayName}) get wireName {
+    final String typed = name.trim();
+    final String? shown = displayName;
+    if (shown != null && typed == shown && storedName != null) {
+      return (name: storedName!, displayName: shown);
+    }
+    return (name: typed, displayName: null);
+  }
 
   /// 먹은 양(g). 나머지 영양이 이 양을 재고 나온 값이라, 수정 화면은 이 칸
   /// 하나로 여섯 값을 함께 움직인다(#1876). 모르면 null 이다 — [FoodItem.amountG]
@@ -711,18 +763,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     final DietAnalysisResult? r = _result;
     if (r == null || r.entryId.isEmpty) return;
     final List<DietFood> foods = <DietFood>[
-      for (final RecognizedFood f in r.foods)
-        DietFood(
-          f.name,
-          f.calories,
-          amountG: f.amountG,
-          sodiumMg: f.sodiumMg,
-          sugarG: f.sugarG,
-          carbsG: f.carbsG,
-          proteinG: f.proteinG,
-          fatG: f.fatG,
-          source: f.source,
-        ),
+      for (final RecognizedFood f in r.foods) DietFood.fromRecognized(f),
     ];
     setState(() {
       _editing = true;
@@ -1064,7 +1105,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
 
     final DietAnalysisResult r = _result!;
     final String recognized = r.foods
-        .map((RecognizedFood f) => f.name)
+        .map((RecognizedFood f) => f.label)
         .join(' · ');
     // 수정 중에는 합계가 고치는 음식을 곧바로 따라온다 — 식단 상세와 같다.
     // 보기에서는 서버가 준 합계를 그대로 적는다.
@@ -1120,7 +1161,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
                               // 이름 안·이름과 양 사이를 붙는 공백으로 잇고, 줄은
                               // ` · ` 에서만 바뀐다. `그래놀라` / `토핑 50g` 처럼
                               // 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
-                              TextSpan(text: _keepTogether(r.foods[i].name)),
+                              TextSpan(text: _keepTogether(r.foods[i].label)),
                               if (r.foods[i].amountG case final double grams)
                                 TextSpan(
                                   text: _keepTogether(
@@ -1482,18 +1523,7 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
     // 웹에서 새로고침해 들어오면 `initialMeal` 없이 이 경로로 복원된다 —
     // 여기서도 영양을 하나도 흘리지 않아야 저장 뒤에 합계가 남는다(#1853).
     items: <DietFood>[
-      for (final FoodItem food in entry.foods)
-        DietFood(
-          food.name,
-          food.calories,
-          amountG: food.amountG,
-          sodiumMg: food.sodiumMg,
-          sugarG: food.sugarG,
-          carbsG: food.carbsG,
-          proteinG: food.proteinG,
-          fatG: food.fatG,
-          source: food.source,
-        ),
+      for (final FoodItem food in entry.foods) DietFood.fromItem(food),
     ],
     tags: const <DietTag>[],
     sodium: entry.sodiumMg,
@@ -1718,6 +1748,9 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
           proteinG: _asDouble(e.protein),
           fatG: _asDouble(e.fat),
           source: e.source,
+          // 이름을 그대로 두었는지는 저장할 때 [DietFood.wireName] 이 가린다.
+          displayName: _foods[index].displayName,
+          storedName: _foods[index].storedName,
         );
     });
   }
@@ -2008,7 +2041,8 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
     for (final DietFood f in _foods)
       if (f.name.trim().isNotEmpty)
         FoodItem(
-          name: f.name.trim(),
+          name: f.wireName.name,
+          displayName: f.wireName.displayName,
           calories: f.kcal,
           amountG: f.amountG,
           sodiumMg: f.sodiumMg,

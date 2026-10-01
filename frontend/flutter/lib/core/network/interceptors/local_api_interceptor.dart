@@ -1692,9 +1692,21 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     const int totalCal = 395;
     const int totalNa = 185;
     const double totalSugar = 29.5;
-    const String coach =
-        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
-        '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
+    // 영어 화면이면 실서버처럼 영어 표시 이름과 영어 식단평을 싣는다(#2850).
+    // `name` 은 영양표 매칭용이라 한국어 그대로다 — 실서버 스텁과 같다.
+    final bool english = _prefersEnglish(options);
+    if (english) {
+      for (final Map<String, Object?> food in foods) {
+        food['display_name'] = _demoFoodDisplayNamesEn[food['name']];
+      }
+    }
+    final String coach = english
+        ? 'Sodium is low at 185mg, so this is an easy meal on that front. '
+              'Sugar is a little over half of your daily target (50g), and '
+              'half of that comes from the frozen yogurt itself. Keep the '
+              'toppings mostly fruit and nuts like you did here.'
+        : '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
+              '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
 
     // 지난 날짜 화면에서 연 추가는 그 날짜로 남긴다(#2849). 실서버와 같은
     // 규칙으로 걸러 낸다 — 데모에서만 통과하면 실연동에서 처음 실패한다.
@@ -1723,7 +1735,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             sugarG: const Value(totalSugar),
             // 인식 결과의 코멘트를 행에 남긴다 — 목록으로 돌아갔을 때도 끼니
             // 카드에 그대로 보인다.
-            aiComment: const Value(coach),
+            aiComment: Value(coach),
             // 방금 찍은/고른 그 사진을 함께 남긴다. 인식 결과는 데모라 무엇을
             // 찍든 같지만, 카드에 보이는 사진까지 남의 것이면 자기가 방금
             // 올린 끼니라는 게 화면에서 사라진다.
@@ -1754,6 +1766,14 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
   }
+
+  /// 데모 인식 음식의 영어 표시 이름(#2850). 실서버 스텁(`recognizer/stub.py`
+  /// `_EN_DISPLAY_NAMES`)과 같은 값이다.
+  static const Map<String, String> _demoFoodDisplayNamesEn = <String, String>{
+    '요거트 아이스크림': 'Frozen yogurt',
+    '과일 토핑': 'Fruit topping',
+    '그래놀라 토핑': 'Granola topping',
+  };
 
   /// 분석 요청에서 끼니 구분과 멱등키를 꺼낸다.
   ///
