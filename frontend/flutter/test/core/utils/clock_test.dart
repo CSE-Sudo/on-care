@@ -48,6 +48,59 @@ void main() {
     ]);
   });
 
+  group('toKst', () {
+    test('UTC 23:00 은 다음 날 KST 08:00 이다', () {
+      final DateTime k = toKst(DateTime.utc(2026, 8, 16, 23));
+
+      expect(k.isUtc, isFalse);
+      expect(<int>[k.year, k.month, k.day, k.hour], <int>[2026, 8, 17, 8]);
+    });
+
+    test('UTC 15:00 은 다음 날 KST 00:00 이다 — 경계', () {
+      final DateTime k = toKst(DateTime.utc(2026, 8, 16, 15));
+
+      expect(<int>[k.month, k.day, k.hour], <int>[8, 17, 0]);
+    });
+
+    test('UTC 14:59 은 같은 날 KST 23:59 다', () {
+      final DateTime k = toKst(DateTime.utc(2026, 8, 16, 14, 59));
+
+      expect(<int>[k.month, k.day, k.hour, k.minute], <int>[8, 16, 23, 59]);
+    });
+
+    test('월말·연말도 넘긴다', () {
+      final DateTime k = toKst(DateTime.utc(2026, 12, 31, 20));
+
+      expect(<int>[k.year, k.month, k.day, k.hour], <int>[2027, 1, 1, 5]);
+    });
+
+    test('오프셋이 붙은 문자열은 KST 벽시계로 바뀐다', () {
+      final DateTime k = toKst(DateTime.parse('2026-08-16T23:30:00+00:00'));
+
+      expect(<int>[k.month, k.day, k.hour, k.minute], <int>[8, 17, 8, 30]);
+    });
+
+    test('+09:00 문자열은 적힌 벽시계 그대로다', () {
+      final DateTime k = toKst(DateTime.parse('2026-08-17T07:15:00+09:00'));
+
+      expect(<int>[k.month, k.day, k.hour, k.minute], <int>[8, 17, 7, 15]);
+    });
+
+    test('오프셋 없는 문자열은 이미 KST 벽시계라 그대로 둔다', () {
+      final DateTime raw = DateTime.parse('2026-08-17T07:15:00');
+      final DateTime k = toKst(raw);
+
+      expect(k, raw);
+      expect(<int>[k.day, k.hour], <int>[17, 7]);
+    });
+
+    test('nowKst 로 만든 값은 두 번 바꾸지 않는다', () {
+      final DateTime now = nowKst();
+
+      expect(toKst(now), now);
+    });
+  });
+
   // ── 우회 금지 ───────────────────────────────────────────────────────────
   //
   // 한 곳만 `DateTime.now()` 로 남으면 그 값과 `nowKst()` 가 9시간 어긋나, 고치기

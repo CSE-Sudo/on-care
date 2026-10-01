@@ -58,3 +58,30 @@ DateTime todayKst() {
   final DateTime n = nowKst();
   return DateTime(n.year, n.month, n.day);
 }
+
+/// [t] 를 KST 벽시계로 바꾼다. 트레이너 웹 `clock.dart` 의 [toKst] 와 같은 규칙이다.
+///
+/// 서버가 준 시각은 UTC 순간(`isUtc`)으로 들어온다 — `DateTime.parse` 는 오프셋이
+/// 붙은 문자열을 UTC 로 읽는다. 그 값의 `.month`·`.day` 를 그대로 쓰면 UTC 날짜가
+/// 되어 KST 00:00~08:59 에 일어난 일이 전날로 보이고(#2844), `toLocal()` 로
+/// 바꾸면 **기기 시간대**의 벽시계가 되어 KST 가 아닌 기기에서 시각이 어긋난다
+/// (#2876). 여기서는 기기 시간대와 상관없이 +9시간을 더해 서울의 벽시계를 필드에
+/// 담는다.
+///
+/// UTC 가 아닌 값은 그대로 돌려준다. 앱 안의 로컬 `DateTime` 은 이미 KST 벽시계를
+/// 담는 것이 이 파일의 약속이다([nowKst] 로 만든 값, 데모 DB 의 시각, 오프셋 없는
+/// 문자열).
+DateTime toKst(DateTime t) {
+  if (!t.isUtc) return t;
+  final DateTime seoul = t.add(kstOffset);
+  return DateTime(
+    seoul.year,
+    seoul.month,
+    seoul.day,
+    seoul.hour,
+    seoul.minute,
+    seoul.second,
+    seoul.millisecond,
+    seoul.microsecond,
+  );
+}
