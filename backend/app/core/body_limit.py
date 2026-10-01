@@ -17,11 +17,21 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from starlette.datastructures import Headers
+from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
-class _BodyTooLarge(Exception):
-    """본문이 상한을 넘겼음을 receive 래퍼가 바깥으로 알리는 신호."""
+class _BodyTooLarge(HTTPException):
+    """본문이 상한을 넘겼음을 receive 래퍼가 바깥으로 알리는 신호.
+
+    HTTPException(413) 이어야 한다. FastAPI 는 본문(multipart·JSON)을 읽다 난 일반
+    예외를 400("There was an error parsing the body")으로 바꾸지만 HTTPException 은
+    그대로 올려보내, 앱의 예외 처리기가 같은 413 문구로 응답한다(#2832). 앱 밖에서
+    터지면 아래 미들웨어가 직접 413 을 쓴다.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(status_code=413, detail=detail)
 
 
 @dataclass(frozen=True)
@@ -125,7 +135,7 @@ class RequestBodySizeLimitMiddleware:
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 if received > rule.max_bytes:
-                    raise _BodyTooLarge
+                    raise _BodyTooLarge(self._detail(rule))
             return message
 
         async def counting_send(message: Message) -> None:
@@ -157,13 +167,17 @@ class RequestBodySizeLimitMiddleware:
             return False
 
     @staticmethod
-    async def _reject(send: Send, rule: BodyLimitRule) -> None:
+    def _detail(rule: BodyLimitRule) -> str:
+        """413 문구 — 규칙 문구가 없으면 업로드 기본 문구(최대 N MB)."""
+        limit_mb = rule.max_bytes / (1024 * 1024)
+        return rule.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
+
+    @classmethod
+    async def _reject(cls, send: Send, rule: BodyLimitRule) -> None:
         """413 을 직접 써 보낸다(앱을 거치지 않으므로 FastAPI 예외 경로가 없다)."""
         # 기존 415 처리와 같은 형태({"detail": ...})로 맞춘다.
-        limit_mb = rule.max_bytes / (1024 * 1024)
-        detail = rule.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
         body = json.dumps(
-            {"detail": detail},
+            {"detail": cls._detail(rule)},
             ensure_ascii=False,
         ).encode("utf-8")
         await send(

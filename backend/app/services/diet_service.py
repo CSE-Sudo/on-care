@@ -56,12 +56,28 @@ def today_str() -> str:
 
 
 def load_foods(foods_json: str) -> list[dict]:
-    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다."""
-    foods = json.loads(foods_json) if foods_json else []
-    return [
-        {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
-        for food in foods
-    ]
+    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다.
+
+    항목이 딕셔너리라는 보장이 없다. `["김치찌개", 42, null]` 처럼 문자열·숫자가
+    섞인 기록이 있고(#724), 숫자 항목에서 `field in food` 가 TypeError 를 내 그 날의
+    식단 조회 전체가 500 이 됐다. 트레이너 쪽(`trainer_service._food_names`)과 같은
+    규칙으로 문자열은 이름으로 살리고, 나머지(숫자·null 등)는 건너뛴다.
+    """
+    try:
+        foods = json.loads(foods_json) if foods_json else []
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(foods, list):
+        return []
+    out: list[dict] = []
+    for food in foods:
+        if isinstance(food, dict):
+            out.append(
+                {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
+            )
+        elif isinstance(food, str) and food.strip():
+            out.append({"name": food.strip()})
+    return out
 
 
 def store_foods(foods: list[RecognizedFood]) -> list[dict]:
