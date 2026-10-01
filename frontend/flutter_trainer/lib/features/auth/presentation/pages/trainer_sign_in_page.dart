@@ -84,10 +84,12 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
       AppRoutes.resumeTarget(GoRouterState.of(context).uri.toString()) ??
       AppRoutes.dashboard;
 
+  /// 데모는 늘 대시보드에서 시작한다(#2765). 이어 갈 자리(`?from=`)는 실서버
+  /// 계정의 주소라(회원 id 포함) 데모 데이터에는 없다 — 이어 가면 '찾을 수 없음'
+  /// 이 뜨고, 이전 사용자의 위치를 다음 사람에게 보여 주는 셈이 된다.
   void _enterDemo() {
-    final destination = _destination;
     ref.read(sessionControllerProvider.notifier).enterDemo();
-    context.go(destination);
+    context.go(AppRoutes.dashboard);
   }
 
   void _onSignUp() => context.push(AppRoutes.signUp);

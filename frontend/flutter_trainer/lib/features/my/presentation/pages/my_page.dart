@@ -334,7 +334,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       destructive: true,
     );
     if (!ok || !mounted) return;
-    // The router's auth gate redirects to the login screen.
+    // The router's auth gate redirects to the login screen — 직접 로그아웃이라
+    // 지금 자리(`?from=`)를 싣지 않는다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -395,7 +396,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       return;
     }
     // 계정이 사라졌으므로 남은 토큰은 무효다 — 세션을 비워 인증 게이트가
-    // 로그인 화면으로 돌려보내게 한다.
+    // 로그인 화면으로 돌려보내게 한다. 탈퇴 화면 주소를 다음 사람이 이어 받지
+    // 않도록 `?from=` 없이 간다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 

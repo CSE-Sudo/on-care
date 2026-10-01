@@ -463,6 +463,34 @@ class SessionController extends StateNotifier<SessionState>
     _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
   }
 
+  /// 비밀번호 변경 응답이 준 새 토큰으로 갈아 끼운다(#2766).
+  ///
+  /// 서버는 비밀번호를 바꾸면 그 전에 발급한 토큰을 모두 무효로 만든다. 이 기기도
+  /// 예외가 아니어서, 응답의 새 토큰을 메모리와 저장소에 넣어야 로그아웃되지 않는다.
+  /// 메모리를 먼저 바꾼다 — 그 사이 401 을 받은 요청은 인터셉터가 새 토큰으로
+  /// 다시 보낸다(회전하지 않는다). 프로필·계정 경계는 그대로다(같은 계정).
+  Future<void> adoptReissuedTokens(TrainerAuthTokens tokens) async {
+    if (!mounted || state.status != SessionStatus.authenticated) return;
+    if (tokens.access.isEmpty) return;
+    _setAccessToken(tokens.access);
+    String? keptRefresh;
+    if (tokens.refresh.isEmpty) {
+      try {
+        await _serializeTokenStorage(() async {
+          keptRefresh = await _tokens.readRefreshToken();
+        });
+      } catch (_) {
+        keptRefresh = null;
+      }
+    }
+    await _persist(
+      TrainerAuthTokens(
+        access: tokens.access,
+        refresh: tokens.refresh.isEmpty ? (keptRefresh ?? '') : tokens.refresh,
+      ),
+    );
+  }
+
   /// 갱신이 거부되었다 — 로그아웃과 같은 길([_expire])로 세션을 닫고 로그인
   /// 화면에 안내를 띄운다.
   ///

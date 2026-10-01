@@ -3,6 +3,7 @@
 ///  * #2764 — 같은 브라우저의 다른 탭이 다른 트레이너로 다시 로그인하면 저장소의
 ///    갱신 토큰은 그 계정의 것이다. 이 탭이 401 뒤 회전하면 남의 토큰을 받게 되므로,
 ///    주인을 확인하고 다르면 채택하지 않고 이 탭만 로그인 화면으로 보낸다.
+///  * #2765 — 직접 로그아웃은 [signedOutByUserProvider] 를 켜고, 새 세션·만료는 끈다.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,6 +111,7 @@ class _Harness {
   SessionState get state => container.read(sessionControllerProvider);
   String? get access => container.read(authAccessTokenProvider);
   bool get notice => container.read(sessionExpiredNoticeProvider);
+  bool get signedOutByUser => container.read(signedOutByUserProvider);
   SecureTokenStore get store => container.read(secureTokenStoreProvider);
 }
 
@@ -158,6 +160,7 @@ void main() {
       expect(h.state.status, SessionStatus.signedOut);
       expect(h.access, isNull);
       expect(h.notice, isTrue);
+      expect(h.signedOutByUser, isFalse);
     });
 
     test('남의 회전 결과는 저장소에 남겨 다른 탭이 끊기지 않는다', () async {
@@ -225,6 +228,43 @@ void main() {
       expect(result.status, TokenRefreshStatus.rejected);
       expect(h.state.status, SessionStatus.signedOut);
       expect(h.notice, isTrue);
+    });
+  });
+
+  group('#2765 — 직접 로그아웃 표시', () {
+    test('직접 로그아웃하면 켜지고, 다시 로그인하면 꺼진다', () async {
+      final h = await _signedInAsA();
+      expect(h.signedOutByUser, isFalse);
+
+      await h.controller.signOut();
+      expect(h.state.status, SessionStatus.signedOut);
+      expect(h.signedOutByUser, isTrue);
+
+      await h.controller.login(email: _coachA, password: 'pw-12345');
+      await _settle();
+      expect(h.state.status, SessionStatus.authenticated);
+      expect(h.signedOutByUser, isFalse);
+    });
+
+    test('데모로 들어가도 꺼진다', () async {
+      final h = await _signedInAsA();
+      await h.controller.signOut();
+      expect(h.signedOutByUser, isTrue);
+
+      h.controller.enterDemo();
+      expect(h.state.status, SessionStatus.demo);
+      expect(h.signedOutByUser, isFalse);
+    });
+
+    test('만료로 끝난 세션은 직접 로그아웃이 아니다', () async {
+      final h = await _signedInAsA(refresh: '');
+
+      final TokenRefreshResult result = await h.controller
+          .refreshAfterUnauthorized('a-access-0');
+
+      expect(result.status, TokenRefreshStatus.rejected);
+      expect(h.state.status, SessionStatus.signedOut);
+      expect(h.signedOutByUser, isFalse);
     });
   });
 }
