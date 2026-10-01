@@ -72,6 +72,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorUnknown => '알 수 없는 오류';
 
   @override
+  String get errorForbidden => '이 기능을 쓸 권한이 없어요. 필요한 동의나 트레이너 연결을 확인해 주세요.';
+
+  @override
+  String get errorRateLimited => '요청이 많아 잠시 멈췄어요. 잠시 뒤 다시 시도해 주세요.';
+
+  @override
   String get dashboardMetricCalories => '칼로리';
 
   @override
