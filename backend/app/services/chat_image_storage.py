@@ -1,4 +1,7 @@
-"""채팅 이미지 첨부의 로컬 파일 저장소. (#921)
+"""채팅 이미지 첨부의 저장 규약. (#921)
+
+바이트를 어디에 두는지(로컬 디스크·S3)는 `attachment_store` 가 정한다(#2817).
+여기는 형식 판정과 식별자 규약만 진다.
 
 리포트 PDF 저장소(`report_pdf_storage`)와 같은 규약을 따른다 — 사용자 파일명은
 경로에 쓰지 않고, UUID 로 저장하고, 읽을 때는 DB 가 준 식별자만 받는다. 사용자
@@ -12,12 +15,10 @@ PDF 와 자리를 나눈 이유는 지우는 주기가 다르기 때문이다. �
 """
 from __future__ import annotations
 
-import os
 import re
 import uuid
-from pathlib import Path
 
-from app.core.config import get_settings
+from app.services import attachment_store
 
 _FILE_ID = re.compile(r"^[0-9a-f]{32}$")
 
@@ -32,6 +33,13 @@ _SIGNATURES: tuple[tuple[bytes, str, str], ...] = (
 _WEBP_PREFIX = b"RIFF"
 _WEBP_TAG = b"WEBP"
 
+#: 저장된 파일을 찾을 때 시도하는 (확장자, media type) 순서.
+_EXTENSIONS: tuple[tuple[str, str], ...] = (
+    ("jpg", "image/jpeg"),
+    ("png", "image/png"),
+    ("webp", "image/webp"),
+)
+
 
 class ImageStorageError(Exception):
     """저장에 실패했다."""
@@ -41,10 +49,8 @@ class UnsupportedImage(Exception):
     """바이트가 우리가 받는 이미지 형식이 아니다."""
 
 
-def _root() -> Path:
-    root = Path(get_settings().chat_image_storage_dir).resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    return root
+def _store() -> attachment_store.BlobStore:
+    return attachment_store.get_store("chat-images")
 
 
 def sniff(data: bytes) -> tuple[str, str]:
@@ -72,43 +78,34 @@ def save(data: bytes, *, file_id: str | None = None) -> tuple[str, str, str]:
         file_id = uuid.uuid4().hex
     elif not _FILE_ID.fullmatch(file_id):
         raise ImageStorageError("이미지 식별자가 올바르지 않습니다.")
-    root = _root()
-    final_path = root / f"{file_id}.{extension}"
-    temporary_path = root / f".{file_id}.tmp"
     try:
-        with temporary_path.open("xb") as output:
-            output.write(data)
-            output.flush()
-            os.fsync(output.fileno())
-        temporary_path.replace(final_path)
+        _store().put(f"{file_id}.{extension}", data, content_type=media_type)
     except OSError as exc:
-        temporary_path.unlink(missing_ok=True)
         raise ImageStorageError("이미지를 저장하지 못했습니다.") from exc
     return file_id, extension, media_type
 
 
-def path_for(file_id: str) -> tuple[Path, str]:
-    """DB 식별자만 받아 (경로, media type) 을 돌려준다.
+def open_image(file_id: str) -> tuple[attachment_store.OpenedBlob, str]:
+    """DB 식별자만 받아 (열린 첨부, media type) 을 돌려준다. 없으면 FileNotFoundError.
 
     확장자는 저장할 때 서버가 정한 것이라 여기서 다시 찾는다 — 응답에
     media type 을 실어야 브라우저가 내려받기 대신 그림으로 그린다.
     """
     if not _FILE_ID.fullmatch(file_id):
         raise FileNotFoundError(file_id)
-    root = _root()
-    for _, extension, media_type in _SIGNATURES:
-        path = root / f"{file_id}.{extension}"
-        if path.is_file():
-            return path, media_type
-    path = root / f"{file_id}.webp"
-    if path.is_file():
-        return path, "image/webp"
+    store = _store()
+    for extension, media_type in _EXTENSIONS:
+        try:
+            return store.open(f"{file_id}.{extension}"), media_type
+        except FileNotFoundError:
+            continue
     raise FileNotFoundError(file_id)
 
 
 def delete(file_id: str) -> None:
+    """[file_id] 의 이미지를 지운다. 없으면 조용히 끝난다. 저장소 장애는 OSError."""
     if not _FILE_ID.fullmatch(file_id):
         return
-    root = _root()
-    for extension in ("jpg", "png", "webp"):
-        (root / f"{file_id}.{extension}").unlink(missing_ok=True)
+    store = _store()
+    for extension, _ in _EXTENSIONS:
+        store.delete(f"{file_id}.{extension}")

@@ -122,6 +122,7 @@ from app.services import (
     notification_templates,
     trainer_report_summary_service,
     report_pdf_storage,
+    attachment_cleanup,
     trainer_routine_options_service,
     trainer_gym_search,
     trainer_service,
@@ -396,7 +397,11 @@ def trainer_delete_me(
                 reason=f"trainer_{reason}",
             )
         )
+    # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
+    # 전에 목록을 잡아 두고, 탈퇴 커밋이 끝난 뒤에 지운다(#2817).
+    attachments = attachment_cleanup.files_in_threads(db, trainer_id=trainer.id)
     trainer_service.delete_trainer_account(db, trainer)
+    attachment_cleanup.purge(attachments)
     return {"status": "deleted"}
 
 

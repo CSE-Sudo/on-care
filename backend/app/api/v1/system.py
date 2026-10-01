@@ -3,7 +3,7 @@
 
 프론트 기대 응답:
   GET /ping     -> { "message": "pong (...)" }
-  GET /healthz  -> { "status": "ok", "backend": "..." }
+  GET /healthz  -> { "status": "ok", "backend": "...", env·demo_fallback·demo_seed·attachment_storage }
   GET /version  -> { "api_version": "v1", "app_version": "..." }
 """
 from __future__ import annotations
@@ -19,6 +19,7 @@ from app.api.deps import RequireAdmin
 from app.core import metrics
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.services import attachment_store
 
 router = APIRouter(tags=["system"])
 settings = get_settings()
@@ -31,9 +32,27 @@ def ping() -> dict[str, str]:
 
 
 @router.get("/healthz")
-def healthz() -> dict[str, str]:
-    """Liveness — 프로세스 생존만 확인(DB 무관). App Runner liveness 용."""
-    return {"status": "ok", "backend": "fastapi"}
+def healthz() -> dict[str, object]:
+    """Liveness — 프로세스 생존만 확인(DB 무관). App Runner liveness 용.
+
+    배포 직후 **어떤 설정으로 떴는지**도 함께 싣는다(#2821). 백엔드의 안전장치는
+    대부분 `ENV=prod` 일 때만 켜지는데, 그 값이 실제로 들어갔는지 확인할 길이
+    없었다. 배포 워크플로가 이 응답의 `env`·`demo_fallback`·`demo_seed` 를 보고
+    운영 기대값과 다르면 실패로 처리한다. 비밀은 싣지 않는다 — 공개 엔드포인트다.
+    """
+    current = get_settings()
+    try:
+        storage = attachment_store.resolve_backend(current)
+    except RuntimeError:
+        storage = "misconfigured"
+    return {
+        "status": "ok",
+        "backend": "fastapi",
+        "env": current.env.strip().lower(),
+        "demo_fallback": current.demo_fallback_enabled,
+        "demo_seed": current.seed_demo_data,
+        "attachment_storage": storage,
+    }
 
 
 @router.get("/readyz")
