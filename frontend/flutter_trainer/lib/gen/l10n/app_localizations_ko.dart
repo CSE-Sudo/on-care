@@ -3355,6 +3355,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiSourceChatInsight => '채팅 감지 메모';
 
   @override
+  String get aiSourceRecentChat => '최근 대화';
+
+  @override
   String get aiSourceWeeklyFeedback => '회원 주간 피드백';
 
   @override

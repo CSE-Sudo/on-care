@@ -6133,6 +6133,12 @@ abstract class AppLocalizations {
   /// **'Chat-detected memos'**
   String get aiSourceChatInsight;
 
+  /// Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)
+  ///
+  /// In en, this message translates to:
+  /// **'Recent chat'**
+  String get aiSourceRecentChat;
+
   /// No description provided for @aiSourceWeeklyFeedback.
   ///
   /// In en, this message translates to:
