@@ -126,9 +126,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     }
   }
 
+  /// 이 빌드에서 소셜 로그인을 쓸 수 있는가(#2769).
+  ///
+  /// 실제 카카오·구글 연동(#330) 전이라 기기 안 목업으로 가는 데모 설정에서만
+  /// 연다. 전에는 실 인증 설정에서 이 버튼이 고정된 계정으로 바로 로그인해, 앱을
+  /// 받은 누구나 그 계정의 건강 기록을 볼 수 있었다. 연동이 끝나면 다시 연다.
+  bool get _socialAvailable => ref.read(appConfigProvider).usesMockSocialLogin;
+
   Future<void> _social(String provider) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (_loading) return;
+    if (_loading || !_socialAvailable) return;
     // 이메일 로그인과 같은 이유로 먼저 붙들어 둔다(#1927).
     // 라우터가 없는 자리(위젯 하나만 띄우는 테스트)에서는 옮길 곳도 없다.
     final GoRouter? router = GoRouter.maybeOf(context);
@@ -138,16 +145,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     );
     setState(() => _loading = true);
     try {
-      // #330: 실제 SDK 연동 시 이 분기를 provider 토큰 교환으로 교체한다.
-      final session = ref.read(sessionControllerProvider.notifier);
-      if (ref.read(appConfigProvider).usesMockSocialLogin) {
-        await session.socialLogin(
-          provider: provider,
-          token: 'demo-$provider-token',
-        );
-      } else {
-        await session.login(email: 'minsu@oncare.com', password: 'oncare123');
-      }
+      // #330: 실제 SDK 연동 시 provider 토큰 교환으로 바꾼다. 그 전에는 목업
+      // 설정만 이 길을 탄다(실 인증 설정은 버튼이 꺼져 있다).
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .socialLogin(provider: provider, token: 'demo-$provider-token');
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {
@@ -160,6 +162,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final bool socialAvailable = ref
+        .watch(appConfigProvider)
+        .usesMockSocialLogin;
     return AppAuthLayout(
       // 브랜드 — On-Care 로고 (테두리 없이 크게)
       logo: Image.asset(
@@ -232,22 +237,40 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               const SizedBox(height: OnCareSpacing.s16),
               // 전체 폭 버튼이면 로그인 버튼과 무게가 같고 화면이 길어진다 —
               // 원형 아이콘 버튼으로 가운데에 나란히 둔다(#1783).
+              //
+              // 실 인증 설정에서는 자리를 지킨 채 꺼 두고 아래에 '준비 중' 안내를
+              // 단다 — 숨기면 화면 배치가 바뀐다(#2769).
               AppSocialLoginRow(
                 children: <Widget>[
                   AppSocialLoginButton(
                     key: const ValueKey<String>('member-login-kakao'),
                     provider: AppSocialProvider.kakao,
                     label: l.authKakaoAction,
-                    onPressed: _loading ? null : () => _social('kakao'),
+                    onPressed: _loading || !socialAvailable
+                        ? null
+                        : () => _social('kakao'),
                   ),
                   AppSocialLoginButton(
                     key: const ValueKey<String>('member-login-google'),
                     provider: AppSocialProvider.google,
                     label: l.authGoogleAction,
-                    onPressed: _loading ? null : () => _social('google'),
+                    onPressed: _loading || !socialAvailable
+                        ? null
+                        : () => _social('google'),
                   ),
                 ],
               ),
+              if (!socialAvailable) ...<Widget>[
+                const SizedBox(height: OnCareSpacing.s8),
+                Text(
+                  l.authSocialComingSoon,
+                  key: const ValueKey<String>('member-login-social-soon'),
+                  textAlign: TextAlign.center,
+                  style: context.oncare
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ],
               const SizedBox(height: OnCareSpacing.s12),
             ],
             // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.

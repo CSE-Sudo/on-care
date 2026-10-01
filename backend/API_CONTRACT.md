@@ -936,6 +936,11 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
 읽어 집계한다.
 
+**로스터 카드의 나이 (#2744)**: `GET /trainer/clients` 의 각 카드는 `age`(정수 또는 `null`)를 싣는다 —
+회원 건강 프로필의 `birth_date` 로 KST 오늘 기준 만 나이를 센 값이고, 생년월일이 없거나 날짜로 읽히지
+않으면 `null` 이다. 6자리 코드 연결 확인(`POST /trainer/pairing-code/preview`)의 `age` 와 같은 함수
+(`profile_format.age_on`)로 세므로 연결 전후 나이가 같다. 앱은 `null` 이면 나이를 적지 않는다.
+
 **로스터의 PT 관리 신호 (#2203)**: `GET /trainer/clients` 의 각 카드는 `signals` 를 싣는다 —
 `[{ kind, days?, count?, percent?, direction? }]`, 급한 순. `kind` 는 `discomfort`(통증·불편) ·
 `record_gap`(기록 끊김, `days`) · `no_show`(노쇼·취소 반복, `count`) · `routine_missed`(배정 루틴
@@ -1024,6 +1029,21 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   한 줄 120자, 한 주 20줄까지. 넘으면 **422**.
 - 키는 `(member_id, week_start)` 다. 담당이 바뀌어도 그 주의 목표는 회원의 것이라,
   트레이너까지 키에 넣으면 인수인계한 주에 목록이 둘로 갈라진다.
+
+**리포트 PDF 전송 (#1378, #2771)**: 리포트 PDF 를 담당 회원 채팅으로 보낸다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `POST` | `/trainer/clients/{member_id}/report/send-pdf` | **201** 채팅 메시지(`attachment.type = "pdf"`, `report_week_start`) |
+
+- 요청은 `multipart/form-data` 다: `pdf`(파일, 필수)·`week_start`(필수)·`message`(글, **필수**)·
+  `client_request_id`(선택, 1~64자).
+- `message` 는 앞뒤 공백을 걷어 저장한다. **비었거나 공백뿐이면 422** 이고 아무것도 저장하지 않는다.
+  예전에는 서버가 한국어 기본 문장으로 채웠는데, 서버는 회원의 언어를 몰라 영어로 쓰는 회원에게도
+  한국어가 나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+- 같은 `client_request_id` 재시도는 처음 메시지를 그대로 돌려준다(한 번 전송). 같은 키에 **다른 본문**이면
+  **409** 다. 트레이너 웹은 보낼 문구가 바뀌면 새 키를 쓴다(#2773).
+- 담당이 아니거나 해제된 회원은 **404**, PDF 가 아니면 **415**, 용량 초과는 **413**.
 
 **리포트 전송 이력 (#2288)**: 그 주 리포트가 이미 나간 담당 회원들이다. 트레이너 웹 리포트
 작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기 전에 확인을 받는 근거다.
@@ -1340,6 +1360,28 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
+
+### 비밀번호 변경과 토큰 세대 (#2766)
+
+`jti` 폐기는 한 장씩이라 **다른 기기에 나간 토큰은 끊지 못한다.** 그래서 계정마다 토큰
+세대(`users.token_version`, 처음 0)를 두고, 발급하는 접근·refresh 토큰에 그 값을 `tv`
+클레임으로 싣는다. 검증하는 쪽(`deps.py` 의 모든 의존성, `POST /auth/refresh`)은 토큰의
+세대가 계정의 지금 세대와 다르면 **무효한 토큰과 같이** 다룬다 — 엄격 의존성은 401,
+`CurrentUser` 는 무효 토큰과 같은 폴백 규칙, refresh 는 401 + `auth.refresh_stale` 감사 로그
+(그 `jti` 는 폐기 표에도 적는다). `tv` 가 없는 예전 토큰은 0세대로 읽으므로 배포만으로
+끊기는 세션은 없다. 정수가 아닌 `tv` 는 거부한다.
+
+`POST /trainer/me/password` 가 성공하면 세대를 1 올려 **그 전에 발급된 이 계정의 토큰이 모두
+무효**가 된다. 요청한 기기도 예외가 아니어서, 응답에 새 세대 토큰 한 쌍을 담는다.
+
+```json
+{ "status": "changed", "access_token": "…", "refresh_token": "…", "token_type": "bearer" }
+```
+
+클라이언트는 이 토큰으로 저장소를 바꿔야 로그아웃되지 않는다(트레이너 웹
+`TrainerPasswordChangeResult`). 다른 기기는 다음 요청에서 401 → refresh 401 → 세션 만료
+안내와 함께 로그인 화면으로 간다. 변경이 실패하면(400·422) 세대는 그대로다.
+세대 비교는 회원·트레이너 공통이라, 회원 비밀번호 변경·재설정이 생기면 같은 칸을 올리면 된다.
 
 ### 의존성 네 갈래
 

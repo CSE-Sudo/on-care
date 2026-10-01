@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -91,34 +93,28 @@ class NotificationsPage extends ConsumerStatefulWidget {
     TrainerNotificationKind.memberLeft || TrainerNotificationKind.other => null,
   };
 
-  /// 알림 한 건을 연다 — 읽음 처리 후 그 알림이 가리키는 곳으로 간다. 머리의
-  /// 알림 종 팝오버(#2628)도 같은 길을 쓴다.
-  static Future<void> open(
-    BuildContext context,
-    WidgetRef ref,
-    TrainerNotification notification,
-  ) async {
+  /// 알림 한 건을 연다 — 그 알림이 가리키는 곳으로 **바로** 가고, 읽음 처리는
+  /// 뒤에서 마친다. 머리의 알림 종 팝오버(#2628)도 같은 길을 쓴다.
+  ///
+  /// 부르는 위젯은 곧 사라질 수 있다 — 팝오버는 항목을 누르는 순간 닫힌다.
+  /// 그래서 첫 비동기 작업 전에 라우터와 앱 전체의 [ProviderContainer] 를
+  /// 잡아 두고, 이후로는 그 둘만 쓴다(#2762). 전에는 읽음 요청을 기다린 뒤
+  /// 이미 닫힌 위젯의 `ref`·`context` 로 이어 가다, 안 읽은 알림만 이동도 배지
+  /// 갱신도 빠졌다.
+  static void open(BuildContext context, TrainerNotification notification) {
+    final GoRouter router = GoRouter.of(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final String? target = targetOf(notification);
-    // 읽음 처리는 이동과 무관하게 먼저 한다 — 갈 곳이 없는 알림도 확인하면
-    // 배지에서 빠져야 한다.
+    // 갈 곳이 없는 알림도 확인하면 배지에서 빠져야 한다. 요청 실패로 이동까지
+    // 막지 않는다 — 다음 조회에서 다시 미읽음으로 보이는 편이, 누른 알림이
+    // 아무 반응도 없는 것보다 낫다.
     if (!notification.read) {
-      try {
-        await ref
-            .read(trainerNotificationRepositoryProvider)
-            .markRead(notification.id);
-        // 이어 받은 과거 쪽은 다시 읽지 않으므로 여기서 읽음을 비춘다.
-        ref
-            .read(trainerNotificationPagingProvider.notifier)
-            .markRead(notification.id);
-        ref
-          ..invalidate(trainerNotificationsProvider)
-          ..invalidate(trainerUnreadNotificationsProvider);
-      } catch (_) {
-        // 읽음 처리 실패로 이동까지 막지 않는다. 다음 조회에서 다시 미읽음으로
-        // 보이는 편이, 누른 알림이 아무 반응도 없는 것보다 낫다.
-      }
+      unawaited(NotificationReadTracker(container).markRead(notification.id));
     }
-    if (target != null && context.mounted) context.go(target);
+    if (target != null) router.go(target);
   }
 
   /// 전체 읽음 처리. 머리의 알림 종 팝오버(#2628)도 같은 길을 쓴다.
@@ -195,7 +191,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final TrainerNotificationPaging paging = ref.watch(
       trainerNotificationPagingProvider,
     );
-    final unread = ref.watch(trainerUnreadNotificationsProvider).valueOrNull;
+    final int? unread = ref.watch(trainerUnreadBadgeProvider);
 
     return AppWebPage(
       title: l.notifTitle,
@@ -318,7 +314,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           }
           return NotificationTile(
             notification: rows[i],
-            onTap: () => NotificationsPage.open(context, ref, rows[i]),
+            onTap: () => NotificationsPage.open(context, rows[i]),
           );
         },
       ),

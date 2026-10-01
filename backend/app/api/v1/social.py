@@ -16,8 +16,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.rate_limit import rate_limit
-from app.core.security import create_access_token, create_refresh_token
 from app.db.session import get_db
+from app.services import auth_tokens
 from app.services.audit import client_ip, record as audit
 from app.models.models import SocialAccount, User
 from app.schemas.user import SocialLoginRequest, Token
@@ -111,7 +111,4 @@ async def social_login(
 
     user = _find_or_create_user(db, identity)
     audit(db, event="auth.social", user_id=user.id, ip=client_ip(request), success=True, detail=provider)
-    return Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
+    return auth_tokens.issue_token_pair(user)

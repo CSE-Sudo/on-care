@@ -19,6 +19,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
@@ -334,7 +335,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       destructive: true,
     );
     if (!ok || !mounted) return;
-    // The router's auth gate redirects to the login screen.
+    // The router's auth gate redirects to the login screen — 직접 로그아웃이라
+    // 지금 자리(`?from=`)를 싣지 않는다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -395,7 +397,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       return;
     }
     // 계정이 사라졌으므로 남은 토큰은 무효다 — 세션을 비워 인증 게이트가
-    // 로그인 화면으로 돌려보내게 한다.
+    // 로그인 화면으로 돌려보내게 한다. 탈퇴 화면 주소를 다음 사람이 이어 받지
+    // 않도록 `?from=` 없이 간다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -2322,10 +2325,16 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       _errorField = null;
     });
     final navigator = Navigator.of(context);
+    final SessionController session = ref.read(
+      sessionControllerProvider.notifier,
+    );
     try {
-      await ref
+      final TrainerAuthTokens? reissued = await ref
           .read(trainerAccountRepositoryProvider)
           .changePassword(currentPassword: current, newPassword: next);
+      // 서버는 변경 전에 발급한 토큰을 모두 끊는다 — 이 기기는 응답의 새 토큰으로
+      // 이어 쓴다(#2766). 다른 기기는 다음 요청 때 로그인 화면으로 간다.
+      if (reissued != null) await session.adoptReissuedTokens(reissued);
     } on NewPasswordRejected catch (e) {
       // 새 비밀번호가 서버 기준에 걸렸다 — 새 비밀번호 칸 아래에 이 앱의 문구로.
       if (mounted) {
