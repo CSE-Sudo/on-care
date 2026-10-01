@@ -10100,6 +10100,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{start} – {end}'**
   String reportsSheetPeriodValue(String start, String end);
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @passwordResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get passwordResetTitle;
+
+  /// No description provided for @passwordResetRequestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll email a reset code to the address you signed up with.'**
+  String get passwordResetRequestSubtitle;
+
+  /// No description provided for @passwordResetSendAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get passwordResetSendAction;
+
+  /// No description provided for @passwordResetHaveCode.
+  ///
+  /// In en, this message translates to:
+  /// **'I already have a code'**
+  String get passwordResetHaveCode;
+
+  /// No description provided for @passwordResetSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get passwordResetSentTitle;
+
+  /// Shown after a reset request. Same text whether or not the account exists.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account uses {email}, we\'ve sent a code you can use once within {minutes} minutes.'**
+  String passwordResetSentBody(String email, int minutes);
+
+  /// No description provided for @passwordResetConfirmSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code from the email and your new password.'**
+  String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'16-character reset code'**
+  String get passwordResetCodeHint;
+
+  /// No description provided for @passwordResetCodeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get passwordResetCodeEmpty;
+
+  /// No description provided for @passwordResetCodeMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 16-character code from the email'**
+  String get passwordResetCodeMalformed;
+
+  /// No description provided for @passwordResetCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get passwordResetCodeInvalid;
+
+  /// No description provided for @passwordResetConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get passwordResetConfirmAction;
+
+  /// No description provided for @passwordResetResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new code'**
+  String get passwordResetResend;
+
+  /// No description provided for @passwordResetDemoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode doesn\'t send email. The code is filled in for you.'**
+  String get passwordResetDemoNote;
+
+  /// No description provided for @passwordResetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send reset emails right now. Please contact support.'**
+  String get passwordResetUnavailable;
+
+  /// No description provided for @passwordResetDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset'**
+  String get passwordResetDoneTitle;
+
+  /// No description provided for @passwordResetDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your new password. You\'ve been signed out on every device.'**
+  String get passwordResetDoneBody;
+
+  /// No description provided for @passwordResetBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get passwordResetBackToSignIn;
+
+  /// No description provided for @passwordResetTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get passwordResetTooMany;
+
+  /// No description provided for @passwordResetTemporaryFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete the request. Please try again shortly.'**
+  String get passwordResetTemporaryFailure;
 }
 
 class _AppLocalizationsDelegate
