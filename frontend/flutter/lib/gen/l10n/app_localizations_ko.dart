@@ -2579,6 +2579,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aicBodyPartKnee => '무릎';
+
+  @override
+  String get aicBodyPartBack => '허리';
+
+  @override
+  String get aicBodyPartAnkle => '발목';
+
+  @override
+  String get aicBodyPartShoulder => '어깨';
+
+  @override
+  String get aicBodyPartWrist => '손목';
+
+  @override
+  String get aicBodyPartNeck => '목';
+
+  @override
   String get aicInsightDiscomfort => '통증 감지';
 
   @override

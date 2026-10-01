@@ -2010,6 +2010,30 @@
       }
     }
   },
+  "aicBodyPartKnee": "Knee",
+  "@aicBodyPartKnee": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"무릎\" or \"Knee\"."
+  },
+  "aicBodyPartBack": "Back",
+  "@aicBodyPartBack": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"허리\" or \"Back\"."
+  },
+  "aicBodyPartAnkle": "Ankle",
+  "@aicBodyPartAnkle": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"발목\" or \"Ankle\"."
+  },
+  "aicBodyPartShoulder": "Shoulder",
+  "@aicBodyPartShoulder": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"어깨\" or \"Shoulder\"."
+  },
+  "aicBodyPartWrist": "Wrist",
+  "@aicBodyPartWrist": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"손목\" or \"Wrist\"."
+  },
+  "aicBodyPartNeck": "Neck",
+  "@aicBodyPartNeck": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"목\" or \"Neck\"."
+  },
   "aicInsightDiscomfort": "Pain noted",
   "@aicInsightDiscomfort": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
