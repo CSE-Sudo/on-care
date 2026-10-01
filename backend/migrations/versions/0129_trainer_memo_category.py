@@ -7,8 +7,8 @@
 - 운동 기록 메모(`exercise_memo`, #2332)는 늘 `exercise` 다. 이미 있는 행도 채운다
 - 허용값을 체크 제약으로 못 박는다(응답 스키마가 정해진 값만 받는다)
 
-Revision ID: 0111_trainer_memo_category
-Revises: 0110_user_token_version
+Revision ID: 0129_trainer_memo_category
+Revises: 0128_close_stale_invites
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -18,8 +18,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0111_trainer_memo_category"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0129_trainer_memo_category"
+down_revision: str | Sequence[str] | None = "0128_close_stale_invites"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
