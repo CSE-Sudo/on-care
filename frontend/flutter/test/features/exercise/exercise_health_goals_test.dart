@@ -174,10 +174,6 @@ void main() {
     macros: DietMacros.zero(),
     dietEntries: 0,
     exerciseMinutes: 100,
-    exerciseCalories: 300,
-    exerciseCount: 2,
-    weekScore: 0,
-    weekScoreDelta: 0,
     sodiumWarning: null,
   );
 

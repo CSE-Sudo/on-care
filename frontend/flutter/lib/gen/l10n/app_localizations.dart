@@ -278,6 +278,18 @@ abstract class AppLocalizations {
   /// **'Start moving this week — an easy walk is a good beginning.'**
   String get homeAdviceExerciseStart;
 
+  /// Home AI advice when today's sodium is over the goal, naming the foods that added the most sodium. {foods} is the member's own food names, not translated (#2644).
+  ///
+  /// In en, this message translates to:
+  /// **'Sodium is high from {foods}.'**
+  String homeAdviceSodiumOverSources(String foods);
+
+  /// Joins the two top sodium foods in the home AI advice (#2644).
+  ///
+  /// In en, this message translates to:
+  /// **'{first} and {second}'**
+  String homeAdviceFoodPair(String first, String second);
+
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:

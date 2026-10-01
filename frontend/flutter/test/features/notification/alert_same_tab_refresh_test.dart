@@ -26,8 +26,6 @@ const DashboardSummary _summary = DashboardSummary(
   macros: DietMacros.zero(),
   dietEntries: 0,
   exerciseMinutes: 0,
-  weekScore: 0,
-  weekScoreDelta: 0,
   sodiumWarning: null,
 );
 

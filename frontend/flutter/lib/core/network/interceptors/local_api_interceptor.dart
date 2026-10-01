@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         OrderingMode,
         OrderingTerm,
         Value;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
@@ -306,6 +307,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         );
     // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
     _refundShieldOnDate(_todayDateString());
+    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -386,10 +388,17 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
   Future<Response<Object?>> _dietDelete(RequestOptions options) async {
     final id = options.path.split('/').last;
+    // 지우기 전에 날짜를 읽어 둔다 — 그날의 큐레이션 문장을 거둬야 한다.
+    final DietEntryRow? existing = await (_db.select(
+      _db.dietEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     final n = await (_db.delete(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).go();
     if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    await _retireCuratedAdvice(
+      dietDates: <String>[if (existing != null) existing.date],
+    );
     // 이 끼니로 받은 포인트를 회수한다 — 실서버와 같은 규칙이다(#1786).
     _points.revoke(PointsRule.dietEntry.sourceType, id);
     return _ok(options, <String, Object?>{'status': 'deleted'});
@@ -406,6 +415,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).go();
     _points.revoke(PointsRule.exerciseManual.sourceType, id);
+    await _retireCuratedAdvice();
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 
@@ -416,9 +426,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       Response<Object?>(
         requestOptions: options,
         statusCode: 409,
-        data: <String, Object?>{
-          'detail': '코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.',
-        },
+        data: <String, Object?>{'detail': '코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.'},
       );
 
   Future<Response<Object?>> _exerciseUpdate(RequestOptions options) async {
@@ -502,6 +510,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     );
     // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
     return _ok(
       options,
       _sessionJson(
@@ -625,6 +634,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           ),
         );
     _refundShieldOnDate(day);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
     final row = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingle();
@@ -747,6 +757,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     )..where((t) => t.id.equals(id))).getSingle();
     // 옮겨 간 날이 보호한 날이면 보호권을 돌려준다(#1788).
     _refundShieldOnDate(row.date);
+    // 날짜를 옮긴 수정이면 떠난 날과 옮겨 간 날이 모두 바뀌었다.
+    await _retireCuratedAdvice(
+      dietDates: <String>{existing.date, row.date}.toList(),
+    );
     final foods = jsonDecode(row.foodsJson) as List<Object?>;
     final macros = _foodMacroTotals(foods);
     return _ok(options, <String, Object?>{
@@ -791,10 +805,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   // ---- Dashboard ----
 
   Future<Response<Object?>> _dashboardSummary(RequestOptions options) async {
-    // 서버가 만드는 문장은 요청 언어(`Accept-Language`)로 낸다(#2721).
-    final Object? lang = options.headers['Accept-Language'];
-    final bool english = lang is String && lang.toLowerCase().startsWith('en');
-    String say(String ko, String en) => english ? en : ko;
     final today = _todayDateString();
     final profile = await _mergedProfile();
     final int calorieGoal =
@@ -841,14 +851,16 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         final sodiumOrder = b.value.compareTo(a.value);
         return sodiumOrder != 0 ? sodiumOrder : a.key.compareTo(b.key);
       });
-    final sodiumSourceNames = sodiumSources
-        .take(2)
-        .map((source) => source.key)
-        .join('·');
+    // 경고가 짚는 상위 급원 두 개. 서버(`dashboard._SODIUM_SOURCE_COUNT`)와 같다.
+    final List<String> sodiumSourceNames = <String>[
+      for (final MapEntry<String, int> source in sodiumSources.take(2))
+        source.key,
+    ];
+    final String lang = _requestLang(options);
 
     // 데모 시드가 큐레이션 '통합 조언'을 준비해 뒀는지. 있으면 그것을 우선
-    // 노출하고, 없으면(시드 없는 테스트 DB 등) 나트륨 상위 급원 기반 경고를
-    // 동적으로 생성한다.
+    // 노출하고, 없으면(시드 없는 테스트 DB, 회원이 기록을 바꿔 거둔 뒤 —
+    // [_retireCuratedAdvice]) 나트륨 상위 급원 기반 경고를 동적으로 생성한다.
     final seededAdvice = await _db.readValue('dashboard_ai_advice');
     final bool hasSeededAdvice =
         seededAdvice != null && seededAdvice.isNotEmpty;
@@ -859,10 +871,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       _db.exerciseSessions,
     )..where((t) => t.weekStart.equals(weekStart))).get();
     int exerciseMinutes = 0;
-    int exerciseCalories = 0;
     for (final r in exerciseRows) {
       exerciseMinutes += r.minutes;
-      exerciseCalories += r.calories;
     }
 
     // (혈당 row removed from the home summary per the latest design ref —
@@ -893,23 +903,21 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           ...nutritionByDate[_dateString(monday.add(Duration(days: index)))]!,
         },
     ];
-    final loggedNutritionDays = nutritionWeek
-        .where((day) => (day['calories']! as num) > 0)
-        .toList();
-    final averageSodium = loggedNutritionDays.isEmpty
-        ? totalSodium.toDouble()
-        : loggedNutritionDays.fold<double>(
-                0,
-                (total, day) => total + (day['sodium_mg']! as num).toDouble(),
-              ) /
-              loggedNutritionDays.length;
-    var score = 50;
-    if (averageSodium <= sodiumGoal) score += 20;
-    if (exerciseMinutes >= 150) {
-      score += 30;
-    } else if (exerciseMinutes > 0) {
-      score += 15;
-    }
+    final String? sodiumWarning = _homeSodiumWarning(
+      lang: lang,
+      totalSodium: totalSodium,
+      sodiumGoal: sodiumGoal,
+      sourceNames: sodiumSourceNames,
+    );
+    final ({String key, String text}) exerciseFeedback = _homeExerciseFeedback(
+      lang: lang,
+      minutes: exerciseMinutes,
+    );
+    final String adviceKey = hasSeededAdvice
+        ? kDailyCombinedAdviceKey
+        : sodiumWarning != null
+        ? (sodiumSourceNames.isEmpty ? 'sodium_over' : 'sodium_over_sources')
+        : exerciseFeedback.key;
 
     return _ok(options, <String, Object?>{
       'indicators': <Map<String, Object?>>[
@@ -938,48 +946,83 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
       'diet_entries': dietRows.length,
       'exercise_minutes': exerciseMinutes,
-      'exercise_calories': exerciseCalories,
-      // 운동 횟수 = 운동한 '일수'(활성 일수). 운동 화면의 workoutCount 와 정의를
-      // 맞춰, 하루에 여러 세션을 기록해도 1회로 센다(세션 행 수가 아니라 distinct 요일).
-      'exercise_count': exerciseRows.map((r) => r.dayLabel).toSet().length,
+      // 주간 점수·지난 주 비교선·운동 칼로리·횟수는 서버처럼 싣지 않는다 — 홈이
+      // 읽지 않는다(#2646).
       'nutrition_week': nutritionWeek,
-      'nutrition_week_prev': <Object?>[],
-      'week_score': score,
-      // Delta is a static demo number for now — full week-over-week
-      // diff lands in a later phase.
-      'week_score_delta': 12,
       // 시드가 큐레이션한 통합 조언은 **키로** 내려보낸다 — 문장은 ARB 가
       // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
-      'ai_advice_key': hasSeededAdvice ? kDailyCombinedAdviceKey : null,
-      // 시드 조언이 없을 때(시드 없는 테스트 DB 등)만 나트륨 급원 기반 경고를
-      // 동적으로 만든다. 서버처럼 요청 언어로 만든다(#2721).
-      'sodium_warning': hasSeededAdvice
-          ? null
-          : totalSodium > sodiumGoal
-          ? sodiumSourceNames.isNotEmpty
-                ? say(
-                    '$sodiumSourceNames 섭취로 나트륨이 높아요.',
-                    'High sodium from '
-                        '${sodiumSourceNames.replaceAll('·', ', ')}.',
-                  )
-                : say(
-                    '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.',
-                    "Today's sodium is ${totalSodium}mg, "
-                        'over the recommended ${sodiumGoal}mg.',
-                  )
-          : null,
-      'exercise_feedback': exerciseMinutes >= 60
-          ? say(
-              '이번 주 운동 목표를 달성했어요! 마무리 스트레칭도 잊지 마세요.',
-              "You've hit this week's workout goal! "
-                  "Don't forget a cool-down stretch.",
-            )
-          : say(
-              '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요!',
-              "You're 80% of the way to this week's workout goal! "
-                  'Add a light walk today to reach 100%.',
-            ),
+      //
+      // 시드 조언이 없으면 서버와 같은 순서로 고른다 — 나트륨 경고가 있으면
+      // 그것, 없으면 이번 주 운동 되먹임이다. 음식 이름이 든 경고도 키와 음식
+      // 이름 인자로 싣는다(#2644).
+      'ai_advice_key': adviceKey,
+      'ai_advice_params': <String, Object?>{
+        if (adviceKey == 'sodium_over_sources') 'foods': sodiumSourceNames,
+      },
+      // 키를 모르는 화면이 읽는 문장. 서버처럼 요청 언어를 따른다.
+      'sodium_warning': hasSeededAdvice ? null : sodiumWarning,
+      'exercise_feedback': exerciseFeedback.text,
     });
+  }
+
+  /// 홈 나트륨 경고 — 서버 `dashboard._build_sodium_warning` 과 같은 문장.
+  /// 목표 안이면 null. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+  static String? _homeSodiumWarning({
+    required String lang,
+    required int totalSodium,
+    required int sodiumGoal,
+    required List<String> sourceNames,
+  }) {
+    if (totalSodium <= sodiumGoal) return null;
+    final bool en = lang == 'en';
+    if (sourceNames.isEmpty) {
+      return en
+          ? 'Sodium is at ${totalSodium}mg today, over your target (${sodiumGoal}mg).'
+          : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.';
+    }
+    return en
+        ? 'Sodium is high from ${sourceNames.join(' and ')}.'
+        : '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
+  }
+
+  /// 이번 주 운동 되먹임 — 서버 `dashboard._exercise_feedback` 과 같은 기준
+  /// (주 150분)·같은 문장·같은 키.
+  static ({String key, String text}) _homeExerciseFeedback({
+    required String lang,
+    required int minutes,
+  }) {
+    final bool en = lang == 'en';
+    if (minutes >= 150) {
+      return (
+        key: 'exercise_on_track',
+        text: en
+            ? 'You worked out $minutes minutes this week. You are on track!'
+            : '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!',
+      );
+    }
+    if (minutes > 0) {
+      return (
+        key: 'exercise_more',
+        text: en
+            ? 'You worked out $minutes minutes this week. A little more to go!'
+            : '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!',
+      );
+    }
+    return (
+      key: 'exercise_start',
+      text: en
+          ? 'Start moving this week — an easy walk is a good beginning.'
+          : '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.',
+    );
+  }
+
+  /// 요청의 화면 언어 — `Accept-Language` 가 영어면 `en`, 아니면 `ko`.
+  /// 서버 `core.locale` 처럼 지원하지 않는 언어는 한국어로 떨어진다.
+  static String _requestLang(RequestOptions options) {
+    final Object? header = options.headers['Accept-Language'];
+    return header is String && header.trim().toLowerCase().startsWith('en')
+        ? 'en'
+        : 'ko';
   }
 
   // ---- Diet ----
@@ -1151,9 +1194,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'total_sodium_mg': totalSodium,
       'total_sugar_g': totalSugar,
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
-      'ai_coach_message':
-          await _dietDayMessage(date) ??
-          _derivedDietDayMessage(totalSodium: totalSodium, empty: rows.isEmpty),
+      'ai_coach_message': await _dietDayCoachMessage(
+        options,
+        date: date,
+        totalSodium: totalSodium,
+        empty: rows.isEmpty,
+      ),
     });
   }
 
@@ -1384,9 +1430,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
   /// 홈이 담당을 확인해 그리지 않는다.
   Map<String, Object?> _demoTrainerPick(RequestOptions options) {
-    final Object? header = options.headers['Accept-Language'];
-    final String lang =
-        header is String && header.toLowerCase().startsWith('en') ? 'en' : 'ko';
+    final String lang = _requestLang(options);
     final DemoPlanMenu menu = (kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!)
         .firstWhere(
           (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
@@ -1398,6 +1442,65 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'keyword': menu.keyword,
       'trainer_name': kDemoTrainerName,
     };
+  }
+
+  /// 하루 식단 코치 문장(`ai_coach_message`). 실 서버 `diet_service.build_day`
+  /// 와 같은 규칙이다(#2644).
+  ///
+  /// - 한국어 화면이면 시드가 정해 둔 그날의 큐레이션 문장을 먼저 쓴다. 픽스처
+  ///   문장이 한국어뿐이라, 영어 화면에서는 건너뛰고 수치 기반 문장을 쓴다.
+  /// - 수치 기반 문장은 지난 날짜면 그날을 되짚고, 나트륨 기준은 회원 목표다.
+  Future<String> _dietDayCoachMessage(
+    RequestOptions options, {
+    required String date,
+    required int totalSodium,
+    required bool empty,
+  }) async {
+    final String lang = _requestLang(options);
+    if (lang == 'ko') {
+      final String? curated = await _dietDayMessage(date);
+      if (curated != null) return curated;
+    }
+    final Map<String, Object?> profile = await _mergedProfile();
+    return derivedDietDayMessage(
+      lang: lang,
+      totalSodium: totalSodium,
+      empty: empty,
+      isPast: date.compareTo(_todayDateString()) < 0,
+      sodiumLimit: (profile['daily_sodium_mg'] as num?)?.toInt(),
+    );
+  }
+
+  /// 회원이 식단·운동 기록을 바꿨다 — 시드가 큐레이션해 둔 문장을 거둔다(#2645).
+  ///
+  /// 홈 '오늘의 AI 통합 조언'(`dashboard_ai_advice`)과 식단 탭의 하루 코치
+  /// 문장([kDietDayMessagesKey])은 시드의 기록에 맞춰 쓴 글이다. 기록을 지우거나
+  /// 고친 뒤에도 남아 있으면, 끼니를 다 지운 홈이 여전히 "짬뽕 …" 을 말한다. 기록이
+  /// 바뀐 뒤로는 실 서버처럼 지금 기록으로 만든 조언을 낸다.
+  ///
+  /// 통합 조언은 식단·운동 어느 쪽이 바뀌어도 거두고, 하루 코치 문장은
+  /// [dietDates] 의 날짜만 거둔다. 다음 날 시드가 새로 깔리면 다시 채워진다.
+  Future<void> _retireCuratedAdvice({
+    List<String> dietDates = const <String>[],
+  }) async {
+    await _db.deleteValue('dashboard_ai_advice');
+    if (dietDates.isEmpty) return;
+    final String? raw = await _db.readValue(kDietDayMessagesKey);
+    if (raw == null || raw.isEmpty) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, Object?>) return;
+    final Map<String, Object?> messages = Map<String, Object?>.of(decoded);
+    final int before = messages.length;
+    for (final String date in dietDates) {
+      messages.remove(date);
+    }
+    if (messages.length == before) return;
+    await _db.putValue(kDietDayMessagesKey, jsonEncode(messages));
   }
 
   /// 시드가 정해 둔 그 날짜의 코치 문구. 없으면 null.
@@ -1417,16 +1520,50 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     }
   }
 
-  /// 시드에 문장이 없는 날짜용 — 그날의 수치를 보고 만든 문구.
-  String _derivedDietDayMessage({
+  /// 회원 나트륨 목표가 없을 때의 하루 상한. 서버 `SODIUM_LIMIT_MG` 와 같다.
+  static const int _kDefaultSodiumLimitMg = 2000;
+
+  /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
+  ///
+  /// 실 서버 `diet_service.coach_message` 와 **같은 문장**이다. [isPast] 면
+  /// 그날을 되짚는다 — 지난 날짜를 보면서 "오늘 … 저녁은" 을 읽지 않게(#2644).
+  /// 나트륨 기준은 [sodiumLimit](회원 목표), 없으면 2,000mg 이다.
+  @visibleForTesting
+  static String derivedDietDayMessage({
+    required String lang,
     required int totalSodium,
     required bool empty,
+    bool isPast = false,
+    int? sodiumLimit,
   }) {
-    if (empty) return '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
-    if (totalSodium > 2000) {
-      return '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+    final bool en = lang == 'en';
+    final int limit = sodiumLimit ?? _kDefaultSodiumLimitMg;
+    if (isPast) {
+      if (totalSodium > limit) {
+        return en
+            ? 'Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.'
+            : '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
+      }
+      if (empty) {
+        return en ? 'No meals were logged that day.' : '이날은 식단 기록이 없어요.';
+      }
+      return en
+          ? 'A well-balanced day with sodium within your target.'
+          : '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
     }
-    return '균형 잡힌 하루였어요. 내일도 이대로 가요!';
+    if (totalSodium > limit) {
+      return en
+          ? 'You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!'
+          : '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+    }
+    if (empty) {
+      return en
+          ? 'No meals logged today yet. Want to log your first meal?'
+          : '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
+    }
+    return en
+        ? 'A well-balanced day. Keep it up tomorrow!'
+        : '균형 잡힌 하루였어요. 내일도 이대로 가요!';
   }
 
   /// 음식 목록에서 탄·단·지 한 항목의 합. `diet_entries` 에는 탄단지 칼럼이
@@ -1572,6 +1709,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
+    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
 
     return _ok(options, <String, Object?>{
       'entry_id': id,
@@ -2308,7 +2446,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 검사를 마친 기록 한 건을 drift 에 넣고 응답 한 칸과 적립을 돌려준다.
   /// `ex-` 접두(`seed-` 가 아닌)라 seedIfEmpty 가 지우지 않는다.
   Future<({Map<String, Object?> session, PointsAward points})>
-  _insertExerciseSession(Map<String, Object?> payload, {required String id}) async {
+  _insertExerciseSession(
+    Map<String, Object?> payload, {
+    required String id,
+  }) async {
     final type = (payload['type'] as String?) ?? 'cardio';
     final durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
     final minutes = _minutesOf(payload);
@@ -2354,6 +2495,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         );
     // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
 
     return (
       session: _sessionJson(
@@ -2455,9 +2597,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// `uncomplete_assigned_routine` 의 대역이다. 회원 수기 기록은 건드리지 않는다.
   @override
   Future<void> removeAssignedRoutineSession(String id) async {
-    await (_db.delete(_db.exerciseSessions)..where(
-          (t) => t.id.equals(id) & t.source.equals('assigned_routine'),
-        ))
+    await (_db.delete(_db.exerciseSessions)
+          ..where((t) => t.id.equals(id) & t.source.equals('assigned_routine')))
         .go();
   }
 

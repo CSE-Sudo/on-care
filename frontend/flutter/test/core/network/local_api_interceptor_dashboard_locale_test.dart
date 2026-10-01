@@ -38,13 +38,14 @@ void main() {
 
   test('영어 요청이면 운동 피드백이 영어다', () async {
     final Map<String, Object?> body = await summary(lang: 'en');
-    expect(body['ai_advice_key'], isNull);
+    // 시드 조언이 없으면 운동 피드백 키를 싣고(#2644), 옛 앱이 읽는 문장도 영어다.
+    expect(body['ai_advice_key'], 'exercise_start');
     final String feedback = body['exercise_feedback']! as String;
     expect(_hangul.hasMatch(feedback), isFalse);
   });
 
   test('헤더가 없으면 예전 한국어 문장이다', () async {
     final Map<String, Object?> body = await summary();
-    expect(body['exercise_feedback'], startsWith('주간 운동 목표'));
+    expect(body['exercise_feedback'], startsWith('이번 주 운동을 시작해'));
   });
 }
