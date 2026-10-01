@@ -350,9 +350,7 @@ void main() {
     });
   });
 
-  testWidgets('위저드에서 고친 초·버티는 초가 편집기에 그대로 열린다 (#2521)', (
-    tester,
-  ) async {
+  testWidgets('위저드에서 고친 초·버티는 초가 편집기에 그대로 열린다 (#2521)', (tester) async {
     await pumpEditor(tester);
     await tester.pumpWidget(
       buildApp(const <AiRoutineItem>[
@@ -437,10 +435,7 @@ void main() {
       expect(sendRect.height, 36);
       expect(dateRect.bottom - dateRect.top, greaterThan(sendRect.height));
       expect(
-        find.descendant(
-          of: date,
-          matching: find.byIcon(AppIcons.calendar),
-        ),
+        find.descendant(of: date, matching: find.byIcon(AppIcons.calendar)),
         findsOneWidget,
       );
     });
@@ -552,6 +547,71 @@ void main() {
             .onPressed,
         isNull,
       );
+    });
+
+    group('전송 때문에 막힌 일정 추가의 툴팁 (#2752)', () {
+      Future<String> tooltipWhile(
+        WidgetTester tester, {
+        required bool sending,
+        required bool sent,
+      }) async {
+        Widget app(List<AiRoutineItem> suggestions) => MaterialApp(
+          locale: const Locale('ko'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ProgramEditorWorkspace(
+                clientGoal: '체중 감량',
+                aiSuggestions: suggestions,
+                onSend: (_) => fail('막힌 버튼으로 전송되면 안 됨'),
+                registerDate: DateTime(2026),
+                onRegisterDateChanged: (_) {},
+                registerStartTime: const TimeOfDay(hour: 10, minute: 0),
+                registerEndTime: const TimeOfDay(hour: 11, minute: 0),
+                onRegisterTimeRangeChanged: (_) {},
+                sending: sending,
+                sent: sent,
+              ),
+            ),
+          ),
+        );
+        // 편집기는 빈 상태로 열린다(#1028) — 추천을 넘겨 운동이 든 구성을
+        // 만든다. 운동이 없으면 그 이유가 툴팁을 차지한다.
+        await tester.pumpWidget(app(const <AiRoutineItem>[]));
+        await tester.pump();
+        await tester.pumpWidget(
+          app(List<AiRoutineItem>.of(duplicateSuggestions)),
+        );
+        await tester.pump();
+        final button = find.byKey(
+          const ValueKey<String>('program-editor-send'),
+        );
+        expect(tester.widget<AppButton>(button).onPressed, isNull);
+        return tester
+                .widget<Tooltip>(
+                  find
+                      .ancestor(of: button, matching: find.byType(Tooltip))
+                      .first,
+                )
+                .message ??
+            '';
+      }
+
+      testWidgets('방금 보낸 구성이면 그렇다고 말한다', (tester) async {
+        expect(
+          await tooltipWhile(tester, sending: true, sent: true),
+          '방금 보낸 구성이에요. 새 구성을 반영하면 다시 보낼 수 있어요',
+        );
+      });
+
+      testWidgets('보내는 중이면 진행 중이라고 말한다', (tester) async {
+        expect(
+          await tooltipWhile(tester, sending: true, sent: false),
+          '일정에 추가하는 중이에요',
+        );
+      });
     });
 
     testWidgets('날짜·시각 칩은 다이얼로그 없이 박스 하단에 바로 보인다', (tester) async {

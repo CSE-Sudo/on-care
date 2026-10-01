@@ -402,7 +402,9 @@ def _week_completion(hist_rows: list[RoutineHistory], monday: date) -> list[int]
 
 
 def _week_days(
-    rows: list[ExerciseSession], week: list[int]
+    rows: list[ExerciseSession],
+    week: list[int],
+    assigned: list[int | None] | None = None,
 ) -> list[WeeklyReportDayOut]:
     """요일별 이행률 + 그날 **실제로 한** 운동(월→일).
 
@@ -417,6 +419,9 @@ def _week_days(
 
     [rows] 는 한 주치 기록이다. 운동 기록은 날짜가 아니라 (그 주 월요일, 요일)
     로 저장되므로 요일 라벨만으로 자리가 정해진다.
+
+    [assigned] 는 요일별 그날 걸려 있던 추천 개인운동 수다(#2772,
+    [_assigned_week]). 모르는 날은 null 로 둔다.
     """
     by_weekday: dict[int, list[str]] = {}
     for row in rows:
@@ -432,9 +437,47 @@ def _week_days(
         WeeklyReportDayOut(
             completion=week[i] if i < len(week) else 0,
             exercises=by_weekday.get(i, []),
+            assigned=assigned[i] if assigned and i < len(assigned) else None,
         )
         for i in range(7)
     ]
+
+
+def _meal_counts(diet_rows: list[DietEntry], monday: date) -> list[int]:
+    """그 주(월→일) 요일별 끼니 기록 수 — 그날 `DietEntry` 수. (#2772)
+
+    칼로리·나트륨과 **같은 창**이다. 기록 없는 날과 아직 오지 않은 날은 0 이다.
+    """
+    by_date: dict[str, int] = {}
+    for e in diet_rows:
+        by_date[e.date] = by_date.get(e.date, 0) + 1
+    return [
+        by_date.get((monday + timedelta(days=off)).isoformat(), 0)
+        for off in range(7)
+    ]
+
+
+def _assigned_week(
+    db: Session, trainer_id: str, member_id: str, monday: date
+) -> list[int | None]:
+    """그 주(월→일) 요일별로 그날 걸려 있던 추천 개인운동 수. (#2772)
+
+    추천 개인운동은 매일 리셋되는 목록이라(#2161) 그날의 분모는 "그날 걸려
+    있던 배정" 이다 — 회원 화면과 같은 규칙인 [member_routine_days] 로 센다.
+    리포트를 쓰는 트레이너의 배정만 센다.
+
+    배정이 하나도 없던 날과 아직 오지 않은 날은 null 이다. 0 은 쉬는 날과
+    구분되지 않아 쓰지 않는다 — 화면이 `0 / 0` 을 그리면 안 한 날처럼 읽힌다
+    (#2232, 데모 `assignedCount` 와 같은 규칙).
+    """
+    out: list[int | None] = [None] * 7
+    for day in member_routine_days(
+        db, member_id, monday, monday + timedelta(days=6), trainer_id=trainer_id
+    ):
+        offset = (day.date - monday).days
+        if 0 <= offset < 7 and day.routines:
+            out[offset] = len(day.routines)
+    return out
 
 
 def _latest_by_member(
@@ -1545,8 +1588,19 @@ ROUTINE_PENDING = "pending"
 #: 제안 검토 목록에 섞이면 트레이너가 같은 운동을 두 번 검토하게 된다.
 ROUTINE_SCHEDULED = "scheduled"
 ROUTINE_DISMISSED = "dismissed"
+#: 프로그램 만들기의 개인운동 단계를 채웠고 그 전송에 실려 나간 AI 제안(#2747).
+#: 회원이 받는 것은 전송이 새로 만든 배정 행이고, 이 행은 "어느 제안이 그 전송의
+#: 출처였나" 만 남긴다. `approved` 로 두면 같은 운동이 회원 목록에 두 벌 걸리고,
+#: `dismissed` 로 두면 "추천하지 않기로 함" 과 뜻이 섞인다.
+ROUTINE_CONSUMED = "consumed"
 ROUTINE_STATUSES = frozenset(
-    {ROUTINE_APPROVED, ROUTINE_PENDING, ROUTINE_SCHEDULED, ROUTINE_DISMISSED}
+    {
+        ROUTINE_APPROVED,
+        ROUTINE_PENDING,
+        ROUTINE_SCHEDULED,
+        ROUTINE_DISMISSED,
+        ROUTINE_CONSUMED,
+    }
 )
 
 #: 전송 종류(#2223, #2225). 개인운동 행에 남겨 이력이 "무엇과 함께 갔는지" 를
@@ -2170,6 +2224,40 @@ def dismiss_routine_suggestion(
     return _routine_out(db, row)
 
 
+def _consume_routine_suggestions(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    suggestion_ids: Sequence[str],
+) -> None:
+    """전송에 실려 나간 대기 제안을 닫는다(#2747). **커밋하지 않는다.**
+
+    배정을 만드는 쪽과 같은 트랜잭션이어야 한다 — 전송이 실패하면 제안도 대기로
+    남아 트레이너가 다시 보낼 수 있다. 이 트레이너·이 회원의 **대기 중** 제안만
+    닫고 나머지 id(남의 것·없는 것·이미 검토한 것)는 조용히 무시한다: 같은
+    위저드를 두 창에서 열어 한쪽이 먼저 보냈을 때 다른 쪽 전송까지 막을 까닭이
+    없다.
+    """
+    ids = list(dict.fromkeys(i for i in suggestion_ids if i))
+    if not ids:
+        return
+    db.execute(
+        update(TrainerRoutine)
+        .where(
+            TrainerRoutine.id.in_(ids),
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_PENDING,
+        )
+        .values(
+            status=ROUTINE_CONSUMED,
+            reviewed_at=clock.now(),
+            reviewed_by=trainer_id,
+        )
+        .execution_options(synchronize_session=False)
+    )
+
+
 def complete_assigned_routine(
     db: Session,
     trainer_id: str | None,
@@ -2620,6 +2708,7 @@ def assign_program(
     trainer_message: str = "",
     start_date: date | None = None,
     active_days: int | None = None,
+    suggestion_ids: Sequence[str] = (),
     chat_card: bool = True,
 ) -> list[RoutineOut]:
     """다중 세션 프로그램을 회원에게 배정한다. 세션 하나가 루틴 한 건이 된다. (#709)
@@ -2647,6 +2736,10 @@ def assign_program(
     개인운동은 매일 새로 체크하는 목록이고 그 기간은 `active_from`~`ended_on`
     이 정하므로(#2161), `개인운동만` 은 7 을 보내 보낸 날부터 한 주만 걸어
     둔다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
+
+    [suggestion_ids] 는 이 전송의 개인운동을 채운 대기 중 AI 제안이다(#2747).
+    배정과 같은 트랜잭션에서 닫아, 보낸 제안이 다음 위저드에 다시 뜨거나 대기
+    백로그를 차지해 새 제안을 막지 않게 한다.
     """
     if client_request_id:
         existing = _program_routines_for_request(
@@ -2675,6 +2768,7 @@ def assign_program(
             start_date=start_date,
             active_days=active_days,
         )
+        _consume_routine_suggestions(db, trainer_id, member_id, suggestion_ids)
     except IntegrityError:
         db.rollback()
         if client_request_id:
@@ -5164,6 +5258,7 @@ def update_scheduled_routines(
     trainer_id: str,
     session_id: str,
     items: Sequence[PersonalRoutineItem],
+    suggestion_ids: Sequence[str] = (),
 ) -> list[RoutineOut] | None:
     """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
 
@@ -5183,6 +5278,10 @@ def update_scheduled_routines(
     - 소유 슬롯 아님 → None(404).
     - 빈 목록으로 비우려 함 → ScheduleError.
     - 처음 붙이는데 붙일 수 없는 PT → ScheduleError(`_ensure_routine_attachable`).
+
+    [suggestion_ids] 는 이 개인운동을 채운 대기 중 AI 제안이다(#2747) —
+    프로그램 만들기와 같이 같은 트랜잭션에서 `consumed` 로 닫는다. 실패하면
+    (404·400) 제안은 대기로 남는다.
     """
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
@@ -5210,9 +5309,12 @@ def update_scheduled_routines(
             exercise_date=s.date,
             client_request_id=None,
         )
+        _consume_routine_suggestions(db, trainer_id, s.member_id, suggestion_ids)
         db.commit()
         return list_scheduled_routines(db, trainer_id, session_id)
     _rewrite_scheduled_routines(db, rows, items)
+    if s.member_id:
+        _consume_routine_suggestions(db, trainer_id, s.member_id, suggestion_ids)
     db.commit()
     return list_scheduled_routines(db, trainer_id, session_id)
 
@@ -5339,6 +5441,7 @@ def assign_program_with_schedule(
     client_request_id: str | None = None,
     session_id: str | None = None,
     personal_routines: Sequence[PersonalRoutineItem] = (),
+    suggestion_ids: Sequence[str] = (),
 ) -> ProgramScheduleOut | None:
     """프로그램을 회원에게 배정하고 PT 일정에 올린다 — 둘 다 되거나 둘 다 안 된다. (#1580)
 
@@ -5355,6 +5458,9 @@ def assign_program_with_schedule(
     같은 트랜잭션에서 그 일정에 붙여 두기만 하고 회원에게는 보내지 않는다 —
     보내는 것은 PT 완료 때다(#2224). 일정이 정해진 뒤에 넣어야 붙일 id 가
     있으므로 프로그램 루틴보다 나중에 만든다.
+
+    [suggestion_ids] 는 그 개인운동을 채운 대기 중 AI 제안이다(#2747). 같은
+    트랜잭션에서 닫는다 — 등록이 실패하면 제안도 대기로 남는다.
     """
     client_link = db.scalar(
         select(TrainerClient)
@@ -5464,6 +5570,7 @@ def assign_program_with_schedule(
         exercise_date=session.date,
         client_request_id=client_request_id,
     )
+    _consume_routine_suggestions(db, trainer_id, member_id, suggestion_ids)
     db.commit()
     for rt in routines:
         db.refresh(rt)
@@ -6333,7 +6440,12 @@ class RoutineDay:
 
 
 def member_routine_days(
-    db: Session, member_id: str, start: date, end: date
+    db: Session,
+    member_id: str,
+    start: date,
+    end: date,
+    *,
+    trainer_id: str | None = None,
 ) -> list[RoutineDay]:
     """[start]~[end](양끝 포함)의 날마다 걸려 있던 추천 개인운동과 그날 완료. (#2161)
 
@@ -6348,11 +6460,15 @@ def member_routine_days(
     — 읽기만 한다.
 
     쿼리는 기간 길이와 무관하게 둘이다(배정, 완료).
+
+    [trainer_id] 를 주면 그 트레이너의 배정만 읽는다 — 트레이너 리포트(#2772)
+    가 자기가 보낸 배정으로 분모를 세는 자리다. 생략하면 지금의 담당이다.
     """
     end = min(end, clock.today())
     if end < start:
         return []
-    trainer_id = get_member_trainer_id(db, member_id)
+    if trainer_id is None:
+        trainer_id = get_member_trainer_id(db, member_id)
     start_iso, end_iso = start.isoformat(), end.isoformat()
     rows = db.scalars(
         select(TrainerRoutine)
@@ -6737,7 +6853,9 @@ def build_weekly_report(
         # 열 때 칸 안의 줄 순서가 바뀐다.
         .order_by(ExerciseSession.completed_at, ExerciseSession.id)
     ).all()
-    days = _week_days(list(exercise_rows), week)
+    days = _week_days(
+        list(exercise_rows), week, _assigned_week(db, trainer_id, member_id, monday)
+    )
     recorded = [d for d in week if d > 0]
     # 기록이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이 된다.
     completion_avg = round(sum(recorded) / len(recorded)) if recorded else None
@@ -6790,6 +6908,7 @@ def build_weekly_report(
         carbs_week=_macro_week(diet_rows, monday, lambda e: e.carbs_g),
         protein_week=_macro_week(diet_rows, monday, lambda e: e.protein_g),
         fat_week=_macro_week(diet_rows, monday, lambda e: e.fat_g),
+        meal_counts=_meal_counts(diet_rows, monday),
         message="",
     )
     return report.model_copy(update={"message": report_message(report)})

@@ -15,6 +15,12 @@ import 'package:oncare_trainer/shared/services/chat_repository.dart';
 /// invalidated and refetches) — used to prove the view scrolls to the
 /// *refetched* thread, not the stale one it had at send-time (review).
 class _RealApiFakeChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   int watchThreadCalls = 0;
 
   static List<ClientChatMessage> _seed(int count) => <ClientChatMessage>[

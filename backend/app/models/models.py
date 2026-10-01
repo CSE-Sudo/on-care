@@ -1617,7 +1617,9 @@ class TrainerRoutine(Base):
     )
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |
-    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함).
+    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함) |
+    #: consumed(프로그램 만들기 전송에 실려 나간 AI 제안 — 회원이 받는 것은 전송이
+    #: 만든 새 배정이다, #2747).
     #:
     #: 기본이 approved 인 것이 하위 호환의 핵심이다. 지금까지의 배정은 모두
     #: 트레이너가 보낸 것이므로 그대로 회원에게 보여야 한다. AI 가 만든 후보만

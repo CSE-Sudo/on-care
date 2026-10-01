@@ -222,6 +222,12 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
                 sets: (ex['sets'] as num?)?.toInt(),
                 reps: (ex['reps'] as num?)?.toInt(),
                 holdSeconds: (ex['hold_seconds'] as num?)?.toInt(),
+                // 초를 함께 남겨야 `45초` 가 분으로 접혀 `1분` 으로 보이지
+                // 않는다 — 실서버도 초를 저장한다(#2521, #2755). 근력은
+                // 세트로 재므로 비운다.
+                durationSeconds: ex['type'] == '근력'
+                    ? null
+                    : (ex['duration_seconds'] as num?)?.toInt(),
                 weight: (ex['weight'] as num?)?.toDouble(),
                 deliveryKind: personal ? DeliveryKinds.routineOnly : null,
               ),
@@ -235,6 +241,14 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     };
     final DemoRoutineStore? store = _store;
     if (store != null) {
+      // 이 전송의 개인운동을 채운 AI 제안을 닫는다 — 실서버가 배정과 같은
+      // 트랜잭션에서 하는 일이다(#2747). 데모 제안 저장소는 검토한 제안을
+      // 이 기억에서 걸러 낸다.
+      await store.addReviewedSuggestions(<String>[
+        for (final Object? id
+            in payload['suggestion_ids'] as List<Object?>? ?? const <Object?>[])
+          if (id is String) id,
+      ]);
       final Set<String> previous = personal
           ? await store.readPersonalIds(memberId)
           : const <String>{};

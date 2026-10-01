@@ -9,6 +9,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_chat_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
@@ -27,7 +28,21 @@ import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
 /// emits a single fetch, so callers invalidate the thread/unread providers
 /// after send/read (see [ChatView]).
 abstract interface class ChatRepository {
+  /// 대화의 **최신 쪽**(최대 [chatPageSize] 건, 오래된→최신). (#2749)
+  ///
+  /// 서버는 대화 전부가 아니라 최신 한 쪽만 준다. 그 앞은 [fetchOlder] 로
+  /// 이어 받고, 화면은 둘을 [mergeChatThread] 로 합쳐 그린다.
   Stream<List<ClientChatMessage>> watchThread(String clientId);
+
+  /// [before] 보다 앞선 한 쪽 — 그 앞의 최신 [chatPageSize] 건(오래된→최신).
+  /// (#2749)
+  ///
+  /// [before] 는 지금 가진 가장 오래된 메시지다. 서버 커서와 같이 시각과 id 를
+  /// 함께 본다. 받은 것이 [chatPageSize] 건보다 적으면 그 앞에는 없다.
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  });
 
   /// [reportWeekStart]가 있으면 이 메시지는 리포트 PDF 전송 안내다(#1378) —
   /// 데모/드리프트 구현만 이 값을 저장한다. 실서버는 `/report/send-pdf`가
@@ -51,42 +66,79 @@ class DriftChatRepository implements ChatRepository {
 
   final AppDatabase _db;
 
-  /// Streams a client's messages in chronological order.
+  /// Streams the newest page of a client's messages in chronological order.
+  ///
+  /// 서버와 같은 계약이다(#2749) — 최신 [chatPageSize] 건만 흘리고, 그 앞은
+  /// [fetchOlder] 로 준다. 데모가 언제나 전부를 주면 쪽 사이의 경계가 데모에서만
+  /// 없어 보여, 이어 받기가 데모로는 확인되지 않는다.
   @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) {
     final query = _db.select(_db.clientChatMessages)
       ..where((t) => t.clientId.equals(clientId))
-      ..orderBy(<OrderingTerm Function($ClientChatMessagesTable)>[
-        (t) => OrderingTerm(expression: t.createdAt),
-      ]);
-    return query.watch().asyncMap((rows) async {
-      final ids = rows.map((r) => r.id).toList();
-      final weeks = await _markers(_reportKeyPrefix, ids);
-      // 루틴 전송 안내(#2672) — 보낸 쪽이 남긴 표시 행이다.
-      final deliveries = await _markers(demoRoutineDeliveryKeyPrefix, ids);
-      final images = await _markers(_imageKeyPrefix, ids);
-      // 회원이 보낸 것으로 시드한 사진·PDF(#2669).
-      final files = <String, ChatAttachment>{};
-      for (final MapEntry<String, String> e in (await _markers(
-        demoChatFileKeyPrefix,
-        ids,
-      )).entries) {
-        final ChatAttachment? file =
-            _demoImages[e.key] ?? await decodeDemoChatFile(e.key, e.value);
-        if (file == null) continue;
-        files[e.key] = _demoImages[e.key] = file;
-      }
-      return rows
-          .map(
-            (row) => _toEntity(
-              row,
-              weeks[row.id],
-              files[row.id] ?? _imageAttachment(row.id, images[row.id]),
-              delivery: deliveries[row.id],
-            ),
-          )
-          .toList();
-    });
+      ..orderBy(_newestFirst)
+      ..limit(chatPageSize);
+    return query.watch().asyncMap(
+      (rows) => _toEntities(rows.reversed.toList(growable: false)),
+    );
+  }
+
+  /// [before] 앞의 한 쪽. 서버의 (`created_at`, `id`) 복합 커서와 같은 경계다.
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async {
+    final query = _db.select(_db.clientChatMessages)
+      ..where(
+        (t) =>
+            t.clientId.equals(clientId) &
+            (t.createdAt.isSmallerThanValue(before.createdAt) |
+                (t.createdAt.equals(before.createdAt) &
+                    t.id.isSmallerThanValue(before.id))),
+      )
+      ..orderBy(_newestFirst)
+      ..limit(chatPageSize);
+    final rows = await query.get();
+    return _toEntities(rows.reversed.toList(growable: false));
+  }
+
+  /// 최신 것부터 — 같은 시각이면 id 로 가른다([compareChatMessages] 의 반대).
+  static final List<OrderingTerm Function($ClientChatMessagesTable)>
+  _newestFirst = <OrderingTerm Function($ClientChatMessagesTable)>[
+    (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+    (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+  ];
+
+  /// 행(오래된→최신)을 첨부 표시와 함께 메시지로 푼다.
+  Future<List<ClientChatMessage>> _toEntities(
+    List<ClientChatMessageRow> rows,
+  ) async {
+    final ids = rows.map((r) => r.id).toList();
+    final weeks = await _markers(_reportKeyPrefix, ids);
+    // 루틴 전송 안내(#2672) — 보낸 쪽이 남긴 표시 행이다.
+    final deliveries = await _markers(demoRoutineDeliveryKeyPrefix, ids);
+    final images = await _markers(_imageKeyPrefix, ids);
+    // 회원이 보낸 것으로 시드한 사진·PDF(#2669).
+    final files = <String, ChatAttachment>{};
+    for (final MapEntry<String, String> e in (await _markers(
+      demoChatFileKeyPrefix,
+      ids,
+    )).entries) {
+      final ChatAttachment? file =
+          _demoImages[e.key] ?? await decodeDemoChatFile(e.key, e.value);
+      if (file == null) continue;
+      files[e.key] = _demoImages[e.key] = file;
+    }
+    return rows
+        .map(
+          (row) => _toEntity(
+            row,
+            weeks[row.id],
+            files[row.id] ?? _imageAttachment(row.id, images[row.id]),
+            delivery: deliveries[row.id],
+          ),
+        )
+        .toList();
   }
 
   /// 이 배치의 메시지 중 [prefix] 표시가 붙은 것의 값.
