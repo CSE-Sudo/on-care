@@ -138,8 +138,40 @@ def _seed_demo_user() -> None:
         db.close()
 
 
+def admin_promotion_targets(
+    users: list[models.User], emails: set[str]
+) -> tuple[list[models.User], list[str]]:
+    """승격할 계정과 경고할 이메일을 가른다. (#2816)
+
+    `emails` 는 소문자로 정규화된 `ADMIN_EMAILS` 다. 한 관리자 이메일에 대해
+
+    - 저장된 이메일이 그 값과 **글자 그대로 같은** 계정이 정확히 하나면 승격한다.
+    - 대소문자만 같은 계정이 둘 이상이면 아무도 승격하지 않는다. 누가 진짜 주인인지
+      서버가 고를 수 없다 — 예전에는 둘 다 올렸다.
+    - 대소문자만 같고 글자는 다른 계정(정규화 전 값)도 승격하지 않는다.
+    """
+    by_email: dict[str, list[models.User]] = {}
+    for user in users:
+        by_email.setdefault(user.email.lower(), []).append(user)
+    targets: list[models.User] = []
+    skipped: list[str] = []
+    for email in sorted(emails):
+        matches = by_email.get(email, [])
+        if not matches:
+            continue
+        if len(matches) > 1 or matches[0].email != email:
+            skipped.append(email)
+            continue
+        targets.append(matches[0])
+    return targets, skipped
+
+
 def _promote_admins() -> None:
-    """ADMIN_EMAILS(콤마구분)에 있는 사용자를 관리자로 승격(멱등)."""
+    """ADMIN_EMAILS(콤마구분)에 있는 사용자를 관리자로 승격(멱등).
+
+    정규화된 이메일과 정확히 일치하는 한 계정만 올린다(#2816,
+    `admin_promotion_targets`). 애매하면 기동 로그에 경고하고 넘어간다.
+    """
     from sqlalchemy import func
 
     emails = get_settings().admin_email_set
@@ -150,8 +182,15 @@ def _promote_admins() -> None:
         users = db.scalars(
             select(models.User).where(func.lower(models.User.email).in_(emails))
         ).all()
+        targets, skipped = admin_promotion_targets(list(users), emails)
+        for email in skipped:
+            logger.warning(
+                "ADMIN_EMAILS 의 %s 와 대소문자만 같은 계정이 여럿이거나 표기가 달라 "
+                "관리자로 승격하지 않았습니다.",
+                email,
+            )
         changed = False
-        for u in users:
+        for u in targets:
             if not u.is_admin:
                 u.is_admin = True
                 changed = True

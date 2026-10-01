@@ -122,6 +122,10 @@ class AppTextField extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final bool multiline = maxLines == null || maxLines! > 1;
     final double height = _fieldHeight(tokens.density, size);
+    // 이메일 칸은 자동 대문자·자동 고침을 끈다(#2816). 첫 글자가 대문자로 바뀌어도
+    // 서버가 소문자로 맞춰 같은 계정을 찾지만, 자동 고침이 주소를 다른 단어로
+    // 바꾸는 것은 서버가 되돌릴 수 없다.
+    final bool email = keyboardType == TextInputType.emailAddress;
     return _Labeled(
       label: label,
       child: TextField(
@@ -135,6 +139,9 @@ class AppTextField extends StatelessWidget {
         maxLines: obscureText ? 1 : maxLines,
         maxLength: maxLength,
         keyboardType: keyboardType,
+        // 자동 대문자는 TextField 기본값(none) 그대로 둔다.
+        autocorrect: !email,
+        enableSuggestions: !email,
         textInputAction: textInputAction,
         inputFormatters: inputFormatters,
         onChanged: onChanged,

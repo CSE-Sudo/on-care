@@ -17,7 +17,7 @@ from typing import Annotated
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -66,6 +66,7 @@ from app.services import (
     trainer_signup_service,
     weekly_challenge_service,
 )
+from app.services.contact_format import normalize_email
 from app.services.health_service import DEMO_SETTINGS
 from app.services.profile_format import name_from_email
 
@@ -231,7 +232,13 @@ def update_me(
 
     new_email = data.get("email")
     if new_email is not None and new_email != user.email:
-        dup = db.scalar(select(User).where(User.email == new_email, User.id != user.id))
+        # 대소문자만 다른 주소도 같은 이메일이다(#2816). `new_email` 은 스키마가
+        # 이미 소문자로 맞췄다.
+        dup = db.scalar(
+            select(User).where(
+                func.lower(User.email) == new_email, User.id != user.id
+            )
+        )
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
@@ -383,7 +390,9 @@ def register(
     payload: UserRegister,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMe:
-    exists = db.scalar(select(User).where(User.email == payload.email))
+    # `payload.email` 은 스키마가 소문자로 맞췄다. 대소문자만 다른 기존 주소도
+    # 같은 이메일로 보고 거절한다(#2816).
+    exists = db.scalar(select(User).where(func.lower(User.email) == payload.email))
     if exists:
         audit(
             db,
@@ -468,7 +477,7 @@ def register_trainer(
 
 def _login_lock_key(username: str) -> str:
     """로그인 실패 잠금 버킷 키. 대소문자·앞뒤 공백만 다른 입력은 같은 계정이다."""
-    return f"login-fail:{username.strip().lower()}"
+    return f"login-fail:{normalize_email(username)}"
 
 
 @router.post(
@@ -493,7 +502,11 @@ def login(
     lock_key = _login_lock_key(form.username)
     lock_window = float(settings.login_lockout_seconds)
     ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
-    user = db.scalar(select(User).where(User.email == form.username))
+    # 가입이 소문자로 저장하므로 입력도 같은 규칙으로 맞춰 찾는다(#2816) — 모바일
+    # 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다.
+    user = db.scalar(
+        select(User).where(func.lower(User.email) == normalize_email(form.username))
+    )
     if (
         not user
         or not user.is_active
