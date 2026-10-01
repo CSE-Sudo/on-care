@@ -46,3 +46,34 @@ void refreshAfterExerciseChange(ProviderInvalidator invalidate) {
     invalidate(target);
   }
 }
+
+/// 운동 탭 헬스장 영역이 들고 있는 서버 값. (#2856)
+///
+/// 넷 다 autoDispose 가 아니라서 앱을 켠 뒤 처음 읽은 값이 계속 남는다.
+/// 트레이너가 웹에서 예약을 취소하거나 다른 회원이 자리를 잡거나 연결이
+/// 해제돼도 회원 앱은 옛 값을 보여 줬다. 운동 탭에 다시 들어올 때와 앱이
+/// 복귀할 때 [refreshGymTabData] 로 함께 비운다.
+///
+/// [trainerSlotsProvider] 는 family 전체를 비운다 — 화면에 붙은 트레이너의
+/// 자리만 다시 읽히고 나머지는 다음에 볼 때 읽힌다.
+///
+/// 테스트가 대상 목록을 그대로 확인할 수 있도록 밖에 둔다.
+final List<ProviderOrFamily> kGymTabRefreshTargets = <ProviderOrFamily>[
+  myGymProvider,
+  myTrainerProvider,
+  // `다음 PT` 태그는 이 값과 코치 일정을 합쳐 계산한다 — 셸이 코치 일정과
+  // 같은 자리에서 함께 비워야 둘이 엇갈리지 않는다.
+  myReservationsProvider,
+  trainerSlotsProvider,
+];
+
+/// 운동 탭 재진입·앱 복귀 때 헬스장 영역을 다시 읽게 한다. (#2856)
+///
+/// 비워도 이전 값은 남아 있어(재조회 중 `valueOrNull`), 카드가 비었다가
+/// 다시 그려지는 깜빡임은 없다. 보고 있는 화면이 없는 provider 는 요청도
+/// 나가지 않는다.
+void refreshGymTabData(ProviderInvalidator invalidate) {
+  for (final ProviderOrFamily target in kGymTabRefreshTargets) {
+    invalidate(target);
+  }
+}

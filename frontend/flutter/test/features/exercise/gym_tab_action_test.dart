@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -93,6 +95,7 @@ void main() {
     MemberCoach? coach,
     int unread = 0,
     List<MyReservation> reservations = const <MyReservation>[],
+    Future<Gym?> Function()? loadGym,
   }) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -111,7 +114,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
-          myGymProvider.overrideWith((ref) async => hasMyGym ? _gym : null),
+          myGymProvider.overrideWith(
+            (ref) => loadGym != null
+                ? loadGym()
+                : Future<Gym?>.value(hasMyGym ? _gym : null),
+          ),
           nearbyGymsProvider.overrideWith((ref) async => const <Gym>[_gym]),
           // 헬스장 상세·찾기는 제휴 + 카카오를 합친 provider 를 본다(#329).
           gymFinderResultsProvider.overrideWith(
@@ -168,6 +175,34 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
   }
+
+  testWidgets('다시 읽는 동안 내 헬스장 카드가 로딩으로 비지 않는다', (WidgetTester tester) async {
+    // 운동 탭 재진입·앱 복귀 때 셸이 내 헬스장을 다시 읽는다(#2856). 그 사이
+    // 카드가 로딩 표시로 비었다가 다시 그려지면 깜빡인다.
+    final Completer<Gym?> slow = Completer<Gym?>();
+    int loads = 0;
+    await pumpGymTab(
+      tester,
+      loadGym: () {
+        loads++;
+        return loads == 1 ? Future<Gym?>.value(_gym) : slow.future;
+      },
+    );
+    await scrollToCard(tester);
+    expect(myGymCard(), findsOneWidget);
+
+    ProviderScope.containerOf(
+      tester.element(myGymCard()),
+    ).invalidate(myGymProvider);
+    await tester.pump();
+
+    expect(loads, 2);
+    expect(myGymCard(), findsOneWidget);
+
+    slow.complete(_gym);
+    await tester.pumpAndSettle();
+    expect(myGymCard(), findsOneWidget);
+  });
 
   testWidgets('예약 패널은 다가오는 자리를 위에, 지난 예약을 아래에 둔다', (WidgetTester tester) async {
     // 서버는 늦은 예약부터 준다(#980) — 쪽을 나누려면 그 순서여야 한다. 그대로

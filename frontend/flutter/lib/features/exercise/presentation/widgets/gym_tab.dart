@@ -62,8 +62,9 @@ class GymTab extends ConsumerWidget {
     // 담당이 있으면 헤더의 채팅 버튼이 그 자리를 맡는다.
     //
     // 조회 중에는 찾기 화면을 미리 보여 주지 않는다. 잠깐 떴다 사라지면 연결이
-    // 풀린 것처럼 읽힌다.
-    if (myGymAsync.isLoading) {
+    // 풀린 것처럼 읽힌다. 탭 재진입·앱 복귀로 다시 읽는 중에는 이전 값을 그대로
+    // 그린다 — 카드가 로딩으로 비었다가 다시 그려지면 깜빡인다(#2856).
+    if (myGymAsync.isLoading && !myGymAsync.hasValue) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: OnCareSpacing.s20),
         child: Align(
