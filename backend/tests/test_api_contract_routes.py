@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.main import app
 
 CONTRACT = Path(__file__).resolve().parents[1] / "API_CONTRACT.md"
@@ -32,7 +32,7 @@ def _normalize(path: str) -> str:
 
 
 def _router_routes() -> set[tuple[str, str]]:
-    prefix = settings.api_v1_prefix
+    prefix = get_settings().api_v1_prefix
     routes: set[tuple[str, str]] = set()
     for path, ops in app.openapi()["paths"].items():
         if prefix and path.startswith(prefix):
