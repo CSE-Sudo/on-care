@@ -2749,6 +2749,96 @@
   "clientMemoEdited": "Edited",
   "clientMemoSearchHint": "Search memos (text or tag)",
   "clientMemoSearchEmpty": "No memos match your search.",
+  "clientMemoCategoryExercise": "Exercise",
+  "clientMemoCategoryDiet": "Diet",
+  "clientMemoCategoryPain": "Pain · injury",
+  "clientMemoCategoryLife": "Life · schedule",
+  "clientMemoRecordLink": "Link a workout (optional)",
+  "clientMemoRecordNone": "No link",
+  "clientMemoRecordEmpty": "No workouts in the last 14 days",
+  "clientMemoRecordDay": "{month}/{day} ({weekday})",
+  "@clientMemoRecordDay": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPtSession": "{date} PT session",
+  "@clientMemoRecordPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonal": "{date} Personal workout",
+  "@clientMemoRecordPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonalNamed": "{date} Personal workout · {name}",
+  "@clientMemoRecordPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordMemberLog": "{date} Member log",
+  "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTabMemo": "Memos",
+  "clientMemoTabFeedback": "Feedback",
+  "clientFeedbackPrivate": "Feedback you and the member exchanged. Tap one to edit it where it was written.",
+  "clientFeedbackToMember": "Trainer → member",
+  "clientFeedbackFromMember": "Member → trainer",
+  "clientFeedbackSourcePt": "PT · {date}",
+  "@clientFeedbackSourcePt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceReport": "Report · week of {date}",
+  "@clientFeedbackSourceReport": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceWeekly": "Weekly check-in · week of {date}",
+  "@clientFeedbackSourceWeekly": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackWeeklyNoNote": "No note",
+  "clientFeedbackEmpty": "No feedback exchanged yet.",
+  "clientFeedbackLoadFailed": "Couldn't load feedback. Try again in a moment",
+  "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
+  "clientFeedbackSearchEmpty": "No feedback matches your search.",
   "followUp": "Follow-ups",
   "followUpTitle": "Follow-ups on {name}",
   "@followUpTitle": {

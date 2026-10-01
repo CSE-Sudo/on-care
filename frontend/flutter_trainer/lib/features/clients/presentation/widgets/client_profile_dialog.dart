@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_feedback_section.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -107,7 +108,7 @@ class ClientProfileDialog extends StatelessWidget {
         key: const ValueKey<String>('client-memo-dialog'),
         title: l.clientTrainerMemo,
         size: AppDialogSize.medium,
-        child: _MemoSection(clientId: clientId, clientName: clientName),
+        child: _MemoDialogBody(clientId: clientId, clientName: clientName),
       ),
     };
   }
@@ -1193,6 +1194,63 @@ class _NumberField {
   double get max => range.max.toDouble();
 }
 
+enum _MemoTab { memo, feedback }
+
+/// 메모 창 본문 — `메모 | 피드백` 두 탭. (#2615)
+///
+/// 메모는 트레이너만 보는 글이고, 피드백은 회원과 주고받은 글이다(#2574 용어
+/// 규칙). 헤더의 `메모` 버튼은 하나 그대로 두고 창 안에서 나눈다 — "이 회원에
+/// 대해 남긴 것" 을 찾는 자리가 둘로 갈라지지 않게.
+class _MemoDialogBody extends StatefulWidget {
+  const _MemoDialogBody({required this.clientId, required this.clientName});
+
+  final String clientId;
+  final String clientName;
+
+  @override
+  State<_MemoDialogBody> createState() => _MemoDialogBodyState();
+}
+
+class _MemoDialogBodyState extends State<_MemoDialogBody> {
+  _MemoTab _tab = _MemoTab.memo;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AppSegmentedToggle<_MemoTab>(
+          key: const ValueKey<String>('client-memo-tabs'),
+          expand: true,
+          // 신체·목표 창의 탭과 같은 thumb 모양(#2469).
+          style: AppSegmentedToggleStyle.thumb,
+          selected: _tab,
+          onChanged: (_MemoTab tab) => setState(() => _tab = tab),
+          segments: <AppSegment<_MemoTab>>[
+            AppSegment<_MemoTab>(
+              value: _MemoTab.memo,
+              label: l.clientMemoTabMemo,
+            ),
+            AppSegment<_MemoTab>(
+              value: _MemoTab.feedback,
+              label: l.clientMemoTabFeedback,
+            ),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
+        switch (_tab) {
+          _MemoTab.memo => _MemoSection(
+            clientId: widget.clientId,
+            clientName: widget.clientName,
+          ),
+          _MemoTab.feedback => ClientFeedbackSection(clientId: widget.clientId),
+        },
+      ],
+    );
+  }
+}
+
 /// 메모 목록 — 예전 `ClientMemoDialog` 의 내용을 다이얼로그 밖으로 꺼낸 것이다.
 class _MemoSection extends ConsumerStatefulWidget {
   const _MemoSection({required this.clientId, required this.clientName});
@@ -1215,6 +1273,16 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
 
   /// 메모 검색어. 목록을 화면에서만 거른다 — 서버에 다시 묻지 않는다.
   final TextEditingController _query = TextEditingController();
+
+  /// 새 메모의 분류(#2622). 고르지 않으면 `직접 작성` 이다.
+  TrainerMemoCategory _category = TrainerMemoCategory.none;
+
+  /// `운동` 분류에서 이은 운동 기록. 고르면 운동 탭 카드에서 남긴 메모와
+  /// 같은 운동 기록 메모가 된다(#2622).
+  TrainerMemoRef? _record;
+
+  /// 수정 중인 직접 메모의 분류.
+  TrainerMemoCategory _editCategory = TrainerMemoCategory.none;
 
   @override
   void dispose() {
@@ -1253,18 +1321,38 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     final body = _draft.text.trim();
     if (body.isEmpty) return;
     final l = AppLocalizations.of(context);
+    final TrainerMemoRef? record = _record;
     await _run(() async {
-      await ref
-          .read(trainerMemoRepositoryProvider)
-          .create(widget.clientId, body: body);
+      final TrainerMemoRepository repo = ref.read(
+        trainerMemoRepositoryProvider,
+      );
+      if (record != null) {
+        // 기록을 이으면 운동 탭 카드에서 남긴 메모와 같은 메모다 — 출처 태그도
+        // `PT 세션 · 9/30` 으로 같다. 서버가 그 기록에서 이름·날짜를 읽는다.
+        await repo.create(
+          widget.clientId,
+          body: body,
+          source: TrainerMemoSource.exerciseMemo,
+          ref: record,
+          category: TrainerMemoCategory.exercise,
+        );
+      } else {
+        await repo.create(widget.clientId, body: body, category: _category);
+      }
       _draft.clear();
+      _category = TrainerMemoCategory.none;
+      _record = null;
     }, l.clientTrainerMemoSaveFailed);
   }
 
   Future<void> _saveEdit(TrainerMemo memo) async {
     final body = _edit.text.trim();
     if (body.isEmpty) return;
-    if (body == memo.body) {
+    // 분류는 직접 쓴 메모만 바꾼다 — 다른 출처는 출처가 분류를 정한다.
+    final bool canRecategorize = memo.source == TrainerMemoSource.trainer;
+    final bool categoryChanged =
+        canRecategorize && _editCategory != memo.category;
+    if (body == memo.body && !categoryChanged) {
       setState(() => _editingId = null);
       return;
     }
@@ -1272,9 +1360,82 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     await _run(() async {
       await ref
           .read(trainerMemoRepositoryProvider)
-          .update(widget.clientId, memo.id, body);
+          .update(
+            widget.clientId,
+            memo.id,
+            body,
+            category: categoryChanged ? _editCategory : null,
+          );
       _editingId = null;
     }, l.clientTrainerMemoSaveFailed);
+  }
+
+  /// 분류 칩 한 줄(#2622) — 하나만 고르고, 고른 칩을 다시 누르면 풀린다.
+  Widget _categoryChips({
+    required String keyPrefix,
+    required TrainerMemoCategory selected,
+    required ValueChanged<TrainerMemoCategory> onChanged,
+  }) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Wrap(
+      spacing: OnCareSpacing.s8,
+      runSpacing: OnCareSpacing.s8,
+      children: <Widget>[
+        for (final TrainerMemoCategory category in TrainerMemoCategory.picks)
+          AppChoiceChip(
+            key: ValueKey<String>('$keyPrefix-${category.wire}'),
+            label: memoCategoryLabel(l, category),
+            selected: selected == category,
+            onSelected: _busy
+                ? null
+                : (bool on) =>
+                      onChanged(on ? category : TrainerMemoCategory.none),
+          ),
+      ],
+    );
+  }
+
+  /// `운동` 분류에서만 서는 운동 기록 연결(선택) — 최근 14일 기록에서 고른다.
+  Widget _recordPicker(AppLocalizations l) {
+    final AsyncValue<List<TrainerMemoRef>> options = ref.watch(
+      memoRecordOptionsProvider(widget.clientId),
+    );
+    // 목록을 못 읽어도 메모는 남길 수 있어야 한다 — 연결 칸만 비운다.
+    final List<TrainerMemoRef> refs =
+        options.valueOrNull ?? const <TrainerMemoRef>[];
+    final TrainerMemoRef? picked = _record == null
+        ? null
+        : refs.where((r) => sameMemoRecord(r, _record!)).firstOrNull;
+    return AppSelectField<TrainerMemoRef?>(
+      key: const ValueKey<String>('client-memo-record'),
+      label: l.clientMemoRecordLink,
+      hint: options.isLoading
+          ? null
+          : refs.isEmpty
+          ? l.clientMemoRecordEmpty
+          : l.clientMemoRecordNone,
+      value: picked,
+      onChanged: _busy || refs.isEmpty
+          ? null
+          : (TrainerMemoRef? value) => setState(() => _record = value),
+      items: <DropdownMenuItem<TrainerMemoRef?>>[
+        DropdownMenuItem<TrainerMemoRef?>(
+          key: const ValueKey<String>('client-memo-record-none'),
+          child: Text(l.clientMemoRecordNone),
+        ),
+        for (final TrainerMemoRef option in refs)
+          DropdownMenuItem<TrainerMemoRef?>(
+            key: ValueKey<String>(
+              'client-memo-record-${option.id ?? 'day-${option.day}'}',
+            ),
+            value: option,
+            child: Text(
+              memoRecordOptionLabel(l, option),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+    );
   }
 
   Future<void> _delete(TrainerMemo memo) async {
@@ -1348,6 +1509,22 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
+        // 분류 칩 한 줄(#2622). 안내·글자 수 줄은 입력칸에 대한 말이라 입력칸에
+        // 붙여 두고, 분류는 그 아래 `메모 추가` 바로 위에서 고른다.
+        _categoryChips(
+          keyPrefix: 'client-memo-category',
+          selected: _category,
+          onChanged: (TrainerMemoCategory category) => setState(() {
+            _category = category;
+            // 기록 연결은 `운동` 일 때만 뜻이 있다.
+            if (category != TrainerMemoCategory.exercise) _record = null;
+          }),
+        ),
+        if (_category == TrainerMemoCategory.exercise) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s8),
+          _recordPicker(l),
+        ],
+        const SizedBox(height: OnCareSpacing.s8),
         AppActionRow(
           actions: <Widget>[
             AppButton(
@@ -1415,19 +1592,27 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     );
   }
 
-  /// 검색어가 본문이나 출처 태그에 든 메모만. 대소문자와 앞뒤 공백은 가리지 않는다.
+  /// 검색어가 본문·출처 태그·분류 이름에 든 메모만. 대소문자와 앞뒤 공백은
+  /// 가리지 않는다. 기록을 이은 운동 메모는 태그가 `PT 세션 · 9/30` 이어도
+  /// `운동` 으로 찾힌다(#2622).
   List<TrainerMemo> _matching(AppLocalizations l, List<TrainerMemo> list) {
     final query = _query.text.trim().toLowerCase();
     if (query.isEmpty) return list;
     return <TrainerMemo>[
       for (final memo in list)
         if (memo.body.toLowerCase().contains(query) ||
-            _sourceLabel(l, memo).toLowerCase().contains(query))
+            _sourceLabel(l, memo).toLowerCase().contains(query) ||
+            (memo.category != TrainerMemoCategory.none &&
+                memoCategoryLabel(
+                  l,
+                  memo.category,
+                ).toLowerCase().contains(query)))
           memo,
     ];
   }
 
-  /// 메모의 출처 태그 문구 — 태그와 검색이 같은 말을 쓴다.
+  /// 메모의 출처 태그 문구 — 태그와 검색이 같은 말을 쓴다. 직접 쓴 메모는
+  /// 고른 분류(#2622), 고르지 않았으면 `직접 작성` 이다.
   static String _sourceLabel(AppLocalizations l, TrainerMemo memo) =>
       switch (memo.source) {
         TrainerMemoSource.chatInsight => _insightReasonLabel(
@@ -1436,7 +1621,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
         ),
         TrainerMemoSource.exerciseMemo when memo.ref != null =>
           exerciseMemoTagLabel(l, memo.ref!),
-        _ => l.clientMemoTagManual,
+        _ => memoCategoryLabel(l, memo.category),
       };
 
   Widget _memoTile(AppLocalizations l, TrainerMemo memo) {
@@ -1475,6 +1660,22 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                         tone: AppTagTone.brand,
                         icon: AppIcons.exercise,
                       ),
+                    // 분류를 고른 직접 메모(#2622). `운동` 은 기록을 이은 운동
+                    // 메모와 같은 색·아이콘이라 둘이 한 갈래로 읽힌다. 나머지
+                    // 분류는 `직접 작성` 과 같은 기본 톤에 이름만 바뀐다.
+                    _ when memo.category == TrainerMemoCategory.exercise =>
+                      AppTag(
+                        key: ValueKey<String>(
+                          'client-memo-category-${memo.id}',
+                        ),
+                        label: _sourceLabel(l, memo),
+                        tone: AppTagTone.brand,
+                        icon: AppIcons.exercise,
+                      ),
+                    _ when memo.category != TrainerMemoCategory.none => AppTag(
+                      key: ValueKey<String>('client-memo-category-${memo.id}'),
+                      label: _sourceLabel(l, memo),
+                    ),
                     _ => AppTag(
                       key: ValueKey<String>('client-memo-manual-${memo.id}'),
                       label: _sourceLabel(l, memo),
@@ -1498,6 +1699,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                       : () => setState(() {
                           _editingId = memo.id;
                           _edit.text = memo.body;
+                          _editCategory = memo.category;
                         }),
                 ),
                 AppIconButton(
@@ -1514,15 +1716,26 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s4),
-          if (editing)
+          if (editing) ...<Widget>[
             AppTextField(
               key: ValueKey<String>('client-memo-edit-${memo.id}'),
               controller: _edit,
               maxLines: 3,
               maxLength: _maxLength,
               enabled: !_busy,
-            )
-          else
+            ),
+            // 직접 쓴 메모만 분류를 바꾼다(#2622). 기록을 이은 운동 메모·채팅
+            // 감지 메모는 출처가 무엇에 대한 메모인지 이미 말한다.
+            if (memo.source == TrainerMemoSource.trainer) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              _categoryChips(
+                keyPrefix: 'client-memo-edit-category',
+                selected: _editCategory,
+                onChanged: (TrainerMemoCategory category) =>
+                    setState(() => _editCategory = category),
+              ),
+            ],
+          ] else
             Text(
               memo.body,
               style: tokens
