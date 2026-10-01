@@ -123,9 +123,10 @@ class DemoConsultationRepository implements ConsultationRepository {
       for (final ReservationSlot slot in demoReservationSlots(now: now))
         slot.id: slot,
     };
-    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다.
-    final ReservationSlot evening = slots['slot-kim-5']!;
-    final ReservationSlot morning = slots['slot-kim-3']!;
+    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다. 신청이 잡은
+    // 자리라 예약 슬롯 창에서는 예약된 칸이다([demoPendingRequestSlots], #2797).
+    final ReservationSlot evening = slots['slot-kim-6']!;
+    final ReservationSlot morning = slots['slot-kim-7']!;
     String hm(DateTime t) =>
         '${t.hour.toString().padLeft(2, '0')}:'
         '${t.minute.toString().padLeft(2, '0')}';
