@@ -234,7 +234,9 @@ def test_ip_bucket_limits_requests(client, outbox):
 # ---- 확인 ----
 
 
-def test_confirm_resets_password_and_ends_all_sessions(client, outbox, member):
+def test_confirm_resets_password_and_ends_all_sessions(client, monkeypatch, outbox, member):
+    # 프로필 조회의 데모 폴백(개발 환경)을 끄고 지난 세대 토큰이 401 인지 본다.
+    monkeypatch.setattr(get_settings(), "allow_demo_fallback", False)
     phone = _login(client, member, _OLD_PW).json()
     _request(client, member)
     res = _confirm(client, outbox.code_for(member))

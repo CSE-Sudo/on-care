@@ -11,6 +11,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.core.config import get_settings
 from app.models import models
 from app.services import auth_tokens
 
@@ -76,8 +77,11 @@ def test_new_password_logs_in_and_old_does_not(client, member_email):
     _login(client, member_email, _NEW_PW)
 
 
-def test_other_device_sessions_end(client, member_email):
+def test_other_device_sessions_end(client, monkeypatch, member_email):
     """다른 기기의 접근 토큰은 401, refresh 도 401 — 만료 안내와 함께 로그인 화면으로 간다."""
+    # 프로필 조회는 개발 환경에서 무효 토큰을 데모 사용자로 받아 준다. 지난 세대 토큰도
+    # 무효 토큰과 같으므로, 운영처럼 폴백을 꺼야 401 이 그대로 보인다.
+    monkeypatch.setattr(get_settings(), "allow_demo_fallback", False)
     phone = _login(client, member_email, _OLD_PW)
     tablet = _login(client, member_email, _OLD_PW)
     assert _change(client, phone["access_token"]).status_code == 200
