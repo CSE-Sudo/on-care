@@ -1059,12 +1059,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultTitle => 'Consultation requests';
 
   @override
-  String get consultBackToSchedule => 'Back to schedule';
-
-  @override
-  String get consultBackToDashboard => 'Back to dashboard';
-
-  @override
   String consultPendingCount(int count) {
     return '$count pending';
   }
@@ -3476,6 +3470,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifTitle => 'Notifications';
 
   @override
+  String get notifSeeAll => 'See all';
+
+  @override
+  String get notifGroupAll => 'All';
+
+  @override
+  String get notifGroupMessages => 'Messages';
+
+  @override
+  String get notifGroupEmpty => 'No notifications of this kind';
+
+  @override
   String get notifReadAll => 'Mark all read';
 
   @override
@@ -3499,6 +3505,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String notifTplHealthGoalBody(String name, String goals) {
     return '$name changed their health goals: $goals';
+  }
+
+  @override
+  String get notifTplHealthNotesTitle => 'Member health notes changed';
+
+  @override
+  String notifTplHealthNotesBody(String name) {
+    return '$name updated their health notes';
+  }
+
+  @override
+  String notifTplHealthNotesWithGoalsBody(String name) {
+    return '$name updated their health goals and health notes';
   }
 
   @override

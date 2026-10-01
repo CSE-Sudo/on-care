@@ -91,6 +91,40 @@ String mergeHealthFocus(String notes, Set<String> focus) => <String>[
   healthFocusNotes(notes),
 ].where((String part) => part.isNotEmpty).join(', ');
 
+/// 편집을 시작한 값([base])에서 [focus]·[notes] 로 무엇을 바꿨는가(#2655).
+({bool focus, bool notes}) conditionsEdits({
+  required String base,
+  required Set<String> focus,
+  required String notes,
+}) {
+  final Set<String> baseFocus = parseHealthFocus(base);
+  return (
+    focus: baseFocus.length != focus.length || !baseFocus.containsAll(focus),
+    notes: healthFocusNotes(base) != healthFocusNotes(notes),
+  );
+}
+
+/// 바꾼 쪽만 서버의 최신 값([latest]) 위에 얹는다(#2655). 회원 앱과 같다.
+///
+/// `conditions` 는 목표 칩과 건강상태·주의사항이 한 칸이다. 글만 고쳤는데
+/// 창을 연 값으로 칸 전체를 보내면, 그 사이 회원이 바꾼 목표가 덮인다.
+String rebaseConditions({
+  required String base,
+  required String latest,
+  required Set<String> focus,
+  required String notes,
+}) {
+  final ({bool focus, bool notes}) edits = conditionsEdits(
+    base: base,
+    focus: focus,
+    notes: notes,
+  );
+  return mergeHealthFocus(
+    edits.notes ? notes : healthFocusNotes(latest),
+    edits.focus ? focus : parseHealthFocus(latest),
+  );
+}
+
 /// 서버 `normalize_conditions` 와 같은 정리. 로컬 목업이 서버처럼 저장하는 데 쓴다.
 String normalizeHealthFocusText(String raw) =>
     mergeHealthFocus(raw, parseHealthFocus(raw));

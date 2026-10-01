@@ -7,6 +7,7 @@ import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/network/session_refresh.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
+import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 
 enum SessionStatus { unknown, signedOut, demo, authenticated }
@@ -82,6 +83,20 @@ class SessionController extends StateNotifier<SessionState>
 
   void _resetFeatureState() {
     _ref.read(sessionFeatureResetProvider)();
+  }
+
+  /// 첫 설정 기기 기록을 지운다 — 계정 경계를 넘을 때마다 부른다. (#2630)
+  ///
+  /// 그 기록은 프로필을 못 받아 왔을 때 "이 계정은 이미 끝냈다" 로 쓰는 보조
+  /// 판단이다. 기기 전체에 하나로 남으면 앞 계정의 기록이 다음 계정의 판단에
+  /// 섞여, 첫 설정을 안 한 새 계정도 홈으로 간다. 같은 토큰으로 되살아나는
+  /// 세션 복구만 그 기록을 이어 쓴다.
+  Future<void> _forgetDeviceFirstRun() async {
+    try {
+      await _ref.read(appPrefsProvider).forgetOnboardingDone();
+    } catch (_) {
+      // 설정 저장소가 없거나 쓰기에 실패해도 세션 전환은 막지 않는다.
+    }
   }
 
   /// 저장된 토큰으로 세션을 되살린다.
@@ -260,6 +275,8 @@ class SessionController extends StateNotifier<SessionState>
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
     if (!mounted || _userActionStarted) return;
+    await _forgetDeviceFirstRun();
+    if (!mounted || _userActionStarted) return;
     _setToken(null);
     state = const SessionState(status: SessionStatus.signedOut);
   }
@@ -280,6 +297,8 @@ class SessionController extends StateNotifier<SessionState>
     } catch (_) {
       // secure storage 저장 실패해도 세션 메모리 토큰으로 진행
     }
+    // 새 토큰은 새 계정일 수 있다 — 앞 계정의 첫 설정 기록을 넘기지 않는다.
+    await _forgetDeviceFirstRun();
     _setToken(access);
     _resetFeatureState();
     _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
@@ -371,6 +390,7 @@ class SessionController extends StateNotifier<SessionState>
     try {
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
+    await _forgetDeviceFirstRun();
     if (!mounted) return;
     _setToken(null);
     _resetFeatureState();

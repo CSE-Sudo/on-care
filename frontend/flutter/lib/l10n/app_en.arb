@@ -5,6 +5,19 @@
   "@appTitle": {
     "description": "Application name shown in window/AppBar titles."
   },
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Title of the 404 page shown for an address that matches no screen (#2633)."
+  },
+  "notFoundMessage": "The link may be broken, or the page may no longer exist. Please check the address and try again.",
+  "notFoundGoHome": "Go home",
+  "@notFoundGoHome": {
+    "description": "404 page button for a signed-in (or demo) member; goes to the home dashboard."
+  },
+  "notFoundGoSignIn": "Go to sign in",
+  "@notFoundGoSignIn": {
+    "description": "404 page button when nobody is signed in; goes to the sign-in screen."
+  },
   "navDashboard": "Home",
   "navDiet": "Diet",
   "navExercise": "Exercise",
@@ -475,15 +488,16 @@
       }
     }
   },
-  "exCompletedPtNoProgram": "No workout program was recorded.",
-  "exCompletedPtFeedback": "{coachName} · Today's feedback",
-  "@exCompletedPtFeedback": {
+  "exPtSessionNumber": "Session {count}",
+  "@exPtSessionNumber": {
+    "description": "PT card chip — which session with the assigned trainer this was (#2666).",
     "placeholders": {
-      "coachName": {
-        "type": "String"
+      "count": {
+        "type": "int"
       }
     }
   },
+  "exCompletedPtNoProgram": "No workout program was recorded.",
   "exAddExercise": "Add Exercise",
   "exDurationMinutes": "{minutes} min",
   "@exDurationMinutes": {
@@ -596,18 +610,10 @@
   },
   "exQueueDiscard": "Discard",
   "exOwnRecords": "Workouts you logged",
-  "exOwnRecordsEmpty": "No workouts logged yet",
+  "exOwnRecordsEmpty": "No workouts logged",
   "exOwnRecordSource": "Self-logged",
   "exCompletedPtDayTitle": "Completed PT",
   "exCompletedRoutineDayTitle": "Completed solo workout",
-  "exPtDayFeedback": "{coachName} · Feedback",
-  "@exPtDayFeedback": {
-    "placeholders": {
-      "coachName": {
-        "type": "String"
-      }
-    }
-  },
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
@@ -1090,6 +1096,7 @@
   "myPointsHistoryEmptyMessage": "Log meals and workouts to earn points.",
   "myPointsHistoryLoadFailed": "Couldn't load your points history",
   "myPointsHistoryMore": "Load more",
+  "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
   "myPointsReasonDiet": "Meal log",
   "myPointsReasonExercise": "Workout log",
   "myPointsReasonRoutine": "Recommended or assigned workout done",
@@ -1487,6 +1494,9 @@
   "mySave": "Save",
   "myProfileSaved": "Profile saved",
   "mySaveFailed": "Couldn't save. Please try again in a moment",
+  "myProfileEmailTaken": "That email is already in use",
+  "myProfilePhoneRequired": "Your phone number can't be left empty",
+  "myProfileInvalid": "Please check what you entered",
   "myFieldName": "Name",
   "myFieldEmail": "Email",
   "myFieldPhone": "Phone",
@@ -2614,6 +2624,9 @@
   "@myGoalsFocusChangedByMe": {
     "description": "MY health goals: the goals were last changed by the member (#1832)."
   },
+  "healthNotesLabel": "Health notes & cautions",
+  "healthNotesHint": "e.g. Left knee surgery, herniated disc",
+  "healthNotesHelper": "Used when recommending workouts",
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."
@@ -2873,15 +2886,6 @@
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },
-  "coachRoutineTrainerFeedback": "Trainer feedback: {feedback}",
-  "@coachRoutineTrainerFeedback": {
-    "description": "The trainer's feedback on a completed routine.",
-    "placeholders": {
-      "feedback": {
-        "type": "String"
-      }
-    }
-  },
   "coachRoutineCompleteTitle": "Mark personal exercise done",
   "@coachRoutineCompleteTitle": {
     "description": "Title of the completion dialog."
@@ -3106,10 +3110,6 @@
   "@demoAlertMaintenanceBody": {
     "description": "Body of a demo notification shown in tour mode."
   },
-  "exPtLogTitle": "Today's completed PT",
-  "@exPtLogTitle": {
-    "description": "Title of the completed PT session card."
-  },
   "exPtFeedbackTitle": "Today's feedback",
   "exNextPtSchedule": "Next PT · {when}",
   "@exNextPtSchedule": {
@@ -3183,15 +3183,6 @@
     "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
   },
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
-  "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
-  "@exDemoPtSessionCount": {
-    "placeholders": {
-      "trainerName": {
-        "type": "String"
-      }
-    }
-  },
-  "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",
@@ -4108,6 +4099,8 @@
   "coachReportsSectionTitle": "Reports received",
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
+  "coachReportsLoadFailed": "Couldn't load your reports",
+  "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportOpen": "Open report",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {

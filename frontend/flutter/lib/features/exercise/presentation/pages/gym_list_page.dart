@@ -92,7 +92,6 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
       final area = await ref.read(gymLocationServiceProvider).locate();
       if (!mounted) return;
       ref.read(gymSearchAreaProvider.notifier).state = area;
-      ref.read(gymHasLocationProvider.notifier).state = true;
     } catch (error) {
       if (!mounted) return;
       final l = AppLocalizations.of(context);
@@ -129,13 +128,9 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
   String _query = '';
   _GymSort _sort = _GymSort.recommended;
 
-  Future<void> _selectSort(_GymSort value) async {
-    if (value == _GymSort.distance && !ref.read(gymShowDistanceProvider)) {
-      await _locate();
-      if (!mounted || !ref.read(gymShowDistanceProvider)) return;
-    }
-    setState(() => _sort = value);
-  }
+  // 거리순도 위치를 먼저 묻지 않는다 — 위치를 얻기 전에는 검색 지점(기본 신촌)
+  // 기준 거리로 늘어선다. 데모와 같다. (#2666)
+  void _selectSort(_GymSort value) => setState(() => _sort = value);
 
   List<Gym> _visibleGyms(List<Gym> gyms) {
     final String query = _query.trim().toLowerCase();
@@ -621,36 +616,41 @@ class _GymListCard extends ConsumerWidget {
                       const SizedBox(height: OnCareSpacing.s4),
                       Row(
                         children: <Widget>[
-                          if (ref.watch(gymShowDistanceProvider)) ...<Widget>[
-                            Flexible(
-                              child: Text(
-                                '${gym.distanceKm.toStringAsFixed(1)}km',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: OnCareTypography.numeric(meta),
+                          // 거리는 위치를 얻기 전에도 적는다 — 그때는 검색
+                          // 지점(기본 신촌) 기준이다. 데모와 같다. (#2666)
+                          Flexible(
+                            child: Text(
+                              '${gym.distanceKm.toStringAsFixed(1)}km',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: OnCareTypography.numeric(meta),
+                            ),
+                          ),
+                          // 평점이 없는 헬스장(카카오로 찾은 실재 업체)은 별을
+                          // 세우지 않는다 — `★ 0.0` 은 최하 평점으로 읽힌다.
+                          // 상세 화면과 같다. (#2666)
+                          if (gym.rating > 0) ...<Widget>[
+                            const SizedBox(width: OnCareSpacing.s8),
+                            const AppIcon(
+                              AppIcons.star,
+                              size: OnCareSize.iconSmall,
+                              color: OnCareColors.cautionFill,
+                            ),
+                            const SizedBox(width: OnCareSpacing.s2),
+                            Text(
+                              gym.rating.toStringAsFixed(1),
+                              maxLines: 1,
+                              style: OnCareTypography.numeric(
+                                tokens
+                                    .text(
+                                      OnCareTypography.strong(
+                                        OnCareTypography.bodySmall,
+                                      ),
+                                    )
+                                    .copyWith(color: OnCareColors.textPrimary),
                               ),
                             ),
-                            const SizedBox(width: OnCareSpacing.s8),
                           ],
-                          const AppIcon(
-                            AppIcons.star,
-                            size: OnCareSize.iconSmall,
-                            color: OnCareColors.cautionFill,
-                          ),
-                          const SizedBox(width: OnCareSpacing.s2),
-                          Text(
-                            gym.rating.toStringAsFixed(1),
-                            maxLines: 1,
-                            style: OnCareTypography.numeric(
-                              tokens
-                                  .text(
-                                    OnCareTypography.strong(
-                                      OnCareTypography.bodySmall,
-                                    ),
-                                  )
-                                  .copyWith(color: OnCareColors.textPrimary),
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: OnCareSpacing.s4),

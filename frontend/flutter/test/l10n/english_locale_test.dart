@@ -117,10 +117,7 @@ void main() {
       lang: 'en',
       overrides: <Override>[
         notificationControllerProvider.overrideWith(
-          (Ref ref) => NotificationController(
-            _EmptyNotificationRepository(),
-            seed: const <AlertItem>[],
-          ),
+          (Ref ref) => NotificationController(_EmptyNotificationRepository()),
         ),
       ],
     );

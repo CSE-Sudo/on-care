@@ -58,7 +58,7 @@ def _add_session(
     type_: str = "strength",
     created_at: datetime = _LONG_AGO,
     completed_at: datetime | None = None,
-    feedback: str = "",
+    assigned: bool = False,
 ) -> None:
     week_start, day_label = _labels_for(day) if day else ("", "")
     row = ExerciseSession(
@@ -70,8 +70,8 @@ def _add_session(
         minutes=minutes,
         calories=minutes * 6,
         completed_at=completed_at,
-        assigned_trainer_id=TRAINER if feedback else None,
-        trainer_feedback=feedback,
+        assigned_trainer_id=TRAINER if assigned else None,
+        source="assigned_routine" if assigned else "member",
     )
     db.add(row)
     db.flush()
@@ -118,29 +118,22 @@ def test_window_is_today_plus_thirteen_days(db_session, member, days_ago, counts
     assert _signals(db_session, member).has_records is counts
 
 
-def test_feedback_uses_the_same_date_rule_as_minutes(db_session, member):
-    """피드백 신호와 분 집계가 같은 날짜 규칙을 쓴다."""
-    old = clock.today() - timedelta(days=30)
-    _add_session(
-        db_session,
-        member,
-        day=old,
-        created_at=clock.now(),
-        feedback="자세를 조금 낮춰 보세요",
-    )
-    # 구간 밖의 피드백은 신호가 아니다 — 분 집계가 세지 않는 날의 피드백만
-    # 신호가 되면 두 신호가 서로 다른 '최근' 을 말하게 된다.
-    assert _signals(db_session, member).trainer_feedback is False
+def test_assigned_routine_record_is_not_pt_feedback(db_session, member):
+    """이 트레이너가 배정한 개인운동 기록은 운동 기록일 뿐 피드백 신호가 아니다.
 
+    개인 운동 트레이너 피드백은 없앴다(#2517) — 피드백 신호는 완료한 PT 일정의
+    글만 본다.
+    """
     _add_session(
         db_session,
         member,
         day=clock.today() - timedelta(days=2),
-        feedback="어깨는 무리하지 마세요",
+        assigned=True,
     )
+
     signals = _signals(db_session, member)
-    assert signals.trainer_feedback is True
     assert signals.has_records is True
+    assert signals.trainer_feedback is False
 
 
 def test_broken_week_start_falls_back_to_completed_at(db_session, member):

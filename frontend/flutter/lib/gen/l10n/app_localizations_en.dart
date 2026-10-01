@@ -16,6 +16,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'On-Care';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoHome => 'Go home';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get navDashboard => 'Home';
 
   @override
@@ -792,12 +805,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => 'No workout program was recorded.';
+  String exPtSessionNumber(int count) {
+    return 'Session $count';
+  }
 
   @override
-  String exCompletedPtFeedback(String coachName) {
-    return '$coachName · Today\'s feedback';
-  }
+  String get exCompletedPtNoProgram => 'No workout program was recorded.';
 
   @override
   String get exAddExercise => 'Add Exercise';
@@ -978,7 +991,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecords => 'Workouts you logged';
 
   @override
-  String get exOwnRecordsEmpty => 'No workouts logged yet';
+  String get exOwnRecordsEmpty => 'No workouts logged';
 
   @override
   String get exOwnRecordSource => 'Self-logged';
@@ -988,11 +1001,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exCompletedRoutineDayTitle => 'Completed solo workout';
-
-  @override
-  String exPtDayFeedback(String coachName) {
-    return '$coachName · Feedback';
-  }
 
   @override
   String get exDeleteExercise => 'Delete workout';
@@ -1583,6 +1591,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsHistoryMore => 'Load more';
 
   @override
+  String get myPointsHistoryMoreFailed =>
+      'Couldn\'t load more. Please try again';
+
+  @override
   String get myPointsReasonDiet => 'Meal log';
 
   @override
@@ -2103,6 +2115,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mySaveFailed => 'Couldn\'t save. Please try again in a moment';
+
+  @override
+  String get myProfileEmailTaken => 'That email is already in use';
+
+  @override
+  String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
+
+  @override
+  String get myProfileInvalid => 'Please check what you entered';
 
   @override
   String get myFieldName => 'Name';
@@ -3473,6 +3494,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalsFocusChangedByMe => 'you';
 
   @override
+  String get healthNotesLabel => 'Health notes & cautions';
+
+  @override
+  String get healthNotesHint => 'e.g. Left knee surgery, herniated disc';
+
+  @override
+  String get healthNotesHelper => 'Used when recommending workouts';
+
+  @override
   String get healthFocusWeightLoss => 'Weight loss';
 
   @override
@@ -3688,11 +3718,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
 
   @override
-  String coachRoutineTrainerFeedback(String feedback) {
-    return 'Trainer feedback: $feedback';
-  }
-
-  @override
   String get coachRoutineCompleteTitle => 'Mark personal exercise done';
 
   @override
@@ -3854,9 +3879,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Maintenance is scheduled for tomorrow, 02:00–03:00.';
 
   @override
-  String get exPtLogTitle => 'Today\'s completed PT';
-
-  @override
   String get exPtFeedbackTitle => 'Today\'s feedback';
 
   @override
@@ -3923,15 +3945,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
-
-  @override
-  String exDemoPtSessionCount(String trainerName) {
-    return 'Session 12 with Trainer $trainerName';
-  }
-
-  @override
-  String get exDemoPtFeedback =>
-      'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
 
   @override
   String pointsRewardBadge(int points) {
@@ -4767,6 +4780,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachReportsEmptyHint =>
       'Weekly reports from your trainer land here';
+
+  @override
+  String get coachReportsLoadFailed => 'Couldn\'t load your reports';
+
+  @override
+  String get weeklyFeedbackLoadFailed =>
+      'Couldn\'t load the weekly feedback you sent';
 
   @override
   String get coachReportOpen => 'Open report';

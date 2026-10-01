@@ -31,7 +31,13 @@ const double _filterPanelWidth = 360;
 class ClientsPage extends ConsumerStatefulWidget {
   /// Creates the roster page. [selectedId]/[section] come from the path,
   /// [filter] from the `f` query parameter.
-  const ClientsPage({super.key, this.selectedId, this.section, this.filter});
+  const ClientsPage({
+    super.key,
+    this.selectedId,
+    this.section,
+    this.filter,
+    this.openHealthNotes = false,
+  });
 
   /// Client whose detail is open, or null for the plain list.
   final String? selectedId;
@@ -41,6 +47,9 @@ class ClientsPage extends ConsumerStatefulWidget {
 
   /// Roster filter from the URL.
   final String? filter;
+
+  /// 주의사항 알림에서 왔다 — 상세가 신체·목표 창의 `건강 목표` 탭을 연다(#2619).
+  final bool openHealthNotes;
 
   @override
   ConsumerState<ClientsPage> createState() => _ClientsPageState();
@@ -52,14 +61,14 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
     context.go(AppRoutes.clients);
   }
 
-  /// 신규 고객 등록 — 회원 ID로 기존 회원을 찾아 연결한다. (#919)
+  /// 신규 고객 등록 — 회원이 자기 앱에 띄운 6자리 동기화 코드로 연결한다.
+  /// (#919·#1634)
   ///
   /// 트레이너가 성별·나이 같은 인적 사항을 입력해 새 고객을 만드는 방식은
-  /// 없다 — 실 API 와 데모 모두 이 한 창을 연다. 실 API 는 회원의 수락을
-  /// 기다리는 요청을 보내고([ClientInviteRepository.connectsImmediately] 가
-  /// `false`), 데모는 회원 ID가 확인되면 그 자리에서 연결한다(`true`) — 답할
-  /// 회원 백엔드가 없어서다. 담당 관계는 상대의 기록을 여는 권한이라 트레이너
-  /// 혼자 일방적으로 만들 수 없다는 원칙은 실 API 쪽에서 그대로 지켜진다.
+  /// 없다 — 실 API 와 데모 모두 이 한 창을 연다. 코드를 불러 준 것이 회원
+  /// 본인이라 확인 후 그 자리에서 연결되고, 담당 관계는 상대의 기록을 여는
+  /// 권한이라 회원의 코드 없이 트레이너 혼자 만들 수는 없다. 옛 담당 요청
+  /// 경로로 보낸 요청은 창 아래 대기 목록에서 본다.
   ///
   /// 상담 요청 인박스(`showConsultationsDialog`)와 같은 자리에서 여는
   /// 작업이라 같은 형식(가운데 뜨는 작은 창)으로 통일한다 — 하나는 아래에서
@@ -81,9 +90,10 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
         ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
     final lastChatAt =
         ref.watch(lastChatAtProvider).valueOrNull ?? const <String, DateTime>{};
-    // 신규 고객 등록은 회원 ID로 찾아 연결하는 한 경로뿐이다 — 실 API 와
-    // 데모 모두 [clientInvitesEnabledProvider] 가 켜져 있다. 이 provider 가
-    // 꺼진 빌드에서만 진입점 자체를 그리지 않는다. (#919)
+    // 신규 고객 등록은 회원이 띄운 6자리 동기화 코드로 연결하는 한 경로뿐이다
+    // — 실 API 와 데모 모두 [clientInvitesEnabledProvider] 가 켜져 있다
+    // (실 API 는 #2670 에서 켰다). 이 provider 가 꺼진 빌드에서만 진입점
+    // 자체를 그리지 않는다. (#919·#1634)
     final canConnect = ref.watch(clientInvitesEnabledProvider);
     final activeFilter = clientFilterFrom(widget.filter);
 
@@ -133,14 +143,6 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
           subtitle: activeFilter != ClientFilter.all || view.filters.isNotEmpty
               ? l.clientsMemberCountFiltered(list.length, all.length)
               : l.clientsMemberCount(all.length),
-          actions: <Widget>[
-            if (canConnect)
-              AppButton(
-                label: l.clientsNew,
-                leadingIcon: AppIcons.addClient,
-                onPressed: () => _openConnectDialog(context),
-              ),
-          ],
           body: LayoutBuilder(
             builder: (context, constraints) {
               // [AppSplitView] 과 같은 폭·같은 기준으로 잰다 — 좁은 폭에서
@@ -150,17 +152,34 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   if (wide || selected == null) ...<Widget>[
-                    _MemberManagementToolbar(
-                      managementFilters: view.filters,
-                      sort: view.sort,
-                      preset: activeFilter,
-                      onClearPreset: _clearFilters,
-                      onFiltersChanged: (value) =>
-                          ref.read(rosterViewProvider.notifier).state = view
-                              .copyWith(filters: value),
-                      onSortChanged: (value) =>
-                          ref.read(rosterViewProvider.notifier).state = view
-                              .copyWith(sort: value),
+                    // `신규 회원 등록` 은 필터 줄 오른쪽 끝이다 — 화면 머리 오른쪽
+                    // 끝은 모든 탭이 알림 종 하나만 두는 자리다(#2628).
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _MemberManagementToolbar(
+                            managementFilters: view.filters,
+                            sort: view.sort,
+                            preset: activeFilter,
+                            onClearPreset: _clearFilters,
+                            onFiltersChanged: (value) =>
+                                ref.read(rosterViewProvider.notifier).state =
+                                    view.copyWith(filters: value),
+                            onSortChanged: (value) =>
+                                ref.read(rosterViewProvider.notifier).state =
+                                    view.copyWith(sort: value),
+                          ),
+                        ),
+                        if (canConnect) ...<Widget>[
+                          const SizedBox(width: OnCareSpacing.s8),
+                          AppButton(
+                            key: const ValueKey<String>('clients-new'),
+                            label: l.clientsNew,
+                            leadingIcon: AppIcons.addClient,
+                            onPressed: () => _openConnectDialog(context),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
                   ],
@@ -193,6 +212,16 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                               clientId: selected,
                               section: widget.section,
                               showBack: !wide,
+                              openHealthNotes: widget.openHealthNotes,
+                              // 한 번 열었으면 주소에서 지운다 — 새로 고칠 때마다
+                              // 창이 다시 뜨지 않게.
+                              onHealthNotesOpened: () => context.replace(
+                                AppRoutes.clientDetail(
+                                  selected,
+                                  section: widget.section,
+                                  filter: widget.filter,
+                                ),
+                              ),
                               onSectionChange: (next) => context.go(
                                 AppRoutes.clientDetail(
                                   selected,
@@ -573,16 +602,10 @@ class _RefreshOnBranchResumeState extends State<_RefreshOnBranchResume> {
 /// Shared page chrome so the loading/error/data states keep the same
 /// header instead of the title flickering in after the stream resolves.
 class _Frame extends StatelessWidget {
-  const _Frame({
-    required this.subtitle,
-    required this.body,
-    this.actions = const <Widget>[],
-  });
+  const _Frame({required this.subtitle, required this.body});
 
   final String? subtitle;
   final Widget body;
-
-  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -592,7 +615,6 @@ class _Frame extends StatelessWidget {
       subtitle: subtitle,
       // 고객 검색은 헤더 가운데 자리다 — 탭을 옮겨도 같은 가로 위치에 선다.
       headerCenter: const ClientSearchBar(),
-      actions: actions,
       body: body,
     );
   }

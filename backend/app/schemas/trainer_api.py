@@ -28,6 +28,7 @@ from app.schemas.exercise_limits import (
 )
 from app.schemas.health_goal_ranges import (
     ConditionsText,
+    check_conditions_notes,
     DailyBurnKcal,
     DailyCalories,
     DailyCarbsG,
@@ -257,15 +258,8 @@ class MemberHealthProfileUpdate(PartialUpdate):
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: str | None) -> str | None:
-        normalized = health_focus.normalize_conditions(value)
-        # 트레이너가 적은 건강상태·주의사항은 기록 한 건 상한까지다(#2618).
-        # 회원 경로(`HealthGoalsUpdate`)는 이 글을 고칠 칸이 없어 싣고만 오므로
-        # 검사하지 않는다 — 긴 글이 남은 회원이 목표 칩을 못 바꾸게 된다(#2619).
-        if health_focus.notes_length(normalized) > TEXT_ENTRY_MAX:
-            raise ValueError(
-                f"건강상태·주의사항은 {TEXT_ENTRY_MAX}자까지 적을 수 있습니다."
-            )
-        return normalized
+        # 건강상태·주의사항은 기록 한 건 상한까지다 — 회원 경로와 같다(#2618).
+        return check_conditions_notes(health_focus.normalize_conditions(value))
 
 class ClientDietEntryOut(BaseModel):
     """고객 식단 서브탭 한 끼 — 프론트 ClientDietEntry 계약 정렬."""
@@ -340,6 +334,9 @@ class RoutineHistoryOut(BaseModel):
     kind: RoutineHistoryKind | None = None
     #: `exercises` 와 같은 순서·같은 개수의 값 목록(#2300).
     exercise_items: list[RoutineHistoryExerciseOut] = Field(default_factory=list)
+    #: 두 칸 모두 트레이너 웹 화면이 읽지 않는다(#2334). 개인운동 이력은 늘 빈
+    #: 문자열이고(#1825, #2517), PT 세션 이력의 `trainer_note` 는 PT 완료 때
+    #: 복사한 일정의 글이다 — 정리는 일정 글 결정(#2515)과 함께 본다.
     client_feedback: str
     trainer_note: str
     assigned_routine_id: str | None = None
@@ -643,6 +640,8 @@ class RoutineOut(BaseModel):
     #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
     completed_duration_seconds: int | None = None
     completed_intensity: str | None = None
+    #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
+    #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
     trainer_feedback: str = ""
     #: 이 개인운동이 붙어 있는 PT 일정(#2223). 개인운동만 보낸 배정은 비어 있다.
@@ -816,10 +815,6 @@ class RoutineUpdateRequest(PartialUpdate):
     )
     type: RoutineType | None = None
     reason: str | None = Field(default=None, max_length=200)
-
-
-class RoutineFeedbackRequest(BaseModel):
-    feedback: str = Field(min_length=1, max_length=2000)
 
 
 # ---- 프로그램 초안 (#708) ----
@@ -1455,6 +1450,10 @@ class ScheduleSessionOut(BaseModel):
     #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
     #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
     member_detached: bool = False
+    #: 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터, #2697). 회원 응답의
+    #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
+    #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
+    session_number: int | None = None
 
 
 class DeliveryOut(BaseModel):

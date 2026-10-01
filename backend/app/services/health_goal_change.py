@@ -11,6 +11,11 @@
 같은 목표를 순서만 바꿔 다시 보낸 저장은 목표 변경이 아니다 — 그런 저장마다 알림이
 가면 상대는 곧 알림을 읽지 않게 된다.
 
+예외는 **회원이 고친 건강상태·주의사항**이다(#2619). 부상·통증처럼 운동을 짤 때
+피해야 할 것이라 담당 트레이너는 바로 알아야 한다. 기록(`focus_changed_*`)은 목표
+칩만의 것이라 남기지 않고 알림만 보낸다. 트레이너가 고친 주의사항은 회원에게
+알리지 않는다 — 수치 목표와 같다.
+
 호출부의 트랜잭션에 얹는다(커밋하지 않는다). 기록과 알림이 목표 저장과 함께
 성사되어야, 목표는 바뀌었는데 알림만 없는 반쪽 상태가 생기지 않는다.
 """
@@ -37,6 +42,11 @@ def focus_changed(before: str | None, after: str | None) -> bool:
     return set(health_focus.focus_in(before)) != set(health_focus.focus_in(after))
 
 
+def notes_changed(before: str | None, after: str | None) -> bool:
+    """건강상태·주의사항 글이 바뀌었는가. 목표 칩과 조각 순서는 보지 않는다."""
+    return set(health_focus.notes_in(before)) != set(health_focus.notes_in(after))
+
+
 def _stamp(profile: HealthProfile, changed_by: str, actor_id: str) -> None:
     profile.focus_changed_by = changed_by
     profile.focus_changed_by_id = actor_id
@@ -48,25 +58,37 @@ def record_member_change(
 ) -> bool:
     """회원이 저장한 뒤 부른다. 목표가 바뀌었으면 기록하고 담당 트레이너에게 알린다.
 
-    담당 트레이너가 없으면 기록만 남긴다. 바뀌었으면 True.
+    건강상태·주의사항만 바뀌었으면 기록 없이 알리기만 한다(#2619). 둘 다 바뀌었으면
+    알림은 주의사항 틀 하나로 합친다 — 한 번 저장에 알림 두 건은 과하다.
+
+    담당 트레이너가 없으면 기록만 남긴다. 목표가 바뀌었으면 True.
     """
-    if not focus_changed(before, profile.conditions):
+    focus = focus_changed(before, profile.conditions)
+    notes = notes_changed(before, profile.conditions)
+    if not focus and not notes:
         return False
-    _stamp(profile, CHANGED_BY_MEMBER, member.id)
+    if focus:
+        _stamp(profile, CHANGED_BY_MEMBER, member.id)
     trainer_id = get_member_trainer_id(db, member.id)
     if trainer_id is not None:
         notification_service.queue_for_trainer(
             db,
             trainer_id=trainer_id,
             kind=notification_service.TRAINER_HEALTH_GOAL_KIND,
-            template=notification_templates.TRAINER_HEALTH_GOAL,
+            template=(
+                notification_templates.TRAINER_HEALTH_NOTES
+                if notes
+                else notification_templates.TRAINER_HEALTH_GOAL
+            ),
             template_args={
                 "member_name": member.name,
                 "focus": health_focus.focus_in(profile.conditions),
+                # 목표 칩 틀의 인자는 예전 그대로 두고, 주의사항 틀에만 붙인다.
+                **({"with_focus": focus} if notes else {}),
             },
             subject_id=member.id,
         )
-    return True
+    return focus
 
 
 def record_trainer_change(

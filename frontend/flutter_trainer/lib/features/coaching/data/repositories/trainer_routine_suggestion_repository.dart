@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_suggestions.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_suggestion_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_suggestion_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
@@ -65,8 +70,11 @@ class RoutineSuggestionAlreadyReviewed implements Exception {
 /// Demo suggestions the trainer can review without a backend.
 ///
 /// 데모에는 후보를 준비해 줄 서버가 없다. 빈 목록을 돌려주면 이 기능이 데모에서
-/// 아예 보이지 않으므로, 회원마다 같은 후보 두 건을 들고 시작하고 승인·거절한
-/// 것은 목록에서 지운다 — 실서버와 같은 순서로 화면이 움직인다.
+/// 아예 보이지 않으므로, 회원마다 후보를 들고 시작하고 승인·거절한 것은
+/// 목록에서 지운다 — 실서버와 같은 순서로 화면이 움직인다.
+///
+/// 시드 회원은 회원마다 다른 후보를 갖는다([forMember], #2668). 예전에는 모든
+/// 회원이 같은 세 건·같은 근거 문구였다.
 class MockTrainerRoutineSuggestionRepository
     implements TrainerRoutineSuggestionRepository {
   /// Creates the demo repository.
@@ -75,10 +83,21 @@ class MockTrainerRoutineSuggestionRepository
   /// 실서버가 준비하는 요청의 언어로 이름·사유를 만들어 저장하는 것과 같다 —
   /// 한 번 준비한 후보의 문장은 언어를 바꿔도 그대로이고, 근거는 코드라
   /// 화면 언어를 따른다. 생략하면 한국어다.
-  MockTrainerRoutineSuggestionRepository({String Function()? languageCode})
-    : _languageCode = languageCode ?? _korean;
+  ///
+  /// [assignTo] 를 주면 승인한 제안이 그 회원의 배정이 된다 — 실서버에서
+  /// 승인하면 배정되는 것과 같다(#2668). [db] 를 주면 검토한 제안이 drift 에
+  /// 남아 새로고침해도 다시 나오지 않는다.
+  MockTrainerRoutineSuggestionRepository({
+    String Function()? languageCode,
+    TrainerRoutineRepository? assignTo,
+    AppDatabase? db,
+  }) : _languageCode = languageCode ?? _korean,
+       _routines = assignTo,
+       _store = db == null ? null : DemoRoutineStore(db);
 
   final String Function() _languageCode;
+  final TrainerRoutineRepository? _routines;
+  final DemoRoutineStore? _store;
 
   static String _korean() => 'ko';
 
@@ -172,18 +191,38 @@ class MockTrainerRoutineSuggestionRepository
     ),
   ];
 
-  /// 이 언어의 데모 후보. 영어가 아니면 한국어다.
+  /// 이 언어의 데모 후보(김민수의 것). 영어가 아니면 한국어다.
   static List<RoutineSuggestion> seedFor(String languageCode) =>
       languageCode == 'en' ? _seedEn : _seed;
 
-  List<RoutineSuggestion> _listFor(String memberId) => _pending.putIfAbsent(
-    memberId,
-    () => List<RoutineSuggestion>.of(seedFor(_languageCode())),
-  );
+  /// 이 회원의 데모 후보. 시드 회원은 회원별 후보([demoMemberSuggestionsKo])
+  /// 를, 그 밖의 회원(김민수·테스트 회원)은 [seedFor] 를 쓴다.
+  static List<RoutineSuggestion> forMember(
+    String memberId,
+    String languageCode,
+  ) =>
+      (languageCode == 'en'
+          ? demoMemberSuggestionsEn
+          : demoMemberSuggestionsKo)[memberId] ??
+      seedFor(languageCode);
+
+  Future<List<RoutineSuggestion>> _listFor(String memberId) async {
+    final List<RoutineSuggestion>? cached = _pending[memberId];
+    if (cached != null) return cached;
+    final Set<String> reviewed =
+        await _store?.readReviewedSuggestions() ?? const <String>{};
+    return _pending.putIfAbsent(
+      memberId,
+      () => <RoutineSuggestion>[
+        for (final RoutineSuggestion s in forMember(memberId, _languageCode()))
+          if (!reviewed.contains(s.id)) s,
+      ],
+    );
+  }
 
   @override
   Future<List<RoutineSuggestion>> pending(String memberId) async =>
-      List<RoutineSuggestion>.unmodifiable(_listFor(memberId));
+      List<RoutineSuggestion>.unmodifiable(await _listFor(memberId));
 
   @override
   Future<void> approve(
@@ -196,18 +235,41 @@ class MockTrainerRoutineSuggestionRepository
     int? holdSeconds,
     double? weight,
     String? reason,
-  }) async => _review(suggestionId);
+  }) async {
+    final (String memberId, RoutineSuggestion s) = await _review(suggestionId);
+    // 승인한 것은 그 회원의 배정이 된다 — 고친 값이 있으면 고친 대로(#2668).
+    // 아무것도 하지 않던 동안에는 목록에서 빠질 뿐 배정 루틴에 들어가지 않았다.
+    await _routines?.assignRoutine(
+      memberId,
+      AssignedRoutine(
+        id: '',
+        name: name ?? s.name,
+        minutes: minutes ?? s.minutes,
+        type: type ?? s.type,
+        reason: reason ?? s.reason,
+        source: 'ai',
+        sets: sets ?? s.sets,
+        reps: reps ?? s.reps,
+        holdSeconds: holdSeconds ?? s.holdSeconds,
+        weight: weight ?? s.weight,
+      ),
+    );
+  }
 
   @override
-  Future<void> dismiss(String suggestionId) async => _review(suggestionId);
+  Future<void> dismiss(String suggestionId) async {
+    await _review(suggestionId);
+  }
 
-  /// 검토한 제안을 목록에서 뺀다. 없으면 실서버의 409 와 같은 예외 —
-  /// 데모에서도 두 번 누르면 같은 문구가 나와야 한다.
-  void _review(String suggestionId) {
+  /// 검토한 제안을 목록에서 빼고, 그 회원과 제안을 돌려준다. 없으면 실서버의
+  /// 409 와 같은 예외 — 데모에서도 두 번 누르면 같은 문구가 나와야 한다.
+  Future<(String, RoutineSuggestion)> _review(String suggestionId) async {
     for (final entry in _pending.entries) {
-      final before = entry.value.length;
-      entry.value.removeWhere((s) => s.id == suggestionId);
-      if (entry.value.length != before) return;
+      final int at = entry.value.indexWhere((s) => s.id == suggestionId);
+      if (at < 0) continue;
+      final RoutineSuggestion s = entry.value.removeAt(at);
+      await _store?.addReviewedSuggestion(suggestionId);
+      return (entry.key, s);
     }
     throw RoutineSuggestionAlreadyReviewed(suggestionId);
   }
@@ -222,6 +284,8 @@ final trainerRoutineSuggestionRepositoryProvider =
         return MockTrainerRoutineSuggestionRepository(
           languageCode: () =>
               ref.read(trainerResolvedLocaleProvider).languageCode,
+          assignTo: ref.watch(trainerRoutineRepositoryProvider),
+          db: ref.watch(appDatabaseProvider),
         );
       }
       return DioTrainerRoutineSuggestionRepository(ref.watch(dioProvider));

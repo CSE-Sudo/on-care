@@ -2,17 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 
-// 목 모드 설정 — 컨트롤러가 데모 시드(demoAlerts)를 즉시 사용하고
-// 네트워크 없이 세션 변이만 검증한다.
-const AppConfig _mockConfig = AppConfig(
-  environment: Environment.dev,
-  apiBaseUrl: 'https://dev.api.test',
-  useMockApi: true,
-);
+import '../../helpers/demo_notifications.dart';
 
 // 실모드 설정 — 컨트롤러가 리포에서 로드하고 읽음을 리포로 영속화한다.
 const AppConfig _realConfig = AppConfig(
@@ -21,10 +16,13 @@ const AppConfig _realConfig = AppConfig(
   useMockApi: false,
 );
 
-ProviderContainer _container() {
-  final container = ProviderContainer(
-    overrides: <Override>[appConfigProvider.overrideWithValue(_mockConfig)],
-  );
+/// 목 모드 — 로컬 인터셉터가 drift 데모 시드로 답한다(#2660). 첫 조회까지 기다린다.
+Future<ProviderContainer> _container() async {
+  final AppDatabase db = await seededDemoDatabase();
+  addTearDown(db.close);
+  final container = ProviderContainer(overrides: demoNotificationOverrides(db));
+  addTearDown(container.dispose);
+  await container.read(notificationControllerProvider.notifier).refresh();
   return container;
 }
 
@@ -55,19 +53,20 @@ class _RecordingRepo implements NotificationRepository {
 }
 
 void main() {
-  test('seed state has unread items', () {
-    final container = _container();
-    addTearDown(container.dispose);
+  // 목 모드 Dio 의 언어 인터셉터와 미읽음 폴링이 바인딩을 읽는다.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('seed state has unread items', () async {
+    final container = await _container();
     final state = container.read(notificationControllerProvider);
     expect(state.items, isNotEmpty);
-    expect(state.unreadCount, greaterThan(0));
+    expect(state.unreadCount, kDemoUnreadNotifications);
   });
 
-  test('데모 알림도 갈 곳을 갖는다', () {
+  test('데모 알림도 갈 곳을 갖는다', () async {
     // 목적지가 없으면 데모에서는 눌러도 읽음 처리만 된다 — 구현돼 있는 이동
     // 기능이 데모에서만 없는 것처럼 보인다. (#667)
-    final container = _container();
-    addTearDown(container.dispose);
+    final container = await _container();
     final List<AlertItem> items = container
         .read(notificationControllerProvider)
         .items;
@@ -80,18 +79,17 @@ void main() {
     expect(items.where((AlertItem i) => i.action == null), isNotEmpty);
   });
 
-  test('읽어도 갈 곳은 남는다', () {
+  test('읽어도 갈 곳은 남는다', () async {
     // `copyWith` 가 action 을 흘리면, 한 번 읽은 알림은 다시 눌러도 이동하지
     // 않는다 — 목록에는 그대로 있으니 원인을 찾기 어렵다.
-    final container = _container();
-    addTearDown(container.dispose);
+    final container = await _container();
     final notifier = container.read(notificationControllerProvider.notifier);
     final AlertItem target = container
         .read(notificationControllerProvider)
         .items
         .firstWhere((AlertItem i) => i.action != null);
 
-    notifier.markRead(target.id);
+    await notifier.markRead(target.id);
 
     final AlertItem after = container
         .read(notificationControllerProvider)
@@ -101,9 +99,8 @@ void main() {
     expect(after.action?.target, target.action?.target);
   });
 
-  test('markRead toggles a single item', () {
-    final container = _container();
-    addTearDown(container.dispose);
+  test('markRead toggles a single item', () async {
+    final container = await _container();
     final notifier = container.read(notificationControllerProvider.notifier);
     final firstId = container
         .read(notificationControllerProvider)
@@ -111,7 +108,7 @@ void main() {
         .first
         .id;
 
-    notifier.markRead(firstId);
+    await notifier.markRead(firstId);
 
     final updated = container
         .read(notificationControllerProvider)
@@ -120,10 +117,34 @@ void main() {
     expect(updated.read, isTrue);
   });
 
-  test('markAllRead drops unread count to zero', () {
-    final container = _container();
-    addTearDown(container.dispose);
-    container.read(notificationControllerProvider.notifier).markAllRead();
+  test('markAllRead drops unread count to zero', () async {
+    final container = await _container();
+    await container.read(notificationControllerProvider.notifier).markAllRead();
+    expect(container.read(notificationControllerProvider).unreadCount, 0);
+  });
+
+  // 데모의 읽음도 인터셉터를 거쳐 drift 에 남는다 — 새로 불러와도 읽은 채다.
+  test('데모 읽음 처리는 다시 불러와도 남는다', () async {
+    final container = await _container();
+    final notifier = container.read(notificationControllerProvider.notifier);
+    final String firstId = container
+        .read(notificationControllerProvider)
+        .items
+        .first
+        .id;
+
+    await notifier.markRead(firstId);
+    await notifier.refresh();
+
+    final state = container.read(notificationControllerProvider);
+    expect(
+      state.items.firstWhere((AlertItem i) => i.id == firstId).read,
+      isTrue,
+    );
+    expect(state.unreadCount, kDemoUnreadNotifications - 1);
+
+    await notifier.markAllRead();
+    await notifier.refresh();
     expect(container.read(notificationControllerProvider).unreadCount, 0);
   });
 

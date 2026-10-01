@@ -8,6 +8,7 @@ library;
 import 'dart:typed_data';
 
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
@@ -86,13 +87,20 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
     return value;
   }
 
+  /// [fetchChat] 이 받은 커서들 — 첫 쪽은 null 이다.
+  final List<CoachMessage?> chatCursors = <CoachMessage?>[];
+
+  /// 서버처럼 한 쪽씩 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
+  /// 쪽(#2640, #2643). 전부를 한 번에 주면 쪽을 넘기는 길이 시험되지 않는다.
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
-      List<CoachMessage>.of(chat);
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
+    chatCursors.add(before);
+    return pageCoachChat(chat, before: before);
+  }
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
-      Stream<List<CoachMessage>>.value(List<CoachMessage>.of(chat));
+      Stream<List<CoachMessage>>.value(pageCoachChat(chat));
 
   // ── 이 화면들이 부르지 않는 것 ─────────────────────────────────────────
   //
@@ -180,3 +188,12 @@ CoachMessage plainMessage({String id = 'p1', String body = '안녕하세요'}) =
       timeLabel: '오후 1:00',
       createdAt: DateTime(2026, 9, 18, 13),
     );
+
+/// 대화 한 줄 — [minute] 분에 온 트레이너 메시지. 쪽 넘기기를 볼 때 쓴다.
+CoachMessage chatLine(int minute, {String? id, DateTime? base}) => CoachMessage(
+  id: id ?? 'c${minute.toString().padLeft(4, '0')}',
+  sender: CoachSender.trainer,
+  body: '메시지 $minute',
+  timeLabel: '오전 9:00',
+  createdAt: (base ?? DateTime(2026, 9, 1, 9)).add(Duration(minutes: minute)),
+);

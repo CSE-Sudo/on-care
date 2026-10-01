@@ -235,16 +235,19 @@ void main() {
     expect(repo.unreadCalls, greaterThan(before));
   });
 
-  test('목 모드는 새로고침해도 네트워크를 타지 않는다', () async {
+  // 데모도 새로고침이 저장소를 다시 부른다 — 로컬 인터셉터가 drift 로 답한다(#2660).
+  // 그래야 챌린지 결과처럼 데모 중에 생긴 알림이 목록에 올라온다.
+  test('목 모드도 새로고침하면 다시 불러온다', () async {
     final repo = _ScriptedRepo(<AlertItem>[_alert('a')]);
     final container = _container(repo, config: _mockConfig);
 
     final notifier = container.read(notificationControllerProvider.notifier);
+    await _settle();
+    final int before = repo.fetchCalls;
     await notifier.refresh();
     await _settle();
 
-    // 데모는 시드가 진실원본이다. 서버를 찌르면 데모 화면이 흔들린다.
-    expect(repo.fetchCalls, 0);
+    expect(repo.fetchCalls, greaterThan(before));
     expect(
       container.read(notificationControllerProvider).items,
       isNotEmpty,

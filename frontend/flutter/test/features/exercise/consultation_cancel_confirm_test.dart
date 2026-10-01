@@ -78,10 +78,14 @@ void main() {
     matching: find.widgetWithText(AppButton, label),
   );
 
+  /// 카드의 취소 버튼. 키는 접수된 요청 id 로 만들어진다 — 데모 저장소가 id 를
+  /// 새로 주므로(#2659) 화면이 만든 id 가 아니라 목록의 id 로 찾는다.
+  Finder cardCancel() => find.byKey(
+    ValueKey<String>('cancel-consultation-${controller.state.single.id}'),
+  );
+
   Future<void> openConfirm(WidgetTester tester) async {
-    await tester.tap(
-      find.byKey(const ValueKey<String>('cancel-consultation-request-cancel')),
-    );
+    await tester.tap(cardCancel());
     await tester.pumpAndSettle();
     expect(find.text('상담 요청을 취소할까요?'), findsOneWidget);
   }
@@ -92,13 +96,7 @@ void main() {
 
     // 카드의 취소는 파괴적 글자 버튼이다.
     expect(
-      tester
-          .widget<AppButton>(
-            find.byKey(
-              const ValueKey<String>('cancel-consultation-request-cancel'),
-            ),
-          )
-          .variant,
+      tester.widget<AppButton>(cardCancel()).variant,
       AppButtonVariant.destructiveText,
     );
     // 확정은 같은 파괴적 토큰의 채움, 유지는 중립 버튼이다.

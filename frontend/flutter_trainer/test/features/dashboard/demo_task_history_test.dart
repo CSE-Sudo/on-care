@@ -4,8 +4,11 @@
 /// 섞이면 방금 들어온 항목이 `어제부터 밀린 일` 로 분류된다(#1147).
 library;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 import 'package:oncare_trainer/features/dashboard/data/demo_task_history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -104,5 +107,49 @@ void main() {
     expect(history.firstSavedDate, '2026-08-17');
     // 삭제한 항목도 함께 남는다(#1633).
     expect(history.read('2026-08-20')!.dismissedKeys, <String>{'program-c2'});
+  });
+
+  group('목업 모드에서만 있다 (#2671)', () {
+    ProviderContainer containerFor({
+      required bool useMockApi,
+      List<Override> extra = const <Override>[],
+    }) {
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(
+            AppConfig(
+              environment: Environment.dev,
+              apiBaseUrl: 'http://localhost/v1',
+              useMockApi: useMockApi,
+            ),
+          ),
+          ...extra,
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('실계정에는 지어낸 이력이 없다', () {
+      final ProviderContainer container = containerFor(useMockApi: false);
+
+      expect(container.read(demoTaskHistoryProvider), isNull);
+    });
+
+    test('목업 모드는 지난 날들을 채운다', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final ProviderContainer container = containerFor(
+        useMockApi: true,
+        extra: <Override>[sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+
+      final DemoTaskHistory? demo = container.read(demoTaskHistoryProvider);
+      expect(demo, isNotNull);
+      expect(
+        demo!.snapshotFor(demo.today.subtract(const Duration(days: 1))),
+        isNotNull,
+      );
+    });
   });
 }

@@ -110,6 +110,30 @@ abstract class AppLocalizations {
   /// **'On-Care'**
   String get appTitle;
 
+  /// Title of the 404 page shown for an address that matches no screen (#2633).
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found'**
+  String get notFoundTitle;
+
+  /// No description provided for @notFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may be broken, or the page may no longer exist. Please check the address and try again.'**
+  String get notFoundMessage;
+
+  /// 404 page button for a signed-in (or demo) member; goes to the home dashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Go home'**
+  String get notFoundGoHome;
+
+  /// 404 page button when nobody is signed in; goes to the sign-in screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get notFoundGoSignIn;
+
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:
@@ -1496,17 +1520,17 @@ abstract class AppLocalizations {
   /// **'{time} completed'**
   String exCompletedPtTime(String time);
 
+  /// PT card chip — which session with the assigned trainer this was (#2666).
+  ///
+  /// In en, this message translates to:
+  /// **'Session {count}'**
+  String exPtSessionNumber(int count);
+
   /// No description provided for @exCompletedPtNoProgram.
   ///
   /// In en, this message translates to:
   /// **'No workout program was recorded.'**
   String get exCompletedPtNoProgram;
-
-  /// No description provided for @exCompletedPtFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'{coachName} · Today\'s feedback'**
-  String exCompletedPtFeedback(String coachName);
 
   /// No description provided for @exAddExercise.
   ///
@@ -1805,7 +1829,7 @@ abstract class AppLocalizations {
   /// No description provided for @exOwnRecordsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No workouts logged yet'**
+  /// **'No workouts logged'**
   String get exOwnRecordsEmpty;
 
   /// No description provided for @exOwnRecordSource.
@@ -1825,12 +1849,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Completed solo workout'**
   String get exCompletedRoutineDayTitle;
-
-  /// No description provided for @exPtDayFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'{coachName} · Feedback'**
-  String exPtDayFeedback(String coachName);
 
   /// No description provided for @exDeleteExercise.
   ///
@@ -2780,6 +2798,12 @@ abstract class AppLocalizations {
   /// **'Load more'**
   String get myPointsHistoryMore;
 
+  /// No description provided for @myPointsHistoryMoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load more. Please try again'**
+  String get myPointsHistoryMoreFailed;
+
   /// No description provided for @myPointsReasonDiet.
   ///
   /// In en, this message translates to:
@@ -3667,6 +3691,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save. Please try again in a moment'**
   String get mySaveFailed;
+
+  /// No description provided for @myProfileEmailTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That email is already in use'**
+  String get myProfileEmailTaken;
+
+  /// No description provided for @myProfilePhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone number can\'t be left empty'**
+  String get myProfilePhoneRequired;
+
+  /// No description provided for @myProfileInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check what you entered'**
+  String get myProfileInvalid;
 
   /// No description provided for @myFieldName.
   ///
@@ -6007,6 +6049,24 @@ abstract class AppLocalizations {
   /// **'you'**
   String get myGoalsFocusChangedByMe;
 
+  /// No description provided for @healthNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Health notes & cautions'**
+  String get healthNotesLabel;
+
+  /// No description provided for @healthNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Left knee surgery, herniated disc'**
+  String get healthNotesHint;
+
+  /// No description provided for @healthNotesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Used when recommending workouts'**
+  String get healthNotesHelper;
+
   /// Health goal chip in onboarding and MY health goals.
   ///
   /// In en, this message translates to:
@@ -6378,12 +6438,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the workout'**
   String get coachRoutineCancelFailed;
 
-  /// The trainer's feedback on a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback: {feedback}'**
-  String coachRoutineTrainerFeedback(String feedback);
-
   /// Title of the completion dialog.
   ///
   /// In en, this message translates to:
@@ -6660,12 +6714,6 @@ abstract class AppLocalizations {
   /// **'Maintenance is scheduled for tomorrow, 02:00–03:00.'**
   String get demoAlertMaintenanceBody;
 
-  /// Title of the completed PT session card.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s completed PT'**
-  String get exPtLogTitle;
-
   /// Label above the trainer's feedback.
   ///
   /// In en, this message translates to:
@@ -6779,18 +6827,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A cancelled request can\'t be restored.'**
   String get exConsultHistoryCancelBody;
-
-  /// No description provided for @exDemoPtSessionCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Session 12 with Trainer {trainerName}'**
-  String exDemoPtSessionCount(String trainerName);
-
-  /// No description provided for @exDemoPtFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!'**
-  String get exDemoPtFeedback;
 
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///
@@ -7630,6 +7666,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly reports from your trainer land here'**
   String get coachReportsEmptyHint;
+
+  /// No description provided for @coachReportsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your reports'**
+  String get coachReportsLoadFailed;
+
+  /// No description provided for @weeklyFeedbackLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the weekly feedback you sent'**
+  String get weeklyFeedbackLoadFailed;
 
   /// No description provided for @coachReportOpen.
   ///

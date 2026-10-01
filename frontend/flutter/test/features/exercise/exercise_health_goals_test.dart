@@ -17,6 +17,7 @@ import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
@@ -187,6 +188,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          if (coachRepository == null)
+            exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
           appConfigProvider.overrideWithValue(
             AppConfig(
               environment: Environment.dev,
@@ -335,11 +338,151 @@ void main() {
       400,
     );
 
-    expect(find.text('18:00 수업 완료'), findsOneWidget);
+    expect(find.text('18:00 완료'), findsOneWidget);
     expect(find.text('숄더 프레스 · 4세트 · 12회 · 10kg'), findsOneWidget);
     expect(find.text('마무리 러닝머신 · 10분'), findsOneWidget);
-    expect(find.text('김트레이너 · 오늘의 피드백'), findsOneWidget);
+    // 피드백 칸은 데모 카드와 같은 짜임이다 — 트레이너 이름 아래 `오늘의
+    // 피드백`, 그 아래 본문(#2666).
+    expect(find.text('김트레이너'), findsOneWidget);
+    expect(find.text('오늘의 피드백'), findsOneWidget);
     expect(find.text('오른쪽 어깨 가동 범위를 확인해 주세요.'), findsOneWidget);
+    // 회차를 모르는 응답이면 회차 칩은 서지 않고, 수업 시간 칩은 선다.
+    expect(find.textContaining('회차'), findsNothing);
+    expect(find.text('50분'), findsOneWidget);
+  });
+
+  testWidgets('회차는 제목 옆, 칩은 좁은 폰에서도 한 줄이다 (#2666)', (
+    WidgetTester tester,
+  ) async {
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt-number',
+            date: nowKst(),
+            time: '18:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            sessionNumber: 12,
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-1',
+          name: '김트레이너',
+          specialty: '근력 운동',
+          career: '5년',
+          intro: '',
+          gymName: '온케어짐',
+          goal: '근력 향상',
+        ),
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(320, 1800));
+    await tester.pumpAndSettle();
+
+    final Finder card = find.byKey(const Key('completedPtSessionCard'));
+    await tester.scrollUntilVisible(card, 400);
+    final Finder title = find.text('오늘 완료한 PT');
+    final Finder number = find.text('12회차');
+    final Finder done = find.text('18:00 완료');
+    final Finder minutes = find.text('50분');
+    expect(number, findsOneWidget);
+    expect(done, findsOneWidget);
+    expect(minutes, findsOneWidget);
+    // 회차는 중간점 없이 제목 오른쪽 같은 줄에 선다.
+    expect(find.text('· 12회차'), findsNothing);
+    expect(tester.getCenter(number).dy, closeTo(tester.getCenter(title).dy, 2));
+    expect(tester.getCenter(title).dx, lessThan(tester.getCenter(number).dx));
+    // 칩 둘은 한 줄 — 세로 가운데가 같고, 완료 시각이 먼저다.
+    expect(
+      tester.getCenter(minutes).dy,
+      closeTo(tester.getCenter(done).dy, 0.5),
+    );
+    expect(tester.getCenter(done).dx, lessThan(tester.getCenter(minutes).dx));
+    // 카드 밖으로 나가지 않는다.
+    expect(
+      tester.getRect(minutes).right,
+      lessThanOrEqualTo(tester.getRect(card).right),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('완료한 PT 종목 줄 끝에 그날 PT 기록의 강도를 적는다 (#2666)', (
+    WidgetTester tester,
+  ) async {
+    final String today = const <String>[
+      '월',
+      '화',
+      '수',
+      '목',
+      '금',
+      '토',
+      '일',
+    ][nowKst().weekday - 1];
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      exerciseWeek: ExerciseWeek(
+        sessions: <ExerciseSession>[
+          // 서버가 PT 완료 때 남기는 그날의 PT 운동 기록 — 강도는 여기 있다.
+          ExerciseSession(
+            dayLabel: today,
+            type: ExerciseType.strength,
+            minutes: 50,
+            calories: 200,
+            name: '숄더 프레스',
+            source: ExerciseSource.trainerPt,
+          ),
+        ],
+        dailyMinutes: const <double>[50, 0, 0, 0, 0, 0, 0],
+        dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
+        totalMinutes: 50,
+        totalCalories: 200,
+        streakDays: 1,
+        aiCoachMessage: '',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt-intensity',
+            date: nowKst(),
+            time: '18:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              CoachProgramItem(name: '숄더 프레스', sets: 4, reps: 12, weight: 10),
+            ],
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-1',
+          name: '김트레이너',
+          specialty: '근력 운동',
+          career: '5년',
+          intro: '',
+          gymName: '온케어짐',
+          goal: '근력 향상',
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    expect(find.text('숄더 프레스 · 4세트 · 12회 · 10kg · 보통'), findsOneWidget);
   });
 
   testWidgets('완료한 PT 의 운동 시간은 초까지 적힌 만큼 읽힌다 (#2221)', (
@@ -405,9 +548,12 @@ void main() {
     expect(find.text('실내 자전거 · 1시간 30분'), findsOneWidget);
   });
 
-  testWidgets('데모의 오늘 완료한 PT는 종목별 분·세트·횟수·중량을 표시한다 (#2126)', (
+  testWidgets('데모의 오늘 완료한 PT는 시드 PT 일정의 종목·세트·횟수·중량과 회차를 표시한다 (#2126, #2694)', (
     WidgetTester tester,
   ) async {
+    // 데모도 실서버와 같은 경로다 — 목업 코치 저장소가 공유 픽스처의 오늘 PT 로
+    // 수업 일정(시각·길이·회차·프로그램·트레이너 메모)을 준다. 강도는 그날 PT
+    // 운동 기록에서 온다(실서버와 같다).
     final String today = const <String>[
       '월',
       '화',
@@ -429,58 +575,38 @@ void main() {
           ExerciseSession(
             dayLabel: today,
             type: ExerciseType.strength,
-            minutes: 20,
-            calories: 120,
-            name: '레그프레스',
-            items: const <String>['레그프레스'],
+            minutes: 12,
+            calories: 72,
+            name: '벤치프레스',
             source: ExerciseSource.trainerPt,
             sets: 4,
-            reps: 12,
-            weight: 70,
-          ),
-          ExerciseSession(
-            dayLabel: today,
-            type: ExerciseType.cardio,
-            minutes: 15,
-            calories: 90,
-            name: '러닝머신',
-            items: const <String>['러닝머신'],
-            source: ExerciseSource.trainerPt,
-          ),
-          ExerciseSession(
-            dayLabel: today,
-            type: ExerciseType.stretching,
-            minutes: 10,
-            calories: 30,
-            name: '하체 스트레칭',
-            items: const <String>['하체 스트레칭'],
-            source: ExerciseSource.trainerPt,
-          ),
-          ExerciseSession(
-            dayLabel: today,
-            type: ExerciseType.other,
-            minutes: 5,
-            calories: 20,
-            name: '밸런스 훈련',
-            items: const <String>['밸런스 훈련'],
-            source: ExerciseSource.trainerPt,
+            reps: 10,
+            weight: 40,
           ),
         ],
-        dailyMinutes: const <double>[50, 0, 0, 0, 0, 0, 0],
+        dailyMinutes: const <double>[40, 0, 0, 0, 0, 0, 0],
         dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
-        totalMinutes: 50,
-        totalCalories: 260,
+        totalMinutes: 40,
+        totalCalories: 240,
         streakDays: 1,
         aiCoachMessage: '',
       ),
     );
 
-    await tester.scrollUntilVisible(find.text('레그프레스 · 4세트 · 12회 · 70kg · 보통'), 400);
+    await tester.scrollUntilVisible(
+      find.text('벤치프레스 · 4세트 · 10회 · 40kg · 보통'),
+      400,
+    );
 
-    expect(find.text('레그프레스 · 4세트 · 12회 · 70kg · 보통'), findsOneWidget);
-    expect(find.text('러닝머신 · 15분 · 보통'), findsOneWidget);
-    expect(find.text('하체 스트레칭 · 10분 · 보통'), findsOneWidget);
-    expect(find.text('밸런스 훈련 · 5분 · 보통'), findsOneWidget);
+    expect(find.text('벤치프레스 · 4세트 · 10회 · 40kg · 보통'), findsOneWidget);
+    expect(find.text('덤벨 숄더프레스 · 4세트 · 12회 · 10kg · 보통'), findsOneWidget);
+    expect(find.text('랫풀다운 · 4세트 · 12회 · 45kg · 보통'), findsOneWidget);
+    expect(find.text('18:00 완료'), findsOneWidget);
+    // 지난 11주 매주 한 번 + 오늘 — 어느 요일이든 12회차다.
+    expect(find.text('12회차'), findsOneWidget);
+    expect(find.text('50분'), findsOneWidget);
+    // 피드백은 그날 픽스처 트레이너 메모다 — 예전 데모의 고정 문구가 아니다.
+    expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
   });
 
   testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (
@@ -509,7 +635,7 @@ void main() {
     );
 
     expect(find.byKey(const Key('completedPtSessionCard')), findsNothing);
-    expect(find.text('18:00 수업 완료'), findsNothing);
+    expect(find.text('18:00 완료'), findsNothing);
   });
 
   testWidgets('담당 조회가 실패해도 오늘 한 PT 기록은 사라지지 않는다 (#2014)', (
@@ -541,7 +667,7 @@ void main() {
       find.byKey(const Key('completedPtSessionCard')),
       400,
     );
-    expect(find.text('18:00 수업 완료'), findsOneWidget);
+    expect(find.text('18:00 완료'), findsOneWidget);
   });
 
   testWidgets('MY 에서 저장한 운동 목표가 열려 있던 홈·운동 탭에 반영된다 (#1139)', (
