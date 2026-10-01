@@ -9,6 +9,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -224,7 +225,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
   /// 저장된 상태를 아직 못 읽었으면 체크·삭제를 받지 않는다 — 빈 상태에서
   /// 보내면 화면이 모르는 체크와 섞인다. 읽기에 실패했으면 알리고 다시 읽는다.
   bool _ensureReady() {
-    if (_initializedForDate != null) return true;
+    if (_initializedForDate != null) return !_dayChangedSinceOpen();
     if (ref.read(dailyTaskHistoryProvider).hasError) {
       showAppToast(
         context,
@@ -234,6 +235,21 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
       ref.invalidate(dailyTaskHistoryProvider);
     }
     return false;
+  }
+
+  /// 화면을 연 날과 오늘이 다른가(#2866). 다르면 오늘 기준으로 다시 그리고
+  /// 알린다 — 트레이너는 어제 목록을 보고 누른 것이라 그 탭은 받지 않는다.
+  /// 다시 그릴 때 [_syncDay] 가 오늘을 연다(어제 미완료는 `지난 할 일`).
+  bool _dayChangedSinceOpen() {
+    if (_initializedForDate == ymd(nowKst())) return false;
+    if (mounted) {
+      setState(() {});
+      showAppToast(
+        context,
+        AppLocalizations.of(context).dashTaskDayChanged,
+      );
+    }
+    return true;
   }
 
   Future<void> _toggle(_Mission mission, _TaskMarksView marks) async {
@@ -287,6 +303,9 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
   ) async {
     final String? day = _initializedForDate;
     if (day == null) return;
+    // 확인창을 띄운 사이 자정을 넘겼을 수 있다. 저장은 화면을 연 날에만 하고,
+    // 그날이 오늘이 아니면 보내지 않는다(#2866).
+    if (_dayChangedSinceOpen()) return;
     final TaskKeyChange change = TaskKeyChange(
       key: key,
       action: action,
@@ -411,6 +430,8 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // 자정에 다시 그려 오늘을 연다(#2866). 날짜만 보므로 분마다 깨지 않는다.
+    ref.watch(kstTodayProvider);
     final missions = _buildMissions(l);
     final missionKeys = <String>{for (final m in missions) m.key};
     final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;

@@ -2647,6 +2647,10 @@
   "dashTodoReportSubtitle": "This week's report is due",
   "dashTaskSaveFailed": "Couldn't save your task status. Please try again in a moment",
   "dashTaskLoadFailed": "Couldn't load your task status. Please try again in a moment",
+  "dashTaskDayChanged": "The date changed, so today's tasks were reloaded. Please tap again",
+  "@dashTaskDayChanged": {
+    "description": "Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded."
+  },
   "dashTaskDismissTitle": "Delete this item?",
   "dashTaskDismissBody": "It only disappears from the task list. Actually handling it (consultation, program, report) still happens on its own screen.",
   "dashTaskCarriedOverTitle": "Carried over",

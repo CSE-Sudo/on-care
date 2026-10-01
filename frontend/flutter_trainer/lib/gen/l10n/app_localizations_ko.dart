@@ -3855,6 +3855,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTaskLoadFailed => '할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get dashTaskDayChanged => '날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요';
+
+  @override
   String get dashTaskDismissTitle => '이 항목을 삭제할까요?';
 
   @override

@@ -7003,6 +7003,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your task status. Please try again in a moment'**
   String get dashTaskLoadFailed;
 
+  /// Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'The date changed, so today\'s tasks were reloaded. Please tap again'**
+  String get dashTaskDayChanged;
+
   /// No description provided for @dashTaskDismissTitle.
   ///
   /// In en, this message translates to:

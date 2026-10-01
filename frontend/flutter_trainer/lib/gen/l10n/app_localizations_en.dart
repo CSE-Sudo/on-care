@@ -4051,6 +4051,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load your task status. Please try again in a moment';
 
   @override
+  String get dashTaskDayChanged =>
+      'The date changed, so today\'s tasks were reloaded. Please tap again';
+
+  @override
   String get dashTaskDismissTitle => 'Delete this item?';
 
   @override

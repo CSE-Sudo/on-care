@@ -1644,6 +1644,7 @@
   "dashTodoReportSubtitle": "이번 주 리포트 작성 대상",
   "dashTaskSaveFailed": "할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "dashTaskLoadFailed": "할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
+  "dashTaskDayChanged": "날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요",
   "dashTaskDismissTitle": "이 항목을 삭제할까요?",
   "dashTaskDismissBody": "할 일 목록에서만 사라져요. 실제 처리(상담·프로그램·리포트)는 각 화면에서 해야 해요.",
   "dashTaskCarriedOverTitle": "지난 할 일",
