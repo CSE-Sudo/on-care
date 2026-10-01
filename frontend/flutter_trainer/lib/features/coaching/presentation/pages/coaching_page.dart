@@ -93,7 +93,17 @@ class CoachingPage extends ConsumerStatefulWidget {
 
 class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// Selected client; null until clients load (defaults to the first).
+  ///
+  /// 명단이 오면 화면이 그리는 회원으로 확정한다(#2874) — `null` 로 남으면
+  /// 이 값을 키로 쓰는 정리(템플릿 적용 때 개인운동 비우기 등)가 아무것도
+  /// 지우지 못한다.
   late String? _clientId = widget.clientId;
+
+  /// 주소의 `client` 가 명단에 없어 첫 회원으로 대신 연 그 값(#2874).
+  ///
+  /// 주소가 그대로인 다시 그리기마다 그 값으로 회원을 바꾸려 들지 않게
+  /// [didUpdateWidget] 이 건너뛴다.
+  String? _unresolvedClientId;
   final Map<String, String> _typeEdits = <String, String>{};
   final Map<String, List<AiRoutineItem>> _generatedRecommendations =
       <String, List<AiRoutineItem>>{};
@@ -231,7 +241,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 주소가 선택 회원의 원천이다(#2872) — 지난 주소가 아니라 **지금 보이는
     // 회원**과 견준다. 주소가 그대로인 재진입(앞 주소와 같은 `client`)도
     // 화면이 다른 회원을 보고 있으면 그 회원으로 돌아온다.
-    if (widget.clientId != null && widget.clientId != _clientId) {
+    if (widget.clientId != null &&
+        widget.clientId != _clientId &&
+        widget.clientId != _unresolvedClientId) {
       _selectClient(widget.clientId!);
     }
     if (widget.attachSessionId != oldWidget.attachSessionId ||
@@ -271,6 +283,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (_clientId == id) return;
     setState(() {
       _clientId = id;
+      _unresolvedClientId = null;
       // A different client gets a clean slate, like the mock.
       _typeEdits.clear();
       _sent = false;
@@ -848,6 +861,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               (c) => c.id == _clientId,
               orElse: () => clients.first,
             );
+            // 그리는 회원을 상태에도 확정한다(#2874). 회원 미지정(`/coaching`)
+            // 이나 명단에 없는 `client` 로 들어오면 화면은 첫 회원을 그리는데
+            // 상태는 `null`(또는 그 값)로 남아, 상태 키로 지우는 정리가 빗나갔다.
+            // 그리는 결과는 같으므로 다시 그리지 않고 값만 맞춘다.
+            if (_clientId != selected.id) {
+              _unresolvedClientId = _clientId;
+              _clientId = selected.id;
+            }
             return LayoutBuilder(
               builder: (context, constraints) {
                 final wide =
@@ -923,7 +944,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                   key: const ValueKey<String>(
                                     'program-template-sidebar',
                                   ),
-                                  onApply: _applyTemplate,
+                                  onApply: (template) =>
+                                      _applyTemplate(selected, template),
                                   fixedBox: canSplit,
                                 );
                                 if (!canSplit) {
@@ -1119,21 +1141,30 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 목록에 쓰기 때문에, 방금 저장한 결과도 이 카드에서 바로 보인다 (#1028).
   List<Widget> _libraryChildren(TrainerClient client) {
     return <Widget>[
-      _TemplateCard(onApply: _applyTemplate),
+      _TemplateCard(onApply: (template) => _applyTemplate(client, template)),
       const SizedBox(height: OnCareSpacing.s16),
       _SendHistoryCard(client: client),
     ];
   }
 
-  void _applyTemplate(ProgramTemplate template) => setState(() {
-    _appliedTemplate = template;
-    _templateRevision++;
-    _aiWizardVisible = false;
-    _sent = false;
-    // 템플릿은 편집기 내용을 갈아 끼운다 — 앞서 위저드에서 정한 개인운동은
-    // 그 PT 구성에 맞춰 짠 것이라, 여기 남겨 두면 전혀 다른 PT 에 딸려 간다.
-    _personalRoutines.remove(_clientId);
-  });
+  /// [client] 의 편집기에 [template] 을 적용한다.
+  ///
+  /// 대상 회원을 인자로 받는다(#2874) — 편집기가 그리는 회원의 개인운동을
+  /// 지워야 한다. 상태 키(`_clientId`)로 지우면 화면 회원과 어긋났을 때
+  /// 앞서 짠 개인운동이 템플릿 프로그램과 함께 전송된다.
+  void _applyTemplate(TrainerClient client, ProgramTemplate template) =>
+      setState(() {
+        _appliedTemplate = template;
+        _templateRevision++;
+        _aiWizardVisible = false;
+        _sent = false;
+        // 템플릿은 편집기 내용을 갈아 끼운다 — 앞서 위저드에서 정한 개인운동은
+        // 그 PT 구성에 맞춰 짠 것이라, 여기 남겨 두면 전혀 다른 PT 에 딸려 간다.
+        _personalRoutines.remove(client.id);
+        // `개인운동만` 으로 짜던 회원이어도 템플릿은 PT 프로그램이다 — 그대로
+        // 두면 편집기가 숨은 채 빈 개인운동 박스만 남는다.
+        _routineOnlyClients.remove(client.id);
+      });
 
   /// 편집기 아래 개인운동 박스의 `개인운동 수정`. (#2280)
   ///
