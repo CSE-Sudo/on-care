@@ -3103,6 +3103,18 @@ abstract class AppLocalizations {
   /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
   String get schedReservationLockedHint;
 
+  /// No description provided for @schedEndedLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished sessions can only have their note and program edited.'**
+  String get schedEndedLockedHint;
+
+  /// No description provided for @schedDoneLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.'**
+  String get schedDoneLockedHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:

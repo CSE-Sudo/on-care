@@ -1787,6 +1787,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.';
 
   @override
+  String get schedEndedLockedHint =>
+      'Finished sessions can only have their note and program edited.';
+
+  @override
+  String get schedDoneLockedHint =>
+      'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.';
+
+  @override
   String get schedGroupPersonal => 'Personal exercise';
 
   @override

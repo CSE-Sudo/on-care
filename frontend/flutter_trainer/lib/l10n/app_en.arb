@@ -1352,6 +1352,8 @@
   "@schedReservationLockedHint": {
     "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
   },
+  "schedEndedLockedHint": "Finished sessions can only have their note and program edited.",
+  "schedDoneLockedHint": "Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",

@@ -1707,6 +1707,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
 
   @override
+  String get schedEndedLockedHint => '끝난 세션은 메모·프로그램만 고칠 수 있어요.';
+
+  @override
+  String get schedDoneLockedHint =>
+      '완료한 세션은 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
+
+  @override
   String get schedGroupPersonal => '개인운동';
 
   @override
