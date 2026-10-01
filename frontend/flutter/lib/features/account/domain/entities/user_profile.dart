@@ -38,6 +38,7 @@ class UserProfile {
     this.weeklyFlexibilityMinutes,
     this.focusChangedBy,
     this.focusChangedAt,
+    this.hasPassword = true,
   });
 
   final String id;
@@ -99,6 +100,11 @@ class UserProfile {
   /// 건강 목표를 마지막으로 바꾼 시각(로컬 시각). 바꾼 적이 없으면 null.
   final DateTime? focusChangedAt;
 
+  /// 이메일 비밀번호가 있는 계정인가(#2824). 소셜 로그인 전용 계정은 거짓이라
+  /// MY 비밀번호 변경이 "바꿀 비밀번호가 없음" 을 말한다. 이 값을 주지 않는
+  /// 서버(필드 추가 이전)에서는 참으로 둔다 — 그때는 서버의 409 가 같은 안내를 낸다.
+  final bool hasPassword;
+
   factory UserProfile.fromJson(Map<String, Object?> json) => UserProfile(
     onboarded: (json['onboarded'] as bool?) ?? false,
     id: (json['id'] as String?) ?? '',
@@ -133,5 +139,6 @@ class UserProfile {
       final String at => DateTime.tryParse(at)?.toLocal(),
       _ => null,
     },
+    hasPassword: (json['has_password'] as bool?) ?? true,
   );
 }
