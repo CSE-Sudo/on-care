@@ -7863,6 +7863,90 @@ abstract class AppLocalizations {
   /// **'Select a member to see their weekly summary and coaching suggestions here'**
   String get reportsSummaryEmptyClient;
 
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.'**
+  String reportsDemoSummarySteadyThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.'**
+  String reportsDemoSummarySteadyPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.'**
+  String reportsDemoSummaryCompletionThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.'**
+  String reportsDemoSummaryCompletionPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroPastWeek(String name);
+
   /// No description provided for @reportsLastWeek.
   ///
   /// In en, this message translates to:
