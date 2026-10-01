@@ -7,7 +7,7 @@ import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart'
 /// 는 이미 연 색 사이를 오가는 것이라 포인트가 들지 않는다.
 ///
 /// 보호권 저장소([StreakShieldRepository])와 따로 둔 이유는 같다 — 데모에서 날짜별
-/// 기록을 아는 곳이 목업 운동 저장소와 목업 식단이라, 그 계약에 메서드를 더하면
+/// 기록을 아는 곳이 운동·식단 저장소라, 그 계약에 메서드를 더하면
 /// 운동·식단 화면 테스트의 대역이 모두 함께 바뀌어야 한다.
 abstract interface class ActivityCalendarRepository {
   /// [from]…[to] 의 날짜별 기록·기록 연속·그래프 색. 구간을 주지 않으면 서버 기본

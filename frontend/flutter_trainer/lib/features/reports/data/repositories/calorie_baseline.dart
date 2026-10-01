@@ -31,7 +31,9 @@ final calorieBaselineProvider = Provider.autoDispose.family<double?, ReportKey>(
             weeklyReportProvider(
               ReportKey(
                 client: key.client,
-                weekStart: key.weekStart.subtract(Duration(days: 7 * back)),
+                // 달력 날짜로 옮긴다 — `Duration` 은 서머타임 시작 주를 건너
+                // 한 주를 빠뜨리고 다른 주를 두 번 읽는다(#2774).
+                weekStart: shiftWeeks(key.weekStart, -back),
               ),
             ),
           )

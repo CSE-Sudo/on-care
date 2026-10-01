@@ -17,21 +17,20 @@ import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../helpers/demo_exercise.dart';
 import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 
@@ -69,10 +68,15 @@ void main() {
   late _CountingRepository consultations;
 
   Future<void> pumpShell(WidgetTester tester) async {
+    final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     await tester.binding.setSurfaceSize(const Size(430, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    unread = StreamController<int>();
+    // 브로드캐스트다 — 셸이 미리 불러오는 알림 목록(#2688)이 끝나면 미읽음
+    // provider 를 무효화해 스트림을 다시 구독한다. 한 번만 구독할 수 있는
+    // 스트림이면 그 뒤로 보낸 값이 닿지 않는다. 운동이 실제 데모 경로(drift)를
+    // 타면서 그 조회가 실제로 끝나게 됐다(#2724).
+    unread = StreamController<int>.broadcast();
     addTearDown(unread.close);
     consultations = _CountingRepository();
 
@@ -87,9 +91,8 @@ void main() {
           appConfigProvider.overrideWithValue(_config),
           appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
           dietRepositoryProvider.overrideWithValue(diet as DietRepository),
-          exerciseRepositoryProvider.overrideWithValue(
-            MockExerciseRepository() as ExerciseRepository,
-          ),
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          ...demoExerciseOverrides(exerciseDb),
           dashboardRepositoryProvider.overrideWithValue(
             FakeDashboardRepository(diet) as DashboardRepository,
           ),
