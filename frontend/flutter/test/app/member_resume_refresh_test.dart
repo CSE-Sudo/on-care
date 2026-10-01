@@ -151,6 +151,17 @@ void main() {
     await tester.pump();
   }
 
+  /// 복귀가 다시 부른 조회가 끝날 때까지 흘려보낸다.
+  ///
+  /// 다시 읽는 동안 화면은 들고 있던 값을 그대로 보이므로 새 프레임이 잡히지 않고,
+  /// `pumpAndSettle` 은 프레임만 기다려 곧바로 끝난다. 그러면 가짜 저장소의 응답
+  /// 지연(타이머)이 테스트 끝까지 남는다 — 그 지연보다 길게 시간을 흘린 뒤 마저
+  /// 가라앉힌다.
+  Future<void> settleRefetch(WidgetTester tester) async {
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+  }
+
   /// 홈 단백질 칸의 목표 표기("/137g").
   Finder proteinGoal(int grams) => find.text('/${grams}g');
 
@@ -160,7 +171,7 @@ void main() {
 
     server.current = _profile(proteinG: 150);
     await resume(tester);
-    await tester.pumpAndSettle();
+    await settleRefetch(tester);
 
     expect(proteinGoal(150), findsOneWidget);
     expect(proteinGoal(137), findsNothing);
@@ -182,7 +193,7 @@ void main() {
 
     server.gate!.complete();
     server.gate = null;
-    await tester.pumpAndSettle();
+    await settleRefetch(tester);
 
     expect(proteinGoal(150), findsOneWidget);
   });
@@ -192,7 +203,7 @@ void main() {
 
     server.fail = true;
     await resume(tester);
-    await tester.pumpAndSettle();
+    await settleRefetch(tester);
 
     expect(proteinGoal(137), findsOneWidget);
     expect(proteinGoal(UserProfile.defaultDailyProteinG), findsNothing);
@@ -205,7 +216,7 @@ void main() {
     final int dietBefore = diet.todayLoads;
 
     await resume(tester);
-    await tester.pumpAndSettle();
+    await settleRefetch(tester);
 
     expect(server.loads, greaterThan(profileBefore));
     expect(coach.coachLoads, greaterThan(coachBefore));
@@ -217,7 +228,7 @@ void main() {
     final int dietBefore = diet.todayLoads;
 
     await resume(tester);
-    await tester.pumpAndSettle();
+    await settleRefetch(tester);
 
     expect(diet.todayLoads, greaterThan(dietBefore));
   });

@@ -75,6 +75,7 @@ Future<ProviderContainer> _openResultSheet(
   WidgetTester tester,
   _FailingDietRepository repository, {
   Locale locale = const Locale('ko'),
+  bool inDemoSession = false,
 }) async {
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
@@ -86,6 +87,11 @@ Future<ProviderContainer> _openResultSheet(
     ],
   );
   addTearDown(container.dispose);
+  if (inDemoSession) {
+    // 세션을 먼저 확정해 둔다. 그대로 두면 저장소 복원이 비동기로 끝나며
+    // unknown → signedOut 으로 저절로 바뀌어, 로그아웃 여부를 가릴 수 없다.
+    container.read(sessionControllerProvider.notifier).enterDemo();
+  }
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
@@ -210,10 +216,15 @@ void main() {
     WidgetTester tester,
   ) async {
     final _FailingDietRepository repo = _FailingDietRepository(403);
-    final ProviderContainer container = await _openResultSheet(tester, repo);
+    final ProviderContainer container = await _openResultSheet(
+      tester,
+      repo,
+      inDemoSession: true,
+    );
     final SessionStatus before = container
         .read(sessionControllerProvider)
         .status;
+    expect(before, SessionStatus.demo);
 
     expect(find.textContaining('로그인이 만료됐어요'), findsNothing);
     expect(
