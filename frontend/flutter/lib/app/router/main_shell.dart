@@ -20,6 +20,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedbac
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
@@ -92,6 +93,10 @@ class _MainShellState extends ConsumerState<MainShell>
     // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
     // 앱 수명 내내 남았다(#1938).
     ref.invalidate(dietRecommendationsProvider);
+    // 식단 기간 집계와 기록 시작일은 autoDispose 가 아니다 — 앱을 떠난 사이
+    // 날이 바뀌거나 다른 기기에서 기록했으면 옛 그래프가 남는다(#2625).
+    ref.invalidate(dietPeriodProvider);
+    ref.invalidate(recordSpanProvider);
     ref.invalidate(exerciseWeekProvider);
     ref.invalidate(coachRoutinesProvider);
     ref.invalidate(coachRoutinesOnDayProvider);
@@ -112,6 +117,10 @@ class _MainShellState extends ConsumerState<MainShell>
         ref.invalidate(dietByDateProvider(nowKst()));
         // AI 맞춤 조언도 같은 이유로 다시 받는다(#2078).
         ref.invalidate(dietAdviceProvider);
+        // `이번 주`·`전체` 그래프와 그 시작일도 — 둘 다 오늘 캐시를 보지 않는다
+        // (#2625).
+        ref.invalidate(dietPeriodProvider);
+        ref.invalidate(recordSpanProvider);
         break;
       case 2:
         ref.invalidate(exerciseWeekProvider);

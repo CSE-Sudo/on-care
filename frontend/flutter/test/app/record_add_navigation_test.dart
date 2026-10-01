@@ -5,6 +5,9 @@
 /// 성공했을 때만**이다 — 취소하거나 실패하면 보던 탭에 남는다.
 library;
 
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,12 +18,20 @@ import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
+import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
+import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+
+import '../helpers/fake_diet_repository.dart';
+import '../helpers/fixed_clock.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -127,6 +138,31 @@ class _SavingRepository implements ExerciseRepository {
   }) async => throw UnimplementedError();
 }
 
+class _FixedPicker implements MealPhotoPicker {
+  @override
+  Future<MealPhoto?> pick(MealPhotoSource source) async =>
+      MealPhoto.fromBytes(Uint8List.fromList(<int>[0xFF, 0xD8, 0xFF, 0xE0]))!;
+}
+
+/// 분석이 늘 501 로 실패하는 식단 대역 — 실패 버튼이 `닫기` 다.
+class _FailingDietRepository extends FakeDietRepository {
+  @override
+  Future<DietAnalysisResult> analyze({
+    required MealPhoto photo,
+    required String mealType,
+    String? idempotencyKey,
+  }) async => throw AppError.fromDio(
+    DioException(
+      requestOptions: RequestOptions(path: '/diet/analyze'),
+      type: DioExceptionType.badResponse,
+      response: Response<Object?>(
+        requestOptions: RequestOptions(path: '/diet/analyze'),
+        statusCode: 501,
+      ),
+    ),
+  );
+}
+
 void main() {
   late GoRouter router;
 
@@ -220,6 +256,77 @@ void main() {
 
     expect(repo.saved, isFalse);
     expect(location(), contains('/dashboard'));
+  });
+
+  /// `+` → `식단` → `사진 찍기` 로 분석까지 마친다.
+  Future<void> analyzeDietPhoto(WidgetTester tester) async {
+    await openAddSheet(tester);
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(Scaffold).first),
+    );
+    await tester.tap(find.text(l.navDiet).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l.dietTakePhoto));
+    await tester.pumpAndSettle();
+  }
+
+  group('사진 분석 결과 시트를 닫아도 기록은 남아 있다 (#2627)', () {
+    testWidgets('`닫기` 로 닫으면 식단 탭으로 옮겨 간다', (WidgetTester tester) async {
+      useFixedKstDate(DateTime(2026, 8, 20, 9));
+      await pumpShell(
+        tester,
+        overrides: <Override>[
+          dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
+          mealPhotoPickerProvider.overrideWithValue(_FixedPicker()),
+        ],
+      );
+      expect(location(), contains('/dashboard'));
+
+      await analyzeDietPhoto(tester);
+      await tester.ensureVisible(find.text('닫기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('닫기'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('diet-result-recognized')), findsNothing);
+      expect(location(), contains('/diet'));
+    });
+
+    testWidgets('끌어내려 닫아도 식단 탭으로 옮겨 간다', (WidgetTester tester) async {
+      useFixedKstDate(DateTime(2026, 8, 20, 9));
+      await pumpShell(
+        tester,
+        overrides: <Override>[
+          dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
+          mealPhotoPickerProvider.overrideWithValue(_FixedPicker()),
+        ],
+      );
+
+      await analyzeDietPhoto(tester);
+      Navigator.of(
+        tester.element(find.byKey(const Key('diet-result-recognized'))),
+      ).pop();
+      await tester.pumpAndSettle();
+
+      expect(location(), contains('/diet'));
+    });
+
+    testWidgets('분석이 실패한 채 닫으면 보던 탭에 남는다', (WidgetTester tester) async {
+      useFixedKstDate(DateTime(2026, 8, 20, 9));
+      await pumpShell(
+        tester,
+        overrides: <Override>[
+          dietRepositoryProvider.overrideWithValue(_FailingDietRepository()),
+          mealPhotoPickerProvider.overrideWithValue(_FixedPicker()),
+        ],
+      );
+
+      await analyzeDietPhoto(tester);
+      await tester.tap(find.byKey(const Key('dietAnalysisFailureAction')));
+      await tester.pumpAndSettle();
+
+      expect(location(), contains('/dashboard'));
+    });
   });
 
   testWidgets('기록 종류 시트를 닫기만 하면 탭이 바뀌지 않는다', (WidgetTester tester) async {
