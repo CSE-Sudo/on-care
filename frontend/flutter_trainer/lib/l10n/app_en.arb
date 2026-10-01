@@ -1368,6 +1368,7 @@
   "schedRoutinesSent": "Sent the personal exercise to the member.",
   "schedRoutinesSendFailed": "Couldn't send the personal exercise. Please try again.",
   "schedRoutinesSkipped": "Marked as not sent.",
+  "schedClientUnresolved": "Couldn't tell which member this session is for. Please pick the member.",
   "schedRoutinesUpdated": "Personal exercise updated.",
   "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
   "schedAddRoutines": "Add personal exercise",

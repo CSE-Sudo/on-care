@@ -1756,6 +1756,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedRoutinesSkipped => '보내지 않기로 했어요.';
 
   @override
+  String get schedClientUnresolved => '이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.';
+
+  @override
   String get schedRoutinesUpdated => '개인운동을 고커어요.';
 
   @override

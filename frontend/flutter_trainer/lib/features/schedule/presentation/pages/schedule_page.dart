@@ -16,6 +16,7 @@ import 'package:oncare_trainer/features/consultations/presentation/pages/consult
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/domain/session_client_resolver.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/cancel_session_dialog.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/consultation_inbox_action.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
@@ -581,9 +582,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 프로그램도 AI 로 한 번 짜고, 고치는 것만 이 카드의 부분 창에서 한다.
   /// 붙이면 코칭 탭이 이 일정으로 돌려보낸다.
   void _goAddRoutines(ScheduleSession s) {
-    final String? clientId = s.clientId ?? _rosterIdByName(s.clientName);
+    final String? clientId = _sessionClientId(s);
     if (clientId == null) {
-      context.go(AppRoutes.clients);
+      _goPickClient(s);
       return;
     }
     context.go(
@@ -596,27 +597,50 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     );
   }
 
-  /// 일정에 회원 id 가 없을 때(예전에 이름으로만 잡은 일정) 로스터에서 이름으로
-  /// 찾는다 — [_openProgram] 과 같은 방식이다.
-  String? _rosterIdByName(String name) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    for (final c in clients) {
-      if (c.name == name) return c.id;
+  /// 이 일정의 회원 id — 일정에 실린 id 가 먼저다. (#2864)
+  ///
+  /// 이름은 표시 전용이라 동명이인을 가르지 못한다. id 가 없는 예전 일정만
+  /// 이름으로 찾되, 정확히 한 명이 일치할 때만 쓴다
+  /// ([resolveSessionClientId]). 명단을 아직 읽지 못했으면 일정의 id 를 믿는다.
+  String? _sessionClientId(ScheduleSession s) {
+    final clients = ref.read(clientsProvider).valueOrNull;
+    return resolveSessionClientId(
+      s,
+      clients == null
+          ? null
+          : <ScheduleClientKey>[
+              for (final c in clients) (id: c.id, name: c.name),
+            ],
+    );
+  }
+
+  /// 회원을 특정할 수 없을 때 — 회원 목록으로 보내 고르게 한다. (#2864)
+  ///
+  /// 상담(미등록 고객) 일정은 원래 회원 id 가 없으므로 안내 없이 목록으로
+  /// 간다. 그 밖의 경우는 왜 목록으로 왔는지 알린다 — 동명이인 가운데 아무나
+  /// 골라 엉뚱한 회원에게 프로그램을 보내는 것보다 한 번 더 고르는 편이 낫다.
+  void _goPickClient(ScheduleSession s) {
+    final bool consultation =
+        s.consultation != null || s.type == SessionType.consultation;
+    if (!consultation) {
+      showAppToast(context, AppLocalizations.of(context).schedClientUnresolved);
     }
-    return null;
+    context.go(AppRoutes.clients);
   }
 
   /// 계획 없는 세션의 `프로그램 추가` — 이 카드 안이 아니라 그 고객의 코칭
   /// 탭으로 이동한다. 프로그램은 AI 코칭 탭에서 짓고 보내는 것이라, 스케줄
   /// 카드에는 편집기를 두지 않는다(#1247).
+  ///
+  /// 회원은 일정의 id 로 찾는다(#2864) — 이름으로 찾던 때에는 동명이인 중
+  /// 명단 앞쪽 회원의 코칭 탭이 열렸다.
   void _openProgram(ScheduleSession s) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    final match = clients.where((c) => c.name == s.clientName);
-    if (match.isEmpty) {
-      context.go(AppRoutes.clients);
+    final String? clientId = _sessionClientId(s);
+    if (clientId == null) {
+      _goPickClient(s);
       return;
     }
-    context.go(AppRoutes.coachingFor(match.first.id));
+    context.go(AppRoutes.coachingFor(clientId));
   }
 
   String get _selectedYmd => ymd(_selectedDay);

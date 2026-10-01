@@ -3193,6 +3193,12 @@ abstract class AppLocalizations {
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
 
+  /// No description provided for @schedClientUnresolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t tell which member this session is for. Please pick the member.'**
+  String get schedClientUnresolved;
+
   /// No description provided for @schedRoutinesUpdated.
   ///
   /// In en, this message translates to:
