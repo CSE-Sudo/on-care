@@ -98,23 +98,23 @@ jobs:
           python3 tool/ci/check_action_pins.py "$WORKFLOW_DIR"
 
       - name: Test the demo divergence checker
-        # 아래 검사가 오탐하면 경고가 쓸모없어지고, 실패 모드로 바꾼 뒤에는 모든
-        # PR 병합을 막는다. 임시 저장소의 가짜 diff 로 걸림·안 걸림·예외 통과를
-        # 먼저 확인한다(#2791).
+        # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
+        # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).
         run: |
           set -euo pipefail
           bash .github/scripts/test_check_demo_divergence.sh
 
-      - name: Warn on new demo divergence in screen code
+      - name: Reject new demo divergence in screen code
         # 데모와 실서버 화면이 다르면 데모가 기준이고, 실서버에만 있는 것은 데모에
         # 추가한다. 화면 코드(presentation/pages·widgets, shared/widgets)에 새로
         # 들어온 `useMockApi` 와 데모 저장소의 `supports… => false` 를 PR 이 추가한
         # 줄에서만 찾는다. 일부러 다르게 둔 곳은 .github/demo-divergence-allowlist.txt
-        # 에 적으면 통과한다(#2791). 지금은 경고 모드 — 주석과 요약만 남기고
-        # 실패시키지 않는다. 실패 모드 전환은 DEMO_DIVERGENCE_MODE 를 fail 로.
+        # 에 적으면 통과한다(#2791). 예외 목록에 없는 분기가 걸리면 실패한다 — 열린
+        # PR 전체에 미리 돌려 막히는 PR 이 없는 것을 확인하고 바로 켰다. 낡은 예외
+        # 항목은 경고·알림만 남긴다(#2796). 경고만 남기려면 DEMO_DIVERGENCE_MODE 를 warn 으로.
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
-          DEMO_DIVERGENCE_MODE: warn
+          DEMO_DIVERGENCE_MODE: fail
         run: |
           set -euo pipefail
           git fetch --quiet origin "$BASE_REF"
