@@ -155,6 +155,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (want == _leaveGuarded) return;
     _leaveGuarded = want;
     setLeaveGuard(
+      this,
       want
           ? () => mounted && _section == _MySection.edit && !_saving && _isDirty
           : null,
@@ -163,7 +164,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   @override
   void dispose() {
-    if (_leaveGuarded) setLeaveGuard(null);
+    if (_leaveGuarded) setLeaveGuard(this, null);
     for (final c in _fields.values) {
       c.dispose();
     }

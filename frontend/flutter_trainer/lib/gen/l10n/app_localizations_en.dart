@@ -2853,6 +2853,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSendFailed => 'Couldn\'t send. Please try again';
 
   @override
+  String get coachSwitchClientTitle => 'Switch to another client?';
+
+  @override
+  String get coachSwitchClientBody =>
+      'You have unsent work. Switching clients discards the program and personal exercises you are building.';
+
+  @override
+  String get coachSwitchClientConfirm => 'Switch';
+
+  @override
   String get coachScheduleFailed =>
       'Couldn\'t add it to the schedule. Please try again';
 

@@ -4987,6 +4987,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send. Please try again'**
   String get coachSendFailed;
 
+  /// No description provided for @coachSwitchClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to another client?'**
+  String get coachSwitchClientTitle;
+
+  /// No description provided for @coachSwitchClientBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsent work. Switching clients discards the program and personal exercises you are building.'**
+  String get coachSwitchClientBody;
+
+  /// No description provided for @coachSwitchClientConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get coachSwitchClientConfirm;
+
   /// No description provided for @coachScheduleFailed.
   ///
   /// In en, this message translates to:

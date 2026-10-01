@@ -11,6 +11,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
@@ -218,8 +219,30 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// template (#1028).
   bool _savingTemplate = false;
 
+  /// 아직 보내지 않은 작성 내용이 있는 회원(#2873) — 위저드에서 후보를 받았거나
+  /// 편집기 구성을 바꿨다. 전송·템플릿 저장·회원 전환·빈 편집기로 새로 시작하면
+  /// 지운다.
+  ///
+  /// 화면에 그리는 값이 아니다. 새로 고침·탭 닫기 지킴과 회원 전환 확인이
+  /// 떠나는 순간에 읽으므로, 그리는 도중(편집기의 `didUpdateWidget`)에도 다시
+  /// 그리지 않고 적어 둘 수 있다.
+  final Set<String> _unsentWorkClients = <String>{};
+
+  /// 지금 회원에게 보내지 않은 작성 내용이 있는가(#2873).
+  ///
+  /// 위저드의 개인운동 단계에서 짠 개인운동도 센다 — 보내기 전까지는 이 화면에만
+  /// 있다.
+  bool get _hasUnsentWork {
+    final String? id = _clientId;
+    if (id == null) return false;
+    if (_unsentWorkClients.contains(id)) return true;
+    return !_sent && (_personalRoutines[id]?.isNotEmpty ?? false);
+  }
+
   @override
   void dispose() {
+    // 이 화면의 지킴만 푼다 — MY 프로필 수정 등 다른 화면의 지킴은 남는다.
+    setLeaveGuard(this, null);
     _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
     _wizardNav.dispose();
@@ -230,6 +253,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void initState() {
     super.initState();
     _consumeAttachRoute();
+    // 보내지 않은 작성 내용이 있으면 새로 고침·탭 닫기 앞에서 브라우저가
+    // 묻는다(#2873). 막을지는 떠나는 순간에 정한다.
+    setLeaveGuard(this, () => mounted && _hasUnsentWork);
   }
 
   @override
@@ -284,6 +310,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     setState(() {
       _clientId = id;
       _unresolvedClientId = null;
+      // 앞 회원의 편집기·위저드는 새로 선다 — 작성 내용도 함께 사라진다.
+      _unsentWorkClients.clear();
       // A different client gets a clean slate, like the mock.
       _typeEdits.clear();
       _sent = false;
@@ -310,8 +338,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 바뀐다. 그래야 새로고침·주소 공유·뒤로 가기가 모두 같은 회원을 연다.
   /// 리포트 화면의 회원 전환처럼 기록을 남기는 `go` 다. 붙이기 흐름 쿼리
   /// (`attach`·`d`·`r`)는 앞 회원의 PT 것이라 떼고 `client` 만 남긴다.
+  ///
+  /// 보내지 않은 작성 내용이 있으면 먼저 묻는다(#2873) — 회원을 바꾸면 편집기와
+  /// 위저드가 새로 서서 지금 짠 것이 사라진다. 다른 탭으로 옮기는 것은 탭
+  /// 상태가 남으므로 묻지 않는다.
   Future<void> _requestClient(String id) async {
     if (id == _clientId) return;
+    if (_hasUnsentWork) {
+      final AppLocalizations l = AppLocalizations.of(context);
+      final bool ok = await showAppConfirmDialog(
+        context: context,
+        title: l.coachSwitchClientTitle,
+        message: l.coachSwitchClientBody,
+        confirmLabel: l.coachSwitchClientConfirm,
+        cancelLabel: l.actionCancel,
+        destructive: true,
+      );
+      if (!ok) return;
+    }
     if (!mounted) return;
     context.go(AppRoutes.coachingFor(id));
   }
@@ -381,6 +425,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           );
       ref.invalidate(programTemplatesProvider);
       if (!mounted) return false;
+      // 저장해 두었으니 떠나도 잃지 않는다(#2873).
+      final String? savedFor = _clientId;
+      if (savedFor != null) _unsentWorkClients.remove(savedFor);
       setState(() => _savingTemplate = false);
       showAppToast(context, l.programDraftSaved, type: AppToastType.success);
       return true;
@@ -466,6 +513,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     _sendRequests.remove(sentFor);
+    _unsentWorkClients.remove(sentFor);
     // 보낸 뒤에도 목록과 `개인운동만` 표시를 그대로 둔다 — 지우면 그 자리에
     // PT 편집기가 올라와, 방금 개인운동을 보낸 트레이너가 손댄 적 없는 PT
     // 프로그램 화면을 보게 된다. PT 모드가 보낸 뒤 프로그램 박스를 남기는
@@ -625,6 +673,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     _sendRequests.remove(sentFor);
+    _unsentWorkClients.remove(sentFor);
     // 보냈다 — 같은 개인운동이 다음 전송에 다시 딸려 가지 않게 비운다.
     _personalRoutines.remove(sentFor);
     if (!mounted) return;
@@ -1230,6 +1279,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     if (!mounted) return;
+    // 그 PT 에 붙였다 — 이 화면에만 있던 작성 내용이 아니다(#2873).
+    _unsentWorkClients.remove(sentFor);
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
     // 전송 이력 위 `아직 보내지 않은 개인운동` 안내가 방금 붙인 것을 바로
@@ -1362,6 +1413,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   void _startManualProgram(String clientId) => setState(() {
     _generatedRecommendations.remove(clientId);
+    // 빈 편집기에서 다시 시작한다 — 앞서 받은 후보는 버린 것이다(#2873).
+    _unsentWorkClients.remove(clientId);
     // 빈 편집기로 새로 시작한다 — 앞서 위저드에서 정한 개인운동도 함께 버린다.
     _personalRoutines.remove(clientId);
     _appliedTemplate = null;
@@ -1476,6 +1529,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   });
                 },
                 onManualCreate: () => _startManualProgram(client.id),
+                onGenerated: () => _unsentWorkClients.add(client.id),
               ),
             ),
             if (!_aiWizardVisible)
@@ -1518,6 +1572,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     templateRevision: _templateRevision,
                     onSend: (draft) => unawaited(_sendProgram(client, draft)),
                     onSave: _saveTemplate,
+                    onEdited: () => _unsentWorkClients.add(client.id),
                     saving: _savingTemplate,
                     sending: _sendingClientIds.contains(client.id) || _sent,
                     sent: _sent && !_sendingClientIds.contains(client.id),

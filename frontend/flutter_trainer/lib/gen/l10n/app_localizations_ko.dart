@@ -2702,6 +2702,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSendFailed => '전송에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get coachSwitchClientTitle => '다른 회원으로 바꿀까요?';
+
+  @override
+  String get coachSwitchClientBody =>
+      '아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.';
+
+  @override
+  String get coachSwitchClientConfirm => '바꾸기';
+
+  @override
   String get coachScheduleFailed => '스케줄 등록에 실패했어요. 다시 시도해 주세요';
 
   @override

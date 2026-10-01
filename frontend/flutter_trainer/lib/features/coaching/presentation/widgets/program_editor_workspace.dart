@@ -43,6 +43,7 @@ class ProgramEditorWorkspace extends StatefulWidget {
     this.templateRevision = 0,
     this.initialDraft,
     this.onSave,
+    this.onEdited,
     this.saving = false,
     this.sending = false,
     this.sent = false,
@@ -80,6 +81,12 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// Resolves to whether the save actually succeeded — the header's bookmark
   /// button uses this (and only this) to flip from outline to filled.
   final Future<bool> Function(ProgramEditorState draft)? onSave;
+
+  /// 구성이 바뀌었다 — 바깥 화면이 "보내지 않은 작성 내용" 으로 센다(#2873).
+  ///
+  /// `didUpdateWidget`(그리는 도중)에서도 불리므로, 받는 쪽은 다시 그리게
+  /// 하지 말고 값만 적어 둔다.
+  final VoidCallback? onEdited;
 
   /// A save is in flight — the button locks so a second click can't create
   /// a duplicate draft.
@@ -721,7 +728,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     widget.onRegisterTimeRangeChanged(picked);
   }
 
-  void _update(ProgramEditorState next) => setState(() => _draft = next);
+  void _update(ProgramEditorState next) {
+    setState(() => _draft = next);
+    widget.onEdited?.call();
+  }
 
   void _replaceSession(int index, ProgramSessionDraft session) {
     final sessions = [..._draft.sessions]..[index] = session;

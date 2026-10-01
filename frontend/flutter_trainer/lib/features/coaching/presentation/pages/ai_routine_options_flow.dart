@@ -77,6 +77,7 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.recommendedReason = '',
     this.onReviewCompleted,
     this.onManualCreate,
+    this.onGenerated,
     this.onStepNav,
     this.attachTarget,
     this.onAttach,
@@ -102,6 +103,10 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 
   /// AI 단계를 종료하고 빈 프로그램 편집기로 전환한다.
   final VoidCallback? onManualCreate;
+
+  /// 후보를 받았다 — 바깥 화면이 "보내지 않은 작성 내용" 으로 센다(#2873).
+  /// 다시 그리게 하지 않는 가벼운 알림이다.
+  final VoidCallback? onGenerated;
 
   /// [embedded] 일 때 단계 진행 줄(`이전` · 다음 단계 버튼)을 바깥에 넘긴다.
   ///
@@ -434,6 +439,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _intensity = analysis.suggestedIntensity ?? _intensity;
         }
       });
+      widget.onGenerated?.call();
       _scrollToTop();
     } catch (e) {
       if (!mounted) return;
