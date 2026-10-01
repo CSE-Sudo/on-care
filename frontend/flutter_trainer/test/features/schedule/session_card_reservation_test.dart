@@ -130,10 +130,9 @@ void main() {
       find.byKey(const ValueKey<String>('session-delete-chip')),
       findsOneWidget,
     );
+    // 잠긴 항목은 눌러도 메뉴가 닫히지 않는다 — 열린 채로 다음 항목을 누른다.
     await _tapItem(tester, 'session-edit-schedule-chip');
     expect(taps.editSchedule, 0);
-
-    await _openMenu(tester);
     await _tapItem(tester, 'session-delete-chip');
     expect(taps.delete, 0);
   });

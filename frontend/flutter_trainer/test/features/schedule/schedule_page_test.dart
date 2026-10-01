@@ -1737,6 +1737,9 @@ void main() {
           ),
         ],
       );
+      // 같은 토요일 저녁 — 시드가 오늘 놓는 16:00 박성호 수업까지 시작한
+      // 뒤다. 완료는 시작 시각이 지나야 열린다(#2760).
+      useFixedKstDate(DateTime(2026, 8, 22, 21));
       await goTo(tester, AppRoutes.schedule);
 
       await openSession(tester, '박성호'); // 예정 session
