@@ -489,7 +489,7 @@ Future<Set<String>> _collect(
   String at,
   List<_Stage> stages,
 ) async {
-  await pumpTrainerApp(
+  final ProviderContainer container = await pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
     at: at,
@@ -504,6 +504,12 @@ Future<Set<String>> _collect(
       if (e.find(l).evaluate().isNotEmpty) present.add(e.name);
     }
   }
+  // 앱을 내리고 컨테이너를 닫는다 — 실서버 구현(일정·상담·설정)의 주기적
+  // 폴링이 이 모드에서 끝나야 다음 모드가 깨끗이 시작하고, 시험이 타이머를
+  // 안고 끝나지 않는다. 남은 한 번짜리 지연은 시계를 돌려 흘려보낸다.
+  await tester.pumpWidget(const SizedBox.shrink());
+  container.dispose();
+  await tester.pump(const Duration(minutes: 1));
   return present;
 }
 
