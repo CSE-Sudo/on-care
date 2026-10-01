@@ -96,3 +96,54 @@ jobs:
         run: |
           set -euo pipefail
           python3 tool/ci/check_action_pins.py "$WORKFLOW_DIR"
+
+      - name: Install gitleaks
+        # 비밀값 스캐너(#2837). gitleaks-action 은 조직 저장소에 유료 라이선스를 요구해
+        # 공식 릴리스 바이너리를 버전·SHA-256 으로 고정해 받는다. 체크섬이 다르면 멈춘다.
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/gitleaks"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/gitleaks" gitleaks
+          echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+
+      - name: Test the secret scanner config
+        # 필수 검사라 오탐하면 모든 PR 이 막히고, 못 잡으면 검사가 있으나 마나다. 그래서
+        # 실제 검사 전에 두 방향을 확인한다 — 예시 env 파일의 자리표시자는 통과하고,
+        # 실행 때 만든 가짜 토큰은 걸린다. 가짜 토큰은 저장소에 남기지 않는다.
+        run: |
+          set -euo pipefail
+          ok_dir="$RUNNER_TEMP/gitleaks-ok"
+          bad_dir="$RUNNER_TEMP/gitleaks-bad"
+          mkdir -p "$ok_dir" "$bad_dir"
+          cp backend/.env.example backend/.env.railway.example "$ok_dir/"
+          if ! gitleaks dir "$ok_dir" --config .gitleaks.toml --no-banner --redact --exit-code 1; then
+            echo "::error file=.gitleaks.toml::예시 env 파일의 자리표시자가 비밀값으로 잡힙니다. 허용 목록을 확인하세요."
+            exit 1
+          fi
+          token=$(python3 -c 'import secrets, string; a = string.ascii_letters + string.digits; print("ghp_" + "".join(secrets.choice(a) for _ in range(36)))')
+          printf 'GITHUB_TOKEN=%s\n' "$token" > "$bad_dir/leak.env"
+          if gitleaks dir "$bad_dir" --config .gitleaks.toml --no-banner --redact --exit-code 1; then
+            echo "::error file=.gitleaks.toml::가짜 토큰을 잡지 못했습니다. 설정이 기본 규칙을 꺼 버렸는지 확인하세요."
+            exit 1
+          fi
+          echo "자리표시자 통과·가짜 토큰 차단 확인."
+
+      - name: Scan the PR commits for secrets
+        # PR 이 더한 커밋(merge-base..head)만 본다. 이미 이력에 남은 값의 처리는 이 검사의
+        # 범위가 아니다(#2837). 걸리면 값을 지우는 것만으로는 부족하다 — 커밋 이력에 남으므로
+        # 그 커밋을 고쳐 다시 푸시하고, 실제 키였다면 즉시 교체한다.
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin "$BASE_REF"
+          base=$(git merge-base FETCH_HEAD HEAD)
+          gitleaks git . --log-opts="$base..HEAD" --config .gitleaks.toml \
+            --no-banner --redact --exit-code 1

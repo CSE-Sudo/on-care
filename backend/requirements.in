@@ -1,0 +1,27 @@
+# 운영 의존성의 '직접 의존' 목록(#2837). 버전 범위만 적고, 실제 설치 버전은
+# 이 파일에서 만든 잠금 파일 requirements.txt(해시 포함)가 정한다.
+# 고친 뒤에는 반드시 잠금 파일을 다시 만든다(backend/README.md "의존성" 참고):
+#   uv pip compile --universal --python-version 3.12 --generate-hashes \
+#     requirements.in -o requirements.txt
+fastapi>=0.110
+uvicorn[standard]>=0.27
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg[binary]>=3.1
+pgvector>=0.2.5
+pwdlib[bcrypt]>=0.2
+pyjwt>=2.8
+pydantic>=2.0
+pydantic-settings>=2.0
+httpx>=0.27
+python-multipart>=0.0.9
+# 끼니 사진 축소·재인코딩(#699). 원본을 그대로 두면 한 장에 3~5MB 라 공유 DB 에
+# 담을 크기가 아니고, 재인코딩이 EXIF(촬영 위치 포함)도 함께 털어 낸다.
+pillow>=10.0
+python-dotenv>=1.0
+google-genai>=1.0
+openai>=1.40
+# zoneinfo 의 타임존 DB. 슬림 컨테이너에는 시스템 tzdata 가 없을 수 있는데,
+# 기준 시각(app/core/clock.py)이 ZoneInfo("Asia/Seoul") 를 import 시점에 잡으므로
+# 없으면 앱이 아예 뜨지 않는다. 베이스 이미지와 무관하게 보장한다.
+tzdata>=2024.1
