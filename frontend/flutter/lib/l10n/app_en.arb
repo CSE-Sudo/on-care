@@ -3266,6 +3266,9 @@
   "@exConsultHistoryCancelAction": {
     "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
   },
+  "exConsultCancelFailed": "Couldn't cancel the consultation request. Please try again.",
+  "exConsultCancelStale": "This request was already handled. It now shows its latest status.",
+  "exConsultHistoryLoadError": "Couldn't load your consultation requests.",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {

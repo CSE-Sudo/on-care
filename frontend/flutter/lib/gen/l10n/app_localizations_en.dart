@@ -4022,6 +4022,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConsultHistoryCancelAction => 'Cancel request';
 
   @override
+  String get exConsultCancelFailed =>
+      'Couldn\'t cancel the consultation request. Please try again.';
+
+  @override
+  String get exConsultCancelStale =>
+      'This request was already handled. It now shows its latest status.';
+
+  @override
+  String get exConsultHistoryLoadError =>
+      'Couldn\'t load your consultation requests.';
+
+  @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
 

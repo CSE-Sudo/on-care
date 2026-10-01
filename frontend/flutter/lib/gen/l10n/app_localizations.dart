@@ -6966,6 +6966,24 @@ abstract class AppLocalizations {
   /// **'Cancel request'**
   String get exConsultHistoryCancelAction;
 
+  /// No description provided for @exConsultCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the consultation request. Please try again.'**
+  String get exConsultCancelFailed;
+
+  /// No description provided for @exConsultCancelStale.
+  ///
+  /// In en, this message translates to:
+  /// **'This request was already handled. It now shows its latest status.'**
+  String get exConsultCancelStale;
+
+  /// No description provided for @exConsultHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your consultation requests.'**
+  String get exConsultHistoryLoadError;
+
   /// No description provided for @exConsultHistoryCancelBody.
   ///
   /// In en, this message translates to:

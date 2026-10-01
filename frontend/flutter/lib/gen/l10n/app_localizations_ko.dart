@@ -3866,6 +3866,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultHistoryCancelAction => '요청 취소';
 
   @override
+  String get exConsultCancelFailed => '상담 요청을 취소하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get exConsultCancelStale => '이미 처리된 요청이에요. 최신 상태로 바꿨어요.';
+
+  @override
+  String get exConsultHistoryLoadError => '상담 요청을 불러오지 못했어요.';
+
+  @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
 
   @override
