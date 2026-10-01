@@ -131,6 +131,9 @@ class TrainerClientOut(BaseModel):
     #: 카드가 이름 옆에 적는 성별(male|female|other). 저장된 적이 없으면 빈 값이고,
     #: 그때는 앱이 스스로 표시값을 정한다(#960).
     gender: str = ""
+    #: 생년월일로 계산한 만 나이. 회원이 넣지 않았으면 `None` — 앱이 표시값을
+    #: 정한다(#2728).
+    age: int | None = None
     goal: str
     last_message: str
     last_time: str
