@@ -114,6 +114,8 @@ void main() {
 
   test('이미 치른(노쇼) 상담 일정을 지우면 신청은 수락된 채다', () async {
     final ScheduleSession session = await acceptAndFindSession();
+    // 노쇼는 시작 시각이 지나야 기록된다(#2760) — 상담이 끝난 뒤로 옮긴다.
+    useFixedKstDate(DateTime(2031, 4, 14, 9));
     await schedule.markNoShow(session.id);
 
     await schedule.deleteSession(session.id);

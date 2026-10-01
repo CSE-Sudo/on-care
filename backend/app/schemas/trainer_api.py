@@ -1469,6 +1469,10 @@ class ScheduleSessionOut(BaseModel):
     #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
     #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
     member_detached: bool = False
+    #: 회원이 예약 슬롯으로 잡은 일정인가(#2756). 예약이 시각·회원·좌석을 갖고
+    #: 있어 일반 일정 수정(시각·회원·종류·길이)·삭제·되돌리기는 409 다. 메모·
+    #: 프로그램은 고칠 수 있고, 일정을 거두려면 취소한다.
+    is_reservation: bool = False
     #: 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터, #2697). 회원 응답의
     #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
     #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
@@ -1682,11 +1686,21 @@ class ScheduleReopenRequest(BaseModel):
     자리이기 때문이다.
     """
     date: str
+    #: 옮길 시각·길이(#2757). 주면 겹침 검사와 반영을 되돌리기 한 요청 안에서
+    #: 끝낸다 — 따로 보내면 되돌린 뒤의 수정이 겹침으로 멈춰도 되돌리기는 이미
+    #: 커밋돼 있다. 없으면 지금 값을 쓴다.
+    time: str | None = Field(default=None, max_length=10)
+    duration_minutes: int | None = Field(default=None, ge=0, le=600)
 
     @field_validator("date")
     @classmethod
     def _v_date(cls, v: str) -> str:
         return _validate_ymd(v)
+
+    @field_validator("time")
+    @classmethod
+    def _v_time(cls, v: str | None) -> str | None:
+        return _validate_hhmm(v) if v is not None else v
 
 
 class ScheduleCancelRequest(BaseModel):

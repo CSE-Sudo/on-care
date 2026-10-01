@@ -1129,6 +1129,22 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
   회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
   그 시각이 새 동의가 되어 다시 열린다.
+- **마무리된 세션은 메모·아직 보내지 않은 프로그램만 고친다 (#2754).** 완료·취소·노쇼 세션의
+  `PUT /trainer/schedule/{id}` 는 본문이 `note`·`program` 만이면 200 이다. `date`·`time`·`member_id`·
+  `client_name`·`type`·`duration_minutes` 가 하나라도 섞이면 409 다(그 기록이 가리키는 약속이 바뀐다).
+  이미 보낸 프로그램(`program_sent: true`)을 다른 내용으로 바꾸면 409 이고, 같은 내용을 함께 실은
+  메모 수정은 막지 않는다.
+- **회원 예약 일정은 `is_reservation: true` 로 실린다 (#2756).** 트레이너 스케줄 응답의 각 일정에
+  회원이 예약 슬롯으로 잡은 일정인지를 싣는다. 이 일정은 `note`·`program` 수정만 되고, 그 밖의 수정·
+  삭제·되돌리기는 409(`detail` 에 사유 문자열)다. 일정을 거두려면 `/cancel` 을 쓴다 — 예약과 좌석이
+  함께 풀린다.
+- **되돌리기는 겹침을 먼저 본다 (#2757).** `POST /trainer/schedule/{id}/reopen` 은 `date` 와 함께
+  선택 `time`·`duration_minutes` 를 받는다(없으면 지금 값). 옮길 자리가 다른 일정과 겹치면 아무것도
+  바꾸지 않고 409(`code: schedule_overlap`, `conflicts`)다 — 세션은 완료·원래 날짜 그대로이고 트레이너
+  이력·회원 운동 기록도 남는다. 겹치지 않으면 날짜·시각·길이를 함께 옮기고 예정으로 바꾼다.
+- **완료·노쇼는 시작 시각이 지나야 된다 (#2760).** `/complete`·`/no-show` 는 일정의 날짜+`time` 을 KST
+  로 보고 지금보다 뒤면 400 이다. 날짜만 보던 예전에는 오늘 20:00 PT 를 오전에 완료·노쇼로 처리할
+  수 있었다. 완료는 종료가 아니라 시작 시각부터 열린다. 취소 가능 시점은 그대로다.
 - **해제·철회 회원의 일정은 트레이너 스케줄에 익명으로 남는다 (#2589).** `GET /trainer/schedule`(일·구간)·
   `GET /trainer/schedule/booked-dates`·겹침 거절(409 `conflicts`)은 그 일정을 빼지 않고 `member_detached: true`,
   `client_name: "해제 회원"`, `member_id: null` 로 싣는다. `note`·`program`·`cancellation_reason` 은 비우고

@@ -847,6 +847,7 @@
   "schedGroupProgram": "PT 프로그램",
   "schedDetachedMember": "해제 회원",
   "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
+  "schedReservationLockedHint": "회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",

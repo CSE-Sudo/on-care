@@ -152,6 +152,29 @@ def _force_stub_recognizer(monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _pin_session_start_clock(monkeypatch):
+    """완료·노쇼의 시작 판정 시각을 오늘 KST 23:59 로 고정한다. (#2760)
+
+    완료·노쇼는 시작 시각이 지나야 열린다. 많은 테스트가 오늘 저녁 시각의 PT 를
+    만들어 완료하므로, 실제 시각을 쓰면 CI 가 도는 시간대에 따라 결과가 바뀐다.
+    오늘 일정은 모두 시작한 것으로 두고, 시작 전 판정을 보는 테스트는 스스로
+    `trainer_service._now_kst` 를 다시 고정한다.
+    """
+    try:
+        from app.core import clock
+        from app.services import trainer_service
+    except Exception:  # noqa: BLE001
+        yield
+        return
+    monkeypatch.setattr(
+        trainer_service,
+        "_now_kst",
+        lambda: clock.now().replace(hour=23, minute=59, second=0, microsecond=0),
+    )
+    yield
+
+
 @pytest.fixture
 def db_session(client):
     """시드까지 끝난 DB 세션. client 픽스처가 먼저 init_db(시드)를 돌린다."""

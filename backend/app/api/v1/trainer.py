@@ -2007,7 +2007,8 @@ def trainer_update_session(
     db: Annotated[Session, Depends(get_db)],
 ) -> ScheduleSessionOut:
     """예약 수정(제공된 필드만). member_id 변경 시 담당 고객이어야 한다.
-    완료된 세션은 기록과의 정합성을 위해 수정 불가(409)."""
+    완료·취소·노쇼 세션은 기록과의 정합성을 위해 메모·아직 보내지 않은
+    프로그램만 수정할 수 있다(그 밖은 409, #2754)."""
     fields = payload.model_dump(exclude_unset=True)
     if fields.get("member_id"):
         _require_client(db, trainer.id, fields["member_id"])
@@ -2113,11 +2114,21 @@ def trainer_reopen_session(
     """
     try:
         out = trainer_service.reopen_session(
-            db, trainer.id, session_id, new_date=payload.date
+            db,
+            trainer.id,
+            session_id,
+            new_date=payload.date,
+            time=payload.time,
+            duration_minutes=payload.duration_minutes,
         )
     except trainer_service.ClientLinkDetached as e:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(e)) from e
+    except trainer_service.ScheduleOverlap as e:
+        # 겹치면 아무것도 바꾸지 않는다 — 완료·날짜·파생 기록이 그대로다. (#2757)
+        raise HTTPException(
+            status_code=409, detail=trainer_service.overlap_detail(e)
+        ) from e
     except trainer_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:

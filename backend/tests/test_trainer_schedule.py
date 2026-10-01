@@ -563,7 +563,9 @@ def test_booked_dates(client):
 
 
 def test_completed_session_cannot_be_edited(client, make_pt_session):
-    """완료된 세션 수정은 409 — 스케줄과 운동기록이 어긋나지 않게 한다(리뷰 재-#2)."""
+    """완료된 세션의 약속 수정은 409 — 스케줄과 운동기록이 어긋나지 않게 한다(리뷰 재-#2).
+
+    메모는 약속을 바꾸지 않아 완료 뒤에도 남길 수 있다(#2754)."""
     token = _tok(client)
     # 픽스처로 만들어 테스트 끝에 지운다 — 완료가 남기는 이력이 쌓이면 60건 상한에
     # 닿아 다른 테스트가 깨진다(#558).
@@ -582,9 +584,18 @@ def test_completed_session_cannot_be_edited(client, make_pt_session):
         headers=_h(token),
     )
     assert r.status_code == 409
-    # note 등 다른 필드 수정도 409
-    assert client.put(
+    # 메모만 고치는 것은 완료 뒤에도 된다(#2754)
+    noted = client.put(
         f"/v1/trainer/schedule/{sid}", json={"note": "바꿈"}, headers=_h(token)
+    )
+    assert noted.status_code == 200, noted.text
+    assert noted.json()["note"] == "바꿈"
+    assert noted.json()["status"] == "완료"
+    # 메모와 함께 시각을 바꾸는 요청은 여전히 409
+    assert client.put(
+        f"/v1/trainer/schedule/{sid}",
+        json={"note": "또", "time": "09:30"},
+        headers=_h(token),
     ).status_code == 409
     # 기록은 여전히 원래 회원(user-jisu)에 남아 있고 다른 회원으로 옮겨가지 않았다
     jisu_hist = client.get("/v1/trainer/clients/user-jisu/history", headers=_h(token)).json()

@@ -1348,6 +1348,10 @@
     "description": "담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)"
   },
   "schedDetachedMemberHint": "Coaching has ended, so client details are hidden",
+  "schedReservationLockedHint": "Booked by the member. It can't be moved or deleted here; use Cancel to call it off.",
+  "@schedReservationLockedHint": {
+    "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
+  },
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",

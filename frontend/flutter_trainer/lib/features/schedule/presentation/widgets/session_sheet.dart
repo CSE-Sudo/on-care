@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
@@ -290,17 +292,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         // 만든다(#1396).
         await _saveEditAsRepeatStart(repo, e, duration, newDate, reopening);
       } else {
-        if (reopening) await repo.reopenSession(e.id, date: newDate);
-        await repo.updateSession(
-          e.id,
-          date: newDate == e.date ? null : newDate,
-          clientName: _client,
-          clientId: _changedClientId(e),
-          time: _time,
-          type: _type,
-          durationMinutes: duration,
-          note: _note.text.trim(),
-        );
+        await _applyEdit(repo, e, duration, newDate, reopening);
       }
     } on ScheduleSeriesConflictError catch (error) {
       // 서버가 막은 경우(미리보기 뒤에 다른 일정이 생겼을 때)도 같은 자리에
@@ -323,12 +315,20 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         });
       }
       return;
-    } catch (_) {
+    } catch (error) {
       // Surface the failure and keep the sheet open so the input isn't
-      // lost (review PR 218).
+      // lost (review PR 218). 서버가 사유를 주면(마무리된 세션·회원 예약
+      // 일정의 409 등) 그 사유를 보인다 — 일반 문구만으로는 왜 안 되는지,
+      // 무엇을 하면 되는지 알 수 없다(#2754·#2756).
       if (!mounted) return;
       setState(() => _saving = false);
-      showAppToast(context, l.schedSaveFailed, type: AppToastType.error);
+      showAppToast(
+        context,
+        error is AppError
+            ? serverDetailOr(l, error.message, l.schedSaveFailed)
+            : l.schedSaveFailed,
+        type: AppToastType.error,
+      );
       return;
     }
     if (mounted) setState(() => _saving = false);
@@ -350,17 +350,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     String newDate,
     bool reopening,
   ) async {
-    if (reopening) await repo.reopenSession(e.id, date: newDate);
-    await repo.updateSession(
-      e.id,
-      date: newDate == e.date ? null : newDate,
-      clientName: _client,
-      clientId: _changedClientId(e),
-      time: _time,
-      type: _type,
-      durationMinutes: duration,
-      note: _note.text.trim(),
-    );
+    await _applyEdit(repo, e, duration, newDate, reopening);
 
     // 이 회차가 이미 시리즈의 첫 회차다 — 나머지는 그다음 날부터, 같은
     // 종료일까지 만든다.
@@ -389,12 +379,72 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       note: '',
       clientRequestId: _requestId,
     );
-    final today = ymd(todayKst());
+    // 이미 시작한 회차만 완료한다 — 오늘이라도 시작 전이면 서버가 완료를
+    // 거절한다(#2760). 그 회차는 예정으로 남는다.
+    final DateTime now = nowKst();
     for (final session in created) {
-      if (session.date.compareTo(today) <= 0) {
+      if (sessionHasStarted(session, now)) {
         await repo.completeSession(session.id);
       }
     }
+  }
+
+  /// 기존 회차 [e] 에 시트의 입력을 반영한다 — **바뀐 칸만** 보낸다(#2754).
+  ///
+  /// 서버는 마무리된 세션·회원 예약 일정에서 메모·프로그램 말고 다른 칸이
+  /// 오기만 해도 거절한다. 메모만 고친 저장에 시간·종류까지 실으면 그 거절에
+  /// 걸리므로, 값이 그대로인 칸은 null('그대로')로 둔다.
+  ///
+  /// 완료 회차를 미래로 옮길 때는([reopening]) 날짜·시각·길이를 되돌리기
+  /// 요청 하나에 함께 싣는다(#2757). 서버가 그 자리의 겹침을 기록을 지우기
+  /// 전에 보므로, 겹치면 완료 기록이 그대로 남는다. 나머지 칸(회원·종류·
+  /// 메모)은 되돌린 뒤 이어서 고친다 — 그때는 예정 세션이라 거절되지 않는다.
+  Future<void> _applyEdit(
+    ScheduleRepository repo,
+    ScheduleSession e,
+    int duration,
+    String newDate,
+    bool reopening,
+  ) async {
+    final String? time = _time == e.time ? null : _time;
+    final int? durationMinutes = duration == e.durationMinutes
+        ? null
+        : duration;
+    if (reopening) {
+      await repo.reopenSession(
+        e.id,
+        date: newDate,
+        time: time,
+        durationMinutes: durationMinutes,
+      );
+    }
+    final String note = _note.text.trim();
+    final String? clientName = _client == e.clientName ? null : _client;
+    final String? clientId = _changedClientId(e);
+    final String? type = _type == e.type ? null : _type;
+    final String? changedNote = note == e.note ? null : note;
+    final String? date = reopening || newDate == e.date ? null : newDate;
+    final String? changedTime = reopening ? null : time;
+    final int? changedDuration = reopening ? null : durationMinutes;
+    if (date == null &&
+        clientName == null &&
+        clientId == null &&
+        changedTime == null &&
+        type == null &&
+        changedDuration == null &&
+        changedNote == null) {
+      return;
+    }
+    await repo.updateSession(
+      e.id,
+      date: date,
+      clientName: clientName,
+      clientId: clientId,
+      time: changedTime,
+      type: type,
+      durationMinutes: changedDuration,
+      note: changedNote,
+    );
   }
 
   /// 완료 세션을 미래로 옮기기 전 확인. 되돌리면 완료가 남긴 운동 기록이

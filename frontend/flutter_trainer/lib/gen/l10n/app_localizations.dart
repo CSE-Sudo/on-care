@@ -3097,6 +3097,12 @@ abstract class AppLocalizations {
   /// **'Coaching has ended, so client details are hidden'**
   String get schedDetachedMemberHint;
 
+  /// Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
+  String get schedReservationLockedHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:

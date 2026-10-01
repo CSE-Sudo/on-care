@@ -1703,6 +1703,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedDetachedMemberHint => '담당이 끝난 회원이라 회원 정보는 볼 수 없어요';
 
   @override
+  String get schedReservationLockedHint =>
+      '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
+
+  @override
   String get schedGroupPersonal => '개인운동';
 
   @override

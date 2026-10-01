@@ -257,7 +257,7 @@
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
 | POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283). 상담 요청으로 생긴 일정이면 요청을 `cancelled` 로 바꾸고 신청 때 잠근 자리를 돌려준다(#2758) |
-| POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
+| POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록. 시작 시각(KST) 전이면 400 (#2760) |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |
 | GET | `/trainer/follow-ups?scope=due\|open` | 내 할 일 — `due` 는 오늘 예정 + 기한 지난 미완료 |
@@ -273,12 +273,13 @@
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
 | GET | `/trainer/chat/unread` | 회원별 미확인 수 |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
-| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589) |
+| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589). 회원 예약 슬롯으로 생긴 일정은 `is_reservation: true` (#2756) |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |
 | POST | `/trainer/schedule` | 예약 생성(예정, `client_request_id?`) |
-| PUT | `/trainer/schedule/{id}` | 예약 수정 |
-| DELETE | `/trainer/schedule/{id}` | 예약 삭제 |
-| POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료) |
+| PUT | `/trainer/schedule/{id}` | 예약 수정. 완료·취소·노쇼 세션은 `note`·아직 보내지 않은 `program` 만(그 밖은 409, #2754). 회원 예약 일정도 `note`·`program` 만(#2756) |
+| DELETE | `/trainer/schedule/{id}` | 예약 삭제. 회원 예약 일정은 409 — 취소로 거둔다(#2756) |
+| POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료). 시작 시각(KST) 전이면 400 (#2760) |
+| POST | `/trainer/schedule/{id}/reopen` | 완료 세션을 미래 날짜의 예정으로(`date`, 선택 `time`·`duration_minutes`). 겹치면 아무것도 바꾸지 않고 409 `schedule_overlap` (#2757) |
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |

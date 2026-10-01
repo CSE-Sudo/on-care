@@ -95,7 +95,8 @@ void main() {
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.schedule,
-        seedClock: kMidWeekKst,
+        // 오늘 수업이 모두 시작한 뒤 — 완료·노쇼가 열린다(#2760).
+        seedClock: kMidWeekEveningKst,
         extraOverrides: <Override>[
           scheduleRepositoryProvider.overrideWith((ref) {
             repo = _RoutineAwareRepository(
@@ -151,11 +152,7 @@ void main() {
       await settle(tester);
     }
 
-    const walking = RoutineExercise(
-      name: '저강도 걷기',
-      minutes: 30,
-      type: '유산소',
-    );
+    const walking = RoutineExercise(name: '저강도 걷기', minutes: 30, type: '유산소');
 
     testWidgets('상세 카드가 PT 프로그램과 개인운동을 갈라 보여 준다', (tester) async {
       await openSchedule(tester, attached: const <RoutineExercise>[walking]);
@@ -272,7 +269,9 @@ void main() {
       final confirm = find.byKey(
         const ValueKey<String>('session-routines-send-confirm'),
       );
-      await tester.tap(find.byKey(const ValueKey<String>('session-routine-add')));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-routine-add')),
+      );
       await settle(tester);
 
       // 이름이 빈 줄이 남아 있으면 저장할 수 없다 — 회원이 이름 없는 운동을
@@ -288,10 +287,10 @@ void main() {
       await settle(tester);
 
       expect(repo.edits, 1);
-      expect(
-        repo.editedItems.map((e) => e.name).toList(),
-        <String>['저강도 걷기', '실내 자전거'],
-      );
+      expect(repo.editedItems.map((e) => e.name).toList(), <String>[
+        '저강도 걷기',
+        '실내 자전거',
+      ]);
     });
 
     testWidgets('이미 보낸 개인운동은 고칠 수 없다', (tester) async {
@@ -375,8 +374,6 @@ void main() {
       expect(find.textContaining('프로그램을 보낼 때'), findsNothing);
     });
 
-
-
     testWidgets('보내지 않음을 누르면 표시가 사라진다', (tester) async {
       await openSchedule(tester, attached: const <RoutineExercise>[walking]);
       await openSession(tester, '박성호');
@@ -454,9 +451,7 @@ void main() {
             r.clientId == 'seed-client-1',
       );
       final attached = await repo.fetchScheduledRoutines(made.id);
-      expect(attached.map((r) => r.exercise.name).toList(), <String>[
-        '실내 자전거',
-      ]);
+      expect(attached.map((r) => r.exercise.name).toList(), <String>['실내 자전거']);
       expect(attached.every((r) => r.sent), isFalse);
     });
 
