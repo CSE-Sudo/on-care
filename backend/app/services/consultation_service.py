@@ -421,7 +421,16 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
 
     헬스장(`Place.category == 'fitness'`)에 소속된 활성 트레이너만 대상이다 — 소속이
     없으면 승인 뒤 회원을 연결할 헬스장도 없다.
+
+    데모 시드가 꺼진 서버에서는 데모 트레이너도 대상이 아니다 — 트레이너 디렉터리
+    (`gym_service._trainer_query`)와 같은 조건이다(#2811).
     """
+    from app.db import demo_ids
+
+    if not demo_ids.demo_data_enabled() and payload.trainer_id in demo_ids.demo_trainer_ids():
+        raise ConsultationTargetNotFound(
+            "상담 가능한 트레이너를 찾을 수 없습니다."
+        )
     trainer = db.scalar(
         select(User)
         .join(TrainerProfile, TrainerProfile.trainer_id == User.id)

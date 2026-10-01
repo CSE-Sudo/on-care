@@ -45,41 +45,52 @@ _PARTNER_GYMS: tuple[
     ),
 )
 
-#: 카카오 Local `헬스장` 검색으로 발견한 실재 업체(#329). id·이름·주소·좌표·전화는
-#: 카카오 실데이터이고, **확인할 수 없는 값(평점·영업시간·태그)은 비워 둔다.**
+#: 제휴가 아닌 가상 헬스장 4곳 — 헬스장 찾기에서 "제휴 아님" 구분과 그 소속
+#: 트레이너 상담을 시연하는 자리다(#329).
 #:
-#: 지어낸 평점을 넣지 않는 이유: 주석은 DB 와 API 응답에 남지 않는다. `/gyms/{id}` 가
-#: 실재 상호·주소·전화와 함께 평점을 내려주면 화면에서는 실제 평점으로 읽힌다(리뷰
-#: 지적). 평점 없음은 0 으로 내려가고 UI 가 뱃지를 감춘다.
+#: 예전에는 카카오 검색으로 찾은 **신촌 실재 업체**의 상호·주소·전화를 그대로 넣고
+#: 가상 트레이너 8명을 그 업체 직원으로 붙였다. 실재 업체에 실존하지 않는 직원·
+#: 자격증·경력을 붙여 노출하는 것이라 가상 상호로 바꿨다(#2811). 이름·주소·좌표는
+#: 지어낸 값이고 전화번호는 넣지 않는다.
+#:
+#: 평점·영업시간·태그는 비워 둔다 — 제휴가 아닌 헬스장은 카카오가 주는 정보만
+#: 갖는다는 실서비스 모양과 같게 둔다. 평점 없음은 0 으로 내려가고 UI 가 뱃지를
+#: 감춘다.
 #:
 #: DB 에 넣는 이유: 상담 요청(`POST /consultations`)이 `gym_id` 를 places 에서
-#: 검증하고, 헬스장 상세의 상담 버튼은 제휴 여부를 가리지 않는다. 넣지 않으면 이
-#: 헬스장들에서 상담이 404 로 실패한다. `is_partner=False` 는 표시상의 구분일 뿐이라
-#: 상담 가능 여부를 바꾸지 않는다 — 모델 주석과 같은 정의다(#1626).
-_DISCOVERED_GYMS: tuple[
+#: 검증하고, 헬스장 상세의 상담 버튼은 제휴 여부를 가리지 않는다. `is_partner=False`
+#: 는 표시상의 구분일 뿐이라 상담 가능 여부를 바꾸지 않는다(#1626).
+_DEMO_NONPARTNER_GYMS: tuple[
     tuple[str, str, str, float, float, float | None, str, str, str, list[str]], ...
 ] = (
     (
-        "11621774", "휘트니스에이든", "서울 마포구 신촌로 92",
-        37.5551767483122, 126.935686079639, None, "", "",
-        "02-332-1720", [],
+        "gym-demo-fitstudio", "온케어 핏스튜디오", "서울 마포구 신촌로 90",
+        37.5551767, 126.9356861, None, "", "", "", [],
     ),
     (
-        "1558845892", "하이핏", "서울 서대문구 연세로4길 19",
-        37.5573727191112, 126.937816432934, None, "", "",
-        "02-362-7822", [],
+        "gym-demo-movelab", "온케어 무브랩", "서울 서대문구 연세로 20",
+        37.5573727, 126.9378164, None, "", "", "", [],
     ),
     (
-        "328969863", "빌드업짐 PT 신촌점", "서울 서대문구 연세로4길 1",
-        37.5570723299884, 126.937142154792, None, "", "",
-        "0502-5552-4212", [],
+        "gym-demo-ptlab", "온케어 PT랩", "서울 서대문구 연세로 12",
+        37.5570723, 126.9371422, None, "", "", "", [],
     ),
     (
-        "696444256", "신인규피티스튜디오", "서울 서대문구 명물길 10",
-        37.5573851891011, 126.937543667755, None, "", "",
-        "010-7616-9819", [],
+        "gym-demo-onestudio", "온케어 1:1 스튜디오", "서울 서대문구 명물길 30",
+        37.5573852, 126.9375437, None, "", "", "", [],
     ),
 )
+
+#: 예전 시드가 가상 트레이너를 붙였던 실재 업체(카카오 place id) → 대신 쓰는 가상
+#: 헬스장. 이미 시드된 DB 의 데모 트레이너 소속을 옮기는 데만 쓴다(#2811).
+#: 실재 업체의 `places` 행은 지우지 않는다 — 실제 트레이너가 소속 헬스장 찾기
+#: (#2543)로 같은 업체를 골랐을 수 있다.
+LEGACY_DISCOVERED_GYM_IDS: dict[str, str] = {
+    "11621774": "gym-demo-fitstudio",
+    "1558845892": "gym-demo-movelab",
+    "328969863": "gym-demo-ptlab",
+    "696444256": "gym-demo-onestudio",
+}
 
 #: 프론트 `MockGymRepository._trainers` 와 같은 id·문안. 화면이 mock 과 실 API 에서
 #: 같아야 하므로 한 글자도 달라지면 안 된다.
@@ -88,7 +99,8 @@ _DISCOVERED_GYMS: tuple[
 #: 있어 여기서 중복 생성하지 않는다.
 #:
 #: **전원 시연용 가상 인물이다.** 로그인은 되지만 담당 회원이 없어, 트레이너 앱으로
-#: 들어가면 로스터가 비어 있다. 실 트레이너 온보딩이 생기면 이 시드는 제거한다.
+#: 들어가면 로스터가 비어 있다. 소속도 위의 가상 헬스장뿐이다 — 실재 업체에 붙이지
+#: 않는다(#2811). 운영 디렉터리는 이 id 들을 거른다(`demo_ids`).
 _TRAINERS: tuple[
     tuple[str, str, str, str, str, int, str, list[str]], ...
 ] = (
@@ -116,35 +128,35 @@ _TRAINERS: tuple[
      "고령 회원 균형 운동 장기 지도", 12,
      "60대 이상 회원 수업을 오래 맡았습니다. 균형 잡기와 낙상 예방 동작부터 시작해 천천히 강도를 올립니다.",
      ["건강운동관리사", "노인스포츠지도사"]),
-    ("trainer-demo-jung", "11621774", "정수빈", "퍼스널 트레이너",
+    ("trainer-demo-jung", "gym-demo-fitstudio", "정수빈", "퍼스널 트레이너",
      "감량 정체기 식사·운동량 재조정", 6,
      "체중이 멈춘 시점에 식사량과 운동량을 다시 맞추는 일을 자주 합니다. 몸무게보다 둘레와 체성분 변화를 기준으로 판단합니다.",
      ["생활스포츠지도사 2급"]),
-    ("trainer-demo-ha", "11621774", "하윤슬", "체형 교정 트레이너",
+    ("trainer-demo-ha", "gym-demo-fitstudio", "하윤슬", "체형 교정 트레이너",
      "장시간 착석형 목·어깨 교정", 4,
      "오래 앉아 생긴 목과 어깨 불편을 주로 다룹니다. 스트레칭과 가벼운 근력 운동을 번갈아 배치해 한 시간을 구성합니다.",
      ["필라테스 지도자", "생활스포츠지도사 2급"]),
-    ("trainer-demo-han", "1558845892", "한서준", "퍼스널 트레이너",
+    ("trainer-demo-han", "gym-demo-movelab", "한서준", "퍼스널 트레이너",
      "기구 입문자 눈높이 지도", 3,
      "기구 사용법부터 하나씩 익히는 수업입니다. 무게를 올리기 전에 자세가 자리를 잡을 때까지 시간을 들입니다.",
      ["퍼스널트레이닝 CPT"]),
-    ("trainer-demo-oh", "1558845892", "오태린", "그룹 PT 트레이너",
+    ("trainer-demo-oh", "gym-demo-movelab", "오태린", "그룹 PT 트레이너",
      "3~5인 그룹 수업 출석 관리", 5,
      "3~5인 그룹 수업을 맡습니다. 서로 속도를 맞추는 구성이라 혼자 할 때보다 출석이 안정적으로 유지됩니다.",
      ["생활스포츠지도사 2급"]),
-    ("trainer-demo-seo", "328969863", "서지안", "재활 전문 트레이너",
+    ("trainer-demo-seo", "gym-demo-ptlab", "서지안", "재활 전문 트레이너",
      "병원 재활 이후 복귀 단계 관리", 10,
      "병원 재활이 끝난 뒤 일상 운동으로 넘어가는 구간을 담당합니다. 통증 기록을 함께 남기며 주 단위로 강도를 조절합니다.",
      ["물리치료사", "건강운동관리사"]),
-    ("trainer-demo-nam", "328969863", "남도윤", "퍼스널 트레이너",
+    ("trainer-demo-nam", "gym-demo-ptlab", "남도윤", "퍼스널 트레이너",
      "스쿼트·데드리프트 영상 자세 교정", 7,
      "스쿼트와 데드리프트 자세 교정을 주로 합니다. 수행 장면을 영상으로 남겨 회차별로 달라진 점을 함께 확인합니다.",
      ["퍼스널트레이닝 CPT"]),
-    ("trainer-demo-moon", "696444256", "문하람", "퍼스널 트레이너",
+    ("trainer-demo-moon", "gym-demo-onestudio", "문하람", "퍼스널 트레이너",
      "주간 식단 기록 점검", 7,
      "1:1 수업만 진행합니다. 매주 식사 기록을 함께 보고 다음 주에 바꿀 항목을 한 가지씩 정합니다.",
      ["스포츠 영양사", "생활스포츠지도사 2급"]),
-    ("trainer-demo-bae", "696444256", "배시우", "러닝 코치",
+    ("trainer-demo-bae", "gym-demo-onestudio", "배시우", "러닝 코치",
      "무릎 부담 적은 러닝 자세 교정", 5,
      "달리기 자세와 호흡을 함께 점검합니다. 무릎에 부담이 덜 가는 보폭을 찾는 데 수업 시간을 많이 배정합니다.",
      ["생활스포츠지도사 2급"]),
@@ -261,38 +273,44 @@ def _seed_member_gym_links(db: Session) -> int:
     return created
 
 
+def _move_demo_trainers_off_real_gyms(db: Session) -> int:
+    """실재 업체 id 에 소속된 데모 트레이너를 대응하는 가상 헬스장으로 옮긴다.
+
+    데모 트레이너(`TRAINER_IDS`)만 본다 — 같은 업체를 실제 트레이너가 골랐다면
+    그 소속은 그대로 둔다. 새로 시드할 때와 같은 상태가 되도록 `gym_id` 만 바꾼다.
+    """
+    moved = 0
+    for profile in db.scalars(
+        select(models.TrainerProfile).where(
+            models.TrainerProfile.trainer_id.in_(TRAINER_IDS),
+            models.TrainerProfile.gym_id.in_(tuple(LEGACY_DISCOVERED_GYM_IDS)),
+        )
+    ).all():
+        target = LEGACY_DISCOVERED_GYM_IDS[profile.gym_id]
+        place = db.get(models.Place, target)
+        if place is None:
+            continue
+        profile.gym_id = target
+        moved += 1
+    return moved
+
+
 def seed_partner_gyms() -> None:
     db: Session = SessionLocal()
     try:
         partner = _seed_gyms(db, _PARTNER_GYMS, is_partner=True)
-        # 카카오 발견 헬스장은 제휴가 아니다. 상담 대상 검증이 places 를 보므로
-        # 넣지 않으면 이 헬스장들에서 상담 요청이 404 가 난다.
-        discovered = _seed_gyms(db, _DISCOVERED_GYMS, is_partner=False)
+        # 제휴가 아닌 가상 헬스장. 상담 대상 검증이 places 를 보므로 넣지 않으면
+        # 이 헬스장들에서 상담 요청이 404 가 난다.
+        discovered = _seed_gyms(db, _DEMO_NONPARTNER_GYMS, is_partner=False)
         db.commit()
 
-        # 이전 버전 시드가 발견 헬스장에 지어낸 평점·영업시간·태그를 넣어 뒀다.
-        # 멱등 시드는 기존 행을 건드리지 않으므로 이미 만들어진 DB 에는 그 값이 남는다.
-        # 실재 상호에 붙는 허위 수치라 여기서 지운다(리뷰 지적).
-        corrected = 0
-        for gym_id, *_ in _DISCOVERED_GYMS:
-            profile = db.get(models.GymProfile, gym_id)
-            if profile is None:
-                continue
-            if (
-                profile.rating is None
-                and not profile.weekday_hours
-                and not profile.weekend_hours
-                and profile.tags_json in ("[]", "")
-            ):
-                continue
-            profile.rating = None
-            profile.weekday_hours = ""
-            profile.weekend_hours = ""
-            profile.tags_json = "[]"
-            corrected += 1
-        if corrected:
+        # 이전 버전 시드는 가상 트레이너를 실재 업체(카카오 place id)에 붙였다.
+        # 멱등 시드는 기존 행을 건드리지 않으므로, 이미 만들어진 DB 의 데모 트레이너
+        # 소속을 가상 헬스장으로 옮긴다(#2811).
+        moved = _move_demo_trainers_off_real_gyms(db)
+        if moved:
             db.commit()
-            logger.info("발견 헬스장 %d곳의 시연용 수치를 지웠습니다.", corrected)
+            logger.info("데모 트레이너 %d명의 소속을 가상 헬스장으로 옮겼습니다.", moved)
 
         trainers = _seed_trainers(db)
         db.commit()
@@ -318,7 +336,7 @@ def seed_partner_gyms() -> None:
 
         if partner or discovered or trainers or linked or members:
             logger.info(
-                "헬스장 시드: 제휴 %d곳, 발견 %d곳, 트레이너 %d명, 소속 연결 %d명, "
+                "헬스장 시드: 제휴 %d곳, 비제휴 %d곳, 트레이너 %d명, 소속 연결 %d명, "
                 "회원 헬스장 %d명",
                 partner, discovered, trainers, linked, members,
             )

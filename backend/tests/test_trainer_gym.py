@@ -19,8 +19,8 @@ HEALTHMATE = {
     "phone": "02-2345-6789",
 }
 ONCARE = {"id": "gym-oncare-sinchon", "name": "온케어짐 신촌점"}
-#: 카카오에서 발견한 실재 헬스장 — 부가 정보(GymProfile)가 없다.
-DISCOVERED_GYM_ID = "328969863"
+#: 비제휴 가상 헬스장 — 부가 정보(영업시간·전화)가 비어 있다(#2811).
+DISCOVERED_GYM_ID = "gym-demo-ptlab"
 #: 시드 데모의 medical 장소 — 헬스장이 아니다.
 MEDICAL_PLACE_ID = "place-1"
 
@@ -119,7 +119,7 @@ def test_changing_gym_replaces_the_previous_one(client, trainer):
 
 
 def test_set_gym_copies_only_what_the_gym_actually_has(client, trainer):
-    """카카오 발견 헬스장은 영업시간을 모른다 — 지어내지 않고 비워 둔다."""
+    """비제휴 헬스장은 영업시간·전화를 모른다 — 지어내지 않고 비워 둔다."""
     token, _trainer_id = trainer
     r = client.put(
         "/v1/trainer/me/gym", json={"gym_id": DISCOVERED_GYM_ID}, headers=_auth(token)
@@ -128,8 +128,8 @@ def test_set_gym_copies_only_what_the_gym_actually_has(client, trainer):
     gym = r.json()["gym"]
 
     assert gym["id"] == DISCOVERED_GYM_ID
-    assert gym["name"] == "빌드업짐 PT 신촌점"
-    assert gym["phone"] == "0502-5552-4212"  # 카카오 실데이터는 그대로 싣는다
+    assert gym["name"] == "온케어 PT랩"
+    assert gym["phone"] == ""
     assert gym["hours"] == ""
 
 

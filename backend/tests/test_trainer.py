@@ -108,7 +108,8 @@ def test_demo_trainer_client_links_seeded(client, db_session):
 # ---- 리뷰 반영: prod 데모 시드 안전장치(순수, DB 불필요) ----
 
 
-def test_prod_demo_seed_requires_strong_password():
+def test_prod_rejects_demo_seed():
+    """운영에서는 데모 시드를 켤 수 없다 — 비밀번호 강도와 상관없다(#2811)."""
     import pytest
 
     from app.core.config import Settings
@@ -118,19 +119,12 @@ def test_prod_demo_seed_requires_strong_password():
         env="prod",
         jwt_secret="a-strong-enough-production-secret-value-01234567",
         cors_allow_origins="https://app.example.com",
-        auto_create_tables=False,  # 운영 스키마 가드(#288) 충족 — 이 테스트는 데모 비번 강도만 검증
+        auto_create_tables=False,  # 운영 스키마 가드(#288) 충족 — 이 테스트는 데모 시드 가드만 검증
     )
-    # 기본값 + 데모 시드 → 기동 거부
-    with pytest.raises(ValueError):
-        Settings(**common, seed_demo_data=True)
-    # 빈 문자열·짧은 문자열·기본값 모두 거부(강도 검증)
-    for weak in ("", "short", "oncare123", "abc12345678"):  # 마지막은 11자(<12)
+    for password in ("", "short", "oncare123", "Str0ng!Demo#Pass"):
         with pytest.raises(ValueError):
-            Settings(**common, seed_demo_data=True, demo_login_password=weak)
-    # 기본값이 아니고 12자 이상이면 데이터 든 데모 계정을 운영에도 둘 수 있음
-    ok = Settings(**common, seed_demo_data=True, demo_login_password="Str0ng!Demo#Pass")
-    assert ok.demo_login_password == "Str0ng!Demo#Pass"
-    # 데모 시드를 끄면(운영 기본 권장) 당연히 통과
+            Settings(**common, seed_demo_data=True, demo_login_password=password)
+    # 데모 시드를 끄면(운영 기본) 통과
     off = Settings(**common, seed_demo_data=False)
     assert off.seed_demo_data is False
 

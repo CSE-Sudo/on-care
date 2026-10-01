@@ -14,7 +14,7 @@ import pytest
 #: 시드 제휴 헬스장 — 카카오에는 없다.
 HEALTHMATE_ID = "gym-healthmate"
 #: 시드의 카카오 발견 헬스장 — `places.id` 가 카카오 장소 id 다.
-DISCOVERED_GYM_ID = "328969863"
+DISCOVERED_GYM_ID = "gym-demo-ptlab"
 #: 시드 데모의 medical 장소.
 MEDICAL_PLACE_ID = "place-1"
 

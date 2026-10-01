@@ -9,11 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
 DEFAULT_JWT_SECRET = "CHANGE_ME_dev_only_secret_key_please_replace_in_prod"
-# 데모 계정(트레이너/회원 시드) 기본 로그인 비밀번호. 운영에서 데모 시드를 켜려면
-# 반드시 이 기본값이 아닌 안전한 값으로 바꿔야 한다(아래 _guard_prod_secrets 가 강제).
+# 데모 계정(트레이너/회원 시드) 기본 로그인 비밀번호. 데모 시드는 운영(env=prod)에서
+# 켤 수 없으므로(아래 _guard_prod_secrets, #2811) 로컬·데모 환경에서만 쓰인다.
 DEFAULT_DEMO_PASSWORD = "oncare123"
-# 운영에서 데모 시드를 켤 때 요구하는 DEMO_LOGIN_PASSWORD 최소 길이.
-MIN_DEMO_PASSWORD_LEN = 12
 
 
 class Settings(BaseSettings):
@@ -129,9 +127,11 @@ class Settings(BaseSettings):
 
     # --- 기타 ---
     cors_allow_origins: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000"
-    seed_demo_data: bool = True
-    # 데모 계정(트레이너/회원 시드) 로그인 비밀번호. 운영에서 데모 계정에 데이터를 담아
-    # 두고 싶으면 이 값을 안전하게 설정한다(기본값이면 운영 기동 차단).
+    # 데모 시드(데모 계정·회원 기록·가상 트레이너·가상 헬스장). 기본은 끔이다(#2811) —
+    # 환경변수를 빠뜨린 채 띄운 서버가 데모 데이터를 심지 않도록. 로컬은 `.env.example`
+    # 에서 명시적으로 켠다. 운영(env=prod)에서는 켤 수 없다(아래 가드).
+    seed_demo_data: bool = False
+    # 데모 계정(트레이너/회원 시드) 로그인 비밀번호. 데모 시드를 켠 환경에서만 쓰인다.
     demo_login_password: str = DEFAULT_DEMO_PASSWORD
     # 관리자 이메일(콤마구분) — 기동 시 해당 사용자를 is_admin=True 로 승격
     admin_emails: str = ""
@@ -225,17 +225,14 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "운영(env=prod)에서는 CORS 허용 출처를 명시해야 합니다(와일드카드 '*' 금지)."
                 )
-            # 운영에서 데모 시드를 켜면 트레이너/회원 데모 계정이 생성된다. 약한 비밀번호가
-            # 그대로 운영 자격증명이 되는 것을 막는다: 기본값 금지 + 최소 길이 강제.
-            # (빈 문자열·짧은 문자열·기본값 모두 거부. 원치 않으면 SEED_DEMO_DATA=false)
+            # 운영 DB 에 데모 데이터(가상 트레이너·데모 회원 기록)가 섞이면 회원 앱
+            # 트레이너 찾기에 실존하지 않는 사람이 노출되고 통계가 오염된다(#2811).
+            # 비밀번호 강도와 상관없이 막는다 — 시연이 필요하면 데모 전용 DB 를 쓴다.
             if self.seed_demo_data:
-                pw = self.demo_login_password or ""
-                if pw == DEFAULT_DEMO_PASSWORD or len(pw) < MIN_DEMO_PASSWORD_LEN:
-                    raise ValueError(
-                        "운영(env=prod)에서 데모 시드(SEED_DEMO_DATA=true)를 켜려면 "
-                        f"DEMO_LOGIN_PASSWORD 를 기본값이 아닌 {MIN_DEMO_PASSWORD_LEN}자 이상의 "
-                        "안전한 값으로 설정해야 합니다(또는 SEED_DEMO_DATA=false)."
-                    )
+                raise ValueError(
+                    "운영(env=prod)에서는 데모 시드를 켤 수 없습니다(SEED_DEMO_DATA=false). "
+                    "시연은 데모 전용 DB 를 둔 별도 환경에서 하십시오."
+                )
             # 운영은 Alembic 을 스키마의 유일한 변경 경로로 삼는다. create_all 이 켜져 있으면
             # ORM 정의만으로 테이블이 생겨 Alembic 이력과 어긋날 수 있으므로, 조용히 무시하지 않고
             # 기동을 거부한다(AUTO_CREATE_TABLES=false 를 명시하도록 강제).

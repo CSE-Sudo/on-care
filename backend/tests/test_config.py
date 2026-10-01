@@ -27,7 +27,7 @@ def _prod(**kw) -> Settings:
         _env_file=None, env="prod",
         jwt_secret="a-strong-random-secret-value",
         cors_allow_origins="https://app.oncare.com",
-        seed_demo_data=False,       # 운영 권장: 데모 시드 끔(켜려면 DEMO_LOGIN_PASSWORD 강제)
+        seed_demo_data=False,       # 운영은 데모 시드를 켤 수 없다(#2811)
         auto_create_tables=False,   # 운영은 Alembic 이 스키마 소스
     )
     base.update(kw)

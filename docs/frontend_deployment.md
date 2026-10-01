@@ -137,11 +137,11 @@ flutter build web --release --base-href "/frontend/"
 | 항목 | `.env.example` | prod 요구 |
 | --- | --- | --- |
 | `CORS_ALLOW_ORIGINS` | `*` | 와일드카드 금지 — 배포 도메인을 명시 |
-| `DEMO_LOGIN_PASSWORD` | `oncare123` | `SEED_DEMO_DATA=true` 면 기본값이 아닌 12자 이상 |
+| `SEED_DEMO_DATA` | `true` | `false` — 켜면 기동 거부(#2811) |
 | `JWT_SECRET` | 기본값 | 안전한 값 필수 |
 | `AUTO_CREATE_TABLES` | — | `false` — Alembic 을 스키마의 유일한 경로로 둡니다 |
 
-시연용으로 `SEED_DEMO_DATA=true` 를 켜면 `DEMO_LOGIN_PASSWORD` 를 바꿔야 하고, 그러면 [`local_fullstack.md`](local_fullstack.md) 의 데모 계정 표(`oncare123`)와 갈리므로 그쪽도 함께 손봅니다.
+운영에서는 데모 시드를 켤 수 없습니다. 시연용 데모 계정이 필요하면 데모 전용 DB 를 둔 별도 환경(`ENV=dev`·`staging`)에서 켭니다. 예전 기본값으로 운영 DB 에 데모 데이터가 이미 심겼다면 [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 의 데모 데이터 정리 절차를 따릅니다.
 
 `ENV` 를 `dev`·`staging` 으로 두면 이 가드가 걸리지 않는 대신 **CORS 가 `*` 로 열린 채 배포됩니다.**
 

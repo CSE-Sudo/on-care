@@ -82,8 +82,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
 | `CORS_ALLOW_ORIGINS` | GitHub Pages 도메인 (예: `https://ewhasudo.zapto.org`) |
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
-| `SEED_DEMO_DATA` | 운영 권장 `false`. 데이터 든 데모 계정을 두려면 `true` + `DEMO_LOGIN_PASSWORD` 필수 |
-| `DEMO_LOGIN_PASSWORD` | `SEED_DEMO_DATA=true` 일 때 12자+ 강한 값(아니면 기동 거부) |
+| `SEED_DEMO_DATA` | `false`(기본값). 운영에서 `true` 면 기동 거부 — 시연은 데모 전용 DB 를 둔 별도 환경에서 |
+| `DEMO_LOGIN_PASSWORD` | 운영에서는 쓰지 않는다(데모 시드를 켠 환경 전용) |
 | `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
 
@@ -129,6 +129,30 @@ flutter build web --release \
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
 
 ---
+
+## 데모 데이터 정리 (#2811)
+
+예전에는 `SEED_DEMO_DATA` 기본값이 켜져 있어, 값을 빠뜨린 채 띄운 서버가 데모 계정·데모 회원
+기록·가상 트레이너·가상 헬스장을 DB 에 심었습니다. 지금은 기본값이 꺼져 있고 운영에서는 켤 수도
+없지만, 이미 심긴 행은 그대로 남습니다. 회원 앱 트레이너 찾기·추천·상세와 상담 신청은 데모가 꺼진
+서버에서 데모 트레이너를 거르므로 노출은 막혀 있고, 행 자체는 아래 절차로 지웁니다.
+
+1. 서버 설정이 `SEED_DEMO_DATA=false`(또는 미지정)인지 확인합니다. 켜진 채 재기동하면 지운
+   데이터가 다시 심깁니다.
+2. DB 백업을 떠 둡니다(Neon 이면 브랜치 생성).
+3. 미리보기로 건수를 확인합니다. 아무것도 지우지 않습니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.purge_demo_data
+   ```
+   데모 사용자 id 목록, 예약 건수(그중 실제 회원의 예약), `users.id` 를 참조하는 표별 행 수,
+   지울 데모 장소와 **남기는 장소**(실제 트레이너 소속·실제 회원 연결이 있는 곳)가 나옵니다.
+4. 건수가 맞으면 `--apply` 를 붙여 지웁니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.purge_demo_data --apply
+   ```
+
+지우는 대상은 시드 id 목록(`app/db/demo_ids.py`)뿐이고, 카카오에서 찾은 실재 업체 행은 지우지
+않습니다. 데모 사용자의 식단·운동·채팅·알림·포인트는 `users.id` CASCADE 로 함께 지워집니다.
 
 ## 마이그레이션 head 선형화 (머지 순서 주의)
 
