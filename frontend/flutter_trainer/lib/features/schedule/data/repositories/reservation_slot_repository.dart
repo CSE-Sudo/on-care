@@ -11,6 +11,8 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart'
+    show DemoConsultationRepository;
 import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
@@ -323,6 +325,9 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
                   ]),
             ))
             .get();
+    final Map<String, String> decisions = await _consultationDecisions(
+      database,
+    );
     final List<DemoSlotSession> sessions = <DemoSlotSession>[
       for (final row in rows)
         (
@@ -334,8 +339,30 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
         ),
     ];
     return <ReservationSlot>[
-      for (final ReservationSlot slot in slots) judgeDemoSlot(slot, sessions),
+      for (final ReservationSlot slot in slots)
+        judgeDemoSlot(holdDemoRequestSlot(slot, decisions), sessions),
     ];
+  }
+
+  /// 데모 상담함의 결정 — 신청 id → `accepted`·`rejected`. 읽지 못하면 빈 표다.
+  static Future<Map<String, String>> _consultationDecisions(
+    AppDatabase database,
+  ) async {
+    final String? saved = await database.readValue(
+      DemoConsultationRepository.decisionsKey,
+    );
+    if (saved == null) return const <String, String>{};
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return const <String, String>{};
+    }
+    if (decoded is! Map<String, Object?>) return const <String, String>{};
+    return <String, String>{
+      for (final MapEntry<String, Object?> e in decoded.entries)
+        if (e.value case {'status': final String status}) e.key: status,
+    };
   }
 
   @override
@@ -407,6 +434,31 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     _bump();
     return closed;
   }
+}
+
+/// 대기 중인 데모 상담 신청이 고른 자리를 잡는다. (#2797)
+///
+/// [demoPendingRequestSlots] 의 자리이고 그 신청에 트레이너의 결정이 아직 없으면
+/// ([decisions] 에 없음) 예약된 자리다 — 실서버에서 신청이 자리를 잠그는 것과
+/// 같다. 거절한 신청은 자리를 놓고, 수락한 신청의 자리는 그 시각의 상담 일정이
+/// 잡는다([judgeDemoSlot]) — 그 상담을 취소하면 자리가 다시 빈다.
+ReservationSlot holdDemoRequestSlot(
+  ReservationSlot slot,
+  Map<String, String> decisions,
+) {
+  final ({String requestId, String memberName})? held =
+      demoPendingRequestSlots[slot.id];
+  if (held == null || slot.booked || slot.isClosed) return slot;
+  if (decisions.containsKey(held.requestId)) return slot;
+  return ReservationSlot(
+    id: slot.id,
+    startsAt: slot.startsAt,
+    durationMinutes: slot.durationMinutes,
+    booked: true,
+    isClosed: slot.isClosed,
+    sessionType: slot.sessionType,
+    bookedByName: held.memberName,
+  );
 }
 
 /// 데모 자리와 견줄 일정 한 건 — 시간을 차지하는(`예정`·`완료`) 것만 넘긴다.

@@ -46,6 +46,14 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 #: 두 임베더가 `embed_dim` 을 공유해 벡터 차원은 달라지지 않는다.
 os.environ.setdefault("EMBEDDER", "hash")
 
+#: 테스트는 로컬 개발 환경(`.env.example`)과 같이 데모 폴백을 켠 채 돈다.
+#:
+#: 설정 기본값은 꺼짐이다(#2821) — 환경변수를 빠뜨린 배포 서버가 로그인 없는 요청을
+#: 데모 회원으로 처리하지 않게 하려는 것이다. 토큰 없이 데모 회원 화면을 읽는 기존
+#: 테스트는 개발 환경을 전제로 하므로 여기서 켠다. 기본값(꺼짐)의 동작은
+#: `test_prod_readiness` 가 설정을 직접 바꿔 확인한다.
+os.environ.setdefault("ALLOW_DEMO_FALLBACK", "true")
+
 
 #: 이 DB 를 비워도 되는가.
 #:
@@ -104,6 +112,32 @@ def _db_available() -> bool:
         return False
 
 
+@pytest.fixture(scope="session", autouse=True)
+def session_clock_pin():
+    """테스트 세션 동안 서비스 기준 날짜를 세션 시작일로 고정한다. (#2940)
+
+    `client` 의 시드는 세션 시작 때 한 번 '오늘'을 읽고, 요청은 그때그때 다시
+    읽는다. 실행이 KST 자정을 걸치면 둘이 하루 어긋나므로 `clock.now()` 를
+    [SessionClockPin.now] 로 바꿔 끼운다 — 시각은 흐르고 날짜만 묶인다.
+    `clock.today()`·`today_iso()` 는 모듈의 `now()` 를 거치므로 함께 고정된다.
+
+    autouse 세션 픽스처라 `client` 의 앱 기동(시드)보다 먼저 걸린다. 개별 테스트가
+    `monkeypatch.setattr(clock, "now", ...)` 로 넣는 값은 이 위에 덮이고, 그
+    테스트가 끝나면 다시 이 고정으로 돌아온다.
+    """
+    try:
+        from app.core import clock
+    except Exception:  # noqa: BLE001
+        yield None
+        return
+    from tests.session_clock import SessionClockPin
+
+    pin = SessionClockPin(clock.now)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(clock, "now", pin.now)
+        yield pin
+
+
 @pytest.fixture(scope="session")
 def client():
     """FastAPI TestClient. DB 가 없으면 skip."""
@@ -149,6 +183,29 @@ def _force_stub_recognizer(monkeypatch):
             "recognizer 를 stub 으로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
             stacklevel=2,
         )
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _pin_session_start_clock(monkeypatch):
+    """완료·노쇼의 시작 판정 시각을 오늘 KST 23:59 로 고정한다. (#2760)
+
+    완료·노쇼는 시작 시각이 지나야 열린다. 많은 테스트가 오늘 저녁 시각의 PT 를
+    만들어 완료하므로, 실제 시각을 쓰면 CI 가 도는 시간대에 따라 결과가 바뀐다.
+    오늘 일정은 모두 시작한 것으로 두고, 시작 전 판정을 보는 테스트는 스스로
+    `trainer_service._now_kst` 를 다시 고정한다.
+    """
+    try:
+        from app.core import clock
+        from app.services import trainer_service
+    except Exception:  # noqa: BLE001
+        yield
+        return
+    monkeypatch.setattr(
+        trainer_service,
+        "_now_kst",
+        lambda: clock.now().replace(hour=23, minute=59, second=0, microsecond=0),
+    )
     yield
 
 

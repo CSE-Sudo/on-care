@@ -46,6 +46,12 @@ def verify_password(plain: str, hashed: str) -> bool:
 #: 모든 계정이 0에서 시작하므로 배포만으로 기존 세션이 끊기지 않는다.
 TOKEN_VERSION_CLAIM = "tv"
 
+#: 웹 클라이언트에 발급한 refresh 토큰에 붙는 클레임(#2828). 값은 ``"web"``.
+#:
+#: 회전 때 이 클레임을 보고 새 토큰도 웹 수명으로 낸다 — 요청 헤더만 보면 헤더를 빼고
+#: 회전해 원래 수명(30일)을 다시 얻을 수 있다.
+CLIENT_CLAIM = "cli"
+
 
 def _encode(
     subject: str,
@@ -54,6 +60,7 @@ def _encode(
     *,
     jti: str | None = None,
     token_version: int = 0,
+    client: str | None = None,
 ) -> str:
     now = datetime.now(timezone.utc)
     payload = {
@@ -65,6 +72,8 @@ def _encode(
     }
     if jti is not None:
         payload["jti"] = jti
+    if client is not None:
+        payload[CLIENT_CLAIM] = client
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -86,19 +95,33 @@ def create_access_token(subject: str, *, token_version: int = 0) -> str:
     )
 
 
-def create_refresh_token(subject: str, *, token_version: int = 0) -> str:
+def refresh_token_ttl(*, web: bool = False) -> timedelta:
+    """refresh 토큰 수명. 웹 클라이언트는 더 짧다(#2828)."""
+    days = (
+        settings.web_refresh_token_expire_days
+        if web
+        else settings.refresh_token_expire_days
+    )
+    return timedelta(days=days)
+
+
+def create_refresh_token(
+    subject: str, *, token_version: int = 0, web: bool = False
+) -> str:
     """폐기 가능한 refresh 토큰을 만든다.
 
     `jti` 는 이 토큰 한 장의 이름이다. 로그아웃과 회전이 "이 토큰은 이제 쓸 수
     없다"고 남길 대상이 있어야 서버가 세션을 끊을 수 있다(#966).
     `token_version` 은 계정 단위로 한꺼번에 끊는 기준이다(#2766).
+    `web` 이면 웹 수명으로 내고 :data:`CLIENT_CLAIM` 을 붙인다(#2828).
     """
     return _encode(
         subject,
         "refresh",
-        timedelta(days=settings.refresh_token_expire_days),
+        refresh_token_ttl(web=web),
         jti=uuid.uuid4().hex,
         token_version=token_version,
+        client="web" if web else None,
     )
 
 
@@ -139,6 +162,8 @@ class RefreshClaims:
     jti: str
     expires_at: datetime
     token_version: int = 0
+    #: 웹 클라이언트에 발급된 토큰인가(#2828). 회전도 웹 수명으로 이어 간다.
+    web: bool = False
 
 
 def decode_refresh_claims(token: str) -> RefreshClaims:
@@ -165,4 +190,5 @@ def decode_refresh_claims(token: str) -> RefreshClaims:
         jti=str(jti),
         expires_at=datetime.fromtimestamp(float(exp), tz=timezone.utc),
         token_version=_token_version_of(payload),
+        web=payload.get(CLIENT_CLAIM) == "web",
     )
