@@ -58,7 +58,9 @@ def test_docs_are_closed_in_prod_by_default():
     ("dev", True, True),
 ])
 def test_explicit_flag_wins(env, flag, expected):
-    assert _settings(env=env, expose_api_docs=flag).api_docs_enabled is expected
+    # 운영 설정은 JWT 비밀값 등 운영 검사를 통과하는 값이 있어야 만들어진다.
+    make = _prod if env == "prod" else _settings
+    assert make(expose_api_docs=flag).api_docs_enabled is expected
 
 
 def test_flag_is_read_from_the_environment(monkeypatch):

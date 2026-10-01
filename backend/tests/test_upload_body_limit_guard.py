@@ -21,6 +21,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.config import Settings
+from tests.route_helpers import api_routes
 
 MiB = 1024 * 1024
 
@@ -151,9 +152,7 @@ def test_every_file_upload_route_has_a_body_limit():
     from app.main import app
 
     mw = _app_body_limit()
-    upload_routes = [
-        r for r in app.routes if isinstance(r, APIRoute) and _takes_a_file(r)
-    ]
+    upload_routes = [r for r in api_routes(app) if _takes_a_file(r)]
     assert upload_routes, "파일을 받는 라우트를 하나도 못 찾았다 — 판정이 깨졌다"
     missing = [r.path for r in upload_routes if mw.rule_for(_sample_path(r)) is None]
     assert missing == [], (
@@ -165,9 +164,7 @@ def test_every_file_upload_route_has_a_body_limit():
 def test_guard_recognizes_the_known_upload_routes():
     from app.main import app
 
-    paths = {
-        r.path for r in app.routes if isinstance(r, APIRoute) and _takes_a_file(r)
-    }
+    paths = {r.path for r in api_routes(app) if _takes_a_file(r)}
     assert {
         "/v1/diet/analyze",
         "/v1/me/coach/chat/image",

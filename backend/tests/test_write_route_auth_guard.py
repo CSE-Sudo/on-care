@@ -16,7 +16,8 @@ import jwt
 import pytest
 from fastapi.routing import APIRoute
 
-from app.api.deps import get_current_user, require_member
+from app.api.deps import CurrentUser, get_current_user, require_member
+from tests.route_helpers import api_routes
 
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -58,13 +59,13 @@ def _calls(dependant) -> set:
     return found
 
 
-def _routes() -> list[APIRoute]:
+def _routes() -> list:
     from app.main import app
 
-    return [r for r in app.routes if isinstance(r, APIRoute)]
+    return api_routes(app)
 
 
-def _route(method: str, path: str) -> APIRoute:
+def _route(method: str, path: str):
     for route in _routes():
         if route.path == path and method in route.methods:
             return route
@@ -105,8 +106,9 @@ def test_the_guard_notices_a_current_user_write_route():
     """가드 자체가 동작하는지 — CurrentUser 로 받는 쓰기 라우트를 만들면 잡혀야 한다."""
     from fastapi import FastAPI
 
-    from app.api.deps import CurrentUser
-
+    # CurrentUser 는 모듈 위에서 가져온다. 이 파일은 `from __future__ import annotations`
+    # 라 주석이 문자열로 남고, FastAPI 는 그것을 함수의 모듈 전역에서 풀기 때문이다
+    # (함수 안에서 가져오면 풀지 못해 쿼리 인자로 본다).
     probe = FastAPI()
 
     @probe.post("/v1/probe")
