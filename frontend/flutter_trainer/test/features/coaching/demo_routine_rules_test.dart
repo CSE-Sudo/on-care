@@ -9,6 +9,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 
 void main() {
@@ -141,6 +142,30 @@ void main() {
       expect(gayoung.analysis.recentMessages, isEmpty);
       expect(sera.analysis.recentMessages, isNotEmpty);
       expect(sera.analysis.recentMessages.length, lessThanOrEqualTo(10));
+    });
+
+    test('최근 대화를 끄면 싣지 않고 통증 판단에도 쓰지 않는다 (#2794)', () async {
+      final repo = MockTrainerRoutineOptionsRepository(db: db);
+      // 오세라는 대화에 허리 통증이 있다 — 대화를 끄면 주의 문구도 없다.
+      final RoutineOptions off = await repo.generate(
+        'seed-client-8',
+        availableMinutes: 30,
+        intensityPreference: 'moderate',
+        trainerNote: '',
+        sources: const <RoutineContextSource>{},
+      );
+      final RoutineOptions on = await repo.generate(
+        'seed-client-8',
+        availableMinutes: 30,
+        intensityPreference: 'moderate',
+        trainerNote: '',
+        sources: const <RoutineContextSource>{RoutineContextSource.recentChat},
+      );
+
+      expect(off.analysis.recentMessages, isEmpty);
+      expect(on.analysis.recentMessages, isNotEmpty);
+      expect(on.planA.rationale, contains('주의사항(허리) 반영'));
+      expect(off.planA.rationale, isNot(contains('허리')));
     });
 
     test('B안은 고른 강도를 그대로 옮기고 3:2:1 로 나눈다 (#2715)', () async {

@@ -3416,6 +3416,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSourceChatInsight => 'Chat-detected memos';
 
   @override
+  String get aiSourceRecentChat => 'Recent chat';
+
+  @override
   String get aiSourceWeeklyFeedback => 'Member weekly feedback';
 
   @override

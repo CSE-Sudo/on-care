@@ -1705,6 +1705,7 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
         RoutineContextSource.ptFeedback,
         RoutineContextSource.trainerMemo,
         RoutineContextSource.chatInsight,
@@ -1728,6 +1729,7 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
         RoutineContextSource.ptFeedback,
         RoutineContextSource.consultMemo,
         RoutineContextSource.trainerMemo,
@@ -1735,7 +1737,13 @@ void main() {
       });
       expect(
         prefs.getStringList('ai_routine_sources.trainer@oncare.com'),
-        <String>['pt_feedback', 'consult_memo', 'trainer_memo', 'chat_insight'],
+        <String>[
+          'recent_chat',
+          'pt_feedback',
+          'consult_memo',
+          'trainer_memo',
+          'chat_insight',
+        ],
       );
     });
 
@@ -1745,6 +1753,14 @@ void main() {
         account: 'trainer@oncare.com',
         stored: <String, Object>{
           'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+          'ai_routine_sources_seen.trainer@oncare.com': <String>[
+            'recent_chat',
+            'pt_feedback',
+            'consult_memo',
+            'trainer_memo',
+            'chat_insight',
+            'weekly_feedback',
+          ],
           // 다른 계정의 선택은 섞이지 않는다.
           'ai_routine_sources.other@oncare.com': <String>['consult_memo'],
         },
@@ -1757,6 +1773,42 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, isEmpty);
+    });
+
+    testWidgets('최근 대화가 생기기 전에 저장한 선택은 최근 대화를 켠 채 시작한다 (#2794)', (
+      tester,
+    ) async {
+      // 예전 선택(다섯 가지만 보고 고른 것)에는 `recent_chat` 이 없다 — 그렇다고
+      // 꺼진 채 시작하면 업데이트만으로 대화가 AI 에서 빠진다.
+      final (repo, _) = await pumpWithPrefs(
+        tester,
+        account: 'trainer@oncare.com',
+        stored: <String, Object>{
+          'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+        },
+      );
+
+      await generateNow(tester);
+
+      expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
+        RoutineContextSource.chatInsight,
+      });
+    });
+
+    testWidgets('최근 대화를 끄면 요청에서 빠진다 (#2794)', (tester) async {
+      final (repo, _) = await pumpWithPrefs(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('ai-source-recent_chat')),
+      );
+      await tester.pump();
+      await generateNow(tester);
+
+      expect(
+        repo.lastSources,
+        isNot(contains(RoutineContextSource.recentChat)),
+      );
     });
   });
 }

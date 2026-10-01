@@ -1456,6 +1456,10 @@
   "aiSourceConsultMemo": "상담 메모",
   "aiSourceTrainerMemo": "회원 메모(직접 작성)",
   "aiSourceChatInsight": "채팅 감지 메모",
+  "aiSourceRecentChat": "최근 대화",
+  "@aiSourceRecentChat": {
+    "description": "AI 가 참고할 자료 — 회원과의 최근 대화 원문(최근 14일 · 최대 10건, #2794)"
+  },
   "aiSourceWeeklyFeedback": "회원 주간 피드백",
   "aiSourceRangeDays": "최근 {days}일 · 최대 {count}건",
   "@aiSourceRangeDays": {

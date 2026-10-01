@@ -127,7 +127,14 @@ class MockTrainerRoutineOptionsRepository
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final bool en = languageCode() == 'en';
     String t(String ko, String english) => en ? english : ko;
-    final _Snapshot? member = await _memberSnapshot(memberId, en: en);
+    final _Snapshot? member = await _memberSnapshot(
+      memberId,
+      en: en,
+      // 최근 대화도 트레이너가 고르는 자료다(#2794) — 끄면 싣지 않는다.
+      withChat: (sources ?? RoutineContextSource.defaults).contains(
+        RoutineContextSource.recentChat,
+      ),
+    );
     final int sodium = member?.sodium ?? 2100;
     final int completion = member?.completion ?? 55;
     // 회원 목표는 회원이 고른 목표 이름이라 서버도 옮기지 않는다 — 데모도 같다.
@@ -413,6 +420,7 @@ class MockTrainerRoutineOptionsRepository
   Future<_Snapshot?> _memberSnapshot(
     String memberId, {
     required bool en,
+    required bool withChat,
   }) async {
     final AppDatabase? db = this.db;
     if (db == null) return null;
@@ -461,9 +469,10 @@ class MockTrainerRoutineOptionsRepository
     String speaker(String sender) =>
         sender == 'trainer' ? trainerLabel : memberLabel;
     final List<String> lines = <String>[
-      for (final row in chat.reversed)
-        if (row.body.trim().isNotEmpty)
-          '${speaker(row.sender)}: ${_clip(row.body.trim())}',
+      if (withChat)
+        for (final row in chat.reversed)
+          if (row.body.trim().isNotEmpty)
+            '${speaker(row.sender)}: ${_clip(row.body.trim())}',
     ];
 
     // 건강 주의사항 — 데모 신체·목표 창이 저장한 값, 없으면 회원 목표.

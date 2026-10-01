@@ -1287,6 +1287,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     // 선택 칩(`AppChoiceChip`)과 같은 선택 색 — 켜진 자료가 한눈에 갈린다.
     final OnCareTokens tokens = context.oncare;
     final (String label, String range) = switch (source) {
+      // 서버 `_recent_chat_lines` 와 같은 범위다(#2794).
+      RoutineContextSource.recentChat => (
+        l.aiSourceRecentChat,
+        l.aiSourceRangeDays(14, 10),
+      ),
       RoutineContextSource.ptFeedback => (
         l.aiSourcePtFeedback,
         l.aiSourceRangeDays(14, 5),

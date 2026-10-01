@@ -2153,6 +2153,10 @@
   "aiSourceConsultMemo": "Consultation memos",
   "aiSourceTrainerMemo": "Member memos (written by you)",
   "aiSourceChatInsight": "Chat-detected memos",
+  "aiSourceRecentChat": "Recent chat",
+  "@aiSourceRecentChat": {
+    "description": "Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)"
+  },
   "aiSourceWeeklyFeedback": "Member weekly feedback",
   "aiSourceRangeDays": "Last {days} days · up to {count}",
   "@aiSourceRangeDays": {

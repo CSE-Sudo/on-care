@@ -1193,19 +1193,25 @@ RoutineIntensityLabel = Literal["낮음", "보통", "높음"]
 
 #: AI 추천이 읽을 수 있는 트레이너 쪽 자료(#2587).
 #:
+#: * recent_chat — 회원과의 최근 대화 원문(최근 14일 · 최신 10건, #2794)
 #: * pt_feedback — 완료한 PT 일정의 글(트레이너 피드백)
 #: * consult_memo — 상담 일정의 글(상담 메모, 트레이너만 본다)
 #: * trainer_memo — 회원 상세에서 트레이너가 직접 쓴 메모(`source='trainer'`)
 #: * chat_insight — 채팅 감지에서 남긴 메모(`source='chat_insight'`)
 #: * weekly_feedback — 회원이 남긴 주간 피드백
 RoutineContextSource = Literal[
-    "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback"
+    "recent_chat",
+    "pt_feedback",
+    "consult_memo",
+    "trainer_memo",
+    "chat_insight",
+    "weekly_feedback",
 ]
 
 #: 트레이너가 고르지 않았을 때의 기본값. 상담 메모만 뺀다 — 등록 상담처럼
 #: 운동 구성과 무관하거나 민감한 내용이 섞이는 자리라, 넣을지는 트레이너가 켠다.
 ROUTINE_DEFAULT_SOURCES: tuple[RoutineContextSource, ...] = (
-    "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
+    "recent_chat", "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
 )
 
 #: 자료별 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 — 이유는
@@ -1231,7 +1237,7 @@ class RoutineOptionsRequest(BaseModel):
     #: 폴백에 들어간다. 보내지 않으면(`None`) [ROUTINE_DEFAULT_SOURCES] 를 쓴다 —
     #: 이 필드 이전의 클라이언트도 같은 기본값으로 동작한다. 빈 목록은 "아무 자료도
     #: 넣지 않음" 이라는 명시적 선택이라 기본값으로 바꾸지 않는다.
-    sources: list[RoutineContextSource] | None = Field(default=None, max_length=5)
+    sources: list[RoutineContextSource] | None = Field(default=None, max_length=6)
 
 
 #: 분석에 싣는 최근 대화 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 —

@@ -505,7 +505,13 @@ def build_member_analysis(
         avg_completion_rate=round(float(completion or 0)),
         latest_routine=latest.name if latest is not None else "-",
         note=request.trainer_note.strip(),
-        recent_messages=_recent_chat_lines(db, trainer_id, member_id, today_date),
+        # 최근 대화 원문도 트레이너가 고르는 자료다(#2794) — 끄면 프롬프트에도,
+        # 규칙 폴백의 통증 판단에도 실리지 않는다. 예전에는 늘 실렸다.
+        recent_messages=(
+            _recent_chat_lines(db, trainer_id, member_id, today_date)
+            if "recent_chat" in sources
+            else []
+        ),
         insight_memos=(
             _recent_insight_memos(db, trainer_id, member_id, today_date)
             if "chat_insight" in sources
@@ -794,7 +800,12 @@ def _resolve_sources(request: RoutineOptionsRequest) -> list[RoutineContextSourc
         ROUTINE_DEFAULT_SOURCES if request.sources is None else request.sources
     )
     order: tuple[RoutineContextSource, ...] = (
-        "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback",
+        "recent_chat",
+        "pt_feedback",
+        "consult_memo",
+        "trainer_memo",
+        "chat_insight",
+        "weekly_feedback",
     )
     return [source for source in order if source in chosen]
 
