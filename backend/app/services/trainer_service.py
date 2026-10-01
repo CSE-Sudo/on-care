@@ -20,7 +20,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy import exists, func, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 from pydantic import ValidationError
 
 from app.core import clock
@@ -301,7 +301,7 @@ def relative_time_label(ts: datetime) -> str:
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     local = clock.to_seoul(ts)
-    today = clock.to_seoul(datetime.now(timezone.utc)).date()
+    today = clock.today()
     days = (today - local.date()).days
     if days <= 0:
         return local.strftime("%H:%M")
@@ -401,7 +401,9 @@ def _week_completion(hist_rows: list[RoutineHistory], monday: date) -> list[int]
 
 
 def _week_days(
-    rows: list[ExerciseSession], week: list[int]
+    rows: list[ExerciseSession],
+    week: list[int],
+    assigned: list[int | None] | None = None,
 ) -> list[WeeklyReportDayOut]:
     """요일별 이행률 + 그날 **실제로 한** 운동(월→일).
 
@@ -416,6 +418,9 @@ def _week_days(
 
     [rows] 는 한 주치 기록이다. 운동 기록은 날짜가 아니라 (그 주 월요일, 요일)
     로 저장되므로 요일 라벨만으로 자리가 정해진다.
+
+    [assigned] 는 요일별 그날 걸려 있던 추천 개인운동 수다(#2772,
+    [_assigned_week]). 모르는 날은 null 로 둔다.
     """
     by_weekday: dict[int, list[str]] = {}
     for row in rows:
@@ -431,9 +436,47 @@ def _week_days(
         WeeklyReportDayOut(
             completion=week[i] if i < len(week) else 0,
             exercises=by_weekday.get(i, []),
+            assigned=assigned[i] if assigned and i < len(assigned) else None,
         )
         for i in range(7)
     ]
+
+
+def _meal_counts(diet_rows: list[DietEntry], monday: date) -> list[int]:
+    """그 주(월→일) 요일별 끼니 기록 수 — 그날 `DietEntry` 수. (#2772)
+
+    칼로리·나트륨과 **같은 창**이다. 기록 없는 날과 아직 오지 않은 날은 0 이다.
+    """
+    by_date: dict[str, int] = {}
+    for e in diet_rows:
+        by_date[e.date] = by_date.get(e.date, 0) + 1
+    return [
+        by_date.get((monday + timedelta(days=off)).isoformat(), 0)
+        for off in range(7)
+    ]
+
+
+def _assigned_week(
+    db: Session, trainer_id: str, member_id: str, monday: date
+) -> list[int | None]:
+    """그 주(월→일) 요일별로 그날 걸려 있던 추천 개인운동 수. (#2772)
+
+    추천 개인운동은 매일 리셋되는 목록이라(#2161) 그날의 분모는 "그날 걸려
+    있던 배정" 이다 — 회원 화면과 같은 규칙인 [member_routine_days] 로 센다.
+    리포트를 쓰는 트레이너의 배정만 센다.
+
+    배정이 하나도 없던 날과 아직 오지 않은 날은 null 이다. 0 은 쉬는 날과
+    구분되지 않아 쓰지 않는다 — 화면이 `0 / 0` 을 그리면 안 한 날처럼 읽힌다
+    (#2232, 데모 `assignedCount` 와 같은 규칙).
+    """
+    out: list[int | None] = [None] * 7
+    for day in member_routine_days(
+        db, member_id, monday, monday + timedelta(days=6), trainer_id=trainer_id
+    ):
+        offset = (day.date - monday).days
+        if 0 <= offset < 7 and day.routines:
+            out[offset] = len(day.routines)
+    return out
 
 
 def _latest_by_member(
@@ -1285,7 +1328,9 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
 
     트레이너가 끊어도 담당 해제는 데이터 공유 동의 철회다(#1631) — 동의를 비우고
-    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다.
+    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다. 회원 메모도
+    출처와 상관없이 남기고 `_require_client` 가 열람만 막는다(#2520) — 회원의 새
+    동의로 다시 이어져야 다시 보인다.
 
     아직 시작하지 않은 PT 는 취소하고(#2589), 회원에게는 해제 사실과 취소한
     일정 수를 알림 한 건으로 알린다 — 일정마다 알리면 반복 PT 수만큼 쏟아진다.
@@ -1344,7 +1389,16 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원입니다.")
     link.active = True
     link.dormant = False
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 위 조회와 커밋 사이에 다른 복구·담당 요청 수락이 먼저 들어왔다 —
+        # 회원당 활성 담당 1명 부분 유일 인덱스(`uq_trainer_client_active_member`)
+        # 에 걸린 것이다. 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911).
+        db.rollback()
+        raise ClientLinkDetached(
+            "이미 다른 트레이너가 담당 중인 회원입니다."
+        ) from None
 
 
 def set_client_active(
@@ -1569,9 +1623,14 @@ def build_routines(
                 )
             ).all()
         }
+    prefetch = _routine_prefetch(db, rows)
     return [
         _routine_out(
-            db, row, completed.get(row.id), include_evidence=not for_member
+            db,
+            row,
+            completed.get(row.id),
+            include_evidence=not for_member,
+            prefetch=prefetch,
         )
         for row in rows
     ]
@@ -1778,7 +1837,51 @@ def _member_goals(db: Session, member_id: str) -> str:
     )
 
 
-def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
+@dataclass
+class _RoutineOutPrefetch:
+    """목록 응답에서 행마다 다시 읽던 회원 값을 한 번에 읽어 둔 것. (#2911)
+
+    [_routine_out] 은 행마다 회원 체중(예상 소모 칼로리)과 건강 목표(효과 문구)를
+    읽는다. 한 일정·한 회원의 목록인데 행 수만큼 같은 조회가 반복됐다. 목록
+    경로는 [_routine_prefetch] 로 회원별 값을 `IN (...)` 한 번씩 읽어 넘긴다.
+    같은 이름·유형·시간·강도·체중의 예상 칼로리도 한 번만 계산한다.
+    """
+
+    goals: dict[str, str]
+    weights: dict[str, float | None]
+    estimates: dict[tuple, Any]
+
+
+def _routine_prefetch(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> _RoutineOutPrefetch:
+    member_ids = sorted({rt.member_id for rt in rows if rt.member_id})
+    goals: dict[str, str] = {member_id: "" for member_id in member_ids}
+    weights: dict[str, float | None] = {member_id: None for member_id in member_ids}
+    if member_ids:
+        for user_id, conditions, weight_kg in db.execute(
+            select(
+                HealthProfile.user_id,
+                HealthProfile.conditions,
+                HealthProfile.weight_kg,
+            ).where(HealthProfile.user_id.in_(member_ids))
+        ).all():
+            goals[user_id] = conditions or ""
+            weights[user_id] = weight_kg
+    return _RoutineOutPrefetch(goals=goals, weights=weights, estimates={})
+
+
+def _routine_outs(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> list[RoutineOut]:
+    """여러 행의 응답 — 회원 값은 한 번만 읽는다(#2911)."""
+    prefetch = _routine_prefetch(db, rows)
+    return [_routine_out(db, rt, prefetch=prefetch) for rt in rows]
+
+
+def _routine_effect(
+    db: Session, rt: TrainerRoutine, goals: str | None = None
+) -> str:
     """배정 한 건의 효과 한 줄 — 적힌 값, 없으면 문구표. (#2570)
 
     저장은 트레이너가 적은 것만 한다. 자동 문구를 저장해 두지 않고 응답 때
@@ -1794,7 +1897,7 @@ def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
     if len(draft_exercises(rt.exercises_json)) > 1:
         return ""
     return routine_effects.auto_routine_effect(
-        rt.type, _member_goals(db, rt.member_id)
+        rt.type, goals if goals is not None else _member_goals(db, rt.member_id)
     )
 
 
@@ -1804,6 +1907,7 @@ def _routine_out(
     completion: ExerciseSession | None = None,
     *,
     include_evidence: bool = True,
+    prefetch: _RoutineOutPrefetch | None = None,
 ) -> RoutineOut:
     """루틴 한 건의 응답.
 
@@ -1818,18 +1922,31 @@ def _routine_out(
     회원 앱과 같은 한 곳(`exercise_service.estimate`)을 쓴다.
     """
     intensity = getattr(rt, "intensity", None) or "moderate"
-    estimated = exercise_service.estimate(
-        db,
-        name=rt.name,
-        type_=rt.type,
-        minutes=rt.minutes,
-        intensity=intensity,
-        weight_kg=exercise_service.member_weight_kg(db, rt.member_id),
-        # 목록을 그릴 때마다 루틴 수만큼 외부 호출이 일어나면 트레이너 화면이
-        # 멈춘다. 이름 해석은 회원이 저장할 때 이미 캐시에 들어가므로, 여기서는
-        # 표 매칭과 캐시까지만 본다.
-        use_ai=False,
+    if prefetch is not None and rt.member_id in prefetch.weights:
+        weight_kg = prefetch.weights[rt.member_id]
+        goals: str | None = prefetch.goals[rt.member_id]
+    else:
+        weight_kg = exercise_service.member_weight_kg(db, rt.member_id)
+        goals = None
+    estimate_key = (rt.name, rt.type, rt.minutes, intensity, weight_kg)
+    estimated = (
+        prefetch.estimates.get(estimate_key) if prefetch is not None else None
     )
+    if estimated is None:
+        estimated = exercise_service.estimate(
+            db,
+            name=rt.name,
+            type_=rt.type,
+            minutes=rt.minutes,
+            intensity=intensity,
+            weight_kg=weight_kg,
+            # 목록을 그릴 때마다 루틴 수만큼 외부 호출이 일어나면 트레이너 화면이
+            # 멈춘다. 이름 해석은 회원이 저장할 때 이미 캐시에 들어가므로, 여기서는
+            # 표 매칭과 캐시까지만 본다.
+            use_ai=False,
+        )
+        if prefetch is not None:
+            prefetch.estimates[estimate_key] = estimated
     return RoutineOut(
         id=rt.id, name=rt.name, minutes=rt.minutes, type=rt.type,
         exercise_date=getattr(rt, "exercise_date", None),
@@ -1851,7 +1968,7 @@ def _routine_out(
             else ""
         ),
         source=rt.source,
-        effect=_routine_effect(db, rt),
+        effect=_routine_effect(db, rt, goals),
         program_name=rt.program_name,
         session_name=rt.session_name,
         session_order=rt.session_order,
@@ -1987,7 +2104,7 @@ def list_routine_suggestions(
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    return _routine_outs(db, rows)
 
 
 def _pending_suggestion(
@@ -3736,15 +3853,25 @@ DETACHED_CLIENT_NAME = "해제 회원"
 
 
 def _schedule_out(
-    s: TrainerSchedule, *, detached: bool = False
+    s: TrainerSchedule,
+    *,
+    detached: bool = False,
+    is_reservation: bool | None = None,
 ) -> ScheduleSessionOut:
     """일정 한 행을 응답으로. [detached] 면 회원 식별·기록 값을 가린다. (#2589)
+
+    [is_reservation] 은 회원 예약이 이 일정을 소유하는가(#2756). 여러 행을
+    한 번에 만드는 [_schedule_outs] 는 미리 모아 넘기고, 넘기지 않으면 한 번
+    조회한다.
 
     담당이 끊긴 회원의 일정도 트레이너가 참여한 수업이라 스케줄에 남긴다. 다만
     회원 상세·식단·기록 차단(#2281)과 같은 경계로, 누구였는지와 그 수업에 적힌
     글·프로그램·취소 사유는 보여 주지 않는다. 언제·무슨 종류·어떻게 끝났는지만
     남는다.
     """
+    if is_reservation is None:
+        db = object_session(s)
+        is_reservation = db is not None and _is_reservation_schedule(db, s.id)
     if detached:
         return ScheduleSessionOut(
             id=s.id, date=s.date, time=s.time,
@@ -3755,6 +3882,7 @@ def _schedule_out(
             cancellation_source=s.cancellation_source,
             no_show_at=s.no_show_at,
             member_detached=True,
+            is_reservation=is_reservation,
         )
     return ScheduleSessionOut(
         id=s.id, date=s.date, time=s.time, client_name=s.client_name,
@@ -3766,6 +3894,20 @@ def _schedule_out(
         cancellation_reason=s.cancellation_reason,
         no_show_at=s.no_show_at,
         consultation=_schedule_consultation_out(s.consultation),
+        is_reservation=is_reservation,
+    )
+
+
+def _reservation_schedule_ids(db: Session, session_ids: set[str]) -> set[str]:
+    """[session_ids] 중 회원 예약이 소유한 일정. [_is_reservation_schedule] 의 묶음판."""
+    if not session_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(TrainerReservation.schedule_id).where(
+                TrainerReservation.schedule_id.in_(sorted(session_ids))
+            )
+        ).all()
     )
 
 
@@ -3823,12 +3965,14 @@ def _schedule_outs(
     linked = _linked_member_ids(
         db, trainer_id, {s.member_id for s in rows if s.member_id}
     )
+    reserved = _reservation_schedule_ids(db, {s.id for s in rows})
     return [
         _schedule_out(
             s,
             detached=bool(s.member_id)
             and s.member_id not in linked
             and not _is_consultation_booking(s),
+            is_reservation=s.id in reserved,
         )
         for s in rows
     ]
@@ -3858,7 +4002,8 @@ def build_client_schedule(
             TrainerSchedule.date, TrainerSchedule.time, TrainerSchedule.sort_order
         )
     ).all()
-    return [_schedule_out(s) for s in rows]
+    reserved = _reservation_schedule_ids(db, {s.id for s in rows})
+    return [_schedule_out(s, is_reservation=s.id in reserved) for s in rows]
 
 
 def build_schedule_range(
@@ -4486,6 +4631,9 @@ class AttachTargetConflict(Exception):
     후보가 아니다. 라우터가 409 와 함께 후보를 싣는다.
     """
 
+    #: 409 `detail.code` — 객체 `detail` 은 모두 `code` 를 단다(#2911).
+    code = "attach_target_conflict"
+
     def __init__(self, message: str, candidates: Sequence[TrainerSchedule]):
         super().__init__(message)
         self.candidates = [_schedule_out(s) for s in candidates]
@@ -4754,7 +4902,7 @@ def latest_delivery(
         kind=kind,
         sent_on=date.fromisoformat(sent_on) if sent_on else None,
         session=_schedule_out(session) if session is not None else None,
-        routines=[_routine_out(db, r) for r in personal],
+        routines=_routine_outs(db, personal),
     )
 
 
@@ -4786,11 +4934,12 @@ def unsent_personal_routines(
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     out: list[RoutineOut] = []
+    prefetch = _routine_prefetch(db, [row for row, _ in rows])
     for row, schedule_date in rows:
         # 보내는 자리는 스케줄 탭의 그 일정 상세다. 날짜를 함께 줘야 그 주를
         # 열 수 있다 — 일정 id 만으로는 이번 주에서 찾지 못한다. (#2225)
         out.append(
-            _routine_out(db, row).model_copy(
+            _routine_out(db, row, prefetch=prefetch).model_copy(
                 update={"schedule_date": schedule_date}
             )
         )
@@ -4824,7 +4973,8 @@ def list_scheduled_routines(
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    # 한 일정의 개인운동은 한 회원의 것이다 — 회원 값은 한 번만 읽는다(#2911).
+    return _routine_outs(db, rows)
 
 
 #: PT 완료로 보낸 개인운동이 회원 목록에 걸려 있는 날 수 — 보낸 날을 1일로 센다.
@@ -5036,7 +5186,7 @@ def send_scheduled_routines(
     )
     sent = _send_scheduled_routines(db, trainer_id, s, delivery_kind=kind)
     db.commit()
-    return [_routine_out(db, row) for row in sent]
+    return _routine_outs(db, sent)
 
 
 def _rewrite_scheduled_routines(
@@ -5497,13 +5647,20 @@ def _notify_schedule_changed(
         )
 
 
+#: 완료·취소·노쇼로 마무리된 세션에서도 고칠 수 있는 필드(#2754). 둘 다 그
+#: 약속(시각·회원·종류·길이)을 바꾸지 않는다. 프로그램은 아직 보내지 않았을 때만.
+_TERMINAL_EDITABLE_FIELDS = frozenset({"program", "note"})
+
+
 def update_session(
     db: Session, trainer_id: str, session_id: str, fields: dict
 ) -> ScheduleSessionOut | None:
     """예약 부분 수정. 소유 슬롯이 아니면 None(라우터 404).
 
-    완료된 세션은 이미 회원 운동기록(RoutineHistory)으로 적재됐다. 이후 member_id·program·
-    note 등을 바꾸면 스케줄과 기록이 어긋나므로(리뷰 재-#2), 완료 세션 수정은 409 로 거부한다.
+    완료된 세션은 이미 회원 운동기록(RoutineHistory)으로 적재됐다. 이후 시각·
+    member_id·종류·길이를 바꾸면 스케줄과 기록이 어긋나므로(리뷰 재-#2) 409 로
+    거부한다. 메모와 아직 보내지 않은 프로그램은 마무리된 세션에서도 고칠 수
+    있다(#2754). 이미 보낸 프로그램을 바꾸는 요청은 409 다(#1247).
     """
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
@@ -5523,12 +5680,26 @@ def update_session(
         raise ScheduleConflict(
             "예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없습니다."
         )
-    if s.status in SCHEDULE_TERMINAL:
+    if s.status in SCHEDULE_TERMINAL and not set(fields).issubset(
+        _TERMINAL_EDITABLE_FIELDS
+    ):
         # 취소·노쇼도 "그때 무슨 일이 있었나" 를 남긴 기록이라 나중에 시간·회원을
         # 고쳐 쓰면 그 기록이 가리키는 약속이 달라진다(완료 세션과 같은 이유).
+        # 메모·아직 보내지 않은 프로그램은 그 약속을 바꾸지 않아 연다 — 수업이
+        # 끝난 뒤 기록을 남기는 것이 가장 자연스러운 흐름이다(#2754).
         raise ScheduleConflict(
-            "완료·취소·노쇼로 마무리된 세션은 수정할 수 없습니다."
+            "완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다."
         )
+    if (
+        "program" in fields
+        and fields["program"] is not None
+        and s.program_sent_at is not None
+        and _program_items(_dump_program(fields["program"]))
+        != _program_items(s.program_json)
+    ):
+        # 회원이 이미 받은 프로그램을 말없이 바꾸지 않는다(#1247). 메모만 고치며
+        # 같은 프로그램을 함께 실어 보낸 요청은 막지 않는다.
+        raise ScheduleConflict("이미 보낸 프로그램은 수정할 수 없습니다.")
     if {"date", "time", "duration_minutes"} & set(fields):
         # 바꾼 뒤의 시간이 다른 일정과 겹치는지 **바꾸기 전에** 본다. 자기 자신은
         # 빼고 본다 — 길이만 늘려도 원래 자리와 겹친다고 거절하면 안 된다. (#2284)
@@ -5540,6 +5711,14 @@ def update_session(
             duration_minutes=fields.get("duration_minutes", s.duration_minutes),
             exclude_ids=(s.id,),
         )
+    # 상담 일정을 다른 시각으로 옮기면 신청 때 잠근 옛 자리를 놓아 준다(#2758).
+    # 회원 앱은 이제 일정의 시각을 읽는다.
+    if s.consultation_id is not None and (
+        fields.get("date", s.date) != s.date or fields.get("time", s.time) != s.time
+    ):
+        from app.services import consultation_service
+
+        consultation_service.release_slot_for_moved_schedule(db, s.consultation_id)
     if "date" in fields:
         s.date = fields["date"]
         # 붙어 있는 개인운동도 새 날짜로 따라간다(#2224). 아직 보내지 않은
@@ -5611,6 +5790,11 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
         )
     ).all():
         db.delete(pending)
+    # 아직 진행되지 않은 상담 일정을 지우면 상담 요청도 함께 거둔다(#2758) —
+    # 잘못 만든 일정의 삭제라도 회원 쪽 요청이 `수락됨` 으로 남고 자리가 잠긴
+    # 채이면 안 된다. 이미 진행된 상담(완료·노쇼)은 그 결말을 그대로 둔다.
+    if s.status in (SCHEDULE_UPCOMING, SCHEDULE_CANCELLED):
+        _withdraw_consultation(db, s, trainer_id)
     # 아직 오지 않은 약속만 알린다. 이미 끝난 PT 의 기록 정리까지 알리면 회원은
     # 지난 일을 취소 통보로 받는다. (#664)
     if s.member_id is not None and s.status == SCHEDULE_UPCOMING:
@@ -5628,7 +5812,13 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
 
 
 def reopen_session(
-    db: Session, trainer_id: str, session_id: str, *, new_date: str
+    db: Session,
+    trainer_id: str,
+    session_id: str,
+    *,
+    new_date: str,
+    time: str | None = None,
+    duration_minutes: int | None = None,
 ) -> ScheduleSessionOut | None:
     """완료 세션을 미래 날짜의 예정으로 되돌린다. (#1396)
 
@@ -5637,6 +5827,11 @@ def reopen_session(
     완료가 남긴 파생 기록(트레이너 이력·회원 운동기록)은 [delete_session] 과
     같은 자리(id)를 지운다 — 그대로 두면 되돌린 뒤에도 "이미 했던 운동"으로
     남아 회원 집계가 거짓이 된다.
+
+    옮길 자리의 겹침은 **아무것도 바꾸기 전에** 본다(#2757). 예전에는 되돌리기가
+    먼저 커밋되고 겹침 검사는 뒤따르는 일반 수정에서야 돌아, 겹쳐서 거절돼도
+    날짜·상태는 이미 바뀌고 파생 기록은 지워져 있었다. [time]·[duration_minutes]
+    를 함께 받으면 그 자리로, 없으면 지금 시각·길이로 검사하고 함께 반영한다.
     """
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
@@ -5650,6 +5845,18 @@ def reopen_session(
         raise ScheduleConflict("완료된 세션만 예정으로 되돌릴 수 있습니다.")
     if new_date <= today_iso():
         raise ScheduleConflict("미래 날짜로만 되돌릴 수 있습니다.")
+    new_time = time if time is not None else s.time
+    new_duration = (
+        duration_minutes if duration_minutes is not None else s.duration_minutes
+    )
+    ensure_no_overlap(
+        db,
+        trainer_id,
+        date=new_date,
+        time=new_time,
+        duration_minutes=new_duration,
+        exclude_ids=(s.id,),
+    )
 
     hist = db.get(RoutineHistory, f"sched-hist-{s.id}")
     if hist is not None:
@@ -5659,6 +5866,8 @@ def reopen_session(
         db.delete(derived)
 
     s.date = new_date
+    s.time = new_time
+    s.duration_minutes = new_duration
     s.status = SCHEDULE_UPCOMING
     db.commit()
     db.refresh(s)
@@ -5879,6 +6088,29 @@ def send_session_program(
     return _schedule_out(s)
 
 
+def _now_kst() -> datetime:
+    """시작 판정의 기준 시각(KST). 테스트가 고정할 수 있게 한 자리로 모은다."""
+    return clock.now()
+
+
+def session_has_started(day: str, time: str, *, now: datetime | None = None) -> bool:
+    """일정의 시작 시각(KST 날짜+`HH:MM`)이 지났거나 지금인가. (#2760)
+
+    완료·노쇼가 이 판정을 쓴다. 날짜만 보면 오늘 20:00 PT 를 오전에 노쇼·완료로
+    처리할 수 있고, 완료는 아직 하지 않은 운동을 회원 기록에 미리 만든다. 완료는
+    종료가 아니라 시작 시각부터 연다 — PT 가 일찍 끝나는 경우를 막지 않는다.
+    형식이 깨진 값은 날짜만으로 판정한다(예전 규칙).
+    """
+    current = now or _now_kst()
+    today = current.date().isoformat()
+    if day != today:
+        return day < today
+    try:
+        return _clock_minutes(time) <= current.hour * 60 + current.minute
+    except ValueError:
+        return True
+
+
 def complete_session(
     db: Session, trainer_id: str, session_id: str, note: str
 ) -> ScheduleSessionOut | None:
@@ -5886,7 +6118,7 @@ def complete_session(
     기록(ExerciseSession)으로 함께 적재해 '예약→수업→기록' 루프를 닫는다.
 
     - 소유 슬롯 아님 → None(404).
-    - 공백/미래 일정 → ScheduleError(400).
+    - 공백/시작 전 일정 → ScheduleError(400). 시작 시각(KST) 기준이다(#2760).
     - 이미 완료 → 그대로 반환(멱등, 중복 기록 없음).
     두 기록 모두 id 가 슬롯 기준 결정론적이라 동시/재호출에도 중복되지 않는다.
     """
@@ -5896,8 +6128,8 @@ def complete_session(
     _ensure_session_member_linked(db, trainer_id, s)
     if s.status == "공백":
         raise ScheduleError("빈 슬롯은 완료할 수 없습니다.")
-    if s.date > _today().isoformat():
-        raise ScheduleError("미래 일정은 완료할 수 없습니다.")
+    if not session_has_started(s.date, s.time):
+        raise ScheduleError("시작 전 일정은 완료할 수 없습니다.")
     if s.status == SCHEDULE_DONE:
         return _schedule_out(s)  # 멱등 no-op
     if s.status in SCHEDULE_TERMINAL:
@@ -5972,6 +6204,22 @@ def _release_cancelled_reservation(
     return bool(released)
 
 
+def _withdraw_consultation(db: Session, s: TrainerSchedule, trainer_id: str) -> bool:
+    """상담 일정을 거두면 그 상담 요청도 취소하고 자리를 돌려준다(커밋 없음). (#2758)
+
+    [_release_cancelled_reservation] 이 회원 예약에 하는 일을 상담 신청에 한다 —
+    상담 자리에는 `TrainerReservation` 행이 없어 그 경로로는 풀리지 않는다.
+    consultation_service 가 이 모듈을 가져다 쓰므로 함수 안에서 부른다.
+    """
+    if s.consultation_id is None:
+        return False
+    from app.services import consultation_service
+
+    return consultation_service.withdraw_for_trainer_schedule(
+        db, s.consultation_id, trainer_id
+    )
+
+
 def cancel_session(
     db: Session,
     trainer_id: str,
@@ -6000,7 +6248,10 @@ def cancel_session(
     if s.status == SCHEDULE_CANCELLED:
         # 멱등 no-op. 다만 예약 좌석을 풀지 않던 때(#2283 이전)에 취소된 일정은
         # 예약이 남아 있을 수 있어, 다시 누르면 그 자리만 마저 풀어 준다.
-        if _release_cancelled_reservation(db, s):
+        # 상담 자리도 같다(#2758 이전에 취소된 상담 일정).
+        released = _release_cancelled_reservation(db, s)
+        withdrawn = _withdraw_consultation(db, s, trainer_id)
+        if released or withdrawn:
             db.commit()
             db.refresh(s)
         return _schedule_out(s)
@@ -6035,6 +6286,8 @@ def cancel_session(
     # 일정만 `취소` 로 두면 회원 앱에는 '예약됨' 으로 남고 그 시간은 다시 잡을 수
     # 없다. 회원 취소와 같은 경로라 두 쪽 결과가 어긋나지 않는다.
     _release_cancelled_reservation(db, s, source=source)
+    # 상담 일정이면 상담 요청을 취소하고 신청 때 잠근 자리를 돌려준다(#2758).
+    _withdraw_consultation(db, s, trainer_id)
 
     # 회원에게는 취소 사실만 간다 — 내부 사유는 트레이너가 보는 기록이다.
     # 삭제 경로와 같은 알림을 쓴다: 회원 입장에서 달라진 것은 "그 시간의 PT 가
@@ -6064,7 +6317,8 @@ def mark_session_no_show(
     회원 알림은 만들지 않는다. 오지 않은 사실을 앱 알림으로 통보하는 것은 이번
     범위의 결정이 아니고, 필요하면 정책을 따로 세운다.
 
-    - 미래 일정 → ScheduleError(400): 아직 오지 않은 약속에 불참을 적을 수 없다.
+    - 시작 전 일정 → ScheduleError(400): 아직 오지 않은 약속에 불참을 적을 수 없다.
+      날짜가 아니라 시작 시각(KST) 기준이다(#2760).
     - 이미 노쇼 → 그대로 반환(멱등). 완료·취소 → ScheduleConflict(409).
     """
     s = _get_owned_session(db, trainer_id, session_id)
@@ -6072,8 +6326,8 @@ def mark_session_no_show(
         return None
     if s.status == SCHEDULE_GAP:
         raise ScheduleError("빈 슬롯은 노쇼 처리할 수 없습니다.")
-    if s.date > _today().isoformat():
-        raise ScheduleError("미래 일정은 노쇼 처리할 수 없습니다.")
+    if not session_has_started(s.date, s.time):
+        raise ScheduleError("시작 전 일정은 노쇼 처리할 수 없습니다.")
     if s.status == SCHEDULE_NO_SHOW:
         return _schedule_out(s)  # 멱등 no-op
     if s.status in SCHEDULE_TERMINAL:
@@ -6279,7 +6533,12 @@ class RoutineDay:
 
 
 def member_routine_days(
-    db: Session, member_id: str, start: date, end: date
+    db: Session,
+    member_id: str,
+    start: date,
+    end: date,
+    *,
+    trainer_id: str | None = None,
 ) -> list[RoutineDay]:
     """[start]~[end](양끝 포함)의 날마다 걸려 있던 추천 개인운동과 그날 완료. (#2161)
 
@@ -6294,11 +6553,15 @@ def member_routine_days(
     — 읽기만 한다.
 
     쿼리는 기간 길이와 무관하게 둘이다(배정, 완료).
+
+    [trainer_id] 를 주면 그 트레이너의 배정만 읽는다 — 트레이너 리포트(#2772)
+    가 자기가 보낸 배정으로 분모를 세는 자리다. 생략하면 지금의 담당이다.
     """
     end = min(end, clock.today())
     if end < start:
         return []
-    trainer_id = get_member_trainer_id(db, member_id)
+    if trainer_id is None:
+        trainer_id = get_member_trainer_id(db, member_id)
     start_iso, end_iso = start.isoformat(), end.isoformat()
     rows = db.scalars(
         select(TrainerRoutine)
@@ -6683,7 +6946,9 @@ def build_weekly_report(
         # 열 때 칸 안의 줄 순서가 바뀐다.
         .order_by(ExerciseSession.completed_at, ExerciseSession.id)
     ).all()
-    days = _week_days(list(exercise_rows), week)
+    days = _week_days(
+        list(exercise_rows), week, _assigned_week(db, trainer_id, member_id, monday)
+    )
     recorded = [d for d in week if d > 0]
     # 기록이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이 된다.
     completion_avg = round(sum(recorded) / len(recorded)) if recorded else None
@@ -6736,6 +7001,7 @@ def build_weekly_report(
         carbs_week=_macro_week(diet_rows, monday, lambda e: e.carbs_g),
         protein_week=_macro_week(diet_rows, monday, lambda e: e.protein_g),
         fat_week=_macro_week(diet_rows, monday, lambda e: e.fat_g),
+        meal_counts=_meal_counts(diet_rows, monday),
         message="",
     )
     return report.model_copy(update={"message": report_message(report)})

@@ -608,17 +608,132 @@ def attach_target_names(db: Session, rows: list[ConsultationRequest]) -> list[Co
             ).all()
         }
 
+    # 수락으로 생긴 상담 일정의 시각. 트레이너가 일정을 옮기면 자리가 아니라
+    # 이 값이 약속이다 — 자리를 읽으면 회원은 옛 시각에 찾아온다(#2758).
+    schedules = _consultation_schedule_times(db, [r.id for r in rows])
+
     out: list[ConsultationOut] = []
     for row in rows:
         item = ConsultationOut.model_validate(row)
         # 트레이너가 지워졌으면 이름은 None 으로 남는다 — 앱이 폴백 문구를 쓴다.
         item.trainer_name = trainer_names.get(row.trainer_id or "")
         item.trainer_gym_name = trainer_gyms.get(row.trainer_id or "") or None
-        slot = slots.get(row.slot_id or "")
+        slot = schedules.get(row.id) or slots.get(row.slot_id or "")
         if slot is not None:
             item.slot_starts_at, item.slot_duration_minutes = slot
+        item.cancelled_by_trainer = _cancelled_by_trainer(row)
         out.append(item)
     return out
+
+
+def _cancelled_by_trainer(row: ConsultationRequest) -> bool:
+    """트레이너가 상담 일정을 거둬 취소된 요청인가. (#2758)
+
+    회원 취소는 처리자(`decided_by`)를 남기지 않고, 트레이너가 상담 일정을
+    취소·삭제한 경우만 그 트레이너를 남긴다([withdraw_for_trainer_schedule]).
+    """
+    return (
+        row.status == "cancelled"
+        and row.decided_by is not None
+        and row.decided_by == row.trainer_id
+    )
+
+
+def _consultation_schedule_times(
+    db: Session, consultation_ids: list[str]
+) -> dict[str, tuple[datetime, int]]:
+    """상담 요청 id → 그 요청으로 생긴 상담 일정의 (시작 시각, 길이). (#2758)
+
+    한 요청에 일정은 하나지만, 혹시 여럿이면 살아 있는(취소되지 않은) 일정을
+    앞세운다. 일정의 날짜·시각은 KST 벽시계라 서울 시간대를 붙여 돌려준다.
+    """
+    if not consultation_ids:
+        return {}
+    rows = db.execute(
+        select(
+            TrainerSchedule.consultation_id,
+            TrainerSchedule.date,
+            TrainerSchedule.time,
+            TrainerSchedule.duration_minutes,
+            TrainerSchedule.status,
+        ).where(TrainerSchedule.consultation_id.in_(consultation_ids))
+    ).all()
+    out: dict[str, tuple[datetime, int]] = {}
+    live: set[str] = set()
+    for consultation_id, day, clock_time, duration, status in rows:
+        try:
+            starts_at = datetime.strptime(
+                f"{day} {clock_time}", "%Y-%m-%d %H:%M"
+            ).replace(tzinfo=SEOUL)
+        except ValueError:
+            continue
+        is_live = status != trainer_service.SCHEDULE_CANCELLED
+        if consultation_id in live and not is_live:
+            continue
+        out[consultation_id] = (starts_at, duration)
+        if is_live:
+            live.add(consultation_id)
+    return out
+
+
+def _lock_accepted(db: Session, consultation_id: str | None) -> ConsultationRequest | None:
+    """수락된 상담 요청을 잠가 읽는다. 없거나 수락 상태가 아니면 None."""
+    if consultation_id is None:
+        return None
+    row = db.scalar(
+        select(ConsultationRequest)
+        .where(ConsultationRequest.id == consultation_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if row is None or row.status != "accepted":
+        return None
+    return row
+
+
+def withdraw_for_trainer_schedule(
+    db: Session, consultation_id: str | None, trainer_id: str
+) -> bool:
+    """트레이너가 상담 일정을 취소·삭제하면 요청도 취소하고 자리를 돌려준다. (#2758)
+
+    **커밋하지 않는다** — 일정 취소·삭제와 같은 트랜잭션에 묶여야 반쪽 상태
+    (일정은 취소됐는데 요청은 `수락됨`, 자리는 잠긴 채)가 남지 않는다.
+
+    예전에는 일정 쪽이 상담 요청을 전혀 몰라, 신청 때 잠근 자리가 영영 풀리지
+    않았다 — 다른 회원은 그 시간을 예약할 수 없었고, 회원 앱 카드는 계속
+    `수락됨` 이었다. 회원 알림은 일정 취소·삭제가 이미 보내는 취소 알림을 그대로
+    쓴다. 처리자를 남겨 회원 취소와 구분한다([_cancelled_by_trainer]).
+
+    이미 취소·만료된 요청이면 아무것도 하지 않는다(멱등). 정리했으면 True.
+    """
+    row = _lock_accepted(db, consultation_id)
+    if row is None:
+        return False
+    row.status = "cancelled"
+    row.decided_by = trainer_id
+    row.decided_at = _now()
+    reservation_service.release_consultation_hold(db, row.slot_id)
+    return True
+
+
+def release_slot_for_moved_schedule(db: Session, consultation_id: str | None) -> bool:
+    """상담 일정이 다른 시각으로 옮겨지면 신청 때 잠근 자리를 놓아 준다. (#2758)
+
+    **커밋하지 않는다.** 약속은 이제 옮긴 일정의 시각이고, 회원 앱도 그 시각을
+    읽는다([attach_target_names]). 옛 자리를 잡아 둘 이유가 없다 — 그대로 두면
+    그 시간은 비어 있는데도 누구도 예약할 수 없고, 슬롯 창에는 예약된 자리로
+    남는다. 자리를 일정과 함께 옮기지 않는 까닭은 옮겨 간 시간에 자리가 없을 수
+    있고(좌석 계산이 얽힌다), 일정만으로 약속이 충분하기 때문이다.
+
+    요청이 자리를 다시 가리키지 않게 끊는다 — 나중에 그 일정을 취소할 때 이미
+    돌려준 자리를 한 번 더 돌려주면 그새 다른 회원이 잡은 좌석이 늘어난다.
+    """
+    row = _lock_accepted(db, consultation_id)
+    if row is None or row.slot_id is None:
+        return False
+    reservation_service.release_consultation_hold(db, row.slot_id)
+    row.slot_id = None
+    return True
 
 
 def cancel_my_consultation(

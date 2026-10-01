@@ -9,6 +9,7 @@ import 'package:oncare_report/oncare_report.dart'
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
+import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
@@ -23,6 +24,8 @@ export 'package:oncare_report/oncare_report.dart'
     show calorieTolerance, recordedMean, sugarLimitG;
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
     show hasFinalConsonant;
+export 'package:oncare_trainer/core/utils/korean_josa_l10n.dart'
+    show withParticle;
 
 /// Monday of the week containing [day], stripped to a date.
 DateTime weekStartOf(DateTime day) {
@@ -33,6 +36,16 @@ DateTime weekStartOf(DateTime day) {
     day.month,
     day.day - (day.weekday - DateTime.monday),
   );
+}
+
+/// [weekStart] 가 속한 주의 월요일에서 [weeks] 주 옮긴 월요일. 음수면 앞 주다.
+///
+/// 주를 옮기는 곳은 전부 이것을 쓴다(#2774). `Duration(days: 7)` 로 빼면
+/// 서머타임이 시작된 주는 167시간뿐이라, 월요일 0시에서 빼면 전 주 월요일이
+/// 아니라 그 전날 일요일 23시가 되고 — 그 날짜는 2주 전 주에 속한다.
+DateTime shiftWeeks(DateTime weekStart, int weeks) {
+  final DateTime monday = weekStartOf(weekStart);
+  return DateTime(monday.year, monday.month, monday.day + 7 * weeks);
 }
 
 /// One client's week, as the trainer would summarise it to them.
@@ -176,7 +189,11 @@ class WeeklyReport implements ReportSheetWeek {
   ReportSheetAnswers? get answers => memberFeedback;
 
   /// Sunday of the reported week.
-  DateTime get weekEnd => weekStart.add(const Duration(days: 6));
+  ///
+  /// 달력 날짜로 더한다 — 그 주 안에 서머타임 전환이 있으면 `Duration` 은
+  /// 자정을 한 시간 밀어 날짜가 어긋난다(#2774).
+  DateTime get weekEnd =>
+      DateTime(weekStart.year, weekStart.month, weekStart.day + 6);
 
   /// 문서에 실리는 내용 전부를 이은 열쇠. (#2484)
   ///
@@ -744,15 +761,3 @@ String exerciseBaseName(String line) {
 /// `은`/`는` 을 받침에 맞춰 붙인다. 규칙은 [withTopicJosa] 에 있다.
 String _topicParticle(AppLocalizations l, String word) =>
     withParticle(l, word, '은', '는');
-
-/// 한국어일 때만 받침에 맞는 조사를 붙인다. 다른 언어에는 조사가 없다 —
-/// 영어 문장에 `Squat은` 이 남으면 안 된다.
-String withParticle(
-  AppLocalizations l,
-  String word,
-  String afterConsonant,
-  String afterVowel,
-) {
-  if (l.localeName != 'ko') return word;
-  return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
-}

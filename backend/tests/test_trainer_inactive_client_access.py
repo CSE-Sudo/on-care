@@ -287,7 +287,7 @@ def test_multipart_sends_are_blocked_after_detach(client, db_session, pair):
     pdf = client.post(
         f"{base}/report/send-pdf",
         files={"pdf": ("report.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")},
-        data={"week_start": _this_monday()},
+        data={"week_start": _this_monday(), "message": "이번 주 리포트"},
         headers=pair.headers,
     )
     _assert_guard(pdf)

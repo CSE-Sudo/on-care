@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// 서버가 **새 비밀번호**를 기준 미달로 거절했다(#1555).
@@ -35,7 +36,12 @@ abstract interface class TrainerAccountRepository {
   /// Changes the password. Throws [AppError] on failure —
   /// [ValidationError] carries the server's reason (wrong current
   /// password, same as current) for inline display.
-  Future<void> changePassword({
+  ///
+  /// 성공하면 서버가 새로 발급한 토큰 한 쌍을 돌려준다(#2766). 서버는 비밀번호를
+  /// 바꾸면 그 전에 발급한 토큰을 모두 무효로 만들므로, 호출부가 이 토큰으로
+  /// 세션을 갈아 끼워야 이 기기가 로그아웃되지 않는다. 응답에 토큰이 없으면
+  /// (토큰 세대 이전 서버) null 이다.
+  Future<TrainerAuthTokens?> changePassword({
     required String currentPassword,
     required String newPassword,
   });
@@ -63,7 +69,7 @@ class MockTrainerAccountRepository implements TrainerAccountRepository {
   bool get supportsDeletion => false;
 
   @override
-  Future<void> changePassword({
+  Future<TrainerAuthTokens?> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
@@ -105,12 +111,13 @@ class DioTrainerAccountRepository implements TrainerAccountRepository {
   }
 
   @override
-  Future<void> changePassword({
+  Future<TrainerAuthTokens?> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
+    final Response<Map<String, dynamic>> res;
     try {
-      await _dio.post<Map<String, dynamic>>(
+      res = await _dio.post<Map<String, dynamic>>(
         '/trainer/me/password',
         data: <String, String>{
           'current_password': currentPassword,
@@ -133,6 +140,7 @@ class DioTrainerAccountRepository implements TrainerAccountRepository {
       }
       throw AppError.fromDio(e);
     }
+    return reissuedTokensFrom(res.data);
   }
 
   String? _detail(DioException e) {
@@ -141,6 +149,22 @@ class DioTrainerAccountRepository implements TrainerAccountRepository {
     final detail = data['detail'];
     return detail is String ? detail : null;
   }
+}
+
+/// 비밀번호 변경 응답에서 새 토큰 한 쌍을 꺼낸다(#2766).
+///
+/// 변경은 이미 서버에 반영됐다 — 응답 모양이 어긋났다고 던지면 화면이 "실패"로
+/// 보여 주는데 비밀번호는 바뀐 상태가 된다. 그래서 토큰이 없거나 형식이 틀리면
+/// null 로 돌려주고, 세션은 다음 401 에서 만료 안내와 함께 다시 로그인하게 된다.
+TrainerAuthTokens? reissuedTokensFrom(Map<String, dynamic>? body) {
+  if (body == null) return null;
+  final Object? access = body['access_token'];
+  if (access is! String || access.isEmpty) return null;
+  final Object? refresh = body['refresh_token'];
+  return TrainerAuthTokens(
+    access: access,
+    refresh: refresh is String ? refresh : '',
+  );
 }
 
 /// Provides the account repository for the current mode.
