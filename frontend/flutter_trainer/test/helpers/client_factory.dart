@@ -24,6 +24,8 @@ TrainerClient makeClient({
   List<int>? sodiumWeek,
   List<int> caloriesWeek = const <int>[],
   List<ClientSignal> signals = const <ClientSignal>[],
+  String gender = '',
+  int? age,
 }) {
   return TrainerClient(
     id: id,
@@ -45,5 +47,7 @@ TrainerClient makeClient({
         sodiumWeek ?? const <int>[1500, 1500, 1500, 1500, 1500, 1500, 1500],
     caloriesWeek: caloriesWeek,
     signals: signals,
+    gender: gender,
+    age: age,
   );
 }
