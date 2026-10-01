@@ -1,26 +1,37 @@
-# On-Care Backend (프론트 계약 정렬 재작업판)
+# On-Care Backend
 
-> 프론트엔드(Flutter)의 `LocalApiInterceptor` 를 **정답 계약**으로 삼아 백엔드를 맞춥니다.
-> 계약 전체는 `API_CONTRACT.md` 참조.
+> 회원 앱(`frontend/flutter`)과 트레이너 웹(`frontend/flutter_trainer`)이 함께 쓰는 FastAPI 백엔드입니다.
+> 엔드포인트 계약은 [`API_CONTRACT.md`](API_CONTRACT.md)(이 문서가 기준이고 두 앱의 목업이 따라감),
+> 회원↔트레이너 공유 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md), 배포는
+> [`docs/DEPLOY.md`](docs/DEPLOY.md) 를 봅니다.
 
-## 재작업 로드맵
-- **STEP 0** ✅ API 계약 명세 (API_CONTRACT.md)
-- **STEP 1** ✅ 골격 재구성: /v1 prefix · 문자열 id · snake_case · 시스템 엔드포인트 · DB/Docker
-- **STEP 2** ✅ 사용자/인증: /users/me, /users/me/health (토큰→유저 / 무토큰→데모 폴백)
-- **STEP 3** ✅ 식단: /diet/days/today + POST /diet/analyze (Gemini, 나트륨·당류 관점, 엔진 교체 가능)
-- **STEP 4** ✅ 운동: /exercise/weeks/current + POST /exercise/sessions (요일별/타입별 집계, streak, 주간 코칭)
-- **STEP 5** ❌ 바이탈(체중·혈압·혈당): **제거됨.** 입력이 번거로워 제품에서 빼기로 했고,
-  테이블·엔드포인트·목표 컬럼을 모두 걷어냈다(`migrations/versions/0016_drop_vitals.py`).
-  `/vitals/*` 는 존재하지 않고 `/users/me/health` 에 indicators 도 없다. 식단 일일 영양
-  목표(`daily_*`)만 남아 있다.
-- **STEP 6** ✅ 일정/알림/장소/AI코치: /schedule/events · /notifications · /places/nearby · /ai-coach/feedback (도메인별 코치 분리, RAG 진입점)
-- **STEP 7** ✅ RAG 코치: 임베더/LLM factory(교체 가능), 개인·공공 문서 격리, 도메인 필터, 청킹(설정값), 토큰 기록, 규칙 기반 폴백, 적재/재임베딩 스크립트
+## 현재 상태
+- 모든 경로는 `/v1` prefix, JSON 은 snake_case, 사용자 id 는 문자열(데모 유저 `user-7d4e9a2c5f18`).
+- 라우터 목록은 `app/main.py` 의 `include_router` 가 기준입니다 — 인증·사용자, 대시보드, 식단, 운동,
+  알림, 장소·헬스장·트레이너 디렉터리, 예약·상담, 트레이너 도메인과 회원측 코치 미러, 채팅 첨부,
+  AI 코치(RAG + 규칙 기반 폴백), 포인트·챌린지·보호권, 기록 그래프.
+- 시스템: `GET /v1/ping` · `GET /v1/healthz` · `GET /v1/version`, DB 연결까지 보는 readiness `GET /v1/readyz`.
+- 테이블 목록은 `app/models/models.py` 와 마이그레이션(`migrations/versions/`)이 기준입니다. 수가 계속
+  바뀌므로 이 문서에 숫자로 적지 않습니다.
+- **제거된 기능**: 바이탈(체중·혈압·혈당, `0016_drop_vitals`)과 회원 일정(`/schedule/events`,
+  `0069_drop_schedule_events`)은 테이블·엔드포인트가 없습니다. 트레이너 일정은 `/trainer/schedule*` 입니다.
 
-## STEP 1 에서 동작하는 것
-- `GET /v1/ping` · `GET /v1/healthz` · `GET /v1/version` — 프론트 계약과 정확히 일치
-  (`GET /v1/readyz` 는 DB 연결까지 확인하는 readiness 로 별도)
-- 테이블 생성 (프론트 drift 스키마 정렬: diet_entries 에 sodium_mg/sugar_g 포함) — 베이스라인 9테이블(places 포함), 이후 마이그레이션으로 현재 26테이블
-- 사용자 id = 문자열, 데모 유저 'user-7d4e9a2c5f18'(김민수) 시드
+<details>
+<summary>초기 재작업 기록 (STEP 0~7, 당시 상태)</summary>
+
+처음에는 회원 앱 프로토타입의 `LocalApiInterceptor` 를 정답 계약으로 삼아 백엔드를 단계별로 다시 짰습니다.
+아래는 그때의 단계 기록이라 지금 상태와 다른 줄이 있습니다(예: STEP 6 의 회원 일정은 이후 제거됨).
+
+- **STEP 0** API 계약 명세 (API_CONTRACT.md)
+- **STEP 1** 골격 재구성: /v1 prefix · 문자열 id · snake_case · 시스템 엔드포인트 · DB/Docker
+- **STEP 2** 사용자/인증: /users/me, /users/me/health
+- **STEP 3** 식단: /diet/days/today + POST /diet/analyze (Gemini, 엔진 교체 가능)
+- **STEP 4** 운동: /exercise/weeks/current + POST /exercise/sessions
+- **STEP 5** 바이탈(체중·혈압·혈당) — 이후 제거(`0016_drop_vitals`)
+- **STEP 6** 일정/알림/장소/AI코치 — 회원 일정 `/schedule/events` 는 이후 제거(`0069_drop_schedule_events`)
+- **STEP 7** RAG 코치: 임베더/LLM factory, 개인·공공 문서 격리, 도메인 필터, 청킹, 규칙 기반 폴백, 적재/재임베딩 스크립트
+
+</details>
 
 ## 실행
 ```bash
@@ -30,7 +41,7 @@ docker compose up --build
 → http://localhost:8000/docs  (경로는 모두 /v1/...)
 
 ## DB 마이그레이션 (Alembic)
-스키마는 **Alembic 마이그레이션**으로 관리합니다(베이스라인: `migrations/versions/0001_baseline.py`, 9테이블 + pgvector; 이후 마이그레이션으로 현재 12테이블).
+스키마는 **Alembic 마이그레이션**으로 관리합니다(베이스라인: `migrations/versions/0001_baseline.py` + pgvector). 현재 head 는 `alembic heads` 로 확인하고, Backend CI 가 head 가 정확히 1개인지 검사합니다.
 DB URL 은 `.env` 의 `DATABASE_URL` 을 그대로 사용합니다(`migrations/env.py` 가 app 설정에서 읽음).
 
 ```bash
@@ -39,8 +50,8 @@ alembic upgrade head          # 최신 스키마로 반영 (운영/CI 는 이 �
 alembic revision --autogenerate -m "설명"   # 모델 변경 후 새 마이그레이션 생성
 alembic downgrade -1          # 한 단계 롤백
 ```
-> 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등), **운영은 `alembic upgrade head`** 를 정답으로 삼습니다.
-> (운영에서 `create_all` 을 끄려면 `AUTO_CREATE_TABLES=false` — 설정 항목은 이후 커밋에서 추가)
+> 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등, `AUTO_CREATE_TABLES=true` 기본값), **운영은 `alembic upgrade head`** 를 정답으로 삼습니다.
+> 운영(`ENV=prod`)은 `AUTO_CREATE_TABLES=false` 여야 하며, `true` 면 기동이 차단됩니다(`app/core/config.py`).
 
 > **`alembic.ini` 에는 한글을 넣지 마십시오(ASCII 전용).** Alembic 이 그 파일을 로케일 인코딩으로 읽어서, 한국어 Windows(cp949)에서는 한글 한 글자만 있어도 위 세 명령이 전부 `UnicodeDecodeError` 로 죽습니다. 리눅스 CI 는 UTF-8 로케일이라 통과하므로 드러나지 않고, `PYTHONUTF8=1` 로도 잡히지 않습니다. 설명은 `migrations/env.py` 나 이 문서에 적습니다. (#2004)
 
@@ -115,7 +126,7 @@ flutter run --dart-define=USE_MOCK_API=false --dart-define=API_BASE_URL=http://l
 
 ## 준비물
 - Docker Desktop (무료, 가입 없음)
-- (STEP 3~) Gemini / OpenAI 키
+- (선택) Gemini 키 — 없으면 식단 인식·AI 코치가 규칙/스텁으로 폴백
 
 ## 식단 인식 실제 예시 (Diet Analysis PoC — live output)
 

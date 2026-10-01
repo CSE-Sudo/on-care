@@ -1,9 +1,12 @@
-# On-Care 백엔드 API 계약 명세 (STEP 0)
+# On-Care 백엔드 API 계약 명세
 
-> 이 문서는 **프론트엔드(Flutter)의 `LocalApiInterceptor` 를 정답으로 삼아** 역으로 추출한
-> 백엔드 API 계약입니다. 백엔드는 이 명세에 맞춰 구현합니다.
-> 출처: `frontend/flutter/lib/core/network/interceptors/local_api_interceptor.dart`,
-> `core/storage/app_database.dart`, `core/network/case_mapper.dart`, `app_config.dart`
+> 회원 앱·트레이너 웹이 함께 쓰는 백엔드(`backend/app/api/v1/`)의 엔드포인트 계약입니다.
+> **백엔드가 계약의 기준**이고, 두 앱의 데모(목업) 경로 — 회원 앱
+> `frontend/flutter/lib/core/network/interceptors/local_api_interceptor.dart` 와 트레이너 웹 목업
+> 저장소 — 는 이 문서와 백엔드 응답을 따라갑니다. 엔드포인트를 더하거나 바꾸면 이 문서를 함께 고칩니다.
+>
+> 처음에는 회원 앱 프로토타입의 `LocalApiInterceptor` 에서 계약을 역으로 뽑아 시작했지만, 지금은
+> 방향이 반대입니다(목업이 백엔드를 따라감).
 
 ## 공통 규약
 
@@ -12,7 +15,28 @@
   (프론트 base URL 에 `/v1` 을 포함시키거나 서버가 `/v1` 라우터를 둠. 본 백엔드는 **`/v1` prefix** 채택.)
 - **JSON 표기**: **snake_case** (Pydantic alias 규약). 프론트의 case_mapper 가 camelCase 로 변환.
 - **인증**: `Authorization: Bearer <token>` (JWT). `auth_interceptor` 가 붙인다. 자세한 것은 아래 "인증" 절.
-- **에러**: `{ "code": "...", "message": "..." }` 형태. 4xx/5xx 는 DioException 으로 처리됨.
+- **에러**: FastAPI 기본 형식인 `{"detail": ...}` 입니다. 4xx/5xx 는 앱에서 DioException 으로 처리됩니다.
+  - **기본은 문자열**: `{"detail": "담당 고객을 찾을 수 없습니다."}`. 대부분의 400·401·403·404·409·413·429 가 이 형태입니다.
+  - **요청 검증 실패(422)** 는 FastAPI 형식 그대로 `{"detail": [{ "loc", "msg", "type", … }]}` 배열입니다.
+    라우터가 직접 422 를 낼 때는 문자열입니다.
+  - **전역 500** 은 `{"detail": "<화면 언어 문장>"}` 문자열입니다(아래 `Accept-Language`).
+  - **화면이 분기해야 하는 일부 오류만 객체**입니다: `{"detail": {"code", "message", …추가 필드}}`.
+    앱은 `detail` 이 객체면 `code` 로 분기하고, 문자열이면 그대로 보여 줍니다.
+
+    | 엔드포인트 | 상태 | `code` | 추가 필드 |
+    |---|---|---|---|
+    | `POST /ai-coach/chat` | 402 | `points_required` | — |
+    | `POST /ai-coach/chat` | 429 | `daily_limit` | — |
+    | `POST /ai-coach/chat` | 409 | `insufficient_points` | `shortfall` |
+    | `POST /consultations` | 409 | `linked_to_other_trainer` · `slot_unavailable` | — |
+    | `POST /consultations` | 409 | `too_many_pending` | `limit` |
+    | `POST /consultations` | 429 | `consultation_rate_limited` | `limit` (+ `Retry-After` 헤더) |
+    | `POST /trainer/schedule`, `POST /trainer/schedule/recurring`, `PUT /trainer/schedule/{id}`, `POST /trainer/schedule/{id}/reopen`, `POST /trainer/clients/{id}/program-schedule`, `POST /trainer/consultations/{id}/accept`, `POST`·`PUT /trainer/reservation-slots[/{id}]` | 409 | `schedule_overlap` | `conflicts[]` |
+    | `POST /reservations` | 409 | `schedule_overlap` | — (회원에게는 트레이너의 다른 일정을 싣지 않음) |
+
+    `POST /trainer/clients/{id}/program-schedule` 의 회차 후보 충돌 409 는 `code` 없이
+    `{"detail": {"message", "candidates[]"}}` 입니다.
+    형식을 하나로 맞추는 일은 별도 이슈에서 다룹니다.
 - **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
   `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
   서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
@@ -40,7 +64,7 @@
   집계 값(`/notifications/unread-count`, `/trainer/consultations/pending-count` 등)은
   쪽 나눔과 무관하게 **전체 기준**입니다.
 
-## 프론트에 실제 구현된 엔드포인트 (이번에 완성할 대상)
+## 엔드포인트
 
 ### 시스템
 
@@ -119,7 +143,7 @@
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.
 
-### 식단 (핵심: 나트륨·당류·고혈압 관점)
+### 식단 (칼로리·나트륨·당류·탄단지)
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
@@ -473,21 +497,6 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 - **알림** 판정마다 결과 알림 한 건. `category` 는 `points_shop`, `action` 은
   `{ label: "포인트 사용처 보기", target: "points_shop" }` — 결과를 읽고 할 일(다음 주 참가·돌려받은 포인트 확인)이 그
   화면에 있다. 내 혜택은 교환해 **가진 것**(쿠폰·보호권)만 두므로 챌린지를 싣지 않는다. 수신 설정 스위치는 없다.
-
-### 일정 (캘린더 상세 CRUD)
-
-| Method | Path | 응답 |
-|---|---|---|
-| GET | `/schedule/events?date=YYYY-MM-DD` | `[{ id, date, time, title, category, emoji, color_hex }]` (배열) |
-| GET | `/schedule/events?month=YYYY-MM` | 그 달 전체(캘린더 뷰) |
-| GET | `/schedule/events/{id}` | 단건(없으면 404) |
-| POST | `/schedule/events` | 입력 `{ date, time?, title, category, emoji?, color_hex? }` → 생성 항목 |
-| PUT | `/schedule/events/{id}` | 부분 수정(본인 소유만, 아니면 404) |
-| DELETE | `/schedule/events/{id}` | 삭제 → `{ status: "deleted" }` |
-
-category: hospital|exercise|meal|medication|other
-- **검증**: `date`(YYYY-MM-DD)·`month`(YYYY-MM)·`time`(HH:MM 또는 빈값)·`color_hex`(#RGB/#RRGGBB)는
-  형식 위반 시 **422**. 특히 `month`는 미검증 시 `month=%` 같은 값이 LIKE 와일드카드로 새므로 필수.
 
 ### 알림 (액션)
 

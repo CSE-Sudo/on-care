@@ -2,8 +2,9 @@
 
 컨테이너 + Postgres(pgvector) 구조라 컴퓨트는 **App Runner**(HTTPS 자동, 운영 부담 최소),
 DB 는 **Neon Postgres(pgvector)** 를 쓴다. DB 를 컴퓨트와 분리해 두면 컴퓨트 플랫폼을 바꿔도
-`DATABASE_URL` 을 그대로 옮기면 된다. `main`의 Backend CI가 성공하면 해당 커밋 이미지를 ECR에 올리고,
-불변 digest로 App Runner 소스를 갱신한다(`.github/workflows/backend-deploy.yml`).
+`DATABASE_URL` 을 그대로 옮기면 된다. 배포가 켜져 있으면(저장소 변수 `BACKEND_DEPLOY_ENABLED=true`)
+`main`의 Backend CI가 성공할 때 해당 커밋 이미지를 ECR에 올리고, 불변 digest로 App Runner 소스를
+갱신한다(`.github/workflows/backend-deploy.yml`). 변수가 없거나 `true` 가 아니면 배포 잡은 건너뛴다.
 
 ```
 GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:8000, /v1/healthz)
@@ -20,7 +21,17 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 > 데이터가 쌓인 뒤 120초를 넘길 수 있는 마이그레이션을 배포하기 전에는, 동시에 뜬 다른 인스턴스가
 > fail-fast·재시작 루프에 빠지지 않도록 이 값을 넉넉히(예: `MIGRATE_LOCK_TIMEOUT=600`) 올려 둔다.
 
-**배포 게이팅**: `.github/workflows/backend-deploy.yml` 은 **"Backend CI" 가 성공**했을 때만
+**배포 활성 조건**: 배포 잡은 GitHub 저장소 변수(Settings > Secrets and variables > Actions >
+Variables) **`BACKEND_DEPLOY_ENABLED` 가 `true`** 일 때만 돈다. 이 값이 없으면 main 에 병합돼도
+Backend CI 만 돌고 **배포 잡은 건너뛴다(skipped)** — 자동 배포·수동 실행 모두 같다. 리전은 저장소 변수
+**`AWS_BACKEND_REGION`**(없으면 기본 `ap-southeast-1`)으로 정한다.
+
+| 저장소 변수 | 값 | 없으면 |
+|---|---|---|
+| `BACKEND_DEPLOY_ENABLED` | `true` | 배포 잡 skipped |
+| `AWS_BACKEND_REGION` | 예: `ap-southeast-1` | `ap-southeast-1` |
+
+**배포 게이팅**: 활성 상태에서 `.github/workflows/backend-deploy.yml` 은 **"Backend CI" 가 성공**했을 때만
 (workflow_run) 실행되며, 자동 배포는 **동일 저장소의 `main` push**에서 발생한 성공 run만
 허용한다. PR·fork 등 다른 이벤트의 CI 결과로는 배포할 수 없다. 따라서 테스트/마이그레이션
 실패 커밋이나 병합되지 않은 코드는 운영에 배포되지 않는다. Backend CI 는
@@ -28,7 +39,7 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 배포 잡은 `concurrency` 로 한 번에 하나만 돌고, `update-service`가 반환한 정확한 OperationId와
 `/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤 워크플로우를 통과시킨다.
 
-**수동 실행**도 CI 게이트를 우회하지 않는다. `main`에서 워크플로우를 실행하며 배포할 40자리
+**수동 실행**(workflow_dispatch)도 `BACKEND_DEPLOY_ENABLED=true` 가 필요하고 CI 게이트를 우회하지 않는다. `main`에서 워크플로우를 실행하며 배포할 40자리
 커밋 SHA를 입력해야 하고, 워크플로우가 GitHub Actions API에서 그 SHA의 `main` push에 대한
 `Backend CI` 성공 기록을 확인한 뒤에만 배포한다. 따라서 최초 배포나 롤백도 이미 CI를 통과한
 `main` 커밋 중에서 선택해야 한다.
@@ -146,7 +157,11 @@ flutter build web --release \
 ## 마이그레이션 head 선형화 (머지 순서 주의)
 
 병렬 브랜치가 같은 부모에서 각자 새 마이그레이션을 만들면 Alembic head 가 여러 개가 되어
-`alembic upgrade head` 가 실패한다. 현재는 아래처럼 **단일 선형 체인**으로 정리돼 있다:
+`alembic upgrade head` 가 실패한다. 체인은 계속 자라므로 이 문서에 끝을 적지 않는다 —
+**현재 head 는 `cd backend && alembic heads` 로 확인**하고, Backend CI 가 head 가 정확히 1개인지
+검사한다.
+
+아래는 초기 트레이너 스택을 머지할 때(0009~0020) 분기를 합쳐 한 줄로 이었던 **당시 기록**이다:
 
 ```
 0009_diet_idempotency_key → 0010_diet_entry_macros(#207) → 0011_health_daily_sugar_g(#231)
@@ -158,8 +173,8 @@ flutter build web --release \
                           → 0020_gym_profiles_trainer_fk
 ```
 
-**원칙**: 나중에 머지되는 마이그레이션의 `down_revision` 을 현재 main head 로 맞춰 한 줄로 잇는다
-(파일명 숫자도 위치에 맞게). 트레이너 스택은 위 순서대로 **가장 마지막**에 머지한다.
+**원칙**: 나중에 머지되는 마이그레이션의 `down_revision` 을 그 시점 main 의 head(`alembic heads`)로
+맞춰 한 줄로 잇는다(파일명 숫자도 위치에 맞게).
 
 > 단, **한쪽 브랜치가 이미 staging/production DB 에 적용된 뒤**라면 위 "down_revision 만 바꾸기"를
 > 쓰면 안 된다. 먼저 `alembic current` 로 그 DB 의 현재 revision 을 확인하고, 이미 적용된 경우
