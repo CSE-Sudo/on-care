@@ -20,7 +20,7 @@ from app.db.session import get_db
 from app.services import auth_tokens
 from app.services.audit import client_ip, record as audit
 from app.models.models import SocialAccount, User
-from app.schemas.user import SocialLoginRequest, Token
+from app.schemas.user import LoginToken, SocialLoginRequest
 from app.services.social.base import (
     SocialAuthError,
     SocialIdentity,
@@ -73,7 +73,7 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
 
 @router.post(
     "/auth/social/{provider}",
-    response_model=Token,
+    response_model=LoginToken,
     dependencies=[Depends(rate_limit("auth-social"))],
 )
 async def social_login(
@@ -81,7 +81,7 @@ async def social_login(
     payload: SocialLoginRequest,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
-) -> Token:
+) -> LoginToken:
     try:
         verifier = get_verifier(provider)
     except ValueError:
@@ -111,4 +111,6 @@ async def social_login(
 
     user = _find_or_create_user(db, identity)
     audit(db, event="auth.social", user_id=user.id, ip=client_ip(request), success=True, detail=provider)
-    return auth_tokens.issue_token_pair(user)
+    # 소셜로 처음 들어온 계정은 가입 화면을 거치지 않아 동의 기록이 없다(#2819) —
+    # `consent_required` 가 참이 되어 앱이 가입 화면과 같은 동의 화면을 띄운다.
+    return auth_tokens.issue_login_tokens(db, user)

@@ -6,9 +6,12 @@
 """
 from __future__ import annotations
 
+from sqlalchemy.orm import Session
+
 from app.core.security import create_access_token, create_refresh_token
 from app.models.models import User
-from app.schemas.user import Token
+from app.schemas.user import LoginToken, Token
+from app.services import signup_consent
 
 
 def current_version(user: User) -> int:
@@ -27,6 +30,16 @@ def issue_token_pair(user: User) -> Token:
     return Token(
         access_token=create_access_token(user.id, token_version=version),
         refresh_token=create_refresh_token(user.id, token_version=version),
+    )
+
+
+def issue_login_tokens(db: Session, user: User) -> LoginToken:
+    """로그인·소셜 로그인 응답 — 토큰 한 쌍과 동의 화면이 필요한지. (#2819)"""
+    pair = issue_token_pair(user)
+    return LoginToken(
+        access_token=pair.access_token,
+        refresh_token=pair.refresh_token,
+        consent_required=signup_consent.is_required(db, user),
     )
 
 

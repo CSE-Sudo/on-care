@@ -54,7 +54,8 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email }` |
+| GET | `/users/me` | `{ id(str), name, email, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819) |
+| POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
 
@@ -1194,6 +1195,35 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   저장한다.
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
   감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
+
+### 가입 동의 (#2819)
+
+두 앱의 가입은 약관·개인정보 수집·이용·만 14세 이상 확인에 **명시적으로** 동의해야 끝난다.
+회원은 여기에 **건강정보(민감정보) 처리** 동의가 따로 하나 더 있다. 마케팅 알림 수신은 선택이다.
+항목마다 `user_consents` 에 `kind`·`version`·`agreed_at`(·`revoked_at`) 한 행이 남는다.
+
+| 항목(`kind`) | 회원 | 트레이너 |
+|---|---|---|
+| `terms` 이용약관 | 필수 | 필수 |
+| `privacy` 개인정보 수집·이용 | 필수 | 필수 |
+| `health` 건강정보(민감정보) 처리 | 필수 | — |
+| `age14` 만 14세 이상 | 필수 | 필수 |
+| `marketing` 마케팅 알림 수신 | 선택 | 선택 |
+
+- `POST /auth/register`·`POST /auth/trainer/register` 는 `consents: [항목]` 을 받는다. 보냈다면 그
+  역할의 필수 항목이 모두 있어야 하고, 빠졌거나(빈 목록 포함) 모르는 항목이면 **422** 다 — 계정은
+  만들어지지 않는다. **보내지 않으면(`null`) 막지 않는다**: 동의 화면이 없는 옛 빌드의 가입이며,
+  기록 없이 계정만 만들어진다.
+- `POST /auth/login`·`POST /auth/social/{provider}` 응답에 `consent_required: bool` 이 붙는다.
+  `GET /users/me` 는 같은 값과 아직 동의하지 않은 필수 항목 목록(`consent_pending`)을 준다.
+  기록이 없는 계정(동의 절차 이전 가입·옛 빌드 가입·소셜 첫 가입)과, 문서 버전이 올라 지금 버전에
+  동의하지 않은 계정이 `true` 다. 앱은 이때 다른 화면보다 먼저 동의 화면을 띄운다.
+- `POST /users/me/consents`(토큰 필수, 회원·트레이너 공통)가 그 화면의 저장이다. 필수 항목이
+  하나라도 빠지면 아무것도 남기지 않고 **422** `{ detail: { code: "consent_required", missing: [...] } }`.
+  이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
+- 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
+  고치면(#2820) 그 항목의 버전을 올린다.
+- 국외 이전 동의는 아직 항목에 없다 — 필요 여부를 처리방침 정비(#2820)에서 정한 뒤 더한다.
 
 ### 가입 연락처 형식 (#1780)
 

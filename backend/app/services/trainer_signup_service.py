@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models.models import TrainerProfile, User
 from app.schemas.user import TrainerRegister
+from app.services import signup_consent
 
 
 class TrainerEmailTaken(Exception):
@@ -27,7 +28,7 @@ class TrainerEmailTaken(Exception):
 
 
 def register_trainer(db: Session, payload: TrainerRegister) -> User:
-    """트레이너 계정과 빈 프로필을 만든다.
+    """트레이너 계정과 빈 프로필, 가입 동의 기록을 만든다.
 
     계정 생성·프로필 생성을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면 프로필 없는
     트레이너가 남아 `/trainer/me` 가 실패한다.
@@ -46,6 +47,10 @@ def register_trainer(db: Session, payload: TrainerRegister) -> User:
     db.flush()
 
     db.add(TrainerProfile(trainer_id=trainer.id))
+    # 가입 화면에서 체크한 동의도 같은 트랜잭션이다(#2819). 목록을 보내지 않은
+    # 옛 빌드는 기록 없이 만들어지고, 로그인 직후 동의 화면을 거친다.
+    if payload.consents is not None:
+        signup_consent.record(db, trainer.id, payload.consents)
 
     try:
         db.commit()
