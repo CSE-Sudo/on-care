@@ -28,10 +28,12 @@ final calorieBaselineProvider = Provider.autoDispose.family<double?, ReportKey>(
       // 이미 본 주는 캐시에 남아 있어 주를 오갈 때 다시 부르지 않는다.
       final WeeklyReport? past = ref
           .watch(
-            weeklyReportProvider((
-              client: key.client,
-              weekStart: key.weekStart.subtract(Duration(days: 7 * back)),
-            )),
+            weeklyReportProvider(
+              ReportKey(
+                client: key.client,
+                weekStart: key.weekStart.subtract(Duration(days: 7 * back)),
+              ),
+            ),
           )
           .valueOrNull;
       if (past == null) continue;

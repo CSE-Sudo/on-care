@@ -255,10 +255,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             body: body,
           );
       ref.invalidate(
-        reportFeedbackDraftProvider((
-          client: report.client,
-          weekStart: report.weekStart,
-        )),
+        reportFeedbackDraftProvider(
+          ReportKey(client: report.client, weekStart: report.weekStart),
+        ),
       );
       if (!mounted) return;
       showAppToast(context, l.reportsFeedbackSaved, type: AppToastType.success);
@@ -390,10 +389,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 당장 값이 필요한 자리에서 쓴다. (#821)
   ReportFeedbackDraft? _savedDraftOf(WeeklyReport report) => ref
       .read(
-        reportFeedbackDraftProvider((
-          client: report.client,
-          weekStart: report.weekStart,
-        )),
+        reportFeedbackDraftProvider(
+          ReportKey(client: report.client, weekStart: report.weekStart),
+        ),
       )
       .valueOrNull;
 
@@ -413,10 +411,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     WeeklyReport? previous;
     try {
       previous = await ref.read(
-        weeklyReportProvider((
-          client: report.client,
-          weekStart: report.weekStart.subtract(const Duration(days: 7)),
-        )).future,
+        weeklyReportProvider(
+          ReportKey(
+            client: report.client,
+            weekStart: report.weekStart.subtract(const Duration(days: 7)),
+          ),
+        ).future,
       );
     } catch (_) {
       // 전주 집계가 없어도 현재 주차 PDF는 생성할 수 있다.
@@ -593,10 +593,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        AppSectionHeader(
-          title: l.reportsWeekly,
-          icon: AppIcons.document,
-        ),
+        AppSectionHeader(title: l.reportsWeekly, icon: AppIcons.document),
         const SizedBox(height: OnCareSpacing.s12),
         child,
       ],
@@ -627,7 +624,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
     final ReportSendRecord? record = sendRecordFor(log, client.id, week);
     final AsyncValue<WeeklyReport> reportAsync = ref.watch(
-      weeklyReportProvider((client: client, weekStart: week)),
+      weeklyReportProvider(ReportKey(client: client, weekStart: week)),
     );
     final WeeklyReport? report = reportAsync.valueOrNull;
     if (record != null && report != null) {
@@ -637,7 +634,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         record: record,
         // 편집기 ① 과 같은 칼로리 `평소` 를 견준다(#2425).
         calorieBaseline: ref.watch(
-          calorieBaselineProvider((client: client, weekStart: week)),
+          calorieBaselineProvider(ReportKey(client: client, weekStart: week)),
         ),
         backLabel: l.reportsHistoryBack,
         onBack: () => setState(() => _historyWeek = null),
@@ -684,10 +681,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // 같은 [openClient] 이다.
     if (openClient != null) {
       ref.listen<AsyncValue<ReportFeedbackDraft>>(
-        reportFeedbackDraftProvider((
-          client: openClient,
-          weekStart: _weekStart,
-        )),
+        reportFeedbackDraftProvider(
+          ReportKey(client: openClient, weekStart: _weekStart),
+        ),
         (previous, next) {
           if (next.valueOrNull == null) return;
           if (_feedbackFor == _feedbackKeyOf(openClient.id, _weekStart)) {
@@ -732,7 +728,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           bool anyLoading = false;
           for (final TrainerClient c in clients) {
             final AsyncValue<WeeklyReport> value = ref.watch(
-              weeklyReportProvider((client: c, weekStart: _weekStart)),
+              weeklyReportProvider(ReportKey(client: c, weekStart: _weekStart)),
             );
             final WeeklyReport? data = value.valueOrNull;
             if (data != null) reports[c.id] = data;
@@ -808,10 +804,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 report: sentReport,
                 record: record,
                 calorieBaseline: ref.watch(
-                  calorieBaselineProvider((
-                    client: sentReport.client,
-                    weekStart: sentReport.weekStart,
-                  )),
+                  calorieBaselineProvider(
+                    ReportKey(
+                      client: sentReport.client,
+                      weekStart: sentReport.weekStart,
+                    ),
+                  ),
                 ),
                 onBack: () => setState(() => _sentViewFor = null),
                 onHistory: () => _openHistory(sentFor),
@@ -860,7 +858,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             (c) => c.id == _clientId,
             orElse: () => clients.first,
           );
-          final reportKey = (client: selected, weekStart: _weekStart);
+          final reportKey = ReportKey(client: selected, weekStart: _weekStart);
           final reportAsync = ref.watch(weeklyReportProvider(reportKey));
           // 저장해 둔 초안. 리포트와 따로 읽는다 — 초안은 트레이너가 쓰던
           // 글이고, 리포트가 다시 계산돼도 사라지면 안 된다.
@@ -987,10 +985,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             // family 를 다시 읽는 것이라 새 API 가 없고, 오간
                             // 주는 캐시에 남는다.
                             calorieBaseline: ref.watch(
-                              calorieBaselineProvider((
-                                client: selected,
-                                weekStart: _weekStart,
-                              )),
+                              calorieBaselineProvider(
+                                ReportKey(
+                                  client: selected,
+                                  weekStart: _weekStart,
+                                ),
+                              ),
                             ),
                             onUseSummaryAsDraft: (draft) =>
                                 _useSummaryAsDraft(data, draft),

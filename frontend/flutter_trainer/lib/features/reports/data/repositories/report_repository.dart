@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/widgets.dart' show Locale;
+import 'package:flutter/widgets.dart' show Locale, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -1020,8 +1020,45 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
   return DioReportRepository(ref.watch(dioProvider));
 }, name: 'reportRepository');
 
-/// Identifies one client's report week.
-typedef ReportKey = ({TrainerClient client, DateTime weekStart});
+/// 한 회원의 한 주 리포트를 찾는 열쇠.
+///
+/// [client] 는 리포트를 만들 때 쓰는 **실어 나르는 값**일 뿐, 같은 열쇠인지는
+/// 회원 id·이름·주로만 가린다(#2768). 실서버 명단은 30초마다 다시 읽혀 내용이
+/// 같은 새 [TrainerClient] 를 내보내는데, 객체를 그대로 열쇠로 쓰면 폴링 한
+/// 번마다 리포트·초안·요약 provider 가 전부 새 열쇠가 되어 다시 불렸다 — 편집기가
+/// 로딩 카드로 깜빡이며 입력 포커스를 잃고, 요약(모델 호출)이 다시 생성됐다.
+///
+/// 이름은 열쇠에 넣는다. 리포트 본문·PDF 가 `report.client.name` 으로 인사를
+/// 쓰므로, 이름이 바뀌면 새로 읽어야 화면과 보낼 문서에 새 이름이 선다. 그 밖의
+/// 명단 필드(최근 대화·신호 등)는 폴링마다 바뀔 수 있어 열쇠에 넣지 않는다.
+@immutable
+class ReportKey {
+  /// [client] 의 [weekStart] 주.
+  const ReportKey({required this.client, required this.weekStart});
+
+  /// 리포트를 만들 때 넘기는 회원. 열쇠의 같음에는 id·이름만 쓴다.
+  final TrainerClient client;
+
+  /// 그 주의 월요일.
+  final DateTime weekStart;
+
+  /// 회원 id — 열쇠의 중심.
+  String get clientId => client.id;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReportKey &&
+      other.client.id == client.id &&
+      other.client.name == client.name &&
+      other.weekStart == weekStart;
+
+  @override
+  int get hashCode => Object.hash(client.id, client.name, weekStart);
+
+  @override
+  String toString() =>
+      'ReportKey(${client.id}, ${weekStart.toIso8601String()})';
+}
 
 /// Streams a client's weekly report.
 final weeklyReportProvider = StreamProvider.autoDispose
