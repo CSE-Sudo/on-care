@@ -17,7 +17,6 @@ import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart'
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -27,16 +26,19 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dar
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/demo_exercise.dart';
+
 void main() {
-  late MockExerciseRepository exercise;
   late MockMemberCoachRepository coach;
   late int calendarBuilds;
   late int shieldBuilds;
   late int challengeBuilds;
 
   setUp(() {
-    exercise = MockExerciseRepository();
-    coach = MockMemberCoachRepository(exercise: exercise);
+    // 앱의 데모와 같은 경로 — 루틴 완료 기록이 로컬 목업 API(drift)에 남는다(#2724).
+    coach = MockMemberCoachRepository(
+      exercise: demoExerciseBackend(emptyDemoDatabase()).api,
+    );
     calendarBuilds = 0;
     shieldBuilds = 0;
     challengeBuilds = 0;

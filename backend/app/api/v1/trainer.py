@@ -1078,6 +1078,7 @@ def trainer_assign_routine(
         intensity=payload.intensity,
         sets=payload.sets,
         reps=payload.reps,
+        hold_seconds=payload.hold_seconds,
         weight=payload.weight,
     )
 
@@ -1131,6 +1132,7 @@ def trainer_create_routine_suggestion(
         type_=payload.type,
         sets=payload.sets,
         reps=payload.reps,
+        hold_seconds=payload.hold_seconds,
         weight=payload.weight,
         reason=payload.reason,
         evidence=payload.evidence,
@@ -1164,6 +1166,7 @@ def trainer_approve_routine_suggestion(
             type_=fields.get("type"),
             sets=fields.get("sets"),
             reps=fields.get("reps"),
+            hold_seconds=fields.get("hold_seconds"),
             weight=fields.get("weight"),
             reason=fields.get("reason"),
         )
@@ -1228,6 +1231,7 @@ def trainer_assign_program(
         trainer_message=payload.trainer_message.strip(),
         start_date=payload.start_date,
         active_days=payload.active_days,
+        suggestion_ids=payload.suggestion_ids,
     )
 
 
@@ -1858,6 +1862,7 @@ def trainer_assign_program_with_schedule(
             client_request_id=payload.client_request_id,
             session_id=payload.session_id,
             personal_routines=payload.personal_routines,
+            suggestion_ids=payload.suggestion_ids,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1915,7 +1920,11 @@ def trainer_update_schedule_routines(
     """
     try:
         rows = trainer_service.update_scheduled_routines(
-            db, trainer.id, session_id, payload.personal_routines
+            db,
+            trainer.id,
+            session_id,
+            payload.personal_routines,
+            suggestion_ids=payload.suggestion_ids,
         )
     except trainer_service.ClientLinkDetached as exc:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)

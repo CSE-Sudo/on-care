@@ -91,8 +91,8 @@ void main() {
       expect(kstWallToUtc(instant), instant);
     });
 
-    test('utcToKstWall 은 UTC 순간을 KST 벽시계 필드로 읽는다', () {
-      final DateTime wall = utcToKstWall(DateTime.utc(2031, 4, 13, 22));
+    test('toKst 는 UTC 순간을 KST 벽시계 필드로 읽는다', () {
+      final DateTime wall = toKst(DateTime.utc(2031, 4, 13, 22));
 
       expect(wall.isUtc, isFalse);
       expect(
@@ -102,9 +102,7 @@ void main() {
     });
 
     test('오프셋이 붙은 문자열도 같은 KST 벽시계가 된다', () {
-      final DateTime wall = utcToKstWall(
-        DateTime.parse('2031-04-14T07:00:00+09:00'),
-      );
+      final DateTime wall = toKst(DateTime.parse('2031-04-14T07:00:00+09:00'));
 
       expect((wall.day, wall.hour), (14, 7));
     });
@@ -112,7 +110,7 @@ void main() {
     test('두 변환은 서로 되돌린다', () {
       final DateTime wall = DateTime(2031, 12, 31, 23, 45);
 
-      expect(utcToKstWall(kstWallToUtc(wall)), wall);
+      expect(toKst(kstWallToUtc(wall)), wall);
     });
   });
 

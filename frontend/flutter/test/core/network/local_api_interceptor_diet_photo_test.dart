@@ -20,6 +20,8 @@ import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart'
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 
+import '../../helpers/strict_dio.dart';
+
 /// JPEG 매직 넘버로 시작하는 가짜 사진. 인터셉터가 저장한 바이트에서 MIME 을
 /// 되짚으므로 앞 세 바이트가 진짜 형식이어야 한다.
 final Uint8List _jpeg = Uint8List.fromList(<int>[
@@ -39,7 +41,14 @@ void main() {
 
   setUp(() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    // 상태 코드를 그대로 보려고 오류 응답도 응답으로 받는다 — 로컬 목업 API 는
+    // 실서버처럼 오류를 예외로 돌려준다(#2743).
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://example.test',
+        validateStatus: (int? _) => true,
+      ),
+    );
     dio.interceptors.add(LocalApiInterceptor(db, Logger(level: Level.off)));
   });
 
@@ -150,7 +159,7 @@ void main() {
     // 위 테스트들은 사진 바이트를 직접 실어 보낸다. 앱에서 그 일을 하는 것은
     // `DioDietRepository.analyze` 라, 거기서 빠지면 화면만 조용히 이모지로
     // 돌아간다 — 그 연결까지 같이 고정한다.
-    final DioDietRepository repository = DioDietRepository(dio);
+    final DioDietRepository repository = DioDietRepository(strictDioOf(dio));
     final MealPhoto photo = MealPhoto.fromBytes(_jpeg)!;
 
     await repository.analyze(photo: photo, mealType: 'lunch');

@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -44,6 +44,7 @@ from app.services import (
     member_pairing_service,
     notification_service,
     notification_templates,
+    profile_format,
 )
 
 
@@ -88,21 +89,6 @@ def _active_trainer_id(db: Session, member_id: str) -> str | None:
     )
 
 
-def _age_on(birth_date: str, today: date) -> int | None:
-    """`YYYY-MM-DD` 로 만 나이. 형식이 아니면 `None`.
-
-    생일이 지났는지까지 본다 — 연도 차만 빼면 생일 전 몇 달이 한 살 많게 나온다.
-    """
-    try:
-        born = date.fromisoformat(birth_date)
-    except (TypeError, ValueError):
-        return None
-    age = today.year - born.year
-    if (today.month, today.day) < (born.month, born.day):
-        age -= 1
-    return age if 0 <= age < 150 else None
-
-
 def _paired_out(db: Session, member: User) -> PairedMemberOut:
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member.id)
@@ -112,7 +98,7 @@ def _paired_out(db: Session, member: User) -> PairedMemberOut:
         name=member.name,
         gender=profile.gender if profile is not None else "",
         age=(
-            _age_on(profile.birth_date, clock.today())
+            profile_format.age_on(profile.birth_date, clock.today())
             if profile is not None
             else None
         ),

@@ -25,6 +25,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_options
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 
 final RegExp _hangul = RegExp(r'[가-힣]');
@@ -320,6 +321,154 @@ void main() {
       await expectLater(
         repo.approve(first.id),
         throwsA(isA<RoutineSuggestionAlreadyReviewed>()),
+      );
+    });
+
+    test('개인운동만 전송에 실린 제안은 대기 목록에서 빠지고, 새로고침해도 '
+        '돌아오지 않는다 (#2747)', () async {
+      final repo = MockTrainerRoutineSuggestionRepository(db: db);
+      final List<RoutineSuggestion> before = await repo.pending(
+        'seed-client-3',
+      );
+      final RoutineSuggestion sent = before.first;
+      final routines = MockTrainerRoutineRepository(db: db);
+      addTearDown(routines.dispose);
+
+      await routines.assignProgram('seed-client-3', <String, Object?>{
+        'name': sent.name,
+        'delivery_kind': 'routine_only',
+        'start_date': '2026-08-24',
+        'sessions': <Object?>[
+          <String, Object?>{
+            'id': 'routine-only-0',
+            'name': sent.name,
+            'exercises': <Object?>[
+              <String, Object?>{
+                'id': 'personal-0',
+                'name': sent.name,
+                'type': '유산소',
+                'duration': 20,
+              },
+            ],
+          },
+        ],
+        'suggestion_ids': <String>[sent.id],
+      });
+
+      // 같은 저장소도 다음 조회에서 바로 뺀다 — 화면은 전송 뒤 이 목록을
+      // 다시 읽는다.
+      final List<String> after = <String>[
+        for (final s in await repo.pending('seed-client-3')) s.id,
+      ];
+      expect(after, isNot(contains(sent.id)));
+      expect(after, hasLength(before.length - 1));
+      final reloaded = MockTrainerRoutineSuggestionRepository(db: db);
+      expect(
+        (await reloaded.pending('seed-client-3')).map((s) => s.id),
+        isNot(contains(sent.id)),
+      );
+    });
+
+    test('전송에 실리지 않은 제안과 다른 회원의 제안은 그대로다 (#2747)', () async {
+      final repo = MockTrainerRoutineSuggestionRepository(db: db);
+      final List<String> mine = <String>[
+        for (final s in await repo.pending('seed-client-3')) s.id,
+      ];
+      final List<String> other = <String>[
+        for (final s in await repo.pending('seed-client-4')) s.id,
+      ];
+      final routines = MockTrainerRoutineRepository(db: db);
+      addTearDown(routines.dispose);
+
+      // 직접 넣은 운동만 보냈다 — 제안 id 가 없다.
+      await routines.assignProgram('seed-client-3', <String, Object?>{
+        'name': '실내 자전거',
+        'delivery_kind': 'routine_only',
+        'start_date': '2026-08-24',
+        'sessions': <Object?>[
+          <String, Object?>{
+            'id': 'routine-only-0',
+            'name': '실내 자전거',
+            'exercises': <Object?>[
+              <String, Object?>{
+                'id': 'personal-0',
+                'name': '실내 자전거',
+                'type': '유산소',
+                'duration': 20,
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(
+        (await repo.pending('seed-client-3')).map((s) => s.id).toList(),
+        mine,
+      );
+      expect(
+        (await repo.pending('seed-client-4')).map((s) => s.id).toList(),
+        other,
+      );
+    });
+
+    test('PT 일정 추가에 붙인 개인운동의 제안도 대기 목록에서 빠진다 (#2747)', () async {
+      final repo = MockTrainerRoutineSuggestionRepository(db: db);
+      final RoutineSuggestion sent = (await repo.pending(
+        'seed-client-3',
+      )).first;
+
+      await DriftScheduleRepository(db).registerProgramSchedule(
+        // 시드 일정과 겹치지 않는 먼 날짜·이른 시간이다.
+        date: '2030-01-07',
+        clientId: 'seed-client-3',
+        clientName: '회원 3',
+        time: '06:10',
+        durationMinutes: 50,
+        assignment: const <String, Object?>{'name': '하체 PT'},
+        program: const <ProgramItem>[],
+        personalRoutines: <RoutineExercise>[
+          RoutineExercise(
+            name: sent.name,
+            minutes: sent.minutes,
+            type: sent.type,
+            source: 'ai',
+            suggestionId: sent.id,
+          ),
+        ],
+      );
+
+      expect(
+        (await MockTrainerRoutineSuggestionRepository(
+          db: db,
+        ).pending('seed-client-3')).map((s) => s.id),
+        isNot(contains(sent.id)),
+      );
+    });
+
+    test('이미 있는 PT 에 붙인 개인운동의 제안도 대기 목록에서 빠진다 (#2747)', () async {
+      final repo = MockTrainerRoutineSuggestionRepository(db: db);
+      final RoutineSuggestion sent = (await repo.pending(
+        'seed-client-3',
+      )).first;
+      final TrainerScheduleRow pt = (await ptWithProgram()).first;
+
+      await DriftScheduleRepository(
+        db,
+      ).updateScheduledRoutines(pt.id, <RoutineExercise>[
+        RoutineExercise(
+          name: sent.name,
+          minutes: sent.minutes,
+          type: sent.type,
+          source: 'ai',
+          suggestionId: sent.id,
+        ),
+      ]);
+
+      expect(
+        (await MockTrainerRoutineSuggestionRepository(
+          db: db,
+        ).pending('seed-client-3')).map((s) => s.id),
+        isNot(contains(sent.id)),
       );
     });
 

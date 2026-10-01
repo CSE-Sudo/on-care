@@ -94,7 +94,8 @@ class DioAccountRepository implements AccountRepository {
         },
       );
     } on DioException catch (e) {
-      // 실서버: 이메일 중복(409)·연락처 비움(422)은 이유를 실어 올린다(#2639).
+      // 이메일 중복(409)·연락처 비움(422)은 이유를 실어 올린다(#2639). 데모의
+    // 로컬 목업 API 도 오류를 같은 예외로 돌려준다(#2743).
       final ProfileUpdateRejected? rejected =
           ProfileUpdateRejected.fromResponse(
             e.response?.statusCode,
@@ -102,17 +103,6 @@ class DioAccountRepository implements AccountRepository {
           );
       if (rejected != null) throw rejected;
       rethrow;
-    }
-    // 데모 인터셉터가 만든 오류 응답은 예외가 되지 않고 여기로 온다. 상태 코드를
-    // 보지 않으면 오류 본문을 프로필로 읽어 "저장되었어요" 로 넘어간다(#2639).
-    final int status = res.statusCode ?? 200;
-    if (status >= 400) {
-      throw ProfileUpdateRejected.fromResponse(status, res.data) ??
-          DioException.badResponse(
-            statusCode: status,
-            requestOptions: res.requestOptions,
-            response: res,
-          );
     }
     return UserProfile.fromJson(res.data!);
   }

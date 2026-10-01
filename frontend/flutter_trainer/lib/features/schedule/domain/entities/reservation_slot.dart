@@ -47,7 +47,7 @@ class ReservationSlot {
       id: json['id'] as String,
       // 서버 순간을 KST 벽시계로 읽는다 — `toLocal()` 은 브라우저 시간대라
       // KST 가 아닌 기기에서 슬롯 창만 다른 시각을 그렸다(#2759).
-      startsAt: utcToKstWall(DateTime.parse(json['starts_at'] as String)),
+      startsAt: toKst(DateTime.parse(json['starts_at'] as String)),
       durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 60,
       // 서버는 아직 좌석 수로 자리를 센다. 한 사람 몫뿐인 자리라 남은 좌석이
       // 0인지만 의미가 있으므로 여기서 예약 여부로 접는다(#1072).
