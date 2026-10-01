@@ -1894,6 +1894,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteBuyFailed => '이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get emoteAlreadyUnlocked => '이미 열려 있는 이모티콘이에요. 바로 보낼 수 있어요';
+
+  @override
+  String get emoteTrainerRequired => '담당 트레이너가 있어야 이모티콘을 살 수 있어요';
+
+  @override
   String get emoteShortfall => '포인트가 부족해요';
 
   @override

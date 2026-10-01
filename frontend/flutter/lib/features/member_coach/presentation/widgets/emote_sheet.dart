@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/member_coach/domain/entities/emote_state.dart';
+import 'package:oncare/features/member_coach/domain/repositories/emote_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -50,6 +53,11 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
     });
   }
 
+  /// 응답을 받지 못한 구매의 키. 같은 이모티콘을 다시 사면 이 키를 다시 보낸다 —
+  /// 서버가 첫 구매를 끝냈다면 두 번 차감하지 않고 지금 상태를 돌려준다. 성공하거나
+  /// 서버가 분명히 거절하면 지운다. (#2845)
+  final Map<String, String> _pendingKeys = <String, String>{};
+
   Future<void> _buy(String id) async {
     if (_busy) return;
     final AppLocalizations l = AppLocalizations.of(context);
@@ -65,21 +73,67 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
     final bool ok = await _confirmBuy(context, id, state);
     if (!ok || !mounted) return;
     setState(() => _busy = true);
+    final String key = _pendingKeys.putIfAbsent(id, newClientRequestId);
     try {
       final EmoteState bought = await ref
           .read(emoteRepositoryProvider)
-          .unlock(id);
+          .unlock(id, clientRequestId: key);
+      _pendingKeys.remove(id);
       if (!mounted) return;
-      setState(() => _state = bought);
-      // 포인트가 빠졌으니 다음에 열 때 다시 읽는다.
-      ref.invalidate(emoteStateProvider);
+      _settle(bought);
       toast.show(l.emoteBought, type: AppToastType.success);
-    } on Object {
+    } on EmoteUnlockRejected catch (e) {
+      _pendingKeys.remove(id);
       if (!mounted) return;
-      toast.show(l.emoteBuyFailed, type: AppToastType.error);
+      switch (e.reason) {
+        case EmoteUnlockFailure.alreadyUnlocked:
+          // 실패가 아니다 — 응답을 못 받은 첫 구매가 끝나 있었을 수 있다. 서버
+          // 상태를 다시 읽어 열린 이모티콘을 보여 준다.
+          final EmoteState? fresh = await _reload();
+          if (!mounted) return;
+          _settle(fresh);
+          toast.show(l.emoteAlreadyUnlocked, type: AppToastType.success);
+        case EmoteUnlockFailure.trainerRequired:
+          toast.show(l.emoteTrainerRequired, type: AppToastType.error);
+        case EmoteUnlockFailure.insufficientPoints:
+          final EmoteState? fresh = await _reload();
+          if (!mounted) return;
+          if (fresh != null) setState(() => _state = fresh);
+          toast.show(l.emoteShortfall, type: AppToastType.error);
+      }
+    } on Object {
+      // 망 오류·시간 초과 — 서버는 이미 샀을 수 있다. 상태를 다시 읽어 확인한 뒤
+      // 안내한다. 키는 남겨 두어 다시 누르면 같은 구매로 간다.
+      final EmoteState? fresh = await _reload();
+      if (!mounted) return;
+      if (fresh != null && fresh.isUnlocked(id)) {
+        _pendingKeys.remove(id);
+        _settle(fresh);
+        toast.show(l.emoteBought, type: AppToastType.success);
+      } else {
+        if (fresh != null) setState(() => _state = fresh);
+        toast.show(l.emoteBuyFailed, type: AppToastType.error);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// 서버의 지금 상태. 읽지 못하면 null.
+  Future<EmoteState?> _reload() async {
+    try {
+      return await ref.read(emoteRepositoryProvider).fetchState();
+    } on Object {
+      return null;
+    }
+  }
+
+  /// 산 뒤(또는 이미 열린 것을 확인한 뒤) — 창 상태를 바꾸고 잔액을 다시 읽게 한다.
+  void _settle(EmoteState? next) {
+    if (next != null) setState(() => _state = next);
+    // 포인트가 빠졌으니 다음에 열 때 다시 읽고, MY 잔액도 다시 읽는다(#2845).
+    ref.invalidate(emoteStateProvider);
+    refreshPointsBalance(ref);
   }
 
   @override

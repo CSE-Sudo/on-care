@@ -3416,6 +3416,18 @@ abstract class AppLocalizations {
   /// **'We could not buy the emote. Please try again in a moment.'**
   String get emoteBuyFailed;
 
+  /// No description provided for @emoteAlreadyUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This emote is already unlocked. You can send it now'**
+  String get emoteAlreadyUnlocked;
+
+  /// No description provided for @emoteTrainerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need a trainer to buy emotes'**
+  String get emoteTrainerRequired;
+
   /// No description provided for @emoteShortfall.
   ///
   /// In en, this message translates to:

@@ -1412,6 +1412,8 @@
   "emoteBuyAction": "Buy",
   "emoteBought": "You can send this emote now",
   "emoteBuyFailed": "We could not buy the emote. Please try again in a moment.",
+  "emoteAlreadyUnlocked": "This emote is already unlocked. You can send it now",
+  "emoteTrainerRequired": "You need a trainer to buy emotes",
   "emoteShortfall": "Not enough points",
   "emoteLoadFailed": "We could not load the emotes",
   "emoteSendFailed": "We could not send the emote",

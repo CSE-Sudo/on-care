@@ -1962,6 +1962,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not buy the emote. Please try again in a moment.';
 
   @override
+  String get emoteAlreadyUnlocked =>
+      'This emote is already unlocked. You can send it now';
+
+  @override
+  String get emoteTrainerRequired => 'You need a trainer to buy emotes';
+
+  @override
   String get emoteShortfall => 'Not enough points';
 
   @override
