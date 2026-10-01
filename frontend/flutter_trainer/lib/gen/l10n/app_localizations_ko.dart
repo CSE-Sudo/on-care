@@ -1114,6 +1114,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get consultStatusCancelled => '취소됨';
+
+  @override
+  String get consultStatusCancelledByTrainer => '일정 취소로 철회';
+
+  @override
   String get consultStatusExpired => '만료됨';
 
   @override
@@ -2121,6 +2127,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get slotOpenSummary => '비어 있음';
+
+  @override
+  String get slotOverlappedSummary => '일정과 겹침';
+
+  @override
+  String get slotOverlappedHint =>
+      '이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.';
 
   @override
   String get slotCloseAction => '예약 닫기';

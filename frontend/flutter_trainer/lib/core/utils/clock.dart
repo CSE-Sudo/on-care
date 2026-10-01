@@ -59,6 +59,29 @@ DateTime todayKst() {
   return DateTime(n.year, n.month, n.day);
 }
 
+/// KST 벽시계 값([nowKst] 처럼 필드에 서울 시각을 담은 `DateTime`)을 서버에
+/// 보낼 UTC 순간으로 바꾼다. [toKst] 의 역이다. (#2759)
+///
+/// `wall.toUtc()` 를 쓰면 안 된다 — 그 함수는 필드를 **기기 시간대**의 시각으로
+/// 읽는다. 브라우저가 UTC 면 KST 07:00 으로 고른 자리가 07:00Z(= KST 16:00)로
+/// 저장됐다. 필드만 꺼내 KST(UTC+9)로 읽는다.
+///
+/// 이미 UTC 순간(`isUtc`, 예: 시간대가 붙은 문자열을 읽은 값)이면 벽시계가
+/// 아니므로 그대로 돌려준다.
+DateTime kstWallToUtc(DateTime wall) {
+  if (wall.isUtc) return wall;
+  return DateTime.utc(
+    wall.year,
+    wall.month,
+    wall.day,
+    wall.hour,
+    wall.minute,
+    wall.second,
+    wall.millisecond,
+    wall.microsecond,
+  ).subtract(kstOffset);
+}
+
 /// [t] 를 KST 벽시계로 바꾼다. (#2751)
 ///
 /// 서버가 준 시각은 UTC 순간(`isUtc`)으로 들어온다 — `DateTime.parse` 는 오프셋이

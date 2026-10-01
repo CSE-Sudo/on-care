@@ -5583,6 +5583,14 @@ def update_session(
             duration_minutes=fields.get("duration_minutes", s.duration_minutes),
             exclude_ids=(s.id,),
         )
+    # 상담 일정을 다른 시각으로 옮기면 신청 때 잠근 옛 자리를 놓아 준다(#2758).
+    # 회원 앱은 이제 일정의 시각을 읽는다.
+    if s.consultation_id is not None and (
+        fields.get("date", s.date) != s.date or fields.get("time", s.time) != s.time
+    ):
+        from app.services import consultation_service
+
+        consultation_service.release_slot_for_moved_schedule(db, s.consultation_id)
     if "date" in fields:
         s.date = fields["date"]
         # 붙어 있는 개인운동도 새 날짜로 따라간다(#2224). 아직 보내지 않은
@@ -5654,6 +5662,11 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
         )
     ).all():
         db.delete(pending)
+    # 아직 진행되지 않은 상담 일정을 지우면 상담 요청도 함께 거둔다(#2758) —
+    # 잘못 만든 일정의 삭제라도 회원 쪽 요청이 `수락됨` 으로 남고 자리가 잠긴
+    # 채이면 안 된다. 이미 진행된 상담(완료·노쇼)은 그 결말을 그대로 둔다.
+    if s.status in (SCHEDULE_UPCOMING, SCHEDULE_CANCELLED):
+        _withdraw_consultation(db, s, trainer_id)
     # 아직 오지 않은 약속만 알린다. 이미 끝난 PT 의 기록 정리까지 알리면 회원은
     # 지난 일을 취소 통보로 받는다. (#664)
     if s.member_id is not None and s.status == SCHEDULE_UPCOMING:
@@ -6015,6 +6028,22 @@ def _release_cancelled_reservation(
     return bool(released)
 
 
+def _withdraw_consultation(db: Session, s: TrainerSchedule, trainer_id: str) -> bool:
+    """상담 일정을 거두면 그 상담 요청도 취소하고 자리를 돌려준다(커밋 없음). (#2758)
+
+    [_release_cancelled_reservation] 이 회원 예약에 하는 일을 상담 신청에 한다 —
+    상담 자리에는 `TrainerReservation` 행이 없어 그 경로로는 풀리지 않는다.
+    consultation_service 가 이 모듈을 가져다 쓰므로 함수 안에서 부른다.
+    """
+    if s.consultation_id is None:
+        return False
+    from app.services import consultation_service
+
+    return consultation_service.withdraw_for_trainer_schedule(
+        db, s.consultation_id, trainer_id
+    )
+
+
 def cancel_session(
     db: Session,
     trainer_id: str,
@@ -6043,7 +6072,10 @@ def cancel_session(
     if s.status == SCHEDULE_CANCELLED:
         # 멱등 no-op. 다만 예약 좌석을 풀지 않던 때(#2283 이전)에 취소된 일정은
         # 예약이 남아 있을 수 있어, 다시 누르면 그 자리만 마저 풀어 준다.
-        if _release_cancelled_reservation(db, s):
+        # 상담 자리도 같다(#2758 이전에 취소된 상담 일정).
+        released = _release_cancelled_reservation(db, s)
+        withdrawn = _withdraw_consultation(db, s, trainer_id)
+        if released or withdrawn:
             db.commit()
             db.refresh(s)
         return _schedule_out(s)
@@ -6078,6 +6110,8 @@ def cancel_session(
     # 일정만 `취소` 로 두면 회원 앱에는 '예약됨' 으로 남고 그 시간은 다시 잡을 수
     # 없다. 회원 취소와 같은 경로라 두 쪽 결과가 어긋나지 않는다.
     _release_cancelled_reservation(db, s, source=source)
+    # 상담 일정이면 상담 요청을 취소하고 신청 때 잠근 자리를 돌려준다(#2758).
+    _withdraw_consultation(db, s, trainer_id)
 
     # 회원에게는 취소 사실만 간다 — 내부 사유는 트레이너가 보는 기록이다.
     # 삭제 경로와 같은 알림을 쓴다: 회원 입장에서 달라진 것은 "그 시간의 PT 가

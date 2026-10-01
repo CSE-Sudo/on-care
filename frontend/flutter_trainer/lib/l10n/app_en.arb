@@ -741,6 +741,8 @@
       }
     }
   },
+  "consultStatusCancelled": "Cancelled",
+  "consultStatusCancelledByTrainer": "Withdrawn (session cancelled)",
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
@@ -1577,6 +1579,8 @@
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
   "slotOpenSummary": "Open",
+  "slotOverlappedSummary": "Overlaps a session",
+  "slotOverlappedHint": "Another session is booked at this time, so members see it as full. Close it if you will not use it.",
   "slotCloseAction": "Close bookings",
   "myCareerInvalid": "Enter years of experience between 0 and 80.",
   "myProfileSaveFailed": "Couldn't save your profile.",
