@@ -33,6 +33,14 @@
   "errorServer": "Server error",
   "errorCancelled": "Cancelled",
   "errorUnknown": "Something went wrong",
+  "errorForbidden": "You don't have access to this feature. Please check the required consent or your trainer connection.",
+  "@errorForbidden": {
+    "description": "403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859)."
+  },
+  "errorRateLimited": "Too many requests right now. Please try again in a moment.",
+  "@errorRateLimited": {
+    "description": "429 from the server: too many requests; it will work again shortly (#2859)."
+  },
   "dashboardMetricCalories": "Calories",
   "dashboardMetricExercise": "Weekly exercise",
   "homeDashboardLoadError": "Could not load the dashboard.",
@@ -2197,6 +2205,7 @@
   "exConsultConfirmedAt": "Confirmed time",
   "exConsultExpired": "Expired",
   "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
+  "exConsultCancelledByTrainerBody": "The trainer cancelled this consultation. Try requesting another time.",
   "exExerciseGoal": "Exercise Goal",
   "exGoalHealth": "Health Management",
   "exOptionOther": "Other",

@@ -1485,6 +1485,10 @@ class ScheduleSessionOut(BaseModel):
     #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
     #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
     member_detached: bool = False
+    #: 회원이 예약 슬롯으로 잡은 일정인가(#2756). 예약이 시각·회원·좌석을 갖고
+    #: 있어 일반 일정 수정(시각·회원·종류·길이)·삭제·되돌리기는 409 다. 메모·
+    #: 프로그램은 고칠 수 있고, 일정을 거두려면 취소한다.
+    is_reservation: bool = False
     #: 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터, #2697). 회원 응답의
     #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
     #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
@@ -1698,11 +1702,21 @@ class ScheduleReopenRequest(BaseModel):
     자리이기 때문이다.
     """
     date: str
+    #: 옮길 시각·길이(#2757). 주면 겹침 검사와 반영을 되돌리기 한 요청 안에서
+    #: 끝낸다 — 따로 보내면 되돌린 뒤의 수정이 겹침으로 멈춰도 되돌리기는 이미
+    #: 커밋돼 있다. 없으면 지금 값을 쓴다.
+    time: str | None = Field(default=None, max_length=10)
+    duration_minutes: int | None = Field(default=None, ge=0, le=600)
 
     @field_validator("date")
     @classmethod
     def _v_date(cls, v: str) -> str:
         return _validate_ymd(v)
+
+    @field_validator("time")
+    @classmethod
+    def _v_time(cls, v: str | None) -> str | None:
+        return _validate_hhmm(v) if v is not None else v
 
 
 class ScheduleCancelRequest(BaseModel):
@@ -2180,6 +2194,25 @@ class TrainerTaskProgressSave(BaseModel):
         if self.completed_today + self.completed_carried_over > self.total:
             raise ValueError("완료 수는 전체 할 일 수보다 많을 수 없습니다.")
         return self
+
+
+class TrainerTaskKeyChange(BaseModel):
+    """할 일 키 하나의 변경 — 그날 행에 이 키만 더하거나 뺀다. (#2886)
+
+    통째 저장(`TrainerTaskProgressSave`)은 나중에 도착한 쪽이 그날 전체를 덮어써,
+    탭·기기 두 곳에서 서로 다른 할 일을 체크하면 한쪽 체크가 사라졌다. 이 요청은
+    누른 키 하나만 바꾸고 합계는 서버가 저장된 집합에서 다시 낸다.
+
+    - `keys`: 화면이 지금 보여 주는 미션 키(지운 것 제외). 처음 보는 미션을 그날
+      목록에 올린다.
+    - `seen`: 이 화면이 그날 한 번이라도 본 미션 키. 저장된 키 중 여기 있으면서
+      `keys` 에 없는 것은 화면에서 사라진 미션(처리한 상담 등)이라 목록에서 뺀다.
+      여기 없는 저장 키는 이 화면이 모르는 미션이라 그대로 둔다(#2763).
+    """
+    key: _TaskKey
+    action: Literal["check", "uncheck", "dismiss"]
+    keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    seen: list[_TaskKey] = Field(default_factory=list, max_length=1000)
 
 
 class TrainerNotificationSettings(BaseModel):

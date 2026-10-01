@@ -94,7 +94,7 @@ def test_pdf_send_rejects_wrong_member_type_and_size(client, monkeypatch):
     assert client.post(
         "/v1/trainer/clients/user-nobody/report/send-pdf",
         headers=_headers(token),
-        data={"week_start": "2026-08-03"},
+        data={"week_start": "2026-08-03", "message": "이번 주 리포트입니다."},
         files={"pdf": ("weekly.pdf", PDF, "application/pdf")},
     ).status_code == 404
 
@@ -158,8 +158,8 @@ def test_report_pdf_storage_uses_opaque_identifier(tmp_path, monkeypatch):
     monkeypatch.setattr(get_settings(), "report_pdf_storage_dir", str(tmp_path))
     file_id = report_pdf_storage.save(PDF)
     assert len(file_id) == 32
-    assert report_pdf_storage.path_for(file_id).read_bytes() == PDF
+    assert report_pdf_storage.open_pdf(file_id).read_all() == PDF
     with pytest.raises(FileNotFoundError):
-        report_pdf_storage.path_for("../outside")
+        report_pdf_storage.open_pdf("../outside")
     report_pdf_storage.delete(file_id)
     assert not (tmp_path / f"{file_id}.pdf").exists()

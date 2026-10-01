@@ -27,6 +27,9 @@ ScheduleSession scheduleSessionFromJson(Map<String, dynamic> json) {
     noShowAt: _time(json['no_show_at']),
     consultation: _consultationFromJson(json['consultation']),
     memberDetached: json['member_detached'] == true,
+    // 이 칸이 없는 옛 응답은 일반 일정으로 읽는다 — 잠그지 않아도 서버가
+    // 409 로 막고, 화면은 그 사유를 보여 준다(#2756).
+    isReservation: json['is_reservation'] == true,
   );
 }
 
@@ -107,9 +110,7 @@ Map<String, Object?> programItemToJson(ProgramItem raw) {
     'date': item.date == null ? null : ymd(item.date!),
     // 초가 기준이고 분은 거기서 반올림한 값이다 — 서버와 같은 규칙(#2221).
     // 분은 예전 서버·집계를 위해 함께 싣는다.
-    'duration': item.seconds == null
-        ? null
-        : minutesFromSeconds(item.seconds!),
+    'duration': item.seconds == null ? null : minutesFromSeconds(item.seconds!),
     'duration_seconds': item.seconds,
     'sets': item.sets,
     'reps': item.reps,

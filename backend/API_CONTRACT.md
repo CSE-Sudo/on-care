@@ -12,7 +12,15 @@
   (프론트 base URL 에 `/v1` 을 포함시키거나 서버가 `/v1` 라우터를 둠. 본 백엔드는 **`/v1` prefix** 채택.)
 - **JSON 표기**: **snake_case** (Pydantic alias 규약). 프론트의 case_mapper 가 camelCase 로 변환.
 - **인증**: `Authorization: Bearer <token>` (JWT). `auth_interceptor` 가 붙인다. 자세한 것은 아래 "인증" 절.
-- **에러**: `{ "code": "...", "message": "..." }` 형태. 4xx/5xx 는 DioException 으로 처리됨.
+- **에러**: FastAPI 형식 `{"detail": ...}` 이고 `detail` 은 **두 형식만** 쓴다(#2911). 4xx/5xx 는 DioException 으로 처리됨.
+  - **문자열**: `{"detail": "문장"}` — 대부분의 오류. 앱은 그대로 보여 준다(한국어 화면).
+  - **객체**: `{"detail": {"code", "message", …추가 필드}}` — 화면이 분기해야 하는 오류만. **`code` 는 반드시 있다.**
+    예: 일정 겹침 `schedule_overlap`(+`conflicts`), 프로그램을 붙일 회차 미정 `attach_target_conflict`(+`candidates`),
+    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`.
+    앱 공용 처리(트레이너 웹 `serverDetailText`)는 문자열이면 그 문장, 객체면 `message` 를 읽는다.
+  - 예외는 FastAPI 스키마 검증 422 의 목록형 `detail`(`[{loc, msg, type}]`) 하나다.
+  - 경쟁 상황(같은 이메일로 동시에 바꾸기, 같은 회원 담당 복구·수락·연결 코드가 겹침)도 DB 제약 위반을 500 이 아니라
+    앞선 조회로 막았을 때와 같은 409 로 돌려준다.
 - **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
   `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
   서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
@@ -47,7 +55,7 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
 | GET | `/version` | `{ api_version, app_version }` |
 
 ### 사용자
@@ -63,6 +71,11 @@
 남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
 `privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
 `other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
+
+탈퇴하면 그 회원이 낀 채팅 스레드의 **첨부 파일(사진·리포트 PDF)도 저장소에서 지운다**(#2817).
+스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
+(`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
+뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
@@ -718,7 +731,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed }]` |
+| GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed, overlapped }]` |
 | POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }` |
 | GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서). 회원·트레이너가 취소한 예약은 빠진다(#2283) |
 | DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled" }` |
@@ -732,6 +745,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡은 경우입니다. 겹친 일정 목록은 싣지 않습니다(남의 일정).
   트레이너 쪽 일정·자리·상담 승인 경로의 같은 409 는 `conflicts[]` 를 함께 줍니다 — 규칙은
   [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "시간 겹침" 참조. (#2284)
+- **목록 단계에서도 겹침을 알립니다** (#2761). 자리를 연 뒤 트레이너가 그 시간에 일정을 잡거나
+  옮겨 왔으면, 슬롯 응답의 `overlapped` 가 `true` 입니다. 회원용 목록(`GET /trainers/{id}/slots`)은
+  그 자리의 `remaining` 을 0 으로 접어 **마감**으로 보내고, 상담 신청 폼(`GET /consultations/slots`)은
+  그 자리를 빼고 줍니다. 트레이너용 목록(`GET /trainer/reservation-slots`)은 좌석 수를 그대로 두고
+  `overlapped` 만 실어 `일정과 겹침` 으로 그리게 합니다. 일정이 취소·이동되면 다음 조회에서 다시
+  빈 자리입니다. 목록과 경쟁하는 예약은 위 409 가 계속 막습니다.
 
 #### 목록 페이지네이션과 순서 (#980)
 
@@ -832,7 +851,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
   씁니다.
 - 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
-  일시**를 그리는 값입니다. 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
+  일시**를 그리는 값입니다. 수락으로 상담 일정이 생겼으면 두 시각 값은 **그 일정의 날짜·시각·길이**
+  입니다 — 트레이너가 일정을 옮기면 회원 카드도 옮긴 시각을 보여 줍니다(#2758). 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
   `/me/coach/sessions` 가 빈 목록이라, 수락된 상담은 내 상담 요청에서 확인합니다(#2584).
 - **상담 일정과 트레이너 스케줄** (#2584) — `GET /trainer/schedule` 은 담당이 끊긴 회원의 일정을
   `해제 회원` 으로 가리지만(#2589), 상담 요청으로 생긴 `상담` 일정(`consultation_id` 있음)은
@@ -870,6 +890,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡았으면 승인은 **409**
   `detail = { code: "schedule_overlap", message, conflicts[] }` 이고 아무것도 바뀌지 않습니다
   (요청은 대기로 남습니다). 일정을 옮긴 뒤 다시 승인합니다. (#2284)
+- **상담 일정을 거두면 요청도 정리됩니다** (#2758). 수락으로 생긴 상담 일정을 트레이너가
+  취소(`POST /trainer/schedule/{id}/cancel`)하거나 아직 진행 전에 삭제하면, 같은 트랜잭션에서
+  요청이 `cancelled`(처리자 = 그 트레이너)가 되고 신청 때 잠근 자리가 다시 열립니다. 회원
+  응답의 `cancelled_by_trainer` 가 `true` 라 회원 취소와 구분됩니다(처리자 id 는 여전히 싣지
+  않습니다). 회원 알림은 일정 취소·삭제의 기존 취소 알림입니다. 상담 일정을 다른 날짜·시각으로
+  옮기면 요청은 `accepted` 그대로이고, 옛 자리는 풀려 요청의 `slot_id` 가 비며 시각은 일정을
+  따릅니다. 트레이너 자리 목록의 `booked_by_name` 은 상담 신청(대기·수락)이 잡은 자리에도
+  그 회원 이름을 싣습니다.
 
 ### 트레이너 알림함
 
@@ -1022,6 +1050,21 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 키는 `(member_id, week_start)` 다. 담당이 바뀌어도 그 주의 목표는 회원의 것이라,
   트레이너까지 키에 넣으면 인수인계한 주에 목록이 둘로 갈라진다.
 
+**리포트 PDF 전송 (#1378, #2771)**: 리포트 PDF 를 담당 회원 채팅으로 보낸다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `POST` | `/trainer/clients/{member_id}/report/send-pdf` | **201** 채팅 메시지(`attachment.type = "pdf"`, `report_week_start`) |
+
+- 요청은 `multipart/form-data` 다: `pdf`(파일, 필수)·`week_start`(필수)·`message`(글, **필수**)·
+  `client_request_id`(선택, 1~64자).
+- `message` 는 앞뒤 공백을 걷어 저장한다. **비었거나 공백뿐이면 422** 이고 아무것도 저장하지 않는다.
+  예전에는 서버가 한국어 기본 문장으로 채웠는데, 서버는 회원의 언어를 몰라 영어로 쓰는 회원에게도
+  한국어가 나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+- 같은 `client_request_id` 재시도는 처음 메시지를 그대로 돌려준다(한 번 전송). 같은 키에 **다른 본문**이면
+  **409** 다. 트레이너 웹은 보낼 문구가 바뀌면 새 키를 쓴다(#2773).
+- 담당이 아니거나 해제된 회원은 **404**, PDF 가 아니면 **415**, 용량 초과는 **413**.
+
 **리포트 전송 이력 (#2288)**: 그 주 리포트가 이미 나간 담당 회원들이다. 트레이너 웹 리포트
 작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기 전에 확인을 받는 근거다.
 
@@ -1078,6 +1121,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
+- **내려받기는 서버가 권한을 확인한 뒤 흘려보낸다**(#2817). 바이트는 운영에서 객체 저장소(S3),
+  개발에서는 로컬 디스크에 있지만 응답은 같다 — 서명 URL 을 내주지 않는다(링크가 새면 권한
+  확인 없이 열리고, 담당 해제·동의 철회 뒤에도 만료 전까지 열리기 때문). 응답에
+  `Cache-Control: private, no-store` 가 붙고, 저장소에 바이트가 없으면 **404** 다.
 - 회원 경로는 **활성 담당 링크가 있어야 한다** — 없으면 글 메시지(`POST /me/coach/chat`)와 같이
   **404**. 트레이너 계정은 **403**. 트레이너 경로는 담당 고객이 아니면 **404**.
 - 알림: 트레이너가 보내면 회원에게, 회원이 보내면 트레이너에게 새 메시지 알림이 남는다(글 메시지와
@@ -1106,6 +1153,22 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
   회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
   그 시각이 새 동의가 되어 다시 열린다.
+- **마무리된 세션은 메모·아직 보내지 않은 프로그램만 고친다 (#2754).** 완료·취소·노쇼 세션의
+  `PUT /trainer/schedule/{id}` 는 본문이 `note`·`program` 만이면 200 이다. `date`·`time`·`member_id`·
+  `client_name`·`type`·`duration_minutes` 가 하나라도 섞이면 409 다(그 기록이 가리키는 약속이 바뀐다).
+  이미 보낸 프로그램(`program_sent: true`)을 다른 내용으로 바꾸면 409 이고, 같은 내용을 함께 실은
+  메모 수정은 막지 않는다.
+- **회원 예약 일정은 `is_reservation: true` 로 실린다 (#2756).** 트레이너 스케줄 응답의 각 일정에
+  회원이 예약 슬롯으로 잡은 일정인지를 싣는다. 이 일정은 `note`·`program` 수정만 되고, 그 밖의 수정·
+  삭제·되돌리기는 409(`detail` 에 사유 문자열)다. 일정을 거두려면 `/cancel` 을 쓴다 — 예약과 좌석이
+  함께 풀린다.
+- **되돌리기는 겹침을 먼저 본다 (#2757).** `POST /trainer/schedule/{id}/reopen` 은 `date` 와 함께
+  선택 `time`·`duration_minutes` 를 받는다(없으면 지금 값). 옮길 자리가 다른 일정과 겹치면 아무것도
+  바꾸지 않고 409(`code: schedule_overlap`, `conflicts`)다 — 세션은 완료·원래 날짜 그대로이고 트레이너
+  이력·회원 운동 기록도 남는다. 겹치지 않으면 날짜·시각·길이를 함께 옮기고 예정으로 바꾼다.
+- **완료·노쇼는 시작 시각이 지나야 된다 (#2760).** `/complete`·`/no-show` 는 일정의 날짜+`time` 을 KST
+  로 보고 지금보다 뒤면 400 이다. 날짜만 보던 예전에는 오늘 20:00 PT 를 오전에 완료·노쇼로 처리할
+  수 있었다. 완료는 종료가 아니라 시작 시각부터 열린다. 취소 가능 시점은 그대로다.
 - **해제·철회 회원의 일정은 트레이너 스케줄에 익명으로 남는다 (#2589).** `GET /trainer/schedule`(일·구간)·
   `GET /trainer/schedule/booked-dates`·겹침 거절(409 `conflicts`)은 그 일정을 빼지 않고 `member_detached: true`,
   `client_name: "해제 회원"`, `member_id: null` 로 싣는다. `note`·`program`·`cancellation_reason` 은 비우고
@@ -1338,6 +1401,32 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
 
+### 웹 클라이언트의 짧은 refresh 토큰 (#2828)
+
+회원 앱 웹·트레이너 웹 빌드는 **모든 요청**에 `X-Client-Platform: web` 을 싣는다(모바일은
+보내지 않는다). 서버(`app/core/client_platform.py` 의 `RequestClientPlatformMiddleware`)가
+이 값을 읽어, 웹에서 온 발급(`POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`·
+`POST /trainer/me/password`)에는 **refresh 토큰 수명을 `WEB_REFRESH_TOKEN_EXPIRE_DAYS`(기본 7일)**로
+준다. 모바일은 `REFRESH_TOKEN_EXPIRE_DAYS`(기본 30일) 그대로다. 접근 토큰 수명은 같다.
+
+- 웹으로 발급된 refresh 토큰에는 `cli: "web"` 클레임이 붙는다. `POST /auth/refresh` 는 이
+  클레임이 있으면 헤더가 없어도 웹 수명으로 회전한다 — 헤더를 빼서 30일짜리를 다시 얻을 수 없다.
+- 헤더는 **수명을 줄이는 쪽으로만** 쓴다. 클레임이 없는 예전 토큰을 웹이 회전하면 그때부터
+  웹 수명이다. 값은 대소문자·앞뒤 공백을 무시하고 `web` 일 때만 웹이다.
+- 응답 모양은 바뀌지 않는다. 일회용·폐기·토큰 세대 규칙도 같다.
+
+웹 빌드는 토큰을 브라우저 **sessionStorage**(탭 단위)에만 둔다 — 탭을 닫으면 다시 로그인한다.
+예전 웹 빌드가 localStorage 에 남긴 토큰은 읽지 않고 지운다(두 앱의
+`core/storage/secure_token_store.dart`). 모바일은 Keychain/Keystore 그대로다.
+
+### API 응답 보안 헤더 (#2828)
+
+모든 API 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'none'; frame-ancestors 'none';
+base-uri 'none'; form-action 'none'` 이 붙는다(`app/core/security_headers.py`, `SECURITY_HEADERS=false`
+면 끈다). 운영 또는 `FORCE_HTTPS=true` 면 HSTS 도 붙는다. FastAPI 문서 화면(`/docs`·`/redoc`)은
+CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 웹 앱)의 헤더는 정적 호스팅이 붙인다.
+
 ### 비밀번호 변경과 토큰 세대 (#2766)
 
 `jti` 폐기는 한 장씩이라 **다른 기기에 나간 토큰은 끊지 못한다.** 그래서 계정마다 토큰
@@ -1385,9 +1474,14 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 demo_fallback_enabled = allow_demo_fallback and not is_prod
 ```
 
-- **dev / staging** — 데모 사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로
-  전환할 때 로그인 없이도 화면이 뜨게 하려는 것이다.
+- **기본값은 꺼짐**(#2821) — `ALLOW_DEMO_FALLBACK` 을 주지 않으면 어느 환경이든 401 이다. 환경변수를
+  빠뜨린 배포 서버가 로그인 없는 요청을 데모 회원으로 처리하지 않게 하려는 것이다.
+- **로컬 개발** — `.env.example` 이 `ALLOW_DEMO_FALLBACK=true` 로 켠다. 켜면 dev / staging 에서 데모
+  사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로 전환할 때 로그인 없이도
+  화면이 뜨게 하려는 것이다. 켠 채 기동하면 WARN 로그가 남는다.
 - **prod** — `ALLOW_DEMO_FALLBACK` 값과 무관하게 **항상 비활성**이고 401 을 낸다.
+- 지금 어느 쪽으로 떠 있는지는 `GET /healthz` 의 `demo_fallback` 으로 읽는다. 배포 워크플로가
+  배포 직후 이 값과 `env` 를 확인한다.
 
 운영은 이 외에도 기동 시점에 막는 것이 있다(`_guard_prod_secrets`): 기본 `JWT_SECRET`,
 CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드, `AUTO_CREATE_TABLES=true`

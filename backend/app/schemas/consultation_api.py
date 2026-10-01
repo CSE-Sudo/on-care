@@ -166,6 +166,10 @@ class ConsultationOut(BaseModel):
     #:
     #: 자리 선택 이전 요청과, 트레이너가 자리를 지운 요청에서는 비어 있다. 그때는
     #: 화면이 위 `preferred_date`·`preferred_time_slot` 으로 되돌아간다.
+    #:
+    #: 수락으로 상담 일정이 생겼으면 시각·길이는 **그 일정의 값**이다(#2758) —
+    #: 트레이너가 일정을 옮기면 약속은 옮긴 시각이다. 이때 옛 자리는 풀려
+    #: `slot_id` 가 비어 있을 수 있다.
     slot_id: str | None = None
     slot_starts_at: datetime | None = None
     slot_duration_minutes: int | None = None
@@ -178,6 +182,10 @@ class ConsultationOut(BaseModel):
     decision_note: str | None = None
     #: 처리 시각. 화면이 "언제 답을 받았는지"를 보여 준다.
     decided_at: datetime | None = None
+    #: 트레이너가 상담 일정을 취소·삭제해 취소된 요청인가(#2758). 회원이 스스로
+    #: 취소한 `cancelled` 와 같은 상태지만 회원에게 보여 줄 안내가 다르다 —
+    #: 처리자 id 대신 이 표시만 싣는다.
+    cancelled_by_trainer: bool = False
     created_at: datetime
     updated_at: datetime
 

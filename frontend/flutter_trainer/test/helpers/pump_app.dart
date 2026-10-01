@@ -10,6 +10,8 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -72,6 +74,13 @@ const AppConfig kTestAppConfigWithDemoEntry = AppConfig(
 /// 시드만 고정하고 `nowKst()` 를 두면 둘이 어긋난다 — 시드는 목요일 기준으로
 /// 수업을 놓는데 화면은 실제 오늘로 완료·예정을 가른다. 한쪽만 고정하는 것은
 /// 고정하지 않은 것과 다를 바 없어, 여기서 함께 묶는다.
+///
+/// [kstClock] 은 화면이 구독하는 분 단위 KST 시계([kstClockProvider])다. 주지
+/// 않으면 지금([nowKst]) 한 번만 내고 멈춘 시계를 쓴다. 실제 시계는 다음 분
+/// 경계까지 타이머를 걸어 두는데, 이 컨테이너는 위젯 트리가 내려간 **뒤**
+/// tearDown 에서 버려지므로, 시계를 보지도 않는 테스트가 "A Timer is still
+/// pending" 으로 실패한다([stillBadges] 와 같은 이유). 분·자정 경과를 재는
+/// 테스트는 자기 스트림을 넘긴다.
 Future<ProviderContainer> pumpTrainerApp(
   WidgetTester tester, {
   String? token,
@@ -82,6 +91,7 @@ Future<ProviderContainer> pumpTrainerApp(
   bool demoEntry = false,
   Locale locale = const Locale('ko'),
   DateTime? seedClock,
+  Stream<DateTime>? kstClock,
 }) async {
   // A persisted session lives in secure storage now (access + refresh).
   // Reset the in-memory mock per test so state never leaks between them.
@@ -129,6 +139,9 @@ Future<ProviderContainer> pumpTrainerApp(
       appDatabaseProvider.overrideWithValue(db),
       if (bootAt != null)
         routerInitialLocationProvider.overrideWithValue(bootAt),
+      kstClockProvider.overrideWith(
+        (ref) => kstClock ?? Stream<DateTime>.value(nowKst()),
+      ),
       ...extraOverrides,
     ],
   );

@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -39,6 +41,9 @@ typedef ScheduleClientKey = ({String id, String name});
 /// source emits a single fetched value and re-reads after each mutation.
 abstract interface class ScheduleRepository {
   /// Today's slots in timeline order (including 공백 gaps).
+  ///
+  /// 화면은 이 메서드 대신 [todayScheduleProvider] 를 쓴다 — 그 provider 는 KST
+  /// 날짜 시계(`kstTodayProvider`)를 따라 자정에 새 날짜로 다시 구독한다(#2865).
   Stream<List<ScheduleSession>> watchToday();
 
   /// The timeline for one calendar [date] (`YYYY-MM-DD`).
@@ -82,15 +87,23 @@ abstract interface class ScheduleRepository {
   ///
   /// [clientId] 가 null 이면 담당 회원을 **그대로 둔다** — 서버의 부분 수정과
   /// 같은 뜻이다. 회원을 바꿀 때만 넘긴다(#2586).
+  ///
+  /// 다른 칸도 같다 — null 은 '그대로'이고 실서버에는 보내지 않는다(#2754).
+  /// 서버는 마무리된(완료·취소·노쇼) 세션과 회원 예약 일정에서 메모·프로그램
+  /// 말고 다른 칸이 **오기만 해도** 409 로 거절한다. 그래서 화면은 바뀐 칸만
+  /// 넘긴다 — 메모만 고쳤는데 시간·종류까지 실어 보내면 그 거절에 걸린다.
+  ///
+  /// 거절은 [ServerError](409, 서버 사유)로 온다. 데모 저장소도 같은 사유로
+  /// 던진다.
   Future<void> updateSession(
     String id, {
     String? date,
-    required String clientName,
+    String? clientName,
     String? clientId,
-    required String time,
-    required String type,
-    required int durationMinutes,
-    required String note,
+    String? time,
+    String? type,
+    int? durationMinutes,
+    String? note,
   });
 
   /// 완료 세션을 [date](미래)의 예정으로 되돌린다. (#1396)
@@ -98,7 +111,18 @@ abstract interface class ScheduleRepository {
   /// 일정 수정에서 완료된 회차의 날짜를 앞으로 옮길 때만 쓴다 — 완료가 남긴
   /// 파생 기록(트레이너 이력·회원 운동기록)을 함께 지운다. 예정 세션이나
   /// 과거·오늘 날짜에는 쓸 수 없다(구현이 거부한다).
-  Future<void> reopenSession(String id, {required String date});
+  ///
+  /// 옮길 시각·길이([time]·[durationMinutes])도 이 한 번에 함께 받는다
+  /// (#2757). 서버는 그 자리가 다른 일정과 겹치는지 **기록을 지우기 전에**
+  /// 본다 — 겹치면 [ScheduleOverlapError] 이고 세션·기록은 그대로다. 예전처럼
+  /// 날짜만 먼저 되돌리고 시간은 이어지는 수정에서 바꾸면, 그 수정이 겹침으로
+  /// 거절돼도 완료 기록은 이미 지워진 뒤였다. null 이면 지금 값 그대로다.
+  Future<void> reopenSession(
+    String id, {
+    required String date,
+    String? time,
+    int? durationMinutes,
+  });
 
   /// Replaces the exercise program and trainer memo without changing the
   /// booking itself.
@@ -393,9 +417,9 @@ class DriftScheduleRepository implements ScheduleRepository {
 
   /// Today's slots in timeline order (including 공백 gaps).
   ///
-  /// NOTE: `ymd(nowKst())`는 스트림 구독 시점에 고정된다 — 앱을
-  /// 자정 넘겨 켜두면 '오늘'이 갱신되지 않음(예약 카운트와 동일 패턴,
-  /// 로컬 mock 데모 범위에선 허용). 실 백엔드 전환 시 서버가 판단한다.
+  /// drift 질의는 날짜를 조건으로 거는 반응형 스트림이라 구독한 날의 표를
+  /// 본다. 대시보드는 이 메서드가 아니라 [todayScheduleProvider] 를 쓰고, 그
+  /// provider 가 날짜 시계를 따라 자정에 새 날짜로 다시 구독한다(#2865).
   @override
   Stream<List<ScheduleSession>> watchToday() => watchDate(ymd(nowKst()));
 
@@ -625,25 +649,50 @@ class DriftScheduleRepository implements ScheduleRepository {
 
   /// Edits a booked session's date/time/client/type/duration. 옮긴 시간이
   /// 자기 말고 다른 일정과 겹치면 [ScheduleOverlapError] 로 멈춘다(#2284).
+  ///
+  /// 서버와 같은 상태 규칙(#2754·#2756) — 마무리된 세션과 회원 예약 일정은
+  /// 메모만 고칠 수 있다. 예약 시각·회원·종류·길이를 **바꾸려 하면** 서버와 같은
+  /// 사유의 [ServerError](409)로 멈춘다. 지금 값과 같은 값은 바꾸는 것이 아니라
+  /// 통과시킨다(화면은 바뀐 칸만 넘긴다).
   @override
   Future<void> updateSession(
     String id, {
     String? date,
-    required String clientName,
+    String? clientName,
     String? clientId,
-    required String time,
-    required String type,
-    required int durationMinutes,
-    required String note,
+    String? time,
+    String? type,
+    int? durationMinutes,
+    String? note,
   }) async {
     final current = await (_db.select(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     if (current != null) {
+      final bool changesBooking =
+          (date != null && date != current.date) ||
+          (clientName != null && clientName != current.clientName) ||
+          (clientId != null && clientId != current.clientId) ||
+          (time != null && time != current.time) ||
+          (type != null && type != current.type) ||
+          (durationMinutes != null &&
+              durationMinutes != current.durationMinutes);
+      if (changesBooking && isDemoReservationScheduleId(id)) {
+        throw const ServerError(
+          statusCode: 409,
+          message: demoReservationEditRejected,
+        );
+      }
+      if (changesBooking && current.status != ScheduleStatus.upcoming) {
+        throw const ServerError(
+          statusCode: 409,
+          message: demoFinishedEditRejected,
+        );
+      }
       await _ensureNoOverlap(
         date: date ?? current.date,
-        time: time,
-        durationMinutes: durationMinutes,
+        time: time ?? current.time,
+        durationMinutes: durationMinutes ?? current.durationMinutes,
         excludeId: id,
       );
     }
@@ -655,13 +704,54 @@ class DriftScheduleRepository implements ScheduleRepository {
         // null 은 '그대로' 다 — 덮어쓰면 회원을 고르지 않은 수정이 담당 회원을
         // 지운다(#2586).
         clientId: clientId == null ? const Value.absent() : Value(clientId),
-        clientName: Value(clientName),
-        time: Value(time),
-        type: Value(type),
-        durationMinutes: Value(durationMinutes),
-        note: Value(note),
+        clientName: clientName == null
+            ? const Value.absent()
+            : Value(clientName),
+        time: time == null ? const Value.absent() : Value(time),
+        type: type == null ? const Value.absent() : Value(type),
+        durationMinutes: durationMinutes == null
+            ? const Value.absent()
+            : Value(durationMinutes),
+        note: note == null ? const Value.absent() : Value(note),
       ),
     );
+    if (current != null) {
+      await _moveDemoConsultationLink(
+        current,
+        clientId: clientId ?? current.clientId,
+        date: date ?? current.date,
+        time: time ?? current.time,
+      );
+    }
+  }
+
+  /// 상담 일정을 옮기면 상담 연결도 새 날짜·시각으로 옮긴다(#2758).
+  ///
+  /// 연결은 회원·날짜·시각을 키로 붙는다. 그대로 두면 옮긴 일정이 상담 요청
+  /// 내용을 잃고, 상담함은 그 신청의 일정이 사라진 것으로 읽는다. 서버처럼
+  /// 신청의 시각은 이 일정을 따른다 — 예전 자리는 일정이 떠나 다시 빈다.
+  Future<void> _moveDemoConsultationLink(
+    TrainerScheduleRow before, {
+    required String? clientId,
+    required String date,
+    required String time,
+  }) async {
+    if (before.type != SessionType.consultation) return;
+    final String from = demoConsultationKey(
+      clientId: before.clientId,
+      date: before.date,
+      time: before.time,
+    );
+    final String to = demoConsultationKey(
+      clientId: clientId,
+      date: date,
+      time: time,
+    );
+    if (from == to) return;
+    final ScheduleConsultation? link = demoScheduleConsultations.remove(from);
+    if (link == null) return;
+    demoScheduleConsultations[to] = link;
+    await writeDemoScheduleConsultations(_db);
   }
 
   /// 완료 세션을 [date](미래)의 예정으로 되돌린다(#1396). 데모 DB에는 완료가
@@ -669,12 +759,27 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// `deleteSession` 과 같은 한계로 그 이력까지 지우지는 않는다 — 로컬
   /// 데모에서만 남는 흔적이라 실 서버(`DioScheduleRepository`)와 달리 여기는
   /// 상태·날짜만 되돌린다.
+  ///
+  /// 옮길 자리가 다른 일정과 겹치는지는 **아무것도 바꾸기 전에** 본다(#2757) —
+  /// 겹치면 [ScheduleOverlapError] 이고 세션은 완료 그대로다. 회원 예약 일정은
+  /// 서버처럼 되돌리지 않는다(409).
   @override
-  Future<void> reopenSession(String id, {required String date}) async {
+  Future<void> reopenSession(
+    String id, {
+    required String date,
+    String? time,
+    int? durationMinutes,
+  }) async {
     final table = _db.trainerScheduleEntries;
     final today = ymd(nowKst());
     if (date.compareTo(today) <= 0) {
       throw StateError('reopen requires a future date: $date');
+    }
+    if (isDemoReservationScheduleId(id)) {
+      throw const ServerError(
+        statusCode: 409,
+        message: demoReservationReopenRejected,
+      );
     }
     await _db.transaction(() async {
       final session = await (_db.select(
@@ -683,9 +788,19 @@ class DriftScheduleRepository implements ScheduleRepository {
       if (session == null || session.status != ScheduleStatus.done) {
         throw StateError('session not completed: $id');
       }
+      final String newTime = time ?? session.time;
+      final int newDuration = durationMinutes ?? session.durationMinutes;
+      await _ensureNoOverlap(
+        date: date,
+        time: newTime,
+        durationMinutes: newDuration,
+        excludeId: id,
+      );
       await (_db.update(table)..where((t) => t.id.equals(id))).write(
         TrainerScheduleEntriesCompanion(
           date: Value(date),
+          time: Value(newTime),
+          durationMinutes: Value(newDuration),
           status: const Value(ScheduleStatus.upcoming),
         ),
       );
@@ -694,12 +809,28 @@ class DriftScheduleRepository implements ScheduleRepository {
 
   /// Replaces the exercise program and trainer memo without changing the
   /// booking itself (client, type, time, or duration).
+  ///
+  /// 마무리된 세션에서도 쓸 수 있다(#2754). 다만 회원에게 이미 보낸 프로그램은
+  /// 서버처럼 내용을 바꾸지 못한다(409) — 같은 프로그램에 메모만 고치는 것은
+  /// 통과한다.
   @override
   Future<void> updateProgram(
     String id, {
     required List<ProgramItem> program,
     required String note,
   }) async {
+    final current = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (current != null &&
+        current.programSent &&
+        jsonEncode(programToJson(program)) !=
+            jsonEncode(jsonDecode(current.programJson))) {
+      throw const ServerError(
+        statusCode: 409,
+        message: demoSentProgramEditRejected,
+      );
+    }
     await (_db.update(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).write(
@@ -873,11 +1004,38 @@ class DriftScheduleRepository implements ScheduleRepository {
     );
   }
 
+  /// 회원 예약 일정은 지우지 않는다 — 예약·남은 횟수와 어긋난다. 서버와 같은
+  /// 사유의 409 다(#2756). 그 약속을 없애려면 취소한다.
   @override
   Future<void> deleteSession(String id) async {
+    if (isDemoReservationScheduleId(id)) {
+      throw const ServerError(
+        statusCode: 409,
+        message: demoReservationDeleteRejected,
+      );
+    }
+    final TrainerScheduleRow? row = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     await (_db.delete(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).go();
+    // 서버는 예정·취소인 상담 일정을 지울 때만 신청을 철회한다(#2758). 상담함은
+    // 연결된 일정이 없어진 신청을 철회로 읽으므로, 이미 치른(완료·노쇼) 상담을
+    // 지울 때는 연결을 먼저 떼어 신청을 수락된 채로 둔다.
+    if (row != null &&
+        row.type == SessionType.consultation &&
+        (row.status == ScheduleStatus.done ||
+            row.status == ScheduleStatus.noShow)) {
+      final ScheduleConsultation? removed = demoScheduleConsultations.remove(
+        demoConsultationKey(
+          clientId: row.clientId,
+          date: row.date,
+          time: row.time,
+        ),
+      );
+      if (removed != null) await writeDemoScheduleConsultations(_db);
+    }
   }
 
   /// Marks an 예정 session 완료 (with the trainer's [note]) and, when the
@@ -1034,15 +1192,17 @@ class DriftScheduleRepository implements ScheduleRepository {
   @override
   Future<void> completeSession(String id, {String note = ''}) async {
     final table = _db.trainerScheduleEntries;
-    final today = ymd(nowKst());
+    final DateTime now = nowKst();
 
     await _db.transaction(() async {
       final session = await (_db.select(
         table,
       )..where((t) => t.id.equals(id))).getSingleOrNull();
       if (session == null || session.status != ScheduleStatus.upcoming) return;
-      // `YYYY-MM-DD` sorts lexicographically, so a plain compare works.
-      if (session.date.compareTo(today) > 0) return;
+      // 시작 시각 전이면 완료하지 않는다(#2760) — 날짜만 보던 때에는 오늘
+      // 저녁 PT 를 오전에 완료해 하지 않은 운동이 회원 기록에 미리 남았다.
+      // 서버는 400 으로 거절한다.
+      if (!hasStartedAt(session.date, session.time, now)) return;
 
       // Conditional update: `changed` is 0 when a concurrent call already
       // completed this session, in which case we must not log again.
@@ -1079,7 +1239,6 @@ class DriftScheduleRepository implements ScheduleRepository {
       final program = (jsonDecode(session.programJson) as List<Object?>)
           .map((e) => programItemFromJson(e! as Map<String, Object?>))
           .toList();
-      final now = nowKst();
       // Label with the SESSION's calendar day — completing a session
       // browsed on another date must not claim '오늘'.
       final day = DateTime.tryParse(session.date) ?? now;
@@ -1141,14 +1300,23 @@ class DriftScheduleRepository implements ScheduleRepository {
   );
 
   /// 예정 → 노쇼. 취소와 달리 주체가 없다 — 약속은 그대로였고 회원이 오지 않았다.
+  ///
+  /// 시작 시각 전에는 아무것도 하지 않는다(#2760) — 아직 오지 않은 약속에 불참을
+  /// 적을 수 없다. 서버는 400 으로 거절하고, 화면은 그 전에 노쇼를 내놓지 않는다.
   @override
-  Future<void> markNoShow(String id) => _finishSession(
-    id,
-    TrainerScheduleEntriesCompanion(
-      status: const Value(ScheduleStatus.noShow),
-      noShowAt: Value(nowKst()),
-    ),
-  );
+  Future<void> markNoShow(String id) async {
+    final row = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (row == null || !hasStartedAt(row.date, row.time, nowKst())) return;
+    await _finishSession(
+      id,
+      TrainerScheduleEntriesCompanion(
+        status: const Value(ScheduleStatus.noShow),
+        noShowAt: Value(nowKst()),
+      ),
+    );
+  }
 
   Future<void> _finishSession(
     String id,
@@ -1283,9 +1451,34 @@ class DriftScheduleRepository implements ScheduleRepository {
       cancellationSource: row.cancellationSource,
       cancellationReason: row.cancellationReason,
       noShowAt: row.noShowAt,
+      isReservation: isDemoReservationScheduleId(row.id),
     );
   }
 }
+
+/// 데모에서 회원 예약으로 생긴 일정 행의 id 앞머리(#2756).
+///
+/// 서버는 예약 표(`trainer_reservations.schedule_id`)로 예약 일정을 알아보지만
+/// 데모 저장소(drift)의 일정 표에는 그 칸이 없다. 그래서 예약이 만든 일정은
+/// id 를 이 앞머리로 짓고, 그것으로 같은 잠금을 건다.
+const String demoReservationScheduleIdPrefix = 'resv-';
+
+/// [id] 가 데모의 회원 예약 일정인가. 시드 행(`seed-` 앞머리)도 본다.
+bool isDemoReservationScheduleId(String id) =>
+    id.startsWith(demoReservationScheduleIdPrefix) ||
+    id.startsWith('seed-$demoReservationScheduleIdPrefix');
+
+// 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer_service`
+// 의 ScheduleConflict 문구와 같다. 화면은 한국어일 때 이 사유를 그대로 보인다.
+const String demoFinishedEditRejected =
+    '완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다.';
+const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없습니다.';
+const String demoReservationEditRejected =
+    '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없습니다.';
+const String demoReservationDeleteRejected =
+    '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다.';
+const String demoReservationReopenRejected =
+    '예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없습니다.';
 
 /// 데모 상담 일정의 `상담 요청 내용`(#2584).
 ///
@@ -1409,10 +1602,16 @@ final scheduleRepositoryProvider = Provider<ScheduleRepository>((ref) {
   return repo;
 }, name: 'scheduleRepository');
 
-/// Streams today's timeline for the 스케줄 tab.
+/// Streams today's timeline (대시보드 `오늘 일정`, 오늘 수업 수).
+///
+/// 날짜는 KST 날짜 시계([kstTodayProvider])에서 읽는다. 예전에는 구독할 때의
+/// 날짜를 고정해, 대시보드를 켠 채 자정을 넘기면 어제 일정이 남았다(#2865).
+/// 날짜가 바뀌면 이 provider 가 다시 만들어지고 새 날짜를 구독한다. 실서버
+/// 저장소의 날짜 조회는 회원 앱에서 생긴 예약·취소를 짧은 주기로 다시 읽는다.
 final todayScheduleProvider = StreamProvider.autoDispose<List<ScheduleSession>>(
   (ref) {
-    return ref.watch(scheduleRepositoryProvider).watchToday();
+    final String today = ref.watch(kstTodayProvider);
+    return ref.watch(scheduleRepositoryProvider).watchDate(today);
   },
 );
 

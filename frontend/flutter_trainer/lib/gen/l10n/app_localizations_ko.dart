@@ -352,6 +352,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashChurnRiskEmpty => '지금은 이탈 위험 신호가 없어요.';
 
   @override
+  String get dashChurnRiskLoading => '최근 세션 확인 중';
+
+  @override
+  String get dashChurnRiskUnavailable => '확인할 수 없음 · 눌러서 다시 시도';
+
+  @override
+  String get dashActivityFeedbackLoading => '최근 세션을 확인하고 있어요.';
+
+  @override
+  String get dashActivityFeedbackUnavailable =>
+      '최근 세션을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.';
+
+  @override
   String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
 
   @override
@@ -423,6 +436,16 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String dashScheduleMinutesLeft(int minutes) {
     return '$minutes분 뒤';
+  }
+
+  @override
+  String dashScheduleInProgress(String time, String name) {
+    return '진행 중 $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes분 남음';
   }
 
   @override
@@ -1118,6 +1141,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get consultStatusCancelled => '취소됨';
+
+  @override
+  String get consultStatusCancelledByTrainer => '일정 취소로 철회';
+
+  @override
   String get consultStatusExpired => '만료됨';
 
   @override
@@ -1327,6 +1356,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsSendFailed => '리포트 전송에 실패했어요. 다시 시도해 주세요';
+
+  @override
+  String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
 
   @override
   String reportsSent(String name) {
@@ -1698,6 +1730,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedDetachedMemberHint => '담당이 끝난 회원이라 회원 정보는 볼 수 없어요';
 
   @override
+  String get schedReservationLockedHint =>
+      '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
+
+  @override
+  String get schedEndedLockedHint => '끝난 세션은 메모·프로그램만 고칠 수 있어요.';
+
+  @override
+  String get schedDoneLockedHint =>
+      '완료한 세션은 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
+
+  @override
   String get schedGroupPersonal => '개인운동';
 
   @override
@@ -1745,6 +1788,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedRoutinesSkipped => '보내지 않기로 했어요.';
+
+  @override
+  String get schedRoutinesSkipFailed => '보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get schedRoutinesLoadFailed => '개인운동을 불러오지 못했어요';
+
+  @override
+  String get schedClientUnresolved => '이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.';
 
   @override
   String get schedRoutinesUpdated => '개인운동을 고커어요.';
@@ -2112,6 +2164,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotReload => '다시 불러오기';
 
   @override
+  String get slotLoadFailed => '예약 슬롯을 불러오지 못했어요';
+
+  @override
   String get slotEmpty => '열린 예약 슬롯이 없습니다.';
 
   @override
@@ -2122,6 +2177,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get slotOpenSummary => '비어 있음';
+
+  @override
+  String get slotOverlappedSummary => '일정과 겹침';
+
+  @override
+  String get slotOverlappedHint =>
+      '이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.';
 
   @override
   String get slotCloseAction => '예약 닫기';
@@ -2164,6 +2226,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifNotReady => '곧 끌 수 있어요 — 지금은 항상 받아요';
+
+  @override
+  String get myNotifLoading => '알림 설정을 불러오는 중이에요';
+
+  @override
+  String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요. 다시 시도해 주세요';
 
   @override
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요';
@@ -2686,6 +2754,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSendFailed => '전송에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get coachSwitchClientTitle => '다른 회원으로 바꿀까요?';
+
+  @override
+  String get coachSwitchClientBody =>
+      '아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.';
+
+  @override
+  String get coachSwitchClientConfirm => '바꾸기';
+
+  @override
+  String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
+
+  @override
+  String get personalRoutineStartPast => '시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요';
+
+  @override
+  String get schedRoutinesReadFailed => '붙어 있는 개인운동을 확인하지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get coachScheduleFailed => '스케줄 등록에 실패했어요. 다시 시도해 주세요';
 
   @override
@@ -2832,6 +2919,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiGenerateFailed => 'AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return '생성 조건을 확인해 주세요. 총 운동 시간은 $min~$max분 사이여야 해요';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return '$min~$max분 사이로 입력해 주세요';
+  }
 
   @override
   String get aiGenerateRateLimited => 'AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요';
@@ -3809,8 +3906,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoReport => '리포트';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return '$month/$day 상담 요청';
+  String dashTodoConsultationSubtitle(String when) {
+    return '희망 $when';
   }
 
   @override
@@ -3827,6 +3924,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dashTaskLoadFailed => '할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get dashTaskDayChanged => '날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요';
 
   @override
   String get dashTaskDismissTitle => '이 항목을 삭제할까요?';
@@ -4332,6 +4432,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String programTemplateSessionPickerBody(String name) {
     return '\'$name\' 템플릿을 추가할 세션을 골라 주세요.';
   }
+
+  @override
+  String get programEditorAiReapplyTitle => 'AI 운동을 새 안으로 바꿀까요?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return '앞서 반영한 AI 운동 $count개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => '바꾸기';
+
+  @override
+  String get programEditorAiReapplyAppend => '뒤에 추가';
 
   @override
   String programEditorSessionNameTyped(String type) {
