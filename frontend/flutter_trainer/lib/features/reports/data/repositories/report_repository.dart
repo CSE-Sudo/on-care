@@ -855,6 +855,9 @@ WeeklyReport weeklyReportFromJson(
     carbsWeek: doubles('carbs_week'),
     proteinWeek: doubles('protein_week'),
     fatWeek: doubles('fat_week'),
+    // 요일별 끼니 기록 수(#2772). 없으면 빈 목록이라 끼니 줄이 `–` 로 서고
+    // 끼니 문장이 빠진다 — 이 칸이 없던 옛 응답과 같은 동작이다.
+    mealCounts: ints('meal_counts'),
     // 회원이 적어 둔 하루 목표. 없으면 null 이고 판정이 공통 상수로
     // 되돌아간다(#1430).
     calorieTarget: optInt('calorie_target'),
@@ -871,11 +874,18 @@ WeeklyReport weeklyReportFromJson(
             exercises: (day['exercises'] as List<Object?>? ?? const <Object?>[])
                 .whereType<String>()
                 .toList(growable: false),
+            assigned: _assignedOf(day['assigned']),
           ),
     ],
     memberFeedback: memberFeedback,
   );
 }
+
+/// 그날 배정된 개인운동 수(#2772). 없거나 0 이하면 null — 배정을 모르는
+/// 날이다. 0 을 그대로 두면 쉬는 날이 `0 / 0` 으로 그려진다(#2232, 데모
+/// `assignedCount` 와 같은 규칙).
+int? _assignedOf(Object? value) =>
+    value is num && value > 0 ? value.toInt() : null;
 
 /// Decodes `ReportSendsOut`. (#2288)
 ///
