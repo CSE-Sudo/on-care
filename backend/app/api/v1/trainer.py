@@ -1078,6 +1078,7 @@ def trainer_assign_routine(
         intensity=payload.intensity,
         sets=payload.sets,
         reps=payload.reps,
+        hold_seconds=payload.hold_seconds,
         weight=payload.weight,
     )
 
@@ -1131,6 +1132,7 @@ def trainer_create_routine_suggestion(
         type_=payload.type,
         sets=payload.sets,
         reps=payload.reps,
+        hold_seconds=payload.hold_seconds,
         weight=payload.weight,
         reason=payload.reason,
         evidence=payload.evidence,
@@ -1164,6 +1166,7 @@ def trainer_approve_routine_suggestion(
             type_=fields.get("type"),
             sets=fields.get("sets"),
             reps=fields.get("reps"),
+            hold_seconds=fields.get("hold_seconds"),
             weight=fields.get("weight"),
             reason=fields.get("reason"),
         )
