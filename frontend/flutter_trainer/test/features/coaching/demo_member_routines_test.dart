@@ -445,6 +445,33 @@ void main() {
       );
     });
 
+    test('이미 있는 PT 에 붙인 개인운동의 제안도 대기 목록에서 빠진다 (#2747)', () async {
+      final repo = MockTrainerRoutineSuggestionRepository(db: db);
+      final RoutineSuggestion sent = (await repo.pending(
+        'seed-client-3',
+      )).first;
+      final TrainerScheduleRow pt = (await ptWithProgram()).first;
+
+      await DriftScheduleRepository(
+        db,
+      ).updateScheduledRoutines(pt.id, <RoutineExercise>[
+        RoutineExercise(
+          name: sent.name,
+          minutes: sent.minutes,
+          type: sent.type,
+          source: 'ai',
+          suggestionId: sent.id,
+        ),
+      ]);
+
+      expect(
+        (await MockTrainerRoutineSuggestionRepository(
+          db: db,
+        ).pending('seed-client-3')).map((s) => s.id),
+        isNot(contains(sent.id)),
+      );
+    });
+
     test('영어판은 id·시간·유형·세트·근거가 같고 이름·사유만 영어다', () {
       expect(
         demoMemberSuggestionsEn.keys,

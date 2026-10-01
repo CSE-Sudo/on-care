@@ -209,6 +209,22 @@ List<Map<String, Object?>> personalRoutinesToJson(
   ];
 }
 
+/// 이미 있는 PT 에 붙은 개인운동을 고치거나 처음 붙이는 본문
+/// (`PUT /trainer/schedule/{id}/routines`, #2224·#2280).
+///
+/// 그 개인운동을 채운 대기 중 AI 제안 id 도 싣는다(#2747) — 서버가 같은
+/// 트랜잭션에서 닫는다. 일정 상세에서 고친 줄처럼 제안에서 오지 않았으면
+/// 키를 싣지 않아 옛 본문과 같다.
+Map<String, Object?> scheduledRoutinesUpdateToJson(
+  List<RoutineExercise> items,
+) {
+  final List<String> suggestionIds = suggestionIdsOf(items);
+  return <String, Object?>{
+    'personal_routines': personalRoutinesToJson(items),
+    if (suggestionIds.isNotEmpty) 'suggestion_ids': suggestionIds,
+  };
+}
+
 /// `개인운동만` 전송 본문 — 운동 하나가 세션 하나다. (#2223)
 ///
 /// 운동별로 나누는 이유는 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩

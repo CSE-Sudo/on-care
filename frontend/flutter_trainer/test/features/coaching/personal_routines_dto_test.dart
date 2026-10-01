@@ -222,6 +222,22 @@ void main() {
       expect(body['personal_routines'], hasLength(1));
     });
 
+    test('이미 있는 PT 에 붙이는 본문에도 제안 id 가 실린다', () {
+      final body = scheduledRoutinesUpdateToJson(const <RoutineExercise>[
+        fromSuggestion,
+        typed,
+      ]);
+
+      expect(body['suggestion_ids'], <String>['sug-walk']);
+      expect(body['personal_routines'], hasLength(2));
+      expect(
+        scheduledRoutinesUpdateToJson(const <RoutineExercise>[
+          typed,
+        ]).containsKey('suggestion_ids'),
+        isFalse,
+      );
+    });
+
     test('PT 일정 추가에 제안 id 가 없으면 옛 본문 그대로다', () {
       final body = programScheduleToJson(
         assignment: const <String, Object?>{'name': '하체 PT'},

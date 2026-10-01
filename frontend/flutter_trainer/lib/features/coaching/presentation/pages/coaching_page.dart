@@ -1188,6 +1188,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 전송 이력 위 `아직 보내지 않은 개인운동` 안내가 방금 붙인 것을 바로
     // 보이게 한다.
     ref.invalidate(_unsentRoutinesProvider(sentFor));
+    // 붙인 개인운동을 채운 AI 제안은 이 요청으로 닫혔다(#2747) — 다시 읽어야
+    // 다음 위저드가 그 제안을 다시 채우지 않는다.
+    ref.invalidate(routineSuggestionsProvider(sentFor));
     final back = _returnToSchedule;
     final String? backDate =
         back != null && back.clientId == sentFor && back.sessionId == sessionId

@@ -976,6 +976,9 @@ class DriftScheduleRepository implements ScheduleRepository {
         ]),
       ),
     );
+    // 코칭 탭에서 짠 개인운동을 이 PT 에 붙인 것이면 그 개인운동을 채운 AI
+    // 제안은 검토한 것으로 남긴다(#2747) — 실서버가 같은 요청에서 닫는다.
+    await _routineStore.addReviewedSuggestions(suggestionIdsOf(items));
   }
 
   /// 마무리된 PT 의 개인운동을 보낸다. 취소·노쇼 PT 뒤에 보낸 것은 그 종류로

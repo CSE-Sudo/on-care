@@ -330,7 +330,7 @@ class DioScheduleRepository implements ScheduleRepository {
     await _mutate(
       () => _dio.put<List<dynamic>>(
         '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
-        data: <String, Object?>{'personal_routines': personalRoutinesToJson(items)},
+        data: scheduledRoutinesUpdateToJson(items),
       ),
     );
   }
