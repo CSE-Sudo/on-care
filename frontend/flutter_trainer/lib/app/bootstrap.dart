@@ -28,30 +28,11 @@ Future<void> bootstrap() async {
     saved: prefs.getString(savedLocalePrefsKey),
   );
 
-  // drift-backed local backend. Seed once (and on date rollover) so the
-  // app boots with the Figma mock's client/schedule data before the
-  // real backend exists. drift opens lazily — the first query
-  // (`seedIfEmpty`) is what can throw (e.g. missing sqlite3 WASM on
-  // web), so we log-and-continue: the UI still renders and reads an
-  // empty DB.
+  // drift-backed local backend. 데모 모드에서만 시드한다(#2914) — drift 를 읽는
+  // 저장소가 전부 `useMockApi` 분기 안에서만 만들어져, 실서버 빌드가 시드하면
+  // 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
   final db = AppDatabase();
-  try {
-    await seedIfEmpty(db, language: demoLanguage);
-    // 심어 둔 대화의 감지 결과를 메모로 옮겨 둔다 (#1655). 실 API 모드에는
-    // 서버가 가진 메모가 있으므로 데모/목 모드에서만 한다.
-    if (config.useMockApi) {
-      await seedDemoInsightMemos(
-        db,
-        prefs,
-        await AppLocalizations.delegate.load(demoLanguage.locale),
-      );
-      // 트레이너가 남겨 둔 후속 관리·메모·프로그램 초안(#2667). 감지 메모 뒤에
-      // 심어야 그 목록에 덧붙는다.
-      await seedDemoTrainerNotes(prefs, language: demoLanguage);
-    }
-  } catch (e) {
-    debugPrint('Trainer drift seed failed — booting with no local data: $e');
-  }
+  await seedDemoStorage(config, db, prefs, demoLanguage);
 
   runApp(
     ProviderScope(
@@ -64,4 +45,36 @@ Future<void> bootstrap() async {
       child: const OncareTrainerApp(),
     ),
   );
+}
+
+/// 데모 모드면 로컬 DB·prefs 에 데모 데이터를 심는다. 실서버 모드면 아무것도
+/// 쓰지 않는다(#2914).
+///
+/// drift 는 lazy 로 열려서 첫 쿼리(시드)에서 실패할 수 있다(웹에서 sqlite3 WASM 이
+/// 없을 때 등). 그때는 기록만 하고 계속 띄운다 — 화면은 뜨고 빈 DB 를 읽는다.
+@visibleForTesting
+Future<void> seedDemoStorage(
+  AppConfig config,
+  AppDatabase db,
+  SharedPreferences prefs,
+  DemoLanguage demoLanguage, {
+  Future<void> Function(AppDatabase db, {DemoLanguage language}) seed =
+      seedIfEmpty,
+}) async {
+  if (!config.useMockApi) return;
+  try {
+    await seed(db, language: demoLanguage);
+    // 심어 둔 대화의 감지 결과를 메모로 옮겨 둔다 (#1655). 실 API 모드에는
+    // 서버가 가진 메모가 있다.
+    await seedDemoInsightMemos(
+      db,
+      prefs,
+      await AppLocalizations.delegate.load(demoLanguage.locale),
+    );
+    // 트레이너가 남겨 둔 후속 관리·메모·프로그램 초안(#2667). 감지 메모 뒤에
+    // 심어야 그 목록에 덧붙는다.
+    await seedDemoTrainerNotes(prefs, language: demoLanguage);
+  } catch (e) {
+    debugPrint('Trainer drift seed failed — booting with no local data: $e');
+  }
 }

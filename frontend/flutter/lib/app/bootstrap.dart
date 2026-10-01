@@ -38,38 +38,19 @@ Future<void> bootstrap() async {
   await _clearTokensOnFreshInstall(AppPrefs(prefs), logger);
 
   // Local backend (drift-backed mock) — the demo mode the app falls back to
-  // when `USE_MOCK_API` is not turned off. Seed once on first run so the app
-  // boots with data. The real FastAPI backend is reached with
-  // `--dart-define=USE_MOCK_API=false`; docs/DUMMY_BACKEND.md records why this
-  // drift-backed option was chosen over the alternatives.
+  // when `USE_MOCK_API` is not turned off. The real FastAPI backend is reached
+  // with `--dart-define=USE_MOCK_API=false`; docs/DUMMY_BACKEND.md records why
+  // this drift-backed option was chosen over the alternatives.
   //
-  // The drift open is lazy — the first query (the `seedIfEmpty`
-  // below) is what can throw. On the web build, drift needs
-  // `sqlite3.wasm` + `drift_worker.js` at the same origin; the
-  // deploy workflow downloads them into `web/` from the drift
-  // release matching `pubspec.lock`. If the fetch still fails (or
-  // the browser lacks the storage APIs drift needs), we log and
-  // continue — the UI renders, individual feature pages will show
-  // their own error states when they hit the empty DB.
+  // 데모 시드와 목업 혜택 장부는 데모 모드에서만 깐다(#2914). drift 를 읽는
+  // 소비자(로컬 인터셉터·목업 MY 저장소)가 모두 `useMockApi` 분기 안에만 있어,
+  // 실서버 빌드가 시드하면 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
   final db = AppDatabase();
-  try {
-    await seedIfEmpty(db);
-  } catch (e, st) {
-    logger.e(
-      'Drift seed failed — app will boot with no local data',
-      error: e,
-      stackTrace: st,
-    );
-  }
-
-  // 목업 혜택 장부(포인트·쿠폰·챌린지·보호권·이모티콘)는 같은 DB 의 키-값에 실어
-  // 새로고침 뒤에도 남긴다. 저장분이 없으면 시드를 깐다(#2664).
-  final DemoBenefitsStore benefits = config.useMockApi
-      ? await DemoBenefitsStore.open(
-          db,
-          seed: () => buildDemoBenefitsSeed(nowKst()),
-        )
-      : DemoBenefitsStore.memory();
+  final DemoBenefitsStore benefits = await prepareDemoStorage(
+    config,
+    db,
+    logger,
+  );
 
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -103,6 +84,39 @@ Future<void> bootstrap() async {
       ],
       child: const OncareApp(),
     ),
+  );
+}
+
+/// 데모 모드면 로컬 DB 에 데모 시드를 깔고 목업 혜택 장부를 연다. 실서버 모드면
+/// 아무것도 쓰지 않고 빈 메모리 장부를 돌려준다(#2914).
+///
+/// drift 는 lazy 로 열려서 첫 쿼리(시드)에서 실패할 수 있다. 웹 빌드는 같은
+/// origin 에 `sqlite3.wasm`·`drift_worker.js` 가 있어야 하는데, 배포 워크플로가
+/// `pubspec.lock` 에 맞는 drift 릴리스에서 `web/` 으로 받아 둔다. 그래도 실패하면
+/// (또는 브라우저에 drift 가 쓰는 저장 API 가 없으면) 기록만 하고 계속 띄운다 —
+/// 화면은 뜨고, 기능 화면이 빈 DB 를 만나 각자 오류 상태를 보인다.
+@visibleForTesting
+Future<DemoBenefitsStore> prepareDemoStorage(
+  AppConfig config,
+  AppDatabase db,
+  Logger logger, {
+  Future<void> Function(AppDatabase db) seed = seedIfEmpty,
+}) async {
+  if (!config.useMockApi) return DemoBenefitsStore.memory();
+  try {
+    await seed(db);
+  } catch (e, st) {
+    logger.e(
+      'Drift seed failed — app will boot with no local data',
+      error: e,
+      stackTrace: st,
+    );
+  }
+  // 목업 혜택 장부(포인트·쿠폰·챌린지·보호권·이모티콘)는 같은 DB 의 키-값에 실어
+  // 새로고침 뒤에도 남긴다. 저장분이 없으면 시드를 깐다(#2664).
+  return DemoBenefitsStore.open(
+    db,
+    seed: () => buildDemoBenefitsSeed(nowKst()),
   );
 }
 
