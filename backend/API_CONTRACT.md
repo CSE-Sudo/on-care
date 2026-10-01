@@ -73,6 +73,16 @@
 | GET | `/ping` | `{ message }` |
 | GET | `/healthz` | `{ status, backend }` |
 | GET | `/version` | `{ api_version, app_version }` |
+| GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
+
+### 관리자 전용
+
+`ADMIN_EMAILS` 에 적은 계정만 쓴다(설정은 [`.env.example`](.env.example)). 미인증 401, 관리자가 아니면 403.
+
+| Method | Path | 응답 |
+|---|---|---|
+| GET | `/system/metrics` | AI 경로 성공·폴백 카운터 스냅숏(#583). 예: `routine_options.generated{by=ai}` 가 0 이면 AI 호출이 모두 폴백으로 떨어진 것이다 |
+| POST | `/coach/documents/public` | 입력 `{ content, domain, title, source? }` → **201** `{ ingested_chunks, domain, title }` — 공공 RAG 문서 적재. 본문이 비면 400, 임베딩을 쓸 수 없으면(키 미설정 등) 503, 그 밖의 적재 실패는 502. 오류 본문에 내부 상세를 싣지 않고, 상관은 `X-Request-ID` 로 한다 |
 
 ### 사용자
 
@@ -81,6 +91,14 @@
 | GET | `/users/me` | `{ id(str), name, email }` |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
+| GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
+| PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
+| POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
+| PUT | `/users/me/health-goals` | 건강 목표(식단 일일 6종 + 운동 7종) 부분 수정 → `ProfileView` |
+| GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` — 회원 알림 수신 설정. 저장한 적이 없으면 서버 기본값(#489) |
+| PUT | `/users/me/notification-settings` | 위 다섯 키 중 보낸 것만 반영 → 같은 모양 |
+| POST | `/users/me/pairing-code` | `{ code, expires_at, expires_in_seconds }` — 트레이너에게 불러 줄 6자리 코드(#1634). **이 호출이 데이터 공유 동의다**(#1022). 유효한 코드가 남아 있으면 같은 코드를 돌려준다. 회원 전용, rate limit 적용 |
+| DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
 
 `DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
 사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
@@ -148,6 +166,8 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
+| GET | `/diet/days/{date}` | `today` 와 같은 모양으로 그 날짜(`YYYY-MM-DD`) 하루. 형식이 깨지면 422 |
+| GET | `/diet/photos/{photo_id}` | 끼니 사진 바이트(이미지). `entries[].photo_url` 이 이 주소를 가리킨다. **남의 사진은 404** — 주소를 추측해도 열리지 않는다(#699) |
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
@@ -210,6 +230,7 @@
 | POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
+| GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0) 또는 duration_seconds(>0), intensity }` → `{ calories, source, matched_name, isometric }` — 초가 오면 분은 `/exercise/sessions` 와 같은 규칙으로 초에서 접는다 (#2547) |
 
 추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
@@ -616,6 +637,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
+| GET | `/ai-coach/messages` | `{ messages[] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
 | GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
 | POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota }` |
 
@@ -1182,6 +1204,18 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 두 앱 모두 로그인과 토큰 저장이 붙어 있다(`session_controller.dart`, `secure_token_store.dart`,
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
+
+| Method | Path | 요청 → 응답 |
+|---|---|---|
+| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email }` — 회원(`role=member`). 이미 가입된 이메일 409 |
+| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
+| POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
+| POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
+| POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
+| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type }`. 실패 응답은 아래 절 |
+
+인증 엔드포인트는 IP·엔드포인트당 분당 한도(`RATE_LIMIT_AUTH_PER_MINUTE`)를 받는다. 비밀번호·연락처·이름 규칙은
+아래 절들에 있다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
