@@ -778,7 +778,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         unawaited(push());
         changes = _changes.stream.listen((_) => unawaited(push()));
       },
-      onCancel: () => changes?.cancel(),
+      onCancel: () async {
+        await changes?.cancel();
+        await out.close();
+      },
     );
     return out.stream;
   }
