@@ -349,8 +349,14 @@ void main() {
   group('소속 트레이너 조회 상태 (#2857)', () {
     Future<void> openPicker(WidgetTester tester) async {
       final AppLocalizations l = _localizations(tester);
-      await _scrollTo(tester, find.text(l.exGymConsultRequest), 250);
-      await tester.tap(find.text(l.exGymConsultRequest));
+      final Finder start = find.text(l.exGymConsultRequest);
+      await _scrollTo(tester, start, 250);
+      // `scrollUntilVisible` 은 버튼이 지어지는 순간(cacheExtent 안)에 멈춘다.
+      // 소속 트레이너 섹션이 오류 안내로 바뀌면 버튼이 화면 아래에 걸려 탭이
+      // 빗나가므로, 화면 안까지 마저 올린다.
+      await Scrollable.ensureVisible(tester.element(start), alignment: 0.5);
+      await tester.pump();
+      await tester.tap(start);
       await tester.pumpAndSettle();
     }
 

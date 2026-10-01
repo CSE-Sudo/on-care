@@ -194,7 +194,9 @@ void main() {
     ProviderScope.containerOf(
       tester.element(myGymCard()),
     ).invalidate(myGymProvider);
-    await tester.pump();
+    // invalidate 뒤의 다시 읽기는 0초 타이머로 잡힌다 — 시간을 흘리지 않는
+    // `pump()` 로는 돌지 않으므로 0초를 흘려 실제 재조회까지 진행한다.
+    await tester.pump(Duration.zero);
 
     expect(loads, 2);
     expect(myGymCard(), findsOneWidget);
