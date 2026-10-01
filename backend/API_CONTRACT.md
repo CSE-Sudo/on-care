@@ -701,6 +701,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainers/{trainer_id}` | 단건(없으면 404) |
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
+- **운영자 승인**: 위 조건에 더해 `verification_status='approved'` 인 트레이너만 목록·추천·상세에 나오고 상담 대상이 된다(승인 전 상세는 404, 상담 요청은 404). 이미 담당인 회원이 자기 트레이너를 읽는 상세는 예외다(#691). 아래 [트레이너 운영자 승인](#트레이너-운영자-승인-2825) 참고. (#2825)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
@@ -1350,6 +1351,44 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 - `PUT /trainer/me` 로 `gym_name`·`gym_address`·`gym_hours`·`gym_phone` 을 보내면 소속 유무와
   관계없이 **409** 이고, 함께 온 다른 필드도 반영하지 않는다. 헬스장 문자열은 소속에서만 파생된다.
 
+### 트레이너 운영자 승인 (#2825)
+
+공개 가입(`POST /auth/trainer/register`)으로 생긴 트레이너는 **승인 대기(`pending`)** 로 시작한다.
+가입·로그인·프로필 작성·소속 선택은 그대로 되지만, 승인 전에는 회원 데이터로 이어지는 네 자리에서
+빠진다.
+
+| 자리 | 승인 전 동작 |
+|---|---|
+| 회원 앱 디렉터리 `/trainers`·`/trainers/recommended`·`/gyms/{id}/trainers` | 빠짐. 상세 `/trainers/{id}` 는 404 |
+| 상담 요청 `POST /consultations` | 404(대상 없음) |
+| 연결 코드 `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | **403** `detail={ code: "trainer_not_approved", message }` — 코드는 소비되지 않는다 |
+| 담당 요청 `POST /trainer/client-invites` | **403** 같은 모양 |
+| 담당 요청 수락 `POST /me/coach/invites/{id}/accept` | 보낸 트레이너가 지금 승인 상태가 아니면 404 |
+
+`GET /trainer/me`(및 같은 모양을 돌려주는 `PUT /trainer/me`·`PUT /trainer/me/gym*`)는
+`verification: { status: "pending"|"approved"|"rejected", decided_at: datetime|null, note: string }`
+을 싣는다. `note` 는 반려 사유(승인·대기면 빈 문자열)이고, 트레이너 웹이 그대로 보여 준다.
+
+운영자 엔드포인트(모두 `RequireAdmin` — 비관리자 403, 미인증 401, 처리 결과는 감사 로그
+`admin.trainer_approve`/`admin.trainer_reject`):
+
+| Method | Path | Body / Query → Response |
+|---|---|---|
+| GET | `/admin/trainers` | `status`(`pending` 기본·`approved`·`rejected`·`all`) → `[AdminTrainerVerificationOut]` |
+| POST | `/admin/trainers/{trainer_id}/approve` | → `AdminTrainerVerificationOut` (반려했던 트레이너도 승인 가능, 사유는 지움) |
+| POST | `/admin/trainers/{trainer_id}/reject` | `{ reason?: string(≤300) }` → `AdminTrainerVerificationOut` |
+
+`AdminTrainerVerificationOut = { trainer_id, name, email, specialty, career_years, certifications[],
+gym_id, gym_name, gym_address, gym_is_fitness, status, decided_at, decided_by, note, created_at }`.
+트레이너 계정이 아니거나 없으면 404.
+
+- **반려는 새 연결만 막는다.** 이미 맺어진 담당 관계·받은 상담은 그대로 둔다 — 끊으려면 회원 쪽
+  알림·동의 철회가 따라야 하고, 그건 계정 정지·탈퇴 경로의 일이다.
+- 마이그레이션(`0124_trainer_verification`)은 **기존 트레이너를 모두 `approved` 로 채운다.**
+  DB 기본값은 `pending` 이라 ORM 밖에서 넣은 행은 노출되지 않는다. ORM 기본값은 `approved`
+  (시드·운영 스크립트 경로)이고, 공개 가입만 `pending` 을 명시한다.
+- 자격증 사본 등 증빙 업로드와 운영자 관리 화면은 아직 없다.
+
 **로그인에는 걸지 않는다.** 이 기준 이전에 만든 계정은 비밀번호가 기준에 못 미쳐도 그대로
 로그인되고, 트레이너는 `POST /trainer/me/password` 로 기준에 맞는 값으로 옮길 수 있다. 로그인에
 72바이트를 넘는 비밀번호가 오면 **401**(불일치)이다 — bcrypt 5 가 72바이트 초과 입력에
@@ -1409,6 +1448,7 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 | `RequireUser` | 401 | 없음 |
 | `RequireMember` | 401 | 회원만. 트레이너면 403 |
 | `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
+| `RequireApprovedTrainer` | 401 | 운영자 승인을 받은 트레이너만. 승인 전이면 403 `trainer_not_approved` (#2825) |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 
 읽기 화면은 `CurrentUser`, 쓰기·삭제는 `RequireMember`, 트레이너 앱(`/v1/trainer/*`)은

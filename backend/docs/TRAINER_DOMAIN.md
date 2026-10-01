@@ -217,6 +217,24 @@
   같은 규칙이라 같은 헬스장은 한 행으로 모인다. 규칙: **목록에 들어가는 헬스장 =
   카카오에 있는 실제 헬스장(`스포츠시설` 카테고리)**.
 
+### 트레이너 운영자 승인 (#2825, `0124_trainer_verification`)
+
+헬스장이 실재해도 **그 사람이 그 헬스장 트레이너인지는** 소속 선택만으로 알 수 없다.
+공개 가입 트레이너는 `TrainerProfile.verification_status='pending'` 으로 시작하고, 운영자가
+`POST /admin/trainers/{id}/approve` 로 승인해야 회원에게 닿는다.
+
+- 승인 전(`pending`)·반려(`rejected`) 트레이너는 회원 앱 디렉터리(`gym_service._trainer_query`),
+  상담 대상(`consultation_service._validate_target`), 연결 코드·담당 요청 발송
+  (`RequireApprovedTrainer`, 403 `trainer_not_approved`)에서 빠진다. 반려 뒤 남은 담당 요청은
+  회원이 수락할 수 없다(404).
+- 프로필·소속·비밀번호·탈퇴 같은 계정 관리는 승인과 무관하게 열려 있다 — 운영자가 판단할
+  내용을 채워 두는 시간이다.
+- 반려는 **새 연결만** 막는다. 이미 맺은 담당·받은 상담은 그대로다.
+- 처리 시각·처리자·반려 사유는 `verification_decided_at`·`verification_decided_by`·
+  `verification_note` 에 남고, `GET /trainer/me` 의 `verification` 으로 트레이너 웹에 간다.
+- 기존 트레이너와 시드 트레이너는 `approved` 다(마이그레이션 백필·ORM 기본값). DB 기본값은
+  `pending` 이라 ORM 밖에서 넣은 행은 닫힌 쪽에서 시작한다.
+
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 
 | Method | Path | 설명 |
