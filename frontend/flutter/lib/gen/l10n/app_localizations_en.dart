@@ -2234,7 +2234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachInviteExplain =>
-      'Accepting lets this trainer see your meal and workout records.';
+      'Accepting lets this trainer see your meal records, workout records, body information and health goals. You\'ll be asked to agree to sharing before you accept.';
 
   @override
   String get coachInviteAccept => 'Accept';
@@ -2783,7 +2783,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.';
+      'Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don\'t agree, you just can\'t send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.';
 
   @override
   String get exConsultDataSharingAgree =>
@@ -2806,7 +2806,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachInviteConsentBody(String name) {
-    return 'Once $name becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.';
+    return 'Once $name becomes your trainer, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
   }
 
   @override
@@ -3194,7 +3194,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncConsent =>
-      'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.';
+      'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
+
+  @override
+  String get trainerShareDetailMore => 'Show details';
+
+  @override
+  String get trainerShareDetailLess => 'Hide details';
+
+  @override
+  String get trainerShareRecipientLabel => 'Shared with';
+
+  @override
+  String get trainerShareRecipient => 'The trainer connected as your coach';
+
+  @override
+  String get trainerShareItemsLabel => 'What is shared';
+
+  @override
+  String get trainerShareItems =>
+      'Meal records, workout records, body information and health goals';
+
+  @override
+  String get trainerSharePurposeLabel => 'Purpose';
+
+  @override
+  String get trainerSharePurpose =>
+      'Coaching, consultations and writing reports';
+
+  @override
+  String get trainerSharePeriodLabel => 'How long';
+
+  @override
+  String get trainerSharePeriod =>
+      'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.';
+
+  @override
+  String get trainerShareRefuseLabel => 'Your right to refuse';
+
+  @override
+  String get trainerShareRefuse =>
+      'You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won\'t be made.';
 
   @override
   String get trainerSyncAgree => 'Agree and get a code';

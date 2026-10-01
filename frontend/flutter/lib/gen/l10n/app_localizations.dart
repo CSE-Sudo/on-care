@@ -3911,7 +3911,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteExplain.
   ///
   /// In en, this message translates to:
-  /// **'Accepting lets this trainer see your meal and workout records.'**
+  /// **'Accepting lets this trainer see your meal records, workout records, body information and health goals. You\'ll be asked to agree to sharing before you accept.'**
   String get coachInviteExplain;
 
   /// No description provided for @coachInviteAccept.
@@ -4822,7 +4822,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultDataSharingNotice.
   ///
   /// In en, this message translates to:
-  /// **'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
+  /// **'Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don\'t agree, you just can\'t send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
   String get exConsultDataSharingNotice;
 
   /// No description provided for @exConsultDataSharingAgree.
@@ -4858,7 +4858,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteConsentBody.
   ///
   /// In en, this message translates to:
-  /// **'Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.'**
+  /// **'Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String coachInviteConsentBody(String name);
 
   /// No description provided for @coachInviteConsentAgree.
@@ -5536,8 +5536,80 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncConsent.
   ///
   /// In en, this message translates to:
-  /// **'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.'**
+  /// **'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String get trainerSyncConsent;
+
+  /// No description provided for @trainerShareDetailMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show details'**
+  String get trainerShareDetailMore;
+
+  /// No description provided for @trainerShareDetailLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide details'**
+  String get trainerShareDetailLess;
+
+  /// No description provided for @trainerShareRecipientLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with'**
+  String get trainerShareRecipientLabel;
+
+  /// No description provided for @trainerShareRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer connected as your coach'**
+  String get trainerShareRecipient;
+
+  /// No description provided for @trainerShareItemsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What is shared'**
+  String get trainerShareItemsLabel;
+
+  /// No description provided for @trainerShareItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal records, workout records, body information and health goals'**
+  String get trainerShareItems;
+
+  /// No description provided for @trainerSharePurposeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purpose'**
+  String get trainerSharePurposeLabel;
+
+  /// No description provided for @trainerSharePurpose.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching, consultations and writing reports'**
+  String get trainerSharePurpose;
+
+  /// No description provided for @trainerSharePeriodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get trainerSharePeriodLabel;
+
+  /// No description provided for @trainerSharePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.'**
+  String get trainerSharePeriod;
+
+  /// No description provided for @trainerShareRefuseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your right to refuse'**
+  String get trainerShareRefuseLabel;
+
+  /// No description provided for @trainerShareRefuse.
+  ///
+  /// In en, this message translates to:
+  /// **'You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won\'t be made.'**
+  String get trainerShareRefuse;
 
   /// No description provided for @trainerSyncAgree.
   ///
