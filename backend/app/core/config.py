@@ -81,6 +81,17 @@ class Settings(BaseSettings):
     #: 정도이되, 대화 스레드가 파일 서버가 되지는 않을 정도.
     max_chat_image_bytes: int = 6 * 1024 * 1024
 
+    #: 채팅 첨부(사진·리포트 PDF) 바이트 저장소(#2817). auto 는 버킷 이름이 있으면
+    #: s3, 없으면 local(위 두 디렉터리). 컨테이너 디스크는 재배포·스케일 아웃에서
+    #: 비므로 운영은 s3 를 쓴다. 자격 증명은 실행 환경의 IAM 역할에서 받는다.
+    attachment_storage: Literal["auto", "local", "s3"] = "auto"
+    attachment_s3_bucket: str = ""
+    attachment_s3_region: str = ""
+    #: 키 접두사. 실제 키는 `<접두사>/chat-images/<id>.<ext>`·`.../report-pdfs/<id>.pdf`.
+    attachment_s3_prefix: str = "chat-attachments"
+    #: S3 호환 저장소·로컬 에뮬레이터를 쓸 때만. 비우면 AWS 기본 엔드포인트.
+    attachment_s3_endpoint_url: str = ""
+
     # --- AI 엔진 ---
     recognizer: str = "gemini"        # gemini | claude(litellm) | yolo
     # 인식 후 공공 식품영양성분 DB 로 영양 수치 보강(정확도↑). 순수 LLM 비교실험 시 false.

@@ -118,6 +118,53 @@ CREATE EXTENSION IF NOT EXISTS vector;
   `ecr:BatchGetImage`·`ecr:GetDownloadUrlForLayer`·`ecr:BatchCheckLayerAvailability`·`ecr:DescribeImages`
   (해당 리포 리소스). 이 역할이 없으면 배포/기동 시 이미지 pull 이 실패한다.
 
+## 5-1) 채팅 첨부 저장소 — S3 (#2817)
+
+채팅 사진과 주간 리포트 PDF 의 **바이트**는 DB 가 아니라 저장소에 둔다(메타데이터만 DB).
+App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 때 비거나 인스턴스마다 달라서,
+운영은 S3 버킷을 쓴다. 로컬 개발·테스트는 지금처럼 디스크(`data/chat-images`,
+`data/report-pdfs`)에 쓴다.
+
+| 키 | 값/설명 |
+|---|---|
+| `ATTACHMENT_STORAGE` | `auto`(기본: 버킷 이름이 있으면 `s3`, 없으면 `local`) · `local` · `s3`. `s3` 인데 버킷이 비면 기동 거부 |
+| `ATTACHMENT_S3_BUCKET` | 첨부 버킷 이름. 비면 로컬 디스크(운영이면 기동 때 WARN) |
+| `ATTACHMENT_S3_REGION` | 버킷 리전. 비면 AWS 기본 체인(App Runner 리전) |
+| `ATTACHMENT_S3_PREFIX` | 키 접두사(기본 `chat-attachments`). 키는 `<접두사>/chat-images/<id>.<ext>`·`<접두사>/report-pdfs/<id>.pdf` |
+| `ATTACHMENT_S3_ENDPOINT_URL` | S3 호환 저장소를 쓸 때만. AWS 는 비운다 |
+
+- **자격 증명은 환경변수로 주지 않는다.** App Runner **인스턴스 역할**에 버킷 권한을 준다:
+  `s3:PutObject`·`s3:GetObject`·`s3:DeleteObject`(리소스 `arn:aws:s3:::<버킷>/<접두사>/*`)와
+  `s3:ListBucket`(리소스 `arn:aws:s3:::<버킷>`, 조건 `s3:prefix` = `<접두사>/*`).
+  **`ListBucket` 을 빼면 안 된다** — 없으면 S3 가 없는 키에 404 대신 403 을 주어, 사진의
+  확장자를 차례로 찾는 조회와 이전 스크립트의 존재 확인이 저장소 장애로 읽힌다.
+- 버킷은 **퍼블릭 접근 차단**을 켠다. 다운로드는 늘 백엔드가 권한(스레드의 두 사람·담당 링크·
+  동의)을 확인한 뒤 흘려보내므로 버킷을 공개할 이유가 없다. 서명 URL 도 쓰지 않는다.
+- 기본 암호화(SSE-S3)를 켜 둔다. 버전 관리를 켜면 탈퇴로 지운 객체가 이전 버전으로 남으니,
+  켤 경우 **이전 버전 만료 수명 주기 규칙**(예: 30일)을 함께 건다.
+- 탈퇴 시 그 계정이 낀 스레드의 첨부를 지운다. 삭제 실패는 `탈퇴 첨부 삭제 실패` 경고 로그에
+  `file_id` 와 함께 남으니, 로그 알림으로 받아 수동으로 지운다.
+
+### 전환 절차 (로컬 디스크 → S3)
+
+1. 버킷·인스턴스 역할 권한을 만든다(#480).
+2. 기존 파일이 있는 환경(지금 떠 있는 컨테이너 또는 그 디스크 사본)에서 DB 를 운영 값으로 두고
+   이전 스크립트로 옮긴다. **DB 가 가리키는 파일만** 옮기고, 이미 있는 키는 건너뛴다(여러 번 돌려도 같다).
+
+   ```bash
+   ATTACHMENT_S3_BUCKET=<버킷> ATTACHMENT_S3_REGION=<리전> \
+     python -m scripts.migrate_attachments --dry-run   # 옮길 목록·로컬에 없는 파일 확인
+   ATTACHMENT_S3_BUCKET=<버킷> ATTACHMENT_S3_REGION=<리전> \
+     python -m scripts.migrate_attachments
+   ```
+
+   `DB 에는 있는데 로컬에 없는 파일` 은 이미 재배포로 잃은 파일이라 복구할 수 없다.
+3. App Runner 서비스 환경변수에 `ATTACHMENT_S3_BUCKET`(필요하면 `ATTACHMENT_S3_REGION`)을 넣고
+   재배포한다. 배포 뒤 `/v1/healthz` 의 `attachment_storage` 가 `s3` 인지 확인한다.
+4. 대화방에서 예전 사진·리포트가 열리는지 확인한 뒤 컨테이너 쪽 사본을 지운다.
+
+데모 시드 첨부(#2788)는 기동마다 같은 `file_id` 로 다시 쓰므로 옮기지 않아도 된다.
+
 ## 6) 프론트 연결
 
 ```bash
