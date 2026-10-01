@@ -1,16 +1,27 @@
+/// 데모의 운동 주간은 공유 픽스처에서 온다 — 앱의 데모와 같은 경로(시드한 메모리
+/// drift + 로컬 목업 API, #2662)로 본다(#2724). 예전에는 메모리 목업 저장소를
+/// 상대로 같은 것을 봤는데, 데모가 그 대역을 쓰지 않게 되며 대역을 지웠다.
+///
+/// 칼로리는 저장된 기록의 값으로 본다 — 서버처럼 로컬 목업 API 도 앱이 보낸
+/// 값을 쓰지 않고 다시 계산한다(#1312).
+library;
+
 import 'dart:io';
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+
+import '../../helpers/demo_exercise.dart';
+import '../../helpers/fixed_clock.dart';
 
 /// 기대값은 여기에 적지 않고 **원본 픽스처 파일**에서 뽑는다. 숫자를 적어 두면
 /// 픽스처와 두 벌이 되어, 한쪽만 고쳤을 때 조용히 갈린다(#757).
 ///
-/// 앱에 심긴 상수(`kimMinsuFixtureJson`)가 아니라 원본 파일을 읽는 이유: 목업은
+/// 앱에 심긴 상수(`kimMinsuFixtureJson`)가 아니라 원본 파일을 읽는 이유: 시드는
 /// 심긴 상수를 쓰므로, 둘이 어긋나면 이 테스트가 그것까지 잡는다.
 final DemoFixture _fixture = DemoFixture.parse(
   File('../../shared/demo_fixture/assets/kim_minsu.json').readAsStringSync(),
@@ -20,8 +31,11 @@ final DemoFixture _fixture = DemoFixture.parse(
 /// 위해 고정 금요일(2024-01-05, weekday=금 → index 4)을 주입한다.
 final DateTime _friday = DateTime(2024, 1, 5);
 
-MockExerciseRepository _repo({DateTime? today}) =>
-    MockExerciseRepository(today: today ?? _friday);
+/// [today] 를 오늘로 두고 픽스처로 시드한 데모 DB 위의 저장소.
+Future<ExerciseRepository> _repo({DateTime? today}) async {
+  useFixedKstDate(today ?? _friday);
+  return demoExerciseBackend(await seededDemoDatabase()).repository;
+}
 
 String _ymd(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-'
@@ -55,7 +69,7 @@ List<double> _minutesByWeekday(DateTime today, {int weeksAgo = 0}) {
 void main() {
   group('이번 주는 공유 픽스처에서 온다 (#771)', () {
     test('세션·시간·칼로리가 픽스처의 한 운동과 같다', () async {
-      final ExerciseWeek w = await _repo().fetchThisWeek();
+      final ExerciseWeek w = await (await _repo()).fetchThisWeek();
       final List<FixtureDay> days = _weekDays(_friday);
 
       // 운동 하나가 세션 하나다 — 실서버와 같은 모양이다(#1902). 예전에는
@@ -98,7 +112,7 @@ void main() {
       // 트레이너웹은 같은 픽스처에서 나온 일별 이행률이 0 보다 큰 날을 센다.
       // 두 앱이 같은 사람을 다른 횟수로 말하지 않으려면 이 둘이 같아야 한다 —
       // 예전에는 목업이 '오늘 + 직전 3일'을 스스로 박아 6회 vs 4회로 갈렸다.
-      final ExerciseWeek w = await _repo().fetchThisWeek();
+      final ExerciseWeek w = await (await _repo()).fetchThisWeek();
       final int loggedDays = _weekDays(
         _friday,
       ).where((FixtureDay d) => d.completion > 0).length;
@@ -110,7 +124,7 @@ void main() {
     test('주 시작 전으로 넘어가는 날은 이번 주 뷰에 들어오지 않는다', () async {
       // 월요일(2024-01-01)이면 이번 주에 남는 날은 오늘 하루뿐이다.
       final DateTime monday = DateTime(2024);
-      final ExerciseWeek w = await _repo(today: monday).fetchThisWeek();
+      final ExerciseWeek w = await (await _repo(today: monday)).fetchThisWeek();
 
       expect(w.dailyMinutes, _minutesByWeekday(monday));
       expect(w.dailyMinutes.skip(1), everyElement(0.0));
@@ -120,7 +134,7 @@ void main() {
     test(
       'daily == cardio + strength + stretching + other for every day',
       () async {
-        final ExerciseWeek w = await _repo().fetchThisWeek();
+        final ExerciseWeek w = await (await _repo()).fetchThisWeek();
         for (int i = 0; i < w.dailyMinutes.length; i++) {
           expect(
             w.cardioMinutes[i] +
@@ -135,7 +149,7 @@ void main() {
     );
 
     test('오늘 기록에는 오늘 라벨과 픽스처의 종목 이름이 붙는다', () async {
-      final ExerciseWeek w = await _repo().fetchThisWeek();
+      final ExerciseWeek w = await (await _repo()).fetchThisWeek();
       final FixtureDay today = _weekDays(_friday).last;
       final Iterable<ExerciseSession> todaySessions = w.sessions.where(
         (ExerciseSession s) => s.dateLabel == '오늘',
@@ -149,9 +163,9 @@ void main() {
     });
   });
 
-  group('CRUD keeps derived totals/chart in memory (#294)', () {
+  group('추가·수정·삭제가 주간 합계·그래프에 반영된다 (#294)', () {
     test('addSession persists and updates totals/chart/count', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final ExerciseWeek before = await r.fetchThisWeek();
       // 아직 기록이 없는 요일을 골라 새 활성일이 하나 느는 것을 본다.
       final int restDay = before.dailyMinutes.indexOf(0);
@@ -176,29 +190,30 @@ void main() {
         contains(added.id),
       );
       expect(after.totalMinutes, before.totalMinutes + 30);
-      expect(after.totalCalories, before.totalCalories + 200);
+      expect(after.totalCalories, before.totalCalories + added.calories);
       expect(after.dailyMinutes[restDay], 30);
-      expect(after.dailyCalories[restDay], 200);
+      expect(after.dailyCalories[restDay], added.calories);
       expect(after.cardioMinutes[restDay], 30);
       expect(after.workoutCount, before.workoutCount + 1);
     });
 
     test('deleteSession removes it and restores the totals', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       // 지울 수 있는 것은 회원이 적은 기록뿐이다 — 픽스처 기록은 PT·배정
       // 루틴에서 온 파생 기록이라 이 경로로 사라지지 않는다.
       final DateTime monday = _friday.subtract(
         Duration(days: _friday.weekday - 1),
       );
       final int day = (await r.fetchThisWeek()).dailyMinutes.indexOf(0);
-      final ExerciseSession target = (await r.addSessions(<ExerciseSessionDraft>[
-        ExerciseSessionDraft(
-          type: ExerciseType.cardio,
-          minutes: 30,
-          calories: 200,
-          date: monday.add(Duration(days: day)),
-        ),
-      ])).sessions.single;
+      final ExerciseSession target =
+          (await r.addSessions(<ExerciseSessionDraft>[
+            ExerciseSessionDraft(
+              type: ExerciseType.cardio,
+              minutes: 30,
+              calories: 200,
+              date: monday.add(Duration(days: day)),
+            ),
+          ])).sessions.single;
       final ExerciseWeek before = await r.fetchThisWeek();
 
       await r.deleteSession(target.id!);
@@ -221,8 +236,8 @@ void main() {
       );
     });
 
-    test('deleting an unknown id is a no-op', () async {
-      final MockExerciseRepository r = _repo();
+    test('없는 기록을 지워도 주간은 그대로다', () async {
+      final ExerciseRepository r = await _repo();
       final ExerciseWeek before = await r.fetchThisWeek();
       await r.deleteSession('does-not-exist');
       final ExerciseWeek after = await r.fetchThisWeek();
@@ -231,22 +246,23 @@ void main() {
     });
 
     test('updateSession edits a session and re-derives totals', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final DateTime monday = _friday.subtract(
         Duration(days: _friday.weekday - 1),
       );
       final int day = (await r.fetchThisWeek()).dailyMinutes.indexOf(0);
-      final ExerciseSession target = (await r.addSessions(<ExerciseSessionDraft>[
-        ExerciseSessionDraft(
-          type: ExerciseType.strength,
-          minutes: 20,
-          calories: 120,
-          date: monday.add(Duration(days: day)),
-        ),
-      ])).sessions.single;
+      final ExerciseSession target =
+          (await r.addSessions(<ExerciseSessionDraft>[
+            ExerciseSessionDraft(
+              type: ExerciseType.strength,
+              minutes: 20,
+              calories: 120,
+              date: monday.add(Duration(days: day)),
+            ),
+          ])).sessions.single;
       final ExerciseWeek before = await r.fetchThisWeek();
 
-      await r.updateSession(
+      final ExerciseSession updated = await r.updateSession(
         id: target.id!,
         type: ExerciseType.strength,
         minutes: target.minutes + 30,
@@ -257,7 +273,10 @@ void main() {
       final ExerciseWeek after = await r.fetchThisWeek();
       expect(after.sessions.length, before.sessions.length); // 개수 불변
       expect(after.totalMinutes, before.totalMinutes + 30);
-      expect(after.totalCalories, before.totalCalories + 180);
+      expect(
+        after.totalCalories,
+        before.totalCalories - target.calories + updated.calories,
+      );
       expect(after.strengthMinutes[day], before.strengthMinutes[day] + 30);
       expect(after.dailyMinutes[day], before.dailyMinutes[day] + 30);
     });
@@ -265,7 +284,7 @@ void main() {
 
   group('픽스처 기록의 출처는 PT·배정 루틴이다 (#499, #638)', () {
     test('PT 날은 trainer_pt, 나머지 날은 assigned_routine 이다', () async {
-      final ExerciseWeek w = await _repo().fetchThisWeek();
+      final ExerciseWeek w = await (await _repo()).fetchThisWeek();
       for (final FixtureDay day in _weekDays(_friday)) {
         final Iterable<ExerciseSession> ofDay = w.sessions.where(
           (ExerciseSession s) => s.dayLabel == day.dayLabel,
@@ -283,24 +302,31 @@ void main() {
     });
 
     test('회원이 직접 적은 기록은 하나도 없다 — `직접 추가한 운동` 은 비어 있다', () async {
-      final ExerciseWeek w = await _repo().fetchThisWeek();
+      final ExerciseWeek w = await (await _repo()).fetchThisWeek();
       expect(w.sessions.where((ExerciseSession s) => s.isEditable), isEmpty);
     });
 
     test('파생 기록은 회원이 고치거나 지우지 못한다 — 서버의 409 와 같다', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final ExerciseWeek before = await r.fetchThisWeek();
       final ExerciseSession pt = before.sessions.firstWhere(
         (ExerciseSession s) => s.source == ExerciseSource.trainerPt,
       );
 
+      // 로컬 목업 API 는 서버처럼 409 로 거절한다 — 응답 자체는
+      // `local_api_interceptor_exercise_source_test` 가 본다. 여기서는 거절된
+      // 뒤 주간이 그대로인지를 본다. 수정은 고친 기록 대신 거절 응답이 와
+      // 기록으로 읽지 못하고 실패한다.
       await r.deleteSession(pt.id!);
-      await r.updateSession(
-        id: pt.id!,
-        type: ExerciseType.cardio,
-        minutes: 5,
-        calories: 5,
-        date: _friday,
+      await expectLater(
+        r.updateSession(
+          id: pt.id!,
+          type: ExerciseType.cardio,
+          minutes: 5,
+          calories: 5,
+          date: _friday,
+        ),
+        throwsA(anything),
       );
 
       final ExerciseWeek after = await r.fetchThisWeek();
@@ -314,7 +340,7 @@ void main() {
 
   group('fetchWeek 로 지난 주를 조회한다 (#671)', () {
     test('이번 주 월요일을 주면 fetchThisWeek 과 같다', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       // 2024-01-05 는 금요일 → 그 주 월요일은 2024-01-01.
       final ExerciseWeek week = await r.fetchWeek(DateTime(2024));
       final ExerciseWeek current = await r.fetchThisWeek();
@@ -323,7 +349,7 @@ void main() {
     });
 
     test('지난 주도 같은 픽스처에서 오고, 이번 주와 다르다', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final ExerciseWeek last = await r.fetchWeek(DateTime(2023, 12, 25));
       final ExerciseWeek current = await r.fetchThisWeek();
 
@@ -357,7 +383,7 @@ void main() {
     test('픽스처가 덮지 않는 옛 주는 빈 주다', () async {
       // 없는 기록을 지어내면 트레이너웹과 다시 갈린다. 화면은 빈 주를
       // "기록이 없어요" 로 그린다.
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final DateTime tooOld = DateTime(
         2024,
         1,
@@ -373,7 +399,7 @@ void main() {
 
   group('기간별 조언은 그 기간의 기록만 본다 (#1574)', () {
     test('오늘 / 이번 주 / 전체가 서로 다른 말을 한다', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final String today = (await r.fetchAdvice('today')).message;
       final String week = (await r.fetchAdvice('week')).message;
       final String all = (await r.fetchAdvice('all')).message;
@@ -385,7 +411,7 @@ void main() {
     });
 
     test('오늘 조언은 오늘 기록만 센다', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final List<FixtureDay> days = _weekDays(_friday);
       final FixtureDay? todayFixture = days
           .where((FixtureDay d) => d.date == _ymd(_friday))
@@ -407,7 +433,7 @@ void main() {
     });
 
     test('직접 적은 기록이 그날 조언에 바로 반영된다', () async {
-      final MockExerciseRepository r = _repo();
+      final ExerciseRepository r = await _repo();
       final String before = (await r.fetchAdvice('today')).message;
       await r.addSessions(<ExerciseSessionDraft>[
         ExerciseSessionDraft(
