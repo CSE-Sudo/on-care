@@ -13,7 +13,7 @@
 frontend/flutter/lib/features/member_coach/presentation/widgets/coach_chat_sheet.dart · showDemoBanners · 데모 채팅에만 날짜별 안내 배너를 끼워 넣는다 · #543 #2672
 frontend/flutter/lib/shared/widgets/coaching_sheet.dart · return kCoachFallbackCardCount · 데모 배지는 고정 카드 수를 센다(실서버는 받은 제안 수, 카드 수는 #2706 에서 2장으로 맞췄다) · #788 #2706
 frontend/flutter/lib/shared/widgets/coaching_sheet.dart · if (ref.watch(appConfigProvider).useMockApi) { · 데모는 시드 이야기에 맞춘 고정 코칭 카드를 보이고 실서버만 /ai-coach/feedback 제안을 그린다 · #320 #2706
-frontend/flutter_trainer/lib/features/auth/presentation/pages/trainer_sign_in_page.dart · if (ref.read(appConfigProvider).useMockApi) { · 소셜 로그인은 실제 SDK 연동 전이라 실서버에서는 시드 계정으로 들어간다 · #330 #2769
+frontend/flutter_trainer/lib/features/auth/presentation/pages/trainer_sign_in_page.dart · socialAvailable · 실제 OAuth 연동 전이라 실서버에서는 소셜 로그인 버튼을 감추고 데모에서만 보인다(전에는 실서버가 시드 계정으로 바로 들어갔다) · #330 #2769
 frontend/flutter_trainer/lib/features/clients/presentation/widgets/chat_view.dart · if (!ref.read(appConfigProvider).useMockApi) { · 실서버는 한 번 읽는 경로라 보낸 뒤 대화·안 읽음 수를 다시 받는다(데모 drift 는 스트림이 다시 흐른다) · #341 #2114
 frontend/flutter_trainer/lib/features/clients/presentation/widgets/chat_view.dart · final realApi = · 실서버만 대화를 열 때 읽음 처리 뒤 안 읽음 수를 다시 받는다 · #341
 frontend/flutter_trainer/lib/features/clients/presentation/widgets/chat_view.dart · showDemoBanners · 데모 채팅에만 분석·루틴 전송 안내 배너를 끼워 넣는다 · #341 #2672
