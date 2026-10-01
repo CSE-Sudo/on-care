@@ -39,10 +39,13 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -141,6 +144,88 @@ class _FakeServer implements HttpClientAdapter {
       },
     ],
     'POST /me/coach/chat/read': <String, Object?>{},
+    // 홈
+    'GET /dashboard/summary': <String, Object?>{
+      'indicators': <Object?>[
+        <String, Object?>{
+          'label': '칼로리',
+          'current': 1500,
+          'max': 2000,
+          'unit': 'kcal',
+        },
+      ],
+      'diet_entries': 3,
+      'exercise_minutes': 30,
+      'nutrition_week': <Object?>[
+        for (int d = 0; d < 7; d++)
+          <String, Object?>{'label': '$d', 'calories': 1500},
+      ],
+    },
+    'GET /diet/recommendations': <String, Object?>{
+      'items': <Object?>[
+        <String, Object?>{'key': 'chicken_salad', 'reason_key': 'sodium'},
+      ],
+      'personalized': false,
+      'trainer_pick': <String, Object?>{
+        'slot': 'dinner',
+        'name': '닭가슴살 스테이크',
+        'tag': 'protein_high',
+        'keyword': '고단백',
+        'trainer_name': '박트레이너',
+      },
+    },
+    'GET /users/me/profile': <String, Object?>{
+      'name': '김회원',
+      'email': 'member@oncare.test',
+    },
+    // 식단
+    'GET /diet/days/today': <String, Object?>{
+      'entries': <Object?>[
+        <String, Object?>{
+          'id': 'meal-1',
+          'meal_type': 'lunch',
+          'time_label': '12:30',
+          'foods': <Object?>[
+            <String, Object?>{'name': '현미밥', 'calories': 300},
+          ],
+          'total_calories': 300,
+        },
+      ],
+      'total_calories': 300,
+      'total_sodium_mg': 400,
+      'total_sugar_g': 2,
+      'ai_coach_message': '',
+    },
+    'GET /diet/advice': <String, Object?>{
+      'message': '단백질을 조금 더 챙겨 보세요.',
+      'analysis': '',
+      'action': '',
+    },
+    'GET /me/records/span': <String, Object?>{
+      'diet_first_date': '2026-08-01',
+      'exercise_first_date': '2026-08-01',
+    },
+    // MY
+    'GET /users/me/health': <String, Object?>{
+      'profile': <String, Object?>{
+        'name': '김회원',
+        'email': 'member@oncare.test',
+      },
+      'risk': <String, Object?>{'title': '', 'body': '', 'level': 'low'},
+      'activity_points': 120,
+      'settings': <Object?>[],
+    },
+    'GET /me/activity-calendar': <String, Object?>{
+      'days': <Object?>[],
+      'color': <String, Object?>{'current': 'blue'},
+    },
+    'GET /me/profile-pet': <String, Object?>{'pet': null},
+    'GET /me/gym': <String, Object?>{'id': 'gym-parity', 'name': '비교 헬스장'},
+    'GET /trainers/trainer-parity': <String, Object?>{
+      'id': 'trainer-parity',
+      'name': '박트레이너',
+      'gym_id': 'gym-parity',
+    },
   };
 
   @override
@@ -358,6 +443,112 @@ void main() {
         ParityEntry('보내기', (l) => find.byTooltip(l.a11ySendMessage)),
         ParityEntry('이모티콘', (l) => find.byTooltip(l.a11yOpenEmotes)),
         ParityEntry('사진 첨부', (l) => find.byTooltip(l.coachPhotoAttach)),
+      ],
+    );
+  });
+
+  testWidgets('홈 — 알림·채팅 입구, AI 코칭, 자세히, 주간 그래프, 추천 식단', (
+    WidgetTester tester,
+  ) async {
+    await _expectParity(
+      tester,
+      page: const DashboardPage(),
+      entries: <ParityEntry>[
+        ParityEntry('알림 종', (l) => find.byTooltip(l.pageNotificationTitle)),
+        ParityEntry(
+          '트레이너 채팅 버튼',
+          (_) => find.byKey(const Key('trainerChatHeaderButton')),
+        ),
+        ParityEntry(
+          'AI 코칭 배너',
+          (_) => find.byKey(const ValueKey<String>('home-coaching-banner')),
+        ),
+        ParityEntry('자세히', (l) => find.text(l.homeDetails)),
+        ParityEntry(
+          '주간 칼로리 그래프',
+          (_) =>
+              find.byKey(const ValueKey<String>('dashboard-nutrition-chart')),
+        ),
+        ParityEntry(
+          '운동 주간 카드',
+          (_) => find.byKey(const ValueKey<String>('dashboard-exercise-week')),
+        ),
+        ParityEntry('추천 식단', (_) => find.byKey(const Key('rec-meal-source'))),
+        ParityEntry('트레이너 추천 식단', (l) => find.text(l.homeMealSourceTrainer)),
+      ],
+    );
+  });
+
+  testWidgets('식단 — 알림·채팅 입구, 주 이동, 기간 탭, 요약, AI 피드백, 끼니', (
+    WidgetTester tester,
+  ) async {
+    await _expectParity(
+      tester,
+      page: const DietRecordPage(),
+      entries: <ParityEntry>[
+        ParityEntry('알림 종', (l) => find.byTooltip(l.pageNotificationTitle)),
+        ParityEntry(
+          '트레이너 채팅 버튼',
+          (_) => find.byKey(const Key('trainerChatHeaderButton')),
+        ),
+        ParityEntry('지난 주', (l) => find.byTooltip(l.a11yPrevWeek)),
+        ParityEntry(
+          '기간 탭',
+          (_) => find.byKey(const ValueKey<String>('diet-period-toggle')),
+        ),
+        ParityEntry(
+          '영양 요약',
+          (_) => find.byKey(const Key('nutrition-summary-card')),
+        ),
+        ParityEntry('AI 피드백', (l) => find.text(l.dietAiFeedback)),
+        ParityEntry(
+          '끼니 기록 머리',
+          (_) => find.byKey(const ValueKey<String>('meal-log-header')),
+        ),
+        ParityEntry(
+          '끼니 추가',
+          (l) => find.byWidgetPredicate(
+            (Widget w) => w is AppButton && w.label == l.dietAddMeal,
+          ),
+        ),
+        ParityEntry('끼니 카드', (_) => _keyPrefix('mealCard-')),
+      ],
+    );
+  });
+
+  testWidgets('MY — 알림·채팅 입구, 헬스장·트레이너, 리포트, 포인트, 설정, 로그아웃', (
+    WidgetTester tester,
+  ) async {
+    await _expectParity(
+      tester,
+      page: const MyHealthPage(),
+      entries: <ParityEntry>[
+        ParityEntry('알림 종', (l) => find.byTooltip(l.pageNotificationTitle)),
+        ParityEntry(
+          '트레이너 채팅 버튼',
+          (_) => find.byKey(const Key('trainerChatHeaderButton')),
+        ),
+        ParityEntry('프로필', (_) => find.byKey(const Key('profileNameLine'))),
+        ParityEntry('트레이너 연동', (l) => find.text(l.trainerSyncEntryLabel)),
+        ParityEntry('헬스장 카드', (_) => find.byKey(const Key('my-gym-info-card'))),
+        ParityEntry(
+          '담당 트레이너',
+          (_) => find.byKey(const Key('gym-trainer-line-mine')),
+        ),
+        ParityEntry(
+          '코치 리포트',
+          (_) => find.byKey(const ValueKey<String>('my-coach-reports-entry')),
+        ),
+        ParityEntry('포인트', (_) => find.byKey(const Key('pointsBanner'))),
+        ParityEntry('프로필 설정', (l) => find.text(l.myProfileTitle)),
+        ParityEntry('건강 목표', (l) => find.text(l.myHealthGoalsTitle)),
+        ParityEntry('알림 설정', (l) => find.text(l.myNotifTitle)),
+        ParityEntry('이용 안내', (l) => find.text(l.myGuideTitle)),
+        ParityEntry('고객 지원', (l) => find.text(l.mySupportTitle)),
+        ParityEntry(
+          '로그아웃',
+          (_) => find.byKey(const ValueKey<String>('my-logout-button')),
+        ),
       ],
     );
   });
