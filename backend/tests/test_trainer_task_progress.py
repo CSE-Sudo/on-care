@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from sqlalchemy import select
+import pytest
+from sqlalchemy import delete, select
 
 from app.core import clock
 from app.models.models import TrainerDailyTaskProgress, User
@@ -18,6 +19,26 @@ _BODY = {
     "dismissed_keys": ["program-c"],
     "completed_keys": ["alert-d"],
 }
+
+
+@pytest.fixture(autouse=True)
+def _clear_progress(db_session):
+    """테스트마다 이 트레이너의 진행 기록을 비운다.
+
+    DB 는 세션 동안 공유되고 모든 테스트가 같은 데모 트레이너로 쓴다. 키 단위
+    변경은 화면이 모르는 기존 키를 보존하므로(#2886), 앞 테스트가 저장한 그날의
+    체크·삭제 키가 남아 있으면 뒤 테스트의 결과에 섞인다.
+    """
+    trainer_id = db_session.scalar(
+        select(User.id).where(User.email == "trainer@oncare.com")
+    )
+    db_session.execute(
+        delete(TrainerDailyTaskProgress).where(
+            TrainerDailyTaskProgress.trainer_id == trainer_id
+        )
+    )
+    db_session.commit()
+    yield
 
 
 def _token(client) -> dict:
