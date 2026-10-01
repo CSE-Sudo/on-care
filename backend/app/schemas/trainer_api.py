@@ -46,6 +46,7 @@ from app.schemas.health_goal_ranges import (
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
+from app.schemas.trainer_verification import TrainerVerificationOut
 from app.services.password_policy import check_new_password
 from app.services import contact_format
 from app.services import health_focus
@@ -89,6 +90,8 @@ class TrainerMe(BaseModel):
     intro: str
     certifications: list[str]
     gym: TrainerGymOut
+    #: 운영자 승인 상태(#2825). 트레이너 웹이 승인 대기·반려 안내를 고른다.
+    verification: TrainerVerificationOut
 
 
 class ClientSignalOut(BaseModel):

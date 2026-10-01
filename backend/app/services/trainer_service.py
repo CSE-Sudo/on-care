@@ -81,6 +81,7 @@ from app.services import (
 )
 from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
+from app.services import trainer_verification_service
 from app.services.exercise_duration import format_duration, seconds_or_minutes
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
@@ -6704,6 +6705,7 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             hours=profile.gym_hours,
             phone=profile.gym_phone,
         ),
+        verification=trainer_verification_service.to_out(profile),
     )
 
 
