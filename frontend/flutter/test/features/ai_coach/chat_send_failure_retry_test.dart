@@ -4,6 +4,8 @@
 /// 세거나 차감하지 않는다. 그래서 앱이 키를 바꾸지 않는 것이 핵심이다.
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/errors/app_error.dart';
@@ -21,6 +23,9 @@ import 'free_quota.dart';
 ///
 /// [loseResponses] 가 남아 있으면 답을 저장하고도 응답 대신 망 오류를 던진다 —
 /// "서버는 처리했는데 앱은 모르는" 상황이다. [dropRequests] 면 서버에 닿지도 않는다.
+/// [restoreGate] 를 두면 첫 저장분 읽기(화면을 열 때의 복원)가 그것이 풀릴 때까지
+/// 끝나지 않고, [replyGate] 를 두면 서버가 저장한 뒤 응답이 그것이 풀릴 때까지
+/// 돌아오지 않는다. [laterHistoryFails] 면 복원 뒤의 저장분 읽기가 실패한다.
 class _ServerLike implements AiCoachRepository {
   _ServerLike({this.quota = kFreeQuota});
 
@@ -30,6 +35,10 @@ class _ServerLike implements AiCoachRepository {
   AiChatBlocked? blockWith;
   bool historyAvailable = false;
   DateTime savedAt = DateTime(2026, 10, 1, 9);
+  Completer<void>? restoreGate;
+  Completer<void>? replyGate;
+  bool laterHistoryFails = false;
+  int historyReads = 0;
 
   final List<String?> keys = <String?>[];
   final List<bool> paid = <bool>[];
@@ -54,6 +63,12 @@ class _ServerLike implements AiCoachRepository {
 
   @override
   Future<List<ChatMessage>> fetchHistory() async {
+    historyReads++;
+    if (historyReads == 1) {
+      await restoreGate?.future;
+    } else if (laterHistoryFails) {
+      throw const NetworkError();
+    }
     if (!historyAvailable) throw const NetworkError();
     return List<ChatMessage>.of(stored);
   }
@@ -82,6 +97,7 @@ class _ServerLike implements AiCoachRepository {
     stored
       ..add(ChatMessage(role: ChatRole.user, content: message, at: savedAt))
       ..add(ChatMessage(role: ChatRole.coach, content: reply.content));
+    await replyGate?.future;
     if (loseResponses > 0) {
       loseResponses--;
       throw const NetworkError();
@@ -99,15 +115,14 @@ ProviderContainer _container(
       chatControllerProvider.overrideWith(
         (Ref ref) => ChatController(
           repo,
-          wallClock: wallClock ?? () => DateTime(2026, 10, 1, 9, 1),
+          wallClock: wallClock ?? () => DateTime(2026, 10, 1, 9),
         ),
       ),
     ],
   );
   addTearDown(container.dispose);
   // 컨트롤러를 지금 만들어 복원을 시작한다 — 뒤의 [_settle] 이 복원을 끝낸 다음에
-  // 보내야 한다. 보낼 때 처음 만들면 복원이 아직 도는 중이라, 그 사이 서버에 저장된
-  // 질문이 복원분으로 먼저 들어와 저장분 확인이 "이미 보낸 질문" 으로 보고 넘어간다.
+  // 보낸다. 복원과 겹치는 순서는 [_ServerLike.restoreGate] 로 따로 만든다.
   container.read(chatControllerProvider);
   return container;
 }
@@ -117,6 +132,16 @@ Future<void> _settle() async {
     await Future<void>.delayed(Duration.zero);
   }
 }
+
+List<String> _users(ProviderContainer c) => <String>[
+  for (final ChatMessage m in c.read(chatControllerProvider).messages)
+    if (m.isUser) m.content,
+];
+
+bool _showsFailure(ProviderContainer c) => c
+    .read(chatControllerProvider)
+    .messages
+    .any((ChatMessage m) => m.failed || m.notice == ChatNotice.failure);
 
 ChatMessage _failed(ProviderContainer c) => c
     .read(chatControllerProvider)
@@ -333,6 +358,179 @@ void main() {
       await c.read(chatControllerProvider.notifier).send('질문');
 
       expect(_failed(c).content, '질문');
+    });
+
+    test('저장분이 보낸 시각보다 앞선 같은 질문이면 바꾸지 않는다', () async {
+      final _ServerLike repo = _ServerLike()
+        ..loseResponses = 1
+        ..historyAvailable = true;
+      final ProviderContainer c = _container(
+        repo,
+        wallClock: () => DateTime(2026, 10, 1, 9, 5),
+      );
+      await _settle();
+
+      await c.read(chatControllerProvider.notifier).send('저장된 질문');
+
+      expect(_failed(c).content, '저장된 질문');
+    });
+
+    test('같은 글을 일부러 두 번 보내 뒤의 것이 시간 초과면 각자의 답으로 남는다', () async {
+      DateTime now = DateTime(2026, 10, 1, 9);
+      final _ServerLike repo = _ServerLike()..historyAvailable = true;
+      final ProviderContainer c = _container(repo, wallClock: () => now);
+      await _settle();
+      final ChatController chat = c.read(chatControllerProvider.notifier);
+      await chat.send('같은 질문');
+
+      now = DateTime(2026, 10, 1, 9, 5);
+      repo
+        ..savedAt = now
+        ..loseResponses = 1;
+      final ChatSendResult r = await chat.send('같은 질문');
+
+      expect(r.outcome, ChatSendOutcome.failed);
+      expect(_users(c), <String>['같은 질문', '같은 질문']);
+      expect(_showsFailure(c), isFalse);
+      final List<ChatMessage> messages = c
+          .read(chatControllerProvider)
+          .messages;
+      expect(messages.last.content, '답 2');
+      expect(
+        messages.where((ChatMessage m) => m.content == '답 1'),
+        hasLength(1),
+      );
+    });
+
+    test('같은 글을 두 번 보내 뒤의 것이 서버에 닿지 않았으면 앞의 답을 붙이지 않는다', () async {
+      // 시각으로는 가를 수 없을 만큼 붙여 보내도, 저장분의 쌍은 앞의 질문 것이다.
+      final _ServerLike repo = _ServerLike()..historyAvailable = true;
+      final ProviderContainer c = _container(repo);
+      await _settle();
+      final ChatController chat = c.read(chatControllerProvider.notifier);
+      await chat.send('같은 질문');
+
+      repo.dropRequests = true;
+      await chat.send('같은 질문');
+
+      expect(_users(c), <String>['같은 질문', '같은 질문']);
+      expect(_failed(c).content, '같은 질문');
+      expect(
+        c.read(chatControllerProvider).messages.last.notice,
+        ChatNotice.failure,
+      );
+    });
+  });
+
+  group('대화 복원과 겹친 첫 질문의 시간 초과', () {
+    test('보내는 사이 복원이 그 질문·답을 가져와도 한 번만 남고 실패 표시가 없다', () async {
+      final _ServerLike repo = _ServerLike()
+        ..historyAvailable = true
+        ..loseResponses = 1
+        ..restoreGate = Completer<void>()
+        ..replyGate = Completer<void>();
+      final ProviderContainer c = _container(repo);
+      await _settle();
+      expect(c.read(chatControllerProvider).restoring, isTrue);
+
+      // 화면을 열자마자 첫 질문 — 서버는 저장했지만 응답이 아직 오지 않았다.
+      final Future<ChatSendResult> sending = c
+          .read(chatControllerProvider.notifier)
+          .send('첫 질문');
+      await _settle();
+
+      // 그 사이 복원이 끝나 방금 저장된 질문·답을 가져온다.
+      repo.restoreGate!.complete();
+      await _settle();
+      expect(c.read(chatControllerProvider).restoring, isFalse);
+      expect(_users(c), <String>['첫 질문']);
+
+      // 이제 응답이 시간 초과로 끝난다.
+      repo.replyGate!.complete();
+      final ChatSendResult r = await sending;
+      await _settle();
+
+      expect(r.outcome, ChatSendOutcome.failed);
+      expect(_users(c), <String>['첫 질문']);
+      expect(_showsFailure(c), isFalse);
+      expect(c.read(chatControllerProvider).messages.last.content, '답 1');
+      expect(repo.counted, 1);
+    });
+
+    test('시간 초과 뒤에 복원이 그 질문·답을 가져오면 실패 메시지를 그것으로 대신한다', () async {
+      final _ServerLike repo = _ServerLike()
+        ..historyAvailable = true
+        ..loseResponses = 1
+        ..laterHistoryFails = true
+        ..restoreGate = Completer<void>();
+      final ProviderContainer c = _container(repo);
+      await _settle();
+
+      final ChatSendResult r = await c
+          .read(chatControllerProvider.notifier)
+          .send('첫 질문');
+      expect(r.outcome, ChatSendOutcome.failed);
+      expect(_failed(c).content, '첫 질문');
+
+      repo.restoreGate!.complete();
+      await _settle();
+
+      final List<ChatMessage> messages = c
+          .read(chatControllerProvider)
+          .messages;
+      expect(_users(c), <String>['첫 질문']);
+      expect(_showsFailure(c), isFalse);
+      expect(messages.last.content, '답 1');
+    });
+
+    test('시간 초과 뒤 저장분 확인이 먼저 답을 붙여도 늦게 끝난 복원이 겹치지 않는다', () async {
+      final _ServerLike repo = _ServerLike()
+        ..historyAvailable = true
+        ..loseResponses = 1
+        ..restoreGate = Completer<void>();
+      final ProviderContainer c = _container(repo);
+      await _settle();
+
+      await c.read(chatControllerProvider.notifier).send('첫 질문');
+      expect(_showsFailure(c), isFalse);
+
+      repo.restoreGate!.complete();
+      await _settle();
+
+      expect(_users(c), <String>['첫 질문']);
+      expect(_showsFailure(c), isFalse);
+      expect(
+        c
+            .read(chatControllerProvider)
+            .messages
+            .where((ChatMessage m) => m.content == '답 1'),
+        hasLength(1),
+      );
+    });
+
+    test('서버가 저장하지 않았으면 복원이 끝나도 실패로 남고 같은 키로 다시 보낸다', () async {
+      final _ServerLike repo = _ServerLike()
+        ..historyAvailable = true
+        ..dropRequests = true
+        ..restoreGate = Completer<void>();
+      final ProviderContainer c = _container(repo);
+      await _settle();
+      final ChatController chat = c.read(chatControllerProvider.notifier);
+
+      await chat.send('첫 질문');
+      repo.restoreGate!.complete();
+      await _settle();
+
+      final String key = _failed(c).clientRequestId!;
+      expect(_failed(c).content, '첫 질문');
+
+      repo.dropRequests = false;
+      final ChatSendResult r = await chat.retry(key);
+
+      expect(r.outcome, ChatSendOutcome.sent);
+      expect(repo.keys, <String?>[key, key]);
+      expect(_users(c), <String>['첫 질문']);
+      expect(_showsFailure(c), isFalse);
     });
   });
 
