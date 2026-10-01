@@ -22,6 +22,7 @@ import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_streak_shield_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import '../../helpers/exercise_session_post.dart';
+import '../../helpers/strict_dio.dart';
 
 const String _monday = '2026-09-14';
 const String _yesterday = '2026-09-16';
@@ -49,7 +50,14 @@ void main() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     ledger = DemoPointsLedger(openingBalance: 2000);
     shields = DemoStreakShieldBook(ledger: ledger, now: () => now);
-    dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    // 상태 코드를 그대로 보려고 오류 응답도 응답으로 받는다 — 로컬 목업 API 는
+    // 실서버처럼 오류를 예외로 돌려준다(#2743).
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://example.test',
+        validateStatus: (int? _) => true,
+      ),
+    );
     dio.interceptors.add(
       LocalApiInterceptor(
         db,
@@ -93,7 +101,7 @@ void main() {
   }
 
   Future<ShopItem> shieldItem() async => (await DioBenefitsRepository(
-    dio,
+    strictDioOf(dio),
   ).fetchShop()).items.firstWhere((ShopItem i) => i.id == 'streak_shield');
 
   test('보호권은 300P 이고 쓰지 않은 것은 네 개까지 가진다', () async {
@@ -130,7 +138,7 @@ void main() {
     expect(before.containsKey('streak_shield'), isFalse);
 
     final StreakShields beforeStatus = await DioStreakShieldRepository(
-      dio,
+      strictDioOf(dio),
     ).fetch();
     // 목요일(오늘)만 기록이 있고 어제가 비었다.
     expect(beforeStatus.recordStreakDays, 1);
@@ -161,7 +169,7 @@ void main() {
 
     // 같은 날을 다시 보호해도 보호권을 더 쓰지 않는다.
     expect((await use(_yesterday)).statusCode, 200);
-    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
     expect(status.held, 1);
     expect((status.maxHeld, status.cost), (4, 300));
     expect(
@@ -209,7 +217,7 @@ void main() {
           ),
         );
 
-    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
     // 월·화·수(식단)·목 — 식단 한 끼가 연속을 이었다.
     expect(status.recordStreakDays, 4);
     expect((await use(_yesterday)).statusCode, 409);
@@ -218,7 +226,7 @@ void main() {
   });
 
   test('보호권이 없어도 보호할 날의 창은 오고, 사용은 409 다', () async {
-    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
     // 창은 보유 수와 상관없이 온다 — 그래프가 교환과 사용을 한 번에 잇는다.
     expect((status.held, status.protectableFrom), (0, DateTime(2026, 8, 18)));
     expect(status.protectableTo, DateTime(2026, 9, 16));
@@ -253,7 +261,7 @@ void main() {
     expect(shields.held, 5);
     expect((await shieldItem()).blockReason, ShopBlockReason.shieldLimit);
     expect((await exchange()).statusCode, 409);
-    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
     expect(status.held, 5);
     expect(status.used, isEmpty);
 
@@ -287,7 +295,7 @@ void main() {
     now = DateTime(2026, 9, 21, 10);
     await exchange();
 
-    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
     expect(status.protectableTo, DateTime(2026, 9, 20));
     expect((await use('2026-09-20')).statusCode, 200);
     expect(shields.held, 0);

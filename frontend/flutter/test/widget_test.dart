@@ -11,6 +11,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -18,8 +19,6 @@ import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
@@ -32,6 +31,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import 'helpers/demo_exercise.dart';
 import 'helpers/diet_period_tabs.dart';
 import 'helpers/fake_activity_calendar_repository.dart';
 import 'helpers/fake_dashboard_repository.dart';
@@ -65,6 +65,7 @@ void main() {
     Locale? locale,
     MemberCoachRepository? memberCoachRepository,
   }) async {
+    final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     const config = AppConfig(
       environment: Environment.dev,
       apiBaseUrl: 'https://dev.api.test',
@@ -89,9 +90,8 @@ void main() {
           dietRepositoryProvider.overrideWithValue(diet as DietRepository),
           // Same reason — exercise repo defaults to DioExerciseRepository
           // (Stage 9.6); swap to the in-memory mock here.
-          exerciseRepositoryProvider.overrideWithValue(
-            MockExerciseRepository() as ExerciseRepository,
-          ),
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          ...demoExerciseOverrides(exerciseDb),
           // 기록 그래프(#2075)의 데모 저장소는 식단·색·보호권을 목업 API 에서
           // 받아 와 dio + drift 가 있어야 답이 온다 — 위 식단 저장소와 같은
           // 이유로 메모리 대역을 끼운다(없으면 포인트 화면이 계속 기다린다).
