@@ -39,16 +39,36 @@ import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_pag
 /// [location] is the full location (path **and** query) — the parked
 /// destination rides on the query, so a path-only value would lose it.
 ///
+/// [resume] 는 로그인 화면으로 보낼 때 지금 자리를 `?from=` 으로 실을지다
+/// (#2765). 세션 만료·첫 실행 딥링크처럼 사용자가 의도하지 않게 밀려난 경우만
+/// 이어 간다. 사용자가 **직접** 로그아웃·탈퇴했다면 거짓이다 — 그 자리(탈퇴 화면,
+/// 이전 트레이너의 회원 상세)를 다음에 로그인하는 사람이 이어 받으면 안 된다.
+///
+/// 데모로 들어갈 때는 이어 갈 자리를 보지 않고 대시보드로 간다(#2765). 실린
+/// 자리는 실서버 계정의 주소라 데모 데이터에는 없다.
+///
 /// Returning `null` means "no redirect — stay put".
-String? sessionRedirect(SessionStatus status, String location) {
+String? sessionRedirect(
+  SessionStatus status,
+  String location, {
+  bool resume = true,
+}) {
   final path = Uri.tryParse(location)?.path ?? location;
   if (AppRoutes.isLegalPath(path)) return null;
   final onAuthRoute = path == AppRoutes.signIn || path == AppRoutes.signUp;
   switch (status) {
     case SessionStatus.unknown:
     case SessionStatus.signedOut:
-      return onAuthRoute ? null : AppRoutes.signInResuming(location);
+      if (onAuthRoute) {
+        // 직접 로그아웃했는데 로그인 화면 주소에 이전 자리가 남아 있으면(가드보다
+        // 먼저 이동이 일어난 경우 등) 걷어 낸다.
+        return !resume && AppRoutes.resumeTarget(location) != null
+            ? path
+            : null;
+      }
+      return resume ? AppRoutes.signInResuming(location) : AppRoutes.signIn;
     case SessionStatus.demo:
+      return onAuthRoute || path == '/' ? AppRoutes.dashboard : null;
     case SessionStatus.authenticated:
       if (onAuthRoute) {
         return AppRoutes.resumeTarget(location) ??
@@ -99,6 +119,7 @@ GoRouter buildAppRouter({
   required SessionStatus Function() readStatus,
   required Listenable refresh,
   String? initialLocation,
+  bool Function()? readResume,
 }) {
   return GoRouter(
     initialLocation: initialLocation,
@@ -108,6 +129,7 @@ GoRouter buildAppRouter({
       // Full location, not `matchedLocation`: the parked destination
       // rides on the query string.
       state.uri.toString(),
+      resume: readResume?.call() ?? true,
     ),
     // A URL that matches no route — mistyped, or a stale link whose prefix
     // is a real screen (`/clients/<id>/diet/old`) and so survives the
@@ -296,5 +318,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     readStatus: () => ref.read(sessionControllerProvider).status,
     refresh: refresh,
     initialLocation: ref.read(routerInitialLocationProvider),
+    // 직접 로그아웃·탈퇴한 뒤에는 이전 자리를 잇지 않는다(#2765).
+    readResume: () => !ref.read(signedOutByUserProvider),
   );
 });

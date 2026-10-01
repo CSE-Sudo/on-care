@@ -230,6 +230,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in failed. Please try again in a moment.';
 
   @override
+  String get authSocialComingSoon =>
+      'Social sign-in is coming soon. Please sign in with your email.';
+
+  @override
   String get authErrSignInFailed =>
       'Sign-in failed. Please try again in a moment.';
 
@@ -1372,6 +1376,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSendFailed => 'Couldn\'t send the report. Please try again';
+
+  @override
+  String get reportsSendAlreadyDone =>
+      'This report was already sent. Send history has been refreshed';
 
   @override
   String reportsSent(String name) {

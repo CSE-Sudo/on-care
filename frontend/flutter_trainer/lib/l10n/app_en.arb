@@ -142,6 +142,7 @@
   "authHasAccount": "Already have an account?",
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
+  "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
   "authSessionExpired": "Your session has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
@@ -936,6 +937,10 @@
   "reportsNoClients": "No members yet, so there's nothing to report on",
   "reportsWeekly": "Weekly report",
   "reportsSendFailed": "Couldn't send the report. Please try again",
+  "reportsSendAlreadyDone": "This report was already sent. Send history has been refreshed",
+  "@reportsSendAlreadyDone": {
+    "description": "Toast when the server says this report send was already processed (409, #2773)."
+  },
   "reportsSent": "Report sent to {name}",
   "reportsGoToChat": "Go to chat",
   "@reportsSent": {

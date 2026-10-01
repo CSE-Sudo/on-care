@@ -231,7 +231,7 @@ void main() {
     expect(find.text('오늘의 일정'), findsOneWidget);
     // 이름과 성별·나이(회색)는 별도 Text 로 그린다.
     expect(find.text('김민수'), findsWidgets);
-    expect(find.text('남성 · 35세'), findsWidgets);
+    expect(find.text('남성 · 36세'), findsWidgets);
     expect(find.text('1:1 PT'), findsWidgets);
     expect(find.text('완료'), findsWidgets);
     // 스케줄 화면과 같은 시작–종료 범위를 쓰며, 각 일정의 실제 소요

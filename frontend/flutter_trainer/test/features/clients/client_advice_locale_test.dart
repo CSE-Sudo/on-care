@@ -134,9 +134,9 @@ void main() {
     test('식단 분석', () async {
       final _RecordingRepository repo = _RecordingRepository(db);
       final ProviderContainer c = container(repo);
-      const ({String clientId, ClientPeriod period}) key = (
-        clientId: 'seed-client-1',
-        period: ClientPeriod.today,
+      final ClientDietAdviceKey key = clientDietAdviceKey(
+        'seed-client-1',
+        ClientPeriod.today,
       );
       final ProviderSubscription<AsyncValue<ClientDietAnalysis>> sub = c.listen(
         clientDietAdviceProvider(key),
@@ -166,10 +166,9 @@ void main() {
       );
       addTearDown(c.dispose);
       await c.read(
-        clientDietAdviceProvider((
-          clientId: 'seed-client-2',
-          period: ClientPeriod.week,
-        )).future,
+        clientDietAdviceProvider(
+          clientDietAdviceKey('seed-client-2', ClientPeriod.week),
+        ).future,
       );
       expect(repo.dietLocales.single.languageCode, 'en');
     });

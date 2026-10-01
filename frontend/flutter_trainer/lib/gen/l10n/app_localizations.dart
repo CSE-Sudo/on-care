@@ -506,6 +506,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in failed. Please try again in a moment.'**
   String get authSocialSignInFailed;
 
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email.'**
+  String get authSocialComingSoon;
+
   /// No description provided for @authErrSignInFailed.
   ///
   /// In en, this message translates to:
@@ -2497,6 +2503,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
+
+  /// Toast when the server says this report send was already processed (409, #2773).
+  ///
+  /// In en, this message translates to:
+  /// **'This report was already sent. Send history has been refreshed'**
+  String get reportsSendAlreadyDone;
 
   /// No description provided for @reportsSent.
   ///

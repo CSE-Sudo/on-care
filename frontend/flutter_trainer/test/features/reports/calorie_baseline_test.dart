@@ -53,14 +53,13 @@ Future<double?> _baseline(
   TrainerClient client,
   DateTime weekStart,
 ) async {
-  final ReportKey key = (client: client, weekStart: weekStart);
+  final ReportKey key = ReportKey(client: client, weekStart: weekStart);
   container.listen<double?>(calorieBaselineProvider(key), (_, _) {});
   for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
     await container.read(
-      weeklyReportProvider((
-        client: client,
-        weekStart: shiftWeeks(weekStart, -back),
-      )).future,
+      weeklyReportProvider(
+        ReportKey(client: client, weekStart: shiftWeeks(weekStart, -back)),
+      ).future,
     );
   }
   return container.read(calorieBaselineProvider(key));
