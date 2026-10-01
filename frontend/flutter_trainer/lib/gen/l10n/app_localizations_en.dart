@@ -990,20 +990,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLoadOlderFailed => 'Couldn\'t load earlier messages · Retry';
 
   @override
-  String chatDemoAnalyzed(String name) {
-    return 'AI analysed $name\'s meals and workouts';
+  String get chatRoutineDelivered => 'Workout sent';
+
+  @override
+  String get chatRoutineDeliveredPt => 'PT program and personal exercises sent';
+
+  @override
+  String get chatRoutineDeliveredPersonal => 'Personal exercises sent';
+
+  @override
+  String get chatRoutineDeliveredAfterCancel =>
+      'Personal exercises sent in place of the cancelled PT';
+
+  @override
+  String get chatRoutineDeliveredProgram => 'Workout program sent';
+
+  @override
+  String chatRoutineDeliveredMore(String names, int count) {
+    return '$names and $count more';
   }
-
-  @override
-  String get chatDemoReportSent => 'A summary report was sent to you';
-
-  @override
-  String chatDemoRoutineSent(String name) {
-    return 'A personalized workout recommendation was sent to $name';
-  }
-
-  @override
-  String get chatDemoNotified => 'The member app was notified';
 
   @override
   String get chatInputHint => 'Type a message...';

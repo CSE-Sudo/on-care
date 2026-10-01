@@ -368,6 +368,19 @@ class ChatAttachmentOut(BaseModel):
     download_path: str
 
 
+class RoutineDeliveryCardOut(BaseModel):
+    """채팅 가운데 루틴 전송 안내 — 무엇을 보냈나. (#2672)
+
+    [kind] 는 `pt_with_routine`(PT 프로그램과 개인운동) · `routine_only`(개인운동만)
+    · `cancelled_routine_only`(취소·노쇼 PT 뒤 개인운동) · `routine`(단건 배정·AI
+    제안 승인). 운동 이름은 회원·트레이너가 적은 그대로라 번역하지 않는다.
+    """
+
+    kind: str
+    program_names: list[str] = Field(default_factory=list)
+    routine_names: list[str] = Field(default_factory=list)
+
+
 class ChatMessageOut(BaseModel):
     """채팅 메시지 — 프론트 ClientChatMessage 계약 정렬.
 
@@ -388,6 +401,9 @@ class ChatMessageOut(BaseModel):
     # 이 값으로 대화 가운데 안내 상자를 그린다(#1600). 첨부 유무와는 별개다 —
     # 리포트는 PDF 없이 본문만으로도 나간다.
     report_week_start: str | None = None
+    # 루틴 전송 안내라면 그 전송(#2672), 아니면 None. 두 앱이 리포트 안내처럼
+    # 대화 가운데 카드로 그린다.
+    routine_delivery: RoutineDeliveryCardOut | None = None
 
 
 class ChatSendRequest(BaseModel):
