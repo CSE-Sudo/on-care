@@ -5,11 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -17,6 +15,7 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/domain/session_client_resolver.dart';
+import 'package:oncare_trainer/features/schedule/presentation/schedule_action_error.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/cancel_session_dialog.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/consultation_inbox_action.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
@@ -317,15 +316,32 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     try {
       await ref.read(scheduleRepositoryProvider).deleteSession(s.id);
     } catch (error) {
-      if (!mounted) return;
       // 서버 사유(회원 예약 일정은 지울 수 없다는 409 등)를 보인다(#2756).
-      showAppToast(
-        context,
-        error is AppError
-            ? serverDetailOr(l, error.message, l.schedDeleteFailed)
-            : l.schedDeleteFailed,
-        type: AppToastType.error,
-      );
+      _showActionError(error, l.schedDeleteFailed);
+    }
+  }
+
+  /// 일정 동작이 실패했을 때 알린다 — 스케줄 화면 동작이 모두 이 길로 간다.
+  /// (#2888)
+  ///
+  /// 서버 사유가 있으면 그것을, 없으면 동작별 [fallback] 을 띄운다. 일정 상태가
+  /// 그새 바뀌어 거절됐으면(409) 그 주를 다시 읽어 화면을 서버 상태에 맞춘다 —
+  /// 다른 탭에서 이미 노쇼로 마무리한 PT 를 이 화면이 예정으로 들고 있으면 같은
+  /// 동작을 되풀이하게 된다. [sessionId] 를 주면 그 PT 의 개인운동도 다시 읽는다.
+  void _showActionError(Object error, String fallback, {String? sessionId}) {
+    if (!mounted) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      scheduleActionErrorMessage(l, error, fallback),
+      type: AppToastType.error,
+    );
+    if (!isScheduleStateConflict(error)) return;
+    ref.invalidate(scheduleRangeProvider);
+    if (sessionId != null) {
+      setState(() {
+        _routinesRevision[sessionId] = (_routinesRevision[sessionId] ?? 0) + 1;
+      });
     }
   }
 
@@ -353,14 +369,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       // A DB or programJson-decode failure must not escape to the UI —
       // the session stays 예정 and the trainer is told (review PR 237).
       // 서버가 사유를 주면(시작 전이라 완료할 수 없다는 400 등) 그것을 보인다.
-      if (!mounted) return;
-      showAppToast(
-        context,
-        error is AppError
-            ? serverDetailOr(l, error.message, l.schedCompleteFailed)
-            : l.schedCompleteFailed,
-        type: AppToastType.error,
-      );
+      _showActionError(error, l.schedCompleteFailed);
     }
   }
 
@@ -395,13 +404,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .sendScheduledRoutines(session.id, items: edited);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        l.schedRoutinesSendFailed,
-        type: AppToastType.error,
-      );
+    } catch (error) {
+      _showActionError(error, l.schedRoutinesSendFailed, sessionId: session.id);
       return;
     }
     if (!mounted) return;
@@ -434,12 +438,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .updateScheduledRoutines(session.id, edited);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
+    } catch (error) {
+      _showActionError(
+        error,
         l.schedRoutinesUpdateFailed,
-        type: AppToastType.error,
+        sessionId: session.id,
       );
       return;
     }
@@ -458,13 +461,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .dismissScheduledRoutines(session.id);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        l.schedRoutinesSendFailed,
-        type: AppToastType.error,
-      );
+    } catch (error) {
+      // 보내려던 것이 아니다 — 전송 실패 문구를 쓰지 않는다(#2888).
+      _showActionError(error, l.schedRoutinesSkipFailed, sessionId: session.id);
       return;
     }
     if (!mounted) return;
@@ -505,12 +504,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           reason: result.reason,
         );
       }
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
+    } catch (error) {
+      // 서버 사유(시작 전이라 노쇼 불가, 이미 마무리된 세션 등)를 보인다(#2888).
+      _showActionError(
+        error,
         result.noShow ? l.schedNoShowFailed : l.schedCancelFailed,
-        type: AppToastType.error,
       );
     }
   }
@@ -567,9 +565,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         l.schedSentTo(s.clientName),
         type: AppToastType.success,
       );
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(context, l.coachSendFailed, type: AppToastType.error);
+    } catch (error) {
+      _showActionError(error, l.coachSendFailed, sessionId: s.id);
     } finally {
       if (mounted) setState(() => _sendingProgramId = null);
     }

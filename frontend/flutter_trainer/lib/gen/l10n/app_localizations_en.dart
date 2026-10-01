@@ -1838,6 +1838,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedRoutinesSkipped => 'Marked as not sent.';
 
   @override
+  String get schedRoutinesSkipFailed =>
+      'Couldn\'t mark the personal exercise as not sent. Please try again.';
+
+  @override
   String get schedClientUnresolved =>
       'Couldn\'t tell which member this session is for. Please pick the member.';
 

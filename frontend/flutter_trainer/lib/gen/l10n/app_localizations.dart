@@ -3193,6 +3193,12 @@ abstract class AppLocalizations {
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
 
+  /// No description provided for @schedRoutinesSkipFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark the personal exercise as not sent. Please try again.'**
+  String get schedRoutinesSkipFailed;
+
   /// No description provided for @schedClientUnresolved.
   ///
   /// In en, this message translates to:
