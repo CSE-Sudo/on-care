@@ -34,6 +34,16 @@ DateTime weekStartOf(DateTime day) {
   );
 }
 
+/// [weekStart] 가 속한 주의 월요일에서 [weeks] 주 옮긴 월요일. 음수면 앞 주다.
+///
+/// 주를 옮기는 곳은 전부 이것을 쓴다(#2774). `Duration(days: 7)` 로 빼면
+/// 서머타임이 시작된 주는 167시간뿐이라, 월요일 0시에서 빼면 전 주 월요일이
+/// 아니라 그 전날 일요일 23시가 되고 — 그 날짜는 2주 전 주에 속한다.
+DateTime shiftWeeks(DateTime weekStart, int weeks) {
+  final DateTime monday = weekStartOf(weekStart);
+  return DateTime(monday.year, monday.month, monday.day + 7 * weeks);
+}
+
 /// One client's week, as the trainer would summarise it to them.
 ///
 /// This is the retention loop of an O2O coaching product: the member
@@ -175,7 +185,11 @@ class WeeklyReport implements ReportSheetWeek {
   ReportSheetAnswers? get answers => memberFeedback;
 
   /// Sunday of the reported week.
-  DateTime get weekEnd => weekStart.add(const Duration(days: 6));
+  ///
+  /// 달력 날짜로 더한다 — 그 주 안에 서머타임 전환이 있으면 `Duration` 은
+  /// 자정을 한 시간 밀어 날짜가 어긋난다(#2774).
+  DateTime get weekEnd =>
+      DateTime(weekStart.year, weekStart.month, weekStart.day + 6);
 
   /// 문서에 실리는 내용 전부를 이은 열쇠. (#2484)
   ///

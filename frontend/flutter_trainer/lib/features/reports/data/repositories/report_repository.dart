@@ -239,7 +239,11 @@ class LocalReportRepository implements ReportRepository {
   /// 그 주(월→일)의 요일별 값. 기록이 하나도 없으면 null — 화면이 "없다"고
   /// 말할 수 있어야 한다(0 으로 채우면 "하루 0kcal" 처럼 읽힌다).
   Future<WeekSeries?> _weekSeries(String clientId, DateTime monday) async {
-    final sunday = monday.add(const Duration(days: 6));
+    // 달력 날짜로 더한다 — 그 주에 서머타임 전환이 있으면 `Duration` 은
+    // 날짜를 하루 어긋나게 한다(#2774).
+    DateTime dayOf(int offset) =>
+        DateTime(monday.year, monday.month, monday.day + offset);
+    final sunday = dayOf(6);
     final rows =
         await (_db.select(_db.clientDailyMetrics)..where(
               (t) =>
@@ -252,8 +256,7 @@ class LocalReportRepository implements ReportRepository {
     final byDate = <String, ClientDailyMetricRow>{
       for (final row in rows) row.date: row,
     };
-    ClientDailyMetricRow? on(int day) =>
-        byDate[ymd(monday.add(Duration(days: day)))];
+    ClientDailyMetricRow? on(int day) => byDate[ymd(dayOf(day))];
     return WeekSeries(
       days: <ReportDay>[
         for (var d = 0; d < 7; d++)
