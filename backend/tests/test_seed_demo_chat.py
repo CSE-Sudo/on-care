@@ -26,9 +26,11 @@ _EXPECTED: list[tuple[str, str]] = [
     ("trainer", "혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요"),
     ("member", "네, 아침 8시 그대로예요"),
     ("trainer", "확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂"),
+    ("trainer", "동작 순서는 이 파일로 정리해 뒀어요"),
     ("trainer", "민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?"),
     ("member", "회사 구내식당이라 국물이 늘 나와요 😅"),
     ("trainer", "국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠"),
+    ("trainer", "이렇게 국은 건더기 위주로 드시면 돼요"),
     ("member", "오늘은 국물 안 마셨어요! 걷기도 25분 했습니다"),
     ("trainer", "좋아요 👏 그 한 가지만 지켜도 추이가 달라져요"),
     ("trainer", "내일 루틴은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요"),
@@ -133,4 +135,69 @@ def test_knee_message_is_seeded_as_a_chat_insight_memo(client, db_session):
     knee = memos[0]
     assert knee.insight_kind == "discomfort"
     # `"{메시지 id}:discomfort"` — 앱의 ChatContextInsight.id 와 같은 규칙.
-    assert knee.insight_id == f"seed-chat-{_MEMBER_ID}-16:discomfort"
+    assert knee.insight_id == f"seed-chat-{_MEMBER_ID}-18:discomfort"
+
+
+def test_trainer_files_are_seeded_in_the_same_places_as_the_apps(client, db_session):
+    """트레이너가 보낸 PDF·사진이 두 앱 데모와 같은 자리·같은 바이트다. (#2788)
+
+    바이트는 프론트 번들 파일과 같아야 한다 — 두 앱이 보여 주는 문서와 실서버가
+    내려 주는 문서가 달라지지 않게.
+    """
+    from pathlib import Path
+
+    from app.services import chat_image_storage, report_pdf_storage
+
+    rows = [r for r in _seeded_thread(db_session) if r.attachment_file_id]
+    assert [(r.body, r.attachment_type, r.attachment_file_name) for r in rows] == [
+        ("동작 순서는 이 파일로 정리해 뒀어요", "pdf", "tue-thu-15min-program.pdf"),
+        ("이렇게 국은 건더기 위주로 드시면 돼요", "image", "soup-example.jpeg"),
+    ]
+    assert all(r.sender == "trainer" for r in rows)
+
+    frontend = Path(__file__).resolve().parents[2] / "frontend" / "flutter"
+    pdf, image = rows
+    pdf_bytes = report_pdf_storage.path_for(pdf.attachment_file_id).read_bytes()
+    assert pdf_bytes.startswith(b"%PDF")
+    assert pdf.attachment_file_size == len(pdf_bytes)
+    # 앱 번들의 PDF 는 #2663 이 넣는다. 그 PR 이 들어온 뒤로는 바이트까지 같아야 한다.
+    app_pdf = frontend / "assets" / "demo" / "coach-program-tue-thu.pdf"
+    if app_pdf.exists():
+        assert pdf_bytes == app_pdf.read_bytes()
+
+    path, media_type = chat_image_storage.path_for(image.attachment_file_id)
+    assert media_type == "image/jpeg"
+    image_bytes = path.read_bytes()
+    assert image_bytes == (
+        frontend / "assets" / "images" / "diet-doenjang-rice.jpeg"
+    ).read_bytes()
+    assert image.attachment_file_size == len(image_bytes)
+
+
+def test_reseeding_drops_the_memo_left_at_an_old_message_id(client, db_session):
+    """순번이 밀려 메모 id 가 바뀌어도 옛 id 의 메모가 남지 않는다. (#2788)"""
+    from app.db.seed_member_data import seed_member_health_data
+    from app.db.seed_trainer import TRAINER_ID
+    from app.models.models import TrainerClientMemo
+
+    db_session.add(TrainerClientMemo(
+        id=f"seed-memo-{_MEMBER_ID}-16",
+        trainer_id=TRAINER_ID,
+        member_id=_MEMBER_ID,
+        body="무릎 불편 감지",
+        source="chat_insight",
+        insight_id=f"seed-chat-{_MEMBER_ID}-16:discomfort",
+        insight_kind="discomfort",
+    ))
+    db_session.commit()
+
+    seed_member_health_data()
+    db_session.expire_all()
+
+    ids = db_session.scalars(
+        select(TrainerClientMemo.id).where(
+            TrainerClientMemo.member_id == _MEMBER_ID,
+            TrainerClientMemo.source == "chat_insight",
+        )
+    ).all()
+    assert ids == [f"seed-memo-{_MEMBER_ID}-18"]
