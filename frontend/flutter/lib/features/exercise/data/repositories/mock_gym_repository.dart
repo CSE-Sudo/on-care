@@ -166,12 +166,12 @@ class MockGymRepository implements GymRepository {
           '시작해 천천히 강도를 올립니다.',
       certifications: <String>['건강운동관리사', '노인스포츠지도사'],
     ),
-    // 카카오 Local 에서 온 주변 헬스장의 소속 트레이너(#329). gymId 가 카카오
-    // place id 라서 데모 픽스처와 실 API 응답 양쪽에 그대로 붙는다.
-    // **시연용 가상 인물이다** — 실재 업체의 실제 트레이너가 아니다.
+    // 비제휴 가상 헬스장의 소속 트레이너(#329). gymId 가 백엔드 데모 시드와 같아
+    // 데모 픽스처와 실 API 응답 양쪽에 그대로 붙는다.
+    // **시연용 가상 인물이고 소속도 가상 헬스장이다** — 실재 업체에 붙이지 않는다(#2811).
     Trainer(
       id: 'trainer-demo-jung',
-      gymId: '11621774', // 휘트니스에이든
+      gymId: 'gym-demo-fitstudio', // 온케어 핏스튜디오
       name: '정수빈',
       role: '퍼스널 트레이너',
       reasons: <String>['감량 정체기', '체성분 관리'],
@@ -183,7 +183,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-ha',
-      gymId: '11621774',
+      gymId: 'gym-demo-fitstudio',
       name: '하윤슬',
       role: '체형 교정 트레이너',
       reasons: <String>['목·어깨 교정', '사무직 자세'],
@@ -195,7 +195,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-han',
-      gymId: '1558845892', // 하이핏
+      gymId: 'gym-demo-movelab', // 온케어 무브랩
       name: '한서준',
       role: '퍼스널 트레이너',
       reasons: <String>['기구 입문'],
@@ -207,7 +207,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-oh',
-      gymId: '1558845892',
+      gymId: 'gym-demo-movelab',
       name: '오태린',
       role: '그룹 PT 트레이너',
       reasons: <String>['3~5인 그룹'],
@@ -219,7 +219,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-seo',
-      gymId: '328969863', // 빌드업짐 PT 신촌점
+      gymId: 'gym-demo-ptlab', // 온케어 PT랩
       name: '서지안',
       role: '재활 전문 트레이너',
       reasons: <String>['재활 후 복귀', '통증 관리'],
@@ -231,7 +231,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-nam',
-      gymId: '328969863',
+      gymId: 'gym-demo-ptlab',
       name: '남도윤',
       role: '퍼스널 트레이너',
       reasons: <String>['스쿼트 자세 교정', '근력 향상', '영상 피드백'],
@@ -243,7 +243,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-moon',
-      gymId: '696444256', // 신인규피티스튜디오
+      gymId: 'gym-demo-onestudio', // 온케어 1:1 스튜디오
       name: '문하람',
       role: '퍼스널 트레이너',
       reasons: <String>['주간 식단', '식습관 개선', '1:1 전담'],
@@ -255,7 +255,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-bae',
-      gymId: '696444256',
+      gymId: 'gym-demo-onestudio',
       name: '배시우',
       role: '러닝 코치',
       reasons: <String>['러닝 자세 교정'],
