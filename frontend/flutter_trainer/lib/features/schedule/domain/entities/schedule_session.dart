@@ -130,7 +130,13 @@ class ScheduleSession {
     this.noShowAt,
     this.consultation,
     this.memberDetached = false,
+    this.isReservation = false,
   });
+
+  /// 회원이 예약 슬롯으로 잡은 일정인가(#2756). 예약이 시각·회원·좌석을
+  /// 갖고 있어 일반 일정 수정·삭제는 서버가 409 로 막는다 — 카드는 그 동작을
+  /// 잠그고 취소를 안내한다. 메모·프로그램은 고칠 수 있다.
+  final bool isReservation;
 
   /// 상담 요청으로 생긴 상담 일정이면 그 요청의 내용(#2584). 직접 잡은 일정은
   /// null 이다.
@@ -203,6 +209,10 @@ class ScheduleSession {
   /// Whether the session is still upcoming (예정).
   bool get isUpcoming => status == ScheduleStatus.upcoming;
 
+  /// 상담 일정인가 — 계약값 [SessionType.consultation] 과 그대로 비교한다(#2867).
+  /// 화면 문구(`상담`/`Consultation`)나 부분 일치로 가르지 않는다.
+  bool get isConsultation => type == SessionType.consultation;
+
   /// 진행 전에 거두어진 약속.
   bool get isCancelled => status == ScheduleStatus.cancelled;
 
@@ -216,6 +226,28 @@ class ScheduleSession {
   /// the finished program, 예정 shows the plan (or a no-plan hint), and
   /// both expose the manage/chat actions.
   bool get expandable => !isGap;
+}
+
+/// [session] 의 시작 시각(KST 날짜+`HH:mm`)이 [now] 와 같거나 지났는가. (#2760)
+///
+/// 완료와 노쇼가 이 판정을 쓴다. 날짜만 비교하던 때에는 오늘 20:00 PT 를
+/// 오전에 노쇼·완료로 처리할 수 있었고, 완료는 아직 하지 않은 운동을 회원
+/// 기록에 미리 만들었다. 완료는 종료가 아니라 시작 시각부터 연다 — PT 가 일찍
+/// 끝나는 경우를 막지 않는다. [now] 는 KST 벽시계(`nowKst()`)다. 시각 형식이
+/// 깨졌으면 날짜만으로 판정한다(예전 규칙). 서버 `session_has_started` 와 같다.
+bool sessionHasStarted(ScheduleSession session, DateTime now) =>
+    hasStartedAt(session.date, session.time, now);
+
+/// [sessionHasStarted] 의 값 판. 데모 저장소가 행을 엔티티로 바꾸기 전에 쓴다.
+bool hasStartedAt(String date, String time, DateTime now) {
+  final String today =
+      '${now.year.toString().padLeft(4, '0')}-'
+      '${now.month.toString().padLeft(2, '0')}-'
+      '${now.day.toString().padLeft(2, '0')}';
+  if (date != today) return date.compareTo(today) < 0;
+  final int? start = clockMinutes(time);
+  if (start == null) return true;
+  return start <= now.hour * 60 + now.minute;
 }
 
 /// `HH:mm` 을 자정부터의 분으로. 형식이 다르면 null. (#1012)

@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -52,14 +53,13 @@ Future<double?> _baseline(
   TrainerClient client,
   DateTime weekStart,
 ) async {
-  final ReportKey key = (client: client, weekStart: weekStart);
+  final ReportKey key = ReportKey(client: client, weekStart: weekStart);
   container.listen<double?>(calorieBaselineProvider(key), (_, _) {});
   for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
     await container.read(
-      weeklyReportProvider((
-        client: client,
-        weekStart: weekStart.subtract(Duration(days: 7 * back)),
-      )).future,
+      weeklyReportProvider(
+        ReportKey(client: client, weekStart: shiftWeeks(weekStart, -back)),
+      ).future,
     );
   }
   return container.read(calorieBaselineProvider(key));
@@ -184,6 +184,46 @@ void main() {
       addTearDown(container.dispose);
 
       expect(await _baseline(container, _steady, week), isNull);
+    });
+
+    test('기준은 직전 넷 주의 월요일을 빠짐없이, 겹치지 않게 읽는다 (#2774)', () async {
+      // 2026-03-08(일) 은 미국 서머타임이 시작한 날이다. 그 주를 넘어 뒤로
+      // 가는 계산이 `Duration` 이면 한 주를 빠뜨리고 다른 주를 두 번 읽는다.
+      // 날짜는 연·월·일로 견준다 — 테스트를 돌리는 곳의 시간대와 무관하다.
+      final DateTime afterDst = DateTime(2026, 3, 23);
+      final List<DateTime> asked = <DateTime>[];
+      final ProviderContainer container = ProviderContainer(
+        overrides: [
+          weeklyReportProvider.overrideWith((ref, key) {
+            asked.add(key.weekStart);
+            return Stream<WeeklyReport>.value(
+              _report(key.client, key.weekStart, const <int>[
+                2000,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+              ]),
+            );
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _baseline(container, _steady, afterDst);
+
+      final List<String> days = <String>{
+        for (final DateTime d in asked) ymd(d),
+      }.toList()..sort();
+      expect(days, <String>[
+        '2026-02-23',
+        '2026-03-02',
+        '2026-03-09',
+        '2026-03-16',
+      ]);
+      expect(asked.every((DateTime d) => d.weekday == DateTime.monday), isTrue);
     });
 
     test('앞선 넷 주 모두 기록이 없으면 null 이다', () async {

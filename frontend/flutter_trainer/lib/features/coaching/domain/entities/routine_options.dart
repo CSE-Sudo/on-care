@@ -95,6 +95,7 @@ class RoutineExercise {
     this.reason = '',
     this.source = 'trainer',
     this.effect = '',
+    this.suggestionId,
   });
 
   final String name;
@@ -142,6 +143,15 @@ class RoutineExercise {
 
   final double weight;
 
+  /// 이 줄을 채운 **대기 중 AI 개인운동 제안**의 id(#2747). 직접 넣은 줄은
+  /// 비어 있다.
+  ///
+  /// 보낼 때 함께 실어 서버가 그 제안을 배정과 같은 트랜잭션에서 닫게 한다 —
+  /// 닫지 않으면 보낸 제안이 다음 위저드에 다시 채워지고, 쌓인 대기가 새 제안
+  /// 준비를 막는다. 트레이너가 값을 고쳐도([copyWith]) 그대로 따라간다: 고친
+  /// 값은 새 배정에 들어가고, 그 출처였던 제안은 이 전송으로 끝난다.
+  final String? suggestionId;
+
   RoutineExercise copyWith({
     String? name,
     int? minutes,
@@ -174,8 +184,19 @@ class RoutineExercise {
     reason: reason ?? this.reason,
     source: source ?? this.source,
     effect: effect ?? this.effect,
+    suggestionId: suggestionId,
   );
 }
+
+/// 개인운동 줄들을 채운 대기 중 AI 제안 id — 순서대로, 겹치지 않게. (#2747)
+///
+/// 전송 본문의 `suggestion_ids` 가 이 값이다. 직접 넣은 줄은 건너뛴다.
+List<String> suggestionIdsOf(Iterable<RoutineExercise> routines) => <String>[
+  ...<String>{
+    for (final RoutineExercise r in routines)
+      if (r.suggestionId case final String id when id.isNotEmpty) id,
+  },
+];
 
 /// One generated plan (A recovery/sustainable or B intensity/volume).
 class RoutinePlan {

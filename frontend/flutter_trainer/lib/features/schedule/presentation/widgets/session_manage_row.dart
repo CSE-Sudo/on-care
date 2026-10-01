@@ -88,6 +88,8 @@ class SessionEditMenu extends StatelessWidget {
     this.onEditRoutines,
     required this.onDelete,
     this.deleteOnly = false,
+    this.reservationLocked = false,
+    this.endedLocked = false,
   });
   final VoidCallback onEditSchedule;
   final VoidCallback onEditProgram;
@@ -128,6 +130,21 @@ class SessionEditMenu extends StatelessWidget {
   /// 서버가 막으므로(404) 메뉴에도 두지 않고, 자기 일정을 정리하는 삭제만 남긴다.
   final bool deleteOnly;
 
+  /// 회원이 예약 슬롯으로 잡은 일정인가(#2756). `일정 수정`·`삭제` 를 흐리게
+  /// 잠근다 — 예약이 시각·좌석·남은 횟수를 갖고 있어 서버가 409 로 막는다.
+  /// 감추지 않고 흐리게 두는 까닭은 동작이 **있는데 지금은 안 된다**는 것을
+  /// 보이기 위해서다 — 이유는 카드의 안내 문구가 말한다. 메모·프로그램은 연다.
+  final bool reservationLocked;
+
+  /// 취소·노쇼로 끝난 세션인가(#2889). `일정 수정` 을 예약 일정과 같은 방식으로
+  /// 흐리게 잠근다 — 서버는 마무리된 세션의 메모·프로그램 밖의 변경을 409 로
+  /// 거절해, 창에서 값을 다 바꾸고 저장을 누른 **뒤에야** 안 된다는 것을 알게
+  /// 됐다. 이유는 카드의 안내 문구가 말한다. 메모·프로그램·삭제는 그대로 연다.
+  ///
+  /// 완료 세션은 잠그지 않는다 — 날짜를 앞으로 옮겨 예정으로 되돌리는 길이 이
+  /// 창에 있다(#1396). 그 밖의 칸은 창이 잠근다([SessionSheet]).
+  final bool endedLocked;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -139,7 +156,7 @@ class SessionEditMenu extends StatelessWidget {
           key: const ValueKey<String>('session-edit-schedule-chip'),
           icon: AppIcons.editSchedule,
           label: l.schedEditTitle,
-          onSelected: onEditSchedule,
+          onSelected: reservationLocked || endedLocked ? null : onEditSchedule,
         ),
       if (!deleteOnly && hasProgram && showEditProgram)
         AppMenuItem(
@@ -176,7 +193,7 @@ class SessionEditMenu extends StatelessWidget {
         icon: AppIcons.delete,
         label: l.actionDelete,
         destructive: true,
-        onSelected: onDelete,
+        onSelected: reservationLocked ? null : onDelete,
       ),
     ];
 

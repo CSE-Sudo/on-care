@@ -11,6 +11,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -128,6 +129,39 @@ void main() {
         find.byKey(const ValueKey<String>('notification-bell-badge')),
         findsOneWidget,
       );
+    });
+  });
+
+  // 같은 머리 줄의 상담 요청 배지와 같은 공용 배지·같은 남색이다. 예전 자체
+  // 배지는 흰 테두리가 둘려 모양이 달랐다(#2808).
+  testWidgets('알림 종 배지는 상담 배지와 같은 테두리 없는 남색 배지다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-token',
+        extraOverrides: <Override>[
+          trainerNotificationRepositoryProvider.overrideWithValue(
+            _FakeNotificationRepository(<TrainerNotification>[_notification()]),
+          ),
+        ],
+      );
+
+      final Finder badge = find.byKey(
+        const ValueKey<String>('notification-bell-badge'),
+      );
+      expect(tester.widget(badge), isA<AppCountBadge>());
+      final BoxDecoration fill =
+          tester
+                  .widget<Container>(
+                    find.descendant(
+                      of: badge,
+                      matching: find.byType(Container),
+                    ),
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(fill.color, OnCareBrand.trainer.primary);
+      expect(fill.border, isNull);
     });
   });
 

@@ -11,20 +11,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/demo_exercise.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 const AppConfig _config = AppConfig(
@@ -40,13 +42,19 @@ Future<void> _pump(
   required Size size,
   double textScale = 1.0,
 }) async {
+  // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      overrides: <Override>[
+        ...demoExerciseOverrides(exerciseDb),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: AppTheme.light(),
         locale: const Locale('ko'),
@@ -67,9 +75,6 @@ Future<void> _pumpDiet(
   tester,
   const DietRecordPage(),
   <Override>[
-    // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
-    // DB 없이 메모리 목업의 주를 본다.
-    exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
     appConfigProvider.overrideWithValue(_config),
     dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
@@ -86,9 +91,6 @@ Future<void> _pumpExercise(
   tester,
   const ExercisePage(),
   <Override>[
-    // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
-    // DB 없이 메모리 목업의 주를 본다.
-    exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
     appConfigProvider.overrideWithValue(_config),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
     memberCoachRepositoryProvider.overrideWithValue(

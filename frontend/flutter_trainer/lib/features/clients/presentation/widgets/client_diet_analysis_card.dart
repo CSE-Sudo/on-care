@@ -156,7 +156,11 @@ class _ClientDietRecommendationSectionState
   @override
   Widget build(BuildContext context) {
     final ClientDietRecommendations? r = ref
-        .watch(clientDietRecommendationsProvider(widget.clientId))
+        .watch(
+          clientDietRecommendationsProvider(
+            clientDietRecommendationsKey(widget.clientId),
+          ),
+        )
         .valueOrNull;
     if (r == null) return const SizedBox.shrink();
     final ClientDietPick? pick = r.pick;

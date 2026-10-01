@@ -37,6 +37,12 @@ const String _path = '/chat/attachments/member-photo';
 
 /// 회원이 보낸 사진 한 장만 있는 스레드.
 class _MemberPhotoRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _MemberPhotoRepository({this.body = ''});
 
   final String body;

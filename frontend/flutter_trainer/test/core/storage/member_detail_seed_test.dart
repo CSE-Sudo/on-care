@@ -100,16 +100,32 @@ void main() {
       );
     });
 
-    test('4주 전보다 오래된 날에는 끼니를 심지 않는다', () async {
-      final List<ClientDietEntryRow> old =
-          await (db.select(db.clientDietEntries)..where(
+    test('4주보다 오래된 날도 끼니 카드가 합계와 같다 (#2732)', () async {
+      // 기간 뷰는 리포트 이력 전체를 그린다 — 오래된 날을 펼쳐도 카드가 있어야 한다.
+      final String old = ymd(DateTime(2026, 8, 20 - 60));
+      final List<ClientDailyMetricRow> metrics =
+          await (db.select(db.clientDailyMetrics)..where(
                 (t) =>
-                    t.clientId.like('seed-client-%') &
-                    t.clientId.equals('seed-client-1').not() &
-                    t.date.isSmallerThanValue(ymd(DateTime(2026, 8, 20 - 27))),
+                    t.clientId.equals('seed-client-2') &
+                    t.date.isSmallerOrEqualValue(old),
               ))
               .get();
-      expect(old, isEmpty);
+      final List<ClientDailyMetricRow> eaten = metrics
+          .where((ClientDailyMetricRow m) => m.calories > 0)
+          .toList();
+      expect(eaten, isNotEmpty);
+      for (final ClientDailyMetricRow m in eaten) {
+        final List<ClientDietEntry> meals = await repo.fetchDietOn(
+          'seed-client-2',
+          DateTime.parse(m.date),
+        );
+        expect(meals, hasLength(m.mealCount), reason: m.date);
+        expect(
+          meals.fold<int>(0, (int a, ClientDietEntry e) => a + e.calories),
+          m.calories,
+          reason: m.date,
+        );
+      }
     });
   });
 
@@ -158,7 +174,7 @@ void main() {
     });
   });
 
-  test('성별·나이를 로스터에 심는다 — 김민수는 픽스처 몫이라 비운다', () async {
+  test('성별·나이를 로스터에 심는다 — 김민수도 백엔드 시드와 같은 값이다 (#2744)', () async {
     final List<TrainerClientRow> rows = await db
         .select(db.trainerClients)
         .get();
@@ -167,14 +183,13 @@ void main() {
     );
     expect(yuna.gender, 'female');
     expect(yuna.age, 41);
+    // 나이 폴백이 없어졌으므로 김민수도 비워 두면 데모 화면에 나이가 빠진다.
     final TrainerClientRow minsu = rows.firstWhere(
       (TrainerClientRow r) => r.id == 'seed-client-1',
     );
-    expect(minsu.gender, isNull);
-    expect(minsu.age, isNull);
-    for (final TrainerClientRow r in rows.where(
-      (TrainerClientRow r) => r.id != 'seed-client-1',
-    )) {
+    expect(minsu.gender, 'male');
+    expect(minsu.age, 36);
+    for (final TrainerClientRow r in rows) {
       expect(r.gender, isNotNull, reason: r.name);
       expect(r.age, isNotNull, reason: r.name);
     }

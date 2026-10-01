@@ -17,7 +17,6 @@ import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
@@ -29,6 +28,8 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+
+import '../../helpers/demo_exercise.dart';
 
 class _GoalSyncHost extends StatefulWidget {
   const _GoalSyncHost();
@@ -183,13 +184,17 @@ void main() {
     MemberCoachRepository? coachRepository,
     ExerciseWeek? exerciseWeek,
   }) async {
+    final AppDatabase? exerciseDb = coachRepository == null
+        ? await seededDemoDatabase(tester)
+        : null;
     await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
-          if (coachRepository == null)
-            exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          if (exerciseDb != null) ...demoExerciseOverrides(exerciseDb),
+          appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
           appConfigProvider.overrideWithValue(
             AppConfig(
               environment: Environment.dev,

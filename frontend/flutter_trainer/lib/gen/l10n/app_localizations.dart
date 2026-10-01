@@ -506,6 +506,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in failed. Please try again in a moment.'**
   String get authSocialSignInFailed;
 
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email.'**
+  String get authSocialComingSoon;
+
   /// No description provided for @authErrSignInFailed.
   ///
   /// In en, this message translates to:
@@ -752,6 +758,30 @@ abstract class AppLocalizations {
   /// **'No members are at churn risk right now.'**
   String get dashChurnRiskEmpty;
 
+  /// No description provided for @dashChurnRiskLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent sessions'**
+  String get dashChurnRiskLoading;
+
+  /// No description provided for @dashChurnRiskUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable · Tap to retry'**
+  String get dashChurnRiskUnavailable;
+
+  /// No description provided for @dashActivityFeedbackLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent sessions.'**
+  String get dashActivityFeedbackLoading;
+
+  /// No description provided for @dashActivityFeedbackUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.'**
+  String get dashActivityFeedbackUnavailable;
+
   /// No description provided for @dashActivityDifficultyTitle.
   ///
   /// In en, this message translates to:
@@ -865,6 +895,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'in {minutes} min'**
   String dashScheduleMinutesLeft(int minutes);
+
+  /// Dashboard banner when today's session has started but not yet ended (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'In progress: {time} · {name}'**
+  String dashScheduleInProgress(String time, String name);
+
+  /// Minutes until the in-progress session ends (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min left'**
+  String dashScheduleMinutesToEnd(int minutes);
 
   /// No description provided for @dashPreparePt.
   ///
@@ -1808,6 +1850,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the conversation'**
   String get chatLoadFailed;
 
+  /// 회원 메시지 맨 위 — 서버가 주는 최신 50건 앞의 메시지를 한 쪽 더 받는 버튼(#2749). 위로 끝까지 스크롤해도 같은 일이 일어난다.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier messages'**
+  String get chatLoadOlder;
+
+  /// 이전 메시지 한 쪽을 받지 못했을 때 같은 자리의 버튼. 누르면 다시 받는다(#2749).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier messages · Retry'**
+  String get chatLoadOlderFailed;
+
   /// No description provided for @chatDemoAnalyzed.
   ///
   /// In en, this message translates to:
@@ -2107,6 +2161,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes} min'**
   String consultSlotDuration(int minutes);
+
+  /// No description provided for @consultStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get consultStatusCancelled;
+
+  /// No description provided for @consultStatusCancelledByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn (session cancelled)'**
+  String get consultStatusCancelledByTrainer;
 
   /// No description provided for @consultStatusExpired.
   ///
@@ -2473,6 +2539,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
+
+  /// Toast when the server says this report send was already processed (409, #2773).
+  ///
+  /// In en, this message translates to:
+  /// **'This report was already sent. Send history has been refreshed'**
+  String get reportsSendAlreadyDone;
 
   /// No description provided for @reportsSent.
   ///
@@ -3061,6 +3133,24 @@ abstract class AppLocalizations {
   /// **'Coaching has ended, so client details are hidden'**
   String get schedDetachedMemberHint;
 
+  /// Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
+  String get schedReservationLockedHint;
+
+  /// No description provided for @schedEndedLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished sessions can only have their note and program edited.'**
+  String get schedEndedLockedHint;
+
+  /// No description provided for @schedDoneLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.'**
+  String get schedDoneLockedHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:
@@ -3150,6 +3240,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
+
+  /// No description provided for @schedRoutinesSkipFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark the personal exercise as not sent. Please try again.'**
+  String get schedRoutinesSkipFailed;
+
+  /// No description provided for @schedRoutinesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load personal exercises'**
+  String get schedRoutinesLoadFailed;
+
+  /// No description provided for @schedClientUnresolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t tell which member this session is for. Please pick the member.'**
+  String get schedClientUnresolved;
 
   /// No description provided for @schedRoutinesUpdated.
   ///
@@ -3829,6 +3937,12 @@ abstract class AppLocalizations {
   /// **'Reload'**
   String get slotReload;
 
+  /// No description provided for @slotLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load reservation slots'**
+  String get slotLoadFailed;
+
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
@@ -3852,6 +3966,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open'**
   String get slotOpenSummary;
+
+  /// No description provided for @slotOverlappedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlaps a session'**
+  String get slotOverlappedSummary;
+
+  /// No description provided for @slotOverlappedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Another session is booked at this time, so members see it as full. Close it if you will not use it.'**
+  String get slotOverlappedHint;
 
   /// No description provided for @slotCloseAction.
   ///
@@ -3936,6 +4062,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coming soon — always on for now'**
   String get myNotifNotReady;
+
+  /// Notification settings card row shown while the saved settings are loading; switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading notification settings…'**
+  String get myNotifLoading;
+
+  /// Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings. Please try again'**
+  String get myNotifLoadFailed;
 
   /// No description provided for @myNotifNewMessageHint.
   ///
@@ -4711,6 +4849,90 @@ abstract class AppLocalizations {
   /// **'e.g. Protect right shoulder'**
   String get routineFieldEffectHint;
 
+  /// No description provided for @routineEffectCardioDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Builds fitness and helps prevent chronic disease'**
+  String get routineEffectCardioDefault;
+
+  /// No description provided for @routineEffectStrengthDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Builds strength and muscular endurance'**
+  String get routineEffectStrengthDefault;
+
+  /// No description provided for @routineEffectStretchDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Improves flexibility and helps prevent injury'**
+  String get routineEffectStretchDefault;
+
+  /// No description provided for @routineEffectBloodPressure.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps manage blood pressure'**
+  String get routineEffectBloodPressure;
+
+  /// No description provided for @routineEffectFatLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps reduce body fat'**
+  String get routineEffectFatLoss;
+
+  /// No description provided for @routineEffectCardioFitness.
+  ///
+  /// In en, this message translates to:
+  /// **'Improves cardiorespiratory fitness'**
+  String get routineEffectCardioFitness;
+
+  /// No description provided for @routineEffectGentleRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilds fitness without strain'**
+  String get routineEffectGentleRecovery;
+
+  /// No description provided for @routineEffectMuscleMass.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintains and builds muscle mass'**
+  String get routineEffectMuscleMass;
+
+  /// No description provided for @routineEffectStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Builds strength'**
+  String get routineEffectStrength;
+
+  /// No description provided for @routineEffectPostureMuscles.
+  ///
+  /// In en, this message translates to:
+  /// **'Strengthens posture-supporting muscles'**
+  String get routineEffectPostureMuscles;
+
+  /// No description provided for @routineEffectHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Steadies blood pressure and heart rate'**
+  String get routineEffectHeartRate;
+
+  /// No description provided for @routineEffectMuscleRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps muscles recover'**
+  String get routineEffectMuscleRecovery;
+
+  /// No description provided for @routineEffectLoosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Loosens tight muscles'**
+  String get routineEffectLoosen;
+
+  /// No description provided for @routineEffectJointRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Restores joint range of motion'**
+  String get routineEffectJointRange;
+
   /// No description provided for @routineFieldSets.
   ///
   /// In en, this message translates to:
@@ -4848,6 +5070,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send. Please try again'**
   String get coachSendFailed;
+
+  /// No description provided for @coachSwitchClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to another client?'**
+  String get coachSwitchClientTitle;
+
+  /// No description provided for @coachSwitchClientBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsent work. Switching clients discards the program and personal exercises you are building.'**
+  String get coachSwitchClientBody;
+
+  /// No description provided for @coachSwitchClientConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get coachSwitchClientConfirm;
+
+  /// No description provided for @personalRoutineTargetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load PT sessions'**
+  String get personalRoutineTargetLoadFailed;
+
+  /// No description provided for @personalRoutineStartPast.
+  ///
+  /// In en, this message translates to:
+  /// **'The start date has passed, so it\'s now set to today. Check it and send again'**
+  String get personalRoutineStartPast;
+
+  /// No description provided for @schedRoutinesReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check the attached personal exercises. Please try again'**
+  String get schedRoutinesReadFailed;
 
   /// No description provided for @coachScheduleFailed.
   ///
@@ -5106,6 +5364,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI generation failed. Please try again in a moment'**
   String get aiGenerateFailed;
+
+  /// No description provided for @aiGenerateInvalidConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the generation conditions. Total time must be between {min} and {max} minutes'**
+  String aiGenerateInvalidConditions(int min, int max);
+
+  /// No description provided for @aiGenerateMinutesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter between {min} and {max} minutes'**
+  String aiGenerateMinutesHelper(int min, int max);
 
   /// No description provided for @aiGenerateRateLimited.
   ///
@@ -6817,11 +7087,11 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get dashTodoReport;
 
-  /// No description provided for @dashTodoConsultationSubtitle.
+  /// Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.
   ///
   /// In en, this message translates to:
-  /// **'Consultation request for {month}/{day}'**
-  String dashTodoConsultationSubtitle(int month, int day);
+  /// **'Preferred: {when}'**
+  String dashTodoConsultationSubtitle(String when);
 
   /// Subtitle of the demo carried-over task shown before real history exists.
   ///
@@ -6852,6 +7122,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your task status. Please try again in a moment'**
   String get dashTaskLoadFailed;
+
+  /// Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'The date changed, so today\'s tasks were reloaded. Please tap again'**
+  String get dashTaskDayChanged;
 
   /// No description provided for @dashTaskDismissTitle.
   ///
@@ -7564,6 +7840,18 @@ abstract class AppLocalizations {
   /// **'That date has passed. Pick today or a later date'**
   String get programEditorRegisterDatePast;
 
+  /// No description provided for @programEditorSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to the schedule'**
+  String get programEditorSending;
+
+  /// No description provided for @programEditorAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'You just sent this setup. Apply a new one to send again'**
+  String get programEditorAlreadySent;
+
   /// No description provided for @coachSendNetworkFailed.
   ///
   /// In en, this message translates to:
@@ -7719,6 +8007,30 @@ abstract class AppLocalizations {
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
 
+  /// No description provided for @programEditorAiReapplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the AI exercises with the new plan?'**
+  String get programEditorAiReapplyTitle;
+
+  /// No description provided for @programEditorAiReapplyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.'**
+  String programEditorAiReapplyBody(int count);
+
+  /// No description provided for @programEditorAiReapplyReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get programEditorAiReapplyReplace;
+
+  /// No description provided for @programEditorAiReapplyAppend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after'**
+  String get programEditorAiReapplyAppend;
+
   /// No description provided for @programEditorSessionNameTyped.
   ///
   /// In en, this message translates to:
@@ -7862,6 +8174,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select a member to see their weekly summary and coaching suggestions here'**
   String get reportsSummaryEmptyClient;
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.'**
+  String reportsDemoSummarySteadyThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.'**
+  String reportsDemoSummarySteadyPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.'**
+  String reportsDemoSummaryCompletionThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.'**
+  String reportsDemoSummaryCompletionPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroPastWeek(String name);
 
   /// No description provided for @reportsLastWeek.
   ///

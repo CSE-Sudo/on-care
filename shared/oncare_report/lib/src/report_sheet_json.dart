@@ -11,9 +11,12 @@ import 'package:oncare_report/src/report_sheet_values.dart';
 
 /// `WeeklyReportOut` 한 건. [answers] 는 다른 응답(주간 피드백)에서 온다.
 ///
-/// 이 응답에는 끼니 기록 횟수가 없어 `끼니 기록일` 은 `미집계` 로 선다 —
-/// 트레이너 웹도 서버에서 읽을 때 같다. [today] 는 이번 주인지 가를 기준일로,
-/// 없으면 지금 서울 시각이다.
+/// 요일별 끼니 기록 수(`meal_counts`)와 그날 배정된 개인운동 수
+/// (`days[].assigned`)도 읽는다(#2772). 두 칸이 없는 옛 응답이면 끼니 수가 비어
+/// `끼니 기록일` 이 `미집계` 로 서고, 개인운동 분모는 실제로 한 운동 수로
+/// 되돌아간다. 배정이 0 이하이면 배정을 모르는 날(null)로 읽는다 — 0 은 쉬는
+/// 날과 구분되지 않는다(#2232). [today] 는 이번 주인지 가를 기준일로, 없으면
+/// 지금 서울 시각이다.
 ReportSheetWeekData reportSheetWeekFromJson(
   Map<String, dynamic> json, {
   ReportSheetAnswers? answers,
@@ -51,6 +54,7 @@ ReportSheetWeekData reportSheetWeekFromJson(
     carbsWeek: doubles('carbs_week'),
     proteinWeek: doubles('protein_week'),
     fatWeek: doubles('fat_week'),
+    mealCounts: ints('meal_counts'),
     calorieTarget: optInt('calorie_target'),
     sodiumTarget: optInt('sodium_target'),
     sugarTarget: optDouble('sugar_target'),
@@ -66,6 +70,10 @@ ReportSheetWeekData reportSheetWeekFromJson(
             exercises: (day['exercises'] as List<Object?>? ?? const <Object?>[])
                 .whereType<String>()
                 .toList(growable: false),
+            assigned: switch (day['assigned']) {
+              final num n when n > 0 => n.toInt(),
+              _ => null,
+            },
           ),
     ],
     answers: answers,

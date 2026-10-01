@@ -16,6 +16,7 @@ import 'package:oncare_trainer/features/reports/data/repositories/report_reposit
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -42,14 +43,22 @@ void main() {
     return DateTime(monday.year, monday.month, monday.day - 7 * back);
   }
 
-  /// 스케줄 탭의 주간 시간표가 읽는 경로 — 그 주 범위에서 이 회원 행만 센다.
+  /// 스케줄 탭의 주간 시간표가 읽는 경로 — 그 주 범위에서 이 회원의 PT 만 센다.
+  /// 상담은 리포트의 PT 횟수가 아니다(#2741).
   Future<List<ScheduleSession>> scheduleWeek(String clientId, int back) async {
     final DateTime start = weekAgo(back);
     final DateTime end = DateTime(start.year, start.month, start.day + 6);
     final List<ScheduleSession> range = await DriftScheduleRepository(
       db,
     ).watchRange(ymd(start), ymd(end)).first;
-    return range.where((s) => s.clientId == clientId && !s.isGap).toList();
+    return range
+        .where(
+          (s) =>
+              s.clientId == clientId &&
+              !s.isGap &&
+              s.type != SessionType.consultation,
+        )
+        .toList();
   }
 
   bool joinedBy(String clientId, int back) =>

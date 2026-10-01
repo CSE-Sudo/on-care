@@ -58,3 +58,77 @@ DateTime todayKst() {
   final DateTime n = nowKst();
   return DateTime(n.year, n.month, n.day);
 }
+
+/// KST 벽시계 값([nowKst] 처럼 필드에 서울 시각을 담은 `DateTime`)을 서버에
+/// 보낼 UTC 순간으로 바꾼다. [toKst] 의 역이다. (#2759)
+///
+/// `wall.toUtc()` 를 쓰면 안 된다 — 그 함수는 필드를 **기기 시간대**의 시각으로
+/// 읽는다. 브라우저가 UTC 면 KST 07:00 으로 고른 자리가 07:00Z(= KST 16:00)로
+/// 저장됐다. 필드만 꺼내 KST(UTC+9)로 읽는다.
+///
+/// 이미 UTC 순간(`isUtc`, 예: 시간대가 붙은 문자열을 읽은 값)이면 벽시계가
+/// 아니므로 그대로 돌려준다.
+DateTime kstWallToUtc(DateTime wall) {
+  if (wall.isUtc) return wall;
+  return DateTime.utc(
+    wall.year,
+    wall.month,
+    wall.day,
+    wall.hour,
+    wall.minute,
+    wall.second,
+    wall.millisecond,
+    wall.microsecond,
+  ).subtract(kstOffset);
+}
+
+/// [t] 를 KST 벽시계로 바꾼다. (#2751)
+///
+/// 서버가 준 시각은 UTC 순간(`isUtc`)으로 들어온다 — `DateTime.parse` 는 오프셋이
+/// 붙은 문자열을 UTC 로 읽는다. 이것을 `toLocal()` 로 바꾸면 **브라우저 시간대**의
+/// 벽시계가 되어, UTC 브라우저에서는 KST 00:00~08:59 가 전날로 읽힌다. 여기서는
+/// 기기 시간대와 상관없이 +9시간을 더해 서울의 벽시계를 필드에 담는다.
+///
+/// UTC 가 아닌 값은 그대로 돌려준다. 앱 안의 로컬 `DateTime` 은 이미 KST
+/// 벽시계를 담는 것이 이 파일의 약속이다([nowKst] 로 만든 값, 데모 DB 의 시각).
+DateTime toKst(DateTime t) {
+  if (!t.isUtc) return t;
+  final DateTime seoul = t.add(kstOffset);
+  return DateTime(
+    seoul.year,
+    seoul.month,
+    seoul.day,
+    seoul.hour,
+    seoul.minute,
+    seoul.second,
+    seoul.millisecond,
+    seoul.microsecond,
+  );
+}
+
+/// [t] 가 KST 로 며칠인지 — 시각은 0시로 자른다. 날짜 구분·같은 날 판정에 쓴다.
+DateTime kstDateOf(DateTime t) {
+  final DateTime k = toKst(t);
+  return DateTime(k.year, k.month, k.day);
+}
+
+/// 두 시각이 KST 로 같은 날인가.
+bool isSameKstDay(DateTime a, DateTime b) => kstDateOf(a) == kstDateOf(b);
+
+/// [d] 의 날짜에서 달력으로 [days] 일 뒤(음수면 앞)의 날 — 시각은 0시다. (#2890)
+///
+/// `d.add(Duration(days: n))` 는 달력의 하루가 아니라 **정확히 24시간**을
+/// 더한다. 서머타임이 있는 기기 시간대(미국·유럽·호주 등)에서 시계가 바뀌는
+/// 날을 건너가면 한 시간이 남거나 모자라 전날 23:00 으로 떨어지고, 그 값을
+/// `ymd()` 로 자르면 날짜가 하루 어긋난다. `DateTime` 생성자는 넘친 일 수를
+/// 달력 기준으로 정규화하므로 시간대 전환과 상관없이 자정이 유지된다.
+/// 날짜만 다루는 계산(주 이동·요일 칸·반복 회차)은 이 함수를 쓴다.
+DateTime addCalendarDays(DateTime d, int days) =>
+    DateTime(d.year, d.month, d.day + days);
+
+/// [d] 가 속한 주의 월요일 0시. (#2890)
+///
+/// 주 단위 조회 키·주간 화면의 첫 칸이다. [addCalendarDays] 와 같은 이유로
+/// `subtract(Duration(days: …))` 를 쓰지 않는다.
+DateTime mondayOf(DateTime d) =>
+    addCalendarDays(d, -(d.weekday - DateTime.monday));

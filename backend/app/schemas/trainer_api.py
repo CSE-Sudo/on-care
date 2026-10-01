@@ -131,6 +131,9 @@ class TrainerClientOut(BaseModel):
     #: 카드가 이름 옆에 적는 성별(male|female|other). 저장된 적이 없으면 빈 값이고,
     #: 그때는 앱이 스스로 표시값을 정한다(#960).
     gender: str = ""
+    #: 생년월일로 계산한 만 나이. 회원이 넣지 않았으면 `None` — 앱이 표시값을
+    #: 정한다(#2728).
+    age: int | None = None
     goal: str
     last_message: str
     last_time: str
@@ -966,6 +969,10 @@ class PersonalRoutineItem(BaseModel):
 #: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
+#: 위저드가 개인운동 단계를 채운 AI 제안 id(#2747). 개인운동 한 줄이 제안 하나라
+#: 개인운동 상한과 같다.
+_SuggestionId = Annotated[str, Field(min_length=1, max_length=64)]
+
 
 class ScheduleRoutineUpdateRequest(BaseModel):
     """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
@@ -976,6 +983,11 @@ class ScheduleRoutineUpdateRequest(BaseModel):
 
     personal_routines: list[PersonalRoutineItem] = Field(
         min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+    # 이 개인운동을 채운 대기 중 AI 제안 — 고치기와 같은 트랜잭션에서 닫는다
+    # (#2747). 이미 있는 PT 에 붙이는 길도 프로그램 만들기와 같은 규칙이다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
 
 
@@ -1027,6 +1039,13 @@ class ProgramAssignRequest(BaseModel):
     #: 은 7 을 보내 보낸 날부터 한 주 동안 걸어 두고, 다음 주 분은 트레이너가
     #: 다시 보낸다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
     active_days: int | None = Field(default=None, ge=1, le=31)
+    #: 이 전송에 실린 개인운동을 채운 **대기 중 AI 제안** id(#2747). 배정과 같은
+    #: 트랜잭션에서 그 제안을 닫는다 — 대기로 남으면 다음 위저드가 보낸 제안을
+    #: 다시 채우고, 쌓인 대기가 백로그 한도를 막아 새 제안이 끊긴다. 남의
+    #: 제안·이미 검토한 제안 id 는 조용히 무시한다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 
@@ -1450,6 +1469,10 @@ class ScheduleSessionOut(BaseModel):
     #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
     #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
     member_detached: bool = False
+    #: 회원이 예약 슬롯으로 잡은 일정인가(#2756). 예약이 시각·회원·좌석을 갖고
+    #: 있어 일반 일정 수정(시각·회원·종류·길이)·삭제·되돌리기는 409 다. 메모·
+    #: 프로그램은 고칠 수 있고, 일정을 거두려면 취소한다.
+    is_reservation: bool = False
     #: 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터, #2697). 회원 응답의
     #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
     #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
@@ -1592,6 +1615,11 @@ class ProgramScheduleRequest(BaseModel):
     personal_routines: list[PersonalRoutineItem] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
+    #: [personal_routines] 를 채운 대기 중 AI 제안 id(#2747). 일정 등록과 같은
+    #: 트랜잭션에서 닫는다 — [ProgramAssignRequest.suggestion_ids] 와 같은 규약.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
@@ -1658,11 +1686,21 @@ class ScheduleReopenRequest(BaseModel):
     자리이기 때문이다.
     """
     date: str
+    #: 옮길 시각·길이(#2757). 주면 겹침 검사와 반영을 되돌리기 한 요청 안에서
+    #: 끝낸다 — 따로 보내면 되돌린 뒤의 수정이 겹침으로 멈춰도 되돌리기는 이미
+    #: 커밋돼 있다. 없으면 지금 값을 쓴다.
+    time: str | None = Field(default=None, max_length=10)
+    duration_minutes: int | None = Field(default=None, ge=0, le=600)
 
     @field_validator("date")
     @classmethod
     def _v_date(cls, v: str) -> str:
         return _validate_ymd(v)
+
+    @field_validator("time")
+    @classmethod
+    def _v_time(cls, v: str | None) -> str | None:
+        return _validate_hhmm(v) if v is not None else v
 
 
 class ScheduleCancelRequest(BaseModel):
@@ -1843,6 +1881,12 @@ class WeeklyReportDayOut(BaseModel):
     #: 운동 이름. 끝의 '✓'/'✗' 는 수행 여부를 나타내는 저장 규칙이며 화면은
     #: 그 표시를 읽어 아이콘으로 바꿔 그린다(운동 기록 탭과 같은 규칙).
     exercises: list[str] = Field(default_factory=list)
+    #: 그날 회원 목록에 걸려 있던 추천 개인운동 수 — 개인운동 칸의 분모다(#2772).
+    #: 추천 개인운동은 매일 리셋되는 목록이라 그날 걸려 있던 배정을 센다
+    #: (#2161). 배정이 없던 날과 아직 오지 않은 날은 null 이다 — 0 은 쉬는
+    #: 날과 구분되지 않아 쓰지 않고, null 이면 화면이 실제로 한 운동 수로
+    #: 되돌아간다(#2232, 데모와 같은 규칙).
+    assigned: int | None = None
 
 
 class WeeklyReportOut(BaseModel):
@@ -1868,6 +1912,11 @@ class WeeklyReportOut(BaseModel):
     carbs_week: list[float] = Field(default_factory=list)
     protein_week: list[float] = Field(default_factory=list)
     fat_week: list[float] = Field(default_factory=list)
+    #: 그 주(월→일)의 요일별 끼니 기록 수 — 그날 `DietEntry` 수다(#2772).
+    #: 칼로리가 답하지 못하는 값이다 — 0kcal 인 날은 안 먹은 날이 아니라 안
+    #: 적은 날이다(#2232). 기록 없는 날과 아직 오지 않은 날은 0 이고, 아직
+    #: 오지 않은 날을 `–` 로 그리는 것은 화면 규칙이다.
+    meal_counts: list[int] = Field(default_factory=list)
     #: 그 회원의 하루 목표. 건강 프로필에 적혀 있으면 그 값, 없으면 null 이다
     #: (#1430). 주의사항 판정이 고정 상수보다 이 값을 먼저 쓴다 — 같은 1,900kcal
     #: 이 어떤 회원에게는 부족이고 어떤 회원에게는 초과다. 근거 문장도 어느
@@ -2129,6 +2178,25 @@ class TrainerTaskProgressSave(BaseModel):
         if self.completed_today + self.completed_carried_over > self.total:
             raise ValueError("완료 수는 전체 할 일 수보다 많을 수 없습니다.")
         return self
+
+
+class TrainerTaskKeyChange(BaseModel):
+    """할 일 키 하나의 변경 — 그날 행에 이 키만 더하거나 뺀다. (#2886)
+
+    통째 저장(`TrainerTaskProgressSave`)은 나중에 도착한 쪽이 그날 전체를 덮어써,
+    탭·기기 두 곳에서 서로 다른 할 일을 체크하면 한쪽 체크가 사라졌다. 이 요청은
+    누른 키 하나만 바꾸고 합계는 서버가 저장된 집합에서 다시 낸다.
+
+    - `keys`: 화면이 지금 보여 주는 미션 키(지운 것 제외). 처음 보는 미션을 그날
+      목록에 올린다.
+    - `seen`: 이 화면이 그날 한 번이라도 본 미션 키. 저장된 키 중 여기 있으면서
+      `keys` 에 없는 것은 화면에서 사라진 미션(처리한 상담 등)이라 목록에서 뺀다.
+      여기 없는 저장 키는 이 화면이 모르는 미션이라 그대로 둔다(#2763).
+    """
+    key: _TaskKey
+    action: Literal["check", "uncheck", "dismiss"]
+    keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    seen: list[_TaskKey] = Field(default_factory=list, max_length=1000)
 
 
 class TrainerNotificationSettings(BaseModel):

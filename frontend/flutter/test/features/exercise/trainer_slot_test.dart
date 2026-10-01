@@ -176,7 +176,8 @@ void main() {
         .where((TrainerSlot s) => !s.startsAt.isBefore(tomorrow))
         .toList();
 
-    expect(ahead, hasLength(5));
+    // 신청이 잡은 상담 자리 둘(#2797)까지 일곱 자리다.
+    expect(ahead, hasLength(7));
     expect(
       ahead
           .map(
@@ -187,7 +188,7 @@ void main() {
           .length,
       greaterThan(3),
     );
-    expect(ahead.where((TrainerSlot s) => s.booked), hasLength(1));
+    expect(ahead.where((TrainerSlot s) => s.booked), hasLength(3));
     expect(ahead.map((TrainerSlot s) => s.sessionType).toSet(), <String>{
       '1:1 PT',
       '상담',

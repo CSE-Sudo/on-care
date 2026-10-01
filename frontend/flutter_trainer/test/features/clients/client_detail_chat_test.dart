@@ -105,6 +105,12 @@ class _NoMemoRepository implements TrainerMemoRepository {
 
 class _StaticLiveChatRepository implements ChatRepository {
   @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
+  @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) =>
       Stream<List<ClientChatMessage>>.value(<ClientChatMessage>[
         ClientChatMessage(

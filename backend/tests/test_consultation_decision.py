@@ -643,6 +643,10 @@ def test_accept_ignores_a_schedule_the_client_tries_to_dictate(client, db_sessio
     trainer, trainer_token = _trainer(client, db_session)
     member_id, member_token = _member(client)
     slot = _open_slot(trainer.id)
+    local = slot.starts_at.astimezone(SEOUL)
+    # 넘기는 시각은 자리 시각에서 한 시간 비킨다 — 고정값(05:00)이면 KST 05:00 에
+    # 도는 CI 에서 자리 시각과 같아져 두 단언이 함께 성립할 수 없다(#2727).
+    dictated = (local + timedelta(hours=1)).strftime("%H:%M")
     created = client.post(
         "/v1/consultations",
         headers=_auth(member_token),
@@ -663,7 +667,7 @@ def test_accept_ignores_a_schedule_the_client_tries_to_dictate(client, db_sessio
         headers=_auth(trainer_token),
         json={
             "date": (date.today() + timedelta(days=9)).isoformat(),
-            "time": "05:00",
+            "time": dictated,
             "type": "상담",
             "duration_minutes": 30,
         },
@@ -675,9 +679,8 @@ def test_accept_ignores_a_schedule_the_client_tries_to_dictate(client, db_sessio
         .filter_by(trainer_id=trainer.id, member_id=member_id)
         .one()
     )
-    local = slot.starts_at.astimezone(SEOUL)
     assert session.time == local.strftime("%H:%M")
-    assert session.time != "05:00"
+    assert session.time != dictated
 
 
 def test_accept_notifies_the_member(client, db_session):
