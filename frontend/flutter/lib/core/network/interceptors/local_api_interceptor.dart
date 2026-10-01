@@ -3785,6 +3785,16 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     };
   }
 
+  /// 프로필 응답 — 서버 `ProfileView` 처럼 실효 단백질 목표를 함께 싣는다(#2898).
+  /// 식단 분석이 쓰는 규칙(목표 → 체중 × 1.2g → 60g)과 같은 값이다.
+  Future<Map<String, Object?>> _profileView() async {
+    final Map<String, Object?> profile = await _mergedProfile();
+    return <String, Object?>{
+      ...profile,
+      'effective_daily_protein_g': demoDietTargets(profile).proteinG,
+    };
+  }
+
   Future<void> _mergeProfileOverlay(Map<String, Object?> patch) async {
     final overlay = await _readProfileOverlay();
     overlay.addAll(patch);
@@ -3801,7 +3811,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   Future<Response<Object?>> _usersMeProfile(RequestOptions options) async {
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// 데모 세계에서 **다른 계정이 이미 쓰는** 이메일(#2639).
@@ -3875,7 +3885,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// PUT /users/me/health-goals — 식단 일일 목표(6종) + 운동 목표(7종)를
@@ -3920,7 +3930,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       }
     }
     await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// 옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다 — 서버 스키마가
@@ -3972,7 +3982,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     patch['onboarded'] = true;
     _normalizeConditions(patch);
     await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// 데모 모드의 동기화 코드 — 김민수(데모 회원)의 고정 값이다. (#1634)

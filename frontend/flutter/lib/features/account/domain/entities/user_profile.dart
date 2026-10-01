@@ -5,7 +5,14 @@ class UserProfile {
   static const int defaultDailySodiumMg = 2000;
   static const int defaultDailySugarG = 50;
   static const int defaultDailyCarbsG = 275;
-  static const int defaultDailyProteinG = 100;
+
+  /// 체중도 개인 목표도 없을 때의 단백질 목표 — 서버
+  /// `diet_coach_inputs.DEFAULT_PROTEIN_G` 와 같다(#2898). 예전 100g 은 식단
+  /// 분석 기준(60g)과 달라, 카드와 분석이 같은 날을 다르게 판단했다.
+  static const int defaultDailyProteinG = 60;
+
+  /// 체중 1kg 당 단백질 목표(g) — 서버 `PROTEIN_G_PER_KG` 와 같다(#2898).
+  static const double proteinGPerKg = 1.2;
   static const int defaultDailyFatG = 55;
 
   /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
@@ -29,6 +36,7 @@ class UserProfile {
     this.dailyCarbsG,
     this.dailyProteinG,
     this.dailyFatG,
+    this.serverEffectiveDailyProteinG,
     this.weeklyWorkoutGoal,
     this.weeklyExerciseMinutesGoal,
     this.weeklyBurnGoal,
@@ -71,7 +79,35 @@ class UserProfile {
   int get effectiveDailySodiumMg => dailySodiumMg ?? defaultDailySodiumMg;
   int get effectiveDailySugarG => dailySugarG ?? defaultDailySugarG;
   int get effectiveDailyCarbsG => dailyCarbsG ?? defaultDailyCarbsG;
-  int get effectiveDailyProteinG => dailyProteinG ?? defaultDailyProteinG;
+
+  /// 서버가 계산해 준 실효 단백질 목표(`effective_daily_protein_g`, #2898).
+  /// 옛 응답·목업이면 null 이고, 그때는 [effectiveDailyProteinG] 가 같은 규칙을
+  /// 앱에서 계산한다.
+  final int? serverEffectiveDailyProteinG;
+
+  /// 단백질 목표 — 개인 목표 → 서버 실효값 → 체중 × 1.2g → 60g. 식단 분석·조언과
+  /// 같은 분모다(#2898).
+  int get effectiveDailyProteinG =>
+      dailyProteinG ??
+      serverEffectiveDailyProteinG ??
+      proteinTargetFromWeight(weightKg) ??
+      defaultDailyProteinG;
+
+  /// 체중 기반 단백질 목표. 체중이 없으면 null.
+  static int? proteinTargetFromWeight(double? weightKg) =>
+      weightKg != null && weightKg > 0
+      ? _pyRound(weightKg * proteinGPerKg)
+      : null;
+
+  /// 파이썬 `round()` 와 같은 반올림(0.5 는 짝수 쪽) — 서버와 같은 수를 낸다.
+  static int _pyRound(double x) {
+    final int f = x.floor();
+    final double diff = x - f;
+    if (diff > 0.5) return f + 1;
+    if (diff < 0.5) return f;
+    return f.isEven ? f : f + 1;
+  }
+
   int get effectiveDailyFatG => dailyFatG ?? defaultDailyFatG;
 
   // 주간 운동 목표 — 트레이너 앱이 고객 목표로 읽는 값이다. 회원 화면은 아래
@@ -116,6 +152,10 @@ class UserProfile {
     dailyCarbsG: (json['daily_carbs_g'] as num?)?.toInt(),
     dailyProteinG: (json['daily_protein_g'] as num?)?.toInt(),
     dailyFatG: (json['daily_fat_g'] as num?)?.toInt(),
+    serverEffectiveDailyProteinG: switch (json['effective_daily_protein_g']) {
+      final num v when v > 0 => v.toInt(),
+      _ => null,
+    },
     weeklyWorkoutGoal: (json['weekly_workout_goal'] as num?)?.toInt(),
     weeklyExerciseMinutesGoal: (json['weekly_exercise_minutes_goal'] as num?)
         ?.toInt(),

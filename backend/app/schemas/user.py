@@ -222,6 +222,9 @@ class ProfileView(BaseModel):
     daily_sugar_g: Optional[int] = None
     daily_carbs_g: Optional[int] = None
     daily_protein_g: Optional[int] = None
+    #: 식단 분석·조언이 실제로 쓰는 하루 단백질 목표(#2898) — 개인 목표가 있으면
+    #: 그 값, 없으면 체중 × 1.2g, 둘 다 없으면 60g. 영양 카드 분모가 이 값이다.
+    effective_daily_protein_g: Optional[int] = None
     daily_fat_g: Optional[int] = None
     weekly_workout_goal: Optional[int] = None
     weekly_exercise_minutes_goal: Optional[int] = None
