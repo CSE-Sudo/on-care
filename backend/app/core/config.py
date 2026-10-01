@@ -39,7 +39,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24
     refresh_token_expire_days: int = 30
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
-    allow_demo_fallback: bool = True
+    # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
+    # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.
+    allow_demo_fallback: bool = False
 
     # --- 소셜 로그인 ---
     # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.

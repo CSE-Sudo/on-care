@@ -47,7 +47,7 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
 | GET | `/version` | `{ api_version, app_version }` |
 
 ### 사용자
@@ -1433,9 +1433,14 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 demo_fallback_enabled = allow_demo_fallback and not is_prod
 ```
 
-- **dev / staging** — 데모 사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로
-  전환할 때 로그인 없이도 화면이 뜨게 하려는 것이다.
+- **기본값은 꺼짐**(#2821) — `ALLOW_DEMO_FALLBACK` 을 주지 않으면 어느 환경이든 401 이다. 환경변수를
+  빠뜨린 배포 서버가 로그인 없는 요청을 데모 회원으로 처리하지 않게 하려는 것이다.
+- **로컬 개발** — `.env.example` 이 `ALLOW_DEMO_FALLBACK=true` 로 켠다. 켜면 dev / staging 에서 데모
+  사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로 전환할 때 로그인 없이도
+  화면이 뜨게 하려는 것이다. 켠 채 기동하면 WARN 로그가 남는다.
 - **prod** — `ALLOW_DEMO_FALLBACK` 값과 무관하게 **항상 비활성**이고 401 을 낸다.
+- 지금 어느 쪽으로 떠 있는지는 `GET /healthz` 의 `demo_fallback` 으로 읽는다. 배포 워크플로가
+  배포 직후 이 값과 `env` 를 확인한다.
 
 운영은 이 외에도 기동 시점에 막는 것이 있다(`_guard_prod_secrets`): 기본 `JWT_SECRET`,
 CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드, `AUTO_CREATE_TABLES=true`

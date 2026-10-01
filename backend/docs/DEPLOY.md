@@ -26,7 +26,8 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 실패 커밋이나 병합되지 않은 코드는 운영에 배포되지 않는다. Backend CI 는
 `alembic heads` 가 **정확히 1개**인지 검사해 마이그레이션 head 분기(선형화 누락)를 막는다.
 배포 잡은 `concurrency` 로 한 번에 하나만 돌고, `update-service`가 반환한 정확한 OperationId와
-`/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤 워크플로우를 통과시킨다.
+`/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤, healthz 가 싣는 설정(`env`·
+`demo_fallback`·`demo_seed`)이 운영 기대값인지 확인하고 나서야 워크플로우를 통과시킨다(#2821).
 
 **수동 실행**도 CI 게이트를 우회하지 않는다. `main`에서 워크플로우를 실행하며 배포할 40자리
 커밋 SHA를 입력해야 하고, 워크플로우가 GitHub Actions API에서 그 SHA의 `main` push에 대한
@@ -76,7 +77,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 | 키 | 값/설명 |
 |---|---|
-| `ENV` | `prod` (fail-fast 하드닝 활성) |
+| `ENV` | `prod` (fail-fast 하드닝 활성). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821) |
+| `ALLOW_DEMO_FALLBACK` | `false`(기본값). `ENV=prod` 면 값과 무관하게 꺼진다 |
 | `JWT_SECRET` | `openssl rand -hex 32` (기본값이면 기동 거부) |
 | `DATABASE_URL` | 위 Neon 접속 문자열(직접 엔드포인트) |
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
@@ -88,7 +90,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
-> App Runner 에 주입한다.
+> App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
 
 ## 4) App Runner 서비스
 
@@ -164,6 +166,25 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
 4. 대화방에서 예전 사진·리포트가 열리는지 확인한 뒤 컨테이너 쪽 사본을 지운다.
 
 데모 시드 첨부(#2788)는 기동마다 같은 `file_id` 로 다시 쓰므로 옮기지 않아도 된다.
+
+## 5-2) 운영 체크리스트 (#2821)
+
+배포 전에 한 번, 환경변수를 바꿀 때마다 다시 본다.
+
+- [ ] App Runner 환경변수가 `backend/.env.aws.example` 의 키를 모두 갖는다. `ENV=prod`,
+      `AUTO_CREATE_TABLES=false`, `SEED_DEMO_DATA=false`, `ALLOW_DEMO_FALLBACK=false`.
+- [ ] **운영 DB 와 데모 DB 가 다르다.** 운영 서비스의 `DATABASE_URL` 은 데모 시드가 한 번도
+      들어가지 않은 DB(또는 Neon 브랜치)를 가리킨다. 데모 시연이 필요하면 **별도 App Runner 서비스**
+      (`ENV=staging`, `SEED_DEMO_DATA=true`, 강한 `DEMO_LOGIN_PASSWORD`)를 **별도 DB** 로 띄운다.
+      같은 DB 를 쓰면 운영 화면에 데모 계정·기록이 섞이고, 데모 계정 비밀번호가 운영 자격 증명이 된다.
+- [ ] `JWT_SECRET` 은 서비스마다 다르다(데모 서비스에서 발급한 토큰이 운영에서 통하지 않게).
+- [ ] `CORS_ALLOW_ORIGINS` 는 실제 프론트 도메인만.
+- [ ] `ATTACHMENT_S3_BUCKET` 이 있다(아래 5-1). 없으면 기동 로그에 WARN.
+- [ ] 배포 뒤 워크플로의 `Verify running configuration` 단계가 통과했다 — `/v1/healthz` 가
+      `env=prod`·`demo_fallback=false`·`demo_seed=false` 를 돌려줘야 통과한다. 기대 환경은 저장소
+      변수 `BACKEND_EXPECTED_ENV`(기본 `prod`)다. 데모 서비스를 이 워크플로로 배포한다면 그 서비스용
+      설정에서 이 값을 `staging` 으로 둔다.
+- [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백·운영 데모 시드·로컬 첨부 저장소).
 
 ## 6) 프론트 연결
 

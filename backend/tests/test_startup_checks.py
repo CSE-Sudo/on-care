@@ -43,3 +43,28 @@ def test_prod_with_a_bucket_has_no_storage_warning():
 def test_local_development_on_disk_is_not_warned_about_storage():
     warnings = startup_checks.check(Settings(_env_file=None))
     assert not any("ATTACHMENT_S3_BUCKET" in w for w in warnings)
+
+
+# --- 데모 폴백·데모 시드(#2821) ---
+
+
+def test_demo_fallback_on_is_warned(caplog):
+    settings = Settings(_env_file=None, allow_demo_fallback=True)
+    with caplog.at_level(logging.WARNING, logger="app.startup"):
+        warnings = startup_checks.check(settings)
+    assert any("데모 폴백" in w for w in warnings)
+    assert "데모 폴백" in caplog.text
+
+
+def test_default_settings_have_no_demo_fallback_warning(monkeypatch):
+    monkeypatch.delenv("ALLOW_DEMO_FALLBACK", raising=False)
+    warnings = startup_checks.check(Settings(_env_file=None))
+    assert not any("데모 폴백" in w for w in warnings)
+
+
+def test_prod_with_demo_seed_is_warned():
+    settings = _prod(seed_demo_data=True, demo_login_password="a-long-demo-password")
+    warnings = startup_checks.check(settings)
+    assert any("SEED_DEMO_DATA" in w for w in warnings)
+    # 운영에서는 폴백이 늘 꺼지므로 폴백 경고는 없다.
+    assert not any("데모 폴백" in w for w in warnings)

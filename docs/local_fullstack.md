@@ -52,6 +52,10 @@ docker compose up -d --build
 
 → http://localhost:8000/docs (모든 경로는 `/v1/...`)
 
+예전에 만든 `.env` 를 그대로 쓴다면 두 줄을 확인합니다(#2821). 데모 폴백은 이제 기본이 꺼짐이라
+토큰 없이 데모 회원 화면을 보려면 `ALLOW_DEMO_FALLBACK=true` 가 있어야 하고, 컨테이너 기동
+스크립트는 `ENV` 가 비어 있으면 뜨지 않습니다(`.env.example` 은 둘 다 들어 있습니다).
+
 AI 키는 없어도 됩니다. `GEMINI_API_KEY` 가 비어 있으면 식단 인식이 오프라인 스텁으로
 폴백해서 `/v1/diet/analyze` 가 그대로 동작합니다(CI 와 같은 경로).
 

@@ -37,6 +37,21 @@ def check(settings: Settings) -> list[str]:
             "ATTACHMENT_S3_BUCKET 을 설정하세요."
         )
 
+    # --- 데모 폴백·데모 시드(#2821) ---
+    # 개발에서는 정상이지만, 배포된 서버라면 로그인 없는 요청이 데모 회원으로 처리된다.
+    # 배포 워크플로가 /healthz 로 다시 확인하지만, 로그에도 남겨 사람이 먼저 본다.
+    if settings.demo_fallback_enabled:
+        warnings.append(
+            f"데모 폴백이 켜져 있습니다(env={settings.env}) — 토큰 없는 회원 API 요청이 "
+            "데모 회원으로 처리됩니다. 배포 환경이면 ALLOW_DEMO_FALLBACK=false·ENV=prod 로 "
+            "띄우세요."
+        )
+    if settings.is_prod and settings.seed_demo_data:
+        warnings.append(
+            "운영(env=prod)에서 데모 시드가 켜져 있습니다(SEED_DEMO_DATA=true) — 운영 DB 에 "
+            "데모 계정·기록이 생깁니다. 데모 시연은 별도 서비스·별도 DB 로 띄우세요."
+        )
+
     for message in warnings:
         logger.warning("[startup] %s", message)
     return warnings
