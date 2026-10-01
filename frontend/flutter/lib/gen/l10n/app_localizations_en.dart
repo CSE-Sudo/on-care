@@ -3344,6 +3344,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get guideSampleFoodScrambledEggs => 'Scrambled eggs';
+
+  @override
+  String get guideSampleFoodWholeWheatToast => 'Whole-wheat toast';
+
+  @override
+  String get guideSampleFoodChickenSalad => 'Chicken breast salad';
+
+  @override
+  String get guideSampleFoodBrownRice => 'Brown rice';
+
+  @override
+  String get guideSampleFoodGrilledSalmon => 'Grilled salmon';
+
+  @override
+  String get guideSampleFoodRoastedVegetables => 'Roasted vegetables';
+
+  @override
   String get onboardRequiredTag => '(required)';
 
   @override

@@ -5797,6 +5797,42 @@ abstract class AppLocalizations {
   /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
+  /// No description provided for @guideSampleFoodScrambledEggs.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrambled eggs'**
+  String get guideSampleFoodScrambledEggs;
+
+  /// No description provided for @guideSampleFoodWholeWheatToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole-wheat toast'**
+  String get guideSampleFoodWholeWheatToast;
+
+  /// No description provided for @guideSampleFoodChickenSalad.
+  ///
+  /// In en, this message translates to:
+  /// **'Chicken breast salad'**
+  String get guideSampleFoodChickenSalad;
+
+  /// No description provided for @guideSampleFoodBrownRice.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown rice'**
+  String get guideSampleFoodBrownRice;
+
+  /// No description provided for @guideSampleFoodGrilledSalmon.
+  ///
+  /// In en, this message translates to:
+  /// **'Grilled salmon'**
+  String get guideSampleFoodGrilledSalmon;
+
+  /// No description provided for @guideSampleFoodRoastedVegetables.
+  ///
+  /// In en, this message translates to:
+  /// **'Roasted vegetables'**
+  String get guideSampleFoodRoastedVegetables;
+
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
   /// In en, this message translates to:

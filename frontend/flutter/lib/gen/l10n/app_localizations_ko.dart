@@ -3215,6 +3215,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get guideSampleFoodScrambledEggs => '스크램블에그';
+
+  @override
+  String get guideSampleFoodWholeWheatToast => '통밀 토스트';
+
+  @override
+  String get guideSampleFoodChickenSalad => '닭가슴살 샐러드';
+
+  @override
+  String get guideSampleFoodBrownRice => '현미밥';
+
+  @override
+  String get guideSampleFoodGrilledSalmon => '연어구이';
+
+  @override
+  String get guideSampleFoodRoastedVegetables => '구운 채소';
+
+  @override
   String get onboardRequiredTag => '(필수)';
 
   @override

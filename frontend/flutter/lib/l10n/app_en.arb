@@ -2457,6 +2457,12 @@
       }
     }
   },
+  "guideSampleFoodScrambledEggs": "Scrambled eggs",
+  "guideSampleFoodWholeWheatToast": "Whole-wheat toast",
+  "guideSampleFoodChickenSalad": "Chicken breast salad",
+  "guideSampleFoodBrownRice": "Brown rice",
+  "guideSampleFoodGrilledSalmon": "Grilled salmon",
+  "guideSampleFoodRoastedVegetables": "Roasted vegetables",
   "onboardRequiredTag": "(required)",
   "@onboardRequiredTag": {
     "description": "Onboarding step 1: the basic info step must be filled in (#1830)."
