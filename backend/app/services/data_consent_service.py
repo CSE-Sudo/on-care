@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, or_
+from sqlalchemy import ColumnElement, and_, or_
 
 from app.core import clock
 from app.models.models import TrainerClient
@@ -62,3 +62,19 @@ def allows_access_clause() -> ColumnElement[bool]:
         TrainerClient.data_consent_at.is_not(None),
         TrainerClient.data_consent_revoked_at.is_(None),
     )
+
+
+def link_is_open(link: TrainerClient | None) -> bool:
+    """트레이너가 이 링크로 회원을 **지금 담당 중인 회원**으로 다룰 수 있는가.
+
+    살아 있는 링크(`active`)이면서 동의가 막히지 않은 링크다. 라우터의
+    `_require_client` 가 이 판단으로 404 를 가르고, 집계 쿼리는 같은 판단의 SQL
+    판인 [open_link_clause] 를 쓴다 — 한쪽만 고쳐지면 "열 수는 없는데 숫자로는
+    세는" 회원이 생긴다(#2868).
+    """
+    return link is not None and bool(link.active) and not blocks_access(link)
+
+
+def open_link_clause() -> ColumnElement[bool]:
+    """[link_is_open] 을 SQL 조건으로. `TrainerClient` 를 조인한 쿼리에 붙인다."""
+    return and_(TrainerClient.active.is_(True), allows_access_clause())

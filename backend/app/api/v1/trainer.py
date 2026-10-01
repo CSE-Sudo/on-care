@@ -189,11 +189,7 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
             TrainerClient.member_id == member_id,
         )
     )
-    if (
-        link is None
-        or not link.active
-        or data_consent_service.blocks_access(link)
-    ):
+    if not data_consent_service.link_is_open(link):
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
 
@@ -939,7 +935,11 @@ def trainer_chat_unread(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, int]:
-    """회원별 미확인 메시지 수(회원 발신·미읽음). 고객 목록 배지용."""
+    """회원별 미확인 메시지 수(회원 발신·미읽음). 고객 목록 배지용.
+
+    지금 담당 중이고 동의가 유효한 회원만 센다 — 해제·동의 철회 회원은
+    읽음 처리(`_require_client`)가 404 라 지울 수 없는 숫자가 되기 때문이다(#2868).
+    """
     return trainer_service.unread_counts_for_trainer(db, trainer.id)
 
 

@@ -66,12 +66,10 @@ class AppSidebar extends ConsumerWidget {
     // 알림 설정이 이 배지를 끈다 — 설정 화면이 "사이드바 뱃지로 알려드려요"
     // 라고 적어 두고 정작 아무 데서도 읽지 않아, 꺼도 배지가 그대로였다(#817).
     final settings = ref.watch(trainerSettingsProvider);
+    // 명단에 있는 회원 몫만 더한다 — 해제 회원 몫이 지울 수 없는 숫자로
+    // 남지 않게, 대시보드·메시지 칩과 같은 규칙으로(#2868).
     final unread = settings.newMessageAlerts
-        ? ref
-              .watch(unreadCountsProvider)
-              .valueOrNull
-              ?.values
-              .fold<int>(0, (sum, n) => sum + n)
+        ? ref.watch(rosterUnreadProvider)?.messages
         : null;
     // 완료한 수업은 빠진 '남은 일감' 수. 대시보드 KPI 의 '오늘 예약' 과는
     // 다른 숫자이고, 달라야 한다(#860).

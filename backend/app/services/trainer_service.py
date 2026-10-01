@@ -1179,10 +1179,23 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
 
 
 def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
-    """트레이너 기준 회원별 미확인(회원이 보낸 read_at NULL) 메시지 수."""
+    """트레이너 기준 회원별 미확인(회원이 보낸 read_at NULL) 메시지 수.
+
+    **지금 담당 중이고 동의가 유효한 링크**의 회원만 센다(#2868). 읽음 처리
+    (`POST /trainer/clients/{id}/chat/read`)는 `_require_client` 로 그런 링크를
+    요구하므로, 해제·동의 철회 회원을 세면 트레이너가 지울 수 없는 배지가 남고
+    "예전에 담당했던 회원" 이 숫자로 드러난다. 메시지 행은 그대로 두므로
+    재등록(새 동의 포함)하면 남은 안읽음이 다시 보인다.
+    """
     rows = db.execute(
         select(ChatMessage.member_id, func.count())
+        .join(
+            TrainerClient,
+            (TrainerClient.trainer_id == ChatMessage.trainer_id)
+            & (TrainerClient.member_id == ChatMessage.member_id),
+        )
         .where(
+            data_consent_service.open_link_clause(),
             ChatMessage.trainer_id == trainer_id,
             ChatMessage.sender == "member",
             ChatMessage.read_at.is_(None),
@@ -1224,8 +1237,7 @@ def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool
         select(TrainerClient.id).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
-            TrainerClient.active.is_(True),
-            data_consent_service.allows_access_clause(),
+            data_consent_service.open_link_clause(),
         )
     ) is not None
 

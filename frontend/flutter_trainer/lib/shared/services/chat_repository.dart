@@ -13,8 +13,9 @@ import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
-    show demoUnregisteredClientIdsSnapshot;
+    show clientsProvider, demoUnregisteredClientIdsSnapshot;
 import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
+import 'package:oncare_trainer/shared/utils/roster_unread.dart';
 
 /// Reads and sends messages in a trainer↔member chat thread.
 ///
@@ -401,3 +402,18 @@ final chatThreadProvider = StreamProvider.autoDispose
     .family<List<ClientChatMessage>, String>((ref, clientId) {
       return ref.watch(chatRepositoryProvider).watchThread(clientId);
     });
+
+/// 명단 회원만 더한 안읽음 합계 — 사이드바 배지가 읽는다. (#2868)
+///
+/// 명단(`clientsProvider`)이나 안읽음 맵이 아직 없으면 `null` — 사이드바는
+/// 배지를 그리지 않고 기다린다. 대시보드·메시지 탭은 이미 명단을 들고 있어
+/// [rosterUnreadOf] 를 직접 부른다.
+final rosterUnreadProvider = Provider.autoDispose<RosterUnread?>((ref) {
+  final unread = ref.watch(unreadCountsProvider).valueOrNull;
+  final clients = ref.watch(clientsProvider).valueOrNull;
+  if (unread == null || clients == null) return null;
+  return rosterUnreadOf(
+    rosterIds: clients.map((client) => client.id),
+    unread: unread,
+  );
+});
