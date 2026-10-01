@@ -170,13 +170,15 @@ flutter build apk --debug
 
 받는 폰에서 **알 수 없는 앱 설치** 를 허용해야 합니다(설정 → 보안 및 개인 정보 보호 → 알 수
 없는 앱 설치 → APK 를 여는 앱에 허용). 디버그 키로 서명된 물건이라 스토어 배포에는 쓸 수
-없습니다.
+없습니다. 릴리스 빌드(`--release`)는 업로드 키가 든 `android/key.properties` 가 있어야 하며,
+없으면 빌드가 멈춥니다 — [mobile_release.md](mobile_release.md) 참고.
 
 **선언된 권한**
 
 `image_picker` 가 여는 두 경로 모두 안드로이드에서는 **런타임 권한이 필요 없습니다.** 사진
 선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
-`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 `INTERNET` 만
+`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 카메라·사진 권한이
+없고 `INTERNET` 과 헬스장 찾기용 위치 권한(`ACCESS_COARSE_LOCATION`·`ACCESS_FINE_LOCATION`)만
 있습니다.
 
 **그래서 Android 13 이상에서는 권한 다이얼로그가 아예 뜨지 않습니다.** 안 뜨는 것이 정상이고
@@ -191,8 +193,8 @@ flutter build apk --debug
 > `READ_MEDIA_IMAGES` 도 지금은 필요 없습니다. 앱 안에서 최근 사진 썸네일을 직접 읽는
 > #1845(카카오톡식 최근 사진 시트)를 착수할 때 `photo_manager` 도입과 함께 결정할 항목입니다.
 
-iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`
-문구가 이미 들어 있습니다(#526). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
+iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`·
+`NSLocationWhenInUseUsageDescription` 문구가 들어 있습니다(#526, #2823). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
 절차는 #1882 에 있습니다.
 
 ## 3. 트레이너 웹
