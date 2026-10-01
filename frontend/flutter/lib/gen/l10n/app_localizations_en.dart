@@ -108,6 +108,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Start moving this week — an easy walk is a good beginning.';
 
   @override
+  String homeAdviceSodiumOverSources(String foods) {
+    return 'Sodium is high from $foods.';
+  }
+
+  @override
+  String homeAdviceFoodPair(String first, String second) {
+    return '$first and $second';
+  }
+
+  @override
   String get homeAiAdviceBody =>
       'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
@@ -4770,6 +4780,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachReportsEmptyHint =>
       'Weekly reports from your trainer land here';
+
+  @override
+  String get coachReportsLoadFailed => 'Couldn\'t load your reports';
+
+  @override
+  String get weeklyFeedbackLoadFailed =>
+      'Couldn\'t load the weekly feedback you sent';
 
   @override
   String get coachReportOpen => 'Open report';

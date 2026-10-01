@@ -16,7 +16,6 @@ import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -34,6 +33,7 @@ import 'package:oncare/features/notification/presentation/pages/notification_pag
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 import '../helpers/fake_notification_repository.dart';
 
@@ -105,7 +105,7 @@ void main() {
             MockExerciseRepository() as ExerciseRepository,
           ),
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           memberCoachRepositoryProvider.overrideWithValue(repository),
           // 알림함은 데모에서도 Dio + drift 를 탄다(#2660) — 식단처럼 가짜로 덮는다.

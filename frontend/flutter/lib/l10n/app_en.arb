@@ -64,6 +64,27 @@
   "@homeAdviceExerciseStart": {
     "description": "Home AI advice when nothing was logged this week (#1943)."
   },
+  "homeAdviceSodiumOverSources": "Sodium is high from {foods}.",
+  "@homeAdviceSodiumOverSources": {
+    "description": "Home AI advice when today's sodium is over the goal, naming the foods that added the most sodium. {foods} is the member's own food names, not translated (#2644).",
+    "placeholders": {
+      "foods": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAdviceFoodPair": "{first} and {second}",
+  "@homeAdviceFoodPair": {
+    "description": "Joins the two top sodium foods in the home AI advice (#2644).",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
@@ -4078,6 +4099,8 @@
   "coachReportsSectionTitle": "Reports received",
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
+  "coachReportsLoadFailed": "Couldn't load your reports",
+  "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportOpen": "Open report",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {

@@ -58,7 +58,8 @@ void main() {
 
       expect(past.statusCode, 200);
       expect(past.data!['total_calories'], 420);
-      expect(past.data!['ai_coach_message'], '균형 잡힌 하루였어요. 내일도 이대로 가요!');
+      // 지난 날짜는 그날을 되짚는 문장이다 — "내일도" 같은 오늘 말투가 아니다(#2644).
+      expect(past.data!['ai_coach_message'], '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.');
       expect((past.data!['entries']! as List<Object?>).length, 1);
       expect(empty.statusCode, 200);
       expect(empty.data!['entries'], isEmpty);

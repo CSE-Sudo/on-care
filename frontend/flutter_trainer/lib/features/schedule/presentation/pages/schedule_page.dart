@@ -502,9 +502,33 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   ///
   /// 멱등키를 실어 보내므로 실패 후 다시 눌러도 회원의 루틴이 두 벌 생기지
   /// 않는다. 성공하면 세션 행에 남아, 화면이 '전송됨' 을 사실대로 말한다.
+  ///
+  /// 개인운동이 하나도 없으면 보내기 직전에 한 번 붙잡는다(#2280) — 보낸 뒤에는
+  /// 이 PT 에 개인운동을 붙일 수 없어, "나중에 보내야지" 하고 PT 만 보내면 그
+  /// 기회가 사라진다. 막지는 않는다: 개인운동을 줄 수 없는 날도 있다.
   Future<void> _sendProgram(ScheduleSession s) async {
     if (_sendingProgramId != null) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 읽어 온 뒤 하나도 없다는 것을 알 때만 묻는다 — 읽지 못한 PT 에 없다고
+    // 말하지 않는다.
+    if ((_unsentRoutines[s.id]?.isEmpty ?? false) &&
+        acceptsFirstPersonalRoutines(s)) {
+      final choice = await showNoPersonalRoutineDialog(
+        context,
+        title: l.schedNoRoutinesSendTitle,
+        body: l.schedNoRoutinesSendBody,
+        skipLabel: l.schedNoRoutinesSendSkip,
+      );
+      if (choice == null || !mounted) return;
+      // 붙이러 가면 보내지 않는다 — 붙인 뒤 돌아와 트레이너가 다시 보낸다.
+      // 코칭 탭에서 `PT에 반영` 을 누른 것이 회원 전송까지 되면, 누른
+      // 버튼과 일어난 일이 달라진다.
+      if (choice == NoPersonalRoutineChoice.add) {
+        _goAddRoutines(s);
+        return;
+      }
+      if (_sendingProgramId != null) return;
+    }
     setState(() => _sendingProgramId = s.id);
     try {
       await ref
@@ -532,6 +556,38 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     } finally {
       if (mounted) setState(() => _sendingProgramId = null);
     }
+  }
+
+  /// 개인운동이 없는 PT 의 `개인운동 추가` — 그 회원의 코칭 탭 개인운동
+  /// 단계로 간다. (#2280)
+  ///
+  /// 개인운동은 AI 제안을 받아 짜는 것이라 스케줄에서 빈 창으로 짜지 않는다.
+  /// 프로그램도 AI 로 한 번 짜고, 고치는 것만 이 카드의 부분 창에서 한다.
+  /// 붙이면 코칭 탭이 이 일정으로 돌려보낸다.
+  void _goAddRoutines(ScheduleSession s) {
+    final String? clientId = s.clientId ?? _rosterIdByName(s.clientName);
+    if (clientId == null) {
+      context.go(AppRoutes.clients);
+      return;
+    }
+    context.go(
+      AppRoutes.coachingAttach(
+        clientId,
+        sessionId: s.id,
+        date: s.date,
+        requestId: newClientRequestId(),
+      ),
+    );
+  }
+
+  /// 일정에 회원 id 가 없을 때(예전에 이름으로만 잡은 일정) 로스터에서 이름으로
+  /// 찾는다 — [_openProgram] 과 같은 방식이다.
+  String? _rosterIdByName(String name) {
+    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
+    for (final c in clients) {
+      if (c.name == name) return c.id;
+    }
+    return null;
   }
 
   /// 계획 없는 세션의 `프로그램 추가` — 이 카드 안이 아니라 그 고객의 코칭
@@ -905,14 +961,26 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           personalRoutines: session.memberDetached
               ? null
               : SessionPersonalRoutines(
+                  // 코칭 탭에서 붙이고 돌아오면(#2280) 이 화면은 그동안 떠
+                  // 있지 않아 바뀐 것을 모른다 — 붙인 쪽이 올린 판번호로 다시
+                  // 읽는다.
                   key: ValueKey<String>(
                     'personal-routines-${session.id}'
-                    '-${_routinesRevision[session.id] ?? 0}',
+                    '-${_routinesRevision[session.id] ?? 0}'
+                    '-${ref.watch(scheduledRoutinesRevisionProvider)}',
                   ),
                   sessionId: session.id,
                   finished: !session.isUpcoming,
-                  onChanged: (rows) =>
-                      setState(() => _unsentRoutines[session.id] = rows),
+                  showEmpty: acceptsFirstPersonalRoutines(session),
+                  onAdd: () => _goAddRoutines(session),
+                  // 읽지 못했으면 null — 있는지 없는지 모르는 채로 둔다.
+                  onChanged: (rows) => setState(() {
+                    if (rows == null) {
+                      _unsentRoutines.remove(session.id);
+                    } else {
+                      _unsentRoutines[session.id] = rows;
+                    }
+                  }),
                 ),
           hasUnsentRoutines:
               (_unsentRoutines[session.id] ?? const <RoutineExercise>[])

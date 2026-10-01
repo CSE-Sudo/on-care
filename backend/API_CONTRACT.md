@@ -106,9 +106,15 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, week_score, week_score_delta, sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable) }` |
+| GET | `/dashboard/summary` | `{ indicators[], macros, diet_entries(int), exercise_minutes, nutrition_week[], sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable), ai_advice_params }` |
 
-`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 음식 이름이 들어간 나트륨 경고처럼 번역할 수 없는 문장에는 키를 주지 않는다.
+`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 값은 `sodium_over` · `sodium_over_sources` · `exercise_on_track` · `exercise_more` · `exercise_start` 중 하나다.
+
+`ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 번역하지 않고 앱 ARB 의 문장 틀에 그대로 끼운다. `sodium_warning` · `exercise_feedback` 문장도 요청 `Accept-Language` 를 따른다.
+
+`nutrition_week[]`: `{ date, label, calories, sodium_mg, sugar_g }` — 이번 주 월~일 7일. 홈 식단 카드는 칼로리를 그린다.
+
+주간 점수(`week_score`, `week_score_delta`), 지난 주 비교선(`nutrition_week_prev`), `exercise_calories` · `exercise_count` · `exercise_burn_goal` 은 홈이 읽지 않아 응답에서 뺐다(#2646).
 
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.
@@ -955,6 +961,21 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 쓰기는 담당 트레이너가 있어야 한다(없으면 404). 받는 사람이 없는 피드백은 아무 데도 닿지
   않는다. **트레이너 없이 쓰는 주간 리포트(포인트 교환, #2022)와는 다른 기능**이라 그 경로와
   섞지 않는다.
+
+**회원 주간 리포트 (#2652)**: 회원 앱 결과지가 트레이너 웹 결과지와 같은 한 장을 그리게
+하는 읽기 경로다. 응답은 트레이너의 `GET /trainer/clients/{member_id}/report` 와 같은
+`WeeklyReportOut` 이다.
+
+| 메서드 | 경로 | 쓰는 쪽 |
+|---|---|---|
+| `GET` | `/me/coach/weekly-report?week_start=` | 회원 앱 — 내 한 주 결과지 |
+
+- `week_start` 기본값은 **이번 주**(트레이너 리포트와 같다). 주 중간 날짜는 그 주 월요일로
+  접히고, 형식이 틀리거나 **아직 오지 않은 주는 422**.
+- 같은 회원·같은 주면 `message` 를 뺀 모든 필드가 트레이너 응답과 같다.
+- **`message` 는 항상 빈 문자열**이다 — 트레이너가 손보고 보낼 자동 초안이라 회원에게 먼저
+  닿으면 안 된다. 회원이 읽는 코칭 글은 트레이너가 채팅으로 보낸 것뿐이다.
+- 담당 트레이너가 없어도 200 이다(포인트로 교환한 리포트, #2022). 그때 `sessions_*` 는 0 이다.
 
 **다음 주 목표 (#2232)**: 트레이너가 리포트 ② 에서 고른 목표다. 다음 주 리포트의
 `③ 지난 주 목표 달성` 이 그대로 회수한다 — 목표는 **다음 주에 확인될 때** 비로소 목표이고,

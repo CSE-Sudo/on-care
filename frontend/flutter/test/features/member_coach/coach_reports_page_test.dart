@@ -72,6 +72,13 @@ Finder _row(DateTime week) => find.byKey(
   ),
 );
 
+/// 받은 리포트 목록을 읽는다. autoDispose 라 듣는 이를 먼저 둔다(#2643) —
+/// 듣는 이가 없으면 읽는 사이에 사라질 수 있다.
+Future<List<SentReportNotice>> _notices(ProviderContainer container) {
+  container.listen(sentReportNoticesProvider, (_, _) {});
+  return container.read(sentReportNoticesProvider.future);
+}
+
 /// 화면에 보이는 모든 글월.
 List<String> _texts(WidgetTester tester) => <String>[
   for (final Element e in find.byType(Text).evaluate())
@@ -97,9 +104,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await container.read(
-        sentReportNoticesProvider.future,
-      );
+      final List<SentReportNotice> notices = await _notices(container);
 
       expect(notices, hasLength(1));
       expect(notices.single.message.id, 'r1');
@@ -121,9 +126,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await container.read(
-        sentReportNoticesProvider.future,
-      );
+      final List<SentReportNotice> notices = await _notices(container);
 
       expect(
         notices.map((SentReportNotice n) => n.weekStart).toList(),
@@ -153,9 +156,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await container.read(
-        sentReportNoticesProvider.future,
-      );
+      final List<SentReportNotice> notices = await _notices(container);
 
       // 회원이 받은 것은 마지막 글이다. 두 줄로 서면 어느 것을 열지 알 수 없다.
       expect(notices, hasLength(1));
@@ -184,9 +185,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await container.read(
-        sentReportNoticesProvider.future,
-      );
+      final List<SentReportNotice> notices = await _notices(container);
 
       expect(notices.single.message.id, 'new');
     });
@@ -213,7 +212,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      expect(await container.read(sentReportNoticesProvider.future), isEmpty);
+      expect(await _notices(container), isEmpty);
     });
   });
 

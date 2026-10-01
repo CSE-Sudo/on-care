@@ -103,6 +103,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
 
   @override
+  String homeAdviceSodiumOverSources(String foods) {
+    return '$foods 섭취로 나트륨이 높아요.';
+  }
+
+  @override
+  String homeAdviceFoodPair(String first, String second) {
+    return '$first·$second';
+  }
+
+  @override
   String get homeAiAdviceBody =>
       '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
@@ -4564,6 +4574,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachReportsEmptyHint => '담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요';
+
+  @override
+  String get coachReportsLoadFailed => '받은 리포트를 불러오지 못했어요';
+
+  @override
+  String get weeklyFeedbackLoadFailed => '보낸 주간 피드백을 불러오지 못했어요';
 
   @override
   String get coachReportOpen => '리포트 열기';

@@ -14,6 +14,8 @@ on:
       - "shared/oncare_ui/**"
       # 두 앱이 함께 쓰는 카카오맵 위젯(#2543).
       - "shared/oncare_kakao_map/**"
+      # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
+      - "shared/oncare_report/**"
       - ".github/workflows/user-app-ci.yml"
   push:
     branches: [main]
@@ -25,6 +27,8 @@ on:
       - "shared/oncare_ui/**"
       # 두 앱이 함께 쓰는 카카오맵 위젯(#2543).
       - "shared/oncare_kakao_map/**"
+      # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
+      - "shared/oncare_report/**"
       - ".github/workflows/user-app-ci.yml"
 
 permissions:
@@ -88,6 +92,15 @@ jobs:
       # 한 번만 돌린다.
       - name: Analyze and test shared Kakao map package
         working-directory: shared/oncare_kakao_map
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652). 계산·문서 불변식은 앱 테스트가
+      # 보지 않으므로 공용 UI 패키지와 같은 이유로 여기서 한 번만 돌린다.
+      - name: Analyze and test shared report package
+        working-directory: shared/oncare_report
         run: |
           flutter pub get
           flutter analyze

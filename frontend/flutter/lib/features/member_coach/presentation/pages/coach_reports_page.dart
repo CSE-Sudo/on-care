@@ -45,7 +45,9 @@ class CoachReportsPage extends ConsumerWidget {
           // 피드백을 못 읽는 것이 리포트 목록을 막을 이유는 아니다 — 칸만 비운다.
           error: (Object _, StackTrace _) => AppCard(
             child: AppErrorState(
-              title: l.weeklyFeedbackSendFailed,
+              // 읽기 실패다 — `보내지 못했어요` 로 안내하면 무엇을 다시 해야
+              // 하는지 알 수 없다(#2643).
+              title: l.weeklyFeedbackLoadFailed,
               retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(lastWeekFeedbackProvider),
               placement: AppStatePlacement.card,
@@ -65,7 +67,8 @@ class CoachReportsPage extends ConsumerWidget {
           ),
           error: (Object _, StackTrace _) => AppCard(
             child: AppErrorState(
-              title: l.coachChatPdfOpenFailed,
+              // 목록을 읽지 못한 것이지 문서를 열지 못한 것이 아니다(#2643).
+              title: l.coachReportsLoadFailed,
               retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(sentReportNoticesProvider),
               placement: AppStatePlacement.card,

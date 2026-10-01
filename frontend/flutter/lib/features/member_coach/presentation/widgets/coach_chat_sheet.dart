@@ -7,11 +7,14 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/coach_photo_send_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_scroll.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_photo_picker.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
@@ -47,8 +50,29 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
-  /// 마지막으로 그린 메시지 수. 길이가 바뀐 프레임에서만 스크롤한다.
-  int _lastCount = -1;
+  /// 마지막으로 스크롤을 맞춘 대화의 양 끝. 끝이 바뀐 프레임에서만
+  /// 스크롤한다(#2640).
+  ChatEdges? _lastEdges;
+
+  /// 메시지 id → 자리 표시. 지금 가장 오래된 메시지 하나와, 옛 쪽이 붙은 뒤
+  /// 되돌리는 중인 메시지 하나만 들고 있다.
+  final Map<String, GlobalKey> _anchorKeys = <String, GlobalKey>{};
+
+  /// 되돌리는 중인 메시지 id — 끝나면 null.
+  String? _restoringAnchorId;
+
+  set _anchorKeyId(String? oldestId) {
+    _anchorKeys.removeWhere(
+      (String id, GlobalKey _) => id != oldestId && id != _restoringAnchorId,
+    );
+    if (oldestId != null) {
+      _anchorKeys.putIfAbsent(
+        oldestId,
+        () => GlobalKey(debugLabel: 'coach-chat-anchor'),
+      );
+    }
+  }
+
   bool _sending = false;
 
   /// OS 사진 선택기가 떠 있는 동안 다시 열지 않는다 — image_picker 는 겹친
@@ -74,6 +98,14 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   }
 
   Widget _chatItem(CoachMessage message) {
+    final Widget item = _chatItemBody(message);
+    // 가장 오래된 메시지에는 자리 표시를 단다 — 옛 쪽이 그 앞에 붙은 뒤 이
+    // 메시지를 같은 자리로 되돌리는 기준이다(#2640).
+    final GlobalKey? anchor = _anchorKeys[message.id];
+    return anchor == null ? item : KeyedSubtree(key: anchor, child: item);
+  }
+
+  Widget _chatItemBody(CoachMessage message) {
     final DateTime? weekStart = message.reportWeekStart;
     if (weekStart != null) {
       return _ReportNotice(
@@ -203,6 +235,67 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     });
   }
 
+  /// 옛 쪽이 [anchorId] 앞에 붙은 뒤에도 그 메시지를 **보던 자리에** 둔다.
+  /// (#2640)
+  ///
+  /// 붙이기 전 그 메시지의 화면 위치를 잡아 두고, 붙인 뒤 같은 위치로 스크롤을
+  /// 옮긴다. 옛 쪽이 길면 붙인 직후 그 메시지가 아직 만들어지지 않았을 수
+  /// 있다(ListView 는 보이는 근처만 만든다). 그때는 먼저 목록 끝에서의 거리로
+  /// 가까이 옮기고, 다음 프레임에 만들어진 메시지로 정확히 맞춘다.
+  void _keepPositionAfterPrepend(String anchorId) {
+    final double? anchorTop = _globalTopOf(anchorId);
+    final double? fromBottom = _scroll.hasClients
+        ? _scroll.position.maxScrollExtent - _scroll.position.pixels
+        : null;
+    if (anchorTop == null && fromBottom == null) return;
+    _restoringAnchorId = anchorId;
+    _anchorKeys.putIfAbsent(
+      anchorId,
+      () => GlobalKey(debugLabel: 'coach-chat-anchor'),
+    );
+    void settle(int attemptsLeft) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        final ScrollPosition position = _scroll.position;
+        final double? top = _globalTopOf(anchorId);
+        final double target;
+        if (top != null && anchorTop != null) {
+          target = position.pixels + (top - anchorTop);
+        } else if (fromBottom != null) {
+          target = position.maxScrollExtent - fromBottom;
+        } else {
+          _restoringAnchorId = null;
+          return;
+        }
+        final double clamped = target.clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+        final bool done =
+            (clamped - position.pixels).abs() < 0.5 &&
+            (top != null || anchorTop == null);
+        if (done || attemptsLeft <= 1) {
+          if (!done) position.jumpTo(clamped);
+          _restoringAnchorId = null;
+          return;
+        }
+        position.jumpTo(clamped);
+        WidgetsBinding.instance.scheduleFrame();
+        settle(attemptsLeft - 1);
+      });
+    }
+
+    settle(12);
+  }
+
+  /// [id] 메시지의 화면 위 끝(전역 좌표). 아직 만들어지지 않았으면 null.
+  double? _globalTopOf(String id) {
+    final RenderObject? box = _anchorKeys[id]?.currentContext
+        ?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero).dy;
+  }
+
   Future<void> _markRead() async {
     try {
       await ref.read(memberCoachRepositoryProvider).markRead();
@@ -289,6 +382,19 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
+    // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
+    // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
+    ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
+      AsyncValue<List<CoachMessage>>? previous,
+      AsyncValue<List<CoachMessage>> next,
+    ) {
+      final List<CoachMessage>? before = previous?.valueOrNull;
+      final List<CoachMessage>? after = next.valueOrNull;
+      if (before == null || after == null) return;
+      if (hasNewReportNotice(before, after)) {
+        ref.invalidate(sentReportNoticesProvider);
+      }
+    });
     final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
@@ -373,40 +479,56 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                   final CoachChatHistoryState history = ref.watch(
                     coachChatHistoryProvider,
                   );
-                  final List<CoachMessage> thread = <CoachMessage>[
-                    ...history.messages,
-                    ...latest,
-                  ];
+                  // 같은 메시지가 양쪽에 있으면 id 로 하나만 남긴다(#2640) —
+                  // 옛 쪽을 받은 뒤로는 history 가 폴링한 최신 쪽도 모아 둔다.
+                  final List<CoachMessage> thread = mergeCoachThread(
+                    history.messages,
+                    latest,
+                  );
                   // 내가 보낸 사진(#1665). 서버가 받은 것은 대화를 다시 받아
                   // 올 때까지 그 메시지로 끼워 두고(id 로 겹침을 거른다),
                   // 아직 못 받은 것은 대화 끝에 상태와 함께 둔다.
                   final List<PendingCoachPhoto> photos = ref.watch(
                     coachPhotoSendProvider,
                   );
-                  final Set<String> threadIds = <String>{
-                    for (final CoachMessage m in thread) m.id,
-                  };
-                  final List<CoachMessage> messages = <CoachMessage>[
-                    ...thread,
-                    for (final PendingCoachPhoto p in photos)
-                      if (p.message case final CoachMessage sent?
-                          when !threadIds.contains(sent.id))
-                        sent,
-                  ];
+                  final List<CoachMessage> messages = mergeCoachThread(
+                    <CoachMessage>[
+                      for (final PendingCoachPhoto p in photos) ?p.message,
+                    ],
+                    thread,
+                  );
                   final List<PendingCoachPhoto> unsent = <PendingCoachPhoto>[
                     for (final PendingCoachPhoto p in photos)
                       if (p.status != CoachPhotoSendStatus.sent) p,
                   ];
-                  final int count = messages.length + unsent.length;
-                  // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
-                  // 위로 올려 읽는 중에도 아래로 끌어내린다.
-                  if (count != _lastCount) {
-                    _lastCount = count;
-                    _scrollToBottom();
+                  final ChatEdges edges = ChatEdges(
+                    oldestId: messages.firstOrNull?.id,
+                    newestId: unsent.isNotEmpty
+                        ? 'pending-${unsent.last.requestId}'
+                        : messages.lastOrNull?.id,
+                    count: messages.length + unsent.length,
+                  );
+                  // 무엇이 바뀐 프레임인지 보고 스크롤한다 — 매 빌드마다 부르면
+                  // 사용자가 위로 올려 읽는 중에도 아래로 끌어내린다. 옛 쪽이
+                  // 앞에 붙은 때는 보던 자리를 지킨다(#2640).
+                  final ChatScrollAction action = chatScrollAction(
+                    _lastEdges,
+                    edges,
+                  );
+                  if (action != ChatScrollAction.none) {
+                    final ChatEdges? previous = _lastEdges;
+                    _lastEdges = edges;
+                    if (action == ChatScrollAction.keepPosition &&
+                        previous?.oldestId != null) {
+                      _keepPositionAfterPrepend(previous!.oldestId!);
+                    } else {
+                      _scrollToBottom();
+                    }
                     // Mark newly polled trainer messages read while this
                     // full-screen route is visible, then refresh its badge.
                     Future<void>.microtask(_markRead);
                   }
+                  _anchorKeyId = edges.oldestId;
                   return ListView(
                     controller: _scroll,
                     padding: const EdgeInsets.fromLTRB(
@@ -773,8 +895,8 @@ class PdfPreviewPage extends StatelessWidget {
 /// 리포트 등록 안내 — 대화 가운데 안내 배너와 `PDF 미리보기`. (#1600, #1577)
 ///
 /// 누르면 트레이너가 보낸 파일을 연다. 열 파일이 없으면(데모, 그리고 본문만
-/// 보낸 리포트) 같은 주를 회원 기록으로 정리한 문서를 만들어 같은 미리보기로
-/// 연다 — 리포트 화면이 보여 주는 통계를 회원도 그 자리에서 볼 수 있어야 한다.
+/// 보낸 리포트) 트레이너 웹과 같은 결과지를 세워 같은 미리보기로 연다(#2652) —
+/// 트레이너가 보는 한 장을 회원도 그 자리에서 볼 수 있어야 한다.
 class _ReportNotice extends ConsumerStatefulWidget {
   const _ReportNotice({
     required this.message,

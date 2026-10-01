@@ -61,9 +61,9 @@
 
 | Method | Path | Query | 응답 | Flutter 사용처 |
 | --- | --- | --- | --- | --- |
-| GET | `/dashboard/summary` | `?date=YYYY-MM-DD` (선택) | `DashboardSummary` | `MockDashboardRepository.fetchSummary` |
+| GET | `/dashboard/summary` | `?date=YYYY-MM-DD` (선택) | `DashboardSummary` | `DioDashboardRepository.fetchSummary` (데모도 같은 경로, 로컬 인터셉터가 응답) |
 
-`DashboardSummary` payload:
+`DashboardSummary` payload (필드 전체는 `backend/API_CONTRACT.md` 대시보드 절):
 
 ```json
 {
@@ -71,14 +71,18 @@
     { "label": "칼로리", "current": 1170, "max": 2000,
       "unit": "kcal", "over_budget": false }
   ],
+  "macros": { "carbs_g": 155, "protein_g": 81, "fat_g": 43.8,
+    "carbs_pct": 46, "protein_pct": 24, "fat_pct": 30 },
   "diet_entries": 2,
   "exercise_minutes": 45,
-  "today_schedule": [
-    { "time": "10:00", "title": "병원 정기검진", "emoji": "🏥" }
+  "nutrition_week": [
+    { "date": "2026-09-28", "label": "월", "calories": 1650,
+      "sodium_mg": 1600, "sugar_g": 30 }
   ],
-  "week_score": 85,
-  "week_score_delta": 12,
-  "sodium_warning": "오늘의 나트륨 섭취량이 높아요..."
+  "sodium_warning": "라면·김밥 섭취로 나트륨이 높아요.",
+  "exercise_feedback": "이번 주 45분 운동했어요. 조금만 더 힘내요!",
+  "ai_advice_key": "sodium_over_sources",
+  "ai_advice_params": { "foods": ["라면", "김밥"] }
 }
 ```
 

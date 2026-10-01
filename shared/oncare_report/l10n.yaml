@@ -1,0 +1,8 @@
+# 결과지 한 장(ReportSheetDocument)의 문구. 두 앱이 같은 문구를 쓴다 — 트레이너
+# 웹의 결과지 문구(`reportsSheet*`·`reportsPdf*` 등)를 키 이름 그대로 옮겨 왔다.
+arb-dir: lib/l10n
+template-arb-file: report_sheet_en.arb
+output-localization-file: report_sheet_localizations.dart
+output-class: ReportSheetLocalizations
+output-dir: lib/gen/l10n
+nullable-getter: false

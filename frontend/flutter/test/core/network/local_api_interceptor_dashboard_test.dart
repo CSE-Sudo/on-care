@@ -128,56 +128,59 @@ void main() {
     dio.close();
   });
 
-  test(
-    'GET /dashboard/summary aggregates diet + exercise',
-    () async {
-      final res = await dio.get<Map<String, Object?>>('/dashboard/summary');
-      expect(res.statusCode, 200);
-      final body = res.data!;
+  test('GET /dashboard/summary aggregates diet + exercise', () async {
+    final res = await dio.get<Map<String, Object?>>('/dashboard/summary');
+    expect(res.statusCode, 200);
+    final body = res.data!;
 
-      // Indicators — 3 rows after 혈당 row was removed per the latest
-      // design ref (Home summary now ends at 당류).
-      final indicators = (body['indicators']! as List<Object?>)
-          .cast<Map<String, Object?>>();
-      expect(indicators.length, 3);
-      final byLabel = <String, Map<String, Object?>>{
-        for (final i in indicators) i['label']! as String: i,
-      };
-      expect(byLabel['칼로리']!['current'], 1420);
-      expect(byLabel['나트륨']!['current'], 2100);
-      expect(byLabel['나트륨']!['over_budget'], isTrue);
-      expect(byLabel['당류']!['current'], 45);
-      expect(byLabel.containsKey('혈당'), isFalse);
-      expect(body['macros'], <String, Object?>{
-        'carbs_g': 160.0,
-        'protein_g': 90.0,
-        'fat_g': 45.0,
-        'carbs_pct': 45,
-        'protein_pct': 26,
-        'fat_pct': 29,
-      });
+    // Indicators — 3 rows after 혈당 row was removed per the latest
+    // design ref (Home summary now ends at 당류).
+    final indicators = (body['indicators']! as List<Object?>)
+        .cast<Map<String, Object?>>();
+    expect(indicators.length, 3);
+    final byLabel = <String, Map<String, Object?>>{
+      for (final i in indicators) i['label']! as String: i,
+    };
+    expect(byLabel['칼로리']!['current'], 1420);
+    expect(byLabel['나트륨']!['current'], 2100);
+    expect(byLabel['나트륨']!['over_budget'], isTrue);
+    expect(byLabel['당류']!['current'], 45);
+    expect(byLabel.containsKey('혈당'), isFalse);
+    expect(body['macros'], <String, Object?>{
+      'carbs_g': 160.0,
+      'protein_g': 90.0,
+      'fat_g': 45.0,
+      'carbs_pct': 45,
+      'protein_pct': 26,
+      'fat_pct': 29,
+    });
 
-      // Quick stats.
-      expect(body['diet_entries'], 3);
-      expect(body['exercise_minutes'], 45);
-      expect(body['exercise_calories'], 320);
-      expect(body['exercise_count'], 1);
-      final nutritionWeek = (body['nutrition_week']! as List<Object?>)
-          .cast<Map<String, Object?>>();
-      expect(nutritionWeek, hasLength(7));
-      final todayTrend = nutritionWeek[nowKst().weekday - 1];
-      expect(todayTrend['calories'], 1420);
-      expect(todayTrend['sodium_mg'], 2100);
-      expect(todayTrend['sugar_g'], 45.0);
+    // Quick stats.
+    expect(body['diet_entries'], 3);
+    expect(body['exercise_minutes'], 45);
+    final nutritionWeek = (body['nutrition_week']! as List<Object?>)
+        .cast<Map<String, Object?>>();
+    expect(nutritionWeek, hasLength(7));
+    final todayTrend = nutritionWeek[nowKst().weekday - 1];
+    expect(todayTrend['calories'], 1420);
+    expect(todayTrend['sodium_mg'], 2100);
+    expect(todayTrend['sugar_g'], 45.0);
 
-      // Sodium warning is set when total > 2000.
-      expect(body['sodium_warning'], '김치찌개·배추김치 섭취로 나트륨이 높아요.');
+    // Sodium warning is set when total > 2000.
+    expect(body['sodium_warning'], '김치찌개·배추김치 섭취로 나트륨이 높아요.');
 
-      // Week score is in the 0..100 band.
-      final score = body['week_score']! as int;
-      expect(score, inInclusiveRange(0, 100));
-    },
-  );
+    // 홈이 읽지 않는 필드는 서버처럼 싣지 않는다(#2646).
+    for (final String removed in <String>[
+      'week_score',
+      'week_score_delta',
+      'nutrition_week_prev',
+      'exercise_calories',
+      'exercise_count',
+      'exercise_burn_goal',
+    ]) {
+      expect(body.containsKey(removed), isFalse, reason: removed);
+    }
+  });
 
   test('sodium_warning is null when total stays under budget', () async {
     // Wipe and re-seed with a single low-sodium meal.
@@ -234,9 +237,9 @@ void main() {
     },
   );
 
-  test('sodium goal changes week score using the FastAPI criteria', () async {
+  test('sodium goal moves the over-budget line and the warning', () async {
     final before = await dio.get<Map<String, Object?>>('/dashboard/summary');
-    expect(before.data!['week_score'], 65);
+    expect(before.data!['sodium_warning'], isNotNull);
 
     await dio.put<Object?>(
       '/users/me/health-goals',
@@ -244,7 +247,12 @@ void main() {
     );
 
     final after = await dio.get<Map<String, Object?>>('/dashboard/summary');
-    expect(after.data!['week_score'], 85);
+    final sodium = (after.data!['indicators']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .firstWhere((Map<String, Object?> i) => i['label'] == '나트륨');
+    expect(sodium['max'], 2500);
+    expect(sodium['over_budget'], isFalse);
+    expect(after.data!['sodium_warning'], isNull);
   });
 
   test(
@@ -331,8 +339,6 @@ void main() {
       final body = res.data!;
 
       expect(body['exercise_minutes'], 60);
-      expect(body['exercise_calories'], 420);
-      expect(body['exercise_count'], 2);
       expect(body['exercise_feedback'], contains('이번 주'));
     },
   );
@@ -357,41 +363,4 @@ void main() {
     final res = await dio.get<Map<String, Object?>>('/dashboard/summary');
     expect(res.data!['sodium_warning'], '오늘 나트륨이 2100mg 으로 권장량(2000mg)을 넘었어요.');
   });
-
-  test(
-    'exercise_count counts distinct workout days, not session rows',
-    () async {
-      // 운동 화면 workoutCount(활성 일수)와 정의를 맞춘다: 같은 날 유산소+근력을
-      // 각각 기록해도 운동 횟수는 1(하루)로 센다.
-      await (db.delete(db.exerciseSessions)).go();
-      final ws = _currentMonday();
-      final todayLabel = _weekdayLabels[nowKst().weekday - 1];
-      await db.batch((b) {
-        b.insertAll(db.exerciseSessions, <ExerciseSessionsCompanion>[
-          ExerciseSessionsCompanion.insert(
-            id: 'ex-same-1',
-            weekStart: ws,
-            dayLabel: todayLabel,
-            type: 'cardio',
-            minutes: 30,
-            calories: 200,
-          ),
-          ExerciseSessionsCompanion.insert(
-            id: 'ex-same-2',
-            weekStart: ws,
-            dayLabel: todayLabel,
-            type: 'strength',
-            minutes: 20,
-            calories: 150,
-          ),
-        ]);
-      });
-
-      final res = await dio.get<Map<String, Object?>>('/dashboard/summary');
-      final body = res.data!;
-      expect(body['exercise_count'], 1); // 세션 2개지만 활성 일수는 1
-      expect(body['exercise_minutes'], 50);
-      expect(body['exercise_calories'], 350);
-    },
-  );
 }

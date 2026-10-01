@@ -31,7 +31,7 @@ def test_sodium_warning_follows_the_locale():
     assert not _HANGUL.search(plain)
     assert "2500mg" in plain
     # 음식 이름은 회원이 적은 그대로 둔다.
-    assert named == "High sodium from 라면, 김치."
+    assert named == "Sodium is high from 라면 and 김치."
 
 
 def _ctx() -> reco.NutritionContext:

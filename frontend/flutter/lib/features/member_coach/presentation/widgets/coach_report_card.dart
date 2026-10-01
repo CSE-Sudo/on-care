@@ -30,7 +30,7 @@ class CoachReportCard extends StatelessWidget {
 
   /// `PDF 미리보기` 를 눌렀을 때.
   ///
-  /// 첨부가 있으면 그 파일을, 없으면 같은 주를 회원 기록으로 정리한 문서를
+  /// 첨부가 있으면 그 파일을, 없으면 트레이너 웹과 같은 결과지(#2652)를
   /// 연다 — 어느 쪽이든 열 것이 있으므로 버튼을 감추지 않는다(#1600).
   final VoidCallback onOpenPdf;
 
