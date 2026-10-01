@@ -35,10 +35,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v45']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v46']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v46` 은 김민수 대화에 트레이너가 보낸 PDF·사진을 붙였다(#2663). 올리지
+/// 않으면 오늘 이미 시드된 브라우저의 김민수 대화에 그 두 메시지가 없어 회원 앱
+/// 데모와 대화가 갈린다.
 ///
 /// `_v45` 는 시드 상담 일정 5건에 상담 요청을 잇고, 3주 전 PT 에 취소·노쇼를
 /// 한 건씩 두고, 강서연·신유나 대화에 회원이 보낸 사진·PDF 를 붙였다(#2669).
@@ -193,7 +197,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v45') == today &&
+  if (await db.readValue('trainer_seeded_v46') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -853,7 +857,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v45', today);
+    await db.putValue('trainer_seeded_v46', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -1172,6 +1176,12 @@ class _ChatFile {
   const _ChatFile.pdf(this.name, this.lines)
     : kind = ChatAttachmentKind.pdf,
       asset = null;
+
+  /// 앱 번들에 든 PDF 를 그대로 붙인다 — 트레이너가 보낸 운동 안내처럼 한글
+  /// 문서일 때다(#2663). 회원 앱 데모가 같은 파일을 같은 자리에 둔다.
+  const _ChatFile.pdfAsset(this.name, String this.asset)
+    : kind = ChatAttachmentKind.pdf,
+      lines = const <String>[];
 
   final ChatAttachmentKind kind;
   final String name;

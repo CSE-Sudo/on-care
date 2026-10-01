@@ -7,10 +7,13 @@
 ///
 /// 같은 목록을 고정하는 짝:
 ///  * `frontend/flutter/test/features/member_coach/demo_chat_thread_test.dart`
-///  * `backend/tests/test_seed_demo_chat.py` — 리포트 등록 안내 **한 줄만
-///    빠진다**(#1605). 데모 두 앱은 서버 없이 이 사건을 보여 줘야 하지만,
-///    실서버 스레드는 트레이너가 실제로 리포트를 보낼 때 그 메시지를 만든다.
+///  * `backend/tests/test_seed_demo_chat.py` — 리포트 등록 안내와 트레이너가
+///    보낸 첨부 두 건이 **빠진다**(#1605, #2663). 데모 두 앱은 서버 없이 이
+///    사건을 보여 줘야 하지만, 실서버 스레드는 트레이너가 실제로 리포트·파일을
+///    보낼 때 그 메시지를 만든다.
 library;
+
+import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +22,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
+import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
 
 /// (보낸 쪽, 본문) — 회원 앱 시드와 글자까지 같아야 한다. 트레이너 시점이므로
 /// 회원 앱의 `me` 가 여기서는 `client` 다.
@@ -33,12 +37,14 @@ const List<(ChatSender, String)> kDemoThread = <(ChatSender, String)>[
   (ChatSender.trainer, '혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요'),
   (ChatSender.client, '네, 아침 8시 그대로예요'),
   (ChatSender.trainer, '확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂'),
+  (ChatSender.trainer, '동작 순서는 이 파일로 정리해 뒀어요'),
   (
     ChatSender.trainer,
     '민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?',
   ),
   (ChatSender.client, '회사 구내식당이라 국물이 늘 나와요 😅'),
   (ChatSender.trainer, '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠'),
+  (ChatSender.trainer, '이렇게 국은 건더기 위주로 드시면 돼요'),
   (ChatSender.client, '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다'),
   (ChatSender.trainer, '좋아요 👏 그 한 가지만 지켜도 추이가 달라져요'),
   (ChatSender.trainer, '내일 프로그램은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요'),
@@ -67,6 +73,8 @@ DateTime _clock() {
 }
 
 void main() {
+  // 첨부 바이트를 앱 번들에서 읽는다.
+  TestWidgetsFlutterBinding.ensureInitialized();
   late AppDatabase db;
 
   setUp(() async {
@@ -165,5 +173,39 @@ void main() {
 
     expect(client.lastMessage, rows.last.body);
     expect(client.lastTime, rows.last.timeLabel);
+  });
+
+  // 트레이너가 보낸 첨부(#2663) — 회원 앱 데모가 같은 자리에 같은 파일을 둔다
+  // (`frontend/flutter/lib/features/member_coach/data/demo_coach_files.dart`).
+  test('김민수 시드에 트레이너가 보낸 PDF·사진이 번들 파일로 붙는다', () async {
+    final List<ChatAttachment> files = <ChatAttachment>[];
+    for (final ClientChatMessageRow r in await minsuThread()) {
+      final String? stored = await db.readValue(
+        '$demoChatFileKeyPrefix${r.id}',
+      );
+      if (stored == null) continue;
+      expect(r.sender, 'trainer', reason: '${r.body} 는 트레이너가 보냈다');
+      final ChatAttachment? file = await decodeDemoChatFile(r.id, stored);
+      expect(file, isNotNull, reason: '${r.id} 의 첨부를 풀지 못했다');
+      files.add(file!);
+    }
+
+    expect(
+      <(ChatAttachmentKind, String)>[
+        for (final ChatAttachment f in files) (f.kind, f.fileName),
+      ],
+      <(ChatAttachmentKind, String)>[
+        (ChatAttachmentKind.pdf, 'tue-thu-15min-program.pdf'),
+        (ChatAttachmentKind.image, 'soup-example.jpeg'),
+      ],
+    );
+    expect(
+      files[0].localBytes,
+      File('assets/demo/coach-program-tue-thu.pdf').readAsBytesSync(),
+    );
+    expect(
+      files[1].localBytes,
+      File('assets/images/diet-doenjang-rice.jpeg').readAsBytesSync(),
+    );
   });
 }

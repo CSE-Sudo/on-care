@@ -124,6 +124,17 @@ const List<_Client> _clients = <_Client>[
       _Chat('trainer', '혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요', '화 10:26'),
       _Chat('client', '네, 아침 8시 그대로예요', '화 10:29'),
       _Chat('trainer', '확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂', '화 10:34'),
+      // 트레이너가 보낸 첨부(#2663) — 회원 앱 시드와 같은 자리·같은 파일이다
+      // (`frontend/flutter/lib/features/member_coach/data/demo_coach_files.dart`).
+      _Chat(
+        'trainer',
+        '동작 순서는 이 파일로 정리해 뒀어요',
+        '화 10:35',
+        file: _ChatFile.pdfAsset(
+          'tue-thu-15min-program.pdf',
+          'assets/demo/coach-program-tue-thu.pdf',
+        ),
+      ),
       // 2일차.
       _Chat(
         'trainer',
@@ -137,6 +148,16 @@ const List<_Client> _clients = <_Client>[
         '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠',
         '수 12:52',
         dayIndex: 1,
+      ),
+      _Chat(
+        'trainer',
+        '이렇게 국은 건더기 위주로 드시면 돼요',
+        '수 12:53',
+        dayIndex: 1,
+        file: _ChatFile.image(
+          'soup-example.jpeg',
+          'assets/images/diet-doenjang-rice.jpeg',
+        ),
       ),
       _Chat('client', '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다', '수 19:05', dayIndex: 1),
       _Chat('trainer', '좋아요 👏 그 한 가지만 지켜도 추이가 달라져요', '수 19:20', dayIndex: 1),

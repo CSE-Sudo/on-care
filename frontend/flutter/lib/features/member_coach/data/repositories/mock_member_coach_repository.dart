@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:demo_fixture/demo_fixture.dart';
@@ -10,6 +12,7 @@ import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
+import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
@@ -37,15 +40,20 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   ///
   /// [points] 를 주면 루틴 완료(AI 추천·트레이너 배정)가 포인트를 받고 되돌리면
   /// 회수된다(#1786).
+  ///
+  /// [replyDelay] 를 주면 회원이 보낸 뒤 그만큼 지나 트레이너가 답한다(#2663).
+  /// 없으면 답하지 않는다 — 시험이 남은 타이머를 신경 쓰지 않게 한다.
   MockMemberCoachRepository({
     RoutineSessionLog? exercise,
     DemoPointsLedger? points,
     DemoCoachLinkCheck? linked,
     DemoCoachRelink? relink,
+    Duration? replyDelay,
   }) : _exercise = exercise,
        _points = points,
        _linked = linked,
-       _relink = relink;
+       _relink = relink,
+       _replyDelay = replyDelay;
 
   final RoutineSessionLog? _exercise;
   final DemoPointsLedger? _points;
@@ -57,6 +65,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 담당 요청을 수락했을 때 연결을 다시 잇는 곳. 주지 않으면 수락해도 연결
   /// 상태는 그대로다(테스트·단독 사용).
   final DemoCoachRelink? _relink;
+
+  final Duration? _replyDelay;
 
   /// 담당이 살아 있는가. 끊겼으면 코치도, 배정 운동도, 대화도 내 것이 아니다.
   bool _hasCoach() => _linked?.call() ?? true;
@@ -229,6 +239,16 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       '화 10:34',
       day: 0,
     ),
+    // 트레이너가 보낸 첨부(#2663) — 실서버 대화에는 트레이너가 올린 PDF·사진이
+    // 섞여 있다. 바이트는 로컬 목업 API 가 번들에서 준다([kDemoCoachFiles]).
+    _seed(
+      20,
+      CoachSender.trainer,
+      '동작 순서는 이 파일로 정리해 뒀어요',
+      '화 10:35',
+      day: 0,
+      attachment: kDemoCoachProgramPdf.toAttachment(),
+    ),
     // 2일차.
     _seed(
       8,
@@ -244,6 +264,14 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠',
       '수 12:52',
       day: 1,
+    ),
+    _seed(
+      21,
+      CoachSender.trainer,
+      '이렇게 국은 건더기 위주로 드시면 돼요',
+      '수 12:53',
+      day: 1,
+      attachment: kDemoCoachSoupPhoto.toAttachment(),
     ),
     _seed(11, CoachSender.me, '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다', '수 19:05', day: 1),
     _seed(
@@ -310,6 +338,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     String timeLabel, {
     required int day,
     DateTime? reportWeekStart,
+    CoachAttachment? attachment,
   }) => CoachMessage(
     id: 'seed-m$index',
     sender: sender,
@@ -317,6 +346,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     timeLabel: timeLabel,
     createdAt: _seedAt(day, timeLabel),
     reportWeekStart: reportWeekStart,
+    attachment: attachment,
   );
 
   /// 시드 메시지 하나의 실제 시각. 넣을 때와 리포트 주차를 잡을 때가 같은 값을
@@ -340,8 +370,6 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     if (match == null) throw FormatException('Invalid chat time: $timeLabel');
     return int.parse(match.group(1)!) * 60 + int.parse(match.group(2)!);
   }
-
-  bool _read = false;
 
   @override
   Future<MemberCoach?> fetchCoach() async => _hasCoach() ? _coach : null;
@@ -722,9 +750,45 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       ? List<CoachMessage>.unmodifiable(pageCoachChat(_chat, before: before))
       : const <CoachMessage>[];
 
+  /// 대화가 바뀔 때마다 최신 쪽을 다시 준다. (#2663)
+  ///
+  /// 실서버는 몇 초마다 다시 받아(폴링) 트레이너의 새 메시지를 보여 준다. 데모의
+  /// 새 메시지는 이 저장소 안에서만 생기므로 폴링 대신 바뀐 때 알린다 — 열어 둔
+  /// 대화에 자동 답장이 그대로 나타난다.
   @override
-  Stream<List<CoachMessage>> watchChat() =>
-      Stream<List<CoachMessage>>.fromFuture(fetchChat());
+  Stream<List<CoachMessage>> watchChat() => _watch(fetchChat);
+
+  /// 헤더 배지의 미읽음 수 — 바뀔 때마다 다시 준다. (#2663)
+  ///
+  /// 실서버는 15초마다 다시 묻는다(`coachUnreadProvider`). 데모는 답장이 오거나
+  /// 읽었을 때 알린다.
+  Stream<int> watchUnread() => _watch(unreadCount);
+
+  /// 듣기 시작할 때 한 번, 그 뒤로는 바뀔 때마다 [load] 한 값을 준다.
+  Stream<T> _watch<T>(Future<T> Function() load) {
+    late final StreamController<T> out;
+    StreamSubscription<void>? changes;
+    Future<void> push() async {
+      final T value = await load();
+      if (!out.isClosed) out.add(value);
+    }
+
+    out = StreamController<T>(
+      onListen: () {
+        unawaited(push());
+        changes = _changes.stream.listen((_) => unawaited(push()));
+      },
+      onCancel: () => changes?.cancel(),
+    );
+    return out.stream;
+  }
+
+  /// 대화나 읽음이 바뀌었다는 신호.
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+
+  void _changed() {
+    if (!_changes.isClosed) _changes.add(null);
+  }
 
   @override
   Future<void> sendMessage(String text, {String? emoteId}) async {
@@ -738,13 +802,17 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         sender: CoachSender.me,
         body: trimmed.isEmpty ? '(이모티콘)' : trimmed,
         emoteId: emoteId,
-        timeLabel:
-            '${now.hour.toString().padLeft(2, '0')}:'
-            '${now.minute.toString().padLeft(2, '0')}',
+        timeLabel: _clockLabel(now),
         createdAt: now,
       ),
     );
+    _changed();
+    _scheduleReply(_textReplies[_replySeq++ % _textReplies.length]);
   }
+
+  static String _clockLabel(DateTime at) =>
+      '${at.hour.toString().padLeft(2, '0')}:'
+      '${at.minute.toString().padLeft(2, '0')}';
 
   /// 데모의 사진 전송 — 고른 바이트를 그대로 대화에 붙인다. (#1665)
   ///
@@ -768,9 +836,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       id: 'me-${now.microsecondsSinceEpoch}',
       sender: CoachSender.me,
       body: text.trim(),
-      timeLabel:
-          '${now.hour.toString().padLeft(2, '0')}:'
-          '${now.minute.toString().padLeft(2, '0')}',
+      timeLabel: _clockLabel(now),
       createdAt: now,
       attachment: CoachAttachment(
         kind: CoachAttachmentKind.image,
@@ -783,11 +849,64 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     );
     _sentPhotos[clientRequestId] = message;
     _chat.add(message);
+    _changed();
+    _scheduleReply(_photoReply);
     return message;
   }
 
   /// 멱등키 → 그 키로 보낸 사진 메시지.
   final Map<String, CoachMessage> _sentPhotos = <String, CoachMessage>{};
+
+  // ── 트레이너 자동 답장 (#2663) ─────────────────────────────────────────
+  //
+  // 실서버에서는 트레이너가 실제로 답한다. 데모에는 답할 사람이 없어, 보내도
+  // 대화가 거기서 멈춘 채로 보였다. 잠시 뒤 짧은 답을 하나 붙인다 — 답이 오는
+  // 모양(새 말풍선, 닫아 둔 동안의 배지)을 데모에서도 볼 수 있게 한다.
+
+  /// 글·이모티콘에 돌아가며 쓰는 답.
+  static const List<String> _textReplies = <String>[
+    '확인했어요! 기록 보면서 같이 조정해 볼게요 🙂',
+    '좋아요. 오늘 운동 끝나면 짧게라도 남겨 주세요 💪',
+    '네, 다음 PT 때 같이 점검해요',
+  ];
+
+  /// 사진에 쓰는 답.
+  static const String _photoReply = '사진 잘 받았어요 👍 확인하고 다시 말씀드릴게요';
+
+  int _replySeq = 0;
+  final Set<Timer> _replyTimers = <Timer>{};
+
+  void _scheduleReply(String body) {
+    final Duration? delay = _replyDelay;
+    if (delay == null) return;
+    late final Timer timer;
+    timer = Timer(delay, () {
+      _replyTimers.remove(timer);
+      // 기다리는 사이 담당이 끊겼으면 답할 트레이너가 없다.
+      if (!_hasCoach()) return;
+      final DateTime now = nowKst();
+      _chat.add(
+        CoachMessage(
+          id: 'reply-${now.microsecondsSinceEpoch}',
+          sender: CoachSender.trainer,
+          body: body,
+          timeLabel: _clockLabel(now),
+          createdAt: now,
+        ),
+      );
+      _changed();
+    });
+    _replyTimers.add(timer);
+  }
+
+  /// 기다리던 답장을 거두고 알림을 닫는다 — 저장소를 버릴 때 부른다.
+  void dispose() {
+    for (final Timer timer in _replyTimers) {
+      timer.cancel();
+    }
+    _replyTimers.clear();
+    _changes.close();
+  }
 
   /// 담당이 끊긴 데모에서는 메시지를 받을 트레이너가 없다. (#2388)
   ///
@@ -800,8 +919,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     }
   }
 
+  /// 여기까지(앞에서 몇 건) 읽었다. 그 뒤에 온 트레이너 메시지만 미읽음이다 —
+  /// 읽은 뒤 자동 답장이 오면 배지가 다시 선다(#2663).
+  int _readUpTo = 0;
+
   @override
-  Future<void> markRead() async => _read = true;
+  Future<void> markRead() async {
+    _readUpTo = _chat.length;
+    _changed();
+  }
 
   /// 마지막으로 내가 보낸 메시지 **뒤에** 온 트레이너 메시지만 미읽음이다.
   ///
@@ -810,11 +936,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<int> unreadCount() async {
     if (!_hasCoach()) return 0;
-    if (_read) return 0;
     final int lastMine = _chat.lastIndexWhere(
       (CoachMessage m) => m.sender == CoachSender.me,
     );
-    return _chat.skip(lastMine + 1).length;
+    return _chat.skip(math.max(lastMine + 1, _readUpTo)).length;
   }
 
   // ── 주간 피드백 (#2232) ───────────────────────────────────────────────
