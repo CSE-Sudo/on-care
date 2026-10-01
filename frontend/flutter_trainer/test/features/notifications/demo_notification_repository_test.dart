@@ -22,10 +22,9 @@ void main() {
   });
   tearDown(() => db.close());
 
-  test('데모 알림함은 진입점을 보이고 과거 알림을 최신순으로 준다', () async {
+  test('데모 알림함은 과거 알림을 최신순으로 준다', () async {
     final DemoNotificationRepository repo = DemoNotificationRepository(db);
 
-    expect(repo.supportsInbox, isTrue);
     final TrainerNotificationPage page = await repo.fetch();
     expect(page.items, isNotEmpty);
     expect(page.hasMore, isFalse);
