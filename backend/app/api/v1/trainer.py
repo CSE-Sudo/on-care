@@ -67,7 +67,7 @@ from app.schemas.consultation_api import (
 from app.schemas.user import AccountDeleteRequest
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
-    ClientCoachRequest, ClientDietEntryOut, DeliveryOut,
+    ClientCoachRequest, ClientDietEntryOut, ClientFeedbackOut, DeliveryOut,
     MemberHealthProfileOut, MemberHealthProfileUpdate,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
@@ -105,6 +105,7 @@ from app.schemas.trainer_api import (
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
+    client_feedback_service,
     diet_service,
     diet_trainer_analysis,
     diet_trainer_pick,
@@ -1330,6 +1331,7 @@ def trainer_create_memo(
             insight_kind=payload.insight_kind,
             ref_id=payload.ref_id,
             ref_date=payload.ref_date,
+            category=payload.category,
         )
     except trainer_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1346,7 +1348,7 @@ def trainer_update_memo(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> TrainerMemoOut:
-    """메모 수정(부분). 본문만 바뀐다."""
+    """메모 수정(부분). 본문과, 직접 쓴 메모의 분류가 바뀐다(#2622)."""
     _require_client(db, trainer.id, member_id)
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
@@ -1361,6 +1363,27 @@ def trainer_update_memo(
         )
     except trainer_service.MemoNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except trainer_service.MemoCategoryLocked as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/trainer/clients/{member_id}/feedbacks",
+    response_model=list[ClientFeedbackOut],
+)
+def trainer_client_feedbacks(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[ClientFeedbackOut]:
+    """담당 회원과 주고받은 피드백 모아 보기(최신 먼저, 최근 90일). (#2615)
+
+    완료 PT 세션 피드백·보낸 주간 리포트(트레이너 → 회원)와 회원 주간
+    피드백(회원 → 트레이너)을 한 목록으로 준다. 읽기 전용이다 — 고치는 곳은
+    원래 자리 하나뿐이다. 해제·비담당 회원은 다른 회원 경로와 같은 404 다.
+    """
+    link = _require_client(db, trainer.id, member_id)
+    return client_feedback_service.build_client_feedbacks(db, trainer.id, link)
 
 
 @router.delete("/trainer/clients/{member_id}/memos/{memo_id}")
