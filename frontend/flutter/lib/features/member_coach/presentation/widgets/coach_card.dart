@@ -17,6 +17,7 @@ import 'package:oncare/features/exercise/presentation/widgets/own_exercise_recor
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/routine_effect_text.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -591,7 +592,8 @@ class _RecommendedExerciseRowState
                       if (routine.effect.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(
-                          routine.effect,
+                          // 공용 표의 자동 문구는 화면 언어로 옮긴다(#2725).
+                          routineEffectText(l, routine.effect),
                           key: ValueKey<String>('routine-effect-${routine.id}'),
                           style: detailStyle,
                         ),

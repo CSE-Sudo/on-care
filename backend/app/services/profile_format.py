@@ -9,7 +9,7 @@
   `value too long` 으로 터졌다 — 무엇이 잘못됐는지 알 수 없는 오류다.
 * **들어가는 길이면 무엇이든 200.** `birth_date` 에 `asdfghjkl` 이 저장되면
   트레이너의 담당 요청 확인 화면에서 나이가 조용히 비어 보인다
-  (`trainer_client_invite_service._age_on` 이 파싱에 실패한다) — 6자리 코드로
+  ([age_on] 이 파싱에 실패한다) — 6자리 코드로
   연결할 때 "이 사람이 맞나" 를 확인하는 근거 하나가 사라진다.
 
 **이름은 비울 수 없다.** 가입 화면이 필수로 받는 값인데 프로필 수정에서 빈 값이
@@ -90,3 +90,19 @@ def clean_birth_date(value: str) -> str:
     except ValueError:
         raise InvalidBirthDate("실제 날짜가 아닙니다.") from None
     return birth_date
+
+
+def age_on(birth_date: str, today: date) -> int | None:
+    """`YYYY-MM-DD` 로 만 나이. 형식이 아니면 `None`.
+
+    생일이 지났는지까지 본다 — 연도 차만 빼면 생일 전 몇 달이 한 살 많게 나온다.
+    회원 연결 확인 카드와 고객 로스터(#2728)가 같은 값을 쓴다.
+    """
+    try:
+        born = date.fromisoformat(birth_date)
+    except (TypeError, ValueError):
+        return None
+    age = today.year - born.year
+    if (today.month, today.day) < (born.month, born.day):
+        age -= 1
+    return age if 0 <= age < 150 else None

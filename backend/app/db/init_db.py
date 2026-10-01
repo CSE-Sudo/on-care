@@ -73,6 +73,14 @@ def init_db() -> None:
         # 경고가 동작할 최소 기록만 따로 채운다(#572).
         from app.db.seed_roster import seed_roster_metrics
         seed_roster_metrics()
+        # 위 두 시드가 하루 한 줄로 남긴 최근 4주를 끼니·운동 세션으로 채운다(#2729).
+        # 합계를 나누므로 로스터·리포트 지표는 그대로다.
+        from app.db.seed_member_logs import seed_member_logs
+        seed_member_logs()
+        # 데모 트레이너의 후속 관리·메모·초안·지난 PT/상담 메모(#2731). 주간 PT 가
+        # 깔린 뒤라야 지난 수업에 메모를 달 수 있다.
+        from app.db.seed_trainer_notes import seed_trainer_notes
+        seed_trainer_notes()
         # 시드 기록을 개인 RAG 문서로 적재(#604). **모든 시드가 끝난 뒤**여야 한다 —
         # 확장 회원(4~15)의 기록은 바로 위에서 만들어지므로, 앞에서 훑으면 첫 기동에
         # 그들 문서가 통째로 빠지고 재기동해야 채워진다.

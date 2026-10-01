@@ -213,7 +213,9 @@ def _seed_one_sodium_day(
     sodium = round(base * sodium_factor)
     date_str = (today - timedelta(days=offset)).isoformat()
     entry_id = f"seed-roster-diet-{member_id}-{date_str}"
-    if entry_id in existing:
+    # 끼니로 나눈 날(`seed_member_logs`, #2729)에는 한 줄을 다시 깔지 않는다 —
+    # 그날 합계는 나눈 끼니가 이미 들고 있다.
+    if entry_id in existing or f"seed-meal-{member_id}-{date_str}-0" in existing:
         return
     existing.add(entry_id)
     # 하루 한 줄. 끼니별 상세는 기존 3명만 가진다.
