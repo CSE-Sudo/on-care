@@ -170,7 +170,14 @@ class ConsultationRequestCard extends StatelessWidget {
           text: note ?? l.exConsultRejectedNoReason,
         );
       case ConsultationStatus.cancelled:
-        return null;
+        // 내가 취소한 요청은 안내가 필요 없다. 트레이너가 상담 일정을 거둔
+        // 경우만 그 사실과 다음 할 일을 알린다(#2758).
+        if (!request.cancelledByTrainer) return null;
+        return _OutcomeNote(
+          key: const Key('consult-outcome-cancelled-by-trainer'),
+          tone: OnCareColors.textTertiary,
+          text: l.exConsultCancelledByTrainerBody,
+        );
       case ConsultationStatus.expired:
         return _OutcomeNote(
           key: const Key('consult-outcome-expired'),

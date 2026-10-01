@@ -22,6 +22,9 @@ _LOCK_KEY = 4815162342
 # lock 이 걸려 있어도 무한 대기하지 않고 fail-fast 하도록 한다(리뷰: pg_advisory_lock 무한 대기).
 _LOCK_TIMEOUT_SECONDS = float(os.environ.get("MIGRATE_LOCK_TIMEOUT", "120"))
 _LOCK_RETRY_INTERVAL = float(os.environ.get("MIGRATE_LOCK_RETRY_INTERVAL", "2"))
+# DB 접속 자체의 대기 한도(초, #2912). 잘못된 호스트·막힌 보안 그룹이면 libpq 기본값은
+# OS TCP 타임아웃(수 분)까지 기다려 기동이 헬스체크 한도를 넘긴 뒤에야 실패한다.
+_CONNECT_TIMEOUT_SECONDS = int(os.environ.get("MIGRATE_CONNECT_TIMEOUT", "10"))
 
 
 def _try_acquire(conn: psycopg.Connection) -> bool:
@@ -33,7 +36,7 @@ def _try_acquire(conn: psycopg.Connection) -> bool:
 def main() -> int:
     # DATABASE_URL 은 SQLAlchemy 형식(postgresql+psycopg://...) → psycopg 는 순수 postgresql://
     url = os.environ["DATABASE_URL"].replace("postgresql+psycopg://", "postgresql://")
-    conn = psycopg.connect(url, autocommit=True)
+    conn = psycopg.connect(url, autocommit=True, connect_timeout=_CONNECT_TIMEOUT_SECONDS)
     try:
         deadline = time.monotonic() + _LOCK_TIMEOUT_SECONDS
         print(f"[migrate] acquiring advisory lock {_LOCK_KEY} (timeout {_LOCK_TIMEOUT_SECONDS}s)", flush=True)

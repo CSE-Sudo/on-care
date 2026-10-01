@@ -146,6 +146,9 @@ GitHub 저장소의 `Settings` → `Secrets and variables` → `Actions` → `Va
 | `AWS_FRONTEND_DEPLOY_ROLE_ARN` | `GitHubDeployRoleArn` 출력값 |
 | `AWS_FRONTEND_BUCKET` | `BucketName` 출력값 |
 | `AWS_FRONTEND_DISTRIBUTION_ID` | `DistributionId` 출력값 |
+| `API_BASE_URL` | 운영 백엔드 주소 + `/v1` (예: `https://<운영 API 도메인>/v1`). 두 웹 앱이 이 주소로 실서버를 봅니다 |
+
+`API_BASE_URL` 이 없거나 형식이 틀리면 `Deploy Frontend to AWS` 가 빌드 전에 실패합니다. 규칙은 [`frontend_deployment.md`](frontend_deployment.md#api_base_url-저장소-변수) 에 있습니다.
 
 준비 단계에서는 `AWS_FRONTEND_DEPLOY_ENABLED`를 만들지 않거나 `false`로 둡니다. AWS 액세스 키는 GitHub Secrets에 만들거나 저장하지 않습니다.
 

@@ -31,9 +31,13 @@ String rosterGenderFor({required String id, String gender = ''}) {
   return _demographicSeedOf(id).isEven ? 'female' : 'male';
 }
 
-/// 로스터가 보여 주는 나이 — 저장된 값이 있으면 그것, 없으면 고정된 폴백.
-int rosterAgeFor({required String id, int? age}) =>
-    age ?? 20 + (_demographicSeedOf(id) % 20);
+/// 로스터가 보여 주는 나이 — 생년월일로 센 값이 있을 때만, 없으면 `null`.
+///
+/// 예전에는 값이 없으면 회원 id 해시로 20~39 사이 나이를 지어냈다. 그러면
+/// 6자리 코드로 연결할 때 확인 카드가 보여 준 진짜 나이와 연결 뒤 목록의
+/// 나이가 달라, 트레이너는 어느 쪽이 맞는지 알 수 없었다(#2744). 지금은 서버
+/// 로스터가 생년월일로 센 나이를 싣고, 없으면 화면이 나이를 적지 않는다.
+int? rosterAgeFor({int? age}) => age;
 
 int _demographicSeedOf(String id) =>
     id.runes.fold<int>(0, (sum, rune) => sum + rune);
@@ -161,9 +165,9 @@ class TrainerClient {
   /// 성별을 저장하므로, 폴백은 회원이 성별을 적지 않았을 때만 선다([rosterGenderFor]).
   String get rosterGender => rosterGenderFor(id: id, gender: gender);
 
-  /// Roster age, constrained to the requested twenties/thirties fixture range
-  /// when the source does not provide one.
-  int get rosterAge => rosterAgeFor(id: id, age: age);
+  /// 로스터가 보여 주는 나이. 생년월일이 없는 회원은 `null` 이고, 화면은
+  /// 그때 나이를 적지 않는다(#2744).
+  int? get rosterAge => rosterAgeFor(age: age);
 
   /// Sodium exceeds the [sodiumTargetMg] daily target — surfaced as a
   /// warning on the list card and counted by the AI summary.

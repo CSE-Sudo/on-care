@@ -192,7 +192,6 @@ Future<void> _pumpDialog(
   WidgetTester tester,
   TrainerMemoRepository memos, {
   ClientRepository? clients,
-  String fallbackGender = '',
   int? ageYears,
   bool settle = true,
   // 메모 검사가 대부분이라 메모 창이 기본이다. 신체·목표 검사는 자기 창을
@@ -250,7 +249,6 @@ Future<void> _pumpDialog(
           body: ClientProfileDialog(
             clientId: 'm1',
             clientName: '이지수',
-            fallbackGender: fallbackGender,
             ageYears: ageYears,
             section: section,
           ),
@@ -964,40 +962,118 @@ void main() {
     expect(clients.savedProfile, <String, Object?>{'daily_protein_g': 140});
   });
 
-  testWidgets('저장된 성별이 없으면 로스터가 말하는 성별로 열린다 (#960)', (tester) async {
+  // 성별이 저장되지 않은 회원(#2745) — 실 API 는 빈 문자열을 내려준다. 예전에는
+  // 로스터가 이름·id 로 추정한 성별로 창을 열어, 몸무게만 고쳐 저장해도 그
+  // 추정값이 회원 건강 프로필에 함께 저장됐다.
+  Future<_DelayedClientRepository> pumpUnsetGender(WidgetTester tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    final clients = _DelayedClientRepository(db);
-
+    final clients = _DelayedClientRepository(db)
+      ..profile.complete(
+        const MemberHealthProfile(
+          memberId: 'm1',
+          memberName: '오세라',
+          heightCm: 163,
+          weightKg: 58,
+        ),
+      );
     await _pumpDialog(
       tester,
       section: ClientProfileSection.health,
       _FakeMemoRepository(),
       clients: clients,
-      fallbackGender: 'female',
-      settle: false,
+      ageYears: 31,
     );
-    await tester.pump();
-    // 서버가 성별을 저장한 적이 없는 회원 — 실 API 는 빈 문자열을 내려준다.
-    clients.profile.complete(
-      const MemberHealthProfile(memberId: 'm1', memberName: '오세라'),
-    );
-    await tester.pumpAndSettle();
-    // 보기 상태도 같은 성별을 말한다(#2596).
-    expect(find.text('여성'), findsOneWidget);
-    await _startEditing(tester);
+    return clients;
+  }
 
-    // 헤더가 '여성'이라고 적어 둔 회원의 대화상자가 빈 칸으로 열리면 화면 두
-    // 곳이 서로 다른 말을 한다.
+  testWidgets('성별이 저장되지 않은 회원은 보기·편집 모두 미설정이다 (#2745)', (tester) async {
+    await pumpUnsetGender(tester);
+
+    final Finder value = find.byKey(
+      const ValueKey<String>('client-profile-gender-value'),
+    );
+    expect(tester.widget<Text>(value).data, '미설정');
+    expect(find.text('여성'), findsNothing);
+    expect(find.text('남성'), findsNothing);
+
+    await _startEditing(tester);
     expect(
       tester
           .widget<DropdownButtonFormField<String>>(
             find.byType(DropdownButtonFormField<String>),
           )
           .initialValue,
-      'female',
+      '',
     );
   });
+
+  testWidgets('몸무게만 고쳐 저장하면 성별을 보내지 않는다 (#2745)', (tester) async {
+    final clients = await pumpUnsetGender(tester);
+    await _startEditing(tester);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('client-body-weight')),
+      '60',
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
+    await tester.pumpAndSettle();
+
+    expect(clients.savedProfile, <String, Object?>{'weight_kg': 60});
+    expect(clients.savedProfile!.containsKey('gender'), isFalse);
+  });
+
+  testWidgets('트레이너가 성별을 직접 고르면 그 값만 저장한다 (#2745)', (tester) async {
+    final clients = await pumpUnsetGender(tester);
+    await _startEditing(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-profile-gender')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('여성').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
+    await tester.pumpAndSettle();
+
+    expect(clients.savedProfile, <String, Object?>{'gender': 'female'});
+  });
+
+  testWidgets('성별을 모르면 권장값도 추정 성별 없이 계산한다 (#2745)', (tester) async {
+    await pumpUnsetGender(tester);
+    await _startEditing(tester);
+
+    // 회원 앱과 같은 함수에 성별 없이 넣은 값이 권장값이다.
+    final RecommendedGoals expected = recommendedGoalsFor(
+      ageYears: 31,
+      gender: '',
+      heightCm: 163,
+      weightKg: 58,
+    );
+    // 이름으로 추정했을 성별(여성)로 계산한 값과는 다르다.
+    final RecommendedGoals guessed = recommendedGoalsFor(
+      ageYears: 31,
+      gender: 'female',
+      heightCm: 163,
+      weightKg: 58,
+    );
+    expect(expected.dailyCalories, isNot(guessed.dailyCalories));
+    await _openTab(tester, '식단 목표');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-goal-apply-diet')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<AppTextField>(
+            find.byKey(const ValueKey<String>('client-goal-calories')),
+          )
+          .controller!
+          .text,
+      '${expected.dailyCalories}',
+    );
+  });
+
   testWidgets('회원 건강 목표를 칩으로 고치고 주의사항 글과 한 칸으로 저장한다 (#1818)', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

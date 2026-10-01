@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -123,9 +124,10 @@ class DemoConsultationRepository implements ConsultationRepository {
       for (final ReservationSlot slot in demoReservationSlots(now: now))
         slot.id: slot,
     };
-    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다.
-    final ReservationSlot evening = slots['slot-kim-5']!;
-    final ReservationSlot morning = slots['slot-kim-3']!;
+    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다. 신청이 잡은
+    // 자리라 예약 슬롯 창에서는 예약된 칸이다([demoPendingRequestSlots], #2797).
+    final ReservationSlot evening = slots['slot-kim-6']!;
+    final ReservationSlot morning = slots['slot-kim-7']!;
     String hm(DateTime t) =>
         '${t.hour.toString().padLeft(2, '0')}:'
         '${t.minute.toString().padLeft(2, '0')}';
@@ -230,10 +232,11 @@ class DemoConsultationRepository implements ConsultationRepository {
     String? beforeId,
   }) async {
     await _restore();
+    final List<ConsultationRequest> current = await _againstSchedule(_requests);
     final List<ConsultationRequest> rows =
         (status == 'all'
-              ? _requests.toList()
-              : _requests.where((request) => request.status == status).toList())
+              ? current.toList()
+              : current.where((request) => request.status == status).toList())
           ..sort(_newestFirst);
     // 서버와 같은 커서다(#980) — 받은 시각이 [before] 보다 이르거나, 같으면 id 가
     // [beforeId] 보다 앞선 요청만 준다.
@@ -248,6 +251,57 @@ class DemoConsultationRepository implements ConsultationRepository {
                 r.id.compareTo(beforeId) < 0;
           });
     return List<ConsultationRequest>.unmodifiable(page.take(limit));
+  }
+
+  /// 수락된 신청을 연결된 상담 일정과 견준 목록. (#2758)
+  ///
+  /// 서버는 트레이너가 상담 일정을 취소·삭제하면 신청을 트레이너 취소로
+  /// 철회하고, 옮기면 신청의 시각을 일정에서 읽는다. 데모는 결정을 따로 적지
+  /// 않고 일정 저장소(drift)와 상담 연결([demoScheduleConsultations])에서 매번
+  /// 다시 판정한다 — 둘 다 새로고침해도 남으므로 판정도 그대로 남는다.
+  /// [db] 가 없으면(단위 테스트) 그대로 둔다.
+  Future<List<ConsultationRequest>> _againstSchedule(
+    List<ConsultationRequest> requests,
+  ) async {
+    final AppDatabase? store = db;
+    if (store == null) return requests;
+    final Map<String, String> linkKeys = <String, String>{
+      for (final MapEntry<String, ScheduleConsultation> e
+          in demoScheduleConsultations.entries)
+        e.value.id: e.key,
+    };
+    if (!requests.any(
+      (r) => r.status == 'accepted' && linkKeys.containsKey(r.id),
+    )) {
+      return requests;
+    }
+    final rows = await (store.select(
+      store.trainerScheduleEntries,
+    )..where((t) => t.type.equals(SessionType.consultation))).get();
+    final Map<String, DemoConsultationSession> sessions =
+        <String, DemoConsultationSession>{
+          for (final row in rows)
+            demoConsultationKey(
+              clientId: row.clientId,
+              date: row.date,
+              time: row.time,
+            ): (
+              date: row.date,
+              time: row.time,
+              status: row.status,
+            ),
+        };
+    return <ConsultationRequest>[
+      for (final ConsultationRequest request in requests)
+        switch (linkKeys[request.id]) {
+          final String key => judgeDemoConsultation(
+            request,
+            linked: true,
+            session: sessions[key],
+          ),
+          null => request,
+        },
+    ];
   }
 
   /// 받은 시각의 최신순, 같으면 id 역순 — 서버의 정렬과 같다.
@@ -366,6 +420,36 @@ class DemoConsultationRepository implements ConsultationRepository {
       ..._requests.skip(index + 1),
     ];
   }
+}
+
+/// 데모 상담 신청에 연결된 상담 일정 — 날짜·시각과 상태만 본다.
+typedef DemoConsultationSession = ({String date, String time, String status});
+
+/// 데모 상담 신청 하나를 연결된 상담 일정과 견준다. (#2758)
+///
+/// 서버와 같은 규칙이다.
+/// - 일정이 **취소됐거나 지워졌으면**([session] 이 null) 트레이너가 철회한
+///   신청이다 — `cancelled` 와 [ConsultationRequest.cancelledByTrainer].
+///   완료·노쇼 상담을 지울 때는 연결을 먼저 떼므로 여기까지 오지 않는다.
+/// - 일정이 남아 있으면 신청의 시각은 **그 일정의 시각**이다 — 옮긴 일정을
+///   따른다. 예전 자리는 일정이 떠나 다시 빈다(`judgeDemoSlot`).
+///
+/// 수락된 신청이 아니거나 연결된 일정이 없던 신청([linked] 가 false)은
+/// 그대로 둔다.
+ConsultationRequest judgeDemoConsultation(
+  ConsultationRequest request, {
+  required bool linked,
+  required DemoConsultationSession? session,
+}) {
+  if (!linked || request.status != 'accepted') return request;
+  if (session == null || session.status == ScheduleStatus.cancelled) {
+    return request.copyWith(status: 'cancelled', cancelledByTrainer: true);
+  }
+  final DateTime? at = DateTime.tryParse('${session.date}T${session.time}');
+  if (at == null) return request;
+  final DateTime? before = request.slotStartsAt;
+  if (before != null && before.isAtSameMomentAs(at)) return request;
+  return request.copyWith(slotStartsAt: at);
 }
 
 /// Real backend: `/trainer/consultations`.
@@ -669,6 +753,24 @@ final consultationPendingCountProvider = StreamProvider.autoDispose<int>((ref) {
   return ref.watch(consultationRepositoryProvider).watchPendingCount();
 }, name: 'consultationPendingCount');
 
+/// 대시보드 `오늘 할 일` 의 상담 미션이 쓰는 대기 목록 — **한 번만** 읽는다.
+///
+/// [consultationsProvider](인박스 화면 전용)는 [ConsultationRepository.watch]
+/// 를 그대로 구독하는데, 실서버 구현은 배지처럼 몇 초마다 다시 읽는 폴링
+/// 스트림이다. 대시보드 카드에 그 스트림을 물리면 대시보드를 떠나도 폴링이
+/// 계속 돌았다. `fetch()` 는 일회성 Future 라 그대로 쓴다.
+///
+/// 한 번만 읽으므로 스스로는 갱신되지 않는다. 승인·거절 뒤에는
+/// [_refreshAfterDecision] 이 무효화하고, 새 요청은 카드가 이미 돌고 있는
+/// [consultationPendingCountProvider] 값의 변화를 보고 다시 읽는다(#2887).
+final pendingConsultationsOnceProvider =
+    FutureProvider.autoDispose<List<ConsultationRequest>>((ref) {
+      if (!ref.watch(consultationInboxEnabledProvider)) {
+        return Future.value(const <ConsultationRequest>[]);
+      }
+      return ref.watch(consultationRepositoryProvider).fetch();
+    }, name: 'pendingConsultationsOnce');
+
 /// Accepts a request and refreshes everything it changed.
 ///
 /// The roster is invalidated too — accepting is precisely the moment a new
@@ -701,7 +803,17 @@ Future<void> rejectConsultation(
   _refreshAfterDecision(ref);
 }
 
+/// 상담 결정 뒤 다시 읽을 것 — 인박스 목록, 배지 수, 대시보드 상담 미션(#2887).
+@visibleForTesting
+final List<ProviderOrFamily> consultationDecisionRefreshTargets =
+    List<ProviderOrFamily>.unmodifiable(<ProviderOrFamily>[
+      consultationsProvider,
+      consultationPendingCountProvider,
+      pendingConsultationsOnceProvider,
+    ]);
+
 void _refreshAfterDecision(WidgetRef ref) {
-  ref.invalidate(consultationsProvider);
-  ref.invalidate(consultationPendingCountProvider);
+  for (final ProviderOrFamily target in consultationDecisionRefreshTargets) {
+    ref.invalidate(target);
+  }
 }

@@ -18,6 +18,7 @@ import 'package:drift/drift.dart'
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
+import 'package:oncare/core/demo/demo_accounts.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/diet_advice.dart';
@@ -3559,6 +3560,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// POST /auth/login — the demo accepts any non-empty credentials and
   /// issues a token so the login flow works without a server. Real
   /// credentials are validated by FastAPI when USE_MOCK_API=false.
+  ///
+  /// 이 데모에서 가입한 이메일만은 서버처럼 가입한 비밀번호를 본다(#2665) —
+  /// 틀리면 서버와 같은 401 이다. 그 밖의 이메일은 지금처럼 데모 회원으로 든다.
   Future<Response<Object?>> _authLogin(RequestOptions options) async {
     final body = _jsonBody(options);
     final username = (body['username'] as String? ?? '').trim();
@@ -3566,6 +3570,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     if (username.isEmpty || password.isEmpty) {
       return _badRequest(options, 'username and password are required');
     }
+    final Map<String, Object?>? account = await _accounts.find(username);
+    if (account != null && account['password'] != body['password']) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 401,
+        data: <String, Object?>{'detail': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+      );
+    }
+    await _accounts.signIn(account == null ? null : username);
     await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
@@ -3575,8 +3588,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   /// POST /auth/register — mirrors FastAPI: returns the created user
-  /// `{id, name, email}` with 201. Duplicate emails are only enforced by
-  /// FastAPI when USE_MOCK_API=false. `name` defaults to the email local-part.
+  /// `{id, name, email}` with 201. `name` defaults to the email local-part.
+  ///
+  /// 가입한 계정은 [DemoAccounts] 에 남는다(#2665). 새 계정은 첫 설정 전의 빈
+  /// 프로필로 시작해, 로그인하면 실서버처럼 첫 설정으로 간다. 이미 있는
+  /// 이메일(데모 회원·데모 세계의 다른 계정·이 데모에서 가입한 계정)은 서버와
+  /// 같은 409 로 거절한다.
   ///
   /// 비밀번호는 서버와 같은 기준(`AppInputRules.signUpPassword`, #1555)을 보고,
   /// 어기면 서버와 같은 모양의 422(`detail[].type` 코드)를 준다 — 목업에서만
@@ -3613,15 +3630,40 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         },
       );
     }
+    if (await _isTakenEmail(email)) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 409,
+        data: <String, Object?>{'detail': '이미 가입된 이메일입니다.'},
+      );
+    }
+    // 서버 계정 id 와 같은 `user-<12자리 hex>` 모양이다.
+    final String hex = DateTime.now().microsecondsSinceEpoch
+        .toRadixString(16)
+        .padLeft(12, '0');
+    final String id = 'user-${hex.substring(hex.length - 12)}';
+    final String savedName = name.isEmpty ? email.split('@').first : name;
+    await _accounts.add(
+      id: id,
+      email: email,
+      password: password,
+      name: savedName,
+      phone: (body['phone'] as String? ?? '').trim(),
+    );
     return Response<Object?>(
       requestOptions: options,
       statusCode: 201,
-      data: <String, Object?>{
-        'id': 'user-${DateTime.now().microsecondsSinceEpoch}',
-        'name': name.isEmpty ? email.split('@').first : name,
-        'email': email,
-      },
+      data: <String, Object?>{'id': id, 'name': savedName, 'email': email},
     );
+  }
+
+  /// 다른 계정이 이미 쓰는 이메일인가 — 데모 회원·데모 세계의 다른 계정
+  /// ([_demoTakenEmails])·이 데모에서 가입한 계정. (#2665)
+  Future<bool> _isTakenEmail(String email) async {
+    final String key = DemoAccounts.normalize(email);
+    return key == DemoAccounts.demoEmail ||
+        _demoTakenEmails.contains(key) ||
+        await _accounts.find(key) != null;
   }
 
   /// POST /auth/logout — 데모에는 폐기할 서버 세션이 없다. 여기서 받아 주지 않으면
@@ -3660,6 +3702,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     if (token.isEmpty) {
       return _badRequest(options, 'token is required');
     }
+    // 데모의 소셜 로그인은 데모 회원으로 든다 — 가입 계정에서 바꿔 들어와도.
+    await _accounts.signIn(null);
     await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-social-${DateTime.now().microsecondsSinceEpoch}',
@@ -3700,15 +3744,33 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'onboarded': true,
   };
 
+  /// 가입한 계정과 지금 로그인한 계정(#2665).
+  late final DemoAccounts _accounts = DemoAccounts(_db);
+
+  /// 이 데모에서 가입한 계정의 시작 프로필 — 실서버의 새 계정처럼 가입 때 받은
+  /// 값만 있고, 첫 설정 전이다(#2665). 목표는 비워 두면 앱이 권장값을 쓴다.
+  static Map<String, Object?> _signedUpProfile(Map<String, Object?> account) {
+    final String phone = account['phone'] as String? ?? '';
+    return <String, Object?>{
+      for (final String k in _defaultProfile.keys) k: null,
+      'id': account['id'],
+      'name': account['name'],
+      'email': account['email'],
+      'phone': phone.isEmpty ? null : phone,
+      'onboarded': false,
+    };
+  }
+
   Future<Map<String, Object?>> _readProfileOverlay() async {
-    final raw = await _db.readValue('profile_overlay');
+    final raw = await _db.readValue(await _accounts.currentProfileKey());
     if (raw == null || raw.isEmpty) return <String, Object?>{};
     return (jsonDecode(raw) as Map<Object?, Object?>).cast<String, Object?>();
   }
 
   Future<Map<String, Object?>> _mergedProfile() async {
+    final Map<String, Object?>? account = await _accounts.current();
     return <String, Object?>{
-      ..._defaultProfile,
+      if (account == null) ..._defaultProfile else ..._signedUpProfile(account),
       ...await _readProfileOverlay(),
     };
   }
@@ -3716,7 +3778,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   Future<void> _mergeProfileOverlay(Map<String, Object?> patch) async {
     final overlay = await _readProfileOverlay();
     overlay.addAll(patch);
-    await _db.putValue('profile_overlay', jsonEncode(overlay));
+    await _db.putValue(
+      await _accounts.currentProfileKey(),
+      jsonEncode(overlay),
+    );
   }
 
   Future<Response<Object?>> _usersMe(RequestOptions options) async {
@@ -3769,9 +3834,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final String currentEmail = ((current['email'] as String?) ?? '')
         .trim()
         .toLowerCase();
-    if (email != null &&
-        email != currentEmail &&
-        _demoTakenEmails.contains(email)) {
+    if (email != null && email != currentEmail && await _isTakenEmail(email)) {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 409,
@@ -3803,6 +3866,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
+    // 가입 계정은 바꾼 이메일로 다음에 로그인한다 — 서버도 같은 사용자 행이다.
+    if (email != null && email != currentEmail) {
+      await _accounts.renameCurrent(email);
+    }
     return _ok(options, await _mergedProfile());
   }
 
@@ -3865,8 +3932,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// The body's `reasons` (#2019) are dropped here on purpose: the server keeps
   /// them in a table nobody reads back, and the demo has no such table. The
   /// withdrawal itself is what the demo has to reproduce.
+  ///
+  /// 가입 계정이 탈퇴하면 계정째 지운다(#2665) — 같은 이메일로 다시 가입할 수
+  /// 있고, 그 비밀번호로는 더 로그인되지 않는다.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
-    await _db.putValue('profile_overlay', '');
+    if (await _accounts.current() != null) {
+      await _accounts.removeCurrent();
+      return _ok(options, <String, Object?>{'status': 'deleted'});
+    }
+    await _db.putValue(DemoAccounts.demoProfileKey, '');
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 

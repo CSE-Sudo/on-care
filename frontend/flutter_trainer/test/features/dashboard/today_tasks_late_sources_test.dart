@@ -98,20 +98,32 @@ class _SlowConsultations implements ConsultationRepository {
   Future<void> reject(String id, {String? note}) => throw UnimplementedError();
 }
 
-/// 저장 요청을 기록하는 이력 저장소.
+/// 키 변경 요청을 기록하는 이력 저장소. 응답은 저장된 그날 기록에 같은
+/// 규칙으로 얹은 결과다.
 class _RecordingStore implements DailyTaskProgressStore {
   _RecordingStore(this.history);
 
   final DailyTaskHistory history;
+  final List<TaskKeyChange> changes = <TaskKeyChange>[];
   final List<DailyTaskSnapshot> saves = <DailyTaskSnapshot>[];
 
   @override
   Future<DailyTaskHistory> load() async => history;
 
   @override
-  Future<void> save(String date, DailyTaskSnapshot snapshot) async {
+  Future<void> save(String date, DailyTaskSnapshot snapshot) =>
+      throw StateError('화면은 그날 전체를 덮어쓰지 않는다(#2886)');
+
+  @override
+  Future<DailyTaskSnapshot> applyKey(String date, TaskKeyChange change) async {
     expect(date, _today);
-    saves.add(snapshot);
+    changes.add(change);
+    final DailyTaskSnapshot next = applyTaskKeyChange(
+      saved: history.read(date),
+      change: change,
+    );
+    saves.add(next);
+    return next;
   }
 }
 
@@ -215,8 +227,11 @@ void main() {
     await expand(tester, '지난 할 일');
     expect(checkedOf(tester, 'consultation-c2'), isFalse);
 
-    // 이제 다른 항목을 체크해도 상담 체크는 저장에 남는다.
+    // 이제 다른 항목을 체크해도 상담 체크는 저장에 남는다. 보내는 것은 누른
+    // 키 하나다(#2886).
     await tapCheckbox(tester, 'report-m1');
+    expect(store.changes.single.key, 'report-m1');
+    expect(store.changes.single.action, TaskKeyAction.check);
     expect(store.saves, hasLength(1));
     final DailyTaskSnapshot saved = store.saves.single;
     expect(saved.completedKeys, <String>{'consultation-c1', 'report-m1'});

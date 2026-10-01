@@ -38,7 +38,6 @@ Future<void> showClientProfileDialog(
   BuildContext context, {
   required String clientId,
   required String clientName,
-  String fallbackGender = '',
   int? ageYears,
   ClientProfileSection section = ClientProfileSection.health,
   bool openHealthNotes = false,
@@ -47,7 +46,6 @@ Future<void> showClientProfileDialog(
   builder: (_) => ClientProfileDialog(
     clientId: clientId,
     clientName: clientName,
-    fallbackGender: fallbackGender,
     ageYears: ageYears,
     section: section,
     openHealthNotes: openHealthNotes,
@@ -64,7 +62,6 @@ class ClientProfileDialog extends StatelessWidget {
     super.key,
     required this.clientId,
     required this.clientName,
-    this.fallbackGender = '',
     this.ageYears,
     this.section = ClientProfileSection.health,
     this.openHealthNotes = false,
@@ -75,9 +72,6 @@ class ClientProfileDialog extends StatelessWidget {
 
   /// Named in the memo section heading.
   final String clientName;
-
-  /// 저장된 성별이 없을 때 열어 둘 값 — 로스터가 이미 말하고 있는 성별이다(#960).
-  final String fallbackGender;
 
   /// 회원 나이(만). 권장값 계산에만 쓴다(#2359). 서버가 준 값만 넘긴다 —
   /// 모르면 비워 두고, 권장값은 기본 기준에 건강 목표만 반영한다.
@@ -100,7 +94,6 @@ class ClientProfileDialog extends StatelessWidget {
       // 그린다(#2596).
       ClientProfileSection.health => _HealthProfileSection(
         clientId: clientId,
-        fallbackGender: fallbackGender,
         ageYears: ageYears,
         openHealthNotes: openHealthNotes,
       ),
@@ -124,13 +117,11 @@ class ClientProfileDialog extends StatelessWidget {
 class _HealthProfileSection extends ConsumerStatefulWidget {
   const _HealthProfileSection({
     required this.clientId,
-    this.fallbackGender = '',
     this.ageYears,
     this.openHealthNotes = false,
   });
 
   final String clientId;
-  final String fallbackGender;
   final int? ageYears;
   final bool openHealthNotes;
 
@@ -214,7 +205,10 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     if (_initialized) return;
     _initialized = true;
     _base = profile;
-    _gender = profile.gender.isEmpty ? widget.fallbackGender : profile.gender;
+    // 서버 값 그대로 연다 — 비어 있으면 `미설정` 이다(#2745). 예전에는 로스터가
+    // 이름·id 로 추정한 성별로 채워, 몸무게만 고쳐 저장해도 그 추정값이 바뀐
+    // 칸으로 잡혀 회원 건강 프로필에 저장됐다. 권장값 계산도 추정 성별을 썼다.
+    _gender = profile.gender;
     _height.text = _displayNumber(profile.heightCm);
     _weight.text = _displayNumber(profile.weightKg);
     _focus = parseHealthFocus(profile.conditions);
@@ -285,9 +279,12 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     };
     if (base == null) {
       return <String, Object?>{
-        ...all,
-        'conditions': mergeHealthFocus(_conditions.text, _focus),
-      };
+          ...all,
+          'conditions': mergeHealthFocus(_conditions.text, _focus),
+        }
+        // 기준 값을 모르면 고르지 않은 성별은 보내지 않는다 — 빈 값이 회원이
+        // 넣어 둔 성별을 지울 수 있다(#2745).
+        ..removeWhere((key, value) => key == 'gender' && value == '');
     }
     final Map<String, Object?> before = <String, Object?>{
       'gender': base.gender,
@@ -745,9 +742,13 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       context,
       name,
       AppTextField(
-        key: field.id.startsWith('client-goal-')
-            ? ValueKey<String>(field.id)
-            : null,
+        // 키·몸무게 칸도 이름을 단다 — 몸무게만 고친 저장이 다른 칸을 싣지
+        // 않는지 보는 자리다(#2745).
+        key: ValueKey<String>(
+          field.id.startsWith('client-goal-')
+              ? field.id
+              : 'client-body-${field.id}',
+        ),
         controller: field.controller,
         hint: field.hint,
         textAlign: TextAlign.end,
