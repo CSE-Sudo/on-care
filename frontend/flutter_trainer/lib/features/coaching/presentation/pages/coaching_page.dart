@@ -22,6 +22,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
@@ -442,9 +443,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 것과 같아야 한다(#2223). 두 번째 전송은 `_sent` 가 막는다.
     if (!mounted) return;
     ref.invalidate(assignedRoutinesProvider(sentFor));
-    // 전송 이력 카드는 직전 전송을 따로 읽는다 — 다시 읽게 하지 않으면 탭을
-    // 옮겨 다녀와야 방금 보낸 것이 보인다(#2280).
+    // 전송 이력 카드는 직전 전송(`_latestDeliveryProvider`)을 따로 읽는다 —
+    // 다시 읽게 하지 않으면 탭을 옮겨 다녀와야 방금 보낸 것이 보인다(#2280,
+    // #2750).
     ref.invalidate(_latestDeliveryProvider(sentFor));
+    // 보낸 개인운동을 채운 AI 제안은 서버가 이 전송으로 닫았다(#2747) — 다시
+    // 읽게 해야 새로 선 위저드가 보낸 제안을 다시 채우지 않는다.
+    ref.invalidate(routineSuggestionsProvider(sentFor));
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingRoutineOnly.remove(sentFor);
@@ -594,14 +599,20 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 보냈다 — 같은 개인운동이 다음 전송에 다시 딸려 가지 않게 비운다.
     _personalRoutines.remove(sentFor);
     if (!mounted) return;
-    // 3열 `전송 이력`(`assignedRoutinesProvider`)은 실 API 모드에서 1회성
-    // fetch 라 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가
-    // 스스로 다시 읽는다.
+    // 배정 목록(`assignedRoutinesProvider`)은 실 API 모드에서 1회성 fetch 라
+    // 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가 스스로 다시
+    // 읽는다.
     ref.invalidate(assignedRoutinesProvider(sentFor));
-    // 전송 이력 카드와 그 위 `아직 보내지 않은 개인운동` 안내도 따로 읽는다 —
-    // 일정에 올린 PT 에 붙은 개인운동이 안내에 바로 서야 한다(#2280).
+    // 3열 `전송 이력` 카드는 배정 목록이 아니라 직전 전송
+    // (`_latestDeliveryProvider`, #2225)을 따로 읽는다 — 카드가 전송 동안에도
+    // 떠 있어 autoDispose 로 버려지지 않으므로, 여기서 무효화하지 않으면
+    // 화면을 떠났다 와야 갱신된다(#2750). 그 위 `아직 보내지 않은 개인운동`
+    // 안내도 따로 읽는다 — 일정에 올린 PT 에 붙은 개인운동이 안내에 바로
+    // 서야 한다(#2280).
     ref.invalidate(_latestDeliveryProvider(sentFor));
     ref.invalidate(_unsentRoutinesProvider(sentFor));
+    // 함께 붙인 개인운동을 채운 AI 제안도 이 등록으로 닫혔다(#2747).
+    ref.invalidate(routineSuggestionsProvider(sentFor));
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingClientIds.remove(sentFor);
@@ -1364,7 +1375,21 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     _routineOnlyCandidates.remove(client.id);
                     unawaited(_loadRoutineOnlyCandidates(client));
                   }
+                  // 새 구성을 반영하면 새 전송이다 — 템플릿 적용·직접 만들기와
+                  // 같은 규칙이다(#2752). 풀지 않으면 `개인운동만` 을 보낸 뒤
+                  // 위저드로 짠 PT 의 `일정 추가` 가 이유 없이 잠기고 개인운동
+                  // 박스가 `보냄` 으로 남는다. 같은 구성을 곧바로 두 번 보내는
+                  // 것은 위저드를 다시 지나야 하므로 여전히 막힌다.
+                  //
+                  // PT 전송 뒤 3초 타이머가 아직 돌고 있으면 그 일(보낸 구성을
+                  // 담은 편집기를 새로 세우기)을 지금 하고 거둔다 — 늦게 울리면
+                  // 방금 반영한 구성까지 지우고, 거두기만 하면 보낸 구성 뒤에
+                  // 새 구성이 덧붙는다.
+                  final bool rebuildEditor = _sentTimer?.isActive ?? false;
+                  _sentTimer?.cancel();
                   setState(() {
+                    _sent = false;
+                    if (rebuildEditor) _editorRevision++;
                     _personalRoutines[client.id] = personalRoutines;
                     if (routineOnly) {
                       _routineOnlyClients.add(client.id);
@@ -1445,6 +1470,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     onSave: _saveTemplate,
                     saving: _savingTemplate,
                     sending: _sendingClientIds.contains(client.id) || _sent,
+                    sent: _sent && !_sendingClientIds.contains(client.id),
                     registerDate: _registerDate,
                     onRegisterDateChanged: (date) =>
                         setState(() => _registerDate = date),
@@ -2048,8 +2074,8 @@ class _TemplateMenu extends StatelessWidget {
 ///
 /// Without it the workspace has no memory: the trainer can't tell
 /// whether they already sent today's routine, and repeats it. Sourced
-/// from the schedule (PT 프로그램) and, on the real API, the member's
-/// assigned routines.
+/// from [_latestDeliveryProvider] (직전 전송 한 묶음, #2225) — 전송 성공
+/// 분기가 이 provider 를 무효화해야 카드가 곧바로 바뀐다(#2750).
 class _SendHistoryCard extends ConsumerWidget {
   const _SendHistoryCard({required this.client});
 
