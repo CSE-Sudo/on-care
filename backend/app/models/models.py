@@ -1040,6 +1040,11 @@ class CoachDocument(Base):
     """
 
     __tablename__ = "coach_documents"
+    # 교체·삭제는 (user_id, source_ref) 로 좁힌다. 마이그레이션 0030 이 만든 인덱스를
+    # 모델에도 적어 `alembic check` 가 '지울 인덱스' 로 보지 않게 한다(#2838).
+    __table_args__ = (
+        Index("ix_coach_documents_user_source_ref", "user_id", "source_ref"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # nullable: 공공 문서는 NULL(전체 공유), 개인 문서는 특정 user_id

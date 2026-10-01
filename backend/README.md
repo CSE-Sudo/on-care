@@ -68,8 +68,9 @@ alembic upgrade head          # 최신 스키마로 반영 (운영/CI 는 이 �
 alembic revision --autogenerate -m "설명"   # 모델 변경 후 새 마이그레이션 생성
 alembic downgrade -1          # 한 단계 롤백
 ```
-> 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등), **운영은 `alembic upgrade head`** 를 정답으로 삼습니다.
-> (운영에서 `create_all` 을 끄려면 `AUTO_CREATE_TABLES=false` — 설정 항목은 이후 커밋에서 추가)
+> 로컬 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등, 기본 `AUTO_CREATE_TABLES=true`), **CI·운영은 `AUTO_CREATE_TABLES=false`** 로 두고 `alembic upgrade head` 만을 스키마의 정답으로 삼습니다(운영 `ENV=prod` 에서 `true` 면 기동을 거부합니다). 스키마 보정 코드는 앱에 두지 않고 마이그레이션으로만 합니다. (#2838)
+>
+> 백엔드 CI 는 `alembic upgrade head` 뒤에 `alembic check` 로 모델과 마이그레이션 결과가 같은지 확인합니다. 모델을 바꾸고 마이그레이션을 빠뜨리면 여기서 실패하므로, 모델을 고친 PR 은 로컬에서 빈 DB 에 `alembic upgrade head && alembic check` 를 한 번 돌려 보십시오.
 
 > **`alembic.ini` 에는 한글을 넣지 마십시오(ASCII 전용).** Alembic 이 그 파일을 로케일 인코딩으로 읽어서, 한국어 Windows(cp949)에서는 한글 한 글자만 있어도 위 세 명령이 전부 `UnicodeDecodeError` 로 죽습니다. 리눅스 CI 는 UTF-8 로케일이라 통과하므로 드러나지 않고, `PYTHONUTF8=1` 로도 잡히지 않습니다. 설명은 `migrations/env.py` 나 이 문서에 적습니다. (#2004)
 

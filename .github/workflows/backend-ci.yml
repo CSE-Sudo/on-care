@@ -61,6 +61,10 @@ jobs:
       DATABASE_URL: postgresql+psycopg://oncare:oncare@localhost:5432/oncare
       # AI 키는 필요 없음(테스트는 인식/코치 호출을 하지 않음)
       SEED_DEMO_DATA: "true"
+      # 테스트도 운영처럼 Alembic 이 만든 스키마로만 돈다(#2838). 켜 두면 앱 기동의
+      # create_all() 이 마이그레이션에 빠진 테이블을 대신 만들어 줘, 배포 뒤에야
+      # `relation does not exist` 로 드러난다.
+      AUTO_CREATE_TABLES: "false"
 
     defaults:
       run:
@@ -115,6 +119,13 @@ jobs:
 
       - name: Run migrations (validates baseline)
         run: alembic upgrade head
+
+      - name: Models match migrations (alembic check)
+        # 마이그레이션을 끝까지 적용한 스키마와 모델(Base.metadata)을 비교해, 자동 생성할
+        # 변경이 하나라도 있으면 실패한다(#2838). 모델에 테이블·칸·인덱스·NOT NULL 을
+        # 더하고 마이그레이션을 빠뜨린 PR 이 여기서 걸린다. 고칠 때는
+        # `alembic revision --autogenerate` 결과를 검토해 마이그레이션을 더한다.
+        run: alembic check
 
       - name: Run tests
         run: pytest
