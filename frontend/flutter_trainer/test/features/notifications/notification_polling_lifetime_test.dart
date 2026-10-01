@@ -104,16 +104,17 @@ void main() {
       trainerNotificationsProvider,
       (_, _) {},
     );
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(listCalls, 1);
 
     await tester.pump(badgePollInterval);
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(listCalls, 2);
 
     list.close();
-    await tester.pump();
+    await tester.pump(Duration.zero);
     container.dispose();
+    await tester.pump(Duration.zero);
   });
 
   testWidgets('목록을 닫으면 폴링이 멈추고 provider 도 버려진다', (tester) async {
@@ -121,17 +122,18 @@ void main() {
       trainerNotificationsProvider,
       (_, _) {},
     );
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(listCalls, 1);
 
     list.close();
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(container.exists(trainerNotificationsProvider), isFalse);
 
     // 몇 주기가 지나도 더 부르지 않는다.
     await tester.pump(badgePollInterval * 3);
     expect(listCalls, 1);
     container.dispose();
+    await tester.pump(Duration.zero);
   });
 
   testWidgets('다시 열면 첫 쪽을 새로 받고 폴링을 다시 시작한다', (tester) async {
@@ -139,24 +141,25 @@ void main() {
       trainerNotificationsProvider,
       (_, _) {},
     );
-    await tester.pump();
+    await tester.pump(Duration.zero);
     list.close();
-    await tester.pump();
+    await tester.pump(Duration.zero);
     await tester.pump(badgePollInterval * 2);
     expect(listCalls, 1);
 
     list = container.listen(trainerNotificationsProvider, (_, _) {});
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(listCalls, 2);
     expect(container.read(trainerNotificationsProvider).hasValue, isTrue);
 
     await tester.pump(badgePollInterval);
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(listCalls, 3);
 
     list.close();
-    await tester.pump();
+    await tester.pump(Duration.zero);
     container.dispose();
+    await tester.pump(Duration.zero);
   });
 
   testWidgets('목록을 닫아도 배지 폴링은 그대로 돈다', (tester) async {
@@ -168,19 +171,20 @@ void main() {
       trainerNotificationsProvider,
       (_, _) {},
     );
-    await tester.pump();
+    await tester.pump(Duration.zero);
     list.close();
-    await tester.pump();
+    await tester.pump(Duration.zero);
 
     final int before = unreadCalls;
     await tester.pump(badgePollInterval);
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(unreadCalls, before + 1);
     expect(listCalls, 1);
 
     badge.close();
-    await tester.pump();
+    await tester.pump(Duration.zero);
     container.dispose();
+    await tester.pump(Duration.zero);
   });
 
   test('계정이 바뀐 뒤 다시 열면 이전 계정의 알림이 보이지 않는다', () async {

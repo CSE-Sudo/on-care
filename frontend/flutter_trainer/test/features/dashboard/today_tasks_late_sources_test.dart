@@ -268,10 +268,15 @@ void main() {
     consultations.release();
     await settle(tester);
 
-    await expand(tester, '상담');
+    // 펼침 상태는 탭을 오가도 남아 있을 수 있다 — 접혀 있을 때만 편다.
+    if (checkboxOf('consultation-c1').evaluate().isEmpty) {
+      await expand(tester, '상담');
+    }
     expect(checkedOf(tester, 'consultation-c1'), isTrue);
 
-    await expand(tester, '리포트');
+    if (checkboxOf('report-m1').evaluate().isEmpty) {
+      await expand(tester, '리포트');
+    }
     await tapCheckbox(tester, 'report-m1');
     expect(store.saves.last.completedKeys, <String>{
       'consultation-c1',
