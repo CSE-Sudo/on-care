@@ -4598,6 +4598,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get programEditorAiReapplyTitle =>
+      'Replace the AI exercises with the new plan?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return 'Replaces the AI exercises added earlier ($count) with the new plan. Exercises you added or edited stay.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => 'Replace';
+
+  @override
+  String get programEditorAiReapplyAppend => 'Add after';
+
+  @override
   String programEditorSessionNameTyped(String type) {
     return '$type session';
   }

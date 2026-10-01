@@ -4370,6 +4370,20 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get programEditorAiReapplyTitle => 'AI 운동을 새 안으로 바꿀까요?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return '앞서 반영한 AI 운동 $count개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => '바꾸기';
+
+  @override
+  String get programEditorAiReapplyAppend => '뒤에 추가';
+
+  @override
   String programEditorSessionNameTyped(String type) {
     return '$type 세션';
   }

@@ -2964,6 +2964,17 @@
       }
     }
   },
+  "programEditorAiReapplyTitle": "Replace the AI exercises with the new plan?",
+  "programEditorAiReapplyBody": "Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.",
+  "@programEditorAiReapplyBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programEditorAiReapplyReplace": "Replace",
+  "programEditorAiReapplyAppend": "Add after",
   "programEditorSessionNameTyped": "{type} session",
   "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
   "programEditorSessionNameNumbered": "{type} session {index}",

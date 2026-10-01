@@ -7899,6 +7899,30 @@ abstract class AppLocalizations {
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
 
+  /// No description provided for @programEditorAiReapplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the AI exercises with the new plan?'**
+  String get programEditorAiReapplyTitle;
+
+  /// No description provided for @programEditorAiReapplyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.'**
+  String programEditorAiReapplyBody(int count);
+
+  /// No description provided for @programEditorAiReapplyReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get programEditorAiReapplyReplace;
+
+  /// No description provided for @programEditorAiReapplyAppend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after'**
+  String get programEditorAiReapplyAppend;
+
   /// No description provided for @programEditorSessionNameTyped.
   ///
   /// In en, this message translates to:

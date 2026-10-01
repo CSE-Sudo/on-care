@@ -1950,6 +1950,17 @@
       }
     }
   },
+  "programEditorAiReapplyTitle": "AI 운동을 새 안으로 바꿀까요?",
+  "programEditorAiReapplyBody": "앞서 반영한 AI 운동 {count}개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.",
+  "@programEditorAiReapplyBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programEditorAiReapplyReplace": "바꾸기",
+  "programEditorAiReapplyAppend": "뒤에 추가",
   "programEditorSessionNameTyped": "{type} 세션",
   "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
   "programEditorSessionNameNumbered": "{type} 세션 {index}",
