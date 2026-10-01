@@ -21,8 +21,8 @@ typedef DemoExerciseDays = Future<Set<DateTime>> Function(DateTime monday);
 /// 판정은 읽는 쪽이 먼저 부른다 — 목업 API 가 챌린지·사용처·잔액·알림함을 답하기
 /// 전에 부른다. 서버의 늦은 판정과 같은 자리다.
 ///
-/// 운동한 날은 목업 운동 저장소가 붙이는 [recordedDays] 로 센다. 저장소가 아직
-/// 만들어지지 않았으면 목업 API 가 자기 운동 표로 센다.
+/// 운동한 날은 목업 API 가 자기 운동 표(drift)로 센다(#2662). 시험은
+/// [recordedDays] 로 출처를 갈아 끼울 수 있다.
 class DemoWeeklyChallenge implements DemoPersistable {
   DemoWeeklyChallenge({
     required DemoPointsLedger ledger,
@@ -46,8 +46,8 @@ class DemoWeeklyChallenge implements DemoPersistable {
   @override
   void Function()? onChanged;
 
-  /// 목업 운동 저장소가 붙이는 운동한 날 출처. 앱의 목업 모드에서 회원이 추가한
-  /// 운동은 그 저장소에만 있다.
+  /// 운동한 날 출처를 갈아 끼우는 시험용 자리. 앱에서는 비어 있고, 목업 API 가
+  /// 자기 운동 표(drift)로 센다(#2662).
   Set<DateTime> Function(DateTime monday)? recordedDays;
 
   /// 참가하면 걸릴 목표 — 서버 `goal_for` 와 같은 규칙.
@@ -345,7 +345,7 @@ class _DemoChallenge {
   DateTime? settledAt;
 }
 
-/// 목업 경로가 함께 쓰는 주간 챌린지 하나 — 목업 API 와 목업 운동 저장소가 같은
+/// 목업 경로가 함께 쓰는 주간 챌린지 하나 — 목업 API 와 혜택 화면이 같은
 /// 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider] 에서 빠지고 들어온다.
 ///
 /// 계정 전환에 초기화하지 않는다 — 건 포인트가 든 원장과 함께 앱 수명 동안 남는다.

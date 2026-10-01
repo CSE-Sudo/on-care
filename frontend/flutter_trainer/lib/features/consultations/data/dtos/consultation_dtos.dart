@@ -87,7 +87,7 @@ ConsultationRequest consultationRequestFromJson(Map<String, Object?> json) {
     // 기기 시간대가 아니라 KST 로 읽는다 — 슬롯 창·스케줄과 같은 시각이어야
     // 한다(#2759).
     slotStartsAt: switch (DateTime.tryParse(_str(json['slot_starts_at']))) {
-      final DateTime at => utcToKstWall(at),
+      final DateTime at => toKst(at),
       null => null,
     },
     slotDurationMinutes: (json['slot_duration_minutes'] as num?)?.toInt(),

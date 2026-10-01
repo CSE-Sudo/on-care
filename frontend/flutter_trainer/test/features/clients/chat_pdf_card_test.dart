@@ -12,6 +12,12 @@ import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 
 class _PdfChatRepository implements ChatRepository {
   @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
+  @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) =>
       Stream.value(<ClientChatMessage>[
         ClientChatMessage(

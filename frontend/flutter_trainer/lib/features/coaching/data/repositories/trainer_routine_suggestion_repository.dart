@@ -207,10 +207,15 @@ class MockTrainerRoutineSuggestionRepository
       seedFor(languageCode);
 
   Future<List<RoutineSuggestion>> _listFor(String memberId) async {
-    final List<RoutineSuggestion>? cached = _pending[memberId];
-    if (cached != null) return cached;
     final Set<String> reviewed =
         await _store?.readReviewedSuggestions() ?? const <String>{};
+    final List<RoutineSuggestion>? cached = _pending[memberId];
+    if (cached != null) {
+      // 전송이 닫은 제안은 이 저장소를 거치지 않고 기억에 남는다(#2747) —
+      // 읽을 때마다 걸러야 보낸 제안이 다음 위저드에 다시 뜨지 않는다.
+      cached.removeWhere((RoutineSuggestion s) => reviewed.contains(s.id));
+      return cached;
+    }
     return _pending.putIfAbsent(
       memberId,
       () => <RoutineSuggestion>[
