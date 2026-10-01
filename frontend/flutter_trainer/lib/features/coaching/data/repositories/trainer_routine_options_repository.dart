@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
@@ -14,6 +15,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_r
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart'
     show sodiumTargetMg;
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
@@ -113,6 +115,12 @@ class MockTrainerRoutineOptionsRepository
     required String trainerNote,
     Set<RoutineContextSource>? sources,
   }) async {
+    // 실서버는 범위 밖 총 시간을 422 로 거절한다 — 데모도 같은 오류를 내야
+    // 데모에서 확인한 동작이 실서버에서 깨지지 않는다(#2871).
+    if (availableMinutes != null &&
+        !isRoutineGenerateMinutesInRange(availableMinutes)) {
+      throw const ValidationError();
+    }
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final bool en = languageCode() == 'en';
     String t(String ko, String english) => en ? english : ko;

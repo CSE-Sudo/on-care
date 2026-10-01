@@ -21,6 +21,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggest
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
@@ -383,6 +384,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Future<void> _generate() async {
     if (_generating) return;
+    // 칸이 범위 밖 값을 받지 않지만, 범위 밖 요청은 서버가 422 로 거절하므로
+    // 보내기 전에 한 번 더 막는다(#2871).
+    if (_minutesTouched && !isRoutineGenerateMinutesInRange(_minutes)) {
+      _showGenerateRangeError();
+      return;
+    }
     setState(() => _generating = true);
     try {
       final options = await ref
@@ -417,7 +424,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 기본값)으로 채운다 — 트레이너가 시간만 고쳤다면 강도는 그대로
         // 서버가 계산하도록 둬야 하고, 그 반대도 마찬가지다(#776).
         if (!_minutesTouched) {
-          _minutes = analysis.suggestedAvailableMinutes ?? _minutes;
+          // 칸이 받는 범위로 당겨 채운다 — 범위 밖 값이 다음 요청에 실리면
+          // 서버가 거절한다(#2871).
+          _minutes = clampRoutineGenerateMinutes(
+            analysis.suggestedAvailableMinutes ?? _minutes,
+          );
         }
         if (!_intensityTouched) {
           _intensity = analysis.suggestedIntensity ?? _intensity;
@@ -427,6 +438,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     } catch (e) {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
+      // 서버가 입력을 거절했다(422) — 같은 값으로 다시 눌러도 결과가 같으니
+      // 일시 장애처럼 안내하지 않고 조건을 고치게 한다. 서버 상세는 그대로
+      // 내보이지 않는다(#2871).
+      if (e is ValidationError) {
+        _showGenerateRangeError();
+        return;
+      }
       // 한도 초과는 고장이 아니라 잠시 뒤 되는 상태다. 다른 오류와 같은 문구를
       // 쓰면 트레이너가 기능이 깨진 것으로 읽는다(#582).
       showAppToast(
@@ -437,6 +455,19 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     } finally {
       if (mounted) setState(() => _generating = false);
     }
+  }
+
+  /// 생성 조건이 서버 범위를 벗어났다는 안내(#2871).
+  void _showGenerateRangeError() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      l.aiGenerateInvalidConditions(
+        kRoutineGenerateMinMinutes,
+        kRoutineGenerateMaxMinutes,
+      ),
+      type: AppToastType.error,
+    );
   }
 
   void _selectChoice(_RoutineChoice choice) {
@@ -1440,6 +1471,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             keyPrefix: 'generation-minutes',
             minutes: _minutes,
             label: l.routineFieldTotalMinutes,
+            // 서버가 받는 범위만 받는다(#2871) — 개별 운동 시간 칸과 다르다.
+            min: kRoutineGenerateMinMinutes,
+            max: kRoutineGenerateMaxMinutes,
+            helper: l.aiGenerateMinutesHelper(
+              kRoutineGenerateMinMinutes,
+              kRoutineGenerateMaxMinutes,
+            ),
             onChanged: (minutes) => setState(() {
               _minutes = minutes;
               _minutesTouched = true;

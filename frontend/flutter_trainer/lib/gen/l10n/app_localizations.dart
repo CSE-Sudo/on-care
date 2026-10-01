@@ -5245,6 +5245,18 @@ abstract class AppLocalizations {
   /// **'AI generation failed. Please try again in a moment'**
   String get aiGenerateFailed;
 
+  /// No description provided for @aiGenerateInvalidConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the generation conditions. Total time must be between {min} and {max} minutes'**
+  String aiGenerateInvalidConditions(int min, int max);
+
+  /// No description provided for @aiGenerateMinutesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter between {min} and {max} minutes'**
+  String aiGenerateMinutesHelper(int min, int max);
+
   /// No description provided for @aiGenerateRateLimited.
   ///
   /// In en, this message translates to:

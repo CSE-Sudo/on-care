@@ -1296,6 +1296,10 @@
   "aiOptionPush": "강화안",
   "aiOptionExisting": "기존안",
   "aiGenerateFailed": "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "aiGenerateInvalidConditions": "생성 조건을 확인해 주세요. 총 운동 시간은 {min}~{max}분 사이여야 해요",
+  "@aiGenerateInvalidConditions": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "aiGenerateMinutesHelper": "{min}~{max}분 사이로 입력해 주세요",
+  "@aiGenerateMinutesHelper": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "aiGenerateRateLimited": "AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요",
   "@aiGenerateRateLimited": {
     "description": "429 when the trainer taps 생성 repeatedly. Not a failure — it works again shortly (#582)."

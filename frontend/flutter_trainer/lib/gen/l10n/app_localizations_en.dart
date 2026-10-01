@@ -3007,6 +3007,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'AI generation failed. Please try again in a moment';
 
   @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return 'Check the generation conditions. Total time must be between $min and $max minutes';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return 'Enter between $min and $max minutes';
+  }
+
+  @override
   String get aiGenerateRateLimited =>
       'Too many generation requests. Please try again shortly';
 

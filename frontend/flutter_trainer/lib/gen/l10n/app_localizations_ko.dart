@@ -2850,6 +2850,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiGenerateFailed => 'AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return '생성 조건을 확인해 주세요. 총 운동 시간은 $min~$max분 사이여야 해요';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return '$min~$max분 사이로 입력해 주세요';
+  }
+
+  @override
   String get aiGenerateRateLimited => 'AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요';
 
   @override
