@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -308,9 +309,13 @@ WeeklyReport buildWeeklyReport({
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
+  // 상담은 PT 가 아니다(#2741) — 리포트가 세는 것은 PT 횟수다. 상담이 있던 주가
+  // PT 1회 더로 읽히고 이행률 분모도 커졌다. 실서버 `build_weekly_report` 와 같다.
   final inWeek = sessions.where((s) {
     final day = DateTime.tryParse(s.date);
-    if (day == null || s.isGap) return false;
+    if (day == null || s.isGap || s.type == SessionType.consultation) {
+      return false;
+    }
     return !day.isBefore(start) && !day.isAfter(end);
   }).toList();
 
@@ -750,46 +755,4 @@ String withParticle(
 ) {
   if (l.localeName != 'ko') return word;
   return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
-}
-
-/// The trainer's own week — the numbers that answer "how am I doing?".
-class TrainerWeekStats {
-  /// Creates the stats.
-  const TrainerWeekStats({
-    required this.sessionsBooked,
-    required this.sessionsDone,
-    required this.activeClients,
-    required this.programsSent,
-  });
-
-  /// Sessions booked this week.
-  final int sessionsBooked;
-
-  /// Sessions completed this week.
-  final int sessionsDone;
-
-  /// Clients marked 활성.
-  final int activeClients;
-
-  /// Sessions that carry a program (i.e. a routine was prepared).
-  final int programsSent;
-
-  /// Completion rate as a percentage; null when nothing was booked.
-  int? get completionRate => sessionsBooked == 0
-      ? null
-      : ((sessionsDone / sessionsBooked) * 100).round();
-}
-
-/// Aggregates the trainer's week from every session in the range.
-TrainerWeekStats buildTrainerWeekStats({
-  required List<ScheduleSession> sessions,
-  required List<TrainerClient> clients,
-}) {
-  final booked = sessions.where((s) => !s.isGap).toList();
-  return TrainerWeekStats(
-    sessionsBooked: booked.length,
-    sessionsDone: booked.where((s) => s.isDone).length,
-    activeClients: clients.where((c) => c.active).length,
-    programsSent: booked.where((s) => s.program.isNotEmpty).length,
-  );
 }

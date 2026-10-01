@@ -18,16 +18,9 @@ class DioBenefitsRepository implements BenefitsRepository {
 
   final Dio _dio;
 
-  /// 목업 인터셉터가 만든 응답은 상태코드 검사를 거치지 않고 그대로 돌아온다
-  /// (`handler.resolve`). 409(잔액 부족 등)를 성공 본문으로 읽지 않도록 여기서
-  /// 실서버와 같은 오류로 바꾼다.
+  /// 본문이 비면 실서버와 같은 오류로 바꾼다. 오류 응답은 실서버·데모(로컬 목업
+  /// API, #2743) 모두 `DioException` 으로 와 아래 `AppError.fromDio` 가 받는다.
   static T _ok<T>(Response<T> res) {
-    final int status = res.statusCode ?? 0;
-    if (status >= 400) {
-      if (status == 404) throw const NotFoundError();
-      if (status == 401 || status == 403) throw const UnauthorizedError();
-      throw ServerError(statusCode: status);
-    }
     final T? data = res.data;
     if (data == null) throw const ServerError();
     return data;

@@ -931,6 +931,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
+  String get chatLoadOlder => '이전 메시지 더 보기';
+
+  @override
+  String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
+
+  @override
   String chatDemoAnalyzed(String name) {
     return 'AI가 $name님의 식단·운동 데이터를 분석했어요';
   }
@@ -2553,6 +2559,48 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
+
+  @override
+  String get routineEffectCardioDefault => '체력 향상·만성질환 예방';
+
+  @override
+  String get routineEffectStrengthDefault => '근력·근지구력 향상';
+
+  @override
+  String get routineEffectStretchDefault => '유연성·부상 예방';
+
+  @override
+  String get routineEffectBloodPressure => '혈압 관리에 도움';
+
+  @override
+  String get routineEffectFatLoss => '체지방 감량에 도움';
+
+  @override
+  String get routineEffectCardioFitness => '심폐 체력 향상';
+
+  @override
+  String get routineEffectGentleRecovery => '무리 없는 체력 회복';
+
+  @override
+  String get routineEffectMuscleMass => '근육량 유지·증가';
+
+  @override
+  String get routineEffectStrength => '근력 향상';
+
+  @override
+  String get routineEffectPostureMuscles => '자세 지지 근육 강화';
+
+  @override
+  String get routineEffectHeartRate => '혈압·심박 안정';
+
+  @override
+  String get routineEffectMuscleRecovery => '근육 회복';
+
+  @override
+  String get routineEffectLoosen => '굳은 근육 이완';
+
+  @override
+  String get routineEffectJointRange => '관절 가동 범위 회복';
 
   @override
   String get routineFieldSets => '세트 수';

@@ -473,6 +473,12 @@ class _FixedSuggestionRepository implements TrainerRoutineSuggestionRepository {
 }
 
 class _FakeRealChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _FakeRealChatRepository({this.failSend = false});
 
   final bool failSend;

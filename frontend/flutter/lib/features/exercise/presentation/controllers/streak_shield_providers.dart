@@ -12,7 +12,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 
 /// 연속 기록 보호권 저장소. (#1788)
 ///
-/// 데모 모드는 목업 운동 저장소·목업 식단과 같은 기록, 같은 보호권 원장을 본다 —
+/// 데모 모드는 운동·식단 저장소(로컬 목업 API)와 같은 기록, 같은 보호권 원장을 본다 —
 /// 교환한 보호권과 보호한 날이 내 혜택에 한 번에 보인다.
 final streakShieldRepositoryProvider = Provider<StreakShieldRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
