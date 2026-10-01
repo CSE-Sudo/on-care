@@ -298,9 +298,15 @@ final notificationInboxEnabledProvider = Provider<bool>(
 ///
 /// 첫 쪽보다 오래된 알림은 [trainerNotificationPagingProvider] 가 이어 받는다
 /// (#2293). 화면은 둘을 [mergeTrainerNotifications] 로 합쳐 그린다.
+///
+/// **목록을 보는 동안만** 산다(#2767). 알림 종 팝오버나 알림 화면이 닫히면
+/// 구독이 끝나 폴링도 멈춘다. 전에는 계정 동안 붙잡아 두어(`keepAliveForAccount`)
+/// 한 번 연 뒤로는 아무도 보지 않는 목록을 20초마다 다시 받았다. 배지 숫자는
+/// [trainerUnreadNotificationsProvider] 가 따로 맡으니 목록을 살려 둘 이유가
+/// 없다. 다시 열면 첫 쪽을 새로 받는다. 계정 경계는 저장소 provider 가
+/// [accountScopeProvider] 를 보므로 그대로 지켜진다.
 final trainerNotificationsProvider =
     StreamProvider.autoDispose<TrainerNotificationPage>((ref) {
-      keepAliveForAccount(ref);
       return ref.watch(trainerNotificationRepositoryProvider).watch();
     }, name: 'trainerNotifications');
 
