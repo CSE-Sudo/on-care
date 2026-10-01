@@ -1351,6 +1351,12 @@
   "schedRoutinesSkipped": "Marked as not sent.",
   "schedRoutinesUpdated": "Personal exercise updated.",
   "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
+  "schedAddRoutines": "Add personal exercise",
+  "schedRoutinesAdded": "Personal exercise added.",
+  "schedNoRoutines": "No personal exercise",
+  "schedNoRoutinesSendTitle": "Send without personal exercise?",
+  "schedNoRoutinesSendBody": "This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.",
+  "schedNoRoutinesSendSkip": "Send without it",
   "schedTimeRange": "{start}–{end}",
   "@schedTimeRange": {
     "placeholders": {
@@ -1992,7 +1998,7 @@
   "aiStepConditions": "Set up",
   "aiStepReview": "Program selection",
   "aiStepDone": "Program review",
-  "aiSkipPtProgram": "Skip PT — personal exercise only",
+  "aiSkipPtProgram": "Personal exercise only",
   "routineEvidenceRecentPtFeedback": "Recent PT feedback",
   "@routineEvidenceRecentPtFeedback": {
     "description": "Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301)."
@@ -2054,7 +2060,7 @@
   "aiPersonalStepTitle": "Personal exercise between PT",
   "aiPersonalStepTitleRoutineOnly": "This week's personal exercise",
   "aiPersonalStepBlurb": "Attached to this PT and sent to the member when you complete it. Pick at least one.",
-  "aiPersonalStepBlurbRoutineOnly": "What the member does on their own this week. Pick at least one.",
+  "aiPersonalStepBlurbRoutineOnly": "What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.",
   "aiPersonalStepEmpty": "No personal exercise yet. Add one below.",
   "aiPersonalStepNext": "Next",
   "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
@@ -2075,6 +2081,21 @@
     "description": "Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581)."
   },
   "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
+  "progNoRoutinesRegisterTitle": "Add to schedule without personal exercise?",
+  "progNoRoutinesRegisterBody": "Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.",
+  "progNoRoutinesRegisterSkip": "Add without it",
+  "progPersonalRoutinesEmpty": "No personal exercise yet. Add at least one for each PT.",
+  "aiAttachTargetPt": "Personal exercise for the PT you are putting together.",
+  "aiAttachRoutines": "Apply to PT",
+  "aiAttachedLabel": "Applied",
+  "aiRoutineTargetPt": "Attach to the {date} {time} PT",
+  "@aiRoutineTargetPt": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
+  "aiRoutineOnlyAttachHint": "Attaches to the {date} {time} PT. It reaches the member when you send that PT from Schedule.",
+  "@aiRoutineOnlyAttachHint": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
+  "aiReplaceRoutinesTitle": "Personal exercise already attached",
+  "aiReplaceRoutinesBody": "This PT already has {count} personal exercise(s) ({names}). Replace them with the new ones?",
+  "@aiReplaceRoutinesBody": {"placeholders": {"count": {"type": "int"}, "names": {"type": "String"}}},
+  "aiReplaceRoutinesConfirm": "Replace",
   "programRoutineOnlyConfirmBody": "Sends personal exercise to {client}. Appears daily from {start} to {end}.",
   "@programRoutineOnlyConfirmBody": {
     "placeholders": { "client": { "type": "String" }, "start": { "type": "String" }, "end": { "type": "String" } }

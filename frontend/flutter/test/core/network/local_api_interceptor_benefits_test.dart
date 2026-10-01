@@ -21,6 +21,8 @@ import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 
+import '../../helpers/strict_dio.dart';
+
 void main() {
   late AppDatabase db;
   late Dio dio;
@@ -33,7 +35,14 @@ void main() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     ledger = DemoPointsLedger(openingBalance: 30000);
     book = DemoCouponBook(ledger: ledger, now: () => now);
-    dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    // 상태 코드를 그대로 보려고 오류 응답도 응답으로 받는다 — 로컬 목업 API 는
+    // 실서버처럼 오류를 예외로 돌려준다(#2743).
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://example.test',
+        validateStatus: (int? _) => true,
+      ),
+    );
     dio.interceptors.add(
       LocalApiInterceptor(
         db,
@@ -75,7 +84,7 @@ void main() {
   }
 
   Future<Map<String, ShopItem>> shopItems() async {
-    final PointsShop shop = await DioBenefitsRepository(dio).fetchShop();
+    final PointsShop shop = await DioBenefitsRepository(strictDioOf(dio)).fetchShop();
     return <String, ShopItem>{for (final ShopItem item in shop.items) item.id: item};
   }
 
@@ -84,7 +93,7 @@ void main() {
           as String;
 
   test('교환 목록은 서버와 같은 순서·가격·막힌 이유를 준다', () async {
-    final PointsShop shop = await DioBenefitsRepository(dio).fetchShop();
+    final PointsShop shop = await DioBenefitsRepository(strictDioOf(dio)).fetchShop();
 
     expect(shop.balance, 30000);
     expect(shop.hasTrainer, isTrue);
@@ -120,11 +129,11 @@ void main() {
     book.endGymLink();
     items = await shopItems();
     expect(items['locker_month']!.blockReason, ShopBlockReason.noGym);
-    expect((await DioBenefitsRepository(dio).fetchShop()).hasGym, isFalse);
+    expect((await DioBenefitsRepository(strictDioOf(dio)).fetchShop()).hasGym, isFalse);
   });
 
   test('프로필 펫을 달면 이름 옆에 붙고 카드가 남은 기간을 싣는다 (#2021)', () async {
-    final DioBenefitsRepository repo = DioBenefitsRepository(dio);
+    final DioBenefitsRepository repo = DioBenefitsRepository(strictDioOf(dio));
     await repo.exchange('profile_pet', option: 'cat');
 
     expect((await repo.fetchProfilePet())!.kind, 'cat');
@@ -138,7 +147,7 @@ void main() {
   });
 
   test('주간 리포트는 담당이 없을 때만 서고 지난주를 한 번만 산다 (#2022)', () async {
-    final DioBenefitsRepository repo = DioBenefitsRepository(dio);
+    final DioBenefitsRepository repo = DioBenefitsRepository(strictDioOf(dio));
     // 데모 회원은 담당이 있다 — 트레이너가 등록해 주므로 항목이 없다.
     expect((await shopItems()).containsKey('weekly_report'), isFalse);
 
@@ -155,7 +164,7 @@ void main() {
   });
 
   test('포인트 내역은 사유를 남기고 AI 대화를 하루 한 줄로 묶는다 (#2146)', () async {
-    final DioBenefitsRepository repo = DioBenefitsRepository(dio);
+    final DioBenefitsRepository repo = DioBenefitsRepository(strictDioOf(dio));
     await repo.exchange('streak_shield');
     ledger
       ..spend('chat-1', 50, reason: 'ai_chat')
@@ -172,7 +181,7 @@ void main() {
 
   test('교환하면 포인트가 빠지고 헬스장이 적힌 쿠폰이 생긴다', () async {
     final CouponExchange result = await DioBenefitsRepository(
-      dio,
+      strictDioOf(dio),
     ).exchange('locker_month');
 
     final Coupon coupon = result.coupon!;
@@ -207,7 +216,7 @@ void main() {
     expect(await balance(), 6900);
     expect(await coupons(), isEmpty);
     await expectLater(
-      DioBenefitsRepository(dio).exchange('locker_month'),
+      DioBenefitsRepository(strictDioOf(dio)).exchange('locker_month'),
       throwsA(anything),
     );
   });
@@ -239,7 +248,7 @@ void main() {
     );
 
     // 써도 같은 달에는 다시 받을 수 없다.
-    await DioBenefitsRepository(dio).useCoupon(idOf(await coupons(), 'locker_month'));
+    await DioBenefitsRepository(strictDioOf(dio)).useCoupon(idOf(await coupons(), 'locker_month'));
     expect(
       (await shopItems())['locker_month']!.blockReason,
       ShopBlockReason.monthlyLimit,
@@ -273,8 +282,8 @@ void main() {
   test('락커·재등록 쿠폰 모두 회원 휴대폰에서 한 번 사용 처리한다', () async {
     await exchange('locker_month');
     final String locker = (await coupons()).single['id']! as String;
-    final Coupon used = await DioBenefitsRepository(dio).useCoupon(locker);
-    final Coupon again = await DioBenefitsRepository(dio).useCoupon(locker);
+    final Coupon used = await DioBenefitsRepository(strictDioOf(dio)).useCoupon(locker);
+    final Coupon again = await DioBenefitsRepository(strictDioOf(dio)).useCoupon(locker);
 
     expect(used.status, CouponStatus.used);
     expect(again.status, CouponStatus.used);
@@ -282,7 +291,7 @@ void main() {
     await exchange('pt_renewal');
     // PT 재등록 쿠폰도 직원 확인 뒤 회원 휴대폰에서 사용 완료를 누른다.
     final Coupon renewalUsed = await DioBenefitsRepository(
-      dio,
+      strictDioOf(dio),
     ).useCoupon(idOf(await coupons(), 'pt_renewal'));
     expect(renewalUsed.status, CouponStatus.used);
     expect(renewalUsed.usedAt, isNotNull);

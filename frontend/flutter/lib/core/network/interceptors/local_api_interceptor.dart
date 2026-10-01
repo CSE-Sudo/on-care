@@ -99,8 +99,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// (#2662)
   List<RoutineAdviceDay> Function(DateTime from, DateTime to)? routineDays;
 
-  /// 연속 기록 보호권(#1788). 앱에서는 목업 운동 저장소와 같은 인스턴스를 받아
-  /// 사용처에서 교환한 보호권이 운동 현황의 연속 일수로 이어진다. 주지 않으면
+  /// 연속 기록 보호권(#1788). 앱에서는 사용처(쿠폰 원장)와 같은 인스턴스를 받아
+  /// 교환한 보호권이 기록 연속으로 이어진다. 주지 않으면
   /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.
   final DemoStreakShieldBook? _shieldsArg;
   late final DemoStreakShieldBook _shields =
@@ -128,9 +128,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   late final DemoCouponBook _coupons =
       _couponsArg ?? DemoCouponBook(ledger: _points, shields: _shields);
 
-  /// 주간 운동 챌린지(#1789). 앱에서는 목업 운동 저장소가 운동한 날을 붙이는
-  /// 인스턴스를 받는다. 주지 않으면 이 인터셉터의 원장으로 만들고, 운동한 날은
-  /// 이 인터셉터의 운동 표로 센다.
+  /// 주간 운동 챌린지(#1789). 앱에서는 포인트 원장과 함께 쓰는 인스턴스를
+  /// 받는다. 주지 않으면 이 인터셉터의 원장으로 만든다. 운동한 날은 이
+  /// 인터셉터의 운동 표로 센다(#2662).
   final DemoWeeklyChallenge? _challengesArg;
   late final DemoWeeklyChallenge _challenges =
       _challengesArg ?? DemoWeeklyChallenge(ledger: _points);
@@ -224,6 +224,21 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   ) async {
     final response = await _safeHandle(options);
     if (response != null) {
+      // 오류 응답은 실서버처럼 예외로 돌려준다(#2743). Dio 는 인터셉터가 만든
+      // 응답에 `validateStatus` 를 걸지 않아, 그대로 resolve 하면 404·409 가
+      // 성공처럼 저장소에 닿는다 — 삭제가 조용히 성공하고, 수정은 거절 본문을
+      // 기록으로 읽다 실패했다.
+      final int? status = response.statusCode;
+      if (!options.validateStatus(status)) {
+        handler.reject(
+          DioException.badResponse(
+            statusCode: status ?? 0,
+            requestOptions: options,
+            response: response,
+          ),
+        );
+        return;
+      }
       handler.resolve(response);
       return;
     }
@@ -1893,8 +1908,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         ),
     ];
 
-    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162) — 목업 운동 저장소가
-    // 하던 일을 이 자리로 옮겼다(#2662).
+    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162, #2662).
     final DateTime today = _dateOnly(nowKst());
     final ExerciseAdvice advice = exercisePeriodAdviceOf(
       days,
@@ -4259,8 +4273,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   Future<int?> _weeklyWorkoutGoal() async =>
       ((await _mergedProfile())['weekly_workout_goal'] as num?)?.toInt();
 
-  /// [monday] 주에 운동 기록이 있는 날. 목업 운동 저장소가 붙인 출처가 있으면 그것을,
-  /// 없으면(테스트·운동 저장소를 아직 만들지 않음) 이 인터셉터의 운동 표를 본다.
+  /// [monday] 주에 운동 기록이 있는 날 — 이 인터셉터의 운동 표다(#2662). 시험이
+  /// 챌린지에 출처를 붙였으면([DemoWeeklyChallenge.recordedDays]) 그것을 본다.
   Future<Set<DateTime>> _exerciseDaysOf(DateTime monday) async {
     final Set<DateTime> Function(DateTime)? recorded = _challenges.recordedDays;
     if (recorded != null) return recorded(monday);

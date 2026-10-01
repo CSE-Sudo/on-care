@@ -1821,6 +1821,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t update the personal exercise. Please try again.';
 
   @override
+  String get schedAddRoutines => 'Add personal exercise';
+
+  @override
+  String get schedRoutinesAdded => 'Personal exercise added.';
+
+  @override
+  String get schedNoRoutines => 'No personal exercise';
+
+  @override
+  String get schedNoRoutinesSendTitle => 'Send without personal exercise?';
+
+  @override
+  String get schedNoRoutinesSendBody =>
+      'This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.';
+
+  @override
+  String get schedNoRoutinesSendSkip => 'Send without it';
+
+  @override
   String schedTimeRange(String start, String end) {
     return '$start–$end';
   }
@@ -3111,7 +3130,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepDone => 'Program review';
 
   @override
-  String get aiSkipPtProgram => 'Skip PT — personal exercise only';
+  String get aiSkipPtProgram => 'Personal exercise only';
 
   @override
   String get routineEvidenceRecentPtFeedback => 'Recent PT feedback';
@@ -3206,7 +3225,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      'What the member does on their own this week. Pick at least one.';
+      'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.';
 
   @override
   String get aiPersonalStepEmpty => 'No personal exercise yet. Add one below.';
@@ -3254,6 +3273,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get progPersonalRoutinesWhen =>
       'Goes to the member when you complete this PT.';
+
+  @override
+  String get progNoRoutinesRegisterTitle =>
+      'Add to schedule without personal exercise?';
+
+  @override
+  String get progNoRoutinesRegisterBody =>
+      'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.';
+
+  @override
+  String get progNoRoutinesRegisterSkip => 'Add without it';
+
+  @override
+  String get progPersonalRoutinesEmpty =>
+      'No personal exercise yet. Add at least one for each PT.';
+
+  @override
+  String get aiAttachTargetPt =>
+      'Personal exercise for the PT you are putting together.';
+
+  @override
+  String get aiAttachRoutines => 'Apply to PT';
+
+  @override
+  String get aiAttachedLabel => 'Applied';
+
+  @override
+  String aiRoutineTargetPt(String date, String time) {
+    return 'Attach to the $date $time PT';
+  }
+
+  @override
+  String aiRoutineOnlyAttachHint(String date, String time) {
+    return 'Attaches to the $date $time PT. It reaches the member when you send that PT from Schedule.';
+  }
+
+  @override
+  String get aiReplaceRoutinesTitle => 'Personal exercise already attached';
+
+  @override
+  String aiReplaceRoutinesBody(int count, String names) {
+    return 'This PT already has $count personal exercise(s) ($names). Replace them with the new ones?';
+  }
+
+  @override
+  String get aiReplaceRoutinesConfirm => 'Replace';
 
   @override
   String programRoutineOnlyConfirmBody(

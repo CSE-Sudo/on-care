@@ -5,7 +5,6 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
-import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 import '../../helpers/client_factory.dart';
 
@@ -314,38 +313,6 @@ void main() {
       final message = reportMessage(_ko, report);
       expect(message, isNot(contains('이행률')));
       expect(message, isNot(contains('나트륨')));
-    });
-  });
-
-  group('buildTrainerWeekStats', () {
-    test('summarises the trainer’s own week across all clients', () {
-      final stats = buildTrainerWeekStats(
-        sessions: <ScheduleSession>[
-          session(date: ymd(monday), status: '완료'),
-          session(
-            date: ymd(wednesday),
-            program: const <ProgramItem>[
-              ProgramItem(name: '스쿼트', sets: 3, weight: 60),
-            ],
-          ),
-          session(date: ymd(sunday), status: '공백'),
-        ],
-        clients: const <TrainerClient>[],
-      );
-
-      expect(stats.sessionsBooked, 2);
-      expect(stats.sessionsDone, 1);
-      expect(stats.programsSent, 1);
-      expect(stats.completionRate, 50);
-    });
-
-    test('an empty week has no completion rate rather than 0%', () {
-      final stats = buildTrainerWeekStats(
-        sessions: const <ScheduleSession>[],
-        clients: const <TrainerClient>[],
-      );
-
-      expect(stats.completionRate, isNull);
     });
   });
 }

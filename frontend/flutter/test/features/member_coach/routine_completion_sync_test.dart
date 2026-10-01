@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -19,13 +19,17 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dar
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/demo_exercise.dart';
+
 void main() {
-  late MockExerciseRepository exercise;
+  late DioExerciseRepository exercise;
   late MockMemberCoachRepository coach;
 
   setUp(() {
-    exercise = MockExerciseRepository();
-    coach = MockMemberCoachRepository(exercise: exercise);
+    // 앱의 데모와 같은 경로 — 루틴 완료 기록이 로컬 목업 API(drift)에 남는다(#2724).
+    final backend = demoExerciseBackend(emptyDemoDatabase());
+    exercise = backend.repository;
+    coach = MockMemberCoachRepository(exercise: backend.api);
   });
 
   Future<void> pumpCard(WidgetTester tester) async {
@@ -66,8 +70,8 @@ void main() {
 
   /// 이번 주 총 소모 칼로리 — 운동 현황이 읽는 그 값이다.
   ///
-  /// 대역이 실제 지연을 두고 답하므로 [WidgetTester.runAsync] 안에서 읽는다 —
-  /// 가짜 시계 위에서 그냥 await 하면 영원히 풀리지 않는다.
+  /// DB 를 읽으므로 [WidgetTester.runAsync] 안에서 읽는다 — 가짜 시계 위에서
+  /// 그냥 await 하면 풀리지 않을 수 있다.
   Future<int> weekCalories(WidgetTester tester) async =>
       (await tester.runAsync(() => exercise.fetchThisWeek()))!.totalCalories;
 
