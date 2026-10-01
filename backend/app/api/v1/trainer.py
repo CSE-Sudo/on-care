@@ -1231,6 +1231,7 @@ def trainer_assign_program(
         trainer_message=payload.trainer_message.strip(),
         start_date=payload.start_date,
         active_days=payload.active_days,
+        suggestion_ids=payload.suggestion_ids,
     )
 
 
@@ -1861,6 +1862,7 @@ def trainer_assign_program_with_schedule(
             client_request_id=payload.client_request_id,
             session_id=payload.session_id,
             personal_routines=payload.personal_routines,
+            suggestion_ids=payload.suggestion_ids,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
