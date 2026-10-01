@@ -382,6 +382,43 @@ def test_reattaching_a_program_replaces_its_personal_routines(
         _cleanup(db_session, day)
 
 
+def test_reattaching_without_personal_routines_keeps_them(client, db_session):
+    """개인운동 없이 다시 붙이면 붙어 있던 개인운동은 그대로 둔다. (#2280)
+
+    `직접 만들기` 로 PT 구성만 다시 짜 붙이는 일이 있다. "개인운동 없이" 를
+    "지워라" 로 읽으면 일정 상세에서 붙여 둔 개인운동이 말없이 사라진다.
+    PT 구성은 새것으로 갈린다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        first = _attach(client, token, day)
+        second = _attach(
+            client,
+            token,
+            day,
+            name=f"{_NAME_PREFIX} PT 다시",
+            personal_routines=[],
+        )
+        assert second == first
+
+        db_session.expire_all()
+        assert [r.name for r in _routines(db_session, first)] == [
+            f"{_NAME_PREFIX} 걷기"
+        ]
+        program_rows = db_session.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.schedule_id == first,
+                TrainerRoutine.delivery_kind.is_(None),
+            )
+        ).all()
+        # 세션이 하나면 루틴 이름이 곧 프로그램 이름이다.
+        assert [r.name for r in program_rows] == [f"{_NAME_PREFIX} PT 다시"]
+    finally:
+        _cleanup(db_session, day)
+
+
 def test_editing_an_ai_routine_makes_it_the_trainers(client, db_session):
     """AI 가 제안한 개인운동도 트레이너가 고치면 트레이너 것이 된다. (#2223, #2224)
 
@@ -499,3 +536,151 @@ def test_moving_the_pt_moves_its_personal_routines(client, db_session):
     finally:
         _cleanup(db_session, day)
         _cleanup(db_session, moved)
+
+
+def _program_only(client, token, day: str, **overrides) -> str:
+    """개인운동 단계를 지나지 않은 PT — 프로그램만 실린 일정 id 를 준다.
+
+    `직접 만들기`·저장한 프로그램 적용으로 짠 PT 가 스케줄에 서는 모양이다.
+    """
+    body: dict = {
+        "date": day,
+        # 시드 일정(10·12·15·17 시)과 겹치지 않는 시각이다(#2284).
+        "time": "20:00",
+        "client_name": "이지수",
+        "member_id": MEMBER,
+        "type": "1:1 PT",
+        "duration_minutes": 60,
+        "program": [{"name": "스쿼트", "sets": 3, "reps": 10}],
+    }
+    body.update(overrides)
+    r = client.post("/v1/trainer/schedule", json=body, headers=_h(token))
+    assert r.status_code == 201, r.text
+    session_id: str = r.json()["id"]
+    _MADE.append(session_id)
+    return session_id
+
+
+def _first_routines(client, token, session_id: str):
+    return client.put(
+        f"/v1/trainer/schedule/{session_id}/routines",
+        json={
+            "personal_routines": [
+                {
+                    "name": f"{_NAME_PREFIX} 처음 붙인 걷기",
+                    "minutes": 20,
+                    "type": "유산소",
+                    # 코칭 탭의 AI 제안을 손대지 않고 붙였다.
+                    "source": "ai",
+                }
+            ]
+        },
+        headers=_h(token),
+    )
+
+
+def test_a_pt_without_routines_gets_its_first_ones(client, db_session):
+    """개인운동이 없는 PT 에 처음 붙이고, 전송에 실려 간다. (#2280)
+
+    `직접 만들기` 로 짠 PT 는 개인운동 단계를 지나지 않는다. 일정 상세에서
+    코칭 탭의 개인운동 단계로 가 짠 것을 붙인다. 예전에는 고칠 줄이 없다며
+    400 을 내 붙일 길이 없었다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _program_only(client, token, day)
+        r = _first_routines(client, token, session_id)
+        assert r.status_code == 200, r.text
+        assert [x["name"] for x in r.json()] == [
+            f"{_NAME_PREFIX} 처음 붙인 걷기"
+        ]
+
+        db_session.expire_all()
+        rows = _routines(db_session, session_id)
+        assert [x.status for x in rows] == ["scheduled"]
+        assert rows[0].exercise_date == day
+        # 프로그램 만들기와 같이 받은 출처를 그대로 남긴다.
+        assert rows[0].source == "ai"
+        assert rows[0].delivery_kind == "pt_with_routine"
+
+        # 두 번 눌러도 두 벌이 되지 않는다 — 두 번째는 고치는 길로 간다.
+        assert _first_routines(client, token, session_id).status_code == 200
+        db_session.expire_all()
+        assert len(_routines(db_session, session_id)) == 1
+
+        _complete(client, token, session_id)
+        assert client.post(
+            f"/v1/trainer/schedule/{session_id}/program/send",
+            json={},
+            headers=_h(token),
+        ).status_code == 200
+        db_session.expire_all()
+        assert [x.status for x in _routines(db_session, session_id)] == [
+            "approved"
+        ]
+    finally:
+        _cleanup(db_session, day)
+
+
+def test_a_sent_pt_does_not_get_first_routines(client, db_session):
+    """이미 보낸 PT 에는 처음 붙이지 않는다. (#2280)
+
+    보낸 뒤에 붙으면 회원이 받은 목록이 말없이 달라진다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _program_only(client, token, day)
+        _complete(client, token, session_id)
+        assert client.post(
+            f"/v1/trainer/schedule/{session_id}/program/send",
+            json={},
+            headers=_h(token),
+        ).status_code == 200
+
+        r = _first_routines(client, token, session_id)
+        assert r.status_code == 400, r.text
+        db_session.expire_all()
+        assert _routines(db_session, session_id) == []
+    finally:
+        _cleanup(db_session, day)
+
+
+def test_first_routines_need_a_pt_program(client, db_session):
+    """프로그램이 없는 일정에는 처음 붙이지 않는다. (#2280)
+
+    나중에 프로그램 만들기로 PT 를 실으면 붙은 줄을 갈아 끼워, 여기서 붙인
+    것이 말없이 사라진다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _program_only(client, token, day, program=[])
+        r = _first_routines(client, token, session_id)
+        assert r.status_code == 400, r.text
+        db_session.expire_all()
+        assert _routines(db_session, session_id) == []
+    finally:
+        _cleanup(db_session, day)
+
+
+def test_a_cancelled_pt_does_not_get_first_routines(client, db_session):
+    """취소된 PT 에는 처음 붙이지 않는다. (#2280)"""
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _program_only(client, token, day)
+        assert client.post(
+            f"/v1/trainer/schedule/{session_id}/cancel",
+            json={"source": "member", "reason": "몸살"},
+            headers=_h(token),
+        ).status_code == 200
+        r = _first_routines(client, token, session_id)
+        assert r.status_code == 400, r.text
+    finally:
+        _cleanup(db_session, day)

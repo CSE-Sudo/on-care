@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/utils/exercise_weight_label.dart';
@@ -13,9 +14,14 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 프로그램 만들기에서 정한 개인운동을, 보내기 직전에 편집기 화면에서 보여
 /// 주는 박스. (#2223)
 ///
-/// **읽기 전용이다.** 고치는 자리는 위저드의 개인운동 단계 한 곳뿐이다 — 같은
-/// 목록을 두 화면에서 따로 고치면 어느 쪽이 맞는지 알 수 없게 된다. 여기서는
-/// 무엇이 함께 가는지 확인하고, `개인운동만` 이면 언제부터 걸지만 고른다.
+/// `개인운동만` 에서는 **읽기 전용이다** — 고치는 자리는 위저드의 개인운동
+/// 단계다. 여기서는 무엇이 함께 가는지 확인하고 언제부터 걸지만 고른다.
+///
+/// PT 모드에서는 [onEdit] 로 여기서도 붙이고 고친다(#2280). `직접 만들기`·저장한
+/// 프로그램 적용은 위저드를 지나지 않아, 이 박스가 없으면 개인운동을 붙일 자리
+/// 자체가 없다. 위저드로 되돌아가면 여기 목록은 비워지므로(#2223) 두 화면의
+/// 목록이 어긋나지 않는다. 그래서 PT 모드에서는 비어 있어도 선다 — 비었다는
+/// 사실을 보내기 전에 보여 준다.
 ///
 /// 두 흐름이 같은 자리에서 끝나도록 PT 모드에서는 프로그램 박스 아래에, PT 가
 /// 없는 주에는 프로그램 박스 자리에 홀로 선다.
@@ -28,13 +34,40 @@ class PersonalRoutineBox extends StatelessWidget {
     this.onSend,
     this.sending = false,
     this.sent = false,
+    this.onEdit,
+    this.target,
+    this.nearestPt,
+    this.targetReady = true,
     super.key,
   });
+
+  /// `개인운동만` 의 시작일에 있는 아직 보내지 않은 PT. (#2280)
+  ///
+  /// 트레이너가 어디로 보낼지 고르지 않는다 — 시작일만 고르면 그날 PT 가
+  /// 있으면 그 PT 에 붙이고(회원에게는 스케줄에서 PT 와 함께 간다), 없으면
+  /// 지금처럼 바로 보낸다. 버튼 이름이 곧 하는 일이다.
+  final ScheduleSession? target;
+
+  /// 시작일에 PT 가 없을 때 알려 줄 가장 가까운 아직 보내지 않은 PT. (#2280)
+  ///
+  /// 내일 PT 에 붙이려던 개인운동을 시작일을 바꾸지 않아 오늘 바로 보내 버리지
+  /// 않게 한다 — 누르면 시작일이 그 PT 날로 바뀐다.
+  final ScheduleSession? nearestPt;
+
+  /// 시작일의 PT 를 아직 읽는 중이면 거짓이다. 그동안은 확정 버튼을 잠근다 —
+  /// 읽기 전에 누르면 PT 가 있는 날인데도 바로 보내 버린다.
+  final bool targetReady;
+
+  /// PT 모드의 `개인운동 추가`·`개인운동 수정`. (#2280)
+  ///
+  /// null 이면 버튼이 서지 않는다 — `개인운동만` 과 이미 보낸 뒤가 그렇다.
+  final VoidCallback? onEdit;
 
   /// 함께 보낼 개인운동. 위저드에서 확정한 그대로다.
   final List<RoutineExercise> routines;
 
-  /// PT 없이 개인운동만 보내는 주인가. 그러면 시작일과 보내기 버튼이 선다.
+  /// `개인운동만` 인가. 그러면 시작일과 확정 버튼이 선다. 시작일에 PT 가 있으면
+  /// 그 PT 에 붙이고, 없으면 시작일부터 한 주 동안 보낸다(#2280).
   final bool routineOnly;
 
   /// `개인운동만` 이 회원 목록에 걸리기 시작하는 날.
@@ -73,12 +106,21 @@ class PersonalRoutineBox extends StatelessWidget {
                 ? l.aiRoutineOnlyProgramName
                 : l.progPersonalRoutinesTitle,
             icon: AppIcons.personalRoutine,
-            trailing: AppTag(
-              label: l.aiPersonalStepBadge(routines.length),
-              tone: AppTagTone.brand,
-            ),
+            // 비어 있으면 `0개` 로 세지 않는다 — 아래 안내가 이미 말한다.
+            trailing: routines.isEmpty
+                ? null
+                : AppTag(
+                    label: l.aiPersonalStepBadge(routines.length),
+                    tone: AppTagTone.brand,
+                  ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
+          if (routines.isEmpty)
+            Text(
+              l.progPersonalRoutinesEmpty,
+              key: const ValueKey<String>('personal-routine-box-empty'),
+              style: line,
+            ),
           for (final RoutineExercise routine in routines)
             Padding(
               padding: const EdgeInsets.only(top: OnCareSpacing.s2),
@@ -101,6 +143,27 @@ class PersonalRoutineBox extends StatelessWidget {
                   .text(OnCareTypography.caption)
                   .copyWith(color: OnCareColors.textTertiary),
             ),
+            if (onEdit != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s12),
+              AppActionRow(
+                actions: <Widget>[
+                  AppButton(
+                    key: const ValueKey<String>('personal-routine-edit'),
+                    // 붙은 것이 없는데 `수정` 이라고 부르면 어딘가에 이미
+                    // 있는 것처럼 읽힌다 — 일정 상세의 연필 메뉴와 같은 이름.
+                    label: routines.isEmpty
+                        ? l.schedAddRoutines
+                        : l.schedEditRoutines,
+                    leadingIcon: routines.isEmpty
+                        ? AppIcons.add
+                        : AppIcons.edit,
+                    variant: AppButtonVariant.secondary,
+                    size: OnCareButtonSize.small,
+                    onPressed: onEdit,
+                  ),
+                ],
+              ),
+            ],
           ] else ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
             const AppDivider(),
@@ -128,21 +191,64 @@ class PersonalRoutineBox extends StatelessWidget {
               ],
             ),
             const SizedBox(height: OnCareSpacing.s4),
-            Text(
-              l.aiRoutineOnlyWeeklyHint,
-              key: const ValueKey<String>('personal-routine-box-weekly'),
-              style: context.oncare
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
+            if (target case final ScheduleSession pt)
+              // 그날 PT 가 있으면 그 PT 에 붙는다 — 지금 회원에게 가는 것이
+              // 아니다. 보내기는 스케줄에서 한다.
+              Text(
+                l.aiRoutineOnlyAttachHint(
+                  _sessionDateLabel(l, pt),
+                  timeRangeLabel(l, pt),
+                ),
+                key: const ValueKey<String>('personal-routine-box-target-when'),
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              )
+            else ...<Widget>[
+              Text(
+                l.aiRoutineOnlyWeeklyHint,
+                key: const ValueKey<String>('personal-routine-box-weekly'),
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+              if (nearestPt case final ScheduleSession pt
+                  when onStartDateChanged != null) ...<Widget>[
+                const SizedBox(height: OnCareSpacing.s8),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AppButton(
+                    key: const ValueKey<String>('personal-routine-nearest-pt'),
+                    label: l.aiRoutineTargetPt(
+                      _sessionDateLabel(l, pt),
+                      timeRangeLabel(l, pt),
+                    ),
+                    leadingIcon: AppIcons.calendar,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    onPressed: () {
+                      final DateTime? day = DateTime.tryParse(pt.date);
+                      if (day != null) onStartDateChanged?.call(day);
+                    },
+                  ),
+                ),
+              ],
+            ],
             const SizedBox(height: OnCareSpacing.s12),
             AppActionRow(
               actions: <Widget>[
                 AppButton(
                   key: const ValueKey<String>('personal-routine-send'),
-                  label: sent ? l.aiRoutineOnlySentLabel : l.aiRoutineOnlySend,
-                  onPressed: sending || sent ? null : onSend,
-                  leadingIcon: sent ? AppIcons.check : AppIcons.send,
+                  // PT 에 붙이면 보내는 것이 아니라 그 PT 에 반영하는 것이다.
+                  label: target == null
+                      ? (sent ? l.aiRoutineOnlySentLabel : l.aiRoutineOnlySend)
+                      : (sent ? l.aiAttachedLabel : l.aiAttachRoutines),
+                  onPressed: sending || sent || !targetReady ? null : onSend,
+                  leadingIcon: sent
+                      ? AppIcons.check
+                      : target == null
+                      ? AppIcons.send
+                      : AppIcons.personalRoutine,
                   loading: sending,
                 ),
               ],
@@ -223,3 +329,9 @@ String personalRoutineLabel(AppLocalizations l, RoutineExercise e) =>
 String assignedRoutineLabel(AppLocalizations l, AssignedRoutine r) =>
     '${r.name} · ${routineTypeLabel(l, r.type)} · '
     '${routineAmount(l, type: r.type, seconds: r.seconds, sets: r.sets ?? 0, reps: r.reps ?? 0, holdSeconds: r.holdSeconds ?? 0, weight: r.weight ?? 0, isHold: (r.holdSeconds ?? 0) > 0)}';
+
+/// 일정 날짜 한 칸 — `10월 2일`. (#2280)
+String _sessionDateLabel(AppLocalizations l, ScheduleSession session) {
+  final DateTime? day = DateTime.tryParse(session.date);
+  return day == null ? session.date : l.dateMonthDay(day.month, day.day);
+}
