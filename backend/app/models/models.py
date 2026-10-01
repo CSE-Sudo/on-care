@@ -3,10 +3,10 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
-- 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
+- 식단은 칼로리·탄단지와 함께 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 둔다(섭취기준 대비 관리)
 - drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
-이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
+스키마 변경은 Alembic 마이그레이션(backend/alembic)으로 한다.
 """
 
 from __future__ import annotations
@@ -88,7 +88,7 @@ class HealthProfile(Base):
     risk_level: Mapped[str] = mapped_column(
         String(20), default="low"
     )  # low|medium|high
-    conditions: Mapped[str] = mapped_column(Text, default="")  # "고혈압, 당뇨 전단계"
+    conditions: Mapped[str] = mapped_column(Text, default="")  # 건강 목표 칩 + 트레이너 메모, 예: "체중 감량, 근력 향상"
     # 자유 서술 회원 목표(`goals`)는 지웠다 — 목표는 건강 목표 칩(`conditions`)으로만
     # 고른다(#2358).
 
@@ -1029,10 +1029,10 @@ class MemberNotificationSetting(Base):
 
 
 class CoachDocument(Base):
-    """RAG 코치용 문서 + 임베딩 (STEP 7).
+    """RAG 코치용 문서 + 임베딩.
 
     두 종류의 문서가 공존:
-      - 개인 문서(환자 데이터): user_id = 특정 사용자  → 그 사용자만 검색됨
+      - 개인 문서(회원 기록 요약): user_id = 특정 회원  → 그 회원만 검색됨
       - 공공 문서(가이드라인 등): user_id = NULL        → 모든 사용자 공유
 
     검색 시 (user_id == 현재사용자 OR user_id IS NULL) 로 가져오면

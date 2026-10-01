@@ -109,7 +109,7 @@ class Settings(BaseSettings):
     litellm_embed_model: str = ""                   # 프록시에 임베딩 모델 있으면 지정
     litellm_vision_model: str = "claude-sonnet-4-6" # 식단 인식(이미지)용
 
-    # --- RAG (STEP 7) ---
+    # --- RAG ---
     # 임베딩 차원: 모델에 맞춰 바꿉니다. 바꾸면 재임베딩 필요(scripts/reembed).
     #   Gemini gemini-embedding-001        = 768 (현재 기본, EMBEDDER=gemini)
     #   OpenAI text-embedding-3-small/large = 1536 / 3072 (EMBEDDER=openai 시 EMBED_DIM=1536)
