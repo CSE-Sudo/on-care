@@ -98,6 +98,7 @@
   "authHasAccount": "이미 계정이 있으신가요?",
   "authErrEmptyCredentials": "이메일과 비밀번호를 입력해 주세요",
   "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  "authSocialComingSoon": "소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.",
   "authErrSignInFailed": "로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
   "authSessionExpired": "로그인이 만료되었어요. 다시 로그인해 주세요.",
   "authErrNameEmpty": "이름을 입력해 주세요",
