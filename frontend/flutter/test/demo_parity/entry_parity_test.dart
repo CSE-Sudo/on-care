@@ -122,6 +122,11 @@ class _FakeServer implements HttpClientAdapter {
     'GET /exercise/weeks/current': <String, Object?>{
       'sessions': <Object?>[],
       'day_labels': <Object?>['월', '화', '수', '목', '금', '토', '일'],
+      'daily_minutes': <Object?>[30, 0, 30, 0, 0, 0, 0],
+      'total_minutes': 60,
+      'total_calories': 360,
+      'streak_days': 1,
+      'ai_coach_message': '',
     },
     'GET /notifications': <Object?>[
       <String, Object?>{

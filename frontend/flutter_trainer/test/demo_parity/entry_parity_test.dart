@@ -855,7 +855,7 @@ void main() {
     );
   });
 
-  testWidgets('스케줄 — 예약 자리, 새 일정, 상담 요청함, 수업 블록과 관리', (
+  testWidgets('스케줄 — 예약 자리, 새 일정, 상담 요청함, 수업 블록과 관리 메뉴', (
     WidgetTester tester,
   ) async {
     await _expectParity(
@@ -872,8 +872,9 @@ void main() {
           ),
           ParityEntry('상담 요청함', (_) => _key('consult-inbox-entry')),
           ParityEntry('수업 블록', (_) => _keyPrefix('schedule-session-')),
+          // 고른 수업의 상태(예정·완료)에 따라 갈리는 버튼(완료·취소)은 보지
+          // 않는다 — 데모 시드는 지금 시각에 이미 끝난 수업이 먼저 고른다.
           ParityEntry('수업 관리 메뉴', (_) => _key('session-edit-menu')),
-          ParityEntry('수업 취소', (_) => _key('session-cancel-chip')),
         ]),
       ],
     );
