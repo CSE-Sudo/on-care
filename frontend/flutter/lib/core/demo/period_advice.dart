@@ -15,7 +15,7 @@ import 'dart:ui' show Locale;
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_rules/oncare_rules.dart'
-    show normalizeExerciseType, normalizeExerciseTypeKo;
+    show endsWithHangul, normalizeExerciseType, normalizeExerciseTypeKo;
 
 /// 하루치 운동 합계. **기록이 있는 날만** 들어온다 — 쉰 날과 적지 않은 날은 다르다.
 typedef ExerciseDayTotals = ({
@@ -388,7 +388,7 @@ ExerciseAdvice _routineToday(RoutineAdviceDay day) {
   final String then = two ? pending[1] : '';
   // 한글로 끝나지 않는 이름에는 조사를 붙일 수 없다 — 마친 운동을 말하는 문장을
   // 건너뛴다.
-  if (done.isNotEmpty && hasFinalConsonant(done.last) != null) {
+  if (done.isNotEmpty && endsWithHangul(done.last)) {
     final String finished = done.last;
     return _firstFit(<ExerciseAdvice>[
       if (two)
@@ -650,7 +650,7 @@ ExerciseAdvice _doneTodayPraise(String key) {
       'part': part,
     });
   }
-  final String named = hasFinalConsonant(key) == null
+  final String named = !endsWithHangul(key)
       ? 'routine_all_done_today_name_plain'
       : 'routine_all_done_today_name';
   return _firstFit(<ExerciseAdvice>[
@@ -753,7 +753,7 @@ ExerciseAdvice _routineAll(List<RoutineAdviceDay> days) {
         }),
       ]);
     }
-    final bool plain = hasFinalConsonant(key) == null;
+    final bool plain = !endsWithHangul(key);
     return _firstFit(<ExerciseAdvice>[
       _advice(
         plain ? 'routine_all_missed_name_plain' : 'routine_all_missed_name',

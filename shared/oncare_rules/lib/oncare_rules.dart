@@ -6,4 +6,5 @@
 library;
 
 export 'src/exercise_type.dart';
+export 'src/korean_josa.dart';
 export 'src/rounding.dart';

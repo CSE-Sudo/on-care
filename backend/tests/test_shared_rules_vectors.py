@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from app.schemas.exercise_api import ExerciseCalorieRequest, ExerciseSessionCreate
-from app.services import exercise_types
+from app.services import exercise_advice, exercise_types, korean_josa, trainer_service
 from app.services.exercise_catalog import energy
 
 #: 입력 표 위치. 백엔드 이미지에는 없고 저장소에서 테스트할 때만 읽는다.
@@ -29,6 +29,7 @@ def _load(name: str) -> dict:
 
 ROUNDING = _load("rounding")
 EXERCISE_TYPES = _load("exercise_types")
+KOREAN_JOSA = _load("korean_josa")
 
 
 # ── 반올림 (#2860) ──────────────────────────────────────────────────────
@@ -99,3 +100,64 @@ def test_shared_vectors_cover_every_server_vocabulary() -> None:
     """서버 표의 어휘가 모두 입력 표에 있다 — 서버에 어휘를 더하면 표도 같이 는다."""
     covered = {row[0] for row in EXERCISE_TYPES["normalize"]}
     assert set(exercise_types._TO_CODE) <= covered
+
+
+# ── 한국어 조사 (#2897) ──────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("case", KOREAN_JOSA["cases"], ids=lambda c: repr(c["word"]))
+def test_korean_josa_matches_shared_vectors(case: dict) -> None:
+    """두 앱의 `hasFinalConsonant`·`endsWithHangul`·`josa` 와 같은 표다."""
+    word = case["word"]
+    assert korean_josa.has_final_consonant(word) is case["has_final"]
+    assert korean_josa.ends_with_hangul(word) is case["ends_with_hangul"]
+    assert korean_josa.particle(word, "을", "를") == case["obj"]
+    assert korean_josa.particle(word, "은", "는") == case["topic"]
+    assert korean_josa.particle(word, "이", "가") == case["subj"]
+    assert korean_josa.particle(word, "으로", "로") == case["dir"]
+    assert korean_josa.with_particle(word, "을", "를") == word + case["obj"]
+
+
+@pytest.mark.parametrize("case", KOREAN_JOSA["cases"], ids=lambda c: repr(c["word"]))
+def test_weekly_feedback_topic_uses_shared_rule(case: dict) -> None:
+    """주간 피드백 초안의 `은/는` 이 운동 조언·리포트 요약과 같은 판정을 쓴다."""
+    word = case["word"]
+    expected = word + case["topic"] if word else word
+    assert trainer_service._topic(word) == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("레그 프레스(머신)", "레그 프레스(머신)을 마쳤어요."),
+        ("벤치프레스", "벤치프레스를 마쳤어요."),
+        ("플랭크 60", "플랭크 60을 마쳤어요."),
+        ("Squat", "Squat를 마쳤어요."),
+    ],
+)
+def test_exercise_advice_never_writes_both_particle_forms(
+    name: str, expected: str
+) -> None:
+    """괄호로 끝나는 이름은 괄호 앞 글자로, 한글이 아닌 이름도 한 꼴만 받는다."""
+    text = exercise_advice.advice(
+        "routine_today_done_next", done=name, next="런지"
+    ).text
+    assert text.startswith(expected)
+    assert "(를)" not in text and "을(" not in text
+
+
+def test_parenthesised_name_gets_same_particle_in_advice_and_feedback() -> None:
+    """같은 이름이 운동 조언에서는 `을`, 주간 피드백에서는 `는` 으로 갈리던 자리."""
+    name = "레그 프레스(머신)"
+    advice_text = exercise_advice.advice("routine_all_done_today_name", name=name).text
+    assert f"{name}을 " in advice_text
+    assert trainer_service._topic(name) == f"{name}은"
+
+
+def test_direction_particle_uses_ro_after_rieul() -> None:
+    """`으로/로` 는 받침 ㄹ 뒤에서 `로` 다 — `3일으로` 가 아니라 `3일로`."""
+    assert korean_josa.with_particle("3일", "으로", "로") == "3일로"
+    assert korean_josa.with_particle("덤벨 컬", "으로", "로") == "덤벨 컬로"
+    assert (
+        korean_josa.with_particle("코어 스트레칭", "으로", "로") == "코어 스트레칭으로"
+    )

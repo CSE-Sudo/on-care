@@ -761,6 +761,8 @@ String _topicParticle(AppLocalizations l, String word) =>
 
 /// 한국어일 때만 받침에 맞는 조사를 붙인다. 다른 언어에는 조사가 없다 —
 /// 영어 문장에 `Squat은` 이 남으면 안 된다.
+///
+/// 받침이 `ㄹ` 인 말 뒤 `으로` 는 `로` 다(`3일로`) — 서버와 같은 [josa] 규칙(#2897).
 String withParticle(
   AppLocalizations l,
   String word,
@@ -768,5 +770,5 @@ String withParticle(
   String afterVowel,
 ) {
   if (l.localeName != 'ko') return word;
-  return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
+  return '$word${josa(word, afterConsonant, afterVowel)}';
 }
