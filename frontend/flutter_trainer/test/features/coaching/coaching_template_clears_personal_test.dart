@@ -112,8 +112,9 @@ void main() {
     testWidgets('${entry.key}: 템플릿을 적용하면 앞서 짠 개인운동이 비워진다', (tester) async {
       await _open(tester, entry.value);
       await _composePersonalRoutines(tester);
-      // 개인운동이 들어가 있다(개인운동만 박스).
-      expect(find.text(_routineName), findsWidgets);
+      // 개인운동이 들어가 있다(개인운동만 박스). 박스는 이름 뒤에 유형·양을
+      // 붙인 한 줄로 그리므로 이름을 포함하는 줄을 찾는다.
+      expect(find.textContaining(_routineName), findsWidgets);
 
       await _applyFirstTemplate(tester);
 
@@ -125,7 +126,7 @@ void main() {
         find.byKey(const ValueKey<String>('personal-routine-box-empty')),
         findsOneWidget,
       );
-      expect(find.text(_routineName), findsNothing);
+      expect(find.textContaining(_routineName), findsNothing);
     });
   }
 }

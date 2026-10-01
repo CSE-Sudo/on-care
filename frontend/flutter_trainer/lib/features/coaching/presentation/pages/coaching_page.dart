@@ -347,7 +347,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 상태가 남으므로 묻지 않는다.
   Future<void> _requestClient(String id) async {
     if (id == _clientId) return;
-    if (_hasUnsentWork) {
+    // 이미 서버로 보내는 중이면 묻지 않는다 — 회원을 바꿔도 그 전송은 끝까지
+    // 처리되므로(#1580) 잃을 작성 내용이 아니다. 새로 고침·탭 닫기는 전송
+    // 자체를 끊을 수 있어 그쪽 지킴은 그대로 둔다.
+    final String? current = _clientId;
+    final bool sending =
+        current != null &&
+        (_sendingClientIds.contains(current) ||
+            _sendingRoutineOnly.contains(current));
+    if (!sending && _hasUnsentWork) {
       final AppLocalizations l = AppLocalizations.of(context);
       final bool ok = await showAppConfirmDialog(
         context: context,

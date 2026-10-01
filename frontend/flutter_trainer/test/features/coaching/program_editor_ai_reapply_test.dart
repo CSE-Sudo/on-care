@@ -25,6 +25,10 @@ final List<AiRoutineItem> _planB = <AiRoutineItem>[
   _ai('b2', '바벨 런지', '근력'),
 ];
 
+/// 운동 카드 제목 — 수정 칸(EditableText)의 같은 글자는 세지 않는다.
+Finder _cardTitle(String name) =>
+    find.byWidgetPredicate((Widget w) => w is Text && w.data == name);
+
 final Finder _dialog = find.byKey(const ValueKey<String>('ai-reapply-dialog'));
 
 ProgramEditorState? _sent;
@@ -180,7 +184,9 @@ void main() {
     expect(find.textContaining('AI 운동 1개를 새 안으로'), findsOneWidget);
     await _choose(tester, 'ai-reapply-replace');
 
-    expect(find.text('저강도 걷기'), findsOneWidget);
+    // 고친 카드는 수정 칸이 열린 채라 이름이 입력 칸에도 보인다 — 카드
+    // 제목(Text)만 센다.
+    expect(_cardTitle('저강도 걷기'), findsOneWidget);
     expect(find.text('맨몸 스쿼트'), findsNothing);
     expect(find.text('인터벌 러닝'), findsOneWidget);
     expect(find.text('바벨 런지'), findsOneWidget);
