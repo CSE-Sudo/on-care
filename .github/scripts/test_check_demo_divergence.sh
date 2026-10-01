@@ -36,7 +36,10 @@ expect() {
   local name="$1" want="$2" mode="${3:-warn}" out code=0 got
   out=$(DEMO_DIVERGENCE_MODE="$mode" GITHUB_STEP_SUMMARY="$work/summary" \
     bash "$script" "$base" 2>&1) || code=$?
-  got=$(printf '%s\n' "$out" | grep -c '^::warning file=frontend' || true)
+  # 경고 모드는 노란 warning, 실패 모드는 빨간 error 주석이어야 한다.
+  local level=warning
+  if [ "$mode" = fail ]; then level=error; fi
+  got=$(printf '%s\n' "$out" | grep -c "^::$level file=frontend" || true)
   local want_code=0
   if [ "$mode" = fail ] && [ "$want" -gt 0 ]; then want_code=1; fi
   if [ "$got" = "$want" ] && [ "$code" = "$want_code" ]; then

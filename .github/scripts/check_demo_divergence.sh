@@ -25,6 +25,10 @@ allowlist="${DEMO_DIVERGENCE_ALLOWLIST:-.github/demo-divergence-allowlist.txt}"
 mode="${DEMO_DIVERGENCE_MODE:-warn}"
 summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
 format='경로 · 줄에 들어 있는 글자 · 이유 · #이슈'
+# 실패 모드에서는 걸린 줄의 주석도 빨간 error 로 — 체크는 빨간데 주석이 노란색이면
+# 그 줄이 실패 원인인지 알아보기 어렵다.
+hit_level=warning
+if [ "$mode" = fail ]; then hit_level=error; fi
 
 # --- 예외 목록. `#` 로 시작하는 줄과 빈 줄은 건너뛴다.
 entry_path=()
@@ -115,7 +119,7 @@ while IFS=$'\t' read -r kind path line text; do
     continue
   fi
   warned=$((warned + 1))
-  echo "::warning file=$path,line=$line,title=데모 분기::$what. 데모가 기준입니다 — 실서버에만 있는 것은 데모에도 넣고, 일부러 다르게 둔다면 $allowlist 에 '$format' 로 적어 주세요(#2791)."
+  echo "::$hit_level file=$path,line=$line,title=데모 분기::$what. 데모가 기준입니다 — 실서버에만 있는 것은 데모에도 넣고, 일부러 다르게 둔다면 $allowlist 에 '$format' 로 적어 주세요(#2791)."
   report="$report| \`$path:$line\` | $what |"$'\n'
 done <<< "$hits"
 
