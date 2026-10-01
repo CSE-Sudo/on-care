@@ -1453,6 +1453,7 @@
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
+  "myConnectionDeleteFailed": "Couldn't remove the connection. Please try again.",
   "myDelete": "Remove",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myGymDisconnectWithTrainerConfirm": {
@@ -2111,6 +2112,7 @@
   "exGymConsultPickTrainer": "Choose a trainer",
   "exGymConsultPickTrainerHint": "Your request goes to one trainer.",
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
+  "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a Trainer Consultation",
   "exConsultPendingCta": "Consultation Request Pending",
   "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",

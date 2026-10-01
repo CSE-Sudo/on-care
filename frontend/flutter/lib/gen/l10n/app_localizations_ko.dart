@@ -1998,6 +1998,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myConnectionDeleteTitle => '연결 삭제';
 
   @override
+  String get myConnectionDeleteFailed => '연결을 해제하지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String get myDelete => '삭제';
 
   @override
@@ -2666,6 +2669,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => '아직 소속 트레이너가 없어요.';
+
+  @override
+  String get exGymTrainersLoadError => '소속 트레이너를 불러오지 못했어요.';
 
   @override
   String get exTrainerConsultRequest => '트레이너 상담 요청하기';

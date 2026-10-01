@@ -1129,6 +1129,7 @@
   "myCancel": "취소",
   "myGymTrainerTitle": "내 헬스장 · 트레이너",
   "myConnectionDeleteTitle": "연결 삭제",
+  "myConnectionDeleteFailed": "연결을 해제하지 못했어요. 다시 시도해 주세요.",
   "myDelete": "삭제",
   "myGymDisconnectWithTrainerConfirm": "{gym} 연결을 삭제하시겠습니까?\n담당 트레이너 {trainer} 연결도 함께 해제됩니다.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없습니다. 이미 주고받은 대화와 리포트는 지워지지 않고, 같은 트레이너와 다시 연결하면 다시 볼 수 있습니다.",
   "@myGymDisconnectWithTrainerConfirm": {
@@ -1434,6 +1435,7 @@
   "exGymConsultPickTrainer": "상담받을 트레이너 선택",
   "exGymConsultPickTrainerHint": "상담은 트레이너 한 분에게 전달돼요.",
   "exGymConsultNoTrainers": "아직 소속 트레이너가 없어요.",
+  "exGymTrainersLoadError": "소속 트레이너를 불러오지 못했어요.",
   "exTrainerConsultRequest": "트레이너 상담 요청하기",
   "exConsultPendingCta": "상담 요청 대기 중",
   "exConsultLinkedToOtherTrainer": "담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 요청하려면 담당 연결을 먼저 해제해 주세요.",

@@ -3608,6 +3608,12 @@ abstract class AppLocalizations {
   /// **'Remove Connection'**
   String get myConnectionDeleteTitle;
 
+  /// No description provided for @myConnectionDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the connection. Please try again.'**
+  String get myConnectionDeleteFailed;
+
   /// No description provided for @myDelete.
   ///
   /// In en, this message translates to:
@@ -4770,6 +4776,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
+
+  /// No description provided for @exGymTrainersLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this gym\'s trainers.'**
+  String get exGymTrainersLoadError;
 
   /// No description provided for @exTrainerConsultRequest.
   ///

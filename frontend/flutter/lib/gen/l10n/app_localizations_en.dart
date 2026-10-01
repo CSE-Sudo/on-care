@@ -2069,6 +2069,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myConnectionDeleteTitle => 'Remove Connection';
 
   @override
+  String get myConnectionDeleteFailed =>
+      'Couldn\'t remove the connection. Please try again.';
+
+  @override
   String get myDelete => 'Remove';
 
   @override
@@ -2755,6 +2759,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => 'No trainers are affiliated yet.';
+
+  @override
+  String get exGymTrainersLoadError => 'Couldn\'t load this gym\'s trainers.';
 
   @override
   String get exTrainerConsultRequest => 'Request a Trainer Consultation';

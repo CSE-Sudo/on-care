@@ -105,8 +105,11 @@ class _TrainerDetails extends ConsumerWidget {
   Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
     final AppLocalizations l = AppLocalizations.of(context);
     // 아직 읽는 중이면 `valueOrNull` 은 null 이라 확인 문구에서 헬스장 이름이
-    // 빠진다.
-    final Gym? myGym = await ref.read(myGymProvider.future);
+    // 빠진다. 조회가 실패해도 확인 창은 띄운다 — 버튼이 무반응이 되지
+    // 않게(#2857).
+    final Gym? myGym = await readConnectionForConfirm(
+      ref.read(myGymProvider.future),
+    );
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,

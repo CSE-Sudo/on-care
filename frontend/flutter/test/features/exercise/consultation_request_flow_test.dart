@@ -248,6 +248,7 @@ void main() {
     String healthFocus = '',
     List<TrainerSlot>? slots,
     ConsultationRepository? repository,
+    Future<List<Trainer>> Function()? loadGymTrainers,
   }) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -267,9 +268,11 @@ void main() {
         ),
         profileProvider.overrideWith(() => _StubProfile(healthFocus)),
         trainerProvider(_trainer.id).overrideWith((ref) async => _trainer),
-        gymTrainersProvider(
-          _gym.id,
-        ).overrideWith((ref) async => const <Trainer>[_trainer]),
+        gymTrainersProvider(_gym.id).overrideWith(
+          (ref) =>
+              loadGymTrainers?.call() ??
+              Future<List<Trainer>>.value(const <Trainer>[_trainer]),
+        ),
         // 폼이 보여 줄 자리(#1873). 목 헬스장 저장소는 이 테스트의 트레이너를
         // 모르므로 직접 준다.
         consultationSlotsProvider(
@@ -341,6 +344,73 @@ void main() {
     expect(find.text(l.exConsultRequestTitle), findsOneWidget);
     expect(_targetNameRole(tester), contains(_trainer.name));
     expect(find.textContaining(_gym.name), findsOneWidget);
+  });
+
+  group('소속 트레이너 조회 상태 (#2857)', () {
+    Future<void> openPicker(WidgetTester tester) async {
+      final AppLocalizations l = _localizations(tester);
+      await _scrollTo(tester, find.text(l.exGymConsultRequest), 250);
+      await tester.tap(find.text(l.exGymConsultRequest));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('조회가 실패하면 시트에 오류와 다시 시도가 뜬다', (WidgetTester tester) async {
+      int loads = 0;
+      await pumpRoute(
+        tester,
+        AppRoutes.gymDetailPath(_gym.id),
+        hasMyGym: false,
+        loadGymTrainers: () {
+          loads++;
+          return loads <= 1
+              ? Future<List<Trainer>>.error(StateError('offline'))
+              : Future<List<Trainer>>.value(const <Trainer>[_trainer]);
+        },
+      );
+      final AppLocalizations l = _localizations(tester);
+      // 상세의 소속 트레이너 섹션도 조용히 사라지지 않고 실패를 말한다.
+      expect(
+        find.byKey(const Key('gym-detail-trainers-error')),
+        findsOneWidget,
+      );
+
+      await openPicker(tester);
+      expect(
+        find.byKey(const Key('gym-consult-trainer-error')),
+        findsOneWidget,
+      );
+      // 트레이너가 있는데 '없음' 으로 보이면 회원이 상담을 포기한다.
+      expect(find.text(l.exGymConsultNoTrainers), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const Key('gym-consult-trainer-error')),
+          matching: find.text(l.actionRetry),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(loads, 2);
+      expect(
+        find.byKey(const Key('gym-consult-trainer-picker')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('정말 소속 트레이너가 없으면 기존 빈 상태 문구다', (WidgetTester tester) async {
+      await pumpRoute(
+        tester,
+        AppRoutes.gymDetailPath(_gym.id),
+        hasMyGym: false,
+        loadGymTrainers: () => Future<List<Trainer>>.value(const <Trainer>[]),
+      );
+      final AppLocalizations l = _localizations(tester);
+      expect(find.byKey(const Key('gym-detail-trainers-error')), findsNothing);
+
+      await openPicker(tester);
+      expect(find.text(l.exGymConsultNoTrainers), findsOneWidget);
+      expect(find.byKey(const Key('gym-consult-trainer-error')), findsNothing);
+    });
   });
 
   testWidgets('trainer detail CTA opens the form for that trainer', (
