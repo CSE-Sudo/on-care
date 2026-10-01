@@ -165,10 +165,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 바꾼다(#2187).
   int _summaryEpoch = 0;
 
-  /// 입력창이 비었는가. 메뉴의 전송 항목을 잠그는 유일한 이유라, 이 값이
-  /// 바뀔 때만 다시 그린다 — 글자마다 화면 전체를 다시 그리지 않는다.
-  bool _feedbackBlank = false;
-
   /// 피드백 초안을 서버에 저장하는 중이다. (#821)
   bool _savingFeedback = false;
 
@@ -312,7 +308,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     _sentViewFor = null;
     _feedbackDraft = null;
     _feedbackFor = null;
-    _feedbackBlank = false;
     _dropPreview();
   }
 
@@ -370,7 +365,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     setState(() {
       _feedbackDraft = draft;
       _feedbackFor = _feedbackKey(report);
-      _feedbackBlank = draft.trim().isEmpty;
       _summaryEpoch++;
     });
   }
@@ -443,6 +437,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _send(WeeklyReport report, String message) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final id = report.client.id;
+    // 빈 문구는 보내지 않는다 — 버튼이 잠겨 있지만 다른 길로 들어와도 빈
+    // 말풍선이나 서버의 기본 문장이 회원에게 가지 않게 한다(#2771).
+    if (message.trim().isEmpty) {
+      showAppToast(
+        context,
+        l.reportsSendNeedsFeedback,
+        type: AppToastType.error,
+      );
+      return;
+    }
     // 연타·창 겹침만 막는다. 이미 보낸 회원이어도 여기서 돌려보내지 않는다 —
     // 다시 쓰기 뒤의 재전송은 아래 확인창이 묻는다(#2770).
     if (_sending != null || _confirming) return;
@@ -872,6 +876,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           final savedDraft = ref
               .watch(reportFeedbackDraftProvider(reportKey))
               .valueOrNull;
+          // 보낼 문구가 비었는가 — 입력창 이벤트로 따로 들고 있지 않고, 늘 실제로
+          // 보낼 문구([_messageFor])에서 낸다(#2771). 따로 들고 있던 때는 회원을
+          // 바꾸거나 빈 초안을 저장한 뒤 새로 열면 입력창과 전송 버튼이 어긋났다.
+          final WeeklyReport? shownReport = reportAsync.valueOrNull;
+          final bool feedbackBlank =
+              shownReport != null &&
+              _messageFor(l, shownReport, savedDraft).trim().isEmpty;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1002,13 +1013,18 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             onUseSummaryAsDraft: (draft) =>
                                 _useSummaryAsDraft(data, draft),
                             onFeedbackChanged: (text) {
+                              final bool wasBlank = _messageFor(
+                                l,
+                                data,
+                                savedDraft,
+                              ).trim().isEmpty;
                               _feedbackDraft = text;
                               _feedbackFor = _feedbackKey(data);
-                              // 비었는지가 바뀔 때만 다시 그린다 — 전송 항목을
-                              // 가르는 값이다.
-                              final blank = text.trim().isEmpty;
-                              if (blank != _feedbackBlank) {
-                                setState(() => _feedbackBlank = blank);
+                              // 비었는지가 바뀔 때만 다시 그린다 — 전송 버튼을
+                              // 가르는 값이다. 판정 자체는 아래 [feedbackBlank]
+                              // 가 늘 실제 문구에서 다시 낸다(#2771).
+                              if (text.trim().isEmpty != wasBlank) {
+                                setState(() {});
                               }
                             },
                           ),
@@ -1021,7 +1037,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               _StepFooter(
                 stage: _stage,
                 sending: _sending == selected.id,
-                canSend: !_feedbackBlank,
+                canSend: !feedbackBlank,
                 // ③ 에서는 미리보기 한 부가 다 만들어져야 인쇄할 수 있다.
                 pdf: _stage == ReportEditorStage.send.index ? _preview : null,
                 printing: _printing,

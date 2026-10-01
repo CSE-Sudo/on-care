@@ -280,6 +280,7 @@
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
+| POST | `/trainer/clients/{member_id}/report/send-pdf` | 리포트 PDF 를 회원 채팅 스레드로 전송 — `message` 필수, 공백뿐이면 422 (#2771) |
 
 리포트 요약(`headline`·`points`)과 리포트 본문의 초안 문장(`message`, 본문 없이 보낸
 `report/send` 가 쓰는 글)은 요청의 `Accept-Language` 언어로 만든다(#2298). `en` 이면

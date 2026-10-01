@@ -317,7 +317,10 @@ class LocalReportRepository implements ReportRepository {
     required Uint8List bytes,
     required String fileName,
     required String message,
-  }) {
+  }) async {
+    // 실서버와 같은 규칙 — 빈 문구는 받지 않는다(#2771). 그대로 넣으면 회원
+    // 채팅에 빈 말풍선 리포트가 선다.
+    if (message.trim().isEmpty) throw const ValidationError();
     // 데모/드리프트에는 첨부 저장소가 없다 — 대신 reportWeekStart를 실어
     // 보내, 채팅 화면이 이 메시지를 리포트 전송 안내로 구분해 그리게 한다.
     return _chat.sendTrainerMessage(
