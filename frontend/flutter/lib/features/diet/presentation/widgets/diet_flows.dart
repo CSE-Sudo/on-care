@@ -514,6 +514,17 @@ Future<bool> showDietResultSheet(
     if (!root.mounted) return false;
     return showDietAddSheet(root);
   }
+  if (!outcome.saved && outcome.failed && root.mounted) {
+    // 실패 화면으로 닫혀도 서버는 이미 저장했을 수 있다(#2847) — 앱이 응답을
+    // 기다리다 끊긴 사이에도 서버는 끝까지 처리해 끼니를 남기고 포인트를
+    // 적립한다. 시트가 닫힌 뒤라 시트의 ref 는 쓸 수 없어 컨테이너로 비운다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      root,
+      listen: false,
+    );
+    refreshDietRecords(container.invalidate);
+    invalidatePointsBalance(container.invalidate);
+  }
   return outcome.resolve(closedWith);
 }
 
@@ -525,6 +536,10 @@ Future<bool> showDietResultSheet(
 class DietResultOutcome {
   /// 서버에 기록이 남아 있다 — 분석이 성공했고 시트에서 지우지 않았다.
   bool saved = false;
+
+  /// 분석 요청이 한 번이라도 실패로 끝났다(#2847). 실패로 보인 요청도 서버에서는
+  /// 저장됐을 수 있어, 그대로 닫히면 식단 기록·잔액을 한 번 다시 읽는다.
+  bool failed = false;
 
   /// 시트가 닫힌 값. 명시적인 `true`/`false` 는 그대로, 값 없이 닫혔으면
   /// [saved] 다.
@@ -606,6 +621,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       _failure = null;
     });
     final Stopwatch elapsed = Stopwatch()..start();
+    // 분석 중에 시트를 끌어내려 닫아도 요청은 끝까지 가고 서버는 저장한다
+    // (#2847). 그때는 이 State 의 ref 를 쓸 수 없으므로 컨테이너를 먼저 잡아
+    // 두고, 응답이 오면 시트가 남아 있든 없든 기록을 다시 읽게 한다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       final DietAnalysisResult result = await ref
           .read(dietRepositoryProvider)
@@ -614,13 +636,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
             mealType: widget.mealType,
             idempotencyKey: _idempotencyKey,
           );
-      if (!mounted) return;
       // analyze() already persisted the entry → 이 시점부터 기록은 저장돼
       // 있다. 시트를 어떻게 닫든 저장 성공이다(#2627).
       widget.outcome.saved = true;
-      refreshDietRecords(ref.invalidate);
+      refreshDietRecords(container.invalidate);
       // 저장과 함께 포인트도 적립됐다 — MY 잔액을 다시 읽는다(#1786).
-      refreshPointsBalance(ref);
+      invalidatePointsBalance(container.invalidate);
+      if (!mounted) return;
       await _holdAnalyzing(elapsed);
       if (!mounted) return;
       setState(() {
@@ -628,6 +650,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         _loading = false;
       });
     } on Object catch (error) {
+      widget.outcome.failed = true;
       if (!mounted) return;
       // 실패도 같은 바닥을 쓴다 — 즉시 튀어나오는 실패 문구는 사진을 보지도
       // 않고 거절한 것처럼 읽힌다.
