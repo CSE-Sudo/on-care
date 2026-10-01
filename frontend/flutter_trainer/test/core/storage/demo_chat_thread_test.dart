@@ -7,10 +7,10 @@
 ///
 /// 같은 목록을 고정하는 짝:
 ///  * `frontend/flutter/test/features/member_coach/demo_chat_thread_test.dart`
-///  * `backend/tests/test_seed_demo_chat.py` — 리포트 등록 안내와 트레이너가
-///    보낸 첨부 두 건이 **빠진다**(#1605, #2663). 데모 두 앱은 서버 없이 이
-///    사건을 보여 줘야 하지만, 실서버 스레드는 트레이너가 실제로 리포트·파일을
-///    보낼 때 그 메시지를 만든다.
+///  * `backend/tests/test_seed_demo_chat.py` — 리포트 등록 안내 **한 줄만
+///    빠진다**(#1605). 데모 두 앱은 서버 없이 이 사건을 보여 줘야 하지만,
+///    실서버 스레드는 트레이너가 실제로 리포트를 보낼 때 그 메시지를 만든다.
+///    트레이너가 보낸 첨부 두 건은 실서버 시드도 같은 자리에 둔다(#2788).
 library;
 
 import 'dart:io';
