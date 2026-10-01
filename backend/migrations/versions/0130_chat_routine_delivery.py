@@ -6,7 +6,7 @@
 JSON 으로 담는다. 일반 대화는 비어 있어 예전 행과 조회 흐름은 그대로다.
 
 Revision ID: 0130_chat_routine_delivery
-Revises: 0128_close_stale_invites
+Revises: 0129_trainer_memo_category
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0130_chat_routine_delivery"
-down_revision: str | Sequence[str] | None = "0128_close_stale_invites"
+down_revision: str | Sequence[str] | None = "0129_trainer_memo_category"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
