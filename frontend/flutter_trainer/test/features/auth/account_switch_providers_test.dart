@@ -337,7 +337,9 @@ void main() {
       final sub = container.listen(trainerSettingsProvider, (_, _) {});
       // A 는 기본값(켜짐)과 다른 값을 저장해 두었다.
       await waitUntil(
-        () => sub.read().newMessageAlerts == TestTrainer.a.newMessageAlerts,
+        () =>
+            sub.read().valueOrNull?.newMessageAlerts ==
+            TestTrainer.a.newMessageAlerts,
       );
 
       await signOutClosing(<ProviderSubscription<Object?>>[sub]);
@@ -345,18 +347,19 @@ void main() {
 
       final subB = container.listen(trainerSettingsProvider, (_, _) {});
       addTearDown(subB.close);
-      // 새로 만든 컨트롤러는 A 의 값이 아니라 기본값에서 출발해 B 의 값을 읽는다.
-      expect(
-        subB.read().newMessageAlerts,
-        isNot(TestTrainer.a.newMessageAlerts),
-      );
+      // 새로 만든 컨트롤러는 A 의 값이 아니라 "아직 모름" 에서 출발해 B 의 값을
+      // 읽는다(#2883).
+      expect(subB.read().hasValue, isFalse);
       await waitUntil(
         () => backend.requests.any(
           (r) => r.account == TestTrainer.b && r.path == '/trainer/me/settings',
         ),
       );
       await settleAsync();
-      expect(subB.read().newMessageAlerts, TestTrainer.b.newMessageAlerts);
+      expect(
+        subB.read().valueOrNull?.newMessageAlerts,
+        TestTrainer.b.newMessageAlerts,
+      );
     });
 
     test('rosterViewProvider — A 가 고른 필터가 B 에게 남지 않는다', () async {

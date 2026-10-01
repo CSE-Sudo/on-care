@@ -303,7 +303,7 @@ def relative_time_label(ts: datetime) -> str:
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     local = clock.to_seoul(ts)
-    today = clock.to_seoul(datetime.now(timezone.utc)).date()
+    today = clock.today()
     days = (today - local.date()).days
     if days <= 0:
         return local.strftime("%H:%M")
@@ -1392,7 +1392,16 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원입니다.")
     link.active = True
     link.dormant = False
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 위 조회와 커밋 사이에 다른 복구·담당 요청 수락이 먼저 들어왔다 —
+        # 회원당 활성 담당 1명 부분 유일 인덱스(`uq_trainer_client_active_member`)
+        # 에 걸린 것이다. 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911).
+        db.rollback()
+        raise ClientLinkDetached(
+            "이미 다른 트레이너가 담당 중인 회원입니다."
+        ) from None
 
 
 def set_client_active(
@@ -1617,9 +1626,14 @@ def build_routines(
                 )
             ).all()
         }
+    prefetch = _routine_prefetch(db, rows)
     return [
         _routine_out(
-            db, row, completed.get(row.id), include_evidence=not for_member
+            db,
+            row,
+            completed.get(row.id),
+            include_evidence=not for_member,
+            prefetch=prefetch,
         )
         for row in rows
     ]
@@ -1826,7 +1840,51 @@ def _member_goals(db: Session, member_id: str) -> str:
     )
 
 
-def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
+@dataclass
+class _RoutineOutPrefetch:
+    """목록 응답에서 행마다 다시 읽던 회원 값을 한 번에 읽어 둔 것. (#2911)
+
+    [_routine_out] 은 행마다 회원 체중(예상 소모 칼로리)과 건강 목표(효과 문구)를
+    읽는다. 한 일정·한 회원의 목록인데 행 수만큼 같은 조회가 반복됐다. 목록
+    경로는 [_routine_prefetch] 로 회원별 값을 `IN (...)` 한 번씩 읽어 넘긴다.
+    같은 이름·유형·시간·강도·체중의 예상 칼로리도 한 번만 계산한다.
+    """
+
+    goals: dict[str, str]
+    weights: dict[str, float | None]
+    estimates: dict[tuple, Any]
+
+
+def _routine_prefetch(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> _RoutineOutPrefetch:
+    member_ids = sorted({rt.member_id for rt in rows if rt.member_id})
+    goals: dict[str, str] = {member_id: "" for member_id in member_ids}
+    weights: dict[str, float | None] = {member_id: None for member_id in member_ids}
+    if member_ids:
+        for user_id, conditions, weight_kg in db.execute(
+            select(
+                HealthProfile.user_id,
+                HealthProfile.conditions,
+                HealthProfile.weight_kg,
+            ).where(HealthProfile.user_id.in_(member_ids))
+        ).all():
+            goals[user_id] = conditions or ""
+            weights[user_id] = weight_kg
+    return _RoutineOutPrefetch(goals=goals, weights=weights, estimates={})
+
+
+def _routine_outs(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> list[RoutineOut]:
+    """여러 행의 응답 — 회원 값은 한 번만 읽는다(#2911)."""
+    prefetch = _routine_prefetch(db, rows)
+    return [_routine_out(db, rt, prefetch=prefetch) for rt in rows]
+
+
+def _routine_effect(
+    db: Session, rt: TrainerRoutine, goals: str | None = None
+) -> str:
     """배정 한 건의 효과 한 줄 — 적힌 값, 없으면 문구표. (#2570)
 
     저장은 트레이너가 적은 것만 한다. 자동 문구를 저장해 두지 않고 응답 때
@@ -1842,7 +1900,7 @@ def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
     if len(draft_exercises(rt.exercises_json)) > 1:
         return ""
     return routine_effects.auto_routine_effect(
-        rt.type, _member_goals(db, rt.member_id)
+        rt.type, goals if goals is not None else _member_goals(db, rt.member_id)
     )
 
 
@@ -1852,6 +1910,7 @@ def _routine_out(
     completion: ExerciseSession | None = None,
     *,
     include_evidence: bool = True,
+    prefetch: _RoutineOutPrefetch | None = None,
 ) -> RoutineOut:
     """루틴 한 건의 응답.
 
@@ -1866,18 +1925,31 @@ def _routine_out(
     회원 앱과 같은 한 곳(`exercise_service.estimate`)을 쓴다.
     """
     intensity = getattr(rt, "intensity", None) or "moderate"
-    estimated = exercise_service.estimate(
-        db,
-        name=rt.name,
-        type_=rt.type,
-        minutes=rt.minutes,
-        intensity=intensity,
-        weight_kg=exercise_service.member_weight_kg(db, rt.member_id),
-        # 목록을 그릴 때마다 루틴 수만큼 외부 호출이 일어나면 트레이너 화면이
-        # 멈춘다. 이름 해석은 회원이 저장할 때 이미 캐시에 들어가므로, 여기서는
-        # 표 매칭과 캐시까지만 본다.
-        use_ai=False,
+    if prefetch is not None and rt.member_id in prefetch.weights:
+        weight_kg = prefetch.weights[rt.member_id]
+        goals: str | None = prefetch.goals[rt.member_id]
+    else:
+        weight_kg = exercise_service.member_weight_kg(db, rt.member_id)
+        goals = None
+    estimate_key = (rt.name, rt.type, rt.minutes, intensity, weight_kg)
+    estimated = (
+        prefetch.estimates.get(estimate_key) if prefetch is not None else None
     )
+    if estimated is None:
+        estimated = exercise_service.estimate(
+            db,
+            name=rt.name,
+            type_=rt.type,
+            minutes=rt.minutes,
+            intensity=intensity,
+            weight_kg=weight_kg,
+            # 목록을 그릴 때마다 루틴 수만큼 외부 호출이 일어나면 트레이너 화면이
+            # 멈춘다. 이름 해석은 회원이 저장할 때 이미 캐시에 들어가므로, 여기서는
+            # 표 매칭과 캐시까지만 본다.
+            use_ai=False,
+        )
+        if prefetch is not None:
+            prefetch.estimates[estimate_key] = estimated
     return RoutineOut(
         id=rt.id, name=rt.name, minutes=rt.minutes, type=rt.type,
         exercise_date=getattr(rt, "exercise_date", None),
@@ -1899,7 +1971,7 @@ def _routine_out(
             else ""
         ),
         source=rt.source,
-        effect=_routine_effect(db, rt),
+        effect=_routine_effect(db, rt, goals),
         program_name=rt.program_name,
         session_name=rt.session_name,
         session_order=rt.session_order,
@@ -2035,7 +2107,7 @@ def list_routine_suggestions(
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    return _routine_outs(db, rows)
 
 
 def _pending_suggestion(
@@ -4562,6 +4634,9 @@ class AttachTargetConflict(Exception):
     후보가 아니다. 라우터가 409 와 함께 후보를 싣는다.
     """
 
+    #: 409 `detail.code` — 객체 `detail` 은 모두 `code` 를 단다(#2911).
+    code = "attach_target_conflict"
+
     def __init__(self, message: str, candidates: Sequence[TrainerSchedule]):
         super().__init__(message)
         self.candidates = [_schedule_out(s) for s in candidates]
@@ -4830,7 +4905,7 @@ def latest_delivery(
         kind=kind,
         sent_on=date.fromisoformat(sent_on) if sent_on else None,
         session=_schedule_out(session) if session is not None else None,
-        routines=[_routine_out(db, r) for r in personal],
+        routines=_routine_outs(db, personal),
     )
 
 
@@ -4862,11 +4937,12 @@ def unsent_personal_routines(
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     out: list[RoutineOut] = []
+    prefetch = _routine_prefetch(db, [row for row, _ in rows])
     for row, schedule_date in rows:
         # 보내는 자리는 스케줄 탭의 그 일정 상세다. 날짜를 함께 줘야 그 주를
         # 열 수 있다 — 일정 id 만으로는 이번 주에서 찾지 못한다. (#2225)
         out.append(
-            _routine_out(db, row).model_copy(
+            _routine_out(db, row, prefetch=prefetch).model_copy(
                 update={"schedule_date": schedule_date}
             )
         )
@@ -4900,7 +4976,8 @@ def list_scheduled_routines(
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    # 한 일정의 개인운동은 한 회원의 것이다 — 회원 값은 한 번만 읽는다(#2911).
+    return _routine_outs(db, rows)
 
 
 #: PT 완료로 보낸 개인운동이 회원 목록에 걸려 있는 날 수 — 보낸 날을 1일로 센다.
@@ -5112,7 +5189,7 @@ def send_scheduled_routines(
     )
     sent = _send_scheduled_routines(db, trainer_id, s, delivery_kind=kind)
     db.commit()
-    return [_routine_out(db, row) for row in sent]
+    return _routine_outs(db, sent)
 
 
 def _rewrite_scheduled_routines(

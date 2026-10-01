@@ -118,20 +118,20 @@ class NotificationsPage extends ConsumerStatefulWidget {
   }
 
   /// 전체 읽음 처리. 머리의 알림 종 팝오버(#2628)도 같은 길을 쓴다.
-  static Future<void> readAll(BuildContext context, WidgetRef ref) async {
+  ///
+  /// 팝오버는 응답 전에 닫힐 수 있다. [open] 처럼 첫 비동기 작업 전에 앱 전체의
+  /// [ProviderContainer]·문구·토스트 손잡이를 잡아 두고, 이후로는 그것만 쓴다
+  /// (#2884). 전에는 닫힌 팝오버의 `ref` 로 이어 가다 예외가 나 배지가 다음
+  /// 폴링까지 남았다. 실패 안내는 루트 오버레이에 떠 팝오버가 닫혀도 보인다.
+  static Future<void> readAll(BuildContext context) async {
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final AppLocalizations l = AppLocalizations.of(context);
-    try {
-      await ref.read(trainerNotificationRepositoryProvider).markAllRead();
-    } catch (_) {
-      if (!context.mounted) return;
-      showAppToast(context, l.notifReadAllFailed, type: AppToastType.error);
-      return;
-    }
-    // 서버는 쪽과 무관하게 전체를 읽음으로 바꾼다. 받아 둔 과거 쪽도 같게 비춘다.
-    ref.read(trainerNotificationPagingProvider.notifier).markAllRead();
-    ref
-      ..invalidate(trainerNotificationsProvider)
-      ..invalidate(trainerUnreadNotificationsProvider);
+    final AppToastHost toast = AppToastHost.of(context);
+    final bool ok = await NotificationReadTracker(container).markAllRead();
+    if (!ok) toast.show(l.notifReadAllFailed, type: AppToastType.error);
   }
 }
 
@@ -215,7 +215,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             label: l.notifReadAll,
             leadingIcon: AppIcons.markAllRead,
             variant: AppButtonVariant.secondary,
-            onPressed: () => NotificationsPage.readAll(context, ref),
+            onPressed: () => NotificationsPage.readAll(context),
           ),
       ],
       body: PageScrollResetListener(

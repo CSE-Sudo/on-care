@@ -74,6 +74,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnknown => 'Something went wrong';
 
   @override
+  String get errorForbidden =>
+      'You don\'t have access to this feature. Please check the required consent or your trainer connection.';
+
+  @override
+  String get errorRateLimited =>
+      'Too many requests right now. Please try again in a moment.';
+
+  @override
   String get dashboardMetricCalories => 'Calories';
 
   @override

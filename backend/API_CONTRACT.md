@@ -12,7 +12,15 @@
   (프론트 base URL 에 `/v1` 을 포함시키거나 서버가 `/v1` 라우터를 둠. 본 백엔드는 **`/v1` prefix** 채택.)
 - **JSON 표기**: **snake_case** (Pydantic alias 규약). 프론트의 case_mapper 가 camelCase 로 변환.
 - **인증**: `Authorization: Bearer <token>` (JWT). `auth_interceptor` 가 붙인다. 자세한 것은 아래 "인증" 절.
-- **에러**: `{ "code": "...", "message": "..." }` 형태. 4xx/5xx 는 DioException 으로 처리됨.
+- **에러**: FastAPI 형식 `{"detail": ...}` 이고 `detail` 은 **두 형식만** 쓴다(#2911). 4xx/5xx 는 DioException 으로 처리됨.
+  - **문자열**: `{"detail": "문장"}` — 대부분의 오류. 앱은 그대로 보여 준다(한국어 화면).
+  - **객체**: `{"detail": {"code", "message", …추가 필드}}` — 화면이 분기해야 하는 오류만. **`code` 는 반드시 있다.**
+    예: 일정 겹침 `schedule_overlap`(+`conflicts`), 프로그램을 붙일 회차 미정 `attach_target_conflict`(+`candidates`),
+    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`.
+    앱 공용 처리(트레이너 웹 `serverDetailText`)는 문자열이면 그 문장, 객체면 `message` 를 읽는다.
+  - 예외는 FastAPI 스키마 검증 422 의 목록형 `detail`(`[{loc, msg, type}]`) 하나다.
+  - 경쟁 상황(같은 이메일로 동시에 바꾸기, 같은 회원 담당 복구·수락·연결 코드가 겹침)도 DB 제약 위반을 500 이 아니라
+    앞선 조회로 막았을 때와 같은 409 로 돌려준다.
 - **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
   `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
   서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
@@ -47,7 +55,7 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
 | GET | `/version` | `{ api_version, app_version }` |
 
 ### 사용자
@@ -63,6 +71,11 @@
 남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
 `privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
 `other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
+
+탈퇴하면 그 회원이 낀 채팅 스레드의 **첨부 파일(사진·리포트 PDF)도 저장소에서 지운다**(#2817).
+스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
+(`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
+뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
@@ -1127,6 +1140,10 @@ N명이면 첫 화면에서 요청이 2N개였다.
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
+- **내려받기는 서버가 권한을 확인한 뒤 흘려보낸다**(#2817). 바이트는 운영에서 객체 저장소(S3),
+  개발에서는 로컬 디스크에 있지만 응답은 같다 — 서명 URL 을 내주지 않는다(링크가 새면 권한
+  확인 없이 열리고, 담당 해제·동의 철회 뒤에도 만료 전까지 열리기 때문). 응답에
+  `Cache-Control: private, no-store` 가 붙고, 저장소에 바이트가 없으면 **404** 다.
 - 회원 경로는 **활성 담당 링크가 있어야 한다** — 없으면 글 메시지(`POST /me/coach/chat`)와 같이
   **404**. 트레이너 계정은 **403**. 트레이너 경로는 담당 고객이 아니면 **404**.
 - 알림: 트레이너가 보내면 회원에게, 회원이 보내면 트레이너에게 새 메시지 알림이 남는다(글 메시지와
@@ -1403,6 +1420,32 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
 
+### 웹 클라이언트의 짧은 refresh 토큰 (#2828)
+
+회원 앱 웹·트레이너 웹 빌드는 **모든 요청**에 `X-Client-Platform: web` 을 싣는다(모바일은
+보내지 않는다). 서버(`app/core/client_platform.py` 의 `RequestClientPlatformMiddleware`)가
+이 값을 읽어, 웹에서 온 발급(`POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`·
+`POST /trainer/me/password`)에는 **refresh 토큰 수명을 `WEB_REFRESH_TOKEN_EXPIRE_DAYS`(기본 7일)**로
+준다. 모바일은 `REFRESH_TOKEN_EXPIRE_DAYS`(기본 30일) 그대로다. 접근 토큰 수명은 같다.
+
+- 웹으로 발급된 refresh 토큰에는 `cli: "web"` 클레임이 붙는다. `POST /auth/refresh` 는 이
+  클레임이 있으면 헤더가 없어도 웹 수명으로 회전한다 — 헤더를 빼서 30일짜리를 다시 얻을 수 없다.
+- 헤더는 **수명을 줄이는 쪽으로만** 쓴다. 클레임이 없는 예전 토큰을 웹이 회전하면 그때부터
+  웹 수명이다. 값은 대소문자·앞뒤 공백을 무시하고 `web` 일 때만 웹이다.
+- 응답 모양은 바뀌지 않는다. 일회용·폐기·토큰 세대 규칙도 같다.
+
+웹 빌드는 토큰을 브라우저 **sessionStorage**(탭 단위)에만 둔다 — 탭을 닫으면 다시 로그인한다.
+예전 웹 빌드가 localStorage 에 남긴 토큰은 읽지 않고 지운다(두 앱의
+`core/storage/secure_token_store.dart`). 모바일은 Keychain/Keystore 그대로다.
+
+### API 응답 보안 헤더 (#2828)
+
+모든 API 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'none'; frame-ancestors 'none';
+base-uri 'none'; form-action 'none'` 이 붙는다(`app/core/security_headers.py`, `SECURITY_HEADERS=false`
+면 끈다). 운영 또는 `FORCE_HTTPS=true` 면 HSTS 도 붙는다. FastAPI 문서 화면(`/docs`·`/redoc`)은
+CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 웹 앱)의 헤더는 정적 호스팅이 붙인다.
+
 ### 비밀번호 변경과 토큰 세대 (#2766)
 
 `jti` 폐기는 한 장씩이라 **다른 기기에 나간 토큰은 끊지 못한다.** 그래서 계정마다 토큰
@@ -1450,9 +1493,14 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 demo_fallback_enabled = allow_demo_fallback and not is_prod
 ```
 
-- **dev / staging** — 데모 사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로
-  전환할 때 로그인 없이도 화면이 뜨게 하려는 것이다.
+- **기본값은 꺼짐**(#2821) — `ALLOW_DEMO_FALLBACK` 을 주지 않으면 어느 환경이든 401 이다. 환경변수를
+  빠뜨린 배포 서버가 로그인 없는 요청을 데모 회원으로 처리하지 않게 하려는 것이다.
+- **로컬 개발** — `.env.example` 이 `ALLOW_DEMO_FALLBACK=true` 로 켠다. 켜면 dev / staging 에서 데모
+  사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로 전환할 때 로그인 없이도
+  화면이 뜨게 하려는 것이다. 켠 채 기동하면 WARN 로그가 남는다.
 - **prod** — `ALLOW_DEMO_FALLBACK` 값과 무관하게 **항상 비활성**이고 401 을 낸다.
+- 지금 어느 쪽으로 떠 있는지는 `GET /healthz` 의 `demo_fallback` 으로 읽는다. 배포 워크플로가
+  배포 직후 이 값과 `env` 를 확인한다.
 
 운영은 이 외에도 기동 시점에 막는 것이 있다(`_guard_prod_secrets`): 기본 `JWT_SECRET`,
 CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드, `AUTO_CREATE_TABLES=true`

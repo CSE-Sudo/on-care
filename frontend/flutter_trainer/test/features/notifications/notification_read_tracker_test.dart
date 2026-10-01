@@ -66,8 +66,23 @@ class _Repo implements TrainerNotificationRepository {
     ];
   }
 
+  /// '모두 읽음' 응답을 붙잡아 둔다. (#2884)
+  Completer<void>? holdAll;
+  bool failAll = false;
+  int readAllCalls = 0;
+
   @override
-  Future<int> markAllRead() async => 0;
+  Future<int> markAllRead() async {
+    readAllCalls++;
+    final Completer<void>? wait = holdAll;
+    if (wait != null) await wait.future;
+    if (failAll) throw StateError('read all failed');
+    final int n = rows.where((TrainerNotification r) => !r.read).length;
+    rows = <TrainerNotification>[
+      for (final TrainerNotification r in rows) r.copyWith(read: true),
+    ];
+    return n;
+  }
 }
 
 Future<void> _flush() async {
@@ -215,5 +230,92 @@ void main() {
 
     repo.hold!.complete();
     await _flush();
+  });
+
+  group('markAllRead (#2884)', () {
+    test('요청이 끝나기 전에 배지를 0 으로 두고, 새 숫자가 오면 거둔다', () async {
+      repo.holdAll = Completer<void>();
+      final Future<bool> done = NotificationReadTracker(
+        container,
+      ).markAllRead();
+      await _flush();
+
+      expect(container.read(trainerPendingReadAllProvider), 1);
+      expect(badge.read(), 0);
+
+      repo.holdAll!.complete();
+      expect(await done, isTrue);
+      await _flush();
+      expect(container.read(trainerPendingReadAllProvider), 0);
+      expect(badge.read(), 0);
+      expect(repo.readAllCalls, 1);
+    });
+
+    test('성공하면 미읽음 수를 다시 읽는다 — 폴링을 기다리지 않는다', () async {
+      final int before = repo.unreadReads;
+      await NotificationReadTracker(container).markAllRead();
+      await _flush();
+
+      expect(repo.unreadReads, greaterThan(before));
+    });
+
+    test('실패하면 배지를 되돌리고 실패를 알린다', () async {
+      repo.failAll = true;
+      final bool ok = await NotificationReadTracker(container).markAllRead();
+      await _flush();
+
+      expect(ok, isFalse);
+      expect(container.read(trainerPendingReadAllProvider), 0);
+      expect(badge.read(), 2);
+    });
+
+    test('알림 화면을 연 적이 없으면 이어 받기 상태를 새로 만들지 않는다', () async {
+      await NotificationReadTracker(container).markAllRead();
+      await _flush();
+
+      expect(container.exists(trainerNotificationPagingProvider), isFalse);
+    });
+
+    test('알림 화면이 이어 받은 과거 쪽도 모두 읽음으로 비춘다', () async {
+      repo = _Repo(<TrainerNotification>[
+        _n('a'),
+      ], next: const TrainerNotificationCursor(before: 't', beforeId: 'a'));
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          trainerNotificationRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(c.dispose);
+      final ProviderSubscription<TrainerNotificationPaging> paging = c.listen(
+        trainerNotificationPagingProvider,
+        (_, _) {},
+      );
+      addTearDown(paging.close);
+      await c
+          .read(trainerNotificationPagingProvider.notifier)
+          .loadMore(await repo.fetch());
+
+      await NotificationReadTracker(c).markAllRead();
+      await _flush();
+
+      expect(
+        paging.read().items.every((TrainerNotification n) => n.read),
+        isTrue,
+      );
+    });
+
+    test('계정이 바뀌면 0 으로 둔 배지도 풀린다', () async {
+      repo.holdAll = Completer<void>();
+      unawaited(NotificationReadTracker(container).markAllRead());
+      await _flush();
+      expect(container.read(trainerPendingReadAllProvider), 1);
+
+      container.read(accountScopeProvider.notifier).state++;
+      await _flush();
+      expect(container.read(trainerPendingReadAllProvider), 0);
+
+      repo.holdAll!.complete();
+      await _flush();
+    });
   });
 }
