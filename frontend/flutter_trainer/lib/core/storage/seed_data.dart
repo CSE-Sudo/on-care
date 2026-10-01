@@ -35,10 +35,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v45']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v46']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v46` 은 김민수를 뺀 회원의 지난 끼니를 최근 4주에서 리포트 이력 전체로
+/// 늘렸다(#2732). 올리지 않으면 오늘 이미 시드된 브라우저에서 4주보다 오래된
+/// 날짜를 펼쳐도 끼니 카드가 없다.
 ///
 /// `_v45` 는 시드 상담 일정 5건에 상담 요청을 잇고, 3주 전 PT 에 취소·노쇼를
 /// 한 건씩 두고, 강서연·신유나 대화에 회원이 보낸 사진·PDF 를 붙였다(#2669).
@@ -193,7 +197,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v45') == today &&
+  if (await db.readValue('trainer_seeded_v46') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -853,7 +857,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v45', today);
+    await db.putValue('trainer_seeded_v46', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -1553,11 +1557,6 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
   }
 }
 
-/// 지난 끼니를 심는 날 수(오늘 제외, #2667). 오늘과 합쳐 4주다 — 식단 분석·AI
-/// 식단 추천이 읽는 창(`allWindowDays`)이 28일이라, 그만큼 있어야 근거 일수가
-/// 실서버 회원처럼 찬다.
-const int _pastDietDays = 27;
-
 /// 끼니 수 → 그날 적은 끼니 자리(먹은 순서).
 const List<List<String>> _mealSlots = <List<String>>[
   <String>['점심'],
@@ -1598,21 +1597,21 @@ final Map<String, List<_Meal>> _mealTemplates = () {
   return pool;
 }();
 
-/// 고객의 지난 [_pastDietDays] 일 끼니(#2667).
+/// 고객의 지난 끼니 — 날짜별 지표가 있는 날 전부(#2667, #2732).
 ///
 /// 예전에는 오늘 끼니만 있어, 지난 날짜를 열면 합계만 있고 끼니 카드가
-/// 없었다. 식단 분석·AI 식단 추천도 근거가 오늘 하루뿐이었다.
+/// 없었다. 식단 분석·AI 식단 추천도 근거가 오늘 하루뿐이었다. 처음에는 최근
+/// 4주만 심어, 기간 뷰에서 그보다 오래된 날을 펼치면 여전히 합계뿐이었다 —
+/// 이제 리포트 이력([demoMetricsHistoryWeeks])의 모든 날을 채운다.
 ///
 /// 그날 합계([_seedDays])를 끼니로 **나눈다** — 끼니를 따로 지어내면 날짜를
 /// 펼쳤을 때 위의 합계와 아래 카드의 합이 갈린다. 끼니 수는 리포트 격자의
 /// 끼니 수([_mealCountOf])와 같다.
 List<_Meal> _pastDiet(_Client client, DateTime now) {
   final DateTime today = DateTime(now.year, now.month, now.day);
-  final DateTime from = DateTime(now.year, now.month, now.day - _pastDietDays);
   return <_Meal>[
     for (final _SeedDay d in _seedDays(client, now))
-      if (d.date.isBefore(today) && !d.date.isBefore(from) && d.calories > 0)
-        ..._mealsOf(client.id, d),
+      if (d.date.isBefore(today) && d.calories > 0) ..._mealsOf(client.id, d),
   ];
 }
 

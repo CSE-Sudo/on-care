@@ -93,8 +93,7 @@ class PairedMember {
   /// 회원이 프로필에 성별·생년월일을 넣지 않았으면 목록과 마찬가지로 id 에서
   /// 만든 고정 값이 선다. 목록은 `남성 · 23세` 라고 하는데 확인 카드만 아무
   /// 말이 없으면, 트레이너가 지금 잇는 사람이 목록의 그 사람인지 견줄 수 없다.
-  String get rosterGender =>
-      rosterGenderFor(id: memberId, name: name, gender: gender);
+  String get rosterGender => rosterGenderFor(id: memberId, gender: gender);
 
   /// 나이는 생년월일이 없으면 `null` 이다 — 지어내지 않는다(#2744).
   int? get rosterAge => rosterAgeFor(age: age);

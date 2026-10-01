@@ -18,9 +18,6 @@ import 'package:oncare/features/dashboard/presentation/ai_advice_text.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 
@@ -272,9 +269,7 @@ void main() {
             dietRepositoryProvider.overrideWithValue(
               FakeDietRepository() as DietRepository,
             ),
-            exerciseRepositoryProvider.overrideWithValue(
-              MockExerciseRepository() as ExerciseRepository,
-            ),
+            // 운동도 앱의 데모처럼 위 DB 를 읽는 로컬 목업 API 를 탄다(#2724).
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
             ),
