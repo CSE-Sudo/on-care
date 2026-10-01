@@ -4609,6 +4609,42 @@ abstract class AppLocalizations {
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
 
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "무릎" or "Knee".
+  ///
+  /// In en, this message translates to:
+  /// **'Knee'**
+  String get aicBodyPartKnee;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "허리" or "Back".
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get aicBodyPartBack;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "발목" or "Ankle".
+  ///
+  /// In en, this message translates to:
+  /// **'Ankle'**
+  String get aicBodyPartAnkle;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "어깨" or "Shoulder".
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder'**
+  String get aicBodyPartShoulder;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "손목" or "Wrist".
+  ///
+  /// In en, this message translates to:
+  /// **'Wrist'**
+  String get aicBodyPartWrist;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "목" or "Neck".
+  ///
+  /// In en, this message translates to:
+  /// **'Neck'**
+  String get aicBodyPartNeck;
+
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
