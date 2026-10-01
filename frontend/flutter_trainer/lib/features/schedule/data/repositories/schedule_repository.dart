@@ -818,13 +818,19 @@ class DriftScheduleRepository implements ScheduleRepository {
   ///
   /// 보냄·숨김 표시도 함께 지운다 — 새로 붙인 개인운동은 아직 아무 데도 가지
   /// 않았다.
+  ///
+  /// 그 개인운동을 채운 AI 제안은 검토한 것으로 남긴다(#2747) — 실서버가 등록
+  /// 트랜잭션에서 그 제안을 닫는 것과 같다.
   Future<void> _rememberPersonalRoutines(
     String sessionId,
     List<RoutineExercise> routines,
-  ) => _routineStore.writeSession(
-    sessionId,
-    SessionRoutineState(items: List<RoutineExercise>.unmodifiable(routines)),
-  );
+  ) async {
+    await _routineStore.writeSession(
+      sessionId,
+      SessionRoutineState(items: List<RoutineExercise>.unmodifiable(routines)),
+    );
+    await _routineStore.addReviewedSuggestions(suggestionIdsOf(routines));
+  }
 
   /// Removes a session from the timeline.
   @override

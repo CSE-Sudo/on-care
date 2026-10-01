@@ -249,6 +249,7 @@ class DioScheduleRepository implements ScheduleRepository {
             clientName: clientName,
             sessionId: sessionId,
             personalRoutines: personalRoutinesToJson(personalRoutines),
+            suggestionIds: suggestionIdsOf(personalRoutines),
           ),
         );
       } on DioException catch (e) {

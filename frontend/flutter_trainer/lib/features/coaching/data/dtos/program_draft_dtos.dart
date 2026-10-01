@@ -223,6 +223,7 @@ Map<String, Object?> routineOnlyAssignToJson(
   String? clientRequestId,
 }) {
   final List<Map<String, Object?>> items = personalRoutinesToJson(routines);
+  final List<String> suggestionIds = suggestionIdsOf(routines);
   return <String, Object?>{
     'name': routines.length == 1 ? routines.single.name : programName,
     'sessions': <Map<String, Object?>>[
@@ -239,6 +240,9 @@ Map<String, Object?> routineOnlyAssignToJson(
     'start_date': startDate,
     'active_days': activeDays,
     'client_request_id': ?clientRequestId,
+    // 개인운동을 채운 대기 중 AI 제안 — 서버가 배정과 같은 트랜잭션에서
+    // 닫는다(#2747). 없으면 싣지 않아 옛 서버에도 같은 본문이 간다.
+    if (suggestionIds.isNotEmpty) 'suggestion_ids': suggestionIds,
   };
 }
 

@@ -232,6 +232,14 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     };
     final DemoRoutineStore? store = _store;
     if (store != null) {
+      // 이 전송의 개인운동을 채운 AI 제안을 닫는다 — 실서버가 배정과 같은
+      // 트랜잭션에서 하는 일이다(#2747). 데모 제안 저장소는 검토한 제안을
+      // 이 기억에서 걸러 낸다.
+      await store.addReviewedSuggestions(<String>[
+        for (final Object? id
+            in payload['suggestion_ids'] as List<Object?>? ?? const <Object?>[])
+          if (id is String) id,
+      ]);
       final Set<String> previous = personal
           ? await store.readPersonalIds(memberId)
           : const <String>{};
