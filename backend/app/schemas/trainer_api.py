@@ -1843,6 +1843,12 @@ class WeeklyReportDayOut(BaseModel):
     #: 운동 이름. 끝의 '✓'/'✗' 는 수행 여부를 나타내는 저장 규칙이며 화면은
     #: 그 표시를 읽어 아이콘으로 바꿔 그린다(운동 기록 탭과 같은 규칙).
     exercises: list[str] = Field(default_factory=list)
+    #: 그날 회원 목록에 걸려 있던 추천 개인운동 수 — 개인운동 칸의 분모다(#2772).
+    #: 추천 개인운동은 매일 리셋되는 목록이라 그날 걸려 있던 배정을 센다
+    #: (#2161). 배정이 없던 날과 아직 오지 않은 날은 null 이다 — 0 은 쉬는
+    #: 날과 구분되지 않아 쓰지 않고, null 이면 화면이 실제로 한 운동 수로
+    #: 되돌아간다(#2232, 데모와 같은 규칙).
+    assigned: int | None = None
 
 
 class WeeklyReportOut(BaseModel):
@@ -1868,6 +1874,11 @@ class WeeklyReportOut(BaseModel):
     carbs_week: list[float] = Field(default_factory=list)
     protein_week: list[float] = Field(default_factory=list)
     fat_week: list[float] = Field(default_factory=list)
+    #: 그 주(월→일)의 요일별 끼니 기록 수 — 그날 `DietEntry` 수다(#2772).
+    #: 칼로리가 답하지 못하는 값이다 — 0kcal 인 날은 안 먹은 날이 아니라 안
+    #: 적은 날이다(#2232). 기록 없는 날과 아직 오지 않은 날은 0 이고, 아직
+    #: 오지 않은 날을 `–` 로 그리는 것은 화면 규칙이다.
+    meal_counts: list[int] = Field(default_factory=list)
     #: 그 회원의 하루 목표. 건강 프로필에 적혀 있으면 그 값, 없으면 null 이다
     #: (#1430). 주의사항 판정이 고정 상수보다 이 값을 먼저 쓴다 — 같은 1,900kcal
     #: 이 어떤 회원에게는 부족이고 어떤 회원에게는 초과다. 근거 문장도 어느
