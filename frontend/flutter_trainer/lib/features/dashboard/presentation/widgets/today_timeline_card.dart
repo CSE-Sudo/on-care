@@ -9,16 +9,13 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-
-/// 상담은 "메모 남기기"로, 그 외(1:1 PT 등)는 "PT 준비하기"로 갈린다 —
-/// 상담엔 준비할 프로그램이 없고, PT엔 남길 상담 메모가 없다.
-bool _isConsultation(String type) => type.contains('상담');
 
 /// `HH:mm`.
 String _hm(DateTime t) =>
@@ -144,7 +141,10 @@ class _NextUpBanner extends StatelessWidget {
     final minutesLeft = nextMinutes == null
         ? 0
         : (nextMinutes - (now.hour * 60 + now.minute)).clamp(0, 24 * 60);
-    final isConsultation = _isConsultation(next.type);
+    // 상담은 "메모 남기기"로, 그 외(1:1 PT 등)는 "PT 준비하기"로 갈린다 —
+    // 상담엔 준비할 프로그램이 없고, PT엔 남길 상담 메모가 없다. 계약값으로
+    // 가른다(#2867).
+    final isConsultation = next.isConsultation;
     final clientId = client?.id;
     final TextStyle base = tokens
         .text(OnCareTypography.bodySmall)
@@ -246,7 +246,7 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final isConsultation = _isConsultation(session.type);
+    final isConsultation = session.isConsultation;
     // 완료된 세션은 시간도 함께 물러난다 — 종류 알약이 완료 때 회색으로
     // 바래는 것과 같은 기준이다. 아직 끝나지 않은 시간은 "지금 처리해야
     // 할 일"이라 검은 글씨로 또렷하게 남는다.
@@ -368,8 +368,10 @@ class _Row extends StatelessWidget {
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
+                        // 저장된 종류는 계약값이라 화면 언어로 옮겨 적는다
+                        // — 스케줄 탭 카드·주간 표와 같은 문구다(#2867).
                         child: AppTag(
-                          label: session.type,
+                          label: sessionTypeLabel(l, session.type),
                           tone: session.isDone
                               ? AppTagTone.neutral
                               : AppTagTone.brand,
