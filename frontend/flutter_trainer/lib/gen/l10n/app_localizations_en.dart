@@ -957,6 +957,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLoadFailed => 'Couldn\'t load the conversation';
 
   @override
+  String get chatLoadOlder => 'Load earlier messages';
+
+  @override
+  String get chatLoadOlderFailed => 'Couldn\'t load earlier messages · Retry';
+
+  @override
   String chatDemoAnalyzed(String name) {
     return 'AI analysed $name\'s meals and workouts';
   }

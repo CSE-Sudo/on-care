@@ -370,6 +370,8 @@
   "chatTooLong": "메시지가 너무 길어요 (최대 1000자)",
   "chatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
   "chatLoadFailed": "대화를 불러오지 못했어요",
+  "chatLoadOlder": "이전 메시지 더 보기",
+  "chatLoadOlderFailed": "이전 메시지를 불러오지 못했어요 · 다시 시도",
   "chatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
   "chatReportRegistered": "리포트가 등록되었어요",
   "chatReportOpenInReports": "리포트 탭으로 가기",
