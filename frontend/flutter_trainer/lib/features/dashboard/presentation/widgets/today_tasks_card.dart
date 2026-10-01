@@ -749,17 +749,21 @@ class _MissionRow extends StatelessWidget {
                           style: nameStyle,
                         ),
                       ),
-                      if (mission.client != null) ...<Widget>[
-                        const SizedBox(width: OnCareSpacing.s4),
-                        Flexible(
-                          child: Text(
-                            clientDemographicsLabel(context, mission.client!),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: captionStyle,
+                      // 성별·나이를 모두 모르면 그리지 않는다(#2870).
+                      if (mission.client case final TrainerClient client?)
+                        if (clientDemographicsLabel(context, client)
+                            case final String demographics
+                            when demographics.isNotEmpty) ...<Widget>[
+                          const SizedBox(width: OnCareSpacing.s4),
+                          Flexible(
+                            child: Text(
+                              demographics,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: captionStyle,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
                       if (mission.subtitle.isNotEmpty) ...<Widget>[
                         Text(' · ', style: captionStyle),
                         Flexible(

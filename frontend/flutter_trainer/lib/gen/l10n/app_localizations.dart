@@ -8619,6 +8619,12 @@ abstract class AppLocalizations {
   /// **'{gender} · Age {age}'**
   String coachClientDemographics(String gender, int age);
 
+  /// Identity label for a member with no gender on file — age only (#2870)
+  ///
+  /// In en, this message translates to:
+  /// **'Age {age}'**
+  String coachClientAgeOnly(int age);
+
   /// No description provided for @coachTemplateMenu.
   ///
   /// In en, this message translates to:

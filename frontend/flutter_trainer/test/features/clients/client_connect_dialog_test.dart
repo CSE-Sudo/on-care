@@ -172,9 +172,10 @@ void main() {
     expect(find.text('체지방 감량'), findsOneWidget);
   });
 
-  testWidgets('성별·나이를 안 넣은 회원도 목록과 같은 표기로 뜬다', (tester) async {
-    // 확인 카드는 목록과 같은 표기를 쓴다. 나이는 지어내지 않으므로(#2744)
-    // 성별만 남는다 — 목록도 같은 회원을 똑같이 성별만으로 적는다.
+  testWidgets('성별·나이를 안 넣은 회원은 구분 문구 없이 뜬다 (#2870)', (tester) async {
+    // 확인 카드는 목록과 같은 표기를 쓴다. 성별·나이 모두 지어내지 않으므로
+    // (#2744·#2870) 구분 문구 자리가 아예 없다 — 목록도 같은 회원을 이름만으로
+    // 적는다.
     final repository = _FakeInviteRepository(
       paired: const PairedMember(
         memberId: 'user-8f2a41c9d6e3',
@@ -188,8 +189,53 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.textContaining(RegExp(r'^(남성|여성|기타)$')), findsOneWidget);
+    expect(find.text('이수아'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'남성|여성|기타')), findsNothing);
     expect(find.textContaining(RegExp(r'\d+세')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-demographics')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('성별만 안 넣은 회원은 나이만 뜬다 (#2870)', (tester) async {
+    final repository = _FakeInviteRepository(
+      paired: const PairedMember(
+        memberId: 'user-8f2a41c9d6e3',
+        name: '이수아',
+        age: 29,
+        goal: '체지방 감량',
+      ),
+    );
+    await pumpDialog(tester, repository);
+
+    await enterCode(tester, '979030');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('29세'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'남성|여성|기타')), findsNothing);
+  });
+
+  testWidgets('id 가 무엇이든 성별을 지어내지 않는다 (#2870)', (tester) async {
+    // 예전 폴백은 id 문자 코드 합의 짝홀로 성별을 골랐다 — 짝·홀 두 id 를 다
+    // 넣어 어느 쪽도 성별이 나오지 않는지 본다.
+    for (final id in <String>['seed-client-1', 'seed-client-2']) {
+      final repository = _FakeInviteRepository(
+        paired: PairedMember(memberId: id, name: '이수아', goal: '체지방 감량'),
+      );
+      await pumpDialog(tester, repository);
+      await enterCode(tester, '979030');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.textContaining(RegExp(r'남성|여성|기타')),
+        findsNothing,
+        reason: id,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
   });
 
   testWidgets('확인하고 눌러야 연결된다', (tester) async {

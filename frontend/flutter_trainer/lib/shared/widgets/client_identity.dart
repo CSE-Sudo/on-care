@@ -107,8 +107,11 @@ class ClientIdentityBlock extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: clientNameStyle(context, density),
     );
+    // 성별·나이를 모두 모르면 구분 문구 자리를 그리지 않는다(#2870).
+    final String demographicsText = clientDemographicsLabel(context, client);
+    final bool hasDemographics = demographicsText.isNotEmpty;
     final Widget demographics = Text(
-      clientDemographicsLabel(context, client),
+      demographicsText,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: clientDemographicsStyle(context),
@@ -121,15 +124,17 @@ class ClientIdentityBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (stacked) ...<Widget>[name, demographics] else
+        if (stacked) ...<Widget>[name, if (hasDemographics) demographics] else
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: <Widget>[
               Flexible(child: name),
-              const SizedBox(width: OnCareSpacing.s4),
-              Flexible(child: demographics),
+              if (hasDemographics) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s4),
+                Flexible(child: demographics),
+              ],
             ],
           ),
         if (second.trim().isNotEmpty)

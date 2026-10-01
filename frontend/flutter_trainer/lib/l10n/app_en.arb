@@ -3441,6 +3441,15 @@
       }
     }
   },
+  "coachClientAgeOnly": "Age {age}",
+  "@coachClientAgeOnly": {
+    "description": "Identity label for a member with no gender on file — age only (#2870)",
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
   "coachTemplateMenu": "Template menu",
   "routineFormDecrease": "Decrease",
   "routineFormIncrease": "Increase",

@@ -5062,6 +5062,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String coachClientAgeOnly(int age) {
+    return 'Age $age';
+  }
+
+  @override
   String get coachTemplateMenu => 'Template menu';
 
   @override

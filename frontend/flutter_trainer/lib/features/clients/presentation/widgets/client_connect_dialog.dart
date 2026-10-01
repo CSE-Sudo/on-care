@@ -364,14 +364,21 @@ class _PairedMemberCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: OnCareSpacing.s4),
-                    Flexible(
-                      child: Text(
-                        demographics,
-                        overflow: TextOverflow.ellipsis,
-                        style: clientDemographicsStyle(context),
+                    // 성별·나이를 모두 모르면 그리지 않는다 — 연결 뒤 목록과
+                    // 같은 규칙(#2870).
+                    if (demographics.isNotEmpty) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s4),
+                      Flexible(
+                        child: Text(
+                          demographics,
+                          key: const ValueKey<String>(
+                            'client-connect-demographics',
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          style: clientDemographicsStyle(context),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 if (paired.goal.isNotEmpty) ...<Widget>[

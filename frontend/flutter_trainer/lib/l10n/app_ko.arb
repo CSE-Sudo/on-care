@@ -2252,6 +2252,15 @@
       }
     }
   },
+  "coachClientAgeOnly": "{age}세",
+  "@coachClientAgeOnly": {
+    "description": "성별을 입력하지 않은 회원의 구분 문구 — 나이만 (#2870)",
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
   "coachTemplateMenu": "템플릿 메뉴",
   "routineFormDecrease": "줄이기",
   "routineFormIncrease": "늘리기",
