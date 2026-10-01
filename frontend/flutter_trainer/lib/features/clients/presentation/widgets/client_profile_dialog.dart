@@ -1418,11 +1418,14 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       onChanged: _busy || refs.isEmpty
           ? null
           : (TrainerMemoRef? value) => setState(() => _record = value),
+      // 고를 기록이 없으면 항목을 비운다 — `연결 안 함` 항목이 남아 있으면
+      // 그것이 선택된 값으로 그려져 빈 이유(힌트)가 보이지 않는다.
       items: <DropdownMenuItem<TrainerMemoRef?>>[
-        DropdownMenuItem<TrainerMemoRef?>(
-          key: const ValueKey<String>('client-memo-record-none'),
-          child: Text(l.clientMemoRecordNone),
-        ),
+        if (refs.isNotEmpty)
+          DropdownMenuItem<TrainerMemoRef?>(
+            key: const ValueKey<String>('client-memo-record-none'),
+            child: Text(l.clientMemoRecordNone),
+          ),
         for (final TrainerMemoRef option in refs)
           DropdownMenuItem<TrainerMemoRef?>(
             key: ValueKey<String>(
