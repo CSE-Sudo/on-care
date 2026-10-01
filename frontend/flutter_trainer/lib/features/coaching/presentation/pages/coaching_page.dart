@@ -136,6 +136,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   final Map<String, List<ScheduleSession>> _routineOnlyCandidates =
       <String, List<ScheduleSession>>{};
 
+  /// PT 후보를 읽지 못한 회원. 개인운동 박스가 `다시 시도` 를 세운다. (#2896)
+  final Set<String> _routineOnlyCandidatesFailed = <String>{};
+
   /// 스케줄의 `개인운동 추가` 에서 왔다 — 그 PT 에 반영하면 그 일정으로 돌아간다.
   ({String clientId, String sessionId, String date})? _returnToSchedule;
 
@@ -463,9 +466,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!_routineOnlyCandidates.containsKey(client.id)) return;
     final ScheduleSession? target = _routineOnlyTargetFor(client.id);
     if (target != null) {
+      // 그 PT 에 붙인다 — 지난 PT 라도 그대로다. 완료했지만 아직 보내지 않은
+      // PT 는 지난 날이어도 붙일 곳이다(#2280).
       await _attachRoutineOnlyToPt(client, target.id, routines);
       return;
     }
+    // 바로 보내는 개인운동은 시작일부터 한 주 회원 목록에 걸린다. 화면을 연
+    // 채 자정을 넘겼거나, 스케줄에서 온 PT 가 그사이 보내져 지난 날이 남아
+    // 있으면 첫날이 빠진 채 나간다 — 오늘로 당기고 다시 보게 한다(#2896).
+    if (!_routineOnlyStartStillValid(client.id)) return;
     final AppLocalizations l = AppLocalizations.of(context);
     final DateTime start = _routineOnlyStart[client.id] ?? _todayKst();
     final confirmed = await showAppConfirmDialog(
@@ -480,6 +489,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       cancelLabel: l.actionCancel,
     );
     if (!confirmed || !mounted || !_isStillSelected(client.id)) return;
+    // 확인창을 띄운 채 자정을 넘겼을 수 있다 — 확인창에 적힌 날짜가 지났으면
+    // 그 날짜로 보내지 않는다(#2896).
+    if (!_routineOnlyStartStillValid(client.id)) return;
 
     final sentFor = client.id;
     // 실패 후 재시도는 **같은 내용이면 같은 키**여야 중복 배정이 막히고, 내용이
@@ -759,15 +771,32 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   /// 등록 날짜가 아직 오늘 이후인가. 화면을 연 채 자정을 넘겨 전날이 됐으면
   /// 오늘로 되돌리고 알린 뒤 false — 전날 날짜로는 보내지 않는다(#1582).
-  bool _registerDateStillValid() {
+  bool _registerDateStillValid() => _ensureNotPast(
+    _registerDate,
+    (today) => _registerDate = today,
+    AppLocalizations.of(context).programEditorRegisterDatePast,
+  );
+
+  /// `개인운동만` 의 시작일이 아직 오늘 이후인가. 지났으면 오늘로 당기고 알린
+  /// 뒤 false — 등록 날짜와 같은 규칙이다(#2896).
+  bool _routineOnlyStartStillValid(String clientId) => _ensureNotPast(
+    _routineOnlyStart[clientId] ?? _todayKst(),
+    (today) => _routineOnlyStart[clientId] = today,
+    AppLocalizations.of(context).personalRoutineStartPast,
+  );
+
+  /// [date] 가 오늘보다 앞이면 [pullToToday] 로 오늘로 당기고 [message] 를
+  /// 띄운 뒤 false. 프로그램 등록과 `개인운동만` 이 같은 판단을 쓰도록 하나로
+  /// 둔다(#1582, #2896) — 전송은 하지 않고, 바뀐 날짜를 보고 다시 누르게 한다.
+  bool _ensureNotPast(
+    DateTime date,
+    void Function(DateTime today) pullToToday,
+    String message,
+  ) {
     final today = _todayKst();
-    if (!_registerDate.isBefore(today)) return true;
-    setState(() => _registerDate = today);
-    showAppToast(
-      context,
-      AppLocalizations.of(context).programEditorRegisterDatePast,
-      type: AppToastType.error,
-    );
+    if (!date.isBefore(today)) return true;
+    setState(() => pullToToday(today));
+    showAppToast(context, message, type: AppToastType.error);
     return false;
   }
 
@@ -1268,12 +1297,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       await ref
           .read(scheduleRepositoryProvider)
           .updateScheduledRoutines(sessionId, routines);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _sendingRoutineOnly.remove(sentFor));
       showAppToast(
         context,
-        l.schedRoutinesUpdateFailed,
+        _attachFailureMessage(l, error),
         type: AppToastType.error,
       );
       return;
@@ -1311,6 +1340,22 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
   }
 
+  /// PT 에 붙이기가 실패한 까닭. (#2896)
+  ///
+  /// 서버가 거절했으면(그사이 그 PT 를 보냈거나 마무리했다) 그 사유를 보여
+  /// 준다 — 다시 눌러도 같은 결과인데 `다시 시도해 주세요` 만 띄우면 트레이너는
+  /// 같은 버튼을 계속 누른다. 연결이 끊긴 것은 서버 사유가 없으니 연결 안내다.
+  String _attachFailureMessage(AppLocalizations l, Object error) =>
+      switch (error) {
+        NetworkError() => l.coachSendNetworkFailed,
+        AppError(:final String? message) => serverDetailOr(
+          l,
+          message,
+          l.schedRoutinesUpdateFailed,
+        ),
+        _ => l.schedRoutinesUpdateFailed,
+      };
+
   /// 붙일 수 있는 PT 후보를 읽는다 — 그 회원의 아직 보내지 않은 PT 전체.
   /// (#2280)
   ///
@@ -1318,6 +1363,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// ([acceptsFirstPersonalRoutines]). 개인운동이 이미 붙은 PT 도 후보다 —
   /// 고르면 교체할지 묻는다. 날짜·시각 순으로 늘어놓는다.
   Future<void> _loadRoutineOnlyCandidates(TrainerClient client) async {
+    // 다시 읽는 동안에는 실패 표시를 거두지 않는다 — 결과가 오면 아래에서
+    // 함께 다시 그린다. 위저드 콜백 안에서도 불려 여기서 다시 그리지 않는다.
+    _routineOnlyCandidatesFailed.remove(client.id);
     List<ScheduleSession> sessions;
     try {
       sessions = await ref.read(scheduleRepositoryProvider).watchClientSessions(
@@ -1326,7 +1374,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     } catch (_) {
       // 읽지 못한 채로 두면 버튼이 잠긴다 — 빈 목록으로 두면 PT 가 있는 날인데도
       // 바로 보내 버린다.
+      // 박스가 `다시 시도` 를 세운다(#2896).
       if (!mounted) return;
+      setState(() => _routineOnlyCandidatesFailed.add(client.id));
       showAppToast(
         context,
         AppLocalizations.of(context).schedLoadFailed,
@@ -1376,9 +1426,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     final List<RoutineExercise>? attached = await _unsentRoutinesOn(sessionId);
     if (!mounted) return false;
     if (attached == null) {
+      // 아무것도 고치지 않았다 — 쓰기 실패 문구를 쓰지 않는다(#2896).
       showAppToast(
         context,
-        l.schedRoutinesUpdateFailed,
+        l.schedRoutinesReadFailed,
         type: AppToastType.error,
       );
       return false;
@@ -1641,6 +1692,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 target: _routineOnlyTargetFor(client.id),
                 nearestPt: _nearestRoutineOnlyPt(client.id),
                 targetReady: _routineOnlyCandidates.containsKey(client.id),
+                onRetryTarget: _routineOnlyCandidatesFailed.contains(client.id)
+                    ? () => unawaited(_loadRoutineOnlyCandidates(client))
+                    : null,
               ),
             ),
           ],

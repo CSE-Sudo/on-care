@@ -5005,6 +5005,24 @@ abstract class AppLocalizations {
   /// **'Switch'**
   String get coachSwitchClientConfirm;
 
+  /// No description provided for @personalRoutineTargetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load PT sessions'**
+  String get personalRoutineTargetLoadFailed;
+
+  /// No description provided for @personalRoutineStartPast.
+  ///
+  /// In en, this message translates to:
+  /// **'The start date has passed, so it\'s now set to today. Check it and send again'**
+  String get personalRoutineStartPast;
+
+  /// No description provided for @schedRoutinesReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check the attached personal exercises. Please try again'**
+  String get schedRoutinesReadFailed;
+
   /// No description provided for @coachScheduleFailed.
   ///
   /// In en, this message translates to:

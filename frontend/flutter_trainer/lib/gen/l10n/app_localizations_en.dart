@@ -2863,6 +2863,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSwitchClientConfirm => 'Switch';
 
   @override
+  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
+
+  @override
+  String get personalRoutineStartPast =>
+      'The start date has passed, so it\'s now set to today. Check it and send again';
+
+  @override
+  String get schedRoutinesReadFailed =>
+      'Couldn\'t check the attached personal exercises. Please try again';
+
+  @override
   String get coachScheduleFailed =>
       'Couldn\'t add it to the schedule. Please try again';
 

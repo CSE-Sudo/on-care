@@ -2712,6 +2712,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSwitchClientConfirm => '바꾸기';
 
   @override
+  String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
+
+  @override
+  String get personalRoutineStartPast => '시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요';
+
+  @override
+  String get schedRoutinesReadFailed => '붙어 있는 개인운동을 확인하지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get coachScheduleFailed => '스케줄 등록에 실패했어요. 다시 시도해 주세요';
 
   @override
