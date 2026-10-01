@@ -20,6 +20,7 @@ import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tim
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 대시보드 — the console's home: what needs doing today.
@@ -85,6 +86,10 @@ class DashboardPage extends ConsumerWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+                    // 승인 대기·반려면 무엇이 막혔는지 맨 위에 적는다(#2825).
+                    const TrainerVerificationBanner(
+                      bottomGap: OnCareSpacing.s16,
+                    ),
                     _KpiRow(summary: summary, churnRisk: churnRisk, wide: wide),
                     const SizedBox(height: OnCareSpacing.s16),
                     if (wide)
