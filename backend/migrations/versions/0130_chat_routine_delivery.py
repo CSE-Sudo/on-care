@@ -5,8 +5,8 @@
 가운데에 전송 안내 카드를 남기려고, 그 메시지가 어떤 전송인지(종류·운동 이름)를
 JSON 으로 담는다. 일반 대화는 비어 있어 예전 행과 조회 흐름은 그대로다.
 
-Revision ID: 0111_chat_routine_delivery
-Revises: 0110_user_token_version
+Revision ID: 0130_chat_routine_delivery
+Revises: 0128_close_stale_invites
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -16,8 +16,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0111_chat_routine_delivery"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0130_chat_routine_delivery"
+down_revision: str | Sequence[str] | None = "0128_close_stale_invites"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
