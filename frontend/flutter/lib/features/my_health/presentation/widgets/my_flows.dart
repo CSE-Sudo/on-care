@@ -1295,6 +1295,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       l.myHealthGoalsTitle,
       footer,
       <Widget>[
+        // 첫 설정을 건너뛴 회원에게 다시 들어갈 길을 둔다(#2855). 건너뛰기가
+        // 계정에 남아 로그인할 때 더는 첫 설정으로 끌려가지 않으므로, 기본
+        // 정보(생년월일·키·체중)를 넣을 자리는 여기다. 끝내면 사라진다.
+        if (!_editing &&
+            _base.onboardingSkipped &&
+            !_base.onboarded) ...<Widget>[
+          AppBanner(
+            key: const Key('firstRunPrompt'),
+            title: l.myFirstRunPromptTitle,
+            message: l.myFirstRunPromptBody,
+            actionLabel: l.myFirstRunPromptAction,
+            onAction: () => context.push<void>(AppRoutes.onboardingResume),
+          ),
+          const SizedBox(height: OnCareSpacing.sectionGap),
+        ],
         // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
         // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
         // 같은 차례로 한다.

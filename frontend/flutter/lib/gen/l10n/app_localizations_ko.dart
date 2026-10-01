@@ -3382,6 +3382,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myHealthGoalsTitle => '건강 목표';
 
   @override
+  String get myFirstRunPromptTitle => '기본 정보를 입력하면 맞춤 목표를 계산해요';
+
+  @override
+  String get myFirstRunPromptBody =>
+      '첫 설정을 건너뛰었어요. 생년월일·키·체중을 넣으면 식단·운동 목표를 몸에 맞게 추천해요.';
+
+  @override
+  String get myFirstRunPromptAction => '기본 정보 입력';
+
+  @override
   String get myGoalsFocusSection => '주로 관리하고 싶은 항목';
 
   @override

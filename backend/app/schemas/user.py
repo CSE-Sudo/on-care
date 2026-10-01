@@ -231,6 +231,9 @@ class ProfileView(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
     onboarded: bool = False
+    #: 첫 설정을 건너뛰었는가(#2855). 앱은 `onboarded` 또는 이 값이 참이면 로그인·
+    #: 세션 복구 뒤 첫 설정 화면으로 보내지 않는다.
+    onboarding_skipped: bool = False
     #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각. 바꾼 적이 없으면
     #: 둘 다 null 이다(#1832).
     focus_changed_by: Optional[str] = None

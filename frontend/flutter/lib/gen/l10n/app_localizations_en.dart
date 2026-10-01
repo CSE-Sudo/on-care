@@ -3515,6 +3515,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myHealthGoalsTitle => 'Health goals';
 
   @override
+  String get myFirstRunPromptTitle => 'Enter your basics for tailored goals';
+
+  @override
+  String get myFirstRunPromptBody =>
+      'You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.';
+
+  @override
+  String get myFirstRunPromptAction => 'Enter basics';
+
+  @override
   String get myGoalsFocusSection => 'What you want to focus on';
 
   @override

@@ -6091,6 +6091,24 @@ abstract class AppLocalizations {
   /// **'Health goals'**
   String get myHealthGoalsTitle;
 
+  /// No description provided for @myFirstRunPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your basics for tailored goals'**
+  String get myFirstRunPromptTitle;
+
+  /// No description provided for @myFirstRunPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.'**
+  String get myFirstRunPromptBody;
+
+  /// No description provided for @myFirstRunPromptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter basics'**
+  String get myFirstRunPromptAction;
+
   /// No description provided for @myGoalsFocusSection.
   ///
   /// In en, this message translates to:

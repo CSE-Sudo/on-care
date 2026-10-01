@@ -66,6 +66,19 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
+#### 첫 설정 완료·건너뛰기 (#1927·#2855)
+
+| Method | Path | 응답 |
+|---|---|---|
+| GET | `/users/me/profile` | 프로필 통합 뷰 — `onboarded`(첫 설정 저장함)·`onboarding_skipped`(첫 설정 건너뜀) 포함 |
+| POST | `/users/me/onboarding` | 보낸 칸만 저장하고 `onboarded=true`. 응답은 프로필 통합 뷰 |
+| POST | `/users/me/onboarding/skip` | 본문 없음. `onboarding_skipped=true` 만 남기고 다른 값은 그대로(`onboarded` 도 그대로). 여러 번 불러도 같다. 응답은 프로필 통합 뷰. 회원 전용(트레이너 403) |
+
+앱은 `onboarded` 또는 `onboarding_skipped` 가 참이면 로그인·세션 복구 뒤 첫 설정
+화면으로 보내지 않는다. 둘 다 거짓이면(가입 직후 폼에서 앱을 닫은 회원) 다음 진입 때
+다시 첫 설정으로 보낸다(#2630). 건너뛴 회원은 MY `건강 목표` 화면의 안내 카드에서 첫
+설정을 다시 열 수 있다.
+
 ### 채팅 이모티콘 (#2020, #2153)
 
 | Method | Path | 응답 핵심 필드 |

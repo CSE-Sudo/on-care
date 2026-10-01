@@ -2632,6 +2632,9 @@
   "@myHealthGoalsTitle": {
     "description": "Title of the health goals sheet."
   },
+  "myFirstRunPromptTitle": "Enter your basics for tailored goals",
+  "myFirstRunPromptBody": "You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.",
+  "myFirstRunPromptAction": "Enter basics",
   "myGoalsFocusSection": "What you want to focus on",
   "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
   "myGoalsFocusLastChanged": "Last changed by {who} · {date}",
