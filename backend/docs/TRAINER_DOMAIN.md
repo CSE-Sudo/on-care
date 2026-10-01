@@ -222,7 +222,7 @@
 | GET | `/trainer/gyms/search?query=&lat=&lng=` | 소속으로 고를 헬스장 검색 — 등록된 헬스장 먼저, 카카오 결과 뒤(#2543) |
 | PUT | `/trainer/me/gym/kakao` | 카카오 검색 결과로 소속 설정 `{kakao_place_id, name}` — 카카오로 재확인, 아니면 404, 카카오 불가 503(#2543) |
 | DELETE | `/trainer/me/gym` | 소속 해제(원래 없어도 200) |
-| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인) |
+| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인). 성공하면 토큰 세대를 올려 다른 기기 토큰을 끊고, 요청 기기용 새 토큰 한 쌍을 돌려준다(#2766) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |
 | PUT | `/trainer/me/settings` | 알림 수신 설정 부분 수정 |
 | GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
@@ -524,6 +524,9 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 
 - 회원별 식단·기록과 최신 메시지·루틴을 **배치 조회**한다(N+1 방지).
   `chat_messages`·`trainer_routines`의 회원별 최신 1건은 **`DISTINCT ON (member_id)`**로 한 번에.
+- 카드의 `age` 는 `HealthProfile.birth_date` 로 센 만 나이(KST 오늘 기준)다. 성별·목표와 같은
+  배치 조회에서 읽고, 연결 확인 카드(`PairedMemberOut.age`)와 같은 `profile_format.age_on` 으로
+  센다. 생년월일이 없거나 읽히지 않으면 `null` — 앱이 나이를 지어내지 않는다(#2744).
 - `last_routine` 라벨은 `created_at`(UTC 저장)을 **시스템 로컬 시각으로 변환**해 계산한다
   (`_local_date_iso` → `astimezone().date()`). UTC `.date()`로 계산하면 자정 근처에서
   '오늘/어제'가 어긋난다. 운영은 `TZ=Asia/Seoul`.

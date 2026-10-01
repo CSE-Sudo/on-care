@@ -322,7 +322,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(ClientReportView),
-        matching: find.text('남성 · 35세'),
+        matching: find.text('남성 · 36세'),
       ),
       findsNothing,
     );

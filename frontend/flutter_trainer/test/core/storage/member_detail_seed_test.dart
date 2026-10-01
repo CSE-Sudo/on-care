@@ -174,7 +174,7 @@ void main() {
     });
   });
 
-  test('성별·나이를 로스터에 심는다 — 김민수는 픽스처 몫이라 비운다', () async {
+  test('성별·나이를 로스터에 심는다 — 김민수도 백엔드 시드와 같은 값이다 (#2744)', () async {
     final List<TrainerClientRow> rows = await db
         .select(db.trainerClients)
         .get();
@@ -183,14 +183,13 @@ void main() {
     );
     expect(yuna.gender, 'female');
     expect(yuna.age, 41);
+    // 나이 폴백이 없어졌으므로 김민수도 비워 두면 데모 화면에 나이가 빠진다.
     final TrainerClientRow minsu = rows.firstWhere(
       (TrainerClientRow r) => r.id == 'seed-client-1',
     );
-    expect(minsu.gender, isNull);
-    expect(minsu.age, isNull);
-    for (final TrainerClientRow r in rows.where(
-      (TrainerClientRow r) => r.id != 'seed-client-1',
-    )) {
+    expect(minsu.gender, 'male');
+    expect(minsu.age, 36);
+    for (final TrainerClientRow r in rows) {
       expect(r.gender, isNotNull, reason: r.name);
       expect(r.age, isNotNull, reason: r.name);
     }
