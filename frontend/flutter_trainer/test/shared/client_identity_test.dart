@@ -38,7 +38,12 @@ void main() {
       tester.widget<Text>(find.text(data));
 
   testWidgets('밀도가 이름 글씨·아바타 크기를 정한다', (tester) async {
-    final TrainerClient client = makeClient(name: '가회원', goal: goal);
+    final TrainerClient client = makeClient(
+      name: '가회원',
+      goal: goal,
+      gender: 'female',
+      age: 29,
+    );
     for (final ClientRowDensity density in ClientRowDensity.values) {
       await pumpBlock(tester, ClientRow(client: client, density: density));
       final BuildContext context = tester.element(find.byType(ClientRow));

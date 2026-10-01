@@ -4827,6 +4827,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String coachClientAge(int age) {
+    return '$age세';
+  }
+
+  @override
   String get coachTemplateMenu => '템플릿 메뉴';
 
   @override

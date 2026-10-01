@@ -637,9 +637,11 @@ def build_roster(
             id=link.member_id,
             name=member.name,
             avatar=member.name[:1] if member.name else "?",
-            gender=gender_by_member.get(link.member_id, ""),
-            age=age_by_member.get(link.member_id),
-            goal=goal_by_member.get(link.member_id, ""),
+            # 성별·나이·건강 목표도 동의 범위의 신체·건강 정보다(#2814). 해제·철회
+            # 관계에 남기면 철회 뒤 회원이 바꾼 새 목표까지 트레이너에게 흘러간다.
+            gender=gender_by_member.get(link.member_id, "") if readable else "",
+            age=age_by_member.get(link.member_id) if readable else None,
+            goal=goal_by_member.get(link.member_id, "") if readable else "",
             last_message=_roster_preview(last_msg),
             last_time=relative_time_label(last_msg.created_at) if last_msg else "-",
             last_message_at=last_msg.created_at if last_msg else None,

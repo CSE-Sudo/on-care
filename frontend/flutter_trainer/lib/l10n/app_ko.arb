@@ -2252,6 +2252,15 @@
       }
     }
   },
+  "coachClientAge": "{age}세",
+  "@coachClientAge": {
+    "description": "Roster age label when the member's gender is not shown (#2814).",
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
   "coachTemplateMenu": "템플릿 메뉴",
   "routineFormDecrease": "줄이기",
   "routineFormIncrease": "늘리기",

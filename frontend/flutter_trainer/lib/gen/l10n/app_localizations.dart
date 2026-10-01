@@ -8619,6 +8619,12 @@ abstract class AppLocalizations {
   /// **'{gender} · Age {age}'**
   String coachClientDemographics(String gender, int age);
 
+  /// Roster age label when the member's gender is not shown (#2814).
+  ///
+  /// In en, this message translates to:
+  /// **'Age {age}'**
+  String coachClientAge(int age);
+
   /// No description provided for @coachTemplateMenu.
   ///
   /// In en, this message translates to:

@@ -3441,6 +3441,15 @@
       }
     }
   },
+  "coachClientAge": "Age {age}",
+  "@coachClientAge": {
+    "description": "Roster age label when the member's gender is not shown (#2814).",
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
   "coachTemplateMenu": "Template menu",
   "routineFormDecrease": "Decrease",
   "routineFormIncrease": "Increase",

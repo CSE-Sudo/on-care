@@ -1124,7 +1124,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 - **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
   `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.
-  로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 채팅 첨부
+  로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 성별·나이·건강
+  목표도 `gender=""`·`age=null`·`goal=""` 로 비운다(#2814) — 담당 해제(`registered=false`) 카드도 같다. 채팅 첨부
   (`/chat/attachments/{id}`)도 트레이너에게는 404. 해제·철회 전에 잡아 둔 일정을 id 로 여는
   쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
   회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
