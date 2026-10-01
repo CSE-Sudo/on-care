@@ -28,6 +28,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 세션 유형을 모를 때 쓰는 운동 기본 유형.
 const String _kDefaultExerciseType = '근력';
 
+/// AI 후보를 다시 반영할 때 앞서 들어간 AI 운동을 어떻게 할지(#2875).
+enum _AiReapplyChoice { replace, append }
+
 class ProgramEditorWorkspace extends StatefulWidget {
   const ProgramEditorWorkspace({
     super.key,
@@ -43,8 +46,10 @@ class ProgramEditorWorkspace extends StatefulWidget {
     this.templateRevision = 0,
     this.initialDraft,
     this.onSave,
+    this.onEdited,
     this.saving = false,
     this.sending = false,
+    this.sent = false,
   });
 
   final String clientGoal;
@@ -80,6 +85,12 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// button uses this (and only this) to flip from outline to filled.
   final Future<bool> Function(ProgramEditorState draft)? onSave;
 
+  /// 구성이 바뀌었다 — 바깥 화면이 "보내지 않은 작성 내용" 으로 센다(#2873).
+  ///
+  /// `didUpdateWidget`(그리는 도중)에서도 불리므로, 받는 쪽은 다시 그리게
+  /// 하지 말고 값만 적어 둔다.
+  final VoidCallback? onEdited;
+
   /// A save is in flight — the button locks so a second click can't create
   /// a duplicate draft.
   final bool saving;
@@ -87,6 +98,11 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// 전송(배정+PT 등록)이 진행 중이거나 막 끝났다 — `일정 추가` 버튼이
   /// 잠겨 두 번째 클릭이 두 번째 전송을 만들지 않는다.
   final bool sending;
+
+  /// [sending] 가 켜진 까닭이 **방금 보낸 구성**이라서다(#2752). 툴팁이 진행
+  /// 중과 이미 보낸 것을 갈라 말한다 — 이유 없이 회색인 버튼은 트레이너가 왜
+  /// 못 보내는지 알 수 없다.
+  final bool sent;
 
   @override
   State<ProgramEditorWorkspace> createState() => _ProgramEditorWorkspaceState();
@@ -128,6 +144,14 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   int _newExerciseSeconds = 30 * 60;
   String _newExerciseIntensity = 'moderate';
   var _nextId = 2;
+
+  /// 트레이너가 내용을 고친 AI 운동의 id(#2875).
+  ///
+  /// 고친 AI 운동은 트레이너의 것으로 보고, 위저드를 다시 반영할 때 새 안으로
+  /// 바꾸지 않고 남긴다. 출처(`source`)는 그대로 `ai` 로 둔다 — 서버 계약값과
+  /// 출처 배지는 "AI 가 제안한 운동" 이라는 사실을 가리키고, 고쳤는지는 이
+  /// 편집기 안에서만 가린다.
+  final Set<String> _editedAiIds = <String>{};
 
   bool get _hasValidRegisterTimeRange =>
       _minutes(widget.registerEndTime) > _minutes(widget.registerStartTime);
@@ -297,7 +321,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     // A reopened draft is not topped up with proposals — see [initialDraft].
     if (widget.initialDraft == null &&
         widget.aiSuggestions != oldWidget.aiSuggestions) {
-      _appendAiSuggestions(widget.aiSuggestions);
+      _receiveAiSuggestions(widget.aiSuggestions);
     }
     if (widget.templateRevision == oldWidget.templateRevision) {
       return;
@@ -627,6 +651,11 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                         ? l.schedEndBeforeStart
                         : _registerDateIsPast
                         ? l.programEditorRegisterDatePast
+                        // 막힌 이유가 전송이면 그것을 말한다(#2752).
+                        : widget.sent
+                        ? l.programEditorAlreadySent
+                        : widget.sending
+                        ? l.programEditorSending
                         : '',
                 },
                 child: AppButton(
@@ -710,7 +739,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     widget.onRegisterTimeRangeChanged(picked);
   }
 
-  void _update(ProgramEditorState next) => setState(() => _draft = next);
+  void _update(ProgramEditorState next) {
+    setState(() => _draft = next);
+    widget.onEdited?.call();
+  }
 
   void _replaceSession(int index, ProgramSessionDraft session) {
     final sessions = [..._draft.sessions]..[index] = session;
@@ -857,6 +889,12 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     ProgramExerciseDraft exercise,
   ) {
     final session = _draft.sessions[sessionIndex];
+    final ProgramExerciseDraft before = session.exercises[exerciseIndex];
+    // AI 운동의 내용을 고쳤다 — 다시 반영해도 바꾸지 않는다(#2875). 같은 값이
+    // 다시 들어온 것(칸을 떠날 때의 재확정 등)은 고친 것이 아니다.
+    if (before.source == 'ai' && _exerciseContentDiffers(before, exercise)) {
+      _editedAiIds.add(before.id);
+    }
     final exercises = [...session.exercises]..[exerciseIndex] = exercise;
     _replaceSession(sessionIndex, session.copyWith(exercises: exercises));
   }
@@ -875,6 +913,128 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     final session = _draft.sessions[sessionIndex];
     final exercises = [...session.exercises]..removeAt(exerciseIndex);
     _replaceSession(sessionIndex, session.copyWith(exercises: exercises));
+  }
+
+  /// 운동의 내용(이름·유형·시간·세트·횟수·초·중량·강도·메모)이 달라졌는가.
+  static bool _exerciseContentDiffers(
+    ProgramExerciseDraft a,
+    ProgramExerciseDraft b,
+  ) =>
+      a.name != b.name ||
+      a.type != b.type ||
+      a.durationSeconds != b.durationSeconds ||
+      a.sets != b.sets ||
+      a.reps != b.reps ||
+      a.holdSeconds != b.holdSeconds ||
+      a.isHold != b.isHold ||
+      a.weight != b.weight ||
+      a.intensity != b.intensity ||
+      a.memo != b.memo;
+
+  /// 다시 반영할 때 새 안으로 바꿀 AI 운동인가(#2875) — AI 가 넣었고 트레이너가
+  /// 고치지 않았다. 템플릿이 넣은 운동과 트레이너가 직접 추가한 운동은 아니다.
+  bool _isReplaceableAi(ProgramExerciseDraft exercise) =>
+      exercise.source == 'ai' &&
+      exercise.templateName == null &&
+      !_editedAiIds.contains(exercise.id);
+
+  int get _replaceableAiCount => <ProgramExerciseDraft>[
+    for (final ProgramSessionDraft session in _draft.sessions)
+      ...session.exercises.where(_isReplaceableAi),
+  ].length;
+
+  /// 위저드가 새 후보를 넘겼다(#2875).
+  ///
+  /// 편집기에 앞서 반영한 AI 운동이 없으면 예전처럼 붙인다. 있으면 그대로
+  /// 덧붙이면 두 안이 섞여 전송되므로 먼저 묻는다 — 바꾸기(기본) / 뒤에 추가 /
+  /// 취소. 취소하면 편집기는 그대로다. 그리는 도중이라 창은 다음 프레임에 연다.
+  void _receiveAiSuggestions(List<AiRoutineItem> suggestions) {
+    final int replaceable = _replaceableAiCount;
+    // 넘어온 후보가 없으면(`개인운동만` 반영 등) 바꿀 것도 물을 것도 없다.
+    if (replaceable == 0 || suggestions.isEmpty) {
+      _appendAiSuggestions(suggestions);
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_confirmAiReapply(suggestions, replaceable));
+    });
+  }
+
+  Future<void> _confirmAiReapply(
+    List<AiRoutineItem> suggestions,
+    int replaceable,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final _AiReapplyChoice? choice = await showAppDialog<_AiReapplyChoice>(
+      context: context,
+      builder: (dialogContext) => AppDialog(
+        key: const ValueKey<String>('ai-reapply-dialog'),
+        title: l.programEditorAiReapplyTitle,
+        showClose: false,
+        footer: AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: const ValueKey<String>('ai-reapply-cancel'),
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            AppButton(
+              key: const ValueKey<String>('ai-reapply-append'),
+              label: l.programEditorAiReapplyAppend,
+              variant: AppButtonVariant.secondary,
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_AiReapplyChoice.append),
+            ),
+            AppButton(
+              key: const ValueKey<String>('ai-reapply-replace'),
+              label: l.programEditorAiReapplyReplace,
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_AiReapplyChoice.replace),
+            ),
+          ],
+        ),
+        child: Text(
+          l.programEditorAiReapplyBody(replaceable),
+          style: dialogContext.oncare
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case _AiReapplyChoice.replace:
+        _replaceAiSuggestions(suggestions);
+      case _AiReapplyChoice.append:
+        _appendAiSuggestions(suggestions);
+      case null:
+        return;
+    }
+  }
+
+  /// 앞서 반영한(고치지 않은) AI 운동을 빼고 새 후보를 붙인다(#2875).
+  ///
+  /// 빼고 나서 비는 세션은 [_appendAiSuggestions] 가 새 유형에 내주거나
+  /// 내린다 — 빈 세션 정리(#2474)와 세션 이름 번호가 처음 반영할 때와 같다.
+  /// 트레이너가 직접 추가했거나 고친 운동은 남고, 그 이름은 새 후보에서
+  /// 다시 넣지 않는다.
+  void _replaceAiSuggestions(List<AiRoutineItem> suggestions) {
+    _draft = _draft.copyWith(
+      sessions: <ProgramSessionDraft>[
+        for (final ProgramSessionDraft session in _draft.sessions)
+          session.copyWith(
+            exercises: <ProgramExerciseDraft>[
+              for (final ProgramExerciseDraft exercise in session.exercises)
+                if (!_isReplaceableAi(exercise)) exercise,
+            ],
+          ),
+      ],
+    );
+    _appendAiSuggestions(suggestions);
+    // 새 후보가 모두 남아 있던 이름이라 붙일 것이 없어도, 뺀 것은 그려야 한다.
+    _update(_draft);
   }
 
   /// AI 후보를 편집기에 붙인다 — **유형별로 세션을 나눈다**(#2222).

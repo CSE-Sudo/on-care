@@ -65,6 +65,11 @@ void main() {
     late AppDatabase db;
 
     setUp(() async {
+      // 오늘의 끝으로 고정한다 — 아래 테스트는 오늘 16:00·17:00·18:00 수업을
+      // 완료한다. 완료는 시작 시각이 지나야 되므로(#2760) 실제 시각에 맡기면
+      // 낮에 돌릴 때 깨진다.
+      final DateTime real = nowKst();
+      useFixedKstDate(DateTime(real.year, real.month, real.day, 23, 59));
       db = AppDatabase.forTesting(NativeDatabase.memory());
       await seedIfEmpty(db);
     });
@@ -711,8 +716,9 @@ void main() {
       );
     });
 
-    // 진입점은 헤더 액션이고, 대기 건수는 빨간 배지로 뜬다(#882).
-    testWidgets('상담 요청 진입점은 대기 건수를 빨간 배지로 보여 준다', (tester) async {
+    // 진입점은 헤더 액션이고(#882), 대기 건수는 알림 종·사이드바 숫자와 같은
+    // 남색 배지로 뜬다 — 빨강은 경고 신호에만 쓴다(#2669, #2806).
+    testWidgets('상담 요청 진입점은 대기 건수를 남색 배지로 보여 준다', (tester) async {
       await openSchedule(tester);
 
       final Finder entry = find.byKey(const Key('consult-inbox-entry'));
@@ -734,16 +740,16 @@ void main() {
                   )
                   .decoration!
               as BoxDecoration;
-      expect(fill.color, OnCareColors.danger);
+      expect(fill.color, OnCareBrand.trainer.primary);
       expect(
         find.descendant(of: entry, matching: find.text('2')),
         findsOneWidget,
       );
     });
 
-    testWidgets('빨간 배지가 아이콘을 가리지 않고 네모 모서리에 붙는다 (#987)', (tester) async {
+    testWidgets('숫자 배지가 아이콘을 가리지 않고 네모 모서리에 붙는다 (#987)', (tester) async {
       // 배지가 아이콘을 감싸던 때에는 지름 16px 짜리 원이 17px 아이콘의 절반을
-      // 덮어, 남는 것이 빨간 원뿐이었다. 배지는 숫자를 **더하는** 표시이지
+      // 덮어, 남는 것이 배지 원뿐이었다. 배지는 숫자를 **더하는** 표시이지
       // 아이콘을 대체하는 표시가 아니다.
       await openSchedule(tester);
 
@@ -776,8 +782,8 @@ void main() {
       );
     });
 
-    testWidgets('대기 건이 없으면 빨간 배지를 달지 않는다', (tester) async {
-      // 빨강은 처리할 것이 있을 때만 뜬다 — 0건에도 뜨면 몇 번 겪고 나서
+    testWidgets('대기 건이 없으면 숫자 배지를 달지 않는다', (tester) async {
+      // 배지는 처리할 것이 있을 때만 뜬다 — 0건에도 뜨면 몇 번 겪고 나서
       // 아무도 안 보게 된다.
       await pumpTrainerApp(
         tester,
@@ -1289,7 +1295,9 @@ void main() {
     // 자리는 하나지만 하는 일이 둘이다 — 처음 적는 것과 고치는 것. 아무것도
     // 적지 않았는데 `메모 수정` 이라고 부르면, 어딘가에 이미 메모가 있는데 못
     // 찾고 있는 것처럼 읽힌다(#1011).
-    testWidgets('PT 에 글이 있으면 `피드백 수정`, 없으면 `피드백 추가` (#1011, #2574)', (tester) async {
+    testWidgets('PT 에 글이 있으면 `피드백 수정`, 없으면 `피드백 추가` (#1011, #2574)', (
+      tester,
+    ) async {
       await openSchedule(tester);
 
       final Finder noteChip = find.byKey(
@@ -1301,10 +1309,7 @@ void main() {
       await openEditMenu(tester);
       expect(noteActionLabel(tester), '피드백 수정');
       expect(
-        find.descendant(
-          of: noteChip,
-          matching: find.byIcon(AppIcons.note),
-        ),
+        find.descendant(of: noteChip, matching: find.byIcon(AppIcons.note)),
         findsOneWidget,
         // 메모 아이콘은 하나다(#2466) — 수정·추가는 글씨가 가른다.
         reason: '메모가 있어도 없어도 같은 메모 아이콘이다',
@@ -1316,10 +1321,7 @@ void main() {
       await openEditMenu(tester);
       expect(noteActionLabel(tester), '피드백 추가');
       expect(
-        find.descendant(
-          of: noteChip,
-          matching: find.byIcon(AppIcons.note),
-        ),
+        find.descendant(of: noteChip, matching: find.byIcon(AppIcons.note)),
         findsOneWidget,
       );
     });
@@ -1361,6 +1363,8 @@ void main() {
       tester,
     ) async {
       await openSchedule(tester);
+      // 같은 날 저녁 — 16:00 수업이 시작한 뒤라 완료가 열린다(#2760).
+      useFixedKstDate(kMidWeekEveningKst);
       await openSession(tester, '박성호'); // 예정 session
 
       await revealInPanel(
@@ -1400,6 +1404,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       await openSchedule(tester);
+      useFixedKstDate(kMidWeekEveningKst);
 
       await openSession(tester, '박성호');
 
@@ -1733,6 +1738,9 @@ void main() {
           ),
         ],
       );
+      // 같은 토요일 저녁 — 시드가 오늘 놓는 16:00 박성호 수업까지 시작한
+      // 뒤다. 완료는 시작 시각이 지나야 열린다(#2760).
+      useFixedKstDate(DateTime(2026, 8, 22, 21));
       await goTo(tester, AppRoutes.schedule);
 
       await openSession(tester, '박성호'); // 예정 session

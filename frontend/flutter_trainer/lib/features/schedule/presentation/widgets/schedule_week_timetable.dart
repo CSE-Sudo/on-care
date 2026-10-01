@@ -133,7 +133,9 @@ class ScheduleWeekTimetable extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final days = <DateTime>[
-      for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i)),
+      // 달력으로 센다 — 24시간씩 더하면 서머타임 시간대에서 요일 칸 날짜가
+      // 어긋난다(#2890).
+      for (var i = 0; i < 7; i++) addCalendarDays(weekStart, i),
     ];
     // 로스터는 여기서 한 번만 구독한다. 블록마다 구독하면 주에 그려지는 수만큼
     // 구독이 생기고, 로스터가 갱신될 때 그 블록들이 각자 다시 빌드된다.
@@ -583,7 +585,7 @@ class _SessionBlock extends StatelessWidget {
   /// 상담인가. 종류는 색을 하나 더 들이는 대신 **채움과 비움**으로 가른다 —
   /// 1:1 PT 는 연한 브랜드 면으로 채우고, 상담은 흰 바탕에 브랜드 윤곽선을
   /// 두른다(#1013).
-  bool get _isConsultation => session.type == SessionType.consultation;
+  bool get _isConsultation => session.isConsultation;
 
   @override
   Widget build(BuildContext context) {

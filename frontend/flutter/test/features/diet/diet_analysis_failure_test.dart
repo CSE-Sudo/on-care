@@ -33,7 +33,15 @@ void main() {
       );
       expect(
         DietAnalysisFailure.fromError(_fromStatus(403)),
-        DietAnalysisFailure.unauthorized,
+        DietAnalysisFailure.forbidden,
+      );
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(429)),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(422)),
+        DietAnalysisFailure.badRequest,
       );
       expect(
         DietAnalysisFailure.fromError(_fromStatus(501)),
@@ -92,9 +100,57 @@ void main() {
       expect(DietAnalysisFailure.unsupportedFormat.canRetry, isFalse);
       expect(DietAnalysisFailure.badRequest.canRetry, isFalse);
       expect(DietAnalysisFailure.unauthorized.canRetry, isFalse);
+      expect(DietAnalysisFailure.forbidden.canRetry, isFalse);
+      expect(DietAnalysisFailure.rateLimited.canRetry, isTrue);
       expect(DietAnalysisFailure.notImplemented.canRetry, isFalse);
       expect(DietAnalysisFailure.recognitionFailed.canRetry, isTrue);
       expect(DietAnalysisFailure.temporary.canRetry, isTrue);
+    });
+  });
+
+  group('403·429 구분 (#2859)', () {
+    test('403 은 로그인 만료가 아니다 — 권한·동의 문제다', () {
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(403)),
+        isNot(DietAnalysisFailure.unauthorized),
+      );
+      expect(
+        DietAnalysisFailure.fromError(const ForbiddenError()),
+        DietAnalysisFailure.forbidden,
+      );
+    });
+
+    test('429 는 잠시 뒤 다시 할 수 있는 실패다', () {
+      expect(
+        DietAnalysisFailure.fromError(const RateLimitedError()),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(DietAnalysisFailure.rateLimited.canRetry, isTrue);
+    });
+
+    test('검증 오류(400·422)는 다른 사진을 고르게 한다', () {
+      expect(
+        DietAnalysisFailure.fromError(const ValidationError(statusCode: 400)),
+        DietAnalysisFailure.badRequest,
+      );
+      expect(
+        DietAnalysisFailure.fromError(const ValidationError(statusCode: 422)),
+        DietAnalysisFailure.badRequest,
+      );
+    });
+
+    test('목업이 상태 코드로 던지는 400 도 같은 뜻이다', () {
+      expect(
+        DietAnalysisFailure.fromError(const ServerError(statusCode: 400)),
+        DietAnalysisFailure.badRequest,
+      );
+    });
+
+    test('401 은 지금처럼 로그인 만료다', () {
+      expect(
+        DietAnalysisFailure.fromError(const UnauthorizedError()),
+        DietAnalysisFailure.unauthorized,
+      );
     });
   });
 }

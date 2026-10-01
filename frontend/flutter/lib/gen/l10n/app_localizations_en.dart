@@ -74,6 +74,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnknown => 'Something went wrong';
 
   @override
+  String get errorForbidden =>
+      'You don\'t have access to this feature. Please check the required consent or your trainer connection.';
+
+  @override
+  String get errorRateLimited =>
+      'Too many requests right now. Please try again in a moment.';
+
+  @override
   String get dashboardMetricCalories => 'Calories';
 
   @override
@@ -2885,6 +2893,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The trainer did not respond in time. Try requesting another time.';
 
   @override
+  String get exConsultCancelledByTrainerBody =>
+      'The trainer cancelled this consultation. Try requesting another time.';
+
+  @override
   String get exExerciseGoal => 'Exercise Goal';
 
   @override
@@ -3119,6 +3131,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment';
+
+  @override
+  String get authSocialComingSoon =>
+      'Social sign-in is coming soon. Please sign in with your email';
 
   @override
   String get signUpTitle => 'Sign up';

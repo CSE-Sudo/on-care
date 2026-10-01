@@ -42,6 +42,12 @@ const AppConfig _demo = AppConfig(
 
 /// 스레드 하나를 그대로 흘려 주는 대역.
 class _StaticChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _StaticChatRepository(this.thread);
 
   final List<ClientChatMessage> thread;

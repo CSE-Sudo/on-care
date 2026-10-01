@@ -111,4 +111,23 @@ void main() {
     expect(request.isPending, isFalse);
     expect(request.decisionNote, '정원이 찼어요');
   });
+
+  test('트레이너가 철회한 신청을 읽는다 (#2758)', () {
+    final request = consultationRequestFromJson(<String, Object?>{
+      ..._json(status: 'cancelled'),
+      'cancelled_by_trainer': true,
+    });
+
+    expect(request.status, 'cancelled');
+    expect(request.cancelledByTrainer, isTrue);
+  });
+
+  test('cancelled_by_trainer 가 없으면 트레이너 철회가 아니다', () {
+    expect(
+      consultationRequestFromJson(
+        _json(status: 'cancelled'),
+      ).cancelledByTrainer,
+      isFalse,
+    );
+  });
 }

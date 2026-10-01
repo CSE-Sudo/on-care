@@ -95,15 +95,26 @@ class _NoMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async => throw UnsupportedError('not used');
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnsupportedError('not used');
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnsupportedError('not used');
   @override
   Future<void> delete(String clientId, String memoId) async {}
 }
 
 class _StaticLiveChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) =>
       Stream<List<ClientChatMessage>>.value(<ClientChatMessage>[

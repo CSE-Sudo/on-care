@@ -6,7 +6,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/core/utils/korean_josa.dart';
+import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -20,6 +20,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggest
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
@@ -75,6 +76,7 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.recommendedReason = '',
     this.onReviewCompleted,
     this.onManualCreate,
+    this.onGenerated,
     this.onStepNav,
     this.attachTarget,
     this.onAttach,
@@ -100,6 +102,10 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 
   /// AI 단계를 종료하고 빈 프로그램 편집기로 전환한다.
   final VoidCallback? onManualCreate;
+
+  /// 후보를 받았다 — 바깥 화면이 "보내지 않은 작성 내용" 으로 센다(#2873).
+  /// 다시 그리게 하지 않는 가벼운 알림이다.
+  final VoidCallback? onGenerated;
 
   /// [embedded] 일 때 단계 진행 줄(`이전` · 다음 단계 버튼)을 바깥에 넘긴다.
   ///
@@ -382,6 +388,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Future<void> _generate() async {
     if (_generating) return;
+    // 칸이 범위 밖 값을 받지 않지만, 범위 밖 요청은 서버가 422 로 거절하므로
+    // 보내기 전에 한 번 더 막는다(#2871).
+    if (_minutesTouched && !isRoutineGenerateMinutesInRange(_minutes)) {
+      _showGenerateRangeError();
+      return;
+    }
     setState(() => _generating = true);
     try {
       final options = await ref
@@ -416,16 +428,28 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 기본값)으로 채운다 — 트레이너가 시간만 고쳤다면 강도는 그대로
         // 서버가 계산하도록 둬야 하고, 그 반대도 마찬가지다(#776).
         if (!_minutesTouched) {
-          _minutes = analysis.suggestedAvailableMinutes ?? _minutes;
+          // 칸이 받는 범위로 당겨 채운다 — 범위 밖 값이 다음 요청에 실리면
+          // 서버가 거절한다(#2871).
+          _minutes = clampRoutineGenerateMinutes(
+            analysis.suggestedAvailableMinutes ?? _minutes,
+          );
         }
         if (!_intensityTouched) {
           _intensity = analysis.suggestedIntensity ?? _intensity;
         }
       });
+      widget.onGenerated?.call();
       _scrollToTop();
     } catch (e) {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
+      // 서버가 입력을 거절했다(422) — 같은 값으로 다시 눌러도 결과가 같으니
+      // 일시 장애처럼 안내하지 않고 조건을 고치게 한다. 서버 상세는 그대로
+      // 내보이지 않는다(#2871).
+      if (e is ValidationError) {
+        _showGenerateRangeError();
+        return;
+      }
       // 한도 초과는 고장이 아니라 잠시 뒤 되는 상태다. 다른 오류와 같은 문구를
       // 쓰면 트레이너가 기능이 깨진 것으로 읽는다(#582).
       showAppToast(
@@ -436,6 +460,19 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     } finally {
       if (mounted) setState(() => _generating = false);
     }
+  }
+
+  /// 생성 조건이 서버 범위를 벗어났다는 안내(#2871).
+  void _showGenerateRangeError() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      l.aiGenerateInvalidConditions(
+        kRoutineGenerateMinMinutes,
+        kRoutineGenerateMaxMinutes,
+      ),
+      type: AppToastType.error,
+    );
   }
 
   void _selectChoice(_RoutineChoice choice) {
@@ -571,9 +608,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 도중(`build`)에도 불리므로 여기서 `setState` 를 하면 겹친다.
   void _seedPersonalFromSuggestions() {
     if (_personalSeeded) return;
-    final suggestions = ref
-        .read(routineSuggestionsProvider(widget.client.id))
-        .valueOrNull;
+    final AsyncValue<List<RoutineSuggestion>> async = ref.read(
+      routineSuggestionsProvider(widget.client.id),
+    );
+    // 다시 읽는 중이면 들고 있는 값은 **전송 전의** 목록이다(#2747) — 보낸
+    // 직후 새로 선 위저드가 그 값으로 채우면 방금 보낸 제안이 되살아난다.
+    if (async.isLoading) return;
+    final suggestions = async.valueOrNull;
     // 아직 도착하지 않았다. **채웠다고 표시하지 않는다** — 표시해 버리면
     // 뒤늦게 온 제안이 영영 목록에 들어오지 못하고, 트레이너는 제안이 있는
     // 날에도 빈 목록을 본다.
@@ -610,10 +651,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 것은 서버의 AI 제안까지 거절하는 일이다 — 되돌릴 수 있는 범위가 달라
       // 문구도 나눈다.
       // 이름은 조사를 붙여 넘긴다 — `을(를)` 은 사람이 쓴 문장으로 읽히지
-      // 않는다.
+      // 않는다. 영어 화면에는 조사를 붙이지 않는다(#2895).
       message: personal
-          ? l.aiPersonalDismissBody(withObjectJosa(name))
-          : l.aiProgramExerciseRemoveBody(withObjectJosa(name)),
+          ? l.aiPersonalDismissBody(withObjectJosaFor(l, name))
+          : l.aiProgramExerciseRemoveBody(withObjectJosaFor(l, name)),
       confirmLabel: l.actionDelete,
       cancelLabel: l.actionCancel,
       destructive: true,
@@ -673,7 +714,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
     if (!mounted) return;
     ref.invalidate(routineSuggestionsProvider(widget.client.id));
-    showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
+    showAppToast(context, l.aiPersonalDismissed(withTopicJosaFor(l, name)));
   }
 
   RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) =>
@@ -692,6 +733,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         weight: s.weight ?? 0,
         reason: s.reason,
         source: 'ai',
+        // 보낼 때 이 제안을 닫는 데 쓴다(#2747).
+        suggestionId: s.id,
       );
 
   void _goToStage(int stage) {
@@ -1438,6 +1481,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             keyPrefix: 'generation-minutes',
             minutes: _minutes,
             label: l.routineFieldTotalMinutes,
+            // 서버가 받는 범위만 받는다(#2871) — 개별 운동 시간 칸과 다르다.
+            min: kRoutineGenerateMinMinutes,
+            max: kRoutineGenerateMaxMinutes,
+            helper: l.aiGenerateMinutesHelper(
+              kRoutineGenerateMinMinutes,
+              kRoutineGenerateMaxMinutes,
+            ),
             onChanged: (minutes) => setState(() {
               _minutes = minutes;
               _minutesTouched = true;
@@ -1939,7 +1989,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
     // 제안이 늦게 도착하면 그때 한 번 채운다 — 트레이너가 이미 손댔으면
     // (_personalSeeded) 그대로 둔다.
-    if (suggestions.hasValue && !_personalSeeded) {
+    if (suggestions.hasValue && !suggestions.isLoading && !_personalSeeded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(_seedPersonalFromSuggestions);
       });

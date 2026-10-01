@@ -22,6 +22,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_context
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -300,9 +301,12 @@ void main() {
     test('mock generator respects the requested time at both limits', () async {
       const repo = MockTrainerRoutineOptionsRepository();
 
-      // 5 는 RoutineMinutesSlider 의 실제 최소값이다 — 예전엔 A안 하한이 10 이라
-      // `clamp(10, 5)`로 죽었다.
-      for (final minutes in <int>[5, 10, 180]) {
+      // 10·180 은 서버가 받는 생성 조건 총 시간의 양 끝이다(#2871). 범위 밖
+      // 값은 데모도 실서버처럼 ValidationError 로 거절한다.
+      for (final minutes in <int>[
+        kRoutineGenerateMinMinutes,
+        kRoutineGenerateMaxMinutes,
+      ]) {
         final options = await repo.generate(
           'm1',
           availableMinutes: minutes,
@@ -2060,11 +2064,16 @@ class _StaticMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async => throw UnsupportedError('not used');
 
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnsupportedError('not used');
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnsupportedError('not used');
 
   @override
   Future<void> delete(String clientId, String memoId) async =>

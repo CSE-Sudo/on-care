@@ -20,10 +20,13 @@ String clientDemographicsLabel(BuildContext context, TrainerClient client) =>
 /// 신규 고객 등록의 확인 카드가 쓴다 (#1634). 목록과 다른 모양으로 적으면,
 /// 트레이너가 지금 잇는 사람이 목록의 그 사람인지 견줄 때 한 번 더 생각해야
 /// 한다.
+///
+/// [age] 가 `null` 이면(회원이 생년월일을 넣지 않았다) 성별만 적는다 — 나이를
+/// 지어내지 않는다(#2744).
 String demographicsLabel(
   BuildContext context, {
   required String gender,
-  required int age,
+  required int? age,
 }) {
   // 성별·나이 문구는 ARB 가 정한다 (#2304) — 예전의 `korean ?` 분기는 두 언어만
   // 코드에 박아 두어, 로케일이 늘면 그 언어도 영어로 떨어졌다.
@@ -33,6 +36,7 @@ String demographicsLabel(
     'male' => l.memberHealthGenderMale,
     _ => l.memberHealthGenderOther,
   };
+  if (age == null) return genderLabel;
   return l.coachClientDemographics(genderLabel, age);
 }
 

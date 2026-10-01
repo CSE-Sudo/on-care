@@ -58,6 +58,12 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         String(20), default="member", server_default="member", index=True
     )
+    # 토큰 세대(#2766). 발급하는 토큰마다 이 값을 실어 두고, 검증 때 같은지 본다.
+    # 비밀번호를 바꾸면 1 올라가 다른 기기에 이미 나간 접근·refresh 토큰이 한꺼번에
+    # 무효가 된다(`jti` 폐기는 한 장씩이라 다른 기기 토큰을 모른다).
+    token_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1531,6 +1537,9 @@ class TrainerClientMemo(Base):
     ref_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     #: 트레이너가 지은 루틴 이름. 서버가 붙인 고정 이름은 비운다(앱이 번역한다).
     ref_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    #: 분류(#2622) — exercise|diet|pain|life, 고르지 않으면 빈 문자열.
+    #: 운동 기록 메모는 늘 'exercise' 다(서버가 채운다).
+    category: Mapped[str] = mapped_column(String(16), default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1550,6 +1559,11 @@ class TrainerClientMemo(Base):
         CheckConstraint(
             "source IN ('trainer', 'chat_insight', 'exercise_memo')",
             name="ck_trainer_client_memo_source",
+        ),
+        # 응답 스키마(TrainerMemoOut.category)도 정해진 값만 받는다 — source 와 같은 이유.
+        CheckConstraint(
+            "category IN ('', 'exercise', 'diet', 'pain', 'life')",
+            name="ck_trainer_client_memo_category",
         ),
         Index("ix_trainer_client_memos_pair", "trainer_id", "member_id"),
     )
@@ -1617,7 +1631,9 @@ class TrainerRoutine(Base):
     )
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |
-    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함).
+    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함) |
+    #: consumed(프로그램 만들기 전송에 실려 나간 AI 제안 — 회원이 받는 것은 전송이
+    #: 만든 새 배정이다, #2747).
     #:
     #: 기본이 approved 인 것이 하위 호환의 핵심이다. 지금까지의 배정은 모두
     #: 트레이너가 보낸 것이므로 그대로 회원에게 보여야 한다. AI 가 만든 후보만

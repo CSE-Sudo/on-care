@@ -36,18 +36,29 @@ def utc_process_tz():
         time.tzset()
 
 
+@pytest.fixture
+def real_clock(monkeypatch, session_clock_pin):
+    """세션 날짜 고정(#2940)을 걷어 내고 실제 `clock.now` 로 검증한다.
+
+    이 파일은 clock 구현 자체가 KST 를 따르는지 보는 곳이라, 세션 고정이 아니라
+    원본 시계를 실제 현재 시각과 비교해야 한다.
+    """
+    if session_clock_pin is not None:
+        monkeypatch.setattr(clock, "now", session_clock_pin.source)
+
+
 def _kst_today():
     """테스트가 기대하는 KST 오늘 — clock 구현과 독립적으로 계산한다."""
     return datetime.now(timezone.utc).astimezone(clock.SEOUL).date()
 
 
-def test_now_is_tz_aware_kst(utc_process_tz):
+def test_now_is_tz_aware_kst(utc_process_tz, real_clock):
     now = clock.now()
     assert now.tzinfo is not None, "naive 시각은 서버 TZ 에 휘둘린다"
     assert now.utcoffset().total_seconds() == KST_OFFSET_SECONDS
 
 
-def test_today_follows_kst_not_server_tz(utc_process_tz):
+def test_today_follows_kst_not_server_tz(utc_process_tz, real_clock):
     expected = _kst_today()
     assert clock.today() == expected
     assert clock.today_iso() == expected.isoformat()
@@ -69,7 +80,7 @@ def test_to_seoul_treats_naive_as_utc():
     assert converted.strftime("%H:%M") == "00:30"
 
 
-def test_domain_today_helpers_use_kst(utc_process_tz):
+def test_domain_today_helpers_use_kst(utc_process_tz, real_clock):
     """서비스 계층의 '오늘'이 전부 KST 를 따르는지 — 회귀 방지."""
     from app.services import diet_service, exercise_service, trainer_service
 
