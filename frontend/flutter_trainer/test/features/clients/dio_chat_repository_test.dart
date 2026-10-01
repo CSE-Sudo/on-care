@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_chat_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 
 class _MockDio extends Mock implements Dio {}
@@ -435,5 +436,97 @@ void main() {
     );
 
     expect(repo.watchThread('m1'), emitsError(isA<FormatException>()));
+  });
+
+  group('fetchOlder (#2749)', () {
+    ClientChatMessage oldest() => ClientChatMessage(
+      id: 'msg-51',
+      sender: ChatSender.client,
+      body: '가장 오래된 것',
+      timeLabel: '08:10',
+      createdAt: DateTime.parse('2026-09-14T23:10:00.123456+00:00'),
+    );
+
+    Map<String, Object?> row(String id, String createdAt) => <String, Object?>{
+      'id': id,
+      'sender': 'client',
+      'body': id,
+      'time_label': '08:00',
+      'created_at': createdAt,
+    };
+
+    test('보던 쪽의 가장 오래된 메시지를 (before, before_id) 커서로 넘긴다', () async {
+      when(
+        () => dio.get<List<dynamic>>(
+          '/trainer/clients/m1/chat',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => _ok<List<dynamic>>(<dynamic>[
+          row('msg-1', '2026-09-14T22:00:00+00:00'),
+        ], '/trainer/clients/m1/chat'),
+      );
+
+      await repo.fetchOlder('m1', before: oldest());
+
+      final captured =
+          verify(
+                () => dio.get<List<dynamic>>(
+                  '/trainer/clients/m1/chat',
+                  queryParameters: captureAny(named: 'queryParameters'),
+                ),
+              ).captured.single
+              as Map<String, Object?>;
+      expect(captured, <String, Object?>{
+        'limit': chatPageSize,
+        // UTC ISO — 마이크로초까지 그대로라 서버의 복합 커서와 경계가 맞는다.
+        'before': '2026-09-14T23:10:00.123456Z',
+        'before_id': 'msg-51',
+      });
+    });
+
+    test('응답을 시각→id 순으로 맞춰 돌려준다', () async {
+      when(
+        () => dio.get<List<dynamic>>(
+          '/trainer/clients/m1/chat',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => _ok<List<dynamic>>(<dynamic>[
+          row('b', '2026-09-14T22:00:00+00:00'),
+          row('c', '2026-09-14T22:30:00+00:00'),
+          row('a', '2026-09-14T22:00:00+00:00'),
+        ], '/trainer/clients/m1/chat'),
+      );
+
+      final page = await repo.fetchOlder('m1', before: oldest());
+
+      expect(page.map((m) => m.id), <String>['a', 'b', 'c']);
+    });
+
+    test('폴링은 여전히 커서 없이 최신 쪽만 받는다', () async {
+      when(() => dio.get<List<dynamic>>('/trainer/clients/m1/chat')).thenAnswer(
+        (_) async => _ok<List<dynamic>>(<dynamic>[
+          row('latest', '2026-09-15T01:00:00+00:00'),
+        ], '/trainer/clients/m1/chat'),
+      );
+
+      await repo.watchThread('m1').first;
+
+      verify(
+        () => dio.get<List<dynamic>>('/trainer/clients/m1/chat'),
+      ).called(1);
+    });
+
+    test('서버 오류는 AppError 로 바꿔 던진다', () {
+      when(
+        () => dio.get<List<dynamic>>(
+          '/trainer/clients/m1/chat',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenThrow(_httpError(500, '/trainer/clients/m1/chat'));
+
+      expect(repo.fetchOlder('m1', before: oldest()), throwsA(isA<AppError>()));
+    });
   });
 }

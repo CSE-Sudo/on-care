@@ -61,10 +61,46 @@ void main() {
       expect(w.days[2].totalCount, 2);
     });
 
-    test('끼니 횟수는 응답에 없어 비어 있다 — 끼니 기록일이 `미집계`', () {
+    test('끼니 횟수가 없는 옛 응답은 비어 있다 — 끼니 기록일이 `미집계`', () {
       final ReportSheetWeekData w = reportSheetWeekFromJson(_json());
       expect(w.mealCounts, isEmpty);
       expect(ReportSheet.of(w).mealDaysDue, isNull);
+    });
+
+    test('meal_counts 를 요일별 끼니 수로 읽는다 (#2772)', () {
+      final ReportSheetWeekData w = reportSheetWeekFromJson(
+        _json()..['meal_counts'] = <int>[3, 0, 2, 0, 0, 0, 0],
+        today: DateTime(2026, 9, 30),
+      );
+      expect(w.mealCounts, <int>[3, 0, 2, 0, 0, 0, 0]);
+      final ReportSheet sheet = ReportSheet.of(w, today: DateTime(2026, 9, 30));
+      expect(sheet.mealDays, 2);
+      expect(sheet.mealDaysDue, 7);
+    });
+
+    test('days[].assigned 를 그날 배정 수로 읽는다 (#2772)', () {
+      final Map<String, dynamic> json = _json();
+      final List<Map<String, dynamic>> days =
+          json['days'] as List<Map<String, dynamic>>;
+      days[0]['assigned'] = 3;
+      days[1]['assigned'] = 0;
+      days[2]['assigned'] = null;
+      final ReportSheetWeekData w = reportSheetWeekFromJson(json);
+
+      expect(w.days[0].assigned, 3);
+      expect(w.days[0].doneCount, 2);
+      expect(w.days[0].totalCount, 3);
+      // 0 은 쉬는 날과 구분되지 않아 모르는 날(null)이다 — 분모는 한 운동 수.
+      expect(w.days[1].assigned, isNull);
+      expect(w.days[1].totalCount, 0);
+      expect(w.days[2].assigned, isNull);
+      expect(w.days[2].totalCount, 2);
+    });
+
+    test('배정 칸이 숫자가 아니면 모르는 날이다', () {
+      final Map<String, dynamic> json = _json();
+      (json['days'] as List<Map<String, dynamic>>)[0]['assigned'] = 'three';
+      expect(reportSheetWeekFromJson(json).days[0].assigned, isNull);
     });
 
     test('이번 주인지는 기준일로 가른다', () {

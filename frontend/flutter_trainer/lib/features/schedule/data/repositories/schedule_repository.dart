@@ -818,13 +818,19 @@ class DriftScheduleRepository implements ScheduleRepository {
   ///
   /// 보냄·숨김 표시도 함께 지운다 — 새로 붙인 개인운동은 아직 아무 데도 가지
   /// 않았다.
+  ///
+  /// 그 개인운동을 채운 AI 제안은 검토한 것으로 남긴다(#2747) — 실서버가 등록
+  /// 트랜잭션에서 그 제안을 닫는 것과 같다.
   Future<void> _rememberPersonalRoutines(
     String sessionId,
     List<RoutineExercise> routines,
-  ) => _routineStore.writeSession(
-    sessionId,
-    SessionRoutineState(items: List<RoutineExercise>.unmodifiable(routines)),
-  );
+  ) async {
+    await _routineStore.writeSession(
+      sessionId,
+      SessionRoutineState(items: List<RoutineExercise>.unmodifiable(routines)),
+    );
+    await _routineStore.addReviewedSuggestions(suggestionIdsOf(routines));
+  }
 
   /// Removes a session from the timeline.
   @override
@@ -970,6 +976,9 @@ class DriftScheduleRepository implements ScheduleRepository {
         ]),
       ),
     );
+    // 코칭 탭에서 짠 개인운동을 이 PT 에 붙인 것이면 그 개인운동을 채운 AI
+    // 제안은 검토한 것으로 남긴다(#2747) — 실서버가 같은 요청에서 닫는다.
+    await _routineStore.addReviewedSuggestions(suggestionIdsOf(items));
   }
 
   /// 마무리된 PT 의 개인운동을 보낸다. 취소·노쇼 PT 뒤에 보낸 것은 그 종류로

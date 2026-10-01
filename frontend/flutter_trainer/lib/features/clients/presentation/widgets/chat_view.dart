@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,9 +8,12 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/clients/presentation/controllers/chat_scroll.dart';
+import 'package:oncare_trainer/features/clients/presentation/controllers/chat_thread_history.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_image_attachment.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/trainer_emote_sheet.dart';
 import 'package:oncare_trainer/features/messages/domain/chat_context_insight.dart';
@@ -69,9 +73,27 @@ class _ChatViewState extends ConsumerState<ChatView> {
   /// duplicate request.
   final Set<String> _savingInsights = <String>{};
 
-  /// Message count at the last auto-scroll, so the thread only scrolls
-  /// when a message actually arrives (not on every rebuild).
-  int _lastCount = -1;
+  /// 마지막으로 스크롤을 맞춘 대화의 양 끝. 끝이 바뀐 프레임에서만
+  /// 스크롤한다 — 뒤가 바뀌면 맨 아래로, 앞만 바뀌면(이전 쪽이 붙으면) 보던
+  /// 자리를 지킨다(#2749).
+  ChatEdges? _lastEdges;
+
+  /// 메시지 id → 자리 표시. 지금 가장 오래된 메시지 하나와, 이전 쪽이 붙은 뒤
+  /// 되돌리는 중인 메시지 하나만 들고 있다.
+  final Map<String, GlobalKey> _anchorKeys = <String, GlobalKey>{};
+
+  /// 되돌리는 중인 메시지 id — 끝나면 null.
+  String? _restoringAnchorId;
+
+  /// 지금 그린 대화의 가장 오래된 메시지 — 이전 쪽을 받을 커서다.
+  ClientChatMessage? _oldestShown;
+
+  /// 지금 그린 대화에 받을 이전 쪽이 남아 있는가.
+  bool _canLoadOlder = false;
+
+  /// 맨 위에서 이만큼 안쪽에 닿으면 이전 쪽을 받는다. 화면 크기가 아니라
+  /// "거의 끝까지 올렸다" 를 가르는 기준이다.
+  static const double _loadOlderEdge = 80;
 
   static const ChatContextInsightDetector _insightDetector =
       ChatContextInsightDetector();
@@ -79,10 +101,55 @@ class _ChatViewState extends ConsumerState<ChatView> {
   final ImagePicker _picker = ImagePicker();
 
   @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
+    _scroll
+      ..removeListener(_onScroll)
+      ..dispose();
     _input.dispose();
-    _scroll.dispose();
     super.dispose();
+  }
+
+  set _anchorKeyId(String? oldestId) {
+    _anchorKeys.removeWhere(
+      (String id, GlobalKey _) => id != oldestId && id != _restoringAnchorId,
+    );
+    if (oldestId != null) {
+      _anchorKeys.putIfAbsent(
+        oldestId,
+        () => GlobalKey(debugLabel: 'trainer-chat-anchor'),
+      );
+    }
+  }
+
+  /// 위로 끝까지 올리면 이전 쪽을 받는다. (#2749)
+  ///
+  /// 사용자가 올리는 중일 때만 본다 — 대화를 열며 맨 아래로 내리는 애니메이션도
+  /// 맨 위에서 출발하므로, 방향을 보지 않으면 열자마자 이전 쪽을 받는다.
+  void _onScroll() {
+    if (!_canLoadOlder || !_scroll.hasClients) return;
+    // 방금 붙은 쪽의 자리를 되돌리는 중이다. 그 사이 남은 관성 스크롤이 맨 위에
+    // 머물러 있어도 다음 쪽을 연달아 받지 않는다.
+    if (_restoringAnchorId != null) return;
+    final ScrollPosition position = _scroll.position;
+    if (position.userScrollDirection != ScrollDirection.forward) return;
+    if (position.pixels > position.minScrollExtent + _loadOlderEdge) return;
+    _loadOlder();
+  }
+
+  /// 지금 가장 오래된 메시지 앞의 한 쪽을 받는다. 받는 중이거나 처음 메시지까지
+  /// 받았으면 [ChatThreadHistory.loadOlder] 가 아무것도 하지 않는다.
+  void _loadOlder() {
+    final ClientChatMessage? oldest = _oldestShown;
+    if (oldest == null) return;
+    ref
+        .read(chatThreadHistoryProvider(widget.clientId).notifier)
+        .loadOlder(oldest);
   }
 
   /// 이모티콘 창을 열고, 고른 것을 그 자리에서 보낸다. (#2020)
@@ -263,12 +330,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ..add(const SizedBox(height: OnCareSpacing.s12));
         }
         // 구분선은 위아래 여백을 스스로 갖는다.
-        final DateTime localDate = m.createdAt.toLocal();
+        //
+        // 날짜는 KST 로 정한다(#2751). 말풍선 시각은 서버가 KST 로 적어 준
+        // 라벨이라, 구분선만 `toLocal()`(브라우저 시간대)로 정하면 UTC 브라우저에서
+        // KST 아침 메시지가 전날 구분선 아래 "08:10" 으로 놓인다.
+        final DateTime day = kstDateOf(m.createdAt);
         out.add(
           AppChatDateDivider(
-            AppLocalizations.of(context).chatDateDivider(localDate),
+            AppLocalizations.of(context).chatDateDivider(day),
             key: ValueKey<String>(
-              'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+              'trainer-chat-date-${day.year}-${day.month}-${day.day}',
             ),
           ),
         );
@@ -287,18 +358,20 @@ class _ChatViewState extends ConsumerState<ChatView> {
       // 아니라 스레드에 무슨 일이 있었는가를 적는 자리라, 같은 흐름의 다른
       // 안내("개인 추천운동이 …")와 같은 모양으로 가운데에 둔다(#1600).
       final DateTime? reportWeek = m.reportWeekStart;
+      final Widget item = reportWeek == null
+          ? _Bubble(message: m, avatar: widget.clientAvatar)
+          : ReportRegisteredCard(
+              key: ValueKey<String>('trainer-message-bubble-${m.id}'),
+              weekStart: reportWeek,
+              onOpen: () => context.go(
+                AppRoutes.reportFor(widget.clientId, weekStart: reportWeek),
+              ),
+            );
+      // 가장 오래된 메시지에는 자리 표시를 단다 — 이전 쪽이 그 앞에 붙은 뒤 이
+      // 메시지를 같은 자리로 되돌리는 기준이다(#2749).
+      final GlobalKey? anchor = _anchorKeys[m.id];
       out
-        ..add(
-          reportWeek == null
-              ? _Bubble(message: m, avatar: widget.clientAvatar)
-              : ReportRegisteredCard(
-                  key: ValueKey<String>('trainer-message-bubble-${m.id}'),
-                  weekStart: reportWeek,
-                  onOpen: () => context.go(
-                    AppRoutes.reportFor(widget.clientId, weekStart: reportWeek),
-                  ),
-                ),
-        )
+        ..add(anchor == null ? item : KeyedSubtree(key: anchor, child: item))
         ..add(const SizedBox(height: OnCareSpacing.s12));
       final insight = _insightDetector.detect(m);
       if (insight != null) {
@@ -371,13 +444,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
     }
   }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    final localA = a.toLocal();
-    final localB = b.toLocal();
-    return localA.year == localB.year &&
-        localA.month == localB.month &&
-        localA.day == localB.day;
-  }
+  /// 같은 날인가 — KST 기준(#2751). 브라우저 시간대로 가르면 구분선이 말풍선
+  /// 시각(서버 KST 라벨)과 다른 날을 가리킨다.
+  static bool _sameDay(DateTime a, DateTime b) => isSameKstDay(a, b);
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -390,10 +459,100 @@ class _ChatViewState extends ConsumerState<ChatView> {
     });
   }
 
+  /// 이전 쪽이 [anchorId] 앞에 붙은 뒤에도 그 메시지를 **보던 자리에** 둔다.
+  /// (#2749)
+  ///
+  /// 붙이기 전 그 메시지의 화면 위치를 잡아 두고, 붙인 뒤 같은 위치로 스크롤을
+  /// 옮긴다. 이전 쪽이 길면 붙인 직후 그 메시지가 아직 만들어지지 않았을 수
+  /// 있다(ListView 는 보이는 근처만 만든다). 그때는 먼저 목록 끝에서의 거리로
+  /// 가까이 옮기고, 다음 프레임에 만들어진 메시지로 정확히 맞춘다.
+  void _keepPositionAfterPrepend(String anchorId) {
+    final double? anchorTop = _globalTopOf(anchorId);
+    final double? fromBottom = _scroll.hasClients
+        ? _scroll.position.maxScrollExtent - _scroll.position.pixels
+        : null;
+    if (anchorTop == null && fromBottom == null) return;
+    _restoringAnchorId = anchorId;
+    _anchorKeys.putIfAbsent(
+      anchorId,
+      () => GlobalKey(debugLabel: 'trainer-chat-anchor'),
+    );
+    void settle(int attemptsLeft) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        final ScrollPosition position = _scroll.position;
+        final double? top = _globalTopOf(anchorId);
+        final double target;
+        if (top != null && anchorTop != null) {
+          target = position.pixels + (top - anchorTop);
+        } else if (fromBottom != null) {
+          target = position.maxScrollExtent - fromBottom;
+        } else {
+          _restoringAnchorId = null;
+          return;
+        }
+        final double clamped = target.clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+        final bool done =
+            (clamped - position.pixels).abs() < 0.5 &&
+            (top != null || anchorTop == null);
+        if (done || attemptsLeft <= 1) {
+          if (!done) position.jumpTo(clamped);
+          _restoringAnchorId = null;
+          return;
+        }
+        position.jumpTo(clamped);
+        WidgetsBinding.instance.scheduleFrame();
+        settle(attemptsLeft - 1);
+      });
+    }
+
+    settle(12);
+  }
+
+  /// [id] 메시지의 화면 위 끝(전역 좌표). 아직 만들어지지 않았으면 null.
+  double? _globalTopOf(String id) {
+    final RenderObject? box = _anchorKeys[id]?.currentContext
+        ?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero).dy;
+  }
+
+  /// 대화 맨 위의 이전 쪽 자리 — 더 보기 버튼, 받는 중이면 같은 버튼의 스피너,
+  /// 실패했으면 다시 시도. 위로 끝까지 올려도 같은 일이 일어나지만, 대화가
+  /// 화면보다 짧아 올릴 수 없을 때도 받을 수 있게 버튼을 둔다(#2749).
+  ///
+  /// 받는 동안에도 같은 버튼을 둔다 — 스피너로 바꿔 끼우면 그 높이 차이만큼
+  /// 아래 메시지가 들썩인다.
+  Widget _olderSlot(AppLocalizations l, ChatThreadHistoryState history) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: Center(
+        child: AppButton(
+          key: ValueKey<String>(
+            history.failed
+                ? 'trainer-chat-older-retry'
+                : 'trainer-chat-load-older',
+          ),
+          label: history.failed ? l.chatLoadOlderFailed : l.chatLoadOlder,
+          variant: AppButtonVariant.text,
+          size: OnCareButtonSize.small,
+          loading: history.loading,
+          onPressed: _loadOlder,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final messages = ref.watch(chatThreadProvider(widget.clientId));
+    final ChatThreadHistoryState history = ref.watch(
+      chatThreadHistoryProvider(widget.clientId),
+    );
     final showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     final savedInsightIds =
         ref
@@ -418,10 +577,34 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   ? null
                   : () => ref.invalidate(chatThreadProvider(widget.clientId)),
             ),
-            data: (list) {
+            data: (latest) {
+              // 폴링한 최신 쪽에 위로 올려 받은 이전 쪽을 합친다(#2749). 같은
+              // 메시지가 양쪽에 있으면 id 로 하나만 남는다.
+              final List<ClientChatMessage> list = visibleChatThread(
+                history,
+                latest,
+              );
+              _oldestShown = list.firstOrNull;
+              _canLoadOlder =
+                  list.isNotEmpty && canLoadOlderChat(history, latest);
+              final ChatEdges edges = ChatEdges(
+                oldestId: list.firstOrNull?.id,
+                newestId: list.lastOrNull?.id,
+                count: list.length,
+              );
+              // 무엇이 바뀐 프레임인지 보고 스크롤한다 — 매 빌드마다 부르면
+              // 위로 올려 읽는 중에도 아래로 끌어내린다. 이전 쪽이 앞에 붙은
+              // 때는 보던 자리를 지킨다.
+              final ChatEdges? previous = _lastEdges;
+              final ChatScrollAction action = chatScrollAction(previous, edges);
+              if (action != ChatScrollAction.none) _lastEdges = edges;
+              if (action == ChatScrollAction.keepPosition &&
+                  previous?.oldestId != null) {
+                _keepPositionAfterPrepend(previous!.oldestId!);
+              }
+              _anchorKeyId = edges.oldestId;
               // Auto-scroll only when a message arrived, not every build.
-              if (list.length != _lastCount) {
-                _lastCount = list.length;
+              if (action == ChatScrollAction.toBottom) {
                 _scrollToBottom();
                 // Viewing the thread clears its unread badge — also for
                 // messages that arrive while it stays open. Deferred so
@@ -451,11 +634,14 @@ class _ChatViewState extends ConsumerState<ChatView> {
               return ListView(
                 controller: _scroll,
                 padding: const EdgeInsets.all(OnCareSpacing.s16),
-                children: _threadChildren(
-                  list,
-                  showDemoBanners: showDemoBanners,
-                  savedInsightIds: savedInsightIds,
-                ),
+                children: <Widget>[
+                  if (_canLoadOlder) _olderSlot(l, history),
+                  ..._threadChildren(
+                    list,
+                    showDemoBanners: showDemoBanners,
+                    savedInsightIds: savedInsightIds,
+                  ),
+                ],
               );
             },
           ),
