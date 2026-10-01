@@ -18,6 +18,8 @@ import 'package:oncare/features/benefits/data/repositories/dio_benefits_reposito
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 
+import '../../helpers/strict_dio.dart';
+
 void main() {
   late AppDatabase db;
   late Dio dio;
@@ -30,7 +32,14 @@ void main() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     ledger = DemoPointsLedger(openingBalance: 1000);
     book = DemoCouponBook(ledger: ledger, now: () => now);
-    dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    // 상태 코드를 그대로 보려고 오류 응답도 응답으로 받는다 — 로컬 목업 API 는
+    // 실서버처럼 오류를 예외로 돌려준다(#2743).
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://example.test',
+        validateStatus: (int? _) => true,
+      ),
+    );
     dio.interceptors.add(
       LocalApiInterceptor(
         db,
@@ -39,7 +48,7 @@ void main() {
         coupons: book,
       ),
     );
-    repo = DioBenefitsRepository(dio);
+    repo = DioBenefitsRepository(strictDioOf(dio));
   });
 
   tearDown(() async {

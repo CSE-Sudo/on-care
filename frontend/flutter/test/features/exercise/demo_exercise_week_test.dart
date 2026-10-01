@@ -9,6 +9,7 @@ library;
 import 'dart:io';
 
 import 'package:demo_fixture/demo_fixture.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
@@ -17,6 +18,15 @@ import 'package:oncare/features/exercise/domain/repositories/exercise_repository
 
 import '../../helpers/demo_exercise.dart';
 import '../../helpers/fixed_clock.dart';
+
+/// 로컬 목업 API 는 서버처럼 오류를 `DioException` 으로 돌려준다(#2743).
+Matcher _rejectedWith(int status) => throwsA(
+  isA<DioException>().having(
+    (DioException e) => e.response?.statusCode,
+    'statusCode',
+    status,
+  ),
+);
 
 /// 기대값은 여기에 적지 않고 **원본 픽스처 파일**에서 뽑는다. 숫자를 적어 두면
 /// 픽스처와 두 벌이 되어, 한쪽만 고쳤을 때 조용히 갈린다(#757).
@@ -236,10 +246,10 @@ void main() {
       );
     });
 
-    test('없는 기록을 지워도 주간은 그대로다', () async {
+    test('없는 기록을 지우면 404 로 거절되고 주간은 그대로다', () async {
       final ExerciseRepository r = await _repo();
       final ExerciseWeek before = await r.fetchThisWeek();
-      await r.deleteSession('does-not-exist');
+      await expectLater(r.deleteSession('does-not-exist'), _rejectedWith(404));
       final ExerciseWeek after = await r.fetchThisWeek();
       expect(after.sessions.length, before.sessions.length);
       expect(after.totalMinutes, before.totalMinutes);
@@ -315,9 +325,8 @@ void main() {
 
       // 로컬 목업 API 는 서버처럼 409 로 거절한다 — 응답 자체는
       // `local_api_interceptor_exercise_source_test` 가 본다. 여기서는 거절된
-      // 뒤 주간이 그대로인지를 본다. 수정은 고친 기록 대신 거절 응답이 와
-      // 기록으로 읽지 못하고 실패한다.
-      await r.deleteSession(pt.id!);
+      // 뒤 주간이 그대로인지를 본다.
+      await expectLater(r.deleteSession(pt.id!), _rejectedWith(409));
       await expectLater(
         r.updateSession(
           id: pt.id!,
@@ -326,7 +335,7 @@ void main() {
           calories: 5,
           date: _friday,
         ),
-        throwsA(anything),
+        _rejectedWith(409),
       );
 
       final ExerciseWeek after = await r.fetchThisWeek();

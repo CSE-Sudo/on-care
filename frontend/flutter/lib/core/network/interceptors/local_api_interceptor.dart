@@ -224,6 +224,21 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   ) async {
     final response = await _safeHandle(options);
     if (response != null) {
+      // 오류 응답은 실서버처럼 예외로 돌려준다(#2743). Dio 는 인터셉터가 만든
+      // 응답에 `validateStatus` 를 걸지 않아, 그대로 resolve 하면 404·409 가
+      // 성공처럼 저장소에 닿는다 — 삭제가 조용히 성공하고, 수정은 거절 본문을
+      // 기록으로 읽다 실패했다.
+      final int? status = response.statusCode;
+      if (!options.validateStatus(status)) {
+        handler.reject(
+          DioException.badResponse(
+            statusCode: status ?? 0,
+            requestOptions: options,
+            response: response,
+          ),
+        );
+        return;
+      }
       handler.resolve(response);
       return;
     }

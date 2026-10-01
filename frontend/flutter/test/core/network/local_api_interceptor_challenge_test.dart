@@ -17,6 +17,7 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_challenge_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import '../../helpers/exercise_session_post.dart';
+import '../../helpers/strict_dio.dart';
 
 /// 2026-09-14(월)부터 [offset] 일 뒤의 시각.
 DateTime _day(int offset, [int hour = 10, int minute = 0]) =>
@@ -38,7 +39,14 @@ void main() {
     challenge = DemoWeeklyChallenge(ledger: ledger, now: () => now)
       // 시험이 출처를 갈아 끼운다 — 앱에서는 비어 있고 운동 표로 센다(#2662).
       ..recordedDays = (DateTime monday) => recorded;
-    dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    // 상태 코드를 그대로 보려고 오류 응답도 응답으로 받는다 — 로컬 목업 API 는
+    // 실서버처럼 오류를 예외로 돌려준다(#2743).
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://example.test',
+        validateStatus: (int? _) => true,
+      ),
+    );
     dio.interceptors.add(
       LocalApiInterceptor(
         db,
@@ -99,7 +107,7 @@ void main() {
     expect((await join()).statusCode, 409);
     // 앱 저장소는 409 를 오류로 올린다.
     await expectLater(
-      DioChallengeRepository(dio).join(),
+      DioChallengeRepository(strictDioOf(dio)).join(),
       throwsA(isA<ServerError>()),
     );
     expect(await balance(), 1000);
@@ -134,7 +142,7 @@ void main() {
     await setGoal(4);
     expect((await weekly())['goal'], 4);
 
-    final ChallengeJoin joined = await DioChallengeRepository(dio).join();
+    final ChallengeJoin joined = await DioChallengeRepository(strictDioOf(dio)).join();
     expect(joined.spent, 100);
     expect(joined.balance, 900);
     expect(joined.challenge.goal, 4);
@@ -143,7 +151,7 @@ void main() {
     expect(joined.challenge.status, ChallengeStatus.active);
 
     await setGoal(2);
-    final WeeklyChallenge state = await DioChallengeRepository(dio).fetchWeekly();
+    final WeeklyChallenge state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
     expect(state.goal, 4);
     expect(state.challenge!.goal, 4);
   });
@@ -176,13 +184,13 @@ void main() {
     };
     now = _day(2);
 
-    WeeklyChallenge state = await DioChallengeRepository(dio).fetchWeekly();
+    WeeklyChallenge state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
     expect(state.progress, 2);
     expect(state.challenge!.progress, 2);
     expect(state.challenge!.achieved, isFalse);
 
     recorded = <DateTime>{...recorded, _day(2)};
-    state = await DioChallengeRepository(dio).fetchWeekly();
+    state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
     expect(state.challenge!.progress, 3);
     expect(state.challenge!.achieved, isTrue);
     // 주 중간에 채워도 보상은 주가 끝나야 받는다.
@@ -265,7 +273,7 @@ void main() {
     }
     now = _day(2);
 
-    final WeeklyChallenge state = await DioChallengeRepository(dio).fetchWeekly();
+    final WeeklyChallenge state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
     expect(state.progress, 2);
     expect(state.challenge!.progress, 2);
   });
