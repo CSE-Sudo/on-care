@@ -52,6 +52,7 @@ import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatarSize,
         AppButton,
+        AppDialog,
         AppIconButton,
         AppRingGauge,
         AppSegmentedToggle,
@@ -730,25 +731,35 @@ Future<void> _sendProgram(WidgetTester tester) async {
   await tester.tap(
     find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
   );
-  // `직접 만들기` 로 짠 편집기에는 개인운동이 없어, 어느 PT 에 올릴지 정한 뒤
-  // 한 번 붙잡힌다(#2280) — 이 헬퍼는 전송 흐름을 보려는 것이라 개인운동 없이
-  // 넘어간다. 기존 PT 에 올리면 그 PT 에 붙은 개인운동을 먼저 읽고 나서 창이
-  // 서므로, 창이 서거나 전송이 시작될(편집기 `일정 추가` 가 잠길) 때까지
-  // 기다린다.
-  final dialog = find.byKey(
+  // 어느 PT 에 올릴지 정한 뒤 한 번 더 붙잡힐 수 있다(#2280) — 이 헬퍼는 전송
+  // 흐름을 보려는 것이라 둘 다 넘긴다.
+  // - 개인운동 없이(`직접 만들기`): `개인운동 없이 추가`.
+  // - 기존 PT 에 이미 개인운동이 붙어 있음(데모 PT 는 기본 개인운동이 붙어
+  //   있다): `교체`.
+  // 기존 PT 면 그 PT 에 붙은 개인운동을 먼저 읽고 나서 창이 서므로, 창이
+  // 서거나 전송이 시작될(편집기 `일정 추가` 가 잠길) 때까지 기다린다.
+  final noRoutines = find.byKey(
     const ValueKey<String>('no-personal-routine-dialog'),
   );
+  final replace = find.text('이미 개인운동이 있어요');
   // 보낸 뒤 편집기가 내려가 버튼이 없어져도 전송이 시작된 것으로 본다.
   bool sending() =>
       send.evaluate().isEmpty ||
       tester.widget<AppButton>(send).onPressed == null;
-  for (var i = 0; i < 60 && dialog.evaluate().isEmpty && !sending(); i++) {
+  bool asking() =>
+      noRoutines.evaluate().isNotEmpty || replace.evaluate().isNotEmpty;
+  for (var i = 0; i < 60 && !asking() && !sending(); i++) {
     await tester.pump(const Duration(milliseconds: 50));
   }
-  if (dialog.evaluate().isNotEmpty) {
+  if (noRoutines.evaluate().isNotEmpty) {
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+    );
+  } else if (replace.evaluate().isNotEmpty) {
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(AppDialog), matching: find.text('교체')),
     );
   }
 }
