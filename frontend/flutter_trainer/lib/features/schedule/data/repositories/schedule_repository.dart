@@ -289,7 +289,7 @@ bool _decodedProgramIsEmpty(String programJson) {
 ///
 /// 시간은 초로 비교한다(#2547) — 분은 초에서 반올림한 값이라, `45초` 를
 /// `50초` 로 고쳐도 둘 다 1분이어서 손대지 않은 줄로 읽혔다.
-bool _sameRoutine(RoutineExercise a, RoutineExercise b) =>
+bool samePersonalRoutine(RoutineExercise a, RoutineExercise b) =>
     a.name == b.name &&
     a.seconds == b.seconds &&
     a.type == b.type &&
@@ -963,7 +963,7 @@ class DriftScheduleRepository implements ScheduleRepository {
       (state ?? const SessionRoutineState()).copyWith(
         items: List<RoutineExercise>.unmodifiable(<RoutineExercise>[
           for (var i = 0; i < items.length; i++)
-            if (i < before.length && _sameRoutine(before[i], items[i]))
+            if (i < before.length && samePersonalRoutine(before[i], items[i]))
               items[i]
             else
               items[i].copyWith(source: 'trainer'),

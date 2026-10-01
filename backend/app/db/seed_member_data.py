@@ -123,7 +123,7 @@ _SODIUM_WEEK: dict[str, list[int]] = {
 }
 
 # 최근 운동 세션(최신순): (완료율, 종류라벨, 운동목록, 회원피드백, 트레이너메모).
-# 오늘/이틀전/나흘전 날짜로 시드. PT 세션은 trainer_id 를 붙인다.
+# 첫 세션 날([_HISTORY_START_DAYS])부터 이틀 간격으로 시드. PT 세션은 trainer_id 를 붙인다.
 _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
     "user-jisu": [
         (100, "AI 개인운동",
@@ -147,6 +147,19 @@ _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
         (0, "AI 개인운동", ["벤치프레스 ✗", "데드리프트 ✗", "유산소 ✗"],
          "못 갔어요 😓", ""),
     ],
+}
+
+
+#: 회원별 가장 최근 세션이 며칠 전인가. 트레이너 웹 데모(`seed_clients.dart` 의
+#: `history.daysAgo`)와 같은 날이다.
+#:
+#: 예전에는 둘 다 오늘부터 깔아, 오늘 타임라인(`_SCHEDULE`)과 같은 날 서로 다른
+#: 운동을 말했다 — 이지수는 12:00 에 데드리프트 PT 를 마쳤는데 오늘 이력은 AI
+#: 개인운동 런닝이었고, 박성호는 15:00 PT 가 아직 예정인데 오늘 PT 이력이 이미
+#: 완료로 서 있었다(#2567).
+_HISTORY_START_DAYS: dict[str, int] = {
+    "user-jisu": 1,
+    "user-sungho": 5,
 }
 
 
@@ -1359,7 +1372,8 @@ def _seed_history(db: Session, member_id: str) -> None:
         return
 
     today = clock.today()
-    # 오늘/이틀전/나흘전을 한 주기로 두고 과거 주까지 되풀이한다. 리포트가
+    start = _HISTORY_START_DAYS.get(member_id, 0)
+    # 첫 세션 날부터 이틀 간격을 한 주기로 두고 과거 주까지 되풀이한다. 리포트가
     # 과거 주로 이동할 수 있어, 이번 주만 채우면 이행률이 곧 비어 버린다(#752).
     #
     # 멱등성은 행 id(회원+날짜)로 지킨다. 예전처럼 "오늘 기록이 있으면 통째로
@@ -1375,7 +1389,7 @@ def _seed_history(db: Session, member_id: str) -> None:
     for week in range(_HISTORY_WEEKS):
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
         for idx, (rate, kind, exercises, feedback, note) in enumerate(sessions):
-            d = (today - timedelta(days=idx * 2 + week * 7)).isoformat()
+            d = (today - timedelta(days=start + idx * 2 + week * 7)).isoformat()
             hid = f"seed-hist-{member_id}-{d}"
             if hid in existing:
                 continue

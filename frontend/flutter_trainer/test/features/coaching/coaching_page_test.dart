@@ -37,6 +37,7 @@ import 'package:oncare_trainer/features/coaching/presentation/widgets/program_ed
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_nutrition_summary_card.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -51,10 +52,12 @@ import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatarSize,
         AppButton,
+        AppDialog,
         AppIconButton,
         AppRingGauge,
         AppSegmentedToggle,
         AppSegmentedToggleStyle,
+        AppStepIndicator,
         OnCareLayout,
         OnCareMotion;
 
@@ -584,8 +587,10 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
 /// 한 줄을 직접 더해 최소 한 개 조건을 채운다. (#2223)
 Future<void> _completePersonalStep(
   WidgetTester tester,
-  Finder scrollable,
-) async {
+  Finder scrollable, {
+  // 붙이기 흐름(#2280)은 `프로그램에 반영` 대신 `PT에 반영` 으로 끝난다.
+  String doneKey = 'complete-personal-routines',
+}) async {
   // 제안이 늦게 도착할 수 있다 — 한 번 더 정착시킨 뒤 비어 있는지 본다.
   // 줄이 하나라도 있으면 그 줄의 빼기 버튼이 있다 — 빈 상태 문구는 제안이
   // 없을 때와 못 읽었을 때가 달라, 줄 자체로 판단한다.
@@ -624,7 +629,7 @@ Future<void> _completePersonalStep(
     await tester.pumpAndSettle();
   }
 
-  final done = find.byKey(const ValueKey<String>('complete-personal-routines'));
+  final done = find.byKey(ValueKey<String>(doneKey));
   await tester.scrollUntilVisible(
     done,
     150,
@@ -726,6 +731,37 @@ Future<void> _sendProgram(WidgetTester tester) async {
   await tester.tap(
     find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
   );
+  // 어느 PT 에 올릴지 정한 뒤 한 번 더 붙잡힐 수 있다(#2280) — 이 헬퍼는 전송
+  // 흐름을 보려는 것이라 둘 다 넘긴다.
+  // - 개인운동 없이(`직접 만들기`): `개인운동 없이 추가`.
+  // - 기존 PT 에 이미 개인운동이 붙어 있음(데모 PT 는 기본 개인운동이 붙어
+  //   있다): `교체`.
+  // 기존 PT 면 그 PT 에 붙은 개인운동을 먼저 읽고 나서 창이 서므로, 창이
+  // 서거나 전송이 시작될(편집기 `일정 추가` 가 잠길) 때까지 기다린다.
+  final noRoutines = find.byKey(
+    const ValueKey<String>('no-personal-routine-dialog'),
+  );
+  final replace = find.text('이미 개인운동이 있어요');
+  // 보낸 뒤 편집기가 내려가 버튼이 없어져도 전송이 시작된 것으로 본다.
+  bool sending() =>
+      send.evaluate().isEmpty ||
+      tester.widget<AppButton>(send).onPressed == null;
+  bool asking() =>
+      noRoutines.evaluate().isNotEmpty || replace.evaluate().isNotEmpty;
+  for (var i = 0; i < 60 && !asking() && !sending(); i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  if (noRoutines.evaluate().isNotEmpty) {
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+    );
+  } else if (replace.evaluate().isNotEmpty) {
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(AppDialog), matching: find.text('교체')),
+    );
+  }
 }
 
 /// `showAppDatePicker`(입력칸 + 달력 세로형 선택창, #1778) 에서 [date] 를
@@ -742,10 +778,7 @@ Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
   final today = nowKst();
   if (date.year != today.year || date.month != today.month) {
     await tester.tap(
-      find.descendant(
-        of: dialog,
-        matching: find.byIcon(AppIcons.chevronRight),
-      ),
+      find.descendant(of: dialog, matching: find.byIcon(AppIcons.chevronRight)),
     );
     await tester.pumpAndSettle();
   }
@@ -1330,9 +1363,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('식단을 고르면 식단 분석·추천 카드가 전송 이력 바로 위에 선다', (
-      tester,
-    ) async {
+    testWidgets('식단을 고르면 식단 분석·추천 카드가 전송 이력 바로 위에 선다', (tester) async {
       // 트레이너는 회원 상세보다 이 탭에 오래 머문다 — 추천에 여기서도 답한다.
       await openTab(tester);
       await tester.pumpAndSettle();
@@ -2576,6 +2607,14 @@ void main() {
         seedClock: kMidWeekKst,
         extraOverrides: <Override>[
           trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          // 붙일 PT 가 없는 주다 — 데모 씨앗에는 오늘 아직 보내지 않은 PT 가
+          // 있어, 그대로 두면 시작일(오늘)의 PT 에 붙는다(#2280).
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
         ],
       );
 
@@ -2648,6 +2687,14 @@ void main() {
         seedClock: kMidWeekKst,
         extraOverrides: <Override>[
           trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          // 붙일 PT 가 없는 주다 — 데모 씨앗에는 오늘 아직 보내지 않은 PT 가
+          // 있어, 그대로 두면 시작일(오늘)의 PT 에 붙는다(#2280).
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
         ],
       );
 
@@ -3042,4 +3089,513 @@ void main() {
       },
     );
   });
+
+  group('CoachingPage — 개인운동 붙이기 (#2280)', () {
+    Future<_AttachScheduleRepository> openCoaching(
+      WidgetTester tester, {
+      String at = AppRoutes.coaching,
+      List<RoutineExercise> attached = const <RoutineExercise>[],
+      List<ScheduleSession> candidates = const <ScheduleSession>[],
+    }) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1600, 1200);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      late _AttachScheduleRepository scheduleRepo;
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: at,
+        seedClock: kMidWeekKst,
+        extraOverrides: <Override>[
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => scheduleRepo = _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: attached,
+              candidates: candidates,
+            ),
+          ),
+        ],
+      );
+      return scheduleRepo;
+    }
+
+    /// `직접 만들기` 편집기에 운동 하나를 넣는다 — 빈 편집기는 보낼 수 없다.
+    Future<void> openManualEditor(WidgetTester tester) async {
+      await _openManualProgram(tester);
+      final scrollable = find.byType(Scrollable).first;
+      final add = find.text('운동 추가');
+      await tester.scrollUntilVisible(add, 150, scrollable: scrollable);
+      await tester.pump();
+      await tester.tap(add);
+      await tester.pump();
+      final nameField = find.byKey(
+        const ValueKey<String>('custom-exercise-name'),
+      );
+      await tester.enterText(nameField, '직접 짠 운동');
+      tester
+          .widget<TextField>(
+            find.descendant(of: nameField, matching: find.byType(TextField)),
+          )
+          .onSubmitted!('직접 짠 운동');
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapEditorSend(WidgetTester tester) async {
+      await _revealBuilt(tester, 'program-editor-send');
+      final send = find.byKey(const ValueKey<String>('program-editor-send'));
+      await _ensureCentered(tester, send);
+      await tester.pump();
+      await tester.tap(send);
+      await tester.pumpAndSettle();
+    }
+
+    /// 붙이기 흐름의 개인운동 단계를 끝낸다 — 제안이 없으면 한 줄을 넣는다.
+    Future<void> finishAttachStep(WidgetTester tester) async {
+      expect(
+        find.byKey(const ValueKey<String>('routine-attach-target')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      // `개인운동만 짜기` 를 고른 것과 같은 모양이다 — 프로그램 선택·
+      // 검토 두 칸이 건너뜀으로 선다.
+      expect(
+        find.descendant(
+          of: find.byType(AppStepIndicator),
+          matching: find.text('건너뜀'),
+        ),
+        findsNWidgets(2),
+      );
+      await _completePersonalStep(
+        tester,
+        find.byType(Scrollable).first,
+        doneKey: 'routine-attach-confirm',
+      );
+    }
+
+    testWidgets('직접 만들기의 빈 개인운동 박스는 AI 개인운동 단계로 짜서 붙인다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      // 위저드를 지나지 않았어도 박스가 선다 — 비었다는 사실을 보내기 전에
+      // 보여 준다.
+      await _revealBuilt(tester, 'personal-routine-edit');
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-empty')),
+        findsOneWidget,
+      );
+      final edit = find.byKey(const ValueKey<String>('personal-routine-edit'));
+      expect(
+        find.descendant(of: edit, matching: find.text('개인운동 추가')),
+        findsOneWidget,
+      );
+      await _ensureCentered(tester, edit);
+      await tester.pump();
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+
+      // 빈 창이 아니라 개인운동 단계(AI 제안)가 열린다. 편집기는 숨겨 둔다.
+      expect(find.byType(ProgramEditorWorkspace), findsNothing);
+      await finishAttachStep(tester);
+
+      // 편집기로 돌아와 짜던 PT 구성이 그대로 있고, 박스에 개인운동이 섰다.
+      expect(find.byType(ProgramEditorWorkspace), findsOneWidget);
+      expect(find.text('직접 짠 운동'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-empty')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: edit, matching: find.text('개인운동 수정')),
+        findsOneWidget,
+      );
+
+      // 붙였으니 보낼 때 붙잡지 않는다 — 곧장 일정 확인창이다.
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await settle(tester);
+
+      expect(scheduleRepo.registerCalls, 1);
+      expect(scheduleRepo.personalRoutineCalls.single, isNotEmpty);
+    });
+
+    testWidgets('개인운동 없이 일정을 추가하려 하면 한 번 묻고, 추가를 고르면 개인운동 단계로 간다', (
+      tester,
+    ) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      await tapEditorSend(tester);
+      // 어느 PT 에 올릴지 먼저 정하고, 그다음에 묻는다.
+      expect(
+        find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('개인운동 없이 일정을 추가할까요?'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('no-personal-routine-add')),
+      );
+      await tester.pumpAndSettle();
+      // 일정에는 아직 올리지 않았다 — 붙인 뒤 다시 `일정 추가` 를 누른다.
+      expect(scheduleRepo.registerCalls, 0);
+      await finishAttachStep(tester);
+
+      await tapEditorSend(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await settle(tester);
+      expect(scheduleRepo.registerCalls, 1);
+      expect(scheduleRepo.personalRoutineCalls.single, isNotEmpty);
+    });
+
+    testWidgets('개인운동 없이 추가를 고르면 개인운동 없이 일정에 올린다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      await tapEditorSend(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+      );
+      await settle(tester);
+
+      expect(scheduleRepo.registerCalls, 1);
+      expect(scheduleRepo.personalRoutineCalls.single, isEmpty);
+    });
+
+    testWidgets('개인운동이 이미 붙은 PT 의 프로그램만 다시 올리면 개인운동 없이라고 묻지 않는다', (
+      tester,
+    ) async {
+      // 등록 칸(오늘 10:00)과 겹치는, 개인운동이 붙어 있는 예정 PT.
+      const ScheduleSession booked = ScheduleSession(
+        id: 'booked-pt',
+        date: '2026-08-20',
+        time: '10:00',
+        clientId: 'seed-client-1',
+        clientName: '김민수',
+        type: '1:1 PT',
+        durationMinutes: 50,
+        status: ScheduleStatus.upcoming,
+        note: '',
+        program: <ProgramItem>[ProgramItem(name: '스쿼트')],
+      );
+      final scheduleRepo = await openCoaching(
+        tester,
+        candidates: const <ScheduleSession>[booked],
+        attached: const <RoutineExercise>[
+          RoutineExercise(name: '먼저 붙인 걷기', minutes: 20, type: '유산소'),
+        ],
+      );
+      await openManualEditor(tester);
+
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-confirm-attach')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await settle(tester);
+
+      // 서버가 붙어 있던 개인운동을 그대로 두므로 "없이" 가 아니다.
+      expect(
+        find.byKey(const ValueKey<String>('no-personal-routine-dialog')),
+        findsNothing,
+      );
+      expect(scheduleRepo.registerCalls, 1);
+    });
+
+    /// 스케줄에서 온 PT — 아직 보내지 않은 예정 PT 다.
+    const ScheduleSession targetPt = ScheduleSession(
+      id: 'attach-target',
+      date: '2026-09-30',
+      time: '12:00',
+      clientId: 'seed-client-1',
+      clientName: '김민수',
+      type: '1:1 PT',
+      durationMinutes: 50,
+      status: ScheduleStatus.upcoming,
+      note: '',
+      program: <ProgramItem>[ProgramItem(name: '스쿼트')],
+    );
+
+    String attachRoute(String requestId) => AppRoutes.coachingAttach(
+      'seed-client-1',
+      sessionId: targetPt.id,
+      date: targetPt.date,
+      requestId: requestId,
+    );
+
+    /// 개인운동 단계를 끝내고(`프로그램에 반영`) 개인운동 박스의 확정을 누른다.
+    Future<void> reflectAndConfirm(WidgetTester tester) async {
+      await _completePersonalStep(tester, find.byType(Scrollable).first);
+      final confirm = find.byKey(
+        const ValueKey<String>('personal-routine-send'),
+      );
+      await _revealBuilt(tester, 'personal-routine-send');
+      await _ensureCentered(tester, confirm);
+      await tester.pump();
+      await tester.tap(confirm);
+      await settle(tester);
+    }
+
+    testWidgets('스케줄에서 오면 개인운동만 짜기로 열리고, 그 PT 에 반영하면 그 일정으로 돌아간다', (
+      tester,
+    ) async {
+      final scheduleRepo = await openCoaching(
+        tester,
+        at: attachRoute('r-1'),
+        candidates: const <ScheduleSession>[targetPt],
+      );
+
+      // `개인운동만 짜기` 를 누른 것과 같다 — 개인운동 칸에서 열리고 가운데 두
+      // 칸이 건너뜀으로 선다. 따로 만든 화면이 아니다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AppStepIndicator),
+          matching: find.text('건너뜀'),
+        ),
+        findsNWidgets(2),
+      );
+      expect(
+        find.byKey(const ValueKey<String>('routine-attach-target')),
+        findsNothing,
+      );
+
+      await _completePersonalStep(tester, find.byType(Scrollable).first);
+      // 어디로 보낼지 고르지 않는다 — 시작일이 그 PT 날로 잡혀 있고, 그날
+      // PT 가 있으니 확정이 `PT에 반영` 이다.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('personal-routine-start-date')),
+          matching: find.text('2026-09-30'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-target-when')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('personal-routine-send')),
+          matching: find.text('PT에 반영'),
+        ),
+        findsOneWidget,
+      );
+      final confirm = find.byKey(
+        const ValueKey<String>('personal-routine-send'),
+      );
+      await _revealBuilt(tester, 'personal-routine-send');
+      await _ensureCentered(tester, confirm);
+      await tester.pump();
+      await tester.tap(confirm);
+      await settle(tester);
+
+      expect(scheduleRepo.updatedFor, <String>['attach-target']);
+      expect(scheduleRepo.updatedItems.single, isNotEmpty);
+      // 붙이기만 한다 — 회원 전송은 스케줄에서 트레이너가 누른다.
+      expect(scheduleRepo.sends, 0);
+      final Uri location = Uri.parse(currentLocation(tester));
+      expect(location.path, AppRoutes.schedule);
+      expect(location.queryParameters['session'], 'attach-target');
+    });
+
+    testWidgets('같은 PT 를 스케줄에서 다시 누르면 개인운동만 짜기로 다시 열린다', (tester) async {
+      await openCoaching(
+        tester,
+        at: attachRoute('r-1'),
+        candidates: const <ScheduleSession>[targetPt],
+      );
+      final step = find.byKey(const ValueKey<String>('personal-routine-step'));
+      expect(step, findsOneWidget);
+
+      // 조건 설정으로 되돌아갔다가 스케줄에 다녀온다.
+      final prev = find.byKey(const ValueKey<String>('routine-step-prev'));
+      await _revealBuilt(tester, 'routine-step-prev');
+      await tester.tap(prev);
+      await settle(tester);
+      expect(step, findsNothing);
+      await goTo(tester, AppRoutes.schedule);
+
+      // 요청만 새것이다 — 예전에는 주소가 같아 한 번 닫은 흐름으로 읽혔다.
+      await goTo(tester, attachRoute('r-2'));
+      expect(step, findsOneWidget);
+    });
+
+    testWidgets('붙일 PT 에 개인운동이 이미 있으면 교체할지 한 번 묻는다', (tester) async {
+      final scheduleRepo = await openCoaching(
+        tester,
+        at: attachRoute('r-1'),
+        candidates: const <ScheduleSession>[targetPt],
+        attached: const <RoutineExercise>[
+          RoutineExercise(name: '먼저 붙인 걷기', minutes: 20, type: '유산소'),
+        ],
+      );
+
+      await reflectAndConfirm(tester);
+      expect(find.text('이미 개인운동이 있어요'), findsOneWidget);
+      expect(find.textContaining('먼저 붙인 걷기'), findsOneWidget);
+      // 묻는 동안에는 교체하지 않는다.
+      expect(scheduleRepo.updatedFor, isEmpty);
+
+      await tester.tap(find.text('교체'));
+      await settle(tester);
+      expect(scheduleRepo.updatedFor, <String>['attach-target']);
+    });
+
+    testWidgets('시작일에 PT 가 없으면 바로 보내고, 가까운 PT 를 누르면 그 PT 에 반영으로 바뀐다', (
+      tester,
+    ) async {
+      final scheduleRepo = await openCoaching(
+        tester,
+        candidates: const <ScheduleSession>[targetPt],
+      );
+      final scrollable = find.byType(Scrollable).first;
+      final skip = find.byKey(const ValueKey<String>('skip-pt-program'));
+      await tester.scrollUntilVisible(skip, 150, scrollable: scrollable);
+      await _ensureCentered(tester, skip);
+      await tester.tap(skip);
+      await tester.pumpAndSettle();
+      await _completePersonalStep(tester, scrollable);
+
+      // 시작일은 오늘이고 오늘은 PT 가 없다 — 지금처럼 바로 보낸다.
+      final send = find.byKey(const ValueKey<String>('personal-routine-send'));
+      expect(
+        find.descendant(of: send, matching: find.text('회원에게 보내기')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-weekly')),
+        findsOneWidget,
+      );
+
+      // 가장 가까운 아직 보내지 않은 PT 를 알려 준다 — 누르면 시작일이 그
+      // 날로 바뀌고 확정이 `PT에 반영` 이 된다.
+      final nearest = find.byKey(
+        const ValueKey<String>('personal-routine-nearest-pt'),
+      );
+      await _revealBuilt(tester, 'personal-routine-nearest-pt');
+      await _ensureCentered(tester, nearest);
+      await tester.pump();
+      await tester.tap(nearest);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: send, matching: find.text('PT에 반영')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-box-target-when')),
+        findsOneWidget,
+      );
+
+      await _revealBuilt(tester, 'personal-routine-send');
+      await _ensureCentered(tester, send);
+      await tester.pump();
+      await tester.tap(send);
+      await settle(tester);
+      // 붙이기만 한다 — 회원 전송은 스케줄에서 한다.
+      expect(scheduleRepo.updatedFor, <String>['attach-target']);
+      expect(scheduleRepo.sends, 0);
+    });
+  });
+}
+
+/// 코칭 탭의 붙이기(#2280)를 보는 저장소 — 일정 등록과 붙이기를 붙잡는다.
+class _AttachScheduleRepository extends DriftScheduleRepository {
+  _AttachScheduleRepository(
+    super.db, {
+    required this.attached,
+    this.candidates = const <ScheduleSession>[],
+  });
+
+  final List<RoutineExercise> attached;
+
+  /// 그 회원의 일정 — 개인운동만을 붙일 PT 후보가 된다.
+  final List<ScheduleSession> candidates;
+
+  @override
+  Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client) =>
+      Stream<List<ScheduleSession>>.value(candidates);
+
+  @override
+  Future<List<ScheduleSession>> fetchClientSessionsOn(
+    ScheduleClientKey client,
+    String date,
+  ) async => <ScheduleSession>[
+    for (final ScheduleSession s in candidates)
+      if (s.date == date) s,
+  ];
+
+  int registerCalls = 0;
+  int sends = 0;
+  final List<List<RoutineExercise>> personalRoutineCalls =
+      <List<RoutineExercise>>[];
+  final List<String> updatedFor = <String>[];
+  final List<List<RoutineExercise>> updatedItems = <List<RoutineExercise>>[];
+
+  @override
+  Future<bool> registerProgramSchedule({
+    required String date,
+    required String clientId,
+    required String clientName,
+    required String time,
+    required int durationMinutes,
+    required Map<String, Object?> assignment,
+    required List<ProgramItem> program,
+    String? sessionId,
+    List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+  }) async {
+    registerCalls++;
+    personalRoutineCalls.add(personalRoutines);
+    return true;
+  }
+
+  @override
+  Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async =>
+      <SessionRoutine>[
+        for (final RoutineExercise e in attached)
+          SessionRoutine(exercise: e, sent: false),
+      ];
+
+  @override
+  Future<void> updateScheduledRoutines(
+    String id,
+    List<RoutineExercise> items,
+  ) async {
+    updatedFor.add(id);
+    updatedItems.add(items);
+  }
+
+  @override
+  Future<void> sendProgram(String id, {String? clientRequestId}) async {
+    sends++;
+  }
 }

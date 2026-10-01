@@ -3163,6 +3163,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t update the personal exercise. Please try again.'**
   String get schedRoutinesUpdateFailed;
 
+  /// No description provided for @schedAddRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Add personal exercise'**
+  String get schedAddRoutines;
+
+  /// No description provided for @schedRoutinesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise added.'**
+  String get schedRoutinesAdded;
+
+  /// No description provided for @schedNoRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise'**
+  String get schedNoRoutines;
+
+  /// No description provided for @schedNoRoutinesSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without personal exercise?'**
+  String get schedNoRoutinesSendTitle;
+
+  /// No description provided for @schedNoRoutinesSendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.'**
+  String get schedNoRoutinesSendBody;
+
+  /// No description provided for @schedNoRoutinesSendSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without it'**
+  String get schedNoRoutinesSendSkip;
+
   /// No description provided for @schedTimeRange.
   ///
   /// In en, this message translates to:
@@ -5344,7 +5380,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSkipPtProgram.
   ///
   /// In en, this message translates to:
-  /// **'Skip PT — personal exercise only'**
+  /// **'Personal exercise only'**
   String get aiSkipPtProgram;
 
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
@@ -5500,7 +5536,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPersonalStepBlurbRoutineOnly.
   ///
   /// In en, this message translates to:
-  /// **'What the member does on their own this week. Pick at least one.'**
+  /// **'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.'**
   String get aiPersonalStepBlurbRoutineOnly;
 
   /// No description provided for @aiPersonalStepEmpty.
@@ -5586,6 +5622,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Goes to the member when you complete this PT.'**
   String get progPersonalRoutinesWhen;
+
+  /// No description provided for @progNoRoutinesRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to schedule without personal exercise?'**
+  String get progNoRoutinesRegisterTitle;
+
+  /// No description provided for @progNoRoutinesRegisterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.'**
+  String get progNoRoutinesRegisterBody;
+
+  /// No description provided for @progNoRoutinesRegisterSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add without it'**
+  String get progNoRoutinesRegisterSkip;
+
+  /// No description provided for @progPersonalRoutinesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise yet. Add at least one for each PT.'**
+  String get progPersonalRoutinesEmpty;
+
+  /// No description provided for @aiAttachTargetPt.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise for the PT you are putting together.'**
+  String get aiAttachTargetPt;
+
+  /// No description provided for @aiAttachRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to PT'**
+  String get aiAttachRoutines;
+
+  /// No description provided for @aiAttachedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied'**
+  String get aiAttachedLabel;
+
+  /// No description provided for @aiRoutineTargetPt.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach to the {date} {time} PT'**
+  String aiRoutineTargetPt(String date, String time);
+
+  /// No description provided for @aiRoutineOnlyAttachHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Attaches to the {date} {time} PT. It reaches the member when you send that PT from Schedule.'**
+  String aiRoutineOnlyAttachHint(String date, String time);
+
+  /// No description provided for @aiReplaceRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise already attached'**
+  String get aiReplaceRoutinesTitle;
+
+  /// No description provided for @aiReplaceRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT already has {count} personal exercise(s) ({names}). Replace them with the new ones?'**
+  String aiReplaceRoutinesBody(int count, String names);
+
+  /// No description provided for @aiReplaceRoutinesConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get aiReplaceRoutinesConfirm;
 
   /// No description provided for @programRoutineOnlyConfirmBody.
   ///
