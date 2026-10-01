@@ -257,6 +257,14 @@ def redeem_pairing_code(
         _notify_member_paired(db, trainer_id, member.id)
 
         db.commit()
+    except IntegrityError:
+        # 위 담당 확인과 커밋(또는 중간 flush) 사이에 다른 연결(복구·수락)이 먼저
+        # 들어왔다 — 회원당 활성 담당 1명 인덱스에 걸린 것이다. 500 대신 조회로
+        # 막았을 때와 같은 409 로 옮긴다(#2911). 롤백으로 코드도 살아남는다.
+        db.rollback()
+        raise MemberAlreadyCoached(
+            "이미 다른 트레이너가 담당 중인 회원이에요."
+        ) from None
     except Exception:
         # 실패했으면 코드도 되살아나야 한다 — 회원이 다시 띄우게 만들지 않는다.
         db.rollback()
@@ -412,6 +420,7 @@ def accept(
             member_id,
             consented_at=_now(),
         )
+        _flush_new_link(db)
     elif data_consent_service.blocks_access(existing):
         # 동의 없이 살아 있는 링크다 — 방금 받은 동의를 적는다. (#1631)
         data_consent_service.grant(existing, _now())
@@ -440,6 +449,21 @@ def accept(
     db.commit()
     db.refresh(row)
     return _to_member_out(db, [row])[0]
+
+
+def _flush_new_link(db: Session) -> None:
+    """방금 만든·되살린 담당 링크를 먼저 내려 보낸다. (#2911)
+
+    위 담당 확인과 쓰기 사이에 다른 트레이너의 담당(복구·연결 코드)이 먼저 생기면
+    회원당 활성 담당 1명 인덱스(`uq_trainer_client_active_member`)에 걸린다. 그
+    위반이 뒤따르는 조회의 자동 flush 에서 500 으로 터지지 않도록 여기서 내려
+    보내고, 조회로 막았을 때와 같은 [MemberAlreadyCoached](409) 로 옮긴다.
+    """
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중이에요.") from None
 
 
 def reject(db: Session, member_id: str, invite_id: str) -> MemberClientInviteOut:

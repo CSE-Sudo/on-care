@@ -1887,6 +1887,7 @@ def trainer_assign_program_with_schedule(
         raise HTTPException(
             status_code=409,
             detail={
+                "code": exc.code,
                 "message": str(exc),
                 "candidates": [
                     candidate.model_dump(mode="json") for candidate in exc.candidates

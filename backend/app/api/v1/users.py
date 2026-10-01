@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.core.rate_limit import rate_limit
 from app.services.audit import client_ip, record as audit
+from app.services.audit_email import masked_email
 from app.core.security import (
     decode_refresh_claims,
     hash_password,
@@ -229,6 +230,17 @@ def update_me(
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
+        # 위 중복 조회는 빠른 실패용이다. 같은 새 이메일로 바꾸는 요청(또는 같은
+        # 이메일 가입)이 겹치면 둘 다 조회를 통과하고 `users.email` 유일 제약에서
+        # 만난다 — 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911). 아래
+        # 조회의 자동 flush 에서 터지지 않도록 이메일만 여기서 먼저 내려 보낸다.
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409, detail="이미 사용 중인 이메일입니다."
+            ) from None
     if data.get("name") is not None:
         name_before = user.name
         user.name = data["name"]
@@ -384,7 +396,7 @@ def register(
             event="auth.register",
             ip=client_ip(request),
             success=False,
-            detail=payload.email,
+            detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
     user = User(
@@ -446,7 +458,7 @@ def register_trainer(
             event="auth.trainer_register",
             ip=client_ip(request),
             success=False,
-            detail=payload.email,
+            detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -481,7 +493,7 @@ def login(
             event="auth.login",
             ip=client_ip(request),
             success=False,
-            detail=form.username,
+            detail=masked_email(form.username),
         )
         raise HTTPException(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."

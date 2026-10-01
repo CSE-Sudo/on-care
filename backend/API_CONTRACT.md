@@ -12,7 +12,15 @@
   (프론트 base URL 에 `/v1` 을 포함시키거나 서버가 `/v1` 라우터를 둠. 본 백엔드는 **`/v1` prefix** 채택.)
 - **JSON 표기**: **snake_case** (Pydantic alias 규약). 프론트의 case_mapper 가 camelCase 로 변환.
 - **인증**: `Authorization: Bearer <token>` (JWT). `auth_interceptor` 가 붙인다. 자세한 것은 아래 "인증" 절.
-- **에러**: `{ "code": "...", "message": "..." }` 형태. 4xx/5xx 는 DioException 으로 처리됨.
+- **에러**: FastAPI 형식 `{"detail": ...}` 이고 `detail` 은 **두 형식만** 쓴다(#2911). 4xx/5xx 는 DioException 으로 처리됨.
+  - **문자열**: `{"detail": "문장"}` — 대부분의 오류. 앱은 그대로 보여 준다(한국어 화면).
+  - **객체**: `{"detail": {"code", "message", …추가 필드}}` — 화면이 분기해야 하는 오류만. **`code` 는 반드시 있다.**
+    예: 일정 겹침 `schedule_overlap`(+`conflicts`), 프로그램을 붙일 회차 미정 `attach_target_conflict`(+`candidates`),
+    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`.
+    앱 공용 처리(트레이너 웹 `serverDetailText`)는 문자열이면 그 문장, 객체면 `message` 를 읽는다.
+  - 예외는 FastAPI 스키마 검증 422 의 목록형 `detail`(`[{loc, msg, type}]`) 하나다.
+  - 경쟁 상황(같은 이메일로 동시에 바꾸기, 같은 회원 담당 복구·수락·연결 코드가 겹침)도 DB 제약 위반을 500 이 아니라
+    앞선 조회로 막았을 때와 같은 409 로 돌려준다.
 - **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
   `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
   서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
