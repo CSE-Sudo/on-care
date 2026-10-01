@@ -7660,6 +7660,18 @@ abstract class AppLocalizations {
   /// **'That date has passed. Pick today or a later date'**
   String get programEditorRegisterDatePast;
 
+  /// No description provided for @programEditorSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to the schedule'**
+  String get programEditorSending;
+
+  /// No description provided for @programEditorAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'You just sent this setup. Apply a new one to send again'**
+  String get programEditorAlreadySent;
+
   /// No description provided for @coachSendNetworkFailed.
   ///
   /// In en, this message translates to:

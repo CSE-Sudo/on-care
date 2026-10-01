@@ -1845,6 +1845,8 @@
   "programEditorNoExercises": "운동을 하나 이상 추가해 주세요",
   "programEditorExerciseNameInvalid": "이름이 비었거나 100자를 넘는 운동이 있어요",
   "programEditorRegisterDatePast": "지난 날짜예요. 오늘 이후 날짜를 골라 주세요",
+  "programEditorSending": "일정에 추가하는 중이에요",
+  "programEditorAlreadySent": "방금 보낸 구성이에요. 새 구성을 반영하면 다시 보낼 수 있어요",
   "coachSendNetworkFailed": "네트워크 연결을 확인한 뒤 다시 시도해 주세요",
   "coachSendClientNotFound": "담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요",
   "coachSendInvalid": "서버가 이 일정을 받지 않았어요. 날짜·시간·운동 구성을 확인해 주세요",

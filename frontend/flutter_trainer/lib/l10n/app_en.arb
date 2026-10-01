@@ -2853,6 +2853,8 @@
   "programEditorNoExercises": "Add at least one exercise",
   "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
   "programEditorRegisterDatePast": "That date has passed. Pick today or a later date",
+  "programEditorSending": "Adding to the schedule",
+  "programEditorAlreadySent": "You just sent this setup. Apply a new one to send again",
   "coachSendNetworkFailed": "Check your network connection and try again",
   "coachSendClientNotFound": "This member isn't linked to you. Check the member's connection",
   "coachSendInvalid": "The server didn't accept this schedule. Check the date, time and exercises",
