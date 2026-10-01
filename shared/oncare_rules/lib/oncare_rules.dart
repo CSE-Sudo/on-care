@@ -5,4 +5,5 @@
 /// 적고, 서버(Python)와의 일치는 `vectors/*.json` 입력 표로 양쪽에서 검사한다.
 library;
 
+export 'src/exercise_type.dart';
 export 'src/rounding.dart';

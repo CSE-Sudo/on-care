@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from app.schemas.exercise_api import ExerciseCalorieRequest, ExerciseSessionCreate
+from app.services import exercise_types
 from app.services.exercise_catalog import energy
 
 #: 입력 표 위치. 백엔드 이미지에는 없고 저장소에서 테스트할 때만 읽는다.
@@ -27,6 +28,7 @@ def _load(name: str) -> dict:
 
 
 ROUNDING = _load("rounding")
+EXERCISE_TYPES = _load("exercise_types")
 
 
 # ── 반올림 (#2860) ──────────────────────────────────────────────────────
@@ -79,3 +81,21 @@ def test_fallback_calories_match_shared_vectors(case: dict) -> None:
     """유형 평균 kcal 이 두 앱의 폴백 추정·데모 서버와 같은 반올림을 쓴다."""
     result = energy.fallback(case["type"], case["minutes"], case["intensity"])
     assert result.calories == case["calories"]
+
+
+# ── 운동 유형 정규화 (#2861) ──────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(("raw", "code", "label"), EXERCISE_TYPES["normalize"])
+def test_exercise_type_normalize_matches_shared_vectors(
+    raw: str | None, code: str, label: str
+) -> None:
+    """두 앱의 `normalizeExerciseType`·`normalizeExerciseTypeKo` 와 같은 표다."""
+    assert exercise_types.normalize(raw) == code
+    assert exercise_types.normalize_ko(raw) == label
+
+
+def test_shared_vectors_cover_every_server_vocabulary() -> None:
+    """서버 표의 어휘가 모두 입력 표에 있다 — 서버에 어휘를 더하면 표도 같이 는다."""
+    covered = {row[0] for row in EXERCISE_TYPES["normalize"]}
+    assert set(exercise_types._TO_CODE) <= covered

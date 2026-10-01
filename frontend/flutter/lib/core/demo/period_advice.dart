@@ -14,6 +14,8 @@ import 'dart:ui' show Locale;
 
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart'
+    show normalizeExerciseType, normalizeExerciseTypeKo;
 
 /// 하루치 운동 합계. **기록이 있는 날만** 들어온다 — 쉰 날과 적지 않은 날은 다르다.
 typedef ExerciseDayTotals = ({
@@ -32,13 +34,9 @@ double _avg(List<int> values) => values.isEmpty
     ? 0
     : values.fold<int>(0, (int a, int b) => a + b) / values.length;
 
-/// 운동 유형 코드 → 사람이 읽는 라벨. 서버 `exercise_types.label_for` 와 같다.
-String exerciseTypeLabel(String code) => switch (code) {
-  'cardio' || 'walking' => '유산소',
-  'strength' => '근력',
-  'flexibility' || 'stretching' || 'yoga' => '스트레칭',
-  _ => '기타',
-};
+/// 운동 유형 표기 → 사람이 읽는 라벨. 코드·한글 라벨·옛 값을 모두 받고 모르는
+/// 값은 `기타` 다 — 서버 `exercise_types.normalize_ko` 와 같은 공용 표다(#2861).
+String exerciseTypeLabel(String code) => normalizeExerciseTypeKo(code);
 
 /// 그날 가장 오래 한 유형. 같으면 유산소 → 근력 → 스트레칭 → 기타 순이다.
 String _mainType(Map<String, int> byType) {
@@ -298,18 +296,8 @@ DateTime routineAdviceFetchStart(String period, DateTime today) {
   return DateTime(day.year, day.month, day.day - (kAllPeriodWeeks * 7 - 1));
 }
 
-/// 유형 표기 → 코드. 서버 `exercise_types.normalize` 와 같다.
-String _typeCode(String type) => switch (type.trim()) {
-  'cardio' || '유산소' || 'walking' || '걷기' => 'cardio',
-  'strength' || '근력' => 'strength',
-  'stretching' ||
-  '스트레칭' ||
-  'yoga' ||
-  '요가' ||
-  'flexibility' ||
-  '유연성' => 'stretching',
-  _ => 'other',
-};
+/// 유형 표기 → 코드. 서버 `exercise_types.normalize` 와 같은 공용 표다(#2861).
+String _typeCode(String type) => normalizeExerciseType(type);
 
 const List<String> _typeOrder = <String>[
   'cardio',

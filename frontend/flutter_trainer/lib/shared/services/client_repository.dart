@@ -5,6 +5,12 @@ import 'dart:ui' show Locale;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        kExerciseTypeCardio,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching,
+        normalizeExerciseType;
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
@@ -603,15 +609,17 @@ class DriftClientRepository implements ClientRepository {
       for (final FixtureExercise e in day.doneExercises) {
         minutes[i] += e.minutes;
         calories[i] += e.calories;
-        switch (e.type) {
-          case 'strength':
+        // 서버 `exercise_types.normalize` 와 같은 공용 표로 칸을 고른다 — 한글
+        // 라벨(`유산소`)·옛 값도 제 칸에 들어간다(#2861).
+        switch (normalizeExerciseType(e.type)) {
+          case kExerciseTypeStrength:
             strength[i] += e.minutes;
             strengthCal[i] += e.calories;
             sets[i] += e.sets ?? setsFromStrengthMinutes(e.minutes);
-          case 'flexibility' || 'stretching' || 'yoga':
+          case kExerciseTypeStretching:
             stretching[i] += e.minutes;
             stretchingCal[i] += e.calories;
-          case 'cardio' || 'walking':
+          case kExerciseTypeCardio:
             cardio[i] += e.minutes;
             cardioCal[i] += e.calories;
           default:

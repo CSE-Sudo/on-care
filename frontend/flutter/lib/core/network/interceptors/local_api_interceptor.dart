@@ -46,8 +46,15 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
-// 분·kcal 반올림은 실서버(Python `round`)와 같은 공용 규칙을 쓴다(#2860).
-import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds, pyRound;
+// 분·kcal 반올림·운동 유형 정규화는 실서버와 같은 공용 규칙을 쓴다(#2860, #2861).
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        kExerciseTypeCardio,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching,
+        minutesFromSeconds,
+        normalizeExerciseType,
+        pyRound;
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
@@ -1885,12 +1892,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (date.compareTo(start) < 0 || date.compareTo(end) > 0) continue;
       final ({int minutes, int calories, Map<String, int> byType}) day =
           perDate[date] ?? (minutes: 0, calories: 0, byType: <String, int>{});
-      final String kind = switch (r.type) {
-        'cardio' || 'walking' => 'cardio',
-        'strength' => 'strength',
-        'yoga' || 'stretching' || 'flexibility' => 'stretching',
-        _ => 'other',
-      };
+      // 서버 `exercise_types.normalize` 와 같은 공용 표 — 한글 라벨·옛 값도
+      // 제 유형 칸에 들어간다(#2861).
+      final String kind = normalizeExerciseType(r.type);
       day.byType[kind] = (day.byType[kind] ?? 0) + r.minutes;
       perDate[date] = (
         minutes: day.minutes + r.minutes,
@@ -2079,10 +2083,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         (c) => c + r.calories,
         ifAbsent: () => r.calories,
       );
-      final bucket = switch (r.type) {
-        'cardio' || 'walking' => perDayCardio,
-        'strength' => perDayStrength,
-        'yoga' || 'stretching' || 'flexibility' => perDayStretching,
+      // 서버 `exercise_types.normalize` 와 같은 공용 표로 칸을 고른다(#2861).
+      final bucket = switch (normalizeExerciseType(r.type)) {
+        kExerciseTypeCardio => perDayCardio,
+        kExerciseTypeStrength => perDayStrength,
+        kExerciseTypeStretching => perDayStretching,
         _ => perDayOther,
       };
       bucket.update(
@@ -2369,7 +2374,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     required int minutes,
     required String? intensity,
   }) async {
-    final String normalized = _normalizedExerciseType(type);
+    // 유형 표기는 서버 `exercise_types.normalize` 와 같은 공용 표로 접는다 —
+    // 한글 라벨(`유산소`)도 기타로 떨어지지 않는다(#2861).
+    final String normalized = normalizeExerciseType(type);
     final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
     final DemoExerciseActivity? matched = matchDemoExercise(name);
     final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
@@ -2391,14 +2398,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       matchedName: matched.name,
     );
   }
-
-  /// 옛 어휘를 표준 유형으로 접는다 — 서버 `exercise_types.normalize` 와 같다.
-  static String _normalizedExerciseType(String? raw) => switch (raw?.trim()) {
-    'cardio' || 'walking' => 'cardio',
-    'strength' => 'strength',
-    'flexibility' || 'stretching' || 'yoga' => 'stretching',
-    _ => 'other',
-  };
 
   /// 요청 몸통을 Map 으로. dio 는 Map 으로도 JSON 문자열로도 준다.
   static Map<String, Object?> _payloadOf(Object? body) {

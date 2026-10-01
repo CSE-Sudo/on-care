@@ -86,20 +86,11 @@ int estimateExerciseCalories(
 
 /// 루틴이 들고 오는 유형 표기(한글 라벨 또는 영문 코드)를 [ExerciseType] 으로.
 ///
-/// 백엔드 `exercise_types.normalize` 와 같은 어휘를 본다 — 걷기는 유산소로,
-/// 요가·스트레칭은 스트레칭(= 여기서는 [ExerciseType.stretching])으로 접는다.
-/// 모르는 값은 [ExerciseType.other] 다.
-ExerciseType exerciseTypeFromLabel(String? label) => switch (label?.trim()) {
-  'cardio' || '유산소' || 'walking' || '걷기' => ExerciseType.cardio,
-  'strength' || '근력' => ExerciseType.strength,
-  'flexibility' ||
-  '스트레칭' ||
-  'stretching' ||
-  '스트레칭' ||
-  'yoga' ||
-  '요가' => ExerciseType.stretching,
-  _ => ExerciseType.other,
-};
+/// 백엔드 `exercise_types.normalize` 와 같은 공용 표를 쓴다(#2861) — 걷기는
+/// 유산소로, 요가·유연성은 스트레칭으로 접는다. 모르는 값은
+/// [ExerciseType.other] 다. 기록 응답을 읽는 [exerciseTypeFromCode] 와 같은 함수다.
+ExerciseType exerciseTypeFromLabel(String? label) =>
+    exerciseTypeFromCode(label);
 
 /// 강도 문자열(`light`/`moderate`/`high`) → [ExerciseIntensity].
 ExerciseIntensity exerciseIntensityFromLabel(String? value) =>

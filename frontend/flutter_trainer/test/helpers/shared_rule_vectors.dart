@@ -14,11 +14,13 @@ Map<String, Object?> loadSharedRuleVectors(String name) =>
         as Map<String, Object?>;
 
 /// 표의 `[입력, 기대값]` 쌍 목록.
-List<(Object?, Object?)> vectorPairs(Map<String, Object?> vectors, String key) =>
-    <(Object?, Object?)>[
-      for (final Object? row in vectors[key]! as List<Object?>)
-        ((row! as List<Object?>)[0], (row as List<Object?>)[1]),
-    ];
+List<(Object?, Object?)> vectorPairs(
+  Map<String, Object?> vectors,
+  String key,
+) => <(Object?, Object?)>[
+  for (final Object? row in vectors[key]! as List<Object?>)
+    ((row! as List<Object?>)[0], (row as List<Object?>)[1]),
+];
 
 /// 표의 객체 행 목록.
 List<Map<String, Object?>> vectorRows(

@@ -1,3 +1,4 @@
+import 'package:oncare_rules/oncare_rules.dart' show normalizeExerciseType;
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 
 /// 기간 조회가 돌려주는 한 칸 — 그 주의 월요일과 집계. (#2247)
@@ -157,18 +158,9 @@ class ClientExerciseWeek {
   /// 응답의 유형 표기를 네 가지 표준 코드로 접는다.
   ///
   /// 기록에 따라 영문 코드·한글 라벨·옛 어휘(`walking`·`yoga`)가 섞여 온다 —
-  /// 서버의 `exercise_types.normalize` 와 같은 표다. 모르는 값은 `other`.
-  static String _kindOf(String? type) => switch ((type ?? '').trim()) {
-    'cardio' || '유산소' || 'walking' || '걷기' => 'cardio',
-    'strength' || '근력' => 'strength',
-    'stretching' ||
-    '스트레칭' ||
-    'yoga' ||
-    '요가' ||
-    'flexibility' ||
-    '유연성' => 'stretching',
-    _ => 'other',
-  };
+  /// 서버의 `exercise_types.normalize` 와 같은 공용 표다(#2861). 모르는 값은
+  /// `other`.
+  static String _kindOf(String? type) => normalizeExerciseType(type);
 
   /// `sessions` → 요일별·유형별 칼로리. 키는 [_kindOf] 의 네 코드다.
   ///
