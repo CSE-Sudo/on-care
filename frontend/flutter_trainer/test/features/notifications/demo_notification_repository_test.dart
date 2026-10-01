@@ -64,7 +64,7 @@ void main() {
     expect(await repo.unreadCount(), unread - 1);
 
     // 다음 날 시드가 다시 돌아도 읽은 기록은 그대로다.
-    await db.putValue('trainer_seeded_v45', '2020-01-01');
+    await db.putValue('trainer_seeded_v46', '2020-01-01');
     await seedIfEmpty(db, clock: kMidWeekKst.add(const Duration(days: 1)));
     expect(await repo.unreadCount(), unread - 1);
 
