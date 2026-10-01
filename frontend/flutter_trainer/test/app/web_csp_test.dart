@@ -118,15 +118,21 @@ void main() {
     });
 
     test('moved helpers ship next to index.html', () {
-      for (final String path in <String>[
-        'web/js/font_fix.js',
+      // 파일 → 그 파일을 부르는 곳. 워커는 index.html 이 아니라
+      // js/pdfjs_worker.js 가 주소를 넘긴다.
+      final String workerSetup = File(
         'web/js/pdfjs_worker.js',
-        'web/pdfjs/pdf.min.js',
-        'web/pdfjs/pdf.worker.min.js',
-      ]) {
+      ).readAsStringSync();
+      final Map<String, String> referencedFrom = <String, String>{
+        'web/js/font_fix.js': markup,
+        'web/js/pdfjs_worker.js': markup,
+        'web/pdfjs/pdf.min.js': markup,
+        'web/pdfjs/pdf.worker.min.js': workerSetup,
+      };
+      referencedFrom.forEach((String path, String referrer) {
         expect(File(path).existsSync(), isTrue, reason: path);
-        expect(markup, contains(path.replaceFirst('web/', '')), reason: path);
-      }
+        expect(referrer, contains(path.replaceFirst('web/', '')), reason: path);
+      });
     });
 
     test('pdf.js worker is configured right after pdf.js loads', () {
