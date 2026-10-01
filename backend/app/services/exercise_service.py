@@ -305,16 +305,31 @@ def _bucket(t: str) -> str:
 #: 프로필에 목표가 없을 때 쓰는 기본값. 회원 앱의 `UserProfile` 기본값과 같다 —
 #: 두 앱이 다른 기본값을 쓰면 같은 회원의 그래프에 다른 목표선이 그려진다.
 DEFAULT_WEEKLY_MINUTES_GOAL = 150
-DEFAULT_WEEKLY_BURN_GOAL = 500
+#: 하루 소모 칼로리 목표의 기본값. 회원 앱 `ExerciseLoadGoals.dailyBurnKcal`·트레이너
+#: 웹 `kDailyBurnKcal` 과 같다.
+DEFAULT_DAILY_BURN_KCAL = 300
+#: 주간 소모 칼로리 목표의 기본값 — 하루 기본값 × 7.
+DEFAULT_WEEKLY_BURN_GOAL = DEFAULT_DAILY_BURN_KCAL * 7
 
 
 def weekly_goals(profile) -> tuple[int, int]:
-    """(주간 운동 시간 목표, 주간 소모 칼로리 목표). 프로필이 없으면 기본값."""
+    """(주간 운동 시간 목표, 주간 소모 칼로리 목표). 프로필이 없으면 기본값.
+
+    소모 칼로리는 저장된 주간 목표 → 회원의 하루 소모 목표 × 7 → 기본값 순서다
+    (#2726). 회원 앱 운동 탭과 트레이너 운동 현황 도넛은 **하루 목표 × 7** 을
+    주간 목표로 쓴다. 예전에는 주간 목표가 비면 공통 500kcal 이라, 하루 400kcal 을
+    정한 회원의 주간 목표선이 앱 2,800kcal · 서버 500kcal 로 갈렸다.
+    """
     minutes = getattr(profile, "weekly_exercise_minutes_goal", None)
     calories = getattr(profile, "weekly_burn_goal", None)
+    daily = getattr(profile, "daily_burn_kcal", None)
+    if not (calories and calories > 0):
+        calories = (
+            daily * 7 if daily and daily > 0 else DEFAULT_WEEKLY_BURN_GOAL
+        )
     return (
         minutes if minutes and minutes > 0 else DEFAULT_WEEKLY_MINUTES_GOAL,
-        calories if calories and calories > 0 else DEFAULT_WEEKLY_BURN_GOAL,
+        calories,
     )
 
 
