@@ -39,6 +39,7 @@ from app.api.v1 import (
 )
 from app.core import observability
 from app.core.body_limit import RequestBodySizeLimitMiddleware
+from app.core.client_platform import RequestClientPlatformMiddleware
 from app.core.config import get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.core.security_headers import security_headers_for
@@ -115,6 +116,11 @@ if settings.security_headers:
         ).items():
             response.headers.setdefault(name, value)
         return response
+
+
+# 클라이언트 종류(#2828): 웹 빌드가 보내는 `X-Client-Platform: web` 을 읽어, 웹 로그인·
+# 회전에는 짧은 refresh 토큰을 준다(`services/auth_tokens.py`).
+app.add_middleware(RequestClientPlatformMiddleware)
 
 
 # 요청 언어(#2297): `Accept-Language` 를 읽어 `current_locale()` 을 채운다. 서버가 만드는
