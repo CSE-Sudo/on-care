@@ -1100,18 +1100,32 @@ void main() {
       expect(find.text('운동 직접 등록'), findsNothing);
     });
 
-    testWidgets('데모에서는 목표 기반 기본 추천 안내가 보이지 않는다', (tester) async {
-      // 데모 회원은 기록이 없어 생성기가 늘 template 상태를 돌려준다.
+    testWidgets('데모도 기록이 적은 회원에게 그 사실을 그대로 말한다 (#2674)', (tester) async {
+      // 예전에는 데모에서만 이 상태를 숨겼다(#1028). 이제 데모도 시드한 기록으로
+      // 상태를 세므로 실서버와 같게 보인다.
       await pumpFlow(tester, response: _templateOptions());
       await generate(tester);
 
-      expect(find.text('목표 기반 기본 추천'), findsNothing);
-      expect(find.text('목표 기반 추천안 생성'), findsNothing);
+      expect(find.text('목표 기반 기본 추천'), findsOneWidget);
 
-      // 데이터 기반 흐름의 문구만 남는다.
       await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
       await tester.pumpAndSettle();
-      expect(find.text('맞춤 추천안 후보 생성'), findsOneWidget);
+      expect(find.text('목표 기반 추천안 생성'), findsOneWidget);
+    });
+
+    testWidgets('규칙형도 참고한 최근 대화를 보여 준다 (#2674)', (tester) async {
+      // 규칙형은 대화에서 통증 부위를 읽어 동작을 뺀다(#1440) — 무엇을 봤는지
+      // 트레이너가 확인할 수 있어야 한다.
+      await pumpFlow(
+        tester,
+        response: _templateOptions(
+          recentMessages: const <String>['회원: 무릎이 아파요'],
+        ),
+      );
+      await generate(tester);
+
+      expect(find.text('참고한 최근 대화'), findsOneWidget);
+      expect(find.textContaining('무릎이 아파요'), findsOneWidget);
     });
 
     testWidgets('실 API 모드에서는 기록이 적은 회원에게 그 사실을 그대로 말한다', (tester) async {
@@ -1810,18 +1824,21 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
 
 /// 기록이 거의 없는 회원의 응답 — 서버가 [RecommendationStatus.template] 을
 /// 돌려주는 상태 (#776). 데모는 언제나 이 상태다.
-RoutineOptions _templateOptions() {
-  const analysis = MemberAnalysis(
+RoutineOptions _templateOptions({
+  List<String> recentMessages = const <String>[],
+}) {
+  final analysis = MemberAnalysis(
     goal: '체중 감량',
     sodiumTodayMg: 1800,
     sodiumOverTarget: false,
     avgCompletionRate: 40,
     latestRoutine: '-',
     note: '',
+    recentMessages: recentMessages,
   );
-  return const RoutineOptions(
+  return RoutineOptions(
     analysis: analysis,
-    planA: RoutinePlan(
+    planA: const RoutinePlan(
       key: 'A',
       label: '회복·지속 중심',
       totalMinutes: 20,
@@ -1832,7 +1849,7 @@ RoutineOptions _templateOptions() {
       reason: '가볍게 시작',
       rationale: '목표 기준 기본 구성',
     ),
-    planB: RoutinePlan(
+    planB: const RoutinePlan(
       key: 'B',
       label: '강도·운동량 중심',
       totalMinutes: 30,

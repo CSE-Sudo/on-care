@@ -63,8 +63,10 @@ abstract interface class TrainerRoutineOptionsRepository {
 /// 두 번 이상 반복된 운동이 있으면 그 운동으로 A/B 를 짠다(`기존 패턴 유지형`
 /// · `점진적 강화형`, #776).
 ///
-/// [db] 가 없거나 모르는 회원이면(단위 테스트) 고정 스냅샷이다. 추천 상태는
-/// 어느 쪽이든 템플릿으로 둔다 — 데모의 템플릿 배너 표시는 따로 정한다.
+/// 추천 상태(템플릿·학습 중·맞춤)·기록 횟수·조건 제안도 서버와 같은 규칙으로
+/// 시드한 기록에서 센다(#2674). 화면의 상태 배너가 데모에서도 그대로 보인다.
+///
+/// [db] 가 없거나 모르는 회원이면(단위 테스트) 고정 스냅샷·템플릿 상태다.
 ///
 /// 실서버처럼 **생성을 요청하는 순간의 화면 언어**로 이름·사유·근거 문장을
 /// 만든다(#2301). 문장은 서버 규칙형(`routine_ai.rule_based_plans`)의 영어판과
@@ -97,6 +99,12 @@ class MockTrainerRoutineOptionsRepository
 
   /// 반복 운동을 찾는 기간(일). 서버 `HISTORY_LOOKBACK_DAYS` 와 같다.
   static const int _historyLookbackDays = 42;
+
+  /// 추천 상태 문턱 — 서버 `MIN_SESSIONS_FOR_LEARNING` 등과 같다(#776).
+  static const int _minSessionsLearning = 2;
+  static const int _minSessionsPersonalized = 6;
+  static const int _minWeeksPersonalized = 3;
+  static const int _minRepeatPersonalized = 3;
 
   /// 강도 선호 → 표시 강도. 서버 `_B_LABEL` 과 같다.
   static const Map<String, String> _intensityLabels = <String, String>{
@@ -132,8 +140,12 @@ class MockTrainerRoutineOptionsRepository
         : en
         ? ' Trainer note applied: $note.'
         : ' 트레이너 메모 반영: $note.';
-    final minutes = availableMinutes ?? _defaultMinutes;
-    final intensityPref = intensityPreference ?? _defaultIntensity;
+    // 트레이너가 비워 둔 조건은 서버처럼 회원 기록의 제안값, 없으면 기본값이다
+    // (`trainer_routine_options_service`, #776).
+    final minutes =
+        availableMinutes ?? member?.suggestedMinutes ?? _defaultMinutes;
+    final intensityPref =
+        intensityPreference ?? member?.suggestedIntensity ?? _defaultIntensity;
     // 서버 규칙형의 안전장치(#1440) — 건강 주의사항과 최근 대화를 같은 글로
     // 읽어, 조심할 부위와 강도를 올리지 말아야 할 상태를 가린다.
     final List<String> messages = member?.recentMessages ?? const <String>[];
@@ -163,37 +175,22 @@ class MockTrainerRoutineOptionsRepository
 
     // 하한은 슬라이더의 실제 최소값(5분)과 맞춘다 — 10으로 두면 5분 요청에서
     // `clamp(10, 5)`가 하한>상한이 되어 데모 생성이 그대로 예외로 죽는다.
-    final totalA = (minutes * 0.7).round().clamp(5, minutes);
+    final totalA = pyRound(minutes * 0.7).clamp(5, minutes);
     // Keep the demo contract aligned with the backend: neither option may
     // exceed the time the trainer entered. The old lower bound
     // (`totalA + 5`) produced a 15-minute plan for a 10-minute request and
     // even threw when availableMinutes was 180 (lower clamp bound > 180).
     final totalB = minutes;
 
-    // B안 세 운동의 시간 배분. 셋을 각자 독립적으로 반올림·clamp 하면(예전
-    // 코드) 합이 totalB 를 벗어날 수 있다 — 5분처럼 작은 값에서 실제로 6분이
-    // 나왔다. 앞 두 개만 반올림해서 정하고, 세 번째는 항상 나머지로 채워
-    // 합이 totalB 와 정확히 같게 한다. 앞 두 개의 상한도 "남은 운동에 최소
-    // 1분씩은 남긴다"는 조건으로 둔다.
-    final intervalMinutes = (totalB * 0.5).round().clamp(1, totalB - 2);
-    final squatMinutes = (totalB * 0.3).round().clamp(
-      1,
-      totalB - intervalMinutes - 1,
-    );
-    final plankMinutes = totalB - intervalMinutes - squatMinutes;
-    // B안에서 조심할 부위에 부담이 큰 동작을 뺀 구성. 바뀌지 않으면 null —
-    // 그때는 위의 지금 데모 배분을 그대로 쓴다.
-    final List<(String, String, int)> planBLibrary = <(String, String, int)>[
-      (libCardioHard.$1, libCardioHard.$2, 3),
-      (libStrength.$1, libStrength.$2, 2),
-      (libStrength2.$1, libStrength2.$2, 1),
-    ];
-    final List<(String, String, int)> planBSafe = safeParts(
-      planBLibrary,
-      cautions,
-    );
-    final List<(String, String, int)>? planBParts =
-        identical(planBSafe, planBLibrary) ? null : planBSafe;
+    // B안은 인터벌 러닝·스쿼트·플랭크를 3:2:1 로 나눈다 — 서버 `_compose` 와
+    // 같은 배분이다(#2715, 30분이면 15·10·5분). 예전 데모는 따로 셈해 15·9·6분
+    // 이었다. 조심할 부위에 부담이 큰 동작은 대안으로 바꾼다.
+    final List<(String, String, int)> planBParts =
+        safeParts(<(String, String, int)>[
+          (libCardioHard.$1, libCardioHard.$2, 3),
+          (libStrength.$1, libStrength.$2, 2),
+          (libStrength2.$1, libStrength2.$2, 1),
+        ], cautions);
 
     return RoutineOptions(
       analysis: MemberAnalysis(
@@ -206,8 +203,13 @@ class MockTrainerRoutineOptionsRepository
             t('저강도 유산소 (걷기)', 'Low-intensity cardio (walk)'),
         note: note,
         recentMessages: member?.recentMessages ?? const <String>[],
-        // 추천 상태는 템플릿 그대로다 — #776 의 "데이터 부족" 상태이고, 데모의
-        // 템플릿 배너 표시는 따로 정한다.
+        // 추천 상태·기록 횟수는 서버와 같은 규칙으로 센다(#2674).
+        recommendationStatus: member?.status ?? RecommendationStatus.template,
+        historySessionCount: member?.sessionCount ?? 0,
+        analysisPeriodDays: member == null ? 0 : _historyLookbackDays,
+        frequentExercises: member?.frequent ?? const <String>[],
+        suggestedAvailableMinutes: member?.suggestedMinutes,
+        suggestedIntensity: member?.suggestedIntensity,
       ),
       planA: RoutinePlan(
         key: 'A',
@@ -243,32 +245,12 @@ class MockTrainerRoutineOptionsRepository
         key: 'B',
         label: t('강도·운동량 중심', 'Intensity & volume'),
         totalMinutes: totalB,
-        // 판단이 어려운 상태에서는 강도를 올리지 않는다(서버와 같다).
-        intensity: escalate
-            ? '보통'
-            : intensityPref == 'low'
-            ? '보통'
-            : '높음',
-        exercises: planBParts == null
-            ? <RoutineExercise>[
-                RoutineExercise(
-                  name: t('인터벌 러닝', 'Interval running'),
-                  minutes: intervalMinutes,
-                  type: '유산소',
-                ),
-                RoutineExercise(
-                  name: t('스쿼트', 'Squat'),
-                  minutes: squatMinutes,
-                  type: '근력',
-                ),
-                RoutineExercise(
-                  name: t('플랭크', 'Plank'),
-                  minutes: plankMinutes,
-                  type: '근력',
-                ),
-              ]
-            // 주의 부위 때문에 구성이 바뀌면 서버와 같은 배분으로 나눈다.
-            : _compose(totalB, planBParts, en: en),
+        // 트레이너가 고른 강도 선호를 그대로 옮긴다 — 서버 `_B_LABEL` 과 같다
+        // (#2715). 예전 데모는 낮음이면 보통, 그 밖에는 높음으로 한 단계 올려,
+        // 낮음을 고른 트레이너에게 B안이 `보통` 으로 보였다. 판단이 어려운
+        // 상태(전문가 확인)에서는 강도를 올리지 않는다.
+        intensity: escalate ? '보통' : _intensityLabels[intensityPref] ?? '높음',
+        exercises: _compose(totalB, planBParts, en: en),
         reason: t(
           '운동량과 강도를 높인 프로그램',
           'A program with more volume and intensity',
@@ -309,7 +291,7 @@ class MockTrainerRoutineOptionsRepository
               final int rest = sum - used;
               return rest < 1 ? 1 : rest;
             }
-            final int m = (sum * parts[i].$3 / weights).round();
+            final int m = pyRound(sum * parts[i].$3 / weights);
             final int share = m < 1 ? 1 : m;
             used += share;
             return share;
@@ -347,7 +329,7 @@ class MockTrainerRoutineOptionsRepository
       cautions,
     );
     final String coreLabel = core.join(', ');
-    final int scaled = (minutes * 0.75).round();
+    final int scaled = pyRound(minutes * 0.75);
     final int totalA =
         (scaled < coreParts.length ? coreParts.length : scaled) > minutes
         ? minutes
@@ -416,6 +398,12 @@ class MockTrainerRoutineOptionsRepository
         latestRoutine: member.latestRoutine,
         note: note,
         recentMessages: member.recentMessages,
+        recommendationStatus: member.status,
+        historySessionCount: member.sessionCount,
+        analysisPeriodDays: _historyLookbackDays,
+        frequentExercises: member.frequent,
+        suggestedAvailableMinutes: member.suggestedMinutes,
+        suggestedIntensity: member.suggestedIntensity,
       );
 
   /// 이 회원의 시드 지표로 만든 스냅샷. DB 가 없거나 모르는 회원이면 `null`.
@@ -437,7 +425,7 @@ class MockTrainerRoutineOptionsRepository
     ];
     final int completion = week.isEmpty
         ? 0
-        : (week.reduce((int a, int b) => a + b) / week.length).round();
+        : pyRound(week.reduce((int a, int b) => a + b) / week.length);
 
     final List<AssignedRoutine> assigned = await DemoRoutineStore(
       db,
@@ -488,10 +476,33 @@ class MockTrainerRoutineOptionsRepository
                   ),
             ))
             .get();
-    final List<String> frequent = frequentExercises(<List<Object?>>[
+    final List<List<Object?>> sessions = <List<Object?>>[
       for (final row in history)
         if (jsonDecode(row.exercisesJson) case final List<Object?> items) items,
-    ]);
+    ];
+    final List<String> frequent = frequentExercises(sessions);
+
+    // 추천 상태 — 서버 `_analyze_routine_history` 와 같은 명시적 규칙이다(#776).
+    // 세션 수·서로 다른 주·한 운동의 반복 횟수 셋을 모두 넘어야 맞춤이다.
+    final Set<String> weeks = <String>{
+      for (final row in history)
+        if (row.completedAt case final DateTime at) _weekKey(at),
+    };
+    final RecommendationStatus status =
+        history.length >= _minSessionsPersonalized &&
+            weeks.length >= _minWeeksPersonalized &&
+            maxRepeat(sessions) >= _minRepeatPersonalized
+        ? RecommendationStatus.personalized
+        : history.length >= _minSessionsLearning
+        ? RecommendationStatus.learning
+        : RecommendationStatus.template;
+
+    // 조건 제안 — 기록이 쌓인 회원이면 가장 최근 배정의 시간·유형에서(서버와 같다).
+    final AssignedRoutine? latest = assigned.isEmpty ? null : assigned.first;
+    final bool suggest =
+        status != RecommendationStatus.template &&
+        latest != null &&
+        latest.minutes > 0;
 
     return _Snapshot(
       goal: client.goal,
@@ -502,7 +513,28 @@ class MockTrainerRoutineOptionsRepository
       recentMessages: lines,
       conditions: conditions,
       frequent: frequent,
+      status: status,
+      sessionCount: history.length,
+      suggestedMinutes: suggest ? latest.minutes.clamp(10, 180) : null,
+      suggestedIntensity: suggest ? _guessIntensity(latest.type) : null,
     );
+  }
+
+  /// 마지막 배정의 유형으로 강도 선호를 짐작한다 — 서버 `_guess_intensity`.
+  static String _guessIntensity(String type) => switch (type) {
+    '근력' => 'high',
+    '스트레칭' || '요가' => 'low',
+    _ => 'moderate',
+  };
+
+  /// 그 날이 속한 주(월요일) — 서로 다른 주를 세는 키.
+  static String _weekKey(DateTime at) {
+    final DateTime monday = DateTime(
+      at.year,
+      at.month,
+      at.day,
+    ).subtract(Duration(days: at.weekday - 1));
+    return '${monday.year}-${monday.month}-${monday.day}';
   }
 
   static String _clip(String text) => text.length > _chatMaxChars
@@ -521,6 +553,10 @@ class _Snapshot {
     required this.recentMessages,
     required this.conditions,
     required this.frequent,
+    required this.status,
+    required this.sessionCount,
+    required this.suggestedMinutes,
+    required this.suggestedIntensity,
   });
 
   final String goal;
@@ -535,6 +571,14 @@ class _Snapshot {
 
   /// 최근 기록에서 반복된 운동(#776). 비어 있으면 규칙형이다.
   final List<String> frequent;
+
+  /// 기록으로 본 추천 상태와 그 근거가 된 기록 횟수(#2674).
+  final RecommendationStatus status;
+  final int sessionCount;
+
+  /// 기록이 쌓인 회원의 조건 제안. 기록이 적으면 null 이다.
+  final int? suggestedMinutes;
+  final String? suggestedIntensity;
 }
 
 /// Selects the real Dio-backed generator, or the demo generator for

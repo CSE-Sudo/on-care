@@ -107,5 +107,56 @@ void main() {
         }
       }
     });
+
+    test('추천 상태·기록 횟수를 서버와 같은 규칙으로 센다 (#2674)', () async {
+      // 김민수는 6주에 걸친 기록 — 맞춤, 이지수는 기록 몇 회 — 학습 중,
+      // 임도현은 기록 없음 — 템플릿.
+      final RoutineOptions kim = await generate('seed-client-1');
+      final RoutineOptions jisu = await generate('seed-client-2');
+      final RoutineOptions dohyun = await generate('seed-client-7');
+
+      expect(
+        kim.analysis.recommendationStatus,
+        RecommendationStatus.personalized,
+      );
+      expect(kim.analysis.historySessionCount, greaterThanOrEqualTo(6));
+      expect(kim.analysis.analysisPeriodDays, 42);
+      expect(jisu.analysis.recommendationStatus, RecommendationStatus.learning);
+      expect(
+        dohyun.analysis.recommendationStatus,
+        RecommendationStatus.template,
+      );
+      expect(dohyun.analysis.historySessionCount, 0);
+      // 기록이 적으면 조건을 제안하지 않는다 — 서버와 같다.
+      expect(dohyun.analysis.suggestedAvailableMinutes, isNull);
+      // 기록이 쌓인 회원은 가장 최근 배정의 시간으로 조건을 제안한다.
+      expect(jisu.analysis.suggestedAvailableMinutes, isNotNull);
+    });
+
+    test('B안은 고른 강도를 그대로 옮기고 3:2:1 로 나눈다 (#2715)', () async {
+      final repo = MockTrainerRoutineOptionsRepository(db: db);
+      for (final (String pref, String label) in <(String, String)>[
+        ('low', '낮음'),
+        ('moderate', '보통'),
+        ('high', '높음'),
+      ]) {
+        final RoutineOptions o = await repo.generate(
+          'm1',
+          availableMinutes: 30,
+          intensityPreference: pref,
+          trainerNote: '',
+        );
+        expect(o.planB.intensity, label, reason: pref);
+        expect(o.planB.exercises.map((e) => e.minutes), <int>[15, 10, 5]);
+      }
+    });
+  });
+
+  test('반올림은 서버(파이썬)처럼 절반이면 짝수 쪽이다', () {
+    expect(pyRound(2.5), 2);
+    expect(pyRound(3.5), 4);
+    expect(pyRound(2.4), 2);
+    expect(pyRound(2.6), 3);
+    expect(pyRound(10), 10);
   });
 }
