@@ -1913,17 +1913,23 @@
     }
   },
   "coachChatInputHint": "Message your trainer...",
-  "coachChatDemoAnalyzed": "AI analyzed your diet and exercise data",
-  "coachChatDemoReportSent": "A summary report was sent to {trainer}",
-  "@coachChatDemoReportSent": {
+  "coachChatRoutineReceived": "Your trainer sent a workout",
+  "coachChatRoutineReceivedPt": "You received a PT program and personal workout",
+  "coachChatRoutineReceivedPersonal": "You received a personal workout",
+  "coachChatRoutineReceivedAfterCancel": "You received a personal workout in place of the cancelled PT",
+  "coachChatRoutineReceivedProgram": "You received a workout program",
+  "coachChatRoutineReceivedMore": "{names} and {count} more",
+  "@coachChatRoutineReceivedMore": {
+    "description": "Routine delivery notice: first names, then how many more.",
     "placeholders": {
-      "trainer": {
+      "names": {
         "type": "String"
+      },
+      "count": {
+        "type": "int"
       }
     }
   },
-  "coachChatDemoRoutineReceived": "You received a personalized workout recommendation",
-  "coachChatDemoNotified": "It was also delivered as a notification",
   "coachChatDateDivider": "{date}",
   "@coachChatDateDivider": {
     "description": "Chat date divider with full date and weekday.",

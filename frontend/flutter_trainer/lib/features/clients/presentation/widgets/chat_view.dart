@@ -220,48 +220,22 @@ class _ChatViewState extends ConsumerState<ChatView> {
     ref.invalidate(unreadCountsProvider);
   }
 
-  /// 데모 안내 배너를 **하루 단위로** 끼워 넣은 목록을 만든다.
+  /// 스레드를 날짜 구분선과 함께 그린다.
   ///
-  /// 배너가 스레드 맨 앞·맨 뒤에 하나씩만 있으면, 여러 날에 걸친 스레드에서
-  /// "분석은 이 대화가 시작되기 전에 딱 한 번 있었다"로 읽힌다. 실제로는 매일
-  /// 그날 데이터를 분석해 그 대화가 시작되고, 조정한 루틴을 보내며 끝난다 —
-  /// 그래서 날이 바뀌는 자리마다 앞뒤로 붙인다. (#543)
-  ///
-  /// 하루짜리 스레드(시드 고객 대부분)에서는 위 하나·아래 하나가 되어 이전과
-  /// 똑같이 보인다.
-  ///
-  /// 날짜 판정은 `createdAt` 으로 한다. `timeLabel` 은 화면에 보일 문자열일
-  /// 뿐이라 거기서 날짜를 파내면 표시 문구가 곧 로직이 된다. 시드 메시지에
-  /// 대해서만 자르는 이유도 같다 — 방금 보낸 답장은 오늘 날짜라, 그대로 두면
-  /// 내 말풍선 앞에 "분석했어요" 가 끼어든다.
+  /// 데모에만 날이 바뀔 때마다 `AI 가 분석했어요`·`루틴 전송됨` 배너를 끼우던
+  /// 것은 지웠다(#2672) — 실제로 일어난 일과 상관없이 대화가 있는 날마다 붙어,
+  /// 루틴을 보내지 않은 날에도 보냈다고 말했다. 이제 운동을 **실제로 보낸**
+  /// 자리에 서버(데모는 로컬)가 남긴 전송 안내 카드가 선다.
   List<Widget> _threadChildren(
     List<ClientChatMessage> list, {
-    required bool showDemoBanners,
     required Set<String> savedInsightIds,
   }) {
     final List<Widget> out = <Widget>[];
-    // 닫는 배너가 붙을 자리 — **마지막 시드 메시지** 다음이다. 목록 맨 끝에
-    // 무조건 붙이면 방금 보낸 답장이 배너 앞으로 들어가, 화면에서는 "내가
-    // 보낸 말이 루틴 전송보다 먼저 있었던 일" 로 읽힌다. 배너는 그날의
-    // 분석 → 대화 → 루틴 전송이라는 하루의 **끝**을 표시하는 것이다(#543).
-    final int lastSeeded = showDemoBanners
-        ? list.lastIndexWhere((m) => m.id.startsWith('seed-'))
-        : -1;
     for (int i = 0; i < list.length; i++) {
       final ClientChatMessage m = list[i];
       final bool newDay =
           i == 0 || !_sameDay(list[i - 1].createdAt, m.createdAt);
       if (newDay) {
-        if (showDemoBanners && m.id.startsWith('seed-') && i > 0) {
-          out
-            ..add(
-              _SentBanner(
-                key: ValueKey<String>('sent-before-${m.id}'),
-                clientName: widget.clientName,
-              ),
-            )
-            ..add(const SizedBox(height: OnCareSpacing.s12));
-        }
         // 구분선은 위아래 여백을 스스로 갖는다.
         final DateTime localDate = m.createdAt.toLocal();
         out.add(
@@ -272,24 +246,21 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ),
           ),
         );
-        if (showDemoBanners && m.id.startsWith('seed-')) {
-          out
-            ..add(
-              _SystemBanner(
-                key: ValueKey<String>('analyzed-before-${m.id}'),
-                clientName: widget.clientName,
-              ),
-            )
-            ..add(const SizedBox(height: OnCareSpacing.s12));
-        }
       }
       // 리포트 전송은 말풍선이 아니라 **가운데 안내**다. 누가 무슨 말을 했는가가
       // 아니라 스레드에 무슨 일이 있었는가를 적는 자리라, 같은 흐름의 다른
       // 안내("개인 추천운동이 …")와 같은 모양으로 가운데에 둔다(#1600).
       final DateTime? reportWeek = m.reportWeekStart;
+      final RoutineDeliveryNotice? delivery = m.routineDelivery;
       out
         ..add(
-          reportWeek == null
+          delivery != null
+              // 운동을 보낸 일도 같은 가운데 안내다(#2672).
+              ? RoutineDeliveryCard(
+                  key: ValueKey<String>('trainer-routine-delivery-${m.id}'),
+                  notice: delivery,
+                )
+              : reportWeek == null
               ? _Bubble(message: m, avatar: widget.clientAvatar)
               : ReportRegisteredCard(
                   key: ValueKey<String>('trainer-message-bubble-${m.id}'),
@@ -312,15 +283,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ),
           )
           ..add(const SizedBox(height: OnCareSpacing.s12));
-      }
-      // 시드 대화가 여기서 끝난다. 그 뒤에 오는 메시지(방금 보낸 답장)는
-      // 배너 **아래**에 쌓인다. 시드가 하루짜리인 고객 대부분에게는 이
-      // 자리가 곧 목록의 끝이라, 보내기 전 화면은 예전과 똑같다.
-      if (i == lastSeeded) {
-        out.add(_SentBanner(clientName: widget.clientName));
-        if (i != list.length - 1) {
-          out.add(const SizedBox(height: OnCareSpacing.s12));
-        }
       }
     }
     return out;
@@ -394,7 +356,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final messages = ref.watch(chatThreadProvider(widget.clientId));
-    final showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     final savedInsightIds =
         ref
             .watch(trainerMemosProvider(widget.clientId))
@@ -453,7 +414,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 padding: const EdgeInsets.all(OnCareSpacing.s16),
                 children: _threadChildren(
                   list,
-                  showDemoBanners: showDemoBanners,
                   savedInsightIds: savedInsightIds,
                 ),
               );
@@ -637,43 +597,50 @@ Color _noticeFill(BuildContext context) =>
 Color _noticeBorder(BuildContext context) =>
     OnCareColors.onWhite(context.oncare.brand.primary, OnCareAlpha.medium);
 
-class _SystemBanner extends StatelessWidget {
-  const _SystemBanner({required this.clientName, super.key});
+/// 운동을 보낸 일을 적는 대화 가운데 안내. (#2672)
+///
+/// 리포트 안내([ReportRegisteredCard])와 같은 자리·같은 상자다. 누를 것은
+/// 없다 — 무엇을 보냈는지는 이 카드가 다 말하고, 자세한 구성은 프로그램 탭의
+/// 전송 이력에 있다. 옅은 브랜드 채움이라 누를 것이 있는 리포트 안내(흰 바탕)와
+/// 갈린다.
+class RoutineDeliveryCard extends StatelessWidget {
+  /// Creates the card.
+  const RoutineDeliveryCard({required this.notice, super.key});
 
-  final String clientName;
+  /// 무엇을 보냈나.
+  final RoutineDeliveryNotice notice;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return _ThreadNotice(
-      icon: AppIcons.ai,
-      title: l.chatDemoAnalyzed(clientName),
-      message: l.chatDemoReportSent,
+      icon: AppIcons.personalRoutine,
+      title: routineDeliveryTitle(l, notice.kind),
+      message: routineDeliveryNames(l, <String>[
+        ...notice.programNames,
+        ...notice.routineNames,
+      ]),
       fill: _noticeFill(context),
       border: _noticeBorder(context),
     );
   }
 }
 
-/// The "루틴 전송됨" system notice at the end of the seeded thread. Same
-/// brand tone as [_SystemBanner] — not green (#1379): green read as a
-/// different kind of "완료" than this routine-sent notice means.
-class _SentBanner extends StatelessWidget {
-  const _SentBanner({required this.clientName, super.key});
+/// 전송 종류 → 안내 제목. 모르는 종류는 일반 문구다.
+String routineDeliveryTitle(AppLocalizations l, String kind) => switch (kind) {
+  'pt_with_routine' => l.chatRoutineDeliveredPt,
+  'routine_only' => l.chatRoutineDeliveredPersonal,
+  'cancelled_routine_only' => l.chatRoutineDeliveredAfterCancel,
+  'program' => l.chatRoutineDeliveredProgram,
+  _ => l.chatRoutineDelivered,
+};
 
-  final String clientName;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return _ThreadNotice(
-      icon: AppIcons.checkCircle,
-      title: l.chatDemoRoutineSent(clientName),
-      message: l.chatDemoNotified,
-      fill: _noticeFill(context),
-      border: _noticeBorder(context),
-    );
-  }
+/// 운동 이름 셋까지 적고 나머지는 개수로 접는다 — 서버 본문과 같은 규칙이다.
+String routineDeliveryNames(AppLocalizations l, List<String> names) {
+  const int shown = 3;
+  final String head = names.take(shown).join(' · ');
+  final int rest = names.length - shown;
+  return rest > 0 ? l.chatRoutineDeliveredMore(head, rest) : head;
 }
 
 class _Bubble extends ConsumerWidget {

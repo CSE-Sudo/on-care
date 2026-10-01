@@ -602,24 +602,22 @@
   "chatReportRegistered": "Weekly report added",
   "chatReportOpenInReports": "Go to Reports",
   "chatLoadFailed": "Couldn't load the conversation",
-  "chatDemoAnalyzed": "AI analysed {name}'s meals and workouts",
-  "@chatDemoAnalyzed": {
+  "chatRoutineDelivered": "Workout sent",
+  "chatRoutineDeliveredPt": "PT program and personal exercises sent",
+  "chatRoutineDeliveredPersonal": "Personal exercises sent",
+  "chatRoutineDeliveredAfterCancel": "Personal exercises sent in place of the cancelled PT",
+  "chatRoutineDeliveredProgram": "Workout program sent",
+  "chatRoutineDeliveredMore": "{names} and {count} more",
+  "@chatRoutineDeliveredMore": {
     "placeholders": {
-      "name": {
+      "names": {
         "type": "String"
+      },
+      "count": {
+        "type": "int"
       }
     }
   },
-  "chatDemoReportSent": "A summary report was sent to you",
-  "chatDemoRoutineSent": "A personalized workout recommendation was sent to {name}",
-  "@chatDemoRoutineSent": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "chatDemoNotified": "The member app was notified",
   "chatInputHint": "Type a message...",
   "chatInsightDiscomfortTitle": "{part} discomfort detected",
   "@chatInsightDiscomfortTitle": {

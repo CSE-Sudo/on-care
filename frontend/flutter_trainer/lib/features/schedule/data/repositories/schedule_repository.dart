@@ -362,8 +362,9 @@ class DriftScheduleRepository implements ScheduleRepository {
   Future<void> _recordDelivery(
     TrainerScheduleRow row,
     String kind,
-    List<RoutineExercise> routines,
-  ) async {
+    List<RoutineExercise> routines, {
+    List<String> programNames = const <String>[],
+  }) async {
     final String? clientId = row.clientId;
     if (clientId == null) return;
     final DateTime now = nowKst();
@@ -386,6 +387,7 @@ class DriftScheduleRepository implements ScheduleRepository {
         sessionId: row.id,
         routines: sent,
       ),
+      programNames: programNames,
     );
   }
 
@@ -857,6 +859,11 @@ class DriftScheduleRepository implements ScheduleRepository {
       (state?.dismissed ?? false)
           ? const <RoutineExercise>[]
           : await _sessionRoutines(session, state),
+      // 프로그램과 개인운동을 채팅 안내 하나로 남긴다(#2672).
+      programNames: <String>[
+        for (final Object? item in jsonDecode(session.programJson) as List)
+          if (item is Map && item['name'] is String) item['name']! as String,
+      ],
     );
   }
 

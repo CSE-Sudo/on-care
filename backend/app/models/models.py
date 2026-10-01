@@ -2022,6 +2022,13 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 이 메시지가 루틴 전송 안내라면 그 전송(종류·운동 이름)의 JSON. (#2672)
+    #
+    # 운동을 보내면 알림만 가고 채팅에는 남지 않아, 대화 속에서 "어제 보낸
+    # 루틴" 을 짚을 자리가 없었다. 리포트 전송 안내([report_week_start])처럼
+    # 보내는 쪽이 실어 둔 값으로 두 앱이 대화 가운데 안내 카드를 그린다. 일반
+    # 대화는 NULL 이다.
+    routine_delivery_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 이 메시지가 이모티콘이면 그 id(`oni_owoon` …). 본문은 이모티콘을 못 그리는
     # 자리(알림·미리보기)를 위한 글이고, 그림은 이 id 로 고른다. (#2020)
     emote_id: Mapped[str | None] = mapped_column(String(40), nullable=True)

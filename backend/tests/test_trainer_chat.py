@@ -294,3 +294,55 @@ def test_chat_pagination_two_pages_contiguous(client, db_session):
         db_session.query(TrainerClient).filter(TrainerClient.member_id == mid).delete()
         db_session.query(User).filter(User.id == mid).delete()
         db_session.commit()
+
+
+def test_routine_assignment_leaves_a_delivery_card_in_both_threads(client, db_session):
+    """운동을 보내면 알림과 함께 채팅에도 전송 안내가 남는다(#2672).
+
+    말풍선이 아니라 안내 카드다 — 트레이너·회원 응답 모두 `routine_delivery`
+    로 무엇을 보냈는지 싣고, 본문은 카드를 못 그리는 자리(마지막 메시지)용 한 줄이다.
+    """
+    from app.models.models import ChatMessage
+
+    token = _tok(client)
+    created = client.post(
+        "/v1/trainer/clients/user-jisu/routines",
+        json={"name": "전송 안내 확인 운동", "minutes": 10, "type": "유산소", "reason": ""},
+        headers=_h(token),
+    )
+    assert created.status_code == 201, created.text
+    try:
+        thread = client.get(
+            "/v1/trainer/clients/user-jisu/chat", headers=_h(token)
+        ).json()
+        card = thread[-1]
+        assert card["sender"] == "trainer"
+        assert card["routine_delivery"] == {
+            "kind": "routine",
+            "program_names": [],
+            "routine_names": ["전송 안내 확인 운동"],
+        }
+        assert "전송 안내 확인 운동" in card["body"]
+
+        member = client.post(
+            "/v1/auth/login",
+            data={"username": "jisu@oncare.com", "password": "oncare123"},
+        ).json()["access_token"]
+        mine = client.get("/v1/me/coach/chat", headers=_h(member)).json()
+        assert mine[-1]["routine_delivery"]["routine_names"] == ["전송 안내 확인 운동"]
+    finally:
+        db_session.query(ChatMessage).filter(
+            ChatMessage.member_id == "user-jisu",
+            ChatMessage.routine_delivery_json.is_not(None),
+        ).delete()
+        db_session.commit()
+
+
+def test_plain_messages_carry_no_delivery_card(client):
+    token = _tok(client)
+    thread = client.get("/v1/trainer/clients/user-jisu/chat", headers=_h(token)).json()
+    assert all(
+        m["routine_delivery"] is None
+        for m in thread
+        if not m["body"].startswith("운동을 보냈어요")
+    )
