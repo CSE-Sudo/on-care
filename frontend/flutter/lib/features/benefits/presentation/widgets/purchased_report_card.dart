@@ -10,19 +10,19 @@ import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_contr
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_report/oncare_report.dart' show ReportSheetInputs;
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 포인트로 받은 주간 리포트 한 주 — 내 혜택의 카드. (#2022)
 ///
 /// 보는 자리를 새로 만들지 않는다. 트레이너가 채팅으로 등록한 리포트와 **같은
-/// 문서**(회원 기록으로 세운 리포트)를 같은 PDF 미리보기로 연다. 다른 점은 하나다 —
-/// 트레이너가 쓴 것이 아니라 트레이너 메시지가 없고, 그 자리에 그 주의 감지 기록을
-/// 싣는다(`MemberReportSource.points`).
+/// 결과지**(트레이너 웹과 같은 한 장, #2652)를 같은 PDF 미리보기로 연다. 다른 점은
+/// 하나다 — 트레이너가 쓴 것이 아니라 트레이너 피드백 칸에 그 주의 감지 기록을
+/// 싣는다(`pointsReportFeedback`).
 class PurchasedReportCard extends ConsumerStatefulWidget {
   const PurchasedReportCard({super.key, required this.weekStart});
 
@@ -88,17 +88,18 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     try {
-      final MemberWeeklyReport report = await ref.read(
-        memberWeeklyReportProvider(widget.weekStart).future,
+      final ReportSheetInputs inputs = await loadMemberReportSheet(
+        ref.read,
+        weekStart: widget.weekStart,
+        languageCode: l.localeName,
       );
       final List<String>? insights = await _insightLines(l);
       final Uint8List bytes = await ref
           .read(memberReportPdfGeneratorProvider)
           .generate(
             l: l,
-            report: report,
-            source: MemberReportSource.points,
-            insightLines: insights,
+            inputs: inputs,
+            feedback: pointsReportFeedback(l, insights),
           );
       if (!mounted) return;
       await openPdfPreviewPage(

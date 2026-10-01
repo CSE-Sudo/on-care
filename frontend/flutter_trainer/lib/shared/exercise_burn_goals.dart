@@ -7,17 +7,15 @@
 /// 이야기를 한다. 값을 바꿀 일이 생기면 **양쪽을 함께** 고친다.
 library;
 
+import 'package:oncare_report/oncare_report.dart' show ExerciseKind;
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 
-/// 유형별로 재는 단위가 다르다.
-///
-///   * 유산소  → **분**
-///   * 근력    → **세트**
-///   * 스트레칭 → **분**
+/// 유형별로 재는 단위가 다르다 — 유산소·스트레칭은 **분**, 근력은 **세트**.
 ///
 /// 서로 더할 수 없는 값이라, 높이를 비교해야 하는 자리(도넛·막대)에서는 셋이
-/// 함께 만든 결과인 **소모 칼로리**를 쓴다.
-enum ExerciseKind { cardio, strength, stretching }
+/// 함께 만든 결과인 **소모 칼로리**를 쓴다. 회원 앱과 함께 쓰는 결과지가 같은
+/// 유형으로 읽도록 `oncare_report` 의 것을 쓴다(#2652).
+export 'package:oncare_report/oncare_report.dart' show ExerciseKind;
 
 /// 근력 1세트가 차지하는 **벽시계 시간**(세트 + 휴식). 세트 수를 따로 기록하지
 /// 않는 응답(분만 있는 기록)을 세트로 되돌릴 때 쓰는 다리다.

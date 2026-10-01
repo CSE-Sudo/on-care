@@ -1,9 +1,13 @@
-/// 리포트 등록 안내와 그 미리보기 문서 (#1600).
+/// 리포트 등록 안내와 그 미리보기 문서 (#1600, #2652).
 ///
 /// 트레이너 앱의 짝은
 /// `frontend/flutter_trainer/test/features/clients/client_detail_chat_test.dart`
 /// 의 `리포트 전송 메시지는 …` 테스트다 — 같은 사건을 두 앱이 같은 정보 구조로
 /// 그린다. 한쪽 문구만 고치면 여기서 깨진다.
+///
+/// 미리보기 문서는 트레이너 웹과 같은 결과지 한 장이다(#2652). 결과지 자체의
+/// 규칙은 `shared/oncare_report` 의 테스트가 지키고, 여기서는 회원 앱이 그 한 장에
+/// 무엇을 싣는지(트레이너 글·감지 기록·언어·테마)를 본다.
 library;
 
 import 'dart:typed_data';
@@ -13,16 +17,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/diet/domain/entities/diet_period.dart';
-import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_report/oncare_report.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -31,6 +34,42 @@ const AppConfig _config = AppConfig(
 );
 
 final DateTime _weekStart = DateTime(2026, 8, 17);
+
+ReportSheetInputs _inputs({String name = '김민수', int? completion = 82}) =>
+    ReportSheetInputs(
+      week: ReportSheetWeekData(
+        memberName: name,
+        weekStart: _weekStart,
+        sessionsBooked: 2,
+        sessionsDone: 1,
+        completionAvg: completion,
+        sodiumAvg: 2100,
+        isCurrentWeek: false,
+        caloriesWeek: const <int>[1800, 1850, 1900, 1950, 2000, 2050, 0],
+        sugarWeek: const <double>[24.5, 24.5, 24.5, 24.5, 24.5, 24.5, 0],
+        sodiumWeek: const <int>[2100, 2100, 2100, 2100, 2100, 2100, 0],
+        weekCompletion: const <int>[80, 0, 90, 0, 75, 0, 0],
+      ),
+    );
+
+/// 굽기를 흉내 낸다 — 작은 흰 그림 한 장.
+Future<CapturedWidget> _fakeCapture(
+  Widget child, {
+  required double width,
+  required double pixelRatio,
+}) async => CapturedWidget(
+  rgba: Uint8List.fromList(List<int>.filled(4 * 4, 255)),
+  width: 2,
+  height: 2,
+);
+
+Future<CapturedWidget> _brokenCapture(
+  Widget child, {
+  required double width,
+  required double pixelRatio,
+}) async => throw StateError('renderer unavailable');
+
+Future<void> _noYield() async {}
 
 /// 리포트 안내 한 줄만 들어 있는 스레드.
 class _ReportThreadRepository extends MockMemberCoachRepository {
@@ -48,7 +87,8 @@ class _ReportThreadRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
@@ -78,7 +118,8 @@ class _ReportThenChatRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
@@ -109,50 +150,13 @@ class _SameTimeReportRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
       Stream<List<CoachMessage>>.value(messages);
 }
-
-MemberWeeklyReport _report({
-  List<ExerciseSession> sessions = const <ExerciseSession>[],
-  List<double> minutes = const <double>[30, 0, 45, 0, 20, 0, 0],
-  List<DietPeriodDay> days = const <DietPeriodDay>[],
-  int booked = 2,
-  int done = 1,
-  int? sodiumTarget,
-  MemberWeeklyReport? previous,
-  DateTime? asOf,
-}) => MemberWeeklyReport(
-  weekStart: _weekStart,
-  exercise: ExerciseWeek(
-    sessions: sessions,
-    dailyMinutes: minutes,
-    dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
-    totalMinutes: 95,
-    totalCalories: 620,
-    streakDays: 1,
-    aiCoachMessage: '',
-  ),
-  diet: DietPeriod(days: days),
-  sessionsBooked: booked,
-  sessionsDone: done,
-  sodiumTarget: sodiumTarget,
-  previous: previous,
-  asOf: asOf,
-);
-
-List<DietPeriodDay> _week() => <DietPeriodDay>[
-  for (int i = 0; i < 7; i++)
-    DietPeriodDay(
-      date: DateTime(2026, 8, 17 + i),
-      calories: i == 6 ? 0 : 1800 + (i * 50),
-      sodiumMg: i == 6 ? 0 : 2100,
-      sugarG: i == 6 ? 0 : 24.5,
-    ),
-];
 
 void main() {
   Future<AppLocalizations> localizations(
@@ -246,246 +250,230 @@ void main() {
     });
   });
 
-  group('리포트 미리보기 문서 (#1600)', () {
-    testWidgets('트레이너 리포트와 같은 지표를 회원 기록으로 적는다', (WidgetTester tester) async {
+  group('리포트 미리보기 문서 (#2652)', () {
+    testWidgets('트레이너가 함께 보낸 글이 트레이너 피드백 칸에 실린다', (WidgetTester tester) async {
       final AppLocalizations l = await localizations(tester);
       final List<String> lines = const MemberReportPdfGenerator().textContent(
         l: l,
-        report: _report(
-          days: _week(),
-          sessions: <ExerciseSession>[
-            ExerciseSession(
-              dayLabel: '월',
-              type: ExerciseType.cardio,
-              minutes: 30,
-              calories: 210,
-              name: '걷기',
-              date: DateTime(2026, 8, 17),
-            ),
-          ],
-        ),
-      );
-
-      expect(lines.first, '기간 2026-08-17 ~ 2026-08-23');
-      // 지표는 절 제목 아래 글줄이 아니라 머리띠와 상자로 선다(#1619).
-      expect(lines, contains('· 운동한 날: 3일'));
-      expect(lines, contains('· 총 운동 시간: 95분'));
-      expect(lines, contains('· 소모 칼로리: 620kcal'));
-      expect(lines, contains('· PT 세션: 2회 중 1회'));
-      // 평균은 **기록이 있는 날만으로** 나눈다 — 안 먹은 날의 0 이 평균을
-      // 끌어내리면 실제로 먹은 양과 다른 숫자가 된다.
-      expect(lines, contains('· 평균 섭취 칼로리: 1925kcal'));
-      expect(lines, contains('· 평균 나트륨: 2100mg'));
-      expect(lines, contains('· 평균 당류: 24.5g'));
-      expect(lines, contains('· 운동 시간: 30분 / - / 45분 / - / 20분 / - / -'));
-      expect(lines, contains('월요일 — 운동 걷기, 섭취 1800kcal'));
-      // 기록이 없는 날은 0 을 적지 않는다.
-      expect(lines, contains('일요일 — 운동 기록 없음, 섭취 기록 없음'));
-      expect(lines.last, contains('회원님 기록으로 정리한 미리보기'));
-    });
-
-    testWidgets('운동 이름이 items 에만 있어도 요일별 상세에 적힌다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        report: _report(
-          days: _week(),
-          sessions: <ExerciseSession>[
-            // 데모 경로가 주는 모양 — 이름은 `items` 에 하나씩, `name` 은 비어
-            // 있고 날짜도 없다. 예전에는 `name` 만 읽어 전부 걸러졌다.
-            const ExerciseSession(
-              dayLabel: '월',
-              type: ExerciseType.cardio,
-              minutes: 30,
-              calories: 210,
-              items: <String>['저강도 유산소 (걷기) 30분', '코어 강화 10분'],
-            ),
-          ],
-        ),
-      );
-
-      expect(
-        lines,
-        contains('월요일 — 운동 저강도 유산소 (걷기) 30분, 코어 강화 10분, 섭취 1800kcal'),
-      );
-    });
-
-    testWidgets('아직 오지 않은 요일은 기록 없음이라고 적지 않는다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        // 그 주의 수요일에 세운 문서 — 목·금·토·일은 아직 오지 않았다.
-        report: _report(days: _week(), asOf: DateTime(2026, 8, 19)),
-      );
-
-      expect(lines, contains('목요일 — 아직 지나지 않았어요'));
-      expect(lines, contains('일요일 — 아직 지나지 않았어요'));
-      expect(lines, isNot(contains('일요일 — 운동 기록 없음, 섭취 기록 없음')));
-      // 지나간 날은 그대로 센다.
-      expect(lines, contains(contains('화요일 — ')));
-    });
-
-    testWidgets('트레이너가 함께 보낸 글을 문서 안에서 읽는다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        report: _report(days: _week()),
-        trainerNote: '이번 주는 나트륨을 조금만 줄여 봐요.',
+        inputs: _inputs(),
+        feedback: trainerReportFeedback('  이번 주 수고하셨어요.  '),
       );
 
       expect(lines, contains('트레이너 피드백'));
-      expect(lines, contains('이번 주는 나트륨을 조금만 줄여 봐요.'));
+      expect(lines, contains('이번 주 수고하셨어요.'));
+      expect(lines, isNot(contains('피드백 없음')));
     });
 
-    testWidgets('함께 온 글이 없으면 그 사실을 적는다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        report: _report(days: _week()),
-      );
-
-      expect(lines, contains('함께 온 피드백이 없어요.'));
-    });
-
-    testWidgets('잡힌 일정을 못 받아도 진행한 PT 는 기록에서 센다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        report: _report(days: _week(), booked: 0, done: 2),
-      );
-
-      // 예전에는 잡힌 일정이 없으면 `PT 세션: 기록 없음` 이었다 — 그 주에 PT 를
-      // 두 번 했는데도 아무 일 없던 주로 읽혔다.
-      expect(lines, contains('· 진행한 PT: 2회'));
-      expect(lines, isNot(contains('· PT 세션: 기록 없음')));
-    });
-
-    testWidgets('잡힌 일정도 진행한 PT 도 없으면 일정이 없다고 적는다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        report: _report(days: _week(), booked: 0, done: 0),
-      );
-
-      expect(lines, contains('· PT 세션: 잡힌 일정 없음'));
-    });
-
-    testWidgets('나트륨 초과 일수는 회원 자신의 목표로 세고 기준을 밝힌다', (
+    testWidgets('함께 온 글이 없으면 트레이너 웹과 같이 피드백 없음이라고 적는다', (
       WidgetTester tester,
     ) async {
       final AppLocalizations l = await localizations(tester);
       final List<String> lines = const MemberReportPdfGenerator().textContent(
         l: l,
-        report: _report(days: _week(), sodiumTarget: 2000),
+        inputs: _inputs(),
+        feedback: trainerReportFeedback('   '),
       );
-
-      // `_week()` 는 기록한 여섯 날 모두 2100mg 이다.
-      expect(lines, contains('· 나트륨 목표 초과: 6일'));
-      expect(lines, contains(contains('하루 2000mg 기준')));
+      expect(lines, contains('피드백 없음'));
     });
 
-    testWidgets('요일별 값은 그래프로 그려도 같은 값을 말한다', (WidgetTester tester) async {
+    testWidgets('문서 제목과 항목 이름은 트레이너 웹 결과지와 같다', (WidgetTester tester) async {
       final AppLocalizations l = await localizations(tester);
       final List<String> lines = const MemberReportPdfGenerator().textContent(
         l: l,
-        report: _report(days: _week(), asOf: DateTime(2026, 8, 23)),
+        inputs: _inputs(),
+        feedback: trainerReportFeedback('글'),
       );
-
-      // 그래프 블록도 자기 값을 글로 든다 — 그림만 남으면 문서가 무엇을 말하는지
-      // 확인할 길이 없다.
-      expect(lines, contains('· 운동 시간: 30분 / - / 45분 / - / 20분 / - / -'));
-      expect(lines, contains(startsWith('· 섭취 칼로리: ')));
-      expect(lines, contains(startsWith('· 나트륨: ')));
+      expect(lines.first, '주간 코칭 리포트');
+      expect(lines, contains('· 회원: 김민수'));
+      expect(lines, contains('· 운동 수행률: 82%'));
+      expect(lines, contains('· PT 진행: 1/2회 (50%)'));
+      expect(lines, contains('· 나트륨: 2,100mg'));
     });
 
-    testWidgets('값이 없거나 목표가 있어도 문서가 만들어진다', (WidgetTester tester) async {
+    testWidgets('기록이 없는 값은 0 이 아니라 미집계다', (WidgetTester tester) async {
       final AppLocalizations l = await localizations(tester);
-      const MemberReportPdfGenerator generator = MemberReportPdfGenerator();
-
-      // 막대 높이를 나누는 자리가 0 이 되는 주 — 눈금이 무너지면 여기서 터진다.
-      Uint8List? empty;
-      Uint8List? withTarget;
-      await tester.runAsync(() async {
-        empty = await generator.generate(
-          l: l,
-          report: _report(minutes: const <double>[0, 0, 0, 0, 0, 0, 0]),
-        );
-        withTarget = await generator.generate(
-          l: l,
-          report: _report(days: _week(), sodiumTarget: 2000),
-        );
-      });
-
-      expect(empty, isNotNull);
-      expect(empty!.length, greaterThan(0));
-      expect(withTarget, isNotNull);
-      expect(withTarget!.length, greaterThan(0));
-    });
-
-    testWidgets('지난주가 있으면 견주고, 없으면 없다고 적는다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester);
-      final List<String> withLast = const MemberReportPdfGenerator()
-          .textContent(
-            l: l,
-            report: _report(
-              days: _week(),
-              previous: _report(
-                days: _week(),
-                minutes: const <double>[20, 0, 0, 0, 0, 0, 0],
-              ),
-            ),
-          );
-
-      // 같은 지표의 이번 주·지난주·변화가 한 줄에 선다(#1619) — 예전에는
-      // `지난주 대비` 라는 절이 따로 있었다.
-      expect(withLast, contains('· 총 운동 시간: 95분 (지난주 95분, 변화 없음)'));
-      expect(withLast, isNot(contains('지난주 기록이 없어 견줄 값이 없어요.')));
-
-      final List<String> alone = const MemberReportPdfGenerator().textContent(
+      final List<String> lines = const MemberReportPdfGenerator().textContent(
         l: l,
-        report: _report(days: _week()),
+        inputs: _inputs(completion: null),
+        feedback: trainerReportFeedback(''),
       );
-      expect(alone, contains('지난주 기록이 없어 견줄 값이 없어요.'));
+      expect(lines, contains('· 운동 수행률: 미집계'));
     });
 
-    testWidgets('포인트로 받은 리포트는 트레이너 자리에 감지 기록을 싣는다 (#2022)', (
+    testWidgets('이름을 모르면 회원 줄을 비워 두지 않고 뺀다', (WidgetTester tester) async {
+      final AppLocalizations l = await localizations(tester);
+      final List<String> lines = const MemberReportPdfGenerator().textContent(
+        l: l,
+        inputs: _inputs(name: ''),
+        feedback: trainerReportFeedback(''),
+      );
+      expect(lines.where((String s) => s.startsWith('· 회원')), isEmpty);
+    });
+
+    testWidgets('영어 화면이면 영어 결과지다', (WidgetTester tester) async {
+      final AppLocalizations l = await localizations(tester, lang: 'en');
+      final List<String> lines = const MemberReportPdfGenerator().textContent(
+        l: l,
+        inputs: _inputs(),
+        feedback: trainerReportFeedback(''),
+      );
+      expect(lines.first, 'Weekly coaching report');
+      expect(lines, contains('Trainer feedback'));
+      expect(lines, contains('No feedback'));
+    });
+
+    testWidgets('포인트로 받은 리포트는 트레이너 칸에 감지 기록을 싣는다 (#2022)', (
       WidgetTester tester,
     ) async {
       final AppLocalizations l = await localizations(tester);
-      const MemberReportPdfGenerator pdf = MemberReportPdfGenerator();
-      const List<String> insights = <String>['무릎 통증 감지 2회'];
-      final List<String> lines = pdf.textContent(
-        l: l,
-        report: _report(days: _week()),
-        source: MemberReportSource.points,
-        insightLines: insights,
-      );
+      final MemberReportFeedback feedback = pointsReportFeedback(l, <String>[
+        '무릎 통증 감지 2회',
+      ]);
+      expect(feedback.title, l.coachReportPdfSectionInsights);
+      expect(feedback.text, contains('무릎 통증 감지 2회'));
+      expect(feedback.text, contains(l.coachReportPdfSelfMadeNote));
 
+      final List<String> lines = const MemberReportPdfGenerator().textContent(
+        l: l,
+        inputs: _inputs(),
+        feedback: feedback,
+      );
       expect(lines, contains(l.coachReportPdfSectionInsights));
-      expect(lines, contains('무릎 통증 감지 2회'));
-      expect(lines, contains(l.coachReportPdfSelfMadeNote));
-      expect(lines, isNot(contains(l.coachReportPdfSectionTrainerNote)));
+      expect(lines, isNot(contains('트레이너 피드백')));
+    });
 
-      // 적는 가장 긴 요약(세 종류와 `외 N건`)도 한 장에 담긴다(#1619). 영어
-      // 문서가 더 길어 두 언어를 다 본다.
-      for (final (String lang, String worst) in <(String, String)>[
-        ('ko', '오른쪽 무릎 통증 감지 3회 · 왼쪽 어깨 통증 감지 2회 · 부정적 반응 감지 2회 · 외 5건'),
-        (
-          'en',
-          'Right knee pain noted ×3 · Left shoulder pain noted ×2 · Negative feedback noted ×2 · +5 more',
-        ),
-      ]) {
-        expect(
-          pdf.pageCount(
-            l: lookupAppLocalizations(Locale(lang)),
-            report: _report(days: _week()),
-            source: MemberReportSource.points,
-            insightLines: <String>[worst],
+    testWidgets('감지가 없던 주는 없다고, 못 읽은 주는 이유만 적는다', (WidgetTester tester) async {
+      final AppLocalizations l = await localizations(tester);
+      final MemberReportFeedback none = pointsReportFeedback(
+        l,
+        const <String>[],
+      );
+      expect(none.text, contains(l.coachReportPdfNoInsights));
+
+      final MemberReportFeedback unread = pointsReportFeedback(l, null);
+      expect(unread.text, isNot(contains(l.coachReportPdfNoInsights)));
+      expect(unread.text, l.coachReportPdfSelfMadeNote);
+    });
+
+    testWidgets('트레이너 글은 제목을 바꾸지 않는다', (WidgetTester tester) async {
+      expect(trainerReportFeedback('글').title, isNull);
+    });
+
+    testWidgets('결과지는 트레이너 웹 테마로 굽는다 — 회원 앱 파랑이 아니다', (
+      WidgetTester tester,
+    ) async {
+      final AppLocalizations l = await localizations(tester);
+      late OnCareTokens tokens;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MemberReportPdfGenerator.frame(
+            l,
+            Builder(
+              builder: (BuildContext context) {
+                tokens = context.oncare;
+                return const SizedBox.shrink();
+              },
+            ),
           ),
-          1,
-          reason: lang,
-        );
-      }
+        ),
+      );
+      expect(tokens.brand.primary, OnCareBrand.trainer.primary);
+      expect(tokens.brand.primary, isNot(OnCareBrand.member.primary));
+    });
+
+    testWidgets('결과지 한 장이 앱 밖에서도 그려진다', (WidgetTester tester) async {
+      final AppLocalizations l = await localizations(tester);
+      tester.view.physicalSize = const Size(
+        ReportSheetDocument.width,
+        ReportSheetDocument.height,
+      );
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MemberReportPdfGenerator.frame(
+            l,
+            MemberReportPdfGenerator.sheet(
+              inputs: _inputs(),
+              feedback: trainerReportFeedback('이번 주 수고하셨어요.'),
+              today: DateTime(2026, 8, 30),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ReportSheetDocument), findsOneWidget);
+      expect(find.text('이번 주 수고하셨어요.'), findsOneWidget);
+      expect(find.text('김민수'), findsWidgets);
+    });
+
+    testWidgets('포인트 리포트는 결과지 아래 칸 제목이 참고 기록이다', (WidgetTester tester) async {
+      final AppLocalizations l = await localizations(tester);
+      tester.view.physicalSize = const Size(
+        ReportSheetDocument.width,
+        ReportSheetDocument.height,
+      );
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MemberReportPdfGenerator.frame(
+            l,
+            MemberReportPdfGenerator.sheet(
+              inputs: _inputs(),
+              feedback: pointsReportFeedback(l, const <String>[]),
+              today: DateTime(2026, 8, 30),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(l.coachReportPdfSectionInsights), findsOneWidget);
+      expect(find.text('트레이너 피드백'), findsNothing);
+    });
+
+    testWidgets('구운 결과지를 PDF 한 부로 낸다', (WidgetTester tester) async {
+      final AppLocalizations l = await localizations(tester);
+      late Uint8List bytes;
+      await tester.runAsync(() async {
+        bytes =
+            await const MemberReportPdfGenerator(
+              capture: _fakeCapture,
+              yieldFrame: _noYield,
+            ).generate(
+              l: l,
+              inputs: _inputs(),
+              feedback: trainerReportFeedback('글'),
+            );
+      });
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+
+    testWidgets('굽지 못하면 글자 문서로 물러선다 — 리포트가 안 열리지는 않는다', (
+      WidgetTester tester,
+    ) async {
+      final AppLocalizations l = await localizations(tester);
+      late Uint8List bytes;
+      await tester.runAsync(() async {
+        bytes =
+            await const MemberReportPdfGenerator(
+              capture: _brokenCapture,
+              yieldFrame: _noYield,
+            ).generate(
+              l: l,
+              inputs: _inputs(),
+              feedback: trainerReportFeedback('글'),
+            );
+      });
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
   });
 }

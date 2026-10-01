@@ -1,110 +1,63 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
-import 'package:oncare/features/diet/domain/entities/diet_period.dart';
-import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
-import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/data/repositories/member_report_sheet_repository.dart';
+import 'package:oncare_report/oncare_report.dart';
 
-/// 트레이너가 보낸 리포트가 가리키는 주를, 회원 기록으로 다시 세운다. (#1600)
+/// 결과지 자료를 어디서 읽는가 — 실서버 또는 데모. (#2652)
 ///
-/// 새 엔드포인트를 두지 않는다 — 운동 탭·식단 탭·PT 일정이 이미 읽고 있는 값을
-/// 모은다. 그래서 미리보기의 숫자가 회원이 앱에서 보는 숫자와 어긋나지 않는다.
-///
-/// 바로 앞 주도 함께 세운다(#1613). 트레이너 리포트 화면은 첫 카드가 `지난주
-/// 대비` 비교라, 그 자리가 비면 같은 주를 두 앱이 다르게 말하게 된다.
-final memberWeeklyReportProvider =
-    FutureProvider.family<MemberWeeklyReport, DateTime>((
-      ref,
-      DateTime weekStart,
-    ) async {
-      final MemberWeeklyReport week = await ref.watch(
-        _memberWeekProvider(mondayOfWeek(weekStart)).future,
+/// 다른 회원 코치 저장소와 같은 스위치(`useMockApi`)를 쓴다.
+final memberReportSheetRepositoryProvider =
+    Provider<MemberReportSheetRepository>((ref) {
+      if (ref.watch(appConfigProvider).useMockApi) {
+        return DemoMemberReportSheetRepository();
+      }
+      return DioMemberReportSheetRepository(
+        ref.watch(dioProvider),
+        exercise: ref.watch(exerciseRepositoryProvider),
       );
-      final MemberWeeklyReport? last = await ref
-          .watch(
-            _memberWeekProvider(
-              DateTime(
-                week.weekStart.year,
-                week.weekStart.month,
-                week.weekStart.day - 7,
-              ),
-            ).future,
-          )
-          // 지난주를 못 읽는 것은 이번 주 문서를 막을 이유가 아니다 — 비교
-          // 항목만 빠진다.
-          .then<MemberWeeklyReport?>((MemberWeeklyReport r) => r)
-          .catchError((Object _) => null);
-      return week.copyWithPrevious(last);
-    }, name: 'memberWeeklyReport');
+    }, name: 'memberReportSheetRepository');
 
-/// 한 주치 집계. `지난주 대비` 를 위해 두 번 부르므로 따로 뗀다.
-final _memberWeekProvider = FutureProvider.family<MemberWeeklyReport, DateTime>(
-  (ref, DateTime weekStart) async {
-    final DateTime monday = mondayOfWeek(weekStart);
-    final DateTime today = DateTime(
-      nowKst().year,
-      nowKst().month,
-      nowKst().day,
-    );
-    final bool isThisWeek = monday == mondayOfWeek(today);
+/// `WidgetRef.read` 와 `ProviderContainer.read` 를 함께 받는 모양.
+typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
 
-    // watch 는 await 이전에 모두 건다 — 하나라도 바뀌면 문서도 다시 세워진다.
-    final Future<ExerciseWeek> exercise = isThisWeek
-        ? ref.watch(exerciseWeekProvider.future)
-        : ref.watch(exercisePastWeekProvider(monday).future);
-    final Future<DietPeriod> diet = ref.watch(
-      dietPeriodProvider((
-        from: monday,
-        to: DateTime(monday.year, monday.month, monday.day + 6),
-      )).future,
-    );
-    final Future<List<CoachSession>> sessions = ref.watch(
-      coachSessionsProvider.future,
-    );
-    // 나트륨 초과 일수는 회원 자신의 목표로 센다 — MY 화면이 쓰는 값과 같다.
-    final Future<UserProfile> profile = ref.watch(profileProvider.future);
-    final ExerciseWeek week = await exercise;
-    final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
-    final List<CoachSession> inWeek = (await sessions)
-        .where((CoachSession s) {
-          final DateTime? date = s.date;
-          if (date == null) return false;
-          final DateTime day = DateTime(date.year, date.month, date.day);
-          return !day.isBefore(monday) && !day.isAfter(sunday);
-        })
-        .toList(growable: false);
+/// 트레이너가 보낸 리포트가 가리키는 주의 결과지 자료. (#1600, #2652)
+///
+/// 예전에는 운동 탭·식단 탭·PT 일정의 값을 모아 회원 앱만의 문서를 세웠다. 그
+/// 문서는 트레이너 웹 결과지와 구성·수치가 달라, 같은 주를 두 앱이 다르게
+/// 말했다. 지금은 트레이너 웹과 같은 자료를 같은 규칙으로 읽는다.
+///
+/// provider 로 캐시하지 않는다 — 누를 때마다 한 번 읽는 값이고, 캐시하면 오늘
+/// 더한 기록이 이번 주 리포트에 늦게 닿는다.
+Future<ReportSheetInputs> loadMemberReportSheet(
+  ProviderRead read, {
+  required DateTime weekStart,
+  required String languageCode,
+}) async {
+  // 목표를 못 읽어도 결과지는 선다 — 트레이너 웹과 같은 기본값으로 견준다.
+  final UserProfile? profile = await read(
+    profileProvider.future,
+  ).then<UserProfile?>((UserProfile p) => p, onError: (Object _) => null);
+  return read(memberReportSheetRepositoryProvider).fetch(
+    weekStart: weekStart,
+    languageCode: languageCode,
+    goals: reportSheetGoalsOf(profile),
+  );
+}
 
-    return MemberWeeklyReport(
-      weekStart: monday,
-      exercise: week,
-      diet: await diet,
-      // 취소된 PT 는 잡혀 있던 것으로 세지 않는다 — 진행되지 않은 일정을
-      // 분모에 두면 출석률이 실제보다 낮게 읽힌다(#871 과 같은 규칙).
-      sessionsBooked: inWeek.where((CoachSession s) => !s.isCancelled).length,
-      // 잡힌 일정이 하나도 없어도 그 주에 **PT 로 기록된 운동**은 있을 수 있다
-      // — 담당 트레이너의 일정 목록을 받지 못하는 경로(데모)가 그렇다. 그때는
-      // 진행한 PT 를 운동 기록에서 센다. 둘 다 없을 때만 잡힌 일정이 없다고
-      // 적는다(#1613).
-      sessionsDone: inWeek.isEmpty
-          ? week.sessions
-                .where(
-                  (ExerciseSession s) => s.source == ExerciseSource.trainerPt,
-                )
-                .length
-          : inWeek.where((CoachSession s) => s.isDone).length,
-      sodiumTarget: (await profile).effectiveDailySodiumMg,
-      calorieTarget: (await profile).effectiveDailyCalories,
-      sugarTarget: (await profile).effectiveDailySugarG,
-      // 세운 날. 그 주에서 아직 오지 않은 요일을 가리는 데 쓴다(#1613) — 넘기지
-      // 않으면 오지 않은 날이 다시 `기록 없음` 으로 적힌다.
-      asOf: today,
-    );
-  },
-  name: 'memberWeek',
+/// 회원이 MY 에서 정한 주간 운동 목표. 비어 있는 칸은 권장값이다.
+///
+/// 트레이너 웹 `ExerciseBurnGoals.fromProfile` 과 같은 규칙이다 — 같은 회원의
+/// 목표를 두 앱이 다른 값으로 읽으면 추이의 달성률이 어긋난다.
+ReportSheetGoals reportSheetGoalsOf(UserProfile? profile) => ReportSheetGoals(
+  weeklyCardioMinutes:
+      profile?.weeklyCardioMinutes?.toDouble() ?? kReportWeeklyCardioMinutes,
+  weeklyStrengthSets:
+      profile?.weeklyStrengthSets?.toDouble() ?? kReportWeeklyStrengthSets,
+  weeklyStretchingMinutes:
+      profile?.weeklyFlexibilityMinutes?.toDouble() ??
+      kReportWeeklyStretchingMinutes,
 );

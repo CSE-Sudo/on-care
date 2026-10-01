@@ -898,6 +898,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  oncare_report:
+    dependency: "direct main"
+    description:
+      path: "../../shared/oncare_report"
+      relative: true
+    source: path
+    version: "0.1.0"
   oncare_ui:
     dependency: "direct main"
     description:

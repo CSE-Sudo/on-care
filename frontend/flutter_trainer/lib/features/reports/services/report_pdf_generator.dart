@@ -4,7 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/app/app_theme.dart';
+import 'package:oncare_report/oncare_report.dart'
+    show reportSheetFrame, reportSheetOnePage;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -15,7 +16,6 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_resu
 import 'package:oncare_trainer/features/reports/services/report_pdf_image.dart';
 import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -200,49 +200,28 @@ class ReportPdfGenerator {
     );
   }
 
-  /// 화면 밖 트리가 앱 안에서처럼 그려지도록 테마·로케일·provider 를 두른다.
+  /// 화면 밖 트리가 앱 안에서처럼 그려지도록 provider 를 두르고, 테마·로케일은
+  /// 회원 앱과 같은 틀(`reportSheetFrame`)에 맡긴다 — 두 앱이 같은 한 장을
+  /// 굽는다(#2652).
   static Widget _frame(
     ProviderContainer scope,
     AppLocalizations l,
     Widget sheet,
   ) => UncontrolledProviderScope(
     container: scope,
-    child: Localizations(
+    child: reportSheetFrame(
       locale: Locale(l.localeName),
       delegates: AppLocalizations.localizationsDelegates,
-      child: MediaQuery(
-        // 문서는 사용자의 글자 배율과 상관없이 같은 크기로 나가야 한다.
-        data: const MediaQueryData(textScaler: TextScaler.noScaling),
-        child: Theme(
-          data: AppTheme.light(),
-          child: Material(color: OnCareColors.surfaceCard, child: sheet),
-        ),
-      ),
+      sheet: sheet,
     ),
   );
 
   /// 구운 결과지를 A4 한 쪽에 가득 얹는다. 결과지가 A4 비율이라 여백이
   /// 남지 않는다.
-  Future<Uint8List> _onePage(CapturedWidget shot) async {
-    const PdfPageFormat format = PdfPageFormat.a4;
-    final pw.Document document = pw.Document();
-    final pw.ImageProvider image = await embedReportImage(
-      document.document,
-      shot,
-      encode: encodeImage,
-      yieldFrame: yieldFrame,
-    );
-    document.addPage(
-      pw.Page(
-        pageFormat: format,
-        margin: pw.EdgeInsets.zero,
-        build: (_) =>
-            pw.Image(image, width: format.width, height: format.height),
-      ),
-    );
-    // 날 RGB 로 실은 그림의 압축이 여기서 돈다 — 도는 동안 양보한다.
-    return document.save(enableEventLoopBalancing: true);
-  }
+  ///
+  /// 회원 앱이 여는 리포트와 같은 함수로 싣는다(#2652).
+  Future<Uint8List> _onePage(CapturedWidget shot) =>
+      reportSheetOnePage(shot, encode: encodeImage, yieldFrame: yieldFrame);
 
   // ── 글자 문서(물러설 자리) ──────────────────────────────────────────────
 
