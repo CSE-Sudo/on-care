@@ -20,6 +20,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import RequireTrainer
 from app.api.v1 import chat_attachments
@@ -300,9 +301,9 @@ async def trainer_set_kakao_gym(
     """카카오 검색 결과로 소속 설정. 처음 고른 헬스장은 이때 `places` 에 들어간다. (#2543)
 
     서버가 카카오를 다시 검색해 확인하므로, 헬스장이 아니거나 찾을 수 없으면 404,
-    카카오를 쓸 수 없으면 503 이다.
+    카카오를 쓸 수 없으면 503 이다. 동기 DB 조회는 스레드풀에서 한다(#2835).
     """
-    profile = _require_profile(db, trainer.id)
+    profile = await run_in_threadpool(_require_profile, db, trainer.id)
     try:
         me = await trainer_gym_search.select_kakao_gym(
             db, trainer, profile, payload.kakao_place_id, payload.name.strip()
@@ -2535,7 +2536,7 @@ def trainer_send_report(
     response_model=ChatMessageOut,
     status_code=201,
 )
-async def trainer_send_report_pdf(
+def trainer_send_report_pdf(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
@@ -2549,6 +2550,9 @@ async def trainer_send_report_pdf(
     `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버가 대신 채우던 한국어
     기본 문장은 트레이너·회원의 언어를 몰라, 영어로 쓰는 회원에게도 한국어가
     나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+
+    동기 라우트다(#2835). 멱등 조회·PDF 저장(`os.fsync`)·메시지 커밋이 모두 동기라
+    `async def` 로 두면 이벤트 루프를 막는다. 업로드도 `UploadFile.file` 로 읽는다.
     """
     _require_client(db, trainer.id, member_id)
     week = _report_week(week_start)
@@ -2572,7 +2576,7 @@ async def trainer_send_report_pdf(
     if pdf.content_type != "application/pdf":
         raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있습니다.")
     settings = get_settings()
-    data = await pdf.read(settings.max_report_pdf_bytes + 1)
+    data = pdf.file.read(settings.max_report_pdf_bytes + 1)
     if len(data) > settings.max_report_pdf_bytes:
         raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 큽니다.")
     if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
@@ -2630,7 +2634,7 @@ async def trainer_send_report_pdf(
     response_model=ChatMessageOut,
     status_code=201,
 )
-async def trainer_send_chat_image(
+def trainer_send_chat_image(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
@@ -2648,8 +2652,9 @@ async def trainer_send_chat_image(
     저장된다.
     """
     _require_client(db, trainer.id, member_id)
-    # 받는 규약은 회원 발신(#1665)과 한곳에서 나눠 쓴다.
-    return await chat_attachments.receive_chat_image(
+    # 받는 규약은 회원 발신(#1665)과 한곳에서 나눠 쓴다. 동기 라우트라 DB·파일
+    # 저장이 이벤트 루프가 아니라 스레드풀에서 돈다(#2835).
+    return chat_attachments.receive_chat_image(
         db,
         trainer_id=trainer.id,
         member_id=member_id,

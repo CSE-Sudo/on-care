@@ -84,10 +84,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
 | `SEED_DEMO_DATA` | 운영 권장 `false`. 데이터 든 데모 계정을 두려면 `true` + `DEMO_LOGIN_PASSWORD` 필수 |
 | `DEMO_LOGIN_PASSWORD` | `SEED_DEMO_DATA=true` 일 때 12자+ 강한 값(아니면 기동 거부) |
-| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
+| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/임베딩. **운영 필수** — `RECOGNIZER`·`EMBEDDER` 에 맞는 키가 없거나 `stub`·`hash` 면 기동 거부(#2812) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
 
-> 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
+> 참고: 장소는 키가 없어도 시드 폴백으로 동작한다. 사진 인식·임베딩은 운영에서 폴백하지 않는다(#2812). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다.
 
 ## 4) App Runner 서비스
@@ -103,6 +103,19 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - 헬스체크: HTTP `GET /v1/healthz`.
 - 환경변수: 위 표(민감값은 Secrets 참조).
 - 컨테이너가 기동 시 마이그레이션을 수행하므로 별도 마이그레이션 스텝 불필요.
+
+## 워커 수와 이벤트 루프 (#2835)
+
+- `WEB_CONCURRENCY` 로 uvicorn 워커 수를 정한다(`scripts/start.sh`, 기본 `1`, 1 이상 정수가
+  아니면 기동 거부). 실제 운영 값은 배포 설정에서 정한다(#480).
+- 워커를 늘릴 때의 영향:
+  - **인메모리 분당 한도**(로그인·AI 코치·사진 분석 분당 한도 등)는 워커마다 따로 센다 — 워커 N 개면
+    한 사용자가 최대 N 배까지 통과할 수 있다. DB 에서 세는 하루 상한(AI 챗봇·사진 분석)은 영향 없다.
+  - **`/v1/system/metrics`** 는 그 요청을 받은 워커 하나의 값만 보여 준다(합산되지 않는다).
+  - **DB 연결 수**가 워커 수만큼 곱해진다(아래 계산식).
+- `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
+  다른 요청(헬스체크 포함)이 모두 멈춘다. 외부 호출만 `await` 하고 나머지는 `run_in_threadpool` 로
+  넘기거나 라우트를 `def` 로 둔다. `tests/test_async_route_guard.py` 가 이 규칙을 검사한다.
 
 ## 5) CI 용 GitHub Secrets & IAM 역할
 

@@ -23,11 +23,13 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import CurrentUser
 from app.core import rate_limit
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.schemas.diet import DietAnalysis
 from app.schemas.diet_api import (
     DietAdviceResponse,
     DietAnalyzeResponse,
@@ -275,21 +277,23 @@ async def diet_analyze(
     except chat_image_storage.UnsupportedImage as e:
         raise HTTPException(status_code=415, detail=str(e)) from e
 
+    # 여기부터 DB 작업은 모두 스레드풀에서 한다(#2835). 이 라우트는 업로드를 읽고
+    # 외부 모델을 기다리느라 `async def` 지만, 동기 세션 조회·커밋과 Pillow 재인코딩을
+    # 이벤트 루프에서 돌리면 그동안 같은 프로세스의 다른 요청(헬스체크 포함)이 모두
+    # 멈춘다. 세션은 한 번에 한 스레드만 쓴다(각 단계가 끝나야 다음 단계가 시작된다).
+    user_id = current_user.id
+    is_admin = current_user.is_admin
+
     # 멱등키가 있고 이미 저장된 요청이면 인식·저장을 건너뛰고 기존 결과 반환(재시도 중복 방지)
     if idempotency_key:
-        existing = diet_service.find_by_idempotency(db, current_user.id, idempotency_key)
-        if existing is not None:
-            return DietAnalyzeResponse(
-                entry_id=existing.id,
-                analysis=diet_service.entry_to_analysis(existing),
-                time_label=existing.time_label,
-                points=_points_already_awarded(db, current_user.id, existing.id),
-            )
+        replay = await run_in_threadpool(_replay_if_saved, db, user_id, idempotency_key)
+        if replay is not None:
+            return replay
 
     # `engine` 은 비교실험용이다. 운영에서 회원이 `?engine=stub` 으로 고정 식단을
     # 저장하거나 준비되지 않은 엔진으로 500 을 내지 못하게, 관리자가 아니면 무시하고
     # 설정된 인식기를 쓴다(#2812).
-    if engine is not None and get_settings().is_prod and not current_user.is_admin:
+    if engine is not None and get_settings().is_prod and not is_admin:
         engine = None
     try:
         recognizer = get_recognizer(engine)
@@ -301,29 +305,16 @@ async def diet_analyze(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    # 호출 한도(#2827). 사진 한 장이 외부 비전 모델 호출 한 번이라 비용이 가장 큰
-    # 축이다. 멱등 재전송은 위에서 모델 없이 돌아갔으므로 여기 오지 않아 세지 않는다.
-    # 분당 한도는 사람 단위(같은 헬스장 Wi-Fi 회원끼리 나눠 쓰지 않게), 하루 상한은
-    # DB 에서 KST 날짜로 센다.
-    settings = get_settings()
-    rate_limit.check_user(
-        "diet-analyze", current_user.id, settings.diet_analyze_per_minute, detail=_RATE_LIMITED
-    )
-    try:
-        usage_id = diet_analysis_quota_service.reserve(db, current_user.id)
-    except diet_analysis_quota_service.DailyAnalysisLimitReached as e:
-        raise HTTPException(
-            status_code=429, detail={"code": "daily_limit", "message": str(e)}
-        ) from e
+    usage_id = await run_in_threadpool(_reserve_analysis, db, user_id)
 
     try:
         analysis = await recognizer.recognize(image_bytes, media_type)
     except NotImplementedError as e:
-        diet_analysis_quota_service.release(db, usage_id)
+        await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
         raise HTTPException(status_code=501, detail=str(e)) from e
     except Exception as e:  # noqa: BLE001
         # 공급자 장애로 회원의 하루 몫이 깎이지 않게 돌려준다.
-        diet_analysis_quota_service.release(db, usage_id)
+        await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
         # 원본 에러(API 키/내부 URL 등)는 서버 로그에만 남기고, 클라이언트엔 일반화된 메시지
         logger.exception("식단 인식 실패 (engine=%s)", engine)
         raise HTTPException(
@@ -336,11 +327,60 @@ async def diet_analyze(
     if not analysis.foods:
         raise HTTPException(status_code=422, detail=_NO_FOOD_DETECTED)
 
+    return await run_in_threadpool(
+        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, image_bytes
+    )
+
+
+def _replay_if_saved(db: Session, user_id: str, idempotency_key: str) -> DietAnalyzeResponse | None:
+    """같은 멱등키로 이미 저장된 끼니가 있으면 그 응답. 동기 DB(스레드풀에서 부른다)."""
+    existing = diet_service.find_by_idempotency(db, user_id, idempotency_key)
+    if existing is None:
+        return None
+    return DietAnalyzeResponse(
+        entry_id=existing.id,
+        analysis=diet_service.entry_to_analysis(existing),
+        time_label=existing.time_label,
+        points=_points_already_awarded(db, user_id, existing.id),
+    )
+
+
+def _reserve_analysis(db: Session, user_id: str) -> str | None:
+    """모델 호출 한 번을 한도에서 잡는다(#2827). 동기 DB(스레드풀에서 부른다).
+
+    사진 한 장이 외부 비전 모델 호출 한 번이라 비용이 가장 큰 축이다. 멱등 재전송은
+    앞에서 모델 없이 돌아갔으므로 여기 오지 않아 세지 않는다. 분당 한도는 사람
+    단위(같은 헬스장 Wi-Fi 회원끼리 나눠 쓰지 않게), 하루 상한은 DB 에서 KST 날짜로
+    센다.
+    """
+    rate_limit.check_user(
+        "diet-analyze", user_id, get_settings().diet_analyze_per_minute, detail=_RATE_LIMITED
+    )
+    try:
+        return diet_analysis_quota_service.reserve(db, user_id)
+    except diet_analysis_quota_service.DailyAnalysisLimitReached as e:
+        raise HTTPException(
+            status_code=429, detail={"code": "daily_limit", "message": str(e)}
+        ) from e
+
+
+def _persist_analysis(
+    db: Session,
+    user_id: str,
+    meal_type: str,
+    analysis: DietAnalysis,
+    idempotency_key: str | None,
+    image_bytes: bytes,
+) -> DietAnalyzeResponse:
+    """인식 결과를 보강·저장하고 적립·사진 저장까지 한다. 동기(스레드풀에서 부른다).
+
+    DB 왕복(영양 DB 매칭·저장·적립)과 사진 축소(Pillow 재인코딩)가 모두 여기 있다.
+    """
     # 공공 식품영양성분 DB 매핑으로 영양 수치 보강(매칭 시 신뢰값으로 교체 → 합계 재계산)
     enrich_analysis(db, analysis, enabled=get_settings().nutrition_db_enrich)
 
     entry, is_new = diet_service.save_analyzed_entry(
-        db, current_user.id, meal_type, analysis, idempotency_key
+        db, user_id, meal_type, analysis, idempotency_key
     )
     entry_id = entry.id
     # 아래에서 적립·사진 저장이 각각 커밋하므로 그때 이 인스턴스의 속성이
@@ -352,17 +392,17 @@ async def diet_analyze(
             entry_id=entry_id,
             analysis=diet_service.entry_to_analysis(entry),
             time_label=entry_time_label,
-            points=_points_already_awarded(db, current_user.id, entry_id),
+            points=_points_already_awarded(db, user_id, entry_id),
         )
 
     # 개발용 고정 식단(스텁)은 사진을 보지 않은 결과다 — 포인트를 주지 않는다(#2812).
     if analysis.engine == STUB_ENGINE:
-        points = PointsOut(awarded=0, balance=points_service.balance(db, current_user.id))
+        points = PointsOut(awarded=0, balance=points_service.balance(db, user_id))
     else:
-        points = _award_points(db, current_user.id, entry_id)
+        points = _award_points(db, user_id, entry_id)
 
     # 인식이 끝난 사진을 끼니에 붙인다. 실패해도 끼니 기록은 그대로 남는다(#699).
-    photo = diet_photo_service.store_for_entry(db, current_user.id, entry_id, image_bytes)
+    photo = diet_photo_service.store_for_entry(db, user_id, entry_id, image_bytes)
 
     # 모델 원본 출력(raw_model_output)은 클라이언트로 내보내지 않음(디버깅 전용)
     analysis.raw_model_output = None

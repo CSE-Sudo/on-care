@@ -94,7 +94,7 @@ def download_chat_attachment(
     )
 
 
-async def receive_chat_image(
+def receive_chat_image(
     db: Session,
     *,
     trainer_id: str,
@@ -114,6 +114,11 @@ async def receive_chat_image(
     형식은 **바이트를 보고 판정한다.** 확장자와 `Content-Type` 은 보내는 쪽이
     자유롭게 적을 수 있어, 그 말을 믿으면 `image/png` 라고 적힌 아무 파일이나
     저장된다.
+
+    **동기 함수다(#2835).** DB 조회·커밋, 파일 저장(`os.fsync`)이 모두 동기라
+    이벤트 루프에서 돌면 그동안 같은 프로세스의 다른 요청(헬스체크 포함)이 멈춘다.
+    호출하는 라우트도 `def` 로 두어 FastAPI 스레드풀에서 돌게 하고, 업로드는
+    `UploadFile.file` 을 동기로 읽는다.
     """
     viewer = "trainer" if sender == "trainer" else "member"
     text = message.strip()
@@ -132,7 +137,7 @@ async def receive_chat_image(
             return trainer_service.chat_message_out(existing, viewer)
 
     settings = get_settings()
-    data = await image.read(settings.max_chat_image_bytes + 1)
+    data = image.file.read(settings.max_chat_image_bytes + 1)
     if len(data) > settings.max_chat_image_bytes:
         raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
     try:

@@ -16,6 +16,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import CurrentUser
 from app.core.config import get_settings
@@ -78,7 +79,8 @@ async def places_nearby(
                 "카카오 장소검색 실패(%s) — 시드 데이터로 폴백",
                 type(exc).__name__,
             )
-    return _seed_nearby(db, lat, lng, category, radius_m)
+    # 시드 조회는 동기 DB 다 — 이벤트 루프를 막지 않게 스레드풀로 넘긴다(#2835).
+    return await run_in_threadpool(_seed_nearby, db, lat, lng, category, radius_m)
 
 
 def _seed_nearby(
