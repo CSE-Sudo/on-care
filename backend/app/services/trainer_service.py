@@ -5096,6 +5096,7 @@ def update_scheduled_routines(
     trainer_id: str,
     session_id: str,
     items: Sequence[PersonalRoutineItem],
+    suggestion_ids: Sequence[str] = (),
 ) -> list[RoutineOut] | None:
     """그 PT 에 붙은 개인운동을 고친다 — 보내지는 않는다. (#2224)
 
@@ -5115,6 +5116,10 @@ def update_scheduled_routines(
     - 소유 슬롯 아님 → None(404).
     - 빈 목록으로 비우려 함 → ScheduleError.
     - 처음 붙이는데 붙일 수 없는 PT → ScheduleError(`_ensure_routine_attachable`).
+
+    [suggestion_ids] 는 이 개인운동을 채운 대기 중 AI 제안이다(#2747) —
+    프로그램 만들기와 같이 같은 트랜잭션에서 `consumed` 로 닫는다. 실패하면
+    (404·400) 제안은 대기로 남는다.
     """
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
@@ -5142,9 +5147,12 @@ def update_scheduled_routines(
             exercise_date=s.date,
             client_request_id=None,
         )
+        _consume_routine_suggestions(db, trainer_id, s.member_id, suggestion_ids)
         db.commit()
         return list_scheduled_routines(db, trainer_id, session_id)
     _rewrite_scheduled_routines(db, rows, items)
+    if s.member_id:
+        _consume_routine_suggestions(db, trainer_id, s.member_id, suggestion_ids)
     db.commit()
     return list_scheduled_routines(db, trainer_id, session_id)
 

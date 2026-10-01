@@ -981,6 +981,11 @@ class ScheduleRoutineUpdateRequest(BaseModel):
     personal_routines: list[PersonalRoutineItem] = Field(
         min_length=1, max_length=_MAX_PERSONAL_ROUTINES
     )
+    # 이 개인운동을 채운 대기 중 AI 제안 — 고치기와 같은 트랜잭션에서 닫는다
+    # (#2747). 이미 있는 PT 에 붙이는 길도 프로그램 만들기와 같은 규칙이다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
 
 class ScheduleRoutineSendRequest(BaseModel):

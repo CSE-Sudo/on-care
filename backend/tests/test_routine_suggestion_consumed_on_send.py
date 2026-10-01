@@ -2,7 +2,7 @@
 
 프로그램 만들기 위저드의 개인운동 단계는 대기 중 AI 제안으로 채워진다. 그 제안을
 `개인운동만`(`POST .../program`)이나 PT 와 함께(`POST .../program-schedule`)
-보내도 서버의 제안은 대기로 남아 있었다 — 다음 위저드가 보낸 제안을 다시 채우고,
+보내거나, 이미 있는 PT 에 붙여도(`PUT /trainer/schedule/{id}/routines`) 서버의 제안은 대기로 남아 있었다 — 다음 위저드가 보낸 제안을 다시 채우고,
 대기가 쌓여 백로그 한도(`MAX_PENDING_BACKLOG`)에 걸리면 새 제안 준비가 멈췄다.
 
 전송 본문의 `suggestion_ids` 로 그 제안을 배정과 **같은 트랜잭션**에서 닫는다.
@@ -18,7 +18,11 @@ from sqlalchemy import or_, select
 
 from app.core import clock
 from app.models.models import TrainerRoutine, TrainerSchedule
-from app.schemas.trainer_api import ProgramAssignRequest, ProgramScheduleRequest
+from app.schemas.trainer_api import (
+    ProgramAssignRequest,
+    ProgramScheduleRequest,
+    ScheduleRoutineUpdateRequest,
+)
 from app.services import routine_suggestion_service as suggestions
 from app.services import trainer_service
 
@@ -53,6 +57,20 @@ def test_suggestion_ids_default_to_empty(model):
             duration_minutes=50,
         )
     assert model.model_validate(body).suggestion_ids == []
+
+
+def test_schedule_routine_update_takes_suggestion_ids():
+    """이미 있는 PT 에 붙이는 길도 같은 필드를 받고, 없어도 받는다."""
+    item = {"name": "걷기", "minutes": 20, "type": "유산소"}
+    assert (
+        ScheduleRoutineUpdateRequest.model_validate(
+            {"personal_routines": [item]}
+        ).suggestion_ids
+        == []
+    )
+    assert ScheduleRoutineUpdateRequest.model_validate(
+        {"personal_routines": [item], "suggestion_ids": ["a"]}
+    ).suggestion_ids == ["a"]
 
 
 def test_suggestion_ids_are_kept_in_order():
@@ -387,3 +405,138 @@ def test_sending_frees_the_backlog_for_new_suggestions(client, db_session, clean
     ).all():
         db_session.delete(row)
     db_session.commit()
+
+
+# ---- 이미 있는 PT 에 붙이기 (`PUT /trainer/schedule/{id}/routines`) ----
+
+
+def _walk(name: str = "걷기") -> dict:
+    return {
+        "name": f"{_PREFIX} {name}",
+        "minutes": 20,
+        "type": "유산소",
+        "source": "ai",
+    }
+
+
+def _pt(client, token: str, clean: list[str], days: int, personal: list[dict]) -> str:
+    """먼 날짜에 PT 를 하나 잡고 일정 id 를 준다."""
+    r = client.post(
+        _SCHEDULE_URL,
+        json={
+            "name": f"{_PREFIX} PT",
+            "sessions": [
+                {
+                    "id": "s1",
+                    "name": "A",
+                    "exercises": [
+                        {
+                            "id": "e1",
+                            "name": f"{_PREFIX} 스쿼트",
+                            "type": "근력",
+                            "sets": 3,
+                            "reps": 10,
+                        }
+                    ],
+                }
+            ],
+            "date": (clock.today() + timedelta(days=days)).isoformat(),
+            "time": "06:10",
+            "duration_minutes": 30,
+            "client_name": "이지수",
+            "client_request_id": f"cons-{uuid4().hex[:8]}",
+            "personal_routines": personal,
+        },
+        headers=_h(token),
+    )
+    assert r.status_code == 201, r.text
+    session_id = r.json()["session"]["id"]
+    clean.append(session_id)
+    return session_id
+
+
+def test_first_attach_to_existing_pt_closes_the_suggestion(client, db_session, clean):
+    """개인운동 없이 잡힌 PT 에 위저드의 개인운동을 처음 붙인다(#2280)."""
+    token = _tok(client)
+    session_id = _pt(client, token, clean, 88, [])
+    sid = _pending(db_session)
+
+    r = client.put(
+        f"/v1/trainer/schedule/{session_id}/routines",
+        json={"personal_routines": [_walk()], "suggestion_ids": [sid]},
+        headers=_h(token),
+    )
+
+    assert r.status_code == 200, r.text
+    assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+    assert sid not in _review_ids(client, token)
+
+
+def test_rewriting_attached_routines_closes_the_suggestion(client, db_session, clean):
+    """이미 붙은 개인운동을 갈아 끼울 때도 실린 제안을 닫는다."""
+    token = _tok(client)
+    session_id = _pt(client, token, clean, 89, [_walk()])
+    sid = _pending(db_session)
+
+    r = client.put(
+        f"/v1/trainer/schedule/{session_id}/routines",
+        json={
+            "personal_routines": [_walk("계단 오르기")],
+            "suggestion_ids": [sid],
+        },
+        headers=_h(token),
+    )
+
+    assert r.status_code == 200, r.text
+    assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+
+
+def test_attach_without_suggestion_ids_leaves_suggestions_alone(
+    client, db_session, clean
+):
+    """옛 앱은 이 필드를 모른다 — 빠지면 아무 제안도 닫지 않는다."""
+    token = _tok(client)
+    session_id = _pt(client, token, clean, 90, [])
+    sid = _pending(db_session)
+
+    r = client.put(
+        f"/v1/trainer/schedule/{session_id}/routines",
+        json={"personal_routines": [_walk()]},
+        headers=_h(token),
+    )
+
+    assert r.status_code == 200, r.text
+    assert _status(db_session, sid) == trainer_service.ROUTINE_PENDING
+
+
+def test_failed_attach_keeps_the_suggestion_pending(client, db_session, clean):
+    """없는 일정이면 404 — 제안도 그대로 대기다."""
+    token = _tok(client)
+    sid = _pending(db_session)
+
+    r = client.put(
+        "/v1/trainer/schedule/no-such-session/routines",
+        json={"personal_routines": [_walk()], "suggestion_ids": [sid]},
+        headers=_h(token),
+    )
+
+    assert r.status_code == 404, r.text
+    assert _status(db_session, sid) == trainer_service.ROUTINE_PENDING
+
+
+def test_attach_ignores_other_members_suggestion(client, db_session, clean):
+    """일정의 회원이 아닌 회원의 제안 id 는 닫지 않는다."""
+    token = _tok(client)
+    session_id = _pt(client, token, clean, 91, [])
+    mine = _pending(db_session)
+    theirs = _pending(db_session, OTHER_MEMBER)
+
+    r = client.put(
+        f"/v1/trainer/schedule/{session_id}/routines",
+        json={"personal_routines": [_walk()], "suggestion_ids": [mine, theirs]},
+        headers=_h(token),
+    )
+
+    assert r.status_code == 200, r.text
+    assert _status(db_session, mine) == trainer_service.ROUTINE_CONSUMED
+    assert _status(db_session, theirs) == trainer_service.ROUTINE_PENDING

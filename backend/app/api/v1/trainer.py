@@ -1920,7 +1920,11 @@ def trainer_update_schedule_routines(
     """
     try:
         rows = trainer_service.update_scheduled_routines(
-            db, trainer.id, session_id, payload.personal_routines
+            db,
+            trainer.id,
+            session_id,
+            payload.personal_routines,
+            suggestion_ids=payload.suggestion_ids,
         )
     except trainer_service.ClientLinkDetached as exc:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
