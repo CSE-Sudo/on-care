@@ -90,6 +90,7 @@ class DioDietRepository implements DietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     // multipart 본문은 한 번만 읽힌다 — 다시 보낼 때는 새로 만든다.
     FormData form() => FormData.fromMap(<String, Object?>{
@@ -102,6 +103,7 @@ class DioDietRepository implements DietRepository {
       ),
       'meal_type': mealType,
       'idempotency_key': ?idempotencyKey,
+      'date': ?date,
     });
     Future<Response<Map<String, Object?>>> send() =>
         _dio.post<Map<String, Object?>>(

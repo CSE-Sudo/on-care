@@ -583,20 +583,25 @@ def find_by_idempotency(db: Session, user_id: str, key: str) -> DietEntry | None
 def save_analyzed_entry(
     db: Session, user_id: str, meal_type: str, analysis: DietAnalysis,
     idempotency_key: str | None,
+    record_date: date_type | None = None,
 ) -> tuple[DietEntry, bool]:
     """분석 결과를 diet_entries 에 저장. 반환: (entry, is_new).
 
     동시 재시도가 유니크 제약(user_id, idempotency_key)에 걸리면 이미 저장된 엔트리를
     반환한다(is_new=False, 중복 저장·재적재 방지). 신규 저장 시 개인 RAG 문서로도 적재.
+
+    `record_date` 는 기록을 남길 날이다(#2849). 지난 날짜 화면에서 연 추가가 싣고,
+    빠지면 저장하는 날이다. 검증(앞날 금지·범위)은 라우터 경계에서 끝난다.
     """
     foods_for_storage = store_foods(analysis.foods)
     # 날짜와 시각은 같은 시계 스냅샷에서 뽑는다. 따로 읽으면 KST 자정 사이에
     # date 는 어제, time_label 은 오늘이 되어 한 행 안에서 어긋난다.
     recorded_at = clock.now()
+    entry_date = record_date or recorded_at.date()
     entry = DietEntry(
         id=f"diet-{uuid.uuid4().hex[:12]}",
         user_id=user_id,
-        date=recorded_at.date().isoformat(),
+        date=entry_date.isoformat(),
         meal_type=meal_type,
         time_label=recorded_at.strftime("%H:%M"),
         foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
@@ -615,7 +620,7 @@ def save_analyzed_entry(
     db.add(entry)
     # 보호한 날에 기록이 생기면 그날 쓴 보호권을 되돌린다(#1788) — 식단 한 끼도
     # 기록이라 보호가 필요 없어진다. 기록과 같은 트랜잭션에서 부른다.
-    streak_shield_service.refund_for_record(db, user_id, recorded_at.date())
+    streak_shield_service.refund_for_record(db, user_id, entry_date)
     try:
         db.commit()
     except IntegrityError:

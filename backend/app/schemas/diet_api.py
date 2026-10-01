@@ -126,6 +126,23 @@ def _past_or_today(value: str | None) -> str | None:
     return parsed.isoformat()
 
 
+def analyze_record_date(value: str | None) -> _date | None:
+    """사진 분석의 기록 날짜(`POST /diet/analyze` 의 선택 `date`, #2849).
+
+    직접 기록·수정과 같은 규칙(형식·앞날 금지)에 더해 **작년 1월 1일보다 앞선
+    날은 받지 않는다** — 앱의 날짜 고르기 범위와 같다. 사진 분석은 포인트를
+    적립하므로 아주 오래된 날로 기록을 몰아넣는 길을 열어 두지 않는다.
+    빠지면 None 이고, 그때 저장하는 날(KST 오늘)로 남긴다.
+    """
+    checked = _past_or_today(value)
+    if checked is None:
+        return None
+    parsed = _date.fromisoformat(checked)
+    if parsed < _date(clock.today().year - 1, 1, 1):
+        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없습니다.")
+    return parsed
+
+
 class DietEntryUpdate(PartialUpdate):
     """PUT /diet/entries/{id} — 끼니 정보와 영양소 부분 수정.
 

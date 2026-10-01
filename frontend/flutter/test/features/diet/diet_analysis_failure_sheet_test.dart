@@ -47,6 +47,7 @@ class _FailingDietRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     attempts += 1;
     throw AppError.fromDio(

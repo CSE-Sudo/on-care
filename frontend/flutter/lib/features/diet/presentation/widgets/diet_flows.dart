@@ -160,6 +160,18 @@ DateTime _todayKst() {
   return DateTime(now.year, now.month, now.day);
 }
 
+/// 시각을 버린 날짜. null 은 null 이다.
+DateTime? _dayOf(DateTime? date) =>
+    date == null ? null : DateTime(date.year, date.month, date.day);
+
+/// 새 기록을 시작할 날(#2849). 넘겨받은 날이 없거나 아직 오지 않은 날이면
+/// 오늘이다 — 앞날의 식사는 기록하지 않는다.
+DateTime _startDate(DateTime? date) {
+  final DateTime today = _todayKst();
+  final DateTime? day = _dayOf(date);
+  return day == null || day.isAfter(today) ? today : day;
+}
+
 /// 기록 날짜를 화면 언어로 — `2026년 9월 16일`.
 String _recordDateLabel(BuildContext context, DateTime date) =>
     DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
@@ -217,7 +229,11 @@ typedef DietPickedPhoto = ({MealPhoto photo, String mealType});
 ///
 /// **기록이 저장되면 true.** 하단 `+` 로 연 흐름이 저장 성공에만 식단 탭으로
 /// 옮겨 가려면, 취소·권한 거부·분석 실패와 저장 성공을 구분해야 한다(#1434).
-Future<bool> showDietAddSheet(BuildContext context) async {
+///
+/// [date] 는 새 기록을 남길 날이다(#2849). 식단 탭에서 지난 날짜를 보며 연
+/// `식단 추가` 는 그 날짜를 넘긴다 — 사진 분석도 직접 입력도 그 날로 시작한다.
+/// 빠지면(하단 `+`) 오늘이다.
+Future<bool> showDietAddSheet(BuildContext context, {DateTime? date}) async {
   final Object? choice = await showAppSheet<Object>(
     context: _rootContext(context),
     builder: (BuildContext ctx) => const _DietAddSheet(),
@@ -230,8 +246,9 @@ Future<bool> showDietAddSheet(BuildContext context) async {
       context,
       picked.photo,
       picked.mealType,
+      date: date,
     ),
-    _DietAddChoice.manual => openDietManualAddPage(context),
+    _DietAddChoice.manual => openDietManualAddPage(context, date: date),
     _ => false,
   };
 }
@@ -499,20 +516,26 @@ class _SourceOption extends StatelessWidget {
 Future<bool> showDietResultSheet(
   BuildContext context,
   MealPhoto photo,
-  String mealType,
-) async {
+  String mealType, {
+  DateTime? date,
+}) async {
   // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다. 식단 추가 시트와
   // 같은 규칙이다 — 둘이 같은 층에 있어야 한다(#791).
   final BuildContext root = _rootContext(context);
   final DietResultOutcome outcome = DietResultOutcome();
   final Object? closedWith = await showAppSheet<Object>(
     context: root,
-    builder: (BuildContext ctx) =>
-        _ResultSheet(photo: photo, mealType: mealType, outcome: outcome),
+    builder: (BuildContext ctx) => _ResultSheet(
+      photo: photo,
+      mealType: mealType,
+      outcome: outcome,
+      date: date,
+    ),
   );
   if (closedWith == _ResultSheetExit.pickAnother) {
     if (!root.mounted) return false;
-    return showDietAddSheet(root);
+    // 다시 고른 사진도 처음 고른 날로 남긴다(#2849).
+    return showDietAddSheet(root, date: date);
   }
   if (!outcome.saved && outcome.failed && root.mounted) {
     // 실패 화면으로 닫혀도 서버는 이미 저장했을 수 있다(#2847) — 앱이 응답을
@@ -522,7 +545,7 @@ Future<bool> showDietResultSheet(
       root,
       listen: false,
     );
-    refreshDietRecords(container.invalidate);
+    refreshDietRecords(container.invalidate, dates: <DateTime>[?_dayOf(date)]);
     invalidatePointsBalance(container.invalidate);
   }
   return outcome.resolve(closedWith);
@@ -557,10 +580,14 @@ class _ResultSheet extends ConsumerStatefulWidget {
     required this.photo,
     required this.mealType,
     required this.outcome,
+    this.date,
   });
   final MealPhoto photo;
   final String mealType;
   final DietResultOutcome outcome;
+
+  /// 기록을 남길 날. null 이면 오늘이다(#2849).
+  final DateTime? date;
 
   @override
   ConsumerState<_ResultSheet> createState() => _ResultSheetState();
@@ -572,13 +599,14 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
   bool _loading = true;
   DietAnalysisFailure? _failure;
 
-  /// 이 기록이 놓인 날. 분석은 저장한 시각의 날짜로 남기므로 처음은 늘 오늘이고,
-  /// 지난 식사의 사진이면 `날짜 변경` 으로 실제로 먹은 날로 옮긴다(#1241).
+  /// 이 기록이 놓인 날. 식단 탭에서 지난 날짜를 보며 연 추가면 그 날이고
+  /// (#2849), 아니면 오늘이다. 다른 날 먹은 식사의 사진이면 `날짜 변경` 으로
+  /// 실제로 먹은 날로 옮긴다(#1241).
   ///
   /// 날짜는 식단 상세처럼 따로 옮긴다(#1947) — 사진을 올린 자리에서 가장 흔히
   /// 고치는 것이 날짜라, 연필을 거치게 하지 않는다. 끼니·음식은 헤더 연필이
   /// 이 시트 안에 여는 수정 모드에서 고친다(#2097).
-  late DateTime _date = _todayKst();
+  late DateTime _date = _startDate(widget.date);
 
   /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날짜로 보내지 않게 막는다.
   bool _movingDate = false;
@@ -635,11 +663,15 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
             photo: widget.photo,
             mealType: widget.mealType,
             idempotencyKey: _idempotencyKey,
+            // 오늘이면 싣지 않는다 — 서버가 저장하는 순간의 날짜를 쓴다. 자정
+            // 직전에 연 시트가 앱 시계의 어제로 못 박히지 않는다.
+            date: _date == _todayKst() ? null : wireDate(_date),
           );
       // analyze() already persisted the entry → 이 시점부터 기록은 저장돼
       // 있다. 시트를 어떻게 닫든 저장 성공이다(#2627).
       widget.outcome.saved = true;
-      refreshDietRecords(container.invalidate);
+      // 지난 날짜로 남겼으면 그 날도 비운다(#2849).
+      refreshDietRecords(container.invalidate, dates: <DateTime>[_date]);
       // 저장과 함께 포인트도 적립됐다 — MY 잔액을 다시 읽는다(#1786).
       invalidatePointsBalance(container.invalidate);
       if (!mounted) return;
@@ -2134,10 +2166,13 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
 ///
 /// 하단 내비·`+` 버튼을 가리도록 루트 내비게이터에 올린다 — 사진 선택 시트와
 /// 같은 자리다(#791).
-Future<bool> openDietManualAddPage(BuildContext context) async {
+Future<bool> openDietManualAddPage(
+  BuildContext context, {
+  DateTime? date,
+}) async {
   final bool? saved = await Navigator.of(context, rootNavigator: true)
       .push<bool>(
-        MaterialPageRoute<bool>(builder: (_) => const _MealCreatePage()),
+        MaterialPageRoute<bool>(builder: (_) => _MealCreatePage(date: date)),
       );
   return saved ?? false;
 }
@@ -2152,7 +2187,10 @@ Future<bool> openDietManualAddPage(BuildContext context) async {
 /// 없어, 여기서만 사진을 받으면 흐름이 갈린다. 목록 썸네일은 음식 이름으로
 /// 고른 이모지다(`mealThumbEmoji`).
 class _MealCreatePage extends ConsumerStatefulWidget {
-  const _MealCreatePage();
+  const _MealCreatePage({this.date});
+
+  /// 처음 고를 날짜. 지난 날짜 화면에서 열었으면 그 날이다(#2849).
+  final DateTime? date;
 
   @override
   ConsumerState<_MealCreatePage> createState() => _MealCreatePageState();
@@ -2162,7 +2200,7 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
     with _FoodEditing<_MealCreatePage> {
   /// 처음 끼니는 사진 분석과 같이 지금 시각으로 고른다.
   MealType _type = MealType.values.byName(_currentMealType());
-  DateTime _date = _todayKst();
+  late DateTime _date = _startDate(widget.date);
   bool _busy = false;
 
   /// `음식을 하나 이상 적어 주세요` — 저장을 눌렀는데 이름 적힌 음식이 없을 때.

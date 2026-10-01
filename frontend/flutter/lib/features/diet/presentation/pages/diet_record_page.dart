@@ -617,7 +617,9 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                     _MealLog(
                       entries: day.entries,
                       date: _selected,
-                      onAdd: () => showDietAddSheet(context),
+                      // 보고 있는 날로 추가한다(#2849). 어제를 보며 누른
+                      // 추가가 오늘로 들어가면 어제 목록에는 끝내 보이지 않는다.
+                      onAdd: () => showDietAddSheet(context, date: _selected),
                       onEditMeal: (DietMeal m) =>
                           openMealDetailPage(context, m),
                     ),

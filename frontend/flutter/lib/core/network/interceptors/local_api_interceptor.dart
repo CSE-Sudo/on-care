@@ -285,11 +285,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
     final List<Object?> foods =
         (analysis['foods'] as List<Object?>?) ?? const <Object?>[];
-    final (String mealType, String? idempotencyKey) = _analyzeRequestFields(
-      options,
-    );
+    final (:String mealType, :String? idempotencyKey, :String? date) =
+        _analyzeRequestFields(options);
     final Uint8List? photoBytes = _requestPhotoBytes(options);
     final DateTime now = nowKst();
+    // 서버가 받아 준 날짜다(#2849). 앱이 보낸 날짜로 서버가 저장했으므로 같은
+    // 날에 둔다 — 오늘로 두면 지난 날짜 화면에 끼니가 보이지 않는다.
+    final String day = date ?? _todayDateString();
 
     // 서버가 준 id 를 그대로 쓴다 — 이어지는 수정·삭제가 같은 행을 가리킨다.
     // 같은 응답이 두 번 들어와도(재시도) 덮어쓰기라 중복 행이 생기지 않는다.
@@ -298,7 +300,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         .insertOnConflictUpdate(
           DietEntriesCompanion.insert(
             id: id,
-            date: _todayDateString(),
+            date: day,
             mealType: mealType,
             timeLabel:
                 '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
@@ -321,8 +323,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           ),
         );
     // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
-    _refundShieldOnDate(_todayDateString());
-    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
+    _refundShieldOnDate(day);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -1596,9 +1598,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// drift so it shows up in GET /diet/days/today. `diet-` id (not
   /// `seed-`) means seedIfEmpty never wipes it.
   Future<Response<Object?>> _dietAnalyze(RequestOptions options) async {
-    final (String mealType, String? idempotencyKey) = _analyzeRequestFields(
-      options,
-    );
+    final (:String mealType, :String? idempotencyKey, :String? date) =
+        _analyzeRequestFields(options);
     final Uint8List? photoBytes = _requestPhotoBytes(options);
 
     // 같은 멱등키가 이미 저장돼 있으면 새로 저장하지 않고 기존 entry 를 반환(재시도 중복 방지).
@@ -1695,6 +1696,14 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
         '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
 
+    // 지난 날짜 화면에서 연 추가는 그 날짜로 남긴다(#2849). 실서버와 같은
+    // 규칙으로 걸러 낸다 — 데모에서만 통과하면 실연동에서 처음 실패한다.
+    if (date != null) {
+      final String? error = _analyzeDateError(date);
+      if (error != null) return _unprocessable(options, error);
+    }
+    final String day = date ?? _todayDateString();
+
     final now = nowKst();
     final id = 'diet-${now.microsecondsSinceEpoch}';
     // 행에 넣는 값과 응답에 싣는 값이 갈리지 않게 한 번만 만든다.
@@ -1705,7 +1714,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         .insert(
           DietEntriesCompanion.insert(
             id: id,
-            date: _todayDateString(),
+            date: day,
             mealType: mealType,
             timeLabel: timeLabel,
             foodsJson: jsonEncode(foods),
@@ -1724,7 +1733,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
-    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
 
     return _ok(options, <String, Object?>{
       'entry_id': id,
@@ -1804,9 +1813,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return null;
   }
 
-  (String, String?) _analyzeRequestFields(RequestOptions options) {
+  ({String mealType, String? idempotencyKey, String? date})
+  _analyzeRequestFields(RequestOptions options) {
     String mealType = 'lunch';
     String? idempotencyKey;
+    // 기록 날짜(#2849). 지난 날짜 화면에서 연 `식단 추가` 가 그 날짜를 싣는다.
+    // 빠지면 저장하는 날(오늘)이다.
+    String? date;
     final data = options.data;
     if (data is FormData) {
       for (final MapEntry<String, String> f in data.fields) {
@@ -1814,12 +1827,30 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         if (f.key == 'idempotency_key' && f.value.isNotEmpty) {
           idempotencyKey = f.value;
         }
+        if (f.key == 'date' && f.value.trim().isNotEmpty) {
+          date = f.value.trim();
+        }
       }
     } else if (data is Map) {
       mealType = (data['meal_type'] as String?) ?? 'lunch';
       idempotencyKey = data['idempotency_key'] as String?;
+      final String? raw = (data['date'] as String?)?.trim();
+      if (raw != null && raw.isNotEmpty) date = raw;
     }
-    return (mealType, idempotencyKey);
+    return (mealType: mealType, idempotencyKey: idempotencyKey, date: date);
+  }
+
+  /// 사진 분석의 기록 날짜 검사(#2849). 실서버(`analyze_record_date`)와 같은
+  /// 규칙이다 — 형식이 맞고, 오늘보다 뒤가 아니며, 작년 1월 1일보다 앞서지
+  /// 않는다(앱의 날짜 고르기 범위와 같다).
+  static String? _analyzeDateError(String date) {
+    final String? error = _entryDateError(date);
+    if (error != null) return error;
+    final DateTime parsed = DateTime.parse(date);
+    if (parsed.isBefore(DateTime(nowKst().year - 1))) {
+      return 'date 는 작년 1월 1일보다 앞설 수 없습니다.';
+    }
+    return null;
   }
 
   String _todayDateString() {

@@ -117,6 +117,7 @@ class _TimedOutButSavedRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     // 서버에는 남았다.
     await super.analyze(
