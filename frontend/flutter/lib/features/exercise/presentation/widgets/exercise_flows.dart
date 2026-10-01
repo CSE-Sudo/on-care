@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_refre
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 조작이 멎은 뒤 칼로리 미리보기를 부르기까지 기다리는 시간. 애니메이션이
@@ -371,13 +371,12 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   /// 환산 규칙이 서버(`ExerciseSessionCreate._minutes_from_seconds`)와 **같아야**
   /// 한다. 미리보기로 받은 칼로리를 그대로 저장하는 것이 #1312 의 요구인데,
   /// 앱과 서버가 같은 초를 다른 분으로 읽으면 저장 뒤 숫자가 달라진다.
-  /// 45초짜리 운동이 반올림으로 0분이 되어 거절되지도 않는다.
+  /// 45초짜리 운동이 반올림으로 0분이 되어 거절되지도 않는다. 반올림도 서버와
+  /// 같은 짝수 쪽이라 2분 30초는 저장 뒤와 같은 2분이다 — 공용 규칙
+  /// [minutesFromSeconds] 한 곳을 쓴다(#2860).
   int get _effectiveMinutes => _isStrength
       ? _strengthMinutes
-      : _minutesFromSeconds(_duration.inSeconds);
-
-  static int _minutesFromSeconds(int seconds) =>
-      seconds <= 0 ? 0 : math.max(1, (seconds / 60).round());
+      : minutesFromSeconds(_duration.inSeconds);
 
   /// 편집 시트 안에서 지운다 — 목록 줄에는 더 이상 휴지통을 두지 않는다.
   /// 지우기는 되돌릴 수 없는 동작이라, 고치는 화면 안에 한 번 더 들어와야만

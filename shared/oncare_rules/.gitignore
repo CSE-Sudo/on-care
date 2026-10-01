@@ -1,0 +1,5 @@
+# Dart/Flutter 빌드 산출물. 이 패키지는 앱이 아니라 라이브러리라 lock 파일도
+# 커밋하지 않는다 — 버전은 이걸 쓰는 두 앱의 pubspec.lock 이 정한다.
+.dart_tool/
+build/
+pubspec.lock

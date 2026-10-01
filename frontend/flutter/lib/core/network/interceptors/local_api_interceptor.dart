@@ -46,6 +46,8 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
+// 분·kcal 반올림은 실서버(Python `round`)와 같은 공용 규칙을 쓴다(#2860).
+import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds, pyRound;
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
@@ -457,7 +459,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         ? (body['duration_seconds'] as num?)?.toInt()
         : existing.durationSeconds;
     final minutes = durationSeconds != null
-        ? _minutesFromSeconds(durationSeconds)
+        ? minutesFromSeconds(durationSeconds)
         : ((body['minutes'] as num?)?.toInt() ?? existing.minutes);
     final intensity = (body['intensity'] as String? ?? existing.intensity)
         .trim();
@@ -2378,7 +2380,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       final double perMin =
           _fallbackKcalPerMin[normalized] ?? _fallbackKcalPerMin['other']!;
       return (
-        calories: (perMin * minutes * factor).round(),
+        calories: pyRound(perMin * minutes * factor),
         source: 'estimate',
         matchedName: '',
       );
@@ -2453,7 +2455,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   int _minutesOf(Map<String, Object?> payload) {
     final int? durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
     return durationSeconds != null
-        ? _minutesFromSeconds(durationSeconds)
+        ? minutesFromSeconds(durationSeconds)
         : ((payload['minutes'] as num?)?.toInt() ?? 0);
   }
 
@@ -2554,7 +2556,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final String kind = type.name;
     // 초로 완료한 배정은 기록도 초를 든다 — 분은 초에서 파생된다(#2221).
     final int savedMinutes = durationSeconds != null
-        ? _minutesFromSeconds(durationSeconds)
+        ? minutesFromSeconds(durationSeconds)
         : minutes;
     final estimated = await _demoEstimate(
       name: name,
@@ -2700,11 +2702,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'assigned_routine_id': assignedRoutineId,
     'assigned_routine_name': assignedRoutineId == null ? '' : name,
   };
-
-  /// 초 → 분. 실 서버 `ExerciseSessionCreate._minutes_from_seconds` 와 같은
-  /// 규칙이다 — 1초짜리 기록도 0분이 되지 않는다. (#2071)
-  static int _minutesFromSeconds(int seconds) =>
-      seconds <= 0 ? 0 : math.max(1, (seconds / 60).round());
 
   /// (주 시작, 요일 라벨) → `YYYY-MM-DD`. FastAPI `session_date_of` 와 같다.
   String _dateOfWeekday(String weekStart, String dayLabel) {

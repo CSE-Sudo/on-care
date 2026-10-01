@@ -17,6 +17,8 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -32,6 +34,8 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
