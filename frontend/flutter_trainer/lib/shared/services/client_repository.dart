@@ -1434,8 +1434,8 @@ TrainerClient trainerClientFromRow(
     // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
     signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
     // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
-    // 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender/rosterAge)이
-    // 대신 쓰인다.
+    // 성별이 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender)이 대신
+    // 쓰이고, 나이가 비어 있으면 나이를 적지 않는다(#2744).
     gender: row.gender ?? '',
     age: row.age,
   );
