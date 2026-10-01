@@ -307,9 +307,6 @@ class _RealNotificationRepository implements TrainerNotificationRepository {
   );
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => before == null ? _page : TrainerNotificationPage.empty;
@@ -406,6 +403,12 @@ class _RealChatRepository implements ChatRepository {
   @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) =>
       Stream<List<ClientChatMessage>>.value(const <ClientChatMessage>[]);
+
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
 
   @override
   Future<void> sendTrainerMessage({
@@ -567,6 +570,10 @@ class _RealTaskProgressStore implements DailyTaskProgressStore {
 
   @override
   Future<void> save(String date, DailyTaskSnapshot snapshot) async {}
+
+  @override
+  Future<DailyTaskSnapshot> applyKey(String date, TaskKeyChange change) async =>
+      applyTaskKeyChange(saved: null, change: change);
 }
 
 List<Override> _realOverrides() => <Override>[
