@@ -95,6 +95,9 @@ class MockTrainerRoutineOptionsRepository
   /// 서버가 AI 생성에 싣는 최근 대화 수·한 줄 길이
   /// (`ROUTINE_CHAT_MAX_MESSAGES`·`CHAT_MAX_CHARS`).
   static const int _chatMaxMessages = 10;
+
+  /// 그 대화를 찾는 기간(일) — 서버 `CHAT_LOOKBACK_DAYS` 와 같다.
+  static const int _chatLookbackDays = 14;
   static const int _chatMaxChars = 200;
 
   /// 반복 운동을 찾는 기간(일). 서버 `HISTORY_LOOKBACK_DAYS` 와 같다.
@@ -431,12 +434,23 @@ class MockTrainerRoutineOptionsRepository
       db,
     ).assigned(memberId);
 
-    // 서버와 같다 — 최신 N건을 고른 뒤 시간순으로 되돌리고 발화자를 붙인다.
-    // 시드 대화는 옛 기준점 위에 심어 `createdAt` 으로 기간을 가를 수 없어
-    // 건수로만 자른다.
+    // 서버와 같다 — 최근 14일 안에서 최신 N건을 고른 뒤 시간순으로 되돌리고
+    // 발화자를 붙인다(`_recent_chat_lines`). 기간을 보지 않던 동안에는 마지막
+    // 대화가 3주 전인 회원(문가영)에게도 옛 대화가 `참고한 최근 대화` 로 떴다 —
+    // 실서버는 그 대화를 AI 에 싣지도, 보여 주지도 않는다.
+    final DateTime today = nowKst();
+    final DateTime chatSince = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).subtract(const Duration(days: _chatLookbackDays - 1));
     final chat =
         await (db.select(db.clientChatMessages)
-              ..where((t) => t.clientId.equals(memberId))
+              ..where(
+                (t) =>
+                    t.clientId.equals(memberId) &
+                    t.createdAt.isBiggerOrEqualValue(chatSince),
+              )
               ..orderBy(<OrderingTerm Function($ClientChatMessagesTable)>[
                 (t) => OrderingTerm.desc(t.createdAt),
               ])

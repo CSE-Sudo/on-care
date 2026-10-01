@@ -133,6 +133,16 @@ void main() {
       expect(jisu.analysis.suggestedAvailableMinutes, isNotNull);
     });
 
+    test('참고한 최근 대화는 서버처럼 최근 14일 것만 싣는다 (#2674)', () async {
+      // 문가영은 마지막 대화가 3주 전이다 — 실서버는 그 대화를 싣지 않는다.
+      final RoutineOptions gayoung = await generate('seed-client-12');
+      final RoutineOptions sera = await generate('seed-client-8');
+
+      expect(gayoung.analysis.recentMessages, isEmpty);
+      expect(sera.analysis.recentMessages, isNotEmpty);
+      expect(sera.analysis.recentMessages.length, lessThanOrEqualTo(10));
+    });
+
     test('B안은 고른 강도를 그대로 옮기고 3:2:1 로 나눈다 (#2715)', () async {
       final repo = MockTrainerRoutineOptionsRepository(db: db);
       for (final (String pref, String label) in <(String, String)>[
