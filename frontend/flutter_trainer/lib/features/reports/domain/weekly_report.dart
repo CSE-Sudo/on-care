@@ -790,7 +790,10 @@ TrainerWeekStats buildTrainerWeekStats({
   required List<ScheduleSession> sessions,
   required List<TrainerClient> clients,
 }) {
-  final booked = sessions.where((s) => !s.isGap).toList();
+  // 상담은 수업이 아니다 — 회원 리포트([buildWeeklyReport])와 같은 규칙(#2741).
+  final booked = sessions
+      .where((s) => !s.isGap && s.type != SessionType.consultation)
+      .toList();
   return TrainerWeekStats(
     sessionsBooked: booked.length,
     sessionsDone: booked.where((s) => s.isDone).length,
