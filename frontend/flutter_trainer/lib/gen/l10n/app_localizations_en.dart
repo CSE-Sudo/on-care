@@ -441,6 +441,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dashScheduleInProgress(String time, String name) {
+    return 'In progress: $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes min left';
+  }
+
+  @override
   String get dashPreparePt => 'Prepare PT';
 
   @override

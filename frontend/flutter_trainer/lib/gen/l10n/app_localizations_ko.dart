@@ -426,6 +426,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String dashScheduleInProgress(String time, String name) {
+    return '진행 중 $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes분 남음';
+  }
+
+  @override
   String get dashPreparePt => 'PT 준비하기';
 
   @override

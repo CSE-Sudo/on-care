@@ -872,6 +872,18 @@ abstract class AppLocalizations {
   /// **'in {minutes} min'**
   String dashScheduleMinutesLeft(int minutes);
 
+  /// Dashboard banner when today's session has started but not yet ended (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'In progress: {time} · {name}'**
+  String dashScheduleInProgress(String time, String name);
+
+  /// Minutes until the in-progress session ends (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min left'**
+  String dashScheduleMinutesToEnd(int minutes);
+
   /// No description provided for @dashPreparePt.
   ///
   /// In en, this message translates to:

@@ -297,6 +297,27 @@
       }
     }
   },
+  "dashScheduleInProgress": "In progress: {time} · {name}",
+  "@dashScheduleInProgress": {
+    "description": "Dashboard banner when today's session has started but not yet ended (#2865).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dashScheduleMinutesToEnd": "{minutes} min left",
+  "@dashScheduleMinutesToEnd": {
+    "description": "Minutes until the in-progress session ends (#2865).",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "dashPreparePt": "Prepare PT",
   "dashLeaveMemo": "Leave a memo",
   "dashLeaveFeedback": "Leave feedback",

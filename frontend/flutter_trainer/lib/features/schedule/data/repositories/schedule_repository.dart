@@ -9,6 +9,7 @@ import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -40,6 +41,9 @@ typedef ScheduleClientKey = ({String id, String name});
 /// source emits a single fetched value and re-reads after each mutation.
 abstract interface class ScheduleRepository {
   /// Today's slots in timeline order (including 공백 gaps).
+  ///
+  /// 화면은 이 메서드 대신 [todayScheduleProvider] 를 쓴다 — 그 provider 는 KST
+  /// 날짜 시계(`kstTodayProvider`)를 따라 자정에 새 날짜로 다시 구독한다(#2865).
   Stream<List<ScheduleSession>> watchToday();
 
   /// The timeline for one calendar [date] (`YYYY-MM-DD`).
@@ -411,9 +415,9 @@ class DriftScheduleRepository implements ScheduleRepository {
 
   /// Today's slots in timeline order (including 공백 gaps).
   ///
-  /// NOTE: `ymd(nowKst())`는 스트림 구독 시점에 고정된다 — 앱을
-  /// 자정 넘겨 켜두면 '오늘'이 갱신되지 않음(예약 카운트와 동일 패턴,
-  /// 로컬 mock 데모 범위에선 허용). 실 백엔드 전환 시 서버가 판단한다.
+  /// drift 질의는 날짜를 조건으로 거는 반응형 스트림이라 구독한 날의 표를
+  /// 본다. 대시보드는 이 메서드가 아니라 [todayScheduleProvider] 를 쓰고, 그
+  /// provider 가 날짜 시계를 따라 자정에 새 날짜로 다시 구독한다(#2865).
   @override
   Stream<List<ScheduleSession>> watchToday() => watchDate(ymd(nowKst()));
 
@@ -1591,10 +1595,16 @@ final scheduleRepositoryProvider = Provider<ScheduleRepository>((ref) {
   return repo;
 }, name: 'scheduleRepository');
 
-/// Streams today's timeline for the 스케줄 tab.
+/// Streams today's timeline (대시보드 `오늘 일정`, 오늘 수업 수).
+///
+/// 날짜는 KST 날짜 시계([kstTodayProvider])에서 읽는다. 예전에는 구독할 때의
+/// 날짜를 고정해, 대시보드를 켠 채 자정을 넘기면 어제 일정이 남았다(#2865).
+/// 날짜가 바뀌면 이 provider 가 다시 만들어지고 새 날짜를 구독한다. 실서버
+/// 저장소의 날짜 조회는 회원 앱에서 생긴 예약·취소를 짧은 주기로 다시 읽는다.
 final todayScheduleProvider = StreamProvider.autoDispose<List<ScheduleSession>>(
   (ref) {
-    return ref.watch(scheduleRepositoryProvider).watchToday();
+    final String today = ref.watch(kstTodayProvider);
+    return ref.watch(scheduleRepositoryProvider).watchDate(today);
   },
 );
 

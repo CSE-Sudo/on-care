@@ -159,6 +159,8 @@
   "dashScheduleNowLabel": "지금 {time}",
   "dashScheduleNextSession": "다음 일정 {time} · {name}",
   "dashScheduleMinutesLeft": "{minutes}분 뒤",
+  "dashScheduleInProgress": "진행 중 {time} · {name}",
+  "dashScheduleMinutesToEnd": "{minutes}분 남음",
   "dashPreparePt": "PT 준비하기",
   "dashLeaveMemo": "메모 남기기",
   "dashLeaveFeedback": "피드백 남기기",
