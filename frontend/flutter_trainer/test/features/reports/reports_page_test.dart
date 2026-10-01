@@ -124,7 +124,7 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
     required DateTime weekStart,
   }) {
     final key = '${client.id}/${weekStart.toIso8601String()}';
-    calls.add((client: client, weekStart: weekStart));
+    calls.add(ReportKey(client: client, weekStart: weekStart));
     final attempt = (_attempts[key] ?? 0) + 1;
     _attempts[key] = attempt;
     if (attempt == 1) {

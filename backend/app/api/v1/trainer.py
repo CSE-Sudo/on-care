@@ -2541,13 +2541,20 @@ async def trainer_send_report_pdf(
     db: Annotated[Session, Depends(get_db)],
     pdf: UploadFile = File(...),
     week_start: str = Form(...),
-    message: str = Form("이번 주 리포트입니다."),
+    message: str = Form(...),
     client_request_id: str | None = Form(None, min_length=1, max_length=64),
 ) -> ChatMessageOut:
-    """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다."""
+    """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다.
+
+    `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버가 대신 채우던 한국어
+    기본 문장은 트레이너·회원의 언어를 몰라, 영어로 쓰는 회원에게도 한국어가
+    나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+    """
     _require_client(db, trainer.id, member_id)
     week = _report_week(week_start)
-    text = message.strip() or "이번 주 리포트입니다."
+    text = message.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="리포트와 함께 보낼 메시지를 입력해 주세요.")
 
     # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다.
     if client_request_id:

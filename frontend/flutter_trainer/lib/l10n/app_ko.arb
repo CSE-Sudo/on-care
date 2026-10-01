@@ -464,6 +464,8 @@
       }
     }
   },
+  "consultStatusCancelled": "취소됨",
+  "consultStatusCancelledByTrainer": "일정 취소로 철회",
   "consultStatusExpired": "만료됨",
   "consultPreferredTime": "희망 일시",
   "consultMessage": "문의 내용",
@@ -539,6 +541,7 @@
   "reportsNoClients": "담당 회원이 없어 리포트를 만들 수 없어요",
   "reportsWeekly": "주간 리포트",
   "reportsSendFailed": "리포트 전송에 실패했어요. 다시 시도해 주세요",
+  "reportsSendAlreadyDone": "이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요",
   "reportsSent": "{name}님에게 리포트를 보냈어요",
   "reportsGoToChat": "채팅으로 이동하기",
   "reportsScheduleWarning": "이번 주 일정을 불러오지 못해 세션 수가 비어 있을 수 있어요",
@@ -1021,6 +1024,8 @@
   "slotClosedSummary": "예약 닫힘",
   "slotBookedSummary": "예약됨",
   "slotOpenSummary": "비어 있음",
+  "slotOverlappedSummary": "일정과 겹침",
+  "slotOverlappedHint": "이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.",
   "slotCloseAction": "예약 닫기",
   "myCareerInvalid": "경력은 0~80 사이의 연수로 입력해 주세요.",
   "myProfileSaveFailed": "프로필을 저장하지 못했습니다.",

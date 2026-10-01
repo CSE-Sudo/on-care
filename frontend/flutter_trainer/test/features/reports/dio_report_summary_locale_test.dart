@@ -229,7 +229,7 @@ void main() {
   group('reportSummaryProvider', () {
     test('each language is its own request and its own answer', () async {
       final (ProviderContainer c, _SummaryServer server) = await _setUp();
-      final ReportKey report = (client: client, weekStart: weekStart);
+      final ReportKey report = ReportKey(client: client, weekStart: weekStart);
 
       final ReportSummary english = await c.read(
         reportSummaryProvider((

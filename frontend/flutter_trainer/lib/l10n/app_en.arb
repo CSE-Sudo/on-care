@@ -741,6 +741,8 @@
       }
     }
   },
+  "consultStatusCancelled": "Cancelled",
+  "consultStatusCancelledByTrainer": "Withdrawn (session cancelled)",
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
@@ -935,6 +937,10 @@
   "reportsNoClients": "No members yet, so there's nothing to report on",
   "reportsWeekly": "Weekly report",
   "reportsSendFailed": "Couldn't send the report. Please try again",
+  "reportsSendAlreadyDone": "This report was already sent. Send history has been refreshed",
+  "@reportsSendAlreadyDone": {
+    "description": "Toast when the server says this report send was already processed (409, #2773)."
+  },
   "reportsSent": "Report sent to {name}",
   "reportsGoToChat": "Go to chat",
   "@reportsSent": {
@@ -1577,6 +1583,8 @@
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
   "slotOpenSummary": "Open",
+  "slotOverlappedSummary": "Overlaps a session",
+  "slotOverlappedHint": "Another session is booked at this time, so members see it as full. Close it if you will not use it.",
   "slotCloseAction": "Close bookings",
   "myCareerInvalid": "Enter years of experience between 0 and 80.",
   "myProfileSaveFailed": "Couldn't save your profile.",

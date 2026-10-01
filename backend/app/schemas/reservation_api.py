@@ -22,6 +22,12 @@ class TrainerSlotOut(BaseModel):
     #: 에서만 채운다 — 회원용 목록(`GET /trainers/{id}/slots`)은 다른 회원의
     #: 이름을 알 이유가 없어 항상 null이다.
     booked_by_name: str | None = None
+    #: 트레이너의 다른 일정이 이 시간을 이미 차지했다(#2761). 자리를 연 뒤에
+    #: 트레이너가 같은 시간에 일정을 잡거나 옮겨 온 경우다. 회원용 목록에서는
+    #: `remaining` 도 0 으로 접혀 마감으로 보이고, 트레이너용 목록은 좌석 수를
+    #: 그대로 둔 채 이 표시로 "일정과 겹침" 을 그린다. 일정이 취소·이동되면
+    #: 다음 조회에서 저절로 false 로 돌아온다.
+    overlapped: bool = False
 
 
 class TrainerSlotCreate(BaseModel):

@@ -2126,6 +2126,18 @@ abstract class AppLocalizations {
   /// **'{minutes} min'**
   String consultSlotDuration(int minutes);
 
+  /// No description provided for @consultStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get consultStatusCancelled;
+
+  /// No description provided for @consultStatusCancelledByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn (session cancelled)'**
+  String get consultStatusCancelledByTrainer;
+
   /// No description provided for @consultStatusExpired.
   ///
   /// In en, this message translates to:
@@ -2491,6 +2503,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
+
+  /// Toast when the server says this report send was already processed (409, #2773).
+  ///
+  /// In en, this message translates to:
+  /// **'This report was already sent. Send history has been refreshed'**
+  String get reportsSendAlreadyDone;
 
   /// No description provided for @reportsSent.
   ///
@@ -3876,6 +3894,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open'**
   String get slotOpenSummary;
+
+  /// No description provided for @slotOverlappedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlaps a session'**
+  String get slotOverlappedSummary;
+
+  /// No description provided for @slotOverlappedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Another session is booked at this time, so members see it as full. Close it if you will not use it.'**
+  String get slotOverlappedHint;
 
   /// No description provided for @slotCloseAction.
   ///

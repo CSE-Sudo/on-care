@@ -1114,6 +1114,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get consultStatusCancelled => '취소됨';
+
+  @override
+  String get consultStatusCancelledByTrainer => '일정 취소로 철회';
+
+  @override
   String get consultStatusExpired => '만료됨';
 
   @override
@@ -1323,6 +1329,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsSendFailed => '리포트 전송에 실패했어요. 다시 시도해 주세요';
+
+  @override
+  String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
 
   @override
   String reportsSent(String name) {
@@ -2122,6 +2131,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get slotOpenSummary => '비어 있음';
+
+  @override
+  String get slotOverlappedSummary => '일정과 겹침';
+
+  @override
+  String get slotOverlappedHint =>
+      '이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.';
 
   @override
   String get slotCloseAction => '예약 닫기';
