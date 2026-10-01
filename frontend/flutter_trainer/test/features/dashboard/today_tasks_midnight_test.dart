@@ -13,8 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
+import 'package:oncare_trainer/features/dashboard/data/demo_task_history.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 
@@ -77,9 +77,13 @@ void main() {
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.dashboard,
+      kstClock: clock.stream,
       extraOverrides: <Override>[
-        kstClockProvider.overrideWith((ref) => clock.stream),
         dailyTaskProgressStoreProvider.overrideWithValue(store),
+        // 목업 모드의 데모 이월 항목(#1203)은 실제 이력이 시작되기 전 날짜를
+        // 지어 채운다. 그대로 두면 자정 전에도 `지난 할 일` 이 데모 한 건으로
+        // 서, 자정을 넘겨 생기는 실제 이월(어제 못 한 m2)과 구분되지 않는다.
+        demoTaskHistoryProvider.overrideWith((ref) => null),
         clientsProvider.overrideWith(
           (ref) => Stream<List<TrainerClient>>.value(clients),
         ),

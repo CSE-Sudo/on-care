@@ -119,8 +119,8 @@ void main() {
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.dashboard,
+        kstClock: clock.stream,
         extraOverrides: <Override>[
-          kstClockProvider.overrideWith((ref) => clock.stream),
           clientsProvider.overrideWith(
             (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
           ),
@@ -172,9 +172,7 @@ void main() {
       await openDashboard(
         tester,
         sessionsOn: (date) => Stream<List<ScheduleSession>>.value(
-          <ScheduleSession>[
-            _session('now', '12:30', date: date, name: '수업회원'),
-          ],
+          <ScheduleSession>[_session('now', '12:30', date: date, name: '수업회원')],
         ),
       );
       await tick(tester, DateTime(2026, 8, 20, 13));
