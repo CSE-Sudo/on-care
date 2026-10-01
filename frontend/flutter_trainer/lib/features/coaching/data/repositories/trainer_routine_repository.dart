@@ -213,6 +213,12 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
                 sets: (ex['sets'] as num?)?.toInt(),
                 reps: (ex['reps'] as num?)?.toInt(),
                 holdSeconds: (ex['hold_seconds'] as num?)?.toInt(),
+                // 초를 함께 남겨야 `45초` 가 분으로 접혀 `1분` 으로 보이지
+                // 않는다 — 실서버도 초를 저장한다(#2521, #2755). 근력은
+                // 세트로 재므로 비운다.
+                durationSeconds: ex['type'] == '근력'
+                    ? null
+                    : (ex['duration_seconds'] as num?)?.toInt(),
                 weight: (ex['weight'] as num?)?.toDouble(),
                 deliveryKind: personal ? DeliveryKinds.routineOnly : null,
               ),
