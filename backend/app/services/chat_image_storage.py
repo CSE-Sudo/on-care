@@ -61,10 +61,17 @@ def sniff(data: bytes) -> tuple[str, str]:
     raise UnsupportedImage("JPG·PNG·WebP 이미지만 보낼 수 있습니다.")
 
 
-def save(data: bytes) -> tuple[str, str, str]:
-    """이미지를 저장하고 (file_id, 확장자, media type) 을 돌려준다."""
+def save(data: bytes, *, file_id: str | None = None) -> tuple[str, str, str]:
+    """이미지를 저장하고 (file_id, 확장자, media type) 을 돌려준다.
+
+    [file_id] 를 주면 그 이름으로 덮어쓴다 — 서버가 뜰 때마다 같은 파일을 다시
+    쓰는 데모 시드용이다(#2788). 주지 않으면 새 UUID 다.
+    """
     extension, media_type = sniff(data)
-    file_id = uuid.uuid4().hex
+    if file_id is None:
+        file_id = uuid.uuid4().hex
+    elif not _FILE_ID.fullmatch(file_id):
+        raise ImageStorageError("이미지 식별자가 올바르지 않습니다.")
     root = _root()
     final_path = root / f"{file_id}.{extension}"
     temporary_path = root / f".{file_id}.tmp"

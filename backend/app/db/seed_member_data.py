@@ -26,10 +26,12 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 from typing import TypeVar
 
@@ -45,7 +47,13 @@ from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
-from app.services import exercise_activity, exercise_types, points_service
+from app.services import (
+    chat_image_storage,
+    exercise_activity,
+    exercise_types,
+    points_service,
+    report_pdf_storage,
+)
 from app.services.coach import personal_ingest
 from app.services.coach.rag import has_personal_doc
 
@@ -203,10 +211,13 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
         ("trainer", "혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요", 5),
         ("client", "네, 아침 8시 그대로예요", 5),
         ("trainer", "확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂", 5),
+        # 트레이너가 보낸 첨부(#2788) — 파일은 [_CHAT_FILES] 가 붙인다.
+        ("trainer", "동작 순서는 이 파일로 정리해 뒀어요", 5),
         # 2일차.
         ("trainer", "민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?", 4),
         ("client", "회사 구내식당이라 국물이 늘 나와요 😅", 4),
         ("trainer", "국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠", 4),
+        ("trainer", "이렇게 국은 건더기 위주로 드시면 돼요", 4),
         ("client", "오늘은 국물 안 마셨어요! 걷기도 25분 했습니다", 4),
         ("trainer", "좋아요 👏 그 한 가지만 지켜도 추이가 달라져요", 4),
         ("trainer", "내일 루틴은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요", 4),
@@ -230,6 +241,64 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
                     "도움 돼요. AI가 그에 맞는 루틴 다시 짜줬으니까 앱에서 확인해보세요 🙂", 0),
     ],
 }
+
+@dataclass(frozen=True)
+class _SeedChatFile:
+    """시드 메시지에 붙는 트레이너 첨부 한 건(#2788)."""
+
+    kind: str  # pdf|image — `ChatMessage.attachment_type`
+    file_name: str
+    source: str  # `demo_chat_files/` 안의 파일 이름
+
+    @property
+    def file_id(self) -> str:
+        # 서버가 뜰 때마다 같은 이름으로 다시 쓴다 — 저장소 규칙(32자리 16진수)을
+        # 따르는 결정론적 값이다.
+        return hashlib.md5(f"seed-chat-file:{self.source}".encode()).hexdigest()
+
+    def read(self) -> bytes:
+        return (_CHAT_FILE_DIR / self.source).read_bytes()
+
+
+_CHAT_FILE_DIR = Path(__file__).with_name("demo_chat_files")
+
+#: 시드 대화 본문 → 그 메시지에 붙는 첨부. (#2788)
+#:
+#: 회원 앱·트레이너 웹 데모의 김민수 대화에는 트레이너가 보낸 운동 안내 PDF 와
+#: 예시 사진이 있다(#2663). 데모 화면이 기준이라 실서버 시드도 같은 자리에 같은
+#: 파일을 둔다 — 바이트는 두 앱 번들(`frontend/flutter/assets/demo/
+#: coach-program-tue-thu.pdf`, `assets/images/diet-doenjang-rice.jpeg`)과 같다.
+_CHAT_FILES: dict[str, _SeedChatFile] = {
+    "동작 순서는 이 파일로 정리해 뒀어요": _SeedChatFile(
+        kind="pdf",
+        file_name="tue-thu-15min-program.pdf",
+        source="coach-program-tue-thu.pdf",
+    ),
+    "이렇게 국은 건더기 위주로 드시면 돼요": _SeedChatFile(
+        kind="image",
+        file_name="soup-example.jpeg",
+        source="soup-example.jpeg",
+    ),
+}
+
+
+def _store_chat_file(file: _SeedChatFile) -> bool:
+    """첨부 바이트를 저장소에 쓴다. 못 쓰면 False — 메시지는 글만 남긴다.
+
+    로컬 디스크 저장소라 컨테이너가 바뀌면 비지만, 시드는 서버가 뜰 때마다 돌아
+    다시 채운다.
+    """
+    try:
+        data = file.read()
+        if file.kind == "pdf":
+            report_pdf_storage.save(data, file_id=file.file_id)
+        else:
+            chat_image_storage.save(data, file_id=file.file_id)
+    except Exception:  # noqa: BLE001 — 첨부 하나 때문에 기동이 죽으면 안 된다.
+        logger.warning("시드 대화 첨부 %s 를 저장하지 못했습니다.", file.source, exc_info=True)
+        return False
+    return True
+
 
 # 픽스처가 없는 회원의 AI 배정 루틴
 # (name, minutes, type, reason, sets, reps, hold_seconds, weight).
@@ -863,33 +932,53 @@ def _seed_chat(db: Session, member_id: str) -> None:
     # 날짜로 묶는 화면(하루치 AI 분석 안내)도 함께 어긋난다. CI 가 그 시간대에 걸리면
     # `test_demo_thread_spans_three_days` 가 아무 변경 없이 실패했다.
     #
-    # 묶음 안의 최대 간격이 34분이라 정오 기준이면 어떤 시각에 시드해도 자정을 넘지
+    # 묶음 안의 최대 간격이 38분이라 정오 기준이면 어떤 시각에 시드해도 자정을 넘지
     # 않는다. 오늘 정오가 아직 오지 않았으면 하루 뒤로 물러 미래 시각을 만들지 않는다.
     now = datetime.now(timezone.utc)
     span = timedelta(minutes=(len(thread) - 1) * 2)
     base = now.replace(hour=12, minute=0, second=0, microsecond=0)
     if base + span > now:
         base -= timedelta(days=1)
+    # 첨부 id 는 유일해야 한다 — 대화가 바뀌어 첨부가 다른 순번으로 옮겨 가면
+    # 옛 행과 새 행이 잠깐 같은 값을 들게 되므로, 시드 행의 첨부를 먼저 비운다.
+    for row in db.scalars(
+        select(models.ChatMessage).where(
+            models.ChatMessage.member_id == member_id,
+            models.ChatMessage.id.like(f"seed-chat-{member_id}-%"),
+            models.ChatMessage.attachment_file_id.is_not(None),
+        )
+    ):
+        row.attachment_file_id = None
+    db.flush()
     keep: set[str] = set()
     for i, (sender, text, days_ago) in enumerate(thread):
         cid = f"seed-chat-{member_id}-{i}"
         keep.add(cid)
         created_at = base - timedelta(days=days_ago) + timedelta(minutes=i * 2)
         sender_out = "member" if sender == "client" else "trainer"
+        file = _CHAT_FILES.get(text)
+        if file is not None and not _store_chat_file(file):
+            file = None
         row = db.get(models.ChatMessage, cid)
         if row is None:
-            db.add(models.ChatMessage(
+            row = models.ChatMessage(
                 id=cid,
                 trainer_id=TRAINER_ID,
                 member_id=member_id,
                 sender=sender_out,
                 body=text,
                 created_at=created_at,
-            ))
-            continue
+            )
+            db.add(row)
         row.sender = sender_out
         row.body = text
         row.created_at = created_at
+        # 첨부 칸도 늘 지금 대화의 것으로 덮는다 — 순번이 밀리면 예전에 첨부가
+        # 붙어 있던 id 에 다른 메시지가 온다.
+        row.attachment_type = file.kind if file else None
+        row.attachment_file_name = file.file_name if file else None
+        row.attachment_file_id = file.file_id if file else None
+        row.attachment_file_size = len(file.read()) if file else None
 
     stale = db.scalars(
         select(models.ChatMessage).where(
@@ -930,6 +1019,7 @@ def _seed_insight_memos(
 
     본문은 앱이 저장하는 요약과 같은 문구(`"무릎 불편 감지"`)다.
     """
+    kept: set[str] = set()
     for i, (sender, text, days_ago) in enumerate(thread):
         if sender != "client" or days_ago >= _INSIGHT_MEMO_DAYS:
             continue
@@ -940,6 +1030,7 @@ def _seed_insight_memos(
             continue
         insight_id = f"seed-chat-{member_id}-{i}:discomfort"
         memo_id = f"seed-memo-{member_id}-{i}"
+        kept.add(memo_id)
         created_at = base - timedelta(days=days_ago) + timedelta(minutes=i * 2)
         row = db.get(models.TrainerClientMemo, memo_id)
         if row is None:
@@ -958,6 +1049,16 @@ def _seed_insight_memos(
         row.body = f"{part} 불편 감지"
         row.insight_id = insight_id
         row.created_at = created_at
+    # 대화에 메시지가 끼어 순번이 밀리면 메모 id 도 바뀐다(#2788). 옛 id 의 메모를
+    # 남기면 같은 불편이 두 번 보인다.
+    for row in db.scalars(
+        select(models.TrainerClientMemo).where(
+            models.TrainerClientMemo.member_id == member_id,
+            models.TrainerClientMemo.id.like(f"seed-memo-{member_id}-%"),
+        )
+    ).all():
+        if row.id not in kept:
+            db.delete(row)
     _safe_commit(db)
 
 
