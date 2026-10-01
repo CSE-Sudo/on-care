@@ -2666,6 +2666,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aicBodyPartKnee => 'Knee';
+
+  @override
+  String get aicBodyPartBack => 'Back';
+
+  @override
+  String get aicBodyPartAnkle => 'Ankle';
+
+  @override
+  String get aicBodyPartShoulder => 'Shoulder';
+
+  @override
+  String get aicBodyPartWrist => 'Wrist';
+
+  @override
+  String get aicBodyPartNeck => 'Neck';
+
+  @override
   String get aicInsightDiscomfort => 'Pain noted';
 
   @override
