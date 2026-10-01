@@ -80,6 +80,11 @@ class Settings(BaseSettings):
     #: 사진 한 장의 상한. 휴대폰 카메라 원본을 그대로 올려도 걸리지 않을
     #: 정도이되, 대화 스레드가 파일 서버가 되지는 않을 정도.
     max_chat_image_bytes: int = 6 * 1024 * 1024
+    #: 채팅 사진·리포트 PDF 경로의 **요청 본문** 상한은 파일 상한에 이만큼을 더한
+    #: 값이다(#2832). multipart 경계·메시지 필드·client_request_id 가 함께 실려 오므로,
+    #: 파일 상한과 똑같이 두면 상한에 딱 맞는 파일이 413 을 맞는다. 파일 자체의
+    #: 상한은 핸들러가 바이트를 세어 따로 지킨다.
+    upload_body_slack_bytes: int = 512 * 1024
 
     # --- AI 엔진 ---
     recognizer: str = "gemini"        # gemini | claude(litellm) | yolo

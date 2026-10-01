@@ -8,6 +8,7 @@ FastAPI 진입점 (STEP 1: 골격 재구성).
 
 from __future__ import annotations
 
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -38,9 +39,9 @@ from app.api.v1 import (
     users,
 )
 from app.core import observability
-from app.core.body_limit import RequestBodySizeLimitMiddleware
+from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.client_ip import warn_if_untrusted_setup
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.db.init_db import init_db
 
@@ -64,26 +65,55 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# 업로드 본문 상한. 파일을 받는 경로에만 건다 — 전역으로 걸면 대량 텍스트를
-# JSON 본문으로 받는 엔드포인트(coach-docs 문서 적재 등)까지 같은 상한에 묶인다.
-#
-# add_middleware 는 나중에 추가한 것이 바깥에 감기므로, 이걸 CORS 보다 먼저
-# 등록해 CORS 가 바깥에 오게 한다 — 그래야 413 응답에도 CORS 헤더가 붙어서
-# 웹 클라이언트가 상태코드를 읽을 수 있다.
-app.add_middleware(
-    RequestBodySizeLimitMiddleware,
-    max_bytes=settings.max_upload_bytes,
-    protected_paths=(f"{settings.api_v1_prefix}/diet/analyze",),
-)
-# 회원 AI 코치 채팅 본문 상한(#1549). 필드 제한(질문·history 길이)은 Pydantic 이
-# 422 로 거르지만, 그 전에 본문 전체를 메모리에 올리고 파싱한다 — 수 MB 짜리
-# JSON 은 여기서 먼저 끊는다. 업로드 상한과 값이 달라 따로 건다.
-app.add_middleware(
-    RequestBodySizeLimitMiddleware,
-    max_bytes=settings.coach_chat_max_body_bytes,
-    protected_paths=(f"{settings.api_v1_prefix}/ai-coach/chat",),
-    detail="요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
-)
+def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
+    """경로별 요청 본문 상한 표(#2832). 처음 맞는 규칙 하나가 적용된다.
+
+    파일을 받는 경로에만 건다 — 전역으로 걸면 대량 텍스트를 JSON 본문으로 받는
+    엔드포인트(coach-docs 문서 적재 등)까지 같은 상한에 묶인다. 파일을 받는 새
+    라우트를 만들면 여기에 더한다(`tests/test_upload_body_limit_guard.py`).
+    """
+    v1 = re.escape(s.api_v1_prefix)
+    chat_image = s.max_chat_image_bytes + s.upload_body_slack_bytes
+    report_pdf = s.max_report_pdf_bytes + s.upload_body_slack_bytes
+    image_detail = (
+        f"사진 용량이 너무 큽니다(최대 {s.max_chat_image_bytes // (1024 * 1024)}MB)."
+    )
+    return (
+        # 식단 사진 분석. 값 자체가 multipart 여유를 포함한다(config 주석 참고).
+        BodyLimitRule(f"{s.api_v1_prefix}/diet/analyze", s.max_upload_bytes),
+        # 회원 AI 코치 채팅(#1549). 필드 제한(질문·history 길이)은 Pydantic 이 422 로
+        # 거르지만, 그 전에 본문 전체를 메모리에 올리고 파싱한다 — 수 MB 짜리 JSON 은
+        # 여기서 먼저 끊는다.
+        BodyLimitRule(
+            f"{s.api_v1_prefix}/ai-coach/chat",
+            s.coach_chat_max_body_bytes,
+            "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
+        ),
+        # 채팅 사진 — 회원 → 트레이너, 트레이너 → 회원.
+        BodyLimitRule(
+            rf"{v1}/me/coach/chat/image", chat_image, image_detail, regex=True
+        ),
+        BodyLimitRule(
+            rf"{v1}/trainer/clients/[^/]+/chat/image",
+            chat_image,
+            image_detail,
+            regex=True,
+        ),
+        # 주간 리포트 PDF.
+        BodyLimitRule(
+            rf"{v1}/trainer/clients/[^/]+/report/send-pdf",
+            report_pdf,
+            f"PDF 용량이 너무 큽니다(최대 {s.max_report_pdf_bytes // (1024 * 1024)}MB).",
+            regex=True,
+        ),
+    )
+
+
+# 요청 본문 상한(413). add_middleware 는 나중에 추가한 것이 바깥에 감기므로, 이걸
+# CORS 보다 먼저 등록해 CORS 가 바깥에 오게 한다 — 그래야 413 응답에도 CORS 헤더가
+# 붙어서 웹 클라이언트가 상태코드를 읽을 수 있다. 경로마다 인스턴스를 따로 두지 않고
+# 표 하나로 등록해 이 순서를 한 곳에서 지킨다(#2832).
+app.add_middleware(RequestBodySizeLimitMiddleware, rules=body_limit_rules(settings))
 
 # HTTPS 강제(운영). 프록시 뒤면 X-Forwarded-Proto 를 신뢰(uvicorn --proxy-headers).
 if settings.force_https:
