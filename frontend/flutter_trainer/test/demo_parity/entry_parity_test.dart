@@ -32,6 +32,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
@@ -44,17 +45,23 @@ import 'package:oncare_trainer/features/clients/domain/entities/member_health_pr
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
+import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
+import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -120,6 +127,7 @@ const TrainerClient _client = TrainerClient(
   lastRoutine: '',
   weekCompletion: <int>[80, 80, 80, 80, 0, 0, 0],
   sodiumWeek: <int>[1800, 1800, 1800, 1800, 0, 0, 0],
+  signals: <ClientSignal>[ClientSignal(ClientSignalKind.calorieOff)],
 );
 
 const ClientDietEntry _meal = ClientDietEntry(
@@ -454,6 +462,113 @@ class _RealAuthRepository implements TrainerAuthRepository {
       seedTrainerProfile;
 }
 
+/// 오늘 18:00 예정 PT 하나 — 대시보드 타임라인·스케줄·MY 통계가 읽는다.
+/// 이 화면들이 읽는 것만 답하고, 나머지는 부르면 드러나게 던진다.
+class _RealScheduleRepository implements ScheduleRepository {
+  static ScheduleSession get _session => ScheduleSession(
+    id: 'session-1',
+    date: ymd(todayKst()),
+    time: '18:00',
+    clientId: _clientId,
+    clientName: _client.name,
+    type: '1:1 PT',
+    durationMinutes: 50,
+    status: '예정',
+    note: '',
+    program: const <ProgramItem>[ProgramItem(name: '스쿼트', sets: 3, reps: 12)],
+  );
+
+  @override
+  Stream<List<ScheduleSession>> watchToday() =>
+      Stream<List<ScheduleSession>>.value(<ScheduleSession>[_session]);
+
+  @override
+  Stream<List<ScheduleSession>> watchDate(String date) =>
+      Stream<List<ScheduleSession>>.value(
+        date == _session.date ? <ScheduleSession>[_session] : const [],
+      );
+
+  @override
+  Stream<Set<String>> watchBookedDates() =>
+      Stream<Set<String>>.value(<String>{_session.date});
+
+  @override
+  Stream<List<ScheduleSession>> watchRange(String fromDate, String toDate) =>
+      Stream<List<ScheduleSession>>.value(<ScheduleSession>[_session]);
+
+  @override
+  Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client) =>
+      Stream<List<ScheduleSession>>.value(<ScheduleSession>[_session]);
+
+  @override
+  Future<List<ScheduleSession>> fetchClientSessionsOn(
+    ScheduleClientKey client,
+    String date,
+  ) async => date == _session.date ? <ScheduleSession>[_session] : const [];
+
+  @override
+  Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async =>
+      const <SessionRoutine>[];
+
+  @override
+  Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async =>
+      const <UnsentRoutine>[];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError('비교 시험은 ${invocation.memberName} 을 부르지 않는다');
+}
+
+class _RealConsultationRepository implements ConsultationRepository {
+  static final List<ConsultationRequest> _pending = <ConsultationRequest>[
+    ConsultationRequest(
+      id: 'consultation-1',
+      memberId: 'member-new',
+      memberName: '새회원',
+      goalCode: 'weight_loss',
+      purposeCode: 'pt',
+      preferredDate: todayKst(),
+      preferredTimeCode: 'evening',
+      status: 'pending',
+    ),
+  ];
+
+  @override
+  bool get supportsInbox => true;
+
+  @override
+  Future<List<ConsultationRequest>> fetch({
+    String status = 'pending',
+    int limit = consultationPageSize,
+    DateTime? before,
+    String? beforeId,
+  }) async => _pending;
+
+  @override
+  Stream<List<ConsultationRequest>> watch({
+    String status = 'pending',
+    int limit = consultationPageSize,
+  }) => Stream<List<ConsultationRequest>>.value(_pending);
+
+  @override
+  Future<int> pendingCount() async => _pending.length;
+
+  @override
+  Stream<int> watchPendingCount() => Stream<int>.value(_pending.length);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError('비교 시험은 ${invocation.memberName} 을 부르지 않는다');
+}
+
+class _RealTaskProgressStore implements DailyTaskProgressStore {
+  @override
+  Future<DailyTaskHistory> load() async => const DailyTaskHistory();
+
+  @override
+  Future<void> save(String date, DailyTaskSnapshot snapshot) async {}
+}
+
 List<Override> _realOverrides() => <Override>[
   appConfigProvider.overrideWithValue(
     const AppConfig(
@@ -472,6 +587,15 @@ List<Override> _realOverrides() => <Override>[
     _RealSuggestionRepository(),
   ),
   chatRepositoryProvider.overrideWithValue(_RealChatRepository()),
+  scheduleRepositoryProvider.overrideWithValue(_RealScheduleRepository()),
+  consultationRepositoryProvider.overrideWithValue(
+    _RealConsultationRepository(),
+  ),
+  dailyTaskProgressStoreProvider.overrideWithValue(_RealTaskProgressStore()),
+  // AI 후보는 실서버와 같은 모양의 고정 후보(지연 뒤 A·B 두 안)를 준다.
+  trainerRoutineOptionsRepositoryProvider.overrideWithValue(
+    const MockTrainerRoutineOptionsRepository(),
+  ),
   // 사이드바 배지의 주기적 폴링은 멈춘다. 알림 배지는 위 대역의 스트림이다.
   unreadCountsProvider.overrideWith(
     (ref) => Stream<Map<String, int>>.value(const <String, int>{}),
@@ -667,6 +791,119 @@ void main() {
           <ParityEntry>[
             ParityEntry('개인운동 단계', (_) => _key('personal-routine-step')),
             ParityEntry('AI 제안 표시', (_) => _key('personal-routine-badge')),
+          ],
+        ),
+      ],
+    );
+  });
+
+  testWidgets('대시보드 — 요약 타일, 오늘 일정, AI 요약, 할 일, 진행률', (
+    WidgetTester tester,
+  ) async {
+    await _expectParity(
+      tester,
+      at: AppRoutes.dashboard,
+      stages: <_Stage>[
+        _Stage(_stay, <ParityEntry>[
+          ParityEntry('담당 회원 타일', (l) => find.text(l.dashMyClients)),
+          ParityEntry('메시지 타일', (l) => find.text(l.dashMessages)),
+          ParityEntry('주의 회원 타일', (l) => find.text(l.dashAttentionClients)),
+          ParityEntry('이탈 위험 타일', (l) => find.text(l.dashChurnRisk)),
+          ParityEntry('오늘 일정', (_) => _keyPrefix('dashboard-schedule-')),
+          ParityEntry('AI 요약 바로가기', (_) => _keyPrefix('ai-summary-cta-')),
+          ParityEntry(
+            '할 일 묶음',
+            (_) => _keyPrefix('dashboard-category-toggle-'),
+          ),
+          ParityEntry('진행률 지난 주', (_) => _key('task-progress-prev-week')),
+          ParityEntry('진행률 다음 주', (_) => _key('task-progress-next-week')),
+        ]),
+      ],
+    );
+  });
+
+  testWidgets('회원 목록 — 필터, 정렬, 새 회원, 회원 카드', (WidgetTester tester) async {
+    await _expectParity(
+      tester,
+      at: AppRoutes.clients,
+      stages: <_Stage>[
+        _Stage(_stay, <ParityEntry>[
+          ParityEntry('필터', (_) => _key('clients-filter-button')),
+          ParityEntry('정렬', (_) => _key('clients-sort-button')),
+          ParityEntry('새 회원', (_) => _key('clients-new')),
+          ParityEntry('회원 카드', (_) => _keyPrefix('client-weekly-adherence-')),
+        ]),
+      ],
+    );
+  });
+
+  testWidgets('코칭 A/B — 후보 만들기 뒤 두 안과 검토 완료', (WidgetTester tester) async {
+    await _expectParity(
+      tester,
+      at: AppRoutes.coachingFor(_clientId),
+      stages: <_Stage>[
+        _Stage(
+          (WidgetTester t) =>
+              _tapIfPresent(t, _key('generate-routine-options')),
+          <ParityEntry>[
+            ParityEntry('A 안', (_) => _key('routine-option-A')),
+            ParityEntry('B 안', (_) => _key('routine-option-B')),
+            ParityEntry('검토 완료', (_) => _key('complete-routine-review')),
+          ],
+        ),
+      ],
+    );
+  });
+
+  testWidgets('스케줄 — 예약 자리, 새 일정, 상담 요청함, 수업 블록과 관리', (
+    WidgetTester tester,
+  ) async {
+    await _expectParity(
+      tester,
+      at: AppRoutes.schedule,
+      stages: <_Stage>[
+        _Stage(_stay, <ParityEntry>[
+          ParityEntry('예약 자리', (_) => _key('schedule-open-slots')),
+          ParityEntry(
+            '새 일정',
+            (l) => find.byWidgetPredicate(
+              (Widget w) => w is AppButton && w.label == l.schedNewSession,
+            ),
+          ),
+          ParityEntry('상담 요청함', (_) => _key('consult-inbox-entry')),
+          ParityEntry('수업 블록', (_) => _keyPrefix('schedule-session-')),
+          ParityEntry('수업 관리 메뉴', (_) => _key('session-edit-menu')),
+          ParityEntry('수업 취소', (_) => _key('session-cancel-chip')),
+        ]),
+      ],
+    );
+  });
+
+  testWidgets('내 정보 — 메뉴, 이달 통계, 계정', (WidgetTester tester) async {
+    await _expectParity(
+      tester,
+      at: AppRoutes.my,
+      stages: <_Stage>[
+        _Stage(_stay, <ParityEntry>[
+          for (final String section in <String>[
+            'profile',
+            'clients',
+            'notifications',
+            'language',
+            'account',
+            'support',
+          ])
+            ParityEntry('$section 메뉴', (_) => _key('my-$section-entry')),
+          ParityEntry('로그아웃', (_) => _key('my-logout-button')),
+          ParityEntry('담당 회원 통계', (l) => find.text(l.myStatClients)),
+          ParityEntry('완료 세션 통계', (l) => find.text(l.myStatSessionsDone)),
+          ParityEntry('프로그램 전송 통계', (l) => find.text(l.myStatRoutinesSent)),
+        ]),
+        _Stage(
+          (WidgetTester t) => _tapIfPresent(t, _key('my-account-entry')),
+          <ParityEntry>[
+            // 데모는 누를 수 없게 두지만(예외 목록) 자리는 두 모드 모두 있다.
+            ParityEntry('비밀번호 변경', (_) => _key('change-password')),
           ],
         ),
       ],
