@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import RequireAdmin
 from app.core import metrics
 from app.core.config import get_settings
-from app.db.session import get_db
+from app.db.session import get_db, pool_status
 
 router = APIRouter(tags=["system"])
 settings = get_settings()
@@ -71,5 +71,9 @@ def system_metrics(admin: RequireAdmin) -> dict[str, object]:
 
     인증을 거는 이유: 어떤 공급자가 얼마나 실패하는지는 운영 정보다. 공개 헬스
     체크(/healthz, /readyz)와 달리 LB 가 볼 필요도 없다.
+
+    `db_pool` 은 DB 커넥션 풀 상태(#2836) — 크기·빌려 간 연결·여분 연결 수다. 풀
+    크기·대기 시간을 조정할 근거로 쓴다. 워커가 여럿이면 이 요청을 받은 워커의
+    값이다(docs/DEPLOY.md).
     """
-    return metrics.snapshot()
+    return {**metrics.snapshot(), "db_pool": pool_status()}

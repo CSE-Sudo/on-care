@@ -30,6 +30,20 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://oncare:oncare@localhost:5432/oncare"
     # DB 커넥션 인출(연결 수립) 상한(초) — 네트워크 파티션/무응답 시 스레드 무한 점유 방지.
     db_connect_timeout_seconds: int = 5
+    # 커넥션 풀(#2836). 기본값을 SQLAlchemy 에 맡기면 풀 대기가 30초라, 풀이 마르면
+    # 가벼운 조회도 30초 뒤에 500 이 된다. 짧게 실패시켜 클라이언트 재시도로 넘긴다.
+    # (pool_size + max_overflow) × 워커 수 × 인스턴스 수가 DB 연결 상한(Neon 플랜)
+    # 안에 들어와야 한다 — 값은 배포 문서(DEPLOY.md)에 계산법과 함께 적어 둔다.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout_seconds: float = 10.0
+    # 유휴 연결 재활용 주기(초). 관리형 DB 가 오래 쉰 연결을 먼저 끊으면 다음 요청이
+    # 끊긴 연결을 받는다(pre_ping 이 잡지만 왕복이 하나 더 든다). 그보다 짧게 둔다.
+    db_pool_recycle_seconds: int = 300
+    # 쿼리 하나의 실행 상한(ms). 잘못된 쿼리·잠금 대기 하나가 연결을 무기한 쥐지
+    # 않게 한다. 0 이면 끈다. 마이그레이션(`scripts/migrate.py`·Alembic)은 별도
+    # 연결이라 이 값의 영향을 받지 않는다.
+    db_statement_timeout_ms: int = 10_000
     # 앱 기동 시 create_all() 로 테이블 생성 여부(개발 편의). 운영은 Alembic 을 정답으로 → false 권장.
     auto_create_tables: bool = True
 
