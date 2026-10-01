@@ -1336,7 +1336,7 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     일정 수를 알림 한 건으로 알린다 — 일정마다 알리면 반복 PT 수만큼 쏟아진다.
     """
     link.active = False
-    data_consent_service.revoke(link)
+    data_consent_service.revoke(link, by=data_consent_service.BY_TRAINER)
     cancelled = _cancel_sessions_on_detach(
         db, link.trainer_id, link.member_id, source="trainer"
     )
@@ -6322,7 +6322,7 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     for link in links:
         link.active = False
         # 담당 해제 = 데이터 공유 동의 철회(#1631).
-        data_consent_service.revoke(link)
+        data_consent_service.revoke(link, by=data_consent_service.BY_MEMBER)
         # 아직 시작하지 않은 PT 도 함께 거둔다(#2589). 회원이 스스로 끊었으니
         # 회원에게 따로 알리지 않고, 트레이너에게는 해제 알림이 취소 수를 함께
         # 전한다(`member_departure.notify_trainer`).

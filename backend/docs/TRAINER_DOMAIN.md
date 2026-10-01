@@ -163,7 +163,7 @@
 | 경로 | 동의 |
 |---|---|
 | 회원 해제(`DELETE /me/coach`·`/me/coach/trainer`)·트레이너 해제(`remove_client`) | `data_consent_at` 을 비우고 `data_consent_revoked_at` 에 시각(멱등 — 처음 시각 유지) |
-| 회원·트레이너 탈퇴 | 링크 행이 `CASCADE` 로 사라진다 — 남는 동의가 없다 |
+| 회원·트레이너 탈퇴 | 링크 행이 `CASCADE` 로 사라진다 — 남는 동의가 없다. 살아 있던 동의마다 `consent.revoke`(reason=withdraw) 감사 기록을 먼저 남긴다(#2830) |
 | 다른 트레이너로 옮김 | 옛 링크는 해제 때 철회, 새 링크는 새 동의 |
 | 되살리기(`attach_member_to_trainer` — 담당 요청 수락·연결 코드) | 그 연결의 동의만 적는다(`grant`). 없으면 비운 채 둔다. 철회 시각은 이력으로 남긴다 |
 | 트레이너 혼자 재등록(`restore_client`) | 동의가 철회된 링크면 409(`ClientConsentRequired`) — 회원이 끊은 관계를 트레이너가 혼자 되돌리면 동의하지 않은 트레이너에게 다시 묶인다 |
@@ -182,6 +182,32 @@
   최근 메시지(`diet_coach_inputs.trainer_notes`)를 넣어 만든 뒤 보관하므로, 담당이 끝나는 경로(회원
   해제·트레이너 해제·트레이너 탈퇴)가 `forget_trainer_notes` 로 이번 주·전체 조언을 지우고 추천 메뉴
   리스트를 오늘로 만료시킨다(#2386). 회원이 받은 채팅 자체는 회원의 기록이라 그대로다.
+
+### 건강정보 열람·동의 감사 기록 (#2830)
+
+링크의 두 칸(`data_consent_at`·`data_consent_revoked_at`)은 다시 연결하면 덮어써지고 탈퇴하면
+행째 사라진다. "해제했는데 계속 봤다"·"동의한 적 없다" 같은 문의에 답하려면 따로 남는 이력이
+필요해, `audit_logs`(마이그레이션 `0125_audit_log_target` — `target_user_id`·`resource` 칸)에 남긴다.
+감사 로그에는 FK 가 없어 링크·계정이 지워져도 기록은 유지된다.
+
+| 이벤트 | 언제 | `user_id`(행위자) | `target_user_id` | `resource`·`detail` |
+|---|---|---|---|---|
+| `trainer.client_read` | 트레이너가 담당 회원의 식단·운동·신체 정보·리포트 조회 | 트레이너 | 회원 | `resource` = `diet`·`exercise`·`body`·`report` |
+| `consent.grant` | 연결 코드·담당 요청 수락·상담 신청으로 동의가 생김 | 회원 | 회원 | `via=pairing`·`invite`·`consultation`, `trainer=<id>` |
+| `consent.revoke` | 회원 해제·트레이너 해제·탈퇴 | 철회한 쪽 | 회원 | `by=member`·`trainer`, `trainer=<id>`, 탈퇴면 `reason=withdraw` |
+| `account.withdraw` | 회원·트레이너 탈퇴 | 탈퇴한 계정 | 회원 탈퇴면 그 회원 | `role=member`·`trainer` |
+| `auth.password_change` | 트레이너 비밀번호 변경 | 트레이너 | — | — |
+
+- **열람 기록**은 조회 라우트의 공용 의존성(`_audit_client_read("diet")`)이 남긴다. `_require_client`
+  와 같은 기준(활성 링크·동의 유효)을 통과할 때만 남기므로 404 로 끝나는 요청은 열람이 아니다.
+  같은 (트레이너, 회원, 자원)은 `AUDIT_READ_DEDUPE_MINUTES`(기본 10분) 안에 한 번만 남는다.
+  루틴·메모·채팅처럼 두 사람이 함께 쓰는 기록의 조회는 대상이 아니다.
+- **동의·탈퇴·비밀번호 변경 기록**은 본 작업과 **같은 트랜잭션**에 얹는다(`audit.stage`) — 동의가
+  바뀌었는데 기록이 없거나 그 반대인 상태가 생기지 않는다. 열람 기록은 실패해도 조회를 막지 않는다.
+- 기록에는 누가·누구의·무엇을·언제만 적고 식단 내용 같은 개인정보 본문은 적지 않는다.
+- **보존 기간**: 접속 기록(로그인 등) `AUDIT_RETENTION_DAYS`(기본 365일), 열람·동의·탈퇴 기록
+  `AUDIT_SENSITIVE_RETENTION_DAYS`(기본 730일). 서버 기동 때 지난 기록을 지운다(0 이면 정리 안 함).
+  트레이너 웹 개인정보 처리방침 6항이 같은 기간을 안내한다.
 
 ### 트레이너 헬스장 소속 정책 (`0020_gym_profiles_trainer_fk`)
 

@@ -42,6 +42,7 @@ from app.core.body_limit import RequestBodySizeLimitMiddleware
 from app.core.config import get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.db.init_db import init_db
+from app.services import audit
 
 settings = get_settings()
 # 로깅을 먼저 설정(요청 ID 포함 포맷). 이후 모듈 로거들이 이 설정을 따른다.
@@ -51,6 +52,8 @@ observability.setup_logging(settings.log_level)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # 보존 기간이 지난 감사 기록 정리(#2830). 실패해도 기동은 계속된다.
+    audit.purge_expired_best_effort()
     yield
 
 

@@ -17,7 +17,17 @@ from datetime import datetime, timezone
 from pathlib import PurePath
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
@@ -105,6 +115,7 @@ from app.schemas.trainer_api import (
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
+    audit,
     auth_tokens,
     diet_service,
     diet_trainer_analysis,
@@ -196,6 +207,52 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
     ):
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
+
+
+#: 열람 감사 대상 기록 종류(#2830). 트레이너가 만든 루틴·메모·채팅처럼 두 사람이
+#: 함께 쓰는 기록은 넣지 않는다 — 회원이 남긴 건강정보를 읽는 경로만이다.
+CLIENT_READ_RESOURCES = frozenset({"diet", "exercise", "body", "report"})
+
+
+def _audit_client_read(resource: str):
+    """회원 기록 조회 라우트에 붙이는 열람 감사 의존성(#2830).
+
+    `dependencies=[_audit_client_read("diet")]` 처럼 붙인다. 라우트 본문이 쓰는
+    [_require_client] 와 같은 기준(활성 링크·동의 유효)을 통과할 때만 남긴다 —
+    남의 회원·해제된 회원 요청은 본문이 어차피 404 로 끝내므로 열람이 아니다.
+    같은 (트레이너, 회원, 자원)은 설정한 시간 안에 한 번만 남기고(묶음 규칙),
+    기록 실패는 조회를 막지 않는다. 기록 내용은 누가·누구의·무엇을·언제뿐이다.
+    """
+    if resource not in CLIENT_READ_RESOURCES:  # pragma: no cover - 개발 실수 방지
+        raise ValueError(f"알 수 없는 열람 자원: {resource}")
+
+    def dependency(
+        member_id: str,
+        request: Request,
+        trainer: RequireTrainer,
+        db: Annotated[Session, Depends(get_db)],
+    ) -> None:
+        link = db.scalar(
+            select(TrainerClient).where(
+                TrainerClient.trainer_id == trainer.id,
+                TrainerClient.member_id == member_id,
+            )
+        )
+        if (
+            link is None
+            or not link.active
+            or data_consent_service.blocks_access(link)
+        ):
+            return
+        audit.record_client_read(
+            db,
+            trainer_id=trainer.id,
+            member_id=member_id,
+            resource=resource,
+            ip=audit.client_ip(request),
+        )
+
+    return Depends(dependency)
 
 
 def _decide(
@@ -334,6 +391,7 @@ def trainer_change_password(
     payload: TrainerPasswordChange,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
 ) -> PasswordChanged:
     """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다.
 
@@ -351,6 +409,13 @@ def trainer_change_password(
     # 비밀번호와 세대는 한 트랜잭션으로 — 하나만 반영되면 옛 토큰이 살아남거나
     # 비밀번호는 그대로인데 모든 기기가 끊긴다.
     auth_tokens.bump_version(trainer)
+    # 변경 사실만 남긴다(#2830) — 비밀번호와 같은 트랜잭션이라 둘 중 하나만 남지 않는다.
+    audit.stage(
+        db,
+        event=audit.PASSWORD_CHANGE,
+        user_id=trainer.id,
+        ip=audit.client_ip(request),
+    )
     db.commit()
     tokens = auth_tokens.issue_token_pair(trainer)
     return PasswordChanged(
@@ -377,6 +442,7 @@ TRAINER_DELETION_REASONS: frozenset[str] = frozenset(
 def trainer_delete_me(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
     payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """트레이너 탈퇴. 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다. (#505)
@@ -396,6 +462,10 @@ def trainer_delete_me(
                 reason=f"trainer_{reason}",
             )
         )
+    # 동의 종료·탈퇴를 감사 기록으로 남긴다 — 삭제와 같은 트랜잭션이다(#2830).
+    data_consent_service.stage_account_withdrawal(
+        db, trainer, ip=audit.client_ip(request)
+    )
     trainer_service.delete_trainer_account(db, trainer)
     return {"status": "deleted"}
 
@@ -573,6 +643,7 @@ def _member_health_out(db: Session, member_id: str) -> MemberHealthProfileOut:
 @router.get(
     "/trainer/clients/{member_id}/health-profile",
     response_model=MemberHealthProfileOut,
+    dependencies=[_audit_client_read("body")],
 )
 def trainer_member_health_profile(
     member_id: str,
@@ -611,7 +682,11 @@ def trainer_update_member_health_profile(
     return _member_health_out(db, member_id)
 
 
-@router.get("/trainer/clients/{member_id}/diet", response_model=list[ClientDietEntryOut])
+@router.get(
+    "/trainer/clients/{member_id}/diet",
+    response_model=list[ClientDietEntryOut],
+    dependencies=[_audit_client_read("diet")],
+)
 def trainer_client_diet(
     member_id: str,
     trainer: RequireTrainer,
@@ -630,6 +705,7 @@ def trainer_client_diet(
 @router.get(
     "/trainer/clients/{member_id}/diet/days",
     response_model=DietPeriodResponse,
+    dependencies=[_audit_client_read("diet")],
 )
 def trainer_client_diet_period(
     member_id: str,
@@ -650,6 +726,7 @@ def trainer_client_diet_period(
 @router.get(
     "/trainer/clients/{member_id}/exercise/weeks",
     response_model=ExercisePeriodResponse,
+    dependencies=[_audit_client_read("exercise")],
 )
 def trainer_client_exercise_period(
     member_id: str,
@@ -680,6 +757,7 @@ def trainer_client_exercise_period(
 @router.get(
     "/trainer/clients/{member_id}/records/span",
     response_model=RecordSpanResponse,
+    dependencies=[_audit_client_read("exercise")],
 )
 def trainer_client_record_span(
     member_id: str,
@@ -694,7 +772,10 @@ def trainer_client_record_span(
     )
 
 
-@router.get("/trainer/clients/{member_id}/diet/photos/{photo_id}")
+@router.get(
+    "/trainer/clients/{member_id}/diet/photos/{photo_id}",
+    dependencies=[_audit_client_read("diet")],
+)
 def trainer_client_diet_photo(
     member_id: str,
     photo_id: str,
@@ -719,7 +800,11 @@ def trainer_client_diet_photo(
     )
 
 
-@router.get("/trainer/clients/{member_id}/history", response_model=list[RoutineHistoryOut])
+@router.get(
+    "/trainer/clients/{member_id}/history",
+    response_model=list[RoutineHistoryOut],
+    dependencies=[_audit_client_read("exercise")],
+)
 def trainer_client_history(
     member_id: str,
     trainer: RequireTrainer,
@@ -733,6 +818,7 @@ def trainer_client_history(
 @router.get(
     "/trainer/clients/{member_id}/diet-advice",
     response_model=DietAdviceResponse,
+    dependencies=[_audit_client_read("diet")],
 )
 def trainer_client_diet_advice(
     member_id: str,
@@ -802,6 +888,7 @@ def _diet_recommendations(
 @router.get(
     "/trainer/clients/{member_id}/diet-recommendations",
     response_model=TrainerDietRecommendationsResponse,
+    dependencies=[_audit_client_read("diet")],
 )
 def trainer_client_diet_recommendations(
     member_id: str,
@@ -849,6 +936,7 @@ def trainer_confirm_diet_recommendation(
 @router.get(
     "/trainer/clients/{member_id}/exercise-advice",
     response_model=ExerciseAdviceResponse,
+    dependencies=[_audit_client_read("exercise")],
 )
 def trainer_client_exercise_advice(
     member_id: str,
@@ -885,6 +973,7 @@ def trainer_client_exercise_advice(
 @router.get(
     "/trainer/clients/{member_id}/exercise-week",
     response_model=ExerciseWeekResponse,
+    dependencies=[_audit_client_read("exercise")],
 )
 def trainer_client_exercise_week(
     member_id: str,
@@ -2275,7 +2364,11 @@ def _report_week(day: str) -> _date:
     return week
 
 
-@router.get("/trainer/clients/{member_id}/report", response_model=WeeklyReportOut)
+@router.get(
+    "/trainer/clients/{member_id}/report",
+    response_model=WeeklyReportOut,
+    dependencies=[_audit_client_read("report")],
+)
 def trainer_client_report(
     member_id: str,
     trainer: RequireTrainer,
@@ -2292,6 +2385,7 @@ def trainer_client_report(
 @router.get(
     "/trainer/clients/{member_id}/report/summary",
     response_model=ReportSummaryOut,
+    dependencies=[_audit_client_read("report")],
 )
 def trainer_client_report_summary(
     member_id: str,
@@ -2374,6 +2468,7 @@ def trainer_save_client_report_feedback(
 @router.get(
     "/trainer/clients/{member_id}/report/member-feedback",
     response_model=MemberWeeklyFeedbackOut,
+    dependencies=[_audit_client_read("report")],
 )
 def trainer_client_member_weekly_feedback(
     member_id: str,
@@ -2397,6 +2492,7 @@ def trainer_client_member_weekly_feedback(
 @router.get(
     "/trainer/clients/{member_id}/report/goals",
     response_model=ReportGoalsOut,
+    dependencies=[_audit_client_read("report")],
 )
 def trainer_client_report_goals(
     member_id: str,
@@ -2469,6 +2565,7 @@ _REPORT_HISTORY_PAGE = 12
 @router.get(
     "/trainer/clients/{member_id}/reports/sent",
     response_model=MemberReportSendsOut,
+    dependencies=[_audit_client_read("report")],
 )
 def trainer_client_report_sends(
     member_id: str,

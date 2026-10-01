@@ -496,6 +496,13 @@ def create_consultation(
         data_consent_at=now,
     )
     db.add(consultation)
+    # 상담 신청의 공유 동의도 이력으로 남긴다(#2830) — 신청과 같은 트랜잭션이다.
+    data_consent_service.stage_grant(
+        db,
+        trainer_id=payload.trainer_id,
+        member_id=member_id,
+        via=data_consent_service.VIA_CONSULTATION,
+    )
     _notify_trainer_of_new_request(db, consultation, member_id)
     try:
         db.commit()
@@ -1105,6 +1112,7 @@ def attach_member_to_trainer(
     *,
     goal: str = "",
     consented_at: datetime | None = None,
+    via: str = "",
 ) -> None:
     """담당 링크를 만든다(커밋 없음). 활성 담당이 없는 회원에게만 부른다.
 
@@ -1117,6 +1125,8 @@ def attach_member_to_trainer(
     되살릴 때 동의는 **이번 연결의 것만** 적는다(#1631). 해제할 때 동의를
     비웠으므로 `consented_at` 이 없으면 링크는 동의 없이 살아나고, 트레이너는
     회원 기록을 열 수 없다 — 옛 동의가 말없이 다시 쓰이지 않는다.
+
+    동의가 있으면 `via`(발급 경로)와 함께 감사 기록을 얹는다(#2830).
     """
     dormant = db.scalar(
         select(TrainerClient).where(
@@ -1127,7 +1137,7 @@ def attach_member_to_trainer(
     if dormant is not None:
         dormant.active = True
         # 다시 담당이 되는 것도 새 연결이다 — 그때의 동의만 적는다. (#1022, #1631)
-        data_consent_service.grant(dormant, consented_at)
+        data_consent_service.grant(dormant, consented_at, via=via)
         return
 
     last_order = db.scalar(
@@ -1146,6 +1156,10 @@ def attach_member_to_trainer(
             sort_order=(last_order or 0) + 1,
         )
     )
+    if consented_at is not None:
+        data_consent_service.stage_grant(
+            db, trainer_id=trainer_id, member_id=member_id, via=via
+        )
 
 
 def accept(

@@ -1449,6 +1449,22 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
 
 **문자열**이다(`user-7d4e9a2c5f18`). 정수가 아니다. 데모 시드도 같은 규약을 따른다.
 
+### 감사 기록 (#2830)
+
+응답 형태는 바뀌지 않는다. 서버가 아래 행위를 `audit_logs` 에 남긴다(누가·누구의·무엇을·언제, 본문 없음).
+
+- `GET /trainer/clients/{member_id}/…` 중 회원의 건강정보를 읽는 경로 — `trainer.client_read`,
+  `resource` 는 `diet`(`/diet`·`/diet/days`·`/diet/photos/{id}`·`/diet-advice`·`/diet-recommendations`),
+  `exercise`(`/exercise/weeks`·`/exercise-week`·`/exercise-advice`·`/history`·`/records/span`),
+  `body`(`/health-profile`), `report`(`/report`·`/report/summary`·`/report/member-feedback`·`/report/goals`·`/reports/sent`).
+  같은 (트레이너, 회원, 자원)은 10분(설정 `AUDIT_READ_DEDUPE_MINUTES`) 안에 한 번만 남는다. 404 로 끝나는 요청은 남지 않는다.
+- 동의 발급 `consent.grant`(연결 코드 `pairing`·담당 요청 수락 `invite`·상담 신청 `consultation`),
+  철회 `consent.revoke`(`DELETE /me/coach`·`/me/coach/trainer` 는 회원, `DELETE /trainer/clients/{id}` 는 트레이너),
+  탈퇴 `account.withdraw`(`DELETE /users/me`·`DELETE /trainer/me`), 비밀번호 변경 `auth.password_change`
+  (`POST /trainer/me/password`). 본 작업과 같은 트랜잭션이고 계정이 지워져도 남는다.
+- 보존 기간: 접속 기록 365일(`AUDIT_RETENTION_DAYS`), 열람·동의·탈퇴 기록 730일
+  (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버 기동 때 지난 기록을 정리한다.
+
 ## 도메인 핵심 (놓치면 안 되는 차별점)
 
 On-Care 의 식단은 칼로리뿐 아니라 **나트륨(sodium_mg)·당류(sugar_g)** 가 1급 지표다. 근거는

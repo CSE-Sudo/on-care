@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
     allow_demo_fallback: bool = True
 
+    # --- 감사 로그 (#2830) ---
+    # 트레이너의 회원 기록 열람(`trainer.client_read`)은 같은 (트레이너, 회원, 자원)
+    # 조합을 이 시간(분) 안에 한 번만 남긴다 — 화면을 넘길 때마다 쌓이지 않게.
+    audit_read_dedupe_minutes: int = 10
+    # 보존 기간(일). 지난 기록은 기동 시 정리한다. 0 이면 정리하지 않는다.
+    # 인증·계정 이벤트(접속 기록)는 1년, 건강정보 열람·동의·탈퇴 기록은 2년.
+    audit_retention_days: int = 365
+    audit_sensitive_retention_days: int = 730
+
     # --- 소셜 로그인 ---
     # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.
     # iOS 앱은 번들 ID, 웹은 Service ID 로 서로 다른 aud 를 받으므로 복수를 허용한다.
