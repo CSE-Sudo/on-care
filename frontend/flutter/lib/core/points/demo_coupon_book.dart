@@ -57,7 +57,7 @@ class DemoCouponBook implements DemoPersistable {
        _pets = pets ?? DemoProfilePetBook(ledger: ledger, now: now);
 
   /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
-  /// 목업 운동 저장소가 같은 인스턴스를 봐야 교환한 보호권을 운동 현황에서 쓴다.
+  /// 로컬 목업 API 가 같은 인스턴스를 봐야 교환한 보호권이 기록 연속에 쓰인다.
   final DemoStreakShieldBook _shields;
   DemoStreakShieldBook get shields => _shields;
 
@@ -695,7 +695,7 @@ class _DemoCoupon {
 /// 목업 경로가 함께 쓰는 쿠폰 원장 하나 — 목업 API 와 목업 헬스장 저장소가 같은
 /// 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider] 에서 빠진다.
 ///
-/// 보호권은 목업 운동 저장소와 같은 원장을 쓴다(#1788).
+/// 보호권은 로컬 목업 API 와 같은 원장을 쓴다(#1788).
 final demoCouponBookProvider = Provider<DemoCouponBook>((ref) {
   final DemoCouponBook book = DemoCouponBook(
     ledger: ref.watch(demoPointsLedgerProvider),

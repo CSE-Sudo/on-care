@@ -36,7 +36,7 @@ void main() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     ledger = DemoPointsLedger(openingBalance: 1000);
     challenge = DemoWeeklyChallenge(ledger: ledger, now: () => now)
-      // 앱에서는 목업 운동 저장소가 붙인다.
+      // 시험이 출처를 갈아 끼운다 — 앱에서는 비어 있고 운동 표로 센다(#2662).
       ..recordedDays = (DateTime monday) => recorded;
     dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     dio.interceptors.add(
