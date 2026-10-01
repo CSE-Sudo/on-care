@@ -3835,8 +3835,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoReport => '리포트';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return '$month/$day 상담 요청';
+  String dashTodoConsultationSubtitle(String when) {
+    return '희망 $when';
   }
 
   @override

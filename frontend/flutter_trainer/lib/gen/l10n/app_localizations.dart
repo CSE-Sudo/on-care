@@ -6967,11 +6967,11 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get dashTodoReport;
 
-  /// No description provided for @dashTodoConsultationSubtitle.
+  /// Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.
   ///
   /// In en, this message translates to:
-  /// **'Consultation request for {month}/{day}'**
-  String dashTodoConsultationSubtitle(int month, int day);
+  /// **'Preferred: {when}'**
+  String dashTodoConsultationSubtitle(String when);
 
   /// Subtitle of the demo carried-over task shown before real history exists.
   ///

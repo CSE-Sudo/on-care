@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
+import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -23,22 +24,23 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 상담 요청 확인 미션이 쓰는 대기 목록 — **한 번만** 읽는다.
-///
-/// `consultationsProvider`(인박스 화면 전용)는 [ConsultationRepository.watch]
-/// 를 그대로 구독하는데, 실서버 구현은 배지처럼 몇 초마다 다시 읽는 폴링
-/// 스트림이다. 대시보드 카드에 그 스트림을 그대로 물리면 대시보드를 떠나도
-/// 폴링이 계속 돌아 — 스케줄 30일 조회에서 겪은 것과 같은 이유로(
-/// dashboard_controller.dart 참고) — 실서버 모드 위젯 테스트에서 타이머가
-/// 안 지워지는 문제가 다시 생겼다. `fetch()` 는 원래 일회성 Future라 그대로
-/// 쓴다.
-final _consultationMissionsProvider =
-    FutureProvider.autoDispose<List<ConsultationRequest>>((ref) {
-      if (!ref.watch(consultationInboxEnabledProvider)) {
-        return Future.value(const <ConsultationRequest>[]);
-      }
-      return ref.watch(consultationRepositoryProvider).fetch();
-    }, name: 'consultationMissions');
+/// 상담 미션 부제의 때 — 회원이 고른 자리가 있으면 그 날짜·시각, 없으면
+/// 희망 날짜와 희망 시각. 상담 창 카드와 같은 규칙이다(#2887). 요청이 접수된
+/// 날이 아니다.
+String consultationMissionWhen(
+  AppLocalizations l,
+  ConsultationRequest request,
+) {
+  final DateTime? start = request.slotStartsAt;
+  if (start != null) {
+    final String hm =
+        '${start.hour.toString().padLeft(2, '0')}:'
+        '${start.minute.toString().padLeft(2, '0')}';
+    return '${dateLabel(l, start)} $hm';
+  }
+  return '${dateLabel(l, request.preferredDate)} '
+      '${preferredTimeLabel(l, request.preferredTimeCode)}';
+}
 
 /// 비동기 원천이 한 번이라도 답했는가 — 값이든 오류든.
 bool _settled(AsyncValue<Object?> value) => value.hasValue || value.hasError;
@@ -244,10 +246,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
     if (_initializedForDate == ymd(nowKst())) return false;
     if (mounted) {
       setState(() {});
-      showAppToast(
-        context,
-        AppLocalizations.of(context).dashTaskDayChanged,
-      );
+      showAppToast(context, AppLocalizations.of(context).dashTaskDayChanged);
     }
     return true;
   }
@@ -329,7 +328,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
     final clients =
         ref.watch(clientsProvider).valueOrNull ?? const <TrainerClient>[];
     final consultations =
-        ref.watch(_consultationMissionsProvider).valueOrNull ??
+        ref.watch(pendingConsultationsOnceProvider).valueOrNull ??
         const <ConsultationRequest>[];
 
     // 주의 신호(답장 대기 제외)가 있는 회원만 — 답장은 `상담`·메시지가 맡는다.
@@ -365,8 +364,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
           keywordColor: context.oncare.brand.primary,
           title: request.memberName,
           subtitle: l.dashTodoConsultationSubtitle(
-            request.preferredDate.month,
-            request.preferredDate.day,
+            consultationMissionWhen(l, request),
           ),
           onTap: () => showConsultationsDialog(context),
         ),
@@ -432,6 +430,18 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
     final l = AppLocalizations.of(context);
     // 자정에 다시 그려 오늘을 연다(#2866). 날짜만 보므로 분마다 깨지 않는다.
     ref.watch(kstTodayProvider);
+    // 대기 상담 수가 바뀌면(배지가 이미 폴링 중) 상담 미션을 다시 읽는다 —
+    // 새 요청이 미션으로 나타나고, 다른 곳에서 처리한 요청은 빠진다(#2887).
+    // 첫 값은 목록과 함께 이미 읽었으므로 넘긴다.
+    ref.listen<AsyncValue<int>>(consultationPendingCountProvider, (
+      AsyncValue<int>? previous,
+      AsyncValue<int> next,
+    ) {
+      final int? before = previous?.valueOrNull;
+      final int? after = next.valueOrNull;
+      if (before == null || after == null || before == after) return;
+      ref.invalidate(pendingConsultationsOnceProvider);
+    });
     final missions = _buildMissions(l);
     final missionKeys = <String>{for (final m in missions) m.key};
     final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
@@ -439,7 +449,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
     // 목록보다 먼저 오면, 그 순간 없는 상담 키의 체크·이월이 버려졌다. 그 전에는
     // 체크·삭제도 받지 않는다.
     final bool sourcesSettled =
-        _settled(ref.watch(_consultationMissionsProvider)) &&
+        _settled(ref.watch(pendingConsultationsOnceProvider)) &&
         _settled(ref.watch(clientsProvider));
     if (history != null && sourcesSettled) {
       _syncDay(ymd(nowKst()), missionKeys);

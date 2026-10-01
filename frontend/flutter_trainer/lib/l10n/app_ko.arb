@@ -1638,7 +1638,7 @@
   "dashTodoWorkout": "운동",
   "dashTodoProgram": "프로그램",
   "dashTodoReport": "리포트",
-  "dashTodoConsultationSubtitle": "{month}/{day} 상담 요청",
+  "dashTodoConsultationSubtitle": "희망 {when}",
   "dashTodoCarriedOverDemoSubtitle": "어제 남긴 식단 피드백",
   "dashTodoProgramSubtitle": "최근 등록한 프로그램 없음",
   "dashTodoReportSubtitle": "이번 주 리포트 작성 대상",

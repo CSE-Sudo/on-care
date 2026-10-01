@@ -4028,8 +4028,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTodoReport => 'Report';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return 'Consultation request for $month/$day';
+  String dashTodoConsultationSubtitle(String when) {
+    return 'Preferred: $when';
   }
 
   @override

@@ -2628,14 +2628,13 @@
   "dashTodoWorkout": "Workout",
   "dashTodoProgram": "Program",
   "dashTodoReport": "Report",
-  "dashTodoConsultationSubtitle": "Consultation request for {month}/{day}",
+  "dashTodoConsultationSubtitle": "Preferred: {when}",
   "@dashTodoConsultationSubtitle": {
+    "description": "Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.",
     "placeholders": {
-      "month": {
-        "type": "int"
-      },
-      "day": {
-        "type": "int"
+      "when": {
+        "type": "String",
+        "example": "8/25 (Tue) 19:00"
       }
     }
   },
