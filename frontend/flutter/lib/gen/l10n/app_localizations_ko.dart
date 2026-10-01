@@ -4566,6 +4566,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachReportsEmptyHint => '담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요';
 
   @override
+  String get coachReportsLoadFailed => '받은 리포트를 불러오지 못했어요';
+
+  @override
+  String get weeklyFeedbackLoadFailed => '보낸 주간 피드백을 불러오지 못했어요';
+
+  @override
   String get coachReportOpen => '리포트 열기';
 
   @override

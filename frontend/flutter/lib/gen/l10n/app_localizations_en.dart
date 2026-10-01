@@ -4772,6 +4772,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Weekly reports from your trainer land here';
 
   @override
+  String get coachReportsLoadFailed => 'Couldn\'t load your reports';
+
+  @override
+  String get weeklyFeedbackLoadFailed =>
+      'Couldn\'t load the weekly feedback you sent';
+
+  @override
   String get coachReportOpen => 'Open report';
 
   @override

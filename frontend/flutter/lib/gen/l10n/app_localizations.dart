@@ -7655,6 +7655,18 @@ abstract class AppLocalizations {
   /// **'Weekly reports from your trainer land here'**
   String get coachReportsEmptyHint;
 
+  /// No description provided for @coachReportsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your reports'**
+  String get coachReportsLoadFailed;
+
+  /// No description provided for @weeklyFeedbackLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the weekly feedback you sent'**
+  String get weeklyFeedbackLoadFailed;
+
   /// No description provided for @coachReportOpen.
   ///
   /// In en, this message translates to:
