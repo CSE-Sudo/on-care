@@ -1201,6 +1201,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDefaultUserName => 'User';
 
   @override
+  String get myProfileLoadFailed => 'Couldn\'t load your profile';
+
+  @override
+  String get myPointsLoadFailed => 'Couldn\'t load your points balance';
+
+  @override
   String get mySettingsTitle => 'Settings';
 
   @override

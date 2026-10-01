@@ -1163,6 +1163,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDefaultUserName => '사용자';
 
   @override
+  String get myProfileLoadFailed => '내 정보를 불러오지 못했어요';
+
+  @override
+  String get myPointsLoadFailed => '포인트 잔액을 불러오지 못했어요';
+
+  @override
   String get mySettingsTitle => '설정';
 
   @override

@@ -759,6 +759,8 @@
   "exKakaoMapArea": "Kakao Map area",
   "myTabTitle": "MY",
   "myDefaultUserName": "User",
+  "myProfileLoadFailed": "Couldn't load your profile",
+  "myPointsLoadFailed": "Couldn't load your points balance",
   "mySettingsTitle": "Settings",
   "myProfileTitle": "My Profile",
   "myNotifTitle": "Notification Settings",

@@ -2192,6 +2192,18 @@ abstract class AppLocalizations {
   /// **'User'**
   String get myDefaultUserName;
 
+  /// No description provided for @myProfileLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your profile'**
+  String get myProfileLoadFailed;
+
+  /// No description provided for @myPointsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your points balance'**
+  String get myPointsLoadFailed;
+
   /// No description provided for @mySettingsTitle.
   ///
   /// In en, this message translates to:

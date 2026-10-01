@@ -97,8 +97,11 @@ class MyHealthPage extends ConsumerWidget {
     // 응답에 실려 온다 — 색만 읽는 경로가 따로 없다. 그 값은 auto-dispose 가
     // 아니라 세션에 한 번만 읽고, 사용처 화면이 어차피 같은 값을 쓰므로 여기서
     // 먼저 읽어도 요청이 늘지 않는다. 읽기 전에는 기본 색(회원앱 파랑)이다.
-    final String? graphColor =
-        ref.watch(activityCalendarProvider).valueOrNull?.color.current;
+    final String? graphColor = ref
+        .watch(activityCalendarProvider)
+        .valueOrNull
+        ?.color
+        .current;
     return AppPage(
       // MainShell 은 `extendBody` 라 이 화면의 아래 여백(padding.bottom)에 하단
       // 내비 높이가 이미 들어 있다. 마지막 항목이 내비 뒤에 숨지 않게 그만큼 띄운다.
@@ -114,7 +117,7 @@ class MyHealthPage extends ConsumerWidget {
         ],
       ),
       children: <Widget>[
-        _ProfileCard(profile: health.valueOrNull?.profile),
+        _ProfileCard(health: health),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
         const SizedBox(height: OnCareSpacing.sectionGap),
@@ -123,10 +126,18 @@ class MyHealthPage extends ConsumerWidget {
         const _CoachReportsEntry(),
         KeyedSubtree(
           key: pointsAnchorKey,
-          child: _PointsCard(
-            points: health.valueOrNull?.activityPoints,
-            graphColor: graphColor,
-          ),
+          // 잔액을 모르는 동안(첫 조회 실패)에는 사용처로 들어가는 카드 대신 오류와
+          // 다시 시도를 둔다(#2853) — 모르는 잔액으로 교환을 시작하지 않는다.
+          child: !health.hasValue && !health.isLoading && health.hasError
+              ? _MyStateLoadFailed(
+                  key: const Key('pointsLoadFailed'),
+                  title: l.myPointsLoadFailed,
+                  retryKey: const Key('pointsRetry'),
+                )
+              : _PointsCard(
+                  points: health.valueOrNull?.activityPoints,
+                  graphColor: graphColor,
+                ),
         ),
         const SizedBox(height: OnCareSpacing.sectionGap),
         KeyedSubtree(
@@ -260,10 +271,90 @@ class _IconTile extends StatelessWidget {
   }
 }
 
-class _ProfileCard extends ConsumerWidget {
-  const _ProfileCard({required this.profile});
+/// MY 정보(`myHealthStateProvider`) 첫 조회가 실패했을 때 카드 자리에 서는
+/// 오류 안내와 다시 시도(#2853). 기록 그래프·사용처의 오류 카드와 같은 부품이다.
+class _MyStateLoadFailed extends ConsumerWidget {
+  const _MyStateLoadFailed({
+    super.key,
+    required this.title,
+    required this.retryKey,
+  });
 
-  final UserProfile? profile;
+  final String title;
+  final Key retryKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppCard(
+      child: AppErrorState(
+        title: title,
+        retryLabel: l.actionRetry,
+        retryKey: retryKey,
+        onRetry: () => ref.invalidate(myHealthStateProvider),
+        placement: AppStatePlacement.card,
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends ConsumerWidget {
+  const _ProfileCard({required this.health});
+
+  /// 세 상태를 나눠 그린다(#2853) — 값이 있으면(재조회 중·재조회 실패 포함)
+  /// 그 값을, 첫 조회 중이면 빈 자리와 스피너를, 첫 조회가 실패하면 오류와
+  /// 다시 시도를. 예전에는 값만 넘겨 받아 셋 다 "사용자"·빈 이메일로 그렸다.
+  final AsyncValue<MyHealthState> health;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final Widget head;
+    if (health.hasValue) {
+      head = _ProfileHead(profile: health.requireValue.profile);
+    } else if (!health.isLoading && health.hasError) {
+      // 다시 시도 중에는 오류 대신 아래 로딩 모양이다 — 누른 것이 먹혔음을 보인다.
+      head = AppErrorState(
+        key: const Key('profileLoadFailed'),
+        title: l.myProfileLoadFailed,
+        retryLabel: l.actionRetry,
+        retryKey: const Key('profileRetry'),
+        onRetry: () => ref.invalidate(myHealthStateProvider),
+        placement: AppStatePlacement.card,
+      );
+    } else {
+      // 첫 조회 중 — 가짜 이름("사용자")을 그리지 않는다. 아바타 자리는 비운
+      // 원으로 남겨 값이 들어와도 아래 동기화 행이 움직이지 않는다.
+      head = const Row(
+        key: Key('profileLoading'),
+        children: <Widget>[
+          AppAvatar(name: '', size: AppAvatarSize.xLarge),
+          SizedBox(width: OnCareSpacing.s12),
+          AppLoading.inline(),
+        ],
+      );
+    }
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          head,
+          const SizedBox(height: OnCareSpacing.s12),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 동기화 코드는 MY 정보와 따로 받으므로 조회 실패와 상관없이 쓸 수 있다.
+          const _TrainerSyncRow(),
+        ],
+      ),
+    );
+  }
+}
+
+/// 프로필 카드 윗줄 — 아바타·이름(+펫)·이메일.
+class _ProfileHead extends ConsumerWidget {
+  const _ProfileHead({required this.profile});
+
+  final UserProfile profile;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -271,42 +362,32 @@ class _ProfileCard extends ConsumerWidget {
     // 포인트로 단 펫(#2021). 읽는 중이거나 읽지 못하면 이름만 그린다.
     final ProfilePet? pet = ref.watch(profilePetProvider).valueOrNull;
     final AppLocalizations l = AppLocalizations.of(context);
-    final String name = profile?.name ?? '';
-    final String email = profile?.email ?? '';
+    final String name = profile.name;
+    final String email = profile.email;
+    // 서버가 이름을 비워 보낸 경우에만 기본 이름이다 — 조회 실패·로딩이 아니다.
     final String displayName = name.isEmpty ? l.myDefaultUserName : name;
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
+    return Row(
+      children: <Widget>[
+        AppAvatar(name: displayName, size: AppAvatarSize.xLarge),
+        const SizedBox(width: OnCareSpacing.s12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              AppAvatar(name: displayName, size: AppAvatarSize.xLarge),
-              const SizedBox(width: OnCareSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    ProfileNameLine(name: displayName, pet: pet),
-                    if (email.isNotEmpty)
-                      Text(
-                        email,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.bodySmall)
-                            .copyWith(color: OnCareColors.textSecondary),
-                      ),
-                  ],
+              ProfileNameLine(name: displayName, pet: pet),
+              if (email.isNotEmpty)
+                Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
-              ),
             ],
           ),
-          const SizedBox(height: OnCareSpacing.s12),
-          const AppDivider(),
-          const SizedBox(height: OnCareSpacing.s12),
-          const _TrainerSyncRow(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -582,7 +663,9 @@ class _PointsCardState extends State<_PointsCard>
                 builder: (BuildContext context, Widget? _) {
                   final int? shown = _shown(points);
                   return Text(
-                    shown != null ? l.myPointsCost(shown) : '—P',
+                    // 첫 조회 중에는 비워 둔다(#2853) — "—P" 같은 가짜 잔액을
+                    // 그리지 않는다. 실패는 이 카드 대신 오류 카드가 선다.
+                    shown != null ? l.myPointsCost(shown) : '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: OnCareTypography.numeric(
@@ -635,9 +718,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   Future<void> _exchange(ShopItem item) async {
     if (item.id == kGraphColorItem) {
       // 색은 하나씩 연다(#2076) — 어느 색을 열지 먼저 고르고 나서 확인창이다.
-      final GraphColorChoice? choice = await _pickGraphColor(
-        lockedOnly: true,
-      );
+      final GraphColorChoice? choice = await _pickGraphColor(lockedOnly: true);
       if (choice == null || !mounted) return;
       await _exchangeItem(item, option: choice.color);
       return;
@@ -765,9 +846,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 null.
   ///
   /// [lockedOnly] 는 사용처 카드에서 들어온 길이다 — 아직 열지 않은 색만 보여 준다.
-  Future<GraphColorChoice?> _pickGraphColor({
-    bool lockedOnly = false,
-  }) async {
+  Future<GraphColorChoice?> _pickGraphColor({bool lockedOnly = false}) async {
     final GraphColorState? color = ref
         .read(activityCalendarProvider)
         .valueOrNull
@@ -843,11 +922,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ..invalidate(activityCalendarProvider)
         ..invalidate(myStreakShieldsProvider)
         ..invalidate(pointsShopProvider);
-      showAppToast(
-        context,
-        l.myGraphProtectDone,
-        type: AppToastType.success,
-      );
+      showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
     } on Object {
       if (!mounted) return;
       // 그사이 날이 바뀌었거나 그날 기록이 생겼을 수 있다 — 다시 읽어 상태를 맞춘다.
@@ -867,9 +942,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     ShopItem? item;
     try {
-      item = (await ref.read(pointsShopProvider.future)).items
-          .where((ShopItem i) => i.id == kStreakShieldItem)
-          .firstOrNull;
+      item = (await ref.read(
+        pointsShopProvider.future,
+      )).items.where((ShopItem i) => i.id == kStreakShieldItem).firstOrNull;
     } on Object {
       item = null;
     }

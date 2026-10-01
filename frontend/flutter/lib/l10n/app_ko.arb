@@ -478,6 +478,8 @@
   "exKakaoMapArea": "카카오맵 영역",
   "myTabTitle": "MY",
   "myDefaultUserName": "사용자",
+  "myProfileLoadFailed": "내 정보를 불러오지 못했어요",
+  "myPointsLoadFailed": "포인트 잔액을 불러오지 못했어요",
   "mySettingsTitle": "설정",
   "myProfileTitle": "내 프로필",
   "myNotifTitle": "알림 설정",
