@@ -226,6 +226,10 @@ void main() {
 
       // 로그인 화면으로 돌아왔다 — 표식은 가입 링크(데모 진입은 감춤, #1526).
       expect(find.text('회원가입'), findsOneWidget);
+      // 직접 로그아웃이라 방금 있던 MY 를 다음 로그인으로 잇지 않는다(#2765).
+      final String location = currentLocation(tester);
+      expect(Uri.parse(location).path, AppRoutes.signIn);
+      expect(AppRoutes.resumeTarget(location), isNull);
     });
 
     testWidgets('edit mode saves changes with a confirmation flash', (

@@ -125,6 +125,17 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class PasswordChanged(Token):
+    """비밀번호 변경 응답(#2766).
+
+    변경은 계정의 토큰 세대를 올려 그 전 토큰을 모두 무효로 만든다. 요청한 기기도
+    예외가 아니므로, 그 기기가 로그아웃되지 않도록 새 세대 토큰 한 쌍을 함께 준다.
+    클라이언트는 받은 토큰으로 저장소를 바꿔야 한다.
+    """
+
+    status: str = "changed"
+
+
 class SocialLoginRequest(BaseModel):
     # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
     token: str

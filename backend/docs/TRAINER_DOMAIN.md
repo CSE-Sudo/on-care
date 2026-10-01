@@ -222,7 +222,7 @@
 | GET | `/trainer/gyms/search?query=&lat=&lng=` | 소속으로 고를 헬스장 검색 — 등록된 헬스장 먼저, 카카오 결과 뒤(#2543) |
 | PUT | `/trainer/me/gym/kakao` | 카카오 검색 결과로 소속 설정 `{kakao_place_id, name}` — 카카오로 재확인, 아니면 404, 카카오 불가 503(#2543) |
 | DELETE | `/trainer/me/gym` | 소속 해제(원래 없어도 200) |
-| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인) |
+| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인). 성공하면 토큰 세대를 올려 다른 기기 토큰을 끊고, 요청 기기용 새 토큰 한 쌍을 돌려준다(#2766) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |
 | PUT | `/trainer/me/settings` | 알림 수신 설정 부분 수정 |
 | GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
