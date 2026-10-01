@@ -31,6 +31,12 @@ def _prod(**kw) -> Settings:
 
 
 @pytest.fixture
+def no_seed_env(monkeypatch):
+    """CI·로컬 환경변수(SEED_DEMO_DATA=true 등)가 설정 기본값 검사를 덮지 않게 한다."""
+    monkeypatch.delenv("SEED_DEMO_DATA", raising=False)
+
+
+@pytest.fixture
 def demo_off(monkeypatch):
     """데모 시드가 꺼진 서버(운영과 같은 조건)."""
     monkeypatch.setattr(get_settings(), "seed_demo_data", False)
@@ -39,7 +45,7 @@ def demo_off(monkeypatch):
 # ---- 설정 (DB 불필요) ----
 
 
-def test_seed_demo_data_is_off_by_default():
+def test_seed_demo_data_is_off_by_default(no_seed_env):
     """환경변수 없이 띄우면 데모 시드가 돌지 않는다."""
     assert Settings(_env_file=None).seed_demo_data is False
 
@@ -52,7 +58,7 @@ def test_prod_rejects_demo_seed_even_with_strong_password():
         _prod(seed_demo_data=True, demo_login_password="Str0ng!Demo#Pass-long")
 
 
-def test_prod_without_demo_seed_starts():
+def test_prod_without_demo_seed_starts(no_seed_env):
     assert _prod().seed_demo_data is False
 
 
