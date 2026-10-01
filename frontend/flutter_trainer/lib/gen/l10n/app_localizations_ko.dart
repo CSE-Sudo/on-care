@@ -963,20 +963,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
 
   @override
-  String chatDemoAnalyzed(String name) {
-    return 'AI가 $name님의 식단·운동 데이터를 분석했어요';
+  String get chatRoutineDelivered => '운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredPt => 'PT 프로그램과 개인운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredPersonal => '개인운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredAfterCancel => '취소된 PT 대신 개인운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredProgram => '운동 프로그램을 보냈어요';
+
+  @override
+  String chatRoutineDeliveredMore(String names, int count) {
+    return '$names 외 $count개';
   }
-
-  @override
-  String get chatDemoReportSent => '트레이너님께 요약 리포트가 전송됐어요';
-
-  @override
-  String chatDemoRoutineSent(String name) {
-    return '개인 추천운동이 $name님에게 전송됐어요';
-  }
-
-  @override
-  String get chatDemoNotified => '회원 앱에 알림이 전달됐어요';
 
   @override
   String get chatInputHint => '메시지 입력...';
@@ -3351,6 +3355,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiSourceChatInsight => '채팅 감지 메모';
 
   @override
+  String get aiSourceRecentChat => '최근 대화';
+
+  @override
   String get aiSourceWeeklyFeedback => '회원 주간 피드백';
 
   @override
@@ -4183,6 +4190,97 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientMemoSearchEmpty => '찾는 메모가 없어요.';
+
+  @override
+  String get clientMemoCategoryExercise => '운동';
+
+  @override
+  String get clientMemoCategoryDiet => '식단';
+
+  @override
+  String get clientMemoCategoryPain => '통증·부상';
+
+  @override
+  String get clientMemoCategoryLife => '생활·일정';
+
+  @override
+  String get clientMemoRecordLink => '운동 기록 연결 (선택)';
+
+  @override
+  String get clientMemoRecordNone => '연결 안 함';
+
+  @override
+  String get clientMemoRecordEmpty => '최근 14일 운동 기록이 없어요';
+
+  @override
+  String clientMemoRecordDay(String month, String day, String weekday) {
+    return '$month/$day ($weekday)';
+  }
+
+  @override
+  String clientMemoRecordPtSession(String date) {
+    return '$date PT 세션';
+  }
+
+  @override
+  String clientMemoRecordPersonal(String date) {
+    return '$date 개인 운동';
+  }
+
+  @override
+  String clientMemoRecordPersonalNamed(String date, String name) {
+    return '$date 개인 운동 · $name';
+  }
+
+  @override
+  String clientMemoRecordMemberLog(String date) {
+    return '$date 회원 기록';
+  }
+
+  @override
+  String get clientMemoTabMemo => '메모';
+
+  @override
+  String get clientMemoTabFeedback => '피드백';
+
+  @override
+  String get clientFeedbackPrivate => '회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.';
+
+  @override
+  String get clientFeedbackToMember => '트레이너 → 회원';
+
+  @override
+  String get clientFeedbackFromMember => '회원 → 트레이너';
+
+  @override
+  String clientFeedbackSourcePt(String date) {
+    return 'PT · $date';
+  }
+
+  @override
+  String clientFeedbackSourceReport(String date) {
+    return '리포트 · $date 주';
+  }
+
+  @override
+  String clientFeedbackSourceWeekly(String date) {
+    return '주간 피드백 · $date 주';
+  }
+
+  @override
+  String get clientFeedbackWeeklyNoNote => '한 줄 피드백 없음';
+
+  @override
+  String get clientFeedbackEmpty => '아직 주고받은 피드백이 없어요.';
+
+  @override
+  String get clientFeedbackLoadFailed => '피드백을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get clientFeedbackSearchHint => '피드백 검색 (본문·출처·방향)';
+
+  @override
+  String get clientFeedbackSearchEmpty => '찾는 피드백이 없어요.';
 
   @override
   String get followUp => '후속 관리';

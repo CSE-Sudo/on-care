@@ -89,9 +89,6 @@ class _FakeRepo implements TrainerNotificationRepository {
   final List<String> readCalls = <String>[];
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => TrainerNotificationPage(items: _rows);

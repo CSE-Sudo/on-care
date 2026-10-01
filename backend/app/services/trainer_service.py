@@ -56,6 +56,7 @@ from app.schemas.trainer_api import (
     TrainerGymOut, TrainerMe, TrainerMemoOut, TrainerNotificationSettings,
     TrainerProgramDraftOut, TrainerProgramDraftSummary, WeeklyReportDayOut,
     WeeklyReportOut,
+    RoutineDeliveryCardOut,
 )
 from app.data import routine_effects
 from app.services import health_focus
@@ -924,6 +925,66 @@ def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
         attachment=attachment,
         emote_id=msg.emote_id,
         report_week_start=msg.report_week_start,
+        routine_delivery=_routine_delivery_out(msg.routine_delivery_json),
+    )
+
+
+def _routine_delivery_out(raw: str | None) -> RoutineDeliveryCardOut | None:
+    """저장한 루틴 전송 안내 JSON → 응답. 깨진 값은 안내가 없는 것으로 읽는다."""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        return RoutineDeliveryCardOut(**data)
+    except (TypeError, ValueError):
+        return None
+
+
+#: 루틴 전송 안내 카드가 이름으로 적는 운동 수. 나머지는 개수로 접는다.
+_DELIVERY_CARD_NAMES = 3
+
+
+def post_routine_delivery(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    *,
+    kind: str,
+    program_names: Sequence[str] = (),
+    routine_names: Sequence[str] = (),
+) -> None:
+    """회원에게 운동을 보낸 일을 채팅에 안내로 남긴다(커밋 없음). (#2672)
+
+    알림은 "지금 왔다" 를 알리고 지나가지만, 채팅은 두 사람이 함께 보는
+    기록이다 — "어제 보낸 루틴 해 보셨어요?" 가 그 전송 바로 아래에 이어진다.
+    주간 리포트 전송 안내(#1600)와 같은 자리·같은 규칙(트레이너가 보낸 메시지라
+    회원에게 안 읽음으로 잡힌다)이다. 알림은 따로 그대로 간다.
+
+    본문은 안내 카드를 그리지 못하는 자리(로스터·대화 목록의 마지막 메시지)가
+    읽는 한 줄이고, 카드는 [routine_delivery_json] 으로 두 앱이 화면 언어에
+    맞춰 그린다.
+    """
+    names = [*program_names, *routine_names]
+    if not names:
+        return
+    shown = ", ".join(names[:_DELIVERY_CARD_NAMES])
+    more = len(names) - _DELIVERY_CARD_NAMES
+    if current_locale() == "en":
+        body = f"Sent a workout: {shown}" + (f" and {more} more" if more > 0 else "")
+    else:
+        body = f"운동을 보냈어요: {shown}" + (f" 외 {more}개" if more > 0 else "")
+    send_message(
+        db,
+        trainer_id,
+        member_id,
+        "trainer",
+        body,
+        routine_delivery={
+            "kind": kind,
+            "program_names": list(program_names),
+            "routine_names": list(routine_names),
+        },
+        commit=False,
     )
 
 
@@ -1023,6 +1084,8 @@ def send_message(
     attachment_file_size: int | None = None,
     report_week_start: str | None = None,
     emote_id: str | None = None,
+    routine_delivery: dict[str, object] | None = None,
+    commit: bool = True,
 ) -> ChatMessageOut:
     """스레드에 메시지 추가(sender: 'trainer'|'member'). 로스터 last_message 는
     build_roster 가 최신 메시지를 읽어 자동 반영하므로 별도 비정규화가 없다.
@@ -1062,6 +1125,12 @@ def send_message(
         # 이모티콘 메시지(#2020). 본문은 이모티콘을 못 그리는 자리(알림·로스터의
         # 마지막 메시지)가 읽을 글이고, 그림은 이 id 가 고른다.
         emote_id=emote_id,
+        # 루틴 전송 안내(#2672) — 호출자가 정한다.
+        routine_delivery_json=(
+            json.dumps(routine_delivery, ensure_ascii=False)
+            if routine_delivery
+            else None
+        ),
         created_at=datetime.now(timezone.utc),
     )
     db.add(msg)
@@ -1079,7 +1148,8 @@ def send_message(
                 return _existing_message_out(existing, text=text, viewer=viewer)
         raise
 
-    if sender == "trainer":
+    # 전송 안내는 트레이너가 쓴 글이 아니다 — 일정 문구로 읽지 않는다.
+    if sender == "trainer" and routine_delivery is None:
         _schedule_from_chat(db, trainer_id, member_id, text, msg.created_at)
 
     if sender == "member":
@@ -1128,6 +1198,11 @@ def send_message(
                 else notification_service.MEMBER_COACH_CHAT
             ),
         )
+    # 다른 저장과 한 트랜잭션으로 묶는 호출자(루틴 전송 안내, #2672)는 커밋을
+    # 스스로 한다. 안내는 대화가 아니라 개인화 적재(RAG)에도 싣지 않는다.
+    if not commit:
+        db.flush()
+        return chat_message_out(msg, viewer)
     db.commit()
     db.refresh(msg)
     out = chat_message_out(msg, viewer)
@@ -2201,6 +2276,10 @@ def approve_routine_suggestion(
             weight=row.weight,
         ),
     )
+    # 채팅에도 남긴다(#2672) — 알림은 지나가지만 대화는 남는 기록이다.
+    post_routine_delivery(
+        db, trainer_id, row.member_id, kind="routine", routine_names=[row.name]
+    )
     db.commit()
     db.refresh(row)
     return _routine_out(db, row)
@@ -2622,6 +2701,9 @@ def assign_routine(
             duration_seconds=rt.duration_seconds,
         ),
     )
+    post_routine_delivery(  # 채팅 안내(#2672)
+        db, trainer_id, member_id, kind="routine", routine_names=[rt.name]
+    )
     db.commit()
     db.refresh(rt)
     return _routine_out(db, rt)
@@ -2701,8 +2783,13 @@ def assign_program(
     start_date: date | None = None,
     active_days: int | None = None,
     suggestion_ids: Sequence[str] = (),
+    chat_card: bool = True,
 ) -> list[RoutineOut]:
     """다중 세션 프로그램을 회원에게 배정한다. 세션 하나가 루틴 한 건이 된다. (#709)
+
+    보낸 일은 채팅에도 안내로 남긴다(#2672). [chat_card] 를 끄는 것은 이
+    배정을 더 큰 전송의 일부로 쓰는 호출자다 — PT 프로그램 보내기는 프로그램과
+    개인운동을 카드 하나로 남긴다.
 
     세션이 하나뿐이면 예전 단일 배정과 같은 모양이다 — 루틴 이름은 프로그램
     이름이고 `session_name` 이 비어 회원 화면에 없던 세션 라벨이 생기지 않는다.
@@ -2765,6 +2852,23 @@ def assign_program(
             if existing:
                 return [_routine_out(db, rt) for rt in existing]
         raise
+    if chat_card:
+        exercise_names = [
+            exercise.name
+            for session in sessions
+            for exercise in session.exercises
+            if exercise.name
+        ]
+        if delivery_kind == DELIVERY_ROUTINE_ONLY:
+            post_routine_delivery(
+                db, trainer_id, member_id,
+                kind=DELIVERY_ROUTINE_ONLY, routine_names=exercise_names,
+            )
+        else:
+            post_routine_delivery(
+                db, trainer_id, member_id,
+                kind=delivery_kind or "program", program_names=exercise_names,
+            )
     db.commit()
     for rt in created:
         db.refresh(rt)
@@ -2948,6 +3052,10 @@ class MemoNotFound(Exception):
     """그 트레이너·회원 쌍에 그 id 의 메모가 없다(라우터가 404 로 변환)."""
 
 
+class MemoCategoryLocked(Exception):
+    """직접 쓴 메모가 아니라 분류를 바꿀 수 없다(라우터가 400 으로 변환). (#2622)"""
+
+
 def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
     return TrainerMemoOut(
         id=memo.id,
@@ -2959,6 +3067,7 @@ def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
         ref_id=memo.ref_id,
         ref_date=memo.ref_date,
         ref_name=memo.ref_name or "",
+        category=memo.category or "",
         created_at=memo.created_at,
         updated_at=memo.updated_at,
     )
@@ -3082,6 +3191,7 @@ def create_memo(
     body: str, source: str = "trainer",
     insight_id: str | None = None, insight_kind: str = "",
     ref_id: str | None = None, ref_date: date | None = None,
+    category: str = "",
 ) -> TrainerMemoOut:
     """회원 메모를 남긴다.
 
@@ -3092,6 +3202,9 @@ def create_memo(
     운동 기록 메모(`exercise_memo`)는 [ref_id]·[ref_date] 로 가리킨 기록을 찾아
     출처 표시 값을 채운다. 한 기록에 메모를 여러 개 남길 수 있다 — 직접 쓴
     메모와 같은 규칙이다.
+
+    분류(#2622)는 직접 쓴 메모가 고른 값을 그대로 두고, 운동 기록 메모는 늘
+    `exercise`, 채팅 감지 메모는 비운다 — 출처가 이미 무엇에 대한 메모인지 말한다.
     """
     if insight_id:
         existing = find_memo_by_insight(db, trainer_id, member_id, insight_id)
@@ -3117,6 +3230,7 @@ def create_memo(
         ref_id=ref.ref_id if ref else None,
         ref_date=ref.day if ref else None,
         ref_name=ref.name if ref else "",
+        category=_memo_category(source, category),
         created_at=now,
         updated_at=now,
     )
@@ -3158,11 +3272,28 @@ def _owned_memo(
     return memo
 
 
+def _memo_category(source: str, category: str) -> str:
+    """저장할 분류 — 출처가 정하는 분류가 있으면 그것을 쓴다. (#2622)"""
+    if source == "exercise_memo":
+        return "exercise"
+    if source == "chat_insight":
+        return ""
+    return category
+
+
 def update_memo(
     db: Session, trainer_id: str, member_id: str, memo_id: str, fields: dict
 ) -> TrainerMemoOut:
-    """메모 본문을 고친다. 출처(`source`/`insight_id`)는 그대로 둔다."""
+    """메모 본문과 분류를 고친다. 출처(`source`/`insight_id`)는 그대로 둔다.
+
+    분류는 직접 쓴 메모만 바꾼다(#2622). 다른 출처는 출처가 분류를 정하므로
+    같은 값을 다시 보내는 것만 받는다 — 수정 창이 지금 값을 싣고 와도 된다.
+    """
     memo = _owned_memo(db, trainer_id, member_id, memo_id)
+    if "category" in fields and fields["category"] != (memo.category or ""):
+        if memo.source != "trainer":
+            raise MemoCategoryLocked("직접 쓴 메모만 분류를 바꿀 수 있습니다.")
+        memo.category = fields["category"]
     if "body" in fields:
         memo.body = fields["body"]
     memo.updated_at = datetime.now(timezone.utc)
@@ -5185,6 +5316,11 @@ def send_scheduled_routines(
         else DELIVERY_PT_WITH_ROUTINE
     )
     sent = _send_scheduled_routines(db, trainer_id, s, delivery_kind=kind)
+    if s.member_id:
+        post_routine_delivery(  # 채팅 안내(#2672)
+            db, trainer_id, s.member_id,
+            kind=kind, routine_names=[row.name for row in sent],
+        )
     db.commit()
     return _routine_outs(db, sent)
 
@@ -6068,6 +6204,8 @@ def send_session_program(
             name=f"{s.date} {s.type}".strip() or s.date,
             sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
             client_request_id=client_request_id,
+            # 아래에서 개인운동과 함께 카드 하나로 남긴다(#2672).
+            chat_card=False,
         )
     # 개인운동은 **이 전송에 함께 실린다**(#2224) — 회원은 "오늘 한 것" 과
     # "혼자 할 것" 을 한 번에 받는다. 프로그램과 같은 트랜잭션이라 둘 다
@@ -6077,8 +6215,15 @@ def send_session_program(
     # **붙은 것이 없어도 막지 않는다.** 개인운동을 필수로 받는 자리는 프로그램
     # 만들기다(#2223) — 스케줄에서 연필로 바로 짠 프로그램에는 붙을 자리가
     # 없어, 여기서 막으면 그 길로 짠 프로그램을 보낼 수 없게 된다.
-    _send_scheduled_routines(
+    routines_sent = _send_scheduled_routines(
         db, trainer_id, s, delivery_kind=DELIVERY_PT_WITH_ROUTINE
+    )
+    # 프로그램과 함께 간 개인운동을 채팅 안내 하나로 남긴다(#2672).
+    post_routine_delivery(
+        db, trainer_id, s.member_id,
+        kind=DELIVERY_PT_WITH_ROUTINE,
+        program_names=[item.name for item in items if item.name],
+        routine_names=[row.name for row in routines_sent],
     )
     # 배정이 커밋된 뒤에만 보낸 것으로 남긴다. 반대 순서면 배정에 실패한 세션이
     # 화면에서 '전송됨' 이 되어 다시 보낼 수 없다.

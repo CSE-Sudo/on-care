@@ -20,10 +20,6 @@ enum NavBadge {
   /// rather than looked up from [navDestinations] — this destination is
   /// conditional, so it is not in that list. (#467)
   pendingConsultations,
-
-  /// Unread trainer notifications. Supplied by the sidebar directly for the
-  /// same reason as [pendingConsultations]. (#503)
-  unreadNotifications,
 }
 
 /// One entry in the sidebar. The order of [navDestinations] is the tab
@@ -70,7 +66,6 @@ enum NavLabel {
   coaching,
   reports,
   consultations,
-  notifications,
 }
 
 /// 라벨 키 → 현재 로케일의 문구.
@@ -82,7 +77,6 @@ String navLabel(AppLocalizations l, NavLabel label) => switch (label) {
   NavLabel.coaching => l.navCoaching,
   NavLabel.reports => l.navReports,
   NavLabel.consultations => l.navConsultations,
-  NavLabel.notifications => l.navNotifications,
 };
 
 const List<NavDestination> navDestinations = <NavDestination>[
@@ -123,11 +117,3 @@ const List<NavDestination> navDestinations = <NavDestination>[
     route: AppRoutes.reports,
   ),
 ];
-
-/// 알림함 — [navDestinations] 밖에 둔다. 실 API 빌드에서만 보이고, 브랜치 인덱스를 사이드바가 직접 넘긴다. (#503)
-const NavDestination notificationsDestination = NavDestination(
-  label: NavLabel.notifications,
-  icon: AppIcons.notifications,
-  route: AppRoutes.notifications,
-  badge: NavBadge.unreadNotifications,
-);

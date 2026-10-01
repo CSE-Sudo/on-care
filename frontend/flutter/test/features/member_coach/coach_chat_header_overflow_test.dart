@@ -165,19 +165,20 @@ void main() {
       );
     });
 
-    testWidgets('새 메시지는 루틴 수신 배너 아래에 쌓인다', (WidgetTester tester) async {
+    // 데모에만 붙던 가짜 `추천운동을 받았어요` 배너는 걷어냈다(#2672) — 운동을
+    // 받은 일은 서버가 남긴 전송 안내로만 선다.
+    testWidgets('새 메시지는 마지막 대화 아래에 쌓인다', (WidgetTester tester) async {
       await pumpChat(tester, lang: 'ko', size: const Size(430, 932));
       await tester.enterText(find.byType(TextField), '확인했습니다');
       await tester.tap(find.byIcon(AppIcons.send));
       await tester.pumpAndSettle();
 
-      final banner = find.textContaining('추천운동을 받았어요').last;
-      final sent = find.text('확인했습니다');
-      expect(banner, findsOneWidget);
-      expect(
-        tester.getTopLeft(banner).dy,
-        lessThan(tester.getTopLeft(sent).dy),
+      final last = find.byKey(
+        const ValueKey<String>('coach-message-bubble-seed-m18'),
       );
+      final sent = find.text('확인했습니다');
+      expect(find.textContaining('추천운동을 받았어요'), findsNothing);
+      expect(tester.getTopLeft(last).dy, lessThan(tester.getTopLeft(sent).dy));
     });
   });
 }

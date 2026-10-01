@@ -9,9 +9,13 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/client_feedback_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_feedback.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
+import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
@@ -29,6 +33,28 @@ class _FakeMemoRepository implements TrainerMemoRepository {
       <String, List<TrainerMemo>>{};
   bool failWrites = false;
 
+  /// 만든 메모의 출처·기록·분류 — 메모 창이 무엇을 보냈는지 본다(#2622).
+  final List<
+    ({
+      TrainerMemoSource source,
+      TrainerMemoRef? ref,
+      TrainerMemoCategory category,
+    })
+  >
+  createCalls =
+      <
+        ({
+          TrainerMemoSource source,
+          TrainerMemoRef? ref,
+          TrainerMemoCategory category,
+        })
+      >[];
+
+  /// 수정 호출 — 분류를 함께 보냈는지 본다(#2622).
+  final List<({String memoId, String body, TrainerMemoCategory? category})>
+  updateCalls =
+      <({String memoId, String body, TrainerMemoCategory? category})>[];
+
   @override
   Future<List<TrainerMemo>> fetch(String clientId) async =>
       List<TrainerMemo>.from(_byClient[clientId] ?? const <TrainerMemo>[])
@@ -42,8 +68,10 @@ class _FakeMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async {
     if (failWrites) throw const NetworkError();
+    createCalls.add((source: source, ref: ref, category: category));
     final list = _byClient.putIfAbsent(clientId, () => <TrainerMemo>[]);
     if (insightId != null) {
       final existing = list.where((memo) => memo.insightId == insightId);
@@ -56,6 +84,10 @@ class _FakeMemoRepository implements TrainerMemoRepository {
       source: source,
       insightId: insightId,
       insightKind: insightKind,
+      ref: ref,
+      category: source == TrainerMemoSource.exerciseMemo
+          ? TrainerMemoCategory.exercise
+          : category,
       createdAt: now,
       updatedAt: now,
     );
@@ -67,12 +99,18 @@ class _FakeMemoRepository implements TrainerMemoRepository {
   Future<TrainerMemo> update(
     String clientId,
     String memoId,
-    String body,
-  ) async {
+    String body, {
+    TrainerMemoCategory? category,
+  }) async {
     if (failWrites) throw const NetworkError();
     final list = _byClient[clientId]!;
     final index = list.indexWhere((memo) => memo.id == memoId);
-    final updated = list[index].copyWith(body: body, updatedAt: nowKst());
+    updateCalls.add((memoId: memoId, body: body, category: category));
+    final updated = list[index].copyWith(
+      body: body,
+      category: category,
+      updatedAt: nowKst(),
+    );
     list[index] = updated;
     return updated;
   }
@@ -82,6 +120,16 @@ class _FakeMemoRepository implements TrainerMemoRepository {
     if (failWrites) throw const NetworkError();
     _byClient[clientId]!.removeWhere((memo) => memo.id == memoId);
   }
+}
+
+/// 피드백 탭이 읽는 목록을 그대로 돌려준다(#2615).
+class _FakeFeedbackRepository implements ClientFeedbackRepository {
+  const _FakeFeedbackRepository(this._items);
+
+  final List<ClientFeedback> _items;
+
+  @override
+  Future<List<ClientFeedback>> fetch(String clientId) async => _items;
 }
 
 /// Holds `fetchHealthProfile` open until the test completes it — the only
@@ -154,6 +202,9 @@ Future<void> _pumpDialog(
   // 검사만 자기 크기를 건넨다.
   Size size = const Size(900, 1600),
   double textScale = 1.0,
+  // 메모 창 `운동 기록 연결` 이 고를 기록(#2622)과 `피드백` 탭 목록(#2615).
+  List<TrainerMemoRef> records = const <TrainerMemoRef>[],
+  List<ClientFeedback> feedbacks = const <ClientFeedback>[],
 }) async {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = size;
@@ -177,6 +228,12 @@ Future<void> _pumpDialog(
       overrides: <Override>[
         trainerMemoRepositoryProvider.overrideWithValue(memos),
         clientRepositoryProvider.overrideWithValue(resolved),
+        memoRecordOptionsProvider.overrideWith(
+          (ref, clientId) async => records,
+        ),
+        clientFeedbackRepositoryProvider.overrideWithValue(
+          _FakeFeedbackRepository(feedbacks),
+        ),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
@@ -310,7 +367,7 @@ void main() {
       'm1',
       body: '무릎이 아파요',
       source: TrainerMemoSource.chatInsight,
-      insightId: 'seed-chat-1-16:discomfort',
+      insightId: 'seed-chat-1-18:discomfort',
       insightKind: 'discomfort',
     );
     await _pumpDialog(tester, repository);
@@ -326,7 +383,7 @@ void main() {
       'm1',
       body: '무릎이 아파요',
       source: TrainerMemoSource.chatInsight,
-      insightId: 'seed-chat-1-16:discomfort',
+      insightId: 'seed-chat-1-18:discomfort',
       insightKind: 'discomfort',
     );
     await _pumpDialog(tester, repository);
@@ -385,7 +442,7 @@ void main() {
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
       final addButton = find.byKey(
-        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+        const ValueKey<String>('chat-insight-add-seed-chat-1-18:discomfort'),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
@@ -1162,5 +1219,468 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(edit), findsOneWidget);
+  });
+
+  group('메모 분류와 운동 기록 연결 (#2622)', () {
+    Finder chip(String wire) =>
+        find.byKey(ValueKey<String>('client-memo-category-$wire'));
+
+    testWidgets('분류를 고르면 그 분류로 남고, 태그가 분류 이름이다', (tester) async {
+      final repository = _FakeMemoRepository();
+      await _pumpDialog(tester, repository);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        '허리 디스크 진단 이력',
+      );
+      await tester.tap(chip('pain'));
+      await tester.pumpAndSettle();
+      // 운동이 아니면 기록 연결 칸이 서지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('client-memo-record')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pumpAndSettle();
+
+      expect(repository.createCalls.single.category, TrainerMemoCategory.pain);
+      expect(repository.createCalls.single.source, TrainerMemoSource.trainer);
+      final Finder tag = find.byKey(
+        const ValueKey<String>('client-memo-category-memo-1'),
+      );
+      expect(
+        find.descendant(of: tag, matching: find.text('통증·부상')),
+        findsOneWidget,
+      );
+      // 남긴 뒤에는 칩이 풀린다 — 다음 메모가 같은 분류를 물려받지 않는다.
+      expect(tester.widget<AppChoiceChip>(chip('pain')).selected, isFalse);
+    });
+
+    testWidgets('분류를 안 고르면 지금처럼 `직접 작성` 이다', (tester) async {
+      final repository = _FakeMemoRepository();
+      await _pumpDialog(tester, repository);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        '분류 없는 메모',
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pumpAndSettle();
+
+      expect(repository.createCalls.single.category, TrainerMemoCategory.none);
+      expect(
+        find.byKey(const ValueKey<String>('client-memo-manual-memo-1')),
+        findsOneWidget,
+      );
+      expect(find.text('직접 작성'), findsOneWidget);
+    });
+
+    testWidgets('고른 칩을 다시 누르면 풀리고, 하나만 고를 수 있다', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository());
+
+      await tester.tap(chip('diet'));
+      await tester.pumpAndSettle();
+      await tester.tap(chip('life'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<AppChoiceChip>(chip('diet')).selected, isFalse);
+      expect(tester.widget<AppChoiceChip>(chip('life')).selected, isTrue);
+
+      await tester.tap(chip('life'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<AppChoiceChip>(chip('life')).selected, isFalse);
+    });
+
+    testWidgets('칩 줄은 안내·글자 수 줄 아래, `메모 추가` 위다', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository());
+
+      final double counterBottom = tester
+          .getBottomLeft(
+            find.byKey(const ValueKey<String>('client-memo-counter')),
+          )
+          .dy;
+      final double chipTop = tester.getTopLeft(chip('exercise')).dy;
+      final double addTop = tester
+          .getTopLeft(find.byKey(const ValueKey<String>('client-memo-add')))
+          .dy;
+      expect(chipTop, greaterThan(counterBottom));
+      expect(addTop, greaterThan(tester.getBottomLeft(chip('exercise')).dy));
+    });
+
+    testWidgets('운동에서 기록을 고르면 운동 기록 메모가 되어 태그가 카드와 같다', (tester) async {
+      final repository = _FakeMemoRepository();
+      const TrainerMemoRef pt = TrainerMemoRef(
+        kind: TrainerMemoRefKind.ptSession,
+        id: 'hist-pt',
+        day: '2026-09-30',
+      );
+      const TrainerMemoRef personal = TrainerMemoRef(
+        kind: TrainerMemoRefKind.personal,
+        id: 'hist-core',
+        day: '2026-09-29',
+        name: '코어 강화',
+      );
+      await _pumpDialog(
+        tester,
+        repository,
+        records: const <TrainerMemoRef>[pt, personal],
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        '스쿼트 때 왼쪽 무릎이 안으로 모임',
+      );
+      await tester.tap(chip('exercise'));
+      await tester.pumpAndSettle();
+
+      final Finder picker = find.byKey(
+        const ValueKey<String>('client-memo-record'),
+      );
+      expect(picker, findsOneWidget);
+      expect(find.text('운동 기록 연결 (선택)'), findsOneWidget);
+      await tester.tap(picker);
+      await tester.pumpAndSettle();
+      // 최신 먼저, `9/30 (수) PT 세션` 처럼 날짜·요일·종류를 적는다.
+      expect(find.text('9/29 (화) 개인 운동 · 코어 강화'), findsWidgets);
+      await tester.tap(find.text('9/30 (수) PT 세션').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pumpAndSettle();
+
+      final call = repository.createCalls.single;
+      expect(call.source, TrainerMemoSource.exerciseMemo);
+      expect(call.ref?.id, 'hist-pt');
+      expect(call.category, TrainerMemoCategory.exercise);
+      // 운동 탭 카드에서 남긴 메모와 같은 태그다.
+      final Finder tag = find.byKey(
+        const ValueKey<String>('client-memo-exercise-memo-1'),
+      );
+      expect(
+        find.descendant(of: tag, matching: find.text('PT 세션 · 9/30')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('운동만 고르고 기록을 안 이으면 분류 태그 `운동` 만 붙는다', (tester) async {
+      final repository = _FakeMemoRepository();
+      await _pumpDialog(
+        tester,
+        repository,
+        records: const <TrainerMemoRef>[
+          TrainerMemoRef(kind: TrainerMemoRefKind.memberLog, day: '2026-09-28'),
+        ],
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        '다음 주부터 데드리프트 무게 올리기',
+      );
+      await tester.tap(chip('exercise'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pumpAndSettle();
+
+      final call = repository.createCalls.single;
+      expect(call.source, TrainerMemoSource.trainer);
+      expect(call.ref, isNull);
+      expect(call.category, TrainerMemoCategory.exercise);
+      final Finder tag = find.byKey(
+        const ValueKey<String>('client-memo-category-memo-1'),
+      );
+      expect(
+        find.descendant(of: tag, matching: find.text('운동')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('운동을 풀면 고른 기록도 함께 풀린다', (tester) async {
+      final repository = _FakeMemoRepository();
+      await _pumpDialog(
+        tester,
+        repository,
+        records: const <TrainerMemoRef>[
+          TrainerMemoRef(
+            kind: TrainerMemoRefKind.ptSession,
+            id: 'hist-pt',
+            day: '2026-09-30',
+          ),
+        ],
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        '식단으로 바꾼 메모',
+      );
+      await tester.tap(chip('exercise'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-memo-record')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('9/30 (수) PT 세션').last);
+      await tester.pumpAndSettle();
+      await tester.tap(chip('diet'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pumpAndSettle();
+
+      final call = repository.createCalls.single;
+      expect(call.source, TrainerMemoSource.trainer);
+      expect(call.ref, isNull);
+      expect(call.category, TrainerMemoCategory.diet);
+    });
+
+    testWidgets('최근 기록이 없으면 연결 칸은 잠기고 그렇다고 말한다', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository());
+      await tester.tap(chip('exercise'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('최근 14일 운동 기록이 없어요'), findsOneWidget);
+      expect(
+        tester
+            .widget<AppSelectField<TrainerMemoRef?>>(
+              find.byKey(const ValueKey<String>('client-memo-record')),
+            )
+            .onChanged,
+        isNull,
+      );
+    });
+
+    testWidgets('직접 쓴 메모는 수정에서 분류를 바꾼다', (tester) async {
+      final repository = _FakeMemoRepository();
+      await repository.create(
+        'm1',
+        body: '저녁 야식 줄이기',
+        category: TrainerMemoCategory.diet,
+      );
+      await _pumpDialog(tester, repository);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-memo-edit-open-memo-1')),
+      );
+      await tester.pumpAndSettle();
+      final Finder editChip = find.byKey(
+        const ValueKey<String>('client-memo-edit-category-life'),
+      );
+      expect(
+        tester
+            .widget<AppChoiceChip>(
+              find.byKey(
+                const ValueKey<String>('client-memo-edit-category-diet'),
+              ),
+            )
+            .selected,
+        isTrue,
+      );
+      await tester.tap(editChip);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-memo-save-memo-1')),
+      );
+      await tester.pumpAndSettle();
+
+      // 본문을 안 고쳐도 분류만 바뀌면 저장한다.
+      expect(repository.updateCalls.single.category, TrainerMemoCategory.life);
+      expect(
+        (await repository.fetch('m1')).single.category,
+        TrainerMemoCategory.life,
+      );
+      expect(find.text('생활·일정'), findsWidgets);
+    });
+
+    testWidgets('기록을 이은 운동 메모·채팅 감지 메모는 수정에 분류 칩이 없다', (tester) async {
+      final repository = _FakeMemoRepository();
+      await repository.create(
+        'm1',
+        body: '걷기 꾸준함',
+        source: TrainerMemoSource.exerciseMemo,
+        ref: const TrainerMemoRef(
+          kind: TrainerMemoRefKind.memberLog,
+          day: '2026-09-28',
+        ),
+      );
+      await _pumpDialog(tester, repository);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-memo-edit-open-memo-1')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('client-memo-edit-category-exercise'),
+        ),
+        findsNothing,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-edit-memo-1')),
+        '걷기 꾸준함 (수정)',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-memo-save-memo-1')),
+      );
+      await tester.pumpAndSettle();
+      // 분류는 싣지 않는다 — 출처가 정한다.
+      expect(repository.updateCalls.single.category, isNull);
+    });
+
+    testWidgets('검색은 분류 이름으로도 걸린다 — 기록을 이은 운동 메모도', (tester) async {
+      final repository = _FakeMemoRepository();
+      await repository.create(
+        'm1',
+        body: '스쿼트 무릎 모임',
+        source: TrainerMemoSource.exerciseMemo,
+        ref: const TrainerMemoRef(
+          kind: TrainerMemoRefKind.ptSession,
+          id: 'hist-pt',
+          day: '2026-09-30',
+        ),
+      );
+      await repository.create(
+        'm1',
+        body: '야식 줄이기',
+        category: TrainerMemoCategory.diet,
+      );
+      await _pumpDialog(tester, repository);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-search')),
+        '운동',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('스쿼트 무릎 모임'), findsOneWidget);
+      expect(find.text('야식 줄이기'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-memo-search')),
+        '식단',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('야식 줄이기'), findsOneWidget);
+      expect(find.text('스쿼트 무릎 모임'), findsNothing);
+    });
+  });
+
+  group('메모 창 피드백 탭 (#2615)', () {
+    Future<void> openFeedbackTab(WidgetTester tester) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-memo-tabs')),
+          matching: find.text('피드백'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final List<ClientFeedback> sample = <ClientFeedback>[
+      ClientFeedback(
+        id: 'pt_session:s1',
+        kind: ClientFeedbackKind.ptSession,
+        date: DateTime(2026, 9, 30),
+        body: '스쿼트 자세 좋아졌어요',
+        scheduleId: 's1',
+      ),
+      ClientFeedback(
+        id: 'weekly:2026-09-28',
+        kind: ClientFeedbackKind.weekly,
+        date: DateTime(2026, 9, 28),
+        weekStart: DateTime(2026, 9, 28),
+        body: '이번 주 너무 바빴어요',
+        weekly: MemberWeeklyFeedback.fromWire(
+          weekStart: DateTime(2026, 9, 28),
+          condition: 'tired',
+          intensity: 'hard',
+          painArea: '무릎',
+          note: '이번 주 너무 바빴어요',
+        ),
+      ),
+      ClientFeedback(
+        id: 'report:2026-09-21',
+        kind: ClientFeedbackKind.report,
+        date: DateTime(2026, 9, 21),
+        weekStart: DateTime(2026, 9, 21),
+        body: '지난주 잘 해냈어요',
+      ),
+    ];
+
+    testWidgets('메모 탭이 기본이고, 피드백 탭은 방향·출처·날짜를 달고 시간순이다', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository(), feedbacks: sample);
+
+      expect(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        findsOneWidget,
+      );
+      await openFeedbackTab(tester);
+      // 메모 입력칸은 피드백 탭에 없다 — 읽기 전용이다.
+      expect(
+        find.byKey(const ValueKey<String>('client-memo-input')),
+        findsNothing,
+      );
+      expect(
+        find.text('회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.'),
+        findsOneWidget,
+      );
+
+      final double ptY = tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('client-feedback-pt_session:s1')),
+          )
+          .dy;
+      final double weeklyY = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey<String>('client-feedback-weekly:2026-09-28'),
+            ),
+          )
+          .dy;
+      final double reportY = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey<String>('client-feedback-report:2026-09-21'),
+            ),
+          )
+          .dy;
+      expect(ptY, lessThan(weeklyY));
+      expect(weeklyY, lessThan(reportY));
+
+      expect(find.text('PT · 9/30'), findsOneWidget);
+      expect(find.text('주간 피드백 · 9/28 주'), findsOneWidget);
+      expect(find.text('리포트 · 9/21 주'), findsOneWidget);
+      expect(find.text('트레이너 → 회원'), findsNWidgets(2));
+      expect(find.text('회원 → 트레이너'), findsOneWidget);
+      // 주간 피드백은 세 문항 답도 한 줄로 보인다.
+      expect(
+        find.byKey(
+          const ValueKey<String>('client-feedback-answers-weekly:2026-09-28'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('피드백 검색은 본문·출처·방향으로 거른다', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository(), feedbacks: sample);
+      await openFeedbackTab(tester);
+      final Finder search = find.byKey(
+        const ValueKey<String>('client-feedback-search'),
+      );
+
+      await tester.enterText(search, '회원 → 트레이너');
+      await tester.pumpAndSettle();
+      expect(find.text('이번 주 너무 바빴어요'), findsOneWidget);
+      expect(find.text('스쿼트 자세 좋아졌어요'), findsNothing);
+
+      await tester.enterText(search, '리포트');
+      await tester.pumpAndSettle();
+      expect(find.text('지난주 잘 해냈어요'), findsOneWidget);
+      expect(find.text('이번 주 너무 바빴어요'), findsNothing);
+
+      await tester.enterText(search, '없는 말');
+      await tester.pumpAndSettle();
+      expect(find.text('찾는 피드백이 없어요.'), findsOneWidget);
+    });
+
+    testWidgets('주고받은 피드백이 없으면 빈 안내를 보인다', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository());
+      await openFeedbackTab(tester);
+      expect(find.text('아직 주고받은 피드백이 없어요.'), findsOneWidget);
+    });
   });
 }

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
@@ -1331,6 +1330,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     // 선택 칩(`AppChoiceChip`)과 같은 선택 색 — 켜진 자료가 한눈에 갈린다.
     final OnCareTokens tokens = context.oncare;
     final (String label, String range) = switch (source) {
+      // 서버 `_recent_chat_lines` 와 같은 범위다(#2794).
+      RoutineContextSource.recentChat => (
+        l.aiSourceRecentChat,
+        l.aiSourceRangeDays(14, 10),
+      ),
       RoutineContextSource.ptFeedback => (
         l.aiSourcePtFeedback,
         l.aiSourceRangeDays(14, 5),
@@ -1502,21 +1506,17 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// 데모(`USE_MOCK_API=true`)에서는 목표 기반 기본 추천 상태를 내보이지 않는다.
-  /// (#1028)
-  ///
-  /// 데모 회원은 축적된 운동 기록이 아예 없어 생성기가 늘
-  /// [RecommendationStatus.template] 을 돌려준다 — 그래서 데모를 열면 언제나
-  /// `목표 기반 루틴 생성`·`목표 기반 기본 추천`만 보였고, 정작 보여 줘야 할
-  /// **데이터 기반 맞춤 흐름**이 화면에 한 번도 나오지 않았다. 실 API 모드는
-  /// 그대로다 — 기록이 적은 실제 회원에게는 그 사실을 계속 말해야 한다.
-  bool get _hideTemplateState => ref.watch(appConfigProvider).useMockApi;
-
   /// Only known after the first generation — before that we haven't seen
   /// the member's analysis yet, so the button stays generic (#776).
+  ///
+  /// 데모와 실서버가 같다(#2674). 예전에는 데모에서 기록 부족(템플릿) 상태를
+  /// 숨겼다(#1028) — 데모 회원에게 기록이 없어 생성기가 늘 템플릿을 돌려줘,
+  /// 데이터 기반 흐름이 한 번도 보이지 않았기 때문이다. 이제 데모도 시드한
+  /// 운동 기록으로 서버와 같은 규칙의 추천 상태를 계산하므로, 기록이 쌓인 회원은
+  /// 학습 중·맞춤 흐름을, 기록이 적은 회원은 그 사실을 그대로 본다.
   String _generateButtonLabel(AppLocalizations l) {
     final status = _options?.analysis.recommendationStatus;
-    return status == RecommendationStatus.template && !_hideTemplateState
+    return status == RecommendationStatus.template
         ? l.aiGenerateGoalBased
         : l.aiGenerateCandidates;
   }
@@ -1529,14 +1529,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       children: <Widget>[
         AppSectionHeader(title: l.aiCompareCandidates, icon: AppIcons.ai),
         const SizedBox(height: OnCareSpacing.s8),
-        // 데모에서는 목표 기반 기본 추천 안내를 띄우지 않는다 —
-        // [_hideTemplateState] 참고.
-        if (!(_hideTemplateState &&
-            options.analysis.recommendationStatus ==
-                RecommendationStatus.template)) ...<Widget>[
-          _RecommendationStatusBanner(analysis: options.analysis),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
+        // 기록이 적은 회원에게도 그 사실을 말한다 — 데모·실서버 같다(#2674).
+        _RecommendationStatusBanner(analysis: options.analysis),
+        const SizedBox(height: OnCareSpacing.s8),
         Text(
           l.aiBasisGoalCompletion(
                 healthFocusGoalLabel(l, options.analysis.goal),
@@ -1560,12 +1555,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ).copyWith(fontStyle: FontStyle.italic),
           ),
         ],
-        // Only when the AI actually generated these plans. The rule-based
-        // fallback ignores chat entirely, so showing "참고한 최근 대화" next to a
-        // rule plan would claim an input that was never used — the trainer
-        // would think a knee complaint was accounted for when it wasn't.
-        if (options.generatedBy == 'ai' &&
-            options.analysis.recentMessages.isNotEmpty) ...<Widget>[
+        // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
+        // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다.
+        // 예전에는 AI 생성일 때만 보여, 규칙형으로 도는 데모와 AI 가 실패한
+        // 주의 실서버에서는 무엇을 보고 동작을 뺐는지 알 수 없었다(#2674).
+        if (options.analysis.recentMessages.isNotEmpty) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
           _ChatEvidence(lines: options.analysis.recentMessages),
         ],
