@@ -87,6 +87,13 @@ class DietEntryOut(BaseModel):
 #: `source='member'`(회원 수기)와 같은 말이다.
 FoodSource = Literal["db", "mixed", "estimate", "member"]
 
+#: 끼니 구분(#2882). 직접 기록·사진 분석·수정이 같은 다섯 값을 받는다 — 한 곳만
+#: 열려 있으면 그 길로 들어온 엉뚱한 값이 끼니별 집계·트레이너 화면에서 어느
+#: 끼니에도 들지 않고, 컬럼(String(20))보다 긴 값은 DB 오류(500)가 된다.
+MealTypeLiteral = Literal["breakfast", "lunch", "dinner", "snack", "lateNight"]
+
+_HHMM = re.compile(r"([01]\d|2[0-3]):[0-5]\d")
+
 
 class EditedFood(RecognizedFood):
     """수정 화면이 되돌려 보내는 음식 한 줄. (#2105)
@@ -152,7 +159,8 @@ class DietEntryUpdate(PartialUpdate):
     #: 식사의 사진을 나중에 올리는 일이 있어 실제로 먹은 날로 옮길 수 있어야
     #: 한다(#1241).
     date: str | None = None
-    meal_type: str | None = None
+    meal_type: MealTypeLiteral | None = None
+    #: 기록 시각(`HH:MM`, 24시간). 빈 문자열은 "시각 없음" 으로 받는다(#2882).
     time_label: str | None = None
     #: 고친 음식 목록(#1892). 오면 저장된 음식을 이 값으로 갈아 끼우고, 끼니
     #: 합계도 이 목록에서 다시 낸다 — 함께 온 합계 값보다 음식이 우선이다.
@@ -174,6 +182,14 @@ class DietEntryUpdate(PartialUpdate):
     def _valid_past_or_today(cls, value: str | None) -> str | None:
         return _past_or_today(value)
 
+    @field_validator("time_label")
+    @classmethod
+    def _valid_time_label(cls, value: str | None) -> str | None:
+        """`HH:MM` 이거나 빈 문자열. 다른 값은 목록의 시각 정렬을 흐트러뜨린다."""
+        if value is None or value == "" or _HHMM.fullmatch(value):
+            return value
+        raise ValueError("time_label 은 HH:MM 형식이어야 합니다.")
+
 
 class DietEntryCreate(BaseModel):
     """POST /diet/entries — 사진 없이 회원이 직접 적은 끼니(#2151).
@@ -183,7 +199,7 @@ class DietEntryCreate(BaseModel):
     """
     #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날은 받지 않는다.
     date: str | None = None
-    meal_type: Literal["breakfast", "lunch", "dinner", "snack", "lateNight"]
+    meal_type: MealTypeLiteral
     #: 음식이 하나도 없는 끼니는 기록이 아니다.
     foods: list[EditedFood] = Field(..., min_length=1)
     #: 재시도 중복 저장 방지 키(선택). 사진 분석과 같은 컬럼·같은 제약을 쓴다.

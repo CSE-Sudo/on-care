@@ -38,6 +38,7 @@ from app.schemas.diet_api import (
     DietTodayResponse,
     FoodNutritionOut,
     FoodNutritionRequest,
+    MealTypeLiteral,
     MemberTrainerPick,
     analyze_record_date,
 )
@@ -247,7 +248,8 @@ async def diet_analyze(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(..., description="음식 사진"),
-    meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
+    # 다섯 값 밖은 인식 전에 422 다(#2882) — 직접 기록·수정과 같은 규칙.
+    meal_type: MealTypeLiteral = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
     entry_date: Date | None = Depends(_analyze_record_date),
     idempotency_key: str | None = Form(
         None,

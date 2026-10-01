@@ -127,9 +127,9 @@
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다 |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
-| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
+| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882) |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
 
@@ -152,7 +152,7 @@
 - 담당이 아니거나 해제·동의 철회된 회원은 다른 트레이너 경로와 같은 404. 담당을 해제하면 그 트레이너의 추천도 지운다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
-`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
+`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이지만 **API 가 다섯 값만 받는다** — 직접 기록·사진 분석(인식 전)·수정 모두 다섯 값 밖이면 422 다(#2882, `MealTypeLiteral`). 새 끼니를 더할 때는 enum 이름·전송값·`MealTypeLiteral` 을 함께 고친다. `PUT` 의 `time_label` 은 `HH:MM`(24시간)이거나 빈 문자열이고, 그 밖은 422 다.
 `lateNight` 이전에 저장된 `snack` 은 그대로 `snack` 이다 — 백필하지 않는다. 앱은 모르는 `meal_type` 을 간식으로 접어 읽고 죽지 않는다.
 `ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).

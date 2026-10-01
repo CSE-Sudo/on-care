@@ -583,15 +583,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       final String? error = _entryDateError(date);
       if (error != null) return _unprocessable(options, error);
     }
-    const Set<String> mealTypes = <String>{
-      'breakfast',
-      'lunch',
-      'dinner',
-      'snack',
-      'lateNight',
-    };
     final String? mealType = (body['meal_type'] as String?)?.trim();
-    if (mealType == null || !mealTypes.contains(mealType)) {
+    if (mealType == null || !_mealTypes.contains(mealType)) {
       return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
     }
     final Object? foodsValue = body['foods'];
@@ -698,6 +691,18 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     }
     final mealType = (body['meal_type'] as String?)?.trim();
     final timeLabel = (body['time_label'] as String?)?.trim();
+    // 실서버와 같은 검증이다(#2882) — 끼니는 다섯 값, 시각은 `HH:MM` 이거나 빈
+    // 문자열. 데모에서만 통과하면 실연동에서 그 저장이 처음 실패한다.
+    if (body.containsKey('meal_type') &&
+        body['meal_type'] != null &&
+        !_mealTypes.contains(body['meal_type'])) {
+      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+    }
+    if (timeLabel != null &&
+        timeLabel.isNotEmpty &&
+        !_hhmm.hasMatch(timeLabel)) {
+      return _unprocessable(options, 'time_label 은 HH:MM 형식이어야 합니다.');
+    }
     final Object? foodsValue = body['foods'];
     if (body.containsKey('foods') &&
         (foodsValue is! List || foodsValue.any((food) => food is! Map))) {
@@ -1600,6 +1605,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   Future<Response<Object?>> _dietAnalyze(RequestOptions options) async {
     final (:String mealType, :String? idempotencyKey, :String? date) =
         _analyzeRequestFields(options);
+    // 다섯 값 밖의 끼니는 저장하지 않는다 — 실서버와 같은 422(#2882).
+    if (!_mealTypes.contains(mealType)) {
+      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+    }
     final Uint8List? photoBytes = _requestPhotoBytes(options);
 
     // 같은 멱등키가 이미 저장돼 있으면 새로 저장하지 않고 기존 entry 를 반환(재시도 중복 방지).
@@ -1766,6 +1775,18 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
   }
+
+  /// 끼니 구분 — 서버 `MealTypeLiteral` 과 같은 다섯 값이다(#2882).
+  static const Set<String> _mealTypes = <String>{
+    'breakfast',
+    'lunch',
+    'dinner',
+    'snack',
+    'lateNight',
+  };
+
+  /// 기록 시각(`HH:MM`, 24시간) — 서버 `DietEntryUpdate.time_label` 과 같다.
+  static final RegExp _hhmm = RegExp(r'^([01]\d|2[0-3]):[0-5]\d$');
 
   /// 데모 인식 음식의 영어 표시 이름(#2850). 실서버 스텁(`recognizer/stub.py`
   /// `_EN_DISPLAY_NAMES`)과 같은 값이다.

@@ -267,6 +267,16 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
   late DateTime _selected = _today;
   int _weekShift = 0;
 
+  /// 이 화면이 마지막으로 그린 오늘 — 식단 탭과 같은 자정 넘김 규칙이다(#2882).
+  late DateTime _shownToday = _selected;
+
+  /// 날이 바뀌었으면, 회원이 날짜를 직접 고르지 않았을 때만 새 오늘로 옮긴다.
+  void _followMidnight(DateTime today) {
+    if (today == _shownToday) return;
+    if (_weekShift == 0 && _selected == _shownToday) _selected = today;
+    _shownToday = today;
+  }
+
   DateTime get _today {
     final DateTime n = nowKst();
     return DateTime(n.year, n.month, n.day);
@@ -280,6 +290,7 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
       exerciseWeekViewProvider,
     );
     final DateTime today = _today;
+    _followMidnight(today);
     final DateTime center = today.add(Duration(days: _weekShift * 7));
     final bool atToday = _weekShift == 0 && _selected == today;
     return weekAsync.when(
