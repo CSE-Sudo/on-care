@@ -366,6 +366,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashChurnRiskEmpty => 'No members are at churn risk right now.';
 
   @override
+  String get dashChurnRiskLoading => 'Checking recent sessions';
+
+  @override
+  String get dashChurnRiskUnavailable => 'Unavailable · Tap to retry';
+
+  @override
+  String get dashActivityFeedbackLoading => 'Checking recent sessions.';
+
+  @override
+  String get dashActivityFeedbackUnavailable =>
+      'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.';
+
+  @override
   String get dashActivityDifficultyTitle =>
       'Behind exercise goal / routine skipped';
 
@@ -1797,6 +1810,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.';
 
   @override
+  String get schedEndedLockedHint =>
+      'Finished sessions can only have their note and program edited.';
+
+  @override
+  String get schedDoneLockedHint =>
+      'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.';
+
+  @override
   String get schedGroupPersonal => 'Personal exercise';
 
   @override
@@ -1846,6 +1867,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRoutinesSkipped => 'Marked as not sent.';
+
+  @override
+  String get schedRoutinesSkipFailed =>
+      'Couldn\'t mark the personal exercise as not sent. Please try again.';
+
+  @override
+  String get schedRoutinesLoadFailed => 'Couldn\'t load personal exercises';
+
+  @override
+  String get schedClientUnresolved =>
+      'Couldn\'t tell which member this session is for. Please pick the member.';
 
   @override
   String get schedRoutinesUpdated => 'Personal exercise updated.';
@@ -2240,6 +2272,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get slotReload => 'Reload';
+
+  @override
+  String get slotLoadFailed => 'Couldn\'t load reservation slots';
 
   @override
   String get slotEmpty => 'No booking slots are open.';
@@ -2870,6 +2905,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSendFailed => 'Couldn\'t send. Please try again';
 
   @override
+  String get coachSwitchClientTitle => 'Switch to another client?';
+
+  @override
+  String get coachSwitchClientBody =>
+      'You have unsent work. Switching clients discards the program and personal exercises you are building.';
+
+  @override
+  String get coachSwitchClientConfirm => 'Switch';
+
+  @override
+  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
+
+  @override
+  String get personalRoutineStartPast =>
+      'The start date has passed, so it\'s now set to today. Check it and send again';
+
+  @override
+  String get schedRoutinesReadFailed =>
+      'Couldn\'t check the attached personal exercises. Please try again';
+
+  @override
   String get coachScheduleFailed =>
       'Couldn\'t add it to the schedule. Please try again';
 
@@ -3022,6 +3078,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiGenerateFailed =>
       'AI generation failed. Please try again in a moment';
+
+  @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return 'Check the generation conditions. Total time must be between $min and $max minutes';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return 'Enter between $min and $max minutes';
+  }
 
   @override
   String get aiGenerateRateLimited =>
@@ -4597,6 +4663,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String programTemplateSessionPickerBody(String name) {
     return 'Choose a session for the \'$name\' template.';
   }
+
+  @override
+  String get programEditorAiReapplyTitle =>
+      'Replace the AI exercises with the new plan?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return 'Replaces the AI exercises added earlier ($count) with the new plan. Exercises you added or edited stay.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => 'Replace';
+
+  @override
+  String get programEditorAiReapplyAppend => 'Add after';
 
   @override
   String programEditorSessionNameTyped(String type) {

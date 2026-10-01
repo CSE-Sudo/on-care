@@ -216,6 +216,10 @@
   "dashChurnRiskCheck": "Review churn signals",
   "dashChurnRiskTitle": "Members at churn risk",
   "dashChurnRiskEmpty": "No members are at churn risk right now.",
+  "dashChurnRiskLoading": "Checking recent sessions",
+  "dashChurnRiskUnavailable": "Unavailable · Tap to retry",
+  "dashActivityFeedbackLoading": "Checking recent sessions.",
+  "dashActivityFeedbackUnavailable": "Couldn't load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.",
   "dashActivityDifficultyTitle": "Behind exercise goal / routine skipped",
   "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.",
   "@dashActivityDifficultyDesc": {
@@ -1373,6 +1377,8 @@
   "@schedReservationLockedHint": {
     "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
   },
+  "schedEndedLockedHint": "Finished sessions can only have their note and program edited.",
+  "schedDoneLockedHint": "Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",
@@ -1389,6 +1395,9 @@
   "schedRoutinesSent": "Sent the personal exercise to the member.",
   "schedRoutinesSendFailed": "Couldn't send the personal exercise. Please try again.",
   "schedRoutinesSkipped": "Marked as not sent.",
+  "schedRoutinesSkipFailed": "Couldn't mark the personal exercise as not sent. Please try again.",
+  "schedRoutinesLoadFailed": "Couldn't load personal exercises",
+  "schedClientUnresolved": "Couldn't tell which member this session is for. Please pick the member.",
   "schedRoutinesUpdated": "Personal exercise updated.",
   "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
   "schedAddRoutines": "Add personal exercise",
@@ -1600,6 +1609,7 @@
   "slotIntro": "Open times for members to book. Every upcoming slot is listed below by date.",
   "slotOpenAction": "Open",
   "slotReload": "Reload",
+  "slotLoadFailed": "Couldn't load reservation slots",
   "slotEmpty": "No booking slots are open.",
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
@@ -1851,6 +1861,12 @@
   "coachMemberSummary": "Member summary",
   "reportsDataInsufficient": "Insufficient data",
   "coachSendFailed": "Couldn't send. Please try again",
+  "coachSwitchClientTitle": "Switch to another client?",
+  "coachSwitchClientBody": "You have unsent work. Switching clients discards the program and personal exercises you are building.",
+  "coachSwitchClientConfirm": "Switch",
+  "personalRoutineTargetLoadFailed": "Couldn't load PT sessions",
+  "personalRoutineStartPast": "The start date has passed, so it's now set to today. Check it and send again",
+  "schedRoutinesReadFailed": "Couldn't check the attached personal exercises. Please try again",
   "coachScheduleFailed": "Couldn't add it to the schedule. Please try again",
   "coachNoClients": "No members yet",
   "coachRecommended": "AI suggestions",
@@ -1951,6 +1967,10 @@
   "aiOptionPush": "Push",
   "aiOptionExisting": "Existing",
   "aiGenerateFailed": "AI generation failed. Please try again in a moment",
+  "aiGenerateInvalidConditions": "Check the generation conditions. Total time must be between {min} and {max} minutes",
+  "@aiGenerateInvalidConditions": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "aiGenerateMinutesHelper": "Enter between {min} and {max} minutes",
+  "@aiGenerateMinutesHelper": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "aiGenerateRateLimited": "Too many generation requests. Please try again shortly",
   "aiExerciseNameRequired": "Enter an exercise name",
   "aiKeepOneExercise": "Keep at least one exercise",
@@ -2989,6 +3009,17 @@
       }
     }
   },
+  "programEditorAiReapplyTitle": "Replace the AI exercises with the new plan?",
+  "programEditorAiReapplyBody": "Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.",
+  "@programEditorAiReapplyBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programEditorAiReapplyReplace": "Replace",
+  "programEditorAiReapplyAppend": "Add after",
   "programEditorSessionNameTyped": "{type} session",
   "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
   "programEditorSessionNameNumbered": "{type} session {index}",
