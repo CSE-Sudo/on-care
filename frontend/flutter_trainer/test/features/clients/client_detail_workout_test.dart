@@ -118,6 +118,55 @@ class _DatedHistoryRepository extends DriftClientRepository {
       );
 }
 
+/// 실 API 모양의 이력 둘 — UTC 완료 시각과 서버 운동일(`date`). (#2748)
+///
+/// 하나는 KST 오전 7시 30분에 마쳤고 운동일을 주지 않는 옛 서버 행이다(UTC 로는
+/// 전날). 하나는 어제 운동을 오늘 소급 체크한 행이다(완료 시각은 오늘, 운동일은
+/// 어제).
+class _KstDayHistoryRepository extends DriftClientRepository {
+  _KstDayHistoryRepository(super.db);
+
+  static const String earlyLabel = 'KST-이른아침-기록';
+  static const String backfillLabel = '소급-체크-기록';
+
+  @override
+  Stream<List<RoutineHistoryEntry>> watchHistory(String clientId) {
+    final DateTime today = todayKst();
+    final DateTime yesterday = today.subtract(const Duration(days: 1));
+    DateTime utcOfKst(DateTime day, int hour, int minute) => DateTime.utc(
+      day.year,
+      day.month,
+      day.day,
+      hour,
+      minute,
+    ).subtract(kstOffset);
+    return Stream<List<RoutineHistoryEntry>>.value(<RoutineHistoryEntry>[
+      _entry(earlyLabel, completedAt: utcOfKst(today, 7, 30)),
+      _entry(
+        backfillLabel,
+        completedAt: utcOfKst(today, 10, 0),
+        date: yesterday,
+      ),
+    ]);
+  }
+
+  RoutineHistoryEntry _entry(
+    String label, {
+    required DateTime completedAt,
+    DateTime? date,
+  }) => RoutineHistoryEntry(
+    id: label,
+    dateLabel: label,
+    label: 'PT 세션 · 트레이너 지도',
+    completionRate: 100,
+    exercises: <ClientExerciseItem>[ClientExerciseItem.nameOnly('$label ✓')],
+    clientFeedback: '',
+    trainerNote: '',
+    completedAt: completedAt,
+    date: date,
+  );
+}
+
 /// Fails the first `watchHistory`; every other read still succeeds.
 class _HistoryFailsOnceRepository extends DriftClientRepository {
   _HistoryFailsOnceRepository(super.db);
@@ -775,6 +824,35 @@ void main() {
       await tester.tap(find.text(_rowLabel(old30)));
       await settle(tester);
       expect(marker(_DatedHistoryRepository.oldLabel), findsOneWidget);
+    });
+
+    testWidgets('개인운동 이력은 KST 운동일 줄에 묶인다 (#2748)', (tester) async {
+      _useTallSurface(tester);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientDetail('seed-client-1', section: 'workout'),
+        extraOverrides: <Override>[
+          clientRepositoryProvider.overrideWith(
+            (ref) => _KstDayHistoryRepository(ref.watch(appDatabaseProvider)),
+          ),
+        ],
+      );
+
+      // 오늘: KST 07:30 에 마친 기록은 오늘 줄에 있다(예전에는 UTC 날짜로 묶여
+      // 전날 줄에 붙었다). 어제 운동을 오늘 체크한 기록은 오늘 줄에 없다.
+      expect(find.text(_KstDayHistoryRepository.earlyLabel), findsOneWidget);
+      expect(find.text(_KstDayHistoryRepository.backfillLabel), findsNothing);
+      // 날짜를 아는 기록뿐이라 따로 모인 자리는 없다.
+      expect(find.text('날짜를 알 수 없는 기록'), findsNothing);
+
+      // 전체로 넓혀 어제 줄을 펼치면 소급 체크한 기록이 그 운동일에 있다.
+      await tester.tap(_periodSegment('전체'));
+      await settle(tester);
+      final DateTime yesterday = todayKst().subtract(const Duration(days: 1));
+      await tester.tap(find.text(_rowLabel(yesterday)));
+      await settle(tester);
+      expect(find.text(_KstDayHistoryRepository.backfillLabel), findsOneWidget);
     });
 
     testWidgets('이력이 있는 날에도 회원이 직접 기록한 운동이 보인다 (#2534)', (tester) async {

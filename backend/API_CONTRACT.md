@@ -928,6 +928,11 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
 읽어 집계한다.
 
+**로스터 카드의 나이 (#2744)**: `GET /trainer/clients` 의 각 카드는 `age`(정수 또는 `null`)를 싣는다 —
+회원 건강 프로필의 `birth_date` 로 KST 오늘 기준 만 나이를 센 값이고, 생년월일이 없거나 날짜로 읽히지
+않으면 `null` 이다. 6자리 코드 연결 확인(`POST /trainer/pairing-code/preview`)의 `age` 와 같은 함수
+(`profile_format.age_on`)로 세므로 연결 전후 나이가 같다. 앱은 `null` 이면 나이를 적지 않는다.
+
 **로스터의 PT 관리 신호 (#2203)**: `GET /trainer/clients` 의 각 카드는 `signals` 를 싣는다 —
 `[{ kind, days?, count?, percent?, direction? }]`, 급한 순. `kind` 는 `discomfort`(통증·불편) ·
 `record_gap`(기록 끊김, `days`) · `no_show`(노쇼·취소 반복, `count`) · `routine_missed`(배정 루틴

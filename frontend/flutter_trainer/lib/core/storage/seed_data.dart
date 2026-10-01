@@ -40,6 +40,10 @@ part 'seed_text_en.dart';
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
 ///
+/// `_v48` 은 김민수의 성별·나이를 로스터에 심었다(#2744). 올리지 않으면 오늘
+/// 이미 시드된 브라우저에서 김민수의 나이 칸이 비어 성별만 보인다. (`_v47` 은
+/// 병렬 작업 #2663 몫이라 건너뛴다.)
+///
 /// `_v46` 은 김민수를 뺀 회원의 지난 끼니를 최근 4주에서 리포트 이력 전체로
 /// 늘렸다(#2732). 올리지 않으면 오늘 이미 시드된 브라우저에서 4주보다 오래된
 /// 날짜를 펼쳐도 끼니 카드가 없다.

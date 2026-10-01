@@ -112,8 +112,10 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   /// 로스터·식단·운동 기록은 저장소 스트림이 이미 30초마다 다시 읽는다. 연
   /// 순간에 한 번 당겨 오고, 스트림 밖에 있는 것 — 기간 집계와 신체 목표 —
   /// 는 같은 주기로 다시 읽힌다. 다시 읽는 동안에도 이전 값을 그대로 그리므로
-  /// 화면이 깜빡이지 않는다. AI 조언은 부를 때마다 문장을 새로 만들 수 있어
-  /// 여기서 다시 부르지 않는다.
+  /// 화면이 깜빡이지 않는다. 식단 분석·추천 식단도 같은 주기로 다시 읽는다
+  /// (#2746) — 서버의 규칙 문장과 저장된 후보를 읽을 뿐 AI 를 부르지 않아, 다시
+  /// 불러도 문장이 흔들리지 않는다. 예전에는 처음 연 순간의 문장이 끼니가
+  /// 늘어도 그대로 남아, 같은 화면의 끼니 목록과 다른 날의 상태를 보였다.
   void _startSync() {
     _sync?.cancel();
     final String clientId = widget.clientId;
@@ -128,6 +130,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
         ..invalidate(clientDietOnProvider)
         ..invalidate(clientExercisesOnProvider)
         ..invalidate(memberHealthProfileProvider(clientId));
+      refreshClientDietInsights(ref);
     });
   }
 
@@ -159,9 +162,6 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     context,
     clientId: client.id,
     clientName: client.name,
-    // 서버에 성별이 없으면 로스터가 보여 주는 값으로 연다 — 헤더와
-    // 대화상자가 다른 말을 하지 않도록(#960).
-    fallbackGender: client.rosterGender,
     // 권장값 계산용(#2359). 로스터의 추정 나이가 아니라 서버가 준 나이만.
     ageYears: client.age,
     section: section,
