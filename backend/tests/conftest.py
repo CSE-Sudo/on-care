@@ -112,6 +112,32 @@ def _db_available() -> bool:
         return False
 
 
+@pytest.fixture(scope="session", autouse=True)
+def session_clock_pin():
+    """테스트 세션 동안 서비스 기준 날짜를 세션 시작일로 고정한다. (#2940)
+
+    `client` 의 시드는 세션 시작 때 한 번 '오늘'을 읽고, 요청은 그때그때 다시
+    읽는다. 실행이 KST 자정을 걸치면 둘이 하루 어긋나므로 `clock.now()` 를
+    [SessionClockPin.now] 로 바꿔 끼운다 — 시각은 흐르고 날짜만 묶인다.
+    `clock.today()`·`today_iso()` 는 모듈의 `now()` 를 거치므로 함께 고정된다.
+
+    autouse 세션 픽스처라 `client` 의 앱 기동(시드)보다 먼저 걸린다. 개별 테스트가
+    `monkeypatch.setattr(clock, "now", ...)` 로 넣는 값은 이 위에 덮이고, 그
+    테스트가 끝나면 다시 이 고정으로 돌아온다.
+    """
+    try:
+        from app.core import clock
+    except Exception:  # noqa: BLE001
+        yield None
+        return
+    from tests.session_clock import SessionClockPin
+
+    pin = SessionClockPin(clock.now)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(clock, "now", pin.now)
+        yield pin
+
+
 @pytest.fixture(scope="session")
 def client():
     """FastAPI TestClient. DB 가 없으면 skip."""

@@ -301,7 +301,7 @@ def relative_time_label(ts: datetime) -> str:
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     local = clock.to_seoul(ts)
-    today = clock.to_seoul(datetime.now(timezone.utc)).date()
+    today = clock.today()
     days = (today - local.date()).days
     if days <= 0:
         return local.strftime("%H:%M")
