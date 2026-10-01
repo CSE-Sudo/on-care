@@ -195,6 +195,9 @@ class SessionCard extends ConsumerWidget {
                 onDelete: onDelete,
                 // 해제 회원의 일정은 삭제만 — 자기 일정 정리는 트레이너 몫이다.
                 deleteOnly: detached,
+                // 회원 예약 일정은 시각 수정·삭제를 잠근다 — 서버가 409 로
+                // 막는 동작이다. 메모·프로그램은 그대로 연다(#2756).
+                reservationLocked: s.isReservation && !detached,
               ),
             ],
           ),
@@ -276,6 +279,18 @@ class SessionCard extends ConsumerWidget {
               ),
             ],
           ),
+          // 회원이 예약 슬롯으로 잡은 일정이다(#2756). 메뉴의 `일정 수정`·`삭제`
+          // 가 왜 잠겼는지, 약속을 거두려면 무엇을 하면 되는지(취소)를 알린다.
+          if (s.isReservation && !detached) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Text(
+              l.schedReservationLockedHint,
+              key: const ValueKey<String>('session-reservation-hint'),
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+          ],
           // 해제 회원의 완료 수업처럼 아래에 올 것이 없으면 구분선도 긋지 않는다
           // — 선 아래가 빈 채로 끝난다(#2589).
           if (!detached ||

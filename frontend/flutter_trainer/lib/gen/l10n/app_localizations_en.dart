@@ -1763,6 +1763,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Coaching has ended, so client details are hidden';
 
   @override
+  String get schedReservationLockedHint =>
+      'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.';
+
+  @override
   String get schedGroupPersonal => 'Personal exercise';
 
   @override
