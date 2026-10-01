@@ -711,7 +711,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed }]` |
+| GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed, overlapped }]` |
 | POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }` |
 | GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서). 회원·트레이너가 취소한 예약은 빠진다(#2283) |
 | DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled" }` |
@@ -725,6 +725,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡은 경우입니다. 겹친 일정 목록은 싣지 않습니다(남의 일정).
   트레이너 쪽 일정·자리·상담 승인 경로의 같은 409 는 `conflicts[]` 를 함께 줍니다 — 규칙은
   [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "시간 겹침" 참조. (#2284)
+- **목록 단계에서도 겹침을 알립니다** (#2761). 자리를 연 뒤 트레이너가 그 시간에 일정을 잡거나
+  옮겨 왔으면, 슬롯 응답의 `overlapped` 가 `true` 입니다. 회원용 목록(`GET /trainers/{id}/slots`)은
+  그 자리의 `remaining` 을 0 으로 접어 **마감**으로 보내고, 상담 신청 폼(`GET /consultations/slots`)은
+  그 자리를 빼고 줍니다. 트레이너용 목록(`GET /trainer/reservation-slots`)은 좌석 수를 그대로 두고
+  `overlapped` 만 실어 `일정과 겹침` 으로 그리게 합니다. 일정이 취소·이동되면 다음 조회에서 다시
+  빈 자리입니다. 목록과 경쟁하는 예약은 위 409 가 계속 막습니다.
 
 #### 목록 페이지네이션과 순서 (#980)
 
@@ -825,7 +831,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
   씁니다.
 - 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
-  일시**를 그리는 값입니다. 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
+  일시**를 그리는 값입니다. 수락으로 상담 일정이 생겼으면 두 시각 값은 **그 일정의 날짜·시각·길이**
+  입니다 — 트레이너가 일정을 옮기면 회원 카드도 옮긴 시각을 보여 줍니다(#2758). 수락 알림 본문에도 확정 일시가 들어갑니다. 연결 전 회원은
   `/me/coach/sessions` 가 빈 목록이라, 수락된 상담은 내 상담 요청에서 확인합니다(#2584).
 - **상담 일정과 트레이너 스케줄** (#2584) — `GET /trainer/schedule` 은 담당이 끊긴 회원의 일정을
   `해제 회원` 으로 가리지만(#2589), 상담 요청으로 생긴 `상담` 일정(`consultation_id` 있음)은
@@ -863,6 +870,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 잡았으면 승인은 **409**
   `detail = { code: "schedule_overlap", message, conflicts[] }` 이고 아무것도 바뀌지 않습니다
   (요청은 대기로 남습니다). 일정을 옮긴 뒤 다시 승인합니다. (#2284)
+- **상담 일정을 거두면 요청도 정리됩니다** (#2758). 수락으로 생긴 상담 일정을 트레이너가
+  취소(`POST /trainer/schedule/{id}/cancel`)하거나 아직 진행 전에 삭제하면, 같은 트랜잭션에서
+  요청이 `cancelled`(처리자 = 그 트레이너)가 되고 신청 때 잠근 자리가 다시 열립니다. 회원
+  응답의 `cancelled_by_trainer` 가 `true` 라 회원 취소와 구분됩니다(처리자 id 는 여전히 싣지
+  않습니다). 회원 알림은 일정 취소·삭제의 기존 취소 알림입니다. 상담 일정을 다른 날짜·시각으로
+  옮기면 요청은 `accepted` 그대로이고, 옛 자리는 풀려 요청의 `slot_id` 가 비며 시각은 일정을
+  따릅니다. 트레이너 자리 목록의 `booked_by_name` 은 상담 신청(대기·수락)이 잡은 자리에도
+  그 회원 이름을 싣습니다.
 
 ### 트레이너 알림함
 

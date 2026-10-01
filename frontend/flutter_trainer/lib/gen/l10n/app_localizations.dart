@@ -3853,6 +3853,18 @@ abstract class AppLocalizations {
   /// **'Open'**
   String get slotOpenSummary;
 
+  /// No description provided for @slotOverlappedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlaps a session'**
+  String get slotOverlappedSummary;
+
+  /// No description provided for @slotOverlappedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Another session is booked at this time, so members see it as full. Close it if you will not use it.'**
+  String get slotOverlappedHint;
+
   /// No description provided for @slotCloseAction.
   ///
   /// In en, this message translates to:

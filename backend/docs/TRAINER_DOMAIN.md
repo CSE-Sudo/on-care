@@ -144,6 +144,11 @@
 - 코드로 연결되면 같은 트레이너·회원이라 상담 일정이 담당 회원 일정으로 그대로 이어지고,
   회원 건강 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 운동 목표로 채운다
   (`carry_consultation_into_link`, #1818). 회원이 마이페이지에서 고른 목표가 우선이다.
+- 상담 일정을 취소하거나 진행 전에 삭제하면 상담 요청도 `cancelled`(처리자 = 트레이너)가 되고
+  신청 때 잠근 자리가 풀린다(`consultation_service.withdraw_for_trainer_schedule`, #2758).
+  날짜·시각을 옮기면 요청은 `accepted` 로 두고 옛 자리만 풀어 요청에서 끊는다
+  (`release_slot_for_moved_schedule`) — 회원 응답의 시각은 일정 값을 따른다. 모두 일정 변경과
+  같은 트랜잭션이다.
 
 트레이너 웹은 회원 단위 요청이 404 로 돌아오면(`ClientAccessInterceptor`) 명단만
 곧바로 다시 읽는다. 명단에서 빠진 회원은 상세·메시지·리포트가 원래의 '찾을 수 없음'
@@ -251,7 +256,7 @@
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
-| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283) |
+| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283). 상담 요청으로 생긴 일정이면 요청을 `cancelled` 로 바꾸고 신청 때 잠근 자리를 돌려준다(#2758) |
 | POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |
@@ -314,6 +319,12 @@ scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어�
 | `POST /trainer/consultations/{id}/accept` | — |
 
 회원 예약 응답에는 `conflicts` 를 싣지 않는다 — 트레이너의 다른 일정(남의 이름·시각)이다.
+
+반대 방향도 있다(#2761). 자리를 **연 뒤에** 그 시간에 일정이 생기면 위 경로들은 막지 않는다
+— 일정 저장은 자리를 보지 않는다. 대신 자리 목록을 만들 때마다
+`reservation_service.overlapped_slot_ids` 가 같은 규칙으로 판정해 `overlapped` 를 싣는다
+(그 자리의 예약·상담이 만든 일정은 뺀다). 회원 목록은 마감, 상담 신청 폼은 제외, 트레이너
+슬롯 창은 `일정과 겹침` 이다. 자리를 닫지 않으므로 일정을 취소·이동하면 다시 빈 자리가 된다.
 
 ### 스케줄 구간 조회 (`from`/`to`)
 

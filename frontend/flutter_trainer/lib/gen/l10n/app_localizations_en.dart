@@ -2220,6 +2220,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotOpenSummary => 'Open';
 
   @override
+  String get slotOverlappedSummary => 'Overlaps a session';
+
+  @override
+  String get slotOverlappedHint =>
+      'Another session is booked at this time, so members see it as full. Close it if you will not use it.';
+
+  @override
   String get slotCloseAction => 'Close bookings';
 
   @override

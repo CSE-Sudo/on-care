@@ -55,7 +55,11 @@ TrainerSlot trainerSlotFromJson(Map<String, Object?> j) => TrainerSlot(
   // 서버는 아직 좌석 수로 자리를 센다. 한 사람 몫뿐인 자리라 남은 좌석이
   // 0인지만 의미가 있으므로 여기서 예약 여부로 접고, 좌석 수는 앱 안으로
   // 들이지 않는다(#1072).
-  booked: ((j['remaining'] as num?) ?? 0).toInt() <= 0,
+  //
+  // 트레이너의 다른 일정과 겹친 자리(`overlapped`)도 마감이다(#2761). 서버가
+  // 좌석을 0 으로 접어 보내지만, 표시만 오는 응답에서도 예약 버튼을 열지 않는다.
+  booked:
+      ((j['remaining'] as num?) ?? 0).toInt() <= 0 || j['overlapped'] == true,
   sessionType: (j['session_type'] as String?) ?? '1:1 PT',
   durationMinutes: (j['duration_minutes'] as num?)?.toInt() ?? 60,
 );
