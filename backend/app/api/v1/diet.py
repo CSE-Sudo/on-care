@@ -72,6 +72,13 @@ _ANALYSIS_UNAVAILABLE = {
     "message": "사진 분석을 잠시 쓸 수 없어요. 직접 입력으로 기록할 수 있어요.",
 }
 
+#: 사진에서 음식을 하나도 찾지 못했을 때의 422 본문(#2848). 끼니·포인트·사진을 남기지
+#: 않고 멱등키도 쓰지 않는다 — 앱은 다른 사진 고르기·직접 입력으로 이어 준다.
+_NO_FOOD_DETECTED = {
+    "code": "no_food_detected",
+    "message": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.",
+}
+
 
 @router.get("/diet/days/today", response_model=DietTodayResponse)
 def diet_today(
@@ -293,6 +300,12 @@ async def diet_analyze(
         raise HTTPException(
             status_code=502, detail="식단 인식에 실패했습니다. 잠시 후 다시 시도해 주세요."
         ) from e
+
+    # 음식을 하나도 찾지 못한 사진(풍경·사람·빈 그릇)은 끼니가 아니다. 0kcal 끼니를
+    # 저장하고 포인트를 주면 아무 사진으로나 적립할 수 있고, 트레이너는 굶은 날과
+    # 구분하지 못한다 — 저장·적립·사진 저장 전에 거절한다(#2848).
+    if not analysis.foods:
+        raise HTTPException(status_code=422, detail=_NO_FOOD_DETECTED)
 
     # 공공 식품영양성분 DB 매핑으로 영양 수치 보강(매칭 시 신뢰값으로 교체 → 합계 재계산)
     enrich_analysis(db, analysis, enabled=get_settings().nutrition_db_enrich)
