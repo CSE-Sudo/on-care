@@ -239,7 +239,7 @@ class _DietNutritionCard extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     // 탄단지 목표는 식단 탭 하루 요약과 **같은 값**을 쓴다. 홈만 따로 기본값을
     // 들고 있으면 회원이 목표를 고쳤을 때 두 화면이 다른 목표를 말한다.
-    final UserProfile? profile = ref.watch(profileProvider).asData?.value;
+    final UserProfile? profile = ref.watch(profileProvider).valueOrNull;
     final _NutData cfg = _calorieWeek(summary);
     final List<String> days = weekDayLabels(l);
     final int todayIdx = _todayIndex();
