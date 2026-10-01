@@ -460,7 +460,7 @@ void main() {
     test('채팅 답에 감지를 싣고, 기록은 30일 안의 감지된 메시지만 최신순이다', () async {
       // 31일 전 메시지를 미리 둔다 — 기록에서 빠져야 한다.
       await db.putValue(
-        'ai_coach_user_messages_v2',
+        'ai_coach_user_messages_v3',
         jsonEncode(<Map<String, Object?>>[
           <String, Object?>{
             'id': 'old',

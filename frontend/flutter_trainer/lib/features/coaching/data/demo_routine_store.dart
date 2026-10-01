@@ -194,9 +194,16 @@ class DemoRoutineStore {
   }
 
   /// 제안 하나를 검토한 것으로 남긴다.
-  Future<void> addReviewedSuggestion(String id) async {
+  Future<void> addReviewedSuggestion(String id) =>
+      addReviewedSuggestions(<String>[id]);
+
+  /// 전송에 실려 나간 제안들을 검토한 것으로 남긴다(#2747). 실서버가 전송
+  /// 트랜잭션에서 그 제안을 닫는 것과 같다 — 남기지 않으면 다음 위저드가
+  /// 보낸 제안을 다시 채운다.
+  Future<void> addReviewedSuggestions(Iterable<String> ids) async {
+    if (ids.isEmpty) return;
     final Set<String> reviewed = await readReviewedSuggestions();
-    reviewed.add(id);
+    reviewed.addAll(ids);
     await _write(_reviewedKey, reviewed.toList());
   }
 

@@ -506,6 +506,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in failed. Please try again in a moment.'**
   String get authSocialSignInFailed;
 
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email.'**
+  String get authSocialComingSoon;
+
   /// No description provided for @authErrSignInFailed.
   ///
   /// In en, this message translates to:
@@ -1807,6 +1813,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the conversation'**
   String get chatLoadFailed;
+
+  /// 회원 메시지 맨 위 — 서버가 주는 최신 50건 앞의 메시지를 한 쪽 더 받는 버튼(#2749). 위로 끝까지 스크롤해도 같은 일이 일어난다.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier messages'**
+  String get chatLoadOlder;
+
+  /// 이전 메시지 한 쪽을 받지 못했을 때 같은 자리의 버튼. 누르면 다시 받는다(#2749).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load earlier messages · Retry'**
+  String get chatLoadOlderFailed;
 
   /// No description provided for @chatDemoAnalyzed.
   ///
@@ -4717,6 +4735,90 @@ abstract class AppLocalizations {
   /// **'e.g. Protect right shoulder'**
   String get routineFieldEffectHint;
 
+  /// No description provided for @routineEffectCardioDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Builds fitness and helps prevent chronic disease'**
+  String get routineEffectCardioDefault;
+
+  /// No description provided for @routineEffectStrengthDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Builds strength and muscular endurance'**
+  String get routineEffectStrengthDefault;
+
+  /// No description provided for @routineEffectStretchDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Improves flexibility and helps prevent injury'**
+  String get routineEffectStretchDefault;
+
+  /// No description provided for @routineEffectBloodPressure.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps manage blood pressure'**
+  String get routineEffectBloodPressure;
+
+  /// No description provided for @routineEffectFatLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps reduce body fat'**
+  String get routineEffectFatLoss;
+
+  /// No description provided for @routineEffectCardioFitness.
+  ///
+  /// In en, this message translates to:
+  /// **'Improves cardiorespiratory fitness'**
+  String get routineEffectCardioFitness;
+
+  /// No description provided for @routineEffectGentleRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilds fitness without strain'**
+  String get routineEffectGentleRecovery;
+
+  /// No description provided for @routineEffectMuscleMass.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintains and builds muscle mass'**
+  String get routineEffectMuscleMass;
+
+  /// No description provided for @routineEffectStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Builds strength'**
+  String get routineEffectStrength;
+
+  /// No description provided for @routineEffectPostureMuscles.
+  ///
+  /// In en, this message translates to:
+  /// **'Strengthens posture-supporting muscles'**
+  String get routineEffectPostureMuscles;
+
+  /// No description provided for @routineEffectHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Steadies blood pressure and heart rate'**
+  String get routineEffectHeartRate;
+
+  /// No description provided for @routineEffectMuscleRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps muscles recover'**
+  String get routineEffectMuscleRecovery;
+
+  /// No description provided for @routineEffectLoosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Loosens tight muscles'**
+  String get routineEffectLoosen;
+
+  /// No description provided for @routineEffectJointRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Restores joint range of motion'**
+  String get routineEffectJointRange;
+
   /// No description provided for @routineFieldSets.
   ///
   /// In en, this message translates to:
@@ -7570,6 +7672,18 @@ abstract class AppLocalizations {
   /// **'That date has passed. Pick today or a later date'**
   String get programEditorRegisterDatePast;
 
+  /// No description provided for @programEditorSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to the schedule'**
+  String get programEditorSending;
+
+  /// No description provided for @programEditorAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'You just sent this setup. Apply a new one to send again'**
+  String get programEditorAlreadySent;
+
   /// No description provided for @coachSendNetworkFailed.
   ///
   /// In en, this message translates to:
@@ -7868,6 +7982,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select a member to see their weekly summary and coaching suggestions here'**
   String get reportsSummaryEmptyClient;
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.'**
+  String reportsDemoSummarySteadyThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.'**
+  String reportsDemoSummarySteadyPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.'**
+  String reportsDemoSummaryCompletionThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.'**
+  String reportsDemoSummaryCompletionPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroPastWeek(String name);
 
   /// No description provided for @reportsLastWeek.
   ///

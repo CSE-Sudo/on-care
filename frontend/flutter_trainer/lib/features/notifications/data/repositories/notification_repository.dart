@@ -298,9 +298,15 @@ final notificationInboxEnabledProvider = Provider<bool>(
 ///
 /// 첫 쪽보다 오래된 알림은 [trainerNotificationPagingProvider] 가 이어 받는다
 /// (#2293). 화면은 둘을 [mergeTrainerNotifications] 로 합쳐 그린다.
+///
+/// **목록을 보는 동안만** 산다(#2767). 알림 종 팝오버나 알림 화면이 닫히면
+/// 구독이 끝나 폴링도 멈춘다. 전에는 계정 동안 붙잡아 두어(`keepAliveForAccount`)
+/// 한 번 연 뒤로는 아무도 보지 않는 목록을 20초마다 다시 받았다. 배지 숫자는
+/// [trainerUnreadNotificationsProvider] 가 따로 맡으니 목록을 살려 둘 이유가
+/// 없다. 다시 열면 첫 쪽을 새로 받는다. 계정 경계는 저장소 provider 가
+/// [accountScopeProvider] 를 보므로 그대로 지켜진다.
 final trainerNotificationsProvider =
     StreamProvider.autoDispose<TrainerNotificationPage>((ref) {
-      keepAliveForAccount(ref);
       return ref.watch(trainerNotificationRepositoryProvider).watch();
     }, name: 'trainerNotifications');
 
@@ -310,6 +316,91 @@ final trainerUnreadNotificationsProvider = StreamProvider.autoDispose<int>((
 ) {
   return ref.watch(trainerNotificationRepositoryProvider).watchUnreadCount();
 }, name: 'trainerUnreadNotifications');
+
+/// 읽음 처리를 보냈지만 서버가 센 미읽음 수에는 아직 비치지 않은 알림. (#2762)
+///
+/// 알림을 누르면 화면은 바로 그 알림의 자리로 간다. 서버 숫자는 읽음 요청이
+/// 끝나고 다시 읽어야 바뀌므로, 그 사이 배지는 여기 담긴 수만큼 미리 뺀다.
+/// 새 숫자가 오거나 요청이 실패하면 [NotificationReadTracker] 가 꺼낸다.
+/// 계정이 바뀌면 비운다.
+final trainerPendingNotificationReadsProvider = StateProvider<Set<String>>((
+  ref,
+) {
+  ref.watch(accountScopeProvider);
+  return const <String>{};
+}, name: 'trainerPendingNotificationReads');
+
+/// 배지·알림 화면이 그리는 미읽음 수. 아직 모르면 `null`. (#2762)
+///
+/// 서버 수([trainerUnreadNotificationsProvider])에서 읽음 처리 중인 알림을
+/// 미리 뺀다 — 누른 알림이 다음 폴링(20초)까지 배지에 남지 않게 한다.
+final trainerUnreadBadgeProvider = Provider.autoDispose<int?>((ref) {
+  final int? unread = ref.watch(trainerUnreadNotificationsProvider).valueOrNull;
+  if (unread == null) return null;
+  final int pending = ref.watch(trainerPendingNotificationReadsProvider).length;
+  return unread - pending < 0 ? 0 : unread - pending;
+}, name: 'trainerUnreadBadge');
+
+/// 알림 한 건의 읽음 처리 — 화면 수명과 무관하게 끝까지 간다. (#2762)
+///
+/// 알림 종 팝오버는 항목을 누르는 순간 닫히고, 그 위젯의 `ref`·`context` 도
+/// 함께 끝난다. 전에는 그 `ref` 로 읽음 요청 뒤의 갱신을 이어 가다 예외가 나
+/// 이동과 배지 갱신이 모두 빠졌다. 그래서 여기서는 앱 전체의
+/// [ProviderContainer] 만 쓴다.
+class NotificationReadTracker {
+  const NotificationReadTracker(this._container);
+
+  final ProviderContainer _container;
+
+  /// [id] 를 읽음으로 보낸다. 배지는 요청 전에 미리 줄이고, 실패하면 되돌린다.
+  Future<void> markRead(String id) async {
+    _pend(id);
+    final TrainerNotificationRepository repository = _container.read(
+      trainerNotificationRepositoryProvider,
+    );
+    try {
+      await repository.markRead(id);
+    } on Object {
+      // 실패하면 미리 뺀 몫을 돌려 둔다 — 다음 조회에서 다시 미읽음으로 보인다.
+      _unpend(id);
+      return;
+    }
+    // 이어 받은 과거 쪽은 다시 읽지 않으므로 여기서 읽음을 비춘다. 알림 화면을
+    // 떠났으면 그 상태도 이미 버려졌다.
+    if (_container.exists(trainerNotificationPagingProvider)) {
+      _container.read(trainerNotificationPagingProvider.notifier).markRead(id);
+    }
+    // 서버가 읽음을 센 새 숫자가 오면 미리 뺀 몫을 거둔다. 새 숫자가 오기 전에
+    // 거두면 배지가 옛 숫자로 한 번 튀어 오른다.
+    late final ProviderSubscription<AsyncValue<int>> watching;
+    watching = _container.listen<AsyncValue<int>>(
+      trainerUnreadNotificationsProvider,
+      (AsyncValue<int>? _, AsyncValue<int> next) {
+        if (next.isLoading) return;
+        watching.close();
+        _unpend(id);
+      },
+    );
+    _container
+      ..invalidate(trainerNotificationsProvider)
+      ..invalidate(trainerUnreadNotificationsProvider);
+  }
+
+  void _pend(String id) {
+    final StateController<Set<String>> pending = _container.read(
+      trainerPendingNotificationReadsProvider.notifier,
+    );
+    pending.state = <String>{...pending.state, id};
+  }
+
+  void _unpend(String id) {
+    final StateController<Set<String>> pending = _container.read(
+      trainerPendingNotificationReadsProvider.notifier,
+    );
+    if (!pending.state.contains(id)) return;
+    pending.state = <String>{...pending.state}..remove(id);
+  }
+}
 
 /// 첫 쪽 뒤에 이어 받은 과거 알림. (#2293)
 ///

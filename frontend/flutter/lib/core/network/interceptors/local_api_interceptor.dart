@@ -2939,7 +2939,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 데모 대화가 담긴 자리. 시드를 고치면 **이름을 올린다** — 이미 데모를 켜 본
   /// 기기에는 예전 대화가 남아 있어, 같은 이름을 그대로 쓰면 새 자료가 보이지
   /// 않는다(#1918).
-  static const String _aiCoachMessagesKey = 'ai_coach_user_messages_v2';
+  static const String _aiCoachMessagesKey = 'ai_coach_user_messages_v3';
 
   /// 데모 AI 코치가 처음부터 들고 있는 대화. (#1900)
   ///
@@ -2959,6 +2959,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       int minute,
       bool fromMember,
       String text,
+      String textEn,
       List<String> sources,
     })
   >
@@ -2970,6 +2971,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           int minute,
           bool fromMember,
           String text,
+          String textEn,
           List<String> sources,
         })
       >[
@@ -2979,6 +2981,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 8,
           fromMember: true,
           text: '식단은 사진만 찍으면 되나요?',
+          textEn: 'Do I just take a photo to log my meals?',
           sources: <String>[],
         ),
         (
@@ -2990,6 +2993,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
               '네, 사진 한 장이면 AI가 음식을 알아보고 칼로리와 영양소를 계산해 기록해요. '
               '가운데 + 버튼으로 운동도 바로 추가할 수 있어요. 기록이 쌓이면 제가 그걸 보고 더 '
               '구체적으로 도와드릴 수 있습니다. 📷',
+          textEn:
+              'Yes. With one photo, AI recognizes the food and logs its '
+              'calories and nutrients. You can add workouts right away with '
+              'the + button in the middle. Once your records build up, I can '
+              'help you more specifically. 📷',
           sources: <String>[],
         ),
         (
@@ -2998,6 +3006,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 40,
           fromMember: true,
           text: '점심에 라면 먹었는데 나트륨 줄이려면 어떻게 해요?',
+          textEn: 'I had ramen for lunch. How can I cut down on sodium?',
           sources: <String>[],
         ),
         (
@@ -3008,6 +3017,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '국물을 남기는 것만으로도 절반 가까이 줄어요. 다음부터는 스프를 조금만 넣고, '
               '달걀이나 두부를 올려 단백질을 더해 보세요. 하루 목표는 2000mg 이하예요. 🌿',
+          textEn:
+              'Just leaving the broth cuts it by almost half. Next time, use '
+              'only part of the seasoning packet and add an egg or tofu for '
+              'extra protein. Aim for 2,000mg or less a day. 🌿',
           sources: <String>[_srcSodium],
         ),
         (
@@ -3016,6 +3029,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 12,
           fromMember: true,
           text: '어제 스쿼트하고 나서 무릎이 좀 아파요',
+          textEn: 'My knee hurts a bit after squats yesterday',
           sources: <String>[],
         ),
         (
@@ -3026,6 +3040,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '무릎이 불편하시군요. 오늘은 스쿼트 대신 자전거나 걷기처럼 무릎에 체중이 덜 실리는 운동으로 '
               '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+          textEn:
+              'Sorry about your knee. Today, swap squats for cycling or '
+              'walking, which put less weight on the knee. If the pain lasts '
+              "more than three days or it swells, it's best to see a doctor.",
           sources: <String>[_srcPaSafety],
         ),
         (
@@ -3034,6 +3052,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 5,
           fromMember: true,
           text: '회식 있는 날은 어떻게 먹는 게 좋아요?',
+          textEn: 'How should I eat on days with a team dinner?',
           sources: <String>[],
         ),
         (
@@ -3044,6 +3063,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '가기 전에 가볍게 요기를 해 두면 과식이 줄어요. 자리에서는 구이·찜 위주로 먹고 국물은 '
               '남기고, 물을 자주 마셔 주세요. 다음 날 한 끼를 담백하게 맞추면 한 주 균형은 유지됩니다. 🥗',
+          textEn:
+              "Have a light snack before you go so you don't overeat. At the "
+              'table, stick to grilled or steamed dishes, leave the broth, '
+              "and drink water often. Keep the next day's meals light and "
+              'your week stays balanced. 🥗',
           sources: <String>[_srcSodium],
         ),
         (
@@ -3052,6 +3076,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 30,
           fromMember: true,
           text: '오늘은 야근해서 운동 못 했어요',
+          textEn: "I worked late today and couldn't work out",
           sources: <String>[],
         ),
         (
@@ -3062,6 +3087,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '하루 쉬어도 괜찮아요. 이번 주에 이미 두 번 하셨으니 흐름은 살아 있어요. '
               '내일 10분만 걸어도 다시 이어집니다. 🚶',
+          textEn:
+              "Taking a day off is fine. You've already worked out twice this "
+              "week, so you're still on track. Even a 10-minute walk tomorrow "
+              'gets you going again. 🚶',
           sources: <String>[],
         ),
         (
@@ -3070,6 +3099,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 20,
           fromMember: true,
           text: '아침에 시간이 없는데 뭘 먹으면 좋을까요?',
+          textEn: "I'm short on time in the morning. What should I eat?",
           sources: <String>[],
         ),
         (
@@ -3080,6 +3110,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '준비가 짧은 조합으로 가 보세요. 그릭요거트에 견과류, 삶은 달걀과 통밀빵, 두유와 바나나 '
               '같은 것들이요. 단백질이 들어가야 점심까지 덜 허기집니다.',
+          textEn:
+              'Go for quick combos like Greek yogurt with nuts, boiled eggs '
+              'with whole-wheat bread, or soy milk with a banana. Including '
+              'protein keeps you fuller until lunch.',
           sources: <String>[],
         ),
         (
@@ -3088,6 +3122,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 10,
           fromMember: true,
           text: '단백질은 하루에 얼마나 먹어야 하나요?',
+          textEn: 'How much protein should I eat a day?',
           sources: <String>[],
         ),
         (
@@ -3098,6 +3133,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
               '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+          textEn:
+              "While you're doing strength training, aim for 1.2–1.6g per kg "
+              'of body weight. Your goal is 100g a day, so a palm-sized '
+              'protein dish at each meal will get you there.',
           sources: <String>[_srcProtein],
         ),
         (
@@ -3106,6 +3145,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 5,
           fromMember: true,
           text: '어깨가 뻐근해요',
+          textEn: 'My shoulders feel stiff',
           sources: <String>[],
         ),
         (
@@ -3116,6 +3156,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '어깨는 굳기 쉬운 곳이라 운동 앞뒤로 풀어 주는 게 좋아요. 벽에 손을 대고 가슴을 여는 '
               '스트레칭을 30초씩 세 번 해 보세요. 오늘은 어깨에 힘이 실리는 동작은 덜어 두시고요.',
+          textEn:
+              'Shoulders tighten up easily, so loosen them before and after '
+              'workouts. Put your hands on a wall and do a chest-opening '
+              'stretch for 30 seconds, three times. Go easy on moves that '
+              'load your shoulders today.',
           sources: <String>[],
         ),
         (
@@ -3124,6 +3169,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           minute: 40,
           fromMember: true,
           text: '물은 얼마나 마셔야 해요?',
+          textEn: 'How much water should I drink?',
           sources: <String>[],
         ),
         (
@@ -3134,6 +3180,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           text:
               '하루 6~8잔을 나눠 마시는 것을 권해요. 한 번에 많이 마시기보다 끼니와 운동 앞뒤로 '
               '나눠 드시면 좋습니다. 💧',
+          textEn:
+              'I recommend spreading 6–8 glasses across the day. Rather than '
+              'drinking a lot at once, have some around meals and workouts. 💧',
           sources: <String>[_srcWater],
         ),
       ];
@@ -3164,6 +3213,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
               'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
           'role': turn.fromMember ? 'user' : 'coach',
           'text': turn.text,
+          // 영어 화면에서 보일 같은 대화(#2735). 저장은 한국어 그대로 둔다.
+          'text_en': turn.textEn,
           'sources': turn.sources,
           'created_at': DateTime(
             now.year,
@@ -3174,6 +3225,20 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           ).toIso8601String(),
         },
     ];
+  }
+
+  /// 시드 대화는 영어 문장도 함께 들고 있다(#2735). 영어 요청이면 그것을 쓴다 —
+  /// 실서버에서 영어로 쓰는 회원의 지난 대화는 그 회원이 영어로 나눈 대화다.
+  static String _rowText(Map<String, Object?> row, {required bool english}) {
+    final String text = row['text'] as String? ?? '';
+    final Object? en = row['text_en'];
+    return english && en is String && en.isNotEmpty ? en : text;
+  }
+
+  /// 요청 언어가 영어인가 — 실서버가 `Accept-Language` 로 고르는 것과 같다.
+  static bool _prefersEnglish(RequestOptions options) {
+    final Object? lang = options.headers['Accept-Language'];
+    return lang is String && lang.toLowerCase().startsWith('en');
   }
 
   /// 예전 저장분에는 역할이 없다 — 그때는 회원 메시지만 적었다.
@@ -3214,13 +3279,14 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 실서버가 저장해 둔 대화를 돌려주는 자리다. 데모도 같은 모양으로 답해야
   /// 화면이 이어 하는 대화로 열린다.
   Future<Response<Object?>> _aiCoachHistory(RequestOptions options) async {
+    final bool english = _prefersEnglish(options);
     final List<Map<String, Object?>> rows = await _aiCoachMessages();
     return _ok(options, <String, Object?>{
       'messages': <Map<String, Object?>>[
         for (final Map<String, Object?> row in rows)
           <String, Object?>{
             'role': _isMemberRow(row) ? 'user' : 'coach',
-            'content': row['text'],
+            'content': _rowText(row, english: english),
             'sources': row['sources'] ?? const <String>[],
             // 화면이 날짜 구분선과 말풍선 옆 시각을 이것으로 그린다(#1918).
             'created_at': row['created_at'],
@@ -3228,7 +3294,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             'balance_after': row['balance_after'],
             if (_isMemberRow(row))
               'insight': switch (detectChatInsight(
-                row['text'] as String? ?? '',
+                _rowText(row, english: english),
               )) {
                 final ChatInsight insight => _insightJson(insight),
                 _ => null,
@@ -3249,6 +3315,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
   /// GET /ai-coach/insights — 최근 30일 회원 메시지의 감지 기록, 최신순(#1824).
   Future<Response<Object?>> _aiCoachInsights(RequestOptions options) async {
+    final bool english = _prefersEnglish(options);
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = await _aiCoachMessages();
     final List<Map<String, Object?>> insights = <Map<String, Object?>>[];
@@ -3262,7 +3329,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       // 회원이 치운 줄은 건너뛴다(#1975). 실서버도 `insight_dismissed` 로 같은
       // 것을 한다 — 데모에서만 되는 자리를 새로 만들지 않는다.
       if (row['insight_dismissed'] == true) continue;
-      final String text = row['text'] as String? ?? '';
+      final String text = _rowText(row, english: english);
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;
       insights.add(<String, Object?>{

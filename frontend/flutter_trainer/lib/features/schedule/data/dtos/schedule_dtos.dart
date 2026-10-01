@@ -82,6 +82,7 @@ Map<String, Object?> programScheduleToJson({
   required String clientName,
   String? sessionId,
   List<Map<String, Object?>> personalRoutines = const <Map<String, Object?>>[],
+  List<String> suggestionIds = const <String>[],
 }) => <String, Object?>{
   ...assignment,
   'date': date,
@@ -92,6 +93,9 @@ Map<String, Object?> programScheduleToJson({
   // 이 PT 에 붙일 개인운동(#2223). 비어 있으면 아예 싣지 않는다 — 개인운동
   // 단계가 없던 옛 요청과 같은 본문이 나간다.
   if (personalRoutines.isNotEmpty) 'personal_routines': personalRoutines,
+  // 그 개인운동을 채운 대기 중 AI 제안(#2747) — 서버가 등록과 같은
+  // 트랜잭션에서 닫는다. 비어 있으면 싣지 않는다.
+  if (suggestionIds.isNotEmpty) 'suggestion_ids': suggestionIds,
 };
 
 /// 항목 하나의 계약 형태. 서버 `ProgramItem` 스키마와 1:1 이다 (#1276).

@@ -264,6 +264,7 @@ class DioScheduleRepository implements ScheduleRepository {
             clientName: clientName,
             sessionId: sessionId,
             personalRoutines: personalRoutinesToJson(personalRoutines),
+            suggestionIds: suggestionIdsOf(personalRoutines),
           ),
         );
       } on DioException catch (e) {
@@ -344,9 +345,7 @@ class DioScheduleRepository implements ScheduleRepository {
     await _mutate(
       () => _dio.put<List<dynamic>>(
         '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
-        data: <String, Object?>{
-          'personal_routines': personalRoutinesToJson(items),
-        },
+        data: scheduledRoutinesUpdateToJson(items),
       ),
     );
   }

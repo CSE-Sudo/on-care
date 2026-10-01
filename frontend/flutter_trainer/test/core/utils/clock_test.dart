@@ -47,6 +47,92 @@ void main() {
     );
   });
 
+  // ── KST 벽시계 변환 (#2751) ─────────────────────────────────────────────
+  //
+  // 서버 시각(UTC 순간)을 `toLocal()` 로 읽으면 기기 시간대에 매인다. CI 는 UTC
+  // 라서, 아래 경계가 `toLocal()` 이었다면 전날로 떨어진다.
+
+  group('toKst', () {
+    test('UTC 23:30 은 KST 다음 날 08:30 이다', () {
+      final DateTime kst = toKst(DateTime.utc(2026, 9, 14, 23, 30));
+
+      expect(kst.isUtc, isFalse);
+      expect(
+        <int>[kst.year, kst.month, kst.day, kst.hour, kst.minute],
+        <int>[2026, 9, 15, 8, 30],
+      );
+    });
+
+    test('UTC 15:00 은 KST 다음 날 00:00 — 자정 경계도 다음 날이다', () {
+      expect(kstDateOf(DateTime.utc(2026, 9, 14, 15)), DateTime(2026, 9, 15));
+      expect(
+        kstDateOf(DateTime.utc(2026, 9, 14, 14, 59)),
+        DateTime(2026, 9, 14),
+      );
+    });
+
+    test('달·해가 넘어가는 경계도 KST 로 넘긴다', () {
+      expect(kstDateOf(DateTime.utc(2026, 9, 30, 20)), DateTime(2026, 10));
+      expect(kstDateOf(DateTime.utc(2026, 12, 31, 16)), DateTime(2027));
+    });
+
+    test('초 아래 자리도 그대로 옮긴다', () {
+      final DateTime kst = toKst(DateTime.utc(2026, 9, 14, 0, 0, 1, 2, 3));
+
+      expect(
+        <int>[kst.second, kst.millisecond, kst.microsecond],
+        <int>[1, 2, 3],
+      );
+    });
+
+    test('로컬 값은 이미 KST 벽시계라 그대로 둔다', () {
+      final DateTime local = DateTime(2026, 9, 15, 8, 10);
+
+      expect(toKst(local), local);
+      expect(kstDateOf(local), DateTime(2026, 9, 15));
+    });
+
+    test('오프셋이 붙은 서버 문자열도 같은 KST 날짜로 읽는다', () {
+      final DateTime fromUtc = DateTime.parse('2026-09-14T23:10:00+00:00');
+      final DateTime fromKst = DateTime.parse('2026-09-15T08:10:00+09:00');
+
+      expect(toKst(fromUtc), DateTime(2026, 9, 15, 8, 10));
+      expect(toKst(fromKst), DateTime(2026, 9, 15, 8, 10));
+    });
+  });
+
+  group('isSameKstDay', () {
+    test('UTC 로는 같은 날이어도 KST 로 갈리면 다른 날이다', () {
+      expect(
+        isSameKstDay(
+          DateTime.utc(2026, 9, 14, 14, 50),
+          DateTime.utc(2026, 9, 14, 15, 10),
+        ),
+        isFalse,
+      );
+    });
+
+    test('UTC 로는 날이 갈려도 KST 로 같은 날이면 같은 날이다', () {
+      expect(
+        isSameKstDay(
+          DateTime.utc(2026, 9, 14, 15, 10),
+          DateTime.utc(2026, 9, 15, 8),
+        ),
+        isTrue,
+      );
+    });
+
+    test('서버 시각과 데모(로컬 KST) 시각을 함께 견줄 수 있다', () {
+      expect(
+        isSameKstDay(
+          DateTime.utc(2026, 9, 14, 23, 30),
+          DateTime(2026, 9, 15, 9),
+        ),
+        isTrue,
+      );
+    });
+  });
+
   // ── 우회 금지 ───────────────────────────────────────────────────────────
   //
   // 한 곳만 `DateTime.now()` 로 남으면 그 값과 `nowKst()` 가 9시간 어긋나, 고치기

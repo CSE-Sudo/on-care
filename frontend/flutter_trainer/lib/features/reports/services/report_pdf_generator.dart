@@ -173,7 +173,9 @@ class ReportPdfGenerator {
       for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
         final ReportKey key = (
           client: report.client,
-          weekStart: report.weekStart.subtract(Duration(days: 7 * back)),
+          // [calorieBaselineProvider] 와 같은 주 목록이어야 캐시를 함께
+          // 쓴다 — 둘 다 달력 날짜로 옮긴다(#2774).
+          weekStart: shiftWeeks(report.weekStart, -back),
         );
         keep.add(scope.listen(weeklyReportProvider(key), (_, _) {}));
         past.add(
