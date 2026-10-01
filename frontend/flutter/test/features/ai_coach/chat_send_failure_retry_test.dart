@@ -105,6 +105,10 @@ ProviderContainer _container(
     ],
   );
   addTearDown(container.dispose);
+  // 컨트롤러를 지금 만들어 복원을 시작한다 — 뒤의 [_settle] 이 복원을 끝낸 다음에
+  // 보내야 한다. 보낼 때 처음 만들면 복원이 아직 도는 중이라, 그 사이 서버에 저장된
+  // 질문이 복원분으로 먼저 들어와 저장분 확인이 "이미 보낸 질문" 으로 보고 넘어간다.
+  container.read(chatControllerProvider);
   return container;
 }
 

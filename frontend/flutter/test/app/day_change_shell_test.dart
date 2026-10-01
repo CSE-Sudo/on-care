@@ -109,6 +109,11 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
+    // 복귀는 홈 요약·추천도 다시 읽는다. 옛 값을 띄운 채 읽어 프레임을 요청하지
+    // 않으므로 pumpAndSettle 이 대역 저장소의 지연을 기다리지 않는다 — 시간을
+    // 넘겨 그 읽기를 끝낸다.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('같은 날 안의 복귀에서는 그래프를 다시 읽지 않는다', (WidgetTester tester) async {

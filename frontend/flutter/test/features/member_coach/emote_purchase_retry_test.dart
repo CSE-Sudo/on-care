@@ -179,6 +179,9 @@ void main() {
     await _buy(tester);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
+    // 산 것이 맨 앞으로 오며 목록이 밀린다 — 화면 밖이면 시트를 굴려 보이게 한다.
+    await tester.ensureVisible(find.byKey(const Key('emote-dog_love')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('emote-dog_love')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('emoteBuyConfirm')));
