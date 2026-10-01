@@ -21,6 +21,7 @@ class ConsultationRequest {
     this.purposeDetail,
     this.decisionNote,
     this.createdAt,
+    this.cancelledByTrainer = false,
   });
 
   /// Server id — the path segment for accept / reject.
@@ -80,6 +81,34 @@ class ConsultationRequest {
   /// 값이 없다 — 그쪽은 이어 받을 것도 없다.
   final DateTime? createdAt;
 
+  /// 트레이너가 상담 일정을 취소·삭제해 철회한 신청인가(#2758). 상태는
+  /// `cancelled` 그대로이고, 회원이 직접 취소한 신청과 이 값으로 가른다.
+  final bool cancelledByTrainer;
+
   /// Whether this request is still waiting on a decision.
   bool get isPending => status == 'pending';
+
+  /// 상태·자리 시각만 바꾼 사본 — 데모가 연결된 일정을 따라 신청을 고칠 때
+  /// 쓴다(#2758).
+  ConsultationRequest copyWith({
+    String? status,
+    DateTime? slotStartsAt,
+    bool? cancelledByTrainer,
+  }) => ConsultationRequest(
+    id: id,
+    memberId: memberId,
+    memberName: memberName,
+    goalCode: goalCode,
+    purposeCode: purposeCode,
+    preferredDate: preferredDate,
+    preferredTimeCode: preferredTimeCode,
+    status: status ?? this.status,
+    slotStartsAt: slotStartsAt ?? this.slotStartsAt,
+    slotDurationMinutes: slotDurationMinutes,
+    message: message,
+    purposeDetail: purposeDetail,
+    decisionNote: decisionNote,
+    createdAt: createdAt,
+    cancelledByTrainer: cancelledByTrainer ?? this.cancelledByTrainer,
+  );
 }

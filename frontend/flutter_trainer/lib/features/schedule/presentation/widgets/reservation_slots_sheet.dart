@@ -387,8 +387,9 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     ReservationSlot slot,
   ) {
     // 닫혔거나 이미 예약된 자리는 "골라 쓸 수 없는 자리"라 같은 회색으로
-    // 눌러 둔다 — 비어 있는 자리(흰 외곽선 구획)와 구분된다(#2468).
-    final taken = slot.isClosed || slot.booked;
+    // 눌러 둔다 — 비어 있는 자리(흰 외곽선 구획)와 구분된다(#2468). 다른
+    // 일정과 겹친 자리도 회원에게는 마감이라 같은 회색이다(#2761).
+    final taken = !slot.open;
     final TimeOfDay start = TimeOfDay.fromDateTime(slot.startsAt);
     final TimeOfDay end = TimeOfDay.fromDateTime(
       slot.startsAt.add(Duration(minutes: slot.durationMinutes)),
@@ -433,7 +434,21 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                     .text(OnCareTypography.strong(OnCareTypography.body))
                     .copyWith(color: OnCareColors.textPrimary),
               )
-            else
+            else ...<Widget>[
+              // 자리를 연 뒤 같은 시간에 일정이 생겼다(#2761). 빈 자리처럼
+              // 보이면 트레이너는 회원이 왜 못 잡는지 모른다 — 겹침을 짚고,
+              // 쓰지 않을 자리면 바로 닫을 수 있게 삭제 버튼은 그대로 둔다.
+              if (slot.overlapped) ...<Widget>[
+                Tooltip(
+                  message: l.slotOverlappedHint,
+                  child: AppTag(
+                    key: ValueKey<String>('slot-overlapped-${slot.id}'),
+                    label: l.slotOverlappedSummary,
+                    tone: AppTagTone.caution,
+                  ),
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+              ],
               // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
               // 삭제다(#1394).
               AppIconButton(
@@ -442,6 +457,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 color: OnCareColors.textTertiary,
                 onPressed: _saving ? null : () => _close(slot),
               ),
+            ],
           ],
         ),
       ),

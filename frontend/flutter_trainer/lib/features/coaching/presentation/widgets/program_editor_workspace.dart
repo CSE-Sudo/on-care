@@ -45,6 +45,7 @@ class ProgramEditorWorkspace extends StatefulWidget {
     this.onSave,
     this.saving = false,
     this.sending = false,
+    this.sent = false,
   });
 
   final String clientGoal;
@@ -87,6 +88,11 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// 전송(배정+PT 등록)이 진행 중이거나 막 끝났다 — `일정 추가` 버튼이
   /// 잠겨 두 번째 클릭이 두 번째 전송을 만들지 않는다.
   final bool sending;
+
+  /// [sending] 가 켜진 까닭이 **방금 보낸 구성**이라서다(#2752). 툴팁이 진행
+  /// 중과 이미 보낸 것을 갈라 말한다 — 이유 없이 회색인 버튼은 트레이너가 왜
+  /// 못 보내는지 알 수 없다.
+  final bool sent;
 
   @override
   State<ProgramEditorWorkspace> createState() => _ProgramEditorWorkspaceState();
@@ -627,6 +633,11 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                         ? l.schedEndBeforeStart
                         : _registerDateIsPast
                         ? l.programEditorRegisterDatePast
+                        // 막힌 이유가 전송이면 그것을 말한다(#2752).
+                        : widget.sent
+                        ? l.programEditorAlreadySent
+                        : widget.sending
+                        ? l.programEditorSending
                         : '',
                 },
                 child: AppButton(

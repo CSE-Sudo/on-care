@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -313,9 +315,16 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (!ok || !mounted) return;
     try {
       await ref.read(scheduleRepositoryProvider).deleteSession(s.id);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      showAppToast(context, l.schedDeleteFailed, type: AppToastType.error);
+      // 서버 사유(회원 예약 일정은 지울 수 없다는 409 등)를 보인다(#2756).
+      showAppToast(
+        context,
+        error is AppError
+            ? serverDetailOr(l, error.message, l.schedDeleteFailed)
+            : l.schedDeleteFailed,
+        type: AppToastType.error,
+      );
     }
   }
 
@@ -339,11 +348,18 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .completeSession(s.id, note: '');
-    } catch (_) {
+    } catch (error) {
       // A DB or programJson-decode failure must not escape to the UI —
       // the session stays 예정 and the trainer is told (review PR 237).
+      // 서버가 사유를 주면(시작 전이라 완료할 수 없다는 400 등) 그것을 보인다.
       if (!mounted) return;
-      showAppToast(context, l.schedCompleteFailed, type: AppToastType.error);
+      showAppToast(
+        context,
+        error is AppError
+            ? serverDetailOr(l, error.message, l.schedCompleteFailed)
+            : l.schedCompleteFailed,
+        type: AppToastType.error,
+      );
     }
   }
 
@@ -464,8 +480,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 지표 때문이다 — 트레이너 사정의 취소와 고객 취소를 구분하지 않으면 나중에
   /// 회원의 낮은 이행률을 잘못 읽는다.
   ///
-  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 오늘·지난 PT 에서만
-  /// 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다.
+  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 시작 시각이 지난
+  /// PT 에서만 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다(#2760).
   Future<void> _confirmCancel(
     ScheduleSession s, {
     required bool allowNoShow,
@@ -919,8 +935,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     }
 
     final day = DateTime.tryParse(session.date) ?? _selectedDay;
-    final today = _dateOnly(nowKst());
-    final isFuture = day.isAfter(today);
+    final DateTime now = nowKst();
+    final today = _dateOnly(now);
+    // 날짜가 아니라 시작 시각으로 가른다(#2760) — 오늘 저녁 PT 를 오전에
+    // 완료·노쇼로 처리하면 하지 않은 운동이 기록되거나 오지 않았다고 적힌다.
+    final bool started = sessionHasStarted(session, now);
     final dateText = day == today
         ? l.labelToday
         : l.dateMonthDay(day.month, day.day);
@@ -942,15 +961,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           onDelete: () => _confirmDelete(session),
           // 담당이 끊긴 회원의 일정은 완료할 수 없다 — 회원 운동 기록에 적히는
           // 일이라 서버가 막는다(#2281, #2589).
-          onComplete:
-              (session.isUpcoming && !isFuture && !session.memberDetached)
+          onComplete: (session.isUpcoming && started && !session.memberDetached)
               ? () => _confirmComplete(session)
               : null,
           // 취소는 앞으로의 약속에도 열려 있다 — 거두는 것이 취소다. 노쇼는
-          // 같은 창의 선택지로, 지나간 약속에만 선다: 오지 않았다는 사실은 그
-          // 시간이 지나야 안다(#871, #2175).
+          // 같은 창의 선택지로, 시작 시각이 지난 약속에만 선다: 오지 않았다는
+          // 사실은 그 시간이 지나야 안다(#871, #2175, #2760).
           onCancel: session.isUpcoming
-              ? () => _confirmCancel(session, allowNoShow: !isFuture)
+              ? () => _confirmCancel(session, allowNoShow: started)
               : null,
           programDateLabel: dateText,
           sendingProgram: _sendingProgramId == session.id,

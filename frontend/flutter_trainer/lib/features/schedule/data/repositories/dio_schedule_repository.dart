@@ -166,39 +166,54 @@ class DioScheduleRepository implements ScheduleRepository {
     }
   }
 
+  /// 넘긴 칸만 보낸다 — 부분 수정이다. 마무리된 세션·회원 예약 일정은 메모
+  /// 말고 다른 칸이 오기만 해도 서버가 409 로 거절하므로, 그대로인 칸을 실어
+  /// 보내면 안 된다(#2754).
   @override
   Future<void> updateSession(
     String id, {
     String? date,
-    required String clientName,
+    String? clientName,
     String? clientId,
-    required String time,
-    required String type,
-    required int durationMinutes,
-    required String note,
+    String? time,
+    String? type,
+    int? durationMinutes,
+    String? note,
   }) async {
     await _mutate(
       () => _dio.put<Map<String, dynamic>>(
         '/trainer/schedule/${Uri.encodeComponent(id)}',
         data: <String, Object?>{
           'date': ?date,
-          'client_name': clientName,
+          'client_name': ?clientName,
           'member_id': ?clientId,
-          'time': time,
-          'type': type,
-          'duration_minutes': durationMinutes,
-          'note': note,
+          'time': ?time,
+          'type': ?type,
+          'duration_minutes': ?durationMinutes,
+          'note': ?note,
         },
       ),
     );
   }
 
+  /// 옮길 시각·길이도 같은 요청에 싣는다(#2757) — 서버가 기록을 지우기 전에
+  /// 그 자리의 겹침을 본다. 겹치면 409 `schedule_overlap` 이
+  /// [ScheduleOverlapError] 로 온다.
   @override
-  Future<void> reopenSession(String id, {required String date}) async {
+  Future<void> reopenSession(
+    String id, {
+    required String date,
+    String? time,
+    int? durationMinutes,
+  }) async {
     await _mutate(
       () => _dio.post<Map<String, dynamic>>(
         '/trainer/schedule/${Uri.encodeComponent(id)}/reopen',
-        data: <String, Object?>{'date': date},
+        data: <String, Object?>{
+          'date': date,
+          'time': ?time,
+          'duration_minutes': ?durationMinutes,
+        },
       ),
     );
   }
@@ -249,6 +264,7 @@ class DioScheduleRepository implements ScheduleRepository {
             clientName: clientName,
             sessionId: sessionId,
             personalRoutines: personalRoutinesToJson(personalRoutines),
+            suggestionIds: suggestionIdsOf(personalRoutines),
           ),
         );
       } on DioException catch (e) {
@@ -329,7 +345,7 @@ class DioScheduleRepository implements ScheduleRepository {
     await _mutate(
       () => _dio.put<List<dynamic>>(
         '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
-        data: <String, Object?>{'personal_routines': personalRoutinesToJson(items)},
+        data: scheduledRoutinesUpdateToJson(items),
       ),
     );
   }

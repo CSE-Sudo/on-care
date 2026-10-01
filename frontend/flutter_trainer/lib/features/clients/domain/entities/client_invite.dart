@@ -95,7 +95,8 @@ class PairedMember {
   /// 말이 없으면, 트레이너가 지금 잇는 사람이 목록의 그 사람인지 견줄 수 없다.
   String get rosterGender => rosterGenderFor(id: memberId, gender: gender);
 
-  int get rosterAge => rosterAgeFor(id: memberId, age: age);
+  /// 나이는 생년월일이 없으면 `null` 이다 — 지어내지 않는다(#2744).
+  int? get rosterAge => rosterAgeFor(age: age);
 
   factory PairedMember.fromJson(Map<String, Object?> json) => PairedMember(
     memberId: (json['member_id'] as String?) ?? '',

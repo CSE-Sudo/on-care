@@ -27,6 +27,7 @@ class ConsultationRequest {
     this.trainerGymName,
     this.slotStartsAt,
     this.slotDurationMinutes,
+    this.cancelledByTrainer = false,
   });
 
   /// 서버가 접수하며 준 id 로 갈아끼울 때 쓴다 — 화면이 만든 임시 id 는 트레이너
@@ -50,6 +51,7 @@ class ConsultationRequest {
         trainerGymName: trainerGymName,
         slotStartsAt: slotStartsAt,
         slotDurationMinutes: slotDurationMinutes,
+        cancelledByTrainer: cancelledByTrainer,
       );
 
   final String id;
@@ -92,6 +94,11 @@ class ConsultationRequest {
 
   /// 승인·거절된 시각. 대기 중이면 null.
   final DateTime? decidedAt;
+
+  /// 트레이너가 수락했던 상담 일정을 취소·삭제해 [ConsultationStatus.cancelled]
+  /// 가 된 요청인가(#2758). 내가 취소한 요청과 상태는 같지만, 다시 신청하라는
+  /// 안내가 필요하다.
+  final bool cancelledByTrainer;
 
   /// 아직 답을 기다리는 중인가.
   bool get isPending => status == ConsultationStatus.pending;
@@ -137,5 +144,6 @@ ConsultationRequest consultationFromJson(Map<String, Object?> j) {
       _ => null,
     },
     decidedAt: DateTime.tryParse((j['decided_at'] as String?) ?? ''),
+    cancelledByTrainer: j['cancelled_by_trainer'] == true,
   );
 }

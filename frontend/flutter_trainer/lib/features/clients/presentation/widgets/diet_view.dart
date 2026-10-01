@@ -823,7 +823,7 @@ class ClientDietAnalysisPanel extends ConsumerWidget {
     final ClientDietAnalysis analysis =
         ref
             .watch(
-              clientDietAdviceProvider((clientId: client.id, period: period)),
+              clientDietAdviceProvider(clientDietAdviceKey(client.id, period)),
             )
             .valueOrNull ??
         ClientDietAnalysis.empty;
