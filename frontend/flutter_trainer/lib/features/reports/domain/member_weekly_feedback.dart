@@ -10,6 +10,8 @@
 /// 돌아오지 않고, 돌아오지 않는 문항은 없는 것과 같다.
 library;
 
+import 'package:oncare_report/oncare_report.dart' show ReportSheetAnswers;
+
 /// 한 주 컨디션. 좋은 쪽에서 나쁜 쪽 순서다 — 화면이 이 순서대로 줄을 세운다.
 enum WeekCondition {
   great,
@@ -63,7 +65,10 @@ enum WeekIntensity {
 }
 
 /// 회원이 낸 한 주치 답.
-class MemberWeeklyFeedback {
+///
+/// 결과지(`oncare_report`)는 서버 값으로 읽는다 — 회원 앱과 함께 쓰는 위젯이라
+/// 이 앱의 enum 을 알 수 없다(#2652).
+class MemberWeeklyFeedback implements ReportSheetAnswers {
   /// Creates a feedback.
   const MemberWeeklyFeedback({
     required this.weekStart,
@@ -107,15 +112,25 @@ class MemberWeeklyFeedback {
   final WeekIntensity intensity;
 
   /// 아픈 곳. 없으면 빈 문자열.
+  @override
   final String painArea;
 
   /// 아팠던 날. [painArea] 가 비면 언제나 null.
+  @override
   final DateTime? painOn;
 
   /// 한 줄 자유 서술.
+  @override
   final String note;
 
+  @override
+  String get conditionWire => condition.wire;
+
+  @override
+  String get intensityWire => intensity.wire;
+
   /// 통증을 보고했는가.
+  @override
   bool get hasPain => painArea.isNotEmpty;
 
   /// 다음 주 처방을 바꿔야 할 답인가 — 셋 중 하나라도 걸리면 그렇다.

@@ -1,0 +1,33 @@
+name: oncare_report
+description: "회원 앱과 트레이너 웹이 함께 쓰는 주간 리포트 결과지 — 계산·위젯·문구·PDF 변환의 단일 원본."
+publish_to: 'none'
+version: 0.1.0
+
+# 회원 앱(^3.10.0)과 트레이너 앱(^3.12.0) 양쪽이 쓰므로 더 낮은 쪽에 맞춘다.
+environment:
+  sdk: ^3.10.0
+  flutter: '>=3.35.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # 두 앱이 이미 쓰는 패키지라 버전을 묶지 않는다(oncare_ui 와 같다).
+  intl: any
+  pdf: ^3.11.3
+  web: ^1.1.0
+  # 김민수 데모 주차를 세우는 원본(데모 빌더).
+  demo_fixture:
+    path: ../demo_fixture
+  # 결과지는 두 앱의 색·서체 토큰으로 그린다.
+  oncare_ui:
+    path: ../oncare_ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true

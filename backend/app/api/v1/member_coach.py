@@ -26,7 +26,7 @@ from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
     MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
     MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut,
+    ScheduleSessionOut, WeeklyReportOut,
 )
 from app.services import (
     emote_service,
@@ -460,3 +460,48 @@ def save_my_weekly_feedback(
         pain_on=payload.pain_on,
         note=payload.note,
     )
+
+
+# ---- 주간 리포트 (회원 본인, #2652) ----
+# 트레이너 웹 결과지와 **같은 계산**으로 회원 앱이 자기 주를 그리게 한다. 트레이너
+# 화면이 쓰는 `build_weekly_report` 를 그대로 부르되, 트레이너가 손보기 전의 자동
+# 초안(`message`)은 비워 보낸다 — 회원에게 가는 글은 트레이너가 보낸 것만이다.
+# 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022). 그때는 잡힌
+# PT 가 없으므로 수업 칸이 0 이다.
+
+
+def _my_report_week(week_start: str | None) -> date:
+    """리포트 주차를 그 주의 월요일로 정규화한다. 기본은 이번 주.
+
+    트레이너 리포트(`/trainer/clients/{id}/report`)와 같은 규칙으로, 아직 오지
+    않은 주는 거부한다 — 값이 전부 0 인 한 장을 만들 이유가 없다.
+    """
+    today = trainer_service.week_start_of(clock.today())
+    if not week_start:
+        return today
+    try:
+        day = date.fromisoformat(week_start)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+        ) from exc
+    week = trainer_service.week_start_of(day)
+    if week > today:
+        raise HTTPException(
+            status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다."
+        )
+    return week
+
+
+@router.get("/me/coach/weekly-report", response_model=WeeklyReportOut)
+def my_weekly_report(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> WeeklyReportOut:
+    """내 한 주 리포트 — 트레이너 웹이 나를 두고 보는 것과 같은 값."""
+    trainer_id = trainer_service.get_member_trainer_id(db, user.id) or ""
+    report = trainer_service.build_weekly_report(
+        db, trainer_id, user.id, _my_report_week(week_start)
+    )
+    return report.model_copy(update={"message": ""})

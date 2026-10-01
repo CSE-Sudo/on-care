@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import Locale, current_locale, localized
-from app.models.models import DietEntry
+from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
     DietDayTotalsOut, DietEntryCreate, DietEntryOut, DietEntryUpdate,
@@ -127,13 +127,45 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
 
 
 def coach_message(
-    total_sodium_mg: int, has_entries: bool, locale: Locale | None = None
+    total_sodium_mg: int,
+    has_entries: bool,
+    locale: Locale | None = None,
+    *,
+    is_past: bool = False,
+    sodium_limit_mg: int | None = None,
 ) -> str:
-    """오늘 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다.
+    """하루 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다.
+
+    [is_past] 면 **그날** 을 되짚는 문장이다(#2644). 이 문장은 식단 탭에서 지난
+    날짜를 고를 때 그날의 AI 피드백으로 뜨는데, 예전에는 날짜와 무관하게
+    "오늘 … 저녁은 …" 이라 지난 화요일을 보면서 오늘 이야기를 읽었다.
+
+    상한은 [sodium_limit_mg](회원 나트륨 목표), 없으면 [SODIUM_LIMIT_MG] 다.
+    홈 나트륨 경고가 회원 목표를 쓰는데 이 문장만 고정 기준이면, 목표를 낮춘
+    회원에게 두 화면이 서로 다른 판정을 말한다.
 
     언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
     """
-    if total_sodium_mg > SODIUM_LIMIT_MG:
+    limit = sodium_limit_mg or SODIUM_LIMIT_MG
+    if is_past:
+        if total_sodium_mg > limit:
+            return localized(
+                "그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.",
+                "Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.",
+                locale,
+            )
+        if not has_entries:
+            return localized(
+                "이날은 식단 기록이 없어요.",
+                "No meals were logged that day.",
+                locale,
+            )
+        return localized(
+            "나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.",
+            "A well-balanced day with sodium within your target.",
+            locale,
+        )
+    if total_sodium_mg > limit:
         return localized(
             "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!",
             "You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!",
@@ -150,6 +182,14 @@ def coach_message(
         "A well-balanced day. Keep it up tomorrow!",
         locale,
     )
+
+
+def member_sodium_limit(db: Session, user_id: str) -> int:
+    """회원 하루 나트륨 목표(mg). 프로필에 없으면 [SODIUM_LIMIT_MG]."""
+    goal = db.scalar(
+        select(HealthProfile.daily_sodium_mg).where(HealthProfile.user_id == user_id)
+    )
+    return goal or SODIUM_LIMIT_MG
 
 
 #: 기간 조언이 다루는 구간. 정의는 [period_window] 하나뿐이다 — 운동 조언
@@ -307,7 +347,10 @@ def period_coach_message(
 
 
 def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:
-    """지정 날짜 식단 집계(칼로리·나트륨·당류·macros + 코칭 메시지)."""
+    """지정 날짜 식단 집계(칼로리·나트륨·당류·macros + 코칭 메시지).
+
+    코칭 메시지는 지난 날짜면 그날을 되짚는 문장이고, 기준은 회원 나트륨 목표다.
+    """
     rows = db.scalars(
         select(DietEntry)
         .where(DietEntry.user_id == user_id, DietEntry.date == date)
@@ -333,7 +376,12 @@ def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:
         total_sodium_mg=total_na,
         total_sugar_g=total_sugar,
         macros=calculate_macros(total_carbs, total_protein, total_fat),
-        ai_coach_message=coach_message(total_na, bool(rows)),
+        ai_coach_message=coach_message(
+            total_na,
+            bool(rows),
+            is_past=date < today_str(),
+            sodium_limit_mg=member_sodium_limit(db, user_id),
+        ),
     )
 
 

@@ -59,10 +59,6 @@ const DashboardSummary _summary = DashboardSummary(
   ),
   dietEntries: 1,
   exerciseMinutes: 30,
-  exerciseCalories: 300,
-  exerciseCount: 1,
-  weekScore: 80,
-  weekScoreDelta: 5,
   sodiumWarning: '',
   exerciseFeedback: '',
 );

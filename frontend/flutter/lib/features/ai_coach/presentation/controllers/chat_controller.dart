@@ -18,11 +18,17 @@ class ChatState {
   const ChatState({
     this.messages = const <ChatMessage>[_welcome],
     this.sending = false,
+    this.restoring = false,
     this.quota,
   });
 
   final List<ChatMessage> messages;
   final bool sending;
+
+  /// 서버에 저장된 이전 대화를 불러오는 중인가(#2642). 화면은 이 동안 빠른
+  /// 질문과 전송을 잠깐 막는다 — 복원 전에 보낸 질문은 이전 대화의 맥락 없이
+  /// 서버로 간다.
+  final bool restoring;
 
   /// 오늘 남은 대화(#2145). 읽기 전이거나 읽지 못했으면 null 이고, 그때는 서버의
   /// 판단에 맡긴다.
@@ -31,12 +37,33 @@ class ChatState {
   ChatState copyWith({
     List<ChatMessage>? messages,
     bool? sending,
+    bool? restoring,
     AiChatQuota? quota,
   }) => ChatState(
     messages: messages ?? this.messages,
     sending: sending ?? this.sending,
+    restoring: restoring ?? this.restoring,
     quota: quota ?? this.quota,
   );
+}
+
+/// 복원한 대화 [stored] 와, 복원하는 동안 화면에 쌓인 [current] 를 합친다.
+/// (#2642)
+///
+/// 복원분이 앞, 복원 중에 생긴 말이 뒤다. 앱이 띄운 인사 말풍선만 복원분으로
+/// 대신한다 — 이어 하는 대화에 인사가 끼어들면 맥락이 끊긴다. 예전에는
+/// 복원분으로 목록을 통째로 바꿔, 복원 전에 보낸 질문과 `답 생성 중` 말풍선이
+/// 사라지고 뒤이어 온 답만 남았다.
+List<ChatMessage> mergeRestoredChat(
+  List<ChatMessage> stored,
+  List<ChatMessage> current,
+) {
+  final List<ChatMessage> added = <ChatMessage>[
+    for (final ChatMessage m in current)
+      if (m.notice != ChatNotice.welcome) m,
+  ];
+  if (stored.isEmpty) return current;
+  return <ChatMessage>[...stored, ...added];
 }
 
 /// [ChatController.send] 가 한 일. 보내지 못했으면 화면이 까닭에 맞게 안내한다.
@@ -60,7 +87,7 @@ enum ChatSendOutcome {
 typedef ChatSendResult = ({ChatSendOutcome outcome, int shortfall});
 
 class ChatController extends StateNotifier<ChatState> {
-  ChatController(this._repo) : super(const ChatState()) {
+  ChatController(this._repo) : super(const ChatState(restoring: true)) {
     _restore();
   }
 
@@ -81,16 +108,22 @@ class ChatController extends StateNotifier<ChatState> {
   /// 실패해도 조용히 넘어간다. 히스토리를 못 불러온 것 때문에 채팅을 못 쓰게
   /// 만들 이유가 없고, 화면은 welcome 메시지로 정상 동작한다. 목업 모드는 항상
   /// 빈 목록이라 지금과 똑같이 welcome 하나로 시작한다.
+  ///
+  /// 복원하는 동안 보낸 질문은 덮어쓰지 않고 복원분 뒤에 남긴다(#2642).
   Future<void> _restore() async {
-    await refreshQuota();
     try {
+      await refreshQuota();
       final stored = await _repo.fetchHistory();
-      if (stored.isEmpty || !mounted) return;
+      if (!mounted) return;
       // 복원한 대화가 있으면 welcome 대신 그것을 보여준다 — 이어 하는 대화에
-      // 매번 인사가 끼어들면 맥락이 끊긴다.
-      state = state.copyWith(messages: stored);
+      // 매번 인사가 끼어들면 맥락이 끊긴다. 그 사이 쌓인 말은 뒤에 둔다.
+      state = state.copyWith(
+        messages: mergeRestoredChat(stored, state.messages),
+        restoring: false,
+      );
     } catch (_) {
       // 무시: welcome 메시지 상태 유지
+      if (mounted) state = state.copyWith(restoring: false);
     }
   }
 
@@ -128,16 +161,21 @@ class ChatController extends StateNotifier<ChatState> {
         .where((ChatMessage m) => !m.pending && m.notice == null)
         .toList();
 
-    // 한도에 걸려 보내지 못하면 이 모습으로 되돌린다(#2145).
-    final List<ChatMessage> before = state.messages;
-
     // 방금 주고받는 것은 지금 시각이다 — 서버가 저장 시각을 따로 돌려주지
     // 않으므로 여기서 찍는다(#1918).
     final DateTime now = nowKst();
+    final ChatMessage mine = ChatMessage(
+      role: ChatRole.user,
+      content: message,
+      at: now,
+    );
+    // 한도에 걸려 보내지 못하면 방금 띄운 두 말풍선만 거둔다(#2145). 보내기 전
+    // 목록으로 통째로 되돌리면, 그 사이 끝난 복원분까지 함께 사라진다(#2642).
+    final List<ChatMessage> before = state.messages;
     state = state.copyWith(
       messages: <ChatMessage>[
         ...history,
-        ChatMessage(role: ChatRole.user, content: message, at: now),
+        mine,
         const ChatMessage(role: ChatRole.coach, content: '', pending: true),
       ],
       sending: true,
@@ -166,7 +204,7 @@ class ChatController extends StateNotifier<ChatState> {
       if (reply.replyQuota == null) await refreshQuota();
     } on AiChatBlocked catch (blocked) {
       // 보내지 않은 말이다 — 방금 띄운 말풍선을 거두고 화면이 까닭을 안내한다.
-      state = state.copyWith(messages: before, sending: false);
+      state = state.copyWith(messages: _withdraw(mine, before), sending: false);
       await refreshQuota();
       return (
         outcome: switch (blocked.reason) {
@@ -190,6 +228,17 @@ class ChatController extends StateNotifier<ChatState> {
       );
     }
     return (outcome: ChatSendOutcome.sent, shortfall: 0);
+  }
+
+  /// 보내지 못한 [mine] 과 대기 말풍선을 거둔다. 복원이 그 사이 끝나지 않았다면
+  /// 보내기 전 모습 [before] 로 돌아간다 — 인사 말풍선도 함께 돌아온다.
+  List<ChatMessage> _withdraw(ChatMessage mine, List<ChatMessage> before) {
+    if (state.restoring) return before;
+    final List<ChatMessage> rest = <ChatMessage>[
+      for (final ChatMessage m in state.messages)
+        if (!identical(m, mine) && !m.pending) m,
+    ];
+    return rest.isEmpty ? before : rest;
   }
 
   List<ChatMessage> _replacePending(ChatMessage reply) => <ChatMessage>[

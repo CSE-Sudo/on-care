@@ -6,64 +6,18 @@ import json
 import pytest
 from sqlalchemy import delete
 
-from app.api.v1.dashboard import (
-    _avg_sodium_of_logged, _build_sodium_warning, _rank_sodium_sources,
-    _score_for,
+from app.api.v1.dashboard import _build_sodium_warning, _rank_sodium_sources
+
+# 홈이 읽지 않아 응답에서 뺀 필드(#2646). 주간 점수는 지난주 운동·식단을 한 번 더
+# 조회해 만들었지만 화면 어디에도 그려지지 않았다.
+_REMOVED_SUMMARY_FIELDS = (
+    "week_score",
+    "week_score_delta",
+    "nutrition_week_prev",
+    "exercise_calories",
+    "exercise_count",
+    "exercise_burn_goal",
 )
-from app.schemas.dashboard_api import DashboardNutritionDay
-
-
-def _nday(label: str, *, calories: int, sodium_mg: int) -> DashboardNutritionDay:
-    return DashboardNutritionDay(
-        date="2026-07-27", label=label, calories=calories,
-        sodium_mg=sodium_mg, sugar_g=0,
-    )
-
-
-def test_avg_sodium_of_logged_ignores_unlogged_days():
-    # 미래 요일(칼로리 0)은 평균에서 빠진다 — 월·화만 기록됐다면 그 둘의 평균.
-    week = [
-        _nday("월", calories=1600, sodium_mg=2400),
-        _nday("화", calories=1500, sodium_mg=1600),
-        _nday("수", calories=0, sodium_mg=0),
-        _nday("목", calories=0, sodium_mg=0),
-    ]
-    assert _avg_sodium_of_logged(week) == pytest.approx(2000.0)
-
-
-def test_avg_sodium_of_logged_is_none_when_nothing_logged():
-    week = [_nday("월", calories=0, sodium_mg=0)]
-    assert _avg_sodium_of_logged(week) is None
-
-
-def test_weekly_score_uses_average_not_single_day():
-    # 지난 주는 기록된 날 평균 나트륨이 초과(2400>2000)라 나트륨 보너스가 빠지고,
-    # 이번 주는 평균이 예산 이내(1800<=2000)라 보너스가 붙는다 — 하루치가 아니라
-    # 주간 평균으로 두 점수를 같은 잣대로 비교한다.
-    this_week = [
-        _nday("월", calories=1500, sodium_mg=1800),
-        _nday("화", calories=1500, sodium_mg=1800),
-        _nday("수", calories=0, sodium_mg=0),  # 미래 요일은 무시
-    ]
-    prev_week = [
-        _nday("월", calories=1500, sodium_mg=2400),
-        _nday("화", calories=1500, sodium_mg=2400),
-    ]
-    this_avg = _avg_sodium_of_logged(this_week)
-    prev_avg = _avg_sodium_of_logged(prev_week)
-    assert this_avg == pytest.approx(1800.0)
-    assert prev_avg == pytest.approx(2400.0)
-    # 운동량 동일(0)일 때: 이번 주는 +20, 지난 주는 미포함 → delta = 20.
-    this_score = _score_for(this_avg <= 2000, 0)
-    prev_score = _score_for(prev_avg <= 2000, 0)
-    assert this_score - prev_score == 20
-
-
-def test_score_for_combines_sodium_and_exercise():
-    assert _score_for(True, 200) == 100   # 50 + 20(나트륨) + 30(운동 150+)
-    assert _score_for(True, 100) == 85    # 50 + 20 + 15(운동 1~149)
-    assert _score_for(True, 0) == 70      # 50 + 20
-    assert _score_for(False, 0) == 50     # 기본만
 
 
 @pytest.mark.parametrize(
@@ -179,19 +133,16 @@ def test_dashboard_summary_includes_macros_and_sodium_sources(client, db_session
     }
     assert body["sodium_warning"] == "라면·샐러드 섭취로 나트륨이 높아요."
     assert isinstance(body["exercise_minutes"], int)
-    assert isinstance(body["exercise_calories"], int)
-    assert isinstance(body["exercise_count"], int)
 
-    # 주간 추이(이번 주 월~일 7일) + 지난 주 비교선 7일
+    # 주간 추이(이번 주 월~일 7일)
     assert len(body["nutrition_week"]) == 7
-    assert len(body["nutrition_week_prev"]) == 7
     assert [d["label"] for d in body["nutrition_week"]] == \
         ["월", "화", "수", "목", "금", "토", "일"]
     # 오늘 점심(780)+저녁(570)이 이번 주 어느 요일에 집계돼야 한다.
     assert sum(d["calories"] for d in body["nutrition_week"]) >= 1350
-    # 소모 목표 필드(기본값) + 지난주 대비 변화량은 정수
-    assert body["exercise_burn_goal"] == 500
-    assert isinstance(body["week_score_delta"], int)
+    # 홈이 읽지 않던 필드는 싣지 않는다(#2646).
+    for removed in _REMOVED_SUMMARY_FIELDS:
+        assert removed not in body
 
 
 def test_dashboard_summary_uses_personal_nutrition_goals(client, db_session):
@@ -280,15 +231,15 @@ def test_dashboard_names_the_advice_it_chose(client, db_session):
         )
         == "sodium_over"
     )
-    # 음식 이름이 든 경고는 키를 주지 않는다 — 그 이름은 번역 대상이 아니라
-    # 회원이 적은 데이터라, 문장을 통째로 보내는 편이 맞다.
+    # 음식 이름이 든 경고도 키를 준다(#2644) — 이름은 인자로 따로 싣고 문장
+    # 틀은 앱 ARB 가 언어별로 갖는다. 키를 비우면 영어 화면이 한국어를 그린다.
     assert (
         _advice_key(
             sodium_warning="라면·김치 섭취로 나트륨이 높아요.",
             sodium_source_names=["라면", "김치"],
             exercise_advice_key="exercise_start",
         )
-        is None
+        == "sodium_over_sources"
     )
     # 경고가 없으면 운동 되먹임이 조언이다.
     for key in ("exercise_on_track", "exercise_more", "exercise_start"):
@@ -305,3 +256,37 @@ def test_dashboard_names_the_advice_it_chose(client, db_session):
     r = client.get("/v1/dashboard/summary")
     assert r.status_code == 200, r.text
     assert "ai_advice_key" in r.json()
+
+
+def test_summary_schema_drops_fields_the_home_never_read():
+    """응답 계약에서 빠진 필드가 스키마에 되살아나지 않는다(#2646)."""
+    from app.schemas.dashboard_api import DashboardNutritionDay, DashboardSummary
+
+    for removed in _REMOVED_SUMMARY_FIELDS:
+        assert removed not in DashboardSummary.model_fields
+    # 세 지표와 주간 추이의 일별 나트륨·당류는 같은 조회에서 나오므로 남긴다.
+    assert "indicators" in DashboardSummary.model_fields
+    assert {"sodium_mg", "sugar_g"} <= set(DashboardNutritionDay.model_fields)
+
+
+def test_dashboard_summary_queries_only_this_week(client, db_session, monkeypatch):
+    """지난주 운동·식단을 다시 읽지 않는다 — 그 값은 주간 점수에만 쓰였다."""
+    from datetime import timedelta
+
+    from app.api.v1 import dashboard as dashboard_module
+
+    mondays: list[str] = []
+    original = dashboard_module._nutrition_week
+
+    def spy(db, uid, monday):
+        mondays.append(monday.strftime("%Y-%m-%d"))
+        return original(db, uid, monday)
+
+    monkeypatch.setattr(dashboard_module, "_nutrition_week", spy)
+
+    response = client.get("/v1/dashboard/summary")
+
+    assert response.status_code == 200
+    now = dashboard_module.clock.now()
+    this_monday = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
+    assert mondays == [this_monday]

@@ -157,8 +157,6 @@ void main() {
     expect(summary.nutritionWeek, hasLength(7));
     final todayTrend = summary.nutritionWeek[nowKst().weekday - 1];
     expect(todayTrend.calories, todayDiet.totalCalories);
-    expect(todayTrend.sodiumMg, todayDiet.totalSodiumMg);
-    expect(todayTrend.sugarG, todayDiet.totalSugarG);
     // 시드가 큐레이션한 '통합 조언'이 동적 나트륨 경고 대신 노출된다. 문구가
     // 아니라 키로 내려와야 화면이 로케일에 맞게 고를 수 있다(#435).
     expect(summary.aiAdviceKey, kDailyCombinedAdviceKey);
