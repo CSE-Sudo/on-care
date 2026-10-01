@@ -5,8 +5,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 /// 실서버는 루틴 완료를 받으면 회원 운동 기록 한 건(`assigned_routine`)을 함께
 /// 만들고 완료를 되돌리면 지운다(#1131). 데모에는 서버가 없어 목업 코치 저장소가
 /// 이 일을 대신하는데, 그 기록은 운동 탭·홈·챌린지가 읽는 **같은 기록**에
-/// 들어가야 한다(#2662). 앱에서는 로컬 목업 API(drift)가, 테스트에서는 메모리
-/// 목업 운동 저장소가 이 역할을 맡는다.
+/// 들어가야 한다(#2662). 로컬 목업 API(drift)가 이 역할을 맡는다.
 abstract interface class RoutineSessionLog {
   /// 배정 루틴을 수행한 기록을 남긴다. 출처는 `assigned_routine` 이라 회원이
   /// 고치거나 지우지 못한다(#499, #638).
