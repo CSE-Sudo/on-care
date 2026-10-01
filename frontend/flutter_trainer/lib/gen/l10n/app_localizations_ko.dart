@@ -439,6 +439,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String dashScheduleInProgress(String time, String name) {
+    return '진행 중 $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes분 남음';
+  }
+
+  @override
   String get dashPreparePt => 'PT 준비하기';
 
   @override
@@ -2214,6 +2224,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifNotReady => '곧 끌 수 있어요 — 지금은 항상 받아요';
 
   @override
+  String get myNotifLoading => '알림 설정을 불러오는 중이에요';
+
+  @override
+  String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요';
 
   @override
@@ -3886,8 +3902,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoReport => '리포트';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return '$month/$day 상담 요청';
+  String dashTodoConsultationSubtitle(String when) {
+    return '희망 $when';
   }
 
   @override
@@ -3904,6 +3920,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dashTaskLoadFailed => '할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get dashTaskDayChanged => '날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요';
 
   @override
   String get dashTaskDismissTitle => '이 항목을 삭제할까요?';

@@ -152,7 +152,7 @@ class _Panel extends ConsumerWidget {
                   label: l.notifReadAll,
                   variant: AppButtonVariant.text,
                   size: OnCareButtonSize.small,
-                  onPressed: () => NotificationsPage.readAll(context, ref),
+                  onPressed: () => NotificationsPage.readAll(context),
                 ),
             ],
           ),

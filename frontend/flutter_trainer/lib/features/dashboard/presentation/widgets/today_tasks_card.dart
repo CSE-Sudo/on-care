@@ -9,6 +9,8 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
+import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -22,22 +24,23 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 상담 요청 확인 미션이 쓰는 대기 목록 — **한 번만** 읽는다.
-///
-/// `consultationsProvider`(인박스 화면 전용)는 [ConsultationRepository.watch]
-/// 를 그대로 구독하는데, 실서버 구현은 배지처럼 몇 초마다 다시 읽는 폴링
-/// 스트림이다. 대시보드 카드에 그 스트림을 그대로 물리면 대시보드를 떠나도
-/// 폴링이 계속 돌아 — 스케줄 30일 조회에서 겪은 것과 같은 이유로(
-/// dashboard_controller.dart 참고) — 실서버 모드 위젯 테스트에서 타이머가
-/// 안 지워지는 문제가 다시 생겼다. `fetch()` 는 원래 일회성 Future라 그대로
-/// 쓴다.
-final _consultationMissionsProvider =
-    FutureProvider.autoDispose<List<ConsultationRequest>>((ref) {
-      if (!ref.watch(consultationInboxEnabledProvider)) {
-        return Future.value(const <ConsultationRequest>[]);
-      }
-      return ref.watch(consultationRepositoryProvider).fetch();
-    }, name: 'consultationMissions');
+/// 상담 미션 부제의 때 — 회원이 고른 자리가 있으면 그 날짜·시각, 없으면
+/// 희망 날짜와 희망 시각. 상담 창 카드와 같은 규칙이다(#2887). 요청이 접수된
+/// 날이 아니다.
+String consultationMissionWhen(
+  AppLocalizations l,
+  ConsultationRequest request,
+) {
+  final DateTime? start = request.slotStartsAt;
+  if (start != null) {
+    final String hm =
+        '${start.hour.toString().padLeft(2, '0')}:'
+        '${start.minute.toString().padLeft(2, '0')}';
+    return '${dateLabel(l, start)} $hm';
+  }
+  return '${dateLabel(l, request.preferredDate)} '
+      '${preferredTimeLabel(l, request.preferredTimeCode)}';
+}
 
 /// 비동기 원천이 한 번이라도 답했는가 — 값이든 오류든.
 bool _settled(AsyncValue<Object?> value) => value.hasValue || value.hasError;
@@ -75,47 +78,12 @@ TaskMarks restoreTaskMarks({
   return (checked: checked, carriedOver: carriedOver);
 }
 
-/// 오늘 저장할 스냅숏 — 화면이 아는 미션의 상태에, 화면이 아직 모르는 미션의
-/// 저장 상태를 그대로 얹는다(#2763).
-///
-/// 저장은 그날 전체를 덮어쓴다. 상담 목록 읽기가 실패했거나 늦어 화면에 없는
-/// 미션을 빼고 저장하면, 다른 기기나 이전 방문에서 해 둔 그 체크가 서버에서
-/// 사라지고 진행률 그래프의 완료 수가 준다. 그래서 [seen] 밖의 키는 [saved]
-/// 의 완료·미완료를 그대로 옮긴다. 화면에 나타났다가 사라진 미션(상담을
-/// 처리해 대기에서 빠진 요청 등)은 전처럼 빠진다.
-///
-/// 옮겨 온 완료는 이월분인지 알 수 없어 오늘 완료로 센다. 옛 기록(체크 키가
-/// 없는 날)의 완료는 알 수 없어 옮기지 않는다.
-@visibleForTesting
-DailyTaskSnapshot composeTaskSnapshot({
-  required Set<String> allKeys,
-  required Set<String> checked,
-  required Set<String> carriedOver,
-  required Set<String> dismissed,
-  required Set<String> seen,
-  required DailyTaskSnapshot? saved,
-}) {
-  final Set<String> done = checked.intersection(allKeys);
-  final int carriedDone = done.intersection(carriedOver).length;
-  final Set<String> unseen = <String>{
-    ...?saved?.completedKeys,
-    ...?saved?.pendingKeys,
-  }.difference(seen).difference(dismissed).difference(allKeys);
-  final Set<String> keptDone = unseen.intersection(
-    saved?.completedKeys ?? const <String>{},
-  );
-  final Set<String> keptPending = unseen
-      .intersection(saved?.pendingKeys ?? const <String>{})
-      .difference(keptDone);
-  return DailyTaskSnapshot(
-    total: allKeys.length + keptDone.length + keptPending.length,
-    completedToday: done.length - carriedDone + keptDone.length,
-    completedCarriedOver: carriedDone,
-    pendingKeys: allKeys.difference(done).union(keptPending),
-    dismissedKeys: Set<String>.of(dismissed),
-    completedKeys: done.union(keptDone),
-  );
-}
+/// 화면이 그리는 체크·이월과 오늘 목록에 남은 키(지운 것 제외).
+typedef _TaskMarksView = ({
+  Set<String> checked,
+  Set<String> carriedOver,
+  Set<String> allKeys,
+});
 
 /// One concrete 오늘 할 일 item — 상담 요청 하나, 건강 신호가 있는 고객
 /// 하나, 프로그램 미등록 고객 하나, 리포트 대상 고객 하나 등.
@@ -174,70 +142,92 @@ class TodayTasksCard extends ConsumerStatefulWidget {
   ConsumerState<TodayTasksCard> createState() => _TodayTasksCardState();
 }
 
-class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
-  Set<String> _checkedKeys = <String>{};
-  Set<String> _dismissedKeys = <String>{};
-  Set<String> _carriedOverKeys = <String>{};
+class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
+    with WidgetsBindingObserver {
+  /// 화면이 따르는 날 — 저장 상태를 처음 옮겨 온 날이다. 그 전에는 null 이고
+  /// 체크·삭제를 받지 않는다.
   String? _initializedForDate;
 
-  /// 지금까지 화면에 나타난 미션 키 — 저장된 체크·이월을 이미 옮겨 온 키다.
+  /// 지금까지 화면에 나타난 미션 키.
   ///
-  /// 이 밖의 키는 아직 이 화면이 모르는 미션이다(원천이 늦게 왔거나 읽기에
-  /// 실패했다). 그런 키의 저장 상태는 덮어쓰지 않고 그대로 둔다(#2763).
+  /// 이 밖의 저장 키는 아직 이 화면이 모르는 미션이다(원천이 늦게 왔거나 읽기에
+  /// 실패했다). 서버는 그런 키의 저장 상태를 건드리지 않는다(#2763).
   Set<String> _seenKeys = <String>{};
 
-  void _initializeIfNewDay(Set<String> missionKeys, DailyTaskHistory history) {
-    final today = ymd(nowKst());
-    if (_initializedForDate == today) return;
-    _initializedForDate = today;
-    final snapshot = history.read(today);
-    _dismissedKeys = snapshot == null
-        ? <String>{}
-        : Set<String>.of(snapshot.dismissedKeys);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 탭이 다시 보이면 그날 기록을 다시 읽는다 — 다른 탭·기기에서 바꾼 체크를
+  /// 반영한다(#2886). 보낸 변경의 답을 기다리는 중이면 미룬다(선반영이
+  /// 깜빡인다). 다음 변경의 응답이 어차피 서버 상태를 실어 온다.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (ref.read(dailyTaskHistoryProvider.notifier).hasPendingChanges()) return;
+    ref.invalidate(dailyTaskHistoryProvider);
+  }
+
+  /// 미션 원천이 모두 준비된 뒤 그날을 연다. 날이 같으면 새로 나타난 키만
+  /// 본 것으로 더한다.
+  void _syncDay(String day, Set<String> missionKeys) {
+    if (_initializedForDate != day) {
+      _initializedForDate = day;
+      _seenKeys = Set<String>.of(missionKeys);
+      return;
+    }
+    _seenKeys.addAll(missionKeys);
+  }
+
+  /// [day] 의 전날 기록. 없으면 데모 이력을 본다 — 그 안의 미완료 키는 데모
+  /// 전용이라 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203). 실계정은 데모
+  /// 이력이 없다(#2671).
+  DailyTaskSnapshot? _previousSnapshot(DailyTaskHistory history, String day) {
+    final DateTime previous = DateTime.parse(
+      day,
+    ).subtract(const Duration(days: 1));
+    return history.read(ymd(previous)) ??
+        ref.read(demoTaskHistoryProvider)?.snapshotFor(previous);
+  }
+
+  /// 그날 기록에서 [missionKeys] 의 체크·이월을 읽는다. 그날을 열기 전에는
+  /// 아무것도 체크로 보이지 않는다.
+  _TaskMarksView _marksFor(Set<String> missionKeys, DailyTaskHistory? history) {
+    final String? day = _initializedForDate;
+    if (history == null || day == null) {
+      return (
+        checked: const <String>{},
+        carriedOver: const <String>{},
+        allKeys: missionKeys,
+      );
+    }
+    final DailyTaskSnapshot? today = history.read(day);
+    final Set<String> dismissed = today?.dismissedKeys ?? const <String>{};
     final TaskMarks marks = restoreTaskMarks(
       keys: missionKeys,
-      today: snapshot,
-      yesterday: _yesterdaySnapshot(history),
-      dismissed: _dismissedKeys,
+      today: today,
+      yesterday: _previousSnapshot(history, day),
+      dismissed: dismissed,
     );
-    _checkedKeys = marks.checked;
-    _carriedOverKeys = marks.carriedOver;
-    _seenKeys = Set<String>.of(missionKeys);
-  }
-
-  /// 초기화 뒤에 새로 나타난 미션에 저장된 체크·이월을 옮겨 온다(#2763).
-  ///
-  /// 미션 원천은 여럿이고(상담 요청·회원 명단·건강 신호) 도착 순서가 매번
-  /// 다르다. 원천이 모두 준비된 뒤에 초기화하지만, 그 뒤에 생긴 미션(새 상담
-  /// 요청, 다시 읽은 명단)도 같은 날 저장해 둔 체크를 잃지 않게 한다.
-  void _restoreLateKeys(Set<String> missionKeys, DailyTaskHistory history) {
-    final Set<String> late = missionKeys.difference(_seenKeys);
-    if (late.isEmpty) return;
-    _seenKeys.addAll(late);
-    final TaskMarks marks = restoreTaskMarks(
-      keys: late,
-      today: history.read(ymd(nowKst())),
-      yesterday: _yesterdaySnapshot(history),
-      dismissed: _dismissedKeys,
+    return (
+      checked: marks.checked,
+      carriedOver: marks.carriedOver,
+      allKeys: missionKeys.difference(dismissed),
     );
-    _checkedKeys.addAll(marks.checked);
-    _carriedOverKeys.addAll(marks.carriedOver);
-  }
-
-  /// 어제 기록. 없으면 데모 이력을 본다 — 그 안의 미완료 키는 데모 전용이라
-  /// 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203). 실계정은 데모 이력이
-  /// 없다(#2671).
-  DailyTaskSnapshot? _yesterdaySnapshot(DailyTaskHistory history) {
-    final DateTime yesterdayDay = nowKst().subtract(const Duration(days: 1));
-    return history.read(ymd(yesterdayDay)) ??
-        ref.read(demoTaskHistoryProvider)?.snapshotFor(yesterdayDay);
   }
 
   /// 저장된 상태를 아직 못 읽었으면 체크·삭제를 받지 않는다 — 빈 상태에서
-  /// 저장하면 다른 기기에서 해 둔 체크를 덮어쓴다. 읽기에 실패했으면 알리고
-  /// 다시 읽는다.
+  /// 보내면 화면이 모르는 체크와 섞인다. 읽기에 실패했으면 알리고 다시 읽는다.
   bool _ensureReady() {
-    if (_initializedForDate != null) return true;
+    if (_initializedForDate != null) return !_dayChangedSinceOpen();
     if (ref.read(dailyTaskHistoryProvider).hasError) {
       showAppToast(
         context,
@@ -249,13 +239,26 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     return false;
   }
 
-  Future<void> _toggle(_Mission mission, Set<String> allKeys) async {
+  /// 화면을 연 날과 오늘이 다른가(#2866). 다르면 오늘 기준으로 다시 그리고
+  /// 알린다 — 트레이너는 어제 목록을 보고 누른 것이라 그 탭은 받지 않는다.
+  /// 다시 그릴 때 [_syncDay] 가 오늘을 연다(어제 미완료는 `지난 할 일`).
+  bool _dayChangedSinceOpen() {
+    if (_initializedForDate == ymd(nowKst())) return false;
+    if (mounted) {
+      setState(() {});
+      showAppToast(context, AppLocalizations.of(context).dashTaskDayChanged);
+    }
+    return true;
+  }
+
+  Future<void> _toggle(_Mission mission, _TaskMarksView marks) async {
     if (!_ensureReady()) return;
     // 체크 해제 = 완료 취소다. 되돌리면 할 일 진행률 그래프에서도 그 완료가
     // 빠지는데, 그 사실이 체크박스 하나 누르는 것만으로는 안 보인다 —
     // 회원 앱 운동탭의 "완료 취소" 확인창과 같은 안내를 준다. 체크(완료)는
     // 되돌릴 게 없어 바로 처리한다.
-    if (_checkedKeys.contains(mission.key)) {
+    final bool wasChecked = marks.checked.contains(mission.key);
+    if (wasChecked) {
       final l = AppLocalizations.of(context);
       final name = mission.client?.name ?? mission.title;
       final confirmed = await showAppConfirmDialog(
@@ -267,13 +270,14 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
       );
       if (!confirmed || !mounted) return;
     }
-    setState(() {
-      if (!_checkedKeys.remove(mission.key)) _checkedKeys.add(mission.key);
-    });
-    unawaited(_persist(allKeys));
+    await _send(
+      mission.key,
+      wasChecked ? TaskKeyAction.uncheck : TaskKeyAction.check,
+      marks,
+    );
   }
 
-  Future<void> _dismiss(String key, Set<String> allKeys) async {
+  Future<void> _dismiss(String key, _TaskMarksView marks) async {
     if (!_ensureReady()) return;
     final l = AppLocalizations.of(context);
     final confirmed = await showAppConfirmDialog(
@@ -285,25 +289,31 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
       destructive: true,
     );
     if (!confirmed || !mounted) return;
-    setState(() {
-      _dismissedKeys.add(key);
-      _checkedKeys.remove(key);
-    });
-    unawaited(_persist(allKeys.difference(<String>{key})));
+    await _send(key, TaskKeyAction.dismiss, marks);
   }
 
-  Future<void> _persist(Set<String> allKeys) async {
-    final String today = ymd(nowKst());
-    final DailyTaskSnapshot snapshot = composeTaskSnapshot(
-      allKeys: allKeys,
-      checked: _checkedKeys,
-      carriedOver: _carriedOverKeys,
-      dismissed: _dismissedKeys,
-      seen: _seenKeys,
-      saved: ref.read(dailyTaskHistoryProvider).valueOrNull?.read(today),
+  /// 누른 키 하나만 보낸다(#2886). 그날 전체를 덮어쓰면 다른 탭·기기에서 한
+  /// 체크가 지워졌다. 화면은 컨트롤러가 먼저 반영하고, 실패하면 그 키만
+  /// 되돌린 뒤 여기서 알린다.
+  Future<void> _send(
+    String key,
+    TaskKeyAction action,
+    _TaskMarksView marks,
+  ) async {
+    final String? day = _initializedForDate;
+    if (day == null) return;
+    // 확인창을 띄운 사이 자정을 넘겼을 수 있다. 저장은 화면을 연 날에만 하고,
+    // 그날이 오늘이 아니면 보내지 않는다(#2866).
+    if (_dayChangedSinceOpen()) return;
+    final TaskKeyChange change = TaskKeyChange(
+      key: key,
+      action: action,
+      keys: marks.allKeys,
+      seen: Set<String>.of(_seenKeys),
+      carriedOver: marks.carriedOver,
     );
     try {
-      await ref.read(dailyTaskHistoryProvider.notifier).save(today, snapshot);
+      await ref.read(dailyTaskHistoryProvider.notifier).apply(day, change);
     } on AppError {
       if (!mounted) return;
       showAppToast(
@@ -318,7 +328,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     final clients =
         ref.watch(clientsProvider).valueOrNull ?? const <TrainerClient>[];
     final consultations =
-        ref.watch(_consultationMissionsProvider).valueOrNull ??
+        ref.watch(pendingConsultationsOnceProvider).valueOrNull ??
         const <ConsultationRequest>[];
 
     // 주의 신호(답장 대기 제외)가 있는 회원만 — 답장은 `상담`·메시지가 맡는다.
@@ -354,8 +364,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           keywordColor: context.oncare.brand.primary,
           title: request.memberName,
           subtitle: l.dashTodoConsultationSubtitle(
-            request.preferredDate.month,
-            request.preferredDate.day,
+            consultationMissionWhen(l, request),
           ),
           onTap: () => showConsultationsDialog(context),
         ),
@@ -419,23 +428,40 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // 자정에 다시 그려 오늘을 연다(#2866). 날짜만 보므로 분마다 깨지 않는다.
+    ref.watch(kstTodayProvider);
+    // 대기 상담 수가 바뀌면(배지가 이미 폴링 중) 상담 미션을 다시 읽는다 —
+    // 새 요청이 미션으로 나타나고, 다른 곳에서 처리한 요청은 빠진다(#2887).
+    // 첫 값은 목록과 함께 이미 읽었으므로 넘긴다.
+    ref.listen<AsyncValue<int>>(consultationPendingCountProvider, (
+      AsyncValue<int>? previous,
+      AsyncValue<int> next,
+    ) {
+      final int? before = previous?.valueOrNull;
+      final int? after = next.valueOrNull;
+      if (before == null || after == null || before == after) return;
+      ref.invalidate(pendingConsultationsOnceProvider);
+    });
     final missions = _buildMissions(l);
     final missionKeys = <String>{for (final m in missions) m.key};
     final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
     // 미션 원천이 모두 답한 뒤에만 저장 상태를 옮겨 온다(#2763). 이력이 상담
-    // 목록보다 먼저 오면, 그 순간 없는 상담 키의 체크·이월이 버려지고 그 상태로
-    // 저장해 서버의 상담 체크까지 덮어썼다. 그 전에는 체크·삭제도 받지 않는다.
+    // 목록보다 먼저 오면, 그 순간 없는 상담 키의 체크·이월이 버려졌다. 그 전에는
+    // 체크·삭제도 받지 않는다.
     final bool sourcesSettled =
-        _settled(ref.watch(_consultationMissionsProvider)) &&
+        _settled(ref.watch(pendingConsultationsOnceProvider)) &&
         _settled(ref.watch(clientsProvider));
     if (history != null && sourcesSettled) {
-      _initializeIfNewDay(missionKeys, history);
-      _restoreLateKeys(missionKeys, history);
+      _syncDay(ymd(nowKst()), missionKeys);
     }
-    final allKeys = missionKeys.difference(_dismissedKeys);
+    // 체크·삭제·이월은 화면이 따로 들고 있지 않고 그날 기록에서 매번 읽는다
+    // (#2886). 컨트롤러가 누른 키를 먼저 반영하고, 서버 응답(다른 기기의 변경
+    // 포함)이나 실패 되돌림으로 기록을 바꾸면 화면도 그대로 따라온다.
+    final _TaskMarksView marks = _marksFor(missionKeys, history);
+    final allKeys = marks.allKeys;
     final visible = missions.where((m) => allKeys.contains(m.key)).toList();
 
-    final remaining = allKeys.difference(_checkedKeys).length;
+    final remaining = allKeys.difference(marks.checked).length;
     final allDone = allKeys.isNotEmpty && remaining == 0;
 
     // 항목이 하나도 없어도 다섯 카테고리는 항상 그 자리에 있다 — 매일 다시
@@ -453,7 +479,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
       for (final entry in categoryOrder) entry.key: <_Mission>[],
     };
     for (final mission in visible) {
-      if (_carriedOverKeys.contains(mission.key)) {
+      if (marks.carriedOver.contains(mission.key)) {
         carriedOver.add(mission);
         continue;
       }
@@ -471,9 +497,9 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           color: OnCareColors.chartGoalLine,
           tinted: true,
           missions: carriedOver,
-          checkedKeys: _checkedKeys,
-          onToggle: (m) => unawaited(_toggle(m, allKeys)),
-          onDismiss: (key) => _dismiss(key, allKeys),
+          checkedKeys: marks.checked,
+          onToggle: (m) => unawaited(_toggle(m, marks)),
+          onDismiss: (key) => unawaited(_dismiss(key, marks)),
         ),
       for (final category in categoryOrder)
         _CategorySection(
@@ -481,9 +507,9 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           title: category.key,
           color: category.value,
           missions: byCategory[category.key]!,
-          checkedKeys: _checkedKeys,
-          onToggle: (m) => unawaited(_toggle(m, allKeys)),
-          onDismiss: (key) => _dismiss(key, allKeys),
+          checkedKeys: marks.checked,
+          onToggle: (m) => unawaited(_toggle(m, marks)),
+          onDismiss: (key) => unawaited(_dismiss(key, marks)),
         ),
     ];
 

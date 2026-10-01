@@ -66,12 +66,22 @@ class DioScheduleRepository implements ScheduleRepository {
   /// Closes the revision channel. Called by the provider's `onDispose`.
   void dispose() => unawaited(_revisions.close());
 
+  /// 오늘 일정. 날짜를 읽을 때마다 다시 정한다 — 구독 시점의 날짜에 고정하면
+  /// 켜 둔 채 자정을 넘긴 화면이 어제 일정을 계속 읽는다(#2865).
   @override
-  Stream<List<ScheduleSession>> watchToday() => watchDate(ymd(nowKst()));
+  Stream<List<ScheduleSession>> watchToday() => _live(
+    () => _fetch(<String, String>{'date': ymd(nowKst())}),
+    pollExternal: true,
+  );
 
+  /// 하루 일정. [watchRange] 와 같이 짧은 주기로 다시 읽는다 — 회원 앱에서
+  /// 생긴 예약·취소, 다른 탭의 완료 처리는 이 화면의 쓰기로는 알 수 없다
+  /// (#2865). 창이 뒤로 가면 [activePollingStream] 이 폴링을 멈춘다.
   @override
-  Stream<List<ScheduleSession>> watchDate(String date) =>
-      _live(() => _fetch(<String, String>{'date': date}));
+  Stream<List<ScheduleSession>> watchDate(String date) => _live(
+    () => _fetch(<String, String>{'date': date}),
+    pollExternal: true,
+  );
 
   @override
   Stream<List<ScheduleSession>> watchRange(String fromDate, String toDate) =>

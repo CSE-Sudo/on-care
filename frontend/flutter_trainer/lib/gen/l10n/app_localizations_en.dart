@@ -454,6 +454,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dashScheduleInProgress(String time, String name) {
+    return 'In progress: $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes min left';
+  }
+
+  @override
   String get dashPreparePt => 'Prepare PT';
 
   @override
@@ -2329,6 +2339,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifNotReady => 'Coming soon — always on for now';
 
   @override
+  String get myNotifLoading => 'Loading notification settings…';
+
+  @override
+  String get myNotifLoadFailed =>
+      'Couldn\'t load notification settings. Please try again';
+
+  @override
   String get myNotifNewMessageHint =>
       'Get an inbox alert and a sidebar count when a member messages you';
 
@@ -4084,8 +4101,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTodoReport => 'Report';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return 'Consultation request for $month/$day';
+  String dashTodoConsultationSubtitle(String when) {
+    return 'Preferred: $when';
   }
 
   @override
@@ -4105,6 +4122,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dashTaskLoadFailed =>
       'Couldn\'t load your task status. Please try again in a moment';
+
+  @override
+  String get dashTaskDayChanged =>
+      'The date changed, so today\'s tasks were reloaded. Please tap again';
 
   @override
   String get dashTaskDismissTitle => 'Delete this item?';

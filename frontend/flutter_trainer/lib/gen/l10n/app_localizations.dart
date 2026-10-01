@@ -896,6 +896,18 @@ abstract class AppLocalizations {
   /// **'in {minutes} min'**
   String dashScheduleMinutesLeft(int minutes);
 
+  /// Dashboard banner when today's session has started but not yet ended (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'In progress: {time} · {name}'**
+  String dashScheduleInProgress(String time, String name);
+
+  /// Minutes until the in-progress session ends (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min left'**
+  String dashScheduleMinutesToEnd(int minutes);
+
   /// No description provided for @dashPreparePt.
   ///
   /// In en, this message translates to:
@@ -4051,6 +4063,18 @@ abstract class AppLocalizations {
   /// **'Coming soon — always on for now'**
   String get myNotifNotReady;
 
+  /// Notification settings card row shown while the saved settings are loading; switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading notification settings…'**
+  String get myNotifLoading;
+
+  /// Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings. Please try again'**
+  String get myNotifLoadFailed;
+
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
@@ -7063,11 +7087,11 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get dashTodoReport;
 
-  /// No description provided for @dashTodoConsultationSubtitle.
+  /// Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.
   ///
   /// In en, this message translates to:
-  /// **'Consultation request for {month}/{day}'**
-  String dashTodoConsultationSubtitle(int month, int day);
+  /// **'Preferred: {when}'**
+  String dashTodoConsultationSubtitle(String when);
 
   /// Subtitle of the demo carried-over task shown before real history exists.
   ///
@@ -7098,6 +7122,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your task status. Please try again in a moment'**
   String get dashTaskLoadFailed;
+
+  /// Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'The date changed, so today\'s tasks were reloaded. Please tap again'**
+  String get dashTaskDayChanged;
 
   /// No description provided for @dashTaskDismissTitle.
   ///

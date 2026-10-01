@@ -585,7 +585,7 @@ class _SessionBlock extends StatelessWidget {
   /// 상담인가. 종류는 색을 하나 더 들이는 대신 **채움과 비움**으로 가른다 —
   /// 1:1 PT 는 연한 브랜드 면으로 채우고, 상담은 흰 바탕에 브랜드 윤곽선을
   /// 두른다(#1013).
-  bool get _isConsultation => session.type == SessionType.consultation;
+  bool get _isConsultation => session.isConsultation;
 
   @override
   Widget build(BuildContext context) {
