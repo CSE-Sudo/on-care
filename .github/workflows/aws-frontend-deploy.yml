@@ -43,6 +43,14 @@ jobs:
       - name: Check Flutter version
         run: flutter --version
 
+      # 운영 배포는 실서버 고정이다(#2810). 두 앱은 dart-define 을 받지 못하면
+      # 목업(USE_MOCK_API=true)·자리표시자 주소로 빌드되는데, 빌드는 그대로 성공하므로
+      # 배포 뒤에야 드러난다. 그래서 주소 변수가 비었거나 형식이 틀리면 빌드 전에 멈춘다.
+      - name: Require production API base URL
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: bash .github/scripts/check_web_api_base_url.sh
+
       - name: Install Flutter dependencies
         working-directory: frontend/flutter
         run: flutter pub get
@@ -53,9 +61,17 @@ jobs:
 
       - name: Build Flutter web
         working-directory: frontend/flutter
+        # 운영 빌드: 실서버(USE_MOCK_API=false)·운영 환경(ENV=prod — 라우터 진단 로그와
+        # provider 로그가 꺼진다). 주소는 저장소 변수에서만 읽고 여기 적지 않는다.
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
         run: >-
           flutter build web --release --base-href "/frontend/"
-          --dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
+          --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+          --dart-define=USE_MOCK_API=false
+          --dart-define=API_BASE_URL="$API_BASE_URL"
+          --dart-define=ENV=prod
 
       - name: Install Flutter dependencies (trainer)
         working-directory: frontend/flutter_trainer
@@ -69,9 +85,17 @@ jobs:
         working-directory: frontend/flutter_trainer
         # 소속 헬스장 찾기 지도(#2543). 회원 앱과 같은 카카오맵 JS 키를 쓰고, 카카오
         # 콘솔에 트레이너 웹 도메인이 등록돼 있어야 뜬다. 키가 없으면 목록만 보인다.
+        # 회원 앱과 같은 운영 설정이다 — 두 앱이 한 백엔드를 봐야 회원 기록이 트레이너에게
+        # 보인다.
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
         run: >-
           flutter build web --release --base-href "/trainer/"
-          --dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
+          --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+          --dart-define=USE_MOCK_API=false
+          --dart-define=API_BASE_URL="$API_BASE_URL"
+          --dart-define=ENV=prod
 
       - name: Prepare deploy files
         run: |
