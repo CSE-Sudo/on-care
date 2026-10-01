@@ -185,3 +185,29 @@ def test_strength_always_says_how_many_sets():
                 assert exercise.sets is None, f"{day.iso}: {exercise.name}"
                 continue
             assert exercise.sets, f"{day.iso}: {exercise.name} 에 세트가 없다"
+
+
+def test_history_line_carries_the_values_the_trainer_reads_back():
+    """이력 한 줄에 값이 실린다 — 트레이너 화면이 그 줄에서 되읽는 값이다(#2567).
+
+    예전에는 `벤치프레스 ✓` 처럼 이름만 적어, PT 세션·AI 개인운동 이력 카드에
+    세트·횟수·중량·시간이 서지 않았다. 실제 PT 완료가 적는 줄과 같은 모양이어야
+    `parse_history_exercise` 가 픽스처와 같은 값을 돌려준다.
+    """
+    from app.services.trainer_service import parse_history_exercise
+
+    for day in load_fixture().days_for(date(2026, 8, 16)):
+        for exercise in day.exercises:
+            item = parse_history_exercise(exercise.label)
+            where = f"{day.iso}: {exercise.label}"
+            assert item.name == exercise.name, where
+            assert item.done == exercise.done, where
+            if exercise_types.normalize(exercise.type) == exercise_types.STRENGTH:
+                assert item.sets == exercise.sets, where
+                assert item.reps == (
+                    None if exercise.hold_seconds else exercise.reps
+                ), where
+                assert item.hold_seconds == exercise.hold_seconds, where
+                assert item.weight == exercise.weight, where
+            else:
+                assert item.minutes == exercise.minutes, where

@@ -131,6 +131,9 @@ class TrainerClientOut(BaseModel):
     #: 카드가 이름 옆에 적는 성별(male|female|other). 저장된 적이 없으면 빈 값이고,
     #: 그때는 앱이 스스로 표시값을 정한다(#960).
     gender: str = ""
+    #: 생년월일로 계산한 만 나이. 회원이 넣지 않았으면 `None` — 앱이 표시값을
+    #: 정한다(#2728).
+    age: int | None = None
     goal: str
     last_message: str
     last_time: str
@@ -966,6 +969,10 @@ class PersonalRoutineItem(BaseModel):
 #: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
+#: 위저드가 개인운동 단계를 채운 AI 제안 id(#2747). 개인운동 한 줄이 제안 하나라
+#: 개인운동 상한과 같다.
+_SuggestionId = Annotated[str, Field(min_length=1, max_length=64)]
+
 
 class ScheduleRoutineUpdateRequest(BaseModel):
     """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
@@ -976,6 +983,11 @@ class ScheduleRoutineUpdateRequest(BaseModel):
 
     personal_routines: list[PersonalRoutineItem] = Field(
         min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+    # 이 개인운동을 채운 대기 중 AI 제안 — 고치기와 같은 트랜잭션에서 닫는다
+    # (#2747). 이미 있는 PT 에 붙이는 길도 프로그램 만들기와 같은 규칙이다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
 
 
@@ -1027,6 +1039,13 @@ class ProgramAssignRequest(BaseModel):
     #: 은 7 을 보내 보낸 날부터 한 주 동안 걸어 두고, 다음 주 분은 트레이너가
     #: 다시 보낸다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
     active_days: int | None = Field(default=None, ge=1, le=31)
+    #: 이 전송에 실린 개인운동을 채운 **대기 중 AI 제안** id(#2747). 배정과 같은
+    #: 트랜잭션에서 그 제안을 닫는다 — 대기로 남으면 다음 위저드가 보낸 제안을
+    #: 다시 채우고, 쌓인 대기가 백로그 한도를 막아 새 제안이 끊긴다. 남의
+    #: 제안·이미 검토한 제안 id 는 조용히 무시한다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 
@@ -1590,6 +1609,11 @@ class ProgramScheduleRequest(BaseModel):
     #: 두기만 한다. 비어 있어도 받는다: 개인운동 단계가 생기기 전에 만들어진
     #: 초안과 옛 앱이 그대로 보낼 수 있어야 한다.
     personal_routines: list[PersonalRoutineItem] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
+    #: [personal_routines] 를 채운 대기 중 AI 제안 id(#2747). 일정 등록과 같은
+    #: 트랜잭션에서 닫는다 — [ProgramAssignRequest.suggestion_ids] 와 같은 규약.
+    suggestion_ids: list[_SuggestionId] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
 

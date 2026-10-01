@@ -8,9 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -20,6 +22,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/demo_exercise.dart';
 import '../../helpers/fixed_clock.dart';
 
 const Gym _gym = Gym(
@@ -76,6 +79,7 @@ Future<AppLocalizations> _pump(
   WidgetTester tester, {
   required List<CoachSession> sessions,
 }) async {
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   useFixedKstDate(_afternoon);
   tester.view.physicalSize = const Size(420, 2200);
   tester.view.devicePixelRatio = 1;
@@ -84,9 +88,9 @@ Future<AppLocalizations> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
-        // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
-        // DB 없이 메모리 목업의 주를 본다.
-        exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
+        // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+        ...demoExerciseOverrides(exerciseDb),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
         appConfigProvider.overrideWithValue(
           const AppConfig(
             environment: Environment.dev,
