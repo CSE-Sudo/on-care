@@ -159,9 +159,6 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     context,
     clientId: client.id,
     clientName: client.name,
-    // 서버에 성별이 없으면 로스터가 보여 주는 값으로 연다 — 헤더와
-    // 대화상자가 다른 말을 하지 않도록(#960).
-    fallbackGender: client.rosterGender,
     // 권장값 계산용(#2359). 로스터의 추정 나이가 아니라 서버가 준 나이만.
     ageYears: client.age,
     section: section,
