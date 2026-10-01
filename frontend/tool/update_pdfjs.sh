@@ -6,11 +6,11 @@
 # npm 레지스트리의 공식 `pdfjs-dist` 꾸러미를 받아 레지스트리가 알려 준 무결성 값과
 # 맞는지 확인한 뒤, **레거시 빌드**(오래된 사파리용 폴리필 포함)의 본체·워커를 두 앱의
 # `web/pdfjs/` 에 같은 이름(`pdf.min.js`·`pdf.worker.min.js`)으로 넣는다. 확장자를
-# `.js` 로 바꾸는 이유는 index.html 주석에 있다.
+# `.js` 로 바꾸는 이유는 `web/js/pdfjs_loader.js` 주석에 있다.
 #
 # 함께 바꾸는 것:
 #   * 두 앱 `web/pdfjs/bundle.txt` — 버전과 두 파일의 sha256
-#   * 두 앱 `web/index.html` 의 `PDFJS_VERSION` 상수
+#   * 두 앱 `web/js/pdfjs_loader.js` 의 `PDFJS_VERSION` 상수
 #
 # 두 사본·상수·bundle.txt 가 서로 어긋나거나 버전이 CVE-2024-4367 수정판(4.2.67)보다
 # 낮으면 두 앱의 `test/web/pdfjs_bundle_test.dart` 가 실패한다.
@@ -49,9 +49,9 @@ for app in flutter flutter_trainer; do
     echo "pdf.min.js=$(shasum -a 256 "$dest/pdf.min.js" | cut -d' ' -f1)"
     echo "pdf.worker.min.js=$(shasum -a 256 "$dest/pdf.worker.min.js" | cut -d' ' -f1)"
   } > "$dest/bundle.txt"
-  # index.html 의 버전 상수(캐시 무효화용 `?v=`)도 함께 맞춘다.
+  # 로더의 버전 상수(캐시 무효화용 `?v=`)도 함께 맞춘다.
   sed -i.bak -E "s/const PDFJS_VERSION = \"[^\"]+\";/const PDFJS_VERSION = \"${version}\";/" \
-    "$root/$app/web/index.html"
-  rm -f "$root/$app/web/index.html.bak"
+    "$root/$app/web/js/pdfjs_loader.js"
+  rm -f "$root/$app/web/js/pdfjs_loader.js.bak"
   echo "$app: pdf.js ${version}"
 done

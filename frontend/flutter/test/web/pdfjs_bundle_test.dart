@@ -8,14 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// CVE-2024-4367(조작된 글꼴로 임의 스크립트 실행) 영향 범위였다. 여기서 보는 것:
 ///
 /// * 버전이 수정판(4.2.67) 이상이다.
-/// * 본체·워커·`bundle.txt`·index.html 상수가 같은 버전을 말한다.
+/// * 본체·워커·`bundle.txt`·로더(`web/js/pdfjs_loader.js`) 상수가 같은 버전을 말한다.
 /// * 트레이너 웹 사본과 바이트까지 같다 — 한쪽만 바뀌면 실패한다.
-/// * `getDocument` 가 `isEvalSupported: false` 로 감싸져 있다.
+/// * `getDocument` 가 `isEvalSupported: false` 로 감싸져 있고, index.html 은
+///   인라인 스크립트 없이 로더 파일만 부른다.
 ///
 /// 갱신은 `frontend/tool/update_pdfjs.sh <버전>` 으로 두 앱을 함께 바꾼다.
 void main() {
   const String dir = 'web/pdfjs';
-  const String siblingDir = '../flutter_trainer/web/pdfjs';
   const List<int> minimumFixed = <int>[4, 2, 67];
 
   Map<String, String> bundle(String base) {
@@ -49,57 +49,65 @@ void main() {
     );
   });
 
-  test('library, worker and index.html name the same version', () {
+  test('library, worker and loader name the same version', () {
     final String quoted = '"$version"';
     expect(File('$dir/pdf.min.js').readAsStringSync(), contains(quoted));
     expect(File('$dir/pdf.worker.min.js').readAsStringSync(), contains(quoted));
     expect(
-      File('web/index.html').readAsStringSync(),
+      File('web/js/pdfjs_loader.js').readAsStringSync(),
       contains('const PDFJS_VERSION = $quoted;'),
     );
   });
 
   test('the copy matches the 트레이너 웹 copy byte for byte', () {
     for (final String name in <String>[
-      'pdf.min.js',
-      'pdf.worker.min.js',
-      'bundle.txt',
+      'pdfjs/pdf.min.js',
+      'pdfjs/pdf.worker.min.js',
+      'pdfjs/bundle.txt',
+      'js/pdfjs_loader.js',
     ]) {
       expect(
-        File('$dir/$name').readAsBytesSync(),
-        File('$siblingDir/$name').readAsBytesSync(),
+        File('web/$name').readAsBytesSync(),
+        File('../flutter_trainer/web/$name').readAsBytesSync(),
         reason: '$name differs between the two web apps',
       );
     }
   });
 
-  group('index.html', () {
+  group('loader', () {
+    final String loader = File('web/js/pdfjs_loader.js').readAsStringSync();
     final String html = File('web/index.html').readAsStringSync();
 
     test('getDocument always runs with isEvalSupported: false', () {
       expect(
-        html,
+        loader,
         contains(
           'hardened.getDocument = (src) => lib.getDocument(hardenedSource(src));',
         ),
       );
       expect(
-        RegExp('isEvalSupported: false').allMatches(html).length,
+        RegExp('isEvalSupported: false').allMatches(loader).length,
         greaterThanOrEqualTo(3),
         reason: 'string, bytes and options sources must all be hardened',
       );
     });
 
-    test('the old classic script tag is gone', () {
-      expect(html, isNot(contains('<script src="pdfjs/pdf.min.js">')));
-    });
-
     test('Flutter boots only after pdf.js is in place', () {
-      final int load = html.indexOf('window.pdfjsLib =');
-      final int boot = html.indexOf('boot.src = "flutter_bootstrap.js"');
+      final int load = loader.indexOf('window.pdfjsLib =');
+      final int boot = loader.indexOf('boot.src = "flutter_bootstrap.js"');
       expect(load, greaterThan(0));
       expect(boot, greaterThan(load));
+    });
+
+    test('index.html calls only the loader file', () {
+      expect(
+        html,
+        contains('<script type="module" src="js/pdfjs_loader.js"></script>'),
+      );
+      expect(html, isNot(contains('<script src="pdfjs/pdf.min.js">')));
       expect(html, isNot(contains('<script src="flutter_bootstrap.js"')));
+      // CSP 와 맞추기 위해 PDF 경로에 인라인 스크립트를 두지 않는다.
+      expect(html, isNot(contains('pdfjsLib')));
     });
   });
 }
