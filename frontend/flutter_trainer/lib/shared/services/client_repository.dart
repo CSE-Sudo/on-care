@@ -1578,12 +1578,49 @@ final clientDietProvider = StreamProvider.autoDispose
       return ref.watch(clientRepositoryProvider).watchDiet(clientId);
     });
 
+/// [clientDietAdviceProvider] 의 키 — 회원·기간과 **KST 오늘**(#2746).
+///
+/// 이 값은 계정 수명 동안 살아 있어, 날짜가 키에 없으면 자정을 넘겨 화면을
+/// 켜 둔 트레이너에게 어제 기준 분석이 남았다. 오늘이 키에 들어 있으면 자정이
+/// 지난 뒤 처음 그릴 때 새 키로 읽는다.
+typedef ClientDietAdviceKey = ({
+  String clientId,
+  ClientPeriod period,
+  DateTime day,
+});
+
+/// 지금(KST 오늘) 읽을 [ClientDietAdviceKey].
+ClientDietAdviceKey clientDietAdviceKey(String clientId, ClientPeriod period) =>
+    (clientId: clientId, period: period, day: todayKst());
+
+/// [clientDietRecommendationsProvider] 의 키 — 회원과 KST 오늘(#2746).
+typedef ClientDietRecommendationsKey = ({String clientId, DateTime day});
+
+/// 지금(KST 오늘) 읽을 [ClientDietRecommendationsKey].
+ClientDietRecommendationsKey clientDietRecommendationsKey(String clientId) =>
+    (clientId: clientId, day: todayKst());
+
+/// 회원 상세가 동기화 주기마다 식단 분석·추천을 다시 읽게 한다(#2746).
+///
+/// 두 값의 원천(`GET /trainer/clients/{id}/diet-advice`·`/diet-recommendations`)은
+/// 규칙 문장과 저장된 후보를 읽기만 하고 AI 를 부르지 않는다 — 다시 불러도 비용이
+/// 들거나 문장이 흔들리지 않는다. 다시 읽는 동안에는 이전 값을 그대로 그린다.
+///
+/// 키 하나가 아니라 family 전체를 무효로 한다. 자정을 넘긴 직후 화면이 듣고 있는
+/// 것은 **어제** 키라, 오늘 키만 무효로 하면 아무도 다시 그리지 않는다. 전체를
+/// 무효로 하면 듣고 있는 어제 키가 다시 읽히며 화면이 다시 그려지고, 그때 오늘
+/// 키로 옮겨 간다. 듣는 쪽이 없는 키는 다음에 읽을 때까지 다시 부르지 않는다.
+void refreshClientDietInsights(WidgetRef ref) {
+  ref
+    ..invalidate(clientDietAdviceProvider)
+    ..invalidate(clientDietRecommendationsProvider);
+}
+
 /// 기간별 `식단 분석` 문장. (#1017, #2379)
+///
+/// 키에 KST 오늘이 들어 있다 — [clientDietAdviceKey] 로 만든다(#2746).
 final clientDietAdviceProvider = FutureProvider.autoDispose
-    .family<ClientDietAnalysis, ({String clientId, ClientPeriod period})>((
-      ref,
-      key,
-    ) async {
+    .family<ClientDietAnalysis, ClientDietAdviceKey>((ref, key) async {
       keepAliveForAccount(ref);
       // 화면 언어가 바뀌면 다시 읽는다 — 조언 문장이 그 언어로 온다(#2299).
       final Locale locale = ref.watch(trainerResolvedLocaleProvider);
@@ -1595,13 +1632,17 @@ final clientDietAdviceProvider = FutureProvider.autoDispose
 /// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2379)
 ///
 /// 확정하면 [ClientDietRecommendationsController.confirm] 이 이 값을 새 상태로 바꾼다.
+/// 키에 KST 오늘이 들어 있다 — [clientDietRecommendationsKey] 로 만든다(#2746).
 final clientDietRecommendationsProvider = FutureProvider.autoDispose
-    .family<ClientDietRecommendations, String>((ref, clientId) async {
+    .family<ClientDietRecommendations, ClientDietRecommendationsKey>((
+      ref,
+      key,
+    ) async {
       keepAliveForAccount(ref);
       final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietRecommendations(clientId, locale: locale);
+          .fetchDietRecommendations(key.clientId, locale: locale);
     });
 
 /// 추천 확정 — 저장한 뒤 후보·상태를 다시 읽는다. 실패는 호출한 쪽으로 던진다.
@@ -1619,7 +1660,9 @@ Future<void> confirmClientDietRecommendation(
         name: candidate.name,
         locale: locale,
       );
-  ref.invalidate(clientDietRecommendationsProvider(clientId));
+  ref.invalidate(
+    clientDietRecommendationsProvider(clientDietRecommendationsKey(clientId)),
+  );
 }
 
 /// 한 고객이 [date] 에 먹은 끼니. 기간 뷰에서 펼친 날에만 읽는다(#1025).
