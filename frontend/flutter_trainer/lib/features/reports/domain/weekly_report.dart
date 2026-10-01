@@ -271,6 +271,7 @@ WeeklyReport buildWeeklyReport({
   DateTime? today,
   WeekSeries? week,
   MemberWeeklyFeedback? memberFeedback,
+  ReportTargets targets = const ReportTargets(),
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
@@ -307,8 +308,38 @@ WeeklyReport buildWeeklyReport({
     proteinWeek: series?.protein ?? const <double>[],
     fatWeek: series?.fat ?? const <double>[],
     mealCounts: series?.mealCounts ?? const <int>[],
+    calorieTarget: targets.calories,
+    sodiumTarget: targets.sodium,
+    sugarTarget: targets.sugar,
+    carbsTarget: targets.carbs,
+    proteinTarget: targets.protein,
+    fatTarget: targets.fat,
     memberFeedback: memberFeedback,
   );
+}
+
+/// 회원이 적어 둔 하루 목표 — 리포트 판정이 공통 상수보다 먼저 쓴다(#1430).
+///
+/// 실서버는 리포트 응답의 `*_target` 으로 받고(`weeklyReportFromJson`),
+/// 데모는 건강 프로필에서 읽어 [buildWeeklyReport] 에 넘긴다(#2669). 적어 두지
+/// 않은 칸은 null 이고, 그 칸만 공통 상수로 되돌아간다.
+class ReportTargets {
+  /// Creates targets. 기본값은 "목표 없음" 이다.
+  const ReportTargets({
+    this.calories,
+    this.sodium,
+    this.sugar,
+    this.carbs,
+    this.protein,
+    this.fat,
+  });
+
+  final int? calories;
+  final int? sodium;
+  final double? sugar;
+  final double? carbs;
+  final double? protein;
+  final double? fat;
 }
 
 /// 리포트의 하루 — 이행률과 그날 배정된 운동.

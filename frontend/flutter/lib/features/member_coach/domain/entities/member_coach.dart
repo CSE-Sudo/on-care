@@ -50,7 +50,6 @@ class CoachRoutine {
     this.completedMinutes,
     this.completedDurationSeconds,
     this.completedIntensity,
-    this.trainerFeedback = '',
     this.programName = '',
     this.sessionName = '',
     this.sessionOrder = 0,
@@ -112,7 +111,6 @@ class CoachRoutine {
   /// 그때는 [completedMinutes] 가 그 기록의 값이다.
   final int? completedDurationSeconds;
   final String? completedIntensity;
-  final String trainerFeedback;
 
   /// 여러 세션으로 짜인 프로그램의 이름. 단일 루틴은 빈 문자열이다(#709).
   final String programName;
@@ -149,7 +147,6 @@ class CoachRoutine {
     int? completedMinutes,
     int? completedDurationSeconds,
     String? completedIntensity,
-    String? trainerFeedback,
     PointsAward? pointsAward,
   }) => CoachRoutine(
     id: id,
@@ -168,7 +165,6 @@ class CoachRoutine {
     completedDurationSeconds:
         completedDurationSeconds ?? this.completedDurationSeconds,
     completedIntensity: completedIntensity ?? this.completedIntensity,
-    trainerFeedback: trainerFeedback ?? this.trainerFeedback,
     // 완료만 표시해도 프로그램·세션·운동 구성은 그대로 남아야 한다 — 빠뜨리면
     // 완료를 누른 순간 화면에서 프로그램 제목과 운동이 사라진다(#709).
     programName: programName,
@@ -199,6 +195,7 @@ class CoachSession {
     required this.status,
     this.note = '',
     this.program = const <CoachProgramItem>[],
+    this.sessionNumber,
   });
 
   /// Server id.
@@ -228,6 +225,10 @@ class CoachSession {
 
   /// The workout program attached by the trainer.
   final List<CoachProgramItem> program;
+
+  /// 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터). 서버가 완료 PT 에만
+  /// 싣는다 — 예정·취소·상담과 옛 서버 응답은 null 이다. (#2697)
+  final int? sessionNumber;
 
   /// Whether this session is still ahead.
   ///

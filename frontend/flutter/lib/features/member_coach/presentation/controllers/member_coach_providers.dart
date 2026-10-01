@@ -2,13 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_emote_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_emote_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
@@ -27,21 +29,32 @@ final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
       if (ref.watch(appConfigProvider).useMockApi) {
         // 데모에는 서버가 없다. 실서버는 루틴 완료를 받으면 회원 운동 기록 한 건을
         // 함께 만들고 취소하면 지우는데(#1131), 그 일을 이 대역이 대신하도록 운동
-        // 저장소를 건네준다 — 그러지 않으면 체크해도 `운동 현황` 이 꿈쩍하지 않는다.
-        // 파생 기록(출처 `assigned_routine`)을 만들고 지우는 일은 목업 저장소만
-        // 할 수 있다. 테스트가 운동 저장소를 다른 대역으로 갈아 끼우면 루틴 상태만
-        // 바뀌는 예전 동작으로 떨어진다 — 화면이 죽는 것보다 낫다.
-        final ExerciseRepository exercise = ref.watch(
-          exerciseRepositoryProvider,
-        );
+        // 기록이 사는 곳을 건네준다 — 그러지 않으면 체크해도 `운동 현황` 이 꿈쩍하지
+        // 않는다. 앱에서는 운동 탭·홈·챌린지가 읽는 로컬 목업 API(drift)다(#2662).
+        // 테스트가 운동 저장소를 메모리 목업으로 갈아 끼우면 그 저장소에 남긴다.
+        // 둘 다 없으면 루틴 상태만 바뀌는 예전 동작으로 떨어진다 — 화면이 죽는
+        // 것보다 낫다.
+        //
+        // 완료할 때 찾는다 — 여기서 watch 하면 코치 화면만 그리는 데도 Dio 와
+        // 로컬 DB 가 서야 한다.
         final GymRepository gym = ref.watch(gymRepositoryProvider);
         return MockMemberCoachRepository(
-          exercise: exercise is MockExerciseRepository ? exercise : null,
+          exercise: _LazyRoutineSessionLog(() {
+            final ExerciseRepository exercise = ref.read(
+              exerciseRepositoryProvider,
+            );
+            return switch (exercise) {
+              final RoutineSessionLog log => log,
+              _ => LocalApiInterceptor.of(ref.read(dioProvider)),
+            };
+          }),
           // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
           points: ref.watch(demoPointsLedgerProvider),
           // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
           // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
           linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
+          // 끊긴 뒤 온 담당 요청을 수락하면 같은 곳에 다시 잇는다(#2659).
+          relink: gym is MockGymRepository ? gym.linkTrainer : null,
         );
       }
       return DioMemberCoachRepository(ref.watch(dioProvider));
@@ -221,3 +234,53 @@ final emoteStateProvider = FutureProvider.autoDispose<EmoteState>((ref) {
 
 /// 알림에서 선택한 요청을 전역 팝업이 먼저 연다. 창 생성은 prompter만 맡는다.
 final selectedCoachInviteProvider = StateProvider<String?>((ref) => null);
+
+/// 루틴 완료 기록을 남길 곳을 **부를 때** 찾는다. (#2662)
+///
+/// 찾지 못하면(목업 API 가 없는 테스트) 기록 없이 루틴 상태만 바뀐다 — id 가
+/// 없는 세션을 돌려주므로 코치 저장소가 되돌릴 기록으로 적어 두지 않는다.
+class _LazyRoutineSessionLog implements RoutineSessionLog {
+  _LazyRoutineSessionLog(this._resolve);
+
+  final RoutineSessionLog? Function() _resolve;
+
+  @override
+  Future<ExerciseSession> addAssignedRoutineSession({
+    required ExerciseType type,
+    required int minutes,
+    required int calories,
+    required DateTime date,
+    required String routineId,
+    required String name,
+    ExerciseIntensity intensity = ExerciseIntensity.moderate,
+    int? durationSeconds,
+  }) async {
+    final RoutineSessionLog? log = _resolve();
+    if (log == null) {
+      return ExerciseSession(
+        dayLabel: '',
+        type: type,
+        minutes: minutes,
+        calories: calories,
+      );
+    }
+    return log.addAssignedRoutineSession(
+      type: type,
+      minutes: minutes,
+      calories: calories,
+      date: date,
+      routineId: routineId,
+      name: name,
+      intensity: intensity,
+      durationSeconds: durationSeconds,
+    );
+  }
+
+  @override
+  Future<void> removeAssignedRoutineSession(String id) async =>
+      _resolve()?.removeAssignedRoutineSession(id);
+
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async =>
+      await _resolve()?.assignedRoutineSessions() ?? const <ExerciseSession>[];
+}

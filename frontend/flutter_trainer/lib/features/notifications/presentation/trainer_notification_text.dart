@@ -47,6 +47,16 @@ TrainerNotificationText? _assemble(
         title: l.notifTplHealthGoalTitle,
         body: l.notifTplHealthGoalBody(name, goals),
       );
+    // 회원이 건강상태·주의사항을 고쳤다(#2619). 글은 싣지 않는다 — 누르면 글이
+    // 있는 신체·목표 창이 바로 열린다.
+    case 'trainer_health_notes':
+      if (name == null) return null;
+      return (
+        title: l.notifTplHealthNotesTitle,
+        body: args['with_focus'] == true
+            ? l.notifTplHealthNotesWithGoalsBody(name)
+            : l.notifTplHealthNotesBody(name),
+      );
     case 'trainer_member_renamed':
       final String? oldName = _name(args['old_name']);
       final String? newName = _name(args['new_name']);

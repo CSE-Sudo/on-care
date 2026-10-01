@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 
-/// 데모·새 계정의 지난 할 일 이력. (#1203)
+/// 데모(목업 모드)의 지난 할 일 이력. (#1203) 실계정에는 쓰지 않는다(#2671).
 ///
 /// `할 일 진행률` 과 `지난 할 일` 은 [DailyTaskHistory] 에 쌓인 하루
 /// 요약만 읽는다. 그래서 트레이너가 이틀 이상 실제로 체크하기 전에는 그래프가
@@ -86,7 +87,12 @@ class DemoTaskHistory {
 }
 
 /// 오늘 기준의 데모 이력. 실제 저장 이력이 있으면 그 앞쪽만 채운다.
-final demoTaskHistoryProvider = Provider.autoDispose<DemoTaskHistory>((ref) {
+///
+/// **목업 모드에서만 있다.** 실계정(`useMockApi == false`)에서는 null 이라,
+/// 저장 이력이 없는 날은 그대로 `기록 없음` 이고 지난 할 일도 비어 있다 —
+/// 한 적 없는 처리 기록과 있지도 않은 밀린 일을 보여 주지 않는다(#2671).
+final demoTaskHistoryProvider = Provider.autoDispose<DemoTaskHistory?>((ref) {
+  if (!ref.watch(appConfigProvider).useMockApi) return null;
   final DateTime now = nowKst();
   return DemoTaskHistory(
     today: DateTime(now.year, now.month, now.day),

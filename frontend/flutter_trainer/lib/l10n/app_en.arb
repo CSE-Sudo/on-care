@@ -666,8 +666,6 @@
   "coachSheetAsk": "Ask",
   "coachSheetAskAgain": "Ask again",
   "consultTitle": "Consultation requests",
-  "consultBackToSchedule": "Back to schedule",
-  "consultBackToDashboard": "Back to dashboard",
   "consultPendingCount": "{count} pending",
   "@consultPendingCount": {
     "placeholders": {
@@ -2247,6 +2245,10 @@
   },
   "navNotifications": "Notifications",
   "notifTitle": "Notifications",
+  "notifSeeAll": "See all",
+  "notifGroupAll": "All",
+  "notifGroupMessages": "Messages",
+  "notifGroupEmpty": "No notifications of this kind",
   "notifReadAll": "Mark all read",
   "notifEmpty": "No notifications yet",
   "notifLoadFailed": "Couldn't load notifications",
@@ -2262,6 +2264,23 @@
         "type": "String"
       },
       "goals": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplHealthNotesTitle": "Member health notes changed",
+  "notifTplHealthNotesBody": "{name} updated their health notes",
+  "@notifTplHealthNotesBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplHealthNotesWithGoalsBody": "{name} updated their health goals and health notes",
+  "@notifTplHealthNotesWithGoalsBody": {
+    "placeholders": {
+      "name": {
         "type": "String"
       }
     }

@@ -17,6 +17,7 @@ import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dar
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_prompter.dart';
+import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
@@ -123,6 +124,9 @@ class _MainShellState extends ConsumerState<MainShell>
         break;
       case 2:
         ref.invalidate(exerciseWeekProvider);
+        // AI 맞춤 조언도 다시 받는다 — 식단 탭과 같다(#2078, #2631). 다른 탭의
+        // `+` 로 운동을 적고 돌아와도 조언이 새 기록을 말한다.
+        ref.invalidate(exerciseAdviceProvider);
         ref.invalidate(coachRoutinesProvider);
         // 지난 날짜 목록도 — 탭을 떠난 사이 날이 바뀌면 오늘 체크가 어제 것이
         // 된다(#2161).
@@ -181,6 +185,10 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<int>>(notificationUnreadProvider, _onUnreadChanged);
+    // 알림 목록을 미리 불러 둔다(#2688). 알림함에 들어갈 때 컨트롤러를 처음 만들면
+    // 첫 조회 동안 로딩 표시가 보인다 — 데모는 예전처럼 목록이 바로 떠야 하고,
+    // 실서버도 그 모양을 따른다. 세션이 바뀌어 무효화되면 여기서 다시 만든다.
+    ref.listen<NotificationState>(notificationControllerProvider, (_, _) {});
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.

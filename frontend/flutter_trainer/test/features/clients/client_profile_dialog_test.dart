@@ -108,6 +108,34 @@ class _DelayedClientRepository extends DriftClientRepository {
   }
 }
 
+/// 서버 역할 — 트레이너가 창을 연 뒤 회원이 끼어들어 값을 바꿀 수 있다(#2655).
+class _SharedProfileRepository extends DriftClientRepository {
+  _SharedProfileRepository(super.db);
+
+  MemberHealthProfile current = const MemberHealthProfile(
+    memberId: 'm1',
+    memberName: '회원',
+    conditions: '체중 감량, 무릎 통증 주의',
+    dailyCalories: 1800,
+    dailySodiumMg: 2000,
+  );
+
+  Map<String, Object?>? sent;
+
+  @override
+  Future<MemberHealthProfile> fetchHealthProfile(String clientId) async =>
+      current;
+
+  @override
+  Future<MemberHealthProfile> updateHealthProfile(
+    String clientId,
+    Map<String, Object?> patch,
+  ) async {
+    sent = patch;
+    return current;
+  }
+}
+
 /// Pumps the merged dialog on its own.
 ///
 /// 신체·목표와 메모가 한 창에 있으므로 두 저장소를 모두 갈아 끼운다 —
@@ -734,11 +762,64 @@ void main() {
     expect(hintOf('client-goal-strength'), '21');
     expect(hintOf('client-goal-flexibility'), '60');
 
-    // 안내는 값이 아니다 — 손대지 않은 칸은 비운 채(null) 나간다.
+    // 안내는 값이 아니다 — 손대지 않은 칸은 보내지 않는다. 바꾼 칸이 없으면
+    // 요청 자체가 없다(#2655).
     await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
     await tester.pump();
-    expect(clients.savedProfile!['daily_calories'], isNull);
-    expect(clients.savedProfile!['daily_sodium_mg'], 1500);
+    expect(clients.savedProfile, isNull);
+  });
+
+  testWidgets('회원이 그 사이 바꾼 값은 트레이너 저장이 덮지 않는다 (#2655)', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final clients = _SharedProfileRepository(db);
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: clients,
+      section: ClientProfileSection.health,
+    );
+    // 창을 연 뒤, 연필을 누르기 전에 회원이 칼로리를 바꿨다 — 연필이 다시 읽는다.
+    clients.current = const MemberHealthProfile(
+      memberId: 'm1',
+      memberName: '회원',
+      conditions: '체중 감량, 무릎 통증 주의',
+      dailyCalories: 2100,
+      dailySodiumMg: 2000,
+    );
+    await _startEditing(tester);
+    await _openTab(tester, '식단 목표');
+    expect(
+      tester
+          .widget<AppTextField>(
+            find.byKey(const ValueKey<String>('client-goal-calories')),
+          )
+          .controller!
+          .text,
+      '2100',
+    );
+
+    // 편집 중에 회원이 목표 칩을 바꿨다. 트레이너는 주의사항 글만 고친다.
+    clients.current = const MemberHealthProfile(
+      memberId: 'm1',
+      memberName: '회원',
+      conditions: '재활, 무릎 통증 주의',
+      dailyCalories: 2100,
+      dailySodiumMg: 2000,
+    );
+    await _openTab(tester, '건강 목표');
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (w) => w is AppTextField && w.label == '건강상태·주의사항',
+      ),
+      '무릎 통증 주의, 러닝 자제',
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
+    await tester.pumpAndSettle();
+
+    expect(clients.sent, <String, Object?>{
+      'conditions': '재활, 무릎 통증 주의, 러닝 자제',
+    });
   });
 
   testWidgets('회원 앱과 같은 목표 필드를 읽고 저장한다 (#1449)', (tester) async {
@@ -821,10 +902,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
     await tester.pumpAndSettle();
 
-    // 저장은 같은 서버 필드 이름으로 나간다.
-    expect(clients.savedProfile?['daily_protein_g'], 140);
-    expect(clients.savedProfile?['weekly_strength_sets'], 21);
-    expect(clients.savedProfile?['daily_burn_kcal'], 320);
+    // 저장은 같은 서버 필드 이름으로 나가고, 바꾼 칸만 보낸다(#2655) — 그 사이
+    // 회원이 고친 다른 목표를 창을 연 값으로 덮지 않는다.
+    expect(clients.savedProfile, <String, Object?>{'daily_protein_g': 140});
   });
 
   testWidgets('저장된 성별이 없으면 로스터가 말하는 성별로 열린다 (#960)', (tester) async {

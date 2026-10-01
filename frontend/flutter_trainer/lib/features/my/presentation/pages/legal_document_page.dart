@@ -40,6 +40,9 @@ class LegalDocumentPage extends StatelessWidget {
           title: title,
           subtitle: l.myLegalEffectiveDate,
           width: AppWebPageWidth.narrow,
+          // 폭이 좁아 알림 종이 다른 화면과 다른 자리에 선다 — MY 에서 잠깐
+          // 들어가 읽는 문서라 종을 두지 않는다(#2628).
+          showHeaderTrailing: false,
           leading: AppBackButton(onPressed: () => _leave(context)),
           body: ListView(
             children: <Widget>[
@@ -49,9 +52,7 @@ class LegalDocumentPage extends StatelessWidget {
                   children: <Widget>[
                     AppSectionHeader(
                       title: title,
-                      icon: isPrivacy
-                          ? AppIcons.privacy
-                          : AppIcons.document,
+                      icon: isPrivacy ? AppIcons.privacy : AppIcons.document,
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
                     SelectableText(

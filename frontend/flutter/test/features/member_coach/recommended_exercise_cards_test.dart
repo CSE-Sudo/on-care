@@ -655,7 +655,10 @@ void main() {
     expect(repository.sentDurationSeconds, 45);
   });
 
-  testWidgets('완료한 루틴에 트레이너 피드백을 표시한다', (WidgetTester tester) async {
+  testWidgets('완료한 루틴 아래에 트레이너 피드백 상자를 두지 않는다 (#2517)', (
+    WidgetTester tester,
+  ) async {
+    // 개인운동 한 건마다 달던 트레이너 피드백은 없앴다 — 할 말은 채팅으로 오간다.
     await pumpRecommendationCards(tester, const <CoachRoutine>[
       CoachRoutine(
         id: 'done',
@@ -665,12 +668,11 @@ void main() {
         reason: '',
         source: 'trainer',
         completed: true,
-        trainerFeedback: '자세가 좋았어요',
       ),
     ]);
 
-    expect(find.text('트레이너 피드백: 자세가 좋았어요'), findsOneWidget);
-    expect(find.byKey(const Key('routineFeedback-done')), findsOneWidget);
+    expect(find.text('완료 루틴'), findsOneWidget);
+    expect(find.textContaining('트레이너 피드백'), findsNothing);
   });
 
   testWidgets('담당 트레이너 프로필은 트레이너 상세 경로로 이동한다', (WidgetTester tester) async {

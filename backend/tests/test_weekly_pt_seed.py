@@ -50,7 +50,13 @@ def test_weekly_pt_slots_stay_one_or_two_a_week():
     from app.db.seed_member_data import _WEEKLY_PT
     from app.db.seed_trainer import _MEMBERS
 
-    assert set(_WEEKLY_PT) == {user_id for user_id, *_ in _MEMBERS}
+    from app.db.demo_fixture import load_fixture
+
+    # 픽스처 회원(김민수)은 없다 — 그의 PT 날은 픽스처가 정한다(#2694).
+    fixture_member = load_fixture().user_app_seed_id
+    assert set(_WEEKLY_PT) == {
+        user_id for user_id, *_ in _MEMBERS if user_id != fixture_member
+    }
     counts = [len(slots) for slots in _WEEKLY_PT.values()]
     assert all(1 <= n <= 2 for n in counts)
     twice = sum(1 for n in counts if n == 2)
@@ -213,3 +219,127 @@ def test_weekly_pt_seed_reattaches_rows_orphaned_by_account_recreation(client, d
         restored = db_session.get(TrainerSchedule, row_id)
         restored.member_id = owner
         db_session.commit()
+
+
+def test_schedule_seed_reattaches_todays_timeline_orphaned_by_account_recreation(
+    client, db_session
+):
+    """오늘 타임라인 행도 계정 재생성 뒤 주인을 되찾는다 — 주간 PT 가 한 번 더 깔리지 않는다.
+
+    예전에는 되붙이는 처리가 주간 PT 행에만 있어, 타임라인 행의 주인이 빈 채로 주간 PT
+    시드가 돌면 "이번 주 수업 없음" 으로 보고 지난 요일에 PT 를 또 깔았다(#2695).
+    주인 여부를 확인하므로 요일과 상관없이 돈다.
+    """
+    from app.db.seed_member_data import (
+        _SCHEDULE,
+        _seed_schedule,
+        _seed_weekly_pt,
+        _valid_member_ids,
+    )
+    from app.models.models import TrainerSchedule
+
+    today = clock.today_iso()
+    valid = _valid_member_ids(db_session)
+    owners = {
+        f"seed-schedule-{today}-{i}": mid
+        for i, (_t, _n, mid, *_rest) in enumerate(_SCHEDULE)
+        if mid and mid in valid
+    }
+    rows = [db_session.get(TrainerSchedule, rid) for rid in owners]
+    assert rows and all(r is not None for r in rows)
+    for row in rows:
+        row.member_id = None
+    db_session.commit()
+    try:
+        _seed_schedule(db_session, valid)
+        _seed_weekly_pt(db_session, valid)
+        db_session.expire_all()
+
+        for rid, mid in owners.items():
+            assert db_session.get(TrainerSchedule, rid).member_id == mid, rid
+        start = _monday(0)
+        for mid in set(owners.values()):
+            extra = [
+                r.id
+                for r in _seed_rows(db_session, mid, start, start + timedelta(days=6))
+                if r.id.startswith("seed-pt-")
+            ]
+            assert extra == [], f"{mid} 에게 이번 주 PT 가 한 번 더 깔렸다"
+    finally:
+        db_session.expire_all()
+        for rid, mid in owners.items():
+            db_session.get(TrainerSchedule, rid).member_id = mid
+        db_session.commit()
+
+
+# ---- 픽스처 회원(김민수)의 PT — 회원 앱·트레이너 웹 데모와 같은 날·같은 시각 (#2694) ----
+
+
+def test_fixture_member_has_no_weekly_pt_rows(client, db_session):
+    """김민수의 매주 목요일 수업은 없다 — 회원 앱이 모르는 수업이 리포트에 서지 않게."""
+    from app.db.demo_fixture import load_fixture
+    from app.models.models import TrainerSchedule
+
+    member_id = load_fixture().user_app_seed_id
+    rows = db_session.scalars(
+        select(TrainerSchedule.id).where(
+            TrainerSchedule.id.like(f"seed-pt-{member_id}-%")
+        )
+    ).all()
+    assert rows == []
+
+
+def test_fixture_pt_days_have_a_1800_class(client, db_session):
+    """픽스처가 PT 날로 적은 지난 날(지난 11주의 오늘과 같은 요일)마다 18:00 · 50분
+    완료 수업이 하나씩 있다."""
+    from app.db.demo_fixture import load_fixture
+    from app.db.seed_trainer import TRAINER_ID
+    from app.models.models import TrainerSchedule
+
+    fixture = load_fixture()
+    member_id = fixture.user_app_seed_id
+    today = clock.today()
+    pt_days = sorted(
+        d.iso for d in fixture.days_for(today) if d.is_pt and d.day < today
+    )
+    assert pt_days, "픽스처에 지난 PT 날이 없다"
+
+    rows = db_session.scalars(
+        select(TrainerSchedule).where(
+            TrainerSchedule.trainer_id == TRAINER_ID,
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.id.like("seed-fix-pt-%"),
+        )
+    ).all()
+    assert sorted(r.date for r in rows) == pt_days
+    for row in rows:
+        assert (row.time, row.duration_minutes, row.status) == ("18:00", 50, "완료")
+        # 지난 수업은 트레이너 웹 데모처럼 프로그램을 비운다.
+        assert row.program_json == "[]", row.id
+
+
+def test_fixture_member_today_class_is_1800_with_fixture_program(client, db_session):
+    """오늘 타임라인의 김민수는 18:00 — 종목은 픽스처의 오늘 PT 다."""
+    import json
+
+    from app.db.demo_fixture import load_fixture
+    from app.models.models import TrainerSchedule
+
+    fixture = load_fixture()
+    member_id = fixture.user_app_seed_id
+    today = clock.today()
+    today_pt = next(
+        (d for d in fixture.days_for(today) if d.day == today and d.is_pt), None
+    )
+    row = db_session.scalar(
+        select(TrainerSchedule).where(
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.date == today.isoformat(),
+            TrainerSchedule.id.like(f"seed-schedule-{today.isoformat()}-%"),
+        )
+    )
+    assert row is not None
+    assert (row.time, row.duration_minutes) == ("18:00", 50)
+    if today_pt is not None:
+        names = [item["name"] for item in json.loads(row.program_json)]
+        assert names == [e.name for e in today_pt.done_exercises]

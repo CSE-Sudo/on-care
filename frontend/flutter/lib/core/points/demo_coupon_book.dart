@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_profile_pet.dart';
@@ -35,7 +36,10 @@ import 'package:oncare/core/utils/clock.dart';
 ///
 /// 모든 쿠폰은 헬스장 직원(PT 재등록은 트레이너·헬스장 직원)이 확인한 뒤 회원
 /// 화면의 `사용 완료` 를 누른다.
-class DemoCouponBook {
+///
+/// 쿠폰과 받은 주간 리포트는 [DemoBenefitsStore] 에 실려 새로고침 뒤에도 남는다
+/// (#2664). 담당·헬스장 연결은 싣지 않는다 — 목업 헬스장 저장소가 들고 있는 값이다.
+class DemoCouponBook implements DemoPersistable {
   DemoCouponBook({
     required DemoPointsLedger ledger,
     DateTime Function()? now,
@@ -73,7 +77,12 @@ class DemoCouponBook {
     ledger: _ledger,
     now: _now,
     hasTrainer: () => _hasTrainer,
-  );
+  )..onChanged = _changed;
+
+  @override
+  void Function()? onChanged;
+
+  void _changed() => onChanged?.call();
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
@@ -191,6 +200,7 @@ class DemoCouponBook {
       return _error(409, '포인트가 부족해요.');
     }
     _coupons.add(coupon);
+    _changed();
     return DemoCouponResult(201, _exchangeJson(coupon));
   }
 
@@ -219,6 +229,7 @@ class DemoCouponBook {
         coupon
           ..status = 'used'
           ..usedAt = _now();
+        _changed();
         return DemoCouponResult(200, _couponJson(coupon));
       case 'used':
         return DemoCouponResult(200, _couponJson(coupon));
@@ -318,6 +329,7 @@ class DemoCouponBook {
         clientRequestId: clientRequestId,
       ),
     );
+    _changed();
     return DemoCouponResult(201, dietTrayJson(photoDays: photoDays));
   }
 
@@ -333,21 +345,26 @@ class DemoCouponBook {
 
   void _expireStale() {
     final DateTime today = _today();
+    bool changed = false;
     for (final _DemoCoupon coupon in _coupons) {
       if (coupon.status == 'issued' && today.isAfter(coupon.lastDay)) {
         coupon.status = 'expired';
+        changed = true;
       }
     }
+    if (changed) _changed();
   }
 
   /// [itemId] 의 사용 가능한 쿠폰을 취소하고 포인트를 돌려준다. 기한이 지난 쿠폰은
   /// 돌려주지 않고 만료로 내린다. 이미 취소된 쿠폰은 건너뛰어 두 번 돌려주지 않는다.
   void _cancelUnused(String itemId) {
     final DateTime today = _today();
+    bool changed = false;
     for (final _DemoCoupon coupon in _coupons) {
       if (coupon.item != itemId || coupon.status != 'issued') {
         continue;
       }
+      changed = true;
       if (today.isAfter(coupon.lastDay)) {
         coupon.status = 'expired';
         continue;
@@ -357,6 +374,60 @@ class DemoCouponBook {
         ..cancelledAt = _now();
       _ledger.refund(coupon.id);
     }
+    if (changed) _changed();
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'coupons': <Map<String, Object?>>[
+      for (final _DemoCoupon c in _coupons)
+        <String, Object?>{
+          'id': c.id,
+          'item': c.item,
+          'cost': c.cost,
+          'issued_at': c.issuedAt.toIso8601String(),
+          'issued_on': c.issuedOn.toIso8601String(),
+          'last_day': c.lastDay.toIso8601String(),
+          'trainer_name': c.trainerName,
+          'gym_name': c.gymName,
+          'status': c.status,
+          'used_at': c.usedAt?.toIso8601String(),
+          'cancelled_at': c.cancelledAt?.toIso8601String(),
+        },
+    ],
+    'reports': reports.toJson(),
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    _coupons
+      ..clear()
+      ..addAll(<_DemoCoupon>[
+        for (final Map<String, Object?> row in demoRows(json['coupons']))
+          _DemoCoupon(
+              id: row['id']! as String,
+              item: row['item']! as String,
+              cost: (row['cost']! as num).toInt(),
+              issuedAt: demoParseTime(row['issued_at']),
+              issuedOn: demoParseTime(row['issued_on']),
+              lastDay: demoParseTime(row['last_day']),
+              trainerName: row['trainer_name'] as String? ?? '',
+              gymName: row['gym_name'] as String? ?? '',
+            )
+            ..status = row['status']! as String
+            ..usedAt = demoParseTimeOrNull(row['used_at'])
+            ..cancelledAt = demoParseTimeOrNull(row['cancelled_at']),
+      ]);
+    // 아직 쓰지 않은 쿠폰은 연결이 끊기면 포인트를 돌려받는다 — 원장에 다시 건다.
+    for (final _DemoCoupon c in _coupons) {
+      if (c.status == 'issued' && c.cost > 0) {
+        _ledger.restoreSpend(c.id, c.cost, reason: 'coupon_${c.item}');
+      }
+    }
+    final Object? saved = json['reports'];
+    if (saved is Map) reports.restore(saved.cast<String, Object?>());
   }
 
   _DemoCoupon? _activeOf(String itemId) => _coupons
@@ -625,13 +696,14 @@ class _DemoCoupon {
 /// 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider] 에서 빠진다.
 ///
 /// 보호권은 목업 운동 저장소와 같은 원장을 쓴다(#1788).
-final demoCouponBookProvider = Provider<DemoCouponBook>(
-  (ref) => DemoCouponBook(
+final demoCouponBookProvider = Provider<DemoCouponBook>((ref) {
+  final DemoCouponBook book = DemoCouponBook(
     ledger: ref.watch(demoPointsLedgerProvider),
     shields: ref.watch(demoStreakShieldBookProvider),
     // 기록 그래프가 보는 것과 같은 색 원장 — 사용처에서 연 색이 바로 그래프에 뜬다(#2076).
     palette: ref.watch(demoGraphColorBookProvider),
     pets: ref.watch(demoProfilePetBookProvider),
-  ),
-  name: 'demoCouponBook',
-);
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('coupons', book);
+  return book;
+}, name: 'demoCouponBook');

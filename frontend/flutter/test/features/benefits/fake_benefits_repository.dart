@@ -122,9 +122,21 @@ class FakeBenefitsRepository implements BenefitsRepository {
     entries: <PointsHistoryEntry>[],
   );
 
+  /// 이어 받기(`before` 가 있는 요청)를 이 횟수만큼 실패시킨다(#2641).
+  int olderFailures = 0;
+
+  /// 받은 요청의 `before` 를 차례대로 적는다 — 다시 시도가 같은 커서로 가는지 본다.
+  final List<String?> historyRequests = <String?>[];
+
   @override
-  Future<PointsHistory> fetchPointsHistory({String? before}) async =>
-      before == null ? history : olderHistory;
+  Future<PointsHistory> fetchPointsHistory({String? before}) async {
+    historyRequests.add(before);
+    if (before != null && olderFailures > 0) {
+      olderFailures--;
+      throw StateError('네트워크 없음');
+    }
+    return before == null ? history : olderHistory;
+  }
 
   @override
   Future<Coupon> useCoupon(String couponId) async {

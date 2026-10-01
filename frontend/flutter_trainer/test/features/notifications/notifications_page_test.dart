@@ -8,16 +8,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/features/notifications/presentation/pages/notifications_page.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/pump_app.dart';
 
 /// 라벨 기대값은 로케일을 명시해 읽는다.
-final AppLocalizationsKo _ko = AppLocalizationsKo();
 
 TrainerNotification _notification({
   String id = 'noti-1',
@@ -108,18 +105,9 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
 }
 
 void main() {
-  testWidgets('데모 콘솔에는 알림 행이 없다', (tester) async {
-    await withWideSurface(tester, () async {
-      await pumpTrainerApp(tester, token: 'demo-token');
+  final Finder bell = find.byKey(const ValueKey<String>('notification-bell'));
 
-      expect(
-        find.text(navLabel(_ko, notificationsDestination.label)),
-        findsNothing,
-      );
-    });
-  });
-
-  testWidgets('실 API 콘솔에는 알림 행이 보인다', (tester) async {
+  testWidgets('알림은 사이드바가 아니라 화면 머리의 종이다 (#2628)', (tester) async {
     await withWideSurface(tester, () async {
       await pumpTrainerApp(
         tester,
@@ -132,10 +120,134 @@ void main() {
       );
 
       expect(
-        find.text(navLabel(_ko, notificationsDestination.label)),
+        find.byKey(const ValueKey<String>('sidebar-/notifications')),
+        findsNothing,
+      );
+      expect(bell, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('notification-bell-badge')),
         findsOneWidget,
       );
     });
+  });
+
+  testWidgets('종을 누르면 최근 알림이 펼쳐지고 전체 보기로 알림 화면에 간다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-token',
+        extraOverrides: <Override>[
+          trainerNotificationRepositoryProvider.overrideWithValue(
+            _FakeNotificationRepository(<TrainerNotification>[_notification()]),
+          ),
+        ],
+      );
+
+      await tester.tap(bell);
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey<String>('notification-bell-panel')),
+        findsOneWidget,
+      );
+      expect(find.text('이지수 회원의 메시지'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('notification-bell-see-all')),
+      );
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey<String>('notification-bell-panel')),
+        findsNothing,
+      );
+      // 알림 화면 자신에는 종을 두지 않는다 — 종이 여는 곳이다.
+      expect(find.text('모두 읽음'), findsOneWidget);
+      expect(bell, findsNothing);
+    });
+  });
+
+  testWidgets('알림 화면의 뒤로 가기는 종을 누른 화면으로 돌아간다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-token',
+        at: AppRoutes.schedule,
+        extraOverrides: <Override>[
+          trainerNotificationRepositoryProvider.overrideWithValue(
+            _FakeNotificationRepository(<TrainerNotification>[_notification()]),
+          ),
+        ],
+      );
+
+      await tester.tap(bell);
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('notification-bell-see-all')),
+      );
+      await settle(tester);
+      expect(find.text('모두 읽음'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('notifications-back')),
+      );
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey<String>('schedule-open-slots')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  test('뒤로 갈 곳은 콘솔 안의 주소만 받는다', () {
+    expect(
+      AppRoutes.notificationsBackTarget('/schedule?d=2026-10-01'),
+      '/schedule?d=2026-10-01',
+    );
+    expect(AppRoutes.notificationsBackTarget(null), AppRoutes.dashboard);
+    expect(
+      AppRoutes.notificationsBackTarget('https://evil.example'),
+      AppRoutes.dashboard,
+    );
+    expect(
+      AppRoutes.notificationsBackTarget('//evil.example'),
+      AppRoutes.dashboard,
+    );
+    expect(
+      AppRoutes.notificationsBackTarget(AppRoutes.notifications),
+      AppRoutes.dashboard,
+    );
+  });
+
+  testWidgets('종류 칩으로 그 종류의 알림만 본다', (tester) async {
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-token',
+      at: AppRoutes.notifications,
+      extraOverrides: <Override>[
+        trainerNotificationRepositoryProvider.overrideWithValue(
+          _FakeNotificationRepository(<TrainerNotification>[
+            _notification(),
+            _notification(
+              id: 'noti-2',
+              title: '새 예약이 들어왔어요',
+              kind: TrainerNotificationKind.reservation,
+            ),
+          ]),
+        ),
+      ],
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('notifications-chip-reservations')),
+    );
+    await settle(tester);
+    expect(find.text('새 예약이 들어왔어요'), findsOneWidget);
+    expect(find.text('이지수 회원의 메시지'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('notifications-chip-members')),
+    );
+    await settle(tester);
+    expect(find.text('이 종류의 알림이 없어요'), findsOneWidget);
   });
 
   testWidgets('받은 알림이 목록에 그려진다', (tester) async {

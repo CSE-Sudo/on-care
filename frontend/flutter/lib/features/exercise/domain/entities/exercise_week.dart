@@ -107,7 +107,6 @@ class ExerciseSession {
     this.source = ExerciseSource.member,
     this.assignedRoutineId,
     this.assignedRoutineName = '',
-    this.trainerFeedback = '',
     this.completedAt,
     this.sets,
     this.reps,
@@ -181,7 +180,6 @@ class ExerciseSession {
 
   final String? assignedRoutineId;
   final String assignedRoutineName;
-  final String trainerFeedback;
   final DateTime? completedAt;
 
   /// 근력 기록의 세트 수. 없으면 분에서 환산한다.
@@ -207,7 +205,6 @@ class ExerciseSession {
         source: _exerciseSourceFromString(json['source'] as String?),
         assignedRoutineId: json['assigned_routine_id'] as String?,
         assignedRoutineName: json['assigned_routine_name'] as String? ?? '',
-        trainerFeedback: json['trainer_feedback'] as String? ?? '',
         completedAt: DateTime.tryParse(json['completed_at'] as String? ?? ''),
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),

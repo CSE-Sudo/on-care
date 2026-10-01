@@ -1,4 +1,4 @@
-"""배정 루틴 수행 기록과 트레이너 피드백의 양방향 연결. (#638) DB 필요."""
+"""배정 루틴 수행 기록이 회원 운동 기록과 트레이너 이력을 잇는다. (#638) DB 필요."""
 from __future__ import annotations
 
 from uuid import uuid4
@@ -56,7 +56,7 @@ def assigned_routine(client, db_session):
     db_session.commit()
 
 
-def test_completion_feedback_and_history_share_one_record(client, assigned_routine):
+def test_completion_and_history_share_one_record(client, assigned_routine):
     trainer_token, routine = assigned_routine
     member_token = _login(client, "jisu@oncare.com")
     member_headers = _headers(member_token)
@@ -88,7 +88,8 @@ def test_completion_feedback_and_history_share_one_record(client, assigned_routi
     )
     assert retried.status_code == 200, retried.text
     assert retried.json()["completed_at"] == completion_time
-    # 개인 운동 피드백은 받기만 하고 저장·노출하지 않는다(#1825).
+    # 개인 운동 회원 피드백은 없앴다(#1825, #2624) — 옛 앱이 보내도 무시하고
+    # 응답 칸은 빈 문자열로 남는다.
     assert retried.json()["member_note"] == ""
 
     week = client.get("/v1/exercise/weeks/current", headers=member_headers).json()
@@ -109,14 +110,9 @@ def test_completion_feedback_and_history_share_one_record(client, assigned_routi
     )
     assert history_row["id"] == session["id"]
     assert history_row["client_feedback"] == ""
-
-    feedback = client.put(
-        f"/v1/trainer/clients/{MEMBER_ID}/history/{history_row['id']}/feedback",
-        headers=trainer_headers,
-        json={"feedback": "자세가 안정적이었어요. 다음엔 40분으로 늘려요."},
-    )
-    assert feedback.status_code == 200, feedback.text
-
+    # 개인 운동 트레이너 피드백도 없앴다(#2517) — 응답 칸은 늘 비어 있다.
+    assert history_row["trainer_note"] == ""
+    assert session["trainer_feedback"] == ""
     member_routine = next(
         row for row in client.get(
             "/v1/me/coach/routines", headers=member_headers
@@ -124,14 +120,7 @@ def test_completion_feedback_and_history_share_one_record(client, assigned_routi
         if row["id"] == routine["id"]
     )
     assert member_routine["completed"] is True
-    assert member_routine["trainer_feedback"].startswith("자세가 안정적")
-    refreshed_session = next(
-        row for row in client.get(
-            "/v1/exercise/weeks/current", headers=member_headers
-        ).json()["sessions"]
-        if row["id"] == session["id"]
-    )
-    assert refreshed_session["trainer_feedback"] == member_routine["trainer_feedback"]
+    assert member_routine["trainer_feedback"] == ""
 
     # 파생 기록은 회원이 일반 수기 기록처럼 고치거나 지울 수 없다.
     edit = client.put(
@@ -162,7 +151,7 @@ def test_completion_rejects_out_of_range_minutes(
     assert response.status_code == 422, response.text
 
 
-def test_snapshot_and_feedback_survive_routine_deletion(client, assigned_routine):
+def test_snapshot_survives_routine_deletion(client, assigned_routine):
     trainer_token, routine = assigned_routine
     member_headers = _headers(_login(client, "jisu@oncare.com"))
     trainer_headers = _headers(trainer_token)
@@ -170,7 +159,7 @@ def test_snapshot_and_feedback_survive_routine_deletion(client, assigned_routine
     completed = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 30, "member_note": "완료"},
+        json={"minutes": 30},
     )
     assert completed.status_code == 200, completed.text
 
@@ -192,27 +181,40 @@ def test_snapshot_and_feedback_survive_routine_deletion(client, assigned_routine
     row = next(item for item in history if item["assigned_routine_id"] == routine["id"])
     assert row["label"] == routine["name"]
 
-    updated = client.put(
-        f"/v1/trainer/clients/{MEMBER_ID}/history/{row['id']}/feedback",
-        headers=trainer_headers,
-        json={"feedback": "삭제 후에도 남는 피드백"},
-    )
-    assert updated.status_code == 200, updated.text
     sessions = client.get(
         "/v1/exercise/weeks/current", headers=member_headers
     ).json()["sessions"]
     saved = next(item for item in sessions if item["assigned_routine_id"] == routine["id"])
     assert saved["assigned_routine_name"] == routine["name"]
-    assert saved["trainer_feedback"] == "삭제 후에도 남는 피드백"
 
 
-def test_only_owner_can_complete_or_write_feedback(
-    client, db_session, assigned_routine
-):
-    from app.core.security import create_access_token
-    from app.models.models import TrainerClient, User
-
+def test_routine_feedback_endpoint_is_gone(client, assigned_routine):
+    """개인 운동 트레이너 피드백 저장 경로는 없다(#2517). 개인운동에 할 말은 채팅으로 한다."""
     trainer_token, routine = assigned_routine
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+    trainer_headers = _headers(trainer_token)
+    completed = client.post(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=member_headers,
+        json={"minutes": 30},
+    )
+    assert completed.status_code == 200, completed.text
+    history = client.get(
+        f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
+    ).json()
+    row = next(item for item in history if item["assigned_routine_id"] == routine["id"])
+
+    response = client.put(
+        f"/v1/trainer/clients/{MEMBER_ID}/history/{row['id']}/feedback",
+        headers=trainer_headers,
+        json={"feedback": "저장되면 안 됨"},
+    )
+
+    assert response.status_code in (404, 405), response.text
+
+
+def test_only_owner_can_complete(client, assigned_routine):
+    _, routine = assigned_routine
     other_member = _login(client, "sungho@oncare.com")
     denied_completion = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
@@ -220,52 +222,6 @@ def test_only_owner_can_complete_or_write_feedback(
         json={"minutes": 30},
     )
     assert denied_completion.status_code == 404
-
-    member_headers = _headers(_login(client, "jisu@oncare.com"))
-    completed = client.post(
-        f"/v1/me/coach/routines/{routine['id']}/complete",
-        headers=member_headers,
-        json={"minutes": 30},
-    ).json()
-    history = client.get(
-        f"/v1/trainer/clients/{MEMBER_ID}/history",
-        headers=_headers(trainer_token),
-    ).json()
-    history_id = next(
-        item["id"] for item in history
-        if item["assigned_routine_id"] == routine["id"]
-    )
-    assert completed["completed"] is True
-
-    other_trainer_id = f"trainer-{uuid4().hex[:10]}"
-    other_trainer = User(
-        id=other_trainer_id,
-        email=f"{other_trainer_id}@oncare.com",
-        name="다른 트레이너",
-        hashed_password="unused",
-        role="trainer",
-    )
-    db_session.add(other_trainer)
-    db_session.flush()  # TrainerClient.trainer_id FK 부모를 먼저 반영한다.
-    link = TrainerClient(
-        id=f"tc-{uuid4().hex[:12]}",
-        trainer_id=other_trainer_id,
-        member_id=MEMBER_ID,
-        active=False,
-    )
-    db_session.add(link)
-    db_session.commit()
-    try:
-        denied_feedback = client.put(
-            f"/v1/trainer/clients/{MEMBER_ID}/history/{history_id}/feedback",
-            headers=_headers(create_access_token(other_trainer_id)),
-            json={"feedback": "보이면 안 됨"},
-        )
-        assert denied_feedback.status_code == 404
-    finally:
-        db_session.delete(link)
-        db_session.delete(other_trainer)
-        db_session.commit()
 
 
 def test_member_can_undo_a_completion(client, assigned_routine):
@@ -280,7 +236,7 @@ def test_member_can_undo_a_completion(client, assigned_routine):
     completed = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 25, "intensity": "moderate", "member_note": ""},
+        json={"minutes": 25, "intensity": "moderate"},
     )
     assert completed.status_code == 200, completed.text
     assert (
@@ -320,7 +276,7 @@ def test_member_can_undo_a_completion(client, assigned_routine):
     redone = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 12, "intensity": "light", "member_note": "다시"},
+        json={"minutes": 12, "intensity": "light"},
     )
     assert redone.status_code == 200, redone.text
     assert redone.json()["completed_minutes"] == 12
@@ -363,7 +319,7 @@ def test_the_trainers_sets_and_weight_reach_the_members_record(client, db_sessio
             f"/v1/me/coach/routines/{routine['id']}/complete",
             headers=member_headers,
             # 회원은 세트·중량을 적지 않았다.
-            json={"minutes": 36, "intensity": "high", "member_note": ""},
+            json={"minutes": 36, "intensity": "high"},
         )
         assert completed.status_code == 200, completed.text
 

@@ -42,6 +42,8 @@ class ClientDetailView extends ConsumerStatefulWidget {
     required this.onSectionChange,
     this.showBack = true,
     this.onClose,
+    this.openHealthNotes = false,
+    this.onHealthNotesOpened,
   });
 
   /// Id of the client being viewed.
@@ -59,6 +61,11 @@ class ClientDetailView extends ConsumerStatefulWidget {
   /// Closes the panel and returns to the plain list. The header's `<` calls
   /// this in the split view; without it `<` goes to the 회원 list route.
   final VoidCallback? onClose;
+
+  /// 들어오자마자 신체·목표 창의 `건강 목표` 탭을 연다 — 주의사항 알림에서 온
+  /// 길이다(#2619). 연 뒤에는 [onHealthNotesOpened] 로 알린다.
+  final bool openHealthNotes;
+  final VoidCallback? onHealthNotesOpened;
 
   /// The section actually being shown; unknown values fall back to the
   /// default so a stale link renders something rather than nothing.
@@ -131,18 +138,35 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     }
   }
 
-  void _openDialog(TrainerClient client, ClientProfileSection section) =>
-      showClientProfileDialog(
-        context,
-        clientId: client.id,
-        clientName: client.name,
-        // 서버에 성별이 없으면 로스터가 보여 주는 값으로 연다 — 헤더와
-        // 대화상자가 다른 말을 하지 않도록(#960).
-        fallbackGender: client.rosterGender,
-        // 권장값 계산용(#2359). 로스터의 추정 나이가 아니라 서버가 준 나이만.
-        ageYears: client.age,
-        section: section,
-      );
+  /// 알림에서 온 창을 이미 열었는가. 한 번만 연다.
+  bool _openedHealthNotes = false;
+
+  void _openHealthNotesOnce(TrainerClient client) {
+    if (!widget.openHealthNotes || _openedHealthNotes) return;
+    _openedHealthNotes = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onHealthNotesOpened?.call();
+      _openDialog(client, ClientProfileSection.health, openHealthNotes: true);
+    });
+  }
+
+  void _openDialog(
+    TrainerClient client,
+    ClientProfileSection section, {
+    bool openHealthNotes = false,
+  }) => showClientProfileDialog(
+    context,
+    clientId: client.id,
+    clientName: client.name,
+    // 서버에 성별이 없으면 로스터가 보여 주는 값으로 연다 — 헤더와
+    // 대화상자가 다른 말을 하지 않도록(#960).
+    fallbackGender: client.rosterGender,
+    // 권장값 계산용(#2359). 로스터의 추정 나이가 아니라 서버가 준 나이만.
+    ageYears: client.age,
+    section: section,
+    openHealthNotes: openHealthNotes,
+  );
 
   /// 배지를 누르면 그 신호의 근거가 있는 곳으로 간다(#2330) — 대시보드 할
   /// 일과 같은 [ClientSignalKind.detailSection] 이다. 식단·운동은 이 화면의
@@ -240,6 +264,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
         }
         final client = match.first;
         final String section = widget.resolvedSection;
+        _openHealthNotesOnce(client);
 
         // 식단/운동은 라우트가 곧 선택 상태다 — 별도 `TabController` 없이
         // 현재 섹션 하나로 어느 쪽을 그릴지 결정한다(#1024). 두 뷰 모두

@@ -215,10 +215,11 @@ void main() {
     final List<Map<String, Object?>> notices = await resultNotices();
     expect(notices, hasLength(1));
     expect(notices.single['title'], '주간 챌린지 성공! 200P를 받았어요');
-    expect(notices.single['category'], 'benefits');
+    // 서버와 같은 갈래·목적지다 — 결과 뒤에 할 일이 포인트 사용처에 있다(#2660).
+    expect(notices.single['category'], 'points_shop');
     expect(notices.single['action'], <String, Object?>{
-      'label': '내 혜택 보기',
-      'target': 'my_benefits',
+      'label': '포인트 사용처 보기',
+      'target': 'points_shop',
     });
     expect(await resultNotices(), hasLength(1));
   });
