@@ -3664,6 +3664,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotificationSaveFailed => 'Couldn\'t save notification settings';
 
   @override
+  String get myNotifLoadFailed => 'Couldn\'t load notification settings';
+
+  @override
+  String get myNotifLoadFailedBody =>
+      'These are default values and may differ from your saved settings';
+
+  @override
   String get myPointsGuideTitle => 'How to earn points';
 
   @override

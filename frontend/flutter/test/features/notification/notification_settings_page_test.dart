@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +24,7 @@ class _FakeRepository implements NotificationSettingsRepository {
     Map<String, bool>? initial,
     this.failOnWrite = false,
     this.failFrom,
+    this.failedFetches = 0,
   }) : _values =
            initial ??
            <String, bool>{
@@ -37,8 +40,19 @@ class _FakeRepository implements NotificationSettingsRepository {
   final int? failFrom;
   final List<(String, bool)> writes = <(String, bool)>[];
 
+  /// 앞에서부터 이 횟수만큼 조회를 실패시킨다 — 다시 시도를 재현한다.
+  int failedFetches;
+  int fetchCalls = 0;
+
   @override
-  Future<Map<String, bool>> fetch() async => Map<String, bool>.from(_values);
+  Future<Map<String, bool>> fetch() async {
+    fetchCalls++;
+    if (failedFetches > 0) {
+      failedFetches--;
+      throw StateError('fetch failed');
+    }
+    return Map<String, bool>.from(_values);
+  }
 
   @override
   Future<void> setValue(String key, bool value) async {
@@ -77,11 +91,19 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
+int _indexOf(String key) => kNotificationSettingItems.indexWhere(
+  (NotificationSettingItem item) => item.key == key,
+);
+
+bool _switchValue(WidgetTester tester, String key) => tester
+    .widgetList<Switch>(find.byType(Switch))
+    .toList()[_indexOf(key)]
+    .value;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('토글 5개가 그대로 그려진다', (WidgetTester tester) async {
-    // 데모 화면은 지금과 같아야 한다 — 항목 수와 기본 상태가 바뀌면 안 된다.
+  testWidgets('토글이 설정 항목 수만큼 그려진다', (WidgetTester tester) async {
     await _pump(tester);
 
     expect(
@@ -188,5 +210,135 @@ void main() {
       tester.widgetList<Switch>(find.byType(Switch)).toList()[index].value,
       isFalse,
     );
+  });
+
+  group('다시 들어올 때 (#2851)', () {
+    final GlobalKey<NavigatorState> navigator = GlobalKey<NavigatorState>();
+
+    Future<void> pumpHost(WidgetTester tester, _FakeRepository repo) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            appConfigProvider.overrideWithValue(_demo),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            notificationSettingsRepositoryProvider.overrideWithValue(repo),
+          ],
+          child: MaterialApp(
+            navigatorKey: navigator,
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SizedBox.shrink()),
+          ),
+        ),
+      );
+    }
+
+    Future<void> open(WidgetTester tester) async {
+      unawaited(
+        navigator.currentState!.push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => const NotificationSettingsPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> close(WidgetTester tester) async {
+      navigator.currentState!.pop();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('바꾼 값이 나갔다 들어와도 그대로 보인다', (WidgetTester tester) async {
+      // 예전에는 화면 State 에만 남아, 다시 들어오면 최초 조회값(켜짐)이 보였다.
+      // 회원이 다시 누르면 서버 값이 뒤집혔다.
+      final repo = _FakeRepository();
+      await pumpHost(tester, repo);
+      await open(tester);
+      expect(_switchValue(tester, 'notif_trainer_message'), isTrue);
+
+      await tester.tap(
+        find.byType(Switch).at(_indexOf('notif_trainer_message')),
+      );
+      await tester.pumpAndSettle();
+      await close(tester);
+      await open(tester);
+
+      expect(_switchValue(tester, 'notif_trainer_message'), isFalse);
+      expect(repo.writes, <(String, bool)>[('notif_trainer_message', false)]);
+    });
+
+    testWidgets('저장이 실패했으면 다시 들어와도 직전 값이다', (WidgetTester tester) async {
+      final repo = _FakeRepository(failOnWrite: true);
+      await pumpHost(tester, repo);
+      await open(tester);
+
+      await tester.tap(find.byType(Switch).at(_indexOf('notif_weekly_report')));
+      await tester.pumpAndSettle();
+      await close(tester);
+      await open(tester);
+
+      expect(_switchValue(tester, 'notif_weekly_report'), isFalse);
+    });
+  });
+
+  group('조회 실패 (#2851)', () {
+    testWidgets('실패 안내와 다시 시도가 보이고 토글은 쓸 수 있다', (WidgetTester tester) async {
+      final repo = _FakeRepository(failedFetches: 1);
+      await _pump(tester, repository: repo);
+
+      expect(
+        find.byKey(const Key('notificationSettingsLoadFailed')),
+        findsOneWidget,
+      );
+      expect(find.text('알림 설정을 불러오지 못했어요'), findsOneWidget);
+      expect(find.text('다시 시도'), findsOneWidget);
+      // 끌 방법이 사라지면 안 된다.
+      expect(
+        find.byType(Switch),
+        findsNWidgets(kNotificationSettingItems.length),
+      );
+      await tester.tap(find.byType(Switch).at(_indexOf('notif_weekly_report')));
+      await tester.pumpAndSettle();
+      expect(repo.writes, <(String, bool)>[('notif_weekly_report', true)]);
+    });
+
+    testWidgets('다시 시도하면 서버 값을 읽고 안내가 사라진다', (WidgetTester tester) async {
+      final repo = _FakeRepository(
+        initial: <String, bool>{
+          for (final NotificationSettingItem item in kNotificationSettingItems)
+            item.key: item.key == 'notif_trainer_message'
+                ? false
+                : item.fallback,
+        },
+        failedFetches: 1,
+      );
+      await _pump(tester, repository: repo);
+      // 실패한 동안은 기본값(켜짐)이다.
+      expect(_switchValue(tester, 'notif_trainer_message'), isTrue);
+
+      await tester.tap(find.text('다시 시도'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('notificationSettingsLoadFailed')),
+        findsNothing,
+      );
+      expect(_switchValue(tester, 'notif_trainer_message'), isFalse);
+      expect(repo.fetchCalls, 2);
+    });
+
+    testWidgets('조회에 성공하면 안내가 없다', (WidgetTester tester) async {
+      await _pump(tester, repository: _FakeRepository());
+
+      expect(
+        find.byKey(const Key('notificationSettingsLoadFailed')),
+        findsNothing,
+      );
+    });
   });
 }

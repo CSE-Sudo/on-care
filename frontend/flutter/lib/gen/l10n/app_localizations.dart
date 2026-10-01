@@ -6354,6 +6354,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save notification settings'**
   String get myNotificationSaveFailed;
 
+  /// No description provided for @myNotifLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings'**
+  String get myNotifLoadFailed;
+
+  /// No description provided for @myNotifLoadFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These are default values and may differ from your saved settings'**
+  String get myNotifLoadFailedBody;
+
   /// Title of the points guide dialog.
   ///
   /// In en, this message translates to:

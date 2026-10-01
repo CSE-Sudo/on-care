@@ -2817,6 +2817,8 @@
   "@myNotificationSaveFailed": {
     "description": "Shown when saving notification settings fails."
   },
+  "myNotifLoadFailed": "Couldn't load notification settings",
+  "myNotifLoadFailedBody": "These are default values and may differ from your saved settings",
   "myPointsGuideTitle": "How to earn points",
   "@myPointsGuideTitle": {
     "description": "Title of the points guide dialog."

@@ -1748,6 +1748,8 @@
   "mySettingsLoadFailed": "설정을 불러오지 못했어요",
   "mySettingsLoadFailedBody": "지금 저장하면 기존 설정이 지워질 수 있어 편집을 잠갔어요.",
   "myNotificationSaveFailed": "알림 설정을 저장하지 못했어요",
+  "myNotifLoadFailed": "알림 설정을 불러오지 못했어요",
+  "myNotifLoadFailedBody": "지금 보이는 값은 기본값이라 저장된 설정과 다를 수 있어요",
   "myPointsGuideTitle": "포인트 적립 안내",
   "myPointsDietAdd": "식단 추가",
   "myPointsRoutineComplete": "추천·배정 운동 완료",

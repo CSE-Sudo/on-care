@@ -3527,6 +3527,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotificationSaveFailed => '알림 설정을 저장하지 못했어요';
 
   @override
+  String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요';
+
+  @override
+  String get myNotifLoadFailedBody => '지금 보이는 값은 기본값이라 저장된 설정과 다를 수 있어요';
+
+  @override
   String get myPointsGuideTitle => '포인트 적립 안내';
 
   @override
