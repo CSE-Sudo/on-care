@@ -4003,6 +4003,18 @@ abstract class AppLocalizations {
   /// **'Coming soon — always on for now'**
   String get myNotifNotReady;
 
+  /// Notification settings card row shown while the saved settings are loading; switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading notification settings…'**
+  String get myNotifLoading;
+
+  /// Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings. Please try again'**
+  String get myNotifLoadFailed;
+
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:

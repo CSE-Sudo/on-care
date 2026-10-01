@@ -1620,6 +1620,14 @@
   "myNotifications": "Notifications",
   "myNotifNewMessage": "New message alerts",
   "myNotifNotReady": "Coming soon — always on for now",
+  "myNotifLoading": "Loading notification settings…",
+  "@myNotifLoading": {
+    "description": "Notification settings card row shown while the saved settings are loading; switches stay disabled."
+  },
+  "myNotifLoadFailed": "Couldn't load notification settings. Please try again",
+  "@myNotifLoadFailed": {
+    "description": "Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled."
+  },
   "myNotifNewMessageHint": "Get an inbox alert and a sidebar count when a member messages you",
   "myLanguageApp": "Display language",
   "myLanguageHint": "Your choice is saved in this browser only. Other devices follow their own browser setting.",

@@ -2192,6 +2192,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifNotReady => '곧 끌 수 있어요 — 지금은 항상 받아요';
 
   @override
+  String get myNotifLoading => '알림 설정을 불러오는 중이에요';
+
+  @override
+  String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요';
 
   @override

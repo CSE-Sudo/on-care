@@ -2304,6 +2304,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifNotReady => 'Coming soon — always on for now';
 
   @override
+  String get myNotifLoading => 'Loading notification settings…';
+
+  @override
+  String get myNotifLoadFailed =>
+      'Couldn\'t load notification settings. Please try again';
+
+  @override
   String get myNotifNewMessageHint =>
       'Get an inbox alert and a sidebar count when a member messages you';
 
