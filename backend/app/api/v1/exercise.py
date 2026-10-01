@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.core import clock
 from app.db.session import get_db
 from app.models.models import ExerciseSession, HealthProfile
@@ -249,7 +249,7 @@ def _calories_for(
 @router.post("/exercise/calories", response_model=ExerciseCalorieResponse)
 def preview_calories(
     payload: ExerciseCalorieRequest,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseCalorieResponse:
     """운동 이름·시간·강도로 소모 칼로리 미리보기. (#1312)
@@ -284,7 +284,7 @@ def preview_calories(
 )
 def add_sessions(
     payload: ExerciseSessionsCreate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseSessionsCreatedOut:
     """운동 기록 1~N개를 **한 트랜잭션으로** 추가한다. (#2544)
@@ -378,7 +378,7 @@ def _new_member_session(
 def update_session(
     session_id: str,
     payload: ExerciseSessionCreate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseSessionOut:
     """운동 기록 수정(본인 소유만, 아니면 404). 유형/이름/시간/칼로리/강도/날짜 갱신."""
@@ -428,7 +428,7 @@ def update_session(
 @router.delete("/exercise/sessions/{session_id}")
 def delete_session(
     session_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """운동 기록 삭제. 본인 소유 세션만 삭제 가능(아니면 404)."""

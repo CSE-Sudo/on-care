@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.core.config import get_settings
 from app.core.rate_limit import rate_limit
 from app.db.session import get_db
@@ -117,7 +117,7 @@ def ai_coach_quota(
 )
 def ai_coach_chat(
     payload: ChatRequest,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ChatReply:
     """대화형 코칭: RAG 근거 기반 답변(개인/공공 격리). LLM 키 없으면 검색 기반 폴백.
@@ -256,7 +256,7 @@ def ai_coach_insights(
 @router.delete("/ai-coach/insights/{message_id}")
 def dismiss_ai_coach_insight(
     message_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """그 줄에서 찾은 감지를 기록에서 치운다. (#1975)

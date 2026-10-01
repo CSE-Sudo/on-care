@@ -1443,6 +1443,12 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 유효 토큰을 요구한다 — 회원 데모 사용자가 트레이너 엔드포인트나 쓰기 경로로 새어 들어가지
 않게 하기 위해서다.
 
+회원의 `POST`·`PUT`·`PATCH`·`DELETE` 는 저장하지 않는 계산 요청(`POST /diet/nutrition`,
+`POST /exercise/calories`, `POST /diet/analyze`)까지 포함해 전부 `RequireMember` 다(#2831).
+만료된 토큰으로 기록을 저장하면 데모 계정에 쌓이는 대신 **401** 이 나고, 회원 앱은 refresh 뒤
+같은 요청을 다시 보낸다. 새 쓰기 라우트가 `CurrentUser` 를 쓰면
+`tests/test_write_route_auth_guard.py` 가 실패한다(예외는 그 파일의 목록에 이유와 함께 적는다).
+
 ### 데모 폴백은 환경으로 갈린다
 
 `CurrentUser` 에 유효한 토큰이 없을 때의 동작은 설정이 정한다 (`app/core/config.py`).

@@ -24,7 +24,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Respon
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.diet_api import (
@@ -186,7 +186,7 @@ def diet_recommendations(
 @router.post("/diet/nutrition", response_model=FoodNutritionOut)
 def food_nutrition(
     payload: FoodNutritionRequest,
-    current_user: CurrentUser,  # noqa: ARG001 — 로그인한 회원만 쓰는 조회다
+    current_user: RequireMember,  # noqa: ARG001 — 로그인한 회원만 쓰는 조회다
     db: Annotated[Session, Depends(get_db)],
 ) -> FoodNutritionOut:
     """음식 이름으로 공공 영양 DB 값을 찾는다. (#1896)
@@ -226,7 +226,7 @@ def food_nutrition(
 
 @router.post("/diet/analyze", response_model=DietAnalyzeResponse)
 async def diet_analyze(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(..., description="음식 사진"),
     meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
@@ -357,7 +357,7 @@ def diet_photo(
 @router.post("/diet/entries", response_model=DietEntryOut, status_code=201)
 def create_entry(
     payload: DietEntryCreate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> DietEntryOut:
     """사진 없이 회원이 직접 적은 끼니를 저장한다(#2151).
@@ -375,7 +375,7 @@ def create_entry(
 def update_entry(
     entry_id: str,
     payload: DietEntryUpdate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> DietEntryOut:
     """식단 기록의 끼니 분류/시간·영양소 수정(본인 소유만, 아니면 404)."""
@@ -392,7 +392,7 @@ def update_entry(
 @router.delete("/diet/entries/{entry_id}")
 def delete_entry(
     entry_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """식단 기록 삭제. 본인 소유 엔트리만 삭제 가능(아니면 404)."""
