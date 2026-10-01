@@ -278,6 +278,7 @@ class SessionController extends StateNotifier<SessionState>
       final profile = await _repo.fetchProfile(tokens.access);
       if (!mounted) return;
       _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
+      _ref.read(signedOutByUserProvider.notifier).state = false;
       state = SessionState(
         status: SessionStatus.authenticated,
         profile: profile,
@@ -301,6 +302,7 @@ class SessionController extends StateNotifier<SessionState>
     // over any launch-time refresh save that is already in flight.
     unawaited(_clearPersistedTokens());
     _setAccessToken(null);
+    _ref.read(signedOutByUserProvider.notifier).state = false;
     state = const SessionState(status: SessionStatus.demo);
   }
 
@@ -318,8 +320,13 @@ class SessionController extends StateNotifier<SessionState>
 
   /// Signs out — revokes the session server-side, clears persisted tokens,
   /// and returns to the login screen.
+  ///
+  /// 사용자가 직접 끝낸 세션이라 로그인 화면 주소에 지금 자리를 싣지 않는다
+  /// (#2765). 탈퇴도 이 길로 온다. 상태가 바뀌기 **전에** 표시해야 라우터 가드가
+  /// 로그아웃 상태를 처음 볼 때 이미 이 값을 읽는다.
   Future<void> signOut() async {
     _userActionStarted = true;
+    _ref.read(signedOutByUserProvider.notifier).state = true;
     // 지우기 **전에** 서버에 알린다 — 지운 뒤에는 폐기할 토큰이 없다.
     await _revokeSession();
     // 사용자가 직접 요청한 만료다 — 자기 자신의 가드에 막히면 안 된다.
@@ -458,6 +465,8 @@ class SessionController extends StateNotifier<SessionState>
   /// (`/auth/logout`)도 같은 이유로 부르지 않는다.
   Future<void> _endSwitchedAccountSession(String staleToken) async {
     if (!_holdsToken(staleToken)) return;
+    // 사용자가 끝낸 세션이 아니다 — 로그인 뒤 원래 자리로 잇는다.
+    _ref.read(signedOutByUserProvider.notifier).state = false;
     _setAccessToken(null);
     state = const SessionState(status: SessionStatus.signedOut);
     _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
@@ -497,6 +506,8 @@ class SessionController extends StateNotifier<SessionState>
   /// 서버는 이미 이 갱신 토큰을 받지 않으므로 폐기(`/auth/logout`)는 부르지 않는다.
   Future<void> _endExpiredSession(String staleToken) async {
     if (!_holdsToken(staleToken)) return;
+    // 만료는 사용자가 끝낸 세션이 아니다 — 로그인 뒤 원래 자리로 잇는다.
+    _ref.read(signedOutByUserProvider.notifier).state = false;
     // 로그인한 뒤라 사용자 행동 가드는 이미 켜져 있다. 그 가드는 **복구**가 뒤늦게
     // 세션을 덮지 못하게 하는 것이고, 이 만료는 지금 세션에 대한 것이다.
     await _expire(userInitiated: true);
@@ -608,6 +619,18 @@ enum _AccountCheck {
 final sessionExpiredNoticeProvider = StateProvider<bool>(
   (ref) => false,
   name: 'sessionExpiredNotice',
+);
+
+/// 지금의 로그아웃 상태가 **사용자가 직접** 로그아웃·탈퇴한 결과인가(#2765).
+///
+/// 라우터 가드는 이 값이 참이면 로그인 화면 주소에 이전 자리(`?from=`)를 싣지
+/// 않는다. 세션 만료·첫 실행 딥링크는 거짓이라 지금처럼 이어 간다. 새 세션
+/// (로그인·가입·소셜·데모)이 시작되면 거짓으로 돌아간다.
+///
+/// 세션 상태에 넣지 않는 이유는 [sessionExpiredNoticeProvider] 와 같다.
+final signedOutByUserProvider = StateProvider<bool>(
+  (ref) => false,
+  name: 'signedOutByUser',
 );
 
 /// Exposes the trainer session state + controller app-wide.

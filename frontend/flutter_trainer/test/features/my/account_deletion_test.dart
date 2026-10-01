@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
@@ -33,10 +34,10 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   bool get supportsPasswordChange => true;
 
   @override
-  Future<void> changePassword({
+  Future<TrainerAuthTokens?> changePassword({
     required String currentPassword,
     required String newPassword,
-  }) async {}
+  }) async => null;
 
   @override
   Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {

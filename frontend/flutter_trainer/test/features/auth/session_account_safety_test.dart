@@ -4,6 +4,7 @@
 ///    갱신 토큰은 그 계정의 것이다. 이 탭이 401 뒤 회전하면 남의 토큰을 받게 되므로,
 ///    주인을 확인하고 다르면 채택하지 않고 이 탭만 로그인 화면으로 보낸다.
 ///  * #2765 — 직접 로그아웃은 [signedOutByUserProvider] 를 켜고, 새 세션·만료는 끈다.
+///  * #2766 — 비밀번호 변경 응답의 새 토큰으로 세션을 갈아 끼운다.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -265,6 +266,58 @@ void main() {
       expect(result.status, TokenRefreshStatus.rejected);
       expect(h.state.status, SessionStatus.signedOut);
       expect(h.signedOutByUser, isFalse);
+    });
+  });
+
+  group('#2766 — 비밀번호 변경 뒤 새 토큰 채택', () {
+    test('새 쌍으로 메모리와 저장소를 갈아 끼우고 세션은 그대로 둔다', () async {
+      final h = await _signedInAsA();
+      final TrainerProfile? before = h.state.profile;
+
+      await h.controller.adoptReissuedTokens(
+        const TrainerAuthTokens(access: 'a-access-new', refresh: 'a-ref-new'),
+      );
+
+      expect(h.access, 'a-access-new');
+      expect(await h.store.readAccessToken(), 'a-access-new');
+      expect(await h.store.readRefreshToken(), 'a-ref-new');
+      expect(h.state.status, SessionStatus.authenticated);
+      expect(h.state.profile, same(before));
+    });
+
+    test('갱신 토큰이 비어 있으면 저장된 갱신 토큰을 지킨다', () async {
+      final h = await _signedInAsA();
+
+      await h.controller.adoptReissuedTokens(
+        const TrainerAuthTokens(access: 'a-access-new', refresh: ''),
+      );
+
+      expect(h.access, 'a-access-new');
+      expect(await h.store.readRefreshToken(), 'a-refresh-0');
+    });
+
+    test('빈 접근 토큰은 무시한다', () async {
+      final h = await _signedInAsA();
+
+      await h.controller.adoptReissuedTokens(
+        const TrainerAuthTokens(access: '', refresh: 'x'),
+      );
+
+      expect(h.access, 'a-access-0');
+      expect(await h.store.readRefreshToken(), 'a-refresh-0');
+    });
+
+    test('로그아웃한 뒤 늦게 도착한 토큰은 되살리지 않는다', () async {
+      final h = await _signedInAsA();
+      await h.controller.signOut();
+
+      await h.controller.adoptReissuedTokens(
+        const TrainerAuthTokens(access: 'a-access-new', refresh: 'a-ref-new'),
+      );
+
+      expect(h.access, isNull);
+      expect(await h.store.readAccessToken(), isNull);
+      expect(h.state.status, SessionStatus.signedOut);
     });
   });
 }
