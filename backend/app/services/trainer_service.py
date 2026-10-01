@@ -73,6 +73,7 @@ from app.services import (
     notification_templates,
     points_coupon_service,
     points_service,
+    profile_format,
     routine_advice,
     routine_suggestion_service,
     schedule_parse,
@@ -553,15 +554,23 @@ def build_roster(
     # 회원 id 로 값을 지어내 화면마다·모드마다 다른 성별이 떴다(#960). 한 번의
     # 배치 조회로 읽고, 저장된 적이 없는 회원은 빈 문자열로 둔다.
     # 이름 아래 목표는 회원이 고른 건강 목표다(#1818) — 같은 행에서 함께 읽는다.
+    # 나이도 같은 행의 생년월일에서 센다(#2728) — 내려 주지 않던 시절에는 앱이
+    # 회원 id 로 나이를 지어냈다.
     gender_by_member: dict[str, str] = {}
     goal_by_member: dict[str, str] = {}
-    for member_id, gender, conditions in db.execute(
+    age_by_member: dict[str, int | None] = {}
+    today_for_age = clock.today()
+    for member_id, gender, conditions, birth_date in db.execute(
         select(
-            HealthProfile.user_id, HealthProfile.gender, HealthProfile.conditions
+            HealthProfile.user_id,
+            HealthProfile.gender,
+            HealthProfile.conditions,
+            HealthProfile.birth_date,
         ).where(HealthProfile.user_id.in_(member_ids))
     ).all():
         gender_by_member[member_id] = gender
         goal_by_member[member_id] = health_focus.focus_label(conditions)
+        age_by_member[member_id] = profile_format.age_on(birth_date, today_for_age)
     # PT 관리 신호(#2203) — 기준과 계산은 client_signals 한 곳에 있다.
     signals_by_member = client_signals.build_signals(db, trainer_id, list(links))
 
@@ -586,6 +595,7 @@ def build_roster(
             name=member.name,
             avatar=member.name[:1] if member.name else "?",
             gender=gender_by_member.get(link.member_id, ""),
+            age=age_by_member.get(link.member_id),
             goal=goal_by_member.get(link.member_id, ""),
             last_message=_roster_preview(last_msg),
             last_time=relative_time_label(last_msg.created_at) if last_msg else "-",
@@ -6573,6 +6583,8 @@ def build_weekly_report(
     # 수업" 이고 리포트는 그 분모로 이행을 읽는다 — 진행되지 않은 약속을 분모에
     # 넣으면 트레이너 사정의 취소가 회원의 낮은 이행률로 보인다. 취소·노쇼
     # 자체에 패널티를 주는 지표는 이번 범위가 아니라 별도 정책이다.
+    # 상담도 세지 않는다(#2741) — 리포트가 말하는 것은 **PT** 횟수다. 상담이 있던
+    # 주는 PT 가 1회 더 나오고 이행률 분모도 그만큼 커졌다.
     sessions = db.scalars(
         select(TrainerSchedule).where(
             TrainerSchedule.trainer_id == trainer_id,
@@ -6580,6 +6592,7 @@ def build_weekly_report(
             TrainerSchedule.date >= monday_str,
             TrainerSchedule.date <= sunday_str,
             TrainerSchedule.status.in_((SCHEDULE_UPCOMING, SCHEDULE_DONE)),
+            TrainerSchedule.type != "상담",
         )
     ).all()
     booked = len(sessions)

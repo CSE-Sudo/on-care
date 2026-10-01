@@ -58,16 +58,6 @@ class DioAiCoachRepository implements AiCoachRepository {
     } on DioException catch (e) {
       throw _blocked(e.response?.data) ?? e;
     }
-    // 목업 인터셉터가 만든 응답은 상태코드 검사를 거치지 않고 그대로 돌아온다 —
-    // 한도 거절도 여기서 실서버와 같은 예외로 바꾼다(#2145).
-    if ((res.statusCode ?? 200) >= 400) {
-      throw _blocked(res.data) ??
-          DioException.badResponse(
-            statusCode: res.statusCode!,
-            requestOptions: res.requestOptions,
-            response: res,
-          );
-    }
     return ChatMessage.coachFromReply(res.data!);
   }
 

@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
+import 'package:oncare_trainer/features/coaching/presentation/routine_effect_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -441,8 +442,9 @@ class _RoutineEffectFieldState extends State<RoutineEffectField> {
       key: ValueKey<String>(widget.keyPrefix),
       controller: _controller,
       label: l.routineFieldEffect,
+      // 자동 문구는 보이는 글만 화면 언어로 옮긴다 — 저장 값은 그대로다(#2737).
       hint: widget.autoEffect.isNotEmpty
-          ? widget.autoEffect
+          ? routineEffectText(l, widget.autoEffect)
           : l.routineFieldEffectHint,
       // 글자 수 표시 없이 막는다 — 회원 카드에서 한 줄로 읽히는 길이다.
       inputFormatters: <TextInputFormatter>[

@@ -67,13 +67,19 @@ def test_trainer_web_uses_the_same_numbers():
 
 def test_roster_calories_reach_back_through_the_whole_window(client, db_session):
     """칼로리를 적어 온 확장 회원은 이력 창의 모든 주에 기록이 있다."""
-    from app.db.seed_roster import HISTORY_WEEKS
+    from app.db.seed_member_logs import MEAL_ID_PREFIX
+    from app.db.seed_roster import _METRICS, HISTORY_WEEKS
     from app.models.models import DietEntry
 
     this_monday = _monday(clock.today())
+    # 최근 4주의 하루 한 줄은 같은 합계의 끼니로 나뉜다(#2729) — 그 끼니도 센다.
     rows = db_session.execute(
         select(DietEntry.user_id, DietEntry.date).where(
-            DietEntry.id.like("seed-roster-diet-%"),
+            DietEntry.id.like("seed-roster-diet-%")
+            | (
+                DietEntry.id.like(f"{MEAL_ID_PREFIX}%")
+                & DietEntry.user_id.in_(list(_METRICS))
+            ),
             DietEntry.total_calories > 0,
         )
     ).all()
