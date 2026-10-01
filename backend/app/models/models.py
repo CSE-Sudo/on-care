@@ -58,6 +58,12 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         String(20), default="member", server_default="member", index=True
     )
+    # 토큰 세대(#2766). 발급하는 토큰마다 이 값을 실어 두고, 검증 때 같은지 본다.
+    # 비밀번호를 바꾸면 1 올라가 다른 기기에 이미 나간 접근·refresh 토큰이 한꺼번에
+    # 무효가 된다(`jti` 폐기는 한 장씩이라 다른 기기 토큰을 모른다).
+    token_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
