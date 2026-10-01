@@ -33,6 +33,8 @@ def _seed_rows(db_session, member_id: str, start: date, end: date):
             TrainerSchedule.date >= start.isoformat(),
             TrainerSchedule.date <= end.isoformat(),
             TrainerSchedule.id.like("seed-%"),
+            # 지난 상담(#2731)은 PT 가 아니다.
+            TrainerSchedule.id.not_like("seed-consult-%"),
             TrainerSchedule.status != "공백",
         )
     ).all()
