@@ -1099,6 +1099,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **형식은 바이트로 판정한다** — JPG·PNG·WebP 만 받고 나머지는 **415**. 확장자와 `Content-Type` 은
   보내는 쪽이 자유롭게 적을 수 있어 참고하지 않는다. 용량 상한은 `max_chat_image_bytes`(6MB)이고
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
+- **저장 전에 사진을 정리한다(#2829).** 끝까지 디코딩해 EXIF 회전을 픽셀에 적용하고, EXIF(촬영
+  위치·기기)·XMP·주석·PNG 텍스트 같은 메타데이터를 버린 뒤 **원본 형식 그대로** 다시 인코딩한다
+  (PNG 투명도 유지, 색 프로필 ICC 만 유지). 장변은 2048px 로 줄인다. 매직 넘버만 맞고 디코딩할 수
+  없는 파일은 저장하지 않고 **415**. `file_size` 와 내려받는 파일은 정리한 뒤의 값이다. 끼니
+  사진(#699)도 같은 정리 함수(`image_sanitize`)를 쓴다. 이전에 쌓인 파일은
+  `python -m scripts.sanitize_chat_images --apply` 로 다시 쓴다(기본은 점검만).
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
 - 회원 경로는 **활성 담당 링크가 있어야 한다** — 없으면 글 메시지(`POST /me/coach/chat`)와 같이

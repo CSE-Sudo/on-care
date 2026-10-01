@@ -293,7 +293,8 @@ def _store_chat_file(file: _SeedChatFile) -> bool:
         if file.kind == "pdf":
             report_pdf_storage.save(data, file_id=file.file_id)
         else:
-            chat_image_storage.save(data, file_id=file.file_id)
+            # 번들 자산이라 정리하지 않는다 — 앱 번들과 바이트가 같아야 한다(#2829).
+            chat_image_storage.save(data, file_id=file.file_id, sanitize=False)
     except Exception:  # noqa: BLE001 — 첨부 하나 때문에 기동이 죽으면 안 된다.
         logger.warning("시드 대화 첨부 %s 를 저장하지 못했습니다.", file.source, exc_info=True)
         return False
