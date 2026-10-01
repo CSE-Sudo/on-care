@@ -1562,6 +1562,8 @@
   "exCancelConfirmTitle": "예약을 취소할까요?",
   "exCancelFailed": "예약을 취소하지 못했어요. 잠시 후 다시 시도해 주세요",
   "exReservationPast": "지난 예약",
+  "exReservationPastMore": "지난 예약 {count}건 더 보기",
+  "exReservationPastLess": "지난 예약 접기",
   "exCancelConfirmBody": "{when} 예약이 취소되고 그 자리가 다시 열려요.",
   "exCancelDone": "{when} 예약을 취소했어요",
   "mySupportOpenFailed": "링크를 열지 못했어요. 잠시 후 다시 시도해 주세요",

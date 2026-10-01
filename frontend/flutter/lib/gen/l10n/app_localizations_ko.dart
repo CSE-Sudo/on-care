@@ -2938,6 +2938,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exReservationPast => '지난 예약';
 
   @override
+  String exReservationPastMore(int count) {
+    return '지난 예약 $count건 더 보기';
+  }
+
+  @override
+  String get exReservationPastLess => '지난 예약 접기';
+
+  @override
   String exCancelConfirmBody(String when) {
     return '$when 예약이 취소되고 그 자리가 다시 열려요.';
   }

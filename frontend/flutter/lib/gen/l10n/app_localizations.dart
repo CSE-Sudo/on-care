@@ -5269,6 +5269,18 @@ abstract class AppLocalizations {
   /// **'Past booking'**
   String get exReservationPast;
 
+  /// No description provided for @exReservationPastMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more past bookings'**
+  String exReservationPastMore(int count);
+
+  /// No description provided for @exReservationPastLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide past bookings'**
+  String get exReservationPastLess;
+
   /// No description provided for @exCancelConfirmBody.
   ///
   /// In en, this message translates to:

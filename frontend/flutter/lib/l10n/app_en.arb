@@ -2239,6 +2239,9 @@
   "exCancelConfirmTitle": "Cancel this booking?",
   "exCancelFailed": "Couldn't cancel the booking. Please try again in a moment",
   "exReservationPast": "Past booking",
+  "exReservationPastMore": "Show {count} more past bookings",
+  "@exReservationPastMore": {"placeholders": {"count": {"type": "int"}}},
+  "exReservationPastLess": "Hide past bookings",
   "exCancelConfirmBody": "The {when} booking is cancelled and the slot reopens.",
   "@exCancelConfirmBody": {
     "placeholders": {

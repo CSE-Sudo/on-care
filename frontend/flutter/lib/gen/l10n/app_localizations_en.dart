@@ -3042,6 +3042,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exReservationPast => 'Past booking';
 
   @override
+  String exReservationPastMore(int count) {
+    return 'Show $count more past bookings';
+  }
+
+  @override
+  String get exReservationPastLess => 'Hide past bookings';
+
+  @override
   String exCancelConfirmBody(String when) {
     return 'The $when booking is cancelled and the slot reopens.';
   }
