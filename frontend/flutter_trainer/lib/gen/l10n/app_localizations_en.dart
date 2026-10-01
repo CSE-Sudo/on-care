@@ -1135,6 +1135,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get consultStatusCancelled => 'Cancelled';
+
+  @override
+  String get consultStatusCancelledByTrainer => 'Withdrawn (session cancelled)';
+
+  @override
   String get consultStatusExpired => 'Expired';
 
   @override

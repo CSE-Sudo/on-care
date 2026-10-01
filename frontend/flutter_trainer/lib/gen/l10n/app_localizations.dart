@@ -2108,6 +2108,18 @@ abstract class AppLocalizations {
   /// **'{minutes} min'**
   String consultSlotDuration(int minutes);
 
+  /// No description provided for @consultStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get consultStatusCancelled;
+
+  /// No description provided for @consultStatusCancelledByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn (session cancelled)'**
+  String get consultStatusCancelledByTrainer;
+
   /// No description provided for @consultStatusExpired.
   ///
   /// In en, this message translates to:

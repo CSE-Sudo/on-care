@@ -95,6 +95,7 @@ ConsultationRequest consultationRequestFromJson(Map<String, Object?> json) {
     status: _str(json['status']),
     decisionNote: _nullable(json['decision_note']),
     createdAt: DateTime.tryParse(_str(json['created_at'])),
+    cancelledByTrainer: json['cancelled_by_trainer'] == true,
   );
 }
 

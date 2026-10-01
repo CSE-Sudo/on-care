@@ -732,6 +732,8 @@
       }
     }
   },
+  "consultStatusCancelled": "Cancelled",
+  "consultStatusCancelledByTrainer": "Withdrawn (session cancelled)",
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",

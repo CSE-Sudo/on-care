@@ -461,6 +461,8 @@
       }
     }
   },
+  "consultStatusCancelled": "취소됨",
+  "consultStatusCancelledByTrainer": "일정 취소로 철회",
   "consultStatusExpired": "만료됨",
   "consultPreferredTime": "희망 일시",
   "consultMessage": "문의 내용",

@@ -1105,6 +1105,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get consultStatusCancelled => '취소됨';
+
+  @override
+  String get consultStatusCancelledByTrainer => '일정 취소로 철회';
+
+  @override
   String get consultStatusExpired => '만료됨';
 
   @override
