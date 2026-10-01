@@ -100,16 +100,32 @@ void main() {
       );
     });
 
-    test('4주 전보다 오래된 날에는 끼니를 심지 않는다', () async {
-      final List<ClientDietEntryRow> old =
-          await (db.select(db.clientDietEntries)..where(
+    test('4주보다 오래된 날도 끼니 카드가 합계와 같다 (#2732)', () async {
+      // 기간 뷰는 리포트 이력 전체를 그린다 — 오래된 날을 펼쳐도 카드가 있어야 한다.
+      final String old = ymd(DateTime(2026, 8, 20 - 60));
+      final List<ClientDailyMetricRow> metrics =
+          await (db.select(db.clientDailyMetrics)..where(
                 (t) =>
-                    t.clientId.like('seed-client-%') &
-                    t.clientId.equals('seed-client-1').not() &
-                    t.date.isSmallerThanValue(ymd(DateTime(2026, 8, 20 - 27))),
+                    t.clientId.equals('seed-client-2') &
+                    t.date.isSmallerOrEqualValue(old),
               ))
               .get();
-      expect(old, isEmpty);
+      final List<ClientDailyMetricRow> eaten = metrics
+          .where((ClientDailyMetricRow m) => m.calories > 0)
+          .toList();
+      expect(eaten, isNotEmpty);
+      for (final ClientDailyMetricRow m in eaten) {
+        final List<ClientDietEntry> meals = await repo.fetchDietOn(
+          'seed-client-2',
+          DateTime.parse(m.date),
+        );
+        expect(meals, hasLength(m.mealCount), reason: m.date);
+        expect(
+          meals.fold<int>(0, (int a, ClientDietEntry e) => a + e.calories),
+          m.calories,
+          reason: m.date,
+        );
+      }
     });
   });
 
