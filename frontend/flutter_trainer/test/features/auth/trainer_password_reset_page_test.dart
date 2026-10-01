@@ -159,7 +159,7 @@ void main() {
     );
     await _tap(tester, _key('passwordReset-have-code'));
     await _fillConfirm(tester, code: 'abcd efgh jkmn pqrs');
-    await _tap(tester, _key('passwordReset-confirm'));
+    await _tap(tester, _key('passwordReset-submit'));
     expect(repo.confirmed, <(String, String)>[('abcd efgh jkmn pqrs', _newPw)]);
     expect(find.byKey(const Key('passwordResetDoneStep')), findsOneWidget);
     expect(find.text(l.passwordResetDoneBody), findsOneWidget);
@@ -177,7 +177,7 @@ void main() {
     );
     await _tap(tester, _key('passwordReset-have-code'));
     await _fillConfirm(tester, code: 'ABCD-1234');
-    await _tap(tester, _key('passwordReset-confirm'));
+    await _tap(tester, _key('passwordReset-submit'));
     expect(repo.confirmed, isEmpty);
     expect(find.text(l.passwordResetCodeMalformed), findsOneWidget);
   });
@@ -194,7 +194,7 @@ void main() {
     );
     await _tap(tester, _key('passwordReset-have-code'));
     await _fillConfirm(tester, code: _code);
-    await _tap(tester, _key('passwordReset-confirm'));
+    await _tap(tester, _key('passwordReset-submit'));
     expect(find.text(l.passwordResetCodeInvalid), findsOneWidget);
     expect(find.byKey(const Key('passwordResetConfirmStep')), findsOneWidget);
 
@@ -211,7 +211,7 @@ void main() {
     );
     await _tap(tester, _key('passwordReset-have-code'));
     await _fillConfirm(tester, code: _code, next: '12345678');
-    await _tap(tester, _key('passwordReset-confirm'));
+    await _tap(tester, _key('passwordReset-submit'));
     expect(repo.confirmed, isEmpty);
     expect(find.text(l.authErrPasswordWeak), findsOneWidget);
   });
@@ -254,7 +254,7 @@ void main() {
     expect(find.text(MockPasswordResetRepository.demoCode), findsOneWidget);
 
     await _fillConfirm(tester);
-    await _tap(tester, _key('passwordReset-confirm'));
+    await _tap(tester, _key('passwordReset-submit'));
     expect(find.byKey(const Key('passwordResetDoneStep')), findsOneWidget);
   });
 }

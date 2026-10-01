@@ -361,7 +361,7 @@ class _PasswordResetPageState extends ConsumerState<PasswordResetPage> {
           ),
           const SizedBox(height: OnCareSpacing.s24),
           AppButton(
-            key: const ValueKey<String>('passwordReset-confirm'),
+            key: const ValueKey<String>('passwordReset-submit'),
             label: l.passwordResetConfirmAction,
             onPressed: _confirmReset,
             loading: _busy,
