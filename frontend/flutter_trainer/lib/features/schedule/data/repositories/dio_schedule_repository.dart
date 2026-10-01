@@ -306,9 +306,16 @@ class DioScheduleRepository implements ScheduleRepository {
 
   @override
   Future<List<SessionRoutine>> fetchScheduledRoutines(String id) async {
-    final res = await _dio.get<List<dynamic>>(
-      '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
-    );
+    // 다른 조회와 같이 [AppError] 로 바꿔 올린다(#2891) — 원시 Dio 예외로는
+    // 부르는 쪽이 서버 사유·오류 종류를 쓸 수 없다.
+    final Response<List<dynamic>> res;
+    try {
+      res = await _dio.get<List<dynamic>>(
+        '/trainer/schedule/${Uri.encodeComponent(id)}/routines',
+      );
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
     return <SessionRoutine>[
       for (final row in res.data ?? const <dynamic>[])
         SessionRoutine(
@@ -323,9 +330,14 @@ class DioScheduleRepository implements ScheduleRepository {
 
   @override
   Future<List<UnsentRoutine>> fetchUnsentRoutinesFor(String clientId) async {
-    final res = await _dio.get<List<dynamic>>(
-      '/trainer/clients/${Uri.encodeComponent(clientId)}/routines/unsent',
-    );
+    final Response<List<dynamic>> res;
+    try {
+      res = await _dio.get<List<dynamic>>(
+        '/trainer/clients/${Uri.encodeComponent(clientId)}/routines/unsent',
+      );
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
     return <UnsentRoutine>[
       for (final row in res.data ?? const <dynamic>[])
         if (row is Map<String, dynamic> && row['schedule_id'] is String)

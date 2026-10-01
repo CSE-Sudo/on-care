@@ -352,6 +352,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashChurnRiskEmpty => '지금은 이탈 위험 신호가 없어요.';
 
   @override
+  String get dashChurnRiskLoading => '최근 세션 확인 중';
+
+  @override
+  String get dashChurnRiskUnavailable => '확인할 수 없음 · 눌러서 다시 시도';
+
+  @override
+  String get dashActivityFeedbackLoading => '최근 세션을 확인하고 있어요.';
+
+  @override
+  String get dashActivityFeedbackUnavailable =>
+      '최근 세션을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.';
+
+  @override
   String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
 
   @override
@@ -1707,6 +1720,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
 
   @override
+  String get schedEndedLockedHint => '끝난 세션은 메모·프로그램만 고칠 수 있어요.';
+
+  @override
+  String get schedDoneLockedHint =>
+      '완료한 세션은 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
+
+  @override
   String get schedGroupPersonal => '개인운동';
 
   @override
@@ -1754,6 +1774,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedRoutinesSkipped => '보내지 않기로 했어요.';
+
+  @override
+  String get schedRoutinesSkipFailed => '보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get schedRoutinesLoadFailed => '개인운동을 불러오지 못했어요';
+
+  @override
+  String get schedClientUnresolved => '이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.';
 
   @override
   String get schedRoutinesUpdated => '개인운동을 고커어요.';
@@ -2119,6 +2148,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get slotReload => '다시 불러오기';
+
+  @override
+  String get slotLoadFailed => '예약 슬롯을 불러오지 못했어요';
 
   @override
   String get slotEmpty => '열린 예약 슬롯이 없습니다.';

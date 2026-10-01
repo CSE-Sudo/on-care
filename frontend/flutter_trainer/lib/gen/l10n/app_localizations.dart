@@ -758,6 +758,30 @@ abstract class AppLocalizations {
   /// **'No members are at churn risk right now.'**
   String get dashChurnRiskEmpty;
 
+  /// No description provided for @dashChurnRiskLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent sessions'**
+  String get dashChurnRiskLoading;
+
+  /// No description provided for @dashChurnRiskUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable · Tap to retry'**
+  String get dashChurnRiskUnavailable;
+
+  /// No description provided for @dashActivityFeedbackLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent sessions.'**
+  String get dashActivityFeedbackLoading;
+
+  /// No description provided for @dashActivityFeedbackUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.'**
+  String get dashActivityFeedbackUnavailable;
+
   /// No description provided for @dashActivityDifficultyTitle.
   ///
   /// In en, this message translates to:
@@ -3103,6 +3127,18 @@ abstract class AppLocalizations {
   /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
   String get schedReservationLockedHint;
 
+  /// No description provided for @schedEndedLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished sessions can only have their note and program edited.'**
+  String get schedEndedLockedHint;
+
+  /// No description provided for @schedDoneLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.'**
+  String get schedDoneLockedHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:
@@ -3192,6 +3228,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
+
+  /// No description provided for @schedRoutinesSkipFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark the personal exercise as not sent. Please try again.'**
+  String get schedRoutinesSkipFailed;
+
+  /// No description provided for @schedRoutinesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load personal exercises'**
+  String get schedRoutinesLoadFailed;
+
+  /// No description provided for @schedClientUnresolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t tell which member this session is for. Please pick the member.'**
+  String get schedClientUnresolved;
 
   /// No description provided for @schedRoutinesUpdated.
   ///
@@ -3870,6 +3924,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reload'**
   String get slotReload;
+
+  /// No description provided for @slotLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load reservation slots'**
+  String get slotLoadFailed;
 
   /// No description provided for @slotEmpty.
   ///

@@ -2321,9 +2321,23 @@ class _UnsentRoutinesNotice extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rows =
-        ref.watch(_unsentRoutinesProvider(client.id)).valueOrNull ??
-        const <UnsentRoutine>[];
+    final unsent = ref.watch(_unsentRoutinesProvider(client.id));
+    // 못 읽었으면 안내가 조용히 빠지지 않게 한 줄로 알린다(#2891) — 보낼
+    // 개인운동이 남아 있는데 없다고 읽히면 회원에게 루틴이 가지 않는다.
+    if (unsent.hasError) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+        child: PersonalRoutinesLoadError(
+          key: const ValueKey<String>('coach-unsent-routines-error'),
+          retryKey: const ValueKey<String>('coach-unsent-routines-retry'),
+          showLabel: false,
+          onRetry: unsent.isLoading
+              ? null
+              : () => ref.invalidate(_unsentRoutinesProvider(client.id)),
+        ),
+      );
+    }
+    final rows = unsent.valueOrNull ?? const <UnsentRoutine>[];
     if (rows.isEmpty) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final tokens = context.oncare;
