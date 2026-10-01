@@ -3079,6 +3079,9 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
+  "alertMarkAllReadFailed": "Couldn't mark all as read. Please try again shortly",
+  "alertCoachChatFailed": "Couldn't load your trainer, so the chat can't open. Please try again shortly",
+  "alertCoachChatNoTrainer": "You have no assigned trainer, so the chat can't open",
   "alertTimeJustNow": "Just now",
   "@alertTimeJustNow": {
     "description": "Relative time for a notification less than a minute old."

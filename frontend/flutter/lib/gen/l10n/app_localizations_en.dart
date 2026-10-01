@@ -3894,6 +3894,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
+  String get alertMarkAllReadFailed =>
+      'Couldn\'t mark all as read. Please try again shortly';
+
+  @override
+  String get alertCoachChatFailed =>
+      'Couldn\'t load your trainer, so the chat can\'t open. Please try again shortly';
+
+  @override
+  String get alertCoachChatNoTrainer =>
+      'You have no assigned trainer, so the chat can\'t open';
+
+  @override
   String get alertTimeJustNow => 'Just now';
 
   @override

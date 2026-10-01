@@ -3742,6 +3742,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
 
   @override
+  String get alertMarkAllReadFailed => '모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get alertCoachChatFailed =>
+      '트레이너 정보를 불러오지 못해 대화를 열 수 없어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get alertCoachChatNoTrainer => '담당 트레이너가 없어 대화를 열 수 없어요';
+
+  @override
   String get alertTimeJustNow => '방금';
 
   @override

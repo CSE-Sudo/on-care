@@ -6762,6 +6762,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
 
+  /// No description provided for @alertMarkAllReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark all as read. Please try again shortly'**
+  String get alertMarkAllReadFailed;
+
+  /// No description provided for @alertCoachChatFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer, so the chat can\'t open. Please try again shortly'**
+  String get alertCoachChatFailed;
+
+  /// No description provided for @alertCoachChatNoTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no assigned trainer, so the chat can\'t open'**
+  String get alertCoachChatNoTrainer;
+
   /// Relative time for a notification less than a minute old.
   ///
   /// In en, this message translates to:
