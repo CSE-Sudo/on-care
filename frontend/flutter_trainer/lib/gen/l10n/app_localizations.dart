@@ -2474,6 +2474,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
 
+  /// Toast when the server says this report send was already processed (409, #2773).
+  ///
+  /// In en, this message translates to:
+  /// **'This report was already sent. Send history has been refreshed'**
+  String get reportsSendAlreadyDone;
+
   /// No description provided for @reportsSent.
   ///
   /// In en, this message translates to:

@@ -536,6 +536,7 @@
   "reportsNoClients": "담당 회원이 없어 리포트를 만들 수 없어요",
   "reportsWeekly": "주간 리포트",
   "reportsSendFailed": "리포트 전송에 실패했어요. 다시 시도해 주세요",
+  "reportsSendAlreadyDone": "이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요",
   "reportsSent": "{name}님에게 리포트를 보냈어요",
   "reportsGoToChat": "채팅으로 이동하기",
   "reportsScheduleWarning": "이번 주 일정을 불러오지 못해 세션 수가 비어 있을 수 있어요",

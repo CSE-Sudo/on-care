@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/member_report_history_provider.dart';
@@ -473,10 +474,22 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             fileName: reportPdfFileName(l, report),
             message: message,
           );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _sending = null);
-      showAppToast(context, l.reportsSendFailed, type: AppToastType.error);
+      // 앱에서는 실패로 끝났어도 서버에는 저장됐을 수 있다(#2773) — 응답을
+      // 기다리다 끊긴 경우다. 기록을 다시 읽어, 서버에 남은 전송이 있으면
+      // 작업대가 `전송 완료` 로, 다시 보낼 때는 재전송 확인으로 따라잡는다.
+      ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
+      ref.invalidate(memberReportHistoryProvider(id));
+      // 409 는 이 요청이 이미 처리됐다는 뜻이다 — `전송 실패` 라고 하면
+      // 트레이너가 회원이 못 받은 줄 알고 또 보낸다.
+      final bool alreadyDone = e is ServerError && e.statusCode == 409;
+      showAppToast(
+        context,
+        alreadyDone ? l.reportsSendAlreadyDone : l.reportsSendFailed,
+        type: alreadyDone ? AppToastType.info : AppToastType.error,
+      );
       return;
     }
     if (!mounted) return;
