@@ -1394,6 +1394,32 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
 
+### 웹 클라이언트의 짧은 refresh 토큰 (#2828)
+
+회원 앱 웹·트레이너 웹 빌드는 **모든 요청**에 `X-Client-Platform: web` 을 싣는다(모바일은
+보내지 않는다). 서버(`app/core/client_platform.py` 의 `RequestClientPlatformMiddleware`)가
+이 값을 읽어, 웹에서 온 발급(`POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`·
+`POST /trainer/me/password`)에는 **refresh 토큰 수명을 `WEB_REFRESH_TOKEN_EXPIRE_DAYS`(기본 7일)**로
+준다. 모바일은 `REFRESH_TOKEN_EXPIRE_DAYS`(기본 30일) 그대로다. 접근 토큰 수명은 같다.
+
+- 웹으로 발급된 refresh 토큰에는 `cli: "web"` 클레임이 붙는다. `POST /auth/refresh` 는 이
+  클레임이 있으면 헤더가 없어도 웹 수명으로 회전한다 — 헤더를 빼서 30일짜리를 다시 얻을 수 없다.
+- 헤더는 **수명을 줄이는 쪽으로만** 쓴다. 클레임이 없는 예전 토큰을 웹이 회전하면 그때부터
+  웹 수명이다. 값은 대소문자·앞뒤 공백을 무시하고 `web` 일 때만 웹이다.
+- 응답 모양은 바뀌지 않는다. 일회용·폐기·토큰 세대 규칙도 같다.
+
+웹 빌드는 토큰을 브라우저 **sessionStorage**(탭 단위)에만 둔다 — 탭을 닫으면 다시 로그인한다.
+예전 웹 빌드가 localStorage 에 남긴 토큰은 읽지 않고 지운다(두 앱의
+`core/storage/secure_token_store.dart`). 모바일은 Keychain/Keystore 그대로다.
+
+### API 응답 보안 헤더 (#2828)
+
+모든 API 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'none'; frame-ancestors 'none';
+base-uri 'none'; form-action 'none'` 이 붙는다(`app/core/security_headers.py`, `SECURITY_HEADERS=false`
+면 끈다). 운영 또는 `FORCE_HTTPS=true` 면 HSTS 도 붙는다. FastAPI 문서 화면(`/docs`·`/redoc`)은
+CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 웹 앱)의 헤더는 정적 호스팅이 붙인다.
+
 ### 비밀번호 변경과 토큰 세대 (#2766)
 
 `jti` 폐기는 한 장씩이라 **다른 기기에 나간 토큰은 끊지 못한다.** 그래서 계정마다 토큰

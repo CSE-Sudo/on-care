@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
     refresh_token_expire_days: int = 30
+    # 웹 클라이언트(`X-Client-Platform: web`)가 받는 refresh 토큰 수명(#2828). 웹은
+    # 토큰을 탭 단위 저장소에만 두므로 오래 갈 필요가 없고, 브라우저에서 새어 나갔을
+    # 때 쓸 수 있는 기간을 줄인다. 모바일은 위 값을 그대로 쓴다.
+    web_refresh_token_expire_days: int = 7
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
     # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
     # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.

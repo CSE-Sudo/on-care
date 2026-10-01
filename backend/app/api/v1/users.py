@@ -559,7 +559,8 @@ def refresh(
             success=False,
         )
         raise invalid
-    return auth_tokens.issue_token_pair(user)
+    # 웹으로 발급된 토큰은 헤더가 없어도 웹 수명으로 회전한다(#2828).
+    return auth_tokens.issue_token_pair(user, web=claims.web)
 
 
 @router.post(
