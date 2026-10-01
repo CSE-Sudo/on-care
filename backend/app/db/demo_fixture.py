@@ -120,8 +120,25 @@ class FixtureExercise:
 
     @property
     def label(self) -> str:
-        """트레이너 화면이 쓰는 표기. 이행률과 이 목록이 같은 자리에서 나온다(#754)."""
-        return f"{self.name} {'✓' if self.done else '✗'}"
+        """트레이너 화면이 쓰는 표기. 이행률과 이 목록이 같은 자리에서 나온다(#754).
+
+        실제 PT 완료가 적는 줄(`trainer_service._program_item_label`)과 같은
+        모양이다 — 근력은 세트·횟수(버티면 초)·중량, 나머지는 분. 예전에는 이름만
+        적어, 값이 같은 날 세션 행에만 남고 트레이너 이력 카드에는 이름만
+        섰다(#2567). 화면은 이 줄 끝의 값을 되읽는다(`parse_history_exercise`).
+        """
+        if self.type == "strength":
+            parts = [f"{self.sets}세트"] if self.sets else []
+            if self.hold_seconds:
+                parts.append(f"{self.hold_seconds}초")
+            elif self.reps:
+                parts.append(f"{self.reps}회")
+            # 맨몸의 0 도 적는다 — 빼면 '적지 않음'으로 읽힌다(#2533).
+            if self.weight is not None:
+                parts.append(f"{self.weight:g}kg")
+        else:
+            parts = [f"{self.minutes}분"] if self.minutes else []
+        return " ".join([self.name, *parts, "✓" if self.done else "✗"])
 
 
 @dataclass(frozen=True)
