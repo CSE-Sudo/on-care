@@ -11,6 +11,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
@@ -93,7 +94,17 @@ class CoachingPage extends ConsumerStatefulWidget {
 
 class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// Selected client; null until clients load (defaults to the first).
+  ///
+  /// 명단이 오면 화면이 그리는 회원으로 확정한다(#2874) — `null` 로 남으면
+  /// 이 값을 키로 쓰는 정리(템플릿 적용 때 개인운동 비우기 등)가 아무것도
+  /// 지우지 못한다.
   late String? _clientId = widget.clientId;
+
+  /// 주소의 `client` 가 명단에 없어 첫 회원으로 대신 연 그 값(#2874).
+  ///
+  /// 주소가 그대로인 다시 그리기마다 그 값으로 회원을 바꾸려 들지 않게
+  /// [didUpdateWidget] 이 건너뛴다.
+  String? _unresolvedClientId;
   final Map<String, String> _typeEdits = <String, String>{};
   final Map<String, List<AiRoutineItem>> _generatedRecommendations =
       <String, List<AiRoutineItem>>{};
@@ -124,6 +135,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 보낸다([_routineOnlyTargetFor]). 아직 읽지 않은 회원은 여기 없다.
   final Map<String, List<ScheduleSession>> _routineOnlyCandidates =
       <String, List<ScheduleSession>>{};
+
+  /// PT 후보를 읽지 못한 회원. 개인운동 박스가 `다시 시도` 를 세운다. (#2896)
+  final Set<String> _routineOnlyCandidatesFailed = <String>{};
 
   /// 스케줄의 `개인운동 추가` 에서 왔다 — 그 PT 에 반영하면 그 일정으로 돌아간다.
   ({String clientId, String sessionId, String date})? _returnToSchedule;
@@ -208,8 +222,30 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// template (#1028).
   bool _savingTemplate = false;
 
+  /// 아직 보내지 않은 작성 내용이 있는 회원(#2873) — 위저드에서 후보를 받았거나
+  /// 편집기 구성을 바꿨다. 전송·템플릿 저장·회원 전환·빈 편집기로 새로 시작하면
+  /// 지운다.
+  ///
+  /// 화면에 그리는 값이 아니다. 새로 고침·탭 닫기 지킴과 회원 전환 확인이
+  /// 떠나는 순간에 읽으므로, 그리는 도중(편집기의 `didUpdateWidget`)에도 다시
+  /// 그리지 않고 적어 둘 수 있다.
+  final Set<String> _unsentWorkClients = <String>{};
+
+  /// 지금 회원에게 보내지 않은 작성 내용이 있는가(#2873).
+  ///
+  /// 위저드의 개인운동 단계에서 짠 개인운동도 센다 — 보내기 전까지는 이 화면에만
+  /// 있다.
+  bool get _hasUnsentWork {
+    final String? id = _clientId;
+    if (id == null) return false;
+    if (_unsentWorkClients.contains(id)) return true;
+    return !_sent && (_personalRoutines[id]?.isNotEmpty ?? false);
+  }
+
   @override
   void dispose() {
+    // 이 화면의 지킴만 푼다 — MY 프로필 수정 등 다른 화면의 지킴은 남는다.
+    setLeaveGuard(this, null);
     _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
     _wizardNav.dispose();
@@ -220,6 +256,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void initState() {
     super.initState();
     _consumeAttachRoute();
+    // 보내지 않은 작성 내용이 있으면 새로 고침·탭 닫기 앞에서 브라우저가
+    // 묻는다(#2873). 막을지는 떠나는 순간에 정한다.
+    setLeaveGuard(this, () => mounted && _hasUnsentWork);
   }
 
   @override
@@ -227,7 +266,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     super.didUpdateWidget(oldWidget);
     // Following a second "AI 루틴 만들기" link (from another client's
     // 개요) must switch the workspace, not silently keep the old one.
-    if (widget.clientId != null && widget.clientId != oldWidget.clientId) {
+    //
+    // 주소가 선택 회원의 원천이다(#2872) — 지난 주소가 아니라 **지금 보이는
+    // 회원**과 견준다. 주소가 그대로인 재진입(앞 주소와 같은 `client`)도
+    // 화면이 다른 회원을 보고 있으면 그 회원으로 돌아온다.
+    if (widget.clientId != null &&
+        widget.clientId != _clientId &&
+        widget.clientId != _unresolvedClientId) {
       _selectClient(widget.clientId!);
     }
     if (widget.attachSessionId != oldWidget.attachSessionId ||
@@ -267,6 +312,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (_clientId == id) return;
     setState(() {
       _clientId = id;
+      _unresolvedClientId = null;
+      // 앞 회원의 편집기·위저드는 새로 선다 — 작성 내용도 함께 사라진다.
+      _unsentWorkClients.clear();
       // A different client gets a clean slate, like the mock.
       _typeEdits.clear();
       _sent = false;
@@ -285,6 +333,42 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       // other clients keep being tracked while the selection changes.
     });
     _sentTimer?.cancel();
+  }
+
+  /// 회원 카드를 눌렀다 — 상태가 아니라 **주소**를 바꾼다(#2872).
+  ///
+  /// 화면은 바뀐 주소를 [didUpdateWidget] 에서 받아 [_selectClient] 로
+  /// 바뀐다. 그래야 새로고침·주소 공유·뒤로 가기가 모두 같은 회원을 연다.
+  /// 리포트 화면의 회원 전환처럼 기록을 남기는 `go` 다. 붙이기 흐름 쿼리
+  /// (`attach`·`d`·`r`)는 앞 회원의 PT 것이라 떼고 `client` 만 남긴다.
+  ///
+  /// 보내지 않은 작성 내용이 있으면 먼저 묻는다(#2873) — 회원을 바꾸면 편집기와
+  /// 위저드가 새로 서서 지금 짠 것이 사라진다. 다른 탭으로 옮기는 것은 탭
+  /// 상태가 남으므로 묻지 않는다.
+  Future<void> _requestClient(String id) async {
+    if (id == _clientId) return;
+    // 이미 서버로 보내는 중이면 묻지 않는다 — 회원을 바꿔도 그 전송은 끝까지
+    // 처리되므로(#1580) 잃을 작성 내용이 아니다. 새로 고침·탭 닫기는 전송
+    // 자체를 끊을 수 있어 그쪽 지킴은 그대로 둔다.
+    final String? current = _clientId;
+    final bool sending =
+        current != null &&
+        (_sendingClientIds.contains(current) ||
+            _sendingRoutineOnly.contains(current));
+    if (!sending && _hasUnsentWork) {
+      final AppLocalizations l = AppLocalizations.of(context);
+      final bool ok = await showAppConfirmDialog(
+        context: context,
+        title: l.coachSwitchClientTitle,
+        message: l.coachSwitchClientBody,
+        confirmLabel: l.coachSwitchClientConfirm,
+        cancelLabel: l.actionCancel,
+        destructive: true,
+      );
+      if (!ok) return;
+    }
+    if (!mounted) return;
+    context.go(AppRoutes.coachingFor(id));
   }
 
   bool _isStillSelected(String clientId) =>
@@ -352,6 +436,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           );
       ref.invalidate(programTemplatesProvider);
       if (!mounted) return false;
+      // 저장해 두었으니 떠나도 잃지 않는다(#2873).
+      final String? savedFor = _clientId;
+      if (savedFor != null) _unsentWorkClients.remove(savedFor);
       setState(() => _savingTemplate = false);
       showAppToast(context, l.programDraftSaved, type: AppToastType.success);
       return true;
@@ -387,9 +474,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!_routineOnlyCandidates.containsKey(client.id)) return;
     final ScheduleSession? target = _routineOnlyTargetFor(client.id);
     if (target != null) {
+      // 그 PT 에 붙인다 — 지난 PT 라도 그대로다. 완료했지만 아직 보내지 않은
+      // PT 는 지난 날이어도 붙일 곳이다(#2280).
       await _attachRoutineOnlyToPt(client, target.id, routines);
       return;
     }
+    // 바로 보내는 개인운동은 시작일부터 한 주 회원 목록에 걸린다. 화면을 연
+    // 채 자정을 넘겼거나, 스케줄에서 온 PT 가 그사이 보내져 지난 날이 남아
+    // 있으면 첫날이 빠진 채 나간다 — 오늘로 당기고 다시 보게 한다(#2896).
+    if (!_routineOnlyStartStillValid(client.id)) return;
     final AppLocalizations l = AppLocalizations.of(context);
     final DateTime start = _routineOnlyStart[client.id] ?? _todayKst();
     final confirmed = await showAppConfirmDialog(
@@ -404,6 +497,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       cancelLabel: l.actionCancel,
     );
     if (!confirmed || !mounted || !_isStillSelected(client.id)) return;
+    // 확인창을 띄운 채 자정을 넘겼을 수 있다 — 확인창에 적힌 날짜가 지났으면
+    // 그 날짜로 보내지 않는다(#2896).
+    if (!_routineOnlyStartStillValid(client.id)) return;
 
     final sentFor = client.id;
     // 실패 후 재시도는 **같은 내용이면 같은 키**여야 중복 배정이 막히고, 내용이
@@ -437,6 +533,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     _sendRequests.remove(sentFor);
+    _unsentWorkClients.remove(sentFor);
     // 보낸 뒤에도 목록과 `개인운동만` 표시를 그대로 둔다 — 지우면 그 자리에
     // PT 편집기가 올라와, 방금 개인운동을 보낸 트레이너가 손댄 적 없는 PT
     // 프로그램 화면을 보게 된다. PT 모드가 보낸 뒤 프로그램 박스를 남기는
@@ -596,6 +693,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     _sendRequests.remove(sentFor);
+    _unsentWorkClients.remove(sentFor);
     // 보냈다 — 같은 개인운동이 다음 전송에 다시 딸려 가지 않게 비운다.
     _personalRoutines.remove(sentFor);
     if (!mounted) return;
@@ -681,15 +779,32 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   /// 등록 날짜가 아직 오늘 이후인가. 화면을 연 채 자정을 넘겨 전날이 됐으면
   /// 오늘로 되돌리고 알린 뒤 false — 전날 날짜로는 보내지 않는다(#1582).
-  bool _registerDateStillValid() {
+  bool _registerDateStillValid() => _ensureNotPast(
+    _registerDate,
+    (today) => _registerDate = today,
+    AppLocalizations.of(context).programEditorRegisterDatePast,
+  );
+
+  /// `개인운동만` 의 시작일이 아직 오늘 이후인가. 지났으면 오늘로 당기고 알린
+  /// 뒤 false — 등록 날짜와 같은 규칙이다(#2896).
+  bool _routineOnlyStartStillValid(String clientId) => _ensureNotPast(
+    _routineOnlyStart[clientId] ?? _todayKst(),
+    (today) => _routineOnlyStart[clientId] = today,
+    AppLocalizations.of(context).personalRoutineStartPast,
+  );
+
+  /// [date] 가 오늘보다 앞이면 [pullToToday] 로 오늘로 당기고 [message] 를
+  /// 띄운 뒤 false. 프로그램 등록과 `개인운동만` 이 같은 판단을 쓰도록 하나로
+  /// 둔다(#1582, #2896) — 전송은 하지 않고, 바뀐 날짜를 보고 다시 누르게 한다.
+  bool _ensureNotPast(
+    DateTime date,
+    void Function(DateTime today) pullToToday,
+    String message,
+  ) {
     final today = _todayKst();
-    if (!_registerDate.isBefore(today)) return true;
-    setState(() => _registerDate = today);
-    showAppToast(
-      context,
-      AppLocalizations.of(context).programEditorRegisterDatePast,
-      type: AppToastType.error,
-    );
+    if (!date.isBefore(today)) return true;
+    setState(() => pullToToday(today));
+    showAppToast(context, message, type: AppToastType.error);
     return false;
   }
 
@@ -832,6 +947,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               (c) => c.id == _clientId,
               orElse: () => clients.first,
             );
+            // 그리는 회원을 상태에도 확정한다(#2874). 회원 미지정(`/coaching`)
+            // 이나 명단에 없는 `client` 로 들어오면 화면은 첫 회원을 그리는데
+            // 상태는 `null`(또는 그 값)로 남아, 상태 키로 지우는 정리가 빗나갔다.
+            // 그리는 결과는 같으므로 다시 그리지 않고 값만 맞춘다.
+            if (_clientId != selected.id) {
+              _unresolvedClientId = _clientId;
+              _clientId = selected.id;
+            }
             return LayoutBuilder(
               builder: (context, constraints) {
                 final wide =
@@ -899,7 +1022,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                 final list = ClientPickerList(
                                   clients: clients,
                                   selectedId: selected.id,
-                                  onSelect: _selectClient,
+                                  onSelect: _requestClient,
                                   rowKeyPrefix: 'program-client',
                                   scrollKey: 'program-client-list-scroll',
                                 );
@@ -907,7 +1030,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                   key: const ValueKey<String>(
                                     'program-template-sidebar',
                                   ),
-                                  onApply: _applyTemplate,
+                                  onApply: (template) =>
+                                      _applyTemplate(selected, template),
                                   fixedBox: canSplit,
                                 );
                                 if (!canSplit) {
@@ -1081,7 +1205,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   client: c,
                   stacked: true,
                   selected: c.id == client.id,
-                  onTap: () => _selectClient(c.id),
+                  onTap: () => _requestClient(c.id),
                 ),
               ),
               if (c != clients.last) const SizedBox(width: OnCareSpacing.s8),
@@ -1103,21 +1227,30 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 목록에 쓰기 때문에, 방금 저장한 결과도 이 카드에서 바로 보인다 (#1028).
   List<Widget> _libraryChildren(TrainerClient client) {
     return <Widget>[
-      _TemplateCard(onApply: _applyTemplate),
+      _TemplateCard(onApply: (template) => _applyTemplate(client, template)),
       const SizedBox(height: OnCareSpacing.s16),
       _SendHistoryCard(client: client),
     ];
   }
 
-  void _applyTemplate(ProgramTemplate template) => setState(() {
-    _appliedTemplate = template;
-    _templateRevision++;
-    _aiWizardVisible = false;
-    _sent = false;
-    // 템플릿은 편집기 내용을 갈아 끼운다 — 앞서 위저드에서 정한 개인운동은
-    // 그 PT 구성에 맞춰 짠 것이라, 여기 남겨 두면 전혀 다른 PT 에 딸려 간다.
-    _personalRoutines.remove(_clientId);
-  });
+  /// [client] 의 편집기에 [template] 을 적용한다.
+  ///
+  /// 대상 회원을 인자로 받는다(#2874) — 편집기가 그리는 회원의 개인운동을
+  /// 지워야 한다. 상태 키(`_clientId`)로 지우면 화면 회원과 어긋났을 때
+  /// 앞서 짠 개인운동이 템플릿 프로그램과 함께 전송된다.
+  void _applyTemplate(TrainerClient client, ProgramTemplate template) =>
+      setState(() {
+        _appliedTemplate = template;
+        _templateRevision++;
+        _aiWizardVisible = false;
+        _sent = false;
+        // 템플릿은 편집기 내용을 갈아 끼운다 — 앞서 위저드에서 정한 개인운동은
+        // 그 PT 구성에 맞춰 짠 것이라, 여기 남겨 두면 전혀 다른 PT 에 딸려 간다.
+        _personalRoutines.remove(client.id);
+        // `개인운동만` 으로 짜던 회원이어도 템플릿은 PT 프로그램이다 — 그대로
+        // 두면 편집기가 숨은 채 빈 개인운동 박스만 남는다.
+        _routineOnlyClients.remove(client.id);
+      });
 
   /// 편집기 아래 개인운동 박스의 `개인운동 수정`. (#2280)
   ///
@@ -1172,17 +1305,19 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       await ref
           .read(scheduleRepositoryProvider)
           .updateScheduledRoutines(sessionId, routines);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _sendingRoutineOnly.remove(sentFor));
       showAppToast(
         context,
-        l.schedRoutinesUpdateFailed,
+        _attachFailureMessage(l, error),
         type: AppToastType.error,
       );
       return;
     }
     if (!mounted) return;
+    // 그 PT 에 붙였다 — 이 화면에만 있던 작성 내용이 아니다(#2873).
+    _unsentWorkClients.remove(sentFor);
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
     // 전송 이력 위 `아직 보내지 않은 개인운동` 안내가 방금 붙인 것을 바로
@@ -1213,6 +1348,22 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
   }
 
+  /// PT 에 붙이기가 실패한 까닭. (#2896)
+  ///
+  /// 서버가 거절했으면(그사이 그 PT 를 보냈거나 마무리했다) 그 사유를 보여
+  /// 준다 — 다시 눌러도 같은 결과인데 `다시 시도해 주세요` 만 띄우면 트레이너는
+  /// 같은 버튼을 계속 누른다. 연결이 끊긴 것은 서버 사유가 없으니 연결 안내다.
+  String _attachFailureMessage(AppLocalizations l, Object error) =>
+      switch (error) {
+        NetworkError() => l.coachSendNetworkFailed,
+        AppError(:final String? message) => serverDetailOr(
+          l,
+          message,
+          l.schedRoutinesUpdateFailed,
+        ),
+        _ => l.schedRoutinesUpdateFailed,
+      };
+
   /// 붙일 수 있는 PT 후보를 읽는다 — 그 회원의 아직 보내지 않은 PT 전체.
   /// (#2280)
   ///
@@ -1220,6 +1371,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// ([acceptsFirstPersonalRoutines]). 개인운동이 이미 붙은 PT 도 후보다 —
   /// 고르면 교체할지 묻는다. 날짜·시각 순으로 늘어놓는다.
   Future<void> _loadRoutineOnlyCandidates(TrainerClient client) async {
+    // 다시 읽는 동안에는 실패 표시를 거두지 않는다 — 결과가 오면 아래에서
+    // 함께 다시 그린다. 위저드 콜백 안에서도 불려 여기서 다시 그리지 않는다.
+    _routineOnlyCandidatesFailed.remove(client.id);
     List<ScheduleSession> sessions;
     try {
       sessions = await ref.read(scheduleRepositoryProvider).watchClientSessions(
@@ -1228,7 +1382,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     } catch (_) {
       // 읽지 못한 채로 두면 버튼이 잠긴다 — 빈 목록으로 두면 PT 가 있는 날인데도
       // 바로 보내 버린다.
+      // 박스가 `다시 시도` 를 세운다(#2896).
       if (!mounted) return;
+      setState(() => _routineOnlyCandidatesFailed.add(client.id));
       showAppToast(
         context,
         AppLocalizations.of(context).schedLoadFailed,
@@ -1278,9 +1434,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     final List<RoutineExercise>? attached = await _unsentRoutinesOn(sessionId);
     if (!mounted) return false;
     if (attached == null) {
+      // 아무것도 고치지 않았다 — 쓰기 실패 문구를 쓰지 않는다(#2896).
       showAppToast(
         context,
-        l.schedRoutinesUpdateFailed,
+        l.schedRoutinesReadFailed,
         type: AppToastType.error,
       );
       return false;
@@ -1315,6 +1472,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   void _startManualProgram(String clientId) => setState(() {
     _generatedRecommendations.remove(clientId);
+    // 빈 편집기에서 다시 시작한다 — 앞서 받은 후보는 버린 것이다(#2873).
+    _unsentWorkClients.remove(clientId);
     // 빈 편집기로 새로 시작한다 — 앞서 위저드에서 정한 개인운동도 함께 버린다.
     _personalRoutines.remove(clientId);
     _appliedTemplate = null;
@@ -1429,6 +1588,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   });
                 },
                 onManualCreate: () => _startManualProgram(client.id),
+                onGenerated: () => _unsentWorkClients.add(client.id),
               ),
             ),
             if (!_aiWizardVisible)
@@ -1471,6 +1631,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     templateRevision: _templateRevision,
                     onSend: (draft) => unawaited(_sendProgram(client, draft)),
                     onSave: _saveTemplate,
+                    onEdited: () => _unsentWorkClients.add(client.id),
                     saving: _savingTemplate,
                     sending: _sendingClientIds.contains(client.id) || _sent,
                     sent: _sent && !_sendingClientIds.contains(client.id),
@@ -1539,6 +1700,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 target: _routineOnlyTargetFor(client.id),
                 nearestPt: _nearestRoutineOnlyPt(client.id),
                 targetReady: _routineOnlyCandidates.containsKey(client.id),
+                onRetryTarget: _routineOnlyCandidatesFailed.contains(client.id)
+                    ? () => unawaited(_loadRoutineOnlyCandidates(client))
+                    : null,
               ),
             ),
           ],

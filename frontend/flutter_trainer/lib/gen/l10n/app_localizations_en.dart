@@ -2888,6 +2888,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSendFailed => 'Couldn\'t send. Please try again';
 
   @override
+  String get coachSwitchClientTitle => 'Switch to another client?';
+
+  @override
+  String get coachSwitchClientBody =>
+      'You have unsent work. Switching clients discards the program and personal exercises you are building.';
+
+  @override
+  String get coachSwitchClientConfirm => 'Switch';
+
+  @override
+  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
+
+  @override
+  String get personalRoutineStartPast =>
+      'The start date has passed, so it\'s now set to today. Check it and send again';
+
+  @override
+  String get schedRoutinesReadFailed =>
+      'Couldn\'t check the attached personal exercises. Please try again';
+
+  @override
   String get coachScheduleFailed =>
       'Couldn\'t add it to the schedule. Please try again';
 
@@ -3040,6 +3061,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiGenerateFailed =>
       'AI generation failed. Please try again in a moment';
+
+  @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return 'Check the generation conditions. Total time must be between $min and $max minutes';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return 'Enter between $min and $max minutes';
+  }
 
   @override
   String get aiGenerateRateLimited =>
@@ -4611,6 +4642,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String programTemplateSessionPickerBody(String name) {
     return 'Choose a session for the \'$name\' template.';
   }
+
+  @override
+  String get programEditorAiReapplyTitle =>
+      'Replace the AI exercises with the new plan?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return 'Replaces the AI exercises added earlier ($count) with the new plan. Exercises you added or edited stay.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => 'Replace';
+
+  @override
+  String get programEditorAiReapplyAppend => 'Add after';
 
   @override
   String programEditorSessionNameTyped(String type) {

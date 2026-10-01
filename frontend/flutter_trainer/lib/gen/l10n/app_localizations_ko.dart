@@ -2734,6 +2734,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSendFailed => '전송에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get coachSwitchClientTitle => '다른 회원으로 바꿀까요?';
+
+  @override
+  String get coachSwitchClientBody =>
+      '아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.';
+
+  @override
+  String get coachSwitchClientConfirm => '바꾸기';
+
+  @override
+  String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
+
+  @override
+  String get personalRoutineStartPast => '시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요';
+
+  @override
+  String get schedRoutinesReadFailed => '붙어 있는 개인운동을 확인하지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get coachScheduleFailed => '스케줄 등록에 실패했어요. 다시 시도해 주세요';
 
   @override
@@ -2880,6 +2899,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiGenerateFailed => 'AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return '생성 조건을 확인해 주세요. 총 운동 시간은 $min~$max분 사이여야 해요';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return '$min~$max분 사이로 입력해 주세요';
+  }
 
   @override
   String get aiGenerateRateLimited => 'AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요';
@@ -4380,6 +4409,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String programTemplateSessionPickerBody(String name) {
     return '\'$name\' 템플릿을 추가할 세션을 골라 주세요.';
   }
+
+  @override
+  String get programEditorAiReapplyTitle => 'AI 운동을 새 안으로 바꿀까요?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return '앞서 반영한 AI 운동 $count개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => '바꾸기';
+
+  @override
+  String get programEditorAiReapplyAppend => '뒤에 추가';
 
   @override
   String programEditorSessionNameTyped(String type) {

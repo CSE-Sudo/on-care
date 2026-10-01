@@ -6,6 +6,9 @@ name: Backend Deploy (ECR + App Runner)
 # AWS 사용 시 필요한 GitHub Secrets:
 #   AWS_DEPLOY_ROLE_ARN   OIDC로 assume할 IAM 역할 ARN
 #   APPRUNNER_SERVICE_ARN 배포 대상 App Runner 서비스 ARN
+# Repository Variables(선택):
+#   AWS_BACKEND_REGION    배포 리전(기본 ap-southeast-1)
+#   BACKEND_EXPECTED_ENV  배포 뒤 /v1/healthz 의 env 기대값(기본 prod, #2821)
 on:
   workflow_run:
     workflows: ["Backend CI"]
@@ -147,6 +150,7 @@ jobs:
           echo "Pushed immutable image: $IMAGE_IDENTIFIER"
 
       - name: Update App Runner source and wait for operation
+        id: apprunner
         env:
           SVC: ${{ secrets.APPRUNNER_SERVICE_ARN }}
           IMAGE_IDENTIFIER: ${{ steps.image.outputs.identifier }}
@@ -219,13 +223,77 @@ jobs:
             --service-arn "$SVC" \
             --query 'Service.ServiceUrl' \
             --output text)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      # 배포된 서비스가 **어떤 설정으로 떴는지** 확인한다(#2821). 백엔드의 안전장치
+      # (데모 폴백 차단·JWT/CORS 검사)는 ENV=prod 일 때만 켜지는데, 서비스 환경변수에
+      # ENV 를 빠뜨려도 기동은 되므로 healthz 응답만으로는 알 수 없었다.
+      # 기대 환경은 저장소 변수 BACKEND_EXPECTED_ENV(기본 prod)로 정한다 — 데모 시연
+      # 서비스를 따로 이 워크플로로 배포한다면 그 저장소 변수를 staging 으로 둔다.
+      - name: Verify running configuration (healthz)
+        env:
+          URL: ${{ steps.apprunner.outputs.url }}
+          EXPECTED_ENV: ${{ vars.BACKEND_EXPECTED_ENV || 'prod' }}
+        run: |
+          set -euo pipefail
+          BODY=""
           for i in $(seq 1 10); do
-            if curl -fsS "https://$URL/v1/healthz" > /dev/null; then
-              echo "healthz OK: immutable deploy verified"
-              exit 0
+            if BODY=$(curl -fsS --max-time 10 "https://$URL/v1/healthz"); then
+              break
             fi
+            BODY=""
             echo "healthz not ready, retry $i"
             sleep 10
           done
-          echo "::error::배포 후 /v1/healthz가 응답하지 않습니다."
+          if [ -z "$BODY" ]; then
+            echo "::error::배포 후 /v1/healthz가 응답하지 않습니다."
+            exit 1
+          fi
+          echo "healthz: $BODY"
+
+          # jq 의 `//` 는 false 도 빈 값으로 보므로 has() 로 있는지부터 가린다.
+          field() {
+            printf '%s' "$BODY" |
+              jq -r --arg k "$1" 'if has($k) then (.[$k] | tostring) else "missing" end'
+          }
+          ACTUAL_ENV=$(field env)
+          DEMO_FALLBACK=$(field demo_fallback)
+          DEMO_SEED=$(field demo_seed)
+          FAILED=0
+          if [ "$ACTUAL_ENV" != "$EXPECTED_ENV" ]; then
+            echo "::error::서비스 env=$ACTUAL_ENV (기대값 $EXPECTED_ENV). App Runner 환경변수 ENV 를 확인하세요."
+            FAILED=1
+          fi
+          if [ "$DEMO_FALLBACK" != "false" ]; then
+            echo "::error::데모 폴백이 꺼져 있지 않습니다(demo_fallback=$DEMO_FALLBACK) — 토큰 없는 요청이 데모 회원으로 처리됩니다."
+            FAILED=1
+          fi
+          if [ "$EXPECTED_ENV" = "prod" ] && [ "$DEMO_SEED" != "false" ]; then
+            echo "::error::운영 서비스에 데모 시드가 켜져 있습니다(demo_seed=$DEMO_SEED). SEED_DEMO_DATA=false 로 두고 데모는 별도 서비스·DB 로 띄우세요."
+            FAILED=1
+          fi
+          if [ "$FAILED" -ne 0 ]; then
+            exit 1
+          fi
+          echo "healthz OK: env=$ACTUAL_ENV demo_fallback=false demo_seed=$DEMO_SEED"
+
+      # healthz 는 프로세스만 본다(App Runner 헬스체크도 healthz 다 — DB 일시 장애로
+      # 인스턴스를 갈아 치우지 않게). DB 까지 닿는지는 배포 직후 readyz 로 따로 본다(#2912).
+      - name: Verify database reachability (readyz)
+        env:
+          URL: ${{ steps.apprunner.outputs.url }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 6); do
+            if BODY=$(curl -fsS --max-time 10 "https://$URL/v1/readyz"); then
+              STATUS=$(printf '%s' "$BODY" | jq -r '.status // "missing"')
+              if [ "$STATUS" = "ready" ]; then
+                echo "readyz OK"
+                exit 0
+              fi
+            fi
+            echo "readyz not ready, retry $i"
+            sleep 10
+          done
+          echo "::error::배포 후 /v1/readyz 가 ready 를 돌려주지 않습니다 — DATABASE_URL·DB 보안 그룹·DB 상태를 확인하세요."
           exit 1

@@ -5047,6 +5047,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send. Please try again'**
   String get coachSendFailed;
 
+  /// No description provided for @coachSwitchClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to another client?'**
+  String get coachSwitchClientTitle;
+
+  /// No description provided for @coachSwitchClientBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsent work. Switching clients discards the program and personal exercises you are building.'**
+  String get coachSwitchClientBody;
+
+  /// No description provided for @coachSwitchClientConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get coachSwitchClientConfirm;
+
+  /// No description provided for @personalRoutineTargetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load PT sessions'**
+  String get personalRoutineTargetLoadFailed;
+
+  /// No description provided for @personalRoutineStartPast.
+  ///
+  /// In en, this message translates to:
+  /// **'The start date has passed, so it\'s now set to today. Check it and send again'**
+  String get personalRoutineStartPast;
+
+  /// No description provided for @schedRoutinesReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check the attached personal exercises. Please try again'**
+  String get schedRoutinesReadFailed;
+
   /// No description provided for @coachScheduleFailed.
   ///
   /// In en, this message translates to:
@@ -5304,6 +5340,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI generation failed. Please try again in a moment'**
   String get aiGenerateFailed;
+
+  /// No description provided for @aiGenerateInvalidConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the generation conditions. Total time must be between {min} and {max} minutes'**
+  String aiGenerateInvalidConditions(int min, int max);
+
+  /// No description provided for @aiGenerateMinutesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter between {min} and {max} minutes'**
+  String aiGenerateMinutesHelper(int min, int max);
 
   /// No description provided for @aiGenerateRateLimited.
   ///
@@ -7928,6 +7976,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
+
+  /// No description provided for @programEditorAiReapplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the AI exercises with the new plan?'**
+  String get programEditorAiReapplyTitle;
+
+  /// No description provided for @programEditorAiReapplyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.'**
+  String programEditorAiReapplyBody(int count);
+
+  /// No description provided for @programEditorAiReapplyReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get programEditorAiReapplyReplace;
+
+  /// No description provided for @programEditorAiReapplyAppend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after'**
+  String get programEditorAiReapplyAppend;
 
   /// No description provided for @programEditorSessionNameTyped.
   ///
