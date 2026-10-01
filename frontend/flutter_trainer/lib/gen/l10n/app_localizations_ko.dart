@@ -753,6 +753,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientConnectCodeInvalid => '코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요';
 
   @override
+  String get clientConnectAlreadyManaged => '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요';
+
+  @override
   String get clientInviteConnectAction => '회원 등록';
 
   @override

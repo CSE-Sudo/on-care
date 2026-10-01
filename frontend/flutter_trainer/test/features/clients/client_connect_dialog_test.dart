@@ -89,8 +89,9 @@ PairedMember _paired() => const PairedMember(
 void main() {
   Future<void> pumpDialog(
     WidgetTester tester,
-    _FakeInviteRepository repository,
-  ) async {
+    _FakeInviteRepository repository, {
+    Locale locale = const Locale('ko'),
+  }) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -103,7 +104,7 @@ void main() {
           // 실제 앱 테마로 띄운다 — 기본 테마에는 없는 입력 채움·테두리가
           // 코드 상자 위에 겹쳐 그려진 적이 있다(#1636).
           theme: AppTheme.light(),
-          locale: const Locale('ko'),
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
@@ -282,6 +283,49 @@ void main() {
 
     expect(find.text('이미 다른 트레이너가 담당 중인 회원이에요.'), findsOneWidget);
     expect(find.text('이 회원이 맞나요?'), findsNothing);
+  });
+
+  group('이미 담당 중인 회원 — 타입 있는 오류를 로케일 문구로 (#2893)', () {
+    for (final (Locale locale, String expected) in <(Locale, String)>[
+      (const Locale('ko'), '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
+      (
+        const Locale('en'),
+        'You already manage this member. Find them in your member list',
+      ),
+    ]) {
+      testWidgets('${locale.languageCode} 화면', (tester) async {
+        final repository = _FakeInviteRepository(
+          failure: const AlreadyManagedError(),
+        );
+        await pumpDialog(tester, repository, locale: locale);
+
+        await enterCode(tester, '567812');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text(expected), findsOneWidget);
+        // 확인 화면으로 넘어가지 않는다.
+        expect(
+          find.byKey(const ValueKey<String>('client-connect-result')),
+          findsNothing,
+        );
+      });
+    }
+
+    testWidgets('영어 화면에서 한국어 사유 문장은 새지 않는다', (tester) async {
+      // 실서버가 준 한국어 사유는 영어 화면에서 일반 문구로 물러난다 — 타입
+      // 있는 오류만 자기 문구를 갖는다.
+      final repository = _FakeInviteRepository(
+        failure: const ValidationError(message: '이미 다른 트레이너가 담당 중인 회원이에요.'),
+      );
+      await pumpDialog(tester, repository, locale: const Locale('en'));
+
+      await enterCode(tester, '979030');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.textContaining('이미'), findsNothing);
+    });
   });
 
   testWidgets('코드 상자 위에 입력창이 겹쳐 그려지지 않는다', (tester) async {

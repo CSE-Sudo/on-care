@@ -155,6 +155,8 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
   /// 한국어가 새지 않게 한다).
   String _messageFor(AppLocalizations l, Object error) => switch (error) {
     NotFoundError() => l.clientConnectCodeInvalid,
+    // 타입으로 받은 사유는 로케일 문구로 — 한국어 문장이 새지 않는다(#2893).
+    AlreadyManagedError() => l.clientConnectAlreadyManaged,
     AppError(:final String? message) => serverDetailOr(
       l,
       message,

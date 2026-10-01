@@ -42,6 +42,7 @@ class ClientDetailView extends ConsumerStatefulWidget {
     required this.onSectionChange,
     this.showBack = true,
     this.onClose,
+    this.filter,
     this.openHealthNotes = false,
     this.onHealthNotesOpened,
   });
@@ -61,6 +62,10 @@ class ClientDetailView extends ConsumerStatefulWidget {
   /// Closes the panel and returns to the plain list. The header's `<` calls
   /// this in the split view; without it `<` goes to the 회원 list route.
   final VoidCallback? onClose;
+
+  /// 상세를 연 목록의 필터(`f`). [onClose] 가 없을 때 `<` 가 이 필터를 건
+  /// 목록으로 돌아간다 — 닫을 때마다 필터가 풀리지 않게(#2893).
+  final String? filter;
 
   /// 들어오자마자 신체·목표 창의 `건강 목표` 탭을 연다 — 주의사항 알림에서 온
   /// 길이다(#2619). 연 뒤에는 [onHealthNotesOpened] 로 알린다.
@@ -186,7 +191,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
       close();
       return;
     }
-    context.go(AppRoutes.clients);
+    context.go(AppRoutes.clientsWith(widget.filter));
   }
 
   /// Moves a 휴면 client back to 활성. (#707)

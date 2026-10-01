@@ -1472,6 +1472,12 @@ abstract class AppLocalizations {
   /// **'That code is wrong or expired. Ask the member for a new one'**
   String get clientConnectCodeInvalid;
 
+  /// No description provided for @clientConnectAlreadyManaged.
+  ///
+  /// In en, this message translates to:
+  /// **'You already manage this member. Find them in your member list'**
+  String get clientConnectAlreadyManaged;
+
   /// No description provided for @clientInviteConnectAction.
   ///
   /// In en, this message translates to:

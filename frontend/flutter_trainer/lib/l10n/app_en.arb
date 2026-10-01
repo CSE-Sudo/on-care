@@ -508,6 +508,7 @@
   "clientConnectCodeLabel": "Sync code",
   "clientConnectCodeRequired": "Enter all six digits",
   "clientConnectCodeInvalid": "That code is wrong or expired. Ask the member for a new one",
+  "clientConnectAlreadyManaged": "You already manage this member. Find them in your member list",
   "clientInviteConnectAction": "Register member",
   "clientInviteConnected": "Registered {name} as a member",
   "@clientInviteConnected": {

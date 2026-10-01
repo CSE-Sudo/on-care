@@ -229,7 +229,11 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                                   filter: widget.filter,
                                 ),
                               ),
-                              onClose: () => context.go(AppRoutes.clients),
+                              // 걸어 둔 목록 필터(`f`)를 들고 돌아간다(#2893).
+                              filter: widget.filter,
+                              onClose: () => context.go(
+                                AppRoutes.clientsWith(widget.filter),
+                              ),
                             ),
                     ),
                   ),

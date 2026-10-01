@@ -1,4 +1,14 @@
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+
+/// 이미 담당하고 있는 회원의 동기화 코드다. (#2893)
+///
+/// 데모 저장소가 문장 대신 이 타입을 던지고, 연결 창이 로케일에 맞는 문구로
+/// 바꿔 보여 준다. 예전에는 한국어 문장을 [ValidationError.message] 에 담아,
+/// 영어 화면에서는 이유를 잃고 일반 실패 문구만 보였다.
+class AlreadyManagedError extends ValidationError {
+  const AlreadyManagedError();
+}
 
 /// 이메일 완전 일치로 찾은 회원 한 명.
 ///
@@ -157,7 +167,9 @@ class ClientInvite {
     // 보냈는지가 트레이너가 기다릴지 다시 보낼지를 정하는 값이라, 틀린 값보다
     // 실패가 낫다(다른 응답 파서와 같은 규약).
     createdAt:
-        DateTime.tryParse(json['created_at'] as String? ?? '')?.toLocal() ??
+        // UTC 순간 그대로 — 브라우저 시간대로 옮기지 않는다(#2893). 보여 줄
+        // 때는 `toKst` 로 읽는다.
+        DateTime.tryParse(json['created_at'] as String? ?? '') ??
         (throw const FormatException('Invalid client invite created_at.')),
     message: json['message'] as String?,
   );

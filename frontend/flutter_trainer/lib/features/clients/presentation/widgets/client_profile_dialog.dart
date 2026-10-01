@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -1584,8 +1585,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     }
   }
 
+  /// 메모 시각은 KST 벽시계로 보인다 — 브라우저 시간대와 상관없이(#2893).
   static String _dayLabel(DateTime at) {
-    final local = at.toLocal();
+    final DateTime local = toKst(at);
     String two(int v) => v.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';

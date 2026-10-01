@@ -773,6 +773,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That code is wrong or expired. Ask the member for a new one';
 
   @override
+  String get clientConnectAlreadyManaged =>
+      'You already manage this member. Find them in your member list';
+
+  @override
   String get clientInviteConnectAction => 'Register member';
 
   @override
