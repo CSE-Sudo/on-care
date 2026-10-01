@@ -20,11 +20,12 @@ import 'package:oncare/features/dashboard/domain/repositories/dashboard_reposito
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../helpers/demo_exercise.dart';
 import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 
@@ -34,8 +35,11 @@ const AppConfig _config = AppConfig(
   useMockApi: true,
 );
 
-/// 조언을 몇 번 받았는지 센다.
-class _CountingExerciseRepository extends MockExerciseRepository {
+/// 조언을 몇 번 받았는지 센다. 기록은 앱의 데모와 같은 로컬 목업 API(시드한
+/// 메모리 drift)가 든다(#2724).
+class _CountingExerciseRepository extends DioExerciseRepository {
+  _CountingExerciseRepository(super.dio);
+
   int adviceCalls = 0;
 
   @override
@@ -53,7 +57,9 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(430, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    exercise = _CountingExerciseRepository();
+    exercise = _CountingExerciseRepository(
+      demoExerciseDio(await seededDemoDatabase(tester)),
+    );
     router = buildAppRouter(config: _config);
     addTearDown(router.dispose);
     router.go(AppRoutes.dashboard);

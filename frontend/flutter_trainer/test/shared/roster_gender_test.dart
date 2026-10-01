@@ -3,32 +3,14 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 import '../helpers/client_factory.dart';
 
-/// 이름과 어긋나게 떨어지던 로스터 회원의 성별을 고정한다. (#960)
+/// 로스터 성별 — 저장된 값이 먼저고, 없을 때만 id 로 정한 고정값이다.
 ///
-/// 표시용 성별은 저장된 값이 아니라 회원 id 로 만들어지는데, 데모
-/// (`seed-client-8`)와 실 API(`user-sera`)가 서로 다른 id 를 쓴다. 그래서 id 가
-/// 아니라 이름으로 고정한다 — 두 모드가, 그리고 모든 탭이 같은 값을 말해야 한다.
+/// 예전에는 id 로 만든 값이 이름과 어긋나는 데모 회원 넷을 이름으로 고쳐 두는
+/// 표가 있었다(#960). 트레이너 웹 데모(#2667)와 실서버 시드가 모두 회원 성별을
+/// 저장하게 되어 표를 지웠다(#2734).
 void main() {
-  const Map<String, String> expected = <String, String>{
-    '한지호': 'male',
-    '신유나': 'female',
-    // 데모에서 보이던 여성 그대로다. id 로 만든 값이 실 API(`user-sera`)
-    // 에서는 남성으로 갈려서, 이름으로 고정해 두 모드를 맞춘다.
-    '오세라': 'female',
-    '문가영': 'female',
-  };
-
   group('로스터 성별', () {
-    for (final entry in expected.entries) {
-      test('${entry.key} 는 id 와 무관하게 ${entry.value}', () {
-        for (final id in <String>['seed-client-8', 'user-sera', 'anything']) {
-          final client = makeClient(id: id, name: entry.key);
-          expect(client.rosterGender, entry.value, reason: 'id=$id');
-        }
-      });
-    }
-
-    test('API 가 성별을 주면 그 값이 이긴다', () {
+    test('저장된 성별이 이긴다', () {
       const client = TrainerClient(
         id: 'user-sera',
         name: '오세라',
@@ -49,12 +31,25 @@ void main() {
       expect(client.rosterGender, 'male');
     });
 
-    test('명단에 없는 회원은 지금까지처럼 id 로 정해진다', () {
+    test('저장된 성별이 없으면 이름과 무관하게 id 로 정해진다', () {
       // 코드 포인트 합이 짝수면 여성, 홀수면 남성 — 이름이 아니라 id 가 정한다.
       expect(makeClient(id: 'seed-client-1', name: '김민수').rosterGender, 'male');
       expect(
         makeClient(id: 'seed-client-2', name: '이지수').rosterGender,
         'female',
+      );
+      // 같은 id 면 이름이 달라도 같은 값이다.
+      expect(
+        makeClient(id: 'seed-client-11', name: '한지호').rosterGender,
+        makeClient(id: 'seed-client-11', name: '아무개').rosterGender,
+      );
+    });
+
+    test('신규 연결 확인 카드도 같은 규칙이다', () {
+      expect(rosterGenderFor(id: 'user-x', gender: 'other'), 'other');
+      expect(
+        rosterGenderFor(id: 'seed-client-2'),
+        makeClient(id: 'seed-client-2', name: '이지수').rosterGender,
       );
     });
   });
