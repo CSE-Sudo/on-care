@@ -64,7 +64,7 @@ from app.schemas.consultation_api import (
     ConsultationStatusFilter,
     TrainerConsultationOut,
 )
-from app.schemas.user import AccountDeleteRequest
+from app.schemas.user import AccountDeleteRequest, PasswordChanged
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
     ClientCoachRequest, ClientDietEntryOut, DeliveryOut,
@@ -105,6 +105,7 @@ from app.schemas.trainer_api import (
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
+    auth_tokens,
     diet_service,
     diet_trainer_analysis,
     diet_trainer_pick,
@@ -328,13 +329,18 @@ def trainer_clear_gym(
     return trainer_service.clear_trainer_gym(db, trainer, profile)
 
 
-@router.post("/trainer/me/password", status_code=200)
+@router.post("/trainer/me/password", status_code=200, response_model=PasswordChanged)
 def trainer_change_password(
     payload: TrainerPasswordChange,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
-    """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다."""
+) -> PasswordChanged:
+    """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다.
+
+    바꾸면 계정의 토큰 세대가 올라가 **다른 기기에 이미 나간 접근·refresh 토큰이
+    모두 무효**가 된다(#2766) — 비밀번호를 바꾸는 이유는 대개 누가 계정을 쓰고
+    있을지 모른다는 의심이다. 요청한 기기는 응답에 담긴 새 토큰으로 이어 쓴다.
+    """
     if not verify_password(payload.current_password, trainer.hashed_password):
         # 현재 비밀번호 불일치는 401 이 아니라 400 — 토큰은 유효하므로
         # 클라이언트가 로그아웃 처리로 오인하면 안 된다.
@@ -342,8 +348,14 @@ def trainer_change_password(
     if verify_password(payload.new_password, trainer.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     trainer.hashed_password = hash_password(payload.new_password)
+    # 비밀번호와 세대는 한 트랜잭션으로 — 하나만 반영되면 옛 토큰이 살아남거나
+    # 비밀번호는 그대로인데 모든 기기가 끊긴다.
+    auth_tokens.bump_version(trainer)
     db.commit()
-    return {"status": "changed"}
+    tokens = auth_tokens.issue_token_pair(trainer)
+    return PasswordChanged(
+        access_token=tokens.access_token, refresh_token=tokens.refresh_token
+    )
 
 
 #: 트레이너 탈퇴 화면이 보여 주는 사유(#2264). 회원 사유(`DELETION_REASONS`)와 같은

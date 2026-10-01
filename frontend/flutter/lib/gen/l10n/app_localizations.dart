@@ -5419,6 +5419,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in failed. Please try again in a moment'**
   String get authSocialSignInFailed;
 
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email'**
+  String get authSocialComingSoon;
+
   /// No description provided for @signUpTitle.
   ///
   /// In en, this message translates to:

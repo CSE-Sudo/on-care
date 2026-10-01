@@ -103,7 +103,7 @@ class AppConfig {
   }
 
   /// #330 실제 OAuth SDK 연동 전, 고정 토큰을 기기 안 목업에만 보낸다.
-  /// 실 인증을 쓰는 설정에서는 시드 데모 계정의 일반 로그인으로 연결한다(#2069).
+  /// 실 인증을 쓰는 설정에서는 소셜 버튼이 꺼지고 '준비 중' 안내가 뜬다(#2769).
   bool get usesMockSocialLogin =>
       useMockApi && !isProd && !isRealApi('POST', '/auth/social');
 
