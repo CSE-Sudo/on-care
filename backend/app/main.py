@@ -37,7 +37,7 @@ from app.api.v1 import (
     trainers,
     users,
 )
-from app.core import observability
+from app.core import observability, startup_checks
 from app.core.body_limit import RequestBodySizeLimitMiddleware
 from app.core.client_platform import RequestClientPlatformMiddleware
 from app.core.config import get_settings
@@ -52,6 +52,9 @@ observability.setup_logging(settings.log_level)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 설정끼리 어긋나면 DB 를 건드리기 전에 멈추고, 운영에서 위험한 상태는
+    # 경고로 남긴다(#2817·#2821).
+    startup_checks.check(settings)
     init_db()
     yield
 

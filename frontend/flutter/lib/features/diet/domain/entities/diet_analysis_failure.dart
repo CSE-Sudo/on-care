@@ -12,12 +12,19 @@ enum DietAnalysisFailure {
   /// 415 — the server can't decode this image type.
   unsupportedFormat(canRetry: false),
 
-  /// 400 — empty file, or a request the server refused to parse.
+  /// 400 / 422 — empty file, or a request the server refused to parse.
   badRequest(canRetry: false),
 
-  /// 401 / 403 — the session is gone. There is no token refresh, so the
-  /// user has to sign in again; retrying sends the same dead token.
+  /// 401 — the session is gone. Retrying sends the same dead token, so the
+  /// user has to sign in again.
   unauthorized(canRetry: false),
+
+  /// 403 — 로그인은 유효한데 이 기능을 쓸 권한·동의가 없다(#2859). 다시
+  /// 로그인해도 같은 403 이라 로그인으로 보내면 로그아웃·로그인만 되풀이된다.
+  forbidden(canRetry: false),
+
+  /// 429 — 요청 한도를 넘었다(#2859). 잠시 뒤 같은 사진으로 다시 하면 된다.
+  rateLimited(canRetry: true),
 
   /// 501 — no recognizer is wired up for this deployment.
   notImplemented(canRetry: false),
@@ -43,9 +50,13 @@ enum DietAnalysisFailure {
     if (error is! AppError) return DietAnalysisFailure.temporary;
     return switch (error) {
       UnauthorizedError() => DietAnalysisFailure.unauthorized,
+      ForbiddenError() => DietAnalysisFailure.forbidden,
+      RateLimitedError() => DietAnalysisFailure.rateLimited,
+      ValidationError() => DietAnalysisFailure.badRequest,
       NetworkError() => DietAnalysisFailure.temporary,
       ServerError(:final int? statusCode) => switch (statusCode) {
-        400 => DietAnalysisFailure.badRequest,
+        // 목업이 상태 코드로 직접 던지는 400 도 같은 뜻이다.
+        400 || 422 => DietAnalysisFailure.badRequest,
         415 => DietAnalysisFailure.unsupportedFormat,
         501 => DietAnalysisFailure.notImplemented,
         502 => DietAnalysisFailure.recognitionFailed,

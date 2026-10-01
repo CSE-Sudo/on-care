@@ -43,7 +43,9 @@ class Settings(BaseSettings):
     # 때 쓸 수 있는 기간을 줄인다. 모바일은 위 값을 그대로 쓴다.
     web_refresh_token_expire_days: int = 7
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
-    allow_demo_fallback: bool = True
+    # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
+    # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.
+    allow_demo_fallback: bool = False
 
     # --- 소셜 로그인 ---
     # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.
@@ -85,6 +87,17 @@ class Settings(BaseSettings):
     #: 정도이되, 대화 스레드가 파일 서버가 되지는 않을 정도.
     max_chat_image_bytes: int = 6 * 1024 * 1024
 
+    #: 채팅 첨부(사진·리포트 PDF) 바이트 저장소(#2817). auto 는 버킷 이름이 있으면
+    #: s3, 없으면 local(위 두 디렉터리). 컨테이너 디스크는 재배포·스케일 아웃에서
+    #: 비므로 운영은 s3 를 쓴다. 자격 증명은 실행 환경의 IAM 역할에서 받는다.
+    attachment_storage: Literal["auto", "local", "s3"] = "auto"
+    attachment_s3_bucket: str = ""
+    attachment_s3_region: str = ""
+    #: 키 접두사. 실제 키는 `<접두사>/chat-images/<id>.<ext>`·`.../report-pdfs/<id>.pdf`.
+    attachment_s3_prefix: str = "chat-attachments"
+    #: S3 호환 저장소·로컬 에뮬레이터를 쓸 때만. 비우면 AWS 기본 엔드포인트.
+    attachment_s3_endpoint_url: str = ""
+
     # --- AI 엔진 ---
     recognizer: str = "gemini"        # gemini | claude(litellm) | yolo
     # 인식 후 공공 식품영양성분 DB 로 영양 수치 보강(정확도↑). 순수 LLM 비교실험 시 false.
@@ -98,6 +111,9 @@ class Settings(BaseSettings):
     # Gemini HTTP 타임아웃(초). 걸지 않으면 무응답 시 호출 스레드가 무기한 묶여
     # 워커 풀이 고갈된다(추천 경로는 스레드 풀에서 돈다).
     gemini_timeout_seconds: float = 30.0
+    # 식단 사진 인식 HTTP 타임아웃(초, #2912). 사진 분석은 글 응답보다 오래 걸려
+    # gemini_timeout_seconds 와 따로 둔다. Gemini·LiteLLM 비전 인식기가 함께 쓴다.
+    recognizer_timeout_seconds: float = 60.0
     coach_llm: str = "gemini"         # openai | gemini | litellm
     openai_api_key: str = ""
     openai_chat_model: str = "gpt-4o"

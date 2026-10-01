@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
     show readDemoUnregisteredClientIds, writeDemoUnregisteredClientIds;
@@ -377,12 +378,8 @@ class DioClientInviteRepository implements ClientInviteRepository {
     }
   }
 
-  String? _detail(DioException e) {
-    final data = e.response?.data;
-    if (data is! Map) return null;
-    final detail = data['detail'];
-    return detail is String ? detail : null;
-  }
+  // 객체형 `detail`(`code`·`message`)의 문장도 읽는다(#2911).
+  String? _detail(DioException e) => serverDetailText(e.response?.data);
 }
 
 /// 현재 모드에 맞는 저장소.
